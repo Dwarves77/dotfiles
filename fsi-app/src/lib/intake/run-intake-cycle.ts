@@ -129,7 +129,18 @@ export async function runIntakeCycle(
     // 3 — GROUND + 4 — VALIDATE via the ONE grounding contract (D4): generateBriefWorkflow, awaited directly
     // (F16 caller threaded), so the cycle inherits preflight + tiered-retry + research-or-erase + the
     // fail-closed cross-item audit gate. status='verified' only when the audit gate passed.
-    const wf = await generateBriefWorkflow(itemId, false, caller);
+    // A workflow FatalError (global-pause / data-audit-block / daily-cap) is a HALT, not a cycle crash: catch
+    // it and record ground_failed with the halt reason, so the disposition trail stays complete and the item
+    // stays quarantined (research-or-erase), rather than the whole cycle throwing on one halted item.
+    let wf: Awaited<ReturnType<typeof generateBriefWorkflow>>;
+    try {
+      wf = await generateBriefWorkflow(itemId, false, caller);
+    } catch (e) {
+      groundFailed++;
+      const reason = `workflow halted: ${e instanceof Error ? e.message : String(e)}`;
+      items.push({ ...base, disposition: "ground_failed", itemId, provenance: "quarantined", reason, evidence: { mint: `chokepoint:${mat.action ?? "minted"}`, workflow: "halted" } });
+      continue;
+    }
     const step = (k: keyof typeof wf.steps) => (wf.steps[k] as { detail?: string } | undefined)?.detail ?? "";
     const { data: fin } = await sb.from("intelligence_items").select("provenance_status").eq("id", itemId).single();
     const provenance = (fin as { provenance_status?: string } | null)?.provenance_status ?? null;

@@ -11,6 +11,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import type { ScrapeCadence, ScrapeSchedule } from "@/lib/sources/scrape-schedule";
+import { isAuthorizedHoldCaller } from "@/lib/sources/fetch-hold.mjs";
 
 export interface ScrapeState extends ScrapeSchedule {
   /** Independent emergency stop (system_state.global_processing_paused) — hard-halts regardless of cadence. */
@@ -45,6 +46,52 @@ export async function getScrapeState(supabase: SupabaseClient): Promise<ScrapeSt
 export async function isGloballyPaused(supabase: SupabaseClient): Promise<boolean> {
   const s = await getScrapeState(supabase);
   return s.cadence === "off" || s.emergencyPaused;
+}
+
+/** Result of the generation pause gate: whether to halt, and (if so) the FatalError reason. */
+export interface GenerationPauseResult {
+  halt: boolean;
+  reason?: string;
+}
+
+/**
+ * The GENERATION pause gate — pause-is-prohibition / dormancy-is-schedule (RULED 2026-07-12).
+ *
+ * `isGloballyPaused` above conflated two DISTINCT states and is the per-request FETCH gate (unchanged;
+ * autonomous fetch routes keep calling it). GENERATION splits them, because the manual-intake path
+ * (an operator-fired `runIntakeCycle`, F16-signed caller) must be able to GROUND in the dormant
+ * pre-launch state it was built for — otherwise it can MINT but never VERIFY:
+ *
+ *   - emergencyPaused (`global_processing_paused`) = the OPERATOR'S STOP. A HARD halt for EVERY caller,
+ *     including the signed manual caller. Inviolable: no caller identity overrides it. When the operator
+ *     says stop, the machine is stopped. (register: operator-stop-states-are-inviolable.)
+ *   - cadence==='off' = DORMANT ("nothing runs unbidden"). Halts AUTONOMOUS generation only; an
+ *     F16-signed manual caller (manual-intake-run / unit3-remediation) proceeds — an operator-fired run
+ *     IS the bidding.
+ *
+ * This is ONLY the pause gate. The real integrity gates downstream (data-audit-block, daily-cap, the
+ * per-type authority floors, the grounding judge) bind EVERY caller always — no caller identity ever
+ * bypasses them. Pure + synchronous so the red-then-green pair tests it without a DB.
+ */
+export function evaluateGenerationPause(
+  scrape: Pick<ScrapeState, "cadence" | "emergencyPaused">,
+  caller: string | null
+): GenerationPauseResult {
+  if (scrape.emergencyPaused) {
+    return {
+      halt: true,
+      reason:
+        "emergency pause is set (global_processing_paused) — a HARD stop for all callers; no caller identity overrides an operator stop",
+    };
+  }
+  if (scrape.cadence === "off" && !isAuthorizedHoldCaller(caller)) {
+    return {
+      halt: true,
+      reason:
+        "scrape cadence is off (dormant/pre-launch) — only an F16-signed manual caller (manual-intake-run) may generate here",
+    };
+  }
+  return { halt: false };
 }
 
 export async function isSourcePaused(

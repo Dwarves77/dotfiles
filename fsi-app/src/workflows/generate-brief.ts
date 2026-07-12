@@ -31,7 +31,7 @@ function safeStepMetadata(): { attempt?: number } | null {
 }
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { spanCheckFetch, type SpanCheckResult } from "../lib/agent/span-check";
-import { isGloballyPaused } from "../lib/api/pause";
+import { getScrapeState, evaluateGenerationPause } from "../lib/api/pause";
 import {
   generateBrief,
   generateBriefFromStored,
@@ -98,12 +98,19 @@ async function recordRun(sb: SupabaseClient, itemId: string, label: string, cost
 //      the existing agent_runs.cost_usd_estimated ledger (the same ledger MtdSpendTile
 //      reads); if at/over the daily cap, HALT before any new Sonnet call.
 // FatalError (not Retryable): paused/over-budget is a permanent stop for this run.
-export async function preflightStep(itemId: string): Promise<{ spentUsd: number; capUsd: number }> {
+export async function preflightStep(itemId: string, caller: string | null = null): Promise<{ spentUsd: number; capUsd: number }> {
   "use step";
   void itemId;
   const sb = svc();
-  if (await isGloballyPaused(sb)) {
-    throw new FatalError("generation halted: global_processing_paused is set (admin pause)");
+  // PAUSE — pause-is-prohibition / dormancy-is-schedule (RULED 2026-07-12). The split lives in the pure,
+  // unit-tested evaluateGenerationPause (pause.ts): emergencyPaused = a HARD stop for ALL callers (the
+  // operator's inviolable stop, no caller identity overrides it); cadence==='off' = dormant, halts only
+  // AUTONOMOUS generation — an F16-signed manual caller (manual-intake-run) proceeds, since an operator-fired
+  // run IS the bidding. This is why the manual-intake path can now GROUND (not just MINT) in the pre-launch
+  // state it was built for. The real integrity gates below (data-audit-block, daily-cap) bind everyone.
+  const gate = evaluateGenerationPause(await getScrapeState(sb), caller);
+  if (gate.halt) {
+    throw new FatalError(`generation halted: ${gate.reason}`);
   }
   // LAYER C — BLOCK-NEXT-RUN (enforcement-gap fix, 2026-06-21). The nightly data-audit lane reflects a RED
   // verdict into ONE open integrity_flags block row (DATA_AUDIT_BLOCK) and resolves it on GREEN. Generation
@@ -381,7 +388,7 @@ export async function generateBriefWorkflow(itemId: string, refresh = false, cal
 
   // Preflight first — halts (FatalError) before any Sonnet spend if paused, over budget, or if the
   // data-audit lane is RED with no current disposition (Layer C block-next-run).
-  const budget = await preflightStep(itemId);
+  const budget = await preflightStep(itemId, caller);
 
   // LAYER B baseline — snapshot the global one-tier-per-host violation count BEFORE any registering write,
   // so the post-write gate can attribute a NEW conflict to this run vs the corpus's standing violations.
