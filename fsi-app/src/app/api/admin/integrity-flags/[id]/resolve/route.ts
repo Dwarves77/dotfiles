@@ -28,7 +28,8 @@
 // Auth: requireAuth + admin role check. Rate-limited.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
@@ -41,16 +42,10 @@ interface ResolveBody {
   newSourceUrl?: string;
 }
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 // Platform-admin gate via profiles.is_platform_admin (OBS-17, Sprint 2 Build 6).
 async function requireAdminRole(
-  supabase: ReturnType<typeof getServiceClient>,
+  supabase: ReturnType<typeof getServiceSupabase>,
   userId: string
 ): Promise<NextResponse | null> {
   const admin = await isPlatformAdmin(userId, supabase);
@@ -73,7 +68,7 @@ export async function POST(
   const limited = checkRateLimit(auth.userId);
   if (limited) return limited;
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
   const denied = await requireAdminRole(supabase, auth.userId);
   if (denied) return denied;
 

@@ -23,7 +23,8 @@
 // it to L either — operator review is the safety net). Domain regex
 // gives a confidence band that tilts but never alone forces L.
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { type SupabaseClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
 import { haikuVerifyCandidate } from "@/lib/llm/haiku-classify";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
@@ -753,12 +754,6 @@ async function writeAuditLog(
 // Helper — service-role Supabase client
 // ────────────────────────────────────────────────────────────────────────────
 
-function getServiceClient(): SupabaseClient {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Public API: verifyCandidate
@@ -777,7 +772,7 @@ export async function verifyCandidate(
   }
 ): Promise<VerificationResult> {
   const startedAt = Date.now();
-  const supabase = opts?.supabase ?? getServiceClient();
+  const supabase = opts?.supabase ?? getServiceSupabase();
   const skipDuplicateCheck = opts?.skipDuplicateCheck ?? false;
   const dryRun = opts?.dryRun ?? false;
 

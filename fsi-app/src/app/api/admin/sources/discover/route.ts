@@ -21,7 +21,8 @@
 // will land near the limit; shallow runs ~10s end-to-end.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
@@ -35,12 +36,6 @@ import {
 
 export const maxDuration = 60;
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 const ALLOWED_DEPTHS: ReadonlySet<DiscoveryDepth> = new Set([
   "shallow",
@@ -105,7 +100,7 @@ export async function POST(request: NextRequest) {
   const dryRun = body.dryRun === true;
 
   // ── Platform admin gate ──
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
   const admin = await isPlatformAdmin(auth.userId, supabase);
   if (!admin) {
     return NextResponse.json(

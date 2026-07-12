@@ -20,19 +20,14 @@
 // Rate limit: standard 60/min/user.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import {
   requireCommunityAuth,
   isCommunityAuthError,
 } from "@/lib/api/community-auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 export async function POST(
   request: NextRequest,
@@ -92,7 +87,7 @@ export async function POST(
   //    requires the caller to be an existing admin of the group, which
   //    is not the case for a self-join. We use the service-role client
   //    AFTER explicitly validating privacy='public' above.
-  const service = getServiceClient();
+  const service = getServiceSupabase();
   const { error: insErr } = await service
     .from("community_group_members")
     .insert({

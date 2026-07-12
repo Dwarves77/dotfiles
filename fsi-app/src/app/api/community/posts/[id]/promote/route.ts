@@ -30,7 +30,8 @@
 // Rate limit: standard 60/min/user.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import {
   requireCommunityAuth,
   isCommunityAuthError,
@@ -87,12 +88,6 @@ interface PromoteBody {
   notes?: string;
 }
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 function isHttpUrl(value: string): boolean {
   try {
@@ -235,7 +230,7 @@ export async function POST(
 
   // ── 5. Idempotency — return 409 with the existing promotion's IDs.
   if (post.promoted_at) {
-    const service = getServiceClient();
+    const service = getServiceSupabase();
     const { data: existing } = await service
       .from("post_promotions")
       .select("id, promotion_kind, staged_update_id, intelligence_item_id, created_at")
@@ -313,7 +308,7 @@ export async function POST(
   //       the canonical marker for a proposed new intelligence_item;
   //       proposed_changes carries the payload; the admin queue materializes
   //       it on approval, after which it grounds like any other item.
-  const service = getServiceClient();
+  const service = getServiceSupabase();
   const intelligenceItemId: string | null = null; // never set here (staged-only)
 
   const { data: staged, error: stagedErr } = await service

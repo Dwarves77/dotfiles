@@ -26,8 +26,9 @@
 //   - 401/403 responses: see above. Admin status is sticky for the session.
 
 import { NextRequest, NextResponse } from "next/server";
+import { getServiceSupabase } from "@/lib/supabase-service";
 import { unstable_cache } from "next/cache";
-import { createClient } from "@supabase/supabase-js";
+
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
@@ -41,12 +42,6 @@ function withCacheHeader(resp: NextResponse, value: string): NextResponse {
   return resp;
 }
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 interface AttentionCounts {
   provisional_sources_pending: number;
@@ -83,7 +78,7 @@ type FetchResult = { row: AttentionCounts; rpcError: string | null };
 
 const fetchAttentionCounts = unstable_cache(
   async (_userId: string): Promise<FetchResult> => {
-    const supabase = getServiceClient();
+    const supabase = getServiceSupabase();
     const { data, error } = await supabase.rpc("admin_attention_counts");
     if (error) return { row: EMPTY_COUNTS, rpcError: error.message };
     const row: AttentionCounts =
@@ -107,7 +102,7 @@ export async function GET(request: NextRequest) {
   const limited = checkRateLimit(auth.userId);
   if (limited) return withCacheHeader(limited, NEGATIVE_CACHE);
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   // Platform-admin gate. Service-role client bypasses RLS so the role
   // lookup works regardless of the caller's session scoping. Stamp the

@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 // POST /api/admin/users — create a user and assign to org
 export async function POST(request: NextRequest) {
@@ -30,7 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = getServiceClient();
+    const supabase = getServiceSupabase();
 
     // Platform-admin gate (OBS-17, Sprint 2 Build 6). Prior implementation
     // had no admin gate beyond requireAuth, meaning any authenticated user
@@ -103,7 +98,7 @@ export async function GET(request: NextRequest) {
   if (limited) return limited;
 
   try {
-    const supabase = getServiceClient();
+    const supabase = getServiceSupabase();
 
     // Platform-admin gate (OBS-17, Sprint 2 Build 6). The list spans
     // org_memberships across ALL orgs — must be gated on platform admin.

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { revalidateTag } from "next/cache";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
@@ -7,19 +8,13 @@ import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { APP_DATA_TAG } from "@/lib/data";
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Resolve a UI-side identifier (legacy_id like "o3" OR a UUID) to the
 // intelligence_items.id UUID. Returns null if not found.
 async function resolveItemUuid(
-  supabase: ReturnType<typeof getServiceClient>,
+  supabase: ReturnType<typeof getServiceSupabase>,
   itemId: string
 ): Promise<string | null> {
   if (UUID_RE.test(itemId)) return itemId;
@@ -42,7 +37,7 @@ async function handlePOST(request: NextRequest) {
   const limited = checkRateLimit(auth.userId);
   if (limited) return limited;
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   const orgId = await resolveOrgIdFromUserId(supabase, auth.userId);
   if (!orgId) {
@@ -131,7 +126,7 @@ async function handleDELETE(request: NextRequest) {
   const limited = checkRateLimit(auth.userId);
   if (limited) return limited;
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   const orgId = await resolveOrgIdFromUserId(supabase, auth.userId);
   if (!orgId) {

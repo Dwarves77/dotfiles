@@ -40,7 +40,8 @@
 // follow-up — not silently added here.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+import { type SupabaseClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 import {
   VERIFICATION_HAIKU_SYSTEM_PROMPT,
@@ -63,12 +64,6 @@ const CONTENT_TIMEOUT_MS = 10_000;
 const CONTENT_MAX_CHARS = 6_000;
 const MAX_REDIRECTS = 3;
 
-function getServiceClient(): SupabaseClient {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -259,7 +254,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });
   }
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   // Phase 0.1 global-pause gate: honor the hold before any reachability render / content fetch.
   const paused = await pausedResponse(supabase);

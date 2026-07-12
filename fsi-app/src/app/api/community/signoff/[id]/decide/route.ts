@@ -25,7 +25,8 @@
 // Rate limit: standard 60/min/user.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import {
   requireCommunityAuth,
   isCommunityAuthError,
@@ -55,12 +56,6 @@ interface SignoffRow {
 const SELECT_COLS =
   "id, post_id, requested_by, status, verifier_id, primary_doc_url, decision_note, created_at, decided_at";
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 function isHttpUrl(value: string): boolean {
   try {
@@ -210,7 +205,7 @@ export async function POST(
 
   // ── On sign-off, stamp the post so it earns the citable/verified read ──
   if (decision === "signed_off") {
-    const service = getServiceClient();
+    const service = getServiceSupabase();
     const { error: stampErr } = await service
       .from("community_posts")
       .update({ signed_off_at: decidedAt, signed_off_by: auth.userId })

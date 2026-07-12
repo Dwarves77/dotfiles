@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { isGloballyPaused, getScrapeState } from "@/lib/api/pause";
 import { scrapeWindowOpen } from "@/lib/sources/scrape-schedule";
 import { d3GuardRejection } from "@/lib/d3/hooks.mjs";
@@ -138,19 +139,13 @@ export async function assessAndUpdateSource(
  * This is NOT a user-facing API route — it's a system endpoint.
  */
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 export async function POST(request: NextRequest) {
   // Authenticate worker
   const denied = workerAuthGuard(request);
   if (denied) return denied;
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   // OFF-gate: scraping switched off (cadence 'off' or emergency stop) — exit before any DB scan work.
   if (await isGloballyPaused(supabase)) {

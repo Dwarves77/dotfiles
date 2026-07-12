@@ -11,16 +11,11 @@
 // related_items resolution. ~50ms.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 export async function GET(
   request: NextRequest,
@@ -34,7 +29,7 @@ export async function GET(
   const { id } = await params;
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   // Customer read gate: this strip mounts on customer detail surfaces, which
   // only render verified items — the route must not hand quarantined-item

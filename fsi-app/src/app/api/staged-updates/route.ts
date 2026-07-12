@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { revalidateTag } from "next/cache";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
@@ -10,14 +11,6 @@ import { isGloballyPaused } from "@/lib/api/pause";
 import { start } from "workflow/api";
 import { generateBriefWorkflow } from "@/workflows/generate-brief";
 
-function getServiceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
-    throw new Error("Supabase service role credentials not configured");
-  }
-  return createClient(url, key);
-}
 
 // GET /api/staged-updates — list pending updates
 export async function GET(request: NextRequest) {
@@ -28,7 +21,7 @@ export async function GET(request: NextRequest) {
   if (limited) return limited;
 
   try {
-    const supabase = getServiceClient();
+    const supabase = getServiceSupabase();
     // Platform-admin gate (DEEP-AUDIT S1-2 / P0-2). This route lives OUTSIDE
     // /api/admin/* and previously checked only requireAuth, so any authenticated
     // customer could list/approve/reject/materialize staged intelligence into
@@ -102,7 +95,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = getServiceClient();
+    const supabase = getServiceSupabase();
 
     // Platform-admin gate (DEEP-AUDIT S1-2 / P0-2): approve/reject/materialize
     // is admin-only. Without this, any authenticated customer could push staged

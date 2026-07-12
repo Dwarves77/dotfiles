@@ -26,7 +26,8 @@
 // touch the database.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+import { type SupabaseClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { classifyReachability, REACH } from "@/lib/sources/reachability.mjs";
@@ -102,12 +103,6 @@ interface BulkImportResponse {
   };
 }
 
-function getServiceClient(): SupabaseClient {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 function parseCsv(raw: string): { rows: BulkImportRow[]; error?: string } {
   const text = raw.replace(/^﻿/, "").replace(/\r\n/g, "\n");
@@ -348,7 +343,7 @@ export async function POST(request: NextRequest) {
   const limited = checkRateLimit(auth.userId);
   if (limited) return limited;
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   const admin = await isPlatformAdmin(auth.userId, supabase);
   if (!admin) {

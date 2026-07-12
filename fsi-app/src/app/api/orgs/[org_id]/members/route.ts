@@ -32,7 +32,8 @@
 // rule.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+import { type SupabaseClient } from "@supabase/supabase-js";
 import {
   requireCommunityAuth,
   isCommunityAuthError,
@@ -41,12 +42,6 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { checkOrgBan } from "@/lib/orgs/ban-check.mjs";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 
-function getServiceClient(): SupabaseClient {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 const VALID_ROLES = new Set(["owner", "admin", "member", "viewer"]);
 
@@ -106,7 +101,7 @@ export async function GET(
     );
   }
 
-  const service = getServiceClient();
+  const service = getServiceSupabase();
 
   const { membership: callerMembership, error: callerErr } = await getMembership(service, org_id, auth.userId);
   if (callerErr) {
@@ -216,7 +211,7 @@ export async function PATCH(
     );
   }
 
-  const service = getServiceClient();
+  const service = getServiceSupabase();
 
   const { membership: callerMembership, error: callerErr } = await getMembership(service, org_id, auth.userId);
   if (callerErr) {
@@ -339,7 +334,7 @@ export async function POST(
     );
   }
 
-  const service = getServiceClient();
+  const service = getServiceSupabase();
 
   const { membership: callerMembership, error: callerErr } = await getMembership(service, org_id, auth.userId);
   if (callerErr) {
@@ -455,7 +450,7 @@ export async function DELETE(
     );
   }
 
-  const service = getServiceClient();
+  const service = getServiceSupabase();
 
   const { membership: callerMembership, error: callerErr } = await getMembership(service, org_id, auth.userId);
   if (callerErr) {
@@ -588,7 +583,7 @@ export async function PUT(
     );
   }
 
-  const service = getServiceClient();
+  const service = getServiceSupabase();
 
   const { membership: callerMembership, error: callerErr } = await getMembership(service, org_id, auth.userId);
   if (callerErr) {

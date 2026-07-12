@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+import { type SupabaseClient } from "@supabase/supabase-js";
 import { isGloballyPaused } from "@/lib/api/pause";
 import { recordSourceChangeTrigger } from "@/lib/sources/reconcile";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
@@ -20,18 +21,11 @@ import { workerAuthGuard } from "@/lib/api/worker-auth";
 
 const BATCH = 200;
 
-function getServiceClient(): SupabaseClient {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  );
-}
 
 export async function POST(request: NextRequest) {
   const denied = workerAuthGuard(request);
   if (denied) return denied;
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   if (await isGloballyPaused(supabase)) {
     return NextResponse.json({ message: "Global processing pause is active; reconcile worker exiting", processed: 0 });

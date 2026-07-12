@@ -15,7 +15,8 @@
 // Rate limit: standard 60/min/user.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import {
   requireCommunityAuth,
   isCommunityAuthError,
@@ -25,12 +26,6 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 export async function POST(
   request: NextRequest,
@@ -97,7 +92,7 @@ export async function POST(
   // policy is satisfied) and the inviter-only path (no RLS policy
   // permits arbitrary inviter UPDATE, so we authorise out-of-band
   // after verifying inviter_user_id above).
-  const service = getServiceClient();
+  const service = getServiceSupabase();
   const { error } = await service
     .from("community_group_invitations")
     .update({ status: "revoked" })

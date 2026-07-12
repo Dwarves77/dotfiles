@@ -9,7 +9,8 @@
 // what was retrieved without paging through the full body.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { d3AuditEvent } from "@/lib/d3/hooks.mjs";
 import { createHash } from "crypto";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
@@ -24,12 +25,6 @@ const NREL_API_KEY = process.env.NREL_API_KEY;
 const DATA_GOV_API_KEY = process.env.DATA_GOV_API_KEY;
 const REGULATIONS_GOV_API_KEY = process.env.REGULATIONS_GOV_API_KEY;
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 // Mirror of /api/data/fetch-source's two helpers, kept inline so the
 // manual fetch can run independently and bypass cooldown logic.
@@ -68,7 +63,7 @@ export async function POST(
     return NextResponse.json({ error: "source id required" }, { status: 400 });
   }
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   const admin = await isPlatformAdmin(auth.userId, supabase);
   if (!admin) {
