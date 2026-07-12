@@ -176,3 +176,4 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [[tech-debt-log]] — living technical debt register
 - [[blind-ci-window-audit-2026-07-08]] — Blind-CI-window audit: 8 dark suites (≤46d), all green isolated, guarded modules 0 in-window changes across 81 merges → zero regressions; class-fix #256 + branch protection
 - [[redesign-completeness-2026-07-08]] — Recon: all 11 redesign templates rebuilt + live on master (dispatch's "2 of 11" was stale); T03 detail archetype reached master via integration path
+- [[dispatch-stop-conditions-protocol]] — binding: dispatches declare STOP-CONDITIONS before authorities; agent restates them at closeout + runs a closeout self-audit (mechanical half of operator-stop-conditions-are-absolute)
