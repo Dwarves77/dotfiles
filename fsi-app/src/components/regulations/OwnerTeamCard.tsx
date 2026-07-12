@@ -21,6 +21,7 @@
  */
 
 import type { Resource } from "@/types/resource";
+import { formatDate } from "@/lib/format";
 
 interface OwnerTeamCardProps {
   resource: Resource;
@@ -148,12 +149,3 @@ export function OwnerTeamCard({ resource: r }: OwnerTeamCardProps) {
   );
 }
 
-function formatDate(d: string): string {
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return d;
-  return dt.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}

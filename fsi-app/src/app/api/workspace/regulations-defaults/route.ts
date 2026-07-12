@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServiceSupabase } from "@/lib/supabase-service";
 import { unstable_cache, revalidateTag } from "next/cache";
-import { createClient } from "@supabase/supabase-js";
+
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
@@ -48,12 +49,6 @@ function withCacheHeader(resp: NextResponse, value: string): NextResponse {
   return resp;
 }
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 // Shape of the regulations defaults payload. Mirrors the
 // RegulationsDefaults interface in RegulationsSurface.tsx; keep these in
@@ -101,7 +96,7 @@ type FetchResult = {
 
 const fetchRegulationsDefaults = unstable_cache(
   async (orgId: string): Promise<FetchResult> => {
-    const supabase = getServiceClient();
+    const supabase = getServiceSupabase();
     const { data, error } = await supabase
       .from("workspace_settings")
       .select("alert_config")
@@ -131,7 +126,7 @@ export async function GET(request: NextRequest) {
   const limited = checkRateLimit(auth.userId);
   if (limited) return withCacheHeader(limited, NEGATIVE_CACHE);
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   const orgId = await resolveOrgIdFromUserId(supabase, auth.userId);
   if (!orgId) {
@@ -190,7 +185,7 @@ async function upsertDefaults(
   const limited = checkRateLimit(auth.userId);
   if (limited) return limited;
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   const orgId = await resolveOrgIdFromUserId(supabase, auth.userId);
   if (!orgId) {

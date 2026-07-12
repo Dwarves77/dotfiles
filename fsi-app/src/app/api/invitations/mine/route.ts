@@ -7,16 +7,11 @@
 // Workstream B (Multi-Tenant Foundation) — 2026-05-15.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { requireCommunityAuth, isCommunityAuthError } from "@/lib/api/community-auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 export async function GET(request: NextRequest) {
   const auth = await requireCommunityAuth(request);
@@ -30,7 +25,7 @@ export async function GET(request: NextRequest) {
   // visibility into the invitations addressed to their email unless they
   // happen to also be an admin of the inviting org, so the listing has
   // to come from the service role.
-  const service = getServiceClient();
+  const service = getServiceSupabase();
   const { data: { user }, error: userErr } = await service.auth.admin.getUserById(auth.userId);
   if (userErr) {
     // FAIL-CLOSED (B10): a lookup error is NOT "no invitations" — an empty list would hide pending

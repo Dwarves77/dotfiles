@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { revalidateTag } from "next/cache";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
@@ -15,12 +16,6 @@ import { APP_DATA_TAG } from "@/lib/data";
 // item_type mirrors the table CHECK ('source' | 'reg' | 'signal'); item_id is text by design
 // (legacy_id or UUID — fetchWatchlist resolves titles for both).
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 const ITEM_TYPES = new Set(["source", "reg", "signal"]);
 
@@ -39,7 +34,7 @@ export async function GET(request: NextRequest) {
   if (limited) return limited;
   const p = readParams(request);
   if (!p) return NextResponse.json({ error: "item_type (source|reg|signal) and item_id are required" }, { status: 400 });
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
   const { data, error } = await supabase
     .from("user_watchlist")
     .select("id")
@@ -68,7 +63,7 @@ export async function POST(request: NextRequest) {
   if (!ITEM_TYPES.has(itemType) || !itemId) {
     return NextResponse.json({ error: "itemType (source|reg|signal) and itemId are required" }, { status: 400 });
   }
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
   // org_id is contextual metadata (nullable by schema) — a resolution failure never blocks the watch.
   const orgId = await resolveOrgIdFromUserId(supabase, auth.userId).catch(() => null);
   const { error } = await supabase
@@ -90,7 +85,7 @@ export async function DELETE(request: NextRequest) {
   if (limited) return limited;
   const p = readParams(request);
   if (!p) return NextResponse.json({ error: "item_type (source|reg|signal) and item_id are required" }, { status: 400 });
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
   const { error } = await supabase
     .from("user_watchlist")
     .delete()

@@ -31,6 +31,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { formatRelativeCompact } from "@/lib/relative-time";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import type { RoomKey } from "@/lib/community/rooms";
@@ -128,16 +129,6 @@ const HUE_VAR: Record<RoomVM["hue"], string> = {
   low: "var(--sev-low)",
 };
 
-function timeAgo(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const s = (Date.now() - d.getTime()) / 1000;
-  if (s < 60) return "Just now";
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
 
 // ── shared token style fragments ──
 const EYEBROW: React.CSSProperties = {
@@ -957,7 +948,7 @@ export function CommunityRooms({
                           </span>
                           {t.signedOff ? <SignedOffChip /> : <UnverifiedChip />}
                           <span style={{ fontSize: 10.5, color: "var(--color-text-muted)" }}>
-                            {timeAgo(t.createdAt)}
+                            {formatRelativeCompact(t.createdAt)}
                           </span>
                         </div>
                         <p

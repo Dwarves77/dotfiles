@@ -23,7 +23,8 @@
 // Rate limit: standard 60/min/user.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import {
   requireCommunityAuth,
   isCommunityAuthError,
@@ -33,12 +34,6 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 export async function POST(
   request: NextRequest,
@@ -100,7 +95,7 @@ export async function POST(
   // 3. Insert membership via service-role (RLS INSERT policy requires
   //    an admin; the invitee accepting their own invitation is the
   //    single legitimate non-admin INSERT path, gated by step 2).
-  const service = getServiceClient();
+  const service = getServiceSupabase();
   const { error: insErr } = await service
     .from("community_group_members")
     .insert({

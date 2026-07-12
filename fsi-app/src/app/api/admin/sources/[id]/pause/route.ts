@@ -6,17 +6,12 @@
 // regenerate actions still work.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 export async function POST(
   request: NextRequest,
@@ -43,7 +38,7 @@ export async function POST(
     return NextResponse.json({ error: "paused (boolean) is required" }, { status: 400 });
   }
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   const admin = await isPlatformAdmin(auth.userId, supabase);
   if (!admin) {

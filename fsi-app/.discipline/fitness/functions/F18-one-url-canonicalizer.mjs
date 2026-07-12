@@ -36,6 +36,14 @@ const BARE_SCHEME_STRIP_RE = /\.replace\(\s*\/\^https\?:\\?\/\\?\//;
 // regex-ESCAPING class like `[.*+?^${}()|[\]\\]` (which merely contains `?`), a host www-strip, a markdown-marker
 // strip (`[*`]`), and a trailing-punct strip (`[/.,;:]`) are all NOT matched.
 const QUERY_FRAGMENT_DROP_RE = /\.replace\(\s*\/\[[#?]{1,2}\]/;
+// URL-REASSEMBLY (C8, 2026-07-12 — the AST/URL()-shaped class regex-grep missed): rebuilding a normalized URL
+// IDENTITY string from parts — a template `${scheme}//${authority}…` (a `${…}` immediately followed by `//`
+// immediately followed by `${…}`). This is what canonicalizeUrl does in the sanctioned home; ANY OTHER module
+// doing it is a duplicate canonicalizer. Distinct from host-EXTRACTION (`new URL(x).host`, a single field) and
+// from field-COMPARISON (verification.ts: `host===host && path===path`, never a rebuilt string) — neither of
+// which reassembles, so neither is flagged. No such duplicate exists today (structural enumeration = 0); this
+// widens the gate so a future one is caught by SHAPE, not just the _normUrl regex shape.
+const URL_REASSEMBLY_RE = /\$\{[^}]*\}\/\/\$\{/;
 
 // A whole-line comment (prose naming the old regex) is not a violation. We skip full comment lines rather than
 // splitting on `//`, because a code line carrying a regex literal like `/^https?:\/\//` itself contains `//`
@@ -49,7 +57,7 @@ export function findAdHocUrlNormalizers(content) {
   for (let i = 0; i < lines.length; i++) {
     if (isCommentLine(lines[i])) continue;
     if (isOverridden(lines[i], 'F18')) continue;
-    if (BARE_SCHEME_STRIP_RE.test(lines[i]) || QUERY_FRAGMENT_DROP_RE.test(lines[i])) hits.push(i + 1);
+    if (BARE_SCHEME_STRIP_RE.test(lines[i]) || QUERY_FRAGMENT_DROP_RE.test(lines[i]) || URL_REASSEMBLY_RE.test(lines[i])) hits.push(i + 1);
   }
   return hits;
 }

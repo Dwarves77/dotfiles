@@ -31,7 +31,8 @@
 // limited.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
@@ -39,12 +40,6 @@ import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import { classifySourceRole } from "@/lib/sources/classify-source-role";
 import { checkVerticalFitGate } from "@/lib/sources/vertical-fit-gate";
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 interface DecideBody {
   candidateId: string;
@@ -99,7 +94,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   const admin = await isPlatformAdmin(auth.userId, supabase);
   if (!admin) {

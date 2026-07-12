@@ -13,17 +13,12 @@
 // + rate limit + a JSON envelope for the UI.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request);
@@ -38,7 +33,7 @@ export async function GET(request: NextRequest) {
   const minStrength = minStrengthRaw ? Math.max(1, parseInt(minStrengthRaw, 10) || 5) : 5;
   const limit = limitRaw ? Math.min(500, Math.max(1, parseInt(limitRaw, 10) || 100)) : 100;
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   const admin = await isPlatformAdmin(auth.userId, supabase);
   if (!admin) {

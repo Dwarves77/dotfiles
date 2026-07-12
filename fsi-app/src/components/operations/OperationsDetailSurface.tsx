@@ -33,6 +33,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { formatDate } from "@/lib/format";
 import Link from "next/link";
 import type { Resource } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
@@ -437,16 +438,6 @@ function deriveSeverity(r: Resource): Severity {
 
 // ── Date formatting ───────────────────────────────────────────────────────
 
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 // ── Source-tier vocabulary (local copy matching RegulationDetailSurface) ──
 

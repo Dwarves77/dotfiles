@@ -20,18 +20,13 @@
 // Returns a per-candidate result so the UI can surface partial successes.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 interface BulkBody {
   candidateIds: string[];
@@ -58,7 +53,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Maximum 300 candidates per bulk operation" }, { status: 400 });
   }
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   // Platform-admin gate (OBS-17, Sprint 2 Build 6). Service-role client
   // bypasses RLS so the profiles lookup works regardless of caller scoping.

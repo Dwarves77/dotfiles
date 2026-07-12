@@ -11,7 +11,8 @@
 // the saved cadence/start_date (so a panic-stop preserves the plan). isGloballyPaused() = off OR emergency.
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { getServiceSupabase } from "@/lib/supabase-service";
+
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
@@ -20,12 +21,6 @@ import { nextScrapeDate, type ScrapeCadence } from "@/lib/sources/scrape-schedul
 const CADENCES: ScrapeCadence[] = ["off", "weekly", "monthly"];
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
 
-function getServiceClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
 
 function stateResponse(
   data: { scrape_cadence?: string | null; scrape_start_date?: string | null; global_processing_paused?: boolean | null; updated_at?: string | null } | null,
@@ -91,7 +86,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   const admin = await isPlatformAdmin(auth.userId, supabase);
   if (!admin) {
@@ -123,7 +118,7 @@ export async function GET(request: NextRequest) {
   const limited = checkRateLimit(auth.userId);
   if (limited) return limited;
 
-  const supabase = getServiceClient();
+  const supabase = getServiceSupabase();
 
   const admin = await isPlatformAdmin(auth.userId, supabase);
   if (!admin) {

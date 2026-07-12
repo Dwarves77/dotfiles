@@ -38,18 +38,11 @@ function getSupabase() {
 // dashboard/critical-items, dashboard/credibility) already wrap the
 // returned client in try/catch with empty-state fallback, so a throw
 // here degrades the affected widget instead of crashing the page.
-export function getServiceSupabase() {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!key) {
-    throw new Error(
-      "SUPABASE_SERVICE_ROLE_KEY is not configured. Service-role reads " +
-        "are unavailable. Set the env var in Vercel project settings."
-    );
-  }
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, {
-    auth: { persistSession: false },
-  });
-}
+// Canonical home moved to ./supabase-service (C1 consolidation, 2026-07-12). Import for this module's own
+// internal callers AND re-export so existing `import { getServiceSupabase } from "@/lib/supabase-server"`
+// callers are unchanged. Fail-closed lives there (throws on missing key; never downgrades to anon).
+import { getServiceSupabase } from "./supabase-service";
+export { getServiceSupabase };
 
 // ── Fetch Functions ──────────────────────────────────────────
 // All reads are against the new item_* schema (Phase A.5.b). UUID
