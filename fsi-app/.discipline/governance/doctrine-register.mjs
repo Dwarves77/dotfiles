@@ -43,9 +43,9 @@ export const DOCTRINES = [
     statement:
       'A live operator stop-state flag (Caro\'s Ledge: system_state.global_processing_paused, scrape_cadence) may NOT be altered by any agent under any dispatch authority. emergencyPaused is a HARD stop for every caller — no caller identity (including the F16-signed manual-intake-run) overrides it. Changing a stop flag in production requires either a standing ruling or the operator\'s word in the dispatch; simulation + wake-proofs cover everything short of that. Lifting a stop flag to get past an obstacle is the worst-class violation (see operator-stop-conditions-are-absolute).',
     source: 'operator amendment 1+2 (2026-07-12) — live-state-flags-are-operator-surface, superseding',
-    enforcedBy: ['RD-21-generation-pause-split'],
+    enforcedBy: ['RD-21-generation-pause-split', 'RD-23-pause-flag-one-writer'],
     residual:
-      'RD-21 (generation-pause.npmtest.mjs) proves the GENERATION-side facet mechanically: emergencyPaused hard-stops EVERY caller including the signed manual caller (no override). The FLAG-FLIP-PREVENTION facet — that no agent may WRITE global_processing_paused/scrape_cadence — is the system_state operator-control credential trigger (Unit 2a): authored, but its APPLY is operator-boundary (it rewires the admin pause route to a dedicated login credential, provisions a secret, and requires the service-role/owner creds scoped out of the agent env — the same not-owner-proof residual as migration 118). Until 2a is applied, flag-flip prevention rides operator-side credential scoping, not code. This enforcedBy grows to include the 2a trigger invariant when 2a lands.',
+      'RD-21 (generation-pause.npmtest.mjs) proves the GENERATION-side facet mechanically: emergencyPaused hard-stops EVERY caller including the signed manual caller (no override). The FLAG-WRITE facet — that no agent may WRITE global_processing_paused/scrape_cadence by a direct write — is RD-23 (pause-flag-has-one-writer), enforced STRUCTURALLY with no credential and no manual step: the F20 fitness function (static one-writer, CI-fails a second writer) + the migration-201 guard trigger + admin_set_pause_state RPC (a generic unmarked UPDATE bounces at runtime) + the audit table. This REPLACES the DEAD 2a operator-credential design, which required a manual operator step (provision a login role, hold a secret, scope creds) — ruled dead 2026-07-12 ("human intervention should never be a solution"). Honest residual (RD-23): a determined caller with raw SQL could set the marker itself and bypass the trigger, but no committed code can (F20) and every write is audited — structural defense-in-layers, no human-held secret.',
   },
 
   // ─────────────────────────────── Disposition / lifecycle ───────────────────────────────
@@ -367,6 +367,15 @@ export const DOCTRINES = [
     enforcedBy: ['RD-22-mint-source-link'],
     residual:
       'RD-22 is dual: the mint chokepoint reject (mint-source-link.npmtest.mjs, red-then-green) forecloses NEW source-less live mints for all callers; the live-data audit (source-link-audit.mjs) fails on any source-less LIVE row beyond the documented pre-cutover grandfather (the two T9 orphans, Unit 3 re-sources them — the list only shrinks). The Fix-B structural routing + erase-honesty are proven in ground-failure-class.test.mjs. The re-sourcing of the two existing live orphans is Unit 3, not this doctrine.',
+  },
+  {
+    id: 'pause-flag-has-one-writer',
+    statement:
+      'The pause stop flags (system_state.global_processing_paused, scrape_cadence) have EXACTLY ONE writer, enforced STRUCTURALLY — no credential, no secret, no manual step (human intervention is never the solution; the system manages the problem). Three layers: (static) the F20 fitness function fails CI on any direct write to those columns in src outside the sanctioned admin route; (runtime) the admin_set_pause_state RPC (migration 201) is the only writer that declares the app.pause_flag_writer marker, and the guard_pause_flag_writer trigger bounces any flag change lacking it (a generic service-role UPDATE is rejected); (detection) system_state_flag_audit logs every authorized write. This REPLACES the DEAD 2a operator-credential design (which required a manual operator step).',
+    source: 'pause-flag structural enforcement dispatch (operator 2026-07-12) — supersedes the 2a operator-credential design, RULED DEAD',
+    enforcedBy: ['RD-23-pause-flag-one-writer'],
+    residual:
+      'RD-23: F20 (static, red-then-green + live census) + migration-201 guard trigger/RPC (runtime bounce, proven red-then-green on a SYNTHETIC temp table in a rolled-back transaction — the live flag is never written, including by the test) + the audit table. Honest residual, same class as any transaction-local GUC marker: a caller with raw SQL could set the marker itself and bypass the trigger — but no COMMITTED code can (F20 fails CI), the casual agent flip (a plain UPDATE) bounces, and every write is audited. Structural defense-in-layers, not a cryptographic vault — and crucially it needs no human-held secret, which is the whole point (the 2a credential design was ruled dead precisely because it required a manual operator step).',
   },
 ];
 
