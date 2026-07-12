@@ -286,6 +286,27 @@ export const DOCTRINES = [
     residual:
       'RD-11 (F16 + fetch-hold.test) is the single manifest-bound fetch gate. The two-caller allow-list (unit3-remediation + manual-intake-run) is the extension landing in Unit 0b/U3, with F16\'s test extended to prove the allow-list is manifest-bound, not a hole. Until that extension lands, the hold is enforced and the exception is operator-signed per-run, not code-open. This entry IS the ruling that resolves no-human-finish-of-intake\'s and earth-exhaustion\'s scoped-fetch conflict.',
   },
+
+  // ─────────────────────────────── Product / surface intent ───────────────────────────────
+  {
+    id: 'research-is-horizon-scan',
+    statement:
+      'The Research surface answers "what is emerging, who is studying it, how does it change my planning horizon." Its feedstock is AUTONOMOUS intake from research-role sources (universities, academic journals, institutes, analytical/horizon-scan press) — machine-ingested, not editor-selected. Editorial/curation queues and human-selection affordances on Research (operator-approval, editor-picked, "featured/selected by" framing) are FORBIDDEN: they are intent-drift against the page intent AND a no-human-finish-of-intake (RD-20) violation — an editorial queue makes a human the finish of the Research pipeline. RULED operator 2026-07-12, closing the previously-open Research repositioning decision toward horizon-scan (editorial queue REJECTED).',
+    source: 'Research positioning ruling (operator 2026-07-12) — caros-ledge-platform-intent SKILL.md §RESEARCH + May-2026 product-audit page intents',
+    enforcedBy: ['RD-20-staged-transit-disposition'],
+    residual:
+      'RD-20 (staged-transit-audit) enforces no-human-finish-of-intake for the intake transit path — a research-role item is machine-ingested and cannot rest in a human-approval queue, which is precisely why an editorial/curation QUEUE on Research is forbidden (a queue is a human finish of the pipeline). The POSITIONING half ("Research = horizon-scan" page intent) is product-framing carried by the platform-intent SKILL.md (binding; drift requires operator-stated correction, same class as the five-surface model / PI-1). A surface-level fitness function scanning the /research surface for curation affordances (editor-picked / featured-by / operator-approval controls) is BUILDABLE but semantic/low-signal; it is NOT built under this relay — reported to the operator as the enforcement option, not silently claimed here.',
+  },
+  {
+    id: 'analysis-follows-page-intent',
+    statement:
+      'Data collection, aggregation, and synthesis are contracted PER PAGE against that page\'s operator question. One generic analysis path serving all pages is forbidden. Regulations is the ONLY page whose read is a compliance-action text brief. Market Intel reads are comparative/numerical (deltas, trajectories, lead-time). Research reads are structured horizon assessments (horizon distance, maturity, credibility of who is studying it, planning-assumption shift), not paper summaries. Operations reads are structured jurisdictional data surfaces. The per-page contracts live in the platform-intent skill. Enforcement (writer-agent contracts + goldens) lands with the surface build units; absence until then is a known gap, not a violation.',
+    source: 'analysis-follows-page-intent ruling (operator 2026-07-12)',
+    exempt: {
+      reason:
+        'ENFORCEMENT-TO-BUILD with a named landing point: the per-page writer-agent contracts + goldens land WITH THE SURFACE BUILD UNITS (each page\'s build), not before — same enforcement-to-build class as backlog-trend-growing-median-age (D-4, exempt pending Unit 5). The operator ruled the absence a KNOWN GAP, not a violation, until those units land. The per-page contract SKETCHES live in the platform-intent SKILL.md (product-framing, binding; drift needs operator correction). NAMED-RESIDUAL, REVISIT when the first surface build unit lands — grows an enforcedBy (a per-page writer-contract fitness function + goldens) at that point.',
+    },
+  },
 ];
 
 // Doctrine IDs referenced by `conflicts` must resolve to a real entry (the conflict-ledger integrity check).

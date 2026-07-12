@@ -81,7 +81,9 @@ stale "wiring up in C4" customer-visible copy [DB-4 F7/F9/F10/F16; CODE-4a F-04;
 
 **Operator-owned (flagged, not agent-fixable):** both triage queues at zero throughput ~54 days
 (ingest_rejections 131/131, pending_jurisdiction_review 109/109) [DB-3 F8] · Research repositioning
-decision never made [INTENT] · published_price_statistics 8 days past its own next_release promise [DB-1].
+decision never made [INTENT] **[RULED-CLOSED 2026-07-12: Research = horizon-scan, editorial queue
+REJECTED — doctrine register `research-is-horizon-scan`]** · published_price_statistics 8 days past its
+own next_release promise [DB-1].
 
 ## P3 — dead-weight (the erase backlog)
 

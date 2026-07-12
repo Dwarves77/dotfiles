@@ -89,7 +89,9 @@ per item. Prepare all migrations now (author-only), apply together.
 
 Loop/cadence flip · batch-1 re-fetch (the 9 NOT-COVERED + PORTAL-SOURCE re-points ride it) · monthly
 budget ratification · triage-queue throughput (operator-owned) · Research repositioning (operator
-decision — but make it: the surface can't finish either way until it's made) · community peer
+decision — but make it: the surface can't finish either way until it's made) **[RULED-CLOSED
+2026-07-12: Research = horizon-scan, editorial queue REJECTED — doctrine register
+`research-is-horizon-scan`]** · community peer
 acquisition. All ride Jason's switches, per the standing doctrine that they are switches, not tasks.
 
 ## Suggested execution shape
