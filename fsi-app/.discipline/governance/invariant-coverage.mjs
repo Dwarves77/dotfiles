@@ -37,6 +37,7 @@ import { execSync } from 'node:child_process';
 import { INVARIANTS, SKILL_FILES, SKILL_MARKER_BASELINE, MARKER_SOURCE } from './invariants.mjs';
 import { DOCTRINES } from './doctrine-register.mjs';
 import { runSecretsReferenceAudit } from './secrets-reference-audit.mjs';
+import { scanDoctrineContradictions, DOCTRINE_FILES } from './doctrine-contradiction.mjs';
 import { rules } from '../manifest.mjs';
 import { fitnessFunctions } from '../fitness/manifest.mjs';
 import { consistencyChecks } from '../consistency/manifest.mjs';
@@ -259,6 +260,14 @@ export function runInvariantCoverage() {
   // Filesystem-pure (reads .github/workflows/* + the registry; no secrets/DB), so safe in the meta-gate.
   const { problems: secretProblems } = runSecretsReferenceAudit();
   problems.push(...secretProblems);
+
+  // DOCTRINE-CONTRADICTION (no-human-finish-of-intake extends across the doctrine surface): a clause asserting a
+  // HUMAN GATE in intake/triage/promotion/demotion/disposition, uncited, FAILS the meta-gate. Low-FP: gate verbs
+  // only; visibility (DP-1 single-pane review, "surfaces to"), negated anti-pattern statements, and register-
+  // cited clauses are exempt. Also catches the self-inflicted "operator re-confirms a ruling" gate. FS-pure.
+  const __ccRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../');
+  const gateHits = scanDoctrineContradictions(DOCTRINE_FILES, (f) => { try { return readFileSync(resolve(__ccRoot, f), 'utf8'); } catch { return null; } });
+  for (const h of gateHits) problems.push(`UNCITED HUMAN-GATE IN DOCTRINE: ${h.file}:${h.line} [${h.kind}] "${h.text}" — contradicts no-human-finish-of-intake; rewrite to machine-gates+visibility, or annotate [RETAINED: <reason>; register:<id>].`);
 
   const enforced = INVARIANTS.filter((i) => Array.isArray(i.enforcedBy) && i.enforcedBy.length).length;
   const exempt = INVARIANTS.filter((i) => i.exempt && i.exempt.reason).length;

@@ -133,6 +133,13 @@ export const DOCTRINES = [
     enforcedBy: ['RD-14-line-read-is-not-verification'],
   },
   {
+    id: 'no-uncited-operator-gate-in-doctrine',
+    statement:
+      'no-human-finish-of-intake extends across the whole doctrine surface: a clause asserting a HUMAN GATE (human must approve/review/confirm before the machine proceeds) in intake/triage/promotion/demotion/disposition MUST NOT sit UNCITED — it is rewritten to machine-gates-are-approval + operator-visibility, or annotated [RETAINED: reason; register:<id>] for a legitimately human-gated destructive/irreversible action. Visibility (DP-1 single-pane review, surface-to-queue, shown-on-the-trail) is PRESERVED, not a gate. The self-inflicted variant is forbidden: a thread whose closer is "operator re-confirms a ruling already given" is a self-inflicted gate — a ruled decision does not return to the board as blocked; it executes, and if conditions changed the executor names the changed condition, never silently re-parks.',
+    source: 'doctrine-contradiction-sweep rider + board self-gate ruling (operator 2026-07-12)',
+    enforcedBy: ['SF-12-doctrine-no-uncited-gate'],
+  },
+  {
     id: 'no-inference-as-fact-on-regulatory-content',
     statement:
       'No invented facts; when facts run out, stop. Analysis in a workspace-ACTION section MUST open with a recognized label; matching an entity to a regulation\'s defined role or deciding an obligation attaches is a legal determination routed to counsel, never asserted as fact.',
