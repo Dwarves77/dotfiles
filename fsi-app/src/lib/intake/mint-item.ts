@@ -19,6 +19,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { congruence, sourceRole } from "@/lib/entities/source-role.mjs";
 import { matchExistingSubject } from "@/lib/entities/entity-resolve.mjs";
 import { domainForItemType, type Domain } from "@/lib/domains";
+import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 
 // UNCONDITIONAL item types — their surface domain is fully determined by item_type alone
 // (domainForItemType returns the same value regardless of source.category). For these the
@@ -60,7 +61,33 @@ export interface MintPlan {
   origin: "first_fetch" | "staged_materialization";
 }
 
-export type MintAction = "minted" | "retyped" | "linked" | "exists" | "duplicate";
+export type MintAction = "minted" | "retyped" | "linked" | "exists" | "duplicate" | "unsourced";
+
+/** Result of the source-link decision (Fix A). PURE + golden-tested — the DB lookup feeds `matchedSourceId`. */
+export type SourceLinkOutcome =
+  | { kind: "preset" }                    // caller already set source_id (scan / community-promote) — trust it
+  | { kind: "link"; sourceId: string }    // resolved a registered source for the candidate url
+  | { kind: "reject"; error: string };    // no registered source, or no url at all — a live item cannot mint
+
+/**
+ * SOURCE-LINK INVARIANT decision (Fix A, ruled 2026-07-12 — doctrine no-source-less-live-mint).
+ * A mint cannot produce a source-less LIVE item: grounding grounds a brief against the item's source, so a
+ * source_id = NULL item can never verify (the eFTI/waste T9 wall). Given the seed and the registry-lookup
+ * result, decide: trust a caller-preset source_id, LINK a resolved registered source, or REJECT-with-reason
+ * (register the source first) — never a silent orphan, never auto-registration.
+ */
+export function sourceLinkDecision(
+  seed: { source_id?: unknown; source_url?: unknown },
+  matchedSourceId: string | null
+): SourceLinkOutcome {
+  if (seed.source_id != null) return { kind: "preset" };
+  const url = String(seed.source_url ?? "");
+  if (!url) return { kind: "reject", error: "no source_url and no source_id — a live item cannot mint without a source (source-link invariant)" };
+  if (!matchedSourceId) {
+    return { kind: "reject", error: `no registered source for ${url} — register the source first (source-link invariant: a live item cannot mint without a source)` };
+  }
+  return { kind: "link", sourceId: matchedSourceId };
+}
 
 export interface MintResult {
   ok: boolean;
@@ -152,6 +179,26 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan): 
     flags.push(`domain-canonicalized:${seed.domain ?? "null"}->${canonicalDomain}`);
     seed.domain = canonicalDomain;
   }
+
+  // ── (6) SOURCE-LINK INVARIANT (Fix A) — the LAST gate before the INSERT: a mint cannot produce a
+  //   source-less LIVE item. The scan path pre-resolves source_id at stage time (scan/route.ts); the
+  //   manual-intake path did not, minting source-orphaned items that can never ground (grounding grounds
+  //   against the item's source — the eFTI/waste T9 wall). Resolve the source_url against the registry HERE
+  //   (the ONE mint home, so ALL callers are gated); an UNREGISTERED url REJECTS with reason (register the
+  //   source first). No silent orphan, no auto-registration under this unit. A caller-preset source_id (scan
+  //   / community-promote) is trusted. FAIL-CLOSED (C4 class): a registry read error REFUSES the mint. Runs
+  //   AFTER dedup so a duplicate is caught first and the dedup fail-closed ordering is preserved.
+  let matchedSourceId: string | null = null;
+  if (seed.source_id == null && sourceUrl) {
+    const canon = canonicalizeUrl(sourceUrl);
+    const urls = canon === sourceUrl ? [canon] : [canon, sourceUrl];
+    const { data: srcRows, error: srcErr } = await sb.from("sources").select("id").in("url", urls).limit(1);
+    if (srcErr) return { ok: false, action: "unsourced", flags, error: `mint refused (fail-closed): source registry probe read failed — ${srcErr.message}` };
+    matchedSourceId = (srcRows?.[0]?.id as string | undefined) ?? null;
+  }
+  const link = sourceLinkDecision(seed, matchedSourceId);
+  if (link.kind === "reject") return { ok: false, action: "unsourced", flags, error: link.error };
+  if (link.kind === "link") { seed.source_id = link.sourceId; flags.push("source-linked"); }
 
   // ── THE SINGLE INSERT (the only intelligence_items INSERT in src/ runtime) ────────────────────────
   const { data: inserted, error } = await sb

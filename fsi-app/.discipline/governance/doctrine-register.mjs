@@ -359,6 +359,15 @@ export const DOCTRINES = [
         'A no-second-pipeline structural discipline enforced by CONSTRUCTION + review: runIntakeCycle calls the single generateBriefWorkflow contract (the same /api/agent/run path, D4 ruling) with the caller threaded only as an identity string — there is no manual-only code branch to gate. "A manual-only branch" is a semantic judgment, not a low-false-positive checkable property; the enforcement is that any PR introducing manual-only pipeline logic fails review against this entry (same review-class as consolidation-is-behavior-preserving). The single grounding contract is the mechanical anchor; the no-divergence rule is the review discipline.',
     },
   },
+  {
+    id: 'no-source-less-live-mint',
+    statement:
+      'A mint cannot produce a source-less LIVE intelligence_items row. Intelligence items live INSIDE sources (Layer-1/Layer-2), and grounding grounds a brief against the item\'s source — so a source_id=NULL item can never verify. At the ONE mint chokepoint, a candidate\'s source_url is resolved against the registry: a caller-preset source_id is trusted, a resolved source LINKS, an UNRESOLVED url is REJECTED-with-reason (register the source first — no silent orphan, no auto-registration). A structural `no source_id` ground failure routes straight to held-for-re-source (skipping the futile re-ground/re-research), and the brief-null disposition is labeled honestly (brief-nulled-held, never "erased"/archived).',
+    source: 'Fix A/B build authorization (operator 2026-07-12) — the T9 source-orphaned-mint wall',
+    enforcedBy: ['RD-22-mint-source-link'],
+    residual:
+      'RD-22 is dual: the mint chokepoint reject (mint-source-link.npmtest.mjs, red-then-green) forecloses NEW source-less live mints for all callers; the live-data audit (source-link-audit.mjs) fails on any source-less LIVE row beyond the documented pre-cutover grandfather (the two T9 orphans, Unit 3 re-sources them — the list only shrinks). The Fix-B structural routing + erase-honesty are proven in ground-failure-class.test.mjs. The re-sourcing of the two existing live orphans is Unit 3, not this doctrine.',
+  },
 ];
 
 // Doctrine IDs referenced by `conflicts` must resolve to a real entry (the conflict-ledger integrity check).
