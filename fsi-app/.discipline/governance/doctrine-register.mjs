@@ -126,6 +126,13 @@ export const DOCTRINES = [
     enforcedBy: ['RD-13-one-url-canonicalizer'],
   },
   {
+    id: 'line-read-is-not-verification',
+    statement:
+      'A deterministic gate ships with a table-driven behavioral contract test over a COMMITTED golden corpus, proven red-then-green — an audit line-read of the gate is NOT verification. The named intake gates (sourceRole/congruence, urlIsRoot, matchExistingSubject, the mint idempotency short-circuits) are enforced by their committed tests running in the suite; new deterministic gates are closeout-audited for the same coverage.',
+    source: 'intake-correctness dispatch Step 4.2 (operator 2026-07-12) — remediation-discipline §3.5 (investigation discipline)',
+    enforcedBy: ['RD-14-line-read-is-not-verification'],
+  },
+  {
     id: 'no-inference-as-fact-on-regulatory-content',
     statement:
       'No invented facts; when facts run out, stop. Analysis in a workspace-ACTION section MUST open with a recognized label; matching an entity to a regulation\'s defined role or deciding an obligation attaches is a legal determination routed to counsel, never asserted as fact.',
