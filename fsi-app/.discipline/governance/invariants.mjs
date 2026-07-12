@@ -75,7 +75,12 @@ export const SKILL_MARKER_BASELINE = {
   // criterion)" normative line. TRIAGE: new invariant SC-12 (enforcedBy selftest slot-forcing.test.mjs).
   'source-credibility-model': 13,
   'analysis-construction-spec': 4,
-  'caros-ledge-platform-intent': 9,
+  // 9→10 (2026-07-12): the Research-positioning ruling added the analysis-follows-page-intent contract line
+  // "One generic analysis path serving all pages is forbidden" (REGULATIONS §Analysis contract). TRIAGE:
+  // NOT a new bare rule needing a fresh invariant — it is the doctrine-register entries
+  // `analysis-follows-page-intent` (exempt; enforcement-to-build with the surface build units) and
+  // `research-is-horizon-scan` (enforcedBy RD-20). Re-baseline to 10.
+  'caros-ledge-platform-intent': 10,
   // 18→19 (2026-07-03): added Section 4 category 9 "Producer-consumer orphan (the half-slice defect)"
   // — "a table the application writes MUST have a consumer, OR be allowlisted…". TRIAGE: new normative
   // statement, triaged into invariant RD-9 (enforcedBy fitness:F14, the A2 orphan checker).

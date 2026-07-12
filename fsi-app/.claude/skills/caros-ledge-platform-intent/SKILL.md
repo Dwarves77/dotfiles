@@ -64,6 +64,8 @@ The four intelligence pages map to the source-category taxonomy in `environmenta
 
 **Scope.** Binding regulatory intelligence. Laws, agency rules, court decisions, treaties, and rulemaking outcomes affecting freight operations across air, road, ocean, rail modes. Includes regulatory deadlines, enforcement dates, comment periods, and binding compliance requirements.
 
+**Analysis contract (RULED 2026-07-12).** Regulations is the ONLY page whose read is a COMPLIANCE-ACTION TEXT brief — what is binding, when, what it costs, what to do. Not comparative/numerical. One generic analysis path serving all pages is forbidden. Doctrine register: `analysis-follows-page-intent`.
+
 **Source category mapping** (per environmental-policy-and-innovation `item_type` and `format_type` derivation). Regulations surfaces items of `item_type` in (`regulation`, `directive`, `standard`, `guidance`, `framework`), formatted as Regulatory Fact Documents (14 sections, conditional).
 
 **Current state.** Functional. The only intelligence page currently delivering its stated intent.
@@ -74,11 +76,15 @@ The four intelligence pages map to the source-category taxonomy in `environmenta
 
 Cross-references Regulations to surface signals like "regulatory deadline approaching," but the deadline content itself lives in Regulations. Example: BYD announcing a battery advancement is Market Intel. The CBAM 2026 enforcement deadline is Regulations; Market Intel may surface a "CBAM enforcement window closing" signal that links back to the Regulations entry.
 
+**Analysis contract (RULED 2026-07-12).** Market Intel reads are COMPARATIVE / NUMERICAL — deltas, trajectories, lead-time against competitors and adjacent industries — not a compliance-action text brief. Doctrine register: `analysis-follows-page-intent`.
+
 **Source category mapping.** `market_signal`, `initiative` (Market Signal Brief format) plus corporate-press records.
 
 **Current state.** Broken. Alerts SideCard is non-interactive (OBS-18), EmptyState exposes worker-language to end users (OBS-20), taxonomy bleed because `/market` and `/operations` share the same unfiltered payload (per alignment audit Section B), no real signal aggregation engine running.
 
 ### RESEARCH
+
+**Page intent (RULED 2026-07-12).** Research answers the operator question: *what is emerging, who is studying it, how does it change my planning horizon.* This is horizon-scan by construction. Research IS the customer-facing horizon-scan destination; its feedstock is AUTONOMOUS intake from research-role sources (universities, academic journals, institutes, analytical/horizon-scan press) — machine-ingested, not editor-selected. An editorial / curation / draft-staging QUEUE on Research is REJECTED (intent-drift + a no-human-finish-of-intake / RD-20 violation). Doctrine register: `research-is-horizon-scan`.
 
 **Scope.** Horizon-scan content with analytical or quantitative depth. Includes:
 
@@ -90,11 +96,13 @@ Cross-references Regulations to surface signals like "regulatory deadline approa
 
 Research is BROADER than peer-reviewed academic. The discriminator is analytical and horizon-scanning depth, not academic publication form.
 
+**Analysis contract (RULED 2026-07-12).** Research reads are STRUCTURED HORIZON ASSESSMENTS — horizon distance, maturity, credibility of who is studying it, and the planning-assumption shift — NOT paper summaries. Doctrine register: `analysis-follows-page-intent`.
+
 **Source category mapping.** `research_finding` (Research Summary format, 6 sections); some `technology`, `innovation`, `tool` items (Technology Profile format) also surface here when the substance is horizon-scan rather than market-signal.
 
 **Current state.** Broken. Currently functioning as an editorial draft-staging queue for Regulations content rather than as a horizon-scan destination. The `publishedThisWeek` callout titles render as `<b>` text without Links. No live ingest pipeline producing Research Summary briefs from the analytical-press sources; the sources are registered as legacy resource entries only. Source coverage matrix is a hardcoded placeholder with the tab hidden.
 
-A repositioning decision is open: does Research stay as the editorial draft-staging queue (and the customer-facing horizon-scan destination needs a different surface), or does Research become the customer-facing horizon-scan destination (and editorial draft-staging moves to admin chrome)? Operator decides in Sprint 2 planning.
+**Positioning — RULED (operator 2026-07-12), decision CLOSED.** Research IS the customer-facing horizon-scan destination; the editorial draft-staging queue is REJECTED (intent-drift + RD-20 no-human-finish-of-intake — an editorial queue makes a human the finish of the Research pipeline). Any editorial draft-staging need moves to admin chrome, never onto the Research surface. Future Research-surface work that introduces curation queues, operator-approval affordances, editor-picked content, or "featured/selected by" framing is a regression against this ruling and RD-20. Doctrine register: `research-is-horizon-scan`.
 
 ### OPERATIONS
 
@@ -116,6 +124,8 @@ Examples of decisions Operations supports:
 - Solar versus automation versus hire decisions across regions
 
 **Build framing (binding).** Operations surfaces structured content. The customer reads the content and uses the Intelligence Assistant for cross-cutting questions during research. Synthesis happens through structured content plus Assistant plus customer judgment, NOT through a separate decision-engine UI. Operations is a content build, not a synthesis-engine build. Anyone scoping Operations as a separate "cross-functional decision engine UI" build is scoping wrong; this is the framing that the prior version of this skill propagated and that the alignment audit absorbed.
+
+**Analysis contract (RULED 2026-07-12).** Operations reads are STRUCTURED JURISDICTIONAL DATA SURFACES — comparative/numerical regional intelligence (feasibility, cost, labor, materials, infrastructure) for hire-vs-automate and infrastructure decisions — not a text brief. Doctrine register: `analysis-follows-page-intent`.
 
 **Source category mapping.** `regional_data` (Operations Profile format, 8 sections) plus cross-references from `regulatory` and `market_news` items.
 
