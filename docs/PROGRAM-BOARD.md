@@ -144,3 +144,8 @@ consolidated). Owner: next hygiene pass. *(Scheme B — Wave-α tracks C1–C8 �
   (does not cover the 07-12/07-13 work). This board supersedes both for thread-state resume.
 - Live counts (489 provisional / 859 flags / 62 quarantine / 37 live-quarantine) are STATE — query /admin;
   and per ADR-013 always state the archival predicate (live-only vs status-only).
+- **R0.2 observability — spend-watch fixed (2026-07-13):** the daily spend probe was permanent-red (alarmed
+  at `pct ≥ 80%` on the frozen $75 ceiling, MTD 100.3%). Now it fails only on a paid `agent_runs` row after
+  the acquisition-freeze baseline (`2026-07-13T02:05:26Z`, env `SPEND_FREEZE_SINCE_ISO`) or an unreadable
+  gauge; frozen-and-quiet = PASS (reported in the job summary). Surface-honesty probe un-skipped on the daily
+  cron. Verdict is the pure, tested `spend-health.mjs`. When the freeze lifts, move the baseline forward.
