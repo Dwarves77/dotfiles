@@ -1,4 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
+import { unstable_cache } from "next/cache";
+import { INTEL_ITEMS_TAG, itemTag } from "./cache/revalidate-item";
 import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
 import type { Source, ProvisionalSource, SourceConflict, TrustMetrics, TrustScore } from "@/types/source";
 import { computeBaselineTrustScore, createDefaultTrustMetrics } from "@/lib/trust";
@@ -2113,7 +2115,14 @@ export interface IntelligenceItemSectionRow {
   source_ids: string[];
 }
 
-export async function fetchIntelligenceItemSections(
+// ISR detail-cache (perf/isr-detail-cache): the per-item detail read is wrapped
+// in unstable_cache below (fetchIntelligenceItemSections) so burst/repeat
+// requests to /regulations/[slug] hit the cache instead of each saturating
+// Supabase — the ceiling that produced the detail-route 503. The uncached body
+// keeps its original name-suffixed form. Safe to cache: this path uses the
+// service-role client (getServiceSupabase, env-driven — no cookies()) and
+// returns plain serializable rows.
+async function fetchIntelligenceItemSectionsUncached(
   uiId: string
 ): Promise<IntelligenceItemSectionRow[]> {
   if (!isSupabaseConfigured() || !uiId) return [];
@@ -2153,6 +2162,23 @@ export async function fetchIntelligenceItemSections(
   }
 }
 
+/**
+ * Cacheable per-item section read. Keyed by the UI-side id so each item gets
+ * its own cache entry; tagged `item:{id}` (precise) + `intel-items` (coarse)
+ * for tag invalidation, with a 300s revalidate window as a time backstop.
+ * Signature + return shape are identical to the prior direct fetcher, so the
+ * detail page's call site is unchanged.
+ */
+export async function fetchIntelligenceItemSections(
+  uiId: string
+): Promise<IntelligenceItemSectionRow[]> {
+  return unstable_cache(
+    () => fetchIntelligenceItemSectionsUncached(uiId),
+    ["intel-item-sections", uiId],
+    { revalidate: 300, tags: [itemTag(uiId), INTEL_ITEMS_TAG] }
+  )();
+}
+
 // ── Single Item Fetch (for /regulations/[id] detail page) ────────
 /**
  * Fetch a single intelligence_item by its UI-side id (legacy_id || uuid).
@@ -2162,8 +2188,16 @@ export async function fetchIntelligenceItemSections(
  * Returns null (→ 404) when Supabase is not configured or nothing matches.
  * Wave-α A2 (2026-07-11): the seed-data fallback is GONE — unattributed
  * seed content must never render as a live detail page (integrity rule).
+ *
+ * ISR detail-cache (perf/isr-detail-cache): the uncached body below is wrapped
+ * in unstable_cache (see the exported fetchIntelligenceItem) so burst/repeat
+ * detail-route requests hit the cache instead of each saturating Supabase — the
+ * ceiling behind the /regulations/[slug] 503. Safe to cache: service-role
+ * client (env-driven, no cookies()) + plain serializable return (incl. null).
+ * The fail-closed service-role read, UUID→slug redirect (in page.tsx), and
+ * notFound() behavior are all preserved — only cacheability is added.
  */
-export async function fetchIntelligenceItem(
+async function fetchIntelligenceItemUncached(
   itemUiId: string
 ): Promise<{
   resource: Resource;
@@ -2388,6 +2422,32 @@ export async function fetchIntelligenceItem(
     console.error("fetchIntelligenceItem failed (failing closed, not serving seed):", e);
     return null;
   }
+}
+
+/**
+ * Cacheable single-item detail read. Keyed by the UI-side id so each item gets
+ * its own cache entry; tagged `item:{id}` (precise) + `intel-items` (coarse)
+ * for tag invalidation, with a 300s revalidate window as a time backstop.
+ * Signature + return shape are identical to the prior direct fetcher, so the
+ * detail page's call site is unchanged. A null (not-found) result is cached
+ * too; the generation pipeline flushes `intel-items` when an item is (re)built,
+ * so a freshly-verified item's cached null is dropped promptly.
+ */
+export async function fetchIntelligenceItem(
+  itemUiId: string
+): Promise<{
+  resource: Resource;
+  changelog: ChangeLogEntry[];
+  dispute: Dispute | null;
+  supersessions: Supersession[];
+  xrefIds: string[];
+  refByIds: string[];
+} | null> {
+  return unstable_cache(
+    () => fetchIntelligenceItemUncached(itemUiId),
+    ["intel-item-detail", itemUiId],
+    { revalidate: 300, tags: [itemTag(itemUiId), INTEL_ITEMS_TAG] }
+  )();
 }
 
 // ── Phase 3 dashboard sidebar fetchers (Wave 1 / Track 5) ────────
