@@ -5,9 +5,13 @@
  * status-setter (it re-derives from the read-only validate_item_provenance verdict). The guard enforces
  * this — the code does not even attempt a direct status write. Grep-proof: no `SET provenance_status`.
  *
- * PAIRS WITH funded-pass.mjs (the re-ground): groundBrief re-attributes the FACT claims to their pool
- * sources FIRST, under the CURRENT pipeline (tier-ordered blocks, error-body exclusion, genuine-support
- * judge asymmetry, span-verbatim). THIS pass then re-derives each item's terminal status:
+ * RUNS AFTER re-grounding (whatever produced the current claim ledger): the re-ground pass re-attributes
+ * FACT claims to their pool sources FIRST, under the CURRENT pipeline (tier-ordered blocks, error-body
+ * exclusion, genuine-support judge asymmetry, span-verbatim). NOTE (2026-07-13, snapshot-first rebuild):
+ * the former re-ground pair `funded-pass.mjs` was RETIRED with the old grounding-runner path; re-grounding
+ * now routes through the snapshot-first verify-item entry point / canonical pipeline. This script has NO
+ * functional dependency on funded-pass (no import, no shared lib, no input-file or sequencing assumption) —
+ * it re-derives status against whatever claim ledger currently exists. THIS pass re-derives each item's status:
  *   recovered (claims now source-grounded) -> stays/returns verified, NEVER leaves the surface;
  *   genuinely-ungroundable -> quarantined honestly (the trigger inserts the base data_quality flag).
  * Binding 4 retrieval work-orders for the quarantined subset are added by a separate service-role pass.

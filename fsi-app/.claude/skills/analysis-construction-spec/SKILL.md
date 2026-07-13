@@ -84,8 +84,9 @@ Six overlays sit on every section, inherited from the skill or stated here:
 ## 2. Grounding models (the four; declared per section)
 Grounding is not one operation. Each section declares which of these proves it:
 
-- SPAN: a claim grounded to a verbatim span in fetched source content. The existing engine
-  (block4-retroground-runner). Used by every fact section.
+- SPAN: a claim grounded to a verbatim span in fetched OR stored-snapshot source content. The canonical
+  grounding engine (`groundBrief` in canonical-pipeline.ts, reached via the snapshot-first verify-item
+  entry point). Used by every fact section.
 - CORROBORATION-COUNT: a signal's strength proven by N independent sources within a window. Not
   span-matching; it is discovery, independence dedup, and counting. New capability. Market's
   convergence signal.

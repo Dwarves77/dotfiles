@@ -106,7 +106,12 @@ export const SKILL_MARKER_BASELINE = {
   // 26→27 (2026-07-12): §4 category 17 "The pause-flag one-writer (structural enforcement, no credential…)".
   // TRIAGE: not a new bare rule — the doctrine-register entry pause-flag-has-one-writer (enforcedBy RD-23:
   // F20 fitness + migration-201 guard + audit). Re-baseline to 27.
-  'remediation-discipline': 27,
+  // 27→32 (2026-07-13, snapshot-first rebuild PR-2): added Section 4 category 18 "Snapshot-first grounding
+  // (acquisition is locked by default)" — 5 normative anchor lines (single-entry forbidden / paid-row MUST
+  // carry attribution / paid acquire MUST pre-log justification / acquiring run MUST write snapshot / fresh
+  // snapshot MUST NOT reach paid path). TRIAGE: new invariants RD-24..RD-29 (F21 fitness + selftests) + the
+  // four snapshot-first doctrine-register entries. Re-baseline to 32.
+  'remediation-discipline': 32,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -699,6 +704,62 @@ export const INVARIANTS = [
       'audit:fsi-app/scripts/verify/pause-flag-guard-proof.mjs',
     ],
     residual: 'F20 (grep-class, red-then-green in F20-...test.mjs: a direct .update/assignment/SQL-SET on the flags outside the sanctioned route is RED; reads + type annotations + the RPC caller are GREEN; a LIVE census proves the whole src tree passes — the RPC is the only writer) gates the STATIC one-writer. Migration 201 (the guard trigger + the admin_set_pause_state RPC) is the RUNTIME bounce: the bounce is proven red-then-green by pause-flag-guard-proof.mjs on a SYNTHETIC temp table in a rolled-back transaction (unmarked UPDATE raises; a marked UPDATE succeeds) — the live flag is NEVER written, including by the test. RESIDUAL (honest, same class as any GUC marker): a determined caller with raw SQL access could set the marker itself in the same transaction and bypass the trigger — but no COMMITTED code can (F20), the casual agent flip (a plain UPDATE) bounces, and every write is audited. This is structural defense-in-layers, not a cryptographic vault; it needs no human-held secret, which was the whole point.',
+  },
+
+  // ── Snapshot-first grounding (snapshot-first rebuild PR-2, operator ruling 2026-07-13) ──
+  {
+    id: 'RD-24-single-grounding-entry',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 18: Snapshot-first grounding (acquisition is locked by default)',
+    text: 'Grounding acquisition (external fetch + model to produce/verify a brief) has EXACTLY ONE entry: the durable workflow over the canonical pipeline, reached through the snapshot-first verify-item entry point. No other production file may directly invoke generateBriefWorkflow / generateBrief / groundBrief — a direct call re-creates the old bypass path (block4-retroground-runner + the deleted standalone runners) that spent $65 unattributed in July.',
+    anchor: 'Grounding acquisition has exactly one entry point',
+    enforcedBy: ['fitness:F21', 'selftest:fsi-app/.discipline/fitness/functions/F21-single-grounding-entry.test.mjs'],
+    residual: 'F21 (grep-class, red-then-green: a direct generateBriefWorkflow/generateBrief(/groundBrief( reference outside the sanctioned set — canonical-pipeline, generate-brief workflow, run-intake-cycle, the two start-routes, verify-item — is RED; comments + regenerateBrief() + overrides are GREEN; a LIVE scan of 297 src files passes). Scope mirrors F15/F16 (production path only); one-off scripts are held at the commit layer (rule 016) + the runner deletion.',
+  },
+  {
+    id: 'RD-25-paid-row-attribution',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 18: Snapshot-first grounding (acquisition is locked by default)',
+    text: 'A paid ledger row (agent_runs.cost_usd_estimated > 0) MUST carry an intelligence_item_id OR a source_id. A row that is both item- and source-anonymous is the July $65.36 attribution hole (recordSpendCall wrote neither source_id nor, by default, itemId). The spend chokepoint now writes both from the SpendTicket + warns on an attribution-blind paid row; the acquire-justification write carries the attribution.',
+    anchor: 'A paid ledger row MUST carry an item id or a source id',
+    enforcedBy: ['selftest:fsi-app/src/lib/sources/verify-item.test.mjs'],
+    residual: 'I1. The acquire-path attribution is proven by verify-item.test.mjs (logAcquireJustification writes intelligence_item_id + source_id). The general spend-call attribution is the recordSpendCall code (writes source_id + item_id + warns when both null); a full data-invariant audit over agent_runs is the follow-on when the workflow rewire threads itemId+sourceId onto every ticket.',
+  },
+  {
+    id: 'RD-26-pre-logged-acquire-justification',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 18: Snapshot-first grounding (acquisition is locked by default)',
+    text: 'Every paid acquire MUST pre-log a justification (missing_snapshot | content_changed | cheap_verify_failed) to the ledger BEFORE the paid call, so an unjustified paid run is mechanically impossible and the spend gauge can count justification coverage.',
+    anchor: 'Every paid acquire MUST pre-log a justification before it spends',
+    enforcedBy: ['selftest:fsi-app/src/lib/sources/verify-item.test.mjs'],
+    residual: 'I2. verify-item.test.mjs proves the paid branch writes the cost-0 justification row BEFORE the acquire lock throws (no-snapshot + act:true + acquire OFF → justification logged, THEN GROUNDING_ACQUIRE_LOCKED). An invalid justification reason is rejected.',
+  },
+  {
+    id: 'RD-27-snapshot-write-on-acquire',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 18: Snapshot-first grounding (acquisition is locked by default)',
+    text: 'An acquiring run MUST write the acquired content to the snapshot store (raw_fetches + the gzipped body in Storage). No acquisition may leave raw_fetches unwritten — that is the abandoned-store defect (660 May snapshots written once, never re-populated, never read).',
+    anchor: 'An acquiring run MUST write the acquired content to the snapshot store',
+    enforcedBy: ['selftest:fsi-app/src/lib/sources/snapshot-store.test.mjs'],
+    residual: 'I3. snapshot-store.test.mjs proves writeSnapshot builds the canonical storage key and upserts idempotently by content_hash, and refuses a sourceId-less write. The write is wired into the paid-acquire path in the workflow-rewire block (item 3).',
+  },
+  {
+    id: 'RD-28-verified-is-resting-state',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 18: Snapshot-first grounding (acquisition is locked by default)',
+    text: 'A verified item is a resting state — no paid re-ground of a provenance_status=verified item without evidence of change (hash / Last-Modified mismatch) or an explicit operator order. The 2026-07-06 reconciliation sweep ($15.56) that re-verified resting-state items is logged as waste, cause "design defect, pre-doctrine."',
+    anchor: 'A verified item is a resting state — re-verification requires evidence of change',
+    enforcedBy: ['selftest:fsi-app/src/lib/llm/spend-guard.test.mjs'],
+    residual: 'I4. spend-guard.test.mjs proves the VERIFIED-ITEM gate: assertTicket THROWS SPEND_REJECTED (…already provenance_status=verified) for a verified ticket, case-insensitively, and passes a quarantined ticket. This is the mechanical "no paid re-verify of a resting-state item."',
+  },
+  {
+    id: 'RD-29-fresh-snapshot-never-paid',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 18: Snapshot-first grounding (acquisition is locked by default)',
+    text: 'A fresh valid snapshot MUST NOT reach the paid path. When a stored snapshot exists and the source has not changed, verification is the cheap span-match against stored text (~$0); paid acquire is reserved for missing/changed snapshots and is itself locked behind the operator flag (GROUNDING_ACQUIRE_ENABLED, default OFF).',
+    anchor: 'A fresh valid snapshot MUST NOT reach the paid path',
+    enforcedBy: ['selftest:fsi-app/src/lib/sources/verify-item.test.mjs'],
+    residual: 'I5. verify-item.test.mjs (decideVerify) proves snapshot+fresh+cheap-pass → verified_cheap (flip, no acquire); the only routes to needs_acquire are missing snapshot or cheap-verify FAIL; a changed source routes to stale_flag (never the paid path, never a silent pass). cheap-verify.test.mjs proves the span-match is pure ($0).',
   },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────
