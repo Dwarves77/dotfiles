@@ -476,8 +476,8 @@ This audit feeds the next architectural decision conversation. It does not execu
 
 ## Related
 
-- [[source-coverage-diagnostic-2026-05-09]] — That check verifies this diagnostic's four EU-ESRS source verdicts against a next-day snapshot (ESG Today flipped to healthy)
-- [[source-map-from-esgtoday-2026-05-09]] — This is the existence check of that map's Sections A-G entry-by-entry against the registry
-- [[classification-rules-audit-2026-05-09]] — Cross-references its 49 garbage-extraction sources + Lloyd's Register multi-ambiguous concentration for the two double-flags
-- [[four-page-architecture-survey-2026-05-09]] — Tests how many of its 185 unknown-bucket sources map into this source map's sections
-- [[spec-audit-map-2026-05-23]] — Both concern the map/source-registry coverage-by-region surface
+- [source-coverage-diagnostic-2026-05-09](./source-coverage-diagnostic-2026-05-09.md) — That check verifies this diagnostic's four EU-ESRS source verdicts against a next-day snapshot (ESG Today flipped to healthy)
+- [source-map-from-esgtoday-2026-05-09](./source-map-from-esgtoday-2026-05-09.md) — This is the existence check of that map's Sections A-G entry-by-entry against the registry
+- [classification-rules-audit-2026-05-09](./classification-rules-audit-2026-05-09.md) — Cross-references its 49 garbage-extraction sources + Lloyd's Register multi-ambiguous concentration for the two double-flags
+- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) — Tests how many of its 185 unknown-bucket sources map into this source map's sections
+- [spec-audit-map-2026-05-23](../plans/spec-audit-map-2026-05-23.md) — Both concern the map/source-registry coverage-by-region surface

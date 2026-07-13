@@ -297,6 +297,6 @@ Three things worth flagging from this audit:
 
 ## Related
 
-- [[DESIGN-AUDIT-2026-05]] — Companion preview-vs-production audit — same hollow-content and collapsed-default-state drift patterns across the same 11 surfaces
-- [[spec-audit-community-2026-05-23]] — Community was this audit's single largest delta (shell swap, missing composer/feeds); spec-audit-community governs that surface's rebuild
-- [[comprehensive-site-audit-2026-05-25]] — Later whole-site audit revisits the same production-vs-design surface reconciliation
+- [DESIGN-AUDIT-2026-05](./DESIGN-AUDIT-2026-05.md) — Companion preview-vs-production audit — same hollow-content and collapsed-default-state drift patterns across the same 11 surfaces
+- [spec-audit-community-2026-05-23](../plans/spec-audit-community-2026-05-23.md) — Community was this audit's single largest delta (shell swap, missing composer/feeds); spec-audit-community governs that surface's rebuild
+- [comprehensive-site-audit-2026-05-25](./comprehensive-site-audit-2026-05-25.md) — Later whole-site audit revisits the same production-vs-design surface reconciliation

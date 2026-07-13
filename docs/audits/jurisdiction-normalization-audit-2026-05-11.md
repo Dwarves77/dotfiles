@@ -433,8 +433,8 @@ column-of-truth question is unresolved.
 
 ## Related
 
-- [[us-state-code-audit-2026-05-12]] — Direct follow-on: the US-XX collision audit tests migration 072's buggy normalizer against the same jurisdictions column; this doc's US-AR row…
-- [[W1A-dual-write-audit]] — Depends on the locked legacy→ISO mapping (lib/jurisdictions/iso.ts) that jurisdiction normalization defines
-- [[W2D-coverage-matrix-spec]] — Coverage matrix is a named read surface that filters/counts on the raw jurisdictions column this audit shows is fragmented
-- [[W4-backfill-plan]] — The W4 ISO backfill (deriveJurisdictionISO) populates jurisdiction_iso only and never touches the legacy column — the gap this audit centers on
-- [[spec-audit-map-2026-05-23]] — Map centroids/pin codes depend on normalized jurisdiction ISO codes this audit governs
+- [us-state-code-audit-2026-05-12](./us-state-code-audit-2026-05-12.md) — Direct follow-on: the US-XX collision audit tests migration 072's buggy normalizer against the same jurisdictions column; this doc's US-AR row…
+- [W1A-dual-write-audit](./W1A-dual-write-audit.md) — Depends on the locked legacy→ISO mapping (lib/jurisdictions/iso.ts) that jurisdiction normalization defines
+- [W2D-coverage-matrix-spec](../plans/W2D-coverage-matrix-spec.md) — Coverage matrix is a named read surface that filters/counts on the raw jurisdictions column this audit shows is fragmented
+- [W4-backfill-plan](../plans/W4-backfill-plan.md) — The W4 ISO backfill (deriveJurisdictionISO) populates jurisdiction_iso only and never touches the legacy column — the gap this audit centers on
+- [spec-audit-map-2026-05-23](../plans/spec-audit-map-2026-05-23.md) — Map centroids/pin codes depend on normalized jurisdiction ISO codes this audit governs

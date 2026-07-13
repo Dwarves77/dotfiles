@@ -58,5 +58,5 @@ Total: **37** rows (state unambiguous, country absent from title/summary/full_br
 
 ## Related
 
-- [[jurisdiction-normalization-audit-2026-05-11]] — Direct follow-on: the US-XX collision audit tests migration 072's buggy normalizer against the same jurisdictions column; this doc's US-AR row…
-- [[W4-backfill-plan]] — The W4 ISO derivation is the normalization workstream whose US-XX outputs this audit checks for country/state collisions
+- [jurisdiction-normalization-audit-2026-05-11](./jurisdiction-normalization-audit-2026-05-11.md) — Direct follow-on: the US-XX collision audit tests migration 072's buggy normalizer against the same jurisdictions column; this doc's US-AR row…
+- [W4-backfill-plan](../plans/W4-backfill-plan.md) — The W4 ISO derivation is the normalization workstream whose US-XX outputs this audit checks for country/state collisions

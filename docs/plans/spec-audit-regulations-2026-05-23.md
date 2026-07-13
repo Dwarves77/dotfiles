@@ -252,8 +252,8 @@ across air, road, ocean, rail). No narrowing flag.
 
 ## Related
 
-- [[spec-audit-dashboard-2026-05-23]] — DashboardHero is shared: audit finds every hero tile deep-links into /regulations, the regulations audit's index chrome
-- [[spec-audit-synthesis-2026-05-23]] — One of eight audits synthesized (commit d02e20c); regulations detail is the systematically-under-built-detail-page exemplar
-- [[classification-backfill-plan-2026-05-22]] — The 120 historically-misclassified domain=1 items remain until a backfill this plan scopes runs
-- [[ADR-002-tier-model]] — Audit's Section-8 vocabulary gap (Confidence authority-level vs canonical Tier 1-7) is a divergence from this tier model
-- [[ingest-pipeline-investigation-2026-05-22]] — Dispatch E (ingest investigation) owns the item_type-leakage fix the audit defers to
+- [spec-audit-dashboard-2026-05-23](./spec-audit-dashboard-2026-05-23.md) — DashboardHero is shared: audit finds every hero tile deep-links into /regulations, the regulations audit's index chrome
+- [spec-audit-synthesis-2026-05-23](./spec-audit-synthesis-2026-05-23.md) — One of eight audits synthesized (commit d02e20c); regulations detail is the systematically-under-built-detail-page exemplar
+- [classification-backfill-plan-2026-05-22](./classification-backfill-plan-2026-05-22.md) — The 120 historically-misclassified domain=1 items remain until a backfill this plan scopes runs
+- [ADR-002-tier-model](../decisions/ADR-002-tier-model.md) — Audit's Section-8 vocabulary gap (Confidence authority-level vs canonical Tier 1-7) is a divergence from this tier model
+- [ingest-pipeline-investigation-2026-05-22](./ingest-pipeline-investigation-2026-05-22.md) — Dispatch E (ingest investigation) owns the item_type-leakage fix the audit defers to

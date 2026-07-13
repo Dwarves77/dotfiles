@@ -277,8 +277,8 @@ The /workspace/new → /onboarding hand-off after org creation goes through `win
 
 ## Related
 
-- [[ADR-001-platform-model]] — Audit's adjunct spec; /profile Org+Members panels are wired against this ADR's three-layer tenant model
-- [[multi-tenant-foundation-followups-2026-05-15]] — Open chrome gaps (email-delivered invitations, group seeding, chrome polish) are multi-tenant-foundation followups
-- [[dead-code-disposition-2026-05-21]] — The /events dead-code finding traces to the /community/events removal (commit 9cd364f) this disposition ordered
-- [[multi-tenant-foundation-prework-2026-05-15]] — Onboarding wizard, invitations, workspace/new chrome audited were shipped under the Multi-Tenant Foundation Workstream B this prework scopes
-- [[spec-audit-synthesis-2026-05-23]] — One of eight audits synthesized (commit c23091a); supplies the Class-C drift and /events-delete decisions
+- [ADR-001-platform-model](../decisions/ADR-001-platform-model.md) — Audit's adjunct spec; /profile Org+Members panels are wired against this ADR's three-layer tenant model
+- [multi-tenant-foundation-followups-2026-05-15](../ops/multi-tenant-foundation-followups-2026-05-15.md) — Open chrome gaps (email-delivered invitations, group seeding, chrome polish) are multi-tenant-foundation followups
+- [dead-code-disposition-2026-05-21](./dead-code-disposition-2026-05-21.md) — The /events dead-code finding traces to the /community/events removal (commit 9cd364f) this disposition ordered
+- [multi-tenant-foundation-prework-2026-05-15](./multi-tenant-foundation-prework-2026-05-15.md) — Onboarding wizard, invitations, workspace/new chrome audited were shipped under the Multi-Tenant Foundation Workstream B this prework scopes
+- [spec-audit-synthesis-2026-05-23](./spec-audit-synthesis-2026-05-23.md) — One of eight audits synthesized (commit c23091a); supplies the Class-C drift and /events-delete decisions

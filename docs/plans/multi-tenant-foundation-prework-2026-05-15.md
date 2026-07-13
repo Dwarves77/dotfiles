@@ -248,8 +248,8 @@ Both files preserved for re-derivation.
 
 ## Related
 
-- [[skill-refinements-prework-2026-05-15]] — Same-session companion; skill-refinements is explicitly the companion doc and reuses this dispatch's three-context (workspace/community/personal)…
-- [[multi-tenant-foundation-followups-2026-05-15]] — Explicitly named companion — the prework doc holds the decisions made before code that this followups doc continues
-- [[dispatch-2.5-writer-redistribution-prework-2026-05-15]] — Explicitly named as the prework-first discipline this dispatch mirrors
-- [[ADR-001-platform-model]] — ADR-001 References section cites this prework doc as the multi-tenant foundation design it accepts
-- [[spec-audit-community-2026-05-23]] — Community components audited were shipped under Multi-Tenant Foundation Workstream B this prework scopes
+- [skill-refinements-prework-2026-05-15](./skill-refinements-prework-2026-05-15.md) — Same-session companion; skill-refinements is explicitly the companion doc and reuses this dispatch's three-context (workspace/community/personal)…
+- [multi-tenant-foundation-followups-2026-05-15](../ops/multi-tenant-foundation-followups-2026-05-15.md) — Explicitly named companion — the prework doc holds the decisions made before code that this followups doc continues
+- [dispatch-2.5-writer-redistribution-prework-2026-05-15](./dispatch-2.5-writer-redistribution-prework-2026-05-15.md) — Explicitly named as the prework-first discipline this dispatch mirrors
+- [ADR-001-platform-model](../decisions/ADR-001-platform-model.md) — ADR-001 References section cites this prework doc as the multi-tenant foundation design it accepts
+- [spec-audit-community-2026-05-23](./spec-audit-community-2026-05-23.md) — Community components audited were shipped under Multi-Tenant Foundation Workstream B this prework scopes

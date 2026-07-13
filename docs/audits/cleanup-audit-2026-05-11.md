@@ -141,8 +141,8 @@ Targeted at the files in operator scope.
 
 ## Related
 
-- [[dashboard-payload-audit-2026-05-11]] — Rules it ACTIVE as the column-list contract behind migration 064's dashboard RPC; shared dependency on the get_workspace_intelligence_dashboard…
-- [[wave1b-stub-quality-investigation-2026-05-11]] — shares migration 064
-- [[caros-ledge-supabase-schema-audit-2026-05-15]] — Both audit the migration 063 12-column scaffolding and the 062 hidden_reason column; cleanup rules them scaffolding-not-yet-consumed, this confirms…
-- [[classification-rules-audit-2026-05-09]] — Cites its title-only OOS-gate proposal (line 375) as the seed for a permanent fetch-quality fix; the _deletion-preview-title-only script is that seed
-- [[source-classification-framework-2026-05-10]] — Migration 063's 12 columns are the 5-axis framework's storage; this audit names that framework doc as the contract Wave 1c will fulfill
+- [dashboard-payload-audit-2026-05-11](./dashboard-payload-audit-2026-05-11.md) — Rules it ACTIVE as the column-list contract behind migration 064's dashboard RPC; shared dependency on the get_workspace_intelligence_dashboard…
+- [wave1b-stub-quality-investigation-2026-05-11](./wave1b-stub-quality-investigation-2026-05-11.md) — shares migration 064
+- [caros-ledge-supabase-schema-audit-2026-05-15](./caros-ledge-supabase-schema-audit-2026-05-15.md) — Both audit the migration 063 12-column scaffolding and the 062 hidden_reason column; cleanup rules them scaffolding-not-yet-consumed, this confirms…
+- [classification-rules-audit-2026-05-09](./classification-rules-audit-2026-05-09.md) — Cites its title-only OOS-gate proposal (line 375) as the seed for a permanent fetch-quality fix; the _deletion-preview-title-only script is that seed
+- [source-classification-framework-2026-05-10](../plans/source-classification-framework-2026-05-10.md) — Migration 063's 12 columns are the 5-axis framework's storage; this audit names that framework doc as the contract Wave 1c will fulfill

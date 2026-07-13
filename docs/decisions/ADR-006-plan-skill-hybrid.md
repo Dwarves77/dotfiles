@@ -49,6 +49,6 @@ Plan files land at `fsi-app/docs/plans/<YYYY-MM-DD>-<coordination-name>.md` BEFO
 
 ## Related
 
-- [[ADR-005-discipline-enforcement-layered-architecture]] — this ADR's slim refactor deleted rules 009/010 that ADR-006 documented, deprecating it
-- [[discipline]] — rules 009/010 (now deleted) and their status are tracked in the discipline inventory
-- [[dead-code-disposition-2026-05-21]] — per-item disposition of the deleted rules 009/010 this ADR documented lives in this audit
+- [ADR-005-discipline-enforcement-layered-architecture](./ADR-005-discipline-enforcement-layered-architecture.md) — this ADR's slim refactor deleted rules 009/010 that ADR-006 documented, deprecating it
+- [discipline](../inventories/discipline.md) — rules 009/010 (now deleted) and their status are tracked in the discipline inventory
+- [dead-code-disposition-2026-05-21](../plans/dead-code-disposition-2026-05-21.md) — per-item disposition of the deleted rules 009/010 this ADR documented lives in this audit

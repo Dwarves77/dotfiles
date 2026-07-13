@@ -354,8 +354,8 @@ worth operator confirmation.
 
 ## Related
 
-- [[spec-audit-operations-2026-05-23]] — Facility mode was removed from Map because facility data belongs on /operations per skill Section 3
-- [[spec-audit-regulations-2026-05-23]] — Map is explicitly a geographic view of Regulations content; shares the getListingsMapData/resources payload
-- [[spec-audit-synthesis-2026-05-23]] — One of eight audits synthesized; Map named the sole clean match
-- [[jurisdiction-normalization-audit-2026-05-11]] — Map centroids/pin codes depend on normalized jurisdiction ISO codes this audit governs
-- [[source-coverage-diagnostic-2026-05-09]] — Map's Coverage-gaps card (chrome-leak flag) surfaces per-region source-coverage this diagnostic quantifies
+- [spec-audit-operations-2026-05-23](./spec-audit-operations-2026-05-23.md) — Facility mode was removed from Map because facility data belongs on /operations per skill Section 3
+- [spec-audit-regulations-2026-05-23](./spec-audit-regulations-2026-05-23.md) — Map is explicitly a geographic view of Regulations content; shares the getListingsMapData/resources payload
+- [spec-audit-synthesis-2026-05-23](./spec-audit-synthesis-2026-05-23.md) — One of eight audits synthesized; Map named the sole clean match
+- [jurisdiction-normalization-audit-2026-05-11](../audits/jurisdiction-normalization-audit-2026-05-11.md) — Map centroids/pin codes depend on normalized jurisdiction ISO codes this audit governs
+- [source-coverage-diagnostic-2026-05-09](../audits/source-coverage-diagnostic-2026-05-09.md) — Map's Coverage-gaps card (chrome-leak flag) surfaces per-region source-coverage this diagnostic quantifies

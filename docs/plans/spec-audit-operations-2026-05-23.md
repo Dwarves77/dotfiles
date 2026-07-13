@@ -202,8 +202,8 @@ The data layer (`getOperationsItems` + `fetchOperationsItems` at `supabase-serve
 
 ## Related
 
-- [[spec-audit-research-2026-05-23]] — The NREL Warehouse Solar-ROI item moved from Operations d=6 to Research d=7 under Migration 101; both audits track it
-- [[spec-audit-market-intel-2026-05-23]] — Shared taxonomy-bleed: /market and /operations consume the same unfiltered fallback payload; audit says the Market/Operations boundary must be…
-- [[spec-audit-synthesis-2026-05-23]] — One of eight audits synthesized (commit 1f5a784); Operations rebuild absorbs the Fix D Facility decision
-- [[fix-d-scope-2026-05-23]] — Audit reflects post-Migration-101 reality this doc defines; Facility sub-tab (d=6 empty) disposition is Fix D's open decision
-- [[ingest-restart-sequencing-2026-05-22]] — Audit notes thin post-Migration-101 content refills as ingest restarts per this sequencing plan
+- [spec-audit-research-2026-05-23](./spec-audit-research-2026-05-23.md) — The NREL Warehouse Solar-ROI item moved from Operations d=6 to Research d=7 under Migration 101; both audits track it
+- [spec-audit-market-intel-2026-05-23](./spec-audit-market-intel-2026-05-23.md) — Shared taxonomy-bleed: /market and /operations consume the same unfiltered fallback payload; audit says the Market/Operations boundary must be…
+- [spec-audit-synthesis-2026-05-23](./spec-audit-synthesis-2026-05-23.md) — One of eight audits synthesized (commit 1f5a784); Operations rebuild absorbs the Fix D Facility decision
+- [fix-d-scope-2026-05-23](./fix-d-scope-2026-05-23.md) — Audit reflects post-Migration-101 reality this doc defines; Facility sub-tab (d=6 empty) disposition is Fix D's open decision
+- [ingest-restart-sequencing-2026-05-22](./ingest-restart-sequencing-2026-05-22.md) — Audit notes thin post-Migration-101 content refills as ingest restarts per this sequencing plan

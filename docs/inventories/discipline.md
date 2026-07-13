@@ -161,8 +161,8 @@ git push --no-verify
 
 ## Related
 
-- [[ADR-005-discipline-enforcement-layered-architecture]] — the discipline-engine manifest / mechanism roster this ADR defines is tracked in the discipline inventory
-- [[worktrees]] — C4 consistency check gates that live worktrees equal worktrees.md entries; it caught the remediation-discipline orphan in CI
-- [[ADR-008-urgency-score-default]] — F4 fitness function (now retired) is tracked in the discipline inventory
-- [[ADR-009-adr-system-architecture]] — rule 013 + adr-loader mechanism this ADR defines are tracked in the discipline inventory
-- [[components]] — Fitness function F8 (client-server-tier-boundary) polices the body.tier assignment that CanonicalSourceReview sends — same tier-boundary contract
+- [ADR-005-discipline-enforcement-layered-architecture](../decisions/ADR-005-discipline-enforcement-layered-architecture.md) — the discipline-engine manifest / mechanism roster this ADR defines is tracked in the discipline inventory
+- [worktrees](./worktrees.md) — C4 consistency check gates that live worktrees equal worktrees.md entries; it caught the remediation-discipline orphan in CI
+- [ADR-008-urgency-score-default](../decisions/ADR-008-urgency-score-default.md) — F4 fitness function (now retired) is tracked in the discipline inventory
+- [ADR-009-adr-system-architecture](../decisions/ADR-009-adr-system-architecture.md) — rule 013 + adr-loader mechanism this ADR defines are tracked in the discipline inventory
+- [components](./components.md) — Fitness function F8 (client-server-tier-boundary) polices the body.tier assignment that CanonicalSourceReview sends — same tier-boundary contract

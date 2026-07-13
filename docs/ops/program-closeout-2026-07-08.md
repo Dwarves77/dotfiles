@@ -78,5 +78,5 @@ LOW/MODERATE.
 one-line guarded updates; the off-vertical archives and the type retypes follow the same guarded path).
 
 ## Related
-- [[browser-verification-pending]] · [[flip-readiness-2026-07-08]] · [[deletion-reclassification-log]]
-- [[redesign-completeness-2026-07-08]] · [[blind-ci-window-audit-2026-07-08]] · [[ADR-011-ddl-authority-delegation]]
+- [browser-verification-pending](./browser-verification-pending.md) · [flip-readiness-2026-07-08](./flip-readiness-2026-07-08.md) · [deletion-reclassification-log](./deletion-reclassification-log.md)
+- [redesign-completeness-2026-07-08](../audits/redesign-completeness-2026-07-08.md) · [blind-ci-window-audit-2026-07-08](../audits/blind-ci-window-audit-2026-07-08.md) · [ADR-011-ddl-authority-delegation](../decisions/ADR-011-ddl-authority-delegation.md)

@@ -383,8 +383,8 @@ Distinct item_type:                      11
 
 ## Related
 
-- [[SESSION-AUDIT-2026-05-05]] — Session audit pulls this doc's coverage-gap and spot-check-dormant dimensions into its 'partial or broken' inventory
-- [[W2D-coverage-matrix-spec]] — Dimension 8 audits the coverage_matrix() RPC (mig 039) that W2D-coverage-matrix-spec designs
-- [[W2F-verification-pipeline]] — Dimensions 2-5 measure the source_verifications H/M/L pipeline and 75/55 thresholds that W2F specifies
-- [[SPOT-CHECK-PROCEDURE]] — Dimension 4's dormant H-tier spot-check loop (0 of 64 checked) is the process this runbook defines
-- [[source-coverage-diagnostic-2026-05-09]] — Both diagnose jurisdictional source-coverage gaps against the tier taxonomy
+- [SESSION-AUDIT-2026-05-05](./SESSION-AUDIT-2026-05-05.md) — Session audit pulls this doc's coverage-gap and spot-check-dormant dimensions into its 'partial or broken' inventory
+- [W2D-coverage-matrix-spec](../plans/W2D-coverage-matrix-spec.md) — Dimension 8 audits the coverage_matrix() RPC (mig 039) that W2D-coverage-matrix-spec designs
+- [W2F-verification-pipeline](../plans/W2F-verification-pipeline.md) — Dimensions 2-5 measure the source_verifications H/M/L pipeline and 75/55 thresholds that W2F specifies
+- [SPOT-CHECK-PROCEDURE](../runbooks/SPOT-CHECK-PROCEDURE.md) — Dimension 4's dormant H-tier spot-check loop (0 of 64 checked) is the process this runbook defines
+- [source-coverage-diagnostic-2026-05-09](./source-coverage-diagnostic-2026-05-09.md) — Both diagnose jurisdictional source-coverage gaps against the tier taxonomy

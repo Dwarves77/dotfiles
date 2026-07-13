@@ -51,5 +51,5 @@ capture migration alongside the mig-009 tables; until then this inventory is the
 
 ## Related
 
-- [[migrations]] — the applied-migration ledger this inventory complements (records-truth corrections there)
-- [[multi-tenant-foundation-followups-2026-05-15]] — the pre-Phase-5 restructure that produced the `_pre_phase5` snapshots
+- [migrations](./migrations.md) — the applied-migration ledger this inventory complements (records-truth corrections there)
+- [multi-tenant-foundation-followups-2026-05-15](../ops/multi-tenant-foundation-followups-2026-05-15.md) — the pre-Phase-5 restructure that produced the `_pre_phase5` snapshots

@@ -247,6 +247,6 @@ When component owners wire the hooks in:
 
 ## Related
 
-- [[C7-notifications-spec]] — C9's useCommunityNotificationsRealtime subscribes to the same notifications table (migration 032) to live-update C7's bell, and recommends the bell…
-- [[C5-feed-spec]] — C5 defers realtime feed updates to C9; C9's useCommunityPostsRealtime subscribes to the same community_posts group_id filter for PostList
-- [[C8-moderation-spec]] — shares migration 032
+- [C7-notifications-spec](./C7-notifications-spec.md) — C9's useCommunityNotificationsRealtime subscribes to the same notifications table (migration 032) to live-update C7's bell, and recommends the bell…
+- [C5-feed-spec](./C5-feed-spec.md) — C5 defers realtime feed updates to C9; C9's useCommunityPostsRealtime subscribes to the same community_posts group_id filter for PostList
+- [C8-moderation-spec](./C8-moderation-spec.md) — shares migration 032

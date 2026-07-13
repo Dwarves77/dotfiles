@@ -56,3 +56,9 @@ named as a class list rather than case-by-case.
   (`ALTER FUNCTION … RESET search_path`). Ledger row 160 carries the identity apply-record.
 - A future architecture split (separate dev/prod projects) re-opens this ADR per the
   Migration-File-Discipline rule.
+
+## Related
+
+- [ADR-009-adr-system-architecture](./ADR-009-adr-system-architecture.md) — the ADR storage/frontmatter convention this decision follows
+- [migrations](../inventories/migrations.md) — the migrations inventory where each apply's read-back smoke tests and identity apply-record are recorded
+- [ADR-012-intake-cadence-and-launch-exit-test](./ADR-012-intake-cadence-and-launch-exit-test.md) — successor decision that builds on this delegation posture

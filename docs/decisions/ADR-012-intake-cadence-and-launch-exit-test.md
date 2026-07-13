@@ -134,3 +134,9 @@ left as session memory.
 - The **intake dry-proof** becomes a named terminal gate before the launch-ready declaration.
 - No change to the standing constraints: general autonomous/scheduled fetching stays gated; all spend
   ticketed; deletes via eligibility gate + log; the manifest-bound mechanism is the single fetch door.
+
+## Related
+
+- [ADR-011-ddl-authority-delegation](./ADR-011-ddl-authority-delegation.md) — the DDL-apply delegation posture this decision builds on
+- [ADR-013-phase3-closure-and-scope-doctrine-tightening](./ADR-013-phase3-closure-and-scope-doctrine-tightening.md) — closes the Phase-3 restitution posture referenced here and tightens the report-scope doctrine
+- [worktree-isolation](../doctrine/worktree-isolation.md) — Disposition Engine Unit 0 (doctrine register) that this decision's manual-intake doctrine feeds

@@ -109,8 +109,8 @@ The `unstable_cache` keys (`["app-data-v1"]`, `["watchlist-v1"]`, `["coverage-ga
 
 ## Related
 
-- [[font-usage-audit-2026-05-11]] — This audit's secondary observation questions the five Plus Jakarta Sans weights and a possible Roboto Mono misread; the font audit is the resolving…
-- [[cleanup-audit-2026-05-11]] — Rules it ACTIVE as the column-list contract behind migration 064's dashboard RPC; shared dependency on the get_workspace_intelligence_dashboard…
-- [[four-page-architecture-survey-2026-05-09]] — Shares the slim RPC (migration 047) and the per-route fetcher split (getResourcesOnly vs full) that the survey first mapped across the four pages
-- [[spec-audit-dashboard-2026-05-23]] — Both audit the Dashboard payload / getAppData data path feeding the same widgets
-- [[wave1-track5-widget-implementation-plan]] — Both concern the Dashboard data path / getAppData feeding these widgets
+- [font-usage-audit-2026-05-11](./font-usage-audit-2026-05-11.md) — This audit's secondary observation questions the five Plus Jakarta Sans weights and a possible Roboto Mono misread; the font audit is the resolving…
+- [cleanup-audit-2026-05-11](./cleanup-audit-2026-05-11.md) — Rules it ACTIVE as the column-list contract behind migration 064's dashboard RPC; shared dependency on the get_workspace_intelligence_dashboard…
+- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) — Shares the slim RPC (migration 047) and the per-route fetcher split (getResourcesOnly vs full) that the survey first mapped across the four pages
+- [spec-audit-dashboard-2026-05-23](../plans/spec-audit-dashboard-2026-05-23.md) — Both audit the Dashboard payload / getAppData data path feeding the same widgets
+- [wave1-track5-widget-implementation-plan](../plans/wave1-track5-widget-implementation-plan.md) — Both concern the Dashboard data path / getAppData feeding these widgets

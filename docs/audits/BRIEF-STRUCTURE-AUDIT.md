@@ -491,5 +491,5 @@ Operational note for the UI architecture decision: the **Confirmed Regulatory Ti
 
 ## Related
 
-- [[SESSION-AUDIT-2026-05-05]] — Session audit's 'Architectural state' section restates this doc's brief-structure source-of-truth and order-drift findings verbatim
-- [[spec-audit-regulations-2026-05-23]] — Section 6's emitted-section→UI-tier mapping feeds the Regulations detail Summary-tab spec that spec-audit-regulations governs
+- [SESSION-AUDIT-2026-05-05](./SESSION-AUDIT-2026-05-05.md) — Session audit's 'Architectural state' section restates this doc's brief-structure source-of-truth and order-drift findings verbatim
+- [spec-audit-regulations-2026-05-23](../plans/spec-audit-regulations-2026-05-23.md) — Section 6's emitted-section→UI-tier mapping feeds the Regulations detail Summary-tab spec that spec-audit-regulations governs

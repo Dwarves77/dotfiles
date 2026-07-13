@@ -14,6 +14,6 @@ The no-resting-state doctrine applies to DEFERRALS too: a deferral without a rec
 revisit is the silent-backlog shape the discipline forbids. This file is the durable record so a future
 session (or the disposition closeout) sees the assignment, not a dropped thread.
 
-Related: [[ADR-012-intake-cadence-and-launch-exit-test]]; the doctrine register
+Related: [ADR-012-intake-cadence-and-launch-exit-test](../decisions/ADR-012-intake-cadence-and-launch-exit-test.md); the doctrine register
 (`fsi-app/.discipline/governance/doctrine-register.mjs`) entries `dwell-time-max-age-on-every-transitional-state`
 and `deferral-ceiling-30d-non-renewable-without-state-change`.

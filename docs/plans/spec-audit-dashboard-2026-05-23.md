@@ -191,8 +191,8 @@ Schema, API, or classifier capabilities the spec implies that the Dashboard woul
 
 ## Related
 
-- [[wave1-track5-widget-implementation-plan]] — That plan builds the exact widgets audited here (DashboardWatchlist, DashboardByOwner, DashboardCoverageGaps, DashboardAwaitingReview,…
-- [[spec-audit-regulations-2026-05-23]] — DashboardHero is shared: audit finds every hero tile deep-links into /regulations, the regulations audit's index chrome
-- [[ADR-007-bias-tag-threshold-per-dimension]] — Q9 chip set the audit critiques includes the bias chip governed by this ADR
-- [[ADR-008-urgency-score-default]] — WeeklyBriefing top-5 ranks by urgencyScore whose default this ADR sets
-- [[spec-audit-synthesis-2026-05-23]] — One of the eight audits synthesized; Dashboard listed as reframing not rebuild
+- [wave1-track5-widget-implementation-plan](./wave1-track5-widget-implementation-plan.md) — That plan builds the exact widgets audited here (DashboardWatchlist, DashboardByOwner, DashboardCoverageGaps, DashboardAwaitingReview,…
+- [spec-audit-regulations-2026-05-23](./spec-audit-regulations-2026-05-23.md) — DashboardHero is shared: audit finds every hero tile deep-links into /regulations, the regulations audit's index chrome
+- [ADR-007-bias-tag-threshold-per-dimension](../decisions/ADR-007-bias-tag-threshold-per-dimension.md) — Q9 chip set the audit critiques includes the bias chip governed by this ADR
+- [ADR-008-urgency-score-default](../decisions/ADR-008-urgency-score-default.md) — WeeklyBriefing top-5 ranks by urgencyScore whose default this ADR sets
+- [spec-audit-synthesis-2026-05-23](./spec-audit-synthesis-2026-05-23.md) — One of the eight audits synthesized; Dashboard listed as reframing not rebuild

@@ -331,6 +331,6 @@ The preview HTML files in `preview/` are the source of truth for visual and edit
 
 ## Related
 
-- [[VISUAL-RECONCILIATION-2026-05-06]] — Companion preview-vs-production audit — same hollow-content and collapsed-default-state drift patterns across the same 11 surfaces
-- [[spec-audit-dashboard-2026-05-23]] — Dashboard's collapsed Weekly Briefing / What Changed / Replaced blocks are this doc's top drift and the subject of the dashboard spec audit
-- [[comprehensive-site-audit-2026-05-25]] — Later whole-site audit continues this surface-fidelity review after the spec-audit series
+- [VISUAL-RECONCILIATION-2026-05-06](./VISUAL-RECONCILIATION-2026-05-06.md) — Companion preview-vs-production audit — same hollow-content and collapsed-default-state drift patterns across the same 11 surfaces
+- [spec-audit-dashboard-2026-05-23](../plans/spec-audit-dashboard-2026-05-23.md) — Dashboard's collapsed Weekly Briefing / What Changed / Replaced blocks are this doc's top drift and the subject of the dashboard spec audit
+- [comprehensive-site-audit-2026-05-25](./comprehensive-site-audit-2026-05-25.md) — Later whole-site audit continues this surface-fidelity review after the spec-audit series

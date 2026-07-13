@@ -58,8 +58,8 @@ Deprecated: standalone `tier` column. Renamed to `base_tier` in migration 090.
 
 ## Related
 
-- [[ADR-003-server-centric-dual-write]] — explicit related; ADR-003 dual-writes the base_tier/effective_tier columns this ADR creates
-- [[migrations]] — shared migration 090 (Q2 tier schema split / tier->base_tier rename) tracked in migrations inventory
-- [[ADR-007-bias-tag-threshold-per-dimension]] — same sources table + source-credibility model; base_tier feeds the downstream credibility scoring that ADR-007's bias-tag aggregation respects
-- [[source-classification-framework-2026-05-10]] — same source-classification subsystem that sets the structural base_tier at registration
-- [[components]] — Components encode the base_tier vs effective_tier default rule (customer = effective_tier ?? base_tier); ADR-002 is the tier-model decision they…
+- [ADR-003-server-centric-dual-write](./ADR-003-server-centric-dual-write.md) — explicit related; ADR-003 dual-writes the base_tier/effective_tier columns this ADR creates
+- [migrations](../inventories/migrations.md) — shared migration 090 (Q2 tier schema split / tier->base_tier rename) tracked in migrations inventory
+- [ADR-007-bias-tag-threshold-per-dimension](./ADR-007-bias-tag-threshold-per-dimension.md) — same sources table + source-credibility model; base_tier feeds the downstream credibility scoring that ADR-007's bias-tag aggregation respects
+- [source-classification-framework-2026-05-10](../plans/source-classification-framework-2026-05-10.md) — same source-classification subsystem that sets the structural base_tier at registration
+- [components](../inventories/components.md) — Components encode the base_tier vs effective_tier default rule (customer = effective_tier ?? base_tier); ADR-002 is the tier-model decision they…

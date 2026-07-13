@@ -355,8 +355,8 @@ The 2026-05-05 audit was excellent and most of its high-impact recommendations s
 
 ## Related
 
-- [[PERF-AUDIT]] — Direct predecessor; this doc is the backlog walk-through verifying which of PERF-AUDIT's 15 items shipped vs remain
-- [[PERF-PROFILING-FINDINGS]] — Named predecessor; both track the full_brief slim-RPC and the revalidate=60 state of /research and /settings
-- [[ISR-WRITE-INVESTIGATION]] — Named predecessor; both diagnose the /research revalidate=60 behavior and the cookie-read-forces-dynamic pattern
-- [[PERF-PLAYBOOK]] — Runbook codifying the measure-first discipline and the ssr:true code-split anti-pattern this audit's fix list observes
-- [[hotfix-3-perf-audit-2026-05-07]] — Next-day perf audit in the same cluster continuing the auth/round-trip and code-split thread
+- [PERF-AUDIT](./PERF-AUDIT.md) — Direct predecessor; this doc is the backlog walk-through verifying which of PERF-AUDIT's 15 items shipped vs remain
+- [PERF-PROFILING-FINDINGS](./PERF-PROFILING-FINDINGS.md) — Named predecessor; both track the full_brief slim-RPC and the revalidate=60 state of /research and /settings
+- [ISR-WRITE-INVESTIGATION](./ISR-WRITE-INVESTIGATION.md) — Named predecessor; both diagnose the /research revalidate=60 behavior and the cookie-read-forces-dynamic pattern
+- [PERF-PLAYBOOK](../runbooks/PERF-PLAYBOOK.md) — Runbook codifying the measure-first discipline and the ssr:true code-split anti-pattern this audit's fix list observes
+- [hotfix-3-perf-audit-2026-05-07](./hotfix-3-perf-audit-2026-05-07.md) — Next-day perf audit in the same cluster continuing the auth/round-trip and code-split thread

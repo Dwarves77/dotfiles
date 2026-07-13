@@ -564,8 +564,8 @@ End framework.
 
 ## Related
 
-- [[classification-backfill-plan-2026-05-22]] — Uses migration 084 sources.category which derives from the framework's source_role axis
-- [[registry-to-ingestion-handoff-design-2026-05-10]] — Same-day; EFRAG (this doc's proof) and W2.F verification pipeline tier-H routing are that framework's worked examples
-- [[classification-backfill-ambiguous-2026-05-22]] — The ambiguity cause is unset source_role/category from migrations 063+084, the framework's 5-axis registration
-- [[ADR-002-tier-model]] — same source-classification subsystem that sets the structural base_tier at registration
-- [[SOURCE-TYPE-TAXONOMY-PROPOSAL]] — Shared subsystem: this proposal formalizes the source-type-of-body classification axis that the source-classification framework governs
+- [classification-backfill-plan-2026-05-22](./classification-backfill-plan-2026-05-22.md) — Uses migration 084 sources.category which derives from the framework's source_role axis
+- [registry-to-ingestion-handoff-design-2026-05-10](./registry-to-ingestion-handoff-design-2026-05-10.md) — Same-day; EFRAG (this doc's proof) and W2.F verification pipeline tier-H routing are that framework's worked examples
+- [classification-backfill-ambiguous-2026-05-22](./classification-backfill-ambiguous-2026-05-22.md) — The ambiguity cause is unset source_role/category from migrations 063+084, the framework's 5-axis registration
+- [ADR-002-tier-model](../decisions/ADR-002-tier-model.md) — same source-classification subsystem that sets the structural base_tier at registration
+- [SOURCE-TYPE-TAXONOMY-PROPOSAL](./SOURCE-TYPE-TAXONOMY-PROPOSAL.md) — Shared subsystem: this proposal formalizes the source-type-of-body classification axis that the source-classification framework governs

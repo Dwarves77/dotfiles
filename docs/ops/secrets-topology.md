@@ -52,9 +52,9 @@ never a real entry — replaced by the existing `WORKER_SECRET`.)
 
 ## Cross-repo note
 The private backup repo `Dwarves77/caros-ledge-backups` holds its OWN Actions secrets (its dump/restore
-workflow needs `SUPABASE_DB_PASSWORD` etc.). That is a separate repo's surface — see [[backup-posture]];
+workflow needs `SUPABASE_DB_PASSWORD` etc.). That is a separate repo's surface — see [backup-posture](./backup-posture.md);
 it is out of scope for THIS repo's SF-11 (which only scans this repo's workflows).
 
-Related: [[observability-posture]] (R0.2), [[backup-posture]] (R0.1),
+Related: [observability-posture](./observability-posture.md) (R0.2), [backup-posture](./backup-posture.md) (R0.1),
 `fsi-app/.discipline/governance/secrets-registry.mjs` (machine SoT), doctrine register entries
 `credential-surface-visibility` / `no-new-secrets-without-need` / `credential-capability-verified-by-test`.

@@ -87,8 +87,8 @@ The three options above ARE the alternatives. Operator selects.
 
 ## Related
 
-- [[ADR-007-bias-tag-threshold-per-dimension]] — both derive defaults from Haiku classifier output and were retired-to-convention F-functions in the same slim refactor
-- [[discipline]] — F4 fitness function (now retired) is tracked in the discipline inventory
-- [[ADR-005-discipline-enforcement-layered-architecture]] — F4 intelligence-items-urgency-score fitness function was retired in ADR-005's 2026-05-21 slim refactor, which this ADR notes
-- [[C6-promote-spec]] — the community/posts/[id]/promote insert site this ADR fixes is the subject of the promote spec
-- [[W4-backfill-plan]] — the wave1 cold-start backfill caller that must set urgency_score is a backfill path covered by the backfill plan
+- [ADR-007-bias-tag-threshold-per-dimension](./ADR-007-bias-tag-threshold-per-dimension.md) — both derive defaults from Haiku classifier output and were retired-to-convention F-functions in the same slim refactor
+- [discipline](../inventories/discipline.md) — F4 fitness function (now retired) is tracked in the discipline inventory
+- [ADR-005-discipline-enforcement-layered-architecture](./ADR-005-discipline-enforcement-layered-architecture.md) — F4 intelligence-items-urgency-score fitness function was retired in ADR-005's 2026-05-21 slim refactor, which this ADR notes
+- [C6-promote-spec](../plans/C6-promote-spec.md) — the community/posts/[id]/promote insert site this ADR fixes is the subject of the promote spec
+- [W4-backfill-plan](../plans/W4-backfill-plan.md) — the wave1 cold-start backfill caller that must set urgency_score is a backfill path covered by the backfill plan

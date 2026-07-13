@@ -137,6 +137,6 @@ Why hybrid: pure fingerprinting catches file-vs-DB drift but not whether *all* i
 
 ## Related
 
-- [[caros-ledge-supabase-schema-audit-2026-05-15]] — Both audit live Supabase RPC/function definitions (get_*_items routing RPCs) against the on-disk schema
-- [[migrations]] — The migration 068 missing-tracked-file gap this doc surfaces is a defect in the migrations inventory's file-vs-applied ledger
-- [[jurisdiction-normalization-audit-2026-05-11]] — shares migration 068
+- [caros-ledge-supabase-schema-audit-2026-05-15](./caros-ledge-supabase-schema-audit-2026-05-15.md) — Both audit live Supabase RPC/function definitions (get_*_items routing RPCs) against the on-disk schema
+- [migrations](../inventories/migrations.md) — The migration 068 missing-tracked-file gap this doc surfaces is a defect in the migrations inventory's file-vs-applied ledger
+- [jurisdiction-normalization-audit-2026-05-11](./jurisdiction-normalization-audit-2026-05-11.md) — shares migration 068

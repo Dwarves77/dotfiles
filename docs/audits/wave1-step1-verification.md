@@ -71,7 +71,7 @@ If any fails: capture the failure mode (HTTP code, body, log line) and halt — 
 
 ## Related
 
-- [[wave1-track1-summary]] — Sibling Wave 1a gate deliverable (Track 1 / Gate 4 discovery) in the same gated dispatch sequence
-- [[wave1b-stub-quality-investigation-2026-05-11]] — Wave 1b follow-on that verifies the same /api/agent/run Step-10 UPDATE path this checklist exercises
-- [[W1A-dual-write-audit]] — Same Wave 1a foundation work (agent_runs telemetry + error capture); both restore the agent/run write path the error-swallow post-mortem exposed
-- [[wave1-track5-widget-implementation-plan]] — Shares the Wave 1 dispatch series and the migration-headroom (060/061 leave room for Wave 1a 052-059) coordination
+- [wave1-track1-summary](./wave1-track1-summary.md) — Sibling Wave 1a gate deliverable (Track 1 / Gate 4 discovery) in the same gated dispatch sequence
+- [wave1b-stub-quality-investigation-2026-05-11](./wave1b-stub-quality-investigation-2026-05-11.md) — Wave 1b follow-on that verifies the same /api/agent/run Step-10 UPDATE path this checklist exercises
+- [W1A-dual-write-audit](./W1A-dual-write-audit.md) — Same Wave 1a foundation work (agent_runs telemetry + error capture); both restore the agent/run write path the error-swallow post-mortem exposed
+- [wave1-track5-widget-implementation-plan](../plans/wave1-track5-widget-implementation-plan.md) — Shares the Wave 1 dispatch series and the migration-headroom (060/061 leave room for Wave 1a 052-059) coordination
