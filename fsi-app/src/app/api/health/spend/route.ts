@@ -19,9 +19,11 @@ import { acquireEnabled } from "@/lib/sources/acquire-lock.mjs";
 
 export const dynamic = "force-dynamic";
 
-// Monthly spend ceiling (USD). Matches the R0.2 dispatch brief. If the operator
-// moves the ceiling, change it here (single source for the pct math).
-const MONTHLY_CEILING_USD = 75;
+// Monthly spend ceiling (USD) for the gauge's pct/frozen math. Kept in step with the ENFORCEMENT
+// ceiling MONTHLY_SPEND_CEILING_USD in spend-client.ts (the hard gate). Operator ruling 2026-07-13
+// (flag-system item 0): July extension $75 -> $130 — the $75.25 freeze was reporting against a
+// superseded ceiling. This is display/verdict-framing only; the acquire lock remains the spend gate.
+const MONTHLY_CEILING_USD = 130;
 
 // ACQUISITION-FREEZE BASELINE. The probe's health verdict is "no paid row since the freeze took hold",
 // NOT "spend under X% of the ceiling" — the latter is permanently red while the ceiling is frozen/exceeded
