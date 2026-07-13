@@ -439,6 +439,51 @@ export async function spanCheckClaim(url: string): Promise<SpanCheckResult> {
 // Pinned: 4 total attempts (1 + 3 retries). Do NOT rely on the WDK default.
 spanCheckClaim.maxRetries = 3;
 
+// DETAIL-CACHE FLUSH (perf/isr-detail-cache) — best-effort, NON-GATING. The
+// /regulations/[slug] detail data (fetchIntelligenceItem / *Sections) is cached
+// via unstable_cache (tags `item:{id}` + `intel-items`, 300s revalidate) to
+// remove the Supabase-saturation ceiling behind the detail-route 503. When this
+// workflow (re)builds an item, its cached detail must flush so the new brief is
+// visible without waiting out the 300s backstop. revalidateTag needs a request
+// scope — a raw workflow step has none — so we ping the request-scoped
+// /api/cache/revalidate-item route (worker-secret auth) rather than call
+// revalidateTag here. The coarse `intel-items` tag is the correctness-bearing
+// flush: this workflow holds only the item UUID, but the detail cache is keyed
+// by legacy_id for most items, and the coarse tag is id-independent. Any failure
+// (no base URL in dev, network, auth) is logged and swallowed; the 300s
+// revalidate backstop bounds staleness regardless, so a missed flush never
+// leaves the corpus stale for long and never affects the generation run.
+export async function revalidateItemStep(itemId: string): Promise<{ flushed: boolean }> {
+  "use step";
+  try {
+    const base =
+      process.env.REVALIDATE_BASE_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
+    const secret = process.env.WORKER_SECRET;
+    if (!base || !secret) {
+      console.warn(
+        `[generate-brief] revalidateItemStep skipped for ${itemId}: ${!base ? "no base URL (VERCEL_URL/REVALIDATE_BASE_URL unset)" : "no WORKER_SECRET"}`
+      );
+      return { flushed: false };
+    }
+    const res = await fetch(`${base}/api/cache/revalidate-item`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-worker-secret": secret },
+      body: JSON.stringify({ itemId }),
+    });
+    if (!res.ok) {
+      console.warn(`[generate-brief] revalidateItemStep for ${itemId} got HTTP ${res.status}`);
+      return { flushed: false };
+    }
+    return { flushed: true };
+  } catch (e) {
+    console.warn(
+      `[generate-brief] revalidateItemStep failed for ${itemId}: ${e instanceof Error ? e.message : String(e)}`
+    );
+    return { flushed: false };
+  }
+}
+
 // ── Workflow orchestration (durable) ──
 export interface GenerateBriefResult {
   itemId: string;
@@ -538,6 +583,11 @@ export async function generateBriefWorkflow(itemId: string, refresh = false, cal
     }
     return { itemId, status: "audit_gate_failed_quarantined", steps: { budget, auditBaseline, generate, register, section, ground, grow, auditGate, erase } };
   }
+
+  // The item is verified and now customer-visible; flush its detail cache so the
+  // new brief renders without waiting out the 300s revalidate backstop.
+  // Best-effort + non-gating (see revalidateItemStep).
+  await revalidateItemStep(itemId);
 
   return { itemId, status: "verified", steps: { budget, auditBaseline, generate, register, section, ground, grow, auditGate } };
 }
