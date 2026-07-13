@@ -49,7 +49,7 @@ Where the operator says "T10 Units 1–5" the repo calls it **"Autonomous Dispos
 | T1–T3 | *(no repo thread evidence)* | **chat-only** | none found (`T1–T3` hits = source-tiers / registrations) | definitions live in chat — capture when next referenced |
 | T4–T6 | **Dead-code disposition + doctrine sweep** (range) | DONE/MERGED | PRs **#282** `d5a473f` / **#283** `1daabc9` (title "T4-T7"); internal commits use C1/C3/C4/C7/C8 + "Ruling 1/2" | range title only; no discrete T4/T5/T6 commit |
 | **T7** | **Dead-code / dead-weight deletion pass** | DONE/MERGED | *verbatim:* `f384966` "chore(T7): delete 5 verified-orphan files"; `c749842` "perf(T7): drop 1.23 MB seed JSON" (in #282/#283) | tail deferral → see DEF-1/DEF-2 |
-| **T8** | **Conduction census** (route/cron/workflow → live-invoker + gate-state) | **ACTIVE — honest core committed, NOT on master** | *verbatim:* `f8698c0` "census(T8)…" on **unmerged** branch `intake/census-t8-2026-07-12`; doc `conduction-census-2026-07-12.md` (not on master). Ruling 1 = #286 (merged) | breadth **deferred-registered** (line-weight table, ARCHITECTURE.md one-pager, sediment policy, CI census check); timeboxed because "T9 preempts the breadth" |
+| **T8** | **Conduction census** (route/cron/workflow → live-invoker + gate-state) | **CORE LANDED** — honest core recovered from `f8698c0`, re-verified vs post-rebuild master, on master | doc `fsi-app/docs/ops/conduction-census-2026-07-13.md` + wake-proof `scrape-schedule.test.mjs` (4/4). Ruling 1 = #286 | breadth **still deferred-registered** (line-weight table, ARCHITECTURE.md one-pager, sediment policy, CI census check) — none taken this pass |
 | **T9** | **Machine-flow close** ("N/8 stages flowing; both orphans through full cycle") | **NOT STARTED — no artifact** | none. Only referent: "the two T9 orphans" = grandfathered source-less rows (`source-link-invariant.mjs GRANDFATHERED_SOURCELESS`), **re-sourcing assigned to Unit 3** | **see §3 — cannot be closed; premise unmet** |
 | **T10** | **Autonomous Disposition Engine (Units 0–5)** | Units 0/0b/0c CLOSED; 1–5 mixed (see §2) | closeout `:127`; PRs #274–#280 | per-Unit in §2 |
 | T11, T12 | *(no repo thread evidence)* | **chat-only** | none (`T11/T12` hits = redesign templates / tiers) | T12 flagged "deferral" in chat — capture when referenced |
@@ -95,6 +95,12 @@ artifact decides this today); (b) the two orphans actually re-sourced + re-groun
 `verified` (blocked by their 2026-10-31 deferral / batch-1 hold-lift); (c) an N/8-stage flow map with
 per-gate evidence refs — which does not exist yet and would be Unit-3/census work.
 
+**T9 respec note (operator ruling 2026-07-13, not spec'd yet):** T9 is to be **re-specced against T8's
+conduction map** (`conduction-census-2026-07-13.md` — the machine that actually exists on master, not the
+07-12 machine). Its candidate rows **must be non-grandfathered** — the two grandfathered source-less orphans
+are Unit-3 re-source work and cannot be the flow-close population. Do not spec T9 until that re-spec is
+dispatched.
+
 ---
 
 ## 4. Community & hygiene C-schemes (disambiguated)
@@ -131,8 +137,8 @@ consolidated). Owner: next hygiene pass. *(Scheme B — Wave-α tracks C1–C8 �
 
 - **T1–T3, T11, T12** are chat-only — no repo thread evidence. Capture their definitions here the next time
   the operator references them.
-- **T8 census** honest-core is on an **unmerged branch**; decide whether it merges to master or the breadth
-  follow-on supersedes it.
+- **T8 census** core is now **landed + re-verified on master** (`conduction-census-2026-07-13.md`); the
+  breadth (line-weight table, ARCHITECTURE.md, sediment policy, CI census check) stays deferred-registered.
 - **T9** — distinct thread vs folded-into-Unit-3 is undecided (see §3).
 - `fsi-app/STATUS.md` is stale (April editorial migration); `docs/ops/session-log.md` stops at 2026-07-11
   (does not cover the 07-12/07-13 work). This board supersedes both for thread-state resume.
