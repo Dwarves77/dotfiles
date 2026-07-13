@@ -5,6 +5,49 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-07-13 — register-step-gap (SC-13), stale-verified + backlog disposition, ISR, vault-graph
+
+**Standing constraints held throughout:** `$0`, `GROUNDING_ACQUIRE_ENABLED` OFF, session moved **$0.00** (DB
+reads + guarded metadata writes only; no grounding, no paid calls). Ceiling now $130 (code-only, not a spend
+unlock). All merges CI-green on GitHub.
+
+**Merged to master (final tip `44ddfee`):**
+- **#308** — Program Board §7: corrected flag-system queue, ISR unit re-added, Unit 2 lineage, REJOIN line.
+- **#309** — **register-step-gap unit (SC-13):** register-at-grounding is deterministic-only
+  (`codifiedTierForHost`/`decidePoolHostRegistration`; codified→register, ambiguous→worklist, never a guessed
+  tier). Probe-cleared (floor fails-closed on NULL both directions; guessed-5 census clean — 0 verified items
+  rest on a guessed tier). Golden + invariant SC-13 + skill text; the `register-step-gap` flag text corrected to
+  the live query. Residuals surfaced: brief-cited `?? 5` leak (follow-on), 124 guessed-5 rows.
+- **#312** — **stale-verified root-cause + backlog disposition (Part A + Part B):**
+  - Part A root-cause: `archivePatch()` resets `provenance_status` off `verified` on archive (the stale cache).
+    Backfill of the 200 archived rows **BLOCKED on the bound reconciler credential** (mig-43 provenance guard;
+    service_role denied) — go-forward fix lands, backfill re-runs when the cred is restored. `stale-verified-audit.mjs`
+    (is_archived=false) GREEN (0/182 customer-visible). Corrected the over-stated "168 customer-facing" claim:
+    all archived → 0 customer-visible stale-verified (cosmetic).
+  - Part B: 336 past-bound → 60 RD-28-held + 20 quarantined-item-exempt (new flag-age boundary: quarantine-
+    disposition-audit owns live-quarantined item-flags) + 256 closed (199 archived / 51 deleted / 5 seed / 1
+    entity). 48 expired deferrals → 2 renewed + 128 closed-moot + 5 orphaned deleted. 124 guessed-5 → one FK-safe
+    review-batch flag. **flag-age + deferral-hygiene both GREEN at exit.** register-gap was 52 live not 182.
+- **#311** — ISR detail-cache (`unstable_cache` keyed by id + tag invalidation via a worker-authed revalidate
+  route pinged from the workflow; `revalidate:300` backstop) — the 503 ceiling-removal.
+- **#310** — vault docs-graph: 606 `[[wikilinks]]`→markdown relative links across 112 docs, ADR-010 amended
+  (markdown links supersede wikilinks), 11 new cross-links, orphan triage.
+
+**Decisions/notes:** `is_archived` is the primary axis for flag disposition (archived = terminally
+dispositioned → close). The flag-age scope now correctly excludes live-quarantined item-flags (owned by
+quarantine-disposition-audit). Ran 2 code/docs units as parallel isolated-worktree subagents (verified + merged).
+
+**Blocked / operator-awaited:** (1) reconciler credential (blocks the archived-row provenance backfill + the
+reconcile lane); (2) MCP cred-indirection in `~/.claude.json` — env-indirection is supported via `${VAR}` but
+the ruling's verify-before-delete step needs a Claude Code restart (unverifiable in-session) — staged for the
+operator; (3) the guessed-5 ambiguous-host registration batch (review-batch flag surfaced); (4) the next
+sanctioned grounding run go/no-go (realizes the SC-13 flip + Unit-3 keepers).
+
+**Next:** operator restart-verify for MCP indirection; reconciler-cred DDL window; then the sanctioned grounding
+run and the standing sequence resume (T9 re-spec, registry expansion, T10 units, coverage floor, launch clauses).
+
+---
+
 ## 2026-07-07 — §7 backend sweep + two integrity-clean data programs
 
 **Accomplished** (6 PRs merged to prod, CI + both Vercel deploys green; master `63ba920`):
