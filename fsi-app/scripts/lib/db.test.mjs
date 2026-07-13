@@ -9,7 +9,22 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 process.env.DISCIPLINE_SNAP_DIR = join(tmpdir(), 'db-test-snapshots'); // redirect prior-value snapshots
-const { reclassifyToSource, registerSource, readAll, guardedDelete, readClient, institutionKey, __setWriteClientForTest } = await import('./db.mjs');
+const { reclassifyToSource, registerSource, readAll, guardedDelete, readClient, institutionKey, archivePatch, __setWriteClientForTest } = await import('./db.mjs');
+
+// GOLDEN (operator ruling 2026-07-13, Part A root-cause): archiving an intelligence_item resets its
+// provenance_status off 'verified' (the stale-verified cache class — 168 archived rows read 'verified'
+// while the live validator quarantines them). RED before the fix (patch had only is_archived + reason);
+// GREEN now (intelligence_items archive patch carries provenance_status:'unverified'). Other tables are
+// untouched (only intelligence_items has provenance_status).
+test('archivePatch resets provenance_status off verified for intelligence_items only', () => {
+  const item = archivePatch('intelligence_items', 'reclassified_to_source');
+  assert.equal(item.is_archived, true);
+  assert.equal(item.archive_reason, 'reclassified_to_source');
+  assert.equal(item.provenance_status, 'unverified'); // the reset — a verified row cannot survive archive
+  const src = archivePatch('sources', 'source_not_item');
+  assert.equal(src.is_archived, true);
+  assert.equal(src.provenance_status, undefined); // sources carry no provenance_status — no spurious column
+});
 
 // Minimal chainable Supabase mock. handler({table, verb, ops}) -> { data, error }. Records calls.
 function makeClient(handler, calls) {

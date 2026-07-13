@@ -201,19 +201,22 @@ conflate the two.
 | 2 skill-conformance C1 SSOT re-baseline (82 resolved / 65 RD-28-held-mint) · 3 RD-6 renewal enforcement · 4 historical-terminal closures (121 null_orgId, 26 exhaustion, 11 b-audit) · 5 flag-age dwell audit + RD-30 · 7 FMC-1b (keep A/B/C + xrefs) | **Unit B** | DONE/MERGED | #306 |
 | diagnosis paired-fix (proxy 503 guard, React #418, prefetch, service-client memo) | — | DONE/MERGED | #307 |
 
-**Live queue (operator-corrected order 2026-07-13 — do NOT pick up the backlog thread before register-step lands):**
+**Live queue (operator-corrected order 2026-07-13):**
 
-1. **Register-step-gap unit** — `$0` code. Deterministic-only auto-registration (institution-group inherit OR
-   codified host-class rule; **no LLM tier guesses, no defaults**); ambiguous hosts accumulate on the
-   null-tier-host worklist into batched registration lists for one operator look (the 44-host pattern); flag
-   text corrected to cite the live query not the stale "~847"; goldens red-then-green; invariant + meta-gate.
-   **Probe gate CLEARED (read-only, 2026-07-13):** floor fails-closed on NULL both directions (mig-158 predicate
-   `derived_tier IS NULL OR > floor`, 0 empirical leaks); guessed-5 census CLEAN (142 base5 sources / 124
-   auto-reg-signature, but **0 verified items rest on a guessed-5 tier** — reg/research wall it, all verified
-   tech/tool are LOW/MODERATE with the non-reg floor un-armed). Safe to land as scoped.
-2. **Backlog-disposition dispatch** (operator steers) — arrives **pre-sorted**: 182 register-gap-class past-bound
-   become valid RD-6 deferrals with the register-step reopener; ~148 dispose on their own merits, mechanism by
-   mechanism.
+1. **Register-step-gap unit** — **DONE/MERGED #309** (SC-13). Deterministic-only register-at-grounding
+   (`codifiedTierForHost` + `decidePoolHostRegistration`); ambiguous hosts worklist, never a guessed tier; flag
+   text corrected to the live query. Probe gate cleared (floor fails-closed on NULL both directions; guessed-5
+   census clean — 0 verified items rest on a guessed tier).
+2. **Backlog-disposition dispatch** — **LANDING (this PR)**. Applied to the LIVE partition (which diverged from
+   the ruling's stale assumptions — see the PR judgment log). 336 past-bound → **60 RD-28-held** (skill-conf on
+   live-verified) + **20 quarantined-item-exempt** (new flag-age boundary: quarantine-disposition-audit owns
+   live-quarantined item-flags) + **256 closed** (199 archived-item / 51 deleted-subject / 5 seed-fallback / 1
+   entity-gate, all attributed). 48 expired deferrals → 2 renewed (live, register-step reopener) + 46 closed-moot;
+   +82 valid-future moot deferrals closed; 5 orphaned deferrals deleted. **124 guessed-5** surfaced as one FK-safe
+   review-batch flag. **flag-age + deferral-hygiene both GREEN at exit.** register-gap was **52 live not 182**
+   (item-6 stale). **Part A backfill BLOCKED** on the bound reconciler credential (standing DDL-window item) —
+   root-cause code fix (`archivePatch` resets status on archive) lands go-forward; backfill re-runs when the cred
+   is restored.
 3. **ISR detail-cache unit** — `$0`, independent of the grounding lock. The **ceiling-removal** fix for the
    `/regulations/[slug]` 503 mechanism (prefetch fan-out → uncacheable render → Supabase saturation). #307's
    trivials reduced the *trigger* only; this unit removes the ceiling (ISR / cacheable render). Ruled its own
@@ -229,10 +232,14 @@ justification) realizes the register-step **flip** AND resumes **Unit 3's** rema
 From there the **standing sequence** resumes — **T9 accounting** (re-specced against T8's conduction map),
 **registry-expansion execution**, the **T10 units** (§2), the **coverage floor**, and the **launch clauses (10)**.
 
-**New honest-divergence finding (surfaced by the register-step probe, own thread — needs a ruling):**
-**168 of 382 stored-`verified` items now return invalid from the live validator** (166 `no_section_content` /
-154 `missing_full_brief` / 1 `fact_below_authority_floor` / 1 `missing_required_slot`) — a `status-is-a-cache`
-drift from the floor tightening (mig 119 no-section, 141 per-type, 158 unconditional reg-family arming, 171
-no-brief) without a following full corpus revalidation. **Surface, not silently re-quarantine** (customer reads
-gate on `verified`; re-quarantining 168 is a customer-facing change). Recommend a dedicated **stale-verified
-revalidation dispatch**, operator-sequenced. NOT a register-step or guessed-5 case.
+**Stale-verified finding — DIAGNOSED + CORRECTED (2026-07-13, read-only diagnosis then ruled).** The earlier
+"168 of 382 stored-`verified` fail the live validator, customer reads gate on `verified`" was **over-stated on
+the customer-facing part**: the customer gate is `is_archived=false AND verified`, and **all 168 (now 200) are
+`is_archived=true`** (162 `reclassified_to_source` / 4 `error_page_artifact` / 2 `source_not_item` — portals +
+fetch-error artifacts). **Customer-visible stale-verified = 0** (182 customer-visible verified items, all pass
+the live gate). So the drift is **cosmetic** (an archived row kept `provenance_status='verified'` — the archive
+path never reset status), not a customer-facing breach. Root cause: `archiveRows`/`reclassifyToSource` didn't
+reset status → fixed go-forward (`archivePatch`, mig-43-safe target `unverified`). Overlap with the backlog
+populations = **0** (0 register-gap null-tier spans, disjoint from quarantine by status, 0 open item-flags).
+New scoped audit `scripts/verify/stale-verified-audit.mjs` (is_archived=false) mechanizes the customer-visible
+metric (currently GREEN). The archived-row backfill is BLOCKED on the reconciler credential (standing item).
