@@ -409,11 +409,11 @@ export const DOCTRINES = [
   {
     id: 'report-states-quarantine-scope',
     statement:
-      'Any report that cites a quarantine count MUST state its scope (global | unit-scoped); a window/grounding report carries the GLOBAL count alongside any working slice. This exists because a scoped "~39" slice was mistaken for the global count (true global 197); an unlabeled count misleads.',
-    source: 'snapshot-first rebuild PR-2 (operator ruling 2026-07-13)',
+      'Any report that cites a quarantine OR population count MUST state BOTH axes: (a) SCOPE (global | unit-scoped) — a window/grounding report carries the GLOBAL count alongside any working slice; AND (b) ARCHIVAL PREDICATE (live-only = is_archived=false | status-only = is_archived-agnostic). This exists because the SAME unlabeled-count ambiguity produced, in ONE WEEK (2026-07): a ~5x UNDERSTATEMENT — a scoped "~39" slice mistaken for the global count; and a ~5x OVERSTATEMENT — a status-only "197" (= 37 live + 160 already-archived rows still carrying quarantined status) mistaken for the live backlog, whose true live figure was 37. A count unlabeled on EITHER axis misleads.',
+    source: 'snapshot-first rebuild PR-2 (operator ruling 2026-07-13); tightened by the 197→37 drift-reconciliation ruling (2026-07-13)',
     exempt: {
       reason:
-        'PROCESS / report-format discipline — it governs how the agent writes a dispatch report at authoring time, not a code or data property (same non-mechanizable class as the report-format doctrines). Carried by this register + the spend-gauge header requirement (which pairs the count with its scope by convention). No CI check parses report prose.',
+        'PROCESS / report-format discipline — it governs how the agent writes a dispatch report at authoring time, not a code or data property (same non-mechanizable class as the report-format doctrines; no CI check parses report prose). Carried by this register + the spend-gauge header requirement (which pairs the count with its scope by convention). The archival-predicate axis is mechanizable at the QUERY layer (a census script SHOULD emit both live-only and status-only counts), but the DOCTRINE binds the report prose, so it stays process-exempt like its scope half.',
     },
   },
 ];
