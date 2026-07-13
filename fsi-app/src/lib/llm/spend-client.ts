@@ -33,7 +33,7 @@ export { MonthlyCeilingError } from "@/lib/llm/spend-guard.mjs";
 // paid). This is P1-adjacent belt-and-suspenders over the per-process SPEND_CEILING + the daily preflight
 // cap: those are per-process / per-day and reset; this bounds the MONTH. Deliberately NOT env-driven —
 // overridable ONLY by editing this constant, so no deploy-env tweak (or a leaked env) can silently lift it.
-export const MONTHLY_SPEND_CEILING_USD = 75.00;
+export const MONTHLY_SPEND_CEILING_USD = 130.00; // operator ruling 2026-07-13 (flag-system item 0): July extension $75 -> $130. The $75 freeze was enforcing a superseded ceiling. Raising this does NOT unlock spend — GROUNDING_ACQUIRE_ENABLED (the master gate) stays OFF; this only corrects the ledger config to the ruled July value.
 
 /** Sum this calendar month's ledgered spend from agent_runs.cost_usd_estimated (the SAME ledger the daily
  *  preflight cap + the MTD tile read), then enforce the monthly ceiling. FAIL-CLOSED: if the ledger cannot

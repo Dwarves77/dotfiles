@@ -125,10 +125,13 @@ test("MONTHLY CEILING: at/over the ceiling THROWS a named MonthlyCeilingError; u
   assert.equal(err.monthSpentUsd, 120.5);
 });
 
-test("MONTHLY CEILING: the $75 constant is code-only (a literal, never env-driven)", () => {
+test("MONTHLY CEILING: the ceiling constant is code-only (a literal, never env-driven)", () => {
+  // Value is $130 per the operator ruling 2026-07-13 (July extension $75 -> $130). The invariant this test
+  // guards is "hardcoded literal, not env-derived" — the specific number is set by ruling, so it is asserted
+  // as a bare numeric literal (not pinned to one value) plus the no-process.env check below.
   const HERE = dirname(fileURLToPath(import.meta.url));
   const client = readFileSync(resolve(HERE, "spend-client.ts"), "utf8");
-  assert.match(client, /export const MONTHLY_SPEND_CEILING_USD = 75(\.0+)?;/, "the ceiling must be a hardcoded 75.00 literal");
+  assert.match(client, /export const MONTHLY_SPEND_CEILING_USD = \d+(\.\d+)?;/, "the ceiling must be a hardcoded numeric literal");
   // the constant must NOT be derived from process.env on its declaration line (env would defeat 'code-only')
   const line = client.split(/\r?\n/).find((l) => /MONTHLY_SPEND_CEILING_USD =/.test(l)) || "";
   assert.doesNotMatch(line, /process\.env/, "MONTHLY_SPEND_CEILING_USD must not read process.env (overridable ONLY by editing code)");
