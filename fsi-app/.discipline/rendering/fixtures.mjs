@@ -33,8 +33,9 @@ function doc(inner, { bodyPad = 16 } = {}) {
 const shortYear = (d) => new Date(d).getUTCFullYear();
 
 // ── Timeline strip (L-1). Reproduces InteractiveTimeline's label row VERBATIM: a
-//    `display:flex; justify-content:space-between` row of year-label buttons with margin 40px, each
-//    button min-content width (so the row cannot shrink below its text and overflows a narrow card).
+//    `display:flex; justify-content:space-between` row of year-label buttons with RESPONSIVE side
+//    margin `clamp(16px, 8vw, 40px)` (40px on desktop, ~30px at 380px) so the strip clears the card at
+//    the narrowest breakpoint. Fixed 40px margins overflowed timeline-labels +11px @380px (RENDER-1 fix).
 function timelineStrip(dates, { cap }) {
   // GREEN caps to the KEY set (component uses MAX_STRIP_NODES=8) with label-dedup: blank a label
   // equal to the previously RENDERED one, so a capped strip never shows a "202520252025" run.
@@ -57,8 +58,8 @@ function timelineStrip(dates, { cap }) {
   return `
     <div data-guard-container="timeline-card" style="max-width:640px;margin:0 auto;background:var(--color-surface);border:1px solid rgba(0,0,0,.1);border-radius:8px;padding:16px">
       <h3 style="font-size:13px;margin:0 0 8px">Confirmed Regulatory Timeline</h3>
-      <div style="position:relative;height:4px;background:rgba(0,0,0,.08);border-radius:2px;margin:12px 40px 0"></div>
-      <div data-guard-container="timeline-labels" style="display:flex;justify-content:space-between;margin:10px 40px 0">${buttons}</div>
+      <div style="position:relative;height:4px;background:rgba(0,0,0,.08);border-radius:2px;margin:12px clamp(16px, 8vw, 40px) 0"></div>
+      <div data-guard-container="timeline-labels" style="display:flex;justify-content:space-between;margin:10px clamp(16px, 8vw, 40px) 0">${buttons}</div>
     </div>`;
 }
 

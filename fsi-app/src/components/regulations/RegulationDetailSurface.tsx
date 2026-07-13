@@ -896,7 +896,7 @@ function InteractiveTimeline({ items }: { items: TimelineEntry[] }) {
 
   return (
     <div>
-      <div style={{ position: "relative", height: 4, background: "rgba(0,0,0,0.08)", borderRadius: 2, margin: "12px 40px 0" }}>
+      <div style={{ position: "relative", height: 4, background: "rgba(0,0,0,0.08)", borderRadius: 2, margin: "12px clamp(16px, 8vw, 40px) 0" }}>
         <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: progress, background: `linear-gradient(90deg,${C.sevLow},#CFA000)`, borderRadius: 2 }} />
         {shown.map((m, i) => {
           const left = n > 1 ? `${(i / (n - 1)) * 100}%` : "0%";
@@ -925,7 +925,7 @@ function InteractiveTimeline({ items }: { items: TimelineEntry[] }) {
           );
         })}
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", margin: "10px 40px 0" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", margin: "10px clamp(16px, 8vw, 40px) 0" }}>
         {shown.map((m, i) => {
           // Year-only labels repeat within a year; blank a label that equals the previous
           // rendered one so capped strips never show a "202520252025" run.
