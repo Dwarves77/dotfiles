@@ -15,9 +15,10 @@ chat, not from memory. Anything that exists only in chat is flagged **chat-only*
 finding. Master tip at reconstruction: `e3b3a74`.
 
 **Standing constraints (2026-07-13):** `$0` default — the answer to "should I spend" is **no**;
-`GROUNDING_ACQUIRE_ENABLED` **OFF**; `MONTHLY_SPEND_CEILING_USD` **$75, code-only, frozen** (July exceeded
-at $75.25); Phase 3 **CLOSED** (ADR-013 — do not run regardless of older notes); the loop/cadence flip is
-the operator's word only.
+`GROUNDING_ACQUIRE_ENABLED` **OFF**; `MONTHLY_SPEND_CEILING_USD` **$130, code-only, frozen** (operator ruling
+2026-07-13, flag-system item 0 — raised from $75; the raise removes a stale-ceiling false-red, it does **not**
+unlock spend; MTD $75.25 ≈ 58% of $130); Phase 3 **CLOSED** (ADR-013 — do not run regardless of older notes);
+the loop/cadence flip is the operator's word only.
 
 ---
 
@@ -179,3 +180,59 @@ consolidated). Owner: next hygiene pass. *(Scheme B — Wave-α tracks C1–C8 �
     (RD-4/RD-6), NOT on open-flag *age*. The two biggest blocks — skill-conformance (240, on verified items) and
     seed-fallback (127, `surface`-scoped) — are structurally invisible to it, so 450 flags >30d trip nothing. The
     ruled **flag-age audit** (item 5) closes this across all subject_types.
+  - **What actually landed → see §7.** The plan above was executed as **Unit A (#304)** + **Unit B (#306)** +
+    the diagnosis paired-fix (#307); §7 carries the live queue, the Unit-2 lineage, and the REJOIN.
+
+---
+
+## 7. Flag-system program + live queue (operator-ruled, 2026-07-13)
+
+The flag-system investigation is **superseded as a "drain to zero" exit** and re-expressed as discrete units.
+**Unit 2's original three-class scope (skill-conformance / seed-fallback / historical-terminals) is superseded**
+by: the read-only **investigation** → **Unit A** → **Unit B** → the **pending backlog disposition**. That is the
+real lineage; the §2 "Unit 2 (flag resolver)" row is the autonomous-engine unit, a different thread — do not
+conflate the two.
+
+**Landed this session (all $0, CI-green; master `00658a8` at start of the register-step build):**
+
+| Item | Unit | State | Evidence |
+|---|---|---|---|
+| 0 ceiling $75→$130 + 1 seed-fallback `null_orgId` routed out | **Unit A** | DONE/MERGED | #304 |
+| 2 skill-conformance C1 SSOT re-baseline (82 resolved / 65 RD-28-held-mint) · 3 RD-6 renewal enforcement · 4 historical-terminal closures (121 null_orgId, 26 exhaustion, 11 b-audit) · 5 flag-age dwell audit + RD-30 · 7 FMC-1b (keep A/B/C + xrefs) | **Unit B** | DONE/MERGED | #306 |
+| diagnosis paired-fix (proxy 503 guard, React #418, prefetch, service-client memo) | — | DONE/MERGED | #307 |
+
+**Live queue (operator-corrected order 2026-07-13 — do NOT pick up the backlog thread before register-step lands):**
+
+1. **Register-step-gap unit** — `$0` code. Deterministic-only auto-registration (institution-group inherit OR
+   codified host-class rule; **no LLM tier guesses, no defaults**); ambiguous hosts accumulate on the
+   null-tier-host worklist into batched registration lists for one operator look (the 44-host pattern); flag
+   text corrected to cite the live query not the stale "~847"; goldens red-then-green; invariant + meta-gate.
+   **Probe gate CLEARED (read-only, 2026-07-13):** floor fails-closed on NULL both directions (mig-158 predicate
+   `derived_tier IS NULL OR > floor`, 0 empirical leaks); guessed-5 census CLEAN (142 base5 sources / 124
+   auto-reg-signature, but **0 verified items rest on a guessed-5 tier** — reg/research wall it, all verified
+   tech/tool are LOW/MODERATE with the non-reg floor un-armed). Safe to land as scoped.
+2. **Backlog-disposition dispatch** (operator steers) — arrives **pre-sorted**: 182 register-gap-class past-bound
+   become valid RD-6 deferrals with the register-step reopener; ~148 dispose on their own merits, mechanism by
+   mechanism.
+3. **ISR detail-cache unit** — `$0`, independent of the grounding lock. The **ceiling-removal** fix for the
+   `/regulations/[slug]` 503 mechanism (prefetch fan-out → uncacheable render → Supabase saturation). #307's
+   trivials reduced the *trigger* only; this unit removes the ceiling (ISR / cacheable render). Ruled its own
+   unit in the diagnosis routing; had fallen off the queue — re-added here.
+4. **Vault unit** — docs graph cross-linking backfill (markdown relative links, ADR-010 amendment) + graph triage
+   + session-close mechanization (SessionEnd/Stop hook, `/start`, done.md amendment, CLAUDE.md working rule).
+5. **MCP cred-indirection** — `~/.claude.json` github + supabase servers to env indirection (copy-first → verify
+   → delete literals; HALT if the schema doesn't support env refs). Closes the SF-11 residual.
+
+**REJOIN (so no future session mistakes the hygiene queue for the program):** after the backlog disposition, the
+**next sanctioned grounding run** (operator-fired, `GROUNDING_ACQUIRE_ENABLED` ON with a pre-logged I2
+justification) realizes the register-step **flip** AND resumes **Unit 3's** remaining keepers in the same run.
+From there the **standing sequence** resumes — **T9 accounting** (re-specced against T8's conduction map),
+**registry-expansion execution**, the **T10 units** (§2), the **coverage floor**, and the **launch clauses (10)**.
+
+**New honest-divergence finding (surfaced by the register-step probe, own thread — needs a ruling):**
+**168 of 382 stored-`verified` items now return invalid from the live validator** (166 `no_section_content` /
+154 `missing_full_brief` / 1 `fact_below_authority_floor` / 1 `missing_required_slot`) — a `status-is-a-cache`
+drift from the floor tightening (mig 119 no-section, 141 per-type, 158 unconditional reg-family arming, 171
+no-brief) without a following full corpus revalidation. **Surface, not silently re-quarantine** (customer reads
+gate on `verified`; re-quarantining 168 is a customer-facing change). Recommend a dedicated **stale-verified
+revalidation dispatch**, operator-sequenced. NOT a register-step or guessed-5 case.
