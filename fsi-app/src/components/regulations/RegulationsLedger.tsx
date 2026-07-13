@@ -865,6 +865,10 @@ export function RegulationsLedger({
                     <Link
                       key={r.id}
                       href={`/regulations/${encodeURIComponent(r.id)}`}
+                      // prefetch OFF (diagnosis 2026-07-13): App Router prefetches every visible row → N
+                      // concurrent uncached detail SSR renders (~8-11 Supabase round-trips each) → the
+                      // Supabase-saturation spike behind the /regulations/[slug] 503s. Kill the fan-out at source.
+                      prefetch={false}
                       className="cl-reg-row"
                       style={{
                         display: "grid",

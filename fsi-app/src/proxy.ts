@@ -31,10 +31,16 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  // Refresh the auth session
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Refresh the auth session. GUARDED (diagnosis 2026-07-13): under a Supabase-auth saturation spike (the
+  // detail-route prefetch fan-out), an unguarded getUser() REJECTS → middleware throws → platform 503,
+  // bypassing every downstream fail-closed handler. Catch it and treat the request as unauthenticated:
+  // protected routes then fall through to the /login redirect below — a graceful redirect, not a 503.
+  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] = null;
+  try {
+    ({ data: { user } } = await supabase.auth.getUser());
+  } catch (e) {
+    console.warn("[proxy] auth.getUser() failed (Supabase unreachable / saturated):", e instanceof Error ? e.message : String(e));
+  }
 
   const pathname = request.nextUrl.pathname;
 
