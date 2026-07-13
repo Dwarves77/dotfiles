@@ -3,7 +3,7 @@
 // REJECTED. Anti-silence: an expired deferred_until is rejected (read side re-opens it as undispositioned).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { isValidDeferral, assertValidDeferral } from "./deferral.mjs";
+import { isValidDeferral, assertValidDeferral, isValidRenewal, assertValidRenewal, sameBlockerReason } from "./deferral.mjs";
 
 const NOW = new Date("2026-06-17T00:00:00Z");
 const FUTURE = "2026-09-01T00:00:00Z";
@@ -80,4 +80,36 @@ test("REJECT: missing payload entirely", () => {
 
 test("assertValidDeferral throws on a bad payload", () => {
   assert.throws(() => assertValidDeferral({ ...GOOD, owner: "TBD" }, NOW), /invalid deferral/);
+});
+
+// ── RENEWAL (item 3): a renewal must carry a NEW blocker finding; clock-re-set-with-same-reason is rejected.
+const OTHER_PRIOR = "Blocked on counsel review of the role determination until external legal confirmation lands.";
+
+test("RENEWAL GOOD: valid deferral whose reason differs from the superseded prior passes", () => {
+  assert.deepEqual(isValidRenewal(GOOD, OTHER_PRIOR, NOW), { ok: true });
+  assert.doesNotThrow(() => assertValidRenewal(GOOD, OTHER_PRIOR, NOW));
+});
+
+test("RENEWAL REJECT: repackaged — same reason as the prior it supersedes (clock re-set, no new finding)", () => {
+  const r = isValidRenewal(GOOD, GOOD.reason, NOW);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /re-packages the SAME blocker|new blocker/);
+});
+
+test("RENEWAL REJECT: repackaged even with whitespace/case noise (normalized compare)", () => {
+  const noisy = "  BLOCKED ON NETWORK-STABLE REGROUND LANE: source unreachable until phase 2 REGROUND primary source is built.  ";
+  assert.equal(sameBlockerReason(GOOD.reason, noisy), true);
+  assert.equal(isValidRenewal({ ...GOOD, reason: noisy }, GOOD.reason, NOW).ok, false);
+});
+
+test("RENEWAL REJECT: an invalid deferral fails the renewal too (inherits base validation)", () => {
+  assert.equal(isValidRenewal({ ...GOOD, owner: "TBD" }, OTHER_PRIOR, NOW).ok, false);
+});
+
+test("RENEWAL: no previous reason (first deferral, not a renewal) — validates as a plain deferral", () => {
+  assert.equal(isValidRenewal(GOOD, null, NOW).ok, true);
+});
+
+test("assertValidRenewal throws on a repackaged renewal", () => {
+  assert.throws(() => assertValidRenewal(GOOD, GOOD.reason, NOW), /invalid renewal/);
 });
