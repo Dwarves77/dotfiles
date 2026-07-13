@@ -6,6 +6,28 @@ Format: newest entries at the top.
 
 ---
 
+## 2026-07-13 — archived rows retain last-live provenance_status (no terminal 'archived' status) — the root of the count ambiguity
+
+**Defect (schema semantics):** `is_archived` (boolean) and `provenance_status` (enum) are orthogonal columns. When an item is archived, `is_archived` flips to `true` but `provenance_status` is **left at its last-live value**. So there are currently **160 rows with `is_archived=true AND provenance_status='quarantined'`** — archived items still carrying a live-status label. A count on `provenance_status` alone (status-only) therefore includes archived rows: the status-only quarantined total is `197 = 37 live + 160 archived`, while the live backlog is `37`. This is the **root cause of the count ambiguity** that produced, in one week, a ~5x understatement and a ~5x overstatement (see ADR-013, the 197→37 drift-reconciliation).
+
+**Safety net (why it is benign today):**
+- The disposition audit (`scripts/verify/quarantine-disposition-audit.mjs`) already filters `is_archived=false`, so the live-backlog invariant is measured correctly.
+- Customer-read surfaces gate on `provenance_status='verified'` **and** exclude archived rows, so no customer count is wrong.
+- The `report-states-quarantine-scope` **doctrine** (tightened in #297) now requires every population count to state its archival predicate (live-only vs status-only), so the ambiguity is **labeled** at report time.
+- The retained last-live status is arguably useful provenance ("what state was this in when archived") and `archive_reason` records why it left.
+
+**Cost of leaving:** The doctrine makes the ambiguity **visible** but does not **remove** it. Every ad-hoc `provenance_status` count remains a labeling hazard — a future query that forgets the `is_archived=false` predicate silently over-counts by the archived population (currently 160, and growing as more items are archived). It is a standing foot-gun, not a live correctness bug.
+
+**Remediation sketch (schema-semantics decision, migration implications):** Decide between —
+1. **Terminal status** — add an `'archived'` value to the `provenance_status` enum and set it on archive. Cleanest for counting, but LOSES the last-live status unless it is preserved elsewhere (e.g. a new `last_live_provenance_status` column or reconstructable from `archive_reason` + history). Touches the `set_provenance_status` trigger, `validate_item_provenance`, every customer-read RPC, and the disposition audit.
+2. **Keep two columns, remove the counting hazard structurally** — a generated/view column `live_provenance_status` that is `NULL` when `is_archived`, and route all counts through it; or a canonical `live_quarantine` view. Lower blast radius, preserves last-live status, but adds a surface to keep consistent.
+
+Either path is a migration + consumer sweep (enum change or view/column + every counter). Pick at a housekeeping window; author with a fire-test (a status-only count must NOT change the live-backlog number). Motivating reference: ADR-013 (197→37 reconciliation, 2026-07-13); the 160 archived-quarantined rows are the concrete instance.
+
+**Priority:** Low-Medium (benign today via the audit's predicate + the doctrine label; the structural fix removes a recurring query foot-gun rather than fixing a live break).
+
+---
+
 ## 2026-07-13 — source-tooling fetch layer not yet snapshot-first (grounding-acquisition is)
 
 **Scope ruling (operator, snapshot-first rebuild):** The snapshot-first pipeline (snapshot lookup → freshness probe → $0 cheap-verify → LOCKED paid acquire) governs **grounding acquisition only** — the generation/grounding path through `verify-item` / `canonical-pipeline`. The ~20 **source-tooling fetchers** (verification.ts, recommend-source-tier.ts, the fetch-now / bulk-import / spot-check / check-sources / drain-first-fetch routes, and `spot-check/recurring`) were deliberately left OUT of scope: they are already governed by the F16 transport-hold gate (`SCRAPE_HOLD`) and are not the $65 re-fetch-what-we-have waste class the rebuild targets.
