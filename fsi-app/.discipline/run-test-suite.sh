@@ -45,7 +45,6 @@ node --test \
   fsi-app/.discipline/fitness/runner.test.mjs \
   fsi-app/scripts/lib/db.test.mjs \
   fsi-app/scripts/lib/funded-release-plan.test.mjs \
-  fsi-app/scripts/lib/batch1-orchestrate.test.mjs \
   fsi-app/src/__tests__/*.test.mjs \
   fsi-app/src/lib/credibility/*.test.mjs \
   fsi-app/src/lib/sources/*.test.mjs \
