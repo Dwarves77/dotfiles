@@ -45,9 +45,11 @@ on:
 jobs:
   surfaces:
     name: Surface honesty probe
-    # Runs on the 30-min cron and on manual dispatch; skipped on the daily
-    # spend-only cron.
-    if: github.event.schedule != '0 9 * * *'
+    # Runs on EVERY trigger (the 30-min cron, the daily spend cron, and manual
+    # dispatch). Previously skipped on the daily '0 9' cron, which surfaced as
+    # "Surface honesty probe: skipped" whenever the spend watch ran — an
+    # unhelpful gap that read as a failure. Surfaces is independent of spend and
+    # should always confirm the customer surfaces are backed by real rows.
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -186,23 +188,34 @@ jobs:
             exit 1
           fi
 
-          pct=$(jq -r '.pct' "$tmp_body" 2>/dev/null || echo "parse_error")
-          ceiling=$(jq -r '.monthly_ceiling_usd' "$tmp_body" 2>/dev/null || echo "?")
-          # mtd_usd is a small operational figure (aggregate spend, not row
-          # content) — safe to print, and useful in the alert email.
+          # The verdict is computed server-side (spend-health.mjs): "no paid row since the freeze baseline",
+          # NOT "% of the ceiling". The frozen ceiling sits at ~100% by design; alarming on that is
+          # permanent-red and trains everyone to ignore red (rendering-guard precedent, #293). We fail ONLY
+          # on genuinely NEW spend (a leak / GROUNDING_ACQUIRE_ENABLED-OFF violation) or an unreadable gauge.
+          healthy=$(jq -r '.healthy' "$tmp_body" 2>/dev/null || echo "parse_error")
+          reason=$(jq -r '.reason' "$tmp_body" 2>/dev/null || echo "?")
           mtd=$(jq -r '.mtd_usd' "$tmp_body" 2>/dev/null || echo "?")
-          echo "Month-to-date spend: \$$mtd of \$$ceiling ceiling (pct=$pct%)"
+          ceiling=$(jq -r '.monthly_ceiling_usd' "$tmp_body" 2>/dev/null || echo "?")
+          pct=$(jq -r '.pct' "$tmp_body" 2>/dev/null || echo "?")
+          frozen=$(jq -r '.frozen' "$tmp_body" 2>/dev/null || echo "?")
+          paid_after=$(jq -r '.paid_after_freeze' "$tmp_body" 2>/dev/null || echo "?")
+          echo "MTD: \$$mtd of \$$ceiling (pct=$pct%, frozen=$frozen, paid_after_freeze=$paid_after)"
 
-          if [ "$pct" = "parse_error" ]; then
-            echo "::error::Could not parse pct from spend response."
+          if [ "$healthy" = "parse_error" ] || [ "$healthy" = "null" ] || [ -z "$healthy" ]; then
+            echo "::error::Spend gauge unreadable (no health verdict in the response — endpoint old or errored)."
+            exit 1
+          fi
+          if [ "$healthy" != "true" ]; then
+            echo "::error::Spend watch RED — $reason"
             exit 1
           fi
 
-          # Fail (→ owner email) at >= 80% of the ceiling.
-          over=$(awk -v p="$pct" 'BEGIN { print (p+0 >= 80) ? 1 : 0 }')
-          if [ "$over" -eq 1 ]; then
-            echo "::error::Agent spend at ${pct}% of the monthly ceiling (>= 80% threshold)."
-            exit 1
-          fi
-
-          echo "✓ Spend under threshold (${pct}%)."
+          # Frozen-and-quiet is the EXPECTED state. Report it in the job summary; do NOT fail.
+          echo "✓ frozen-and-quiet — $reason"
+          {
+            echo "### Spend watch — frozen-and-quiet ✓"
+            echo ""
+            echo "- MTD: \$$mtd of \$$ceiling ceiling (${pct}%), frozen=$frozen"
+            echo "- Paid rows since the freeze baseline: **$paid_after** (0 = the freeze is holding)"
+            echo "- $reason"
+          } >> "$GITHUB_STEP_SUMMARY"
