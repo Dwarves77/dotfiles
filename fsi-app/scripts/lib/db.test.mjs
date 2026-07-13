@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 process.env.DISCIPLINE_SNAP_DIR = join(tmpdir(), 'db-test-snapshots'); // redirect prior-value snapshots
-const { reclassifyToSource, registerSource, readAll, guardedDelete, readClient, __setWriteClientForTest } = await import('./db.mjs');
+const { reclassifyToSource, registerSource, readAll, guardedDelete, readClient, institutionKey, __setWriteClientForTest } = await import('./db.mjs');
 
 // Minimal chainable Supabase mock. handler({table, verb, ops}) -> { data, error }. Records calls.
 function makeClient(handler, calls) {
@@ -109,18 +109,77 @@ test('readAll: pages PAST the 1000-row cap (the bug that created 27 dup sources)
   assert.equal(rows.length, 1146, 'readAll must return ALL rows across pages, not the 1000-row cap');
 });
 
-test('guardedDelete: snapshots then deletes by id; requires cite', async () => {
+test('guardedDelete: snapshots then deletes by id; requires cite; sources delete-protected', async () => {
   const calls = [];
   __setWriteClientForTest(() => makeClient((s) => {
     if (s.verb === 'select') return { data: [{ id: 'd1', url: 'https://x' }], error: null };
     if (s.verb === 'delete') return { data: [{ id: 'd1' }], error: null };
     return { data: null, error: null };
   }, calls));
-  const r = await guardedDelete('sources', ['d1'], { cite: { skill: 'remediation-discipline', reason: 'test' } });
+  // delete works on a NON-protected table
+  const r = await guardedDelete('intelligence_items', ['d1'], { cite: { skill: 'remediation-discipline', reason: 'test' } });
   assert.equal(r.deleted, 1);
   assert.ok(calls.some((c) => c.verb === 'select'), 'must snapshot (select) before delete');
   assert.ok(calls.some((c) => c.verb === 'delete'), 'must delete');
-  await assert.rejects(() => guardedDelete('sources', ['d1'], {}), /requires \{ cite/);
+  // cite still required
+  await assert.rejects(() => guardedDelete('intelligence_items', ['d1'], {}), /requires \{ cite/);
+  // SOURCES are delete-protected (suspend-not-delete) even WITH a valid cite
+  await assert.rejects(
+    () => guardedDelete('sources', ['d1'], { cite: { skill: 'remediation-discipline', reason: 'test' } }),
+    /delete-protected/,
+    'sources must never be hard-deletable via guardedDelete'
+  );
+});
+
+test('institutionKey: shared-portal hosts key by path prefix; other hosts by bare host', () => {
+  // non-portal host -> bare host (backward-compatible for the majority)
+  assert.equal(institutionKey('https://eur-lex.europa.eu/eli/reg/2024/1257/oj'), 'eur-lex.europa.eu');
+  // shared portal depth 1: DISTINCT ministries must NOT share a key
+  assert.equal(institutionKey('https://gob.mx/semarnat'), 'gob.mx/semarnat');
+  assert.equal(institutionKey('https://gob.mx/economia/normalizacion'), 'gob.mx/economia');
+  assert.notEqual(institutionKey('https://gob.mx/semarnat'), institutionKey('https://gob.mx/economia'));
+  // SAME institution, deeper path -> SAME key (reuse, not duplicate)
+  assert.equal(institutionKey('https://gob.mx/semarnat/acciones-y-programas'), 'gob.mx/semarnat');
+  // depth 2 (/web/<agency>) and depth 3 (slovenian ministries)
+  assert.equal(institutionKey('https://www.gov.pl/web/gios'), 'gov.pl/web/gios');
+  assert.notEqual(institutionKey('https://gov.pl/web/gios'), institutionKey('https://gov.pl/web/klimat'));
+  assert.equal(
+    institutionKey('https://gov.si/drzavni-organi/ministrstva/ministrstvo-za-okolje-podnebje-in-energijo'),
+    'gov.si/drzavni-organi/ministrstva/ministrstvo-za-okolje-podnebje-in-energijo'
+  );
+  assert.notEqual(
+    institutionKey('https://gov.si/drzavni-organi/ministrstva/ministrstvo-za-okolje-podnebje-in-energijo'),
+    institutionKey('https://gov.si/drzavni-organi/ministrstva/ministrstvo-za-finance')
+  );
+  // SI != SK: different jurisdictions, different hosts -> never adjacent
+  assert.notEqual(institutionKey('https://gov.si/x'), institutionKey('https://minzp.sk/x'));
+});
+
+test('registerSource: shared-portal ministries do NOT collapse; same institution reuses (re-group regression)', async () => {
+  // registry already holds gob.mx/semarnat; a DIFFERENT ministry on the same portal host must create a
+  // NEW row, not dedup into semarnat (the host-keyed collapse this guards).
+  __setWriteClientForTest(() => makeClient((s) => {
+    if (s.verb === 'select') return { data: [{ id: 'sem', url: 'https://gob.mx/semarnat', status: 'active' }], error: null };
+    if (s.verb === 'insert') return { data: { id: 'eco' }, error: null };
+    return { data: null, error: null };
+  }, []));
+  const rNew = await registerSource(
+    { url: 'https://gob.mx/economia/normalizacion', name: 'Economia', base_tier: 2 },
+    { cite: { skill: 'source-credibility-model', reason: 'test' } }
+  );
+  assert.equal(rNew.created, true, 'a different ministry on the same portal host must register a NEW source');
+
+  // the SAME institution (deeper path) must REUSE the existing row, not duplicate
+  __setWriteClientForTest(() => makeClient((s) => {
+    if (s.verb === 'select') return { data: [{ id: 'sem', url: 'https://gob.mx/semarnat', status: 'active' }], error: null };
+    return { data: null, error: null };
+  }, []));
+  const rReuse = await registerSource(
+    { url: 'https://gob.mx/semarnat/programas', name: 'SEMARNAT', base_tier: 2 },
+    { cite: { skill: 'source-credibility-model', reason: 'test' } }
+  );
+  assert.equal(rReuse.created, false, 'same institution (deeper path) must reuse the existing source');
+  assert.equal(rReuse.source_id, 'sem');
 });
 
 // ---------------------------------------------------------------------------

@@ -159,8 +159,18 @@ export async function guardedUpdate(table, applyMatch, patch, { cite, select = "
 /** Guarded DELETE — snapshots the rows (reversible) + requires a cite, then deletes by id. Used for
  *  cleaning up rows a script itself wrongly created (e.g. the 27 duplicate sources from the capped-read
  *  bug). Snapshot is the reinsert record. */
+// Tables that must NEVER be hard-deleted — sources leave the registry by SUSPEND (status) or
+// reclassify, never DELETE (suspend-not-delete; the population-audit finding 2026-07-12). This makes the
+// convention structural: a future refactor cannot quietly add a source hard-delete without tripping here.
+export const DELETE_PROTECTED_TABLES = new Set(["sources"]);
 export async function guardedDelete(table, ids, { cite, stampIso } = {}) {
   requireCite(cite);
+  if (DELETE_PROTECTED_TABLES.has(table)) {
+    throw new Error(
+      `db.mjs guardedDelete: '${table}' is delete-protected — never hard-delete it. Suspend (guardedUpdate ` +
+      `status='suspended') or reclassify instead. (suspend-not-delete; sources leave the registry reversibly.)`
+    );
+  }
   if (!ids || !ids.length) throw new Error("db.mjs guardedDelete: ids required.");
   const sb = writeClient();
   const prior = await sb.from(table).select("*").in("id", ids);
@@ -218,6 +228,29 @@ function hostOf(u) {
   try { return new URL(u).host.replace(/^www\./, "").toLowerCase(); } catch { return ""; }
 }
 
+// SHARED GOVERNMENT PORTALS — one host serves MANY distinct institutions, differentiated by a path
+// prefix (gob.mx/semarnat vs gob.mx/economia; gov.si/.../ministrstvo-za-okolje vs .../ministrstvo-za-finance).
+// Bare-host dedup COLLAPSES them into one row. For these hosts the institution key is host + the first
+// `keyDepth` path segments; keyDepth is per-host because the institution slug sits at different depths
+// (/mma vs /web/gios vs /drzavni-organi/ministrstva/<ministry>). Every other host keys on bare host, so
+// this is backward-compatible for the ~non-portal majority. A caller may pass source.institutionKey to
+// override. NOTE (SI!=SK): keys are host-rooted, so gov.si and *.sk are never adjacent — a different
+// jurisdiction can never collapse into another (the Slovenia/Slovakia near-miss stays distinct by design).
+export const SHARED_PORTAL_KEYDEPTH = {
+  "gob.mx": 1, "gov.br": 1, "portal.ct.gov": 1, "nj.gov": 1, "oregon.gov": 1, "maine.gov": 1,
+  "gov.pl": 2, "nyc.gov": 2, "u.ae": 2, "bundesregierung.de": 2, "gov.si": 3,
+};
+export function institutionKey(url) {
+  const host = hostOf(url);
+  if (!host) return "";
+  const depth = SHARED_PORTAL_KEYDEPTH[host];
+  if (!depth) return host;
+  let path = "";
+  try { path = new URL(url).pathname; } catch { path = ""; }
+  const segs = path.split("/").filter(Boolean).slice(0, depth);
+  return segs.length ? `${host}/${segs.join("/")}` : host;
+}
+
 /**
  * Register a source in the `sources` registry (idempotent by canonical host). Returns the source id.
  * If a source with the same canonical host already exists, ensures status='active' and returns it.
@@ -228,10 +261,11 @@ export async function registerSource(source, { cite, stampIso } = {}) {
   if (!source || !source.url) throw new Error("db.mjs registerSource: source.url required.");
   const host = hostOf(source.url);
   if (!host) throw new Error(`db.mjs registerSource: cannot parse host from ${source.url}`);
+  const key = source.institutionKey || institutionKey(source.url); // path-qualified for shared portals; bare host otherwise
   const sb = writeClient();
   // PAGINATED — a capped .limit() read made this dedup blind beyond 1000 rows and created duplicates.
   const existing = await readAll("sources", "id,url,status");
-  const match = existing.find((s) => hostOf(s.url) === host);
+  const match = existing.find((s) => institutionKey(s.url) === key);
   if (match) {
     if (match.status !== "active") {
       await guardedUpdate("sources", (qb) => qb.eq("id", match.id), { status: "active" }, { cite, stampIso });
