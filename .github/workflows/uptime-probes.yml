@@ -237,5 +237,11 @@ jobs:
             echo "- MTD: \$$mtd of \$$ceiling ceiling (${pct}%), frozen=$frozen, lock_on=$lock_on"
             echo "- Paid rows since the freeze baseline: **$paid_after**"
             echo "- $reason"
-            [ -n "$rows_md" ] && { echo ""; echo "Sanctioned rows:"; echo "$rows_md"; }
+            if [ -n "$rows_md" ]; then echo ""; echo "Sanctioned rows:"; echo "$rows_md"; fi
           } >> "$GITHUB_STEP_SUMMARY"
+          # Healthy verdict reached above (FAIL/unreadable paths already `exit 1`). Make success
+          # explicit so the step's exit status is NOT the trailing test's — a bare `[ -n "$x" ] && …`
+          # as the final command returns 1 when $x is empty (the normal frozen-and-quiet state, no
+          # rows to enumerate), which false-reds the step AFTER the ✓. That is the exact permanent-red
+          # class this probe exists to kill (#301/#302), one layer down in the summary shell.
+          exit 0
