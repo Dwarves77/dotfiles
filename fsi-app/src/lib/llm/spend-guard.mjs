@@ -7,9 +7,12 @@
 import { paidQueueVerdict } from "../agent/deterministic-lever.mjs";
 
 /**
- * @typedef {{ purpose: string, itemId?: string|null, failureClasses?: string[],
+ * @typedef {{ purpose: string, itemId?: string|null, sourceId?: string|null, failureClasses?: string[],
  *   necessity?: { rehomableFacts?: number, repointableSpans?: number },
  *   disposition?: string|null, provenanceStatus?: string|null, junkPool?: boolean, budgetCapUsd?: number, authorizationRef?: string, standingClass?: string }} SpendTicket
+ * sourceId — the canonical source the spend is attributed to; written to agent_runs.source_id so a paid row is
+ *   never both item- AND source-anonymous (invariant I1 — the $65.36 July attribution hole). At least one of
+ *   itemId / sourceId MUST be set on any ticket that will spend.
  * disposition — the item's standing disposition; "DELETE" (held dup-loser) is REJECTED from the paid queue.
  * provenanceStatus — the item's live provenance_status; "verified" is REJECTED (no paid re-ground of a
  *   verified item — l1 is the live example: re-grounding a clean item only risks the thinning guard for $0 gain).
