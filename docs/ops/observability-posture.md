@@ -67,4 +67,4 @@ design — a designed-empty frame is not a dishonesty breach.
   secret-set was ever needed; the entire failure was the invented `PROBE_SECRET` reference. R0.2 is
   green.
 
-Related: [[backup-posture]] (R0.1 sibling), [[secrets-topology]], [[ADR-012-intake-cadence-and-launch-exit-test]] ($75 ceiling).
+Related: [backup-posture](./backup-posture.md) (R0.1 sibling), [secrets-topology](./secrets-topology.md), [ADR-012-intake-cadence-and-launch-exit-test](../decisions/ADR-012-intake-cadence-and-launch-exit-test.md) ($75 ceiling).

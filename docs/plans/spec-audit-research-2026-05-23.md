@@ -285,8 +285,8 @@ Currently `intelligence_items.pipeline_stage` (set via migration 026) drives the
 
 ## Related
 
-- [[spec-audit-operations-2026-05-23]] — The NREL Warehouse Solar-ROI item moved from Operations d=6 to Research d=7 under Migration 101; both audits track it
-- [[spec-audit-market-intel-2026-05-23]] — Both flag tech/innovation item-type routing drift vs the item_type-derived Format Mapping (Technology Profile)
-- [[build-8-research-surface]] — Directly audits the Build 8 (8.1-8.5) research surface work including the migration-100 coverage matrix this build shipped
-- [[fix-d-scope-2026-05-23]] — Fix D /research surface limitation is absorbed by the Research rebuild per the synthesis; audit shares the item-type-canonical framing
-- [[source-classification-framework-2026-05-10]] — get_research_items routing on sources.category=research derives from this classification framework
+- [spec-audit-operations-2026-05-23](./spec-audit-operations-2026-05-23.md) — The NREL Warehouse Solar-ROI item moved from Operations d=6 to Research d=7 under Migration 101; both audits track it
+- [spec-audit-market-intel-2026-05-23](./spec-audit-market-intel-2026-05-23.md) — Both flag tech/innovation item-type routing drift vs the item_type-derived Format Mapping (Technology Profile)
+- [build-8-research-surface](./build-8-research-surface.md) — Directly audits the Build 8 (8.1-8.5) research surface work including the migration-100 coverage matrix this build shipped
+- [fix-d-scope-2026-05-23](./fix-d-scope-2026-05-23.md) — Fix D /research surface limitation is absorbed by the Research rebuild per the synthesis; audit shares the item-type-canonical framing
+- [source-classification-framework-2026-05-10](./source-classification-framework-2026-05-10.md) — get_research_items routing on sources.category=research derives from this classification framework

@@ -72,3 +72,4 @@ session-scoped and does not fire inside subagents/workflows (verified 2026-06-07
 - Invariant: `RD-19-worktree-isolation` in `fsi-app/.discipline/governance/invariants.mjs`
 - Skill: `remediation-discipline` SKILL.md — Section 4 category 14 (Worktree isolation)
 - Boundary class: `fsi-app/.discipline/governance/OUT-OF-REPO-BOUNDARY.md` (why the install is operator-run)
+- [worktrees](../inventories/worktrees.md) — the worktrees inventory recording the live worktrees this doctrine governs (C4 consistency check gates drift)

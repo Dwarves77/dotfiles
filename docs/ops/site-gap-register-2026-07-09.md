@@ -95,6 +95,6 @@ land — this backbone enumerates the LEFT side now (authoritative source data:
 ---
 
 ## Related
-- [[root-cause-why-the-queue-2026-07-08]] — why the queue exists (detection built, drain not) — the frame this register operationalizes
-- [[traceability-matrix-2026-07-07]] — superseded as BASELINE; retained as phase-0-5 source data
-- [[deletion-reclassification-log]] · [[program-closeout-2026-07-08]] · [[flip-readiness-2026-07-08]] (the three switches)
+- [root-cause-why-the-queue-2026-07-08](./root-cause-why-the-queue-2026-07-08.md) — why the queue exists (detection built, drain not) — the frame this register operationalizes
+- [traceability-matrix-2026-07-07](./chrome-audit-2026-07/traceability-matrix-2026-07-07.md) — superseded as BASELINE; retained as phase-0-5 source data
+- [deletion-reclassification-log](./deletion-reclassification-log.md) · [program-closeout-2026-07-08](./program-closeout-2026-07-08.md) · [flip-readiness-2026-07-08](./flip-readiness-2026-07-08.md) (the three switches)

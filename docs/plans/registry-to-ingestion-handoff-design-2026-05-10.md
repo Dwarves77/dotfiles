@@ -157,8 +157,8 @@ In rough order of how load-bearing they are.
 
 ## Related
 
-- [[ingest-pipeline-investigation-2026-05-22]] — The pending_first_fetch queue + migration-065 trigger + drain-worker this report finds empty are that design's deliverables
-- [[primitives-audit-2026-05-09]] — shares migration 058
-- [[wave1b-stub-quality-investigation-2026-05-11]] — The pending_first_fetch queue + auto_run_enabled-flip trigger this worker drains is the registry-to-ingestion handoff that design doc specifies
-- [[source-coverage-diagnostic-2026-05-09]] — Names the 'registry-to-ingestion handoff gap' (dormant new sources, no scheduled first-fetch) that design doc addresses
-- [[source-classification-framework-2026-05-10]] — Same-day; EFRAG (this doc's proof) and W2.F verification pipeline tier-H routing are that framework's worked examples
+- [ingest-pipeline-investigation-2026-05-22](./ingest-pipeline-investigation-2026-05-22.md) — The pending_first_fetch queue + migration-065 trigger + drain-worker this report finds empty are that design's deliverables
+- [primitives-audit-2026-05-09](../audits/primitives-audit-2026-05-09.md) — shares migration 058
+- [wave1b-stub-quality-investigation-2026-05-11](../audits/wave1b-stub-quality-investigation-2026-05-11.md) — The pending_first_fetch queue + auto_run_enabled-flip trigger this worker drains is the registry-to-ingestion handoff that design doc specifies
+- [source-coverage-diagnostic-2026-05-09](../audits/source-coverage-diagnostic-2026-05-09.md) — Names the 'registry-to-ingestion handoff gap' (dormant new sources, no scheduled first-fetch) that design doc addresses
+- [source-classification-framework-2026-05-10](./source-classification-framework-2026-05-10.md) — Same-day; EFRAG (this doc's proof) and W2.F verification pipeline tier-H routing are that framework's worked examples

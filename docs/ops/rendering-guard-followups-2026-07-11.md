@@ -59,5 +59,5 @@ make the HARD assertions structural (pixels informational).
   consecutive green runs on master, then add `rendering-guard` to branch-protection required checks.
 
 Owner: orchestrator (folds into the layout/chrome lane, after the disposition engine per the standing
-sequence). Related: [[ADR-012-intake-cadence-and-launch-exit-test]] (the launch exit test's
+sequence). Related: [ADR-012-intake-cadence-and-launch-exit-test](../decisions/ADR-012-intake-cadence-and-launch-exit-test.md) (the launch exit test's
 "overflow/hydration guard green including mobile tiers" clause depends on NA-1..NA-3 closing).

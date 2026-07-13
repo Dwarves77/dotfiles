@@ -323,6 +323,6 @@ The full client-side rollup (in `fsi-app/src/components/sources/SourceHealthDash
 
 ## Related
 
-- [[dead-code-disposition-2026-05-21]] — Phase 5 investigation this report's open-questions section (lines 141-152) spawned
-- [[category-e-investigation-2026-05-21]] — Sibling Phase 5 investigation spawned by the same disposition report's open-questions section
-- [[ADR-002-tier-model]] — The base_tier-vs-effective_tier decision blocking Q1 is governed by the tier model ADR
+- [dead-code-disposition-2026-05-21](./dead-code-disposition-2026-05-21.md) — Phase 5 investigation this report's open-questions section (lines 141-152) spawned
+- [category-e-investigation-2026-05-21](./category-e-investigation-2026-05-21.md) — Sibling Phase 5 investigation spawned by the same disposition report's open-questions section
+- [ADR-002-tier-model](../decisions/ADR-002-tier-model.md) — The base_tier-vs-effective_tier decision blocking Q1 is governed by the tier model ADR

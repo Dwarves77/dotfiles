@@ -456,5 +456,5 @@ Standing by for operator review of this prework before any writer SKILL.md is mo
 
 ## Related
 
-- [[multi-tenant-foundation-prework-2026-05-15]] — Explicitly named as the prework-first discipline this dispatch mirrors
-- [[skill-refinements-prework-2026-05-15]] — Same-session skill-decomposition prework; both mirror the prework-first gate and the four-cost-surface / inheritance-cost frame
+- [multi-tenant-foundation-prework-2026-05-15](./multi-tenant-foundation-prework-2026-05-15.md) — Explicitly named as the prework-first discipline this dispatch mirrors
+- [skill-refinements-prework-2026-05-15](./skill-refinements-prework-2026-05-15.md) — Same-session skill-decomposition prework; both mirror the prework-first gate and the four-cost-surface / inheritance-cost frame

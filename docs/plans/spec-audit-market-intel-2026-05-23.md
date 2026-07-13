@@ -269,8 +269,8 @@ The current Resource type (`fsi-app/src/types/resource.ts`) is regulation-centri
 
 ## Related
 
-- [[spec-audit-operations-2026-05-23]] — Shared taxonomy-bleed: /market and /operations consume the same unfiltered fallback payload; audit says the Market/Operations boundary must be…
-- [[spec-audit-research-2026-05-23]] — Both flag tech/innovation item-type routing drift vs the item_type-derived Format Mapping (Technology Profile)
-- [[ADR-002-tier-model]] — Section-8 credibility signal set (tier + recency + signal-strength) the audit measures builds on the tier model
-- [[SOURCE-TYPE-TAXONOMY-PROPOSAL]] — Market Intel gap is unregistered spec-named publishers; this proposal governs the source-type taxonomy that would route them
-- [[source-classification-framework-2026-05-10]] — sources.category routing (migration 084) the audit depends on is defined by this classification framework
+- [spec-audit-operations-2026-05-23](./spec-audit-operations-2026-05-23.md) — Shared taxonomy-bleed: /market and /operations consume the same unfiltered fallback payload; audit says the Market/Operations boundary must be…
+- [spec-audit-research-2026-05-23](./spec-audit-research-2026-05-23.md) — Both flag tech/innovation item-type routing drift vs the item_type-derived Format Mapping (Technology Profile)
+- [ADR-002-tier-model](../decisions/ADR-002-tier-model.md) — Section-8 credibility signal set (tier + recency + signal-strength) the audit measures builds on the tier model
+- [SOURCE-TYPE-TAXONOMY-PROPOSAL](./SOURCE-TYPE-TAXONOMY-PROPOSAL.md) — Market Intel gap is unregistered spec-named publishers; this proposal governs the source-type taxonomy that would route them
+- [source-classification-framework-2026-05-10](./source-classification-framework-2026-05-10.md) — sources.category routing (migration 084) the audit depends on is defined by this classification framework

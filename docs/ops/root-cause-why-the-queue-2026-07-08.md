@@ -131,6 +131,6 @@ and *proven* small — not "whatever the machine gave up on." And "complete" is 
 takes the queue to a place on its own,"** verified by a dry-run to near-zero.
 
 ## Related
-- [[program-closeout-2026-07-08]] — the "DONE 7/7" claim this audit corrects (it measured the wrong axis)
-- [[traceability-matrix-2026-07-07]] — the finding register; note every disposition assumed a human or a "phase," never an autonomous drain
-- [[flip-readiness-2026-07-08]] — "flip the loop" was framed as a switch; this audit shows the loop as built doesn't drain the queue
+- [program-closeout-2026-07-08](./program-closeout-2026-07-08.md) — the "DONE 7/7" claim this audit corrects (it measured the wrong axis)
+- [traceability-matrix-2026-07-07](./chrome-audit-2026-07/traceability-matrix-2026-07-07.md) — the finding register; note every disposition assumed a human or a "phase," never an autonomous drain
+- [flip-readiness-2026-07-08](./flip-readiness-2026-07-08.md) — "flip the loop" was framed as a switch; this audit shows the loop as built doesn't drain the queue

@@ -1364,8 +1364,8 @@ This document plus `caros-ledge-product-audit-2026-05-15.md` (v2) is the spec fo
 
 ## Related
 
-- [[caros-ledge-product-audit-2026-05-15]] — Declared companion; the schema audit is the per-table evidence layer that grounds S1-S15 and the Section-6 spec (phantom table integrity_flags,…
-- [[multi-tenant-foundation-followups-2026-05-15]] — Cited companion whose Corrections section and Section 6 recommendations drive the deferred integrity_flags and jurisdictions dispatches here
-- [[four-page-architecture-survey-2026-05-09]] — Shares the sources-table column inventory and the three-vocabulary (scope_topics/topic_tags/intelligence_types) drift and two-tier-semantics finding
-- [[primitives-audit-2026-05-09]] — shares migration 053
-- [[cleanup-audit-2026-05-11]] — Both audit the migration 063 12-column scaffolding and the 062 hidden_reason column; cleanup rules them scaffolding-not-yet-consumed, this confirms…
+- [caros-ledge-product-audit-2026-05-15](./caros-ledge-product-audit-2026-05-15.md) — Declared companion; the schema audit is the per-table evidence layer that grounds S1-S15 and the Section-6 spec (phantom table integrity_flags,…
+- [multi-tenant-foundation-followups-2026-05-15](../ops/multi-tenant-foundation-followups-2026-05-15.md) — Cited companion whose Corrections section and Section 6 recommendations drive the deferred integrity_flags and jurisdictions dispatches here
+- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) — Shares the sources-table column inventory and the three-vocabulary (scope_topics/topic_tags/intelligence_types) drift and two-tier-semantics finding
+- [primitives-audit-2026-05-09](./primitives-audit-2026-05-09.md) — shares migration 053
+- [cleanup-audit-2026-05-11](./cleanup-audit-2026-05-11.md) — Both audit the migration 063 12-column scaffolding and the 062 hidden_reason column; cleanup rules them scaffolding-not-yet-consumed, this confirms…

@@ -336,7 +336,7 @@ Three distinct workstreams flow from this map:
 
 ## Related
 
-- [[source-coverage-diagnostic-2026-05-09]] — This diagnostic (ESG Today as canary) directly seeds that source-registry-expansion map covering the missing EU-ESRS + vertical bodies
-- [[source-map-existence-check-2026-05-10]] — This is the existence check of that map's Sections A-G entry-by-entry against the registry
-- [[SOURCE-TYPE-TAXONOMY-PROPOSAL]] — This map organizes every body by the proposed source_role taxonomy (market_news, vendor-claim T6, primary legal authority)
-- [[W2B-discovery-agent-spec]] — Feeds the source-discovery/expansion workstream — Section H's 'check every body against the existing 718-source registry' is that agent's job
+- [source-coverage-diagnostic-2026-05-09](./source-coverage-diagnostic-2026-05-09.md) — This diagnostic (ESG Today as canary) directly seeds that source-registry-expansion map covering the missing EU-ESRS + vertical bodies
+- [source-map-existence-check-2026-05-10](./source-map-existence-check-2026-05-10.md) — This is the existence check of that map's Sections A-G entry-by-entry against the registry
+- [SOURCE-TYPE-TAXONOMY-PROPOSAL](../plans/SOURCE-TYPE-TAXONOMY-PROPOSAL.md) — This map organizes every body by the proposed source_role taxonomy (market_news, vendor-claim T6, primary legal authority)
+- [W2B-discovery-agent-spec](../plans/W2B-discovery-agent-spec.md) — Feeds the source-discovery/expansion workstream — Section H's 'check every body against the existing 718-source registry' is that agent's job

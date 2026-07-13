@@ -255,8 +255,8 @@ H insert in `executeAction()`.
 
 ## Related
 
-- [[W2A-bulk-import-spec]] — W2.A hands every candidate to W2.F's verifyCandidate and relies on its migration 037 source_verifications write contract for the H/M/L tier ->…
-- [[W2B-discovery-agent-spec]] — W2.B imports W2.F's verifyCandidate and buckets discovery output by its auto-approved/queued/rejected H/M/L actions; W2.F was authored to triage…
-- [[W5-cost-projection]] — W5's verification-pipeline cost line and its Tier H/M/L source_verifications counts are the live outputs of this pipeline's Haiku classifier
-- [[california-pilot-summary]] — The California pilot is W2.F's calibration vehicle for the H/L precision/false-rejection targets on tier-H auto-approvals
-- [[REGIONAL-DATA-COLLECTION-AUDIT]] — Dimensions 2-5 measure the source_verifications H/M/L pipeline and 75/55 thresholds that W2F specifies
+- [W2A-bulk-import-spec](./W2A-bulk-import-spec.md) — W2.A hands every candidate to W2.F's verifyCandidate and relies on its migration 037 source_verifications write contract for the H/M/L tier ->…
+- [W2B-discovery-agent-spec](./W2B-discovery-agent-spec.md) — W2.B imports W2.F's verifyCandidate and buckets discovery output by its auto-approved/queued/rejected H/M/L actions; W2.F was authored to triage…
+- [W5-cost-projection](./W5-cost-projection.md) — W5's verification-pipeline cost line and its Tier H/M/L source_verifications counts are the live outputs of this pipeline's Haiku classifier
+- [california-pilot-summary](../audits/california-pilot-summary.md) — The California pilot is W2.F's calibration vehicle for the H/L precision/false-rejection targets on tier-H auto-approvals
+- [REGIONAL-DATA-COLLECTION-AUDIT](../audits/REGIONAL-DATA-COLLECTION-AUDIT.md) — Dimensions 2-5 measure the source_verifications H/M/L pipeline and 75/55 thresholds that W2F specifies

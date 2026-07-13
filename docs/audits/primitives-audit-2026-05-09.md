@@ -279,8 +279,8 @@ What this audit did not do: did not modify any DB row, did not modify any schema
 
 ## Related
 
-- [[source-coverage-diagnostic-2026-05-09]] — Parallel same-day audit that cross-references this one and confirms the identical last_intelligence_item_at / agent_runs FK write-path gap
-- [[registry-to-ingestion-handoff-design-2026-05-10]] — shares migration 058
-- [[W1A-dual-write-audit]] — Wave 1a is the in-flight fix that writes the agent_runs FK this audit names as the collapsing root cause
-- [[four-page-architecture-survey-2026-05-09]] — Explicitly cites and extends it; both find the source-role/six-category taxonomy absent and reconstruct pages from item_type/domain TypeScript filters
-- [[caros-ledge-supabase-schema-audit-2026-05-15]] — shares migration 053
+- [source-coverage-diagnostic-2026-05-09](./source-coverage-diagnostic-2026-05-09.md) — Parallel same-day audit that cross-references this one and confirms the identical last_intelligence_item_at / agent_runs FK write-path gap
+- [registry-to-ingestion-handoff-design-2026-05-10](../plans/registry-to-ingestion-handoff-design-2026-05-10.md) — shares migration 058
+- [W1A-dual-write-audit](./W1A-dual-write-audit.md) — Wave 1a is the in-flight fix that writes the agent_runs FK this audit names as the collapsing root cause
+- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) — Explicitly cites and extends it; both find the source-role/six-category taxonomy absent and reconstruct pages from item_type/domain TypeScript filters
+- [caros-ledge-supabase-schema-audit-2026-05-15](./caros-ledge-supabase-schema-audit-2026-05-15.md) — shares migration 053

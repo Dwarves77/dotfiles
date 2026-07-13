@@ -207,7 +207,7 @@ comments are frozen and can go stale). The following file headers are STALE-BUT-
   157 row above already records this). Frozen header, not re-edited.
 
 Out-of-band live objects (4 `_pre_phase5` tables + 7 mig-009 capture-table policies) are registered in
-[[out-of-band-objects]].
+[out-of-band-objects](./out-of-band-objects.md).
 
 ## Source files
 
@@ -216,8 +216,8 @@ Out-of-band live objects (4 `_pre_phase5` tables + 7 mig-009 capture-table polic
 
 ## Related
 
-- [[sprint4-dataops-ledger]] — The ledger records apply scripts for migrations 118/119/121 and flagged 117/118 as missing from this inventory — shared Sprint 4 provenance…
-- [[deletion-reclassification-log]] — RECLASSIFY→source entries run through the migration-135 source-registration guard and migration-019 mistyped-tool reclassification — the DB…
-- [[ADR-002-tier-model]] — shared migration 090 (Q2 tier schema split / tier->base_tier rename) tracked in migrations inventory
-- [[multi-tenant-foundation-followups-2026-05-15]] — Migrations 075/076/077 (multi-tenant) plus the unapplied 048/050 flagged in the followups doc are the same migration set
-- [[INTEGRITY-TRIAGE-PROCEDURE]] — The whole procedure consumes the migration-035 (agent_integrity_flags) trigger output on intelligence_items — that migration defines the flag…
+- [sprint4-dataops-ledger](../runbooks/sprint4-dataops-ledger.md) — The ledger records apply scripts for migrations 118/119/121 and flagged 117/118 as missing from this inventory — shared Sprint 4 provenance…
+- [deletion-reclassification-log](../ops/deletion-reclassification-log.md) — RECLASSIFY→source entries run through the migration-135 source-registration guard and migration-019 mistyped-tool reclassification — the DB…
+- [ADR-002-tier-model](../decisions/ADR-002-tier-model.md) — shared migration 090 (Q2 tier schema split / tier->base_tier rename) tracked in migrations inventory
+- [multi-tenant-foundation-followups-2026-05-15](../ops/multi-tenant-foundation-followups-2026-05-15.md) — Migrations 075/076/077 (multi-tenant) plus the unapplied 048/050 flagged in the followups doc are the same migration set
+- [INTEGRITY-TRIAGE-PROCEDURE](../runbooks/INTEGRITY-TRIAGE-PROCEDURE.md) — The whole procedure consumes the migration-035 (agent_integrity_flags) trigger output on intelligence_items — that migration defines the flag…

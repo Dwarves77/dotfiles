@@ -54,6 +54,6 @@ Full machine-readable mismatch list: `docs/W1C-source-attribution-audit.json`
 
 ## Related
 
-- [[W1A-dual-write-audit]] — Wave-1a sibling audit; both feed the same W4 backfill of source/jurisdiction attribution
-- [[W1B-approval-handler-analysis]] — Wave-1a sibling audit feeding the same W4 recovery pass
-- [[W4-backfill-plan]] — The create_new_source / manual_review actions and effort estimate here are the W4 backfill inputs
+- [W1A-dual-write-audit](./W1A-dual-write-audit.md) — Wave-1a sibling audit; both feed the same W4 backfill of source/jurisdiction attribution
+- [W1B-approval-handler-analysis](./W1B-approval-handler-analysis.md) — Wave-1a sibling audit feeding the same W4 recovery pass
+- [W4-backfill-plan](../plans/W4-backfill-plan.md) — The create_new_source / manual_review actions and effort estimate here are the W4 backfill inputs

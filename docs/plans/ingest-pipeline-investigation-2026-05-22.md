@@ -381,8 +381,8 @@ Per `sprint-followups-discipline`, this investigation produces no design surface
 
 ## Related
 
-- [[ingest-restart-sequencing-2026-05-22]] — That doc operationalizes this report's B4 option and answers its own verification question about the 3 insert sites on the restart path
-- [[classification-backfill-plan-2026-05-22]] — Consumes Dispatch E's report as primary input; reconciles its 193-leak count against this plan's 212 moves
-- [[registry-to-ingestion-handoff-design-2026-05-10]] — The pending_first_fetch queue + migration-065 trigger + drain-worker this report finds empty are that design's deliverables
-- [[fix-d-scope-2026-05-23]] — REC-OBS-G and the category-aware RPCs Fix D wires end-to-end are diagnosed there (migration 070 orphan RPCs)
-- [[regulations-classification-mismatch-counts-2026-05-22]] — That doc's conservative 120-count feeds this investigation; both share the (item_type,domain) cross-tab
+- [ingest-restart-sequencing-2026-05-22](./ingest-restart-sequencing-2026-05-22.md) — That doc operationalizes this report's B4 option and answers its own verification question about the 3 insert sites on the restart path
+- [classification-backfill-plan-2026-05-22](./classification-backfill-plan-2026-05-22.md) — Consumes Dispatch E's report as primary input; reconciles its 193-leak count against this plan's 212 moves
+- [registry-to-ingestion-handoff-design-2026-05-10](./registry-to-ingestion-handoff-design-2026-05-10.md) — The pending_first_fetch queue + migration-065 trigger + drain-worker this report finds empty are that design's deliverables
+- [fix-d-scope-2026-05-23](./fix-d-scope-2026-05-23.md) — REC-OBS-G and the category-aware RPCs Fix D wires end-to-end are diagnosed there (migration 070 orphan RPCs)
+- [regulations-classification-mismatch-counts-2026-05-22](./regulations-classification-mismatch-counts-2026-05-22.md) — That doc's conservative 120-count feeds this investigation; both share the (item_type,domain) cross-tab

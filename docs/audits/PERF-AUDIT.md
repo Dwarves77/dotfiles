@@ -250,8 +250,8 @@ One potential concern:
 
 ## Related
 
-- [[PERF-PROFILING-FINDINGS]] — Same-day companion verifying externally-supplied perf claims against this audit's getAppData/full_brief findings
-- [[PAGE-LOAD-PERF-AUDIT-2026-05-06]] — Direct predecessor; this doc is the backlog walk-through verifying which of PERF-AUDIT's 15 items shipped vs remain
-- [[PERF-PLAYBOOK]] — The perf runbook that codifies this audit's measure-before-lever rule and logs its code-split anti-pattern
-- [[hotfix-3-perf-audit-2026-05-07]] — Later perf audit in the same cluster acting on this backlog's deferred items
-- [[ISR-WRITE-INVESTIGATION]] — PERF-AUDIT first documented 'revalidate=60 is broken on every page that reads cookies' — the load-bearing premise here
+- [PERF-PROFILING-FINDINGS](./PERF-PROFILING-FINDINGS.md) — Same-day companion verifying externally-supplied perf claims against this audit's getAppData/full_brief findings
+- [PAGE-LOAD-PERF-AUDIT-2026-05-06](./PAGE-LOAD-PERF-AUDIT-2026-05-06.md) — Direct predecessor; this doc is the backlog walk-through verifying which of PERF-AUDIT's 15 items shipped vs remain
+- [PERF-PLAYBOOK](../runbooks/PERF-PLAYBOOK.md) — The perf runbook that codifies this audit's measure-before-lever rule and logs its code-split anti-pattern
+- [hotfix-3-perf-audit-2026-05-07](./hotfix-3-perf-audit-2026-05-07.md) — Later perf audit in the same cluster acting on this backlog's deferred items
+- [ISR-WRITE-INVESTIGATION](./ISR-WRITE-INVESTIGATION.md) — PERF-AUDIT first documented 'revalidate=60 is broken on every page that reads cookies' — the load-bearing premise here

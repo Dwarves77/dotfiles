@@ -285,8 +285,8 @@ Doc location: `C:/Users/jason/dotfiles/docs/source-coverage-diagnostic-2026-05-0
 
 ## Related
 
-- [[primitives-audit-2026-05-09]] — Parallel same-day audit that cross-references this one and confirms the identical last_intelligence_item_at / agent_runs FK write-path gap
-- [[registry-to-ingestion-handoff-design-2026-05-10]] — Names the 'registry-to-ingestion handoff gap' (dormant new sources, no scheduled first-fetch) that design doc addresses
-- [[source-map-existence-check-2026-05-10]] — That check verifies this diagnostic's four EU-ESRS source verdicts against a next-day snapshot (ESG Today flipped to healthy)
-- [[source-map-from-esgtoday-2026-05-09]] — This diagnostic (ESG Today as canary) directly seeds that source-registry-expansion map covering the missing EU-ESRS + vertical bodies
-- [[REGIONAL-DATA-COLLECTION-AUDIT]] — Both diagnose jurisdictional source-coverage gaps against the tier taxonomy
+- [primitives-audit-2026-05-09](./primitives-audit-2026-05-09.md) — Parallel same-day audit that cross-references this one and confirms the identical last_intelligence_item_at / agent_runs FK write-path gap
+- [registry-to-ingestion-handoff-design-2026-05-10](../plans/registry-to-ingestion-handoff-design-2026-05-10.md) — Names the 'registry-to-ingestion handoff gap' (dormant new sources, no scheduled first-fetch) that design doc addresses
+- [source-map-existence-check-2026-05-10](./source-map-existence-check-2026-05-10.md) — That check verifies this diagnostic's four EU-ESRS source verdicts against a next-day snapshot (ESG Today flipped to healthy)
+- [source-map-from-esgtoday-2026-05-09](./source-map-from-esgtoday-2026-05-09.md) — This diagnostic (ESG Today as canary) directly seeds that source-registry-expansion map covering the missing EU-ESRS + vertical bodies
+- [REGIONAL-DATA-COLLECTION-AUDIT](./REGIONAL-DATA-COLLECTION-AUDIT.md) — Both diagnose jurisdictional source-coverage gaps against the tier taxonomy

@@ -553,8 +553,8 @@ No DB rows were created, modified, or deleted as part of this audit. No migratio
 
 ## Related
 
-- [[E2E-VERIFICATION]] — Session audit catalogs these 5 E2E failures and isolates A4+A10 as the two real newly-introduced regressions
-- [[BRIEF-STRUCTURE-AUDIT]] — Session audit's 'Architectural state' section restates this doc's brief-structure source-of-truth and order-drift findings verbatim
-- [[INTEGRITY-TRIAGE-REPORT]] — Session audit reproduces this 57-flag breakdown (15 missing-reg / 3 regenerate / 37 other) as its integrity-queue catalogue
-- [[REGIONAL-DATA-COLLECTION-AUDIT]] — Session audit pulls this doc's coverage-gap and spot-check-dormant dimensions into its 'partial or broken' inventory
-- [[W5-cost-projection]] — The cost-and-capacity section's low/mid/high steady-state figures come straight from W5-cost-projection
+- [E2E-VERIFICATION](./E2E-VERIFICATION.md) — Session audit catalogs these 5 E2E failures and isolates A4+A10 as the two real newly-introduced regressions
+- [BRIEF-STRUCTURE-AUDIT](./BRIEF-STRUCTURE-AUDIT.md) — Session audit's 'Architectural state' section restates this doc's brief-structure source-of-truth and order-drift findings verbatim
+- [INTEGRITY-TRIAGE-REPORT](./INTEGRITY-TRIAGE-REPORT.md) — Session audit reproduces this 57-flag breakdown (15 missing-reg / 3 regenerate / 37 other) as its integrity-queue catalogue
+- [REGIONAL-DATA-COLLECTION-AUDIT](./REGIONAL-DATA-COLLECTION-AUDIT.md) — Session audit pulls this doc's coverage-gap and spot-check-dormant dimensions into its 'partial or broken' inventory
+- [W5-cost-projection](../plans/W5-cost-projection.md) — The cost-and-capacity section's low/mid/high steady-state figures come straight from W5-cost-projection

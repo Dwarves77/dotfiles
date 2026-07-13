@@ -63,8 +63,8 @@ The shared route prefix (`/api/admin/`) for both patterns is a historical accide
 
 ## Related
 
-- [[ADR-005-discipline-enforcement-layered-architecture]] — F2 admin-routes-isPlatformAdmin is a surviving Layer-2 fitness function in ADR-005's discipline engine
-- [[discipline]] — F2 fitness function enforcing the dichotomy is tracked in the discipline inventory
-- [[SPOT-CHECK-PROCEDURE]] — the /api/admin/spot-check/recurring worker-secret-gated route in this ADR's allowlist is run per this runbook
-- [[WORKER-ACTIVATION-AUDIT-2026-05-08]] — shared WORKER_SECRET / worker-route surface that this ADR's cron exemption list gates
-- [[auth-architecture-audit-2026-05-10]] — same auth subsystem; audit of the admin-route auth architecture this ADR formalizes
+- [ADR-005-discipline-enforcement-layered-architecture](./ADR-005-discipline-enforcement-layered-architecture.md) — F2 admin-routes-isPlatformAdmin is a surviving Layer-2 fitness function in ADR-005's discipline engine
+- [discipline](../inventories/discipline.md) — F2 fitness function enforcing the dichotomy is tracked in the discipline inventory
+- [SPOT-CHECK-PROCEDURE](../runbooks/SPOT-CHECK-PROCEDURE.md) — the /api/admin/spot-check/recurring worker-secret-gated route in this ADR's allowlist is run per this runbook
+- [WORKER-ACTIVATION-AUDIT-2026-05-08](../audits/WORKER-ACTIVATION-AUDIT-2026-05-08.md) — shared WORKER_SECRET / worker-route surface that this ADR's cron exemption list gates
+- [auth-architecture-audit-2026-05-10](../audits/auth-architecture-audit-2026-05-10.md) — same auth subsystem; audit of the admin-route auth architecture this ADR formalizes

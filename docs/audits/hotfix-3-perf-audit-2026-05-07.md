@@ -335,7 +335,7 @@ visibly stalling on mid-tier mobile.
 
 ## Related
 
-- [[PERF-PLAYBOOK]] — Dated perf hotfix audit in the same measurement-first perf lane the playbook governs
-- [[PAGE-LOAD-PERF-AUDIT-2026-05-06]] — Next-day perf audit in the same cluster continuing the auth/round-trip and code-split thread
-- [[PERF-AUDIT]] — Later perf audit in the same cluster acting on this backlog's deferred items
-- [[PERF-PROFILING-FINDINGS]] — Shares the server-timing [perf] log + hydration-weight profiling of the same route surfaces
+- [PERF-PLAYBOOK](../runbooks/PERF-PLAYBOOK.md) — Dated perf hotfix audit in the same measurement-first perf lane the playbook governs
+- [PAGE-LOAD-PERF-AUDIT-2026-05-06](./PAGE-LOAD-PERF-AUDIT-2026-05-06.md) — Next-day perf audit in the same cluster continuing the auth/round-trip and code-split thread
+- [PERF-AUDIT](./PERF-AUDIT.md) — Later perf audit in the same cluster acting on this backlog's deferred items
+- [PERF-PROFILING-FINDINGS](./PERF-PROFILING-FINDINGS.md) — Shares the server-timing [perf] log + hydration-weight profiling of the same route surfaces

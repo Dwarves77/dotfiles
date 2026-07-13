@@ -53,7 +53,7 @@ Once those source classifications are set, re-running the backfill rule produces
 
 ## Related
 
-- [[fix-d-scope-2026-05-23]] — Project JOLT (row 5) is the canonical item both docs use to argue content-fit vs item_type routing
-- [[classification-backfill-plan-2026-05-22]] — Explicit companion; this doc holds the 7 ambiguous rows that plan routes to the default d=4
-- [[source-classification-framework-2026-05-10]] — The ambiguity cause is unset source_role/category from migrations 063+084, the framework's 5-axis registration
-- [[source-classification-final-summary-2026-05-11]] — Later plan that dispositions the 39 AMBIGUOUS rows this summary left NULL for operator review
+- [fix-d-scope-2026-05-23](./fix-d-scope-2026-05-23.md) — Project JOLT (row 5) is the canonical item both docs use to argue content-fit vs item_type routing
+- [classification-backfill-plan-2026-05-22](./classification-backfill-plan-2026-05-22.md) — Explicit companion; this doc holds the 7 ambiguous rows that plan routes to the default d=4
+- [source-classification-framework-2026-05-10](./source-classification-framework-2026-05-10.md) — The ambiguity cause is unset source_role/category from migrations 063+084, the framework's 5-axis registration
+- [source-classification-final-summary-2026-05-11](../audits/source-classification-final-summary-2026-05-11.md) — Later plan that dispositions the 39 AMBIGUOUS rows this summary left NULL for operator review

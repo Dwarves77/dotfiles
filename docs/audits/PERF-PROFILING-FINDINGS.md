@@ -261,8 +261,8 @@ The single biggest concrete waste is **Claim 1**: 3.19 MB of `full_brief` text s
 
 ## Related
 
-- [[PERF-AUDIT]] — Same-day companion verifying externally-supplied perf claims against this audit's getAppData/full_brief findings
-- [[PAGE-LOAD-PERF-AUDIT-2026-05-06]] — Named predecessor; both track the full_brief slim-RPC and the revalidate=60 state of /research and /settings
-- [[PERF-PLAYBOOK]] — Profiling findings map slow metrics to layers — exactly the bottleneck-identification step-3 the playbook defines
-- [[SESSION-AUDIT-2026-05-05]] — shares migration 034
-- [[ISR-WRITE-INVESTIGATION]] — Shares the revalidate-retained-on-/research finding (its Claim 2) that this investigation builds the ISR-write model on
+- [PERF-AUDIT](./PERF-AUDIT.md) — Same-day companion verifying externally-supplied perf claims against this audit's getAppData/full_brief findings
+- [PAGE-LOAD-PERF-AUDIT-2026-05-06](./PAGE-LOAD-PERF-AUDIT-2026-05-06.md) — Named predecessor; both track the full_brief slim-RPC and the revalidate=60 state of /research and /settings
+- [PERF-PLAYBOOK](../runbooks/PERF-PLAYBOOK.md) — Profiling findings map slow metrics to layers — exactly the bottleneck-identification step-3 the playbook defines
+- [SESSION-AUDIT-2026-05-05](./SESSION-AUDIT-2026-05-05.md) — shares migration 034
+- [ISR-WRITE-INVESTIGATION](./ISR-WRITE-INVESTIGATION.md) — Shares the revalidate-retained-on-/research finding (its Claim 2) that this investigation builds the ISR-write model on

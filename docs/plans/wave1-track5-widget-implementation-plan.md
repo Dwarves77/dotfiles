@@ -286,8 +286,8 @@ Body: see plan source for full template.
 
 ## Related
 
-- [[spec-audit-dashboard-2026-05-23]] — That plan builds the exact widgets audited here (DashboardWatchlist, DashboardByOwner, DashboardCoverageGaps, DashboardAwaitingReview,…
-- [[components]] — Adds six new src/components/home components that the components inventory tracks
-- [[migrations]] — Adds migrations 060 user_watchlist and 061 coverage_gaps recorded in the migrations inventory
-- [[dashboard-payload-audit-2026-05-11]] — Both concern the Dashboard data path / getAppData feeding these widgets
-- [[wave1-step1-verification]] — Shares the Wave 1 dispatch series and the migration-headroom (060/061 leave room for Wave 1a 052-059) coordination
+- [spec-audit-dashboard-2026-05-23](./spec-audit-dashboard-2026-05-23.md) — That plan builds the exact widgets audited here (DashboardWatchlist, DashboardByOwner, DashboardCoverageGaps, DashboardAwaitingReview,…
+- [components](../inventories/components.md) — Adds six new src/components/home components that the components inventory tracks
+- [migrations](../inventories/migrations.md) — Adds migrations 060 user_watchlist and 061 coverage_gaps recorded in the migrations inventory
+- [dashboard-payload-audit-2026-05-11](../audits/dashboard-payload-audit-2026-05-11.md) — Both concern the Dashboard data path / getAppData feeding these widgets
+- [wave1-step1-verification](../audits/wave1-step1-verification.md) — Shares the Wave 1 dispatch series and the migration-headroom (060/061 leave room for Wave 1a 052-059) coordination

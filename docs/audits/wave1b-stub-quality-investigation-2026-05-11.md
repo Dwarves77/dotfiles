@@ -135,8 +135,8 @@ The 2026-05-09 smoke-test row (`finance.ec.europa.eu`, `id=53c3fcd5-…`) was ba
 
 ## Related
 
-- [[registry-to-ingestion-handoff-design-2026-05-10]] — The pending_first_fetch queue + auto_run_enabled-flip trigger this worker drains is the registry-to-ingestion handoff that design doc specifies
-- [[sources-content-verification-2026-05-11]] — Anomaly 2 (finance.ec.europa.eu stub 53c3fcd5 at pipeline_stage=draft) is the exact drain-worker stub that investigation dissects
-- [[wave1-step1-verification]] — Wave 1b follow-on that verifies the same /api/agent/run Step-10 UPDATE path this checklist exercises
-- [[cleanup-audit-2026-05-11]] — shares migration 064
-- [[ingest-pipeline-investigation-2026-05-22]] — shares migration 065
+- [registry-to-ingestion-handoff-design-2026-05-10](../plans/registry-to-ingestion-handoff-design-2026-05-10.md) — The pending_first_fetch queue + auto_run_enabled-flip trigger this worker drains is the registry-to-ingestion handoff that design doc specifies
+- [sources-content-verification-2026-05-11](./sources-content-verification-2026-05-11.md) — Anomaly 2 (finance.ec.europa.eu stub 53c3fcd5 at pipeline_stage=draft) is the exact drain-worker stub that investigation dissects
+- [wave1-step1-verification](./wave1-step1-verification.md) — Wave 1b follow-on that verifies the same /api/agent/run Step-10 UPDATE path this checklist exercises
+- [cleanup-audit-2026-05-11](./cleanup-audit-2026-05-11.md) — shares migration 064
+- [ingest-pipeline-investigation-2026-05-22](../plans/ingest-pipeline-investigation-2026-05-22.md) — shares migration 065

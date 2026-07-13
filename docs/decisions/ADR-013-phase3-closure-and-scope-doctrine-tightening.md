@@ -79,3 +79,9 @@ Landed in this micro-PR: `fsi-app/.discipline/governance/doctrine-register.mjs`
   $0, with the paid path locked.
 - Future population/quarantine reports carry both scope and archival predicate, closing the ambiguity that
   caused two opposite mis-statements in one week.
+
+## Related
+
+- [ADR-012-intake-cadence-and-launch-exit-test](./ADR-012-intake-cadence-and-launch-exit-test.md) — the intake/launch decision whose Phase-3 posture this ADR closes
+- [ADR-011-ddl-authority-delegation](./ADR-011-ddl-authority-delegation.md) — the DDL-apply authority under which the disposition-wave `$0` DB operations ran
+- [reconciliation-remediation-closeout-2026-07-11](../ops/reconciliation-remediation-closeout-2026-07-11.md) — the remediation closeout documenting the 2026-07-11..13 disposition waves this ADR reconciles

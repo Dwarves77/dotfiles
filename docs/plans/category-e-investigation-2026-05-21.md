@@ -558,6 +558,6 @@ static data into the live data model.
 
 ## Related
 
-- [[dead-code-disposition-2026-05-21]] — This doc IS the Phase 4 investigation of that report's Category E list (lines 119-138); parent-child
-- [[source-health-architecture-investigation-2026-05-21]] — Sibling Phase 5 investigation spawned by the same disposition report's open-questions section
-- [[build-8-research-surface]] — Several Category E items (ResearchView, credibility chips) are dispositioned as Build 8 territory
+- [dead-code-disposition-2026-05-21](./dead-code-disposition-2026-05-21.md) — This doc IS the Phase 4 investigation of that report's Category E list (lines 119-138); parent-child
+- [source-health-architecture-investigation-2026-05-21](./source-health-architecture-investigation-2026-05-21.md) — Sibling Phase 5 investigation spawned by the same disposition report's open-questions section
+- [build-8-research-surface](./build-8-research-surface.md) — Several Category E items (ResearchView, credibility chips) are dispositioned as Build 8 territory

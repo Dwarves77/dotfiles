@@ -76,7 +76,8 @@ Any dispatch that creates or removes a worktree MUST update this inventory. C4 c
 
 ## Related
 
-- [[multi-tenant-foundation-followups-2026-05-15]] — The three multi-tenant workstreams ran in the mt-A/B/C worktrees that landed as PRs #114/115/116 — the worktrees inventory records their disposition
-- [[discipline]] — C4 consistency check gates that live worktrees equal worktrees.md entries; it caught the remediation-discipline orphan in CI
-- [[multi-tenant-foundation-prework-2026-05-15]] — shares migration 075
-- [[caros-ledge-supabase-schema-audit-2026-05-15]] — shares migration 075
+- [multi-tenant-foundation-followups-2026-05-15](../ops/multi-tenant-foundation-followups-2026-05-15.md) — The three multi-tenant workstreams ran in the mt-A/B/C worktrees that landed as PRs #114/115/116 — the worktrees inventory records their disposition
+- [discipline](./discipline.md) — C4 consistency check gates that live worktrees equal worktrees.md entries; it caught the remediation-discipline orphan in CI
+- [multi-tenant-foundation-prework-2026-05-15](../plans/multi-tenant-foundation-prework-2026-05-15.md) — shares migration 075
+- [caros-ledge-supabase-schema-audit-2026-05-15](../audits/caros-ledge-supabase-schema-audit-2026-05-15.md) — shares migration 075
+- [worktree-isolation](../doctrine/worktree-isolation.md) — the doctrine (RD-19) governing the branch/checkout/merge operations this inventory tracks

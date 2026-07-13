@@ -160,5 +160,5 @@ If the operator drops 300 and does nothing else: net change is one fewer Plus_Ja
 
 ## Related
 
-- [[dashboard-payload-audit-2026-05-11]] — This audit's secondary observation questions the five Plus Jakarta Sans weights and a possible Roboto Mono misread; the font audit is the resolving…
-- [[cleanup-audit-2026-05-11]] — Cleanup rules this doc ACTIVE and cited by layout.tsx as the source-of-truth for which font weights are bundled into the build
+- [dashboard-payload-audit-2026-05-11](./dashboard-payload-audit-2026-05-11.md) — This audit's secondary observation questions the five Plus Jakarta Sans weights and a possible Roboto Mono misread; the font audit is the resolving…
+- [cleanup-audit-2026-05-11](./cleanup-audit-2026-05-11.md) — Cleanup rules this doc ACTIVE and cited by layout.tsx as the source-of-truth for which font weights are bundled into the build

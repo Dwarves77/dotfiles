@@ -195,8 +195,8 @@ The /regulations hotfix (A+B+C, `db3a8b0`) closed the customer-visible incoheren
 
 ## Related
 
-- [[ingest-pipeline-investigation-2026-05-22]] — That doc operationalizes this report's B4 option and answers its own verification question about the 3 insert sites on the restart path
-- [[classification-backfill-plan-2026-05-22]] — That doc locks migration 101 as step b (DONE 2026-05-23) in the leakage-fix-before-restart sequence
-- [[fix-d-scope-2026-05-23]] — Fix D's decision dependencies (backfill+leakage verified together) are that doc's sequence; both name REC-OBS-G / domain-constants follow-ons
-- [[registry-to-ingestion-handoff-design-2026-05-10]] — drain-first-fetch:276 (the primary cron path this doc analyzes) is that design's worker route + migration-065 trigger
-- [[regulations-classification-mismatch-counts-2026-05-22]] — Explicitly cross-referenced as the conservative quantification feeding the backfill
+- [ingest-pipeline-investigation-2026-05-22](./ingest-pipeline-investigation-2026-05-22.md) — That doc operationalizes this report's B4 option and answers its own verification question about the 3 insert sites on the restart path
+- [classification-backfill-plan-2026-05-22](./classification-backfill-plan-2026-05-22.md) — That doc locks migration 101 as step b (DONE 2026-05-23) in the leakage-fix-before-restart sequence
+- [fix-d-scope-2026-05-23](./fix-d-scope-2026-05-23.md) — Fix D's decision dependencies (backfill+leakage verified together) are that doc's sequence; both name REC-OBS-G / domain-constants follow-ons
+- [registry-to-ingestion-handoff-design-2026-05-10](./registry-to-ingestion-handoff-design-2026-05-10.md) — drain-first-fetch:276 (the primary cron path this doc analyzes) is that design's worker route + migration-065 trigger
+- [regulations-classification-mismatch-counts-2026-05-22](./regulations-classification-mismatch-counts-2026-05-22.md) — Explicitly cross-referenced as the conservative quantification feeding the backfill

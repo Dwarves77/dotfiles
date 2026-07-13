@@ -733,6 +733,6 @@ Standing by for operator review of this document before any of the 10 changes ar
 
 ## Related
 
-- [[multi-tenant-foundation-prework-2026-05-15]] — Same-session companion; skill-refinements is explicitly the companion doc and reuses this dispatch's three-context (workspace/community/personal)…
-- [[dispatch-2.5-writer-redistribution-prework-2026-05-15]] — Same-session skill-decomposition prework; both mirror the prework-first gate and the four-cost-surface / inheritance-cost frame
-- [[multi-tenant-foundation-followups-2026-05-15]] — shares migration 072
+- [multi-tenant-foundation-prework-2026-05-15](./multi-tenant-foundation-prework-2026-05-15.md) — Same-session companion; skill-refinements is explicitly the companion doc and reuses this dispatch's three-context (workspace/community/personal)…
+- [dispatch-2.5-writer-redistribution-prework-2026-05-15](./dispatch-2.5-writer-redistribution-prework-2026-05-15.md) — Same-session skill-decomposition prework; both mirror the prework-first gate and the four-cost-surface / inheritance-cost frame
+- [multi-tenant-foundation-followups-2026-05-15](../ops/multi-tenant-foundation-followups-2026-05-15.md) — shares migration 072

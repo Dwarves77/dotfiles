@@ -266,8 +266,8 @@ this migration becomes a no-op via `ADD COLUMN IF NOT EXISTS`.
 
 ## Related
 
-- [[W2A-bulk-import-spec]] — Sibling ingestion path feeding the same W2.F pipeline; the two coordinate migration numbering (W2.A reserves 038, W2.B names its file 038a to avoid…
-- [[W2F-verification-pipeline]] — W2.B imports W2.F's verifyCandidate and buckets discovery output by its auto-approved/queued/rejected H/M/L actions; W2.F was authored to triage…
-- [[W2D-coverage-matrix-spec]] — W2.D's coverage-matrix discover action calls W2.B's /api/admin/sources/discover with the selected jurisdiction_iso
-- [[california-pilot-summary]] — US-CA is W2.B's documented first end-to-end calibration run (CARB at tier H, >=8 candidates); the pilot summary reports that run's outcome
-- [[W5-cost-projection]] — W5's discovery-refresh cost lines use W2.B's ~$0.11/jurisdiction discovery-call rate and per-tier candidate volumes
+- [W2A-bulk-import-spec](./W2A-bulk-import-spec.md) — Sibling ingestion path feeding the same W2.F pipeline; the two coordinate migration numbering (W2.A reserves 038, W2.B names its file 038a to avoid…
+- [W2F-verification-pipeline](./W2F-verification-pipeline.md) — W2.B imports W2.F's verifyCandidate and buckets discovery output by its auto-approved/queued/rejected H/M/L actions; W2.F was authored to triage…
+- [W2D-coverage-matrix-spec](./W2D-coverage-matrix-spec.md) — W2.D's coverage-matrix discover action calls W2.B's /api/admin/sources/discover with the selected jurisdiction_iso
+- [california-pilot-summary](../audits/california-pilot-summary.md) — US-CA is W2.B's documented first end-to-end calibration run (CARB at tier H, >=8 candidates); the pilot summary reports that run's outcome
+- [W5-cost-projection](./W5-cost-projection.md) — W5's discovery-refresh cost lines use W2.B's ~$0.11/jurisdiction discovery-call rate and per-tier candidate volumes

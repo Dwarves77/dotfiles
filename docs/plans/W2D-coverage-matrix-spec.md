@@ -297,8 +297,8 @@ summed and source counts are maxed (matching the API rollup convention).
 
 ## Related
 
-- [[W2A-bulk-import-spec]] — W2.D's coverage-matrix bulk-add action opens W2.A's BulkImportView in a dialog pre-filled with the selected jurisdiction
-- [[SOURCE-TYPE-TAXONOMY-PROPOSAL]] — Both classify source coverage per jurisdiction; the source_type tag is the structured replacement for the same coverage-gaps env-body/legislature…
-- [[REGIONAL-DATA-COLLECTION-AUDIT]] — Dimension 8 audits the coverage_matrix() RPC (mig 039) that W2D-coverage-matrix-spec designs
-- [[W2B-discovery-agent-spec]] — W2.D's coverage-matrix discover action calls W2.B's /api/admin/sources/discover with the selected jurisdiction_iso
-- [[W4-backfill-plan]] — W2.D names the W4 backfill agent as the fix for empty jurisdiction_iso arrays; W4.1's iso_backfill populates intelligence_items.jurisdiction_iso…
+- [W2A-bulk-import-spec](./W2A-bulk-import-spec.md) — W2.D's coverage-matrix bulk-add action opens W2.A's BulkImportView in a dialog pre-filled with the selected jurisdiction
+- [SOURCE-TYPE-TAXONOMY-PROPOSAL](./SOURCE-TYPE-TAXONOMY-PROPOSAL.md) — Both classify source coverage per jurisdiction; the source_type tag is the structured replacement for the same coverage-gaps env-body/legislature…
+- [REGIONAL-DATA-COLLECTION-AUDIT](../audits/REGIONAL-DATA-COLLECTION-AUDIT.md) — Dimension 8 audits the coverage_matrix() RPC (mig 039) that W2D-coverage-matrix-spec designs
+- [W2B-discovery-agent-spec](./W2B-discovery-agent-spec.md) — W2.D's coverage-matrix discover action calls W2.B's /api/admin/sources/discover with the selected jurisdiction_iso
+- [W4-backfill-plan](./W4-backfill-plan.md) — W2.D names the W4 backfill agent as the fix for empty jurisdiction_iso arrays; W4.1's iso_backfill populates intelligence_items.jurisdiction_iso…

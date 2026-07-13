@@ -387,6 +387,6 @@ Procedure: `docs/INTEGRITY-TRIAGE-PROCEDURE.md`
 
 ## Related
 
-- [[INTEGRITY-TRIAGE-PROCEDURE]] — This runbook's script emits docs/INTEGRITY-TRIAGE-REPORT.md as its human-readable artifact; the report is this procedure's output
-- [[SESSION-AUDIT-2026-05-05]] — Session audit reproduces this 57-flag breakdown (15 missing-reg / 3 regenerate / 37 other) as its integrity-queue catalogue
-- [[E2E-VERIFICATION]] — Test C1 verifies the migration-044 retune that dropped the 57 unresolved flags this triage report enumerated down to 1
+- [INTEGRITY-TRIAGE-PROCEDURE](../runbooks/INTEGRITY-TRIAGE-PROCEDURE.md) — This runbook's script emits docs/INTEGRITY-TRIAGE-REPORT.md as its human-readable artifact; the report is this procedure's output
+- [SESSION-AUDIT-2026-05-05](./SESSION-AUDIT-2026-05-05.md) — Session audit reproduces this 57-flag breakdown (15 missing-reg / 3 regenerate / 37 other) as its integrity-queue catalogue
+- [E2E-VERIFICATION](./E2E-VERIFICATION.md) — Test C1 verifies the migration-044 retune that dropped the 57 unresolved flags this triage report enumerated down to 1

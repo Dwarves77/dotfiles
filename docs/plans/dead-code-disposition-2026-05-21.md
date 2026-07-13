@@ -199,8 +199,8 @@ Source health architecture investigation complete (`docs/plans/source-health-arc
 
 ## Related
 
-- [[category-e-investigation-2026-05-21]] — This doc IS the Phase 4 investigation of that report's Category E list (lines 119-138); parent-child
-- [[source-health-architecture-investigation-2026-05-21]] — Phase 5 investigation this report's open-questions section (lines 141-152) spawned
-- [[build-8-research-surface]] — Named blueprint anchor; Build 8.1-8.5 closes many Category A research items (migrations 098/100)
-- [[ADR-002-tier-model]] — Named blueprint anchor; tier-override + tier-opinion Category A closures rest on the tier model
-- [[ADR-005-discipline-enforcement-layered-architecture]] — this ADR's postscript B points to this doc for the full slim-refactor audit rationale and per-item disposition
+- [category-e-investigation-2026-05-21](./category-e-investigation-2026-05-21.md) — This doc IS the Phase 4 investigation of that report's Category E list (lines 119-138); parent-child
+- [source-health-architecture-investigation-2026-05-21](./source-health-architecture-investigation-2026-05-21.md) — Phase 5 investigation this report's open-questions section (lines 141-152) spawned
+- [build-8-research-surface](./build-8-research-surface.md) — Named blueprint anchor; Build 8.1-8.5 closes many Category A research items (migrations 098/100)
+- [ADR-002-tier-model](../decisions/ADR-002-tier-model.md) — Named blueprint anchor; tier-override + tier-opinion Category A closures rest on the tier model
+- [ADR-005-discipline-enforcement-layered-architecture](../decisions/ADR-005-discipline-enforcement-layered-architecture.md) — this ADR's postscript B points to this doc for the full slim-refactor audit rationale and per-item disposition

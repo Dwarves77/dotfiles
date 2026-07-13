@@ -105,5 +105,5 @@ program has found is a conservation violation at one boundary — this audit che
   $9.50** (over the $5 line). Runs through the reconciler-cred script path, not MCP.
 
 ## Related
-- [[root-cause-why-the-queue-2026-07-08]] — the "detection built, drain not" frame this quantifies
-- [[site-gap-register-2026-07-09]] · [[deletion-reclassification-log]]
+- [root-cause-why-the-queue-2026-07-08](../root-cause-why-the-queue-2026-07-08.md) — the "detection built, drain not" frame this quantifies
+- [site-gap-register-2026-07-09](../site-gap-register-2026-07-09.md) · [deletion-reclassification-log](../deletion-reclassification-log.md)

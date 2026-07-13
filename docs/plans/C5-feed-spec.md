@@ -185,8 +185,8 @@ needed.
 
 ## Related
 
-- [[C9-realtime-spec]] — C5 defers realtime feed updates to C9; C9's useCommunityPostsRealtime subscribes to the same community_posts group_id filter for PostList
-- [[C6-promote-spec]] — C5 explicitly cedes promote-to-public to C6; C6 wires PromotePostButton into C5's Post.tsx and reads community_posts.promoted_at
-- [[C7-notifications-spec]] — C5 cedes new-post/new-reply notification fan-out to C7, which produces the reply/mention kinds this feed triggers
-- [[C8-moderation-spec]] — C8's remove_post is a HARD delete precisely because C5's community_posts has no deleted_at; C8 wires ReportPostMenu into C5's Post.tsx
-- [[spec-audit-community-2026-05-23]] — Community feed spec; the audit's missing cross-group industry-pulse feed is C5's domain
+- [C9-realtime-spec](./C9-realtime-spec.md) — C5 defers realtime feed updates to C9; C9's useCommunityPostsRealtime subscribes to the same community_posts group_id filter for PostList
+- [C6-promote-spec](./C6-promote-spec.md) — C5 explicitly cedes promote-to-public to C6; C6 wires PromotePostButton into C5's Post.tsx and reads community_posts.promoted_at
+- [C7-notifications-spec](./C7-notifications-spec.md) — C5 cedes new-post/new-reply notification fan-out to C7, which produces the reply/mention kinds this feed triggers
+- [C8-moderation-spec](./C8-moderation-spec.md) — C8's remove_post is a HARD delete precisely because C5's community_posts has no deleted_at; C8 wires ReportPostMenu into C5's Post.tsx
+- [spec-audit-community-2026-05-23](./spec-audit-community-2026-05-23.md) — Community feed spec; the audit's missing cross-group industry-pulse feed is C5's domain

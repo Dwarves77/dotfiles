@@ -51,8 +51,8 @@ Two cross-cutting capabilities: Map (geographic layer over Regulations), Intelli
 
 ## Related
 
-- [[migrations]] — shared migration 075 (profiles consolidation Phase 1) cited in References; tracked in migrations inventory
-- [[multi-tenant-foundation-followups-2026-05-15]] — same multi-tenant foundation work; ops followups from the prework this ADR ratifies
-- [[build-8-research-surface]] — /research is one of the five customer surfaces in ADR-001's platform model, which this build enhances rather than adds to
-- [[multi-tenant-foundation-prework-2026-05-15]] — ADR-001 References section cites this prework doc as the multi-tenant foundation design it accepts
-- [[classification-backfill-plan-2026-05-22]] — Verifies the routing rule against ADR-001's five-surface + three-layer tenant model (no row moved to a non-existent surface)
+- [migrations](../inventories/migrations.md) — shared migration 075 (profiles consolidation Phase 1) cited in References; tracked in migrations inventory
+- [multi-tenant-foundation-followups-2026-05-15](../ops/multi-tenant-foundation-followups-2026-05-15.md) — same multi-tenant foundation work; ops followups from the prework this ADR ratifies
+- [build-8-research-surface](../plans/build-8-research-surface.md) — /research is one of the five customer surfaces in ADR-001's platform model, which this build enhances rather than adds to
+- [multi-tenant-foundation-prework-2026-05-15](../plans/multi-tenant-foundation-prework-2026-05-15.md) — ADR-001 References section cites this prework doc as the multi-tenant foundation design it accepts
+- [classification-backfill-plan-2026-05-22](../plans/classification-backfill-plan-2026-05-22.md) — Verifies the routing rule against ADR-001's five-surface + three-layer tenant model (no row moved to a non-existent surface)

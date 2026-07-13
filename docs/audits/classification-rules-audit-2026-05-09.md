@@ -436,8 +436,8 @@ For each item, the classifier evaluates the four (or five) conditions of each ru
 
 ## Related
 
-- [[four-page-architecture-survey-2026-05-09]] — Explicitly extends this survey; both find the missing sources.source_role column and domain-1 acting as a catch-all are the root of unclassifiability
-- [[topic-relevance-investigation-2026-05-09]] — Explicitly extends it; the garbage-extraction bucket grew from that audit's 37 to 49 here, same Cloudflare/CAPTCHA interstitial pattern
-- [[ADR-007-bias-tag-threshold-per-dimension]] — shared classification-rules subsystem; audit of the classifier whose bias-tag confidence cutoffs this ADR retunes
-- [[california-pilot-summary]] — Shares the Haiku relevance/freight scoring and tier logic; the rules audit examines what those same classifier signals do and do not encode
-- [[caros-ledge-product-audit-2026-05-15]] — S2/S5 routing-and-classifier failures are the same finding: item_type is not a reliable category proxy and the Haiku classifier lacks an…
+- [four-page-architecture-survey-2026-05-09](./four-page-architecture-survey-2026-05-09.md) — Explicitly extends this survey; both find the missing sources.source_role column and domain-1 acting as a catch-all are the root of unclassifiability
+- [topic-relevance-investigation-2026-05-09](./topic-relevance-investigation-2026-05-09.md) — Explicitly extends it; the garbage-extraction bucket grew from that audit's 37 to 49 here, same Cloudflare/CAPTCHA interstitial pattern
+- [ADR-007-bias-tag-threshold-per-dimension](../decisions/ADR-007-bias-tag-threshold-per-dimension.md) — shared classification-rules subsystem; audit of the classifier whose bias-tag confidence cutoffs this ADR retunes
+- [california-pilot-summary](./california-pilot-summary.md) — Shares the Haiku relevance/freight scoring and tier logic; the rules audit examines what those same classifier signals do and do not encode
+- [caros-ledge-product-audit-2026-05-15](./caros-ledge-product-audit-2026-05-15.md) — S2/S5 routing-and-classifier failures are the same finding: item_type is not a reliable category proxy and the Haiku classifier lacks an…

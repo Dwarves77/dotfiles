@@ -132,8 +132,8 @@ A measurement-first dispatch that produces "the lever was wrong, here's the actu
 
 ## Related
 
-- [[hotfix-3-perf-audit-2026-05-07]] — Dated perf hotfix audit in the same measurement-first perf lane the playbook governs
-- [[PERF-PROFILING-FINDINGS]] — Profiling findings map slow metrics to layers — exactly the bottleneck-identification step-3 the playbook defines
-- [[ISR-WRITE-INVESTIGATION]] — The measurement-before-lever perf runbook; the ISR fix is exactly a measured single-line correctness fix it exempts from the full playbook
-- [[PAGE-LOAD-PERF-AUDIT-2026-05-06]] — Runbook codifying the measure-first discipline and the ssr:true code-split anti-pattern this audit's fix list observes
-- [[PERF-AUDIT]] — The perf runbook that codifies this audit's measure-before-lever rule and logs its code-split anti-pattern
+- [hotfix-3-perf-audit-2026-05-07](../audits/hotfix-3-perf-audit-2026-05-07.md) — Dated perf hotfix audit in the same measurement-first perf lane the playbook governs
+- [PERF-PROFILING-FINDINGS](../audits/PERF-PROFILING-FINDINGS.md) — Profiling findings map slow metrics to layers — exactly the bottleneck-identification step-3 the playbook defines
+- [ISR-WRITE-INVESTIGATION](../audits/ISR-WRITE-INVESTIGATION.md) — The measurement-before-lever perf runbook; the ISR fix is exactly a measured single-line correctness fix it exempts from the full playbook
+- [PAGE-LOAD-PERF-AUDIT-2026-05-06](../audits/PAGE-LOAD-PERF-AUDIT-2026-05-06.md) — Runbook codifying the measure-first discipline and the ssr:true code-split anti-pattern this audit's fix list observes
+- [PERF-AUDIT](../audits/PERF-AUDIT.md) — The perf runbook that codifies this audit's measure-before-lever rule and logs its code-split anti-pattern
