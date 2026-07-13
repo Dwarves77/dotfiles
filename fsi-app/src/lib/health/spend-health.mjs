@@ -2,37 +2,37 @@
 // SPEND-WATCH VERDICT (pure core). The health decision behind /api/health/spend, extracted so it is
 // node-testable and so the uptime workflow can trust ONE boolean instead of re-deriving an alarm from raw %.
 //
-// The verdict is NOT "% of the ceiling" (that is permanently red while the ceiling is frozen — the
-// rendering-guard permanent-red anti-pattern). It is about paid `agent_runs` rows AFTER the acquisition-
-// freeze baseline, and whether each such row is SANCTIONED:
+// SPEND-CONTROL REFACTOR (operator final rulings 2026-07-13): spend-watch is a PURE ALARM. There are NO
+// standing dollar limits, so the verdict is NOT "% of a ceiling" (that framing is retired). The alarm is about
+// paid `agent_runs` rows AFTER the acquisition-freeze baseline and ONE question: does each such paid row trace
+// to an OPERATOR-PRICED LINE? Any post-freeze paid row that does NOT trace to a priced line is the anomaly, at
+// ANY amount.
 //
-//   FROZEN-AND-QUIET   — zero paid rows since the freeze baseline. HEALTHY. (MTD may be at/over the ceiling;
-//                        that is the KNOWN frozen state, not news.)
-//   SANCTIONED-JUSTIFIED — there ARE paid rows since the freeze, AND the acquire lock is ON, AND every paid
-//                        row carries a pre-logged I2 justification (an `acquire-justification` agent_runs row
-//                        for the same item/source, logged at or before the paid call). HEALTHY — this is a
-//                        deliberate operator spend window. The sanctioned rows are enumerated.
-//   LEAK               — any paid row since the freeze while the lock is OFF (justified or not — the lock is
-//                        the master gate, so justified-but-lock-off is STILL a leak), OR any paid row with no
-//                        pre-logged justification while the lock is ON. UNHEALTHY.
+//   FROZEN-AND-QUIET     — zero paid rows since the freeze baseline. HEALTHY.
+//   SANCTIONED-TRACED    — there ARE paid rows since the freeze, the acquire lock (master gate) is ON, AND every
+//                          paid row traces to a pre-logged operator-priced line marker (same item/source, logged
+//                          at or before the paid call). HEALTHY — a deliberate operator spend window.
+//   ANOMALY              — any post-freeze paid row that does NOT trace to a priced line (untraceable spend), OR
+//                          any post-freeze paid row while the master arming gate is OFF (traced or not — with the
+//                          gate OFF nothing was authorized to spend). UNHEALTHY.
 //
-// (Gauge-unreadable is handled by the route: a non-200 / ok:false response fails before this runs.)
-// Justification rows are the I2 ledger rows written by verify-item.logAcquireJustification:
-// fetch_method='acquire-justification', cost 0, errors:[{ justification: <reason> }], carrying item/source.
+// A "priced-line marker" row is fetch_method='priced-line' (or an errors[] entry with a truthy `pricedLine`),
+// cost 0, carrying the item/source it authorizes. It REPLACES the old acquire-justification marker: a plain
+// justification no longer satisfies the alarm — the operator's per-line price is the sole authorization.
 
-/** Is this row a pre-logged I2 acquire-justification? @param {any} r */
-function isJustificationRow(r) {
-  if (r?.fetch_method === "acquire-justification") return true;
+/** Is this a pre-logged OPERATOR-PRICED-LINE marker row? @param {any} r */
+function isPricedLineRow(r) {
+  if (r?.fetch_method === "priced-line") return true;
   const errs = /** @type {any[]} */ (Array.isArray(r?.errors) ? r.errors : []);
-  return errs.some((e) => e && typeof e === "object" && e.justification);
+  return errs.some((e) => e && typeof e === "object" && e.pricedLine);
 }
-/** Extract the justification reason string from a justification row (or null). @param {any} r */
-function justificationReason(r) {
+/** Extract the priced-line reference string from a marker row (or null). @param {any} r */
+function pricedLineRef(r) {
   const errs = /** @type {any[]} */ (Array.isArray(r?.errors) ? r.errors : []);
-  const hit = errs.find((e) => e && typeof e === "object" && e.justification);
-  return hit ? String(hit.justification) : (r?.fetch_method === "acquire-justification" ? "acquire" : null);
+  const hit = errs.find((e) => e && typeof e === "object" && e.pricedLine);
+  return hit ? String(hit.pricedLine) : (r?.fetch_method === "priced-line" ? "priced-line" : null);
 }
-/** Do a paid row P and a justification row J refer to the same item or source? @param {any} j @param {any} p */
+/** Do a paid row P and a priced-line row J refer to the same item or source? @param {any} j @param {any} p */
 function sameSubject(j, p) {
   if (p?.intelligence_item_id != null && j?.intelligence_item_id === p.intelligence_item_id) return true;
   if (p?.source_id != null && j?.source_id === p.source_id) return true;
@@ -41,14 +41,15 @@ function sameSubject(j, p) {
 
 /**
  * PURE verdict. Given this month's agent_runs rows (already month-filtered by the caller), the freeze
- * baseline, and the CURRENT acquire-lock state, decide health. No I/O, no clock.
+ * baseline, and the CURRENT acquire-lock state, decide health. No I/O, no clock. The monthlyCeilingUsd is
+ * accepted for backward-compatible INFORMATIONAL fields (mtdUsd/pct/frozen) only — it NEVER gates the verdict.
  * @param {Array<{ cost_usd_estimated?: number|null, started_at?: string|null, fetch_method?: string|null, intelligence_item_id?: string|null, source_id?: string|null, errors?: any }>} rows
- * @param {{ freezeSinceIso: string, monthlyCeilingUsd: number, acquireEnabled?: boolean }} opts
+ * @param {{ freezeSinceIso: string, monthlyCeilingUsd?: number, acquireEnabled?: boolean }} opts
  * @returns {{ mtdUsd: number, pct: number, frozen: boolean, latestPaidAt: string|null, paidAfterFreeze: number, acquireEnabled: boolean, allJustified: boolean, healthy: boolean, reason: string, paidAfterRows: Array<{ itemId: string|null, sourceId: string|null, costUsd: number, startedAt: string|null, justification: string|null }> }}
  */
 export function computeSpendHealth(rows, opts) {
   const list = Array.isArray(rows) ? rows : [];
-  const ceiling = Number(opts?.monthlyCeilingUsd) || 0;
+  const ceiling = Number(opts?.monthlyCeilingUsd) || 0; // informational only (no gating)
   const acquireEnabled = opts?.acquireEnabled === true;
   const freezeMs = Date.parse(String(opts?.freezeSinceIso ?? ""));
   const freezeValid = !Number.isNaN(freezeMs);
@@ -57,7 +58,7 @@ export function computeSpendHealth(rows, opts) {
   let latestPaidAt = /** @type {string|null} */ (null);
   let latestMs = -Infinity;
   const paidAfter = /** @type {any[]} */ ([]);
-  const justAfter = /** @type {any[]} */ ([]);
+  const lineAfter = /** @type {any[]} */ ([]);
 
   for (const r of list) {
     const cost = Number(r?.cost_usd_estimated ?? 0) || 0;
@@ -70,15 +71,15 @@ export function computeSpendHealth(rows, opts) {
     if (cost > 0) {
       if (!Number.isNaN(ms) && ms > latestMs) { latestMs = ms; latestPaidAt = started; }
       if (afterFreeze) paidAfter.push(r);
-    } else if (afterFreeze && isJustificationRow(r)) {
-      justAfter.push(r);
+    } else if (afterFreeze && isPricedLineRow(r)) {
+      lineAfter.push(r);
     }
   }
 
-  // Match each post-freeze paid row to a pre-logged justification (same item/source, logged at or before it).
+  // Match each post-freeze paid row to a pre-logged operator-priced line (same item/source, logged at/before it).
   const paidAfterRows = paidAfter.map((p) => {
     const pms = p?.started_at ? Date.parse(String(p.started_at)) : NaN;
-    const j = justAfter.find((jr) => {
+    const j = lineAfter.find((jr) => {
       const jms = jr?.started_at ? Date.parse(String(jr.started_at)) : NaN;
       const preLogged = Number.isNaN(jms) || Number.isNaN(pms) ? false : jms <= pms;
       return sameSubject(jr, p) && preLogged;
@@ -88,19 +89,20 @@ export function computeSpendHealth(rows, opts) {
       sourceId: p?.source_id ?? null,
       costUsd: Math.round((Number(p?.cost_usd_estimated ?? 0) || 0) * 1e6) / 1e6,
       startedAt: p?.started_at ? String(p.started_at) : null,
-      justification: j ? justificationReason(j) : null,
+      // Field name kept for the /api/health/spend route's response shape; it now carries the priced-line ref.
+      justification: j ? pricedLineRef(j) : null,
     };
   });
 
   const paidAfterFreeze = paidAfterRows.length;
-  const unjustified = paidAfterRows.filter((r) => r.justification == null).length;
-  const allJustified = paidAfterFreeze > 0 && unjustified === 0;
+  const untraced = paidAfterRows.filter((r) => r.justification == null).length;
+  const allJustified = paidAfterFreeze > 0 && untraced === 0; // allJustified === "all traced to a priced line"
 
   mtdUsd = Math.round(mtdUsd * 1e6) / 1e6;
-  const pct = ceiling > 0 ? Math.round((mtdUsd / ceiling) * 1000) / 10 : 0;
-  const frozen = ceiling > 0 && mtdUsd >= ceiling;
+  const pct = ceiling > 0 ? Math.round((mtdUsd / ceiling) * 1000) / 10 : 0; // informational only
+  const frozen = ceiling > 0 && mtdUsd >= ceiling;                          // informational only
 
-  // Verdict.
+  // Verdict — traceability to an operator-priced line, never a %-of-ceiling.
   let healthy;
   let reason;
   if (!freezeValid) {
@@ -108,20 +110,17 @@ export function computeSpendHealth(rows, opts) {
     reason = `freeze baseline unreadable ("${opts?.freezeSinceIso}") — failing closed; ${paidAfterFreeze} paid row(s) this month`;
   } else if (paidAfterFreeze === 0) {
     healthy = true;
-    reason = frozen
-      ? `frozen-and-quiet: MTD $${mtdUsd.toFixed(2)} at ${pct}% of the $${ceiling} ceiling (frozen), ZERO paid rows since the freeze baseline ${opts.freezeSinceIso}`
-      : `under ceiling ($${mtdUsd.toFixed(2)}, ${pct}%), ZERO paid rows since the freeze baseline`;
+    reason = `frozen-and-quiet: MTD $${mtdUsd.toFixed(2)}, ZERO paid rows since the freeze baseline ${opts.freezeSinceIso}`;
   } else if (!acquireEnabled) {
-    // Lock is the master gate. Any paid row after the freeze while the lock is OFF is a leak — even if the
-    // rows carry justifications (justified-but-lock-OFF is still a leak: the lock was not authorising spend).
+    // Master arming gate OFF → nothing was authorized to spend; any paid row is an anomaly (traced or not).
     healthy = false;
-    reason = `LEAK: ${paidAfterFreeze} paid row(s) since the freeze while GROUNDING_ACQUIRE_ENABLED is OFF (${paidAfterFreeze - unjustified} justified, ${unjustified} unjustified) — the lock did not authorise this spend`;
-  } else if (!allJustified) {
+    reason = `ANOMALY: ${paidAfterFreeze} paid row(s) since the freeze while GROUNDING_ACQUIRE_ENABLED is OFF (${paidAfterFreeze - untraced} traced, ${untraced} untraced) — the master arming gate did not authorize this spend`;
+  } else if (untraced > 0) {
     healthy = false;
-    reason = `LEAK: lock is ON but ${unjustified} of ${paidAfterFreeze} paid row(s) since the freeze carry NO pre-logged I2 justification`;
+    reason = `ANOMALY: ${untraced} of ${paidAfterFreeze} paid row(s) since the freeze do NOT trace to an operator-priced line — untraceable spend at any amount`;
   } else {
     healthy = true;
-    reason = `sanctioned window: ${paidAfterFreeze} paid row(s) since the freeze, lock ON, all carry a pre-logged I2 justification (total $${paidAfterRows.reduce((s, r) => s + r.costUsd, 0).toFixed(2)})`;
+    reason = `sanctioned window: ${paidAfterFreeze} paid row(s) since the freeze, arming gate ON, all trace to an operator-priced line (total $${paidAfterRows.reduce((s, r) => s + r.costUsd, 0).toFixed(2)})`;
   }
 
   return { mtdUsd, pct, frozen, latestPaidAt, paidAfterFreeze, acquireEnabled, allJustified, healthy, reason, paidAfterRows };

@@ -80,13 +80,25 @@ test("verifyItem: act:false returns the decision and moves nothing ($0)", async 
   assert.equal(sideEffects, 0);
 });
 
-test("verifyItem: no snapshot + act:true + acquire OFF -> justification logged THEN throws (locked)", async () => {
+// PAID PATH now refuses WITHOUT an operator-priced line (RD-31 / RD-32): the operator-priced-line gate
+// (operator cost + inventory-miss citation) is asserted BEFORE the I2 log and the acquire lock.
+const pricedLine = { operatorCostUsd: 5, inventoryMiss: "checked snapshot-store + pool: no stored capture for source" };
+
+test("verifyItem: no snapshot + act:true + NO priced line -> REFUSED (no throw, no I2 log, no spend)", async () => {
+  const svc = captureInsertClient();
+  const r = await verifyItem(svc, "item-1", { ...baseDeps, getSnapshot: async () => ({ found: false }), act: true, env: {} });
+  assert.equal(r.acted, false);
+  assert.match(r.reason, /no operator-priced line/);
+  assert.equal(svc.inserts.length, 0); // nothing logged — refused before I2
+});
+
+test("verifyItem: no snapshot + act:true + priced line + acquire OFF -> I2 logged THEN throws (locked)", async () => {
   const svc = captureInsertClient();
   await assert.rejects(
-    () => verifyItem(svc, "item-1", { ...baseDeps, getSnapshot: async () => ({ found: false }), act: true, env: {} }),
+    () => verifyItem(svc, "item-1", { ...baseDeps, getSnapshot: async () => ({ found: false }), act: true, env: {}, pricedLine }),
     /GROUNDING_ACQUIRE_LOCKED/,
   );
-  // I2: the justification row was written BEFORE the lock threw
+  // I2: the justification row was written BEFORE the lock threw (priced line cleared first)
   assert.equal(svc.inserts.length, 1);
   assert.equal(svc.inserts[0].errors[0].justification, "missing_snapshot");
 });

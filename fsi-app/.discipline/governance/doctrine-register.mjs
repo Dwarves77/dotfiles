@@ -48,6 +48,22 @@ export const DOCTRINES = [
       'RD-21 (generation-pause.npmtest.mjs) proves the GENERATION-side facet mechanically: emergencyPaused hard-stops EVERY caller including the signed manual caller (no override). The FLAG-WRITE facet — that no agent may WRITE global_processing_paused/scrape_cadence by a direct write — is RD-23 (pause-flag-has-one-writer), enforced STRUCTURALLY with no credential and no manual step: the F20 fitness function (static one-writer, CI-fails a second writer) + the migration-201 guard trigger + admin_set_pause_state RPC (a generic unmarked UPDATE bounces at runtime) + the audit table. This REPLACES the DEAD 2a operator-credential design, which required a manual operator step (provision a login role, hold a secret, scope creds) — ruled dead 2026-07-12 ("human intervention should never be a solution"). Honest residual (RD-23): a determined caller with raw SQL could set the marker itself and bypass the trigger, but no committed code can (F20) and every write is audited — structural defense-in-layers, no human-held secret.',
   },
 
+  // ─────────────────────────────── Spend authority (operator-priced) ───────────────────────────────
+  {
+    id: 'operator-sets-cost',
+    statement:
+      'Spend authority is the operator\'s price, never the machine\'s estimate. NOTHING runs without an operator-set cost: the machine never proposes a default, never anchors a figure, never fills in a number. The manifest delivers FACTS ONLY (what is missing, document size, work scope) and MAY carry a clearly-labeled projection, but the binding number is solely what the operator writes on the line. Each approved line halts at the operator-set cost (no tolerance unless the line carries one). All standing dollar figures — per-item breaker, daily cap, monthly ceiling — are retired as limits; the gauge reports actuals as information, never a fraction of a target. The complete spend-control system is two mechanisms: operator-priced line approvals (the sole authorization; the acquire lock + I2 remain the per-run arming) and spend-watch as a pure alarm on any paid row not traceable to an operator-priced line.',
+    source: 'operator FINAL spend rulings (2026-07-13), superseding all prior spend/ceiling framing',
+    enforcedBy: ['RD-31-operator-priced-spend'],
+  },
+  {
+    id: 'data-existence-before-acquisition',
+    statement:
+      'No fetch without first proving the datum absent from what we already hold (stored pools, snapshots, sections, prior captures). A fetch request MUST cite the inventory check and the specific miss. Acquisition is always the named DELTA — the missing document or span-range — never a re-fetch of anything a pool already carries. Wired at the fetch/grounding chokepoint: the paid path REFUSES without both an inventory-miss citation AND an operator-priced line. This is the skill\'s verify-before-acquire made mechanical.',
+    source: 'operator ruling (2026-07-13) — economy-of-information',
+    enforcedBy: ['RD-32-data-existence-before-acquisition'],
+  },
+
   // ─────────────────────────────── Disposition / lifecycle ───────────────────────────────
   {
     id: 'no-quarantine-as-resting-state',

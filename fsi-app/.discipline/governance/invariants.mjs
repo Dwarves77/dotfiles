@@ -73,7 +73,9 @@ export const SKILL_MARKER_BASELINE = {
   // null-tier-flag.test.mjs). Closes the attribution half the truncation moat (SC-10) left open.
   // 12→13 (2026-07-04): added the "slot-forcing genuine-support (never fabricate a FACT to clear a
   // criterion)" normative line. TRIAGE: new invariant SC-12 (enforcedBy selftest slot-forcing.test.mjs).
-  'source-credibility-model': 13,
+  // 13→14 (2026-07-13): added the "standard floor is the authoring body, scoped by institution" normative
+  // line. TRIAGE: new invariant SC-14 (enforcedBy selftest source-blocks.test.mjs + migration 202).
+  'source-credibility-model': 14,
   'analysis-construction-spec': 4,
   // 9→10 (2026-07-12): the Research-positioning ruling added the analysis-follows-page-intent contract line
   // "One generic analysis path serving all pages is forbidden" (REGULATIONS §Analysis contract). TRIAGE:
@@ -111,7 +113,10 @@ export const SKILL_MARKER_BASELINE = {
   // carry attribution / paid acquire MUST pre-log justification / acquiring run MUST write snapshot / fresh
   // snapshot MUST NOT reach paid path). TRIAGE: new invariants RD-24..RD-29 (F21 fitness + selftests) + the
   // four snapshot-first doctrine-register entries. Re-baseline to 32.
-  'remediation-discipline': 32,
+  // 32→34 (2026-07-13): added the two-mechanism spend model — "Operator-sets-cost: the paid path MUST carry
+  // an operator-priced line" + "Data-existence-before-acquisition: no fetch without a cited inventory-miss".
+  // TRIAGE: new invariants RD-31 + RD-32 (enforcedBy the priced-line/spend-guard/spend-health selftests).
+  'remediation-discipline': 34,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -354,6 +359,15 @@ export const INVARIANTS = [
     anchor: 'Register-at-grounding assigns a DETERMINISTIC tier only',
     enforcedBy: ['selftest:fsi-app/src/lib/sources/register-step.test.mjs', 'audit:fsi-app/scripts/verify/unregistered-span-host-audit.mjs'],
     residual: 'The selftest proves the PURE decision red-then-green (register-step.test.mjs, in the discipline node --test glob via relative .ts type-stripping): codifiedTierForHost returns a codified tier or NULL — never the sub-floor default (the guessed-tier defect); decidePoolHostRegistration routes codified->register at the deterministic tier, ambiguous->worklist (tier null, never minted), already-resolving->inherit. The WIRING (registerPoolHostsForGrounding calls decidePoolHostRegistration over the SAME paginated resolver the FACT stamp uses; surfaceNullTierHosts upserts the per-host worklist flag) lives in source-growth.ts + canonical-pipeline.ts — integration residual, not separately unit-asserted. unregistered-span-host-audit.mjs is the live-data TREND backstop: new grounding must drive the unregistered-span count DOWN; a rise means the register step regressed to NULL-stamping. PROBE-CLEARED at land (2026-07-13, read-only): the floor fails-closed on NULL both directions (mig-158 predicate derived_tier IS NULL OR > floor; 0 empirical leaks) and the guessed-5 census was CLEAN (0 verified items rest on a guessed tier). RESIDUAL (surfaced, NOT closed here — operator-scoped follow-on): the brief-cited path (registerCitedSources ?? 5 / growSourcesFromBrief) still mints a guessed base_tier for "New Sources Identified" corroborators — applying codifiedTierForHost there would wrongly demote legit T5/T6 news/analysis, so the credibility-vs-grounding registration split needs its own design; and 124 historical guessed-5 auto-reg rows exist (harmless per the census) whose re-triage to the worklist is a DATA disposition (FK-aware on scp.source_id) for the backlog thread.',
+  },
+
+  {
+    id: 'SC-14-standard-own-body-floor',
+    skill: 'source-credibility-model',
+    section: 'Per-item-type authority floor — the standard floor is the authoring body, scoped by institution',
+    text: 'For item_type=standard the authority floor is the standards-body tier (T4), SCOPED to the item\'s OWN authoring body: a FACT whose source shares the item\'s own-source institution_id grounds at T4, every other host stays at the reg-family floor T2. A same-tier UNRELATED host is NOT the standard\'s primary and is never promoted. Enforced by validate_item_provenance (migration 202, the standard + own-institution branch) and mirrored in JS by authorityFloorForFact (source-blocks.mjs); the scope is the institution SSOT, never a host-string match.',
+    anchor: 'The standard floor is the authoring body, scoped by institution (SC-14)',
+    enforcedBy: ['selftest:fsi-app/src/lib/agent/source-blocks.test.mjs', 'migration:202'],
   },
 
   // ───────────────────────────── analysis-construction-spec ─────────────────────────────
@@ -779,6 +793,22 @@ export const INVARIANTS = [
     anchor: 'A fresh valid snapshot MUST NOT reach the paid path',
     enforcedBy: ['selftest:fsi-app/src/lib/sources/verify-item.test.mjs'],
     residual: 'I5. verify-item.test.mjs (decideVerify) proves snapshot+fresh+cheap-pass → verified_cheap (flip, no acquire); the only routes to needs_acquire are missing snapshot or cheap-verify FAIL; a changed source routes to stale_flag (never the paid path, never a silent pass). cheap-verify.test.mjs proves the span-match is pure ($0).',
+  },
+  {
+    id: 'RD-31-operator-priced-spend',
+    skill: 'remediation-discipline',
+    section: 'Operator-priced spend + data-existence-before-acquisition — the two-mechanism spend model',
+    text: 'The paid path requires an operator-priced line (an operator-set cost + an inventory-miss citation); the machine never proposes/defaults/anchors a price. An approved line halts at the operator-set cost (no default tolerance). Every standing dollar figure — per-item breaker, daily cap, monthly ceiling — is RETIRED as a limit; the gauge reports MTD actuals as information (no denominator). Spend-watch is a pure alarm: any post-freeze paid row not traceable to an operator-priced line is the anomaly.',
+    anchor: 'Operator-sets-cost: the paid path MUST carry an operator-priced line',
+    enforcedBy: ['selftest:fsi-app/src/lib/llm/priced-line.test.mjs', 'selftest:fsi-app/src/lib/llm/spend-guard.test.mjs', 'selftest:fsi-app/src/lib/health/spend-health.test.mjs'],
+  },
+  {
+    id: 'RD-32-data-existence-before-acquisition',
+    skill: 'remediation-discipline',
+    section: 'Operator-priced spend + data-existence-before-acquisition — the two-mechanism spend model',
+    text: 'No acquisition fires without first proving the datum absent from what we already hold; the paid path REFUSES without an inventory-miss citation naming what was checked and the specific miss. Acquisition is always the named DELTA (the missing document / span-range), never a re-fetch of what a pool already carries — verify-before-acquire made mechanical at the paid chokepoint.',
+    anchor: 'Data-existence-before-acquisition: no fetch without a cited inventory-miss',
+    enforcedBy: ['selftest:fsi-app/src/lib/llm/priced-line.test.mjs', 'selftest:fsi-app/src/lib/llm/spend-guard.test.mjs'],
   },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────

@@ -12,6 +12,7 @@
 // stale_snapshot_content_changed and queues for the locked paid path (CP2), taking no further action.
 
 import { assertAcquireAllowed } from "./acquire-lock.mjs";
+import { assertPricedLine, PricedLineError } from "../llm/priced-line.mjs";
 
 /** Stable identifiers the queue + gauge key on. */
 export const STALE_FLAG = "stale_snapshot_content_changed";
@@ -94,9 +95,12 @@ export async function logAcquireJustification(svc, j) {
  *   cheapVerifyClaims: (claims: any[], snapshotHtml: string) => { pass: boolean, reason: string },
  *   loadItem: (svc: any, id: string) => Promise<{ source_id: string|null, source_url: string|null } | null>,
  *   loadClaims: (svc: any, id: string) => Promise<any[]>,
+ *   pricedLine?: { operatorCostUsd: number, inventoryMiss: string, toleranceUsd?: number },
  *   env?: Record<string, string|undefined>,
  *   act?: boolean,
  * }} deps
+ * pricedLine — the OPERATOR-PRICED LINE authorizing a paid acquire (operator cost + inventory-miss citation).
+ *   REQUIRED for the needs_acquire paid branch when act:true; absent → the paid path refuses (no spend).
  */
 export async function verifyItem(svc, itemId, deps) {
   const item = await deps.loadItem(svc, itemId);
@@ -127,14 +131,30 @@ export async function verifyItem(svc, itemId, deps) {
     return result;
   }
   if (decision.outcome === "needs_acquire") {
-    // PAID PATH — locked. Log the justification FIRST (I2), then assert the gate. With the flag OFF this THROWS
-    // before any spend; the item stays quarantined with a recorded, justified need.
-    await logAcquireJustification(svc, { itemId, sourceId, reason: decision.justification ?? "missing_snapshot" });
+    // PAID PATH — refuse-by-default. Per the operator's final spend rulings, the paid path requires BOTH a
+    // DATA-EXISTENCE (inventory-miss) citation AND an OPERATOR-PRICED LINE before anything is authorized. The
+    // priced-line gate enforces both (a non-empty inventoryMiss + an operator-set positive cost) and is
+    // asserted BEFORE assertAcquireAllowed. No priced line → REFUSE (no spend, item stays quarantined).
+    const pricedLine = deps.pricedLine;
+    try {
+      assertPricedLine(pricedLine); // throws PricedLineError without operator cost + inventory-miss citation
+    } catch (e) {
+      if (e instanceof PricedLineError) {
+        result.acted = false;
+        result.reason = `paid acquire REFUSED (no operator-priced line): ${e.message}`;
+        return result;
+      }
+      throw e;
+    }
+    // Pre-log the justification (I2) FIRST so a paid run without a logged need is impossible, then assert the
+    // master arming gate. With GROUNDING_ACQUIRE_ENABLED OFF this THROWS before any spend; the item stays
+    // quarantined with a recorded, priced, justified need.
+    await logAcquireJustification(svc, { itemId, sourceId, reason: decision.justification ?? "missing_snapshot", evidence: pricedLine?.inventoryMiss });
     assertAcquireAllowed(`${decision.justification}: ${itemId}`, deps.env);
     // (Reached only when the operator has turned the flag ON — the actual acquire+ground is invoked by the
-    // caller's paid pipeline, not here. verifyItem's contract ends at the justified, unlocked hand-off.)
+    // caller's paid pipeline, not here. verifyItem's contract ends at the priced, justified, unlocked hand-off.)
     result.acted = true;
-    result.reason = "acquire unlocked — handed to paid pipeline";
+    result.reason = "acquire unlocked (operator-priced) — handed to paid pipeline";
     return result;
   }
   // verified_cheap — the caller performs the guarded provenance flip; verifyItem reports the decision.

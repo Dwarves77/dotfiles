@@ -1,14 +1,13 @@
 // @ts-check
-// Negative self-tests for the spend chokepoint's pure guard (operator ruling 2026-07-04). Red-then-green on
-// the four guarantees: ticketless THROWS · deterministically-resolvable REJECTED · DELETE-disposition
-// REJECTED · ceiling THROWS. Pure (no API/DB).
+// Negative self-tests for the spend chokepoint's pure guard (operator ruling 2026-07-04; spend-control refactor
+// 2026-07-13). Red-then-green on the INTEGRITY gates that remain (ticketless THROWS · deterministically-
+// resolvable REJECTED · DELETE-disposition REJECTED · verified/junk REJECTED · unlogged-telemetry invariant)
+// AND on the SOLE dollar authorization — the operator-priced line (assertPricedSpend). The retired machine
+// limits (monthly ceiling, per-item circuit breaker, standing SPEND_CEILING) are asserted GONE. Pure (no API/DB).
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { assertTicket, assertBudget, STANDING_TICKET_CLASSES, __resetSpendForTest, __addSpendForTest, itemBreakerTripped, PER_ITEM_CIRCUIT_BREAKER_USD, account, markCallLogged, unloggedCallCount, assertLedgerDrained, assertMonthlyCeiling, MonthlyCeilingError } from "./spend-guard.mjs";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve } from "node:path";
+import { assertTicket, assertBudget, assertPricedSpend, STANDING_TICKET_CLASSES, __resetSpendForTest, __addSpendForTest, account, markCallLogged, unloggedCallCount, assertLedgerDrained, PricedLineError } from "./spend-guard.mjs";
 
 const CEIL = 10;
 
@@ -65,20 +64,29 @@ test("STANDING CLASS bypasses the necessity gate but must be in the Rule 016 set
   assert.ok(STANDING_TICKET_CLASSES.has("first-fetch-classify"));
 });
 
-test("CEILING breach THROWS with the running total", () => {
+// ── assertBudget: the unlogged-telemetry invariant + the OPTIONAL per-ticket (operator-supplied) ledger cap ──
+test("PER-TICKET CAP breach THROWS with the running total (operator-supplied budgetCapUsd, not a standing figure)", () => {
   __resetSpendForTest();
   const ticket = { purpose: "big pass", budgetCapUsd: 1.0 };
-  assert.doesNotThrow(() => assertBudget(ticket, CEIL)); // $0 spent, under cap
+  assert.doesNotThrow(() => assertBudget(ticket, CEIL)); // $0 spent, under the per-ticket cap
   __addSpendForTest(1.5); // simulate spend past the per-ticket cap
   assert.throws(() => assertBudget(ticket, CEIL), /SPEND_CEILING[\s\S]*1\.5000/);
   __resetSpendForTest();
 });
 
-test("STANDING CEILING is enforced even when a ticket sets a higher per-call cap", () => {
+test("RETIRED standing ceiling: a ticket with NO per-ticket cap NEVER halts on a standing figure", () => {
   __resetSpendForTest();
-  __addSpendForTest(CEIL + 0.01); // past the standing ceiling
-  assert.throws(() => assertBudget({ purpose: "over standing", budgetCapUsd: 1000 }, CEIL), /SPEND_CEILING/);
+  __addSpendForTest(999); // way past any old standing ceiling
+  // no budgetCapUsd → assertBudget's only remaining dollar check (the per-ticket cap) does not apply → no throw
+  assert.doesNotThrow(() => assertBudget({ purpose: "no cap" }, CEIL));
   __resetSpendForTest();
+});
+
+test("RETIRED exports are removed from the guard surface (no fixed-constant halts)", async () => {
+  const g = await import("./spend-guard.mjs");
+  for (const gone of ["assertMonthlyCeiling", "MonthlyCeilingError", "itemBreakerTripped", "PER_ITEM_CIRCUIT_BREAKER_USD"]) {
+    assert.equal(gone in g, false, `${gone} must be retired`);
+  }
 });
 
 test("AUTOMATIC TELEMETRY: an accounted spend that leaves NO ledger row is RED (unlogged spend impossible)", () => {
@@ -98,41 +106,27 @@ test("AUTOMATIC TELEMETRY: an accounted spend that leaves NO ledger row is RED (
   __resetSpendForTest();
 });
 
-test("PER-ITEM CIRCUIT BREAKER trips on a single item's spend at $3.00 (ceiling-correction delta)", () => {
-  assert.equal(PER_ITEM_CIRCUIT_BREAKER_USD, 3.0);
-  // ground-only ≈ $1/item measured — well under the breaker; a normal item does NOT trip.
-  assert.equal(itemBreakerTripped(0.98).tripped, false);
-  assert.equal(itemBreakerTripped(2.99).tripped, false);
-  // a runaway item at/over $3.00 trips → stop THIS item and surface (not the whole pass).
-  const trip = itemBreakerTripped(3.0);
-  assert.equal(trip.tripped, true);
-  assert.match(trip.reason, /PER_ITEM_CIRCUIT_BREAKER/);
-  assert.equal(itemBreakerTripped(4.25).tripped, true);
+// ── OPERATOR-PRICED LINE — the sole dollar authorization (goldens a–d, composed through the guard) ──
+test("(a) priced spend with NO inventory-miss citation is REFUSED (data-existence-before-acquisition)", () => {
+  assert.throws(() => assertPricedSpend(/** @type {any} */ ({ operatorCostUsd: 2.0 }), 0), PricedLineError);
+  assert.throws(() => assertPricedSpend(/** @type {any} */ ({ operatorCostUsd: 2.0, inventoryMiss: "" }), 0), /INVENTORY_MISS/);
 });
 
-// ── MONTHLY CEILING (Wave-α, operator-set 2026-07-11) ──
-test("MONTHLY CEILING: at/over the ceiling THROWS a named MonthlyCeilingError; under passes", () => {
-  // under → no throw
-  assert.doesNotThrow(() => assertMonthlyCeiling(74.99, 75));
-  assert.doesNotThrow(() => assertMonthlyCeiling(0, 75));
-  // exactly at the ceiling → THROW (>=)
-  assert.throws(() => assertMonthlyCeiling(75, 75), (e) => e instanceof MonthlyCeilingError && /SPEND_MONTHLY_CEILING/.test(e.message));
-  // over → THROW, carrying the amounts
-  const err = (() => { try { assertMonthlyCeiling(120.5, 75); return null; } catch (e) { return e; } })();
-  assert.ok(err instanceof MonthlyCeilingError);
-  assert.equal(err.name, "MonthlyCeilingError");
-  assert.equal(err.ceilingUsd, 75);
-  assert.equal(err.monthSpentUsd, 120.5);
+test("(b) priced spend with a citation but NO operator price is REFUSED (machine never defaults a price)", () => {
+  const miss = "checked snapshot_store + provisional_sources for src-9; no stored enacted text (miss)";
+  assert.throws(() => assertPricedSpend(/** @type {any} */ ({ inventoryMiss: miss }), 0), PricedLineError);
+  assert.throws(() => assertPricedSpend(/** @type {any} */ ({ inventoryMiss: miss, operatorCostUsd: 0 }), 0), /NO_COST/);
 });
 
-test("MONTHLY CEILING: the ceiling constant is code-only (a literal, never env-driven)", () => {
-  // Value is $130 per the operator ruling 2026-07-13 (July extension $75 -> $130). The invariant this test
-  // guards is "hardcoded literal, not env-derived" — the specific number is set by ruling, so it is asserted
-  // as a bare numeric literal (not pinned to one value) plus the no-process.env check below.
-  const HERE = dirname(fileURLToPath(import.meta.url));
-  const client = readFileSync(resolve(HERE, "spend-client.ts"), "utf8");
-  assert.match(client, /export const MONTHLY_SPEND_CEILING_USD = \d+(\.\d+)?;/, "the ceiling must be a hardcoded numeric literal");
-  // the constant must NOT be derived from process.env on its declaration line (env would defeat 'code-only')
-  const line = client.split(/\r?\n/).find((l) => /MONTHLY_SPEND_CEILING_USD =/.test(l)) || "";
-  assert.doesNotMatch(line, /process\.env/, "MONTHLY_SPEND_CEILING_USD must not read process.env (overridable ONLY by editing code)");
+test("(c)+(d) citation + price is PERMITTED up to the price, then HALTS when the item ledger reaches it", () => {
+  __resetSpendForTest();
+  const line = { operatorCostUsd: 1.0, inventoryMiss: "checked holdings for item-x enacted text; miss" };
+  // (c) permitted while the item ledger is under the operator price
+  assert.doesNotThrow(() => assertPricedSpend(line, 0));
+  account(0.6, 100, 20); markCallLogged();            // item ledger now $0.60 < $1.00
+  assert.doesNotThrow(() => assertPricedSpend(line));  // defaults to the live per-item ledger
+  // (d) item ledger reaches the operator price → HALT
+  account(0.4, 100, 20); markCallLogged();            // item ledger now $1.00 >= $1.00
+  assert.throws(() => assertPricedSpend(line), /SPEND_PRICED_LINE_REACHED/);
+  __resetSpendForTest();
 });

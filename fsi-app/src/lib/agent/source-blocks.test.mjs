@@ -7,7 +7,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildSourceBlocks, authorityFloorFor } from "./source-blocks.mjs";
+import { buildSourceBlocks, authorityFloorFor, authorityFloorForFact } from "./source-blocks.mjs";
 import { readMigrationSql } from "../../../.discipline/lib/read-migration-sql.mjs";
 
 // Reference implementation of the PRE-FIX order-based builder, kept ONLY to demonstrate the RED it produced.
@@ -66,6 +66,23 @@ test("authorityFloorFor: reg-family=2, research=4, tech=5, market/regional exemp
   assert.equal(authorityFloorFor("technology"), 5);
   assert.equal(authorityFloorFor("market_signal"), null);
   assert.equal(authorityFloorFor("regional_data"), null);
+});
+
+// SCOPED STANDARD FLOOR (migration 202, operator ruling 2026-07-13): a `standard` item grounds at the
+// standards-body tier (4) for a FACT on its OWN authoring body, NOT any same-tier host generically.
+test("authorityFloorForFact: standard + own-body → 4 (accept); standard + unrelated same-tier host → 2 (reject)", () => {
+  // ACCEPT: ISO item + iso.org span (own authoring body) grounds at the standards-body tier 4.
+  assert.equal(authorityFloorForFact("standard", true), 4);
+  // REJECT: ISO item + a same-tier (T4) UNRELATED host does NOT qualify — stays at the reg-family floor 2,
+  // so a T4 unrelated source still fails the floor (no generic same-tier promotion).
+  assert.equal(authorityFloorForFact("standard", false), 2);
+  // Non-standard reg-family is UNCHANGED even when the fact is on the item's own body.
+  assert.equal(authorityFloorForFact("regulation", true), 2);
+  assert.equal(authorityFloorForFact("directive", true), 2);
+  // Other types fall through to authorityFloorFor unchanged.
+  assert.equal(authorityFloorForFact("research_finding", true), 4);
+  assert.equal(authorityFloorForFact("technology", false), 5);
+  assert.equal(authorityFloorForFact("market_signal", true), null);
 });
 
 // DRIFT-GUARD (SC-10, ruling 2 2026-07-03): the audit's authority floor lives in migration 141's
