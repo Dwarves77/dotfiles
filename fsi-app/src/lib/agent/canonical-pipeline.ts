@@ -28,7 +28,7 @@ import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
 // SPEND CHOKEPOINT (routing, ruling 2026-07-04): the pipeline's model calls route through the spend client
 // (spendStreamRaw = the same streamMessagesText call, ticket-gated + ceiling-enforced + accounted;
 // spendSearch = the web_search call). Behavior-preserving — the streaming body/params are unchanged.
-import { spendStreamRaw, spendSearch, spendStream } from "@/lib/llm/spend-client";
+import { spendStreamRaw, spendSearch, spendStream, setSpendTicket } from "@/lib/llm/spend-client";
 import { cachedSystemBlocks } from "@/lib/agent/prompt-cache.mjs";
 import { extractRegulationSections } from "@/lib/agent/extract-regulation-sections";
 import { buildTimelineRows } from "@/lib/agent/timeline-harvest.mjs";
@@ -780,6 +780,11 @@ export async function generateBrief(itemId: string, caller: string | null = null
   const sb = svc();
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
   if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
+  // I1 (attribution): set the rich context ticket BEFORE any paid call so every agent_runs spend row carries
+  // itemId + sourceId (the $65 July hole was LEGACY_TICKET spend with neither). Overwrite-on-entry is safe:
+  // steps are execution-isolated and the last setter within a step wins. Gate-neutral — {purpose,itemId,
+  // sourceId} gets the identical necessity/budget verdict as LEGACY_TICKET.
+  setSpendTicket({ purpose: "canonical:generate", itemId, sourceId: it.source_id ?? null });
 
   // 1. primary source — with the roadblock→bounded-alternative-search capability: a hanging / blocked /
   //    wrong-language declared primary is replaced by an OFFICIAL alternative (discovery only — the
@@ -869,6 +874,8 @@ async function generateBriefFromStoredImpl(itemId: string): Promise<StepResult> 
   const sb = svc();
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
   if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
+  // I1 (attribution): rich ticket for the stored-path re-synthesis Sonnet call (see generate for rationale).
+  setSpendTicket({ purpose: "canonical:generate-stored", itemId, sourceId: it.source_id ?? null });
   const { data: pool, error: poolErr } = await sb.from("agent_run_searches").select("result_url, result_title, result_content_excerpt, search_query, searched_at, result_index").eq("intelligence_item_id", itemId).order("result_index");
   if (poolErr) console.warn(`[canonical] stored-pool read failed for ${itemId}: ${poolErr.message}`);
   const rows = pool ?? [];
@@ -906,6 +913,8 @@ async function generateBriefRefreshPrimaryImpl(itemId: string, caller: string | 
   const sb = svc();
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
   if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
+  // I1 (attribution): rich ticket for the refresh-primary re-synthesis calls (see generate for rationale).
+  setSpendTicket({ purpose: "canonical:refresh-primary", itemId, sourceId: it.source_id ?? null });
   // 1. full primary via the #155 direct-first transport (free for eligible legal hosts; no truncation).
   const pf = await fetchPrimaryDeep({ title: it.title, primaryUrl: it.source_url, itemType: it.item_type }, caller);
   await recordSourceFetchStatus(sb, it.source_id, pf); // item 5b: source-level unreadable flag (guarded, behind mig 147)
@@ -1042,6 +1051,9 @@ async function groundBriefImpl(itemId: string, caller: string | null = null): Pr
   const sb = svc();
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, item_type, source_id, source_url, full_brief").eq("id", itemId).single();
   if (itErr || !it?.source_id) return { ok: false, detail: `no source_id${itErr ? `: ${itErr.message}` : ""}` };
+  // I1 (attribution): rich ticket for the grounding ledger-extraction Sonnet call — the paid call the $65
+  // hole was blind to. Every spend row from groundBrief now carries itemId + sourceId.
+  setSpendTicket({ purpose: "canonical:ground", itemId, sourceId: it.source_id ?? null });
   // Idempotency scoped to VERIFIED (not "any claims exist"). A quarantined/ungrounded item is
   // re-groundable — the prior guard ("any claims -> already grounded") silently blocked re-grounding a
   // quarantined item against a new/expanded section set (e.g. after a section backfill) if a partial run

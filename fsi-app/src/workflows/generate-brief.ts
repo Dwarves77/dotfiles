@@ -33,6 +33,14 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { spanCheckFetch, type SpanCheckResult } from "../lib/agent/span-check";
 import { getScrapeState, evaluateGenerationPause } from "../lib/api/pause";
 import { groundRetryPlan } from "../lib/agent/ground-failure-class.mjs";
+// SNAPSHOT-FIRST grounding (RD-24 / F21): groundStep routes through the ONE verify-item entry, which
+// cheap-verifies against the stored snapshot ($0, no fetch, no model) BEFORE any paid acquire, and gates
+// the paid acquire behind the GROUNDING_ACQUIRE_ENABLED master switch (AcquireLockError while OFF).
+import { verifyItem } from "../lib/sources/verify-item.mjs";
+import { AcquireLockError } from "../lib/sources/acquire-lock.mjs";
+import { getSnapshot } from "../lib/sources/snapshot-store.mjs";
+import { probeFreshness } from "../lib/sources/freshness-probe.mjs";
+import { cheapVerifyClaims } from "../lib/sources/cheap-verify.mjs";
 import {
   generateBrief,
   generateBriefFromStored,
@@ -192,9 +200,65 @@ export async function sectionStep(itemId: string): Promise<StepResult> {
 
 // Active-sourcing claim ledger + verbatim span-check + validate_item_provenance
 // (Sonnet). The set_provenance_status trigger flips a valid item to verified.
+//
+// SNAPSHOT-FIRST (RD-24, snapshot-first rebuild PR-2): grounding routes through the ONE verify-item entry.
+// verify-item reads the stored snapshot + the item's existing claims and cheap-verifies ($0, no fetch, no
+// model). Outcomes:
+//   verified_cheap  — existing FACT spans still present in the stored snapshot → NO paid re-ground ($0).
+//   stale_flag      — the source demonstrably changed since capture → verify-item queues the
+//                     stale_snapshot_content_changed flag; we NEVER fetch and NEVER flip (CP2). Held.
+//   needs_acquire   — no usable snapshot / cheap-verify can't confirm → PAID acquire, which is master-switched:
+//                     verify-item logs the justification ($0, I2) then asserts GROUNDING_ACQUIRE_ENABLED. OFF →
+//                     AcquireLockError → the brief is HELD intact (never erased). ON → we run the real paid
+//                     groundBrief extraction (the operator has sanctioned spend for this run).
+// A fresh brief has no claims + usually no snapshot → needs_acquire, so live grounding is frozen while the lock
+// is OFF and resumes (unchanged) the moment the operator turns it ON. "grounding_frozen"-prefixed details route
+// to a hold-without-erase in the workflow below.
 export async function groundStep(itemId: string, caller: string | null = null): Promise<StepResult> {
   "use step";
   const sb = svc();
+  const deps = {
+    getSnapshot,
+    probeFreshness,
+    cheapVerifyClaims,
+    loadItem: async (client: SupabaseClient, id: string) => {
+      const { data } = await client.from("intelligence_items").select("source_id, source_url").eq("id", id).single();
+      return data ?? null;
+    },
+    loadClaims: async (client: SupabaseClient, id: string) => {
+      const { data } = await client.from("section_claim_provenance").select("claim_text, claim_kind, source_span").eq("intelligence_item_id", id);
+      return data ?? [];
+    },
+    env: process.env as Record<string, string | undefined>,
+    act: true,
+  };
+  let decision: Awaited<ReturnType<typeof verifyItem>>;
+  try {
+    decision = await verifyItem(sb, itemId, deps);
+  } catch (e) {
+    if (e instanceof AcquireLockError) {
+      // Grounding administratively FROZEN (GROUNDING_ACQUIRE_ENABLED off). The justification was logged ($0)
+      // before the lock threw; the brief is held intact. A re-run grounds it once the operator flips the lock.
+      const detail = `grounding_frozen: ${e.message.slice(0, 220)}`;
+      await recordRun(sb, itemId, "ground", 0, false, detail).catch(() => {});
+      return { ok: false, detail };
+    }
+    throw e;
+  }
+
+  if (decision.outcome === "verified_cheap") {
+    const detail = `verified via snapshot cheap-verify ($0, no paid re-ground): ${decision.reason}`;
+    await recordRun(sb, itemId, "ground", 0, true, detail).catch(() => {});
+    return { ok: true, detail };
+  }
+  if (decision.outcome === "stale_flag") {
+    // CP2: source changed since snapshot; verify-item queued the stale flag. NEVER fetched, NEVER flipped. Held.
+    const detail = `grounding_frozen: stale_snapshot_content_changed queued (${decision.reason}); no fetch, no flip`;
+    await recordRun(sb, itemId, "ground", 0, false, detail).catch(() => {});
+    return { ok: false, detail };
+  }
+  // needs_acquire AND the lock is ON (else verify-item would have thrown AcquireLockError above): the acquire
+  // justification is logged; NOW run the real paid grounding through the canonical extractor. Sanctioned spend.
   const r = await groundBrief(itemId, caller); // F16 caller thread (Unit 0c)
   await recordRun(sb, itemId, "ground", r.ok ? EST_GROUND_USD : 0, r.ok, r.detail).catch(() => {});
   return r;
@@ -415,6 +479,13 @@ export async function generateBriefWorkflow(itemId: string, refresh = false, cal
   if (!section.ok) return { itemId, status: "section_failed", steps: { budget, auditBaseline, generate, register, section } };
 
   let ground = await groundStep(itemId, caller);
+  if (!ground.ok && ground.detail.startsWith("grounding_frozen")) {
+    // Grounding is administratively frozen (acquire lock OFF) or the source changed since snapshot (stale flag
+    // queued). The freshly-generated brief is HELD intact — NOT routed into research-or-erase (which would null
+    // it) and NOT flipped to verified. No spend occurred. A re-run grounds it once the operator flips
+    // GROUNDING_ACQUIRE_ENABLED on (or rules on the stale flag). This is the master-switch resting state.
+    return { itemId, status: "grounding_frozen_held", steps: { budget, auditBaseline, generate, register, section, ground } };
+  }
   if (!ground.ok) {
     const plan = groundRetryPlan(ground.detail);
     if (plan === "structural_hold") {
