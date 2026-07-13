@@ -144,8 +144,12 @@ consolidated). Owner: next hygiene pass. *(Scheme B — Wave-α tracks C1–C8 �
   (does not cover the 07-12/07-13 work). This board supersedes both for thread-state resume.
 - Live counts (489 provisional / 859 flags / 62 quarantine / 37 live-quarantine) are STATE — query /admin;
   and per ADR-013 always state the archival predicate (live-only vs status-only).
-- **R0.2 observability — spend-watch fixed (2026-07-13):** the daily spend probe was permanent-red (alarmed
-  at `pct ≥ 80%` on the frozen $75 ceiling, MTD 100.3%). Now it fails only on a paid `agent_runs` row after
-  the acquisition-freeze baseline (`2026-07-13T02:05:26Z`, env `SPEND_FREEZE_SINCE_ISO`) or an unreadable
-  gauge; frozen-and-quiet = PASS (reported in the job summary). Surface-honesty probe un-skipped on the daily
-  cron. Verdict is the pure, tested `spend-health.mjs`. When the freeze lifts, move the baseline forward.
+- **R0.2 observability — spend-watch fixed + sanctioned-window semantics (2026-07-13):** the daily spend
+  probe was permanent-red (alarmed at `pct ≥ 80%` on the frozen $75 ceiling, MTD 100.3%). Verdict is now the
+  pure, tested `spend-health.mjs` against the acquisition-freeze baseline (`2026-07-13T02:05:26Z`, env
+  `SPEND_FREEZE_SINCE_ISO`): **frozen-and-quiet** (0 paid rows since freeze) = PASS; **sanctioned window** (paid
+  rows since freeze but `GROUNDING_ACQUIRE_ENABLED` ON AND every row carries a pre-logged I2 justification) =
+  PASS + enumerated in the job summary; **leak** (any paid row while the lock is OFF — justified-but-lock-off is
+  still a leak — or an unjustified paid row while lock ON, or an unreadable gauge) = FAIL. This is the
+  probe's August behavior, defined before August needs it. Surface-honesty probe un-skipped on the daily cron.
+  When the operator opens a sanctioned window then re-freezes, move the baseline forward.

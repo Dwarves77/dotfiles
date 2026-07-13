@@ -188,18 +188,26 @@ jobs:
             exit 1
           fi
 
-          # The verdict is computed server-side (spend-health.mjs): "no paid row since the freeze baseline",
-          # NOT "% of the ceiling". The frozen ceiling sits at ~100% by design; alarming on that is
-          # permanent-red and trains everyone to ignore red (rendering-guard precedent, #293). We fail ONLY
-          # on genuinely NEW spend (a leak / GROUNDING_ACQUIRE_ENABLED-OFF violation) or an unreadable gauge.
+          # The verdict is computed server-side (spend-health.mjs): a paid row after the acquisition-freeze
+          # baseline is OK ONLY in a SANCTIONED window (GROUNDING_ACQUIRE_ENABLED ON + every row carries a
+          # pre-logged I2 justification); frozen-and-quiet (zero paid rows since freeze) is also OK. We do
+          # NOT alarm on "% of the ceiling" (permanent-red on the frozen ceiling — #293 precedent). FAIL on:
+          # a paid row while the lock is OFF (justified-but-lock-off is STILL a leak), an unjustified paid
+          # row while the lock is ON, or an unreadable gauge.
           healthy=$(jq -r '.healthy' "$tmp_body" 2>/dev/null || echo "parse_error")
           reason=$(jq -r '.reason' "$tmp_body" 2>/dev/null || echo "?")
           mtd=$(jq -r '.mtd_usd' "$tmp_body" 2>/dev/null || echo "?")
           ceiling=$(jq -r '.monthly_ceiling_usd' "$tmp_body" 2>/dev/null || echo "?")
           pct=$(jq -r '.pct' "$tmp_body" 2>/dev/null || echo "?")
           frozen=$(jq -r '.frozen' "$tmp_body" 2>/dev/null || echo "?")
+          lock_on=$(jq -r '.acquire_lock_on' "$tmp_body" 2>/dev/null || echo "?")
           paid_after=$(jq -r '.paid_after_freeze' "$tmp_body" 2>/dev/null || echo "?")
-          echo "MTD: \$$mtd of \$$ceiling (pct=$pct%, frozen=$frozen, paid_after_freeze=$paid_after)"
+          echo "MTD: \$$mtd of \$$ceiling (pct=$pct%, frozen=$frozen, lock_on=$lock_on, paid_after_freeze=$paid_after)"
+
+          # Enumerate the post-freeze paid rows — operational metadata only (UUIDs, $ figures, the I2
+          # justification enum); never brief content. Empty in the frozen-and-quiet state.
+          rows_md=$(jq -r '.paid_after_rows[]? | "  - item=\(.item_id // "-") src=\(.source_id // "-") $\(.cost_usd) [\(.justification // "NO-JUSTIFICATION")]"' "$tmp_body" 2>/dev/null)
+          if [ -n "$rows_md" ]; then echo "Paid rows since the freeze baseline:"; echo "$rows_md"; fi
 
           if [ "$healthy" = "parse_error" ] || [ "$healthy" = "null" ] || [ -z "$healthy" ]; then
             echo "::error::Spend gauge unreadable (no health verdict in the response — endpoint old or errored)."
@@ -207,15 +215,27 @@ jobs:
           fi
           if [ "$healthy" != "true" ]; then
             echo "::error::Spend watch RED — $reason"
+            {
+              echo "### Spend watch — RED ❌"
+              echo ""
+              echo "- $reason"
+              echo "- lock_on=$lock_on · paid_after_freeze=$paid_after"
+              [ -n "$rows_md" ] && { echo ""; echo "Paid rows since the freeze baseline:"; echo "$rows_md"; }
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
 
-          # Frozen-and-quiet is the EXPECTED state. Report it in the job summary; do NOT fail.
-          echo "✓ frozen-and-quiet — $reason"
+          # Healthy: frozen-and-quiet (paid_after=0) OR a sanctioned window (lock ON + all justified).
+          echo "✓ $reason"
           {
-            echo "### Spend watch — frozen-and-quiet ✓"
+            if [ "$paid_after" = "0" ]; then
+              echo "### Spend watch — frozen-and-quiet ✓"
+            else
+              echo "### Spend watch — sanctioned window ✓ (lock ON, all rows pre-justified)"
+            fi
             echo ""
-            echo "- MTD: \$$mtd of \$$ceiling ceiling (${pct}%), frozen=$frozen"
-            echo "- Paid rows since the freeze baseline: **$paid_after** (0 = the freeze is holding)"
+            echo "- MTD: \$$mtd of \$$ceiling ceiling (${pct}%), frozen=$frozen, lock_on=$lock_on"
+            echo "- Paid rows since the freeze baseline: **$paid_after**"
             echo "- $reason"
+            [ -n "$rows_md" ] && { echo ""; echo "Sanctioned rows:"; echo "$rows_md"; }
           } >> "$GITHUB_STEP_SUMMARY"
