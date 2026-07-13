@@ -377,6 +377,45 @@ export const DOCTRINES = [
     residual:
       'RD-23: F20 (static, red-then-green + live census) + migration-201 guard trigger/RPC (runtime bounce, proven red-then-green on a SYNTHETIC temp table in a rolled-back transaction — the live flag is never written, including by the test) + the audit table. Honest residual, same class as any transaction-local GUC marker: a caller with raw SQL could set the marker itself and bypass the trigger — but no COMMITTED code can (F20 fails CI), the casual agent flip (a plain UPDATE) bounces, and every write is audited. Structural defense-in-layers, not a cryptographic vault — and crucially it needs no human-held secret, which is the whole point (the 2a credential design was ruled dead precisely because it required a manual operator step).',
   },
+
+  // ──────────────── Snapshot-first grounding (snapshot-first rebuild PR-2, 2026-07-13) ────────────────
+  {
+    id: 'verified-is-resting-state',
+    statement:
+      'Verified is a resting state. A provenance_status=verified item is NOT re-ground for pay without evidence of change (a content-hash / Last-Modified mismatch on its source) or an explicit operator order. Re-verifying resting-state items is waste. RETROACTIVE APPLICATION: the 2026-07-06 reconciliation re-verify sweep ($15.56 ledgered) re-processed already-verified, resting-state items; it is logged as WASTE, cause "design defect, pre-doctrine" — the sweep predates this doctrine and would not run under it.',
+    source: 'snapshot-first rebuild PR-2 (operator ruling 2026-07-13; retroactive-waste ruling same date)',
+    enforcedBy: ['RD-28-verified-is-resting-state'],
+    residual:
+      'RD-28 rides the existing spend-guard VERIFIED-ITEM gate (assertTicket rejects a verified ticket, proven in spend-guard.test.mjs). The retroactive 07-06 waste figure ($15.56, the reconciliation sweep day) is recorded here as the doctrine\'s worked example — the audit that surfaced it is the Phase-0 duplicate-spend audit (per-day run-class table).',
+  },
+  {
+    id: 'no-acquire-with-valid-snapshot',
+    statement:
+      'No paid acquisition when a valid fresh snapshot exists. When the snapshot store holds the source and a HEAD freshness probe shows no change, verification is the cheap span-match against stored text (~$0); the paid fetch+model path is reserved for missing or demonstrably-changed snapshots and is itself locked behind GROUNDING_ACQUIRE_ENABLED (default OFF). A changed source is flagged + queued, never silently passed and never fetched without an operator per-item ruling.',
+    source: 'snapshot-first rebuild PR-2 (operator ruling 2026-07-13; CHECKPOINT 2)',
+    enforcedBy: ['RD-29-fresh-snapshot-never-paid'],
+    residual:
+      'RD-29 (verify-item decideVerify: fresh+cheap-pass → verified_cheap, never acquire; changed → stale_flag; only missing/failed → needs_acquire, itself lock-gated). The stale-snapshot queue (stale_snapshot_content_changed integrity_flags) is built + tested; it receives no action until an operator per-item ruling.',
+  },
+  {
+    id: 'every-paid-run-carries-justification-and-attribution',
+    statement:
+      'Every paid run carries a pre-logged justification AND full attribution. Before any paid acquire, a justification (missing_snapshot | content_changed | cheap_verify_failed) is written to the ledger; and every paid ledger row carries an item id or a source id (never both-null — the July $65 hole). An unjustified or attribution-blind paid run is a defect.',
+    source: 'snapshot-first rebuild PR-2 (operator ruling 2026-07-13)',
+    enforcedBy: ['RD-26-pre-logged-acquire-justification', 'RD-25-paid-row-attribution'],
+    residual:
+      'RD-26 (justification written BEFORE the acquire lock throws, verify-item.test.mjs) + RD-25 (recordSpendCall writes source_id + item_id + warns; acquire-justification carries attribution). The full agent_runs data-invariant audit lands with the workflow rewire that threads itemId+sourceId onto every ticket.',
+  },
+  {
+    id: 'report-states-quarantine-scope',
+    statement:
+      'Any report that cites a quarantine count MUST state its scope (global | unit-scoped); a window/grounding report carries the GLOBAL count alongside any working slice. This exists because a scoped "~39" slice was mistaken for the global count (true global 197); an unlabeled count misleads.',
+    source: 'snapshot-first rebuild PR-2 (operator ruling 2026-07-13)',
+    exempt: {
+      reason:
+        'PROCESS / report-format discipline — it governs how the agent writes a dispatch report at authoring time, not a code or data property (same non-mechanizable class as the report-format doctrines). Carried by this register + the spend-gauge header requirement (which pairs the count with its scope by convention). No CI check parses report prose.',
+    },
+  },
 ];
 
 // Doctrine IDs referenced by `conflicts` must resolve to a real entry (the conflict-ledger integrity check).

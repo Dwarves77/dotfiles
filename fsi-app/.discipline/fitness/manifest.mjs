@@ -45,6 +45,11 @@ import { fitnessFunction as F19 } from './functions/F19-no-service-anon-downgrad
 // system_state.global_processing_paused / scrape_cadence outside the sanctioned admin route (the RPC caller).
 // Replaces the DEAD 2a operator-credential design — no manual step, no secret. Maps to invariant RD-23.
 import { fitnessFunction as F20 } from './functions/F20-pause-flag-one-writer.mjs';
+// Single grounding entry (2026-07-13, snapshot-first rebuild PR-2): F21 mechanizes "grounding acquisition has
+// ONE entry" — the workflow over the canonical pipeline, via the verify-item entry point. No other production
+// file may directly invoke generateBriefWorkflow / generateBrief / groundBrief (the old $65 bypass path). Maps
+// to invariant RD-24.
+import { fitnessFunction as F21 } from './functions/F21-single-grounding-entry.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -62,6 +67,7 @@ export const fitnessFunctions = [
   F18,
   F19,
   F20,
+  F21,
 ];
 
 export function getFunctionById(id) {

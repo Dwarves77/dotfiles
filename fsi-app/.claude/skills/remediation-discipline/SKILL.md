@@ -316,6 +316,17 @@ Six anti-patterns that mean the principle is loaded but not applied:
 
 6. **Premature primitive extraction (counterpart to anti-pattern 3).** Extracting a primitive into the library before the second instance exists. Same evidence threshold as codification: 2+ confirmed instances before extraction. Speculative primitive design often misses generalization needs because there is only one consumer to validate the abstraction against.
 
+### Section 4 — category 18: Snapshot-first grounding (acquisition is locked by default)
+
+The July $65 attribution hole + the abandoned `raw_fetches` snapshot store (written once, never read) are one class: paid grounding re-acquired content the platform already held, and the ledger could not even attribute the spend. The class fix is a snapshot-first pipeline with acquisition locked by default, wired as invariants so the failure cannot recur silently (snapshot-first rebuild, operator ruling 2026-07-13):
+
+- **Grounding acquisition has exactly one entry point** — the durable workflow over the canonical pipeline, reached through the snapshot-first verify-item entry; a direct grounding-entry invocation anywhere else is the old bypass path and is forbidden (RD-24, fitness F21).
+- **A paid ledger row MUST carry an item id or a source id** — a row that is both item- and source-anonymous is the $65 hole; attribution is written at the spend chokepoint (RD-25 / I1).
+- **Every paid acquire MUST pre-log a justification before it spends** — `missing_snapshot | content_changed | cheap_verify_failed` written to the ledger BEFORE the paid call, so an unjustified paid run is impossible and the gauge can count coverage (RD-26 / I2).
+- **An acquiring run MUST write the acquired content to the snapshot store** — no acquisition may leave `raw_fetches` unwritten (the abandoned-store defect); the snapshot is the next run's cheap path (RD-27 / I3).
+- **A verified item is a resting state — re-verification requires evidence of change** — no paid re-ground of a `provenance_status=verified` item without a hash/last-modified change or an explicit operator order; the 2026-07-06 reconciliation sweep ($15.56) that re-verified resting-state items is logged as waste, cause "design defect, pre-doctrine" (RD-28 / I4).
+- **A fresh valid snapshot MUST NOT reach the paid path** — when a stored snapshot exists and the source has not changed, verification is the cheap span-match against stored text (~$0); paid acquire is reserved for missing/changed snapshots and is itself locked behind an operator flag (RD-29 / I5).
+
 ## Section 9: When the Principle Doesn't Apply
 
 Genuinely one-off remediations where class-over-instance does not apply:
