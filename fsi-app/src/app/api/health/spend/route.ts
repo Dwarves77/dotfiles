@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
 import { getServiceSupabase } from "@/lib/supabase-server";
 import { computeSpendHealth } from "@/lib/health/spend-health.mjs";
+import { acquireEnabled } from "@/lib/sources/acquire-lock.mjs";
 
 export const dynamic = "force-dynamic";
 
@@ -48,13 +49,17 @@ export async function GET(request: NextRequest) {
   monthStart.setUTCDate(1);
   monthStart.setUTCHours(0, 0, 0, 0);
 
-  let rows: Array<{ cost_usd_estimated: number | null; started_at: string | null }> = [];
+  let rows: Array<{
+    cost_usd_estimated: number | null; started_at: string | null; fetch_method: string | null;
+    intelligence_item_id: string | null; source_id: string | null; errors: unknown;
+  }> = [];
   try {
-    // Select cost + started_at for the month; the pure verdict sums MTD and detects any paid row after the
-    // freeze baseline. NUMERIC column, one month of rows — a bounded select is fine (no server-side SUM).
+    // Select cost + started_at + attribution + fetch_method + errors for the month. The pure verdict sums
+    // MTD, finds paid rows after the freeze baseline, and matches each to a pre-logged I2 justification row
+    // (fetch_method='acquire-justification'). NUMERIC column, one month of rows — a bounded select is fine.
     const { data, error } = await supabase
       .from("agent_runs")
-      .select("cost_usd_estimated, started_at")
+      .select("cost_usd_estimated, started_at, fetch_method, intelligence_item_id, source_id, errors")
       .gte("created_at", monthStart.toISOString());
     if (error) {
       return NextResponse.json(
@@ -70,10 +75,14 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // HEALTH VERDICT (pure): frozen-and-quiet = healthy; any paid row after the freeze baseline = unhealthy.
+  // HEALTH VERDICT (pure). frozen-and-quiet OR sanctioned-window (lock ON + every post-freeze paid row
+  // pre-justified) = healthy; any paid row after the freeze while the lock is OFF, or an unjustified paid
+  // row while the lock is ON, = leak. The lock is the master gate (justified-but-lock-OFF is still a leak).
+  const lockOn = acquireEnabled(process.env as Record<string, string | undefined>);
   const v = computeSpendHealth(rows, {
     freezeSinceIso: FREEZE_SINCE_ISO,
     monthlyCeilingUsd: MONTHLY_CEILING_USD,
+    acquireEnabled: lockOn,
   });
 
   return NextResponse.json({
@@ -84,9 +93,16 @@ export async function GET(request: NextRequest) {
     monthly_ceiling_usd: MONTHLY_CEILING_USD,
     pct: v.pct,
     frozen: v.frozen,
+    acquire_lock_on: v.acquireEnabled,
     freeze_since: FREEZE_SINCE_ISO,
     latest_paid_at: v.latestPaidAt,
     paid_after_freeze: v.paidAfterFreeze,
+    all_justified: v.allJustified,
+    // Enumerate the post-freeze paid rows (operational metadata only — UUIDs, $ figures, and the I2
+    // justification enum; never brief content). Empty in the frozen-and-quiet state.
+    paid_after_rows: v.paidAfterRows.map((r) => ({
+      item_id: r.itemId, source_id: r.sourceId, cost_usd: r.costUsd, started_at: r.startedAt, justification: r.justification,
+    })),
     month_start: monthStart.toISOString(),
     checked_at: new Date().toISOString(),
   });
