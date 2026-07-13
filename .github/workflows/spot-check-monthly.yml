@@ -20,8 +20,14 @@ name: Spot-check monthly recurring
 # from the Actions tab via workflow_dispatch.
 
 on:
-  schedule:
-    - cron: '0 3 1 * *'
+  # ACQUISITION FREEZE (operator ruling 2026-07-13, snapshot-first rebuild).
+  # This job POSTs /api/admin/spot-check/recurring, which spends on ~20 Haiku
+  # re-classification calls AND Browserless reachability fetches. All unattended
+  # paid acquisition is frozen until the snapshot-first pipeline lands and the
+  # operator-go flag is turned on. The monthly schedule is disabled; the job
+  # remains runnable on demand via workflow_dispatch.
+  # schedule:
+  #   - cron: '0 3 1 * *'
   workflow_dispatch:
 
 jobs:
