@@ -19,7 +19,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { computeCitationComponent, recomputeEffectiveTier } from "@/lib/trust";
 import type { TrustMetrics } from "@/types/source";
 import { hostOf, hostInstitution, buildResolver, type SourceRow } from "@/lib/sources/institution";
-import { defaultTierForHost } from "@/lib/sources/host-authority";
+import { decidePoolHostRegistration } from "@/lib/sources/host-authority";
 
 export interface CitationEdge {
   citer_source_id: string;
@@ -200,14 +200,17 @@ export async function compoundSourceCredibility(
 
 /** Register the item's GROUNDING-POOL corroborator hosts (agent_run_searches) that are not yet in the
  *  registry, BEFORE grounding, so a FACT span stamped against a pool corroborator resolves to a real
- *  tier the authority floor can EVALUATE — instead of NULL, which escapes the floor entirely (the
- *  sub-floor-masking defect: 1034 FACT claims hidden behind NULL). The brief-cited path
- *  (registerCitedSources) only covers hosts in the brief's "New Sources Identified" table; grounding
- *  stamps spans against the WIDER pool, so non-cited pool hosts NULL-stamped. We register ONE
- *  PROVISIONAL row per NULL-resolving institution at its source-TYPE default tier (defaultTierForHost:
- *  enacted/legal -> T1, gov/official -> T2, else sub-floor) — NOT scanned (auto_run_enabled false),
- *  registered only so the resolver gives the span a tier. Idempotent: institutions that already
- *  resolve are skipped (no new row, no one-tier-per-host churn). Go-forward fix; reduces NEW NULL-stamps. */
+ *  tier the authority floor can EVALUATE. SC-13 (operator ruling 2026-07-13, register-step-gap unit):
+ *  registration is DETERMINISTIC-ONLY. A NULL-resolving institution is registered ONLY when its tier is
+ *  knowable without guessing — a codified host-class rule (legal-primary -> T1, gov/regulator/intergov ->
+ *  T2). An AMBIGUOUS host (no codified rule) is NOT registered: minting it a guessed default tier is a
+ *  fake certification (a guessed T5 would hollow-pass the technology floor=5), so instead its FACT span
+ *  NULL-stamps and surfaceNullTierHosts aggregates the host into ONE integrity_flag for one batched
+ *  operator look (the 44-host pattern) — never an auto-judged tier, never item-by-item clicks. Idempotent:
+ *  institutions that already resolve are inherited (no new row, no per-row tier that could diverge from the
+ *  institution's canonical tier). Go-forward fix; new grounding drives toward 0 unregistered spans without
+ *  minting guessed tiers. (The prior pass registered ambiguous hosts at defaultTierForHost's sub-floor
+ *  default — the guessed-tier defect this unit closes.) */
 export async function registerPoolHostsForGrounding(
   supabase: SupabaseClient,
   itemId: string,
@@ -237,9 +240,14 @@ export async function registerPoolHostsForGrounding(
     if (q && q.startsWith("canonical:cited")) continue;
     const inst = hostInstitution(hostOf(url));
     if (!inst || seen.has(inst)) continue;
-    if (resolver.resolveSpan(url).tier != null) continue; // institution already resolves — no action
-    seen.add(inst);
-    toRegister.push({ name: inst, url, tier_estimate: defaultTierForHost(hostOf(url)) });
+    // SC-13 register-at-grounding: DETERMINISTIC-ONLY. inherit = institution already resolves (no new
+    // row); register = a codified host-class rule gives a deterministic tier; worklist = AMBIGUOUS ->
+    // do NOT register (no guessed tier minted; surfaceNullTierHosts flags it at grounding time).
+    const decision = decidePoolHostRegistration(hostOf(url), resolver.resolveSpan(url).tier);
+    if (decision.action === "inherit") continue;
+    seen.add(inst); // decided this institution once — do not re-evaluate its other pool rows
+    if (decision.action === "worklist") continue;
+    toRegister.push({ name: inst, url, tier_estimate: decision.tier });
   }
   if (!toRegister.length) return { registered: 0, institutions: 0 };
   const out = await registerCitedSources(supabase, toRegister);
