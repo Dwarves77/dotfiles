@@ -46,6 +46,7 @@ node --test \
   fsi-app/scripts/lib/db.test.mjs \
   fsi-app/scripts/lib/funded-release-plan.test.mjs \
   fsi-app/scripts/lib/deferral.selftest.mjs \
+  fsi-app/scripts/lib/flag-age.selftest.mjs \
   fsi-app/src/__tests__/*.test.mjs \
   fsi-app/src/lib/credibility/*.test.mjs \
   fsi-app/src/lib/sources/*.test.mjs \
