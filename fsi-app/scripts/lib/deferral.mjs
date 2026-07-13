@@ -109,3 +109,38 @@ export function assertValidDeferral(payload, now = new Date()) {
   if (!r.ok) throw new Error(`invalid deferral: ${r.error}`);
   return true;
 }
+
+// ── RENEWAL (operator ruling 2026-07-13, flag-system item 3) ──────────────────────────────────────────
+// RD-6 says an expired deferral re-opens as UNDISPOSITIONED — it may not quietly outlive its own clock.
+// A "renewal" that just re-sets deferred_until forward while re-packaging the SAME blocker reason IS that
+// silencing (the census found 17+ "superseded … clock re-set" rows). So a renewal is valid ONLY when it
+// carries a genuinely NEW blocker finding: a valid deferral whose reason differs materially from the reason
+// it supersedes. Same reason, new date = rejected.
+
+/** Normalize a reason for renewal comparison (case + whitespace collapsed). */
+export function normalizeReason(s) {
+  return String(s == null ? "" : s).toLowerCase().replace(/\s+/g, " ").trim();
+}
+/** Do two deferral reasons name the same blocker (i.e. a repackaged renewal)? */
+export function sameBlockerReason(a, b) {
+  const na = normalizeReason(a), nb = normalizeReason(b);
+  return na.length > 0 && na === nb;
+}
+
+/** Read/write validity for a deferral RENEWAL. `previousReason` is the reason of the deferral being
+ *  superseded (null/absent when this is a first deferral, not a renewal). Returns { ok, error? }. */
+export function isValidRenewal(payload, previousReason, now = new Date()) {
+  const base = isValidDeferral(payload, now);
+  if (!base.ok) return base;
+  if (previousReason != null && sameBlockerReason(payload.reason, previousReason)) {
+    return { ok: false, error: "renewal re-packages the SAME blocker reason (clock re-set without a new finding) — RD-6: an expired deferral re-opens as undispositioned; a renewal MUST name a new blocker, not just move the date" };
+  }
+  return { ok: true };
+}
+
+/** Write-side assertion for a renewal: throws when the renewal is invalid or repackages the prior reason. */
+export function assertValidRenewal(payload, previousReason, now = new Date()) {
+  const r = isValidRenewal(payload, previousReason, now);
+  if (!r.ok) throw new Error(`invalid renewal: ${r.error}`);
+  return true;
+}

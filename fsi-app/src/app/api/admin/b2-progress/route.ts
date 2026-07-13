@@ -12,8 +12,10 @@ import { getServiceSupabase } from "@/lib/supabase-service";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { CURRENT_SKILL_CONTRACT_VERSION } from "@/lib/agent/contract-version.mjs";
 
-const CURRENT_SKILL_VERSION = "2026-04-29";
+// SSOT (flag-system item 2): was a stale hand-pinned "2026-04-29" while the generator stamped "2026-05-27".
+const CURRENT_SKILL_VERSION = CURRENT_SKILL_CONTRACT_VERSION;
 
 
 export async function GET(request: NextRequest) {

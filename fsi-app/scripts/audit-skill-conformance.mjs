@@ -8,14 +8,18 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeFileSync } from "node:fs";
+import { CURRENT_SKILL_CONTRACT_VERSION } from "../src/lib/agent/contract-version.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
-const { readClient, readAll } = await import("./lib/db.mjs");
+const { readClient, readAll, guardedInsert, guardedUpdate } = await import("./lib/db.mjs");
 const sb = readClient();
 const APPLY = process.argv.includes("--apply"); // --apply PERSISTS results to integrity_flags (durable)
 const AUDIT_TAG = "skill-conformance-audit";    // created_by marker; idempotent + drives the redo query
 
-const CURRENT_CONTRACT = "2026-04-29"; // bump when SKILL.md regeneration_skill_version advances
+// C1 re-baselined to the LIVE-emitted contract version (operator ruling 2026-07-13, flag-system item 2):
+// read the single source of truth (what the generator stamps) instead of a hand-pinned literal that drifts.
+// Was "2026-04-29" here while the generator had advanced to "2026-05-27" — the pinned-constant drift class.
+const CURRENT_CONTRACT = CURRENT_SKILL_CONTRACT_VERSION;
 const FORMAT_FOR = { regulation: "regulatory_fact_document", directive: "regulatory_fact_document", standard: "regulatory_fact_document", guidance: "regulatory_fact_document", framework: "regulatory_fact_document", technology: "technology_profile", innovation: "technology_profile", tool: "technology_profile", regional_data: "operations_profile", market_signal: "market_signal_brief", initiative: "market_signal_brief", research_finding: "research_summary" };
 const MIN_SECTIONS = { regulatory_fact_document: 8, technology_profile: 7, operations_profile: 7, market_signal_brief: 7, research_summary: 5 };
 const TOPIC_VOCAB = new Set(["emissions", "fuels", "transport", "reporting", "packaging", "corridors", "research"]);
@@ -98,6 +102,10 @@ console.log(`\nper-item detail -> scripts/_diag/_conformance.json`);
 const idOf = new Map(items.map((it) => [it.legacy_id || it.id.slice(0, 8), it.id]));
 const failedById = new Map(perItem.filter((p) => p.failed.length > 0).map((p) => [idOf.get(p.key), p.failed]));
 const conformantIds = new Set(perItem.filter((p) => p.failed.length === 0).map((p) => idOf.get(p.key)));
+// provenance per item — drives the RD-28-aware recommended_action (operator ruling 2026-07-13, item 2/3):
+// a VERIFIED (resting-state) item gets a HELD action (no paid regen, RD-28); only non-verified items get the
+// actionable "regenerate" action. Detection stays honest either way (the flag is still raised).
+const provById = new Map(items.map((it) => [it.id, String(it.provenance_status || "").toLowerCase()]));
 
 const existing = await readAll("integrity_flags", "id,subject_ref,status", { match: (q) => q.eq("created_by", AUDIT_TAG) });
 const openFlagByRef = new Map(existing.filter((f) => f.status === "open").map((f) => [f.subject_ref, f.id]));
@@ -111,27 +119,44 @@ if (!APPLY) {
   const rows = [];
   for (const [id, failed] of failedById) {
     if (!id || openFlagByRef.has(id)) continue; // already flagged
+    const held = provById.get(id) === "verified"; // RD-28 resting-state → held, no paid regen
+    const recommended_actions = held
+      ? [{ action: "held; no regeneration; reopens on change-evidence or a contract migration", rationale: "RD-28 resting-state: a verified item is not paid-re-grounded absent change-evidence. Detection is honest; the ACTION is held. The item-5 flag-age audit treats this as a valid long-dwell (held-with-named-reopener), not a dwell violation.", hold_class: "rd28-resting-state", reopens_on: ["change-evidence", "contract-migration"] }]
+      : [{ action: "regenerate under current skill contract", rationale: "conform to env-policy format/severity/topic-vocab/citation rules + analysis-construction-spec section/grounding spec" }];
     rows.push({
       category: "data_quality", subject_type: "item", subject_ref: id,
-      description: `Skill-conformance audit: brief fails [${failed.join(", ")}] vs current skill contract — needs regeneration under current skills (env-policy 13-field contract + analysis-construction-spec).`,
-      recommended_actions: [{ action: "regenerate under current skill contract", rationale: "conform to env-policy format/severity/topic-vocab/citation rules + analysis-construction-spec section/grounding spec" }],
+      description: `Skill-conformance audit: brief fails [${failed.join(", ")}] vs live contract ${CURRENT_CONTRACT}.${held ? " RD-28 HELD (verified resting-state): no regeneration; reopens on change-evidence or a contract migration." : " Non-verified — regenerate under current skills."}`,
+      recommended_actions,
       status: "open", created_by: AUDIT_TAG,
     });
   }
-  // batch insert
-  for (let i = 0; i < rows.length; i += 200) {
-    const { error } = await sb.from("integrity_flags").insert(rows.slice(i, i + 200));
-    if (error) { console.log("INSERT error:", error.message); break; } inserted += Math.min(200, rows.length - i);
+  const heldCount = rows.filter((r) => r.recommended_actions[0].hold_class === "rd28-resting-state").length;
+  const CITE = { skill: "remediation-discipline", reason: "flag-system item 2 (operator ruling 2026-07-13): skill-conformance C1 re-baseline to live contract " + CURRENT_CONTRACT + " — mint newly-stale flags (RD-28-held action for verified resting-state; detection stays honest)." };
+  // guarded insert (rule-015: writes go through the guarded path — snapshot + cite + reversibility, never the read client)
+  for (const row of rows) {
+    try { await guardedInsert("integrity_flags", row, { cite: CITE }); inserted++; }
+    catch (e) { console.log("INSERT error:", e.message); break; }
   }
-  // resolve flags for items now conformant
+  // resolve flags for items now conformant — WITH ATTRIBUTION (operator ruling 2026-07-13: a null-note
+  // closure is forbidden; every closure carries resolved_by + resolved_at + resolution_note). Was a bare
+  // `update({ status: "resolved" })` — the source of the 50 null-note skill-conformance closures the census found.
+  const nowIso = new Date().toISOString();
+  const RESOLVE_CITE = { skill: "remediation-discipline", reason: "flag-system item 2 (operator ruling 2026-07-13): detector-miscalibration closure — C1 re-baselined to live contract " + CURRENT_CONTRACT + ", item now conformant." };
   for (const id of conformantIds) {
     const fid = openFlagByRef.get(id);
     if (!fid) continue;
-    const { error } = await sb.from("integrity_flags").update({ status: "resolved" }).eq("id", fid);
-    if (!error) resolved++;
+    try {
+      await guardedUpdate("integrity_flags", (q) => q.eq("id", fid), {
+        status: "resolved",
+        resolved_by: "skill-conformance-rebaseline-2026-07-13",
+        resolved_at: nowIso,
+        resolution_note: `Detector re-baselined to the live-emitted contract version ${CURRENT_CONTRACT} (SSOT, was hand-pinned/stale); item re-audited code-only and passes all conformance checks — closed as conformant. No paid regeneration (RD-28 resting-state).`,
+      }, { cite: RESOLVE_CITE });
+      resolved++;
+    } catch (e) { console.log("RESOLVE error:", e.message); }
   }
   // read-back verification
   const after = await readAll("integrity_flags", "id,status", { match: (q) => q.eq("created_by", AUDIT_TAG) });
   const openNow = after.filter((f) => f.status === "open").length;
-  console.log(`\n[persist] INSERTED ${inserted} new flags, RESOLVED ${resolved}. integrity_flags(${AUDIT_TAG}) now: ${after.length} total, ${openNow} open.`);
+  console.log(`\n[persist] INSERTED ${inserted} new flags (${heldCount} RD-28-HELD, ${inserted - heldCount} actionable-regenerate), RESOLVED ${resolved}. integrity_flags(${AUDIT_TAG}) now: ${after.length} total, ${openNow} open.`);
 }
