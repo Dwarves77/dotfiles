@@ -18,7 +18,7 @@
  * "superseded items never mix into active lists" rule.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Resource, ChangeLogEntry } from "@/types/resource";
 import { formatRelative, toDate } from "@/lib/relative-time";
@@ -84,8 +84,17 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
   });
   const total = allRows.length;
 
+  // CLIENT-ONLY relative-time (diagnosis 2026-07-13, React #418): formatRelative() buckets Date.now()-ts, so
+  // computing it in the render body makes the server HTML and the client hydration land in different buckets
+  // ("checked 2 hr ago" vs "3 hr ago") — a hydration text mismatch, widened by any shell caching. Hold a stable
+  // value for SSR + first client render (empty when an audit date exists; the honest no-pass string otherwise),
+  // then fill the relative form post-mount. Matches the shipped briefingDate client-mount pattern (V-07).
   const auditDateObj = toDate(auditDate);
-  const checkedLabel = auditDateObj ? `checked ${formatRelative(auditDateObj)}` : "no detection pass on record";
+  const [checkedLabel, setCheckedLabel] = useState(auditDateObj ? "" : "no detection pass on record");
+  useEffect(() => {
+    setCheckedLabel(auditDateObj ? `checked ${formatRelative(auditDateObj)}` : "no detection pass on record");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auditDate]);
 
   return (
     <>
