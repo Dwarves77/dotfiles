@@ -142,8 +142,15 @@ async function recordSpendCall(model: string, inputTokens: number, outputTokens:
     // PROMPT-CACHE savings telemetry (Phase-3a): what these cache reads saved vs full input rate —
     // the number the block-close savings report sums. Rides errors[].telemetry (no DDL).
     const cacheSavedUsd = Number(cacheSavingsUsd(cacheReadTokens, inputUsdPerMtokForModel(model)).toFixed(6));
+    // I1 (attribution): write BOTH intelligence_item_id and source_id from the ticket. A paid row that is both
+    // item- AND source-anonymous is the $65.36 July hole — surface it loudly (the ticket should carry at least
+    // one). Enforcement of "no such row" is the I1 data-invariant audit; here we make the columns writable +
+    // warn so a mis-ticketed paid caller is not silent.
+    if (cost > 0 && ticket.itemId == null && ticket.sourceId == null) {
+      console.warn(`[spend] I1 ATTRIBUTION GAP: paid $${cost.toFixed(4)} call on ticket "${ticket.purpose}" carries neither itemId nor sourceId — the agent_runs row will be attribution-blind. Set one on the SpendTicket.`);
+    }
     const { error } = await svc().from("agent_runs").insert({
-      intelligence_item_id: ticket.itemId ?? null, source_url: null, fetch_method: "spend-call",
+      intelligence_item_id: ticket.itemId ?? null, source_id: ticket.sourceId ?? null, source_url: null, fetch_method: "spend-call",
       started_at: nowIso, ended_at: nowIso, status: "success",
       cost_usd_estimated: Number(cost.toFixed(6)),
       errors: [{ telemetry: { model, inputTokens, outputTokens, cacheWriteTokens, cacheReadTokens, cacheSavedUsd, purpose: ticket.purpose, authorizationRef: ticket.authorizationRef ?? null } }],
