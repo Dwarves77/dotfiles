@@ -16,6 +16,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [[ADR-010-docs-taxonomy-and-brain-conventions]] — Docs taxonomy, INDEX discipline, and two-repo memory architecture (accepted)
 - [[ADR-011-ddl-authority-delegation]] — DDL apply authority: additive/low-risk delegated with ledger-recorded identity + read-back; break-risky classes (RLS, drops, customer-read-path) stay operator-window; + DELEGATED-WITH-PROOF amendment (mig-160 applied 2026-07-08 under it, 56→0 pinned, customer path unchanged) (accepted)
 - [[ADR-012-intake-cadence-and-launch-exit-test]] — Intake is manual-triggered by design (auto-cadence built + dormant); the cadence/schedule/scan/fetch-now mechanism already EXISTS (scrape-schedule.ts + pause-global + admin/scan), so the ruling is wire-not-build; hold gates scheduled fetching only, manual run is a signed manifest-bound exception (2nd caller); + the 9-clause launch-complete exit test (accepted)
+- [[ADR-013-phase3-closure-and-scope-doctrine-tightening]] — Snapshot-first Phase-3 restitution CLOSED not run (population gone: June-undispositioned 0, the 197 was status-only = 37 live + 160 archived); cheap-verify (#296) is the standing mechanism for Oct-31 deferral exits + dwell crossings; report-scope doctrine tightened to require the archival predicate (live-only vs status-only) on any population count (accepted)
 
 ## inventories
 
