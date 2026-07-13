@@ -2,6 +2,10 @@
 
 One line per living doc. archive/ holds superseded notes and machine evidence and is not indexed.
 
+## board
+
+- [[PROGRAM-BOARD]] — the resume state: full T/C/Unit thread table (state · evidence · deferrals) reconstructed from the repo; standing rule = every session that opens/closes a thread updates it in the same PR. Records the T/C taxonomy-collision finding (numbering is a chat overlay; only T7/T8 have verbatim repo tags) and the T9-not-closed gap.
+
 ## decisions
 
 - [[ADR-001-platform-model]] — Platform model (accepted)
