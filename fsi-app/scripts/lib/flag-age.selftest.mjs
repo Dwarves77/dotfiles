@@ -42,6 +42,30 @@ test("ALL subject_types are covered (surface/source/system, not just item)", () 
   assert.equal(surface.pastBound, true, "surface-scoped old flag must trip (the dwell gap this closes)");
 });
 
+test("quarantined-item flag is EXEMPT (owned by quarantine-disposition-audit); non-quarantined item TRIPS", () => {
+  const qIds = new Set(["q-item"]);
+  // old set_provenance flag on a LIVE-QUARANTINED item -> exempt (its dwell is quarantine-disposition's domain)
+  const onQ = classifyOpenFlag(flag({ cb: "set_provenance_status_trigger", st: "item", sr: "q-item", at: daysAgo(90) }), NOW, DWELL_BOUND_DAYS, qIds);
+  assert.equal(onQ.exempt, true);
+  assert.match(onQ.exemptReason, /quarantined-item/);
+  // same-age skill-conformance flag on a NON-quarantined (verified) item -> still TRIPS (flag-age's own gap)
+  const onV = classifyOpenFlag(flag({ cb: "skill-conformance-audit", st: "item", sr: "v-item", at: daysAgo(90) }), NOW, DWELL_BOUND_DAYS, qIds);
+  assert.equal(onV.pastBound, true);
+  // without the quarantined set passed, no quarantined-item exemption (safe default)
+  assert.equal(classifyOpenFlag(flag({ cb: "set_provenance_status_trigger", st: "item", sr: "q-item", at: daysAgo(90) }), NOW).pastBound, true);
+});
+
+test("summarize counts the quarantined-item exemption separately", () => {
+  const qIds = new Set(["qq"]);
+  const flags = [
+    flag({ id: "p", cb: "set_provenance_status_trigger", st: "item", sr: "qq", at: daysAgo(90) }), // exempt (quarantined)
+    flag({ id: "t", cb: "null-tier-host", st: "source", at: daysAgo(45) }),                        // past-bound
+  ];
+  const s = summarizeFlagAges(flags, NOW, DWELL_BOUND_DAYS, qIds);
+  assert.equal(s.exemptQuarantinedCount, 1);
+  assert.equal(s.pastBoundCount, 1);
+});
+
 test("summarize splits past-bound vs held and groups by mechanism", () => {
   const flags = [
     flag({ id: "a", cb: "null-tier-host", st: "source", at: daysAgo(45) }),

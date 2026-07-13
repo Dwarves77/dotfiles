@@ -194,10 +194,25 @@ export async function guardedInsert(table, row, { cite, select = "*", stampIso }
   return { inserted: res.data, snapshot: snapFile };
 }
 
-/** Guarded ARCHIVE — convenience over guardedUpdate (sets is_archived + archive_reason). */
+/** The archive patch for a table. Extracted pure so the status-reset invariant is unit-testable.
+ *  ROOT-CAUSE FIX (operator ruling 2026-07-13, Part A): an ARCHIVED intelligence_item is terminal and
+ *  sits OUTSIDE the customer read gate (is_archived=false AND provenance_status='verified'); it must NOT
+ *  retain provenance_status='verified'. Leaving it 'verified' minted the stale-verified cache class (168
+ *  archived rows read 'verified' while the live validator quarantines them — status-is-a-cache disagreeing
+ *  with the gate). Archiving now resets the status to 'unverified' (honest neutral: an archived row is not
+ *  a verified customer brief, and it is not a live quarantine investigation either — quarantine-disposition-
+ *  audit scopes to is_archived=false, so 'unverified' cannot re-trip it). Only intelligence_items carries
+ *  provenance_status. */
+export function archivePatch(table, archive_reason) {
+  const patch = { is_archived: true, archive_reason };
+  if (table === "intelligence_items") patch.provenance_status = "unverified";
+  return patch;
+}
+
+/** Guarded ARCHIVE — convenience over guardedUpdate (sets is_archived + archive_reason + status reset). */
 export async function archiveRows(table, ids, { cite, archive_reason, stampIso } = {}) {
   if (!archive_reason) throw new Error("db.mjs archiveRows: archive_reason required.");
-  return guardedUpdate(table, (qb) => qb.in("id", ids), { is_archived: true, archive_reason }, { cite, stampIso });
+  return guardedUpdate(table, (qb) => qb.in("id", ids), archivePatch(table, archive_reason), { cite, stampIso });
 }
 
 // ---------------------------------------------------------------------------
