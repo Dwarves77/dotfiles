@@ -30,6 +30,15 @@ test("ALLOWLIST passes: emergency-stop / SC-3 override / community controls are 
   assert.equal(hits.length, 0, "allowlisted human-control lines are exempt");
 });
 
+test("NEGATION / retirement context passes (the gate is denied, not asserted)", () => {
+  const hits = scanAdminPhrases([
+    { path: "a.tsx", text: `// Approve / reject RETIRED (Unit 0c): the machine gates ARE the approval.` },
+    { path: "b.tsx", text: `staged-updates surface is VISIBILITY-ONLY — there is no human approve/reject.` },
+    { path: "c.tsx", text: `Resolves via the intake cycle. No human approve/reject.` },
+  ]);
+  assert.equal(hits.length, 0, "retirement + negation copy must not trip (the gate is being removed)");
+});
+
 test("POST-RELABEL visibility copy PASSES (the six Unit-0c sites)", () => {
   const relabeled = [
     { path: "AdminDashboard.tsx", text: `sub: "Staged intelligence — machine-gated intake, visibility only (moved from customer-facing /research per design rebuild).", tabs: ["Staged"],` },

@@ -261,7 +261,7 @@ export function UserProfilePage({ userId, userEmail }: Props) {
                   href="/admin"
                   style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}
                 >
-                  items awaiting review →
+                  items for review →
                 </a>
               }
             />

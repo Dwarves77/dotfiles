@@ -28,7 +28,7 @@ import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { useSourceStore } from "@/stores/sourceStore";
 import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
 import type { Source, ProvisionalSource, SourceConflict } from "@/types/source";
-import { CheckCircle, XCircle, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { PageMasthead } from "@/components/shell/PageMasthead";
 import { SourceHealthDashboard } from "@/components/sources/SourceHealthDashboard";
@@ -111,8 +111,8 @@ const SECTIONS: SectionDef[] = [
   },
   {
     name: "Research pipeline",
-    sub: "Editorial draft-staging (moved from customer-facing /research per design rebuild).",
-    tabs: ["Draft staging"],
+    sub: "Machine-pipeline visibility — draft items and their machine-gated status (moved from customer-facing /research per design rebuild).",
+    tabs: ["Pipeline"],
   },
   {
     name: "Community pickups",
@@ -218,28 +218,9 @@ export function AdminDashboard({
   // /api/orgs/[org_id]/members directly (S2-10 fix). The previous inline addMember here was
   // BROKEN — it discarded the entered email and re-inserted the caller's own user_id.
 
-  // Approve / reject a staged update.
-  const handleUpdate = async (id: string, action: "approve" | "reject") => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const resp = await fetch("/api/staged-updates", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({ id, action }),
-      });
-      const result = await resp.json();
-      if (result.error) showToast("Error: " + result.error);
-      else {
-        showToast(`Update ${action}d`);
-        setStagedUpdates((prev) => prev.filter((u) => u.id !== id));
-      }
-    } catch (e: any) {
-      showToast("Error: " + e.message);
-    }
-  };
+  // Approve / reject RETIRED (Unit 0c / RD-20 residual closing): the machine gates ARE the approval. The
+  // staged-updates surface is VISIBILITY-ONLY — there is no human approve/reject. A staged row resolves via
+  // the machine-gated intake cycle (materialized / rejected-with-reason / routed-to-the-flag-resolver).
 
   const [scanTopic, setScanTopic] = useState("");
   const [scanJurisdiction, setScanJurisdiction] = useState("");
@@ -652,12 +633,12 @@ export function AdminDashboard({
 
   function renderStaged() {
     return (
-      <PlateCard title="Staged updates" meta={`${stagedUpdates.length} pending`}>
+      <PlateCard title="Staged updates" meta={`${stagedUpdates.length} staged`}>
         <div style={{ padding: 20, display: "grid", gap: 12 }}>
           {stagedUpdates.length === 0 ? (
             <PendingFrame
-              heading="No staged updates pending."
-              body="When the monitoring worker detects changes, worker-staged regulations appear here for approval before they materialize into customer-facing briefs."
+              heading="No staged updates in transit."
+              body="When the monitoring worker detects changes, worker-staged regulations appear here as they flow through the machine-gated intake cycle (materialized / rejected-with-reason). No human approval step."
             />
           ) : (
             stagedUpdates.map((update) => (
@@ -708,15 +689,19 @@ export function AdminDashboard({
                   </p>
                 )}
                 <ProvenanceFailures failures={extractFailures(update)} />
-                <div style={{ display: "flex", gap: 8 }}>
-                  <Button variant="primary" size="sm" onClick={() => handleUpdate(update.id, "approve")}>
-                    <CheckCircle size={12} />
-                    Approve
-                  </Button>
-                  <Button variant="danger" size="sm" onClick={() => handleUpdate(update.id, "reject")}>
-                    <XCircle size={12} />
-                    Reject
-                  </Button>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span
+                    style={{
+                      fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase",
+                      padding: "2px 8px", borderRadius: 4, color: "var(--text-2)",
+                      border: "1px solid var(--color-border-medium)", background: "var(--raised)",
+                    }}
+                  >
+                    Staged · machine-gated
+                  </span>
+                  <span style={{ fontSize: 11, color: "var(--text-2)" }}>
+                    Resolves via the intake cycle — materialized / rejected-with-reason / routed-to-flag. No human approve/reject.
+                  </span>
                 </div>
               </div>
             ))
