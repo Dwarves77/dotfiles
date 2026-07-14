@@ -64,6 +64,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [dead-code-disposition-2026-05-21](./plans/dead-code-disposition-2026-05-21.md) — Dead-Code Disposition Report — Caro's Ledge (2026-05-21)
 - [dispatch-2.5-writer-redistribution-prework-2026-05-15](./plans/dispatch-2.5-writer-redistribution-prework-2026-05-15.md) — Dispatch 2.5 Prework: Writer Redistribution
 - [dispatch-spec-corrections-2026-05-10](./plans/dispatch-spec-corrections-2026-05-10.md) — Dispatch spec corrections — 2026-05-10
+- [fetch-align-diff-engine-2026-07-14](./plans/fetch-align-diff-engine-2026-07-14.md) — Wave-β B3 amendment-diff engine: $0 deterministic core BUILT (segment/align/delta/route + 7 goldens); fetch+persist deferred to tier-3 (rides GATE A)
 - [fix-d-scope-2026-05-23](./plans/fix-d-scope-2026-05-23.md) — Fix D scope (2026-05-23)
 - [ingest-pipeline-investigation-2026-05-22](./plans/ingest-pipeline-investigation-2026-05-22.md) — Ingest Pipeline Investigation: Staleness + Domain Classification Leakage
 - [ingest-restart-sequencing-2026-05-22](./plans/ingest-restart-sequencing-2026-05-22.md) — Ingest restart sequencing + leakage prerequisite (2026-05-22)
