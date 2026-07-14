@@ -167,7 +167,7 @@ export function IntegrityFlagsView() {
           >
             Briefs where the agent self-reported it could not verify the source
             URL or the source content didn&apos;t match the request. Each row
-            needs a human decision.
+            is surfaced for review — the operator may resolve it.
           </p>
         </div>
         <Button

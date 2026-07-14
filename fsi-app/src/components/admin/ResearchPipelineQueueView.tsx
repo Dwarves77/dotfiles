@@ -3,11 +3,10 @@
 /**
  * ResearchPipelineQueueView — H4 (2026-05-25), Phase 4 HIGH RISK.
  *
- * The canonical editorial staging surface. Per platform-intent SKILL
- * Section 5 correction, the Research editorial draft-staging UI moved
- * out of customer-facing /research and into /admin. This tab is where
- * platform admins review draft intelligence_items, decide whether each
- * one is ready for customer surfaces, and act:
+ * Machine-pipeline VISIBILITY surface (Unit 0c, entry-29 conformance): the human publish/archive editorial
+ * gate is RETIRED — customer visibility is machine-gated on provenance_status='verified' (data.ts), not the
+ * vestigial pipeline_stage. Per platform-intent SKILL Section 5, this moved out of customer-facing /research
+ * and into /admin. It shows each draft intelligence_item's machine-gated status (no human act):
  *
  *   - Publish (sets pipeline_stage='published'; item appears in
  *     customer-facing /research, /market, /operations, /regulations
@@ -28,7 +27,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { Button } from "@/components/ui/Button";
-import { RefreshCw, CheckCircle2, Archive as ArchiveIcon, ExternalLink } from "lucide-react";
+import { RefreshCw, ExternalLink } from "lucide-react";
 import { formatRelative, toDate } from "@/lib/relative-time";
 
 interface DraftItem {
@@ -42,6 +41,7 @@ interface DraftItem {
   added_date: string | null;
   last_regenerated_at: string | null;
   agent_integrity_flag: boolean | null;
+  provenance_status: string | null;
   source: { id: string; name: string | null; category: string | null } | null;
 }
 
@@ -68,14 +68,6 @@ export function ResearchPipelineQueueView() {
   const [items, setItems] = useState<DraftItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pendingId, setPendingId] = useState<string | null>(null);
-  const [flash, setFlash] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
-
-  const showFlash = (kind: "ok" | "err", text: string) => {
-    setFlash({ kind, text });
-    setTimeout(() => setFlash(null), 4000);
-  };
-
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -83,7 +75,7 @@ export function ResearchPipelineQueueView() {
       const { data, error: queryErr } = await supabase
         .from("intelligence_items")
         .select(
-          "id, legacy_id, title, summary, item_type, domain, severity, added_date, last_regenerated_at, agent_integrity_flag, source:sources(id, name, category)"
+          "id, legacy_id, title, summary, item_type, domain, severity, added_date, last_regenerated_at, agent_integrity_flag, provenance_status, source:sources(id, name, category)"
         )
         .eq("pipeline_stage", "draft")
         .eq("is_archived", false)
@@ -108,39 +100,10 @@ export function ResearchPipelineQueueView() {
     load();
   }, [load]);
 
-  const publish = async (id: string) => {
-    setPendingId(id);
-    try {
-      const { error: updErr } = await supabase
-        .from("intelligence_items")
-        .update({ pipeline_stage: "published" })
-        .eq("id", id);
-      if (updErr) throw new Error(updErr.message);
-      showFlash("ok", "Published — item is now on customer surfaces.");
-      await load();
-    } catch (e: any) {
-      showFlash("err", e.message || "Publish failed");
-    } finally {
-      setPendingId(null);
-    }
-  };
-
-  const archive = async (id: string) => {
-    setPendingId(id);
-    try {
-      const { error: updErr } = await supabase
-        .from("intelligence_items")
-        .update({ is_archived: true })
-        .eq("id", id);
-      if (updErr) throw new Error(updErr.message);
-      showFlash("ok", "Archived — item removed from all surfaces.");
-      await load();
-    } catch (e: any) {
-      showFlash("err", e.message || "Archive failed");
-    } finally {
-      setPendingId(null);
-    }
-  };
+  // Publish / archive RETIRED (Unit 0c, operator ruling 2026-07-13 — entry-29 conformance): the editorial
+  // human gate IS the violation. Customer visibility is machine-gated on provenance_status='verified'
+  // (data.ts) — NOT the vestigial pipeline_stage this button set — so removing the human publish strands
+  // nothing. This view is now machine-pipeline VISIBILITY: it shows each draft item's machine-gated status.
 
   return (
     <div className="space-y-4">
@@ -150,7 +113,7 @@ export function ResearchPipelineQueueView() {
             Research pipeline review
           </h2>
           <p className="text-xs" style={{ color: "var(--color-text-secondary, var(--text-2))", marginTop: 4 }}>
-            Editorial draft-staging queue. Each row is an intelligence item awaiting publish-decision.
+            Machine-pipeline visibility. Each row shows a draft item&apos;s machine-gated status — customer visibility gates on provenance_status=&apos;verified&apos;, not a human publish.
             Publishing surfaces the item to customer-facing /research, /market, /operations, or /regulations
             depending on its category routing.
           </p>
@@ -161,20 +124,6 @@ export function ResearchPipelineQueueView() {
         </Button>
       </div>
 
-      {flash && (
-        <div
-          style={{
-            padding: "10px 14px",
-            border: `1px solid ${flash.kind === "ok" ? "var(--success)" : "var(--critical)"}`,
-            background: flash.kind === "ok" ? "var(--success-bg)" : "var(--critical-bg)",
-            color: flash.kind === "ok" ? "var(--success)" : "var(--critical)",
-            borderRadius: "var(--r-sm)",
-            fontSize: 12,
-          }}
-        >
-          {flash.text}
-        </div>
-      )}
 
       {loading && (
         <p style={{ fontSize: 12.5, color: "var(--muted)", fontStyle: "italic" }}>Loading queue…</p>
@@ -197,7 +146,6 @@ export function ResearchPipelineQueueView() {
             const addedDate = toDate(item.added_date);
             const lastRegen = toDate(item.last_regenerated_at);
             const sevTone = item.severity ? SEVERITY_TONE[item.severity] : null;
-            const isPending = pendingId === item.id;
             return (
               <div
                 key={item.id}
@@ -294,24 +242,16 @@ export function ResearchPipelineQueueView() {
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => publish(item.id)}
-                    disabled={isPending}
+                  <span
+                    style={{
+                      fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase",
+                      padding: "3px 8px", borderRadius: 4, textAlign: "center", color: "var(--muted)",
+                      border: "1px solid var(--color-border-medium)",
+                    }}
+                    title="Customer visibility is machine-gated on provenance_status='verified' — there is no human publish."
                   >
-                    <CheckCircle2 size={14} />
-                    {isPending ? "Publishing…" : "Publish"}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => archive(item.id)}
-                    disabled={isPending}
-                  >
-                    <ArchiveIcon size={14} />
-                    Archive draft
-                  </Button>
+                    {item.provenance_status === "verified" ? "Verified · on surfaces" : (item.provenance_status ?? "in pipeline")}
+                  </span>
                   <Link
                     href={`/research/${encodeURIComponent(slug)}`}
                     target="_blank"

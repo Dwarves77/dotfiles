@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-
-import { revalidateTag } from "next/cache";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
-import { APP_DATA_TAG } from "@/lib/data";
-import { applyStagedUpdate } from "@/lib/intake/apply-staged-update";
 import { isPlatformAdmin } from "@/lib/auth/admin";
-import { isGloballyPaused } from "@/lib/api/pause";
-import { start } from "workflow/api";
-import { generateBriefWorkflow } from "@/workflows/generate-brief";
 
-
-// GET /api/staged-updates — list pending updates
+// GET /api/staged-updates — list pending updates (VISIBILITY only; the admin surface renders staged /
+// minted / rejected + why, never a human approve/reject — RD-20, Unit 0c).
 export async function GET(request: NextRequest) {
   const auth = await requireAuth(request);
   if (isAuthError(auth)) return auth;
@@ -24,8 +17,7 @@ export async function GET(request: NextRequest) {
     const supabase = getServiceSupabase();
     // Platform-admin gate (DEEP-AUDIT S1-2 / P0-2). This route lives OUTSIDE
     // /api/admin/* and previously checked only requireAuth, so any authenticated
-    // customer could list/approve/reject/materialize staged intelligence into
-    // production via the service-role client. Gate on profiles.is_platform_admin.
+    // customer could list staged intelligence. Gate on profiles.is_platform_admin.
     const admin = await isPlatformAdmin(auth.userId, supabase);
     if (!admin) {
       return NextResponse.json(
@@ -52,286 +44,18 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/staged-updates — approve or reject an update
-//
-// W1.B materialization-pipeline contract (see migration 034 +
-// docs/W1B-approval-handler-analysis.md):
-//
-//  Approving a staged_update MUST result in EITHER:
-//    (a) a new/updated row in the target table (intelligence_items, sources, …)
-//        AND staged_updates.status='approved' AND materialized_at=NOW()
-//        AND (for new_item) materialized_item_id=<new intel id>
-//        AND materialization_error IS NULL, OR
-//    (b) staged_updates.status='approved'  (intent recorded — review decision is durable)
-//        AND materialized_at IS NULL
-//        AND materialization_error=<non-null reason string>
-//        AND a 500 response so the caller knows the apply step failed.
-//
-//  Idempotency: if a row is already 'approved', we re-attempt materialization
-//  iff materialized_at IS NULL. If it is already materialized we return the
-//  prior materialized_item_id without inserting a duplicate.
-export async function POST(request: NextRequest) {
-  const auth = await requireAuth(request);
-  if (isAuthError(auth)) return auth;
-
-  const limited = checkRateLimit(auth.userId);
-  if (limited) return limited;
-
-  try {
-    const body = await request.json();
-    const { id, action, reviewer_notes } = body;
-
-    if (!id || !action) {
-      return NextResponse.json(
-        { error: "Missing required fields: id, action" },
-        { status: 400 }
-      );
-    }
-
-    if (!["approve", "reject"].includes(action)) {
-      return NextResponse.json(
-        { error: "Action must be 'approve' or 'reject'" },
-        { status: 400 }
-      );
-    }
-
-    const supabase = getServiceSupabase();
-
-    // Platform-admin gate (DEEP-AUDIT S1-2 / P0-2): approve/reject/materialize
-    // is admin-only. Without this, any authenticated customer could push staged
-    // intelligence into production. Mirrors /api/admin/users.
-    const admin = await isPlatformAdmin(auth.userId, supabase);
-    if (!admin) {
-      return NextResponse.json(
-        { error: "Platform admin access required" },
-        { status: 403, headers: rateLimitHeaders(auth.userId) }
-      );
-    }
-
-    const { data: update, error: fetchError } = await supabase
-      .from("staged_updates")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    if (fetchError || !update) {
-      return NextResponse.json(
-        { error: "Staged update not found" },
-        { status: 404 }
-      );
-    }
-
-    // Idempotency for re-approval of orphaned approved rows:
-    // - status='pending'  → normal flow
-    // - status='approved' AND materialized_at IS NULL → retry materialization
-    // - status='approved' AND materialized_at IS NOT NULL → return prior result
-    // - status='rejected' → 409
-    if (update.status === "rejected") {
-      return NextResponse.json(
-        { error: "Update already rejected" },
-        { status: 409 }
-      );
-    }
-
-    // Wave-a Track B4 idempotency hardening: a second approve of an already-materialized row must be a
-    // no-op, never a duplicate mint. Key on EITHER materialized_at OR materialized_item_id — the phantom
-    // reviewer_notes 500 (P1 #5) could leave a row whose item was minted but whose materialized_at write
-    // failed; keying on materialized_item_id too closes that retry-re-mint hole even before the column
-    // fix lands.
-    if (
-      update.status === "approved" &&
-      (update.materialized_at || update.materialized_item_id)
-    ) {
-      return NextResponse.json(
-        {
-          success: true,
-          action: "approve",
-          id,
-          materialized_item_id: update.materialized_item_id ?? null,
-          idempotent: true,
-        },
-        { headers: rateLimitHeaders(auth.userId) }
-      );
-    }
-
-    if (action === "reject") {
-      if (update.status !== "pending") {
-        return NextResponse.json(
-          { error: `Update already ${update.status}` },
-          { status: 409 }
-        );
-      }
-      const { error: rejectError } = await supabase
-        .from("staged_updates")
-        .update({
-          status: "rejected",
-          reviewed_by: auth.userId,
-          reviewed_at: new Date().toISOString(),
-          ...(reviewer_notes ? { reviewer_notes } : {}),
-        })
-        .eq("id", id);
-
-      if (rejectError) {
-        return NextResponse.json({ error: rejectError.message }, { status: 500 });
-      }
-
-      // Invalidate the workspace data cache so admins see the rejected
-      // row removed from the queue immediately, not after the 60s TTL.
-      revalidateTag(APP_DATA_TAG, "max");
-
-      return NextResponse.json(
-        { success: true, action, id },
-        { headers: rateLimitHeaders(auth.userId) }
-      );
-    }
-
-    // ── action === "approve" ─────────────────────────────────────────────
-    //
-    // Order matters. We FIRST attempt to materialize the row. Only on
-    // success do we mark status='approved' with materialized_at. On
-    // failure we still mark status='approved' (the human reviewer's
-    // intent is durable and visible) but record materialization_error
-    // so the audit script + W4 backfill pipeline can pick it up.
-    //
-    // Previously we flipped status='approved' first, then ran apply.
-    // When apply failed the row was orphaned: status='approved' with no
-    // intel item, no error column, no recovery path. That bug produced
-    // the 24 orphans this migration is unblocking.
-
-    const materializeResult = await applyStagedUpdate(supabase, update);
-
-    const reviewedAt = new Date().toISOString();
-    const baseFields: Record<string, unknown> = {
-      status: "approved",
-      reviewed_by: auth.userId,
-      reviewed_at: reviewedAt,
-      ...(reviewer_notes ? { reviewer_notes } : {}),
-    };
-
-    if (materializeResult.success) {
-      const { error: persistError } = await supabase
-        .from("staged_updates")
-        .update({
-          ...baseFields,
-          materialized_at: reviewedAt,
-          materialized_item_id: materializeResult.itemId ?? null,
-          materialization_error: null,
-        })
-        .eq("id", id);
-
-      if (persistError) {
-        // The intel item exists but we couldn't record success on the
-        // staged_update. Do NOT swallow — but first make a best-effort minimal
-        // record of the materialization (status + the two materialized_* pointers,
-        // WITHOUT the optional reviewer_notes that may be the very cause of the
-        // failure). This guarantees a retry sees materialized_at/materialized_item_id
-        // and no-ops via the idempotency guard above instead of re-minting a
-        // duplicate (Wave-a Track B4).
-        await supabase
-          .from("staged_updates")
-          .update({
-            status: "approved",
-            reviewed_by: auth.userId,
-            reviewed_at: reviewedAt,
-            materialized_at: reviewedAt,
-            materialized_item_id: materializeResult.itemId ?? null,
-            materialization_error: `notes-write failed, pointer backfilled: ${persistError.message}`,
-          })
-          .eq("id", id);
-
-        return NextResponse.json(
-          {
-            error: `Materialization succeeded but staged_updates row failed to update: ${persistError.message}`,
-            materialized_item_id: materializeResult.itemId ?? null,
-          },
-          { status: 500 }
-        );
-      }
-
-      // Approve→generate loop-closer (DEEP-AUDIT S1-11, option-2 item b). A
-      // newly-MINTED item (materializeResult.itemId is populated ONLY for
-      // new_item — the mint went through mintIntelligenceItem, the F13
-      // intake-gate chokepoint) otherwise sits as an invisible stub: no
-      // full_brief, gated out of every customer surface (verified-only).
-      //
-      // DORMANT by construction, behind the autonomous-loop flag: while the
-      // loop is paused (its current state), this does NOT fire — generation
-      // begins only when the operator flips the loop on (the phase flip). Any
-      // run it starts still routes through the spend chokepoint (F15) and the
-      // fetch hold gate (F16 — 503s while the scrape hold is live), so it fails
-      // closed twice over. Existing-item updates carry no itemId and never
-      // trigger here, so this path only ever fires for a minted new_item.
-      if (materializeResult.itemId) {
-        const paused = await isGloballyPaused(supabase);
-        if (paused) {
-          console.log(
-            `[staged-updates] approve→generate DORMANT (autonomous loop paused) for minted item ${materializeResult.itemId} — the brief generates when the loop is enabled.`
-          );
-        } else {
-          try {
-            const run = await start(generateBriefWorkflow, [materializeResult.itemId]);
-            console.log(
-              `[staged-updates] approve→generate started run ${run?.runId ?? "?"} for minted item ${materializeResult.itemId}`
-            );
-          } catch (genErr) {
-            // Non-fatal: the item is materialized + approved. Generation can be
-            // re-triggered via /api/agent/run. Do NOT fail the approval here.
-            console.error(
-              `[staged-updates] approve→generate trigger failed for ${materializeResult.itemId}:`,
-              genErr
-            );
-          }
-        }
-      }
-
-      // Invalidate the workspace data cache — the new/updated
-      // intelligence_item should appear on /, /regulations, /map etc.
-      // immediately, not after the 60s TTL.
-      revalidateTag(APP_DATA_TAG, "max");
-
-      return NextResponse.json(
-        {
-          success: true,
-          action,
-          id,
-          materialized_item_id: materializeResult.itemId ?? null,
-        },
-        { headers: rateLimitHeaders(auth.userId) }
-      );
-    }
-
-    // Materialization failed. Record the failure on the staged_update so
-    // the audit script + W4 retry tooling can find it. Caller gets a 500.
-    const failureReason = materializeResult.error || "unknown materialization error";
-    const { error: failurePersistError } = await supabase
-      .from("staged_updates")
-      .update({
-        ...baseFields,
-        materialized_at: null,
-        materialized_item_id: null,
-        materialization_error: failureReason,
-      })
-      .eq("id", id);
-
-    if (failurePersistError) {
-      // Record-the-failure write itself failed. This is rare (DB-level
-      // problem) but we must not pretend success.
-      return NextResponse.json(
-        {
-          error: `Materialization failed (${failureReason}); also failed to record error on staged_updates: ${failurePersistError.message}`,
-        },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(
-      {
-        error: `Approved but failed to apply: ${failureReason}`,
-        materialization_error: failureReason,
-      },
-      { status: 500 }
-    );
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
-  }
+// POST /api/staged-updates — RETIRED (Unit 0c, RD-20 residual closing). The human-approval path is CLOSED:
+// the machine gates ARE the approval. A staged_update resolves through the machine-gated intake cycle
+// (runIntakeCycle / applyStagedUpdate — source↔claim-type congruence + subject dedup + the mint chokepoint +
+// the grounding judge) to materialized / rejected-with-reason / routed-to-the-flag-resolver — never a human
+// approve/reject. The admin surface is visibility-only (staged / minted / rejected + why). Returns 410 Gone.
+export async function POST() {
+  return NextResponse.json(
+    {
+      error:
+        "gone: the staged-updates human-approval path is retired (Unit 0c / RD-20). The machine gates ARE the approval — staged updates resolve through the machine-gated intake cycle (materialized / rejected-with-reason / routed-to-flag). This surface is visibility-only.",
+      retired: true,
+    },
+    { status: 410 }
+  );
 }

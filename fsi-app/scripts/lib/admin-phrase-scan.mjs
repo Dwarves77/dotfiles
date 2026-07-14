@@ -29,6 +29,7 @@ export const ALLOWLIST = [
   /emergency.?stop|global_processing_paused|scrape.?hold|\bpause\b|\bresume\b/i, // emergency-stop release
   /tier.?override|\bSC-3\b|override_reason/i,                                    // SC-3 tier override
   /\bcommunity\b|promote.?to.?public|moderat/i,                                  // community-is-human-space
+  /\bno human\b|\bretired\b|there is no|not a gate|visibility.?only|may-act/i,   // NEGATION / retirement — the gate is DENIED, not asserted
 ];
 
 /** Is a line exempt (carries an allowlist marker)? Pure. @param {string} line */

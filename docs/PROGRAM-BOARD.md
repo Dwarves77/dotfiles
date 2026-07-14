@@ -321,3 +321,16 @@ Flagged now so it lands deliberately, not improvised when the cron unit arrives.
 **T9 dependency (update):** the machine-gated cutover (`runIntakeCycle`/`manual-intake-run`) is NOT shipped — Part 1 halted, the human-approval path remains, 0 machine-gated runs exist. T9's "first machine-gated run" gate stays UNMET.
 
 **Operator ruling needed to unhalt Parts 1+3:** whether to retire the two live human-approval UIs — AdminDashboard approve/reject AND ResearchPipelineQueueView publish/archive — replacing them with visibility-only (the machine-gated cycle), OR keep them. The route `410` + the copy relabels land WITH that decision.
+
+---
+
+## Unit 0c — COMPLETE (2026-07-13, session 3, unhalt PR)
+
+All five parts landed (the halts lifted by operator ruling). $0.
+- **Part A — EESC:** `eesc.europa.eu` registered at T3 (advisory-agency precedent; europa.eu super-domain is institution-distinct in `institution.ts`, so no collapse); 1 span re-stamped, flag resolved. The europa.eu granularity halt is CLOSED.
+- **Part 1 — human-approval path RETIRED:** `/api/staged-updates` POST → 410; AdminDashboard's approve/reject UI converted to visibility-only (staged · machine-gated; resolves materialized / rejected-with-reason / routed-to-flag). RD-20's residual closed.
+- **Part 3a — Research Pipeline publish/archive RETIRED** (entry-29 conformance): the editorial gate was the violation. `pipeline_stage` is VESTIGIAL — the customer read gate is `provenance_status='verified'` (data.ts), not pipeline_stage — so removing the human publish stranded nothing. Pre-convert state reported: 2 live draft items (1 verified/already-visible, 1 quarantined → machine path), 9 archived drafts. The view is now machine-pipeline visibility.
+- **Part 3b — relabel split:** intake-gate sites → machine-gated visibility (AdminDashboard staged, Research Pipeline, AdminIssuesRail staged/provisional). Legitimate-human-control sites → **may-act** ("the operator may resolve / review / spot-check", never "needs a human pass") — integrity-flag resolution, spot-check; controls stay.
+- **Part 4 — phrase-scan** (from PR #320) re-run post-relabel: **0 residuals** (10 → 3 false-positives on negation/retirement copy → allowlist refined for negation context; golden +1). The SOFT signal is clean.
+
+**T9 line update:** Unit 0c is COMPLETE. The machine-gated intake cutover now exists (approve/reject retired, machine cycle is the path). **The FIRST machine-gated run is the last gate before T9 closes — awaiting the operator's word** (it spends, so it waits on the sanctioned-run go). Until then, 0 machine-gated runs = T9 stays open by evidence, not by missing mechanism.

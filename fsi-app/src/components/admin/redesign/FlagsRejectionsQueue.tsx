@@ -46,7 +46,7 @@ export function FlagsRejectionsQueue() {
       key: "integrity",
       label: "Integrity · per-brief",
       count: integrityCount,
-      desc: "Briefs where the agent self-reported it could not verify the source URL or the content did not match. Each row needs a human decision.",
+      desc: "Briefs where the agent self-reported it could not verify the source URL or the content did not match. Each row is surfaced for review — the operator may resolve it.",
     },
     {
       key: "platform",

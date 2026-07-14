@@ -60,14 +60,14 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
     {
       key: "provisional",
       title: "Provisional sources pending review",
-      sub: "Discovered URLs awaiting promote / reject",
+      sub: "Discovered URLs — machine-gated promotion (evaluatePromotion); visibility",
       count: c.provisional_sources_pending,
       target: { section: "Sources", tab: "Provisional review" },
     },
     {
       key: "staged",
       title: "Staged updates pending",
-      sub: "Worker-staged regulations awaiting approval",
+      sub: "Worker-staged regulations — machine-gated intake (visibility)",
       count: c.staged_updates_pending,
       target: { section: "Ingest", tab: "Staged updates" },
     },
@@ -81,7 +81,7 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
     {
       key: "integrity",
       title: "Integrity flags unresolved",
-      sub: "Agent emissions flagged for human review",
+      sub: "Agent emissions flagged — the operator may review",
       count: c.integrity_flags_unresolved,
       target: { section: "Ingest", tab: "Flags & rejections" },
     },
@@ -102,7 +102,7 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
     {
       key: "spotcheck",
       title: "Auto-approved awaiting spot-check",
-      sub: "Sources added in the last 7 days needing a human pass",
+      sub: "Sources added in the last 7 days — the operator may spot-check",
       count: c.auto_approved_awaiting_spotcheck,
       target: { section: "Sources", tab: "Spot-check" },
     },
