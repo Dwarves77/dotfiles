@@ -230,6 +230,10 @@ export async function groundStep(itemId: string, caller: string | null = null): 
       return data ?? [];
     },
     env: process.env as Record<string, string | undefined>,
+    // DATA-EXISTENCE citation (operator ruling 2026-07-14): the item is a needs_acquire because holdings
+    // (stored snapshot + claim pool) lack a floor-qualifying primary; that IS the inventory miss. Honest,
+    // derived from the verify decision — the caller must cite it for the paid path to proceed.
+    inventoryMiss: `holdings checked (snapshot-store + section_claim_provenance); no floor-qualifying primary present for item ${itemId} — paid re-ground required`,
     act: true,
   };
   let decision: Awaited<ReturnType<typeof verifyItem>>;
@@ -257,8 +261,15 @@ export async function groundStep(itemId: string, caller: string | null = null): 
     await recordRun(sb, itemId, "ground", 0, false, detail).catch(() => {});
     return { ok: false, detail };
   }
-  // needs_acquire AND the lock is ON (else verify-item would have thrown AcquireLockError above): the acquire
-  // justification is logged; NOW run the real paid grounding through the canonical extractor. Sanctioned spend.
+  // needs_acquire: run the paid grounding ONLY if verify-item UNLOCKED it (acted:true — data-existence cited
+  // AND the lock is ON). A refused decision (missing citation) or a lock-OFF throw (caught above → frozen) never
+  // reaches groundBrief — the acquire lock is the single clean master gate.
+  if (!decision.acted) {
+    const detail = `grounding_frozen: ${decision.reason}`;
+    await recordRun(sb, itemId, "ground", 0, false, detail).catch(() => {});
+    return { ok: false, detail };
+  }
+  // acquire unlocked: NOW run the real paid grounding through the canonical extractor. Sanctioned spend.
   const r = await groundBrief(itemId, caller); // F16 caller thread (Unit 0c)
   await recordRun(sb, itemId, "ground", r.ok ? EST_GROUND_USD : 0, r.ok, r.detail).catch(() => {});
   return r;

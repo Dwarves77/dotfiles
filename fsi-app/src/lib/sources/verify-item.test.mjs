@@ -80,27 +80,39 @@ test("verifyItem: act:false returns the decision and moves nothing ($0)", async 
   assert.equal(sideEffects, 0);
 });
 
-// PAID PATH now refuses WITHOUT an operator-priced line (RD-31 / RD-32): the operator-priced-line gate
-// (operator cost + inventory-miss citation) is asserted BEFORE the I2 log and the acquire lock.
-const pricedLine = { operatorCostUsd: 5, inventoryMiss: "checked snapshot-store + pool: no stored capture for source" };
+// PAID PATH (operator ruling 2026-07-14): the operator-COST half of the old priced line is RETIRED; the paid
+// path requires a DATA-EXISTENCE (inventory-miss) citation and is gated by the acquire lock. Order: citation
+// checked FIRST (refuse if missing, no I2, no spend), THEN I2 logged, THEN the lock asserted (OFF → throws).
+const inventoryMiss = "checked snapshot-store + claim pool: no stored capture for this source";
 
-test("verifyItem: no snapshot + act:true + NO priced line -> REFUSED (no throw, no I2 log, no spend)", async () => {
+test("verifyItem: no snapshot + act:true + NO citation -> REFUSED (no throw, no I2 log, no spend)", async () => {
   const svc = captureInsertClient();
   const r = await verifyItem(svc, "item-1", { ...baseDeps, getSnapshot: async () => ({ found: false }), act: true, env: {} });
   assert.equal(r.acted, false);
-  assert.match(r.reason, /no operator-priced line/);
+  assert.equal(r.refused, true);
+  assert.match(r.reason, /no data-existence \/ inventory-miss citation/);
   assert.equal(svc.inserts.length, 0); // nothing logged — refused before I2
 });
 
-test("verifyItem: no snapshot + act:true + priced line + acquire OFF -> I2 logged THEN throws (locked)", async () => {
+test("verifyItem: no snapshot + act:true + citation + acquire OFF -> I2 logged THEN throws (locked)", async () => {
   const svc = captureInsertClient();
   await assert.rejects(
-    () => verifyItem(svc, "item-1", { ...baseDeps, getSnapshot: async () => ({ found: false }), act: true, env: {}, pricedLine }),
+    () => verifyItem(svc, "item-1", { ...baseDeps, getSnapshot: async () => ({ found: false }), act: true, env: {}, inventoryMiss }),
     /GROUNDING_ACQUIRE_LOCKED/,
   );
-  // I2: the justification row was written BEFORE the lock threw (priced line cleared first)
+  // I2: the justification row was written BEFORE the lock threw (citation cleared first)
   assert.equal(svc.inserts.length, 1);
   assert.equal(svc.inserts[0].errors[0].justification, "missing_snapshot");
+  assert.equal(svc.inserts[0].errors[0].evidence, inventoryMiss); // citation carried into the I2 log
+});
+
+test("verifyItem: no snapshot + act:true + citation + acquire ON -> unlocked, acted, handed off (no throw)", async () => {
+  const svc = captureInsertClient();
+  const r = await verifyItem(svc, "item-1", { ...baseDeps, getSnapshot: async () => ({ found: false }), act: true, env: { GROUNDING_ACQUIRE_ENABLED: "1" }, inventoryMiss });
+  assert.equal(r.outcome, "needs_acquire");
+  assert.equal(r.acted, true);
+  assert.match(r.reason, /acquire unlocked \(data-existence cited\)/);
+  assert.equal(svc.inserts.length, 1); // I2 justification logged
 });
 
 test("verifyItem: changed source + act:true -> stale flag written, no throw, no fetch", async () => {
