@@ -43,14 +43,14 @@ Load narrowly. Reference material constrains you; working artifacts are input. D
 5. **Machine evidence never lands in docs/ top level.** Execute logs, runlogs, snapshots, raw JSON → `docs/archive/logs/` if worth keeping, gitignored scratch (`fsi-app/scripts/tmp/`, `_snapshots/`, `_plans/`) if regenerable.
 6. **Session logs** go to `docs/ops/session-log.md` as dated appended entries. Never into this file.
 7. **Worktree discipline**: parallel agent work runs in worktrees. Never restructure shared paths (docs/, migrations, discipline rules) while another agent's worktree is live or locked.
-8. **`.obsidian/` is UI state**: gitignored, never edited by agents. Doc filenames are link targets; renaming a doc requires updating its [[wikilinks]].
+8. **`.obsidian/` is UI state**: gitignored, never edited by agents. Doc filenames are link targets; renaming a doc requires updating its inbound markdown relative links (ADR-010 amendment 2026-07-13; wikilinks retired).
 9. **No credentials in the repo.** `.env` stays untracked; see .gitignore history for the perftoken incident.
 10. **Dates in filenames** for anything point-in-time. Undated facts become landmines when the project changes its mind.
 
 ## Memory conventions
 
-- INDEX.md gains a line for every new living doc, same commit.
-- Docs link with [[wikilinks]]: 2 to 5 real relationships, no keyword spam. Orphans get reported, not force-linked.
+- INDEX.md gains a line for every new living doc, same commit. **Prior-art before creation:** before creating a doc, check INDEX.md for an existing one that serves the role and extend it, rather than creating a duplicate (reuse-before-construction, for docs).
+- Docs cross-link with **markdown relative links** (`[text](../dir/file.md)`): 2 to 5 real relationships, no keyword spam; new docs are born-linked, orphans get reported not force-linked. Real-doc links are markdown; conceptual anchors (rule-*, vocabulary-*) stay plain text, never `[[wikilinks]]`. (ADR-010 amendment 2026-07-13 — supersedes the earlier wikilink convention.)
 - Contradiction audit: periodically (align with the monthly spot-check lane) scan living docs for statements that disagree; flag for operator ruling.
 - Cross-project and personal memory live in the private brain repo, not here. This repo is Caro's Ledge only.
 

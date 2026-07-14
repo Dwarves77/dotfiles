@@ -103,5 +103,5 @@ verified-live dropped 240→179 until batch-1 recovery (fail-closed accuracy ove
 doctrine). Community / Map / Assistant / Onboarding untouched. Dual-posture: corpus-wide, cohort-neutral.
 
 ## Related
-- [[board-reconciliation-2026-07-09]] · [site-gap-register-2026-07-09](./site-gap-register-2026-07-09.md) · [conservation-audit-2026-07-09](./conservation-audit-2026-07/conservation-audit-2026-07-09.md)
+- board-reconciliation-2026-07-09 (report branch, origin only) · [site-gap-register-2026-07-09](./site-gap-register-2026-07-09.md) · [conservation-audit-2026-07-09](./conservation-audit-2026-07/conservation-audit-2026-07-09.md)
 - [deletion-reclassification-log](./deletion-reclassification-log.md) · [flip-readiness-2026-07-08](./flip-readiness-2026-07-08.md) · [ADR-011-ddl-authority-delegation](../decisions/ADR-011-ddl-authority-delegation.md)

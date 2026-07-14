@@ -62,3 +62,19 @@ docs/ accumulated 169 loose top-level files mixing decision-grade documents with
 
 - [ADR-009-adr-system-architecture](./ADR-009-adr-system-architecture.md) — explicit related; ADR-010 preserves the ADR-NNN frontmatter storage convention this ADR defines
 - [ADR-005-discipline-enforcement-layered-architecture](./ADR-005-discipline-enforcement-layered-architecture.md) — shared docs/decisions/ + docs/inventories/ scope; Layer-4 consistency checks operate over the inventory taxonomy this ADR binds
+
+## Amendment (2026-07-13, part 2) — session-memory mechanization; prior-art-before-creation
+
+The linking convention itself is settled by the part-1 amendment above (markdown relative links; the 606-link
+backfill; conceptual anchors stay plain text) — not restated here. This part records the mechanization that
+makes the conventions self-enforcing at session boundaries, so memory does not depend on operator recall:
+
+- **`SessionEnd` hook** (`.claude/settings.json`) emits a loud /done reminder: append `session-log.md`, update
+  the PROGRAM-BOARD, check INDEX prior-art, born-link, and commit (memory is not durable until committed).
+- **`done.md`** now carries the born-linked step (markdown links, not wikilinks), the PROGRAM-BOARD update with
+  the execution-report rule, and an explicit commit step.
+- **`start.md`** boots `docs/PROGRAM-BOARD.md` in the loading order.
+- **Root `CLAUDE.md`** carries the **prior-art-before-creation** rule: before creating a doc, check INDEX.md for
+  an existing one that serves the role and extend it (reuse-before-construction, for docs).
+
+Related: [ADR-009-adr-system-architecture](./ADR-009-adr-system-architecture.md).
