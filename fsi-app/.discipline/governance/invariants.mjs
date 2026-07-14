@@ -579,6 +579,16 @@ export const INVARIANTS = [
   },
 
   {
+    id: 'RD-33-no-execution-from-stale-state',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 19: No execution from stale state',
+    text: 'Every effectful mechanism re-verifies its OWN precondition against LIVE state as its first act; a plan/manifest/dispatch is a proposal, never authority for an effect. The template is the fetch seam: generateBrief reads live holdings (holdings-gate.mjs::holdingsPresent — a real raw_fetches snapshot OR >=2 content-bearing pool rows) and REFUSES to fetch when holdings are present, regardless of caller; only a deliberate forceRefresh overrides. The precondition posture is recorded on the paid ticket (a fetch row lacking it is the new spend-watch alarm class), and effectful runs execute in ascending cost/irreversibility tiers with a spending-without-effect tripwire.',
+    anchor: 'No execution from stale state (effectful mechanisms re-verify their own preconditions against live state)',
+    enforcedBy: ['selftest:fsi-app/src/lib/sources/holdings-gate.test.mjs'],
+    residual: 'holdings-gate.test.mjs proves the PURE fetch-seam guard red-then-green: a real snapshot OR >=2 content-bearing pool rows -> holdingsPresent true -> generateBrief returns HOLDINGS_PRESENT before any paid call (the o9 re-fetch class); genuine absence (stub/no snapshot AND <=1 thin pool row) admits a fetch; holdingsPrecondition records the check + live counts for the spend ticket. The guard is WIRED at generateBrief (canonical-pipeline.ts, tsc-checked) with forceRefresh threaded to the deliberate-refresh callers (generateStep(refresh=true), reresearch widen); the precondition-gap spend-watch warn is in recordSpendCall (spend-client.ts). NAMED RESIDUAL: the anchor is the FETCH surface (the template); retro-application to the other effectful surfaces (mint via mint-item.ts::sourceLinkDecision, flip via the set_provenance_status trigger re-running validate, register via registerCitedSources dedup) is the standing retro-audit unit that reports which have live precondition checks and closes the gaps. A grep-class fitness over effectful-function entry points is a future strengthening beyond the selftest.',
+  },
+
+  {
     id: 'RD-12-size-cap-doctrine',
     skill: 'remediation-discipline',
     section: 'Section 4 — category 11: The size-cap doctrine (no silent slice on the grounding path)',

@@ -21,7 +21,12 @@ export { assertPricedLine, pricedLineHalts, PricedLineError } from "./priced-lin
  * @typedef {{ purpose: string, itemId?: string|null, sourceId?: string|null, failureClasses?: string[],
  *   necessity?: { rehomableFacts?: number, repointableSpans?: number },
  *   disposition?: string|null, provenanceStatus?: string|null, junkPool?: boolean, budgetCapUsd?: number, authorizationRef?: string, standingClass?: string,
+ *   precondition?: { check: string, result: string, snapshotBytes?: number, usablePoolRows?: number },
  *   pricedLine?: { operatorCostUsd: number, inventoryMiss: string, toleranceUsd?: number } }} SpendTicket
+ * precondition — the live-state check this paid call passed before spending (no-execution-from-stale-state,
+ *   amendment 1). e.g. { check:"holdings-absence", result:"confirmed_absent", snapshotBytes:0, usablePoolRows:1 }.
+ *   Recorded to agent_runs telemetry so authorized-but-wasteful spend is machine-visible AT the spend, not at
+ *   operator review. A paid FETCH row whose ticket lacks a precondition record is the new spend-watch alarm class.
  * pricedLine — the OPERATOR-PRICED LINE authorizing this spend (operator-set cost + inventory-miss citation).
  *   When present, the spend client composes assertPricedSpend so the item halts at the operator's per-line price.
  * sourceId — the canonical source the spend is attributed to; written to agent_runs.source_id so a paid row is

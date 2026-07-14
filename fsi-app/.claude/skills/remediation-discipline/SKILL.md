@@ -335,6 +335,15 @@ The July $65 attribution hole + the abandoned `raw_fetches` snapshot store (writ
 - **A verified item is a resting state — re-verification requires evidence of change** — no paid re-ground of a `provenance_status=verified` item without a hash/last-modified change or an explicit operator order; the 2026-07-06 reconciliation sweep ($15.56) that re-verified resting-state items is logged as waste, cause "design defect, pre-doctrine" (RD-28 / I4).
 - **A fresh valid snapshot MUST NOT reach the paid path** — when a stored snapshot exists and the source has not changed, verification is the cheap span-match against stored text (~$0); paid acquire is reserved for missing/changed snapshots and is itself locked behind an operator flag (RD-29 / I5).
 
+### Section 4 — category 19: No execution from stale state (effectful mechanisms re-verify their own preconditions against live state)
+
+The o9 re-fetch — a 76KB snapshot already held in `raw_fetches`, re-fetched on a manifest's say-so, grounding nothing new — is the class: an effectful mechanism executed on a PLAN's assertion of its preconditions rather than re-checking them against LIVE state. A plan, manifest, or dispatch is a PROPOSAL; it is never authority for an effect. The class fix (operator ruling 2026-07-14):
+
+- **Every effectful mechanism re-verifies its OWN precondition against live state as its FIRST act.** The template is the FETCH seam: `generateBrief` reads live holdings (`holdings-gate.mjs::holdingsPresent` — a real `raw_fetches` snapshot OR ≥2 content-bearing pool rows) and REFUSES to fetch when holdings are present, regardless of caller; a fetch is admitted only on genuine holdings-absence. The single explicit escape is a deliberate freshness override (`forceRefresh`), never the default (RD-33).
+- **The precondition posture is recorded on the paid ticket** — a paid fetch row whose ticket lacks the live-state check it passed is doctrine-blind spend, the new spend-watch alarm class (same severity as an attribution-blind row). Waste becomes machine-visible at the moment of spend, not at operator review.
+- **Effectful runs execute in ascending cost/irreversibility tiers with halt-review between tiers**, and a run halts on N consecutive paid calls that add no net verified/grounding state — "spending without effect" is an anomaly regardless of authorization.
+- **The honest limit:** a doctrine the machine has not been taught to check is unenforced; a dispatch constraint either names its enforcing mechanism or is logged as trust-the-executor WITH the operator told explicitly that the line is unenforced. No silent prose constraints — the operator knowing which lines are guarded and which are not is itself the control.
+
 ## Section 9: When the Principle Doesn't Apply
 
 Genuinely one-off remediations where class-over-instance does not apply:

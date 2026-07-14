@@ -143,11 +143,18 @@ async function recordSpendCall(model: string, inputTokens: number, outputTokens:
     if (cost > 0 && ticket.itemId == null && ticket.sourceId == null) {
       console.warn(`[spend] I1 ATTRIBUTION GAP: paid $${cost.toFixed(4)} call on ticket "${ticket.purpose}" carries neither itemId nor sourceId — the agent_runs row will be attribution-blind. Set one on the SpendTicket.`);
     }
+    // PRECONDITION-POSTURE ALARM (no-execution-from-stale-state, amendment 1): a paid FETCH call whose ticket
+    // did not record the live-state precondition it passed is doctrine-blind spend — the new spend-watch alarm
+    // class (same severity as an attribution gap). Fetch = the generate purpose; the ground/section purposes
+    // re-verify their own preconditions (acquire lock, stored pool) elsewhere and are not fetch-seam callers.
+    if (cost > 0 && /canonical:(generate|refresh-primary)/.test(String(ticket.purpose)) && ticket.precondition == null) {
+      console.warn(`[spend] PRECONDITION GAP: paid $${cost.toFixed(4)} FETCH call on ticket "${ticket.purpose}" recorded NO precondition posture — authorized-but-possibly-wasteful spend is doctrine-blind. Set ticket.precondition (holdings-absence check).`);
+    }
     const { error } = await svc().from("agent_runs").insert({
       intelligence_item_id: ticket.itemId ?? null, source_id: ticket.sourceId ?? null, source_url: null, fetch_method: "spend-call",
       started_at: nowIso, ended_at: nowIso, status: "success",
       cost_usd_estimated: Number(cost.toFixed(6)),
-      errors: [{ telemetry: { model, inputTokens, outputTokens, cacheWriteTokens, cacheReadTokens, cacheSavedUsd, purpose: ticket.purpose, authorizationRef: ticket.authorizationRef ?? null } }],
+      errors: [{ telemetry: { model, inputTokens, outputTokens, cacheWriteTokens, cacheReadTokens, cacheSavedUsd, purpose: ticket.purpose, authorizationRef: ticket.authorizationRef ?? null, precondition: ticket.precondition ?? null } }],
     });
     if (error) { console.warn(`[spend] per-call ledger write FAILED (${error.message}) — call stays UNLOGGED; next spend will be refused.`); return; }
     markCallLogged();
