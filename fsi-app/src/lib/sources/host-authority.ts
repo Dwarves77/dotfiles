@@ -49,6 +49,48 @@ export function defaultTierForHost(host: string | null | undefined): number {
   return codifiedTierForHost(host) ?? PROVISIONAL_DEFAULT_TIER;
 }
 
+// ── SC-13 CLASS-TABLE EXTENSION (operator ruling 2026-07-13, 124-host batch) ────────────────────────────────
+// The codified rule above assigns only the floor-PASSING tiers (legal 1 / gov 2) — deliberately conservative,
+// since a wrong high tier hollow-passes a floor. This extension adds the ruled SUB-FLOOR + T4 classes so a
+// register-at-grounding host that classifies to a ruled class auto-registers at its class tier; an unrecognized
+// host stays null → worklist (unchanged SC-13 guarantee). The T4 classes (verifier/academic/association) can pass
+// the research floor (=4), so they demand a HIGH-CONFIDENCE signal (accredited-CAB list / .edu-.ac TLD / a curated
+// association allowlist) — never a fuzzy .org. The sub-floor classes (analysis T6, lawfirm/news T7) never pass any
+// floor, so a mis-fire only under-credits (recoverable), never hollow-passes. No LLM guess, no default: still SC-13.
+//
+//   class-table (ruled):  legal→1  gov→2  verifier/academic/association→4  analysis→6  lawfirm/news→7
+//   permanent worklist:   encyclopedia / aggregator / DOI-resolver / legal-aggregator (justia/legiscan) / unknown
+//                         — never auto-registered; a span attributing to one is a re-attribution instruction.
+
+/** Accredited conformity-assessment bodies (class-society / verifier precedent: DNV/ClassNK/SGS/TÜV/Intertek/
+ *  Verifavia/Bureau Veritas/Lloyd's Register) → T4. NOT Big-4/advisory (pwc etc.) — those read as commentary (T7). */
+const VERIFIER_CAB = /(^|\.)(dnv|classnk|sgs|tuvsud|tuv|intertek|verifavia|normecverifavia|bureauveritas|lloydsregister)\.[a-z.]+$/;
+/** Universities / academic institutions → T4 (research role). */
+const ACADEMIC_TLD = /(\.edu|\.edu\.[a-z]{2}|\.ac\.[a-z]{2})$/;
+/** Industry-body / trade-association ALLOWLIST (cer.be precedent) → T4. Curated — never a fuzzy .org rule. */
+const ASSOCIATION_ALLOW = new Set(["cer.be", "usasean.org", "wbcsd.org", "intercargo.org", "seacargocharter.org"]);
+/** Law firms → T7 commentary. */
+const LAWFIRM = /(bakermckenzie|bracewell|cliffordchance|mayerbrown|proskauer|slaughterandmay|kennedyslaw|globalelr|fenechlaw|klalaw|tauilchequer|nortonrose|whitecase|hoganlovells|(^|\.)lw\.com$|(^|\.)wfw\.com$)/;
+/** News / trade press → T7. */
+const NEWS = /(reuters|freightwaves|loadstar|(^|\.)joc\.com$|(^|\.)tpm\.joc\.com$|lloydslist|maritime-executive|greenairnews|motortransport|logistics-manager|safety4sea|rivieramm|calmatters|plasticsnews|supplychainbrain|esgnews|theartnewspaper|fadmagazine|thomsonreuters)/;
+/** Analysis / think-tank → T6 (Research feedstock, sub-floor). */
+const ANALYSIS = /(carbonbrief|carbon-direct|carbon-transparency|ammoniaenergy|cleanenergywire|climatepolicydatabase|climatecatalyst|renewable-carbon|sustainable-ships|(^|\.)rmi\.org$|theicct|(^|\.)wri\.org$)/;
+
+/** THE register-at-grounding class tier for a host — the SC-13 codified rule EXTENDED with the ruled class table,
+ *  or NULL (worklist) for an unrecognized/permanent-worklist host. Deterministic, pattern-based, no guess/default. */
+export function classTierForHost(host: string | null | undefined): number | null {
+  const codified = codifiedTierForHost(host);
+  if (codified != null) return codified; // legal 1 / gov 2 (conservative, unchanged)
+  const h = String(host || "").replace(/^www\./, "").toLowerCase().replace(/\.$/, "");
+  if (!h) return null;
+  if (VERIFIER_CAB.test(h)) return 4;
+  if (ACADEMIC_TLD.test(h)) return 4;
+  if (ASSOCIATION_ALLOW.has(h)) return 4;
+  if (ANALYSIS.test(h)) return 6;
+  if (LAWFIRM.test(h) || NEWS.test(h)) return 7;
+  return null; // unknown / encyclopedia / aggregator / resolver / legal-aggregator → worklist
+}
+
 export type PoolHostRegisterAction = "inherit" | "register" | "worklist";
 export interface PoolHostDecision {
   action: PoolHostRegisterAction;
@@ -70,6 +112,6 @@ export function decidePoolHostRegistration(
   alreadyResolvesTier: number | null,
 ): PoolHostDecision {
   if (alreadyResolvesTier != null) return { action: "inherit", tier: alreadyResolvesTier };
-  const t = codifiedTierForHost(host);
+  const t = classTierForHost(host); // SC-13 codified rule EXTENDED with the ruled class table (2026-07-13)
   return t != null ? { action: "register", tier: t } : { action: "worklist", tier: null };
 }
