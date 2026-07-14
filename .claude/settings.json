@@ -1,5 +1,17 @@
 {
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true
+  },
+  "hooks": {
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '⚠ SESSION-CLOSE — run /done before ending: append docs/ops/session-log.md (accomplished / decisions / blockers / next), update docs/PROGRAM-BOARD.md, and commit the docs PR. Session memory is NOT durable until committed. New doc? Check docs/INDEX.md for prior art first, and born-link it (an INDEX line + markdown links to related docs).'"
+          }
+        ]
+      }
+    ]
   }
 }
