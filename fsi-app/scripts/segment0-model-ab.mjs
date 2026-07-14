@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
 import { createClient } from "@supabase/supabase-js";
 import { withArmedLock } from "./lib/funded-pass-core.mjs";
-import { guardedDelete, guardedInsertMany } from "./lib/db.mjs";
+import { guardedDelete, guardedInsertMany, guardedUpdate } from "./lib/db.mjs";
 
 // Guarded ledger ops (rule 015): the A/B resets the claim ledger between models so each grounds clean; the
 // resets are transient (the item is restored to the winner), routed through the guarded path so every write is
@@ -48,10 +48,13 @@ async function readLedgerRows(itemId) {
     .eq("intelligence_item_id", itemId);
   return data || [];
 }
-async function resetLedger(itemId) {
+async function resetItem(itemId) {
+  // Clear the ledger AND un-verify, so the NEXT model's groundBrief is not short-circuited by the
+  // skip-if-verified guard (the botched-A/B bug: Haiku verified the item and Sonnet then skipped). Both guarded.
   const { data } = await sb.from("section_claim_provenance").select("id").eq("intelligence_item_id", itemId);
   const ids = (data || []).map((r) => r.id);
   if (ids.length) await guardedDelete("section_claim_provenance", ids, { cite: CITE });
+  await guardedUpdate("intelligence_items", (qb) => qb.eq("id", itemId), { provenance_status: "quarantined" }, { cite: CITE });
 }
 async function costSince(itemId, sinceIso) {
   const { data } = await sb.from("agent_runs").select("cost_usd_estimated").eq("intelligence_item_id", itemId).gte("started_at", sinceIso);
@@ -77,7 +80,7 @@ async function main() {
 
     const runs = {};
     // 2. Haiku ground (clean slate).
-    await resetLedger(ITEM);
+    await resetItem(ITEM);
     const hStart = new Date().toISOString();
     const gH = await P.groundBrief(ITEM, CALLER, { model: HAIKU });
     const mH = await ledgerMetrics(ITEM, floor);
@@ -85,7 +88,7 @@ async function main() {
     runs.haiku = { ok: gH.ok, detail: (gH.detail||"").slice(0,140), ...mH, cost: await costSince(ITEM, hStart) };
 
     // 3. Sonnet ground (clean slate again).
-    await resetLedger(ITEM);
+    await resetItem(ITEM);
     const sStart = new Date().toISOString();
     const gS = await P.groundBrief(ITEM, CALLER, { model: SONNET });
     const mS = await ledgerMetrics(ITEM, floor);
@@ -95,7 +98,7 @@ async function main() {
     const sonnetWins = (runs.sonnet.floorQ > runs.haiku.floorQ) || (runs.sonnet.floorQ === runs.haiku.floorQ && runs.sonnet.facts >= runs.haiku.facts);
     if (!sonnetWins) {
       // restore Haiku's (better) ledger — Sonnet's is currently in the DB (guarded reset + insert).
-      await resetLedger(ITEM);
+      await resetItem(ITEM);
       if (haikuRows.length) await guardedInsertMany("section_claim_provenance", haikuRows.map((c) => ({ ...c, intelligence_item_id: ITEM })), { cite: CITE });
     }
     return { runs, winner: sonnetWins ? "sonnet" : "haiku" };
