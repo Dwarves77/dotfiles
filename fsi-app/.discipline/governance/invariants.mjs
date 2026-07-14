@@ -116,7 +116,7 @@ export const SKILL_MARKER_BASELINE = {
   // 32→34 (2026-07-13): added the two-mechanism spend model — "Operator-sets-cost: the paid path MUST carry
   // an operator-priced line" + "Data-existence-before-acquisition: no fetch without a cited inventory-miss".
   // TRIAGE: new invariants RD-31 + RD-32 (enforcedBy the priced-line/spend-guard/spend-health selftests).
-  'remediation-discipline': 34,
+  'remediation-discipline': 35,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -586,6 +586,29 @@ export const INVARIANTS = [
     anchor: 'No execution from stale state (effectful mechanisms re-verify their own preconditions against live state)',
     enforcedBy: ['selftest:fsi-app/src/lib/sources/holdings-gate.test.mjs'],
     residual: 'holdings-gate.test.mjs proves the PURE fetch-seam guard red-then-green: a real snapshot OR >=2 content-bearing pool rows -> holdingsPresent true -> generateBrief returns HOLDINGS_PRESENT before any paid call (the o9 re-fetch class); genuine absence (stub/no snapshot AND <=1 thin pool row) admits a fetch; holdingsPrecondition records the check + live counts for the spend ticket. The guard is WIRED at generateBrief (canonical-pipeline.ts, tsc-checked) with forceRefresh threaded to the deliberate-refresh callers (generateStep(refresh=true), reresearch widen); the precondition-gap spend-watch warn is in recordSpendCall (spend-client.ts). NAMED RESIDUAL: the anchor is the FETCH surface (the template); retro-application to the other effectful surfaces (mint via mint-item.ts::sourceLinkDecision, flip via the set_provenance_status trigger re-running validate, register via registerCitedSources dedup) is the standing retro-audit unit that reports which have live precondition checks and closes the gaps. A grep-class fitness over effectful-function entry points is a future strengthening beyond the selftest.',
+  },
+
+  {
+    id: 'RD-34-referenced-law-exists',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 20: Referenced-law-exists',
+    text: 'An intelligence item holding an instrument identifier is NEVER dispositioned absent/unfindable — the only honest terminal is "not found under N variants x M endpoints, logged". Discovery derives the canonical URL from the identifier by machine (identifier-variants.mjs + seek-more generateCandidates, wired into fetchPrimaryWithFallback / fetchPrimaryDeep); the durable N x M exhaustion record is persistExhaustionRecord at the exhaustion point (persistPrimaryExhaustion).',
+    anchor: 'An item holding an instrument identifier can never be dispositioned as absent or unfindable',
+    enforcedBy: [
+      'selftest:fsi-app/src/lib/sources/identifier-variants.test.mjs',
+      'selftest:fsi-app/src/lib/sources/reground-ladder.golden.test.mjs',
+    ],
+    residual: 'identifier-variants.test.mjs proves the derivation (the mandated eu_clean_trucking eli/reg/2024/1610/oj -> CELEX 32024R1610 + the fetchable /legal-content URL, separator mutations, UK/US resolvers, SC-13 ranker); reground-ladder.golden.test.mjs proves the WIRING end-to-end (failing item -> declared-primary roadblock -> discovery derives the CELEX candidate -> win, and total exhaustion -> full N x M record). Wired at fetchPrimaryWithFallback (discovery-first, one home) consumed by fetchPrimaryDeep at generate + reground (tsc-checked); persistPrimaryExhaustion writes the durable record. NAMED RESIDUAL: the forbidden-delete-on-identifier-bearing-item half is dispatch-authoring discipline until a delete-path guard reads instrument_identifier.',
+  },
+
+  {
+    id: 'RD-35-flow-golden-mandate',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 21: Caller-count is not wiring verification',
+    text: 'A capability having a test (or callers) does not prove it is wired into the flow that should use it (seek-more had zero live callers while a title-only shadow ran live). Critical-path ladders are verified by behavioral end-to-end goldens: input a failing item, assert each intended rung fires (discovery included), driving the REAL mechanism not a mock. A flow named in doctrine without such a golden is a gap.',
+    anchor: 'Critical-path ladders are verified by behavioral end-to-end goldens',
+    enforcedBy: ['selftest:fsi-app/src/lib/sources/reground-ladder.golden.test.mjs'],
+    residual: 'reground-ladder.golden.test.mjs is the first behavioral flow-golden (Unit 1 exit test): it drives fetchPrimaryWithFallback with the REAL generateCandidates as discovery and asserts each rung fires on a failing item — not a caller-count, not a mock. NAMED RESIDUAL: the meta-gate extension that fails CI on any flow NAMED in doctrine lacking a behavioral golden (the flow-claim scanner, sibling of doctrine-contradiction.mjs) is the enforcement to complete; the WIRING TRUTH SWEEP defines the golden backlog. Until it lands the mandate is carried by this invariant + the register.',
   },
 
   {

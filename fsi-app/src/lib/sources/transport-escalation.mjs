@@ -29,6 +29,7 @@
 // discipline (category 13, RD-14) + source-credibility-model (the moat).
 
 import { isErrorBody } from "./entity-gate.mjs";
+import { looksLikeFurniture } from "./holdings-audit.mjs";
 import { detectRoadblock } from "./primary-fallback.mjs";
 
 // ── FAILURE CLASSES ─────────────────────────────────────────────────────────────────────────────────────
@@ -256,7 +257,11 @@ export function captureForStorage(fetched) {
   const store = [], excluded = [];
   for (const b of fetched || []) {
     const text = (b && b.text) || "";
-    const bad = isErrorBody(text) || isCaptureFailure(classifyTransportResult({ text }));
+    // INLINE furniture/stub gate (Unit 1c): error-body OR transport-failure OR a chrome-only furniture shell
+    // — a furniture capture is EXCLUDED here so it is never stored as a holding (it triggers discovery
+    // instead), not left for a later audit to catch. looksLikeFurniture is conservative (never false-rejects
+    // real thin legal text).
+    const bad = isErrorBody(text) || isCaptureFailure(classifyTransportResult({ text })) || looksLikeFurniture(text);
     (bad ? excluded : store).push(b);
   }
   const hadInput = Array.isArray(fetched) && fetched.length > 0;

@@ -101,8 +101,8 @@ export function classifyCompleteness(cap = {}) {
   // Explicit capture_kind wins; else a capture carrying bytes (even with body deliberately unread) is a
   // snapshot, and only a genuinely byte-less capture defaults to a pool aggregate.
   const kind = cap.capture_kind || (cap.bytes != null || cap.body != null ? "snapshot" : "pool");
-  const checksFired = [];
-  const evidence = { bytes };
+  /** @type {string[]} */ const checksFired = [];
+  /** @type {Record<string, any>} */ const evidence = { bytes };
 
   // Pool aggregate: STUB when it carries no usable rows; else no defect this audit detects at the pool level.
   if (kind === "pool") {
@@ -141,7 +141,7 @@ export function classifyCompleteness(cap = {}) {
 
   // TRUNCATED: publisher-shape structural cutoff (opening present, mandatory closing absent).
   const shape = cap.shape || "other";
-  const st = structuralTruncation(clean, shape);
+  const st = structuralTruncation(clean, /** @type {any} */ (shape));
   if (st.checked) checksFired.push("structural-shape");
   if (st.truncated) {
     evidence.structural = st.evidence;
@@ -149,6 +149,28 @@ export function classifyCompleteness(cap = {}) {
   }
 
   return { completeness: "NO-KNOWN-DEFECT", checksFired, cleanChars, evidence };
+}
+
+/** Furniture markers — chrome/nav/boilerplate phrases that dominate a shell capture's extracted text. */
+const FURNITURE_MARKERS = /skip to (?:main )?content|accept (?:all )?cookies?|cookie (?:policy|settings|preferences)|sign in|log ?in|newsletter|subscribe|main menu|primary navigation|site footer|breadcrumb|back to top|share this|follow us|change your cookie/gi;
+
+/**
+ * PURE, CONSERVATIVE inline furniture gate (operator CRITICAL DISPATCH 2026-07-14, Unit 1c). Detects a
+ * capture whose EXTRACTED TEXT is chrome/nav boilerplate with negligible real content — the case the
+ * error-body + >200ch gates miss (a >200ch nav shell with no error markers). Deliberately conservative so
+ * REAL thin legal text is NEVER rejected: fires ONLY when the text has <2 real sentences AND >=2 furniture
+ * markers AND is short (substantial extracted prose is always real content). A wrongly-kept furniture
+ * capture is later caught by the holdings audit + the grounding-side floor; a wrongly-DROPPED real capture
+ * is unrecoverable — so the bar is set to never false-reject.
+ * @param {string} text  the EXTRACTED capture text (not raw HTML)
+ * @returns {boolean}
+ */
+export function looksLikeFurniture(text) {
+  const t = String(text || "");
+  if (t.length > 3000) return false; // substantial extracted text is real content, never furniture
+  const realSentences = t.split(/(?<=[.;:])\s+|\n+/).filter((s) => s.trim().length > 40);
+  const markerHits = (t.match(FURNITURE_MARKERS) || []).length;
+  return realSentences.length < 2 && markerHits >= 2;
 }
 
 /**
@@ -159,7 +181,7 @@ export function classifyCompleteness(cap = {}) {
  * @param {{ itemType?: string|null, sourceTier?: number|null, completeness: string, usablePoolRows?: number, snapshotBytes?: number }} q
  * @returns {'covers_grounding'|'corroborators_only'|'insufficient'}
  */
-export function classifySufficiency(q = {}) {
+export function classifySufficiency(q = /** @type {any} */ ({})) {
   const hasContent = q.completeness !== "STUB" &&
     (Number(q.snapshotBytes || 0) > STUB_MAX_BYTES || Number(q.usablePoolRows || 0) >= 2);
   if (!hasContent) return "insufficient";
