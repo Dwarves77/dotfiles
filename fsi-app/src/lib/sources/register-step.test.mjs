@@ -87,6 +87,9 @@ test("classTierForHost: ruled class table — verifier/academic/association 4, a
   assert.equal(classTierForHost("en.wikipedia.org"), null);
   assert.equal(classTierForHost("legiscan.com"), null);    // legal-aggregator
   assert.equal(classTierForHost("doi.org"), null);         // resolver
+  // legal aggregators NEVER register — incl. a legal-info-institute on .edu (must beat the academic rule):
+  assert.equal(classTierForHost("law.cornell.edu"), null); // Cornell LII — legal aggregator, not academic T4
+  assert.equal(classTierForHost("law.justia.com"), null);
 });
 
 test("decidePoolHostRegistration: lazy-class host auto-registers at its class tier; unknown still worklists", () => {
