@@ -194,6 +194,26 @@ export async function guardedInsert(table, row, { cite, select = "*", stampIso }
   return { inserted: res.data, snapshot: snapFile };
 }
 
+/** Guarded batched INSERT — the many-row form of guardedInsert for AUDIT SINK tables (fresh rows, not
+ *  mutations of existing state). Requires a cite; snapshots the inserted ids (reversal = delete them);
+ *  inserts in chunks. Same rule-015 posture as guardedInsert: the write stays on the guarded path and is
+ *  reversible. Use for bulk classification/audit writes (e.g. holdings_quality), never to mutate live rows. */
+export async function guardedInsertMany(table, rows, { cite, select = "id", chunk = 500, stampIso } = {}) {
+  requireCite(cite);
+  if (!Array.isArray(rows)) throw new Error("db.mjs guardedInsertMany: rows must be an array.");
+  if (!rows.length) return { inserted: 0, snapshot: null, rows: [] };
+  const sb = writeClient();
+  const out = [];
+  for (let i = 0; i < rows.length; i += chunk) {
+    const batch = rows.slice(i, i + chunk);
+    const res = await sb.from(table).insert(batch).select(select);
+    if (res.error) throw new Error(`guardedInsertMany failed (chunk ${i}): ${res.error.message}`);
+    out.push(...(res.data || []));
+  }
+  const snapFile = snapshot(table, out.map((r) => ({ _inserted: r })), cite, stampIso);
+  return { inserted: out.length, snapshot: snapFile, rows: out };
+}
+
 /** The archive patch for a table. Extracted pure so the status-reset invariant is unit-testable.
  *  ROOT-CAUSE FIX (operator ruling 2026-07-13, Part A): an ARCHIVED intelligence_item is terminal and
  *  sits OUTSIDE the customer read gate (is_archived=false AND provenance_status='verified'); it must NOT
