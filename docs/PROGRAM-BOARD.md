@@ -243,3 +243,44 @@ reset status → fixed go-forward (`archivePatch`, mig-43-safe target `unverifie
 populations = **0** (0 register-gap null-tier spans, disjoint from quarantine by status, 0 open item-flags).
 New scoped audit `scripts/verify/stale-verified-audit.mjs` (is_archived=false) mechanizes the customer-visible
 metric (currently GREEN). The archived-row backfill is BLOCKED on the reconciler credential (standing item).
+
+---
+
+## Economy-of-information session — LANDED (2026-07-13; PRs #314 `b67b673` + #315 `c51fde2` merged, prod green)
+
+**Three units, both PRs squash-merged, Vercel prod green, spend-model live behind the OFF acquire lock.**
+
+1. **Floor recalibration — SC-14 / migration 202.** `validate_item_provenance` scopes the `standard` floor to the
+   item's OWN authoring body (institution_id SSOT): a standard FACT grounds at the standards-body tier (4) only on
+   its own body, never a same-tier UNRELATED host. Monotonic + standard-only. **Applied live**; non-regressive
+   (30/30 verified stay valid; non-standard controls unchanged); **recovered c3 (GRI) + c4 (ISO 14083) to verified
+   at $0**. JS mirror `authorityFloorForFact` + accept/reject golden.
+2. **Operator-priced spend model — RD-31 + RD-32; doctrines `operator-sets-cost` + `data-existence-before-acquisition`.**
+   ALL standing dollar figures RETIRED as limits (monthly ceiling, per-item breaker, daily cap). The paid path
+   requires an operator-priced line (operator-set cost + inventory-miss citation) — the machine never proposes /
+   defaults / anchors a price; it REFUSES without both, before the acquire lock. spend-watch = pure alarm on any
+   paid row not traceable to a priced line. Gauge reports MTD actuals as information (no denominator). **Refusal
+   verified on the live deploy ($0).**
+3. **Free-pass tooling ($0).** holdings-inventory (what we hold vs what grounding needs) + the free-pass
+   re-attribution decision core (verbatim span ∧ primary-instrument-class `officialnessOf` path-a ∧ error-body-clean;
+   goldens for the three rejection/accept cases). DRY-RUN = **0 genuine flips** — the moat working: holding a string
+   ≠ holding the floor-qualifying primary (portal snapshots clean to chrome; corroborators are sub-floor).
+
+**The manifest is the live decision point (operator's pen).** `scripts/tmp/acquisition-manifest-2026-07-13.md`
+(regenerable) — 35 non-verified residual, FACTS ONLY (document / size / work-scope, **no machine price**):
+23 ACQUIRE / 8 RE-SYNTH / 4 RE-GEN, with skip-or-defer flags (paywall / portal / program-page lines marked
+non-purchasable; the `0 KB` T1-gazette holes marked worth-pricing). Nothing acquires until the operator prices a line.
+
+**Delegated-pricing successor — REGISTERED as the named pre-Unit-5 gate.** `operator-sets-cost` is build-phase
+correct but launch-INCOMPATIBLE: cron autonomy (Unit 5) cannot wait for a per-item pen. BEFORE Unit 5, a DELEGATED
+PRICING POLICY must be ruled — the operator sets rules once (e.g. "new instruments from registered T1/T2 sources
+ground automatically up to $X per class; anything outside policy queues as a priced line"); the machine executes
+within them; spend-watch alarms outside policy. Same authority (operator's), moved from per-line to policy-level.
+Flagged now so it lands deliberately, not improvised when the cron unit arrives.
+
+**Operator-parked (nothing machine-runnable until one is unblocked):**
+1. **Manifest pricing** — price / skip / defer lines (all three are $0-valid states).
+2. **124-host guessed-5 scan** — re-tier the ambiguous-host review-batch (the 44-host pattern).
+3. **MCP cred-indirection** — fresh-session four steps (env-copy → rewrite → restart → verify → delete literals).
+4. **Reconciler DDL window** — restores the bound reconciler credential (unblocks the archived-row provenance
+   backfill + the reconcile lane; 0 customer impact meanwhile).
