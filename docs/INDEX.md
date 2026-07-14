@@ -116,6 +116,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [jurisdiction-normalization-audit-2026-05-11](./audits/jurisdiction-normalization-audit-2026-05-11.md) — Jurisdiction-Token Fragmentation Audit
 - [migration-drift-investigation-2026-05-12](./audits/migration-drift-investigation-2026-05-12.md) — Migration 070 drift investigation
 - [primitives-audit-2026-05-09](./audits/primitives-audit-2026-05-09.md) — Caro's Ledge ingestion primitives audit, 2026-05-09
+- [rd33-retro-apply-2026-07-14](./audits/rd33-retro-apply-2026-07-14.md) — RD-33 no-execution-from-stale-state retro-apply across the 4 effectful surfaces (fetch/mint/flip/register): all satisfied, no gap; residual discharged
 - [source-classification-final-summary-2026-05-11](./audits/source-classification-final-summary-2026-05-11.md) — Source classification backfill — final summary
 - [source-coverage-diagnostic-2026-05-09](./audits/source-coverage-diagnostic-2026-05-09.md) — EU ESRS coverage diagnostic + curation methodology audit, 2026-05-09
 - [source-map-existence-check-2026-05-10](./audits/source-map-existence-check-2026-05-10.md) — ESG-Today source map existence check, 2026-05-10
