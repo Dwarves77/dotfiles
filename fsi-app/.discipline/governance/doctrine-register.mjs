@@ -59,6 +59,29 @@ export const DOCTRINES = [
       'RD-33 (holdings-gate.test.mjs) enforces the FETCH surface — the template instance — red-then-green: holdings present -> generateBrief refuses before any paid call; genuine absence admits a fetch; the precondition posture is recorded for spend-watch. RETRO-APPLY DISCHARGED (2026-07-14, docs/audits/rd33-retro-apply-2026-07-14.md): the other three effectful surfaces were inventoried and are live-by-construction with named code anchors — mint (mint-item.ts::sourceLinkDecision resolves the source against the live registry + mintItem idempotency re-reads live intelligence_items + congruence + fail-closed live dedup-corpus), flip (set_provenance_status trigger re-runs validate_item_provenance over live claim rows), register (registerCitedSources live sources dedup + deterministic SC-13 class-tier). No stale-state gap on any surface; only fetch needed the explicit seam because its stale-state failure (the o9 re-fetch) had actually occurred. Carried out-of-scope debt: registerCitedSources ilike-substring dedup is a precision defect, not a stale-state one. The run-structure (ascending tiers) + spending-without-effect tripwire live in the funded-pass runner; a generalized effectful-function fitness stays a future strengthening (false-positive-prone at current scale).',
   },
 
+  // ─────────────────────────── Dispatch discipline (enforcement honesty) ───────────────────────────
+  {
+    id: 'constraint-names-its-enforcement',
+    statement:
+      'Every dispatch constraint that governs an effect either NAMES its mechanical enforcement (the rule / fitness / invariant / gate that makes a violation fail the build) or is DISCLOSED as trust-the-executor — logged with an explicit "this line is unenforced" note so the operator knows it rests on executor discipline, never left as silent prose that reads as enforced. A constraint presented as if enforced when it is not is the honesty defect this kills; the disclosure is delivered to the operator, not buried. Protocol: docs/runbooks/dispatch-discipline-protocol.md.',
+    source: 'operator ruling 2026-07-14 (the "honest limit" amendment — every constraint names its enforcement or is logged trust-the-executor with the operator told explicitly)',
+    exempt: {
+      reason:
+        'Process discipline applied at dispatch-authoring/report time (name-the-enforcement or disclose-unenforced); not a checkable property of a committed file — same non-mechanizable class as diagnose-before-fix / findings-before-fixes (register: RD-2/RD-3 process-class). Carried by this register + the protocol doc; violations surface as an undisclosed unenforced constraint, caught in review.',
+    },
+  },
+
+  // ───────────────────────── Run structure (ascending cost/irreversibility) ─────────────────────────
+  {
+    id: 'ascending-cost-irreversibility-tiers',
+    statement:
+      'Effectful runs execute in ASCENDING tiers of cost and irreversibility: free/deterministic first (stored re-grounds), then low-cost reversible, then paid/irreversible — the cheapest sufficient tier runs first and its results inform whether the next tier is warranted; a run never front-loads its most expensive or least reversible action. A tier boundary that crosses a cost or irreversibility threshold halts for operator SPEND AUTHORIZATION (the operator prices spend — operator-sets-cost / RD-31; this is spend authority, NOT an intake human-gate, which no-human-finish-of-intake / RD-20 forbids). Protocol: docs/runbooks/run-structure-protocol.md.',
+    source: 'operator ruling 2026-07-14 (register run-structure — ascending cost/irreversibility tiers, halt-review between)',
+    enforcedBy: ['RD-31-operator-priced-spend'],
+    residual:
+      'RD-31 (spend authority) enforces the SPEND-AUTHORIZATION half mechanically (no paid row without an operator-priced line). The ORDERING half (cheapest-tier-first, results-inform-next-tier) is dispatch-authoring discipline carried by this register + the funded-pass runner (which runs stored re-grounds before fetches and carries the spending-without-effect tripwire) + the protocol doc; a generalized cross-run tier-ordering fitness is a future strengthening.',
+  },
+
   // ─────────────────────────────── Spend authority (operator-priced) ───────────────────────────────
   {
     id: 'operator-sets-cost',

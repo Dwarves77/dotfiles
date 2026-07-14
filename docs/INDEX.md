@@ -39,6 +39,8 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [INTEGRITY-TRIAGE-PROCEDURE](./runbooks/INTEGRITY-TRIAGE-PROCEDURE.md) — Integrity-flag triage procedure
 - [PERF-PLAYBOOK](./runbooks/PERF-PLAYBOOK.md) — Perf Playbook
 - [SPOT-CHECK-PROCEDURE](./runbooks/SPOT-CHECK-PROCEDURE.md) — Tier-H Spot-Check Procedure
+- [dispatch-discipline-protocol](./runbooks/dispatch-discipline-protocol.md) — Every dispatch constraint names its enforcement or is disclosed as trust-the-executor (2026-07-14 honest-limit ruling)
+- [run-structure-protocol](./runbooks/run-structure-protocol.md) — Effectful runs execute in ascending cost/irreversibility tiers; halt for operator spend-authorization at each boundary (2026-07-14)
 - [sprint4-dataops-ledger](./runbooks/sprint4-dataops-ledger.md) — Sprint 4 — Data-Operations Ledger (already-executed; do NOT re-run)
 
 ## plans
