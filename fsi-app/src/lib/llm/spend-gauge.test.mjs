@@ -1,61 +1,66 @@
 // @ts-check
-// Red-then-green tests for the pure spend gauge (computeGauge) + hasJustification. No I/O.
+// Red-then-green tests for the pure spend gauge (computeGauge) + hasPricedLineMarker. No I/O.
+// Spend-control refactor 2026-07-13: the gauge carries NO limit — MTD/today/item are informational actuals,
+// no "of $N" denominator, no pct-of-ceiling, no frozen/at-cap. Coverage is paid-run traceability to a line.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeGauge, hasJustification } from "./spend-gauge.mjs";
+import { computeGauge, hasPricedLineMarker } from "./spend-gauge.mjs";
 
-test("gauge: under budget reports pct and not frozen/atCap", () => {
-  const g = computeGauge({ monthSpentUsd: 30, monthlyCeilingUsd: 75, todaySpentUsd: 10, dailyCapUsd: 25 });
-  assert.equal(g.month.frozen, false);
-  assert.equal(g.month.pct, 40);
-  assert.equal(g.month.remainingUsd, 45);
-  assert.equal(g.day.atCap, false);
-  assert.equal(g.day.pct, 40);
-  assert.match(g.header, /MTD \$30\.00\/\$75\.00 \(40%\)/);
+test("gauge: reports MTD + today as informational actuals — NO denominator, NO pct-of-ceiling", () => {
+  const g = computeGauge({ monthSpentUsd: 30, todaySpentUsd: 10 });
+  assert.equal(g.month.spentUsd, 30);
+  assert.equal(g.day.spentUsd, 10);
+  assert.match(g.header, /MTD \$30\.00 \(actual, informational\)/);
+  assert.match(g.header, /today \$10\.00/);
+  // no limit framing may leak into the header
+  assert.doesNotMatch(g.header, /\/\$/);       // no "of $N"
+  assert.doesNotMatch(g.header, /%/);          // no pct
+  assert.doesNotMatch(g.header, /FROZEN|AT CAP/);
 });
 
-test("gauge: at/over the monthly ceiling is FROZEN with 0 remaining", () => {
-  const g = computeGauge({ monthSpentUsd: 75.25, monthlyCeilingUsd: 75, todaySpentUsd: 12, dailyCapUsd: 25 });
-  assert.equal(g.month.frozen, true);
-  assert.equal(g.month.remainingUsd, 0);
-  assert.match(g.header, /FROZEN/);
+test("gauge: a large MTD is still just information (never 'frozen', never a limit)", () => {
+  const g = computeGauge({ monthSpentUsd: 175.25, todaySpentUsd: 12 });
+  assert.equal(g.month.spentUsd, 175.25);
+  assert.equal("frozen" in g.month, false);
+  assert.equal("ceilingUsd" in g.month, false);
+  assert.equal("pct" in g.month, false);
 });
 
-test("gauge: at/over the daily cap reports AT CAP", () => {
-  const g = computeGauge({ monthSpentUsd: 40, monthlyCeilingUsd: 75, todaySpentUsd: 25, dailyCapUsd: 25 });
-  assert.equal(g.day.atCap, true);
-  assert.match(g.header, /AT CAP/);
+test("gauge: untraced paid runs surface a warning in the header", () => {
+  const g = computeGauge({ monthSpentUsd: 40, todaySpentUsd: 5, paidRuns: 10, tracedPaidRuns: 3 });
+  assert.equal(g.trace.untracedPaidRuns, 7);
+  assert.equal(g.trace.clean, false);
+  assert.match(g.header, /⚠ 7 UNTRACED/);
 });
 
-test("gauge: unjustified paid runs surface a warning in the header", () => {
-  const g = computeGauge({ monthSpentUsd: 40, monthlyCeilingUsd: 75, todaySpentUsd: 5, dailyCapUsd: 25, paidRuns: 10, justifiedPaidRuns: 3 });
-  assert.equal(g.justification.unjustifiedPaidRuns, 7);
-  assert.equal(g.justification.clean, false);
-  assert.match(g.header, /⚠ 7 UNJUSTIFIED/);
+test("gauge: fully-traced paid runs are clean", () => {
+  const g = computeGauge({ monthSpentUsd: 5, todaySpentUsd: 5, paidRuns: 4, tracedPaidRuns: 4 });
+  assert.equal(g.trace.clean, true);
+  assert.match(g.header, /4\/4 traced to a priced line/);
 });
 
-test("gauge: fully-justified paid runs are clean", () => {
-  const g = computeGauge({ monthSpentUsd: 5, monthlyCeilingUsd: 75, todaySpentUsd: 5, dailyCapUsd: 25, paidRuns: 4, justifiedPaidRuns: 4 });
-  assert.equal(g.justification.clean, true);
-  assert.match(g.header, /4\/4 justified/);
+test("gauge: zero paid runs is clean (the quiet default)", () => {
+  const g = computeGauge({ monthSpentUsd: 175.25, todaySpentUsd: 0, paidRuns: 0, tracedPaidRuns: 0 });
+  assert.equal(g.trace.clean, true);
 });
 
-test("gauge: zero paid runs is clean (the frozen-month default)", () => {
-  const g = computeGauge({ monthSpentUsd: 75.25, monthlyCeilingUsd: 75, todaySpentUsd: 0, dailyCapUsd: 25, paidRuns: 0, justifiedPaidRuns: 0 });
-  assert.equal(g.justification.clean, true);
-});
-
-test("gauge: item breaker reported only when item numbers supplied", () => {
-  const none = computeGauge({ monthSpentUsd: 1, monthlyCeilingUsd: 75, todaySpentUsd: 1, dailyCapUsd: 25 });
+test("gauge: per-item spend reported (as information) only when supplied — no breaker/limit", () => {
+  const none = computeGauge({ monthSpentUsd: 1, todaySpentUsd: 1 });
   assert.equal(none.item, null);
-  const tripped = computeGauge({ monthSpentUsd: 1, monthlyCeilingUsd: 75, todaySpentUsd: 1, dailyCapUsd: 25, itemSpentUsd: 3.5, perItemBreakerUsd: 3.5 });
-  assert.equal(tripped.item?.tripped, true);
+  const withItem = computeGauge({ monthSpentUsd: 1, todaySpentUsd: 1, itemSpentUsd: 3.5 });
+  assert.equal(withItem.item?.spentUsd, 3.5);
+  assert.equal("breakerUsd" in (withItem.item ?? {}), false);
+  assert.equal("tripped" in (withItem.item ?? {}), false);
+  assert.match(withItem.header, /item \$3\.50/);
 });
 
-test("hasJustification: true only when an errors entry carries a truthy justification", () => {
-  assert.equal(hasJustification([{ telemetry: {} }]), false);
-  assert.equal(hasJustification([{ justification: "missing_snapshot" }]), true);
-  assert.equal(hasJustification([{ justification: "" }]), false);
-  assert.equal(hasJustification(null), false);
-  assert.equal(hasJustification("nope"), false);
+test("hasPricedLineMarker: true only for a priced-line fetch_method or a truthy errors[].pricedLine", () => {
+  assert.equal(hasPricedLineMarker({ errors: [{ telemetry: {} }] }), false);
+  assert.equal(hasPricedLineMarker({ fetch_method: "priced-line", errors: [] }), true);
+  assert.equal(hasPricedLineMarker({ errors: [{ pricedLine: "op-line-42" }] }), true);
+  assert.equal(hasPricedLineMarker({ errors: [{ pricedLine: "" }] }), false);
+  // a legacy acquire-justification is NOT a priced-line marker (the refactor tightens the requirement)
+  assert.equal(hasPricedLineMarker({ errors: [{ justification: "missing_snapshot" }] }), false);
+  assert.equal(hasPricedLineMarker({ errors: null }), false);
+  assert.equal(hasPricedLineMarker(null), false);
 });

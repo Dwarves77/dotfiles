@@ -45,6 +45,26 @@ export function authorityFloorFor(itemType) {
   }
 }
 
+/** The standards-body tier (registry class for ISO/GRI/USGBC-type bodies). */
+export const STANDARDS_BODY_TIER = 4;
+
+/**
+ * Per-FACT effective authority floor — the JS mirror of migration 202's scoped floor. For item_type='standard',
+ * a FACT grounded to the item's OWN authoring body (same institution as the item's canonical source) grounds at
+ * the standards-body tier (4): the standard's own authoritative text IS its primary. A same-tier UNRELATED host
+ * does NOT qualify — it stays at the base reg-family floor (2). Every other item type is authorityFloorFor
+ * unchanged. `isOwnAuthoringBody` is resolved by the caller from the institution SSOT (sources.institution_id),
+ * exactly as migration 202's `r.src_institution_id = v_item_institution` predicate does — never from host strings
+ * generically. Pure. Golden: accept (standard + own body → 4), reject (standard + unrelated same-tier host → 2).
+ * @param {string|null|undefined} itemType
+ * @param {boolean} isOwnAuthoringBody  the FACT's source shares the item's own-source institution_id
+ * @returns {number|null}
+ */
+export function authorityFloorForFact(itemType, isOwnAuthoringBody) {
+  if (itemType === "standard" && isOwnAuthoringBody === true) return STANDARDS_BODY_TIER;
+  return authorityFloorFor(itemType);
+}
+
 /**
  * @param {SourceForBlock[]} fetched
  * @param {number} budget

@@ -1,15 +1,29 @@
 // @ts-check
-// PURE guard core for the spend chokepoint (operator ruling 2026-07-04). No I/O — so the three guarantees
-// (ticketless THROWS, deterministically-resolvable REJECTED, ceiling THROWS) are red-then-green node --test.
-// spend-client.ts wraps this with the actual Anthropic API call, model→cost mapping, and the agent_runs
-// telemetry write; it passes the ceiling in (so this module stays env-free, rule-017-clean).
+// PURE guard core for the spend chokepoint (operator ruling 2026-07-04; spend-control refactor 2026-07-13).
+// No I/O — so the guarantees are red-then-green node --test. spend-client.ts wraps this with the actual
+// Anthropic API call, model→cost mapping, and the agent_runs telemetry write.
+//
+// SPEND-CONTROL REFACTOR (operator final rulings 2026-07-13): the fixed-constant HALTS are RETIRED — there is
+// no monthly ceiling, no per-item circuit breaker, and no standing SPEND_CEILING comparison here anymore. The
+// SOLE dollar authorization is the operator-priced line (priced-line.mjs): a spend must carry a line with an
+// operator-set cost + an inventory-miss citation, and it halts per pricedLineHalts. The INTEGRITY gates
+// (ticket-required, verified-item, junk-pool, deterministic-$0-lever rejection, and the unlogged-telemetry
+// invariant) are NOT dollar limits and REMAIN. assertBudget survives ONLY as the unlogged-telemetry invariant
+// plus an optional per-ticket (operator-supplied) ledger cap — it no longer enforces any standing machine figure.
 
 import { paidQueueVerdict } from "../agent/deterministic-lever.mjs";
+import { assertPricedLine, pricedLineHalts, PricedLineError } from "./priced-line.mjs";
+
+// Re-export the operator-priced-line gate so the spend client + callers import the whole guard surface from here.
+export { assertPricedLine, pricedLineHalts, PricedLineError } from "./priced-line.mjs";
 
 /**
  * @typedef {{ purpose: string, itemId?: string|null, sourceId?: string|null, failureClasses?: string[],
  *   necessity?: { rehomableFacts?: number, repointableSpans?: number },
- *   disposition?: string|null, provenanceStatus?: string|null, junkPool?: boolean, budgetCapUsd?: number, authorizationRef?: string, standingClass?: string }} SpendTicket
+ *   disposition?: string|null, provenanceStatus?: string|null, junkPool?: boolean, budgetCapUsd?: number, authorizationRef?: string, standingClass?: string,
+ *   pricedLine?: { operatorCostUsd: number, inventoryMiss: string, toleranceUsd?: number } }} SpendTicket
+ * pricedLine — the OPERATOR-PRICED LINE authorizing this spend (operator-set cost + inventory-miss citation).
+ *   When present, the spend client composes assertPricedSpend so the item halts at the operator's per-line price.
  * sourceId — the canonical source the spend is attributed to; written to agent_runs.source_id so a paid row is
  *   never both item- AND source-anonymous (invariant I1 — the $65.36 July attribution hole). At least one of
  *   itemId / sourceId MUST be set on any ticket that will spend.
@@ -36,28 +50,13 @@ export class SpendError extends Error {
   constructor(msg) { super(msg); this.name = "SpendError"; }
 }
 
-// MONTHLY CEILING (operator-set 2026-07-11) — the pure guard. The dollar VALUE lives in spend-client.ts as a
-// code-only constant (never env); THIS module stays env-free (rule-017) and just enforces the comparison so it
-// is red-then-green node-testable. THROWS a NAMED MonthlyCeilingError when this calendar month's ledgered
-// spend is at/over the ceiling — a hard stop, distinct from the per-process SPEND_CEILING and the per-item breaker.
-export class MonthlyCeilingError extends Error {
-  /** @param {number} monthSpentUsd @param {number} ceilingUsd */
-  constructor(monthSpentUsd, ceilingUsd) {
-    super(`SPEND_MONTHLY_CEILING: this calendar month's ledgered spend $${Number(monthSpentUsd).toFixed(2)} has reached the hard monthly ceiling $${Number(ceilingUsd).toFixed(2)} — no further paid calls this month. Raise it ONLY by editing MONTHLY_SPEND_CEILING_USD in spend-client.ts (deliberately not env-overridable).`);
-    this.name = "MonthlyCeilingError";
-    this.monthSpentUsd = Number(monthSpentUsd);
-    this.ceilingUsd = Number(ceilingUsd);
-  }
-}
-
-/** Pure monthly-ceiling guard. THROWS MonthlyCeilingError when the month's ledgered spend is at/over the
- *  ceiling. @param {number} monthSpentUsd @param {number} ceilingUsd */
-export function assertMonthlyCeiling(monthSpentUsd, ceilingUsd) {
-  if (Number(monthSpentUsd) >= Number(ceilingUsd)) throw new MonthlyCeilingError(monthSpentUsd, ceilingUsd);
-}
+// RETIRED (spend-control refactor 2026-07-13): MonthlyCeilingError / assertMonthlyCeiling. The monthly ceiling
+// was a STANDING DOLLAR FIGURE used as a hard stop — the operator's final rulings forbid any such machine limit.
+// Spend is now authorized ONLY by an operator-priced line (assertPricedSpend below). A monthly-total figure may
+// still be READ for informational display, but it MUST NOT gate/halt spend, so no ceiling guard lives here.
 
 // ── budget state (per process) ──
-let runningSpentUsd = 0;                                    // standing-ceiling accumulator (never reset)
+let runningSpentUsd = 0;                                    // program-total ledger accumulator (never reset)
 let itemLedger = { inputTokens: 0, outputTokens: 0, calls: 0, costUsd: 0 };
 
 // ── AUTOMATIC-TELEMETRY INVARIANT (operator ruling 2026-07-06, dispatch item 1). Every account()ed spend call
@@ -118,24 +117,41 @@ export function assertTicket(ticket) {
 }
 
 /**
- * Enforce the budget BEFORE a call: if the running total already meets the per-ticket cap OR the standing
- * ceiling, THROW with the running total. The caller passes the standing ceiling (env-free here).
+ * LEDGER-INTEGRITY guard run BEFORE a call. Two responsibilities, NEITHER a standing dollar limit:
+ *  1. Unlogged-telemetry invariant — refuse a new spend while a PRIOR call left no ledger row (so "a ledger row
+ *     per call" is mechanical, not caller-remembered). This is integrity, not a dollar cap.
+ *  2. Optional per-ticket ledger cap — if (and only if) the ticket carries an operator-supplied `budgetCapUsd`,
+ *     THROW when the program-total ledger already meets it. This is a per-invocation operator figure (e.g. the
+ *     program-total pagination gate seeds the true total then caps that pass), NOT a standing machine ceiling.
+ * The retired standing SPEND_CEILING comparison is GONE: the `standingCeilingUsd` parameter is accepted for
+ * signature stability but is NO LONGER used as a limit. Dollar authorization lives in assertPricedSpend.
  * @param {SpendTicket} ticket
- * @param {number} standingCeilingUsd
+ * @param {number} [standingCeilingUsd]  accepted for back-compat; informational only, never gates
  */
 export function assertBudget(ticket, standingCeilingUsd) {
-  // Automatic-telemetry gate: refuse a new spend call while a PRIOR one has no ledger row. This is what makes
-  // "a ledger row per call" mechanical rather than caller-remembered — you cannot spend again until the last
-  // spend was written.
   if (unloggedCalls > 0) {
     throw new SpendError(`SPEND_LEDGER_UNLOGGED: ${unloggedCalls} prior spend call(s) left no agent_runs row — refusing further spend (unlogged spend corrupts the seed + blinds stop conditions).`);
   }
-  const cap = ticket.budgetCapUsd ?? standingCeilingUsd;
-  if (runningSpentUsd >= cap) {
-    throw new SpendError(`SPEND_CEILING: running total $${runningSpentUsd.toFixed(4)} has reached the cap $${cap.toFixed(2)} (ticket "${ticket.purpose}"). No further spend without a fresh ceiling.`);
+  const cap = ticket && ticket.budgetCapUsd;
+  if (typeof cap === "number" && Number.isFinite(cap) && runningSpentUsd >= cap) {
+    throw new SpendError(`SPEND_CEILING: program-total ledger $${runningSpentUsd.toFixed(4)} has reached the per-ticket cap $${cap.toFixed(2)} (ticket "${ticket.purpose}").`);
   }
-  if (runningSpentUsd >= standingCeilingUsd) {
-    throw new SpendError(`SPEND_CEILING(standing): running total $${runningSpentUsd.toFixed(4)} >= standing ceiling $${standingCeilingUsd.toFixed(2)}.`);
+  void standingCeilingUsd; // retired as a limit — no standing-ceiling comparison
+}
+
+/**
+ * DOLLAR AUTHORIZATION (the sole spend gate). A spend must carry an operator-priced line. Composes
+ * assertPricedLine (THROWS PricedLineError without an operator-set cost + inventory-miss citation) then halts
+ * per pricedLineHalts against the item's ledger. THROWS SpendError when the item's spend has reached the
+ * operator's per-line price (+ optional operator tolerance). No standing/monthly/per-item machine figure.
+ * @param {{ operatorCostUsd: number, inventoryMiss: string, toleranceUsd?: number }} line
+ * @param {number} [itemSpentUsd]  the item's ledger cost so far (defaults to the live per-item ledger)
+ */
+export function assertPricedSpend(line, itemSpentUsd = itemLedger.costUsd) {
+  assertPricedLine(line); // no operator cost OR no inventory-miss citation → PricedLineError (refuse)
+  if (pricedLineHalts(itemSpentUsd, line)) {
+    const halt = Number(line.operatorCostUsd) + Number(line.toleranceUsd ?? 0);
+    throw new SpendError(`SPEND_PRICED_LINE_REACHED: this item spent $${(Number(itemSpentUsd) || 0).toFixed(4)} >= operator-priced line $${halt.toFixed(2)} — stop this item; the operator's per-line price is the sole spend authority (no standing ceiling raises it).`);
   }
 }
 
@@ -150,22 +166,7 @@ export function account(cost, inputTokens, outputTokens) {
   unloggedCalls += 1;                                        // this call now OWES a ledger row (see the invariant)
 }
 
-// ── PER-ITEM CIRCUIT BREAKER (operator ruling 2026-07-04, ceiling-correction delta: "unchanged at $3.00") ──
-// Distinct from the program ceiling (runningSpentUsd vs SPEND_CEILING) and the batch buffer: this bounds what a
-// SINGLE item may cost, measured on the PER-ITEM ledger (reset per item), so one runaway item cannot burn the
-// whole headroom. The funded-pass runner resets the item ledger before each item and, after each call, trips
-// the breaker on itemLedger.costUsd — stopping THAT item (not the whole pass) so the anomaly is contained and
-// surfaced. Pure helper (env-free); the runner owns reset-per-item + the stop action.
-export const PER_ITEM_CIRCUIT_BREAKER_USD = 3.0;
-
-/** Has THIS item's accumulated spend reached the per-item breaker? Pure.
- * @param {number} itemSpentUsd  the current item's ledger cost (takeItemLedger().costUsd)
- * @param {number} [breakerUsd]  the per-item breaker (default PER_ITEM_CIRCUIT_BREAKER_USD)
- * @returns {{ tripped: boolean, reason: string }} */
-export function itemBreakerTripped(itemSpentUsd, breakerUsd = PER_ITEM_CIRCUIT_BREAKER_USD) {
-  const spent = Number(itemSpentUsd) || 0;
-  if (spent >= breakerUsd) {
-    return { tripped: true, reason: `PER_ITEM_CIRCUIT_BREAKER: this item spent $${spent.toFixed(4)} >= breaker $${breakerUsd.toFixed(2)} — stop this item and surface (runaway containment).` };
-  }
-  return { tripped: false, reason: `item spend $${spent.toFixed(4)} < breaker $${breakerUsd.toFixed(2)}` };
-}
+// RETIRED (spend-control refactor 2026-07-13): PER_ITEM_CIRCUIT_BREAKER_USD / itemBreakerTripped. The fixed
+// $3.00 per-item breaker was a STANDING DOLLAR FIGURE used as a hard stop — forbidden by the operator's final
+// rulings. Per-item containment is now the operator-priced line: pricedLineHalts(itemSpentUsd, line) halts at
+// the operator's per-line price (see assertPricedSpend). There is no machine-set breaker constant.
