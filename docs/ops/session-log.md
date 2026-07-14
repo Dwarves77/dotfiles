@@ -252,3 +252,17 @@ the operator's DDL window per the standing ruling.
 **Blockers / open:** Unit 0c not built (next session's first unit, 5 parts scoped). Item 4 blocked on it. Reconciler DDL window still owed (archived-row backfill). Manifest unpriced (operator's pen).
 
 **Next steps:** (1) Unit 0c ($0, 5 parts, per-part verification). (2) then the T9 dry-proof + the standing sequence resume. All other threads operator-parked (manifest pricing, MCP indirection, reconciler DDL, sanctioned grounding run go/no-go).
+
+## 2026-07-14 — Unit 0c COMPLETE + standing $0 batch (vault / residual sweep / decision sheet / MCP run-sheet)
+
+**Unit 0c — COMPLETE (session 3, PRs #320 + #321; board §Unit-0c-COMPLETE).** Machine-gated intake cutover shipped: `/api/staged-updates` POST→410, AdminDashboard approve/reject + Research Pipeline publish/archive retired to visibility-only, EESC registered T3, phrase-scan 0 residuals. T9's last gate is now the FIRST machine-gated run (awaits the sanctioned-run word — it spends).
+
+**Standing $0 batch (this session — all $0, guarded, CI-green):**
+- **Item 1 VAULT UNIT (PR #322, `8bdcc43`):** session-memory mechanization — SessionEnd hook (loud /done + INDEX prior-art + born-link), `/start` boots PROGRAM-BOARD, `done.md` born-linked+board+commit steps, `CLAUDE.md` prior-art rule + standing-rule-8 wikilink→markdown re-issue, ADR-010 pt2, dead-link triage. (The 606-link docs-graph backfill was already #310.)
+- **Item 2 RESIDUAL SWEEP (PR #323, `febf336`):** (a) re-attribution worklist enumerated ([reattribution-worklist-2026-07-14](./reattribution-worklist-2026-07-14.md) — 42 FACT spans/13 items on wikipedia/legiscan/policycommons at the retired `?? 5` T5 stamp; 37 on VERIFIED briefs → logged, NOT swept, follow-on unit queued); (b) `registerCitedSources` `?? 5` FIXED (base_tier now keys off `classTierForHost`; unclassified→worklist candidate, never a guessed row; golden 11/11); (c) board debt (execution-report rule per thread).
+- **Item 3 decision sheet** (`scripts/tmp/acquisition-decision-sheet-2026-07-14.md`): 35 lines → Section 1 RE-SYNTH 8 (one-number scope stated) / Section 2 ACQUIRE 17 (2A 0-KB holes 12 + 2B partials 5) / Section 3 SKIP-FLAGGED 10. Empty PRICE boxes. Caught a manifest mislabel (CELEX 52023PC0445 = Weights & Dimensions, not "ReFuelEU").
+- **Item 4 MCP run-sheet** (`scripts/tmp/mcp-indirection-run-sheet-2026-07-14.md`): exact copy→rewrite→restart→verify→discard steps; github@`C:/Users/jason` + supabase@`C:/Users/jason/corvette23`, stdio/npx, LITERAL→`${VAR}`; SF-11 preserved (agent never read a value).
+
+**Decisions:** verified-brief provenance mutations are their own verified unit, never a sweep write (production-surface-verification + four-part standard). registerCitedSources fake-cert = the same `?? 5` seen backward in the corpus; go-forward fixed so the population can't grow.
+
+**Blockers / open:** desk reduced to TWO operator acts — (a) prices on the decision sheet, (b) execute the MCP run-sheet. Still parked: sanctioned/first-machine-gated run (spends), reconciler DDL window, `reattribution-relabel` follow-on unit (spends/model).
