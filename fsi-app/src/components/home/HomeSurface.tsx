@@ -28,7 +28,6 @@ import { DashboardSurfaceCoverage } from "@/components/home/DashboardSurfaceCove
 import { DashboardWatchlist } from "@/components/home/DashboardWatchlist";
 import { DashboardByOwner } from "@/components/home/DashboardByOwner";
 import { DashboardCoverageGaps } from "@/components/home/DashboardCoverageGaps";
-import { DashboardAwaitingReview } from "@/components/home/DashboardAwaitingReview";
 import { WhatChanged } from "@/components/home/WhatChanged";
 import { Supersessions } from "@/components/home/Supersessions";
 import type { SurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
@@ -36,7 +35,7 @@ import { useResourceStore, mergeWithOverrides } from "@/stores/resourceStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { urgencyScore, scoreResource } from "@/lib/scoring";
 import type { Resource, ChangeLogEntry, Supersession } from "@/types/resource";
-import type { WatchlistItem, CoverageGap, ReviewItem, WorkspaceAggregates } from "@/lib/data";
+import type { WatchlistItem, CoverageGap, WorkspaceAggregates } from "@/lib/data";
 
 interface HomeSurfaceProps {
   initialResources: Resource[];
@@ -56,7 +55,6 @@ interface HomeSurfaceProps {
   jurisdictionsCount: number;
   watchlistPromise: Promise<WatchlistItem[]>;
   coverageGapsPromise: Promise<CoverageGap[]>;
-  awaitingReviewPromise: Promise<ReviewItem[]>;
   surfaceCoverage: SurfaceCoverageSnapshot;
 }
 
@@ -113,7 +111,6 @@ export function HomeSurface({
   jurisdictionsCount,
   watchlistPromise,
   coverageGapsPromise,
-  awaitingReviewPromise,
   surfaceCoverage,
 }: HomeSurfaceProps) {
   const {
@@ -214,18 +211,15 @@ export function HomeSurface({
       {/* HOUSEKEEPING */}
       <SectionHeading
         title="Housekeeping"
-        aside="Registry health · review queue"
+        aside="Registry health"
         style={{ margin: "44px 0 16px" }}
       />
       <div
         className="cl-dash-housekeeping"
-        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start" }}
+        style={{ display: "grid", gridTemplateColumns: "1fr", gap: 20, alignItems: "start" }}
       >
         <Suspense fallback={null}>
           <DashboardCoverageGaps promise={coverageGapsPromise} />
-        </Suspense>
-        <Suspense fallback={null}>
-          <DashboardAwaitingReview promise={awaitingReviewPromise} />
         </Suspense>
       </div>
     </div>
