@@ -238,3 +238,17 @@ the operator's DDL window per the standing ruling.
 **Blockers / open:** Part A archived-row provenance backfill still BLOCKED on the reconciler credential (DDL window). The manifest is unpriced (operator's pen).
 
 **Next steps (all operator-parked — nothing machine-runnable until unblocked):** (1) manifest pricing (`scripts/tmp/acquisition-manifest-2026-07-13.md`); (2) 124-host guessed-5 re-tier scan; (3) MCP cred-indirection fresh-session steps; (4) reconciler DDL window. The next sanctioned grounding run + the standing sequence (T9/registry/T10/coverage/launch) resume from the REJOIN point once an operator action unblocks them.
+
+## 2026-07-13 (session 2) — $0 work queue: 124-host + 44-host disposition, T9 report-the-gap, Unit 0c queued
+
+**Accomplished ($0 — guarded metadata writes only, no lock/fetch/model):**
+- **Item 1 (PR #317):** 124-host guessed-5 batch dispositioned (34 registered at ruled tiers, 6 worklist, batch flag resolved) + SC-13 class-table extension (`classTierForHost` lazy-registration + golden). Under-count corrected (38 span-bearing not 6; readClient cap) — halted + re-ruled before writing.
+- **Item 2 (PR #318):** 44-host expansion was NEVER executed → completed via the class rule (4 gov→T2 +15 spans re-stamped, 4 inherit, 1 europa.eu granularity HALT, 35 worklist). Two fake-cert risks caught in DRY-RUN (law.cornell.edu Cornell-LII mis-minting T4; europa.eu collapse). Legal-aggregator class fix.
+- **Item 4:** T9 8/8 accounting — CANNOT certify (report-the-gap): 8-stage flow unspecced, 0 source-less orphans, 0 machine-gated runs. Structurally blocked on Unit 0c.
+- Earlier this session (PRs #308–#316): standard-floor recalibration (SC-14/mig-202, c3+c4 flipped $0), operator-priced spend model (RD-31/32), free-pass tooling, /done docs.
+
+**Decisions:** STANDING RULE — a confirmed ruling is an OPEN thread until its execution report lands (rulings get board entries like builds). T9 dry-proof clause closes only after Unit 0c + first machine-gated run.
+
+**Blockers / open:** Unit 0c not built (next session's first unit, 5 parts scoped). Item 4 blocked on it. Reconciler DDL window still owed (archived-row backfill). Manifest unpriced (operator's pen).
+
+**Next steps:** (1) Unit 0c ($0, 5 parts, per-part verification). (2) then the T9 dry-proof + the standing sequence resume. All other threads operator-parked (manifest pricing, MCP indirection, reconciler DDL, sanctioned grounding run go/no-go).

@@ -284,3 +284,24 @@ Flagged now so it lands deliberately, not improvised when the cron unit arrives.
 3. **MCP cred-indirection** — fresh-session four steps (env-copy → rewrite → restart → verify → delete literals).
 4. **Reconciler DDL window** — restores the bound reconciler credential (unblocks the archived-row provenance
    backfill + the reconcile lane; 0 customer impact meanwhile).
+
+---
+
+## $0 work queue — items 1/2/4 landed; Unit 0c queued (2026-07-13, session 2)
+
+**Item 1 — 124-host guessed-5 batch (PR #317).** 34 hosts registered at ruled class-rule tiers (gov T2 / lawfirm+news+corporate T7 / analysis T6 / association T4); 6 → permanent worklist; batch flag `fda0f86b` resolved; ~84 zero-span governed lazily by the **SC-13 class-table extension** (`classTierForHost` + `decidePoolHostRegistration` lazy-registration + golden). CORRECTION LOGGED: my first surface under-counted (readClient 1000-row cap) — true span-bearing was **38 not 6**; halted + re-ruled with the operator before writing.
+
+**Item 2 — 44-host expansion (PR #318): was NOT executed; now completed.** The null-tier-host worklist (43 flags) had never been registered. Completed via the class rule: 4 gov→T2 (+15 NULL spans re-stamped — `english.www.gov.cn`/`samr.gov.cn` the real recoveries), 4 inherit, 1 HALT (`eesc.europa.eu` — europa.eu super-domain granularity), 35 → worklist. Two fake-cert risks caught in DRY-RUN before writing: `law.cornell.edu` (Cornell LII) mis-minting T4 via the `.edu` rule → fixed to legal-aggregator→worklist (evaluated before academic); the europa.eu collapse halted.
+
+**Item 4 — T9 8/8 accounting: CANNOT certify (report-the-gap, no close manufactured).** DB evidence: (a) the 8-stage flow is unspecced (T9 re-spec against T8's conduction map still pending); (b) **0 source-less live orphans** — the "two rows" referent is gone (re-sourced/archived; Unit-3 work, never the flow-close population); (c) **0 `manual-intake-run` agent_runs** — the machine-gated cutover has never executed. Structurally blocked on Unit 0c.
+
+**STANDING RULE REFINEMENT (item-2 lesson, ruled 2026-07-13):** *A confirmed operator ruling is an OPEN thread until its execution report lands* — a ruling is not done when spoken, only when executed-AND-reported, and rulings get board entries the same as builds. (The 44-host expansion was "confirmed mid-Unit-3" yet never executed; the gap surfaced only because item 2 forced an execution-verify. Absent that, a spoken-but-unexecuted ruling reads as done.)
+
+**T9 DRY-PROOF CLAUSE DEPENDENCY (recorded):** T9's intake dry-proof clause closes AFTER **(a)** Unit 0c ships the machine-gated cutover AND **(b)** the first machine-gated run carries rows through the full flow to verified — never before. Until both, 8/8 cannot be certified because no run evidence exists.
+
+**NEXT SESSION — FIRST UNIT: Unit 0c ($0), 5 parts, per-part verification:**
+1. Retire the human-approval path — `src/app/api/staged-updates/route.ts` POST approve/reject → `410 Gone` (machine gates ARE the approval, RD-20); GET (visibility) stays.
+2. Fix the `DashboardAwaitingReview` customer-surface leak — remove from `HomeSurface.tsx:228` + `page.tsx:40` `getAwaitingReview()` prop threading.
+3. Relabel human-gate copy → visibility across 6 sites: `AdminDashboard.tsx:114`, `IntegrityFlagsView.tsx:170`, `ResearchPipelineQueueView.tsx:153`, `UserProfilePage.tsx:264`, `FlagsRejectionsQueue.tsx:49`, `AdminIssuesRail.tsx:63/70`.
+4. Admin phrase-scan fitness function (SOFT review signal) + ruled allowlist (emergency-stop, SC-3 override, Community controls) + golden.
+5. Board same-PR.
