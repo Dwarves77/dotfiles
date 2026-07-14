@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   classifyFailure, withArmedLock, lockArmed, hardDivergence, spendWatchHalt, isRunaway, RUNAWAY_ITEM_USD,
+  totalBoundHalt,
 } from "./funded-pass-core.mjs";
 
 // ── classifyFailure: item walls continue, mechanism/bug failures halt the run ──
@@ -92,4 +93,18 @@ test("spendWatchHalt: an unticketed paid row triggers a run-level halt; ticketed
 test("isRunaway: over the soft per-item cap flags runaway (item held, run continues)", () => {
   assert.equal(isRunaway(0.4), false);
   assert.equal(isRunaway(RUNAWAY_ITEM_USD + 0.01), true);
+});
+
+// ── totalBoundHalt: the operator's $ bound is a HARD ceiling ("halt at the bound", 2026-07-14) ──
+test("totalBoundHalt: halts once cumulative reaches the bound; clean below it", () => {
+  assert.equal(totalBoundHalt(10.5, 20), null);       // under bound -> run continues
+  assert.equal(totalBoundHalt(19.99, 20), null);      // just under -> continues
+  assert.match(totalBoundHalt(20, 20), /spend bound reached/);      // at the bound -> halt
+  assert.match(totalBoundHalt(21.3, 20), /\$21\.3000 >= operator bound \$20\.00/); // over -> halt (one-item overshoot)
+});
+
+test("totalBoundHalt: no bound set -> never halts (unbounded/dry)", () => {
+  assert.equal(totalBoundHalt(999, null), null);
+  assert.equal(totalBoundHalt(999, 0), null);
+  assert.equal(totalBoundHalt(999, undefined), null);
 });

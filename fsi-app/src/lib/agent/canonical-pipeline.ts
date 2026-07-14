@@ -60,7 +60,7 @@ import { ANALYSIS_LABELS, ANALYSIS_LABELS_BY_KEY } from "@/lib/agent/analysis-la
 // types got zero slot language, so missing_required_slot was deterministic). Post-synthesis the brief
 // is checked against the SAME slots (one corrective retry, then honest failure — never silent pass).
 import { buildSlotDirective, uncoveredSlots, buildSlotRetryFeedback, slotCacheGet, slotCachePut } from "@/lib/agent/slot-prompt.mjs";
-import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, SYNTH_PRIMARY_HARD_CEILING_CHARS, sonnetCostUsd } from "@/lib/agent/generation-config";
+import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, SYNTH_PRIMARY_HARD_CEILING_CHARS, sonnetCostUsd, GROUND_MODEL } from "@/lib/agent/generation-config";
 import { prepareSectionForGrounding } from "@/lib/agent/section-grounding.mjs";
 import { partitionErrorBodies } from "@/lib/sources/entity-gate.mjs";
 import { captureForStorage, apiEndpointFor } from "@/lib/sources/transport-escalation.mjs";
@@ -449,7 +449,9 @@ export async function logStoredPathRun(
   } catch (e) { return { ok: false, detail: `agent_runs insert threw: ${(e as Error).message}` }; }
 }
 
-async function callSonnet(system: string, user: string, cachedPool?: string): Promise<string> {
+// Full-grounding model default = the GROUND_MODEL knob (generation-config, rule 017) — the Segment-0 A/B verdict
+// flips it before coverage-floor scales the per-item price. Delta/change-review + classify stay Haiku.
+async function callSonnet(system: string, user: string, cachedPool?: string, model: string = GROUND_MODEL): Promise<string> {
   // max_tokens 32000 (was 24000): the largest regs (CSRD, EU-ETS-maritime-class) overran 24000 — the
   // trailing Claim Provenance Ledger + YAML (and thus the 18-field metadata) are the FIRST casualties of
   // truncation, so a too-tight cap surfaced as an obscure "YAML frontmatter not found" parse failure that
@@ -465,7 +467,7 @@ async function callSonnet(system: string, user: string, cachedPool?: string): Pr
   const { text, stopReason, usage } = await spendStreamRaw({
     apiKey: process.env.ANTHROPIC_API_KEY!,
     body: {
-      model: "claude-sonnet-4-6",
+      model,
       max_tokens: 32000,
       system: cachedPool ? cachedSystemBlocks(cachedPool, system) : system,
       messages: [{ role: "user", content: user }],
@@ -1129,10 +1131,12 @@ async function judgeSlotSpan(slotKey: string, description: string, nom: { span: 
 
 /** STEP ground: claim-ledger + verbatim span-check + validate_item_provenance; keep claims only if
  *  valid (else delete them — manual rollback). The set_provenance_status trigger flips on the writes. */
-export async function groundBrief(itemId: string, caller: string | null = null): Promise<StepResult> {
-  return withTelemetry(() => groundBriefImpl(itemId, caller));
+export async function groundBrief(itemId: string, caller: string | null = null, opts?: { model?: string }): Promise<StepResult> {
+  return withTelemetry(() => groundBriefImpl(itemId, caller, opts));
 }
-async function groundBriefImpl(itemId: string, caller: string | null = null): Promise<StepResult> {
+async function groundBriefImpl(itemId: string, caller: string | null = null, opts?: { model?: string }): Promise<StepResult> {
+  // MODEL-TIER: the grounding model is opts.model (the Segment-0 A/B override) ?? the GROUND_MODEL knob.
+  const groundModel = opts?.model ?? GROUND_MODEL;
   const sb = svc();
   // MASTER ACQUIRE GATE (operator ruling 2026-07-14): the acquire lock is the single clean master gate on the
   // paid ground path — asserted HERE, at the spend site, so grounding is administratively FROZEN unless the
@@ -1364,7 +1368,7 @@ async function groundBriefImpl(itemId: string, caller: string | null = null): Pr
   // re-throws so the batch runner HALTS with the actionable cause, instead of mislabeling every remaining
   // item as "still-quarantined". Only a transient/parse failure degrades to a per-item ok:false (full
   // message, never truncated — the diagnostic must survive).
-  try { claims = extractClaimLedgerLenient(await callSonnet(system, user, groundSrc.blocks)); }
+  try { claims = extractClaimLedgerLenient(await callSonnet(system, user, groundSrc.blocks, groundModel)); }
   catch (e) { if (isFatalAnthropic(e)) throw e; return { ok: false, detail: `ledger call failed: ${(e as Error).message}` }; }
   for (const cl of claims) { if (cl.source_url) cl.source_url = stripUrlMarkers(cl.source_url) as string; }
   // Mirror validate_item_provenance criteria so every INSERTED claim already passes the gate:

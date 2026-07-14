@@ -100,3 +100,18 @@ export const RUNAWAY_ITEM_USD = 3.0;
 export function isRunaway(itemCostUsd) {
   return Number(itemCostUsd) > RUNAWAY_ITEM_USD;
 }
+
+/** OPERATOR SPEND-BOUND halt ("halt at the bound", 2026-07-14). The run STOPS before starting the next item once
+ *  this run's cumulative actuals reach the operator-set $ bound. The bound is a HARD ceiling (checked at loop
+ *  top so at most one item's cost overshoots), NOT a target — a lift of the bound removes the halt, it does not
+ *  authorize spending up to it. Returns a halt string or null. No bound set (null/<=0) -> no halt (unbounded).
+ *  @param {number} cumulativeUsd  this run's total actuals so far
+ *  @param {number|null|undefined} boundUsd  the operator-set total $ bound
+ *  @returns {string|null} */
+export function totalBoundHalt(cumulativeUsd, boundUsd) {
+  const bound = Number(boundUsd);
+  if (!boundUsd || !(bound > 0)) return null;
+  return Number(cumulativeUsd) >= bound
+    ? `spend bound reached: run actuals $${(Number(cumulativeUsd) || 0).toFixed(4)} >= operator bound $${bound.toFixed(2)} — halting before the next item (bound is a hard ceiling, not a target)`
+    : null;
+}

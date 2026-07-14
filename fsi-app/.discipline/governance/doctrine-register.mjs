@@ -120,6 +120,16 @@ export const DOCTRINES = [
     residual:
       'RD-36 (ledger-dominance.mjs, red-then-green goldened incl. the Brazil red fixture AND the count-blind 55->55-GAP case) mechanizes the dominance rule; wired at groundBrief (snapshot -> restore-on-regression -> data_integrity finding -> loud ok:false) and sectionBrief (the ledger-preserving reconcile). thinning-guard.mjs deleted (one home, no shadow). NAMED RESIDUAL: a re-section that legitimately DROPS section_keys cascade-loses those keys\' claims before the snapshot — acceptable for the same-section reattribution case that caused Brazil; a durable pre-section snapshot keyed by section_key is the future strengthening.',
   },
+  {
+    id: 'model-tier-rule',
+    statement:
+      'Model tier is chosen by TASK COST-SENSITIVITY, and the DEFAULT grounding model is decided EMPIRICALLY, not by fiat. Full grounding (the fact-extraction ledger call) defaults to Sonnet but is a single knob (GROUND_MODEL env / the groundBrief model override) so a Haiku/Sonnet A/B on a real item — comparing fact count, floor-qualifying count, and span accuracy under the protection of the dominance guard — sets the default BEFORE coverage-floor multiplies the per-item price by hundreds. Delta / change-review (the fetch-align-diff engine\'s review of an extracted change) and classification default to Haiku (cents); the deterministic diff itself is already $0. Sonnet is reserved for full grounding per the A/B verdict; the verdict, not a guess, moves the default.',
+    source: 'operator AMENDMENT — model tiering (2026-07-14), rides the priced run',
+    exempt: {
+      reason:
+        'Policy/default class: the default grounding model is a configuration knob (GROUND_MODEL / groundBrief opts.model, both threaded to callSonnet — tsc-checked) revised by the A/B verdict, not a mechanically-checkable committed-file invariant. The A/B is the mechanism that sets it; the delta-review-is-Haiku half is already the case (classify paths run Haiku, the diff is deterministic $0). Same process-class as ascending-cost-irreversibility-tiers.',
+    },
+  },
 
   // ─────────────────────────────── Spend authority (operator-priced) ───────────────────────────────
   {

@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createJiti } from "jiti";
 import { createClient } from "@supabase/supabase-js";
-import { classifyFailure, withArmedLock, hardDivergence, spendWatchHalt, isRunaway } from "./lib/funded-pass-core.mjs";
+import { classifyFailure, withArmedLock, hardDivergence, spendWatchHalt, isRunaway, totalBoundHalt } from "./lib/funded-pass-core.mjs";
 import { hasValidWaiver } from "../src/lib/agent/audit-gate-core.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -27,6 +27,8 @@ const APPLY = process.argv.includes("--apply");
 const CLASS = (process.argv.find((a) => a.startsWith("--class=")) || "").slice(8) || null;
 const ONLY = (() => { const a = process.argv.find((x) => x.startsWith("--only=")); return a ? a.slice(7).split(",").map((s) => s.trim()).filter(Boolean) : null; })();
 const LIMIT = (() => { const a = process.argv.find((x) => x.startsWith("--limit=")); return a ? parseInt(a.slice(8), 10) : Infinity; })();
+// OPERATOR SPEND-BOUND ("halt at the bound", $ hard ceiling). Required for a priced run; null = unbounded (dry).
+const BOUND = (() => { const a = process.argv.find((x) => x.startsWith("--bound=")); return a ? Number(a.slice(8)) : null; })();
 // The full generate->section->ground chain runs multiple long Sonnet streams (RE-SYNTH items genuinely take
 // 4-6 min; ACQUIRE adds a fetch + web_search corroboration and is slower). The prior 300s cap fired mid-chain
 // and, because JS can't cancel the underlying pipeline promise, the read-back RACED the still-running pipeline
@@ -136,7 +138,11 @@ async function dataAuditBlockState() {
 }
 
 // ── main ──
-console.log(`\n=== FUNDED-PASS (${APPLY ? "APPLY — LOCK ARMED, SPEND" : "DRY-RUN — lock OFF, $0"}) === ${items.length} item(s), caller="${CALLER}"`);
+console.log(`\n=== FUNDED-PASS (${APPLY ? "APPLY — LOCK ARMED, SPEND" : "DRY-RUN — lock OFF, $0"}) === ${items.length} item(s), caller="${CALLER}", bound=${BOUND != null ? `$${BOUND}` : "none"}`);
+if (APPLY && BOUND == null) {
+  console.error(`\nREFUSED: an APPLY (paid) run requires an operator spend bound (--bound=<usd>). The bound is the hard halt ceiling — no unbounded paid run. Re-run with --bound=<your number>.`);
+  process.exit(5);
+}
 {
   const st = await dataAuditBlockState();
   if (st.block && !st.waiver) {
@@ -167,14 +173,19 @@ async function dryRun() {
 async function applyRun() {
   const NO_GAIN_HALT_N = 5; // consecutive paid items with zero net verified/grounding gain -> spending-without-effect
   let noGainStreak = 0;
+  let spentTotal = 0; // cumulative actuals THIS run — checked against the operator $ bound at loop top
   await withArmedLock(process.env, async () => {
     for (const w of items) {
+      // HALT AT THE BOUND (checked BEFORE spending on the next item, so at most one item overshoots).
+      const bh = totalBoundHalt(spentTotal, BOUND);
+      if (bh) { runHalt = bh; console.log(`\nRUN-LEVEL HALT: ${bh}`); break; }
       const row = await readItem(w.id);
       const div = hardDivergence(w, row);
       if (div) { console.log(`\n[HELD:divergence] ${w.key} — ${div}`); results.push({ ...w, held: `divergence: ${div}`, prov: row?.provenance_status }); continue; }
-      process.stdout.write(`\n[${w.cls}] ${w.key.slice(0, 36)} (${w.id.slice(0, 8)}) ... `);
+      process.stdout.write(`\n[${w.cls}] ${w.key.slice(0, 36)} (${w.id.slice(0, 8)}) [$${spentTotal.toFixed(2)}/${BOUND ?? "∞"}] ... `);
       const r = await runItem(w);
       results.push(r);
+      spentTotal += (r.cost || 0);
       if (r.halt) { runHalt = r.halt; console.log(`RUN-LEVEL HALT: ${r.halt}`); break; }
       // AMENDMENT-2 TRIPWIRE: a paid item that made no gain (not verified, no new facts) advances the streak;
       // a $0 item or any gain resets it. N consecutive no-gain PAID items = anomalous "spending without effect"
