@@ -75,6 +75,10 @@ const LAWFIRM = /(bakermckenzie|bracewell|cliffordchance|mayerbrown|proskauer|sl
 const NEWS = /(reuters|freightwaves|loadstar|(^|\.)joc\.com$|(^|\.)tpm\.joc\.com$|lloydslist|maritime-executive|greenairnews|motortransport|logistics-manager|safety4sea|rivieramm|calmatters|plasticsnews|supplychainbrain|esgnews|theartnewspaper|fadmagazine|thomsonreuters)/;
 /** Analysis / think-tank → T6 (Research feedstock, sub-floor). */
 const ANALYSIS = /(carbonbrief|carbon-direct|carbon-transparency|ammoniaenergy|cleanenergywire|climatepolicydatabase|climatecatalyst|renewable-carbon|sustainable-ships|(^|\.)rmi\.org$|theicct|(^|\.)wri\.org$)/;
+/** LEGAL AGGREGATORS (operator ruling #3: justia / legiscan / Cornell LII class) → PERMANENT worklist (null).
+ *  They republish statutes but are NOT the official publisher — a span is a re-attribution instruction. This
+ *  fires BEFORE the academic .edu rule so a legal-info-institute on .edu (law.cornell.edu) is NOT minted T4. */
+const LEGAL_AGGREGATOR = /(law\.justia|(^|\.)justia\.com$|legiscan|law\.cornell\.edu|practiceguides\.chambers|npcobserver|legalclarity)/;
 
 /** THE register-at-grounding class tier for a host — the SC-13 codified rule EXTENDED with the ruled class table,
  *  or NULL (worklist) for an unrecognized/permanent-worklist host. Deterministic, pattern-based, no guess/default. */
@@ -83,6 +87,7 @@ export function classTierForHost(host: string | null | undefined): number | null
   if (codified != null) return codified; // legal 1 / gov 2 (conservative, unchanged)
   const h = String(host || "").replace(/^www\./, "").toLowerCase().replace(/\.$/, "");
   if (!h) return null;
+  if (LEGAL_AGGREGATOR.test(h)) return null; // permanent worklist — before academic, so a .edu LII isn't minted T4
   if (VERIFIER_CAB.test(h)) return 4;
   if (ACADEMIC_TLD.test(h)) return 4;
   if (ASSOCIATION_ALLOW.has(h)) return 4;
