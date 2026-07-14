@@ -180,7 +180,10 @@ export async function generateStep(itemId: string, refresh = false, caller: stri
     }
     // else: no usable stored pool → fall through to a fresh fetch + persist.
   }
-  const r = await generateBrief(itemId, caller); // fresh fetch (GUARD 2: this path + --refresh are the only deleters); F16 caller thread (Unit 0c)
+  // forceRefresh: refresh — reached either via the explicit --refresh lever (deliberate freshness, GUARD 4) or
+  // after the stored path returned NO_STORED_POOL (genuine holdings-absence). Either way the fetch is admitted;
+  // the holdings guard inside generateBrief only refuses a NON-forced fetch when holdings are actually present.
+  const r = await generateBrief(itemId, caller, { forceRefresh: refresh }); // fresh fetch (GUARD 2/4); F16 caller thread (Unit 0c)
   await recordRun(sb, itemId, "generate", r.ok ? EST_GENERATE_USD : 0, r.ok, r.detail).catch(() => {});
   return r;
 }
@@ -359,9 +362,11 @@ export async function reresearchStep(itemId: string, caller: string | null = nul
   let g: StepResult;
   if (attempt > 1) {
     g = await generateBriefFromStored(itemId);
-    if (!g.ok && g.detail === NO_STORED_POOL) g = await generateBrief(itemId, caller);
+    // deliberate widen (forceRefresh): research-or-erase MUST re-fetch to widen — the holdings guard's freshness
+    // escape, not the blind-refetch class the guard refuses.
+    if (!g.ok && g.detail === NO_STORED_POOL) g = await generateBrief(itemId, caller, { forceRefresh: true });
   } else {
-    g = await generateBrief(itemId, caller); // fresh widen (F16 caller thread, Unit 0c)
+    g = await generateBrief(itemId, caller, { forceRefresh: true }); // fresh widen (deliberate); F16 caller thread (Unit 0c)
   }
   if (!g.ok) { await recordRun(sb, itemId, "reresearch", EST_GENERATE_USD, false, `regen: ${g.detail}`).catch(() => {}); return g; }
   const s = await sectionBrief(itemId);

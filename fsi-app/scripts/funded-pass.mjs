@@ -67,11 +67,24 @@ async function validate(id) {
 }
 
 // ── one paid pass over an item (apply only) ──
+async function factCount(id) {
+  const { count } = await sb.from("section_claim_provenance").select("id", { count: "exact", head: true }).eq("intelligence_item_id", id).eq("claim_kind", "FACT");
+  return count || 0;
+}
 async function runItem(w) {
   const itemStart = nowIso();
+  const factsBefore = await factCount(w.id);
   const steps = {};
   const runPass = async () => {
-    const gen = w.cls === "resynth" ? await P.generateBriefFromStored(w.id) : await P.generateBrief(w.id, CALLER);
+    // STORED-FIRST STRUCTURALLY (operator ruling 2026-07-14): every item re-grounds from held content first
+    // (no fetch, cheap); a fetch fires ONLY when the stored path returns NO_STORED_POOL (genuine holdings-
+    // absence). generateBrief itself re-verifies holdings-absence at the seam (no-execution-from-stale-state),
+    // so a fetch of held content is refused even here — delta-only, structural, not dispatch-driven.
+    let gen = await P.generateBriefFromStored(w.id);
+    if (!gen.ok && /no usable stored pool/i.test(gen.detail || "")) {
+      gen = await P.generateBrief(w.id, CALLER); // genuine absence -> real fetch (the ~4 truly-thin items)
+      steps.fetched = true;
+    }
     steps.generate = gen; if (!gen.ok) return { held: `generate: ${gen.detail}` };
     const sec = await P.sectionBrief(w.id);
     steps.section = sec; if (!sec.ok) return { held: `section: ${sec.detail}` };
@@ -102,7 +115,11 @@ async function runItem(w) {
   // gate-bypass: verified WITHOUT the validator passing
   if (prov === "verified" && val && val.valid === false) halt = halt || `gate bypass: ${w.id} reads verified but validate_item_provenance.valid=false`;
   const runaway = isRunaway(cost);
-  return { ...w, prov, cost: Number(cost.toFixed(4)), validValid: val?.valid ?? null, held, halt, runaway, steps: Object.fromEntries(Object.entries(steps).map(([k, v]) => [k, { ok: v.ok, detail: (v.detail || "").slice(0, 120) }])) };
+  // GAIN (amendment 2 tripwire input): a paid item that neither verified NOR increased its FACT ledger produced
+  // no net verified/grounding state — "spending without effect." Consecutive no-gain paid items halt the run.
+  const factsAfter = await factCount(w.id);
+  const gain = prov === "verified" || factsAfter > factsBefore;
+  return { ...w, prov, cost: Number(cost.toFixed(4)), validValid: val?.valid ?? null, held, halt, runaway, gain, spent: cost > 0, fetched: !!steps.fetched, steps: Object.fromEntries(Object.entries(steps).map(([k, v]) => [k, v && typeof v === "object" ? { ok: v.ok, detail: (v.detail || "").slice(0, 120) } : v])) };
 }
 
 // ── LAYER C block-gate (operator HALT 2026-07-14): the runner drives the pipeline functions DIRECTLY, so it
@@ -148,6 +165,8 @@ async function dryRun() {
 }
 
 async function applyRun() {
+  const NO_GAIN_HALT_N = 5; // consecutive paid items with zero net verified/grounding gain -> spending-without-effect
+  let noGainStreak = 0;
   await withArmedLock(process.env, async () => {
     for (const w of items) {
       const row = await readItem(w.id);
@@ -157,7 +176,12 @@ async function applyRun() {
       const r = await runItem(w);
       results.push(r);
       if (r.halt) { runHalt = r.halt; console.log(`RUN-LEVEL HALT: ${r.halt}`); break; }
-      console.log(`prov=${r.prov} valid=${r.validValid} cost=$${r.cost}${r.held ? ` HELD(${r.held.slice(0, 80)})` : ""}${r.runaway ? " RUNAWAY" : ""}`);
+      // AMENDMENT-2 TRIPWIRE: a paid item that made no gain (not verified, no new facts) advances the streak;
+      // a $0 item or any gain resets it. N consecutive no-gain PAID items = anomalous "spending without effect"
+      // regardless of authorization -> run-level halt for operator review.
+      if (r.spent && !r.gain) noGainStreak += 1; else noGainStreak = 0;
+      console.log(`prov=${r.prov} valid=${r.validValid} cost=$${r.cost} gain=${r.gain}${r.fetched ? " FETCHED" : ""}${r.held ? ` HELD(${r.held.slice(0, 70)})` : ""}${r.runaway ? " RUNAWAY" : ""}`);
+      if (noGainStreak >= NO_GAIN_HALT_N) { runHalt = `spending-without-effect anomaly: ${noGainStreak} consecutive paid items with zero net verified/grounding gain`; console.log(`RUN-LEVEL HALT: ${runHalt}`); break; }
     }
   });
   // withArmedLock disarms here (normal) AND on the break/throw path.

@@ -70,6 +70,7 @@ import { escalateToFetchResult } from "@/lib/sources/transport-runtime.mjs";
 // re-ground / retry / refresh of the SAME url reads the cache instead of re-fetching (stops double-paying).
 import { assertFetchAllowed, cacheGet as fetchCacheGet, cachePut as fetchCachePut } from "@/lib/sources/fetch-hold.mjs";
 import { assertAcquireAllowed } from "@/lib/sources/acquire-lock.mjs";
+import { holdingsPresent, holdingsPrecondition, HOLDINGS_PRESENT_DETAIL } from "@/lib/sources/holdings-gate.mjs";
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
 import {
   toDbSeverity, toDbTheme, toThemeCandidate, assertDbValue,
@@ -777,15 +778,38 @@ Follow your output contract exactly: brief body, then a "## New Sources Identifi
  *  corroborating/expanding sources, fetch that multi-source pool, then synthesise the format-selected
  *  brief ACROSS the pool (system prompt selects by item_type; Forward-Intelligence + No-Vacuum apply).
  *  A thin primary source is the TRIGGER to research wider, never a reason to emit a thin brief. */
-export async function generateBrief(itemId: string, caller: string | null = null): Promise<StepResult> {
+/** LIVE holdings for an item (the no-execution-from-stale-state fetch guard): the largest stored snapshot for
+ *  the item's source (raw_fetches.html_bytes) + the count of content-bearing pool rows (agent_run_searches with
+ *  result_content_excerpt > 200ch). Read FRESH at the fetch seam — never from a plan/manifest. */
+async function holdingsForItem(sb: ReturnType<typeof svc>, itemId: string, sourceId: string | null): Promise<{ snapshotBytes: number; usablePoolRows: number }> {
+  let snapshotBytes = 0;
+  if (sourceId) {
+    const { data: snaps } = await sb.from("raw_fetches").select("html_bytes").eq("source_id", sourceId).order("html_bytes", { ascending: false }).limit(1);
+    snapshotBytes = Number(snaps?.[0]?.html_bytes ?? 0);
+  }
+  const { data: pool } = await sb.from("agent_run_searches").select("result_content_excerpt").eq("intelligence_item_id", itemId);
+  const usablePoolRows = (pool ?? []).filter((r) => ((r as { result_content_excerpt?: string }).result_content_excerpt || "").length > 200).length;
+  return { snapshotBytes, usablePoolRows };
+}
+export async function generateBrief(itemId: string, caller: string | null = null, opts: { forceRefresh?: boolean } = {}): Promise<StepResult> {
   const sb = svc();
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
   if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
-  // I1 (attribution): set the rich context ticket BEFORE any paid call so every agent_runs spend row carries
-  // itemId + sourceId (the $65 July hole was LEGACY_TICKET spend with neither). Overwrite-on-entry is safe:
-  // steps are execution-isolated and the last setter within a step wins. Gate-neutral — {purpose,itemId,
-  // sourceId} gets the identical necessity/budget verdict as LEGACY_TICKET.
-  setSpendTicket({ purpose: "canonical:generate", itemId, sourceId: it.source_id ?? null });
+  // NO-EXECUTION-FROM-STALE-STATE (operator ruling 2026-07-14): this fetch function re-verifies its OWN
+  // precondition against LIVE holdings as its first act — a manifest/dispatch that classified the item "needs
+  // fetch" is a PROPOSAL, never authority. It REFUSES to fetch when usable holdings already exist (a real
+  // snapshot OR >=2 content-bearing pool rows), regardless of caller, killing the fetch-when-held waste class
+  // at the seam (o9: 76KB already held, re-fetched, bought nothing). `forceRefresh` is the single explicit
+  // freshness escape (generateStep(refresh=true) / reresearch widen). The holdings posture is recorded on the
+  // spend ticket (amendment 1) so an authorized-but-wasteful fetch is machine-visible at the moment of spend.
+  const hold = await holdingsForItem(sb, itemId, it.source_id ?? null);
+  if (!opts.forceRefresh && holdingsPresent(hold)) {
+    return { ok: false, detail: `${HOLDINGS_PRESENT_DETAIL} (snapshot=${hold.snapshotBytes}B, pool=${hold.usablePoolRows})` };
+  }
+  // I1 (attribution) + amendment-1 precondition posture: every agent_runs spend row carries itemId + sourceId
+  // AND the precondition this fetch passed (holdings-absence: confirmed_absent, or 'present' when forceRefresh
+  // deliberately overrode). A paid fetch row lacking a precondition record is the new spend-watch alarm class.
+  setSpendTicket({ purpose: "canonical:generate", itemId, sourceId: it.source_id ?? null, precondition: holdingsPrecondition(hold) });
 
   // 1. primary source — with the roadblock→bounded-alternative-search capability: a hanging / blocked /
   //    wrong-language declared primary is replaced by an OFFICIAL alternative (discovery only — the

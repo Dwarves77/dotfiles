@@ -48,6 +48,17 @@ export const DOCTRINES = [
       'RD-21 (generation-pause.npmtest.mjs) proves the GENERATION-side facet mechanically: emergencyPaused hard-stops EVERY caller including the signed manual caller (no override). The FLAG-WRITE facet — that no agent may WRITE global_processing_paused/scrape_cadence by a direct write — is RD-23 (pause-flag-has-one-writer), enforced STRUCTURALLY with no credential and no manual step: the F20 fitness function (static one-writer, CI-fails a second writer) + the migration-201 guard trigger + admin_set_pause_state RPC (a generic unmarked UPDATE bounces at runtime) + the audit table. This REPLACES the DEAD 2a operator-credential design, which required a manual operator step (provision a login role, hold a secret, scope creds) — ruled dead 2026-07-12 ("human intervention should never be a solution"). Honest residual (RD-23): a determined caller with raw SQL could set the marker itself and bypass the trigger, but no committed code can (F20) and every write is audited — structural defense-in-layers, no human-held secret.',
   },
 
+  // ─────────────────────────────── No execution from stale state ───────────────────────────────
+  {
+    id: 'no-execution-from-stale-state',
+    statement:
+      'Every effectful mechanism (fetch, mint, flip, register, any spend or irreversible write) re-verifies its OWN precondition against LIVE state as its first act. A plan, manifest, or dispatch is a PROPOSAL, never authority for an effect — the o9 re-fetch (76KB already held, re-fetched on a manifest\'s say-so, grounding nothing) is the class. The fetch seam is the template: generateBrief refuses to fetch when usable holdings exist, regardless of caller, with a deliberate forceRefresh as the only escape. The precondition posture is recorded on the paid ticket so authorized-but-wasteful spend is machine-visible at the spend (a fetch row missing its precondition is the new spend-watch alarm class); effectful runs execute in ascending cost/irreversibility tiers with a spending-without-effect tripwire. Unenforced constraints are disclosed as trust-the-executor, never left as silent prose.',
+    source: 'operator ruling + amendments (2026-07-14) — close the doctrine-violating-spend failure class',
+    enforcedBy: ['RD-33-no-execution-from-stale-state'],
+    residual:
+      'RD-33 (holdings-gate.test.mjs) enforces the FETCH surface — the template instance — red-then-green: holdings present -> generateBrief refuses before any paid call; genuine absence admits a fetch; the precondition posture is recorded for spend-watch. NAMED RESIDUAL: retro-application to the other effectful surfaces (mint / flip / register) is the standing retro-audit unit — mint has mint-item.ts::sourceLinkDecision (source resolved live), flip has the set_provenance_status trigger re-running validate_item_provenance on live claims, register has registerCitedSources live dedup; the audit reports coverage and closes any gap as one unit. The run-structure (ascending tiers) + spending-without-effect tripwire live in the funded-pass runner; a generalized effectful-function fitness is a future strengthening.',
+  },
+
   // ─────────────────────────────── Spend authority (operator-priced) ───────────────────────────────
   {
     id: 'operator-sets-cost',
