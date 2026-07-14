@@ -282,3 +282,19 @@ the operator's DDL window per the standing ruling.
 **Blockers / open — PAUSED AT GATE A (the one spend gate; $0 so far this batch):** awaiting the operator's ruling on Unit 3 — (a) authorize the fetch plan (4 cents-class re-points incl. eu_clean_trucking→CELEX → 4 open-web discovery → 2 diff-engine re-collections), a subset, or park; (b) run the **21-item reattribution_debt** class now as its own **$0** unit (biggest lever, no fetch); (c) g14 non-EN extraction + `runSeekMore` reconcile-or-retire — build now or backlog. Coverage-universe reconciliation still owed at GATE B.
 
 **Next steps:** operator ruling on the three GATE-A questions → Unit 3 (ascending tiers, lock armed run-scoped) → GATE B close (T9 cert from run evidence, actuals, coverage-universe reconciliation, board + commit).
+
+---
+
+## 2026-07-14 (cont.) — GATE B: the $0 track (re-grounds-never-destroy)
+
+Operator GO "$0 track + incident disposition" after the API spend was fixed. Guard-first, no paid calls (lock OFF). Landed in **PR #336** (`remediation/re-grounds-never-destroy`), GitHub CI **green**. Full close: [gate-b-close-2026-07-14](./gate-b-close-2026-07-14.md).
+
+**Shipped ($0):** (1) **the guard — re-grounds-never-destroy (RD-36)**: `ledger-dominance.mjs` (three axes: FACT / floor-qualifying / verified-eligibility; supersedes count-only `thinning-guard`, deleted — one home). Two layers: `sectionBrief` reconciles by `section_key` so the ledger survives the FK cascade into the guard's snapshot (defect A); `groundBrief` restores-prior + writes a finding + loud `ok:false` on regression (defect B). Red golden = Brazil + the count-blind 55→55-GAP. (2) **charset-aware decode (RD-37)**: `charset-decode.mjs` — `directFetchClean` hardcoded UTF-8, mojibaking Latin-1 gov pages (planalto) to U+FFFD before the grounder saw them (defect C, the paired root of Brazil's 0 facts). (3) **no-shadow**: `runSeekMore` retired (0 callers; one home = `fetchPrimaryWithFallback`), `hardDivergence` per-path keying (portal SKIP is acquire-only → 5 false-held unblocked). (4) **durable re-points**: eu_clean_trucking→CELEX 32024R1610 (read-back VERIFIED) + Krone T-456/24 challenge intel (integrity_flags, EUR-Lex-sourced).
+
+**Decisions / findings:** (1) **Diverged from the stated diagnosis, correctly** — the "non-EN extraction fix" was NOT a grounder-prompt gap (the wrong-language-span rule already existed); the real root was a **charset-decode defect** corrupting the bytes before the model. Reference-vs-working-artifact: cured in the pipeline. (2) The existing thinning guard was **blind twice over** — the section-cascade zeroed its snapshot AND it only checked total count. Both cured. (3) Brazil's 55 facts are **gone from the DB** (2 GAP now); recovery needs a re-fetch (correct charset) + re-ground — parked, protected. (4) `runSeekMore`'s behavioral goldens were already superseded by `reground-ladder.golden` on the wired path → clean retirement, no coverage lost.
+
+**Verification:** 849 tests · tsc 0 · meta-gate PASS (85 invariants + 50 doctrines) · pre-push 4/4 · PR #336 CI green.
+
+**Blockers / open:** (a) **Cost estimate requested before any spend** — the parked paid queue is priced as facts + a labeled projection (~$7 core / 20 items, empirical $0.34/item from Unit A; +~$3 for the optional 9 retries) in the GATE B doc; **operator sets the number**, lock stays OFF. (b) paid queue order: Brazil restore → g14 proof → 3 ceiling-cut → 5 portal-held → fetch plan (10) → (optional) 9 retries. (c) coverage-universe reconciliation delivered (source + instrument tables): **ABSENT majors** bafa.de/LkSG, fedlex.admin.ch, CII-EEXI/CORSIA/CSDDD/LkSG (keyword screen). (d) still owed: coverage-floor definition (next unit), stale_verified proposal (45), reattribution-verified-half (42 spans — stays parked).
+
+**Next steps:** operator's priced/armed go on the paid queue → run in ruled order (ascending, lock armed run-scoped) → then coverage-floor definition unit.
