@@ -19,6 +19,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createJiti } from "jiti";
 import { createClient } from "@supabase/supabase-js";
 import { classifyFailure, withArmedLock, hardDivergence, spendWatchHalt, isRunaway } from "./lib/funded-pass-core.mjs";
+import { hasValidWaiver } from "../src/lib/agent/audit-gate-core.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));
@@ -26,7 +27,12 @@ const APPLY = process.argv.includes("--apply");
 const CLASS = (process.argv.find((a) => a.startsWith("--class=")) || "").slice(8) || null;
 const ONLY = (() => { const a = process.argv.find((x) => x.startsWith("--only=")); return a ? a.slice(7).split(",").map((s) => s.trim()).filter(Boolean) : null; })();
 const LIMIT = (() => { const a = process.argv.find((x) => x.startsWith("--limit=")); return a ? parseInt(a.slice(8), 10) : Infinity; })();
-const ITEM_TIMEOUT_MS = 300_000;
+// The full generate->section->ground chain runs multiple long Sonnet streams (RE-SYNTH items genuinely take
+// 4-6 min; ACQUIRE adds a fetch + web_search corroboration and is slower). The prior 300s cap fired mid-chain
+// and, because JS can't cancel the underlying pipeline promise, the read-back RACED the still-running pipeline
+// — recording false "timeout" HELDs on items that actually verified (RE-SYNTH settled 3 verified vs 1 logged).
+// A generous cap makes the timeout a rare true-hang backstop, so the read-back reflects the settled state.
+const ITEM_TIMEOUT_MS = 1_200_000;
 
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const P = await jiti.import("../src/lib/agent/canonical-pipeline.ts");
@@ -99,8 +105,29 @@ async function runItem(w) {
   return { ...w, prov, cost: Number(cost.toFixed(4)), validValid: val?.valid ?? null, held, halt, runaway, steps: Object.fromEntries(Object.entries(steps).map(([k, v]) => [k, { ok: v.ok, detail: (v.detail || "").slice(0, 120) }])) };
 }
 
+// ── LAYER C block-gate (operator HALT 2026-07-14): the runner drives the pipeline functions DIRECTLY, so it
+// does NOT pass through preflightStep's data-audit-block check. Honor the guard here so the runner can never
+// STEP PAST a red lane — generation proceeds only on green (no open block) or a valid dated waiver. Fail-closed
+// on read error. This closes the bypass the flight surfaced. Applies to APPLY (spend); dry-run reports it.
+async function dataAuditBlockState() {
+  const { data, error } = await sb.from("integrity_flags").select("id, description, recommended_actions")
+    .eq("category", "data_integrity").eq("subject_ref", "data-audit-lane").eq("status", "open")
+    .order("created_at", { ascending: false }).limit(1);
+  if (error) return { block: { id: "READ_ERROR" }, waiver: false, readError: error.message }; // fail-closed
+  const block = (data && data[0]) || null;
+  return { block, waiver: block ? hasValidWaiver(block, new Date()) : true, readError: null };
+}
+
 // ── main ──
 console.log(`\n=== FUNDED-PASS (${APPLY ? "APPLY — LOCK ARMED, SPEND" : "DRY-RUN — lock OFF, $0"}) === ${items.length} item(s), caller="${CALLER}"`);
+{
+  const st = await dataAuditBlockState();
+  if (st.block && !st.waiver) {
+    console.log(`\nLAYER C BLOCK: data-audit lane is RED with no valid dated waiver (integrity_flags ${st.block.id}${st.readError ? `; read error: ${st.readError}` : ""}). Runner REFUSES to proceed — fix to green or record a dated waiver (docs/data-audit-dispositions.md + recommended_actions). The flight does not step past the guard.`);
+    process.exit(4);
+  }
+  console.log(`Layer C block-gate: ${st.block ? `open block ${st.block.id} carries a VALID dated waiver — proceeding` : "no open block (green)"}.`);
+}
 const results = [];
 let runHalt = null;
 
