@@ -305,3 +305,19 @@ Flagged now so it lands deliberately, not improvised when the cron unit arrives.
 3. Relabel human-gate copy → visibility across 6 sites: `AdminDashboard.tsx:114`, `IntegrityFlagsView.tsx:170`, `ResearchPipelineQueueView.tsx:153`, `UserProfilePage.tsx:264`, `FlagsRejectionsQueue.tsx:49`, `AdminIssuesRail.tsx:63/70`.
 4. Admin phrase-scan fitness function (SOFT review signal) + ruled allowlist (emergency-stop, SC-3 override, Community controls) + golden.
 5. Board same-PR.
+
+---
+
+## Unit 0c — PARTLY LANDED; Parts 1 & 3 HALTED on unnamed surfaces (2026-07-13, session 3)
+
+**Landed (this PR):**
+- **Part 2 — customer-surface leak FIXED.** `DashboardAwaitingReview` removed from the customer home (`HomeSurface` mount + `page.tsx` prop-threading + component deleted); tsc clean, no orphaned fetch (`getAwaitingReview` left as a reserved `/admin` accessor, uncalled in the customer render — not an RD-9 render-path dead fetch).
+- **Part 4 — admin phrase-scan (SOFT) SHIPPED.** `scripts/lib/admin-phrase-scan.mjs` (pure core + ruled allowlist: emergency-stop / SC-3 override / community-is-human-space) + golden 3/3 + `scripts/verify/admin-phrase-scan.mjs` (report-only, **always exit 0** — never fails the build). Currently flags 10 human-gate phrases: the correct review signal for the un-retired gates below.
+
+**HALTED (per the stop condition — the scope's premise did not hold):**
+- **Part 1 — a LIVE caller exists.** `AdminDashboard.tsx:222–242` `handleUpdate()` POSTs `{id, action: approve|reject}` to `/api/staged-updates` — the human-approval UI is still wired. A `410` would break it. The route stays; retiring it requires also retiring the AdminDashboard approve/reject UI (unscoped).
+- **Part 3 — coupled to Part 1 + a SECOND live gate.** (a) Part 3 relabels copy to "the machine did it / visibility, not a gate" — but the human gates are STILL LIVE (Part 1 halted), so the relabels would LIE; land WITH the retirement, not before (reverted). (b) `ResearchPipelineQueueView` is a LIVE publish/archive human-gate (`publish()`/`archive()` buttons, "Published — item is now on customer surfaces") — a second human-approval path unnamed in Part 1. (c) Several of the six sites are LEGITIMATE human controls (integrity-flag resolution, spot-check human pass), not intake gates — relabeling them machine-gated would be false.
+
+**T9 dependency (update):** the machine-gated cutover (`runIntakeCycle`/`manual-intake-run`) is NOT shipped — Part 1 halted, the human-approval path remains, 0 machine-gated runs exist. T9's "first machine-gated run" gate stays UNMET.
+
+**Operator ruling needed to unhalt Parts 1+3:** whether to retire the two live human-approval UIs — AdminDashboard approve/reject AND ResearchPipelineQueueView publish/archive — replacing them with visibility-only (the machine-gated cycle), OR keep them. The route `410` + the copy relabels land WITH that decision.

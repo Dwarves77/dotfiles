@@ -17,7 +17,6 @@ import {
   getAppData,
   getWatchlist,
   getCoverageGaps,
-  getAwaitingReview,
   getWorkspaceAggregates,
 } from "@/lib/data";
 import { getSurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
@@ -37,7 +36,6 @@ export default async function Home() {
   // Suspense boundaries as their independent queries return.
   const watchlistPromise = getWatchlist();
   const coverageGapsPromise = getCoverageGaps();
-  const awaitingReviewPromise = getAwaitingReview();
 
   const dateStr = new Date().toLocaleDateString("en-US", {
     year: "numeric",
@@ -77,7 +75,6 @@ export default async function Home() {
         jurisdictionsCount={jurisdictionsCount}
         watchlistPromise={watchlistPromise}
         coverageGapsPromise={coverageGapsPromise}
-        awaitingReviewPromise={awaitingReviewPromise}
         surfaceCoverage={surfaceCoverage}
       />
     </>
