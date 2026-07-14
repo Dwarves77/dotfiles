@@ -82,6 +82,36 @@ export const DOCTRINES = [
       'RD-31 (spend authority) enforces the SPEND-AUTHORIZATION half mechanically (no paid row without an operator-priced line). The ORDERING half (cheapest-tier-first, results-inform-next-tier) is dispatch-authoring discipline carried by this register + the funded-pass runner (which runs stored re-grounds before fetches and carries the spending-without-effect tripwire) + the protocol doc; a generalized cross-run tier-ordering fitness is a future strengthening.',
   },
 
+  // ─────────────────── Acquisition ladder completeness (2026-07-14 CRITICAL DISPATCH) ───────────────────
+  {
+    id: 'referenced-law-exists',
+    statement:
+      'An intelligence item holding an instrument IDENTIFIER (CELEX/ELI, gazette number, SI number, a formal citation) can NEVER be dispositioned as absent, unfindable, or exhausted on the basis that its declared URL failed. The document exists — the identifier proves it. The ONLY honest terminal for such an item is "not found under N variants x M endpoints, variants and endpoints logged" — a retryable SEARCH-COMPLETENESS record, never an existence claim. A delete or genuine-absence disposition on an identifier-bearing item is forbidden. Discovery derives the canonical URL from the identifier by machine (2024_1610 -> CELEX 32024R1610 -> the eur-lex enacted-text URL); the operator found two such URLs by hand in seconds that the machine had called "exhausted" over 5 retries of one dead address.',
+    source: 'operator CRITICAL DISPATCH + SMART-SEARCH AMENDMENT (2026-07-14) — the acquisition-ladder post-mortem',
+    enforcedBy: ['RD-34-referenced-law-exists'],
+    residual:
+      'RD-34 (identifier-variants.mjs + seek-more generateCandidates, wired into fetchPrimaryWithFallback; goldens incl. the mandated eu_clean_trucking -> CELEX 32024R1610) mechanizes the derivation; the durable "not-found under N x M" search-completeness record is persistExhaustionRecord, wired at the exhaustion point (persistPrimaryExhaustion). The forbidden-delete-on-identifier-bearing-item half is dispatch-authoring discipline until a delete-path guard reads instrument_identifier.',
+  },
+  {
+    id: 'caller-count-is-not-wiring-verification',
+    statement:
+      'A capability having callers (or a passing unit test) does NOT prove it is wired into the flow that is supposed to use it. seek-more.mjs was fully built and unit-tested with ZERO live callers — dormant on an unactioned wake-list, its own test the only caller, while the live ladder ran an inferior title-only shadow. Critical-path ladders (fetch/discovery/ground/mint/flip/disposition) are verified by BEHAVIORAL END-TO-END GOLDENS: input a failing item, assert each intended rung fires — discovery included — driving the REAL mechanism, not a mock. A comment claiming a rung is wired is not wiring.',
+    source: 'operator amendment 2 + WIRING TRUTH SWEEP (2026-07-14) — the dormant-capability finding',
+    enforcedBy: ['RD-35-flow-golden-mandate'],
+    residual:
+      'RD-35 requires a behavioral end-to-end golden for each critical-path flow; the reground/discovery ladder golden (reground-ladder.golden.test.mjs) is the first and Unit 1\'s exit test. The meta-gate extension that fails CI on a flow NAMED in doctrine lacking a golden is the enforcement to complete (the flow-claim scanner, sibling of doctrine-contradiction); until it lands, the mandate is carried by this register + the golden backlog the WIRING TRUTH SWEEP defines.',
+  },
+  {
+    id: 'no-shadow-capability',
+    statement:
+      'One capability per role — no thin duplicate occupying the slot where the real one belongs. When the live path runs an inferior mechanism while the superior one sits dormant (the title-only webSearchAlternatives live while seek-more discovery was dormant), wiring the real one in means the shadow FOLDS INTO it or DIES — never both left standing, or the next audit finds the same split. A behavioral one-home violation, the runtime sibling of the code one-URL-canonicalizer / one-home rules.',
+    source: 'operator shadow-capability finding (2026-07-14)',
+    exempt: {
+      reason:
+        'Behavioral one-home discipline applied at wiring time (fold-or-delete the shadow); not a mechanically-checkable committed-file property in general. Worked instance discharged: webSearchAlternatives retired into generateCandidates when discovery was wired. Process-class like consolidation-is-behavior-preserving.',
+    },
+  },
+
   // ─────────────────────────────── Spend authority (operator-priced) ───────────────────────────────
   {
     id: 'operator-sets-cost',

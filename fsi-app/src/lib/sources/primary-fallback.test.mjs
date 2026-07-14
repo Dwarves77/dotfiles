@@ -105,7 +105,7 @@ test("orchestrator: healthy primary → no fallback, no search", async () => {
   let searched = false;
   const r = await fetchPrimaryWithFallback(
     { title: "X", primaryUrl: "https://reg.gov/x", itemType: "regulation" },
-    { browserlessFetch: async () => ({ text: EN(3000) }), webSearchAlternatives: async () => { searched = true; return []; } },
+    { browserlessFetch: async () => ({ text: EN(3000) }), discoverCandidates: async () => { searched = true; return []; } },
   );
   assert.equal(r.ok, true);
   assert.equal(r.fellBack, false);
@@ -119,7 +119,7 @@ test("orchestrator: roadblocked primary → search → first fetchable alternati
     { title: "GX-ETS", primaryUrl: "https://reg.gov/dead", itemType: "regulation" },
     {
       browserlessFetch: async (u) => ({ text: pages[u] ?? "" }),
-      webSearchAlternatives: async () => ["https://reg.gov/bad", "https://reg.gov/good", "https://reg.gov/unused"],
+      discoverCandidates: async () => ["https://reg.gov/bad", "https://reg.gov/good", "https://reg.gov/unused"],
     },
   );
   assert.equal(r.ok, true);
@@ -133,7 +133,7 @@ test("orchestrator: roadblocked primary → search → first fetchable alternati
 test("orchestrator: roadblocked primary + no fetchable alternative → ok:false (caller honest-exits)", async () => {
   const r = await fetchPrimaryWithFallback(
     { title: "X", primaryUrl: "https://reg.gov/dead", itemType: "regulation" },
-    { browserlessFetch: async () => ({ text: "" }), webSearchAlternatives: async () => ["https://reg.gov/alsodead"] },
+    { browserlessFetch: async () => ({ text: "" }), discoverCandidates: async () => ["https://reg.gov/alsodead"] },
   );
   assert.equal(r.ok, false);
   assert.equal(r.fellBack, true);
@@ -146,7 +146,7 @@ test("orchestrator: per-fetch timeout is bounded (a hanging fetch never blocks p
     { title: "X", primaryUrl: "https://reg.gov/hang", itemType: "regulation" },
     {
       browserlessFetch: async (u) => (u.includes("hang") ? new Promise(() => {}) : { text: "" }),
-      webSearchAlternatives: async () => [],
+      discoverCandidates: async () => [],
       perFetchMs: 200,
     },
   );

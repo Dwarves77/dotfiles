@@ -344,6 +344,21 @@ The o9 re-fetch — a 76KB snapshot already held in `raw_fetches`, re-fetched on
 - **Effectful runs execute in ascending cost/irreversibility tiers with halt-review between tiers**, and a run halts on N consecutive paid calls that add no net verified/grounding state — "spending without effect" is an anomaly regardless of authorization.
 - **The honest limit:** a doctrine the machine has not been taught to check is unenforced; a dispatch constraint either names its enforcing mechanism or is logged as trust-the-executor WITH the operator told explicitly that the line is unenforced. No silent prose constraints — the operator knowing which lines are guarded and which are not is itself the control.
 
+### Section 4 — category 20: Referenced-law-exists (an identifier-bearing item is never dispositioned absent)
+
+The acquisition ladder had no discovery rung: it re-interrogated held content or ONE fixed URL (reground-from-stored-pool → re-fetch the SAME URL → re-research the SAME pool → hold/erase), and called retrying one dead address "exhaustion" — la-eweo failed 5× against one 175-byte stub; eu_clean_trucking held an ELI URL that failed while the CELEX enacted text sat one derivation away. The class fix (operator CRITICAL DISPATCH 2026-07-14):
+
+- **An item holding an instrument identifier can never be dispositioned as absent or unfindable.** The document exists — the identifier proves it. The only honest terminal is "not found under N variants × M endpoints, variants and endpoints logged" — a retryable search-completeness record, never an existence claim; a delete on an identifier-bearing item is forbidden.
+- **Discovery derives the canonical URL from the identifier by machine** — separator mutations (2024_1610 → 2024/1610), publisher-scheme encodings (CELEX 3+year+R/L/D+number, ELI paths, UK-SI, FR-by-doc), endpoint-first (the source's own search surface before open web). `identifier-variants.mjs` + seek-more `generateCandidates`, wired into `fetchPrimaryWithFallback`; the mandated golden is eu_clean_trucking's identifier → CELEX 32024R1610 → the fetchable `/legal-content` URL, no human help.
+- **The exhaustion record is durable** — `persistExhaustionRecord` writes the N×M attempt record at the exhaustion point (`persistPrimaryExhaustion`), so a hold carries proof-of-exhaustion (RD-34, earth-exhaustion). Invariant RD-34.
+
+### Section 4 — category 21: Caller-count is not wiring verification (critical-path flows carry behavioral goldens)
+
+`seek-more.mjs` was fully built and unit-tested with ZERO live callers — dormant on an unactioned wake-list, its own test the only caller, while the live ladder ran an inferior title-only search shadow. A capability having a test (or even callers) does not prove it is wired into the flow that should use it; a comment claiming a rung is wired is not wiring. The class fix (operator amendment 2 + WIRING TRUTH SWEEP 2026-07-14):
+
+- **Critical-path ladders are verified by behavioral end-to-end goldens** — input a failing item, assert each intended rung fires (discovery included), driving the REAL mechanism not a mock. The reground/discovery ladder golden (`reground-ladder.golden.test.mjs`) is the first and the exit test.
+- **A flow named in doctrine without a behavioral golden is a gap** — the flow-golden mandate; the meta-gate extension that fails CI on such a flow is the enforcement to complete (the flow-claim scanner, sibling of doctrine-contradiction). Paired: no shadow capability — when the real mechanism is wired, the inferior duplicate folds into it or dies, never both left standing. Invariant RD-35.
+
 ## Section 9: When the Principle Doesn't Apply
 
 Genuinely one-off remediations where class-over-instance does not apply:

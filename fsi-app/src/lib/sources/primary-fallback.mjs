@@ -153,7 +153,7 @@ async function boundedFetch(fetchFn, url, ms) {
  * }
  */
 export async function fetchPrimaryWithFallback({ title, primaryUrl, itemType }, deps) {
-  const { browserlessFetch, webSearchAlternatives, perFetchMs = 20000, maxAlts = 3 } = deps;
+  const { browserlessFetch, discoverCandidates, perFetchMs = 20000, maxAlts = 3, maxCandidates = 6 } = deps;
   // Normalise the declared primary to its fetchable rendering form BEFORE the first fetch (EUR-Lex /TXT
   // -> /TXT/HTML/), so the enacted text — not a soft-404 — is what we try first.
   primaryUrl = renderingUrlForPrimary(primaryUrl);
@@ -167,13 +167,19 @@ export async function fetchPrimaryWithFallback({ title, primaryUrl, itemType }, 
     return { ok: true, url: primaryUrl, text: p.text, roadblocked: false, primaryReason: pd.reason, fellBack: false, langRatio: round2(pd.langRatio), truncated: !!p.truncated, fullLength: p.fullLength || p.text.length, cap: p.cap || 0, alternatives };
   }
 
-  // 2. ROADBLOCK → bounded official-alternative search. The query aims at the regulator's OWN English
-  //    page / authoritative text, never an English summary (a summary resolves sub-floor anyway).
-  let altUrls = [];
-  try { altUrls = (await webSearchAlternatives(title, itemType, pd.reason)) || []; } catch { altUrls = []; }
-  altUrls = [...new Set(altUrls.filter((u) => typeof u === "string" && /^https?:\/\//i.test(u) && u !== primaryUrl))];
+  // 2. ROADBLOCK → the ONE discovery mechanism (operator CRITICAL DISPATCH 2026-07-14 — the missing rung,
+  //    ONE HOME). `discoverCandidates` is seek-more's generateCandidates: identifier-DERIVED canonical URLs
+  //    FIRST (a NEW URL where the document actually lives: CELEX/ELI → eur-lex enacted text, UK-SI, FR-by-doc,
+  //    gazette), then the source's own search surface, then open-web search LAST — a single ordered list, not
+  //    a parallel title-only shadow (the retired webSearchAlternatives folded INTO this). Every
+  //    (candidate × transport) attempt lands in `alternatives` — the N×M exhaustion record. EXHAUSTION IS
+  //    "candidates exhausted", never "one URL retried" (RD-7).
+  let discovered = [];
+  try { discovered = (await discoverCandidates?.()) || []; } catch { discovered = []; }
+  const altUrls = [...new Set(discovered
+    .filter((u) => typeof u === "string" && /^https?:\/\//i.test(u) && u !== primaryUrl))].slice(0, maxCandidates);
 
-  for (const u of altUrls.slice(0, maxAlts)) {
+  for (const u of altUrls.slice(0, Math.max(maxAlts, altUrls.length))) {
     const r = await boundedFetch(browserlessFetch, u, perFetchMs);
     const d = detectRoadblock(r.text, { httpStatus: r.status, timedOut: r.timedOut });
     alternatives.push({ url: u, len: d.len, langRatio: round2(d.langRatio), reason: d.reason, role: "alternative" });

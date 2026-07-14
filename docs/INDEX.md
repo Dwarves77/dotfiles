@@ -103,6 +103,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [W1C-source-attribution-summary](./audits/W1C-source-attribution-summary.md) — W1.C — Source attribution audit summary
 - [WORKER-ACTIVATION-AUDIT-2026-05-08](./audits/WORKER-ACTIVATION-AUDIT-2026-05-08.md) — Worker activation audit — 2026-05-08
 - [access-method-triage-2026-05-12](./audits/access-method-triage-2026-05-12.md) — Access-Method Triage, 2026-05-12
+- [acquisition-ladder-post-mortem-2026-07-14](./audits/acquisition-ladder-post-mortem-2026-07-14.md) — Acquisition ladder had no discovery rung (seek-more built but 0 callers); discovery wired one-home, split-wake closed, furniture inline gate, behavioral flow-golden; quarantine population now suspect → re-diagnose
 - [auth-architecture-audit-2026-05-10](./audits/auth-architecture-audit-2026-05-10.md) — Auth architecture audit, 2026-05-10
 - [california-pilot-summary](./audits/california-pilot-summary.md) — California Pilot Results
 - [cards-clickable-audit-2026-05-12](./audits/cards-clickable-audit-2026-05-12.md) — Cards Clickable Audit — 2026-05-12

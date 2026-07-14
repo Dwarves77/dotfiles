@@ -22,6 +22,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { browserlessFetch } from "@/lib/sources/canonical-fetch.mjs";
 import { fetchPrimaryWithFallback, detectRoadblock } from "@/lib/sources/primary-fallback.mjs";
+import { generateCandidates, persistExhaustionRecord } from "@/lib/sources/seek-more.mjs";
 import { looksLikePdfUrl, classifyBody, pdfToText } from "@/lib/sources/pdf-extract.mjs";
 import { anthropicError, isFatalAnthropic } from "@/lib/agent/anthropic-error.mjs";
 import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
@@ -546,15 +547,11 @@ Search the web and return the JSON list of corroborating / expanding sources.`;
 // English page / authoritative text (EUR-Lex EN, a regulator's .gov/.go.jp/.gov.in English page, an
 // official press release) — NEVER a summary, explainer, news, or commentary (a summary resolves
 // sub-floor anyway; the per-type floor enforces qualification regardless of what this returns).
-async function webSearchAlternatives(title: string, itemType: string, reason: string): Promise<string[]> {
-  const system = `You locate the OFFICIAL PRIMARY source for a ${itemType}. You return only the issuer's OWN authoritative pages (the regulator / ministry / official body), in English where an official English version exists. You NEVER return summaries, law-firm explainers, news articles, blogs, or third-party commentary.`;
-  const user = `The declared primary source for "${title}" is unreachable (roadblock: ${reason}). Find the OFFICIAL issuer's own English-language page(s) carrying the authoritative text or official announcement (e.g. EUR-Lex EN, an official government English page, a regulator press release). Search the web and return the JSON list { "urls": ["..."] } of up to 5 official-source URLs, most authoritative first. Official issuer pages ONLY — no summaries or commentary.`;
-  let txt: string;
-  try { txt = await callSonnetSearch(system, user, 4); } catch { return []; }
-  return [...new Set((txt.match(/https?:\/\/[^\s)\]}"'<>]+/g) || []).map((u) => u.replace(/[.,;:]+$/, "")))];
-}
+// (The title-only `webSearchAlternatives` shadow was RETIRED 2026-07-14 — folded into the ONE discovery
+//  home `generateCandidates`, whose `webSearch` rung is the query-shaped `webSearchCandidatesForQuery`
+//  below. Two search mechanisms with the inferior one live was the shadow-capability / one-home violation.)
 
-// QUERY-SHAPED official-source web search for the BATCH-1 seek-more candidate fallback. generateCandidates
+// QUERY-SHAPED official-source web search for the seek-more candidate fallback. generateCandidates
 // (seek-more.mjs) runs its deterministic identifier resolvers FIRST (CELEX/ELI/UK-SI/lovdata/gazette/API — no
 // spend); only when those yield nothing does it call this open-web fallback with a free-text query. Reuses
 // callSonnetSearch → spendSearch (THE spend chokepoint), so the candidate search is ticketed + budget-gated
@@ -580,8 +577,46 @@ const blFetchCleanFor = (caller: string | null) => async (url: string): Promise<
  *  deps (Browserless + official-alternative web_search). BOTH generateBrief and phase2-reground call this
  *  so they inherit the fallback uniformly. Returns usable content + the full audit trail (discovery only —
  *  tier/floor qualification is unchanged downstream). */
-export async function fetchPrimaryDeep(item: { title: string; primaryUrl: string; itemType: string }, caller: string | null = null) {
-  return fetchPrimaryWithFallback(item, { browserlessFetch: blFetchCleanFor(caller), webSearchAlternatives, perFetchMs: 20000, maxAlts: 3 });
+export async function fetchPrimaryDeep(
+  item: { title: string; primaryUrl: string; itemType: string; identifier?: string | null; canonicalKey?: string | null; jurisdiction?: string[] | string | null; instrumentType?: string | null },
+  caller: string | null = null,
+) {
+  // DISCOVERY-FIRST, ONE HOME (operator CRITICAL DISPATCH + amendments, 2026-07-14): the injected
+  // discoverCandidates IS seek-more's generateCandidates — the SINGLE discovery mechanism. It orders
+  // identifier-DERIVED canonical URLs (CELEX/ELI → eur-lex enacted text, UK-SI, FR-by-doc, gazette) FIRST,
+  // then the source's own search surface, then open-web search LAST (webSearchCandidatesForQuery folded in
+  // as its `webSearch` rung). This WIRES the once-dormant discovery rung (seek-more had zero callers) into
+  // the live reground/generate ladder AND retires the title-only webSearchAlternatives shadow — no parallel
+  // second search mechanism (one-home).
+  const discoverCandidates = () =>
+    generateCandidates(
+      {
+        title: item.title, identifier: item.identifier ?? undefined, canonicalKey: item.canonicalKey ?? undefined,
+        itemType: item.itemType, instrumentType: item.instrumentType ?? undefined,
+        jurisdiction: (Array.isArray(item.jurisdiction) ? item.jurisdiction[0] : item.jurisdiction) ?? undefined,
+        sourceUrl: item.primaryUrl,
+      },
+      { webSearch: (q: string) => webSearchCandidatesForQuery(q) },
+    );
+  return fetchPrimaryWithFallback(item, { browserlessFetch: blFetchCleanFor(caller), discoverCandidates, perFetchMs: 20000, maxAlts: 3 });
+}
+
+/** EARTH-EXHAUSTION durable record (operator CRITICAL DISPATCH 2026-07-14 — closes the split-wake): when
+ *  discovery RAN and every candidate was EXHAUSTED (pf.ok=false after fellBack), persist the N×M attempt
+ *  record so a subsequent hold/erase carries PROOF-OF-EXHAUSTION (RD-15 / earth-exhaustion-before-hold),
+ *  not just an ephemeral in-memory `alternatives[]`. Only fires on genuine exhaustion (not on a healthy
+ *  primary, not when an alternative won) — so the flag queue carries real "searched + exhausted" records.
+ *  Best-effort: a write failure never blocks the pipeline. */
+async function persistPrimaryExhaustion(sb: SupabaseClient, itemId: string, pf: { ok?: boolean; fellBack?: boolean; primaryReason?: string | null; alternatives?: Array<{ url?: string; len?: number; reason?: string | null; role?: string }> }): Promise<void> {
+  if (pf.ok || !pf.fellBack) return; // only when discovery ran AND exhausted
+  const record = (pf.alternatives ?? []).map((a) => ({
+    url: a.url, transport: a.role === "declared_primary" ? "declared_primary" : "discovery_candidate",
+    verdict: a.reason ?? "roadblocked", bytes: typeof a.len === "number" ? a.len : null,
+    reason: a.reason ?? null, status: "exhausted",
+  }));
+  try {
+    await persistExhaustionRecord(sb, itemId, record, { outcome: "no_reachable_source", holdReason: pf.primaryReason ?? null });
+  } catch (e) { console.warn(`[canonical] exhaustion-record persist failed for ${itemId}: ${e instanceof Error ? e.message : String(e)}`); }
 }
 
 // item 5b (unreadable-source flag): map the transport's primary-fetch outcome to a sources.fetch_status
@@ -793,7 +828,7 @@ async function holdingsForItem(sb: ReturnType<typeof svc>, itemId: string, sourc
 }
 export async function generateBrief(itemId: string, caller: string | null = null, opts: { forceRefresh?: boolean } = {}): Promise<StepResult> {
   const sb = svc();
-  const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
+  const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url, instrument_identifier, canonical_instrument_key, instrument_type, jurisdiction_iso").eq("id", itemId).single();
   if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
   // NO-EXECUTION-FROM-STALE-STATE (operator ruling 2026-07-14): this fetch function re-verifies its OWN
   // precondition against LIVE holdings as its first act — a manifest/dispatch that classified the item "needs
@@ -815,8 +850,9 @@ export async function generateBrief(itemId: string, caller: string | null = null
   //    wrong-language declared primary is replaced by an OFFICIAL alternative (discovery only — the
   //    resolver + per-type floor still qualify whatever it returns). A thin REAL primary is kept as-is;
   //    discovery below carries the weight. Fetched ONCE here (never re-fetched in the pool below).
-  const pf = await fetchPrimaryDeep({ title: it.title, primaryUrl: it.source_url, itemType: it.item_type }, caller);
+  const pf = await fetchPrimaryDeep({ title: it.title, primaryUrl: it.source_url, itemType: it.item_type, identifier: it.instrument_identifier, canonicalKey: it.canonical_instrument_key, instrumentType: it.instrument_type, jurisdiction: it.jurisdiction_iso }, caller);
   await recordSourceFetchStatus(sb, it.source_id, pf); // item 5b: source-level unreadable flag (guarded, behind mig 147)
+  await persistPrimaryExhaustion(sb, itemId, pf); // earth-exhaustion: durable N×M record when discovery exhausted (RD-15)
   const primaryUrl = pf.url, primary = pf.text;
   // NO SILENT TRUNCATION: collect a truncation event if the primary (or, below, any corroborator) hit its cap.
   const truncEvents: TruncEvent[] = [];
@@ -897,7 +933,7 @@ export async function generateBriefFromStored(itemId: string): Promise<StepResul
 }
 async function generateBriefFromStoredImpl(itemId: string): Promise<StepResult> {
   const sb = svc();
-  const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
+  const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url, instrument_identifier, canonical_instrument_key, instrument_type, jurisdiction_iso").eq("id", itemId).single();
   if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
   // I1 (attribution): rich ticket for the stored-path re-synthesis Sonnet call (see generate for rationale).
   setSpendTicket({ purpose: "canonical:generate-stored", itemId, sourceId: it.source_id ?? null });
@@ -936,13 +972,14 @@ export async function generateBriefRefreshPrimary(itemId: string, caller: string
 }
 async function generateBriefRefreshPrimaryImpl(itemId: string, caller: string | null = null): Promise<StepResult> {
   const sb = svc();
-  const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url").eq("id", itemId).single();
+  const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url, instrument_identifier, canonical_instrument_key, instrument_type, jurisdiction_iso").eq("id", itemId).single();
   if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
   // I1 (attribution): rich ticket for the refresh-primary re-synthesis calls (see generate for rationale).
   setSpendTicket({ purpose: "canonical:refresh-primary", itemId, sourceId: it.source_id ?? null });
   // 1. full primary via the #155 direct-first transport (free for eligible legal hosts; no truncation).
-  const pf = await fetchPrimaryDeep({ title: it.title, primaryUrl: it.source_url, itemType: it.item_type }, caller);
+  const pf = await fetchPrimaryDeep({ title: it.title, primaryUrl: it.source_url, itemType: it.item_type, identifier: it.instrument_identifier, canonicalKey: it.canonical_instrument_key, instrumentType: it.instrument_type, jurisdiction: it.jurisdiction_iso }, caller);
   await recordSourceFetchStatus(sb, it.source_id, pf); // item 5b: source-level unreadable flag (guarded, behind mig 147)
+  await persistPrimaryExhaustion(sb, itemId, pf); // earth-exhaustion: durable N×M record when discovery exhausted (RD-15)
   const primaryUrl = pf.url, primary = pf.text;
   if (primary.length < 200) return { ok: false, detail: `refresh-primary: primary too thin (${primary.length}ch${pf.fellBack ? ` via fallback after ${pf.primaryReason}` : ""})` };
   const truncEvents: TruncEvent[] = [];

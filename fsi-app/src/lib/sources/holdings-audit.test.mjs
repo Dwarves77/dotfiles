@@ -5,8 +5,19 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   detectPublisherShape, extractCleanText, structuralTruncation,
-  classifyCompleteness, classifySufficiency, STUB_MAX_BYTES,
+  classifyCompleteness, classifySufficiency, looksLikeFurniture, STUB_MAX_BYTES,
 } from "./holdings-audit.mjs";
+
+test("looksLikeFurniture: nav shell → true; real thin legal text → false (never false-rejects)", () => {
+  const shell = "Skip to main content. Main menu. Sign in. Accept all cookies. Back to top.";
+  assert.equal(looksLikeFurniture(shell), true);
+  // real thin regulatory text has real sentences → must pass even though short
+  const real = "Article 1 sets the blending obligation at 2 percent from January 2025. Suppliers must report annually to the competent authority. Penalties apply for non-compliance.";
+  assert.equal(looksLikeFurniture(real), false);
+  // substantial extracted prose is never furniture
+  assert.equal(looksLikeFurniture("The quick brown fox. ".repeat(300)), false);
+  assert.equal(looksLikeFurniture(""), false);
+});
 
 test("detectPublisherShape: the four named shapes + other", () => {
   assert.equal(detectPublisherShape("https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R1115"), "eur-lex");
