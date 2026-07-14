@@ -69,6 +69,7 @@ import { escalateToFetchResult } from "@/lib/sources/transport-runtime.mjs";
 // (built in fetch-hold.mjs but never injected — CODE-1 F-03) is wired into buildLiveTransports so a
 // re-ground / retry / refresh of the SAME url reads the cache instead of re-fetching (stops double-paying).
 import { assertFetchAllowed, cacheGet as fetchCacheGet, cachePut as fetchCachePut } from "@/lib/sources/fetch-hold.mjs";
+import { assertAcquireAllowed } from "@/lib/sources/acquire-lock.mjs";
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
 import {
   toDbSeverity, toDbTheme, toThemeCandidate, assertDbValue,
@@ -1049,6 +1050,12 @@ export async function groundBrief(itemId: string, caller: string | null = null):
 }
 async function groundBriefImpl(itemId: string, caller: string | null = null): Promise<StepResult> {
   const sb = svc();
+  // MASTER ACQUIRE GATE (operator ruling 2026-07-14): the acquire lock is the single clean master gate on the
+  // paid ground path — asserted HERE, at the spend site, so grounding is administratively FROZEN unless the
+  // operator has armed GROUNDING_ACQUIRE_ENABLED for a sanctioned run (throws AcquireLockError before any model
+  // call). Composes with verify-item's earlier gate on the workflow path and the SCRAPE_HOLD transport gate. A
+  // direct groundBrief call (proof scripts, reresearch) is gated here too — no paid grounding without the arm.
+  assertAcquireAllowed(`ground: ${itemId}`, process.env);
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, item_type, source_id, source_url, full_brief").eq("id", itemId).single();
   if (itErr || !it?.source_id) return { ok: false, detail: `no source_id${itErr ? `: ${itErr.message}` : ""}` };
   // I1 (attribution): rich ticket for the grounding ledger-extraction Sonnet call — the paid call the $65
