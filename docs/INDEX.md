@@ -39,6 +39,8 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [INTEGRITY-TRIAGE-PROCEDURE](./runbooks/INTEGRITY-TRIAGE-PROCEDURE.md) — Integrity-flag triage procedure
 - [PERF-PLAYBOOK](./runbooks/PERF-PLAYBOOK.md) — Perf Playbook
 - [SPOT-CHECK-PROCEDURE](./runbooks/SPOT-CHECK-PROCEDURE.md) — Tier-H Spot-Check Procedure
+- [dispatch-discipline-protocol](./runbooks/dispatch-discipline-protocol.md) — Every dispatch constraint names its enforcement or is disclosed as trust-the-executor (2026-07-14 honest-limit ruling)
+- [run-structure-protocol](./runbooks/run-structure-protocol.md) — Effectful runs execute in ascending cost/irreversibility tiers; halt for operator spend-authorization at each boundary (2026-07-14)
 - [sprint4-dataops-ledger](./runbooks/sprint4-dataops-ledger.md) — Sprint 4 — Data-Operations Ledger (already-executed; do NOT re-run)
 
 ## plans
@@ -116,6 +118,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [jurisdiction-normalization-audit-2026-05-11](./audits/jurisdiction-normalization-audit-2026-05-11.md) — Jurisdiction-Token Fragmentation Audit
 - [migration-drift-investigation-2026-05-12](./audits/migration-drift-investigation-2026-05-12.md) — Migration 070 drift investigation
 - [primitives-audit-2026-05-09](./audits/primitives-audit-2026-05-09.md) — Caro's Ledge ingestion primitives audit, 2026-05-09
+- [rd33-retro-apply-2026-07-14](./audits/rd33-retro-apply-2026-07-14.md) — RD-33 no-execution-from-stale-state retro-apply across the 4 effectful surfaces (fetch/mint/flip/register): all satisfied, no gap; residual discharged
 - [source-classification-final-summary-2026-05-11](./audits/source-classification-final-summary-2026-05-11.md) — Source classification backfill — final summary
 - [source-coverage-diagnostic-2026-05-09](./audits/source-coverage-diagnostic-2026-05-09.md) — EU ESRS coverage diagnostic + curation methodology audit, 2026-05-09
 - [source-map-existence-check-2026-05-10](./audits/source-map-existence-check-2026-05-10.md) — ESG-Today source map existence check, 2026-05-10
