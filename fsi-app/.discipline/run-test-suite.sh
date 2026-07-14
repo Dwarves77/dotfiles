@@ -45,6 +45,7 @@ node --test \
   fsi-app/.discipline/fitness/runner.test.mjs \
   fsi-app/scripts/lib/db.test.mjs \
   fsi-app/scripts/lib/funded-release-plan.test.mjs \
+  fsi-app/scripts/lib/funded-pass-core.test.mjs \
   fsi-app/scripts/lib/deferral.selftest.mjs \
   fsi-app/scripts/lib/flag-age.selftest.mjs \
   fsi-app/src/__tests__/*.test.mjs \
