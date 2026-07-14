@@ -63,10 +63,17 @@ export function lockArmed(env) {
 export function hardDivergence(item, row) {
   if (!row) return "item not found in DB";
   if (row.provenance_status === "verified") return "already verified (not a quarantined target — the run never mutates verified briefs)";
-  if (!row.source_url || !/^https?:\/\//.test(String(row.source_url))) return `no fetchable source_url (${row.source_url ?? "null"})`;
-  // SKIP-flagged hosts must never enter the paid loop (defense — they are not in the worklist).
-  if (/nashville\.gov|support\.usgbc\.org|(?:\/\/|\.)iea\.org|gov\.uk\/guidance|epa\.gov\/greenvehicles\/fast-facts|participate\.melbourne/.test(String(row.source_url))) {
-    return `source_url is a SKIP-flagged portal/paywall (${row.source_url})`;
+  // PER-PATH KEYING (portal-guard resynth fix, 2026-07-14): the source_url checks below are ACQUIRE-only. A
+  // RESYNTH re-grounds from the HELD pool and NEVER fetches source_url, so a portal/paywall source_url — or even
+  // a missing one — is irrelevant to it; guarding it there falsely HELD covers_grounding items whose stored pool
+  // is fine (IEA×2, EPA, C376, nashville — the 5 portal-held). ACQUIRE genuinely fetches source_url, so it must
+  // be fetchable AND not a SKIP-flagged portal. (The held-pool-first structure + assertFetchAllowed + the
+  // holdings-gate are the real fetch safety; this pre-filter only screens the ACQUIRE path.)
+  if (item?.cls === "acquire") {
+    if (!row.source_url || !/^https?:\/\//.test(String(row.source_url))) return `no fetchable source_url (${row.source_url ?? "null"})`;
+    if (/nashville\.gov|support\.usgbc\.org|(?:\/\/|\.)iea\.org|gov\.uk\/guidance|epa\.gov\/greenvehicles\/fast-facts|participate\.melbourne/.test(String(row.source_url))) {
+      return `source_url is a SKIP-flagged portal/paywall (${row.source_url})`;
+    }
   }
   return null;
 }

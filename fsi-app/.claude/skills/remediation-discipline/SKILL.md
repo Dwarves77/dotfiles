@@ -359,6 +359,15 @@ The acquisition ladder had no discovery rung: it re-interrogated held content or
 - **Critical-path ladders are verified by behavioral end-to-end goldens** — input a failing item, assert each intended rung fires (discovery included), driving the REAL mechanism not a mock. The reground/discovery ladder golden (`reground-ladder.golden.test.mjs`) is the first and the exit test.
 - **A flow named in doctrine without a behavioral golden is a gap** — the flow-golden mandate; the meta-gate extension that fails CI on such a flow is the enforcement to complete (the flow-claim scanner, sibling of doctrine-contradiction). Paired: no shadow capability — when the real mechanism is wired, the inferior duplicate folds into it or dies, never both left standing. Invariant RD-35.
 
+### Section 4 — category 22: Re-grounds never destroy (non-destructive-replace)
+
+A stored re-ground of Brazil Lei 12.305 (Portuguese) re-extracted 0 facts and OVERWROTE a rich 55-FACT ledger with 2 GAP claims — the ledger was destroyed. Two defects compounded: the section step's blanket delete cascade-wiped `section_claim_provenance` (the `section_row_id` FK is ON DELETE CASCADE) BEFORE the ground step could snapshot the prior ledger, so the count-only thinning guard read prior=0 and had nothing to protect; and even with a correct snapshot, a total-count guard would miss a 55-FACT → 55-GAP re-ground (count preserved, every fact destroyed). The class fix (operator GO 2026-07-14):
+
+- **A re-ground's new ledger replaces the prior one only when it is not weaker on any dominance axis** — FACT count, floor-qualifying count, verified-eligibility (`ledger-dominance.mjs`, the one home; the count-only `thinning-guard.mjs` is deleted, no shadow). A worse answer is a DIAGNOSTIC, not a replacement.
+- **A regressing re-ground MUST retain the prior ledger, record the regression as a finding, and leave the item state unchanged** — grounding restores the prior claims, writes a `data_integrity` finding naming the regressing axes, and returns a loud failure; the item is never silently degraded.
+- **The prior ledger MUST survive the section step so the guard can see it** — the section step reconciles by `section_key` (surviving `section_row_id`s keep their claims) instead of delete-cascading; destroying the ledger before the guard runs is forbidden. Brazil is the red golden's fixture. Invariant RD-36.
+- **Raw response bytes are decoded with the source's declared charset, never a hardcoded UTF-8** — the paired root cause: Brazil produced 0 facts because the direct-HTTP transport decoded a Latin-1 (ISO-8859-1) government page as UTF-8, corrupting every accent to U+FFFD (mojibake), so no original-language span could match. The decode MUST honor the Content-Type header / `<meta>` charset (`charset-decode.mjs`), else non-UTF-8 sources are silently corrupted before the grounder sees them (a working-artifact defect, cured in the pipeline). Invariant RD-37.
+
 ## Section 9: When the Principle Doesn't Apply
 
 Genuinely one-off remediations where class-over-instance does not apply:

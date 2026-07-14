@@ -6,12 +6,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   generateCandidates, eurlexCandidates, ukCandidates, lovdataCandidates, gazetteCandidates, apiCandidates,
-  runSeekMore, exhaustionFlagRow, persistExhaustionRecord,
+  exhaustionFlagRow, persistExhaustionRecord,
 } from "./seek-more.mjs";
 
-const REAL_LAW = "Kapittel 1 Formål og virkeområde. Denne forskriften stiller krav om nullutslipp for skip og ferger i verdensarvfjordene. Section 1 requires zero-emission operation. " + "x".repeat(3000);
-const EURLEX_404 = "Page Not Found - EUR-Lex Skip to main content English Select your language bg es cs da de en fr The page you are looking for was moved, removed, renamed or doesn't exist. " + "nav footer ".repeat(30);
-const SFC_403 = "403 ERROR The request could not be satisfied. Request blocked. Access Denied. You don't have permission to access this resource.";
+// NOTE (no-shadow, 2026-07-14): the runSeekMore orchestrator was retired (zero live callers; the live one home is
+// fetchPrimaryWithFallback). Its end-to-end behavior — discovery→candidate→win and total-exhaustion→record — is
+// proven on the WIRED path by reground-ladder.golden.test.mjs. This file keeps the candidate-generation +
+// exhaustion-record-shape fixtures for the live exports.
 
 // ── DETERMINISTIC RESOLVERS (no fetch) ───────────────────────────────────────────────────────────────────────
 test("eurlex: CELEX + ELI → eur-lex canonical URLs", () => {
@@ -57,46 +58,9 @@ test("generateCandidates: order is identifier-resolved → API → gazette → w
   assert.ok(!candidates.some((u) => u.startsWith("http://")), "http:// (insecure) candidates are dropped");
 });
 
-// ── (a) LOVDATA END-TO-END: dead primary → machine candidates → genuine primary found + captured ─────────────
-test("FIXTURE (a): dead primary → machine-generated lovdata candidate → found + captured through the write gate", async () => {
-  const item = { id: "item-no-fjord", title: "World Heritage fjords ZEV", jurisdiction: "Norway", identifier: "FOR-2018-05-04-680", source_url: "https://old.example/dead-portal" };
-  const fetched = [];
-  const r = await runSeekMore(item, {
-    // the machine derives the lovdata URL from the identity; the ladder fetches it and finds the real forskrift.
-    transports: {
-      directFetch: async (u) => { fetched.push(u); return u.includes("lovdata.no") ? { status: 200, text: REAL_LAW } : { status: 404, text: EURLEX_404 }; },
-      browserlessRender: async (u) => (u.includes("lovdata.no") ? { status: 200, text: REAL_LAW } : { status: 404, text: EURLEX_404 }),
-      seekMore: async () => { throw new Error("a candidate was found — must NOT recurse"); },
-    },
-    persistExhaustion: async () => {},
-  });
-  assert.ok(r.candidates.includes("https://lovdata.no/dokument/SF/forskrift/2018-05-04-680"), "the machine generated the lovdata canonical URL");
-  assert.equal(r.outcome, "content");
-  assert.ok(r.captured && r.captured.url.includes("lovdata.no"), "the genuine primary was found on lovdata.no");
-  assert.equal(r.captured.text, REAL_LAW, "captured through the write-side gate (real content)");
-  assert.ok(r.exhaustionRecord.some((a) => a.url.includes("lovdata.no") && a.verdict === "content"));
-});
-
-// ── (b) EXHAUSTION: all candidates fail → record persisted, NO_REACHABLE_SOURCE hold, ZERO stored ────────────
-test("FIXTURE (b): every candidate fails → exhaustion record persisted, NO_REACHABLE_SOURCE hold, ZERO stored", async () => {
-  const item = { id: "item-exhausted", title: "Unreachable reg", jurisdiction: "EU", identifier: "CELEX:32022L2464", source_url: "https://sfc.org/blocked" };
-  const persisted = [];
-  const r = await runSeekMore(item, {
-    webSearch: async () => ["https://web.example/also-blocked"],
-    transports: {
-      directFetch: async () => ({ status: 403, text: SFC_403 }),      // every transport, every candidate = wall
-      browserlessRender: async () => ({ status: 403, text: SFC_403 }),
-      seekMore: async () => { throw new Error("blocks are not not-found — do NOT seek-more recurse"); },
-    },
-    persistExhaustion: async (itemId, record, verdict) => { persisted.push({ itemId, record, verdict }); },
-  });
-  assert.equal(r.outcome, "no_reachable_source");
-  assert.equal(r.holdReason, "NO_REACHABLE_SOURCE");
-  assert.equal(r.captured, null, "ZERO bodies stored — an all-wall exhaustion never captures");
-  assert.ok(r.exhaustionRecord.length >= 2, "every (candidate × transport) attempt is recorded");
-  assert.equal(persisted.length, 1, "the exhaustion record is persisted once");
-  assert.equal(persisted[0].itemId, "item-exhausted");
-});
+// NOTE: the end-to-end discovery→candidate→win and total-exhaustion→record fixtures moved to the WIRED path in
+// reground-ladder.golden.test.mjs when the runSeekMore orchestrator was retired (no-shadow, 2026-07-14). The
+// unused fixtures REAL_LAW / EURLEX_404 / SFC_403 were removed with them.
 
 // ── PERSISTENCE SHAPE — the interim FLAG PATTERN (superseded by migration 147 fetch_status) ──────────────────
 test("exhaustionFlagRow: the interim flag-pattern shape (created_by='exhaustion_record', attempts in recommended_actions)", () => {

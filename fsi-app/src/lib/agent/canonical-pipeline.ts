@@ -34,7 +34,8 @@ import { cachedSystemBlocks } from "@/lib/agent/prompt-cache.mjs";
 import { extractRegulationSections } from "@/lib/agent/extract-regulation-sections";
 import { buildTimelineRows } from "@/lib/agent/timeline-harvest.mjs";
 import { forceSlotCoverage, MAX_JUDGED_NOMINATIONS } from "@/lib/agent/slot-forcing.mjs";
-import { isThinningRegression } from "@/lib/agent/thinning-guard.mjs";
+import { summarizeLedger, ledgerRegression } from "@/lib/agent/ledger-dominance.mjs";
+import { decodeHtmlBytes } from "@/lib/sources/charset-decode.mjs";
 import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, findYamlBlock } from "@/lib/agent/parse-output";
@@ -131,7 +132,11 @@ async function directFetchClean(url: string, max: number, caller: string | null 
     const text = (cleanCtl(pdfText) || "").replace(/\s+/g, " ").trim();
     return { text, truncated: fullLength > max, fullLength, cap: max, transport: "direct-pdf" };
   }
-  const full = htmlToText(new TextDecoder("utf-8", { fatal: false }).decode(u8));
+  // CHARSET-AWARE DECODE (non-EN extraction fix, 2026-07-14): decode with the response's declared charset
+  // (header > <meta> > utf-8), NOT a hardcoded utf-8 — a Latin-1 gov page (planalto.gov.br, EU/LatAm gazettes)
+  // decoded as utf-8 corrupts every accent to U+FFFD, leaving the grounder no matchable original-language span
+  // (Brazil Lei 12.305: 55 FACT -> 2 GAP). The transport HTML path is the single decode site for raw bytes.
+  const full = htmlToText(decodeHtmlBytes(u8, res.headers.get("content-type")).text);
   const text = (cleanCtl(full.slice(0, max)) || "").replace(/\s+/g, " ").trim();
   return { text, truncated: full.length > max, fullLength: full.length, cap: max, transport: "direct" };
 }
@@ -197,8 +202,8 @@ async function apiFetchForHost(url: string, max: number, caller: string | null =
 //     + extracts directly (directFetchClean also detects PDF-by-content-type, covering non-.pdf PDF URLs).
 // THE LIVE TRANSPORT BINDINGS for the RD-14 escalation ladder — the SINGLE HOME of the direct / render / api
 // transport closures. fetchWithTransport consumes this, AND the one-time hold-lift BATCH-1 re-collection runner
-// injects the SAME object into seek-more (runSeekMore → escalateFetch), so the batch-1 fetch routes through the
-// exact same live ladder the pipeline uses — the transports cannot diverge into aligned copies (the D1/D3
+// injects the SAME object into the escalation ladder (transport-runtime → escalateFetch), so the batch-1 fetch
+// routes through the exact same live ladder the pipeline uses — the transports cannot diverge into aligned copies (the D1/D3
 // class the codebase kills). Every render goes through browserlessFetch (the hold-gated single fetch home), so
 // the batch-1 runner inherits the scrape-hold gate for free. Pure factory; `max` is the char cap.
 // PROCESS-SCOPED FETCH CACHE (C5). A module-scoped Map keyed on canonical URL (fetch-hold.mjs owns the
@@ -1042,18 +1047,36 @@ export async function sectionBrief(itemId: string): Promise<StepResult> {
   if (!spec) return { ok: false, detail: `no format spec for item_type ${it.item_type}` };
   const rows = spec.extract(it.full_brief);
   if (!rows.length) return { ok: false, detail: `no sections extracted (${spec.formatType})` };
-  // Replace stale sections from a prior generation (a re-gen may emit fewer/renamed sections). Safe here:
-  // the item is NOT verified (guarded above), so the CASCADE clears only an in-progress/quarantined ledger.
-  await sb.from("intelligence_item_sections").delete().eq("item_id", itemId);
-  for (const s of rows) {
-    // URL-NORMALIZATION write-site fix (ruling 2026-07-04): synthesis wraps some URLs in markdown emphasis
-    // (*https://…*), which the section extraction carries verbatim into content_md. validate_item_provenance
-    // criterion-2 does an EXACT-string compare, so a trailing `*` reads as an ungrounded_url even against an
-    // active registered source — AND the trailing `*` breaks the link a customer clicks. Strip the markers at
-    // the write site (same stripUrlMarkers used for the claim ledger) so new sections carry clean URLs.
-    await sb.from("intelligence_item_sections").insert(
-      { item_id: itemId, section_key: s.section_key, section_order: s.section_order, content_md: stripUrlMarkers(s.content_md) ?? s.content_md, is_conditional: s.is_conditional }
-    );
+  // LEDGER-PRESERVING SECTION RECONCILE (re-grounds-never-destroy, operator ruling 2026-07-14). The old blanket
+  // `delete intelligence_item_sections` CASCADE-wiped section_claim_provenance (section_row_id FK ON DELETE
+  // CASCADE) BEFORE groundBrief could snapshot the prior ledger — which zeroed the dominance guard's prior count
+  // and let a WEAKER re-ground silently destroy a rich ledger (Brazil Lei 12.305: 55 FACT -> 2 GAP). Reconcile
+  // by section_key instead: UPDATE surviving keys IN PLACE (stable section_row_id -> the claim ledger survives
+  // into groundBrief's snapshot/restore), INSERT genuinely-new keys, DELETE only keys that vanished (their
+  // claims cascade — the section is really gone). URL-normalization (ruling 2026-07-04): strip markdown emphasis
+  // markers (*https://…*) at the write site so criterion-2's exact-string compare + the customer's link are clean.
+  const clean = (md: string) => stripUrlMarkers(md) ?? md;
+  const newKeys = new Set(rows.map((s) => s.section_key));
+  const uniqueKeys = newKeys.size === rows.length; // duplicate section_keys would mis-map an in-place update
+  if (!uniqueKeys) {
+    // Rare: a format emitted duplicate section_keys — fall back to the delete+insert path (accepts the cascade;
+    // no worse than the prior behavior, and the dominance guard still fails-loud on a weaker rebuild).
+    await sb.from("intelligence_item_sections").delete().eq("item_id", itemId);
+    for (const s of rows) {
+      await sb.from("intelligence_item_sections").insert(
+        { item_id: itemId, section_key: s.section_key, section_order: s.section_order, content_md: clean(s.content_md), is_conditional: s.is_conditional }
+      );
+    }
+  } else {
+    const { data: existing } = await sb.from("intelligence_item_sections").select("id, section_key").eq("item_id", itemId);
+    const idByKey = new Map((existing ?? []).map((r) => [r.section_key, r.id]));
+    for (const r of existing ?? []) if (!newKeys.has(r.section_key)) await sb.from("intelligence_item_sections").delete().eq("id", r.id);
+    for (const s of rows) {
+      const priorId = idByKey.get(s.section_key);
+      const payload = { section_order: s.section_order, content_md: clean(s.content_md), is_conditional: s.is_conditional };
+      if (priorId) await sb.from("intelligence_item_sections").update(payload).eq("id", priorId);
+      else await sb.from("intelligence_item_sections").insert({ item_id: itemId, section_key: s.section_key, ...payload });
+    }
   }
   // §14 TIMELINE HARVEST (Phase-3b, DD-01): item_timelines had NO production writer — the model
   // assembled "Confirmed Regulatory Timeline" in the brief prose and the structured store stayed
@@ -1130,18 +1153,19 @@ async function groundBriefImpl(itemId: string, caller: string | null = null): Pr
   const { data: prov, error: provErr } = await sb.from("intelligence_items").select("provenance_status").eq("id", itemId).single();
   if (provErr) console.warn(`[canonical] ground provenance-status read failed for ${itemId}: ${provErr.message}`);
   if (prov?.provenance_status === "verified") return { ok: true, detail: "already verified" };
-  // THINNING GUARD (ruling 2026-07-04): snapshot the prior grounding BEFORE the delete so a re-extract that
-  // drastically thins the ledger (batch-1: 782878c0 24->1) can be caught and the prior grounding RESTORED,
-  // rather than silently replacing rich grounding with thin grounding. The columns mirror the insert below.
-  // FAIL-CLOSED (C4, 2026-07-11): a READ ERROR on this snapshot means priorClaimCount=0, which SILENTLY
-  // DISABLES the thinning guard for this run (a rich prior ledger reads as "nothing to protect") AND makes
-  // the prior grounding unrecoverable — so on a snapshot read error we ABORT before the destructive delete
-  // (ok:false is retryable), never proceeding to delete-then-thin under a blind guard (CODE-1 F-09).
+  // DOMINANCE GUARD SNAPSHOT (re-grounds-never-destroy): snapshot the prior grounding BEFORE the delete so a
+  // re-extract that produces a WEAKER ledger (batch-1 782878c0 24->1; Brazil 55 FACT -> 2 GAP) is caught and the
+  // prior grounding RESTORED, rather than silently replacing rich grounding with thin grounding. The columns
+  // mirror the insert below (incl. claim_kind + source_tier_at_grounding so summarizeLedger can compute the
+  // FACT + floor-qualifying axes). This snapshot is non-empty for a non-verified item because sectionBrief now
+  // reconciles sections by key (surviving section_row_ids keep their claims) instead of delete-cascading them —
+  // the sequencing blind that defeated the old count-only guard. FAIL-CLOSED (C4, 2026-07-11): a READ ERROR here
+  // would make prior read as "nothing to protect" AND leave the prior grounding unrecoverable, so on a snapshot
+  // read error we ABORT before the destructive delete (ok:false is retryable), never grounding under a blind guard.
   const { data: priorClaims, error: priorClaimsErr } = await sb.from("section_claim_provenance")
     .select("section_row_id, intelligence_item_id, claim_text, claim_kind, source_span, source_id, search_result_id, source_tier_at_grounding")
     .eq("intelligence_item_id", itemId);
-  if (priorClaimsErr) return { ok: false, detail: `grounding aborted: thinning-guard prior-claim snapshot read failed (${priorClaimsErr.message}); refusing to delete-then-re-ground under a blind guard (fail-closed)` };
-  const priorClaimCount = priorClaims?.length ?? 0;
+  if (priorClaimsErr) return { ok: false, detail: `grounding aborted: dominance-guard prior-claim snapshot read failed (${priorClaimsErr.message}); refusing to delete-then-re-ground under a blind guard (fail-closed)` };
   await sb.from("section_claim_provenance").delete().eq("intelligence_item_id", itemId);
   const { data: secs, error: secsErr } = await sb.from("intelligence_item_sections").select("id, section_key, content_md").eq("item_id", itemId).order("section_order");
   if (secsErr || !secs?.length) return { ok: false, detail: `no sections${secsErr ? `: ${secsErr.message}` : ""}` };
@@ -1410,6 +1434,9 @@ async function groundBriefImpl(itemId: string, caller: string | null = null): Pr
   const searchIdByUrl = new Map<string, string>();
   for (const r of searchRows) if (r.result_url && !searchIdByUrl.has(r.result_url)) searchIdByUrl.set(r.result_url, r.id);
   const claimIds: string[] = [];
+  // Dominance-guard counters (re-grounds-never-destroy): the new ledger's FACT + floor-qualifying-FACT counts,
+  // compared against the prior snapshot below so a WEAKER re-ground never replaces a stronger prior.
+  let newFacts = 0, newFloorQualifying = 0;
   const citedSourceIds = new Set<string>(); // B#2: the sources this brief grounds against (item->source edges)
   // Ruling-5 self-surfacing: FACT spans that resolve to an UNREGISTERED host (null tier) aggregated per host,
   // upserted as ONE integrity_flag/host after the loop (the next lovdata.no is found mechanically, not by hand).
@@ -1466,21 +1493,46 @@ async function groundBriefImpl(itemId: string, caller: string | null = null): Pr
     // non-FACT here (the 41-row claims-tier drift, all ANALYSIS); `isFact ? res.tier : null` cures it.
     const { data: ins, error: insErr } = await sb.from("section_claim_provenance").insert({ section_row_id: sectionRowId, intelligence_item_id: itemId, claim_text: storedText, claim_kind: c2.claim_kind, source_span: cleanCtl(c2.source_span ?? null), source_id: sourceId, search_result_id: effectiveSearchResultId, source_tier_at_grounding: isFact ? res.tier : null }).select("id").single();
     if (insErr) console.warn(`[canonical] claim insert failed for ${itemId} (${c2.claim_kind}/${String(c2.section)}): ${insErr.message}`);
-    if (ins) claimIds.push(ins.id);
+    if (ins) {
+      claimIds.push(ins.id);
+      if (isFact) { newFacts += 1; if (itemFloor != null && res.tier != null && res.tier <= itemFloor) newFloorQualifying += 1; }
+    }
     if (sourceId) citedSourceIds.add(sourceId);
   }
-  // THINNING GUARD (ruling 2026-07-04): if the re-extract collapsed the grounded-claim count vs the prior
-  // grounding (782878c0: 24->1 when a big capped pool's spans failed the verbatim filter), do NOT silently
-  // replace rich grounding with thin grounding. Drop the thin new set, RESTORE the prior claims, and return a
-  // LOUD ok:false so the coverage is kept and the thinning surfaces for investigation (re-runs next pass).
-  if (isThinningRegression(priorClaimCount, claimIds.length)) {
+  // LEDGER DOMINANCE GUARD (re-grounds-never-destroy, operator ruling 2026-07-14). A re-ground's new ledger
+  // REPLACES the prior one only when it is not WEAKER on any dominance axis (FACT count / floor-qualifying count
+  // / verified-eligibility — supersedes the count-only thinning guard). A regressing re-extract (Brazil Lei
+  // 12.305: 55 FACT -> 2 GAP, a non-EN extraction failure) is a DIAGNOSTIC, not a replacement: drop the weaker
+  // new set, RESTORE the prior claims (their section_row_ids survive because sectionBrief now reconciles by key,
+  // not delete-cascade), record the regression as a finding, and return a LOUD ok:false with the item state
+  // UNCHANGED so coverage is kept and the regression surfaces for investigation (re-runs next pass).
+  const priorSummary = summarizeLedger(priorClaims ?? [], itemFloor);
+  const nextSummary = { total: claimIds.length, facts: newFacts, floorQualifying: newFloorQualifying, wouldVerify: false };
+  // A verified item never reaches here (skip-if-verified guards at sectionBrief + groundBrief start), so the
+  // verified axis is protected upstream; pass the honest prior status for completeness.
+  const priorWouldVerify = prov?.provenance_status === "verified";
+  const reg = ledgerRegression({ ...priorSummary, wouldVerify: priorWouldVerify }, nextSummary);
+  if (reg.regression) {
     await sb.from("section_claim_provenance").delete().eq("intelligence_item_id", itemId);
     if (priorClaims?.length) {
       const restore = priorClaims.map((c) => ({ ...c, intelligence_item_id: itemId }));
       const { error: restoreErr } = await sb.from("section_claim_provenance").insert(restore);
-      if (restoreErr) console.warn(`[canonical] thinning-guard restore failed for ${itemId}: ${restoreErr.message}`);
+      if (restoreErr) console.warn(`[canonical] dominance-guard restore failed for ${itemId}: ${restoreErr.message}`);
     }
-    return { ok: false, detail: `re-extract THINNED grounding ${priorClaimCount} -> ${claimIds.length} claims; restored prior grounding (coverage-loss guard). Investigate the pool/extraction before re-grounding this item.`, slotForcing };
+    const regDetail = `facts ${priorSummary.facts}->${nextSummary.facts}, floor-qual ${priorSummary.floorQualifying}->${nextSummary.floorQualifying}, total ${priorSummary.total}->${nextSummary.total}`;
+    // Record the regression as a finding (integrity_flags) so a blocked destructive re-ground is never silent.
+    try {
+      await sb.from("integrity_flags").insert({
+        category: "data_integrity", subject_type: "item", subject_ref: itemId, status: "open",
+        created_by: "reground_regression_guard",
+        description: `Re-ground REGRESSION blocked (re-grounds-never-destroy) [${reg.axes.join(",")}]: ${regDetail}. Prior ledger RETAINED, item state unchanged. A weaker re-extract did not replace the stronger prior — investigate the pool/extraction (non-EN extraction is the known cause) before re-grounding.`.slice(0, 480),
+        recommended_actions: [
+          { action: "investigate extraction", rationale: `re-ground produced a weaker ledger on axes [${reg.axes.join(",")}]; ${regDetail}` },
+          { action: "re-ground under the corrected mechanism", rationale: "the prior ledger is retained; a stronger re-extract (e.g. after the non-EN original-language extraction fix) will replace it" },
+        ],
+      });
+    } catch (e) { console.warn(`[canonical] dominance-guard finding write failed for ${itemId}: ${(e as Error).message}`); }
+    return { ok: false, detail: `re-ground REGRESSION [${reg.axes.join(",")}]: ${regDetail}; retained prior ledger (re-grounds-never-destroy). Investigate the pool/extraction before re-grounding this item.`, slotForcing };
   }
   // B#2 (Phase 1): write the item->source citation edges this brief grounds against into
   // intelligence_item_citations (origin='agent_extraction') — the table get_source_citation_stats (mig 098)

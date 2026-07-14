@@ -63,6 +63,25 @@ test("hardDivergence: verified item / missing source / skip-portal -> reason; va
   assert.match(hardDivergence({ cls: "resynth" }, null), /not found/);
 });
 
+// ── PER-PATH KEYING (portal-guard resynth fix, 2026-07-14): a RESYNTH re-grounds from the HELD pool and never
+// fetches source_url, so a portal/paywall (or missing) source_url must NOT hold it — the 5 false-held items. ──
+test("hardDivergence: RESYNTH is NOT held on a portal source_url (held pool used, source_url never fetched)", () => {
+  for (const url of [
+    "https://iea.org/reports/global-hydrogen-review-2025",
+    "https://epa.gov/greenvehicles/fast-facts-transportation",
+    "https://participate.melbourne.vic.gov.au/amendment-c376",
+    "https://nashville.gov/x", "https://gov.uk/guidance/y", "https://support.usgbc.org/hc/z",
+  ]) assert.equal(hardDivergence({ cls: "resynth" }, { provenance_status: "quarantined", source_url: url }), null, url);
+});
+
+test("hardDivergence: RESYNTH with a missing source_url is NOT held (pool-grounded, not fetch)", () => {
+  assert.equal(hardDivergence({ cls: "resynth" }, { provenance_status: "quarantined", source_url: null }), null);
+});
+
+test("hardDivergence: verified is held on BOTH paths (never mutate a verified brief)", () => {
+  assert.match(hardDivergence({ cls: "resynth" }, { provenance_status: "verified", source_url: "https://iea.org/x" }), /already verified/);
+});
+
 // ── spendWatch + runaway ──
 test("spendWatchHalt: an unticketed paid row triggers a run-level halt; ticketed rows are clean", () => {
   assert.equal(spendWatchHalt([{ cost: 0.12, itemId: "i1", sourceId: "s1" }], "i1"), null);

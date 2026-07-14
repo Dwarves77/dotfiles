@@ -1,9 +1,8 @@
 // @ts-check
-// SEEK-MORE unit (paired with the RD-14 transport escalation ladder). When a declared primary is a genuine
-// not-found after the ladder (step (e)), OR an item is enqueued for re-collection, seek-more GENERATES an
-// ordered list of candidate URLs from the instrument's IDENTITY and hands the ARRAY to escalateFetch (the
-// ladder's candidate seam). The ladder tries each candidate through the full per-failure-class ladder and
-// returns the winner + the per-(candidate × transport) EXHAUSTION RECORD.
+// SEEK-MORE candidate generation (paired with the RD-14 transport escalation ladder). When a declared primary
+// is a genuine not-found, seek-more GENERATES an ordered list of candidate URLs from the instrument's IDENTITY;
+// the LIVE consumer is fetchPrimaryWithFallback / fetchPrimaryDeep (canonical-pipeline), which hands the array
+// to the escalation ladder and persists the per-(candidate × transport) EXHAUSTION RECORD (persistPrimaryExhaustion).
 //
 // THE DOCTRINE (remediation-discipline, Section 4 category 13 — transport failure is never terminal): a hold or
 // delete is honest ONLY after PROVEN exhaustion. Candidate generation is DETERMINISTIC-IDENTIFIER-FIRST (no
@@ -13,11 +12,14 @@
 // wrong one simply fails into the exhaustion record and the next candidate is tried (the moat qualifies only
 // content that grounds), so the resolvers can be liberal without risk.
 //
-// PURE + DEP-INJECTED: generateCandidates takes an optional injected `webSearch`; runSeekMore takes the ladder
-// transports + an optional exhaustion PERSISTER — so NO real fetch and NO db write happen here (scrape hold
-// honored). GOVERNING: remediation-discipline (category 13, RD-14) + source-credibility-model (qualification).
+// PURE + DEP-INJECTED: generateCandidates takes an optional injected `webSearch`; exhaustionFlagRow /
+// persistExhaustionRecord build + write the interim exhaustion record — NO real fetch and NO db write happen
+// here except through the injected writer (scrape hold honored). NO-SHADOW (2026-07-14): the runSeekMore
+// orchestrator was RETIRED — the live one home is fetchPrimaryWithFallback (proven by reground-ladder.golden),
+// which consumes generateCandidates directly; a second orchestrator here was a dormant duplicate. GOVERNING:
+// remediation-discipline (category 13, RD-14; no-shadow) + source-credibility-model (qualification).
 
-import { escalateFetch, captureForStorage, apiEndpointFor } from "./transport-escalation.mjs";
+import { apiEndpointFor } from "./transport-escalation.mjs";
 import { discoverCandidateUrls } from "./identifier-variants.mjs";
 
 /** @param {unknown} u */
@@ -172,37 +174,11 @@ export async function persistExhaustionRecord(sb, itemId, exhaustionRecord, verd
   return row;
 }
 
-// ── THE ORCHESTRATOR ────────────────────────────────────────────────────────────────────────────────────────
-
-/**
- * Run seek-more for an item: generate candidates → hand the ARRAY to escalateFetch (the ladder seam) → on the
- * first content success apply the write-side gate (captureForStorage) → return { captured, exhaustionRecord }.
- * Every (candidate × transport) attempt is in the exhaustion record (escalateFetch's verdict.attempts shape).
- * PURE given its injected deps — no real fetch, no live db write.
- * @param {{id:string, title?:string|null, identifier?:string|null, jurisdiction?:(string[]|string|null), source_url?:string|null, sourceUrl?:string|null, canonical_instrument_key?:string|null, canonicalKey?:string|null, item_type?:string|null, itemType?:string|null, instrument_type?:string|null, instrumentType?:string|null}} item
- * @param {{
- *   webSearch?: (query:string)=>Promise<string[]>|string[],
- *   transports?: object,                                  // escalateFetch deps (cacheGet/apiFetch/directFetch/browserlessRender/seekMore)
- *   persistExhaustion?: (itemId:string, record:Array<object>, verdict:object)=>Promise<any>|any,
- * }} [deps]
- * @returns {Promise<{ captured: {url?:string,text:string}|null, exhaustionRecord: Array<object>, outcome:string, holdReason:string|null, candidates:string[] }>}
- */
-export async function runSeekMore(item, deps = {}) {
-  const { webSearch, transports = {}, persistExhaustion } = deps;
-  const identity = {
-    title: item.title, identifier: item.identifier, jurisdiction: item.jurisdiction,
-    sourceUrl: item.source_url ?? item.sourceUrl,
-    canonicalKey: item.canonical_instrument_key ?? item.canonicalKey,
-    itemType: item.item_type ?? item.itemType, instrumentType: item.instrument_type ?? item.instrumentType,
-  };
-  const candidates = await generateCandidates(identity, { webSearch });
-  const verdict = await escalateFetch(candidates, transports);
-  const exhaustionRecord = Array.isArray(verdict.attempts) ? verdict.attempts : [];
-  let captured = null;
-  if (verdict.outcome === "content" && verdict.text) {
-    const cap = captureForStorage([{ url: verdict.url, text: verdict.text }]);
-    captured = cap.store[0] ?? null; // write-side gate: only real content is ever captured
-  }
-  if (persistExhaustion) await persistExhaustion(item.id, exhaustionRecord, verdict);
-  return { captured, exhaustionRecord, outcome: verdict.outcome, holdReason: verdict.holdReason ?? null, candidates };
-}
+// ── ORCHESTRATOR RETIRED (no-shadow, 2026-07-14) ──────────────────────────────────────────────────────────────
+// The former runSeekMore orchestrator (generateCandidates → escalateFetch → captureForStorage → persistExhaustion
+// in one call) had ZERO live callers: the live one home is fetchPrimaryWithFallback / fetchPrimaryDeep, which
+// consumes generateCandidates directly, routes candidates through the escalation ladder (transport-runtime →
+// escalateFetch), and persists the record via persistPrimaryExhaustion. Keeping a second orchestrator here was a
+// dormant duplicate (the exact shadow the census flagged), so it was retired; its behavior is proven end-to-end
+// on the WIRED path by reground-ladder.golden.test.mjs (win + total-exhaustion). generateCandidates + the
+// resolvers + exhaustionFlagRow/persistExhaustionRecord remain the live exports this file owns.

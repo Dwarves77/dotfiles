@@ -111,6 +111,15 @@ export const DOCTRINES = [
         'Behavioral one-home discipline applied at wiring time (fold-or-delete the shadow); not a mechanically-checkable committed-file property in general. Worked instance discharged: webSearchAlternatives retired into generateCandidates when discovery was wired. Process-class like consolidation-is-behavior-preserving.',
     },
   },
+  {
+    id: 're-grounds-never-destroy',
+    statement:
+      'A re-ground\'s new claim ledger REPLACES the prior one only when it is not WEAKER on any dominance axis (FACT count / floor-qualifying count / verified-eligibility). A worse answer is a DIAGNOSTIC, not a replacement: a regressing re-extract retains the prior ledger, records the regression as a finding, and leaves the item state unchanged. Brazil Lei 12.305 (55 FACT -> 2 GAP from a non-EN extraction failure) proved the count-only guard blind on two axes — the section-cascade zeroed its prior snapshot AND a fact-destroying re-ground can preserve total count — so the ledger was destroyed. The fix cures both: the section step reconciles by section_key (surviving row-ids keep their claims) so the prior ledger reaches the guard, and the guard compares the three dominance axes, not total count alone.',
+    source: 'operator GO — $0 track + incident disposition (2026-07-14)',
+    enforcedBy: ['RD-36-re-grounds-never-destroy'],
+    residual:
+      'RD-36 (ledger-dominance.mjs, red-then-green goldened incl. the Brazil red fixture AND the count-blind 55->55-GAP case) mechanizes the dominance rule; wired at groundBrief (snapshot -> restore-on-regression -> data_integrity finding -> loud ok:false) and sectionBrief (the ledger-preserving reconcile). thinning-guard.mjs deleted (one home, no shadow). NAMED RESIDUAL: a re-section that legitimately DROPS section_keys cascade-loses those keys\' claims before the snapshot — acceptable for the same-section reattribution case that caused Brazil; a durable pre-section snapshot keyed by section_key is the future strengthening.',
+  },
 
   // ─────────────────────────────── Spend authority (operator-priced) ───────────────────────────────
   {
