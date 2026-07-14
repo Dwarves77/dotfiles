@@ -334,3 +334,21 @@ All five parts landed (the halts lifted by operator ruling). $0.
 - **Part 4 — phrase-scan** (from PR #320) re-run post-relabel: **0 residuals** (10 → 3 false-positives on negation/retirement copy → allowlist refined for negation context; golden +1). The SOFT signal is clean.
 
 **T9 line update:** Unit 0c is COMPLETE. The machine-gated intake cutover now exists (approve/reject retired, machine cycle is the path). **The FIRST machine-gated run is the last gate before T9 closes — awaiting the operator's word** (it spends, so it waits on the sanctioned-run go). Until then, 0 machine-gated runs = T9 stays open by evidence, not by missing mechanism.
+
+---
+
+## Standing $0 batch — 5 items (2026-07-14)
+
+Operator batch: run everything $0, log judgments in PR bodies, one consolidated handoff. Execution-report rule applied per thread.
+
+| # | Thread | State | Execution report |
+|---|---|---|---|
+| **1** | **VAULT UNIT** — session-memory mechanization (SessionEnd hook, /start PROGRAM-BOARD boot, done.md born-linked+board+commit steps, CLAUDE.md prior-art rule) + ADR-010 pt2 + dead-link triage | **LANDED** | **PR #322** (squash `8bdcc43`), CI green. Docs-graph link backfill was already #310 (606 links / 112 docs); this unit did the session-memory half. |
+| **2a** | **Re-attribution worklist** — enumerate the live population behind flag `f5a56b11` | **LANDED (logged)** | this PR — [reattribution-worklist-2026-07-14](./ops/reattribution-worklist-2026-07-14.md): 42 FACT spans / 13 items on wikipedia/legiscan/policycommons at the retired `?? 5` T5 stamp. No sweep write to verified briefs (judgment logged). |
+| **2b** | **registerCitedSources `?? 5` guess** — credibility-vs-grounding split | **LANDED** | this PR — `source-growth.ts` base_tier now keys off `classTierForHost` (known class → row at class tier; unclassified → `provisional_sources` worklist, never a guessed T5 `sources` row). Golden `register-step.test.mjs` +2 (11/11), tsc clean. |
+| **2c** | **Board debt** — execution-report rule on open ruled threads | **LANDED** | this section. |
+| **2a-followon** | **reattribution-relabel** — verified remediation unit ($ or model): per item re-home to cited primary (span-match) else relabel FACT→ANALYSIS, re-run `validate_item_provenance`, let re-quarantine fall. Ordered research_finding (sub-floor) → floor-exempt verified → quarantined (held). | **QUEUED / not-started** | no commit; deferred out of the sweep because it mutates 10 verified customer briefs (needs four-part verification, not a bulk write). Doc: reattribution-worklist-2026-07-14. |
+| **3** | **Acquisition manifest → one decision sheet** (Section 1 RE-SYNTH 8 / Section 2 ACQUIRE-worth-pricing / Section 3 SKIP-FLAGGED, empty PRICE boxes) | **OPEN — awaits operator's pen** | decision sheet authored this batch (location in handoff); prices are the operator act. |
+| **4** | **MCP indirection prep** — exact run-sheet (env-copy → rewrite `~/.claude.json` env → restart → verify github+supabase → delete literals) | **OPEN — operator executes** | run-sheet authored this batch; the verify-before-delete needs a Claude Code restart (unverifiable in-session). Closes the SF-11 residual. |
+
+**Judgment logged (2a):** the sweep SURFACED a live defect (37 of 42 fake-cert T5 spans sit on VERIFIED customer briefs) but did NOT rewrite them. Mutating verified `claim_kind`/`source_id` triggers a `validate_item_provenance` re-run + re-quarantine cascade on the customer surface — a consequential write that needs its own verified unit (production-surface-verification + four-part standard), not a sweep line. Terminal disposition here = "leave held + log" (the worklist doc + the pre-existing flag `f5a56b11`). The go-forward mint is fixed (2b), so the population cannot grow.

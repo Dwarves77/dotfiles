@@ -19,7 +19,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { computeCitationComponent, recomputeEffectiveTier } from "@/lib/trust";
 import type { TrustMetrics } from "@/types/source";
 import { hostOf, hostInstitution, buildResolver, type SourceRow } from "@/lib/sources/institution";
-import { decidePoolHostRegistration } from "@/lib/sources/host-authority";
+import { classTierForHost, decidePoolHostRegistration } from "@/lib/sources/host-authority";
 
 export interface CitationEdge {
   citer_source_id: string;
@@ -105,9 +105,28 @@ export async function registerCitedSources(
       );
       out.push({ url: cs.url, source_id: null, registered: "candidate" });
     } else {
-      const tier = cs.tier_estimate ?? 5;
+      // MOAT (credibility-vs-grounding split, SC-13): base_tier IS the grounding-eligibility stamp
+      // (institution.ts `tierOfSource = base_tier ?? null`). It MUST be a DETERMINISTIC source-TYPE
+      // tier, never a guessed default. The retired `cs.tier_estimate ?? 5` minted a latent T5
+      // fake-cert — dormant while provisional, live the moment the source is activated — off a
+      // per-brief agent guess. Fix: register ONLY when the host classifies to a ruled SC-13 class
+      // tier (legal 1 / gov 2 / verifier-academic-association 4 / analysis 6 / lawfirm-news 7); a host
+      // that classifies to NO ruled class is WORKLISTED — a provisional_sources candidate carrying
+      // why, never a `sources` row at a guessed tier (base_tier is NOT NULL, so a null-tier row cannot
+      // exist; the honest state for "tier unknown" is a worklist candidate, not a minted guess).
+      // tier_estimate (the brief-table guess) NEVER sets base_tier — reputation/guess never confers a
+      // grounding tier a source did not earn.
+      const classTier = classTierForHost(host);
+      if (classTier == null) {
+        await supabase.from("provisional_sources").upsert(
+          { name: cs.name, url: cs.url, status: "pending_review", notes: `auto-surfaced citation; host did not classify to a ruled SC-13 tier (host=${host}) — worklist for tier classification` },
+          { onConflict: "url" }
+        );
+        out.push({ url: cs.url, source_id: null, registered: "candidate" });
+        continue;
+      }
       const { data: ins, error: insErr } = await supabase.from("sources")
-        .insert({ name: cs.name, url: cs.url, base_tier: tier, tier_at_creation: tier, status: "provisional", auto_run_enabled: false })
+        .insert({ name: cs.name, url: cs.url, base_tier: classTier, tier_at_creation: classTier, status: "provisional", auto_run_enabled: false })
         .select("id").single();
       if (insErr) { console.warn(`[source-growth] register failed for ${cs.url}: ${insErr.message}`); out.push({ url: cs.url, source_id: null, registered: "candidate" }); continue; }
       out.push({ url: cs.url, source_id: ins?.id ?? null, registered: "new_source" });

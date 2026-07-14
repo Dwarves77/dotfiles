@@ -87,6 +87,7 @@ test("classTierForHost: ruled class table — verifier/academic/association 4, a
   assert.equal(classTierForHost("en.wikipedia.org"), null);
   assert.equal(classTierForHost("legiscan.com"), null);    // legal-aggregator
   assert.equal(classTierForHost("doi.org"), null);         // resolver
+  assert.equal(classTierForHost("policycommons.net"), null);// aggregator — re-attribution worklist host
   // legal aggregators NEVER register — incl. a legal-info-institute on .edu (must beat the academic rule):
   assert.equal(classTierForHost("law.cornell.edu"), null); // Cornell LII — legal aggregator, not academic T4
   assert.equal(classTierForHost("law.justia.com"), null);
@@ -101,6 +102,25 @@ test("decidePoolHostRegistration: lazy-class host auto-registers at its class ti
   // an unknown-class host still routes to worklist (never a guessed tier).
   assert.deepEqual(decidePoolHostRegistration("searoutes.com", null), { action: "worklist", tier: null });
   assert.deepEqual(decidePoolHostRegistration("legiscan.com", null), { action: "worklist", tier: null });
+});
+
+// ── registerCitedSources CONTRACT (source-growth.ts, residual-sweep 2026-07-14) ──
+// registerCitedSources no longer mints a guessed base_tier (`cs.tier_estimate ?? 5` — a latent T5
+// fake-cert, dormant while provisional, live on activation). It now keys base_tier off classTierForHost:
+// a host that classifies to a ruled tier gets a `sources` row at THAT tier; a host that classifies to
+// null (no ruled class) is WORKLISTED as a provisional_sources candidate (base_tier is NOT NULL, so a
+// null-tier `sources` row cannot exist — the honest "tier unknown" state is a worklist candidate, not a
+// guess). This golden locks the decision boundary registerCitedSources branches on (the wiring itself is
+// proven by tsc; source-growth.ts's @/ imports keep it out of the no-npm test lane).
+test("registerCitedSources tier source = classTierForHost, never a guessed default", () => {
+  // known ruled class -> a `sources` row at that tier (was wrongly a guessed 5 for news):
+  assert.equal(classTierForHost("freightwaves.com"), 7);   // news -> row at 7, not 5
+  assert.equal(classTierForHost("dnv.com"), 4);            // CAB  -> row at 4
+  assert.equal(classTierForHost("eur-lex.europa.eu"), 1);  // legal -> row at 1
+  // null-classifying host -> worklist candidate, NEVER a guessed-tier `sources` row:
+  for (const h of ["en.wikipedia.org", "policycommons.net", "law.justia.com", "searoutes.com"]) {
+    assert.equal(classTierForHost(h), null, h);
+  }
 });
 
 test("decidePoolHostRegistration: already-resolving institution -> inherit its canonical tier (no new row)", () => {
