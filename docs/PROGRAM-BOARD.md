@@ -352,3 +352,20 @@ Operator batch: run everything $0, log judgments in PR bodies, one consolidated 
 | **4** | **MCP indirection prep** — exact run-sheet (env-copy → rewrite `~/.claude.json` env → restart → verify github+supabase → delete literals) | **OPEN — operator executes** | run-sheet authored this batch; the verify-before-delete needs a Claude Code restart (unverifiable in-session). Closes the SF-11 residual. |
 
 **Judgment logged (2a):** the sweep SURFACED a live defect (37 of 42 fake-cert T5 spans sit on VERIFIED customer briefs) but did NOT rewrite them. Mutating verified `claim_kind`/`source_id` triggers a `validate_item_provenance` re-run + re-quarantine cascade on the customer surface — a consequential write that needs its own verified unit (production-surface-verification + four-part standard), not a sweep line. Terminal disposition here = "leave held + log" (the worklist doc + the pre-existing flag `f5a56b11`). The go-forward mint is fixed (2b), so the population cannot grow.
+
+---
+
+## Wave 2 concurrent-race recovery + archive-collision reconciliation (2026-07-15)
+
+Branch `remediation/wave2-model-column`; recovery commit **`4ec4f41`** + Step-8 doctrine/board commit. Docs:
+`docs/audits/wave2-concurrent-race-incident-2026-07-15.md`, `docs/audits/wave2-archive-collision-reconciliation-2026-07-15.md`.
+
+| Thread | State | Evidence / next |
+|---|---|---|
+| **Wave 2 recovery (Steps 1-8)** | **DONE** | Dedup 36 race-dupes (zero corpus-wide after); Nashville 0→41 + Fjords 0→43 recovered; **run-lock migration 205** (RD-38 + golden, both halves proven live); close-gate scan clean (no verified item held). Spend $28.76/$60. |
+| **Archive-collision reversal** | **DONE** | 19 Wave-2 items un-archived (guarded; Polish→verified). Bounded to 19 today (the 436/201-verified archive population is HISTORICAL, not today). |
+| **Reconciliation package** | **DELIVERED** | Read-only forensics: an un-guarded raw disposition actor archived 19 in-window items; content-repair Tasks 1/3/4/7/8/9 show no execution evidence; **ISO 14083 (Task 3) NOT run — false claim still live, uncorrected**. |
+| **Step 5 deferred residue** | **QUEUED** | 37 C3-floor candidates deferred to post-Task-2 $0 re-stamp (host registration is the lever). |
+| **Hardening unit H1-H6** | **QUEUED — next** | H1 claim-uniqueness, H2 atomic ground writes, H3 mint-time accuracy gates, H4 single entrypoint, **H5 mutation leases**, **H6 mutation attribution + gate the raw write path that permitted today's flips**. Own PR + board. Precondition for the 60→400 coverage-floor expansion. |
+| **Corpus-wide 436-archive sweep** | **DEFERRED (operator-owned)** | Separate future unit, sample-verify-first, priced after launch-clause sequencing. NOT the Wave-2 agent's. |
+| **ISO 14083 correction** | **DEFERRED (audit-agent-owned)** | Task 3's VERIFIED-mutation authorization sits with the audit agent; flagged un-run. |
