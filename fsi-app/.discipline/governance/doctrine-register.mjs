@@ -131,6 +131,17 @@ export const DOCTRINES = [
     },
   },
 
+  {
+    id: 'registration-does-not-unlock',
+    statement:
+      'Registering a host at a tier NEVER confers reg-fact eligibility — it records the host\'s honest institutional tier as provenance, nothing more. A quarantined FACT held on fact_below_authority_floor is unlocked ONLY by ATTRIBUTION to a floor-qualifying source that verbatim-CONTAINS its span (floor-first re-attribution), not by registering the corroborator it was cited to. The 2026-07-14 host census made this concrete: the null-tier holds were dominated by non-primary corroborators (law firms, trade news, analysts, aggregators) — registering those changes nothing (a signal tier is not a fact tier); only the ~17 genuine unregistered primaries, plus re-stamping spans that sit in an already-registered primary (Brazil\'s facts cited to aggregators while planalto was already registered), move an item. The moat stated per-source (reputation never confers eligibility); this is its per-registration corollary.',
+    source: 'operator RULING — census dispositions + Step-2 reframe (2026-07-14)',
+    exempt: {
+      reason:
+        'Restates the moat (SC-9 / SC-11 / SC-14: base_tier ?? null resolver, floor-first re-attribution NEVER forced, standards bodies certify only their own standard) as a per-registration corollary — already mechanized by those invariants (a registered host still resolves through tierOfSource=base_tier and must contain the span to ground a FACT). Doctrine line for the census lesson; no new mechanism needed.',
+    },
+  },
+
   // ─────────────────────────────── Spend authority (operator-priced) ───────────────────────────────
   {
     id: 'operator-sets-cost',
