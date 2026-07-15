@@ -1,7 +1,9 @@
 // @ts-check
-// Red-then-green for the spend-watch verdict (spend-control refactor 2026-07-13). The alarm is priced-line
-// TRACEABILITY, not %-of-ceiling: any post-freeze paid row that does not trace to an operator-priced line is an
-// anomaly at any amount. Includes goldens (e) alarm on an untraceable paid row and (f) healthy when all trace.
+// Red-then-green for the spend-watch verdict (spend-control refactor 2026-07-13, RECONCILED to the operator-
+// priced model 2026-07-15). The alarm is priced-line TRACEABILITY, not %-of-ceiling and NOT the app lock: any
+// post-freeze paid row that does not trace to an operator-priced line is an anomaly at any amount; the app lock
+// is informational. Goldens: (e) alarm on an untraceable paid row, (f) healthy when all trace, State-4 traced-
+// but-app-lock-OFF is now HEALTHY (superseding the 2026-07-13 lock-as-master-gate rule).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { computeSpendHealth } from "./spend-health.mjs";
@@ -26,8 +28,8 @@ test("frozen-and-quiet: MTD high but no paid row after the freeze → HEALTHY (n
   assert.doesNotMatch(v.reason, /%|ceiling/); // ceiling-% framing removed from the verdict
 });
 
-// ── STATE 2 / golden (f): sanctioned-traced (lock ON + every post-freeze paid row traces to a priced line) ──
-test("(f) sanctioned window: paid rows after freeze, lock ON, all trace to an operator-priced line → HEALTHY + enumerated", () => {
+// ── STATE 2 / golden (f): traced (every post-freeze paid row traces to a priced line) ──
+test("(f) traced window: paid rows after freeze, all trace to an operator-priced line → HEALTHY + enumerated", () => {
   const rows = [
     line({ at: "2026-08-02T10:00:00Z", item: "item-A", ref: "op-line-A" }),
     paid({ cost: 0.35, at: "2026-08-02T10:00:05Z", item: "item-A" }),
@@ -39,7 +41,7 @@ test("(f) sanctioned window: paid rows after freeze, lock ON, all trace to an op
   assert.equal(v.healthy, true);
   assert.equal(v.paidAfterFreeze, 3);
   assert.equal(v.allJustified, true);
-  assert.match(v.reason, /sanctioned window/);
+  assert.match(v.reason, /traced/);
   assert.deepEqual(v.paidAfterRows.map((r) => r.justification), ["op-line-A", "op-line-A", "op-line-B"]);
 });
 
@@ -53,16 +55,27 @@ test("(e) spend-watch ALARMS on an untraceable paid row (a paid row that does no
   assert.match(v.reason, /ANOMALY[\s\S]*do NOT trace to an operator-priced line/);
 });
 
-// ── STATE 4: lock OFF is an anomaly even for a traced row (master arming gate did not authorize spend) ──
-test("traced-but-lock-OFF → UNHEALTHY (the master arming gate is the go/no-go; nothing should have spent)", () => {
+// ── STATE 4 (RECONCILED 2026-07-15): the app lock is INFORMATIONAL, not a gate. A traced row is HEALTHY
+// regardless of the app-lock state — under the priced model the lock arms only in the local runner, never the
+// deployed app, so "app lock OFF" is normal. This supersedes the 2026-07-13 lock-as-master-gate rule. ──
+test("traced-but-app-lock-OFF → HEALTHY (app lock is informational under the priced model, not the go/no-go)", () => {
   const rows = [
     line({ at: "2026-08-05T09:00:00Z", item: "item-C", ref: "op-line-C" }),
     paid({ cost: 0.30, at: "2026-08-05T09:00:04Z", item: "item-C" }),
   ];
   const v = computeSpendHealth(rows, { freezeSinceIso: FREEZE, monthlyCeilingUsd: CEIL, acquireEnabled: false });
+  assert.equal(v.healthy, true);              // traced ⇒ authorized, regardless of the app lock
+  assert.match(v.reason, /traced/);
+  assert.match(v.reason, /informational/);
+  assert.equal(v.paidAfterRows[0].justification, "op-line-C");
+});
+
+// an UNtraced paid row is the anomaly whether the app lock is ON or OFF (traceability is the sole gate).
+test("untraced paid row → UNHEALTHY regardless of app-lock state (lock OFF)", () => {
+  const rows = [paid({ cost: 0.30, at: "2026-08-05T12:00:00Z", item: "item-Z" })];
+  const v = computeSpendHealth(rows, { freezeSinceIso: FREEZE, monthlyCeilingUsd: CEIL, acquireEnabled: false });
   assert.equal(v.healthy, false);
-  assert.match(v.reason, /ANOMALY[\s\S]*OFF/);
-  assert.equal(v.paidAfterRows[0].justification, "op-line-C"); // it IS traced, but the gate was OFF
+  assert.match(v.reason, /do NOT trace to an operator-priced line/);
 });
 
 // ── STATE 5: lock ON but one paid row has no pre-logged priced line ──

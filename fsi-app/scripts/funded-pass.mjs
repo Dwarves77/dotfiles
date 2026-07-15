@@ -20,6 +20,7 @@ import { createJiti } from "jiti";
 import { createClient } from "@supabase/supabase-js";
 import { classifyFailure, withArmedLock, hardDivergence, spendWatchHalt, isRunaway, totalBoundHalt, authoritativeCumulative } from "./lib/funded-pass-core.mjs";
 import { hasValidWaiver } from "../src/lib/agent/audit-gate-core.mjs";
+import { guardedInsert } from "./lib/db.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));
@@ -76,6 +77,16 @@ async function validate(id) {
   const { data } = await sb.rpc("validate_item_provenance", { p_item_id: id });
   const r = Array.isArray(data) ? data[0] : data;
   return r ?? null;
+}
+// PRICED-LINE MARKER (spend-watch traceability producer, 2026-07-15). Before an item is grounded, log a cost-0
+// agent_runs marker that the spend-watch (spend-health.mjs) matches its paid rows to. Written BEFORE the paid
+// call so its started_at ≤ the paid rows' — the operator's per-run $ bound IS the authorization it records, so
+// every priced-run paid row traces to an operator-priced line (no more frozen-state false-reds).
+async function writePricedLineMarker(itemId) {
+  await guardedInsert("agent_runs", {
+    fetch_method: "priced-line", cost_usd_estimated: 0, intelligence_item_id: itemId, started_at: nowIso(),
+    status: "success", errors: [{ pricedLine: `funded-pass --bound=$${BOUND} caller=${CALLER}` }],
+  }, { cite: { skill: "remediation-discipline", reason: "spend-watch priced-line traceability marker for an operator-bounded funded-pass item" } });
 }
 
 // ── one paid pass over an item (apply only) ──
@@ -196,6 +207,7 @@ async function applyRun() {
       const div = hardDivergence(w, row);
       if (div) { console.log(`\n[HELD:divergence] ${w.key} — ${div}`); results.push({ ...w, held: `divergence: ${div}`, prov: row?.provenance_status }); continue; }
       process.stdout.write(`\n[${w.cls}] ${w.key.slice(0, 36)} (${w.id.slice(0, 8)}) [$${spentTotal.toFixed(2)}/${BOUND ?? "∞"}] ... `);
+      await writePricedLineMarker(w.id); // authorization marker BEFORE the paid call (spend-watch traceability)
       const r = await runItem(w);
       results.push(r);
       if (r.halt) { runHalt = r.halt; console.log(`RUN-LEVEL HALT: ${r.halt}`); break; }
