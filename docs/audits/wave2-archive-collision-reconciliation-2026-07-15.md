@@ -112,3 +112,17 @@ All in my Wave-2 window. All retain their claims (un-archive fully restores them
    (b) respect the Wave-2 boundary on ALL paths incl. disposition, (c) not label 100-fact regs as furniture.
 7. **Un-guarded + un-committed:** the collision has no snapshot and no commit, so reversing it leaves no
    orphaned rollback state.
+
+## Git history rewrite record (2026-07-15, operator-authorized)
+
+The recovery commit was rewritten once to fix a rule-015 violation (the run-lock golden did two raw
+test-fixture writes on its own dedicated test key; routed through the guarded path). Per-commit CI validation
+made a new fix-commit insufficient, so the commit itself was rewritten under the amended branch rule (own
+commits, unshared, safety ref + `--force-with-lease`, forced by CI). **`8eb7534` and all prior history
+preserved.**
+
+- Old: `4ec4f41` (recovery) → `b719a4a` (close), branch head `b719a4a`.
+- New: `e99f4f4` (recovery, guarded golden) → `2d66482` (close), branch head `2d66482`.
+- Reason: rule-015 (row-mutation guarded path) fix baked into an already-pushed commit.
+- Authorization: operator, 2026-07-15. Safety ref `pre-rewrite-4ec4f41` → `4ec4f41` (local, KEPT until wave
+  close). `--force-with-lease` used. PR #337 CI green post-rewrite (10 SUCCESS, 0 failures).
