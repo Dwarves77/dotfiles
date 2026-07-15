@@ -298,3 +298,25 @@ Operator GO "$0 track + incident disposition" after the API spend was fixed. Gua
 **Blockers / open:** (a) **Cost estimate requested before any spend** — the parked paid queue is priced as facts + a labeled projection (~$7 core / 20 items, empirical $0.34/item from Unit A; +~$3 for the optional 9 retries) in the GATE B doc; **operator sets the number**, lock stays OFF. (b) paid queue order: Brazil restore → g14 proof → 3 ceiling-cut → 5 portal-held → fetch plan (10) → (optional) 9 retries. (c) coverage-universe reconciliation delivered (source + instrument tables): **ABSENT majors** bafa.de/LkSG, fedlex.admin.ch, CII-EEXI/CORSIA/CSDDD/LkSG (keyword screen). (d) still owed: coverage-floor definition (next unit), stale_verified proposal (45), reattribution-verified-half (42 spans — stays parked).
 
 **Next steps:** operator's priced/armed go on the paid queue → run in ruled order (ascending, lock armed run-scoped) → then coverage-floor definition unit.
+
+---
+
+## 2026-07-14 (cont.) — PRICED RUN closed ($17.74 of $20) + model-tier verdict
+
+Operator PRICED GO ($20 bound, retries included) + MODEL-TIER amendment. Ran the paid queue in ruled order under the dominance guard + charset decode + $20-bound halt. **Total actuals $17.74** (Segment-0 A/B $0.43 + 28-item queue $16.30 + Brazil forced re-fetch $1.02), under the bound.
+
+**Enablement landed first ($0, PR #336):** grounding model override (`GROUND_MODEL` knob in generation-config, rule-017-clean) so the A/B verdict sets the default; `totalBoundHalt()` (goldened) + `--bound` + APPLY-refuses-unbounded; Segment-0 A/B harness (guarded ledger resets, rule 015); `model-tier-rule` doctrine. Commits f7adb5f + 7978299.
+
+**Segment 0 — grounding model A/B (EPA, fixed brief, only ground model varied):** Haiku 11 facts/11 floor-qualifying ($0.020) vs **Sonnet 24/24 ($0.108)**. VERDICT: **keep Sonnet for full grounding** — >2× the grounded coverage; at coverage-floor scale Haiku's ~50% loss outweighs the 5× cost saving. `GROUND_MODEL` stays Sonnet; Haiku retained for the cheap delta-review/classify tier. (First A/B invalid — Haiku verified the item → Sonnet skip-guarded; fixed with un-verify-between-models, re-ran clean.)
+
+**Corpus: verified 188 → 195 (+7), quarantined 31 → 24 (−7).** 6 queue items verified + EPA.
+
+**HEADLINE — the guard fired in production.** `us-hd-ghg` (`re-ground REGRESSION [total,facts,floor_qualifying]`) and `uk-rtfo` (`facts 15→1`) re-grounded weaker and were **held with prior ledgers retained** — the exact Brazil failure mode, now caught. re-grounds-never-destroy validated on real spend.
+
+**Brazil incident — charset root FIXED, partial restore.** The queue's Brazil hold confirmed the diagnosis: `holdings_present` refused the re-fetch because the mojibake was in the SNAPSHOT store, not just the pool (I'd cleared only the pool). Cleared Brazil's `raw_fetches` snapshot (source 06ea2956, Brazil-only) + pool, forced a clean re-fetch: **0 facts → 17 facts** — the charset decode restored Portuguese extraction (§14 harvest parsed real "Lei 12.305/2010 enters force"). Still quarantined: 6 facts floor-qualify (planalto T1), **11 grounded to UNREGISTERED hosts** (null-tier → `fact_below_authority_floor`). The destroyed 55 are gone (fresh 17-fact extraction is the recoverable state).
+
+**Decisions / findings:** (1) **The dominant held blocker across the run is UNREGISTERED-HOST / sub-floor** — g14 (diputados.gob.mx), Brazil (11 null-tier), australia-nev, china, korea (law.go.kr): the grounding WORKS and extracts facts from the correct primaries, but those hosts aren't in the registry → null-tier → below floor. This is a **source-registration gap, not a grounding failure** — the next high-leverage unit (register the primary hosts so their facts qualify). (2) `holdings_present` reads BOTH pool and snapshot — a forced re-fetch must clear the snapshot too. (3) A truncation-ceiling wall hit us-hd-ghg (600KB Federal Register doc, context-ceiling-wall(floor)) — surfaced, not silent.
+
+**Blockers / open:** (a) **host-registration sweep** — register the unregistered primary hosts (diputados.gob.mx, law.go.kr, arena.gov.au, etc.) so the ~grounded-but-sub-floor items verify; biggest lever, mostly $0. (b) Brazil full verification pending that registration + a missing-slot fill. (c) 22 held items' dispositions (mostly sub-floor/slot — re-home or GAP). (d) coverage-floor definition (the absent majors: bafa/LkSG, CII/CORSIA/CSDDD). (e) stale_verified (45), reattribution-verified-half (42, parked).
+
+**Next steps:** host-registration sweep (register the primaries the run surfaced → re-ground the sub-floor holds cheaply) → Brazil full restore → coverage-floor unit.
