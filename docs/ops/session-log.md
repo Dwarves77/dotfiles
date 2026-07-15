@@ -5,6 +5,27 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-07-15 — Spend-watch RED diagnosis + operator-priced reconciliation (PR #336)
+
+Operator interrupted the waves ("DIAGNOSE — SPEND-WATCH RED", 4 emails). Verdict: **(a) stale frozen-state
+config; (b) disproven — no leak.** Full disposition: [spend-watch-disposition-2026-07-15](spend-watch-disposition-2026-07-15.md).
+
+- **Trip cause:** `spend-health.mjs` gated on the app acquire lock (master gate) + priced-line/I2 marker rows —
+  the retired acquisition-freeze posture. `funded-pass` arms the lock only in its local process (never the
+  deployed app) and wrote no markers, so every legitimate priced run false-reds. 4 fails 07-13→07-15; began
+  07-13, before the priced run.
+- **(b) traced clean:** grounding crons frozen (`source-monitoring` disabled_manually); every post-freeze paid
+  row uses a sanctioned `fetch_method` and traces to this session's authorizations (priced $20 + Step-2 $12 +
+  A/B + retries; ≈$31.9, within authorized bounds). No untraceable row.
+- **Reconciliation (commit `4da0169`, CI green):** spend-health drops the app-lock-master-gate (→ informational);
+  sole alarm = a post-freeze paid row not tracing to an operator-priced line. `funded-pass` now writes a cost-0
+  `priced-line` marker per item before grounding it. `FREEZE_SINCE_ISO` moved 07-13→07-15T03:00Z (designed
+  resumed-spend escape). Workflow/route comments corrected off the $75/80%+lock model. Tests 28/28.
+- **Lane state:** branch CI green; **production-green lands on PR #336 merge + Vercel deploy** (the probe hits
+  carosledge.com). Waves UNBLOCKED by this dated disposition per the operator stop-condition.
+
+---
+
 ## 2026-07-15 — Step-2 stop-and-surface + criterion diagnosis + spend-bound hardening (PR #336)
 
 **Context:** Resumed with Step 2 (floor-first re-attribution, `funded-pass --bound=12` over 23 quarantined reg-family items) running in the background from before the compact.
