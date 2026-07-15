@@ -151,6 +151,16 @@ export const DOCTRINES = [
     enforcedBy: ['RD-31-operator-priced-spend'],
   },
   {
+    id: 'build-phase-spend-regime',
+    statement:
+      'The platform runs in one explicitly-declared SPEND REGIME at a time (config: src/lib/llm/spend-regime.mjs), switched only by ruling, never by default. BUILD-PHASE (current): NO pace guards, daily/rate targets, floors, or standing dollar figures of any kind govern build work — the ONLY three controls are AUTHORIZATION (an operator go: a bound where the operator writes one, or an OPEN authorization where the work class is ruled, e.g. free URL-presence registrations), INTEGRITY (the WASTE guards, not speed: holdings-gate, one-pass, dominance guard, no-gain tripwire, spend-ticket + drained-ledger), and MEASUREMENT (spend-watch as PURE ACCOUNTING: every paid row traceable + posture-carrying, actuals per item/class/model, cost-shape anomalies surfaced as FINDINGS never blocks). STEADY-STATE (pace policy, delegated-pricing) is DEFINED in the coverage-floor / Unit-5 work and switches on at cadence-flip, deliberately by ruling. Any residual steady-state standing figure (monthly ceiling, per-item breaker, daily cap, standing SPEND_CEILING, cooldown) is information-only under build-phase — read for display/findings, never a gate.',
+    source: 'operator RULING — build-phase spend regime (2026-07-15)',
+    exempt: {
+      reason:
+        'Regime-declaration / config-posture class. Its teeth are already-enforced mechanisms: RD-31 (operator-priced line is the SOLE dollar gate — no paid row without one) makes authorization the only spend control, and the standing-figure retirement is the operator-sets-cost doctrine it already enforces. The config flag (spend-regime.mjs SPEND_REGIME / standingFiguresAreInformationOnly) names the active posture; the retro-sweep (docs/ops/build-phase-spend-regime-2026-07-15.md) inventories residual standing figures and converts each to information-only. A regime flag is a deliberate-ruling switch, not a mechanically-checkable committed-file invariant — same config/policy class as model-tier-rule.',
+    },
+  },
+  {
     id: 'data-existence-before-acquisition',
     statement:
       'No fetch without first proving the datum absent from what we already hold (stored pools, snapshots, sections, prior captures). A fetch request MUST cite the inventory check and the specific miss. Acquisition is always the named DELTA — the missing document or span-range — never a re-fetch of anything a pool already carries. Wired at the fetch/grounding chokepoint: the paid path REFUSES without both an inventory-miss citation AND an operator-priced line. This is the skill\'s verify-before-acquire made mechanical.',
