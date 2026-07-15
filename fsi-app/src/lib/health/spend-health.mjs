@@ -2,23 +2,26 @@
 // SPEND-WATCH VERDICT (pure core). The health decision behind /api/health/spend, extracted so it is
 // node-testable and so the uptime workflow can trust ONE boolean instead of re-deriving an alarm from raw %.
 //
-// SPEND-CONTROL REFACTOR (operator final rulings 2026-07-13): spend-watch is a PURE ALARM. There are NO
-// standing dollar limits, so the verdict is NOT "% of a ceiling" (that framing is retired). The alarm is about
-// paid `agent_runs` rows AFTER the acquisition-freeze baseline and ONE question: does each such paid row trace
-// to an OPERATOR-PRICED LINE? Any post-freeze paid row that does NOT trace to a priced line is the anomaly, at
-// ANY amount.
+// SPEND-CONTROL REFACTOR (operator final rulings 2026-07-13, RECONCILED to the operator-priced model 2026-07-15):
+// spend-watch is a PURE ALARM. There are NO standing dollar limits, so the verdict is NOT "% of a ceiling" (that
+// framing is retired). The alarm is about paid `agent_runs` rows AFTER the acquisition-freeze baseline and ONE
+// question: does each such paid row trace to an OPERATOR-PRICED LINE (an authorization)? Any post-freeze paid row
+// that does NOT trace to a priced line is the anomaly, at ANY amount.
 //
 //   FROZEN-AND-QUIET     — zero paid rows since the freeze baseline. HEALTHY.
-//   SANCTIONED-TRACED    — there ARE paid rows since the freeze, the acquire lock (master gate) is ON, AND every
-//                          paid row traces to a pre-logged operator-priced line marker (same item/source, logged
-//                          at or before the paid call). HEALTHY — a deliberate operator spend window.
-//   ANOMALY              — any post-freeze paid row that does NOT trace to a priced line (untraceable spend), OR
-//                          any post-freeze paid row while the master arming gate is OFF (traced or not — with the
-//                          gate OFF nothing was authorized to spend). UNHEALTHY.
+//   TRACED               — there ARE paid rows since the freeze AND every one traces to a pre-logged operator-
+//                          priced line marker (same item/source, logged at or before the paid call). HEALTHY — a
+//                          deliberate operator spend window. The app acquire lock is REPORTED but NOT gated.
+//   ANOMALY              — any post-freeze paid row that does NOT trace to a priced line (untraceable spend /
+//                          missing authorization). UNHEALTHY.
 //
-// A "priced-line marker" row is fetch_method='priced-line' (or an errors[] entry with a truthy `pricedLine`),
-// cost 0, carrying the item/source it authorizes. It REPLACES the old acquire-justification marker: a plain
-// justification no longer satisfies the alarm — the operator's per-line price is the sole authorization.
+// 2026-07-15 RECONCILIATION: the app acquire lock is NO LONGER the master gate. Under the operator-priced model
+// the lock is armed only inside the local funded-pass runner process (never the deployed app), so "app lock OFF"
+// is the normal post-run state; gating on it false-reds every legitimate priced run. Traceability to an operator-
+// priced line — written ONLY by an operator-bounded run — is the sole go/no-go. This supersedes the 2026-07-13
+// lock-as-master-gate rule (the retired frozen-state posture). acquireEnabled is retained as an informational
+// field. A "priced-line marker" row is fetch_method='priced-line' (or an errors[] entry with a truthy
+// `pricedLine`), cost 0, carrying the item/source it authorizes; funded-pass writes one per authorized item.
 
 /** Is this a pre-logged OPERATOR-PRICED-LINE marker row? @param {any} r */
 function isPricedLineRow(r) {
@@ -102,25 +105,28 @@ export function computeSpendHealth(rows, opts) {
   const pct = ceiling > 0 ? Math.round((mtdUsd / ceiling) * 1000) / 10 : 0; // informational only
   const frozen = ceiling > 0 && mtdUsd >= ceiling;                          // informational only
 
-  // Verdict — traceability to an operator-priced line, never a %-of-ceiling.
+  // Verdict (OPERATOR-PRICED MODEL, operator ruling 2026-07-15) — actuals are INFORMATIONAL; the SOLE alarm is
+  // a post-freeze paid row that does NOT trace to an operator-priced line (an authorization). The app acquire
+  // lock is NO LONGER a gate here: under the priced model it is armed only inside the local funded-pass runner
+  // process, never in the deployed app, so "app lock OFF" is the NORMAL post-run state — it is reported for
+  // information, never gated. This SUPERSEDES the 2026-07-13 lock-as-master-gate rule (the retired frozen-state
+  // posture): traceability to an operator-priced line — not the app lock — is the go/no-go. Safety is preserved
+  // because a priced-line marker is only written by an operator-bounded run, so a traced row IS an authorized row.
   let healthy;
   let reason;
+  const lockNote = acquireEnabled ? "ON" : "OFF (informational under the priced model)";
   if (!freezeValid) {
     healthy = false;
     reason = `freeze baseline unreadable ("${opts?.freezeSinceIso}") — failing closed; ${paidAfterFreeze} paid row(s) this month`;
   } else if (paidAfterFreeze === 0) {
     healthy = true;
     reason = `frozen-and-quiet: MTD $${mtdUsd.toFixed(2)}, ZERO paid rows since the freeze baseline ${opts.freezeSinceIso}`;
-  } else if (!acquireEnabled) {
-    // Master arming gate OFF → nothing was authorized to spend; any paid row is an anomaly (traced or not).
-    healthy = false;
-    reason = `ANOMALY: ${paidAfterFreeze} paid row(s) since the freeze while GROUNDING_ACQUIRE_ENABLED is OFF (${paidAfterFreeze - untraced} traced, ${untraced} untraced) — the master arming gate did not authorize this spend`;
   } else if (untraced > 0) {
     healthy = false;
-    reason = `ANOMALY: ${untraced} of ${paidAfterFreeze} paid row(s) since the freeze do NOT trace to an operator-priced line — untraceable spend at any amount`;
+    reason = `ANOMALY: ${untraced} of ${paidAfterFreeze} paid row(s) since the freeze do NOT trace to an operator-priced line — untraceable spend at any amount (app lock ${lockNote})`;
   } else {
     healthy = true;
-    reason = `sanctioned window: ${paidAfterFreeze} paid row(s) since the freeze, arming gate ON, all trace to an operator-priced line (total $${paidAfterRows.reduce((s, r) => s + r.costUsd, 0).toFixed(2)})`;
+    reason = `traced: ${paidAfterFreeze} paid row(s) since the freeze, all trace to an operator-priced line (total $${paidAfterRows.reduce((s, r) => s + r.costUsd, 0).toFixed(2)}; app lock ${lockNote})`;
   }
 
   return { mtdUsd, pct, frozen, latestPaidAt, paidAfterFreeze, acquireEnabled, allJustified, healthy, reason, paidAfterRows };

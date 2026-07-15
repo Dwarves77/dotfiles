@@ -116,7 +116,10 @@ export const SKILL_MARKER_BASELINE = {
   // 32→34 (2026-07-13): added the two-mechanism spend model — "Operator-sets-cost: the paid path MUST carry
   // an operator-priced line" + "Data-existence-before-acquisition: no fetch without a cited inventory-miss".
   // TRIAGE: new invariants RD-31 + RD-32 (enforcedBy the priced-line/spend-guard/spend-health selftests).
-  'remediation-discipline': 35,
+  // 35→38 (2026-07-14): added category 22 (re-grounds-never-destroy) — three normative lines (replace-only-if-
+  // not-weaker; retain-prior-and-record-finding; charset-aware-decode). TRIAGE: RD-36 (ledger-dominance golden)
+  // + RD-37 (charset-decode golden). The prior-ledger-survives-section bullet is enforced by RD-36.
+  'remediation-discipline': 38,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -612,6 +615,26 @@ export const INVARIANTS = [
   },
 
   {
+    id: 'RD-36-re-grounds-never-destroy',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 22: Re-grounds never destroy (non-destructive-replace)',
+    text: 'A re-ground\'s new claim ledger REPLACES the prior one ONLY when it is not WEAKER on any dominance axis (FACT count / floor-qualifying count / verified-eligibility). A worse answer is a DIAGNOSTIC, not a replacement: a regressing re-extract retains the prior ledger, records the regression as a finding, and leaves the item state unchanged. Brazil Lei 12.305 (55 FACT -> 2 GAP, a non-EN extraction failure that DESTROYED the ledger) is the red fixture. Two defects cured together: the section step now reconciles by section_key (surviving section_row_ids keep their claims) so the prior ledger reaches the guard\'s snapshot instead of being cascade-wiped; and the guard compares the three dominance axes, not total count alone (55 FACT -> 55 GAP would have slipped a count-only guard).',
+    anchor: 'A re-ground\'s new ledger replaces the prior one only when it is not weaker on any dominance axis',
+    enforcedBy: ['selftest:fsi-app/src/lib/agent/ledger-dominance.test.mjs'],
+    residual: 'ledger-dominance.test.mjs proves the dominance rule red-then-green: the Brazil red golden (55 FACT -> 2 GAP fires facts + floor_qualifying + total) AND the count-blind case (55 FACT -> 55 GAP fires facts + floor_qualifying but NOT total — exactly what the count-only guard missed), plus the legitimate-trim / reattribution-improvement / tiny-prior PASS cases and the preserved legacy thinning catches. Wired at groundBrief (the guard reads the prior snapshot, restores on regression, writes a data_integrity finding, returns loud ok:false) and sectionBrief (the ledger-preserving reconcile that makes the snapshot non-empty), tsc-checked. thinning-guard.mjs deleted (superseded, one home, no shadow). NAMED RESIDUAL: a re-section that legitimately DROPS section_keys cascade-loses those keys\' claims before the snapshot (they read as a legitimate reduction, not protected) — acceptable for the common same-section reattribution case that caused Brazil; a durable pre-section snapshot keyed by section_key would close the drop-a-section edge and is the future strengthening.',
+  },
+
+  {
+    id: 'RD-37-charset-aware-decode',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 22: Re-grounds never destroy (non-destructive-replace)',
+    text: 'Raw HTTP response bytes are decoded to text with the source\'s DECLARED charset (Content-Type header > HTML <meta charset> > UTF-8 default), never a hardcoded UTF-8. A Latin-1 (ISO-8859-1 / windows-1252) government page decoded as UTF-8 corrupts every accented character to the replacement char U+FFFD (mojibake) — permanently, before the grounder sees it — so no original-language span matches and every fact drops to a GAP (Brazil Lei 12.305: 55 FACT -> 0). This is the paired root cause of the non-EN destruction: the extraction never failed on the model; the BYTES were wrong. Cured in the pipeline (the working-artifact fix), single decode site.',
+    anchor: 'Raw response bytes are decoded with the source\'s declared charset, never a hardcoded UTF-8',
+    enforcedBy: ['selftest:fsi-app/src/lib/sources/charset-decode.test.mjs'],
+    residual: 'charset-decode.mjs (pure: charsetFromContentType / charsetFromMeta / normalizeCharsetLabel / decodeHtmlBytes) is red-then-green goldened on the Brazil planalto.gov.br class — the SAME Latin-1 bytes decode to correct Portuguese with the declared charset and to mojibake as utf-8; header-charset, meta-charset, and correct-utf-8-stays-correct all covered. Wired at the single raw-bytes decode site (directFetchClean in canonical-pipeline.ts, the direct-HTTP transport), tsc-checked. NAMED RESIDUAL: the Browserless transport returns already-decoded UTF-8 (Browserless handles charset at render), so it needs no change; a mis-declared-charset page (header lies) is a rare residual a charset-sniff heuristic would close, deferred (declared charset is right for the gov-site class that caused the incident). Existing mojibake-corrupted holdings (Brazil) require a RE-FETCH under the fix — parked in the paid queue with the re-ground.',
+  },
+
+  {
     id: 'RD-12-size-cap-doctrine',
     skill: 'remediation-discipline',
     section: 'Section 4 — category 11: The size-cap doctrine (no silent slice on the grounding path)',
@@ -676,7 +699,7 @@ export const INVARIANTS = [
   // item MUST NOT reach a hold-or-delete call on UNREACHABILITY grounds without a stored EXHAUSTION RECORD (proof
   // of what was tried per candidate × transport). As of the seek-more unit (2026-07-06, feat/seek-more) the
   // RECORD SHAPE + its interim durable home now EXIST: src/lib/sources/seek-more.mjs (generateCandidates →
-  // escalateFetch(url[]) → runSeekMore returns the per-attempt exhaustion record; exhaustionFlagRow /
+  // the escalation ladder returns the per-attempt exhaustion record; exhaustionFlagRow /
   // persistExhaustionRecord persist it via the INTERIM FLAG PATTERN — integrity_flags, created_by=
   // 'exhaustion_record', category='source_issue', subject_ref=itemId, attempts in recommended_actions jsonb —
   // superseded by migration 147 sources.fetch_status). RD-15 is SEQUENCED LAST: it is wired build-FAILING only

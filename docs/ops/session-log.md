@@ -5,6 +5,52 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-07-15 — Spend-watch RED diagnosis + operator-priced reconciliation (PR #336)
+
+Operator interrupted the waves ("DIAGNOSE — SPEND-WATCH RED", 4 emails). Verdict: **(a) stale frozen-state
+config; (b) disproven — no leak.** Full disposition: [spend-watch-disposition-2026-07-15](spend-watch-disposition-2026-07-15.md).
+
+- **Trip cause:** `spend-health.mjs` gated on the app acquire lock (master gate) + priced-line/I2 marker rows —
+  the retired acquisition-freeze posture. `funded-pass` arms the lock only in its local process (never the
+  deployed app) and wrote no markers, so every legitimate priced run false-reds. 4 fails 07-13→07-15; began
+  07-13, before the priced run.
+- **(b) traced clean:** grounding crons frozen (`source-monitoring` disabled_manually); every post-freeze paid
+  row uses a sanctioned `fetch_method` and traces to this session's authorizations (priced $20 + Step-2 $12 +
+  A/B + retries; ≈$31.9, within authorized bounds). No untraceable row.
+- **Reconciliation (commit `4da0169`, CI green):** spend-health drops the app-lock-master-gate (→ informational);
+  sole alarm = a post-freeze paid row not tracing to an operator-priced line. `funded-pass` now writes a cost-0
+  `priced-line` marker per item before grounding it. `FREEZE_SINCE_ISO` moved 07-13→07-15T03:00Z (designed
+  resumed-spend escape). Workflow/route comments corrected off the $75/80%+lock model. Tests 28/28.
+- **Lane state:** branch CI green; **production-green lands on PR #336 merge + Vercel deploy** (the probe hits
+  carosledge.com). Waves UNBLOCKED by this dated disposition per the operator stop-condition.
+
+---
+
+## 2026-07-15 — Step-2 stop-and-surface + criterion diagnosis + spend-bound hardening (PR #336)
+
+**Context:** Resumed with Step 2 (floor-first re-attribution, `funded-pass --bound=12` over 23 quarantined reg-family items) running in the background from before the compact.
+
+**Stop-and-surface — Step-2 premise falsified.** Killed the background run at **$1.19** (dominance guard protects mid-item state). Read the hold reason directly from the live `validate_item_provenance` (`STABLE`, so callable for **$0**) across all 23 items instead of paying to re-run grounding. The holds are **compound / multi-criterion**, and floor-tier is only one of **five** blockers:
+- **C3 `fact_below_authority_floor`** — 16 items, 262 facts (the genuine tier residue).
+- **C5 `missing_required_slot`** — 8 items. Content exists but claims aren't `[slot_key]`-tagged (verified reg items carry a literal `[primary_deadline]`/`[effective_date]` prefix; these don't). Cheap re-tag, not paid re-ground.
+- **C2 `ungrounded_url`** — 5 items. Legit unregistered primaries (`diputados.gob.mx` = Mexican Congress T1) + furniture (bbhub.io, s.fhg.de). C2 is a presence check → free registration clears it.
+- **C4 label** (`analysis_missing_label` / `unlabeled_assertion`) — 6 items. Prose relabel.
+- **C3 `fact_span_not_in_source`** — 3 items, 40 facts. Integrity (span not verbatim in source) — charset/truncation class → investigate.
+
+Decisive proof: the priced run already full-resynth'd **SB 253** (now 33/33 facts at T1) and it stayed quarantined — held on a missing `[primary_deadline]` tag, **not** tier. **7 of 23 have no floor blocker at all**; blanket floor-first re-attribution would flip ~0. Diagnosed for **$1.19**.
+
+**Spend-defect claim RETRACTED (honest correction).** I initially alarmed that the priced run overran its $20 bound to $21.86 (runner "undercounts 19%"). **Wrong — my misattribution.** The $21.86 was *total-session* grounding across 31 items: priced run **$17.26** on its 23 (under $20) + **$4.60** on 10 other items (the authorized Segment-0 Haiku/Sonnet A/B on EPA + Brazil/manual re-fetches). The runner counted correctly; the bound held. Caught by diagnosing before "fixing."
+
+**Bound hardening LANDED (operator ruling: fix the bound first).** No live defect, but one real latent silent-overrun path: the bound summed only `itemLedger` (item-attributed rows); a paid row with `item_id` NULL but `source_id` SET (a source-only ground/classify call) was neither halted by `spendWatchHalt` (which only run-halts item-AND-source-null rows) nor counted. Fix: `authoritativeCumulative()` (pure, red-then-green) + `cumulativeSpendSince(runStart)` — the bound now gates on `sum(cost_usd_estimated)` over the whole run window, so the ceiling can't be reconstructed below the DB total. Per-item cost stays for gain/runaway tripwires; close summary reports authoritative actuals + any per-item gap. Commit **1e40e06** on `remediation/re-grounds-never-destroy`; **CI green** (Discipline engine + Bug-class guard).
+
+**Corpus state (reg-family, live):** 156 verified / 141 quarantined / 51 unverified / 5 pending. (Earlier "195/24" was a mis-recollection; 141 is the real quarantine set, 23 hold facts = the worklist.)
+
+**Decisions / findings:** (1) The quarantine blocker is **not** primarily sub-floor tier — it's a 5-way criterion mix, most cheaply fixable (registration/slot-tag/label), NOT paid re-grounding. (2) `validate_item_provenance` is the free, authoritative per-item hold oracle — use it before any paid remediation. (3) A hard $ ceiling must gate on authoritative DB spend, never a reconstruction that can drift below it.
+
+**Next steps (await operator ruling):** re-scoped criterion-stratified remediation — **Wave 0** (free: register legit primary URLs → clears C2, flips Mexico) → **Wave 1** (cheap: `[slot_key]` re-tags + label fixes → ~6 no-floor items) → **Wave 2** (the 16 C3-floor items = the coverage-floor unit, partial flips + honest holds) → **Wave 3** (3 span-not-in-source integrity). Parked: stale_verified (45), reattribution-verified-half (42).
+
+---
+
 ## 2026-07-13 — register-step-gap (SC-13), stale-verified + backlog disposition, ISR, vault-graph
 
 **Standing constraints held throughout:** `$0`, `GROUNDING_ACQUIRE_ENABLED` OFF, session moved **$0.00** (DB
@@ -282,3 +328,41 @@ the operator's DDL window per the standing ruling.
 **Blockers / open — PAUSED AT GATE A (the one spend gate; $0 so far this batch):** awaiting the operator's ruling on Unit 3 — (a) authorize the fetch plan (4 cents-class re-points incl. eu_clean_trucking→CELEX → 4 open-web discovery → 2 diff-engine re-collections), a subset, or park; (b) run the **21-item reattribution_debt** class now as its own **$0** unit (biggest lever, no fetch); (c) g14 non-EN extraction + `runSeekMore` reconcile-or-retire — build now or backlog. Coverage-universe reconciliation still owed at GATE B.
 
 **Next steps:** operator ruling on the three GATE-A questions → Unit 3 (ascending tiers, lock armed run-scoped) → GATE B close (T9 cert from run evidence, actuals, coverage-universe reconciliation, board + commit).
+
+---
+
+## 2026-07-14 (cont.) — GATE B: the $0 track (re-grounds-never-destroy)
+
+Operator GO "$0 track + incident disposition" after the API spend was fixed. Guard-first, no paid calls (lock OFF). Landed in **PR #336** (`remediation/re-grounds-never-destroy`), GitHub CI **green**. Full close: [gate-b-close-2026-07-14](./gate-b-close-2026-07-14.md).
+
+**Shipped ($0):** (1) **the guard — re-grounds-never-destroy (RD-36)**: `ledger-dominance.mjs` (three axes: FACT / floor-qualifying / verified-eligibility; supersedes count-only `thinning-guard`, deleted — one home). Two layers: `sectionBrief` reconciles by `section_key` so the ledger survives the FK cascade into the guard's snapshot (defect A); `groundBrief` restores-prior + writes a finding + loud `ok:false` on regression (defect B). Red golden = Brazil + the count-blind 55→55-GAP. (2) **charset-aware decode (RD-37)**: `charset-decode.mjs` — `directFetchClean` hardcoded UTF-8, mojibaking Latin-1 gov pages (planalto) to U+FFFD before the grounder saw them (defect C, the paired root of Brazil's 0 facts). (3) **no-shadow**: `runSeekMore` retired (0 callers; one home = `fetchPrimaryWithFallback`), `hardDivergence` per-path keying (portal SKIP is acquire-only → 5 false-held unblocked). (4) **durable re-points**: eu_clean_trucking→CELEX 32024R1610 (read-back VERIFIED) + Krone T-456/24 challenge intel (integrity_flags, EUR-Lex-sourced).
+
+**Decisions / findings:** (1) **Diverged from the stated diagnosis, correctly** — the "non-EN extraction fix" was NOT a grounder-prompt gap (the wrong-language-span rule already existed); the real root was a **charset-decode defect** corrupting the bytes before the model. Reference-vs-working-artifact: cured in the pipeline. (2) The existing thinning guard was **blind twice over** — the section-cascade zeroed its snapshot AND it only checked total count. Both cured. (3) Brazil's 55 facts are **gone from the DB** (2 GAP now); recovery needs a re-fetch (correct charset) + re-ground — parked, protected. (4) `runSeekMore`'s behavioral goldens were already superseded by `reground-ladder.golden` on the wired path → clean retirement, no coverage lost.
+
+**Verification:** 849 tests · tsc 0 · meta-gate PASS (85 invariants + 50 doctrines) · pre-push 4/4 · PR #336 CI green.
+
+**Blockers / open:** (a) **Cost estimate requested before any spend** — the parked paid queue is priced as facts + a labeled projection (~$7 core / 20 items, empirical $0.34/item from Unit A; +~$3 for the optional 9 retries) in the GATE B doc; **operator sets the number**, lock stays OFF. (b) paid queue order: Brazil restore → g14 proof → 3 ceiling-cut → 5 portal-held → fetch plan (10) → (optional) 9 retries. (c) coverage-universe reconciliation delivered (source + instrument tables): **ABSENT majors** bafa.de/LkSG, fedlex.admin.ch, CII-EEXI/CORSIA/CSDDD/LkSG (keyword screen). (d) still owed: coverage-floor definition (next unit), stale_verified proposal (45), reattribution-verified-half (42 spans — stays parked).
+
+**Next steps:** operator's priced/armed go on the paid queue → run in ruled order (ascending, lock armed run-scoped) → then coverage-floor definition unit.
+
+---
+
+## 2026-07-14 (cont.) — PRICED RUN closed ($17.74 of $20) + model-tier verdict
+
+Operator PRICED GO ($20 bound, retries included) + MODEL-TIER amendment. Ran the paid queue in ruled order under the dominance guard + charset decode + $20-bound halt. **Total actuals $17.74** (Segment-0 A/B $0.43 + 28-item queue $16.30 + Brazil forced re-fetch $1.02), under the bound.
+
+**Enablement landed first ($0, PR #336):** grounding model override (`GROUND_MODEL` knob in generation-config, rule-017-clean) so the A/B verdict sets the default; `totalBoundHalt()` (goldened) + `--bound` + APPLY-refuses-unbounded; Segment-0 A/B harness (guarded ledger resets, rule 015); `model-tier-rule` doctrine. Commits f7adb5f + 7978299.
+
+**Segment 0 — grounding model A/B (EPA, fixed brief, only ground model varied):** Haiku 11 facts/11 floor-qualifying ($0.020) vs **Sonnet 24/24 ($0.108)**. VERDICT: **keep Sonnet for full grounding** — >2× the grounded coverage; at coverage-floor scale Haiku's ~50% loss outweighs the 5× cost saving. `GROUND_MODEL` stays Sonnet; Haiku retained for the cheap delta-review/classify tier. (First A/B invalid — Haiku verified the item → Sonnet skip-guarded; fixed with un-verify-between-models, re-ran clean.)
+
+**Corpus: verified 188 → 195 (+7), quarantined 31 → 24 (−7).** 6 queue items verified + EPA.
+
+**HEADLINE — the guard fired in production.** `us-hd-ghg` (`re-ground REGRESSION [total,facts,floor_qualifying]`) and `uk-rtfo` (`facts 15→1`) re-grounded weaker and were **held with prior ledgers retained** — the exact Brazil failure mode, now caught. re-grounds-never-destroy validated on real spend.
+
+**Brazil incident — charset root FIXED, partial restore.** The queue's Brazil hold confirmed the diagnosis: `holdings_present` refused the re-fetch because the mojibake was in the SNAPSHOT store, not just the pool (I'd cleared only the pool). Cleared Brazil's `raw_fetches` snapshot (source 06ea2956, Brazil-only) + pool, forced a clean re-fetch: **0 facts → 17 facts** — the charset decode restored Portuguese extraction (§14 harvest parsed real "Lei 12.305/2010 enters force"). Still quarantined: 6 facts floor-qualify (planalto T1), **11 grounded to UNREGISTERED hosts** (null-tier → `fact_below_authority_floor`). The destroyed 55 are gone (fresh 17-fact extraction is the recoverable state).
+
+**Decisions / findings:** (1) **The dominant held blocker across the run is UNREGISTERED-HOST / sub-floor** — g14 (diputados.gob.mx), Brazil (11 null-tier), australia-nev, china, korea (law.go.kr): the grounding WORKS and extracts facts from the correct primaries, but those hosts aren't in the registry → null-tier → below floor. This is a **source-registration gap, not a grounding failure** — the next high-leverage unit (register the primary hosts so their facts qualify). (2) `holdings_present` reads BOTH pool and snapshot — a forced re-fetch must clear the snapshot too. (3) A truncation-ceiling wall hit us-hd-ghg (600KB Federal Register doc, context-ceiling-wall(floor)) — surfaced, not silent.
+
+**Blockers / open:** (a) **host-registration sweep** — register the unregistered primary hosts (diputados.gob.mx, law.go.kr, arena.gov.au, etc.) so the ~grounded-but-sub-floor items verify; biggest lever, mostly $0. (b) Brazil full verification pending that registration + a missing-slot fill. (c) 22 held items' dispositions (mostly sub-floor/slot — re-home or GAP). (d) coverage-floor definition (the absent majors: bafa/LkSG, CII/CORSIA/CSDDD). (e) stale_verified (45), reattribution-verified-half (42, parked).
+
+**Next steps:** host-registration sweep (register the primaries the run surfaced → re-ground the sub-floor holds cheaply) → Brazil full restore → coverage-floor unit.

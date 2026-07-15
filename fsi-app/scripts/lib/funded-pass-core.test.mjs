@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   classifyFailure, withArmedLock, lockArmed, hardDivergence, spendWatchHalt, isRunaway, RUNAWAY_ITEM_USD,
+  totalBoundHalt, authoritativeCumulative,
 } from "./funded-pass-core.mjs";
 
 // ── classifyFailure: item walls continue, mechanism/bug failures halt the run ──
@@ -63,6 +64,25 @@ test("hardDivergence: verified item / missing source / skip-portal -> reason; va
   assert.match(hardDivergence({ cls: "resynth" }, null), /not found/);
 });
 
+// ── PER-PATH KEYING (portal-guard resynth fix, 2026-07-14): a RESYNTH re-grounds from the HELD pool and never
+// fetches source_url, so a portal/paywall (or missing) source_url must NOT hold it — the 5 false-held items. ──
+test("hardDivergence: RESYNTH is NOT held on a portal source_url (held pool used, source_url never fetched)", () => {
+  for (const url of [
+    "https://iea.org/reports/global-hydrogen-review-2025",
+    "https://epa.gov/greenvehicles/fast-facts-transportation",
+    "https://participate.melbourne.vic.gov.au/amendment-c376",
+    "https://nashville.gov/x", "https://gov.uk/guidance/y", "https://support.usgbc.org/hc/z",
+  ]) assert.equal(hardDivergence({ cls: "resynth" }, { provenance_status: "quarantined", source_url: url }), null, url);
+});
+
+test("hardDivergence: RESYNTH with a missing source_url is NOT held (pool-grounded, not fetch)", () => {
+  assert.equal(hardDivergence({ cls: "resynth" }, { provenance_status: "quarantined", source_url: null }), null);
+});
+
+test("hardDivergence: verified is held on BOTH paths (never mutate a verified brief)", () => {
+  assert.match(hardDivergence({ cls: "resynth" }, { provenance_status: "verified", source_url: "https://iea.org/x" }), /already verified/);
+});
+
 // ── spendWatch + runaway ──
 test("spendWatchHalt: an unticketed paid row triggers a run-level halt; ticketed rows are clean", () => {
   assert.equal(spendWatchHalt([{ cost: 0.12, itemId: "i1", sourceId: "s1" }], "i1"), null);
@@ -73,4 +93,41 @@ test("spendWatchHalt: an unticketed paid row triggers a run-level halt; ticketed
 test("isRunaway: over the soft per-item cap flags runaway (item held, run continues)", () => {
   assert.equal(isRunaway(0.4), false);
   assert.equal(isRunaway(RUNAWAY_ITEM_USD + 0.01), true);
+});
+
+// ── totalBoundHalt: the operator's $ bound is a HARD ceiling ("halt at the bound", 2026-07-14) ──
+test("totalBoundHalt: halts once cumulative reaches the bound; clean below it", () => {
+  assert.equal(totalBoundHalt(10.5, 20), null);       // under bound -> run continues
+  assert.equal(totalBoundHalt(19.99, 20), null);      // just under -> continues
+  assert.match(totalBoundHalt(20, 20), /spend bound reached/);      // at the bound -> halt
+  assert.match(totalBoundHalt(21.3, 20), /\$21\.3000 >= operator bound \$20\.00/); // over -> halt (one-item overshoot)
+});
+
+test("totalBoundHalt: no bound set -> never halts (unbounded/dry)", () => {
+  assert.equal(totalBoundHalt(999, null), null);
+  assert.equal(totalBoundHalt(999, 0), null);
+  assert.equal(totalBoundHalt(999, undefined), null);
+});
+
+// ── authoritativeCumulative: the BOUND must gate on the DB truth, not a per-item reconstruction (2026-07-15).
+// itemLedger (the per-item gain/runaway basis) counts only item-attributed rows, so a paid row with item_id
+// null but source_id set (a source-only ground/classify call) escapes it silently. The bound sums EVERY
+// run-window row regardless of attribution, so the ceiling can never be reconstructed below the DB total. ──
+test("authoritativeCumulative: sums ALL rows regardless of attribution (the null-item / source-only blind spot)", () => {
+  const rows = [
+    { cost: 0.20, itemId: "i1", sourceId: "s1" }, // item-attributed
+    { cost: 0.30, itemId: null, sourceId: "s2" }, // SOURCE-ONLY — the true blind spot (spendWatch does NOT halt it)
+    { cost: 0.05, itemId: null, sourceId: null }, // fully unattributed
+  ];
+  assert.equal(Number(authoritativeCumulative(rows).toFixed(4)), 0.55);
+});
+
+test("authoritativeCumulative: accepts the raw DB field (cost_usd_estimated) and coerces string costs", () => {
+  assert.equal(authoritativeCumulative([{ cost_usd_estimated: "0.4469" }, { cost_usd_estimated: 0.12 }]), 0.5669);
+});
+
+test("authoritativeCumulative: empty / null / missing-cost -> 0 (never NaN)", () => {
+  assert.equal(authoritativeCumulative([]), 0);
+  assert.equal(authoritativeCumulative(null), 0);
+  assert.equal(authoritativeCumulative([{ itemId: "i1" }, { cost: undefined }]), 0);
 });

@@ -63,10 +63,17 @@ export function lockArmed(env) {
 export function hardDivergence(item, row) {
   if (!row) return "item not found in DB";
   if (row.provenance_status === "verified") return "already verified (not a quarantined target — the run never mutates verified briefs)";
-  if (!row.source_url || !/^https?:\/\//.test(String(row.source_url))) return `no fetchable source_url (${row.source_url ?? "null"})`;
-  // SKIP-flagged hosts must never enter the paid loop (defense — they are not in the worklist).
-  if (/nashville\.gov|support\.usgbc\.org|(?:\/\/|\.)iea\.org|gov\.uk\/guidance|epa\.gov\/greenvehicles\/fast-facts|participate\.melbourne/.test(String(row.source_url))) {
-    return `source_url is a SKIP-flagged portal/paywall (${row.source_url})`;
+  // PER-PATH KEYING (portal-guard resynth fix, 2026-07-14): the source_url checks below are ACQUIRE-only. A
+  // RESYNTH re-grounds from the HELD pool and NEVER fetches source_url, so a portal/paywall source_url — or even
+  // a missing one — is irrelevant to it; guarding it there falsely HELD covers_grounding items whose stored pool
+  // is fine (IEA×2, EPA, C376, nashville — the 5 portal-held). ACQUIRE genuinely fetches source_url, so it must
+  // be fetchable AND not a SKIP-flagged portal. (The held-pool-first structure + assertFetchAllowed + the
+  // holdings-gate are the real fetch safety; this pre-filter only screens the ACQUIRE path.)
+  if (item?.cls === "acquire") {
+    if (!row.source_url || !/^https?:\/\//.test(String(row.source_url))) return `no fetchable source_url (${row.source_url ?? "null"})`;
+    if (/nashville\.gov|support\.usgbc\.org|(?:\/\/|\.)iea\.org|gov\.uk\/guidance|epa\.gov\/greenvehicles\/fast-facts|participate\.melbourne/.test(String(row.source_url))) {
+      return `source_url is a SKIP-flagged portal/paywall (${row.source_url})`;
+    }
   }
   return null;
 }
@@ -92,4 +99,33 @@ export function spendWatchHalt(rows, expectItemId) {
 export const RUNAWAY_ITEM_USD = 3.0;
 export function isRunaway(itemCostUsd) {
   return Number(itemCostUsd) > RUNAWAY_ITEM_USD;
+}
+
+/** OPERATOR SPEND-BOUND halt ("halt at the bound", 2026-07-14). The run STOPS before starting the next item once
+ *  this run's cumulative actuals reach the operator-set $ bound. The bound is a HARD ceiling (checked at loop
+ *  top so at most one item's cost overshoots), NOT a target — a lift of the bound removes the halt, it does not
+ *  authorize spending up to it. Returns a halt string or null. No bound set (null/<=0) -> no halt (unbounded).
+ *  @param {number} cumulativeUsd  this run's total actuals so far
+ *  @param {number|null|undefined} boundUsd  the operator-set total $ bound
+ *  @returns {string|null} */
+export function totalBoundHalt(cumulativeUsd, boundUsd) {
+  const bound = Number(boundUsd);
+  if (!boundUsd || !(bound > 0)) return null;
+  return Number(cumulativeUsd) >= bound
+    ? `spend bound reached: run actuals $${(Number(cumulativeUsd) || 0).toFixed(4)} >= operator bound $${bound.toFixed(2)} — halting before the next item (bound is a hard ceiling, not a target)`
+    : null;
+}
+
+/** AUTHORITATIVE run cumulative for the BOUND check (2026-07-15). Sums cost across EVERY run-window agent_runs
+ *  row regardless of attribution — item-attributed, source-only (`item_id` null / `source_id` set), or fully
+ *  unattributed. The per-item `itemLedger` sum used for the gain/runaway tripwires counts only item-attributed
+ *  rows, so a source-only paid row (a ground/classify call not tied to an item) escaped the bound silently:
+ *  `spendWatchHalt` only halts a row that is BOTH item- AND source-null, so an `item_id`-null / `source_id`-set
+ *  row was neither halted nor counted. Gating the bound on this sum (over `started_at >= runStart`) makes the
+ *  ceiling read the exact number the DB shows at close, so it can never be reconstructed below the DB total.
+ *  Accepts either the pure `{cost}` shape or the raw DB `{cost_usd_estimated}` row; coerces + defaults to 0.
+ *  @param {Array<{cost?:number|string, cost_usd_estimated?:number|string}>|null|undefined} rows
+ *  @returns {number} */
+export function authoritativeCumulative(rows) {
+  return (rows || []).reduce((a, r) => a + (Number(r?.cost ?? r?.cost_usd_estimated ?? 0) || 0), 0);
 }

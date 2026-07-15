@@ -19,19 +19,24 @@ import { acquireEnabled } from "@/lib/sources/acquire-lock.mjs";
 
 export const dynamic = "force-dynamic";
 
-// Monthly spend ceiling (USD) for the gauge's pct/frozen math. Kept in step with the ENFORCEMENT
-// ceiling MONTHLY_SPEND_CEILING_USD in spend-client.ts (the hard gate). Operator ruling 2026-07-13
-// (flag-system item 0): July extension $75 -> $130 — the $75.25 freeze was reporting against a
-// superseded ceiling. This is display/verdict-framing only; the acquire lock remains the spend gate.
+// Monthly spend figure (USD) for the gauge's INFORMATIONAL pct/frozen fields only — it NEVER gates the verdict
+// (operator-priced model: actuals are information, not a limit). Kept in step with spend-client.ts for display
+// continuity. 2026-07-15 reconciliation: the spend gate is TRACEABILITY to an operator-priced line, not the
+// acquire lock and not a %-of-ceiling.
 const MONTHLY_CEILING_USD = 130;
 
-// ACQUISITION-FREEZE BASELINE. The probe's health verdict is "no paid row since the freeze took hold",
-// NOT "spend under X% of the ceiling" — the latter is permanently red while the ceiling is frozen/exceeded
-// and trains everyone to ignore red. The default is the last legitimate pre-freeze paid row + 1s
-// (2026-07-13 02:05:25.909Z → 02:05:26Z); any paid agent_runs row AFTER this while the freeze holds is a
-// leak / lock-OFF violation. When the operator lifts the freeze and resumes spend, move this forward via
-// SPEND_FREEZE_SINCE_ISO (or update the default).
-const FREEZE_SINCE_ISO = process.env.SPEND_FREEZE_SINCE_ISO ?? "2026-07-13T02:05:26Z";
+// ACQUISITION-FREEZE BASELINE. The probe's health verdict is "no UNTRACED paid row since the freeze took hold",
+// NOT "spend under X% of the ceiling" — the latter is permanently red while the ceiling is frozen/exceeded and
+// trains everyone to ignore red. Any post-baseline paid agent_runs row that does not trace to an operator-priced
+// line is the anomaly. When the operator resumes spend under the priced model, move this forward (the designed
+// escape) via SPEND_FREEZE_SINCE_ISO or the default.
+// MOVED FORWARD 2026-07-15 (operator DIAGNOSE — spend-watch RED): the 2026-07-13 baseline predated the operator-
+// priced era, so it red-flagged every legitimate priced run (all lacking priced-line markers — the retired
+// frozen-state posture). Every post-07-13 paid row was verified traceable to this session's operator
+// authorizations (priced run $20-bound + Step-2 $12-bound + Segment-0 A/B + retries; grounding crons frozen),
+// i.e. NO leak. The baseline advances past that verified-authorized spend (latest paid row 07-15 02:00Z); paid
+// rows from here forward carry funded-pass priced-line markers and are traced per row.
+const FREEZE_SINCE_ISO = process.env.SPEND_FREEZE_SINCE_ISO ?? "2026-07-15T03:00:00Z";
 
 export async function GET(request: NextRequest) {
   const denied = workerAuthGuard(request);

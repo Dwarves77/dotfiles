@@ -9,9 +9,12 @@ name: Uptime and honesty probes
 #                  so this server-side probe is the only external way to catch
 #                  a surface that has silently gone empty.
 #   2. spend     — daily at 09:00 UTC + on demand. Curls /api/health/spend and
-#                  fails if month-to-date agent spend has reached 80% of the
-#                  $75 monthly ceiling, so the budget alarm fires with head-
-#                  room to react.
+#                  fails ONLY on a post-freeze paid agent_runs row that does not
+#                  trace to an operator-priced line (untraceable spend, at any
+#                  amount). NOT a %-of-ceiling alarm and NOT gated on the app
+#                  acquire lock (informational) — operator-priced model,
+#                  reconciled 2026-07-15. Actuals (MTD $) are reported, never a
+#                  limit. See src/lib/health/spend-health.mjs.
 #
 # ALERTING: this workflow has no external alert integration by design (no
 # Sentry/PagerDuty/Slack account — first-party only). The alert channel is
@@ -188,12 +191,12 @@ jobs:
             exit 1
           fi
 
-          # The verdict is computed server-side (spend-health.mjs): a paid row after the acquisition-freeze
-          # baseline is OK ONLY in a SANCTIONED window (GROUNDING_ACQUIRE_ENABLED ON + every row carries a
-          # pre-logged I2 justification); frozen-and-quiet (zero paid rows since freeze) is also OK. We do
-          # NOT alarm on "% of the ceiling" (permanent-red on the frozen ceiling — #293 precedent). FAIL on:
-          # a paid row while the lock is OFF (justified-but-lock-off is STILL a leak), an unjustified paid
-          # row while the lock is ON, or an unreadable gauge.
+          # The verdict is computed server-side (spend-health.mjs, operator-priced model reconciled 2026-07-15):
+          # HEALTHY when frozen-and-quiet (zero paid rows since the freeze) OR every post-freeze paid row TRACES
+          # to an operator-priced line marker. We do NOT alarm on "% of the ceiling" (#293) and NO LONGER gate on
+          # the app acquire lock (it arms only in the local runner, never the app — informational here). FAIL on:
+          # a post-freeze paid row that does NOT trace to a priced line (untraceable spend at any amount), or an
+          # unreadable gauge.
           healthy=$(jq -r '.healthy' "$tmp_body" 2>/dev/null || echo "parse_error")
           reason=$(jq -r '.reason' "$tmp_body" 2>/dev/null || echo "?")
           mtd=$(jq -r '.mtd_usd' "$tmp_body" 2>/dev/null || echo "?")

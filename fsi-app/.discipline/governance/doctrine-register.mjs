@@ -111,6 +111,36 @@ export const DOCTRINES = [
         'Behavioral one-home discipline applied at wiring time (fold-or-delete the shadow); not a mechanically-checkable committed-file property in general. Worked instance discharged: webSearchAlternatives retired into generateCandidates when discovery was wired. Process-class like consolidation-is-behavior-preserving.',
     },
   },
+  {
+    id: 're-grounds-never-destroy',
+    statement:
+      'A re-ground\'s new claim ledger REPLACES the prior one only when it is not WEAKER on any dominance axis (FACT count / floor-qualifying count / verified-eligibility). A worse answer is a DIAGNOSTIC, not a replacement: a regressing re-extract retains the prior ledger, records the regression as a finding, and leaves the item state unchanged. Brazil Lei 12.305 (55 FACT -> 2 GAP from a non-EN extraction failure) proved the count-only guard blind on two axes — the section-cascade zeroed its prior snapshot AND a fact-destroying re-ground can preserve total count — so the ledger was destroyed. The fix cures both: the section step reconciles by section_key (surviving row-ids keep their claims) so the prior ledger reaches the guard, and the guard compares the three dominance axes, not total count alone.',
+    source: 'operator GO — $0 track + incident disposition (2026-07-14)',
+    enforcedBy: ['RD-36-re-grounds-never-destroy'],
+    residual:
+      'RD-36 (ledger-dominance.mjs, red-then-green goldened incl. the Brazil red fixture AND the count-blind 55->55-GAP case) mechanizes the dominance rule; wired at groundBrief (snapshot -> restore-on-regression -> data_integrity finding -> loud ok:false) and sectionBrief (the ledger-preserving reconcile). thinning-guard.mjs deleted (one home, no shadow). NAMED RESIDUAL: a re-section that legitimately DROPS section_keys cascade-loses those keys\' claims before the snapshot — acceptable for the same-section reattribution case that caused Brazil; a durable pre-section snapshot keyed by section_key is the future strengthening.',
+  },
+  {
+    id: 'model-tier-rule',
+    statement:
+      'Model tier is chosen by TASK COST-SENSITIVITY, and the DEFAULT grounding model is decided EMPIRICALLY, not by fiat. Full grounding (the fact-extraction ledger call) defaults to Sonnet but is a single knob (GROUND_MODEL env / the groundBrief model override) so a Haiku/Sonnet A/B on a real item — comparing fact count, floor-qualifying count, and span accuracy under the protection of the dominance guard — sets the default BEFORE coverage-floor multiplies the per-item price by hundreds. Delta / change-review (the fetch-align-diff engine\'s review of an extracted change) and classification default to Haiku (cents); the deterministic diff itself is already $0. Sonnet is reserved for full grounding per the A/B verdict; the verdict, not a guess, moves the default.',
+    source: 'operator AMENDMENT — model tiering (2026-07-14), rides the priced run',
+    exempt: {
+      reason:
+        'Policy/default class: the default grounding model is a configuration knob (GROUND_MODEL / groundBrief opts.model, both threaded to callSonnet — tsc-checked) revised by the A/B verdict, not a mechanically-checkable committed-file invariant. The A/B is the mechanism that sets it; the delta-review-is-Haiku half is already the case (classify paths run Haiku, the diff is deterministic $0). Same process-class as ascending-cost-irreversibility-tiers.',
+    },
+  },
+
+  {
+    id: 'registration-does-not-unlock',
+    statement:
+      'Registering a host at a tier NEVER confers reg-fact eligibility — it records the host\'s honest institutional tier as provenance, nothing more. A quarantined FACT held on fact_below_authority_floor is unlocked ONLY by ATTRIBUTION to a floor-qualifying source that verbatim-CONTAINS its span (floor-first re-attribution), not by registering the corroborator it was cited to. The 2026-07-14 host census made this concrete: the null-tier holds were dominated by non-primary corroborators (law firms, trade news, analysts, aggregators) — registering those changes nothing (a signal tier is not a fact tier); only the ~17 genuine unregistered primaries, plus re-stamping spans that sit in an already-registered primary (Brazil\'s facts cited to aggregators while planalto was already registered), move an item. The moat stated per-source (reputation never confers eligibility); this is its per-registration corollary.',
+    source: 'operator RULING — census dispositions + Step-2 reframe (2026-07-14)',
+    exempt: {
+      reason:
+        'Restates the moat (SC-9 / SC-11 / SC-14: base_tier ?? null resolver, floor-first re-attribution NEVER forced, standards bodies certify only their own standard) as a per-registration corollary — already mechanized by those invariants (a registered host still resolves through tierOfSource=base_tier and must contain the span to ground a FACT). Doctrine line for the census lesson; no new mechanism needed.',
+    },
+  },
 
   // ─────────────────────────────── Spend authority (operator-priced) ───────────────────────────────
   {
@@ -119,6 +149,16 @@ export const DOCTRINES = [
       'Spend authority is the operator\'s price, never the machine\'s estimate. NOTHING runs without an operator-set cost: the machine never proposes a default, never anchors a figure, never fills in a number. The manifest delivers FACTS ONLY (what is missing, document size, work scope) and MAY carry a clearly-labeled projection, but the binding number is solely what the operator writes on the line. Each approved line halts at the operator-set cost (no tolerance unless the line carries one). All standing dollar figures — per-item breaker, daily cap, monthly ceiling — are retired as limits; the gauge reports actuals as information, never a fraction of a target. The complete spend-control system is two mechanisms: operator-priced line approvals (the sole authorization; the acquire lock + I2 remain the per-run arming) and spend-watch as a pure alarm on any paid row not traceable to an operator-priced line.',
     source: 'operator FINAL spend rulings (2026-07-13), superseding all prior spend/ceiling framing',
     enforcedBy: ['RD-31-operator-priced-spend'],
+  },
+  {
+    id: 'build-phase-spend-regime',
+    statement:
+      'The platform runs in one explicitly-declared SPEND REGIME at a time (config: src/lib/llm/spend-regime.mjs), switched only by ruling, never by default. BUILD-PHASE (current): NO pace guards, daily/rate targets, floors, or standing dollar figures of any kind govern build work — the ONLY three controls are AUTHORIZATION (an operator go: a bound where the operator writes one, or an OPEN authorization where the work class is ruled, e.g. free URL-presence registrations), INTEGRITY (the WASTE guards, not speed: holdings-gate, one-pass, dominance guard, no-gain tripwire, spend-ticket + drained-ledger), and MEASUREMENT (spend-watch as PURE ACCOUNTING: every paid row traceable + posture-carrying, actuals per item/class/model, cost-shape anomalies surfaced as FINDINGS never blocks). STEADY-STATE (pace policy, delegated-pricing) is DEFINED in the coverage-floor / Unit-5 work and switches on at cadence-flip, deliberately by ruling. Any residual steady-state standing figure (monthly ceiling, per-item breaker, daily cap, standing SPEND_CEILING, cooldown) is information-only under build-phase — read for display/findings, never a gate.',
+    source: 'operator RULING — build-phase spend regime (2026-07-15)',
+    exempt: {
+      reason:
+        'Regime-declaration / config-posture class. Its teeth are already-enforced mechanisms: RD-31 (operator-priced line is the SOLE dollar gate — no paid row without one) makes authorization the only spend control, and the standing-figure retirement is the operator-sets-cost doctrine it already enforces. The config flag (spend-regime.mjs SPEND_REGIME / standingFiguresAreInformationOnly) names the active posture; the retro-sweep (docs/ops/build-phase-spend-regime-2026-07-15.md) inventories residual standing figures and converts each to information-only. A regime flag is a deliberate-ruling switch, not a mechanically-checkable committed-file invariant — same config/policy class as model-tier-rule.',
+    },
   },
   {
     id: 'data-existence-before-acquisition',

@@ -98,3 +98,10 @@ export function inputUsdPerMtokForModel(model: string): number {
  *  (enforceable headroom ~$74). On a top-up the operator states the NEW balance and the ceiling RESETS to
  *  (new balance + consumed-to-date) — the ceiling tracks real money, never a notional cap above it. */
 export const SPEND_CEILING_USD = Number(process.env.SPEND_CEILING_USD || 85);
+
+/** DEFAULT full-grounding model (MODEL-TIER RULE, operator amendment 2026-07-14). Full grounding (the FACT
+ *  ledger-extraction call, the expensive per-item call coverage-floor multiplies by hundreds) defaults to
+ *  Sonnet; this is the single knob the Segment-0 Haiku/Sonnet A/B verdict flips. Delta/change-review and
+ *  classification default to Haiku (cents) — the fetch-align-diff engine is deterministic $0. A named constant
+ *  (not an inline process.env in the pipeline) so a model change is a reviewable G-diff (rule 017). */
+export const GROUND_MODEL: string = process.env.GROUND_MODEL || "claude-sonnet-4-6";
