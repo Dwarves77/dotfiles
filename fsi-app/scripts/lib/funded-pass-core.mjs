@@ -115,3 +115,17 @@ export function totalBoundHalt(cumulativeUsd, boundUsd) {
     ? `spend bound reached: run actuals $${(Number(cumulativeUsd) || 0).toFixed(4)} >= operator bound $${bound.toFixed(2)} — halting before the next item (bound is a hard ceiling, not a target)`
     : null;
 }
+
+/** AUTHORITATIVE run cumulative for the BOUND check (2026-07-15). Sums cost across EVERY run-window agent_runs
+ *  row regardless of attribution — item-attributed, source-only (`item_id` null / `source_id` set), or fully
+ *  unattributed. The per-item `itemLedger` sum used for the gain/runaway tripwires counts only item-attributed
+ *  rows, so a source-only paid row (a ground/classify call not tied to an item) escaped the bound silently:
+ *  `spendWatchHalt` only halts a row that is BOTH item- AND source-null, so an `item_id`-null / `source_id`-set
+ *  row was neither halted nor counted. Gating the bound on this sum (over `started_at >= runStart`) makes the
+ *  ceiling read the exact number the DB shows at close, so it can never be reconstructed below the DB total.
+ *  Accepts either the pure `{cost}` shape or the raw DB `{cost_usd_estimated}` row; coerces + defaults to 0.
+ *  @param {Array<{cost?:number|string, cost_usd_estimated?:number|string}>|null|undefined} rows
+ *  @returns {number} */
+export function authoritativeCumulative(rows) {
+  return (rows || []).reduce((a, r) => a + (Number(r?.cost ?? r?.cost_usd_estimated ?? 0) || 0), 0);
+}

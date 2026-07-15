@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   classifyFailure, withArmedLock, lockArmed, hardDivergence, spendWatchHalt, isRunaway, RUNAWAY_ITEM_USD,
-  totalBoundHalt,
+  totalBoundHalt, authoritativeCumulative,
 } from "./funded-pass-core.mjs";
 
 // ── classifyFailure: item walls continue, mechanism/bug failures halt the run ──
@@ -107,4 +107,27 @@ test("totalBoundHalt: no bound set -> never halts (unbounded/dry)", () => {
   assert.equal(totalBoundHalt(999, null), null);
   assert.equal(totalBoundHalt(999, 0), null);
   assert.equal(totalBoundHalt(999, undefined), null);
+});
+
+// ── authoritativeCumulative: the BOUND must gate on the DB truth, not a per-item reconstruction (2026-07-15).
+// itemLedger (the per-item gain/runaway basis) counts only item-attributed rows, so a paid row with item_id
+// null but source_id set (a source-only ground/classify call) escapes it silently. The bound sums EVERY
+// run-window row regardless of attribution, so the ceiling can never be reconstructed below the DB total. ──
+test("authoritativeCumulative: sums ALL rows regardless of attribution (the null-item / source-only blind spot)", () => {
+  const rows = [
+    { cost: 0.20, itemId: "i1", sourceId: "s1" }, // item-attributed
+    { cost: 0.30, itemId: null, sourceId: "s2" }, // SOURCE-ONLY — the true blind spot (spendWatch does NOT halt it)
+    { cost: 0.05, itemId: null, sourceId: null }, // fully unattributed
+  ];
+  assert.equal(Number(authoritativeCumulative(rows).toFixed(4)), 0.55);
+});
+
+test("authoritativeCumulative: accepts the raw DB field (cost_usd_estimated) and coerces string costs", () => {
+  assert.equal(authoritativeCumulative([{ cost_usd_estimated: "0.4469" }, { cost_usd_estimated: 0.12 }]), 0.5669);
+});
+
+test("authoritativeCumulative: empty / null / missing-cost -> 0 (never NaN)", () => {
+  assert.equal(authoritativeCumulative([]), 0);
+  assert.equal(authoritativeCumulative(null), 0);
+  assert.equal(authoritativeCumulative([{ itemId: "i1" }, { cost: undefined }]), 0);
 });

@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createJiti } from "jiti";
 import { createClient } from "@supabase/supabase-js";
-import { classifyFailure, withArmedLock, hardDivergence, spendWatchHalt, isRunaway, totalBoundHalt } from "./lib/funded-pass-core.mjs";
+import { classifyFailure, withArmedLock, hardDivergence, spendWatchHalt, isRunaway, totalBoundHalt, authoritativeCumulative } from "./lib/funded-pass-core.mjs";
 import { hasValidWaiver } from "../src/lib/agent/audit-gate-core.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -61,6 +61,16 @@ async function itemLedger(id, sinceIso) {
 async function unattributedSince(sinceIso) {
   const { data } = await sb.from("agent_runs").select("cost_usd_estimated, intelligence_item_id, source_id").is("intelligence_item_id", null).gte("started_at", sinceIso);
   return (data || []).map((r) => ({ cost: Number(r.cost_usd_estimated || 0), itemId: r.intelligence_item_id, sourceId: r.source_id }));
+}
+// AUTHORITATIVE run cumulative for the BOUND (2026-07-15): sums EVERY agent_runs row since the run start,
+// regardless of attribution — item-attributed, source-only (item_id null / source_id set), or fully
+// unattributed. The bound must gate on the DB truth, not the per-item itemLedger reconstruction (which counts
+// only item-attributed rows, so a source-only paid row escaped the ceiling silently). During an armed-lock
+// APPLY run the runner holds the exclusive acquire lock and crons are frozen, so every run-window row is this
+// run's — counting them all is the correct conservative bias for a hard ceiling.
+async function cumulativeSpendSince(sinceIso) {
+  const { data } = await sb.from("agent_runs").select("cost_usd_estimated").gte("started_at", sinceIso);
+  return authoritativeCumulative(data || []);
 }
 async function validate(id) {
   const { data } = await sb.rpc("validate_item_provenance", { p_item_id: id });
@@ -173,10 +183,13 @@ async function dryRun() {
 async function applyRun() {
   const NO_GAIN_HALT_N = 5; // consecutive paid items with zero net verified/grounding gain -> spending-without-effect
   let noGainStreak = 0;
-  let spentTotal = 0; // cumulative actuals THIS run — checked against the operator $ bound at loop top
+  const runStart = nowIso(); // fixed run-window origin for the AUTHORITATIVE cumulative bound check
   await withArmedLock(process.env, async () => {
     for (const w of items) {
-      // HALT AT THE BOUND (checked BEFORE spending on the next item, so at most one item overshoots).
+      // HALT AT THE BOUND (checked BEFORE spending on the next item, so at most one item overshoots). The
+      // cumulative is the AUTHORITATIVE DB sum of EVERY run-window row (attributed + source-only + unattributed),
+      // so the ceiling can never be reconstructed below the DB total (2026-07-15 blind-spot close).
+      const spentTotal = await cumulativeSpendSince(runStart);
       const bh = totalBoundHalt(spentTotal, BOUND);
       if (bh) { runHalt = bh; console.log(`\nRUN-LEVEL HALT: ${bh}`); break; }
       const row = await readItem(w.id);
@@ -185,7 +198,6 @@ async function applyRun() {
       process.stdout.write(`\n[${w.cls}] ${w.key.slice(0, 36)} (${w.id.slice(0, 8)}) [$${spentTotal.toFixed(2)}/${BOUND ?? "∞"}] ... `);
       const r = await runItem(w);
       results.push(r);
-      spentTotal += (r.cost || 0);
       if (r.halt) { runHalt = r.halt; console.log(`RUN-LEVEL HALT: ${r.halt}`); break; }
       // AMENDMENT-2 TRIPWIRE: a paid item that made no gain (not verified, no new facts) advances the streak;
       // a $0 item or any gain resets it. N consecutive no-gain PAID items = anomalous "spending without effect"
@@ -198,8 +210,13 @@ async function applyRun() {
   // withArmedLock disarms here (normal) AND on the break/throw path.
   const verified = results.filter((r) => r.prov === "verified").length;
   const heldN = results.filter((r) => r.held).length;
-  const total = results.reduce((a, r) => a + (r.cost || 0), 0);
-  console.log(`\n=== APPLY SUMMARY: ${results.length} processed | verified=${verified} | held=${heldN} | actuals=$${total.toFixed(4)} | lock disarmed=${process.env.GROUNDING_ACQUIRE_ENABLED !== "1"}${runHalt ? ` | RUN-HALTED: ${runHalt}` : ""} ===`);
+  // AUTHORITATIVE closing actuals = the DB truth over the whole run window (attributed + source-only +
+  // unattributed). The per-item reconstruction is reported alongside; a gap between them is exactly the
+  // source-only/unattributed spend the bound now counts but itemLedger cannot see (2026-07-15).
+  const total = await cumulativeSpendSince(runStart);
+  const perItemSum = results.reduce((a, r) => a + (r.cost || 0), 0);
+  const gap = total - perItemSum;
+  console.log(`\n=== APPLY SUMMARY: ${results.length} processed | verified=${verified} | held=${heldN} | actuals=$${total.toFixed(4)} (per-item $${perItemSum.toFixed(4)}${Math.abs(gap) >= 0.005 ? `; +$${gap.toFixed(4)} source-only/unattributed` : ""}) | lock disarmed=${process.env.GROUNDING_ACQUIRE_ENABLED !== "1"}${runHalt ? ` | RUN-HALTED: ${runHalt}` : ""} ===`);
 }
 
 if (APPLY) await applyRun(); else await dryRun();
