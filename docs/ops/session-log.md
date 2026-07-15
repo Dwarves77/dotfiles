@@ -5,6 +5,31 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-07-15 — Step-2 stop-and-surface + criterion diagnosis + spend-bound hardening (PR #336)
+
+**Context:** Resumed with Step 2 (floor-first re-attribution, `funded-pass --bound=12` over 23 quarantined reg-family items) running in the background from before the compact.
+
+**Stop-and-surface — Step-2 premise falsified.** Killed the background run at **$1.19** (dominance guard protects mid-item state). Read the hold reason directly from the live `validate_item_provenance` (`STABLE`, so callable for **$0**) across all 23 items instead of paying to re-run grounding. The holds are **compound / multi-criterion**, and floor-tier is only one of **five** blockers:
+- **C3 `fact_below_authority_floor`** — 16 items, 262 facts (the genuine tier residue).
+- **C5 `missing_required_slot`** — 8 items. Content exists but claims aren't `[slot_key]`-tagged (verified reg items carry a literal `[primary_deadline]`/`[effective_date]` prefix; these don't). Cheap re-tag, not paid re-ground.
+- **C2 `ungrounded_url`** — 5 items. Legit unregistered primaries (`diputados.gob.mx` = Mexican Congress T1) + furniture (bbhub.io, s.fhg.de). C2 is a presence check → free registration clears it.
+- **C4 label** (`analysis_missing_label` / `unlabeled_assertion`) — 6 items. Prose relabel.
+- **C3 `fact_span_not_in_source`** — 3 items, 40 facts. Integrity (span not verbatim in source) — charset/truncation class → investigate.
+
+Decisive proof: the priced run already full-resynth'd **SB 253** (now 33/33 facts at T1) and it stayed quarantined — held on a missing `[primary_deadline]` tag, **not** tier. **7 of 23 have no floor blocker at all**; blanket floor-first re-attribution would flip ~0. Diagnosed for **$1.19**.
+
+**Spend-defect claim RETRACTED (honest correction).** I initially alarmed that the priced run overran its $20 bound to $21.86 (runner "undercounts 19%"). **Wrong — my misattribution.** The $21.86 was *total-session* grounding across 31 items: priced run **$17.26** on its 23 (under $20) + **$4.60** on 10 other items (the authorized Segment-0 Haiku/Sonnet A/B on EPA + Brazil/manual re-fetches). The runner counted correctly; the bound held. Caught by diagnosing before "fixing."
+
+**Bound hardening LANDED (operator ruling: fix the bound first).** No live defect, but one real latent silent-overrun path: the bound summed only `itemLedger` (item-attributed rows); a paid row with `item_id` NULL but `source_id` SET (a source-only ground/classify call) was neither halted by `spendWatchHalt` (which only run-halts item-AND-source-null rows) nor counted. Fix: `authoritativeCumulative()` (pure, red-then-green) + `cumulativeSpendSince(runStart)` — the bound now gates on `sum(cost_usd_estimated)` over the whole run window, so the ceiling can't be reconstructed below the DB total. Per-item cost stays for gain/runaway tripwires; close summary reports authoritative actuals + any per-item gap. Commit **1e40e06** on `remediation/re-grounds-never-destroy`; **CI green** (Discipline engine + Bug-class guard).
+
+**Corpus state (reg-family, live):** 156 verified / 141 quarantined / 51 unverified / 5 pending. (Earlier "195/24" was a mis-recollection; 141 is the real quarantine set, 23 hold facts = the worklist.)
+
+**Decisions / findings:** (1) The quarantine blocker is **not** primarily sub-floor tier — it's a 5-way criterion mix, most cheaply fixable (registration/slot-tag/label), NOT paid re-grounding. (2) `validate_item_provenance` is the free, authoritative per-item hold oracle — use it before any paid remediation. (3) A hard $ ceiling must gate on authoritative DB spend, never a reconstruction that can drift below it.
+
+**Next steps (await operator ruling):** re-scoped criterion-stratified remediation — **Wave 0** (free: register legit primary URLs → clears C2, flips Mexico) → **Wave 1** (cheap: `[slot_key]` re-tags + label fixes → ~6 no-floor items) → **Wave 2** (the 16 C3-floor items = the coverage-floor unit, partial flips + honest holds) → **Wave 3** (3 span-not-in-source integrity). Parked: stale_verified (45), reattribution-verified-half (42).
+
+---
+
 ## 2026-07-13 — register-step-gap (SC-13), stale-verified + backlog disposition, ISR, vault-graph
 
 **Standing constraints held throughout:** `$0`, `GROUNDING_ACQUIRE_ENABLED` OFF, session moved **$0.00** (DB
