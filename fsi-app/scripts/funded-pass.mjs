@@ -19,8 +19,10 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createJiti } from "jiti";
 import { createClient } from "@supabase/supabase-js";
 import { classifyFailure, withArmedLock, hardDivergence, spendWatchHalt, isRunaway, totalBoundHalt, authoritativeCumulative } from "./lib/funded-pass-core.mjs";
+import { acquireRunLock, heartbeatRunLock, releaseRunLock, emergencyPaused, LOCK_KEY, HEARTBEAT_MIN_MS } from "./lib/funded-pass-lock.mjs";
 import { hasValidWaiver } from "../src/lib/agent/audit-gate-core.mjs";
 import { guardedInsert } from "./lib/db.mjs";
+import { hostname } from "node:os";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));
@@ -195,30 +197,55 @@ async function applyRun() {
   const NO_GAIN_HALT_N = 5; // consecutive paid items with zero net verified/grounding gain -> spending-without-effect
   let noGainStreak = 0;
   const runStart = nowIso(); // fixed run-window origin for the AUTHORITATIVE cumulative bound check
-  await withArmedLock(process.env, async () => {
-    for (const w of items) {
-      // HALT AT THE BOUND (checked BEFORE spending on the next item, so at most one item overshoots). The
-      // cumulative is the AUTHORITATIVE DB sum of EVERY run-window row (attributed + source-only + unattributed),
-      // so the ceiling can never be reconstructed below the DB total (2026-07-15 blind-spot close).
-      const spentTotal = await cumulativeSpendSince(runStart);
-      const bh = totalBoundHalt(spentTotal, BOUND);
-      if (bh) { runHalt = bh; console.log(`\nRUN-LEVEL HALT: ${bh}`); break; }
-      const row = await readItem(w.id);
-      const div = hardDivergence(w, row);
-      if (div) { console.log(`\n[HELD:divergence] ${w.key} — ${div}`); results.push({ ...w, held: `divergence: ${div}`, prov: row?.provenance_status }); continue; }
-      process.stdout.write(`\n[${w.cls}] ${w.key.slice(0, 36)} (${w.id.slice(0, 8)}) [$${spentTotal.toFixed(2)}/${BOUND ?? "∞"}] ... `);
-      await writePricedLineMarker(w.id); // authorization marker BEFORE the paid call (spend-watch traceability)
-      const r = await runItem(w);
-      results.push(r);
-      if (r.halt) { runHalt = r.halt; console.log(`RUN-LEVEL HALT: ${r.halt}`); break; }
-      // AMENDMENT-2 TRIPWIRE: a paid item that made no gain (not verified, no new facts) advances the streak;
-      // a $0 item or any gain resets it. N consecutive no-gain PAID items = anomalous "spending without effect"
-      // regardless of authorization -> run-level halt for operator review.
-      if (r.spent && !r.gain) noGainStreak += 1; else noGainStreak = 0;
-      console.log(`prov=${r.prov} valid=${r.validValid} cost=$${r.cost} gain=${r.gain}${r.fetched ? " FETCHED" : ""}${r.held ? ` HELD(${r.held.slice(0, 70)})` : ""}${r.runaway ? " RUNAWAY" : ""}`);
-      if (noGainStreak >= NO_GAIN_HALT_N) { runHalt = `spending-without-effect anomaly: ${noGainStreak} consecutive paid items with zero net verified/grounding gain`; console.log(`RUN-LEVEL HALT: ${runHalt}`); break; }
-    }
-  });
+  // ── RUN-LOCK (mig 205): a second funded-pass process can NEVER drive a worklist concurrently. Acquired here,
+  // heartbeat between items, released in finally. A live holder => refuse LOUD + exit 0 spend (the second-instance
+  // guard that the 2026-07-15 race lacked). A stale holder (heartbeat > 5 min) is taken over (logged).
+  const PID = process.pid;
+  const lock = await acquireRunLock(sb, { pid: PID, label: CALLER, host: hostname(), worklistRef: `${CALLER}:${items.length}items:$${BOUND}` });
+  if (!lock.ok) {
+    console.error(`\nREFUSED (run-lock): funded-pass is already held by pid=${lock.holderPid} label="${lock.holderLabel}" (heartbeat ${lock.heartbeatAt}). A second concurrent funded pass is forbidden (mig 205, Wave-2 race guard). Exiting with ZERO spend.${lock.error ? ` [rpc error: ${lock.error}]` : ""}`);
+    process.exit(6);
+  }
+  console.log(`run-lock ACQUIRED: pid=${PID} key=${LOCK_KEY}${lock.takeover ? " (stale-takeover)" : ""}. Between-item heartbeat + emergency-pause poll active.`);
+  let lastHeartbeat = Date.now();
+  try {
+    await withArmedLock(process.env, async () => {
+      for (const w of items) {
+        // OPERATOR STOP (flag-flip, not kill): poll emergencyPaused (system_state.global_processing_paused)
+        // between items so a stop is graceful — the lock releases in finally, no mid-write kill can zero an item.
+        if (await emergencyPaused(sb)) { runHalt = "operator emergency pause set (global_processing_paused) — halting gracefully between items"; console.log(`\nRUN-LEVEL HALT: ${runHalt}`); break; }
+        // HEARTBEAT the lock; if we lost it (a takeover), halt rather than race a second holder.
+        if (Date.now() - lastHeartbeat >= HEARTBEAT_MIN_MS) {
+          const held = await heartbeatRunLock(sb, { pid: PID });
+          lastHeartbeat = Date.now();
+          if (!held) { runHalt = "run-lock lost (taken over by another holder) — halting to avoid a concurrent race"; console.log(`\nRUN-LEVEL HALT: ${runHalt}`); break; }
+        }
+        // HALT AT THE BOUND (checked BEFORE spending on the next item, so at most one item overshoots). The
+        // cumulative is the AUTHORITATIVE DB sum of EVERY run-window row (attributed + source-only + unattributed),
+        // so the ceiling can never be reconstructed below the DB total (2026-07-15 blind-spot close).
+        const spentTotal = await cumulativeSpendSince(runStart);
+        const bh = totalBoundHalt(spentTotal, BOUND);
+        if (bh) { runHalt = bh; console.log(`\nRUN-LEVEL HALT: ${bh}`); break; }
+        const row = await readItem(w.id);
+        const div = hardDivergence(w, row);
+        if (div) { console.log(`\n[HELD:divergence] ${w.key} — ${div}`); results.push({ ...w, held: `divergence: ${div}`, prov: row?.provenance_status }); continue; }
+        process.stdout.write(`\n[${w.cls}] ${w.key.slice(0, 36)} (${w.id.slice(0, 8)}) [$${spentTotal.toFixed(2)}/${BOUND ?? "∞"}] ... `);
+        await writePricedLineMarker(w.id); // authorization marker BEFORE the paid call (spend-watch traceability)
+        const r = await runItem(w);
+        results.push(r);
+        if (r.halt) { runHalt = r.halt; console.log(`RUN-LEVEL HALT: ${r.halt}`); break; }
+        // AMENDMENT-2 TRIPWIRE: a paid item that made no gain (not verified, no new facts) advances the streak;
+        // a $0 item or any gain resets it. N consecutive no-gain PAID items = anomalous "spending without effect"
+        // regardless of authorization -> run-level halt for operator review.
+        if (r.spent && !r.gain) noGainStreak += 1; else noGainStreak = 0;
+        console.log(`prov=${r.prov} valid=${r.validValid} cost=$${r.cost} gain=${r.gain}${r.fetched ? " FETCHED" : ""}${r.held ? ` HELD(${r.held.slice(0, 70)})` : ""}${r.runaway ? " RUNAWAY" : ""}`);
+        if (noGainStreak >= NO_GAIN_HALT_N) { runHalt = `spending-without-effect anomaly: ${noGainStreak} consecutive paid items with zero net verified/grounding gain`; console.log(`RUN-LEVEL HALT: ${runHalt}`); break; }
+      }
+    });
+  } finally {
+    const released = await releaseRunLock(sb, { pid: PID });
+    console.log(`run-lock ${released ? "RELEASED" : "release skipped (not owner / already taken over)"}: pid=${PID}.`);
+  }
   // withArmedLock disarms here (normal) AND on the break/throw path.
   const verified = results.filter((r) => r.prov === "verified").length;
   const heldN = results.filter((r) => r.held).length;
