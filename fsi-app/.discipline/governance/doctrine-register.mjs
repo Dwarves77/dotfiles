@@ -121,6 +121,24 @@ export const DOCTRINES = [
       'RD-36 (ledger-dominance.mjs, red-then-green goldened incl. the Brazil red fixture AND the count-blind 55->55-GAP case) mechanizes the dominance rule; wired at groundBrief (snapshot -> restore-on-regression -> data_integrity finding -> loud ok:false) and sectionBrief (the ledger-preserving reconcile). thinning-guard.mjs deleted (one home, no shadow). NAMED RESIDUAL: a re-section that legitimately DROPS section_keys cascade-loses those keys\' claims before the snapshot — acceptable for the same-section reattribution case that caused Brazil; a durable pre-section snapshot keyed by section_key is the future strengthening.',
   },
   {
+    id: 'grounding-is-non-destructive',
+    statement:
+      'Grounding is NON-DESTRUCTIVE. A new grounding is a COMPARISON against the prior claim ledger, never a delete-and-replace of it: genuinely-new claims are ADDED, changed claims are VERSIONED (the old attribution preserved and retrievable), unchanged claims are left untouched, and a prior claim the new grounding did not reproduce is KEPT. No current claim is deleted by a re-ground. The new-vs-old diff must always survive a ground — the system understands what changed only if the prior data is preserved; overwriting it breaks change-detection, duplicates work already done, and was the Wave-2 zeroing path. This subsumes (is strictly stronger than) the deferred H2 atomic-ground-writes item: non-destructive means there is no zeroing window because there is no zeroing, so an interrupted ground leaves the prior ledger fully intact by construction. The RD-36 dominance guard becomes a pre-apply comparison verdict — a weaker re-ground applies nothing (prior intact, no delete-then-restore) and records the finding.',
+    source: 'operator RULING — preserve-not-overwrite, confirmed on both counts (2026-07-16)',
+    enforcedBy: ['RD-44-grounding-is-non-destructive'],
+    residual:
+      'ledger-apply.mjs (diffLedger + applyLedgerDiff) + migration 208 (claim_versions, append-only, soft refs) wired into groundBrief; the blanket ledger delete is removed. Golden non-destructive-grounding.golden.mjs (32/32) proves add-without-destroy, version-changed-retrievable, reproduce-nothing-untouched, interrupted-leaves-complete, and zero-claim-loss non-regression. NAMED RESIDUAL: a section-reconcile that legitimately drops a section_key still cascade-deletes that key\'s claims via the section FK (pre-existing, same edge RD-36 names); the ground step itself never deletes.',
+  },
+  {
+    id: 'erase-only-on-proven-inaccuracy',
+    statement:
+      'Data is SAVED, and ERASED only when it is inaccurate. A current claim is removed ONLY when a grounding PROVES it wrong against the primary (its span contradicts the enacted text, or its source is superseded) — never because a regeneration failed to reproduce it. Erasure carries its proof: the single erase path (eraseClaimWithProof) requires a proof, archives the claim\'s final state WITH that proof, and only then deletes the current row — fail-closed, so a claim and its proof are never lost. Grounding cannot erase anything; erasure is a deliberate, proof-carrying action.',
+    source: 'operator RULING — preserve-not-overwrite, confirmed on both counts (2026-07-16)',
+    enforcedBy: ['RD-45-erase-only-on-proven-inaccuracy'],
+    residual:
+      'eraseClaimWithProof (ledger-apply.mjs) refuses without a proof and archives-before-deletes fail-closed; migration 208 constraint claim_versions_proof_required enforces the proof at the DB. Golden case 5 proves refuse-without-proof + fail-closed-retention. NAMED RESIDUAL: the automatic proven-inaccurate DETECTOR is not built — grounding conservatively keeps not-reproduced claims; an automatic contradiction judge onto this erase path is the future strengthening.',
+  },
+  {
     id: 'model-tier-rule',
     statement:
       'Model tier is chosen by TASK COST-SENSITIVITY, and the DEFAULT grounding model is decided EMPIRICALLY, not by fiat. Full grounding (the fact-extraction ledger call) defaults to Sonnet but is a single knob (GROUND_MODEL env / the groundBrief model override) so a Haiku/Sonnet A/B on a real item — comparing fact count, floor-qualifying count, and span accuracy under the protection of the dominance guard — sets the default BEFORE coverage-floor multiplies the per-item price by hundreds. Delta / change-review (the fetch-align-diff engine\'s review of an extracted change) and classification default to Haiku (cents); the deterministic diff itself is already $0. Sonnet is reserved for full grounding per the A/B verdict; the verdict, not a guess, moves the default.',

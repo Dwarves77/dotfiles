@@ -18,8 +18,11 @@ const mig = readFileSync(resolve(ROOT, "supabase/migrations/206_mint_gate_hold_m
 let failed = 0;
 const check = (name, cond) => { console.log(`${cond ? "PASS" : "FAIL"}  ${name}`); if (!cond) failed++; };
 
+// Under the non-destructive doctrine (2026-07-16) the mint-gate block runs AFTER the non-destructive apply
+// (over the FACTs the ground added/changed = applyRes.touchedFacts pushed into gateFacts), so it sits between
+// "MINT-GATE LIVE HOLD" and the "B#2" citation-edges section that follows it.
 const s = pipe.indexOf("MINT-GATE LIVE HOLD");
-const e = pipe.indexOf("LEDGER DOMINANCE GUARD");
+const e = pipe.indexOf("B#2 (Phase 1): write the item->source citation edges");
 const block = s >= 0 && e > s ? pipe.slice(s, e) : "";
 
 check("live-hold block exists", block.length > 0);
@@ -29,9 +32,14 @@ check("S-CONFLATE hard-marks mint_hold_reason via identityCongruenceHolds", /ide
 // S-NUMERIC SOFT: writes an integrity_flag, item stays verified-eligible
 check("S-NUMERIC writes a soft integrity_flag (mint_gate_s_numeric)", block.includes("mint_gate_s_numeric") && /integrity_flags"\)\.insert/.test(block));
 check("S-NUMERIC does NOT set mint_hold_reason (soft, stays verified-eligible)", !/spanNumeric[\s\S]{0,160}mint_hold_reason/.test(block));
-// FACT insert is still unconditional (facts mint regardless; hold is a post-insert mark)
-check("FACT insert exists", /section_claim_provenance"\)\.insert\(/.test(pipe));
-check("FACT insert is not wrapped in a mint-gate condition", !/if\s*\([^)]*(perFactGates|identityCongruenceHolds)[^)]*\)\s*\{[\s\S]{0,300}section_claim_provenance"\)\.insert\(/.test(pipe));
+// FACT collection is unconditional (facts mint regardless; the hold is a post-APPLY mark). Under the
+// non-destructive doctrine the ground COLLECTS every claim into `incoming` (unconditional), then applyLedgerDiff
+// inserts the new/changed rows; the mint-gate mark runs after apply. So: collection is unconditional and NOT
+// wrapped in a mint-gate condition, and the apply path is present.
+check("FACT collected unconditionally (incoming.push)", /incoming\.push\(\{/.test(pipe));
+check("collection is not wrapped in a mint-gate condition", !/if\s*\([^)]*(perFactGates|identityCongruenceHolds)[^)]*\)\s*\{[\s\S]{0,300}incoming\.push\(/.test(pipe));
+check("non-destructive apply path present (applyLedgerDiff)", /applyLedgerDiff\(sb,\s*itemId,\s*diffLedger\(/.test(pipe));
+check("mint-gate runs over the ground's touched FACTs (post-apply)", /gateFacts\.push\(\.\.\.applyRes\.touchedFacts\)/.test(pipe));
 // migration: validate_item_provenance fails on a non-null mint_hold_reason (the hard-hold criterion)
 check("migration 206 adds the fact_mint_hold criterion on mint_hold_reason", mig.includes("fact_mint_hold") && /mint_hold_reason IS NOT NULL/.test(mig));
 check("migration 206 is non-regressive (new nullable column, idempotent guard)", /ADD COLUMN IF NOT EXISTS mint_hold_reason/.test(mig) && mig.includes("already patched, idempotent"));

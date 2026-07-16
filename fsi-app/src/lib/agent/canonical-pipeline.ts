@@ -35,6 +35,7 @@ import { extractRegulationSections } from "@/lib/agent/extract-regulation-sectio
 import { buildTimelineRows } from "@/lib/agent/timeline-harvest.mjs";
 import { forceSlotCoverage, MAX_JUDGED_NOMINATIONS } from "@/lib/agent/slot-forcing.mjs";
 import { summarizeLedger, ledgerRegression } from "@/lib/agent/ledger-dominance.mjs";
+import { diffLedger, applyLedgerDiff } from "@/lib/agent/ledger-apply.mjs";
 import { decodeHtmlBytes } from "@/lib/sources/charset-decode.mjs";
 import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
@@ -1167,11 +1168,17 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   // the sequencing blind that defeated the old count-only guard. FAIL-CLOSED (C4, 2026-07-11): a READ ERROR here
   // would make prior read as "nothing to protect" AND leave the prior grounding unrecoverable, so on a snapshot
   // read error we ABORT before the destructive delete (ok:false is retryable), never grounding under a blind guard.
+  // NON-DESTRUCTIVE GROUNDING (operator doctrine 2026-07-16). The prior ledger is NO LONGER deleted here. It is
+  // READ (id + mint_hold_reason added so the apply can update/archive by id and re-evaluate holds), the new
+  // grounding is COLLECTED in memory (`incoming` below), diffed against it, and applied non-destructively:
+  // add-new / version-changed (old preserved in claim_versions) / leave-unchanged / leave-not-reproduced. A
+  // claim is NEVER erased by a re-ground (erasure is the separate erase-only-on-proven-inaccuracy path). An
+  // interrupted ground therefore leaves the prior ledger fully intact by construction — this subsumes H2
+  // (atomic ground writes): there is no zeroing window because there is no zeroing.
   const { data: priorClaims, error: priorClaimsErr } = await sb.from("section_claim_provenance")
-    .select("section_row_id, intelligence_item_id, claim_text, claim_kind, source_span, source_id, search_result_id, source_tier_at_grounding")
+    .select("id, section_row_id, intelligence_item_id, claim_text, claim_kind, source_span, source_id, search_result_id, source_tier_at_grounding, mint_hold_reason")
     .eq("intelligence_item_id", itemId);
-  if (priorClaimsErr) return { ok: false, detail: `grounding aborted: dominance-guard prior-claim snapshot read failed (${priorClaimsErr.message}); refusing to delete-then-re-ground under a blind guard (fail-closed)` };
-  await sb.from("section_claim_provenance").delete().eq("intelligence_item_id", itemId);
+  if (priorClaimsErr) return { ok: false, detail: `grounding aborted: prior-ledger read failed (${priorClaimsErr.message}); refusing to re-ground under a blind comparison (fail-closed, non-destructive doctrine)` };
   const { data: secs, error: secsErr } = await sb.from("intelligence_item_sections").select("id, section_key, content_md").eq("item_id", itemId).order("section_order");
   if (secsErr || !secs?.length) return { ok: false, detail: `no sections${secsErr ? `: ${secsErr.message}` : ""}` };
   // CITED-HOST GATE (P3c / S1-07). Stubbing a cited URL into agent_run_searches is what makes
@@ -1445,9 +1452,11 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   // re-homed FACT re-points search_result_id to the floor source's row (first row wins on dup URLs).
   const searchIdByUrl = new Map<string, string>();
   for (const r of searchRows) if (r.result_url && !searchIdByUrl.has(r.result_url)) searchIdByUrl.set(r.result_url, r.id);
-  const claimIds: string[] = [];
-  // Dominance-guard counters (re-grounds-never-destroy): the new ledger's FACT + floor-qualifying-FACT counts,
-  // compared against the prior snapshot below so a WEAKER re-ground never replaces a stronger prior.
+  // NON-DESTRUCTIVE: the new grounding is COLLECTED here (not inserted), then diffed + applied against the
+  // preserved prior ledger below. Each entry is a claim-row payload identical to the historical insert shape.
+  const incoming: Array<{ section_row_id: string; intelligence_item_id: string; claim_text: string; claim_kind: string; source_span: string | null; source_id: string | null; search_result_id: string | null; source_tier_at_grounding: number | null }> = [];
+  // Dominance counters (re-grounds-never-destroy): the NEW grounding's FACT + floor-qualifying-FACT counts,
+  // compared against the prior snapshot below so a WEAKER re-ground applies NOTHING (never replaces a stronger prior).
   let newFacts = 0, newFloorQualifying = 0;
   const citedSourceIds = new Set<string>(); // B#2: the sources this brief grounds against (item->source edges)
   // Ruling-5 self-surfacing: FACT spans that resolve to an UNREGISTERED host (null tier) aggregated per host,
@@ -1503,25 +1512,59 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
     // compares stored-against). A non-FACT (grounded ANALYSIS / GAP) stores NULL — its tier LABEL is
     // render-derived at display from source_id, never a stored field. edit-1 wrongly stamped res.tier on
     // non-FACT here (the 41-row claims-tier drift, all ANALYSIS); `isFact ? res.tier : null` cures it.
-    const { data: ins, error: insErr } = await sb.from("section_claim_provenance").insert({ section_row_id: sectionRowId, intelligence_item_id: itemId, claim_text: storedText, claim_kind: c2.claim_kind, source_span: cleanCtl(c2.source_span ?? null), source_id: sourceId, search_result_id: effectiveSearchResultId, source_tier_at_grounding: isFact ? res.tier : null }).select("id").single();
-    if (insErr) console.warn(`[canonical] claim insert failed for ${itemId} (${c2.claim_kind}/${String(c2.section)}): ${insErr.message}`);
-    if (ins) {
-      claimIds.push(ins.id);
-      if (isFact) {
-        newFacts += 1;
-        if (itemFloor != null && res.tier != null && res.tier <= itemFloor) newFloorQualifying += 1;
-        // MINT-GATE (hardening A1 flip): accumulate the minted FACT (with its id) for the live per-item gate pass below.
-        gateFacts.push({ id: ins.id, claim_kind: "FACT", claim_text: storedText ?? null, source_span: c2.source_span ?? null, source_id: sourceId, source_tier_at_grounding: res.tier });
-      }
+    // NON-DESTRUCTIVE: collect the computed claim row (no insert). The dominance verdict + diff/apply below
+    // decide add-new / version-changed / leave-unchanged against the preserved prior ledger.
+    incoming.push({ section_row_id: sectionRowId, intelligence_item_id: itemId, claim_text: storedText ?? "", claim_kind: c2.claim_kind, source_span: cleanCtl(c2.source_span ?? null) ?? null, source_id: sourceId, search_result_id: effectiveSearchResultId, source_tier_at_grounding: isFact ? res.tier : null });
+    if (isFact) {
+      newFacts += 1;
+      if (itemFloor != null && res.tier != null && res.tier <= itemFloor) newFloorQualifying += 1;
     }
     if (sourceId) citedSourceIds.add(sourceId);
   }
-  // MINT-GATE LIVE HOLD (hardening A1 flip, operator ruling 2026-07-16). The four gates run over this item's
-  // minted FACTs. S-CONFLATE = HARD hold: mark the conflated FACTs with mint_hold_reason so
-  // validate_item_provenance (criterion 3, fact_mint_hold) holds the item until a re-ground clears it.
-  // S-NUMERIC = SOFT hold: write a per-item integrity_flag routed to live verification (the real-but-mis-cited
-  // class); the item STAYS verified-eligible (no mint_hold_reason). authority-floor + generic-source are
-  // ALREADY enforced by the gate (fact_below_authority_floor / null-tier) so they are logged, not re-held.
+  // LEDGER DOMINANCE VERDICT — PRE-APPLY (re-grounds-never-destroy, RD-36, now a comparison verdict per the
+  // non-destructive doctrine 2026-07-16). The new grounding (`incoming`, still in memory) is compared to the
+  // preserved prior ledger BEFORE anything is written. A re-ground that is WEAKER on any dominance axis (FACT
+  // count / floor-qualifying count / verified-eligibility — e.g. Brazil Lei 12.305 55 FACT -> 2 GAP, a non-EN
+  // extraction failure) APPLIES NOTHING: the prior ledger was never deleted, so it is already intact — there is
+  // no delete-then-restore. Record the regression as a finding and return LOUD ok:false, item state unchanged.
+  const priorSummary = summarizeLedger(priorClaims ?? [], itemFloor);
+  const nextSummary = { total: incoming.length, facts: newFacts, floorQualifying: newFloorQualifying, wouldVerify: false };
+  // A verified item never reaches here (skip-if-verified guards upstream); pass the honest prior status.
+  const priorWouldVerify = prov?.provenance_status === "verified";
+  const reg = ledgerRegression({ ...priorSummary, wouldVerify: priorWouldVerify }, nextSummary);
+  if (reg.regression) {
+    const regDetail = `facts ${priorSummary.facts}->${nextSummary.facts}, floor-qual ${priorSummary.floorQualifying}->${nextSummary.floorQualifying}, total ${priorSummary.total}->${nextSummary.total}`;
+    try {
+      await sb.from("integrity_flags").insert({
+        category: "data_integrity", subject_type: "item", subject_ref: itemId, status: "open",
+        created_by: "reground_regression_guard",
+        description: `Re-ground REGRESSION — new grounding NOT applied (non-destructive: prior ledger retained by construction) [${reg.axes.join(",")}]: ${regDetail}. A weaker re-extract did not replace the stronger prior — investigate the pool/extraction (non-EN extraction is the known cause).`.slice(0, 480),
+        recommended_actions: [
+          { action: "investigate extraction", rationale: `re-ground produced a weaker ledger on axes [${reg.axes.join(",")}]; ${regDetail}` },
+          { action: "re-ground under the corrected mechanism", rationale: "the prior ledger is retained; a stronger re-extract will apply as adds/changes" },
+        ],
+      });
+    } catch (e) { console.warn(`[canonical] dominance-guard finding write failed for ${itemId}: ${(e as Error).message}`); }
+    return { ok: false, detail: `re-ground REGRESSION [${reg.axes.join(",")}]: ${regDetail}; prior ledger retained, new grounding not applied (non-destructive).`, slotForcing };
+  }
+  // NON-DESTRUCTIVE APPLY. Not a regression: diff the new grounding against the preserved prior ledger and apply
+  // it — add genuinely-new claims, version changed claims (old state preserved in claim_versions), leave
+  // unchanged + not-reproduced claims untouched. NEVER deletes a current claim. currentIds = the full current
+  // ledger after apply; touchedFacts = the FACTs this ground added/changed (the mint-gate input below).
+  const applyRes = await applyLedgerDiff(sb, itemId, diffLedger(priorClaims ?? [], incoming), { nowIso: new Date().toISOString() });
+  const currentIds = applyRes.currentIds;
+  gateFacts.push(...applyRes.touchedFacts);
+  if (applyRes.applied.added === 0 && applyRes.applied.changed === 0) {
+    console.log(`[canonical] non-destructive ground ${itemId}: NO GAIN (${applyRes.applied.unchanged} unchanged, ${applyRes.applied.notReproduced} kept-not-reproduced); prior ledger untouched`);
+  } else {
+    console.log(`[canonical] non-destructive ground ${itemId}: +${applyRes.applied.added} added, ${applyRes.applied.changed} versioned-changed, ${applyRes.applied.unchanged} unchanged, ${applyRes.applied.notReproduced} kept (${applyRes.applied.versioned} archived to claim_versions)`);
+  }
+  // MINT-GATE LIVE HOLD (hardening A1 flip). The four gates run over the FACTs this ground ADDED or CHANGED
+  // (touchedFacts; unchanged/not-reproduced FACTs were already gated on their prior ground). S-CONFLATE = HARD
+  // hold: mark the conflated FACTs with mint_hold_reason so validate_item_provenance (criterion 3,
+  // fact_mint_hold) holds the item until a re-ground clears it. S-NUMERIC = SOFT hold: write a per-item
+  // integrity_flag routed to live verification (real-but-mis-cited); the item STAYS verified-eligible.
+  // authority-floor + generic-source are already enforced by the gate so they are logged, not re-held.
   {
     const conflateHeldIds = [...identityCongruenceHolds(gateFacts)].filter((x): x is string => typeof x === "string");
     if (conflateHeldIds.length) {
@@ -1542,41 +1585,6 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
       console.log(`[mint-gates:live] ${itemId}: ${gateFacts.length} FACTs — HARD-held(conflate)=${conflateHeldIds.length} SOFT-flag(numeric)=${numericFacts.length} already-gated(floor=${floorN} generic=${genericN})`);
     }
   }
-  // LEDGER DOMINANCE GUARD (re-grounds-never-destroy, operator ruling 2026-07-14). A re-ground's new ledger
-  // REPLACES the prior one only when it is not WEAKER on any dominance axis (FACT count / floor-qualifying count
-  // / verified-eligibility — supersedes the count-only thinning guard). A regressing re-extract (Brazil Lei
-  // 12.305: 55 FACT -> 2 GAP, a non-EN extraction failure) is a DIAGNOSTIC, not a replacement: drop the weaker
-  // new set, RESTORE the prior claims (their section_row_ids survive because sectionBrief now reconciles by key,
-  // not delete-cascade), record the regression as a finding, and return a LOUD ok:false with the item state
-  // UNCHANGED so coverage is kept and the regression surfaces for investigation (re-runs next pass).
-  const priorSummary = summarizeLedger(priorClaims ?? [], itemFloor);
-  const nextSummary = { total: claimIds.length, facts: newFacts, floorQualifying: newFloorQualifying, wouldVerify: false };
-  // A verified item never reaches here (skip-if-verified guards at sectionBrief + groundBrief start), so the
-  // verified axis is protected upstream; pass the honest prior status for completeness.
-  const priorWouldVerify = prov?.provenance_status === "verified";
-  const reg = ledgerRegression({ ...priorSummary, wouldVerify: priorWouldVerify }, nextSummary);
-  if (reg.regression) {
-    await sb.from("section_claim_provenance").delete().eq("intelligence_item_id", itemId);
-    if (priorClaims?.length) {
-      const restore = priorClaims.map((c) => ({ ...c, intelligence_item_id: itemId }));
-      const { error: restoreErr } = await sb.from("section_claim_provenance").insert(restore);
-      if (restoreErr) console.warn(`[canonical] dominance-guard restore failed for ${itemId}: ${restoreErr.message}`);
-    }
-    const regDetail = `facts ${priorSummary.facts}->${nextSummary.facts}, floor-qual ${priorSummary.floorQualifying}->${nextSummary.floorQualifying}, total ${priorSummary.total}->${nextSummary.total}`;
-    // Record the regression as a finding (integrity_flags) so a blocked destructive re-ground is never silent.
-    try {
-      await sb.from("integrity_flags").insert({
-        category: "data_integrity", subject_type: "item", subject_ref: itemId, status: "open",
-        created_by: "reground_regression_guard",
-        description: `Re-ground REGRESSION blocked (re-grounds-never-destroy) [${reg.axes.join(",")}]: ${regDetail}. Prior ledger RETAINED, item state unchanged. A weaker re-extract did not replace the stronger prior — investigate the pool/extraction (non-EN extraction is the known cause) before re-grounding.`.slice(0, 480),
-        recommended_actions: [
-          { action: "investigate extraction", rationale: `re-ground produced a weaker ledger on axes [${reg.axes.join(",")}]; ${regDetail}` },
-          { action: "re-ground under the corrected mechanism", rationale: "the prior ledger is retained; a stronger re-extract (e.g. after the non-EN original-language extraction fix) will replace it" },
-        ],
-      });
-    } catch (e) { console.warn(`[canonical] dominance-guard finding write failed for ${itemId}: ${(e as Error).message}`); }
-    return { ok: false, detail: `re-ground REGRESSION [${reg.axes.join(",")}]: ${regDetail}; retained prior ledger (re-grounds-never-destroy). Investigate the pool/extraction before re-grounding this item.`, slotForcing };
-  }
   // B#2 (Phase 1): write the item->source citation edges this brief grounds against into
   // intelligence_item_citations (origin='agent_extraction') — the table get_source_citation_stats (mig 098)
   // READS but generation never WROTE, so per-source citation counts were frozen at the mig-089 backfill.
@@ -1592,13 +1600,12 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   const { data: vrData, error: vrErr } = await sb.rpc("validate_item_provenance", { p_item_id: itemId } as never);
   const vr = (Array.isArray(vrData) ? vrData[0] : vrData) as { valid: boolean; recommended_status: string; failures: unknown } | undefined;
   if (vr?.valid) return { ok: true, detail: `grounded kept=${kept.length} -> ${vr.recommended_status}${slotForcing.judgeCalls ? ` (slot-forcing: +${slotForcing.factsForced}F/+${slotForcing.gapsForced}G, ${slotForcing.relabelCandidates.length} 4c-cand, ${slotForcing.judgeCalls} judge calls)` : ""}`, slotForcing };
-  // B2 RETAIN-ON-FAILURE: do NOT delete the just-inserted claims on a validation failure. Deleting the
-  // ledger erased the evidence of WHY grounding failed (it cost the 45-flip forensics once). The item is
-  // already 'quarantined' (the per-insert set_provenance_status trigger ran validate on each claim and
-  // set the status), so the failed ledger persists as a diagnosable artifact. The NEXT re-ground clears
-  // these stray claims at its start (groundBrief deletes section_claim_provenance for any non-verified
-  // item before re-extracting), so retention never duplicates. claimIds retained intentionally.
-  void claimIds;
+  // B2 RETAIN-ON-FAILURE: the applied claims persist on a validation failure — they ARE the current ledger
+  // (the per-insert set_provenance_status trigger already quarantined the item), a diagnosable artifact of WHY
+  // grounding failed. Under the non-destructive doctrine the NEXT re-ground does NOT delete them; it DIFFS
+  // against them (reproduced claims match as unchanged, so retention never duplicates; a better re-attribution
+  // versions them; a claim the next ground drops is KEPT). currentIds retained intentionally.
+  void currentIds;
   // Still clean up ONLY the fallback searches THIS step created (no stored pool) so the agent_run_searches
   // corpus does not accumulate across failed attempts; the generate-stored pool is left intact for re-ground.
   if (ownSearches && searchIds.length) await sb.from("agent_run_searches").delete().in("id", searchIds);
