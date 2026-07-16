@@ -554,6 +554,15 @@ export const DOCTRINES = [
     residual:
       'Seam 1 (RD-39): suspended sources unselectable by buildResolver + golden. Seams 2-3 (mint null/generic/floor gates + no-generic fitness invariant) and A2 (per-document keying) extend this doctrine; each lands with its own invariant + golden. The live-flip of the mint gates from report-only to hold is an operator decision on the calibration numbers.',
   },
+  {
+    id: 'mint-gates-report-only-then-operator-flip',
+    statement:
+      'Four gates evaluate every FACT at mint (identity-congruence, span-numerics, authority-floor, generic-source), hold-not-reject. They ship REPORT-ONLY: log would-have-held with reasons, change nothing, hold nothing. The flip from report-only to live-hold is an OPERATOR ruling made on the REPRESENTATIVE calibration number (verified/healthy grounds), never the contaminated most-recent sample and never an agent decision. The evaluator is one pure implementation shared by the pipeline wiring and the read-only calibration.',
+    source: 'hardening A1 seams 2+4 (operator dispatch 2026-07-16)',
+    enforcedBy: ['RD-41-mint-gates-report-only'],
+    residual:
+      'mint-gates.mjs goldened 13/13; mint-gate-calibration.mjs read-only. Representative calibration clears the 20% stop on all gates (max 6.3%, overall 13.2%). Report-only wiring in canonical-pipeline logs would-have-held. The live-flip is HELD for the operator; A2 per-document keying is scoped by this calibration and waits behind the flip.',
+  },
 ];
 
 // Doctrine IDs referenced by `conflicts` must resolve to a real entry (the conflict-ledger integrity check).

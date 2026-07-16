@@ -665,6 +665,16 @@ export const INVARIANTS = [
   },
 
   {
+    id: 'RD-41-mint-gates-report-only',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 25: Mint-time accuracy/provenance gates (report-only calibration then operator flip)',
+    text: 'Four gates evaluate every FACT at mint: identity-congruence (S-CONFLATE, per item), span-numerics (S-NUMERIC), authority-floor (tier below the per-type floor), generic-source (null or suspended source). The evaluator (mint-gates.mjs) is PURE and shared by the report-only pipeline wiring AND the read-only calibration (one implementation, two callers). A gate hit is HOLD-not-reject / would-have-held, never a fabrication verdict, never a certification input. The gates ship REPORT-ONLY (log would-have-held, persist nothing differently, hold nothing); flipping them to live-hold is an OPERATOR ruling on the REPRESENTATIVE calibration number (verified/healthy grounds), not the contaminated most-recent sample. Representative calibration 2026-07-16 CLEARS the 20% stop on all four gates (S-CONFLATE 0.2%, S-NUMERIC 5.4%, authority-floor 1.7%, generic-source 6.3%; overall 13.2%) — vs the contaminated authority-floor 29.6% which was the sub-floor C3 re-ground sample, not miscalibration.',
+    anchor: 'Four mint-time gates (identity-congruence, span-numerics, authority-floor, generic-source) evaluate every FACT at mint, report-only, hold-not-reject; the live-flip is an operator ruling on the representative calibration',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/mint-gates.golden.mjs'],
+    residual: 'mint-gates.mjs (perFactGates + identityCongruenceHolds) goldened 13/13 (each gate positive + clean + non-FACT null). mint-gate-calibration.mjs (read-only, --representative) produces the flip-gating number. The report-only pipeline wiring at canonical-pipeline.ts:1481/1498 + its report-only-posture golden land with this. The live-flip and A2 (per-document keying, scoped by this calibration) wait behind the operator ruling.',
+  },
+
+  {
     id: 'RD-12-size-cap-doctrine',
     skill: 'remediation-discipline',
     section: 'Section 4 — category 11: The size-cap doctrine (no silent slice on the grounding path)',
