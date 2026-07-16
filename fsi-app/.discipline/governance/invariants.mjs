@@ -685,6 +685,16 @@ export const INVARIANTS = [
   },
 
   {
+    id: 'RD-43-hold-resolution-under-standing-bound',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 26: Holds are conveyor, not parking (the hold-resolution loop)',
+    text: 'The hold-resolution loop drains hold_resolution_queue under a STANDING operator-priced bound; the machine NEVER proposes the number. The loop is a funded-pass caller: it takes the run-lock (RD-38, no concurrent driver, exits ZERO-spend on a live holder), polls emergencyPaused (flag-flip stop, never a kill), gates every item on authoritativeCumulative >= bound (a hard ceiling, checked before the next item), is holdings-gated (re-grounds from the stored pool first, no unconditional fetch), one paid pass per entity per mechanism, no-gain tripwire, dominance guard (RD-36). Ladder per held item: re-ground -> re-validate -> EXIT on a floor-clearing re-ground; else recordAttempt(reground, failed) which auto-escalates on the 2nd same-mechanism failure (cycle safety). --apply REFUSES without an operator --bound.',
+    anchor: 'The hold-resolution loop drains the queue under a standing operator-priced bound; a funded-pass caller (run-lock, emergencyPaused, hard ceiling, holdings-gate, no-gain, dominance guard) that exits a hold on a floor-clearing re-ground and escalates on repeat failure',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/hold-loop.golden.mjs'],
+    residual: 'scripts/hold-loop.mjs (funded-pass caller, queue-driven) proven by hold-loop.golden.mjs (12/12: run-lock + zero-spend refusal, emergencyPaused poll, bound gate, --bound-required, holdings-gate, no-gain tripwire, exit-on-valid, record-attempt/escalate, lock release, pure bound-halt). Reuses funded-pass-lock (RD-38) + funded-pass-core + hold-queue (RD-42). The standing $100 bound is the operator ruling 2026-07-16; arming is run-scoped (GROUNDING_ACQUIRE_ENABLED) and off at rest. NAMED RESIDUAL: the seek rung (find a primary absent from the pool) currently falls to a fetch the scrape-hold blocks -> a failed attempt -> escalation (honest, not a silent skip); the Chrome-capture rung is deferred.',
+  },
+
+  {
     id: 'RD-12-size-cap-doctrine',
     skill: 'remediation-discipline',
     section: 'Section 4 — category 11: The size-cap doctrine (no silent slice on the grounding path)',

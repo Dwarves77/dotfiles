@@ -570,7 +570,16 @@ export const DOCTRINES = [
     source: 'Phase E hold-resolution loop (operator dispatch 2026-07-16)',
     enforcedBy: ['RD-42-holds-are-conveyor'],
     residual:
-      'E3 increment 1 (queue foundation): migration 207 (hold_resolution_queue + enqueue/record_attempt/exit/escalate) + scripts/lib/hold-queue.mjs + golden hold-queue.golden.mjs (9/9). Subsequent increments: the resolution ladder (existing discovery rung + capture paths + re-ground through the pipeline incl. mint gates), the spend bindings (funded-pass caller: run-lock RD-38, emergencyPaused, $100 bound, holdings-gate, no-gain tripwire), and the drain run. Not armed. Companion doctrine hold-resolution-under-standing-bound lands with the spend bindings.',
+      'E3 increment 1 (queue foundation): migration 207 (hold_resolution_queue + enqueue/record_attempt/exit/escalate) + scripts/lib/hold-queue.mjs + golden hold-queue.golden.mjs (9/9). Increment 2: scripts/populate-hold-queue.mjs seeded the live backlog (39 items). Increment 3: the loop scripts/hold-loop.mjs (RD-43). The drain run under the $100 bound.',
+  },
+  {
+    id: 'hold-resolution-under-standing-bound',
+    statement:
+      'The hold-resolution loop drains the queue under a STANDING operator-priced bound; the machine never proposes the number, and a lift of the bound is not a target. The loop is a funded-pass caller (run-lock, emergencyPaused poll, hard-ceiling bound on authoritativeCumulative, holdings-gate, one-paid-pass-per-mechanism, no-gain tripwire, dominance guard). It EXITs a hold on a floor-clearing re-ground and escalates to the operator on an evidenced dead end (repeat same-mechanism failure = cycle safety). Arming is run-scoped and off at rest.',
+    source: 'Phase E hold-resolution loop, spend bindings (operator ruling 2026-07-16: standing bound $100 gross)',
+    enforcedBy: ['RD-43-hold-resolution-under-standing-bound'],
+    residual:
+      'scripts/hold-loop.mjs + golden hold-loop.golden.mjs (12/12). Standing bound $100 gross (operator, tracked on authoritativeCumulative). Reuses RD-38 (run-lock) + RD-36 (dominance) + RD-42 (queue). The seek rung for pool-absent primaries escalates honestly (scrape-hold blocks the fetch; Chrome rung deferred).',
   },
 ];
 
