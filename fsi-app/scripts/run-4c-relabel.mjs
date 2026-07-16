@@ -22,12 +22,18 @@ try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
 delete process.env.BROWSERLESS_API_KEY;
 if (process.env.BROWSERLESS_API_KEY) { console.error("REFUSING: BROWSERLESS_API_KEY still set."); process.exit(2); }
 const LIMIT = (() => { const i = process.argv.indexOf("--limit"); return i >= 0 ? parseInt(process.argv[i + 1], 10) : Infinity; })();
+// BUILD-PHASE (operator ruling 2026-07-15): no standing default cap. This paid script (Haiku 4c judge) requires
+// an operator --bound; a missing --bound REFUSES to run paid, never inherits a standing figure (the retired $85).
+const BOUND = (() => { const a = process.argv.find((x) => x.startsWith("--bound=")); return a ? Number(a.slice(8)) : null; })();
+if (!(typeof BOUND === "number" && Number.isFinite(BOUND) && BOUND > 0)) {
+  console.error("REFUSING: run-4c-relabel is a PAID run (Haiku 4c judge) — it requires an operator spend bound (--bound=<usd>). No standing default. Re-run with --bound=<your number>.");
+  process.exit(5);
+}
 
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { bindingSentences, decideRelabel, applyLabelToContent } = await jiti.import("../src/lib/agent/relabel-unlabeled.mjs");
 const { spendStream, setSpendTicket, resetSpendTicket, spentUsd, logSpendRun, assertLedgerDrained } = await jiti.import("../src/lib/llm/spend-client.ts");
 const { readClient, readAll } = await jiti.import("./lib/db.mjs");
-const { SPEND_CEILING_USD } = await jiti.import("../src/lib/agent/generation-config.ts");
 
 const sb = readClient();
 
@@ -65,7 +71,7 @@ let itemsDone = 0, judgeCalls = 0;
 for (const it of targets) {
   if (itemsDone >= LIMIT) break;
   const key = it.legacy_id || it.id.slice(0, 8);
-  setSpendTicket({ purpose: `4c judge: ${key}`, itemId: it.id, failureClasses: ["unlabeled_assertion"], necessity: { rehomableFacts: 0 }, disposition: null, budgetCapUsd: SPEND_CEILING_USD, authorizationRef: "4c-judge" });
+  setSpendTicket({ purpose: `4c judge: ${key}`, itemId: it.id, failureClasses: ["unlabeled_assertion"], necessity: { rehomableFacts: 0 }, disposition: null, budgetCapUsd: BOUND, authorizationRef: "4c-judge" });
   for (const secRowId of it.secRows) {
     const { data: sec } = await sb.from("intelligence_item_sections").select("id, section_key, content_md").eq("id", secRowId).single();
     if (!sec) continue;

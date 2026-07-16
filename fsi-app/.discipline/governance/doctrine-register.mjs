@@ -536,6 +536,15 @@ export const DOCTRINES = [
         'PROCESS / report-format discipline — it governs how the agent writes a dispatch report at authoring time, not a code or data property (same non-mechanizable class as the report-format doctrines; no CI check parses report prose). Carried by this register + the spend-gauge header requirement (which pairs the count with its scope by convention). The archival-predicate axis is mechanizable at the QUERY layer (a census script SHOULD emit both live-only and status-only counts), but the DOCTRINE binds the report prose, so it stays process-exempt like its scope half.',
     },
   },
+  {
+    id: 'funded-pass-run-lock',
+    statement:
+      'A funded-pass process holds an exclusive DB-level run-lock before driving a worklist; a second concurrent acquisition is refused and the second process exits with ZERO spend. Acquired at start, heartbeat between items, released at clean exit, stale-holder takeover (>300s). Paired with the emergencyPaused between-item poll so an operator STOP is a flag-flip, never a mid-write kill. Forecloses the 2026-07-15 concurrent-race (two funded passes on one worklist: 6 items double-inserted, 2 zeroed on a kill mid-write). The authoritative-cumulative spend bound is proven to hold the total even under a two-process race.',
+    source: 'Wave 2 concurrent-race incident recovery (operator ruling 2026-07-15)',
+    enforcedBy: ['RD-38-funded-pass-run-lock'],
+    residual:
+      'Migration 205 (funded_pass_runlock + atomic acquire/heartbeat/release) + golden funded-pass-lock-golden.mjs, wired in funded-pass.mjs. Proven live. The lock gates the funded-pass entrypoint; a raw-client DISPOSITION actor (archive/reclassify) is NOT yet gated — the hardening unit H5 (mutation leases) + H6 (attribution + raw-write-path gate) close that residual.',
+  },
 ];
 
 // Doctrine IDs referenced by `conflicts` must resolve to a real entry (the conflict-ledger integrity check).

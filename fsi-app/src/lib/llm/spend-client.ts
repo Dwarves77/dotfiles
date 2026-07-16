@@ -152,6 +152,7 @@ async function recordSpendCall(model: string, inputTokens: number, outputTokens:
     }
     const { error } = await svc().from("agent_runs").insert({
       intelligence_item_id: ticket.itemId ?? null, source_id: ticket.sourceId ?? null, source_url: null, fetch_method: "spend-call",
+      model, // first-class per-model actuals (migration 204, build-phase measurement) — was errors[].telemetry.model only
       started_at: nowIso, ended_at: nowIso, status: "success",
       cost_usd_estimated: Number(cost.toFixed(6)),
       errors: [{ telemetry: { model, inputTokens, outputTokens, cacheWriteTokens, cacheReadTokens, cacheSavedUsd, purpose: ticket.purpose, authorizationRef: ticket.authorizationRef ?? null, precondition: ticket.precondition ?? null } }],
