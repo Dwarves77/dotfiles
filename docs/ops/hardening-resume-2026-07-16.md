@@ -1,7 +1,29 @@
 # Hardening build — resume handoff (2026-07-16)
 
 Bank-and-resume under the operator's FINAL RULING BLOCK (standing authority for the whole remainder; zero new
-approvals needed). Branch: `hardening/phase-a-mint-gates` (off master, pushed). Next session continues here.
+approvals needed). Next session continues here.
+
+## UPDATE — since first handoff
+- **Phase A1 + flip MERGED to master** (PR #339, CI green; master `347b5606`). Migrations 205/206 applied.
+- **EU 2023/959 re-pointed** (verified item off the suspended source; hold-means-seek, $0).
+- **E3 started, branch `hardening/phase-e-hold-loop` (off master, pushed):**
+  - Increment 1 `9b10b1d5` — `hold_resolution_queue` (migration 207) + enqueue/record_attempt(cycle-safety)/
+    exit/escalate + `scripts/lib/hold-queue.mjs` + golden 9/9. RD-42 + doctrine holds-are-conveyor-not-parking.
+  - Increment 2 `8b12696a` — populated the queue from the live backlog: 39 quarantined items (floor=28,
+    quarantine_next_action=9, hold_to_find=2). `scripts/populate-hold-queue.mjs`.
+- **NEXT on this branch (E3 increment 3+, no approvals):** the resolution ladder — seek rung (existing
+  discovery rung), capture rung (free-first; Chrome deferred), re-ground rung (through the pipeline, mint
+  gates included), exit/escalate wiring; then the spend bindings (funded-pass caller: run-lock RD-38 +
+  emergencyPaused + $100 bound on authoritativeCumulative + holdings-gate + no-gain tripwire); then the drain
+  run (arm the $100 bound — the operator priced it, so arming IS authorized; free rungs first, paid residual
+  under the bound, hard-stop near $100). Then A2, then the close report.
+
+Meta-gate 90 invariants / 57 doctrines green.
+
+---
+
+## (original handoff below)
+Branch: `hardening/phase-a-mint-gates` (off master, pushed).
 
 ## Standing rulings (in force)
 - Mint-gate flip: DONE (live). S-CONFLATE hard hold, S-NUMERIC soft hold.
