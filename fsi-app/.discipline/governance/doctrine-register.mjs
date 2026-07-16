@@ -563,6 +563,15 @@ export const DOCTRINES = [
     residual:
       'Flipped LIVE (migration 206 + mint-gates-live-hold.golden.mjs 12/12). S-CONFLATE sets mint_hold_reason -> validate_item_provenance fact_mint_hold; S-NUMERIC writes a data_quality integrity_flag, item stays verified-eligible. Non-regression proven (196 verified, 194 valid, 2 pre-existing drift). Hard-hold proven live-and-reversibly. A2 per-document keying (provisional excluded) scoped by the calibration; Phase E hold-loop drains the held facts + manages the S-NUMERIC flag lifecycle.',
   },
+  {
+    id: 'holds-are-conveyor-not-parking',
+    statement:
+      'A hold is a conveyor position, never a parking spot. Every held entity (mint-gate hold, floor hold, hold-to-find, quarantine-with-next-action) enters a standing machine-gated resolution loop that actively seeks, captures, re-grounds, and exits the hold, escalating to the operator only at a genuine, evidenced dead end. The queue is DB state (hold_resolution_queue), not a doc; a hold cannot be silently terminal. enqueue is idempotent; the same mechanism failing twice auto-escalates (cycle safety). Arming the loop with spend is a SEPARATE operator ruling ($100 bound); it ships built and proven with the bound unset.',
+    source: 'Phase E hold-resolution loop (operator dispatch 2026-07-16)',
+    enforcedBy: ['RD-42-holds-are-conveyor'],
+    residual:
+      'E3 increment 1 (queue foundation): migration 207 (hold_resolution_queue + enqueue/record_attempt/exit/escalate) + scripts/lib/hold-queue.mjs + golden hold-queue.golden.mjs (9/9). Subsequent increments: the resolution ladder (existing discovery rung + capture paths + re-ground through the pipeline incl. mint gates), the spend bindings (funded-pass caller: run-lock RD-38, emergencyPaused, $100 bound, holdings-gate, no-gain tripwire), and the drain run. Not armed. Companion doctrine hold-resolution-under-standing-bound lands with the spend bindings.',
+  },
 ];
 
 // Doctrine IDs referenced by `conflicts` must resolve to a real entry (the conflict-ledger integrity check).

@@ -675,6 +675,16 @@ export const INVARIANTS = [
   },
 
   {
+    id: 'RD-42-holds-are-conveyor',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 26: Holds are conveyor, not parking (the hold-resolution loop)',
+    text: 'A hold is a conveyor position, never a parking spot. Every held entity (mint-gate hold, floor hold, hold-to-find, quarantine-with-next-action) is a ROW in hold_resolution_queue (migration 207) with a state (queued/seeking/grounding/exited/escalated) and a per-mechanism attempt log; the Phase E loop drains it (seek -> capture -> re-ground -> exit) and escalates to the operator only at an evidenced dead end, never silently terminal. enqueue is idempotent (one ACTIVE row per entity+class); the SAME mechanism failing TWICE auto-escalates (cycle safety, no infinite seek loops). Persistence is DB state, not a doc. Arming the loop with spend is a SEPARATE operator ruling ($100 bound); the queue + mechanics ship built and proven with the bound unset.',
+    anchor: 'A hold is a conveyor position not a parking spot; every held entity is a queue row the loop drains to exit, escalating only at an evidenced dead end, with cycle-safety on repeat failures',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/hold-queue.golden.mjs', 'migration:207'],
+    residual: 'hold_resolution_queue + hrq_enqueue/record_attempt/exit/escalate (migration 207, APPLIED) wrapped by scripts/lib/hold-queue.mjs. Golden hold-queue.golden.mjs (9/9): idempotent enqueue, cycle-safety auto-escalation on the 2nd same-mechanism failure, exit, re-enqueue-after-exit as a new row, escalate, listActive filtering. INCREMENT 1 of E3 (the queue foundation); the resolution ladder (seek/capture/re-ground rungs), the spend bindings (run-lock RD-38 + emergencyPaused + $100 bound on authoritativeCumulative + holdings-gate + no-gain tripwire), and the drain run are subsequent increments. Not armed (bound unset).',
+  },
+
+  {
     id: 'RD-12-size-cap-doctrine',
     skill: 'remediation-discipline',
     section: 'Section 4 — category 11: The size-cap doctrine (no silent slice on the grounding path)',
