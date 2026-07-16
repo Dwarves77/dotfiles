@@ -89,6 +89,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 ## audits
 
 - [ground-truth-verification-2026-07-15](./audits/ground-truth-verification-2026-07-15.md) — Ground-truth verification of 27 sampled items (~738 facts) gating the coverage-floor spend. Accuracy-defect rate ~3% (ISO 14083 lone systematic-falsehood outlier), dominant defect is PROVENANCE, namely S1 dead-citation (927 T1 facts across 26 items, one 404 EUR-Lex row) plus S2 null-source (455 across 45), both fixable free by re-point and registration. Ruling: HOLD the spend, fund the sweeps. Defines the wave-acceptance QA institution.
+- [remediation-close-2026-07-15](./audits/remediation-close-2026-07-15.md) — Close report for the audit-ruled corpus repair (Tasks 1-11): ISO conflation corrected, 727 dead-cites re-pointed, 671 null-source facts dispositioned, ReFuelEU twin deduped, Q1-Q4 quality cleanup (132 dup facts, tier-machinery stripped from 63 briefs), hold #11 URL fixed. Three-state per defect class; 8 recurrence items routed to hardening (incl. tier-machinery-in-customer-prose, archive-provenance-flip-guard-collision, standard-own-body-exemption-unwired, chrome-capture-adapter); priced re-ground queue enumerated; residual frame ~169 items. $0 unit.
 - [BRIEF-STRUCTURE-AUDIT](./audits/BRIEF-STRUCTURE-AUDIT.md) — Brief Structure Audit
 - [DESIGN-AUDIT-2026-05](./audits/DESIGN-AUDIT-2026-05.md) — Design Audit — Preview vs Live App
 - [E2E-VERIFICATION](./audits/E2E-VERIFICATION.md) — E2E Verification — PRs #20–#23

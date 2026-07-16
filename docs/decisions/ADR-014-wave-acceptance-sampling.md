@@ -1,7 +1,7 @@
 ---
 id: ADR-014
 title: Wave-acceptance sampling — standing ground-truth QA lane on every acquisition wave
-status: proposed
+status: accepted
 date: 2026-07-15
 scope: acquisition/grounding waves, ground-truth verification, coverage-floor spend gating
 supersedes: none
@@ -11,9 +11,20 @@ related: ground-truth-verification-2026-07-15 (audits/), ADR-002 (tier model), A
 # ADR-014 — Wave-acceptance sampling (standing ground-truth QA lane)
 
 ## Status note
-**PROPOSED — awaiting operator ratification of two parameters:** (a) the sample fraction **N**
-(proposed 10%, floor 3 items/wave) and (b) the coverage-floor spend ruling that the 2026-07-15 unit
-gates. On ratification: flip to `accepted`, wire the acceptance check into wave-close, and set N.
+**ACCEPTED — ratified by operator 2026-07-15 (audit-ruled remediation session, Task 8).** Parameters
+locked: **N = 10%, floor 3 items/wave** (`WAVE_ACCEPTANCE_N = 10`). The mechanical half of the lane is
+wired and proven; the live L2/L3 half is spend-gated and deferred until the coverage-floor spend fires.
+
+**Wiring state (honest split, ratified):**
+- WIRED now (mechanical, $0): the pre-scan reporter (`scripts/verify/wave-acceptance-audit.mjs`) is a
+  ratified tool; a golden (`wave-acceptance-audit.golden.mjs`) locks its risk-weighted sample computation
+  + provenance/dedup pre-scan; invariant **QA-1** (invariant registry) asserts a wave cannot record
+  `closed` without a recorded acceptance-sample rate row. The already-proven `defect-signature-scan.mjs`
+  (+ its golden) is the accuracy-signature half.
+- DEFERRED (live, spend-gated): the L2/L3 live-read pass (Chrome live-read of each sampled primary) cannot
+  run at $0; it fires with the coverage-floor spend. Until then, the mechanical pre-scan + signature scan
+  run at wave-close read-only, and the accuracy-rate escalation gate (§4) is enforced from the live pass
+  when spend is authorized. This deferral is NAMED, not silent (QA-1 records "live-pass: deferred/ran").
 
 ## Context (Ground-Truth Verification Unit, operator dispatch 2026-07-15)
 
