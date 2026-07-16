@@ -645,6 +645,36 @@ export const INVARIANTS = [
   },
 
   {
+    id: 'RD-39-suspended-source-unselectable',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 24: Generic/dead source unselectable at ground (nothing-generic sourcing)',
+    text: 'A SUSPENDED source is UNSELECTABLE by the grounding resolver: buildResolver skips status="suspended" rows, so resolveSpan returns {null,null} for a host whose only registry row is suspended. Forecloses re-selection of a generic/dead junk-drawer row as a FACT attribution target (the Task-3-suspended EUR-Lex 404 that was the citation-of-record for 927 facts across 26 items, all over-stamped T1). Only an EXPLICIT "suspended" status is excluded (undefined status stays included — backward-compatible for callers not selecting status). Seam 1 of the generic-source-at-ground hardening; the mint-time null/generic/floor gates (seams 2-3, report-only calibration first) and per-document keying (A2) complete it.',
+    anchor: 'A suspended source is unselectable by the grounding resolver; a dead/generic junk-drawer row can never be re-selected as a FACT attribution target',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/resolver-status-filter.golden.mjs'],
+    residual: 'buildResolver (institution.ts) skips suspended rows; readAllSourcesForResolver selects status. Golden resolver-status-filter.golden.mjs proves suspended-unselectable (positive), active-resolves (negative), active-over-suspended, undefined-status-included (backward-compat). NAMED RESIDUALS: host-collapse (all eur-lex.europa.eu rows share one institution key so a per-instrument tier is not resolved yet) is closed by A2 (per-document keying); the 449 PROVISIONAL sources currently resolving facts (a possible active-only-rule gap) is a flagged finding, not swept into this seam.',
+  },
+
+  {
+    id: 'RD-40-no-fact-on-suspended-source',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 24: Generic/dead source unselectable at ground (nothing-generic sourcing)',
+    text: 'No FACT may ground to a SUSPENDED (generic/dead/junk-drawer) source. Seam 1 makes suspended sources unselectable by the resolver so NEW grounds cannot add to this; RD-40 is the standing TREND guard that the count of FACTs-on-suspended never RISES (a rising count = a new FACT grounded to a suspended source: the resolver filter regressed or a raw write bypassed it). The standing backlog (currently 205: 189 held-to-find on the Task-3-suspended EUR-Lex 404 whose real instrument source was not in the pool, those items quarantined; + 16 on a montreal.ca generic portal) is dispositioned, not a live defect; the audit fails only on an INCREASE vs the recorded floor.',
+    anchor: 'No FACT may ground to a suspended source; the facts-on-suspended count never rises (a new FACT on a suspended source is a regression)',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/no-generic-source-audit.golden.mjs', 'audit:fsi-app/scripts/verify/no-generic-source-audit.mjs'],
+    residual: 'Pure factsOnSuspended goldened (flags facts on suspended sources, not active/null). Live trend audit baselined at 205 (fail on increase; --rebaseline for a deliberate reduction). The 205 backlog is the held-to-find residual (priced re-ground queue), resolving when the real instrument sources register (A2). Null-source facts are a SEPARATE seam-2 mint gate, not this detector.',
+  },
+
+  {
+    id: 'RD-41-mint-gates-report-only',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 25: Mint-time accuracy/provenance gates (LIVE hold, hard vs soft)',
+    text: 'Four gates evaluate every FACT at mint: identity-congruence (S-CONFLATE, per item), span-numerics (S-NUMERIC), authority-floor, generic-source. The evaluator (mint-gates.mjs) is PURE and shared by the pipeline wiring AND the read-only calibration (one implementation). The gates are LIVE (flipped 2026-07-16 on the representative calibration, which CLEARED the 20% stop on all four: S-CONFLATE 0.2%, S-NUMERIC 5.4%, authority-floor 1.7%, generic-source 6.3%; the contaminated 29.6% authority-floor was the sub-floor C3 re-ground sample, not miscalibration). Hold is per-gate: S-CONFLATE is a HARD hold (mint_hold_reason=S-CONFLATE; migration 206 makes validate_item_provenance criterion 3 fail fact_mint_hold so the item is held until re-ground clears it); S-NUMERIC is a SOFT hold (a data_quality integrity_flag routed to live verification; the item STAYS verified-eligible, because S-NUMERIC is dominantly real-but-mis-cited and a hard hold would quarantine correct content); authority-floor + generic-source are ALREADY enforced by the gate (fact_below_authority_floor / null-tier), logged not re-held. NON-REGRESSIVE: mint_hold_reason is null on every pre-flip fact (196 verified, 194 still valid, 2 pre-existing drift unrelated to the flip).',
+    anchor: 'Four mint-time gates evaluate every FACT at mint, LIVE, hold-not-reject: S-CONFLATE hard-holds (mint_hold_reason / fact_mint_hold), S-NUMERIC soft-flags (item stays verified-eligible), authority-floor and generic-source already gated',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/mint-gates.golden.mjs', 'selftest:fsi-app/scripts/verify/mint-gates-live-hold.golden.mjs', 'migration:206'],
+    residual: 'mint-gates.mjs (perFactGates + identityCongruenceHolds) goldened 13/13. The LIVE pipeline wiring (S-CONFLATE marks mint_hold_reason, S-NUMERIC writes a soft integrity_flag, FACT insert unconditional) is proven by mint-gates-live-hold.golden.mjs (12/12) + the migration-206 fact_mint_hold criterion, hard-hold proven live-and-reversibly (a rolled-back set of mint_hold_reason flips the item to valid=false with fact_mint_hold). mint-gate-calibration.mjs (--representative) is the flip-gating number. NAMED RESIDUAL: S-NUMERIC writes one integrity_flag per re-ground (flag lifecycle managed by the Phase E hold-resolution loop). A2 (per-document keying, provisional excluded) scoped by this calibration.',
+  },
+
+  {
     id: 'RD-12-size-cap-doctrine',
     skill: 'remediation-discipline',
     section: 'Section 4 — category 11: The size-cap doctrine (no silent slice on the grounding path)',

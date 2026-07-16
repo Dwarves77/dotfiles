@@ -42,6 +42,7 @@ import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, fin
 import { specForItemType } from "@/lib/agent/extract-registry";
 import { growSourcesFromBrief, parseNewSourcesFromBrief, registerCitedSources, registerPoolHostsForGrounding } from "@/lib/sources/source-growth";
 import { buildResolver, hostOf, hostInstitution, type SourceRow, type Resolver } from "@/lib/sources/institution";
+import { perFactGates, identityCongruenceHolds } from "./mint-gates.mjs";
 import { partitionCitedByHost } from "@/lib/sources/cited-host-gate.mjs";
 import { buildSourceBlocks, authorityFloorFor } from "@/lib/agent/source-blocks.mjs";
 import { floorSources, reattributeToFloor } from "@/lib/agent/floor-attribution.mjs";
@@ -359,7 +360,7 @@ async function surfaceNullTierHosts(
 async function readAllSourcesForResolver(sb: SupabaseClient): Promise<SourceRow[] | null> {
   const all: SourceRow[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await sb.from("sources").select("id, url, base_tier, tier_override").order("id").range(from, from + 999);
+    const { data, error } = await sb.from("sources").select("id, url, base_tier, tier_override, status").order("id").range(from, from + 999);
     if (error) return null;
     if (!data?.length) break;
     all.push(...(data as SourceRow[]));
@@ -1319,6 +1320,13 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   if (allSources == null) return { ok: false, detail: "grounding aborted: sources registry page read failed; resolver would be incomplete -> spurious NULL-stamps" };
   const resolver = buildResolver(allSources);
   const itemFloor = authorityFloorFor(it.item_type);
+  // MINT-GATE REPORT-ONLY (hardening A1 seams 2+4): the four mint gates run over every minted FACT and LOG
+  // would-have-held; they persist nothing differently and hold nothing (report-only until the operator flips
+  // them live on the representative calibration). suspendedSourceIds is redundant with seam-1's resolver
+  // filter (a suspended source is already unselectable so a FACT's source_id is active-or-null), kept for the
+  // gate's own robustness. gateFacts accumulates the minted FACTs for the per-item identity-congruence check.
+  const suspendedSourceIds = new Set((allSources || []).filter((s) => s.status === "suspended").map((s) => s.id));
+  const gateFacts: Array<{ id: string; claim_kind: string; claim_text: string | null; source_span: string | null; source_id: string | null; source_tier_at_grounding: number | null }> = [];
   // Part C / R2: show the grounding extractor the FULL source window (SAME budget builder as synthesis, so a
   // span written from the primary in synthesis is present here too — the atomic span-grounding coupling), and
   // raise the per-section cap so spans match from the back of a long section. Trims announced (no silent cap).
@@ -1499,9 +1507,40 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
     if (insErr) console.warn(`[canonical] claim insert failed for ${itemId} (${c2.claim_kind}/${String(c2.section)}): ${insErr.message}`);
     if (ins) {
       claimIds.push(ins.id);
-      if (isFact) { newFacts += 1; if (itemFloor != null && res.tier != null && res.tier <= itemFloor) newFloorQualifying += 1; }
+      if (isFact) {
+        newFacts += 1;
+        if (itemFloor != null && res.tier != null && res.tier <= itemFloor) newFloorQualifying += 1;
+        // MINT-GATE (hardening A1 flip): accumulate the minted FACT (with its id) for the live per-item gate pass below.
+        gateFacts.push({ id: ins.id, claim_kind: "FACT", claim_text: storedText ?? null, source_span: c2.source_span ?? null, source_id: sourceId, source_tier_at_grounding: res.tier });
+      }
     }
     if (sourceId) citedSourceIds.add(sourceId);
+  }
+  // MINT-GATE LIVE HOLD (hardening A1 flip, operator ruling 2026-07-16). The four gates run over this item's
+  // minted FACTs. S-CONFLATE = HARD hold: mark the conflated FACTs with mint_hold_reason so
+  // validate_item_provenance (criterion 3, fact_mint_hold) holds the item until a re-ground clears it.
+  // S-NUMERIC = SOFT hold: write a per-item integrity_flag routed to live verification (the real-but-mis-cited
+  // class); the item STAYS verified-eligible (no mint_hold_reason). authority-floor + generic-source are
+  // ALREADY enforced by the gate (fact_below_authority_floor / null-tier) so they are logged, not re-held.
+  {
+    const conflateHeldIds = [...identityCongruenceHolds(gateFacts)].filter((x): x is string => typeof x === "string");
+    if (conflateHeldIds.length) {
+      const { error: hErr } = await sb.from("section_claim_provenance").update({ mint_hold_reason: "S-CONFLATE" }).in("id", conflateHeldIds);
+      if (hErr) console.warn(`[mint-gates] S-CONFLATE hold update failed for ${itemId}: ${hErr.message}`);
+    }
+    const numericFacts = gateFacts.filter((f) => perFactGates(f, { itemFloor, suspendedSourceIds })?.spanNumeric);
+    if (numericFacts.length) {
+      const { error: fErr } = await sb.from("integrity_flags").insert({
+        category: "data_quality", subject_type: "item", subject_ref: itemId, status: "open", created_by: "mint_gate_s_numeric",
+        description: `S-NUMERIC soft hold: ${numericFacts.length} FACT claim(s) carry a figure absent from their stored span (real-but-mis-cited class — route to live verification, not content correction). Sample: ${numericFacts.slice(0, 2).map((f) => String(f.claim_text).slice(0, 80)).join(" | ")}`.slice(0, 480),
+      });
+      if (fErr) console.warn(`[mint-gates] S-NUMERIC flag insert failed for ${itemId}: ${fErr.message}`);
+    }
+    let floorN = 0, genericN = 0;
+    for (const f of gateFacts) { const r = perFactGates(f, { itemFloor, suspendedSourceIds }); if (r?.authorityFloor) floorN += 1; if (r?.genericSource) genericN += 1; }
+    if (conflateHeldIds.length || numericFacts.length || floorN || genericN) {
+      console.log(`[mint-gates:live] ${itemId}: ${gateFacts.length} FACTs — HARD-held(conflate)=${conflateHeldIds.length} SOFT-flag(numeric)=${numericFacts.length} already-gated(floor=${floorN} generic=${genericN})`);
+    }
   }
   // LEDGER DOMINANCE GUARD (re-grounds-never-destroy, operator ruling 2026-07-14). A re-ground's new ledger
   // REPLACES the prior one only when it is not WEAKER on any dominance axis (FACT count / floor-qualifying count

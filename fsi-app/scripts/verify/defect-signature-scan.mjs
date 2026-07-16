@@ -29,84 +29,11 @@
 import { createClient } from '@supabase/supabase-js';
 
 export const WAVE2_CUTOFF = '2026-07-13T00:00:00Z'; // exclude items grounded by the concurrent Wave 2
-const REUSE_MIN = 3;         // span reused by at least this many FACT claims to consider S-CONFLATE
-const NAMED_ACTS = ['CountEmissions', 'FuelEU', 'ReFuelEU', 'CBAM', 'EUDR', 'AFIR', 'CSRD', 'ESRS', 'EPBD', 'MEES', 'PPWR'];
 
-// ---------- pure detection (exported for the golden; no DB) ----------
-
-// Extract instrument identifiers named in a claim. Returns a Set of canonical id strings.
-export function extractIdentifiers(claim) {
-  const ids = new Set();
-  const c = String(claim || '');
-  for (const m of c.matchAll(/\b(\d{4}\/\d{1,4})\b/g)) ids.add('EU:' + m[1]);          // 2023/1805
-  for (const m of c.matchAll(/\bISO\s?(\d{3,5})\b/gi)) ids.add('ISO:' + m[1]);          // ISO 14083
-  for (const name of NAMED_ACTS) if (new RegExp('\\b' + name, 'i').test(c)) ids.add('NAME:' + name.toLowerCase());
-  return ids;
-}
-
-// Does the span corroborate a given identifier (beyond title-only, best-effort)?
-export function spanHasIdentifier(span, id) {
-  const s = String(span || '').toLowerCase();
-  if (id.startsWith('EU:')) return s.includes(id.slice(3).toLowerCase());
-  if (id.startsWith('ISO:')) { const n = id.slice(4); return s.includes('iso ' + n) || s.includes('iso' + n) || s.includes(n); }
-  if (id.startsWith('NAME:')) return s.includes(id.slice(5));
-  return false;
-}
-
-// S-CONFLATE over one item's FACT rows [{idx, id, claim_text, source_span}]. Returns hit rows.
-export function detectConflate(facts) {
-  const groups = new Map(); // span -> facts[]
-  for (const f of facts) {
-    const key = String(f.source_span || '').trim();
-    if (!key) continue;
-    (groups.get(key) || groups.set(key, []).get(key)).push(f);
-  }
-  const hits = [];
-  for (const [span, group] of groups) {
-    if (group.length < REUSE_MIN) continue;
-    const ids = new Set();
-    for (const f of group) for (const id of extractIdentifiers(f.claim_text)) ids.add(id);
-    if (ids.size < 2) continue; // needs >= 2 distinct named instruments
-    const absent = [...ids].filter((id) => !spanHasIdentifier(span, id));
-    if (!absent.length) continue;
-    const rationale = `span reused by ${group.length} FACT claims naming {${[...ids].join(', ')}}; absent from span: {${absent.join(', ')}}`;
-    for (const f of group) hits.push({ idx: f.idx, id: f.id, signature: 'S-CONFLATE', rationale });
-  }
-  return hits;
-}
-
-// Extract significant numeric tokens from a claim. Returns [{token, digits}].
-export function extractNumbers(claim) {
-  const c = String(claim || '');
-  const out = [];
-  const push = (token) => {
-    const digits = token.replace(/[^\d]/g, '');
-    if (digits.length >= 2) out.push({ token: token.trim(), digits });
-  };
-  for (const m of c.matchAll(/(?:€|£|\$|EUR|USD|GBP)\s?[\d][\d.,\s]*\d/gi)) push(m[0]);                 // currency
-  for (const m of c.matchAll(/\b\d[\d.,\s]*\d?\s?%/g)) push(m[0]);                                       // percent
-  for (const m of c.matchAll(/\b\d[\d.,\s]*\d?\s?(?:GW|GWh|MW|MWh|tonnes?|tCO2|GT|km|billion|million|bn)\b/gi)) push(m[0]); // unit
-  for (const m of c.matchAll(/\b(?:from|by|before|until|effective|deadline|starting)\s+(?:\d{1,2}\s+\w+\s+)?(20\d{2})\b/gi)) push(m[1]); // obligation year
-  return out;
-}
-
-// S-NUMERIC over one FACT row. Returns a hit or null.
-export function detectNumeric(fact) {
-  const spanDigits = String(fact.source_span || '').toLowerCase().replace(/[\s,]/g, '');
-  for (const { token, digits } of extractNumbers(fact.claim_text)) {
-    if (!spanDigits.includes(digits)) {
-      return { idx: fact.idx, id: fact.id, signature: 'S-NUMERIC', rationale: `figure "${token}" (digits ${digits}) not found in span` };
-    }
-  }
-  return null;
-}
-
-// Scan one item's FACT rows for both signatures.
-export function scanItem(facts) {
-  const hits = [...detectConflate(facts)];
-  for (const f of facts) { const h = detectNumeric(f); if (h) hits.push(h); }
-  return hits;
-}
+// Signature matchers live in the ONE shared module (hardening H3, src/lib/agent/defect-signatures.mjs) so
+// this scan and the mint-time gate share one implementation. Re-exported so the golden + callers keep
+// importing them from here.
+export { REUSE_MIN, NAMED_ACTS, extractIdentifiers, spanHasIdentifier, detectConflate, extractNumbers, detectNumeric, scanItem } from "../../src/lib/agent/defect-signatures.mjs";
 
 // ---------- CLI / DB (not exercised by the golden) ----------
 

@@ -545,6 +545,24 @@ export const DOCTRINES = [
     residual:
       'Migration 205 (funded_pass_runlock + atomic acquire/heartbeat/release) + golden funded-pass-lock-golden.mjs, wired in funded-pass.mjs. Proven live. The lock gates the funded-pass entrypoint; a raw-client DISPOSITION actor (archive/reclassify) is NOT yet gated — the hardening unit H5 (mutation leases) + H6 (attribution + raw-write-path gate) close that residual.',
   },
+  {
+    id: 'no-generic-source-at-ground',
+    statement:
+      'A FACT is never attributed at ground to a generic, dead, or suspended source. Seam 1: the grounding resolver makes suspended sources unselectable (buildResolver skips them). Coming seams: the mint-time gates HOLD a FACT that would resolve to a null/generic/sub-floor source rather than mint it as a clean FACT (report-only calibration first, operator-ruled live-flip), and per-document keying (A2) gives each instrument its own source at its true tier. Forecloses the dominant provenance defect — one generic EUR-Lex junk-drawer row was the citation-of-record for 927 facts, all over-stamped T1 (41 of them Commission proposals that are T2). Gate-first: the faucet closes before the keying backfill reshapes source formation.',
+    source: 'ground-truth verification 2026-07-15 (S1/A6 dominant defect) + remediation close recurrence routing',
+    enforcedBy: ['RD-39-suspended-source-unselectable', 'RD-40-no-fact-on-suspended-source'],
+    residual:
+      'Seam 1 (RD-39): suspended sources unselectable by buildResolver + golden. Seams 2-3 (mint null/generic/floor gates + no-generic fitness invariant) and A2 (per-document keying) extend this doctrine; each lands with its own invariant + golden. The live-flip of the mint gates from report-only to hold is an operator decision on the calibration numbers.',
+  },
+  {
+    id: 'mint-gates-report-only-then-operator-flip',
+    statement:
+      'Four gates evaluate every FACT at mint (identity-congruence, span-numerics, authority-floor, generic-source), hold-not-reject, on ONE pure evaluator shared by the pipeline and the calibration. The flip from report-only to live-hold is an OPERATOR ruling on the REPRESENTATIVE calibration (verified/healthy grounds), never the contaminated most-recent sample and never an agent decision. Flipped LIVE 2026-07-16. Hold is PER-GATE by defect nature: S-CONFLATE is a HARD hold (holds the item); S-NUMERIC is a SOFT hold (flag-for-review, item stays verified-eligible) because it is dominantly real-but-mis-cited and a hard hold would remove correct content; authority-floor + generic-source are already gate-enforced. Any live-flip is non-regressive by construction and proven so.',
+    source: 'hardening A1 seams 2+4 flip (operator ruling 2026-07-16)',
+    enforcedBy: ['RD-41-mint-gates-report-only'],
+    residual:
+      'Flipped LIVE (migration 206 + mint-gates-live-hold.golden.mjs 12/12). S-CONFLATE sets mint_hold_reason -> validate_item_provenance fact_mint_hold; S-NUMERIC writes a data_quality integrity_flag, item stays verified-eligible. Non-regression proven (196 verified, 194 valid, 2 pre-existing drift). Hard-hold proven live-and-reversibly. A2 per-document keying (provisional excluded) scoped by the calibration; Phase E hold-loop drains the held facts + manages the S-NUMERIC flag lifecycle.',
+  },
 ];
 
 // Doctrine IDs referenced by `conflicts` must resolve to a real entry (the conflict-ledger integrity check).
