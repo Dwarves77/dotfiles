@@ -49,6 +49,11 @@ export interface SourceRow {
   base_tier: number | null;
   effective_tier?: number | null;
   tier_override?: number | null;
+  /** Registry status. A 'suspended' source is UNSELECTABLE by the grounding resolver (hardening A1, seam 1):
+   *  a dead / generic junk-drawer row (e.g. the Task-3-suspended EUR-Lex 404 that was the citation-of-record
+   *  for 927 facts) must never be re-selected as a FACT attribution target. Undefined status = included
+   *  (backward-compatible: only an EXPLICIT 'suspended' is excluded). */
+  status?: string | null;
 }
 
 /** Canonical institutional tier for the REG-FACT / GROUNDING-STAMP path = base_tier ONLY (the static
@@ -75,6 +80,11 @@ export function buildResolver(sources: SourceRow[]): Resolver {
   const overrideTierByHost = new Map<string, number>();
   const overrideSourceByHost = new Map<string, string>();
   for (const s of sources) {
+    // SEAM 1 (hardening A1): a suspended source is UNSELECTABLE by the grounding resolver — it populates no
+    // map, so resolveSpan returns {null,null} for a host whose only source is suspended. Closes the generic/
+    // dead junk-drawer re-selection at ground (the Task-3-suspended EUR-Lex 404). Only explicit 'suspended'
+    // is excluded (undefined status stays included — backward-compatible for callers not selecting status).
+    if (s.status === "suspended") continue;
     const h = hostOf(s.url);
     const k = hostInstitution(h);
     if (!k) continue;

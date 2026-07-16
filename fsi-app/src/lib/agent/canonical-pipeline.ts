@@ -359,7 +359,7 @@ async function surfaceNullTierHosts(
 async function readAllSourcesForResolver(sb: SupabaseClient): Promise<SourceRow[] | null> {
   const all: SourceRow[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await sb.from("sources").select("id, url, base_tier, tier_override").order("id").range(from, from + 999);
+    const { data, error } = await sb.from("sources").select("id, url, base_tier, tier_override, status").order("id").range(from, from + 999);
     if (error) return null;
     if (!data?.length) break;
     all.push(...(data as SourceRow[]));
