@@ -675,6 +675,26 @@ export const INVARIANTS = [
   },
 
   {
+    id: 'RD-44-grounding-is-non-destructive',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 26: Non-destructive grounding (comparison, not replacement)',
+    text: 'Grounding is NON-DESTRUCTIVE (operator doctrine 2026-07-16). A new grounding is a COMPARISON against the prior claim ledger, never a delete-and-replace of it. The prior ledger is READ (not deleted); the new grounding is COLLECTED in memory and diffed by claim identity (normalized claim_text); the diff is applied as ADD-new / VERSION-changed (the old attribution preserved in claim_versions, retrievable) / LEAVE-unchanged / LEAVE-not-reproduced (a prior claim the new grounding did not produce is KEPT). No current claim is ever deleted by the ground path. The blanket `section_claim_provenance.delete().eq(intelligence_item_id)` that preceded every re-ground (the destructive overwrite that broke new-vs-old comparison, duplicated work, and was the Wave-2 zeroing path) is REMOVED. The RD-36 dominance guard becomes a PRE-APPLY comparison verdict: a WEAKER re-ground APPLIES NOTHING (the prior ledger was never deleted, so it is intact by construction — no delete-then-restore) and records the finding. This SUBSUMES the deferred H2 atomic-ground-writes item: non-destructive is strictly stronger than atomic — an interrupted ground leaves the prior ledger fully intact because there is no zeroing window (no zeroing).',
+    anchor: 'Grounding is non-destructive: a new grounding is a comparison against the prior ledger, never a replacement; no current claim is deleted by a re-ground',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/non-destructive-grounding.golden.mjs', 'migration:208'],
+    residual: 'ledger-apply.mjs (diffLedger pure + applyLedgerDiff DB) wired into groundBrief (canonical-pipeline.ts): the prior-ledger read adds id + mint_hold_reason, the insert loop collects `incoming` instead of inserting, the dominance verdict runs pre-apply (apply-nothing on regression), applyLedgerDiff applies add/version/leave. Migration 208 adds claim_versions (append-only history, SOFT refs so history survives current-row/item deletion). Golden non-destructive-grounding.golden.mjs (32/32, in-memory fake sb) proves add-without-destroy, version-changed-old-retrievable, reproduce-nothing-untouched, interrupted-leaves-complete (+ structural: ground path has no blanket delete), and non-regression zero-claim-loss over a 10-claim fixture. NAMED RESIDUAL: a section-reconcile that legitimately DROPS a section_key still cascade-deletes that key\'s claims via the section FK (pre-existing, same edge RD-36 names); the ground step itself never deletes. Backward re-ground of the existing corpus now safe (preserves ledgers) — the paid drain resumes behind this.',
+  },
+
+  {
+    id: 'RD-45-erase-only-on-proven-inaccuracy',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 26: Non-destructive grounding (comparison, not replacement)',
+    text: 'A current claim is ERASED only on PROVEN inaccuracy — the new grounding proves the old claim wrong against the primary (its span contradicts the enacted text, or its source is superseded) — never because a regeneration failed to reproduce it. eraseClaimWithProof is the SINGLE erase path: it requires a proof object (a `reason` plus the contradicting evidence), archives the claim\'s final state WITH the proof to claim_versions, and only THEN deletes the current row — FAIL-CLOSED (if the proof archive fails, the delete never runs, so a claim and its proof are never lost). The ground path never calls it: grounding cannot erase anything. Migration 208 enforces the proof at the DB (a proven_inaccurate archive row MUST carry inaccuracy_proof). This is the erase half of the preserve-not-overwrite rule: data is saved and only erased when it is inaccurate, with the reason recorded.',
+    anchor: 'A claim is erased only on proven inaccuracy, with its proof preserved; never because a regeneration failed to reproduce it',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/non-destructive-grounding.golden.mjs', 'migration:208'],
+    residual: 'eraseClaimWithProof (ledger-apply.mjs) refuses without a proof, archives-then-deletes fail-closed. Golden case 5 proves: erased-row-removed, archived-with-proof-retrievable, other-claims-untouched, REFUSES-without-proof, and FAIL-CLOSED (a simulated archive failure aborts the erase, claim retained). Migration 208 constraint claim_versions_proof_required enforces the proof at the DB. NAMED RESIDUAL: the AUTOMATIC proven-inaccurate DETECTOR (a grounding that programmatically decides an old claim is contradicted) is NOT built — erasure is a deliberate, proof-carrying action, so grounding conservatively KEEPS not-reproduced claims (never auto-erases); wiring an automatic contradiction judge onto this erase path is the future strengthening.',
+  },
+
+  {
     id: 'RD-12-size-cap-doctrine',
     skill: 'remediation-discipline',
     section: 'Section 4 — category 11: The size-cap doctrine (no silent slice on the grounding path)',
