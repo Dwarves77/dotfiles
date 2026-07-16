@@ -550,7 +550,7 @@ export const DOCTRINES = [
     statement:
       'A FACT is never attributed at ground to a generic, dead, or suspended source. Seam 1: the grounding resolver makes suspended sources unselectable (buildResolver skips them). Coming seams: the mint-time gates HOLD a FACT that would resolve to a null/generic/sub-floor source rather than mint it as a clean FACT (report-only calibration first, operator-ruled live-flip), and per-document keying (A2) gives each instrument its own source at its true tier. Forecloses the dominant provenance defect — one generic EUR-Lex junk-drawer row was the citation-of-record for 927 facts, all over-stamped T1 (41 of them Commission proposals that are T2). Gate-first: the faucet closes before the keying backfill reshapes source formation.',
     source: 'ground-truth verification 2026-07-15 (S1/A6 dominant defect) + remediation close recurrence routing',
-    enforcedBy: ['RD-39-suspended-source-unselectable'],
+    enforcedBy: ['RD-39-suspended-source-unselectable', 'RD-40-no-fact-on-suspended-source'],
     residual:
       'Seam 1 (RD-39): suspended sources unselectable by buildResolver + golden. Seams 2-3 (mint null/generic/floor gates + no-generic fitness invariant) and A2 (per-document keying) extend this doctrine; each lands with its own invariant + golden. The live-flip of the mint gates from report-only to hold is an operator decision on the calibration numbers.',
   },
