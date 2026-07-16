@@ -557,11 +557,11 @@ export const DOCTRINES = [
   {
     id: 'mint-gates-report-only-then-operator-flip',
     statement:
-      'Four gates evaluate every FACT at mint (identity-congruence, span-numerics, authority-floor, generic-source), hold-not-reject. They ship REPORT-ONLY: log would-have-held with reasons, change nothing, hold nothing. The flip from report-only to live-hold is an OPERATOR ruling made on the REPRESENTATIVE calibration number (verified/healthy grounds), never the contaminated most-recent sample and never an agent decision. The evaluator is one pure implementation shared by the pipeline wiring and the read-only calibration.',
-    source: 'hardening A1 seams 2+4 (operator dispatch 2026-07-16)',
+      'Four gates evaluate every FACT at mint (identity-congruence, span-numerics, authority-floor, generic-source), hold-not-reject, on ONE pure evaluator shared by the pipeline and the calibration. The flip from report-only to live-hold is an OPERATOR ruling on the REPRESENTATIVE calibration (verified/healthy grounds), never the contaminated most-recent sample and never an agent decision. Flipped LIVE 2026-07-16. Hold is PER-GATE by defect nature: S-CONFLATE is a HARD hold (holds the item); S-NUMERIC is a SOFT hold (flag-for-review, item stays verified-eligible) because it is dominantly real-but-mis-cited and a hard hold would remove correct content; authority-floor + generic-source are already gate-enforced. Any live-flip is non-regressive by construction and proven so.',
+    source: 'hardening A1 seams 2+4 flip (operator ruling 2026-07-16)',
     enforcedBy: ['RD-41-mint-gates-report-only'],
     residual:
-      'mint-gates.mjs goldened 13/13; mint-gate-calibration.mjs read-only. Representative calibration clears the 20% stop on all gates (max 6.3%, overall 13.2%). Report-only wiring in canonical-pipeline logs would-have-held. The live-flip is HELD for the operator; A2 per-document keying is scoped by this calibration and waits behind the flip.',
+      'Flipped LIVE (migration 206 + mint-gates-live-hold.golden.mjs 12/12). S-CONFLATE sets mint_hold_reason -> validate_item_provenance fact_mint_hold; S-NUMERIC writes a data_quality integrity_flag, item stays verified-eligible. Non-regression proven (196 verified, 194 valid, 2 pre-existing drift). Hard-hold proven live-and-reversibly. A2 per-document keying (provisional excluded) scoped by the calibration; Phase E hold-loop drains the held facts + manages the S-NUMERIC flag lifecycle.',
   },
 ];
 

@@ -1326,7 +1326,7 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   // filter (a suspended source is already unselectable so a FACT's source_id is active-or-null), kept for the
   // gate's own robustness. gateFacts accumulates the minted FACTs for the per-item identity-congruence check.
   const suspendedSourceIds = new Set((allSources || []).filter((s) => s.status === "suspended").map((s) => s.id));
-  const gateFacts: Array<{ claim_kind: string; claim_text: string | null; source_span: string | null; source_id: string | null; source_tier_at_grounding: number | null }> = [];
+  const gateFacts: Array<{ id: string; claim_kind: string; claim_text: string | null; source_span: string | null; source_id: string | null; source_tier_at_grounding: number | null }> = [];
   // Part C / R2: show the grounding extractor the FULL source window (SAME budget builder as synthesis, so a
   // span written from the primary in synthesis is present here too — the atomic span-grounding coupling), and
   // raise the per-section cap so spans match from the back of a long section. Trims announced (no silent cap).
@@ -1487,8 +1487,6 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
     // FACT path (res.sourceId, NULL when unregistered/no-span). Grounded ANALYSIS attributes per-span like
     // FACT; pure-inference / GAP keep the ledger source_id (or item primary).
     const sourceId = isFact ? res.sourceId : (spanUrl ? (res.sourceId ?? c2.source_id ?? it.source_id) : (c2.source_id || it.source_id));
-    // report-only: accumulate the minted FACT for the mint-gate would-have-held report (below); no behavior change.
-    if (isFact) gateFacts.push({ claim_kind: "FACT", claim_text: storedText ?? null, source_span: c2.source_span ?? null, source_id: sourceId, source_tier_at_grounding: res.tier });
     // Ruling-5: a FACT that STILL resolves to a null tier (host not in the registry even after floor-first
     // re-attribution) is exactly the "unregistered authoritative host" signal — aggregate it per host.
     if (isFact && res.tier == null && effectiveSpanUrl) {
@@ -1509,24 +1507,39 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
     if (insErr) console.warn(`[canonical] claim insert failed for ${itemId} (${c2.claim_kind}/${String(c2.section)}): ${insErr.message}`);
     if (ins) {
       claimIds.push(ins.id);
-      if (isFact) { newFacts += 1; if (itemFloor != null && res.tier != null && res.tier <= itemFloor) newFloorQualifying += 1; }
+      if (isFact) {
+        newFacts += 1;
+        if (itemFloor != null && res.tier != null && res.tier <= itemFloor) newFloorQualifying += 1;
+        // MINT-GATE (hardening A1 flip): accumulate the minted FACT (with its id) for the live per-item gate pass below.
+        gateFacts.push({ id: ins.id, claim_kind: "FACT", claim_text: storedText ?? null, source_span: c2.source_span ?? null, source_id: sourceId, source_tier_at_grounding: res.tier });
+      }
     }
     if (sourceId) citedSourceIds.add(sourceId);
   }
-  // MINT-GATE REPORT-ONLY report (hardening A1 seams 2+4): would-have-held per gate over this item's minted
-  // FACTs. Logs only; changes nothing, holds nothing. The live-flip to hold is an OPERATOR ruling on the
-  // representative calibration (mint-gate-calibration.mjs --representative), never an agent decision.
+  // MINT-GATE LIVE HOLD (hardening A1 flip, operator ruling 2026-07-16). The four gates run over this item's
+  // minted FACTs. S-CONFLATE = HARD hold: mark the conflated FACTs with mint_hold_reason so
+  // validate_item_provenance (criterion 3, fact_mint_hold) holds the item until a re-ground clears it.
+  // S-NUMERIC = SOFT hold: write a per-item integrity_flag routed to live verification (the real-but-mis-cited
+  // class); the item STAYS verified-eligible (no mint_hold_reason). authority-floor + generic-source are
+  // ALREADY enforced by the gate (fact_below_authority_floor / null-tier) so they are logged, not re-held.
   {
-    const congruenceHeld = identityCongruenceHolds(gateFacts);
-    const g = { identityCongruence: congruenceHeld.size, spanNumeric: 0, authorityFloor: 0, genericSource: 0 };
-    for (const f of gateFacts) {
-      const r = perFactGates(f, { itemFloor, suspendedSourceIds });
-      if (r?.spanNumeric) g.spanNumeric += 1;
-      if (r?.authorityFloor) g.authorityFloor += 1;
-      if (r?.genericSource) g.genericSource += 1;
+    const conflateHeldIds = [...identityCongruenceHolds(gateFacts)].filter((x): x is string => typeof x === "string");
+    if (conflateHeldIds.length) {
+      const { error: hErr } = await sb.from("section_claim_provenance").update({ mint_hold_reason: "S-CONFLATE" }).in("id", conflateHeldIds);
+      if (hErr) console.warn(`[mint-gates] S-CONFLATE hold update failed for ${itemId}: ${hErr.message}`);
     }
-    if (gateFacts.length && (g.identityCongruence || g.spanNumeric || g.authorityFloor || g.genericSource)) {
-      console.log(`[mint-gates:report-only] ${itemId}: ${gateFacts.length} FACTs — would-hold identity=${g.identityCongruence} numeric=${g.spanNumeric} floor=${g.authorityFloor} generic=${g.genericSource} (report-only; nothing held)`);
+    const numericFacts = gateFacts.filter((f) => perFactGates(f, { itemFloor, suspendedSourceIds })?.spanNumeric);
+    if (numericFacts.length) {
+      const { error: fErr } = await sb.from("integrity_flags").insert({
+        category: "data_quality", subject_type: "item", subject_ref: itemId, status: "open", created_by: "mint_gate_s_numeric",
+        description: `S-NUMERIC soft hold: ${numericFacts.length} FACT claim(s) carry a figure absent from their stored span (real-but-mis-cited class — route to live verification, not content correction). Sample: ${numericFacts.slice(0, 2).map((f) => String(f.claim_text).slice(0, 80)).join(" | ")}`.slice(0, 480),
+      });
+      if (fErr) console.warn(`[mint-gates] S-NUMERIC flag insert failed for ${itemId}: ${fErr.message}`);
+    }
+    let floorN = 0, genericN = 0;
+    for (const f of gateFacts) { const r = perFactGates(f, { itemFloor, suspendedSourceIds }); if (r?.authorityFloor) floorN += 1; if (r?.genericSource) genericN += 1; }
+    if (conflateHeldIds.length || numericFacts.length || floorN || genericN) {
+      console.log(`[mint-gates:live] ${itemId}: ${gateFacts.length} FACTs — HARD-held(conflate)=${conflateHeldIds.length} SOFT-flag(numeric)=${numericFacts.length} already-gated(floor=${floorN} generic=${genericN})`);
     }
   }
   // LEDGER DOMINANCE GUARD (re-grounds-never-destroy, operator ruling 2026-07-14). A re-ground's new ledger
