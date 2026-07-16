@@ -19,7 +19,7 @@ import { createClient } from "@supabase/supabase-js";
 import { hostname } from "node:os";
 import { withArmedLock, authoritativeCumulative, totalBoundHalt, isRunaway } from "./lib/funded-pass-core.mjs";
 import { acquireRunLock, heartbeatRunLock, releaseRunLock, emergencyPaused, HEARTBEAT_MIN_MS } from "./lib/funded-pass-lock.mjs";
-import { listActive, recordAttempt, exit as hrqExit } from "./lib/hold-queue.mjs";
+import { listActive, recordAttempt, exit as hrqExit, escalate as hrqEscalate } from "./lib/hold-queue.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));
@@ -31,7 +31,49 @@ const ITEM_TIMEOUT_MS = 1_200_000;
 
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const P = await jiti.import("../src/lib/agent/canonical-pipeline.ts");
+const { buildResolver } = await jiti.import("../src/lib/sources/institution.ts");
+const { authorityFloorFor } = await jiti.import("../src/lib/agent/source-blocks.mjs");
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+
+// ── CHECK-EXISTING PRE-GATE (retrieval-before-spend, mechanized): NO paid re-ground fires until the item
+// proves it (a) is not a duplicate of a verified item, (b) is not resolvable at $0 (correct source already
+// registered), AND (c) has the RESOLUTION DATA in its own pool (a floor-qualifying source). Otherwise the
+// paid pass is BLOCKED and the hold is escalated or re-stamped at $0. This is the gate that was missing.
+async function readAllSources() {
+  const all = []; for (let from = 0; ; from += 1000) { const { data } = await sb.from("sources").select("id, url, base_tier, tier_override, status").order("id").range(from, from + 999); if (!data?.length) break; all.push(...data); if (data.length < 1000) break; } return all;
+}
+const RESOLVER = buildResolver(await readAllSources());
+async function poolHasFloorSource(itemId, itemFloor) {
+  if (itemFloor == null) return true; // floor-exempt types: the floor gate does not apply
+  const { data: pool } = await sb.from("agent_run_searches").select("result_url").eq("intelligence_item_id", itemId);
+  for (const p of pool || []) { const r = RESOLVER.resolveSpan(p.result_url || ""); if (r.tier != null && r.tier <= itemFloor) return true; }
+  return false;
+}
+/** Verdict BEFORE any spend. { verdict: 'free_restamp'|'reground'|'escalate', reason } */
+async function checkExisting(id, holdClass) {
+  const { data: it } = await sb.from("intelligence_items").select("item_type, source_url, source_id, canonical_instrument_key").eq("id", id).single();
+  // (a) duplicate of an already-verified item -> do not re-ground; escalate for dedup
+  if (it?.canonical_instrument_key) {
+    const { data: dup } = await sb.from("intelligence_items").select("id").eq("canonical_instrument_key", it.canonical_instrument_key).eq("provenance_status", "verified").eq("is_archived", false).neq("id", id).limit(1);
+    if (dup?.length) return { verdict: "escalate", reason: `duplicate of verified item ${dup[0].id} (dedup, do not re-ground)` };
+  }
+  // (b) resolvable at $0: item source_id points to a non-active source but a correct ACTIVE source is already
+  // registered -> a $0 re-point resolves it, NOT a paid re-ground (the EU 2023/959 pattern). Surface it; the
+  // loop never spends on this class.
+  if (it?.source_id) {
+    const { data: cur } = await sb.from("sources").select("status").eq("id", it.source_id).single();
+    if (cur && cur.status !== "active" && it.source_url) {
+      const active = (await readAllSources()).find((s) => s.status === "active" && canon(s.url) === canon(it.source_url));
+      if (active) return { verdict: "escalate", reason: `resolvable at $0: re-point to already-registered source ${active.id} (guarded re-point, no re-ground)` };
+    }
+  }
+  // (c) resolution data present? a paid re-ground can only help a floor hold if a floor-qualifying source is in the pool
+  const itemFloor = authorityFloorFor(it?.item_type);
+  if (holdClass === "floor" && !(await poolHasFloorSource(id, itemFloor)))
+    return { verdict: "escalate", reason: "no floor-qualifying source in the pool; seek rung (fetch) blocked by scrape-hold — needs a registered source, not a paid re-ground" };
+  return { verdict: "reground", reason: "resolution data present in pool (or non-floor class)" };
+}
+function canon(u) { return String(u || "").toLowerCase().replace(/^https?:\/\/(www\.)?/, "").replace(/[/.,;:]+$/, ""); }
 const nowIso = () => new Date().toISOString();
 const withTimeout = (p, ms, label) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(`item timeout ${ms}ms (${label})`)), ms))]);
 
@@ -65,8 +107,16 @@ async function main() {
   const rows = (await listActive(sb, { limit: 500 })).filter((r) => r.entity_type === "item").slice(0, LIMIT);
   console.log(`\n=== HOLD-LOOP (${APPLY ? "APPLY — LOCK ARMED, SPEND" : "DRY — $0"}) === ${rows.length} active item-hold(s), bound=${BOUND != null ? `$${BOUND}` : "none"}`);
   if (!APPLY) {
-    for (const r of rows) console.log(`  [${r.hold_class}] ${r.entity_ref} — ${String(r.next_action).slice(0, 70)}`);
-    console.log(`\n(dry) --apply --bound=<usd> to drain. No standing default bound.`);
+    // $0: run the check-existing pre-gate over every held item and report the verdict split. This proves what
+    // the loop WOULD spend on (only 'reground' verdicts) vs escalate free — with no spend.
+    const tally = { reground: 0, escalate: 0 };
+    for (const r of rows) {
+      const ce = await checkExisting(r.entity_ref, r.hold_class);
+      tally[ce.verdict === "reground" ? "reground" : "escalate"] += 1;
+      console.log(`  [${r.hold_class}] ${String(r.entity_ref).slice(0, 8)} -> ${ce.verdict === "reground" ? "RE-GROUND (pool has resolution data)" : `ESCALATE $0 (${ce.reason.slice(0, 64)})`}`);
+    }
+    console.log(`\n(dry, $0) check-existing verdict: RE-GROUND(paid)=${tally.reground}  ESCALATE($0)=${tally.escalate} of ${rows.length}`);
+    console.log(`the paid drain would spend ONLY on the ${tally.reground} items whose resolution data is already in-pool. --apply --bound=<usd> to run.`);
     return;
   }
   if (BOUND == null || !(BOUND > 0)) { console.error("REFUSED: --apply requires an operator --bound=<usd> (the standing resolution bound). No default."); process.exit(5); }
@@ -86,7 +136,17 @@ async function main() {
         const spent = await cumulativeSince(runStart);
         const bh = totalBoundHalt(spent, BOUND); if (bh) { runHalt = bh; break; }
         const id = row.entity_ref;
-        process.stdout.write(`\n[${row.hold_class}] ${String(id).slice(0, 8)} [$${spent.toFixed(2)}/${BOUND}] ... `);
+        // CHECK-EXISTING pre-gate (retrieval-before-spend, mechanized): the loop NEVER spends until the item
+        // proves it is NOT a duplicate, NOT resolvable at $0, and HAS the resolution data in its pool.
+        // Otherwise the paid pass is BLOCKED and the hold escalated at $0. This is the gate that was missing.
+        const ce = await checkExisting(id, row.hold_class);
+        if (ce.verdict !== "reground") {
+          await hrqEscalate(sb, row.id, ce.reason);
+          escalated += 1;
+          console.log(`\n[${row.hold_class}] ${String(id).slice(0, 8)} ESCALATE ($0, no spend): ${ce.reason}`);
+          continue;
+        }
+        process.stdout.write(`\n[${row.hold_class}] ${String(id).slice(0, 8)} [$${spent.toFixed(2)}/${BOUND}] reground ... `);
         const before = await factCount(id);
         let r;
         try { r = await withTimeout(reground(id), ITEM_TIMEOUT_MS, id); }
