@@ -161,3 +161,31 @@ eu_clean_trucking primary re-acquired (Session A #1) — EUR-Lex 32024R1610 tier
 FINDING: eu-csrd is TWO items — transport-provisions (9c5d1d17, no brief/0 claims) + transport-sector-implementation — BOTH canonical 32022L2464 = DUPLICATES (dedup judgment, not a drain). Surfaced.
 
 STATUS: drain count 4 (unchanged), corpus 202 verified / 33 quarantined, census 655/655, spend ~$0.26, lease state (session A) clean. Census infra committed+pushed (629dea9e). Archive endgame NOT started (awaiting operator ruling).
+
+## 2026-07-16 — COMPACT-PREP HANDOFF (parallel drain, full state)
+
+WORKTREE SEPARATION (operator ruling): every parallel session gets its OWN worktree, shared object store, NEVER a shared working directory.
+- SESSION A (this): dir C:/Users/jason/dotfiles  (fsi-app subdir), branch corpus-integrity/cc-grounding-executor.
+- SESSION B: dir C:/Users/jason/dotfiles/.worktrees/wt-session-b (fsi-app subdir), branch corpus-integrity/cc-grounding-executor-b. B RELAUNCHES INTO THIS PATH.
+- Both mutate the SAME Supabase DB (leases arbitrate); code lands on separate branches, both push, converge to master.
+
+CURRENT STATE:
+- Drain count (session A): 4 verified via free/hand path (782878c0 UK SAF, af277afd IEA, 55f90df0 IMO MEPC.338(76), 4ff5cf56 Wyoming CCR). Live corpus: 202 verified / 33 quarantined.
+- CENSUS COMPLETE: corpus_census 655/655 (235 live: 202 verified+33 quarantined; 420 archived: 364 archive_correct + 56 review_valuable). Spend ~$0.26. Audit gate 10/10; sample-verify gate 20/20 -> archive_correct class TRUSTWORTHY.
+- eu-csrd DEDUP done: empty shell tombstoned+deleted into survivor f0833999 (canonical 32022L2464 preserved). Survivor drains normally (Session A queue).
+- eu_clean_trucking: correct EUR-Lex 32024R1610 primary re-acquired + id-confirmed + repointed (lease); 0-claim brief needs a FULL grounding pass (residual).
+
+INFRA BUILT THIS ARC (migrations 209-213, all APPLIED + pushed, meta-gate green):
+- 209 set_provenance_status AFTER DELETE (version-out recomputes status). 210 orphaned_no_prose_referent (3rd exit). 211 drain_worklist + mutation_leases (H5). 212 corpus_census. 213 disposition_ledger (tombstone).
+- Doctrines: RD-46 primary-text-permanent, RD-47 pipeline-not-executor (+executor-universality), RD-48 target-instrument-match; erase-only-on-proven-inaccuracy 3-exit taxonomy (proven_inaccurate / orphaned_no_prose_referent / relabel-to-ANALYSIS).
+- Goldens: executor-parity, primary-text-permanent, target-match, drain-clear-two-condition (13/13), mutation-lease (10/10).
+
+TOOLING (scripts/_reground): drain-pull (dump item+slots+capture), drain-clear (THREE-EXIT version-out, lease-wired, dry-run default), executor-ground (inject ledger, $0), acquire-primary (generic free re-acquire under lease, id-confirm-before-write), restore-overclear, lane-split (worklist classifier), census-run (--audit N then --run, spend-guard), tombstone-delete (lease->tombstone->guarded delete). scripts/lib/mutation-lease.mjs.
+
+PENDING WORKSTREAMS:
+1. ARCHIVE ENDGAME (gated-green): ~300 archive_correct in content-survives-in-source buckets (reclassified_to_source/portal_artifact/source_not_item/error_page_artifact/duplicate_*) -> tombstone-delete.mjs per bucket (build a bucket driver that selects corpus_census haiku_verdict=archive_correct + deletable archive_reason, runs tombstone-delete). off_vertical/Repealed/Superseded/non_regulatory HOLD (never delete accurate data). Target: zero archived.
+2. 56 REVIEW_VALUABLE: per-item content read UNDER LEASE -> RESTORE-to-live (enters drain_worklist as quarantined; RESTORES ARE PRIORITY) / CONFIRM-archived (annotate why) / HOLD-with-evidence. Then those confirmed-archived also tombstone-delete.
+3. SESSION A judgment queue: eu_clean_trucking full grounding pass, then the 14 sub-floor/conflation items (drain_worklist lane A, target-match not id-confirmed / non-mechanical failures) -> re-acquire correct primary (acquire-primary) or resolve conflation, then drain-clear three-exit.
+4. SESSION B promotion/acquisition lane: 13 subject-matched (id-stamp from staged capture -> id-confirmed -> drain-clear) + 6 no-primary re-acquisitions (acquire-primary). Reassign genuine-judgment items back to Lane A.
+
+STANDING RULES: leases on every item (release at bank), push at every bank (CI green on GitHub), three sanctioned exits only, tombstone-then-delete for archive deletions, id-confirm before clearance (never subject-overlap-grade), audit-gate->spend-guard->batch for metered classification, never delete accurate data, no legal role determination. Lease state (session A): clean.
