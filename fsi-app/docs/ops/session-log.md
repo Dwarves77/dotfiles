@@ -46,3 +46,24 @@ BUILD PLAN (staged, next-in-chain, with locations):
 7. PARITY GOLDEN (addendum 2 rule 4): one fixture item end-to-end via executor-ground.mjs (CC) AND via groundBrief (metered) -> equivalent snapshot behavior, pool rows, gate outcomes on the same candidates, coverage-ledger form. This is the driver-interchange proof + the doctrine-binds-to-pipeline invariant.
 
 DRAIN STATE (resume): 2 verified (o9 14590299, w4_ca_sb261 2d2cd311), $0 beyond the prior $0.56. 13 staged subject-matched (groundable next: 4ff5cf56,55f90df0,canada-clean-fuel,87ed781c,b6b7eb7d,la-eweo,uae-netzero,o13,nashville,eu-csrd,japan-gx-freight). HOLDS: eu_clean_trucking(wrong primary=CSRD not 32024R1610), 576554b3+ad4cc6c6(wrong-instrument), 0ea6a710(no real primary), +19 Chrome-needed. Target-match-verify EACH capture (subject markers) before grounding; tighten the 0.4 threshold (eu_clean_trucking slipped at 2/5).
+
+## 2026-07-16/17 — EXECUTOR-AGNOSTIC INFRASTRUCTURE (increments 1-2 landed, meta-gate green)
+
+Built the addenda infrastructure "confirmed-or-built before the drain proceeds," two committed increments on branch corpus-integrity/cc-grounding-executor.
+
+INCREMENT 1 (commit 2066571f) — doctrines + parity golden:
+- Doctrine primary-text-is-permanent -> RD-46 (primary-text-permanent.golden 7/7 + migration 052): raw_fetches append-only by content-addressing in shared writeSnapshot; changed re-capture = new versioned snapshot, never overwrite. Document-level twin of grounding-is-non-destructive.
+- Doctrine doctrine-binds-to-pipeline-not-executor -> RD-47 (executor-parity.golden 13/13): STRUCTURAL proof over canonical-pipeline.ts that CC + metered drivers are interchangeable — driver-identity var read EXACTLY 4x (1 decl + 3 allowlisted skip-points: acquire-lock, extraction pivot, dominance-guard), drivers unify at `claims = injected ?? extractClaimLedgerLenient`, judgment core (kept-filter..applyLedgerDiff) is driver-blind. A 4th divergence or any core branch on driver identity is RED.
+- Skill categories 27+28; marker baseline 38->39.
+
+INCREMENT 2 (commit a456c755) — target-match verify gate (the drain-loop wrong-instrument finding):
+- src/lib/sources/target-match.mjs (PURE, reuses identifier-variants.mjs): verifyTargetMatch/verifyPoolTargetMatch. Own-identifier presence (EU CELEX/pair-key or raw non-EU token like SB-261) = MATCH; else subject overlap over RAISED 0.6 threshold. HARD MISMATCH only when the pool bears a DIFFERENT instrument id and the item's own id is absent with no matching block (never over-holds; never false-holds an item that merely references others). UNVERIFIED = soft flag.
+- WIRED at the SHARED groundBrief fetched-pool chokepoint BEFORE the extraction pivot (canonical-pipeline.ts), so BOTH executors inherit it (satisfies RD-47). MISMATCH -> held + data_integrity flag; UNVERIFIED -> coverage_gap flag, grounds under downstream gates.
+- target-match.golden.mjs (18/18) incl. RED eu_clean_trucking (CSRD capture -> MISMATCH) + wiring proof. -> RD-48, doctrine capture-must-be-the-items-own-instrument.
+- PROVEN ON REAL DATA (scripts/_reground/target-match-probe.mjs, read-only, 30 staged captures): eu_clean_trucking sole MISMATCH; 6 thin held UNVERIFIED; 23 MATCH (576554b3/canada correctly matched, not false-held). tsc clean.
+
+FINDING (surfaced, not papered): many items lack canonical_instrument_key, so target-match falls to the weaker subject-overlap check for them — an A2 (per-document keying) data-completeness gap. Backfilling identifiers would strengthen the gate and let UNVERIFIED harden from soft to held.
+
+BUILD-PLAN STATUS (the 7 addendum items): #1 doctrines DONE, #7 parity golden DONE, #6 portal-link-follow the DEFENSIVE half is now covered (target-match HOLDS a portal/wrong capture) — the OFFENSIVE half (auto-navigate portal->enacted via extractPortalLinks in fetchPrimaryWithFallback: a portal is NOT roadblocked, needs a new non-roadblock branch) REMAINS. #2 COVERAGE-LEDGER, #3 DIFF-ON-RECAPTURE+TWO-LAYER, #4 NO-CHANGE-PROOF (content-addressing already detects hash-identical; the "verified unchanged as of date" stamp is unwired), #5 MONITORING MACHINERY (unarmed) — the document-baseline change-detection subsystem, all steady-state (matter for re-capture over time, not the initial free drain), best built as one coherent block next.
+
+DRAIN STATE (unchanged): 2 verified via free loop (o9 14590299, w4_ca_sb261 2d2cd311), $0 beyond prior $0.56. 30 staged captures now carry target-match verdicts (probe output). NEXT DRAIN ITEM: a MATCH-verdict staged item (e.g. 4ff5cf56, 55f90df0, b6b7eb7d — all subject-overlap MATCH) via executor-ground.mjs; the target-match gate now runs automatically inside groundBrief. eu_clean_trucking stays HELD (re-acquire 32024R1610). Persistence Contract: this file, 2026-07-16 entry. Adapter: scripts/_reground/executor-ground.mjs + the injectedLedger seam.
