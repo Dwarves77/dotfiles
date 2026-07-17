@@ -67,3 +67,24 @@ FINDING (surfaced, not papered): many items lack canonical_instrument_key, so ta
 BUILD-PLAN STATUS (the 7 addendum items): #1 doctrines DONE, #7 parity golden DONE, #6 portal-link-follow the DEFENSIVE half is now covered (target-match HOLDS a portal/wrong capture) — the OFFENSIVE half (auto-navigate portal->enacted via extractPortalLinks in fetchPrimaryWithFallback: a portal is NOT roadblocked, needs a new non-roadblock branch) REMAINS. #2 COVERAGE-LEDGER, #3 DIFF-ON-RECAPTURE+TWO-LAYER, #4 NO-CHANGE-PROOF (content-addressing already detects hash-identical; the "verified unchanged as of date" stamp is unwired), #5 MONITORING MACHINERY (unarmed) — the document-baseline change-detection subsystem, all steady-state (matter for re-capture over time, not the initial free drain), best built as one coherent block next.
 
 DRAIN STATE (unchanged): 2 verified via free loop (o9 14590299, w4_ca_sb261 2d2cd311), $0 beyond prior $0.56. 30 staged captures now carry target-match verdicts (probe output). NEXT DRAIN ITEM: a MATCH-verdict staged item (e.g. 4ff5cf56, 55f90df0, b6b7eb7d — all subject-overlap MATCH) via executor-ground.mjs; the target-match gate now runs automatically inside groundBrief. eu_clean_trucking stays HELD (re-acquire 32024R1610). Persistence Contract: this file, 2026-07-16 entry. Adapter: scripts/_reground/executor-ground.mjs + the injectedLedger seam.
+
+## 2026-07-16 — DRAIN (ratio-rule session): 3 items drained, DELETE-trigger root-gap fix
+
+Per operator DRAIN-FIRST ruling. Items DRAINED to verified this session (all $0, free executor path):
+- 782878c0 (UK SAF RTFO Order 2024) — crit-5 missing-slot: injected primary_deadline + penalty_summary FACTs (verbatim from legislation.gov.uk), slot-forcing filled effective_date. VERIFIED.
+- af277afd (IEA Global EV Outlook 2024) — crit-5 missing methodology_limits: injected FACT (iea.org tier-3). LEARNING: set source_url on the claim so the span attributes to the correct pool block (else fact_span_not_in_source).
+- 55f90df0 (IMO MEPC.338(76)) — CONFLATION: 10 cross-instrument claims (SEEMP Part III=MEPC.346(78), Z-factors=MEPC.400(83), Statement of Compliance) versioned out with proof to claim_versions (span absent from the MEPC.338(76) primary), 22 legitimate tier-2 facts kept + 3 injected. VERIFIED.
+
+DRAIN MECHANISMS proven (all through the shared groundBrief chokepoint / DB layer, executor-agnostic):
+1. Missing-slot inject: FACT/GAP for an uncovered slot (executor-ground.mjs injectedLedger). Nothing prior blocks.
+2. Prior-junk version-out (operator ruling 2026-07-16): a claim whose span is ABSENT from the item's verified primary AND cross-instrument = proven inaccurate FOR THIS ITEM → version out (claim_versions + proof), never blanket-delete. scripts/_reground/drain-clear.mjs (span-absence proof, sub-floor/cross-instrument filter, dry-run default).
+
+ROOT-GAP FIX (operator ruling): migration 209 — set_provenance_status trigger now fires AFTER DELETE on section_claim_provenance (was INSERT/UPDATE only), so a version-out recomputes status without a nudge hack. DB-layer → covers ALL writers by construction (executor-universality). APPLIED. The touch-extracted_at nudge was removed from drain-clear per the correction.
+
+DOCTRINE EXTENSION logged (executor-universality, permanent): RD-47 doctrine text extended — every FUTURE collection/grounding driver MUST enter through the chokepoint or bind at the DB layer, and the RD-47 golden must be extended to cover each new driver (a driver reaching the ledger without the chokepoint = golden+CI fail). Meta-gate green.
+
+JUDGMENT RECORD: eraseClaimWithProof (ledger-apply.mjs) could not run standalone (write client unexported; only the guarded functions are the write surface), so drain-clear replicated its fail-closed archive-then-delete via guardedInsert(claim_versions)+guardedDelete. Flagged for POST-DRAIN consolidation (docs/tech-debt-log.md) — one shared version-out long-term so the hold-loop + future erasers inherit identical logic.
+
+WORKLIST STATE (per drain-triage): 6 items had all-floor prior ledgers; 2 were pure missing-slot (drained: 782878c0, af277afd). CRIT-4 (unlabeled/synthesized-FACT) items need per-claim relabel/version-out surgery: o13 (in progress — 1 cross-instrument claim versioned out; remains: a synthesized effective_date FACT with span_not_in_source + missing primary_deadline), 4ff5cf56 (15 span-absent), canada-clean-fuel, ad4cc6c6 (33 span-absent). 17 items have larger sub-floor/conflation junk. eu_clean_trucking still HELD (wrong instrument, re-acquire 32024R1610).
+
+NEXT WORKLIST ITEM: o13 (finish: version out the synthesized effective_date FACT if span truly absent, inject a verbatim effective_date FACT + primary_deadline FACT from the IMO net-zero primary). Then 4ff5cf56 / canada / ad4cc6c6 via drain-clear + slot inject. Session drains = 3.
