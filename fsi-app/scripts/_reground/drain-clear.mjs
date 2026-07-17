@@ -18,7 +18,8 @@ const APPLY = process.argv.includes("--apply");
 const key = process.argv[2];
 if (!key) { console.error("usage: drain-clear.mjs <itemId|key> [--apply]"); process.exit(1); }
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
-const { readClient, readAll, guardedInsert, guardedDelete, guardedUpdate } = await jiti.import("../lib/db.mjs");
+const { readClient, readAll, guardedInsert, guardedDelete } = await jiti.import("../lib/db.mjs");
+const { verifyTargetMatch, foreignInstrumentTokens } = await jiti.import("../../src/lib/sources/target-match.mjs");
 const sb = readClient();
 
 // Version-out through the GUARDED write path (eraseClaimWithProof uses the raw builder API, which the read
@@ -52,38 +53,48 @@ const primaryText = (pool || []).filter((r) => norm(r.result_url) === norm(it.so
 if (primaryText.length < 200) { console.error(`primary capture too small (${primaryText.length} ch) for ${it.source_url} — cannot prove span-absence safely; abort`); process.exit(3); }
 const inPrimary = (span) => primaryText.toLowerCase().includes(String(span).toLowerCase().trim());
 
-// Authority floor for the item's type (reg-family <= 2). Only a SUB-FLOOR fact whose span is ALSO absent from
-// the primary is a crit-3 failure that cannot re-attribute — those are the proven-inaccurate-for-this-item set.
+// Authority floor for the item's type (reg-family <= 2). A SUB-FLOOR fact whose span is absent from the primary
+// is a crit-3 failure that cannot re-attribute; a sub-floor fact whose span IS in the primary re-attributes.
 const REG_FAMILY = ["regulation", "directive", "standard", "guidance", "framework"];
 const floor = REG_FAMILY.includes(it.item_type) ? 2 : (it.item_type === "research_finding" ? 4 : 5);
 const isSubFloor = (t) => t == null || Number(t) > floor;
 
+// PRIMARY-CONFIRMED GATE (operator ruling 2026-07-16, over-clear incident): auto version-out runs ONLY when the
+// item's primary is target-match CONFIRMED via an instrument identifier (not subject-overlap). A subject-overlap
+// match means the declared primary may be the WRONG document (4ff5cf56: a 400k docket, not the FR instrument) —
+// span-absence there proves nothing about cross-instrument, so NOTHING auto-clears; everything is reported.
+const tm = verifyTargetMatch({ title: it.title, item_type: it.item_type, instrument_type: it.instrument_type, identifier: it.instrument_identifier, canonical_instrument_key: it.canonical_instrument_key, jurisdiction: it.jurisdiction_iso }, primaryText);
+const primaryIdConfirmed = tm.verdict === "match" && (tm.via === "instrument-id" || tm.via === "raw-id");
+
 const { data: claims } = await sb.from("section_claim_provenance").select("id, claim_kind, source_span, source_tier_at_grounding, claim_text, section_row_id, source_id, search_result_id, mint_hold_reason").eq("intelligence_item_id", it.id);
 console.log(`\n===== DRAIN-CLEAR ${it.legacy_id || it.id.slice(0, 8)} (${APPLY ? "APPLY" : "DRY-RUN"}) =====`);
 console.log(`primary: ${it.source_url}  (${primaryText.length} ch)  |  item_type=${it.item_type} floor<=${floor}`);
+console.log(`target-match: ${tm.verdict} via ${tm.via} -> primary id-confirmed = ${primaryIdConfirmed}`);
 console.log(`claims: ${(claims || []).length}\n`);
 
-const toVersionOut = [], nullSpanAnalysis = [], subFloorInPrimary = [];
+// TWO-CONDITION AUTO-CLEAR (proof, not inference): a claim is versioned out ONLY when BOTH hold —
+//   (a) its span is ABSENT from the item's verified primary, AND
+//   (b) its claim text names a FOREIGN instrument identifier (positive cross-instrument evidence).
+// Automation may EXECUTE a proven clearance; it may NOT infer the proof from span-absence alone. Everything
+// else — span-in-primary (re-attribute), span-absent-but-no-foreign-id (true-but-secondary: relabel/manual),
+// null-span analysis — is REPORTED for per-claim review, never auto-erased.
+const toVersionOut = [], reattribute = [], manualReview = [];
 for (const c of claims || []) {
   const span = (c.source_span || "").trim();
-  if (c.claim_kind === "FACT" && isSubFloor(c.source_tier_at_grounding)) {
-    // A sub-floor FACT is a crit-3 failure. If its span is ABSENT from the primary it cannot re-attribute to
-    // floor -> proven inaccurate for this item (cross-instrument). If PRESENT, it should re-attribute (report).
-    if (span && !inPrimary(span)) toVersionOut.push(c);
-    else subFloorInPrimary.push(c);
-    continue;
-  }
-  // Unlabeled ANALYSIS with a span absent from primary = cross-instrument secondary assertion -> version out.
-  if (c.claim_kind === "ANALYSIS" && span && !inPrimary(span)) toVersionOut.push(c);
-  else if (c.claim_kind === "ANALYSIS" && !span) nullSpanAnalysis.push(c);
+  const isCandidate = (c.claim_kind === "FACT" && isSubFloor(c.source_tier_at_grounding)) || c.claim_kind === "ANALYSIS";
+  if (!isCandidate) continue;
+  if (span && inPrimary(span)) { if (c.claim_kind === "FACT") reattribute.push(c); continue; }
+  const foreign = span ? foreignInstrumentTokens(c.claim_text, { title: it.title, identifier: it.instrument_identifier, canonical_instrument_key: it.canonical_instrument_key }) : [];
+  if (primaryIdConfirmed && span && !inPrimary(span) && foreign.length) toVersionOut.push({ ...c, _foreign: foreign });
+  else manualReview.push({ ...c, _foreign: foreign, _reason: !primaryIdConfirmed ? "primary not id-confirmed" : !span ? "null span" : !foreign.length ? "no foreign instrument id (true-but-secondary: relabel)" : "span in primary" });
 }
 
-console.log(`SUB-FLOOR/CROSS-INSTRUMENT, span absent from primary (VERSION OUT, proven inaccurate): ${toVersionOut.length}`);
-for (const c of toVersionOut) console.log(`  [${c.claim_kind} t${c.source_tier_at_grounding}] ${String(c.claim_text).slice(0, 95)}`);
-if (subFloorInPrimary.length) { console.log(`\nSUB-FLOOR but span IN primary (should re-attribute, NOT cleared): ${subFloorInPrimary.length}`); for (const c of subFloorInPrimary) console.log(`  [t${c.source_tier_at_grounding}] ${String(c.claim_text).slice(0, 90)}`); }
-if (nullSpanAnalysis.length) { console.log(`\nNULL-SPAN ANALYSIS (REVIEW — relabel/keep): ${nullSpanAnalysis.length}`); for (const c of nullSpanAnalysis) console.log(`  ${String(c.claim_text).slice(0, 90)}`); }
+console.log(`AUTO VERSION-OUT (span absent AND names a foreign instrument id — proven cross-instrument): ${toVersionOut.length}`);
+for (const c of toVersionOut) console.log(`  [${c.claim_kind} t${c.source_tier_at_grounding}] foreign=${c._foreign.join(",")} :: ${String(c.claim_text).slice(0, 80)}`);
+if (reattribute.length) { console.log(`\nSPAN IN PRIMARY (sub-floor -> re-attribute at floor, NOT cleared): ${reattribute.length}`); for (const c of reattribute) console.log(`  [t${c.source_tier_at_grounding}] ${String(c.claim_text).slice(0, 88)}`); }
+if (manualReview.length) { console.log(`\nMANUAL REVIEW (relabel true-but-secondary / re-point primary — NEVER auto-erased): ${manualReview.length}`); for (const c of manualReview) console.log(`  [${c.claim_kind}] (${c._reason}) ${String(c.claim_text).slice(0, 78)}`); }
 
-if (!APPLY) { console.log(`\n(dry-run — re-run with --apply to version out the ${toVersionOut.length} span-absent claims)`); process.exit(0); }
+if (!APPLY) { console.log(`\n(dry-run — re-run with --apply to version out the ${toVersionOut.length} proven cross-instrument claims)`); process.exit(0); }
 
 let done = 0;
 const cite = { skill: "remediation-discipline", reason: `drain prior-junk clearance (operator ruling 2026-07-16): version out claim proven inaccurate for ${it.legacy_id || it.id.slice(0, 8)} — span absent from verified primary, cross-instrument` };

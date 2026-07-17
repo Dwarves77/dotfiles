@@ -160,6 +160,40 @@ function round2(n) { return Math.round(n * 100) / 100; }
 /** Convenience: should the caller HOLD (not ground) this capture? Both 'mismatch' and 'unverified' hold. */
 export function targetMatchHolds(verdict) { return verdict !== "match"; }
 
+/** PURE. IMO resolution tokens in text, normalized to a canonical `body.num(sub)` form so spacing/word variants
+ *  collapse to one identity: "MEPC.400(83)", "MEPC 400(83)", "MEPC Resolution 400(83)", "resolution MEPC.400(83)"
+ *  all -> "mepc.400(83)". Complements scanInstrumentIds (EU/CELEX) so an IMO-family instrument name is a detectable
+ *  identifier for both the item's own tokens (from its title) and a claim's foreign-instrument signal. */
+export function scanImoTokens(text) {
+  const out = new Set();
+  for (const m of String(text || "").matchAll(/\b(MEPC|MSC|A)\b[.\s]*(?:res(?:olution)?\.?\s*)?(\d{1,4})\s*\(\s*(\d{1,3})\s*\)/gi)) {
+    out.add(`${m[1].toLowerCase()}.${m[2]}(${m[3]})`);
+  }
+  return out;
+}
+
+/** PURE. The item's OWN instrument tokens (EU pair-keys + IMO tokens), derived from its identifier fields AND
+ *  its title (an IMO item often carries its resolution number only in the title). */
+export function ownInstrumentTokens(item = {}) {
+  const own = new Set([...expectedInstrumentIds(item)]);
+  for (const t of scanImoTokens([item.title, item.identifier, item.instrument_identifier, item.canonicalKey, item.canonical_instrument_key].filter(Boolean).join(" "))) own.add(t);
+  return own;
+}
+
+/**
+ * PURE. CROSS-INSTRUMENT SIGNAL (the ruling's condition b): does the claim text bear an instrument IDENTIFIER
+ * that is DIFFERENT from the item's own? This is a POSITIVE evidence test, not an inference from span-absence:
+ * a claim that names MEPC.400(83) / Regulation (EU) 2022/2464 while the item is MEPC.338(76) / 2024/1610 is
+ * cross-instrument; a claim about the item's own subject that names NO foreign identifier is NOT (it relabels
+ * or goes to manual review, never auto-erased). Returns the foreign tokens found (empty = not cross-instrument).
+ * @returns {string[]}
+ */
+export function foreignInstrumentTokens(claimText, item = {}) {
+  const own = ownInstrumentTokens(item);
+  const inClaim = new Set([...scanInstrumentIds(claimText), ...scanImoTokens(claimText)]);
+  return [...inClaim].filter((t) => !own.has(t));
+}
+
 /**
  * PURE. Aggregate target-match over the WHOLE fetched pool (the grounding input), so a wrong-instrument
  * PRIMARY does not hard-hold when the RIGHT instrument is also present as a corroborator. Precedence:
