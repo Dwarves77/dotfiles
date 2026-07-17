@@ -294,3 +294,20 @@ BUG FOUND + WORKED AROUND (root cause NOT patched, flagged for proper fix): regi
 METHODOLOGY LESSON (2nd + 3rd instance, now a standing habit): id-stamp.mjs verifies against the POOL-UNION (snapshot + all >200ch pool rows); drain-clear.mjs verifies against the TRUE SINGLE declared primary only. These can disagree (japan-top-runner, 93c344a1 both over-promoted on pool-union, self-corrected). From o6 onward: verify the designation directly against the SPECIFIC true-primary block's text BEFORE stamping, not just via id-stamp's looser pool-union check -- catches the mismatch before the write, not after.
 
 Counts: provenance_status now {unverified:57, verified:253, quarantined:141, pending_human_verify:5} (total corpus grew since last check via Session A's restores + Session C's coverage work; quarantined count includes all restored-but-undrained items). Session B this pass: 1 promoted (o6), 6 reassigned (007f42b1, g27, 120529b8, t5, o12, 93c344a1). Lease state (session B): clean. Spend: $0 (direct HTTP + WebSearch only, no metered grounding).
+
+## 2026-07-17 — Session B intake-drain (cont.): CORSIA promoted + 5 more reassigned
+
+Operator relaunch update mid-pass: queue expanded to 23 restored items (56 quarantined total), priority list expanded to CORSIA + EU MRV + EEXI/CII (EU MRV + EEXI/CII already banked previous entry). Applied the verify-against-true-primary-block lesson from the start this pass (no more over-loose stamps).
+
+PRIORITY — CORSIA (a1/cc0958fb): PROMOTED. id-stamped A42-22 (ICAO Assembly Resolution establishing/updating CORSIA), confirmed VERBATIM in the TRUE declared primary block (icao.int default.aspx) before stamping. match/raw-id score=1, drain-clear independently confirmed id-confirmed=true. 0 mechanical exits (36 claims); 17 relabel-manual residual. NOTE: initial lease.mjs key lookup on "a1" matched the WRONG item (uuid-prefix collision, a1fd9574 "Getting to Zero Coalition") -- caught before touching it, released, re-acquired by correct uuid. Same ambiguity class as the earlier c4/china-prc mismatch; resolving by exact uuid upfront now standard practice for short legacy_id keys.
+
+5 more processed, all REASSIGNED with concrete findings (0 promoted this batch):
+- g8 (EPA SmartWay): no id-stampable instrument -- voluntary EPA partnership program, no CFR number; item_type=standard likely mis-set; CONFLATION found (pool contains bec305e1's own already-promoted HD-vehicle GHG Federal Register stub + an unrelated freight-plan RFI stub).
+- c6 (GHG Protocol): MULTI-STANDARD HUB, same class as green-building -- true primary is the umbrella homepage listing 5 distinct standards (Corporate/Scope 2/Scope 3/Land Sector/Product); stamping one would narrow the item's declared umbrella scope.
+- c7 (SBTi): org homepage, item_type=regulation WRONG (SBTi is voluntary, no legal instrument); ACQUISITION OPPORTUNITY -- the real 'SBTi Corporate Net-Zero Standard' PDF is referenced but unfetched (44ch stub).
+- g28 (IPCC Climate Reports): item_type=regulation WRONG (scientific assessment, research_finding format); declared primary (AR7) is explicitly IN-PROGRESS/unpublished (author calls, not a finished report); likely overlaps with 85a7a629.
+- 85a7a629 (IPCC Special Report on Cities, second-order draft review): title itself confirms pre-publication status (targeted March 2027 release); item_type correctly research_finding but no finished instrument exists yet to ground.
+
+METHODOLOGY CONFIRMED WORKING: the true-primary-block-first verification (applied to CORSIA and every item since) caught zero false starts this batch, versus 2 false starts (japan-top-runner, 93c344a1) before the lesson was codified.
+
+Counts: provenance_status {unverified:57, verified:253, quarantined:141, pending_human_verify:5} (o6/CORSIA promotions not yet reflected in this snapshot pending Session A's downstream validate pass on the relabel-manual residuals -- both are id-confirmed clearance-grade but still carry a few claims pending relabel before full VERIFIED status). Session B this pass: 1 promoted (CORSIA/a1), 5 reassigned. Lease state (session B): clean. Spend: $0.
