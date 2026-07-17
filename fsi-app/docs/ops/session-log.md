@@ -126,3 +126,13 @@ THIRD SANCTIONED EXIT LANDED (operator ruling): migration 210 adds claim_version
 SESSION DRAIN COUNT: 4 (782878c0, af277afd, 55f90df0, 4ff5cf56). Total verified corpus-wide: 405.
 
 NEXT (worklist): ad4cc6c6 — its primary (customs.go.jp/english/summary/advance5/01.pdf, 40000 ch) target-matches UNVERIFIED (below-threshold subject-overlap): VERIFY/RE-ACQUIRE the correct primary FIRST (4ff5cf56 lesson — no clearance against an unconfirmed primary), then drain-clear reports 21 orphans + 21 relabel-manual. o13 — synthesized effective_date FACT (span_not_in_source) + missing primary_deadline. Then the sub-floor/conflation items. eu_clean_trucking still held (re-acquire 32024R1610). Tooling now complete: drain-pull, drain-clear (three-exit), restore-overclear, acquire-<item> pattern.
+
+## 2026-07-16 — PARALLEL-DRAIN infra + lane split (KEY FINDING: Lane B ~empty)
+
+Built the parallel-drain infrastructure (operator ruling): migration 211 = drain_worklist (lane split) + mutation_leases (per-item H5 lease) + acquire/heartbeat/release fns (mirror funded_pass_runlock). scripts/lib/mutation-lease.mjs (withLease refuses on held item). Golden mutation-lease.golden.mjs 10/10 (refuse-on-held, incumbent-named, holder-only heartbeat/release, stale-takeover). Closes H5 residual (RD-38). Committed 6a1dd81b + pushed (pre-push green).
+
+LANE SPLIT PUBLISHED to drain_worklist (scripts/_reground/lane-split.mjs). Lane B = target-match id-confirmed (instrument-id/raw-id, NOT subject-overlap) AND all validate failures mechanical (orphan/relabel/missing-slot). Result: 33 Lane A, 0 Lane B. Breakdown: 1 B-candidate (canada-clean-fuel — id-stamp to promote), 6 no-primary (re-acquire), 10 below-threshold subject-match (thin/wrong primary — verify), 14 not-id-confirmed w/ non-mechanical failures (sub-floor/conflation), 1 wrong-primary (eu_clean_trucking -> 32024R1610), 1 id-confirmed non-mechanical (eu-csrd sub-floor).
+
+KEY FINDING (stop-and-surface): the parallel-drain premise — a mechanical Lane B Session B can chew through — does NOT hold. Only ~1 item is mechanical-ready. The quarantined corpus is overwhelmingly JUDGMENT work (wrong/no/unconfirmed primaries, sub-floor conflation). Session A (judgment) is the bottleneck; Session B would inherit ~1 item until Session A prepares items (re-acquire, id-stamp, resolve conflation), which trickle to Lane B. Surfaced for the operator's call on whether Session B / the parallel model buys enough here.
+
+LEASE STATE: clean (no leases held). Session drain count: 4. Live corpus: 202 verified / 33 quarantined.
