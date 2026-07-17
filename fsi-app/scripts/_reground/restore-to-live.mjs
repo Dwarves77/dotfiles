@@ -17,8 +17,15 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));
 const APPLY = process.argv.includes("--apply");
 const HOLDER = (() => { const a = process.argv.find((x) => x.startsWith("--holder=")); return a ? a.slice(9) : "session-A"; })();
+// PER-ITEM CONTENT CONFIRMATION (operator ruling 2026-07-17, label-is-not-proof cuts both ways): a RESTORE is
+// warranted ONLY when content is genuinely present — real grounded claims OR a substantial brief. A wrongly-flagged
+// shell restored to live becomes a fake quarantined item that wastes a downstream lease. --min-brief sets the
+// substance floor for the no-claims case (default 1 = any brief; a sweep passes a real floor, e.g. 1000). An item
+// failing the confirmation is DROPPED to the per-item look, never restored on the strength of the class.
+const MIN_BRIEF = (() => { const a = process.argv.find((x) => x.startsWith("--min-brief=")); return a ? Number(a.slice(12)) : 1; })();
+const BUCKET = (() => { const a = process.argv.find((x) => x.startsWith("--bucket=")); return a ? a.slice(9) : null; })();
 const keys = process.argv.slice(2).filter((x) => !x.startsWith("--"));
-if (!keys.length) { console.error("usage: restore-to-live.mjs <itemId|legacy_id>... [--holder=session-A] [--apply]"); process.exit(1); }
+if (!keys.length && !BUCKET) { console.error("usage: restore-to-live.mjs (<itemId|legacy_id>... | --bucket=<archive_reason>) [--min-brief=N] [--holder=session-A] [--apply]"); process.exit(1); }
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { readClient, readAll, guardedUpdate, guardedInsert, guardedDelete } = await jiti.import("../lib/db.mjs");
 const { acquireLease, releaseLease } = await jiti.import("../lib/mutation-lease.mjs");
@@ -27,19 +34,28 @@ const sb = readClient();
 const all = await readAll("intelligence_items", "id,legacy_id,title,is_archived,archive_reason,full_brief,provenance_status", {});
 const prov = await readAll("section_claim_provenance", "intelligence_item_id", {});
 const withClaims = new Set(prov.map((p) => p.intelligence_item_id));
-const targets = keys.map((k) => all.find((x) => x.id === k || x.id.startsWith(k) || (x.legacy_id || "") === k)).filter(Boolean);
+let targets;
+if (BUCKET) {
+  // Census-gated bucket selection: the archive_correct set in this bucket that is STILL archived (empties already
+  // deleted, prior restores already live). The per-item warranted() gate below is the real confirmation.
+  const census = await readAll("corpus_census", "intelligence_item_id,haiku_verdict", { orderBy: "intelligence_item_id" });
+  const correct = new Set(census.filter((c) => c.haiku_verdict === "archive_correct").map((c) => c.intelligence_item_id));
+  targets = all.filter((x) => x.is_archived && x.archive_reason === BUCKET && correct.has(x.id));
+} else {
+  targets = keys.map((k) => all.find((x) => x.id === k || x.id.startsWith(k) || (x.legacy_id || "") === k)).filter(Boolean);
+}
 
-console.log(`\n===== RESTORE-TO-LIVE (${APPLY ? "APPLY" : "DRY-RUN"}) holder=${HOLDER} =====`);
+const warranted = (it) => withClaims.has(it.id) || (it.full_brief || "").length >= MIN_BRIEF;
+console.log(`\n===== RESTORE-TO-LIVE (${APPLY ? "APPLY" : "DRY-RUN"}) holder=${HOLDER} min-brief=${MIN_BRIEF} =====`);
 for (const it of targets) {
   const brief = (it.full_brief || "").length, claims = withClaims.has(it.id);
-  const empty = brief === 0 && !claims;
-  console.log(`  ${it.id.slice(0, 8)} ${(it.legacy_id || "").padEnd(6)} arch=${it.is_archived} brief=${brief}ch claims=${claims ? "Y" : "n"} reason=${it.archive_reason || "-"} ${empty ? "<< REFUSE (empty shell — CONFIRM-archive, not RESTORE)" : ""} | ${String(it.title).slice(0, 44)}`);
+  console.log(`  ${it.id.slice(0, 8)} ${(it.legacy_id || "").padEnd(6)} arch=${it.is_archived} brief=${brief}ch claims=${claims ? "Y" : "n"} reason=${it.archive_reason || "-"} ${warranted(it) ? "" : "<< DROP to per-item look (no claims, brief<floor)"} | ${String(it.title).slice(0, 44)}`);
 }
-if (!APPLY) { console.log(`\n(dry-run — --apply to restore ${targets.filter((it) => (it.full_brief || "").length > 0 || withClaims.has(it.id)).length} content-bearing item(s))`); process.exit(0); }
+if (!APPLY) { console.log(`\n(dry-run — --apply to restore ${targets.filter(warranted).length} confirmed content-bearing; ${targets.filter((it) => !warranted(it)).length} drop to per-item look)`); process.exit(0); }
 
-let done = 0;
+let done = 0, dropped = 0;
 for (const it of targets) {
-  if ((it.full_brief || "").length === 0 && !withClaims.has(it.id)) { console.log(`  REFUSE ${it.id.slice(0, 8)}: empty shell (brief=0 AND 0 claims) — not a RESTORE candidate`); continue; }
+  if (!warranted(it)) { console.log(`  DROP ${it.id.slice(0, 8)}: content confirmation failed (no claims, brief<${MIN_BRIEF}) — routes to per-item look, NOT restored`); dropped++; continue; }
   if (!it.is_archived) { console.log(`  SKIP ${it.id.slice(0, 8)}: already live`); continue; }
   const lease = await acquireLease(sb, it.id, HOLDER, "A");
   if (!lease.acquired) { console.log(`  SKIP ${it.id.slice(0, 8)}: leased by ${lease.cur_holder}`); continue; }
@@ -63,5 +79,5 @@ for (const it of targets) {
   } catch (e) { console.log(`  FAILED ${it.id.slice(0, 8)}: ${e.message}`); }
   finally { await releaseLease(sb, it.id, HOLDER).catch(() => {}); }
 }
-console.log(`\nrestored ${done}/${targets.length}.`);
+console.log(`\nrestored ${done}/${targets.length}${dropped ? ` (${dropped} dropped to per-item look, content confirmation failed)` : ""}.`);
 process.exit(0);
