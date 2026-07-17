@@ -210,3 +210,23 @@ NOTE: operator switched the Claude Code model this session; switching at this ba
 Remaining below-threshold queue (8): 0ea6a710 (NY truck/HHG), 0f46aabf (Slovenia NECP "prep initiated"), 45f85547 (WAC "navigation" hub), 576554b3 (UK Transport Decarb Plan / HGV CO2 mismatch), ad4cc6c6 (Japan Customs tariff, known needs-reacquire per prior session), bfb6a9fe (IMO air pollution overview, needs Annex VI text), g15 (Colombia MinTransporte portal), uk-secr (SI 2018/1155 likely, source is gov.uk guidance not legal text — check).
 
 Lease state (session B): clean. Spend: $0.
+
+## 2026-07-17 — Session B bank 7 (branch -b): below-threshold queue complete (9 items)
+
+Finished the below-threshold queue (10 total; 6a857887 was bank 6). ALL 9 remaining REASSIGNED-TO-A -- none had a single id-stampable instrument. Several are genuine DATA-QUALITY DEFECTS worth flagging as priority (mechanical, not judgment about content):
+
+- 0ea6a710 (NY Truck & Motor Carrier): SCOPE MISMATCH. Primary is 17 NYCRR Part 820 (household-goods movers only, verbatim-present) but title is a broad general-trucking "Framework"; pool spans DOT-number/49 CFR federal compliance far beyond Part 820. Stamping Part 820 would narrow the item.
+- 0f46aabf (Slovenia NECP): STATUS CONFLICT. Title says "Preparation Initiated" but a pool row reports Slovenia ADOPTED the plan -- status may be stale. No enacted primary captured, source is the ministry portal.
+- 45f85547 (Washington WAC): PURE PORTAL. Title says "Access and Navigation" -- this is the entire WAC index, not one regulation.
+- 576554b3 (UK Transport Decarbonisation Plan): TITLE/PRIMARY MISMATCH + conflation. Title names the 2021 TDP policy document (present in pool) but declared primary is a DIFFERENT doc (new HGV CO2 regulatory framework PDF); pool also mixes in UK SAF mandate (aviation, separate instrument).
+- ad4cc6c6 (Japan Customs FY2026): MULTI-DEFECT. jurisdiction=[AE,BD,JP] wrongly includes UAE+Bangladesh (cross-jurisdiction contamination, pool has a Bangladesh-Japan EPA article); declared primary is an Advance Ruling procedure summary, not a law; pool's full-text law block is the Customs Act at its STALE 2018-amended version, not FY2026; separate annual tariff-schedule pages are a different genre. No FY2026 amendment instrument actually present.
+- bfb6a9fe (IMO Air Pollution): OVERVIEW HUB, jurisdiction=[] empty. No MARPOL Annex VI instrument text; pool is press/FAQ pages. POSSIBLE DUPLICATE of o13's IMO Net-Zero Framework subject (pool[2] same FAQ page) -- flagged for dedup check.
+- g15 / 3e9c3ebe (Colombian Ministry of Transport): JURISDICTION DEFECT (mechanical). Tagged US-CO (Colorado, US state) but is unambiguously Colombia the country (ISO 3166-1 = CO). Declared primary is a 293-char near-empty portal page; generic institution title, no instrument.
+- uk-secr (SECR Amendment): NO ENACTED-TEXT PRIMARY. Actual instrument SI 2018/1155 is only an unfetched stub; declared primary is a gov.uk guidance summary. STATUS QUESTION: pool dominated by ongoing Scope-3 consultations/calls-for-evidence -- the "Amendment" may be unenacted/proposed, not in force.
+- c4 (ISO 14083, bank 6): conflation (EUR-Lex FuelEU Maritime text pooled under an ISO item) + paywalled thin primary.
+
+PRIORITY FLAGS for Session A (mechanical, cheap fixes, not content judgment): g15 jurisdiction US-CO->CO, ad4cc6c6 jurisdiction strip AE/BD, bfb6a9fe possible o13 duplicate.
+
+BELOW-THRESHOLD TALLY: 1 of 10 promoted (6a857887, bank 6), 9 reassigned. Combined with the 12 match/subject-overlap items (4 promoted, 8 reassigned): Session B promotion total across both pools = 5 of 22 (23%). The remaining 17 are genuine Lane A judgment, several surfacing NEW defects (jurisdiction mistagging, cross-jurisdiction conflation, stale document versions, title/primary mismatches) beyond the original "wrong/no/unconfirmed primary" framing.
+
+Lease state (session B): clean. Spend: $0. NEXT: 6 no-primary re-acquisitions via the free-acquire pattern (acquire-primary.mjs).
