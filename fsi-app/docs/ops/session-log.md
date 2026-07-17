@@ -199,3 +199,14 @@ REASSIGNED-TO-A (genuine judgment, no id-stampable single instrument):
 DISCRIMINATOR (now explicit): id-stamp promotes ONLY when a formal instrument designation is verbatim in the capture — a registry NUMBER (lovdata FOR-, FR doc-no, ordinance no) OR a formal STANDARD designation (IFRS S2, GLEC Framework v3). A descriptive document TITLE of a one-off plan/strategy/policy, a portal hub, a multi-instrument survey, or a scope/class mismatch => REASSIGN-TO-A (reclassify/rescope/re-acquire judgment). Confirms standing finding: the match/subject-overlap pool is dominated by portal/hub/policy shapes, not id-stampable instruments (4/12 promotable).
 
 New tooling this session: lease.mjs, reassign-to-a.mjs (bank 4). Lease state (session B): clean. Spend: $0. Remaining Session B queue: 10 below-threshold subject-overlap (verify/re-acquire), 6 no-primary (re-acquire).
+
+## 2026-07-17 — Session B bank 6 (branch -b): below-threshold queue, 2 of 10 processed
+
+- 6a857887 (Brazil Lei 12.305/2010 PNRS): PROMOTED. id-stamped "12.305/2010" (planalto.gov.br enacted text, raw-id match score=1) -> id-confirmed clearance-grade. 0 mechanical exits (17 claims); relabel-manual residual -> Lane A. Contrast with g13 (bank 5): g13's source was the MMA portal hub with no enacted text; this item's source_url is the planalto.gov.br ENACTED LAW TEXT directly, so it promotes where g13 could not — same statute, different capture.
+- c4 (ISO 14083): REASSIGN-TO-A. score=0 (below threshold). CONFLATION FOUND: pool contains EUR-Lex FuelEU Maritime text (CELEX 32023R1805 / OJ L_202302772) under an ISO-standard item — a different regulation's text pooled in error. Actual primary is a paywalled ISO catalog stub (ISO does not publish standard text free). Needs conflation-resolution (strip FuelEU Maritime rows) + thin-primary judgment.
+
+NOTE: operator switched the Claude Code model this session; switching at this bank boundary (not mid-item), per operator instruction.
+
+Remaining below-threshold queue (8): 0ea6a710 (NY truck/HHG), 0f46aabf (Slovenia NECP "prep initiated"), 45f85547 (WAC "navigation" hub), 576554b3 (UK Transport Decarb Plan / HGV CO2 mismatch), ad4cc6c6 (Japan Customs tariff, known needs-reacquire per prior session), bfb6a9fe (IMO air pollution overview, needs Annex VI text), g15 (Colombia MinTransporte portal), uk-secr (SI 2018/1155 likely, source is gov.uk guidance not legal text — check).
+
+Lease state (session B): clean. Spend: $0.
