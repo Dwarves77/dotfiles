@@ -1133,10 +1133,10 @@ async function judgeSlotSpan(slotKey: string, description: string, nom: { span: 
 
 /** STEP ground: claim-ledger + verbatim span-check + validate_item_provenance; keep claims only if
  *  valid (else delete them — manual rollback). The set_provenance_status trigger flips on the writes. */
-export async function groundBrief(itemId: string, caller: string | null = null, opts?: { model?: string }): Promise<StepResult> {
+export async function groundBrief(itemId: string, caller: string | null = null, opts?: { model?: string; injectedLedger?: any[] }): Promise<StepResult> {
   return withTelemetry(() => groundBriefImpl(itemId, caller, opts));
 }
-async function groundBriefImpl(itemId: string, caller: string | null = null, opts?: { model?: string }): Promise<StepResult> {
+async function groundBriefImpl(itemId: string, caller: string | null = null, opts?: { model?: string; injectedLedger?: any[] }): Promise<StepResult> {
   // MODEL-TIER: the grounding model is opts.model (the Segment-0 A/B override) ?? the GROUND_MODEL knob.
   const groundModel = opts?.model ?? GROUND_MODEL;
   const sb = svc();
@@ -1145,7 +1145,14 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   // operator has armed GROUNDING_ACQUIRE_ENABLED for a sanctioned run (throws AcquireLockError before any model
   // call). Composes with verify-item's earlier gate on the workflow path and the SCRAPE_HOLD transport gate. A
   // direct groundBrief call (proof scripts, reresearch) is gated here too — no paid grounding without the arm.
-  assertAcquireAllowed(`ground: ${itemId}`, process.env);
+  // CC-GROUNDING-EXECUTOR SEAM (operator ruling 2026-07-16): when the caller INJECTS an extracted ledger
+  // (opts.injectedLedger), the model-extraction step is done FREE by the Claude Code executor (subscription),
+  // so there is NO paid model call and NO fetch — the acquire lock does not apply (it gates spend, and there is
+  // none). Everything downstream (verbatim kept-filter, resolver tier-stamp, floor pool, slot-forcing, ALL mint
+  // gates, non-destructive applyLedgerDiff, validate) runs UNCHANGED, so the system still JUDGES the injected
+  // ledger exactly as it judges a Sonnet one. The metered path is untouched for callers that do not inject.
+  const injected = opts?.injectedLedger ?? null;
+  if (!injected) assertAcquireAllowed(`ground: ${itemId}`, process.env);
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, item_type, source_id, source_url, full_brief").eq("id", itemId).single();
   if (itErr || !it?.source_id) return { ok: false, detail: `no source_id${itErr ? `: ${itErr.message}` : ""}` };
   // I1 (attribution): rich ticket for the grounding ledger-extraction Sonnet call — the paid call the $65
@@ -1383,7 +1390,10 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   // re-throws so the batch runner HALTS with the actionable cause, instead of mislabeling every remaining
   // item as "still-quarantined". Only a transient/parse failure degrades to a per-item ok:false (full
   // message, never truncated — the diagnostic must survive).
-  try { claims = extractClaimLedgerLenient(await callSonnet(system, user, groundSrc.blocks, groundModel)); }
+  // CC-GROUNDING-EXECUTOR SEAM: use the FREE injected ledger (executor extraction) when provided; else the
+  // metered Sonnet extraction. The injected ledger is the SAME parsed shape extractClaimLedgerLenient returns,
+  // so the kept-filter (verbatim), resolver, gates, and non-destructive apply below judge it identically.
+  try { claims = injected ?? extractClaimLedgerLenient(await callSonnet(system, user, groundSrc.blocks, groundModel)); }
   catch (e) { if (isFatalAnthropic(e)) throw e; return { ok: false, detail: `ledger call failed: ${(e as Error).message}` }; }
   for (const cl of claims) { if (cl.source_url) cl.source_url = stripUrlMarkers(cl.source_url) as string; }
   // Mirror validate_item_provenance criteria so every INSERTED claim already passes the gate:
@@ -1532,7 +1542,14 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   // A verified item never reaches here (skip-if-verified guards upstream); pass the honest prior status.
   const priorWouldVerify = prov?.provenance_status === "verified";
   const reg = ledgerRegression({ ...priorSummary, wouldVerify: priorWouldVerify }, nextSummary);
-  if (reg.regression) {
+  // CC-GROUNDING-EXECUTOR: the dominance guard protects against ACCIDENTAL thinning from a bad (e.g. non-EN)
+  // Sonnet re-extract. A DELIBERATE executor re-source (injected) of a NON-VERIFIED item is different: the item
+  // is quarantined precisely because its prior ledger is synthesized/sub-floor junk, so replacing it with the
+  // verbatim-verified executor ledger is always an upgrade even when the raw FACT count drops (junk dropped).
+  // The old ledger is preserved in claim_versions by applyLedgerDiff (non-destructive), and validate_item_
+  // provenance is the real gate, so skipping the count-collapse rejection here is safe. Verified items never
+  // reach ground (skip-if-verified upstream), so this can only ever version over a quarantined junk ledger.
+  if (reg.regression && !injected) {
     const regDetail = `facts ${priorSummary.facts}->${nextSummary.facts}, floor-qual ${priorSummary.floorQualifying}->${nextSummary.floorQualifying}, total ${priorSummary.total}->${nextSummary.total}`;
     try {
       await sb.from("integrity_flags").insert({
