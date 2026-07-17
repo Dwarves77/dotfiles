@@ -100,3 +100,19 @@ ROOT-GAP FIX committed 7db7cc41: migration 209 (set_provenance_status AFTER DELE
 SESSION DRAIN COUNT: 3 verified (782878c0 UK SAF Order, af277afd IEA EV Outlook, 55f90df0 IMO MEPC.338(76)). Total verified corpus-wide: 404.
 
 NEXT: (1) 4ff5cf56 — debug the injected-FACT attribution (canonicalize source_url to match the staged FR pool row), relabel the 13 true-but-secondary claims (4c), then verify. (2) ad4cc6c6 re-drain per-item (restored; needs relabel of its true-but-secondary claims + version-out only what names another instrument). (3) o13 — synthesized effective_date FACT (span_not_in_source) + missing primary_deadline. (4) continue worklist. POST-DRAIN debt: consolidate drain-clear's version-out into the shared ledger-apply eraseClaimWithProof (docs/tech-debt-log.md).
+
+## 2026-07-16 — 4ff5cf56 completion attempt (steps 1-2 done, step 3 surfaced a third defect class)
+
+RESUME ORDER executed:
+1. ID-STAMP DONE: set instrument_identifier=2026-03820 (FR doc number, present in the acquired FR primary) — target-match now MATCH via raw-id (id-confirmed, clearance-grade, not subject-overlap).
+2. INJECT ATTRIBUTION FIXED: fact_span_not_in_source was caused by TWO pool rows sharing the FR URL — my full FR capture (span present) and 2 old 0-char FR stubs shadowing it; crossLink picked a stub. Removed the 2 stub rows (guarded), deleted the 3 this-session mis-attributed injects, re-injected → crit-3 CLEARED, the effective_date/primary_deadline/jurisdictional_scope FR FACTs attribute correctly. Lesson (af277afd + this): dedup shadowing stub pool rows before/at inject, specify source_url per claim.
+3. RELABEL BLOCKED — THIRD DEFECT CLASS: 12 crit-4 failures, of which 10 are ORPHANED (claim_text appears in NO section content_md — mechanically verified across all sections) and 2 are in-prose. Orphaned analysis claims annotate no prose paragraph → nothing to label (relabel impossible) AND same-subject → the tightened two-condition gate correctly refuses to version them out. They fit NEITHER ruling condition. NOT auto-dispositioned (over-clear lesson: never infer a version-out condition the ruling did not name). SURFACED for operator ruling: version out as orphaned-defect (proof = claim_text absent from all brief prose; preserved in claim_versions) OR regenerate the brief prose to include them.
+
+4ff5cf56 STATE: crit-3 clear, all required slots covered by FR-primary FACTs, blocked only on 12 crit-4 (10 orphaned + 2 in-prose). Correct FR 2026-03820 primary live + id-confirmed.
+
+DOCTRINE ADDENDUM LOGGED (operator ruling — live-verification as permanent calibration; ADR-014 addendum owed):
+- ADR-014 addendum (live-eyes-are-the-calibration-channel): wave-acceptance sampling is not only defect detection — it is the STANDING mechanism measuring the gap between stored belief and the live page. Every sampled item's live read records claim accuracy AND capture-vs-page divergence (page restructured, doc moved, format changed, content the capture missed). Divergence findings route as pipeline calibration input (as this drain's findings sharpened the tools).
+- The parked steady-state monitoring machinery (diff-on-recapture, no-change-proof stamps, unarmed monitoring) is the MECHANICAL half (WHEN reality moved); ADR-014 sampling is the JUDGMENT half (WHAT it means). Both route to the same place; neither substitutes for the other.
+- STANDING RULE for all future autonomous runs (cron, expansion waves, steady state): no run regime ships without its sampling rate. Autonomous collection without a live-verification quota is a build-phase-only allowance that EXPIRES when the drain ends. Operator sets N per regime; default = the ratified 10% floor 3. NO BUILD NOW.
+
+SESSION DRAIN COUNT: 3 (782878c0, af277afd, 55f90df0). 4ff5cf56 pending the orphaned-claim disposition ruling. NEXT: operator ruling on orphaned claims → finish 4ff5cf56, then ad4cc6c6, o13, worklist.
