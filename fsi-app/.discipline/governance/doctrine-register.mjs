@@ -608,6 +608,15 @@ export const DOCTRINES = [
     residual:
       'Flipped LIVE (migration 206 + mint-gates-live-hold.golden.mjs 12/12). S-CONFLATE sets mint_hold_reason -> validate_item_provenance fact_mint_hold; S-NUMERIC writes a data_quality integrity_flag, item stays verified-eligible. Non-regression proven (196 verified, 194 valid, 2 pre-existing drift). Hard-hold proven live-and-reversibly. A2 per-document keying (provisional excluded) scoped by the calibration; Phase E hold-loop drains the held facts + manages the S-NUMERIC flag lifecycle.',
   },
+  {
+    id: 'label-is-not-proof',
+    statement:
+      'Title-level classification (an archive_reason, a census verdict) is TRIAGE, never a warrant for irreversible disposition — only content-level verification can authorize a delete. Third confirmation of the failure at scale (2026-07-17): the Oregon/Polish collision, the o13 press briefing, and now 110-of-308 archive_correct rows found content-bearing on inspection (56 carrying grounded facts — UN SDGs/30, DEFRA/28, TxDOT/41, World Bank/20, ITF/12, plus Blue Visby, Carbon Pricing Dashboard). The Haiku census saw only title+reason+url and rubber-stamped the label; a bulk delete on the labels would have destroyed paid-for intelligence. The mechanical rule: no disposition executes on a label — the vehicle refuses non-allowlist reasons, requires brief_len=0 AND zero grounded claims (--empty-only) before deleting, and tombstones before deleting (fail-closed). Content-bearing rows route to per-item review, never to bulk delete.',
+    source: 'archive-endgame sample-verification (operator ruling 2026-07-17)',
+    enforcedBy: ['RD-42-disposition-content-gate'],
+    residual:
+      'disposition-content-gate.golden.mjs (18/18) proves the gate structurally over tombstone-delete.mjs. Proven live: 198 verified-disposition removals (174+16+5 provably-empty shells + 3 confirmed-survivor duplicates), 198 tombstones, archived 419->221, zero live item touched. The 110 content-bearing/unconfirmed route to the per-item review lane (RESTORE / CONFIRM-archive-with-reason / HOLD-with-evidence).',
+  },
 ];
 
 // Doctrine IDs referenced by `conflicts` must resolve to a real entry (the conflict-ledger integrity check).

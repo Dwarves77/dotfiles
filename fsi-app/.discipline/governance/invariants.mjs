@@ -679,6 +679,16 @@ export const INVARIANTS = [
   },
 
   {
+    id: 'RD-42-disposition-content-gate',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 30: Content-gated disposition (label is not proof)',
+    text: 'An irreversible disposition (archive delete) is NEVER authorized by an archive_reason LABEL alone — only content-level verification can. Title-level classification (the Haiku census) is TRIAGE, never a warrant. The ONE disposition vehicle (tombstone-delete.mjs) enforces this mechanically: (a) a --bucket outside the deletable-reason allowlist is REFUSED (content-survives / duplicate / pure-artifact only; off_vertical / non_regulatory_source / Superseded / Repealed are NOT in the list — never delete accurate data); (b) --empty-only filters every candidate to brief_len=0 AND zero grounded claims (section_claim_provenance) BEFORE deletion, so a content-bearing row is removed from targets and routed to per-item review; (c) the tombstone (disposition_ledger) is written BEFORE the guarded delete (fail-closed). Forecloses the third-confirmed label-is-not-proof failure (Oregon/Polish collision, the o13 press briefing, and 110-of-308 content-bearing rows mislabeled archive_correct at scale, 2026-07-17): a bulk delete on the labels would have destroyed 56 items carrying grounded facts (UN SDGs, DEFRA, TxDOT, World Bank, ITF, Blue Visby, Carbon Pricing Dashboard).',
+    anchor: 'An irreversible disposition executes on content-level emptiness, never on a label: --bucket refuses non-allowlist reasons, --empty-only requires brief_len=0 AND zero claims, tombstone precedes delete',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/disposition-content-gate.golden.mjs'],
+    residual: 'disposition-content-gate.golden.mjs (18/18) proves the allowlist gate, the accurate-but-archived exclusions, the positive content-survives membership, the brief-length-0 AND zero-claims content gate, and the tombstone-before-delete fail-closed order — structurally over the vehicle source (comments stripped). PROVEN LIVE 2026-07-17: the 261-row reclassified bucket resolved to 174 provably-empty kept + 87 content-bearing SKIPPED to review; 198 verified-disposition removals executed with 198 tombstones (zero deleted without a tombstone). NAMED RESIDUAL: the content gate keys on brief_len + claim ledger; a row with a non-empty brief that is itself junk still routes to per-item review (correct — a human/verifier reads it), never to bulk delete.',
+  },
+
+  {
     id: 'RD-44-grounding-is-non-destructive',
     skill: 'remediation-discipline',
     section: 'Section 4 — category 26: Non-destructive grounding (comparison, not replacement)',
