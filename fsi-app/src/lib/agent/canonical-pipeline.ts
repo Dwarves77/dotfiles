@@ -48,6 +48,7 @@ import { partitionCitedByHost } from "@/lib/sources/cited-host-gate.mjs";
 import { buildSourceBlocks, authorityFloorFor } from "@/lib/agent/source-blocks.mjs";
 import { floorSources, reattributeToFloor } from "@/lib/agent/floor-attribution.mjs";
 import { officialnessOf } from "@/lib/sources/officialness.mjs";
+import { verifyPoolTargetMatch } from "@/lib/sources/target-match.mjs";
 import { mergeNullTierAggregate, summarizeNullTierAggregate } from "@/lib/agent/null-tier-flag.mjs";
 // stripUrlMarkers: the SINGLE JS home for the write-site URL-marker strip (drift-guarded against migration
 // 150's SQL canonicalize by url-canon.test.mjs — the two-home guarantee). Synthesis wraps URLs in emphasis
@@ -1153,7 +1154,7 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   // ledger exactly as it judges a Sonnet one. The metered path is untouched for callers that do not inject.
   const injected = opts?.injectedLedger ?? null;
   if (!injected) assertAcquireAllowed(`ground: ${itemId}`, process.env);
-  const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, item_type, source_id, source_url, full_brief").eq("id", itemId).single();
+  const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, item_type, source_id, source_url, full_brief, title, instrument_type, instrument_identifier, canonical_instrument_key, jurisdiction_iso").eq("id", itemId).single();
   if (itErr || !it?.source_id) return { ok: false, detail: `no source_id${itErr ? `: ${itErr.message}` : ""}` };
   // I1 (attribution): rich ticket for the grounding ledger-extraction Sonnet call — the paid call the $65
   // hole was blind to. Every spend row from groundBrief now carries itemId + sourceId.
@@ -1311,6 +1312,38 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
     }
   }
   if (!fetched.length) return { ok: false, detail: "no grounding content (no generate pool; nothing fetchable)" };
+  // TARGET-MATCH VERIFY (drain-loop finding, RD-48). BEFORE extraction, confirm the fetched pool actually
+  // contains THIS item's instrument. officialnessOf confirms a capture is AN official instrument, not the
+  // CORRECT one (eu_clean_trucking captured the CSRD directive for the HDV CO2 regulation and scored
+  // "official"). EXECUTOR-AGNOSTIC: runs on the SHARED `fetched` pool, so BOTH the injected (CC) driver and the
+  // metered driver are gated identically (the doctrine-binds-to-pipeline-not-executor invariant, RD-47). HARD-
+  // hold ONLY on a definitive MISMATCH — the pool bears a DIFFERENT instrument id and NOT this one, no matching
+  // block (never over-holds when the right instrument is also present). An UNVERIFIED pool (no decisive id
+  // signal) is a SOFT flag: grounding proceeds under the downstream verbatim/floor gates.
+  const targetMatch = verifyPoolTargetMatch(
+    { title: it.title, item_type: it.item_type, instrument_type: it.instrument_type, identifier: it.instrument_identifier, canonical_instrument_key: it.canonical_instrument_key, jurisdiction: it.jurisdiction_iso },
+    fetched,
+  );
+  if (targetMatch.verdict === "mismatch") {
+    try {
+      await sb.from("integrity_flags").insert({
+        category: "data_integrity", subject_type: "item", subject_ref: itemId, status: "open", created_by: "target_mismatch_gate",
+        description: `Target-instrument MISMATCH — fetched primary is a DIFFERENT instrument than the item. ${targetMatch.best?.reason || ""}`.slice(0, 480),
+        recommended_actions: [
+          { action: "re-acquire the correct instrument", rationale: `capture bears ${(targetMatch.best?.conflicting || []).join(", ")}; the item's own identifier (${(targetMatch.best?.expected || []).join(", ")}) is absent — re-point the source to the enacted instrument for "${it.title}" and re-ground` },
+        ],
+      });
+    } catch { /* best-effort; the hold below is the floor */ }
+    return { ok: false, detail: `target-instrument MISMATCH: ${targetMatch.best?.reason || "fetched primary is a different instrument"} — held, not ground` };
+  }
+  if (targetMatch.verdict === "unverified") {
+    try {
+      await sb.from("integrity_flags").insert({
+        category: "coverage_gap", subject_type: "item", subject_ref: itemId, status: "open", created_by: "target_unverified_gate",
+        description: `Target-match UNVERIFIED (soft) — no instrument-id signal and subject overlap ${targetMatch.best?.score ?? 0} below threshold; grounding proceeds under verbatim/floor gates but the capture is not confirmed to be this instrument. ${targetMatch.best?.reason || ""}`.slice(0, 480),
+      });
+    } catch { /* best-effort */ }
+  }
   const excByUrl = Object.fromEntries(fetched.map((b) => [b.url, b.text]));
   const allText = fetched.map((b) => b.text).join(" ").toLowerCase();
   const system = `You extract a Claim Provenance Ledger for a brief. Output ONLY the ledger.

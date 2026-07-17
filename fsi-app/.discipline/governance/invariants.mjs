@@ -719,6 +719,16 @@ export const INVARIANTS = [
   },
 
   {
+    id: 'RD-48-target-instrument-match',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 29: A capture must be the item\'s OWN instrument (target-match verify)',
+    text: 'A captured primary MUST be the item\'s OWN instrument before it grounds: a MISMATCH (the fetched pool bears a DIFFERENT instrument identifier and NOT this item\'s) is HELD, not ground. officialnessOf confirms a capture is AN official instrument, not the CORRECT one — eu_clean_trucking (the HDV CO2 regulation, Regulation (EU) 2024/1610) captured the CSRD directive (Directive (EU) 2022/2464) and scored "official", so a fact would have ground verbatim against the wrong law. verifyTargetMatch/verifyPoolTargetMatch (target-match.mjs, PURE, reusing identifier-variants.mjs) derives the item\'s own expected identifier and scans the capture: MATCH on own-identifier presence (or, absent any identifier signal, subject overlap clearing a RAISED threshold — the 0.4 that let eu_clean_trucking slip is gone); HARD MISMATCH only when the pool bears a different instrument id in a clear instrument context AND the item\'s own id is absent with no matching block (never over-holds when the right instrument is also present, never hard-holds an item that merely REFERENCES other instruments); UNVERIFIED is a SOFT flag (grounding proceeds under the downstream verbatim/floor gates). EXECUTOR-AGNOSTIC: wired at the shared groundBrief fetched-pool chokepoint BEFORE the extraction pivot, so both drivers inherit it (RD-47).',
+    anchor: 'A captured primary must be the item\'s OWN instrument before it grounds: a MISMATCH (the pool bears a different instrument identifier and not this one) is HELD, not ground',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/target-match.golden.mjs'],
+    residual: 'target-match.golden.mjs (18/18) proves the RED fixture (CSRD capture for the HDV item -> MISMATCH, names conflicting 2022/2464, holds), the GREEN twin (correct HDV capture -> MATCH on own id 2024/1610, grounds), raw non-EU id (California SB-261 -> MATCH), the raised-threshold fallback (weak overlap -> UNVERIFIED held; strong -> MATCH), the CELEX/pre-2015-order normalization + noise-exclusion helpers, and the WIRING (verifyPoolTargetMatch called on the fetched pool with the MISMATCH hard-hold BEFORE the extraction pivot). PROVEN ON REAL DATA (target-match-probe.mjs, read-only, 30 staged captures): eu_clean_trucking is the sole MISMATCH; 6 thin captures held UNVERIFIED; items that merely reference other instruments (576554b3, canada) correctly MATCH via subject overlap (not false-held). NAMED RESIDUAL: (1) items lacking their own canonical_instrument_key can only get the weaker subject-overlap check (an A2 per-document-keying data gap, surfaced not papered); (2) UNVERIFIED is soft (grounds under downstream gates) rather than held, calibrated conservative on first wiring (the RD-41 report-first pattern) — tightening to a hard hold is a future calibration once the A2 keying backfill raises identifier coverage.',
+  },
+
+  {
     id: 'RD-12-size-cap-doctrine',
     skill: 'remediation-discipline',
     section: 'Section 4 — category 11: The size-cap doctrine (no silent slice on the grounding path)',
