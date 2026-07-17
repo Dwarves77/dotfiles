@@ -116,3 +116,13 @@ DOCTRINE ADDENDUM LOGGED (operator ruling — live-verification as permanent cal
 - STANDING RULE for all future autonomous runs (cron, expansion waves, steady state): no run regime ships without its sampling rate. Autonomous collection without a live-verification quota is a build-phase-only allowance that EXPIRES when the drain ends. Operator sets N per regime; default = the ratified 10% floor 3. NO BUILD NOW.
 
 SESSION DRAIN COUNT: 3 (782878c0, af277afd, 55f90df0). 4ff5cf56 pending the orphaned-claim disposition ruling. NEXT: operator ruling on orphaned claims → finish 4ff5cf56, then ad4cc6c6, o13, worklist.
+
+## 2026-07-16 — 4ff5cf56 VERIFIED (drain 4) + third-exit taxonomy landed
+
+4ff5cf56 VERIFIED — full completion: (1) id-stamped instrument_identifier=2026-03820 (present in FR primary) -> target-match raw-id/id-confirmed; (2) attribution fixed: removed 2 shadowing 0-char FR-URL stub pool rows + deleted the mis-attributed injects + re-injected -> crit-3 cleared; (3) 10 orphans versioned out under orphaned_no_prose_referent (slot-safe: their slots covered by the FR-primary FACTs); (4) 2 mis-stored ANALYSIS claims carried a [slot] prefix that broke criterion-4 (which matches the FULL claim_text incl. prefix against prose) — stripped the prefix so the labeled sentence matches -> VERIFIED.
+
+THIRD SANCTIONED EXIT LANDED (operator ruling): migration 210 adds claim_versions.supersede_reason 'orphaned_no_prose_referent' (distinct from proven_inaccurate; proof now required for any non-'changed' exit). drain-clear.mjs now reports THREE exits (dry-run default): proven_inaccurate (cross-instrument, two-condition), orphaned_no_prose_referent (text absent from ALL prose AND slot-coverage-safe — a required slot's SOLE coverage is a GAP to FILL, never cleared), relabel-to-ANALYSIS (stays live). Golden drain-clear-two-condition.golden.mjs 13/13 (+4 orphan cases). Doctrine addendum on erase-only-on-proven-inaccuracy: exactly three exits, nothing else removes a claim. Committed ebcec9ea. Meta-gate green.
+
+SESSION DRAIN COUNT: 4 (782878c0, af277afd, 55f90df0, 4ff5cf56). Total verified corpus-wide: 405.
+
+NEXT (worklist): ad4cc6c6 — its primary (customs.go.jp/english/summary/advance5/01.pdf, 40000 ch) target-matches UNVERIFIED (below-threshold subject-overlap): VERIFY/RE-ACQUIRE the correct primary FIRST (4ff5cf56 lesson — no clearance against an unconfirmed primary), then drain-clear reports 21 orphans + 21 relabel-manual. o13 — synthesized effective_date FACT (span_not_in_source) + missing primary_deadline. Then the sub-floor/conflation items. eu_clean_trucking still held (re-acquire 32024R1610). Tooling now complete: drain-pull, drain-clear (three-exit), restore-overclear, acquire-<item> pattern.
