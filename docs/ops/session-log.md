@@ -366,3 +366,11 @@ Operator PRICED GO ($20 bound, retries included) + MODEL-TIER amendment. Ran the
 **Blockers / open:** (a) **host-registration sweep** — register the unregistered primary hosts (diputados.gob.mx, law.go.kr, arena.gov.au, etc.) so the ~grounded-but-sub-floor items verify; biggest lever, mostly $0. (b) Brazil full verification pending that registration + a missing-slot fill. (c) 22 held items' dispositions (mostly sub-floor/slot — re-home or GAP). (d) coverage-floor definition (the absent majors: bafa/LkSG, CII/CORSIA/CSDDD). (e) stale_verified (45), reattribution-verified-half (42, parked).
 
 **Next steps:** host-registration sweep (register the primaries the run surfaced → re-ground the sub-floor holds cheaply) → Brazil full restore → coverage-floor unit.
+
+## 2026-07-17 — Session B (promotion lane): canada-clean-fuel promoted + partial drain
+
+Session B repurposed to the PROMOTION PIPELINE (lane split found 0 mechanical Lane-B items). Per-item under mutation lease (H5, session-B holder).
+
+BANK 1 — canada-clean-fuel (5b2c6655): PROMOTED. Derived canonical id SOR/2022-140 (verbatim x9 in the staged Justice-Canada primary; source_url is that exact SOR PDF), id-stamped via new scripts/_reground/id-stamp.mjs (verify-before-write, lease-checked, guarded) -> target-match match/subject-overlap(0.8) -> match/raw-id(1.0), id-confirmed clearance-grade. Mechanical drain: drain-clear versioned out 4 orphaned_no_prose_referent (Fuel LCA Model version notes + org-count; slot-safe, all 4 required slots FACT-covered at tier 2; preserved in claim_versions, non-destructive). RESIDUAL to Lane A: 7 in-prose ANALYSIS claims (2024 CATS credit-market data) fail criterion-4 analysis_missing_label_syntax -> per-claim prose-label judgment, beyond the three sanctioned exits. Lease released, worklist row annotated (primary_id_confirmed=true, lane A). $0. Live claims 73->69.
+
+New tool: scripts/_reground/id-stamp.mjs — the 4ff5cf56 id-stamp promotion pattern factored for the B-CANDIDATE lane (verify-then-stamp, refuses + REASSIGN-TO-A if the proposed id does not id-confirm the staged capture).
