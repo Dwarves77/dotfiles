@@ -311,3 +311,22 @@ PRIORITY — CORSIA (a1/cc0958fb): PROMOTED. id-stamped A42-22 (ICAO Assembly Re
 METHODOLOGY CONFIRMED WORKING: the true-primary-block-first verification (applied to CORSIA and every item since) caught zero false starts this batch, versus 2 false starts (japan-top-runner, 93c344a1) before the lesson was codified.
 
 Counts: provenance_status {unverified:57, verified:253, quarantined:141, pending_human_verify:5} (o6/CORSIA promotions not yet reflected in this snapshot pending Session A's downstream validate pass on the relabel-manual residuals -- both are id-confirmed clearance-grade but still carry a few claims pending relabel before full VERIFIED status). Session B this pass: 1 promoted (CORSIA/a1), 5 reassigned. Lease state (session B): clean. Spend: $0.
+
+## 2026-07-17 — Session B intake-drain (cont.): queue fully drained (8 more reassigned, 0 promoted this batch)
+
+Processed the remaining 8 items from the expanded 23-item restore queue. All REASSIGNED (0 promoted) -- this batch skewed toward org-homepage/voluntary-strategy/zero-primary shapes rather than id-stampable instruments, consistent with the standing finding.
+
+- g20 (Singapore Green Plan 2030): national strategy, no instrument number (same class as uae-netzero/Slovenia NECP). CONFLATION: pool mixes in a DIFFERENT, narrower MPA maritime circular ("No. 12 of 2024", Green Ship Programme) that has its own real designation.
+- g24 (ASEAN Transport Strategic Plan): CURRENCY/SUCCESSION judgment -- the named 2016-2025 plan (Kuala Lumpur Transport Strategic Plan) is EXPIRED; a 2026-2030 successor is in development, not yet published. jurisdiction=[ID,MY,PH,SG] covers only 4 of 10 ASEAN members, worth checking if deliberate.
+- g16 (IDB Sustainable LatAm Transport): org topic page, item_type=regulation WRONG (IDB is a development bank, not a regulator); jurisdiction=GLOBAL questionable for a LatAm-specific institution.
+- cea40062 (Brazil National Logistics Plan / PNL 2035): planning document, no decree number, same class as TxDOT/Wisconsin.
+- db8577c6 (Georgia GDOT freight framework): same planning-doc class; true primary has no verbatim designation, but LEAD found -- "HB 617" (Georgia House Bill) appears in linked PDF filenames only, worth investigating as the real funding statute.
+- g11 (CEC North American Env Policy): JURISDICTION BUG -- tagged [MX,US], MISSING CANADA (the CEC/Agreement on Environmental Cooperation is trilateral, confirmed by a staged canada.ca page naming all three governments). Also wrong primary (EPA's own description page, not the treaty text, which IS staged separately at cec.org and is a real repoint/promotion candidate).
+- bcd84403 (ESMA MiCA crypto-asset deadline): zero staged primary (phase rule, reassigned without acquiring) PLUS a genuine relevance question -- MiCA governs crypto-asset service providers, no evident freight-sustainability nexus; flagged, not asserted (relevance calls are Session A's per the scope-is-broad ruling).
+- 3 regional operations profiles (Australia climatechangeauthority.gov.au, Brazil antt.gov.br, China npc.gov.cn): all zero staged primary, item_type=regional_data correctly set in all three (unlike most of this session's mis-typed items), straightforward acquire-primary.mjs cases with a scoping decision each (esp. China's NPC, a broad legislature needing a freight/sustainability-specific scope, not the whole portal).
+
+QUEUE STATUS: drain_worklist Lane A now 56 rows total; 54 touched by session-B across this relaunch (all of the 23 restores + the pre-existing pool from before relaunch), 2 untouched and confirmed NOT mine (eu_clean_trucking_2024_1610, eu-csrd survivor -- both pre-existing Session A judgment items, verified by id). Session B intake-drain queue is FULLY DRAINED as of this bank.
+
+SESSION B RELAUNCH TOTAL (this intake-drain phase, both banks): 2 promoted (CORSIA/A42-22, EU MRV/2015-757, both verified against their TRUE single primary), 21 reassigned, 1 in-flight class bug found+worked-around (registerSource/eur-lex host-collision), 1 truncated-URL root cause found (EEXI/CII), multiple jurisdiction bugs found (g11 missing Canada; earlier g15/india also found this session). Lease state (session B): clean. Spend: $0.
+
+Counts (live, concurrent with Session A): provenance_status {unverified:57, verified:241, quarantined:131, pending_human_verify:5}.
