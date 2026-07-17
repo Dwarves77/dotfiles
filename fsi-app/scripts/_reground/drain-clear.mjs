@@ -17,9 +17,11 @@ delete process.env.BROWSERLESS_API_KEY;
 const APPLY = process.argv.includes("--apply");
 const key = process.argv[2];
 if (!key) { console.error("usage: drain-clear.mjs <itemId|key> [--apply]"); process.exit(1); }
+const HOLDER = (() => { const a = process.argv.find((x) => x.startsWith("--holder=")); return a ? a.slice(9) : "session-A"; })();
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { readClient, readAll, guardedInsert, guardedDelete } = await jiti.import("../lib/db.mjs");
 const { verifyTargetMatch, foreignInstrumentTokens } = await jiti.import("../../src/lib/sources/target-match.mjs");
+const { acquireLease, releaseLease } = await jiti.import("../lib/mutation-lease.mjs");
 const sb = readClient();
 
 // Version-out through the GUARDED write path (eraseClaimWithProof uses the raw builder API, which the read
@@ -118,6 +120,11 @@ if (manualReview.length) { console.log(`\nEXIT 3 path / MANUAL REVIEW (relabel t
 
 if (!APPLY) { console.log(`\n(dry-run — --apply version-outs: ${crossInstrument.length} cross-instrument + ${orphans.length} orphaned)`); process.exit(0); }
 
+// LEASE (H5, mandatory on any mutation): acquire before the version-outs; a lease held by another session
+// refuses this run (no item worked twice). Released in finally.
+const lease = await acquireLease(sb, it.id, HOLDER, "A");
+if (!lease.acquired) { console.error(`LEASE HELD: ${it.id} is leased by "${lease.cur_holder}" — refusing (mutation-lease H5).`); process.exit(9); }
+try {
 let done = 0;
 const citeX = { skill: "remediation-discipline", reason: `drain clearance (operator ruling 2026-07-16): version out cross-instrument claim for ${it.legacy_id || it.id.slice(0, 8)} — span absent from id-confirmed primary + names a foreign instrument` };
 const citeO = { skill: "remediation-discipline", reason: `drain clearance (operator ruling 2026-07-16): version out orphaned functionless claim for ${it.legacy_id || it.id.slice(0, 8)} — claim text verbatim-absent from every section prose, slot-coverage-safe` };
@@ -136,4 +143,8 @@ const { data: v } = await sb.rpc("validate_item_provenance", { p_item_id: it.id 
 const val = Array.isArray(v) ? v[0] : v;
 const { data: fin } = await sb.from("intelligence_items").select("provenance_status").eq("id", it.id).single();
 console.log(`\nversioned out ${done} (${crossInstrument.length} cross-instrument + ${orphans.length} orphaned). validate: valid=${val?.valid} status=${fin?.provenance_status} failures=${JSON.stringify(val?.failures || []).slice(0, 220)}`);
+} finally {
+  await releaseLease(sb, it.id, HOLDER).catch((e) => console.warn(`[lease] release failed: ${e.message}`));
+  console.log("lease released.");
+}
 process.exit(0);

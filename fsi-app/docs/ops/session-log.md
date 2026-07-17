@@ -136,3 +136,13 @@ LANE SPLIT PUBLISHED to drain_worklist (scripts/_reground/lane-split.mjs). Lane 
 KEY FINDING (stop-and-surface): the parallel-drain premise — a mechanical Lane B Session B can chew through — does NOT hold. Only ~1 item is mechanical-ready. The quarantined corpus is overwhelmingly JUDGMENT work (wrong/no/unconfirmed primaries, sub-floor conflation). Session A (judgment) is the bottleneck; Session B would inherit ~1 item until Session A prepares items (re-acquire, id-stamp, resolve conflation), which trickle to Lane B. Surfaced for the operator's call on whether Session B / the parallel model buys enough here.
 
 LEASE STATE: clean (no leases held). Session drain count: 4. Live corpus: 202 verified / 33 quarantined.
+
+## 2026-07-16 — Session A judgment lane: leases wired + eu_clean_trucking primary re-acquired
+
+Leases WIRED into drain-clear (acquire before version-outs, refuse-if-held-by-other, release in finally; --holder arg). scripts/_reground/acquire-primary.mjs = generic free primary re-acquisition under lease (clean capture, VERIFY id-confirmed BEFORE write, register host at codified tier, snapshot, stage, repoint, dedup shadow stubs).
+
+eu_clean_trucking (Session A #1, the known wrong-primary): re-acquired the CORRECT primary — EUR-Lex CELEX 32024R1610 (Regulation (EU) 2024/1610, HDV CO2), fetched FREE from eur-lex.europa.eu (tier 1), 161160 ch full enacted text. target-match match/instrument-id -> id-CONFIRMED. Registered + snapshotted + staged + repointed off the wrong 2021 OJ:L:243 TOC, under a Session-A lease (released clean). FINDING: the item has a 48K full_brief + 14 sections but ZERO claims (never grounded) — so completion needs a FULL ledger across 14 sections, not 4 slot FACTs; that is a grounding pass (metered, or a Session-B mechanical pass now that it is id-confirmed), not a hand-drain. Primary judgment task DONE; grounding is the residual.
+
+PARALLEL DRAIN LIVE: Session B is active (holds a lease on item 5b2c6655, lane B). Leases arbitrating correctly — Session A holds none, did not touch B's item. Mutual exclusion working in production.
+
+Session A drain count this session: 4 verified (unchanged — eu_clean_trucking primary re-acquired but not yet grounded). Lease state (session A): clean.
