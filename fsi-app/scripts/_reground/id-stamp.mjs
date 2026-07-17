@@ -31,13 +31,17 @@ if (!it) { console.error(`item not found: ${KEY}`); process.exit(1); }
 const held = await heartbeatLease(sb, it.id, HOLDER).catch(() => false);
 if (!held) { console.error(`LEASE NOT HELD by "${HOLDER}" for ${it.id} — refusing to touch (mutation-lease H5)`); process.exit(2); }
 
-// Assemble the item's staged primary capture: the raw_fetches snapshot first (what lane-split/probe used), then
-// fall back to the >200ch pool rows so a pool-only staged item is still verifiable.
+// Assemble the item's staged primary capture from BOTH the raw_fetches snapshot AND the >200ch pool rows. The
+// primary is often POOL-staged (agent_run_searches), not in the snapshot store, so a snapshot-only read wrongly
+// refuses a pool-staged item (bec305e1: empty snapshot, 600k-ch FR primary in the pool). id-confirmation checks
+// the item's OWN id present in the capture (foundOwn/rawHit win first in the verdict), so a union is safe; and
+// drain-clear independently re-verifies primary id-confirmation against the true primary block before any clear.
 let capture = "";
 try { const snap = await getSnapshot(sb, { sourceId: it.source_id }); if (snap.found && snap.content) capture = snap.content; } catch { /* no snapshot */ }
-if (!capture) {
-  const { data: pool } = await sb.from("agent_run_searches").select("result_content_excerpt").eq("intelligence_item_id", it.id);
-  capture = (pool ?? []).map((r) => r.result_content_excerpt || "").filter((t) => t.length > 200).join("\n\n");
+{
+  const { data: pool } = await sb.from("agent_run_searches").select("result_content_excerpt,result_index").eq("intelligence_item_id", it.id).order("result_index");
+  const poolText = (pool ?? []).map((r) => r.result_content_excerpt || "").filter((t) => t.length > 200).join("\n\n");
+  capture = [capture, poolText].filter(Boolean).join("\n\n");
 }
 if (!capture) { console.error(`no staged capture for ${it.legacy_id || it.id.slice(0, 8)} — cannot verify; REASSIGN-TO-A`); process.exit(3); }
 
