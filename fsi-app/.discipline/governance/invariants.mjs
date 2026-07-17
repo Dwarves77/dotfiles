@@ -119,7 +119,11 @@ export const SKILL_MARKER_BASELINE = {
   // 35→38 (2026-07-14): added category 22 (re-grounds-never-destroy) — three normative lines (replace-only-if-
   // not-weaker; retain-prior-and-record-finding; charset-aware-decode). TRIAGE: RD-36 (ledger-dominance golden)
   // + RD-37 (charset-decode golden). The prior-ledger-survives-section bullet is enforced by RD-36.
-  'remediation-discipline': 38,
+  // 38→39 (2026-07-16): added categories 27 (primary-text-is-permanent — document baseline) + 28 (doctrine-
+  // binds-to-pipeline-not-executor — executor-agnostic enforcement). TRIAGE: RD-46 (primary-text-permanent
+  // golden + migration 052) + RD-47 (executor-parity golden). One marker line net (the category-28 "MUST be
+  // interchangeable" anchor); the category-27 "never an overwrite" anchor carries no MARKER_SOURCE token.
+  'remediation-discipline': 39,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -692,6 +696,26 @@ export const INVARIANTS = [
     anchor: 'A claim is erased only on proven inaccuracy, with its proof preserved; never because a regeneration failed to reproduce it',
     enforcedBy: ['selftest:fsi-app/scripts/verify/non-destructive-grounding.golden.mjs', 'migration:208'],
     residual: 'eraseClaimWithProof (ledger-apply.mjs) refuses without a proof, archives-then-deletes fail-closed. Golden case 5 proves: erased-row-removed, archived-with-proof-retrievable, other-claims-untouched, REFUSES-without-proof, and FAIL-CLOSED (a simulated archive failure aborts the erase, claim retained). Migration 208 constraint claim_versions_proof_required enforces the proof at the DB. NAMED RESIDUAL: the AUTOMATIC proven-inaccurate DETECTOR (a grounding that programmatically decides an old claim is contradicted) is NOT built — erasure is a deliberate, proof-carrying action, so grounding conservatively KEEPS not-reproduced claims (never auto-erases); wiring an automatic contradiction judge onto this erase path is the future strengthening.',
+  },
+
+  {
+    id: 'RD-46-primary-text-permanent',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 27: Primary text is permanent (the document baseline)',
+    text: 'The captured primary text is PERMANENT: a changed re-capture is a NEW versioned snapshot, never an overwrite of the prior. raw_fetches is append-only by construction for ANY caller (CC executor or metered pipeline) because the enforcement lives in the shared capture function writeSnapshot: the storage key and row identity are CONTENT-ADDRESSED (`${source_id}/${day}/${sha256(content)}.html.gz` + UNIQUE(source_id, content_hash), migration 052). Changed bytes -> different hash -> different key + different row (cannot overwrite the prior); identical bytes -> same hash -> idempotent (UNIQUE dedups). No prune/delete path exists. The document-level twin of grounding-is-non-destructive (RD-44): non-destructive preserves the CLAIM ledger, this preserves the SOURCE DOCUMENT the ledger grounds against, so change detection is document-against-document (ground truth) and a hash-identical re-capture proves "unchanged as of [date]".',
+    anchor: 'The captured primary text is permanent: a changed re-capture is a new versioned snapshot, never an overwrite of the prior',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/primary-text-permanent.golden.mjs', 'migration:052'],
+    residual: 'primary-text-permanent.golden.mjs (7/7) proves the content-addressing the UNIQUE index + no-delete rest on: changed -> different hash + different storage key + different row key; identical -> same key (idempotent); 64-hex sha-256 version identity; content-addressed not date-addressed. Enforcement is IN writeSnapshot (snapshot-store.mjs, the shared capture site) so BOTH executors inherit it — no per-executor retention code. Migration 052 (idx_raw_fetches_source_hash_uniq) is the DB half. NAMED RESIDUAL: the golden proves the KEY-DERIVATION (the property the index keys on) at the pure layer; the DB UNIQUE index + the absence of a delete path are the runtime enforcement (a grep confirms no prune path — only FK ON DELETE SET NULL + source cascade). A durable retention-audit that asserts no raw_fetches row was ever hard-deleted (append-only over time) is the future strengthening; today the no-delete-path structure carries it.',
+  },
+
+  {
+    id: 'RD-47-doctrine-binds-to-pipeline-not-executor',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 28: Doctrine binds to the pipeline, not the executor (executor-agnostic enforcement)',
+    text: 'Every grounding doctrine binds to the SHARED pipeline chokepoint, not to the executor: the CC-grounding-executor (injects a ledger, $0, subscription) and the metered path (extracts a ledger via the model) are INTERCHANGEABLE drivers of one pipeline, diverging ONLY at allowlisted skip-points, and the judgment core is DRIVER-BLIND. Both meet at groundBrief and collapse into one claim ledger at the extraction pivot (claims = injected ?? extractClaimLedgerLenient); after the pivot the data carries no driver identity. The driver-identity variable is read at EXACTLY three allowlisted points, each the free driver skipping a paid/model step (acquire-lock skip, extraction source, dominance-guard skip for a deliberate re-source of quarantined junk) — never a difference in JUDGMENT. The judgment core (verbatim kept-filter, mint gates, resolver/tier-stamp, non-destructive applyLedgerDiff) contains ZERO driver-identity references and cannot branch on which driver produced the ledger: parity is structural, by construction. Prevents a doctrine enforced in the executor rather than the pipeline from being silently dropped when executors swap (the build-phase-vs-steady-state interchange the addendum requires).',
+    anchor: 'Every grounding doctrine binds to the shared pipeline chokepoint, not to the executor: the CC and metered drivers are interchangeable, diverging only at allowlisted skip-points, and the judgment core is driver-blind',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/executor-parity.golden.mjs'],
+    residual: 'executor-parity.golden.mjs (13/13) proves it STRUCTURALLY over the real canonical-pipeline.ts source: the driver-identity var `injected` is referenced EXACTLY 4x in code (1 decl + the 3 allowlisted divergences, each matched by its code signature), the drivers unify at the extraction pivot, and the judgment core (kept-filter … applyLedgerDiff) carries at most the single allowlisted dominance-guard reference — so a FOURTH divergence or any core branch on driver identity is RED. Plus the behavioral witness: perFactWouldHold takes a claim, not a driver flag, so the same candidate yields the same verdict either way. Seam: the injectedLedger param in groundBrief + scripts/_reground/executor-ground.mjs (the ONE authorized new mint-path). NAMED RESIDUAL: the golden is a static source-scan (comment-stripped, CRLF-normalized) — it proves the pipeline code cannot branch on driver identity, not that a future executor RUNNER honors the persistence contract; the parity of the two RUNNERS end-to-end on a live item is proven operationally (o9 + w4_ca_sb261 verified via the CC runner, the metered path unchanged), and a full end-to-end parity harness over a fixture item is the future strengthening.',
   },
 
   {
