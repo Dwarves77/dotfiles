@@ -254,3 +254,22 @@ NEW TOOLING: repoint-url.mjs -- mechanical repoint of source_url to a MORE SPECI
 - Spend: $0 across the entire session (all free/hand/direct-HTTP path). Lease state (session B): clean at every bank.
 
 Lane A now carries 23 items PLUS Session A's own queue, each with an evidence-based finding rather than a bare "not id-confirmed" classification -- meaningfully de-risks the next judgment pass. Chokepoint did not hold work at unusual rates post-switch; no anomaly to flag.
+
+## 2026-07-17 — Session B CONTAINMENT BANK: NCAER confidentiality incident traced + contained
+
+Operator dispatch (addition to the containment order): complete the trace on the confidentiality finding surfaced during bank-8 (india-s-national-logistics-policy-carbon-intensity-standards, pool[2]) and write a formal incident record.
+
+TRACE RESULT (full detail: docs/compliance/confidentiality-incident-2026-07-17-ncaer.md, first entry in a new docs/compliance/ directory):
+- Confirmed: dpiit.gov.in/static/uploads/2025/07/b6c9db15ce083fd10caa9787bf8a281f.pdf is a CONFIDENTIAL NCAER report ("Logistics Cost in India", explicit disclosure-prohibition on its own cover page), 35 pages, unrelated to the item's carbon-intensity subject.
+- ORIGINAL pipeline fetch (2026-06-06) was CDN-BLOCKED (Akamai Access Denied) -- the corpus's own stored excerpt (269ch) is an error page, NOT document content. Zero confidential text was ever stored in the corpus at any point.
+- Session-B's OWN investigative re-fetch (this session, browser user-agent) succeeded (HTTP 200, no auth, CDN-cached) -- confirming the host serves the document publicly with no access control. Local investigative copies (PDF + extracted text) were already deleted during routine bank-8 tmp cleanup, never committed, never written to any corpus table.
+- GROUNDING EXPOSURE: zero claims ever grounded via this pool row (search_result_id match = 0); zero claims via the registered dpiit.gov.in source (which points to a DIFFERENT url, the logistics-division page, unaffected). Nothing reached a customer surface.
+
+CONTAINMENT ACTIONS (guarded writes, cited, non-destructive -- row preserved for audit, only the extractable content redacted):
+- agent_run_searches row a5299625 result_content_excerpt replaced with an explicit containment-hold marker (do-not-refetch, links the incident record).
+- Grounding structurally blocked as a consequence: nothing extractable remains in the row; no source-level block needed since the confidential PDF was never itself a registered source.
+- Incident record authored and committed this bank (docs/compliance/, new standing directory for legal/third-party-exposure incidents, distinct from this technical session log).
+
+NOTE ON THE PARALLEL DISPATCH: operator also issued a DISPATCH for an operator_review_queue admin surface (migration + intake wiring + admin page + doctrine entry operator-escalations-have-one-door), explicitly scheduled for after the review lane, not built this bank. The incident record above notes it as the intended backfill target once that infrastructure lands.
+
+Lease state (session B): clean (this item was not under an active lease during the trace -- read/trace + one guarded redaction, no drain-clear/id-stamp mutation). Spend: $0.
