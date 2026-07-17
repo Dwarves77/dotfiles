@@ -176,3 +176,26 @@ PROMOTION QUEUE (3 items):
 FINDING (reinforces the standing one): of 3, only 1 (la-eweo) had a single enacting instrument to id-stamp; the other 2 are programs-hubs / voluntary-goal items that need reclassify judgment, not promotion. The match/subject-overlap Lane A pool is largely portal/hub/voluntary shapes, not id-stampable instruments.
 
 Lease state (session B): clean. Spend: $0 (all free/hand path). Live corpus counts unchanged (la-eweo still quarantined pending Lane A relabel).
+
+## 2026-07-17 — Session B bank 5 (branch -b): match/subject-overlap queue complete
+
+Processed the remaining 9 match/subject-overlap Lane A items (la-eweo was bank 4). FULL match/subject-overlap tally (12): 4 PROMOTED, 8 REASSIGNED.
+
+PROMOTED (id-stamped -> id-confirmed clearance-grade):
+- c8 (ISSB IFRS S2): id "IFRS S2" (raw-id score=1). 0 mechanical (34 claims); 30 relabel-manual -> Lane A.
+- c5 (GLEC Framework v3): id "GLEC Framework v3" (raw-id score=1). 0 mechanical (53 claims); relabel-manual -> Lane A.
+- 82f09535 (Norway World Heritage Fjords zero-emission): id FOR-2012-05-30-488 (Norwegian miljosikkerhetsforskriften, lovdata raw-id score=1). 0 mechanical (43 claims); only 5 relabel-manual (close to clearance) -> Lane A.
+- (bank 4) la-eweo: Ordinance No. 184674; 7 orphaned versioned out; 8 relabel-manual -> Lane A.
+
+REASSIGNED-TO-A (genuine judgment, no id-stampable single instrument):
+- green-building: multi-standard SURVEY (LEED/BREEAM/NABERS/Green Mark/Estidama/EPBD/MEES) — no single instrument.
+- uae-netzero: item_type=regulation MIS-SET; primary is UAE LT-LEDS (voluntary strategy), no legal instrument number.
+- 87ed781c (Wisconsin 2023 State Freight Plan): planning framework, no formal designation (only federal cite 49 USC 70202).
+- b6b7eb7d (Japan MLIT): generic 'Policy Document' title; Carbon Neutral Port INITIATIVE, no law number.
+- g13 (Brazil Logistica Reversa): PORTAL SOURCE (MMA hub, no enacted primary); regime spans Lei 12.305/Decreto 10.936/portarias.
+- japan-gx-freight: SCOPE MISMATCH (primary = economy-wide GX Basic Policy, titled 'Freight Transport Standards') + wrong class.
+- (bank 4) fabda0e7 (Oregon DEQ hub), nashville (RS2022-1358 non-binding goal).
+
+DISCRIMINATOR (now explicit): id-stamp promotes ONLY when a formal instrument designation is verbatim in the capture — a registry NUMBER (lovdata FOR-, FR doc-no, ordinance no) OR a formal STANDARD designation (IFRS S2, GLEC Framework v3). A descriptive document TITLE of a one-off plan/strategy/policy, a portal hub, a multi-instrument survey, or a scope/class mismatch => REASSIGN-TO-A (reclassify/rescope/re-acquire judgment). Confirms standing finding: the match/subject-overlap pool is dominated by portal/hub/policy shapes, not id-stampable instruments (4/12 promotable).
+
+New tooling this session: lease.mjs, reassign-to-a.mjs (bank 4). Lease state (session B): clean. Spend: $0. Remaining Session B queue: 10 below-threshold subject-overlap (verify/re-acquire), 6 no-primary (re-acquire).
