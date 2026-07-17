@@ -56,5 +56,25 @@ const HDV_PRIMARY = "Regulation (EU) 2024/1610 of the European Parliament amendi
 check("EU cross-instrument: a CSRD (2022/2464) claim on an id-confirmed HDV (2024/1610) primary AUTO-CLEARS",
   wouldAutoClear("Directive (EU) 2022/2464 requires corporate sustainability reporting.", false, HDV_ITEM, HDV_PRIMARY) === true);
 
+// ── ORPHAN class (third exit, orphaned_no_prose_referent): version out ONLY when BOTH (a) claim text is
+//    verbatim-absent from ALL section prose AND (b) if it covers a required slot, that slot is ALSO covered by a
+//    FACT/GAP (slot-safe). A slot's SOLE coverage is a slot GAP to fill, never cleared. Predicate mirrors drain-clear.
+const strip = (t) => String(t || "").replace(/^\[[^\]]+\]\s*/, "").trim();
+const slotOf = (t) => { const m = String(t || "").match(/^\[([^\]]+)\]/); return m ? m[1] : null; };
+const wouldOrphanClear = (claimText, allProse, requiredSlots, coveredByFactOrGap) => {
+  const inProse = allProse.toLowerCase().includes(strip(claimText).toLowerCase());
+  if (inProse) return false;                                   // in prose -> relabel, not orphan
+  const slot = slotOf(claimText);
+  if (slot && requiredSlots.has(slot) && !coveredByFactOrGap.has(slot)) return false; // sole coverage -> fill, not clear
+  return true;
+};
+const PROSE = "The program is administered by the state. *Analytical inference:* the workspace should monitor filings.";
+const REQ = new Set(["effective_date", "penalty_summary"]);
+const COVERED = new Set(["effective_date"]); // effective_date has a FACT; penalty_summary does not
+check("orphan CLEARS: text absent from all prose, no required slot", wouldOrphanClear("Wyoming is one of five states with CCR authority.", PROSE, REQ, COVERED) === true);
+check("orphan CLEARS: text absent, covers effective_date which a FACT also covers (slot-safe)", wouldOrphanClear("[effective_date] Authority became effective March 30, 2026.", PROSE, REQ, COVERED) === true);
+check("orphan does NOT clear: it is a required slot's SOLE coverage (fill, never clear)", wouldOrphanClear("[penalty_summary] Penalties apply under RCRA.", PROSE, REQ, COVERED) === false);
+check("orphan does NOT clear: claim text IS in prose (relabel path, stays live)", wouldOrphanClear("the workspace should monitor filings", PROSE, REQ, COVERED) === false);
+
 console.log(failed ? `\nGOLDEN FAILED (${failed})` : "\nGOLDEN PASSED");
 process.exit(failed ? 1 : 0);
