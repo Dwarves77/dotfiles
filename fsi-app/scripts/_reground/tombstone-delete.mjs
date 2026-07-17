@@ -16,6 +16,11 @@ const MERGED = (() => { const a = process.argv.find((x) => x.startsWith("--merge
 const HOLDER = (() => { const a = process.argv.find((x) => x.startsWith("--holder=")); return a ? a.slice(9) : "session-A"; })();
 const BUCKET = (() => { const a = process.argv.find((x) => x.startsWith("--bucket=")); return a ? a.slice(9) : null; })();
 const EMPTY_ONLY = process.argv.includes("--empty-only"); // mechanical content gate: brief_len=0 AND claim_ct=0
+// GROUP-② tombstone rule (operator ruling 2026-07-17): a confirm-archive source-description (content-bearing) may
+// be tombstone-deleted ONLY where its source row verifiably EXISTS and is ACTIVE — the content must survive
+// somewhere (the source row) before the item stops being the place it survives. --require-active-source enforces
+// it in the tool: any item lacking an active source row is REFUSED (register the source first, or HOLD).
+const REQUIRE_ACTIVE_SOURCE = process.argv.includes("--require-active-source");
 const keys = process.argv.slice(2).filter((x) => !x.startsWith("--"));
 
 // ARCHIVE-ENDGAME deletable-reason allowlist (operator ruling 2026-07-16). A bucket may be DELETED only when its
@@ -72,8 +77,19 @@ console.log(`  ${targets.length} target(s)${BUCKET ? " (census archive_correct o
 for (const it of targets) console.log(`  ${it.id.slice(0, 8)} ${it.legacy_id || ""} | arch=${it.is_archived} brief=${(it.full_brief || "").length}ch | ${String(it.title).slice(0, 50)}`);
 if (!APPLY) { console.log(`\n(dry-run — --apply to tombstone + guarded-delete ${targets.length} item(s))`); process.exit(0); }
 
+// GROUP-② gate: build the active-source set once (content-survives precondition for a source-description delete).
+let activeSrc = null;
+if (REQUIRE_ACTIVE_SOURCE) {
+  const srcs = await readAll("sources", "id,status", {});
+  activeSrc = new Set(srcs.filter((s) => s.status === "active").map((s) => s.id));
+}
+
 let done = 0;
 for (const it of targets) {
+  if (REQUIRE_ACTIVE_SOURCE && !(it.source_id && activeSrc.has(it.source_id))) {
+    console.log(`  REFUSE ${it.id.slice(0, 8)}: no ACTIVE source row (content would not survive) — register source first or HOLD, NOT deleted`);
+    continue;
+  }
   const lease = await acquireLease(sb, it.id, HOLDER, "A");
   if (!lease.acquired) { console.log(`  SKIP ${it.id.slice(0, 8)}: leased by ${lease.cur_holder}`); continue; }
   try {

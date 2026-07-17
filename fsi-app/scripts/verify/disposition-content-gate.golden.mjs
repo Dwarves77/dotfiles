@@ -66,5 +66,11 @@ const deletePos = codeOnly.indexOf('guardedDelete("intelligence_items"');
 check("tombstone (guardedInsert disposition_ledger) precedes guarded delete",
   insertPos > 0 && deletePos > 0 && insertPos < deletePos);
 
+// 7. GROUP-② SOURCE-SURVIVAL GATE — --require-active-source refuses to delete a content-bearing source-description
+// unless its source row exists AND is active (content must survive somewhere before the item stops being it).
+check("--require-active-source flag is read", /REQUIRE_ACTIVE_SOURCE\s*=\s*process\.argv\.includes\(\s*["']--require-active-source["']\s*\)/.test(codeOnly));
+check("source-survival gate refuses an item without an active source row",
+  /REQUIRE_ACTIVE_SOURCE\s*&&\s*!\(\s*it\.source_id\s*&&\s*activeSrc\.has\(it\.source_id\)\s*\)/.test(codeOnly));
+
 console.log(failed ? `\n${failed} FAIL` : "\nALL PASS (disposition-content-gate)");
 process.exit(failed ? 1 : 0);
