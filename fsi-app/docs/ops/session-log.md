@@ -161,3 +161,18 @@ eu_clean_trucking primary re-acquired (Session A #1) — EUR-Lex 32024R1610 tier
 FINDING: eu-csrd is TWO items — transport-provisions (9c5d1d17, no brief/0 claims) + transport-sector-implementation — BOTH canonical 32022L2464 = DUPLICATES (dedup judgment, not a drain). Surfaced.
 
 STATUS: drain count 4 (unchanged), corpus 202 verified / 33 quarantined, census 655/655, spend ~$0.26, lease state (session A) clean. Census infra committed+pushed (629dea9e). Archive endgame NOT started (awaiting operator ruling).
+
+## 2026-07-17 — Session B bank 4 (branch corpus-integrity/cc-grounding-executor-b, own worktree)
+
+WORKTREE SEPARATION LIVE: Session B now runs in C:/Users/jason/dotfiles/.worktrees/wt-session-b on branch corpus-integrity/cc-grounding-executor-b (own worktree, node_modules junctioned to shared, .env.local copied). No more shared-tree push race. Bank 3 (870623cc, o13) confirmed on remote (carried forward under Session A's 558dcdf6).
+
+NEW TOOLING (scripts/_reground): lease.mjs (standalone acquire/heartbeat/release CLI — id-stamp requires the lease already held, so caller acquires here) and reassign-to-a.mjs (annotate drain_worklist + release lease when an item is genuine judgment, no claim touched). SEQUENCING FIX: the mig-211 lease RPC treats same-holder re-acquire as HELD (acquired=false), so drain-clear (which self-leases) FAILS if the caller still holds the lease — correct order is acquire -> id-stamp --apply -> RELEASE -> drain-clear --apply (self-leases).
+
+PROMOTION QUEUE (3 items):
+- fabda0e7 (Oregon DEQ "Central Hub"): REASSIGN-TO-A. Portal/hub, source_url = DEQ index.aspx homepage, no canonical instrument; capture spans CFP+CPP+rule PDFs. Reclassify/portal-artifact judgment.
+- la-eweo (LA EBEWE): PROMOTED. id-stamped Ordinance No. 184674 (enacting ordinance, raw-id match score=1) -> id-confirmed. Mechanical drain: 7 orphaned_no_prose_referent versioned out (v1, non-destructive). RESIDUAL Lane A: 8 relabel-manual (FACT->ANALYSIS judgment).
+- nashville-building-energy-programs: REASSIGN-TO-A. Programs-hub, source_url = ADA page; only id is RS2022-1358 (non-binding GHG-goal resolution); benchmarking is Metro Govt's OWN 335 facilities (internal/voluntary), not a private-building regulation. item_type=regulation likely mis-set; reclassify/off-vertical judgment.
+
+FINDING (reinforces the standing one): of 3, only 1 (la-eweo) had a single enacting instrument to id-stamp; the other 2 are programs-hubs / voluntary-goal items that need reclassify judgment, not promotion. The match/subject-overlap Lane A pool is largely portal/hub/voluntary shapes, not id-stampable instruments.
+
+Lease state (session B): clean. Spend: $0 (all free/hand path). Live corpus counts unchanged (la-eweo still quarantined pending Lane A relabel).
