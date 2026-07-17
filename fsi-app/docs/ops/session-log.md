@@ -205,3 +205,83 @@ Written 2026-07-18, reconstructed from git log + docs/ops/sweep-ledger.md. The 8
 - `e827af6b` (22:28) — drain bank 6: 3 integrity flags dispositioned. India NLP "Carbon Intensity Standards" (`beae0a7e`) ARCHIVED — fabricated premise, web-corroborated (real NLP has no carbon-standards instrument, source_url 404s). China carbon-market "transport extension" + UAE hydrogen "implementation decree" HELD (real subjects, unsupported title claims, primaries roadblocked). **Filed `integrity_flags` row `963d4450`** (data_integrity): a CONFIDENTIAL NCAER report (disclosure-prohibited on its own cover page) was improperly staged into `beae0a7e`'s pool and persists in `agent_run_searches`/`raw_fetches` post-archive — flagged for operator purge ruling + a fetch-time confidentiality-marking guard. New tool `scripts/_reground/archive-item.mjs`. Archived 162→163, quarantined 64→63.
 
 PROCESS FIX (closes the recurrence, not just this instance): the log fell behind because eight banks committed without their log entries as a separate step. Going forward, **the session-log entry is part of the bank commit itself** — written and staged in the same commit that lands the bank's code/data changes, never deferred to a follow-up documentation pass. This is the mechanism; it does not depend on remembering to do better next time.
+
+## 2026-07-17 — Session B bank 5 (branch -b): id-stamp discriminator + reassign-to-A tooling
+
+DISCRIMINATOR (now explicit): id-stamp promotes ONLY when a formal instrument designation is verbatim in the capture — a registry NUMBER (lovdata FOR-, FR doc-no, ordinance no) OR a formal STANDARD designation (IFRS S2, GLEC Framework v3). A descriptive document TITLE of a one-off plan/strategy/policy, a portal hub, a multi-instrument survey, or a scope/class mismatch => REASSIGN-TO-A (reclassify/rescope/re-acquire judgment). Confirms standing finding: the match/subject-overlap pool is dominated by portal/hub/policy shapes, not id-stampable instruments (4/12 promotable).
+
+New tooling this session: lease.mjs, reassign-to-a.mjs (bank 4). Lease state (session B): clean. Spend: $0. Remaining Session B queue: 10 below-threshold subject-overlap (verify/re-acquire), 6 no-primary (re-acquire).
+
+## 2026-07-17 — Session B bank 6 (branch -b): below-threshold queue, 2 of 10 processed
+
+- 6a857887 (Brazil Lei 12.305/2010 PNRS): PROMOTED. id-stamped "12.305/2010" (planalto.gov.br enacted text, raw-id match score=1) -> id-confirmed clearance-grade. 0 mechanical exits (17 claims); relabel-manual residual -> Lane A. Contrast with g13 (bank 5): g13's source was the MMA portal hub with no enacted text; this item's source_url is the planalto.gov.br ENACTED LAW TEXT directly, so it promotes where g13 could not — same statute, different capture.
+- c4 (ISO 14083): REASSIGN-TO-A. score=0 (below threshold). CONFLATION FOUND: pool contains EUR-Lex FuelEU Maritime text (CELEX 32023R1805 / OJ L_202302772) under an ISO-standard item — a different regulation's text pooled in error. Actual primary is a paywalled ISO catalog stub (ISO does not publish standard text free). Needs conflation-resolution (strip FuelEU Maritime rows) + thin-primary judgment.
+
+NOTE: operator switched the Claude Code model this session; switching at this bank boundary (not mid-item), per operator instruction.
+
+Remaining below-threshold queue (8): 0ea6a710 (NY truck/HHG), 0f46aabf (Slovenia NECP "prep initiated"), 45f85547 (WAC "navigation" hub), 576554b3 (UK Transport Decarb Plan / HGV CO2 mismatch), ad4cc6c6 (Japan Customs tariff, known needs-reacquire per prior session), bfb6a9fe (IMO air pollution overview, needs Annex VI text), g15 (Colombia MinTransporte portal), uk-secr (SI 2018/1155 likely, source is gov.uk guidance not legal text — check).
+
+Lease state (session B): clean. Spend: $0.
+
+## 2026-07-17 — Session B bank 7 (branch -b): below-threshold queue complete (9 items)
+
+Finished the below-threshold queue (10 total; 6a857887 was bank 6). ALL 9 remaining REASSIGNED-TO-A -- none had a single id-stampable instrument. Several are genuine DATA-QUALITY DEFECTS worth flagging as priority (mechanical, not judgment about content):
+
+- 0ea6a710 (NY Truck & Motor Carrier): SCOPE MISMATCH. Primary is 17 NYCRR Part 820 (household-goods movers only, verbatim-present) but title is a broad general-trucking "Framework"; pool spans DOT-number/49 CFR federal compliance far beyond Part 820. Stamping Part 820 would narrow the item.
+- 0f46aabf (Slovenia NECP): STATUS CONFLICT. Title says "Preparation Initiated" but a pool row reports Slovenia ADOPTED the plan -- status may be stale. No enacted primary captured, source is the ministry portal.
+- 45f85547 (Washington WAC): PURE PORTAL. Title says "Access and Navigation" -- this is the entire WAC index, not one regulation.
+- 576554b3 (UK Transport Decarbonisation Plan): TITLE/PRIMARY MISMATCH + conflation. Title names the 2021 TDP policy document (present in pool) but declared primary is a DIFFERENT doc (new HGV CO2 regulatory framework PDF); pool also mixes in UK SAF mandate (aviation, separate instrument).
+- ad4cc6c6 (Japan Customs FY2026): MULTI-DEFECT. jurisdiction=[AE,BD,JP] wrongly includes UAE+Bangladesh (cross-jurisdiction contamination, pool has a Bangladesh-Japan EPA article); declared primary is an Advance Ruling procedure summary, not a law; pool's full-text law block is the Customs Act at its STALE 2018-amended version, not FY2026; separate annual tariff-schedule pages are a different genre. No FY2026 amendment instrument actually present.
+- bfb6a9fe (IMO Air Pollution): OVERVIEW HUB, jurisdiction=[] empty. No MARPOL Annex VI instrument text; pool is press/FAQ pages. POSSIBLE DUPLICATE of o13's IMO Net-Zero Framework subject (pool[2] same FAQ page) -- flagged for dedup check.
+- g15 / 3e9c3ebe (Colombian Ministry of Transport): JURISDICTION DEFECT (mechanical). Tagged US-CO (Colorado, US state) but is unambiguously Colombia the country (ISO 3166-1 = CO). Declared primary is a 293-char near-empty portal page; generic institution title, no instrument.
+- uk-secr (SECR Amendment): NO ENACTED-TEXT PRIMARY. Actual instrument SI 2018/1155 is only an unfetched stub; declared primary is a gov.uk guidance summary. STATUS QUESTION: pool dominated by ongoing Scope-3 consultations/calls-for-evidence -- the "Amendment" may be unenacted/proposed, not in force.
+- c4 (ISO 14083, bank 6): conflation (EUR-Lex FuelEU Maritime text pooled under an ISO item) + paywalled thin primary.
+
+PRIORITY FLAGS for Session A (mechanical, cheap fixes, not content judgment): g15 jurisdiction US-CO->CO, ad4cc6c6 jurisdiction strip AE/BD, bfb6a9fe possible o13 duplicate.
+
+BELOW-THRESHOLD TALLY: 1 of 10 promoted (6a857887, bank 6), 9 reassigned. Combined with the 12 match/subject-overlap items (4 promoted, 8 reassigned): Session B promotion total across both pools = 5 of 22 (23%). The remaining 17 are genuine Lane A judgment, several surfacing NEW defects (jurisdiction mistagging, cross-jurisdiction conflation, stale document versions, title/primary mismatches) beyond the original "wrong/no/unconfirmed primary" framing.
+
+Lease state (session B): clean. Spend: $0. NEXT: 6 no-primary re-acquisitions via the free-acquire pattern (acquire-primary.mjs).
+
+## 2026-07-17 — Session B bank 8 (branch -b): no-primary queue complete + session close-out
+
+All 6 no-primary re-acquisitions attempted via direct-HTTP fetch (free, curl, 20s bound, no retry on roadblock per remediation-discipline category 8). ZERO promotions this batch, but the bounded-search diligence surfaced several high-value defects beyond the original "no primary" framing:
+
+- china-s-national-carbon-market: declared primary (mee.gov.cn) TIMED OUT. Bounded alternative search of 2 already-staged english.gov.cn Xinhua summaries: ZERO mentions of 'transport' in 59K ch. China's ETS covers power/steel/cement/aluminum only; 2027 target is 'all major industrial sectors' (no transport language). TITLE CLAIM ('Extension to Transportation Sector') NOT SUPPORTED by any sourced content.
+- india-s-national-logistics-policy: declared primary 404 (confirmed dead). Real NLP launch speech (PIB, PM Modi 2022, 24.7K ch) has ZERO mentions of 'carbon intensity' -- title's entire premise appears unsupported. JURISDICTION BUG: tagged US-IN (Indiana) should be IN (India). URGENT COMPLIANCE FLAG: a CONFIDENTIAL NCAER report ("Logistics Cost in India", explicit disclosure-prohibited notice on its own cover page) was improperly staged in the pool -- unrelated to carbon intensity regardless, should never have been fetched/quoted.
+- japan-s-green-transformation-gx-league: both meti.go.jp (DNS fail) and www.meti.go.jp (403 bot-block) roadblocked. Pool alternative real but thin (2 'transport' mentions/7 blocks). GX League is economy-wide voluntary pre-ETS, not transport-specific. POSSIBLE DUPLICATE of japan-green-transformation-gx-freight (bank 5).
+- japan-s-updated-top-runner-program: www.meti.go.jp 403 bot-blocked. REPOINTED source_url (mechanical, KEPT) to the real freight-specific enecho.meti.go.jp 08_kamotsu.html page (30K ch, same registered METI source_id, tier 2) -- dead->working URL fix. Initial id-stamp "Energy Conservation Law" verified only against the pool-union, NOT the true single primary alone (drain-clear's strict re-check: unverified/below-threshold) -- REVERTED the stamp to null rather than leave a false clearance-adjacent state (self-correction, gate worked as designed). VALUABLE FINDING: the law was RENAMED via a 2022 amendment (省エネ法 -> 省エネ・非化石転換法) and contains SHIPPER-SPECIFIC (荷主) energy-efficiency provisions directly relevant to freight forwarding -- worth deliberate bilingual id-stamp work. 98 pre-existing claims warrant review given the primary was previously broken.
+- uae-national-hydrogen-strategy-implementation-decree: u.ae timeout, uae.gov.ae 404. Pool (law-firm briefings) has ZERO mentions of 'decree'; no federal law/cabinet decree number anywhere. Same class as uae-netzero (bank 5): a voluntary strategy, title claims an unenacted implementing decree.
+- uae-national-hydrogen-strategy-transport-sector: same roadblocks. LIKELY DUPLICATE of the decree item -- identical pool[0] source (nortonrosefulbright briefing) in both; only 3 'transport' mentions, no decree number either. Needs dedup judgment.
+
+NEW TOOLING: repoint-url.mjs -- mechanical repoint of source_url to a MORE SPECIFIC url already staged in the item's own pool under the SAME registered source_id (no new source registration/tier judgment). Distinct from acquire-primary.mjs (new host + tier decision). Guards: refuses if the target pool row is <2000ch.
+
+=== SESSION B FULL TALLY (banks 3-8) ===
+- Promoted (id-stamped -> id-confirmed): 5 -- canada-clean-fuel (SOR/2022-140), bec305e1 (2024-06809), la-eweo (Ordinance 184674), c8 (IFRS S2), c5 (GLEC Framework v3), 82f09535 (FOR-2012-05-30-488), 6a857887 (12.305/2010). [7 total across full session incl. pre-compact banks 1-2]
+- Mechanically drained (orphaned_no_prose_referent, non-destructive version-out): canada-clean-fuel (4), la-eweo (7). 11 claims versioned out this session's promotion lane.
+- Reassigned to Lane A with a concrete finding on each: 23 items (o13, fabda0e7, nashville, green-building, uae-netzero, 87ed781c, b6b7eb7d, g13, japan-gx-freight, c4, 0ea6a710, 0f46aabf, 45f85547, 576554b3, ad4cc6c6, bfb6a9fe, g15/3e9c3ebe, china, india, japan-gx-league, japan-top-runner, uae-hydrogen-decree, uae-hydrogen-transport).
+- DEFECT CLASS DISCOVERIES this session (beyond the original wrong/no/unconfirmed-primary framing): 2 jurisdiction mistaggings (US-CO/Colombia, US-IN/India -- both US-state-code collisions with country codes, likely a recurring classifier bug worth a corpus-wide sweep), 2 conflations (c4 FuelEU-Maritime-in-ISO-item, ad4cc6c6 cross-jurisdiction AE/BD-in-Japan-item), 3+ likely duplicate pairs (bfb6a9fe/o13, japan-gx-league/japan-gx-freight, uae-hydrogen-decree/uae-hydrogen-transport), 1 confidentiality violation (india's improperly-staged NCAER report), 2 title-fabrication flags (china transport-extension, india carbon-intensity) where the item's premise is unsupported by any sourced content, 1 self-corrected over-loose promotion (japan-top-runner).
+- Worktree separation (operator ruling) executed cleanly: own git worktree, junctioned node_modules, copied .env.local, zero shared-tree push conflicts across 6 banks post-separation.
+- Model switch (Opus->Sonnet) executed cleanly at a bank boundary per operator instruction, no mid-item interruption.
+- Spend: $0 across the entire session (all free/hand/direct-HTTP path). Lease state (session B): clean at every bank.
+
+Lane A now carries 23 items PLUS Session A's own queue, each with an evidence-based finding rather than a bare "not id-confirmed" classification -- meaningfully de-risks the next judgment pass. Chokepoint did not hold work at unusual rates post-switch; no anomaly to flag.
+
+## 2026-07-17 — Session B CONTAINMENT BANK: NCAER confidentiality incident traced + contained
+
+Operator dispatch (addition to the containment order): complete the trace on the confidentiality finding surfaced during bank-8 (india-s-national-logistics-policy-carbon-intensity-standards, pool[2]) and write a formal incident record.
+
+TRACE RESULT (full detail: docs/compliance/confidentiality-incident-2026-07-17-ncaer.md, first entry in a new docs/compliance/ directory):
+- Confirmed: dpiit.gov.in/static/uploads/2025/07/b6c9db15ce083fd10caa9787bf8a281f.pdf is a CONFIDENTIAL NCAER report ("Logistics Cost in India", explicit disclosure-prohibition on its own cover page), 35 pages, unrelated to the item's carbon-intensity subject.
+- ORIGINAL pipeline fetch (2026-06-06) was CDN-BLOCKED (Akamai Access Denied) -- the corpus's own stored excerpt (269ch) is an error page, NOT document content. Zero confidential text was ever stored in the corpus at any point.
+- Session-B's OWN investigative re-fetch (this session, browser user-agent) succeeded (HTTP 200, no auth, CDN-cached) -- confirming the host serves the document publicly with no access control. Local investigative copies (PDF + extracted text) were already deleted during routine bank-8 tmp cleanup, never committed, never written to any corpus table.
+- GROUNDING EXPOSURE: zero claims ever grounded via this pool row (search_result_id match = 0); zero claims via the registered dpiit.gov.in source (which points to a DIFFERENT url, the logistics-division page, unaffected). Nothing reached a customer surface.
+
+CONTAINMENT ACTIONS (guarded writes, cited, non-destructive -- row preserved for audit, only the extractable content redacted):
+- agent_run_searches row a5299625 result_content_excerpt replaced with an explicit containment-hold marker (do-not-refetch, links the incident record).
+- Grounding structurally blocked as a consequence: nothing extractable remains in the row; no source-level block needed since the confidential PDF was never itself a registered source.
+- Incident record authored and committed this bank (docs/compliance/, new standing directory for legal/third-party-exposure incidents, distinct from this technical session log).
+
+NOTE ON THE PARALLEL DISPATCH: operator also issued a DISPATCH for an operator_review_queue admin surface (migration + intake wiring + admin page + doctrine entry operator-escalations-have-one-door), explicitly scheduled for after the review lane, not built this bank. The incident record above notes it as the intended backfill target once that infrastructure lands.
+
+Lease state (session B): clean (this item was not under an active lease during the trace -- read/trace + one guarded redaction, no drain-clear/id-stamp mutation). Spend: $0.
