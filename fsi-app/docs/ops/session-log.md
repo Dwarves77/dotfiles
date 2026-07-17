@@ -146,3 +146,18 @@ eu_clean_trucking (Session A #1, the known wrong-primary): re-acquired the CORRE
 PARALLEL DRAIN LIVE: Session B is active (holds a lease on item 5b2c6655, lane B). Leases arbitrating correctly — Session A holds none, did not touch B's item. Mutual exclusion working in production.
 
 Session A drain count this session: 4 verified (unchanged — eu_clean_trucking primary re-acquired but not yet grounded). Lease state (session A): clean.
+
+## 2026-07-16 — CENSUS COMPLETE (655/655) + eu_clean_trucking primary re-acquired
+
+METERED CENSUS (operator ruling a) — migration 212 corpus_census + scripts/_reground/census-run.mjs. Audit gate: 10 items hand-verified 10/10 accurate (9 archive_correct portals/orgs/error-pages, 1 review_valuable correctly flagged a dated Norway regulation archived as duplicate). Full run: 655/655 classified. Total spend ~$0.26 (audit $0.007 + runs; $15 ceiling never neared). Read-only, no item mutations. Fixes en route: logSpendRun per item (spend-guard ledger-drain), idempotent insert (skip duplicate pk).
+
+CENSUS TABLE (the true corpus number + archive-endgame input):
+- TOTAL 655 = LIVE 235 (verified 202, quarantined 33) + ARCHIVED 420.
+- ARCHIVED Haiku verdict: archive_correct 364, review_valuable 56.
+- REVIEW_VALUABLE 56 by archive_reason: reclassified_to_source 20, none/"-" 18, duplicate_instrument 12, portal_artifact 2, duplicate_of_verified 1, Repealed 1, Superseded 1, duplicate 1. These 56 are the archives Haiku flags as possibly VALUABLE unique items wrongly archived — the human-review input to the archive endgame (operator's NEXT ruling; NOT started here per instruction).
+
+eu_clean_trucking primary re-acquired (Session A #1) — EUR-Lex 32024R1610 tier-1 161K ch, id-confirmed, repointed under lease; 0-claim brief needs a full grounding pass (residual).
+
+FINDING: eu-csrd is TWO items — transport-provisions (9c5d1d17, no brief/0 claims) + transport-sector-implementation — BOTH canonical 32022L2464 = DUPLICATES (dedup judgment, not a drain). Surfaced.
+
+STATUS: drain count 4 (unchanged), corpus 202 verified / 33 quarantined, census 655/655, spend ~$0.26, lease state (session A) clean. Census infra committed+pushed (629dea9e). Archive endgame NOT started (awaiting operator ruling).
