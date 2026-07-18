@@ -14,9 +14,10 @@ data changes; this document and its board/inventory/index riders are the only wr
 caller graphs (mechanical grep sweep over `src/`, `scripts/`, `.github/workflows/`, with per-route
 verification of every zero-hit and truncated result), all 14 ADRs, all 58 doctrine-register entries,
 and targeted `git log` traces for state-change commits. Session D's forensics report was read in full
-(commit `048669a9`, branch `corpus-integrity/cc-grounding-executor-d`, appending to
-`docs/ops/session-log.md`; not yet on master at write time). D's context facts relied on here were
-independently re-verified where marked.
+as the primary source (commit `048669a9`, branch `corpus-integrity/cc-grounding-executor-d`, the
+2026-07-18 entry in `docs/ops/session-log.md`; repo-resident via PR #342, still open at write time).
+D's push-resolution handoff (`3d1f65e3`) was also read; its two queued Session-E findings are folded
+in as G-12 and G-13. D's context facts relied on here were independently re-verified where marked.
 
 **DB state is deliberately NOT claimed.** Live flag values, scan reachability, and queue contents
 are operator-dashboard checks (section 7), not code inferences. No DB query was attempted; the
@@ -198,6 +199,8 @@ not deliver.
 | G-9 | `pause.ts` header + `/api/agent/run` comment still list the dissolved `drain-first-fetch` worker as a live fetch entry (dissolved 2026-07-12) | File reads | cosmetic, fix with next touch |
 | G-10 | ADR-001 consequences state a `(tenant)` route-group convention; no such group exists (honestly marked future_scope in the ADR frontmatter, but the consequences line reads as adopted). All tenant pages sit directly under `src/app/` | ADR-001; `src/app/` listing | cosmetic |
 | G-11 | ADR-013/ADR-014 checked clean: Phase-3 closed-not-run matches code (no restitution runner armed); ADR-014's claimed mechanical half exists (`wave-acceptance-audit.mjs` + golden + QA-1). ADRs 002-011 spot-checked against their scope files; no divergence found beyond G-10. ADR-006/ADR-009 are marked deprecated and claim nothing about code | file reads | clean |
+| G-12 | (from D's handoff `3d1f65e3`, verified against `skill-token.mjs`) The PreToolUse action-time skill gate enforces that a governing skill was INVOKED, not that it LOADED: `skillLoadedInTranscript` matches the Skill tool-use shape in the transcript with no check on whether the invocation resolved or errored. An "Unknown skill" error satisfies the gate exactly as a successful load does. The gate's own doctrine text says "looked at, not just having it in context", which an erroring invocation is not | D's log entry + code read | unresolved-operator (intended tolerance vs gap; if gap, the matcher needs a resolved-successfully condition) |
+| G-13 | (from D's handoff) C4's sibling-path resolution was broken for every push originating from a secondary worktree from C4's introduction (`8d42510a`, 2026-05-20; pre-push wiring `9cd364f4`, 2026-05-21) until D's fix (`3ad5b310`, 2026-07-18, cherry-picked onto this branch). Reconciliation run this audit: every `Consistency-Override` trailer in `git log --all` was enumerated; exactly two C4 overrides exist (`d54bb41d` 2026-07-11, ephemeral R0.2 scratchpad worktree, documented rationale; `3f730232` 2026-07-18, the wt-audit registration gap, documented rationale + deadline). No silent or undocumented C4 override exists in history. The Path table held only `dotfiles` for the whole broken window, so the bug's practical hole was the orphan-claim direction (an unregistered sibling worktree invisible from secondary-worktree pushes); the only demonstrated instance is `wt-audit` itself, registered same-day. Which historical pushes physically originated from secondary worktrees is NOT recorded by git; that half is unknowable from the repo and is labeled as such, not assumed benign | trailer sweep + intro-commit traces this audit | resolved for the knowable half; the unknowable half is a labeled gap |
 
 ### 5.3 The new divergence class: worklist-note vs live gate (Session A's SW-3 finding)
 
@@ -275,8 +278,10 @@ operator ruling, as tombstone-then-delete committed migrations. Nothing was purg
    session log; workflow enable/disable state lives GitHub-side, on top of the commented schedules.
 5. The SW-3 `integrity_flags` row (data_quality, subject drain_worklist) exists and is open.
 6. `drain_worklist` queue state (66 rows at Session A's park, per commit `3f730232`).
-7. D's forensics report merge state (branch `corpus-integrity/cc-grounding-executor-d`, commit
-   `048669a9`; on master or not at the time of the purge ruling).
+7. D's forensics report merge state (PR #342, open at write time; on master or not at the time of
+   the purge ruling). Note: this audit's branch carries a cherry-pick of #342's C4 fix
+   (`3ad5b310`) and a byte-identical worktrees.md registration row, so the two merge cleanly in
+   either order; the PROGRAM-BOARD appends from both PRs will need a trivial keep-both resolution.
 
 ## 8. Three-state roll-up
 
