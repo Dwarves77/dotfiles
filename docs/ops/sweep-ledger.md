@@ -50,3 +50,30 @@ country-vs-state call is judgment, same discipline as content-is-not-nature).
 **Why wholesale, not instance-by-instance.** Each instance so far was caught only by a restore-time
 jurisdiction check. A single corpus-wide query closes the whole class at once, so no future item silently
 carries a mis-coded jurisdiction between now and the next accidental catch.
+
+---
+
+## SW-2 — Stale session-log fork write hazard (fsi-app/docs/ops/session-log.md)
+
+**Status:** PENDING — deprecation pointer in place (near-term mitigation); mechanical check not yet built.
+**Logged:** 2026-07-18 (operator ruling). **Class owner:** corpus-integrity / process discipline.
+
+**The class.** `fsi-app/docs/ops/session-log.md` is a stale fork of the canonical `docs/ops/session-log.md`
+(repo root, per `CLAUDE.md` rule 6) that stopped receiving real entries after commit `42ac8969`. Two
+INDEPENDENT sessions (Session A's 2026-07-18 restart reconciliation, and Session B's 2026-07-17 containment
+bank) each wrote real work to the fork without noticing it wasn't the canonical file. Two independent misses
+means this is a mechanical hazard, not an advisory one — a third session doing the same thing is the base
+rate until something cheaper than "remember which file" closes it.
+
+**Near-term mitigation (done):** a deprecation pointer at the top of the fork (added 2026-07-18) redirects
+any session that opens it.
+
+**The mechanical fix (not built, pending):** a one-line check — a discipline rule or pre-commit hook line —
+that flags (or blocks) any commit touching `fsi-app/docs/ops/session-log.md`, naming the canonical path as
+the redirect. Cheap to build (a single path-match in the existing pre-push/pre-commit chain, same shape as
+other path-based guards already in the discipline suite) but not built in this bank per operator instruction
+— the pointer covers the near term; this entry keeps the item visible until it lands.
+
+**Why wholesale, not instance-by-instance.** The deprecation pointer only helps a session that opens the file
+and reads past the top; a session that writes via a script or appends without reading the header would still
+land in the fork silently. A mechanical block closes the class regardless of whether the header gets read.

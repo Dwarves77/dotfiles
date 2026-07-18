@@ -595,6 +595,14 @@ which is canonical; this file and `CLAUDE.md` are unambiguous, `fsi-app/docs/ops
 referenced as canonical anywhere. Flagging for an operator decision on consolidating or deleting the
 `fsi-app/docs/` duplicate tree at a later bank — not done here, out of scope for a reconciliation bank.
 
+**PROCESS FIX (operator ruling 2026-07-18):** two INDEPENDENT sessions (this restart, and Session B's
+2026-07-17 containment bank) each wrote real work to the stale fork without noticing. Two independent misses
+means the fix is MECHANICAL, not advisory — "remember which file" has already failed twice. The deprecation
+pointer added to the fork's header covers the near term (a session that opens and reads it gets redirected);
+a cheap mechanical check (a discipline/pre-commit line flagging any commit touching `fsi-app/docs/ops/
+session-log.md`) is the real close and is logged as SW-2 on the sweep ledger (`docs/ops/sweep-ledger.md`),
+pending — not built this bank per operator instruction, so it stays visible rather than silently deferred.
+
 **NCAER confidentiality incident (`integrity_flags` 963d4450, `beae0a7e`) — RULED AND CLOSED.** Session B's
 containment (2026-07-17, commit `063d6b0b` on branch `-b`, also landed against the fsi-app fork — same
 mistake, independently made) traced the pool row, found the original pipeline fetch was CDN-blocked and
