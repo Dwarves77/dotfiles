@@ -19,6 +19,7 @@ New worktrees go under `C:/Users/jason/dotfiles/.worktrees/wt-<name>` per FaDB r
 | Path | Branch | Status | Suggested disposition |
 |---|---|---|---|
 | `dotfiles` | `master` | Main repo | Keep |
+| `C:/Users/jason/wt-audit` | `master` (at creation, 2026-07-18) | Session E audit lane, dormant-systems audit, read-only until audit doc lands | Keep until audit doc lands |
 
 **Ephemeral parallel-agent worktrees under `.worktrees/`** (FaDB convention, e.g., `wt-build-7`, `wt-linkedin`) **or `.claude/worktrees/`** (the Claude Code agent-harness convention, e.g., `agent-<id>`) are NOT listed here. Both are developer-local / harness-local transient state; C4 ignores them on both sides (live + inventory). Track only the main repo + historical preserved state.
 
