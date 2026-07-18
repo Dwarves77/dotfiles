@@ -48,6 +48,7 @@ import { partitionCitedByHost } from "@/lib/sources/cited-host-gate.mjs";
 import { buildSourceBlocks, authorityFloorFor } from "@/lib/agent/source-blocks.mjs";
 import { floorSources, reattributeToFloor } from "@/lib/agent/floor-attribution.mjs";
 import { officialnessOf } from "@/lib/sources/officialness.mjs";
+import { verifyPoolTargetMatch } from "@/lib/sources/target-match.mjs";
 import { mergeNullTierAggregate, summarizeNullTierAggregate } from "@/lib/agent/null-tier-flag.mjs";
 // stripUrlMarkers: the SINGLE JS home for the write-site URL-marker strip (drift-guarded against migration
 // 150's SQL canonicalize by url-canon.test.mjs — the two-home guarantee). Synthesis wraps URLs in emphasis
@@ -1133,10 +1134,10 @@ async function judgeSlotSpan(slotKey: string, description: string, nom: { span: 
 
 /** STEP ground: claim-ledger + verbatim span-check + validate_item_provenance; keep claims only if
  *  valid (else delete them — manual rollback). The set_provenance_status trigger flips on the writes. */
-export async function groundBrief(itemId: string, caller: string | null = null, opts?: { model?: string }): Promise<StepResult> {
+export async function groundBrief(itemId: string, caller: string | null = null, opts?: { model?: string; injectedLedger?: any[] }): Promise<StepResult> {
   return withTelemetry(() => groundBriefImpl(itemId, caller, opts));
 }
-async function groundBriefImpl(itemId: string, caller: string | null = null, opts?: { model?: string }): Promise<StepResult> {
+async function groundBriefImpl(itemId: string, caller: string | null = null, opts?: { model?: string; injectedLedger?: any[] }): Promise<StepResult> {
   // MODEL-TIER: the grounding model is opts.model (the Segment-0 A/B override) ?? the GROUND_MODEL knob.
   const groundModel = opts?.model ?? GROUND_MODEL;
   const sb = svc();
@@ -1145,8 +1146,15 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   // operator has armed GROUNDING_ACQUIRE_ENABLED for a sanctioned run (throws AcquireLockError before any model
   // call). Composes with verify-item's earlier gate on the workflow path and the SCRAPE_HOLD transport gate. A
   // direct groundBrief call (proof scripts, reresearch) is gated here too — no paid grounding without the arm.
-  assertAcquireAllowed(`ground: ${itemId}`, process.env);
-  const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, item_type, source_id, source_url, full_brief").eq("id", itemId).single();
+  // CC-GROUNDING-EXECUTOR SEAM (operator ruling 2026-07-16): when the caller INJECTS an extracted ledger
+  // (opts.injectedLedger), the model-extraction step is done FREE by the Claude Code executor (subscription),
+  // so there is NO paid model call and NO fetch — the acquire lock does not apply (it gates spend, and there is
+  // none). Everything downstream (verbatim kept-filter, resolver tier-stamp, floor pool, slot-forcing, ALL mint
+  // gates, non-destructive applyLedgerDiff, validate) runs UNCHANGED, so the system still JUDGES the injected
+  // ledger exactly as it judges a Sonnet one. The metered path is untouched for callers that do not inject.
+  const injected = opts?.injectedLedger ?? null;
+  if (!injected) assertAcquireAllowed(`ground: ${itemId}`, process.env);
+  const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, item_type, source_id, source_url, full_brief, title, instrument_type, instrument_identifier, canonical_instrument_key, jurisdiction_iso").eq("id", itemId).single();
   if (itErr || !it?.source_id) return { ok: false, detail: `no source_id${itErr ? `: ${itErr.message}` : ""}` };
   // I1 (attribution): rich ticket for the grounding ledger-extraction Sonnet call — the paid call the $65
   // hole was blind to. Every spend row from groundBrief now carries itemId + sourceId.
@@ -1304,6 +1312,38 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
     }
   }
   if (!fetched.length) return { ok: false, detail: "no grounding content (no generate pool; nothing fetchable)" };
+  // TARGET-MATCH VERIFY (drain-loop finding, RD-48). BEFORE extraction, confirm the fetched pool actually
+  // contains THIS item's instrument. officialnessOf confirms a capture is AN official instrument, not the
+  // CORRECT one (eu_clean_trucking captured the CSRD directive for the HDV CO2 regulation and scored
+  // "official"). EXECUTOR-AGNOSTIC: runs on the SHARED `fetched` pool, so BOTH the injected (CC) driver and the
+  // metered driver are gated identically (the doctrine-binds-to-pipeline-not-executor invariant, RD-47). HARD-
+  // hold ONLY on a definitive MISMATCH — the pool bears a DIFFERENT instrument id and NOT this one, no matching
+  // block (never over-holds when the right instrument is also present). An UNVERIFIED pool (no decisive id
+  // signal) is a SOFT flag: grounding proceeds under the downstream verbatim/floor gates.
+  const targetMatch = verifyPoolTargetMatch(
+    { title: it.title, item_type: it.item_type, instrument_type: it.instrument_type, identifier: it.instrument_identifier, canonical_instrument_key: it.canonical_instrument_key, jurisdiction: it.jurisdiction_iso },
+    fetched,
+  );
+  if (targetMatch.verdict === "mismatch") {
+    try {
+      await sb.from("integrity_flags").insert({
+        category: "data_integrity", subject_type: "item", subject_ref: itemId, status: "open", created_by: "target_mismatch_gate",
+        description: `Target-instrument MISMATCH — fetched primary is a DIFFERENT instrument than the item. ${targetMatch.best?.reason || ""}`.slice(0, 480),
+        recommended_actions: [
+          { action: "re-acquire the correct instrument", rationale: `capture bears ${(targetMatch.best?.conflicting || []).join(", ")}; the item's own identifier (${(targetMatch.best?.expected || []).join(", ")}) is absent — re-point the source to the enacted instrument for "${it.title}" and re-ground` },
+        ],
+      });
+    } catch { /* best-effort; the hold below is the floor */ }
+    return { ok: false, detail: `target-instrument MISMATCH: ${targetMatch.best?.reason || "fetched primary is a different instrument"} — held, not ground` };
+  }
+  if (targetMatch.verdict === "unverified") {
+    try {
+      await sb.from("integrity_flags").insert({
+        category: "coverage_gap", subject_type: "item", subject_ref: itemId, status: "open", created_by: "target_unverified_gate",
+        description: `Target-match UNVERIFIED (soft) — no instrument-id signal and subject overlap ${targetMatch.best?.score ?? 0} below threshold; grounding proceeds under verbatim/floor gates but the capture is not confirmed to be this instrument. ${targetMatch.best?.reason || ""}`.slice(0, 480),
+      });
+    } catch { /* best-effort */ }
+  }
   const excByUrl = Object.fromEntries(fetched.map((b) => [b.url, b.text]));
   const allText = fetched.map((b) => b.text).join(" ").toLowerCase();
   const system = `You extract a Claim Provenance Ledger for a brief. Output ONLY the ledger.
@@ -1383,7 +1423,10 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   // re-throws so the batch runner HALTS with the actionable cause, instead of mislabeling every remaining
   // item as "still-quarantined". Only a transient/parse failure degrades to a per-item ok:false (full
   // message, never truncated — the diagnostic must survive).
-  try { claims = extractClaimLedgerLenient(await callSonnet(system, user, groundSrc.blocks, groundModel)); }
+  // CC-GROUNDING-EXECUTOR SEAM: use the FREE injected ledger (executor extraction) when provided; else the
+  // metered Sonnet extraction. The injected ledger is the SAME parsed shape extractClaimLedgerLenient returns,
+  // so the kept-filter (verbatim), resolver, gates, and non-destructive apply below judge it identically.
+  try { claims = injected ?? extractClaimLedgerLenient(await callSonnet(system, user, groundSrc.blocks, groundModel)); }
   catch (e) { if (isFatalAnthropic(e)) throw e; return { ok: false, detail: `ledger call failed: ${(e as Error).message}` }; }
   for (const cl of claims) { if (cl.source_url) cl.source_url = stripUrlMarkers(cl.source_url) as string; }
   // Mirror validate_item_provenance criteria so every INSERTED claim already passes the gate:
@@ -1532,7 +1575,14 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   // A verified item never reaches here (skip-if-verified guards upstream); pass the honest prior status.
   const priorWouldVerify = prov?.provenance_status === "verified";
   const reg = ledgerRegression({ ...priorSummary, wouldVerify: priorWouldVerify }, nextSummary);
-  if (reg.regression) {
+  // CC-GROUNDING-EXECUTOR: the dominance guard protects against ACCIDENTAL thinning from a bad (e.g. non-EN)
+  // Sonnet re-extract. A DELIBERATE executor re-source (injected) of a NON-VERIFIED item is different: the item
+  // is quarantined precisely because its prior ledger is synthesized/sub-floor junk, so replacing it with the
+  // verbatim-verified executor ledger is always an upgrade even when the raw FACT count drops (junk dropped).
+  // The old ledger is preserved in claim_versions by applyLedgerDiff (non-destructive), and validate_item_
+  // provenance is the real gate, so skipping the count-collapse rejection here is safe. Verified items never
+  // reach ground (skip-if-verified upstream), so this can only ever version over a quarantined junk ledger.
+  if (reg.regression && !injected) {
     const regDetail = `facts ${priorSummary.facts}->${nextSummary.facts}, floor-qual ${priorSummary.floorQualifying}->${nextSummary.floorQualifying}, total ${priorSummary.total}->${nextSummary.total}`;
     try {
       await sb.from("integrity_flags").insert({

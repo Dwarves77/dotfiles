@@ -82,7 +82,13 @@ export const SKILL_MARKER_BASELINE = {
   // NOT a new bare rule needing a fresh invariant — it is the doctrine-register entries
   // `analysis-follows-page-intent` (exempt; enforcement-to-build with the surface build units) and
   // `research-is-horizon-scan` (enforcedBy RD-20). Re-baseline to 10.
-  'caros-ledge-platform-intent': 10,
+  // 10→12 (2026-07-17, SURFACE-CONTRACT SCOPE GATE dispatch): added the "The Five-Surface Scope Test
+  // (every decline names the five contracts)" section — 2 marker lines (the PI-5 anchor "Every scope
+  // decision that declines or parks a candidate MUST record a five-surface test" + "MUST record a
+  // five-surface test (PI-5)" in the same anchor line, plus the "MUST test it… / never skipped" wording).
+  // TRIAGE: new invariant PI-5 (enforcedBy selftest surface-contract-gate.golden.mjs; live DB binding
+  // PENDING-C per operator ruling 2026-07-17). Re-baseline to 12.
+  'caros-ledge-platform-intent': 12,
   // 18→19 (2026-07-03): added Section 4 category 9 "Producer-consumer orphan (the half-slice defect)"
   // — "a table the application writes MUST have a consumer, OR be allowlisted…". TRIAGE: new normative
   // statement, triaged into invariant RD-9 (enforcedBy fitness:F14, the A2 orphan checker).
@@ -119,7 +125,16 @@ export const SKILL_MARKER_BASELINE = {
   // 35→38 (2026-07-14): added category 22 (re-grounds-never-destroy) — three normative lines (replace-only-if-
   // not-weaker; retain-prior-and-record-finding; charset-aware-decode). TRIAGE: RD-36 (ledger-dominance golden)
   // + RD-37 (charset-decode golden). The prior-ledger-survives-section bullet is enforced by RD-36.
-  'remediation-discipline': 38,
+  // 38→39 (2026-07-16): added categories 27 (primary-text-is-permanent — document baseline) + 28 (doctrine-
+  // binds-to-pipeline-not-executor — executor-agnostic enforcement). TRIAGE: RD-46 (primary-text-permanent
+  // golden + migration 052) + RD-47 (executor-parity golden). One marker line net (the category-28 "MUST be
+  // interchangeable" anchor); the category-27 "never an overwrite" anchor carries no MARKER_SOURCE token.
+  // 39→40 (2026-07-18, NCAER confidentiality incident ruling): added the RD-46 addendum "confidentiality-ruled
+  // purges are a sanctioned, narrow exception to append-only" — one new MUST line (the evidentiary-minimum-
+  // before-purge requirement). TRIAGE: new invariant RD-49-confidentiality-ruled-purge-exception (exempt,
+  // process-class — the purge-authorization judgment is operator-ruled per incident, same as RD-8/RG-1; the
+  // bound is the incident-record-first + guarded-write-path-only requirement, not a standing mechanical gate).
+  'remediation-discipline': 40,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -452,6 +467,15 @@ export const INVARIANTS = [
       reason: 'Architectural-intent axiom (what NOT to build); not a mechanical row/file invariant. Carried by the skill; violations are scoping decisions caught at design review.',
     },
   },
+  {
+    id: 'PI-5-every-decline-names-the-five-contracts',
+    skill: 'caros-ledge-platform-intent',
+    section: 'The Five-Surface Scope Test (every decline names the five contracts)',
+    text: 'A scope decision that DECLINES or PARKS a candidate (source, feed, or instrument) is only valid when it records a five-surface test: a verdict + a one-line reason for EACH of the five contracts (Regulations = compliance-action text brief; Operations = structured jurisdictional cost intelligence; Market Intel = comparative/numerical; Research = structured horizon assessment; Community = human-operated, outside machine intake). A decline that tests against one surface instead of five is the failure class this kills (three instances 2026-07-17: data-feeds-declined-despite-Operations, Market-Intel source-discovery omitted, Research source-discovery omitted).',
+    anchor: 'Every scope decision that declines or parks a candidate MUST record a five-surface test (PI-5)',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/surface-contract-gate.golden.mjs'],
+    residual: 'Two-part enforcement. The golden (surface-contract-gate.golden.mjs) proves the completeness gate over FIXTURES red-then-green (a declined/parked row without the five-surface record FAILS; with it PASSES; kept/candidate exempt) — the invariant is ENFORCED by this fixture proof today. The LIVE DB binding — the CHECK constraint on coverage_gap_candidates that fails a declined/parked row lacking the record — is owned by SESSION C\'s forthcoming migration (DECISION 1, operator ruling 2026-07-17: C owns the table, Session A does not touch it; the gate is DORMANT, no seed rows, demonstrability lives in the golden not in production data). PENDING-C, named-not-silently-unwired: PART B of the golden SCANS the migrations tree and AUTO-ARMS the moment C\'s migration lands (asserting surface_test + disposition{declined,parked} + a CHECK referencing all five contract keys), so a missing or wrong C migration is caught mechanically. When C posts its migration number to the session log, add migration:NNN to this enforcedBy as belt-and-suspenders. The verdict QUALITY (is a surface verdict correct?) stays scope-judgment, not mechanized.',
+  },
 
   // ───────────────────────────── remediation-discipline ─────────────────────────────
   {
@@ -531,6 +555,16 @@ export const INVARIANTS = [
     residual: 'The CI unit test (in the discipline node --test glob) gates the PURE detector detectRoadblock — the roadblocked-vs-partial line (>=200ch in-language = honest partial), the challenge/stub/timeout/wrong-language cases, the no-false-challenge on a long article, and the orchestrator bound (no hang past perFetchMs). The same-floor QUALIFICATION is not a new mechanism: it is the UNCHANGED resolver (buildResolver) + per-type floor (migration 141 / validate_item_provenance criterion 3) — a found alternative becomes a primary ONLY by emergently clearing that floor, never by a fallback action, which structurally forecloses the F1 secondary-grounding regression. The counsel-hold audit (durable integrity_flag carrying alternatives_tried + best_resolved_tier + the result split NO_SOURCE_FOUND vs NO_SOURCE_QUALIFIED) makes "searched + exhausted" lane-auditable. NOT mechanized: whether web_search returned the TRULY most-authoritative alternative (vs a plausible one) is discovery judgment; the floor is the backstop that makes a wrong alternative harmless (it resolves sub-floor and is rejected).',
   },
 
+  {
+    id: 'RD-49-confidentiality-ruled-purge-exception',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 27: Primary text is permanent (the document baseline)',
+    text: 'A confidentiality-ruled purge is a sanctioned, narrow, per-instance exception to RD-46 append-only retention. When stored content is confirmed to be a confidential third-party document improperly staged into the corpus, the operator may rule a purge of the extractable content through the guarded write path only (never a raw delete), bounded by: an operator ruling is required EACH time (never a standing automatic capability); the evidentiary minimum (source URL, fetch timestamp, byte count, content hash where available, the confidentiality marking quoted verbatim) MUST be captured to a durable docs/compliance/ incident record BEFORE the purge; and the purge redacts the row\'s extractable substance while preserving its audit metadata (URL, item association, timestamps), never deleting the row itself. Origin case: the NCAER "Logistics Cost in India" confidentiality incident (docs/compliance/confidentiality-incident-2026-07-17-ncaer.md).',
+    anchor: 'confidentiality-ruled purges are a sanctioned, narrow exception to append-only',
+    exempt: {
+      reason: 'PROCESS discipline exercised at the operator-ruling level (same class as RD-8/RG-1) — whether stored content is confidentially-marked, third-party, and improperly staged is a judgment call the operator makes per-incident, not a mechanically checkable property with a low-false-positive detector today. The bound is carried by the incident-record requirement (evidentiary minimum captured BEFORE any purge) and the guarded-write-path requirement (no raw delete, redact not remove) rather than a standing automated gate. A confidentiality-marking capture-gate detector (screening fetched content for disclosure-prohibition language before staging, preventing the recurrence rather than gating the purge) is QUEUED on the hardening ledger (docs/PROGRAM-BOARD.md) — when it lands, THIS invariant stays exempt (the purge-authorization judgment does not become mechanical just because the upstream capture gets a screen), but the recurrence rate it is meant to prevent becomes auditable.',
+    },
+  },
   {
     id: 'RD-8-retrieval-before-generation',
     skill: 'remediation-discipline',
@@ -675,6 +709,16 @@ export const INVARIANTS = [
   },
 
   {
+    id: 'RD-42-disposition-content-gate',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 30: Content-gated disposition (label is not proof)',
+    text: 'An irreversible disposition (archive delete) is NEVER authorized by an archive_reason LABEL alone — only content-level verification can. Title-level classification (the Haiku census) is TRIAGE, never a warrant. The ONE disposition vehicle (tombstone-delete.mjs) enforces this mechanically: (a) a --bucket outside the deletable-reason allowlist is REFUSED (content-survives / duplicate / pure-artifact only; off_vertical / non_regulatory_source / Superseded / Repealed are NOT in the list — never delete accurate data); (b) --empty-only filters every candidate to brief_len=0 AND zero grounded claims (section_claim_provenance) BEFORE deletion, so a content-bearing row is removed from targets and routed to per-item review; (c) the tombstone (disposition_ledger) is written BEFORE the guarded delete (fail-closed). Forecloses the third-confirmed label-is-not-proof failure (Oregon/Polish collision, the o13 press briefing, and 110-of-308 content-bearing rows mislabeled archive_correct at scale, 2026-07-17): a bulk delete on the labels would have destroyed 56 items carrying grounded facts (UN SDGs, DEFRA, TxDOT, World Bank, ITF, Blue Visby, Carbon Pricing Dashboard).',
+    anchor: 'An irreversible disposition executes on content-level emptiness, never on a label: --bucket refuses non-allowlist reasons, --empty-only requires brief_len=0 AND zero claims, tombstone precedes delete',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/disposition-content-gate.golden.mjs'],
+    residual: 'disposition-content-gate.golden.mjs (18/18) proves the allowlist gate, the accurate-but-archived exclusions, the positive content-survives membership, the brief-length-0 AND zero-claims content gate, and the tombstone-before-delete fail-closed order — structurally over the vehicle source (comments stripped). PROVEN LIVE 2026-07-17: the 261-row reclassified bucket resolved to 174 provably-empty kept + 87 content-bearing SKIPPED to review; 198 verified-disposition removals executed with 198 tombstones (zero deleted without a tombstone). NAMED RESIDUAL: the content gate keys on brief_len + claim ledger; a row with a non-empty brief that is itself junk still routes to per-item review (correct — a human/verifier reads it), never to bulk delete.',
+  },
+
+  {
     id: 'RD-44-grounding-is-non-destructive',
     skill: 'remediation-discipline',
     section: 'Section 4 — category 26: Non-destructive grounding (comparison, not replacement)',
@@ -690,8 +734,38 @@ export const INVARIANTS = [
     section: 'Section 4 — category 26: Non-destructive grounding (comparison, not replacement)',
     text: 'A current claim is ERASED only on PROVEN inaccuracy — the new grounding proves the old claim wrong against the primary (its span contradicts the enacted text, or its source is superseded) — never because a regeneration failed to reproduce it. eraseClaimWithProof is the SINGLE erase path: it requires a proof object (a `reason` plus the contradicting evidence), archives the claim\'s final state WITH the proof to claim_versions, and only THEN deletes the current row — FAIL-CLOSED (if the proof archive fails, the delete never runs, so a claim and its proof are never lost). The ground path never calls it: grounding cannot erase anything. Migration 208 enforces the proof at the DB (a proven_inaccurate archive row MUST carry inaccuracy_proof). This is the erase half of the preserve-not-overwrite rule: data is saved and only erased when it is inaccurate, with the reason recorded.',
     anchor: 'A claim is erased only on proven inaccuracy, with its proof preserved; never because a regeneration failed to reproduce it',
-    enforcedBy: ['selftest:fsi-app/scripts/verify/non-destructive-grounding.golden.mjs', 'migration:208'],
+    enforcedBy: ['selftest:fsi-app/scripts/verify/non-destructive-grounding.golden.mjs', 'selftest:fsi-app/scripts/verify/drain-clear-two-condition.golden.mjs', 'migration:208', 'migration:210'],
     residual: 'eraseClaimWithProof (ledger-apply.mjs) refuses without a proof, archives-then-deletes fail-closed. Golden case 5 proves: erased-row-removed, archived-with-proof-retrievable, other-claims-untouched, REFUSES-without-proof, and FAIL-CLOSED (a simulated archive failure aborts the erase, claim retained). Migration 208 constraint claim_versions_proof_required enforces the proof at the DB. NAMED RESIDUAL: the AUTOMATIC proven-inaccurate DETECTOR (a grounding that programmatically decides an old claim is contradicted) is NOT built — erasure is a deliberate, proof-carrying action, so grounding conservatively KEEPS not-reproduced claims (never auto-erases); wiring an automatic contradiction judge onto this erase path is the future strengthening.',
+  },
+
+  {
+    id: 'RD-46-primary-text-permanent',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 27: Primary text is permanent (the document baseline)',
+    text: 'The captured primary text is PERMANENT: a changed re-capture is a NEW versioned snapshot, never an overwrite of the prior. raw_fetches is append-only by construction for ANY caller (CC executor or metered pipeline) because the enforcement lives in the shared capture function writeSnapshot: the storage key and row identity are CONTENT-ADDRESSED (`${source_id}/${day}/${sha256(content)}.html.gz` + UNIQUE(source_id, content_hash), migration 052). Changed bytes -> different hash -> different key + different row (cannot overwrite the prior); identical bytes -> same hash -> idempotent (UNIQUE dedups). No prune/delete path exists. The document-level twin of grounding-is-non-destructive (RD-44): non-destructive preserves the CLAIM ledger, this preserves the SOURCE DOCUMENT the ledger grounds against, so change detection is document-against-document (ground truth) and a hash-identical re-capture proves "unchanged as of [date]".',
+    anchor: 'The captured primary text is permanent: a changed re-capture is a new versioned snapshot, never an overwrite of the prior',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/primary-text-permanent.golden.mjs', 'migration:052'],
+    residual: 'primary-text-permanent.golden.mjs (7/7) proves the content-addressing the UNIQUE index + no-delete rest on: changed -> different hash + different storage key + different row key; identical -> same key (idempotent); 64-hex sha-256 version identity; content-addressed not date-addressed. Enforcement is IN writeSnapshot (snapshot-store.mjs, the shared capture site) so BOTH executors inherit it — no per-executor retention code. Migration 052 (idx_raw_fetches_source_hash_uniq) is the DB half. NAMED RESIDUAL: the golden proves the KEY-DERIVATION (the property the index keys on) at the pure layer; the DB UNIQUE index + the absence of a delete path are the runtime enforcement (a grep confirms no prune path — only FK ON DELETE SET NULL + source cascade). A durable retention-audit that asserts no raw_fetches row was ever hard-deleted (append-only over time) is the future strengthening; today the no-delete-path structure carries it.',
+  },
+
+  {
+    id: 'RD-47-doctrine-binds-to-pipeline-not-executor',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 28: Doctrine binds to the pipeline, not the executor (executor-agnostic enforcement)',
+    text: 'Every grounding doctrine binds to the SHARED pipeline chokepoint, not to the executor: the CC-grounding-executor (injects a ledger, $0, subscription) and the metered path (extracts a ledger via the model) are INTERCHANGEABLE drivers of one pipeline, diverging ONLY at allowlisted skip-points, and the judgment core is DRIVER-BLIND. Both meet at groundBrief and collapse into one claim ledger at the extraction pivot (claims = injected ?? extractClaimLedgerLenient); after the pivot the data carries no driver identity. The driver-identity variable is read at EXACTLY three allowlisted points, each the free driver skipping a paid/model step (acquire-lock skip, extraction source, dominance-guard skip for a deliberate re-source of quarantined junk) — never a difference in JUDGMENT. The judgment core (verbatim kept-filter, mint gates, resolver/tier-stamp, non-destructive applyLedgerDiff) contains ZERO driver-identity references and cannot branch on which driver produced the ledger: parity is structural, by construction. Prevents a doctrine enforced in the executor rather than the pipeline from being silently dropped when executors swap (the build-phase-vs-steady-state interchange the addendum requires).',
+    anchor: 'Every grounding doctrine binds to the shared pipeline chokepoint, not to the executor: the CC and metered drivers are interchangeable, diverging only at allowlisted skip-points, and the judgment core is driver-blind',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/executor-parity.golden.mjs'],
+    residual: 'executor-parity.golden.mjs (13/13) proves it STRUCTURALLY over the real canonical-pipeline.ts source: the driver-identity var `injected` is referenced EXACTLY 4x in code (1 decl + the 3 allowlisted divergences, each matched by its code signature), the drivers unify at the extraction pivot, and the judgment core (kept-filter … applyLedgerDiff) carries at most the single allowlisted dominance-guard reference — so a FOURTH divergence or any core branch on driver identity is RED. Plus the behavioral witness: perFactWouldHold takes a claim, not a driver flag, so the same candidate yields the same verdict either way. Seam: the injectedLedger param in groundBrief + scripts/_reground/executor-ground.mjs (the ONE authorized new mint-path). NAMED RESIDUAL: the golden is a static source-scan (comment-stripped, CRLF-normalized) — it proves the pipeline code cannot branch on driver identity, not that a future executor RUNNER honors the persistence contract; the parity of the two RUNNERS end-to-end on a live item is proven operationally (o9 + w4_ca_sb261 verified via the CC runner, the metered path unchanged), and a full end-to-end parity harness over a fixture item is the future strengthening.',
+  },
+
+  {
+    id: 'RD-48-target-instrument-match',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 29: A capture must be the item\'s OWN instrument (target-match verify)',
+    text: 'A captured primary MUST be the item\'s OWN instrument before it grounds: a MISMATCH (the fetched pool bears a DIFFERENT instrument identifier and NOT this item\'s) is HELD, not ground. officialnessOf confirms a capture is AN official instrument, not the CORRECT one — eu_clean_trucking (the HDV CO2 regulation, Regulation (EU) 2024/1610) captured the CSRD directive (Directive (EU) 2022/2464) and scored "official", so a fact would have ground verbatim against the wrong law. verifyTargetMatch/verifyPoolTargetMatch (target-match.mjs, PURE, reusing identifier-variants.mjs) derives the item\'s own expected identifier and scans the capture: MATCH on own-identifier presence (or, absent any identifier signal, subject overlap clearing a RAISED threshold — the 0.4 that let eu_clean_trucking slip is gone); HARD MISMATCH only when the pool bears a different instrument id in a clear instrument context AND the item\'s own id is absent with no matching block (never over-holds when the right instrument is also present, never hard-holds an item that merely REFERENCES other instruments); UNVERIFIED is a SOFT flag (grounding proceeds under the downstream verbatim/floor gates). EXECUTOR-AGNOSTIC: wired at the shared groundBrief fetched-pool chokepoint BEFORE the extraction pivot, so both drivers inherit it (RD-47).',
+    anchor: 'A captured primary must be the item\'s OWN instrument before it grounds: a MISMATCH (the pool bears a different instrument identifier and not this one) is HELD, not ground',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/target-match.golden.mjs'],
+    residual: 'target-match.golden.mjs (18/18) proves the RED fixture (CSRD capture for the HDV item -> MISMATCH, names conflicting 2022/2464, holds), the GREEN twin (correct HDV capture -> MATCH on own id 2024/1610, grounds), raw non-EU id (California SB-261 -> MATCH), the raised-threshold fallback (weak overlap -> UNVERIFIED held; strong -> MATCH), the CELEX/pre-2015-order normalization + noise-exclusion helpers, and the WIRING (verifyPoolTargetMatch called on the fetched pool with the MISMATCH hard-hold BEFORE the extraction pivot). PROVEN ON REAL DATA (target-match-probe.mjs, read-only, 30 staged captures): eu_clean_trucking is the sole MISMATCH; 6 thin captures held UNVERIFIED; items that merely reference other instruments (576554b3, canada) correctly MATCH via subject overlap (not false-held). NAMED RESIDUAL: (1) items lacking their own canonical_instrument_key can only get the weaker subject-overlap check (an A2 per-document-keying data gap, surfaced not papered); (2) UNVERIFIED is soft (grounds under downstream gates) rather than held, calibrated conservative on first wiring (the RD-41 report-first pattern) — tightening to a hard hold is a future calibration once the A2 keying backfill raises identifier coverage.',
   },
 
   {
