@@ -129,7 +129,12 @@ export const SKILL_MARKER_BASELINE = {
   // binds-to-pipeline-not-executor — executor-agnostic enforcement). TRIAGE: RD-46 (primary-text-permanent
   // golden + migration 052) + RD-47 (executor-parity golden). One marker line net (the category-28 "MUST be
   // interchangeable" anchor); the category-27 "never an overwrite" anchor carries no MARKER_SOURCE token.
-  'remediation-discipline': 39,
+  // 39→40 (2026-07-18, NCAER confidentiality incident ruling): added the RD-46 addendum "confidentiality-ruled
+  // purges are a sanctioned, narrow exception to append-only" — one new MUST line (the evidentiary-minimum-
+  // before-purge requirement). TRIAGE: new invariant RD-49-confidentiality-ruled-purge-exception (exempt,
+  // process-class — the purge-authorization judgment is operator-ruled per incident, same as RD-8/RG-1; the
+  // bound is the incident-record-first + guarded-write-path-only requirement, not a standing mechanical gate).
+  'remediation-discipline': 40,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -550,6 +555,16 @@ export const INVARIANTS = [
     residual: 'The CI unit test (in the discipline node --test glob) gates the PURE detector detectRoadblock — the roadblocked-vs-partial line (>=200ch in-language = honest partial), the challenge/stub/timeout/wrong-language cases, the no-false-challenge on a long article, and the orchestrator bound (no hang past perFetchMs). The same-floor QUALIFICATION is not a new mechanism: it is the UNCHANGED resolver (buildResolver) + per-type floor (migration 141 / validate_item_provenance criterion 3) — a found alternative becomes a primary ONLY by emergently clearing that floor, never by a fallback action, which structurally forecloses the F1 secondary-grounding regression. The counsel-hold audit (durable integrity_flag carrying alternatives_tried + best_resolved_tier + the result split NO_SOURCE_FOUND vs NO_SOURCE_QUALIFIED) makes "searched + exhausted" lane-auditable. NOT mechanized: whether web_search returned the TRULY most-authoritative alternative (vs a plausible one) is discovery judgment; the floor is the backstop that makes a wrong alternative harmless (it resolves sub-floor and is rejected).',
   },
 
+  {
+    id: 'RD-49-confidentiality-ruled-purge-exception',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 27: Primary text is permanent (the document baseline)',
+    text: 'A confidentiality-ruled purge is a sanctioned, narrow, per-instance exception to RD-46 append-only retention. When stored content is confirmed to be a confidential third-party document improperly staged into the corpus, the operator may rule a purge of the extractable content through the guarded write path only (never a raw delete), bounded by: an operator ruling is required EACH time (never a standing automatic capability); the evidentiary minimum (source URL, fetch timestamp, byte count, content hash where available, the confidentiality marking quoted verbatim) MUST be captured to a durable docs/compliance/ incident record BEFORE the purge; and the purge redacts the row\'s extractable substance while preserving its audit metadata (URL, item association, timestamps), never deleting the row itself. Origin case: the NCAER "Logistics Cost in India" confidentiality incident (docs/compliance/confidentiality-incident-2026-07-17-ncaer.md).',
+    anchor: 'confidentiality-ruled purges are a sanctioned, narrow exception to append-only',
+    exempt: {
+      reason: 'PROCESS discipline exercised at the operator-ruling level (same class as RD-8/RG-1) — whether stored content is confidentially-marked, third-party, and improperly staged is a judgment call the operator makes per-incident, not a mechanically checkable property with a low-false-positive detector today. The bound is carried by the incident-record requirement (evidentiary minimum captured BEFORE any purge) and the guarded-write-path requirement (no raw delete, redact not remove) rather than a standing automated gate. A confidentiality-marking capture-gate detector (screening fetched content for disclosure-prohibition language before staging, preventing the recurrence rather than gating the purge) is QUEUED on the hardening ledger (docs/PROGRAM-BOARD.md) — when it lands, THIS invariant stays exempt (the purge-authorization judgment does not become mechanical just because the upstream capture gets a screen), but the recurrence rate it is meant to prevent becomes auditable.',
+    },
+  },
   {
     id: 'RD-8-retrieval-before-generation',
     skill: 'remediation-discipline',

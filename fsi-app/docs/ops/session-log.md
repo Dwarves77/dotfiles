@@ -285,3 +285,19 @@ CONTAINMENT ACTIONS (guarded writes, cited, non-destructive -- row preserved for
 NOTE ON THE PARALLEL DISPATCH: operator also issued a DISPATCH for an operator_review_queue admin surface (migration + intake wiring + admin page + doctrine entry operator-escalations-have-one-door), explicitly scheduled for after the review lane, not built this bank. The incident record above notes it as the intended backfill target once that infrastructure lands.
 
 Lease state (session B): clean (this item was not under an active lease during the trace -- read/trace + one guarded redaction, no drain-clear/id-stamp mutation). Spend: $0.
+
+## 2026-07-18 — Session A restart: reconciliation + NCAER ruling executed
+
+Restart opener reconciliation: branch up to date with origin (`e827af6b`); DB counts checked against the opener's summary (verified 208 exact match, quarantined 63 vs summary's 56, archived 163 vs ~170 — the +7/-7 delta is consistent with restores that landed after the summary was written); `drain_worklist` 64 rows all Lane A (was 56); `mutation_leases` empty, nothing stale to release. Divergence found and closed: session-log itself was 8 commits stale (backfilled above, commit `eb468f03`).
+
+NCAER confidentiality incident (`integrity_flags` 963d4450, `beae0a7e`) — operator ruling executed:
+- Cherry-picked Session B's containment commit (`063d6b0b`, branch `-b`) onto this branch — the incident record already existed at `docs/compliance/confidentiality-incident-2026-07-17-ncaer.md`, traced and contained 2026-07-17.
+- Independently re-verified the grounding-exposure finding before relying on it (per operator instruction to complete the trace, not just read it): corpus-wide query of `section_claim_provenance` by both `search_result_id` and the registered dpiit.gov.in `source_id` — 0 rows either way; corpus-wide query of `agent_run_searches` for the document's URL/host — the one pool row already identified is the ONLY match anywhere. **Confirmed: zero claims ever grounded from this document, zero customer-surface exposure.** This is the most important line and it holds under independent re-check.
+- Evidentiary-metadata gap disclosed honestly (not filled): no content hash is available — the only copy that ever held real document bytes was Session B's local investigative copy, deleted before this requirement existed; re-fetching solely to compute a hash would recreate the exposure the record exists to close, so the gap stands as a disclosed limitation rather than a re-fetch.
+- Doctrine addendum landed on RD-46 (`remediation-discipline` SKILL.md category 27): confidentiality-ruled purges are a sanctioned, narrow, per-instance exception to append-only — operator ruling required each time, evidentiary minimum captured to `docs/compliance/` BEFORE any purge, row redacted never deleted. This incident is the origin case; no purge was mechanically needed here since the confidential content was never actually captured into `raw_fetches` (only a 269-char Access-Denied stub landed in `agent_run_searches`, already redacted by Session B).
+- Hardening ledger entry added (`docs/PROGRAM-BOARD.md`): confidentiality-marking capture-gate detector, QUEUED, this incident cited as origin case.
+- `integrity_flags` 963d4450 resolved (guarded write under lease on `beae0a7e`, snapshot `2026-07-18T19-18-50-466Z_integrity_flags.jsonl`, cite: remediation-discipline).
+
+Grounding-exposure finding reported plainly per operator instruction: **nothing ever grounded, nothing customer-facing was ever exposed.** No counsel-notification trigger.
+
+NEXT (per operator's ordered queue): review-lane Group ③ remainder, the 21 B-reassignments, the scope-gate unit at a bank break, eu_clean_trucking full grounding pass, the SW-1 corpus-wide sweep. Lease state (session A): clean.
