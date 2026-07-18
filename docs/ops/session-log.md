@@ -637,3 +637,73 @@ NEXT (operator's ordered queue): review-lane Group ③ DELETE-side content-read 
 descriptions, per line 579 above), the 21 B-reassignments (drain bank 5's 54-item B-queue), the scope-gate
 unit at a bank break, eu_clean_trucking full grounding pass, the SW-1 corpus-wide jurisdiction sweep.
 Going forward: this file only, every bank, log entry inside the bank commit. Lease state (session A): clean.
+
+## 2026-07-18 — Session A (review-lane bank 5): Group ③ DELETE-side, all 20 read, per-item judgment
+
+Full content read (not title/excerpt) on all 20 confirm-archive candidates from bank 4's list. Mechanical
+content floor (brief present, active source registered) is necessary but not sufficient per content-is-not-
+nature — the actual call is whether the brief carries a specific finding/standard/program with freight
+decision value, or is an org/publisher/portal/database profile. Claim count alone misleads in both directions
+(OECD Environment Policy Area had 24 "claims" that were all taxonomy-menu facts about a topic-hub page — still
+CONFIRM-ARCHIVE; several genuine RESTORE candidates below had 0 claims because grounding never ran on them).
+
+**CONFIRM-ARCHIVE, tombstoned + deleted (14, all verified against an active source row first):**
+- reclassified_to_source (10): OECD Environment Policy Area (c3004aa0, topic-hub taxonomy, zero findings),
+  Centre for Sustainable Road Freight (685f0d28, brief's own text: "no quantified findings...homepage does not
+  contain these numbers"), China CCICED (935680f5, source content dated 2009-2015, no current output), Australia
+  Climate Change Authority (7566f099, real founding Act but zero direct obligations, every line "Legal
+  Confirmation Required"/research gap), IEA Policies & Measures (6d2ec398, a database-of-other-policies catalog
+  page), Stockholm Environment Institute (abd83595, brief's own scope note: "functions as an institutional
+  intelligence profile...rather than a summary of specific empirical findings"), ICCT (e948b3a9, brief's own
+  scope note explicitly defers specific findings to separate tracked items), Supply Chain Digital (b26de8fc,
+  homepage headline index, no depth), Sustainability Magazine (3fb2905b, homepage topic index, no depth),
+  Transportation Research Part E (0d59991d, a journal — brief's own text: "documents the journal as a source
+  vehicle...rather than a specific research finding").
+- source_not_item (2): IEA Data and Statistics Explorer Platform (d8305603, data-tool catalog description),
+  Montana Legislature/MCA (60ade636, the entire state code, portal to everything not one instrument).
+- institutional_source (2): ECLAC (72be8dd3, a thin 2016 bulletin summary, no reproducible findings — full
+  Spanish-only text never read), OECD Environment (e360e82f, pure mission/mandate profile, zero findings).
+
+**RESTORE (3, genuine specific finding/program with freight decision value, NOT an org profile despite the
+reclassified_to_source label):**
+- CDP Supply Chain (d30bc25d) → quarantined + drain_worklist Lane A. Real program: membership tiers, 2026
+  disclosure-cycle deadline, ACTION REQUIRED section with owners/timeframes. Genuinely actionable, not "CDP
+  exists."
+- MIT Center for Transportation & Logistics (c2e45859) → quarantined + drain_worklist Lane A. Named 2025 State
+  of Supply Chain Sustainability Report with quantified findings (Scope 3 >75% of footprints, biofuels cited as
+  most practical near-term freight lever) and a specific, quotable, actionable finding (consolidated delivery
+  vs. expedited-shipping emissions).
+- Fraunhofer IML (c1cab7e2) → recomputed straight to VERIFIED (25 pre-existing grounded claims already cleared
+  the gate). Named operational tool (REff Tool®, ISO 14083-aligned) and a specific PPWR volume-utilization
+  finding (50% minimum requirement).
+
+**NOT dispositioned this bank — flagged, not forced (label-is-not-proof cuts both ways; a genuinely ambiguous
+call stays in the review lane rather than getting rushed):**
+- TNO (8e5a62ba) — the brief's real content is the EU HDV CO2 regulation (Regulation (EU) 2019/1242 as amended),
+  narrated through a TNO research page rather than TNO's own findings. Likely a DUPLICATE of the already-tracked
+  eu_clean_trucking / EU CO2 Trucks item (queue item 4, this same session). Needs a dedup check against that item
+  BEFORE any RESTORE/CONFIRM call — restoring it as a standalone "TNO" item would risk a second live copy of the
+  same regulation (canonical-instrument-key duplicate class, EP-11).
+- GreenBiz Supply Chain (5faf8f8c) — the brief's real content (SEC Climate Disclosure Rule retreat, California
+  SB 253/261, CSRD Omnibus thresholds) is genuinely substantive and actionable, but is sourced from EcoVadis and
+  Trellis, NOT from greenbiz.com (whose homepage yielded only navigation/cookie content — confirmed in the
+  brief's own generation notes). A straight RESTORE would keep a misleading title/source_url. Needs a repoint +
+  retitle before restore, not a same-day call.
+
+**Excluded from Group ③, routed to drain/regen instead (data anomaly, not an archive judgment):**
+- Alternative Fuels Data Center (4a108d70) — bank 4 listed this under BOTH the confirm-archive candidates and
+  the separate "data oddity" HOLD list; the DB resolves the contradiction: `full_brief` is empty but 33 REAL
+  grounded FACT claims exist (IRC §45Z/§45W/§30C federal alternative-fuel tax-credit provisions, real Federal
+  Register and Public Law citations). This is a genuine regeneration gap (claims survived a prior grounding pass,
+  the brief write failed or was never run), not a portal to archive. Left `is_archived=true` for now — routes to
+  the drain queue for a brief regen from its existing claim ledger, not this bank's disposition.
+
+COUNTS: archived 163→146 (−17: 14 deleted + 3 restored out), verified 208→209 (+1, Fraunhofer IML), quarantined
+63→65 (+2, CDP Supply Chain + MIT CTL). Group ③ DELETE-side closed: 20/20 read, 14 confirmed, 3 restored, 2
+flagged for a follow-up judgment call, 1 routed to regen. All leases clean, $0 (no fetches — Group ③ content
+already resided in stored full_brief text).
+
+NEXT: TNO dedup-check vs eu_clean_trucking; GreenBiz repoint+retitle; Alternative Fuels Data Center brief regen
+from its existing claims. Then the operator's ordered queue continues: the 21 B-reassignments, the scope-gate
+unit at a bank break, eu_clean_trucking full grounding pass, the SW-1 corpus-wide jurisdiction sweep. Lease
+state (session A): clean.
