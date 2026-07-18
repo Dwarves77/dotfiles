@@ -156,14 +156,20 @@ export async function guardedUpdate(table, applyMatch, patch, { cite, select = "
   return { updated: res.data?.length ?? 0, snapshot: snapFile, rows: res.data };
 }
 
-/** Guarded DELETE — snapshots the rows (reversible) + requires a cite, then deletes by id. Used for
- *  cleaning up rows a script itself wrongly created (e.g. the 27 duplicate sources from the capped-read
- *  bug). Snapshot is the reinsert record. */
+/** Guarded DELETE — snapshots the rows (reversible) + requires a cite, then deletes by a match column.
+ *  Used for cleaning up rows a script itself wrongly created (e.g. the 27 duplicate sources from the
+ *  capped-read bug), and for closing worklist/tracking rows whose primary key is not literally `id`
+ *  (e.g. drain_worklist, keyed on intelligence_item_id). `matchColumn` defaults to "id" — every existing
+ *  caller is unaffected; pass matchColumn to target a different key column. Snapshot is the reinsert
+ *  record either way. Root-cause fix (2026-07-18): the prior hardcoded "id" parked non-`id`-keyed tables
+ *  outside the guarded path entirely (no bypass existed — the caller just had no way to reach guardedDelete
+ *  at all), which is worse than a narrow escape hatch would have been. Tombstone-then-delete and every
+ *  content gate upstream of this function are unchanged. */
 // Tables that must NEVER be hard-deleted — sources leave the registry by SUSPEND (status) or
 // reclassify, never DELETE (suspend-not-delete; the population-audit finding 2026-07-12). This makes the
 // convention structural: a future refactor cannot quietly add a source hard-delete without tripping here.
 export const DELETE_PROTECTED_TABLES = new Set(["sources"]);
-export async function guardedDelete(table, ids, { cite, stampIso } = {}) {
+export async function guardedDelete(table, ids, { cite, stampIso, matchColumn = "id" } = {}) {
   requireCite(cite);
   if (DELETE_PROTECTED_TABLES.has(table)) {
     throw new Error(
@@ -173,10 +179,10 @@ export async function guardedDelete(table, ids, { cite, stampIso } = {}) {
   }
   if (!ids || !ids.length) throw new Error("db.mjs guardedDelete: ids required.");
   const sb = writeClient();
-  const prior = await sb.from(table).select("*").in("id", ids);
+  const prior = await sb.from(table).select("*").in(matchColumn, ids);
   if (prior.error) throw new Error(`guardedDelete snapshot read failed: ${prior.error.message}`);
   const snapFile = snapshot(table, prior.data || [], cite, stampIso);
-  const res = await sb.from(table).delete().in("id", ids).select("id");
+  const res = await sb.from(table).delete().in(matchColumn, ids).select(matchColumn);
   if (res.error) throw new Error(`guardedDelete failed: ${res.error.message}`);
   return { deleted: res.data?.length ?? 0, snapshot: snapFile, rows: res.data };
 }

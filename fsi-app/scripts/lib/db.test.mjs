@@ -146,6 +146,31 @@ test('guardedDelete: snapshots then deletes by id; requires cite; sources delete
   );
 });
 
+// RED before the fix (2026-07-18): guardedDelete hardcoded the match column to "id". drain_worklist's
+// primary key is intelligence_item_id, not id — a genuinely disposition-terminal row (item archived,
+// finding resolved) had no way to reach the guarded delete path at all and could only park. GREEN now:
+// matchColumn is parametrized (default "id", unchanged for every existing caller); passing matchColumn
+// targets the real key column on both the snapshot read and the delete.
+test('guardedDelete: matchColumn parametrizes the key column (default "id" unchanged)', async () => {
+  const calls = [];
+  __setWriteClientForTest(() => makeClient((s) => {
+    if (s.verb === 'select') return { data: [{ intelligence_item_id: 'w1', notes: 'x' }], error: null };
+    if (s.verb === 'delete') return { data: [{ intelligence_item_id: 'w1' }], error: null };
+    return { data: null, error: null };
+  }, calls));
+  const r = await guardedDelete('drain_worklist', ['w1'], {
+    cite: { skill: 'remediation-discipline', reason: 'test' },
+    matchColumn: 'intelligence_item_id',
+  });
+  assert.equal(r.deleted, 1);
+  const selectCall = calls.find((c) => c.verb === 'select');
+  const deleteCall = calls.find((c) => c.verb === 'delete');
+  const selectIn = selectCall.ops.find((o) => o[0] === 'in');
+  const deleteIn = deleteCall.ops.find((o) => o[0] === 'in');
+  assert.deepEqual(selectIn, ['in', 'intelligence_item_id', ['w1']], 'snapshot read must key on matchColumn, not "id"');
+  assert.deepEqual(deleteIn, ['in', 'intelligence_item_id', ['w1']], 'delete must key on matchColumn, not "id"');
+});
+
 test('institutionKey: shared-portal hosts key by path prefix; other hosts by bare host', () => {
   // non-portal host -> bare host (backward-compatible for the majority)
   assert.equal(institutionKey('https://eur-lex.europa.eu/eli/reg/2024/1257/oj'), 'eur-lex.europa.eu');
