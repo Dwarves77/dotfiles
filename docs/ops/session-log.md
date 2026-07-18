@@ -738,3 +738,46 @@ generation held). Group ③ fully closed end to end.
 NEXT: the 21 B-reassignments (drain bank 5's 54-item handoff) at the same per-item rigor — read each
 drain_worklist finding annotation first; the fabrication flags (China carbon-market, and any other
 title-unsupported case in the 21) go first per operator instruction. Lease state (session A): clean.
+
+## 2026-07-18 — Session A (drain bank 7): B-reassignment queue opened — priority items closed
+
+Pulled the full B-reassignment queue from `drain_worklist` (`assigned_by='session-B'`): **58 rows**, larger
+than the "21" estimate in the opener — this is the accumulated handoff across all of Session B's banks (o13,
+the 54-item SW-1 handoff, banks 6-8's further 23, plus items Session B itself restored via `restore-to-live.mjs`
+under its own holder tag). Per operator sequencing, took the priority items first:
+
+- **China's National Carbon Market (3e756291) — RETITLED, not archived.** Re-verified the fabrication finding
+  against the FULL pool (8 sources, not the 2 the drain note was written against): zero mentions of "transport"
+  anywhere, across government (gov.cn), ICAP, China-Briefing, IEEFA, and S&P Global — independently confirms
+  China's ETS covers power/steel/cement/aluminum with a 2027 expansion to "all major industrial sectors," never
+  transport-specific. Unlike India's case, the SUBSTANCE here is real and well-grounded (36 claims) — only the
+  TITLE oversold it. Retitled to "China's National Carbon Market: 2027 All-Major-Industrial-Sectors Expansion
+  Roadmap," matching what's actually grounded, per the integrity rule (no invented facts, including in the
+  title). Claims untouched. India's companion fabrication flag (`beae0a7e`) was already closed in bank 6 and
+  its `integrity_flags` row already resolved this session — its `drain_worklist` row is stale (item is
+  archived, terminal) but could not be cleanly closed: `guardedDelete` in `db.mjs` hardcodes the match column to
+  `id`, and `drain_worklist`'s primary key is `intelligence_item_id` — a small tooling gap, left as a residual
+  rather than bypassing the guard. Noted for a future db.mjs extension (match-column parameter), not blocking.
+- **Japan Customs (ad4cc6c6) — RETITLED + REPOINTED, not a fabrication.** Full claim-by-claim read (101 claims):
+  no fabrication — general Customs Act procedure is correctly ANALYSIS-labeled as background, and real, dated,
+  properly-cited FY2026 tariff schedule facts, AFR advance-filing rules, EPA certificate-of-origin procedures,
+  and anti-dumping duty facts are all genuinely grounded. The defect was PRECISION: the declared primary was an
+  Advance Ruling procedure PDF, mismatched to a broader "Tariff Law Amendments" title. Retitled to "Japan
+  Customs: FY2026 Tariff Schedule, Advance Filing Rules, and Trade Facilitation Procedures" and repointed the
+  primary to the FY2026 tariff schedule page already in the item's own pool. Jurisdiction (`[AE,BD,JP]`→`[JP]`)
+  was already fixed in drain bank 5 (SW-1).
+- **ISO 14083 (c4) — conflation VERIFIED DORMANT, no claim-level defect.** Checked all 16 claims against their
+  pool provenance: 0 cite the flagged FuelEU Maritime row (CELEX 32023R1805) — it sits unused in the pool,
+  never grounded. The row that DID ground 3 claims (`OJ:L_202302772`) is the ESRS/CSRD delegated regulation
+  (2023/2772), thematically adjacent (Scope 3 reporting), not the wrong regulation. All FACT claims correctly
+  labeled; all GAP claims honest. Residual (unchanged, real): ISO does not publish standard text free, so the
+  standard's own clauses can never be fully grounded — a relabel-to-reference-standard-exists judgment, separate
+  from the conflation question this bank closed. Left the dormant pool row in place (harmless, no write spent
+  stripping something never grounded).
+
+All three closed with $0 spend — no fetches, all resolved from already-stored claims/pool data (retrieval
+before generation). Counts unchanged (no archive/verify/quarantine state moved — these were title/scope
+precision fixes on already-quarantined items, not disposition changes).
+
+NEXT: the remaining ~55 B-reassignment rows at the same per-item rigor. Given the queue's real size (58, not
+21), this continues across further banks rather than closing in one. Lease state (session A): clean.
