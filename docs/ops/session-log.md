@@ -707,3 +707,34 @@ NEXT: TNO dedup-check vs eu_clean_trucking; GreenBiz repoint+retitle; Alternativ
 from its existing claims. Then the operator's ordered queue continues: the 21 B-reassignments, the scope-gate
 unit at a bank break, eu_clean_trucking full grounding pass, the SW-1 corpus-wide jurisdiction sweep. Lease
 state (session A): clean.
+
+## 2026-07-18 — Session A (review-lane bank 6): the three Group ③ follow-ups closed
+
+- **TNO (8e5a62ba) — MERGED.** Confirmed genuine duplicate: TNO's own grounded claim "[primary_deadline] ...
+  emissions to be reduced by 45% from 2019 levels by 2030 and by as much as 90% by 2040" cites the SAME
+  regulation as `eu_clean_trucking_2024_1610` (id `8c186db2`, canonical_instrument_key `32024R1610`) — the real
+  enacted EUR-Lex text already staged there confirms the identical 2030/2040 targets with real article
+  citations, where TNO's claims were secondary paraphrase from tno.nl/ALICE with several unresolved GAP claims
+  the real primary directly answers. Survivor = `eu_clean_trucking_2024_1610` (correct primary already staged,
+  per the D1 pattern). `tombstone-delete.mjs --disposition=merged_into --merged-into=8c186db2`.
+- **GreenBiz (5faf8f8c) — REPOINTED then RESTORED, straight to verified.** Its own 8 grounded FACT claims
+  already cited EcoVadis (source_id `4a956756`, active, tier 6) via the mint chokepoint's span-resolution — zero
+  FACT claims ever cited greenbiz.com, whose homepage yielded only navigation content (confirmed in the brief's
+  own generation notes). Claim-level attribution was already correct; the item-level title/source_url were not.
+  Repointed title -> "Fragmented US Corporate Climate Disclosure Landscape: SEC Retreat and State-Level
+  Response", source_url/source_id -> the EcoVadis SEC Climate Disclosure Rule page (guarded update, cited).
+  Restored: recomputed straight to verified (29 claims, including the 8 real EcoVadis FACTs, now correctly
+  attributed). Item-vs-source verdict fell out naturally once repointed, as expected.
+- **Alternative Fuels Data Center (4a108d70) — RESTORED as an ordinary quarantined item.** `restore-to-live.mjs`
+  correctly treated it as content-bearing (33 real claims survive the empty-brief check's AND condition) ->
+  quarantined + drain_worklist Lane A. Annotated the drain_worklist row's `notes` with the regen-gap finding
+  (empty full_brief, 33 real IRC 45Z/45W/30C tax-credit claims survive from a prior grounding pass; drain action
+  is regenerate-from-existing-ledger, not re-fetch/re-ground).
+
+COUNTS: archived 146→143 (−3), verified 209→210 (+1, GreenBiz/EcoVadis), quarantined 65→66 (+1, AFDC). All three
+follow-ups closed clean, $0, no fetches (all resolved from already-stored pool/claim data — retrieval before
+generation held). Group ③ fully closed end to end.
+
+NEXT: the 21 B-reassignments (drain bank 5's 54-item handoff) at the same per-item rigor — read each
+drain_worklist finding annotation first; the fabrication flags (China carbon-market, and any other
+title-unsupported case in the 21) go first per operator instruction. Lease state (session A): clean.
