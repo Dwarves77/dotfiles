@@ -25,6 +25,21 @@ function gitWorktreeList() {
   }
 }
 
+// The MAIN repo root, regardless of which worktree this check runs from. `git rev-parse
+// --show-toplevel` (what getRepoRoot() returns) resolves to the CURRENT worktree's own directory
+// when run from a secondary worktree — using it to derive the sibling-path convention broke
+// resolution for any push originating outside the main checkout. `--git-common-dir` is the one
+// .git directory shared by every worktree of a repo and always lives inside the main worktree, so
+// its dirname is stable no matter where this executes.
+function getMainRepoRoot() {
+  const commonDir = execFileSync(
+    'git',
+    ['-C', getRepoRoot(), 'rev-parse', '--path-format=absolute', '--git-common-dir'],
+    { encoding: 'utf-8' },
+  ).trim();
+  return dirname(commonDir);
+}
+
 export const consistencyCheck = {
   id: 'C4',
   name: 'worktrees.md reality',
@@ -63,7 +78,7 @@ export const consistencyCheck = {
     // sibling directory of the repo root (historical anti-pattern; deprecated
     // by FaDB convention). Derive the sibling path from the repo root's parent
     // rather than hardcoding any user-home string.
-    const repoRoot = getRepoRoot();
+    const repoRoot = getMainRepoRoot();
     const repoParent = dirname(repoRoot);
     for (const relName of inventoryPaths) {
       // Try sibling-to-repo-root (the historical anti-pattern documented in worktrees.md)
