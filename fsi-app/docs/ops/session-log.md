@@ -330,3 +330,11 @@ QUEUE STATUS: drain_worklist Lane A now 56 rows total; 54 touched by session-B a
 SESSION B RELAUNCH TOTAL (this intake-drain phase, both banks): 2 promoted (CORSIA/A42-22, EU MRV/2015-757, both verified against their TRUE single primary), 21 reassigned, 1 in-flight class bug found+worked-around (registerSource/eur-lex host-collision), 1 truncated-URL root cause found (EEXI/CII), multiple jurisdiction bugs found (g11 missing Canada; earlier g15/india also found this session). Lease state (session B): clean. Spend: $0.
 
 Counts (live, concurrent with Session A): provenance_status {unverified:57, verified:241, quarantined:131, pending_human_verify:5}.
+
+## 2026-07-17 — Session B relaunch check: queue confirmed still empty, no new restores
+
+Operator re-issued the relaunch dispatch (same text: 56 quarantined total, 23+ restored items, CORSIA/EU MRV/EEXI+CII priority). Pulled worktree branch (already up to date, no rebase needed), re-queried `drain_worklist` fresh rather than assuming the repeat dispatch implied new work.
+
+Result: 56 total rows, all lane A, 54 carry session-B REASSIGN/PROMOTE notes from the prior two banks, 2 confirmed pre-existing Session A items (`eu_clean_trucking_2024_1610`, `eu-corporate-sustainability-reporting-directive-csrd...`, both `assigned_by=lane-split.mjs`, not session-B). Zero rows are unclaimed Lane B work. Zero session-B leases held (`mutation_leases` query, 0 rows). No new RESTORE verdicts have landed from Session A's review lane since the last bank.
+
+No items processed this check (nothing to process). No commit needed beyond this log entry (tmp probe scripts cleaned before this write, per protocol). Standing by for either new restores landing in `drain_worklist` or an explicit operator signal to start the deferred `operator_review_queue` build.
