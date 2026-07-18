@@ -541,3 +541,39 @@ NEXT: (1) the INTEGRITY-FLAG 3 (highest priority — unsupported title claims). 
 close resolved drain_worklist rows. (3) $0 relabels via the proper relabel path. (4) dedup the UAE hydrogen pair.
 (5) Group ③ DELETE-side content-read bank (archived source-descriptions). Acquisition-blocked holds await the
 free-acquisition path / operator spend posture.
+
+## 2026-07-17 — Session A (drain bank 6): the 3 integrity flags (unsupported title claims)
+
+B flagged 3 items "TITLE CLAIM NOT SUPPORTED." Verified each; the integrity rule is absolute.
+
+1. India's National Logistics Policy Carbon Intensity Standards (beae0a7e) → ARCHIVED (unsupported_title_claim).
+   FABRICATED PREMISE, web-corroborated: the real NLP 2022 is a cost-reduction policy (logistics cost to 8-9% of
+   GDP, ULIP/Gatishakti) with sustainability TOOLS (a Freight GHG *calculator*, Rail Green Points) — it has NO
+   "carbon intensity standards" instrument. Carbon-intensity targets are India's economy-wide NDC (45% by 2030);
+   vehicle limits are Bharat Stage VI (separate MoRTH). source_url 404. The item conflated three unrelated things
+   into a non-existent instrument. Genuinely ungroundable → honest archive (research-or-erase "erase"). The real
+   India carbon instrument (CCTS) is already a separate coverage_gap candidate (rank 11).
+   + CONFIDENTIAL-DOC COMPLIANCE FLAG FILED (integrity_flags 963d4450, data_integrity): a CONFIDENTIAL NCAER report
+   ("Logistics Cost in India", cover page prohibits third-party disclosure) was improperly staged into this item's
+   grounding pool by B's finding; it PERSISTS in agent_run_searches/raw_fetches after archive. Needs an operator
+   decision on purging + a fetch-time guard (class fix). Cannot self-resolve → the flag is the channel.
+2. China's National Carbon Market Extension to Transportation Sector (3e756291) → HOLD (recorded).
+   Real policy (Aug-2025 Green Low-Carbon Transformation Opinions) but China's carbon market covers
+   power/steel/cement/aluminum ONLY — transport is NOT in scope; the "Extension to Transportation" title is
+   PREMATURE/unsupported. Primary mee.gov.cn roadblocked (timeout). Not fabricated (real underlying policy) → HOLD,
+   re-scope to the honest policy (transport-not-yet-covered, MONITORING) pending mee.gov.cn re-acquisition.
+3. UAE National Hydrogen Strategy Implementation Decree (cfcf9e4c) → HOLD + DEDUP-flagged (recorded).
+   The UAE hydrogen strategy is real but VOLUNTARY — there is NO "implementation decree" (pool = law-firm briefings,
+   zero decree/cabinet-law number). "Decree" title unsupported (same class as UAE net-zero, bank 5). Primary
+   u.ae/uae.gov.ae roadblocked. Also a DUP of "UAE National Hydrogen Strategy - Transport." → HOLD; on re-acquisition
+   re-title to "strategy" + dedup the pair.
+
+TOOL: scripts/_reground/archive-item.mjs (honest-archive / research-or-erase "erase" executor, guarded+leased+
+snapshotted, removes from drain_worklist). Reusable for the erase disposition.
+
+COUNTS: archived 162→163 (+1 India erase), quarantined 64→63 (−1), verified 208. Session archive net 419→163.
+All leases clean. $0 (one free web-search corroboration). integrity_flags: +1 open (963d4450).
+
+NEXT: verify the "PROMOTED-by-B" set (7: GLEC v3, ISSB IFRS S2, LA EWEO, Lei 12.305/2010, Zero-Emission World
+Heritage, CORSIA, EU MRV) + close resolved drain_worklist rows; then $0 relabels via the proper relabel path;
+dedup the UAE-hydrogen pair; Group ③ DELETE-side content-read bank. China/UAE holds await re-acquisition.
