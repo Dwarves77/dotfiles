@@ -1,12 +1,24 @@
 ---
 id: ADR-012
 title: Intake cadence model (manual-triggered, auto-cadence dormant) + the launch-complete exit test
-status: accepted
+status: superseded
 date: 2026-07-11
 scope: fsi-app intake pipeline (discovery→triage→mint→ground→validate), F16 scrape-hold semantics, program launch definition
 supersedes: the emergency-framing of the scrape hold ("hold is a temporary safety engagement lifted when cadence is set"); the per-dispatch ad-hoc launch-readiness framing
-related: ADR-011, RD-11 (F16 fetch-hold gate), remediation-discipline §4 cat 10, Disposition Engine dispatch (Units 0-5), Wave-β Stage B
+superseded_by: ADR-015
+related: ADR-011, ADR-015, RD-11 (F16 fetch-hold gate), remediation-discipline §4 cat 10, Disposition Engine dispatch (Units 0-5), Wave-β Stage B
 ---
+
+> **SUPERSEDED 2026-07-18 by [ADR-015](./ADR-015-restore-source-monitoring-supersede-adr-012.md).**
+> Section 1's "manual intake is the operating design, not a temporary safety posture" is retired: the
+> dormant-systems audit established it described a spend-crisis freeze, not design intent, and the
+> founding source-monitoring design is restored as the operating model. The config-only restoration
+> claim was falsified (freeze commit `11c008c2` commented out the workflow schedules; restoration is
+> code + config + env). The two owed invocation surfaces (admin control + script path for
+> `/api/admin/run-intake`) are recorded as debts the crawl rebuild discharges. The RD-11/F16
+> two-caller mechanism, RD-20 staged-transit, and the launch-exit-test clauses in this ADR carry
+> forward (mechanism, not the retired framing). This ADR is retained verbatim below as the historical
+> record.
 
 # ADR-012 — Intake cadence + launch-complete definition
 

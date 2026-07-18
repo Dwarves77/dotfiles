@@ -34,7 +34,7 @@ Two cross-cutting capabilities: Map (geographic layer over Regulations), Intelli
 ## Consequences
 
 - Tenancy boundary is enforced at the layer, not per-table. Platform-intelligence reads bypass tenant filtering; workspace + community reads filter by tenant context.
-- Routing convention: `(tenant)` route group in src/app/ for tenant-scoped pages; admin/ for platform-management routes.
+- Routing convention: tenant-scoped pages and admin/ platform-management routes. (NOTE, corrected 2026-07-18 per dormant-systems audit G-10: the `(tenant)` route-group named in this ADR's frontmatter `future_scope` and originally written here as adopted was never created; tenant-scoped pages sit directly under `src/app/` with tenancy resolved by `proxy.ts` session gating, not a route group. The frontmatter `future_scope` entry stands as an option not taken; this consequence line is corrected to current reality.)
 - The five surfaces are not interchangeable. Build sequencing follows surface boundaries.
 
 ## Alternatives Considered

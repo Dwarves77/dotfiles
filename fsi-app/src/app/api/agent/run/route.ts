@@ -31,9 +31,11 @@ async function handlePOST(request: NextRequest) {
   // Wave-α A3 (2026-07-11, P1 finding 8 / CODE-3 F-03): this is the only
   // spend-triggering route; requireAuth alone let ANY authenticated user
   // (incl. viewer-role members) start paid generation workflows. Every
-  // legitimate caller is a platform admin: the two admin routes forward an
-  // admin Bearer token, drain-first-fetch mints an admin-user session, and
-  // staged-updates approve runs under an admin session. Gate accordingly,
+  // legitimate caller is a platform admin: the admin regenerate routes
+  // forward an admin Bearer token, and the machine-gated intake cycle
+  // (run-intake-cycle) runs under the F16-signed manual caller. (The former
+  // drain-first-fetch worker and the staged-updates approve path were retired
+  // 2026-07-12 / Unit 0c; they are no longer callers.) Gate accordingly,
   // plus the standard per-user limiter (the per-item 1h cooldown below is
   // per-ITEM and did not stop cross-corpus iteration).
   const limited = checkRateLimit(auth.userId);

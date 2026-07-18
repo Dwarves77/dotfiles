@@ -407,3 +407,29 @@ read in full and re-verified where relied on.
 | **Session A stall gate** | **ANSWERED** | The drain queue is real; worklist NOTES are hints with a proven 1-in-7 material error on the sampled bank. Drain against live `validate_item_provenance` output, never notes (RD-33 extension). Section 5.3. |
 | **Crawl-rebuild spec input** | **READY** | Keep-and-integrate set = section 8 roll-up; two-tier spec builds on check-sources/change-detection/portal-links/reconcile + run-intake-cycle handoff; one intake path holds. |
 | **Operator-dashboard checks** | **OPEN — operator** | 7 checks carried forward (pause flags, scan reachability, deployed env, Actions UI state, SW-3 flag row, drain queue, D-report merge state). Section 7. |
+
+---
+
+## Session E — execution lane: post-audit rulings (2026-07-18)
+
+Read-only audit mandate DISCHARGED; execution lane opened for the operator's post-audit rulings R1-R5
+(five phases, one PR each). Worktree `wt-audit`.
+
+**Phase 1 — MERGES: DONE.** PR #342 (Session D forensics + C4 fixes) merged, then PR #343
+(dormant-systems audit) merged onto it. PROGRAM-BOARD append conflict resolved keep-both, chronological
+(D entry then E entry). Both CI-green at merge, no admin-merge. Master at `fa1e135b`, wt-audit synced.
+
+**Phase 2 — GOVERNANCE: this PR.**
+| Item | State | Evidence |
+|---|---|---|
+| **R1/R2a — ADR-015** (supersede ADR-012) | **DONE** | `docs/decisions/ADR-015-restore-source-monitoring-supersede-adr-012.md`; founding source-monitoring restored as operating design; ADR-012 status→`superseded` + banner; R5 dispute recorded asserting neither side; G-2 restoration cost corrected to code+config+env; G-1 owed run-intake surfaces recorded as crawl debts; two-tier model behind the gate stack. |
+| **R1/2b — research-is-horizon-scan feedstock gap** | **DONE** | Doctrine register: named feedstock-gap residual (G-6), same pattern as `analysis-follows-page-intent`; wave-three lands the enforcedBy. `fsi-app/.claude/CLAUDE.md` founding text unamended (it won). |
+| **2c — RD-33 extension** | **DONE** | `no-execution-from-stale-state` gains the worklist-note-is-a-proposal clause (section 5.3): queue consumers re-derive per-item state from the live gate at action time; notes are routing hints (bec305e1 case). |
+| **R3/2d — ACTIVE_PHASE advance** | **DONE** | `phase-intake-gate` → `phase-2` in GOVERNING-PROGRAM.md. Derived from the doc's own dependency order: intake-gate flipped live 2026-07-08 (all four anchors verified present), next uncompleted phase is phase-2 (Source→sub-source), which precedes phase-3 (the freshness-loop/change-scan crawl work). C5 PASS on phase-2's anchor. intake-gate marked DONE. |
+| **2e — cosmetic G-9/G-10** | **DONE** | G-9: stale `drain-first-fetch` references corrected in `pause.ts` header + `agent/run` comment (worker dissolved 2026-07-12). G-10: ADR-001 `(tenant)` route-group consequence corrected (group never created; proxy.ts session-gates, no middleware.ts). |
+
+Local gates green before commit: C5 PASS (phase-2 anchor), meta-gate PASS (63 doctrines wired), tsc clean.
+
+**Phases 3-5 — QUEUED (this session, in order):** P-1..P-8 purges (tombstone-then-delete, discipline
+suite between each); skill-gate resolved-not-invoked fix (R4/G-12); dashboard checks + two-tier crawl
+spec draft (3 waves, costed wave one).
