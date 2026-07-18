@@ -448,3 +448,25 @@ SWEEP LEDGER created (docs/ops/sweep-ledger.md, SW-1): jurisdiction-code country
 COUNTS: archived 192->170 (-22). Session archive total: 419 -> 170. verified 208 / quarantined 56 unchanged. disposition_ledger: 22 confirm_archive_source_description + 198 archive-endgame + 1 prior = 221. All leases clean. $0.
 
 NEXT: GROUP ③ the ~28 ambiguous per-item reads (research orgs / news outlets / industry bodies / agency pages / institution topic-areas / tools) via the operator discriminators. Then 5 source_not_item, 14 unconfirmed dups, 3 portal + 1 error content-bearing, 33 null-reason, 56 review_valuable. Full ②/③ audit table stands in this log across banks 3-N.
+
+## 2026-07-17 — Session A (SURFACE-CONTRACT SCOPE GATE dispatch): five-surface scope test made mechanical
+
+DISPATCH: scope verdicts failed 3x this week by testing against ONE surface instead of five. Make the five-surface test mechanical + universally loaded. Executed per the operator's COMBINED RULING.
+
+STOP-AND-SURFACE (before touching anything): re-oriented against the LIVE coverage_gap_candidates and found the dispatch premise stale. Session C had applied migrations 216-219 (data_class instrument/data_feed split, labor/energy/fuel data-feed rows) — files NOT in my tree, C active within hours. The table has NO declined/parked concept and NO TRUCRS/Clean Truck Check rows; the 27 data_feed rows were KEPT (C's lane embodies the fix, did not commit the "declined despite Operations" error). Surfaced two decisions.
+
+OPERATOR RULING: (1) SCHEMA OWNERSHIP — Session C owns coverage_gap_candidates + is mid-flight; C lands the disposition{kept,declined,parked} + surface_test jsonb + five-surface CHECK in its OWN migration at its own cadence; Session A does NOT touch the table. (2) SEEDING — DORMANT: nothing was ever declined, so no backfill, no synthetic rows; demonstrability lives in the golden's FIXTURES, never in production data; the gate binds the next real decline.
+
+SESSION A EXECUTED (everything except schema):
+- DOCTRINE every-decline-names-the-five-contracts (doctrine-register.mjs) → invariant PI-5-every-decline-names-the-five-contracts (invariants.mjs, skill caros-ledge-platform-intent). enforcedBy the golden; live DB binding PENDING-C, named-not-silently-unwired.
+- GOLDEN scripts/verify/surface-contract-gate.golden.mjs (fixture-driven, 12 checks green): PART A proves the completeness gate red-then-green (declined/parked without the five-surface record FAILS; with it PASSES; kept/candidate exempt) — it is the SSOT for the JSON shape (CONTRACT_KEYS = regulations/operations/market_intel/research/community; each {verdict,reason} non-empty). PART B SCANS the migrations tree for C's migration and AUTO-ARMS the moment it lands (asserts surface_test + disposition{declined,parked} + a CHECK referencing all five keys); until then prints PENDING-C and passes.
+- SKILL SECTION caros-ledge-platform-intent "The Five-Surface Scope Test" — five contracts verbatim, the every-decline rule (PI-5 anchor), the inline test format, FOUR worked examples (a: data-feeds-vs-Operations; b: Market Intel discovery omitted; c: Research discovery omitted; d: Clean Truck Check declined whole → Operations=IN, the gate catching its own author's dispatch). Marker baseline 10→12.
+- STANDALONE SKILL .claude/skills/caros-ledge-surface-contracts/SKILL.md (operator's side; description triggers on any scope/coverage/source-inclusion/feature-inclusion question) — same content; delivered in full in chat for the operator to save.
+
+The five contracts: Regulations = compliance-action text brief; Operations = structured jurisdictional cost intelligence; Market Intel = comparative/numerical; Research = structured horizon assessment (distance/maturity/credibility/assumption-shift); Community = human-operated, outside machine intake.
+
+VERIFY: meta-gate PASS (96 invariants + 63 doctrines wired), golden 12/12, doctrine-contradiction exit 0. $0.
+
+PENDING-C (owed by Session C, not Session A): add disposition + surface_test + five-surface CHECK to coverage_gap_candidates in C's own migration, no backfill; POST THE MIGRATION NUMBER HERE when applied so Session A adds migration:NNN to PI-5.enforcedBy (the golden auto-arms regardless).
+
+NEXT (Session A): back to the review lane — GROUP ③ ~28 ambiguous per-item reads, then the smaller buckets, toward zero-archived (170).
