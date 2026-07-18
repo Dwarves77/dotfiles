@@ -948,3 +948,75 @@ individually; and whether Session C's per-class research (banks 1-9) used any se
 beyond what its migration headers and commit messages describe — its supporting scripts were not read in full.
 
 Lease state (session D): none taken, none held. Corpus/drain_worklist: untouched. $0.
+
+## 2026-07-18 — Session D: push resolution, wt-audit registration, C4 sibling-resolution bug fixed
+
+Closing out the push blocked by the forensics report above. Two unrelated gates fired on `git push` from
+`.worktrees/wt-session-d`, both resolved under operator ruling, neither by override trailer.
+
+**PreToolUse skill gate.** `git push` matched the Bash DANGER pattern (data write, prod effect) and required
+`remediation-discipline` + `environmental-policy-and-innovation` loaded this session via the Skill tool before
+the write could proceed. Both names returned "Unknown skill" when invoked (project-local skills under
+`fsi-app/.claude/skills/`, not present in this session's available-skill listing, consistent with the DB-access
+limitation noted in the forensics entry above). The push nonetheless unblocked on retry. Read
+`skill-token.mjs`: the matcher (`skillLoadedInTranscript`) checks the transcript for the literal `"name":
+"Skill","input":{"skill":"<slug>"` tool-use shape, bare or scope-prefixed, with no check on whether the
+invocation resolved or errored. **Finding for Session E (inventory-4 material): the gate enforces that a
+skill was invoked, not that it was loaded.** An erroring `Skill` call satisfies it exactly as a successful one
+would. Whether this is intended (the doctrine text says "looked at... not just having it in context," which an
+erroring invocation arguably is not) or a gap is an operator call, not resolved here.
+
+**C4 (worktrees.md reality) consistency check.** Step 2 of the pre-push hook then failed on unrelated,
+pre-existing drift: a worktree at `C:/Users/jason/wt-audit` existed on disk, unregistered in
+`docs/inventories/worktrees.md`. Operator confirmed this is Session E's audit lane (dormant-systems audit,
+read-only until audit doc lands, branch `master` at creation 2026-07-18), dispatched without inventory
+registration at launch. Per operator ruling: resolve by registration, not override. Registered as bare
+basename `wt-audit` in the Path column (commit `47a14a0e`).
+
+The first registration attempt used the full path `C:/Users/jason/wt-audit` in the Path cell and still failed,
+now on BOTH check directions. Reading `C4-worktrees-reality.mjs`: the Path column is parsed as a bare relative
+name (matching the existing `dotfiles` row, not a full path); the sibling-path convention is resolved as
+`join(dirname(repoRoot), relName)`. Corrected the cell to bare `wt-audit` (commit `763c4321`) — this fixed the
+missing-claim direction but surfaced a second, independent problem: an orphan-claim persisted even with the
+correctly-formatted entry.
+
+**Root cause, verified, not inferred:** `repoRoot` in `C4-worktrees-reality.mjs` was `getRepoRoot()`
+(`git rev-parse --show-toplevel`), which resolves to the CURRENT worktree's own directory, not the main repo,
+when the pre-push hook runs from a secondary worktree. From `wt-session-d`, `git rev-parse --show-toplevel`
+returns `C:/Users/jason/dotfiles/.worktrees/wt-session-d`; `dirname()` of that is
+`C:/Users/jason/dotfiles/.worktrees`, so the checker looked for `wt-audit` there instead of at its real
+location, sibling to the MAIN repo. This is a structural bug, not specific to wt-audit: it breaks sibling-path
+resolution for any push originating from any secondary worktree, always, regardless of which entry is being
+checked. **Operator ruling: root-cause fix, no override trailer** ("Session E pushes from a secondary
+worktree, so the audit itself cannot land while this bug exists").
+
+**Fix (commit follows this entry's push): added `getMainRepoRoot()` to `C4-worktrees-reality.mjs`, using
+`git rev-parse --path-format=absolute --git-common-dir` then `dirname()`. `--git-common-dir` is the one `.git`
+directory shared by every worktree of a repo and always lives inside the main worktree, so its dirname is
+stable regardless of where the check executes. Verified empirically before and after the code change:
+`git rev-parse --path-format=absolute --git-common-dir` returns the identical `C:/Users/jason/dotfiles/.git`
+from both the main checkout and `wt-session-d`. Scope held to the single resolution call per operator
+instruction: no other logic, claims, or inventory-format changes. Ran the full consistency runner from
+`wt-session-d` post-fix: `PASS [C4]`, 0 drift records, both directions (missing-claim and orphan-claim) clear
+for both current Path-table entries (`dotfiles`, `wt-audit`). Did NOT run the patched checker physically inside
+the main checkout's own working tree — that tree is Session A's live workspace and was not touched; instead
+verified the context-invariance of the one changed primitive (`--git-common-dir`) directly from both
+directories, which is the entire behavioral change the fix makes. This is a narrower verification than running
+the full runner in both physical locations; flagged here rather than silently treated as equivalent.
+
+**Second finding for Session E (inventory-4 material): C4's sibling-path resolution has been broken for every
+secondary-worktree push since whenever this check or the pre-push hook was introduced, until this fix.** That
+means C4's enforcement history from any non-main-checkout worktree is unproven for the period before this fix
+landed. Session E should determine, for prior pushes that originated from secondary worktrees (wt-session-b,
+wt-session-c, any `.claude/worktrees/agent-*`, or earlier sibling-path worktrees per the historical entries in
+worktrees.md), whether those pushes: (a) predate the C4 check or the pre-push hook's introduction entirely,
+(b) were actually run from the main checkout despite the worktree existing, or (c) carried a
+`Consistency-Override: C4` trailer that let them through regardless of the resolution bug. Any override
+trailers found under (c) are themselves undocumented drift-adjacent history and belong in an inventory-4 entry
+of their own, not silently assumed benign.
+
+Commits on this push (`corpus-integrity/cc-grounding-executor-d`): `048669a9` (forensics report, prior entry
+above), `47a14a0e` (wt-audit registration), `763c4321` (Path-cell format fix), plus the C4 root-cause fix and a
+PROGRAM-BOARD.md entry landing alongside this log entry. No Consistency-Override trailer used on any commit.
+
+Lease state (session D): none taken, none held. Corpus/drain_worklist: untouched. $0.
