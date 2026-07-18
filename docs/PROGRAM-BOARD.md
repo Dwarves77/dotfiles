@@ -386,3 +386,24 @@ the forensics report, and the push-resolution entry below it); this is the board
 | **C4 (worktrees.md reality) sibling-resolution bug** | **FIXED** | `fsi-app/.discipline/consistency/checks/C4-worktrees-reality.mjs` resolved the sibling-path convention against `getRepoRoot()` (`git rev-parse --show-toplevel`), which returns the CURRENT worktree's own path when the pre-push hook runs from a secondary worktree, not the main repo. Broke resolution for any push originating outside the main checkout, always, not specific to wt-audit. Fixed via `getMainRepoRoot()` (`git rev-parse --path-format=absolute --git-common-dir`, then `dirname()`), verified context-invariant from both the main checkout and `wt-session-d`. No override trailer used (operator ruling: root-cause fix required, Session E's own push depends on it). |
 | **Skill-gate invocation-vs-resolution finding** | **QUEUED (Session E, inventory-4)** | The PreToolUse skill gate's transcript matcher (`skill-token.mjs`) accepts an ERRORING `Skill` tool invocation as satisfying "governing skill loaded" — it checks that the tool-use shape appears in the transcript, not that the skill resolved. Operator call on whether this is intended or a gap; not resolved here. |
 | **C4 enforcement-history finding** | **QUEUED (Session E, inventory-4)** | Because the sibling-resolution bug predates this fix, C4's enforcement on prior secondary-worktree pushes is unproven for that whole period. Session E should determine how each prior secondary-worktree push (wt-session-b, wt-session-c, `.claude/worktrees/agent-*`, historical sibling-path worktrees) actually landed: pre-dates the check/hook, ran from the main checkout despite the worktree existing, or carried a `Consistency-Override: C4` trailer. Any override trailers found are themselves undocumented drift-adjacent history, their own inventory-4 entries. |
+---
+
+## Session E — dormant-systems audit LANDED (2026-07-18)
+
+Branch `audit/dormant-systems-2026-07-18` (worktree `wt-audit`). Read-only audit; the document plus
+this board entry, an INDEX line, and the wt-audit worktree registration are the only writes. Doc:
+[dormant-systems-audit-2026-07-18](./audits/dormant-systems-audit-2026-07-18.md). Baseline master
+`eb99dc64`. Session D's forensics (commit `048669a9`, branch `corpus-integrity/cc-grounding-executor-d`)
+read in full and re-verified where relied on.
+
+| Thread | State | Evidence / next |
+|---|---|---|
+| **Prior-audit scope diagnosis** | **CONFIRMED, corrected** | 2026-07-11 full-system audit saw dormancy piecemeal but its P1-P4 taxonomy routed it to "P3 dead-weight" and its build-first lens excluded frozen intake from correction; no dormant-wired class existed. Audit doc section 1. |
+| **Inventory 1 (gates/flags)** | **DONE** | 18 gates catalogued with state-change commits + caller status; all live gate machinery judged keep-and-integrate; ACTIVE_PHASE pointer stale (unresolved-operator). Section 2. |
+| **Inventory 2 (83 routes)** | **DONE** | 75 live-wired / 4 gated (check-sources, spot-check, run-intake, q7) / 4 orphaned (sources/discover, notifications/preferences, regulations-defaults, staged-updates GET). Section 3. |
+| **Inventory 3 (workers/workflows)** | **DONE** | 2 frozen schedules (`11c008c2`), 5 active workflows all name-honest; the check-sources name-vs-behavior gap is CURED in code (PR #252/#253) and frozen in operation; reconcile = deliberately-unwired consume half. Section 4. |
+| **Inventory 4 (governance divergence)** | **DONE** | ADR-012 decomposed into G-1..G-5 (owed intake surfaces; flip-cost falsified by the freeze; live contradiction with founding doctrine text; sign-off = operator ruling). Plus G-6 research feedstock, G-8 rss-fetch false header, SW-3 worklist-note class (bec305e1: note 4 vs live 28). Section 5. |
+| **Inventory 5 (purge candidates)** | **LIST DELIVERED — awaits operator ruling** | P-1..P-8 (small list: most dormant-wired machinery meets the keep bar); explicit not-purge list protects the restoration surface. Purge executes later as tombstone-then-delete migrations, not by Session E. Section 6. |
+| **Session A stall gate** | **ANSWERED** | The drain queue is real; worklist NOTES are hints with a proven 1-in-7 material error on the sampled bank. Drain against live `validate_item_provenance` output, never notes (RD-33 extension). Section 5.3. |
+| **Crawl-rebuild spec input** | **READY** | Keep-and-integrate set = section 8 roll-up; two-tier spec builds on check-sources/change-detection/portal-links/reconcile + run-intake-cycle handoff; one intake path holds. |
+| **Operator-dashboard checks** | **OPEN — operator** | 7 checks carried forward (pause flags, scan reachability, deployed env, Actions UI state, SW-3 flag row, drain queue, D-report merge state). Section 7. |
