@@ -73,3 +73,6 @@ Either path is a migration + consumer sweep (enum change or view/column + every 
 **Priority:** Low (trigger is the load-bearing safety net).
 
 ---
+
+## 2026-07-16 — version-out consolidation (executor-universality ruling)
+`scripts/_reground/drain-clear.mjs` replicates `eraseClaimWithProof`'s fail-closed archive-then-delete through the guarded path (`guardedInsert` claim_versions → `guardedDelete` section_claim_provenance) because `eraseClaimWithProof` (src/lib/agent/ledger-apply.mjs) uses the raw supabase builder API and db.mjs deliberately does not export a write client (the only write surface is the guarded functions). Two version-out implementations exist long-term. POST-DRAIN CONSOLIDATION (operator flagged 2026-07-16): unify to ONE shared implementation in ledger-apply.mjs that both the pipeline and scripts call with their appropriate client (inject the write ops as deps, or a single erase entry point), so the hold-loop and any future eraser inherit the identical fail-closed logic. The DB-layer migration-209 DELETE trigger already covers status-recompute for all writers by construction.

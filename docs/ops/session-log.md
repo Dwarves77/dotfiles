@@ -366,3 +366,657 @@ Operator PRICED GO ($20 bound, retries included) + MODEL-TIER amendment. Ran the
 **Blockers / open:** (a) **host-registration sweep** — register the unregistered primary hosts (diputados.gob.mx, law.go.kr, arena.gov.au, etc.) so the ~grounded-but-sub-floor items verify; biggest lever, mostly $0. (b) Brazil full verification pending that registration + a missing-slot fill. (c) 22 held items' dispositions (mostly sub-floor/slot — re-home or GAP). (d) coverage-floor definition (the absent majors: bafa/LkSG, CII/CORSIA/CSDDD). (e) stale_verified (45), reattribution-verified-half (42, parked).
 
 **Next steps:** host-registration sweep (register the primaries the run surfaced → re-ground the sub-floor holds cheaply) → Brazil full restore → coverage-floor unit.
+
+## 2026-07-17 — Session B (promotion lane): canada-clean-fuel promoted + partial drain
+
+Session B repurposed to the PROMOTION PIPELINE (lane split found 0 mechanical Lane-B items). Per-item under mutation lease (H5, session-B holder).
+
+BANK 1 — canada-clean-fuel (5b2c6655): PROMOTED. Derived canonical id SOR/2022-140 (verbatim x9 in the staged Justice-Canada primary; source_url is that exact SOR PDF), id-stamped via new scripts/_reground/id-stamp.mjs (verify-before-write, lease-checked, guarded) -> target-match match/subject-overlap(0.8) -> match/raw-id(1.0), id-confirmed clearance-grade. Mechanical drain: drain-clear versioned out 4 orphaned_no_prose_referent (Fuel LCA Model version notes + org-count; slot-safe, all 4 required slots FACT-covered at tier 2; preserved in claim_versions, non-destructive). RESIDUAL to Lane A: 7 in-prose ANALYSIS claims (2024 CATS credit-market data) fail criterion-4 analysis_missing_label_syntax -> per-claim prose-label judgment, beyond the three sanctioned exits. Lease released, worklist row annotated (primary_id_confirmed=true, lane A). $0. Live claims 73->69.
+
+New tool: scripts/_reground/id-stamp.mjs — the 4ff5cf56 id-stamp promotion pattern factored for the B-CANDIDATE lane (verify-then-stamp, refuses + REASSIGN-TO-A if the proposed id does not id-confirm the staged capture).
+
+BANK 2 — bec305e1 (Greenhouse Gas Emissions Standards for HD Vehicles Phase 3): PROMOTED. id-stamped 2024-06809 (FR doc number; verbatim x2 in the 600k-ch FR primary staged in the pool) -> match/raw-id, id-confirmed. drain-clear: 0 mechanical exits (0 cross-instrument, 0 orphaned); 4 relabel-manual true-but-secondary residual -> Lane A. Lease released. $0.
+
+TOOL FIX (id-stamp.mjs): the first cut read only the raw_fetches snapshot; for pool-staged primaries (empty snapshot, primary in agent_run_searches) it wrongly scored 0 and REFUSED. Now unions snapshot + >200ch pool rows (id-confirmation checks own-id-present, which wins first in the verdict; drain-clear independently re-verifies the true primary before any clear). canada (bank 1) had a populated snapshot so its promotion was unaffected.
+
+FINDING (promotion lane): subject-matched items id-stamp cleanly (canada SOR/2022-140, bec305e1 FR 2024-06809), but their drain residuals are dominantly relabel-manual / analysis_missing_label_syntax = judgment, not the mechanical exits. So the lane converts subject-overlap -> id-confirmed (a real unlock) + applies the few mechanical version-outs, but the items still land in Lane A for relabel judgment. Promotion reduces A's work; it does not usually fully verify.
+
+BANK 3 — o13 (IMO Net-Zero Framework): REASSIGN-TO-A (not promoted). Staged capture is an IMO press briefing (imo-approves-netzero-regulations.aspx), not the enacted instrument; references many past MEPC resolutions but no own-id for the framework (its MARPOL Annex VI amendment, approved-not-yet-adopted at capture, is absent). Capture-suspect + re-acquisition judgment -> Lane A. Lease released. $0.
+
+RUNNING TALLY (session-B promotion lane): 3 processed — 2 PROMOTED (canada SOR/2022-140, bec305e1 FR-2024-06809; both id-confirmed, mechanical exits applied, relabel residual to A), 1 REASSIGNED (o13 press-briefing capture). All leases clean. No paid spend. Pattern holds: id-stamp promotes cleanly where the staged capture IS the enacted primary bearing an own-id; press-briefing/portal captures and no-own-id frameworks reassign to A.
+
+## 2026-07-17 — Session A (archive endgame): 198 verified-disposition removals + label-is-not-proof doctrine
+
+VERIFIED DISPOSITION, not deletion — every removed row is sample-gated, tombstoned, snapshotted, reversible.
+
+SAMPLE-VERIFY FINDING (the headline): archive_reason does NOT partition cleanly. Content-bearing intelligence items are scattered through every "delete" bucket; the title-level Haiku census rubber-stamped the label. Content-test across the 308 census-archive_correct delete candidates: reclassified_to_source 261 = 174 provably-empty / 87 content-bearing (56 with grounded claims); portal_artifact 19 = 16/3; error_page_artifact 6 = 5/1; source_not_item 5 = 0/5. Survivor-test on the 17 duplicate-family losers: only 3 have a mechanically-confirmed live verified survivor. NO label bucket clears 95%. This is the THIRD confirmation of label-is-not-proof (Oregon/Polish collision, o13 press briefing, now 110-of-308 at scale).
+
+RE-PARTITION (operator-approved in full): delete ONLY the mechanically-verified set (100%, not sampled), route content-bearing/unconfirmed to per-item review.
+
+BANK — 198 verified-disposition removals: 174 reclassified + 16 portal + 5 error provably-empty shells (brief_len=0 AND zero grounded claims; content survives in a live active source row) + 3 confirmed-survivor duplicates (o2 FuelEU→7a0ead55 61KB, EU 2025/40→g2 efdb3390 73KB, AFIR→62ba40b0 32KB; merged_into recorded). Reconciliation: disposition_ledger rows this op = 198 = deletions = archived-drop; archived 419→221; verified 202 / quarantined 33 UNCHANGED (zero live item touched); 3-random-tombstone spot-check: every snapshot_pointer resolves to an active source, every item truly deleted (delete followed tombstone). Session-A disposition count this bank: 198.
+
+MECHANICAL GATE baked into the vehicle (label is not proof, enforced in code not trust): tombstone-delete.mjs gains --bucket (census archive_correct only) + --empty-only (brief_len=0 AND zero section_claim_provenance claims) + DELETABLE_REASONS allowlist (content-survives/duplicate/pure-artifact only; off_vertical/non_regulatory_source/Superseded/Repealed REFUSED). Golden scripts/verify/disposition-content-gate.golden.mjs (structural, 18/18). Doctrine label-is-not-proof + invariant RD-42 (SKILL.md Section 4 category 30). Meta-gate PASS (95 invariants + 62 doctrines wired).
+
+NEXT (Session A): open the per-item review lane on the 199 (91 content-bearing skipped this op — 87 reclassified + 3 portal + 1 error; + 5 source_not_item + 14 unconfirmed duplicates = 110; + 33 null-reason + 56 review_valuable). RESTORE-first on named candidates (Blue Visby, UN SDGs, DEFRA, TxDOT, World Bank, ITF, Carbon Pricing Dashboard) — wrongly-archived paid-for intelligence. Restores enter drain_worklist as ordinary quarantined; Session B meets them through its normal queue. 16 HOLD stand never-delete.
+
+INCIDENT + RESOLUTION (shared-checkout, resolved, no content loss): a mixed commit (683f410b) briefly bundled Session C's migration 214 with Session A's 6 uncommitted archive-endgame files; caught before push (operator hold-and-report). Session C `reset --soft` (non-destructive) and re-committed only its 2 files clean as 8e571a8f; Session A's 6 returned byte-identical and are committed here as A's own bank. Session C migrated to its own worktree (`.worktrees/wt-session-c`) — worktree separation closes the class. Standing rule now in force: each session appends this log ONLY from its own tree and pulls before pushing; trivial append conflicts resolve keep-both per the bank protocol.
+
+## 2026-07-17 — Session C (coverage discovery lane): COMPLETE, pushed clean
+
+Worktree: `.worktrees/wt-session-c`, branch `corpus-integrity/cc-grounding-executor-c` (isolated from the shared main tree per the worktree-separation rule above). Migration 215 (LatAm/MEAF completion pass, operator-directed) committed clean (`032bd8a2`, 2 files, no cross-session content) and pushed to origin. Pre-push guard 4/4 clean. No CI run fires yet (this repo's Actions trigger on `pull_request`, not plain branch push); a PR opens when the operator is ready to merge coverage_gap_candidates into master.
+
+FINAL TABLE (`coverage_gap_candidates`, 21 rows, complete first pass across EU/US/UK/DE/CH/global/asia/latam/meaf): 18 MISSING, 1 AMBIGUOUS_ARCHIVED (IMO CII, resolves when the 199-item review lane lands), 2 HAVE_QUARANTINED (IMO Net-Zero/GFI e241fe75, China transport-ETS 3e756291 — both already in-drain, excluded from MISSING). 10 major / 11 minor. Read-only lane throughout: zero corpus writes, zero drain_worklist touches, zero leases. Session C lane COMPLETE, idling.
+
+## 2026-07-17 — Session A (review lane bank 1): 7 named RESTOREs recovered
+
+Review lane opened on the 199 (110 content-bearing/unconfirmed + 33 null-reason + 56 review_valuable). Standing taxonomy: RESTORE-to-live / CONFIRM-archive-with-reason / HOLD-with-evidence, per-item content read under lease.
+
+New tool: scripts/_reground/restore-to-live.mjs — REVIEW-LANE RESTORE executor. Guarded un-archive (is_archived=false, archive_reason=null, reversible snapshot) under mutation lease; reads back the recomputed provenance_status; if not verified, enqueues to drain_worklist (Lane A) so the normal drain queue meets it. SAFETY: refuses an empty shell (brief_len=0 AND zero claims) — that is a CONFIRM-archive, never a RESTORE. Executes a RESTORE verdict, never infers it. Dry-run default.
+
+BANK — 7 named candidates RESTORED (content read confirmed genuine intelligence wrongly archived as reclassified_to_source; paid-for inventory): TxDOT Freight Planning (41 claims), g27 UN SDGs 9&13 (30), g30 World Bank Transport (24), World Bank Transport Strategy 0a8b8ef0 (20), ITF 2019 (12), t5 Carbon Pricing Dashboard (35KB brief), o12 Blue Visby Solution (22KB brief). Recompute: g30 + 0a8b8ef0 -> live VERIFIED directly (grounded claims pass validate_item_provenance); TxDOT/g27/ITF/t5/o12 -> quarantined + enqueued drain_worklist Lane A. Counts: archived 221->214 (-7), verified 202->204 (+2), quarantined 33->38 (+5). All leases clean. $0.
+
+HOLD-with-evidence: c828810c "World Bank Transport Sector Strategy" — near-duplicate of the restored 0a8b8ef0 (same worldbank.org/[ext/]en/topic/transport page, /ext/ URL-drift dup). Stays archived pending a dedup look; NOT restored (no live duplicate created). g30 is distinct (ieg.worldbankgroup.org = Independent Evaluation Group).
+
+NEXT (review lane continues): remaining 80 content-bearing reclassified (incl. DEFRA), 3 portal + 1 error content-bearing, 5 source_not_item, 14 unconfirmed duplicates, 33 null-reason (per-item content look, reason recorded), 56 review_valuable. Session-A review-lane disposition count this bank: 7 RESTORE + 1 HOLD.
+
+## 2026-07-17 — Session A (review lane bank 2): 80-item triage begins — 22 genuine-items RESTORED + content-is-not-nature
+
+The 80 content-bearing reclassified do NOT sweep — item-vs-source NATURE is the RESTORE test and it is judgment-grade (operator ruling: the sweep becomes a per-item triage). Criterion: RESTORE what a freight customer reads as intelligence (named reg/standard/framework/program/finding with decision value); CONFIRM-archive what describes an access point/publisher/portal/register/org-overview (content survives as the source row the reclassification correctly created).
+
+DOCTRINE — content-is-not-nature (second-order addendum to label-is-not-proof, extends the RD-42 doctrine + SKILL.md category 30): a mechanical content floor (brief present, claims real) is NECESSARY but NOT SUFFICIENT to restore — it cannot tell whether content CONSTITUTES an item or DESCRIBES a source. That discrimination is JUDGMENT, stays in the review lane permanently, never mechanized. label-is-not-proof binds OPERATOR labels too: the operator-named DEFRA presumption was OVERRIDDEN by content read (row = "UK DEFRA: Organizational Overview" = source-shaped) -> CONFIRM-archive on evidence.
+
+GROUP ① GENUINE ITEMS RESTORED (22 this bank, jurisdiction-checked): CORSIA(a1), EEXI+CII, EU MRV(o6), EPA SmartWay(g8), GHG Protocol(c6), SBTi(c7), IPCC Climate Reports(g28), IPCC 2nd-Order Draft, Singapore Green Plan 2030(g20), ASEAN Transport Plan(g24), IDB LatAm Transport(g16), IDB Group Transport Framework, National Logistics Plan(BR), Georgia Multimodal Freight Network, WTO Trade+Environment Framework, UNCTAD Transport Infrastructure Programme, CEC North American Env Policy(g11), ESMA MiCA deadline, Port of LA Env Framework, + Australia/Brazil/China Regional Operations Profiles. Recompute: 4 -> live VERIFIED (IDB Group, WTO, UNCTAD, Port of LA), 18 -> quarantined + drain_worklist Lane A.
+
+JURISDICTION MIS-CODE CAUGHT (the sweep is the cheapest moment): ASEAN Transport Plan(g24) carried ["MY","PH","SG","US-ID"] — "US-ID" (US-Idaho) was Indonesia "ID" mis-coded to a US state (the CO/Colombia collision class). Fixed to ["ID","MY","PH","SG"]. Georgia Multimodal + Port of LA correctly coded US (not GA-country / Louisiana).
+
+COUNTS: archived 214->192 (-22), verified 204->208 (+4), quarantined 38->56 (+18). Review-lane RESTORE running total: 29 (7 named bank-1 + 22 this bank). All leases clean. $0.
+
+SESSION B RELAUNCH SIGNAL LIVE: 23 restored quarantined items now in drain_worklist (> the ~15 threshold). Relaunch Session B (Sonnet, worktree .worktrees/wt-session-b, standing opener) to drain the 56 quarantined while Session A continues verdicts.
+
+NEXT (review lane continues, per-item): GROUP ② source-descriptions -> CONFIRM-archive (EUR-Lex, EEA, Kansas/NC Register, portals, org-overviews, DEFRA; tombstone-delete ONLY where the source row exists+active, else register-first/HOLD). GROUP ③ the ~28 ambiguous per-item reads (research orgs/news outlets/agency pages) via the operator's discriminators: org restores only if it carries a specific finding/standard/position with freight value; agency PAGE=source, agency PROGRAM with obligations=item. Then the smaller buckets (5 source_not_item, 14 unconfirmed dups, 3 portal + 1 error content-bearing), 33 null-reason, 56 review_valuable. Full item-by-item ②/③ audit table at their bank.
+
+## 2026-07-17 — Session A (review lane bank 3): Group ② — 22 source-descriptions CONFIRM-archived + tombstoned
+
+GROUP ② source-descriptions (access points / publishers / portals / registers / org-overviews) → CONFIRM-archive + tombstone-delete (all 22 verified to have an ACTIVE source row = content survives; operator tombstone rule enforced in the tool). Disposition=confirm_archive_source_description.
+
+The 22: EUR-Lex(g4, the legal database — archetype), EEA(g3), Kansas Register, North Carolina Register, NY Senate Legislation Portal, Colorado General Assembly Laws Portal, EIA Open Data Portal, EU Finance Portal, Montreal Environment Portal, edie News Portal, ICAP Allowance Price Explorer(Terms of Use), GEF Leadership/Org-Structure, GEF Restructured-Instrument Org-Framework, German Fed Ministry of Transport Policy Hub, ECLAC Organizational Overview, Community of European Railways Org-Overview, Access to Diário Oficial(access guide), Arkansas Dept of Energy+Environment, Pennsylvania DEP Agency-Programs-Overview, International Institute for Conservation(professional resources), American Alliance of Museums(professional resources), and UK DEFRA: Organizational Overview (the operator-named presumption overridden by content read).
+
+TOOL: tombstone-delete.mjs gains --require-active-source (refuses to delete a content-bearing source-description unless its source row exists+active — content must survive somewhere before the item stops being the place it survives). Golden disposition-content-gate.golden.mjs extended to 20 checks (proves the source-survival gate). Meta-gate PASS.
+
+SWEEP LEDGER created (docs/ops/sweep-ledger.md, SW-1): jurisdiction-code country/US-state collision class — 4 confirmed instances (Colombia/US-CO, India/US-IN, Indonesia/US-ID caught this session, + GA letters-identical). One-query corpus-wide sweep PENDING for when the review lane completes (close the class wholesale, not instance-by-instance). Logged so it is not lost.
+
+COUNTS: archived 192->170 (-22). Session archive total: 419 -> 170. verified 208 / quarantined 56 unchanged. disposition_ledger: 22 confirm_archive_source_description + 198 archive-endgame + 1 prior = 221. All leases clean. $0.
+
+NEXT: GROUP ③ the ~28 ambiguous per-item reads (research orgs / news outlets / industry bodies / agency pages / institution topic-areas / tools) via the operator discriminators. Then 5 source_not_item, 14 unconfirmed dups, 3 portal + 1 error content-bearing, 33 null-reason, 56 review_valuable. Full ②/③ audit table stands in this log across banks 3-N.
+
+## 2026-07-17 — Session A (SURFACE-CONTRACT SCOPE GATE dispatch): five-surface scope test made mechanical
+
+DISPATCH: scope verdicts failed 3x this week by testing against ONE surface instead of five. Make the five-surface test mechanical + universally loaded. Executed per the operator's COMBINED RULING.
+
+STOP-AND-SURFACE (before touching anything): re-oriented against the LIVE coverage_gap_candidates and found the dispatch premise stale. Session C had applied migrations 216-219 (data_class instrument/data_feed split, labor/energy/fuel data-feed rows) — files NOT in my tree, C active within hours. The table has NO declined/parked concept and NO TRUCRS/Clean Truck Check rows; the 27 data_feed rows were KEPT (C's lane embodies the fix, did not commit the "declined despite Operations" error). Surfaced two decisions.
+
+OPERATOR RULING: (1) SCHEMA OWNERSHIP — Session C owns coverage_gap_candidates + is mid-flight; C lands the disposition{kept,declined,parked} + surface_test jsonb + five-surface CHECK in its OWN migration at its own cadence; Session A does NOT touch the table. (2) SEEDING — DORMANT: nothing was ever declined, so no backfill, no synthetic rows; demonstrability lives in the golden's FIXTURES, never in production data; the gate binds the next real decline.
+
+SESSION A EXECUTED (everything except schema):
+- DOCTRINE every-decline-names-the-five-contracts (doctrine-register.mjs) → invariant PI-5-every-decline-names-the-five-contracts (invariants.mjs, skill caros-ledge-platform-intent). enforcedBy the golden; live DB binding PENDING-C, named-not-silently-unwired.
+- GOLDEN scripts/verify/surface-contract-gate.golden.mjs (fixture-driven, 12 checks green): PART A proves the completeness gate red-then-green (declined/parked without the five-surface record FAILS; with it PASSES; kept/candidate exempt) — it is the SSOT for the JSON shape (CONTRACT_KEYS = regulations/operations/market_intel/research/community; each {verdict,reason} non-empty). PART B SCANS the migrations tree for C's migration and AUTO-ARMS the moment it lands (asserts surface_test + disposition{declined,parked} + a CHECK referencing all five keys); until then prints PENDING-C and passes.
+- SKILL SECTION caros-ledge-platform-intent "The Five-Surface Scope Test" — five contracts verbatim, the every-decline rule (PI-5 anchor), the inline test format, FOUR worked examples (a: data-feeds-vs-Operations; b: Market Intel discovery omitted; c: Research discovery omitted; d: Clean Truck Check declined whole → Operations=IN, the gate catching its own author's dispatch). Marker baseline 10→12.
+- STANDALONE SKILL .claude/skills/caros-ledge-surface-contracts/SKILL.md (operator's side; description triggers on any scope/coverage/source-inclusion/feature-inclusion question) — same content; delivered in full in chat for the operator to save.
+
+The five contracts: Regulations = compliance-action text brief; Operations = structured jurisdictional cost intelligence; Market Intel = comparative/numerical; Research = structured horizon assessment (distance/maturity/credibility/assumption-shift); Community = human-operated, outside machine intake.
+
+VERIFY: meta-gate PASS (96 invariants + 63 doctrines wired), golden 12/12, doctrine-contradiction exit 0. $0.
+
+PENDING-C (owed by Session C, not Session A): add disposition + surface_test + five-surface CHECK to coverage_gap_candidates in C's own migration, no backfill; POST THE MIGRATION NUMBER HERE when applied so Session A adds migration:NNN to PI-5.enforcedBy (the golden auto-arms regardless).
+
+NEXT (Session A): back to the review lane — GROUP ③ ~28 ambiguous per-item reads, then the smaller buckets, toward zero-archived (170).
+
+## 2026-07-17 — Session A (review lane bank 4): Group ③ RESTORE side — 8 genuine items recovered
+
+Group ③ = the content-bearing item-vs-source judgment reads (reclassified_to_source / source_not_item / institutional_source / off_domain, 55 rows triaged). This bank executes the RESTORE side only (reversible, lowest risk); the DELETE side (confirm-archive + tombstone of source-descriptions) is held for a dedicated bank with FULL content reads — label-is-not-proof forbids an irreversible delete on a 200-char snippet.
+
+RESTORED (8, all content-rich, jurisdiction-checked, restore-then-drain → quarantined + drain_worklist Lane A):
+- China's Environmental Code (regulation, 35 claims, 83KB; adopted 2026-03-12, in force 2026-08-15) — major reg, CN.
+- Florida DEP Notice of Proposed Rulemaking Ch 62-210 (regulation, 48 claims) — US.
+- North Carolina Transportation Climate Action EO 80/246 (directive, 39 claims) — US.
+- New York DEC Regulatory Framework (framework, 37 claims, 65KB) — US.
+- International Roadcheck 2026 (market_signal, 29 claims; CVSA enforcement blitz) — US.
+- Colorado DOT Environmental Programs (regional_data/Operations, 13 claims) — US (NOT bare "CO" → no Colombia collision).
+- Iowa DOT Freight Planning (regional_data/Operations, 17 claims) — US.
+- Louisiana State Freight Plan 2024 (regional_data/Operations, 10 claims) — US.
+JURISDICTION CHECK: all US or CN; none carry a bare collision-class token (CO/IN/ID/etc.). Clean.
+
+CONFIRM-ARCHIVE source-descriptions IDENTIFIED (delete-side, HELD for content-read bank — active source verified, tombstone-eligible under the Group ② rule, but each needs a full-brief read before an irreversible delete): institution/research-org/publisher/journal/database profiles — g12 ECLAC, t3 OECD Environment, OECD Environment Policy Area, c9 CDP Supply Chain, Centre for Sustainable Road Freight, g22 CCICED, g23 Australia CCA, g29 IEA PAMs Database, r1 MIT CTL, r3 Fraunhofer IML, r5 SEI, r6 TNO, r35 ICCT, r13 GreenBiz, r19 Supply Chain Digital, r21 Sustainability Magazine, r9 Transportation Research Part E (journal); source_not_item portals — Alternative Fuels Data Center, IEA Data Explorer Platform, Montana Legislature/MCA. (g12/t3 = the known tool-typed institutional data-debt.)
+
+HOLD (borderline — next-bank deep read): industry-body INITIATIVES that may carry a specific standard/position (restore candidates) — r24 ZEMBA, o10 ESPO/EcoPorts, g9 SPC/How2Recycle, l4 CER modal-shift (possible dup of the bank-3-tombstoned CER org-overview), o11 Lloyd's Register Decarb Hub, r17 Project Drawdown Explorer, a6 ICAO Carbon Calculator (tool/access-point). Possible DUPS of already-restored items (dedup before any action) — t2 WTO Env&Trade (vs bank-2 WTO), t4 UNCTAD SFT (vs bank-2 UNCTAD), World Bank Transport Strategy (vs bank-2 World Bank). Data oddities (claims but empty brief → needs regen, drain territory) — TCEQ Current Rules, ICAP Status Report 2026, Alternative Fuels DC. r2 Kuehne Climate Center = failed-brief refusal, no_src → register-source-first or HOLD. off_domain (4, correctly archived, NOT freight, never-delete accurate) — Matrix Hudson x2, MDEQ Water Advisories, RI Fish Passage.
+
+COUNTS: archived 170→162 (−8), quarantined 56→64 (+8), verified 208. Session archive total 419→162. All leases clean. $0.
+
+STATE RECONCILIATION (operator, this bank): Session B drained its queue — 2 promotions (CORSIA A42-22, EU MRV 2015-757 → verified-track; C's coverage_gap pending row can resolve, C-owned) + 21 reassignments to Session A's lane (drain_worklist, each with a recorded finding; several carry acquisition/conflation flags — READ the annotation before working). B self-activates on unclaimed rows.
+
+NEXT (Session A, my sequencing): (1) the 21 B-reassignments — read each drain_worklist finding first. (2) Group ③ DELETE-side content-read bank (the confirm-archive source-descriptions above). (3) HOLD deep-reads + dup-checks. (4) smaller buckets (5 source_not_item done-triaged, dup_instrument survivor-IDs, null-reason 33, review_valuable). Toward archived zero (162).
+
+## 2026-07-17 — Session A (B-reassignment bank 1 / drain bank 5): SW-1 jurisdiction collisions fixed + full 54-item B-queue disposition plan
+
+Session B handed off 54 items to lane A (drain_worklist, assigned_by=session-B) — more than the stated 21 (21 = B's latest batch; 54 = B's full handoff). All lane A, quarantined, each with a precise finding. Read all 54.
+
+EXECUTED THIS BANK — SW-1 jurisdiction-collision class (the cheapest moment = at handling), $0, guarded+snapshotted+read-back-confirmed (scripts/_reground/jurisdiction-collision-fix.mjs):
+- Canada Clean Fuel Regs 5b2c6655: iso ["US-CA"]→["CA"] (Canada, NOT California — NEW collision member).
+- Colombian Ministry of Transport 3e9c3ebe: iso ["US-CO"]→["CO"] (Colombia, not Colorado).
+- India National Logistics Policy beae0a7e: iso ["US-IN"]→["IN"] (India, not Indiana).
+- Japan Customs ad4cc6c6: ["AE","BD","JP"]→["JP"] (dropped UAE+Bangladesh pool-conflation).
+ROOT CAUSE found: jurisdictions (text) was CORRECT while jurisdiction_iso was WRONG → the derivation fn
+_derive_jurisdiction_iso_from_canonical maps country CA/IN → US-state US-CA/US-IN. SW-1 corpus-wide fix is a
+DERIVATION-FUNCTION migration; per-row fixes close the live instances. Sweep-ledger SW-1 updated (CA added).
+
+DISPOSITION PLAN for the remaining 50 (next banks; sequenced by $0-actionability):
+$0 RELABELS (item_type/format mis-set, unambiguous): IPCC Climate Reports (regulation→research_finding), UAE
+National Net Zero (regulation→framework), IPCC 2nd-Order Draft (keep research_finding, MONITORING pre-pub).
+Needs proper relabel path (item_type + format_type re-pin) — not a raw column edit.
+DEDUP (confirm survivor, merge-tombstone): UAE National Hydrogen Strategy-Transport vs UAE Hydrogen
+Implementation (same pool[0]); Japan GX League (possible dup) — confirm then merge.
+INTEGRITY FLAGS (title claim unsupported — do NOT ground, review for archive/re-ground): India NLP Carbon
+(claim + confidentiality), China National Carbon Market Extension (claim + roadblock), UAE Hydrogen
+Implementation (claim + roadblock). Highest-priority review class.
+PORTAL/HUB/OVERVIEW re-point-or-reclassify (portal-source defect, task #8 class): GHG Protocol, Green Building
+Standards, IMO Air Pollution overview-hub, Oregon DEQ Central Hub, Brazil Logística Reversa, Nashville programs
+hub, Washington WAC code-index, SBTi org-homepage, IDB topic-page, UK SECR, UK Transport Decarb, IMO Net-Zero
+(press-briefing capture). Re-point needs acquisition (spend-gated) OR reclassify-to-source.
+ACQUISITION-BLOCKED HOLDS (roadblock/paywall/zero-staged-primary — spend-gated, RD-6 deferral): ISO 14083
+(paywalled), Japan GX (DNS/403 roadblock), ITF 2019 (roadblock+off-vertical), the ZERO-STAGED-PRIMARY set
+(Australia/Brazil/China Regional Ops Profiles, Blue Visby, ESMA MiCA, World Bank Carbon Pricing Dashboard —
+my bank-2 restores, pre-capture-standard). PAID grounding dead ($75 ceiling) → free-acquisition path or HELD.
+FRAMEWORK/PLANNING-DOC class (genuine, no instrument number — accept w/ GAP): Georgia Multimodal, BR National
+Logistics Plan, TxDOT, Wisconsin, ASEAN (currency/succession judgment), Singapore Green Plan 2030.
+"PROMOTED by session-B" (verify actual provenance_status — B's grounding wins): GLEC v3, ISSB IFRS S2, LA EWEO,
+Lei 12.305/2010, Zero-Emission World Heritage, CORSIA, EU MRV. If verified, close the drain_worklist row.
+SCOPE/STATUS JUDGMENT: UN SDGs 9&13 (scope), NY Truck&Motor Carrier (scope mismatch), Slovenia (status),
+Japanese MLIT (placeholder title), Japan GX Freight (wrong class), Japan Top Runner (repointed, kept), EEXI/CII
+(priority, gap-table). Colombia/CEC also carry non-jurisdiction defects (CEC wrong primary) beyond the iso fix.
+
+COUNTS: archived 162 / verified 208 / quarantined 64 unchanged (jurisdiction fixes don't move archive/prov).
+All leases clean. $0.
+
+NEXT: (1) the INTEGRITY-FLAG 3 (highest priority — unsupported title claims). (2) verify the "PROMOTED" set +
+close resolved drain_worklist rows. (3) $0 relabels via the proper relabel path. (4) dedup the UAE hydrogen pair.
+(5) Group ③ DELETE-side content-read bank (archived source-descriptions). Acquisition-blocked holds await the
+free-acquisition path / operator spend posture.
+
+## 2026-07-17 — Session A (drain bank 6): the 3 integrity flags (unsupported title claims)
+
+B flagged 3 items "TITLE CLAIM NOT SUPPORTED." Verified each; the integrity rule is absolute.
+
+1. India's National Logistics Policy Carbon Intensity Standards (beae0a7e) → ARCHIVED (unsupported_title_claim).
+   FABRICATED PREMISE, web-corroborated: the real NLP 2022 is a cost-reduction policy (logistics cost to 8-9% of
+   GDP, ULIP/Gatishakti) with sustainability TOOLS (a Freight GHG *calculator*, Rail Green Points) — it has NO
+   "carbon intensity standards" instrument. Carbon-intensity targets are India's economy-wide NDC (45% by 2030);
+   vehicle limits are Bharat Stage VI (separate MoRTH). source_url 404. The item conflated three unrelated things
+   into a non-existent instrument. Genuinely ungroundable → honest archive (research-or-erase "erase"). The real
+   India carbon instrument (CCTS) is already a separate coverage_gap candidate (rank 11).
+   + CONFIDENTIAL-DOC COMPLIANCE FLAG FILED (integrity_flags 963d4450, data_integrity): a CONFIDENTIAL NCAER report
+   ("Logistics Cost in India", cover page prohibits third-party disclosure) was improperly staged into this item's
+   grounding pool by B's finding; it PERSISTS in agent_run_searches/raw_fetches after archive. Needs an operator
+   decision on purging + a fetch-time guard (class fix). Cannot self-resolve → the flag is the channel.
+2. China's National Carbon Market Extension to Transportation Sector (3e756291) → HOLD (recorded).
+   Real policy (Aug-2025 Green Low-Carbon Transformation Opinions) but China's carbon market covers
+   power/steel/cement/aluminum ONLY — transport is NOT in scope; the "Extension to Transportation" title is
+   PREMATURE/unsupported. Primary mee.gov.cn roadblocked (timeout). Not fabricated (real underlying policy) → HOLD,
+   re-scope to the honest policy (transport-not-yet-covered, MONITORING) pending mee.gov.cn re-acquisition.
+3. UAE National Hydrogen Strategy Implementation Decree (cfcf9e4c) → HOLD + DEDUP-flagged (recorded).
+   The UAE hydrogen strategy is real but VOLUNTARY — there is NO "implementation decree" (pool = law-firm briefings,
+   zero decree/cabinet-law number). "Decree" title unsupported (same class as UAE net-zero, bank 5). Primary
+   u.ae/uae.gov.ae roadblocked. Also a DUP of "UAE National Hydrogen Strategy - Transport." → HOLD; on re-acquisition
+   re-title to "strategy" + dedup the pair.
+
+TOOL: scripts/_reground/archive-item.mjs (honest-archive / research-or-erase "erase" executor, guarded+leased+
+snapshotted, removes from drain_worklist). Reusable for the erase disposition.
+
+COUNTS: archived 162→163 (+1 India erase), quarantined 64→63 (−1), verified 208. Session archive net 419→163.
+All leases clean. $0 (one free web-search corroboration). integrity_flags: +1 open (963d4450).
+
+NEXT: verify the "PROMOTED-by-B" set (7: GLEC v3, ISSB IFRS S2, LA EWEO, Lei 12.305/2010, Zero-Emission World
+Heritage, CORSIA, EU MRV) + close resolved drain_worklist rows; then $0 relabels via the proper relabel path;
+dedup the UAE-hydrogen pair; Group ③ DELETE-side content-read bank. China/UAE holds await re-acquisition.
+
+## 2026-07-18 — Session A restart: TWO-FILE session-log correction + NCAER ruling closed
+
+**CORRECTION (own error, surfaced immediately, not buried):** on restart, reconciliation was run against
+`fsi-app/docs/ops/session-log.md` — a SEPARATE, STALE fork of this file that stopped receiving real entries
+after commit `42ac8969` (2026-07-17 compact-prep-handoff) while every subsequent bank (banks 1-6 of the
+review lane, SW-1, the scope-gate dispatch, this file's own entries) kept landing HERE, at the canonical
+root path (per `CLAUDE.md` standing rule 6 + the self-annealing protocol, both of which say `docs/ops/
+session-log.md` meaning repo-root `docs/`, not `fsi-app/docs/`). This was misdiagnosed as an 8-commit
+divergence-from-record and "backfilled" into the WRONG file (commits `eb468f03`, `88886d0b` on this branch)
+before the mistake was caught. That backfill content is redundant now (this file already carries the real,
+richer detail for every one of those banks) but is harmless where it sits — the fork is deprecated in place
+with a pointer to this file rather than deleted, so no history is destroyed. Root cause: the `fsi-app/docs/`
+tree duplicates several root `docs/` categories (ops/, audits/, compliance/) without doctrine distinguishing
+which is canonical; this file and `CLAUDE.md` are unambiguous, `fsi-app/docs/ops/session-log.md` is not
+referenced as canonical anywhere. Flagging for an operator decision on consolidating or deleting the
+`fsi-app/docs/` duplicate tree at a later bank — not done here, out of scope for a reconciliation bank.
+
+**PROCESS FIX (operator ruling 2026-07-18):** two INDEPENDENT sessions (this restart, and Session B's
+2026-07-17 containment bank) each wrote real work to the stale fork without noticing. Two independent misses
+means the fix is MECHANICAL, not advisory — "remember which file" has already failed twice. The deprecation
+pointer added to the fork's header covers the near term (a session that opens and reads it gets redirected);
+a cheap mechanical check (a discipline/pre-commit line flagging any commit touching `fsi-app/docs/ops/
+session-log.md`) is the real close and is logged as SW-2 on the sweep ledger (`docs/ops/sweep-ledger.md`),
+pending — not built this bank per operator instruction, so it stays visible rather than silently deferred.
+
+**NCAER confidentiality incident (`integrity_flags` 963d4450, `beae0a7e`) — RULED AND CLOSED.** Session B's
+containment (2026-07-17, commit `063d6b0b` on branch `-b`, also landed against the fsi-app fork — same
+mistake, independently made) traced the pool row, found the original pipeline fetch was CDN-blocked and
+captured nothing (a 269ch Akamai Access-Denied stub, not document content), confirmed via investigative
+re-fetch that the host serves the document publicly (no auth) but deleted the local copy before writing the
+record, and redacted the `agent_run_searches` row to a do-not-refetch containment marker (guarded,
+non-destructive). Full record: `fsi-app/docs/compliance/confidentiality-incident-2026-07-17-ncaer.md`.
+
+Session A independently re-verified before relying on it (operator instruction: complete the trace, don't
+just read it): corpus-wide query of `section_claim_provenance` by `search_result_id` and by the registered
+`dpiit.gov.in` `source_id` — 0 rows either way; corpus-wide scan of `agent_run_searches` for the document's
+URL/host — the one row already found is the ONLY match anywhere. **Grounding-exposure finding, confirmed
+independently twice: zero claims ever grounded from this document, zero customer-surface exposure, at any
+point.** No counsel-notification trigger.
+
+Actions completed: evidentiary-metadata gap (no content hash — the only real copy was deleted before this
+requirement existed; re-fetching to backfill it would recreate the exposure) disclosed honestly rather than
+filled. RD-46 doctrine addendum landed (`remediation-discipline` SKILL.md): confidentiality-ruled purges are
+a sanctioned, per-instance, operator-ruled exception to append-only — registered as invariant RD-49 (exempt,
+process-class, same footing as RD-8), meta-gate re-baselined 39→40, passing. Hardening ledger entry added
+(`docs/PROGRAM-BOARD.md`): confidentiality-marking capture-gate detector, QUEUED, this incident as origin
+case. `integrity_flags` 963d4450 resolved via `guardedUpdate` under a mutation lease on `beae0a7e` (snapshot
+`2026-07-18T19-18-50-466Z_integrity_flags.jsonl`, reversible). All committed to `corpus-integrity/cc-grounding-
+executor` (`88886d0b`), pushed, CI green.
+
+RECONCILIATION (against the real record, this file): branch up to date with origin at `e827af6b` before this
+bank. `mutation_leases` empty — no stale leases, nothing to release. `drain_worklist` 64 rows, all lane A (0
+lane B, consistent with the "Lane B ~empty" finding). Live corpus at bank start: verified 208, quarantined 63,
+archived 163 (matches this file's own last-recorded counts exactly, once the confusion above is set aside).
+
+NEXT (operator's ordered queue): review-lane Group ③ DELETE-side content-read bank (archived source-
+descriptions, per line 579 above), the 21 B-reassignments (drain bank 5's 54-item B-queue), the scope-gate
+unit at a bank break, eu_clean_trucking full grounding pass, the SW-1 corpus-wide jurisdiction sweep.
+Going forward: this file only, every bank, log entry inside the bank commit. Lease state (session A): clean.
+
+## 2026-07-18 — Session A (review-lane bank 5): Group ③ DELETE-side, all 20 read, per-item judgment
+
+Full content read (not title/excerpt) on all 20 confirm-archive candidates from bank 4's list. Mechanical
+content floor (brief present, active source registered) is necessary but not sufficient per content-is-not-
+nature — the actual call is whether the brief carries a specific finding/standard/program with freight
+decision value, or is an org/publisher/portal/database profile. Claim count alone misleads in both directions
+(OECD Environment Policy Area had 24 "claims" that were all taxonomy-menu facts about a topic-hub page — still
+CONFIRM-ARCHIVE; several genuine RESTORE candidates below had 0 claims because grounding never ran on them).
+
+**CONFIRM-ARCHIVE, tombstoned + deleted (14, all verified against an active source row first):**
+- reclassified_to_source (10): OECD Environment Policy Area (c3004aa0, topic-hub taxonomy, zero findings),
+  Centre for Sustainable Road Freight (685f0d28, brief's own text: "no quantified findings...homepage does not
+  contain these numbers"), China CCICED (935680f5, source content dated 2009-2015, no current output), Australia
+  Climate Change Authority (7566f099, real founding Act but zero direct obligations, every line "Legal
+  Confirmation Required"/research gap), IEA Policies & Measures (6d2ec398, a database-of-other-policies catalog
+  page), Stockholm Environment Institute (abd83595, brief's own scope note: "functions as an institutional
+  intelligence profile...rather than a summary of specific empirical findings"), ICCT (e948b3a9, brief's own
+  scope note explicitly defers specific findings to separate tracked items), Supply Chain Digital (b26de8fc,
+  homepage headline index, no depth), Sustainability Magazine (3fb2905b, homepage topic index, no depth),
+  Transportation Research Part E (0d59991d, a journal — brief's own text: "documents the journal as a source
+  vehicle...rather than a specific research finding").
+- source_not_item (2): IEA Data and Statistics Explorer Platform (d8305603, data-tool catalog description),
+  Montana Legislature/MCA (60ade636, the entire state code, portal to everything not one instrument).
+- institutional_source (2): ECLAC (72be8dd3, a thin 2016 bulletin summary, no reproducible findings — full
+  Spanish-only text never read), OECD Environment (e360e82f, pure mission/mandate profile, zero findings).
+
+**RESTORE (3, genuine specific finding/program with freight decision value, NOT an org profile despite the
+reclassified_to_source label):**
+- CDP Supply Chain (d30bc25d) → quarantined + drain_worklist Lane A. Real program: membership tiers, 2026
+  disclosure-cycle deadline, ACTION REQUIRED section with owners/timeframes. Genuinely actionable, not "CDP
+  exists."
+- MIT Center for Transportation & Logistics (c2e45859) → quarantined + drain_worklist Lane A. Named 2025 State
+  of Supply Chain Sustainability Report with quantified findings (Scope 3 >75% of footprints, biofuels cited as
+  most practical near-term freight lever) and a specific, quotable, actionable finding (consolidated delivery
+  vs. expedited-shipping emissions).
+- Fraunhofer IML (c1cab7e2) → recomputed straight to VERIFIED (25 pre-existing grounded claims already cleared
+  the gate). Named operational tool (REff Tool®, ISO 14083-aligned) and a specific PPWR volume-utilization
+  finding (50% minimum requirement).
+
+**NOT dispositioned this bank — flagged, not forced (label-is-not-proof cuts both ways; a genuinely ambiguous
+call stays in the review lane rather than getting rushed):**
+- TNO (8e5a62ba) — the brief's real content is the EU HDV CO2 regulation (Regulation (EU) 2019/1242 as amended),
+  narrated through a TNO research page rather than TNO's own findings. Likely a DUPLICATE of the already-tracked
+  eu_clean_trucking / EU CO2 Trucks item (queue item 4, this same session). Needs a dedup check against that item
+  BEFORE any RESTORE/CONFIRM call — restoring it as a standalone "TNO" item would risk a second live copy of the
+  same regulation (canonical-instrument-key duplicate class, EP-11).
+- GreenBiz Supply Chain (5faf8f8c) — the brief's real content (SEC Climate Disclosure Rule retreat, California
+  SB 253/261, CSRD Omnibus thresholds) is genuinely substantive and actionable, but is sourced from EcoVadis and
+  Trellis, NOT from greenbiz.com (whose homepage yielded only navigation/cookie content — confirmed in the
+  brief's own generation notes). A straight RESTORE would keep a misleading title/source_url. Needs a repoint +
+  retitle before restore, not a same-day call.
+
+**Excluded from Group ③, routed to drain/regen instead (data anomaly, not an archive judgment):**
+- Alternative Fuels Data Center (4a108d70) — bank 4 listed this under BOTH the confirm-archive candidates and
+  the separate "data oddity" HOLD list; the DB resolves the contradiction: `full_brief` is empty but 33 REAL
+  grounded FACT claims exist (IRC §45Z/§45W/§30C federal alternative-fuel tax-credit provisions, real Federal
+  Register and Public Law citations). This is a genuine regeneration gap (claims survived a prior grounding pass,
+  the brief write failed or was never run), not a portal to archive. Left `is_archived=true` for now — routes to
+  the drain queue for a brief regen from its existing claim ledger, not this bank's disposition.
+
+COUNTS: archived 163→146 (−17: 14 deleted + 3 restored out), verified 208→209 (+1, Fraunhofer IML), quarantined
+63→65 (+2, CDP Supply Chain + MIT CTL). Group ③ DELETE-side closed: 20/20 read, 14 confirmed, 3 restored, 2
+flagged for a follow-up judgment call, 1 routed to regen. All leases clean, $0 (no fetches — Group ③ content
+already resided in stored full_brief text).
+
+NEXT: TNO dedup-check vs eu_clean_trucking; GreenBiz repoint+retitle; Alternative Fuels Data Center brief regen
+from its existing claims. Then the operator's ordered queue continues: the 21 B-reassignments, the scope-gate
+unit at a bank break, eu_clean_trucking full grounding pass, the SW-1 corpus-wide jurisdiction sweep. Lease
+state (session A): clean.
+
+## 2026-07-18 — Session A (review-lane bank 6): the three Group ③ follow-ups closed
+
+- **TNO (8e5a62ba) — MERGED.** Confirmed genuine duplicate: TNO's own grounded claim "[primary_deadline] ...
+  emissions to be reduced by 45% from 2019 levels by 2030 and by as much as 90% by 2040" cites the SAME
+  regulation as `eu_clean_trucking_2024_1610` (id `8c186db2`, canonical_instrument_key `32024R1610`) — the real
+  enacted EUR-Lex text already staged there confirms the identical 2030/2040 targets with real article
+  citations, where TNO's claims were secondary paraphrase from tno.nl/ALICE with several unresolved GAP claims
+  the real primary directly answers. Survivor = `eu_clean_trucking_2024_1610` (correct primary already staged,
+  per the D1 pattern). `tombstone-delete.mjs --disposition=merged_into --merged-into=8c186db2`.
+- **GreenBiz (5faf8f8c) — REPOINTED then RESTORED, straight to verified.** Its own 8 grounded FACT claims
+  already cited EcoVadis (source_id `4a956756`, active, tier 6) via the mint chokepoint's span-resolution — zero
+  FACT claims ever cited greenbiz.com, whose homepage yielded only navigation content (confirmed in the brief's
+  own generation notes). Claim-level attribution was already correct; the item-level title/source_url were not.
+  Repointed title -> "Fragmented US Corporate Climate Disclosure Landscape: SEC Retreat and State-Level
+  Response", source_url/source_id -> the EcoVadis SEC Climate Disclosure Rule page (guarded update, cited).
+  Restored: recomputed straight to verified (29 claims, including the 8 real EcoVadis FACTs, now correctly
+  attributed). Item-vs-source verdict fell out naturally once repointed, as expected.
+- **Alternative Fuels Data Center (4a108d70) — RESTORED as an ordinary quarantined item.** `restore-to-live.mjs`
+  correctly treated it as content-bearing (33 real claims survive the empty-brief check's AND condition) ->
+  quarantined + drain_worklist Lane A. Annotated the drain_worklist row's `notes` with the regen-gap finding
+  (empty full_brief, 33 real IRC 45Z/45W/30C tax-credit claims survive from a prior grounding pass; drain action
+  is regenerate-from-existing-ledger, not re-fetch/re-ground).
+
+COUNTS: archived 146→143 (−3), verified 209→210 (+1, GreenBiz/EcoVadis), quarantined 65→66 (+1, AFDC). All three
+follow-ups closed clean, $0, no fetches (all resolved from already-stored pool/claim data — retrieval before
+generation held). Group ③ fully closed end to end.
+
+NEXT: the 21 B-reassignments (drain bank 5's 54-item handoff) at the same per-item rigor — read each
+drain_worklist finding annotation first; the fabrication flags (China carbon-market, and any other
+title-unsupported case in the 21) go first per operator instruction. Lease state (session A): clean.
+
+## 2026-07-18 — Session D (read-only forensics: what happened to discovery/scanning)
+
+Worktree `.worktrees/wt-session-d`, branch `corpus-integrity/cc-grounding-executor-d`. Pure investigation
+per operator dispatch: was the system DESIGNED to discover new regulatory instruments (scan-then-analyze),
+was that BUILT, and what happened to it. Read-only throughout: zero corpus writes, zero drain_worklist
+touches, zero leases. Method: full read of this file + CLAUDE.md + PROGRAM-BOARD.md, `git log --all`
+keyword sweeps (discover/scan/monitor/feed/intake/horizon/cron/rss/registry/seek-more) across the whole
+repo history (1618+ commits, not exhaustively read commit-by-commit), file-history traces (`git log --
+follow`) on the specific files those sweeps surfaced, and direct reads of the founding commit, ADR-001,
+ADR-012, the acquisition-ladder post-mortem, and current-tree code for caller verification.
+
+DB-ACCESS LIMITATION (disclosed up front): the Supabase MCP `execute_sql`/`list_tables` tools in this
+session are gated by a project pre-tool-use hook requiring two skills to be loaded first
+(`caros-ledge-platform-intent`, `remediation-discipline`) — these are project-local skills
+(`fsi-app/.claude/skills/`) not present in this agent's available-skill listing, so they could not be
+loaded and the gate could not be satisfied. No workaround was attempted (consistent with the read-only,
+never-mutate mandate). Every DB-state claim below is therefore drawn from migration files, code, and
+dated session-log/PROGRAM-BOARD text, NOT a live query — flagged inline where it matters.
+
+**Section 1 — what was designed (verbatim, dated, hashed).**
+
+Founding commit `a8cd8d1a` (2026-04-04, "Caro's Ledge: Major renovation — source monitoring, multi-tenant,
+auth, admin"), `fsi-app/.claude/CLAUDE.md` as of that commit: *"Not a regulation tracker — a source
+monitoring system covering 7 intelligence domains."* And: *"Layer 1: Sources — Public portals where
+legislation lives... Layer 2: Intelligence Items — Specific regulations/findings that live INSIDE
+sources... The system monitors sources. Sources produce intelligence items. Manual entry is not the
+model."* The same commit adds `fsi-app/src/app/api/worker/check-sources/route.ts`, its own docstring:
+*"Monitoring queue worker. Checks sources that are due for scanning. Called by an external cron job."*
+
+Commit `969e5c1b` (2026-04-05, "Admin regulatory scan + cron schedule + notification API"): *"POST
+/api/admin/scan — Claude-powered regulatory discovery. Searches for new regulations by topic/jurisdiction,
+stages for review"* + *"Vercel cron: Mon/Wed/Fri 07:00 UTC source checks."* This is the earliest evidence
+of an actual content-discovery mechanism (as opposed to check-sources' accessibility ping — see section 2).
+
+ADR-012 (`docs/decisions/ADR-012-intake-cadence-and-launch-exit-test.md`, 2026-07-11, operator ruling)
+inventories what existed at that date as PRIOR ART, not proposal: *"POST /api/admin/scan (operator-fired
+web_search discovery → dedup → portal-vs-reg classification → stages to staged_updates, never
+auto-published; admin-gated, 4h cooldown)"*, *"extra discovery — POST /api/admin/sources/discover"*, and
+*"the scheduled worker — POST /api/worker/check-sources gates on scrapeWindowOpen() + isGloballyPaused()
+(the autonomous/scheduled path that MUST keep obeying the hold)."* ADR-012 also states the model plainly:
+*"The scrape/intake operating model is operator-fired manual runs, with saved/auto cadence as a later
+config switch. This is the operating design, not a temporary safety posture."* — i.e. by 2026-07-11 the
+operator had already reframed autonomous discovery as a future config flip on top of built machinery, not
+as something still to be designed.
+
+**Section 2 — what was actually built, and its wiring state at peak.**
+
+check-sources worker (`a8cd8d1a`, 2026-04-04; cron mechanism replaced `ea034695`/`1de29f13`, 2026-04-27,
+"replace broken Vercel cron with GitHub Action scheduled check" — the original Vercel cron sent a GET to a
+POST-only auth-required route and never actually fired, per that commit's own description). Reading the
+route as originally built: it is an HTTP HEAD accessibility probe per due source (10/run), updates
+`last_checked`/`consecutive_accessible`, and writes a `monitoring_queue` row with `change_detected`
+HARDCODED to `false`. At peak it was wired-with-caller (GitHub Actions hourly, confirmed by the workflow
+file), but it never itself discovered new regulatory content — it only confirmed a known source URL was
+still reachable.
+
+Real content-change detection was added later: PR #252 (`cd9b63df` + `dd349b75`, 2026-07-07/08,
+"feat(monitoring): real change detection in check-sources — dormant, zero extra units (S1-10)") — fingerprints
+the same render the accessibility check already pays for. Landed DORMANT per its own commit message and the
+2026-07-08 session-log entry: *"Both stay behind worker-auth + global pause + scrape-window gates; nothing
+runs until the operator flips cadence."* Peak wiring state: built, called by the (then-scheduled) check-sources
+worker, but gated behind a switch never turned on — built-unwired in the sense that matters (no content ever
+flowed through it into a live discovery decision).
+
+Portal deep-link discovery (`55d57450`, PR #253 branch `feat/p25-portal-crawl`, 2026-07-07/08,
+"feat(discovery): portal deep-link candidates — dormant, zero extra units (S2-08)") — migration 162
+`portal_link_candidates`, fed by `portal-links.mjs` reading same-host sub-links from an already-rendered
+page. Same fate: landed dormant behind the same gates, per the same 2026-07-08 log entry. This is the closest
+built approximation of "find new instruments inside a known portal," and it has never run against live
+traffic per every subsequent session-log/PROGRAM-BOARD mention through 2026-07-18.
+
+`/api/admin/scan` (Claude Sonnet + `web_search`, stages to `staged_updates`) — confirmed STILL WIRED in the
+current tree: `fsi-app/src/components/admin/AdminDashboard.tsx:236` calls `fetch("/api/admin/scan", ...)`
+directly (grep-confirmed, not inferred from a filename). This is the one genuine "scan for new regulations"
+capability with a live UI caller anywhere in the codebase, at any point in its history. It has always been
+human-button-triggered (never on a schedule of its own) and is gated behind `pausedResponse`/
+`isGloballyPaused()` — the same global-pause gate the frozen crons obey.
+
+`/api/admin/sources/discover` + `discoverForJurisdiction` (`fsi-app/src/lib/sources/discovery.ts`) discovers
+new SOURCES (portals) for a jurisdiction via Sonnet + `web_search`, not new regulations inside sources
+already held. Admin-triggered, same pause gate. A separate capability from `/api/admin/scan`; do not conflate.
+
+`seek-more.mjs` (`0dc78991`/`745d7eb3`, PR #202, 2026-07-07, "candidate generation + exhaustion record on the
+RD-14 ladder seam") — generates candidate PRIMARY-DOCUMENT URLs for an item ALREADY IN THE CORPUS (identifier
+variants: bare-number→CELEX, endpoint ladders, etc.), i.e. it is item-level acquisition machinery, not new-
+instrument discovery. Built with a full orchestrator (`runSeekMore`) and, per the 2026-07-14 post-mortem
+(`docs/audits/acquisition-ladder-post-mortem-2026-07-14.md`, PART 2, quoted verbatim): *"It had ZERO live
+callers — dormant on an unactioned wake-list, its own test the only caller — while the live ladder
+(fetchPrimaryDeep) ran an inferior title-only webSearchAlternatives shadow."* This is the campaign's named
+built-with-zero-callers precedent. It is adjacent to discovery but answers a different question ("where does
+this already-known item's text actually live") than the operator's question ("what regulations exist that we
+don't have an item for yet").
+
+`run-intake-cycle.ts` + `/api/admin/run-intake` (built under Disposition Unit 0c-2, first referenced
+`8c4a8b2c`, 2026-07-11) — the machine-gated mint→ground→validate cycle (RD-20, no-human-finish-of-intake).
+Read directly: it takes a `candidates: IntakeCandidate[]` array (title/source_url/item_type, max 5) supplied
+BY THE CALLER in the POST body — it does not itself discover anything. Grep across
+`fsi-app/src/components` for any caller of `/api/admin/run-intake` or `runIntakeCycle` found NONE — no UI
+button exists (ADR-012 promised "an admin surface control + a script path"; the API route was built, neither
+the admin control nor a script path was found in the current tree, `fsi-app/scripts/` searched, none found).
+Peak wiring state: built-unwired, callable only by hand-crafted HTTP request.
+
+`rss-fetch.ts` — one of four canonical fetch transports (`access_method="rss"`). Its own header comment
+claims it is "used by the access_method routing switch in /api/agent/run," but a targeted search of
+`fsi-app/src/workflows/generate-brief.ts` (the canonical grounding workflow) found no `access_method`
+dispatch and no reference to rss-fetch at all; only one unrelated helper it exports is imported elsewhere
+(`browserless.ts`). Its own docstring states plainly the deeper gap: *"This is a feed-pull, not a per-item
+walk... Per-item walking happens in a follow-up wave when individual feed entries become first-class
+intelligence_items"* — i.e. true feed-item-level discovery was named and explicitly deferred, and (on this
+non-exhaustive search) never built. Caller status could not be fully confirmed exhaustive across every
+dynamic dispatch site; stated as found, not as proven absent everywhere.
+
+**Section 3 — state today (2026-07-18): unwired / frozen, not deleted.**
+
+`.github/workflows/source-monitoring.yml` and `spot-check-monthly.yml`, read directly from the current
+tree: both have their `schedule:` block commented out, `workflow_dispatch` (manual) only. The comment block
+in source-monitoring.yml, unchanged since it was written: *"ACQUISITION FREEZE (operator ruling 2026-07-13,
+snapshot-first rebuild)... The hourly schedule is disabled; the job remains runnable on demand via
+workflow_dispatch."* The commit that did this: `11c008c2` (2026-07-12/13, "ci: freeze unattended acquisition
+crons (source-monitoring hourly, spot-check monthly)"), part of PR #295 (`19c6b333`, "Snapshot-first rebuild
+PR-1... crons frozen"). This is the single, dated, named event that took the one truly-scheduled
+discovery-adjacent job off autonomous cadence — and per this file's own repeated later entries (2026-07-13
+through 2026-07-18: "Cadence stays OFF", "GROUNDING_ACQUIRE_ENABLED OFF"), it has not been re-enabled since.
+
+The dormant P2-5/P2-6 units (portal-crawl, change-detection) remain landed-but-never-activated in every
+subsequent mention through the end of this file (last direct mention: 2026-07-08 session-log entry; no
+later entry records a flip). `run-intake-cycle`/`/api/admin/run-intake`: the 2026-07-14 session-log entry
+states directly, *"(c) 0 manual-intake-run agent_runs — the machine-gated cutover has never executed"*; no
+entry in the remaining ~400 lines of this file through 2026-07-18 records a first invocation.
+`seek-more.mjs`'s orchestrator (`runSeekMore`) was formally retired as dead code on `58930fea` (2026-07-14,
+"Guard: re-grounds-never-destroy... no-shadow reconcile" — *"runSeekMore retired (zero live callers; the
+one home is fetchPrimaryWithFallback)"*); its useful derivation logic (`generateCandidates`) survives, folded
+into the live per-item acquisition ladder the same day (`8bbd3437`/`8d536812`).
+
+`/api/admin/scan` is the one exception to "everything is frozen": it remains code-wired to a live admin-UI
+button today. Whether clicking it currently executes (i.e. whether `isGloballyPaused()` currently reads
+false) was NOT independently verified by a live query in this investigation (see the DB-access limitation
+above) — it is inferred only from the repeated dated doctrine statements that cadence and the acquire lock
+both stay OFF as standing constraints through the most recent entries in this file. This is stated as
+inferred, not confirmed.
+
+No table, migration, or code path named "registry," "feed," or literal "horizon-scan intake" as a running
+mechanism was found. `monitoring_queue` (migration in the founding commit, extended `124_monitoring_queue_
+reconciled_at.sql`) is the closest DB structure resembling a source-watch registry, and it is fed exclusively
+by check-sources' accessibility ping — never by a content/instrument discovery pass. No DROP TABLE in
+migration history targets a discovery-shaped table; the one DROP found adjacent to "ingestion" —
+`184_drop_ingestion_pair.sql` (author-only, NOT applied per its own header) — targets `ingestion_control_log`/
+`ingestion_state`, a per-source auto-run pause/enable audit log from the 2026-05 wave-1 cold-start, not a
+discovery/candidate table; noted for completeness, not the operator's mechanism.
+
+**Section 4 — the gap narrative, dated.**
+
+2026-04-04/05: founding design is explicitly source-monitoring-first — check-sources worker + monitoring_queue
++ admin/scan (Claude web_search discovery) + a Vercel cron, built in the same two-day burst as the rest of the
+initial architecture.
+2026-04-27: the founding Vercel cron is discovered to have never actually fired (GET to a POST-only
+auth-required route) and is replaced with a GitHub Actions schedule — an early reliability gap, independent of
+any later deliberate freeze.
+2026-05: wave 1a/1b ingestion foundation (per-source kill switches, pending_first_fetch queue) — item-pipeline
+plumbing, not new-instrument discovery.
+2026-07-07: seek-more.mjs built (PR #202) — item-level acquisition-URL discovery, zero callers from day one.
+2026-07-07/08: P2-5 (portal-crawl) and P2-6 (change-detection) land DORMANT, explicitly gated behind a cadence
+flip that is never turned.
+2026-07-11: ADR-012 catalogs the built discovery/monitoring surface as prior art and reframes intake as
+"operator-fired manual, auto-cadence a later config switch" — formalizing manual-only as the interim (not
+final) operating model, and commissioning the machine-gated run-intake-cycle.
+2026-07-12/13: acquisition freeze (`11c008c2`) — the one live scheduled job (check-sources) taken off cadence
+as part of the snapshot-first spend-safety rebuild (PR #295).
+2026-07-14: CRITICAL DISPATCH (#333) finds seek-more dormant, wires its derivation logic into the live ladder,
+retires the dead orchestrator; separately, the standing $0 batch reports "0 manual-intake-run agent_runs" —
+the machine-gated cutover has never executed, structurally blocked on Unit 0c.
+2026-07-13 through 2026-07-18: every dated entry in this file reaffirms cadence OFF / GROUNDING_ACQUIRE_ENABLED
+OFF as standing constraints. No entry records the hourly/monthly crons resuming, P2-5/P2-6 activating, or a
+first machine-gated intake run occurring.
+2026-07-17/18: Session C runs a bounded, one-time, operator/agent-directed research census ("coverage
+discovery lane," 9 hand-labeled classes, migrations 214-237), explicitly headed in its own migration comment
+as *"a PRICING INPUT for the operator's coverage-floor number... NOT a worklist. Candidates enter the corpus
+only through a future priced wave via the intake lane."* Declared "discovery arc complete" `d75abda3`
+(2026-07-18).
+
+**Section 5 — read on Session C's coverage-discovery lane vs the original design.**
+
+Session C's lane diverges from the founding design; it does not restore or duplicate it. The 2026-04-04
+design was an AUTOMATED, RECURRING mechanism (crons + worker + monitoring_queue, later change-detection +
+portal-crawl) meant to find new regulations on an ongoing schedule with minimal human involvement beyond
+review. Session C's lane is the structural opposite: a bounded, single-pass, human/operator-scoped research
+exercise, delivered as one-off SQL INSERT migrations per "bank" (its own commit cadence — bank 1/9 through
+9/9, then Gemini second-pass, then final rulings), cross-checked against the live corpus by evidence class
+(HAVE / HAVE_QUARANTINED / AMBIGUOUS_ARCHIVED / MISSING), and explicitly priced as an input to a future
+operator pricing decision rather than a running pipeline. None of the Session-C commits inspected (migration
+214 through 237, plus the surrounding "Session C:" commits) touch source-monitoring.yml, check-sources,
+portal-links.mjs, content-change.mjs, seek-more.mjs, or run-intake-cycle.ts — this was checked by reading
+each Session-C commit's file-stat list, not exhaustively by diff content. I found no branch, commit, or
+session-log entry literally named "crawl-dispatch" anywhere in `git log --all`; the closest match to what the
+dispatch calls "Session C's current crawl-dispatch work" is this coverage-discovery lane, and by its own
+final commit it is complete/idling, not an ongoing crawl. Newly identified instruments are explicitly routed
+back into the same item-first machinery (mint→ground→validate, gated on an operator-priced line) rather than
+into any resurrected discovery/monitoring layer — so even the campaign's most recent "discovery" work
+reinforces the item-first shape the operator is asking about, rather than reversing it.
+
+**What remains genuinely unknown (not filled with inference):** live `system_state`/`agent_runs`/
+`monitoring_queue` row contents (DB query blocked, see above — all claims here are doc/code-sourced, not
+query-verified); whether `/api/admin/scan` is reachable today by an admin click (inferred from doctrine text
+only); whether any additional retired discovery-adjacent code exists outside the keyword sweep used
+(discover/scan/monitor/feed/intake/horizon/cron/rss/registry/seek-more) across 1618+ commits not read
+individually; and whether Session C's per-class research (banks 1-9) used any semi-automated batch tooling
+beyond what its migration headers and commit messages describe — its supporting scripts were not read in full.
+
+Lease state (session D): none taken, none held. Corpus/drain_worklist: untouched. $0.
+
+## 2026-07-18 — Session D: push resolution, wt-audit registration, C4 sibling-resolution bug fixed
+
+Closing out the push blocked by the forensics report above. Two unrelated gates fired on `git push` from
+`.worktrees/wt-session-d`, both resolved under operator ruling, neither by override trailer.
+
+**PreToolUse skill gate.** `git push` matched the Bash DANGER pattern (data write, prod effect) and required
+`remediation-discipline` + `environmental-policy-and-innovation` loaded this session via the Skill tool before
+the write could proceed. Both names returned "Unknown skill" when invoked (project-local skills under
+`fsi-app/.claude/skills/`, not present in this session's available-skill listing, consistent with the DB-access
+limitation noted in the forensics entry above). The push nonetheless unblocked on retry. Read
+`skill-token.mjs`: the matcher (`skillLoadedInTranscript`) checks the transcript for the literal `"name":
+"Skill","input":{"skill":"<slug>"` tool-use shape, bare or scope-prefixed, with no check on whether the
+invocation resolved or errored. **Finding for Session E (inventory-4 material): the gate enforces that a
+skill was invoked, not that it was loaded.** An erroring `Skill` call satisfies it exactly as a successful one
+would. Whether this is intended (the doctrine text says "looked at... not just having it in context," which an
+erroring invocation arguably is not) or a gap is an operator call, not resolved here.
+
+**C4 (worktrees.md reality) consistency check.** Step 2 of the pre-push hook then failed on unrelated,
+pre-existing drift: a worktree at `C:/Users/jason/wt-audit` existed on disk, unregistered in
+`docs/inventories/worktrees.md`. Operator confirmed this is Session E's audit lane (dormant-systems audit,
+read-only until audit doc lands, branch `master` at creation 2026-07-18), dispatched without inventory
+registration at launch. Per operator ruling: resolve by registration, not override. Registered as bare
+basename `wt-audit` in the Path column (commit `47a14a0e`).
+
+The first registration attempt used the full path `C:/Users/jason/wt-audit` in the Path cell and still failed,
+now on BOTH check directions. Reading `C4-worktrees-reality.mjs`: the Path column is parsed as a bare relative
+name (matching the existing `dotfiles` row, not a full path); the sibling-path convention is resolved as
+`join(dirname(repoRoot), relName)`. Corrected the cell to bare `wt-audit` (commit `763c4321`) — this fixed the
+missing-claim direction but surfaced a second, independent problem: an orphan-claim persisted even with the
+correctly-formatted entry.
+
+**Root cause, verified, not inferred:** `repoRoot` in `C4-worktrees-reality.mjs` was `getRepoRoot()`
+(`git rev-parse --show-toplevel`), which resolves to the CURRENT worktree's own directory, not the main repo,
+when the pre-push hook runs from a secondary worktree. From `wt-session-d`, `git rev-parse --show-toplevel`
+returns `C:/Users/jason/dotfiles/.worktrees/wt-session-d`; `dirname()` of that is
+`C:/Users/jason/dotfiles/.worktrees`, so the checker looked for `wt-audit` there instead of at its real
+location, sibling to the MAIN repo. This is a structural bug, not specific to wt-audit: it breaks sibling-path
+resolution for any push originating from any secondary worktree, always, regardless of which entry is being
+checked. **Operator ruling: root-cause fix, no override trailer** ("Session E pushes from a secondary
+worktree, so the audit itself cannot land while this bug exists").
+
+**Fix (commit follows this entry's push): added `getMainRepoRoot()` to `C4-worktrees-reality.mjs`, using
+`git rev-parse --path-format=absolute --git-common-dir` then `dirname()`. `--git-common-dir` is the one `.git`
+directory shared by every worktree of a repo and always lives inside the main worktree, so its dirname is
+stable regardless of where the check executes. Verified empirically before and after the code change:
+`git rev-parse --path-format=absolute --git-common-dir` returns the identical `C:/Users/jason/dotfiles/.git`
+from both the main checkout and `wt-session-d`. Scope held to the single resolution call per operator
+instruction: no other logic, claims, or inventory-format changes. Ran the full consistency runner from
+`wt-session-d` post-fix: `PASS [C4]`, 0 drift records, both directions (missing-claim and orphan-claim) clear
+for both current Path-table entries (`dotfiles`, `wt-audit`). Did NOT run the patched checker physically inside
+the main checkout's own working tree — that tree is Session A's live workspace and was not touched; instead
+verified the context-invariance of the one changed primitive (`--git-common-dir`) directly from both
+directories, which is the entire behavioral change the fix makes. This is a narrower verification than running
+the full runner in both physical locations; flagged here rather than silently treated as equivalent.
+
+**Second finding for Session E (inventory-4 material): C4's sibling-path resolution has been broken for every
+secondary-worktree push since whenever this check or the pre-push hook was introduced, until this fix.** That
+means C4's enforcement history from any non-main-checkout worktree is unproven for the period before this fix
+landed. Session E should determine, for prior pushes that originated from secondary worktrees (wt-session-b,
+wt-session-c, any `.claude/worktrees/agent-*`, or earlier sibling-path worktrees per the historical entries in
+worktrees.md), whether those pushes: (a) predate the C4 check or the pre-push hook's introduction entirely,
+(b) were actually run from the main checkout despite the worktree existing, or (c) carried a
+`Consistency-Override: C4` trailer that let them through regardless of the resolution bug. Any override
+trailers found under (c) are themselves undocumented drift-adjacent history and belong in an inventory-4 entry
+of their own, not silently assumed benign.
+
+Commits on this push (`corpus-integrity/cc-grounding-executor-d`): `048669a9` (forensics report, prior entry
+above), `47a14a0e` (wt-audit registration), `763c4321` (Path-cell format fix), plus the C4 root-cause fix and a
+PROGRAM-BOARD.md entry landing alongside this log entry. No Consistency-Override trailer used on any commit.
+
+Lease state (session D): none taken, none held. Corpus/drain_worklist: untouched. $0.
