@@ -48,7 +48,6 @@ export const consistencyCheck = {
 
   run() {
     const drifts = [];
-    const liveWorktrees = gitWorktreeList();
     const inventoryContent = readInventory('docs/inventories/worktrees.md');
 
     if (!inventoryContent) {
@@ -72,6 +71,22 @@ export const consistencyCheck = {
         if (cell) inventoryPaths.add(cell);
       }
     }
+
+    // ENVIRONMENT AWARENESS: the two directions below both compare the inventory
+    // against on-disk reality (existsSync of sibling/.worktrees/ paths; `git worktree
+    // list`). A GitHub Actions runner checks out ONE detached worktree and has NONE
+    // of the developer's or agents' worktree directories on disk, so a worktrees.md
+    // that is correct locally can never satisfy an on-disk existence check there —
+    // environment-blindness in the check, not bad inventory data. Under CI, validate
+    // only inventory format + internal consistency (the parse above) and SKIP both
+    // disk-reality directions. Locally (pre-push, commit-time) BOTH directions run
+    // unchanged — the local gate is not weakened. Mirrors the migration 067 lesson
+    // (file present locally, absent in CI checkout).
+    if (process.env.CI) {
+      return drifts.length === 0 ? NO_DRIFT : drifts;
+    }
+
+    const liveWorktrees = gitWorktreeList();
 
     // Each inventory path: verify it exists at the conventional location.
     // Inventory uses RELATIVE names like "dotfiles-wt-foo" referring to a
