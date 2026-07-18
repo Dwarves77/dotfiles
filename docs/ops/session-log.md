@@ -738,3 +738,213 @@ generation held). Group ③ fully closed end to end.
 NEXT: the 21 B-reassignments (drain bank 5's 54-item handoff) at the same per-item rigor — read each
 drain_worklist finding annotation first; the fabrication flags (China carbon-market, and any other
 title-unsupported case in the 21) go first per operator instruction. Lease state (session A): clean.
+
+## 2026-07-18 — Session D (read-only forensics: what happened to discovery/scanning)
+
+Worktree `.worktrees/wt-session-d`, branch `corpus-integrity/cc-grounding-executor-d`. Pure investigation
+per operator dispatch: was the system DESIGNED to discover new regulatory instruments (scan-then-analyze),
+was that BUILT, and what happened to it. Read-only throughout: zero corpus writes, zero drain_worklist
+touches, zero leases. Method: full read of this file + CLAUDE.md + PROGRAM-BOARD.md, `git log --all`
+keyword sweeps (discover/scan/monitor/feed/intake/horizon/cron/rss/registry/seek-more) across the whole
+repo history (1618+ commits, not exhaustively read commit-by-commit), file-history traces (`git log --
+follow`) on the specific files those sweeps surfaced, and direct reads of the founding commit, ADR-001,
+ADR-012, the acquisition-ladder post-mortem, and current-tree code for caller verification.
+
+DB-ACCESS LIMITATION (disclosed up front): the Supabase MCP `execute_sql`/`list_tables` tools in this
+session are gated by a project pre-tool-use hook requiring two skills to be loaded first
+(`caros-ledge-platform-intent`, `remediation-discipline`) — these are project-local skills
+(`fsi-app/.claude/skills/`) not present in this agent's available-skill listing, so they could not be
+loaded and the gate could not be satisfied. No workaround was attempted (consistent with the read-only,
+never-mutate mandate). Every DB-state claim below is therefore drawn from migration files, code, and
+dated session-log/PROGRAM-BOARD text, NOT a live query — flagged inline where it matters.
+
+**Section 1 — what was designed (verbatim, dated, hashed).**
+
+Founding commit `a8cd8d1a` (2026-04-04, "Caro's Ledge: Major renovation — source monitoring, multi-tenant,
+auth, admin"), `fsi-app/.claude/CLAUDE.md` as of that commit: *"Not a regulation tracker — a source
+monitoring system covering 7 intelligence domains."* And: *"Layer 1: Sources — Public portals where
+legislation lives... Layer 2: Intelligence Items — Specific regulations/findings that live INSIDE
+sources... The system monitors sources. Sources produce intelligence items. Manual entry is not the
+model."* The same commit adds `fsi-app/src/app/api/worker/check-sources/route.ts`, its own docstring:
+*"Monitoring queue worker. Checks sources that are due for scanning. Called by an external cron job."*
+
+Commit `969e5c1b` (2026-04-05, "Admin regulatory scan + cron schedule + notification API"): *"POST
+/api/admin/scan — Claude-powered regulatory discovery. Searches for new regulations by topic/jurisdiction,
+stages for review"* + *"Vercel cron: Mon/Wed/Fri 07:00 UTC source checks."* This is the earliest evidence
+of an actual content-discovery mechanism (as opposed to check-sources' accessibility ping — see section 2).
+
+ADR-012 (`docs/decisions/ADR-012-intake-cadence-and-launch-exit-test.md`, 2026-07-11, operator ruling)
+inventories what existed at that date as PRIOR ART, not proposal: *"POST /api/admin/scan (operator-fired
+web_search discovery → dedup → portal-vs-reg classification → stages to staged_updates, never
+auto-published; admin-gated, 4h cooldown)"*, *"extra discovery — POST /api/admin/sources/discover"*, and
+*"the scheduled worker — POST /api/worker/check-sources gates on scrapeWindowOpen() + isGloballyPaused()
+(the autonomous/scheduled path that MUST keep obeying the hold)."* ADR-012 also states the model plainly:
+*"The scrape/intake operating model is operator-fired manual runs, with saved/auto cadence as a later
+config switch. This is the operating design, not a temporary safety posture."* — i.e. by 2026-07-11 the
+operator had already reframed autonomous discovery as a future config flip on top of built machinery, not
+as something still to be designed.
+
+**Section 2 — what was actually built, and its wiring state at peak.**
+
+check-sources worker (`a8cd8d1a`, 2026-04-04; cron mechanism replaced `ea034695`/`1de29f13`, 2026-04-27,
+"replace broken Vercel cron with GitHub Action scheduled check" — the original Vercel cron sent a GET to a
+POST-only auth-required route and never actually fired, per that commit's own description). Reading the
+route as originally built: it is an HTTP HEAD accessibility probe per due source (10/run), updates
+`last_checked`/`consecutive_accessible`, and writes a `monitoring_queue` row with `change_detected`
+HARDCODED to `false`. At peak it was wired-with-caller (GitHub Actions hourly, confirmed by the workflow
+file), but it never itself discovered new regulatory content — it only confirmed a known source URL was
+still reachable.
+
+Real content-change detection was added later: PR #252 (`cd9b63df` + `dd349b75`, 2026-07-07/08,
+"feat(monitoring): real change detection in check-sources — dormant, zero extra units (S1-10)") — fingerprints
+the same render the accessibility check already pays for. Landed DORMANT per its own commit message and the
+2026-07-08 session-log entry: *"Both stay behind worker-auth + global pause + scrape-window gates; nothing
+runs until the operator flips cadence."* Peak wiring state: built, called by the (then-scheduled) check-sources
+worker, but gated behind a switch never turned on — built-unwired in the sense that matters (no content ever
+flowed through it into a live discovery decision).
+
+Portal deep-link discovery (`55d57450`, PR #253 branch `feat/p25-portal-crawl`, 2026-07-07/08,
+"feat(discovery): portal deep-link candidates — dormant, zero extra units (S2-08)") — migration 162
+`portal_link_candidates`, fed by `portal-links.mjs` reading same-host sub-links from an already-rendered
+page. Same fate: landed dormant behind the same gates, per the same 2026-07-08 log entry. This is the closest
+built approximation of "find new instruments inside a known portal," and it has never run against live
+traffic per every subsequent session-log/PROGRAM-BOARD mention through 2026-07-18.
+
+`/api/admin/scan` (Claude Sonnet + `web_search`, stages to `staged_updates`) — confirmed STILL WIRED in the
+current tree: `fsi-app/src/components/admin/AdminDashboard.tsx:236` calls `fetch("/api/admin/scan", ...)`
+directly (grep-confirmed, not inferred from a filename). This is the one genuine "scan for new regulations"
+capability with a live UI caller anywhere in the codebase, at any point in its history. It has always been
+human-button-triggered (never on a schedule of its own) and is gated behind `pausedResponse`/
+`isGloballyPaused()` — the same global-pause gate the frozen crons obey.
+
+`/api/admin/sources/discover` + `discoverForJurisdiction` (`fsi-app/src/lib/sources/discovery.ts`) discovers
+new SOURCES (portals) for a jurisdiction via Sonnet + `web_search`, not new regulations inside sources
+already held. Admin-triggered, same pause gate. A separate capability from `/api/admin/scan`; do not conflate.
+
+`seek-more.mjs` (`0dc78991`/`745d7eb3`, PR #202, 2026-07-07, "candidate generation + exhaustion record on the
+RD-14 ladder seam") — generates candidate PRIMARY-DOCUMENT URLs for an item ALREADY IN THE CORPUS (identifier
+variants: bare-number→CELEX, endpoint ladders, etc.), i.e. it is item-level acquisition machinery, not new-
+instrument discovery. Built with a full orchestrator (`runSeekMore`) and, per the 2026-07-14 post-mortem
+(`docs/audits/acquisition-ladder-post-mortem-2026-07-14.md`, PART 2, quoted verbatim): *"It had ZERO live
+callers — dormant on an unactioned wake-list, its own test the only caller — while the live ladder
+(fetchPrimaryDeep) ran an inferior title-only webSearchAlternatives shadow."* This is the campaign's named
+built-with-zero-callers precedent. It is adjacent to discovery but answers a different question ("where does
+this already-known item's text actually live") than the operator's question ("what regulations exist that we
+don't have an item for yet").
+
+`run-intake-cycle.ts` + `/api/admin/run-intake` (built under Disposition Unit 0c-2, first referenced
+`8c4a8b2c`, 2026-07-11) — the machine-gated mint→ground→validate cycle (RD-20, no-human-finish-of-intake).
+Read directly: it takes a `candidates: IntakeCandidate[]` array (title/source_url/item_type, max 5) supplied
+BY THE CALLER in the POST body — it does not itself discover anything. Grep across
+`fsi-app/src/components` for any caller of `/api/admin/run-intake` or `runIntakeCycle` found NONE — no UI
+button exists (ADR-012 promised "an admin surface control + a script path"; the API route was built, neither
+the admin control nor a script path was found in the current tree, `fsi-app/scripts/` searched, none found).
+Peak wiring state: built-unwired, callable only by hand-crafted HTTP request.
+
+`rss-fetch.ts` — one of four canonical fetch transports (`access_method="rss"`). Its own header comment
+claims it is "used by the access_method routing switch in /api/agent/run," but a targeted search of
+`fsi-app/src/workflows/generate-brief.ts` (the canonical grounding workflow) found no `access_method`
+dispatch and no reference to rss-fetch at all; only one unrelated helper it exports is imported elsewhere
+(`browserless.ts`). Its own docstring states plainly the deeper gap: *"This is a feed-pull, not a per-item
+walk... Per-item walking happens in a follow-up wave when individual feed entries become first-class
+intelligence_items"* — i.e. true feed-item-level discovery was named and explicitly deferred, and (on this
+non-exhaustive search) never built. Caller status could not be fully confirmed exhaustive across every
+dynamic dispatch site; stated as found, not as proven absent everywhere.
+
+**Section 3 — state today (2026-07-18): unwired / frozen, not deleted.**
+
+`.github/workflows/source-monitoring.yml` and `spot-check-monthly.yml`, read directly from the current
+tree: both have their `schedule:` block commented out, `workflow_dispatch` (manual) only. The comment block
+in source-monitoring.yml, unchanged since it was written: *"ACQUISITION FREEZE (operator ruling 2026-07-13,
+snapshot-first rebuild)... The hourly schedule is disabled; the job remains runnable on demand via
+workflow_dispatch."* The commit that did this: `11c008c2` (2026-07-12/13, "ci: freeze unattended acquisition
+crons (source-monitoring hourly, spot-check monthly)"), part of PR #295 (`19c6b333`, "Snapshot-first rebuild
+PR-1... crons frozen"). This is the single, dated, named event that took the one truly-scheduled
+discovery-adjacent job off autonomous cadence — and per this file's own repeated later entries (2026-07-13
+through 2026-07-18: "Cadence stays OFF", "GROUNDING_ACQUIRE_ENABLED OFF"), it has not been re-enabled since.
+
+The dormant P2-5/P2-6 units (portal-crawl, change-detection) remain landed-but-never-activated in every
+subsequent mention through the end of this file (last direct mention: 2026-07-08 session-log entry; no
+later entry records a flip). `run-intake-cycle`/`/api/admin/run-intake`: the 2026-07-14 session-log entry
+states directly, *"(c) 0 manual-intake-run agent_runs — the machine-gated cutover has never executed"*; no
+entry in the remaining ~400 lines of this file through 2026-07-18 records a first invocation.
+`seek-more.mjs`'s orchestrator (`runSeekMore`) was formally retired as dead code on `58930fea` (2026-07-14,
+"Guard: re-grounds-never-destroy... no-shadow reconcile" — *"runSeekMore retired (zero live callers; the
+one home is fetchPrimaryWithFallback)"*); its useful derivation logic (`generateCandidates`) survives, folded
+into the live per-item acquisition ladder the same day (`8bbd3437`/`8d536812`).
+
+`/api/admin/scan` is the one exception to "everything is frozen": it remains code-wired to a live admin-UI
+button today. Whether clicking it currently executes (i.e. whether `isGloballyPaused()` currently reads
+false) was NOT independently verified by a live query in this investigation (see the DB-access limitation
+above) — it is inferred only from the repeated dated doctrine statements that cadence and the acquire lock
+both stay OFF as standing constraints through the most recent entries in this file. This is stated as
+inferred, not confirmed.
+
+No table, migration, or code path named "registry," "feed," or literal "horizon-scan intake" as a running
+mechanism was found. `monitoring_queue` (migration in the founding commit, extended `124_monitoring_queue_
+reconciled_at.sql`) is the closest DB structure resembling a source-watch registry, and it is fed exclusively
+by check-sources' accessibility ping — never by a content/instrument discovery pass. No DROP TABLE in
+migration history targets a discovery-shaped table; the one DROP found adjacent to "ingestion" —
+`184_drop_ingestion_pair.sql` (author-only, NOT applied per its own header) — targets `ingestion_control_log`/
+`ingestion_state`, a per-source auto-run pause/enable audit log from the 2026-05 wave-1 cold-start, not a
+discovery/candidate table; noted for completeness, not the operator's mechanism.
+
+**Section 4 — the gap narrative, dated.**
+
+2026-04-04/05: founding design is explicitly source-monitoring-first — check-sources worker + monitoring_queue
++ admin/scan (Claude web_search discovery) + a Vercel cron, built in the same two-day burst as the rest of the
+initial architecture.
+2026-04-27: the founding Vercel cron is discovered to have never actually fired (GET to a POST-only
+auth-required route) and is replaced with a GitHub Actions schedule — an early reliability gap, independent of
+any later deliberate freeze.
+2026-05: wave 1a/1b ingestion foundation (per-source kill switches, pending_first_fetch queue) — item-pipeline
+plumbing, not new-instrument discovery.
+2026-07-07: seek-more.mjs built (PR #202) — item-level acquisition-URL discovery, zero callers from day one.
+2026-07-07/08: P2-5 (portal-crawl) and P2-6 (change-detection) land DORMANT, explicitly gated behind a cadence
+flip that is never turned.
+2026-07-11: ADR-012 catalogs the built discovery/monitoring surface as prior art and reframes intake as
+"operator-fired manual, auto-cadence a later config switch" — formalizing manual-only as the interim (not
+final) operating model, and commissioning the machine-gated run-intake-cycle.
+2026-07-12/13: acquisition freeze (`11c008c2`) — the one live scheduled job (check-sources) taken off cadence
+as part of the snapshot-first spend-safety rebuild (PR #295).
+2026-07-14: CRITICAL DISPATCH (#333) finds seek-more dormant, wires its derivation logic into the live ladder,
+retires the dead orchestrator; separately, the standing $0 batch reports "0 manual-intake-run agent_runs" —
+the machine-gated cutover has never executed, structurally blocked on Unit 0c.
+2026-07-13 through 2026-07-18: every dated entry in this file reaffirms cadence OFF / GROUNDING_ACQUIRE_ENABLED
+OFF as standing constraints. No entry records the hourly/monthly crons resuming, P2-5/P2-6 activating, or a
+first machine-gated intake run occurring.
+2026-07-17/18: Session C runs a bounded, one-time, operator/agent-directed research census ("coverage
+discovery lane," 9 hand-labeled classes, migrations 214-237), explicitly headed in its own migration comment
+as *"a PRICING INPUT for the operator's coverage-floor number... NOT a worklist. Candidates enter the corpus
+only through a future priced wave via the intake lane."* Declared "discovery arc complete" `d75abda3`
+(2026-07-18).
+
+**Section 5 — read on Session C's coverage-discovery lane vs the original design.**
+
+Session C's lane diverges from the founding design; it does not restore or duplicate it. The 2026-04-04
+design was an AUTOMATED, RECURRING mechanism (crons + worker + monitoring_queue, later change-detection +
+portal-crawl) meant to find new regulations on an ongoing schedule with minimal human involvement beyond
+review. Session C's lane is the structural opposite: a bounded, single-pass, human/operator-scoped research
+exercise, delivered as one-off SQL INSERT migrations per "bank" (its own commit cadence — bank 1/9 through
+9/9, then Gemini second-pass, then final rulings), cross-checked against the live corpus by evidence class
+(HAVE / HAVE_QUARANTINED / AMBIGUOUS_ARCHIVED / MISSING), and explicitly priced as an input to a future
+operator pricing decision rather than a running pipeline. None of the Session-C commits inspected (migration
+214 through 237, plus the surrounding "Session C:" commits) touch source-monitoring.yml, check-sources,
+portal-links.mjs, content-change.mjs, seek-more.mjs, or run-intake-cycle.ts — this was checked by reading
+each Session-C commit's file-stat list, not exhaustively by diff content. I found no branch, commit, or
+session-log entry literally named "crawl-dispatch" anywhere in `git log --all`; the closest match to what the
+dispatch calls "Session C's current crawl-dispatch work" is this coverage-discovery lane, and by its own
+final commit it is complete/idling, not an ongoing crawl. Newly identified instruments are explicitly routed
+back into the same item-first machinery (mint→ground→validate, gated on an operator-priced line) rather than
+into any resurrected discovery/monitoring layer — so even the campaign's most recent "discovery" work
+reinforces the item-first shape the operator is asking about, rather than reversing it.
+
+**What remains genuinely unknown (not filled with inference):** live `system_state`/`agent_runs`/
+`monitoring_queue` row contents (DB query blocked, see above — all claims here are doc/code-sourced, not
+query-verified); whether `/api/admin/scan` is reachable today by an admin click (inferred from doctrine text
+only); whether any additional retired discovery-adjacent code exists outside the keyword sweep used
+(discover/scan/monitor/feed/intake/horizon/cron/rss/registry/seek-more) across 1618+ commits not read
+individually; and whether Session C's per-class research (banks 1-9) used any semi-automated batch tooling
+beyond what its migration headers and commit messages describe — its supporting scripts were not read in full.
+
+Lease state (session D): none taken, none held. Corpus/drain_worklist: untouched. $0.
