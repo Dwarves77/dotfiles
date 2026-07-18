@@ -1,9 +1,11 @@
 // Pause-state checks shared by every fetch-capable route. Phase 0.1 (2026-06-28) made the global
 // hold MECHANICAL: EVERY outbound-fetch entry point — workers AND admin routes (check-sources,
-// drain-first-fetch, spot-check, scan, bulk-import, fetch-now, discover, agent/run) — calls
+// spot-check, scan, bulk-import, fetch-now, discover, agent/run) — calls
 // pausedResponse()/isGloballyPaused() at its fetch entry, so no fetch fires while the hold is set,
 // regardless of queue or trigger. This SUPERSEDES the prior "manual admin actions bypass" carve-out:
 // to fetch during a hold the operator lifts system_state.global_processing_paused.
+// (The drain-first-fetch worker that formerly appeared in this list was dissolved 2026-07-12; the
+// manual-intake path is now the run-intake-cycle machine-gated caller.)
 //
 // Graceful degradation: if migration 016 hasn't been applied yet, these helpers treat the system as
 // unpaused (the safer default — pausing only when the data layer explicitly says so).
