@@ -577,3 +577,55 @@ All leases clean. $0 (one free web-search corroboration). integrity_flags: +1 op
 NEXT: verify the "PROMOTED-by-B" set (7: GLEC v3, ISSB IFRS S2, LA EWEO, Lei 12.305/2010, Zero-Emission World
 Heritage, CORSIA, EU MRV) + close resolved drain_worklist rows; then $0 relabels via the proper relabel path;
 dedup the UAE-hydrogen pair; Group ③ DELETE-side content-read bank. China/UAE holds await re-acquisition.
+
+## 2026-07-18 — Session A restart: TWO-FILE session-log correction + NCAER ruling closed
+
+**CORRECTION (own error, surfaced immediately, not buried):** on restart, reconciliation was run against
+`fsi-app/docs/ops/session-log.md` — a SEPARATE, STALE fork of this file that stopped receiving real entries
+after commit `42ac8969` (2026-07-17 compact-prep-handoff) while every subsequent bank (banks 1-6 of the
+review lane, SW-1, the scope-gate dispatch, this file's own entries) kept landing HERE, at the canonical
+root path (per `CLAUDE.md` standing rule 6 + the self-annealing protocol, both of which say `docs/ops/
+session-log.md` meaning repo-root `docs/`, not `fsi-app/docs/`). This was misdiagnosed as an 8-commit
+divergence-from-record and "backfilled" into the WRONG file (commits `eb468f03`, `88886d0b` on this branch)
+before the mistake was caught. That backfill content is redundant now (this file already carries the real,
+richer detail for every one of those banks) but is harmless where it sits — the fork is deprecated in place
+with a pointer to this file rather than deleted, so no history is destroyed. Root cause: the `fsi-app/docs/`
+tree duplicates several root `docs/` categories (ops/, audits/, compliance/) without doctrine distinguishing
+which is canonical; this file and `CLAUDE.md` are unambiguous, `fsi-app/docs/ops/session-log.md` is not
+referenced as canonical anywhere. Flagging for an operator decision on consolidating or deleting the
+`fsi-app/docs/` duplicate tree at a later bank — not done here, out of scope for a reconciliation bank.
+
+**NCAER confidentiality incident (`integrity_flags` 963d4450, `beae0a7e`) — RULED AND CLOSED.** Session B's
+containment (2026-07-17, commit `063d6b0b` on branch `-b`, also landed against the fsi-app fork — same
+mistake, independently made) traced the pool row, found the original pipeline fetch was CDN-blocked and
+captured nothing (a 269ch Akamai Access-Denied stub, not document content), confirmed via investigative
+re-fetch that the host serves the document publicly (no auth) but deleted the local copy before writing the
+record, and redacted the `agent_run_searches` row to a do-not-refetch containment marker (guarded,
+non-destructive). Full record: `fsi-app/docs/compliance/confidentiality-incident-2026-07-17-ncaer.md`.
+
+Session A independently re-verified before relying on it (operator instruction: complete the trace, don't
+just read it): corpus-wide query of `section_claim_provenance` by `search_result_id` and by the registered
+`dpiit.gov.in` `source_id` — 0 rows either way; corpus-wide scan of `agent_run_searches` for the document's
+URL/host — the one row already found is the ONLY match anywhere. **Grounding-exposure finding, confirmed
+independently twice: zero claims ever grounded from this document, zero customer-surface exposure, at any
+point.** No counsel-notification trigger.
+
+Actions completed: evidentiary-metadata gap (no content hash — the only real copy was deleted before this
+requirement existed; re-fetching to backfill it would recreate the exposure) disclosed honestly rather than
+filled. RD-46 doctrine addendum landed (`remediation-discipline` SKILL.md): confidentiality-ruled purges are
+a sanctioned, per-instance, operator-ruled exception to append-only — registered as invariant RD-49 (exempt,
+process-class, same footing as RD-8), meta-gate re-baselined 39→40, passing. Hardening ledger entry added
+(`docs/PROGRAM-BOARD.md`): confidentiality-marking capture-gate detector, QUEUED, this incident as origin
+case. `integrity_flags` 963d4450 resolved via `guardedUpdate` under a mutation lease on `beae0a7e` (snapshot
+`2026-07-18T19-18-50-466Z_integrity_flags.jsonl`, reversible). All committed to `corpus-integrity/cc-grounding-
+executor` (`88886d0b`), pushed, CI green.
+
+RECONCILIATION (against the real record, this file): branch up to date with origin at `e827af6b` before this
+bank. `mutation_leases` empty — no stale leases, nothing to release. `drain_worklist` 64 rows, all lane A (0
+lane B, consistent with the "Lane B ~empty" finding). Live corpus at bank start: verified 208, quarantined 63,
+archived 163 (matches this file's own last-recorded counts exactly, once the confusion above is set aside).
+
+NEXT (operator's ordered queue): review-lane Group ③ DELETE-side content-read bank (archived source-
+descriptions, per line 579 above), the 21 B-reassignments (drain bank 5's 54-item B-queue), the scope-gate
+unit at a bank break, eu_clean_trucking full grounding pass, the SW-1 corpus-wide jurisdiction sweep.
+Going forward: this file only, every bank, log entry inside the bank commit. Lease state (session A): clean.

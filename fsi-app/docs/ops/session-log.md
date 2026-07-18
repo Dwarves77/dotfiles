@@ -1,3 +1,11 @@
+> **DEPRECATED FORK — NOT THE CANONICAL SESSION LOG.** The canonical log is `docs/ops/session-log.md` at the
+> repo root (per `CLAUDE.md` standing rule 6 + the self-annealing protocol). This file stopped receiving real
+> entries after commit `42ac8969` (2026-07-17) while every subsequent bank kept landing at the root path; a
+> 2026-07-18 restart reconciliation misread this file as the live record, misdiagnosed a divergence, and
+> backfilled it here in error (commits `eb468f03`, `88886d0b`) before catching the mistake — see the root
+> file's 2026-07-18 "TWO-FILE session-log correction" entry for the full account. Left in place, not deleted,
+> so no history is destroyed; do not append new entries here. Read/write `docs/ops/session-log.md` at the
+> repo root instead.
 
 ## 2026-07-16 — THE PERSISTENCE CONTRACT (cc-executor drain, Step 0)
 
