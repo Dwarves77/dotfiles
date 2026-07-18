@@ -781,3 +781,57 @@ precision fixes on already-quarantined items, not disposition changes).
 
 NEXT: the remaining ~55 B-reassignment rows at the same per-item rigor. Given the queue's real size (58, not
 21), this continues across further banks rather than closing in one. Lease state (session A): clean.
+
+## 2026-07-18 — Session A: STOP POINT — drain queue parked, Session E dormant-systems audit in force
+
+**Operator ruling: full stall, not relabel-only.** A dormant-systems audit (Session E) has just launched and
+runs before any new build; every lane parks at its next clean boundary until it reports. The relabel-manual
+finding below landed at exactly that boundary and IS the stop.
+
+**QUEUE STATE AT PARK:** `drain_worklist` carries 66 rows (`assigned_by='session-B'` minus the closed India row).
+Of these: 3 closed this arc (China retitled, Japan Customs retitled+repointed, ISO 14083 verified-dormant —
+bank 7, commit `0fc1aa7e`). ~48 untouched, not triaged past their original Session B finding. 7 sampled
+("PROMOTED... relabel-manual residual") against live `validate_item_provenance` — see the accuracy finding
+below. **Nothing further executes until Session E reports and the operator re-opens the lane.**
+
+**RELABEL-MANUAL CLASS — parked, primitive-required (do not build now, do not ad-hoc).** Running
+`validate_item_provenance` directly on the 7 sampled items (rather than trusting their drain_worklist notes)
+surfaced that this residual class is not a metadata flip: most failures (`fact_below_authority_floor`,
+`fact_span_not_in_source`) resolve by converting `claim_kind` FACT→ANALYSIS, but an ANALYSIS claim still
+requires a recognized label IN THE BRIEF'S PROSE ITSELF (`*Analytical inference:*` etc., per the
+environmental-policy-and-innovation skill's labeling discipline) — a bare DB metadata change without the
+matching prose label creates a NEW inconsistency (a customer-facing unlabeled bare assertion whose backing
+metadata now silently says "analysis"). The one existing tool for this shape of operation
+(`scripts/phase2-analysis-relabel.mjs`) does it correctly — byte-precise marker insertion, verified by
+inverse-diff (removing the marker must reproduce the pre-insert string byte-for-byte), `claim_text` never
+touched — but its hard apply precondition (an open `phase2_priority_review` integrity_flag from an earlier,
+narrower program) does not fit this queue's items. **Primitive spec, endorsed post-audit path:** adapt
+`phase2-analysis-relabel.mjs`'s verified-insertion pattern (byte-precise marker, inverse-diff verify,
+`claim_text` untouched) into a queue-scoped tool with THIS queue's own precondition (drain_worklist
+`assigned_by='session-B'` membership, or equivalent), not the old phase2 flag. Do not run ad-hoc `guardedUpdate`
+calls per claim in the meantime — the metadata-vs-prose divergence that would create is the exact
+inconsistency class this whole campaign exists to eliminate.
+
+**bec305e1 (EPA HDV Phase 3) — stays quarantined as-is, no action.** Its drain_worklist note said "4
+relabel-manual"; the live gate shows 28 failures, ALL `fact_span_not_in_source` (every claim is a paraphrase of
+its cited span, not a verbatim match) — a real outlier against the other 6 sampled items, which landed within
+reasonable tolerance of their notes (33 vs "30", 8 vs "5", 7 vs "7", 1 vs "1", 1 vs "1"). Content spot-checked:
+the underlying facts are accurate, not fabricated — the fabrication tripwire is NOT met. It waits for the
+relabel-manual primitive like the rest; no special-cased action taken.
+
+**WORKLIST-NOTE ACCURACY FINDING (for Session E's audit):** sampled 7 "PROMOTED... relabel-manual" items,
+comparing their drain_worklist `notes` field (written at assignment time) against a fresh live
+`validate_item_provenance` call. Six of seven were within reasonable tolerance (small undercounts, consistent
+with notes written before a later mechanical drain pass added floor/slot findings). One (`bec305e1`) was
+materially wrong — 4 claimed, 28 actual, a 7x undercount, not noise. **This extends label-is-not-proof to
+OPERATIONAL METADATA, not just customer-facing content: a drain_worklist note is itself an unverified claim
+about an item's state, written once at assignment time, and can go stale or be wrong the same way an
+archive_reason label can.** The mechanical fix-shape is the same one already proven for content (Session A
+bank-4/5's disposition-content-gate): before ANY batch operation trusts a worklist note's claim count or
+finding as authoritative, spot-check it against the live gate first — the note is a lead, not a warrant. Logged
+as SW-3 on the sweep ledger (`docs/ops/sweep-ledger.md`) and as `integrity_flags` row (category `data_quality`,
+subject `drain_worklist`) for durable, DB-queryable visibility. Recommend Session E treat this as within its
+dormant-systems scope: a worklist whose own bookkeeping can silently drift from live state is exactly the
+"dormant, unverified assumption" shape the audit is built to catch.
+
+Lease state (session A): clean. Holding for Session E.

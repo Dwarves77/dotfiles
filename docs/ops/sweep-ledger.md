@@ -77,3 +77,48 @@ other path-based guards already in the discipline suite) but not built in this b
 **Why wholesale, not instance-by-instance.** The deprecation pointer only helps a session that opens the file
 and reads past the top; a session that writes via a script or appends without reading the header would still
 land in the fork silently. A mechanical block closes the class regardless of whether the header gets read.
+
+---
+
+## SW-3 — drain_worklist note accuracy (label-is-not-proof extended to operational metadata)
+
+**Status:** FLAGGED — for Session E's dormant-systems audit. Sample-confirmed, not yet corpus-swept.
+**Logged:** 2026-07-18 (surfaced during B-reassignment queue processing). **Class owner:** corpus-integrity /
+drain discipline.
+
+**The class.** `drain_worklist.notes` is a free-text finding written once, at assignment time, by whichever
+session (or tool) enqueued the row. It is treated downstream as a reliable summary of the item's state — banks
+read it, trust its claim counts and characterization, and sequence work off it. But a worklist note is itself
+an UNVERIFIED CLAIM about live state, exactly the same shape as an `archive_reason` label describing an item's
+nature: it can be accurate when written and silently go stale (a later mechanical drain pass changes the
+item's real failure set), or be wrong from the start (a miscount, a narrower check than the live gate runs).
+**Label-is-not-proof (RD-42, Section 4 category 30) was scoped to customer-facing content labels
+(`archive_reason`); this extends the same discipline to operational bookkeeping — a drain_worklist note is a
+LEAD for triage, never a WARRANT to skip re-verifying against the live gate before acting at scale.**
+
+**Confirmed instance (sample, 2026-07-18).** Sampled 7 "PROMOTED... relabel-manual residual" items and ran
+`validate_item_provenance` live against each, comparing the result to what the assignment-time note claimed:
+
+| Item | Note claimed | Live gate shows | Verdict |
+|---|---|---|---|
+| Canada Clean Fuel (5b2c6655) | 7 in-prose ANALYSIS | 7 `analysis_missing_label_syntax` | within tolerance |
+| ISSB IFRS S2 (38322420) | 30 relabel-manual | 33 (32 floor + 1 unlabeled) | within tolerance |
+| GLEC Framework v3 (3581c084) | relabel-manual (unquantified) | 1 `unlabeled_assertion` | within tolerance |
+| Norway Fjords (82f09535) | 5 relabel-manual | 8 (5 floor + 3 missing-slot) | within tolerance |
+| Brazil Lei 12.305 (6a857887) | relabel-manual (unquantified) | 1 `missing_required_slot` | within tolerance |
+| LA EWEO (d031e36e) | 8 relabel-manual | 8 (3 floor + 5 label-syntax) | within tolerance |
+| **EPA HDV Phase 3 (bec305e1)** | **4 relabel-manual** | **28**, all `fact_span_not_in_source` | **MATERIALLY WRONG — 7x undercount** |
+
+Six of seven were reasonable given notes are written before later mechanical passes add findings. One was not
+noise — a 7x gap between claimed and actual failure count on the same item, same check.
+
+**Detection query (mechanical shortlist, then per-item confirmation).** For every `drain_worklist` row whose
+`notes` field asserts a claim count or a bounded finding ("N relabel-manual", "0 mechanical exits", etc.), call
+`validate_item_provenance` live and diff the returned failure count/reasons against the note's claim. A
+material gap (order-of-magnitude, not a small drift) is the sweep's positive hit.
+
+**Why wholesale, not instance-by-instance.** The whole point of a worklist is to let later work trust earlier
+triage without re-deriving it; if that trust is sometimes wrong by 7x, every downstream bank that sequences or
+batches off note counts inherits the error silently. A single sweep — re-validating every note-bearing row
+against the live gate once — closes the class for the current backlog; going forward, any tool that WRITES a
+worklist note should stamp it from the SAME live gate call it just ran, not a separate manual count.
