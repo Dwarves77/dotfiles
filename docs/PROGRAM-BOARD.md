@@ -60,6 +60,7 @@ Where the operator says "T10 Units 1–5" the repo calls it **"Autonomous Dispos
 | — | **Audit-ruled corpus repair** (ISO conflation; 727 dead-cite re-point; 671 null-source dispositioned; ReFuelEU twin dedup; Q1–Q4 cleanup + tier-machinery strip on 63 briefs; hold #11 URL fix) | DONE (this PR) | branch `remediation/audit-ruled-corpus-repair`; close [remediation-close-2026-07-15](audits/remediation-close-2026-07-15.md); [ADR-014](decisions/ADR-014-wave-acceptance-sampling.md) accepted | $0 unit; **8 recurrence items → hardening dispatch** (tier-machinery-in-customer-prose, archive-provenance-flip-guard-collision, standard-own-body-exemption-unwired, chrome-capture-adapter, + 4 mint-class); priced re-ground queue enumerated; PR merges **after #337** |
 | — | **Snapshot-first grounding rebuild** | **CLOSED** | #295 `19c6b33`, #296 `11c3864`, #297 `ae9a85d` (ADR-013), #298 `e3b3a74` | grounding-acquisition only; source-tooling fetchers OUT of scope (tech-debt 2026-07-13). Phase 3 CLOSED |
 | — | **Community pre-adoption (C-blocks)** | mostly DONE; C9 removed | see §4 | — |
+| — | **Coverage-discovery lane** (Session C: 9 category-driven discovery banks, two Gemini-review integration passes, surface-contract gate, consolidation backlog view) | **CLOSED** (discovery arc); 1 open regulatory-status watch + 1 open spend watch | migrations 214-238 (`fsi-app/supabase/migrations/`); branch `corpus-integrity/cc-grounding-executor-c`; commits through `d75abda3` + this PR | see new section below — TAC Index (rank 84, spend decision) and rank 12 EU Green Claims Directive (regulatory-status) both parked-with-watch; vendor-vetting-boundary skill addendum routed to Session A / `caros-ledge-platform-intent` (not landed by A yet) |
 
 ---
 
@@ -370,3 +371,27 @@ Branch `remediation/wave2-model-column`; recovery commit **`4ec4f41`** + Step-8 
 | **Hardening unit H1-H6** | **QUEUED — next** | H1 claim-uniqueness, H2 atomic ground writes, H3 mint-time accuracy gates, H4 single entrypoint, **H5 mutation leases**, **H6 mutation attribution + gate the raw write path that permitted today's flips**. Own PR + board. Precondition for the 60→400 coverage-floor expansion. |
 | **Corpus-wide 436-archive sweep** | **DEFERRED (operator-owned)** | Separate future unit, sample-verify-first, priced after launch-clause sequencing. NOT the Wave-2 agent's. |
 | **ISO 14083 correction** | **DEFERRED (audit-agent-owned)** | Task 3's VERIFIED-mutation authorization sits with the audit agent; flagged un-run. |
+
+---
+
+## Coverage-discovery lane (Session C) — CLOSED, 2026-07-18
+
+**Board defect corrected this entry.** This thread ran the entire 2026-07-17/18 arc (migrations 214-238) without ever landing a board update — a direct miss of the standing rule at the top of this file. Caught only because the operator asked "confirm PROGRAM-BOARD.md was updated" and a grep for Session C / `coverage_gap_candidates` across the whole board returned zero hits. Corrected now, retroactively, in one entry rather than reconstructed piecemeal.
+
+**Isolation.** Own worktree (`C:/Users/jason/dotfiles/.worktrees/wt-session-c`), own branch (`corpus-integrity/cc-grounding-executor-c`), per RD-19. Read-only to the live corpus; the only write surface is `coverage_gap_candidates` plus its own migrations and 3 doc files (`docs/inventories/migrations.md`, `docs/ops/session-log.md`, this board).
+
+**What it built:**
+- **9 category-driven discovery banks** (migrations 219-227): commercial fuel assessments, state/subnational trackers, compliance-reporting portals, enforcement/verification systems, LCA/disclosure verification, Market Intel sources, Research/horizon-scan sources (plus 2 earlier banks — labor-cost/energy-price feeds, migrations 217-218 — and the original seed + LatAm/MEAF sweep, migrations 214-216).
+- **Surface-contract gate** (migration 228, landing Session A's 2026-07-17 PENDING-C handoff): `disposition` (kept/declined/parked) + `surface_test` jsonb + a CHECK requiring all 5 surface keys when declined/parked. Exercised live, not just authored (migration 229 gate-verification: a deliberately invalid UPDATE was confirmed rejected with Postgres 23514 before real dispositions were trusted).
+- **Consolidation backlog view** `acquisition_backlog_v` (migrations 230/231, fixed again 237): a computed, self-updating 4-section view (1 free-acquire-ready / 2 free-integrate-ready / 3 operator spend-license decisions / 4 product-scope decisions).
+- **Two Gemini external-review integration passes** (migrations 216, 232/233), each candidate entity-confirmed before insert — several near-miss "already registered" catches avoided duplicates.
+- **Final pricing rulings** (migrations 234-236): every Section 3/4 row dispositioned through the gate; 4 new SAF claims-substantiation rows added on a final membership check.
+- **Post-closure correction** (migration 238, this entry): rank 12 (EU Green Claims Directive) reclassified parked-with-watch per operator-verified current status (trilogue cancelled not concluded, possible revival signaled) — see `docs/ops/session-log.md` 2026-07-18 entry for full detail.
+
+**Final state (as of migration 238):** table total 109 rows. Backlog view: Section 1 = 31 · Section 2 = 62 · Section 3 = 2 (TAC Index/rank 84 spend-watch, rank 12 regulatory-status-watch) · Section 4 = 0. Disposition counts: 14 declined, 2 parked, 2 kept, 91 undispositioned (original discovery-job rows, correctly left NULL per the gate's no-backfill rule).
+
+**Open item — flagged, not resolved:** migration 237's view routes ANY parked+`watch_condition` row into Section 3, labeled for spend/license decisions. Rank 12 is a regulatory-status watch, not a spend decision — it now sits in a Section-3 row whose label doesn't describe it. A future pass may want a third watch-flavor distinguishing "operator spend decision, open" from "regulatory instrument, status pending" if more rows of the second kind accumulate. Not built now — flagged for whoever next touches this view.
+
+**Handoff, not owned here:** the vendor-vetting-boundary principle (generalizing the migration-235 CARB TRUCRS ruling — "Caro's Ledge informs about rules and cost exposure; it does not vet individual vendors; vendor vetting is out of scope on every surface") is routed to Session A's queue for `caros-ledge-platform-intent`. Not yet confirmed landed by A as of this entry.
+
+**Status: IDLE.** No further discovery work is queued for this lane. Reactivation requires an explicit operator instruction.
