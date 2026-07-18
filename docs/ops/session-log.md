@@ -470,3 +470,28 @@ VERIFY: meta-gate PASS (96 invariants + 63 doctrines wired), golden 12/12, doctr
 PENDING-C (owed by Session C, not Session A): add disposition + surface_test + five-surface CHECK to coverage_gap_candidates in C's own migration, no backfill; POST THE MIGRATION NUMBER HERE when applied so Session A adds migration:NNN to PI-5.enforcedBy (the golden auto-arms regardless).
 
 NEXT (Session A): back to the review lane — GROUP ③ ~28 ambiguous per-item reads, then the smaller buckets, toward zero-archived (170).
+
+## 2026-07-17 — Session A (review lane bank 4): Group ③ RESTORE side — 8 genuine items recovered
+
+Group ③ = the content-bearing item-vs-source judgment reads (reclassified_to_source / source_not_item / institutional_source / off_domain, 55 rows triaged). This bank executes the RESTORE side only (reversible, lowest risk); the DELETE side (confirm-archive + tombstone of source-descriptions) is held for a dedicated bank with FULL content reads — label-is-not-proof forbids an irreversible delete on a 200-char snippet.
+
+RESTORED (8, all content-rich, jurisdiction-checked, restore-then-drain → quarantined + drain_worklist Lane A):
+- China's Environmental Code (regulation, 35 claims, 83KB; adopted 2026-03-12, in force 2026-08-15) — major reg, CN.
+- Florida DEP Notice of Proposed Rulemaking Ch 62-210 (regulation, 48 claims) — US.
+- North Carolina Transportation Climate Action EO 80/246 (directive, 39 claims) — US.
+- New York DEC Regulatory Framework (framework, 37 claims, 65KB) — US.
+- International Roadcheck 2026 (market_signal, 29 claims; CVSA enforcement blitz) — US.
+- Colorado DOT Environmental Programs (regional_data/Operations, 13 claims) — US (NOT bare "CO" → no Colombia collision).
+- Iowa DOT Freight Planning (regional_data/Operations, 17 claims) — US.
+- Louisiana State Freight Plan 2024 (regional_data/Operations, 10 claims) — US.
+JURISDICTION CHECK: all US or CN; none carry a bare collision-class token (CO/IN/ID/etc.). Clean.
+
+CONFIRM-ARCHIVE source-descriptions IDENTIFIED (delete-side, HELD for content-read bank — active source verified, tombstone-eligible under the Group ② rule, but each needs a full-brief read before an irreversible delete): institution/research-org/publisher/journal/database profiles — g12 ECLAC, t3 OECD Environment, OECD Environment Policy Area, c9 CDP Supply Chain, Centre for Sustainable Road Freight, g22 CCICED, g23 Australia CCA, g29 IEA PAMs Database, r1 MIT CTL, r3 Fraunhofer IML, r5 SEI, r6 TNO, r35 ICCT, r13 GreenBiz, r19 Supply Chain Digital, r21 Sustainability Magazine, r9 Transportation Research Part E (journal); source_not_item portals — Alternative Fuels Data Center, IEA Data Explorer Platform, Montana Legislature/MCA. (g12/t3 = the known tool-typed institutional data-debt.)
+
+HOLD (borderline — next-bank deep read): industry-body INITIATIVES that may carry a specific standard/position (restore candidates) — r24 ZEMBA, o10 ESPO/EcoPorts, g9 SPC/How2Recycle, l4 CER modal-shift (possible dup of the bank-3-tombstoned CER org-overview), o11 Lloyd's Register Decarb Hub, r17 Project Drawdown Explorer, a6 ICAO Carbon Calculator (tool/access-point). Possible DUPS of already-restored items (dedup before any action) — t2 WTO Env&Trade (vs bank-2 WTO), t4 UNCTAD SFT (vs bank-2 UNCTAD), World Bank Transport Strategy (vs bank-2 World Bank). Data oddities (claims but empty brief → needs regen, drain territory) — TCEQ Current Rules, ICAP Status Report 2026, Alternative Fuels DC. r2 Kuehne Climate Center = failed-brief refusal, no_src → register-source-first or HOLD. off_domain (4, correctly archived, NOT freight, never-delete accurate) — Matrix Hudson x2, MDEQ Water Advisories, RI Fish Passage.
+
+COUNTS: archived 170→162 (−8), quarantined 56→64 (+8), verified 208. Session archive total 419→162. All leases clean. $0.
+
+STATE RECONCILIATION (operator, this bank): Session B drained its queue — 2 promotions (CORSIA A42-22, EU MRV 2015-757 → verified-track; C's coverage_gap pending row can resolve, C-owned) + 21 reassignments to Session A's lane (drain_worklist, each with a recorded finding; several carry acquisition/conflation flags — READ the annotation before working). B self-activates on unclaimed rows.
+
+NEXT (Session A, my sequencing): (1) the 21 B-reassignments — read each drain_worklist finding first. (2) Group ③ DELETE-side content-read bank (the confirm-archive source-descriptions above). (3) HOLD deep-reads + dup-checks. (4) smaller buckets (5 source_not_item done-triaged, dup_instrument survivor-IDs, null-reason 33, review_valuable). Toward archived zero (162).
