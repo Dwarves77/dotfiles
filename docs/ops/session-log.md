@@ -495,3 +495,49 @@ COUNTS: archived 170→162 (−8), quarantined 56→64 (+8), verified 208. Sessi
 STATE RECONCILIATION (operator, this bank): Session B drained its queue — 2 promotions (CORSIA A42-22, EU MRV 2015-757 → verified-track; C's coverage_gap pending row can resolve, C-owned) + 21 reassignments to Session A's lane (drain_worklist, each with a recorded finding; several carry acquisition/conflation flags — READ the annotation before working). B self-activates on unclaimed rows.
 
 NEXT (Session A, my sequencing): (1) the 21 B-reassignments — read each drain_worklist finding first. (2) Group ③ DELETE-side content-read bank (the confirm-archive source-descriptions above). (3) HOLD deep-reads + dup-checks. (4) smaller buckets (5 source_not_item done-triaged, dup_instrument survivor-IDs, null-reason 33, review_valuable). Toward archived zero (162).
+
+## 2026-07-17 — Session A (B-reassignment bank 1 / drain bank 5): SW-1 jurisdiction collisions fixed + full 54-item B-queue disposition plan
+
+Session B handed off 54 items to lane A (drain_worklist, assigned_by=session-B) — more than the stated 21 (21 = B's latest batch; 54 = B's full handoff). All lane A, quarantined, each with a precise finding. Read all 54.
+
+EXECUTED THIS BANK — SW-1 jurisdiction-collision class (the cheapest moment = at handling), $0, guarded+snapshotted+read-back-confirmed (scripts/_reground/jurisdiction-collision-fix.mjs):
+- Canada Clean Fuel Regs 5b2c6655: iso ["US-CA"]→["CA"] (Canada, NOT California — NEW collision member).
+- Colombian Ministry of Transport 3e9c3ebe: iso ["US-CO"]→["CO"] (Colombia, not Colorado).
+- India National Logistics Policy beae0a7e: iso ["US-IN"]→["IN"] (India, not Indiana).
+- Japan Customs ad4cc6c6: ["AE","BD","JP"]→["JP"] (dropped UAE+Bangladesh pool-conflation).
+ROOT CAUSE found: jurisdictions (text) was CORRECT while jurisdiction_iso was WRONG → the derivation fn
+_derive_jurisdiction_iso_from_canonical maps country CA/IN → US-state US-CA/US-IN. SW-1 corpus-wide fix is a
+DERIVATION-FUNCTION migration; per-row fixes close the live instances. Sweep-ledger SW-1 updated (CA added).
+
+DISPOSITION PLAN for the remaining 50 (next banks; sequenced by $0-actionability):
+$0 RELABELS (item_type/format mis-set, unambiguous): IPCC Climate Reports (regulation→research_finding), UAE
+National Net Zero (regulation→framework), IPCC 2nd-Order Draft (keep research_finding, MONITORING pre-pub).
+Needs proper relabel path (item_type + format_type re-pin) — not a raw column edit.
+DEDUP (confirm survivor, merge-tombstone): UAE National Hydrogen Strategy-Transport vs UAE Hydrogen
+Implementation (same pool[0]); Japan GX League (possible dup) — confirm then merge.
+INTEGRITY FLAGS (title claim unsupported — do NOT ground, review for archive/re-ground): India NLP Carbon
+(claim + confidentiality), China National Carbon Market Extension (claim + roadblock), UAE Hydrogen
+Implementation (claim + roadblock). Highest-priority review class.
+PORTAL/HUB/OVERVIEW re-point-or-reclassify (portal-source defect, task #8 class): GHG Protocol, Green Building
+Standards, IMO Air Pollution overview-hub, Oregon DEQ Central Hub, Brazil Logística Reversa, Nashville programs
+hub, Washington WAC code-index, SBTi org-homepage, IDB topic-page, UK SECR, UK Transport Decarb, IMO Net-Zero
+(press-briefing capture). Re-point needs acquisition (spend-gated) OR reclassify-to-source.
+ACQUISITION-BLOCKED HOLDS (roadblock/paywall/zero-staged-primary — spend-gated, RD-6 deferral): ISO 14083
+(paywalled), Japan GX (DNS/403 roadblock), ITF 2019 (roadblock+off-vertical), the ZERO-STAGED-PRIMARY set
+(Australia/Brazil/China Regional Ops Profiles, Blue Visby, ESMA MiCA, World Bank Carbon Pricing Dashboard —
+my bank-2 restores, pre-capture-standard). PAID grounding dead ($75 ceiling) → free-acquisition path or HELD.
+FRAMEWORK/PLANNING-DOC class (genuine, no instrument number — accept w/ GAP): Georgia Multimodal, BR National
+Logistics Plan, TxDOT, Wisconsin, ASEAN (currency/succession judgment), Singapore Green Plan 2030.
+"PROMOTED by session-B" (verify actual provenance_status — B's grounding wins): GLEC v3, ISSB IFRS S2, LA EWEO,
+Lei 12.305/2010, Zero-Emission World Heritage, CORSIA, EU MRV. If verified, close the drain_worklist row.
+SCOPE/STATUS JUDGMENT: UN SDGs 9&13 (scope), NY Truck&Motor Carrier (scope mismatch), Slovenia (status),
+Japanese MLIT (placeholder title), Japan GX Freight (wrong class), Japan Top Runner (repointed, kept), EEXI/CII
+(priority, gap-table). Colombia/CEC also carry non-jurisdiction defects (CEC wrong primary) beyond the iso fix.
+
+COUNTS: archived 162 / verified 208 / quarantined 64 unchanged (jurisdiction fixes don't move archive/prov).
+All leases clean. $0.
+
+NEXT: (1) the INTEGRITY-FLAG 3 (highest priority — unsupported title claims). (2) verify the "PROMOTED" set +
+close resolved drain_worklist rows. (3) $0 relabels via the proper relabel path. (4) dedup the UAE hydrogen pair.
+(5) Group ③ DELETE-side content-read bank (archived source-descriptions). Acquisition-blocked holds await the
+free-acquisition path / operator spend posture.

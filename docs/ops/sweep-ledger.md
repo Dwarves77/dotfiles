@@ -21,13 +21,25 @@ country codes that collide with US state postal codes include:
 `MO` (Macau↔Missouri), `MT` (Malta↔Montana), `NE` (Niger↔Nebraska), `PA` (Panama↔Pennsylvania),
 `VA` (Vatican↔Virginia), `VI` (Virgin Is.↔?), and the rest of the alpha-2 ∩ state-postal set.
 
-**Confirmed instances (4):**
-- Colombia / `US-CO` (Colorado) — class B flagged.
-- India / `US-IN` (Indiana) — class B flagged.
+**Confirmed instances (fixed as caught):**
 - Indonesia / `US-ID` (Idaho) — caught 2026-07-17 in the archive-endgame RESTORE jurisdiction check
   (ASEAN Transport Plan `g24`, `["MY","PH","SG","US-ID"]` → `["ID","MY","PH","SG"]`), fixed at restore.
-- (The GA-country / GA-state pair is the fourth letters-identical case; verify Georgia-Multimodal-Freight
+- Colombia / `US-CO` (Colorado) — Session B drain finding; FIXED 2026-07-17 (`3e9c3ebe` `["US-CO"]`→`["CO"]`).
+- India / `US-IN` (Indiana) — Session B drain finding; FIXED 2026-07-17 (`beae0a7e` `["US-IN"]`→`["IN"]`).
+- **Canada / `US-CA` (California)** — NEW collision member, Session B drain finding; FIXED 2026-07-17
+  (`5b2c6655` Canada Clean Fuel Regs `["US-CA"]`→`["CA"]`). `CA` (Canada) ↔ California is the highest-traffic
+  pair; add it to the collision set below.
+- (The GA-country / GA-state pair is the letters-identical case; verify Georgia-Multimodal-Freight
   (US-coded, correct) is not confused with any Georgia-country item.)
+- Also fixed 2026-07-17 (pool-conflation, not a country/state collision but same jurisdiction sweep):
+  Japan Customs `ad4cc6c6` `["AE","BD","JP"]`→`["JP"]` (UAE+Bangladesh wrongly pooled onto a Japan item).
+
+**ROOT CAUSE (found 2026-07-17 via the fixed instances).** These are NOT random mis-tags — `jurisdictions`
+(text) was CORRECT (`CA`, `IN`) while `jurisdiction_iso` was WRONG (`US-CA`, `US-IN`). So the bug is in the
+DERIVATION: `_derive_jurisdiction_iso_from_canonical` maps ISO country codes `CA`/`IN` → US-state codes
+`US-CA`/`US-IN`. The corpus-wide FIX is therefore a DERIVATION-FUNCTION migration (not just per-row edits) —
+audit `_derive_jurisdiction_iso_from_canonical` for every country-code→US-state mapping. That migration is the
+real SW-1 close; per-row fixes (above) close the live instances at their handling moment.
 
 **Detection query (mechanical shortlist, then per-item content confirmation).** Select every
 `intelligence_items` row whose `jurisdiction_iso` array contains a `US-XX` token where `XX` is in the
