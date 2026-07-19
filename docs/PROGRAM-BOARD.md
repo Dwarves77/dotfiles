@@ -877,6 +877,38 @@ out-of-repo-DDL class SW-2 and the reconciler-credential item track. Not this la
 sequencing (commit the migration before or with the live table, never after a consumer already needs it) is
 visible. No corrective action owed here beyond this note; 221 resolved the instance.
 
+### Census writer + four-contract multi-tag classifier (2026-07-19)
+
+The intake-census lane needs to PERSIST what it enumerates, and the mandate's step 3 is "classify every
+document against all four page contracts, multi-tag." Two operator rulings this session: (1) extend the
+classifier to a real four-contract verdict (not single-surface-from-item_type); (2) build the writer as its
+own tested PR before resuming the walk. Both done:
+
+- **Classifier (`first-fetch-classify.ts`):** `firstFetchClassify` now emits `surface_tags: string[]` — a
+  verdict against EACH of [regulations, operations, market_intel, research] independently, in the SAME Haiku
+  call (expanded prompt, no second call, no extra spend). Validated to the four allowed surfaces; empty on a
+  portal/uncertain verdict. Threaded through `CandidateOutcome.surfaceTags` in portal-harvest so the writer
+  gets it without re-classifying. Proven live: a CARB Cap-and-Invest regulation tagged `[regulations,
+  market_intel]`, a Volvo emissions settlement `[regulations, operations, market_intel]` — genuine multi-tag,
+  not a dominant-surface collapse.
+- **Writer (`census-writer.mjs`):** `writeCensusRows` upserts one `census_worklist` row per DISPOSITIONED
+  document on the `(source_id, document_url)` UNIQUE key (idempotent, resumable), under a per-source
+  `mutation_leases` lease (holder = lane id, so lanes A and C never write the same source concurrently — a
+  held lease is a REFUSAL, never a clobber). Disposition map: would_mint→would_mint, exists→dedup_hit,
+  would_reject→congruence_reject|invariant_reject (reason picks), not_an_item→hold (with the DB-required
+  hold_reason). `enumeration_status` set forward-only-safe (dry_run_complete / classified). Skipped/
+  inconclusive outcomes are counted and reported but NOT written — no census verdict yet, re-walkable, and
+  writing them would risk the forward-only status guard and clobber a prior disposition to null.
+- **Runner:** `--census-write [--lane A] [--shape <class>] [--cap-hit] [--created-by <id>]`, composes with
+  `--census-exclude` for a resumable walk. Proven end-to-end: 5 CARB rows written live (3 would_mint, 2 hold),
+  surface_tags + hold_reason + shape_class all correct in the table.
+- **Proof:** `census-writer.npmtest.mjs` 9/9 (disposition map, hold-requires-reason, forward-only status,
+  lease refusal, DB-error-not-swallowed, skipped-not-written) + `portal-harvest.npmtest.mjs` 15/15 (surfaceTags
+  threading unchanged the existing assertions). tsc clean.
+- **Minor B finding (logged, not this lane's):** migration 221's `COMMENT ON COLUMN ... shape_class` text
+  actually describes `dryrun_disposition` (a copy-paste slip); the CHECK constraints are correct, only the
+  comment is misplaced. Routes to B, cosmetic.
+
 ---
 
 ## Session B, resume sync, session-log reconciliation, census-lane mandate opened (2026-07-19)

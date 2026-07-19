@@ -119,6 +119,11 @@ export interface CandidateOutcome {
   itemId?: string | null;
   itemType?: string | null;
   title?: string | null;
+  /** The four-contract surface assessment from the classifier (census walk, 2026-07-19): which of
+   *  [regulations, operations, market_intel, research] this document informs. Carried so a census writer
+   *  can persist it to census_worklist.surface_tags without re-classifying. Empty for not_an_item / skipped
+   *  (no document-level classification produced a surface verdict). */
+  surfaceTags?: string[];
 }
 
 export interface ConsumeResult {
@@ -252,7 +257,7 @@ export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeO
   };
 
   let fetched = 0, classified = 0;
-  const mintable: Array<{ row: LedgerCandidate; seed: IntakeCandidate }> = [];
+  const mintable: Array<{ row: LedgerCandidate; seed: IntakeCandidate; surfaceTags: string[] }> = [];
 
   for (const row of candidates) {
     // 1 — FETCH (injected; inconclusive on failure — the fetchOk discipline: an unreadable fetch is
@@ -296,7 +301,7 @@ export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeO
     if (cls.entity_verdict !== "specific_document" || !cls.item_type) {
       const reason = `entity-gate: ${cls.entity_verdict} — ${cls.rationale || "not a specific document"}`;
       await stamp(row, "rejected", reason, null);
-      outcomes.push({ ledgerId: row.id, url: row.url, disposition: "not_an_item", reason, title: cls.title_candidate });
+      outcomes.push({ ledgerId: row.id, url: row.url, disposition: "not_an_item", reason, title: cls.title_candidate, surfaceTags: cls.surface_tags });
       continue;
     }
 
@@ -315,24 +320,24 @@ export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeO
       // Subject already minted — promote the ledger row to the existing item; NEVER re-ground here.
       const reason = `exists: subject already minted as ${dry.itemId} (idempotent — no re-ground)`;
       await stamp(row, "promoted", reason, dry.itemId);
-      outcomes.push({ ledgerId: row.id, url: row.url, disposition: "exists", reason, itemId: dry.itemId, itemType: seed.item_type, title: seed.title });
+      outcomes.push({ ledgerId: row.id, url: row.url, disposition: "exists", reason, itemId: dry.itemId, itemType: seed.item_type, title: seed.title, surfaceTags: cls.surface_tags });
       continue;
     }
     if (!dry.success) {
       const reason = `${dry.action ? `chokepoint:${dry.action}` : "entity-gate"} — ${dry.error ?? "rejected"}`;
       await stamp(row, "rejected", reason, null);
-      outcomes.push({ ledgerId: row.id, url: row.url, disposition: mode === "plan" ? "would_reject" : "rejected", reason, itemType: seed.item_type, title: seed.title });
+      outcomes.push({ ledgerId: row.id, url: row.url, disposition: mode === "plan" ? "would_reject" : "rejected", reason, itemType: seed.item_type, title: seed.title, surfaceTags: cls.surface_tags });
       continue;
     }
     if (mode === "plan") {
       outcomes.push({
         ledgerId: row.id, url: row.url, disposition: "would_mint",
         reason: `dry: ${dry.action ?? "minted"}${dry.flags?.length ? ` [${dry.flags.join(",")}]` : ""}`,
-        itemType: seed.item_type, title: seed.title,
+        itemType: seed.item_type, title: seed.title, surfaceTags: cls.surface_tags,
       });
       continue;
     }
-    mintable.push({ row, seed });
+    mintable.push({ row, seed, surfaceTags: cls.surface_tags });
   }
 
   // 6 — APPLY: the would-mint set runs the FULL cycle (stage → mint → ground → validate), then the
@@ -350,14 +355,14 @@ export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeO
       if (item.itemId) {
         const reason = `minted (${item.disposition})${item.reason ? `: ${item.reason}` : ""}`;
         await stamp(m.row, "promoted", reason, item.itemId);
-        outcomes.push({ ledgerId: m.row.id, url: m.row.url, disposition: "promoted", reason, itemId: item.itemId, itemType: m.seed.item_type, title: m.seed.title });
+        outcomes.push({ ledgerId: m.row.id, url: m.row.url, disposition: "promoted", reason, itemId: item.itemId, itemType: m.seed.item_type, title: m.seed.title, surfaceTags: m.surfaceTags });
       } else if (item.disposition === "rejected") {
         const reason = `${item.gate ?? "chokepoint"} — ${item.reason ?? "rejected"}`;
         await stamp(m.row, "rejected", reason, null);
-        outcomes.push({ ledgerId: m.row.id, url: m.row.url, disposition: "rejected", reason, itemType: m.seed.item_type, title: m.seed.title });
+        outcomes.push({ ledgerId: m.row.id, url: m.row.url, disposition: "rejected", reason, itemType: m.seed.item_type, title: m.seed.title, surfaceTags: m.surfaceTags });
       } else {
         // stage_failed (transient) — row stays 'candidate' for retry, reported not stamped.
-        outcomes.push({ ledgerId: m.row.id, url: m.row.url, disposition: "skipped", reason: `${item.disposition}: ${item.reason ?? ""}`, itemType: m.seed.item_type, title: m.seed.title });
+        outcomes.push({ ledgerId: m.row.id, url: m.row.url, disposition: "skipped", reason: `${item.disposition}: ${item.reason ?? ""}`, itemType: m.seed.item_type, title: m.seed.title, surfaceTags: m.surfaceTags });
       }
     }
   }

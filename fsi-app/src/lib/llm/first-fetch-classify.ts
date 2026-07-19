@@ -33,11 +33,18 @@ const CONTENT_MAX_CHARS = 6_000;
 //   - migration 101 CASE expression (lines 130-161)
 //   - fsi-app/src/lib/domains.ts domainForItemType()
 // Any change to the rule lands in all three places simultaneously.
-const FIRST_FETCH_HAIKU_SYSTEM_PROMPT = `You are a content classifier. Given source URL, source metadata, and a content excerpt, return STRICT JSON {"entity_verdict":"...","item_type":"...","domain":N,"relevance":N,"severity":"...","priority":"...","urgency_tier":"...","topic_tags":[],"jurisdictions":[],"title_candidate":"...","summary":"...","rationale":"..."}.
+const FIRST_FETCH_HAIKU_SYSTEM_PROMPT = `You are a content classifier. Given source URL, source metadata, and a content excerpt, return STRICT JSON {"entity_verdict":"...","item_type":"...","domain":N,"surface_tags":[],"relevance":N,"severity":"...","priority":"...","urgency_tier":"...","topic_tags":[],"jurisdictions":[],"title_candidate":"...","summary":"...","rationale":"..."}.
 
 entity_verdict: specific_document | portal | uncertain — THE FIRST DECISION. Is this page a SPECIFIC regulatory document/finding (a particular regulation, directive, rule, ruling, report) that should become one intelligence item, OR a PORTAL / navigational homepage / institution landing / index / "latest news" hub (e.g. a ministry or legislature home page) that is a SOURCE, not an item? Return "portal" for navigational/institution-landing content; "specific_document" only when the excerpt is one specific instrument or finding; "uncertain" when you genuinely cannot tell. NEVER guess "specific_document" to be safe — an honest "uncertain" is correct and required.
 
 item_type: regulation|directive|standard|guidance|technology|market_signal|regional_data|research_finding|innovation|framework|tool|initiative — only meaningful when entity_verdict=specific_document; omit (do not guess) when portal or uncertain.
+
+surface_tags: array of 0 to 4 values from [regulations, operations, market_intel, research] — the customer-facing surfaces this document would inform. Assess it against ALL FOUR contracts INDEPENDENTLY, and include EVERY surface that genuinely applies (multi-tag is expected and correct — do not collapse to a single dominant surface):
+  - regulations: binding compliance content — what is legally required, by when, at what cost, what to do.
+  - operations: per-region cost / feasibility / labor / materials / infrastructure intelligence for a jurisdictional operating decision (hire-vs-automate, lane choice).
+  - market_intel: a comparative or numerical market signal — a delta, trajectory, capital flow, or competitive/adjacent-industry lead-time signal.
+  - research: a horizon-scan finding — who is studying an emerging topic, its maturity, and how it shifts a planning assumption.
+A carbon-market REGULATION that also moves prices is [regulations, market_intel]. A regional cost dataset is [operations]. An academic emissions study is [research]. Return an EMPTY array only when entity_verdict is portal/uncertain OR the document genuinely fits no customer surface. This is INDEPENDENT of item_type: a document has ONE item_type but may inform SEVERAL surfaces.
 severity: ACTION REQUIRED|COST ALERT|WINDOW CLOSING|COMPETITIVE EDGE|MONITORING
 priority: CRITICAL|HIGH|MODERATE|LOW
 urgency_tier: watch|elevated|stable|informational
@@ -89,6 +96,13 @@ export interface FirstFetchClassifyOutput {
    *  classifier could not route. Insert sites MUST pass NULL through to
    *  the column (no silent coercion to 1). */
   domain: Domain | null;
+  /** The four-contract surface assessment (census walk, 2026-07-19): which of
+   *  [regulations, operations, market_intel, research] this document would inform,
+   *  assessed against EACH contract independently. Multi-tag by design (a document
+   *  has one item_type but may inform several surfaces). Empty when portal/uncertain
+   *  or no surface fits. Values are validated to the four allowed surfaces; anything
+   *  else is dropped. Maps directly to census_worklist.surface_tags. */
+  surface_tags: string[];
   /** Fork-4 freight-sustainability relevance 0-100, or null if the model omitted it.
    *  SURFACE-ONLY: the mint chokepoint flags low values, it never blocks a mint. */
   relevance: number | null;
@@ -144,6 +158,7 @@ export async function firstFetchClassify(
         entity_verdict: "uncertain",
         item_type: null,
         domain: null,
+        surface_tags: [],
         relevance: null,
         severity: "monitoring",
         priority: "LOW",
@@ -251,6 +266,12 @@ Output the JSON object only.`;
   if (domain === null && item_type) {
     domain = domainForItemType(item_type, input.source_category ?? null);
   }
+  // surface_tags: validated to the four allowed customer surfaces (drop anything else). Empty when the
+  // model omitted it, or on a portal/uncertain verdict (a non-document informs no customer surface).
+  const ALLOWED_SURFACES = new Set(["regulations", "operations", "market_intel", "research"]);
+  const surface_tags = entity_verdict === "specific_document" && Array.isArray(parsed.surface_tags)
+    ? [...new Set((parsed.surface_tags as unknown[]).filter((t): t is string => typeof t === "string" && ALLOWED_SURFACES.has(t)))]
+    : [];
   const relevance = typeof parsed.relevance === "number" && isFinite(parsed.relevance)
     ? Math.max(0, Math.min(100, Math.round(parsed.relevance)))
     : null;
@@ -275,6 +296,7 @@ Output the JSON object only.`;
       entity_verdict,
       item_type,
       domain,
+      surface_tags,
       relevance,
       severity,
       priority,
