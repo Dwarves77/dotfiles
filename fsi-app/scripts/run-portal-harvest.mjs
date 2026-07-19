@@ -110,7 +110,7 @@ if (DO_CONSUME) {
   };
   const result = await lib.consumePortalCandidates(sb, {
     mode: MODE, limit: LIMIT, sourceId: source.id, caller: lib.MANUAL_INTAKE_CALLER,
-    fetchDoc, anthropicKey: process.env.ANTHROPIC_API_KEY,
+    newestFirst: flag("newest"), fetchDoc, anthropicKey: process.env.ANTHROPIC_API_KEY,
   });
   console.log(`\nconsume [${result.mode}]: discovered=${result.discovered} fetched=${result.fetched} classified=${result.classified}`);
   const byDisp = {};

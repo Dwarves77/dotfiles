@@ -127,6 +127,8 @@ export interface ConsumeOpts {
   limit: number;
   /** Restrict to one portal source (proving-slice runs are per-source). */
   sourceId?: string;
+  /** Consume newest-first (freshest walk results) instead of the oldest-backlog default. */
+  newestFirst?: boolean;
   /** F16 signed caller threaded to fetch + grounding (manual runner passes manual-intake-run). */
   caller?: string | null;
   fetchDoc: FetchDocFn;
@@ -166,7 +168,7 @@ export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeO
     .from("portal_link_candidates")
     .select("id,url,anchor_text,source_id,sources(name,category,base_tier)")
     .eq("status", "candidate")
-    .order("first_seen_at", { ascending: true })
+    .order("first_seen_at", { ascending: !opts.newestFirst })
     .limit(limit);
   if (sourceId) q = q.eq("source_id", sourceId);
   const { data: rows, error: qErr } = await q;
