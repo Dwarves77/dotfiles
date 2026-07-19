@@ -952,3 +952,34 @@ rollup tables and logs current against live state, not hand-maintained.
 required waiting on a separate merge, so it landed as a follow-up commit on the same open branch rather
 than opening a second PR for two commits from the same dispatch). Session B now stands on Task 2: idle,
 self-activating on the first `census_worklist` row Sessions A or C write.
+
+---
+
+## Session B, discipline correction + census rollup stitch LANDED (2026-07-19)
+
+**Correction.** Operator flagged `census_worklist` reaching production via `apply_migration` with no
+committed migration file at the time. Verified, not assumed: the file existed and was already merged (PR
+#361) by the time of the correction, and fresh introspection confirmed zero drift from live. The real gap
+was a roughly 20-25 minute window between the live apply and the commit reaching master, long enough for a
+concurrent consumer to hit it: PR #362 shows a session that built against a guessed shape and had to
+re-point once the real one landed. Third process finding of the census lane in one day (session-log fork;
+a background-truncation finding named by the operator; this one). Full account:
+`docs/ops/session-log.md`, 2026-07-19.
+
+**Migration 222, two parts.** PART 1 retroactively captures `coverage_gap_census_findings` (Session C's
+table, same DDL-before-migration gap, closed for reproducibility, ownership stays with C). PART 2:
+`census_rollup_by_surface`, the view `census_worklist`'s own header committed Session B to owning. Built
+against Session C's posted schema-stitch spec (commit `b5185b6d`), verified independently before building:
+`census_worklist.source_id` is `NOT NULL`, a structural grain mismatch with `coverage_gap_census_findings`
+(candidate sources not yet held), confirmed live (zero of C's 81 rows match a registered source). No merge
+forced; the view normalizes both to a per-surface reporting projection, `pending_on_session_a` carried as
+its own visible column per C's explicit ask, never folded into "missing."
+
+**Live and verified against real data.** `regulations` 20 enumerated-world / 18 missing / 1 pending-on-A /
+1 declined-or-parked (`census_worklist`-side all 0, table still empty); `operations` 18/18/0/0;
+`market_intel` 5/3/0/2; `research` 3/3/0/0. `docs/census/gap-census-2026-07.md` gained a schema-reference
+section (columns for both tables + the view, so no future consumer introspects `pg_catalog`) and the live
+snapshot in its rollup table.
+
+**Standing posture.** Session C idle, mandate closed. Session B resumes Task 2, self-activating on the
+first `census_worklist` row Session A writes.
