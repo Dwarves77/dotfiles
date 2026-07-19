@@ -1159,3 +1159,61 @@ The `fsi-app/` fork will not be written again. Session B now proceeds to the cen
 `census_worklist` migration) under this file's discipline.
 
 Lease state (session D): none taken, none held. Corpus/drain_worklist: untouched. $0.
+
+## 2026-07-19, Session B: discipline correction (direct DDL before committed migration), then the census rollup stitch
+
+**Correction, executed as directed.** The operator flagged that `census_worklist` reached production via
+`apply_migration` with no committed migration file at the time, so `dev` and `prod` briefly diverged from
+the repo. Verified rather than assumed: the migration file (`fsi-app/supabase/migrations/221_census_
+worklist.sql`) was in fact written before the live apply and committed the same session (PR #361, merged
+2026-07-19T21:08Z), so by the time of the correction the file already existed, was already merged, and
+fresh introspection confirmed it matches the live table exactly (columns, constraints, indexes, all
+verified, zero drift). The real gap was narrower than "no committed file exists": a real window, roughly
+20 to 25 minutes, between the live apply and the commit reaching master, during which the schema was live
+but unversioned. That window was long enough for a concurrent consumer to hit it: PR #362
+(`fix(intake): re-point censusExclusion to the real census_worklist shape`) shows a session that built
+against a guessed `{candidate_id, census_run_id}` shape before the real one landed, and had to redo the
+work once it did. Real consumer cost, real finding, corrected same day, no defensiveness. This is the
+third process finding of the census lane in one day (the fsi-app session-log fork; a background-truncation
+finding named by the operator, not this session's own investigation; and this one).
+
+**Standing fix, not just this instance.** Investigating further surfaced the identical gap on Session C's
+side: `coverage_gap_census_findings` (81 live rows, Session C's discovery-lane table) also had no
+committed migration anywhere in history. Migration 222 closes both in one PR: PART 1 retroactively
+captures `coverage_gap_census_findings` (verified by fresh introspection, not memory; `CREATE TABLE IF NOT
+EXISTS` so it is a no-op if Session C's own migration for it lands separately, never a conflict; authorship
+and ownership stay with Session C, this is a reproducibility service, not a design claim).
+
+**The rollup stitch (PART 2, migration 222): `census_rollup_by_surface`.** Session C closed its mandate and
+posted a schema-stitch coordination note (commit `b5185b6d`, `docs/ops/session-log.md` and `PROGRAM-BOARD.
+md` on Session C's branch), read in full and treated as the spec per operator instruction. Key finding,
+verified independently before building anything: `census_worklist.source_id` is `NOT NULL REFERENCES
+sources(id)`, a STRUCTURAL grain mismatch, not a naming one. `census_worklist` models documents inside an
+already-held source; `coverage_gap_census_findings` models candidate sources not yet held. Confirmed live:
+zero of Session C's 81 rows match a registered `sources` row by URL. No merge was forced. The view
+normalizes both to a common per-surface reporting projection instead: `held`/`missing_from_held_sources`
+read from `census_worklist`; `missing_from_world`/`pending_on_session_a` read from `coverage_gap_census_
+findings`, with `pending_dependency` counts carried as their own visible column, never folded silently into
+"missing" (Session C's explicit ask, honored). Alignment applied only where semantics genuinely match, per
+Session C's own finding: `lane` matches natively; `would_mint` is the one disposition value aligned across
+both vocabularies; the rest of each vocabulary (`census_worklist`'s dedup_hit/congruence_reject/
+invariant_reject/hold is a mechanical mint-chokepoint verdict; `coverage_gap_census_findings`'s
+would_decline/would_park/browser_required_undetermined/not_applicable is a fetch-light content-fit
+judgment) stays distinct rather than forced into one bucket, which would have lost real information on
+both sides. `four_contract_classification`'s live jsonb shape was verified against real rows before
+writing the unnest logic (`{"regulations": {"verdict": "IN"|"OUT", "reason": ...}, ...}`, Community
+correctly absent), not assumed from the session-log description alone.
+
+Applied live via `apply_migration`, verified against real data: `regulations` enumerated_world=20/
+missing_from_world=18/pending_on_session_a=1/declined_or_parked_world=1 (sums consistent), `operations`
+18/18/0/0, `market_intel` 5/3/0/2, `research` 3/3/0/0; every `census_worklist`-side column reads 0,
+correctly, since the table is still empty. `docs/census/gap-census-2026-07.md` (Task 3) updated: a schema
+reference section (so no future consumer introspects `pg_catalog` for either table's shape or the view's
+columns), the per-surface rollup table populated with this live snapshot, and the "how to read" section
+corrected to name `coverage_gap_census_findings` as the real Missing-from-the-world source rather than the
+unrelated `coverage_gap_candidates` table it previously pointed to.
+
+**Standing posture, unchanged.** Session C is idle, its mandate closed; no further coordination needed
+unless the operator reopens it. Session B resumes Task 2 (dedup/rollup/flag-back), self-activating on the
+first `census_worklist` row Session A writes. Lease state (session B): clean. Spend: $0 (migrations +
+introspection only, no fetching, no metered grounding).

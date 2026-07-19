@@ -877,6 +877,38 @@ out-of-repo-DDL class SW-2 and the reconciler-credential item track. Not this la
 sequencing (commit the migration before or with the live table, never after a consumer already needs it) is
 visible. No corrective action owed here beyond this note; 221 resolved the instance.
 
+### Census writer + four-contract multi-tag classifier (2026-07-19)
+
+The intake-census lane needs to PERSIST what it enumerates, and the mandate's step 3 is "classify every
+document against all four page contracts, multi-tag." Two operator rulings this session: (1) extend the
+classifier to a real four-contract verdict (not single-surface-from-item_type); (2) build the writer as its
+own tested PR before resuming the walk. Both done:
+
+- **Classifier (`first-fetch-classify.ts`):** `firstFetchClassify` now emits `surface_tags: string[]` — a
+  verdict against EACH of [regulations, operations, market_intel, research] independently, in the SAME Haiku
+  call (expanded prompt, no second call, no extra spend). Validated to the four allowed surfaces; empty on a
+  portal/uncertain verdict. Threaded through `CandidateOutcome.surfaceTags` in portal-harvest so the writer
+  gets it without re-classifying. Proven live: a CARB Cap-and-Invest regulation tagged `[regulations,
+  market_intel]`, a Volvo emissions settlement `[regulations, operations, market_intel]` — genuine multi-tag,
+  not a dominant-surface collapse.
+- **Writer (`census-writer.mjs`):** `writeCensusRows` upserts one `census_worklist` row per DISPOSITIONED
+  document on the `(source_id, document_url)` UNIQUE key (idempotent, resumable), under a per-source
+  `mutation_leases` lease (holder = lane id, so lanes A and C never write the same source concurrently — a
+  held lease is a REFUSAL, never a clobber). Disposition map: would_mint→would_mint, exists→dedup_hit,
+  would_reject→congruence_reject|invariant_reject (reason picks), not_an_item→hold (with the DB-required
+  hold_reason). `enumeration_status` set forward-only-safe (dry_run_complete / classified). Skipped/
+  inconclusive outcomes are counted and reported but NOT written — no census verdict yet, re-walkable, and
+  writing them would risk the forward-only status guard and clobber a prior disposition to null.
+- **Runner:** `--census-write [--lane A] [--shape <class>] [--cap-hit] [--created-by <id>]`, composes with
+  `--census-exclude` for a resumable walk. Proven end-to-end: 5 CARB rows written live (3 would_mint, 2 hold),
+  surface_tags + hold_reason + shape_class all correct in the table.
+- **Proof:** `census-writer.npmtest.mjs` 9/9 (disposition map, hold-requires-reason, forward-only status,
+  lease refusal, DB-error-not-swallowed, skipped-not-written) + `portal-harvest.npmtest.mjs` 15/15 (surfaceTags
+  threading unchanged the existing assertions). tsc clean.
+- **Minor B finding (logged, not this lane's):** migration 221's `COMMENT ON COLUMN ... shape_class` text
+  actually describes `dryrun_disposition` (a copy-paste slip); the CHECK constraints are correct, only the
+  comment is misplaced. Routes to B, cosmetic.
+
 ---
 
 ## Session B, resume sync, session-log reconciliation, census-lane mandate opened (2026-07-19)
@@ -964,3 +996,34 @@ rollup tables and logs current against live state, not hand-maintained.
 required waiting on a separate merge, so it landed as a follow-up commit on the same open branch rather
 than opening a second PR for two commits from the same dispatch). Session B now stands on Task 2: idle,
 self-activating on the first `census_worklist` row Sessions A or C write.
+
+---
+
+## Session B, discipline correction + census rollup stitch LANDED (2026-07-19)
+
+**Correction.** Operator flagged `census_worklist` reaching production via `apply_migration` with no
+committed migration file at the time. Verified, not assumed: the file existed and was already merged (PR
+#361) by the time of the correction, and fresh introspection confirmed zero drift from live. The real gap
+was a roughly 20-25 minute window between the live apply and the commit reaching master, long enough for a
+concurrent consumer to hit it: PR #362 shows a session that built against a guessed shape and had to
+re-point once the real one landed. Third process finding of the census lane in one day (session-log fork;
+a background-truncation finding named by the operator; this one). Full account:
+`docs/ops/session-log.md`, 2026-07-19.
+
+**Migration 222, two parts.** PART 1 retroactively captures `coverage_gap_census_findings` (Session C's
+table, same DDL-before-migration gap, closed for reproducibility, ownership stays with C). PART 2:
+`census_rollup_by_surface`, the view `census_worklist`'s own header committed Session B to owning. Built
+against Session C's posted schema-stitch spec (commit `b5185b6d`), verified independently before building:
+`census_worklist.source_id` is `NOT NULL`, a structural grain mismatch with `coverage_gap_census_findings`
+(candidate sources not yet held), confirmed live (zero of C's 81 rows match a registered source). No merge
+forced; the view normalizes both to a per-surface reporting projection, `pending_on_session_a` carried as
+its own visible column per C's explicit ask, never folded into "missing."
+
+**Live and verified against real data.** `regulations` 20 enumerated-world / 18 missing / 1 pending-on-A /
+1 declined-or-parked (`census_worklist`-side all 0, table still empty); `operations` 18/18/0/0;
+`market_intel` 5/3/0/2; `research` 3/3/0/0. `docs/census/gap-census-2026-07.md` gained a schema-reference
+section (columns for both tables + the view, so no future consumer introspects `pg_catalog`) and the live
+snapshot in its rollup table.
+
+**Standing posture.** Session C idle, mandate closed. Session B resumes Task 2, self-activating on the
+first `census_worklist` row Session A writes.
