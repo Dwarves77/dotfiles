@@ -1,18 +1,12 @@
-// Shared Haiku classification module.
+// Shared Haiku SOURCE-verification module (D1 header fix, 2026-07-19: the
+// former haikuClassify content classifier was removed 2026-05-11 — content
+// classification lives in src/lib/llm/first-fetch-classify.ts).
 //
-// Two exports:
+// One export:
 //   - haikuVerifyCandidate  used by src/lib/sources/verification.ts to
 //                           triage discovered candidate URLs into the
 //                           H/M/L verification tiers (relevance, freight
 //                           score, trust tier).
-//   - haikuClassify         used by Wave 1a content classification on
-//                           successful raw_fetches: maps raw HTML to
-//                           item_type, severity, priority, urgency_tier,
-//                           topic_tags, and a brief title/summary.
-//
-// Both share the Anthropic SDK client setup, the Haiku model constant,
-// the JSON-from-prose extraction regex, the score clamping helper, and
-// the typed-error envelope return shape.
 
 import Anthropic from "@anthropic-ai/sdk";
 
