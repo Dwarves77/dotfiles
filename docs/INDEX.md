@@ -162,6 +162,10 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [master-gap-register](./ops/full-system-audit-2026-07-11/master-gap-register.md) — FULL-SYSTEM AUDIT 2026-07-11 (13 agents, coverage PROVEN: 1,348 code files / 85 tables / 63 fns / 183 policies): 12 P1s (org-gate loss, silent-empty provisional queue, profiles no-op writes, seed-on-timeout...), P2/P3/P4 registers, intent verdicts (9× PARTIAL), 62-item pool table (45/8/9), invariant backlog. Plan: [correction-plan](./ops/full-system-audit-2026-07-11/correction-plan.md) (Tracks A–E, build-first lens).
 - [multi-tenant-foundation-followups-2026-05-15](./ops/multi-tenant-foundation-followups-2026-05-15.md) — Multi-Tenant Foundation Follow-Ups, 2026-05-15
 
+## census
+
+- [gap-census-2026-07](./census/gap-census-2026-07.md) — Converging full-corpus gap census (skeleton, 2026-07-19): per surface, enumerated/held/missing-from-held-sources (Session A)/missing-from-the-world (Session C), cap-hit sources, rollup tallies, flag-back and dedup logs. Data layer is `census_worklist` (mig 221, [migrations](./inventories/migrations.md)). Rank fields present, empty until operator review.
+
 ## design
 
 - [decision-package-2026-07-06](./design/decision-package-2026-07-06.md) — Decision Package — 52 live non-verified items (read-only)
