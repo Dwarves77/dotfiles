@@ -1062,4 +1062,100 @@ Commits on this push (`corpus-integrity/cc-grounding-executor-d`): `048669a9` (f
 above), `47a14a0e` (wt-audit registration), `763c4321` (Path-cell format fix), plus the C4 root-cause fix and a
 PROGRAM-BOARD.md entry landing alongside this log entry. No Consistency-Override trailer used on any commit.
 
+## 2026-07-19, Session B: reconciled from fsi-app fork, work of 2026-07-17/18, per the two-file correction ruling
+
+This entry carries Session B's genuinely missing delta from `fsi-app/docs/ops/session-log.md` (the deprecated
+fork, per the 2026-07-18 TWO-FILE correction above) into this canonical file, through the reconciliation door
+that correction established. It is not ordinary new content, it is backfill, verified against this file first
+so nothing already carried gets duplicated.
+
+**Verification performed before writing this entry:** read this file's 2026-07-18 Session A restart entry (line
+624) and bank-4/5/6 entries (lines 517, 684, 754) in full. Confirmed: Session A's restart reconciliation
+snapshot (`drain_worklist` 64 rows) predates Session B's final fork batch (which grew the worklist 56→66,
+processing the 10 newest rows), so the restart entry could not have carried this batch's outcome. Confirmed the
+8 items Session A restored in review-lane bank 4 (China's Environmental Code, Florida DEP Ch 62-210, NC EO
+80/246, NY DEC Framework, International Roadcheck 2026, Colorado/Iowa/Louisiana DOT Operations profiles) and
+the review-lane bank 5 restores (CDP Supply Chain, MIT CTL) are the same 10 items Session B's fork batch
+processed. This file already carries their RESTORATION in full detail; it does not yet carry Session B's
+subsequent PROCESSING of them (instrument-id stamps, repoints, reassignment findings). Grepped this file for
+every specific finding below (instrument identifiers, item names): zero prior mentions. **Everything in
+Session B's earlier fork banks (banks 3 through the intake-drain relaunch's "queue fully drained" close, and
+the NCAER containment bank) is EXCLUDED here as already-carried**, since the 2026-07-18 correction entry states
+this file already holds the richer detail for those banks, and this file's own NCAER section 6-8 (in
+`docs/compliance/confidentiality-incident-2026-07-17-ncaer.md`) independently re-verified and closed that
+incident already. Only the delta below was missing.
+
+**Session B, fsi-app-fork final batch (processed 2026-07-17/18, never landed here until now):**
+
+Operator queue-scan dispatch surfaced the 10 items above as newly unclaimed in `drain_worklist`. Leased,
+id-confirmed against the true declared primary before any stamp (standing methodology from earlier in the
+session: verify the designation directly against the specific true-primary block's raw text, not a looser
+pool-union check), three-exit clearance run on each.
+
+**Promoted (3), mechanical repoint-then-stamp or stamp-in-place, id-confirmed via raw-id match:**
+- **New York DEC "Regulatory Framework" (5511a87f).** Declared primary was the generic DEC regulatory hub
+  (no designation). A same-host, more specific pool block (`.../air-pollution-regulatory-revisions`) carried
+  "6 NYCRR Part 253 — Mandatory Greenhouse Gas Reporting Program" verbatim (adopted, not proposed). Repointed
+  `source_url` to that block under the same `source_id` (mechanical, no new source registration), then
+  id-stamped `instrument_identifier = "Part 253"`. Re-verified independently: raw-id match, confirmed. 0
+  mechanical clearance exits (37 claims); 4 relabel-manual residuals left live for the next judgment pass.
+- **Florida DEP Notice of Proposed Rulemaking (5b9b05c7).** Declared primary was the generic `/air` hub. A
+  same-host pool block (`.../notice-proposed-rulemaking`) carried both "62-210" and "SM-80" verbatim: the
+  actual NOPR page matching the item's own title. Repointed + id-stamped `"62-210"`. Raw-id confirmed. 0
+  mechanical exits (48 claims); 12 relabel-manual residuals.
+- **North Carolina Transportation Sector Climate Action, EO 80 & 246 (cd5c84e3).** Declared primary already
+  contained both "Executive Order 80" and "Executive Order 246" verbatim, no repoint needed. id-stamped
+  `"EO 246"` directly. Raw-id confirmed. 0 mechanical exits (39 claims); 10 relabel-manual residuals.
+
+**Reassigned (7), genuine judgment or a slot-fill/regen gap outside mechanical clearance scope, each with a
+concrete finding rather than a bare not-id-confirmed classification:**
+- **CDP Supply Chain (c9/d30bc25d), MIT Center for Transportation & Logistics (r1/c2e45859).** Zero staged
+  pool rows on both: no primary capture exists despite the restore; reassigned without acquiring, per the
+  standing phase rule for restores that predate the capture standard. NOTE: the `r1` legacy-id lookup hit the
+  known uuid-prefix-collision bug in `scripts/_reground/lease.mjs` (matched `r16` instead of exact `r1`),
+  caught before touching the wrong item, released, re-acquired by exact uuid. Third instance this session (c4,
+  a1, now r1); flagged again below as a findings item.
+- **China's Environmental Code (27dfbe4c).** Wrong primary: declared source is a think-tank commentary site
+  (cciced.eco), not the NPC/legislature or an official gazette. No verbatim formal designation reachable in
+  that primary: the one "Order No. 12" hit in the pool is a false lead, belonging to an unrelated MEE
+  chemical-registration rule. Leads recorded for the next acquisition: Chinese name "生态环境法典" confirmed,
+  NPCSC reviewed April 2025, one secondary source claims an effective date of January 1 2026, and an
+  unverified `samr.gov.cn` pool row (170KB) may carry the real promulgated text under a different host that
+  would need its own tier judgment, not a same-source repoint.
+- **Iowa DOT Freight Planning (496340f0), International Roadcheck 2026 (ab362011).** Primaries correct (Iowa:
+  exact match already; Roadcheck: repointed from a generic FreightWaves category-listing page to the actual
+  on-topic article, same host, kept as a real improvement). Both items are blocked solely by
+  `missing_required_slot` (`region_jurisdiction` / `signal_event` respectively). Zero mechanical clearance
+  candidates; a slot-fill/regen gap outside `drain-clear`'s scope, same class as the AFDC regen gap Session A
+  had already flagged on restore.
+- **Colorado DOT Environmental Programs (67434312).** Primary correct, zero mechanical exits. Sole blocker
+  `unlabeled_assertion` (criterion 4) traced to its exact source: the binding-verb regex (`\brequires\b`) is
+  firing on an editorial table-cell note in the "New Sources Identified" table ("...but requires labeling as
+  industry/NGO interpretation..."), not a real regulatory assertion. Per `relabel-unlabeled.mjs`'s own design
+  comment, a binding verb inside a table row is never relabeled; this needs the 4c LLM-judge/regen pass
+  (spend, outside Session B's zero-spend mandate) or a rephrase of that one cell.
+- **Louisiana State Freight Plan 2024 (595117e9).** Declared `source_url` was never actually fetched into the
+  pool (zero matching row); the real freight-plan PDF is staged but roadblocked (53ch stub). Needs a real
+  `acquire-primary` pass, not mechanical clearance.
+
+Stale-lease sweep (per standing orders, folded into this activation): 0 leases held anywhere post-batch,
+nothing stale, nothing to take over.
+
+**Findings entry (divergence register): third instance of the fsi-app fork being written as canonical.** This
+merge is the third confirmed instance of a session writing real work to `fsi-app/docs/ops/session-log.md` as
+if it were the canonical log. The 2026-07-18 restart reconciliation above names two prior instances (its own
+restart's initial misdiagnosis, and Session B's independent 2026-07-17 containment-bank miss); this is a third,
+this time caught pre-commit at merge time rather than after the fact, when Session B's branch (47 commits
+behind master) was brought current and the fork's own deprecation header surfaced the mismatch during conflict
+resolution. Three independent misses against one advisory header is a pattern, not a fluke. The fork's
+continued existence, even deprecated, even headed, keeps inviting the same error, because nothing stops a
+write to that path; the header only helps a session that happens to read the file first. Recommend the
+operator consider a hard guard (a CI or pre-commit check that rejects any new commit touching
+`fsi-app/docs/ops/session-log.md`) rather than continuing to rely on the header alone. Recommendation only,
+not built in this PR, consistent with the SW-2 item already queued on the sweep ledger for the same root cause.
+
+**Going forward:** this file only, `docs/ops/session-log.md` at the repo root, per `CLAUDE.md` standing rule 6.
+The `fsi-app/` fork will not be written again. Session B now proceeds to the census-management mandate (Task 1:
+`census_worklist` migration) under this file's discipline.
+
 Lease state (session D): none taken, none held. Corpus/drain_worklist: untouched. $0.
