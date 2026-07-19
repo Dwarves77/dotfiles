@@ -13,6 +13,14 @@
 // Usage:
 //   node scripts/run-portal-harvest.mjs --source <uuid | url-substring> [--harvest] [--consume]
 //        [--mode plan|apply] [--limit 25] [--render]
+//        [--after "firstSeenAt|id"] [--census-run <uuid>]
+//
+// PLAN-MODE PAGINATION (census walk, 2026-07-19): plan mode never marks a candidate consumed, so repeated
+// calls with the same --source re-read the same oldest-N rows. --after resumes past a KEYSET cursor
+// (first_seen_at, id) — never an offset, which is positional and drifts if the ledger grows mid-walk. Each
+// run prints the next cursor to pass forward. --census-run <uuid> additionally excludes candidates already
+// recorded against that census run in census_worklist (feature-detected; a no-op until that table lands).
+// Read-only, plan-mode-only: touches no gate, mint, or grounding logic.
 //
 // Env (source .env.local first): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
 // ANTHROPIC_API_KEY (+ BROWSERLESS_API_KEY only with --render).
@@ -108,9 +116,17 @@ if (DO_CONSUME) {
     if (v.outcome !== "content") throw new Error(`no content (${v.reason ?? v.outcome})`);
     return { text: v.text, transport: v.transport };
   };
+  // KEYSET PAGINATION (plan-mode only, 2026-07-19): --after "firstSeenAt|id" resumes strictly past that
+  // ledger position; the run prints --after for the next chunk on stdout. Never an offset (positional,
+  // drifts under a moving ledger) — a keyset cursor names a fixed point in (first_seen_at, id) order.
+  const afterRaw = opt("after", null);
+  const after = afterRaw ? (([firstSeenAt, id]) => ({ firstSeenAt, id }))(afterRaw.split("|")) : null;
+  const censusRunId = opt("census-run", null);
+  const censusExclusion = censusRunId ? { table: "census_worklist", runId: censusRunId } : null;
+
   const result = await lib.consumePortalCandidates(sb, {
     mode: MODE, limit: LIMIT, sourceId: source.id, caller: lib.MANUAL_INTAKE_CALLER,
-    newestFirst: flag("newest"), fetchDoc, anthropicKey: process.env.ANTHROPIC_API_KEY,
+    newestFirst: flag("newest"), after, censusExclusion, fetchDoc, anthropicKey: process.env.ANTHROPIC_API_KEY,
   });
   console.log(`\nconsume [${result.mode}]: discovered=${result.discovered} fetched=${result.fetched} classified=${result.classified}`);
   const byDisp = {};
@@ -121,5 +137,10 @@ if (DO_CONSUME) {
   }
   if (result.cycle) {
     console.log(`\ncycle: staged=${result.cycle.staged} minted=${result.cycle.minted} rejected=${result.cycle.rejected} verified=${result.cycle.verified} groundFailed=${result.cycle.groundFailed}`);
+  }
+  if (result.nextCursor) {
+    console.log(`\nnextCursor (source exhausted? NO — more candidates remain): --after "${result.nextCursor.firstSeenAt}|${result.nextCursor.id}"`);
+  } else {
+    console.log(`\nnextCursor: none — this source's ledger is exhausted at this chunk (fewer than --limit ${LIMIT} rows read).`);
   }
 }

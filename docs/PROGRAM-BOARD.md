@@ -784,3 +784,64 @@ The fourth and final build. PR feat/b4-change-sweep. Retrieval-first paid off: v
   defect surfacing through the new lens; no false flip, no spend, lock holds).
 
 Build scoreboard: B1 #354 / B2 #355 / B3 #356 / population+holdings-fix #357 / B4 this PR.
+
+---
+
+## Session A (resumed, intake-census lane) — keyset pagination for plan-mode consume (2026-07-19)
+
+New mandate (operator, this session): enumerate the full document universe of every held source
+(~209 verified-backing sources), disposition every document through the real chokepoint's dryRun.
+Measurement only — zero corpus writes, zero real mints, zero grounding. Drain queue (66 rows) and the
+relabel-primitive spec REMAIN PARKED, untouched, separate mandate (Session E's audit still holds that lane).
+
+**Environment finding (logged for the record): `run_in_background` is unusable for long-running consume
+jobs.** Two 500-candidate `consumePortalCandidates` plan-mode runs, backgrounded via the Bash tool, died
+silently after printing only the source-resolution header line — no error, no stack trace, no partial
+per-candidate output — despite a "completed" notification. A foreground run of the same command with an
+explicit long timeout completed correctly end to end (50 candidates in 4m03s, ≈4.9s/candidate: one fetch +
+one Haiku classify + one dry-mint check each). Root cause not fully isolated (background stdout buffering
+vs. an environment-specific process timeout shorter than requested); the finding is empirical and
+reproducible, not theorized. **Going forward: foreground chunks only for this census, sized to stay well
+under the tool's timeout ceiling (50-60 candidates, ~5 min).** Also found and killed one orphaned duplicate
+EUR-Lex consume process from an earlier mistracked background attempt — correctness unaffected (plan mode
+never writes; the only cost was small duplicate Haiku spend), logged for the record per operator instruction.
+
+**Root problem this surfaced: plan mode has no pagination.** `consumePortalCandidates` in plan mode never
+marks a candidate consumed (the disposition stamp is `apply`-only by design), so repeated calls against the
+same source re-read the identical oldest-N candidates forever — no way to reach candidate 51-500 of a
+501+-candidate source (EUR-Lex enumerated **1098 candidates in a single 30-day window alone** — itself
+census data, recorded). Foreground chunking alone doesn't fix this without a way to advance past what was
+already read.
+
+**Fix: keyset pagination, not offset (operator-specified).** Offset is positional — it shifts under a
+walk if new candidates land mid-run, silently skipping or double-reading rows at chunk boundaries. Keyset
+names a fixed point in a stable total order and is immune to that drift; it also matches the drain-loop
+pattern already used elsewhere in this codebase.
+
+- `consumePortalCandidates` now orders by `(first_seen_at, id)` and accepts `opts.after: {firstSeenAt, id}`
+  — a `.or()` filter (`first_seen_at.gt.X OR (first_seen_at.eq.X AND id.gt.X)`, `.lt` under `newestFirst`)
+  resumes strictly past that keyset position. Returns `nextCursor` (the last row's own keyset position) when
+  the chunk was full (more may remain); omits it when the chunk came up short (source exhausted at this
+  cursor).
+- `opts.censusExclusion: {table, runId}` additionally excludes candidates already recorded against a census
+  run, once `census_worklist` lands (Session B's build) — a prior `SELECT candidate_id` + `.not("id","in",...)`
+  (no native cross-table anti-join in the query builder). **Feature-detected, fails CLOSED to no exclusion**
+  when the table doesn't exist yet — cursor-only fallback, never a hard dependency, never a throw.
+- CLI: `scripts/run-portal-harvest.mjs --consume` gained `--after "firstSeenAt|id"` and `--census-run <uuid>`;
+  every run prints the next cursor to pass forward (or "exhausted" when there is none).
+
+**Scope confirmed exactly as specified: plan-mode-only, read-only.** Changes only which page of
+already-persisted `portal_link_candidates` rows a plan-mode call reads. Touches no gate, no mint logic, no
+grounding, no apply-mode code path (apply mode is untouched — it doesn't need a cursor, its disposition
+stamp already advances the ledger). Non-destructive: the query gains an `.order("id")` tiebreaker and an
+optional `.or()`/`.not()` filter; nothing about `.select()`, the fetch/classify/dry-mint sequence, or the
+apply-mode cycle changed.
+
+**Proof.** `portal-harvest.npmtest.mjs` 15/15 (7 existing unchanged + 8 new): keyset OR-filter shape
+(ascending `.gt`/descending `.lt`), no-filter on a fresh walk, `nextCursor` present-on-full/absent-on-short,
+census-exclusion applied-when-found/absent-when-empty/fails-closed-when-the-table-errors. Full suite 721/0,
+npmtests 61/0, meta-gate PASS (marker baselines unchanged — no new normative-language claim), tsc clean
+(pre-existing `.next/types` staleness from the Phase-3 route purges, unrelated, cleared locally).
+
+**Resume:** walk EUR-Lex from the top of the ledger with the cursor, foreground chunks, report at
+source-bank boundaries.

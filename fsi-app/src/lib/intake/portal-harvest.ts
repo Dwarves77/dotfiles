@@ -80,11 +80,21 @@ export interface LedgerCandidate {
   url: string;
   anchor_text: string | null;
   source_id: string;
+  first_seen_at: string;
   sources: {
     name: string | null;
     category: string | null;
     base_tier: number | null;
   } | null;
+}
+
+/** A keyset pagination position: (first_seen_at, id) of the last row of a prior chunk. Stable under a
+ *  moving set — unlike offset (positional: shifts if new rows land mid-walk, skipping or double-reading
+ *  rows at chunk boundaries), a keyset cursor names a fixed point in the (first_seen_at, id) total order
+ *  and a later call resumes exactly after it, whether or not the set grew in between. */
+export interface LedgerCursor {
+  firstSeenAt: string;
+  id: string;
 }
 
 /** Injected fetch: returns cleaned text (the transport ladder's FetchResult shape, reduced). */
@@ -119,6 +129,10 @@ export interface ConsumeResult {
   outcomes: CandidateOutcome[];
   /** apply only: the full intake-cycle disposition trail for the would-mint set. */
   cycle?: IntakeCycleResult;
+  /** PLAN-MODE PAGINATION (census walk, 2026-07-19). The keyset position of the LAST row this chunk
+   *  read, in (first_seen_at, id) order — pass as `opts.after` on the next call to resume exactly past
+   *  it. Undefined when this chunk read fewer rows than `limit` (the source is exhausted at this cursor). */
+  nextCursor?: LedgerCursor;
 }
 
 export interface ConsumeOpts {
@@ -129,6 +143,20 @@ export interface ConsumeOpts {
   sourceId?: string;
   /** Consume newest-first (freshest walk results) instead of the oldest-backlog default. */
   newestFirst?: boolean;
+  /** PLAN-MODE PAGINATION (census walk, 2026-07-19): resume strictly after this keyset position, in
+   *  (first_seen_at, id) order (or the reverse order when newestFirst). PLAN-MODE-ONLY concern — apply
+   *  mode already advances the ledger via its disposition stamp and does not need a cursor. Read-only:
+   *  changes only which page of already-persisted candidate rows this call reads; touches no gate, mint,
+   *  or grounding logic. */
+  after?: LedgerCursor | null;
+  /** PLAN-MODE PAGINATION (census walk, 2026-07-19): when provided, exclude candidate ids that already
+   *  carry a row in this table for `censusRunId` (a NOT-EXISTS-shaped filter, expressed as a prior SELECT
+   *  + `.not("id","in",...)` since the query builder has no native cross-table anti-join). Makes an
+   *  interrupted or re-run walk automatically resumable and prevents double-dispositioning a candidate.
+   *  Feature-detected: if the table does not exist yet (Session B's build not landed), the lookup fails
+   *  closed to NO exclusion (cursor-only) rather than throwing — plan mode must not hard-depend on a table
+   *  that may not exist. */
+  censusExclusion?: { table: string; runId: string } | null;
   /** F16 signed caller threaded to fetch + grounding (manual runner passes manual-intake-run). */
   caller?: string | null;
   fetchDoc: FetchDocFn;
@@ -164,13 +192,36 @@ export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeO
   const now = opts.now ?? (() => new Date().toISOString());
   const outcomes: CandidateOutcome[] = [];
 
+  const ascending = !opts.newestFirst;
   let q = sb
     .from("portal_link_candidates")
-    .select("id,url,anchor_text,source_id,sources(name,category,base_tier)")
+    .select("id,url,anchor_text,source_id,first_seen_at,sources(name,category,base_tier)")
     .eq("status", "candidate")
-    .order("first_seen_at", { ascending: !opts.newestFirst })
+    .order("first_seen_at", { ascending })
+    .order("id", { ascending })
     .limit(limit);
   if (sourceId) q = q.eq("source_id", sourceId);
+  // KEYSET PAGINATION (plan-mode only; read-only; no gate/mint/grounding logic touched). Resume strictly
+  // past opts.after in the (first_seen_at, id) total order the two .order() calls above establish — never
+  // an offset, which is positional and would skip or double-read rows if the ledger grows mid-walk.
+  if (opts.after) {
+    const op = ascending ? "gt" : "lt";
+    q = q.or(
+      `first_seen_at.${op}.${opts.after.firstSeenAt},and(first_seen_at.eq.${opts.after.firstSeenAt},id.${op}.${opts.after.id})`
+    );
+  }
+  // CENSUS EXCLUSION (plan-mode only, feature-detected). Excludes candidates this census run already
+  // dispositioned, so an interrupted/re-run walk is naturally resumable and never double-classifies a
+  // candidate. Fails CLOSED to no exclusion (not an error) when the table doesn't exist yet.
+  if (opts.censusExclusion) {
+    const { table, runId } = opts.censusExclusion;
+    const { data: seenRows, error: seenErr } = await sb.from(table).select("candidate_id").eq("census_run_id", runId);
+    if (!seenErr && seenRows?.length) {
+      const seenIds = seenRows.map((r: { candidate_id: string }) => r.candidate_id);
+      q = q.not("id", "in", `(${seenIds.join(",")})`);
+    }
+    // seenErr (table absent, e.g. relation-does-not-exist) is swallowed by design: cursor-only fallback.
+  }
   const { data: rows, error: qErr } = await q;
   if (qErr) throw new Error(`[portal-harvest] ledger read failed: ${qErr.message}`);
   const candidates = (rows ?? []) as unknown as LedgerCandidate[];
@@ -296,5 +347,13 @@ export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeO
     }
   }
 
-  return { mode, discovered: candidates.length, fetched, classified, outcomes, cycle };
+  // PLAN-MODE PAGINATION: the keyset position of the last row THIS chunk read (not the last outcome —
+  // a skipped/inconclusive row still advances the cursor so a retry-worthy row is not re-read forever).
+  // Omitted when the chunk read fewer rows than `limit`: the source is exhausted at this cursor.
+  const nextCursor: LedgerCursor | undefined =
+    candidates.length === limit && candidates.length > 0
+      ? { firstSeenAt: candidates[candidates.length - 1].first_seen_at, id: candidates[candidates.length - 1].id }
+      : undefined;
+
+  return { mode, discovered: candidates.length, fetched, classified, outcomes, cycle, nextCursor };
 }
