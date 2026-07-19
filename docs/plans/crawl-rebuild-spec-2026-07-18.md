@@ -177,7 +177,33 @@ covers.
   same session. Not built here, not specced here.
 - **Any grounding-model or floor change.** The depth tier is the existing pipeline unchanged.
 - **The `source_trust_events` never-emitted event-type narrowing** (dormant-systems P-6 deferral): it
-  collides with the phase-3 fruition reputation work and is held for a separate operator ruling.
+  collides with the phase-3 fruition reputation work and is held for a separate operator ruling. See the
+  decision line below — this spec is the evidence that ruling turns on.
+
+### 8.1 Decision line — the deferred `source_trust_events` event-type narrowing (operator ruling owed, this spec = evidence)
+
+The P-6 purge held back the "never-emitted trust-event types" (the conflict-resolution promotion/demotion
+vocabulary on the live `source_trust_events` table). The operator sustained that hold on the merits and
+routed the final ruling through THIS spec, as evidence. The rule is binary:
+
+- **IF this spec's DEPTH TIER uses those event types, they STAY.** It does not. The depth tier is the
+  existing `generate-brief` grounding pipeline UNCHANGED (section 1) — it emits only the already-live event
+  types (`tier_override` / `tier_override_revert` / `manual_review` and the tier-recompute events written by
+  the 6 live writers). It introduces no conflict detection, no promotion/demotion, and no new
+  `source_trust_events` event type. The never-emitted conflict-resolution vocabulary is on no path in this
+  spec.
+- **IF sealed corroboration keeps reputation out of eligibility PERMANENTLY, they PURGE at that ruling.** It
+  does. The moat is permanent by construction (`institution.ts` resolves reg-fact eligibility from
+  `base_tier ?? null`; dynamic reputation / `effective_tier` never confers eligibility — SC-9). Phase-3
+  fruition builds a NEW reputation-metric class and widens the CHECK with NEW event types; it does not
+  revive the OLD conflict-resolution promotion/demotion engine (which was purged as `computeConflictResolutionImpact`).
+
+**So the evidence points to PURGE**, at the operator's ruling: the deferred event types are used by neither
+the crawl depth tier nor the phase-3 reputation work, and the sealed-corroboration moat is permanent. What
+is held for the operator is the ACT of narrowing the CHECK on the live 905-row `source_trust_events` table
+(a break-risky migration on live data) — not the judgment, which this spec settles. When the operator rules
+purge, the narrowing lands as a content-gated migration in the same tombstone-then-delete form as
+migration 215. Until then the never-emitted values sit inert in the CHECK, certifying nothing.
 
 ## 9. Costed wave-one sizing (the number the operator prices before any build)
 
