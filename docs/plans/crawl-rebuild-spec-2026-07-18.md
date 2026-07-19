@@ -1,7 +1,16 @@
 # Two-Tier Crawl Rebuild Spec (2026-07-18)
 
-**Status: DRAFT for operator review. Not built code. No build proceeds until the operator prices the
-wave-one sizing in section 9.**
+> **SUPERSEDED 2026-07-18 as a build basis** (recovery mandate). This spec was authored from the
+> dormant-systems wiring map, not a behavioral read of the ingest pipeline. The behavioral read
+> ([ingest-behavioral-read-2026-07-18](../audits/ingest-behavioral-read-2026-07-18.md)) established that it
+> duplicated existing discovery machinery (`discoverCorroborators`, seek-more `generateCandidates`,
+> `growSourcesFromBrief`, `extractPortalLinks`) and ignored the two real gaps: complete per-source
+> extraction (the system is one-document-per-item everywhere) and the OPEN change-to-analysis loop
+> (`intelligence_changes` has no re-ground consumer). DO NOT build from this document. Its
+> register-enumeration research (EUR-Lex / Federal Register / gazette endpoints) is salvage material only.
+> The build plan grounded in the real pipeline supersedes it.
+
+**Status: SUPERSEDED (was: DRAFT for operator review).**
 
 **Authority.** [ADR-015](../decisions/ADR-015-restore-source-monitoring-supersede-adr-012.md) restored
 the founding source-monitoring design as the operating model (superseding ADR-012's manual-by-design

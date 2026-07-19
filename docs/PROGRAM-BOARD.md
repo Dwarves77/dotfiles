@@ -522,3 +522,27 @@ tool limit; moot for fetch-blocking because cadence-off already blocks every fet
 3. The relabel primitive goes to the session that resumes Session A.
 
 Session E's lane is DONE. The operator takes the crawl spec from here.
+
+---
+
+## Session E — RECOVERY MANDATE (2026-07-18): ingest behavioral read + merge re-verification
+
+The day's work rested on a wiring map, not a behavioral read of the ingest pipeline. Recovery Step 1
+read the code end to end and re-verified every merge behaviorally.
+
+**Step 1 findings** ([ingest-behavioral-read-2026-07-18](./audits/ingest-behavioral-read-2026-07-18.md)):
+- **What the system actually does:** one-document-per-item everywhere (workflow AND acquire scripts); NO
+  per-source document sweep exists. The change-to-analysis loop TERMINATES (check-sources sets
+  change_detected, reconcile writes intelligence_changes, but that table has 0 rows and is read only by the
+  dashboard digest; no re-ground consumer; auto-action "deliberately NOT wired"). Save-everything (permanent
+  raw_fetches snapshot) is TRUE only on the operator-fired acquire-script path Session A ran; the live
+  /api/agent/run workflow persists only the replaceable agent_run_searches pool.
+- **Merge re-verification: all purges P-1..P-8 SAFE, ZERO restorations.** Verified against dynamic dispatch,
+  string routes, config (access_method only api-vs-browserless; the 189 rss sources were always browserless),
+  and DB objects (0 functions/views reference source_conflicts post mig-215; staged_updates table intact,
+  35 rows). No merge touched the live ingest path.
+
+**Crawl spec SUPERSEDED as a build basis.** [crawl-rebuild-spec-2026-07-18](./plans/crawl-rebuild-spec-2026-07-18.md)
+was authored from the wiring map; it duplicated existing discovery machinery and ignored the two real gaps
+(complete per-source extraction; the open change-to-analysis loop). Its register-enumeration research is
+salvage material only. The build plan (Step 2) is grounded in the behavioral read instead.
