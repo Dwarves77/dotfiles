@@ -784,3 +784,42 @@ The fourth and final build. PR feat/b4-change-sweep. Retrieval-first paid off: v
   defect surfacing through the new lens; no false flip, no spend, lock holds).
 
 Build scoreboard: B1 #354 / B2 #355 / B3 #356 / population+holdings-fix #357 / B4 this PR.
+
+---
+
+## Session B, resume sync, session-log reconciliation, census-lane mandate opened (2026-07-19)
+
+Session B's worktree (`wt-session-b`, branch `corpus-integrity/cc-grounding-executor-b`) was 47 commits
+behind master (last synced before Phase R). Merged master in (not rebased, since Session B's own commits
+were already pushed and public; rewriting them would have been the destructive move). Two conflicts, both
+resolved non-destructively:
+
+- **Compliance doc** (`docs/compliance/confidentiality-incident-2026-07-17-ncaer.md`): took master's side.
+  Session A's restart independently re-verified the NCAER grounding-exposure finding and added the
+  resolution sections; master's version is a strict superset of Session B's original.
+- **`fsi-app/docs/ops/session-log.md`** (the deprecated fork): master had added a deprecation header to
+  this exact file mid-merge, naming this canonical `docs/ops/session-log.md` (repo root) instead, per
+  `CLAUDE.md` standing rule 6. Concatenated both sides, all history preserved, master's deprecation header
+  kept at the top, consistent with the fork's own left-in-place policy.
+
+**Reconciliation entry landed at the canonical root file** (this PR): Session B's final fsi-app-fork batch
+(2026-07-17/18, 3 items promoted via mechanical repoint-then-stamp, 7 reassigned with concrete findings)
+was verified against this file first and found genuinely missing, since Session A's 2026-07-18 restart
+reconciliation snapshot (`drain_worklist` 64 rows) predates it (the batch grew the worklist to 66). Entered
+through the reconciliation door the restart's TWO-FILE correction established, explicitly marked as
+reconciled backfill, not ordinary new content. Full detail in the dated 2026-07-19 entry, root session log.
+
+**Findings entry (divergence register): third instance of the fsi-app fork written as canonical.** Two
+prior instances are named in the 2026-07-18 restart correction (its own initial misdiagnosis, and Session
+B's independent 2026-07-17 containment-bank miss); this merge is a third, caught pre-commit this time,
+during conflict resolution rather than after the fact. Three independent misses against one advisory
+header is a pattern. Recommend the operator consider a hard guard (a CI or pre-commit check rejecting any
+new commit touching `fsi-app/docs/ops/session-log.md`) rather than continuing to rely on the header alone.
+Recommendation only, not built in this PR, consistent with the SW-2 item already queued on the sweep
+ledger for the same root cause.
+
+**NEW MANDATE opened this PR: census management lane.** Sessions A (intake) and C (discovery) are
+launching a full-corpus gap census; Session B owns the data layer. Task 1 (`census_worklist` table,
+migration, one PR) begins immediately after this merge lands, per operator dispatch. Tasks 2 (standing
+dedup/rollup/flag-back duties) and 3 (`docs/census/gap-census-2026-07.md` skeleton) follow. No corpus
+writes in this lane, census tables only; $0, no fetching.
