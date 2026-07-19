@@ -621,3 +621,27 @@ is criterion 3 becoming a proven-monotonic superset; no gate weakened.
 
 Migrations inventory updated (216/217). Lands as PR (Part 1). Merge on green, then Part 2 (proving slice)
 runs SECOND through the completed gate.
+
+---
+
+## Session E — F3 addendum REVERTED as dead/duplicate code (2026-07-19)
+
+Operator pushed (correctly, repeatedly) to check existing structure first; a full Supabase table audit
+established the F3 addendum (PR #351: item_source_evidence + migrations 216/217 + the writer + tests) was
+DEAD/DUPLICATE code I created by not auditing existing structure:
+- `item_source_evidence`: **0 rows**; its writer stored `cleanCtl(b.text)` — BYTE-IDENTICAL to the existing
+  `agent_run_searches.result_content_excerpt` (per-item, SQL-queryable, 21 MB, up to 600 KB/row).
+- **0 of 210 verified items were missing pool evidence** — the "pool erased on re-generate" problem the store
+  was built for does not manifest.
+- `raw_fetches` (678 rows) is the existing permanent snapshot store the original F3 instruction named.
+- Keys exist and the pipeline has run (631 agent_runs with a model) — the earlier "no keys / Part 2 walled"
+  claim was wrong (checked the local shell, not where the app runs).
+
+**Reverted:** migration 218 (applied) restores criterion 3 to the pre-217 working-excerpt-only check and DROPs
+the empty table + trigger + function; verified post-apply (function no longer references the table, restored
+to original, table null, verified-live still 210, sample still valid). The writer, `f3-durable-evidence.test.mjs`,
+and the two prover scripts are removed; 216/217 files kept as history + marked reverted in the inventory.
+
+**Process reset (operator directive):** no more building. Next is a detailed audit of the EXISTING structure
+(tables: row counts + writers + readers, per RD-9 producer-consumer; code), THEN a build plan for operator
+approval, THEN build. The repeated check-first failures this session are the reason.
