@@ -5,6 +5,49 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-07-18 — Session E execution lane COMPLETE (dormant-systems audit → operator rulings R1-R5)
+
+Worktree `wt-audit`. Two mandates. **Mandate 1** delivered the complete dormant-systems audit (PR #343):
+the built-wired-gated-off class the 2026-07-11 full-system audit's P1-P4 taxonomy missed, five inventories,
+three-state judgments. **Mandate 2** executed the operator's post-audit rulings R1-R5 as five sequenced
+PRs, each CI-green-then-merged, no admin-merge:
+
+- **#344 (Phase 2, governance):** ADR-015 restores the founding source-monitoring design as the operating
+  model and SUPERSEDES ADR-012 (its manual-by-design reframe was a mislabeled spend-crisis freeze; R5
+  dispute recorded asserting neither side, moot as doctrine). Register: `research-is-horizon-scan` gained a
+  feedstock-gap residual; `no-execution-from-stale-state` (RD-33) gained the worklist-note-is-a-proposal
+  extension. `ACTIVE_PHASE` advanced `phase-intake-gate` → `phase-2` (derived from GOVERNING-PROGRAM's own
+  dependency order; intake-gate anchors verified). Cosmetic G-9/G-10. Founding `fsi-app/.claude/CLAUDE.md`
+  text unamended — it won.
+- **#345 (Phase 3, purges):** P-1..P-8 removed (discover route + discovery.ts; staged-updates route; two
+  product-orphan routes; q7 route; the dead `rss-fetch.ts` transport with `secFairAccessUaForUrl` re-homed
+  to `sec-fair-access.ts`; the `source_conflicts` dormant slice + `computeConflictResolutionImpact`).
+  Migration 215 (source_conflicts DROP) authored then APPLIED this session (content gate passed, 0 rows).
+  Every gate/register/comment reference to a purged item amended in the same PR; no target force-deleted
+  over a live caller.
+- **#346 (Phase 4, skill-gate G-12):** `skill-token.mjs` now requires a `Skill` invocation to have RESOLVED
+  (`is_error !== true`, correlated by `tool_use_id`), not merely to appear in the transcript. Selftests
+  12/12 + hook 26/26.
+- **#347 (Phase 5, checks + spec):** section-7 checks run LIVE (operator granted full access) — cadence
+  `off`, scan returns 503, source-monitoring + spot-check `disabled_manually`, SW-3 flag 1-open, drain 66,
+  D-report merged; **six of seven closed**, deployed Vercel env values the one unreachable (secret-scope
+  tool limit, re-arm-time operator check, moot for fetch-blocking). Two-tier crawl rebuild SPEC drafted for
+  operator pricing (awareness tick at check-sources → one intake path at run-intake-cycle → depth tier
+  behind `GROUNDING_ACQUIRE_ENABLED`; source-type-agnostic waves 1/2/3; costed wave-one ~$16-37 over the 106
+  MISSING `coverage_gap_candidates`; no build until priced).
+
+**Decisions/holds (operator-confirmed):** (1) the deferred `source_trust_events` never-emitted event-type
+narrowing stays HELD on the merits — the crawl-spec §8.1 decision line records the evidence (neither the
+depth tier nor phase-3 fruition uses those types; the sealed-corroboration moat is permanent → evidence
+points to purge, at the operator's ruling, as a content-gated migration). (2) The relabel primitive Session
+A specced is deferred to the session that resumes Session A.
+
+**Blockers/next (operator-owned):** price the crawl-spec waves; rule purge on the deferred trust-event
+types; the resume-A session builds the relabel primitive. Live corpus at close: 276 live / 210 verified /
+66 quarantined; 825 active sources. Session E lane DONE; the operator takes the crawl spec from here.
+
+---
+
 ## 2026-07-15 — Spend-watch RED diagnosis + operator-priced reconciliation (PR #336)
 
 Operator interrupted the waves ("DIAGNOSE — SPEND-WATCH RED", 4 emails). Verdict: **(a) stale frozen-state

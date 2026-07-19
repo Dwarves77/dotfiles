@@ -498,3 +498,27 @@ directly and migration 215 was applied, rather than left as operator-owned items
 #345 purges (Phase 3), #346 skill-gate fix (Phase 4), this PR checks+spec (Phase 5). Standing operator
 decisions: price the crawl-spec waves; rule on the deferred `source_trust_events` never-emitted event-type
 narrowing (held on merits — collides with phase-3 fruition).
+
+---
+
+## Session E — EXECUTION LANE COMPLETE (2026-07-18)
+
+Phases 1 through 5 landed, all CI-green-then-merged (no admin-merge):
+
+- **#342 + #343** — Phase 1 merges (Session D forensics + the dormant-systems audit; board keep-both resolved).
+- **#344** — Phase 2 governance: ADR-015 restores source-monitoring, supersedes ADR-012; register amendments; RD-33 extension; ACTIVE_PHASE → phase-2; G-9/G-10.
+- **#345** — Phase 3 purges: P-1..P-8; migration 215 applied (source_conflicts dropped).
+- **#346** — Phase 4 skill-gate G-12 fix (require RESOLVED).
+- **#347** — Phase 5: section-7 checks + two-tier crawl rebuild spec + migration 215 apply.
+
+**Section-7 checks: six of seven CLOSED.** cadence off / scan returns 503 / source-monitoring + spot-check
+disabled_manually / SW-3 flag open / drain 66 / D-report merged. The seventh — deployed Vercel env values
+(SCRAPE_HOLD / GROUNDING_ACQUIRE_ENABLED / SPEND_REGIME) — is a **re-arm-time operator check** (secret-scope
+tool limit; moot for fetch-blocking because cadence-off already blocks every fetch).
+
+**Standing operator decisions (lane handed off):**
+1. Price the crawl-spec waves ([crawl-rebuild-spec-2026-07-18](./plans/crawl-rebuild-spec-2026-07-18.md)) — no build until priced.
+2. Rule purge on the deferred `source_trust_events` never-emitted event-type narrowing — evidence in crawl-spec §8.1 points to purge (held on merits, not access; lands as a content-gated migration at the ruling).
+3. The relabel primitive goes to the session that resumes Session A.
+
+Session E's lane is DONE. The operator takes the crawl spec from here.
