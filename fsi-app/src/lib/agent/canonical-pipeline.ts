@@ -67,6 +67,7 @@ import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHAR
 import { prepareSectionForGrounding } from "@/lib/agent/section-grounding.mjs";
 import { partitionErrorBodies } from "@/lib/sources/entity-gate.mjs";
 import { captureForStorage, apiEndpointFor } from "@/lib/sources/transport-escalation.mjs";
+import { sha256Hex } from "@/lib/sources/snapshot-store.mjs";
 import { escalateToFetchResult } from "@/lib/sources/transport-runtime.mjs";
 // TRANSPORT HOLD GATE + FETCH CACHE (C5, 2026-07-11). assertFetchAllowed gates the direct-HTTP + API-ladder
 // transports (the two raw-fetch entry points that live here, not in a sources/ module) so "hold LIVE, zero
@@ -919,6 +920,22 @@ export async function generateBrief(itemId: string, caller: string | null = null
       result_title: c.name || "discovered reference", result_index: 80,
       result_content_excerpt: (c.name || c.why || "discovered reference").slice(0, 180), searched_at: ts,
     }));
+  // F3 (durable criterion-3 evidence, migration 216/217): persist the CLEANED pool text to the append-only
+  // item_source_evidence store BEFORE the working pool's DELETE-then-INSERT below, so a re-generate never
+  // erases the prior criterion-3 evidence (the per-generate erase of prior evidence ends on the everyday path
+  // as of this write). The text stored is BYTE-IDENTICAL to result_content_excerpt (cleanCtl(b.text)), keyed by
+  // (item, content_hash); criterion 3 (migration 217) is a SUPERSET — span in the working excerpt OR here.
+  // Idempotent via ON CONFLICT DO NOTHING (a re-store of the same content is a no-op, never an UPDATE, so the
+  // append-only trigger is not tripped). Non-fatal: an evidence-write hiccup must not lose the paid pool, and
+  // the working-pool excerpt still grounds this generation, so a failure warns and the run proceeds.
+  const evidenceRows = fetched
+    .map((b) => { const cleaned = cleanCtl(b.text) ?? ""; return { intelligence_item_id: itemId, content_hash: sha256Hex(cleaned), cleaned_text: cleaned }; })
+    .filter((r) => r.cleaned_text.length > 0);
+  if (evidenceRows.length) {
+    const { error: evErr } = await sb.from("item_source_evidence").upsert(evidenceRows, { onConflict: "intelligence_item_id,content_hash", ignoreDuplicates: true });
+    if (evErr) console.warn(`[canonical-pipeline] durable evidence persist warned (${itemId}): ${evErr.message} — working pool still grounds this generation`);
+  }
+
   await sb.from("agent_run_searches").delete().eq("intelligence_item_id", itemId);
   const { error: poolErr } = await sb.from("agent_run_searches").insert([...poolRows, ...refRows]);
   if (poolErr) return { ok: false, detail: `pool persist failed (pre-synthesis): ${poolErr.message}` };
@@ -1023,6 +1040,16 @@ async function generateBriefRefreshPrimaryImpl(itemId: string, caller: string | 
       result_title: c.name || "discovered reference", result_index: 80,
       result_content_excerpt: (c.name || "discovered reference").slice(0, 180), searched_at: ts,
     }));
+  // F3: durable criterion-3 evidence BEFORE the refresh path's DELETE-then-INSERT too (every generate persists
+  // evidence, so a refresh never erases prior evidence either). Same append-only, idempotent write as generateBrief.
+  const refreshEvidence = fetched
+    .map((b) => { const cleaned = cleanCtl(b.text) ?? ""; return { intelligence_item_id: itemId, content_hash: sha256Hex(cleaned), cleaned_text: cleaned }; })
+    .filter((r) => r.cleaned_text.length > 0);
+  if (refreshEvidence.length) {
+    const { error: evErr } = await sb.from("item_source_evidence").upsert(refreshEvidence, { onConflict: "intelligence_item_id,content_hash", ignoreDuplicates: true });
+    if (evErr) console.warn(`[canonical-pipeline] durable evidence persist warned on refresh (${itemId}): ${evErr.message}`);
+  }
+
   await sb.from("agent_run_searches").delete().eq("intelligence_item_id", itemId);
   const { error: poolErr } = await sb.from("agent_run_searches").insert([...poolRows, ...refRows]);
   if (poolErr) return { ok: false, detail: `refresh-primary pool persist failed: ${poolErr.message}` };
