@@ -726,3 +726,19 @@ The second build. PR feat/b2-register-walk:
   upserts, new instruments only after chrome dedup). Consume plan-mode on FR: **8/8 would_mint on real
   final rules**, every chokepoint gate passed dry, honest low-relevance flags (an unfiltered RULE walk
   is mostly off-vertical — the sizing signal; --term scopes it). Zero writes: plan-mode contract held.
+
+## Session F — B3 BUILT: feed transport (2026-07-19)
+
+The third build. PR feat/b3-feed-transport:
+
+- **`src/lib/sources/feed-walk.mjs`**: parseFeedEntries (RSS 2.0 items + Atom entries, CDATA unwrap,
+  rel=alternate preference, https-only) + walkFeed (fetch injected → ERROR-BODY GATE before parsing —
+  a bot-block is {ok:false} INCONCLUSIVE, never an honest "empty feed" → persist via B1's ONE write-site).
+  No new deps (regex parse; the ledger's UNIQUE-url dedup absorbs over-extraction).
+- **Runner fold-in**: run-register-walk.mjs gains `--register feed --feed <url>` (source defaults to the
+  feed host's registered row). One CLI for all index walks.
+- **Proofs**: feed-walk.test.mjs 5/5. Suite 875/0, fitness 16/0, tsc clean.
+- **LIVE**: CARB RSS (ww2.arb.ca.gov/rss.xml) walked free → 10 entries ledgered; consume plan-mode:
+  **10/12 would_mint, genuinely ON-VERTICAL** (Cap-and-Invest updates, Volvo $197M emissions settlement,
+  $1B electric-truck rebates, HVIP, Climate Transparency Regulation) and **congruence 1a fired live** on
+  every news-page instrument (retyped — the moat working). 2 sub-portals honestly rejected.
