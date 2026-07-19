@@ -706,3 +706,23 @@ The first of the four builds. PR feat/b1-portal-harvest-consumer:
   preset; plan mode is READ-ONLY; entity-gate stamps; inconclusive ≠ reject; exists short-circuit = no
   re-ground spend). Suite 864/0, npmtests 36/0, fitness 16/0 (F14 confirms the ledger now has its reader —
   allowlist entry retired), meta-gate PASS, consistency 3/0, tsc clean.
+
+## Session F — B2 BUILT: register-API index walk (2026-07-19)
+
+The second build. PR feat/b2-register-walk:
+
+- **`src/lib/sources/register-walk.mjs`**: pure builders (ojDailyViewUrl DDMMYYYY, frDocumentsUrl with
+  range/type/term/fields, dateRange capped at 366d — no unbounded walks) + dep-injected walkers.
+  `walkEurlexOj` (per-day daily-view HTML → extractPortalLinks → B1's persist; a failed day is recorded,
+  the walk continues) and `walkFederalRegister` (paged documents.json, no key; a page cap is REPORTED
+  as droppedPages/totalPages — a bounded walk is never silent). Both feed the SAME ledger B1 consumes.
+- **D4/D5 landed** (routed Phase-R triage): api-fetch.ts normalizes FULL then caps at the return site,
+  reporting `truncated` + `fullTextLength` (the canonical-fetch contract); BrowserlessResult types the
+  optional fields the pipeline already read untyped.
+- **Runner** `scripts/run-register-walk.mjs` (--register eurlex-oj|federal-register, --from/--to,
+  --types/--term/--max-pages; hold-gated free HTTP; source defaults to the register's root portal row).
+- **Proofs**: register-walk.test.mjs 6/6. Suite 870/0, npmtests 36/0, fitness 16/0, tsc clean.
+- **LIVE**: FR walk 2026-07-15..17 → 35 RULEs ledgered; OJ walk 07-16..18 → 3 daily views (33/39/39
+  upserts, new instruments only after chrome dedup). Consume plan-mode on FR: **8/8 would_mint on real
+  final rules**, every chokepoint gate passed dry, honest low-relevance flags (an unfiltered RULE walk
+  is mostly off-vertical — the sizing signal; --term scopes it). Zero writes: plan-mode contract held.
