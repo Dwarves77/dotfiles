@@ -395,3 +395,19 @@ Branch `remediation/wave2-model-column`; recovery commit **`4ec4f41`** + Step-8 
 **Handoff, not owned here:** the vendor-vetting-boundary principle (generalizing the migration-235 CARB TRUCRS ruling — "Caro's Ledge informs about rules and cost exposure; it does not vet individual vendors; vendor vetting is out of scope on every surface") is routed to Session A's queue for `caros-ledge-platform-intent`. Not yet confirmed landed by A as of this entry.
 
 **Status: IDLE.** No further discovery work is queued for this lane. Reactivation requires an explicit operator instruction.
+
+**NOTE (2026-07-19): this board section is on Session C's branch, which diverged from master at the very start of this lane (merge-base `8e571a8f`) and has not been rebased since.** It does not reflect master's intervening content (ADR-015, the ingest behavioral-read audit, Phase R, the four extraction builds B1-B4, PRs #354-358) — those are read, not merged, per the worktree-isolation boundary (RD-19: never restructure shared paths while another session's worktree is live). Reconciliation with master's current board content happens at merge time, not here. See the new section below for what reactivated this lane.
+
+---
+
+## Coverage-discovery lane (Session C) — REACTIVATED, missing-from-the-world gap census, 2026-07-19
+
+**New mandate, distinct from the closed discovery arc above.** Measures what the four customer surfaces (Regulations/Operations/Market Intel/Research) need that NO held source's full universe contains — complementary to Session A/B's parallel full-corpus census of HELD sources (A enumerating with Chrome, B managing the census worklist). Session C's half is fetch-light only (API/feed/plain-HTTP); anything needing browser rendering is logged, not fetched, and routes to Session A's queue. Three ordered sweeps: (1) audit the 62 already-dispositioned free feeds, (2) adjacent enumerable universes not among held sources, (3) Research feedstock catalogs (ICAO/IMO/ISO/CEN/transport-research indexes). Full context read before starting: PROGRAM-BOARD.md, ADR-015, `docs/audits/ingest-behavioral-read-2026-07-18.md`, `docs/plans/ingest-repair-and-extraction-build-plan-2026-07-19.md`. Prior dispositions (14 declined, TAC parked-with-watch, rank 12 Green Claims parked-with-watch) all respected, unchanged.
+
+**New table: `coverage_gap_census_findings`** (migration 239). Distinct from `coverage_gap_candidates` — a per-feed/per-catalog audit-finding shape, not a new-instrument acquisition-pricing shape. `dry_run_disposition` is explicitly a predictive, non-binding judgment, never conflated with `coverage_gap_candidates.disposition` (real operator-ruled outcomes).
+
+**Sweep 1 COMPLETE** (migration 240): all 62 Section-2 free feeds fetch-light-checked. 33 would_mint (live, fetchable, classified against the four contracts, not yet wired as a surface-consumer — the genuine finding), 21 browser_required_undetermined (mostly 403 bot-blocks, one timeout, one TLS cert failure, one empty-SPA-shell, each with the specific obstacle named, routed to Session A), 5 would_decline (2 dead-URL 404 findings — rank 76, 82, flagged for source-health, not this census; 3 single-dated-event pages with no ongoing feed value), 2 would_park (genuinely under-resolved, not blocked — an unparsed PDF, a structural-only landing page). Fetch method: 33 plain_http, 24 browser_required, 4 api, 1 not_applicable (rank 78, a rollup placeholder with no single URL). Zero corpus writes, zero source registrations: discovery-not-intake.
+
+**Sweeps 2 and 3: QUEUED**, awaiting operator confirmation per the "report at sweep boundaries" instruction.
+
+**Status: ACTIVE.** Full findings in `docs/ops/session-log.md` 2026-07-19 entry.
