@@ -600,3 +600,24 @@ with per-fix proofs.
 The Gate 2 report carries: per-fix proof summary, the regression result, the F3 corrected-design proposal
 (operator ruling owed), the final proving-slice composition with the u.ae swap rationale, and the per-source
 enumeration approach for each of the five slice sources.
+
+---
+
+## Session E — RECOVERY Part 1: F3 durable-evidence addendum EXECUTED (2026-07-19)
+
+Operator rulings: F3 option (a) approved, proving-slice GO, strict order (F3 lands + proves FIRST, slice
+SECOND). Branch `repair/phase-r-f3-durable-evidence`. Built the corrected design exactly as proposed, writer
+and checker together, no half-slice.
+
+| Component | State | Proof / evidence |
+|---|---|---|
+| **Migration 216** — `item_source_evidence` append-only store | **APPLIED** | New table holding the cleaned pool text (byte-identical to `result_content_excerpt`), keyed by (item, content_hash), RLS on / no policy; BEFORE UPDATE/DELETE trigger RAISES for anyone incl. service role. Append-only proven: `scripts/_diag/_f3-append-only-proof.sql` rolled-back probe → `upd_blocked=t del_blocked=t`, 0 rows persisted. |
+| **Live writer** (canonical-pipeline.ts) | **DONE** | Both generate paths (generateBrief + generateBriefRefreshPrimary) persist the cleaned pool text to the durable store BEFORE the `agent_run_searches` DELETE-then-INSERT — the per-generate erase of prior evidence ENDS on the everyday path. Idempotent (ON CONFLICT DO NOTHING, never trips the append-only trigger). Proof `f3-durable-evidence.test.mjs` (3/3, ordering + idempotency + same-cleaned-text source-scan). |
+| **Migration 217** — criterion 3 SUPERSET | **APPLIED, prover-gated** | Surgical anchor-verified `replace()` on the DB's own `validate_item_provenance` def: span passes if in the working excerpt OR the durable store. Monotonic add. Zero-flip prover (`scripts/_diag/_f3-zero-flip-prover.sql`) run + committed BEFORE apply: **0 would-flip / 210 baseline verified / 0 evidence rows**. Post-apply verified: superset present, old null-check cleanly replaced (not duplicated), verified-live still 210, sample verified item still valid. |
+
+**Fenced strong-list regression: GREEN.** Discipline suite **867 pass / 0 fail** (the 3 new F3 assertions plus
+every prior golden unchanged), fitness **16 / 0 violations**, tsc clean. The only strong-list-adjacent change
+is criterion 3 becoming a proven-monotonic superset; no gate weakened.
+
+Migrations inventory updated (216/217). Lands as PR (Part 1). Merge on green, then Part 2 (proving slice)
+runs SECOND through the completed gate.
