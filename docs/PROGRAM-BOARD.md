@@ -680,3 +680,29 @@ Plan: [scrape-and-build-content-plan-2026-07-19](./plans/scrape-and-build-conten
 four builds (B1 portal-harvest consumer / B2 register index walk / B3 feed transport / B4 change-to-analysis
 consumer) + the ADR-015 cron re-arm; reuse-first (the audit proved everything else is built); proving slice
 prices the corpus sweep; no new store, no new intake path, no spend-rule change. Build begins on this plan.
+
+---
+
+## Session F — B1 BUILT: portal-harvest consumer (2026-07-19)
+
+The first of the four builds. PR feat/b1-portal-harvest-consumer:
+
+- **Migration 220 APPLIED** (two-track, DDL before code): disposition columns on `portal_link_candidates`
+  (`disposition_reason` / `dispositioned_at` / `item_id`) — no disposition without a recorded reason (RD-6).
+- **`src/lib/intake/portal-harvest.ts`**: `persistPortalCandidates` (the ONE ledger write-site — the
+  check-sources crawl refactored onto it, so scheduled + manual producers share identical upsert semantics)
+  and `consumePortalCandidates` (ledger → ladder fetch direct-first → firstFetchClassify entity gate →
+  the intake chokepoint via dryRun pre-pass; apply pushes only would-mint candidates into runIntakeCycle
+  and stamps every ledger disposition with the machine reason verbatim). Gate placement preserved: this
+  module PRECOMPUTES; every gate DECISION stays in the chokepoint. Deep links preset `source_id` from the
+  parent portal (the source-link seam — a deep link is deliberately NOT in the registry; its portal is).
+- **Seam fix riding B1**: `applyStagedUpdate` strips `relevance` from the INSERT seed (no such column;
+  B1 is the first relevance-bearing caller — a dry run cannot catch it because dry stops before the write).
+- **D1 landed** (routed Phase-R triage): haiku-classify.ts dead header corrected (content classification
+  lives in first-fetch-classify.ts).
+- **Runner** `scripts/run-portal-harvest.mjs` (--harvest / --consume, --mode plan DEFAULT | apply gated on
+  EXECUTE=1, --render opt-in so Browserless units are conserved by default).
+- **Proofs**: portal-harvest.npmtest.mjs 7/7 (one-write-site semantics; severity display→db + source_id
+  preset; plan mode is READ-ONLY; entity-gate stamps; inconclusive ≠ reject; exists short-circuit = no
+  re-ground spend). Suite 864/0, npmtests 36/0, fitness 16/0 (F14 confirms the ledger now has its reader —
+  allowlist entry retired), meta-gate PASS, consistency 3/0, tsc clean.

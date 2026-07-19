@@ -38,12 +38,18 @@ export async function applyStagedUpdate(
         if (typeof proposed !== "object") {
           return { success: false, error: "proposed_changes is not an object" };
         }
+        // `relevance` is a CHOKEPOINT INPUT (the Fork-4 surface-only floor), not a column —
+        // intelligence_items has no relevance column, so it must never reach the seed INSERT.
+        // Destructured out here and passed to the mint plan explicitly below. (B1 portal-harvest is
+        // the first relevance-bearing caller; a dryRun cannot catch this because dry stops before
+        // the write — schema-audited 2026-07-19.)
         const {
           key_deadlines: _kd,
           source_name: _sn,
           penalty_range: _pr,
           cost_mechanism: _cm,
           authority_level: _al,
+          relevance: proposedRelevance,
           ...insertData
         } = proposed;
 
@@ -83,7 +89,7 @@ export async function applyStagedUpdate(
         const res = await mintIntelligenceItem(supabase, {
           seed: insertData,
           legacyId: (insertData as { legacy_id?: string | null }).legacy_id ?? null,
-          relevance: (insertData as { relevance?: number | null }).relevance ?? null,
+          relevance: typeof proposedRelevance === "number" ? proposedRelevance : null,
           origin: "staged_materialization",
         }, { dryRun: opts.dryRun });
         if (!res.ok) return { success: false, error: res.error, flags: res.flags, action: res.action };
