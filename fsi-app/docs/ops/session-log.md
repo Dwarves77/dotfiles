@@ -170,6 +170,40 @@ FINDING: eu-csrd is TWO items — transport-provisions (9c5d1d17, no brief/0 cla
 
 STATUS: drain count 4 (unchanged), corpus 202 verified / 33 quarantined, census 655/655, spend ~$0.26, lease state (session A) clean. Census infra committed+pushed (629dea9e). Archive endgame NOT started (awaiting operator ruling).
 
+## 2026-07-17 — Session B bank 4 (branch corpus-integrity/cc-grounding-executor-b, own worktree)
+
+WORKTREE SEPARATION LIVE: Session B now runs in C:/Users/jason/dotfiles/.worktrees/wt-session-b on branch corpus-integrity/cc-grounding-executor-b (own worktree, node_modules junctioned to shared, .env.local copied). No more shared-tree push race. Bank 3 (870623cc, o13) confirmed on remote (carried forward under Session A's 558dcdf6).
+
+NEW TOOLING (scripts/_reground): lease.mjs (standalone acquire/heartbeat/release CLI — id-stamp requires the lease already held, so caller acquires here) and reassign-to-a.mjs (annotate drain_worklist + release lease when an item is genuine judgment, no claim touched). SEQUENCING FIX: the mig-211 lease RPC treats same-holder re-acquire as HELD (acquired=false), so drain-clear (which self-leases) FAILS if the caller still holds the lease — correct order is acquire -> id-stamp --apply -> RELEASE -> drain-clear --apply (self-leases).
+
+PROMOTION QUEUE (3 items):
+- fabda0e7 (Oregon DEQ "Central Hub"): REASSIGN-TO-A. Portal/hub, source_url = DEQ index.aspx homepage, no canonical instrument; capture spans CFP+CPP+rule PDFs. Reclassify/portal-artifact judgment.
+- la-eweo (LA EBEWE): PROMOTED. id-stamped Ordinance No. 184674 (enacting ordinance, raw-id match score=1) -> id-confirmed. Mechanical drain: 7 orphaned_no_prose_referent versioned out (v1, non-destructive). RESIDUAL Lane A: 8 relabel-manual (FACT->ANALYSIS judgment).
+- nashville-building-energy-programs: REASSIGN-TO-A. Programs-hub, source_url = ADA page; only id is RS2022-1358 (non-binding GHG-goal resolution); benchmarking is Metro Govt's OWN 335 facilities (internal/voluntary), not a private-building regulation. item_type=regulation likely mis-set; reclassify/off-vertical judgment.
+
+FINDING (reinforces the standing one): of 3, only 1 (la-eweo) had a single enacting instrument to id-stamp; the other 2 are programs-hubs / voluntary-goal items that need reclassify judgment, not promotion. The match/subject-overlap Lane A pool is largely portal/hub/voluntary shapes, not id-stampable instruments.
+
+Lease state (session B): clean. Spend: $0 (all free/hand path). Live corpus counts unchanged (la-eweo still quarantined pending Lane A relabel).
+
+## 2026-07-17 — Session B bank 5 (branch -b): match/subject-overlap queue complete
+
+Processed the remaining 9 match/subject-overlap Lane A items (la-eweo was bank 4). FULL match/subject-overlap tally (12): 4 PROMOTED, 8 REASSIGNED.
+
+PROMOTED (id-stamped -> id-confirmed clearance-grade):
+- c8 (ISSB IFRS S2): id "IFRS S2" (raw-id score=1). 0 mechanical (34 claims); 30 relabel-manual -> Lane A.
+- c5 (GLEC Framework v3): id "GLEC Framework v3" (raw-id score=1). 0 mechanical (53 claims); relabel-manual -> Lane A.
+- 82f09535 (Norway World Heritage Fjords zero-emission): id FOR-2012-05-30-488 (Norwegian miljosikkerhetsforskriften, lovdata raw-id score=1). 0 mechanical (43 claims); only 5 relabel-manual (close to clearance) -> Lane A.
+- (bank 4) la-eweo: Ordinance No. 184674; 7 orphaned versioned out; 8 relabel-manual -> Lane A.
+
+REASSIGNED-TO-A (genuine judgment, no id-stampable single instrument):
+- green-building: multi-standard SURVEY (LEED/BREEAM/NABERS/Green Mark/Estidama/EPBD/MEES) — no single instrument.
+- uae-netzero: item_type=regulation MIS-SET; primary is UAE LT-LEDS (voluntary strategy), no legal instrument number.
+- 87ed781c (Wisconsin 2023 State Freight Plan): planning framework, no formal designation (only federal cite 49 USC 70202).
+- b6b7eb7d (Japan MLIT): generic 'Policy Document' title; Carbon Neutral Port INITIATIVE, no law number.
+- g13 (Brazil Logistica Reversa): PORTAL SOURCE (MMA hub, no enacted primary); regime spans Lei 12.305/Decreto 10.936/portarias.
+- japan-gx-freight: SCOPE MISMATCH (primary = economy-wide GX Basic Policy, titled 'Freight Transport Standards') + wrong class.
+- (bank 4) fabda0e7 (Oregon DEQ hub), nashville (RS2022-1358 non-binding goal).
+
 ## 2026-07-16 — COMPACT-PREP HANDOFF (parallel drain, full state)
 
 WORKTREE SEPARATION (operator ruling): every parallel session gets its OWN worktree, shared object store, NEVER a shared working directory.
@@ -293,6 +327,95 @@ CONTAINMENT ACTIONS (guarded writes, cited, non-destructive -- row preserved for
 NOTE ON THE PARALLEL DISPATCH: operator also issued a DISPATCH for an operator_review_queue admin surface (migration + intake wiring + admin page + doctrine entry operator-escalations-have-one-door), explicitly scheduled for after the review lane, not built this bank. The incident record above notes it as the intended backfill target once that infrastructure lands.
 
 Lease state (session B): clean (this item was not under an active lease during the trace -- read/trace + one guarded redaction, no drain-clear/id-stamp mutation). Spend: $0.
+
+## 2026-07-17 — Session B RELAUNCH, intake-drain phase: review-lane restores + priority gap-table items
+
+Pulled origin/corpus-integrity/cc-grounding-executor-b (no new commits since last bank) and origin/corpus-integrity/cc-grounding-executor (Session A's review-lane bank 1: restore-to-live tool + 7 named RESTOREs, archive endgame 198 removals, Session C's coverage_gap_candidates COMPLETE). Queue = 5 named quarantined RESTOREs (007f42b1 TxDOT, g27 UN SDGs, 120529b8 ITF 2019, t5 Carbon Pricing Dashboard, o12 Blue Visby) + watched for EEXI/CII and EU MRV per operator priority; both landed mid-pass (93c344a1, o6) and were pulled forward.
+
+RESTORE QUEUE (5 items, 0 promoted, 5 reassigned -- all judgment/acquisition cases, no id-stampable formal designation reachable with a usable capture):
+- 007f42b1 (TxDOT Freight Planning): same class as Wisconsin State Freight Plan (87ed781c) -- state DOT plan, no formal instrument designation.
+- g27 (UN SDGs 9 & 13): SCOPE QUESTION not mechanical -- both 'SDG 9' and 'SDG 13' individually raw-id-confirm, but the item deliberately pairs both and the tool has no dual-identifier field; stamping one would misrepresent the item's declared dual scope. Same class as the EU 2019/880 scope-question the operator named.
+- 120529b8 (ITF 2019 General Rules): both primary candidates Cloudflare bot-blocked (confirmed via direct retry); likely off-vertical (ITF's own founding/governance document, not freight-sustainability substance); jurisdiction=[] empty.
+- t5 (World Bank Carbon Pricing Dashboard): ZERO staged pool (restored pre-capture-standard) -- per phase rule, reassigned WITHOUT acquiring; pre-researched and confirmed-fetchable acquisition candidate left for Session A (World Bank "State and Trends of Carbon Pricing 2025" report PDF, official documents1.worldbank.org, HTTP 200 confirmed, not yet fetched/registered).
+- o12 (Blue Visby Solution): ZERO staged pool -- same phase rule, reassigned without acquiring; declared source_url confirmed reachable (HTTP 200), straightforward acquire-primary.mjs case for Session A.
+
+PRIORITY ITEMS (EEXI/CII + EU MRV, both landed and drained same bank):
+- 93c344a1 (EEXI and CII): self-corrected an over-loose id-stamp (MEPC.328(76) confirmed against the pool-union of 23 rows, NOT against the true single declared primary -- imo.org FAQ page has zero MEPC citations in its own text). Reverted per the japan-top-runner precedent. ROOT CAUSE FOUND: the pool row meant to carry the actual resolution PDF has a TRUNCATED URL (wwwcdn.imo.org/.../MEPC.328(76 -- missing closing paren + file extension) causing BlobNotFound. High-value, easy fix flagged for Session A: correct the URL, re-fetch, then id-stamp will hold.
+- o6 (EU MRV Regulation): PROMOTED. Declared primary (mrv.emsa.europa.eu, EMSA THETIS-MRV portal) was dead (0ch); the real enacted primary (EUR-Lex Regulation (EU) 2015/757, tier 1) was already staged under a different URL, verified directly against the true block text (not pool-union) before acting. Registered a new per-document EUR-Lex source + repointed + id-stamped "2015/757" -> match/instrument-id score=1, CONFIRMED against the true single primary (drain-clear independently verified id-confirmed=true). 0 mechanical exits, 51 claims, only 4 relabel-manual residual -- close to full clearance.
+
+BUG FOUND + WORKED AROUND (root cause NOT patched, flagged for proper fix): registerSource() in scripts/lib/db.mjs dedups new source registrations by institutionKey(url), which falls back to the BARE HOST for any host not listed in SHARED_PORTAL_KEYDEPTH. eur-lex.europa.eu is NOT in that map, so institutionKey() collapses every distinct EU regulation's EUR-Lex URL to the same key -- registerSource() silently returned an UNRELATED existing source_id (Regulation 2019/1242's row) when registering 2015/757. Caught before commit via the drain-clear independent re-verification (would have shown id-confirmed=false against a mismatched source), fixed for o6 with a direct guardedInsert bypassing the buggy dedup. THIS WILL RECUR on every future EU regulation registered via registerSource() or acquire-primary.mjs, including Session A's normal acquisition lane -- needs SHARED_PORTAL_KEYDEPTH updated for eur-lex.europa.eu (note: the CELEX-query URL style differs from the ELI-path style; a path-depth fix alone won't cover both, needs care) plus ideally a golden test. NOT fixed in this bank (shared codepath, deserves a deliberate fix, not a rushed mid-item patch).
+
+METHODOLOGY LESSON (2nd + 3rd instance, now a standing habit): id-stamp.mjs verifies against the POOL-UNION (snapshot + all >200ch pool rows); drain-clear.mjs verifies against the TRUE SINGLE declared primary only. These can disagree (japan-top-runner, 93c344a1 both over-promoted on pool-union, self-corrected). From o6 onward: verify the designation directly against the SPECIFIC true-primary block's text BEFORE stamping, not just via id-stamp's looser pool-union check -- catches the mismatch before the write, not after.
+
+Counts: provenance_status now {unverified:57, verified:253, quarantined:141, pending_human_verify:5} (total corpus grew since last check via Session A's restores + Session C's coverage work; quarantined count includes all restored-but-undrained items). Session B this pass: 1 promoted (o6), 6 reassigned (007f42b1, g27, 120529b8, t5, o12, 93c344a1). Lease state (session B): clean. Spend: $0 (direct HTTP + WebSearch only, no metered grounding).
+
+## 2026-07-17 — Session B intake-drain (cont.): CORSIA promoted + 5 more reassigned
+
+Operator relaunch update mid-pass: queue expanded to 23 restored items (56 quarantined total), priority list expanded to CORSIA + EU MRV + EEXI/CII (EU MRV + EEXI/CII already banked previous entry). Applied the verify-against-true-primary-block lesson from the start this pass (no more over-loose stamps).
+
+PRIORITY — CORSIA (a1/cc0958fb): PROMOTED. id-stamped A42-22 (ICAO Assembly Resolution establishing/updating CORSIA), confirmed VERBATIM in the TRUE declared primary block (icao.int default.aspx) before stamping. match/raw-id score=1, drain-clear independently confirmed id-confirmed=true. 0 mechanical exits (36 claims); 17 relabel-manual residual. NOTE: initial lease.mjs key lookup on "a1" matched the WRONG item (uuid-prefix collision, a1fd9574 "Getting to Zero Coalition") -- caught before touching it, released, re-acquired by correct uuid. Same ambiguity class as the earlier c4/china-prc mismatch; resolving by exact uuid upfront now standard practice for short legacy_id keys.
+
+5 more processed, all REASSIGNED with concrete findings (0 promoted this batch):
+- g8 (EPA SmartWay): no id-stampable instrument -- voluntary EPA partnership program, no CFR number; item_type=standard likely mis-set; CONFLATION found (pool contains bec305e1's own already-promoted HD-vehicle GHG Federal Register stub + an unrelated freight-plan RFI stub).
+- c6 (GHG Protocol): MULTI-STANDARD HUB, same class as green-building -- true primary is the umbrella homepage listing 5 distinct standards (Corporate/Scope 2/Scope 3/Land Sector/Product); stamping one would narrow the item's declared umbrella scope.
+- c7 (SBTi): org homepage, item_type=regulation WRONG (SBTi is voluntary, no legal instrument); ACQUISITION OPPORTUNITY -- the real 'SBTi Corporate Net-Zero Standard' PDF is referenced but unfetched (44ch stub).
+- g28 (IPCC Climate Reports): item_type=regulation WRONG (scientific assessment, research_finding format); declared primary (AR7) is explicitly IN-PROGRESS/unpublished (author calls, not a finished report); likely overlaps with 85a7a629.
+- 85a7a629 (IPCC Special Report on Cities, second-order draft review): title itself confirms pre-publication status (targeted March 2027 release); item_type correctly research_finding but no finished instrument exists yet to ground.
+
+METHODOLOGY CONFIRMED WORKING: the true-primary-block-first verification (applied to CORSIA and every item since) caught zero false starts this batch, versus 2 false starts (japan-top-runner, 93c344a1) before the lesson was codified.
+
+Counts: provenance_status {unverified:57, verified:253, quarantined:141, pending_human_verify:5} (o6/CORSIA promotions not yet reflected in this snapshot pending Session A's downstream validate pass on the relabel-manual residuals -- both are id-confirmed clearance-grade but still carry a few claims pending relabel before full VERIFIED status). Session B this pass: 1 promoted (CORSIA/a1), 5 reassigned. Lease state (session B): clean. Spend: $0.
+
+## 2026-07-17 — Session B intake-drain (cont.): queue fully drained (8 more reassigned, 0 promoted this batch)
+
+Processed the remaining 8 items from the expanded 23-item restore queue. All REASSIGNED (0 promoted) -- this batch skewed toward org-homepage/voluntary-strategy/zero-primary shapes rather than id-stampable instruments, consistent with the standing finding.
+
+- g20 (Singapore Green Plan 2030): national strategy, no instrument number (same class as uae-netzero/Slovenia NECP). CONFLATION: pool mixes in a DIFFERENT, narrower MPA maritime circular ("No. 12 of 2024", Green Ship Programme) that has its own real designation.
+- g24 (ASEAN Transport Strategic Plan): CURRENCY/SUCCESSION judgment -- the named 2016-2025 plan (Kuala Lumpur Transport Strategic Plan) is EXPIRED; a 2026-2030 successor is in development, not yet published. jurisdiction=[ID,MY,PH,SG] covers only 4 of 10 ASEAN members, worth checking if deliberate.
+- g16 (IDB Sustainable LatAm Transport): org topic page, item_type=regulation WRONG (IDB is a development bank, not a regulator); jurisdiction=GLOBAL questionable for a LatAm-specific institution.
+- cea40062 (Brazil National Logistics Plan / PNL 2035): planning document, no decree number, same class as TxDOT/Wisconsin.
+- db8577c6 (Georgia GDOT freight framework): same planning-doc class; true primary has no verbatim designation, but LEAD found -- "HB 617" (Georgia House Bill) appears in linked PDF filenames only, worth investigating as the real funding statute.
+- g11 (CEC North American Env Policy): JURISDICTION BUG -- tagged [MX,US], MISSING CANADA (the CEC/Agreement on Environmental Cooperation is trilateral, confirmed by a staged canada.ca page naming all three governments). Also wrong primary (EPA's own description page, not the treaty text, which IS staged separately at cec.org and is a real repoint/promotion candidate).
+- bcd84403 (ESMA MiCA crypto-asset deadline): zero staged primary (phase rule, reassigned without acquiring) PLUS a genuine relevance question -- MiCA governs crypto-asset service providers, no evident freight-sustainability nexus; flagged, not asserted (relevance calls are Session A's per the scope-is-broad ruling).
+- 3 regional operations profiles (Australia climatechangeauthority.gov.au, Brazil antt.gov.br, China npc.gov.cn): all zero staged primary, item_type=regional_data correctly set in all three (unlike most of this session's mis-typed items), straightforward acquire-primary.mjs cases with a scoping decision each (esp. China's NPC, a broad legislature needing a freight/sustainability-specific scope, not the whole portal).
+
+QUEUE STATUS: drain_worklist Lane A now 56 rows total; 54 touched by session-B across this relaunch (all of the 23 restores + the pre-existing pool from before relaunch), 2 untouched and confirmed NOT mine (eu_clean_trucking_2024_1610, eu-csrd survivor -- both pre-existing Session A judgment items, verified by id). Session B intake-drain queue is FULLY DRAINED as of this bank.
+
+SESSION B RELAUNCH TOTAL (this intake-drain phase, both banks): 2 promoted (CORSIA/A42-22, EU MRV/2015-757, both verified against their TRUE single primary), 21 reassigned, 1 in-flight class bug found+worked-around (registerSource/eur-lex host-collision), 1 truncated-URL root cause found (EEXI/CII), multiple jurisdiction bugs found (g11 missing Canada; earlier g15/india also found this session). Lease state (session B): clean. Spend: $0.
+
+Counts (live, concurrent with Session A): provenance_status {unverified:57, verified:241, quarantined:131, pending_human_verify:5}.
+
+## 2026-07-17 — Session B relaunch check: queue confirmed still empty, no new restores
+
+Operator re-issued the relaunch dispatch (same text: 56 quarantined total, 23+ restored items, CORSIA/EU MRV/EEXI+CII priority). Pulled worktree branch (already up to date, no rebase needed), re-queried `drain_worklist` fresh rather than assuming the repeat dispatch implied new work.
+
+Result: 56 total rows, all lane A, 54 carry session-B REASSIGN/PROMOTE notes from the prior two banks, 2 confirmed pre-existing Session A items (`eu_clean_trucking_2024_1610`, `eu-corporate-sustainability-reporting-directive-csrd...`, both `assigned_by=lane-split.mjs`, not session-B). Zero rows are unclaimed Lane B work. Zero session-B leases held (`mutation_leases` query, 0 rows). No new RESTORE verdicts have landed from Session A's review lane since the last bank.
+
+No items processed this check (nothing to process). No commit needed beyond this log entry (tmp probe scripts cleaned before this write, per protocol). Standing by for either new restores landing in `drain_worklist` or an explicit operator signal to start the deferred `operator_review_queue` build.
+
+## 2026-07-18 — Session B: idle posture confirmed, one repeat dispatch, then operator queue-scan surfaces 10 new items (3 promoted, 7 reassigned)
+
+Operator sent an identical third relaunch dispatch; re-verified fresh rather than assuming stale (56 total, same 54/2 split, 0 leases) -- confirmed no change, no bank. Operator then ACKNOWLEDGED the repeated dispatches were operator-side re-pastes (not automation), confirmed root cause of the empty queue (Session A had closed and was restarting), and set standing posture: idle, self-activate only on an unclaimed `drain_worklist` row, no more relaunch dispatches -- own queue-poll is the trigger from here. Optional standing addition: on any future activation, may sweep for stale Session-A leases (300s takeover) if a closed A session died holding one.
+
+Operator then sent an explicit QUEUE SCAN instruction (A's bank 5 landed, 3 restores + AFDC incoming with a regen gap). Scanned fresh: worklist grew 56->66 (+10 new `restore-to-live.mjs` rows), one live session-A lease on r6 (0s heartbeat, correctly skipped, not stale), no AFDC row found yet (not landed at scan time, noted not blocking). Processed all 10:
+
+**Promoted (3, mechanical, id-confirmed against the TRUE primary before stamping):**
+- **5511a87f (NY DEC "Regulatory Framework")**: item conflated the whole DEC regulatory hub under one title. Found verbatim "6 NYCRR Part 253 -- Mandatory Greenhouse Gas Reporting Program" (ADOPTED, not proposed) in a same-host, more-specific pool block (`.../air-pollution-regulatory-revisions`). Repointed (mechanical, same source_id) + id-stamped "Part 253" -> raw-id confirmed. 4 relabel-manual residuals left live.
+- **5b9b05c7 (Florida DEP NOPR)**: declared primary was the generic `/air` hub (no designation). Same-host pool block (`.../notice-proposed-rulemaking`) carried "62-210" and "SM-80" verbatim. Repointed + id-stamped "62-210" -> raw-id confirmed. 12 relabel-manual residuals left live.
+- **cd5c84e3 (NC Executive Orders 80 & 246)**: declared primary ALREADY contained both "Executive Order 80" and "Executive Order 246" verbatim -- no repoint needed, straight id-stamp of "EO 246" -> raw-id confirmed. 10 relabel-manual residuals left live.
+
+**Reassigned (7):**
+- **c9 (CDP Supply Chain)**, **r1 (MIT CTL)**: zero staged pool rows, no primary capture exists at all -- phase rule, reassigned without acquiring. NOTE: r1's legacy_id lookup hit the SAME uuid-prefix-collision bug as before (matched "r16" instead of exact "r1") -- caught before touching it, released, re-acquired by exact uuid. Third instance of this lease.mjs class bug this session (c4, a1, now r1) -- worth a real fix (exact-match-first ordering) rather than continuing to work around it by hand each time.
+- **27dfbe4c (China Environmental Code)**: wrong primary -- declared source is a think-tank commentary site (cciced.eco), not the NPC/legislature or a gazette. No verbatim formal designation found (one "Order No. 12" hit is a false lead, belongs to an unrelated MEE chemical rule). Leads recorded for acquisition: Chinese name "生态环境法典" confirmed, NPCSC reviewed April 2025, one source claims effective Jan 1 2026, a large unverified samr.gov.cn pool row may carry the real text (different host, needs its own tier judgment).
+- **496340f0 (Iowa DOT freight)**, **ab362011 (International Roadcheck)**: primaries CORRECT (Iowa: exact match already; Roadcheck: repointed from a generic FreightWaves category page to the actual on-topic article, same host, kept as a real improvement). Both blocked SOLELY by `missing_required_slot` (region_jurisdiction / signal_event respectively) -- zero mechanical clearance candidates, a slot-fill/regen gap outside drain-clear's scope. Same class as the AFDC "regen gap" the operator flagged this batch.
+- **67434312 (Colorado DOT GHG)**: primary correct, zero mechanical exits. Sole blocker `unlabeled_assertion` (criterion 4) TRACED to source: the binding-verb regex (`\brequires\b`) is firing on a table-cell editorial note in the "New Sources Identified" table ("...but requires labeling as industry/NGO interpretation..."), not a real regulatory assertion -- per `relabel-unlabeled.mjs`'s own design comment a binding verb inside a table row is never relabeled, so this needs the 4c LLM-judge/regen pass (spend, outside my zero-spend mandate) or a rephrase of that one cell.
+- **595117e9 (Louisiana Freight Plan)**: declared source_url was never fetched (zero matching pool row); the real freight-plan PDF is staged but roadblocked (53ch stub). Needs a real acquire-primary pass, not mechanical.
+
+Stale-lease sweep (per standing orders, folded into this activation rather than a separate poll): 0 leases held anywhere post-batch. Nothing stale, nothing to take over.
+
+METHODOLOGY NOTE: two of the three promotions this batch were **repoint-then-stamp**, not stamp-in-place -- both times the declared primary was a generic hub/category page one level too broad, while the specific instrument page was already staged under the SAME host/source_id. Worth flagging as a recurring restore-to-live shape: items land with their pre-archive source_url, which is often the coarsest page on the host rather than the specific instrument page a later fetch pass staged.
+
+Counts: worklist now 66 total, 64 session-B-touched, 2 pre-existing Session A items untouched (unchanged). Lease state (session B): clean. Spend: $0 (grep/regex tracing + direct HTTP only, no metered grounding).
 
 ## 2026-07-18 — Session A restart: reconciliation + NCAER ruling executed
 
