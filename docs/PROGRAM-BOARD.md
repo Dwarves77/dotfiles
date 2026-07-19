@@ -823,3 +823,32 @@ launching a full-corpus gap census; Session B owns the data layer. Task 1 (`cens
 migration, one PR) begins immediately after this merge lands, per operator dispatch. Tasks 2 (standing
 dedup/rollup/flag-back duties) and 3 (`docs/census/gap-census-2026-07.md` skeleton) follow. No corpus
 writes in this lane, census tables only; $0, no fetching.
+
+---
+
+## Session B, Task 1: `census_worklist` migration LANDED (2026-07-19)
+
+Migration 221 applied (`kwrsbpiseruzbfwjpvsp`, via `apply_migration`, verified live + smoke-tested inside
+a rollback: forward status transition passes; backward transition, identity-column mutation, hold-without-
+reason, an invalid surface tag, and DELETE are all correctly rejected; zero rows persisted). Full design
+rationale and column-by-column detail in `docs/inventories/migrations.md` row 221.
+
+**Reuse-before-construction, stated:** neither existing table serves. `corpus_census` (mig 212) keys on
+`intelligence_item_id`, a document with no corpus item yet cannot be represented there, which is the
+entire point of a gap census. `coverage_gap_candidates` (mig 214) is a hand-curated, one-off ranked
+pricing input, not a mechanical multi-lane enumeration ledger. The closest precedent, `portal_link_
+candidates` (mig 162/220), is B1's live intake ledger; its shape (source_id + url + guarded status +
+disposition-reason) is reused, but the table is new since coupling a measurement pass onto a production
+intake ledger would conflate two different lifecycles. Lease discipline reuses `mutation_leases` (mig 211)
+unmodified, its lease key column carries no FK constraint, so `census_worklist.id` leases through it
+with zero schema change.
+
+**Sessions A and C unblocked.** Producer lanes can now write rows: `source_id` + `document_url` (UNIQUE
+pair) + `lane` (A|C) + `shape_class` + `enumeration_status` (guarded ladder) + `cap_hit` +
+`dryrun_disposition` (+ `hold_reason`) + `surface_tags` (multi-tag, the four machine-addressable
+surfaces) + `instrument_identifier`/`resolved_into_id` (Task 2 dedup) + `flagged_reason`/`flagged_at`
+(RD-6 shape). Append-only (DELETE blocked unconditionally); `enumeration_status` transitions guarded
+forward-only by trigger, with `flagged` reachable from any rank and one reset path back to `discovered`.
+
+**Next:** Task 2 (standing dedup/rollup/flag-back duties) self-activates once rows exist to work; nothing
+to do yet, table is empty. Task 3 (`docs/census/gap-census-2026-07.md` skeleton) follows in this session.
