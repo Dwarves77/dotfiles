@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { INTEL_ITEMS_TAG, itemTag } from "./cache/revalidate-item";
 import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
-import type { Source, ProvisionalSource, SourceConflict, TrustMetrics, TrustScore } from "@/types/source";
+import type { Source, ProvisionalSource, TrustMetrics, TrustScore } from "@/types/source";
 import { computeBaselineTrustScore, createDefaultTrustMetrics } from "@/lib/trust";
 import type { SeedFallbackTrigger } from "@/lib/notifications/seed-fallback-flag";
 
@@ -377,54 +377,25 @@ async function fetchProvisionalSources(): Promise<ProvisionalSource[]> {
   }));
 }
 
-async function fetchOpenConflicts(): Promise<SourceConflict[]> {
-  const supabase = getSupabase();
-  const { data: rows } = await supabase
-    .from("source_conflicts")
-    .select("*")
-    .eq("status", "open")
-    .order("opened_at", { ascending: false });
-
-  return (rows || []).map((row: any) => ({
-    id: row.id,
-    item_id: row.item_id,
-    source_a_id: row.source_a_id,
-    source_b_id: row.source_b_id,
-    source_a_tier: row.source_a_tier,
-    source_b_tier: row.source_b_tier,
-    source_a_claim: row.source_a_claim,
-    source_b_claim: row.source_b_claim,
-    field_in_dispute: row.field_in_dispute,
-    status: row.status,
-    resolution: row.resolution || undefined,
-    resolution_note: row.resolution_note || undefined,
-    resolved_by_source_id: row.resolved_by_source_id || undefined,
-    resolved_by_human: row.resolved_by_human || undefined,
-    opened_at: row.opened_at,
-    resolved_at: row.resolved_at || undefined,
-  }));
-}
-
 export interface SourceData {
   sources: Source[];
   provisionalSources: ProvisionalSource[];
-  openConflicts: SourceConflict[];
 }
 
 export async function fetchSourceData(includeAdminOnly = false): Promise<SourceData> {
-  const emptySourceData: SourceData = { sources: [], provisionalSources: [], openConflicts: [] };
+  const emptySourceData: SourceData = { sources: [], provisionalSources: [] };
 
   if (!isSupabaseConfigured()) {
     return emptySourceData;
   }
 
   try {
-    const [sources, provisionalSources, openConflicts] = await withTimeout(
-      Promise.all([fetchSources(includeAdminOnly), fetchProvisionalSources(), fetchOpenConflicts()]),
+    const [sources, provisionalSources] = await withTimeout(
+      Promise.all([fetchSources(includeAdminOnly), fetchProvisionalSources()]),
       8000,
-      [[], [], []] as [Source[], ProvisionalSource[], SourceConflict[]]
+      [[], []] as [Source[], ProvisionalSource[]]
     );
-    return { sources, provisionalSources, openConflicts };
+    return { sources, provisionalSources };
   } catch (e) {
     console.error("fetchSourceData failed:", e);
     return emptySourceData;

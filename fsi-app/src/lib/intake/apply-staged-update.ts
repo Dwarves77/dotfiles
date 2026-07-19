@@ -1,7 +1,8 @@
-// applyStagedUpdate — the MACHINE materialization of a staged_updates row (extracted from
-// /api/staged-updates/route.ts, Unit 0c-2). ONE materialization machine, TWO callers now:
-//   1. the legacy /api/staged-updates POST handler (human-approve → materialize) — byte-identical behavior
-//   2. runIntakeCycle (no-human-finish-of-intake — the machine gates ARE the approval, RD-20)
+// applyStagedUpdate — the MACHINE materialization of a staged_updates row (extracted from the former
+// /api/staged-updates/route.ts, Unit 0c-2). The sole live caller is runIntakeCycle
+// (no-human-finish-of-intake — the machine gates ARE the approval, RD-20). The legacy
+// /api/staged-updates POST human-approve handler was retired to a 410 (Unit 0c) and then the whole route
+// was purged 2026-07-18 (dormant-systems P-2/P-8); this materializer stays, reached only by the machine cycle.
 //
 // It performs the side-effect implied by a staged_update: for `new_item` it mints through the SINGLE
 // chokepoint mintIntelligenceItem (congruence 1a/1b + subject-existence dedup + relevance floor + the one

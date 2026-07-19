@@ -433,3 +433,35 @@ Local gates green before commit: C5 PASS (phase-2 anchor), meta-gate PASS (63 do
 **Phases 3-5 — QUEUED (this session, in order):** P-1..P-8 purges (tombstone-then-delete, discipline
 suite between each); skill-gate resolved-not-invoked fix (R4/G-12); dashboard checks + two-tier crawl
 spec draft (3 waves, costed wave one).
+
+---
+
+## Session E — execution lane Phase 3 (PURGES): this PR (2026-07-18)
+
+Executes operator ruling R2 ("the old needs to be purged if not used"; P-1..P-8 all purge). Code
+deletions execute directly; the one data-touching drop is a committed migration for the operator DDL
+window. Full local discipline suite (tsc + meta-gate + consistency C3/C4/C5 + fitness 104/104 + affected
+unit tests) run after each deletion; every gate/register/comment reference to a purged item amended in
+this same PR. No purge target was force-deleted over a live caller.
+
+| Purge | What went | References amended |
+|---|---|---|
+| **P-5** | `secFairAccessUaForUrl` re-homed to `sec-fair-access.ts`; `rss-fetch.ts` deleted (dead transport, only a test called `rssFetch`; `buildLiveTransports` never wired it) | `browserless.ts` import; F16 `TRANSPORT_MODULES` (rss-fetch removed, "four transports"→"every live transport"); RD-15 residual (invariants.mjs); `transport-hold-wiring.npmtest.mjs` rssFetch leg; `_pause-gate-verify.mjs` regex |
+| **P-1** | `/api/admin/sources/discover/route.ts` + `discovery.ts` (zero callers since Wave-α A5) | `verification.ts` comment; `_pause-gate-verify.mjs` regex |
+| **P-2/P-8** | `/api/staged-updates/route.ts` (GET zero-caller + POST 410 tombstone) | `apply-staged-update.ts` (stale "two callers" → runIntakeCycle is the sole live caller); `data.ts` ×2 comments |
+| **P-3** | `/api/community/notifications/preferences/route.ts` (zero callers) | none |
+| **P-4** | `/api/workspace/regulations-defaults/route.ts` (zero callers) | none |
+| **P-7** | `/api/admin/q7-daily-recompute/route.ts` (no scheduler; superseded by end-of-cycle recompute) | F2 `WORKER_SECRET_ALLOWLIST` + comment; `worker-auth.ts` comment |
+| **P-6** | `computeConflictResolutionImpact` engine (test-only caller) + the full `source_conflicts` dormant slice: `fetchOpenConflicts`, `SourceData.openConflicts`, the store slice, the "Data Conflicts" admin tab, the `initialOpenConflicts` prop chain, `SourceConflict`/`ConflictStatus`/`ConflictResolution` types; migration **215** drops the 0-row table (content-gated, AUTHORED-not-applied per ADR-011 break-risky, rides the operator DDL window) | `trust.ts`, `types/source.ts`, `supabase-server.ts`, `sourceStore.ts`, `AdminDashboard.tsx`, `SourceHealthDashboard.tsx`, `admin/page.tsx`, `trust-evaluators.npmtest.mjs`; migrations inventory |
+
+**P-6 DEFERRAL surfaced (materially unexpected, reported not forced):** P-6's description also named "the
+never-emitted trust-event types". Those live on `source_trust_events` — a LIVE table actively written by 6
+routes (bulk-approve, decide, promote, tier-override, spot-check, check-sources) and explicitly slated for
+CHECK-widening by **phase-3 fruition**, which ADR-015 (Phase 2, R1) just restored as the active path.
+Narrowing that CHECK now would delete inputs the restoration needs and churn against phase-3. Per the
+standing stop-and-report rule this narrowing is DEFERRED to the operator, not forced. `ConflictOpenedDetails`
+(a member of the trust-event details union) is retained for the same reason. DB-2 F19 already ruled this
+class "revisit when conflict detection ships".
+
+**Operator action owed:** apply migration 215 in the DDL window (destructive DROP on prod, dev=prod); rule
+on the deferred `source_trust_events` never-emitted event-type narrowing.
