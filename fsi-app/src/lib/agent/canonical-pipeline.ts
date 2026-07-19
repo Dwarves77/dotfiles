@@ -73,7 +73,7 @@ import { escalateToFetchResult } from "@/lib/sources/transport-runtime.mjs";
 // fetches" is airtight across ALL FOUR transports (CODE-1 F-02). The url-canon-keyed, per-source-TTL cache
 // (built in fetch-hold.mjs but never injected — CODE-1 F-03) is wired into buildLiveTransports so a
 // re-ground / retry / refresh of the SAME url reads the cache instead of re-fetching (stops double-paying).
-import { assertFetchAllowed, cacheGet as fetchCacheGet, cachePut as fetchCachePut } from "@/lib/sources/fetch-hold.mjs";
+import { assertFetchAllowed, cacheGet as fetchCacheGet, cachePut as fetchCachePut, fetchCacheKey } from "@/lib/sources/fetch-hold.mjs";
 import { assertAcquireAllowed } from "@/lib/sources/acquire-lock.mjs";
 import { holdingsPresent, holdingsPrecondition, HOLDINGS_PRESENT_DETAIL } from "@/lib/sources/holdings-gate.mjs";
 import { checkBriefContent } from "@/lib/sources/fetch-quality";
@@ -826,11 +826,24 @@ Follow your output contract exactly: brief body, then a "## New Sources Identifi
 /** LIVE holdings for an item (the no-execution-from-stale-state fetch guard): the largest stored snapshot for
  *  the item's source (raw_fetches.html_bytes) + the count of content-bearing pool rows (agent_run_searches with
  *  result_content_excerpt > 200ch). Read FRESH at the fetch seam — never from a plan/manifest. */
-async function holdingsForItem(sb: ReturnType<typeof svc>, itemId: string, sourceId: string | null): Promise<{ snapshotBytes: number; usablePoolRows: number }> {
+export async function holdingsForItem(sb: ReturnType<typeof svc>, itemId: string, sourceId: string | null, itemSourceUrl: string | null = null): Promise<{ snapshotBytes: number; usablePoolRows: number }> {
   let snapshotBytes = 0;
   if (sourceId) {
-    const { data: snaps } = await sb.from("raw_fetches").select("html_bytes").eq("source_id", sourceId).order("html_bytes", { ascending: false }).limit(1);
-    snapshotBytes = Number(snaps?.[0]?.html_bytes ?? 0);
+    // raw_fetches is PER-SOURCE with no URL column, so a snapshot proves holdings for THIS item only when
+    // the source row IS the document (the per-instrument shape: source.url == item.source_url canonically).
+    // A PORTAL-DERIVED item (B1: many items share the portal's source_id) must NOT count the portal's
+    // snapshot as its own holdings — that false-positive walled every portal-derived mint as "held" while
+    // holding nothing of the document (2026-07-19). The pool half below is item-scoped and unaffected.
+    let snapshotIsThisDocument = true;
+    if (itemSourceUrl) {
+      const { data: srcRow } = await sb.from("sources").select("url").eq("id", sourceId).maybeSingle();
+      const srcUrl = (srcRow as { url?: string } | null)?.url ?? "";
+      snapshotIsThisDocument = !!srcUrl && fetchCacheKey(srcUrl) === fetchCacheKey(itemSourceUrl);
+    }
+    if (snapshotIsThisDocument) {
+      const { data: snaps } = await sb.from("raw_fetches").select("html_bytes").eq("source_id", sourceId).order("html_bytes", { ascending: false }).limit(1);
+      snapshotBytes = Number(snaps?.[0]?.html_bytes ?? 0);
+    }
   }
   const { data: pool } = await sb.from("agent_run_searches").select("result_content_excerpt").eq("intelligence_item_id", itemId);
   const usablePoolRows = (pool ?? []).filter((r) => ((r as { result_content_excerpt?: string }).result_content_excerpt || "").length > 200).length;
@@ -847,7 +860,7 @@ export async function generateBrief(itemId: string, caller: string | null = null
   // at the seam (o9: 76KB already held, re-fetched, bought nothing). `forceRefresh` is the single explicit
   // freshness escape (generateStep(refresh=true) / reresearch widen). The holdings posture is recorded on the
   // spend ticket (amendment 1) so an authorized-but-wasteful fetch is machine-visible at the moment of spend.
-  const hold = await holdingsForItem(sb, itemId, it.source_id ?? null);
+  const hold = await holdingsForItem(sb, itemId, it.source_id ?? null, it.source_url ?? null);
   if (!opts.forceRefresh && holdingsPresent(hold)) {
     return { ok: false, detail: `${HOLDINGS_PRESENT_DETAIL} (snapshot=${hold.snapshotBytes}B, pool=${hold.usablePoolRows})` };
   }

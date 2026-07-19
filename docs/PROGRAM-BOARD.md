@@ -742,3 +742,27 @@ The third build. PR feat/b3-feed-transport:
   **10/12 would_mint, genuinely ON-VERTICAL** (Cap-and-Invest updates, Volvo $197M emissions settlement,
   $1B electric-truck rebates, HVIP, Climate Transparency Regulation) and **congruence 1a fired live** on
   every news-page instrument (retyped — the moat working). 2 sub-portals honestly rejected.
+
+## Session F — POPULATION STARTED + holdings-keying seam fixed (2026-07-19)
+
+Operator ruling: NO scheduled scrapes during build (re-arm closed/deferred; schedules stay commented,
+hold stays). Phase = POPULATE manually with the built tools. Population targets RFD-format PRIMARY
+instrument pages only (congruence 1a retypes news-page announcements to non-ratified formats).
+
+- Scoped FR walk (--term emissions, RULE, 30d): 30 candidates, 30/30 would_mint (plan).
+- **Bounded apply sample: 3 FR rules MINTED through every gate** (staged → chokepoint → ledger
+  promoted w/ item ids): NESHAP Plywood/PCWP, Counter-UAS IFR, Michigan St. Clair SO2 SIP.
+- **SEAM FOUND + FIXED: holdings-gate keying.** raw_fetches is per-SOURCE (no URL column); the guard
+  counted the FR PORTAL's old snapshot as every portal-derived item's holdings → all 3 refused
+  grounding as falsely "held". Fix: the snapshot half counts ONLY when source.url == item.source_url
+  canonically (the per-instrument shape, ruled behavior unchanged); portal-derived items key on their
+  own pool. Proof holdings-keying.npmtest.mjs 3/3.
+- Post-fix: all 3 generated FULL RFDs (60825/77555/48776 ch, 14-15 sections, 6 web_search
+  corroborators each, real FR citations); truncation guard reported a 383KB PDF honestly
+  (60000/383344 collected). All 3 correctly QUARANTINED at the ground step: **GROUNDING_ACQUIRE_LOCKED**
+  — model grounding is paid acquisition behind the operator's per-run flag (GROUNDING_ACQUIRE_ENABLED).
+- Sample actuals: ~\$2.53 est across 18 runs (3 Sonnet deep-dive generates + classifies), ≈\$0.80/item
+  generate. FLAG: July agent_runs est \$140.28 vs the \$75-ceiling doctrine — needs operator read.
+- Runner: --newest consume option (freshest walk results first). Diag: _b1-ground-sample.mjs.
+- OPERATOR DECISION OWED: flip GROUNDING_ACQUIRE_ENABLED for a bounded funded pass to ground the 3
+  (est <\$1), then the corpus-sweep price rides the audited sample.
