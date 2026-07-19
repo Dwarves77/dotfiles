@@ -14,6 +14,7 @@
 //   node scripts/run-portal-harvest.mjs --source <uuid | url-substring> [--harvest] [--consume]
 //        [--mode plan|apply] [--limit 25] [--render]
 //        [--after "firstSeenAt|id"] [--census-exclude]
+//        [--census-write [--lane A] [--shape index_page] [--cap-hit] [--created-by <id>]]
 //
 // PLAN-MODE PAGINATION (census walk, 2026-07-19): plan mode never marks a candidate consumed, so repeated
 // calls with the same --source re-read the same oldest-N rows. --after resumes past a KEYSET cursor
@@ -21,6 +22,13 @@
 // run prints the next cursor to pass forward. --census-exclude additionally skips candidates already
 // dispositioned in census_worklist for this source (feature-detected; fails closed to no-op if the table
 // or its columns are absent). Read-only, plan-mode-only: touches no gate, mint, or grounding logic.
+//
+// CENSUS WRITE (intake-census lane): --census-write persists each dispositioned document's verdict to
+// census_worklist (migration 221) under a per-source mutation lease. This WRITES the measurement table
+// (NOT the corpus, NOT the candidate ledger) — the point of the census mandate. --lane (A default),
+// --shape (the source's document shape), --cap-hit (flag over-cap batches), --created-by. Skipped/
+// inconclusive outcomes are counted, not written (re-walkable). Compose with --census-exclude for a
+// resumable walk that never re-classifies an already-dispositioned document.
 //
 // Env (source .env.local first): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
 // ANTHROPIC_API_KEY (+ BROWSERLESS_API_KEY only with --render).
@@ -65,7 +73,9 @@ const { escalateToFetchResult } = await jiti.import("../src/lib/sources/transpor
 const { extractPortalLinks } = await jiti.import("../src/lib/sources/portal-links.mjs");
 const { assertFetchAllowed } = await jiti.import("../src/lib/sources/fetch-hold.mjs");
 const { MANUAL_INTAKE_CALLER } = await jiti.import("../src/lib/intake/run-intake-cycle.ts");
-const lib = { consumePortalCandidates, persistPortalCandidates, buildLiveTransports, escalateToFetchResult, extractPortalLinks, assertFetchAllowed, MANUAL_INTAKE_CALLER };
+const { writeCensusRows } = await jiti.import("../src/lib/intake/census-writer.mjs");
+const { withLease } = await jiti.import("./lib/mutation-lease.mjs");
+const lib = { consumePortalCandidates, persistPortalCandidates, buildLiveTransports, escalateToFetchResult, extractPortalLinks, assertFetchAllowed, MANUAL_INTAKE_CALLER, writeCensusRows, withLease };
 
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
@@ -139,6 +149,23 @@ if (DO_CONSUME) {
   }
   if (result.cycle) {
     console.log(`\ncycle: staged=${result.cycle.staged} minted=${result.cycle.minted} rejected=${result.cycle.rejected} verified=${result.cycle.verified} groundFailed=${result.cycle.groundFailed}`);
+  }
+  // CENSUS WRITE (intake-census lane): persist each DISPOSITIONED document's verdict to census_worklist
+  // (migration 221) under a per-source lease. --census-write turns it on; --lane (A default) and --shape
+  // (the source's document shape) fill the row. Skipped/inconclusive outcomes are counted, not written.
+  if (flag("census-write")) {
+    const lane = opt("lane", "A");
+    const shapeClass = opt("shape", null); // instrument_page|index_page|pdf_direct|feed_entry|unknown
+    const createdBy = opt("created-by", "session-A-intake-census");
+    const capHit = flag("cap-hit");
+    const cw = await lib.writeCensusRows(sb, result.outcomes, {
+      sourceId: source.id, lane, createdBy, capHit, shapeClass, withLease: lib.withLease,
+    });
+    if (cw.leaseError) {
+      console.log(`\ncensus-write: REFUSED — source leased by another lane (${cw.leaseError}). No rows written.`);
+    } else {
+      console.log(`\ncensus-write [lane ${lane}]: ${cw.written} row(s) upserted to census_worklist, ${cw.skipped} skipped (inconclusive/no-url — re-walkable).`);
+    }
   }
   if (result.nextCursor) {
     console.log(`\nnextCursor (source exhausted? NO — more candidates remain): --after "${result.nextCursor.firstSeenAt}|${result.nextCursor.id}"`);
