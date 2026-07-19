@@ -479,3 +479,22 @@ FAIL the gate. All prior discrimination preserved (scoped slugs resolve, passive
 collisions rejected, literal slug match). Selftests: `skill-token.test.mjs` 12/12 (adds errored-fails,
 in-flight-fails, resolved-passes, errored-then-resolved-passes); hook `pretooluse-skill-gate.test.mjs` 26/26
 (fixtures updated to resolved tool_use+tool_result pairs). meta-gate PASS, consistency PASS.
+
+---
+
+## Session E — execution lane Phase 5 (CHECKS + CRAWL SPEC): this PR (2026-07-18)
+
+Operator granted full access mid-lane ("nothing is operator owned"), so the section-7 checks were run
+directly and migration 215 was applied, rather than left as operator-owned items.
+
+| Item | State | Evidence |
+|---|---|---|
+| **Section-7 checks (all 7)** | **RUN LIVE** | [dormant-systems-section7-results-2026-07-18](./audits/dormant-systems-section7-results-2026-07-18.md): cadence `off` / scan returns 503 / source-monitoring+spot-check `disabled_manually` / SW-3 flag 1-open / drain 66 / D-report merged. ONE unreachable: deployed Vercel env values (secret-scope tool limit; moot — cadence-off already blocks fetch). |
+| **Migration 215 (P-6 source_conflicts DROP)** | **APPLIED** | applied this session (content gate passed, 0 rows); table + view now null. P-6 purge complete in code AND data. Migrations inventory corrected AUTHORED→APPLIED. |
+| **Two-tier crawl rebuild spec** | **DRAFT DELIVERED for operator pricing** | [crawl-rebuild-spec-2026-07-18](./plans/crawl-rebuild-spec-2026-07-18.md): awareness tick at check-sources → one intake path (run-intake-cycle + the two owed surfaces) → depth tier behind GROUNDING_ACQUIRE_ENABLED; source-type-agnostic (wave 1 registers / 2 market feeds / 3 research feedstock, same tick+intake+gates); coverage honesty per surface (Operations gap labeled); costed wave-one Phase 1 (cheap awareness, dormant-safe) + Phase 2 (~$16-37 depth over the 106 MISSING candidates, operator-priced). No build until priced. |
+| **Relabel primitive** | **DEFERRED (not built)** | per mandate — belongs to the session that resumes Session A. |
+
+**Execution lane COMPLETE.** Phases 1-5 landed: #342+#343 merged (Phase 1), #344 governance (Phase 2),
+#345 purges (Phase 3), #346 skill-gate fix (Phase 4), this PR checks+spec (Phase 5). Standing operator
+decisions: price the crawl-spec waves; rule on the deferred `source_trust_events` never-emitted event-type
+narrowing (held on merits — collides with phase-3 fruition).
