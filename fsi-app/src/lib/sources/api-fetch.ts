@@ -77,14 +77,13 @@ function jsonToText(body: string): string {
   }
 }
 
-function xmlToText(body: string, maxChars: number): string {
+function xmlToText(body: string): string {
   return body
     .replace(/<\?xml[^?]*\?>/gi, "")
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, maxChars);
+    .trim();
 }
 
 export async function apiFetch(
@@ -133,28 +132,33 @@ export async function apiFetch(
     }
     const html = await res.text();
     const format = (source.api_response_format ?? "json").toLowerCase();
-    let text: string;
+    // D4/D5 (no-silent-truncation, routed Phase-R triage → landed with the B2 api-transport touch):
+    // normalize FULL first, cap at the return site, and report truncated + fullTextLength alongside —
+    // the same contract canonical-fetch.mjs carries, so a capped API body is surfaceable, never silent.
+    let full: string;
     if (format === "json") {
-      text = jsonToText(html).slice(0, maxTextLength);
+      full = jsonToText(html);
     } else if (format === "xml" || format === "rss" || format === "atom") {
-      text = xmlToText(html, maxTextLength);
+      full = xmlToText(html);
     } else if (format === "html") {
-      text = html
+      full = html
         .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
         .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
         .replace(/<[^>]+>/g, " ")
         .replace(/\s+/g, " ")
-        .trim()
-        .slice(0, maxTextLength);
+        .trim();
     } else {
-      text = html.replace(/\s+/g, " ").trim().slice(0, maxTextLength);
+      full = html.replace(/\s+/g, " ").trim();
     }
+    const text = full.slice(0, maxTextLength);
     return {
       status,
       html,
       text,
       htmlLength: html.length,
       textLength: text.length,
+      fullTextLength: full.length,
+      truncated: full.length > maxTextLength,
       renderMs: Date.now() - start,
     };
   } catch (e: unknown) {
