@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
       intelligence_types: [] as string[], // derived by the migration-123 trigger from category; never hardcoded
       vertical_tags: [] as string[],
       notes:
-        `Promoted from canonical_source_candidates 2026-04-28 by reviewer ${auth.userId.slice(0, 8)}. ` +
+        `Promoted from canonical_source_candidates ${now.slice(0, 10)} by reviewer ${auth.userId.slice(0, 8)}. ` +
         `Issue: ${cand.issue_classification}. Confidence: ${cand.confidence}. ${body.reviewerNotes || ""}`.trim(),
     };
     const { data: inserted, error: insErr } = await supabase
@@ -331,7 +331,22 @@ export async function POST(request: NextRequest) {
     })
     .eq("id", body.candidateId);
   if (candUpdErr) {
-    console.warn("Candidate approve update failed after source/item writes:", candUpdErr.message);
+    // F19: do NOT claim clean success when the candidate mark failed. The source + item writes ARE durable at
+    // this point, so a silent warn-then-success hid a partial write (and a blind retry would double the
+    // trust-event, though the dedup guard blocks a duplicate source). Fail the response and NAME the durable
+    // partial state so the operator completes the candidate mark manually instead of blind-retrying.
+    return NextResponse.json(
+      {
+        success: false,
+        error: `source and item were written, but marking the candidate approved failed: ${candUpdErr.message}`,
+        partialWrite: true,
+        sourceId,
+        itemId: cand.intelligence_item_id,
+        candidateId: body.candidateId,
+        remediation: "the source and item link are durable; complete the candidate mark manually — do NOT blind-retry approve (it would double the trust-event)",
+      },
+      { status: 500, headers: rateLimitHeaders(auth.userId) }
+    );
   }
 
   return NextResponse.json(

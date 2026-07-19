@@ -29,6 +29,7 @@ import { haikuVerifyCandidate } from "@/lib/llm/haiku-classify";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { d3GuardAdmission } from "@/lib/d3/hooks.mjs";
+import { classTierForHost } from "@/lib/sources/host-authority";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import {
   checkReachability as ssotCheckReachability,
@@ -627,59 +628,66 @@ async function executeAction(
       : null;
 
   if (tier === "H" && hAdmit?.outcome === "active") {
-    // Map AI trust tier → numeric tier on sources table:
-    //   T1 → tier 1 (canonical primary)
-    //   T2 → tier 2 (canonical regulator)
-    //   T3 → tier 4 (industry/standards body — matches recommend-classification scheme)
-    const numericTier =
-      ai?.ai_trust_tier === "T1" ? 1 : ai?.ai_trust_tier === "T2" ? 2 : 4;
+    // F4 / SC-13 (moat-crack close): base_tier is DETERMINISTIC (classTierForHost), NEVER the Haiku-guessed
+    // ai_trust_tier. The prior `ai_trust_tier → numericTier` stamp minted a moat-conferring base_tier from a
+    // model guess on a LIVE path (bulk-import) — the sibling registerCitedSources/decidePoolHostRegistration
+    // path forbids exactly that. A codified host (legal→1, gov/intergov→2, verifier/academic/association→4,
+    // analysis→6, lawfirm/news→7) auto-activates at its class tier; an AMBIGUOUS host (classTierForHost null)
+    // is NOT stamped a guessed active tier — it WORKLISTS: control falls through to the provisional path below
+    // (pending_review, provisional_tier 7 non-conferring, recommended_tier as an advisory only), so no live
+    // path mints a moat-conferring base_tier from a model guess.
+    let candHost: string | null = null;
+    try { candHost = new URL(candidate.url).hostname.toLowerCase(); } catch { candHost = null; }
+    const detTier = classTierForHost(candHost);
 
-    const newSource = {
-      name: candidate.name || candidate.url,
-      url: candidate.url,
-      description: ai?.rationale ?? "",
-      // C6 (2026-07-11): write base_tier — the moat resolver (institution.ts tierOfSource) reads
-      // base_tier ONLY, so the prior legacy `tier` write left an auto-approved source tier-NULL to
-      // grounding/floor/audits unless the sync trigger happened to be present (CODE-1 F-06). Aligns
-      // with the sibling registerCitedSources insert (source-growth.ts), which also writes base_tier.
-      base_tier: numericTier,
-      tier_at_creation: numericTier,
-      // domains = the REAL surface domain: W2.F candidates come from canonical regulatory-publisher
-      // discovery, so REGULATIONS is the honest domain — named from the domains.ts SoT, not a magic
-      // `[1]` stand-in "refined later by spot-check". (The former /api/admin/sources/discover route +
-      // its DISCOVERY_SYSTEM_PROMPT were purged 2026-07-18 (dormant-systems P-1); candidate discovery
-      // is the crawl rebuild's awareness tier.)
-      domains: [REGULATIONS_DOMAIN],
-      jurisdictions: candidate.jurisdiction_iso ?? [],
-      transport_modes: [],
-      access_method: "scrape",
-      // Note: the sources table has no scan_enabled column. The closest
-      // proxy is `status`: 'active' = scannable, 'suspended' = paused.
-      // Since W2.F always inserts English-detected H rows here (non-English
-      // were downgraded to M in aggregation), all H rows go in as 'active'.
-      status: "active",
-      admin_only: false,
-      update_frequency: "weekly",
-      intelligence_types: ["GUIDE"],
-      vertical_tags: [],
-      notes: `Auto-approved by W2.F verification pipeline ${new Date().toISOString().slice(0, 10)}. ` +
-        `AI scores: rel=${ai?.ai_relevance_score ?? "?"}, frt=${ai?.ai_freight_score ?? "?"}, trust=${ai?.ai_trust_tier ?? "?"}. ` +
-        `Awaiting platform-admin spot-check.`,
-    };
-
-    const { data: inserted, error: insertErr } = await supabase
-      .from("sources")
-      .insert(newSource)
-      .select("id")
-      .single();
-
-    if (insertErr || !inserted) {
-      return {
-        action: "rejected",
-        error: `H insert failed: ${insertErr?.message ?? "unknown"}`,
+    if (detTier != null) {
+      const newSource = {
+        name: candidate.name || candidate.url,
+        url: candidate.url,
+        description: ai?.rationale ?? "",
+        // base_tier is the DETERMINISTIC class tier (SC-13) — the moat resolver (institution.ts tierOfSource)
+        // reads base_tier ONLY, so this is the moat-conferring value and it must never be a guess.
+        base_tier: detTier,
+        tier_at_creation: detTier,
+        // domains = the REAL surface domain: W2.F candidates come from canonical regulatory-publisher
+        // discovery, so REGULATIONS is the honest domain — named from the domains.ts SoT, not a magic
+        // `[1]` stand-in "refined later by spot-check". (The former /api/admin/sources/discover route +
+        // its DISCOVERY_SYSTEM_PROMPT were purged 2026-07-18 (dormant-systems P-1); candidate discovery
+        // is the crawl rebuild's awareness tier.)
+        domains: [REGULATIONS_DOMAIN],
+        jurisdictions: candidate.jurisdiction_iso ?? [],
+        transport_modes: [],
+        access_method: "scrape",
+        // Note: the sources table has no scan_enabled column. The closest
+        // proxy is `status`: 'active' = scannable, 'suspended' = paused.
+        // Since W2.F always inserts English-detected H rows here (non-English
+        // were downgraded to M in aggregation), all H rows go in as 'active'.
+        status: "active",
+        admin_only: false,
+        update_frequency: "weekly",
+        intelligence_types: ["GUIDE"],
+        vertical_tags: [],
+        notes: `Auto-approved by W2.F verification pipeline ${new Date().toISOString().slice(0, 10)}. ` +
+          `base_tier=${detTier} (deterministic, SC-13). AI scores (advisory): rel=${ai?.ai_relevance_score ?? "?"}, ` +
+          `frt=${ai?.ai_freight_score ?? "?"}, trust=${ai?.ai_trust_tier ?? "?"}. Awaiting platform-admin spot-check.`,
       };
+
+      const { data: inserted, error: insertErr } = await supabase
+        .from("sources")
+        .insert(newSource)
+        .select("id")
+        .single();
+
+      if (insertErr || !inserted) {
+        return {
+          action: "rejected",
+          error: `H insert failed: ${insertErr?.message ?? "unknown"}`,
+        };
+      }
+      return { action: "auto-approved", resulting_source_id: inserted.id };
     }
-    return { action: "auto-approved", resulting_source_id: inserted.id };
+    // detTier == null → AMBIGUOUS host → worklist: fall through to the provisional insert below
+    // (never an active source stamped a guessed tier). The recommended_tier there is advisory, not conferring.
   }
 
   // tier === "M"

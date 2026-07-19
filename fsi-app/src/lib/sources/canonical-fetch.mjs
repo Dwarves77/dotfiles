@@ -23,16 +23,19 @@ export class BrowserlessError extends Error {
 // Render `url` via Browserless /content. Returns { status, html, text, htmlLength,
 // textLength, fullTextLength, truncated, maxTextLength, renderMs, tier }. `truncated` is true when the
 // stripped text exceeded maxTextLength (so callers can surface a partial collect — no silent truncation);
-// `fullTextLength` is the pre-cap length. Throws BrowserlessError only when BOTH the fast render
-// AND the stealth-mode retry fail. `userAgent` (optional) is set as both userAgent +
+// `fullTextLength` is the pre-cap length. `userAgent` (optional) is set as both userAgent +
 // setExtraHTTPHeaders (SEC fair-access policy); browserless.ts computes it per-host.
 //
-// ONE fetch path that ESCALATES — there is deliberately not a second weaker implementation
-// the system could pick by mistake. The fast standard render handles most sites; bot-protected
-// / HTTP2-hostile sites (McKinsey, Cloudflare) throw net::ERR_HTTP2_PROTOCOL_ERROR on the plain
-// render and only succeed under Browserless stealth mode, so on ANY failure we retry once with
-// stealth. Verified: McKinsey sustainability page fails plain (HTTP2) and renders 207k chars
-// under stealth.
+// D2 (header corrected 2026-07-19): the accurate description is the escalation-loop comment at the tiers
+// below (this header formerly described a stale 2-tier plain+stealth design and claimed a throw when both
+// fail). ONE fetch path that ESCALATES through THREE tiers — plain → stealth → unblock — deliberately not a
+// second weaker implementation the system could pick by mistake. The fast standard render handles most sites;
+// bot-protected / HTTP2-hostile sites (McKinsey, Cloudflare) throw net::ERR_HTTP2_PROTOCOL_ERROR on the plain
+// render and only succeed under stealth, and a soft-block (a 200 that is really a WAF / JS-challenge / empty
+// shell) escalates further to /unblock. When EVERY tier is blocked the loop RETURNS the least-bad result
+// (largest textLength) rather than throwing; BrowserlessError is thrown only when every tier HARD-errors
+// (missing key / per-tier non-ok HTTP). Verified: McKinsey sustainability page fails plain (HTTP2) and renders
+// 207k chars under stealth.
 export async function browserlessFetch(url, options = {}) {
   // F16 CALLER THREAD (Unit 0c): options.caller (default null = fail-closed) is the SIGNED caller that may
   // pass an engaged hold (manual-intake-run / unit3-remediation). An untouched caller passes null → blocked.

@@ -124,8 +124,13 @@ export async function applyLedgerDiff(sb, itemId, diff, opts = {}) {
   for (const { existing, incoming } of diff.change) {
     const vnum = await nextVersionNumber(sb, existing.id);
     const { error: verr } = await sb.from("claim_versions").insert(versionPayload(existing, itemId, vnum, "changed", null, nowIso));
-    if (verr) { console.warn(`[ledger-apply] version archive failed (${existing.id}): ${verr.message}`); }
-    else { applied.versioned += 1; }
+    // F5 (fail-closed, matching eraseClaimWithProof + this file's own header): the prior state is preserved
+    // BEFORE the current row is changed. If the version archive FAILS, THROW before the update — never
+    // overwrite a current claim when its prior attribution was not durably archived (the warn-then-overwrite
+    // was a data-history-loss window: a re-ground could replace the current row while claim_versions held no
+    // record of the state it replaced). The current row is left untouched, so prior attribution survives.
+    if (verr) throw new Error(`[ledger-apply] change aborted — version archive failed (${existing.id}): ${verr.message}`);
+    applied.versioned += 1;
     const { error: uerr } = await sb.from("section_claim_provenance").update({ ...claimPayload(incoming, itemId), mint_hold_reason: null }).eq("id", existing.id);
     if (uerr) console.warn(`[ledger-apply] change update failed (${existing.id}): ${uerr.message}`);
     currentIds.push(existing.id); applied.changed += 1;

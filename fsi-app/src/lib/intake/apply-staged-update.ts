@@ -28,7 +28,8 @@ export interface ApplyUpdateResult {
 
 export async function applyStagedUpdate(
   supabase: any,
-  update: any
+  update: any,
+  opts: { dryRun?: boolean } = {}
 ): Promise<ApplyUpdateResult> {
   try {
     switch (update.update_type) {
@@ -77,12 +78,14 @@ export async function applyStagedUpdate(
         }
 
         // ── the mint chokepoint owns congruence (1a/1b) + subject-existence dedup + the single INSERT. ──
+        // F6: dryRun threads through — the entity-gate reject above is read-only, so a dry materialization
+        // runs the identical apply path (entity-gate → chokepoint gates) minus the INSERT.
         const res = await mintIntelligenceItem(supabase, {
           seed: insertData,
           legacyId: (insertData as { legacy_id?: string | null }).legacy_id ?? null,
           relevance: (insertData as { relevance?: number | null }).relevance ?? null,
           origin: "staged_materialization",
-        });
+        }, { dryRun: opts.dryRun });
         if (!res.ok) return { success: false, error: res.error, flags: res.flags, action: res.action };
         return { success: true, itemId: res.itemId, flags: res.flags, action: res.action };
       }
