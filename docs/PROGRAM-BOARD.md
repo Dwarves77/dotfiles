@@ -546,3 +546,27 @@ read the code end to end and re-verified every merge behaviorally.
 was authored from the wiring map; it duplicated existing discovery machinery and ignored the two real gaps
 (complete per-source extraction; the open change-to-analysis loop). Its register-enumeration research is
 salvage material only. The build plan (Step 2) is grounded in the behavioral read instead.
+
+---
+
+## Session E — RECOVERY Step 2: build plan DELIVERED for operator ruling (2026-07-19)
+
+Step 1 ruling received (zero restorations accepted, findings accepted, strong list fenced). Step 2 is the
+one phased, costed build plan, existing-first per component with Step-1 finding citations, operator decision
+points marked. **PLAN ONLY — nothing executes until the operator rules on the document.**
+
+Doc: [ingest-repair-and-extraction-build-plan-2026-07-19](./plans/ingest-repair-and-extraction-build-plan-2026-07-19.md).
+
+| Phase | What it closes | Shape | Preserves the strong list by |
+|---|---|---|---|
+| **R — Repair** (first, bounded) | F3/F4/F5/F6 + cheap F13/F19/D2; rest triaged | live snapshot writer + crit-3 on durable storage (zero-flip prover-gated); one tier discipline (verification.ts + bulk-approve conform to the deterministic rule); apply CHANGE fail-closed; plan-intake RETIRED into a dry-run mint | hardens the moat + non-destructive apply; adds no gate logic; per-fix test asserts fenced behavior intact |
+| **1 — Complete extraction** (closes F1) | one-document-per-item | the missing seam: enumerate → classify (4 contracts, multi-tag) → existing intake path; proving slice of 5 (EUR-Lex/leginfo/MPA/CARB/NLR, each multi-item so dedup is proven); slice IS the sizing instrument; snapshot via Phase R | every document flows the unchanged chokepoint/mint-gates/target-match/apply/validate; multiplies volume, changes no gate |
+| **2 — Change-to-analysis** (closes F2) | terminating loop | NEW re-ground consumer on existing check-sources/reconcile/intelligence_changes; USES compareFreshness + cheapVerifyClaims; paid re-ground HOLDS behind acquire lock + operator go | fires the existing grounding pipeline as actuator; adds consumer + router only |
+| **3 — Discovery (third only)** | — | inside-out (grow-step + portal_link_candidates finally consumed) then outside-in (register/feed/catalog, gap measured only vs full extraction — false-denominator rule cited); salvages crawl-spec register research, discards its primary-build framing | stages through unchanged chokepoint; grow writes effective_tier only (moat) |
+| **4 — Reconciliation** | orphaning risk | Session A drain (66) + relabel-primitive (A's session builds it) between R and corpus-wide; Session B lane; Session C census (109/62 feeds) as Phase-3 feedstock; campaign machinery unchanged | campaign grounding machinery IS the strong list, used unchanged |
+
+**Sequencing:** one dependency graph, R → Gate1 → {A/B drain ∥ Phase1 build} → Gate2 proving-slice →
+Gate3 corpus-wide → {Phase2 ∥ backfill} → Gate4 tick re-arm (ADR-015 code+config+env checklist) → Phase3
+→ Gate5 outside-in. Five operator gates plus the proving-slice-composition choice (Operations swap: u.ae).
+
+**STOP.** The plan lands as one PR; the operator rules on the document before anything in it executes.
