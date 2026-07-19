@@ -766,3 +766,21 @@ instrument pages only (congruence 1a retypes news-page announcements to non-rati
 - Runner: --newest consume option (freshest walk results first). Diag: _b1-ground-sample.mjs.
 - OPERATOR DECISION OWED: flip GROUNDING_ACQUIRE_ENABLED for a bounded funded pass to ground the 3
   (est <\$1), then the corpus-sweep price rides the audited sample.
+
+## Session F — B4 BUILT: change-to-analysis consumer (2026-07-19) — ALL FOUR BUILDS COMPLETE
+
+The fourth and final build. PR feat/b4-change-sweep. Retrieval-first paid off: verify-item.mjs
+(snapshot-first entry, F21) already IS the routing core — B4's genuine residual was ONLY the bridge.
+
+- **`src/lib/sources/change-sweep.mjs`**: sweepChangedSource (a changed source's VERIFIED items →
+  verifyItem each → disposition split: verified_cheap record-only / stale_flag queue / needs_acquire
+  LOCKED) + sweepAllChangedSources (bounded, skippedSources reported). READ-ONLY default; --act gates
+  the stale-flag queue writes. Scope: verified items only (quarantine belongs to research-or-erase).
+- **Runner** `scripts/run-change-sweep.mjs`: --source | --all-changed (reads the check-sources
+  monitoring_queue change_detected signal); the SAME live dep binding groundStep uses — no drift.
+- **Proofs**: change-sweep.test.mjs 4/4. Suite 879/0, fitness 16/0, meta-gate PASS, tsc clean.
+- **LIVE smoke ($0, read-only)**: leginfo's 3 verified items (SB 253/261, AB 1305) swept — all route
+  needs_acquire honestly (spans not in the PORTAL homepage snapshot: the KNOWN portal-source corpus
+  defect surfacing through the new lens; no false flip, no spend, lock holds).
+
+Build scoreboard: B1 #354 / B2 #355 / B3 #356 / population+holdings-fix #357 / B4 this PR.
