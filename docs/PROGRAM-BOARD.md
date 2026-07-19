@@ -666,3 +666,17 @@ Community-as-core). Deletes PROPOSED not applied.
 wrongly duplicated. Dormancy = the frozen source-monitoring cron + four missing consumers
 (portal_link_candidates→intake, register index-walk, feed transport, intelligence_changes→re-ground), NOT
 rotting modules. Next: the scrape-and-build plan grounded in this audit, for operator approval.
+
+---
+
+## Session E — CLEANUP EXECUTED + scrape-and-build plan DELIVERED (2026-07-19)
+
+Operator: "Do it." Migration **219 APPLIED**: 8 dead tables dropped (6 zero-ref backups/one-shots +
+hold_resolution_queue — superseded by drain_worklist, proven 32/39-in-drain/6-verified/1-gone/0-residue —
++ briefings). Post-apply verified: all 8 gone, verified-live 210 intact, drain intact, validator valid.
+Inventory updated.
+
+Plan: [scrape-and-build-content-plan-2026-07-19](./plans/scrape-and-build-content-plan-2026-07-19.md) —
+four builds (B1 portal-harvest consumer / B2 register index walk / B3 feed transport / B4 change-to-analysis
+consumer) + the ADR-015 cron re-arm; reuse-first (the audit proved everything else is built); proving slice
+prices the corpus sweep; no new store, no new intake path, no spend-rule change. Build begins on this plan.
