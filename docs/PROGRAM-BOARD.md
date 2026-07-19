@@ -465,3 +465,17 @@ class "revisit when conflict detection ships".
 
 **Operator action owed:** apply migration 215 in the DDL window (destructive DROP on prod, dev=prod); rule
 on the deferred `source_trust_events` never-emitted event-type narrowing.
+
+---
+
+## Session E — execution lane Phase 4 (SKILL-GATE FIX): this PR (2026-07-18)
+
+Executes operator ruling R4 (G-12 is a gap, not a tolerance). `skill-token.mjs` (the PreToolUse
+skill-gate's matcher) now requires a matched `Skill` invocation to have RESOLVED SUCCESSFULLY, not merely
+to appear in the transcript. It parses the JSONL transcript, correlates each `Skill` tool_use to its
+`tool_result` by `tool_use_id`, and counts the invocation only when a result EXISTS and `is_error !== true`.
+An errored invocation (Session D's "Unknown skill" case) and an in-flight/result-less invocation both now
+FAIL the gate. All prior discrimination preserved (scoped slugs resolve, passive prose rejected, suffix
+collisions rejected, literal slug match). Selftests: `skill-token.test.mjs` 12/12 (adds errored-fails,
+in-flight-fails, resolved-passes, errored-then-resolved-passes); hook `pretooluse-skill-gate.test.mjs` 26/26
+(fixtures updated to resolved tool_use+tool_result pairs). meta-gate PASS, consistency PASS.
