@@ -846,6 +846,25 @@ npmtests 61/0, meta-gate PASS (marker baselines unchanged — no new normative-l
 **Resume:** walk EUR-Lex from the top of the ledger with the cursor, foreground chunks, report at
 source-bank boundaries.
 
+### Follow-up: censusExclusion re-pointed to the real census_worklist shape (2026-07-19)
+
+The keyset PR (#360, merged) built `censusExclusion` blind, before `census_worklist` landed — it assumed a
+`{candidate_id, census_run_id}` shape. Session B then landed the table with a DIFFERENT shape, and with **no
+committed migration file and no schema doc**, so the first consumer (this lane) had to introspect `pg_catalog`
+to learn it (finding logged; routes to B, see below). The real shape: keys on `(source_id, document_url)`,
+completion marked by a non-null `dryrun_disposition`, **no run-id column, no candidate-id column**. The
+exclusion is re-pointed to match: it reads DISPOSITIONED census rows (`.not(dryrun_disposition, is, null)`,
+scoped to the source) and anti-joins the ledger on **URL** (`.not("url","in",...)`), not id. CLI flag changed
+`--census-run <uuid>` → `--census-exclude` (no run id exists to pass). Feature-detection unchanged: a
+table/column-absent lookup still fails CLOSED to no exclusion, never a throw.
+
+**PROVISIONAL — dependency owed by Session B.** This shape was read from the LIVE table via `pg_catalog`, not
+from a committed migration. **If B's committed migration file lands with a different shape, the committed file
+wins and this re-points.** The `ConsumeOpts.censusExclusion` doc + the flag column overrides (`column`,
+`dispositionColumn`) exist precisely so a re-point is a one-line change, not a rewrite. Proof re-pointed:
+`portal-harvest.npmtest.mjs` 15/15 (the 3 census-exclusion tests now assert the URL-anti-join + dispositioned-
+only read + fail-closed). Live-probed against the real 0-row table (query shape valid, no error). tsc clean.
+
 ---
 
 ## Session B, resume sync, session-log reconciliation, census-lane mandate opened (2026-07-19)
@@ -884,3 +903,52 @@ launching a full-corpus gap census; Session B owns the data layer. Task 1 (`cens
 migration, one PR) begins immediately after this merge lands, per operator dispatch. Tasks 2 (standing
 dedup/rollup/flag-back duties) and 3 (`docs/census/gap-census-2026-07.md` skeleton) follow. No corpus
 writes in this lane, census tables only; $0, no fetching.
+
+---
+
+## Session B, Task 1: `census_worklist` migration LANDED (2026-07-19)
+
+Migration 221 applied (`kwrsbpiseruzbfwjpvsp`, via `apply_migration`, verified live + smoke-tested inside
+a rollback: forward status transition passes; backward transition, identity-column mutation, hold-without-
+reason, an invalid surface tag, and DELETE are all correctly rejected; zero rows persisted). Full design
+rationale and column-by-column detail in `docs/inventories/migrations.md` row 221.
+
+**Reuse-before-construction, stated:** neither existing table serves. `corpus_census` (mig 212) keys on
+`intelligence_item_id`, a document with no corpus item yet cannot be represented there, which is the
+entire point of a gap census. `coverage_gap_candidates` (mig 214) is a hand-curated, one-off ranked
+pricing input, not a mechanical multi-lane enumeration ledger. The closest precedent, `portal_link_
+candidates` (mig 162/220), is B1's live intake ledger; its shape (source_id + url + guarded status +
+disposition-reason) is reused, but the table is new since coupling a measurement pass onto a production
+intake ledger would conflate two different lifecycles. Lease discipline reuses `mutation_leases` (mig 211)
+unmodified, its lease key column carries no FK constraint, so `census_worklist.id` leases through it
+with zero schema change.
+
+**Sessions A and C unblocked.** Producer lanes can now write rows: `source_id` + `document_url` (UNIQUE
+pair) + `lane` (A|C) + `shape_class` + `enumeration_status` (guarded ladder) + `cap_hit` +
+`dryrun_disposition` (+ `hold_reason`) + `surface_tags` (multi-tag, the four machine-addressable
+surfaces) + `instrument_identifier`/`resolved_into_id` (Task 2 dedup) + `flagged_reason`/`flagged_at`
+(RD-6 shape). Append-only (DELETE blocked unconditionally); `enumeration_status` transitions guarded
+forward-only by trigger, with `flagged` reachable from any rank and one reset path back to `discovered`.
+
+**Next:** Task 2 (standing dedup/rollup/flag-back duties) self-activates once rows exist to work; nothing
+to do yet, table is empty. Task 3 (`docs/census/gap-census-2026-07.md` skeleton) follows in this session.
+
+---
+
+## Session B, Task 3: gap-census report skeleton LANDED (2026-07-19)
+
+`docs/census/gap-census-2026-07.md` authored, structure only, per the dispatch: per surface (Regulations,
+Operations, Market Intel, Research) four populations (enumerated, held, missing-from-held-sources tagged
+to Session A, missing-from-the-world tagged to Session C), a cap-hit-sources table, per-surface and
+per-source rollup tallies, a flagged-rows table, and a cross-source dedup log. Rank fields present on
+every gap row, left empty; final FSI-lens prioritization is the operator's at review, not built here.
+INDEX.md born-linked (new `## census` category, one entry, cross-linked to the migrations inventory).
+
+No data populated (`census_worklist` is empty, migration 221 just landed). The document converges as
+Sessions A and C write rows; Session B's standing Task-2 duties (dedup, rollup, flag-back) keep the
+rollup tables and logs current against live state, not hand-maintained.
+
+**Task 1 + Task 3 both riding PR #361** (Task 3 had no file overlap with Task 1 and no dependency that
+required waiting on a separate merge, so it landed as a follow-up commit on the same open branch rather
+than opening a second PR for two commits from the same dispatch). Session B now stands on Task 2: idle,
+self-activating on the first `census_worklist` row Sessions A or C write.
