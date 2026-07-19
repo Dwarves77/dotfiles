@@ -26,12 +26,14 @@ const { persistPortalCandidates, buildCandidateSeed, consumePortalCandidates } =
 // Serves: the ledger select chain (thenable builder), ledger .update().eq() (stamps captured), the mint
 // chokepoint's probes (existsId drives the source_url idempotency probe), staged_updates inserts (captured
 // — plan mode must never produce one), and portal_link_candidates upserts (payloads captured).
-function fakeClient({ ledgerRows = [], existsId = null, sourcesRows = [{ id: "src-reg-1" }] } = {}) {
+function fakeClient({ ledgerRows = [], existsId = null, sourcesRows = [{ id: "src-reg-1" }], censusWorklistRows = null, censusWorklistErrors = false } = {}) {
   const stamps = [];
   const stagedInserts = [];
   const upserts = [];
+  const orCalls = [];
+  const notCalls = [];
   return {
-    stamps, stagedInserts, upserts,
+    stamps, stagedInserts, upserts, orCalls, notCalls,
     from(table) {
       const q = {
         _update: null,
@@ -39,6 +41,8 @@ function fakeClient({ ledgerRows = [], existsId = null, sourcesRows = [{ id: "sr
         order() { return this; },
         limit() { return this; },
         in() { return this; },
+        or(filter) { orCalls.push({ table, filter }); return this; },
+        not(col, op, val) { notCalls.push({ table, col, op, val }); return this; },
         eq(col, val) {
           if (this._update && col === "id") { stamps.push({ id: val, ...this._update }); return Promise.resolve({ error: null }); }
           return this;
@@ -55,10 +59,15 @@ function fakeClient({ ledgerRows = [], existsId = null, sourcesRows = [{ id: "sr
         maybeSingle: async () => ({ data: table === "intelligence_items" && existsId ? { id: existsId } : null, error: null }),
         single: async () => ({ data: { id: "new-1" }, error: null }),
         then(res) {
-          const data = table === "portal_link_candidates" ? ledgerRows
+          const data =
+            table === "portal_link_candidates" ? ledgerRows
             : table === "sources" ? sourcesRows
+            : table === "census_worklist" ? (censusWorklistRows ?? [])
             : []; // intelligence_items dedup corpus: empty
-          return Promise.resolve({ data, error: null }).then(res);
+          const error = table === "census_worklist" && censusWorklistErrors
+            ? { message: 'relation "census_worklist" does not exist' }
+            : null;
+          return Promise.resolve({ data: error ? null : data, error }).then(res);
         },
       };
       // sources registry probe uses .in(...).limit(1) then awaits — route limit to the thenable
@@ -73,6 +82,7 @@ const LEDGER_ROW = {
   url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32099R9999",
   anchor_text: "Regulation (EU) 2099/9999",
   source_id: "portal-src-1",
+  first_seen_at: "2026-07-15T00:00:00.000Z",
   sources: { name: "EUR-Lex", category: "regulatory", base_tier: 1 },
 };
 
@@ -190,4 +200,85 @@ test("exists: already-minted subject → ledger promoted to the EXISTING item; N
   assert.equal(sb.stamps[0].item_id, "item-already-1");
   assert.match(sb.stamps[0].disposition_reason, /no re-ground/);
   assert.equal(sb.stagedInserts.length, 0, "an existing subject must never re-enter the cycle (spend guard)");
+});
+
+// ── 7. keyset pagination (census walk, 2026-07-19) — plan-mode-only, read-only ──────────────────────────
+test("after cursor: builds a keyset OR filter, never an offset", async () => {
+  const sb = fakeClient({ ledgerRows: [LEDGER_ROW] });
+  await consumePortalCandidates(sb, {
+    mode: "plan", limit: 10, fetchDoc: okFetch, classify: classifyAs(CLS_DOC), anthropicKey: "test",
+    after: { firstSeenAt: "2026-07-10T00:00:00.000Z", id: "plc-0" },
+  });
+  assert.equal(sb.orCalls.length, 1);
+  assert.equal(sb.orCalls[0].table, "portal_link_candidates");
+  // ascending (default): strictly-greater-than the cursor, expressed as first_seen_at.gt OR (eq AND id.gt)
+  assert.match(sb.orCalls[0].filter, /first_seen_at\.gt\.2026-07-10T00:00:00\.000Z/);
+  assert.match(sb.orCalls[0].filter, /and\(first_seen_at\.eq\.2026-07-10T00:00:00\.000Z,id\.gt\.plc-0\)/);
+});
+
+test("after cursor: newestFirst flips gt to lt (same keyset shape, reverse order)", async () => {
+  const sb = fakeClient({ ledgerRows: [LEDGER_ROW] });
+  await consumePortalCandidates(sb, {
+    mode: "plan", limit: 10, fetchDoc: okFetch, classify: classifyAs(CLS_DOC), anthropicKey: "test",
+    newestFirst: true, after: { firstSeenAt: "2026-07-10T00:00:00.000Z", id: "plc-0" },
+  });
+  assert.match(sb.orCalls[0].filter, /first_seen_at\.lt\./);
+  assert.match(sb.orCalls[0].filter, /id\.lt\.plc-0/);
+});
+
+test("no after: no OR filter applied (first chunk of a fresh walk)", async () => {
+  const sb = fakeClient({ ledgerRows: [LEDGER_ROW] });
+  await consumePortalCandidates(sb, {
+    mode: "plan", limit: 10, fetchDoc: okFetch, classify: classifyAs(CLS_DOC), anthropicKey: "test",
+  });
+  assert.equal(sb.orCalls.length, 0);
+});
+
+test("nextCursor: present (last row's keyset position) when the chunk is FULL (limit reached, more may remain)", async () => {
+  const sb = fakeClient({ ledgerRows: [LEDGER_ROW] });
+  const r = await consumePortalCandidates(sb, {
+    mode: "plan", limit: 1, fetchDoc: okFetch, classify: classifyAs(CLS_DOC), anthropicKey: "test",
+  });
+  assert.deepEqual(r.nextCursor, { firstSeenAt: "2026-07-15T00:00:00.000Z", id: "plc-1" });
+});
+
+test("nextCursor: absent when the chunk is SHORT (fewer rows than limit — source exhausted here)", async () => {
+  const sb = fakeClient({ ledgerRows: [LEDGER_ROW] });
+  const r = await consumePortalCandidates(sb, {
+    mode: "plan", limit: 10, fetchDoc: okFetch, classify: classifyAs(CLS_DOC), anthropicKey: "test",
+  });
+  assert.equal(r.nextCursor, undefined);
+});
+
+test("censusExclusion: found rows → excludes those candidate ids via .not(id, in, ...)", async () => {
+  const sb = fakeClient({ ledgerRows: [LEDGER_ROW], censusWorklistRows: [{ candidate_id: "plc-old-1" }, { candidate_id: "plc-old-2" }] });
+  await consumePortalCandidates(sb, {
+    mode: "plan", limit: 10, fetchDoc: okFetch, classify: classifyAs(CLS_DOC), anthropicKey: "test",
+    censusExclusion: { table: "census_worklist", runId: "run-1" },
+  });
+  assert.equal(sb.notCalls.length, 1);
+  assert.equal(sb.notCalls[0].table, "portal_link_candidates");
+  assert.equal(sb.notCalls[0].col, "id");
+  assert.equal(sb.notCalls[0].op, "in");
+  assert.match(sb.notCalls[0].val, /plc-old-1/);
+  assert.match(sb.notCalls[0].val, /plc-old-2/);
+});
+
+test("censusExclusion: table does not exist yet → fails CLOSED to no exclusion, does not throw", async () => {
+  const sb = fakeClient({ ledgerRows: [LEDGER_ROW], censusWorklistErrors: true });
+  const r = await consumePortalCandidates(sb, {
+    mode: "plan", limit: 10, fetchDoc: okFetch, classify: classifyAs(CLS_DOC), anthropicKey: "test",
+    censusExclusion: { table: "census_worklist", runId: "run-1" },
+  });
+  assert.equal(sb.notCalls.length, 0, "no exclusion filter applied when the table lookup errors");
+  assert.equal(r.outcomes.length, 1, "the consume itself still proceeds normally (cursor-only fallback)");
+});
+
+test("censusExclusion: table exists but no rows for this run → no exclusion needed, no .not() call", async () => {
+  const sb = fakeClient({ ledgerRows: [LEDGER_ROW], censusWorklistRows: [] });
+  await consumePortalCandidates(sb, {
+    mode: "plan", limit: 10, fetchDoc: okFetch, classify: classifyAs(CLS_DOC), anthropicKey: "test",
+    censusExclusion: { table: "census_worklist", runId: "run-1" },
+  });
+  assert.equal(sb.notCalls.length, 0);
 });
