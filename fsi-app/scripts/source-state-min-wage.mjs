@@ -79,11 +79,19 @@ async function main() {
   console.log(`\nsource-state-min-wage — ${EXECUTE ? "EXECUTE" : "DRY-RUN"}\n`);
 
   // 1. Register NCSL as the source (dedups by host).
-  const ncsl = await registerSource(
-    { url: "https://www.ncsl.org/labor-and-employment/state-minimum-wages", name: "National Conference of State Legislatures (NCSL) — State Minimum Wages", base_tier: 4 },
-    { cite }
-  );
-  console.log(`source: NCSL → ${ncsl.source_id} (${ncsl.created ? "created" : "existing"})\n`);
+  // F13 (dry-run write hole): registerSource is a WRITE — gate it behind EXECUTE exactly like every fact write
+  // below, so a DRY-RUN does not create/activate the NCSL sources row (the "DRY-RUN by default" contract was
+  // untrue for step 1). In dry-run source_id stays null; the dry branch below never writes a fact, so it is unused.
+  let ncsl = { source_id: null, created: false };
+  if (EXECUTE) {
+    ncsl = await registerSource(
+      { url: "https://www.ncsl.org/labor-and-employment/state-minimum-wages", name: "National Conference of State Legislatures (NCSL) — State Minimum Wages", base_tier: 4 },
+      { cite }
+    );
+    console.log(`source: NCSL → ${ncsl.source_id} (${ncsl.created ? "created" : "existing"})\n`);
+  } else {
+    console.log(`would register source: NCSL (https://www.ncsl.org/labor-and-employment/state-minimum-wages, base_tier 4)\n`);
+  }
 
   // 2. Existing state_cost_facts for idempotent upsert.
   const existing = await readAll("state_cost_facts", "id, state_code, dimension, fact_label, value");

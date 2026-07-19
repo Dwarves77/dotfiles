@@ -25,8 +25,28 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { applyStagedUpdate } from "./apply-staged-update";
 import { generateBriefWorkflow } from "@/workflows/generate-brief";
-import { planIntakeCycle, type CycleMode, type PlanResult } from "./plan-intake";
-export type { CycleMode, PlanResult, PlanVerdict } from "./plan-intake";
+
+// F6 (plan-intake retired): PLAN mode is the real apply path in dryRun — there is no parallel planIntakeCycle.
+// The verdict shape lives here now (the module that owns the cycle), built from the chokepoint's OWN dry verdict.
+export type CycleMode = "plan" | "apply";
+export interface PlanVerdict {
+  title: string;
+  source_url: string;
+  verdict: "would_mint" | "would_reject";
+  /** the mint chokepoint's action verb (minted/retyped/linked/duplicate/unsourced/exists). */
+  action?: string;
+  /** the chokepoint's own gate flags (congruence:1a, dedup:linked, source-linked, low-relevance, …). */
+  flags: string[];
+  /** reject reason, verbatim from the chokepoint (entity-gate / dedup / source-link invariant). */
+  reason?: string;
+}
+export interface PlanResult {
+  mode: "plan";
+  discovered: number;
+  wouldMint: number;
+  wouldReject: number;
+  verdicts: PlanVerdict[];
+}
 
 /** The exactly-one F16 signed caller this cycle enters the hold through (see fetch-hold.mjs AUTHORIZED_HOLD_CALLERS). */
 export const MANUAL_INTAKE_CALLER = "manual-intake-run";
@@ -71,8 +91,22 @@ export async function runIntakeCycle(
   candidates: IntakeCandidate[],
   opts: { caller?: string; mode?: CycleMode } = {}
 ): Promise<IntakeCycleResult | PlanResult> {
-  // PLAN is read-only + free (Step 5): evaluate the gates and STOP, no stage/mint/fetch/spend. APPLY fires.
-  if ((opts.mode ?? "apply") === "plan") return planIntakeCycle(sb, candidates);
+  // PLAN is read-only + free (F6): run the SAME apply path in dryRun (entity-gate → the mint chokepoint's
+  // congruence / dedup / relevance / domain / SOURCE-LINK gates) and STOP before any write. No parallel
+  // planner — the dry verdict IS apply minus the INSERT, so it cannot drift. (The retired planIntakeCycle
+  // re-derived a SUBSET of these gates, never modeled the source-link invariant, and failed OPEN on a corpus
+  // read error where the real mint fails CLOSED.)
+  if ((opts.mode ?? "apply") === "plan") {
+    const verdicts: PlanVerdict[] = [];
+    let wouldMint = 0, wouldReject = 0;
+    for (const c of candidates) {
+      const dry = await applyStagedUpdate(sb, { update_type: "new_item", proposed_changes: { ...c } }, { dryRun: true });
+      const flags = dry.flags ?? [];
+      if (dry.success) { wouldMint++; verdicts.push({ title: c.title, source_url: c.source_url, verdict: "would_mint", action: dry.action, flags }); }
+      else { wouldReject++; verdicts.push({ title: c.title, source_url: c.source_url, verdict: "would_reject", action: dry.action, flags, reason: dry.error }); }
+    }
+    return { mode: "plan", discovered: candidates.length, wouldMint, wouldReject, verdicts };
+  }
   const caller = opts.caller ?? MANUAL_INTAKE_CALLER;
   const items: CycleItemOutcome[] = [];
   let staged = 0, minted = 0, rejected = 0, verified = 0, groundFailed = 0;

@@ -570,3 +570,33 @@ Gate3 corpus-wide → {Phase2 ∥ backfill} → Gate4 tick re-arm (ADR-015 code+
 → Gate5 outside-in. Five operator gates plus the proving-slice-composition choice (Operations swap: u.ae).
 
 **STOP.** The plan lands as one PR; the operator rules on the document before anything in it executes.
+
+---
+
+## Session E — RECOVERY Phase R: repair EXECUTED, stopped at Gate 2 (2026-07-19)
+
+Operator ruling: plan APPROVED, all three recommendations adopted (five gates stand; u.ae swap for a pure
+Operations source in the proving slice, composition-only; plan-intake RETIRED into a dryRun mint). Merged
+#349, then executed **Phase R only**. Every fix touches the most load-bearing machinery, so each landed with
+its own proof artifact, same standard the machinery was held to. Branch `repair/phase-r-ingest-hardening`.
+
+| Fix | State | Proof artifact |
+|---|---|---|
+| **F3** live snapshot writer + crit-3 on durable storage | **STOPPED + SURFACED** (materially unexpected, operator ruling owed at Gate 2) | `raw_fetches` body lives in Supabase STORAGE (no body column), so the plpgsql validator CANNOT read it; and the FACT span is CLEANED text vs `raw_fetches` RAW body — a literal move would FLIP verified items. Corrected design (a durable, DB-queryable, append-only CLEANED-text criterion-3 fallback, monotonic-safe) proposed in the Gate 2 report; writer + checker designed together, no half-slice landed. |
+| **F4 + F18** one tier discipline | **DONE** | verification.ts executeAction + bulk-approve both stamp base_tier from the DETERMINISTIC `classTierForHost` (never the Haiku / cached guess); ambiguous host WORKLISTS (verification → provisional; bulk-approve → individual review). bulk-approve gained the vertical-fit gate + `source_role` + derived types; frozen 2026-04-28 date dropped in bulk-approve AND decide. Proof `tier-discipline-no-guess.test.mjs` (5/5, source-scan covering both live paths) + updated `w2f-basetier.npmtest.mjs`. |
+| **F5** applyLedgerDiff CHANGE fail-closed | **DONE** | warn → THROW before the overwrite when the `claim_versions` archive fails, matching `eraseClaimWithProof` + the file's own header. Proof `ledger-apply.test.mjs` (3/3): archive-failure throws + the current claim is never overwritten (prior attribution survives); happy path still versions-then-updates. |
+| **F6** retire plan-intake → dryRun mint | **DONE** | `mintIntelligenceItem(sb, plan, {dryRun})` runs every gate and returns the disposition without the INSERT; `applyStagedUpdate` + run-intake-cycle plan-mode thread it; `plan-intake.ts` + its test + the `_diag` proof deleted. One source of truth, drift impossible. Proof `mint-dryrun-equivalence.npmtest.mjs` (3/3): dry == real on would-mint / dedup-reject / the SOURCE-LINK reject the old planner got WRONG. |
+| **F13 / F19 / D2** (cheap-in-R) | **DONE** | F13 state-min-wage registerSource EXECUTE-gated (dry-run no longer writes a source); F19 decide fails the response on a candidate-mark failure (names the durable partial state, warns against blind-retry); D2 canonical-fetch header corrected 2-tier→3-tier. Proof `phase-r-cheap-fixes.test.mjs` (3/3). |
+| **Routed (NOT touched this phase)** | per plan | F14/F16/F17 → Phase 4 drain-tools touch; D1/D4/D5 → Phase 1/3 file touches. F15/F20/D3 accepted-as-documented. |
+
+**Fenced strong-list regression: GREEN.** Discipline suite **864 pass / 0 fail** (non-destructive apply,
+dominance guard, mint gates, target-match, moat resolver, verify-item, error-body, audit-gate/preflight
+goldens all unchanged), fitness **16 checked / 0 violations** (single-mint-chokepoint, F12 moat, F2
+admin-routes), npmtests **52 pass / 0 fail**, tsc clean. No strong-list gate logic was modified; the two
+edits inside strong-list files (F5 ledger-apply CHANGE-path, F4 verification tier) are additive hardening
+with per-fix proofs.
+
+**STOPPED at Gate 2 (proving-slice go).** Nothing past Phase R executes without the next operator ruling.
+The Gate 2 report carries: per-fix proof summary, the regression result, the F3 corrected-design proposal
+(operator ruling owed), the final proving-slice composition with the u.ae swap rationale, and the per-source
+enumeration approach for each of the five slice sources.
