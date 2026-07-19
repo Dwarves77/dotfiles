@@ -149,14 +149,18 @@ export interface ConsumeOpts {
    *  changes only which page of already-persisted candidate rows this call reads; touches no gate, mint,
    *  or grounding logic. */
   after?: LedgerCursor | null;
-  /** PLAN-MODE PAGINATION (census walk, 2026-07-19): when provided, exclude candidate ids that already
-   *  carry a row in this table for `censusRunId` (a NOT-EXISTS-shaped filter, expressed as a prior SELECT
-   *  + `.not("id","in",...)` since the query builder has no native cross-table anti-join). Makes an
-   *  interrupted or re-run walk automatically resumable and prevents double-dispositioning a candidate.
-   *  Feature-detected: if the table does not exist yet (Session B's build not landed), the lookup fails
-   *  closed to NO exclusion (cursor-only) rather than throwing — plan mode must not hard-depend on a table
-   *  that may not exist. */
-  censusExclusion?: { table: string; runId: string } | null;
+  /** PLAN-MODE PAGINATION (census walk, 2026-07-19): when provided, exclude candidates already DISPOSITIONED
+   *  in the census table, so an interrupted or re-run walk is naturally resumable and never double-classifies
+   *  a candidate. The census table (Session B's `census_worklist`) has NO run-id and NO candidate-id column —
+   *  it keys on (source_id, document_url) and marks completion by a non-null `dryrun_disposition`. So the
+   *  anti-join matches on the candidate's URL against already-dispositioned census rows for this source (the
+   *  query builder has no native cross-table anti-join, so it is a prior SELECT + `.not("url","in",...)`).
+   *  PROVISIONAL SHAPE: this was built against the LIVE table introspected via pg_catalog because Session B
+   *  landed the table with no committed migration file and no schema doc (see the bank report). If the
+   *  committed migration's shape differs, the committed file wins and this re-points. Feature-detected: a
+   *  lookup error (table absent / column mismatch) fails CLOSED to NO exclusion (cursor-only), never a throw
+   *  — plan mode must not hard-depend on a table it does not own. */
+  censusExclusion?: { table: string; column?: string; dispositionColumn?: string } | null;
   /** F16 signed caller threaded to fetch + grounding (manual runner passes manual-intake-run). */
   caller?: string | null;
   fetchDoc: FetchDocFn;
@@ -210,17 +214,28 @@ export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeO
       `first_seen_at.${op}.${opts.after.firstSeenAt},and(first_seen_at.eq.${opts.after.firstSeenAt},id.${op}.${opts.after.id})`
     );
   }
-  // CENSUS EXCLUSION (plan-mode only, feature-detected). Excludes candidates this census run already
-  // dispositioned, so an interrupted/re-run walk is naturally resumable and never double-classifies a
-  // candidate. Fails CLOSED to no exclusion (not an error) when the table doesn't exist yet.
+  // CENSUS EXCLUSION (plan-mode only, feature-detected). Excludes candidates already DISPOSITIONED in the
+  // census table (Session B's census_worklist), so an interrupted/re-run walk is naturally resumable and
+  // never double-classifies a candidate. The census table keys on (source_id, document_url) with completion
+  // marked by a non-null dryrun_disposition, so the anti-join matches on the candidate's URL. Scoped to this
+  // source when sourceId is set (the census table carries source_id). Fails CLOSED to NO exclusion when the
+  // table/column is absent (feature-detect) — plan mode does not own this table and must not throw on it.
   if (opts.censusExclusion) {
-    const { table, runId } = opts.censusExclusion;
-    const { data: seenRows, error: seenErr } = await sb.from(table).select("candidate_id").eq("census_run_id", runId);
+    const urlCol = opts.censusExclusion.column ?? "document_url";
+    const dispoCol = opts.censusExclusion.dispositionColumn ?? "dryrun_disposition";
+    let seenQ = sb.from(opts.censusExclusion.table).select(urlCol).not(dispoCol, "is", null);
+    if (sourceId) seenQ = seenQ.eq("source_id", sourceId);
+    const { data: seenRows, error: seenErr } = await seenQ;
     if (!seenErr && seenRows?.length) {
-      const seenIds = seenRows.map((r: { candidate_id: string }) => r.candidate_id);
-      q = q.not("id", "in", `(${seenIds.join(",")})`);
+      const seenUrls = (seenRows as unknown as Array<Record<string, string>>).map((r) => r[urlCol]).filter(Boolean);
+      if (seenUrls.length) {
+        // PostgREST .in wants a parenthesised list; wrap each URL in double-quotes so reserved chars
+        // (commas, parens) in a URL cannot break the list grammar.
+        q = q.not("url", "in", `(${seenUrls.map((u) => `"${u.replace(/"/g, '""')}"`).join(",")})`);
+      }
     }
-    // seenErr (table absent, e.g. relation-does-not-exist) is swallowed by design: cursor-only fallback.
+    // seenErr (table absent / column mismatch) is swallowed BY DESIGN: cursor-only fallback (provisional
+    // shape — see the ConsumeOpts.censusExclusion doc; committed migration wins if it differs).
   }
   const { data: rows, error: qErr } = await q;
   if (qErr) throw new Error(`[portal-harvest] ledger read failed: ${qErr.message}`);

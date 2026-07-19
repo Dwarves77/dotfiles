@@ -846,6 +846,25 @@ npmtests 61/0, meta-gate PASS (marker baselines unchanged — no new normative-l
 **Resume:** walk EUR-Lex from the top of the ledger with the cursor, foreground chunks, report at
 source-bank boundaries.
 
+### Follow-up: censusExclusion re-pointed to the real census_worklist shape (2026-07-19)
+
+The keyset PR (#360, merged) built `censusExclusion` blind, before `census_worklist` landed — it assumed a
+`{candidate_id, census_run_id}` shape. Session B then landed the table with a DIFFERENT shape, and with **no
+committed migration file and no schema doc**, so the first consumer (this lane) had to introspect `pg_catalog`
+to learn it (finding logged; routes to B, see below). The real shape: keys on `(source_id, document_url)`,
+completion marked by a non-null `dryrun_disposition`, **no run-id column, no candidate-id column**. The
+exclusion is re-pointed to match: it reads DISPOSITIONED census rows (`.not(dryrun_disposition, is, null)`,
+scoped to the source) and anti-joins the ledger on **URL** (`.not("url","in",...)`), not id. CLI flag changed
+`--census-run <uuid>` → `--census-exclude` (no run id exists to pass). Feature-detection unchanged: a
+table/column-absent lookup still fails CLOSED to no exclusion, never a throw.
+
+**PROVISIONAL — dependency owed by Session B.** This shape was read from the LIVE table via `pg_catalog`, not
+from a committed migration. **If B's committed migration file lands with a different shape, the committed file
+wins and this re-points.** The `ConsumeOpts.censusExclusion` doc + the flag column overrides (`column`,
+`dispositionColumn`) exist precisely so a re-point is a one-line change, not a rewrite. Proof re-pointed:
+`portal-harvest.npmtest.mjs` 15/15 (the 3 census-exclusion tests now assert the URL-anti-join + dispositioned-
+only read + fail-closed). Live-probed against the real 0-row table (query shape valid, no error). tsc clean.
+
 ---
 
 ## Session B, resume sync, session-log reconciliation, census-lane mandate opened (2026-07-19)
