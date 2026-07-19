@@ -250,35 +250,46 @@ test("nextCursor: absent when the chunk is SHORT (fewer rows than limit — sour
   assert.equal(r.nextCursor, undefined);
 });
 
-test("censusExclusion: found rows → excludes those candidate ids via .not(id, in, ...)", async () => {
-  const sb = fakeClient({ ledgerRows: [LEDGER_ROW], censusWorklistRows: [{ candidate_id: "plc-old-1" }, { candidate_id: "plc-old-2" }] });
+// census_worklist real shape (introspected 2026-07-19 via pg_catalog — no committed migration, no doc):
+// keys on (source_id, document_url), completion marked by non-null dryrun_disposition, NO run-id column.
+test("censusExclusion: dispositioned rows → excludes candidates by URL via .not(url, in, ...)", async () => {
+  const sb = fakeClient({ ledgerRows: [LEDGER_ROW], censusWorklistRows: [{ document_url: "https://x/old-1" }, { document_url: "https://x/old-2" }] });
   await consumePortalCandidates(sb, {
     mode: "plan", limit: 10, fetchDoc: okFetch, classify: classifyAs(CLS_DOC), anthropicKey: "test",
-    censusExclusion: { table: "census_worklist", runId: "run-1" },
+    censusExclusion: { table: "census_worklist" },
   });
-  assert.equal(sb.notCalls.length, 1);
-  assert.equal(sb.notCalls[0].table, "portal_link_candidates");
-  assert.equal(sb.notCalls[0].col, "id");
-  assert.equal(sb.notCalls[0].op, "in");
-  assert.match(sb.notCalls[0].val, /plc-old-1/);
-  assert.match(sb.notCalls[0].val, /plc-old-2/);
+  // the census read filters to completed rows: .not(dryrun_disposition, is, null) on census_worklist
+  const censusNot = sb.notCalls.find((c) => c.table === "census_worklist");
+  assert.ok(censusNot, "must read only DISPOSITIONED census rows");
+  assert.equal(censusNot.col, "dryrun_disposition");
+  assert.equal(censusNot.op, "is");
+  assert.equal(censusNot.val, null);
+  // the ledger query excludes by URL, not id (the census table has no candidate-id, it matches on URL)
+  const ledgerNot = sb.notCalls.find((c) => c.table === "portal_link_candidates");
+  assert.ok(ledgerNot, "must exclude already-dispositioned candidates from the ledger read");
+  assert.equal(ledgerNot.col, "url");
+  assert.equal(ledgerNot.op, "in");
+  assert.match(ledgerNot.val, /old-1/);
+  assert.match(ledgerNot.val, /old-2/);
 });
 
-test("censusExclusion: table does not exist yet → fails CLOSED to no exclusion, does not throw", async () => {
+test("censusExclusion: table/column absent → fails CLOSED to no exclusion, does not throw", async () => {
   const sb = fakeClient({ ledgerRows: [LEDGER_ROW], censusWorklistErrors: true });
   const r = await consumePortalCandidates(sb, {
     mode: "plan", limit: 10, fetchDoc: okFetch, classify: classifyAs(CLS_DOC), anthropicKey: "test",
-    censusExclusion: { table: "census_worklist", runId: "run-1" },
+    censusExclusion: { table: "census_worklist" },
   });
-  assert.equal(sb.notCalls.length, 0, "no exclusion filter applied when the table lookup errors");
+  const ledgerNot = sb.notCalls.find((c) => c.table === "portal_link_candidates");
+  assert.equal(ledgerNot, undefined, "no ledger exclusion filter when the census lookup errors");
   assert.equal(r.outcomes.length, 1, "the consume itself still proceeds normally (cursor-only fallback)");
 });
 
-test("censusExclusion: table exists but no rows for this run → no exclusion needed, no .not() call", async () => {
+test("censusExclusion: table exists but nothing dispositioned yet → no ledger exclusion", async () => {
   const sb = fakeClient({ ledgerRows: [LEDGER_ROW], censusWorklistRows: [] });
   await consumePortalCandidates(sb, {
     mode: "plan", limit: 10, fetchDoc: okFetch, classify: classifyAs(CLS_DOC), anthropicKey: "test",
-    censusExclusion: { table: "census_worklist", runId: "run-1" },
+    censusExclusion: { table: "census_worklist" },
   });
-  assert.equal(sb.notCalls.length, 0);
+  const ledgerNot = sb.notCalls.find((c) => c.table === "portal_link_candidates");
+  assert.equal(ledgerNot, undefined);
 });
