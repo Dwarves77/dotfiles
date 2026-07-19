@@ -18,12 +18,12 @@ export const GATE_CALL_RE = /assertFetchAllowed\s*\(/;
 export const RAW_BROWSERLESS_RE = /(chrome|production-[a-z0-9]+)\.browserless\.io|browserless[^\n"'`]{0,40}\/content|BROWSERLESS_BASE_URL/;
 
 // TRANSPORT MODULES (C5, 2026-07-11): every canonical fetch entry point beyond the Browserless primitive —
-// direct-HTTP, API, RSS. Each MUST carry the scrape-hold gate (assertFetchAllowed) so "hold LIVE, zero
-// fetches" is airtight across ALL FOUR transports, not only Browserless (CODE-1 F-02, invariant RD-15). A
+// direct-HTTP, API. Each MUST carry the scrape-hold gate (assertFetchAllowed) so "hold LIVE, zero
+// fetches" is airtight across every live transport, not only Browserless (CODE-1 F-02, invariant RD-15). A
 // transport module missing the gate FAILS this gate. canonical-pipeline.ts holds the direct-HTTP + API-ladder
 // transports (directFetchClean / apiFetchForHost); the sources/ modules are the access_method transports.
+// (The RSS transport rss-fetch.ts was purged 2026-07-18 (dormant-systems P-5, dead code) and removed here.)
 export const TRANSPORT_MODULES = [
-  'fsi-app/src/lib/sources/rss-fetch.ts',
   'fsi-app/src/lib/sources/api-fetch.ts',
   'fsi-app/src/lib/agent/canonical-pipeline.ts',
 ];
@@ -64,7 +64,7 @@ export const fitnessFunction = {
     // TRANSPORT-MODULE HOLD GATE (C5): every transport module MUST carry assertFetchAllowed.
     if (TRANSPORT_MODULES.includes(filepath)) {
       const out = GATE_CALL_RE.test(content) ? [] : [violation(1,
-        `Transport module ${filepath} is missing the scrape-hold gate. Call assertFetchAllowed(url) at the top of its fetch entry point so the hold gates ALL FOUR transports (direct-HTTP / API / RSS / Browserless), not only Browserless (C5, invariant RD-15).`)];
+        `Transport module ${filepath} is missing the scrape-hold gate. Call assertFetchAllowed(url) at the top of its fetch entry point so the hold gates every live transport (direct-HTTP / API / Browserless), not only Browserless (C5, invariant RD-15).`)];
       // a transport module may reference the raw endpoint only if sanctioned; canonical-pipeline routes render
       // through browserlessFetch, so it must not construct a raw Browserless fetch either.
       if (!SANCTIONED.has(filepath)) out.push(...rawBrowserlessLines(content).map((ln) => violation(ln,

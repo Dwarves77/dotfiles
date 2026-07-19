@@ -246,36 +246,11 @@ export interface DiscoveryDetails {
 }
 
 // ── Source Conflicts ──
-// When two sources disagree on the same fact about the same
-// intelligence item, a conflict is created. Conflicts are the
-// primary mechanism by which trust is gained or lost.
-
-export type ConflictStatus = "open" | "resolved" | "inconclusive";
-export type ConflictResolution =
-  | "source_a_correct"
-  | "source_b_correct"
-  | "both_partially_correct"
-  | "inconclusive"
-  | "superseded";         // A newer publication made the conflict moot
-
-export interface SourceConflict {
-  id: string;                      // UUID
-  item_id: string;                 // The intelligence item in dispute
-  source_a_id: string;             // First source
-  source_b_id: string;             // Second source
-  source_a_tier: SourceTier;
-  source_b_tier: SourceTier;
-  source_a_claim: string;          // What source A says
-  source_b_claim: string;          // What source B says
-  field_in_dispute: string;        // Which field: "status", "deadline", "scope", "applicability", etc.
-  status: ConflictStatus;
-  resolution?: ConflictResolution;
-  resolution_note?: string;
-  resolved_by_source_id?: string;  // If a third source resolved it
-  resolved_by_human?: string;      // If a human resolved it
-  opened_at: string;               // ISO timestamp
-  resolved_at?: string;            // ISO timestamp
-}
+// The source_conflicts surface (table + SourceConflict/ConflictStatus/ConflictResolution types +
+// computeConflictResolutionImpact engine + the Data Conflicts admin tab) was purged 2026-07-18
+// (dormant-systems P-6): the table held 0 rows, had no writer, and the promotion/demotion engine had
+// only a test caller. The ConflictOpenedDetails trust-event detail type below is retained (it is a
+// member of the trust-event details vocabulary that phase-3 fruition revisits; see ADR-015).
 
 // ── Promotion / Demotion Thresholds ──
 // These are the exact criteria that must be met for a source

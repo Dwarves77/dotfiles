@@ -645,8 +645,10 @@ async function executeAction(
       base_tier: numericTier,
       tier_at_creation: numericTier,
       // domains = the REAL surface domain: W2.F candidates come from canonical regulatory-publisher
-      // discovery (DISCOVERY_SYSTEM_PROMPT), so REGULATIONS is the honest domain — named from the
-      // domains.ts SoT, not a magic `[1]` stand-in "refined later by spot-check".
+      // discovery, so REGULATIONS is the honest domain — named from the domains.ts SoT, not a magic
+      // `[1]` stand-in "refined later by spot-check". (The former /api/admin/sources/discover route +
+      // its DISCOVERY_SYSTEM_PROMPT were purged 2026-07-18 (dormant-systems P-1); candidate discovery
+      // is the crawl rebuild's awareness tier.)
       domains: [REGULATIONS_DOMAIN],
       jurisdictions: candidate.jurisdiction_iso ?? [],
       transport_modes: [],

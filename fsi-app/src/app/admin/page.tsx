@@ -111,7 +111,6 @@ export default async function AdminPage() {
       userEmail={email}
       initialSources={sourceData.sources}
       initialProvisionalSources={sourceData.provisionalSources}
-      initialOpenConflicts={sourceData.openConflicts}
       initialOrgs={orgsRes.data || []}
       initialMembers={membersRes.data || []}
       initialStagedUpdates={stagedRes.data || []}

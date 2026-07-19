@@ -321,7 +321,7 @@ function MetricBox({ label, value, sublabel }: { label: string; value: string; s
 // ── Main Dashboard ──
 
 export function SourceHealthDashboard() {
-  const { sources, provisionalSources, openConflicts, filters, activeView, setActiveView, setSourceSearch, setProvisionalSources } = useSourceStore();
+  const { sources, provisionalSources, filters, activeView, setActiveView, setSourceSearch, setProvisionalSources } = useSourceStore();
 
   // Optimistically remove a provisional row from the list after a successful
   // approve/reject; defer keeps it but updates reviewer_notes server-side.
@@ -343,7 +343,6 @@ export function SourceHealthDashboard() {
     { id: "provisional" as const, label: "Provisional", count: provisionalSources.filter((ps) => ps.status === "pending_review").length },
     { id: "canonical" as const, label: "Canonical Source Issues", count: 0 },
     { id: "intersections" as const, label: "Intersections", count: 0 },
-    { id: "conflicts" as const, label: "Data Conflicts", count: openConflicts.length },
   ];
 
   return (
@@ -407,7 +406,7 @@ export function SourceHealthDashboard() {
               <span
                 className="ml-1.5 text-[11px] tabular-nums px-1.5 py-0.5 rounded-full"
                 style={{
-                  color: vt.id === "conflicts" ? "var(--color-error)" : "var(--color-text-secondary)",
+                  color: "var(--color-text-secondary)",
                   backgroundColor: "var(--color-surface-raised)",
                 }}
               >
@@ -511,50 +510,6 @@ export function SourceHealthDashboard() {
           operational scenarios + compliance objects. Populated by B.2
           regeneration emitting the new tag fields. */}
       {activeView === "intersections" && <IntersectionDetectionView />}
-
-      {/* Open conflicts */}
-      {activeView === "conflicts" && (
-        <div className="space-y-2">
-          {openConflicts.length === 0 ? (
-            <EmptyState
-              title="No open conflicts"
-              description="When two sources disagree on a fact, the conflict will appear here for resolution."
-              icon={<CheckCircle size={24} style={{ color: "var(--color-success)" }} />}
-            />
-          ) : (
-            openConflicts.map((conflict) => (
-              <div
-                key={conflict.id}
-                className="p-4 rounded-lg border"
-                style={{
-                  borderColor: "var(--color-border)",
-                  borderLeftWidth: 3,
-                  borderLeftColor: "var(--color-error)",
-                  backgroundColor: "var(--color-surface)",
-                }}
-              >
-                <div className="text-sm font-medium mb-1" style={{ color: "var(--color-text-primary)" }}>
-                  {conflict.field_in_dispute}
-                </div>
-                <div className="grid grid-cols-2 gap-3 mt-2 text-xs">
-                  <div>
-                    <span className="font-medium" style={{ color: "var(--color-text-secondary)" }}>
-                      Source A (T{conflict.source_a_tier}):
-                    </span>
-                    <p style={{ color: "var(--color-text-primary)" }}>{conflict.source_a_claim}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium" style={{ color: "var(--color-text-secondary)" }}>
-                      Source B (T{conflict.source_b_tier}):
-                    </span>
-                    <p style={{ color: "var(--color-text-primary)" }}>{conflict.source_b_claim}</p>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
     </div>
   );
 }

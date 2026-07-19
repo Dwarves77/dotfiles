@@ -13,7 +13,6 @@ import type {
   TrustMetrics,
   TrustScore,
   SourceTier,
-  SourceConflict,
   Source,
   ProvisionalSource,
   PromotionCriteria,
@@ -582,61 +581,6 @@ export function evaluateProvisionalSource(
 
 // When a conflict is resolved, update trust metrics for both sources
 
-export interface ConflictResolutionImpact {
-  winner_source_id: string | null;
-  loser_source_id: string | null;
-  winner_metrics_delta: Partial<TrustMetrics>;
-  loser_metrics_delta: Partial<TrustMetrics>;
-}
-
-export function computeConflictResolutionImpact(
-  conflict: SourceConflict
-): ConflictResolutionImpact {
-  switch (conflict.resolution) {
-    case "source_a_correct":
-      return {
-        winner_source_id: conflict.source_a_id,
-        loser_source_id: conflict.source_b_id,
-        winner_metrics_delta: { confirmation_count: 1 },
-        loser_metrics_delta: { conflict_count: 1 },
-      };
-
-    case "source_b_correct":
-      return {
-        winner_source_id: conflict.source_b_id,
-        loser_source_id: conflict.source_a_id,
-        winner_metrics_delta: { confirmation_count: 1 },
-        loser_metrics_delta: { conflict_count: 1 },
-      };
-
-    case "both_partially_correct":
-      // Neither wins, neither loses — but we note the conflict happened
-      return {
-        winner_source_id: null,
-        loser_source_id: null,
-        winner_metrics_delta: {},
-        loser_metrics_delta: {},
-      };
-
-    case "inconclusive":
-    case "superseded":
-      // No trust impact — the conflict was mooted
-      return {
-        winner_source_id: null,
-        loser_source_id: null,
-        winner_metrics_delta: {},
-        loser_metrics_delta: {},
-      };
-
-    default:
-      return {
-        winner_source_id: null,
-        loser_source_id: null,
-        winner_metrics_delta: {},
-        loser_metrics_delta: {},
-      };
-  }
-}
 
 // ══════════════════════════════════════════════════════════════
 // Utility: Default Trust Metrics

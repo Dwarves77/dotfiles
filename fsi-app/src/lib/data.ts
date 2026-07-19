@@ -61,7 +61,7 @@ export type { WatchlistItem, CoverageGap, ReviewItem, WorkspaceAggregates, Scope
 
 /**
  * Cache invalidation tag for workspace data. Mutation routes
- * (api/staged-updates approval, api/workspace/overrides) call
+ * (api/workspace/overrides, and the machine intake cycle's materialization) call
  * `revalidateTag(APP_DATA_TAG)` so users see their changes immediately
  * instead of waiting up to 60s for the cache to refresh.
  */
@@ -685,7 +685,7 @@ export async function getScopedWorkspaceAggregates(
 //
 // Each wraps the corresponding fetcher in supabase-server.ts behind
 // unstable_cache keyed by orgId. 60s revalidate, tagged APP_DATA_TAG so
-// override / staged-update mutation routes invalidate them in lockstep
+// override mutations and the machine intake cycle's materialization invalidate them in lockstep
 // with getAppData and the scoped aggregates. Anonymous and no-org callers
 // share the orgId=null cache bucket (empty result).
 //

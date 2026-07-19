@@ -1,7 +1,7 @@
 // @ts-check
 // TRANSPORT HOLD + CACHE WIRING (Wave-α C5). The pure hold/cache core is proven in fetch-hold.test.mjs;
-// THIS proves the LIVE transports honor it: (1) hold engaged blocks each transport (rssFetch + apiFetch
-// throw FetchHoldError; the pipeline's direct/API-ladder closures do NO network fetch); (2) a successful
+// THIS proves the LIVE transports honor it: (1) hold engaged blocks each transport (apiFetch
+// throws FetchHoldError; the pipeline's direct/API-ladder closures do NO network fetch); (2) a successful
 // fetch through buildLiveTransports caches the result so a cacheGet HIT prevents a duplicate fetch.
 // jiti imports the TS/@-aliased modules (mint-domain-guard.npmtest.mjs pattern).
 import { test } from "node:test";
@@ -13,7 +13,6 @@ import { createJiti } from "jiti";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 
-const { rssFetch } = await jiti.import("./rss-fetch.ts");
 const { apiFetch } = await jiti.import("./api-fetch.ts");
 const { FetchHoldError } = await jiti.import("./fetch-hold.mjs");
 const { buildLiveTransports, __clearFetchCacheForTest } = await jiti.import("../agent/canonical-pipeline.ts");
@@ -25,18 +24,6 @@ function withHold(v, fn) {
     .then(fn)
     .finally(() => { if (prev === undefined) delete process.env.SCRAPE_HOLD; else process.env.SCRAPE_HOLD = prev; });
 }
-
-test("hold ENGAGED: rssFetch throws FetchHoldError, no network fetch", async () => {
-  await withHold("1", async () => {
-    let fetched = false;
-    const orig = globalThis.fetch;
-    globalThis.fetch = async () => { fetched = true; return { ok: true, status: 200, text: async () => "" }; };
-    try {
-      await assert.rejects(() => rssFetch({ url: "https://example.gov/feed.xml" }), (e) => e instanceof FetchHoldError);
-      assert.equal(fetched, false, "no network fetch may happen while the hold is engaged");
-    } finally { globalThis.fetch = orig; }
-  });
-});
 
 test("hold ENGAGED: apiFetch throws FetchHoldError, no network fetch", async () => {
   await withHold("on", async () => {

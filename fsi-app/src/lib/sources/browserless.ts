@@ -11,7 +11,7 @@
 // from canonical-fetch.mjs so `e instanceof BrowserlessError` is the SAME class across
 // the TS and .mjs worlds). It adds the per-host SEC fair-access UA before delegating.
 
-import { secFairAccessUaForUrl } from "@/lib/sources/rss-fetch";
+import { secFairAccessUaForUrl } from "@/lib/sources/sec-fair-access";
 import { browserlessFetch, BrowserlessError } from "@/lib/sources/canonical-fetch.mjs";
 
 export { BrowserlessError };
