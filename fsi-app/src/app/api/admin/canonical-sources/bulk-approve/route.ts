@@ -26,6 +26,9 @@ import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
+import { classTierForHost } from "@/lib/sources/host-authority";
+import { classifySourceRole } from "@/lib/sources/classify-source-role";
+import { checkVerticalFitGate } from "@/lib/sources/vertical-fit-gate";
 
 
 interface BulkBody {
@@ -123,11 +126,10 @@ export async function POST(request: NextRequest) {
     let createdSource = false;
 
     if (!sourceId) {
-      // Need cached classification to insert a new source. Bulk doesn't call Haiku.
+      // Need a cached classification for the source METADATA (domains/jurisdictions). Bulk doesn't call Haiku.
       const rec = cand.recommended_classification;
       if (
         !rec ||
-        typeof rec.tier !== "number" ||
         !Array.isArray(rec.domains) ||
         !Array.isArray(rec.jurisdictions)
       ) {
@@ -140,15 +142,53 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
+      // F4 / SC-13 (moat-crack close): base_tier is DETERMINISTIC (classTierForHost), NEVER the cached Haiku
+      // guess (rec.tier). The prior `base_tier: rec.tier` stamped a moat-conferring tier from a model guess with
+      // no per-row operator tier decision. A codified host auto-approves at its class tier; an AMBIGUOUS host
+      // (classTierForHost null) is NOT bulk-stamped a guessed tier — it routes to individual review (the /decide
+      // route, where the operator sets assignedTier explicitly, the moat-sanctioned human-override path).
+      let candHost = "";
+      try { candHost = new URL(canonCandidateUrl).hostname.toLowerCase(); } catch { candHost = ""; }
+      const detTier = classTierForHost(candHost);
+      if (detTier == null) {
+        requiresReview.push({
+          candidateId: cand.id,
+          itemId: cand.intelligence_item_id,
+          candidateUrl: cand.candidate_url,
+          reason: "ambiguous host tier — not deterministically knowable (SC-13); set tier via individual review",
+        });
+        continue;
+      }
+
+      // F18 (route drift): the vertical-fit GATE decide has but bulk-approve lacked — block re-adding a host
+      // deliberately retired as off-vertical. In batch we route a blocked host to individual review rather than
+      // 422-ing the whole batch.
+      const gate = await checkVerticalFitGate(supabase, {
+        name: cand.candidate_publisher || cand.candidate_title,
+        url: canonCandidateUrl,
+      });
+      if (!gate.allow) {
+        requiresReview.push({
+          candidateId: cand.id,
+          itemId: cand.intelligence_item_id,
+          candidateUrl: cand.candidate_url,
+          reason: `vertical-fit gate: ${gate.reason}`,
+        });
+        continue;
+      }
+
       const newSource = {
         name: cand.candidate_publisher || cand.candidate_title || cand.candidate_url,
         url: canonCandidateUrl,
+        // F18: source_role = WHAT the entity is; category + intelligence_types derive via the migration-123
+        // trigger (no hardcoded ['GUIDE'] placeholder), matching the /decide sibling.
+        source_role: classifySourceRole(cand.candidate_publisher || cand.candidate_title, canonCandidateUrl),
         description: cand.candidate_title || "",
-        // Phase 1.5: Q2 split. base_tier = AI-recommended classifier value;
+        // Phase 1.5: Q2 split. base_tier = the DETERMINISTIC class tier (SC-13, never a guess);
         // effective_tier initialized equal per Day 1 invariant.
-        base_tier: rec.tier,
-        effective_tier: rec.tier,
-        tier_at_creation: rec.tier,
+        base_tier: detTier,
+        effective_tier: detTier,
+        tier_at_creation: detTier,
         domains: rec.domains,
         jurisdictions: rec.jurisdictions,
         transport_modes: rec.transport_modes || [],
@@ -156,11 +196,12 @@ export async function POST(request: NextRequest) {
         access_method: "scrape" as const,
         status: "active" as const,
         update_frequency: "weekly" as const,
-        intelligence_types: ["GUIDE"],
+        intelligence_types: [] as string[], // F18: derived by the migration-123 trigger from category; never hardcoded
         vertical_tags: [] as string[],
         notes:
-          `Bulk-approved from canonical_source_candidates 2026-04-28 by reviewer ${auth.userId.slice(0, 8)}. ` +
-          `Issue: ${cand.issue_classification}. Confidence: ${cand.confidence}. ${body.reviewerNotes || ""}`.trim(),
+          // F18: live approval date, not the frozen 2026-04-28 literal.
+          `Bulk-approved from canonical_source_candidates ${now.slice(0, 10)} by reviewer ${auth.userId.slice(0, 8)}. ` +
+          `base_tier=${detTier} (deterministic, SC-13). Issue: ${cand.issue_classification}. Confidence: ${cand.confidence}. ${body.reviewerNotes || ""}`.trim(),
       };
       const { data: inserted, error: insErr } = await supabase
         .from("sources")

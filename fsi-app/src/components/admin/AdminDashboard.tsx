@@ -27,7 +27,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { useSourceStore } from "@/stores/sourceStore";
 import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
-import type { Source, ProvisionalSource, SourceConflict } from "@/types/source";
+import type { Source, ProvisionalSource } from "@/types/source";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { PageMasthead } from "@/components/shell/PageMasthead";
@@ -53,7 +53,6 @@ interface AdminDashboardProps {
   userEmail: string;
   initialSources?: Source[];
   initialProvisionalSources?: ProvisionalSource[];
-  initialOpenConflicts?: SourceConflict[];
   initialOrgs?: any[];
   initialMembers?: any[];
   initialStagedUpdates?: any[];
@@ -131,7 +130,6 @@ export function AdminDashboard({
   userEmail: _userEmail,
   initialSources = [],
   initialProvisionalSources = [],
-  initialOpenConflicts = [],
   initialOrgs = [],
   initialMembers = [],
   initialStagedUpdates = [],
@@ -143,11 +141,10 @@ export function AdminDashboard({
   // Hydrate the source store with the admin-context unfiltered list (mirror of
   // the Dashboard pattern) so SourceHealthDashboard sees every source even on
   // a direct /admin entry.
-  const { setSources, setProvisionalSources, setOpenConflicts } = useSourceStore();
+  const { setSources, setProvisionalSources } = useSourceStore();
   useEffect(() => {
     if (initialSources.length > 0) setSources(initialSources);
     if (initialProvisionalSources.length > 0) setProvisionalSources(initialProvisionalSources);
-    if (initialOpenConflicts.length > 0) setOpenConflicts(initialOpenConflicts);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

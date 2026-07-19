@@ -364,6 +364,43 @@ These framings mean the skill was loaded but not followed:
 - **Skipping the Value Delivery Check section because the dispatch is "small."** One paragraph; not skippable.
 - **Value Delivery Check section that omits Community from the surface enumeration.** Violation. The five-surface model is canonical; Community is co-equal. Reports that enumerate "four pages plus onboarding" reflect the pre-rewrite mis-framing.
 
+## The Five-Surface Scope Test (every decline names the five contracts)
+
+Scope verdicts — decisions to DECLINE or PARK a candidate source, data feed, or instrument — failed three times in one week (2026-07-17) by testing the candidate against ONE surface and dropping it whole when it failed that surface. A candidate that fails the Regulations contract can still be an Operations cost feed; declining it against Regulations alone silently loses that value. This section makes the five-surface test a mechanical, universally-loaded step.
+
+**Every scope decision that declines or parks a candidate MUST record a five-surface test (PI-5)** — a verdict and a one-line reason for EACH of the five surface contracts — before the decision stands. Doctrine register: `every-decline-names-the-five-contracts`. The live gate is the CHECK constraint on `coverage_gap_candidates` (a declined/parked row without the record fails the write); the fixture proof is `scripts/verify/surface-contract-gate.golden.mjs`.
+
+### The five contracts (verbatim — what each surface would DO with the candidate)
+
+- **Regulations** — a compliance-action text brief: what is binding, when, what it costs, what to do. Not comparative/numerical.
+- **Operations** — structured jurisdictional cost / feasibility intelligence: per-region cost, labor, materials, infrastructure, feasibility for hire-vs-automate and lane decisions.
+- **Market Intel** — comparative and numerical signal: deltas, trajectories, lead-time against competitors and adjacent industries.
+- **Research** — a structured horizon assessment: horizon distance, maturity, credibility of who is studying it, and the planning-assumption shift.
+- **Community** — human-operated peer surface, OUTSIDE machine intake by construction. A candidate never "routes to Community" as machine content; Community's verdict is essentially always out-for-machine-intake, recorded so the reasoning is explicit, not skipped.
+
+Verdict vocabulary (recommended): `in` (this surface should carry it) / `out` (no fit) / `route` (belongs to this surface's sourcing program, hand it over) / `revisit` (conditional — names the condition, e.g. "check corpus coverage first"). The gate forces the DECISION to be recorded for all five; it does not constrain the verdict's shape beyond a non-empty verdict + reason.
+
+### Inline test format (fill this on ANY decline/park verdict)
+
+```
+=== Surface-Contract Scope Test ===
+Candidate: <name>          Disposition: declined | parked
+- Regulations:  <in|out|route|revisit> — <one line: what Regulations would do with it, or why nothing>
+- Operations:   <in|out|route|revisit> — <one line>
+- Market Intel: <in|out|route|revisit> — <one line>
+- Research:     <in|out|route|revisit> — <one line>
+- Community:    <in|out|route|revisit> — <one line>
+```
+
+If any surface's verdict is `in` or `route`, the candidate is NOT a clean decline — it is a hand-off to that surface, recorded as `parked` (routed) rather than `declined`.
+
+### Worked examples — the four 2026-07-17 failures and the test that catches each
+
+- **(a) Cost/price/labor data feeds declined despite Operations = cost intelligence.** Industrial-electricity, transport-sector-wage, and bunker-fuel-price feeds were treated as "not a regulation" and dropped. The Operations line catches it: `Operations: in — per-region cost benchmark, exactly the jurisdictional cost-intelligence contract`. These are Operations feeds, not declines. (Session C's coverage lane got this right: it KEPT 27 such data-feed candidates.)
+- **(b) Market Intel source discovery omitted.** A scope pass listed no candidate sources for Market Intel signals. The Market Intel line catches it: a decline/scope pass that leaves `Market Intel: <blank>` is incomplete — the contract (comparative/numerical signal discovery) was never tested.
+- **(c) Research source discovery omitted.** Same shape on Research: `Research: <blank>` means the horizon-scan contract (who is studying it, maturity, assumption-shift) was never tested against the candidate.
+- **(d) Clean Truck Check declined whole — the gate catching its own author.** The dispatch that ordered this gate had itself declined Clean Truck Check (CARB's heavy-duty inspection-and-maintenance program) outright. The five-surface test yields `Operations: in — recurring per-vehicle emissions-testing fee + cadence + non-compliance penalty on every heavy-duty vehicle on California lanes; a real drayage/warehousing cost`. So the correct verdict is parked-for-Operations, not a whole decline. The gate catches a mis-decline even in the dispatch that created it.
+
 ## Integration With Other Skills
 
 This skill loads alongside, not in place of, three other skills. Every relevant dispatch loads all four:

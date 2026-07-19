@@ -82,7 +82,13 @@ export const SKILL_MARKER_BASELINE = {
   // NOT a new bare rule needing a fresh invariant — it is the doctrine-register entries
   // `analysis-follows-page-intent` (exempt; enforcement-to-build with the surface build units) and
   // `research-is-horizon-scan` (enforcedBy RD-20). Re-baseline to 10.
-  'caros-ledge-platform-intent': 10,
+  // 10→12 (2026-07-17, SURFACE-CONTRACT SCOPE GATE dispatch): added the "The Five-Surface Scope Test
+  // (every decline names the five contracts)" section — 2 marker lines (the PI-5 anchor "Every scope
+  // decision that declines or parks a candidate MUST record a five-surface test" + "MUST record a
+  // five-surface test (PI-5)" in the same anchor line, plus the "MUST test it… / never skipped" wording).
+  // TRIAGE: new invariant PI-5 (enforcedBy selftest surface-contract-gate.golden.mjs; live DB binding
+  // PENDING-C per operator ruling 2026-07-17). Re-baseline to 12.
+  'caros-ledge-platform-intent': 12,
   // 18→19 (2026-07-03): added Section 4 category 9 "Producer-consumer orphan (the half-slice defect)"
   // — "a table the application writes MUST have a consumer, OR be allowlisted…". TRIAGE: new normative
   // statement, triaged into invariant RD-9 (enforcedBy fitness:F14, the A2 orphan checker).
@@ -123,7 +129,12 @@ export const SKILL_MARKER_BASELINE = {
   // binds-to-pipeline-not-executor — executor-agnostic enforcement). TRIAGE: RD-46 (primary-text-permanent
   // golden + migration 052) + RD-47 (executor-parity golden). One marker line net (the category-28 "MUST be
   // interchangeable" anchor); the category-27 "never an overwrite" anchor carries no MARKER_SOURCE token.
-  'remediation-discipline': 39,
+  // 39→40 (2026-07-18, NCAER confidentiality incident ruling): added the RD-46 addendum "confidentiality-ruled
+  // purges are a sanctioned, narrow exception to append-only" — one new MUST line (the evidentiary-minimum-
+  // before-purge requirement). TRIAGE: new invariant RD-49-confidentiality-ruled-purge-exception (exempt,
+  // process-class — the purge-authorization judgment is operator-ruled per incident, same as RD-8/RG-1; the
+  // bound is the incident-record-first + guarded-write-path-only requirement, not a standing mechanical gate).
+  'remediation-discipline': 40,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -456,6 +467,15 @@ export const INVARIANTS = [
       reason: 'Architectural-intent axiom (what NOT to build); not a mechanical row/file invariant. Carried by the skill; violations are scoping decisions caught at design review.',
     },
   },
+  {
+    id: 'PI-5-every-decline-names-the-five-contracts',
+    skill: 'caros-ledge-platform-intent',
+    section: 'The Five-Surface Scope Test (every decline names the five contracts)',
+    text: 'A scope decision that DECLINES or PARKS a candidate (source, feed, or instrument) is only valid when it records a five-surface test: a verdict + a one-line reason for EACH of the five contracts (Regulations = compliance-action text brief; Operations = structured jurisdictional cost intelligence; Market Intel = comparative/numerical; Research = structured horizon assessment; Community = human-operated, outside machine intake). A decline that tests against one surface instead of five is the failure class this kills (three instances 2026-07-17: data-feeds-declined-despite-Operations, Market-Intel source-discovery omitted, Research source-discovery omitted).',
+    anchor: 'Every scope decision that declines or parks a candidate MUST record a five-surface test (PI-5)',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/surface-contract-gate.golden.mjs'],
+    residual: 'Two-part enforcement. The golden (surface-contract-gate.golden.mjs) proves the completeness gate over FIXTURES red-then-green (a declined/parked row without the five-surface record FAILS; with it PASSES; kept/candidate exempt) — the invariant is ENFORCED by this fixture proof today. The LIVE DB binding — the CHECK constraint on coverage_gap_candidates that fails a declined/parked row lacking the record — is owned by SESSION C\'s forthcoming migration (DECISION 1, operator ruling 2026-07-17: C owns the table, Session A does not touch it; the gate is DORMANT, no seed rows, demonstrability lives in the golden not in production data). PENDING-C, named-not-silently-unwired: PART B of the golden SCANS the migrations tree and AUTO-ARMS the moment C\'s migration lands (asserting surface_test + disposition{declined,parked} + a CHECK referencing all five contract keys), so a missing or wrong C migration is caught mechanically. When C posts its migration number to the session log, add migration:NNN to this enforcedBy as belt-and-suspenders. The verdict QUALITY (is a surface verdict correct?) stays scope-judgment, not mechanized.',
+  },
 
   // ───────────────────────────── remediation-discipline ─────────────────────────────
   {
@@ -535,6 +555,16 @@ export const INVARIANTS = [
     residual: 'The CI unit test (in the discipline node --test glob) gates the PURE detector detectRoadblock — the roadblocked-vs-partial line (>=200ch in-language = honest partial), the challenge/stub/timeout/wrong-language cases, the no-false-challenge on a long article, and the orchestrator bound (no hang past perFetchMs). The same-floor QUALIFICATION is not a new mechanism: it is the UNCHANGED resolver (buildResolver) + per-type floor (migration 141 / validate_item_provenance criterion 3) — a found alternative becomes a primary ONLY by emergently clearing that floor, never by a fallback action, which structurally forecloses the F1 secondary-grounding regression. The counsel-hold audit (durable integrity_flag carrying alternatives_tried + best_resolved_tier + the result split NO_SOURCE_FOUND vs NO_SOURCE_QUALIFIED) makes "searched + exhausted" lane-auditable. NOT mechanized: whether web_search returned the TRULY most-authoritative alternative (vs a plausible one) is discovery judgment; the floor is the backstop that makes a wrong alternative harmless (it resolves sub-floor and is rejected).',
   },
 
+  {
+    id: 'RD-49-confidentiality-ruled-purge-exception',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 27: Primary text is permanent (the document baseline)',
+    text: 'A confidentiality-ruled purge is a sanctioned, narrow, per-instance exception to RD-46 append-only retention. When stored content is confirmed to be a confidential third-party document improperly staged into the corpus, the operator may rule a purge of the extractable content through the guarded write path only (never a raw delete), bounded by: an operator ruling is required EACH time (never a standing automatic capability); the evidentiary minimum (source URL, fetch timestamp, byte count, content hash where available, the confidentiality marking quoted verbatim) MUST be captured to a durable docs/compliance/ incident record BEFORE the purge; and the purge redacts the row\'s extractable substance while preserving its audit metadata (URL, item association, timestamps), never deleting the row itself. Origin case: the NCAER "Logistics Cost in India" confidentiality incident (docs/compliance/confidentiality-incident-2026-07-17-ncaer.md).',
+    anchor: 'confidentiality-ruled purges are a sanctioned, narrow exception to append-only',
+    exempt: {
+      reason: 'PROCESS discipline exercised at the operator-ruling level (same class as RD-8/RG-1) — whether stored content is confidentially-marked, third-party, and improperly staged is a judgment call the operator makes per-incident, not a mechanically checkable property with a low-false-positive detector today. The bound is carried by the incident-record requirement (evidentiary minimum captured BEFORE any purge) and the guarded-write-path requirement (no raw delete, redact not remove) rather than a standing automated gate. A confidentiality-marking capture-gate detector (screening fetched content for disclosure-prohibition language before staging, preventing the recurrence rather than gating the purge) is QUEUED on the hardening ledger (docs/PROGRAM-BOARD.md) — when it lands, THIS invariant stays exempt (the purge-authorization judgment does not become mechanical just because the upstream capture gets a screen), but the recurrence rate it is meant to prevent becomes auditable.',
+    },
+  },
   {
     id: 'RD-8-retrieval-before-generation',
     skill: 'remediation-discipline',
@@ -679,6 +709,16 @@ export const INVARIANTS = [
   },
 
   {
+    id: 'RD-42-disposition-content-gate',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 30: Content-gated disposition (label is not proof)',
+    text: 'An irreversible disposition (archive delete) is NEVER authorized by an archive_reason LABEL alone — only content-level verification can. Title-level classification (the Haiku census) is TRIAGE, never a warrant. The ONE disposition vehicle (tombstone-delete.mjs) enforces this mechanically: (a) a --bucket outside the deletable-reason allowlist is REFUSED (content-survives / duplicate / pure-artifact only; off_vertical / non_regulatory_source / Superseded / Repealed are NOT in the list — never delete accurate data); (b) --empty-only filters every candidate to brief_len=0 AND zero grounded claims (section_claim_provenance) BEFORE deletion, so a content-bearing row is removed from targets and routed to per-item review; (c) the tombstone (disposition_ledger) is written BEFORE the guarded delete (fail-closed). Forecloses the third-confirmed label-is-not-proof failure (Oregon/Polish collision, the o13 press briefing, and 110-of-308 content-bearing rows mislabeled archive_correct at scale, 2026-07-17): a bulk delete on the labels would have destroyed 56 items carrying grounded facts (UN SDGs, DEFRA, TxDOT, World Bank, ITF, Blue Visby, Carbon Pricing Dashboard).',
+    anchor: 'An irreversible disposition executes on content-level emptiness, never on a label: --bucket refuses non-allowlist reasons, --empty-only requires brief_len=0 AND zero claims, tombstone precedes delete',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/disposition-content-gate.golden.mjs'],
+    residual: 'disposition-content-gate.golden.mjs (18/18) proves the allowlist gate, the accurate-but-archived exclusions, the positive content-survives membership, the brief-length-0 AND zero-claims content gate, and the tombstone-before-delete fail-closed order — structurally over the vehicle source (comments stripped). PROVEN LIVE 2026-07-17: the 261-row reclassified bucket resolved to 174 provably-empty kept + 87 content-bearing SKIPPED to review; 198 verified-disposition removals executed with 198 tombstones (zero deleted without a tombstone). NAMED RESIDUAL: the content gate keys on brief_len + claim ledger; a row with a non-empty brief that is itself junk still routes to per-item review (correct — a human/verifier reads it), never to bulk delete.',
+  },
+
+  {
     id: 'RD-44-grounding-is-non-destructive',
     skill: 'remediation-discipline',
     section: 'Section 4 — category 26: Non-destructive grounding (comparison, not replacement)',
@@ -809,7 +849,7 @@ export const INVARIANTS = [
     text: 'The scrape hold MUST gate ALL FOUR transports — direct-HTTP, API, RSS, Browserless — at their canonical entry points, not only the Browserless primitive: assertFetchAllowed(url) throws FetchHoldError while SCRAPE_HOLD is engaged, so "hold LIVE, zero fetches" is airtight across every transport (CODE-1 F-02). A transport module that makes a network fetch without the hold check FAILS the discipline gate (widened fitness F16 over TRANSPORT_MODULES). Paired with the hold: the url-canon-keyed, per-source-TTL fetch cache is INJECTED into buildLiveTransports (the cacheGet seam escalateFetch checks first) so a re-ground / retry / refresh of the same url does not re-fetch (CODE-1 F-03).',
     anchor: 'The transport hold gate (fetch-primitive scrape-hold gate)',
     enforcedBy: ['fitness:F16', 'selftest:fsi-app/src/lib/sources/fetch-hold.test.mjs'],
-    residual: 'F16 widened (C5, 2026-07-11): beyond the primitive-carries-the-gate + no-raw-Browserless checks, F16 now enumerates TRANSPORT_MODULES (rss-fetch.ts, api-fetch.ts, canonical-pipeline.ts — the direct-HTTP + API-ladder home) and REDs any that lack assertFetchAllowed. Gated inline: directFetchClean (direct-HTTP), apiFetchForHost (API-ladder), apiFetch (api-fetch.ts), rssFetch (rss-fetch.ts); browserlessFetch was already gated (RD-11). The fetch cache (fetch-hold.mjs cacheGet/cachePut) is now injected into buildLiveTransports keyed on the canonical URL with the per-host TTL table, so escalateFetch reads a fresh hit before any transport fires. fetch-hold.test.mjs proves the pure core (engaged→throws / lifted→passes / cache HIT on url-canon-equivalent URLs / TTL freshness) red-then-green; F16-transport-hold-gate.test.mjs proves the widened gate REDs a transport module missing the call. NAMED RESIDUAL: the cache store is PROCESS-scoped in-memory (correct for the batch runners, a cold no-op per serverless invocation); a durable/DB-backed cache stays a future extension. The hold still DEFAULTS to LIFTED (prod-preserving); engaging it is the operator cadence control.',
+    residual: 'F16 widened (C5, 2026-07-11): beyond the primitive-carries-the-gate + no-raw-Browserless checks, F16 now enumerates TRANSPORT_MODULES (api-fetch.ts, canonical-pipeline.ts — the direct-HTTP + API-ladder home) and REDs any that lack assertFetchAllowed. Gated inline: directFetchClean (direct-HTTP), apiFetchForHost (API-ladder), apiFetch (api-fetch.ts); browserlessFetch was already gated (RD-11). (The RSS transport rss-fetch.ts was purged 2026-07-18 (dormant-systems P-5, dead code — only a test called rssFetch, buildLiveTransports never wired it) and removed from TRANSPORT_MODULES.) The fetch cache (fetch-hold.mjs cacheGet/cachePut) is now injected into buildLiveTransports keyed on the canonical URL with the per-host TTL table, so escalateFetch reads a fresh hit before any transport fires. fetch-hold.test.mjs proves the pure core (engaged→throws / lifted→passes / cache HIT on url-canon-equivalent URLs / TTL freshness) red-then-green; F16-transport-hold-gate.test.mjs proves the widened gate REDs a transport module missing the call. NAMED RESIDUAL: the cache store is PROCESS-scoped in-memory (correct for the batch runners, a cold no-op per serverless invocation); a durable/DB-backed cache stays a future extension. The hold still DEFAULTS to LIFTED (prod-preserving); engaging it is the operator cadence control.',
   },
 
   {

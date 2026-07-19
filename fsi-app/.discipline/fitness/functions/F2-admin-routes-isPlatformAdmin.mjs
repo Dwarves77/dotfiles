@@ -8,10 +8,11 @@
 //
 // Known exceptions: worker-secret-gated routes use x-worker-secret header instead.
 // These are explicitly allowlisted per the precedent established in Track B-code:
-//   - recompute-trust   (Q7 daily cron + manual admin re-trigger)
-//   - q7-daily-recompute (Q7 daily cron)
+//   - recompute-trust   (monthly trust recompute cron + manual admin re-trigger)
 //   - spot-check/recurring (scheduled spot-check job)
 // New worker-secret routes added in the future must update this allowlist.
+// (q7-daily-recompute was removed 2026-07-18 (dormant-systems P-7): the route was superseded by the
+//  end-of-cycle recompute inside growSourcesFromBrief and had no scheduler.)
 
 import { violation, PASS } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
@@ -19,7 +20,6 @@ import { isOverridden } from '../lib/file-content.mjs';
 
 const WORKER_SECRET_ALLOWLIST = new Set([
   'fsi-app/src/app/api/admin/recompute-trust/route.ts',
-  'fsi-app/src/app/api/admin/q7-daily-recompute/route.ts',
   'fsi-app/src/app/api/admin/spot-check/recurring/route.ts',
 ]);
 

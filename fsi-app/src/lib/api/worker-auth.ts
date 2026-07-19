@@ -32,9 +32,11 @@ function secretsMatch(presented: string, expected: string): boolean {
  * and returns `null` when the request is authorized and the handler may proceed.
  *
  * Accepts the `x-worker-secret` header. When `allowBearer` is set it also
- * accepts `Authorization: Bearer <secret>` (the Vercel Cron convention used by
- * /api/admin/q7-daily-recompute). Both paths compare against the single
- * WORKER_SECRET value.
+ * accepts `Authorization: Bearer <secret>` (the Vercel Cron convention). Both
+ * paths compare against the single WORKER_SECRET value. (The former
+ * /api/admin/q7-daily-recompute route was the last allowBearer caller; it was
+ * purged 2026-07-18 (dormant-systems P-7). The parameter is retained for any
+ * future Bearer-cron route.)
  *
  * Usage in a route handler:
  *   const denied = workerAuthGuard(request);

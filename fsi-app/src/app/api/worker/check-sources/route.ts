@@ -9,6 +9,7 @@ import { classifyReachability } from "@/lib/sources/reachability.mjs";
 import { decideSourceAssessment } from "@/lib/sources/check-sources-decision.mjs";
 import { contentFingerprint, isContentChange } from "@/lib/sources/content-change.mjs";
 import { extractPortalLinks } from "@/lib/sources/portal-links.mjs";
+import { persistPortalCandidates } from "@/lib/intake/portal-harvest";
 import { urlIsRoot } from "@/lib/sources/entity-gate.mjs";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
 
@@ -113,14 +114,10 @@ export async function assessAndUpdateSource(
   if (isAccessible && renderedHtml && urlIsRoot(source.url)) {
     try {
       const links = extractPortalLinks(renderedHtml, source.url);
-      for (const l of links) {
-        const { error: plcErr } = await supabase.from("portal_link_candidates").upsert(
-          { source_id: source.id, url: l.url, anchor_text: l.anchorText, last_seen_at: new Date().toISOString() },
-          { onConflict: "url" }
-        );
-        if (plcErr) { console.warn(`[portal-crawl] candidate upsert failed for ${l.url}: ${plcErr.message}`); continue; }
-        portalCandidates++;
-      }
+      // ONE ledger write-site (B1): the scheduled crawl and the manual harvest runner share
+      // persistPortalCandidates so upsert semantics can never drift between the two producers.
+      const persisted = await persistPortalCandidates(supabase, source.id, links);
+      portalCandidates = persisted.upserted;
       if (portalCandidates) console.log(`[portal-crawl] ${source.name}: ${portalCandidates} candidate deep link(s) recorded`);
     } catch (e) {
       console.warn(`[portal-crawl] extraction failed for ${source.url}: ${(e as Error).message}`);

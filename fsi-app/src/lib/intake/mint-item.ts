@@ -96,11 +96,22 @@ export interface MintResult {
   /** Gate decisions taken, e.g. ["congruence:1a"], ["seek-study:1b"], ["dedup:linked"], ["low-relevance"]. */
   flags: string[];
   error?: string;
+  /** F6: set when this result came from a dryRun (every gate ran, no INSERT). ok:true => would_mint. */
+  dryRun?: boolean;
 }
 
 interface SubjectMatch { id: string; how: string }
 
-export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan): Promise<MintResult> {
+/**
+ * F6 (plan-intake retired): `opts.dryRun` runs EVERY gate this chokepoint runs — the idempotency probes,
+ * congruence 1a/1b, subject-existence dedup, relevance floor, domain canonicalization, and the SOURCE-LINK
+ * INVARIANT — against live state, then returns the disposition it WOULD take WITHOUT the single INSERT or the
+ * post-insert surfacing. There is ONE source of truth: a dry verdict cannot drift from apply because it IS
+ * apply minus the final write. This replaces the parallel planIntakeCycle, which re-derived a SUBSET of these
+ * gates (it never modeled the source-link invariant, so it reported would_mint where the real mint rejects an
+ * unsourced candidate) and failed OPEN on a corpus read error (the real mint fails CLOSED).
+ */
+export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, opts: { dryRun?: boolean } = {}): Promise<MintResult> {
   const flags: string[] = [];
   const seed: Record<string, unknown> = { ...plan.seed };
   const sourceUrl = String(seed.source_url ?? "");
@@ -199,6 +210,16 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan): 
   const link = sourceLinkDecision(seed, matchedSourceId);
   if (link.kind === "reject") return { ok: false, action: "unsourced", flags, error: link.error };
   if (link.kind === "link") { seed.source_id = link.sourceId; flags.push("source-linked"); }
+
+  // ── F6 DRY-RUN BOUNDARY — every gate above has run (idempotency, congruence, dedup, relevance, domain,
+  //   SOURCE-LINK). A dryRun returns the disposition it WOULD take here WITHOUT the INSERT or the post-insert
+  //   surfacing. ok:true == would_mint; the would-reject cases already returned above on the identical
+  //   read-only gate logic, so the dry verdict is apply minus the write. (The retired planIntakeCycle stopped
+  //   BEFORE this gate and never saw the source-link reject — the drift F6 closes.)
+  if (opts.dryRun) {
+    const action: MintAction = linkTargetId ? "linked" : cong.changed ? "retyped" : "minted";
+    return { ok: true, action, flags, dryRun: true };
+  }
 
   // ── THE SINGLE INSERT (the only intelligence_items INSERT in src/ runtime) ────────────────────────
   const { data: inserted, error } = await sb

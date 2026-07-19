@@ -58,10 +58,9 @@ export const TERMINAL_SINK_ALLOWLIST = {
     reason: 'FIRST RUN 2026-07-03. Written by scripts/wave1-cold-start.mjs as a control-run log; no reader. DISPOSITION PENDING Phase 7 (ratify as script-only audit trail vs wire an ops reader) — grandfathered, not ratified.',
     reviewByPhase: 'Phase 7 (zero-reader verification) — ingestion ops log.',
   },
-  portal_link_candidates: {
-    reason: 'DESIGNED writer-precedes-reader (P2-5 / S2-08, mig 162, 2026-07-08): the check-sources portal crawl WRITES candidate deep links now (dormant, scrape-window-gated); the READER is the classify→stage consume step that rides the LOOP FLIP (operator gate). Not a grandfathered legacy orphan — a named later phase builds the reader.',
-    reviewByPhase: 'loop-flip wave — P2-5 consume step (classify → intake gate).',
-  },
+  // portal_link_candidates: entry RETIRED 2026-07-19 — B1 (portal-harvest consumer) built the awaited
+  // reader (src/lib/intake/portal-harvest.ts consumePortalCandidates), so the table is no longer a
+  // write-orphan and a standing allowlist entry would be the stale-entry defect this list audits for.
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

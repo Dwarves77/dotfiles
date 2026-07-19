@@ -11,7 +11,7 @@
 // from canonical-fetch.mjs so `e instanceof BrowserlessError` is the SAME class across
 // the TS and .mjs worlds). It adds the per-host SEC fair-access UA before delegating.
 
-import { secFairAccessUaForUrl } from "@/lib/sources/rss-fetch";
+import { secFairAccessUaForUrl } from "@/lib/sources/sec-fair-access";
 import { browserlessFetch, BrowserlessError } from "@/lib/sources/canonical-fetch.mjs";
 
 export { BrowserlessError };
@@ -40,6 +40,11 @@ export interface BrowserlessResult {
   textLength: number;
   /** Wall-clock ms from request start to response body returned. */
   renderMs: number;
+  /** Pre-cap text length (no-silent-truncation, D4): present so a capped collect is surfaceable. */
+  fullTextLength?: number;
+  /** True when maxTextLength truncated the text (D5) — a 458KB page and a naturally-30KB page must
+   *  never look identical to the caller. */
+  truncated?: boolean;
 }
 
 /**

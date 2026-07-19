@@ -25,7 +25,7 @@
 > `absent :: <repo-relative-file> :: <verbatim substring>` (substring MUST NOT exist). C5 reads the
 > ACTIVE phase's block only.
 
-ACTIVE_PHASE: phase-intake-gate
+ACTIVE_PHASE: phase-2
 
 ---
 
@@ -85,7 +85,7 @@ expired deferral.
 present :: fsi-app/supabase/migrations/145_provenance_floor_inline_derive.sql :: COALESCE(src.tier_override, src.base_tier)
 ```
 
-### phase-intake-gate — Source-role congruence + subject-existence dedup + entity extract→resolve→wire  ⏳ DEFINED (activates ahead of phase-2 when the atomic unit lands)
+### phase-intake-gate — Source-role congruence + subject-existence dedup + entity extract→resolve→wire  ✅ DONE (flipped live 2026-07-08, PR #218; all four anchors verified present in the dormant-systems audit, 2026-07-18)
 CONTRACT: `docs/design/intake-gate-plan.md` (v2.2 — the full spec this phase's anchors verify).
 One intake discipline, all gate DECISIONS inside the shared chokepoint `mintIntelligenceItem()` (BOTH mint paths call it — Path A `drain-first-fetch`/`seedStubIntelligenceItem`, Path B `staged_updates`/`applyUpdate:new_item`; neither self-INSERTs). Classify layers only precompute inputs. (1) source↔claim-type congruence — (1a) primary-artifact type on a news source → retype to market_signal; (1b) research_finding on a press-release/news source → keep the type, demote the press release to corroborator, surface to seek the study as primary (regional_data evaluated + EXCLUDED: news is a congruent primary for its cost-data); (2) subject-existence
 dedup at the chokepoint (high-precision `matchExistingSubject`); (4) Fork-4 relevance branch (surface-only data_quality flag, NEVER blocks a mint; enforcement waits for labeled-data precision); (3) deterministic entity

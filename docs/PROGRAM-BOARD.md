@@ -367,6 +367,420 @@ Branch `remediation/wave2-model-column`; recovery commit **`4ec4f41`** + Step-8 
 | **Archive-collision reversal** | **DONE** | 19 Wave-2 items un-archived (guarded; Polish→verified). Bounded to 19 today (the 436/201-verified archive population is HISTORICAL, not today). |
 | **Reconciliation package** | **DELIVERED** | Read-only forensics: an un-guarded raw disposition actor archived 19 in-window items; content-repair Tasks 1/3/4/7/8/9 show no execution evidence; **ISO 14083 (Task 3) NOT run — false claim still live, uncorrected**. |
 | **Step 5 deferred residue** | **QUEUED** | 37 C3-floor candidates deferred to post-Task-2 $0 re-stamp (host registration is the lever). |
-| **Hardening unit H1-H6** | **QUEUED — next** | H1 claim-uniqueness, H2 atomic ground writes, H3 mint-time accuracy gates, H4 single entrypoint, **H5 mutation leases**, **H6 mutation attribution + gate the raw write path that permitted today's flips**. Own PR + board. Precondition for the 60→400 coverage-floor expansion. |
+| **Hardening unit H1-H6** | **QUEUED — next** | H1 claim-uniqueness, H2 atomic ground writes, H3 mint-time accuracy gates, H4 single entrypoint, **H5 mutation leases** (DONE — migration 211, RD-38), **H6 mutation attribution + gate the raw write path that permitted today's flips**. Own PR + board. Precondition for the 60→400 coverage-floor expansion. |
+| **Confidentiality-marking detector (capture-gate)** | **QUEUED** | Screens fetched content for explicit third-party-disclosure-prohibition language before staging into `agent_run_searches`, analogous to the roadblock-detection gate already wired into primary acquisition. Origin case: NCAER "Logistics Cost in India" confidentiality incident (`docs/compliance/confidentiality-incident-2026-07-17-ncaer.md`, traced 2026-07-17, resolved 2026-07-18 — zero grounding exposure, zero customer-surface exposure, verified independently twice). Scoped alongside the `operator_review_queue` admin-surface dispatch; not yet built. |
 | **Corpus-wide 436-archive sweep** | **DEFERRED (operator-owned)** | Separate future unit, sample-verify-first, priced after launch-clause sequencing. NOT the Wave-2 agent's. |
 | **ISO 14083 correction** | **DEFERRED (audit-agent-owned)** | Task 3's VERIFIED-mutation authorization sits with the audit agent; flagged un-run. |
+
+---
+
+## Session D forensics + C4 sibling-resolution enforcement-infrastructure fix (2026-07-18)
+
+Branch `corpus-integrity/cc-grounding-executor-d`. `docs/ops/session-log.md` has the full detail (two entries:
+the forensics report, and the push-resolution entry below it); this is the board-level pointer.
+
+| Thread | State | Evidence / next |
+|---|---|---|
+| **Discovery/scanning forensics** | **DELIVERED** | Read-only, no corpus/drain_worklist writes. Founding design was source-monitoring-first (2026-04-04); real discovery mechanisms (change-detection, portal-crawl) landed dormant; acquisition crons frozen 2026-07-12/13, unresumed through 2026-07-18; `seek-more` was item-level acquisition, not new-instrument discovery, retired 2026-07-14 as the campaign's built-with-zero-callers precedent. `/api/admin/scan` is the one surviving live-wired path. Session C's coverage-discovery lane diverges from the founding automated/recurring design (bounded one-time census, not restored). |
+| **wt-audit inventory registration** | **DONE** | `docs/inventories/worktrees.md` — Session E's audit lane registered (bare basename `wt-audit`, per operator confirmation it is legitimate, launched without registration at dispatch). Resolved by registration, not override, per operator ruling. |
+| **C4 (worktrees.md reality) sibling-resolution bug** | **FIXED** | `fsi-app/.discipline/consistency/checks/C4-worktrees-reality.mjs` resolved the sibling-path convention against `getRepoRoot()` (`git rev-parse --show-toplevel`), which returns the CURRENT worktree's own path when the pre-push hook runs from a secondary worktree, not the main repo. Broke resolution for any push originating outside the main checkout, always, not specific to wt-audit. Fixed via `getMainRepoRoot()` (`git rev-parse --path-format=absolute --git-common-dir`, then `dirname()`), verified context-invariant from both the main checkout and `wt-session-d`. No override trailer used (operator ruling: root-cause fix required, Session E's own push depends on it). |
+| **Skill-gate invocation-vs-resolution finding** | **QUEUED (Session E, inventory-4)** | The PreToolUse skill gate's transcript matcher (`skill-token.mjs`) accepts an ERRORING `Skill` tool invocation as satisfying "governing skill loaded" — it checks that the tool-use shape appears in the transcript, not that the skill resolved. Operator call on whether this is intended or a gap; not resolved here. |
+| **C4 enforcement-history finding** | **QUEUED (Session E, inventory-4)** | Because the sibling-resolution bug predates this fix, C4's enforcement on prior secondary-worktree pushes is unproven for that whole period. Session E should determine how each prior secondary-worktree push (wt-session-b, wt-session-c, `.claude/worktrees/agent-*`, historical sibling-path worktrees) actually landed: pre-dates the check/hook, ran from the main checkout despite the worktree existing, or carried a `Consistency-Override: C4` trailer. Any override trailers found are themselves undocumented drift-adjacent history, their own inventory-4 entries. |
+---
+
+## Session E — dormant-systems audit LANDED (2026-07-18)
+
+Branch `audit/dormant-systems-2026-07-18` (worktree `wt-audit`). Read-only audit; the document plus
+this board entry, an INDEX line, and the wt-audit worktree registration are the only writes. Doc:
+[dormant-systems-audit-2026-07-18](./audits/dormant-systems-audit-2026-07-18.md). Baseline master
+`eb99dc64`. Session D's forensics (commit `048669a9`, branch `corpus-integrity/cc-grounding-executor-d`)
+read in full and re-verified where relied on.
+
+| Thread | State | Evidence / next |
+|---|---|---|
+| **Prior-audit scope diagnosis** | **CONFIRMED, corrected** | 2026-07-11 full-system audit saw dormancy piecemeal but its P1-P4 taxonomy routed it to "P3 dead-weight" and its build-first lens excluded frozen intake from correction; no dormant-wired class existed. Audit doc section 1. |
+| **Inventory 1 (gates/flags)** | **DONE** | 18 gates catalogued with state-change commits + caller status; all live gate machinery judged keep-and-integrate; ACTIVE_PHASE pointer stale (unresolved-operator). Section 2. |
+| **Inventory 2 (83 routes)** | **DONE** | 75 live-wired / 4 gated (check-sources, spot-check, run-intake, q7) / 4 orphaned (sources/discover, notifications/preferences, regulations-defaults, staged-updates GET). Section 3. |
+| **Inventory 3 (workers/workflows)** | **DONE** | 2 frozen schedules (`11c008c2`), 5 active workflows all name-honest; the check-sources name-vs-behavior gap is CURED in code (PR #252/#253) and frozen in operation; reconcile = deliberately-unwired consume half. Section 4. |
+| **Inventory 4 (governance divergence)** | **DONE** | ADR-012 decomposed into G-1..G-5 (owed intake surfaces; flip-cost falsified by the freeze; live contradiction with founding doctrine text; sign-off = operator ruling). Plus G-6 research feedstock, G-8 rss-fetch false header, SW-3 worklist-note class (bec305e1: note 4 vs live 28), and D's two handoff findings folded in: G-12 skill-gate accepts an erroring Skill invocation, G-13 C4 override-history reconciled (2 overrides ever, both documented; physical push origin unknowable, labeled). Section 5. |
+| **Inventory 5 (purge candidates)** | **LIST DELIVERED — awaits operator ruling** | P-1..P-8 (small list: most dormant-wired machinery meets the keep bar); explicit not-purge list protects the restoration surface. Purge executes later as tombstone-then-delete migrations, not by Session E. Section 6. |
+| **Session A stall gate** | **ANSWERED** | The drain queue is real; worklist NOTES are hints with a proven 1-in-7 material error on the sampled bank. Drain against live `validate_item_provenance` output, never notes (RD-33 extension). Section 5.3. |
+| **Crawl-rebuild spec input** | **READY** | Keep-and-integrate set = section 8 roll-up; two-tier spec builds on check-sources/change-detection/portal-links/reconcile + run-intake-cycle handoff; one intake path holds. |
+| **Operator-dashboard checks** | **OPEN — operator** | 7 checks carried forward (pause flags, scan reachability, deployed env, Actions UI state, SW-3 flag row, drain queue, D-report merge state). Section 7. |
+
+---
+
+## Session E — execution lane: post-audit rulings (2026-07-18)
+
+Read-only audit mandate DISCHARGED; execution lane opened for the operator's post-audit rulings R1-R5
+(five phases, one PR each). Worktree `wt-audit`.
+
+**Phase 1 — MERGES: DONE.** PR #342 (Session D forensics + C4 fixes) merged, then PR #343
+(dormant-systems audit) merged onto it. PROGRAM-BOARD append conflict resolved keep-both, chronological
+(D entry then E entry). Both CI-green at merge, no admin-merge. Master at `fa1e135b`, wt-audit synced.
+
+**Phase 2 — GOVERNANCE: this PR.**
+| Item | State | Evidence |
+|---|---|---|
+| **R1/R2a — ADR-015** (supersede ADR-012) | **DONE** | `docs/decisions/ADR-015-restore-source-monitoring-supersede-adr-012.md`; founding source-monitoring restored as operating design; ADR-012 status→`superseded` + banner; R5 dispute recorded asserting neither side; G-2 restoration cost corrected to code+config+env; G-1 owed run-intake surfaces recorded as crawl debts; two-tier model behind the gate stack. |
+| **R1/2b — research-is-horizon-scan feedstock gap** | **DONE** | Doctrine register: named feedstock-gap residual (G-6), same pattern as `analysis-follows-page-intent`; wave-three lands the enforcedBy. `fsi-app/.claude/CLAUDE.md` founding text unamended (it won). |
+| **2c — RD-33 extension** | **DONE** | `no-execution-from-stale-state` gains the worklist-note-is-a-proposal clause (section 5.3): queue consumers re-derive per-item state from the live gate at action time; notes are routing hints (bec305e1 case). |
+| **R3/2d — ACTIVE_PHASE advance** | **DONE** | `phase-intake-gate` → `phase-2` in GOVERNING-PROGRAM.md. Derived from the doc's own dependency order: intake-gate flipped live 2026-07-08 (all four anchors verified present), next uncompleted phase is phase-2 (Source→sub-source), which precedes phase-3 (the freshness-loop/change-scan crawl work). C5 PASS on phase-2's anchor. intake-gate marked DONE. |
+| **2e — cosmetic G-9/G-10** | **DONE** | G-9: stale `drain-first-fetch` references corrected in `pause.ts` header + `agent/run` comment (worker dissolved 2026-07-12). G-10: ADR-001 `(tenant)` route-group consequence corrected (group never created; proxy.ts session-gates, no middleware.ts). |
+
+Local gates green before commit: C5 PASS (phase-2 anchor), meta-gate PASS (63 doctrines wired), tsc clean.
+
+**Phases 3-5 — QUEUED (this session, in order):** P-1..P-8 purges (tombstone-then-delete, discipline
+suite between each); skill-gate resolved-not-invoked fix (R4/G-12); dashboard checks + two-tier crawl
+spec draft (3 waves, costed wave one).
+
+---
+
+## Session E — execution lane Phase 3 (PURGES): this PR (2026-07-18)
+
+Executes operator ruling R2 ("the old needs to be purged if not used"; P-1..P-8 all purge). Code
+deletions execute directly; the one data-touching drop is a committed migration for the operator DDL
+window. Full local discipline suite (tsc + meta-gate + consistency C3/C4/C5 + fitness 104/104 + affected
+unit tests) run after each deletion; every gate/register/comment reference to a purged item amended in
+this same PR. No purge target was force-deleted over a live caller.
+
+| Purge | What went | References amended |
+|---|---|---|
+| **P-5** | `secFairAccessUaForUrl` re-homed to `sec-fair-access.ts`; `rss-fetch.ts` deleted (dead transport, only a test called `rssFetch`; `buildLiveTransports` never wired it) | `browserless.ts` import; F16 `TRANSPORT_MODULES` (rss-fetch removed, "four transports"→"every live transport"); RD-15 residual (invariants.mjs); `transport-hold-wiring.npmtest.mjs` rssFetch leg; `_pause-gate-verify.mjs` regex |
+| **P-1** | `/api/admin/sources/discover/route.ts` + `discovery.ts` (zero callers since Wave-α A5) | `verification.ts` comment; `_pause-gate-verify.mjs` regex |
+| **P-2/P-8** | `/api/staged-updates/route.ts` (GET zero-caller + POST 410 tombstone) | `apply-staged-update.ts` (stale "two callers" → runIntakeCycle is the sole live caller); `data.ts` ×2 comments |
+| **P-3** | `/api/community/notifications/preferences/route.ts` (zero callers) | none |
+| **P-4** | `/api/workspace/regulations-defaults/route.ts` (zero callers) | none |
+| **P-7** | `/api/admin/q7-daily-recompute/route.ts` (no scheduler; superseded by end-of-cycle recompute) | F2 `WORKER_SECRET_ALLOWLIST` + comment; `worker-auth.ts` comment |
+| **P-6** | `computeConflictResolutionImpact` engine (test-only caller) + the full `source_conflicts` dormant slice: `fetchOpenConflicts`, `SourceData.openConflicts`, the store slice, the "Data Conflicts" admin tab, the `initialOpenConflicts` prop chain, `SourceConflict`/`ConflictStatus`/`ConflictResolution` types; migration **215** drops the 0-row table (content-gated, AUTHORED-not-applied per ADR-011 break-risky, rides the operator DDL window) | `trust.ts`, `types/source.ts`, `supabase-server.ts`, `sourceStore.ts`, `AdminDashboard.tsx`, `SourceHealthDashboard.tsx`, `admin/page.tsx`, `trust-evaluators.npmtest.mjs`; migrations inventory |
+
+**P-6 DEFERRAL surfaced (materially unexpected, reported not forced):** P-6's description also named "the
+never-emitted trust-event types". Those live on `source_trust_events` — a LIVE table actively written by 6
+routes (bulk-approve, decide, promote, tier-override, spot-check, check-sources) and explicitly slated for
+CHECK-widening by **phase-3 fruition**, which ADR-015 (Phase 2, R1) just restored as the active path.
+Narrowing that CHECK now would delete inputs the restoration needs and churn against phase-3. Per the
+standing stop-and-report rule this narrowing is DEFERRED to the operator, not forced. `ConflictOpenedDetails`
+(a member of the trust-event details union) is retained for the same reason. DB-2 F19 already ruled this
+class "revisit when conflict detection ships".
+
+**Operator action owed:** apply migration 215 in the DDL window (destructive DROP on prod, dev=prod); rule
+on the deferred `source_trust_events` never-emitted event-type narrowing.
+
+---
+
+## Session E — execution lane Phase 4 (SKILL-GATE FIX): this PR (2026-07-18)
+
+Executes operator ruling R4 (G-12 is a gap, not a tolerance). `skill-token.mjs` (the PreToolUse
+skill-gate's matcher) now requires a matched `Skill` invocation to have RESOLVED SUCCESSFULLY, not merely
+to appear in the transcript. It parses the JSONL transcript, correlates each `Skill` tool_use to its
+`tool_result` by `tool_use_id`, and counts the invocation only when a result EXISTS and `is_error !== true`.
+An errored invocation (Session D's "Unknown skill" case) and an in-flight/result-less invocation both now
+FAIL the gate. All prior discrimination preserved (scoped slugs resolve, passive prose rejected, suffix
+collisions rejected, literal slug match). Selftests: `skill-token.test.mjs` 12/12 (adds errored-fails,
+in-flight-fails, resolved-passes, errored-then-resolved-passes); hook `pretooluse-skill-gate.test.mjs` 26/26
+(fixtures updated to resolved tool_use+tool_result pairs). meta-gate PASS, consistency PASS.
+
+---
+
+## Session E — execution lane Phase 5 (CHECKS + CRAWL SPEC): this PR (2026-07-18)
+
+Operator granted full access mid-lane ("nothing is operator owned"), so the section-7 checks were run
+directly and migration 215 was applied, rather than left as operator-owned items.
+
+| Item | State | Evidence |
+|---|---|---|
+| **Section-7 checks (all 7)** | **RUN LIVE** | [dormant-systems-section7-results-2026-07-18](./audits/dormant-systems-section7-results-2026-07-18.md): cadence `off` / scan returns 503 / source-monitoring+spot-check `disabled_manually` / SW-3 flag 1-open / drain 66 / D-report merged. ONE unreachable: deployed Vercel env values (secret-scope tool limit; moot — cadence-off already blocks fetch). |
+| **Migration 215 (P-6 source_conflicts DROP)** | **APPLIED** | applied this session (content gate passed, 0 rows); table + view now null. P-6 purge complete in code AND data. Migrations inventory corrected AUTHORED→APPLIED. |
+| **Two-tier crawl rebuild spec** | **DRAFT DELIVERED for operator pricing** | [crawl-rebuild-spec-2026-07-18](./plans/crawl-rebuild-spec-2026-07-18.md): awareness tick at check-sources → one intake path (run-intake-cycle + the two owed surfaces) → depth tier behind GROUNDING_ACQUIRE_ENABLED; source-type-agnostic (wave 1 registers / 2 market feeds / 3 research feedstock, same tick+intake+gates); coverage honesty per surface (Operations gap labeled); costed wave-one Phase 1 (cheap awareness, dormant-safe) + Phase 2 (~$16-37 depth over the 106 MISSING candidates, operator-priced). No build until priced. |
+| **Relabel primitive** | **DEFERRED (not built)** | per mandate — belongs to the session that resumes Session A. |
+
+**Execution lane COMPLETE.** Phases 1-5 landed: #342+#343 merged (Phase 1), #344 governance (Phase 2),
+#345 purges (Phase 3), #346 skill-gate fix (Phase 4), this PR checks+spec (Phase 5). Standing operator
+decisions: price the crawl-spec waves; rule on the deferred `source_trust_events` never-emitted event-type
+narrowing (held on merits — collides with phase-3 fruition).
+
+---
+
+## Session E — EXECUTION LANE COMPLETE (2026-07-18)
+
+Phases 1 through 5 landed, all CI-green-then-merged (no admin-merge):
+
+- **#342 + #343** — Phase 1 merges (Session D forensics + the dormant-systems audit; board keep-both resolved).
+- **#344** — Phase 2 governance: ADR-015 restores source-monitoring, supersedes ADR-012; register amendments; RD-33 extension; ACTIVE_PHASE → phase-2; G-9/G-10.
+- **#345** — Phase 3 purges: P-1..P-8; migration 215 applied (source_conflicts dropped).
+- **#346** — Phase 4 skill-gate G-12 fix (require RESOLVED).
+- **#347** — Phase 5: section-7 checks + two-tier crawl rebuild spec + migration 215 apply.
+
+**Section-7 checks: six of seven CLOSED.** cadence off / scan returns 503 / source-monitoring + spot-check
+disabled_manually / SW-3 flag open / drain 66 / D-report merged. The seventh — deployed Vercel env values
+(SCRAPE_HOLD / GROUNDING_ACQUIRE_ENABLED / SPEND_REGIME) — is a **re-arm-time operator check** (secret-scope
+tool limit; moot for fetch-blocking because cadence-off already blocks every fetch).
+
+**Standing operator decisions (lane handed off):**
+1. Price the crawl-spec waves ([crawl-rebuild-spec-2026-07-18](./plans/crawl-rebuild-spec-2026-07-18.md)) — no build until priced.
+2. Rule purge on the deferred `source_trust_events` never-emitted event-type narrowing — evidence in crawl-spec §8.1 points to purge (held on merits, not access; lands as a content-gated migration at the ruling).
+3. The relabel primitive goes to the session that resumes Session A.
+
+Session E's lane is DONE. The operator takes the crawl spec from here.
+
+---
+
+## Session E — RECOVERY MANDATE (2026-07-18): ingest behavioral read + merge re-verification
+
+The day's work rested on a wiring map, not a behavioral read of the ingest pipeline. Recovery Step 1
+read the code end to end and re-verified every merge behaviorally.
+
+**Step 1 findings** ([ingest-behavioral-read-2026-07-18](./audits/ingest-behavioral-read-2026-07-18.md)):
+- **What the system actually does:** one-document-per-item everywhere (workflow AND acquire scripts); NO
+  per-source document sweep exists. The change-to-analysis loop TERMINATES (check-sources sets
+  change_detected, reconcile writes intelligence_changes, but that table has 0 rows and is read only by the
+  dashboard digest; no re-ground consumer; auto-action "deliberately NOT wired"). Save-everything (permanent
+  raw_fetches snapshot) is TRUE only on the operator-fired acquire-script path Session A ran; the live
+  /api/agent/run workflow persists only the replaceable agent_run_searches pool.
+- **Merge re-verification: all purges P-1..P-8 SAFE, ZERO restorations.** Verified against dynamic dispatch,
+  string routes, config (access_method only api-vs-browserless; the 189 rss sources were always browserless),
+  and DB objects (0 functions/views reference source_conflicts post mig-215; staged_updates table intact,
+  35 rows). No merge touched the live ingest path.
+
+**Crawl spec SUPERSEDED as a build basis.** [crawl-rebuild-spec-2026-07-18](./plans/crawl-rebuild-spec-2026-07-18.md)
+was authored from the wiring map; it duplicated existing discovery machinery and ignored the two real gaps
+(complete per-source extraction; the open change-to-analysis loop). Its register-enumeration research is
+salvage material only. The build plan (Step 2) is grounded in the behavioral read instead.
+
+---
+
+## Session E — RECOVERY Step 2: build plan DELIVERED for operator ruling (2026-07-19)
+
+Step 1 ruling received (zero restorations accepted, findings accepted, strong list fenced). Step 2 is the
+one phased, costed build plan, existing-first per component with Step-1 finding citations, operator decision
+points marked. **PLAN ONLY — nothing executes until the operator rules on the document.**
+
+Doc: [ingest-repair-and-extraction-build-plan-2026-07-19](./plans/ingest-repair-and-extraction-build-plan-2026-07-19.md).
+
+| Phase | What it closes | Shape | Preserves the strong list by |
+|---|---|---|---|
+| **R — Repair** (first, bounded) | F3/F4/F5/F6 + cheap F13/F19/D2; rest triaged | live snapshot writer + crit-3 on durable storage (zero-flip prover-gated); one tier discipline (verification.ts + bulk-approve conform to the deterministic rule); apply CHANGE fail-closed; plan-intake RETIRED into a dry-run mint | hardens the moat + non-destructive apply; adds no gate logic; per-fix test asserts fenced behavior intact |
+| **1 — Complete extraction** (closes F1) | one-document-per-item | the missing seam: enumerate → classify (4 contracts, multi-tag) → existing intake path; proving slice of 5 (EUR-Lex/leginfo/MPA/CARB/NLR, each multi-item so dedup is proven); slice IS the sizing instrument; snapshot via Phase R | every document flows the unchanged chokepoint/mint-gates/target-match/apply/validate; multiplies volume, changes no gate |
+| **2 — Change-to-analysis** (closes F2) | terminating loop | NEW re-ground consumer on existing check-sources/reconcile/intelligence_changes; USES compareFreshness + cheapVerifyClaims; paid re-ground HOLDS behind acquire lock + operator go | fires the existing grounding pipeline as actuator; adds consumer + router only |
+| **3 — Discovery (third only)** | — | inside-out (grow-step + portal_link_candidates finally consumed) then outside-in (register/feed/catalog, gap measured only vs full extraction — false-denominator rule cited); salvages crawl-spec register research, discards its primary-build framing | stages through unchanged chokepoint; grow writes effective_tier only (moat) |
+| **4 — Reconciliation** | orphaning risk | Session A drain (66) + relabel-primitive (A's session builds it) between R and corpus-wide; Session B lane; Session C census (109/62 feeds) as Phase-3 feedstock; campaign machinery unchanged | campaign grounding machinery IS the strong list, used unchanged |
+
+**Sequencing:** one dependency graph, R → Gate1 → {A/B drain ∥ Phase1 build} → Gate2 proving-slice →
+Gate3 corpus-wide → {Phase2 ∥ backfill} → Gate4 tick re-arm (ADR-015 code+config+env checklist) → Phase3
+→ Gate5 outside-in. Five operator gates plus the proving-slice-composition choice (Operations swap: u.ae).
+
+**STOP.** The plan lands as one PR; the operator rules on the document before anything in it executes.
+
+---
+
+## Session E — RECOVERY Phase R: repair EXECUTED, stopped at Gate 2 (2026-07-19)
+
+Operator ruling: plan APPROVED, all three recommendations adopted (five gates stand; u.ae swap for a pure
+Operations source in the proving slice, composition-only; plan-intake RETIRED into a dryRun mint). Merged
+#349, then executed **Phase R only**. Every fix touches the most load-bearing machinery, so each landed with
+its own proof artifact, same standard the machinery was held to. Branch `repair/phase-r-ingest-hardening`.
+
+| Fix | State | Proof artifact |
+|---|---|---|
+| **F3** live snapshot writer + crit-3 on durable storage | **STOPPED + SURFACED** (materially unexpected, operator ruling owed at Gate 2) | `raw_fetches` body lives in Supabase STORAGE (no body column), so the plpgsql validator CANNOT read it; and the FACT span is CLEANED text vs `raw_fetches` RAW body — a literal move would FLIP verified items. Corrected design (a durable, DB-queryable, append-only CLEANED-text criterion-3 fallback, monotonic-safe) proposed in the Gate 2 report; writer + checker designed together, no half-slice landed. |
+| **F4 + F18** one tier discipline | **DONE** | verification.ts executeAction + bulk-approve both stamp base_tier from the DETERMINISTIC `classTierForHost` (never the Haiku / cached guess); ambiguous host WORKLISTS (verification → provisional; bulk-approve → individual review). bulk-approve gained the vertical-fit gate + `source_role` + derived types; frozen 2026-04-28 date dropped in bulk-approve AND decide. Proof `tier-discipline-no-guess.test.mjs` (5/5, source-scan covering both live paths) + updated `w2f-basetier.npmtest.mjs`. |
+| **F5** applyLedgerDiff CHANGE fail-closed | **DONE** | warn → THROW before the overwrite when the `claim_versions` archive fails, matching `eraseClaimWithProof` + the file's own header. Proof `ledger-apply.test.mjs` (3/3): archive-failure throws + the current claim is never overwritten (prior attribution survives); happy path still versions-then-updates. |
+| **F6** retire plan-intake → dryRun mint | **DONE** | `mintIntelligenceItem(sb, plan, {dryRun})` runs every gate and returns the disposition without the INSERT; `applyStagedUpdate` + run-intake-cycle plan-mode thread it; `plan-intake.ts` + its test + the `_diag` proof deleted. One source of truth, drift impossible. Proof `mint-dryrun-equivalence.npmtest.mjs` (3/3): dry == real on would-mint / dedup-reject / the SOURCE-LINK reject the old planner got WRONG. |
+| **F13 / F19 / D2** (cheap-in-R) | **DONE** | F13 state-min-wage registerSource EXECUTE-gated (dry-run no longer writes a source); F19 decide fails the response on a candidate-mark failure (names the durable partial state, warns against blind-retry); D2 canonical-fetch header corrected 2-tier→3-tier. Proof `phase-r-cheap-fixes.test.mjs` (3/3). |
+| **Routed (NOT touched this phase)** | per plan | F14/F16/F17 → Phase 4 drain-tools touch; D1/D4/D5 → Phase 1/3 file touches. F15/F20/D3 accepted-as-documented. |
+
+**Fenced strong-list regression: GREEN.** Discipline suite **864 pass / 0 fail** (non-destructive apply,
+dominance guard, mint gates, target-match, moat resolver, verify-item, error-body, audit-gate/preflight
+goldens all unchanged), fitness **16 checked / 0 violations** (single-mint-chokepoint, F12 moat, F2
+admin-routes), npmtests **52 pass / 0 fail**, tsc clean. No strong-list gate logic was modified; the two
+edits inside strong-list files (F5 ledger-apply CHANGE-path, F4 verification tier) are additive hardening
+with per-fix proofs.
+
+**STOPPED at Gate 2 (proving-slice go).** Nothing past Phase R executes without the next operator ruling.
+The Gate 2 report carries: per-fix proof summary, the regression result, the F3 corrected-design proposal
+(operator ruling owed), the final proving-slice composition with the u.ae swap rationale, and the per-source
+enumeration approach for each of the five slice sources.
+
+---
+
+## Session E — RECOVERY Part 1: F3 durable-evidence addendum EXECUTED (2026-07-19)
+
+Operator rulings: F3 option (a) approved, proving-slice GO, strict order (F3 lands + proves FIRST, slice
+SECOND). Branch `repair/phase-r-f3-durable-evidence`. Built the corrected design exactly as proposed, writer
+and checker together, no half-slice.
+
+| Component | State | Proof / evidence |
+|---|---|---|
+| **Migration 216** — `item_source_evidence` append-only store | **APPLIED** | New table holding the cleaned pool text (byte-identical to `result_content_excerpt`), keyed by (item, content_hash), RLS on / no policy; BEFORE UPDATE/DELETE trigger RAISES for anyone incl. service role. Append-only proven: `scripts/_diag/_f3-append-only-proof.sql` rolled-back probe → `upd_blocked=t del_blocked=t`, 0 rows persisted. |
+| **Live writer** (canonical-pipeline.ts) | **DONE** | Both generate paths (generateBrief + generateBriefRefreshPrimary) persist the cleaned pool text to the durable store BEFORE the `agent_run_searches` DELETE-then-INSERT — the per-generate erase of prior evidence ENDS on the everyday path. Idempotent (ON CONFLICT DO NOTHING, never trips the append-only trigger). Proof `f3-durable-evidence.test.mjs` (3/3, ordering + idempotency + same-cleaned-text source-scan). |
+| **Migration 217** — criterion 3 SUPERSET | **APPLIED, prover-gated** | Surgical anchor-verified `replace()` on the DB's own `validate_item_provenance` def: span passes if in the working excerpt OR the durable store. Monotonic add. Zero-flip prover (`scripts/_diag/_f3-zero-flip-prover.sql`) run + committed BEFORE apply: **0 would-flip / 210 baseline verified / 0 evidence rows**. Post-apply verified: superset present, old null-check cleanly replaced (not duplicated), verified-live still 210, sample verified item still valid. |
+
+**Fenced strong-list regression: GREEN.** Discipline suite **867 pass / 0 fail** (the 3 new F3 assertions plus
+every prior golden unchanged), fitness **16 / 0 violations**, tsc clean. The only strong-list-adjacent change
+is criterion 3 becoming a proven-monotonic superset; no gate weakened.
+
+Migrations inventory updated (216/217). Lands as PR (Part 1). Merge on green, then Part 2 (proving slice)
+runs SECOND through the completed gate.
+
+---
+
+## Session E — F3 addendum REVERTED as dead/duplicate code (2026-07-19)
+
+Operator pushed (correctly, repeatedly) to check existing structure first; a full Supabase table audit
+established the F3 addendum (PR #351: item_source_evidence + migrations 216/217 + the writer + tests) was
+DEAD/DUPLICATE code I created by not auditing existing structure:
+- `item_source_evidence`: **0 rows**; its writer stored `cleanCtl(b.text)` — BYTE-IDENTICAL to the existing
+  `agent_run_searches.result_content_excerpt` (per-item, SQL-queryable, 21 MB, up to 600 KB/row).
+- **0 of 210 verified items were missing pool evidence** — the "pool erased on re-generate" problem the store
+  was built for does not manifest.
+- `raw_fetches` (678 rows) is the existing permanent snapshot store the original F3 instruction named.
+- Keys exist and the pipeline has run (631 agent_runs with a model) — the earlier "no keys / Part 2 walled"
+  claim was wrong (checked the local shell, not where the app runs).
+
+**Reverted:** migration 218 (applied) restores criterion 3 to the pre-217 working-excerpt-only check and DROPs
+the empty table + trigger + function; verified post-apply (function no longer references the table, restored
+to original, table null, verified-live still 210, sample still valid). The writer, `f3-durable-evidence.test.mjs`,
+and the two prover scripts are removed; 216/217 files kept as history + marked reverted in the inventory.
+
+**Process reset (operator directive):** no more building. Next is a detailed audit of the EXISTING structure
+(tables: row counts + writers + readers, per RD-9 producer-consumer; code), THEN a build plan for operator
+approval, THEN build. The repeated check-first failures this session are the reason.
+
+---
+
+## Session E — FULL structure audit DELIVERED (cleanup phase before scrape-and-build) (2026-07-19)
+
+Doc: [supabase-structure-audit-2026-07-19](./audits/supabase-structure-audit-2026-07-19.md). Every table:
+exact rows + mechanical writer/reader map + code trace + INTENT judgment (five-surface model / ADR-015 /
+Community-as-core). Deletes PROPOSED not applied.
+
+**Operator rulings owed:**
+1. SAFE-DROP backup set (6 tables, ~1045 rows of before-state copies, zero code refs) — .proposed migration
+   219 authored, ruling-gated.
+2. `hold_resolution_queue` (39 queued held-items; created by NO committed migration = out-of-repo DDL;
+   overlaps live drain_worklist) — confirm superseded → migrate-then-drop, or re-wire.
+3. `briefings` (0 rows, early predecessor of full_brief) — likely-drop.
+
+**Key corrections on record:** keys exist + pipeline has run (631 model agent_runs); agent_run_searches
+(21 MB per-item) + raw_fetches (678) ARE the durable content stores — what the reverted F3 (#351/#352)
+wrongly duplicated. Dormancy = the frozen source-monitoring cron + four missing consumers
+(portal_link_candidates→intake, register index-walk, feed transport, intelligence_changes→re-ground), NOT
+rotting modules. Next: the scrape-and-build plan grounded in this audit, for operator approval.
+
+---
+
+## Session E — CLEANUP EXECUTED + scrape-and-build plan DELIVERED (2026-07-19)
+
+Operator: "Do it." Migration **219 APPLIED**: 8 dead tables dropped (6 zero-ref backups/one-shots +
+hold_resolution_queue — superseded by drain_worklist, proven 32/39-in-drain/6-verified/1-gone/0-residue —
++ briefings). Post-apply verified: all 8 gone, verified-live 210 intact, drain intact, validator valid.
+Inventory updated.
+
+Plan: [scrape-and-build-content-plan-2026-07-19](./plans/scrape-and-build-content-plan-2026-07-19.md) —
+four builds (B1 portal-harvest consumer / B2 register index walk / B3 feed transport / B4 change-to-analysis
+consumer) + the ADR-015 cron re-arm; reuse-first (the audit proved everything else is built); proving slice
+prices the corpus sweep; no new store, no new intake path, no spend-rule change. Build begins on this plan.
+
+---
+
+## Session F — B1 BUILT: portal-harvest consumer (2026-07-19)
+
+The first of the four builds. PR feat/b1-portal-harvest-consumer:
+
+- **Migration 220 APPLIED** (two-track, DDL before code): disposition columns on `portal_link_candidates`
+  (`disposition_reason` / `dispositioned_at` / `item_id`) — no disposition without a recorded reason (RD-6).
+- **`src/lib/intake/portal-harvest.ts`**: `persistPortalCandidates` (the ONE ledger write-site — the
+  check-sources crawl refactored onto it, so scheduled + manual producers share identical upsert semantics)
+  and `consumePortalCandidates` (ledger → ladder fetch direct-first → firstFetchClassify entity gate →
+  the intake chokepoint via dryRun pre-pass; apply pushes only would-mint candidates into runIntakeCycle
+  and stamps every ledger disposition with the machine reason verbatim). Gate placement preserved: this
+  module PRECOMPUTES; every gate DECISION stays in the chokepoint. Deep links preset `source_id` from the
+  parent portal (the source-link seam — a deep link is deliberately NOT in the registry; its portal is).
+- **Seam fix riding B1**: `applyStagedUpdate` strips `relevance` from the INSERT seed (no such column;
+  B1 is the first relevance-bearing caller — a dry run cannot catch it because dry stops before the write).
+- **D1 landed** (routed Phase-R triage): haiku-classify.ts dead header corrected (content classification
+  lives in first-fetch-classify.ts).
+- **Runner** `scripts/run-portal-harvest.mjs` (--harvest / --consume, --mode plan DEFAULT | apply gated on
+  EXECUTE=1, --render opt-in so Browserless units are conserved by default).
+- **Proofs**: portal-harvest.npmtest.mjs 7/7 (one-write-site semantics; severity display→db + source_id
+  preset; plan mode is READ-ONLY; entity-gate stamps; inconclusive ≠ reject; exists short-circuit = no
+  re-ground spend). Suite 864/0, npmtests 36/0, fitness 16/0 (F14 confirms the ledger now has its reader —
+  allowlist entry retired), meta-gate PASS, consistency 3/0, tsc clean.
+
+## Session F — B2 BUILT: register-API index walk (2026-07-19)
+
+The second build. PR feat/b2-register-walk:
+
+- **`src/lib/sources/register-walk.mjs`**: pure builders (ojDailyViewUrl DDMMYYYY, frDocumentsUrl with
+  range/type/term/fields, dateRange capped at 366d — no unbounded walks) + dep-injected walkers.
+  `walkEurlexOj` (per-day daily-view HTML → extractPortalLinks → B1's persist; a failed day is recorded,
+  the walk continues) and `walkFederalRegister` (paged documents.json, no key; a page cap is REPORTED
+  as droppedPages/totalPages — a bounded walk is never silent). Both feed the SAME ledger B1 consumes.
+- **D4/D5 landed** (routed Phase-R triage): api-fetch.ts normalizes FULL then caps at the return site,
+  reporting `truncated` + `fullTextLength` (the canonical-fetch contract); BrowserlessResult types the
+  optional fields the pipeline already read untyped.
+- **Runner** `scripts/run-register-walk.mjs` (--register eurlex-oj|federal-register, --from/--to,
+  --types/--term/--max-pages; hold-gated free HTTP; source defaults to the register's root portal row).
+- **Proofs**: register-walk.test.mjs 6/6. Suite 870/0, npmtests 36/0, fitness 16/0, tsc clean.
+- **LIVE**: FR walk 2026-07-15..17 → 35 RULEs ledgered; OJ walk 07-16..18 → 3 daily views (33/39/39
+  upserts, new instruments only after chrome dedup). Consume plan-mode on FR: **8/8 would_mint on real
+  final rules**, every chokepoint gate passed dry, honest low-relevance flags (an unfiltered RULE walk
+  is mostly off-vertical — the sizing signal; --term scopes it). Zero writes: plan-mode contract held.
+
+## Session F — B3 BUILT: feed transport (2026-07-19)
+
+The third build. PR feat/b3-feed-transport:
+
+- **`src/lib/sources/feed-walk.mjs`**: parseFeedEntries (RSS 2.0 items + Atom entries, CDATA unwrap,
+  rel=alternate preference, https-only) + walkFeed (fetch injected → ERROR-BODY GATE before parsing —
+  a bot-block is {ok:false} INCONCLUSIVE, never an honest "empty feed" → persist via B1's ONE write-site).
+  No new deps (regex parse; the ledger's UNIQUE-url dedup absorbs over-extraction).
+- **Runner fold-in**: run-register-walk.mjs gains `--register feed --feed <url>` (source defaults to the
+  feed host's registered row). One CLI for all index walks.
+- **Proofs**: feed-walk.test.mjs 5/5. Suite 875/0, fitness 16/0, tsc clean.
+- **LIVE**: CARB RSS (ww2.arb.ca.gov/rss.xml) walked free → 10 entries ledgered; consume plan-mode:
+  **10/12 would_mint, genuinely ON-VERTICAL** (Cap-and-Invest updates, Volvo $197M emissions settlement,
+  $1B electric-truck rebates, HVIP, Climate Transparency Regulation) and **congruence 1a fired live** on
+  every news-page instrument (retyped — the moat working). 2 sub-portals honestly rejected.
+
+## Session F — POPULATION STARTED + holdings-keying seam fixed (2026-07-19)
+
+Operator ruling: NO scheduled scrapes during build (re-arm closed/deferred; schedules stay commented,
+hold stays). Phase = POPULATE manually with the built tools. Population targets RFD-format PRIMARY
+instrument pages only (congruence 1a retypes news-page announcements to non-ratified formats).
+
+- Scoped FR walk (--term emissions, RULE, 30d): 30 candidates, 30/30 would_mint (plan).
+- **Bounded apply sample: 3 FR rules MINTED through every gate** (staged → chokepoint → ledger
+  promoted w/ item ids): NESHAP Plywood/PCWP, Counter-UAS IFR, Michigan St. Clair SO2 SIP.
+- **SEAM FOUND + FIXED: holdings-gate keying.** raw_fetches is per-SOURCE (no URL column); the guard
+  counted the FR PORTAL's old snapshot as every portal-derived item's holdings → all 3 refused
+  grounding as falsely "held". Fix: the snapshot half counts ONLY when source.url == item.source_url
+  canonically (the per-instrument shape, ruled behavior unchanged); portal-derived items key on their
+  own pool. Proof holdings-keying.npmtest.mjs 3/3.
+- Post-fix: all 3 generated FULL RFDs (60825/77555/48776 ch, 14-15 sections, 6 web_search
+  corroborators each, real FR citations); truncation guard reported a 383KB PDF honestly
+  (60000/383344 collected). All 3 correctly QUARANTINED at the ground step: **GROUNDING_ACQUIRE_LOCKED**
+  — model grounding is paid acquisition behind the operator's per-run flag (GROUNDING_ACQUIRE_ENABLED).
+- Sample actuals: ~\$2.53 est across 18 runs (3 Sonnet deep-dive generates + classifies), ≈\$0.80/item
+  generate. FLAG: July agent_runs est \$140.28 vs the \$75-ceiling doctrine — needs operator read.
+- Runner: --newest consume option (freshest walk results first). Diag: _b1-ground-sample.mjs.
+- OPERATOR DECISION OWED: flip GROUNDING_ACQUIRE_ENABLED for a bounded funded pass to ground the 3
+  (est <\$1), then the corpus-sweep price rides the audited sample.
+
+## Session F — B4 BUILT: change-to-analysis consumer (2026-07-19) — ALL FOUR BUILDS COMPLETE
+
+The fourth and final build. PR feat/b4-change-sweep. Retrieval-first paid off: verify-item.mjs
+(snapshot-first entry, F21) already IS the routing core — B4's genuine residual was ONLY the bridge.
+
+- **`src/lib/sources/change-sweep.mjs`**: sweepChangedSource (a changed source's VERIFIED items →
+  verifyItem each → disposition split: verified_cheap record-only / stale_flag queue / needs_acquire
+  LOCKED) + sweepAllChangedSources (bounded, skippedSources reported). READ-ONLY default; --act gates
+  the stale-flag queue writes. Scope: verified items only (quarantine belongs to research-or-erase).
+- **Runner** `scripts/run-change-sweep.mjs`: --source | --all-changed (reads the check-sources
+  monitoring_queue change_detected signal); the SAME live dep binding groundStep uses — no drift.
+- **Proofs**: change-sweep.test.mjs 4/4. Suite 879/0, fitness 16/0, meta-gate PASS, tsc clean.
+- **LIVE smoke ($0, read-only)**: leginfo's 3 verified items (SB 253/261, AB 1305) swept — all route
+  needs_acquire honestly (spans not in the PORTAL homepage snapshot: the KNOWN portal-source corpus
+  defect surfacing through the new lens; no false flip, no spend, lock holds).
+
+Build scoreboard: B1 #354 / B2 #355 / B3 #356 / population+holdings-fix #357 / B4 this PR.

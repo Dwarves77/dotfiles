@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { Source, ProvisionalSource, SourceConflict, SourceTier, IntelligenceDomain } from "@/types/source";
+import type { Source, ProvisionalSource, SourceTier, IntelligenceDomain } from "@/types/source";
 
 interface SourceFilters {
   tiers: SourceTier[];
@@ -15,19 +15,17 @@ interface SourceState {
   // Data
   sources: Source[];
   provisionalSources: ProvisionalSource[];
-  openConflicts: SourceConflict[];
 
   // Filters
   filters: SourceFilters;
 
   // UI
   expandedSourceId: string | null;
-  activeView: "registry" | "health" | "provisional" | "canonical" | "intersections" | "conflicts";
+  activeView: "registry" | "health" | "provisional" | "canonical" | "intersections";
 
   // Actions — data
   setSources: (sources: Source[]) => void;
   setProvisionalSources: (ps: ProvisionalSource[]) => void;
-  setOpenConflicts: (conflicts: SourceConflict[]) => void;
 
   // Actions — filters
   toggleTierFilter: (tier: SourceTier) => void;
@@ -52,7 +50,6 @@ const emptyFilters: SourceFilters = {
 export const useSourceStore = create<SourceState>((set) => ({
   sources: [],
   provisionalSources: [],
-  openConflicts: [],
 
   filters: { ...emptyFilters },
   expandedSourceId: null,
@@ -60,7 +57,6 @@ export const useSourceStore = create<SourceState>((set) => ({
 
   setSources: (sources) => set({ sources }),
   setProvisionalSources: (provisionalSources) => set({ provisionalSources }),
-  setOpenConflicts: (openConflicts) => set({ openConflicts }),
 
   toggleTierFilter: (tier) =>
     set((state) => {

@@ -10,7 +10,7 @@ import { createJiti } from "jiti";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
-const { evaluatePromotion, evaluateDemotion, evaluateProvisionalSource, computeConflictResolutionImpact } =
+const { evaluatePromotion, evaluateDemotion, evaluateProvisionalSource } =
   await jiti.import("./trust.ts");
 
 const OLD = "2020-01-01T00:00:00Z"; // far past → age + last_accessible satisfied
@@ -80,21 +80,4 @@ test("provisional: citations but zero INDEPENDENT (echo chamber) → reject", ()
   const r = evaluateProvisionalSource(ps({ citation_count: 5, independent_citers: 0 }));
   assert.equal(r.recommended_action, "reject");
   assert.equal(r.recommended_tier, 7);
-});
-
-// ── computeConflictResolutionImpact ──
-const conflict = (resolution) => ({ resolution, source_a_id: "A", source_b_id: "B" });
-test("conflict: source_a_correct → A gains confirmation, B gains conflict", () => {
-  const r = computeConflictResolutionImpact(conflict("source_a_correct"));
-  assert.equal(r.winner_source_id, "A");
-  assert.equal(r.loser_source_id, "B");
-  assert.deepEqual(r.winner_metrics_delta, { confirmation_count: 1 });
-  assert.deepEqual(r.loser_metrics_delta, { conflict_count: 1 });
-});
-test("conflict: both_partially_correct + inconclusive → no winner/loser, no deltas", () => {
-  for (const res of ["both_partially_correct", "inconclusive"]) {
-    const r = computeConflictResolutionImpact(conflict(res));
-    assert.equal(r.winner_source_id, null);
-    assert.equal(r.loser_source_id, null);
-  }
 });

@@ -13,7 +13,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));
 
 const API_DIR = resolve(ROOT, "src", "app", "api");
-const FETCH_PRIMITIVES = /\b(browserlessRender|browserlessFetch|apiFetch\(|rssFetch\(|fetchPrimaryWithFallback|fetchPrimaryDeep|firstFetchClassify|discoverForJurisdiction|web_search)\b/;
+const FETCH_PRIMITIVES = /\b(browserlessRender|browserlessFetch|apiFetch\(|fetchPrimaryWithFallback|fetchPrimaryDeep|firstFetchClassify|web_search)\b/;
 const GUARD = /\b(pausedResponse|isGloballyPaused|pauseReason)\s*\(/;
 
 function walk(dir, out = []) {

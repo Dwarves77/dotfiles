@@ -1,3 +1,11 @@
+> **DEPRECATED FORK — NOT THE CANONICAL SESSION LOG.** The canonical log is `docs/ops/session-log.md` at the
+> repo root (per `CLAUDE.md` standing rule 6 + the self-annealing protocol). This file stopped receiving real
+> entries after commit `42ac8969` (2026-07-17) while every subsequent bank kept landing at the root path; a
+> 2026-07-18 restart reconciliation misread this file as the live record, misdiagnosed a divergence, and
+> backfilled it here in error (commits `eb468f03`, `88886d0b`) before catching the mistake — see the root
+> file's 2026-07-18 "TWO-FILE session-log correction" entry for the full account. Left in place, not deleted,
+> so no history is destroyed; do not append new entries here. Read/write `docs/ops/session-log.md` at the
+> repo root instead.
 
 ## 2026-07-16 — THE PERSISTENCE CONTRACT (cc-executor drain, Step 0)
 
@@ -196,6 +204,52 @@ REASSIGNED-TO-A (genuine judgment, no id-stampable single instrument):
 - japan-gx-freight: SCOPE MISMATCH (primary = economy-wide GX Basic Policy, titled 'Freight Transport Standards') + wrong class.
 - (bank 4) fabda0e7 (Oregon DEQ hub), nashville (RS2022-1358 non-binding goal).
 
+## 2026-07-16 — COMPACT-PREP HANDOFF (parallel drain, full state)
+
+WORKTREE SEPARATION (operator ruling): every parallel session gets its OWN worktree, shared object store, NEVER a shared working directory.
+- SESSION A (this): dir C:/Users/jason/dotfiles  (fsi-app subdir), branch corpus-integrity/cc-grounding-executor.
+- SESSION B: dir C:/Users/jason/dotfiles/.worktrees/wt-session-b (fsi-app subdir), branch corpus-integrity/cc-grounding-executor-b. B RELAUNCHES INTO THIS PATH.
+- Both mutate the SAME Supabase DB (leases arbitrate); code lands on separate branches, both push, converge to master.
+
+CURRENT STATE:
+- Drain count (session A): 4 verified via free/hand path (782878c0 UK SAF, af277afd IEA, 55f90df0 IMO MEPC.338(76), 4ff5cf56 Wyoming CCR). Live corpus: 202 verified / 33 quarantined.
+- CENSUS COMPLETE: corpus_census 655/655 (235 live: 202 verified+33 quarantined; 420 archived: 364 archive_correct + 56 review_valuable). Spend ~$0.26. Audit gate 10/10; sample-verify gate 20/20 -> archive_correct class TRUSTWORTHY.
+- eu-csrd DEDUP done: empty shell tombstoned+deleted into survivor f0833999 (canonical 32022L2464 preserved). Survivor drains normally (Session A queue).
+- eu_clean_trucking: correct EUR-Lex 32024R1610 primary re-acquired + id-confirmed + repointed (lease); 0-claim brief needs a FULL grounding pass (residual).
+
+INFRA BUILT THIS ARC (migrations 209-213, all APPLIED + pushed, meta-gate green):
+- 209 set_provenance_status AFTER DELETE (version-out recomputes status). 210 orphaned_no_prose_referent (3rd exit). 211 drain_worklist + mutation_leases (H5). 212 corpus_census. 213 disposition_ledger (tombstone).
+- Doctrines: RD-46 primary-text-permanent, RD-47 pipeline-not-executor (+executor-universality), RD-48 target-instrument-match; erase-only-on-proven-inaccuracy 3-exit taxonomy (proven_inaccurate / orphaned_no_prose_referent / relabel-to-ANALYSIS).
+- Goldens: executor-parity, primary-text-permanent, target-match, drain-clear-two-condition (13/13), mutation-lease (10/10).
+
+TOOLING (scripts/_reground): drain-pull (dump item+slots+capture), drain-clear (THREE-EXIT version-out, lease-wired, dry-run default), executor-ground (inject ledger, $0), acquire-primary (generic free re-acquire under lease, id-confirm-before-write), restore-overclear, lane-split (worklist classifier), census-run (--audit N then --run, spend-guard), tombstone-delete (lease->tombstone->guarded delete). scripts/lib/mutation-lease.mjs.
+
+PENDING WORKSTREAMS:
+1. ARCHIVE ENDGAME (gated-green): ~300 archive_correct in content-survives-in-source buckets (reclassified_to_source/portal_artifact/source_not_item/error_page_artifact/duplicate_*) -> tombstone-delete.mjs per bucket (build a bucket driver that selects corpus_census haiku_verdict=archive_correct + deletable archive_reason, runs tombstone-delete). off_vertical/Repealed/Superseded/non_regulatory HOLD (never delete accurate data). Target: zero archived.
+2. 56 REVIEW_VALUABLE: per-item content read UNDER LEASE -> RESTORE-to-live (enters drain_worklist as quarantined; RESTORES ARE PRIORITY) / CONFIRM-archived (annotate why) / HOLD-with-evidence. Then those confirmed-archived also tombstone-delete.
+3. SESSION A judgment queue: eu_clean_trucking full grounding pass, then the 14 sub-floor/conflation items (drain_worklist lane A, target-match not id-confirmed / non-mechanical failures) -> re-acquire correct primary (acquire-primary) or resolve conflation, then drain-clear three-exit.
+4. SESSION B promotion/acquisition lane: 13 subject-matched (id-stamp from staged capture -> id-confirmed -> drain-clear) + 6 no-primary re-acquisitions (acquire-primary). Reassign genuine-judgment items back to Lane A.
+
+STANDING RULES: leases on every item (release at bank), push at every bank (CI green on GitHub), three sanctioned exits only, tombstone-then-delete for archive deletions, id-confirm before clearance (never subject-overlap-grade), audit-gate->spend-guard->batch for metered classification, never delete accurate data, no legal role determination. Lease state (session A): clean.
+
+## 2026-07-18 — RETROSPECTIVE BACKFILL (session-log gap, 2026-07-17 16:38 to 22:28)
+
+Written 2026-07-18, reconstructed from git log + docs/ops/sweep-ledger.md. The 8 commits below landed on branch corpus-integrity/cc-grounding-executor without a session-log entry; this backfill closes the record gap surfaced at the 2026-07-18 Session A restart reconciliation. One caveat: c6a11808's commit message claims the full 54-item B-queue disposition plan is "recorded in session-log" — it is NOT; that detail was never durably captured anywhere this backfill can recover and is a genuine residual gap, not just a logging lag.
+
+- `8e571a8f` (16:38) — Session C: migration 214 `coverage_gap_candidates`, read-only 60-to-400 expansion pricing, 16 ranked candidates vs. HAVE/HAVE_QUARANTINED/AMBIGUOUS_ARCHIVED/MISSING evidence hierarchy. Mints/acquires/grounds nothing.
+- `414e6ec0` (16:45) — archive endgame opens: sample-verify found archive_reason doesn't partition cleanly (110/308 census delete-candidates were content-bearing, 56 with grounded facts) → doctrine **label-is-not-proof** (RD-42) + `disposition-content-gate.golden.mjs` 18/18. 198 verified-disposition removals executed (174 reclassified + 16 portal + 5 error empty-shells + 3 confirmed-survivor duplicates). Archived 419→221.
+- `b03c1af5` (16:56) — review-lane bank 1: `restore-to-live.mjs` built (guarded un-archive under lease, refuses empty shells). 7 named RESTOREs (TxDOT, UN SDGs g27, World Bank g30+0a8b8ef0, ITF 2019, Carbon Pricing Dashboard t5, Blue Visby o12). Archived 221→214, verified 202→204, quarantined 33→38. c828810c held (near-dup of 0a8b8ef0).
+- `9ab45c31` (17:30) — review-lane bank 2: doctrine **content-is-not-nature** (2nd-order addendum to RD-42 — item-vs-source is judgment, binds operator labels too; DEFRA operator-label overridden to CONFIRM-archive). 22 genuine items restored (4 live-verified, 18 quarantined+worklist). Archived 214→192, verified 204→208, quarantined 38→56. ASEAN g24 jurisdiction fix (US-ID→ID).
+- `d431ef60` (19:04) — review-lane bank 3: Group 2 (access points/publishers/portals/registers/org-overviews), 22 confirm-archived + tombstone-deleted, all verified to have an active source row (content survives in source). Archived 192→170 (session total 419→170). `sweep-ledger.md` created (SW-1 logged, PENDING).
+- `8d193047` (20:40) — doctrine **every-decline-names-the-five-contracts** → invariant PI-5: every scope decline/park must record a verdict+reason against all five customer contracts. Golden 12/12 (Part A live; Part B PENDING-C, awaits Session C's schema). Skill `caros-ledge-surface-contracts` added.
+- `5751a1ea` (22:04) — review-lane bank 4, Group ③ RESTORE side: 8 items recovered (China Environmental Code, Florida DEP, NC EO 80/246, NY DEC framework, International Roadcheck 2026, CO/IA/LA Operations plans) → quarantined+worklist. Jurisdiction-checked clean. DELETE side of Group ③ held for a content-read bank (label-is-not-proof forbids irreversible delete on a snippet). Archived 170→162.
+- `c6a11808` (22:19) — drain bank 5: SW-1 live-instance fixes (4, $0, guarded+read-back) — Canada `US-CA`→`CA`, Colombia `US-CO`→`CO`, India `US-IN`→`IN`, Japan Customs pool-conflation `[AE,BD,JP]`→`[JP]`. Root cause found: `_derive_jurisdiction_iso_from_canonical` maps country codes CA/IN to US-state codes — a derivation-function bug, not random mistagging (sweep-ledger updated). Session B handed 54 items to Lane A.
+- `e827af6b` (22:28) — drain bank 6: 3 integrity flags dispositioned. India NLP "Carbon Intensity Standards" (`beae0a7e`) ARCHIVED — fabricated premise, web-corroborated (real NLP has no carbon-standards instrument, source_url 404s). China carbon-market "transport extension" + UAE hydrogen "implementation decree" HELD (real subjects, unsupported title claims, primaries roadblocked). **Filed `integrity_flags` row `963d4450`** (data_integrity): a CONFIDENTIAL NCAER report (disclosure-prohibited on its own cover page) was improperly staged into `beae0a7e`'s pool and persists in `agent_run_searches`/`raw_fetches` post-archive — flagged for operator purge ruling + a fetch-time confidentiality-marking guard. New tool `scripts/_reground/archive-item.mjs`. Archived 162→163, quarantined 64→63.
+
+PROCESS FIX (closes the recurrence, not just this instance): the log fell behind because eight banks committed without their log entries as a separate step. Going forward, **the session-log entry is part of the bank commit itself** — written and staged in the same commit that lands the bank's code/data changes, never deferred to a follow-up documentation pass. This is the mechanism; it does not depend on remembering to do better next time.
+
+## 2026-07-17 — Session B bank 5 (branch -b): id-stamp discriminator + reassign-to-A tooling
+
 DISCRIMINATOR (now explicit): id-stamp promotes ONLY when a formal instrument designation is verbatim in the capture — a registry NUMBER (lovdata FOR-, FR doc-no, ordinance no) OR a formal STANDARD designation (IFRS S2, GLEC Framework v3). A descriptive document TITLE of a one-off plan/strategy/policy, a portal hub, a multi-instrument survey, or a scope/class mismatch => REASSIGN-TO-A (reclassify/rescope/re-acquire judgment). Confirms standing finding: the match/subject-overlap pool is dominated by portal/hub/policy shapes, not id-stampable instruments (4/12 promotable).
 
 New tooling this session: lease.mjs, reassign-to-a.mjs (bank 4). Lease state (session B): clean. Spend: $0. Remaining Session B queue: 10 below-threshold subject-overlap (verify/re-acquire), 6 no-primary (re-acquire).
@@ -362,3 +416,19 @@ Stale-lease sweep (per standing orders, folded into this activation rather than 
 METHODOLOGY NOTE: two of the three promotions this batch were **repoint-then-stamp**, not stamp-in-place -- both times the declared primary was a generic hub/category page one level too broad, while the specific instrument page was already staged under the SAME host/source_id. Worth flagging as a recurring restore-to-live shape: items land with their pre-archive source_url, which is often the coarsest page on the host rather than the specific instrument page a later fetch pass staged.
 
 Counts: worklist now 66 total, 64 session-B-touched, 2 pre-existing Session A items untouched (unchanged). Lease state (session B): clean. Spend: $0 (grep/regex tracing + direct HTTP only, no metered grounding).
+
+## 2026-07-18 — Session A restart: reconciliation + NCAER ruling executed
+
+Restart opener reconciliation: branch up to date with origin (`e827af6b`); DB counts checked against the opener's summary (verified 208 exact match, quarantined 63 vs summary's 56, archived 163 vs ~170 — the +7/-7 delta is consistent with restores that landed after the summary was written); `drain_worklist` 64 rows all Lane A (was 56); `mutation_leases` empty, nothing stale to release. Divergence found and closed: session-log itself was 8 commits stale (backfilled above, commit `eb468f03`).
+
+NCAER confidentiality incident (`integrity_flags` 963d4450, `beae0a7e`) — operator ruling executed:
+- Cherry-picked Session B's containment commit (`063d6b0b`, branch `-b`) onto this branch — the incident record already existed at `docs/compliance/confidentiality-incident-2026-07-17-ncaer.md`, traced and contained 2026-07-17.
+- Independently re-verified the grounding-exposure finding before relying on it (per operator instruction to complete the trace, not just read it): corpus-wide query of `section_claim_provenance` by both `search_result_id` and the registered dpiit.gov.in `source_id` — 0 rows either way; corpus-wide query of `agent_run_searches` for the document's URL/host — the one pool row already identified is the ONLY match anywhere. **Confirmed: zero claims ever grounded from this document, zero customer-surface exposure.** This is the most important line and it holds under independent re-check.
+- Evidentiary-metadata gap disclosed honestly (not filled): no content hash is available — the only copy that ever held real document bytes was Session B's local investigative copy, deleted before this requirement existed; re-fetching solely to compute a hash would recreate the exposure the record exists to close, so the gap stands as a disclosed limitation rather than a re-fetch.
+- Doctrine addendum landed on RD-46 (`remediation-discipline` SKILL.md category 27): confidentiality-ruled purges are a sanctioned, narrow, per-instance exception to append-only — operator ruling required each time, evidentiary minimum captured to `docs/compliance/` BEFORE any purge, row redacted never deleted. This incident is the origin case; no purge was mechanically needed here since the confidential content was never actually captured into `raw_fetches` (only a 269-char Access-Denied stub landed in `agent_run_searches`, already redacted by Session B).
+- Hardening ledger entry added (`docs/PROGRAM-BOARD.md`): confidentiality-marking capture-gate detector, QUEUED, this incident cited as origin case.
+- `integrity_flags` 963d4450 resolved (guarded write under lease on `beae0a7e`, snapshot `2026-07-18T19-18-50-466Z_integrity_flags.jsonl`, cite: remediation-discipline).
+
+Grounding-exposure finding reported plainly per operator instruction: **nothing ever grounded, nothing customer-facing was ever exposed.** No counsel-notification trigger.
+
+NEXT (per operator's ordered queue): review-lane Group ③ remainder, the 21 B-reassignments, the scope-gate unit at a bank break, eu_clean_trucking full grounding pass, the SW-1 corpus-wide sweep. Lease state (session A): clean.

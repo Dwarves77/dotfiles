@@ -12,9 +12,16 @@ import { fileURLToPath } from "node:url";
 
 const HOOK = resolve(dirname(fileURLToPath(import.meta.url)), "pretooluse-skill-gate.mjs");
 
-// Fake session transcripts: one WITH explicit Skill invocations, one WITHOUT.
+// Fake session transcripts: one WITH explicit (RESOLVED) Skill invocations, one WITHOUT.
+// Each invocation is a tool_use + a non-errored tool_result for it — the matcher (skill-token.mjs)
+// requires the invocation to have RESOLVED successfully (G-12 fix), not merely to appear.
 const TMP = mkdtempSync(join(tmpdir(), "skillgate-"));
-const skillLine = (slug) => `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Skill","input":{"skill":"${slug}"}}]}}`;
+let _sgId = 0;
+const skillLine = (slug) => {
+  const id = `toolu_sg${++_sgId}`;
+  return `{"type":"assistant","message":{"content":[{"type":"tool_use","id":"${id}","name":"Skill","input":{"skill":"${slug}"}}]}}\n` +
+    `{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"${id}","content":"Launching skill: ${slug}"}]}}`;
+};
 const LOADED = join(TMP, "loaded.jsonl");
 writeFileSync(LOADED, [
   skillLine("environmental-policy-and-innovation"),
