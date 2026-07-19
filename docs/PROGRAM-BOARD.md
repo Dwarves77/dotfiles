@@ -858,12 +858,24 @@ scoped to the source) and anti-joins the ledger on **URL** (`.not("url","in",...
 `--census-run <uuid>` → `--census-exclude` (no run id exists to pass). Feature-detection unchanged: a
 table/column-absent lookup still fails CLOSED to no exclusion, never a throw.
 
-**PROVISIONAL — dependency owed by Session B.** This shape was read from the LIVE table via `pg_catalog`, not
-from a committed migration. **If B's committed migration file lands with a different shape, the committed file
-wins and this re-points.** The `ConsumeOpts.censusExclusion` doc + the flag column overrides (`column`,
-`dispositionColumn`) exist precisely so a re-point is a one-line change, not a rewrite. Proof re-pointed:
-`portal-harvest.npmtest.mjs` 15/15 (the 3 census-exclusion tests now assert the URL-anti-join + dispositioned-
-only read + fail-closed). Live-probed against the real 0-row table (query shape valid, no error). tsc clean.
+**PROVISIONAL — DISCHARGED (2026-07-19).** The shape was read from the LIVE table via `pg_catalog` because
+Session B had landed the table with no committed migration. B's committed **migration 221** then merged to
+master (this branch synced it) and **confirms the introspected shape exactly**: `UNIQUE (source_id,
+document_url)`, `dryrun_disposition` CHECK enum (`would_mint`/`dedup_hit`/`congruence_reject`/`invariant_reject`
+/`hold`), `surface_tags text[]` constrained to `{regulations, operations, market_intel, research}`, `lane`
+CHECK `('A','C')`, identity columns immutable-after-insert via trigger. No re-point needed — the re-pointed
+`censusExclusion` (URL anti-join, dispositioned-only read) already matches the committed contract. The
+`column`/`dispositionColumn` overrides stay as cheap insurance. Proof: `portal-harvest.npmtest.mjs` 15/15
+(census tests assert URL-anti-join + dispositioned-only read + fail-closed); live-probed against the real
+table (query shape valid). tsc clean.
+
+**FINDING (routes to Session B, logged for the record):** `census_worklist` existed live with **no committed
+migration and no schema doc** at the moment the first consumer (this intake lane) needed it; that consumer
+had to introspect `pg_catalog` to learn its shape and shipped a provisional consumer against it. Migration 221
+has since landed and closes the gap, but the ordering — live table before committed DDL — is the same
+out-of-repo-DDL class SW-2 and the reconciler-credential item track. Not this lane's to fix; recorded so the
+sequencing (commit the migration before or with the live table, never after a consumer already needs it) is
+visible. No corrective action owed here beyond this note; 221 resolved the instance.
 
 ---
 
