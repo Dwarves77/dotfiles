@@ -621,3 +621,48 @@ is criterion 3 becoming a proven-monotonic superset; no gate weakened.
 
 Migrations inventory updated (216/217). Lands as PR (Part 1). Merge on green, then Part 2 (proving slice)
 runs SECOND through the completed gate.
+
+---
+
+## Session E — F3 addendum REVERTED as dead/duplicate code (2026-07-19)
+
+Operator pushed (correctly, repeatedly) to check existing structure first; a full Supabase table audit
+established the F3 addendum (PR #351: item_source_evidence + migrations 216/217 + the writer + tests) was
+DEAD/DUPLICATE code I created by not auditing existing structure:
+- `item_source_evidence`: **0 rows**; its writer stored `cleanCtl(b.text)` — BYTE-IDENTICAL to the existing
+  `agent_run_searches.result_content_excerpt` (per-item, SQL-queryable, 21 MB, up to 600 KB/row).
+- **0 of 210 verified items were missing pool evidence** — the "pool erased on re-generate" problem the store
+  was built for does not manifest.
+- `raw_fetches` (678 rows) is the existing permanent snapshot store the original F3 instruction named.
+- Keys exist and the pipeline has run (631 agent_runs with a model) — the earlier "no keys / Part 2 walled"
+  claim was wrong (checked the local shell, not where the app runs).
+
+**Reverted:** migration 218 (applied) restores criterion 3 to the pre-217 working-excerpt-only check and DROPs
+the empty table + trigger + function; verified post-apply (function no longer references the table, restored
+to original, table null, verified-live still 210, sample still valid). The writer, `f3-durable-evidence.test.mjs`,
+and the two prover scripts are removed; 216/217 files kept as history + marked reverted in the inventory.
+
+**Process reset (operator directive):** no more building. Next is a detailed audit of the EXISTING structure
+(tables: row counts + writers + readers, per RD-9 producer-consumer; code), THEN a build plan for operator
+approval, THEN build. The repeated check-first failures this session are the reason.
+
+---
+
+## Session E — FULL structure audit DELIVERED (cleanup phase before scrape-and-build) (2026-07-19)
+
+Doc: [supabase-structure-audit-2026-07-19](./audits/supabase-structure-audit-2026-07-19.md). Every table:
+exact rows + mechanical writer/reader map + code trace + INTENT judgment (five-surface model / ADR-015 /
+Community-as-core). Deletes PROPOSED not applied.
+
+**Operator rulings owed:**
+1. SAFE-DROP backup set (6 tables, ~1045 rows of before-state copies, zero code refs) — .proposed migration
+   219 authored, ruling-gated.
+2. `hold_resolution_queue` (39 queued held-items; created by NO committed migration = out-of-repo DDL;
+   overlaps live drain_worklist) — confirm superseded → migrate-then-drop, or re-wire.
+3. `briefings` (0 rows, early predecessor of full_brief) — likely-drop.
+
+**Key corrections on record:** keys exist + pipeline has run (631 model agent_runs); agent_run_searches
+(21 MB per-item) + raw_fetches (678) ARE the durable content stores — what the reverted F3 (#351/#352)
+wrongly duplicated. Dormancy = the frozen source-monitoring cron + four missing consumers
+(portal_link_candidates→intake, register index-walk, feed transport, intelligence_changes→re-ground), NOT
+rotting modules. Next: the scrape-and-build plan grounded in this audit, for operator approval.

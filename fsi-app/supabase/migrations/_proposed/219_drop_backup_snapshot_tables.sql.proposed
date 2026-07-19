@@ -1,0 +1,41 @@
+-- PROPOSED migration 219 (NOT applied; .proposed so CI/inventory do not treat it as live).
+-- Structure audit 2026-07-19 (docs/audits/supabase-structure-audit-2026-07-19.md): drop the backup-snapshot
+-- and one-shot-audit tables with ZERO code references anywhere (src/scripts/migrations, tests + _snapshots
+-- excluded). Each is a before-state copy whose live table is the active one; dropping loses no live data.
+-- Executes ONLY on operator ruling, as tombstone-then-delete: the row counts below are logged (the tombstone
+-- evidence) before each DROP; a count mismatch at apply time RAISES and aborts (content gate).
+--
+-- Proposed set (exact live counts at audit time):
+--   intelligence_items_pre_phase5            655   (pre-phase5 backup; live = intelligence_items 434)
+--   pending_jurisdiction_review_pre_phase5   107   (pre-phase5 backup; live = pending_jurisdiction_review 107)
+--   item_supersessions_pre_phase5              5   (pre-phase5 backup; live = item_supersessions 11)
+--   ingest_rejections_pre_phase5               0   (pre-phase5 backup, empty; live = ingest_rejections 130)
+--   institution_regroup_snapshot_20260712     66   (dated one-time backup of the 2026-07-12 regroup)
+--   intelligence_items_domain_backfill_audit 212   (migration-101 one-shot backfill audit, completed)
+--
+-- RULING-GATED, NOT in this file (see audit section 4):
+--   hold_resolution_queue (39 queued held-item rows; created by NO committed migration = out-of-repo DDL;
+--     overlaps live drain_worklist) — migrate-then-drop only on the operator's superseded-confirmation.
+--   briefings (0 rows; early-era predecessor of intelligence_items.full_brief) — likely-drop, ruling owed.
+
+DO $$
+DECLARE
+  expected jsonb := '{"intelligence_items_pre_phase5":655,"pending_jurisdiction_review_pre_phase5":107,"item_supersessions_pre_phase5":5,"ingest_rejections_pre_phase5":0,"institution_regroup_snapshot_20260712":66,"intelligence_items_domain_backfill_audit":212}';
+  t text; cnt bigint;
+BEGIN
+  FOR t IN SELECT jsonb_object_keys(expected) LOOP
+    EXECUTE format('SELECT count(*) FROM public.%I', t) INTO cnt;
+    RAISE NOTICE 'TOMBSTONE %: % rows at drop time (expected % at audit time)', t, cnt, expected->>t;
+    -- content gate: a table that GREW since the audit is being written by something — abort, re-audit.
+    IF cnt > (expected->>t)::bigint THEN
+      RAISE EXCEPTION 'ABORT: % has % rows (> audit-time %) — something writes it; re-audit before dropping', t, cnt, expected->>t;
+    END IF;
+  END LOOP;
+END $$;
+
+DROP TABLE IF EXISTS public.intelligence_items_pre_phase5;
+DROP TABLE IF EXISTS public.pending_jurisdiction_review_pre_phase5;
+DROP TABLE IF EXISTS public.item_supersessions_pre_phase5;
+DROP TABLE IF EXISTS public.ingest_rejections_pre_phase5;
+DROP TABLE IF EXISTS public.institution_regroup_snapshot_20260712;
+DROP TABLE IF EXISTS public.intelligence_items_domain_backfill_audit;
