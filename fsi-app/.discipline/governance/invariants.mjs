@@ -1000,6 +1000,24 @@ export const INVARIANTS = [
     anchor: 'Data-existence-before-acquisition: no fetch without a cited inventory-miss',
     enforcedBy: ['selftest:fsi-app/src/lib/llm/priced-line.test.mjs', 'selftest:fsi-app/src/lib/llm/spend-guard.test.mjs'],
   },
+  {
+    id: 'RD-49-schema-drift-committed-source',
+    skill: 'remediation-discipline',
+    section: 'Section 4.5 — Migration coordination (the two-track migration policy made mechanical)',
+    text: 'Every live public object (table / view / materialized view) MUST trace to a committed CREATE in supabase/migrations/. A live object with no committed source is the apply-then-commit-later drift that burned the census twice (census_worklist / coverage_gap_census_findings existed live before their migrations were committed). A live-data audit introspects the public schema and diffs object names against every committed CREATE TABLE/VIEW; an unsourced object is DRIFT (fails the hard lane), suppressible only by a reasoned, review-by-tagged allowlist that is itself audited for stale entries.',
+    anchor: 'Migration coordination',
+    enforcedBy: ['audit:fsi-app/scripts/verify/schema-drift-audit.mjs'],
+    residual: 'Table/view/matview-level (the class that burned the census). Column-level parity is covered separately by column-existence-parity.mjs (code-vs-live columns); the allowlist self-audit reports an entry that is gone or now committed.',
+  },
+  {
+    id: 'RD-50-fork-log-frozen',
+    skill: 'remediation-discipline',
+    section: 'Section 2 — Class-Over-Instance (a recurring process failure is prevented mechanically, not by an advisory header)',
+    text: 'The deprecated session-log fork fsi-app/docs/ops/session-log.md is frozen: no commit may ADD content to it (the canonical log is docs/ops/session-log.md at the repo root). Four independent sessions wrote to the fork by mistake against one advisory header — a recurrence class, not a fluke — so the header is replaced by a commit-time content guard that rejects any addition to the fork (a pure deletion is allowed; merge/revert commits are exempt).',
+    anchor: 'The Class-Over-Instance Principle',
+    enforcedBy: ['rule:020'],
+    residual: 'PreToolUse/skill-gate does not fire in subagents; the commit-time rule 020 fires on every non-merge commit in the validate-commits CI job, catching the write regardless of session type at commit time.',
+  },
 
   // ───────────────────────────── sprint-followups-discipline ─────────────────────────────
   {

@@ -29,6 +29,10 @@ import { rule as rule018 } from './rules/018-new-surface-five-model.mjs';
 // Source-registration invariant (2026-06-06): source-not-item must be REGISTERED, never raw-archived
 // (the 25-orphan + 5-wrong-archive class fix). Pairs with db.mjs reclassifyToSource() + migration 135.
 import { rule as rule019 } from './rules/019-source-reclassify-not-archive.mjs';
+// Fork-log guard (2026-07-20): the deprecated fsi-app/docs/ops/session-log.md fork is frozen —
+// reject any commit that ADDS content to it (four recorded fork-write instances; the advisory
+// header alone kept failing). Maps to invariant SW-2 (the divergence-register recommendation).
+import { rule as rule020 } from './rules/020-fork-log-frozen.mjs';
 
 export const rules = [
   rule012,
@@ -38,6 +42,7 @@ export const rules = [
   rule017,
   rule018,
   rule019,
+  rule020,
 ];
 
 export function getRuleById(id) {

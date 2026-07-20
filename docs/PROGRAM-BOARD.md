@@ -992,6 +992,34 @@ identity smell for the operator, left as-is to preserve census/candidate agreeme
 re-walk and NSW re-harvest are free HTTP; the one browser action was a single read-only Chrome probe of an
 EUR-Lex page. Foreground only, keyset cursor.
 
+### Task 3 — two CI guards (R5), fork-log + schema-drift (2026-07-20)
+
+Both authorized guards built, tested (trip + pass), and wired into the discipline engine + invariant
+registry. Full discipline suite 896/0 incl. the meta-gate.
+
+- **Fork-log guard (rule 020, invariant RD-50).** A commit-time discipline rule (`.discipline/rules/
+  020-fork-log-frozen.mjs`, like rule 012) that REJECTS any commit ADDING content to the deprecated fork
+  `fsi-app/docs/ops/session-log.md`. A pure deletion is allowed; merge/revert commits are exempt. Four
+  recorded fork-write instances (the fourth was this session's own near-miss, caught at staging) justified
+  replacing the advisory header with a mechanical gate. Runs in the "Validate commits against discipline
+  rules" CI job on every non-merge commit — it fires regardless of session type at commit time, closing
+  the gap that PreToolUse (which does not fire in subagents) left open. 8/8 selftests.
+- **Schema-drift audit (invariant RD-49).** A live-data audit (`scripts/verify/schema-drift-audit.mjs`)
+  that introspects the live public schema (tables + views + matviews) and diffs object names against every
+  committed `CREATE TABLE/VIEW` in `supabase/migrations/`. A live object with no committed source is DRIFT
+  — the exact apply-then-commit-later window that burned the census twice (census_worklist,
+  coverage_gap_census_findings). Pure diff core (`scripts/verify/lib/schema-drift.mjs`) unit-tested 7/7
+  (trip + pass + allowlist + stale-allowlist); added to the data-audit lane (`run-data-audit-lane.mjs`,
+  hard) so it runs nightly with DB secrets; three-state 0/1/2 (pass / drift-or-stale / no-creds). The
+  allowlist is reason-bearing and self-audited (an entry that goes stale — object gone or now committed —
+  is reported for removal).
+- **Finding the guard caught on its first run (routes to Session B):** exactly one genuine drift —
+  `acquisition_backlog_v`, a view over `coverage_gap_candidates`, live with NO committed migration
+  anywhere in `supabase/migrations/`. The census tables (221/222) correctly show NO drift (the burn is
+  closed). `acquisition_backlog_v` is allowlisted with a review-by tag pending its retroactive migration
+  (or a drop if it is dead); the staleness check will flag the allowlist entry the moment the migration
+  lands. Route to B: author the migration or drop the view.
+
 ---
 
 ## Session B, resume sync, session-log reconciliation, census-lane mandate opened (2026-07-19)
