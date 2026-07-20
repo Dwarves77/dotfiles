@@ -48,6 +48,7 @@ node --test \
   fsi-app/scripts/lib/funded-pass-core.test.mjs \
   fsi-app/scripts/lib/deferral.selftest.mjs \
   fsi-app/scripts/lib/flag-age.selftest.mjs \
+  fsi-app/scripts/verify/lib/*.test.mjs \
   fsi-app/src/__tests__/*.test.mjs \
   fsi-app/src/lib/credibility/*.test.mjs \
   fsi-app/src/lib/sources/*.test.mjs \

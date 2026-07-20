@@ -1247,3 +1247,15 @@ Delta vs PR #366: census totals UNCHANGED (1,331 rows / 39 sources / 112 relevan
 Findings (route to B): (1) --census-exclude anti-join fails at ~435 dispositioned rows for one source (client-built NOT IN overflow) — the stock walk needs a server-side NOT EXISTS RPC; (2) FR flow attributed to a DOT-document source row while a clean FR-root row exists — source-identity smell, left as-is to preserve census/candidate agreement.
 
 Spend: 0 metered grounding, 0 Browserless units, 0 mints, 0 corpus writes; free HTTP + one read-only Chrome probe. Lease state (session A): clean.
+
+## 2026-07-20, Session A (intake-census lane): Task 3 — two CI guards (fork-log + schema-drift)
+
+Operator ruling R5 (guards authorized). Both built to the existing discipline-engine patterns, tested trip + pass, wired into the invariant registry; full discipline suite 896/0 incl. the meta-gate.
+
+(a) Fork-log guard — rule 020 (.discipline/rules/020-fork-log-frozen.mjs), a commit-time content rule like rule 012: rejects any commit ADDING content to the deprecated fork fsi-app/docs/ops/session-log.md (pure deletion allowed; merge/revert exempt). Four recorded fork-write instances (the fourth was this session's own staging-time catch). Runs in the validate-commits CI job on every non-merge commit — fires regardless of session type, closing the gap PreToolUse leaves in subagents. Invariant RD-50. 8/8 selftests.
+
+(b) Schema-drift audit — scripts/verify/schema-drift-audit.mjs, a live-data audit: introspects the live public schema (tables/views/matviews), diffs object names against every committed CREATE TABLE/VIEW in supabase/migrations/; a live object with no committed source is DRIFT (the apply-then-commit-later window that burned the census twice — census_worklist, coverage_gap_census_findings). Pure diff core (scripts/verify/lib/schema-drift.mjs) 7/7; added to run-data-audit-lane.mjs (hard); three-state 0/1/2. Reason-bearing, self-audited allowlist. Invariant RD-49.
+
+Finding the guard caught on its first run (routes to Session B): one genuine drift — acquisition_backlog_v, a view over coverage_gap_candidates, live with no committed migration. The census tables correctly show no drift (burn closed). Allowlisted with a review-by tag pending its retroactive migration (or a drop if dead); the staleness check flags the entry when the migration lands.
+
+Spend: $0 (introspection + fs only). Lease state (session A): clean.

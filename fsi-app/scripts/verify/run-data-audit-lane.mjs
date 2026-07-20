@@ -63,6 +63,7 @@ const AUDITS = [
   ["orphan-source", "scripts/verify/orphan-source-audit.mjs", true],
   ["quarantine-disposition", "scripts/verify/quarantine-disposition-audit.mjs", true],
   ["unregistered-span-host", "scripts/verify/unregistered-span-host-audit.mjs", true],
+  ["schema-drift", "scripts/verify/schema-drift-audit.mjs", true],
   ["skill-conformance", "scripts/audit-skill-conformance.mjs", false],
 ];
 
