@@ -421,3 +421,23 @@ Branch `remediation/wave2-model-column`; recovery commit **`4ec4f41`** + Step-8 
 **Mandate totals across all three sweeps:** 81 census rows (62 + 15 + 4), 2 source-health integrity flags, zero corpus writes, zero source registrations, zero staged_updates rows throughout.
 
 **Status: IDLE.** Three-sweep mandate closed as dispatched. Full findings in `docs/ops/session-log.md` 2026-07-19 entries.
+
+---
+
+## Coverage-discovery lane (Session C) — FOUND-THEN-LOST SOURCE RECOVERY AUDIT, 2026-07-19
+
+**Mandate:** enumerate the historical source universe from the repo's own history, diff against today, disposition what was found/evaluated but is now invisible to every table, close the class. Read-only against history, $0, fetch-light. (Operator corrected the mandate mid-turn from an inbox approach to repo-archaeology; mail rejected.)
+
+**Method:** four parallel read-only agents (legacy `seed-resources.json`, both session logs, `seed-sources.sql` + deleted `source-mapping.ts`, git-log/ADR archaeology) + the 2026-05-09 esgtoday "Source Registry Expansion" map and its 2026-05-10 existence-check read directly. ~380 distinct historical provider hosts diffed against 1371 hosts tracked across all live tables (sources/provisional/canonical-candidates/portal-links/census_worklist/both coverage tables/disposition_ledger).
+
+**Load-bearing absence finding:** no artifact literally labeled "Gemini" exists in history (tracked or deleted); the operator's earlier-phase research survives as `seed-resources.json` + the esgtoday map, only the un-promoted providers inside it leaked. No deleted-then-orphaned provider list; no ADR names an external provider.
+
+**LOST set: 39 providers pre-ruling, 35 censused post-ruling** (migrations 245 schema + 246 data, sweep `sweep4_found_then_lost_recovery`). Operator boundary: 15 market-data + 7 regulators + 4 standards + IEA (operator_confirm) + 8 trade-press (would_park); the 4 tier-6 vendor-claim tools OMITTED. **lens** tag per row (operator ruling): 20 esg_finance (finance-supervisory inheritance) / 15 freight_native (maritime-emissions cluster). **Dispositions:** 13 would_mint (free regulators + free standards + ENTSO-E + CDP open-data API), 21 would_park (commercial/paywalled data, SaaS, trade-press), 1 operator_confirm (IEA Monthly Electricity Statistics). Section-C corporate actors deliberately excluded, non-silently (subjects, not providers).
+
+**Operator answers recorded in-row:** IEA — active account confirmed (auth-gated feed is operator-credentialed, not cold); market-data providers — no accounts held (stay cold LOST candidates).
+
+**Class closure: ADR-016** (accepted, build queued, operator-sequenced) — an append-only `source_contact_ledger`, one home for every source touch (discovered/evaluated/signed_up/**newsletter_inbound**/declined/parked/registered). newsletter_inbound explicitly models the data-provider-newsletter channel no current table covers, the exact leak path for these 39. Recommendation/design only.
+
+**Schema-drift discipline:** migration 245 (schema) was committed as a file BEFORE apply per the operator's instruction, its own commit; migration 246 + ADR-016 + docs are the second commit; one push = one PR.
+
+**Status: IDLE.** Recovery audit closed. Full detail in `docs/ops/session-log.md` 2026-07-19 entry and [ADR-016](decisions/ADR-016-source-contact-ledger.md).
