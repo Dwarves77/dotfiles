@@ -909,6 +909,42 @@ own tested PR before resuming the walk. Both done:
   actually describes `dryrun_disposition` (a copy-paste slip); the CHECK constraints are correct, only the
   comment is misplaced. Routes to B, cosmetic.
 
+### Cap-completion pass complete; census walk attempted-complete (2026-07-20, resumed post-crash)
+
+Session A resumed after a mid-turn process crash; state was recovered from the repo and the DB, not
+conversation memory, and verified before anything ran. NSW EPA's pre-crash writes landed exactly as the
+idempotent upsert promised: 220/220 rows in `census_worklist` (176 new holds + 4 new would_mint this pass,
+on top of the prior 40).
+
+**Delta vs the PR #365 tally (915 rows / 39 sources / 110 relevant would-mints):**
+
+- `census_worklist` now holds **1,331 rows / 39 sources / 619 would_mint / 112 relevant would-mints**
+  (the not-low-relevance split), 710 holds, 2 dedup_hit.
+- Pass delta +416 rows: NSW EPA +180 (176 hold, 4 would_mint, all low-relevance), SCDES +124 (all hold),
+  Australia Infrastructure +88 (87 hold, 1 relevant would-mint), ncleg +24 (all would_mint, 1 relevant).
+- Relevant would-mints 110 → 112: the two new are Australia Infrastructure (1) and ncleg (1).
+
+**Tier B re-harvests at `--cap 200`, true link counts:** Australia Infrastructure 128 (below cap,
+MEASURED), SCDES 164 (MEASURED), ncleg Chapter 136 145 (MEASURED), NSW EPA 200 AT CAP (a floor, true
+universe exceeds 200; raising past 200 is deferred to the operator per the mandate). The NSW re-harvest
+added 0 new ledger rows, all 200 extracted links were already held. Ledger audit found no other source at
+exactly 40 links, so the plausibly-capped set was exactly the four; the census-wide DEFAULT_CAP=40 caveat
+paragraph (with the residual multi-page-walk gap, labeled as a gap) is in `gap-census-2026-07.md`.
+
+**Fetch-blocked residue, honest gaps, all re-walkable:** 117 ledger candidates cannot be dispositioned
+because the document fetch itself fails without render or transport work: ncleg 109 per-section /PDF/
+paths (every one attempted this pass, every one js_shell; dispositioning needs the Browserless render
+path, conserved per the unit budget, operator decision), Alaska DOT&PF 2 (http_404), Melbourne 1
+(http_404), Nova Scotia 1 (http_404), EC DG-Env PPWR guidance 1 (empty), EP Legislative Train 1 (empty),
+NYC Article 320 PDF 1 (empty), MPA pointer to Singapore Statutes Online 1 (error_body; also the cross-host
+boundary case already flagged). Separately, 3 Federal Register / DOT ledger rows sit `status='promoted'`
+(pre-census promotions, 2026-07-19), outside the candidate walk by construction; recorded so the ledger
+arithmetic is complete (FR/DOT 438 ledger = 435 censused + 3 promoted).
+
+**Spend and safety:** 0 metered grounding, 0 Browserless units, 0 mints, 0 corpus writes; plan-mode Haiku
+only fires on a successful fetch, and every remaining candidate failed at fetch, so classification spend
+this pass was ≈$0. Foreground chunks only, keyset cursor, per-source mutation leases honored.
+
 ---
 
 ## Session B, resume sync, session-log reconciliation, census-lane mandate opened (2026-07-19)

@@ -1217,3 +1217,15 @@ unrelated `coverage_gap_candidates` table it previously pointed to.
 unless the operator reopens it. Session B resumes Task 2 (dedup/rollup/flag-back), self-activating on the
 first `census_worklist` row Session A writes. Lease state (session B): clean. Spend: $0 (migrations +
 introspection only, no fetching, no metered grounding).
+
+## 2026-07-20, Session A (intake-census lane): cap-completion pass closed post-crash, census walk attempted-complete
+
+Resumed after a mid-turn process crash; state re-established from repo + DB per the resume discipline, verified before continuing. NSW EPA's pre-crash writes confirmed at the DB: 220/220 rows, 176 new holds + 4 new would_mint, the idempotent upsert held.
+
+Completed this activation: (1) NSW EPA re-harvest at `--cap 200` returned 200 AT CAP, universe still a floor, raise-past-200 deferred to operator; 0 new ledger rows. (2) ncleg Chapter 136: re-harvest was already in (145, below cap, MEASURED); all 109 remaining per-section /PDF/ candidates attempted, all fail direct fetch (js_shell), re-walkable, need the render path, deferred to operator with the Browserless unit budget named. (3) Tier A residue: 8 candidates across 7 sources attempted, all fetch-blocked (4x http_404, 3x empty, 1x error_body), re-walkable, recorded. (4) Delta vs PR #365: census_worklist 915 → 1,331 rows (39 sources unchanged), relevant would-mints 110 → 112 (Australia Infrastructure +1, ncleg +1). (5) `gap-census-2026-07.md`: cap-hit table resolved, census-wide DEFAULT_CAP=40 caveat with the plausibly-capped list (exactly the four; ledger audit found no other source at exactly 40), rollup snapshot refreshed. (6) PROGRAM-BOARD.md delta report.
+
+Process finding, reported plainly: this session initially appended this very entry to the DEPRECATED `fsi-app/docs/ops/session-log.md` fork (a `cat >>` run from the `fsi-app` working directory), the FOURTH instance of the fork inviting a canonical-log write. Caught at staging time (the staged-file list was one short), reverted cleanly, re-landed here. This strengthens the standing recommendation already on the divergence register: a mechanical guard rejecting commits that touch the fork, the header alone keeps not being enough.
+
+Noted, not this pass's to fix: 3 FR/DOT ledger rows sit status='promoted' (pre-census, outside the candidate walk by construction); working tree carried unrelated deletions of `fsi-app/scripts/tmp/*` and untracked files from other lanes, left untouched and unstaged.
+
+Spend: 0 metered grounding, 0 Browserless units, 0 mints, 0 corpus writes, Haiku ≈$0 (every remaining candidate failed at fetch, before classification). Lease state (session A): clean, released per chunk. Tests: portal-links 35/35 incl. the new cap-override test.

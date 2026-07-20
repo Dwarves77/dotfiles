@@ -63,3 +63,13 @@ test("cap bounds output; bad inputs return empty", () => {
   assert.deepEqual(extractPortalLinks(null, PORTAL), []);
   assert.deepEqual(extractPortalLinks(HTML, "not a url"), []);
 });
+
+test("opts.cap overrides DEFAULT_CAP in both directions (raise for cap-completion re-harvest)", () => {
+  const many = Array.from({ length: 100 }, (_, i) => `<a href="/regulation/${i}">Rule ${i}</a>`).join("");
+  // A raised cap (the census cap-completion re-harvest) admits more than the 40 default, up to what exists.
+  assert.equal(extractPortalLinks(many, PORTAL, { cap: 200 }).length, 100);
+  // A lowered cap still bounds output.
+  assert.equal(extractPortalLinks(many, PORTAL, { cap: 10 }).length, 10);
+  // A cap at exactly the link count admits all of them (measured-N, not capped-N).
+  assert.equal(extractPortalLinks(many, PORTAL, { cap: 100 }).length, 100);
+});
