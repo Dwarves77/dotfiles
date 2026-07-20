@@ -51,6 +51,91 @@ market_intel/research), columns `enumerated_held_sources`, `held`, `missing_from
 `enumerated_world`, `missing_from_world`, `pending_on_session_a`, `declined_or_parked_world` (all from
 `coverage_gap_census_findings`). Recomputed live on every `SELECT`, never hand-tallied.
 
+## Stock census (in-force law, Tasks 4-6) — separate axis from the flow census
+
+The flow census above measures what held sources currently PUBLISH (this week's register output). It cannot
+see the STOCK: the standing body of in-force law that predates the census window (a 2023 instrument never
+appears in this week's OJ walk). The stock mandate (operator, 2026-07-20) measures that standing universe
+per register. Same census discipline: enumerate, classify against the four page contracts, dryRun through
+the mint chokepoint, census-write with the would_mint split, dedup against corpus + Session C sweep4, zero
+mints, zero grounding, zero metered spend on enumeration.
+
+### EUR-Lex stock universe (SPARQL, query date 2026-07-20)
+
+Enumerated via the EU Publications Office SPARQL endpoint (`publications.europa.eu/webapi/rdf/sparql`), NOT
+the `eur-lex.europa.eu` HTML site (which is bot-walled, HTTP 202, per the flow-census finding). The SPARQL
+data endpoint responds normally, confirming the wall is confined to the HTML site. Filter:
+`cdm:resource_legal_in-force = "true"` classified under `cdm:resource_legal_is_about_concept_directory-code`
+whose code falls in one of the five freight-relevant chapters. Regulations, directives, decisions, and
+implementing/delegated acts all counted.
+
+| Directory chapter (dir-eu-legal-act) | In-force instruments |
+|---|---|
+| 02 Customs Union & free movement of goods | 2,387 |
+| 07 Transport policy | 1,773 |
+| 09 Taxation | 503 |
+| 12 Energy | 704 |
+| 15 Environment, consumers & health protection | 5,570 |
+| **Distinct union (deduped across chapters)** | **10,676** |
+
+The naive per-chapter sum (10,937) exceeds the distinct total (10,676) because instruments classify under
+more than one chapter (FuelEU Maritime is coded under both 07 Transport and 15 Environment). This is the
+enumerate-universe, not the freight-relevant-gap count: the directory-code walk over-enumerates on
+structure exactly like the Federal Register flow walk (mostly narrow implementing/delegated acts); the
+domain-relevance split is downstream at classification.
+
+**Status: CALIBRATION SAMPLE COMPLETE (2026-07-20); full pass awaiting operator ruling.** 10,676 crosses
+the 10,000 finish-or-defer threshold, so per operator ruling a stratified sample ran first (30 per chapter,
+drawn across act types proportional to each chapter's composition), metadata-classified via the real
+chokepoint (`firstFetchClassify` on a title + subject-matter + EuroVoc + resource-type blob, then
+`applyStagedUpdate` dryRun, no per-doc HTML fetch so the wall is never hit). 150 instruments, Haiku spend
+$0.48, zero mints, zero grounding. All 150 dispositions written to `census_worklist`
+(`created_by='session-A-stock-sample'`, idempotent).
+
+**Per-chapter calibration results:**
+
+| Chapter | In-force universe | Sampled | Freight-relevant hit-rate | Relevant would_mint | Low-relevance would_mint | not-an-item |
+|---|---|---|---|---|---|---|
+| 07 Transport | 1,773 | 30 | 30% | 9 | 20 | 1 |
+| 15 Environment | 5,570 | 30 | 10% | 3 | 27 | 0 |
+| 12 Energy | 704 | 30 | 7% | 2 | 28 | 0 |
+| 02 Customs | 2,387 | 30 | 3% | 1 | 27 | 2 |
+| 09 Taxation | 503 | 30 | 3% | 1 | 29 | 0 |
+| **Total** | **10,676 (distinct)** | **150** | **10.7%** | **16** | **131** | **3** |
+
+The chokepoint passes nearly everything as `would_mint` (the mint gates are structural, not relevance
+gates); the freight-relevance discriminator is the relevance floor, so the load-bearing column is the
+relevant/low-relevance split, exactly as for the register-class flow sources. Hit-rate at n=30 carries a
+wide confidence interval, read these as directional. Dedup (`exists`) was 0 and Session C sweep4 overlap 0
+across the sample; this is EXPECTED at sample scale (150 random draws against roughly 68 held EU corpus
+items in a 10,676 universe), NOT the full-walk anomaly signal, the full walk SHOULD produce dedup hits
+against the held EU items and a zero there would be the anomaly to flag.
+
+**Metadata-quality check (operator step 3, judgment read of the 16 relevant-classified instruments against
+their actual titles):** metadata-only classification holds up. The known-relevant control (FuelEU Maritime,
+CELEX 32023R1805) scored relevance 95 with surface_tags [regulations, market_intel, operations]. Of the 16
+sample relevant hits, roughly 10 are solid (AETR road-crew hours, TIR Convention, EC-EFTA customs
+formalities, duty-free vehicle fuel, dangerous-goods/ADR transport, COVID driver-hours derogation, rail
+cooperation, RED II RFNBO delegated act, ETS free-allocation implementing, transport-rate discrimination),
+roughly 4 are marginal (keyword over-score on an EEA annex amendment, vehicle sound-level, an agency funding
+act, a vehicle-CO2 provisional calculation), and 2 are clear false positives, both language corrigenda
+("correcting the Romanian/German language version of ...") that over-scored off the underlying instrument's
+subject. The false-positive mode is specific and detectable: a corrigendum-exclusion (resource-type or a
+"correcting the ... version" title filter) would lift precision in the full pass. This validates the method
+for the Task 5 registers too, not just EUR-Lex.
+
+**Recommended treatment (the full-pass-or-split ruling is the operator's, on these numbers):** metadata
+classification is cheap (full 10,676 pass projects to roughly $35 Haiku), so cost is not the binding
+constraint, wall-clock is (roughly 8 to 16 hours of foreground chunks at about 2.5 to 5s per instrument,
+which exceeds the R2 "full day of chunks" bound for a single register). The narrow implementing/delegated
+mass is NOT wholesale-skippable: the 3% customs and taxation hits are exactly the CBAM/ETS-implementing
+needle class the operator flagged, so a chapter-level skip would lose real freight cost-exposure
+instruments. Recommendation: full-classify all five chapters with a corrigendum-exclusion filter added;
+if a split is preferred, run Transport (30%) and Environment (10%) first (they hold roughly 1,090 of the
+roughly 1,225 projected relevant instruments, the bulk of the yield), then Customs/Energy/Taxation as a
+second wave. Projected relevant-instrument yield per chapter (hit-rate times universe, directional):
+Transport roughly 530, Environment roughly 560, Customs roughly 70, Energy roughly 50, Taxation roughly 15.
+
 ## Universe scope per source (Session A enumeration method)
 
 **Finding (2026-07-19, calibration check mid-walk on Federal Register).** The candidate ledger

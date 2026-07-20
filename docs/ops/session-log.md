@@ -1259,3 +1259,15 @@ Operator ruling R5 (guards authorized). Both built to the existing discipline-en
 Finding the guard caught on its first run (routes to Session B): one genuine drift — acquisition_backlog_v, a view over coverage_gap_candidates, live with no committed migration. The census tables correctly show no drift (burn closed). Allowlisted with a review-by tag pending its retroactive migration (or a drop if dead); the staleness check flags the entry when the migration lands.
 
 Spend: $0 (introspection + fs only). Lease state (session A): clean.
+
+## 2026-07-20, Session A (intake-census lane): Task 4 — EUR-Lex STOCK enumeration + calibration sample
+
+Stock mandate opened (measures in-force law predating the flow window). EUR-Lex enumerated via the Publications Office SPARQL endpoint (publications.europa.eu responds normally; the wall is confined to the eur-lex.europa.eu HTML site). In-force across the five freight chapters: Customs 2,387 / Transport 1,773 / Taxation 503 / Energy 704 / Environment 5,570, distinct union 10,676. That crossed the 10,000 finish-or-defer threshold, so per operator ruling a sample-first calibration ran.
+
+Stratified sample: 30 per chapter across act types (proportional), metadata-classified through the real chokepoint (firstFetchClassify on a title + subject-matter + EuroVoc + resource-type blob, then applyStagedUpdate dryRun; no per-doc HTML fetch, so the wall is never hit). Harness scripts/census-stock-sample.mjs. 150 instruments, Haiku $0.48, zero mints, zero grounding; all 150 dispositions written to census_worklist (created_by='session-A-stock-sample', idempotent).
+
+Results: freight-relevant hit-rate Transport 30% / Environment 10% / Energy 7% / Customs 3% / Taxation 3% (16/150 = 10.7% relevant). Metadata-quality check (step 3) validated: control FuelEU scored 95; of 16 relevant hits ~10 solid, ~4 marginal, 2 false positives (both language corrigenda, a detectable over-score mode → corrigendum-exclusion recommended). Dedup 0 is expected at sample scale, not the full-walk anomaly signal.
+
+Recommendation (full-pass ruling is the operator's, on these numbers): cost not binding (full pass ~$35 Haiku), wall-clock is (~8-16 hrs foreground, exceeds the R2 day-of-chunks bound); the narrow implementing/delegated mass is not wholesale-skippable (3% customs/taxation hits are the CBAM/ETS-implementing needle class). Recommend full-classify all five with a corrigendum filter, else Transport + Environment first. Full pass NOT authorized until the operator rules. Tasks 5/6 follow; US eCFR/FR + UK legislation APIs pre-confirmed reachable (all HTTP 200).
+
+Spend: $0.48 Haiku (census-class, authorized). Lease state (session A): clean.
