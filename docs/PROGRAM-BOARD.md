@@ -1027,3 +1027,121 @@ snapshot in its rollup table.
 
 **Standing posture.** Session C idle, mandate closed. Session B resumes Task 2, self-activating on the
 first `census_worklist` row Session A writes.
+
+## Session A — census sweep execution begins, bank 1 register-API sources DONE (2026-07-19)
+
+**Execution discipline (operator ruling, standing for the remainder of the sweep).** Every census chunk
+runs FOREGROUND, no `run_in_background`, explicit timeout, 50-80 candidates per chunk, DB-verified via
+direct query before the next chunk starts. This follows the run_in_background silent-truncation finding
+from earlier the same day.
+
+**Bank 1 — EUR-Lex + Federal Register, register-API sources, COMPLETE.**
+- EUR-Lex (`260089a9-e334-4104-843c-cdfc28a94dcc`): 157 rows, ledger fully exhausted (not 1098+/cap-hit as
+  the pre-compaction session record stated — live `portal_link_candidates` held only 157 rows for this
+  source; both walk chunks together exhausted it). 104 `would_mint`, 53 `hold`. `cap_hit` was mismarked
+  `true` on all 157 rows (inherited CLI flag from the stale pre-compaction assumption) and corrected to
+  `false` by direct UPDATE once the discrepancy surfaced.
+- Federal Register (`d9e0948e-71c7-4234-9ab4-28302141826f`): 435 rows, ledger fully exhausted. 42
+  `would_mint` cleared the relevance floor normally; 387 `would_mint` are self-flagged `low-relevance`
+  (Fork-4 floor, fail-open by design per D3 ruling — minted-and-flagged, not blocked); 6 `hold`.
+  **Calibration check run mid-walk** (operator-requested): confirmed the enumeration layer
+  (`extractPortalLinks`) is a genre-regex walk, unfiltered by agency/docket/date — for a rulemaking
+  aggregator this trivially over-enumerates on structure, not topic. The domain discriminator is the
+  downstream relevance floor, and a 25-item sample confirmed it discriminates correctly (verdict:
+  CONFIRMED, not over-admitting). Universe-scope finding recorded durably in
+  `docs/census/gap-census-2026-07.md` (new section, with the read-rule: filter
+  `would_mint AND notes NOT ILIKE '%low-relevance%'` for the relevant-gap subset on register-class
+  sources). Two title-insufficient residuals (`removal-of-self-reporting-requirement`,
+  `completed-inspection-report-disposition`) tagged `[needs_title_review]` in `notes` per the operator's
+  disposition, to settle at population ruling rather than chase full text now (census discipline is
+  enumerate-and-disposition, not investigate). One tangential over-score accepted as within tolerance
+  (1-in-10), per the operator: the low-relevance/normal split column is the systemic answer, not
+  per-item perfection.
+
+**Second environment finding, same class as the run_in_background truncation.** A foreground Bash call
+(MPA Singapore chunk 1, `c49414da-7c9e-45cc-a629-f138166ecda5`) returned `[Tool result missing due to
+internal error]` with zero rows written — confirmed via direct `census_worklist` count before re-running.
+Re-ran the identical chunk command; it completed clean (18 rows, source ledger exhausted). **The recovery
+pattern is now standing for the rest of the sweep**: on any mid-walk tool-call failure, verify row count
+for the source against the expected chunk range before assuming loss; if zero (or short), re-run the exact
+same chunk — the upsert on `(source_id, document_url)` is idempotent by construction, so a re-run is safe
+by design, not a special case. Tool-call failures mid-walk (background-truncation, internal-error) are now
+a recognized class; the cursor-plus-upsert pattern is the answer to all of them, not a per-incident patch.
+
+**Third bug found and fixed mid-walk: census-writer identity-clobber on re-upsert.** CARB
+(`45140924-25b6-4d2c-abe5-11a65386acdc`) had 5 pre-existing rows from an earlier smoke test under
+`created_by='session-A-intake-census'`. `writeCensusRows` unconditionally stamped every row with the
+CURRENT caller's `lane`/`createdBy` before upserting; migration 221's identity-immutability trigger
+(`IS DISTINCT FROM` on source_id/document_url/lane/created_by/created_at) correctly rejected the whole
+batch. Root cause: the writer never checked whether a URL already had an owning identity before
+overwriting it — append-only identity-preservation is the DB's explicit intent (whoever discovers a
+document owns that row's identity permanently, even across lanes/sessions re-walking the same source),
+and the writer violated it blindly. Fixed in `src/lib/intake/census-writer.mjs`
+(`writeCensusRows`): looks up existing `(lane, created_by)` for any URL already present for the source
+before building rows, passes existing identity straight through unchanged (mutable fields — disposition,
+tags, notes — still update normally), only stamps the current caller's identity on genuinely new URLs.
+3 new unit tests (identity preserved on conflict / current caller's identity on a new url / lookup error
+not swallowed), 12/12 passing. Verified live on CARB: 7 new rows under `session-A-census`, 5 preserved
+byte-for-byte under the original `session-A-intake-census` identity.
+
+**All-holds calibration check (operator-requested, resolved).** Six sources enumerated to all-holds
+(Australia Infrastructure 40/40, MPA 18/18, SDDOT, Missouri DNR, DG TAXUD, FDOT). Real-dud vs shallow-walk
+was settled without a paid re-walk, via (1) a read-only eyeball audit of every held row's URL + hold_reason
+(the cheap discriminator a Fable second-opinion recommended before any re-walk, to separate
+classifier-miscalibration from page-targeting), and (2) a FREE Chrome ground-truth check (claude-in-chrome,
+zero Browserless) on MPA's merchant-shipping-act page. Verdict: **all-holds STANDS as genuine census data
+for all six — the entity-gate is discriminating correctly** — with one structural refinement: for MPA and
+Australia Infrastructure the held pages are real instrument INDEXES whose actual instruments live
+CROSS-HOST (Singapore Statutes Online sso.agc.gov.sg; legislation.gov.au), which `extractPortalLinks`
+excludes by design (same-host only, cross-host = new-source lead). Two `coverage_gap` flags logged routing
+both cross-host registers to Session C as missing-from-the-world candidate sources. The IMO mepc-80
+narrow-extraction flag rides the same finding class. A render-enabled MPA re-walk was run before the free
+rail was re-confirmed — the render transport never fired (direct fetch non-thin, ladder never escalated;
+log grep 0 browserless mentions) so **zero metered units were burned**; the standing rail from here is
+free-only: plain fetch + Chrome-in-Claude-Code as the ground-truth instrument, no `--render`.
+
+**Banks 2-6 COMPLETE: Regulations surface fully dispositioned (2026-07-19).** All 36 distinct
+Regulations-surface hosts walked or dispositioned. 24 sources produced 777 census rows: 109 relevant
+would-mints, 474 low-relevance would-mints (register-class overflow, correctly split), 2 dedup hits
+(DG CLIMA), 192 holds, 0 gate rejects. 12 hosts zero/blocked, each with a recorded reason: JS-shell
+(PIB India, EC Press Corner), dead URL (Brazil MMA), 403 bot-block (Victoria DEECA), static-register
+shape gap (Leginfo — named plan-1.1 gap), English-only genre regex class finding (GIOS Poland, Mexico
+DOF — class flag filed; DOF additionally needed NODE_OPTIONS=--use-system-ca for its broken TLS chain,
+which worked), extraction-pattern miss (IMO mepc-80), pdf_direct single-doc shape (IMO CDN), genuine
+zeros (ENERGY STAR, Port of LA Chrome-confirmed, driveelectric.gov). Fourth code fix this lane: the
+census disposition map sent dedup rejections ("chokepoint:duplicate — subject already exists") to
+invariant_reject; census-wise that IS a dedup_hit (coverage confirmed). Fixed in census-writer.mjs +
+test (12/12), table-wide absence sweep found exactly the 2 miswritten CLIMA rows, corrected, 0 residual.
+Standing harvest pattern from mid-bank: harvest-first then consume (SDDOT proved consume-only misreads
+"not yet harvested" as "zero candidates"). Next: Operations surface (25 sources).
+
+**Banks 7-9 COMPLETE: Operations surface fully dispositioned (2026-07-20).** All 24 distinct
+Operations-surface hosts walked or dispositioned. 10 sources produced 130 census rows: 1 relevant
+would-mint (NC General Assembly), 6 low-relevance, 123 holds, 0 rejects. Three sources hit the
+extractPortalLinks 40-link per-page cap and are marked cap_hit (NSW EPA 40, SC DES 40, ncleg 40-extracted
+/ 12-written) — as is Australia Infrastructure retroactively (also exactly 40; the cap was recognized as
+the extractor's DEFAULT_CAP mid-Operations, another no-silent-truncation catch). 14 hosts zero/blocked
+with recorded reasons: 403 roadblocks (ILO, Nunavut — flagged), dead URL (American Samoa — flagged),
+language-regex class (Brazil Transportes pt, MLIT-PRI ja — rides the standing class flag),
+data-tool/report-library zeros (EIA, IMF PortWatch, IEA), pdf_direct asset host (UK DfT
+assets.publishing.service.gov.uk), thin/JS or nav-only (Clark County, MOT Singapore, u.ae, ASEAN),
+Nova Scotia (1 candidate, inconclusive fetch, re-walkable). Next: Market Intel + Research (~113 sources).
+
+**SWEEP COMPLETE: Market Intel + Research dispositioned; full census walk DONE (2026-07-20).** The ~113
+MI/Research raw rows dedupe to 23 distinct hosts (heavy host overlap with already-walked surfaces). 8
+rows written (Cranfield 3, Fraunhofer 2, WRI 1, IPCC 1, ILO 1); six 403 roadblocks (ITF-OECD, OECD, OECD
+iLibrary, IADB, UNCTAD, McKinsey — one class flag), two dead URLs (IRENA, ERIM — one class flag), the
+rest zeros under the research-genre extractor class finding (flag filed: INSTRUMENT_RE is
+legal-instrument-genre only; research sources publishing report/paper/study links enumerate to zero
+structurally — the Research/MI rollup carries this caveat until the extractor is genre-aware).
+
+**FINAL SWEEP TALLY (census_worklist, 2026-07-20):** 915 rows across 39 sources with rows (of ~83
+distinct hosts walked across all four surfaces): 110 relevant would-mints, 480 low-relevance would-mints,
+2 dedup hits, 323 holds, 0 gate rejects; 132 cap-hit rows across 4 sources. Every zero/blocked host
+carries a recorded reason (flag or bank-report line) — none silently dropped. Four sweep-wide extractor
+caveats are durably recorded in docs/census/gap-census-2026-07.md (language class, research-genre class,
+40-link page cap, cross-host instrument boundary) plus per-source universe-scope notes. Four code/data
+fixes landed mid-sweep: keyset --census-exclude URL-blowup workaround, census-writer identity
+preservation (+3 tests), dedup->dedup_hit disposition mapping (+1 test, table-wide sweep, 0 residuals),
+EUR-Lex cap_hit correction. Rollup consumption: Session B's census_rollup_by_surface view self-activates
+on these rows; population ruling on the 110 relevant would-mints is the operator's next decision point.

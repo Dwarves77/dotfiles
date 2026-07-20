@@ -44,6 +44,57 @@ market_intel/research), columns `enumerated_held_sources`, `held`, `missing_from
 `enumerated_world`, `missing_from_world`, `pending_on_session_a`, `declined_or_parked_world` (all from
 `coverage_gap_census_findings`). Recomputed live on every `SELECT`, never hand-tallied.
 
+## Universe scope per source (Session A enumeration method)
+
+**Finding (2026-07-19, calibration check mid-walk on Federal Register).** The candidate ledger
+(`portal_link_candidates`) that Session A's census walk reads from is populated by `extractPortalLinks`
+(`src/lib/sources/portal-links.mjs`): same-host anchor links from a source's rendered page whose URL path
+OR anchor text matches a generic legal-instrument-genre regex (`rule|rules|regulation|notice|docket|
+amendment|act|law|standard|guidance|...`). This is a **true unfiltered walk** — no agency filter, no
+docket-class filter, no date window beyond whatever the source's own page/feed lists. For a rulemaking
+aggregator (Federal Register, EUR-Lex), nearly every published document trivially matches this genre
+vocabulary regardless of subject matter, because the site's entire output IS "rules" and "notices" by
+definition. **Gap counts (`would_mint`) from these sources must not be read as domain-relevant-gap counts**
+— they are "passed the mechanical mint gates" counts.
+
+The domain-relevance discriminator lives one layer downstream, at the mint chokepoint (`mint-item.ts`,
+Fork-4 relevance floor, D3 ruling 2026-07-12): **fail-open by design** — an item scoring below the floor
+(40/100) still returns `would_mint` but is tagged `low-relevance` in `notes` and would open a
+`data_quality` integrity flag on a real mint. Sampled verification (Federal Register, 25 rows): the
+`low-relevance`-flagged 90% split correctly off-vertical (medical device classifications, DHS civil-rights
+rescission, stablecoin KYC, aviation route amendments); the un-flagged 10% split correctly on-vertical
+(de-minimis customs exemption suspension for freight/mail entry, Tanker Security Program, lithium-ion
+battery safety standard, JFK air-freight slot limitations). The classifier is not over-admitting; the
+`would_mint` headline number is simply not the right column to read as "relevant gaps" for an unfiltered
+register source. **Any rollup or report over `census_worklist` for a register-class source should filter
+`would_mint AND notes NOT ILIKE '%low-relevance%'` to get the domain-relevant subset**, or carry both
+numbers labeled separately.
+
+| Source | Enumeration method | Scoped? | Relevant-gap column to use |
+|---|---|---|---|
+| EUR-Lex (register API) | `extractPortalLinks`, genre-regex, unfiltered | No | `would_mint AND notes NOT ILIKE '%low-relevance%'` |
+| Federal Register (register API) | `extractPortalLinks`, genre-regex, unfiltered | No | `would_mint AND notes NOT ILIKE '%low-relevance%'` |
+| All other walked sources (2026-07-19/20 sweep) | same, root-page or registered-page harvest | No | same split |
+
+**Sweep-wide extractor caveats (both filed as `integrity_flags`, subject_type=system):**
+1. **Language class:** `INSTRUMENT_RE` is English-only. Non-English sources (GIOS Poland, Mexico DOF,
+   Brazil Transportes, MLIT-PRI Japan) enumerate to zero as an extractor artifact, not evidence of empty
+   sources.
+2. **Research-genre class:** `INSTRUMENT_RE` is legal-instrument-genre only. Research/MI sources publish
+   "report/publication/paper/study/outlook" links that cannot match, so research institutes (Lloyd's
+   Register, MIT, CSRF, IEA, Tyndall, ADB, and most of the Research surface) enumerate to zero
+   structurally. The Research/MI rollup carries this caveat until the extractor is genre-aware.
+3. **40-link page cap:** `extractPortalLinks` caps at 40 links per page (`DEFAULT_CAP`). Sources that hit
+   exactly 40 (Australia Infrastructure, ncleg, NSW EPA, SC DES) are marked `cap_hit=true` — their counts
+   are floors, not totals.
+4. **Cross-host instrument boundary:** same-host-only extraction means institutional index sites whose
+   instruments live on a national register (MPA → Singapore Statutes Online; Australia Infrastructure →
+   legislation.gov.au) enumerate as all-holds honestly; the registers themselves are missing-from-the-world
+   leads (routed to Session C via flags).
+
+`census_worklist` has no dedicated `universe_scope` column (routes to Session B, same class as the earlier
+undocumented-shape finding) — this table is the durable record until/unless one lands.
+
 ## How to read the per-item tables below
 
 Per surface, four populations:
@@ -156,7 +207,10 @@ Sources where a producing lane's enumeration was stopped at the per-source cap (
 
 | Source | Lane | Rows captured | Cap-hit date | Notes |
 |---|---|---|---|---|
-| | | | | |
+| Australian Government Infrastructure | A | 40 | 2026-07-19 | extractPortalLinks 40-link page cap |
+| NC General Assembly (ncleg) | A | 12 (40 extracted, 28 inconclusive re-walkable) | 2026-07-20 | 40-link page cap |
+| NSW EPA | A | 40 | 2026-07-20 | 40-link page cap |
+| SC DES Bureau of Air Quality | A | 40 | 2026-07-20 | 40-link page cap |
 
 ## Rollup tallies
 
