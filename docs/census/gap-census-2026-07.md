@@ -1,9 +1,13 @@
 # Gap Census, 2026-07
 
-**Status: WALK ATTEMPTED-COMPLETE (2026-07-20).** Session A (intake, Chrome lane) has written 1,331 rows
-across 39 sources to `census_worklist`; every `candidate` row in the ledger now carries either a census
-disposition or a named fetch-failure class (117 fetch-blocked candidates remain re-walkable, see the
-cap-hit table and the DEFAULT_CAP caveat below). Session C (discovery, fetch-light lane) ran its
+**Status: FLOW WALK EXHAUSTED (2026-07-20).** Session A (intake, Chrome lane) has written 1,331 rows
+across 39 sources to `census_worklist`; the exhaustion pass proved every source is MEASURED (walked to
+exhaustion under the R2 no-cap rule) or carries an honest R2 stop-reason, with no floors-by-policy
+remaining (`cap_hit` cleared to `false` on every row). Every `candidate` row carries either a census
+disposition or a named fetch-failure class (109 ncleg js_shell PDFs + a small nav/404 residue remain
+re-walkable, see the Final per-source measurement section). The STOCK universe (in-force law predating the
+flow window) is a separate mandate now in progress (Tasks 4-6); flow measures what held sources currently
+publish, not the standing body of law. Session C (discovery, fetch-light lane) ran its
 three-sweep mandate to completion (81 rows in `coverage_gap_census_findings`) and is now idle; per-surface
 counts are live below via `census_rollup_by_surface` (migration 222). Session B maintains this structure
 and the standing rollup/dedup/flag-back duties; it does not enumerate or fetch. The per-item rank tables
@@ -87,23 +91,16 @@ numbers labeled separately.
    "report/publication/paper/study/outlook" links that cannot match, so research institutes (Lloyd's
    Register, MIT, CSRF, IEA, Tyndall, ADB, and most of the Research surface) enumerate to zero
    structurally. The Research/MI rollup carries this caveat until the extractor is genre-aware.
-3. **40-link page cap:** `extractPortalLinks` caps at 40 links per page (`DEFAULT_CAP`). Sources that hit
-   exactly 40 (Australia Infrastructure, ncleg, NSW EPA, SC DES) are marked `cap_hit=true` — their counts
-   are floors, not totals. RESOLVED for three of the four by the cap-completion pass, see the census-wide
-   caveat below.
-
-**Census-wide DEFAULT_CAP=40 caveat (cap-completion pass, 2026-07-20).** Every page harvest in the
-2026-07-19/20 sweep ran under `extractPortalLinks`' DEFAULT_CAP=40 per-page link ceiling, so any page
-holding more than 40 qualifying links was silently floored at 40. The detection signal for a capped
-single-page source is a ledger count of exactly 40. A full ledger audit (2026-07-20) found exactly four
-sources at that signal, and no others; the plausibly-capped list is exactly: Australian Government
-Infrastructure, NC General Assembly (ncleg Chapter 136), NSW EPA, SC DES Bureau of Air Quality. All four
-were re-harvested at `--cap 200` in the cap-completion pass, with these true link counts: Australia
-Infrastructure 128 (below cap, universe MEASURED), SC DES 164 (MEASURED), ncleg 145 (MEASURED), NSW EPA
-200 AT CAP (still a floor, the true universe exceeds 200; raising the cap past 200 is deferred to the
-operator). Residual gap, labeled as a gap: multi-page walks (Federal Register / DOT, EUR-Lex) applied the
-same 40-link cap per PAGE, and a per-page cap-hit inside a multi-page walk is not detectable from ledger
-totals, so per-page floors there remain possible and unmeasured.
+3. **Enumeration caps ABOLISHED for free harvest (R2 standing rule, operator 2026-07-20).** Free
+   enumeration is never capped. Every source walks to exhaustion. The only legitimate stop conditions are
+   (a) a crawl trap (the walk cycling or self-referencing, report the shape), (b) a fetch path that costs
+   metered money (a pricing question for the operator, not a cap), (c) a technical block (403, JS-shell,
+   dead URL, recorded as such). If a single source exceeds a full day of foreground chunks, report the
+   shape of the problem, never an arbitrary count. `extractPortalLinks` still defaults to `DEFAULT_CAP=40`
+   for a bare call, but every free-harvest caller now lifts it: `run-portal-harvest --cap N` and the
+   register walker `walkEurlexOj` default uncapped (the 40 default remains only for an explicit probe).
+   The exhaustion-pass ledger audit (2026-07-20) confirmed no source and no single page sits at a harvest
+   ceiling. See the "Final per-source measurement" section below.
 4. **Cross-host instrument boundary:** same-host-only extraction means institutional index sites whose
    instruments live on a national register (MPA → Singapore Statutes Online; Australia Infrastructure →
    legislation.gov.au) enumerate as all-holds honestly; the registers themselves are missing-from-the-world
@@ -217,23 +214,44 @@ disjoint by construction (no `source_id` to key a `census_worklist` row on yet).
 |---|---|---|---|---|
 | | | | | |
 
-## Cap-hit sources
+## Final per-source measurement (exhaustion pass, 2026-07-20)
 
-Sources where a producing lane's enumeration was stopped at the per-source cap (`census_worklist.cap_hit
-= true`). More documents may exist on these sources beyond what the census captured.
+Under the R2 no-cap rule, every source is either MEASURED (walked to exhaustion, count below any cap) or
+carries an honest stop-reason from the R2 list (crawl trap / metered path / technical block). The
+exhaustion-pass ledger audit found NO source and NO single page sitting at a harvest ceiling: `cap_hit`
+is now `false` on every `census_worklist` row (the four formerly-flagged Tier B sources were re-harvested
+uncapped and proven measured; the stale flags were cleared, cause "exhaustion proven, flag satisfied").
+There are no floors-by-policy anywhere in the census.
 
-| Source | Lane | Rows captured | Cap-hit date | Notes |
+| Source | Method | True universe | State | Note |
 |---|---|---|---|---|
-| Australian Government Infrastructure | A | 128 (all dispositioned) | RESOLVED 2026-07-20 | re-harvest `--cap 200` returned 128, below cap: universe MEASURED, no longer capped |
-| NC General Assembly (ncleg) | A | 145 ledger, 36 dispositioned | RESOLVED 2026-07-20 (cap); 109 fetch-blocked | re-harvest `--cap 200` returned 145, below cap: MEASURED. 109 per-section /PDF/ candidates all attempted 2026-07-20, all fail direct fetch (js_shell), re-walkable; dispositioning them needs the Browserless render path, deferred to operator |
-| NSW EPA | A | 220 (all dispositioned) | STILL AT CAP 2026-07-20 | re-harvest `--cap 200` returned 200 AT CAP: count is a floor, true universe exceeds 200; raising past 200 is an operator decision. Re-harvest added 0 new ledger rows |
-| SC DES Bureau of Air Quality | A | 164 (all dispositioned) | RESOLVED 2026-07-20 | re-harvest `--cap 200` returned 164, below cap: MEASURED |
+| NSW EPA | single-page harvest, uncapped | 220 | MEASURED | re-harvested at no cap 2026-07-20 → 220 (below ceiling); supersedes the prior "200 AT CAP" floor |
+| SC DES Bureau of Air Quality | single-page harvest, uncapped | 164 | MEASURED | 164 below cap |
+| NC General Assembly (ncleg Ch. 136) | single-page harvest, uncapped | 145 | MEASURED (cap); 109 fetch-blocked | 145 below cap. 109 per-section /PDF/ candidates all fail direct fetch (js_shell) — R2(c) technical block, deferred as a re-walkable gap (needs the Browserless render path, operator decision) |
+| Australian Government Infrastructure | single-page harvest, uncapped | 128 | MEASURED | 128 below cap |
+| Federal Register / DOT | register JSON API, unbounded pagination | 278 RULE (window 2026-06-22..07-17) | MEASURED / EXHAUSTED | API paginated to exhaustion (3 pages, 0 dropped); the FR API is not subject to the 40-link cap. All 278 already accounted (275 censused + 3 promoted). The census's 435 dispositioned FR rows superset this window |
+| EUR-Lex OJ daily-view | per-day HTML walk | not measurable via plain HTTP now | R2(c) technical block; superseded_by_stock_walk | plain-HTTP daily-view returns HTTP 202 + a 2035-char JS-shell stub for every probed day (2026-07-20); the 157 flow candidates were captured 2026-07-19 before the wall and are dispositioned. `render_path_available = true` (a Chrome-rendered fetch of the 17 Jul L-series view returned the full instrument list). True EUR-Lex exhaustion is delivered by the stock walk (Task 4, CELEX API, not governed by the page-level wall), not by re-walking the daily view |
+
+**Small residue, all R2(c) or nav-chrome (recorded, re-walkable, no forced disposition):** 8 fetch-failed
+candidates across 7 sources (Alaska 2 http_404, Melbourne http_404, Nova Scotia http_404, EC DG-Env empty,
+EP Legislative Train empty, NYC empty, MPA error_body) written off per operator ruling R4; 6 Federal
+Register site-chrome pages (reader-aids, statistics, a `/d/` shortlink) that the genre-regex admitted as
+non-instrument nav.
+
+**Finding (routes to Session B, tooling):** the `--census-exclude` anti-join fails at ~435 dispositioned
+rows for a single source (an empty-message ledger read error — the client-built `NOT IN (…435 URLs…)`
+list overflows the PostgREST query). It works at the small per-source counts the flow census used, but the
+stock walk (Task 4 onward) will exceed this against large held sets; that lane needs a server-side
+anti-join (a `NOT EXISTS` RPC), not a client-assembled URL list. Recorded, not this pass's to fix.
 
 ## Rollup tallies
 
 Maintained per source and per surface (Task 2, standing duty). Source: `SELECT * FROM
 census_rollup_by_surface` (migration 222), recomputed live on every read, never hand-tallied. Snapshot
-below dated 2026-07-20, taken at cap-completion pass close; re-query for current numbers.
+below dated 2026-07-20, at exhaustion-pass close; re-query for current numbers. The world-side (right four
+columns) is moving as Session C lands its sweep4 found-then-lost recovery rows into
+`coverage_gap_census_findings`, so treat the world columns as a live-as-of-query reading, not a fixed
+total.
 
 ### Per surface
 

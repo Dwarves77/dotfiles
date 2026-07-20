@@ -81,7 +81,9 @@ if (REGISTER === "eurlex-oj") {
       },
       persist,
     },
-    { from: FROM, to: TO, series: flagOpt("series", "L") }
+    // --cap lifts (or, for a probe, sets) the per-day link ceiling. Default: uncapped (R2 no-cap rule,
+    // 2026-07-20) — a free enumeration walks every day to exhaustion, never floored at DEFAULT_CAP=40.
+    { from: FROM, to: TO, series: flagOpt("series", "L"), cap: flagOpt("cap", null) != null ? Number(flagOpt("cap", null)) : Infinity }
   );
   for (const d of summary.days) {
     console.log(`  ${d.day}  extracted=${d.extracted} upserted=${d.upserted}${d.error ? `  ERROR: ${d.error}` : ""}`);

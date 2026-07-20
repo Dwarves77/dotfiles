@@ -66,6 +66,23 @@ test("walkEurlexOj: a failed day is recorded, the walk continues, persist receiv
   assert.equal(r.upserted, persisted.length);
 });
 
+test("walkEurlexOj: uncapped by default (R2 no-cap rule) — a >40-link day is not floored; a finite cap still bounds", async () => {
+  // A daily view listing 50 distinct instruments: uncapped must extract all 50, not DEFAULT_CAP=40.
+  const many = Array.from({ length: 50 }, (_, i) =>
+    `<a href="/legal-content/EN/TXT/?uri=OJ:L_2026${String(i).padStart(4, "0")}">Regulation ${i}</a>`).join("");
+  const rUncapped = await walkEurlexOj(
+    { fetchHtml: async () => `<html><body>${many}</body></html>`, persist: async (l) => ({ upserted: l.length, failed: 0 }) },
+    { from: "2026-07-17", to: "2026-07-17" }
+  );
+  assert.equal(rUncapped.days[0].extracted, 50, "uncapped day extracts every listed instrument, not 40");
+  // An explicit finite cap (a probe) still bounds.
+  const rCapped = await walkEurlexOj(
+    { fetchHtml: async () => `<html><body>${many}</body></html>`, persist: async (l) => ({ upserted: l.length, failed: 0 }) },
+    { from: "2026-07-17", to: "2026-07-17", cap: 10 }
+  );
+  assert.equal(rCapped.days[0].extracted, 10, "a finite cap still bounds a probe walk");
+});
+
 test("walkFederalRegister: pages until next_page_url absent; page cap reports droppedPages, never silent", async () => {
   const mkPage = (n, hasNext, totalPages) => ({
     count: 42, total_pages: totalPages,

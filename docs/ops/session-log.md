@@ -1229,3 +1229,21 @@ Process finding, reported plainly: this session initially appended this very ent
 Noted, not this pass's to fix: 3 FR/DOT ledger rows sit status='promoted' (pre-census, outside the candidate walk by construction); working tree carried unrelated deletions of `fsi-app/scripts/tmp/*` and untracked files from other lanes, left untouched and unstaged.
 
 Spend: 0 metered grounding, 0 Browserless units, 0 mints, 0 corpus writes, Haiku ≈$0 (every remaining candidate failed at fetch, before classification). Lease state (session A): clean, released per chunk. Tests: portal-links 35/35 incl. the new cap-override test.
+
+## 2026-07-20, Session A (intake-census lane): exhaustion pass — R2 no-cap rule, flow walk proven exhausted
+
+Operator rulings R1-R5 executed. R1: PR #366 merged (resolved a merge conflict against #365's squash — kept the newer cap-completion text). R2 (standing rule change): enumeration caps ABOLISHED for free harvest — free enumeration is never capped, every source walks to exhaustion, the only legitimate stops are crawl trap / metered path / technical block. R3: ncleg's 109 Browserless PDFs deferred (re-walkable gap). R4: 8 dead/empty residue written off. R5: CI guards authorized (Task 3, next).
+
+Task 1a: NSW EPA re-harvested uncapped → 220 (MEASURED, below ceiling); supersedes the "200 AT CAP" floor; 0 new rows.
+
+Task 1b: Federal Register uses the JSON API (not the 40-link extractor), so it was never cap-bound; re-walked the flow window 2026-06-22..07-17 (RULE) unbounded → complete universe 278, 3 pages, 0 dropped = EXHAUSTED, all accounted (275 censused + 3 promoted). Caught and reverted a side effect: portal_link_candidates has UNIQUE(url) globally, so the API re-walk's upsert reassigned ~272 FR rows from census source d9e0948e to the FR-root row dc907f90; reverted with an exact source_id UPDATE (d9e0948e back to 444, dc907f90 to 0); census_worklist untouched. EUR-Lex OJ daily-view is now a technical block (HTTP 202 JS-shell) on plain HTTP; 157 flow candidates dispositioned pre-wall; Chrome-rendered probe of the 17 Jul L-series view returned the full instrument list (render_path_available=true); true exhaustion routed to the stock walk (Task 4 CELEX API), daily-view re-walk recorded superseded_by_stock_walk per operator.
+
+Task 1c: per-source AND per-page audit — no source, no page at a harvest ceiling. Cleared 132 stale cap_hit=true flags to false on the four now-measured sources (clear-flags-when-satisfied); cap_hit_remaining=0, no floor-by-policy anywhere.
+
+Code: walkEurlexOj no longer hardcodes DEFAULT_CAP=40 (takes cap, default uncapped); run-register-walk --cap exposes it. Tests 15/15.
+
+Delta vs PR #366: census totals UNCHANGED (1,331 rows / 39 sources / 112 relevant would-mints) — the pass confirmed exhaustion rather than adding rows. World-side rollup moving as Session C lands sweep4 recovery rows (pulled live, not cited from priors).
+
+Findings (route to B): (1) --census-exclude anti-join fails at ~435 dispositioned rows for one source (client-built NOT IN overflow) — the stock walk needs a server-side NOT EXISTS RPC; (2) FR flow attributed to a DOT-document source row while a clean FR-root row exists — source-identity smell, left as-is to preserve census/candidate agreement.
+
+Spend: 0 metered grounding, 0 Browserless units, 0 mints, 0 corpus writes; free HTTP + one read-only Chrome probe. Lease state (session A): clean.
