@@ -45,8 +45,13 @@ export function censusDisposition(outcome) {
     case "would_reject":
     case "rejected": {
       const r = (outcome.reason || "").toLowerCase();
+      // A dedup rejection ("chokepoint:duplicate — dedup: subject already exists as ...") is census-wise a
+      // DEDUP_HIT: the document IS in the corpus, the census confirms coverage — the reject is only the
+      // mint refusing a second copy. Mapping it to invariant_reject (the pre-fix behavior) understated
+      // held coverage and overstated gate-rejects.
+      if (r.includes("duplicate") || r.includes("dedup")) return "dedup_hit";
       // congruence gates (1a/1b source<->claim-type) name "congruence"; everything else (source-link,
-      // dedup-nonnews-hard-reject, idempotency) is an invariant reject.
+      // idempotency) is an invariant reject.
       return r.includes("congruence") ? "congruence_reject" : "invariant_reject";
     }
     case "not_an_item":
@@ -96,6 +101,12 @@ export function buildCensusRow(outcome, { sourceId, lane, createdBy, capHit, sha
  * WRITTEN (as 'discovered', null disposition) so the enumeration count is complete and the row is
  * re-dispositionable; only a missing url is dropped.
  *
+ * IDENTITY PRESERVATION: looks up existing (lane, created_by) for any URL in this batch already present
+ * for the source, and passes those values straight through on the upsert instead of the caller's own
+ * lane/createdBy. Identity columns are immutable after insert (migration 221 trigger) — a re-walk by a
+ * different lane/session over a URL another caller already discovered must update the mutable fields
+ * (disposition, tags, notes) without attempting to reassign who discovered it, or the trigger raises.
+ *
  * @param {object} sb            supabase client (service-role)
  * @param {object[]} outcomes    consume result.outcomes
  * @param {object} opts          { sourceId, lane, createdBy, capHit?, shapeClass?, withLease, nowIso? }
@@ -110,13 +121,31 @@ export async function writeCensusRows(sb, outcomes, opts) {
   if (!sourceId || !lane || !createdBy) throw new Error("writeCensusRows: sourceId, lane, createdBy required");
   if (typeof withLease !== "function") throw new Error("writeCensusRows: withLease must be injected");
 
-  const rows = [];
-  let dropped = 0;
-  for (const o of outcomes) {
-    if (!o.url || !isCensusWritable(o)) { dropped++; continue; } // no url, or no census verdict yet
-    rows.push(buildCensusRow(o, { sourceId, lane, createdBy, capHit, shapeClass, nowIso }));
-  }
-  if (!rows.length) return { written: 0, skipped: dropped, leaseError: null };
+  const writable = outcomes.filter((o) => o.url && isCensusWritable(o));
+  const dropped = outcomes.length - writable.length;
+  if (!writable.length) return { written: 0, skipped: dropped, leaseError: null };
+
+  // IDENTITY PRESERVATION: (source_id, document_url, lane, created_by, created_at) are immutable after
+  // insert (migration 221 trigger) — whoever first discovered a URL owns that identity permanently, even
+  // across lanes/sessions re-walking the same source. A blind upsert that always stamps the CURRENT
+  // caller's lane/createdBy trips the trigger the moment a URL already has a row from a different
+  // caller (e.g. an earlier smoke test). Look up existing identity for this batch's URLs first, and
+  // pass it straight through unchanged so the upsert is a no-op on identity columns for those rows.
+  const urls = writable.map((o) => o.url);
+  const { data: existingRows, error: existingErr } = await sb
+    .from("census_worklist")
+    .select("document_url, lane, created_by")
+    .eq("source_id", sourceId)
+    .in("document_url", urls);
+  if (existingErr) throw new Error(`census_worklist identity lookup failed: ${existingErr.message}`);
+  const existingByUrl = new Map((existingRows ?? []).map((r) => [r.document_url, r]));
+
+  const rows = writable.map((o) => {
+    const row = buildCensusRow(o, { sourceId, lane, createdBy, capHit, shapeClass, nowIso });
+    const existing = existingByUrl.get(o.url);
+    if (existing) { row.lane = existing.lane; row.created_by = existing.created_by; }
+    return row;
+  });
 
   let written = 0;
   let leaseError = null;

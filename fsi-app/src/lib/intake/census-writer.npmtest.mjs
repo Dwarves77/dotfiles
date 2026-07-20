@@ -26,6 +26,8 @@ test("censusDisposition: maps every consume disposition to the census enum (or n
   assert.equal(censusDisposition(OUT({ disposition: "exists" })), "dedup_hit");
   assert.equal(censusDisposition(OUT({ disposition: "would_reject", reason: "chokepoint:congruence_1a — retyped" })), "congruence_reject");
   assert.equal(censusDisposition(OUT({ disposition: "rejected", reason: "chokepoint:unsourced — no source_id" })), "invariant_reject");
+  assert.equal(censusDisposition(OUT({ disposition: "would_reject", reason: "chokepoint:duplicate — dedup: subject already exists as abc(reg_number)" })), "dedup_hit",
+    "a dedup rejection means the document IS held — census-wise that is coverage confirmed, not a gate reject");
   assert.equal(censusDisposition(OUT({ disposition: "not_an_item", reason: "entity-gate: portal" })), "hold");
   assert.equal(censusDisposition(OUT({ disposition: "skipped", reason: "classify failed" })), null);
 });
@@ -61,13 +63,27 @@ test("buildCensusRow: not_an_item → hold WITH hold_reason (DB CHECK) + enumera
 });
 
 // ── 3. writeCensusRows: upsert under lease, skip non-writable, refuse on held lease, rethrow DB error ────
-function fakeSb({ upsertError = null, upsertCount = null } = {}) {
+function fakeSb({ upsertError = null, upsertCount = null, existingRows = [], existingErr = null } = {}) {
   const upserts = [];
+  const selects = [];
   return {
     upserts,
+    selects,
     from(table) {
       return {
         upsert(rows, opts) { upserts.push({ table, rows, opts }); return Promise.resolve({ error: upsertError, count: upsertCount ?? rows.length }); },
+        select(cols) {
+          return {
+            eq(col, val) {
+              return {
+                in(inCol, vals) {
+                  selects.push({ table, cols, eq: { col, val }, in: { inCol, vals } });
+                  return Promise.resolve({ data: existingRows, error: existingErr });
+                },
+              };
+            },
+          };
+        },
       };
     },
   };
@@ -114,6 +130,37 @@ test("writeCensusRows: a real upsert DB error is NOT swallowed (rethrows)", asyn
   await assert.rejects(
     () => writeCensusRows(sb, [OUT()], { sourceId: "s1", lane: "A", createdBy: "session-A", withLease: fakeWithLease() }),
     /census_worklist upsert failed: check constraint violated/,
+  );
+});
+
+test("writeCensusRows: a URL already owned by a different lane/created_by keeps its ORIGINAL identity on re-upsert (immutable-after-insert, migration 221 trigger)", async () => {
+  const sb = fakeSb({ existingRows: [{ document_url: "https://x/a", lane: "C", created_by: "earlier-smoke-test" }] });
+  const r = await writeCensusRows(sb, [OUT({ url: "https://x/a" })],
+    { sourceId: "s1", lane: "A", createdBy: "session-A-census", withLease: fakeWithLease() });
+  assert.equal(r.written, 1);
+  assert.equal(sb.selects.length, 1, "looks up existing identity for this batch's URLs before upserting");
+  assert.equal(sb.selects[0].eq.val, "s1");
+  assert.deepEqual(sb.selects[0].in.vals, ["https://x/a"]);
+  const row = sb.upserts[0].rows[0];
+  assert.equal(row.lane, "C", "keeps the URL's ORIGINAL lane, not the current caller's");
+  assert.equal(row.created_by, "earlier-smoke-test", "keeps the URL's ORIGINAL created_by, not the current caller's");
+});
+
+test("writeCensusRows: a genuinely NEW url gets the CURRENT caller's identity (no existing row to preserve)", async () => {
+  const sb = fakeSb({ existingRows: [] });
+  const r = await writeCensusRows(sb, [OUT({ url: "https://x/new" })],
+    { sourceId: "s1", lane: "A", createdBy: "session-A-census", withLease: fakeWithLease() });
+  assert.equal(r.written, 1);
+  const row = sb.upserts[0].rows[0];
+  assert.equal(row.lane, "A");
+  assert.equal(row.created_by, "session-A-census");
+});
+
+test("writeCensusRows: identity lookup DB error is NOT swallowed (rethrows)", async () => {
+  const sb = fakeSb({ existingErr: { message: "connection reset" } });
+  await assert.rejects(
+    () => writeCensusRows(sb, [OUT({ url: "https://x/a" })], { sourceId: "s1", lane: "A", createdBy: "session-A", withLease: fakeWithLease() }),
+    /census_worklist identity lookup failed: connection reset/,
   );
 });
 
