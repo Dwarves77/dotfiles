@@ -1,12 +1,15 @@
 # Gap Census, 2026-07
 
-**Status: STRUCTURE + ROLLUP VIEW LIVE, per-item tables still empty.** Session A (intake, Chrome lane)
-has not yet written rows to `census_worklist`. Session C (discovery, fetch-light lane) ran its three-sweep
-mandate to completion (81 rows in `coverage_gap_census_findings`) and is now idle; its per-surface counts
-are live below via `census_rollup_by_surface` (migration 222). Session B maintains this structure and the
-standing rollup/dedup/flag-back duties; it does not enumerate or fetch. Rank fields are present, left
-empty; final prioritization by the FSI lens (competitive edge, cost alert, window closing, monitoring,
-action required, per `environmental-policy-and-innovation`) happens at operator review, not here.
+**Status: WALK ATTEMPTED-COMPLETE (2026-07-20).** Session A (intake, Chrome lane) has written 1,331 rows
+across 39 sources to `census_worklist`; every `candidate` row in the ledger now carries either a census
+disposition or a named fetch-failure class (117 fetch-blocked candidates remain re-walkable, see the
+cap-hit table and the DEFAULT_CAP caveat below). Session C (discovery, fetch-light lane) ran its
+three-sweep mandate to completion (81 rows in `coverage_gap_census_findings`) and is now idle; per-surface
+counts are live below via `census_rollup_by_surface` (migration 222). Session B maintains this structure
+and the standing rollup/dedup/flag-back duties; it does not enumerate or fetch. The per-item rank tables
+below stay unpopulated by design: rank fields are present, left empty; final prioritization by the FSI
+lens (competitive edge, cost alert, window closing, monitoring, action required, per
+`environmental-policy-and-innovation`) happens at operator review, not here.
 
 ## Schema reference (so no consumer needs to introspect `pg_catalog` for shape)
 
@@ -86,7 +89,21 @@ numbers labeled separately.
    structurally. The Research/MI rollup carries this caveat until the extractor is genre-aware.
 3. **40-link page cap:** `extractPortalLinks` caps at 40 links per page (`DEFAULT_CAP`). Sources that hit
    exactly 40 (Australia Infrastructure, ncleg, NSW EPA, SC DES) are marked `cap_hit=true` — their counts
-   are floors, not totals.
+   are floors, not totals. RESOLVED for three of the four by the cap-completion pass, see the census-wide
+   caveat below.
+
+**Census-wide DEFAULT_CAP=40 caveat (cap-completion pass, 2026-07-20).** Every page harvest in the
+2026-07-19/20 sweep ran under `extractPortalLinks`' DEFAULT_CAP=40 per-page link ceiling, so any page
+holding more than 40 qualifying links was silently floored at 40. The detection signal for a capped
+single-page source is a ledger count of exactly 40. A full ledger audit (2026-07-20) found exactly four
+sources at that signal, and no others; the plausibly-capped list is exactly: Australian Government
+Infrastructure, NC General Assembly (ncleg Chapter 136), NSW EPA, SC DES Bureau of Air Quality. All four
+were re-harvested at `--cap 200` in the cap-completion pass, with these true link counts: Australia
+Infrastructure 128 (below cap, universe MEASURED), SC DES 164 (MEASURED), ncleg 145 (MEASURED), NSW EPA
+200 AT CAP (still a floor, the true universe exceeds 200; raising the cap past 200 is deferred to the
+operator). Residual gap, labeled as a gap: multi-page walks (Federal Register / DOT, EUR-Lex) applied the
+same 40-link cap per PAGE, and a per-page cap-hit inside a multi-page walk is not detectable from ledger
+totals, so per-page floors there remain possible and unmeasured.
 4. **Cross-host instrument boundary:** same-host-only extraction means institutional index sites whose
    instruments live on a national register (MPA → Singapore Statutes Online; Australia Infrastructure →
    legislation.gov.au) enumerate as all-holds honestly; the registers themselves are missing-from-the-world
@@ -207,16 +224,16 @@ Sources where a producing lane's enumeration was stopped at the per-source cap (
 
 | Source | Lane | Rows captured | Cap-hit date | Notes |
 |---|---|---|---|---|
-| Australian Government Infrastructure | A | 40 | 2026-07-19 | extractPortalLinks 40-link page cap |
-| NC General Assembly (ncleg) | A | 12 (40 extracted, 28 inconclusive re-walkable) | 2026-07-20 | 40-link page cap |
-| NSW EPA | A | 40 | 2026-07-20 | 40-link page cap |
-| SC DES Bureau of Air Quality | A | 40 | 2026-07-20 | 40-link page cap |
+| Australian Government Infrastructure | A | 128 (all dispositioned) | RESOLVED 2026-07-20 | re-harvest `--cap 200` returned 128, below cap: universe MEASURED, no longer capped |
+| NC General Assembly (ncleg) | A | 145 ledger, 36 dispositioned | RESOLVED 2026-07-20 (cap); 109 fetch-blocked | re-harvest `--cap 200` returned 145, below cap: MEASURED. 109 per-section /PDF/ candidates all attempted 2026-07-20, all fail direct fetch (js_shell), re-walkable; dispositioning them needs the Browserless render path, deferred to operator |
+| NSW EPA | A | 220 (all dispositioned) | STILL AT CAP 2026-07-20 | re-harvest `--cap 200` returned 200 AT CAP: count is a floor, true universe exceeds 200; raising past 200 is an operator decision. Re-harvest added 0 new ledger rows |
+| SC DES Bureau of Air Quality | A | 164 (all dispositioned) | RESOLVED 2026-07-20 | re-harvest `--cap 200` returned 164, below cap: MEASURED |
 
 ## Rollup tallies
 
 Maintained per source and per surface (Task 2, standing duty). Source: `SELECT * FROM
 census_rollup_by_surface` (migration 222), recomputed live on every read, never hand-tallied. Snapshot
-below dated 2026-07-19, taken right after the view landed; re-query for current numbers.
+below dated 2026-07-20, taken at cap-completion pass close; re-query for current numbers.
 
 ### Per surface
 
@@ -226,14 +243,19 @@ folded into `missing_from_world`.
 
 | Surface | Held: enumerated | Held: held | Held: missing | Held: other/undispositioned | World: enumerated | World: missing | World: pending on A | World: declined/parked |
 |---|---|---|---|---|---|---|---|---|
-| Regulations | 0 | 0 | 0 | 0 | 20 | 18 | 1 | 1 |
-| Operations | 0 | 0 | 0 | 0 | 18 | 18 | 0 | 0 |
-| Market Intel | 0 | 0 | 0 | 0 | 5 | 3 | 0 | 2 |
-| Research | 0 | 0 | 0 | 0 | 3 | 3 | 0 | 0 |
+| Regulations | 302 | 2 | 300 | 0 | 20 | 18 | 1 | 1 |
+| Operations | 161 | 2 | 159 | 0 | 18 | 18 | 0 | 0 |
+| Market Intel | 38 | 0 | 38 | 0 | 5 | 3 | 0 | 2 |
+| Research | 8 | 1 | 7 | 0 | 3 | 3 | 0 | 0 |
 
-All `census_worklist`-side columns are 0: Session A has not yet written rows. `coverage_gap_census_
-findings` reflects Session C's completed three-sweep mandate (81 rows total; sums per surface differ from
-81 because rows can classify IN on more than one surface, or OUT on all four).
+`census_worklist` totals at this snapshot: 1,331 rows / 39 sources / 619 would_mint / 112 relevant
+would-mints (the `would_mint AND notes NOT ILIKE '%low-relevance%'` split from the universe-scope section
+above) / 710 hold / 2 dedup_hit. Per-surface sums differ from row totals because rows can carry more than
+one surface tag, or none (a portal/uncertain classifier verdict tags no surface). The "Held: missing"
+column counts ALL would_mint rows including low-relevance ones; read the relevant-gap split for
+register-class sources per the universe-scope section. `coverage_gap_census_findings` reflects Session C's
+completed three-sweep mandate (81 rows total; sums per surface differ from 81 because rows can classify IN
+on more than one surface, or OUT on all four).
 
 ### Per source
 

@@ -11,9 +11,12 @@
 // Haiku) | --mode apply (stages + mints + grounds — the operator-priced path; requires EXECUTE=1).
 //
 // Usage:
-//   node scripts/run-portal-harvest.mjs --source <uuid | url-substring> [--harvest] [--consume]
+//   node scripts/run-portal-harvest.mjs --source <uuid | url-substring> [--harvest [--page <url>] [--cap N]] [--consume]
 //        [--mode plan|apply] [--limit 25] [--render]
 //        [--after "firstSeenAt|id"] [--census-exclude]
+//   --cap N (harvest only): raise extractPortalLinks' DEFAULT_CAP=40 link ceiling. A source that returned
+//           exactly 40 at the default was a LOWER BOUND; re-harvest at a higher cap (e.g. 200) to measure
+//           the true portal universe. Count < cap = MEASURED universe; count AT cap = still bounded.
 //        [--census-write [--lane A] [--shape index_page] [--cap-hit] [--created-by <id>]]
 //
 // PLAN-MODE PAGINATION (census walk, 2026-07-19): plan mode never marks a candidate consumed, so repeated
@@ -110,8 +113,16 @@ if (DO_HARVEST) {
   });
   if (!resp.ok) { console.error(`harvest fetch ${resp.status} for ${pageUrl}`); process.exit(1); }
   const html = await resp.text();
-  const links = lib.extractPortalLinks(html, pageUrl);
-  console.log(`harvest: ${links.length} candidate deep link(s) extracted from ${html.length}ch HTML`);
+  // --cap N raises extractPortalLinks' DEFAULT_CAP=40 link ceiling (the census cap-completion re-harvest:
+  // a source that returned exactly 40 was a LOWER BOUND — re-harvest at a higher cap to learn the true
+  // universe). A returned count strictly below the cap is the MEASURED universe (not capped); a count
+  // AT the cap means the cap bound it and the page may hold more.
+  const capRaw = opt("cap", null);
+  const cap = capRaw != null ? Number(capRaw) : null;
+  if (capRaw != null && (!Number.isInteger(cap) || cap < 1)) { console.error(`bad --cap ${capRaw} (want a positive integer)`); process.exit(2); }
+  const links = lib.extractPortalLinks(html, pageUrl, cap != null ? { cap } : {});
+  const atCap = cap != null && links.length >= cap;
+  console.log(`harvest: ${links.length} candidate deep link(s) extracted from ${html.length}ch HTML${cap != null ? ` (cap=${cap}${atCap ? " — AT CAP, page may hold more" : " — measured, below cap"})` : ""}`);
   const persisted = await lib.persistPortalCandidates(sb, source.id, links);
   console.log(`harvest: ${persisted.upserted} upserted, ${persisted.failed} failed`);
 }
