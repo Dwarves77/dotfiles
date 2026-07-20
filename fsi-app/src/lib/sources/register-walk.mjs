@@ -81,17 +81,22 @@ export function dateRange(fromIso, toIso) {
  * free direct in the live binding) → extractPortalLinks → persist (injected — B1's ONE write-site).
  * A fetch failure on one day is recorded and the walk continues (a register day can 404 on weekends —
  * absence of an OJ is a normal outcome, not an error).
+ *
+ * UNCAPPED BY DEFAULT (R2 no-cap rule, 2026-07-20): a free enumeration is never capped. `extractPortalLinks`
+ * hardcodes DEFAULT_CAP=40; a daily view routinely lists more than 40 instruments, so passing the default
+ * would silently floor a busy OJ day. This walker passes `cap` (default Infinity — no ceiling) so every day
+ * walks to the full extent of what its HTML lists. A caller may still pass a finite `cap` for a probe.
  * @param {{fetchHtml:(url:string)=>Promise<string>, persist:(links:Array<{url:string,anchorText?:string|null}>)=>Promise<{upserted:number,failed:number}>}} deps
- * @param {{from:string, to:string, series?:string}} opts
+ * @param {{from:string, to:string, series?:string, cap?:number}} opts
  */
-export async function walkEurlexOj(deps, { from, to, series = "L" }) {
+export async function walkEurlexOj(deps, { from, to, series = "L", cap = Infinity }) {
   const days = [];
   let upserted = 0, failed = 0;
   for (const day of dateRange(from, to)) {
     const url = ojDailyViewUrl(day, series);
     try {
       const html = await deps.fetchHtml(url);
-      const links = extractPortalLinks(html, url);
+      const links = extractPortalLinks(html, url, { cap });
       const p = await deps.persist(links);
       upserted += p.upserted; failed += p.failed;
       days.push({ day, url, extracted: links.length, upserted: p.upserted, error: null });

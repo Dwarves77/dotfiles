@@ -945,6 +945,53 @@ arithmetic is complete (FR/DOT 438 ledger = 435 censused + 3 promoted).
 only fires on a successful fetch, and every remaining candidate failed at fetch, so classification spend
 this pass was ≈$0. Foreground chunks only, keyset cursor, per-source mutation leases honored.
 
+### Exhaustion pass — R2 no-cap rule, flow walk proven exhausted (2026-07-20)
+
+Operator rulings R1-R5 landed: PR #366 merged (R1); enumeration caps ABOLISHED for free harvest (R2 —
+free enumeration is never capped, walks run to exhaustion, the only stops are crawl trap / metered path /
+technical block); ncleg's 109 Browserless PDFs deferred (R3); the 8 dead/empty residue written off (R4);
+CI guards authorized (R5, Task 3). Task 1a-1c complete.
+
+- **Task 1a, NSW EPA:** re-harvested uncapped → 220 (below ceiling, MEASURED). Supersedes last pass's
+  "200 AT CAP" floor; 0 new ledger rows (the 200-cap re-harvest had already captured them).
+- **Task 1b, the two multi-page walks.** Federal Register uses the JSON API (`walkFederalRegister`), NOT
+  the 40-link `extractPortalLinks`, so it was never subject to that cap. Re-walked the flow window
+  2026-06-22..07-17 (RULE) unbounded: the complete universe is **278 documents, 3 pages, 0 dropped —
+  EXHAUSTED**. All 278 already accounted (275 censused + 3 promoted); the census's 435 dispositioned FR
+  rows superset this window. **Side effect caught and reverted:** `portal_link_candidates` has
+  `UNIQUE(url)` (global, not per-source), so the API re-walk's upsert reassigned ~272 FR rows from the
+  census source `d9e0948e` to the FR-root row `dc907f90` (the default shortest-URL match). Reverted by an
+  exact `source_id` UPDATE back to `d9e0948e` (444 restored, `dc907f90` back to 0); census_worklist was
+  never touched. EUR-Lex OJ daily-view is now a **technical block (HTTP 202 JS-shell)** on plain HTTP for
+  every probed day; the 157 flow candidates were captured 2026-07-19 pre-wall and are dispositioned; a
+  Chrome-rendered probe of the 17 Jul L-series view returned the full instrument list (`render_path_
+  available = true`). True EUR-Lex exhaustion is delivered by the stock walk (Task 4, CELEX API, not
+  governed by the page wall) — the daily-view re-walk is recorded superseded_by_stock_walk per operator.
+- **Task 1c, ledger audit (per-source AND per-page):** NO source and NO single page sits at a harvest
+  ceiling (no count at 40 or 200). Every per-source count is MEASURED or carries an honest R2 stop-reason.
+  The four formerly `cap_hit=true` sources (NSW 220, SCDES 164, AusInfra 128, ncleg 145) are all measured;
+  the 132 stale `cap_hit=true` flags were cleared to `false` (clear-flags-when-satisfied) so no
+  floor-by-policy remains. `cap_hit_remaining = 0`.
+
+**Code (R2 made mechanical):** `walkEurlexOj` no longer hardcodes `DEFAULT_CAP=40` — it takes `cap`
+(default Infinity, uncapped) and passes it through; `run-register-walk --cap` exposes it (default
+uncapped). register-walk.test.mjs + portal-links.test.mjs 15/15.
+
+**Delta vs PR #366 (1,331 rows / 39 sources / 112 relevant would-mints):** census totals UNCHANGED — the
+exhaustion pass CONFIRMED exhaustion (proved no floors) rather than adding rows. Live rollup at close:
+Regulations held 302/held 2/missing 300, Operations 161/2/159, Market Intel 38/0/38, Research 8/1/7;
+world side moving as Session C lands its sweep4 recovery rows (pull live, do not cite priors).
+
+**Findings recorded (route to B, not fixed here):** (1) `--census-exclude` anti-join fails at ~435
+dispositioned rows for one source (client-built `NOT IN (…URLs…)` overflow) — the stock walk needs a
+server-side `NOT EXISTS` RPC before it hits large held sets; (2) the FR census flow is attributed to a
+DOT-document source row (`d9e0948e`) while a clean FR-root row (`dc907f90`, 0 census) exists — a source-
+identity smell for the operator, left as-is to preserve census/candidate agreement.
+
+**Spend and safety:** 0 metered grounding, 0 Browserless units, 0 mints, 0 corpus writes. The FR API
+re-walk and NSW re-harvest are free HTTP; the one browser action was a single read-only Chrome probe of an
+EUR-Lex page. Foreground only, keyset cursor.
+
 ---
 
 ## Session B, resume sync, session-log reconciliation, census-lane mandate opened (2026-07-19)
