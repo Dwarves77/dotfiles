@@ -26,14 +26,26 @@ const { persistPortalCandidates, buildCandidateSeed, consumePortalCandidates } =
 // Serves: the ledger select chain (thenable builder), ledger .update().eq() (stamps captured), the mint
 // chokepoint's probes (existsId drives the source_url idempotency probe), staged_updates inserts (captured
 // — plan mode must never produce one), and portal_link_candidates upserts (payloads captured).
-function fakeClient({ ledgerRows = [], existsId = null, sourcesRows = [{ id: "src-reg-1" }], censusWorklistRows = null, censusWorklistErrors = false } = {}) {
+function fakeClient({ ledgerRows = [], existsId = null, sourcesRows = [{ id: "src-reg-1" }], censusWorklistRows = null, censusWorklistErrors = false, rpcRows = null } = {}) {
   const stamps = [];
   const stagedInserts = [];
   const upserts = [];
   const orCalls = [];
   const notCalls = [];
+  const rpcCalls = [];
   return {
-    stamps, stagedInserts, upserts, orCalls, notCalls,
+    stamps, stagedInserts, upserts, orCalls, notCalls, rpcCalls,
+    // Server-side census-exclusion RPC (migration 223). Default: "function missing" (PGRST202) so the
+    // consumer falls back to the client-side exclusion path — the existing exclusion tests exercise that
+    // fallback unchanged. Pass rpcRows to exercise the RPC-present path.
+    rpc(name, args) {
+      rpcCalls.push({ name, args });
+      return Promise.resolve(
+        rpcRows
+          ? { data: rpcRows, error: null }
+          : { data: null, error: { message: "Could not find the function public.next_uncensused_portal_candidates (PGRST202)" } }
+      );
+    },
     from(table) {
       const q = {
         _update: null,
@@ -252,6 +264,43 @@ test("nextCursor: absent when the chunk is SHORT (fewer rows than limit — sour
 
 // census_worklist real shape (introspected 2026-07-19 via pg_catalog — no committed migration, no doc):
 // keys on (source_id, document_url), completion marked by non-null dryrun_disposition, NO run-id column.
+test("censusExclusion: server-side RPC (migration 223) — candidates come from the RPC, NO client census read (no ~435-row NOT IN overflow)", async () => {
+  const RPC_ROW = {
+    id: "plc-rpc-1", url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32099R0001",
+    anchor_text: "Regulation (EU) 2099/1", source_id: "portal-src-1", first_seen_at: "2026-07-16T00:00:00.000Z",
+    source_name: "EUR-Lex", source_category: "regulatory", source_base_tier: 1,
+  };
+  const sb = fakeClient({ rpcRows: [RPC_ROW] });
+  const r = await consumePortalCandidates(sb, {
+    mode: "plan", limit: 25, sourceId: "portal-src-1", newestFirst: false,
+    after: { firstSeenAt: "2026-07-15T00:00:00.000Z", id: "plc-0" },
+    fetchDoc: okFetch, classify: classifyAs(CLS_DOC), anthropicKey: "test",
+    censusExclusion: { table: "census_worklist" },
+  });
+  // the RPC was called with the source scope + keyset cursor threaded through
+  assert.equal(sb.rpcCalls.length, 1);
+  assert.equal(sb.rpcCalls[0].name, "next_uncensused_portal_candidates");
+  assert.deepEqual(sb.rpcCalls[0].args, { p_source_id: "portal-src-1", p_limit: 25, p_newest: false, p_after_first_seen: "2026-07-15T00:00:00.000Z", p_after_id: "plc-0" });
+  // NO client-side census_worklist read happened (the whole point — no NOT IN list to overflow)
+  assert.equal(sb.notCalls.find((c) => c.table === "census_worklist"), undefined, "server-side RPC must not do the client census read");
+  assert.equal(sb.notCalls.find((c) => c.table === "portal_link_candidates"), undefined, "server-side RPC must not build the client NOT IN list");
+  // the RPC's flat row was mapped back to a LedgerCandidate and processed
+  assert.equal(r.discovered, 1, "the RPC row was consumed");
+});
+
+test("censusExclusion: RPC absent (pre-migration) → falls back to the client NOT IN path, does not throw", async () => {
+  const sb = fakeClient({ ledgerRows: [LEDGER_ROW], censusWorklistRows: [{ document_url: "https://x/old-1" }] });
+  const r = await consumePortalCandidates(sb, {
+    mode: "plan", limit: 10, fetchDoc: okFetch, classify: classifyAs(CLS_DOC), anthropicKey: "test",
+    censusExclusion: { table: "census_worklist" },
+  });
+  assert.equal(sb.rpcCalls.length, 1, "the RPC was attempted first");
+  const ledgerNot = sb.notCalls.find((c) => c.table === "portal_link_candidates");
+  assert.ok(ledgerNot, "fell back to the client NOT IN exclusion");
+  assert.match(ledgerNot.val, /old-1/);
+  assert.equal(r.discovered, 1);
+});
+
 test("censusExclusion: dispositioned rows → excludes candidates by URL via .not(url, in, ...)", async () => {
   const sb = fakeClient({ ledgerRows: [LEDGER_ROW], censusWorklistRows: [{ document_url: "https://x/old-1" }, { document_url: "https://x/old-2" }] });
   await consumePortalCandidates(sb, {
