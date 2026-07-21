@@ -4,8 +4,9 @@
 across 39 sources to `census_worklist`; the exhaustion pass proved every source is MEASURED (walked to
 exhaustion under the R2 no-cap rule) or carries an honest R2 stop-reason, with no floors-by-policy
 remaining (`cap_hit` cleared to `false` on every row). Every `candidate` row carries either a census
-disposition or a named fetch-failure class (109 ncleg js_shell PDFs + a small nav/404 residue remain
-re-walkable, see the Final per-source measurement section). The STOCK universe (in-force law predating the
+disposition or a named fetch-failure class (the 109 ncleg js_shell PDFs were render-completed 2026-07-21 —
+108 repealed dead law + 1 sub-section, all not_an_item, 0 remaining; a small nav/404 residue is the only
+re-walkable remainder, see the Final per-source measurement section). The STOCK universe (in-force law predating the
 flow window) is a separate mandate now in progress (Tasks 4-6); flow measures what held sources currently
 publish, not the standing body of law. Session C (discovery, fetch-light lane) ran its
 three-sweep mandate to completion (81 rows in `coverage_gap_census_findings`) and is now idle; per-surface
@@ -312,7 +313,7 @@ There are no floors-by-policy anywhere in the census.
 |---|---|---|---|---|
 | NSW EPA | single-page harvest, uncapped | 220 | MEASURED | re-harvested at no cap 2026-07-20 → 220 (below ceiling); supersedes the prior "200 AT CAP" floor |
 | SC DES Bureau of Air Quality | single-page harvest, uncapped | 164 | MEASURED | 164 below cap |
-| NC General Assembly (ncleg Ch. 136) | single-page harvest, uncapped | 145 | MEASURED (cap); 109 fetch-blocked | 145 below cap. 109 per-section /PDF/ candidates all fail direct fetch (js_shell) — R2(c) technical block, deferred as a re-walkable gap (needs the Browserless render path, operator decision) |
+| NC General Assembly (ncleg Ch. 136) | single-page harvest, uncapped; render-completed | 145 | MEASURED + COMPLETE | 145 below cap; all 145 dispositioned. The 109 R2(c) js_shell candidates were completed 2026-07-21 via the Chrome render path (challenge resolved, ncleg's parallel HTML statute view fetched with credentials): FINDING — 108 of 109 are REPEALED/RESERVED/TRANSFERRED statute sections (dead law; the Chapter 136 index lists repealed section numbers, each PDF a short repeal notice), and 1 is a substantive sub-section (GS 136-135, illegal-outdoor-advertising enforcement, snapshotted to raw_fetches). All 109 disposition not_an_item — the "gap" was an extractor artifact, not a real freight-instrument gap. 0 uncensused candidates remain |
 | Australian Government Infrastructure | single-page harvest, uncapped | 128 | MEASURED | 128 below cap |
 | Federal Register / DOT | register JSON API, unbounded pagination | 278 RULE (window 2026-06-22..07-17) | MEASURED / EXHAUSTED | API paginated to exhaustion (3 pages, 0 dropped); the FR API is not subject to the 40-link cap. All 278 already accounted (275 censused + 3 promoted). The census's 435 dispositioned FR rows superset this window |
 | EUR-Lex OJ daily-view | per-day HTML walk | not measurable via plain HTTP now | R2(c) technical block; superseded_by_stock_walk | plain-HTTP daily-view returns HTTP 202 + a 2035-char JS-shell stub for every probed day (2026-07-20); the 157 flow candidates were captured 2026-07-19 before the wall and are dispositioned. `render_path_available = true` (a Chrome-rendered fetch of the 17 Jul L-series view returned the full instrument list). True EUR-Lex exhaustion is delivered by the stock walk (Task 4, CELEX API, not governed by the page-level wall), not by re-walking the daily view |
