@@ -1271,3 +1271,31 @@ Results: freight-relevant hit-rate Transport 30% / Environment 10% / Energy 7% /
 Recommendation (full-pass ruling is the operator's, on these numbers): cost not binding (full pass ~$35 Haiku), wall-clock is (~8-16 hrs foreground, exceeds the R2 day-of-chunks bound); the narrow implementing/delegated mass is not wholesale-skippable (3% customs/taxation hits are the CBAM/ETS-implementing needle class). Recommend full-classify all five with a corrigendum filter, else Transport + Environment first. Full pass NOT authorized until the operator rules. Tasks 5/6 follow; US eCFR/FR + UK legislation APIs pre-confirmed reachable (all HTTP 200).
 
 Spend: $0.48 Haiku (census-class, authorized). Lease state (session A): clean.
+
+## 2026-07-21, Session A (intake-census lane): session close + reconciliation bank
+
+Close-out reconciled from the record (git + DB), not from a report. This lane's mandate was the census: the exhaustion pass, the two CI guards, and the EUR-Lex stock enumeration + calibration. It was NOT the review/drain/remediation lane.
+
+RECONCILIATION of the four questions raised at close:
+
+1. Uncommitted/unpushed close-out work in this tree: NONE. Branch corpus-integrity/intake-census is ahead-zero, fully pushed (0/0 vs origin, HEAD 1e8b0ea2). The only untracked paths (docs/dispatches/, fsi-app/docs/audits/corpus-integrity-census-2026-07-16.md, two fsi-app/scripts/_reground + _remediation scripts) belong to other lanes and were present at session start; this session never touched them. There is no separate "close-report bank" to land because this lane produced no such report; its work is the four census PRs, all committed and pushed.
+
+2. A "stop-point commit referencing a Session E audit": this branch has NO such commit. Every commit on it is census work (verbatim subjects): "census: cap-completion pass closed ...", "census: exhaustion pass — R2 no-cap rule ...", "discipline: two CI guards — fork-log frozen (rule 020) + schema-drift audit (R5)", "census(stock): EUR-Lex Task 4 — enumeration (10,676 in-force) + calibration sample". The "queue parked for Session E audit" is the DRAIN/review lane, a different session's branch, not this one. This lane cannot quote a commit it never wrote.
+
+3. The 66-vs-21 drain_worklist delta: the RECORD is drain_worklist = 66 rows, live. This lane never wrote to drain_worklist (it was explicitly PARKED and out of scope from the opening mandate, "Drain queue (66 rows) and the relabel-primitive spec REMAIN PARKED, untouched, separate mandate"). So 66 is true and this lane's non-involvement is total. The "21" comes from a close-report belonging to the review/remediation lane (its 21 B-reassignments, GROUP ②/③ verdicts, eu_clean_trucking, eu-csrd, scope-gate, SW-1, NCAER, AFDC, TNO/GreenBiz), none of which is this session's work or appears as a commit on this branch. That report is not reconcilable against this lane's record because it is not this lane's report.
+
+4. Lease state: 0 leases held anywhere (mutation_leases empty), 0 under this identity, 0 funded_pass_runlock. Clean.
+
+DELIVERABLES THIS SESSION (all landed): PR #366 (cap-completion, merged), PR #367 (exhaustion pass / R2 no-cap rule, merged), PR #368 (CI guards: fork-log rule 020 + schema-drift audit, merged), PR #369 (EUR-Lex stock Task 4 enumeration + calibration, open in CI at close). census_worklist 1,480 rows (1,331 flow + 149 stock-sample; 150 attempted, one cross-chapter document_url collision deduped by the idempotent upsert).
+
+CORPUS-WIDE STATE at close (NOT this lane's outputs, this lane minted/archived nothing; recorded for the count reconciliation only): archived items 0; verified 234; quarantined 126; drain_worklist 66.
+
+OPEN RESIDUE owned elsewhere, itemized so nothing exits unowned:
+- EUR-Lex stock full-pass-or-split ruling: OPERATOR (the 10,676 pass is not authorized; recommendation + cost projection in gap-census-2026-07.md and PR #369).
+- Tasks 5 (US eCFR/FR back-catalog + UK) and 6 (stock report): held pending the operator's Task 4 ruling; register APIs pre-confirmed reachable.
+- acquisition_backlog_v drift (caught by the new schema-drift guard): SESSION B (author its migration or drop the view).
+- census-exclude anti-join overflow at ~435 dispositioned rows; FR flow attributed to a DOT-document source row: SESSION B (tooling / source-identity, recorded not fixed).
+- ncleg 109 js_shell PDFs (R2(c) technical block, needs render path): re-walkable gap, operator decision.
+- The review/remediation lane close-out (items the completion-verification listed): that lane / SESSION B, not this one.
+
+Spend this session: $0 grounding, $0 Browserless, 0 mints; ~$0.48 Haiku (census-class classification, authorized). Ahead-zero, leases clean. Session closed.
