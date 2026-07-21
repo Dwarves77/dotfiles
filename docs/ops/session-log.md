@@ -1259,3 +1259,75 @@ Operator ruling R5 (guards authorized). Both built to the existing discipline-en
 Finding the guard caught on its first run (routes to Session B): one genuine drift — acquisition_backlog_v, a view over coverage_gap_candidates, live with no committed migration. The census tables correctly show no drift (burn closed). Allowlisted with a review-by tag pending its retroactive migration (or a drop if dead); the staleness check flags the entry when the migration lands.
 
 Spend: $0 (introspection + fs only). Lease state (session A): clean.
+
+## 2026-07-20, Session B (drain lane): eu_clean_trucking grounded free, CSRD drained, Japan Customs re-checked
+
+**Queue-state correction, reported before acting.** The dispatch described `drain_worklist` as holding 21
+rows after "Session A's final bank pushed." Verified live before starting: the table holds **66 rows**, and
+the newest `assigned_at` is 2026-07-18, matching Session A's STOP POINT commit (`3f730232`, drain queue
+parked for the Session E audit) rather than any later close-out. No close-report commit exists past that
+STOP POINT on Session A's branch or on master. The two items the dispatch named individually do check out
+(AFDC's regen-gap note matches verbatim; `eu_clean_trucking` is genuinely id-confirmed), so the instruction
+was actionable regardless and this pass proceeded on the real 66-row queue. Flagging the count discrepancy
+rather than silently reconciling it: the "21" and "final bank" framing do not correspond to any state this
+session can verify.
+
+**eu_clean_trucking_2024_1610 (8c186db2): GROUNDED FREE, 0 claims to 4.** The dispatch called this a clean
+executor ground and it was. Primary confirmed id-matched (`match/instrument-id`, score 1) against the full
+161K-char EUR-Lex CELEX:32024R1610 capture. Hand-extracted a 4-claim ledger covering all four required
+regulation slots, every span verified byte-exact against the staged capture BEFORE submission (a
+pre-submit `includes()` check on all four, not after the fact), then submitted through
+`executor-ground.mjs`'s `injectedLedger` seam so every system gate judged the extraction unchanged:
+effective_date (entry into force + 1 July 2024 application), jurisdictional_scope (Union-fleet CO2
+standards), primary_deadline (the 15% reduction for reporting periods 2025-2029, nearest binding
+milestone), penalty_summary (Article 13f administrative fines for intentional or seriously negligent data
+deviation). Result: **+4 FACTs added, 0 versioned-changed, all 4 kept by the verbatim filter, mint gates
+passed (0 hard-held, 1 soft numeric flag)**. $0, no fetch, no metered model.
+
+Item still reads `quarantined`, honestly: `validate_item_provenance` now fails only on criterion 4
+`unlabeled_assertion` in two sections (1 and 14), both PRE-EXISTING prose defects unrelated to the new
+claims. Section 1 is a bare "The brief applies to workspaces operating road freight transport..." scope
+sentence; section 14 is a milestone TABLE whose rows trip the binding-verb regex. Neither is fixable by a
+metadata write: per Session A's own parked finding, an ANALYSIS relabel requires the matching label in the
+brief's PROSE, and `relabel-unlabeled.mjs` explicitly refuses table rows. **Left for the relabel-manual
+primitive Session A specced and parked; not hand-patched.** The grounding half of this item is now done, so
+when that primitive lands this item should clear immediately.
+
+**eu-csrd-transport-sector-implementation (f0833999): DRAINED, 3 claims versioned out.** Primary
+id-confirmed (`CELEX:32022L2464`). drain-clear found and applied real mechanical exits: **2
+proven_inaccurate** (both cite Directive (EU) 2026/470, a foreign instrument, spans absent from the
+id-confirmed 2022/2464 primary, textbook cross-instrument conflation) and **1
+orphaned_no_prose_referent** (an ESRS E1 ANALYSIS claim annotating no prose paragraph, slot-safe). All
+three archived to `claim_versions` with proof before deletion (non-destructive). 30 claims to 27. Still
+quarantined on 18 relabel-manual FACTs (`fact_below_authority_floor`), the same parked class.
+
+**ad4cc6c6 (Japan Customs): re-checked, still judgment, note corrected.** Its `drain_worklist` note was
+STALE, written before Session A's bank-7 fix. Verified at the DB: the retitle and repoint have landed
+(jurisdiction correctly `[JP]`, primary now the FY2026 tariff schedule index). But the id question is
+unchanged, and the new primary answers it against itself: it states verbatim "This information is for
+reference only, not for official use. Please refer to the relevant statutory publications in Japanese for
+confirmation." That is a non-legal reference index, not a numbered instrument; nothing id-stampable
+exists on it. Reassigned with a corrected, current-state note naming the two real options (accept as a
+non-binding operational reference with a corrected `item_type`, or acquire the Japanese statutory
+publication the page itself points to). Per the dispatch, conflation-separation judgment rows like this
+and c4 route onward, not resolved here.
+
+**AFDC (4a108d70): confirmed NOT mechanically actionable, no tool exists.** Searched the full
+`scripts/_reground/` toolset and the wider repo for any regenerate-brief-from-existing-claims path: none
+exists. Turning 33 grounded claims into `full_brief` prose is LLM synthesis, which is metered spend and
+outside this lane's $0 mandate. Its existing note already describes the correct action precisely;
+left untouched rather than hand-writing brief prose ad-hoc (which would be exactly the
+metadata-vs-prose divergence the campaign exists to eliminate).
+
+**COUNTS this bank:** 66 worklist rows at start and end (drain-clear does not remove rows; disposition is
+recorded on the item). 1 item grounded free (+4 FACTs, 0 to 4). 1 item drained (3 claims versioned out,
+30 to 27). 1 item reassigned with a corrected note. 1 item confirmed blocked with the blocker named. 0
+promotions (nothing new was id-stampable this pass). Lease state (session B): clean, verified 0 rows in
+`mutation_leases` at bank. Spend: **$0** (free executor path + grep/introspection only; zero Browserless,
+zero metered model, zero fetches).
+
+**Standing blocker, restated because it now gates two items this bank touched:** the relabel-manual
+primitive is the single highest-value unblock in this queue. `eu_clean_trucking` and `eu-csrd` are both
+now mechanically complete and sit quarantined only on prose-label defects. Session A specced the tool
+(adapt `phase2-analysis-relabel.mjs`'s byte-precise, inverse-diff-verified insertion to a
+drain_worklist-scoped precondition) and correctly refused to ad-hoc it. That spec is still owed.
