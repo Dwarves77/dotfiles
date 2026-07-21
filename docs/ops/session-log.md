@@ -1408,3 +1408,87 @@ than an in-flight scope extension.
 Counts this bank: 1 primitive built (2 files) + 1 golden (17 tests), 1 item relabeled (1 claim FACT ->
 ANALYSIS, gate 3 -> 2), 0 items cleared to verified, 66 worklist rows unchanged. Lease state (session B):
 clean. Spend: **$0**.
+
+---
+
+## 2026-07-21, Session B, capture-completeness-by-structure spot-check + provenance challenge answered
+
+**PROVENANCE CHALLENGE, answered read-only.** The operator's hypothesis was that this session had been
+quality-judging items from census fragments (titles, index metadata, one-line descriptions) and reporting
+those judgments at capture-grade confidence. **Refuted on the record, with one real weakness the hypothesis
+did not name.** Every count was computed over `intelligence_item_sections.content_md`, the full stored brief
+prose, 1,717,067 bytes across the 66 rows. No title, URL, or census field entered any determination. But
+full stored PROSE is not a full id-confirmed CAPTURE: the sweep never read `raw_fetches` at all, and it did
+not gate on capture existence. **15 of the 66 swept items have no `raw_fetches` row via `sources_used`; 8
+have no pool rows at all.** What was computed about them is only the stored-text substring test, but the
+counts were reported without that qualifier, which is the incomplete-report defect.
+
+**Numbers corrected.** Recount: **761 below-floor / 241 eligible / 520 residual**, 32 of 66 items (prior
+report: 754/237/517). Delta +7/+4/+3. Any decision keyed to "237" should use 241.
+
+**NEW STANDING RULE, evidence-tier labeling** (operator, this date): every count, categorization, or quality
+determination states its tier inline, VERIFIED (full id-confirmed captures) / METADATA (index fragments,
+titles, classifications, thin text) / INFERRED (neither). METADATA-tier findings are triage, never
+verification, and are reported only as candidates-for or candidates-against, never as source quality. A
+number without its tier is an incomplete report. Extends label-is-not-proof: **tiny-text-is-not-the-text.**
+
+**COMPLETENESS SPOT-CHECK, 10 smallest captures. The dispatch's binary did not fit the data, and the third
+class is the finding.** Zero of the 10 are COMPLETE-SHORT-INSTRUMENT and zero are SUSPECT-TRUNCATED. All 10
+are **PORTAL-OR-SECONDARY**: the capture is a complete website page that never contained the instrument.
+Evidence, VERIFIED tier, mechanical over the stored pool: 10/10 carry zero structural end-markers (no
+"Done at", no entry-into-force clause); 9/10 carry zero `Article N` references; the tails are cookie
+banners, privacy-policy footers, "Follow us" chrome, and in one case a raw HTML template comment. These are
+not truncations. A truncated instrument ends mid-article; these end in site furniture, which is what a
+complete capture of the wrong document looks like.
+
+Worst cases, each named because the shape differs:
+
+- **`120529b8`** (ITF 2019 General Rules, guidance). The ACTUAL instrument is in the pool,
+  `revised_general_rules_text_2019.pdf`, at **386 characters**, a PDF/JS stub. The brief was then built
+  from `itf-oecd.org/our-structure` (13,619) and **Wikipedia** (11,477). The right document was reached,
+  came back empty, and chrome around it was grounded instead.
+- **`g15`** (Colombian Ministry of Transport, item_type `regulation`). All four `mintransporte.gov.co` URLs
+  are 292-361 char stubs. Substituted with an NGO blog (`changing-transport.org`) and UNEP. A regulation
+  with no reachable primary.
+- **`uae-national-hydrogen-...-decree`** (item_type `regulation`). Grounded on two law-firm client briefings
+  (Norton Rose 13,999 / CMS 14,000). This is the F1 regression shape the roadblock-resilience category
+  exists to foreclose: primary unreachable, explainer grounds the reg fact.
+- **`c7` (SBTi), `c6` (GHG Protocol), `g8` (EPA SmartWay), `85a7a629` (IPCC)**: duplicate captures at
+  identical byte length under trailing-slash and `www.` variants (11915 x2, 3761 x2, 4803 x2, 5685 x2). The
+  `url-canon` single-home is not deduplicating these. One pool URL is literally malformed,
+  `https://ipcc.ch/reports.*`, a regex fragment persisted as a URL.
+
+**Category-error guard, stated so the next session does not repeat it:** four of the 10 are `regional_data`,
+`standard`, or `research_finding`, item types that have no articles and no entry-into-force clause. The
+article-range and end-marker tests are INAPPLICABLE to them and were not scored against them. An
+instrument-structure test applied to a non-instrument would manufacture a false positive.
+
+**Truncation risk is at the OTHER end of the distribution.** Full population census, all 2,885 pool rows,
+paged past the 1000-row default cap (the first count hit that cap and was corrected before use): **106 rows
+at exactly 40,000 characters, 57 more between 39,900 and 39,999. 163 rows, 5.6 percent, at or against the
+cap.** The small captures are portal defects; the cap-truncation defect lives in the large ones. Both
+sweeps should treat these as separate populations.
+
+**Disposition: all 10 route to the acquisition lane for re-capture, same as the no-primary bucket. Zero
+cleared to sweep.** Added to that bucket, the 8 zero-pool items already named (brazil, australia, and
+china regional-operations-profiles, o12, t5, bcd84403, r1, c9).
+
+**SWEEPS NOT RUN, two blocking reasons, neither discretionary.** (1) The cleared set from this check is
+empty. (2) A real defect surfaced in the relabel primitive while answering the challenge: `planRelabel`
+**throws** on item `0f46aabf`, claim `9199ae83` is individually locatable but not after a prior marker
+insertion in the same section `b1448c39`. Overlapping claim spans, an insertion lands inside a later
+claim's text. The 17-test golden does not cover overlapping spans. The primitive is NOT safe to run across
+the 32-item set until this is fixed, and it would have aborted mid-item on at least one of the 32.
+
+**HARDENING LEDGER CANDIDATE: capture-completeness-by-structure (acquisition gate).** Proposed, not built.
+A capture qualifies as a primary only if it carries the structural signature of the instrument it claims to
+be: end-markers present, self-referenced article range reachable, no cap-length signature, no chrome-only
+tail. Size alone is not the test and neither is HTTP 200, every one of these 10 fetched successfully. The
+test applies per item_type, since non-instrument types have no such structure. Related existing signals it
+should compose with rather than duplicate: `detectRoadblock` (the sub-200ch stub rule) catches the 386-char
+PDF but did not prevent the substitution; `raw_fetches` rows at `html_bytes=0` with `http 202` and the
+empty-string SHA-256 `e3b0c442...` are a distinct always-invalid capture signature worth failing closed on.
+
+Counts this bank: 0 items cleared, 0 items relabeled, 0 corpus writes, 18 items routed to acquisition
+(10 portal-or-secondary plus 8 zero-pool), 1 primitive defect surfaced, 1 count correction, 66 worklist
+rows unchanged. Lease state (session B): clean. Fetches: **0**. Spend: **$0**.

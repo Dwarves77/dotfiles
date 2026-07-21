@@ -1256,3 +1256,28 @@ fixes landed mid-sweep: keyset --census-exclude URL-blowup workaround, census-wr
 preservation (+3 tests), dedup->dedup_hit disposition mapping (+1 test, table-wide sweep, 0 residuals),
 EUR-Lex cap_hit correction. Rollup consumption: Session B's census_rollup_by_surface view self-activates
 on these rows; population ruling on the 110 relevant would-mints is the operator's next decision point.
+
+## Session B, capture-completeness spot-check: PORTAL-OR-SECONDARY defect confirmed (2026-07-21)
+
+Read-only bank, zero fetches, zero corpus writes, $0.
+
+**The 10 smallest captures in the drain queue are not small instruments and are not truncated. They are
+complete captures of the wrong document.** 10/10 carry zero instrument end-markers, 9/10 zero `Article N`
+references, tails are cookie banners and site footers. All 10 route to acquisition for re-capture, joining
+the 8 zero-pool items, 18 total. This is the PORTAL-SOURCE defect confirmed with structural evidence rather
+than inferred from tier.
+
+**Truncation is a separate population at the opposite end:** 163 of 2,885 pool rows (5.6%) sit at or
+against the 40,000-character cap. Small-capture defects and cap-truncation defects need different sweeps.
+
+**Blocking defect in the relabel primitive:** `planRelabel` throws on overlapping claim spans within one
+section (item `0f46aabf`). The 32-item sweep is NOT safe to run until fixed; the 17-test golden lacks this
+case. **The pending operator decision on the 32-item / 241-claim sweep should be held until it is.**
+
+**Counts corrected:** 761 below-floor / 241 eligible / 520 residual (prior report 754/237/517).
+
+**New standing rule in force, all sessions:** evidence-tier labeling, every count states VERIFIED /
+METADATA / INFERRED inline. A number without its tier is an incomplete report.
+
+**Hardening ledger candidate, proposed not built:** capture-completeness-by-structure as an acquisition
+gate. HTTP 200 and non-trivial byte count are both insufficient; all 10 defective captures fetched cleanly.
