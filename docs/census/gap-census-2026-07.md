@@ -4,8 +4,9 @@
 across 39 sources to `census_worklist`; the exhaustion pass proved every source is MEASURED (walked to
 exhaustion under the R2 no-cap rule) or carries an honest R2 stop-reason, with no floors-by-policy
 remaining (`cap_hit` cleared to `false` on every row). Every `candidate` row carries either a census
-disposition or a named fetch-failure class (109 ncleg js_shell PDFs + a small nav/404 residue remain
-re-walkable, see the Final per-source measurement section). The STOCK universe (in-force law predating the
+disposition or a named fetch-failure class (the 109 ncleg js_shell PDFs were render-completed 2026-07-21 —
+108 repealed dead law + 1 sub-section, all not_an_item, 0 remaining; a small nav/404 residue is the only
+re-walkable remainder, see the Final per-source measurement section). The STOCK universe (in-force law predating the
 flow window) is a separate mandate now in progress (Tasks 4-6); flow measures what held sources currently
 publish, not the standing body of law. Session C (discovery, fetch-light lane) ran its
 three-sweep mandate to completion (81 rows in `coverage_gap_census_findings`) and is now idle; per-surface
@@ -50,6 +51,91 @@ market_intel/research), columns `enumerated_held_sources`, `held`, `missing_from
 `other_dispositioned_held_sources`, `undispositioned_held_sources` (all from `census_worklist`) and
 `enumerated_world`, `missing_from_world`, `pending_on_session_a`, `declined_or_parked_world` (all from
 `coverage_gap_census_findings`). Recomputed live on every `SELECT`, never hand-tallied.
+
+## Stock census (in-force law, Tasks 4-6) — separate axis from the flow census
+
+The flow census above measures what held sources currently PUBLISH (this week's register output). It cannot
+see the STOCK: the standing body of in-force law that predates the census window (a 2023 instrument never
+appears in this week's OJ walk). The stock mandate (operator, 2026-07-20) measures that standing universe
+per register. Same census discipline: enumerate, classify against the four page contracts, dryRun through
+the mint chokepoint, census-write with the would_mint split, dedup against corpus + Session C sweep4, zero
+mints, zero grounding, zero metered spend on enumeration.
+
+### EUR-Lex stock universe (SPARQL, query date 2026-07-20)
+
+Enumerated via the EU Publications Office SPARQL endpoint (`publications.europa.eu/webapi/rdf/sparql`), NOT
+the `eur-lex.europa.eu` HTML site (which is bot-walled, HTTP 202, per the flow-census finding). The SPARQL
+data endpoint responds normally, confirming the wall is confined to the HTML site. Filter:
+`cdm:resource_legal_in-force = "true"` classified under `cdm:resource_legal_is_about_concept_directory-code`
+whose code falls in one of the five freight-relevant chapters. Regulations, directives, decisions, and
+implementing/delegated acts all counted.
+
+| Directory chapter (dir-eu-legal-act) | In-force instruments |
+|---|---|
+| 02 Customs Union & free movement of goods | 2,387 |
+| 07 Transport policy | 1,773 |
+| 09 Taxation | 503 |
+| 12 Energy | 704 |
+| 15 Environment, consumers & health protection | 5,570 |
+| **Distinct union (deduped across chapters)** | **10,676** |
+
+The naive per-chapter sum (10,937) exceeds the distinct total (10,676) because instruments classify under
+more than one chapter (FuelEU Maritime is coded under both 07 Transport and 15 Environment). This is the
+enumerate-universe, not the freight-relevant-gap count: the directory-code walk over-enumerates on
+structure exactly like the Federal Register flow walk (mostly narrow implementing/delegated acts); the
+domain-relevance split is downstream at classification.
+
+**Status: CALIBRATION SAMPLE COMPLETE (2026-07-20); full pass awaiting operator ruling.** 10,676 crosses
+the 10,000 finish-or-defer threshold, so per operator ruling a stratified sample ran first (30 per chapter,
+drawn across act types proportional to each chapter's composition), metadata-classified via the real
+chokepoint (`firstFetchClassify` on a title + subject-matter + EuroVoc + resource-type blob, then
+`applyStagedUpdate` dryRun, no per-doc HTML fetch so the wall is never hit). 150 instruments, Haiku spend
+$0.48, zero mints, zero grounding. All 150 dispositions written to `census_worklist`
+(`created_by='session-A-stock-sample'`, idempotent).
+
+**Per-chapter calibration results:**
+
+| Chapter | In-force universe | Sampled | Freight-relevant hit-rate | Relevant would_mint | Low-relevance would_mint | not-an-item |
+|---|---|---|---|---|---|---|
+| 07 Transport | 1,773 | 30 | 30% | 9 | 20 | 1 |
+| 15 Environment | 5,570 | 30 | 10% | 3 | 27 | 0 |
+| 12 Energy | 704 | 30 | 7% | 2 | 28 | 0 |
+| 02 Customs | 2,387 | 30 | 3% | 1 | 27 | 2 |
+| 09 Taxation | 503 | 30 | 3% | 1 | 29 | 0 |
+| **Total** | **10,676 (distinct)** | **150** | **10.7%** | **16** | **131** | **3** |
+
+The chokepoint passes nearly everything as `would_mint` (the mint gates are structural, not relevance
+gates); the freight-relevance discriminator is the relevance floor, so the load-bearing column is the
+relevant/low-relevance split, exactly as for the register-class flow sources. Hit-rate at n=30 carries a
+wide confidence interval, read these as directional. Dedup (`exists`) was 0 and Session C sweep4 overlap 0
+across the sample; this is EXPECTED at sample scale (150 random draws against roughly 68 held EU corpus
+items in a 10,676 universe), NOT the full-walk anomaly signal, the full walk SHOULD produce dedup hits
+against the held EU items and a zero there would be the anomaly to flag.
+
+**Metadata-quality check (operator step 3, judgment read of the 16 relevant-classified instruments against
+their actual titles):** metadata-only classification holds up. The known-relevant control (FuelEU Maritime,
+CELEX 32023R1805) scored relevance 95 with surface_tags [regulations, market_intel, operations]. Of the 16
+sample relevant hits, roughly 10 are solid (AETR road-crew hours, TIR Convention, EC-EFTA customs
+formalities, duty-free vehicle fuel, dangerous-goods/ADR transport, COVID driver-hours derogation, rail
+cooperation, RED II RFNBO delegated act, ETS free-allocation implementing, transport-rate discrimination),
+roughly 4 are marginal (keyword over-score on an EEA annex amendment, vehicle sound-level, an agency funding
+act, a vehicle-CO2 provisional calculation), and 2 are clear false positives, both language corrigenda
+("correcting the Romanian/German language version of ...") that over-scored off the underlying instrument's
+subject. The false-positive mode is specific and detectable: a corrigendum-exclusion (resource-type or a
+"correcting the ... version" title filter) would lift precision in the full pass. This validates the method
+for the Task 5 registers too, not just EUR-Lex.
+
+**Recommended treatment (the full-pass-or-split ruling is the operator's, on these numbers):** metadata
+classification is cheap (full 10,676 pass projects to roughly $35 Haiku), so cost is not the binding
+constraint, wall-clock is (roughly 8 to 16 hours of foreground chunks at about 2.5 to 5s per instrument,
+which exceeds the R2 "full day of chunks" bound for a single register). The narrow implementing/delegated
+mass is NOT wholesale-skippable: the 3% customs and taxation hits are exactly the CBAM/ETS-implementing
+needle class the operator flagged, so a chapter-level skip would lose real freight cost-exposure
+instruments. Recommendation: full-classify all five chapters with a corrigendum-exclusion filter added;
+if a split is preferred, run Transport (30%) and Environment (10%) first (they hold roughly 1,090 of the
+roughly 1,225 projected relevant instruments, the bulk of the yield), then Customs/Energy/Taxation as a
+second wave. Projected relevant-instrument yield per chapter (hit-rate times universe, directional):
+Transport roughly 530, Environment roughly 560, Customs roughly 70, Energy roughly 50, Taxation roughly 15.
 
 ## Universe scope per source (Session A enumeration method)
 
@@ -227,7 +313,7 @@ There are no floors-by-policy anywhere in the census.
 |---|---|---|---|---|
 | NSW EPA | single-page harvest, uncapped | 220 | MEASURED | re-harvested at no cap 2026-07-20 → 220 (below ceiling); supersedes the prior "200 AT CAP" floor |
 | SC DES Bureau of Air Quality | single-page harvest, uncapped | 164 | MEASURED | 164 below cap |
-| NC General Assembly (ncleg Ch. 136) | single-page harvest, uncapped | 145 | MEASURED (cap); 109 fetch-blocked | 145 below cap. 109 per-section /PDF/ candidates all fail direct fetch (js_shell) — R2(c) technical block, deferred as a re-walkable gap (needs the Browserless render path, operator decision) |
+| NC General Assembly (ncleg Ch. 136) | single-page harvest, uncapped; render-completed | 145 | MEASURED + COMPLETE | 145 below cap; all 145 dispositioned. The 109 R2(c) js_shell candidates were completed 2026-07-21 via the Chrome render path (challenge resolved, ncleg's parallel HTML statute view fetched with credentials): FINDING — 108 of 109 are REPEALED/RESERVED/TRANSFERRED statute sections (dead law; the Chapter 136 index lists repealed section numbers, each PDF a short repeal notice), and 1 is a substantive sub-section (GS 136-135, illegal-outdoor-advertising enforcement, snapshotted to raw_fetches). All 109 disposition not_an_item — the "gap" was an extractor artifact, not a real freight-instrument gap. 0 uncensused candidates remain |
 | Australian Government Infrastructure | single-page harvest, uncapped | 128 | MEASURED | 128 below cap |
 | Federal Register / DOT | register JSON API, unbounded pagination | 278 RULE (window 2026-06-22..07-17) | MEASURED / EXHAUSTED | API paginated to exhaustion (3 pages, 0 dropped); the FR API is not subject to the 40-link cap. All 278 already accounted (275 censused + 3 promoted). The census's 435 dispositioned FR rows superset this window |
 | EUR-Lex OJ daily-view | per-day HTML walk | not measurable via plain HTTP now | R2(c) technical block; superseded_by_stock_walk | plain-HTTP daily-view returns HTTP 202 + a 2035-char JS-shell stub for every probed day (2026-07-20); the 157 flow candidates were captured 2026-07-19 before the wall and are dispositioned. `render_path_available = true` (a Chrome-rendered fetch of the 17 Jul L-series view returned the full instrument list). True EUR-Lex exhaustion is delivered by the stock walk (Task 4, CELEX API, not governed by the page-level wall), not by re-walking the daily view |

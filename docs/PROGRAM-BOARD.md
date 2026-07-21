@@ -1020,6 +1020,39 @@ registry. Full discipline suite 896/0 incl. the meta-gate.
   (or a drop if it is dead); the staleness check will flag the allowlist entry the moment the migration
   lands. Route to B: author the migration or drop the view.
 
+### Task 4 — EUR-Lex STOCK enumeration + calibration sample (2026-07-20)
+
+The flow census measures what held sources publish this week; it structurally cannot see the STOCK (in-force
+law predating the window). Task 4 measures the EUR-Lex stock universe via the Publications Office SPARQL
+endpoint (`publications.europa.eu`, which responds normally, the wall is confined to the `eur-lex.europa.eu`
+HTML site). In-force instruments under the five freight chapters: Customs 2,387 / Transport 1,773 /
+Taxation 503 / Energy 704 / Environment 5,570, distinct union **10,676**.
+
+10,676 crossed the 10,000 finish-or-defer threshold → operator ruled **sample-first calibration**. A
+stratified sample (30 per chapter, across act types proportional to composition) was metadata-classified
+through the REAL chokepoint (`firstFetchClassify` on a title + subject-matter + EuroVoc + resource-type
+blob, then `applyStagedUpdate` dryRun, no per-doc HTML fetch so the wall is never hit). 150 instruments,
+Haiku $0.48, zero mints, zero grounding, all 150 dispositions written to `census_worklist`
+(`created_by='session-A-stock-sample'`, idempotent). Harness: `scripts/census-stock-sample.mjs`.
+
+- **Freight-relevant hit-rate by chapter:** Transport 30% (9/30), Environment 10% (3/30), Energy 7% (2/30),
+  Customs 3% (1/30), Taxation 3% (1/30). Total 16/150 = 10.7% relevant; the rest pass as `would_mint` but
+  low-relevance (the mint gates are structural, the relevance floor is the freight discriminator).
+- **Metadata-quality check (step 3):** validated. Control FuelEU Maritime scored relevance 95. Of the 16
+  relevant hits, ~10 solid (AETR, TIR, customs formalities, dangerous-goods/ADR, RED II RFNBO, ETS
+  free-allocation, ...), ~4 marginal, 2 false positives (both language corrigenda over-scoring off the
+  underlying subject) — a specific, detectable precision leak; a corrigendum-exclusion lifts the full pass.
+- **Dedup 0 in the sample** (corpus `exists` + sweep4 overlap) is EXPECTED at 150 random draws vs ~68 held
+  EU items; NOT the full-walk anomaly signal (a zero-dedup FULL walk against the held EU set would be).
+- **Recommendation (full-pass ruling is the operator's, on these numbers):** cost is not binding (full pass
+  ≈ $35 Haiku); wall-clock is (~8-16 hrs foreground, exceeds the R2 day-of-chunks bound). The narrow
+  implementing/delegated mass is not wholesale-skippable (the 3% customs/taxation hits are the
+  CBAM/ETS-implementing needle class). Recommend full-classify all five with a corrigendum filter; else
+  Transport + Environment first (~1,090 of ~1,225 projected relevant), then the rest. **The full 10,676
+  pass is NOT authorized until the operator rules.** Tasks 5 (US eCFR/FR/UK) and 6 (stock report) follow
+  the ruling; API reachability for all three US/UK registers was pre-confirmed (eCFR versioner, FR API, UK
+  legislation Atom all HTTP 200).
+
 ---
 
 ## Session B, resume sync, session-log reconciliation, census-lane mandate opened (2026-07-19)

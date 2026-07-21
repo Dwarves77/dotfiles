@@ -1259,3 +1259,57 @@ Operator ruling R5 (guards authorized). Both built to the existing discipline-en
 Finding the guard caught on its first run (routes to Session B): one genuine drift — acquisition_backlog_v, a view over coverage_gap_candidates, live with no committed migration. The census tables correctly show no drift (burn closed). Allowlisted with a review-by tag pending its retroactive migration (or a drop if dead); the staleness check flags the entry when the migration lands.
 
 Spend: $0 (introspection + fs only). Lease state (session A): clean.
+
+## 2026-07-20, Session A (intake-census lane): Task 4 — EUR-Lex STOCK enumeration + calibration sample
+
+Stock mandate opened (measures in-force law predating the flow window). EUR-Lex enumerated via the Publications Office SPARQL endpoint (publications.europa.eu responds normally; the wall is confined to the eur-lex.europa.eu HTML site). In-force across the five freight chapters: Customs 2,387 / Transport 1,773 / Taxation 503 / Energy 704 / Environment 5,570, distinct union 10,676. That crossed the 10,000 finish-or-defer threshold, so per operator ruling a sample-first calibration ran.
+
+Stratified sample: 30 per chapter across act types (proportional), metadata-classified through the real chokepoint (firstFetchClassify on a title + subject-matter + EuroVoc + resource-type blob, then applyStagedUpdate dryRun; no per-doc HTML fetch, so the wall is never hit). Harness scripts/census-stock-sample.mjs. 150 instruments, Haiku $0.48, zero mints, zero grounding; all 150 dispositions written to census_worklist (created_by='session-A-stock-sample', idempotent).
+
+Results: freight-relevant hit-rate Transport 30% / Environment 10% / Energy 7% / Customs 3% / Taxation 3% (16/150 = 10.7% relevant). Metadata-quality check (step 3) validated: control FuelEU scored 95; of 16 relevant hits ~10 solid, ~4 marginal, 2 false positives (both language corrigenda, a detectable over-score mode → corrigendum-exclusion recommended). Dedup 0 is expected at sample scale, not the full-walk anomaly signal.
+
+Recommendation (full-pass ruling is the operator's, on these numbers): cost not binding (full pass ~$35 Haiku), wall-clock is (~8-16 hrs foreground, exceeds the R2 day-of-chunks bound); the narrow implementing/delegated mass is not wholesale-skippable (3% customs/taxation hits are the CBAM/ETS-implementing needle class). Recommend full-classify all five with a corrigendum filter, else Transport + Environment first. Full pass NOT authorized until the operator rules. Tasks 5/6 follow; US eCFR/FR + UK legislation APIs pre-confirmed reachable (all HTTP 200).
+
+Spend: $0.48 Haiku (census-class, authorized). Lease state (session A): clean.
+
+## 2026-07-21, Session A (intake-census lane): session close + reconciliation bank
+
+Close-out reconciled from the record (git + DB), not from a report. This lane's mandate was the census: the exhaustion pass, the two CI guards, and the EUR-Lex stock enumeration + calibration. It was NOT the review/drain/remediation lane.
+
+RECONCILIATION of the four questions raised at close:
+
+1. Uncommitted/unpushed close-out work in this tree: NONE. Branch corpus-integrity/intake-census is ahead-zero, fully pushed (0/0 vs origin, HEAD 1e8b0ea2). The only untracked paths (docs/dispatches/, fsi-app/docs/audits/corpus-integrity-census-2026-07-16.md, two fsi-app/scripts/_reground + _remediation scripts) belong to other lanes and were present at session start; this session never touched them. There is no separate "close-report bank" to land because this lane produced no such report; its work is the four census PRs, all committed and pushed.
+
+2. A "stop-point commit referencing a Session E audit": this branch has NO such commit. Every commit on it is census work (verbatim subjects): "census: cap-completion pass closed ...", "census: exhaustion pass — R2 no-cap rule ...", "discipline: two CI guards — fork-log frozen (rule 020) + schema-drift audit (R5)", "census(stock): EUR-Lex Task 4 — enumeration (10,676 in-force) + calibration sample". The "queue parked for Session E audit" is the DRAIN/review lane, a different session's branch, not this one. This lane cannot quote a commit it never wrote.
+
+3. The 66-vs-21 drain_worklist delta: the RECORD is drain_worklist = 66 rows, live. This lane never wrote to drain_worklist (it was explicitly PARKED and out of scope from the opening mandate, "Drain queue (66 rows) and the relabel-primitive spec REMAIN PARKED, untouched, separate mandate"). So 66 is true and this lane's non-involvement is total. The "21" comes from a close-report belonging to the review/remediation lane (its 21 B-reassignments, GROUP ②/③ verdicts, eu_clean_trucking, eu-csrd, scope-gate, SW-1, NCAER, AFDC, TNO/GreenBiz), none of which is this session's work or appears as a commit on this branch. That report is not reconcilable against this lane's record because it is not this lane's report.
+
+4. Lease state: 0 leases held anywhere (mutation_leases empty), 0 under this identity, 0 funded_pass_runlock. Clean.
+
+DELIVERABLES THIS SESSION (all landed): PR #366 (cap-completion, merged), PR #367 (exhaustion pass / R2 no-cap rule, merged), PR #368 (CI guards: fork-log rule 020 + schema-drift audit, merged), PR #369 (EUR-Lex stock Task 4 enumeration + calibration, open in CI at close). census_worklist 1,480 rows (1,331 flow + 149 stock-sample; 150 attempted, one cross-chapter document_url collision deduped by the idempotent upsert).
+
+CORPUS-WIDE STATE at close (NOT this lane's outputs, this lane minted/archived nothing; recorded for the count reconciliation only): archived items 0; verified 234; quarantined 126; drain_worklist 66.
+
+OPEN RESIDUE owned elsewhere, itemized so nothing exits unowned:
+- EUR-Lex stock full-pass-or-split ruling: OPERATOR (the 10,676 pass is not authorized; recommendation + cost projection in gap-census-2026-07.md and PR #369).
+- Tasks 5 (US eCFR/FR back-catalog + UK) and 6 (stock report): held pending the operator's Task 4 ruling; register APIs pre-confirmed reachable.
+- acquisition_backlog_v drift (caught by the new schema-drift guard): SESSION B (author its migration or drop the view).
+- census-exclude anti-join overflow at ~435 dispositioned rows; FR flow attributed to a DOT-document source row: SESSION B (tooling / source-identity, recorded not fixed).
+- ncleg 109 js_shell PDFs (R2(c) technical block, needs render path): re-walkable gap, operator decision.
+- The review/remediation lane close-out (items the completion-verification listed): that lane / SESSION B, not this one.
+
+Spend this session: $0 grounding, $0 Browserless, 0 mints; ~$0.48 Haiku (census-class classification, authorized). Ahead-zero, leases clean. Session closed.
+
+## 2026-07-21, Session A (intake-census lane): ncleg render-path completion + Session B residue handoff
+
+CONTINUATION item (1) — ncleg Chapter 136 R2(c) render path COMPLETE. The 109 GS_136 candidates blocked at R2(c) (js_shell on direct fetch) were completed via the Chrome render path: Chrome resolves ncleg's bot challenge, and ncleg serves a parallel HTML statute view alongside the PDF (/PDF/.../X.pdf -> /HTML/.../X.html), fetched with credentials from the resolved browser context. FINDING: 108 of 109 are REPEALED / RESERVED / TRANSFERRED statute sections (dead law — the Chapter 136 index lists repealed section numbers, each PDF a short repeal notice), and exactly 1 is a substantive in-force sub-section, GS 136-135 (illegal-outdoor-advertising enforcement, Class 1 misdemeanor), snapshotted to raw_fetches. The R2(c) block masked mostly-dead-law; it was an extractor artifact, not a real coverage gap. All 109 dispositioned not_an_item (108 dead-law with their specific repeal citations recorded; GS 136-135's single enforcement sub-clause is not a standalone mintable instrument per the entity gate). ncleg census_worklist now 145/145 complete, 0 uncensused candidates remaining. Executed script tracked at fsi-app/scripts/ncleg-chapter136-render-completion.mjs. Spend: 1 Haiku classify (GS 136-135) ~= $0.003; browser fetch free. Bridge note for the record: the browser->Node text bridge is capped by the tool-output display (~600ch); the 109 captures were moved out by injecting the JSON into the page DOM and reading it back via get_page_text.
+
+CONTINUATION item (2) — Session B residue handoff (one paragraph each so B's next scan needs no archaeology):
+
+- acquisition_backlog_v (schema drift). The new schema-drift CI audit (fsi-app/scripts/verify/schema-drift-audit.mjs, invariant RD-49, PR #368) flagged exactly one genuine drift on its first run: the view acquisition_backlog_v is LIVE in the public schema but has NO committed CREATE anywhere in fsi-app/supabase/migrations/. It is a view over coverage_gap_candidates (columns rank, instrument, jurisdiction, freight_relevance, coverage_class, disposition, surface_tags). ACTION for B: author a retroactive migration (CREATE OR REPLACE VIEW acquisition_backlog_v ... IF NOT EXISTS-safe, byte-matching the live definition via pg_get_viewdef), OR drop the view if it is dead. It is allowlisted in the audit with a review-by tag pending this; the staleness check will flag the allowlist entry to be removed the moment the migration lands. Zero customer impact; this is repo-hygiene closing the apply-then-commit-later window that burned the census twice.
+
+- census-exclude anti-join overflow at scale. The --census-exclude anti-join in consumePortalCandidates (fsi-app/src/lib/intake/portal-harvest.ts) builds a client-side NOT IN (...URLs...) list of every already-dispositioned census_worklist URL for a source. It works at the small per-source counts the flow census used, but it FAILS with an empty-message PostgREST ledger-read error at ~435 dispositioned rows for one source (hit live on Federal Register / DOT). ACTION for B: replace the client-built IN-list with a server-side anti-join (a NOT EXISTS RPC or a keyset-paginated exclusion) BEFORE the stock walk (Tasks 4-6) runs at scale, since the stock registers will far exceed 435 dispositioned rows per source. This is a tooling scaling limit, not a data problem.
+
+- FR source-identity smell. The Federal Register flow census is attributed to source_id d9e0948e-71c7-4234-9ab4-28302141826f, whose name is "Federal Register / U.S. Department of Transportation" and whose URL is a specific DOT RFI document, not the FR register root. A clean FR-root source row exists (dc907f90-0347-44c6-962b-ac052aef42f3, "Federal Register", url federalregister.gov/, 0 census rows). During the exhaustion pass the FR API re-walk's UNIQUE(url) upsert briefly reassigned ~272 FR candidate rows from d9e0948e to dc907f90; I reverted that exactly (source_id UPDATE back) to preserve census/candidate agreement on d9e0948e, but the underlying mis-attribution stands. ACTION for B: decide whether to consolidate the FR flow onto the clean dc907f90 root row (re-key the 435 census rows + the ledger candidates) or leave it; left as-is by the census lane to avoid a large re-keying mid-mandate. Cosmetic-to-moderate; matters if FR becomes a monitored source.
+
+Close state: leases clean (0), ahead-zero after push, census lane work complete. The EUR-Lex stock full-pass ruling and Tasks 5-6 remain with the operator / a dedicated classification session per the operator's note.
