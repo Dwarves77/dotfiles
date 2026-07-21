@@ -202,49 +202,82 @@ export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeO
   const outcomes: CandidateOutcome[] = [];
 
   const ascending = !opts.newestFirst;
-  let q = sb
-    .from("portal_link_candidates")
-    .select("id,url,anchor_text,source_id,first_seen_at,sources(name,category,base_tier)")
-    .eq("status", "candidate")
-    .order("first_seen_at", { ascending })
-    .order("id", { ascending })
-    .limit(limit);
-  if (sourceId) q = q.eq("source_id", sourceId);
-  // KEYSET PAGINATION (plan-mode only; read-only; no gate/mint/grounding logic touched). Resume strictly
-  // past opts.after in the (first_seen_at, id) total order the two .order() calls above establish — never
-  // an offset, which is positional and would skip or double-read rows if the ledger grows mid-walk.
-  if (opts.after) {
-    const op = ascending ? "gt" : "lt";
-    q = q.or(
-      `first_seen_at.${op}.${opts.after.firstSeenAt},and(first_seen_at.eq.${opts.after.firstSeenAt},id.${op}.${opts.after.id})`
-    );
-  }
-  // CENSUS EXCLUSION (plan-mode only, feature-detected). Excludes candidates already DISPOSITIONED in the
-  // census table (Session B's census_worklist), so an interrupted/re-run walk is naturally resumable and
-  // never double-classifies a candidate. The census table keys on (source_id, document_url) with completion
-  // marked by a non-null dryrun_disposition, so the anti-join matches on the candidate's URL. Scoped to this
-  // source when sourceId is set (the census table carries source_id). Fails CLOSED to NO exclusion when the
-  // table/column is absent (feature-detect) — plan mode does not own this table and must not throw on it.
-  if (opts.censusExclusion) {
-    const urlCol = opts.censusExclusion.column ?? "document_url";
-    const dispoCol = opts.censusExclusion.dispositionColumn ?? "dryrun_disposition";
-    let seenQ = sb.from(opts.censusExclusion.table).select(urlCol).not(dispoCol, "is", null);
-    if (sourceId) seenQ = seenQ.eq("source_id", sourceId);
-    const { data: seenRows, error: seenErr } = await seenQ;
-    if (!seenErr && seenRows?.length) {
-      const seenUrls = (seenRows as unknown as Array<Record<string, string>>).map((r) => r[urlCol]).filter(Boolean);
-      if (seenUrls.length) {
-        // PostgREST .in wants a parenthesised list; wrap each URL in double-quotes so reserved chars
-        // (commas, parens) in a URL cannot break the list grammar.
-        q = q.not("url", "in", `(${seenUrls.map((u) => `"${u.replace(/"/g, '""')}"`).join(",")})`);
-      }
+
+  // The keyset ledger query (used when NOT excluding, and as the feature-detect fallback when the
+  // server-side exclusion RPC is absent). `withClientExclusion` re-adds the pre-migration client-built
+  // NOT IN list so the fallback preserves the old behavior exactly.
+  const keysetQuery = async (withClientExclusion: boolean) => {
+    let q = sb
+      .from("portal_link_candidates")
+      .select("id,url,anchor_text,source_id,first_seen_at,sources(name,category,base_tier)")
+      .eq("status", "candidate")
+      .order("first_seen_at", { ascending })
+      .order("id", { ascending })
+      .limit(limit);
+    if (sourceId) q = q.eq("source_id", sourceId);
+    // KEYSET PAGINATION (plan-mode only; read-only). Resume strictly past opts.after in the
+    // (first_seen_at, id) total order — never an offset, which drifts if the ledger grows mid-walk.
+    if (opts.after) {
+      const op = ascending ? "gt" : "lt";
+      q = q.or(
+        `first_seen_at.${op}.${opts.after.firstSeenAt},and(first_seen_at.eq.${opts.after.firstSeenAt},id.${op}.${opts.after.id})`
+      );
     }
-    // seenErr (table absent / column mismatch) is swallowed BY DESIGN: cursor-only fallback (provisional
-    // shape — see the ConsumeOpts.censusExclusion doc; committed migration wins if it differs).
+    if (withClientExclusion && opts.censusExclusion) {
+      const urlCol = opts.censusExclusion.column ?? "document_url";
+      const dispoCol = opts.censusExclusion.dispositionColumn ?? "dryrun_disposition";
+      let seenQ = sb.from(opts.censusExclusion.table).select(urlCol).not(dispoCol, "is", null);
+      if (sourceId) seenQ = seenQ.eq("source_id", sourceId);
+      const { data: seenRows, error: seenErr } = await seenQ;
+      if (!seenErr && seenRows?.length) {
+        const seenUrls = (seenRows as unknown as Array<Record<string, string>>).map((r) => r[urlCol]).filter(Boolean);
+        if (seenUrls.length) {
+          q = q.not("url", "in", `(${seenUrls.map((u) => `"${u.replace(/"/g, '""')}"`).join(",")})`);
+        }
+      }
+      // seenErr (table absent / column mismatch) is swallowed BY DESIGN: cursor-only fallback.
+    }
+    return q;
+  };
+
+  // CENSUS EXCLUSION (plan-mode only). Excludes candidates already DISPOSITIONED in census_worklist so an
+  // interrupted/re-run walk is resumable and never double-classifies. SERVER-SIDE (migration 223): the RPC
+  // does the NOT EXISTS anti-join + keyset in ONE query, replacing the client-built NOT IN list that
+  // OVERFLOWED the PostgREST query at ~435 dispositioned rows per source (empty-message read error, hit
+  // live on Federal Register / DOT). The stock walk far exceeds 435 dispositioned rows per source, so the
+  // exclusion must not be client-built. Feature-detected: if the RPC is absent (pre-migration), fall back
+  // to the old client NOT IN path so this is non-breaking during the DDL window.
+  let candidates: LedgerCandidate[];
+  if (opts.censusExclusion) {
+    const { data: rpcRows, error: rpcErr } = await sb.rpc("next_uncensused_portal_candidates", {
+      p_source_id: sourceId ?? null,
+      p_limit: limit,
+      p_newest: !!opts.newestFirst,
+      p_after_first_seen: opts.after?.firstSeenAt ?? null,
+      p_after_id: opts.after?.id ?? null,
+    });
+    if (!rpcErr) {
+      candidates = ((rpcRows ?? []) as unknown as Array<Record<string, unknown>>).map((r) => ({
+        id: r.id as string,
+        url: r.url as string,
+        anchor_text: (r.anchor_text ?? null) as string | null,
+        source_id: r.source_id as string,
+        first_seen_at: r.first_seen_at as string,
+        sources: { name: (r.source_name ?? null) as string | null, category: (r.source_category ?? null) as string | null, base_tier: (r.source_base_tier ?? null) as number | null },
+      }));
+    } else if (/PGRST202|could not find|does not exist|Not Found/i.test(rpcErr.message ?? "")) {
+      // RPC not applied yet (DDL window): fall back to the pre-migration client exclusion path.
+      const { data: rows, error: qErr } = await keysetQuery(true);
+      if (qErr) throw new Error(`[portal-harvest] ledger read failed (exclusion fallback): ${qErr.message}`);
+      candidates = (rows ?? []) as unknown as LedgerCandidate[];
+    } else {
+      throw new Error(`[portal-harvest] census-exclusion RPC failed: ${rpcErr.message}`);
+    }
+  } else {
+    const { data: rows, error: qErr } = await keysetQuery(false);
+    if (qErr) throw new Error(`[portal-harvest] ledger read failed: ${qErr.message}`);
+    candidates = (rows ?? []) as unknown as LedgerCandidate[];
   }
-  const { data: rows, error: qErr } = await q;
-  if (qErr) throw new Error(`[portal-harvest] ledger read failed: ${qErr.message}`);
-  const candidates = (rows ?? []) as unknown as LedgerCandidate[];
 
   // Stamp a ledger disposition (apply mode only — plan is READ-ONLY by contract).
   const stamp = async (row: LedgerCandidate, status: "promoted" | "rejected", reason: string, itemId: string | null) => {
