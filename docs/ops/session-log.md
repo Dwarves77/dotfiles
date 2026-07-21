@@ -1331,3 +1331,80 @@ primitive is the single highest-value unblock in this queue. `eu_clean_trucking`
 now mechanically complete and sit quarantined only on prose-label defects. Session A specced the tool
 (adapt `phase2-analysis-relabel.mjs`'s byte-precise, inverse-diff-verified insertion to a
 drain_worklist-scoped precondition) and correctly refused to ad-hoc it. That spec is still owed.
+
+## 2026-07-20, Session B: relabel-manual primitive BUILT + proven; neither named item clears (honest result)
+
+Operator ruled GO on Session A's parked spec. Built, goldened, proven in production. **The headline result
+contradicts the dispatch's expectation and is reported first: NEITHER `eu_clean_trucking` NOR `eu-csrd`
+clears through this primitive, for two different and independently verified reasons.** The build is still
+correct and valuable; the two named items simply are not in its class.
+
+**BUILT.** Pure core `src/lib/agent/queue-relabel.mjs` + CLI `scripts/_reground/queue-relabel.mjs`. All
+decision logic is in the pure core so the golden proves it without a DB; the CLI owns only DB access,
+lease, transaction, audit. Inherited guardrails from `phase2-analysis-relabel.mjs` per A's spec: claim_text
+is NEVER written (no path exists); eligible only when claim_text is already a raw substring of its
+section's prose occurring EXACTLY ONCE (absent or ambiguous falls to honest residual, never guessed);
+insertion is pure, self-verified by inverse-diff; idempotent. Queue-scoped precondition replaces the old
+phase2 flag per A's spec: `--apply` refuses any item not in a live `drain_worklist` row, and requires the
+mutation lease (H5). Dry-run default. Prose is written BEFORE metadata deliberately: if the second write
+failed, the brief carries an over-labeled sentence (honest, conservative) rather than a bare assertion with
+analysis metadata, which is the exact divergence the tool exists to prevent.
+
+**GOLDENED, and the golden is proven load-bearing by mutation.** 17/17. First draft was 15/15 green, but
+mutation-testing it found a REAL GAP: a `.trimStart()` injected into the insertion path slid through
+untouched, because the fixture had no whitespace at the insertion point, so the mutation was a no-op there.
+Added a whitespace-adjacent case plus offset-0/end-of-string cases; the same mutation now fails at the
+diff-assert. Recording this because a golden that only ever passes proves nothing: the gap was in my test,
+found by trying to break my own code, and fixed before the tool touched data. Full discipline suite
+896 -> 913, 0 fail.
+
+**DELIBERATE DIVERGENCE from the reference, recorded in the code.** The reference additionally required
+priority CRITICAL/HIGH before treating a FACT as below-floor. The live validator no longer agrees: it
+reports `fact_below_authority_floor` on reg-family items at LOW priority too. This core matches the LIVE
+GATE, not the reference's older premise, and the alignment is verified: the core's below-floor count
+exactly equals the gate's failure count on both items tested (3/3 on 5b9b05c7 at LOW priority, 18/18 on
+eu-csrd at CRITICAL).
+
+**PROVEN IN PRODUCTION on one item (5b9b05c7, Florida DEP).** 1 eligible of 3 below-floor. Applied under
+lease; verified against the live DB afterward, not just against the plan: section grew by exactly one
+marker length (4982 -> 5006 ch, marker 24 ch); the INVERSE-DIFF HOLDS ON LIVE DATA (removing the marker at
+offset 3192 reproduces the prior content byte-for-byte); claim flipped FACT -> ANALYSIS; claim_text still
+present verbatim in the prose; the marker sits immediately before it. Gate failures 3 -> 2. Snapshot
+written before the write for reversibility.
+
+**WHY THE TWO NAMED ITEMS DO NOT CLEAR (both verified, not inferred):**
+- **`eu_clean_trucking`: out of scope by construction.** Its blocker is criterion-4 `unlabeled_assertion`
+  with ZERO below-floor FACTs. There is no claim to flip, so this primitive has nothing to act on. The two
+  offending sections are a bare scope sentence ("The brief applies to workspaces operating road freight
+  transport...") and a milestone TABLE whose rows trip the binding-verb regex. That is the 4c judge path
+  (`relabel-unlabeled.mjs`, which explicitly refuses table rows) or a prose correction, not this tool. The
+  CLI now detects and REPORTS this case explicitly rather than returning a silent no-op.
+- **`eu-csrd`: in the right class, but zero eligible.** 18 below-floor FACTs, ALL 18 refused as paraphrased
+  or table-formatted. Spot-checked to confirm the refusals are CORRECT rather than a locate bug: claim
+  `0a1bcd90` reads "prepared in a digital format and tagged for machine readability" while its prose reads
+  "prepared in XHTML format with XBRL tagging", a genuine paraphrase. The 1A raw-substring guardrail is
+  doing exactly its job by refusing to guess. This is the same ~76% residual the reference tool documented.
+
+**QUEUE-WIDE MEASUREMENT (read-only sweep, so the build's value is a number rather than an assumption):**
+across all 66 rows, **754 below-floor FACTs, 237 mechanically eligible (31%), 517 honest residual (69%),
+32 of 66 items carrying at least one eligible claim.** So the primitive has real reach; it simply does not
+happen to reach the two items the dispatch named.
+
+**NOT DONE, and deliberately not assumed: the 32-item / 237-claim sweep.** The authorization was scoped to
+clearing two specific items. Neither cleared, and applying to 32 other items is a far larger blast radius
+than was authorized, so it is NOT being taken unilaterally. Worth noting for the decision: partial relabels
+mostly will NOT flip items to verified (an item with 4 eligible and 21 residual still fails the floor on
+the 21), but each relabeled claim does stop a below-floor fact being presented to a customer as verified
+fact, which is a real honesty gain independent of status. **Operator call owed on whether to run the
+sweep.**
+
+**Also observed, flagged not acted on:** at least one below-floor FACT sits under prose that ALREADY
+carries an `*Analytical inference:*` label while its metadata still says FACT (claim `0a1bcd90`). That is
+the inverse divergence, and for that sub-class the metadata flip alone would be correct with no prose edit
+at all. Not built: identifying "this claim corresponds to that already-labeled paragraph" without a
+verbatim match is exactly the ambiguity the 1A guardrail refuses, so it needs a deliberate decision rather
+than an in-flight scope extension.
+
+Counts this bank: 1 primitive built (2 files) + 1 golden (17 tests), 1 item relabeled (1 claim FACT ->
+ANALYSIS, gate 3 -> 2), 0 items cleared to verified, 66 worklist rows unchanged. Lease state (session B):
+clean. Spend: **$0**.
