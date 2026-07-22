@@ -88,23 +88,35 @@ async function holdRow(sb, row, reason) {
 }
 
 // The diff-on-recapture guard: every grounded FACT span (section_claim_provenance rows on THIS pool row) that
-// matched the old capture must still .includes()-match the fresh capture. Returns { ok, missing }.
+// matched the old capture must still .includes()-match the fresh capture. Returns { ok, missing, error }.
+// ERROR-SWALLOW GUARD (agent/run error-swallow post-mortem, CLAUDE.md): the `error` is destructured and checked.
+// If it were dropped, a failed read would leave `spans` undefined, the loop would iterate nothing, and the guard
+// would PASS VACUOUSLY — an UNGUARDED replacement over a query failure. On any query error the row is treated as
+// un-verifiable (ok:false + error), so the caller HOLDS and keeps the old capture rather than replacing blind.
 async function factSpansStillMatch(sb, poolRowId, newText) {
-  const { data: spans } = await sb.from("section_claim_provenance")
+  const { data: spans, error } = await sb.from("section_claim_provenance")
     .select("source_span").eq("search_result_id", poolRowId).eq("claim_kind", "FACT");
+  if (error) return { ok: false, missing: [], error: error.message };
   const missing = [];
   for (const s of spans || []) {
     const span = (s.source_span || "").trim();
     if (span && !newText.includes(span)) missing.push(span.slice(0, 80));
   }
-  return { ok: missing.length === 0, missing };
+  return { ok: missing.length === 0, missing, error: null };
 }
 
 async function execute(worklist) {
   const sbRead = readClient();
   // GATE: EXECUTE refuses while global processing is paused (the emergency stop). The drain order lifts the
   // hold FIRST (admin_set_pause_state) — so a paused system means "not yet cleared to drain".
-  const { data: st } = await sbRead.from("system_state").select("global_processing_paused").limit(1).maybeSingle();
+  // ERROR-SWALLOW GUARD (agent/run post-mortem) on the MOST safety-critical read: a dropped `error` here would
+  // leave `st` undefined, `st?.global_processing_paused` falsy, and EXECUTE would sail past the emergency stop.
+  // Fail CLOSED — if the pause state cannot be read, refuse to proceed (same posture as if it were paused).
+  const { data: st, error: stErr } = await sbRead.from("system_state").select("global_processing_paused").limit(1).maybeSingle();
+  if (stErr) {
+    console.error(`REFUSE: could not read system_state.global_processing_paused (${stErr.message}) — failing CLOSED, EXECUTE aborts, no writes.`);
+    process.exit(2);
+  }
   if (st?.global_processing_paused) {
     console.error("REFUSE: system_state.global_processing_paused is TRUE — EXECUTE requires the operator to lift the hold first (admin_set_pause_state). Aborting, no writes.");
     process.exit(2);

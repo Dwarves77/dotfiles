@@ -76,3 +76,15 @@ Either path is a migration + consumer sweep (enum change or view/column + every 
 
 ## 2026-07-16 — version-out consolidation (executor-universality ruling)
 `scripts/_reground/drain-clear.mjs` replicates `eraseClaimWithProof`'s fail-closed archive-then-delete through the guarded path (`guardedInsert` claim_versions → `guardedDelete` section_claim_provenance) because `eraseClaimWithProof` (src/lib/agent/ledger-apply.mjs) uses the raw supabase builder API and db.mjs deliberately does not export a write client (the only write surface is the guarded functions). Two version-out implementations exist long-term. POST-DRAIN CONSOLIDATION (operator flagged 2026-07-16): unify to ONE shared implementation in ledger-apply.mjs that both the pipeline and scripts call with their appropriate client (inject the write ops as deps, or a single erase entry point), so the hold-loop and any future eraser inherit the identical fail-closed logic. The DB-layer migration-209 DELETE trigger already covers status-recompute for all writers by construction.
+
+---
+
+## 2026-07-22 — GUARD-1 pool INSERT payload size (ADR-016 residual, accepted fail-loud)
+
+**Context:** ADR-016 removed the storage-side fetch caps, so `agent_run_searches.result_content_excerpt` can now hold a full document up to `STORAGE_MAX_CHARS` (10M, the pathological-page sanity ceiling). The GUARD-1 all-or-nothing pool persist in `src/lib/agent/canonical-pipeline.ts` (`generateBrief` + `generateBriefRefreshPrimary`) is a single batched INSERT.
+
+**Accepted residual (operator ruling on PR #371, 2026-07-22):** No code change. Supabase publishes no fixed REST request-body byte limit; the constraining layer is the upstream API gateway and cannot be tested under the write-freeze. A single 10M-char row is ~10MB and passes with wide margin; only a pathological coincidence of many multi-MB captures in ONE item's pool would approach the gateway limit. The failure path is already FAIL-LOUD, not silent: an INSERT rejection returns `generate_failed` with no brief written and no partial pool (a clean retry, never a fragment). An RPC-per-row transaction would preserve atomicity but does NOT reduce request-body size, so it does not by itself solve a gateway-size rejection.
+
+**Trigger condition (build then, not before):** if a pool persist ever fails on payload size, build RPC-transaction chunking then — a server-side function that accepts the pool rows and does DELETE + per-row INSERT inside one transaction, paired with client-side chunking of the request body under the then-measured gateway limit, preserving GUARD-1 atomicity.
+
+**Priority:** Low (fail-loud today; realistic document sizes never trigger it).
