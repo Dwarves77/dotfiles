@@ -63,7 +63,7 @@ import { ANALYSIS_LABELS, ANALYSIS_LABELS_BY_KEY } from "@/lib/agent/analysis-la
 // types got zero slot language, so missing_required_slot was deterministic). Post-synthesis the brief
 // is checked against the SAME slots (one corrective retry, then honest failure — never silent pass).
 import { buildSlotDirective, uncoveredSlots, buildSlotRetryFeedback, slotCacheGet, slotCachePut } from "@/lib/agent/slot-prompt.mjs";
-import { BROWSERLESS_FETCH_CONCURRENCY, PRIMARY_MAX_CHARS, CORROBORATOR_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, SYNTH_PRIMARY_HARD_CEILING_CHARS, sonnetCostUsd, GROUND_MODEL } from "@/lib/agent/generation-config";
+import { BROWSERLESS_FETCH_CONCURRENCY, STORAGE_MAX_CHARS, SYNTH_INPUT_BUDGET_CHARS, SYNTH_PRIMARY_HARD_CEILING_CHARS, sonnetCostUsd, GROUND_MODEL } from "@/lib/agent/generation-config";
 import { prepareSectionForGrounding } from "@/lib/agent/section-grounding.mjs";
 import { partitionErrorBodies } from "@/lib/sources/entity-gate.mjs";
 import { captureForStorage, apiEndpointFor } from "@/lib/sources/transport-escalation.mjs";
@@ -270,8 +270,20 @@ async function fetchWithTransport(url: string, max: number, { dropIfBlocked = fa
 async function fetchMeta(url: string, max: number, caller: string | null = null): Promise<FetchResult> {
   return fetchWithTransport(url, max, { dropIfBlocked: true }, caller);
 }
-async function fetchText(url: string, max = 40000, caller: string | null = null): Promise<string> {
+// ADR-016: `max` is REQUIRED (no default). A caller that omits it would silently reintroduce the retired
+// 40000-char storage cap — exactly the permanent-slice this ADR removes — so omission is now a COMPILE error.
+async function fetchText(url: string, max: number, caller: string | null = null): Promise<string> {
   return (await fetchMeta(url, max, caller)).text;
+}
+
+/** ADR-016 remediation entry: re-fetch ONE stored URL through the LIVE transport ladder (the same
+ *  direct→Browserless→try-both primitive the pipeline uses — via fetchMeta → fetchWithTransport), capped only at
+ *  the STORAGE_MAX_CHARS pathological-page sanity ceiling. Used by scripts/remediation/refetch-capped-worklist.mjs
+ *  to re-capture legacy-capped pool rows in FULL with NO copied transport code. Returns the FetchResult
+ *  (text + truncated/fullLength/cap/transport). `caller` must be an F16-authorized hold caller
+ *  (unit3-remediation) to pass an engaged scrape hold. */
+export async function refetchThroughLadder(url: string, caller: string | null = null): Promise<FetchResult> {
+  return fetchMeta(url, STORAGE_MAX_CHARS, caller);
 }
 
 // NO SILENT TRUNCATION (the must): when a fetch/read hit its cap and did NOT collect the whole document,
@@ -527,6 +539,10 @@ Return STRICT JSON ONLY (no prose, no code fences):
 {"sources":[{"name":"...","url":"https://...","type":"official|academic|trade_press|participant|standards|aggregator","why":"<=160 chars"}]}
 Rules: up to 6 sources; REAL reachable URLs only, taken from your search results — NEVER invent a URL; prefer
 primary/authoritative over blogs; a deeper page on the primary's own domain is allowed when it adds material.`;
+  // ADR-016 announced window: post-uncap `primaryText` can be up to STORAGE_MAX_CHARS (10M). It is NOT sent
+  // whole to this web_search prompt — only the first 3000 chars seed the discovery query (the topic is legible
+  // from the head of any legal text; the tail carries qualifications the SYNTHESIS reads, not discovery). This
+  // is a DISCOVERY-ONLY window; the STORED capture stays full. Do not widen it to feed the whole capture here.
   const user = `Topic / item title: "${title}"
 Primary source: ${primaryUrl}
 Primary source extract (may be thin — that is exactly why you must search):
@@ -581,7 +597,7 @@ export async function webSearchCandidatesForQuery(query: string): Promise<string
 // F16 CALLER THREAD (Unit 0c): built per-call as a closure over `caller` (see fetchPrimaryDeep) so the
 // signed caller reaches the transport; fetchPrimaryWithFallback stays UNTOUCHED (it calls the injected
 // closure, which already carries the caller — no threading through primary-fallback.mjs).
-const blFetchCleanFor = (caller: string | null) => async (url: string): Promise<FetchResult> => fetchWithTransport(url, PRIMARY_MAX_CHARS, {}, caller);
+const blFetchCleanFor = (caller: string | null) => async (url: string): Promise<FetchResult> => fetchWithTransport(url, STORAGE_MAX_CHARS, {}, caller);
 
 /** Canonical primary fetch with the roadblock→bounded-alternative-search capability bound to the real
  *  deps (Browserless + official-alternative web_search). BOTH generateBrief and phase2-reground call this
@@ -879,12 +895,12 @@ export async function generateBrief(itemId: string, caller: string | null = null
   const primaryUrl = pf.url, primary = pf.text;
   // NO SILENT TRUNCATION: collect a truncation event if the primary (or, below, any corroborator) hit its cap.
   const truncEvents: TruncEvent[] = [];
-  if (pf.truncated) truncEvents.push({ url: primaryUrl, collected: primary.length, fullLength: pf.fullLength ?? primary.length, cap: pf.cap ?? PRIMARY_MAX_CHARS, transport: "primary" });
+  if (pf.truncated) truncEvents.push({ url: primaryUrl, collected: primary.length, fullLength: pf.fullLength ?? primary.length, cap: pf.cap ?? STORAGE_MAX_CHARS, transport: "primary" });
   // 2. DEEP DIVE: discover corroborating/expanding sources via web_search
   const corroborators = await discoverCorroborators(it.title, primaryUrl, primary);
   // 3. multi-source fetch (the discovered corroborators), then prepend the already-fetched primary
   const poolUrls = ([...new Set(corroborators.map((c) => c.url).filter(Boolean))] as string[]).filter((u) => u !== primaryUrl);
-  const fetchedCorrMeta = await mapLimit(poolUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, ...(await fetchMeta(u, CORROBORATOR_MAX_CHARS, caller)) }));
+  const fetchedCorrMeta = await mapLimit(poolUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, ...(await fetchMeta(u, STORAGE_MAX_CHARS, caller)) }));
   for (const m of fetchedCorrMeta) if (m.truncated) truncEvents.push({ url: m.url, collected: m.text.length, fullLength: m.fullLength, cap: m.cap, transport: m.transport });
   const fetchedCorr = fetchedCorrMeta.filter((b) => b.text.length > 200).map((b) => ({ url: b.url, text: b.text }));
   const fetchedRaw = [...(primary.length > 200 ? [{ url: primaryUrl, text: primary }] : []), ...fetchedCorr];
@@ -1006,7 +1022,7 @@ async function generateBriefRefreshPrimaryImpl(itemId: string, caller: string | 
   const primaryUrl = pf.url, primary = pf.text;
   if (primary.length < 200) return { ok: false, detail: `refresh-primary: primary too thin (${primary.length}ch${pf.fellBack ? ` via fallback after ${pf.primaryReason}` : ""})` };
   const truncEvents: TruncEvent[] = [];
-  if (pf.truncated) truncEvents.push({ url: primaryUrl, collected: primary.length, fullLength: pf.fullLength ?? primary.length, cap: pf.cap ?? PRIMARY_MAX_CHARS, transport: "primary" });
+  if (pf.truncated) truncEvents.push({ url: primaryUrl, collected: primary.length, fullLength: pf.fullLength ?? primary.length, cap: pf.cap ?? STORAGE_MAX_CHARS, transport: "primary" });
   // 2. REUSE existing pool corroborators (NO web_search) — content rows >200ch (excluding the primary).
   const { data: priorPool, error: priorPoolErr } = await sb.from("agent_run_searches").select("result_url, result_title, result_content_excerpt").eq("intelligence_item_id", itemId);
   if (priorPoolErr) console.warn(`[canonical] refresh-primary prior-pool read failed for ${itemId}: ${priorPoolErr.message}`);
@@ -1310,7 +1326,7 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
     searchRows = pool.map((r) => ({ id: r.id as string, result_url: r.result_url as string }));
   } else {
     const groundUrls = [...new Set([it.source_url, ...secs.flatMap((s) => urlsIn(s.content_md || ""))].filter(Boolean))] as string[];
-    const groundFetchedRaw = (await mapLimit(groundUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, CORROBORATOR_MAX_CHARS, caller) }))).filter((b) => b.text.length > 200);
+    const groundFetchedRaw = (await mapLimit(groundUrls, FETCH_CONCURRENCY, async (u) => ({ url: u, text: await fetchText(u, STORAGE_MAX_CHARS, caller) }))).filter((b) => b.text.length > 200);
     // WRITE-SIDE ERROR-BODY GATE (RD-14): the fallback path FETCHES fresh URLs and stores them — gate before
     // the INSERT so a failed-fetch capture never enters agent_run_searches here either (mirrors the read gate above).
     const gcap = captureForStorage(groundFetchedRaw);

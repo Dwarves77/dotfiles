@@ -24,8 +24,7 @@ export const CAP_DECL_RE = /export\s+const\s+([A-Z][A-Z0-9_]*(?:_MAX_CHARS|_BUDG
 // FORBIDDEN (the doctrine): if any entry ever carries it, F17 is RED. New caps must be added here with a
 // non-silent classification before they can land.
 export const CAP_REGISTRY = {
-  PRIMARY_MAX_CHARS: { status: 'surfaced', why: 'recordTruncation → coverage_gap flag; 600K rarely binds (docs 57-173KB)' },
-  CORROBORATOR_MAX_CHARS: { status: 'surfaced', why: 'corroborator trims warned by design (share remainder after full primary)' },
+  STORAGE_MAX_CHARS: { status: 'surfaced', why: 'ADR-016: pathological-page sanity ceiling (10M), NOT an operating cap; a hit reports truncated+fullLength → recordTruncation fires the truncation-guard flag. Retired PRIMARY_MAX_CHARS + CORROBORATOR_MAX_CHARS: storage-side caps made incompleteness permanent — capping is now a synthesis-window decision (SYNTH_* below) over a complete stored capture.' },
   SYNTH_INPUT_BUDGET_CHARS: { status: 'surfaced', why: 'buildSourceBlocks trims → recordTruncation' },
   SYNTH_PRIMARY_HARD_CEILING_CHARS: { status: 'surfaced', why: 'ceilingWalls → recordTruncation' },
   GROUND_SECTION_HARD_CEILING_CHARS: { status: 'never-binds', why: 'max real section 32K ≪ 200K; over-ceiling SURFACED via recordTruncation(section-ceiling)' },

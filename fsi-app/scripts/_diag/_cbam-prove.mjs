@@ -21,7 +21,7 @@ const { data: rows } = await sb.from("intelligence_items").select("id,title,item
   .or("title.ilike.%CBAM%,title.ilike.%carbon border%");
 const it = (rows || []).find((r) => r.id.startsWith("51b2c91e")) || (rows || []).find((r) => r.item_type === "regulation");
 if (!it) { console.error("CBAM item 51b2c91e not found"); process.exit(1); }
-console.log(`CBAM ${it.id.slice(0, 8)} type=${it.item_type} status=${it.provenance_status}\n  source=${it.source_url}\n  PRIMARY_MAX_CHARS=${process.env.PRIMARY_MAX_CHARS || "600000(default)"}  mode=${mode}\n`);
+console.log(`CBAM ${it.id.slice(0, 8)} type=${it.item_type} status=${it.provenance_status}\n  source=${it.source_url}\n  STORAGE_MAX_CHARS=${process.env.STORAGE_MAX_CHARS || "10000000(default)"}  mode=${mode}\n`);
 
 // back-of-document strings that only appear if the FULL enacted CELEX:32023R0956 text was read
 // (Annexes + late articles: Annex I covered goods, the free-allowance phase-out, the review clause).

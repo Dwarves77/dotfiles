@@ -1,7 +1,7 @@
 // PROVE-ON-ONE harness for the truncation fix, on the live PPWR item (efdb3390, type=regulation).
 // Modes (cheapest first):
 //   node scripts/_diag/_ppwr-prove.mjs fetch     # download-full proof: collected vs full + back-of-doc presence (no Sonnet, no mutation)
-//   PRIMARY_MAX_CHARS=80000 node scripts/_diag/_ppwr-prove.mjs fetch   # truncated-signal proof: cap < doc → truncated:true
+//   STORAGE_MAX_CHARS=80000 node scripts/_diag/_ppwr-prove.mjs fetch   # truncated-signal proof: cap < doc → truncated:true (ADR-016 sanity ceiling)
 //   node scripts/_diag/_ppwr-prove.mjs full      # full generate→section→ground + qualification-density scan (SPENDS ~$1-1.5; mutates efdb3390)
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,7 +18,7 @@ const { data: rows } = await sb.from("intelligence_items").select("id,title,item
   .or("legacy_id.eq.g2,legacy_id.ilike.%ppwr%,title.ilike.%packaging%,title.ilike.%PPWR%");
 const it = (rows || []).find((r) => r.id.startsWith("efdb3390")) || (rows || []).find((r) => r.item_type === "regulation");
 if (!it) { console.error("PPWR item efdb3390 not found"); process.exit(1); }
-console.log(`PPWR ${it.id.slice(0, 8)} type=${it.item_type} status=${it.provenance_status}\n  source=${it.source_url}\n  PRIMARY_MAX_CHARS=${process.env.PRIMARY_MAX_CHARS || "600000(default)"}  mode=${mode}\n`);
+console.log(`PPWR ${it.id.slice(0, 8)} type=${it.item_type} status=${it.provenance_status}\n  source=${it.source_url}\n  STORAGE_MAX_CHARS=${process.env.STORAGE_MAX_CHARS || "10000000(default)"}  mode=${mode}\n`);
 
 const BACK_OF_DOC = ["2038", "average per manufacturing plant", "Grade C", "CANNOT BE PLACED ON THE MARKET", "placed on the market"];
 

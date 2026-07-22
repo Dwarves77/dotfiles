@@ -12,19 +12,22 @@
  *  Keep (shards × this) ≤ 5 to respect the Browserless plan's 5-session cap. */
 export const BROWSERLESS_FETCH_CONCURRENCY = Number(process.env.BROWSERLESS_FETCH_CONCURRENCY || 2);
 
-// ── Truncation fix (2026-06-23): the pipeline used to fetch ≤30KB and synthesise against the first
-// 12KB of each source, so a 458KB regulation (PPWR) was read at 2.6%. Its per-year trajectories and
-// qualifying clauses (e.g. the PPWR 2038 Grade-C market ban, the Art 7 per-plant averaging basis) live
-// in the back of the document and were never seen. These knobs let the pipeline download and read the
-// FULL text. result_content_excerpt is TEXT (~1GB) so storage is not the limit (migration 112).
+// ── ADR-016 storage-side uncap (operator ruling 2026-07-21): "We are NOT supposed to cap, because then the
+// system runs analysis on incomplete data." A cap at FETCH/STORAGE time makes incompleteness PERMANENT — the
+// pool row (agent_run_searches.result_content_excerpt, a TEXT column, migration 112) stores the SLICED text and
+// every re-analysis inherits the loss. So the primary/corroborator FETCH caps are RETIRED: the pipeline now
+// captures and STORES the FULL document. Capping becomes a SYNTHESIS-WINDOW decision only (SYNTH_INPUT_BUDGET_CHARS
+// / SYNTH_PRIMARY_HARD_CEILING_CHARS below), applied OVER a complete stored capture — a window that re-opens on
+// re-analysis, never a permanent slice. (Retired here: PRIMARY_MAX_CHARS=600000, CORROBORATOR_MAX_CHARS=60000 —
+// the predecessor "truncation fix" 2026-06-23 raised the caps; ADR-016 removes the storage-side cap entirely.)
 
-/** Max chars fetched per PRIMARY source. The primary legal text is pulled in full up to this; direct
- *  HTTP (free, no Browserless units) for static-HTML official hosts, Browserless otherwise. */
-export const PRIMARY_MAX_CHARS = Number(process.env.PRIMARY_MAX_CHARS || 600000);
-
-/** Max chars fetched per CORROBORATOR / grounding source (was 14-16KB). Corroborators carry
- *  participants/timing/context; the qualification-bearing text is the primary. */
-export const CORROBORATOR_MAX_CHARS = Number(process.env.CORROBORATOR_MAX_CHARS || 60000);
+/** Pathological-page SANITY ceiling on a single fetched capture (chars) — NOT an operating cap. Real documents
+ *  are KB-to-low-MB; this exists only to bound a runaway / adversarial page whose body never terminates. Sized
+ *  far above any real legal text so it never binds in normal operation; if it DOES bind it fails LOUD like every
+ *  other cap on this path — the fetch reports truncated + fullLength and recordTruncation fires the
+ *  truncation-guard integrity_flag (F17 classifies it 'surfaced', never silent). result_content_excerpt is TEXT
+ *  (~1GB, migration 112) so DB storage is not the constraint. Overridable via env for an operator-authorized change. */
+export const STORAGE_MAX_CHARS = Number(process.env.STORAGE_MAX_CHARS || 10_000_000);
 
 /** Synthesis/grounding INPUT budget (chars). The pool is fed in full up to this; the PRIMARY is given
  *  priority (included whole) and corroborators share the remainder. ~560KB ≈ ~140K tokens, leaving

@@ -12,7 +12,7 @@ import { fitnessFunction, CAP_REGISTRY, PATH_FILES } from './F17-size-cap-doctri
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../');
 
 test('RED: a new UNREGISTERED cap constant on the path is flagged with file:line', () => {
-  const src = 'export const PRIMARY_MAX_CHARS = 600000;\nexport const SNEAKY_SECTION_MAX_CHARS = Number(process.env.X || 8000);';
+  const src = 'export const STORAGE_MAX_CHARS = 10000000;\nexport const SNEAKY_SECTION_MAX_CHARS = Number(process.env.X || 8000);';
   const v = fitnessFunction.check('fsi-app/src/lib/agent/generation-config.ts', src);
   assert.equal(v.length, 1);
   assert.equal(v[0].line, 2);
@@ -20,7 +20,7 @@ test('RED: a new UNREGISTERED cap constant on the path is flagged with file:line
 });
 
 test('GREEN: a registered cap is clean', () => {
-  const src = 'export const PRIMARY_MAX_CHARS = Number(process.env.PRIMARY_MAX_CHARS || 600000);';
+  const src = 'export const STORAGE_MAX_CHARS = Number(process.env.STORAGE_MAX_CHARS || 10000000);';
   assert.deepEqual(fitnessFunction.check('fsi-app/src/lib/agent/generation-config.ts', src), []);
 });
 
