@@ -1327,3 +1327,15 @@ Design questions resolved (not inherited): (a) `discoverCorroborators` only ever
 Verification contract, all green: tsc --noEmit 0 errors; discipline suite 896/896 (incl. F17 + meta-gate); src `*.test.mjs` 493/493; `*.npmtest.mjs` 85/85; worklist BUILD 106/15/1; `node --check` OK; jiti import of the EXECUTE path IMPORT_OK.
 
 Findings surfaced (never overridden): (1) legacy_40k dedups to 106 on (item_id, result_url), not the premised 105 — zero duplicate pairs exist, so dedup removes nothing (raw 106 = deduped 106). (2) GUARD-1 pool-INSERT size at the 10M ceiling, for operator ruling. Deliverable is a PR; the emergency stop stays UP, no fetch, no DB writes, EXECUTE not run, out-of-scope items (portal-defect sweep, 8 RLS-disabled tables, hold lift) untouched.
+
+## 2026-07-23 — ADR-016 follow-through UNIT 1 (EUR-Lex held-row recapture, $0 fetch-only)
+
+Recaptured the 27 drain-held rows (23 EUR-Lex bot-wall shells + ICS2 FAQ / sdir.no / DCCEEW + the two EU-ETS PDFs) via the official CELEX document endpoints, guarded by factSpansStillMatch (error-checked). Emergency stop stays DOWN; no system_state touched. Fetch only, zero model calls ($0).
+
+PREMISE CONFIRMED (read-only before any write): the held EUR-Lex rows are bot-wall SHELL renders, not content drift. The JS-viewer URL `/legal-content/EN/TXT/?uri=X` returns a shell, but `/legal-content/EN/TXT/HTML/?uri=X` and the Cellar endpoint `publications.europa.eu/resource/celex/{CELEX}` return full text (100K-173K chars). Recapture runs the CELEX endpoints through the pipeline's own refetchThroughLadder so extraction matches the stored format.
+
+REPLACED clean (strict factSpansStillMatch passed), all 4 were 40K slices: d5ee6ab8 CBAM 32023R0956 -> 173094; 15f63ea9 EU-ETS directive 02003L0087 PDF -> 305996 (ladder); 3ae89ce6 HDV 02019R1242-20240701 -> 140617; f0833999 CSRD 2022/2464 -> 139981.
+
+FINDING (23 still held, ZERO real content drift): 19 EUR-Lex rows fully recover their substantive text via the /HTML/ endpoint (150K-173K) but strict factSpansStillMatch holds them on 1-2 CITATION/MASTHEAD page-chrome spans each (OJ-citation headers with en-dashes e.g. "OJ L 234, 22.9.2023, pp. 48-100", "Current consolidated version: DD/MM/YYYY" labels, full-title lines, version-date selector lists) that are NOT present in the raw document render. Not content drift. Recommend operator ruling: replace-anyway (substantive content is full; UNIT 2 re-grounds the citation spans) OR Chrome-render the viewer pages (which show the masthead) for a clean strict-guard pass. The remaining 4 (ICS2 FAQ, sdir.no fjords consultation, umweltbundesamt PDF, DCCEEW PDF) returned shell/nothing on ladder retry -> Chrome render pending.
+
+Flags: 4 hold-flags resolved, 23 updated with transports-tried + the finding; 4 truncation-guard flags stay open (their items still hold rows), 18 remain resolved from the drain. Scripts: scripts/remediation/unit1-eurlex-recapture.mjs + unit1-reconcile-flags.mjs. Stopped for operator review before UNIT 2 per dispatch.
