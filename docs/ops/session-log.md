@@ -1351,3 +1351,13 @@ PERMANENT LESSON (subscript-extraction): captures MUST be extracted by the pipel
 CHROME-ONLY HOST CLASS (for the future orchestration/monitoring unit): eur-lex.europa.eu JS-viewer masthead spans and genuinely bot-walled hosts have no steady-state browserless path — the monitor has no browser. Options for those: alternative endpoint (the /HTML/ + Cellar CELEX endpoints solved EUR-Lex here) or manual-recapture-only. Also logged: EUR-Lex transport non-determinism (direct vs Browserless-render serve different versions/extractions run-to-run) — the guard makes this safe (replaces only on confirmed substantive-span presence).
 
 Scripts: scripts/remediation/unit1b-normalized-recapture.mjs, unit1-final-reconcile.mjs (+ unit1-eurlex-recapture.mjs, unit1-reconcile-flags.mjs from the first pass).
+
+## 2026-07-24 — ADR-016 UNIT 2 reground wave (halted at ceiling)
+
+Re-grounded the fuller-capture items from stored pools ($0 fetch, Sonnet re-synth + ground). GROUNDING_ACQUIRE_ENABLED armed in the worktree .env.local ONLY (gitignored, production/Vercel untouched), DISARMED atomically in the runner's finally{} (confirmed =0 at end). Emergency stop untouched.
+
+PROVE-ON-ONE LESSON (560K synthesis window is now the binding constraint): capping moved from storage (fixed by ADR-016) to synthesis (surfaced). The 3 largest recoveries — bec305e1 FR HD Phase 3 (2.27M), e2e03e1b WIPO (1.07M), 5b2c6655 Canada Gazette (721K) — exceed SYNTH_PRIMARY_HARD_CEILING (560K, sized to Sonnet's ~200K-token context), so their primary walls at synthesis (collected 0/2.27M, context-ceiling-wall) and the re-ground regresses; the dominance guard correctly restores the prior ledger (no data loss). These 3 are skipped + flagged coverage_gap 'oversized-primary' as the acceptance test for a future multi-pass chunking unit (ADR-016 named case, not built).
+
+RESULT: ran 9 of 45 (halted at ceiling), ~118 new FACTs across 6 items (CSRD 26->52, EEXI/CII 41->52, ISO14083 8->25, HDV 30->53, Fit-for-55 45->68, H2 28->46). Dominance guard: no regressions. One verified->quarantined DEMOTION (r28 H2 Accelerate — richer ledger tripped a gate; escalated via integrity_flag to the non-destructive exits). One item errored on topic_tags>3 validation (g1, caught, stayed verified). 36 items un-re-ground (budget halt).
+
+FINDINGS: (1) cost was ~$1-1.5/item (re-synth of large docs), ~10x the $0.15 estimate, so $10 covered 9 items; (2) hard-ceiling OVERSHOOT to $11.05 (post-item check granularity — item 9's ~$1.45 pushed cumulative over $10 before the halt fired); (3) the runner crashed once (unhandled Sonnet YAML parse error) and the crash left the flag armed until manual disarm — fixed with per-item try/catch + a finally{} that always disarms + a fixed cross-restart spend baseline.
