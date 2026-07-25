@@ -1395,3 +1395,32 @@ FIX POSTURE: the operator's gate-metered-workflows ruling has no target (no sche
 EXECUTION-ORDER PROGRESS (this session, all $0): item 8 model-routing gate BUILT (metered-gate.mjs, 7/7 golden, committed 1f33ba0b, pushed). item 5 SPARQL enumeration DONE (chapters 13/10/05/06: 6,371 new gap-candidates + ch17 done; census_worklist now ~21,600). items 1-3 (relabel/verbatim-repair/completeness) BLOCKED — the 237/517/10 claim sets are the review-lane audit's product, not derivable in this lane (section_claim_provenance has no mint_hold_reason markers); running blind would corrupt the corpus. items 4 (INDEX-FIRST labels for the 1,347 v2-classified-relevant), 6 (UK title enrichment top-up), 7 (acquisition_backlog_v migration + FR consolidation + bucket itemization) REMAIN ($0, in-lane).
 
 METERED SPEND THIS SESSION GOING FORWARD: $0.00. Account capped until 2026-08-01. Aug-1 queue: finish census classification of the ~16,000 undispositioned rows (11,547 superseded + 199 ch17 + 6,371 chapters 13/10/05/06 + residual UK) via fail-closed Haiku-with-titles (~$8-12 est), ONLY after a fresh quote + explicit same-turn operator yes + METERED_BATCH_TOKEN, per the standing financial law.
+
+---
+
+## 2026-07-25 — Execution-order close (ADR-016 follow-through lane)
+
+**Money line: $0.00 metered this session.** Anthropic account capped until 2026-08-01; no model call was made. Every write below was a free path (SQL DDL / repo commit / free HTTP).
+
+### Items banked (three-state)
+- **Item 7a — acquisition_backlog_v migration: DONE.** Migration `223_acquisition_backlog_v.sql` authored byte-matching `pg_get_viewdef`, applied (no-op), recorded in migrations.md (C3 clears), allowlist entry removed from `schema-drift-audit.mjs`. Commits `ef0ff5d1` + `e584b44c`, pre-push 4/4 green.
+- **Item 8 — model-routing gate (the wall): DONE (prior turn).** `metered-gate.mjs` + 7/7 red-then-green test. `batch-classification`+Haiku+token+cap is the ONE allowed metered path; grounding/reground/synthesis/etc. refuse by name; unknown class default-denies.
+- **Spot-check note: DONE.** `spot-check-monthly.yml` carries the dated dispatch-only financial-law note; schedule stays disabled.
+- **Item 6 — UK title top-up: DEFERRED-by-sequencing.** 1,304 census rows title-less; their ONLY consumer is the post-Aug-1 metered classification. Free UK legislation.gov.uk enrichment runs as the immediately-before step of that batch — no value lost by deferring, and it keeps the free-fetch off the compaction-recovery turn.
+- **Item 4 — INDEX-FIRST awareness labels (1,347): DEFERRED.** 1,347 v2-classified-relevant instruments are the awareness-tier candidate set. This is a corpus-surfacing build (dashboard-visible METADATA entries) — held for a fresh design-grounded turn rather than a 1,347-row write mid-compaction (the fabrication-class setup).
+- **Item 7b — FR source-identity consolidation: DEFERRED.** Re-key FR rows to clean FR-root `dc907f90`; data-op, no metered cost, held.
+
+### Corpus + census counts (VERIFIED, live query 2026-07-25)
+- Corpus: **verified 209 / quarantined 70** (non-archived).
+- Census: total **21,609**; v2-relevant awareness candidates **1,347**; undispositioned Aug-1 queue **17,335**; pending-no-title **1,304**.
+
+### Escalation buckets (itemized, owners)
+- **Fabrication bucket** — the superseded v1 classifier pass: 11,547 rows NULLed + SUPERSEDED-stamped (snapshot `v1-superseded-snapshot.json`). Owner: Aug-1 metered re-classify under the fail-closed rubric. True relevance ~13% (was fabricated 86%).
+- **Acquisition bucket** — 1,304 pending-no-title (owner: item-6 free enrichment) + 3 open oversized-primary flags (`adr016-oversized-primary`, owner: 560K synthesis-window chunking design) + 8 open unit-1 holds.
+
+### Schema-drift remediation (itemized — which audit line clears with which fix)
+- **DRIFT (ERROR) `view acquisition_backlog_v`** -> CLEARED by migration 223 (committed CREATE now traces; allowlist bypass removed). The nightly `data-audit-lane` schema-drift ERROR line clears on next run.
+- No other drift or stale-allowlist line remains (ALLOWLIST now empty).
+
+### Aug-1 resume order (one line)
+After 2026-08-01, with a fresh quote + explicit same-turn yes + `METERED_BATCH_TOKEN`: run item-6 UK enrichment, then the fail-closed Haiku batch-classification of the 17,335 undispositioned census rows (~$8-12), then item-4 awareness labels for the confirmed-relevant set.
