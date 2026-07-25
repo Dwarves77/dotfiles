@@ -32,11 +32,9 @@ try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env fro
 // The allowlist is audited: when an entry's object gains a committed CREATE (or stops being live), the
 // staleness check flags it for removal — the allowlist cannot silently outlive its reason.
 const ALLOWLIST = {
-  // Genuine drift found by this audit's FIRST run (2026-07-20): a view over coverage_gap_candidates, live
-  // with no committed CREATE anywhere in supabase/migrations/. Routed to Session B to author the migration
-  // (or DROP the view if it is superseded/dead). Remove this entry when the migration lands — the
-  // staleness check will flag it the moment coverage of a committed CREATE appears.
-  acquisition_backlog_v: "pre-existing drift, routed to Session B for a retroactive migration; review-by: next-census-management-pass",
+  // (empty) acquisition_backlog_v — the FIRST-run drift (2026-07-20) — was retroactively migrated in
+  // supabase/migrations/223_acquisition_backlog_v.sql (byte-matching pg_get_viewdef, 2026-07-25), so its
+  // committed CREATE now exists and the allowlist bypass is removed. No genuine drift remains allowlisted.
 };
 
 function connString() {

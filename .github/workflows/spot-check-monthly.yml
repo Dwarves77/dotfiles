@@ -26,6 +26,10 @@ on:
   # paid acquisition is frozen until the snapshot-first pipeline lands and the
   # operator-go flag is turned on. The monthly schedule is disabled; the job
   # remains runnable on demand via workflow_dispatch.
+  # STANDING FINANCIAL LAW (2026-07-25): this job is METERED (~20 Haiku calls/run). It stays DISPATCH-ONLY and
+  # its schedule remains disabled; it resumes on a schedule only post-2026-08-01 and only behind the operator
+  # spend token (METERED_BATCH_TOKEN) with a named-job authorization + pre-run quote, per the standing financial
+  # law (docs/ops/session-log.md 2026-07-25) and the metered-gate wall (fsi-app/src/lib/llm/metered-gate.mjs).
   # schedule:
   #   - cron: '0 3 1 * *'
   workflow_dispatch:
