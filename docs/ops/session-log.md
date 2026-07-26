@@ -1578,3 +1578,11 @@ Independent Sonnet judge over 2,896 titled would_mint entries (scoped-amendment 
 **BLOCKING-CLASS INTERLOCK (flagged):** criterion 7 makes EVERY future ground fail until the pipeline populates `gate_a_state` — so the **migration + pipeline-populate must land together**. Existing verified items stay verified until touched; the remediation drives quarantine via scan-populate + touch. Prove-on-one plan: apply migration → scan RTFO (store 65-orphan state) → touch → self-quarantine → mint orphans → re-scan → clears.
 
 **Next (focused build):** the coordinated migration (table + criterion 7) + pipeline populate + red/green tests (incl. stale-hash) → prove-on-one RTFO → auto-mint 1,071 → residual ~140 → clean re-scan.
+
+### GATE A — Phase 1 steps 1-2 DONE (state layer live, 100% backfill, nothing gating)
+
+Interlock-free ordering (operator ruling): land state + populate BEFORE the criterion, so no grounding window breaks.
+- **Migration 224 `item_gate_a_state` APPLIED** (via apply_migration to project kwrsbpiseruzbfwjpvsp = Caro's Ledge). Table only; NO validate criterion yet — nothing gates.
+- **Backfill COMPLETE + 100% COVERAGE verified** (read-back): 345 briefs-with-full_brief scanned by the proven scanner → 345 state rows, 0 missing. **329 briefs carry orphans (3,012 total tokens)**; 16 clean. Every item now has current-hash Gate-A state.
+
+**Remaining Phase-1 (next focused chunk, fully specced):** (a) fold the scanner into the mint/ground path (canonical-pipeline.ts) so future grounds populate state before validate; (b) red/green tests incl. stale-hash; (c) FLIP criterion 7 into `validate_item_provenance` (fetch live def via `pg_get_functiondef`, inject the criterion before the final `valid` decision, apply — no manual re-type, no drift) — at flip every item already has fresh state so it evaluates truthfully from moment one; (d) prove-on-one RTFO (expect self-quarantine); (e) auto-mint the 1,071 found-in-capture through the guarded claim path; (f) residual ~140 remediation (session labor, sanctioned versioning); (g) clean corpus-wide re-scan → zero orphans, logged. 368 Sonnet-disagree holds queue for review after Phase 4.
