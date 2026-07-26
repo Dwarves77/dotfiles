@@ -1613,3 +1613,11 @@ Touched only verified-orphaned (guard permits off-verified). Result EXACT: **qua
 - 8cb6e73e-1c35-428f-8f5c-f1ee51a9e169
 
 Remaining: step 4 RTFO prove-on-one (quarantined → clear orphans via guarded INSERT-origin mint → re-scan clean → quarantined→verified restore) → step 5 auto-mint 1,071 found-in-capture (verbatim `.includes()` gate, guarded path only) → step 6 residual ~140 (sanctioned versioning) → step 7 clean re-scan. Amended step-7 targets: 345/345 state, 0 orphans, 0 stale, 0 criterion-7 failures, 0 customer-visible-with-orphans (6 unverified acceptable residue only if unreachable via sanctioned path, logged with IDs above).
+
+### STEP 0 — probe-failure diagnosis: hypothesis CONFIRMED (probe doing its job)
+
+"Uptime and honesty probes" run 30221044259 (2026-07-26 21:25Z, right AFTER the quarantine wave; the 20:06 run passed). Verbatim failing assertion:
+> `##[error]Surfaces probe returned HTTP 503 (expected 200; 503 == a surface is down).`
+Cause: `/api/health/surfaces` returned 503 because `overall ok: false`, driven by exactly ONE surface — **`operations: ok=false rows=0`** (all other surfaces still have backing rows: dashboard 9, regulations 3, market 2, research 3, community 1, map 1). The Operations surface (regional_data / operations-profile briefs — figure-dense, every one orphan-carrying) lost all verified backing rows in the quarantine wave. `seed_leak: false` (no fabrication). **Spend watch: skipped (0s, dependent of the failed job) — NOT a second failure.** This is the probe correctly observing the designed quarantine window, not a site defect or probe bug.
+
+**Probe recommendation (no change made — awaiting go):** do NOT weaken/delete. Fastest honest path to green = complete steps 4-7 (clearing orphans restores the Operations surface's verified rows). If the remediation spans sessions, add an EXPIRING build-mode acknowledgment (option b) with removal tied to the step-7 clean re-scan — never a permanent threshold loosening.
