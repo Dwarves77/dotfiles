@@ -1599,3 +1599,17 @@ Folded the proven scanner into `canonical-pipeline.ts`: immediately BEFORE `appl
 - **Step 3 flip:** migration **225** applied (`pg_get_functiondef` inject-and-apply; criterion 7 in `validate_item_provenance`). Read-only set-based verification: **exactly 329/345 brief items fail criterion 7** (221 verified-will-quarantine + 108 already-non-verified; 9 verified stay verified) — the designed count, hard-stop satisfied at the DETECTION layer.
 
 **BLOCKING FINDING (reported per stop-rule):** realizing the status flip via touch is gated by `guard_provenance_flip()` (mig #43): it blocks `provenance_status` flips OFF `'unverified'` unless `current_user='reconciler'` OR an INSERT-origin trigger set `app.prov_flip_origin='INSERT'`. Impact on the 329 orphaned (post-RTFO-test-touch): **220 verified** (flip verified→quarantined ALLOWED — RTFO proved it), **103 quarantined** (already), **6 unverified** (flip unverified→quarantined BLOCKED — needs the reconciler cred, which `postgres`/service-role lacks; this is the memory-flagged "RECONCILER CRED BROKEN, operator DDL window owed"). Consequences: (a) realized `status='quarantined'` reaches ~323, not a literal 329 — the 6 unverified stay `unverified` (already non-customer-visible; customer-read gate = verified only, so the customer-facing goal "no orphaned brief is verified" is still fully achievable by flipping the 220). (b) The Step-5 auto-mint MUST run through the sanctioned INSERT-origin path (the operator's "guarded path only") so the guard's INSERT exception permits the clear-flip; ad-hoc UPDATEs are blocked. STOPPED before realizing the 220 flip / the mint, pending operator ruling on: realize-the-220-now + leave-6-unverified-for-the-mint-path, vs supply/rotate the reconciler credential for a full realization.
+
+### GATE A — realization DONE (Option 1, no reconciler cred): 323 quarantined, 0 orphaned verified
+
+Touched only verified-orphaned (guard permits off-verified). Result EXACT: **quarantined 323** (220 flipped + 103 existing) = amended target; **verified-with-orphans = 0** (customer-facing integrity goal met — read gate = verified only). Detection-layer unchanged: 329/345 fail criterion 7.
+
+**6 guard-blocked unverified residue (criterion-7-detected, non-customer-visible; clear ONLY via the sanctioned INSERT-origin path in steps 5-6; if unreachable, they wait for the reconciler DDL window — NO ad-hoc UPDATE / credential / SECURITY DEFINER):**
+- 19f08fcc-5f81-44cc-b3db-fe25f1717845
+- 206cada4-5731-43ef-8908-56389645ba0e
+- 52eadc84-b3ea-4a80-8173-30b7d5435d4f
+- 5ea46db2-00e5-4eda-90d1-11f7e97ec4db
+- 856166be-0cf8-4c0e-8b2d-dbded771f0d5
+- 8cb6e73e-1c35-428f-8f5c-f1ee51a9e169
+
+Remaining: step 4 RTFO prove-on-one (quarantined → clear orphans via guarded INSERT-origin mint → re-scan clean → quarantined→verified restore) → step 5 auto-mint 1,071 found-in-capture (verbatim `.includes()` gate, guarded path only) → step 6 residual ~140 (sanctioned versioning) → step 7 clean re-scan. Amended step-7 targets: 345/345 state, 0 orphans, 0 stale, 0 criterion-7 failures, 0 customer-visible-with-orphans (6 unverified acceptable residue only if unreachable via sanctioned path, logged with IDs above).

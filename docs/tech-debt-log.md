@@ -98,3 +98,13 @@ Either path is a migration + consumer sweep (enum change or view/column + every 
 **Clean fix (future migration, NOT mid-run):** add a proper `not_relevant` value to the `census_worklist_dryrun_disposition_check` constraint, update `census_rollup_by_surface` (migration 222) to bucket it alongside `invariant_reject` under "other_dispositioned", and a one-shot data migration to re-key the mapped rows (`WHERE notes LIKE 'unit3-v2: relevant=false%' AND dryrun_disposition='invariant_reject'` → `not_relevant`). Reversible, $0 data op.
 
 **Priority:** Low (semantically documented everywhere a reader sees it; purely a naming-clarity improvement — the counts are correct today).
+
+---
+
+## 2026-07-26 — reconciler credential broken (operator DDL window owed)
+
+**Context:** `guard_provenance_flip()` (migration 43) blocks `provenance_status` flips OFF `'unverified'` unless `current_user='reconciler'` OR the write is INSERT-origin (`app.prov_flip_origin='INSERT'`, pg_trigger_depth>=1). The bound `reconciler` role/credential is not provisioned in the agent/service-role environment, so ad-hoc reconciliation of `unverified` items (e.g. realizing a Gate-A quarantine on the 6 unverified-orphaned briefs) is not possible from this session. Migration-43 guard is the enforcement point and is WORKING AS DESIGNED — this is a missing credential, not a bug.
+
+**Fix (operator DDL window):** provision/rotate the bound `reconciler` credential per the migration-43 contract, out of the agent env (least-privilege — NOT injected into a session). Until then, `unverified`-origin flips must route through the sanctioned INSERT-origin pipeline path.
+
+**Priority:** Medium — blocks ad-hoc reconciliation only; the customer-visible integrity path (verified↔quarantined) is unaffected, and INSERT-origin minting works.
