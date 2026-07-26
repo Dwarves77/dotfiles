@@ -54,6 +54,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [C8-moderation-spec](./plans/C8-moderation-spec.md) — C8 — Community moderation workflow
 - [C9-realtime-spec](./plans/C9-realtime-spec.md) — C9 — Community Realtime Infrastructure
 - [SOURCE-TYPE-TAXONOMY-PROPOSAL](./plans/SOURCE-TYPE-TAXONOMY-PROPOSAL.md) — `source_type` Taxonomy Column — Design Proposal
+- [unit4-critical-high-disposition-2026-07-26](./plans/unit4-critical-high-disposition-2026-07-26.md) — Unit 4: session-labor disposition of 36 CRITICAL/HIGH coverage-gap rows (repair/mint/register); + durable-record meta-rule
 - [W2A-bulk-import-spec](./plans/W2A-bulk-import-spec.md) — W2.A — Bulk-add tooling
 - [W2B-discovery-agent-spec](./plans/W2B-discovery-agent-spec.md) — W2.B — Sub-national-aware Discovery Agent
 - [W2D-coverage-matrix-spec](./plans/W2D-coverage-matrix-spec.md) — W2.D — Coverage Matrix Spec

@@ -1424,3 +1424,90 @@ METERED SPEND THIS SESSION GOING FORWARD: $0.00. Account capped until 2026-08-01
 
 ### Aug-1 resume order (one line)
 After 2026-08-01, with a fresh quote + explicit same-turn yes + `METERED_BATCH_TOKEN`: run item-6 UK enrichment, then the fail-closed Haiku batch-classification of the 17,335 undispositioned census rows (~$8-12), then item-4 awareness labels for the confirmed-relevant set.
+
+---
+
+## 2026-07-26 — ADR-016 acceleration EXECUTED EARLY (operator raised the console cap) + Unit 4 spec recorded
+
+**STANDING META-RULE ADOPTED (durable-record):** any operator ruling authorizing multi-step work is written to the session log or a `docs/plans` file **at receipt, before execution** — chat is a delivery channel, not a record. Unit 4's spec was lost to compaction because it only lived in conversation; this rule closes that failure class. Applied here: [Unit 4 spec](../plans/unit4-critical-high-disposition-2026-07-26.md) recorded BEFORE any Unit 4 execution.
+
+**Operator GO order (2026-07-26):** console limit raised; re-probe; on a 200 proceed the full ruled sequence without further check-in — fail-closed re-gate on random 30 titled rows (≥90%), calibrated full re-classify of all ~17,335 (incl. chapter-walk residual), gate-conditional hybrid escalation (Haiku→Sonnet deciding vote, ONLY if the gate fails — else pure Haiku, wall stays consistent), supersede-audit intact, two-stage gap topline + reconciliations + scope statement. All spend inside a **$100 acceleration cap**, wall armed, project-before-spend. In parallel, the $0 queue: Unit 4 session-labor (CORSIA repair-prove first) + chapter-walk title enrichment.
+
+**Bank 1 — wall (Step 1a):** the metered-gate was found NOT wired into the spend runner (`unit3-classify-v2.mjs` called `api.anthropic.com` directly; `--budget` defaulted to $20 > cap). Fixed: `assertMeteredCallAllowed` gated before any Anthropic call + hard clamp (now `OPERATOR_CAP_USD=100`, the acceleration ceiling — a ceiling, not a target; expected spend ~$12-17). Proven live: spend-mode without token → `MeteredCallForbiddenError`, exit 1, $0.
+
+**Bank 2 — probe (Step 1b):** 2026-07-25 probe returned HTTP 400 (capped until 2026-08-01, $0 billed). 2026-07-26 re-probe (after operator raised the cap) returned **HTTP 200** ($0.000013). Headroom confirmed.
+
+**Title enrichment ($0):** chapter-walk residual (6,371 title-less, chapters 13/10/05/06) enriched via EUR-Lex Cellar SPARQL `expression_title` — EUR-Lex 17,092/17,106 + UK 2,690/2,700 = **19,782 titles**; residual title-less **24** (14 EUR-Lex + 10 UK → fail-closed `unclassifiable_pending_enrichment`). "All ~17,335" now means titled-and-enriched, never a naked identifier.
+
+**In flight (this session):** 30-row re-gate → full calibrated classify (background) → two-stage gap topline; Unit 4 session-labor starting CORSIA repair-prove. Money line so far: **$0.000013 metered** (the probe only).
+
+### Classify hardening — TWO silent-write failures found + fixed (error-swallow class, 4th & 5th instances)
+
+The gate passed (~95%) and the full run launched, but the DB didn't reconcile with the runner's reported progress. Root cause: **two unchecked writes silently rejected.**
+
+1. **`census_worklist.dryrun_disposition` CHECK rejection.** The column (migration 221) is a MINT-dryRun vocabulary `('would_mint','dedup_hit','congruence_reject','invariant_reject','hold')`; the runner wrote `not_an_item`/`portal_source` (not in the set) via an unchecked `.update()`, so ~87% of verdicts (all not-relevant) were rejected silently — rows stayed null while the runner reported "classified." **Fix:** the `upd()` helper now THROWS on rejection, and the relevance verdict maps onto the allowed vocabulary.
+   - **DISPOSITION MAPPING (ruled 2026-07-26, MUST be cited wherever census rows are read):** `invariant_reject` = **classified not-relevant under the v2 fail-closed rubric** (mapping dated 2026-07-26), NOT a mint-invariant violation. relevant+specific → `would_mint`; portal → `hold`+`hold_reason='portal_source'`; refusal/no-title → `hold`+reason. Each row also carries `notes: unit3-v2: relevant=<bool> …`. Clean long-term fix (a proper `not_relevant` CHECK value) is logged as tech-debt (docs/tech-debt-log.md 2026-07-26) for a future migration — NOT changed mid-run.
+2. **`agent_runs` insert schema mismatch.** The spend-ledger insert targeted non-existent columns (`phase`/`ok`/`detail`); every row rejected silently, so the platform spend SoT (MTD tile + cost-meter) was blind to census spend. **Fix (operator directive):** FAIL-CLOSED metering — per-call insert with the valid schema (`cost_usd_estimated`/`status='success'`/`model`/`source_url` tag), and **a failed ledger write HALTS the run** (exit 3); baseline reads from the ledger and fail-closes on the read too.
+
+**ERROR-SWALLOW CASE FILE (for the doctrine codification):** the class now has instances at (1) the span guard, (2) the pause-gate read, (3) the `agent_runs` ledger insert, (4) the `census_worklist` disposition write — all "an unchecked write reports success while the DB rejects." Cite all four when the rule lands.
+
+**Console reconciliation — CLOSED (operator ruling 2026-07-26): "estimated, not console-confirmed."** Spend = **ledger $15.21** (fail-closed, complete by construction) + **pre-fix unledgered ~$4.59 (estimated)** = **~$19.8 true total**. Console confirmation WAIVED by the operator as not worth a manual step. **STANDING RULE:** no recurring manual Console lookups, ever — the **fail-closed ledger is the spend SoT**, and its halt-on-write-failure design is what makes it trustworthy without external checks. If a Console cross-check is ever wanted, it gets AUTOMATED: operator adds `ANTHROPIC_ADMIN_KEY` to the untracked `.env.local`, and a reconcile script hits the Cost API on a schedule; until that key exists, no reconciliation runs and none blocks anything. (Mid-run readings — $8.45 while ledger was $5.29 then $13.18 — confirmed Console lag; a quiescent read was never worth the manual step.)
+
+### TWO-STAGE GAP TOPLINE (loop complete, all counts DB ground-truth)
+
+Evidence tier: **METADATA** (title-based relevance via Haiku fail-closed rubric — NOT content-grounded). Universe **21,609**; dispositioned **21,608**; still_null **1** (one persistent write-error row, residual to clean).
+- **Stage 1 (relevance):** relevant **3,337** (would_mint 3,332 + dedup_hit 5) · not-relevant (`invariant_reject`) **15,983** · held **2,288**. Relevant rate **~17%** of classifiable — in the 16–24% band, consistent with the ~13% gate.
+- **Stage 2 (gap):** **GAP = 3,332** (would_mint: relevant + not in corpus) · already-held (dedup_hit) 5.
+- **Held (2,288) by reason:** no-title 1,311 · portal 773 · other 112 · refusal 92.
+- **Gap by surface (multi-tag):** regulations 2,163 · operations 2,019 · market_intel 1,705 · research 247.
+- **Gap by registry (top):** EUR-Lex ~2,459 (2,184 + 275 OJ) · Federal Register/DOT 429 · UK Legislation 358 · NC 30 · CARB/CHP/NYC/EC-CLIMA/others.
+- **NOT derivable from census metadata (honest gaps, not fabricated):** per-jurisdiction (`sources` has no jurisdiction column) and per-vertical (census classifies relevance+surface, not freight vertical). Both require a separate enrichment pass.
+
+**Supersede reconciliation:** the 11,547 v1 fabricated verdicts (86% false relevance) were superseded→NULLed→re-classified fresh here under the fail-closed rubric; SUPERSEDED-noted rows remain the audit trail.
+
+**Scope statement:** universe = EUR-Lex CDM chapters 02/07/09/12/15 + 13/10/05/06 + ch17 + scoped eCFR/FR + UK + other — NOT "all EU law". Chapter 08 (competition/state-aid, ~11,606) is the named, sized, DEFERRED residual. Cross-listing is incidental catch, not coverage.
+
+**Spend:** ledger (fail-closed, loop) **$15.21** / 15,274 calls; pre-fix unledgered ~$4.585; true total ~**$19.8** — restate from a fresh quiescent Console reading (the $8.45 was a mid-run stale figure; ledger already exceeds it, confirming Console lag). Under the $30 sub-cap / $100 ceiling.
+
+**Next:** live-source anti-fabrication audit (queued dispatch), then codify it as the standing post-wave gate.
+
+### LIVE-SOURCE AUDIT — Stratum 1 anomaly RESOLVED (no fabrication; provenance cut applied)
+
+Runbook written (`docs/runbooks/live-source-anti-fabrication-audit.md`), samples drawn (Fisher-Yates, recorded `scripts/tmp/audit-samples.json`), Chrome method proven. Stratum 1 flagged **765 of 3,332 `would_mint` rows with no resolvable title**. Initial read (fabrication residue) was WRONG — corrected by the operator-held provenance history the compacted context lacked.
+
+- **Provenance split = 765/0.** All 765 are pre-acceleration **flow-census content-judged priors**: `created_by` all `session-A-*` (census 512 / stock-sample 146 / intake-census 107); notes 758 `"dry: minted"` + 7 other; disposition timestamps **2026-07-19/20** (before the acceleration). **Zero** v1-fabricated-pass rows escaped the supersede — supersede confirmed COMPLETE.
+- **These are the 765 `would_mint` from the 1,589 already-dispositioned priors** (822 hold + 765 would_mint + 2 dedup), deliberately excluded from the v2 re-classify. They were judged on **actual fetched document content**, not titles — hence no stored title and no v2 notes (expected, NOT a breach). Arguably the strongest-evidenced verdicts in the table.
+- **Fabrication finding RETRACTED; index-build halt LIFTED.** The GAP 3,332 is not contaminated — it is a legitimate two-provenance set: **2,567 v2 title-classified (fail-closed rubric)** + **765 flow-census content-classified (pre-acceleration)**. The topline should present the two bases, not treat 765 as a defect.
+- **Audit continues** with a FIFTH stratum per operator steer: content-classified priors (sample 15), verified against their **source content**, not titles. The sampled `32003A1022(03)` (nuclear-waste Euratom opinion) is re-examined there against its content basis, not counted as fabrication.
+- **Method note (operator-ruled):** EUR-Lex title-match is near-tautological (titles came from Cellar `expression_title`); weight EUR-Lex verification on **existence + relevance**; title-match carries real signal only for the **UK/eCFR** strata.
+
+### LIVE-SOURCE AUDIT — CERTIFICATE (all 5 strata, ZERO fabrication)
+
+**The audit CERTIFIES the ADR-016 acceleration cycle.** Method: `docs/runbooks/live-source-anti-fabrication-audit.md`; samples random (Fisher-Yates, `scripts/tmp/audit-samples.json`); stored-first-then-live throughout.
+
+| Stratum | Sample | Result | Fabrication |
+|---|---|---|---|
+| 1 Census verdicts | 30 wm + 30 ir + 15 hold | existence 100%, title-match 100% (UK live), relevance ~93–100% | **0** |
+| 2 Corpus FACT claims | ADR-014 3 items × 5 | 15/15 spans verbatim-in-stored-capture | **0** |
+| 3 Ops facts | 13 state_cost + 10 regional | 0 uncited; CA min-wage $16.90 live-EXACT vs CA DIR | **0** |
+| 4 Negative control | 10 refused + systemic | 0 leaked verdicts / 19,315 rows | **0** |
+| 5 Content priors | 15 of 758 | all real specific docs, content-judged, honestly flagged | **0** |
+
+**Findings (non-fabrication):** (a) Stratum 4 — 1,073 recoverable holds → REMEDIATED (swept + re-classified pre-topline, per sweep-then-index ruling). (b) Stratum 5 — 636/758 content-priors self-flagged `[low-relevance]` (wildlife/nuclear/airworthiness over-inclusions) → the gap's prior-slice is a soft low-confidence tail, not firm gaps. (c) Process: 3 phantom findings this pass (nuclear-title, index-portals, low-evidence-priors) all dissolved on de-truncation — LESSON: read the full field, never the 50–90char display slice, before escalating. (d) Metering: ledger baseline was unpaginated (capped 1000, read $0.99 vs true $16.21) — FIXED (paginated); the read-cap class now also has an instance.
+
+### FINAL POST-SWEEP TOPLINE (DB ground truth; published once, correct)
+
+Universe **21,609**; dispositioned 21,608; null 1. Evidence tier METADATA (v2 title-based; priors content-based).
+- **Stage 1:** relevant 3,666 · not-relevant `invariant_reject` 16,717 · held 1,225 · dedup 5.
+- **Stage 2 — GAP = 3,661:** firm core **~3,018** (2,896 v2 title-classified fail-closed + 122 clean content-priors) + soft **~636** self-flagged-low-relevance content-prior tail. dedup_hit 5.
+- **Held 1,225** = 238 genuinely title-less + ~773 portal + refusals/other. **Gap by surface:** regulations/operations/market_intel/research (multi-tag). **By registry:** EUR-Lex dominant, then FR/DOT, UK.
+- **NOT derivable from census metadata:** per-jurisdiction, per-vertical (need enrichment pass).
+- **Spend (ledger SoT, console-waived):** ledger $16.21 (16,348 fail-closed calls) + pre-fix ~$4.59 est = **~$20.8 total**; under $30 sub-cap / $100 ceiling.
+
+**Index build UNBLOCKED per the standing gate** (audit passed). 238 genuinely title-less stay held honestly.
+
+**STRATUM 4 — NEGATIVE CONTROL PASS (+ under-processing finding).** Systemic leak check: **0** v2 relevance-verdicts leaked onto title-less rows across 19,315 verdict rows — the fail-closed rubric held perfectly (a title-less row NEVER got a would_mint/invariant_reject). FINDING (not fabrication — the opposite): of 1,311 `unclassifiable_pending_enrichment` holds, **1,073 now have resolvable titles** (held in early passes, never re-swept after the enrichment top-up) — recoverable, owed a ~$1 re-classify sweep; only **238** are genuinely title-less (honest holds). Impact: the topline "held" bucket is inflated by ~1,073 and the gap correspondingly understated; a re-sweep before the index build would tighten both. Non-gating for fabrication; flagged for remediation.
+
+**STRATUM 2 — FABRICATION GATE PASS.** Touched-this-cycle set = 8 Unit-1/2 items with FACT claims (ISO 14083, EU Taxonomy, H2 Accelerate, EEXI/CII, PPWR, CSRD, IMO MEPC 338(76), HDV Phase 3). ADR-014 sample (3 items: PPWR, EU Taxonomy, EEXI/CII) × 5 random FACT claims = 15 claims. **Stored-verbatim (fabrication) check: 15/15 span-in-capture, 0 no-capture, 0 fabrication** — every `source_span` verbatim-present in its stored `result_content_excerpt` (normalized compare = the pipeline-extractor discipline, $0, no Chrome). Spans well-sourced: PPWR tier-1 EUR-Lex, Taxonomy tier-2 EC-finance, EEXI/CII tier-2 IMO + tier-4 ClassNK. **ZERO fabrication.** Live-drift half (absent-but-in-capture = version drift) routed to the monitoring lane — NON-GATING per the runbook; not run this pass.
+
+**STRATUM 1 — CERTIFIED PASS.** 30 would_mint + 30 invariant_reject + 15 hold. Existence 100%; **title-match 100%** (8/8 UK live-verified — 2013/468 rating/tax, 2015/870 Air-Nav IoM, 1992/1508 shellfish, 1995/1372 dairy, 2004/1490 landfill, 2013/680 resource-recovery, 2011/409 marine-licensing, 1994/3246 COSHH — all match, all conservatively held/rejected, no leaked false-positive); relevance-agreement would_mint ~100% (transport/freight/packaging/ETS/auto — the 3 truncated-title "Commission Opinion" suspects all resolved to transport: rail/road/inland-waterway, goods-transport, inland-waterway-vessels), invariant_reject ~93–100% (PDO food-names, MAR, geo-blocking, customs, biocides, nuclear all correctly off-domain). **ZERO fabrication.** LESSON: the one within-stratum wobble (a phantom "nuclear false-positive") was a 90-char title-truncation artifact — full Cellar titles cleared it; read the real title. The 3 FR date-index would_mints + the flow-census nuclear prior route to Stratum 5 (content-classified priors). Strata 2–5 pending.
