@@ -37,6 +37,7 @@ import { forceSlotCoverage, MAX_JUDGED_NOMINATIONS } from "@/lib/agent/slot-forc
 import { summarizeLedger, ledgerRegression } from "@/lib/agent/ledger-dominance.mjs";
 import { diffLedger, applyLedgerDiff } from "@/lib/agent/ledger-apply.mjs";
 import { scanBrief } from "@/lib/agent/gate-a-scan.mjs";
+import { derivedCoveredTokens } from "@/lib/agent/gate-a-derived.mjs";
 import { decodeHtmlBytes } from "@/lib/sources/charset-decode.mjs";
 import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
@@ -1640,7 +1641,11 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
     const gaFacts = ([...(priorClaims ?? []), ...incoming] as Array<{ claim_kind: string; claim_text: string | null; source_span: string | null }>)
       .filter((c) => c.claim_kind === "FACT")
       .map((c) => ({ claim_text: c.claim_text ?? "", source_span: c.source_span ?? "" }));
-    const ga = scanBrief(gaItem?.full_brief ?? "", gaFacts);
+    // Gate B (mig 227): credit the item's valid grounded DERIVED claims (basis exists + basis span still verbatim)
+    // so a labeled derived date is not re-orphaned on re-scan. Pure DB lookup; re-grounds-never-destroy keeps the
+    // DERIVED claims across this non-destructive apply, so a stale basis (not the re-scan) is what reverts coverage.
+    const derivedCovered = await derivedCoveredTokens(sb, itemId);
+    const ga = scanBrief(gaItem?.full_brief ?? "", gaFacts, derivedCovered);
     const { error: gaErr } = await sb.from("item_gate_a_state").upsert({
       intelligence_item_id: itemId, scanned_hash: ga.scanned_hash, orphan_count: ga.orphan_count,
       orphans: ga.orphans, gate_a_version: ga.gate_a_version, scanned_at: new Date().toISOString(),
