@@ -1750,3 +1750,29 @@ Final: verified_total 16 (12 with-brief, literally clean; 4 brief-less held), al
 **C3 — retroactive markers written + ground-truth verified.** 222 markers inserted (count-asserted): 3 batch markers (07-26 census $16.21 / 16,348 rows; 07-26 index-relevance-second-pass $3.36 / 2,888; 07-17 census-class 239 subjectless) + 219 per-subject priced lines (distinct items across 07-15→07-24, operator-certified authorized). SQL ground-truth (no pagination): **untraced = 0 of 19,898** — every post-freeze paid row now traces (subject arm or batch arm). All clusters map to authorized runs; no rogue/unauthorized spend (no STOP). The spend verdict is healthy by construction.
 
 **Remaining for C-complete:** C2 (move marker emission into the metered gate so future spend auto-marks — structural), the 7 verify-script pagination migrations, commit/PR, and prove the live probe green post-deploy.
+
+### 2026-07-27 — Track C COMPLETE + Track A2 started
+
+**C-COMPLETE.** Spend machinery traceable-by-construction. PRs #373 (6 production paginated reads + C2 gate marker-emission + C3 two-arm predicate) and #374 (7 verify-audit pagination migrations) both MERGED + deployed. Repo pagination sweep 13/13. Retroactive markers (222) written; SQL ground-truth 0 of 19,898 untraced, all clusters authorized (no rogue spend). Live probe run (30238192471) against production: **Surface honesty probe = success AND Spend watch = success** — both jobs green honestly for the first time (the "207 of 207" was a 1000-row slice; the paginated route now sees all 19,898 and every one traces). Order-key sub-bug (non-unique pagination order → silent skips) fixed + folded into case-file 9.
+
+**Track A2 (registry pass) — started.** Enumerating unresolvable capture hosts across the quarantined corpus (orphan tokens literally present in a stored capture whose host is NOT a registered source + a section holds the token = registry-fixable; register host deterministically per SC-13 → re-mint → clear). Read-only enumeration running.
+
+### 2026-07-27 — A2 registry pass COMPLETE
+
+Enumerated the quarantined corpus (328 items) for registry-fixable orphans: **266 token-hits across 78 unresolvable capture hosts**. SC-13 deterministic classifier (`classTierForHost`) result: **REGISTER 3 / WORKLIST 75**.
+- **Registered 3 gov hosts (T2, deterministic, no guessed tier):** japaneselawtranslation.go.jp, flsenate.gov, defence.gov.au. Targeted re-mint minted 4 tokens (2+1+1). **0 items restored** — all 3 (ad4cc6c6 regulation, 5803219e framework, 924731b1 regional_data) retain other orphans: derived dates (`2026-05-27`, `April 2026`, `January 2026`, `1 June 2026`…) and figures (`35%`,`40%`) on worklist hosts → A3/A4 territory.
+- **75 worklist hosts (262 token-hits) surfaced as ONE batched integrity_flag** (`source_issue`/`system`, ref `a2-registry-worklist-2026-07-27`, flag 1e379dc6) — no guessed tiers. They are news/blog/analysis/law-firm (balkangreenenergynews, cms.law, morganlewis, billboard, prnewswire…); FACT-grounding operations figures to them would breach the moat, so SC-13 correctly refuses to auto-register.
+
+**Finding:** the Operations restore is NOT a registry problem — the registry pass is a small deterministic lever (3 gov hosts). Operations facts are overwhelmingly non-authoritative-source-backed (news/blog) + derived dates. The real Operations restore path is A3 (re-capture facts from a qualifying source) + A4 (Gate B — relabel derived/analysis). Registry pass reversible; no unauthorized action.
+
+### 2026-07-27 — A4 Gate B: mechanism BUILT + proven-on-one
+
+Per operator ruling (explicit DERIVED claims, scanner stays mechanical). **A4 census** (current corpus, per-item validate): 266 quarantined-with-brief; **c4-only=0** (fixing an unlabeled assertion restores nothing — all also fail Gate A); 263 fail c7, **194 c7-only** (restore iff their Gate-A orphans clear — dominantly derived dates). So the derived-date mechanism is the restore lever, not the c4 relabel.
+
+**Mechanism built (migration 227 + code):**
+- Data model: `claim_kind='DERIVED'` + `basis_claim_id` self-FK (→ the recurring-rule FACT) + fail-closed CHECK (every DERIVED carries a basis).
+- Scanner second arm: `gate-a-derived.derivedCoveredTokens(sb,itemId)` — pure DB lookup returning derived tokens whose basis FACT exists AND whose basis span still verbatim-matches its capture. `scanBrief` gains a `derivedCovered` set param (literal FACT match OR set membership; stays mechanical, no prose pattern). GATE_A_VERSION → 2026-07-27.1. Pipeline scan-site computes+passes it (durability; re-grounds-never-destroy keeps DERIVED across a re-ground).
+- Red/green 6/6: grounded-basis→covered; labeled-in-prose-but-no-DERIVED-row→orphan; missing-basis→orphan; stale-basis-span→orphan; end-to-end clears. tsc clean.
+- **Prove-on-one (Operations item e5c17fac):** derived date "2027" → DERIVED claim (basis FACT 177e71f2 "Reporting is due every year by June 1", verbatim in capture) → re-scan orphan_count **5→4**, "2027" left the orphan set. Mechanism validated end-to-end on real data. (Item retains 4 other orphans → its worklist entry; full restore needs all its derived dates covered.)
+
+**Remaining A4 (scale):** the DERIVED-mint worklist — per derived date, identify its basis rule (content step: match the derived date to a grounded recurring-rule FACT), write the DERIVED row, re-scan; fail-closed hold where the basis can't be identified/grounded (honest orphan). Plus the c4 relabel worklist (29) + sub-floor-source relabels. Items whose full orphan set becomes DERIVED-covered restore.
