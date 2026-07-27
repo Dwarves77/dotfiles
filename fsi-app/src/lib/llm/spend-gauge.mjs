@@ -10,6 +10,8 @@
 //
 // It NEVER spends. It reads agent_runs.cost_usd_estimated — the same ledger everything else reads.
 
+import { fetchAllRows } from "../db/paginate.mjs";
+
 /**
  * @typedef {{
  *   monthSpentUsd: number,
@@ -74,13 +76,17 @@ export async function readSpendGauge(svc, opts = {}) {
   const monthStartIso = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
   const dayStartIso = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
 
-  const { data, error } = await svc
-    .from("agent_runs")
-    .select("cost_usd_estimated, started_at, fetch_method, errors")
-    .gte("started_at", monthStartIso);
-  if (error) throw new Error(`spend-gauge read failed: ${error.message}`);
-
-  const rows = data ?? [];
+  // PAGINATED (case-file 9): a month of census/classify runs is tens of thousands of rows (19,898 in July),
+  // far past PostgREST's 1000-row default — a range-less select silently truncated the MTD sum and the paid-run
+  // traceability count to a 1000-row slice (the same "207 of 207" trap the sibling spend route hit).
+  const rows = await fetchAllRows((from, to) =>
+    svc
+      .from("agent_runs")
+      .select("cost_usd_estimated, started_at, fetch_method, errors")
+      .gte("started_at", monthStartIso)
+      .order("id", { ascending: true }) // UNIQUE order key — non-unique (started_at) makes offset paging lossy
+      .range(from, to)
+  );
   let monthSpentUsd = 0;
   let todaySpentUsd = 0;
   let paidRuns = 0;

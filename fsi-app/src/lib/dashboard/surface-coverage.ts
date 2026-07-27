@@ -33,6 +33,7 @@
 // per-surface tiles add up.
 
 import { unstable_cache } from "next/cache";
+import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { getServiceSupabase, isSupabaseConfigured } from "@/lib/supabase-server";
 import { APP_DATA_TAG } from "@/lib/data";
@@ -174,19 +175,23 @@ async function fetchIntelligenceCounts(orgId: string): Promise<IntelligenceSurfa
     // (archive-after-overrides excluded). Two queries since PostgREST
     // embedded selects with workspace_item_overrides have been finicky
     // here; one for base rows, one for overlay archives.
-    const { data: itemsRaw, error: itemsErr } = await supabase
-      .from("intelligence_items")
-      .select("id, item_type, domain")
-      .eq("is_archived", false)
-      .eq("provenance_status", "verified"); // Sprint 4 task 1.10: customer read gate
-    if (itemsErr) {
-      console.error(
-        "[dashboard/surface-coverage] intelligence_items fetch error:",
-        itemsErr.message
-      );
+    // PAGINATED (case-file 9): the verified corpus can exceed 1000 rows; a truncated read here would bias the
+    // dashboard five-surface counts (this fallback only fires when get_all_surface_counts is absent/errors).
+    let items: ScopeItem[];
+    try {
+      items = (await fetchAllRows((from, to) =>
+        supabase
+          .from("intelligence_items")
+          .select("id, item_type, domain")
+          .eq("is_archived", false)
+          .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
+          .order("id", { ascending: true })
+          .range(from, to)
+      )) as ScopeItem[];
+    } catch (e: any) {
+      console.error("[dashboard/surface-coverage] intelligence_items fetch error:", e?.message ?? e);
       return EMPTY_INTEL;
     }
-    const items = (itemsRaw ?? []) as ScopeItem[];
 
     const ids = items.map((r) => r.id);
     const overlayArchived = new Set<string>();
