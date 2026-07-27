@@ -88,3 +88,23 @@ Either path is a migration + consumer sweep (enum change or view/column + every 
 **Trigger condition (build then, not before):** if a pool persist ever fails on payload size, build RPC-transaction chunking then — a server-side function that accepts the pool rows and does DELETE + per-row INSERT inside one transaction, paired with client-side chunking of the request body under the then-measured gateway limit, preserving GUARD-1 atomicity.
 
 **Priority:** Low (fail-loud today; realistic document sizes never trigger it).
+
+---
+
+## 2026-07-26 — census_worklist disposition vocabulary lacks a `not_relevant` value (ADR-016 acceleration)
+
+**Context:** The v2 census classifier produces RELEVANCE verdicts, but `census_worklist.dryrun_disposition` (migration 221) is a MINT-dryRun vocabulary: `CHECK IN ('would_mint','dedup_hit','congruence_reject','invariant_reject','hold')`. There is no value meaning "classified not-relevant / off-domain." Mid-run (2026-07-26) the not-relevant verdicts were mapped onto **`invariant_reject`** (mint would reject as out-of-scope) with the explicit note stamped in each row (`notes: unit3-v2: relevant=false …`) and documented in the session log + topline. This works and the rollup view already buckets `invariant_reject` as "other_dispositioned" (correct — not a gap, not held), but it **overloads a bucket whose name implies a mint-invariant violation**.
+
+**Clean fix (future migration, NOT mid-run):** add a proper `not_relevant` value to the `census_worklist_dryrun_disposition_check` constraint, update `census_rollup_by_surface` (migration 222) to bucket it alongside `invariant_reject` under "other_dispositioned", and a one-shot data migration to re-key the mapped rows (`WHERE notes LIKE 'unit3-v2: relevant=false%' AND dryrun_disposition='invariant_reject'` → `not_relevant`). Reversible, $0 data op.
+
+**Priority:** Low (semantically documented everywhere a reader sees it; purely a naming-clarity improvement — the counts are correct today).
+
+---
+
+## 2026-07-26 — reconciler credential broken (operator DDL window owed)
+
+**Context:** `guard_provenance_flip()` (migration 43) blocks `provenance_status` flips OFF `'unverified'` unless `current_user='reconciler'` OR the write is INSERT-origin (`app.prov_flip_origin='INSERT'`, pg_trigger_depth>=1). The bound `reconciler` role/credential is not provisioned in the agent/service-role environment, so ad-hoc reconciliation of `unverified` items (e.g. realizing a Gate-A quarantine on the 6 unverified-orphaned briefs) is not possible from this session. Migration-43 guard is the enforcement point and is WORKING AS DESIGNED — this is a missing credential, not a bug.
+
+**Fix (operator DDL window):** provision/rotate the bound `reconciler` credential per the migration-43 contract, out of the agent env (least-privilege — NOT injected into a session). Until then, `unverified`-origin flips must route through the sanctioned INSERT-origin pipeline path.
+
+**Priority:** Medium — blocks ad-hoc reconciliation only; the customer-visible integrity path (verified↔quarantined) is unaffected, and INSERT-origin minting works.

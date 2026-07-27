@@ -1327,3 +1327,406 @@ Design questions resolved (not inherited): (a) `discoverCorroborators` only ever
 Verification contract, all green: tsc --noEmit 0 errors; discipline suite 896/896 (incl. F17 + meta-gate); src `*.test.mjs` 493/493; `*.npmtest.mjs` 85/85; worklist BUILD 106/15/1; `node --check` OK; jiti import of the EXECUTE path IMPORT_OK.
 
 Findings surfaced (never overridden): (1) legacy_40k dedups to 106 on (item_id, result_url), not the premised 105 — zero duplicate pairs exist, so dedup removes nothing (raw 106 = deduped 106). (2) GUARD-1 pool-INSERT size at the 10M ceiling, for operator ruling. Deliverable is a PR; the emergency stop stays UP, no fetch, no DB writes, EXECUTE not run, out-of-scope items (portal-defect sweep, 8 RLS-disabled tables, hold lift) untouched.
+
+## 2026-07-23 — ADR-016 follow-through UNIT 1 (EUR-Lex held-row recapture, $0 fetch-only)
+
+Recaptured the 27 drain-held rows (23 EUR-Lex bot-wall shells + ICS2 FAQ / sdir.no / DCCEEW + the two EU-ETS PDFs) via the official CELEX document endpoints, guarded by factSpansStillMatch (error-checked). Emergency stop stays DOWN; no system_state touched. Fetch only, zero model calls ($0).
+
+PREMISE CONFIRMED (read-only before any write): the held EUR-Lex rows are bot-wall SHELL renders, not content drift. The JS-viewer URL `/legal-content/EN/TXT/?uri=X` returns a shell, but `/legal-content/EN/TXT/HTML/?uri=X` and the Cellar endpoint `publications.europa.eu/resource/celex/{CELEX}` return full text (100K-173K chars). Recapture runs the CELEX endpoints through the pipeline's own refetchThroughLadder so extraction matches the stored format.
+
+REPLACED clean (strict factSpansStillMatch passed), all 4 were 40K slices: d5ee6ab8 CBAM 32023R0956 -> 173094; 15f63ea9 EU-ETS directive 02003L0087 PDF -> 305996 (ladder); 3ae89ce6 HDV 02019R1242-20240701 -> 140617; f0833999 CSRD 2022/2464 -> 139981.
+
+FINDING (23 still held, ZERO real content drift): 19 EUR-Lex rows fully recover their substantive text via the /HTML/ endpoint (150K-173K) but strict factSpansStillMatch holds them on 1-2 CITATION/MASTHEAD page-chrome spans each (OJ-citation headers with en-dashes e.g. "OJ L 234, 22.9.2023, pp. 48-100", "Current consolidated version: DD/MM/YYYY" labels, full-title lines, version-date selector lists) that are NOT present in the raw document render. Not content drift. Recommend operator ruling: replace-anyway (substantive content is full; UNIT 2 re-grounds the citation spans) OR Chrome-render the viewer pages (which show the masthead) for a clean strict-guard pass. The remaining 4 (ICS2 FAQ, sdir.no fjords consultation, umweltbundesamt PDF, DCCEEW PDF) returned shell/nothing on ladder retry -> Chrome render pending.
+
+Flags: 4 hold-flags resolved, 23 updated with transports-tried + the finding; 4 truncation-guard flags stay open (their items still hold rows), 18 remain resolved from the drain. Scripts: scripts/remediation/unit1-eurlex-recapture.mjs + unit1-reconcile-flags.mjs. Stopped for operator review before UNIT 2 per dispatch.
+
+## 2026-07-23 — ADR-016 UNIT 1 completion (normalized /HTML/ recapture + non-EUR-Lex ladder)
+
+Completed the held-row recapture per the operator's validation ruling. Emergency stop stays DOWN; no system_state touched. Fetch only, $0.
+
+RESULT: 18 of 27 drain-held rows recaptured FULL (4 clean strict-guard + 14 normalized-/HTML/ substantive-guard). 9 still held: 5 EUR-Lex version-currency (instrument amended since grounding — the enacted FACT spans are not in the live consolidated text; on-wave items re-ground fresh in UNIT 2), 3 non-EUR-Lex recovered by ladder retry but held on genuine strict-guard span misses (ICS2 FAQ 12/18, sdir.no 8/11, DCCEEW 20/22), 1 (umweltbundesamt factsheet PDF) still roadblocked (transport none). Flags reconciled item-level (an earlier reconcile overwrote per-row URLs in descriptions, so mapping is by count): hold 19 resolved / 8 open, truncation-guard 18 resolved / 4 open, plus 5 residual-citation + 1 version-currency flags.
+
+PERMANENT LESSON (subscript-extraction): captures MUST be extracted by the pipeline's own extractor (htmlToText tag->space, cleanCtl, \s+->space, trim), NEVER by a browser text renderer — Chrome innerText renders subscripts tight ("CO2"/"N2") where the pipeline's htmlToText inserts a space at the <sub> tag boundary ("CO 2"/"N 2"), so a browser-rendered capture fails the verbatim FACT-span guard on every subscript-bearing span. The /HTML/ CELEX endpoint runs through the pipeline extractor and matches; Chrome innerText regresses.
+
+CHROME-ONLY HOST CLASS (for the future orchestration/monitoring unit): eur-lex.europa.eu JS-viewer masthead spans and genuinely bot-walled hosts have no steady-state browserless path — the monitor has no browser. Options for those: alternative endpoint (the /HTML/ + Cellar CELEX endpoints solved EUR-Lex here) or manual-recapture-only. Also logged: EUR-Lex transport non-determinism (direct vs Browserless-render serve different versions/extractions run-to-run) — the guard makes this safe (replaces only on confirmed substantive-span presence).
+
+Scripts: scripts/remediation/unit1b-normalized-recapture.mjs, unit1-final-reconcile.mjs (+ unit1-eurlex-recapture.mjs, unit1-reconcile-flags.mjs from the first pass).
+
+## 2026-07-24 — ADR-016 UNIT 2 reground wave (halted at ceiling)
+
+Re-grounded the fuller-capture items from stored pools ($0 fetch, Sonnet re-synth + ground). GROUNDING_ACQUIRE_ENABLED armed in the worktree .env.local ONLY (gitignored, production/Vercel untouched), DISARMED atomically in the runner's finally{} (confirmed =0 at end). Emergency stop untouched.
+
+PROVE-ON-ONE LESSON (560K synthesis window is now the binding constraint): capping moved from storage (fixed by ADR-016) to synthesis (surfaced). The 3 largest recoveries — bec305e1 FR HD Phase 3 (2.27M), e2e03e1b WIPO (1.07M), 5b2c6655 Canada Gazette (721K) — exceed SYNTH_PRIMARY_HARD_CEILING (560K, sized to Sonnet's ~200K-token context), so their primary walls at synthesis (collected 0/2.27M, context-ceiling-wall) and the re-ground regresses; the dominance guard correctly restores the prior ledger (no data loss). These 3 are skipped + flagged coverage_gap 'oversized-primary' as the acceptance test for a future multi-pass chunking unit (ADR-016 named case, not built).
+
+RESULT: ran 9 of 45 (halted at ceiling), ~118 new FACTs across 6 items (CSRD 26->52, EEXI/CII 41->52, ISO14083 8->25, HDV 30->53, Fit-for-55 45->68, H2 28->46). Dominance guard: no regressions. One verified->quarantined DEMOTION (r28 H2 Accelerate — richer ledger tripped a gate; escalated via integrity_flag to the non-destructive exits). One item errored on topic_tags>3 validation (g1, caught, stayed verified). 36 items un-re-ground (budget halt).
+
+FINDINGS: (1) cost was ~$1-1.5/item (re-synth of large docs), ~10x the $0.15 estimate, so $10 covered 9 items; (2) hard-ceiling OVERSHOOT to $11.05 (post-item check granularity — item 9's ~$1.45 pushed cumulative over $10 before the halt fired); (3) the runner crashed once (unhandled Sonnet YAML parse error) and the crash left the flag armed until manual disarm — fixed with per-item try/catch + a finally{} that always disarms + a fixed cross-restart spend baseline.
+
+## 2026-07-25 — ADR-016 acceleration UNIT 3: census classification FABRICATION incident + fail-closed remediation
+
+INCIDENT: the first census metadata-classify (v1) was given only the CELEX identifier + URL (NO title, NO content). Haiku HALLUCINATED a plausible freight-sustainability topic for nearly every row and scored 86% relevant. The random hand-verified calibration gate caught it: verified false positives incl. 32022R0123 (European Medicines Agency reg) fabricated as "CSRD", PDO food-name registrations scored as freight regulations, animal-health/poultry amendments scored as "HDV CO2". True agreement of the v1 pass ~50%; the 86% was fabrication. The moat (the random gate) worked exactly as designed.
+
+REMEDIATION (operator ruling): (1) FAIL-CLOSED RUBRIC — PERMANENT, codify in doctrine: the classifier may NEVER emit a relevance verdict from an identifier alone. A row without a real title returns unclassifiable_pending_enrichment (NO model call, $0). Any rationale carrying assumption language ("likely/assume/without access/unknown from/metadata alone") is a REFUSAL, not a verdict. Implemented in scripts/remediation/unit3-classify-v2.mjs (SYS prompt + ASSUMPTION regex). (2) Free title enrichment via EUR-Lex Cellar SPARQL expression_title + UK legislation.gov.uk /data.xml ($0): 10,726/10,733 EUR-Lex + 1,617/2,700 UK titles resolved. (3) Superseded the 11,547 v1 verdicts with an audit trail (snapshot -> NULL -> SUPERSEDED stamp; snapshot in v1-superseded-snapshot.json) — never silent overwrite. (4) Re-gated Haiku-with-titles on a RANDOM 30 titled rows: ~93% agreement (PASS >=90%); true relevance rate ~13% (vs fabricated 86%), in the 16-24% projected band.
+
+STANDARD (recorded for future walks): Haiku-with-real-title is the proven census classifier (gate evidence: random-30 ~93%). The confidence-escalation hybrid (Haiku+confidence -> Sonnet deciding vote) is the fallback if Haiku-with-titles ever fails a gate; it was NOT needed here.
+
+TWO PERMANENT LESSONS: (A) audit gates MUST sample the ACTUAL input distribution — the first gate was first-30-by-id (non-random), front-loaded to heavily-relevant EUR-Lex/UK legal instruments, which masked the fabrication; a random draw exposed it. (B) enumeration passes MUST capture title metadata at walk time — storing naked identifiers forced the classifier to guess. Added to the scope-ledger requirements: no future walk stores identifiers without titles.
+
+SCOPE LEDGER: the census universe is EUR-Lex CDM chapters 02/07/09/12/15 + scoped eCFR/FR + UK + other — NOT "all EU law". Chapter-17 (company law, CSRD/CSDDD) blind spot: ~204 net-new. Cross-listing (an instrument carrying a secondary directory-code in an enumerated chapter, e.g. CSDDD) is INCIDENTAL CATCH, not coverage. Chapter 08 (competition/state-aid, 11,606) is a named, sized, deliberately-DEFERRED residual.
+
+## 2026-07-25 — STANDING FINANCIAL LAW + model-routing gate (item 8)
+
+INCIDENT ROOT CAUSE: grounding-class work (UNIT 2 re-grounds) ran through the METERED Sonnet API when the ruled architecture runs it FREE on the subscription executor; ~2/3 of campaign metered spend was avoidable. The account hit its usage cap (blocked until 2026-08-01).
+
+LAW (binds this session + all successors): default is $0 (subscription-executor for grounding/extraction/repair/mint; free fetch/Chrome for capture; SPARQL/index for enumeration; SQL/string for verification). Metered Anthropic is FORBIDDEN BY DEFAULT — the ONLY eligible class is batch-classification, and only with (a) recorded operator token, (b) named-job authorization, (c) pre-run quote under a hard cap, (d) tracked hard-stop. No self-pricing. Stop-means-stop on any spend anomaly. Money line ($0.00) on every bank.
+
+WALL (mechanical, not prose): src/lib/llm/metered-gate.mjs — assertMeteredCallAllowed({callClass,model,capUsd,env}) throws MeteredCallForbiddenError unless callClass==='batch-classification' AND model on the Haiku allowlist AND METERED_BATCH_TOKEN present AND a positive capUsd; grounding-shaped classes (grounding/reground/extraction/mint/synthesis/generate/ask/search) refuse with a named error pointing at the free executor; unknown class default-denies. Golden: src/lib/llm/metered-gate.test.mjs 7/7 red-then-green. Follow-on (successor): wire the gate as a fitness function + invariant so the meta-gate enforces it in CI, and route the single sanctioned metered call site through it.
+
+## 2026-07-25 — Scheduled-workflow spend diagnosis + acceleration progress (execution order)
+
+WORKFLOW DIAGNOSIS (read-only). Inventory of .github/workflows/: bug-class-guard + discipline (PR-CI, no schedule, no model). data-audit-lane (nightly 06:00) -> run-data-audit-lane.mjs = $0 SQL/structural audits, NO Anthropic. trust-recompute (monthly) -> /api/admin/recompute-trust = $0 Bayesian SQL. uptime-probes (surfaces 30min + spend 09:00) -> curls /api/health/* = $0, PASSING. spot-check-monthly (~20 Haiku, METERED) -> cron COMMENTED OUT (dispatch-only). source-monitoring (Browserless) -> cron COMMENTED OUT (dispatch-only).
+
+MONEY ANSWER (precise): NO scheduled workflow makes metered Anthropic calls. The only metered workflow (spot-check, ~20 Haiku/run) has its schedule commented out — it is dispatch-only, so ZERO scheduled metered spend. There is NO unaccounted scheduled spend. The daily failures are NOT the wall/spend.
+
+The data-audit-lane failures (07-23/24/25) are $0 audit-drift: one-tier-per-host (9), claims-tier (190), substrate-agreement (4), ledger-onepass, quarantine-disposition (17 new crossings), schema-drift (ERROR). This is the audit CORRECTLY detecting corpus drift, much of it the mid-campaign state (ADR-016 re-grounds changed tiers/claims; the census added undispositioned rows; schema-drift = the still-un-migrated acquisition_backlog_v). It clears when the remediation lands (relabel/verbatim-repair = review-lane items; Aug-1 census classification; acquisition_backlog_v migration; FR consolidation). NOT to be silenced — it is a real-drift signal.
+
+FIX POSTURE: the operator's gate-metered-workflows ruling has no target (no scheduled metered workflows). spend-watch is already cap-aware by construction (reads /api/health/spend telemetry; never calls the API, so a usage-limit cannot make it 400). No workflow change required; the standing metered-gate (metered-gate.mjs) is the durable wall. Follow-on if desired: a dated note on spot-check-monthly.yml that it stays dispatch-only behind the operator spend-token post-Aug-1.
+
+EXECUTION-ORDER PROGRESS (this session, all $0): item 8 model-routing gate BUILT (metered-gate.mjs, 7/7 golden, committed 1f33ba0b, pushed). item 5 SPARQL enumeration DONE (chapters 13/10/05/06: 6,371 new gap-candidates + ch17 done; census_worklist now ~21,600). items 1-3 (relabel/verbatim-repair/completeness) BLOCKED — the 237/517/10 claim sets are the review-lane audit's product, not derivable in this lane (section_claim_provenance has no mint_hold_reason markers); running blind would corrupt the corpus. items 4 (INDEX-FIRST labels for the 1,347 v2-classified-relevant), 6 (UK title enrichment top-up), 7 (acquisition_backlog_v migration + FR consolidation + bucket itemization) REMAIN ($0, in-lane).
+
+METERED SPEND THIS SESSION GOING FORWARD: $0.00. Account capped until 2026-08-01. Aug-1 queue: finish census classification of the ~16,000 undispositioned rows (11,547 superseded + 199 ch17 + 6,371 chapters 13/10/05/06 + residual UK) via fail-closed Haiku-with-titles (~$8-12 est), ONLY after a fresh quote + explicit same-turn operator yes + METERED_BATCH_TOKEN, per the standing financial law.
+
+---
+
+## 2026-07-25 — Execution-order close (ADR-016 follow-through lane)
+
+**Money line: $0.00 metered this session.** Anthropic account capped until 2026-08-01; no model call was made. Every write below was a free path (SQL DDL / repo commit / free HTTP).
+
+### Items banked (three-state)
+- **Item 7a — acquisition_backlog_v migration: DONE.** Migration `223_acquisition_backlog_v.sql` authored byte-matching `pg_get_viewdef`, applied (no-op), recorded in migrations.md (C3 clears), allowlist entry removed from `schema-drift-audit.mjs`. Commits `ef0ff5d1` + `e584b44c`, pre-push 4/4 green.
+- **Item 8 — model-routing gate (the wall): DONE (prior turn).** `metered-gate.mjs` + 7/7 red-then-green test. `batch-classification`+Haiku+token+cap is the ONE allowed metered path; grounding/reground/synthesis/etc. refuse by name; unknown class default-denies.
+- **Spot-check note: DONE.** `spot-check-monthly.yml` carries the dated dispatch-only financial-law note; schedule stays disabled.
+- **Item 6 — UK title top-up: DEFERRED-by-sequencing.** 1,304 census rows title-less; their ONLY consumer is the post-Aug-1 metered classification. Free UK legislation.gov.uk enrichment runs as the immediately-before step of that batch — no value lost by deferring, and it keeps the free-fetch off the compaction-recovery turn.
+- **Item 4 — INDEX-FIRST awareness labels (1,347): DEFERRED.** 1,347 v2-classified-relevant instruments are the awareness-tier candidate set. This is a corpus-surfacing build (dashboard-visible METADATA entries) — held for a fresh design-grounded turn rather than a 1,347-row write mid-compaction (the fabrication-class setup).
+- **Item 7b — FR source-identity consolidation: DEFERRED.** Re-key FR rows to clean FR-root `dc907f90`; data-op, no metered cost, held.
+
+### Corpus + census counts (VERIFIED, live query 2026-07-25)
+- Corpus: **verified 209 / quarantined 70** (non-archived).
+- Census: total **21,609**; v2-relevant awareness candidates **1,347**; undispositioned Aug-1 queue **17,335**; pending-no-title **1,304**.
+
+### Escalation buckets (itemized, owners)
+- **Fabrication bucket** — the superseded v1 classifier pass: 11,547 rows NULLed + SUPERSEDED-stamped (snapshot `v1-superseded-snapshot.json`). Owner: Aug-1 metered re-classify under the fail-closed rubric. True relevance ~13% (was fabricated 86%).
+- **Acquisition bucket** — 1,304 pending-no-title (owner: item-6 free enrichment) + 3 open oversized-primary flags (`adr016-oversized-primary`, owner: 560K synthesis-window chunking design) + 8 open unit-1 holds.
+
+### Schema-drift remediation (itemized — which audit line clears with which fix)
+- **DRIFT (ERROR) `view acquisition_backlog_v`** -> CLEARED by migration 223 (committed CREATE now traces; allowlist bypass removed). The nightly `data-audit-lane` schema-drift ERROR line clears on next run.
+- No other drift or stale-allowlist line remains (ALLOWLIST now empty).
+
+### Aug-1 resume order (one line)
+After 2026-08-01, with a fresh quote + explicit same-turn yes + `METERED_BATCH_TOKEN`: run item-6 UK enrichment, then the fail-closed Haiku batch-classification of the 17,335 undispositioned census rows (~$8-12), then item-4 awareness labels for the confirmed-relevant set.
+
+---
+
+## 2026-07-26 — ADR-016 acceleration EXECUTED EARLY (operator raised the console cap) + Unit 4 spec recorded
+
+**STANDING META-RULE ADOPTED (durable-record):** any operator ruling authorizing multi-step work is written to the session log or a `docs/plans` file **at receipt, before execution** — chat is a delivery channel, not a record. Unit 4's spec was lost to compaction because it only lived in conversation; this rule closes that failure class. Applied here: [Unit 4 spec](../plans/unit4-critical-high-disposition-2026-07-26.md) recorded BEFORE any Unit 4 execution.
+
+**Operator GO order (2026-07-26):** console limit raised; re-probe; on a 200 proceed the full ruled sequence without further check-in — fail-closed re-gate on random 30 titled rows (≥90%), calibrated full re-classify of all ~17,335 (incl. chapter-walk residual), gate-conditional hybrid escalation (Haiku→Sonnet deciding vote, ONLY if the gate fails — else pure Haiku, wall stays consistent), supersede-audit intact, two-stage gap topline + reconciliations + scope statement. All spend inside a **$100 acceleration cap**, wall armed, project-before-spend. In parallel, the $0 queue: Unit 4 session-labor (CORSIA repair-prove first) + chapter-walk title enrichment.
+
+**Bank 1 — wall (Step 1a):** the metered-gate was found NOT wired into the spend runner (`unit3-classify-v2.mjs` called `api.anthropic.com` directly; `--budget` defaulted to $20 > cap). Fixed: `assertMeteredCallAllowed` gated before any Anthropic call + hard clamp (now `OPERATOR_CAP_USD=100`, the acceleration ceiling — a ceiling, not a target; expected spend ~$12-17). Proven live: spend-mode without token → `MeteredCallForbiddenError`, exit 1, $0.
+
+**Bank 2 — probe (Step 1b):** 2026-07-25 probe returned HTTP 400 (capped until 2026-08-01, $0 billed). 2026-07-26 re-probe (after operator raised the cap) returned **HTTP 200** ($0.000013). Headroom confirmed.
+
+**Title enrichment ($0):** chapter-walk residual (6,371 title-less, chapters 13/10/05/06) enriched via EUR-Lex Cellar SPARQL `expression_title` — EUR-Lex 17,092/17,106 + UK 2,690/2,700 = **19,782 titles**; residual title-less **24** (14 EUR-Lex + 10 UK → fail-closed `unclassifiable_pending_enrichment`). "All ~17,335" now means titled-and-enriched, never a naked identifier.
+
+**In flight (this session):** 30-row re-gate → full calibrated classify (background) → two-stage gap topline; Unit 4 session-labor starting CORSIA repair-prove. Money line so far: **$0.000013 metered** (the probe only).
+
+### Classify hardening — TWO silent-write failures found + fixed (error-swallow class, 4th & 5th instances)
+
+The gate passed (~95%) and the full run launched, but the DB didn't reconcile with the runner's reported progress. Root cause: **two unchecked writes silently rejected.**
+
+1. **`census_worklist.dryrun_disposition` CHECK rejection.** The column (migration 221) is a MINT-dryRun vocabulary `('would_mint','dedup_hit','congruence_reject','invariant_reject','hold')`; the runner wrote `not_an_item`/`portal_source` (not in the set) via an unchecked `.update()`, so ~87% of verdicts (all not-relevant) were rejected silently — rows stayed null while the runner reported "classified." **Fix:** the `upd()` helper now THROWS on rejection, and the relevance verdict maps onto the allowed vocabulary.
+   - **DISPOSITION MAPPING (ruled 2026-07-26, MUST be cited wherever census rows are read):** `invariant_reject` = **classified not-relevant under the v2 fail-closed rubric** (mapping dated 2026-07-26), NOT a mint-invariant violation. relevant+specific → `would_mint`; portal → `hold`+`hold_reason='portal_source'`; refusal/no-title → `hold`+reason. Each row also carries `notes: unit3-v2: relevant=<bool> …`. Clean long-term fix (a proper `not_relevant` CHECK value) is logged as tech-debt (docs/tech-debt-log.md 2026-07-26) for a future migration — NOT changed mid-run.
+2. **`agent_runs` insert schema mismatch.** The spend-ledger insert targeted non-existent columns (`phase`/`ok`/`detail`); every row rejected silently, so the platform spend SoT (MTD tile + cost-meter) was blind to census spend. **Fix (operator directive):** FAIL-CLOSED metering — per-call insert with the valid schema (`cost_usd_estimated`/`status='success'`/`model`/`source_url` tag), and **a failed ledger write HALTS the run** (exit 3); baseline reads from the ledger and fail-closes on the read too.
+
+**ERROR-SWALLOW CASE FILE (for the doctrine codification):** the class now has instances at (1) the span guard, (2) the pause-gate read, (3) the `agent_runs` ledger insert, (4) the `census_worklist` disposition write — all "an unchecked write reports success while the DB rejects." Cite all four when the rule lands.
+
+**Console reconciliation — CLOSED (operator ruling 2026-07-26): "estimated, not console-confirmed."** Spend = **ledger $15.21** (fail-closed, complete by construction) + **pre-fix unledgered ~$4.59 (estimated)** = **~$19.8 true total**. Console confirmation WAIVED by the operator as not worth a manual step. **STANDING RULE:** no recurring manual Console lookups, ever — the **fail-closed ledger is the spend SoT**, and its halt-on-write-failure design is what makes it trustworthy without external checks. If a Console cross-check is ever wanted, it gets AUTOMATED: operator adds `ANTHROPIC_ADMIN_KEY` to the untracked `.env.local`, and a reconcile script hits the Cost API on a schedule; until that key exists, no reconciliation runs and none blocks anything. (Mid-run readings — $8.45 while ledger was $5.29 then $13.18 — confirmed Console lag; a quiescent read was never worth the manual step.)
+
+### TWO-STAGE GAP TOPLINE (loop complete, all counts DB ground-truth)
+
+Evidence tier: **METADATA** (title-based relevance via Haiku fail-closed rubric — NOT content-grounded). Universe **21,609**; dispositioned **21,608**; still_null **1** (one persistent write-error row, residual to clean).
+- **Stage 1 (relevance):** relevant **3,337** (would_mint 3,332 + dedup_hit 5) · not-relevant (`invariant_reject`) **15,983** · held **2,288**. Relevant rate **~17%** of classifiable — in the 16–24% band, consistent with the ~13% gate.
+- **Stage 2 (gap):** **GAP = 3,332** (would_mint: relevant + not in corpus) · already-held (dedup_hit) 5.
+- **Held (2,288) by reason:** no-title 1,311 · portal 773 · other 112 · refusal 92.
+- **Gap by surface (multi-tag):** regulations 2,163 · operations 2,019 · market_intel 1,705 · research 247.
+- **Gap by registry (top):** EUR-Lex ~2,459 (2,184 + 275 OJ) · Federal Register/DOT 429 · UK Legislation 358 · NC 30 · CARB/CHP/NYC/EC-CLIMA/others.
+- **NOT derivable from census metadata (honest gaps, not fabricated):** per-jurisdiction (`sources` has no jurisdiction column) and per-vertical (census classifies relevance+surface, not freight vertical). Both require a separate enrichment pass.
+
+**Supersede reconciliation:** the 11,547 v1 fabricated verdicts (86% false relevance) were superseded→NULLed→re-classified fresh here under the fail-closed rubric; SUPERSEDED-noted rows remain the audit trail.
+
+**Scope statement:** universe = EUR-Lex CDM chapters 02/07/09/12/15 + 13/10/05/06 + ch17 + scoped eCFR/FR + UK + other — NOT "all EU law". Chapter 08 (competition/state-aid, ~11,606) is the named, sized, DEFERRED residual. Cross-listing is incidental catch, not coverage.
+
+**Spend:** ledger (fail-closed, loop) **$15.21** / 15,274 calls; pre-fix unledgered ~$4.585; true total ~**$19.8** — restate from a fresh quiescent Console reading (the $8.45 was a mid-run stale figure; ledger already exceeds it, confirming Console lag). Under the $30 sub-cap / $100 ceiling.
+
+**Next:** live-source anti-fabrication audit (queued dispatch), then codify it as the standing post-wave gate.
+
+### LIVE-SOURCE AUDIT — Stratum 1 anomaly RESOLVED (no fabrication; provenance cut applied)
+
+Runbook written (`docs/runbooks/live-source-anti-fabrication-audit.md`), samples drawn (Fisher-Yates, recorded `scripts/tmp/audit-samples.json`), Chrome method proven. Stratum 1 flagged **765 of 3,332 `would_mint` rows with no resolvable title**. Initial read (fabrication residue) was WRONG — corrected by the operator-held provenance history the compacted context lacked.
+
+- **Provenance split = 765/0.** All 765 are pre-acceleration **flow-census content-judged priors**: `created_by` all `session-A-*` (census 512 / stock-sample 146 / intake-census 107); notes 758 `"dry: minted"` + 7 other; disposition timestamps **2026-07-19/20** (before the acceleration). **Zero** v1-fabricated-pass rows escaped the supersede — supersede confirmed COMPLETE.
+- **These are the 765 `would_mint` from the 1,589 already-dispositioned priors** (822 hold + 765 would_mint + 2 dedup), deliberately excluded from the v2 re-classify. They were judged on **actual fetched document content**, not titles — hence no stored title and no v2 notes (expected, NOT a breach). Arguably the strongest-evidenced verdicts in the table.
+- **Fabrication finding RETRACTED; index-build halt LIFTED.** The GAP 3,332 is not contaminated — it is a legitimate two-provenance set: **2,567 v2 title-classified (fail-closed rubric)** + **765 flow-census content-classified (pre-acceleration)**. The topline should present the two bases, not treat 765 as a defect.
+- **Audit continues** with a FIFTH stratum per operator steer: content-classified priors (sample 15), verified against their **source content**, not titles. The sampled `32003A1022(03)` (nuclear-waste Euratom opinion) is re-examined there against its content basis, not counted as fabrication.
+- **Method note (operator-ruled):** EUR-Lex title-match is near-tautological (titles came from Cellar `expression_title`); weight EUR-Lex verification on **existence + relevance**; title-match carries real signal only for the **UK/eCFR** strata.
+
+### CORRECTED THREE-LAYER VERIFICATION STATEMENT (operator ruling 2026-07-26) — prior claim SUPERSEDED
+
+The three-layer standard: (1) sourced data → per-item verified against official registers; (2) factual claims → per-claim verified against captures; (3) interpretive analysis → mechanically prevented from smuggling unverified facts + honestly labeled. **CORRECTION, evidenced by the analysis-layer gate investigation:** the analysis layer's per-item guarantee was **INCOMPLETE until Gate A**. The prior claim that every FACT in a brief is exhaustively verified is **SUPERSEDED**: the pipeline verifies only the claims the LLM extractor *hands it*; it never scans prose to require every numeral/date/obligation/threshold to map to a span-verified claim. Decisive path: `synthesiseAndWriteBrief` writes prose (`canonical-pipeline.ts:808`) → LLM-extracts a claim ledger (`:1458`) → verbatim-filters the CLAIMS (`:1471-1475`) → `validate_item_provenance` walks claim rows+URLs+slots (mig 202); no prose-fact enumeration anywhere. `validate_item_provenance` criterion-4 is the only prose read — 6 modal verbs, disarmed by any single FACT in the section. Surface: `claim_kind` is never consumed by `IntelligenceBrief.tsx` — ANALYSIS renders visually interchangeable with FACT.
+
+**Gate A read-only exposure scan (2026-07-26, no writes):** 209 verified briefs, 3,442 factual tokens, **1,336 ORPHAN** (in prose, no backing FACT claim), **200/209 briefs (96%) affected.** Calibration on the worst (RTFO SAF Order 2024): orphans are REAL — the £0.145/MJ buyout price, the full year-by-year SAF obligation-% trajectory table (2026–2030), the £100,000 penalty — all ungrounded, ~0/5 false-positive. Material exposure → **Gate A builds FIRST + existing briefs re-process through it before further publications** (operator ruling); Gate B (claim_kind rendering) rides the index PR cycle.
+
+### METERED-GATE SCOPED AMENDMENT (operator ruling 2026-07-26)
+
+The wall is amended by explicit, scope-limited operator authorization — NOT a silent bypass. Mechanism added to `metered-gate.mjs` (`SCOPED_MODEL_AMENDMENTS`): a non-Haiku model is permitted ONLY when the call's `task` matches a named amendment, within the amendment's hard cap; default stays Haiku-only; a bare Sonnet call with no matching task still refuses. **First amendment:** task `index-relevance-second-pass`, models Sonnet, hard cap **$25**, authority = this ruling, EXPIRES on completion (entry removed after the pass). This named-task + named-cap + expiry pattern is THE ONLY way models are ever added. Test green 12/12 (Sonnet refuses with no task / wrong task / over-cap / no-token; passes only on the exact amended path). **Authority for the amendment: this operator ruling.** Rationale (operator): a Haiku second-pass shares Haiku's blind spots; a different model catches a different error surface — independence is the whole value of a second judge.
+
+### LIVE-SOURCE AUDIT — CERTIFICATE (all 5 strata, ZERO fabrication)
+
+**Scope of this certificate (amended per operator ruling 2026-07-26): it certifies the PROCESS, not individual items.** Sampling is process-QA and can never be the assurance behind a customer-visible item. **PUBLICATION STANDARD (permanent, all surfaces): per-item verification.** No index entry renders until it passes BOTH per-item gates: (1) IDENTITY — automated existence/title/canonical-link/in-force verification against the instrument's own official register record via free APIs (Cellar/EUR-Lex, legislation.gov.uk, eCFR), all entries, results stored per row, any mismatch holds the entry; (2) RELEVANCE — an INDEPENDENT second verdict (different judge than the one that scored it) on every entry, agree→publishable, disagree→held-for-review, never rendered. The surface shows only dual-verified entries, with each entry's verification date + basis rendered per the evidence-tier doctrine. Sampled audits remain as recurring process-QA ON TOP, not instead. (The analysis/brief layer already meets this: every FACT claim is mechanically verified against captured source text at grounding, exhaustively — stratum 2 confirmed, not sampled assurance.)
+
+**The audit CERTIFIES the PROCESS of the ADR-016 acceleration cycle.** Method: `docs/runbooks/live-source-anti-fabrication-audit.md`; samples random (Fisher-Yates, `scripts/tmp/audit-samples.json`); stored-first-then-live throughout.
+
+| Stratum | Sample | Result | Fabrication |
+|---|---|---|---|
+| 1 Census verdicts | 30 wm + 30 ir + 15 hold | existence 100%, title-match 100% (UK live), relevance ~93–100% | **0** |
+| 2 Corpus FACT claims | ADR-014 3 items × 5 | 15/15 spans verbatim-in-stored-capture | **0** |
+| 3 Ops facts | 13 state_cost + 10 regional | 0 uncited; CA min-wage $16.90 live-EXACT vs CA DIR | **0** |
+| 4 Negative control | 10 refused + systemic | 0 leaked verdicts / 19,315 rows | **0** |
+| 5 Content priors | 15 of 758 | all real specific docs, content-judged, honestly flagged | **0** |
+
+**Findings (non-fabrication):** (a) Stratum 4 — 1,073 recoverable holds → REMEDIATED (swept + re-classified pre-topline, per sweep-then-index ruling). (b) Stratum 5 — 636/758 content-priors self-flagged `[low-relevance]` (wildlife/nuclear/airworthiness over-inclusions) → the gap's prior-slice is a soft low-confidence tail, not firm gaps. (c) Process: 3 phantom findings this pass (nuclear-title, index-portals, low-evidence-priors) all dissolved on de-truncation — LESSON: read the full field, never the 50–90char display slice, before escalating. (d) Metering: ledger baseline was unpaginated (capped 1000, read $0.99 vs true $16.21) — FIXED (paginated); the read-cap class now also has an instance.
+
+### FINAL POST-SWEEP TOPLINE (DB ground truth; published once, correct)
+
+Universe **21,609**; dispositioned 21,608; null 1. Evidence tier METADATA (v2 title-based; priors content-based).
+- **Stage 1:** relevant 3,666 · not-relevant `invariant_reject` 16,717 · held 1,225 · dedup 5.
+- **Stage 2 — GAP = 3,661:** firm core **~3,018** (2,896 v2 title-classified fail-closed + 122 clean content-priors) + soft **~636** self-flagged-low-relevance content-prior tail. dedup_hit 5.
+- **Held 1,225** = 238 genuinely title-less + ~773 portal + refusals/other. **Gap by surface:** regulations/operations/market_intel/research (multi-tag). **By registry:** EUR-Lex dominant, then FR/DOT, UK.
+- **NOT derivable from census metadata:** per-jurisdiction, per-vertical (need enrichment pass).
+- **Spend (ledger SoT, console-waived):** ledger $16.21 (16,348 fail-closed calls) + pre-fix ~$4.59 est = **~$20.8 total**; under $30 sub-cap / $100 ceiling.
+
+**Index build UNBLOCKED per the standing gate** (audit passed). 238 genuinely title-less stay held honestly.
+
+**STRATUM 4 — NEGATIVE CONTROL PASS (+ under-processing finding).** Systemic leak check: **0** v2 relevance-verdicts leaked onto title-less rows across 19,315 verdict rows — the fail-closed rubric held perfectly (a title-less row NEVER got a would_mint/invariant_reject). FINDING (not fabrication — the opposite): of 1,311 `unclassifiable_pending_enrichment` holds, **1,073 now have resolvable titles** (held in early passes, never re-swept after the enrichment top-up) — recoverable, owed a ~$1 re-classify sweep; only **238** are genuinely title-less (honest holds). Impact: the topline "held" bucket is inflated by ~1,073 and the gap correspondingly understated; a re-sweep before the index build would tighten both. Non-gating for fabrication; flagged for remediation.
+
+**STRATUM 2 — FABRICATION GATE PASS.** Touched-this-cycle set = 8 Unit-1/2 items with FACT claims (ISO 14083, EU Taxonomy, H2 Accelerate, EEXI/CII, PPWR, CSRD, IMO MEPC 338(76), HDV Phase 3). ADR-014 sample (3 items: PPWR, EU Taxonomy, EEXI/CII) × 5 random FACT claims = 15 claims. **Stored-verbatim (fabrication) check: 15/15 span-in-capture, 0 no-capture, 0 fabrication** — every `source_span` verbatim-present in its stored `result_content_excerpt` (normalized compare = the pipeline-extractor discipline, $0, no Chrome). Spans well-sourced: PPWR tier-1 EUR-Lex, Taxonomy tier-2 EC-finance, EEXI/CII tier-2 IMO + tier-4 ClassNK. **ZERO fabrication.** Live-drift half (absent-but-in-capture = version drift) routed to the monitoring lane — NON-GATING per the runbook; not run this pass.
+
+**STRATUM 1 — CERTIFIED PASS.** 30 would_mint + 30 invariant_reject + 15 hold. Existence 100%; **title-match 100%** (8/8 UK live-verified — 2013/468 rating/tax, 2015/870 Air-Nav IoM, 1992/1508 shellfish, 1995/1372 dairy, 2004/1490 landfill, 2013/680 resource-recovery, 2011/409 marine-licensing, 1994/3246 COSHH — all match, all conservatively held/rejected, no leaked false-positive); relevance-agreement would_mint ~100% (transport/freight/packaging/ETS/auto — the 3 truncated-title "Commission Opinion" suspects all resolved to transport: rail/road/inland-waterway, goods-transport, inland-waterway-vessels), invariant_reject ~93–100% (PDO food-names, MAR, geo-blocking, customs, biocides, nuclear all correctly off-domain). **ZERO fabrication.** LESSON: the one within-stratum wobble (a phantom "nuclear false-positive") was a 90-char title-truncation artifact — full Cellar titles cleared it; read the real title. The 3 FR date-index would_mints + the flow-census nuclear prior route to Stratum 5 (content-classified priors). Strata 2–5 pending.
+
+---
+
+## 2026-07-26 — SESSION CLOSE (/done) — ADR-016 acceleration + three-layer verification build
+
+(Per rule #6 this lives here, not in CLAUDE.md, which is doctrine-not-state.)
+
+**Accomplished**
+- Census classification COMPLETE: 21,609 rows, fail-closed Haiku-with-titles. Post-sweep GAP `would_mint` **3,661** (firm core ~3,018 + ~636 self-flagged-low-relevance content-prior tail); not-relevant 16,717; held 1,225; null 1.
+- Fixed TWO silent-write bugs (`dryrun_disposition` CHECK rejection; `agent_runs` schema mismatch) + a ledger-baseline pagination bug — the error-swallow/read-cap class now has a documented case file (span guard, pause-gate, ledger insert, disposition write, baseline read).
+- Fail-closed metering: per-call ledger, halt-on-write-failure; ledger $16.21 (16,348 calls) + pre-fix ~$4.59 = **~$20.8** total, under $100. Console reconciliation CLOSED as estimated (ledger = SoT; no manual lookups).
+- Live-source anti-fabrication audit: 5 strata, **ZERO fabrication** — certifies PROCESS. Recoverable-holds finding remediated (1,073 swept). Standing-gate runbook written + indexed.
+- Recovered a wrong escalation properly (765 "fabrication" → 765/0 provenance split = legit content-priors); 3 phantom findings dissolved on de-truncation → lesson banked (read the full field).
+
+**Decisions (all logged above with authority)**
+- **Per-item verification is the publication standard**; sampling = process-QA only (permanent, all surfaces).
+- Metered-gate **scoped-amendment pattern** (named task + cap + expiry) = the ONLY way non-Haiku models are added; first amendment: Sonnet for `index-relevance-second-pass`, $25, expires. Test green 12/12.
+- **Durable-record meta-rule**: multi-step rulings recorded at receipt.
+- Sweep-then-index; Gates A + B approved; three-layer statement CORRECTED (analysis layer's per-item guarantee was INCOMPLETE until Gate A — prior claim superseded, evidenced).
+
+**Blockers / open**
+- **Gate A factual-token scope** — awaiting Jason: (a) figures + deadline-dates [recommended], or (b) all numerals incl. citation-years. Sizes residual 140 vs 265.
+- Quarantine flows from Gate A inside `validate_item_provenance` (mig 115 trigger controls provenance_status — no direct edit).
+- Sonnet relevance 2nd-pass running in background (`&`-detached, verify via `scripts/tmp/relevance-2nd.log`); 765 content-priors still need a CONTENT-based second judge.
+
+**Next steps (priority order — FIX-IT-ALL program before the queue)**
+1. Build Gate A as a `validate_item_provenance` criterion (prove-on-one RTFO) → failing briefs auto-quarantine.
+2. Auto-mint the **1,071** found-in-capture orphans through the guarded path (prove-on-one → batch).
+3. Remediate the **~265** residual (re-ground / re-capture / rewrite via sanctioned exits, no silent edits).
+4. Clean re-scan → **zero orphans**, every brief passing Gate A → log.
+5. THEN resume: index dual-verified PR (+Gate B claim_kind rendering), depth lane, Unit 4 mints, merged wave ruling, doctrine codification package.
+
+### GATE A SCOPE RULING (operator 2026-07-26) — for the gate comment, scope ledger, F17 entry
+
+**Scope = figures + deadline-dates; citation apparatus EXCLUDED.** Gate A guarantees every fact a customer could ACT ON is individually span-proven: prices, percentages, thresholds, quantities, compliance deadlines. Citation apparatus (OJ refs, source lines, page numbers, publication years) is provenance metadata about WHERE a fact lives, not a fact anyone acts on — and it is ALREADY governed by the existing citation/URL grounding criteria (criterion 2 of `validate_item_provenance`). Nothing is left ungoverned; the citation class is governed by the RIGHT gate. Rationale: gating on ~484 citation-noise tokens would bury the 727 real exposures and make the gate cry wolf — an over-strict gate gets ignored.
+
+**BINDING REFINEMENT — years by CONTEXT, not token.** A year in citation apparatus ("OJ L 234, 22.9.2023", source/page refs) is EXCLUDED. A year in obligation context ("by 2027", "from 1 January 2028", "no later than", phase-in trajectories) is a DEADLINE-DATE and GATES. The exclusion must NEVER blanket-drop the year class. **Calibration case: the RTFO SAF Order trajectory table — every date in it GATES.**
+
+**Self-managing design (credit):** because `provenance_status` flows from `validate_item_provenance` (mig 115 trigger), Gate A is not a gate + a separate quarantine action — it is ONE criterion that makes truth and status the same thing: a brief quarantines itself while dirty and re-verifies itself the moment it is clean. That is the self-managing shape the whole system aims for.
+
+**Execution (go, autonomous through Phases 1–4, report at Phase-4 re-scan or any blocking finding):** SQL/gate criterion → auto-mint the 1,071 found-in-capture through the guarded claim path → residual (~140 real) remediation (session labor; sanctioned versioning for anything tracing to nothing, no silent edits) → clean corpus-wide re-scan logged. Prove-on-one against RTFO first (expect quarantine, then clear as its orphans are grounded).
+
+### SONNET RELEVANCE 2ND-PASS — COMPLETE (banked 2026-07-26)
+
+Independent Sonnet judge over 2,896 titled would_mint entries (scoped-amendment wall, fail-closed ledger). Result: **2,888 verdicts** (8 errored, retryable), **$3.36** ledgered (task `index-relevance-second-pass`, under $25 cap). **2,520 dual-agree → publishable · 368 disagree (12.7%) → held-for-review** with both verdicts on record (`scripts/tmp/relevance-2nd.json`). Disagreements are genuine second-judge catches (aviation-safety ban list, POP-chemical restrictions, airport traffic-distribution, aviation security) — Haiku's single-title blind spots. 765 content-priors still owe a CONTENT-based second judge (title judge N/A). Total metered so far ≈ census $16.21 + relevance $3.36 + pre-fix ~$4.59 ≈ **$24.2** of $100.
+
+### GATE A — Phase 1 progress (scanner built + proven; migration is the next focused build)
+
+**Scanner DONE + proven** (`fsi-app/src/lib/agent/gate-a-scan.mjs`): context-aware factual-token extractor — FIGURES (currency/%/units/quantities) + DEADLINE-DATES gate; citation apparatus excluded; years by context (obligation/trajectory → gate, citation → excluded), never blanket-dropped. Exports `md5`, `extractFactualTokens`, `scanBrief` (returns `{scanned_hash, orphan_count, orphans}`). Proved on the RTFO calibration case: **65 orphans** — £0.145/£0.137 buyout, £100,000 penalty, 89/26.7 gCO₂ thresholds, full obligation-% trajectory, AND trajectory years 2026–2039 as deadlines; the `*Source:` citation line's years correctly excluded. Behaves exactly as ruled.
+
+**Design (approved, to build):** `item_gate_a_state(intelligence_item_id PK, scanned_hash, orphan_count, orphans jsonb, gate_a_version, scanned_at)` + a new **criterion 7** in `validate_item_provenance` (mig 202 pattern: append to `v_failures`; final `valid := (len(failures)=0)`): fail if no state / `scanned_hash <> md5(full_brief)` [STALE] / `orphan_count > 0`. SQL `md5(full_brief)` == JS `md5(fullBrief)` (same bytes). Scanner folds into the ground/mint path so state refreshes on every write.
+
+**BLOCKING-CLASS INTERLOCK (flagged):** criterion 7 makes EVERY future ground fail until the pipeline populates `gate_a_state` — so the **migration + pipeline-populate must land together**. Existing verified items stay verified until touched; the remediation drives quarantine via scan-populate + touch. Prove-on-one plan: apply migration → scan RTFO (store 65-orphan state) → touch → self-quarantine → mint orphans → re-scan → clears.
+
+**Next (focused build):** the coordinated migration (table + criterion 7) + pipeline populate + red/green tests (incl. stale-hash) → prove-on-one RTFO → auto-mint 1,071 → residual ~140 → clean re-scan.
+
+### GATE A — Phase 1 steps 1-2 DONE (state layer live, 100% backfill, nothing gating)
+
+Interlock-free ordering (operator ruling): land state + populate BEFORE the criterion, so no grounding window breaks.
+- **Migration 224 `item_gate_a_state` APPLIED** (via apply_migration to project kwrsbpiseruzbfwjpvsp = Caro's Ledge). Table only; NO validate criterion yet — nothing gates.
+- **Backfill COMPLETE + 100% COVERAGE verified** (read-back): 345 briefs-with-full_brief scanned by the proven scanner → 345 state rows, 0 missing. **329 briefs carry orphans (3,012 total tokens)**; 16 clean. Every item now has current-hash Gate-A state.
+
+**Remaining Phase-1 (next focused chunk, fully specced):** (a) fold the scanner into the mint/ground path (canonical-pipeline.ts) so future grounds populate state before validate; (b) red/green tests incl. stale-hash; (c) FLIP criterion 7 into `validate_item_provenance` (fetch live def via `pg_get_functiondef`, inject the criterion before the final `valid` decision, apply — no manual re-type, no drift) — at flip every item already has fresh state so it evaluates truthfully from moment one; (d) prove-on-one RTFO (expect self-quarantine); (e) auto-mint the 1,071 found-in-capture through the guarded claim path; (f) residual ~140 remediation (session labor, sanctioned versioning); (g) clean corpus-wide re-scan → zero orphans, logged. 368 Sonnet-disagree holds queue for review after Phase 4.
+
+### GATE A — Phase 1 step 1 DONE (pipeline integration, typechecks)
+
+Folded the proven scanner into `canonical-pipeline.ts`: immediately BEFORE `applyLedgerDiff` (line ~1633), the ground path recomputes `scanBrief(full_brief, prior+incoming FACTs)` and upserts `item_gate_a_state` with the fresh `scanned_hash`(md5 of the exact full_brief) + `gate_a_version`. Placed before the claim writes because the `set_provenance_status` trigger fires on `section_claim_provenance` inserts too — so criterion 7 will see fresh current-hash state from the very first write; no path reaches validation without it. `tsc --noEmit` clean (no errors in canonical-pipeline / gate-a-scan). Import added: `scanBrief` from `@/lib/agent/gate-a-scan.mjs`.
+
+**Remaining Phase-1 (steps 2-7, ordered, must not reorder):** (2) red/green DB-integration tests for criterion 7 — (a) orphans→quarantined, (b) clean→passes, (c) STALE hash→quarantined [binding], (d) missing state→quarantined; RED first, GREEN after flip. (3) FLIP criterion 7 via `pg_get_functiondef` inject-and-apply (numbered migration; record #). (4) prove-on-one RTFO (MUST self-quarantine at first gate, else STOP+report). (5) auto-mint 1,071 through the guarded path, verbatim `.includes()` check before each write, none outside the pipeline. (6) residual ~140 — session labor, sanctioned versioning (hash updates + scanner re-runs), no silent edits, drop ungrounded figures with a logged change. (7) clean re-scan → target 345/345 state, 0 orphans, 0 criterion-7-quarantined, 0 stale; log summary (counts, migration #, RTFO trace) + commit. THEN verifier checks re-scan numbers vs DB before any index PR.
+
+### GATE A — steps 2-3 DONE (criterion 7 LIVE) + BLOCKING FINDING (reconciler-cred guard on realization)
+
+- **Step 2 tests:** red/green criterion-7 test (`scripts/tmp/criterion7-test.mjs`) — RED 1/4 before flip, **GREEN 4/4 after** (clean→verified, orphaned→quarantined, STALE-hash→quarantined [binding], missing-state→quarantined).
+- **Step 3 flip:** migration **225** applied (`pg_get_functiondef` inject-and-apply; criterion 7 in `validate_item_provenance`). Read-only set-based verification: **exactly 329/345 brief items fail criterion 7** (221 verified-will-quarantine + 108 already-non-verified; 9 verified stay verified) — the designed count, hard-stop satisfied at the DETECTION layer.
+
+**BLOCKING FINDING (reported per stop-rule):** realizing the status flip via touch is gated by `guard_provenance_flip()` (mig #43): it blocks `provenance_status` flips OFF `'unverified'` unless `current_user='reconciler'` OR an INSERT-origin trigger set `app.prov_flip_origin='INSERT'`. Impact on the 329 orphaned (post-RTFO-test-touch): **220 verified** (flip verified→quarantined ALLOWED — RTFO proved it), **103 quarantined** (already), **6 unverified** (flip unverified→quarantined BLOCKED — needs the reconciler cred, which `postgres`/service-role lacks; this is the memory-flagged "RECONCILER CRED BROKEN, operator DDL window owed"). Consequences: (a) realized `status='quarantined'` reaches ~323, not a literal 329 — the 6 unverified stay `unverified` (already non-customer-visible; customer-read gate = verified only, so the customer-facing goal "no orphaned brief is verified" is still fully achievable by flipping the 220). (b) The Step-5 auto-mint MUST run through the sanctioned INSERT-origin path (the operator's "guarded path only") so the guard's INSERT exception permits the clear-flip; ad-hoc UPDATEs are blocked. STOPPED before realizing the 220 flip / the mint, pending operator ruling on: realize-the-220-now + leave-6-unverified-for-the-mint-path, vs supply/rotate the reconciler credential for a full realization.
+
+### GATE A — realization DONE (Option 1, no reconciler cred): 323 quarantined, 0 orphaned verified
+
+Touched only verified-orphaned (guard permits off-verified). Result EXACT: **quarantined 323** (220 flipped + 103 existing) = amended target; **verified-with-orphans = 0** (customer-facing integrity goal met — read gate = verified only). Detection-layer unchanged: 329/345 fail criterion 7.
+
+**6 guard-blocked unverified residue (criterion-7-detected, non-customer-visible; clear ONLY via the sanctioned INSERT-origin path in steps 5-6; if unreachable, they wait for the reconciler DDL window — NO ad-hoc UPDATE / credential / SECURITY DEFINER):**
+- 19f08fcc-5f81-44cc-b3db-fe25f1717845
+- 206cada4-5731-43ef-8908-56389645ba0e
+- 52eadc84-b3ea-4a80-8173-30b7d5435d4f
+- 5ea46db2-00e5-4eda-90d1-11f7e97ec4db
+- 856166be-0cf8-4c0e-8b2d-dbded771f0d5
+- 8cb6e73e-1c35-428f-8f5c-f1ee51a9e169
+
+Remaining: step 4 RTFO prove-on-one (quarantined → clear orphans via guarded INSERT-origin mint → re-scan clean → quarantined→verified restore) → step 5 auto-mint 1,071 found-in-capture (verbatim `.includes()` gate, guarded path only) → step 6 residual ~140 (sanctioned versioning) → step 7 clean re-scan. Amended step-7 targets: 345/345 state, 0 orphans, 0 stale, 0 criterion-7 failures, 0 customer-visible-with-orphans (6 unverified acceptable residue only if unreachable via sanctioned path, logged with IDs above).
+
+### STEP 0 — probe-failure diagnosis: hypothesis CONFIRMED (probe doing its job)
+
+"Uptime and honesty probes" run 30221044259 (2026-07-26 21:25Z, right AFTER the quarantine wave; the 20:06 run passed). Verbatim failing assertion:
+> `##[error]Surfaces probe returned HTTP 503 (expected 200; 503 == a surface is down).`
+Cause: `/api/health/surfaces` returned 503 because `overall ok: false`, driven by exactly ONE surface — **`operations: ok=false rows=0`** (all other surfaces still have backing rows: dashboard 9, regulations 3, market 2, research 3, community 1, map 1). The Operations surface (regional_data / operations-profile briefs — figure-dense, every one orphan-carrying) lost all verified backing rows in the quarantine wave. `seed_leak: false` (no fabrication). **Spend watch: skipped (0s, dependent of the failed job) — NOT a second failure.** This is the probe correctly observing the designed quarantine window, not a site defect or probe bug.
+
+**Probe recommendation (no change made — awaiting go):** do NOT weaken/delete. Fastest honest path to green = complete steps 4-7 (clearing orphans restores the Operations surface's verified rows). If the remediation spans sessions, add an EXPIRING build-mode acknowledgment (option b) with removal tied to the step-7 clean re-scan — never a permanent threshold loosening.
+
+### STEPS 4-5 — pre-build findings that refine the guarded-mint runner (probe-first blast radius)
+
+Before constructing the corpus-mutating mint runner, investigation surfaced material corrections to the "auto-mint the 1,071 found-in-capture" model (mig 118 + live schema):
+1. **INSERT-origin only carves out NEW-item inserts** (mig 118: depth-0 binding helper stamps `app.prov_flip_origin` from the `intelligence_items` TG_OP). A pre-existing item's claim-insert is NOT INSERT-origin → **the 6 unverified pre-existing items cannot flip off `unverified` from this session** (any verify-eligible claim insert trips guard_provenance_flip and ERRORS the insert). Genuinely unclearable via the sanctioned path here → **acceptable residue, as ruled** (IDs already logged). The 323 quarantined clear fine (`quarantined→verified` not guard-blocked).
+2. **A minted FACT must pass ALL of validate_item_provenance, incl. criterion-3 authority-floor.** So "found-in-capture" (any capture) OVERCOUNTS mintability — only tokens in a **floor-qualifying** capture (source tier ≤ item floor) are mintable as passing FACTs; the rest are residual (prose revision). The 1,071 figure needs recomputing against floor-qualifying captures.
+3. **`agent_run_searches` has NO `source_id`** — captures are keyed by `result_url`. The runner must resolve `result_url → sources → base_tier` per capture to test floor-qualification. (This corrected a schema-recall error mid-analysis.)
+4. Capture availability: **56/60** sampled orphaned items HAVE captures.
+
+**Runner design (for the fresh build):** per orphan token → find a capture whose `result_content_excerpt` contains it verbatim (the `.includes()` gate) → resolve its `result_url→source→tier`, require tier ≤ item floor → extract a verbatim span → map the section (which `intelligence_item_sections.content_md` holds the token) → construct a FACT claim (section_row_id, resolved source_id, search_result_id, span, tier) → guarded insert → re-scan → update gate_a_state → trigger restores `quarantined→verified`. Fail-closed hold list for any token lacking a floor-qualifying capture-span (→ residual/step 6). Prove on RTFO + 10-batch read-back before scaling.
+
+**HONEST BOUNDARY (STOP-and-report):** the mint is corpus-mutating and, at this session depth, I hit a schema-recall error (`source_id`) — the concrete signal that building a 1,071-claim writer here risks a design bug the 10-row read-back won't catch. The gate holds integrity meanwhile (corpus correctly quarantined; probe honestly red). Build the runner with fresh context using the design + findings above. Probe: leave red (or add the operator-authorized dated build-mode ack tied to step-7 removal — now that the remediation spans sessions).
+
+### STEP 5 recompute — mintability against floor-qualifying captures (MATERIALLY reshapes; STOP-and-report)
+
+Probe-ack committed (43e31fbc, uptime-probes.yml — dated Gate-A build-mode override, operations-only, seed_leak-false, expires 2026-08-31, REMOVE at step-7; takes effect on scheduled/master runs only when merged). Then recomputed mintability against the REFINED corpus scan (3,012 orphan tokens across 329 items), not the coarse 1,336:
+- **Mintable (floor-qualifying capture): 1,739** = 614 genuinely floor-qualifying (reg/research/tech) + 1,125 in floor-EXEMPT types (regional_data/market_signal/initiative → any capture qualifies).
+- **Residual: 1,273** = 357 sub-floor-capture-only + **916 not-in-ANY-capture** (prose rewrite / free re-capture).
+- Method caveat: host-based tier resolution (`result_url` host → `sources.base_tier`); unresolved hosts count as non-qualifying, so mintable is a LOWER bound and sub-floor-only may be inflated. The **916 no-capture is the reliable, tier-independent hard-residual number**.
+
+**MATERIAL RESHAPE (operator STOP condition hit):** the residual jumps from the earlier ~140 estimate to **~1,273 (916 prose/re-capture)** — ~9× the hardest session-labor workload — because the refined scanner surfaced far more deadline/figure orphans and 916 aren't in any stored capture. Reported to the operator BEFORE committing to the mint + residual pass, per the "mintability recompute that materially reshapes the plan → STOP and report" condition. Open decision: (a) re-capture pass (free transports) first to shrink the 916 before prose rewrites; (b) proceed mint-1,739 now, then triage the 1,273 residual; (c) operator re-scopes.
+
+### STEP 5 — item projection + claim-schema grounding + the mint-runner design finding
+
+**Item-level projection (mint-alone, current host-based resolution, LOWER bound):** of 329 orphaned items, **38 fully clear** on mint alone; 291 need residual triage. By type (orphaned/clear): regulation 88/12, research_finding 42/7, market_signal 69/10, **regional_data 31/3**, initiative 37/2, framework 20/2, guidance 19/2, directive 7/0, standard 10/0, technology 3/0, tool 3/0. Operations (regional_data) recovers only 3/31 on mint — BUT surface `ok` flips true at rows≥1, so **3 restored → operations ok=true → probe green** (fastest honest path to green). Bulk item restoration depends on the re-capture triage.
+
+**Claim schema grounded (from DB, not memory):** a FACT `section_claim_provenance` row = `{intelligence_item_id, section_row_id, source_id, search_result_id, claim_kind='FACT', claim_text, source_span, source_tier_at_grounding, extracted_at}`. RTFO's existing claims resolve to source_id 479cb60a / tier 1 (**UK RTFO SAF Order 2024 — legislation.gov.uk, NOT EUR-Lex**; verifier correction 2026-07-26 — attribution precision is the point of this build) — floor-qualifying (T1 ≤ reg floor T2).
+
+**DESIGN FINDING (must inform the mint runner):** `agent_run_searches` has NO source_id, so a minted claim's `source_id`+`search_result_id`+`tier` trio must be resolved from the capture's `result_url` via the institution/tier resolver (the same logic canonical-pipeline runs at grounding), plus a correct `section_row_id`. The 10-batch read-back rail verifies existence + verbatim span + status flip (the empty-set trap) but does NOT verify ATTRIBUTION correctness — a claim with a mis-resolved source_id or wrong section_row_id passes the read-back while carrying wrong provenance (fabrication-adjacent). Therefore the mint runner MUST wrap the pipeline's span→source→tier resolution rather than construct claims ad-hoc. That is a focused corpus-writing build to author with fresh context (this session hit one schema-recall error already; the read-only + gate work is complete and verified).
+
+**Resume (zero re-derivation):** build the guarded-mint runner reusing `canonical-pipeline` span→source→tier resolution + section mapping; RTFO prove-on-one (note RTFO likely carries residual no-capture orphans → its full restore spans mint + re-capture, not mint alone); 10-batch read-back incl. attribution spot-check; scale to 1,739; then step-3 resolution fix on the 357 sub-floor; step 916-triage (re-capture→revise, each revised-out logged as a fabrication finding); steps 6-7.
+
+### STEP 5 — mint runner enabling PROVEN + TRUE mintability (real resolver)
+
+Enabling pieces all verified working (grounded in code/DB, not memory): **jiti imports the real `buildResolver`** from institution.ts (no fork — satisfies "reuse the pipeline resolver"); `resolveSpan(url)→{tier,sourceId}` confirmed (479cb60a = legislation.gov.uk/uksi/2024/1073 UK RTFO SAF Order, tier 1 — verifier label correction applied); `applyLedgerDiff`/`diffLedger` (.mjs) + `scanBrief` (.mjs) importable. Dry-run constructor built + run: surfaced a real constraint — a capture whose `result_url` resolves to NO registered source (`sourceId=null`) is NOT mintable (no source_id to stamp), so "token in a capture" ≠ mintable.
+
+**TRUE mintability (real resolver, 4 axes: capture-verbatim + source-resolvable + tier≤floor/exempt + section-contains-token):** MINTABLE **1,569** / RESIDUAL **1,443** / items fully-clear-on-mint **31** (host-based estimate was 1,739/1,273/38 — real resolver is ~10% lower mintable, source-resolvability the cause). Fully-clear by type: regulation 11, market_signal 7, research_finding 7, initiative 2, guidance 2, framework 1, **regional_data 1**. The single fully-clearing regional_data item is the amended prove-on-one target (restores → operations rows=1 → probe green). NOT a material reshape (plan stands); reported as the operator's pre-mint sanity-check point.
+
+**Resume:** extend the dry-run constructor to EXECUTE (applyLedgerDiff guarded write → re-scan → trigger restores quarantined→verified) → prove-on-one the 1 fully-clearing regional_data item with full 4-axis read-back (existence/span + source-reresolve + section-contains + orphan-count decrease) → 10-batch → scale to 1,569, regional_data first → 357 resolution fix → 1,443-residual triage (re-capture→revise, each revised-out logged as fabrication finding) → steps 6-7. STOP on any attribution mismatch (corpus-corruption class).
+
+### STEP 4 — RTFO-class prove-on-one: MINT PROVEN, but restore blocked by a non-Gate-A criterion (STOP-and-report)
+
+Built `scripts/remediation/gate-a-mint.mjs` (guarded-mint runner: jiti `buildResolver` reuse — no fork; `scanBrief`; `applyLedgerDiff`; scan+upsert gate_a_state BEFORE the inserts so the trigger re-validate sees fresh state). Prove-on-one on the fully-clearing regional_data item `d779efe4-9587-44af-882b-0a0374d6a8f5` (3 orphans):
+- **Mint MECHANISM PROVEN — 4-axis read-back ALL CLEAN:** 3/3 spans verbatim in capture, 3/3 source_id re-resolves, 3/3 sections contain the token, orphan_count 3→0 (== minted count), gate_a hash current. 3 valid FACT claims written via the guarded path.
+- **BUT the item did NOT restore to verified** — it stays quarantined on **criterion 4 `unlabeled_assertion`** (section 2de72a13): a pre-existing unlabeled modal-verb assertion in prose, UNRELATED to Gate A's factual-token orphans (Gate A / criterion 7 is now cleared, not in the failures).
+
+**FINDING (STOP-class per step-4 "if it does not restore end-to-end"):** clearing Gate A ≠ restoring to verified. An orphaned item that ALSO fails any of criteria 1-6 stays quarantined after minting — correctly, for that other reason. Consequences: (1) the mint restores ONLY items whose SOLE failure was Gate A; the "31 fully-clear-on-mint" (Gate-A metric) is an UPPER bound on restores — the true restore count needs each item to pass all 7 criteria; (2) probe-green via Operations depends on ≥1 regional_data item that fails ONLY Gate A (this prove item is not one). The mint mechanism itself is validated and safe; the 3 claims written are legitimate and the item is honestly quarantined for criterion 4. No harm; no scaling yet.
+
+**Open decision:** (a) re-target the restore-proof to a regional_data item whose ONLY failure is Gate A (prove full restore), then scale — items with other failures clear Gate A but stay quarantined for their own reasons (honest); or (b) operator folds the criterion-4 (unlabeled-assertion) remediation into scope. Gate A's mint is proven either way; scaling it clears Gate-A orphans corpus-wide regardless of whether each item also restores.
+
+### 2026-07-26 — Gate A: criteria-failure census + restore-proof (Branch 2) + scale mint
+
+**Criteria-failure census (read-only, all orphaned items; the operator's requested deliverable).** 328 items currently orphaned (`item_gate_a_state.orphan_count>0`); down from 329 because the prove-on-one item `d779efe4` cleared its Gate-A orphans (orphan_count→0, so it left the orphaned set — it stays quarantined on criterion 4). Failing-criteria breakdown (each item may fail several; c7 = Gate A):
+
+| criterion | meaning | items failing |
+|---|---|---|
+| c1 | source | 3 |
+| c2 | URL grounding | 21 |
+| c3 | span/tier/floor | 62 |
+| **c4** | **unlabeled assertion → Gate B** | **42** |
+| c5 | required slots | 44 |
+| c6 | — | 0 |
+| c7 | Gate A | 328 |
+
+- **213 items fail ONLY Gate A** (24 of them regional_data) — these are the mechanical-restore ceiling: minting clears them to verified IF every orphan is mintable.
+- **115 items fail Gate A + ≥1 other criterion** — orphans get cleared (partial progress) but the item stays quarantined on its own criteria.
+- **42 c4 (`unlabeled_assertion`) items are the Gate B worklist** — recorded here as the founding case for the Gate B (analysis-layer anti-fabrication) pass. Criterion 4 is a SEPARATE program (operator ruling): the mint does not touch it.
+
+**Restore-proof — Branch decision (operator ruled both branches in advance).** Verified: **0** regional_data items are BOTH Gate-A-only AND fully-mintable. All 24 Gate-A-only regional_data carry ≥1 unmintable orphan (no-capture / no-section / unresolvable host); the single fully-mintable regional_data (`d779efe4`) fails c4. Intersection empty → **Branch 2**. Per Branch 2(a), ran the restore-proof on any type: **`daecac87` (framework, floor T2), Gate-A-only + fully-mintable → minted 1 FACT claim, 4-axis read-back ALL CLEAN, provenance_status `quarantined → verified`.** The full restore chain (mint → re-scan clean → all criteria pass → verified, the customer-read gate) is PROVEN. Framework routes to Regulations, not Operations, so Operations-surface probe-green still awaits Branch 2(c) (the fewest-no-capture-tokens regional_data re-capture at $0); the dated probe acknowledgment (uptime-probes.yml, expires 2026-08-31) covers the red probe until then.
+
+**Scale mint (Branch 2b).** `gate-a-mint.mjs` refactored: the proven per-item path is now `mintItem()`, reused by a fail-closed `--scale` loop (regional_data first; 10-batch full read-back, then 5% attribution sampling PLUS full read-back on every restoring item; per-item errors → hold list; immediate STOP on any 4-axis attribution mismatch = corpus-corruption class). No metered spend (DB writes + resolver only; zero LLM, zero Browserless). Dry-scale preview run first (verification-before-authorization). Results appended below once the run lands.
+
+**Scale result (Branch 2b) — COMPLETE, clean.** `gate-a-mint.mjs --scale --execute` over 321 orphaned items (6 unverified residue skipped; regional_data first). 10-batch checkpoint clean → scaled on. **1,565 FACT claims constructed / 1,419 stored** (the Δ is `diffLedger` deduping identical-span claim_text within an item — coverage-safe), **23 items restored → verified**, 292 items retain 1,404 held (no-capture) tokens → re-capture triage, 39 sampled 4-axis read-backs all clean, **0 errors, 0 attribution mismatches** (STOP tripwire never fired). Independent DB verification (`verify-restored.mjs`): 240 backfilled items re-scanned over their ACTUALLY-STORED claims — **24 verified items re-scan to 0 orphans, gate_a-vs-stored-claim DRIFT = 0**. The dedup is empirically coverage-safe; restores are real. No metered spend (DB + resolver only; zero LLM, zero Browserless). Post-scale corpus: 297 items still orphaned; 24 Gate-A-only regional_data remain (all with no-capture residual, fewest now at orphan_count=1).
+
+**Gate B worklist (founding case).** The 42 c4 (`unlabeled_assertion`) items are the Gate B (analysis-layer anti-fabrication) worklist. Criterion 4 is a separate program; the Gate-A mint does not touch it. daecac87-class proof stands: clearing Gate A restores an item ONLY when Gate A is its sole failure.
+
+### 2026-07-26 — CORRECTION (STOP): scale mint carries dig-fallback mis-attributions; runner hardened; Gate B ruling
+
+**Supersedes the "scale COMPLETE, clean" claim above.** A post-scale audit (`audit-dig-fallback.mjs`, `audit-restore-blast.mjs`) found the mint runner's **digit-fallback** — `indexOf(dig(tk))` when the literal token isn't found, in BOTH the capture match and the section match — grounded worded tokens to their digit-reduced form in unrelated context. Evidence (4/4 sampled worded suspects were garbage): `"USD 50"`→"50" inside registration# `05070218`; `"3 May 2023"`→dig `32023` inside CELEX `32023R0851`; `"10.83 km"`→"10.83" in a truck-weight fee table; `"13 percent"`→"13" in ticker noise. The old 4-axis read-back could NOT catch this (span IS verbatim in capture, source resolves, section contains the dig-form).
+
+**Blast radius:** 279 backfill claims located via dig-fallback (244 worded + 35 numeric, span lacks literal token). **8 verified (customer-visible) items corrupted** — restore depended on a suspect token: `219945bb, 67c6e313, efcc9f45, 1883001c, a7d9bc29, b94cd283, 627da433, af277afd`. 16 verified restores are clean. 108 quarantined items also carry suspect backfill claims. The mint was NOT "clean by construction."
+
+**Runner hardened (code only, no corpus effect):** removed the dig-fallback in the capture match, the section match, and the selection matcher — LITERAL normalized-token match only. A token that can't be matched literally now stays orphaned (honest), never grounded to an unrelated number; that lost coverage is a Gate-B labeling case. Added a 4th read-back axis (`span literal-contains token`) so the mis-attribution class is caught going forward. **Rollback of the 279 already-written suspect claims + re-verify of the 8 corrupted restores is PENDING operator ruling on scope** (targeted-delete-279 vs clean-slate-delete-all-1419-and-re-mint-literal).
+
+**Read-side matcher audit (per operator ruling).** CLEAN (validate_item_provenance / SQL-function based, no token matching): the criteria-failure census (c1–c6 counts), the 42 c4 Gate B worklist, the 213/115 Gate-A-only split, the 24 Gate-A-only regional_data count, 33 clean+verified, 297 still-orphaned. CONTAMINATED and now superseded: the registry-pass sizing — the first class in/out-of-capture split (53 deadline/8, 23 figure/14) used SQL `ILIKE '%token%'` (the token's own `%` became a wildcard); the follow-up used the runner's dig-fallback matcher (over-matched). LITERAL-ONLY recompute: Gate-A-only regional_data token classes = registry_fix 5 / section_missing 4 / no_capture 67; **items fully clearable by the registry pass alone = 0** → no honest $0 path to an Operations restore; probe stays red under the dated ack. The "916 split" is from a prior session (host-based, caveat already logged), not recomputed this pass.
+
+**Gate B ruling recorded (operator, 2026-07-26) — derived-date class + publication rule.** Derived deadlines (a projected compliance date computed from a recurring rule, e.g. annual-June-10 → 2026-06-10) are Gate-B/criterion-4 class, NOT grounding failures — legitimate analysis; honest treatment is LABELING, never deletion, never a fabricated capture. Publication rule (Gate B spec): a derived claim is publishable only when (a) its basis fact — the recurring rule it is computed from — is itself verbatim-grounded in a stored capture, and (b) the derived instance is labeled as computed from that basis, with the basis claim linked. Derived-with-grounded-basis renders; derived-without-grounded-basis is an orphan. This is Gate B's SECOND founding case, alongside the unlabeled-modal instance (criterion 4). Gate B is its own prove-first program (not folded into this pass); queue: after the registry pass and the 916 triage, moved up because 45 of the 76 Operations orphan tokens are derived dates only Gate B can honestly clear.
+
+**ERROR-SWALLOW CASE FILE — newest instance (6th): fallback matching invents grounding.** The gate-a-mint runner's digit-fallback (`indexOf(dig(tk))` when the literal token wasn't found) matched worded tokens to their digit-reduced form in unrelated text — `"USD 50"`→"50" inside registration# `05070218`, `"3 May 2023"`→`32023` inside CELEX `32023R0851`, `"10.83 km"`→a fee-table value, `"13 percent"`→ticker noise. This is a NEW sub-class alongside the 5 silent-write instances (span guard, pause-gate, ledger insert, disposition write, baseline read): those were "an unchecked write reports success while the DB rejects"; THIS is **a fallback that invents grounding** — the same class as classifier fabrication (a "helpful" default that manufactures an answer the data doesn't support). **Binding doctrine going forward: matchers at any grounding site are LITERAL and EXACT; anything unmatched fails closed to orphan/hold — no dig-forms, no fuzzy, no "close enough."** Why it went undetected: the old 4-axis read-back PASSED all four garbage examples because every axis validated the wrong grounding self-consistently (the span IS verbatim in the capture, the source DOES resolve, the section DOES contain the dig-form) — a read-back can only catch what an axis is designed to check. Fix: removed the fallback everywhere (capture match, section match, selection) + added a 5th read-back axis, `span literally contains the token`, armed fail-closed. General rule for axis design: a verification axis set must include a check that the evidence is about THE fact asserted, not merely co-present with a substring of it.
+
+### 2026-07-26 — Scanner-level literal fix COMPLETE (Gate-A definition hardened corpus-wide)
+
+**Root cause was the coverage rule, not just the writer.** The dig-fallback lived in `gate-a-scan.mjs` `isBacked` (the function computing `orphan_count`→criterion 7), used by BOTH the mint runner AND the live canonical pipeline. Hardening only the runner was insufficient; the prior re-run's restores still cleared via dig-coverage. Fix (operator-authorized full sequence):
+- **Shared matcher** `src/lib/agent/gate-a-match.mjs` (new): `norm` + `containsToken` (literal, normalized, no dig, no fuzzy). Scanner and runner both import it — case-file instance 7's rule ("literal-and-exact applies to every function that decides coverage, not only writers; one matcher, one module, cannot diverge").
+- `gate-a-scan.mjs`: `isBacked` → `containsToken(corpus, tk)` literal-only; `GATE_A_VERSION` `2026-07-26.1`→`2026-07-26.2` (semantics change → stale-scan guard re-quarantines honestly).
+- `gate-a-mint.mjs`: all coverage gates (capture, section, selection, read-back) routed through `containsToken`; digit-fallback fully removed; 5th read-back axis (`span literal-contains token`) armed fail-closed.
+
+**Corpus-wide execution:** literal re-scan of all 345 brief-bearing items → **new literal baseline 3,799 orphan tokens** (vs 3,012 dig-lenient: +787 the corpus was hiding). Deleted all backfill claims (via SQL — supabase-js filter-less `.delete().like()` silently matched 0, see case-file below). Re-quarantine landed for backfill-bearing items via the delete trigger; **6 untouched-original-grounding items** (verified before the literal scanner, never re-validated after the gate_a reset — confirmed: `backfill_now=0`, gen versions Apr–May 2026) were contained by an explicit flip (5 flipped; the 6th resolved by the concurrent mint). **Literal re-mint:** 1,623 claims constructed / 1,616 stored, **9 restored→verified**, 2,166 orphan tokens remain (1,633 cleared), 24 sampled read-backs clean, 0 errors, 0 attribution mismatches.
+
+**Closing assertions (both PASS, now standing — run every mint pass):**
+1. **Gate-A invariant: 0 violations** — zero items with `provenance_status='verified'` + non-empty brief + `orphan_count>0`. This is Gate A stated as one query; propose wiring it as a live-data invariant.
+2. **Span-literal containment: 0 suspects** — 705 worded + 928 numeric cleared tokens, every one literally contained in its backfill span.
+Final: verified_total 16 (12 with-brief, literally clean; 4 brief-less held), all `item_gate_a_state` at version `2026-07-26.2`.
+
+**ERROR-SWALLOW CASE FILE — instance 7 (coverage-site fallback) + instance 8 (silent zero-match write).** #7: fallback matching invents grounding at COVERAGE sites, not only write sites (the scanner's `isBacked` dig-branch) — doctrine: literal-and-exact at every coverage decision, one shared matcher module. #8: supabase-js `.delete().like("claim_text","[gate-a-backfill]%")` WITHOUT another filter silently matched 0 rows (the per-item `.eq().like()` form worked); a bulk write that matches zero rows reporting success is error-swallow in WRITE form — **rule: every bulk write asserts its affected-row count against the expected count and fails closed on mismatch.** Caught by read-back (the rail working); redone via SQL `DELETE ... RETURNING` (1,327 deleted).
+
+**CODE NOT YET DEPLOYED (durability gap).** The corpus is corrected via the LOCAL hardened `gate-a-scan.mjs`; the DEPLOYED pipeline still runs the `.1` dig-lenient scanner until `gate-a-match.mjs` + `gate-a-scan.mjs` are committed + pass pre-push/CI + deploy. No immediate re-introduction risk (crons frozen, no live generation), but the deploy is required before generation resumes. Runner `gate-a-mint.mjs` stays untracked (Rule 015).
+
+**Gate hole — 4 brief-less verified items (held for operator ruling):** `ccba4af8` (framework), `23cf67df` (guidance), `eb898f68` + `8d256568` (market_signal) — all never-generated (brief_len 0, gen_ver NULL, 0 sections, 0 claims) yet `verified`; criterion 7 skips empty briefs so they pass vacuously. Proposed fail-closed rule: an item with no brief must not hold `verified` — either gate it on an equivalent surface or treat empty-brief-verified as invalid. Operator decision pending.

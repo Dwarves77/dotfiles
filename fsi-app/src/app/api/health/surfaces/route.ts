@@ -150,6 +150,33 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // ── Gate-A honesty (migration 226) ──────────────────────────────────────
+  // Read-side backstop for the provenance gate. ALARMS must all read 0 (the workflow fails, fail-closed on
+  // null); verified_gen_ver_null_info is a non-alarming legacy-lineage report. Catches drift/bypass — items
+  // verified under an older validate that lacked a criterion, or any path bypassing the write-time trigger.
+  let gate_a: {
+    invariant_violations: number | null;
+    briefless_verified: number | null;
+    no_gatestate_verified: number | null;
+    verified_failing_revalidation: number | null;
+    verified_gen_ver_null_info: number | null;
+    error: string | null;
+  } = {
+    invariant_violations: null,
+    briefless_verified: null,
+    no_gatestate_verified: null,
+    verified_failing_revalidation: null,
+    verified_gen_ver_null_info: null,
+    error: null,
+  };
+  try {
+    const { data, error } = await supabase.rpc("gate_a_health");
+    if (error) gate_a.error = error.message;
+    else gate_a = { ...(data as any), error: null };
+  } catch (e: any) {
+    gate_a.error = e?.message ?? "gate_a_health threw";
+  }
+
   const ok = overallOk(surfaces, rpcs);
   const body = {
     ok,
@@ -158,6 +185,7 @@ export async function GET(request: NextRequest) {
     seed_leak: seedLeak(surfaces["dashboard"]?.backing_rows ?? null),
     surfaces,
     rpcs,
+    gate_a,
     checked_at: new Date().toISOString(),
   };
   // 200 when healthy, 503 when not, so the workflow can gate on HTTP status

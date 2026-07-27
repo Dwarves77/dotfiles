@@ -36,6 +36,7 @@ import { buildTimelineRows } from "@/lib/agent/timeline-harvest.mjs";
 import { forceSlotCoverage, MAX_JUDGED_NOMINATIONS } from "@/lib/agent/slot-forcing.mjs";
 import { summarizeLedger, ledgerRegression } from "@/lib/agent/ledger-dominance.mjs";
 import { diffLedger, applyLedgerDiff } from "@/lib/agent/ledger-apply.mjs";
+import { scanBrief } from "@/lib/agent/gate-a-scan.mjs";
 import { decodeHtmlBytes } from "@/lib/sources/charset-decode.mjs";
 import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
@@ -1630,6 +1631,22 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   // it — add genuinely-new claims, version changed claims (old state preserved in claim_versions), leave
   // unchanged + not-reproduced claims untouched. NEVER deletes a current claim. currentIds = the full current
   // ledger after apply; touchedFacts = the FACTs this ground added/changed (the mint-gate input below).
+  // ── GATE A (prose-fact) — recompute + upsert current-hash item_gate_a_state BEFORE applyLedgerDiff's claim writes
+  // fire the set_provenance_status trigger, so criterion 7 (missing/stale state OR orphan_count>0 => quarantined) sees
+  // fresh current-hash state from the very first write: no path reaches validation without it. Scanned against the
+  // FINAL claim corpus (prior kept + incoming, per the non-destructive apply) so orphan_count is exact at flip time.
+  {
+    const { data: gaItem } = await sb.from("intelligence_items").select("full_brief").eq("id", itemId).single();
+    const gaFacts = ([...(priorClaims ?? []), ...incoming] as Array<{ claim_kind: string; claim_text: string | null; source_span: string | null }>)
+      .filter((c) => c.claim_kind === "FACT")
+      .map((c) => ({ claim_text: c.claim_text ?? "", source_span: c.source_span ?? "" }));
+    const ga = scanBrief(gaItem?.full_brief ?? "", gaFacts);
+    const { error: gaErr } = await sb.from("item_gate_a_state").upsert({
+      intelligence_item_id: itemId, scanned_hash: ga.scanned_hash, orphan_count: ga.orphan_count,
+      orphans: ga.orphans, gate_a_version: ga.gate_a_version, scanned_at: new Date().toISOString(),
+    }, { onConflict: "intelligence_item_id" });
+    if (gaErr) console.warn(`[gate-a] state upsert failed for ${itemId}: ${gaErr.message}`);
+  }
   const applyRes = await applyLedgerDiff(sb, itemId, diffLedger(priorClaims ?? [], incoming), { nowIso: new Date().toISOString() });
   const currentIds = applyRes.currentIds;
   gateFacts.push(...applyRes.touchedFacts);
