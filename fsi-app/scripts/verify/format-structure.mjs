@@ -27,6 +27,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
 import { createClient } from "@supabase/supabase-js";
+import { fetchAllRows } from "../../src/lib/db/paginate.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
@@ -36,10 +37,12 @@ const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABA
 
 const NOTE_RE = /no content for this section|as of \d{4}-\d{2}-\d{2}|not publicly available|not available from primary|no .{0,40}identified as of|no authoritative guidance|research gap|unconfirmed/i;
 
-const { data: items } = await sb.from("intelligence_items")
+// Paginated (case-file 9): the prior .order(updated_at desc).limit(2000) audited only the newest 1000
+// (PostgREST caps 2000→1000) and silently left older verified briefs unaudited. Now audits ALL, ordered by id.
+const items = await fetchAllRows((from, to) => sb.from("intelligence_items")
   .select("id,legacy_id,title,item_type,updated_at,full_brief")
   .eq("provenance_status", "verified").eq("is_archived", false)
-  .order("updated_at", { ascending: false }).limit(2000);
+  .order("id").range(from, to));
 
 let pass = 0; const briefDefects = []; let extractionGaps = 0; let notedOmissions = 0;
 for (const it of items || []) {

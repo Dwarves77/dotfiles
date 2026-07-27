@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { writeFileSync } from "node:fs";
 import { createJiti } from "jiti";
 import { createClient } from "@supabase/supabase-js";
+import { fetchAllRows } from "../../src/lib/db/paginate.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
@@ -22,8 +23,8 @@ const ERR = /\b(access (unavailable|verification|blocked|denied)|content unavail
 const PORTAL = /\b(data (and statistics )?(explorer|portal|viewer)|open data|database\b|dashboard|landing page|official website|legislation register)\b/i;
 const detectFmt = (b) => { const h = (b || "").split(/\r?\n/).slice(0, 12).join("\n"); return FMT_TOKENS.find((f) => h.includes(f)) || null; };
 
-const { data: items } = await sb.from("intelligence_items")
-  .select("id,legacy_id,title,item_type,source_url,full_brief").eq("provenance_status", "verified").eq("is_archived", false).limit(2000);
+const items = await fetchAllRows((from, to) => sb.from("intelligence_items")
+  .select("id,legacy_id,title,item_type,source_url,full_brief").eq("provenance_status", "verified").eq("is_archived", false).order("id").range(from, to));
 const rows = [];
 for (const it of items || []) {
   if (!REG.has(it.item_type)) continue;                        // only reg-family-typed

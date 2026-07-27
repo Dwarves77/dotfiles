@@ -10,6 +10,7 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
+import { fetchAllRows } from "../../src/lib/db/paginate.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
@@ -50,8 +51,8 @@ for (const [t, brief, want] of FT) {
 }
 console.log(`fire-test: ${ok}/${FT.length} ok\n`);
 
-const { data: items } = await sb.from("intelligence_items")
-  .select("id,legacy_id,title,item_type,full_brief").eq("provenance_status", "verified").eq("is_archived", false).limit(2000);
+const items = await fetchAllRows((from, to) => sb.from("intelligence_items")
+  .select("id,legacy_id,title,item_type,full_brief").eq("provenance_status", "verified").eq("is_archived", false).order("id").range(from, to));
 let pass = 0; const drift = [], offModel = [], unknown = [];
 for (const it of items || []) {
   const m = MAP[it.item_type];

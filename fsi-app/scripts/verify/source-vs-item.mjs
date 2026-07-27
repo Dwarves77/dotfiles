@@ -10,6 +10,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { urlIsRoot } from "../../src/lib/sources/entity-gate.mjs";
+import { fetchAllRows } from "../../src/lib/db/paginate.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
@@ -19,7 +20,7 @@ const ERR_TITLE_RE = /\b(403|forbidden|access (unavailable|restrict\w*|denied|ve
 const PORTAL_TITLE_RE = /\b(data (and statistics )?(explorer|portal|viewer|center)|explorer platform|open data|statistics (platform|database|explorer)|database\b|dashboard|statutes online|legislation register|legislative database|legal database|official website|landing page)\b/i;
 const SHELL = 1500;
 
-const { data: srcs } = await sb.from("sources").select("url");
+const srcs = await fetchAllRows((from, to) => sb.from("sources").select("url").order("id").range(from, to));
 const regHosts = new Set((srcs || []).map((s) => host(s.url)).filter(Boolean));
 
 // fire-test (the cases that broke v1)
@@ -41,8 +42,8 @@ let ok = 0;
 for (const [t, h, len, want] of FT) { const got = classify(t, regHosts.has(h) ? h : h, len, "https://" + h + "/x"); if (got === want) ok++; else console.log(`  FIRE-TEST FAIL: "${t.slice(0,34)}" got=${got} want=${want}`); }
 console.log(`fire-test: ${ok}/${FT.length} ok (registry hosts: ${regHosts.size})\n`);
 
-const { data: items } = await sb.from("intelligence_items")
-  .select("id,legacy_id,title,item_type,source_url,full_brief").eq("provenance_status", "verified").eq("is_archived", false).limit(2000);
+const items = await fetchAllRows((from, to) => sb.from("intelligence_items")
+  .select("id,legacy_id,title,item_type,source_url,full_brief").eq("provenance_status", "verified").eq("is_archived", false).order("id").range(from, to));
 const buckets = { PASS: 0, "ERROR-ARTIFACT": [], "STALE-TITLE": [], "SOURCE-NOT-ITEM": [] };
 for (const it of items || []) {
   const v = classify(it.title, host(it.source_url), (it.full_brief || "").length, it.source_url);
