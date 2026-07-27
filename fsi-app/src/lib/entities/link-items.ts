@@ -4,6 +4,7 @@
 // this only executes the plan. MOAT BOUNDARY: it writes ONLY item_cross_references + integrity_flags
 // (asserted at runtime AND unit-proven with a failing mode) — never section_claim_provenance.
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { planLinkWrites, assertMoatBoundary } from "@/lib/entities/entity-resolve.mjs";
 
 interface CorpusRow { id: string; title: string | null; instrument_identifier: string | null }
@@ -19,12 +20,21 @@ export interface LinkResult { edges: number; surfaced: number; skipped: boolean 
  * Deterministic (no LLM). Non-gating: a link failure never invalidates an already-grounded brief.
  */
 export async function linkItems(sb: SupabaseClient, itemId: string): Promise<LinkResult> {
-  // read-only corpus + this item's grounded content (brief + pool)
-  const { data: corpusRows } = await sb
-    .from("intelligence_items")
-    .select("id,title,instrument_identifier")
-    .eq("is_archived", false);
-  const corpus: CorpusRow[] = (corpusRows as CorpusRow[]) ?? [];
+  // read-only corpus + this item's grounded content (brief + pool). PAGINATED (case-file 9): the corpus is the
+  // entity-match target set — a truncated read past 1000 rows would silently drop cross-reference edges to any
+  // entity living past the cap (Track B pushes the corpus well past 1000). Non-gating: on read failure, empty
+  // corpus → no links this pass (a link failure never invalidates an already-grounded brief).
+  let corpus: CorpusRow[] = [];
+  try {
+    corpus = (await fetchAllRows((from, to) =>
+      sb
+        .from("intelligence_items")
+        .select("id,title,instrument_identifier")
+        .eq("is_archived", false)
+        .order("id", { ascending: true })
+        .range(from, to)
+    )) as CorpusRow[];
+  } catch { corpus = []; }
 
   const { data: item } = await sb.from("intelligence_items").select("full_brief").eq("id", itemId).single();
   const { data: pool } = await sb.from("agent_run_searches").select("result_content_excerpt").eq("intelligence_item_id", itemId);

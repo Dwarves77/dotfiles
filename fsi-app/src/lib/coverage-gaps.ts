@@ -33,6 +33,7 @@
 // ══════════════════════════════════════════════════════════════
 
 import { unstable_cache } from "next/cache";
+import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { getServiceSupabase } from "./supabase-service";
 import { APP_DATA_TAG } from "@/lib/data";
 import {
@@ -171,17 +172,22 @@ async function fetchActiveSourceRows(): Promise<SourceRow[]> {
   let supabase;
   try { supabase = getServiceSupabase(); } catch { return []; }
 
-  const { data, error } = await supabase
-    .from("sources")
-    .select("name, url, jurisdictions")
-    .eq("status", "active")
-    .eq("admin_only", false);
-
-  if (error) {
-    console.error("[coverage-gaps] fetchActiveSourceRows failed:", error.message);
+  // PAGINATED (case-file 9): the full active source registry can exceed 1000 rows; a truncated read would
+  // silently bias the per-region {covered, partial, gap} coverage verdict below.
+  try {
+    return (await fetchAllRows((from, to) =>
+      supabase
+        .from("sources")
+        .select("name, url, jurisdictions")
+        .eq("status", "active")
+        .eq("admin_only", false)
+        .order("id", { ascending: true }) // UNIQUE order key (PK) — url is not guaranteed unique
+        .range(from, to)
+    )) as SourceRow[];
+  } catch (e: any) {
+    console.error("[coverage-gaps] fetchActiveSourceRows failed:", e?.message ?? e);
     return [];
   }
-  return (data || []) as SourceRow[];
 }
 
 // ── Region rollup ──────────────────────────────────────────────

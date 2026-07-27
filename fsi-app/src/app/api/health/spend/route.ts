@@ -16,6 +16,7 @@ import { workerAuthGuard } from "@/lib/api/worker-auth";
 import { getServiceSupabase } from "@/lib/supabase-server";
 import { computeSpendHealth } from "@/lib/health/spend-health.mjs";
 import { acquireEnabled } from "@/lib/sources/acquire-lock.mjs";
+import { fetchAllRows } from "@/lib/db/paginate.mjs";
 
 export const dynamic = "force-dynamic";
 
@@ -58,23 +59,22 @@ export async function GET(request: NextRequest) {
 
   let rows: Array<{
     cost_usd_estimated: number | null; started_at: string | null; fetch_method: string | null;
-    intelligence_item_id: string | null; source_id: string | null; errors: unknown;
+    intelligence_item_id: string | null; source_id: string | null; model: string | null; errors: unknown;
   }> = [];
   try {
     // Select cost + started_at + attribution + fetch_method + errors for the month. The pure verdict sums
-    // MTD, finds paid rows after the freeze baseline, and matches each to a pre-logged I2 justification row
-    // (fetch_method='acquire-justification'). NUMERIC column, one month of rows — a bounded select is fine.
-    const { data, error } = await supabase
-      .from("agent_runs")
-      .select("cost_usd_estimated, started_at, fetch_method, intelligence_item_id, source_id, errors")
-      .gte("created_at", monthStart.toISOString());
-    if (error) {
-      return NextResponse.json(
-        { ok: false, error: error.message },
-        { status: 503 }
-      );
-    }
-    rows = (data ?? []) as typeof rows;
+    // MTD, finds paid rows after the freeze baseline, and matches each to a pre-logged priced-line marker.
+    // PAGINATED (case-file 9): a month of census/classify rows is tens of thousands, far past PostgREST's
+    // 1000-row default — a range-less select silently truncated the verdict to a 1000-row slice ("207 of
+    // 207" was a slice of 19,898). `.order` gives stable paging across pages.
+    rows = (await fetchAllRows((from, to) =>
+      supabase
+        .from("agent_runs")
+        .select("cost_usd_estimated, started_at, fetch_method, intelligence_item_id, source_id, model, errors")
+        .gte("created_at", monthStart.toISOString())
+        .order("id", { ascending: true }) // UNIQUE order key — non-unique (created_at) makes offset paging lossy
+        .range(from, to)
+    )) as typeof rows;
   } catch (e: any) {
     return NextResponse.json(
       { ok: false, error: e?.message ?? "spend aggregate threw" },

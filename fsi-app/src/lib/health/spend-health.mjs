@@ -42,11 +42,46 @@ function sameSubject(j, p) {
   return false;
 }
 
+// ── BATCH markers (Part 3, operator MASTER DISPATCH 2026-07-26) ──────────────────────────────────────────
+// Subject-less paid runs (census-class classification: no intelligence_item_id, no source_id) cannot trace to
+// a per-subject priced line. They trace instead to a BATCH-level authorization marker — the same shape as a
+// metered-gate scoped amendment: task, model, cap, and a [windowStart, windowEnd]. One batch marker traces
+// every subject-less paid row of the same model inside its window. Nothing is untraceable by design.
+/** Is this a batch-level authorization marker row? @param {any} r */
+function isBatchMarkerRow(r) {
+  if (r?.fetch_method === "batch-marker") return true;
+  const errs = /** @type {any[]} */ (Array.isArray(r?.errors) ? r.errors : []);
+  return errs.some((e) => e && typeof e === "object" && e.batchMarker);
+}
+/** Extract {task, model, capUsd, windowStart, windowEnd} from a batch-marker row, or null. @param {any} r */
+function batchMarkerOf(r) {
+  const errs = /** @type {any[]} */ (Array.isArray(r?.errors) ? r.errors : []);
+  const hit = errs.find((e) => e && typeof e === "object" && e.batchMarker);
+  const b = hit ? hit.batchMarker : null;
+  if (!b || typeof b !== "object") return null;
+  return {
+    task: b.task ?? null,
+    model: b.model ?? null,
+    capUsd: Number(b.capUsd ?? 0) || 0,
+    windowStart: b.windowStart ?? null,
+    windowEnd: b.windowEnd ?? null,
+  };
+}
+/** Does a subject-less paid row P fall within batch marker B's model + time window? @param {any} b @param {any} p */
+function inBatchWindow(b, p) {
+  if (!b || b.model == null || b.model !== (p?.model ?? null)) return false;
+  const pms = p?.started_at ? Date.parse(String(p.started_at)) : NaN;
+  const ws = b.windowStart ? Date.parse(String(b.windowStart)) : NaN;
+  const we = b.windowEnd ? Date.parse(String(b.windowEnd)) : NaN;
+  if (Number.isNaN(pms) || Number.isNaN(ws) || Number.isNaN(we)) return false;
+  return pms >= ws && pms <= we;
+}
+
 /**
  * PURE verdict. Given this month's agent_runs rows (already month-filtered by the caller), the freeze
  * baseline, and the CURRENT acquire-lock state, decide health. No I/O, no clock. The monthlyCeilingUsd is
  * accepted for backward-compatible INFORMATIONAL fields (mtdUsd/pct/frozen) only — it NEVER gates the verdict.
- * @param {Array<{ cost_usd_estimated?: number|null, started_at?: string|null, fetch_method?: string|null, intelligence_item_id?: string|null, source_id?: string|null, errors?: any }>} rows
+ * @param {Array<{ cost_usd_estimated?: number|null, started_at?: string|null, fetch_method?: string|null, intelligence_item_id?: string|null, source_id?: string|null, model?: string|null, errors?: any }>} rows
  * @param {{ freezeSinceIso: string, monthlyCeilingUsd?: number, acquireEnabled?: boolean }} opts
  * @returns {{ mtdUsd: number, pct: number, frozen: boolean, latestPaidAt: string|null, paidAfterFreeze: number, acquireEnabled: boolean, allJustified: boolean, healthy: boolean, reason: string, paidAfterRows: Array<{ itemId: string|null, sourceId: string|null, costUsd: number, startedAt: string|null, justification: string|null }> }}
  */
@@ -62,6 +97,7 @@ export function computeSpendHealth(rows, opts) {
   let latestMs = -Infinity;
   const paidAfter = /** @type {any[]} */ ([]);
   const lineAfter = /** @type {any[]} */ ([]);
+  const batchAfter = /** @type {any[]} */ ([]);
 
   for (const r of list) {
     const cost = Number(r?.cost_usd_estimated ?? 0) || 0;
@@ -76,24 +112,37 @@ export function computeSpendHealth(rows, opts) {
       if (afterFreeze) paidAfter.push(r);
     } else if (afterFreeze && isPricedLineRow(r)) {
       lineAfter.push(r);
+    } else if (afterFreeze && isBatchMarkerRow(r)) {
+      batchAfter.push(r);
     }
   }
 
-  // Match each post-freeze paid row to a pre-logged operator-priced line (same item/source, logged at/before it).
+  const batchMarkers = batchAfter.map(batchMarkerOf).filter(Boolean);
+  // TWO-ARM trace. A subject-bearing paid row traces a pre-logged per-subject priced line (same item/source,
+  // logged at/before it). A subject-less paid row (census-class: no item AND no source) traces a BATCH marker
+  // whose model matches and whose [windowStart, windowEnd] contains it. A row matching neither is untraced.
   const paidAfterRows = paidAfter.map((p) => {
-    const pms = p?.started_at ? Date.parse(String(p.started_at)) : NaN;
-    const j = lineAfter.find((jr) => {
-      const jms = jr?.started_at ? Date.parse(String(jr.started_at)) : NaN;
-      const preLogged = Number.isNaN(jms) || Number.isNaN(pms) ? false : jms <= pms;
-      return sameSubject(jr, p) && preLogged;
-    });
+    const hasSubject = p?.intelligence_item_id != null || p?.source_id != null;
+    let ref = /** @type {string|null} */ (null);
+    if (hasSubject) {
+      const pms = p?.started_at ? Date.parse(String(p.started_at)) : NaN;
+      const j = lineAfter.find((jr) => {
+        const jms = jr?.started_at ? Date.parse(String(jr.started_at)) : NaN;
+        const preLogged = Number.isNaN(jms) || Number.isNaN(pms) ? false : jms <= pms;
+        return sameSubject(jr, p) && preLogged;
+      });
+      ref = j ? pricedLineRef(j) : null;
+    } else {
+      const b = batchMarkers.find((bm) => inBatchWindow(bm, p));
+      ref = b ? `batch:${b.task ?? "?"}` : null;
+    }
     return {
       itemId: p?.intelligence_item_id ?? null,
       sourceId: p?.source_id ?? null,
       costUsd: Math.round((Number(p?.cost_usd_estimated ?? 0) || 0) * 1e6) / 1e6,
       startedAt: p?.started_at ? String(p.started_at) : null,
-      // Field name kept for the /api/health/spend route's response shape; it now carries the priced-line ref.
-      justification: j ? pricedLineRef(j) : null,
+      // Field name kept for the /api/health/spend route's response shape; carries the priced-line OR batch ref.
+      justification: ref,
     };
   });
 

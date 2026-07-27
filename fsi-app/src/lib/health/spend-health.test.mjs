@@ -13,6 +13,10 @@ const CEIL = 130; // informational only in the refactor (never gates)
 const paid = (o) => ({ cost_usd_estimated: o.cost, started_at: o.at, fetch_method: "spend-call", intelligence_item_id: o.item ?? null, source_id: o.src ?? null, errors: [] });
 // an operator-priced-line marker row: cost 0, fetch_method='priced-line', errors[].pricedLine ref
 const line = (o) => ({ cost_usd_estimated: 0, started_at: o.at, fetch_method: "priced-line", intelligence_item_id: o.item ?? null, source_id: o.src ?? null, errors: [{ pricedLine: o.ref }] });
+// a BATCH-level authorization marker (Part 3): cost 0, fetch_method='batch-marker', carries task/model/window.
+const batch = (o) => ({ cost_usd_estimated: 0, started_at: o.ws, fetch_method: "batch-marker", intelligence_item_id: null, source_id: null, errors: [{ batchMarker: { task: o.task, model: o.model, capUsd: o.cap ?? 20, windowStart: o.ws, windowEnd: o.we } }] });
+// a SUBJECT-LESS paid row (census-class classification): no item, no source, carries a model.
+const paidNS = (o) => ({ cost_usd_estimated: o.cost, started_at: o.at, fetch_method: null, intelligence_item_id: null, source_id: null, model: o.model, errors: [] });
 
 // ── STATE 1: frozen-and-quiet ──
 test("frozen-and-quiet: MTD high but no paid row after the freeze → HEALTHY (no permanent-red, no ceiling framing)", () => {
@@ -109,6 +113,62 @@ test("a legacy acquire-justification marker no longer satisfies the alarm (price
   const v = computeSpendHealth(rows, { freezeSinceIso: FREEZE, monthlyCeilingUsd: CEIL, acquireEnabled: true });
   assert.equal(v.healthy, false);
   assert.equal(v.paidAfterRows[0].justification, null); // the old justification does not trace
+});
+
+// ── BATCH-marker arm (Part 3, MASTER DISPATCH 2026-07-26): subject-less runs trace a batch marker ──
+test("(batch) subject-less paid rows trace a batch marker (model + window) → HEALTHY", () => {
+  const rows = [
+    batch({ task: "census", model: "claude-haiku-4-5-20251001", ws: "2026-08-01T15:00:00Z", we: "2026-08-01T19:00:00Z" }),
+    paidNS({ cost: 0.001, at: "2026-08-01T15:38:00Z", model: "claude-haiku-4-5-20251001" }),
+    paidNS({ cost: 0.001, at: "2026-08-01T18:20:00Z", model: "claude-haiku-4-5-20251001" }),
+  ];
+  const v = computeSpendHealth(rows, { freezeSinceIso: FREEZE, monthlyCeilingUsd: CEIL, acquireEnabled: false });
+  assert.equal(v.healthy, true);
+  assert.equal(v.paidAfterFreeze, 2);
+  assert.deepEqual(v.paidAfterRows.map((r) => r.justification), ["batch:census", "batch:census"]);
+});
+
+test("(batch) subject-less paid row OUTSIDE the batch window → untraced → ANOMALY", () => {
+  const rows = [
+    batch({ task: "census", model: "claude-haiku-4-5-20251001", ws: "2026-08-01T15:00:00Z", we: "2026-08-01T19:00:00Z" }),
+    paidNS({ cost: 0.001, at: "2026-08-01T20:00:00Z", model: "claude-haiku-4-5-20251001" }),
+  ];
+  const v = computeSpendHealth(rows, { freezeSinceIso: FREEZE, monthlyCeilingUsd: CEIL, acquireEnabled: false });
+  assert.equal(v.healthy, false);
+  assert.equal(v.paidAfterRows[0].justification, null);
+});
+
+test("(batch) subject-less paid row wrong MODEL → untraced (batch marker is model-scoped)", () => {
+  const rows = [
+    batch({ task: "census", model: "claude-haiku-4-5-20251001", ws: "2026-08-01T15:00:00Z", we: "2026-08-01T19:00:00Z" }),
+    paidNS({ cost: 0.05, at: "2026-08-01T16:00:00Z", model: "claude-sonnet-4-6" }),
+  ];
+  const v = computeSpendHealth(rows, { freezeSinceIso: FREEZE, monthlyCeilingUsd: CEIL, acquireEnabled: false });
+  assert.equal(v.healthy, false);
+  assert.equal(v.paidAfterRows[0].justification, null);
+});
+
+test("(batch) a subject-bearing paid row does NOT trace to a batch marker (needs its own priced line)", () => {
+  const rows = [
+    batch({ task: "census", model: "claude-haiku-4-5-20251001", ws: "2026-08-01T15:00:00Z", we: "2026-08-01T19:00:00Z" }),
+    paid({ cost: 0.05, at: "2026-08-01T16:00:00Z", item: "item-H" }),
+  ];
+  const v = computeSpendHealth(rows, { freezeSinceIso: FREEZE, monthlyCeilingUsd: CEIL, acquireEnabled: false });
+  assert.equal(v.healthy, false);
+  assert.equal(v.paidAfterRows[0].justification, null);
+});
+
+test("(batch) mixed: subject row traces a priced line, subject-less traces a batch marker → all HEALTHY", () => {
+  const rows = [
+    line({ at: "2026-08-01T10:00:00Z", item: "item-A", ref: "op-line-A" }),
+    paid({ cost: 0.2, at: "2026-08-01T10:00:05Z", item: "item-A" }),
+    batch({ task: "census", model: "claude-haiku-4-5-20251001", ws: "2026-08-01T15:00:00Z", we: "2026-08-01T19:00:00Z" }),
+    paidNS({ cost: 0.001, at: "2026-08-01T16:00:00Z", model: "claude-haiku-4-5-20251001" }),
+  ];
+  const v = computeSpendHealth(rows, { freezeSinceIso: FREEZE, monthlyCeilingUsd: CEIL, acquireEnabled: false });
+  assert.equal(v.healthy, true);
+  assert.equal(v.paidAfterFreeze, 2);
+  assert.deepEqual(v.paidAfterRows.map((r) => r.justification), ["op-line-A", "batch:census"]);
 });
 
 // ── edge cases (carried) ──

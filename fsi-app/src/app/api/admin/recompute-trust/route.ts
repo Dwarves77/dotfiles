@@ -10,6 +10,7 @@
 // /api/worker/check-sources). NOT user-facing.
 
 import { NextRequest, NextResponse } from "next/server";
+import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { getServiceSupabase } from "@/lib/supabase-service";
 
 import {
@@ -38,15 +39,22 @@ export async function POST(request: NextRequest) {
   // Phase 1.5: base_tier per scoring-internals default rule (trust
   // recompute is a scoring internal; the Bayesian prior is anchored
   // to the structural classification, not the dynamic credibility signal).
-  const { data: sources, error } = await supabase
-    .from("sources")
-    .select(
-      "id, name, base_tier, confirmation_count, conflict_count, accuracy_rate, accessibility_rate, total_checks, lead_time_samples, avg_lead_time_days, independent_citers, highest_citing_tier, total_citations, self_citation_count, conflict_total, last_checked"
-    )
-    .eq("processing_paused", false);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  // PAGINATED (case-file 9): the active source registry can exceed 1000 rows; a truncated read would skip
+  // trust recompute for every source past row 1000 (the per-source UPDATE loop below) and under-report totals.
+  let sources: any[];
+  try {
+    sources = await fetchAllRows((from, to) =>
+      supabase
+        .from("sources")
+        .select(
+          "id, name, base_tier, confirmation_count, conflict_count, accuracy_rate, accessibility_rate, total_checks, lead_time_samples, avg_lead_time_days, independent_citers, highest_citing_tier, total_citations, self_citation_count, conflict_total, last_checked"
+        )
+        .eq("processing_paused", false)
+        .order("id", { ascending: true })
+        .range(from, to)
+    );
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message ?? "sources read failed" }, { status: 500 });
   }
   if (!sources?.length) {
     return NextResponse.json({ message: "No sources to recompute", updated: 0 });

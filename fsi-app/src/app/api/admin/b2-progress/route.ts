@@ -7,6 +7,7 @@
 // custom queries.
 
 import { NextRequest, NextResponse } from "next/server";
+import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { getServiceSupabase } from "@/lib/supabase-service";
 
 import { requireAuth, isAuthError } from "@/lib/api/auth";
@@ -34,14 +35,21 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const { data: rows, error } = await supabase
-    .from("intelligence_items")
-    .select("id, legacy_id, item_type, priority, regeneration_skill_version, source_url, is_archived, last_regenerated_at, operational_scenario_tags, compliance_object_tags, intersection_summary, related_items")
-    .eq("is_archived", false);
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  const all = rows || [];
+  // PAGINATED (case-file 9): the whole non-archived corpus can exceed PostgREST's 1000-row cap (Track B pushes
+  // it past 1000), and a truncated read would bias every progress % / by-format / by-priority count below.
+  let all: any[];
+  try {
+    all = await fetchAllRows((from, to) =>
+      supabase
+        .from("intelligence_items")
+        .select("id, legacy_id, item_type, priority, regeneration_skill_version, source_url, is_archived, last_regenerated_at, operational_scenario_tags, compliance_object_tags, intersection_summary, related_items")
+        .eq("is_archived", false)
+        .order("id", { ascending: true })
+        .range(from, to)
+    );
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message ?? "progress read failed" }, { status: 500 });
+  }
   const withSource = all.filter((r) => r.source_url);
   const eligible = withSource.filter((r) => r.legacy_id ? !r.legacy_id.startsWith("ss") && !r.legacy_id.startsWith("arc") : true);
 
