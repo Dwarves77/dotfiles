@@ -9,6 +9,7 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
+import { fetchAllRows } from "../../src/lib/db/paginate.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 process.loadEnvFile(resolve(ROOT, ".env.local"));
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
@@ -35,8 +36,8 @@ let ok = 0;
 for (const [txt, want] of T) { const got = res.some((r) => r.re.test(txt)); if (got === want) ok++; else console.log(`  FIRE-TEST FAIL: "${txt.slice(0, 40)}" got=${got} want=${want}`); }
 console.log(`fire-test: ${ok}/${T.length} ok\n`);
 
-const { data: items } = await sb.from("intelligence_items")
-  .select("id,legacy_id,title,item_type,full_brief").eq("provenance_status", "verified").eq("is_archived", false).limit(2000);
+const items = await fetchAllRows((from, to) => sb.from("intelligence_items")
+  .select("id,legacy_id,title,item_type,full_brief").eq("provenance_status", "verified").eq("is_archived", false).order("id").range(from, to));
 let pass = 0; const fails = [];
 for (const it of items || []) {
   const fb = it.full_brief || ""; const hits = [];

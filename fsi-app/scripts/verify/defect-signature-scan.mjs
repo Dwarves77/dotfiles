@@ -27,6 +27,7 @@
 //   node scripts/verify/defect-signature-scan.mjs --all           (excludes Wave 2, see WAVE2_CUTOFF)
 
 import { createClient } from '@supabase/supabase-js';
+import { fetchAllRows } from '../../src/lib/db/paginate.mjs';
 
 export const WAVE2_CUTOFF = '2026-07-13T00:00:00Z'; // exclude items grounded by the concurrent Wave 2
 
@@ -43,17 +44,19 @@ async function resolveFrame(db) {
   const ids = arg('--ids');
   const since = arg('--since');
   const all = process.argv.includes('--all');
-  let q = db.from('intelligence_items').select('id,title').eq('is_archived', false);
-  if (ids) return (await q.in('id', ids.split(',').map((s) => s.trim()))).data || [];
+  // Paginated (case-file 9): the frame + the agent_runs wave reads feed the defect-triage verdict; a month of
+  // runs / the full non-archived corpus exceed PostgREST's 1000-row cap. All reads order by the unique id.
+  const base = (f, t) => db.from('intelligence_items').select('id,title').eq('is_archived', false).order('id').range(f, t);
+  if (ids) { const list = ids.split(',').map((s) => s.trim()); return await fetchAllRows((f, t) => base(f, t).in('id', list)); }
   if (since) {
-    const r = await db.from('agent_runs').select('intelligence_item_id').gte('created_at', since);
-    const wave = [...new Set((r.data || []).map((x) => x.intelligence_item_id).filter(Boolean))];
-    return (await q.in('id', wave)).data || [];
+    const runs = await fetchAllRows((f, t) => db.from('agent_runs').select('intelligence_item_id').gte('created_at', since).order('id').range(f, t));
+    const wave = [...new Set(runs.map((x) => x.intelligence_item_id).filter(Boolean))];
+    return await fetchAllRows((f, t) => base(f, t).in('id', wave));
   }
   if (all) {
-    const items = (await q).data || [];
-    const r = await db.from('agent_runs').select('intelligence_item_id').gte('created_at', WAVE2_CUTOFF);
-    const wave2 = new Set((r.data || []).map((x) => x.intelligence_item_id).filter(Boolean));
+    const items = await fetchAllRows(base);
+    const runs = await fetchAllRows((f, t) => db.from('agent_runs').select('intelligence_item_id').gte('created_at', WAVE2_CUTOFF).order('id').range(f, t));
+    const wave2 = new Set(runs.map((x) => x.intelligence_item_id).filter(Boolean));
     const kept = items.filter((it) => !wave2.has(it.id));
     console.log(`--all frame: ${items.length} non-archived; excluding ${wave2.size} Wave 2 items (agent_runs after ${WAVE2_CUTOFF}); scanning ${kept.length}.`);
     return kept;

@@ -14,6 +14,7 @@
 // Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (read-only use here).
 
 import { createClient } from '@supabase/supabase-js';
+import { fetchAllRows } from '../../src/lib/db/paginate.mjs';
 
 const N_PCT = Number(process.env.WAVE_ACCEPTANCE_N ?? 10); // ADR-014 proposed default
 const FLOOR = 3;
@@ -46,18 +47,18 @@ async function main() {
   // 1) Resolve the wave's item set.
   const ids = arg('--ids');
   const since = arg('--since');
-  let itemsQ = db.from('intelligence_items')
+  // Paginated (case-file 9): the agent_runs wave read + the item frame feed the acceptance-rate verdict;
+  // a wave can exceed 1000 runs/items. All reads order by the unique id; fetchAllRows throws on error.
+  const baseItems = (f, t) => db.from('intelligence_items')
     .select('id,title,item_type,priority,provenance_status,last_regenerated_at,jurisdiction_iso,canonical_instrument_key,is_archived')
-    .eq('is_archived', false);
-  if (ids) itemsQ = itemsQ.in('id', ids.split(','));
+    .eq('is_archived', false).order('id').range(f, t);
+  let items;
+  if (ids) items = await fetchAllRows((f, t) => baseItems(f, t).in('id', ids.split(',')));
   else if (since) {
-    const runs = await db.from('agent_runs').select('intelligence_item_id').gte('created_at', since);
-    if (runs.error) throw runs.error;
-    const waveIds = [...new Set((runs.data || []).map((r) => r.intelligence_item_id).filter(Boolean))];
-    itemsQ = itemsQ.in('id', waveIds);
+    const runs = await fetchAllRows((f, t) => db.from('agent_runs').select('intelligence_item_id').gte('created_at', since).order('id').range(f, t));
+    const waveIds = [...new Set(runs.map((r) => r.intelligence_item_id).filter(Boolean))];
+    items = await fetchAllRows((f, t) => baseItems(f, t).in('id', waveIds));
   } else { console.error('Provide --ids or --since'); process.exit(2); }
-  const { data: items, error: iErr } = await itemsQ;
-  if (iErr) throw iErr;
   if (!items.length) { console.log('No items in wave frame.'); return; }
 
   // 2) Per-item claim + provenance pre-scan.
