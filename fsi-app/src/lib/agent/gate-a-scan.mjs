@@ -13,11 +13,14 @@
 // md5 of the exact prose it scanned, and validate_item_provenance rejects stale state (hash != md5(current full_brief)
 // => quarantined). A brief can never hold verified status on a scan of text it no longer contains.
 import crypto from "node:crypto";
+import { containsToken } from "./gate-a-match.mjs";
 
-export const GATE_A_VERSION = "2026-07-26.1";
+// 2026-07-26.2: isBacked is now LITERAL-ONLY (shared gate-a-match.containsToken). The prior .1 used a
+// digit-reduced fallback in isBacked that marked worded tokens ("August 2025") backed by any span carrying
+// their digits ("2025") — the coverage-site twin of the mint runner's fallback (case-file instance 7). The
+// version bump invalidates every prior scan honestly: the stale-scan guard re-quarantines on the semantics change.
+export const GATE_A_VERSION = "2026-07-26.2";
 export function md5(s) { return crypto.createHash("md5").update(String(s ?? ""), "utf8").digest("hex"); }
-const norm = (s) => String(s || "").replace(/\s+/g, " ").toLowerCase();
-const digitsOf = (s) => norm(s).replace(/[^\d.,%]/g, "");
 
 const MONTHS = "january|february|march|april|may|june|july|august|september|october|november|december";
 // Citation-apparatus markers on a line => its years/numbers are provenance metadata, excluded from the fact gate.
@@ -67,9 +70,9 @@ export function extractFactualTokens(fullBrief) {
 export function scanBrief(fullBrief, factClaims) {
   const scanned_hash = md5(fullBrief);
   const { figures, deadlines } = extractFactualTokens(fullBrief);
-  const corpus = norm((factClaims || []).map((c) => `${c.claim_text} ${c.source_span}`).join(" "));
-  const corpusNums = new Set(corpus.match(/\d[\d.,]*/g) || []);
-  const isBacked = (tk) => { const n = norm(tk); if (corpus.includes(n)) return true; const d = digitsOf(tk); return d.length > 0 && (corpusNums.has(d) || corpus.includes(d)); };
+  const corpus = (factClaims || []).map((c) => `${c.claim_text} ${c.source_span}`).join(" ");
+  // LITERAL-ONLY coverage (shared matcher). A token is backed iff some claim's text/span literally contains it.
+  const isBacked = (tk) => containsToken(corpus, tk);
   const orphans = [];
   for (const tk of figures) if (!isBacked(tk)) orphans.push({ token: tk, class: "figure" });
   for (const tk of deadlines) if (!isBacked(tk)) orphans.push({ token: tk, class: "deadline" });

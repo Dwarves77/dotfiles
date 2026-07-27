@@ -109,6 +109,35 @@ jobs:
           jq -r '.rpcs | to_entries[] | "  \(.key): ok=\(.value.ok)"' \
             "$tmp_body" 2>/dev/null || echo "  (could not parse rpcs)"
 
+          # ── GATE-A HONESTY ASSERTION (migration 226 gate_a_health) ───────────────────────────────────────
+          # Read-side backstop for the provenance gate. Runs BEFORE the surfaces build-mode ACK below so it can
+          # NEVER be masked by an operations-only-down tolerance. Every ALARM must read 0; fail-closed on a
+          # null/unreadable value (a gauge we cannot read is treated as a failure). verified_gen_ver_null_info
+          # is INFO only (legacy stamp gap, not a bypass) — echoed, never alarmed.
+          ga_inv=$(jq -r '.gate_a.invariant_violations' "$tmp_body" 2>/dev/null || echo null)
+          ga_bl=$(jq -r '.gate_a.briefless_verified' "$tmp_body" 2>/dev/null || echo null)
+          ga_ngs=$(jq -r '.gate_a.no_gatestate_verified' "$tmp_body" 2>/dev/null || echo null)
+          ga_reval=$(jq -r '.gate_a.verified_failing_revalidation' "$tmp_body" 2>/dev/null || echo null)
+          ga_info=$(jq -r '.gate_a.verified_gen_ver_null_info' "$tmp_body" 2>/dev/null || echo null)
+          ga_err=$(jq -r '.gate_a.error' "$tmp_body" 2>/dev/null || echo null)
+          echo "gate_a ALARMS: invariant=$ga_inv briefless=$ga_bl no_gatestate=$ga_ngs failing_reval=$ga_reval | INFO gen_ver_null=$ga_info err=$ga_err"
+          ga_fail=0
+          for pair in "invariant_violations:$ga_inv" "briefless_verified:$ga_bl" "no_gatestate_verified:$ga_ngs" "verified_failing_revalidation:$ga_reval"; do
+            name="${pair%%:*}"; val="${pair##*:}"
+            case "$val" in
+              0) ;;
+              ''|null|parse_error) echo "::error::gate_a.$name unreadable ($val) — fail-closed."; ga_fail=1 ;;
+              *) echo "::error::gate_a ALARM: $name=$val (must be 0)."; ga_fail=1 ;;
+            esac
+          done
+          if [ "$ga_err" != "null" ] && [ -n "$ga_err" ]; then echo "::error::gate_a_health error: $ga_err"; ga_fail=1; fi
+          if [ "$ga_fail" -ne 0 ]; then
+            echo "::error::Gate-A honesty assertion FAILED — not maskable by the surfaces build-mode ACK."
+            exit 1
+          fi
+          echo "✓ Gate-A honesty assertions pass (all ALARMs 0; INFO gen_ver_null=$ga_info)."
+          # ── end Gate-A honesty assertion ─────────────────────────────────────────────────────────────────
+
           # ── GATE A BUILD-MODE ACKNOWLEDGMENT (dated; REMOVE this whole block at the step-7 clean re-scan) ────
           # During the criterion-7 (Gate A prose-fact) remediation, the Operations surface is intentionally at 0
           # verified rows — its figure-dense regional_data briefs are quarantined until their orphan facts are
