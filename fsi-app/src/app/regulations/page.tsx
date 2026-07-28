@@ -99,7 +99,7 @@ export default async function RegulationsPage({
         initialPriorityFilter={priorityParam ?? null}
         initialRegionFilter={regionParam ?? null}
       />
-      <CoverageIndexPanel data={coverage} surfaceLabel="regulations" />
+      <CoverageIndexPanel data={coverage} surface="regulations" surfaceLabel="regulations" />
     </>
   );
 }

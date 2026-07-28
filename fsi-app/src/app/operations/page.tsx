@@ -105,7 +105,7 @@ export default async function Operations() {
         operationsCoverage={operationsCoverage}
         stateCosts={stateCosts}
       />
-      <CoverageIndexPanel data={coverage} surfaceLabel="operations" />
+      <CoverageIndexPanel data={coverage} surface="operations" surfaceLabel="operations" />
     </>
   );
 }
