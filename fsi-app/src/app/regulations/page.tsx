@@ -17,9 +17,11 @@
  */
 
 import { getListingsOnly, getSurfaceCounts } from "@/lib/data";
+import { getCoverageIndex } from "@/lib/coverage/index-data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { RegulationsLedger } from "@/components/regulations/RegulationsLedger";
+import { CoverageIndexPanel } from "@/components/coverage/CoverageIndexPanel";
 import { toDate } from "@/lib/relative-time";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 
@@ -32,9 +34,10 @@ export default async function RegulationsPage({
 
   // Listings (verified-gated server-side) for the ledger rows + the
   // single-SoT verified count bundle for the masthead / tiles / bands.
-  const [data, aggregates] = await Promise.all([
+  const [data, aggregates, coverage] = await Promise.all([
     getListingsOnly(),
     getSurfaceCounts("regulations"),
+    getCoverageIndex("regulations"),
   ]);
 
   const regulationResources = data.resources.filter((r) => r.domain === REGULATIONS_DOMAIN);
@@ -96,6 +99,7 @@ export default async function RegulationsPage({
         initialPriorityFilter={priorityParam ?? null}
         initialRegionFilter={regionParam ?? null}
       />
+      <CoverageIndexPanel data={coverage} surfaceLabel="regulations" />
     </>
   );
 }
