@@ -5,6 +5,43 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-07-28 — P2 structural gate CLOSED (RLS residue + policy table + unauthenticated-rejection proof)
+
+**RLS residue closed (mig 230, PR #381 merged).** Audit found 8 public tables RLS-DISABLED with full
+DELETE/INSERT/UPDATE/TRUNCATE grants to anon+authenticated → anon-key writable via PostgREST. Operator-control
+tables exposed: `funded_pass_runlock` (spend lock), `disposition_ledger` (audit trail), `mutation_leases`, plus
+`corpus_census`, `coverage_gap_candidates`, `coverage_gap_census_findings`, `drain_worklist`, `claim_versions`.
+Fix: ENABLE ROW LEVEL SECURITY deny-all (service_role bypasses). Verified no legitimate anon path first;
+post-apply 0/8 still RLS-disabled.
+
+**Promotion policy table (mig 231, PR #382 merged), RLS-ENABLED FROM BIRTH.** `promotion_policy` — the policy IS
+the authorization for promotion spend (fail-closed: no active/unexpired policy → no spend), metered-gate-amendment
+shape (authority/scoped/quality-floored/hard-capped/expiring), ≤1 active policy enforced. Admin API
+`/api/admin/promotion-policy` GET/POST, server-side `requireAuth`+`isPlatformAdmin` gated (F2 fitness confirms).
+
+**UNAUTHENTICATED-REJECTION PROOF (production, verbatim).** Endpoint `https://carosledge.com/api/admin/promotion-policy`, no auth headers:
+
+```
+REQUEST:  GET /api/admin/promotion-policy   (no Authorization header)
+RESPONSE: HTTP 401  {"error":"Authentication required"}
+
+REQUEST:  POST /api/admin/promotion-policy
+          Content-Type: application/json
+          {"authority":"UNAUTH-ATTEMPT","budget_envelope_usd":55,"expires_at":"2027-01-01T00:00:00Z"}
+RESPONSE: HTTP 401  {"error":"Authentication required"}
+```
+
+Post-proof DB check: `promotion_policy` = 0 rows, 0 with authority='UNAUTH-ATTEMPT', rls_enabled=true — the unauth
+POST wrote nothing (rejected at `requireAuth` before any DB touch). **403 for authenticated-non-admin** is not
+CLI-testable (no non-admin session token available), but the `isPlatformAdmin` gate is in place and identical to
+every `/api/admin/**` route (F2-verified). Structural gate CLOSED: DB-locked (RLS) + app-locked (admin gate) +
+proven at the wire.
+
+**Next (priority order):** A3 source-first re-capture batches (first = gov.si), P2 engine (auto-selection +
+automated safeguards + admin surface) alongside. First policy proposal → operator approval before any spend.
+
+---
+
 ## 2026-07-28 — B1 Coverage Index LANDED (PR #377) + reconciliation baseline
 
 **Reconciliation baseline (item_gate_a_state persisted, literal-only scanner + Gate-B arm).** Canonical
