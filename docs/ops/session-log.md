@@ -5,6 +5,49 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-07-28 — B1 Coverage Index LANDED (PR #377) + reconciliation baseline
+
+**Reconciliation baseline (item_gate_a_state persisted, literal-only scanner + Gate-B arm).** Canonical
+numbers, DB-verified: **12 verified** items (all with brief, non-archived), 348 quarantined, 57 unverified,
+422 total; 345 have a full_brief (278 non-archived scanned, 67 archived skipped). **Orphan-token sum = 1,650**
+across the 278 non-archived brief items — the restoration target. Gate-B mint restored 0 on its own (necessary-
+not-sufficient, confirmed). The collapse to 12 is the literal-only gate telling the truth (dig-fallback removed
+this session); briefs intact, coverage honest.
+
+**B1 Coverage Index — dual-verified catalogue, mounted INSIDE the five surfaces (PR #377, merge 8197efce).**
+Ruling correction: first built as a standalone `/coverage` customer route; governance rule 018 (PI-1) correctly
+blocked it; operator ruled it publishes INSIDE the existing surfaces. Now the `CoverageIndexPanel` (collapsible,
+default-closed) sits below each surface's verified ledger — primarily Regulations, each surface its own
+`surface_tags` slice via `getCoverageIndex(surface)`. Platform-wide: 3,661 catalogued / **3,012 dual-verified**.
+Per-surface: regulations 2,452/2,220, operations 2,328/2,238, market 1,789/1,773, research 249/244. Live-verified
+on carosledge.com/regulations (panel header, scope statement, firm/soft split, entry list all render).
+
+**REPRODUCTION (verifier-independent) — where verdicts persist + the exact join for 3,012.**
+- **Relevance axis** persists in `census_worklist.notes` as `[low-relevance]` tags: 0 tags = firm-core;
+  1 = single-pass low-relevance; 2 = double-pass (the second-pass re-score, `scripts/remediation/index-relevance-2nd.mjs`,
+  confirmed low). ≥1 tag ⇒ soft-tail. Firm-core = zero tags.
+- **Identity axis** persists in `census_worklist.identity_*` (migration 228), populated by
+  `scripts/coverage/identity-resolve.mjs` (free-fetch HEAD→GET liveness + deterministic shape). `identity_resolves`
+  TRUE only on confirmed 2xx/3xx, FALSE only on confirmed 4xx/5xx, NULL on could-not-confirm.
+- **Dual-verified = firm-core ∩ identity-verified.** Exact join (platform-wide = 3,012):
+
+  ```sql
+  SELECT count(*) FROM census_worklist
+  WHERE dryrun_disposition = 'would_mint'
+    AND (length(notes) - length(replace(notes,'[low-relevance]',''))) / length('[low-relevance]') = 0  -- firm-core
+    AND identity_resolves IS TRUE            -- confirmed 2xx/3xx
+    AND identity_host_registered IS TRUE;    -- on a registered sources host
+  -- = 3012
+  ```
+  Per-surface (e.g. regulations = 2,220): add `AND surface_tags @> ARRAY['regulations']::text[]`.
+  Identity pass result over the 3,661 would_mint set: 3,637 resolve / 10 confirmed-dead / 14 could-not-confirm;
+  all 3,661 host-registered; 2,879 shape-valid identifiers.
+
+**Next: A3** — source-first re-capture down the ranked list (gov.si → IMO MEPC.338(76) → planalto.gov.br → …),
+batch-by-batch, mint-on-landing, free ladder/Chrome per extraction discipline, milestone per batch with restore counts.
+
+---
+
 ## 2026-07-18 — Session E execution lane COMPLETE (dormant-systems audit → operator rulings R1-R5)
 
 Worktree `wt-audit`. Two mandates. **Mandate 1** delivered the complete dormant-systems audit (PR #343):
