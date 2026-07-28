@@ -109,7 +109,7 @@ export default async function Research() {
         total={allow.size ? filteredRows.length : pipeline.total}
         sourceCoverage={sourceCoverage}
       />
-      <CoverageIndexPanel data={coverage} surfaceLabel="research" />
+      <CoverageIndexPanel data={coverage} surface="research" surfaceLabel="research" />
     </>
   );
 }

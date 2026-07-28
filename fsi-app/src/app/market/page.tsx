@@ -63,7 +63,7 @@ export default async function Market() {
     <>
       <EditorialMasthead title="Market Intelligence" meta={meta} />
       <MarketIntelLedger initialResources={marketIntel.resources} aggregates={aggregates} />
-      <CoverageIndexPanel data={coverage} surfaceLabel="market intel" />
+      <CoverageIndexPanel data={coverage} surface="market_intel" surfaceLabel="market intel" />
     </>
   );
 }
