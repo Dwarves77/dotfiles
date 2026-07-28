@@ -16,6 +16,7 @@
  */
 
 import { useState, useMemo, useCallback } from "react";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import type { CoverageIndexResult, CoverageEntry, IdentityState } from "@/lib/coverage/index-data";
 
 const DISPLAY_CAP = 200; // rows rendered after filter/sort; counts + filter options are over the full set
@@ -97,6 +98,7 @@ export function CoverageIndexPanel({
   const [fRel, setFRel] = useState("");
   const [fIdent, setFIdent] = useState("");
   const [sort, setSort] = useState<SortKey>("relevance");
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
   const c = data.counts;
   const active = full ?? data.entries; // full set once loaded, else the initial slice
@@ -109,7 +111,12 @@ export function CoverageIndexPanel({
       setLoading(true);
       setLoadErr(null);
       try {
-        const res = await fetch(`/api/coverage/entries?surface=${encodeURIComponent(surface)}`);
+        // Authenticated fetch: requireAuth reads the Bearer token (not cookies), so attach the session
+        // access token the same way the admin client components do.
+        const { data: { session } } = await supabase.auth.getSession();
+        const res = await fetch(`/api/coverage/entries?surface=${encodeURIComponent(surface)}`, {
+          headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+        });
         if (!res.ok) throw new Error(String(res.status));
         const body = await res.json();
         setFull(body.entries as CoverageEntry[]);
@@ -119,7 +126,7 @@ export function CoverageIndexPanel({
         setLoading(false);
       }
     }
-  }, [open, full, loading, surface]);
+  }, [open, full, loading, surface, supabase]);
 
   const jurisdictions = useMemo(() => [...new Set(active.map((e) => e.jurisdiction).filter(Boolean))].sort() as string[], [active]);
   const types = useMemo(() => [...new Set(active.map((e) => e.instrumentType).filter(Boolean))].sort() as string[], [active]);
