@@ -21,10 +21,8 @@
  */
 
 import { getMarketIntelItems, getSurfaceCounts } from "@/lib/data";
-import { getCoverageIndex } from "@/lib/coverage/index-data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { MarketIntelLedger } from "@/components/market/MarketIntelLedger";
-import { CoverageIndexPanel } from "@/components/coverage/CoverageIndexPanel";
 
 // Sprint 3 (2026-05-27): force-dynamic per /community precedent. Static
 // generation at build time has no cookies; resolveOrgIdFromCookies returns
@@ -37,10 +35,9 @@ const BAND_VOCAB_SIZE = 3; // price / corporate / corridor (fixed taxonomy)
 export default async function Market() {
   // Category-routed verified market rows (fail CLOSED) + the single-SoT
   // verified count bundle (by_severity tiles / by_band bands / total_items).
-  const [marketIntel, aggregates, coverage] = await Promise.all([
+  const [marketIntel, aggregates] = await Promise.all([
     getMarketIntelItems(),
     getSurfaceCounts("market"),
-    getCoverageIndex("market_intel"),
   ]);
 
   const totalSignals = aggregates.totalItems || marketIntel.resources.length;
@@ -63,7 +60,6 @@ export default async function Market() {
     <>
       <EditorialMasthead title="Market Intelligence" meta={meta} />
       <MarketIntelLedger initialResources={marketIntel.resources} aggregates={aggregates} />
-      <CoverageIndexPanel data={coverage} surface="market_intel" surfaceLabel="market intel" />
     </>
   );
 }

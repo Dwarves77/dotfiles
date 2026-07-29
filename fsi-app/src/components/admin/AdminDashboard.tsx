@@ -36,6 +36,7 @@ import { IssueFilterCaption, issueFilterLabel } from "@/components/admin/IssueFi
 import { ProvenanceFailures, extractFailures } from "@/components/admin/ProvenanceFailures";
 import { BulkImportView } from "@/components/admin/BulkImportView";
 import { CoverageMatrixView } from "@/components/admin/CoverageMatrixView";
+import { CoverageCatalogueView } from "@/components/admin/CoverageCatalogueView";
 import { OrganizationsTable } from "@/components/admin/OrganizationsTable";
 import { InvitationsPanel } from "@/components/admin/InvitationsPanel";
 import { TierOpinionDisagreementsView } from "@/components/admin/TierOpinionDisagreementsView";
@@ -105,8 +106,8 @@ const SECTIONS: SectionDef[] = [
   },
   {
     name: "Coverage",
-    sub: "Jurisdiction review, coverage matrix, gap analysis.",
-    tabs: ["Jurisdiction review", "Coverage matrix"],
+    sub: "Jurisdiction review, coverage matrix, gap analysis, the dual-verified catalogue.",
+    tabs: ["Jurisdiction review", "Coverage matrix", "Catalogue"],
   },
   {
     name: "Research pipeline",
@@ -600,6 +601,9 @@ export function AdminDashboard({
 
     // Coverage
     if (sec === "Coverage") {
+      if (tab === "Catalogue") {
+        return <CoverageCatalogueView />;
+      }
       if (tab === "Coverage matrix") {
         return (
           <CoverageMatrixView
