@@ -1,9 +1,7 @@
 import { getOperationsItems, getResourcesOnly, getSurfaceCounts } from "@/lib/data";
-import { getCoverageIndex } from "@/lib/coverage/index-data";
 import { fetchOperationsCoverage, fetchStateCostFacts } from "@/lib/supabase-server";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { OperationsLedger } from "@/components/operations/OperationsLedger";
-import { CoverageIndexPanel } from "@/components/coverage/CoverageIndexPanel";
 import type { Resource } from "@/types/resource";
 
 // Sprint 3 (2026-05-27): force-dynamic per /community precedent. Static
@@ -46,7 +44,7 @@ export default async function Operations() {
   // fallback so the surface is never blank when the category RPC is
   // empty (anon / misconfigured); it ALSO supplies the regulation cross-
   // references for Build 9's regulatory feasibility section.
-  const [opsItems, fallback, aggregates, operationsCoverage, stateCosts, coverage] = await Promise.all([
+  const [opsItems, fallback, aggregates, operationsCoverage, stateCosts] = await Promise.all([
     getOperationsItems(),
     getResourcesOnly(),
     // Count-integrity consistency close-out: operations-scoped counts from the single SoT
@@ -61,9 +59,6 @@ export default async function Operations() {
     // Sourced per-state cost facts (state_cost_facts, migration 152) for the
     // US By-state sub-list. Fails soft to [] → honest dashes.
     fetchStateCostFacts(),
-    // B1: the dual-verified coverage index scoped to operations-tagged catalogued instruments,
-    // mounted below the ledger (index layer inside the surface, not a sixth top-level surface).
-    getCoverageIndex("operations"),
   ]);
   console.log(
     `[perf] /operations data ${Date.now() - t0}ms (category-routed=${opsItems.total}, fallback=${fallback.resources.length}, coverage_rows=${operationsCoverage.coverage.length}, fact_rows=${operationsCoverage.facts.length})`
@@ -105,7 +100,6 @@ export default async function Operations() {
         operationsCoverage={operationsCoverage}
         stateCosts={stateCosts}
       />
-      <CoverageIndexPanel data={coverage} surface="operations" surfaceLabel="operations" />
     </>
   );
 }

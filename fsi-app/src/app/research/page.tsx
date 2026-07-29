@@ -1,6 +1,4 @@
 import { ResearchLedger, type ResearchPipelineItem } from "@/components/research/ResearchLedger";
-import { CoverageIndexPanel } from "@/components/coverage/CoverageIndexPanel";
-import { getCoverageIndex } from "@/lib/coverage/index-data";
 import {
   getResearchItems,
   getResearchPipeline,
@@ -45,7 +43,7 @@ export default async function Research() {
   //
   // The pipeline_stage UI control still functions; it filters within the
   // category-routed slice.
-  const [pipeline, research, aggregates, sourceCoverage, coverage] = await Promise.all([
+  const [pipeline, research, aggregates, sourceCoverage] = await Promise.all([
     getResearchPipeline(),
     getResearchItems(),
     // Count-integrity: research-scoped counts from the single SoT (migration 148), gated verified.
@@ -58,7 +56,6 @@ export default async function Research() {
     // (transport_mode x jurisdiction_iso) so the coverage tab renders a
     // real registry breadth signal, not the prior hardcoded stub.
     getResearchSourceCoverage(),
-    getCoverageIndex("research"),
   ]);
   console.log(
     `[perf] /research data ${Date.now() - t0}ms (pipeline=${pipeline.total}, category-routed=${research.total}, coverage_cells=${sourceCoverage.length})`
@@ -102,14 +99,11 @@ export default async function Research() {
   }));
 
   return (
-    <>
-      <ResearchLedger
-        items={items}
-        aggregates={aggregates}
-        total={allow.size ? filteredRows.length : pipeline.total}
-        sourceCoverage={sourceCoverage}
-      />
-      <CoverageIndexPanel data={coverage} surface="research" surfaceLabel="research" />
-    </>
+    <ResearchLedger
+      items={items}
+      aggregates={aggregates}
+      total={allow.size ? filteredRows.length : pipeline.total}
+      sourceCoverage={sourceCoverage}
+    />
   );
 }

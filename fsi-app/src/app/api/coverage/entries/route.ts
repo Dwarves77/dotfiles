@@ -1,16 +1,14 @@
 // GET /api/coverage/entries?surface=regulations|operations|market_intel|research
 //
-// Lazy-load the FULL per-surface Coverage Index entry set for the customer panel (client-side sort/filter
-// over all rows). Kept OFF the page payload so a default-closed panel doesn't inflate every surface's RSC
-// load. This is CUSTOMER READ-ONLY CONTENT (dispatch 3): any authenticated user may read; the payload
-// carries titles/jurisdiction/type/tags/identity only — NO promote/action field. All promotion controls
-// live under /api/admin/** behind the admin gate; this route never mutates and never authorizes spend.
-//
-// Auth: requireAuth (401 unauthenticated) + the standard per-user rate limiter. No admin gate — the
-// catalogue is customer content, same visibility class as the surface it sits on.
+// The full Coverage Index entry set for the /admin Coverage tab. ADMIN-ONLY (operator ruling 2026-07-29:
+// the catalogue and all coverage/census tooling are admin-only; customer surfaces carry verified briefs
+// exclusively — no customer-reachable endpoint serves census data). Server-side gated: requireAuth (401
+// unauthenticated) + isPlatformAdmin (403 non-admin), same as /api/admin/promotion-policy. Read-only.
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit } from "@/lib/api/rate-limit";
+import { isPlatformAdmin } from "@/lib/auth/admin";
+import { getServiceSupabase } from "@/lib/supabase-service";
 import { getCoverageEntries, COVERAGE_SURFACES, type CoverageSurface } from "@/lib/coverage/index-data";
 
 export async function GET(request: NextRequest) {
@@ -18,6 +16,8 @@ export async function GET(request: NextRequest) {
   if (isAuthError(auth)) return auth;
   const limited = checkRateLimit(auth.userId);
   if (limited) return limited;
+  const admin = await isPlatformAdmin(auth.userId, getServiceSupabase());
+  if (!admin) return NextResponse.json({ error: "Platform admin access required" }, { status: 403 });
 
   const surfaceParam = request.nextUrl.searchParams.get("surface");
   const surface = surfaceParam && (COVERAGE_SURFACES as readonly string[]).includes(surfaceParam)
