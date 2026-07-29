@@ -22,7 +22,7 @@ import { containsToken, norm } from "./gate-a-match.mjs";
 // 2026-07-27.1: coverage gains a SECOND arm (Gate B, mig 227) — a fact token is also backed by a valid grounded
 // DERIVED claim (derivedCovered set, precomputed by the caller via gate-a-derived.derivedCoveredTokens, a pure DB
 // lookup). The version bump re-scans so derived-covered tokens are honestly re-evaluated (stale basis → orphan).
-export const GATE_A_VERSION = "2026-07-27.1";
+export const GATE_A_VERSION = "2026-07-29.3"; // .3: %-spacing normalization in gate-a-match (operator ruling 2026-07-29)
 export function md5(s) { return crypto.createHash("md5").update(String(s ?? ""), "utf8").digest("hex"); }
 
 const MONTHS = "january|february|march|april|may|june|july|august|september|october|november|december";
