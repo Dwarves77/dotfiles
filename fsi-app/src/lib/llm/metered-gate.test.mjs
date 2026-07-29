@@ -60,3 +60,27 @@ test("GREEN: Sonnet on the amended task, within cap, with token is the ONE allow
 test("RED: Sonnet on the amended task but WITHOUT a token still refuses (token gate unchanged)", () => {
   assert.throws(() => assertMeteredCallAllowed({ callClass: METERED_ELIGIBLE_CLASS, model: SONNET, capUsd: 20, env: {}, task: "index-relevance-second-pass" }), /no recorded operator token/);
 });
+
+// ── Scoped CLASS amendment: P2 proof batch depth-brief-generation (operator authorization 2026-07-29) ──
+const P2_TASK = "P2 proof batch: depth-brief generation from catalogued instruments";
+test("class-amendment: depth-brief-generation + Haiku + task + token + cap<=6 is ALLOWED", () => {
+  const r = assertMeteredCallAllowed({ callClass: "depth-brief-generation", model: HAIKU, capUsd: 6, task: P2_TASK, env: TOKEN_ENV });
+  assert.equal(r.allowed, true);
+  assert.equal(r.amendment, P2_TASK);
+});
+test("class-amendment: cap ABOVE $6 refuses (hard cap)", () => {
+  assert.throws(() => assertMeteredCallAllowed({ callClass: "depth-brief-generation", model: HAIKU, capUsd: 6.01, task: P2_TASK, env: TOKEN_ENV }), MeteredCallForbiddenError);
+});
+test("class-amendment: WRONG task refuses (scope-limited)", () => {
+  assert.throws(() => assertMeteredCallAllowed({ callClass: "depth-brief-generation", model: HAIKU, capUsd: 6, task: "some-other-task", env: TOKEN_ENV }), MeteredCallForbiddenError);
+});
+test("class-amendment: non-Haiku model refuses (Haiku-only)", () => {
+  assert.throws(() => assertMeteredCallAllowed({ callClass: "depth-brief-generation", model: "claude-sonnet-5", capUsd: 6, task: P2_TASK, env: TOKEN_ENV }), MeteredCallForbiddenError);
+});
+test("class-amendment: no token still refuses (RULE 2b unchanged)", () => {
+  assert.throws(() => assertMeteredCallAllowed({ callClass: "depth-brief-generation", model: HAIKU, capUsd: 6, task: P2_TASK, env: {} }), MeteredCallForbiddenError);
+});
+test("class-amendment: an UNlisted class with no amendment still refuses (default-deny preserved)", () => {
+  assert.throws(() => assertMeteredCallAllowed({ callClass: "depth-brief-generation", model: HAIKU, capUsd: 6, task: "", env: TOKEN_ENV }), MeteredCallForbiddenError);
+  assert.throws(() => assertMeteredCallAllowed({ callClass: "made-up-class", model: HAIKU, capUsd: 6, task: P2_TASK, env: TOKEN_ENV }), MeteredCallForbiddenError);
+});

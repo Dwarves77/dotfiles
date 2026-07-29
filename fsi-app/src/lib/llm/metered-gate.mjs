@@ -44,6 +44,22 @@ export const SCOPED_MODEL_AMENDMENTS = Object.freeze([
   },
 ]);
 
+// SCOPED CLASS AMENDMENTS — the ONLY way a call class OTHER than batch-classification is ever metered-
+// eligible (operator authorization protocol: named task + named call class + Haiku-only + named cap +
+// expiry, written operator authorization). The wall's DEFAULT stays batch-classification-only; a call in
+// any other class with no matching amendment still refuses. Each entry is scope-limited to a NAMED task,
+// hard-capped, and EXPIRES on completion (REMOVE the entry once the task's run is done).
+export const SCOPED_CLASS_AMENDMENTS = Object.freeze([
+  {
+    task: "P2 proof batch: depth-brief generation from catalogued instruments",
+    callClass: "depth-brief-generation",
+    models: Object.freeze(new Set(["claude-haiku-4-5-20251001", "claude-haiku-4-5"])), // Haiku only
+    capUsd: 6, // $6.00 hard cap
+    authority: "operator authorization 2026-07-29 (scoped metered-gate amendment for the P2 proof batch; 5–10 briefs; Haiku-only; document capture $0 free-ladder, Browserless frozen)",
+    // EXPIRES 48h from authorization OR on completion of the 5–10 brief proof batch — REMOVE this entry then.
+  },
+]);
+
 /**
  * The gate. Throws MeteredCallForbiddenError unless: (1) callClass is exactly the batch-classification class,
  * (2) the model is on the allowlist, (3) a recorded operator token is present in env (METERED_BATCH_TOKEN,
@@ -57,27 +73,33 @@ export function assertMeteredCallAllowed({ callClass, model, capUsd, env = proce
   if (FREE_ONLY_CLASSES.has(cls)) {
     throw new MeteredCallForbiddenError(`class '${cls}' is grounding-shaped and runs FREE on the subscription executor — it may NEVER be metered (RULE 1). Route it to the executor, not the API.`);
   }
+  // Class gate: the base eligible class (batch-classification) OR a scoped-CLASS amendment for the named task.
+  let classAmendment = null;
   if (cls !== METERED_ELIGIBLE_CLASS) {
-    throw new MeteredCallForbiddenError(`class '${cls}' is not metered-eligible; the ONLY eligible class is '${METERED_ELIGIBLE_CLASS}' (RULE 2a).`);
+    classAmendment = SCOPED_CLASS_AMENDMENTS.find((a) => a.task === String(task || "") && a.callClass === cls) || null;
+    if (!classAmendment) {
+      throw new MeteredCallForbiddenError(`class '${cls}' is not metered-eligible; base eligible class is '${METERED_ELIGIBLE_CLASS}' and NO scoped-class amendment authorizes '${cls}' for task '${task || "(none)"}' (RULE 2a). A non-base class requires an operator-ruled scoped amendment: named task + named call class + named cap + expiry.`);
+    }
   }
   const m = String(model || "");
-  // Model gate: base allowlist (Haiku) OR a matching scoped amendment for the named task. No amendment, off-list model -> refuse.
-  let amendment = null;
-  if (!METERED_MODEL_ALLOWLIST.has(m)) {
+  // Model gate: base Haiku allowlist, OR the matching class amendment's own model set, OR a scoped-model amendment.
+  let amendment = classAmendment;
+  if (!METERED_MODEL_ALLOWLIST.has(m) && !(classAmendment && classAmendment.models.has(m))) {
     amendment = SCOPED_MODEL_AMENDMENTS.find((a) => a.task === String(task || "") && a.models.has(m)) || null;
     if (!amendment) {
-      throw new MeteredCallForbiddenError(`model '${model}' is off the metered allowlist (batch-classification is Haiku-only) and NO scoped amendment authorizes it for task '${task || "(none)"}' (RULE 2a). A non-Haiku model requires an operator-ruled scoped amendment: named task + named cap + expiry.`);
+      throw new MeteredCallForbiddenError(`model '${model}' is off the metered allowlist and NO scoped amendment authorizes it for task '${task || "(none)"}' (RULE 2a). A non-Haiku model requires an operator-ruled scoped amendment: named task + named cap + expiry.`);
     }
   }
   const token = String(env?.METERED_BATCH_TOKEN ?? "").trim();
   if (!token) {
-    throw new MeteredCallForbiddenError(`no recorded operator token (METERED_BATCH_TOKEN) — a batch-classification run requires a written same-session operator authorization (RULE 2b). "It's only a few dollars" and inherited ceilings are NOT authorization.`);
+    throw new MeteredCallForbiddenError(`no recorded operator token (METERED_BATCH_TOKEN) — a metered run requires a written same-session operator authorization (RULE 2b). "It's only a few dollars" and inherited ceilings are NOT authorization.`);
   }
   if (!(typeof capUsd === "number" && Number.isFinite(capUsd) && capUsd > 0)) {
     throw new MeteredCallForbiddenError(`no positive hard dollar cap supplied — a metered run must carry an operator-set cap with a hard stop (RULE 2c/2d).`);
   }
-  if (amendment && capUsd > amendment.capUsd) {
-    throw new MeteredCallForbiddenError(`cap $${capUsd} exceeds the scoped-amendment hard cap $${amendment.capUsd} for task '${task}' (RULE 2c). The amendment is cap-limited by operator ruling.`);
+  const capLimit = classAmendment ? classAmendment.capUsd : amendment && amendment !== classAmendment ? amendment.capUsd : null;
+  if (capLimit != null && capUsd > capLimit) {
+    throw new MeteredCallForbiddenError(`cap $${capUsd} exceeds the scoped-amendment hard cap $${capLimit} for task '${task}' (RULE 2c). The amendment is cap-limited by operator ruling.`);
   }
   return { allowed: true, callClass: cls, model: m, capUsd, token, ...(amendment ? { amendment: amendment.task } : {}) };
 }
