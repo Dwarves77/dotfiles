@@ -65,7 +65,7 @@ export const SKILL_MARKER_BASELINE = {
   // 18→19 (2026-07-11, Wave-α C8): added "Canonical instrument key (dedup-before-grounding identity)"
   // normative line ("Two VERIFIED, non-archived items MUST NOT share a canonical instrument key").
   // TRIAGE: new invariant EP-11 (enforcedBy audit canonical-key-uniqueness.mjs + migration 200).
-  'environmental-policy-and-innovation': 19,
+  'environmental-policy-and-innovation': 20,
   // 10→11 (2026-07-03): added the "Floor-qualifying source reaches grounding COMPLETE (the truncation
   // moat)" normative line. TRIAGE: new invariant SC-10 (enforcedBy selftest source-blocks.test.mjs).
   // 11→12 (2026-07-03): added the "Floor-first span re-attribution (the attribution half of the moat)"
@@ -248,6 +248,16 @@ export const INVARIANTS = [
     anchor: 'Two VERIFIED, non-archived items MUST NOT share a canonical instrument key',
     enforcedBy: ['audit:fsi-app/scripts/verify/canonical-key-uniqueness.mjs', 'migration:200'],
     residual: 'Two independent guards: migration 200 = the partial UNIQUE index uq_intelligence_items_canonical_key_verified_live (canonical_instrument_key WHERE verified AND NOT archived) — a DB-level structural bar against a NEW verified twin, plus the BEFORE INSERT/UPDATE normalizing trigger that derives the key; canonical-key-uniqueness.mjs = the live-data lane audit (CI-with-secrets) that mirrors the index AND derives on-the-fly (so it catches a would-be verified twin even before backfill), reaching 0 collisions after the C7.3 merge archives b7736a1a (the one live verified/quarantined 2019/1242 twin lever). The meta-gate proves wiring (file tracked + skill-cited) in the secret-less pre-push. Archived tombstones (verified BUT is_archived — 5cc10a6d PPWR, 6b0939a5 AFIR) are excluded from the guard by construction (WHERE is_archived IS NOT TRUE). Whether two DIFFERENT-format rows are truly one instrument vs item-vs-amendment is a DB-1 item-domain call, not mechanized here (the both-quarantined FuelEU/2024-1610 pairs are the ruling residual).',
+  },
+
+  {
+    id: 'EP-12-figure-expression',
+    skill: 'environmental-policy-and-innovation',
+    section: 'The Integrity Rule / Figure expression — unit attachment',
+    text: 'A unit is never attached to a number unless the source establishes that unit for that exact value (adjacency, or an unambiguous table-header/column relationship) — never by inference. A header-unit figure is expressed as the cell value exactly as rendered PLUS the column header quoted verbatim, so both fragments are verbatim-present; dropping the unit, or emitting the number bare so the grounding gate stops tokenizing it, is forbidden — escaping the gate is not grounding the figure.',
+    anchor: 'Unit attachment is a factual claim, not formatting',
+    enforcedBy: ['migration:224', 'migration:225'],
+    residual: 'ASYMMETRIC by construction, and the asymmetry is the point. The ATTACHED half is enforced LIVE and mechanically: Gate A (migration 224 item_gate_a_state + migration 225 criterion 7 in validate_item_provenance) tokenizes number+unit as ONE literal token via the shared gate-a-match matcher and orphans any token not verbatim-groundable, so an inferred unit self-quarantines the brief — this is the gate that CAUGHT the origin case ("11v 11-EHC 31 12" rendered as "31 tonnes", where 31 was a row identifier). The OMITTED half is NOT mechanically detectable: a figure the brief never emits leaves no token to scan, so "stated the number bare to dodge the gate" and "correctly declined to state an ungroundable figure" are indistinguishable to any scanner. That residue is authoring judgment carried by the prompt contract (system-prompt.ts figure-expression block, synced to this skill). DELIBERATELY NOT closed by loosening the matcher to strip units — that is the dig-fallback class (case-file instance 7, literal-and-exact at every coverage decision) and is forbidden. SANCTIONED DIRECTION if the prompt proves insufficient: a Gate-B-style explicit composed-claim kind linking the verbatim bare-number span to the verbatim header/unit span (auditable rows, scanner stays mechanical), brought to the operator as a proposal before building.',
   },
 
   // ───────────────────────────── source-credibility-model ─────────────────────────────
