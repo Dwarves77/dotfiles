@@ -5,6 +5,59 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-07-30 — SESSION CLOSE: first publication, two matcher fixes, and the open handoff
+
+**FIRST PUBLISHED BRIEF: `cd1083c9-fd05-47f7-bfed-8354b70a31ac`** (CELEX 32026R1030, CountEmissions EU).
+Independently read back: `verified`, not archived, passes the customer read gate (`verified AND NOT archived`),
+Gate A **0 orphans** @ 2026-07-30.1, **51 claims (48 FACT)**, max FACT tier 2 (at floor, none sub-floor),
+`valid=true failures=[]`. Corpus verified 12 → 13. Cleared $0 by: floor-first span re-attribution of the one
+sub-floor claim (its own T1 primary carries the fact in recital 13), an `*Industry interpretation:*` label on the
+Smart Freight Centre sentence, and rewording an omission notice whose "applies to" tripped the binding-verb
+detector (the Colorado-DOT false-positive family).
+
+**LESSON BANKED — the evidence pointer and the attribution must move together.** Re-attributing a claim's
+`source_id` alone left criterion 3 failing, because it verifies the span against the pool row joined by
+**`search_result_id`**, not by `source_id`. A half-move looks like a fix and fails closed. This belongs in the
+authorship runbook.
+
+**TWO MATCHER FIXES, both the same family as the campaign's earlier three (dig-fallback, %-spacing, slash-form
+CELEX): a format variant the normalizer could not reach.**
+1. **Gate A citation dates** (merged, `2026-07-30.1`): full-date / month-year / ISO branches scanned the whole
+   text unconditionally while only bare years got the citation-context test. A brief's own `*Source: … 30 April
+   2026, https://…` lines gated as compliance deadlines. Corpus re-scan: 350 items, orphans **2,220 → 1,936**,
+   `distinct_versions=1`, assertion OK.
+2. **target-match year-like serials** (PR #391): `normPair` returns null when BOTH halves fall in 1950–2099 —
+   its comment says "neither looks like a year", the live case is the opposite. `2025/2083` was invisible to the
+   capture scan while the positional expected-side still derived it, producing a hard MISMATCH against an 84K
+   capture titled `REGULATION (EU) 2025/2083`. That is what held CBAM at zero claims. Fixed information-
+   preservingly (positional parse for structurally deterministic forms, both readings kept for ambiguous prose,
+   reversal-closure at the comparison site). Red-then-green 8/8, golden passes, real capture now `match`.
+
+**OPEN FLAGS FOR THE SUCCESSOR (none of these are fixed):**
+- **PR #370** (census tooling, `UNKNOWN` merge state) deliberately untouched — predates this charter, out of
+  scope until the hygiene sweep (Task 7).
+- **`raw_fetches` holds ZERO snapshots for all seven per-CELEX sources**; captures live only in
+  `agent_run_searches` pool rows. Apparently inconsistent with persistence-contract invariant **I3** ("an
+  acquiring run MUST write the acquired content to the snapshot store"). **Diagnose at hygiene — do not fix
+  blind.** Note this is exactly why the publication fix had to join through `search_result_id`.
+- **Six-item readiness table exists**; the authoring session's report is the durable record until it lands here.
+- **8 duplicate `sources` rows** I created: `registerSource`'s `institutionKey` override is used for the dedup
+  LOOKUP but stored rows key off their URL, so a second registration run re-inserted instead of matching.
+  Not cleaned. Attribution is unaffected (reads `item.source_id` directly).
+- **Persisted runners carry two REAL discipline failures**, recorded not fixed (see commit `dcccb982`): rule
+  [015] raw row mutations in 4 runners, rule [016] 3 direct Anthropic call sites in the unit3 classify runners.
+  **Those bypass the metered gate — do NOT re-run them as-is** under the standing no-unnamed-spend rule.
+
+**Standing rule in force:** no metered call of any kind, any size, any rationale, without the operator naming
+the specific spend in his own words first. Pricing exercises, proofs and measurements are not exceptions.
+
+**CRITICAL PATH FOR THE SUCCESSOR:** the **Gate A → Postgres port** (single implementation, JS becomes a thin
+caller, full test-vector parity + corpus-wide per-item orphan-count parity). The authoring session is on Phase A
+and blocks on it for every gate scan. Then the **authorship runbook** (`docs/ops/authorship-runbook.md`, written
+for a session with SQL access and no repo), then dedup root-cause, spend choke point, hygiene.
+
+---
+
 ## 2026-07-30 — Acquire ARMED, Blocker-B PROVEN end-to-end — and one run went out UNPRICED
 
 **ACQUIRE GRANT EXERCISED.** `GROUNDING_ACQUIRE_ENABLED` armed in-runner under the operator's scoped grant
