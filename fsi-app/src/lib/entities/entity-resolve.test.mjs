@@ -136,3 +136,40 @@ test("bucket is mechanical: identifier/named→1 item = wire; >1 or shaped = sur
   assert.equal(classifyBucket({ kind: "named" }, 0), "surface");   // unmatched candidate
   assert.equal(classifyBucket({ kind: "shaped" }, 1), "surface");  // shaped never wires even if it title-matches
 });
+
+// ── REGRESSION (2026-07-30): an implementing/amending act must NOT dedup against its PARENT act ──────
+// Found live in the P2 publication batch: minting Implementing Regulation (EU) 2026/394 ("…laying down
+// rules for the application of Regulation (EU) 2023/1805…") matched the EXISTING FuelEU item for
+// Regulation 2023/1805 via `reg_number`. Cause: `regs` scraped EVERY regnum out of the TITLE, so the
+// parent act a title merely REFERENCES was treated as the new item's own identity. Every implementing,
+// delegated and amending act names its parent in the title, so this systematically blocked that whole
+// class of intake — and asserted "this IS that instrument" when it is not.
+test("implementing act does not dedup against the parent act it references", () => {
+  const parentFuelEU = { id: "parent-1805", title: "EU Regulation 2023/1805 - Official Journal", instrument_identifier: "2023/1805", source_url: "https://eur-lex.europa.eu/eli/reg/2023/1805/oj/eng" };
+  const implementing = { title: "Commission Implementing Regulation (EU) 2026/394 of 23 February 2026 laying down rules for the application of Regulation (EU) 2023/1805 of the European Parliament and of the Council, as regards access rights and the functional and technical specifications of the FuelEU database", instrument_identifier: "32026R0394", source_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32026R0394" };
+  assert.deepEqual(matchExistingSubject(implementing, [parentFuelEU]), [],
+    "an implementing act must not resolve to the parent regulation it cites in its title");
+});
+
+test("amending act does not dedup against the act it amends", () => {
+  const parentMrv = { id: "parent-757", title: "EU MRV Regulation", instrument_identifier: "2015/757", source_url: "https://eur-lex.europa.eu/eli/reg/2015/757/oj/eng" };
+  const amending = { title: "Commission Delegated Regulation (EU) 2024/3214 of 16 October 2024 amending Regulation (EU) 2015/757 of the European Parliament and of the Council as regards the rules for the monitoring of greenhouse gas emissions from offshore ships", instrument_identifier: "32024R3214", source_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R3214" };
+  assert.deepEqual(matchExistingSubject(amending, [parentMrv]), [],
+    "an amending act must not resolve to the act it amends");
+});
+
+// The genuine-duplicate direction MUST still fire — the fix narrows identity, it does not disable dedup.
+test("a real duplicate of the SAME instrument still dedups (CELEX id vs slash-form title)", () => {
+  const existing = { id: "existing-3214", title: "Commission Delegated Regulation (EU) 2024/3214", instrument_identifier: "2024/3214" };
+  const dupe = { title: "Delegated Regulation (EU) 2024/3214 — offshore ship monitoring", instrument_identifier: "32024R3214" };
+  assert.deepEqual(matchExistingSubject(dupe, [existing]), [{ id: "existing-3214", how: "reg_number" }],
+    "the same instrument in CELEX form must still match its slash-form twin");
+});
+
+// Title-scrape fallback is preserved for items that carry NO identifier at all.
+test("identifier-less item still matches by title reg_number", () => {
+  const existing = { id: "existing-757", title: "EU MRV Regulation", instrument_identifier: "2015/757" };
+  const bare = { title: "Regulation (EU) 2015/757 on monitoring of CO2 emissions from maritime transport" };
+  assert.deepEqual(matchExistingSubject(bare, [existing]), [{ id: "existing-757", how: "reg_number" }],
+    "an item with no identifier must still fall back to title scraping");
+});

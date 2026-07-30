@@ -87,16 +87,50 @@ export function planLinks(content, corpus, selfId) {
 // case is normalized) and path CASE (preserved) — which REMOVES false positives without adding false negatives
 // of substance: instrument_identifier + reg_number remain the PRIMARY identity signals; this URL matcher only
 // supplements them.
+/**
+ * The instrument's OWN reg-numbers — identity, never references (operator ruling 2026-07-30).
+ *
+ * DEFECT THIS CLOSES: the previous form scraped RE_REGNUM out of `title + instrument_identifier`, so an
+ * implementing/delegated/amending act — whose title ALWAYS names its parent ("…for the application of
+ * Regulation (EU) 2023/1805…") — carried the PARENT's number as its own identity and deduped against it.
+ * Found live: Implementing Reg (EU) 2026/394 collapsed into the FuelEU 2023/1805 item; Del. Reg 2024/3214
+ * into EU MRV 2015/757; Impl. Reg 2025/35 into HDV CO2 2019/1242. Whole classes of EU intake were blocked,
+ * and the match asserted "this IS that instrument" when it is not.
+ *
+ * FIX BY RESTRICTION, not heuristic: when the item carries an explicit instrument_identifier, identity is
+ * derived from THAT ALONE (with CELEX normalised to its slash form so 32024R3214 still matches 2024/3214).
+ * Free-text reg-numbers are REFERENCES — they describe a relation (amends / implements / applies), never
+ * identity. Title scraping survives ONLY as the fallback for items carrying no identifier at all.
+ *
+ * NOTE (product capability, not built here): those references are valuable RELATIONSHIP data —
+ * implementing-act → parent-act linkage. Capturing them as edges is a future capability; this function's
+ * job is to make sure they are never mistaken for identity.
+ */
+function ownRegNums(o) {
+  const id = String(o?.instrument_identifier || "").trim();
+  if (id) {
+    const out = new Set([...id.matchAll(RE_REGNUM)].map((m) => m[0]));
+    for (const m of id.matchAll(RE_CELEX)) {
+      const t = m[0].replace(/^CELEX[:\s]*/i, "");
+      const yr = t.slice(1, 5);
+      const num = t.slice(6).replace(/^0+/, "");
+      if (yr && num) out.add(`${yr}/${num}`);
+    }
+    return out;
+  }
+  return new Set([...String(o?.title || "").matchAll(RE_REGNUM)].map((m) => m[0]));
+}
+
 export function matchExistingSubject(item, corpus) {
   const instr = norm(item.instrument_identifier);
   const url = item.source_url ? canonicalizeUrl(String(item.source_url)) : "";
-  const regs = new Set([...String(`${item.title || ""} ${item.instrument_identifier || ""}`).matchAll(RE_REGNUM)].map((m) => m[0]));
+  const regs = ownRegNums(item);
   const out = [];
   for (const c of corpus || []) {
     if (item.id && c.id === item.id) continue;
     if (instr && norm(c.instrument_identifier) === instr) { out.push({ id: c.id, how: "instrument_identifier" }); continue; }
     if (url && c.source_url && canonicalizeUrl(String(c.source_url)) === url) { out.push({ id: c.id, how: "source_url" }); continue; }
-    if (regs.size) { const cregs = new Set([...String(`${c.title || ""} ${c.instrument_identifier || ""}`).matchAll(RE_REGNUM)].map((m) => m[0])); if ([...regs].some((r) => cregs.has(r))) out.push({ id: c.id, how: "reg_number" }); }
+    if (regs.size) { const cregs = ownRegNums(c); if ([...regs].some((r) => cregs.has(r))) out.push({ id: c.id, how: "reg_number" }); }
   }
   return out;
 }
