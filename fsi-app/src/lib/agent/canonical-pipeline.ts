@@ -29,7 +29,7 @@ import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
 // SPEND CHOKEPOINT (routing, ruling 2026-07-04): the pipeline's model calls route through the spend client
 // (spendStreamRaw = the same streamMessagesText call, ticket-gated + ceiling-enforced + accounted;
 // spendSearch = the web_search call). Behavior-preserving — the streaming body/params are unchanged.
-import { spendStreamRaw, spendSearch, spendStream, setSpendTicket } from "@/lib/llm/spend-client";
+import { spendStreamRaw, spendSearch, spendStream, setSpendTicket, currentSpendTicket } from "@/lib/llm/spend-client";
 import { cachedSystemBlocks } from "@/lib/agent/prompt-cache.mjs";
 import { extractRegulationSections } from "@/lib/agent/extract-regulation-sections";
 import { buildTimelineRows } from "@/lib/agent/timeline-harvest.mjs";
@@ -867,6 +867,18 @@ export async function holdingsForItem(sb: ReturnType<typeof svc>, itemId: string
   const usablePoolRows = (pool ?? []).filter((r) => ((r as { result_content_excerpt?: string }).result_content_excerpt || "").length > 200).length;
   return { snapshotBytes, usablePoolRows };
 }
+/** PRICED-LINE CARRY-FORWARD (operator ruling 2026-07-30 — the sole dollar authority must not be droppable).
+ *  The pipeline steps re-set the context ticket to stamp attribution (purpose / itemId / sourceId /
+ *  precondition). That re-set previously CLOBBERED a caller-supplied `pricedLine`, so a runner that set the
+ *  operator's per-line price before invoking the pipeline had it silently discarded — guardPricedLine then
+ *  found no line and the operator's halt never bound. Spend proceeded with the authorization mechanism
+ *  disarmed, which is exactly the shape the priced-line gate exists to prevent. Every internal re-set now
+ *  carries the caller's line forward; nothing else about the ticket changes. */
+function withPricedLine<T extends Record<string, unknown>>(t: T): T {
+  const line = (currentSpendTicket() as { pricedLine?: unknown }).pricedLine;
+  return (line ? { ...t, pricedLine: line } : t) as T;
+}
+
 export async function generateBrief(itemId: string, caller: string | null = null, opts: { forceRefresh?: boolean } = {}): Promise<StepResult> {
   const sb = svc();
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url, instrument_identifier, canonical_instrument_key, instrument_type, jurisdiction_iso").eq("id", itemId).single();
@@ -885,7 +897,7 @@ export async function generateBrief(itemId: string, caller: string | null = null
   // I1 (attribution) + amendment-1 precondition posture: every agent_runs spend row carries itemId + sourceId
   // AND the precondition this fetch passed (holdings-absence: confirmed_absent, or 'present' when forceRefresh
   // deliberately overrode). A paid fetch row lacking a precondition record is the new spend-watch alarm class.
-  setSpendTicket({ purpose: "canonical:generate", itemId, sourceId: it.source_id ?? null, precondition: holdingsPrecondition(hold) });
+  setSpendTicket(withPricedLine({ purpose: "canonical:generate", itemId, sourceId: it.source_id ?? null, precondition: holdingsPrecondition(hold) }));
 
   // 1. primary source — with the roadblock→bounded-alternative-search capability: a hanging / blocked /
   //    wrong-language declared primary is replaced by an OFFICIAL alternative (discovery only — the
@@ -977,7 +989,7 @@ async function generateBriefFromStoredImpl(itemId: string): Promise<StepResult> 
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url, instrument_identifier, canonical_instrument_key, instrument_type, jurisdiction_iso").eq("id", itemId).single();
   if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
   // I1 (attribution): rich ticket for the stored-path re-synthesis Sonnet call (see generate for rationale).
-  setSpendTicket({ purpose: "canonical:generate-stored", itemId, sourceId: it.source_id ?? null });
+  setSpendTicket(withPricedLine({ purpose: "canonical:generate-stored", itemId, sourceId: it.source_id ?? null }));
   const { data: pool, error: poolErr } = await sb.from("agent_run_searches").select("result_url, result_title, result_content_excerpt, search_query, searched_at, result_index").eq("intelligence_item_id", itemId).order("result_index");
   if (poolErr) console.warn(`[canonical] stored-pool read failed for ${itemId}: ${poolErr.message}`);
   const rows = pool ?? [];
@@ -1016,7 +1028,7 @@ async function generateBriefRefreshPrimaryImpl(itemId: string, caller: string | 
   const { data: it, error: itErr } = await sb.from("intelligence_items").select("id, title, item_type, source_id, source_url, instrument_identifier, canonical_instrument_key, instrument_type, jurisdiction_iso").eq("id", itemId).single();
   if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
   // I1 (attribution): rich ticket for the refresh-primary re-synthesis calls (see generate for rationale).
-  setSpendTicket({ purpose: "canonical:refresh-primary", itemId, sourceId: it.source_id ?? null });
+  setSpendTicket(withPricedLine({ purpose: "canonical:refresh-primary", itemId, sourceId: it.source_id ?? null }));
   // 1. full primary via the #155 direct-first transport (free for eligible legal hosts; no truncation).
   const pf = await fetchPrimaryDeep({ title: it.title, primaryUrl: it.source_url, itemType: it.item_type, identifier: it.instrument_identifier, canonicalKey: it.canonical_instrument_key, instrumentType: it.instrument_type, jurisdiction: it.jurisdiction_iso }, caller);
   await recordSourceFetchStatus(sb, it.source_id, pf); // item 5b: source-level unreadable flag (guarded, behind mig 147)
@@ -1189,7 +1201,7 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   if (itErr || !it?.source_id) return { ok: false, detail: `no source_id${itErr ? `: ${itErr.message}` : ""}` };
   // I1 (attribution): rich ticket for the grounding ledger-extraction Sonnet call — the paid call the $65
   // hole was blind to. Every spend row from groundBrief now carries itemId + sourceId.
-  setSpendTicket({ purpose: "canonical:ground", itemId, sourceId: it.source_id ?? null });
+  setSpendTicket(withPricedLine({ purpose: "canonical:ground", itemId, sourceId: it.source_id ?? null }));
   // Idempotency scoped to VERIFIED (not "any claims exist"). A quarantined/ungrounded item is
   // re-groundable — the prior guard ("any claims -> already grounded") silently blocked re-grounding a
   // quarantined item against a new/expanded section set (e.g. after a section backfill) if a partial run

@@ -5,6 +5,95 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-07-30 — Acquire ARMED, Blocker-B PROVEN end-to-end — and one run went out UNPRICED
+
+**ACQUIRE GRANT EXERCISED.** `GROUNDING_ACQUIRE_ENABLED` armed in-runner under the operator's scoped grant
+and **DISARMED IN `finally`** (standing crash rule) — verified in the output of every run:
+`ACQUIRE DISARMED (finally): acquireEnabled=false (restored to "0")`. The env file is untouched; the arm
+lives only inside the process.
+
+**MATERIAL DISCLOSURE — the first canonical run spent UNPRICED.** `32026R1030` generated successfully
+(60,695ch brief + 19-field metadata, `fmt=regulatory_fact_document`, 7 sources / 6 web_search-discovered) at
+**$0.6442** (`$0.1573` web_search discovery + `$0.4868` synthesis). **The operator's $1.25 line did NOT bind
+that run.** Cause: **jiti keys its module cache by SPECIFIER**, so the runner's
+`jiti.import(resolve(ROOT,"src/lib/llm/spend-client.ts"))` produced a DIFFERENT module instance — a separate
+`currentTicket` binding — from canonical-pipeline's `"@/lib/llm/spend-client"`. The runner's ticket was set on
+its own copy and **never reached the pipeline**, which ran under the permissive LEGACY ticket. The spend
+stayed under $1.25 by luck, not by control.
+
+**MY OWN CASE-FILE-10 REPEAT (second instance this session, self-inflicted).** The first `--prove` run
+printed `(1) priced line survived all pipeline ticket re-sets : PASS` — **and that assertion was invalid**. It
+read the runner's OWN module instance, so it could only ever report back what the runner itself had just set.
+The tell was in the output and I nearly missed it: `ticket AFTER generate: purpose=p2-canonical:32026R1030`,
+when a pipeline that had re-set the ticket would have shown `purpose=canonical:generate`. **A proof that reads
+the wrong instance is not a weaker proof, it is not a proof** — the same defect as a comment claiming
+fail-closed over code that wasn't. Isolated-assertion proofs of an integration property are the trap.
+
+**REAL PROOF (right-failure-forced, end-to-end).** Fixed the runner to import by the SAME specifier the
+pipeline uses (one instance — verified by `scripts/tmp/module-identity-probe.mjs`:
+`SAME MODULE INSTANCE: false` before, and the halt below after), then ran `32026R0394` with a **deliberately
+tiny $0.01 line** so a working guard MUST refuse. The pipeline itself threw:
+
+```
+RUN ERROR: SPEND_PRICED_LINE_REACHED: this item spent $0.0865 >= operator-priced line $0.01 —
+stop this item; the operator's per-line price is the sole spend authority (no standing ceiling raises it).
+```
+
+That single result proves all three properties at once, inside the real pipeline: the runner's ticket REACHED
+the pipeline; `withPricedLine` CARRIED the line through the pipeline's internal ticket re-set; and the halt
+FIRES. PR #390's fix is now **PROVEN**, not merely authored. The tiny line was a TEST of the mechanism, never
+a re-pricing — the operator's real lines are unchanged. Proof cost: **$0.0865**.
+
+**Spend to date against the ≤$5.25 batch bound:** $0.6442 (32026R1030, unpriced) + $0.0865 (halt proof) =
+**$0.7307**. Plus the earlier $0.0822 harness batch = $0.8129 metered today, all ledgered.
+
+**STATE:** `32026R1030` holds a real canonical brief but is NOT yet sectioned/grounded/published;
+`32026R0394` halted with no brief (clean — generateBrief writes nothing on failure). Four priced items and
+the free-executor remainder are untouched.
+
+---
+
+## 2026-07-30 — PRICED-LINE GENERATION BLOCKED: two gates found before spending (zero spent)
+
+GO was given for the priced-line canonical batch. Pre-spend verification (verification-before-authorization)
+found **two blockers**, one environmental and one a genuine wiring gap. **Nothing was spent.**
+
+**BLOCKER A — the master acquire gate is OFF.** `GROUNDING_ACQUIRE_ENABLED` is literally `"0"` in the
+environment; `acquireEnabled` confirms `false` (and `"1"` → true). `groundBriefImpl` asserts this lock at the
+spend site (canonical-pipeline.ts ~1177) and throws `AcquireLockError` **before any model call**. So the paid
+grounding half of canonical generation cannot run at all — Sonnet or Haiku. This is the operator-owed arm
+already flagged in memory ("operator owes the GROUNDING_ACQUIRE_ENABLED go"); it was never granted, and the
+lock is doing exactly its job. **It is an operator env action, not a code change, and NOT something to route
+around.** Note the deliberate seam: an INJECTED ledger (the free CC-executor path) bypasses the lock because
+there is no spend — so the free-executor remainder is unaffected by A.
+
+**BLOCKER B — the operator's priced line could not bind the canonical path (FIXED).** `guardPricedLine` only
+enforces when the context ticket carries a `pricedLine`. But all four pipeline steps re-set the ticket to
+stamp attribution — `setSpendTicket({ purpose: "canonical:generate", itemId, sourceId, precondition })` at
+lines 888 / 980 / 1019 / 1192 — and that re-set **CLOBBERED** any caller-supplied line. A runner that set the
+operator's $1.25 / $0.50 per-line price before invoking the pipeline had it silently discarded at the first
+step; `guardPricedLine` then found no line, and the operator's halt never bound. **Spend would have proceeded
+with the sole dollar-authorization mechanism disarmed** — precisely the shape the priced-line gate exists to
+prevent, and indistinguishable at the ledger from authorized spend.
+
+Fix: `withPricedLine()` carries a caller-supplied line through every internal re-set; all 4 sites wrapped,
+nothing else about the ticket changes. `tsc --noEmit` clean.
+
+**HONEST LIMIT ON THE FIX (case-file 10 applies to me here).** The carry-forward is **authored and
+typechecked, NOT behaviourally proven** — proving it end-to-end requires an actual priced pipeline run, which
+Blocker A forbids. Per case-file instance 10, a comment claiming a safety property is not evidence the
+property holds. So this fix is recorded as UNPROVEN until the first armed run exercises it, and the honest
+order is: arm A → run ONE item → assert the priced line actually halts → then the rest of the batch.
+
+**Why this was not routed around.** Both gates could be bypassed (set the env var; skip the priced line).
+Either would be spending under a disarmed control while reporting it as authorized. The batch waits.
+
+**Standing state:** 8 items minted and correctly quarantined, 8 T1 per-CELEX sources registered, RD-6 green,
+figure-expression contract live. Everything is staged for generation the moment A is armed. Priced lines
+remain unused: Sonnet $1.25 x3, Haiku $0.50 x3, ≤$5.25.
+
+---
+
 ## 2026-07-30 — RD-6 GREEN + dedup identity fix + 8 items minted (publication batch staged)
 
 **(1a) RD-6 CLEARED — 127 dispositions written, lane tripwire green.** The Data-audit lane had failed
