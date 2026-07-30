@@ -5,6 +5,82 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-07-30 — P2 proof batch: crash recovery, metering gap CLOSED, clean re-run — audit FAILS at 80%
+
+**Crashed-run state: COMPLETE, not partial.** Recovered from the crashed client's own transcript
+(`~/.claude/projects/C--Users-jason/545c7bea-….jsonl`), not inferred: the 2026-07-29 20:12Z run generated
+**5/5 briefs, $0.0438, audit 5/5 = 100% PASS, 37.5s wall**, then printed its summary. The crash landed AFTER
+the run, mid-remediation. No partial/dead state to clean up; no items published (the runner is a measurement
+harness — it never writes `intelligence_items`).
+
+**METERING GAP — root cause found, and it was not a write failure.** The verifier's standing question ("where
+do per-brief costs persist, and does the persisted total match the console?") resolves: at run time they
+persisted **NOWHERE**. The per-call ledger write did not yet exist in the runner — it was authored in the
+final minutes before the crash (transcript line 12016) and never exercised. So the $0.0438 was real spend with
+zero ledger rows; only the $0 batch marker (`1005c05d`) persisted. **That $0.0438 remains untraced in
+`agent_runs` and is a known, bounded hole** — recorded here rather than back-filled, since writing a
+retroactive priced row for a run whose per-call token counts survive only in a console transcript would be
+manufacturing ledger evidence.
+
+**Two runner defects fixed before re-running (both class-shaped, both already in the case file's vocabulary):**
+1. **The ledger write was not fail-closed** despite a comment claiming it was — `if (ledgerErr) console.error(…)`
+   let the batch keep SPENDING while its spend trace silently stopped persisting. Error-swallow class, WRITE
+   form. Now HALTS. RED-proved reachable ($0 probe): a forced CHECK violation returns `{error}` (supabase-js does
+   not throw), rows written = 0 — so the halt branch genuinely fires.
+2. **No read-back.** A console number never read back from the DB is not evidence — precisely how the 07-29 run
+   reported $0.0438 that did not exist anywhere. Added a closing assertion: persisted row-count == generated
+   count, persisted sum == console sum, plus an absence sweep for in-window rows not tracing to this marker.
+   Non-zero exit on any mismatch.
+
+**CAPTURE ROADBLOCK (new, RD-14 shape).** First clean re-run generated **0 briefs — every EUR-Lex capture
+failed**, including the same 5 that captured fine 12h earlier. Cause (probed, not assumed): EUR-Lex answers a
+cold request with **HTTP 202 and a near-empty body** — an anti-bot warm-up that is 2xx, so `res.ok` is TRUE and
+a naive caller reads it as a real-but-empty page. The SAME URL retried moments later returns **200 with the full
+353KB**. Fixed with the RD-14 ladder at capture ($0, same transport): browser UA + bounded retry (3 attempts)
+while the response is a soft roadblock. A still-empty capture after the ladder stays an HONEST SKIP. Note the
+runner's original behaviour was already honest — it skipped rather than fabricating over an empty source.
+
+**CLEAN RE-RUN (marker `8b652964`, 10 briefs, $0.0822 of the $6 cap, 83.5s):**
+- **METERING ASSERTION PASS** — 10 rows persisted (expected 10), persisted $0.0822 == console $0.0822, absence
+  sweep 0 strays. The gap is closed and *proven*, not asserted.
+- **AUDIT FAILS: 8/10 = 80%, below the 90% threshold.** Reported as a failure, per the gate.
+- 2 instruments skipped on capture after the full ladder (`32006D0507`, `32009R0663`) — honest skips.
+
+**Orphan adjudication (verified against live source text, not assumed — this corpus has a documented history of
+phantom orphans).** The 2 failures are NOT the same defect:
+- **`32026D0406` — FALSE POSITIVE, gate over-strict.** All 7 orphans (`244,31 kg`, `322,72 kg`, `372,82 kg`,
+  `530,84 kg`, `684,57 kg`, `81,63 kg`, `92,88 kg`) ARE literally in the source, as bare numbers in a GHG
+  emissions table whose unit lives in the column header. The brief attached `kg` to the number; the scanner
+  extracts number+unit as one token, so the pair never matches. The FACT is grounded; the token is not.
+- **`32025R1045` — GENUINE MIS-GROUNDING (fabrication class, pre-publication).** `"31 tonnes"` and
+  `"34 tonnes"` trace to `11v 11-EHC **31** 12` and `16v 16-EHC **34**` — **vehicle sub-group ROW IDENTIFIERS
+  in a table, not tonnages.** The model attached a unit to a number that means something else entirely — the
+  same shape as the `"USD 50"`→registration-number dig-fallback defect, but produced by the GENERATOR rather
+  than the matcher. Its other 2 orphans (`000 km`, `0%`) are extractor fragments (`58 000` split on the EU
+  space-thousands separator).
+
+**Standing STOP #3 (fabrication evidence pre-publication) is hereby honored by report.** Nothing was published —
+the harness does not write items — so no corpus is affected and no emergency action was taken.
+
+**THE GATE WORKED.** Gate A caught the one brief that genuinely mis-grounded. That is the moat functioning.
+**Do NOT loosen the matcher to make the unit-attachment case pass** — stripping units at a coverage site is
+exactly the dig-fallback class (case-file instance 7: literal-and-exact at every coverage decision). The
+unit-attachment case is a REFERENCE problem, cured in the generation prompt (do not attach a unit that is not
+adjacent to the number in the source), never in the matcher.
+
+**COST BASIS — the runner's own `~$49 buys ~5,960 briefs` line is MISLEADING and must not reach the proposal.**
+Measured: $0.0082/brief at avg **5,529 input / 538 output tokens**. That is a STRIPPED measurement prompt
+(~6–10 short sections) over SMALL legal acts — not the canonical `regulatory_fact_document` (15 conditional
+sections + the 19-field YAML contract), not full enacted texts (the truncation-fix doctrine mandates FULL
+document delivery, no caps), and not Sonnet (the canonical synthesis path). $0.0082 is a **floor**, not a unit
+cost. [VERIFIED: the $0.0822/10 and the token averages, read back from `agent_runs`. INFERRED: everything about
+production-cost scaling.]
+
+**Next:** operator ruling on the audit failure + the cost-basis correction before any policy proposal is priced;
+gov.si NECP mint + sibling sweep still queued; no new A3 batches until P2 is live.
+
+---
+
 ## 2026-07-28 — P2 structural gate CLOSED (RLS residue + policy table + unauthenticated-rejection proof)
 
 **RLS residue closed (mig 230, PR #381 merged).** Audit found 8 public tables RLS-DISABLED with full
