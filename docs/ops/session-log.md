@@ -5,6 +5,85 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-07-30 — RD-6 GREEN + dedup identity fix + 8 items minted (publication batch staged)
+
+**(1a) RD-6 CLEARED — 127 dispositions written, lane tripwire green.** The Data-audit lane had failed
+daily since 07-27 on `127 NEW undispositioned crossing(s)` — the Gate-A quarantine wave's missing
+PAPERWORK, not new breakage. Wrote a VALID time-bounded deferral per item
+(`scripts/remediation/rd6-disposition-deferrals.mjs`, $0, DB-only). Reasons are **derived per item from live
+state**, never blanket text: each names its orphan count at gate version 2026-07-29.3, its non-Gate-A
+criterion failures, and the disposition path it awaits. Route split from live gate+criteria data:
+**gate-b 85 / a3-recapture 39 / revision 3**. Fail-closed: every payload passed `isValidDeferral` BEFORE any
+insert (an invalid one exits 3), and the write asserts count == planned (case-file 8).
+**Read-back — the invariant's own audit:** `undispositioned past-bound: 0 (HARD tripwire)`, exit 0,
+*"invariant holds: every quarantined item is enqueued and either within the bound or carries a valid
+deferral."* Deferred-past-bound now 163 (36 pre-existing + 127 new) — standing backlog, not a failure.
+
+**DEDUP IDENTITY DEFECT — found live, fixed by restriction (operator ruling).** Minting the batch,
+**3 of 8 were blocked as duplicates of instruments they are not**: `matchExistingSubject` scraped
+`RE_REGNUM` out of `title + instrument_identifier`, so an implementing/delegated/amending act — whose title
+ALWAYS names its parent — carried the PARENT's number as its own identity:
+- Impl. Reg (EU) 2026/394 → collapsed into **FuelEU 2023/1805** (`7a0ead55`)
+- Del. Reg (EU) 2024/3214 → collapsed into **EU MRV 2015/757** (`3af75490`)
+- Impl. Reg (EU) 2025/35 → collapsed into **HDV CO2 2019/1242** (`ab922a18`)
+
+Whole classes of EU intake (implementing/delegated/amending acts — a large share of EU regulatory flow) were
+silently unmintable, and each match ASSERTED "this IS that instrument" when it is not. Fixed by RESTRICTION,
+not heuristic: identity derives from the item's OWN `instrument_identifier` alone, with CELEX normalised to
+its slash form so a true `32024R3214`/`2024/3214` twin still dedups. Free-text reg-numbers are REFERENCES
+(amends / implements / applies), never identity. Red-then-green **18/18**, 14 prior tests unchanged.
+
+**RESIDUAL, stated not hidden:** the title-scrape fallback for identifier-LESS items still cannot separate
+reference from identity. Removing it satisfies the ruling's letter but **breaks the pre-existing
+high-precision matcher test**, which the ruling's own condition (d) protects — so the fallback stands and the
+ambiguity is logged rather than silently traded away.
+
+**Corpus sweep (read-only, as ruled).** Prior dedup decisions carrying `(reg_number)`: **2 rows**
+(`0044d231`, `60db9237` — both Commission climate PDFs, both pointing at EU MRV `3af75490`). Both are
+identifier-LESS, so they sit in the residual above, not in the class the fix closes. **`resolved_into_id` is
+NULL across the entire worklist — ZERO rows were ever merged.** The dedup hits were census DISPOSITIONS
+(blocked-from-minting), not executed merges, so **nothing needs unmerging**; the effect was catalogued
+instruments silently unmintable. The other 3 `dedup_hit` rows (`32022L2464`, `32024R1257`, `32024R1735`)
+matched by explicit CELEX — genuine identity dedup, correct, untouched.
+
+**REFERENCES ARE RELATIONS (future capability, logged not built).** Implementing-act → parent-act linkage is
+real product data (an item's "what does this amend / implement" edge). The pipeline has no edge table for it
+today; recorded in the matcher's own header so the next builder finds it. Never identity, but not noise.
+
+**(2) 8 SOURCES REGISTERED + 8 ITEMS MINTED, read-back clean.** Per-CELEX EUR-Lex source rows at the
+canonical **T1** institutional tier (source-credibility Section 3 names EUR-Lex/the Official Journal as T1
+explicitly, and europa.eu subdomains are institution-distinct — deterministic, SC-13 clean, no guessed tier).
+`registerSource` dedups on bare host for eur-lex.europa.eu, so the sanctioned `institutionKey` override was
+used to reproduce the existing per-CELEX convention instead of collapsing into the bare-host row (RD-40
+nothing-generic).
+
+| CELEX | item id | instrument |
+|---|---|---|
+| 32026R1030 | `cd1083c9-fd05-47f7-bfed-8354b70a31ac` | CountEmissions EU — GHG accounting of transport services |
+| 32026R0394 | `0c9b2364-468e-48fe-8360-fc5338f24598` | FuelEU Maritime database |
+| 32025R2083 | `c509a0cd-263d-48fc-8d0b-160f786bdbb0` | CBAM simplification and strengthening |
+| 32024R3214 | `0b6537ea-1c85-41b9-81ed-1486fd72ea18` | EU MRV — offshore ships, sustainable-fuel zero-rating |
+| 32025L0794 | `6cdc920f-6110-412a-b4f8-7b6c7fabdda5` | CSRD/CSDDD application dates (stop-the-clock) |
+| 32025R0035 | `5561231f-3e3d-4e6a-90a2-1f3f4baf2f1b` | HDV CO2 in-service verification |
+| 32025D0210 | `adbf2587-535e-4c7e-9e77-433a24d250d5` | Spain — reduced electricity tax, berthed vessels |
+| 32011L0037 | `2b3c4c9b-0d85-433f-b7c3-44c6d15ca52f` | End-of-Life Vehicles, Annex II |
+
+Read-back 8/8: `canonical_instrument_key` derived per-CELEX and **all distinct** (EP-11 clean, no twins);
+`source_linked=true` each to its OWN T1 active source; `domain=1` (Regulations); jurisdictions `[EU]`;
+`is_archived=false`; **`provenance_status='quarantined'`** — correct and honest: no brief exists yet, so the
+criteria fail. They verify only when generated + grounded, which is the next step.
+
+**SCHEMA-GUESS SLIP (mine, caught by the DB, zero damage).** First execute attempt passed `domain:"regulatory"`
+and `jurisdiction:"eu"`; the real schema is `domain INTEGER` (1 = REGULATIONS_DOMAIN) and `jurisdictions text[]`.
+All 8 mints rejected, nothing written. Re-affirms schema-audit-before-write: I should have read
+`information_schema` first rather than inferring column names — the same rule the campaign already carries.
+
+**Next:** priced-line canonical generation (Sonnet $1.25/item ×3, Haiku $0.50/item ×3, ≤$5.25, inventoryMiss
+cited) → free-executor remainder → Gate A/B + criteria 1–7 + per-item read-back → publish-as-proven. Then (1b)
+tier drift: 190 claims + 9 hosts, diagnose-before-fix, no blanket restamping.
+
+---
+
 ## 2026-07-30 — Figure-expression contract + case-file 10 + the gate amendment that was WITHDRAWN
 
 **ERROR-SWALLOW CASE FILE — instance 10: a comment claiming fail-closed over code that wasn't.** The P2 runner's
