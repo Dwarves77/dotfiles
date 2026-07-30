@@ -5,6 +5,66 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-07-30 — Figure-expression contract + case-file 10 + the gate amendment that was WITHDRAWN
+
+**ERROR-SWALLOW CASE FILE — instance 10: a comment claiming fail-closed over code that wasn't.** The P2 runner's
+per-call ledger write carried the header `// PER-CALL PERSISTENCE (fail-closed metering)` above
+`if (ledgerErr) console.error(…)` — which logs and CONTINUES SPENDING. The comment asserted the property; the
+code implemented its opposite. Distinct from instances 1–5 (unchecked write reports success), 6–7 (fallback
+invents grounding), 8 (bulk write matches zero rows), 9 (unpaginated read): here the defect is **documentation
+standing in for enforcement**, which is worse than no comment at all because it defeats review — a reader
+checking "is this fail-closed?" finds the words and stops. **Rule: a comment naming a safety property is not
+evidence the property holds; the property must be proven by a test that forces the failure.** Discharged here by
+a $0 RED probe (forced CHECK violation → `{error}` returned, 0 rows written → the halt branch is reachable).
+Sibling of the flow-golden mandate (RD-35: a doctrine claim without a behavioural golden is a gap).
+
+**FIGURE-EXPRESSION CONTRACT (operator ruling, authorized by outcome not wording).** Landed in BOTH homes: the
+runtime contract `src/lib/agent/system-prompt.ts` (what the canonical pipeline actually reads) and the doctrine
+home `environmental-policy-and-innovation/SKILL.md`. Two binding rules:
+1. **Unit attachment is a factual claim, not formatting.** Never attach a unit unless the source establishes it
+   for that EXACT value — adjacency, or an unambiguous table-header/column relationship. Never by inference.
+   Origin case: `11v 11-EHC 31 12` → "31 tonnes", where `31` was a ROW IDENTIFIER (32025R1045).
+2. **Header-unit figures keep their unit AND stay gated.** State the cell value exactly as rendered plus the
+   column header quoted verbatim, so both fragments are verbatim-present. **Emitting the number bare to escape
+   the gate's tokenizer is FORBIDDEN** — escaping the gate is not grounding the figure.
+
+**The gaming flag, ruled and recorded.** Gate A tokenizes number+unit as ONE token and does not gate bare
+numbers at all, so "express it bare" would satisfy the letter of groundability by DELETING the token. Operator
+ruling: forbidden. If prompt discipline proves insufficient, the sanctioned direction is a Gate-B-style explicit
+**composed-claim kind** linking the verbatim bare-number span to the verbatim header/unit span — auditable rows,
+scanner stays mechanical, operator proposal BEFORE building. **A matcher loosening is never permitted** (case
+file 7 stands).
+
+**GATE AMENDMENT WITHDRAWN — the metered gate does not govern canonical generation.** A scoped CLASS amendment
+(`depth-brief-generation-canonical`, Sonnet, $10) was authorized, then **withdrawn on investigation**. Findings:
+- `grep callClass src/` returns NOTHING outside the gate modules — the canonical pipeline never calls
+  `assertMeteredCallAllowed`. The amendment would have authorized nothing while appearing to.
+- Canonical spend is governed by a DIFFERENT mechanism: SpendTicket → `assertTicket` / `assertBudget` /
+  **`assertPricedLine({ operatorCostUsd, inventoryMiss })`** (RD-31/RD-32). The machine is mechanically barred
+  from setting the price (`PRICED_LINE_NO_COST`).
+- **Registering the class would have relabelled synthesis around `FREE_ONLY_CLASSES`** — which names
+  `synthesis`/`generate`/`grounding` precisely so "a future caller cannot relabel grounding as something else to
+  slip the gate." Refusing to build it is the recorded precedent; the free-only wall stands untouched.
+
+**Operator-priced lines stated for the canonical batch:** Sonnet $1.25/item × 3; Haiku $0.50/item × 3; batch
+bounded $5.25 metered. Remaining instruments publish through the **free executor seam**
+(`executor-ground.mjs` + `injectedLedger`, RD-47-proven) at $0, identical publication standard — Gate A zero
+orphans at 2026-07-29.3, Gate B, criteria 1–7, per-item read-back. Same bar, no shortcut.
+
+**Publication selection (accepted):** `32026R1030` CountEmissions EU (leads), `32026R0394` FuelEU database,
+`32025R2083` CBAM simplification, `32024R3214` EU MRV offshore + sustainable-fuel zero-rating, `32025L0794`
+CSRD/CSDDD stop-the-clock, `32025R0035` HDV CO2 in-service verification, `32025D0210` Spain shore-power tax,
+`32011L0037` End-of-Life Vehicles Annex II.
+
+**Prior operator ruling recorded:** publishing the 8 audit-clean proof-batch briefs was RETRACTED once
+investigation showed (a) the harness never stored brief text (audited then discarded — the artifacts are
+unrecoverable), (b) harness output carries no YAML/format_type/slots and would fail criterion 5, and (c) the
+sample was a technical convenience sample (ordered by id, CELEX + free capture) including a 1979 customs
+nomenclature decision — not a public face. **Per-item operator approval, not the ≥90% batch gate, is the
+publication basis for this batch; the ≥90% gate is unchanged for the engine's continuous mode.**
+
+---
+
 ## 2026-07-30 — P2 proof batch: crash recovery, metering gap CLOSED, clean re-run — audit FAILS at 80%
 
 **Crashed-run state: COMPLETE, not partial.** Recovered from the crashed client's own transcript
