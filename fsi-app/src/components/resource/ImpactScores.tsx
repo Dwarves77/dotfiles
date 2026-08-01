@@ -78,18 +78,11 @@ export function ImpactScores({ scores, reasoning }: ImpactScoresProps) {
   // If every dim is 0, the whole card collapses to a small note rather
   // than rendering 4 zero-bars (integrity-preserving silence).
   if (visible.length === 0) {
+    // Mobile-fix 2026-08-01: the card wrapper already renders the
+    // "Impact assessment" eyebrow; repeating the title here doubled the
+    // header on the detail page (visible stacked on mobile).
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-        }}
-      >
-        <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-primary)" }}>
-          Impact Assessment
-        </span>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <span style={{ fontSize: 12, color: "var(--color-text-muted)", fontStyle: "italic" }}>
           No scored dimensions yet
         </span>
@@ -99,17 +92,16 @@ export function ImpactScores({ scores, reasoning }: ImpactScoresProps) {
 
   return (
     <div>
+      {/* Mobile-fix 2026-08-01: title span removed, the card wrapper's
+          eyebrow is the single header; only the reasoning toggle remains. */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
           marginBottom: 14,
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--color-text-primary)" }}>
-          Impact Assessment
-        </span>
         {reasoning && (
           <button
             type="button"
@@ -151,8 +143,8 @@ export function ImpactScores({ scores, reasoning }: ImpactScoresProps) {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "200px 1fr 90px",
-                  gap: 14,
+                  gridTemplateColumns: "minmax(96px, 200px) minmax(40px, 1fr) max-content",
+                  gap: 10,
                   alignItems: "center",
                 }}
               >
@@ -191,7 +183,7 @@ export function ImpactScores({ scores, reasoning }: ImpactScoresProps) {
                 </span>
               </div>
               {expanded && reasoning?.[dim] && (
-                <p style={{ fontSize: 12, lineHeight: 1.55, color: "var(--color-text-muted)", margin: "6px 0 0", paddingLeft: 200 + 14 }}>
+                <p style={{ fontSize: 12, lineHeight: 1.55, color: "var(--color-text-muted)", margin: "6px 0 0", paddingLeft: "clamp(0px, 25%, 214px)" }}>
                   {reasoning[dim]}
                 </p>
               )}
