@@ -1314,9 +1314,22 @@ export interface WorkspaceOverrideRow {
   dismissedAt?: string | null;
 }
 
+/** One row of the window-scoped What-changed feed (migration 232: get_workspace_recent_changes).
+ *  Exists because the dashboard RPC is LIMIT 50 by priority — once the corpus outgrew the
+ *  slice, items added this week fell outside it and the This-week section reported nothing
+ *  (2026-08-01 defect: 216 in-window items rendered as zero). This feed is bounded by the
+ *  date window, not a priority cap. */
+export interface RecentChangeRow {
+  id: string;
+  title: string;
+  priority: string;
+  added: string;
+}
+
 export interface DashboardData {
   resources: Resource[];
   archived: Resource[];
+  recentChanges: RecentChangeRow[];
   changelog: Record<string, ChangeLogEntry[]>;
   disputes: Record<string, Dispute>;
   xrefPairs: [string, string][];
@@ -1360,6 +1373,7 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
   const emptyFallback: DashboardData = {
     resources: [],
     archived: [],
+    recentChanges: [],
     changelog: {},
     disputes: {},
     xrefPairs: [],
@@ -1446,7 +1460,7 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       urgency_score: number | null;
     }> = [];
 
-    const [changesResult, sectorsResult, overridesResult] = await Promise.all([
+    const [changesResult, sectorsResult, overridesResult, recentResult] = await Promise.all([
       supabase
         .from("intelligence_changes")
         .select("item_id, change_type, change_severity, change_summary")
@@ -1462,6 +1476,9 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
         .from("workspace_item_overrides")
         .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes, dismissed_at")
         .eq("org_id", orgId),
+      // Window-scoped What-changed feed (see RecentChangeRow). Service client:
+      // orgId authenticated upstream, same idiom as the dashboard RPC call.
+      getServiceSupabase().rpc("get_workspace_recent_changes", { p_org_id: orgId, p_days: 7 }),
     ]);
 
     // UUID→UI-id map already built by fetchWorkspaceResources from the
@@ -1517,9 +1534,20 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       dismissedAt: o.dismissed_at ?? null,
     }));
 
+    if (recentResult.error) {
+      console.warn(`[supabase-server] get_workspace_recent_changes failed (This-week renders from the capped feed only): ${recentResult.error.message}`);
+    }
+    const recentChanges: RecentChangeRow[] = (recentResult.data || []).map((r: any) => ({
+      id: r.legacy_id || r.id,
+      title: r.title,
+      priority: r.effective_priority || r.priority || "LOW",
+      added: r.added_date,
+    }));
+
     return {
       resources,
       archived,
+      recentChanges,
       changelog,
       disputes,
       xrefPairs,
