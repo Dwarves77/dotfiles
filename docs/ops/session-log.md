@@ -76,12 +76,39 @@ All 18 are clean, 1–4 commits ahead of master, unmerged, and untouched for ~3.
 - The two runners outside `scripts/tmp/` (`acquire-enacted-primary-o9.mjs`, `nondestructive-live-proof.mjs`) and the
   four enumerators are **not regenerable scratch** — they sit in real source paths and would be lost to a clean
   checkout. Precedent exists for this class: "persist the last seven machine-only remediation runners"
-  (commit 2026-07-30). Same treatment is owed here.
+  (`dcccb982`, 2026-07-30) — **but see section 5: that commit is what turned CI red.** Persisting runners is right;
+  persisting them unguarded is what failed. Route through `scripts/lib/db.mjs` / `lib/anthropic.mjs` first.
+
+### 5. BLOCKER — PR #391 / `task1-cbam-target-match` CI has been RED since 2026-07-30
+
+Discovered while pushing this entry (METADATA — `gh run list/view`):
+
+- Discipline engine: **failure** on `1e32bd4d` at 2026-07-30T22:28Z, and again on `ee4e5c0b` (this entry).
+  Last green was `e3a8ae5e` at 22:24Z. **The branch has been red for ~2 days, unnoticed.**
+- This entry's own commit is clean (`ee4e5c0b`: 0 pass, 0 fail, 8 skip). The docs commit neither caused nor
+  fixed the failure — it inherits it. Bug-class guard passes.
+- The two failing rules both belong to `dcccb982` ("chore(runners): persist the last seven machine-only
+  remediation runners"):
+  - **[015] Row-mutation guarded path** — 4 scripts do RAW row mutations outside `scripts/lib/db.mjs`:
+    `gate-b-derived-mint.mjs`, `unit3-classify-census.mjs`, `unit3-classify-v2.mjs`, `unit3-supersede-v1.mjs`.
+    Loses prior-value snapshot (reversibility) and skill citation.
+  - **[016] Canonical Anthropic path** — 3 direct API calls bypassing `lib/anthropic.mjs`:
+    `index-relevance-2nd.mjs:36`, `unit3-classify-census.mjs:26`, `unit3-classify-v2.mjs:32`.
+    Direct calls bypass `/api/agent/run`, so spend-cap wiring and `source_citations` are both lost.
+- **`unit3-classify-v2.mjs` appears in both failures.** Standing memory records it as the runner carrying the
+  metered-lane +$15 clamp, previously flagged as living in an uncommitted untracked state — it is now committed
+  but unguarded on both axes. **A spend-capped runner that bypasses the spend-cap path is the worst case of the
+  two rules**, and it is the one the queue would next execute.
+- NOT fixed here. Remediation is a code decision on the active lane (route through the guarded helpers, or add
+  `Write-Guard-Override:` trailers if these are legacy edits introducing no new write). Flagged per the
+  CI-green-means-GitHub rule: **do not treat #391 as mergeable.**
 - The dated audit `corpus-integrity-census-2026-07-16.md` is untracked in a docs path — no INDEX.md line, so it is
   invisible to the memory conventions.
 
-### NEXT (none of this was actioned; all four are operator calls)
+### NEXT (none of this was actioned; all are operator calls)
 
+0. **Un-red PR #391 first** — rules 015/016 on `dcccb982`. Start with `unit3-classify-v2.mjs` (fails both).
+   Nothing on this branch should merge until the Discipline engine is green.
 1. **Reconcile the session-log fork** — merge or cherry-pick `task1`'s 2026-07-22→07-30 block into
    `corpus-integrity/intake-census`, or land #391/#370 so both lanes converge. Until then, treat any lane other
    than `task1-cbam-target-match` as holding a stale log.
