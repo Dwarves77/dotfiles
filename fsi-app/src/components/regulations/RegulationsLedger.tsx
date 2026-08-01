@@ -40,6 +40,7 @@ import {
   type SetStateAction,
 } from "react";
 import { useResourceStore, mergeWithOverrides } from "@/stores/resourceStore";
+import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import {
   MODES,
   TOPICS,
@@ -936,6 +937,10 @@ export function RegulationsLedger({
                             T{tier}
                           </span>
                         )}
+                        {/* Phase 0 (operator go 2026-08-01): per-row ⋯ retag/dismiss —
+                            the built-but-unwired "card" variant, now mounted. Safe
+                            inside the row <Link>: the popover stops propagation. */}
+                        <CardPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} />
                       </span>
                     </Link>
                   );
@@ -1086,5 +1091,26 @@ function PendingFrame({
         </button>
       )}
     </div>
+  );
+}
+
+// ── Per-row priority dropdown (Phase 0 mount of the built card variant) ──
+// Mirrors RegulationDetailSurface's HeroPriorityDropdown wiring: reads the
+// live override for effective priority + dismissed state, writes through the
+// store's optimistic updatePriority/dismissResource (rollback on failure).
+function CardPriorityDropdown({ currentPriority, itemId }: { currentPriority: PriorityKey; itemId: string }) {
+  const updatePriority = useResourceStore((s) => s.updatePriority);
+  const dismissResource = useResourceStore((s) => s.dismissResource);
+  const override = useResourceStore((s) => s.overrides.get(itemId));
+  const isDismissed = !!override?.dismissedAt;
+  const effectivePriority = (override?.priorityOverride as PriorityKey | undefined) ?? currentPriority;
+  return (
+    <PriorityDropdown
+      variant="card"
+      currentPriority={effectivePriority}
+      isDismissed={isDismissed}
+      onSetPriority={(p) => updatePriority(itemId, p)}
+      onDismiss={() => dismissResource(itemId)}
+    />
   );
 }
