@@ -8,7 +8,10 @@
 // Run: --dry-run (default, no writes/no spend) | --execute [--limit=N] [--budget=USD]
 import { resolve, dirname } from "node:path"; import { fileURLToPath } from "node:url"; import { writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { canonicalGenerate, textOf } from "../lib/anthropic.mjs"; // rule 016: canonical script-side Anthropic path
+import { guardedUpdate } from "../lib/db.mjs"; // rule 015: row mutations through the guarded path
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", ".."); process.loadEnvFile(resolve(ROOT, ".env.local"));
+const CITE = { skill: "environmental-policy-and-innovation", reason: "unit3 metadata-tier census classification: write dryrun_disposition onto census_worklist (SUPERSEDED pass — see unit3-supersede-v1 + unit3-classify-v2)" };
 const EXECUTE = process.argv.includes("--execute");
 const LIMIT = (() => { const a = process.argv.find((x) => x.startsWith("--limit=")); return a ? parseInt(a.slice(8), 10) : Infinity; })();
 const BUDGET = (() => { const a = process.argv.find((x) => x.startsWith("--budget=")); return a ? parseFloat(a.slice(9)) : 34.0; })();
@@ -16,19 +19,16 @@ const CONC = 12;
 const HAIKU = "claude-haiku-4-5-20251001";
 const IN_RATE = 1 / 1e6, OUT_RATE = 5 / 1e6; // Haiku $1/$5 per Mtok
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
-const KEY = process.env.ANTHROPIC_API_KEY;
 
 const SYS = `You are a freight-sustainability RELEVANCE + surface classifier. Given an instrument's METADATA only (identifier, URL, issuer, jurisdiction), return STRICT JSON: {"relevant":true|false,"entity_verdict":"specific_document|portal|uncertain","item_type":"regulation|directive|standard|guidance|framework|technology|innovation|tool|market_signal|initiative|research_finding|regional_data|null","surface_tags":[subset of regulations,operations,market_intel,research],"jurisdiction":"...","confidence":"HIGH|MEDIUM|LOW","rationale":"<=140 chars"}.
 relevant=true iff the instrument plausibly bears on sustainability/environmental regulation, cost, market, research, or operations for international freight forwarding (broad: live events/art/film/luxury/auto/humanitarian + batteries/EV/energy/finance/labor/packaging). A navigational portal/index/homepage is entity_verdict=portal (relevant as a SOURCE, item_type=null). Only mark relevant=false when the instrument is clearly off-domain. surface_tags: assess all four independently, multi-tag expected; [] for portals/uncertain.`;
 
 async function classify(row) {
   const user = `Instrument: ${row.instrument_identifier || "(none)"}\nURL: ${row.document_url}\nIssuer/source: ${row.source_name || "(unknown)"} (category ${row.source_category || "?"}, tier ${row.source_tier ?? "?"})\nJurisdiction hint: ${row.jurisdiction || "(unknown)"}\nExisting surface tags: ${(row.surface_tags || []).join(",") || "(none)"}\nClassify.`;
-  const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "content-type": "application/json", "x-api-key": KEY, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({ model: HAIKU, max_tokens: 300, system: SYS, messages: [{ role: "user", content: user }] }), signal: AbortSignal.timeout(40000) });
-  if (!r.ok) throw new Error(`haiku ${r.status}: ${(await r.text()).slice(0, 100)}`);
-  const j = await r.json();
+  // Rule 016: routed through the canonical script wrapper (scripts/lib/anthropic.mjs), not a raw fetch.
+  const j = await canonicalGenerate({ model: HAIKU, maxTokens: 300, system: SYS, messages: [{ role: "user", content: user }] });
   const cost = (j.usage?.input_tokens || 0) * IN_RATE + (j.usage?.output_tokens || 0) * OUT_RATE;
-  const txt = (j.content?.[0]?.text || "").match(/\{[\s\S]*\}/);
+  const txt = (textOf(j) || "").match(/\{[\s\S]*\}/);
   let cls = null; try { cls = JSON.parse(txt[0]); } catch { /* malformed */ }
   return { cls, cost };
 }
@@ -63,7 +63,9 @@ async function main() {
         await sb.from("agent_runs").insert({ intelligence_item_id: null, phase: "unit3-classify", cost_usd_estimated: Number(cost.toFixed(6)), ok: true, detail: `census classify ${row.id}` }).then(()=>{}, ()=>{});
         const d = disp(cls);
         const patch = { dryrun_disposition: d, surface_tags: cls?.surface_tags || row.surface_tags || [], notes: cls ? `unit3-metadata-classify: relevant=${cls.relevant} verdict=${cls.entity_verdict} type=${cls.item_type} conf=${cls.confidence} :: ${(cls.rationale||"").slice(0,120)}` : "unit3-classify: malformed output -> hold" };
-        await sb.from("census_worklist").update(patch).eq("id", row.id);
+        // Rule 015: guarded path (snapshot + cite). NOTE: this pass is SUPERSEDED — its 'not_an_item'/'portal_source'
+        // dispositions violated the census CHECK constraint and were silently rejected; unit3-classify-v2 is the live pass.
+        await guardedUpdate("census_worklist", (qb) => qb.eq("id", row.id), patch, { cite: CITE });
         done++;
         topline.by_disposition[d] = (topline.by_disposition[d] || 0) + 1;
         if (cls?.entity_verdict === "portal") topline.portal++; else if (cls?.relevant === true) topline.relevant++; else if (cls?.relevant === false) topline.not_relevant++; else topline.uncertain++;
