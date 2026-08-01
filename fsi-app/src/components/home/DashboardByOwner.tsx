@@ -88,8 +88,11 @@ export function DashboardByOwner({ resources }: DashboardByOwnerProps) {
     return (
       <DashboardRailCard title="By owner">
         <RailEmptyFrame
-          body="No owners assigned yet. Assign owners to regulations from any detail page to populate this view."
-          cta={{ label: "Pick a regulation to assign →", href: "/regulations" }}
+          // Honest empty state (Phase 0, 2026-08-01): owner assignment is not
+          // built yet — the previous copy promised a detail-page assign flow
+          // that never existed. Say what's true until the ownership phase ships.
+          body="No owners assigned yet. Owner assignment is coming soon — items will be assignable to teammates from their detail pages."
+          cta={{ label: "Browse regulations →", href: "/regulations" }}
         />
       </DashboardRailCard>
     );
