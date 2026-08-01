@@ -5,6 +5,93 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-08-01 — CROSS-LANE RECONCILIATION SNAPSHOT (no work performed; repo-evidence only)
+
+**Provenance of this entry.** Reconstructed entirely from git/gh command output on 2026-08-01. There was no
+session transcript to summarise — `/done` was the first and only instruction in the context that produced this.
+Nothing was built, run, merged, or spent. Every number below is METADATA (git/gh read), not VERIFIED runtime.
+Read this as a state census of the parallel lanes, not as a record of accomplishment.
+
+### 1. Cross-lane state (METADATA — `git worktree list` + `rev-list --count master..HEAD`, 2026-08-01)
+
+26 registered worktrees. Live lanes, by recency of last commit:
+
+| Lane / branch | Ahead of master | Last commit | Working tree |
+|---|---|---|---|
+| `task1-cbam-target-match` (wt-adr016-ft) | **+103** | 2026-07-30 | clean |
+| `corpus-integrity/intake-census` (main dir) | +42 | 2026-07-21 | **49 entries dirty** |
+| `corpus-integrity/cc-grounding-executor-b` | +40 | 2026-07-21 | clean |
+| `corpus-integrity/cc-grounding-executor-c` | +23 | 2026-07-20 | clean |
+| `corpus-integrity/cc-grounding-executor-d` | 0 | 2026-07-18 | clean |
+| `census/classify-full-enum` (wt-classify) | 0 | 2026-07-19 | 4 untracked |
+| `master` | — | 2026-07-19 (#358) | clean |
+
+- **No lane has a commit later than 2026-07-30** (METADATA). Whether uncommitted edits were made 07-31/08-01 is
+  UNKNOWN — the filesystem mtime sweep timed out before completing and was not retried. Not asserted either way.
+- Open PRs (METADATA — `gh pr list`, 4 total): **#391** (head of `task1-cbam-target-match`, opened 07-30),
+  **#370** (`corpus-integrity/intake-census`, open since 07-21), **#341** (`cc-grounding-executor`, open since
+  07-17), **#288** (ADR-012 Clause 10 archive purge, open since 07-12). Three of the four have been open 10+ days.
+
+### 2. BLOCKER — the session log itself has forked
+
+- Merge-base of `corpus-integrity/intake-census` and `task1-cbam-target-match` is **PR #369, 2026-07-21 18:18** (METADATA).
+- `docs/ops/session-log.md` is **1,321 lines** on `intake-census` and **2,225 lines** on `task1-cbam-target-match`
+  (METADATA — `git show <branch>:path | wc -l`). ~900 lines of history, covering **2026-07-22 → 2026-07-30**,
+  exist only on `task1`.
+- Consequence: a session resuming from the main working directory (`corpus-integrity/intake-census`) reads a log
+  that ends at 2026-07-21 and is blind to the entire ADR-016 acceleration, the P2 structural gate, the Coverage
+  Index relocation to admin-only, and the first publication. **This is exactly the condition that produces
+  confident wrong conclusions about what is live.**
+- This entry is filed on `task1-cbam-target-match` per operator ruling (2026-08-01) — newest history stays in one
+  place rather than widening the fork. **The fork is recorded, not resolved.**
+
+### 3. DRIFT — 18 stale worktrees from the 2026-07-06/07 redesign wave
+
+All 18 are clean, 1–4 commits ahead of master, unmerged, and untouched for ~3.5 weeks (METADATA):
+
+`feat/redesign-t01-dashboard` (+4), `feat/redesign-t04-market-intel` (+4), `feat/redesign-t06-research` (+3),
+`feat/redesign-t07-operations` (+3), `feat/redesign-t08-admin` (+3), `feat/redesign-t09-map` (+3),
+`feat/redesign-t10-account-v2` (+3), `feat/redesign-t11-community` (+3), `feat/redesign-t02-regulations` (+2),
+`feat/redesign-t05-signal-detail` (+2), `feat/redesign-t10-account` (+2), `feat/seek-more` (+2),
+`docs/redesign-t11-community-mapping` (+1), `feat/4d-officialness-gate` (+1), `feat/intake-gate-reland` (+1),
+`feat/redesign-t03-regulation-detail` (+1), `feat/transport-escalation-ladder` (+1), `feat/batch1-runner` (+1).
+
+- `feat/redesign-t02-regulations` and `feat/redesign-t10-account` both sit on the **same commit** `adb21966` —
+  two worktrees, one tip. At least one is redundant.
+- Two further semi-stale lanes at +1 each from 2026-07-13: `docs/vault-graph-backfill`, `perf/isr-detail-cache`.
+- Standing rule 7 (worktree discipline) forbids restructuring shared paths while other worktrees are live. **18
+  abandoned-but-registered worktrees keep that constraint permanently armed** against work that has stopped.
+  Disposition (merge / rebase / delete) is an operator call, not taken here.
+
+### 4. RESIDUE — machine-only work never staged
+
+- `corpus-integrity/intake-census` working tree: **49 dirty entries** (METADATA) — 45 deletions under
+  `fsi-app/scripts/tmp/` (gitignored scratch per standing rule 5, expected churn) plus 4 untracked:
+  `docs/dispatches/`, `fsi-app/docs/audits/corpus-integrity-census-2026-07-16.md`,
+  `fsi-app/scripts/_reground/nondestructive-live-proof.mjs`,
+  `fsi-app/scripts/remediation/acquire-enacted-primary-o9.mjs`.
+- `census/classify-full-enum` (wt-classify): 4 untracked stock enumerators —
+  `census-audit-gate-30.mjs`, `census-ecfr-stock-enumerate.mjs`, `census-eurlex-stock-enumerate.mjs`,
+  `census-uk-stock-enumerate.mjs`.
+- The two runners outside `scripts/tmp/` (`acquire-enacted-primary-o9.mjs`, `nondestructive-live-proof.mjs`) and the
+  four enumerators are **not regenerable scratch** — they sit in real source paths and would be lost to a clean
+  checkout. Precedent exists for this class: "persist the last seven machine-only remediation runners"
+  (commit 2026-07-30). Same treatment is owed here.
+- The dated audit `corpus-integrity-census-2026-07-16.md` is untracked in a docs path — no INDEX.md line, so it is
+  invisible to the memory conventions.
+
+### NEXT (none of this was actioned; all four are operator calls)
+
+1. **Reconcile the session-log fork** — merge or cherry-pick `task1`'s 2026-07-22→07-30 block into
+   `corpus-integrity/intake-census`, or land #391/#370 so both lanes converge. Until then, treat any lane other
+   than `task1-cbam-target-match` as holding a stale log.
+2. **Disposition the 18 redesign worktrees** — merge, rebase, or `git worktree remove`. Resolve the duplicate tip
+   `adb21966` first. Reconcile against `docs/inventories/worktrees.md`.
+3. **Stage or discard the residue** — 6 non-scratch runners across two lanes; INDEX line for the untracked audit.
+4. **Triage the 4 open PRs** — three have been open 10+ days (#370, #341, #288).
+
+---
+
 ## 2026-07-30 — SESSION CLOSE: first publication, two matcher fixes, and the open handoff
 
 **FIRST PUBLISHED BRIEF: `cd1083c9-fd05-47f7-bfed-8354b70a31ac`** (CELEX 32026R1030, CountEmissions EU).
