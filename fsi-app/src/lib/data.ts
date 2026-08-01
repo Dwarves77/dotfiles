@@ -115,6 +115,7 @@ function appDataSeedFallback(_fallbackTrigger?: SeedFallbackTrigger) {
   return {
     resources: [] as Resource[],
     archived: [] as Resource[],
+    recentChanges: [] as import("@/lib/supabase-server").RecentChangeRow[],
     changelog: {} as Record<string, ChangeLogEntry[]>,
     disputes: {} as Record<string, Dispute>,
     xrefPairs: [] as [string, string][],
