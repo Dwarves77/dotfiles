@@ -6,6 +6,7 @@
 import { resolve, dirname } from "node:path"; import { fileURLToPath } from "node:url"; import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import { assertMeteredCallAllowed } from "../../src/lib/llm/metered-gate.mjs";
+import { canonicalGenerate, textOf } from "../lib/anthropic.mjs"; // rule 016: canonical script-side Anthropic path
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", ".."); process.loadEnvFile(resolve(ROOT, ".env.local"));
 const EXECUTE = process.argv.includes("--execute");
 const LIMIT = (() => { const a = process.argv.find(x=>x.startsWith("--limit=")); return a?parseInt(a.slice(8),10):Infinity; })();
@@ -13,7 +14,6 @@ const CAP = 25, MODEL = "claude-sonnet-4-6", TASK = "index-relevance-second-pass
 const BUDGET = (() => { const a = process.argv.find(x=>x.startsWith("--budget=")); const r=a?parseFloat(a.slice(9)):CAP; return Math.min(r,CAP); })();
 const IN=3/1e6, OUT=15/1e6, LEDGER_TAG=TASK;
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth:{persistSession:false} });
-const KEY = process.env.ANTHROPIC_API_KEY;
 const TITLES = JSON.parse(readFileSync(resolve(ROOT,"scripts/tmp/census-titles.json"),"utf8"));
 const titleFor = (r)=>TITLES[r.instrument_identifier]||TITLES["UK:"+r.document_url]||null;
 const OUTFILE = resolve(ROOT,"scripts/tmp/relevance-2nd.json");
@@ -33,11 +33,11 @@ if(!EXECUTE){ console.log("dry-run: no calls."); process.exit(0); }
 let spent=0, agree=0, disagree=0, errs=0, halted=false, idx=0;
 async function upd(id,patch){ const {error}=await sb.from("agent_runs").insert(patch); if(error) throw new Error(`ledger: ${error.message}`); }
 async function worker(){ while(idx<rows.length && !halted){ const r=rows[idx++];
-  try{ const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":KEY,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:MODEL,max_tokens:150,system:SYS,messages:[{role:"user",content:`TITLE: ${r.t}`}]}),signal:AbortSignal.timeout(40000)});
-    if(!res.ok) throw new Error(`sonnet ${res.status}`);
-    const j=await res.json(); const cost=j.usage.input_tokens*IN+j.usage.output_tokens*OUT; spent+=cost;
+  try{ // Rule 016: routed through the canonical script wrapper (scripts/lib/anthropic.mjs), not a raw fetch.
+    const j=await canonicalGenerate({model:MODEL,maxTokens:150,system:SYS,messages:[{role:"user",content:`TITLE: ${r.t}`}]});
+    const cost=j.usage.input_tokens*IN+j.usage.output_tokens*OUT; spent+=cost;
     await upd(r.id,{cost_usd_estimated:Number(cost.toFixed(6)),status:"success",model:MODEL,source_url:LEDGER_TAG}); // FAIL-CLOSED ledger
-    const m=(j.content?.[0]?.text||"").match(/\{[\s\S]*\}/); let cls=null; try{cls=JSON.parse(m[0]);}catch{}
+    const m=(textOf(j)||"").match(/\{[\s\S]*\}/); let cls=null; try{cls=JSON.parse(m[0]);}catch{}
     const agrees = cls?.relevant===true; // first verdict was would_mint(=relevant)
     done[r.id]={relevant:cls?.relevant??null,confidence:cls?.confidence,reason:(cls?.reason||"").slice(0,110),agrees,judge:MODEL};
     if(agrees) agree++; else disagree++;
