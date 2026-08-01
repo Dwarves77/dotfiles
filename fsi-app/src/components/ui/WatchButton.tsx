@@ -12,14 +12,25 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
  *  session → Bearer token. Optimistic toggle with revert-on-failure; state loads on mount so a
  *  watched item renders "Watching" after reload (the stubs always reset to unwatched).
  */
+// Landing B (2026-08-01): palette became optional with semantic-token defaults so
+// surfaces without a local palette object (research, operations) can mount the
+// button; item_type union widened with migration 233's CHECK expansion.
+const DEFAULT_PALETTE = {
+  accent: "var(--color-primary)",
+  hairStrong: "var(--color-border)",
+  tint: "var(--color-bg-raised)",
+  card: "var(--color-bg-surface)",
+  ink: "var(--color-text-primary)",
+};
+
 export function WatchButton({
   itemType,
   itemId,
-  palette,
+  palette = DEFAULT_PALETTE,
 }: {
-  itemType: "source" | "reg" | "signal";
+  itemType: "source" | "reg" | "signal" | "research" | "operations";
   itemId: string;
-  palette: { accent: string; hairStrong: string; tint: string; card: string; ink: string };
+  palette?: { accent: string; hairStrong: string; tint: string; card: string; ink: string };
 }) {
   const [watched, setWatched] = useState(false);
   const [loaded, setLoaded] = useState(false);
