@@ -6,7 +6,9 @@
 // disposition and (b) the fail-closed v2 re-classifier re-picks the row. Run: --dry-run | --execute
 import { resolve, dirname } from "node:path"; import { fileURLToPath } from "node:url"; import { writeFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { guardedUpdate } from "../lib/db.mjs"; // rule 015: row mutations through the guarded path (snapshot + skill-cite)
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", ".."); process.loadEnvFile(resolve(ROOT, ".env.local"));
+const CITE = { skill: "remediation-discipline", reason: "supersede the v1 fabricated census verdicts with an audit trail (ADR-016 remediation step 4)" };
 const EXECUTE = process.argv.includes("--execute");
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
@@ -22,8 +24,10 @@ async function main() {
   console.log(`  audit snapshot -> ${snap} (${rows.length} prior verdicts preserved)`);
   if (!EXECUTE) { console.log("  dry-run: would NULL disposition + stamp SUPERSEDED on all above."); return; }
   let done = 0, idx = 0;
-  async function w() { while (idx < rows.length) { const r = rows[idx++]; await sb.from("census_worklist").update({ dryrun_disposition: null, notes: `SUPERSEDED-v1-fabricated(no-title-hallucination; was ${r.dryrun_disposition}); snapshot in v1-superseded-snapshot.json` }).eq("id", r.id).then(() => { done++; }, () => {}); if (done % 500 === 0 && done) console.log(`  superseded ${done}/${rows.length}`); } }
+  // Rule 015: guardedUpdate (snapshot + cite). The prior raw .update() swallowed rejections; failures now count.
+  let failed = 0;
+  async function w() { while (idx < rows.length) { const r = rows[idx++]; try { await guardedUpdate("census_worklist", (qb) => qb.eq("id", r.id), { dryrun_disposition: null, notes: `SUPERSEDED-v1-fabricated(no-title-hallucination; was ${r.dryrun_disposition}); snapshot in v1-superseded-snapshot.json` }, { cite: CITE }); done++; } catch { failed++; } if (done % 500 === 0 && done) console.log(`  superseded ${done}/${rows.length}`); } }
   await Promise.all(Array.from({ length: 12 }, w));
-  console.log(`\n  superseded ${done} rows -> dryrun_disposition NULL (re-picked by fail-closed v2), prior verdicts in the snapshot.`);
+  console.log(`\n  superseded ${done} rows (${failed} failed writes) -> dryrun_disposition NULL (re-picked by fail-closed v2), prior verdicts in the snapshot.`);
 }
 main().catch((e) => { console.error(e); process.exit(1); });
