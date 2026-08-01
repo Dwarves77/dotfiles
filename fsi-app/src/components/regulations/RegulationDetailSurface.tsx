@@ -201,17 +201,36 @@ export function RegulationDetailSurface({
 
           <div style={{ display: "flex", justifyContent: "space-between", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
             <div style={{ maxWidth: "86ch" }}>
+              {/* Mobile-fix 2026-08-01: the Anton/uppercase poster treatment is
+                  reserved for short display titles. Long official instrument
+                  titles (200+ chars) render in the body face, mixed case, with
+                  a viewport-clamped size. */}
               <h1
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontWeight: 400,
-                  fontSize: 34,
-                  lineHeight: 1.08,
-                  letterSpacing: "0.02em",
-                  textTransform: "uppercase",
-                  margin: 0,
-                  color: C.ink,
-                }}
+                style={
+                  r.title.length > 80
+                    ? {
+                        fontFamily: "var(--font-sans)",
+                        fontWeight: 700,
+                        fontSize: "clamp(19px, 4.5vw, 26px)",
+                        lineHeight: 1.3,
+                        letterSpacing: "0",
+                        textTransform: "none",
+                        overflowWrap: "break-word",
+                        margin: 0,
+                        color: C.ink,
+                      }
+                    : {
+                        fontFamily: "var(--font-display)",
+                        fontWeight: 400,
+                        fontSize: "clamp(26px, 6vw, 34px)",
+                        lineHeight: 1.08,
+                        letterSpacing: "0.02em",
+                        textTransform: "uppercase",
+                        overflowWrap: "break-word",
+                        margin: 0,
+                        color: C.ink,
+                      }
+                }
               >
                 {r.title}
               </h1>
@@ -618,13 +637,15 @@ function SummaryTab({
 
       {/* Interactive milestone timeline */}
       <Card style={{ padding: "16px 20px", marginBottom: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "0 0 6px" }}>
+        {/* Mobile-fix 2026-08-01: flexWrap + nowrap so the milestones link
+            wraps below the eyebrow on narrow viewports instead of clipping. */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "0 0 6px", flexWrap: "wrap", gap: 6 }}>
           <PlateEyebrow>Timeline</PlateEyebrow>
           {r.timeline && r.timeline.length > 0 && (
             <button
               type="button"
               onClick={onOpenTimeline}
-              style={{ fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 800, color: C.accent, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+              style={{ fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 800, color: C.accent, background: "none", border: "none", cursor: "pointer", padding: 0, whiteSpace: "nowrap" }}
             >
               All {r.timeline.length} milestones →
             </button>
