@@ -13,11 +13,12 @@ import { APP_DATA_TAG } from "@/lib/data";
 // widget could never leave its empty frame. This route completes the producer half. Writes are
 // per-USER (user_id = the authed caller; org_id recorded for the org-scoped index), scoped by the
 // service client to the caller's id — mirroring workspace/overrides, the canonical authed-write route.
-// item_type mirrors the table CHECK ('source' | 'reg' | 'signal'); item_id is text by design
+// item_type mirrors the table CHECK ('source' | 'reg' | 'signal' | 'research' | 'operations',
+// expanded by migration 233, Landing B 2026-08-01); item_id is text by design
 // (legacy_id or UUID — fetchWatchlist resolves titles for both).
 
 
-const ITEM_TYPES = new Set(["source", "reg", "signal"]);
+const ITEM_TYPES = new Set(["source", "reg", "signal", "research", "operations"]);
 
 function readParams(request: NextRequest): { itemType: string; itemId: string } | null {
   const itemType = request.nextUrl.searchParams.get("item_type") ?? "";
