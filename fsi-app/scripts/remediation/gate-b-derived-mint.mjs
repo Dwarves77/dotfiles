@@ -10,12 +10,14 @@
 import { resolve } from "node:path"; import { pathToFileURL } from "node:url";
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
+import { guardedUpdate, guardedInsert } from "../lib/db.mjs"; // rule 015: row mutations through the guarded path (snapshot + skill-cite)
 process.loadEnvFile(resolve(process.cwd(), ".env.local"));
 const { scanBrief } = await import(pathToFileURL(resolve(process.cwd(), "src/lib/agent/gate-a-scan.mjs")).href);
 const { derivedCoveredTokens } = await import(pathToFileURL(resolve(process.cwd(), "src/lib/agent/gate-a-derived.mjs")).href);
 const { parseRecurringRule, parseDerivedDate, isDerivedConsistent } = await import(pathToFileURL(resolve(process.cwd(), "src/lib/agent/derived-consistency.mjs")).href);
 const { norm, containsToken } = await import(pathToFileURL(resolve(process.cwd(), "src/lib/agent/gate-a-match.mjs")).href);
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+const CITE = { skill: "environmental-policy-and-innovation", reason: "Gate B DERIVED mint (operator ruling 2026-07-27): re-scan gate_a_state + touch item to re-validate after arithmetic-gated DERIVED mints" };
 const EXECUTE = process.argv.includes("--execute");
 const TIER1 = process.argv.includes("--tier1");
 const tier2Arg = (process.argv.find((a) => a.startsWith("--tier2=")) || "").slice(8);
@@ -56,9 +58,12 @@ async function rescanAndRevalidate(itemId) {
   const { data: item } = await sb.from("intelligence_items").select("full_brief,provenance_status").eq("id", itemId).single();
   const facts = (await factsOf(itemId)).map((f) => ({ claim_text: f.claim_text || "", source_span: f.source_span || "" }));
   const r = scanBrief(item.full_brief, facts, derivedCovered);
-  await sb.from("item_gate_a_state").upsert({ intelligence_item_id: itemId, scanned_hash: r.scanned_hash, orphan_count: r.orphan_count, orphans: r.orphans, gate_a_version: r.gate_a_version, scanned_at: new Date().toISOString() }, { onConflict: "intelligence_item_id" });
-  // touch to fire the provenance re-validate against fresh gate_a state
-  await sb.from("intelligence_items").update({ last_scanned: new Date().toISOString() }).eq("id", itemId);
+  // Rule 015: the upsert becomes guarded update-then-insert (snapshot + cite; same net state as the raw upsert).
+  const gsPatch = { scanned_hash: r.scanned_hash, orphan_count: r.orphan_count, orphans: r.orphans, gate_a_version: r.gate_a_version, scanned_at: new Date().toISOString() };
+  const gs = await guardedUpdate("item_gate_a_state", (qb) => qb.eq("intelligence_item_id", itemId), gsPatch, { cite: CITE });
+  if (!gs.updated) await guardedInsert("item_gate_a_state", { intelligence_item_id: itemId, ...gsPatch }, { cite: CITE });
+  // touch to fire the provenance re-validate against fresh gate_a state (guarded path)
+  await guardedUpdate("intelligence_items", (qb) => qb.eq("id", itemId), { last_scanned: new Date().toISOString() }, { cite: CITE });
   const { data: after } = await sb.from("intelligence_items").select("provenance_status").eq("id", itemId).single();
   return { orphan_count: r.orphan_count, statusBefore: item.provenance_status, statusAfter: after.provenance_status };
 }
