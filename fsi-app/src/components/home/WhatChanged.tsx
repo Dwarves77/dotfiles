@@ -20,6 +20,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 import type { Resource, ChangeLogEntry } from "@/types/resource";
 import { formatRelative, toDate } from "@/lib/relative-time";
 
@@ -35,6 +36,13 @@ const PRIORITY_COLOR: Record<string, string> = {
   MODERATE: "var(--reg-band-monitor)",
   LOW: "var(--reg-band-awareness)",
 };
+
+// Truncation (operator ruling 2026-08-01): with autonomous authorship landing
+// 150+ items/day, the change list can carry hundreds of rows — rendering them
+// all made the home page unscrollable. Show the top VISIBLE_ROWS by priority,
+// collapsed by default (accordion doctrine), with an explicit show-all toggle.
+const VISIBLE_ROWS = 5;
+const PRIORITY_RANK: Record<string, number> = { CRITICAL: 0, HIGH: 1, MODERATE: 2, LOW: 3 };
 
 interface ItemRow {
   id: string;
@@ -77,12 +85,18 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
   }));
 
   const seen = new Set<string>();
-  const allRows = [...newRows, ...updatedRows].filter((row) => {
-    if (seen.has(row.resource.id)) return false;
-    seen.add(row.resource.id);
-    return true;
-  });
+  const allRows = [...newRows, ...updatedRows]
+    .filter((row) => {
+      if (seen.has(row.resource.id)) return false;
+      seen.add(row.resource.id);
+      return true;
+    })
+    // Stable priority sort so the visible top-5 is the highest-signal slice,
+    // not merely the first five in insertion order.
+    .sort((a, b) => (PRIORITY_RANK[a.priorityForLabel] ?? 4) - (PRIORITY_RANK[b.priorityForLabel] ?? 4));
   const total = allRows.length;
+  const [expanded, setExpanded] = useState(false);
+  const visibleRows = expanded ? allRows : allRows.slice(0, VISIBLE_ROWS);
 
   // CLIENT-ONLY relative-time (diagnosis 2026-07-13, React #418): formatRelative() buckets Date.now()-ts, so
   // computing it in the render body makes the server HTML and the client hydration land in different buckets
@@ -144,7 +158,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
               margin: "0 0 10px",
             }}
           >
-            {allRows.map((row, idx) => (
+            {visibleRows.map((row, idx) => (
               <Link
                 key={row.id}
                 href={`/regulations/${row.resource.id}`}
@@ -191,6 +205,38 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
                 </span>
               </Link>
             ))}
+            {total > VISIBLE_ROWS && (
+              <button
+                type="button"
+                onClick={() => setExpanded((s) => !s)}
+                aria-expanded={expanded}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  width: "100%",
+                  padding: "12px 18px",
+                  border: 0,
+                  borderTop: "1px solid var(--color-border-subtle)",
+                  background: "transparent",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "var(--color-text-secondary)",
+                }}
+              >
+                {expanded ? "Show top 5 only" : `Show all ${total} items`}
+                <ChevronDown
+                  size={13}
+                  style={{
+                    transition: "transform 200ms var(--ease-out-expo, ease-out)",
+                    transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                />
+              </button>
+            )}
           </div>
         </>
       )}
