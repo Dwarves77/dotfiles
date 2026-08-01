@@ -40,6 +40,9 @@ import type { WatchlistItem, CoverageGap, WorkspaceAggregates } from "@/lib/data
 interface HomeSurfaceProps {
   initialResources: Resource[];
   initialArchived: Resource[];
+  /** Window-scoped What-changed feed (get_workspace_recent_changes) — NOT
+   *  derived from the LIMIT-50 dashboard slice. See RecentChangeRow. */
+  recentChanges: import("@/lib/supabase-server").RecentChangeRow[];
   changelog: Record<string, ChangeLogEntry[]>;
   supersessions: Supersession[];
   auditDate: string;
@@ -103,6 +106,7 @@ function SectionHeading({ title, aside, style }: { title: string; aside: ReactNo
 export function HomeSurface({
   initialResources,
   initialArchived,
+  recentChanges,
   changelog,
   supersessions,
   auditDate,
@@ -205,7 +209,7 @@ export function HomeSurface({
         aside="Change log across the registry"
         style={{ margin: "44px 0 16px" }}
       />
-      <WhatChanged resources={resources} changelog={changelog} auditDate={auditDate} />
+      <WhatChanged resources={resources} recentChanges={recentChanges} changelog={changelog} auditDate={auditDate} />
       <Supersessions supersessions={supersessions} resourceMap={resourceMap} />
 
       {/* HOUSEKEEPING */}

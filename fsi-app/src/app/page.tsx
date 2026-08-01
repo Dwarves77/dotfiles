@@ -67,6 +67,7 @@ export default async function Home() {
       <HomeSurface
         initialResources={data.resources}
         initialArchived={data.archived}
+        recentChanges={data.recentChanges}
         changelog={data.changelog}
         supersessions={data.supersessions}
         auditDate={data.auditDate}

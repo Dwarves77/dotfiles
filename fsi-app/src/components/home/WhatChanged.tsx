@@ -22,10 +22,16 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import type { Resource, ChangeLogEntry } from "@/types/resource";
+import type { RecentChangeRow } from "@/lib/supabase-server";
 import { formatRelative, toDate } from "@/lib/relative-time";
 
 interface WhatChangedProps {
   resources: Resource[];
+  /** Window-scoped feed (get_workspace_recent_changes). The "New" half reads
+   *  THIS, not `resources`: the dashboard slice is LIMIT 50 by priority, so
+   *  deriving "new this week" from it went blind once the corpus outgrew the
+   *  slice (2026-08-01: 216 in-window items rendered as "nothing"). */
+  recentChanges: RecentChangeRow[];
   changelog: Record<string, ChangeLogEntry[]>;
   auditDate?: string;
 }
@@ -46,19 +52,27 @@ const PRIORITY_RANK: Record<string, number> = { CRITICAL: 0, HIGH: 1, MODERATE: 
 
 interface ItemRow {
   id: string;
-  resource: Resource;
+  itemId: string;
+  title: string;
   changeType: "New" | "Updated";
   priorityForLabel: "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
 }
 
-export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProps) {
+function asPriority(p: string | undefined): ItemRow["priorityForLabel"] {
+  return p === "CRITICAL" || p === "HIGH" || p === "MODERATE" || p === "LOW" ? p : "LOW";
+}
+
+export function WhatChanged({ resources, recentChanges, changelog, auditDate }: WhatChangedProps) {
   // Trailing 7-day window from today for "New" (real added dates). "Updated"
   // rows come from the last detection pass (changelog), never live. Read the
   // clock once via a state initializer so the cutoff is render-stable (avoids
   // an impure Date.now() at render — react-hooks/purity, matching the shipped
   // RegulationsLedger pattern).
   const [cutoff] = useState(() => new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10));
-  const newResources = resources.filter((r) => r.added && r.added >= cutoff);
+  // "New" reads the WINDOW-SCOPED feed (server-filtered by added_date), never
+  // the LIMIT-50 dashboard slice. The cutoff re-check is a cheap client-side
+  // guard against a cached feed row drifting out of the window.
+  const newInWindow = recentChanges.filter((r) => r.added && r.added >= cutoff);
   // Wave-α A2 (2026-07-11): the "Updated" half is date-gated to the same
   // 7-day window as the "New" half. Previously ANY changelog entry ever
   // recorded put the item under "This week" — the 9 March-2026 demo-era
@@ -71,15 +85,17 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
   );
   const changed = resources.filter((r) => changedIds.has(r.id));
 
-  const newRows: ItemRow[] = newResources.map((r) => ({
+  const newRows: ItemRow[] = newInWindow.map((r) => ({
     id: `new-${r.id}`,
-    resource: r,
+    itemId: r.id,
+    title: r.title,
     changeType: "New",
-    priorityForLabel: r.priority,
+    priorityForLabel: asPriority(r.priority),
   }));
   const updatedRows: ItemRow[] = changed.map((r) => ({
     id: `upd-${r.id}`,
-    resource: r,
+    itemId: r.id,
+    title: r.title,
     changeType: "Updated" as const,
     priorityForLabel: r.priority,
   }));
@@ -87,8 +103,8 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
   const seen = new Set<string>();
   const allRows = [...newRows, ...updatedRows]
     .filter((row) => {
-      if (seen.has(row.resource.id)) return false;
-      seen.add(row.resource.id);
+      if (seen.has(row.itemId)) return false;
+      seen.add(row.itemId);
       return true;
     })
     // Stable priority sort so the visible top-5 is the highest-signal slice,
@@ -161,7 +177,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
             {visibleRows.map((row, idx) => (
               <Link
                 key={row.id}
-                href={`/regulations/${row.resource.id}`}
+                href={`/regulations/${row.itemId}`}
                 prefetch={false}
                 style={{
                   display: "grid",
@@ -197,7 +213,7 @@ export function WhatChanged({ resources, changelog, auditDate }: WhatChangedProp
                     {row.changeType}
                   </p>
                   <p style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text-primary)", margin: "2px 0 0" }}>
-                    {row.resource.title}
+                    {row.title}
                   </p>
                 </div>
                 <span style={{ fontSize: 11, color: "var(--color-text-muted)", whiteSpace: "nowrap" }} aria-hidden="true">
