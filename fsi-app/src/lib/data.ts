@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import {
+  DASHBOARD_DATA_CACHE_KEY,
   fetchDashboardData,
   fetchResourcesOnly,
   fetchListingsOnly,
@@ -101,7 +102,11 @@ const cachedAppData = unstable_cache(
     ]);
     return dashboardData;
   },
-  ["app-data-v2"],
+  // Shape-stamped key (rule 021): rotates whenever the DashboardData
+  // interface changes, so a stale cross-deployment cache entry can never
+  // reach code compiled against a newer shape. Never inline the key string
+  // here — rule 021 rejects an inline app-data literal in this file.
+  [DASHBOARD_DATA_CACHE_KEY],
   { revalidate: 60, tags: [APP_DATA_TAG] }
 );
 

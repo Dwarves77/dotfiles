@@ -33,6 +33,11 @@ import { rule as rule019 } from './rules/019-source-reclassify-not-archive.mjs';
 // reject any commit that ADDS content to it (four recorded fork-write instances; the advisory
 // header alone kept failing). Maps to invariant SW-2 (the divergence-register recommendation).
 import { rule as rule020 } from './rules/020-fork-log-frozen.mjs';
+// Cached-shape key guard (2026-08-02): the DashboardData cache key must carry the current
+// shape hash. Closes the #395 class — a cached-payload shape change without a key rotation
+// let stale cross-deployment cache entries crash SSR of / (digest 2552218741). Content-
+// verifiable, 012-style; the failure message prints the exact new key.
+import { rule as rule021 } from './rules/021-cached-shape-key.mjs';
 
 export const rules = [
   rule012,
@@ -43,6 +48,7 @@ export const rules = [
   rule018,
   rule019,
   rule020,
+  rule021,
 ];
 
 export function getRuleById(id) {
