@@ -36,6 +36,8 @@ import { AUDIT_DATE } from "@/data/audit-date";
 import type {
   WorkspaceOverrideRow,
   WatchlistItem,
+  WatchlistItemType,
+  WatchlistScope,
   CoverageGap,
   ReviewItem,
   WorkspaceAggregates,
@@ -57,7 +59,16 @@ function alertIfFallback(
 // Re-export the Phase 3 widget types so HomeSurface and the widget files
 // can import them from a single module rather than reaching into
 // supabase-server directly.
-export type { WatchlistItem, CoverageGap, ReviewItem, WorkspaceAggregates, ScopeFilter, CategoryRoutedResult };
+export type {
+  WatchlistItem,
+  WatchlistItemType,
+  WatchlistScope,
+  CoverageGap,
+  ReviewItem,
+  WorkspaceAggregates,
+  ScopeFilter,
+  CategoryRoutedResult,
+};
 
 /**
  * Cache invalidation tag for workspace data. Mutation routes
@@ -392,11 +403,15 @@ async function resolveUserIdFromCookies(): Promise<string | null> {
   }
 }
 
+// Dual scope (2026-08-02): orgId is a real cache-key participant, not a
+// placeholder. The rail merges user_watchlist (personal) with org_watchlist
+// (team), so two members of different orgs must not share an entry. Key
+// bumped to v2 because the cached shape gained `scope`, `note`, `addedBy`.
 const cachedWatchlist = unstable_cache(
-  async (userId: string | null): Promise<WatchlistItem[]> => {
-    return fetchWatchlist(userId);
+  async (userId: string | null, orgId: string | null): Promise<WatchlistItem[]> => {
+    return fetchWatchlist(userId, orgId);
   },
-  ["watchlist-v1"],
+  ["watchlist-v2"],
   { revalidate: 60, tags: [APP_DATA_TAG] }
 );
 
@@ -434,14 +449,24 @@ const cachedWorkspaceAggregates = unstable_cache(
 );
 
 /**
- * Fetch the current user's watchlist items (regulations, sources, signals)
- * for the Dashboard Watchlist widget. Returns [] for anon users and on any
- * error (including migration 060 not yet applied).
+ * Fetch the current user's watchlist for the Dashboard Watchlist widget:
+ * personal watches (user_watchlist) merged with the team watchlist
+ * (org_watchlist) of whichever org the cookies resolve to. Returns [] for
+ * anon users and on any error.
+ *
+ * Org resolution degrades to null rather than throwing: a member whose org
+ * cannot be resolved still sees their personal rail. That asymmetry is
+ * deliberate and read-path only — the WRITE path must 403 instead, since
+ * org_watchlist.org_id is NOT NULL and a null there would be a silent
+ * mis-scoped insert.
  */
 export async function getWatchlist(): Promise<WatchlistItem[]> {
   try {
-    const userId = await resolveUserIdFromCookies();
-    return await cachedWatchlist(userId);
+    const [userId, orgId] = await Promise.all([
+      resolveUserIdFromCookies(),
+      resolveOrgIdFromCookies().catch(() => null),
+    ]);
+    return await cachedWatchlist(userId, orgId);
   } catch (e) {
     console.error("getWatchlist failed, returning empty:", e);
     return [];
