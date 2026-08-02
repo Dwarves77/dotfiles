@@ -32,11 +32,18 @@ import {
   Loader2,
   CheckCheck,
   Circle,
+  Archive,
 } from "lucide-react";
+import type { NotificationKind } from "@/lib/notifications/dispatch";
 
 const LIST_PATH = "/api/community/notifications?limit=20";
 
-type Kind = "mention" | "reply" | "invite" | "promote" | "moderation";
+// Single source of truth for the kind set: the dispatch helper's union, which
+// is itself pinned to the notifications_kind_check CHECK constraint. Type-only
+// import — erased at compile time, so the service-role client in that module
+// never reaches this client bundle. (Previously a hand-maintained duplicate
+// here, which is how 'archive' would have gone unlabelled.)
+type Kind = NotificationKind;
 
 interface Notification {
   id: string;
@@ -68,6 +75,7 @@ const KIND_LABEL: Record<Kind, string> = {
   invite: "Invite",
   promote: "Promotion",
   moderation: "Moderation",
+  archive: "Archived",
 };
 
 function KindIcon({ kind }: { kind: Kind }) {
@@ -83,6 +91,8 @@ function KindIcon({ kind }: { kind: Kind }) {
       return <ShieldAlert {...props} />;
     case "promote":
       return <Star {...props} />;
+    case "archive":
+      return <Archive {...props} />;
     default:
       return <Inbox {...props} />;
   }
