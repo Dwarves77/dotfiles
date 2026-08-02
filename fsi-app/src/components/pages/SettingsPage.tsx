@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Resource, Supersession } from "@/types/resource";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -18,6 +18,7 @@ import {
 } from "@/components/account/AccountPrimitives";
 import { NotificationPreferences } from "@/components/profile/NotificationPreferences";
 import { BriefingScheduleSection } from "@/components/settings/BriefingScheduleSection";
+import { usePersonalStateHydration } from "@/lib/hooks/usePersonalState";
 
 // ───────────────────────────────────────────────────────────────────────────
 // SettingsPage — Account · Settings (redesign T10, HANDOFF §6.10).
@@ -84,6 +85,35 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
     initialArchived.forEach((r) => map.set(r.id, r));
     return map;
   }, [initialResources, initialArchived]);
+
+  // ── Hydrate the shared resource store ──
+  // ArchiveViewer takes no props: it reads `archived`, `resources`, and
+  // `personalState` straight off the store. Nothing on this page put them
+  // there. On a hard load of /settings the store was still empty, so the
+  // Archive tab rendered "No archived resources" directly under a header
+  // saying "N items · still recoverable", and the tab only worked after a
+  // client-side nav from a surface that does hydrate. Same pair HomeSurface
+  // and RegulationsLedger already use, not a second mechanism.
+  //
+  // Actions are read as individual selectors rather than by destructuring the
+  // whole store: this component already subscribes narrowly below, and a
+  // whole-store subscription would re-render the entire settings surface on
+  // every unrelated store write.
+  const setResources = useResourceStore((s) => s.setResources);
+  const setArchived = useResourceStore((s) => s.setArchived);
+
+  useEffect(() => {
+    setResources(initialResources);
+    setArchived(initialArchived);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialResources, initialArchived]);
+
+  // Personal archive layer (migration 235). user_item_state is per-user so it
+  // is fetched client-side, not carried on the SSR payload. Without this the
+  // personalArchivedCount selector below is permanently 0, which makes the
+  // restore path unreachable for anyone whose only archived items are personal
+  // — the exact case the count was written to cover.
+  usePersonalStateHydration();
 
   // Dual-scope archive (migration 235): items this user archived for themselves
   // live in user_item_state, not in the org-scoped SSR payload. Counting only
