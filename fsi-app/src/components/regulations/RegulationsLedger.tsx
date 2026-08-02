@@ -64,6 +64,9 @@ interface RegulationsLedgerProps {
     archiveNote: string | null;
     notes: string;
     dismissedAt?: string | null;
+    // Phase 1 ownership (migration 234)
+    ownerUserId?: string | null;
+    ownerName?: string | null;
   }[];
   /** Verified-population count bundle from getSurfaceCounts('regulations').
    *  totalItems === 0 signals the fail-soft path (RPC absent / empty), in
@@ -73,6 +76,10 @@ interface RegulationsLedgerProps {
   initialPriorityFilter?: string | null;
   /** Deep-link Tier-1 ISO region filter from ?region=us-ca etc. */
   initialRegionFilter?: string | null;
+  /** Deep-link owner filter from ?owner=<display name> (DashboardByOwner
+   *  links; Phase 1 ownership). Matched case-insensitively against the
+   *  merged actionOwner. */
+  initialOwnerFilter?: string | null;
 }
 
 type BandKey = PriorityKey;
@@ -177,6 +184,7 @@ export function RegulationsLedger({
   aggregates,
   initialPriorityFilter = null,
   initialRegionFilter = null,
+  initialOwnerFilter = null,
 }: RegulationsLedgerProps) {
   const { resources: platformResources, setResources, setArchived, overrides, setOverrides, restoreDismissed } =
     useResourceStore();
@@ -195,6 +203,11 @@ export function RegulationsLedger({
   }, []);
 
   const [search, setSearch] = useState("");
+  // Phase 1 ownership: ?owner= deep link (DashboardByOwner). Cleared via its
+  // chip in the facet bar or Clear filters.
+  const [ownerFilter, setOwnerFilter] = useState<string | null>(
+    () => (initialOwnerFilter || "").trim() || null
+  );
   const [activePriorities, setActivePriorities] = useState<Set<string>>(initialPrioritySet);
   const [activeModes, setActiveModes] = useState<Set<string>>(new Set());
   const [activeTopics, setActiveTopics] = useState<Set<string>>(new Set());
@@ -261,6 +274,7 @@ export function RegulationsLedger({
 
   // ── Row filter predicate (search + mode + topic + region) ────────────
   const matchesFilters = (r: Resource): boolean => {
+    if (ownerFilter && (r.actionOwner || "").toLowerCase() !== ownerFilter.toLowerCase()) return false;
     if (activeModes.size > 0 && !(r.modes || []).some((m) => activeModes.has(m))) return false;
     if (activeTopics.size > 0 && !(r.topic && activeTopics.has(r.topic))) return false;
     if (activeRegionIsos.size > 0) {
@@ -316,10 +330,11 @@ export function RegulationsLedger({
     }
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [regulatory, search, activeModes, activeTopics, activeRegionIsos, sort]);
+  }, [regulatory, search, ownerFilter, activeModes, activeTopics, activeRegionIsos, sort]);
 
   const anyFilterActive =
     !!search.trim() ||
+    !!ownerFilter ||
     activePriorities.size > 0 ||
     activeModes.size > 0 ||
     activeTopics.size > 0 ||
@@ -357,6 +372,7 @@ export function RegulationsLedger({
 
   const clearFilters = () => {
     setSearch("");
+    setOwnerFilter(null);
     setActivePriorities(new Set());
     setActiveModes(new Set());
     setActiveTopics(new Set());
@@ -622,6 +638,27 @@ export function RegulationsLedger({
           >
             Filters {filtersOpen ? "▴" : "▾"}
           </button>
+          {ownerFilter && (
+            <button
+              type="button"
+              onClick={() => setOwnerFilter(null)}
+              title="Clear the owner filter"
+              style={{
+                fontFamily: "inherit",
+                fontSize: 11.5,
+                fontWeight: 700,
+                padding: "8px 14px",
+                borderRadius: 6,
+                border: "1px solid var(--color-primary)",
+                background: "var(--color-bg-raised, var(--color-bg-surface))",
+                color: "var(--color-primary)",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Owner: {ownerFilter} ✕
+            </button>
+          )}
         </div>
 
         {filtersOpen && (
