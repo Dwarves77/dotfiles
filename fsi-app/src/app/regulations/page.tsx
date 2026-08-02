@@ -26,9 +26,9 @@ import { REGULATIONS_DOMAIN } from "@/lib/domains";
 export default async function RegulationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ priority?: string; region?: string }>;
+  searchParams: Promise<{ priority?: string; region?: string; owner?: string }>;
 }) {
-  const { priority: priorityParam, region: regionParam } = await searchParams;
+  const { priority: priorityParam, region: regionParam, owner: ownerParam } = await searchParams;
 
   // Listings (verified-gated server-side) for the ledger rows + the
   // single-SoT verified count bundle for the masthead / tiles / bands.
@@ -95,6 +95,7 @@ export default async function RegulationsPage({
         aggregates={aggregates}
         initialPriorityFilter={priorityParam ?? null}
         initialRegionFilter={regionParam ?? null}
+        initialOwnerFilter={ownerParam ?? null}
       />
     </>
   );
