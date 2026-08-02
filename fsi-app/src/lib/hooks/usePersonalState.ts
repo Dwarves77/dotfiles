@@ -78,10 +78,10 @@ export function usePersonalStateHydration() {
         // skipping the write means a slow response can never clobber an
         // optimistic archive the user made while it was in flight.
         if (rows.length > 0) setPersonalState(rows);
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.warn(
           "[personal-state] hydration failed:",
-          e?.message || e
+          e instanceof Error ? e.message : e
         );
       }
     })();
