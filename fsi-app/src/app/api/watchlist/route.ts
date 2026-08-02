@@ -76,11 +76,15 @@ const noOrgError = () =>
   );
 
 // GET /api/watchlist?item_type=reg&item_id=<id>
-// → { watched: boolean, personal: boolean, team: boolean }
+// → { watched, personal, team, teamAvailable }
 //
 // Both scopes resolve in ONE round trip. `watched` mirrors `personal` so the
 // existing WatchButton contract keeps working unchanged; the button's own
 // toggle is the personal watch.
+//
+// `teamAvailable` reports whether an org resolved at all. Without it, team:false
+// is ambiguous — it could mean "the org has not watched this" or "this user has
+// no org" — and the client would render a team affordance that can only 403.
 async function handleGET(request: NextRequest) {
   const auth = await requireAuth(request);
   if (isAuthError(auth)) return auth;
@@ -123,7 +127,7 @@ async function handleGET(request: NextRequest) {
   const team = !!teamRes.data;
 
   return NextResponse.json(
-    { watched: personal, personal, team },
+    { watched: personal, personal, team, teamAvailable: !!orgId },
     { headers: rateLimitHeaders(auth.userId) }
   );
 }
