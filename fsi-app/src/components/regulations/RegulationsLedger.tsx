@@ -187,7 +187,7 @@ export function RegulationsLedger({
   initialRegionFilter = null,
   initialOwnerFilter = null,
 }: RegulationsLedgerProps) {
-  const { resources: platformResources, setResources, setArchived, overrides, setOverrides, restoreDismissed } =
+  const { resources: platformResources, setResources, setArchived, overrides, setOverrides, restoreDismissed, personalState } =
     useResourceStore();
 
   // ── Filter state ────────────────────────────────────────────────────
@@ -232,8 +232,8 @@ export function RegulationsLedger({
   const effectiveResources =
     platformResources.length > 0 ? platformResources : initialResources;
   const { active, dismissed } = useMemo(
-    () => mergeWithOverrides(effectiveResources, overrides),
-    [effectiveResources, overrides]
+    () => mergeWithOverrides(effectiveResources, overrides, personalState),
+    [effectiveResources, overrides, personalState]
   );
   // Dismissed regulations surface in the DismissedStash drawer at the bottom (restore path).
   // The Template-02 rebuild dropped this drawer; without it a dismissed item — e.g. a CRITICAL

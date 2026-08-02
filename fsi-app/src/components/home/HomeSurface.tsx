@@ -125,6 +125,7 @@ export function HomeSurface({
     setArchived,
     overrides,
     setOverrides,
+    personalState,
   } = useResourceStore();
   const sectorProfile = useWorkspaceStore((s) => s.sectorProfile);
   const sectorWeights = useWorkspaceStore((s) => s.sectorWeights);
@@ -150,8 +151,8 @@ export function HomeSurface({
   const effectiveResources = platformResources.length > 0 ? platformResources : initialResources;
   const effectiveArchived = platformArchived.length > 0 ? platformArchived : initialArchived;
   const { active: resources, archived: workspaceArchived } = useMemo(
-    () => mergeWithOverrides(effectiveResources, overrides),
-    [effectiveResources, overrides]
+    () => mergeWithOverrides(effectiveResources, overrides, personalState),
+    [effectiveResources, overrides, personalState]
   );
   const archived = useMemo(
     () => [...effectiveArchived, ...workspaceArchived],
