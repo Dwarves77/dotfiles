@@ -28,7 +28,8 @@ async function resolveItemUuid(
 
 // POST /api/workspace/overrides
 // Body: { itemId: string, priorityOverride?: string|null, isArchived?: boolean,
-//         archiveReason?: string|null, archiveNote?: string|null, notes?: string }
+//         archiveReason?: string|null, archiveNote?: string|null, notes?: string,
+//         ownerUserId?: string|null }
 // Upserts (org_id, item_id) into workspace_item_overrides.
 async function handlePOST(request: NextRequest) {
   const auth = await requireAuth(request);
@@ -94,6 +95,37 @@ async function handlePOST(request: NextRequest) {
     update.dismissed_at = new Date().toISOString();
   } else if (body.dismiss === false) {
     update.dismissed_at = null;
+  }
+  // Phase 1 ownership (migration 234): org-scoped assignee. null clears.
+  // Guard: the assignee must hold a membership in the CALLER'S org — assignment
+  // outside the company group is refused, and an unverifiable membership lookup
+  // fails closed (500), never silently through.
+  if ("ownerUserId" in body) {
+    const ownerUserId =
+      typeof body.ownerUserId === "string" && body.ownerUserId ? body.ownerUserId : null;
+    if (ownerUserId !== null) {
+      if (!UUID_RE.test(ownerUserId)) {
+        return NextResponse.json({ error: "ownerUserId must be a UUID or null" }, { status: 400 });
+      }
+      const { data: assigneeMembership, error: membershipErr } = await supabase
+        .from("org_memberships")
+        .select("id")
+        .eq("org_id", orgId)
+        .eq("user_id", ownerUserId)
+        .maybeSingle();
+      if (membershipErr) {
+        return NextResponse.json({ error: membershipErr.message }, { status: 500 });
+      }
+      if (!assigneeMembership) {
+        return NextResponse.json(
+          { error: "Assignee is not a member of your organization" },
+          { status: 403 }
+        );
+      }
+    }
+    update.owner_user_id = ownerUserId;
+    update.owner_assigned_by = ownerUserId === null ? null : auth.userId;
+    update.owner_assigned_at = ownerUserId === null ? null : new Date().toISOString();
   }
 
   const { data, error } = await supabase

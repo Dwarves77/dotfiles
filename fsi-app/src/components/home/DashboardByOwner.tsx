@@ -88,10 +88,9 @@ export function DashboardByOwner({ resources }: DashboardByOwnerProps) {
     return (
       <DashboardRailCard title="By owner">
         <RailEmptyFrame
-          // Honest empty state (Phase 0, 2026-08-01): owner assignment is not
-          // built yet — the previous copy promised a detail-page assign flow
-          // that never existed. Say what's true until the ownership phase ships.
-          body="No owners assigned yet. Owner assignment is coming soon — items will be assignable to teammates from their detail pages."
+          // Phase 1 ownership (migration 234): assignment is live — the
+          // Owner & team card on each item's detail page assigns a teammate.
+          body="No owners assigned yet. Assign a teammate from the Owner & team card on any item's detail page."
           cta={{ label: "Browse regulations →", href: "/regulations" }}
         />
       </DashboardRailCard>

@@ -73,6 +73,11 @@ export interface WorkspaceOverride {
   // is_archived — dismissed hides the regulation from active Kanban
   // and surfaces it in the bottom stash drawer with a Restore action.
   dismissedAt?: string | null;
+  // Phase 1 ownership (migration 234): org-scoped assignee. ownerName is
+  // resolved server-side (org roster); null when unassigned OR when the
+  // assignee has left the org — the merge layer renders that as unassigned.
+  ownerUserId?: string | null;
+  ownerName?: string | null;
 }
 
 // ── Synopsis + Change types ──
@@ -132,6 +137,10 @@ interface ResourceState {
   // regulation returns to its (priority_override-or-platform) column.
   dismissResource: (id: string) => void;
   restoreDismissed: (id: string) => void;
+  // Phase 1 ownership (migration 234): assign/clear the org-scoped owner.
+  // ownerName rides along so the UI renders the display name immediately
+  // (optimistic) without a roster re-fetch.
+  setOwner: (id: string, ownerUserId: string | null, ownerName: string | null) => void;
 
   // Actions — filters
   toggleFilter: (dimension: keyof Omit<Filters, "search" | "searchScope">, value: string) => void;
@@ -240,6 +249,42 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
       { itemId: id, priorityOverride: priority, dismissedAt: null },
       "POST"
     ).then((ok) => {
+      if (!ok) {
+        set((state) => {
+          const rolled = new Map(state.overrides);
+          if (prev) rolled.set(id, prev);
+          else rolled.delete(id);
+          return { overrides: rolled };
+        });
+      }
+    });
+  },
+
+  // Phase 1 ownership (migration 234): assign/clear the org-scoped owner.
+  // Same optimistic-write-rollback contract as updatePriority; the server
+  // additionally enforces that the assignee is a member of the caller's org
+  // (a 403 rolls the optimistic assignment back).
+  setOwner: (id, ownerUserId, ownerName) => {
+    const prev = get().overrides.get(id);
+    set((state) => {
+      const newOverrides = new Map(state.overrides);
+      const existing = newOverrides.get(id) || {
+        itemId: id,
+        priorityOverride: null,
+        isArchived: false,
+        archiveReason: null,
+        archiveNote: null,
+        notes: "",
+        dismissedAt: null,
+      };
+      newOverrides.set(id, {
+        ...existing,
+        ownerUserId,
+        ownerName: ownerUserId === null ? null : ownerName,
+      });
+      return { overrides: newOverrides };
+    });
+    persistOverride({ itemId: id, ownerUserId }, "POST").then((ok) => {
       if (!ok) {
         set((state) => {
           const rolled = new Map(state.overrides);
@@ -444,12 +489,18 @@ export function mergeWithOverrides(
 
   for (const r of resources) {
     const override = overrides.get(r.id);
+    // Phase 1 ownership (migration 234): the org-scoped assignee surfaces
+    // through the existing actionOwner field, so DashboardByOwner /
+    // OwnerTeamCard / the Top-priority owner line all light up from this one
+    // seam. ownerName is null for a departed member → renders unassigned.
+    const actionOwner = override?.ownerName || r.actionOwner;
 
     if (override?.isArchived) {
       // Workspace archived this item — move to archived view
       archived.push({
         ...r,
         priority: (override.priorityOverride as Resource["priority"]) || r.priority,
+        actionOwner,
         isArchived: true,
         archiveReason: override.archiveReason || undefined,
         archiveNote: override.archiveNote || undefined,
@@ -462,12 +513,14 @@ export function mergeWithOverrides(
       dismissed.push({
         ...r,
         priority: (override.priorityOverride as Resource["priority"]) || r.priority,
+        actionOwner,
       });
     } else {
       // Active item — apply priority override if present
       active.push({
         ...r,
         priority: (override?.priorityOverride as Resource["priority"]) || r.priority,
+        actionOwner,
       });
     }
   }
