@@ -4,26 +4,29 @@ import { create } from "zustand";
 import type { Resource } from "@/types/resource";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
-// ── Persistence helper ──
-// POST or DELETE the override on /api/workspace/overrides. Returns true on
-// 2xx, false otherwise. Anonymous users (no session token) get a console
-// warning and a `false` return — caller should rollback the optimistic update
-// in that case so the UI doesn't lie.
-async function persistOverride(
-  payload: { itemId: string } & Record<string, unknown>,
+// ── Persistence helpers ──
+// One authed-JSON seam for every workspace/personal write. It returns the
+// server's error MESSAGE, not just a boolean, because the dual-scope archive
+// has user-actionable failures the UI must show verbatim — the role gate's
+// "requires the admin or owner role. You can archive it just for yourself
+// instead." is the whole point of the 403 and must not be swallowed into a
+// generic toast.
+async function persistJson(
+  path: string,
+  payload: Record<string, unknown>,
   method: "POST" | "DELETE"
-): Promise<boolean> {
+): Promise<{ ok: boolean; error: string | null }> {
   try {
     const supabase = createSupabaseBrowserClient();
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
     if (!token) {
       console.warn(
-        "[resourceStore] No auth session — override change is local-only and will be lost on reload."
+        `[resourceStore] No auth session — ${path} change is local-only and will be lost on reload.`
       );
-      return false;
+      return { ok: false, error: "You are signed out. Sign in and try again." };
     }
-    const resp = await fetch("/api/workspace/overrides", {
+    const resp = await fetch(path, {
       method,
       headers: {
         "Content-Type": "application/json",
@@ -34,15 +37,32 @@ async function persistOverride(
     if (!resp.ok) {
       const text = await resp.text().catch(() => "");
       console.error(
-        `[resourceStore] /api/workspace/overrides ${method} returned ${resp.status}: ${text.slice(0, 300)}`
+        `[resourceStore] ${path} ${method} returned ${resp.status}: ${text.slice(0, 300)}`
       );
-      return false;
+      let message = `Request failed (${resp.status}).`;
+      try {
+        const parsed = JSON.parse(text) as { error?: unknown };
+        if (typeof parsed.error === "string" && parsed.error) message = parsed.error;
+      } catch {
+        /* non-JSON body — keep the status-code message */
+      }
+      return { ok: false, error: message };
     }
-    return true;
+    return { ok: true, error: null };
   } catch (e: any) {
-    console.error("[resourceStore] /api/workspace/overrides request failed:", e?.message || e);
-    return false;
+    console.error(`[resourceStore] ${path} request failed:`, e?.message || e);
+    return { ok: false, error: "Network error. Your change was not saved." };
   }
+}
+
+// Thin boolean wrapper over persistJson for the override route — the shape the
+// pre-existing priority/dismiss/owner actions already expect.
+async function persistOverride(
+  payload: { itemId: string } & Record<string, unknown>,
+  method: "POST" | "DELETE"
+): Promise<boolean> {
+  const { ok } = await persistJson("/api/workspace/overrides", payload, method);
+  return ok;
 }
 
 type SortKey = "urgency" | "priority" | "alpha" | "added" | "modified";
@@ -80,6 +100,19 @@ export interface WorkspaceOverride {
   ownerName?: string | null;
 }
 
+// ── Personal item state ──
+// Dual-scope archive (migration 235), the per-USER layer. Sits ABOVE the
+// workspace override the same way the override sits above platform data:
+// platform → org override → personal state. A personal archive hides the item
+// for this user only and is ungated by design (no role, no reason, no fan-out) —
+// it is not a team action.
+export interface PersonalItemState {
+  itemId: string;
+  isArchived: boolean;
+  archiveNote: string | null;
+  archivedAt: string | null;
+}
+
 // ── Synopsis + Change types ──
 export interface StoredSynopsis {
   sector: string;
@@ -108,6 +141,9 @@ interface ResourceState {
   // Workspace overrides (org-scoped, layered on top of platform data)
   overrides: Map<string, WorkspaceOverride>;
 
+  // Personal state (user-scoped, layered on top of the org override)
+  personalState: Map<string, PersonalItemState>;
+
   // Filters
   filters: Filters;
   sort: SortKey;
@@ -129,8 +165,16 @@ interface ResourceState {
   // Actions — workspace overrides (write to override layer, not platform data)
   setOverrides: (overrides: WorkspaceOverride[]) => void;
   updatePriority: (id: string, priority: Resource["priority"]) => void;
-  archiveResource: (id: string, reason: string, note: string, replacedBy?: string) => void;
+  // Dual-scope archive (migration 235). Both archive actions RESOLVE to an
+  // error message (null on success) rather than firing and forgetting: the
+  // workspace path can legitimately refuse (403 role gate, 400 missing reason)
+  // and the dialog must show the server's own wording.
+  archiveResource: (id: string, reason: string, note: string) => Promise<string | null>;
   restoreResource: (id: string) => void;
+  // Personal scope — ungated, hides the item for this user only.
+  setPersonalState: (rows: PersonalItemState[]) => void;
+  archivePersonal: (id: string, note: string) => Promise<string | null>;
+  restorePersonal: (id: string) => Promise<string | null>;
   // Sprint 3 follow-up Part 2: dismiss/restore for the dismissed-stash
   // drawer on /regulations. Dismiss = hide from active Kanban + surface
   // in stash drawer; restore = clear the dismissed_at timestamp so the
@@ -175,6 +219,7 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
   intelligenceChanges: new Map(),
   sectorDisplayNames: new Map(),
   overrides: new Map(),
+  personalState: new Map(),
   filters: { ...emptyFilters },
   sort: "urgency",
   sessionSectorOverride: false,
@@ -362,8 +407,11 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
     });
   },
 
-  // Archive via workspace override — platform item stays untouched
-  archiveResource: (id, reason, note) => {
+  // WORKSPACE archive via the override layer — platform item stays untouched.
+  // Team-wide effect, so the server may refuse (role gate / missing reason);
+  // the refusal message is returned to the caller and the optimistic write is
+  // rolled back. Awaited rather than fire-and-forget for exactly that reason.
+  archiveResource: async (id, reason, note) => {
     const prev = get().overrides.get(id);
     set((state) => {
       const newOverrides = new Map(state.overrides);
@@ -383,19 +431,79 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
       });
       return { overrides: newOverrides };
     });
-    persistOverride(
+    const { ok, error } = await persistJson(
+      "/api/workspace/overrides",
       { itemId: id, isArchived: true, archiveReason: reason, archiveNote: note },
       "POST"
-    ).then((ok) => {
-      if (!ok) {
-        set((state) => {
-          const rolled = new Map(state.overrides);
-          if (prev) rolled.set(id, prev);
-          else rolled.delete(id);
-          return { overrides: rolled };
-        });
-      }
+    );
+    if (!ok) {
+      set((state) => {
+        const rolled = new Map(state.overrides);
+        if (prev) rolled.set(id, prev);
+        else rolled.delete(id);
+        return { overrides: rolled };
+      });
+    }
+    return ok ? null : error;
+  },
+
+  // Load the caller's personal state (GET /api/workspace/personal-state).
+  setPersonalState: (rows) => {
+    const map = new Map<string, PersonalItemState>();
+    rows.forEach((r) => map.set(r.itemId, r));
+    set({ personalState: map });
+  },
+
+  // PERSONAL archive — this user only. No role gate, no required reason, no
+  // notification fan-out: it is not a team action and must never read as one.
+  archivePersonal: async (id, note) => {
+    const prev = get().personalState.get(id);
+    set((state) => {
+      const next = new Map(state.personalState);
+      next.set(id, {
+        itemId: id,
+        isArchived: true,
+        archiveNote: note || null,
+        archivedAt: new Date().toISOString(),
+      });
+      return { personalState: next };
     });
+    const { ok, error } = await persistJson(
+      "/api/workspace/personal-state",
+      { itemId: id, isArchived: true, archiveNote: note || null },
+      "POST"
+    );
+    if (!ok) {
+      set((state) => {
+        const rolled = new Map(state.personalState);
+        if (prev) rolled.set(id, prev);
+        else rolled.delete(id);
+        return { personalState: rolled };
+      });
+    }
+    return ok ? null : error;
+  },
+
+  restorePersonal: async (id) => {
+    const prev = get().personalState.get(id);
+    set((state) => {
+      const next = new Map(state.personalState);
+      next.delete(id);
+      return { personalState: next };
+    });
+    const { ok, error } = await persistJson(
+      "/api/workspace/personal-state",
+      { itemId: id, isArchived: false, archiveNote: null },
+      "POST"
+    );
+    if (!ok) {
+      set((state) => {
+        const rolled = new Map(state.personalState);
+        if (prev) rolled.set(id, prev);
+        return { personalState: rolled };
+      });
+    }
+    return ok ? null : error;
   },
 
   // Restore: clear archive flag in the override row
@@ -479,9 +587,16 @@ export const useResourceStore = create<ResourceState>((set, get) => ({
 // Combines platform resource data with workspace overrides.
 // This is what the UI renders — the effective view for this workspace.
 
+// Layer order is platform → org override → personal state. The personal layer
+// is checked FIRST for archive because it is the narrower scope: a user who
+// archived an item for themselves keeps it hidden regardless of what the
+// workspace did, and restoring it for the team must not un-hide it for them.
+// `personalState` is optional so pre-dual-scope call sites keep compiling with
+// the same (resources, overrides) shape.
 export function mergeWithOverrides(
   resources: Resource[],
-  overrides: Map<string, WorkspaceOverride>
+  overrides: Map<string, WorkspaceOverride>,
+  personalState?: Map<string, PersonalItemState>
 ): { active: Resource[]; archived: Resource[]; dismissed: Resource[] } {
   const active: Resource[] = [];
   const archived: Resource[] = [];
@@ -489,6 +604,21 @@ export function mergeWithOverrides(
 
   for (const r of resources) {
     const override = overrides.get(r.id);
+    const personal = personalState?.get(r.id);
+
+    if (personal?.isArchived) {
+      // Personal archive wins over every wider scope.
+      archived.push({
+        ...r,
+        priority: (override?.priorityOverride as Resource["priority"]) || r.priority,
+        actionOwner: override?.ownerName || r.actionOwner,
+        isArchived: true,
+        archiveReason: "personal",
+        archiveNote: personal.archiveNote || undefined,
+        archivedDate: (personal.archivedAt || new Date().toISOString()).slice(0, 10),
+      });
+      continue;
+    }
     // Phase 1 ownership (migration 234): the org-scoped assignee surfaces
     // through the existing actionOwner field, so DashboardByOwner /
     // OwnerTeamCard / the Top-priority owner line all light up from this one
