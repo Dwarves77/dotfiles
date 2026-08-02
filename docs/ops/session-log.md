@@ -5,6 +5,247 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-08-02 — RETRACTION: the "migration collision" was NOT a defect (live-DB evidence)
+
+**This entry retracts two claims made in the 2026-08-01 entry below. Both were wrong. Read this first.**
+
+### RETRACTED CLAIM 1 — "migration numbers are double-allocated; PR #370 cannot merge as-is"
+
+**Status: FALSE. No defect exists. No renumbering should be performed.**
+
+What was observed (correctly): `corpus-integrity/cc-grounding-executor-c` carries a `coverage_gap_*` migration
+series numbered 215-246 that reuses every 3-digit prefix master also uses across 215-239 — 25 consecutive
+apparent collisions, not the 5 first reported.
+
+What was inferred from it (incorrectly): that this blocks merges and requires renumbering to 240+.
+
+**The live database refutes it** (VERIFIED — `list_migrations` against project `kwrsbpiseruzbfwjpvsp`, 2026-08-02):
+
+- Supabase versions migrations by **timestamp**, not by the file's 3-digit prefix. The prefix survives only
+  inside the `name`, and inconsistently (some applied rows carry it, some do not).
+- Both series are fully applied, each exactly once, in timestamp order. Representative pairs:
+
+  | DB version | name |
+  |---|---|
+  | `20260718020707` | `223_coverage_gap_class5_eu_epr_expansion` |
+  | `20260725183634` | `223_acquisition_backlog_v` |
+  | `20260718193242` | `233_coverage_gap_gemini_second_pass_access_model` |
+  | `20260801235426` | `watchlist_type_expansion` (repo 233) |
+  | `20260718200309` | `236_coverage_gap_saf_claims_substantiation_membership_check` |
+  | `20260802033207` | `dual_scope_watchlist` (repo 236) |
+
+- PR #370's migration is **already applied**: `20260721222204 next_uncensused_portal_candidates`.
+- Merging is unaffected: `223_coverage_gap_class5_eu_epr_expansion.sql` and `223_acquisition_backlog_v.sql` are
+  **different filenames**. They coexist in one directory and git merges them without conflict. The `mergeable=UNKNOWN`
+  on #370 is GitHub not having computed a stale PR, not a migration conflict.
+
+**Why renumbering would have caused harm:** the DB records applied migrations by name. Renaming
+`223_coverage_gap_*.sql` to `247_*.sql` would desync the repo's filenames from the names recorded as applied,
+manufacturing a real inconsistency where only a cosmetic one existed. The fix was worse than the non-problem.
+
+Residual (cosmetic, NOT urgent): duplicate 3-digit prefixes make the directory hard to read for humans and make
+`docs/inventories/migrations.md` ambiguous. Any future convention change is an operator call and must be made
+knowing the DB keys on timestamps. **Do not renumber existing files.**
+
+### RETRACTED CLAIM 2 — "PR #391 has been RED since 2026-07-30; not mergeable"
+
+**Status: RESOLVED, and the entry below is stale.** True when written (Discipline engine failed on `1e32bd4d`
+07-30T22:28Z and on `ee4e5c0b`). Since fixed upstream: Discipline engine **success** on `46c1e0b0`
+(2026-08-01T22:13Z) — VERIFIED via `gh run list`. The 015/016 guard violations were remediated in
+`unit3-classify-v2.mjs`, `unit3-supersede-v1.mjs` and siblings. NEXT item 0 in the entry below is discharged.
+
+### Also superseded below
+
+- **Session-log fork** — largely self-resolved. `master` now carries 2,172 lines vs task1's 2,339 (METADATA);
+  the 07-22..07-30 block landed. Only the 08-01/08-02 entries remain task1-only, and they land when #391 merges.
+- **Migration free-number list** ("240/241 are FREE") — misleading, since freeness was never the constraint.
+
+### Standing lesson
+
+The 08-01 entry asserted a blocker from repo-shaped evidence alone and never checked the system of record. Both
+retracted claims would have survived any amount of further git archaeology. **For anything that touches applied
+state, the database is the source of truth (standing rule 1) — read it before declaring a blocker.**
+
+### What is genuinely open (unchanged by this retraction)
+
+1. No CI has run on `settings-archive-hydration`, `fix-cache-shape-crash`, `capture-worker-v1-3-pdf` — the
+   workflows fire only on push-to-master and PRs-targeting-master. Opening PRs is the only way to gate them.
+2. `settings-archive-hydration` and `ci-drop-gate-a-ack` are content-identical to master (VERIFIED, 3-dot diff);
+   they landed by squash-merge (#401/#403) and are safe to delete from origin.
+3. 18 stale redesign worktrees from 07-06/07 still registered, still unmerged.
+4. The main clone's `check-pretooluse-wired.mjs` is the stale 61-line copy; every push from there fails step 3c.
+   `e4314acb` is already on master — the fix is to move that clone off `corpus-integrity/intake-census`, NOT to
+   cherry-pick and NEVER to run `wire-pretooluse-settings.mjs --apply` (it rewrites global settings).
+
+---
+
+## 2026-08-01 — CROSS-LANE RECONCILIATION SNAPSHOT (no work performed; repo-evidence only)
+
+**Provenance of this entry.** Reconstructed entirely from git/gh command output on 2026-08-01. There was no
+session transcript to summarise — `/done` was the first and only instruction in the context that produced this.
+Nothing was built, run, merged, or spent. Every number below is METADATA (git/gh read), not VERIFIED runtime.
+Read this as a state census of the parallel lanes, not as a record of accomplishment.
+
+### 1. Cross-lane state (METADATA — `git worktree list` + `rev-list --count master..HEAD`, 2026-08-01)
+
+26 registered worktrees. Live lanes, by recency of last commit:
+
+| Lane / branch | Ahead of master | Last commit | Working tree |
+|---|---|---|---|
+| `task1-cbam-target-match` (wt-adr016-ft) | **+103** | 2026-07-30 | clean |
+| `corpus-integrity/intake-census` (main dir) | +42 | 2026-07-21 | **49 entries dirty** |
+| `corpus-integrity/cc-grounding-executor-b` | +40 | 2026-07-21 | clean |
+| `corpus-integrity/cc-grounding-executor-c` | +23 | 2026-07-20 | clean |
+| `corpus-integrity/cc-grounding-executor-d` | 0 | 2026-07-18 | clean |
+| `census/classify-full-enum` (wt-classify) | 0 | 2026-07-19 | 4 untracked |
+| `master` | — | 2026-07-19 (#358) | clean |
+
+- **No lane has a commit later than 2026-07-30** (METADATA). Whether uncommitted edits were made 07-31/08-01 is
+  UNKNOWN — the filesystem mtime sweep timed out before completing and was not retried. Not asserted either way.
+- Open PRs (METADATA — `gh pr list`, 4 total): **#391** (head of `task1-cbam-target-match`, opened 07-30),
+  **#370** (`corpus-integrity/intake-census`, open since 07-21), **#341** (`cc-grounding-executor`, open since
+  07-17), **#288** (ADR-012 Clause 10 archive purge, open since 07-12). Three of the four have been open 10+ days.
+
+### 2. BLOCKER — the session log itself has forked
+
+- Merge-base of `corpus-integrity/intake-census` and `task1-cbam-target-match` is **PR #369, 2026-07-21 18:18** (METADATA).
+- `docs/ops/session-log.md` is **1,321 lines** on `intake-census` and **2,225 lines** on `task1-cbam-target-match`
+  (METADATA — `git show <branch>:path | wc -l`). ~900 lines of history, covering **2026-07-22 → 2026-07-30**,
+  exist only on `task1`.
+- Consequence: a session resuming from the main working directory (`corpus-integrity/intake-census`) reads a log
+  that ends at 2026-07-21 and is blind to the entire ADR-016 acceleration, the P2 structural gate, the Coverage
+  Index relocation to admin-only, and the first publication. **This is exactly the condition that produces
+  confident wrong conclusions about what is live.**
+- This entry is filed on `task1-cbam-target-match` per operator ruling (2026-08-01) — newest history stays in one
+  place rather than widening the fork. **The fork is recorded, not resolved.**
+
+### 3. DRIFT — 18 stale worktrees from the 2026-07-06/07 redesign wave
+
+All 18 are clean, 1–4 commits ahead of master, unmerged, and untouched for ~3.5 weeks (METADATA):
+
+`feat/redesign-t01-dashboard` (+4), `feat/redesign-t04-market-intel` (+4), `feat/redesign-t06-research` (+3),
+`feat/redesign-t07-operations` (+3), `feat/redesign-t08-admin` (+3), `feat/redesign-t09-map` (+3),
+`feat/redesign-t10-account-v2` (+3), `feat/redesign-t11-community` (+3), `feat/redesign-t02-regulations` (+2),
+`feat/redesign-t05-signal-detail` (+2), `feat/redesign-t10-account` (+2), `feat/seek-more` (+2),
+`docs/redesign-t11-community-mapping` (+1), `feat/4d-officialness-gate` (+1), `feat/intake-gate-reland` (+1),
+`feat/redesign-t03-regulation-detail` (+1), `feat/transport-escalation-ladder` (+1), `feat/batch1-runner` (+1).
+
+- `feat/redesign-t02-regulations` and `feat/redesign-t10-account` both sit on the **same commit** `adb21966` —
+  two worktrees, one tip. At least one is redundant.
+- Two further semi-stale lanes at +1 each from 2026-07-13: `docs/vault-graph-backfill`, `perf/isr-detail-cache`.
+- Standing rule 7 (worktree discipline) forbids restructuring shared paths while other worktrees are live. **18
+  abandoned-but-registered worktrees keep that constraint permanently armed** against work that has stopped.
+  Disposition (merge / rebase / delete) is an operator call, not taken here.
+
+### 4. RESIDUE — machine-only work never staged
+
+- `corpus-integrity/intake-census` working tree: **49 dirty entries** (METADATA) — 45 deletions under
+  `fsi-app/scripts/tmp/` (gitignored scratch per standing rule 5, expected churn) plus 4 untracked:
+  `docs/dispatches/`, `fsi-app/docs/audits/corpus-integrity-census-2026-07-16.md`,
+  `fsi-app/scripts/_reground/nondestructive-live-proof.mjs`,
+  `fsi-app/scripts/remediation/acquire-enacted-primary-o9.mjs`.
+- `census/classify-full-enum` (wt-classify): 4 untracked stock enumerators —
+  `census-audit-gate-30.mjs`, `census-ecfr-stock-enumerate.mjs`, `census-eurlex-stock-enumerate.mjs`,
+  `census-uk-stock-enumerate.mjs`.
+- The two runners outside `scripts/tmp/` (`acquire-enacted-primary-o9.mjs`, `nondestructive-live-proof.mjs`) and the
+  four enumerators are **not regenerable scratch** — they sit in real source paths and would be lost to a clean
+  checkout. Precedent exists for this class: "persist the last seven machine-only remediation runners"
+  (`dcccb982`, 2026-07-30) — **but see section 5: that commit is what turned CI red.** Persisting runners is right;
+  persisting them unguarded is what failed. Route through `scripts/lib/db.mjs` / `lib/anthropic.mjs` first.
+
+### 5. BLOCKER — PR #391 / `task1-cbam-target-match` CI has been RED since 2026-07-30
+
+Discovered while pushing this entry (METADATA — `gh run list/view`):
+
+- Discipline engine: **failure** on `1e32bd4d` at 2026-07-30T22:28Z, and again on `ee4e5c0b` (this entry).
+  Last green was `e3a8ae5e` at 22:24Z. **The branch has been red for ~2 days, unnoticed.**
+- This entry's own commit is clean (`ee4e5c0b`: 0 pass, 0 fail, 8 skip). The docs commit neither caused nor
+  fixed the failure — it inherits it. Bug-class guard passes.
+- The two failing rules both belong to `dcccb982` ("chore(runners): persist the last seven machine-only
+  remediation runners"):
+  - **[015] Row-mutation guarded path** — 4 scripts do RAW row mutations outside `scripts/lib/db.mjs`:
+    `gate-b-derived-mint.mjs`, `unit3-classify-census.mjs`, `unit3-classify-v2.mjs`, `unit3-supersede-v1.mjs`.
+    Loses prior-value snapshot (reversibility) and skill citation.
+  - **[016] Canonical Anthropic path** — 3 direct API calls bypassing `lib/anthropic.mjs`:
+    `index-relevance-2nd.mjs:36`, `unit3-classify-census.mjs:26`, `unit3-classify-v2.mjs:32`.
+    Direct calls bypass `/api/agent/run`, so spend-cap wiring and `source_citations` are both lost.
+- **`unit3-classify-v2.mjs` appears in both failures.** Standing memory records it as the runner carrying the
+  metered-lane +$15 clamp, previously flagged as living in an uncommitted untracked state — it is now committed
+  but unguarded on both axes. **A spend-capped runner that bypasses the spend-cap path is the worst case of the
+  two rules**, and it is the one the queue would next execute.
+- NOT fixed here. Remediation is a code decision on the active lane (route through the guarded helpers, or add
+  `Write-Guard-Override:` trailers if these are legacy edits introducing no new write). Flagged per the
+  CI-green-means-GitHub rule: **do not treat #391 as mergeable.**
+- The dated audit `corpus-integrity-census-2026-07-16.md` is untracked in a docs path — no INDEX.md line, so it is
+  invisible to the memory conventions.
+
+### NEXT (none of this was actioned; all are operator calls)
+
+0. **Un-red PR #391 first** — rules 015/016 on `dcccb982`. Start with `unit3-classify-v2.mjs` (fails both).
+   Nothing on this branch should merge until the Discipline engine is green.
+1. **Reconcile the session-log fork** — merge or cherry-pick `task1`'s 2026-07-22→07-30 block into
+   `corpus-integrity/intake-census`, or land #391/#370 so both lanes converge. Until then, treat any lane other
+   than `task1-cbam-target-match` as holding a stale log.
+2. **Disposition the 18 redesign worktrees** — merge, rebase, or `git worktree remove`. Resolve the duplicate tip
+   `adb21966` first. Reconcile against `docs/inventories/worktrees.md`.
+3. **Stage or discard the residue** — 6 non-scratch runners across two lanes; INDEX line for the untracked audit.
+4. **Triage the 4 open PRs** — three have been open 10+ days (#370, #341, #288).
+
+---
+
+## 2026-07-30 — SESSION CLOSE: first publication, two matcher fixes, and the open handoff
+
+**FIRST PUBLISHED BRIEF: `cd1083c9-fd05-47f7-bfed-8354b70a31ac`** (CELEX 32026R1030, CountEmissions EU).
+Independently read back: `verified`, not archived, passes the customer read gate (`verified AND NOT archived`),
+Gate A **0 orphans** @ 2026-07-30.1, **51 claims (48 FACT)**, max FACT tier 2 (at floor, none sub-floor),
+`valid=true failures=[]`. Corpus verified 12 → 13. Cleared $0 by: floor-first span re-attribution of the one
+sub-floor claim (its own T1 primary carries the fact in recital 13), an `*Industry interpretation:*` label on the
+Smart Freight Centre sentence, and rewording an omission notice whose "applies to" tripped the binding-verb
+detector (the Colorado-DOT false-positive family).
+
+**LESSON BANKED — the evidence pointer and the attribution must move together.** Re-attributing a claim's
+`source_id` alone left criterion 3 failing, because it verifies the span against the pool row joined by
+**`search_result_id`**, not by `source_id`. A half-move looks like a fix and fails closed. This belongs in the
+authorship runbook.
+
+**TWO MATCHER FIXES, both the same family as the campaign's earlier three (dig-fallback, %-spacing, slash-form
+CELEX): a format variant the normalizer could not reach.**
+1. **Gate A citation dates** (merged, `2026-07-30.1`): full-date / month-year / ISO branches scanned the whole
+   text unconditionally while only bare years got the citation-context test. A brief's own `*Source: … 30 April
+   2026, https://…` lines gated as compliance deadlines. Corpus re-scan: 350 items, orphans **2,220 → 1,936**,
+   `distinct_versions=1`, assertion OK.
+2. **target-match year-like serials** (PR #391): `normPair` returns null when BOTH halves fall in 1950–2099 —
+   its comment says "neither looks like a year", the live case is the opposite. `2025/2083` was invisible to the
+   capture scan while the positional expected-side still derived it, producing a hard MISMATCH against an 84K
+   capture titled `REGULATION (EU) 2025/2083`. That is what held CBAM at zero claims. Fixed information-
+   preservingly (positional parse for structurally deterministic forms, both readings kept for ambiguous prose,
+   reversal-closure at the comparison site). Red-then-green 8/8, golden passes, real capture now `match`.
+
+**OPEN FLAGS FOR THE SUCCESSOR (none of these are fixed):**
+- **PR #370** (census tooling, `UNKNOWN` merge state) deliberately untouched — predates this charter, out of
+  scope until the hygiene sweep (Task 7).
+- **`raw_fetches` holds ZERO snapshots for all seven per-CELEX sources**; captures live only in
+  `agent_run_searches` pool rows. Apparently inconsistent with persistence-contract invariant **I3** ("an
+  acquiring run MUST write the acquired content to the snapshot store"). **Diagnose at hygiene — do not fix
+  blind.** Note this is exactly why the publication fix had to join through `search_result_id`.
+- **Six-item readiness table exists**; the authoring session's report is the durable record until it lands here.
+- **8 duplicate `sources` rows** I created: `registerSource`'s `institutionKey` override is used for the dedup
+  LOOKUP but stored rows key off their URL, so a second registration run re-inserted instead of matching.
+  Not cleaned. Attribution is unaffected (reads `item.source_id` directly).
+- **Persisted runners carry two REAL discipline failures**, recorded not fixed (see commit `dcccb982`): rule
+  [015] raw row mutations in 4 runners, rule [016] 3 direct Anthropic call sites in the unit3 classify runners.
+  **Those bypass the metered gate — do NOT re-run them as-is** under the standing no-unnamed-spend rule.
+
+**Standing rule in force:** no metered call of any kind, any size, any rationale, without the operator naming
+the specific spend in his own words first. Pricing exercises, proofs and measurements are not exceptions.
+
+**CRITICAL PATH FOR THE SUCCESSOR:** the **Gate A → Postgres port** (single implementation, JS becomes a thin
+caller, full test-vector parity + corpus-wide per-item orphan-count parity). The authoring session is on Phase A
+and blocks on it for every gate scan. Then the **authorship runbook** (`docs/ops/authorship-runbook.md`, written
+for a session with SQL access and no repo), then dedup root-cause, spend choke point, hygiene.
+
+---
+
 ## 2026-07-30 — Acquire ARMED, Blocker-B PROVEN end-to-end — and one run went out UNPRICED
 
 **ACQUIRE GRANT EXERCISED.** `GROUNDING_ACQUIRE_ENABLED` armed in-runner under the operator's scoped grant
