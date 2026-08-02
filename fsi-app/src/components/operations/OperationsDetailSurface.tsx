@@ -40,6 +40,7 @@ import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import type { MatrixEligibility } from "@/lib/agent/formats/operations-matrix";
 import { ProseSection } from "@/components/regulations/sections/ProseSection";
 import { TIER_LABELS } from "@/lib/tier-labels";
+import { WatchButton } from "@/components/ui/WatchButton";
 
 // ── Related item shape ──────────────────────────────────────────────────────
 
@@ -755,6 +756,11 @@ export function OperationsDetailSurface({
               Published {formatDate(r.added)}
             </span>
           )}
+          {/* Landing B (2026-08-01): watchlist reaches the Operations surface
+              (migration 233 expanded the item_type CHECK). */}
+          <span style={r.added ? undefined : { marginLeft: "auto" }}>
+            <WatchButton itemType="operations" itemId={String(r.id)} />
+          </span>
         </div>
 
         {/* Deck */}

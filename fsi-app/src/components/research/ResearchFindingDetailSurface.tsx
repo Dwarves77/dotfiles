@@ -36,6 +36,7 @@ import type { Resource } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import { ProseSection } from "@/components/regulations/sections/ProseSection";
 import { TIER_LABELS } from "@/lib/tier-labels";
+import { WatchButton } from "@/components/ui/WatchButton";
 
 interface RelatedFinding {
   id: string;
@@ -629,6 +630,11 @@ export function ResearchFindingDetailSurface({
               Published {formatDate(r.added)}
             </span>
           )}
+          {/* Landing B (2026-08-01): watchlist reaches the Research surface
+              (migration 233 expanded the item_type CHECK). */}
+          <span style={r.added ? undefined : { marginLeft: "auto" }}>
+            <WatchButton itemType="research" itemId={String(r.id)} />
+          </span>
         </div>
 
         {/* Deck (the short summary) */}
