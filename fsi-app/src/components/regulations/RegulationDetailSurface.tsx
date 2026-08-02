@@ -107,6 +107,10 @@ interface Props {
   groupLabel?: string;
   /** Hero deck sub-line, e.g. "IMO MEPC · adopted 7 July 2023 · in force". */
   deck?: string;
+  /** Phase 1 ownership (migration 234): the item's current org-scoped
+   *  assignee, read server-side. Null = unassigned (or roster/read failure —
+   *  the picker still assigns). */
+  initialOwner?: { userId: string; name: string } | null;
 }
 
 type TabKey = "summary" | "exposure" | "calculator" | "timeline" | "sources";
@@ -154,6 +158,7 @@ export function RegulationDetailSurface({
   sections = [],
   groupLabel,
   deck,
+  initialOwner = null,
 }: Props) {
   const [tab, setTab] = useState<TabKey>("summary");
 
@@ -358,7 +363,7 @@ export function RegulationDetailSurface({
         <div id="cl-meta-rail" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <AtAGlanceCard r={r} jurisLabel={jurisLabel} modes={modes} tone={tone} />
           <AffectedLanesCard resource={r} />
-          <OwnerTeamCard resource={r} />
+          <OwnerTeamCard resource={r} initialOwner={initialOwner} />
           <LinkedItemsCard
             xrefIds={xrefIds}
             refByIds={refByIds}
