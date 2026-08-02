@@ -2555,8 +2555,18 @@ export interface ReviewItem {
   href: string;
 }
 
-/** Hard cap per scope so the rail renders predictably. */
+/** Hard cap per scope so the rail renders predictably. This is the RAIL's
+ *  bound, not the corpus bound: the dashboard ships the whole array to the
+ *  browser and slices three, so raising it here would grow every dashboard
+ *  payload for rows nobody renders. The dedicated /watchlist page passes
+ *  WATCHLIST_PAGE_LIMIT instead. */
 const WATCHLIST_LIMIT = 14;
+
+/** Cap for the full /watchlist surface, per scope. High enough that a real
+ *  user never hits it, low enough that a pathological row count cannot turn
+ *  one page render into an unbounded read. A user who exceeds it is told so
+ *  by the surface rather than silently shown a truncated list. */
+export const WATCHLIST_PAGE_LIMIT = 250;
 
 /**
  * item_types that resolve their title against intelligence_items by
@@ -2586,14 +2596,15 @@ type WatchlistSupabase = ReturnType<typeof getServiceSupabase>;
 
 async function readPersonalWatchRows(
   supabase: WatchlistSupabase,
-  userId: string
+  userId: string,
+  limit: number
 ): Promise<WatchRow[]> {
   const { data, error } = await supabase
     .from("user_watchlist")
     .select("item_type, item_id, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
-    .limit(WATCHLIST_LIMIT);
+    .limit(limit);
   if (error || !data) return [];
   return (data as Array<{
     item_type: WatchlistItemType;
@@ -2646,14 +2657,15 @@ async function readListOrderRanks(
 
 async function readTeamWatchRows(
   supabase: WatchlistSupabase,
-  orgId: string
+  orgId: string,
+  limit: number
 ): Promise<WatchRow[]> {
   const { data, error } = await supabase
     .from("org_watchlist")
     .select("item_type, item_id, created_at, note, added_by_user_id")
     .eq("org_id", orgId)
     .order("created_at", { ascending: false })
-    .limit(WATCHLIST_LIMIT);
+    .limit(limit);
   if (error || !data) return [];
   return (data as Array<{
     item_type: WatchlistItemType;
@@ -2678,19 +2690,28 @@ async function readTeamWatchRows(
  * Returns [] when the user is unauthenticated, when no rows match, or when a
  * watchlist table does not exist yet. Passing a null orgId (no membership)
  * simply yields the personal scope alone. Hard-capped per scope.
+ *
+ * `limit` is per scope and defaults to the rail's bound. The full /watchlist
+ * surface passes WATCHLIST_PAGE_LIMIT. It is a PARAMETER rather than a raised
+ * constant because the two callers have opposite pressures: the dashboard
+ * serialises the whole array into the client payload to render three rows, so
+ * every row past the rail's need is pure weight on the page most users load
+ * first; the page renders all of them and a low cap would silently hide
+ * watches.
  */
 export async function fetchWatchlist(
   userId: string | null,
-  orgId: string | null = null
+  orgId: string | null = null,
+  limit: number = WATCHLIST_LIMIT
 ): Promise<WatchlistItem[]> {
   if (!isSupabaseConfigured() || !userId) return [];
   try {
     const supabase = getServiceSupabase();
 
     const [personalRows, teamRows, orderRanks] = await Promise.all([
-      readPersonalWatchRows(supabase, userId),
+      readPersonalWatchRows(supabase, userId, limit),
       orgId
-        ? readTeamWatchRows(supabase, orgId)
+        ? readTeamWatchRows(supabase, orgId, limit)
         : Promise.resolve([] as WatchRow[]),
       // Third read, not a follow-up: the order is independent of the rows, so
       // serialising it would add a round trip to every dashboard render.

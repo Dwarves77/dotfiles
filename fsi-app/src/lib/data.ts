@@ -7,6 +7,7 @@ import {
   fetchListingsMapData,
   fetchSettingsData,
   fetchWatchlist,
+  WATCHLIST_PAGE_LIMIT,
   fetchCoverageGaps,
   fetchAwaitingReview,
   fetchWorkspaceAggregates,
@@ -415,6 +416,20 @@ const cachedWatchlist = unstable_cache(
   { revalidate: 60, tags: [APP_DATA_TAG] }
 );
 
+// The full /watchlist surface. A SEPARATE cache entry rather than a `limit`
+// argument threaded into the one above, because unstable_cache keys on the
+// arguments it is given: sharing an entry between a 14-row read and a 250-row
+// read would let whichever call warmed the cache first decide what the other
+// one sees — the dashboard could serve the page a truncated list, or the page
+// could bloat every dashboard payload with 250 rows to render three.
+const cachedWatchlistFull = unstable_cache(
+  async (userId: string | null, orgId: string | null): Promise<WatchlistItem[]> => {
+    return fetchWatchlist(userId, orgId, WATCHLIST_PAGE_LIMIT);
+  },
+  ["watchlist-full-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
 const cachedCoverageGaps = unstable_cache(
   async (
     orgId: string | null,
@@ -472,6 +487,32 @@ export async function getWatchlist(): Promise<WatchlistItem[]> {
     return [];
   }
 }
+
+/**
+ * The same watchlist read, bounded for the full /watchlist surface rather
+ * than the dashboard rail.
+ *
+ * Same cookie resolution, same fail-soft posture, same cache tag, so a watch
+ * added anywhere invalidates the rail and the page together and the two can
+ * never show different lists. The ONLY difference is the per-scope bound.
+ */
+export async function getWatchlistFull(): Promise<WatchlistItem[]> {
+  try {
+    const [userId, orgId] = await Promise.all([
+      resolveUserIdFromCookies(),
+      resolveOrgIdFromCookies().catch(() => null),
+    ]);
+    return await cachedWatchlistFull(userId, orgId);
+  } catch (e) {
+    console.error("getWatchlistFull failed, returning empty:", e);
+    return [];
+  }
+}
+
+/** Per-scope bound the /watchlist surface reads with. Re-exported so the page
+ *  can tell the user honestly when their list is at the cap rather than
+ *  presenting a truncated list as complete. */
+export { WATCHLIST_PAGE_LIMIT };
 
 /**
  * Fetch coverage gaps for the current workspace. v1 reads the hand-curated

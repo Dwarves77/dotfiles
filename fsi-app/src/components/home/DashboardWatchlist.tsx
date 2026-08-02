@@ -13,38 +13,24 @@
  * row carries a "Team" badge and, when resolvable, who added it — the rail is
  * where a member learns an item was flagged for the whole workspace.
  *
- * The label and href maps are keyed by the FULL WatchlistItemType union, so a
- * newly watchable type becomes a compile error here rather than a silently
- * mislabelled row. Landing B widened the vocabulary to five values without
- * widening these maps, which sent every watched research finding to /market#id
- * under a "Signal" label.
+ * The label and href maps USED to live in this file. They now live in
+ * lib/watchlist-links.ts, shared with the /watchlist page, because a
+ * component-local table has nothing tying it to the app's real route tree: this
+ * one pointed `signal` rows at /market#{id}, a fragment no element on that page
+ * carries, and `source` rows at /sources/{id}, a route that does not exist.
+ * Copying it into a second surface would have doubled the blast radius of the
+ * next drift.
+ *
+ * The card title is the entry point to the full list (titleHref), so the rail
+ * stays a three-row preview and the watchlist needs no sidebar entry of its own.
  */
 
 import { use } from "react";
 import Link from "next/link";
 import { DashboardRailCard, RailEmptyFrame } from "./DashboardRailCard";
 import { RelativeTime } from "@/components/ui/RelativeTime";
-import type { WatchlistItem, WatchlistItemType } from "@/lib/data";
-
-const TYPE_LABEL: Record<WatchlistItemType, string> = {
-  source: "Source",
-  reg: "Reg",
-  signal: "Signal",
-  research: "Research",
-  operations: "Operations",
-};
-
-const TYPE_HREF: Record<WatchlistItemType, (id: string) => string> = {
-  source: (id) => `/sources/${id}`,
-  reg: (id) => `/regulations/${id}`,
-  signal: (id) => `/market#${id}`,
-  research: (id) => `/research/${id}`,
-  operations: (id) => `/operations/${id}`,
-};
-
-function hrefFor(item: WatchlistItem): string {
-  return TYPE_HREF[item.type](encodeURIComponent(item.id));
-}
+import { WATCHLIST_TYPE_LABEL, watchlistHref } from "@/lib/watchlist-links";
+import type { WatchlistItem } from "@/lib/data";
 
 function TeamBadge() {
   return (
@@ -80,7 +66,7 @@ export function DashboardWatchlist({ promise }: DashboardWatchlistProps) {
 
   if (visible.length === 0) {
     return (
-      <DashboardRailCard title="Watchlist">
+      <DashboardRailCard title="Watchlist" titleHref="/watchlist">
         <RailEmptyFrame
           body="Nothing watched yet. Watch any regulation, source, or market signal to see its updates here."
           cta={{ label: "Browse what to watch →", href: "/regulations" }}
@@ -90,11 +76,18 @@ export function DashboardWatchlist({ promise }: DashboardWatchlistProps) {
   }
 
   return (
-    <DashboardRailCard title="Watchlist" count={`${visible.length} of ${items.length}`}>
+    <DashboardRailCard
+      title="Watchlist"
+      titleHref="/watchlist"
+      count={`${visible.length} of ${items.length}`}
+    >
       <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-        {visible.map((item) => (
-          <li key={`${item.scope}:${item.type}:${item.id}`}>
-            <Link href={hrefFor(item)} prefetch={false} style={{ display: "block", textDecoration: "none", color: "inherit" }}>
+        {visible.map((item) => {
+          // null means the type has no detail surface (see watchlistHref). The
+          // row renders unlinked rather than offering a click that dead-ends.
+          const href = watchlistHref(item);
+          const body = (
+            <>
               <p style={{ fontSize: 10.5, fontWeight: 700, color: "var(--color-text-muted)", margin: 0 }}>
                 {item.source}
                 {item.scope === "team" ? <TeamBadge /> : null}
@@ -103,7 +96,7 @@ export function DashboardWatchlist({ promise }: DashboardWatchlistProps) {
                 {item.title}
               </p>
               <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "3px 0 0" }}>
-                <RelativeTime iso={item.lastChangedAt} /> · {TYPE_LABEL[item.type]}
+                <RelativeTime iso={item.lastChangedAt} /> · {WATCHLIST_TYPE_LABEL[item.type]}
                 {item.scope === "team" && item.addedBy ? ` · added by ${item.addedBy}` : ""}
               </p>
               {item.scope === "team" && item.note ? (
@@ -111,9 +104,20 @@ export function DashboardWatchlist({ promise }: DashboardWatchlistProps) {
                   {item.note}
                 </p>
               ) : null}
-            </Link>
-          </li>
-        ))}
+            </>
+          );
+          return (
+            <li key={`${item.scope}:${item.type}:${item.id}`}>
+              {href ? (
+                <Link href={href} prefetch={false} style={{ display: "block", textDecoration: "none", color: "inherit" }}>
+                  {body}
+                </Link>
+              ) : (
+                body
+              )}
+            </li>
+          );
+        })}
       </ul>
     </DashboardRailCard>
   );
