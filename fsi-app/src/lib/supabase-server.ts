@@ -5,6 +5,7 @@ import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/re
 import type { Source, ProvisionalSource, TrustMetrics, TrustScore } from "@/types/source";
 import { computeBaselineTrustScore, createDefaultTrustMetrics } from "@/lib/trust";
 import type { SeedFallbackTrigger } from "@/lib/notifications/seed-fallback-flag";
+import { WATCHLIST_LIST_KEY, watchlistOrderKey } from "@/lib/watchlist-order";
 
 // Wave-α A2 (2026-07-11): the static seed-data import is GONE. Every
 // fallback path in this module now returns empty + `_error` sentinel
@@ -2607,6 +2608,41 @@ async function readPersonalWatchRows(
   }));
 }
 
+/**
+ * The caller's stored drag order for the watchlist rail, as a rank map.
+ *
+ * RANKS, NOT POSITIONS. `position` is numeric and postgrest-js hands it back
+ * as a string to preserve exactness; parsing it into a JS number in order to
+ * sort would round a deeply split midpoint through an IEEE-754 double, which
+ * is precisely the defect migration 238 moved the arithmetic into the database
+ * to avoid. Postgres has already ordered the rows, so the array index IS the
+ * order and no arithmetic happens on this side at all.
+ */
+async function readListOrderRanks(
+  supabase: WatchlistSupabase,
+  userId: string
+): Promise<Map<string, number>> {
+  const { data, error } = await supabase
+    .from("user_list_order")
+    .select("item_id")
+    .eq("user_id", userId)
+    .eq("list_key", WATCHLIST_LIST_KEY)
+    .order("position", { ascending: true });
+  // Degrade to the natural order rather than losing the rail. A personal
+  // ordering that fails to load costs the user their arrangement; a thrown
+  // read would cost them the whole watchlist. The error is logged rather than
+  // dropped (see the agent/run error-swallow post-mortem in CLAUDE.md).
+  if (error) {
+    console.warn("readListOrderRanks failed, using natural order:", error.message);
+    return new Map();
+  }
+  const ranks = new Map<string, number>();
+  (data as Array<{ item_id: string }> | null)?.forEach((r, i) => {
+    ranks.set(r.item_id, i);
+  });
+  return ranks;
+}
+
 async function readTeamWatchRows(
   supabase: WatchlistSupabase,
   orgId: string
@@ -2650,11 +2686,14 @@ export async function fetchWatchlist(
   try {
     const supabase = getServiceSupabase();
 
-    const [personalRows, teamRows] = await Promise.all([
+    const [personalRows, teamRows, orderRanks] = await Promise.all([
       readPersonalWatchRows(supabase, userId),
       orgId
         ? readTeamWatchRows(supabase, orgId)
         : Promise.resolve([] as WatchRow[]),
+      // Third read, not a follow-up: the order is independent of the rows, so
+      // serialising it would add a round trip to every dashboard render.
+      readListOrderRanks(supabase, userId),
     ]);
 
     // One rail, both scopes, newest first. An item watched personally AND by
@@ -2663,12 +2702,33 @@ export async function fetchWatchlist(
     const seen = new Set<string>();
     const rows = [...personalRows, ...teamRows]
       .filter((r) => {
-        const key = `${r.item_type}:${r.item_id}`;
+        const key = watchlistOrderKey(r.item_type, r.item_id);
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       })
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+    // The caller's own arrangement outranks recency for every row they have
+    // actually placed. Rows with no stored position keep the natural order and
+    // sort ABOVE the placed ones: a newly watched item must not be buried
+    // underneath a custom order, because the rail renders only its first few
+    // entries and the new watch would be invisible. Dragging it gives it a
+    // position like any other row, so the exception resolves itself.
+    //
+    // Array.prototype.sort is stable (ES2019), so returning 0 for two unplaced
+    // rows preserves the newest-first order established above rather than
+    // leaving it to the engine.
+    if (orderRanks.size > 0) {
+      rows.sort((a, b) => {
+        const ra = orderRanks.get(watchlistOrderKey(a.item_type, a.item_id));
+        const rb = orderRanks.get(watchlistOrderKey(b.item_type, b.item_id));
+        if (ra == null && rb == null) return 0;
+        if (ra == null) return -1;
+        if (rb == null) return 1;
+        return ra - rb;
+      });
+    }
 
     if (rows.length === 0) return [];
 

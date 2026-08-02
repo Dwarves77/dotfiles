@@ -6,6 +6,7 @@ import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { APP_DATA_TAG } from "@/lib/data";
+import { WATCHLIST_LIST_KEY } from "@/lib/watchlist-order";
 
 // /api/user/list-order — personal drag ordering (migrations 237 + 238).
 //
@@ -25,7 +26,10 @@ import { APP_DATA_TAG } from "@/lib/data";
 // the table without limit — one row per key per item, none of them ever read by
 // a surface. Adding a new orderable surface is a deliberate edit here.
 export const LIST_KEYS = [
-  "watchlist",
+  // Imported rather than re-typed: the server reader and the drag client both
+  // key off this exact string, and a literal copy here could drift from it
+  // silently — the route would accept a key nothing reads.
+  WATCHLIST_LIST_KEY,
   "regulations",
   "market",
   "research",
