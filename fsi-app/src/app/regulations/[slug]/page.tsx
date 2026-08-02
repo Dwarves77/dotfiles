@@ -22,6 +22,7 @@ import { createClient } from "@supabase/supabase-js";
 import { formatDate } from "@/lib/format";
 import { notFound, redirect } from "next/navigation";
 import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supabase-server";
+import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { RegulationDetailSurface } from "@/components/regulations/RegulationDetailSurface";
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
@@ -177,6 +178,66 @@ export default async function RegulationDetailPage({
     }
   }
 
+  // Phase 1 ownership (migration 234): read this item's org-scoped assignee
+  // server-side (mirroring the market detail's notes-read pattern) so
+  // OwnerTeamCard renders the current owner on first paint — the client
+  // override store hydrates on /regulations, not on a direct detail-page
+  // load. Name resolution goes through org_memberships: a departed assignee
+  // renders Unassigned, never a stale name. Fail-soft to null (card renders
+  // Unassigned and assignment still works via the picker).
+  let initialOwner: { userId: string; name: string } | null = null;
+  try {
+    const orgId = await resolveOrgIdFromCookies();
+    if (
+      orgId &&
+      process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    ) {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { auth: { persistSession: false } }
+      );
+      const itemUuid = UUID_RE.test(r.id)
+        ? r.id
+        : (
+            await supabase
+              .from("intelligence_items")
+              .select("id")
+              .eq("legacy_id", r.id)
+              .maybeSingle()
+          ).data?.id ?? null;
+      if (itemUuid) {
+        const { data: ovr } = await supabase
+          .from("workspace_item_overrides")
+          .select("owner_user_id")
+          .eq("org_id", orgId)
+          .eq("item_id", itemUuid)
+          .maybeSingle();
+        const ownerId = ovr?.owner_user_id ?? null;
+        if (ownerId) {
+          const { data: member } = await supabase
+            .from("org_memberships")
+            .select("user_id, user:profiles!user_id(full_name, display_name, email)")
+            .eq("org_id", orgId)
+            .eq("user_id", ownerId)
+            .maybeSingle();
+          const u = (member as {
+            user?: { full_name?: string | null; display_name?: string | null; email?: string | null } | null;
+          } | null)?.user;
+          if (member) {
+            initialOwner = {
+              userId: ownerId,
+              name: u?.full_name ?? u?.display_name ?? u?.email ?? `${ownerId.slice(0, 8)}...`,
+            };
+          }
+        }
+      }
+    }
+  } catch {
+    // Soft-fail — card renders Unassigned; the picker still assigns.
+  }
+
   // Eyebrow jurisdiction label — prefer ISO data (e.g. ["US-CA"] →
   // "California, United States") so the masthead matches the detail
   // surface metadata. Fall back to the legacy `jurisdiction` string
@@ -229,6 +290,7 @@ export default async function RegulationDetailPage({
       sections={sections}
       groupLabel={groupLabel}
       deck={deck}
+      initialOwner={initialOwner}
     />
   );
 }
