@@ -291,7 +291,14 @@ function parseActionList(markdown: string): ActionListItem[] {
     }
 
     if (!label && !body && !severity) continue;
-    items.push({ severity, label, body });
+    // Emphasis-token sanitation (operator-reported 2026-08-02): generation bolds
+    // the whole "**ACTION REQUIRED — ...**" line; the severity match consumes the
+    // leading marker but the TRAILING ** survived into the label and rendered
+    // literally ("immediately.**"). ActionList renders plain text, so any
+    // emphasis tokens here are display noise — strip doubled markers and stray
+    // leading/trailing singles from both halves.
+    const stripEmphasis = (s: string) => s.replace(/\*{2,}/g, "").replace(/^\*+|\*+$/g, "").trim();
+    items.push({ severity, label: stripEmphasis(label), body: stripEmphasis(body) });
   }
 
   return items;
