@@ -5,6 +5,80 @@ self-annealing protocol), session state lives here — never in `CLAUDE.md` (doc
 
 ---
 
+## 2026-08-02 — RETRACTION: the "migration collision" was NOT a defect (live-DB evidence)
+
+**This entry retracts two claims made in the 2026-08-01 entry below. Both were wrong. Read this first.**
+
+### RETRACTED CLAIM 1 — "migration numbers are double-allocated; PR #370 cannot merge as-is"
+
+**Status: FALSE. No defect exists. No renumbering should be performed.**
+
+What was observed (correctly): `corpus-integrity/cc-grounding-executor-c` carries a `coverage_gap_*` migration
+series numbered 215-246 that reuses every 3-digit prefix master also uses across 215-239 — 25 consecutive
+apparent collisions, not the 5 first reported.
+
+What was inferred from it (incorrectly): that this blocks merges and requires renumbering to 240+.
+
+**The live database refutes it** (VERIFIED — `list_migrations` against project `kwrsbpiseruzbfwjpvsp`, 2026-08-02):
+
+- Supabase versions migrations by **timestamp**, not by the file's 3-digit prefix. The prefix survives only
+  inside the `name`, and inconsistently (some applied rows carry it, some do not).
+- Both series are fully applied, each exactly once, in timestamp order. Representative pairs:
+
+  | DB version | name |
+  |---|---|
+  | `20260718020707` | `223_coverage_gap_class5_eu_epr_expansion` |
+  | `20260725183634` | `223_acquisition_backlog_v` |
+  | `20260718193242` | `233_coverage_gap_gemini_second_pass_access_model` |
+  | `20260801235426` | `watchlist_type_expansion` (repo 233) |
+  | `20260718200309` | `236_coverage_gap_saf_claims_substantiation_membership_check` |
+  | `20260802033207` | `dual_scope_watchlist` (repo 236) |
+
+- PR #370's migration is **already applied**: `20260721222204 next_uncensused_portal_candidates`.
+- Merging is unaffected: `223_coverage_gap_class5_eu_epr_expansion.sql` and `223_acquisition_backlog_v.sql` are
+  **different filenames**. They coexist in one directory and git merges them without conflict. The `mergeable=UNKNOWN`
+  on #370 is GitHub not having computed a stale PR, not a migration conflict.
+
+**Why renumbering would have caused harm:** the DB records applied migrations by name. Renaming
+`223_coverage_gap_*.sql` to `247_*.sql` would desync the repo's filenames from the names recorded as applied,
+manufacturing a real inconsistency where only a cosmetic one existed. The fix was worse than the non-problem.
+
+Residual (cosmetic, NOT urgent): duplicate 3-digit prefixes make the directory hard to read for humans and make
+`docs/inventories/migrations.md` ambiguous. Any future convention change is an operator call and must be made
+knowing the DB keys on timestamps. **Do not renumber existing files.**
+
+### RETRACTED CLAIM 2 — "PR #391 has been RED since 2026-07-30; not mergeable"
+
+**Status: RESOLVED, and the entry below is stale.** True when written (Discipline engine failed on `1e32bd4d`
+07-30T22:28Z and on `ee4e5c0b`). Since fixed upstream: Discipline engine **success** on `46c1e0b0`
+(2026-08-01T22:13Z) — VERIFIED via `gh run list`. The 015/016 guard violations were remediated in
+`unit3-classify-v2.mjs`, `unit3-supersede-v1.mjs` and siblings. NEXT item 0 in the entry below is discharged.
+
+### Also superseded below
+
+- **Session-log fork** — largely self-resolved. `master` now carries 2,172 lines vs task1's 2,339 (METADATA);
+  the 07-22..07-30 block landed. Only the 08-01/08-02 entries remain task1-only, and they land when #391 merges.
+- **Migration free-number list** ("240/241 are FREE") — misleading, since freeness was never the constraint.
+
+### Standing lesson
+
+The 08-01 entry asserted a blocker from repo-shaped evidence alone and never checked the system of record. Both
+retracted claims would have survived any amount of further git archaeology. **For anything that touches applied
+state, the database is the source of truth (standing rule 1) — read it before declaring a blocker.**
+
+### What is genuinely open (unchanged by this retraction)
+
+1. No CI has run on `settings-archive-hydration`, `fix-cache-shape-crash`, `capture-worker-v1-3-pdf` — the
+   workflows fire only on push-to-master and PRs-targeting-master. Opening PRs is the only way to gate them.
+2. `settings-archive-hydration` and `ci-drop-gate-a-ack` are content-identical to master (VERIFIED, 3-dot diff);
+   they landed by squash-merge (#401/#403) and are safe to delete from origin.
+3. 18 stale redesign worktrees from 07-06/07 still registered, still unmerged.
+4. The main clone's `check-pretooluse-wired.mjs` is the stale 61-line copy; every push from there fails step 3c.
+   `e4314acb` is already on master — the fix is to move that clone off `corpus-integrity/intake-census`, NOT to
+   cherry-pick and NEVER to run `wire-pretooluse-settings.mjs --apply` (it rewrites global settings).
+
+---
+
 ## 2026-08-01 — CROSS-LANE RECONCILIATION SNAPSHOT (no work performed; repo-evidence only)
 
 **Provenance of this entry.** Reconstructed entirely from git/gh command output on 2026-08-01. There was no
