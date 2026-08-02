@@ -88,9 +88,17 @@ async function processRow(supabase: any, row: any) {
   }
   report.url = src.url;
 
+  // Error is captured, not dropped (the agent/run error-swallow post-mortem:
+  // `data` without `error` is the smell). A failed lookup here would otherwise
+  // silently store the capture POOL-SCOPED instead of item-linked — a quiet
+  // downgrade of contract clause 5, invisible in the run row.
   let itemId: string | null = null;
-  const { data: items } = await supabase.from("intelligence_items")
+  const { data: items, error: itemsErr } = await supabase.from("intelligence_items")
     .select("id").eq("source_id", src.id).eq("is_archived", false).limit(2);
+  if (itemsErr) {
+    console.warn(`[capture-worker] item-link lookup failed for source ${src.id}: ${itemsErr.message}; capture will be pool-scoped`);
+    report.item_link_error = itemsErr.message;
+  }
   if (items && items.length === 1) itemId = items[0].id;
   report.intelligence_item_id = itemId;
 
@@ -182,9 +190,18 @@ async function processRow(supabase: any, row: any) {
     return report;
   }
 
-  const { data: existing } = await supabase.from("agent_run_searches")
+  // The idempotency check FAILS CLOSED: if the dedup read errors, we cannot
+  // know whether this final URL was already captured, and inserting anyway
+  // would violate contract clause 4 (idempotent per final URL) on a transient
+  // DB error. Recording a retryable failure is honest; a duplicate is not.
+  const { data: existing, error: existingErr } = await supabase.from("agent_run_searches")
     .select("id").eq("result_url", resp.url)
     .eq("search_query", "capture-worker:first-fetch").limit(1);
+  if (existingErr) {
+    report.detail = `duplicate-check failed (${existingErr.message}) — cannot prove idempotency, NOT stored (retryable)`;
+    await recordFailure(supabase, row, src, report, runStart);
+    return report;
+  }
   if (existing && existing.length > 0) {
     report.outcome = "duplicate_skipped";
     report.capture_id = existing[0].id;
@@ -247,6 +264,9 @@ async function recordFailure(supabase: any, row: any, src: any, report: Record<s
   await supabase.from("agent_runs").insert({
     source_id: src.id, source_url: src.url, fetch_method: "capture-worker",
     status: "error", fetch_status: report.http_status,
+    // Same attribution as the success-path insert: a failure row on an
+    // item-linked source should be discoverable from the item too.
+    intelligence_item_id: (report.intelligence_item_id as string | null) ?? null,
     ended_at: new Date().toISOString(), duration_ms: Date.now() - runStart,
     errors: [{ detail: report.detail, content_type: report.content_type, at: new Date().toISOString() }],
   });
