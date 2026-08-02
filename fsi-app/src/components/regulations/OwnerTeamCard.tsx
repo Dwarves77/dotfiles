@@ -6,38 +6,104 @@
  * Per dispatch F23: "OWNER & TEAM card (assignee, team distribution,
  * last update)".
  *
- * Schema reality (intelligence_items, migrations 001-047):
- *   - actionOwner: single string (e.g. "Ocean Product + Finance"). Real.
- *   - lastVerifiedDate: ISO date. Real.
- *   - There is no team-distribution / multi-assignee column.
+ * Phase 1 ownership (migration 234): the Assignee row is now INTERACTIVE —
+ * a roster-fed select persisting the org-scoped owner through the store's
+ * setOwner action (optimistic, rollback on failure; the server enforces
+ * assignee-is-org-member). Roster loads lazily from /api/workspace/members
+ * (caller-scoped — no org_id needed client-side), same Bearer idiom as
+ * WatchButton/NotesField.
  *
- * Honest rendering:
- *   - Show actionOwner if set; otherwise "Unassigned" (matching the
- *     existing right-rail "Owner" KV row pattern).
- *   - Show lastVerifiedDate as "Last update" — this is the most honest
- *     single timestamp we have on the row right now.
- *   - Surface the absence of multi-member team distribution in a small
- *     footnote rather than fabricating headcount data.
+ * Honest rendering (unchanged doctrine):
+ *   - lastVerifiedDate as "Last update" — the most honest single timestamp
+ *     we have on the row.
+ *   - No fabricated team-distribution/headcount data. The legacy role-chip
+ *     split rendered only for legacy "A + B" strings; real assignees are
+ *     single people, so the chips section is retired with the legacy field.
  */
 
+import { useEffect, useState } from "react";
 import type { Resource } from "@/types/resource";
 import { formatDate } from "@/lib/format";
+import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { useResourceStore } from "@/stores/resourceStore";
 
 interface OwnerTeamCardProps {
   resource: Resource;
+  /** Server-read current assignee (detail pages don't hydrate the override
+   *  store on direct load). The store entry, once present (any live edit),
+   *  takes precedence — including an explicit clear-to-null. */
+  initialOwner?: { userId: string; name: string } | null;
 }
 
-export function OwnerTeamCard({ resource: r }: OwnerTeamCardProps) {
-  const owner = r.actionOwner || "Unassigned";
-  const lastUpdate = r.lastVerifiedDate
-    ? formatDate(r.lastVerifiedDate)
-    : null;
+interface MemberRow {
+  user_id: string;
+  role: string;
+  display_name: string;
+}
 
-  // Split a "Ocean Product + Finance" style owner string into role chips
-  // so the team distribution feels visible without inventing headcount.
-  const ownerRoles = owner === "Unassigned"
-    ? []
-    : owner.split(/[+,/]/).map((s) => s.trim()).filter(Boolean);
+const LABEL_STYLE: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "var(--text-2)",
+  marginBottom: 6,
+};
+
+export function OwnerTeamCard({ resource: r, initialOwner = null }: OwnerTeamCardProps) {
+  const setOwner = useResourceStore((s) => s.setOwner);
+  const override = useResourceStore((s) => s.overrides.get(r.id));
+
+  // Effective assignee: the store entry once one exists (live edits,
+  // including clear-to-null), else the server-read initialOwner, else the
+  // merged resource field (index surfaces hydrate ownerName into actionOwner).
+  const ownerUserId = override ? override.ownerUserId ?? null : initialOwner?.userId ?? null;
+  const ownerName = override
+    ? override.ownerName ?? null
+    : initialOwner?.name ?? r.actionOwner ?? null;
+
+  const [members, setMembers] = useState<MemberRow[] | null>(null);
+  const [rosterFailed, setRosterFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        const resp = await fetch("/api/workspace/members", {
+          headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+        });
+        if (cancelled) return;
+        if (!resp.ok) {
+          setRosterFailed(true);
+          return;
+        }
+        const j = (await resp.json()) as { members?: MemberRow[] };
+        setMembers(j.members || []);
+      } catch {
+        if (!cancelled) setRosterFailed(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const lastUpdate = r.lastVerifiedDate ? formatDate(r.lastVerifiedDate) : null;
+
+  const onSelect = (value: string) => {
+    if (value === "") {
+      setOwner(r.id, null, null);
+      return;
+    }
+    const member = (members || []).find((m) => m.user_id === value);
+    if (member) setOwner(r.id, member.user_id, member.display_name);
+  };
+
+  // The select's value must be an option that exists. When the assignee has
+  // left the org (ownerUserId set, not in roster) we fall back to "" and let
+  // the read-only line below carry the honest state.
+  const selectValue =
+    ownerUserId && (members || []).some((m) => m.user_id === ownerUserId) ? ownerUserId : "";
 
   return (
     <div
@@ -63,78 +129,55 @@ export function OwnerTeamCard({ resource: r }: OwnerTeamCardProps) {
       </div>
 
       <div style={{ marginBottom: 10 }}>
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: "var(--text-2)",
-            marginBottom: 6,
-          }}
-        >
-          Assignee
-        </div>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-            color: owner === "Unassigned" ? "var(--muted)" : "var(--text)",
-            lineHeight: 1.4,
-          }}
-        >
-          {owner}
-        </div>
-      </div>
-
-      {ownerRoles.length > 1 && (
-        <div style={{ marginBottom: 10 }}>
+        <div style={LABEL_STYLE}>Assignee</div>
+        {members === null ? (
+          // Roster still loading (or unavailable): render the current state
+          // read-only rather than an empty select that looks assignable.
           <div
             style={{
-              fontSize: 10,
+              fontSize: 13,
               fontWeight: 700,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "var(--text-2)",
-              marginBottom: 6,
+              color: ownerName ? "var(--text)" : "var(--muted)",
+              lineHeight: 1.4,
             }}
           >
-            Team distribution
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            {ownerRoles.map((role) => (
-              <span
-                key={role}
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  padding: "2px 7px",
-                  borderRadius: 3,
-                  background: "var(--accent-bg)",
-                  color: "var(--accent)",
-                  border: "1px solid var(--accent-bd)",
-                }}
-              >
-                {role}
+            {ownerName || "Unassigned"}
+            {rosterFailed && (
+              <span style={{ display: "block", fontSize: 10.5, fontWeight: 600, color: "var(--muted)", marginTop: 2 }}>
+                Roster unavailable — assignment is disabled right now.
               </span>
-            ))}
+            )}
           </div>
-        </div>
-      )}
+        ) : (
+          <select
+            aria-label="Assign owner"
+            value={selectValue}
+            onChange={(e) => onSelect(e.target.value)}
+            style={{
+              width: "100%",
+              fontFamily: "inherit",
+              fontSize: 12.5,
+              fontWeight: 700,
+              padding: "7px 8px",
+              borderRadius: 6,
+              border: "1px solid var(--border-sub)",
+              background: "var(--surface)",
+              color: selectValue ? "var(--text)" : "var(--muted)",
+              cursor: "pointer",
+            }}
+          >
+            <option value="">Unassigned</option>
+            {members.map((m) => (
+              <option key={m.user_id} value={m.user_id}>
+                {m.display_name}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
 
       <div>
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: "var(--text-2)",
-            marginBottom: 6,
-          }}
-        >
-          Last update
-        </div>
+        <div style={LABEL_STYLE}>Last update</div>
         <div
           style={{
             fontSize: 12.5,
@@ -148,4 +191,3 @@ export function OwnerTeamCard({ resource: r }: OwnerTeamCardProps) {
     </div>
   );
 }
-
