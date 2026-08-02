@@ -1312,6 +1312,92 @@ export interface WorkspaceOverrideRow {
   // workspace has dismissed the regulation from the active Kanban view.
   // null when not dismissed.
   dismissedAt?: string | null;
+  // Phase 1 ownership (migration 234): org-scoped assignee. ownerName is
+  // resolved server-side from the org roster so the client never needs a
+  // second fetch to render "By owner" / the assignee row.
+  ownerUserId?: string | null;
+  ownerName?: string | null;
+}
+
+// Phase 1 ownership (migration 234): the shared org-overrides read. One SELECT
+// (now carrying owner_user_id) + one batched roster lookup to resolve assignee
+// display names server-side. Shared by fetchDashboardData, fetchResourcesOnly,
+// and fetchListingsOnly — those three sites previously duplicated the select +
+// mapping byte-for-byte, and the owner logic would have tripled.
+//
+// P1-1 (DEEP-AUDIT S1-8): SERVICE client. orgId is authenticated upstream; the
+// anon client has no JWT so org-scoped RLS returned [] and dismissals/notes
+// silently vanished on reload.
+//
+// Name resolution goes through org_memberships (scoped to THIS org), not raw
+// profiles: an assignee who has left the org resolves to ownerName=null and the
+// merge layer renders the item unassigned — never a stale name from outside the
+// company group.
+interface OverrideDbRow {
+  item_id: string;
+  priority_override: string | null;
+  is_archived: boolean | null;
+  archive_reason: string | null;
+  archive_note: string | null;
+  notes: string | null;
+  dismissed_at: string | null;
+  owner_user_id: string | null;
+}
+
+async function fetchWorkspaceOverrideRows(
+  orgId: string,
+  uuidToUiId: Map<string, string>
+): Promise<WorkspaceOverrideRow[]> {
+  const svc = getServiceSupabase();
+  const { data, error } = await svc
+    .from("workspace_item_overrides")
+    .select(
+      "item_id, priority_override, is_archived, archive_reason, archive_note, notes, dismissed_at, owner_user_id"
+    )
+    .eq("org_id", orgId);
+  if (error) {
+    console.warn("[overrides] service read failed:", error.message);
+    return [];
+  }
+  const rows = (data || []) as OverrideDbRow[];
+
+  const ownerIds = [
+    ...new Set(rows.map((o) => o.owner_user_id).filter((v): v is string => !!v)),
+  ];
+  const ownerNames = new Map<string, string>();
+  if (ownerIds.length) {
+    const { data: memberRows, error: memberError } = await svc
+      .from("org_memberships")
+      .select("user_id, user:profiles!user_id(full_name, display_name, email)")
+      .eq("org_id", orgId)
+      .in("user_id", ownerIds);
+    if (memberError) {
+      // Warn-and-continue: an unresolved roster degrades to unassigned rows,
+      // never a failed page render.
+      console.warn("[overrides] owner roster read failed:", memberError.message);
+    }
+    for (const m of (memberRows || []) as Array<{
+      user_id: string;
+      user: { full_name?: string | null; display_name?: string | null; email?: string | null } | null;
+    }>) {
+      ownerNames.set(
+        m.user_id,
+        m.user?.full_name ?? m.user?.display_name ?? m.user?.email ?? `${String(m.user_id).slice(0, 8)}...`
+      );
+    }
+  }
+
+  return rows.map((o) => ({
+    itemId: uuidToUiId.get(o.item_id) || o.item_id,
+    priorityOverride: o.priority_override ?? null,
+    isArchived: !!o.is_archived,
+    archiveReason: o.archive_reason ?? null,
+    archiveNote: o.archive_note ?? null,
+    notes: o.notes ?? "",
+    dismissedAt: o.dismissed_at ?? null,
+    ownerUserId: o.owner_user_id ?? null,
+    ownerName: o.owner_user_id ? ownerNames.get(o.owner_user_id) ?? null : null,
+  }));
 }
 
 /** One row of the window-scoped What-changed feed (migration 232: get_workspace_recent_changes).
@@ -1460,7 +1546,7 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       urgency_score: number | null;
     }> = [];
 
-    const [changesResult, sectorsResult, overridesResult, recentResult] = await Promise.all([
+    const [changesResult, sectorsResult, overrides, recentResult] = await Promise.all([
       supabase
         .from("intelligence_changes")
         .select("item_id, change_type, change_severity, change_summary")
@@ -1469,13 +1555,9 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       supabase
         .from("sector_contexts")
         .select("sector, display_name"),
-      // P1-1 (DEEP-AUDIT S1-8): overrides via the SERVICE client. orgId is
-      // authenticated upstream; the anon client has no JWT so org-scoped RLS
-      // returned [] and dismissals/notes silently vanished on reload.
-      getServiceSupabase()
-        .from("workspace_item_overrides")
-        .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes, dismissed_at")
-        .eq("org_id", orgId),
+      // Shared org-overrides read (owner-aware, migration 234) — see
+      // fetchWorkspaceOverrideRows for the service-client rationale (P1-1).
+      fetchWorkspaceOverrideRows(orgId, uuidToUiId),
       // Window-scoped What-changed feed (see RecentChangeRow). Service client:
       // orgId authenticated upstream, same idiom as the dashboard RPC call.
       getServiceSupabase().rpc("get_workspace_recent_changes", { p_org_id: orgId, p_days: 7 }),
@@ -1522,17 +1604,6 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
         if (e.date > auditDate) auditDate = e.date;
       }
     }
-
-    // Map workspace_item_overrides UUID item_id → UI-side id (legacy_id || uuid)
-    const overrides: WorkspaceOverrideRow[] = (overridesResult.data || []).map((o: any) => ({
-      itemId: uuidToUiId.get(o.item_id) || o.item_id,
-      priorityOverride: o.priority_override ?? null,
-      isArchived: !!o.is_archived,
-      archiveReason: o.archive_reason ?? null,
-      archiveNote: o.archive_note ?? null,
-      notes: o.notes ?? "",
-      dismissedAt: o.dismissed_at ?? null,
-    }));
 
     if (recentResult.error) {
       console.warn(`[supabase-server] get_workspace_recent_changes failed (This-week renders from the capped feed only): ${recentResult.error.message}`);
@@ -1603,27 +1674,9 @@ export async function fetchResourcesOnly(orgId: string | null): Promise<{
       return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
     }
 
-    // P1-1 (DEEP-AUDIT S1-8): overrides via the SERVICE client. orgId is
-    // authenticated upstream; the anon client has no JWT so org-scoped RLS
-    // returned [] and dismissals/notes silently vanished on reload.
-    const overridesSvc = getServiceSupabase();
-    const { data: overridesData, error: overridesError } = await overridesSvc
-      .from("workspace_item_overrides")
-      .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes, dismissed_at")
-      .eq("org_id", orgId);
-    if (overridesError) {
-      console.warn("[overrides] service read failed:", overridesError.message);
-    }
-
-    const overrides: WorkspaceOverrideRow[] = (overridesData || []).map((o: any) => ({
-      itemId: uuidToUiId.get(o.item_id) || o.item_id,
-      priorityOverride: o.priority_override ?? null,
-      isArchived: !!o.is_archived,
-      archiveReason: o.archive_reason ?? null,
-      archiveNote: o.archive_note ?? null,
-      notes: o.notes ?? "",
-      dismissedAt: o.dismissed_at ?? null,
-    }));
+    // Shared org-overrides read (owner-aware, migration 234) — see
+    // fetchWorkspaceOverrideRows for the service-client rationale (P1-1).
+    const overrides = await fetchWorkspaceOverrideRows(orgId, uuidToUiId);
 
     return { resources: active, archived, overrides };
   } catch (e) {
@@ -1757,27 +1810,9 @@ export async function fetchListingsOnly(orgId: string | null): Promise<{
       return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
     }
 
-    // P1-1 (DEEP-AUDIT S1-8): overrides via the SERVICE client. orgId is
-    // authenticated upstream; the anon client has no JWT so org-scoped RLS
-    // returned [] and dismissals/notes silently vanished on reload.
-    const overridesSvc = getServiceSupabase();
-    const { data: overridesData, error: overridesError } = await overridesSvc
-      .from("workspace_item_overrides")
-      .select("item_id, priority_override, is_archived, archive_reason, archive_note, notes, dismissed_at")
-      .eq("org_id", orgId);
-    if (overridesError) {
-      console.warn("[overrides] service read failed:", overridesError.message);
-    }
-
-    const overrides: WorkspaceOverrideRow[] = (overridesData || []).map((o: any) => ({
-      itemId: uuidToUiId.get(o.item_id) || o.item_id,
-      priorityOverride: o.priority_override ?? null,
-      isArchived: !!o.is_archived,
-      archiveReason: o.archive_reason ?? null,
-      archiveNote: o.archive_note ?? null,
-      notes: o.notes ?? "",
-      dismissedAt: o.dismissed_at ?? null,
-    }));
+    // Shared org-overrides read (owner-aware, migration 234) — see
+    // fetchWorkspaceOverrideRows for the service-client rationale (P1-1).
+    const overrides = await fetchWorkspaceOverrideRows(orgId, uuidToUiId);
 
     return { resources: active, archived, overrides };
   } catch (e) {
