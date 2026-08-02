@@ -51,6 +51,7 @@ import {
 import { TIER1_PRIORITY_ISOS } from "@/lib/tier1-priority-jurisdictions";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { DismissedStash } from "./DismissedStash";
+import { ArchiveDialog } from "@/components/workspace/ArchiveDialog";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 
@@ -216,6 +217,10 @@ export function RegulationsLedger({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [sort, setSort] = useState<SortKey>("priority");
   const [openBands, setOpenBands] = useState<Record<string, boolean>>({});
+  // Dual-scope archive (migration 235): the row the ArchiveDialog is open for.
+  // Held here rather than per-row because the dialog must render outside the
+  // row <Link> (see CardPriorityDropdown).
+  const [archiveTarget, setArchiveTarget] = useState<{ id: string; title: string } | null>(null);
 
   // ── Hydrate the shared resource store (applies workspace overrides) ──
   useEffect(() => {
@@ -982,7 +987,11 @@ export function RegulationsLedger({
                         {/* Phase 0 (operator go 2026-08-01): per-row ⋯ retag/dismiss —
                             the built-but-unwired "card" variant, now mounted. Safe
                             inside the row <Link>: the popover stops propagation. */}
-                        <CardPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} />
+                        <CardPriorityDropdown
+                          currentPriority={r.priority as PriorityKey}
+                          itemId={r.id}
+                          onArchive={() => setArchiveTarget({ id: r.id, title: r.title })}
+                        />
                       </span>
                     </Link>
                   );
@@ -1028,6 +1037,17 @@ export function RegulationsLedger({
 
       {/* Dismissed-regulations recovery drawer (restore path). Renders nothing when empty. */}
       <DismissedStash dismissed={dismissedRegulations} onRestore={(id) => restoreDismissed(id)} />
+
+      {/* Dual-scope archive (migration 235). Mounted at the ledger root, OUTSIDE
+          the row <Link>s that host the ⋯ menus — a dialog nested in an anchor is
+          invalid HTML and its clicks would navigate away mid-form. */}
+      {archiveTarget && (
+        <ArchiveDialog
+          itemId={archiveTarget.id}
+          title={archiveTarget.title}
+          onClose={() => setArchiveTarget(null)}
+        />
+      )}
 
       <style>{`
         .cl-reg-row:hover { background: var(--color-bg-base); }
@@ -1140,7 +1160,15 @@ function PendingFrame({
 // Mirrors RegulationDetailSurface's HeroPriorityDropdown wiring: reads the
 // live override for effective priority + dismissed state, writes through the
 // store's optimistic updatePriority/dismissResource (rollback on failure).
-function CardPriorityDropdown({ currentPriority, itemId }: { currentPriority: PriorityKey; itemId: string }) {
+function CardPriorityDropdown({
+  currentPriority,
+  itemId,
+  onArchive,
+}: {
+  currentPriority: PriorityKey;
+  itemId: string;
+  onArchive: () => void;
+}) {
   const updatePriority = useResourceStore((s) => s.updatePriority);
   const dismissResource = useResourceStore((s) => s.dismissResource);
   const override = useResourceStore((s) => s.overrides.get(itemId));
@@ -1153,6 +1181,11 @@ function CardPriorityDropdown({ currentPriority, itemId }: { currentPriority: Pr
       isDismissed={isDismissed}
       onSetPriority={(p) => updatePriority(itemId, p)}
       onDismiss={() => dismissResource(itemId)}
+      // The dialog itself is NOT mounted here: this dropdown renders inside
+      // the row <Link>, and a dialog (with its own <form>) nested in an anchor
+      // is invalid HTML whose clicks would also navigate. The ledger owns the
+      // open state and renders ArchiveDialog outside every row link.
+      onArchive={onArchive}
     />
   );
 }
