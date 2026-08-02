@@ -6,6 +6,7 @@ import type { Source, ProvisionalSource, TrustMetrics, TrustScore } from "@/type
 import { computeBaselineTrustScore, createDefaultTrustMetrics } from "@/lib/trust";
 import type { SeedFallbackTrigger } from "@/lib/notifications/seed-fallback-flag";
 import { WATCHLIST_LIST_KEY, watchlistOrderKey } from "@/lib/watchlist-order";
+import { compareRanks } from "@/lib/list-order";
 
 // Wave-α A2 (2026-07-11): the static seed-data import is GONE. Every
 // fallback path in this module now returns empty + `_error` sentinel
@@ -2710,24 +2711,16 @@ export async function fetchWatchlist(
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
 
     // The caller's own arrangement outranks recency for every row they have
-    // actually placed. Rows with no stored position keep the natural order and
-    // sort ABOVE the placed ones: a newly watched item must not be buried
-    // underneath a custom order, because the rail renders only its first few
-    // entries and the new watch would be invisible. Dragging it gives it a
-    // position like any other row, so the exception resolves itself.
-    //
-    // Array.prototype.sort is stable (ES2019), so returning 0 for two unplaced
-    // rows preserves the newest-first order established above rather than
-    // leaving it to the engine.
+    // actually placed. The unplaced-first rule and the reason for it live in
+    // compareRanks, shared with the browser hook so the SSR order and an
+    // optimistic client order can never disagree.
     if (orderRanks.size > 0) {
-      rows.sort((a, b) => {
-        const ra = orderRanks.get(watchlistOrderKey(a.item_type, a.item_id));
-        const rb = orderRanks.get(watchlistOrderKey(b.item_type, b.item_id));
-        if (ra == null && rb == null) return 0;
-        if (ra == null) return -1;
-        if (rb == null) return 1;
-        return ra - rb;
-      });
+      rows.sort((a, b) =>
+        compareRanks(
+          orderRanks.get(watchlistOrderKey(a.item_type, a.item_id)),
+          orderRanks.get(watchlistOrderKey(b.item_type, b.item_id))
+        )
+      );
     }
 
     if (rows.length === 0) return [];

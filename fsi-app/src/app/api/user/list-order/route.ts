@@ -7,6 +7,7 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { APP_DATA_TAG } from "@/lib/data";
 import { WATCHLIST_LIST_KEY } from "@/lib/watchlist-order";
+import { LIST_ORDER_ITEM_ID_MAX, LIST_ORDER_SEED_MAX } from "@/lib/list-order";
 
 // /api/user/list-order — personal drag ordering (migrations 237 + 238).
 //
@@ -39,11 +40,12 @@ export type ListKey = (typeof LIST_KEYS)[number];
 const LIST_KEY_SET: ReadonlySet<string> = new Set(LIST_KEYS);
 const KEYS_HINT = LIST_KEYS.join("|");
 
-// Bounds the seed array. A seed is the full rendered list, so a legitimate one
-// is tens of entries; anything past this is a client bug or an abuse attempt,
-// and either way the seed INSERT should not be handed an unbounded array.
-const SEED_MAX = 500;
-const ITEM_ID_MAX = 128; // matches user_list_order_item_id_check
+// Both bounds are IMPORTED, not re-typed. The client checks them before it
+// sends so a malformed drag fails locally with a useful message instead of as
+// an opaque 400, and a second literal here would be free to drift from the one
+// the client enforces. See list-order.ts for why the seed bound is where it is.
+const SEED_MAX = LIST_ORDER_SEED_MAX;
+const ITEM_ID_MAX = LIST_ORDER_ITEM_ID_MAX; // matches user_list_order_item_id_check
 
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
