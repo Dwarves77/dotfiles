@@ -6,6 +6,7 @@ import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
+import { dispatchNotification } from "@/lib/notifications/dispatch";
 import { APP_DATA_TAG } from "@/lib/data";
 
 
@@ -85,6 +86,43 @@ async function handlePOST(request: NextRequest) {
   if ("archiveReason" in body) update.archive_reason = body.archiveReason;
   if ("archiveNote" in body) update.archive_note = body.archiveNote;
   if ("notes" in body) update.notes = body.notes;
+  // Dual-scope archive (migration 235): a WORKSPACE archive is the team-wide
+  // hide, so it carries the operator-approved protection layers at the API:
+  //  - ROLE GATE: only admin/owner may archive for the whole workspace
+  //    (fail-closed on an unverifiable role lookup). RESTORE is ungated —
+  //    any member can undo a team archive (the recovery layer).
+  //  - REASON REQUIRED: a workspace archive without archiveReason is a 400.
+  //  - ATTRIBUTION: archived_by stamps who did it; cleared on restore.
+  // Personal archive lives in user_item_state (/api/workspace/personal-state),
+  // not here.
+  if (body.isArchived === true) {
+    const reason = typeof body.archiveReason === "string" ? body.archiveReason.trim() : "";
+    if (!reason) {
+      return NextResponse.json(
+        { error: "archiveReason is required to archive for the workspace" },
+        { status: 400 }
+      );
+    }
+    const { data: callerMembership, error: roleErr } = await supabase
+      .from("org_memberships")
+      .select("role")
+      .eq("org_id", orgId)
+      .eq("user_id", auth.userId)
+      .maybeSingle();
+    if (roleErr) {
+      return NextResponse.json({ error: roleErr.message }, { status: 500 });
+    }
+    const role = callerMembership?.role;
+    if (role !== "owner" && role !== "admin") {
+      return NextResponse.json(
+        { error: "Workspace archive requires the admin or owner role. You can archive it just for yourself instead." },
+        { status: 403 }
+      );
+    }
+    update.archived_by = auth.userId;
+  } else if (body.isArchived === false) {
+    update.archived_by = null;
+  }
   // Sprint 3 follow-up Part 2 (migration 111): dismissed_at.
   // Distinct from archived_at; "dismissed" hides the regulation from the
   // active Kanban view and surfaces it in the bottom stash drawer with a
@@ -136,6 +174,51 @@ async function handlePOST(request: NextRequest) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Dual-scope archive (migration 235), notification layer: a successful
+  // WORKSPACE archive fans out to everyone with a stake in the item — its
+  // watchers (user_watchlist) and its assigned owner — excluding the
+  // archiver. Failures log and never abort the archive (dispatch helper
+  // contract).
+  if (body.isArchived === true) {
+    try {
+      const recipients = new Set<string>();
+      const { data: watchers } = await supabase
+        .from("user_watchlist")
+        .select("user_id")
+        .in("item_id", [itemId, intelItemId]);
+      for (const w of watchers || []) recipients.add(w.user_id as string);
+      const ownerId = (data as { owner_user_id?: string | null } | null)?.owner_user_id;
+      if (ownerId) recipients.add(ownerId);
+      recipients.delete(auth.userId);
+      if (recipients.size > 0) {
+        const { data: itemRow } = await supabase
+          .from("intelligence_items")
+          .select("title, legacy_id")
+          .eq("id", intelItemId)
+          .maybeSingle();
+        const title = itemRow?.title || "an item";
+        const uiId = itemRow?.legacy_id || intelItemId;
+        const reason = typeof body.archiveReason === "string" ? body.archiveReason : "";
+        for (const userId of recipients) {
+          const err = await dispatchNotification({
+            userId,
+            kind: "archive",
+            payload: {
+              title: "Item archived for the workspace",
+              body: `"${title}" was archived for your whole workspace${reason ? ` — reason: ${reason}` : ""}. Any member can restore it from Settings → Archive.`,
+              link: `/regulations/${encodeURIComponent(uiId)}`,
+              item_id: intelItemId,
+              archived_by: auth.userId,
+            },
+          });
+          if (err) console.warn("[overrides] archive notification failed:", err);
+        }
+      }
+    } catch (e) {
+      console.warn("[overrides] archive notification fan-out failed:", e);
+    }
   }
 
   // Invalidate workspace data cache so the user sees their priority /
