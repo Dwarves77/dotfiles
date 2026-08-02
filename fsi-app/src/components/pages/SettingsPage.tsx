@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import type { Resource, Supersession } from "@/types/resource";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { useResourceStore } from "@/stores/resourceStore";
 import { ALL_SECTORS } from "@/lib/constants";
 import { AccountMasthead } from "@/components/account/AccountMasthead";
 import {
@@ -84,6 +85,19 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
     return map;
   }, [initialResources, initialArchived]);
 
+  // Dual-scope archive (migration 235): items this user archived for themselves
+  // live in user_item_state, not in the org-scoped SSR payload. Counting only
+  // initialArchived would gate the Archive tab shut for someone whose only
+  // archived items are personal — the restore path would be unreachable.
+  // Zero personal rows reproduces the previous count exactly.
+  const personalArchivedCount = useResourceStore(
+    (s) =>
+      [...s.personalState.values()].filter(
+        (p) => p.isArchived && !s.archived.some((r) => r.id === p.itemId)
+      ).length
+  );
+  const archiveCount = initialArchived.length + personalArchivedCount;
+
   const onTabClick = (key: TabKey) => {
     setTab(key);
     if (typeof window !== "undefined") history.replaceState(null, "", `#${key}`);
@@ -132,9 +146,9 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
         {tab === "archive" && (
           <AccountCard
             title="Archive"
-            meta={`${initialArchived.length} item${initialArchived.length !== 1 ? "s" : ""} · still recoverable`}
+            meta={`${archiveCount} item${archiveCount !== 1 ? "s" : ""} · still recoverable`}
           >
-            {initialArchived.length === 0 ? (
+            {archiveCount === 0 ? (
               <p style={{ fontSize: 12, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: 0 }}>
                 Nothing archived. Briefs you archive and items you dismiss collect here, out of the working
                 view but never deleted.
