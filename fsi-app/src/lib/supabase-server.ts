@@ -1412,6 +1412,29 @@ export interface RecentChangeRow {
   added: string;
 }
 
+// ── Cache key for the cached dashboard payload (consumed by lib/data.ts) ──
+// CO-LOCATED with DashboardData on purpose, and STAMPED with a hash of the
+// interface block below: discipline rule 021 recomputes that hash on every
+// commit touching this file or lib/data.ts and FAILS the commit if this
+// constant does not end in it — its failure message prints the new required
+// key, and updating the constant to satisfy the rule IS the fix, because it
+// rotates the cache namespace.
+//
+// WHY THIS EXISTS: unstable_cache entries persist ACROSS DEPLOYMENTS. PR #395
+// added `recentChanges` to this shape without bumping the then-key
+// "app-data-v2", so after each subsequent deploy the stale-while-revalidate
+// window served the OLD-shape payload to NEW code and `recentChanges.filter`
+// crashed SSR of `/` (digest 2552218741, observed 2026-08-01T23:29Z). A
+// failing/slow background revalidation (the "getAppData timeout" error class)
+// extends that window indefinitely, because serve-stale keeps resurrecting
+// the old entry. Rotating the key on shape change removes the class.
+//
+// LIMIT (documented, not hidden): the hash covers THIS interface's own text.
+// A shape change reached through a nested type (Resource, Supersession, …)
+// does not rotate the key mechanically — additions through nested types MUST
+// be optional fields, or rotate this key by hand in the same commit.
+export const DASHBOARD_DATA_CACHE_KEY = "app-data-1ac1bd65";
+
 export interface DashboardData {
   resources: Resource[];
   archived: Resource[];
