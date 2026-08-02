@@ -40,6 +40,9 @@ export interface ArchiveImpact {
   canArchiveWorkspace: boolean;
   watcherCount: number;
   watcherNames: string[];
+  /** The item sits on the workspace watchlist (org_watchlist), surfaced to
+   *  every member. Distinct from watcherCount, which counts personal watches. */
+  onTeamWatchlist: boolean;
   ownerName: string | null;
   alreadyWorkspaceArchived: boolean;
   alreadyPersonallyArchived: boolean;
@@ -162,7 +165,10 @@ export function ArchiveDialog({
   const showsImpact =
     scope === "workspace" &&
     impact !== null &&
-    (impact.watcherCount > 0 || !!impact.ownerName || impact.isCritical);
+    (impact.watcherCount > 0 ||
+      impact.onTeamWatchlist ||
+      !!impact.ownerName ||
+      impact.isCritical);
 
   return (
     <div
@@ -317,6 +323,16 @@ export function ArchiveDialog({
                       </>
                     )}
                     . They will be notified.
+                  </span>
+                </p>
+              )}
+              {impact.onTeamWatchlist && (
+                <p className="flex items-start gap-1.5 text-[var(--color-text-secondary)]">
+                  <Eye className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />
+                  <span>
+                    This item is on the <strong>workspace watchlist</strong>, so
+                    it is surfaced to every member. Archiving removes it from
+                    their active views while it stays on the watchlist.
                   </span>
                 </p>
               )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 /** WatchButton — the WIRED watch toggle (chrome-audit S2-04, browser wave).
@@ -15,6 +15,20 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 // Landing B (2026-08-01): palette became optional with semantic-token defaults so
 // surfaces without a local palette object (research, operations) can mount the
 // button; item_type union widened with migration 233's CHECK expansion.
+//
+// Dual scope (2026-08-02): the primary button remains the PERSONAL watch. A
+// second pill toggles the TEAM watch (org_watchlist), which every member of the
+// workspace sees. Per migration 077's shipped RLS any member may add or remove,
+// so the pill carries no role gate — unlike the team archive, which is
+// admin/owner-gated because it hides an item from everyone.
+//
+// The pill renders only when the server reports an org actually resolved
+// (teamAvailable). A user with no workspace membership sees the personal button
+// alone rather than an affordance that could only fail.
+//
+// The team API accepts an optional note; this button deliberately does not send
+// one. A note needs an input surface, and adding a text field to a two-word
+// toggle would be the wrong home for it.
 const DEFAULT_PALETTE = {
   accent: "var(--color-primary)",
   hairStrong: "var(--color-border)",
@@ -22,6 +36,8 @@ const DEFAULT_PALETTE = {
   card: "var(--color-bg-surface)",
   ink: "var(--color-text-primary)",
 };
+
+type WatchScope = "personal" | "team";
 
 export function WatchButton({
   itemType,
@@ -33,9 +49,14 @@ export function WatchButton({
   palette?: { accent: string; hairStrong: string; tint: string; card: string; ink: string };
 }) {
   const [watched, setWatched] = useState(false);
+  const [teamWatched, setTeamWatched] = useState(false);
+  const [teamAvailable, setTeamAvailable] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const busy = useRef(false);
+  const [teamFailed, setTeamFailed] = useState(false);
+  // One in-flight guard per scope: toggling the team pill must not block the
+  // personal button, and vice versa.
+  const busy = useRef<Record<WatchScope, boolean>>({ personal: false, team: false });
 
   useEffect(() => {
     let cancelled = false;
@@ -48,8 +69,14 @@ export function WatchButton({
           { headers: { Authorization: `Bearer ${session?.access_token || ""}` } }
         );
         if (!cancelled && resp.ok) {
-          const j = (await resp.json()) as { watched?: boolean };
+          const j = (await resp.json()) as {
+            watched?: boolean;
+            team?: boolean;
+            teamAvailable?: boolean;
+          };
           setWatched(!!j.watched);
+          setTeamWatched(!!j.team);
+          setTeamAvailable(!!j.teamAvailable);
         }
       } catch { /* stay unwatched; toggle still attempts the write */ }
       if (!cancelled) setLoaded(true);
@@ -57,40 +84,48 @@ export function WatchButton({
     return () => { cancelled = true; };
   }, [itemType, itemId]);
 
-  const toggle = async () => {
-    if (busy.current) return;
-    busy.current = true;
-    const next = !watched;
-    setWatched(next); // optimistic
-    setFailed(false);
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const authHeader = { Authorization: `Bearer ${session?.access_token || ""}` };
-      const resp = next
-        ? await fetch("/api/watchlist", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", ...authHeader },
-            body: JSON.stringify({ itemType, itemId }),
-          })
-        : await fetch(`/api/watchlist?item_type=${itemType}&item_id=${encodeURIComponent(itemId)}`, {
-            method: "DELETE",
-            headers: authHeader,
-          });
-      if (!resp.ok) { setWatched(!next); setFailed(true); }
-    } catch {
-      setWatched(!next);
-      setFailed(true);
-    }
-    busy.current = false;
-  };
+  const toggle = useCallback(
+    async (scope: WatchScope) => {
+      if (busy.current[scope]) return;
+      busy.current[scope] = true;
 
-  return (
+      const isTeam = scope === "team";
+      const setState = isTeam ? setTeamWatched : setWatched;
+      const setFailedState = isTeam ? setTeamFailed : setFailed;
+      const next = !(isTeam ? teamWatched : watched);
+
+      setState(next); // optimistic
+      setFailedState(false);
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        const authHeader = { Authorization: `Bearer ${session?.access_token || ""}` };
+        const resp = next
+          ? await fetch("/api/watchlist", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", ...authHeader },
+              body: JSON.stringify({ itemType, itemId, scope }),
+            })
+          : await fetch(
+              `/api/watchlist?item_type=${itemType}&item_id=${encodeURIComponent(itemId)}&scope=${scope}`,
+              { method: "DELETE", headers: authHeader }
+            );
+        if (!resp.ok) { setState(!next); setFailedState(true); }
+      } catch {
+        setState(!next);
+        setFailedState(true);
+      }
+      busy.current[scope] = false;
+    },
+    [itemType, itemId, watched, teamWatched]
+  );
+
+  const personalButton = (
     <button
       type="button"
       aria-pressed={watched}
       disabled={!loaded}
-      onClick={toggle}
+      onClick={() => toggle("personal")}
       title={
         failed
           ? "Save failed — click to retry"
@@ -113,5 +148,40 @@ export function WatchButton({
     >
       {watched ? "Watching" : "Watch"}
     </button>
+  );
+
+  if (!teamAvailable) return personalButton;
+
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+      {personalButton}
+      <button
+        type="button"
+        aria-pressed={teamWatched}
+        disabled={!loaded}
+        onClick={() => toggle("team")}
+        title={
+          teamFailed
+            ? "Save failed — click to retry"
+            : teamWatched
+              ? "On the workspace watchlist — every member sees this. Click to remove it for everyone."
+              : "Add to the workspace watchlist so every member sees it"
+        }
+        style={{
+          fontFamily: "var(--font-sans)",
+          fontSize: 11.5,
+          fontWeight: 700,
+          padding: "8px 12px",
+          borderRadius: 6,
+          border: `1px solid ${teamWatched ? palette.accent : palette.hairStrong}`,
+          background: teamWatched ? palette.tint : palette.card,
+          color: teamWatched ? palette.accent : palette.ink,
+          cursor: loaded ? "pointer" : "default",
+          opacity: loaded ? 1 : 0.6,
+        }}
+      >
+        {teamWatched ? "Team ✓" : "Team"}
+      </button>
+    </span>
   );
 }

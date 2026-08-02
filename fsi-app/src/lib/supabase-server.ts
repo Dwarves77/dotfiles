@@ -5,6 +5,8 @@ import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/re
 import type { Source, ProvisionalSource, TrustMetrics, TrustScore } from "@/types/source";
 import { computeBaselineTrustScore, createDefaultTrustMetrics } from "@/lib/trust";
 import type { SeedFallbackTrigger } from "@/lib/notifications/seed-fallback-flag";
+import { WATCHLIST_LIST_KEY, watchlistOrderKey } from "@/lib/watchlist-order";
+import { compareRanks } from "@/lib/list-order";
 
 // Wave-α A2 (2026-07-11): the static seed-data import is GONE. Every
 // fallback path in this module now returns empty + `_error` sentinel
@@ -2516,13 +2518,46 @@ export async function fetchIntelligenceItem(
 // Empty arrays trigger the widget empty-state copy, keeping the dashboard
 // safe to render before migrations have applied.
 
+/**
+ * The five kinds of item that can be watched.
+ *
+ * Mirrors the item_type CHECK on BOTH watchlist tables: user_watchlist
+ * (migration 060, widened by 233) and org_watchlist (077, constrained to the
+ * same five by 236). Exported as one union so the writer, the reader and the
+ * button cannot drift apart again — Landing B widened the DB CHECK and
+ * WatchButton to five values but left this type at three, which silently
+ * labelled every watched research finding a "Signal" and linked it to
+ * /market#id. Both tables were empty, so no user ever saw it.
+ */
+export type WatchlistItemType =
+  | "source"
+  | "reg"
+  | "signal"
+  | "research"
+  | "operations";
+
+/**
+ * Which list a watch lives on. Personal watches (user_watchlist) are visible
+ * only to their owner; team watches (org_watchlist) are visible to every
+ * member of the org. Per migration 077's shipped ruling, any member may add or
+ * remove a team watch — unlike team archive, watching is additive, so there is
+ * no role gate.
+ */
+export type WatchlistScope = "personal" | "team";
+
 export interface WatchlistItem {
   id: string;
-  type: "source" | "reg" | "signal";
+  type: WatchlistItemType;
   title: string;
   source: string;
   jurisdiction?: string;
   lastChangedAt: string;
+  /** Which list this row came from. Both scopes merge into one rail. */
+  scope: WatchlistScope;
+  /** Team scope only: the rationale the adder left for the rest of the org. */
+  note?: string;
+  /** Team scope only: display name of the member who added it, when resolvable. */
+  addedBy?: string;
 }
 
 export interface CoverageGap {
@@ -2543,64 +2578,257 @@ export interface ReviewItem {
   href: string;
 }
 
+/** Hard cap per scope so the rail renders predictably. This is the RAIL's
+ *  bound, not the corpus bound: the dashboard ships the whole array to the
+ *  browser and slices three, so raising it here would grow every dashboard
+ *  payload for rows nobody renders. The dedicated /watchlist page passes
+ *  WATCHLIST_PAGE_LIMIT instead. */
+const WATCHLIST_LIMIT = 14;
+
+/** Cap for the full /watchlist surface, per scope. High enough that a real
+ *  user never hits it, low enough that a pathological row count cannot turn
+ *  one page render into an unbounded read. A user who exceeds it is told so
+ *  by the surface rather than silently shown a truncated list. */
+export const WATCHLIST_PAGE_LIMIT = 250;
+
 /**
- * Fetch the current user's watchlist, joined to the underlying entity for
- * a friendly title + source label.
+ * item_types that resolve their title against intelligence_items by
+ * legacy_id || uuid. reg / research / operations are three SURFACES over one
+ * table, so they share a single title lookup and differ only in the label and
+ * href the rail renders.
+ */
+const ITEM_BACKED_TYPES: ReadonlySet<string> = new Set([
+  "reg",
+  "research",
+  "operations",
+]);
+
+const WATCHLIST_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+interface WatchRow {
+  item_type: WatchlistItemType;
+  item_id: string;
+  created_at: string;
+  scope: WatchlistScope;
+  note: string | null;
+  addedByUserId: string | null;
+}
+
+type WatchlistSupabase = ReturnType<typeof getServiceSupabase>;
+
+async function readPersonalWatchRows(
+  supabase: WatchlistSupabase,
+  userId: string,
+  limit: number
+): Promise<WatchRow[]> {
+  const { data, error } = await supabase
+    .from("user_watchlist")
+    .select("item_type, item_id, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return (data as Array<{
+    item_type: WatchlistItemType;
+    item_id: string;
+    created_at: string;
+  }>).map((r) => ({
+    item_type: r.item_type,
+    item_id: r.item_id,
+    created_at: r.created_at,
+    scope: "personal" as const,
+    note: null,
+    addedByUserId: null,
+  }));
+}
+
+/**
+ * The caller's stored drag order for the watchlist rail, as a rank map.
  *
- * Returns [] when the user is unauthenticated, when no rows match, or when
- * the user_watchlist table does not yet exist (migration 060 not applied).
- * Hard-capped at 14 rows so the rail renders predictably.
+ * RANKS, NOT POSITIONS. `position` is numeric and postgrest-js hands it back
+ * as a string to preserve exactness; parsing it into a JS number in order to
+ * sort would round a deeply split midpoint through an IEEE-754 double, which
+ * is precisely the defect migration 238 moved the arithmetic into the database
+ * to avoid. Postgres has already ordered the rows, so the array index IS the
+ * order and no arithmetic happens on this side at all.
+ */
+async function readListOrderRanks(
+  supabase: WatchlistSupabase,
+  userId: string
+): Promise<Map<string, number>> {
+  const { data, error } = await supabase
+    .from("user_list_order")
+    .select("item_id")
+    .eq("user_id", userId)
+    .eq("list_key", WATCHLIST_LIST_KEY)
+    .order("position", { ascending: true });
+  // Degrade to the natural order rather than losing the rail. A personal
+  // ordering that fails to load costs the user their arrangement; a thrown
+  // read would cost them the whole watchlist. The error is logged rather than
+  // dropped (see the agent/run error-swallow post-mortem in CLAUDE.md).
+  if (error) {
+    console.warn("readListOrderRanks failed, using natural order:", error.message);
+    return new Map();
+  }
+  const ranks = new Map<string, number>();
+  (data as Array<{ item_id: string }> | null)?.forEach((r, i) => {
+    ranks.set(r.item_id, i);
+  });
+  return ranks;
+}
+
+async function readTeamWatchRows(
+  supabase: WatchlistSupabase,
+  orgId: string,
+  limit: number
+): Promise<WatchRow[]> {
+  const { data, error } = await supabase
+    .from("org_watchlist")
+    .select("item_type, item_id, created_at, note, added_by_user_id")
+    .eq("org_id", orgId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return (data as Array<{
+    item_type: WatchlistItemType;
+    item_id: string;
+    created_at: string;
+    note: string | null;
+    added_by_user_id: string | null;
+  }>).map((r) => ({
+    item_type: r.item_type,
+    item_id: r.item_id,
+    created_at: r.created_at,
+    scope: "team" as const,
+    note: r.note,
+    addedByUserId: r.added_by_user_id,
+  }));
+}
+
+/**
+ * Fetch the watchlist rail for one user: their personal watches merged with
+ * their org's team watches.
+ *
+ * Returns [] when the user is unauthenticated, when no rows match, or when a
+ * watchlist table does not exist yet. Passing a null orgId (no membership)
+ * simply yields the personal scope alone. Hard-capped per scope.
+ *
+ * `limit` is per scope and defaults to the rail's bound. The full /watchlist
+ * surface passes WATCHLIST_PAGE_LIMIT. It is a PARAMETER rather than a raised
+ * constant because the two callers have opposite pressures: the dashboard
+ * serialises the whole array into the client payload to render three rows, so
+ * every row past the rail's need is pure weight on the page most users load
+ * first; the page renders all of them and a low cap would silently hide
+ * watches.
  */
 export async function fetchWatchlist(
-  userId: string | null
+  userId: string | null,
+  orgId: string | null = null,
+  limit: number = WATCHLIST_LIMIT
 ): Promise<WatchlistItem[]> {
   if (!isSupabaseConfigured() || !userId) return [];
   try {
     const supabase = getServiceSupabase();
-    const { data, error } = await supabase
-      .from("user_watchlist")
-      .select("id, item_type, item_id, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(14);
-    if (error || !data) return [];
 
-    type WatchRow = {
-      id: string;
-      item_type: "source" | "reg" | "signal";
-      item_id: string;
-      created_at: string;
-    };
-    const rows = data as WatchRow[];
+    const [personalRows, teamRows, orderRanks] = await Promise.all([
+      readPersonalWatchRows(supabase, userId, limit),
+      orgId
+        ? readTeamWatchRows(supabase, orgId, limit)
+        : Promise.resolve([] as WatchRow[]),
+      // Third read, not a follow-up: the order is independent of the rows, so
+      // serialising it would add a round trip to every dashboard render.
+      readListOrderRanks(supabase, userId),
+    ]);
+
+    // One rail, both scopes, newest first. An item watched personally AND by
+    // the team appears once: the personal row wins, because that row is this
+    // user's own act and removing it is the action the button offers them.
+    const seen = new Set<string>();
+    const rows = [...personalRows, ...teamRows]
+      .filter((r) => {
+        const key = watchlistOrderKey(r.item_type, r.item_id);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+
+    // The caller's own arrangement outranks recency for every row they have
+    // actually placed. The unplaced-first rule and the reason for it live in
+    // compareRanks, shared with the browser hook so the SSR order and an
+    // optimistic client order can never disagree.
+    if (orderRanks.size > 0) {
+      rows.sort((a, b) =>
+        compareRanks(
+          orderRanks.get(watchlistOrderKey(a.item_type, a.item_id)),
+          orderRanks.get(watchlistOrderKey(b.item_type, b.item_id))
+        )
+      );
+    }
+
     if (rows.length === 0) return [];
 
-    // Resolve titles for the regulation rows from intelligence_items by
-    // legacy_id || uuid. Sources / signals get a best-effort label from
-    // their ids — when the source registry / market signal feeds come
-    // online they can be joined here. Single round-trip, in-memory join.
-    const regIds = rows.filter((r) => r.item_type === "reg").map((r) => r.item_id);
-    const regTitles = new Map<string, { title: string; jurisdiction: string | null }>();
-    if (regIds.length > 0) {
-      const { data: items } = await supabase
-        .from("intelligence_items")
-        .select("id, legacy_id, title, jurisdictions")
-        .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
-        .or(regIds.map((id) => `legacy_id.eq.${id},id.eq.${id}`).join(","));
-      for (const it of (items || []) as Array<{
-        id: string;
-        legacy_id: string | null;
-        title: string;
-        jurisdictions: string[] | null;
-      }>) {
-        const key = it.legacy_id || it.id;
-        regTitles.set(key, {
-          title: it.title,
-          jurisdiction: it.jurisdictions?.[0] || null,
-        });
+    // Titles for the intelligence_items-backed rows (reg / research /
+    // operations), resolved by legacy_id || uuid in a single pass.
+    const itemIds = Array.from(
+      new Set(
+        rows.filter((r) => ITEM_BACKED_TYPES.has(r.item_type)).map((r) => r.item_id)
+      )
+    );
+    const itemMeta = new Map<string, { title: string; jurisdiction: string | null }>();
+    if (itemIds.length > 0) {
+      // Two encoded .in() lookups rather than one interpolated .or(). The
+      // previous form spliced caller-supplied item_id text straight into a
+      // PostgREST filter expression, so an id carrying a comma or a paren
+      // could rewrite the filter. .in() encodes its values, and splitting by
+      // id shape also keeps non-uuid text away from the uuid column, which
+      // would otherwise raise 22P02.
+      const uuidIds = itemIds.filter((id) => WATCHLIST_UUID_RE.test(id));
+      const legacyIds = itemIds.filter((id) => !WATCHLIST_UUID_RE.test(id));
+      const columns = "id, legacy_id, title, jurisdictions";
+      // PostgrestFilterBuilder is thenable but not a Promise, so PromiseLike.
+      const lookups: Array<PromiseLike<{ data: unknown }>> = [];
+      if (legacyIds.length > 0) {
+        lookups.push(
+          supabase
+            .from("intelligence_items")
+            .select(columns)
+            .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
+            .in("legacy_id", legacyIds)
+        );
+      }
+      if (uuidIds.length > 0) {
+        lookups.push(
+          supabase
+            .from("intelligence_items")
+            .select(columns)
+            .eq("provenance_status", "verified")
+            .in("id", uuidIds)
+        );
+      }
+      const responses = await Promise.all(lookups);
+      for (const resp of responses) {
+        for (const it of ((resp.data || []) as Array<{
+          id: string;
+          legacy_id: string | null;
+          title: string;
+          jurisdictions: string[] | null;
+        }>)) {
+          const meta = {
+            title: it.title,
+            jurisdiction: it.jurisdictions?.[0] || null,
+          };
+          // Register under BOTH keys: a row may have been watched by either id.
+          if (it.legacy_id) itemMeta.set(it.legacy_id, meta);
+          itemMeta.set(it.id, meta);
+        }
       }
     }
 
-    const sourceIds = rows.filter((r) => r.item_type === "source").map((r) => r.item_id);
+    const sourceIds = rows
+      .filter((r) => r.item_type === "source")
+      .map((r) => r.item_id);
     const sourceLabels = new Map<string, { name: string; jurisdiction: string | null }>();
     if (sourceIds.length > 0) {
       const { data: srcs } = await supabase
@@ -2619,39 +2847,74 @@ export async function fetchWatchlist(
       }
     }
 
-    const result: WatchlistItem[] = rows.map((r) => {
-      if (r.item_type === "reg") {
-        const meta = regTitles.get(r.item_id);
+    // Attribution for team rows. A departed member (added_by_user_id nulled by
+    // ON DELETE SET NULL) simply renders without a name rather than blocking.
+    const adderIds = Array.from(
+      new Set(
+        rows
+          .map((r) => r.addedByUserId)
+          .filter((id): id is string => typeof id === "string" && id.length > 0)
+      )
+    );
+    const adderNames = new Map<string, string>();
+    if (adderIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", adderIds);
+      for (const p of (profiles || []) as Array<{ id: string; full_name: string | null }>) {
+        if (p.full_name) adderNames.set(p.id, p.full_name);
+      }
+    }
+
+    const SOURCE_FALLBACK: Record<WatchlistItemType, string> = {
+      reg: "REG",
+      research: "RESEARCH",
+      operations: "OPERATIONS",
+      source: "SOURCE",
+      signal: "SIGNAL",
+    };
+
+    return rows.map((r): WatchlistItem => {
+      const common = {
+        id: r.item_id,
+        lastChangedAt: r.created_at,
+        scope: r.scope,
+        ...(r.note ? { note: r.note } : {}),
+        ...(r.addedByUserId && adderNames.has(r.addedByUserId)
+          ? { addedBy: adderNames.get(r.addedByUserId) as string }
+          : {}),
+      };
+
+      if (ITEM_BACKED_TYPES.has(r.item_type)) {
+        const meta = itemMeta.get(r.item_id);
         return {
-          id: r.item_id,
-          type: "reg" as const,
+          ...common,
+          type: r.item_type,
           title: meta?.title || r.item_id,
-          source: meta?.jurisdiction || "REG",
-          jurisdiction: meta?.jurisdiction || undefined,
-          lastChangedAt: r.created_at,
+          source: meta?.jurisdiction || SOURCE_FALLBACK[r.item_type],
+          ...(meta?.jurisdiction ? { jurisdiction: meta.jurisdiction } : {}),
         };
       }
+
       if (r.item_type === "source") {
         const meta = sourceLabels.get(r.item_id);
         return {
-          id: r.item_id,
-          type: "source" as const,
+          ...common,
+          type: "source",
           title: meta?.name || r.item_id,
-          source: meta?.name || "SOURCE",
-          jurisdiction: meta?.jurisdiction || undefined,
-          lastChangedAt: r.created_at,
+          source: meta?.name || SOURCE_FALLBACK.source,
+          ...(meta?.jurisdiction ? { jurisdiction: meta.jurisdiction } : {}),
         };
       }
+
       return {
-        id: r.item_id,
-        type: "signal" as const,
+        ...common,
+        type: "signal",
         title: r.item_id,
-        source: "SIGNAL",
-        lastChangedAt: r.created_at,
+        source: SOURCE_FALLBACK.signal,
       };
     });
-
-    return result;
   } catch (e) {
     console.error("fetchWatchlist failed, returning empty:", e);
     return [];

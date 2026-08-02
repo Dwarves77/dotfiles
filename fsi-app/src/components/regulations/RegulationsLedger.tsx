@@ -39,8 +39,28 @@ import {
   type ReactNode,
   type SetStateAction,
 } from "react";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical } from "lucide-react";
 import { useResourceStore, mergeWithOverrides } from "@/stores/resourceStore";
 import { usePersonalStateHydration } from "@/lib/hooks/usePersonalState";
+import { useListOrder } from "@/lib/hooks/useListOrder";
+import { applyMove, compareRanks } from "@/lib/list-order";
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import {
   MODES,
@@ -137,8 +157,16 @@ const BANDS: BandDef[] = [
   },
 ];
 
-type SortKey = "newest" | "priority" | "az";
+// "custom" is the caller's own drag order (migrations 237 + 238). It is a SORT
+// MODE rather than an always-on affordance because the four bands each carry a
+// meaning the platform asserts (next deadline within a severity band); a
+// personal arrangement has to be something the user opts into and can leave,
+// not a state the surface can be knocked into by a stray drag.
+type SortKey = "newest" | "priority" | "az" | "custom";
 const ROWS_COLLAPSED = 5;
+
+/** list_key this surface owns in user_list_order. In LIST_KEYS in the route. */
+const REGULATIONS_LIST_KEY = "regulations" as const;
 
 const ASK_CHIPS = [
   "What's due in 30 days?",
@@ -258,6 +286,19 @@ export function RegulationsLedger({
   // keeps SSR/client date math consistent through hydration).
   const [now] = useState(() => Date.now());
 
+  // Personal drag order (migrations 237 + 238). Per-user and fetched
+  // client-side for the same reason the personal archive is: user_list_order is
+  // keyed by user, the surface's SSR payload is org-scoped. Fails soft to no
+  // order at all, which reads as the default surface.
+  const {
+    ranks,
+    hasOrder,
+    move: moveInOrder,
+    reset: resetOrder,
+    error: orderError,
+  } = useListOrder(REGULATIONS_LIST_KEY);
+  const customMode = sort === "custom";
+
   // ── Counts (RPC-sourced, fail-soft) ─────────────────────────────────
   const rpcOk = aggregates.totalItems > 0;
   const rowBandCount = (key: BandKey) =>
@@ -307,7 +348,11 @@ export function RegulationsLedger({
     return true;
   };
 
-  const sortRows = (rows: Resource[]): Resource[] => {
+  // The platform's own order, with no personal layer applied. Custom mode uses
+  // this as its base so a list that has never been dragged looks exactly like
+  // the default surface rather than like a random shuffle, and so the seed sent
+  // on the first drag is the order the user was actually looking at.
+  const sortRowsBase = (rows: Resource[]): Resource[] => {
     const copy = [...rows];
     if (sort === "az") {
       copy.sort((a, b) => a.title.localeCompare(b.title));
@@ -316,14 +361,26 @@ export function RegulationsLedger({
         (a, b) => (parseDate(b.added)?.getTime() ?? 0) - (parseDate(a.added)?.getTime() ?? 0)
       );
     } else {
-      // priority (default): within a band all rows share a priority, so
-      // order by next deadline ascending, undated last.
+      // priority (default, and the base under custom): within a band all rows
+      // share a priority, so order by next deadline ascending, undated last.
       copy.sort((a, b) => {
         const da = nextMilestone(a, now)?.getTime() ?? Infinity;
         const db = nextMilestone(b, now)?.getTime() ?? Infinity;
         if (da !== db) return da - db;
         return a.title.localeCompare(b.title);
       });
+    }
+    return copy;
+  };
+
+  const sortRows = (rows: Resource[]): Resource[] => {
+    const copy = sortRowsBase(rows);
+    // Stable sort over the base order, so rows the user has never placed hold
+    // their platform order instead of scattering. compareRanks owns the
+    // unplaced-first rule and its reasoning; it is shared with the server
+    // reader so an SSR order and an optimistic order cannot disagree.
+    if (customMode && ranks.size > 0) {
+      copy.sort((a, b) => compareRanks(ranks.get(a.id), ranks.get(b.id)));
     }
     return copy;
   };
@@ -339,8 +396,14 @@ export function RegulationsLedger({
       map[b.key] = sortRows(rows);
     }
     return map;
+    // `ranks` is load-bearing here, not decorative: it arrives asynchronously
+    // from useListOrder's fetch, and every other dep is already settled by the
+    // time it lands. Without it the stored order would only appear after the
+    // user happened to touch a filter, which reads as "my arrangement did not
+    // save". It is a useMemo keyed on the order array, so it is referentially
+    // stable between actual order changes and does not thrash this memo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [regulatory, search, ownerFilter, activeModes, activeTopics, activeRegionIsos, sort]);
+  }, [regulatory, search, ownerFilter, activeModes, activeTopics, activeRegionIsos, sort, ranks]);
 
   const anyFilterActive =
     !!search.trim() ||
@@ -352,6 +415,60 @@ export function RegulationsLedger({
 
   const visibleBands = BANDS.filter((b) => isPriorityIncluded(b.key));
   const totalShown = visibleBands.reduce((n, b) => n + bandRows[b.key].length, 0);
+
+  // ── Drag ordering (custom mode only) ────────────────────────────────
+  // Pointer drags need a small activation distance or a click on the row would
+  // start a drag and swallow the navigation; the row is a link first.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  // The seed is the UNFILTERED corpus in band order, not the rows currently on
+  // screen. Seeding only what a search left visible would leave every
+  // filtered-out row unplaced, and unplaced rows sort first — so clearing the
+  // search after one drag would throw hundreds of rows above the handful the
+  // user had just arranged. Seed everything once, order what is asked for.
+  //
+  // The move is deliberately NOT baked in. reorder_user_list_item seeds the
+  // ladder first and only then places the item between prev and next, so
+  // pre-applying the drop here would be redundant work; worse, doing it would
+  // force the moved band to come from the FILTERED post-drop array, which is
+  // exactly the hidden-row hole this function exists to close.
+  const buildSeed = (): string[] => {
+    const seed: string[] = [];
+    for (const b of BANDS) {
+      seed.push(...sortRows(regulatory.filter((r) => r.priority === b.key)).map((r) => r.id));
+    }
+    return seed;
+  };
+
+  // Drags are WITHIN a band. Band membership is priority, which the platform
+  // asserts and the user retags through the row menu, so dragging a row across
+  // a band boundary would silently mean "change this regulation's severity" —
+  // a different action with a different affordance. Positions stay global
+  // (one list_key for the surface) because only relative order inside a band is
+  // ever observed, and a midpoint between two band neighbours is still between
+  // them however many hidden rows share the gap.
+  const onBandDragEnd = (bandKey: string) => async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    // The FULL band array, not the visible slice: a collapsed band renders its
+    // first five rows, and the neighbour below the last visible row is row six,
+    // not nothing. The slice is a prefix, so display indices are array indices.
+    const rows = bandRows[bandKey];
+    const from = rows.findIndex((r) => r.id === active.id);
+    const to = rows.findIndex((r) => r.id === over.id);
+    if (from < 0 || to < 0) return;
+
+    const { items, prevIndex, nextIndex } = applyMove(rows, from, to);
+    await moveInOrder({
+      itemId: String(active.id),
+      prevItemId: items[prevIndex]?.id ?? null,
+      nextItemId: items[nextIndex]?.id ?? null,
+      seedItemIds: buildSeed(),
+    });
+  };
 
   // ── Actions ─────────────────────────────────────────────────────────
   const toggleInSet = (
@@ -605,6 +722,7 @@ export function RegulationsLedger({
               ["newest", "Newest"],
               ["priority", "Priority"],
               ["az", "A → Z"],
+              ["custom", "My order"],
             ] as [SortKey, string][]).map(([key, label]) => {
               const on = sort === key;
               return (
@@ -789,9 +907,66 @@ export function RegulationsLedger({
             color: "var(--color-text-muted)",
           }}
         >
-          Four bands · sorted by next deadline
+          {/* The strap states what the order actually is. Leaving it at
+              "sorted by next deadline" while a personal order is applied would
+              make the surface assert something untrue about itself. */}
+          {customMode
+            ? hasOrder
+              ? "Four bands · your order"
+              : "Four bands · drag to arrange"
+            : "Four bands · sorted by next deadline"}
         </span>
       </div>
+
+      {/* Custom mode is a state the user can enter, so it has to be a state they
+          can leave. A personal arrangement with no exit is a trap. */}
+      {customMode && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+            padding: "9px 12px",
+            margin: "0 0 14px",
+            borderRadius: 6,
+            border: "1px solid var(--color-border-subtle)",
+            background: "var(--color-bg-subtle, var(--color-bg-surface))",
+          }}
+        >
+          <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+            Drag rows by the handle to arrange them. Order is yours alone and
+            applies within a band, not across bands.
+          </span>
+          {hasOrder && (
+            <button
+              type="button"
+              onClick={() => void resetOrder()}
+              style={{
+                fontFamily: "inherit",
+                fontSize: 11.5,
+                fontWeight: 700,
+                padding: "5px 12px",
+                borderRadius: 6,
+                border: "1px solid var(--color-border-medium)",
+                background: "var(--color-bg-surface)",
+                color: "var(--color-text-primary)",
+                cursor: "pointer",
+              }}
+            >
+              Reset to default order
+            </button>
+          )}
+          {orderError && (
+            <span
+              role="status"
+              style={{ fontSize: 12, fontWeight: 700, color: "var(--reg-band-immediate)" }}
+            >
+              {orderError}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Multi-label disclosure: only when the header total and the sum of
           band labels differ (items may carry no priority label). */}
@@ -901,101 +1076,41 @@ export function RegulationsLedger({
                   No matching regulations in this band.
                 </p>
               ) : (
-                shown.map((r) => {
-                  const md = nextMilestone(r, now);
-                  const days = md ? Math.round((md.getTime() - now) / 86400000) : null;
-                  const dateStr = md
-                    ? md.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-                    : null;
-                  const dateRed = days !== null && days >= 0 && days <= 90;
-                  const tier = r.sourceTier != null ? clampTier(r.sourceTier) : null;
-                  return (
-                    <Link
-                      key={r.id}
-                      href={`/regulations/${encodeURIComponent(r.id)}`}
-                      // prefetch OFF (diagnosis 2026-07-13): App Router prefetches every visible row → N
-                      // concurrent uncached detail SSR renders (~8-11 Supabase round-trips each) → the
-                      // Supabase-saturation spike behind the /regulations/[slug] 503s. Kill the fan-out at source.
-                      prefetch={false}
-                      className="cl-reg-row"
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "96px 1fr auto",
-                        gap: 14,
-                        alignItems: "center",
-                        padding: "11px 18px",
-                        borderBottom: "1px solid var(--color-border-subtle)",
-                        textDecoration: "none",
-                        color: "inherit",
-                      }}
+                customMode ? (
+                  // One DndContext per band: bands are independent drag
+                  // containers because a cross-band drop would mean "change
+                  // this regulation's severity", which is the row menu's job,
+                  // not the drag handle's.
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    modifiers={[restrictToVerticalAxis]}
+                    onDragEnd={onBandDragEnd(b.key)}
+                  >
+                    <SortableContext
+                      items={shown.map((r) => r.id)}
+                      strategy={verticalListSortingStrategy}
                     >
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 800,
-                          letterSpacing: "0.08em",
-                          color: "var(--brass)",
-                        }}
-                      >
-                        {jurTag(r)}
-                      </span>
-                      <p style={{ fontSize: 13.5, fontWeight: 700, margin: 0, lineHeight: 1.4 }}>
-                        {r.title}
-                      </p>
-                      <span
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          whiteSpace: "nowrap",
-                          justifyContent: "flex-end",
-                        }}
-                      >
-                        {dateStr ? (
-                          <span
-                            style={{
-                              fontSize: 12,
-                              fontWeight: 800,
-                              color: dateRed ? "var(--reg-band-immediate)" : "var(--color-text-muted)",
-                            }}
-                          >
-                            {dateStr}
-                          </span>
-                        ) : (
-                          <span
-                            title="No upcoming milestone on record"
-                            aria-label="No upcoming milestone on record"
-                            style={{ fontSize: 12, fontWeight: 800, color: "var(--color-text-muted)" }}
-                          >
-                            —
-                          </span>
-                        )}
-                        {tier != null && (
-                          <span
-                            style={{
-                              fontSize: 10,
-                              fontWeight: 800,
-                              padding: "2px 7px",
-                              borderRadius: 4,
-                              background: "var(--accent-blue)",
-                              color: "#fff",
-                            }}
-                          >
-                            T{tier}
-                          </span>
-                        )}
-                        {/* Phase 0 (operator go 2026-08-01): per-row ⋯ retag/dismiss —
-                            the built-but-unwired "card" variant, now mounted. Safe
-                            inside the row <Link>: the popover stops propagation. */}
-                        <CardPriorityDropdown
-                          currentPriority={r.priority as PriorityKey}
-                          itemId={r.id}
+                      {shown.map((r) => (
+                        <SortableRegRow
+                          key={r.id}
+                          r={r}
+                          now={now}
                           onArchive={() => setArchiveTarget({ id: r.id, title: r.title })}
                         />
-                      </span>
-                    </Link>
-                  );
-                })
+                      ))}
+                    </SortableContext>
+                  </DndContext>
+                ) : (
+                  shown.map((r) => (
+                    <RegRow
+                      key={r.id}
+                      r={r}
+                      now={now}
+                      onArchive={() => setArchiveTarget({ id: r.id, title: r.title })}
+                    />
+                  ))
+                )
               )}
 
               {hasMore && (
@@ -1155,6 +1270,189 @@ function PendingFrame({
     </div>
   );
 }
+
+// ── Row components ───────────────────────────────────────────────────────
+// Extracted from the band render so the same markup can be mounted plain
+// (default sorts) or wrapped in a sortable (custom mode). One definition, two
+// mounts: a second hand-written copy for the drag path would be free to drift
+// from the one every other sort renders, and the row is the surface's most
+// load-bearing piece of markup.
+function RegRow({
+  r,
+  now,
+  onArchive,
+}: {
+  r: Resource;
+  now: number;
+  onArchive: () => void;
+}) {
+  const md = nextMilestone(r, now);
+  const days = md ? Math.round((md.getTime() - now) / 86400000) : null;
+  const dateStr = md
+    ? md.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    : null;
+  const dateRed = days !== null && days >= 0 && days <= 90;
+  const tier = r.sourceTier != null ? clampTier(r.sourceTier) : null;
+  return (
+    <Link
+      href={`/regulations/${encodeURIComponent(r.id)}`}
+      // prefetch OFF (diagnosis 2026-07-13): App Router prefetches every visible row → N
+      // concurrent uncached detail SSR renders (~8-11 Supabase round-trips each) → the
+      // Supabase-saturation spike behind the /regulations/[slug] 503s. Kill the fan-out at source.
+      prefetch={false}
+      className="cl-reg-row"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "96px 1fr auto",
+        gap: 14,
+        alignItems: "center",
+        padding: "11px 18px",
+        borderBottom: "1px solid var(--color-border-subtle)",
+        textDecoration: "none",
+        color: "inherit",
+      }}
+    >
+      <span
+        style={{
+          fontSize: 10,
+          fontWeight: 800,
+          letterSpacing: "0.08em",
+          color: "var(--brass)",
+        }}
+      >
+        {jurTag(r)}
+      </span>
+      <p style={{ fontSize: 13.5, fontWeight: 700, margin: 0, lineHeight: 1.4 }}>
+        {r.title}
+      </p>
+      <span
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          whiteSpace: "nowrap",
+          justifyContent: "flex-end",
+        }}
+      >
+        {dateStr ? (
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 800,
+              color: dateRed ? "var(--reg-band-immediate)" : "var(--color-text-muted)",
+            }}
+          >
+            {dateStr}
+          </span>
+        ) : (
+          <span
+            title="No upcoming milestone on record"
+            aria-label="No upcoming milestone on record"
+            style={{ fontSize: 12, fontWeight: 800, color: "var(--color-text-muted)" }}
+          >
+            —
+          </span>
+        )}
+        {tier != null && (
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 800,
+              padding: "2px 7px",
+              borderRadius: 4,
+              background: "var(--accent-blue)",
+              color: "#fff",
+            }}
+          >
+            T{tier}
+          </span>
+        )}
+        {/* Phase 0 (operator go 2026-08-01): per-row ⋯ retag/dismiss —
+            the built-but-unwired "card" variant, now mounted. Safe
+            inside the row <Link>: the popover stops propagation. */}
+        <CardPriorityDropdown
+          currentPriority={r.priority as PriorityKey}
+          itemId={r.id}
+          onArchive={onArchive}
+        />
+      </span>
+    </Link>
+  );
+}
+
+// The same row with a drag handle, mounted only in custom mode.
+//
+// THE HANDLE IS OUTSIDE THE LINK, deliberately. Attaching the drag listeners to
+// the row itself would put a pointer-down handler on a navigation target: every
+// click would begin a drag, and the row's primary job is to open the regulation.
+// A dedicated activator keeps "go there" and "move this" as two distinct
+// gestures on two distinct targets, which is also what makes the keyboard path
+// coherent — the handle is a real button, so it is tabbable and dnd-kit's
+// keyboard sensor drives it with the arrow keys.
+function SortableRegRow({
+  r,
+  now,
+  onArchive,
+}: {
+  r: Resource;
+  now: number;
+  onArchive: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: r.id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "30px 1fr",
+        alignItems: "center",
+        transform: CSS.Transform.toString(transform),
+        transition,
+        // The dragged row has to paint above its neighbours or it slides
+        // underneath the rows it is passing.
+        position: "relative",
+        zIndex: isDragging ? 2 : undefined,
+        opacity: isDragging ? 0.85 : undefined,
+        background: isDragging ? "var(--color-surface)" : undefined,
+      }}
+    >
+      <button
+        ref={setActivatorNodeRef}
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label={`Reorder ${r.title}`}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100%",
+          padding: 0,
+          border: "none",
+          background: "transparent",
+          color: "var(--color-text-muted)",
+          cursor: isDragging ? "grabbing" : "grab",
+          // Without this the browser claims the gesture for scrolling and a
+          // touch drag never reaches dnd-kit.
+          touchAction: "none",
+        }}
+      >
+        <GripVertical size={14} aria-hidden="true" />
+      </button>
+      <RegRow r={r} now={now} onArchive={onArchive} />
+    </div>
+  );
+}
+
 
 // ── Per-row priority dropdown (Phase 0 mount of the built card variant) ──
 // Mirrors RegulationDetailSurface's HeroPriorityDropdown wiring: reads the
