@@ -78,14 +78,51 @@ async function handleGET(request: NextRequest) {
 
   // Watchers. user_watchlist.item_id is TEXT and may hold either the legacy_id
   // or the uuid (see the /api/watchlist header), so both are matched.
+  //
+  // SCOPED TO THE CALLER'S ORG. The first revision of this route filtered on
+  // item_id alone, and intelligence_items are global, so every user in every
+  // org watching that item came back — and their full_name/display_name/email
+  // was then resolved and returned as watcherNames. That is a cross-tenant
+  // disclosure of personal data. It never fired (production has one org and
+  // both watchlist tables were empty), but the shape was live on master.
+  //
+  // Membership is the filter, not user_watchlist.org_id: that column is
+  // nullable contextual metadata, so a row written before the org resolved
+  // would be silently dropped from a warning whose whole job is to be truthful
+  // about who is affected.
   const watchKeys = [intelItemId, ...(legacyId ? [legacyId] : [])];
-  const { data: watchRows } = await supabase
-    .from("user_watchlist")
-    .select("user_id")
-    .in("item_id", watchKeys);
-  const watcherIds = Array.from(
-    new Set((watchRows || []).map((w) => w.user_id as string))
-  ).filter((id) => id !== auth.userId);
+  let watcherIds: string[] = [];
+  let onTeamWatchlist = false;
+  if (orgId) {
+    const { data: memberRows } = await supabase
+      .from("org_memberships")
+      .select("user_id")
+      .eq("org_id", orgId);
+    const memberIds = (memberRows || []).map((m) => m.user_id as string);
+
+    if (memberIds.length > 0) {
+      const { data: watchRows } = await supabase
+        .from("user_watchlist")
+        .select("user_id")
+        .in("user_id", memberIds)
+        .in("item_id", watchKeys);
+      watcherIds = Array.from(
+        new Set((watchRows || []).map((w) => w.user_id as string))
+      ).filter((id) => id !== auth.userId);
+    }
+
+    // The TEAM watchlist (org_watchlist, wired 2026-08-02) is its own signal.
+    // An item on the workspace rail was deliberately surfaced to everyone, so
+    // archiving it is precisely the case the warning exists for. It is not a
+    // per-user watch, so it does not inflate watcherCount.
+    const { data: teamWatchRows } = await supabase
+      .from("org_watchlist")
+      .select("id")
+      .eq("org_id", orgId)
+      .in("item_id", watchKeys)
+      .limit(1);
+    onTeamWatchlist = (teamWatchRows || []).length > 0;
+  }
 
   // Current owner (org-scoped override) + whether the item is already archived
   // at either scope.
@@ -154,6 +191,7 @@ async function handleGET(request: NextRequest) {
       watcherNames: watcherIds
         .slice(0, WATCHER_NAME_CAP)
         .map((id) => nameById.get(id) || "A teammate"),
+      onTeamWatchlist,
       ownerName: ownerUserId ? nameById.get(ownerUserId) || "A teammate" : null,
       alreadyWorkspaceArchived,
       alreadyPersonallyArchived: !!personalRow?.is_archived,
