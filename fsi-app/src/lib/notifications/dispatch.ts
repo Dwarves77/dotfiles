@@ -16,12 +16,16 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+// Kinds must stay in sync with the notifications_kind_check CHECK constraint.
+// 'archive' added by migration 235 (dual-scope archive): a workspace archive
+// fans out to the item's watchers and its assigned owner.
 export type NotificationKind =
   | "reply"
   | "invite"
   | "moderation"
   | "promote"
-  | "mention";
+  | "mention"
+  | "archive";
 
 export interface DispatchArgs {
   userId: string;

@@ -67,6 +67,7 @@ import type {
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import { RegulationSections } from "@/components/regulations/sections/RegulationSections";
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
+import { ArchiveDialog } from "@/components/workspace/ArchiveDialog";
 import { useResourceStore } from "@/stores/resourceStore";
 
 // ── Palette — lifted verbatim from the approved mock inline styles ──────
@@ -247,7 +248,7 @@ export function RegulationDetailSurface({
             <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}>
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
                 {/* Priority bullet chip — interactive dropdown (retag/dismiss) */}
-                <HeroPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} />
+                <HeroPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} title={r.title} />
                 {r.type && (
                   <span
                     style={{
@@ -1280,20 +1281,42 @@ function PendingFrame({ header, children }: { header: string; children: React.Re
 
 // ── Hero priority dropdown (interactive retag/dismiss) ──────────────────
 
-function HeroPriorityDropdown({ currentPriority, itemId }: { currentPriority: PriorityKey; itemId: string }) {
+function HeroPriorityDropdown({
+  currentPriority,
+  itemId,
+  title,
+}: {
+  currentPriority: PriorityKey;
+  itemId: string;
+  title: string;
+}) {
   const updatePriority = useResourceStore((s) => s.updatePriority);
   const dismissResource = useResourceStore((s) => s.dismissResource);
   const override = useResourceStore((s) => s.overrides.get(itemId));
   const isDismissed = !!override?.dismissedAt;
   const effectivePriority = (override?.priorityOverride as PriorityKey | undefined) ?? currentPriority;
+  // Dual-scope archive (migration 235). Local open state + inline mount, the
+  // same shape PromotePostButton uses for PromotePostDialog. Nothing here is
+  // inside a <Link>, so the dialog can render in place.
+  const [archiveOpen, setArchiveOpen] = useState(false);
   return (
-    <PriorityDropdown
-      variant="hero"
-      currentPriority={effectivePriority}
-      isDismissed={isDismissed}
-      onSetPriority={(p) => updatePriority(itemId, p)}
-      onDismiss={() => dismissResource(itemId)}
-    />
+    <>
+      <PriorityDropdown
+        variant="hero"
+        currentPriority={effectivePriority}
+        isDismissed={isDismissed}
+        onSetPriority={(p) => updatePriority(itemId, p)}
+        onDismiss={() => dismissResource(itemId)}
+        onArchive={() => setArchiveOpen(true)}
+      />
+      {archiveOpen && (
+        <ArchiveDialog
+          itemId={itemId}
+          title={title}
+          onClose={() => setArchiveOpen(false)}
+        />
+      )}
+    </>
   );
 }
 

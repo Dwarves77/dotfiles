@@ -14,6 +14,10 @@
  *   - Mark Background  (green dot)   → priority=LOW,      dismissed=null
  *   ─────────────────────────────────────────────────────────────
  *   - Dismiss this regulation        → dismissed=now,     priority=null
+ *   - Archive…            (optional) → opens the dual-scope ArchiveDialog
+ *
+ * The Archive item only renders when an onArchive handler is passed, so
+ * mounts without an archive affordance keep the menu they already had.
  *
  * Two layout variants:
  *
@@ -54,6 +58,12 @@ interface PriorityDropdownProps {
   onSetPriority: (p: PriorityValue) => void;
   /** Fires when the operator picks the Dismiss menu item. */
   onDismiss: () => void;
+  /** Fires when the operator picks the Archive menu item (dual-scope
+   *  archive, migration 235). OPTIONAL: the menu item is only rendered
+   *  when a handler is supplied, so existing mounts that have no archive
+   *  affordance keep exactly the menu they have today. The caller owns the
+   *  scope choice — this only opens it. */
+  onArchive?: () => void;
   /** Layout variant. "card" = ⋯ glyph button; "hero" = pill button. */
   variant?: "card" | "hero";
 }
@@ -101,6 +111,7 @@ export function PriorityDropdown({
   isDismissed = false,
   onSetPriority,
   onDismiss,
+  onArchive,
   variant = "card",
 }: PriorityDropdownProps) {
   const [open, setOpen] = useState(false);
@@ -140,6 +151,12 @@ export function PriorityDropdown({
     e.preventDefault();
     e.stopPropagation();
     onDismiss();
+    setOpen(false);
+  }
+  function handleArchive(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    onArchive?.();
     setOpen(false);
   }
   function handleToggle(e: React.MouseEvent) {
@@ -228,7 +245,11 @@ export function PriorityDropdown({
       {open && (
         <div
           role="menu"
-          aria-label="Set priority or dismiss"
+          aria-label={
+            onArchive
+              ? "Set priority, dismiss, or archive"
+              : "Set priority or dismiss"
+          }
           style={{
             position: "absolute",
             top: "calc(100% + 6px)",
@@ -337,6 +358,47 @@ export function PriorityDropdown({
             </span>
             Dismiss this regulation
           </button>
+
+          {/* Dual-scope archive (migration 235). Opens the scope dialog —
+              this menu never archives directly, because "for me" and "for the
+              whole team" are different actions and must be chosen explicitly.
+              The trailing ellipsis is the standard "opens a dialog" hint. */}
+          {onArchive && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleArchive}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                height: 36,
+                padding: "0 10px",
+                background: "transparent",
+                border: 0,
+                borderRadius: "var(--radius-sm, 4px)",
+                fontFamily: "inherit",
+                fontSize: 13,
+                fontWeight: 500,
+                color: "var(--color-text-primary)",
+                cursor: "pointer",
+                textAlign: "left",
+              }}
+            >
+              <span
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 2,
+                  border: "1.5px solid var(--color-text-muted)",
+                  display: "inline-block",
+                  flexShrink: 0,
+                }}
+              />
+              Archive…
+            </button>
+          )}
         </div>
       )}
     </div>

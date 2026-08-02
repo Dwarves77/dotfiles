@@ -55,3 +55,51 @@ it was trust-the-executor and the o9 re-fetch slipped exactly because it was und
 `one paid pass per item per mechanism` = PARTIAL (spend-watch alarms on an untraceable row; the "per item per
 mechanism" bookkeeping is executor discipline). The o9 incident is the cost of the silent-unenforced state
 this protocol closes.
+
+## Landing-order discipline — every pushed tree typechecks (added 2026-08-02)
+
+The same protocol applied to **landing** rather than dispatching. The constraint "this branch builds" needs
+its enforcement named, and the enforcement is per-commit, not per-branch.
+
+**The definition-of-verified gap.** The prior gate verified *the final tree typechecks*. Vercel's contract is
+*every pushed tree typechecks* — it builds **every commit** on a PR branch as a Preview deployment. Those two
+sentences are not the same check. A branch whose final tree is clean can still emit a run of red builds, and
+the operator sees red, correctly, while the gate reports green. The defect is the mismatched contract, not the
+type error.
+
+**ENFORCED — the per-commit typecheck gate.** Build the branch locally as real commits in landing order, then
+loop over every commit before touching the GitHub web UI:
+
+```sh
+for sha in $(git rev-list --reverse master..HEAD); do
+  git checkout -q "$sha" && npx tsc --noEmit \
+    && echo "GREEN $sha" || { echo "RED   $sha"; break; }
+done
+```
+
+Any RED means the landing order is wrong, not that the work is wrong. Reorder and re-run.
+
+**ENFORCED — provider before consumer.** Additive changes (widening a union, adding a store action, adding a
+column to the repo copy of a migration) are safe as standalone commits; a commit that *consumes* a symbol which
+does not yet exist is not. This is structural, not stylistic: the GitHub web editor commits one file at a time,
+so a multi-file atomic commit is impossible on the web-UI landing path. Ordering is therefore the only lever.
+
+**Worked example — PR #398 (`phase1-ownership`), seven red Previews.** Consumer `a7a1b592` ("interactive
+assignee picker on OwnerTeamCard", which calls `setOwner`) landed at ~20:55. Provider `6d8ec5d6` ("setOwner
+action + actionOwner merge seam", which defines it) landed at ~21:19. For those 24 minutes every pushed tree
+failed with `Property 'setOwner' does not exist`. Production was never affected — all seven were
+`target: null` Previews, and every master deployment in that window was READY — but the operator's signal was
+red for 24 minutes with no defect behind it.
+
+**Counter-example, same batch.** `archive-phase-dual-scope` landed provider-first: migration repo copy →
+inventory row → `NotificationKind` widened with `'archive'` (provider) → `overrides/route.ts` fan-out
+(consumer). All four commits GREEN. Reversing the last two would have made commit 3 RED — the identical
+failure, reproduced on demand.
+
+**TRUST-THE-EXECUTOR — squash-merge masks it.** A squash merge collapses the branch to one commit, so the
+history keeps no trace of a bad intermediate order. Nothing after the fact will re-detect it; the gate above is
+the only place it can be caught.
+
+**UNCONFIRMED — skip-token residual.** Whether a commit-message token (`[skip ci]` or equivalent) can suppress
+Preview builds on intermediate commits could not be confirmed from Vercel's documentation. Do not rely on it.
+The per-commit gate does not depend on it either way.

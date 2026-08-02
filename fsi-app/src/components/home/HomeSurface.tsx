@@ -32,6 +32,7 @@ import { WhatChanged } from "@/components/home/WhatChanged";
 import { Supersessions } from "@/components/home/Supersessions";
 import type { SurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { useResourceStore, mergeWithOverrides } from "@/stores/resourceStore";
+import { usePersonalStateHydration } from "@/lib/hooks/usePersonalState";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { urgencyScore, scoreResource } from "@/lib/scoring";
 import type { Resource, ChangeLogEntry, Supersession } from "@/types/resource";
@@ -124,6 +125,7 @@ export function HomeSurface({
     setArchived,
     overrides,
     setOverrides,
+    personalState,
   } = useResourceStore();
   const sectorProfile = useWorkspaceStore((s) => s.sectorProfile);
   const sectorWeights = useWorkspaceStore((s) => s.sectorWeights);
@@ -142,11 +144,15 @@ export function HomeSurface({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialResources, initialArchived]);
 
+  // Personal archive layer (migration 235). The override layer above arrives
+  // with the SSR payload; user_item_state is per-user so it is fetched here.
+  usePersonalStateHydration();
+
   const effectiveResources = platformResources.length > 0 ? platformResources : initialResources;
   const effectiveArchived = platformArchived.length > 0 ? platformArchived : initialArchived;
   const { active: resources, archived: workspaceArchived } = useMemo(
-    () => mergeWithOverrides(effectiveResources, overrides),
-    [effectiveResources, overrides]
+    () => mergeWithOverrides(effectiveResources, overrides, personalState),
+    [effectiveResources, overrides, personalState]
   );
   const archived = useMemo(
     () => [...effectiveArchived, ...workspaceArchived],
