@@ -11,6 +11,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { DashboardRailCard, RailEmptyFrame } from "./DashboardRailCard";
+import { itemDetailHref } from "@/lib/item-links";
 import type { Resource } from "@/types/resource";
 
 export interface DashboardByOwnerProps {
@@ -28,7 +29,10 @@ interface OwnerGroup {
   key: string;
   displayName: string;
   count: number;
-  top: { id: string; title: string; priority: Resource["priority"] };
+  /** href routes to the item's canonical surface (misroute contract):
+   *  the owner aggregation spans ALL item types, so the top item's link
+   *  derives from surfaceOf, never a hard-coded /regulations. */
+  top: { id: string; title: string; priority: Resource["priority"]; href: string };
 }
 
 function aggregateOwners(resources: Resource[]): OwnerGroup[] {
@@ -69,7 +73,12 @@ function aggregateOwners(resources: Resource[]): OwnerGroup[] {
       key: bucket.key,
       displayName,
       count: bucket.items.length,
-      top: { id: topItem.id, title: topItem.title, priority: topItem.priority },
+      top: {
+        id: topItem.id,
+        title: topItem.title,
+        priority: topItem.priority,
+        href: itemDetailHref({ id: topItem.id, type: topItem.type, domain: topItem.domain }),
+      },
     });
   }
 
@@ -121,7 +130,7 @@ export function DashboardByOwner({ resources }: DashboardByOwnerProps) {
               </span>
             </div>
             <Link
-              href={`/regulations/${g.top.id}`}
+              href={g.top.href}
               prefetch={false}
               style={{ display: "block", fontSize: 11.5, color: "var(--color-text-secondary)", textDecoration: "none", marginTop: 2, lineHeight: 1.4 }}
             >

@@ -23,6 +23,7 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import type { Resource, ChangeLogEntry } from "@/types/resource";
 import type { RecentChangeRow } from "@/lib/supabase-server";
+import { itemDetailHref } from "@/lib/item-links";
 import { formatRelative, toDate } from "@/lib/relative-time";
 
 interface WhatChangedProps {
@@ -56,6 +57,10 @@ interface ItemRow {
   title: string;
   changeType: "New" | "Updated";
   priorityForLabel: "CRITICAL" | "HIGH" | "MODERATE" | "LOW";
+  /** Canonical-surface detail link (misroute contract): both halves of the
+   *  feed span ALL item types, so the href derives from surfaceOf via
+   *  itemDetailHref, never a hard-coded /regulations. */
+  href: string;
 }
 
 function asPriority(p: string | undefined): ItemRow["priorityForLabel"] {
@@ -91,6 +96,10 @@ export function WhatChanged({ resources, recentChanges, changelog, auditDate }: 
     title: r.title,
     changeType: "New",
     priorityForLabel: asPriority(r.priority),
+    // itemType/domain are optional on RecentChangeRow (cache-shape rule: a
+    // stale cached payload lacks them); absent fields fall back to the
+    // pre-fix /regulations destination inside itemDetailHref.
+    href: itemDetailHref({ id: r.id, type: r.itemType, domain: r.domain }),
   }));
   const updatedRows: ItemRow[] = changed.map((r) => ({
     id: `upd-${r.id}`,
@@ -98,6 +107,7 @@ export function WhatChanged({ resources, recentChanges, changelog, auditDate }: 
     title: r.title,
     changeType: "Updated" as const,
     priorityForLabel: r.priority,
+    href: itemDetailHref(r),
   }));
 
   const seen = new Set<string>();
@@ -177,7 +187,7 @@ export function WhatChanged({ resources, recentChanges, changelog, auditDate }: 
             {visibleRows.map((row, idx) => (
               <Link
                 key={row.id}
-                href={`/regulations/${row.itemId}`}
+                href={row.href}
                 prefetch={false}
                 style={{
                   display: "grid",
