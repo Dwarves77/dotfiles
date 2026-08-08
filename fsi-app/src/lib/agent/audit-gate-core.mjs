@@ -5,7 +5,8 @@
 // isn't exercised through audit-gate.ts.
 
 /** A data-audit block is dispositioned (allowed to proceed) only by an explicit, non-expired dated waiver.
- *  Time alone never clears red. Pure. */
+ *  Time alone never clears red. Pure. MIRRORED IN SQL by migration 240's guard_data_audit_block (the
+ *  intelligence_items BEFORE INSERT gate) — any semantic change here must change there too (no-logic-drift). */
 export function hasValidWaiver(block, now) {
   if (!block) return false;
   const acts = Array.isArray(block.recommended_actions) ? block.recommended_actions : [];
