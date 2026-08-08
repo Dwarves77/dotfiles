@@ -88,6 +88,8 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [spec-audit-research-2026-05-23](./plans/spec-audit-research-2026-05-23.md) — Spec audit, /research, built vs caros-ledge-platform-intent spec
 - [spec-audit-synthesis-2026-05-23](./plans/spec-audit-synthesis-2026-05-23.md) — Spec-vs-Built Audit: Cross-Surface Synthesis (2026-05-23)
 - [spec-audit-user-chrome-2026-05-23](./plans/spec-audit-user-chrome-2026-05-23.md) — Spec audit: user chrome (8 pages) vs caros-ledge-platform-intent
+- [fleet-cost-control-plan-2026-08-08](./plans/fleet-cost-control-plan-2026-08-08.md) — Fleet consolidation + self-metering plan; Phase D redefined (2026-08-08)
+- [main-checkout-stabilization-2026-08-08](./plans/main-checkout-stabilization-2026-08-08.md) — Main-checkout audit + restore/park fix + deferred rulings (2026-08-08)
 - [wave1-track5-widget-implementation-plan](./plans/wave1-track5-widget-implementation-plan.md) — Phase 3 Widget Implementation Plan (PR-G3)
 
 ## audits
