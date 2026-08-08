@@ -130,6 +130,12 @@ export async function preflightStep(itemId: string, caller: string | null = null
   // (the seven-red-nights failure was red sitting un-actioned). There is NO skip flag (no escape hatch): the
   // only way past is to record a disposition, so a human is no longer the catch and bad state cannot compound
   // under batch pressure. Fails CLOSED — if the block state cannot be read, generation does not proceed.
+  // ENFORCEMENT POINT MOVED TO THE DB (migration 240, 2026-08-08): this app-layer check only guards
+  // callers that reach THIS workflow — the recurring fleet never did (500+ inserts with zero agent_runs
+  // rows never consulted the block). The guard_data_audit_block BEFORE INSERT trigger on
+  // intelligence_items now enforces the same semantics (exact SQL mirror of hasValidWaiver) for EVERY
+  // insert path by construction. This check stays as defense in depth: it halts BEFORE any spend and
+  // gives a better error than a bounced insert. Keep the two in sync (no-logic-drift).
   const block = await readOpenDataAuditBlock(sb);
   if (block && !hasValidWaiver(block, new Date())) {
     throw new FatalError(
