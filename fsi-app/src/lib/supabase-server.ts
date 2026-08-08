@@ -1412,6 +1412,26 @@ export interface RecentChangeRow {
   title: string;
   priority: string;
   added: string;
+  /** item_type / domain for canonical-surface routing (misroute contract):
+   *  the What-changed rows link via surfaceOf, so the feed must carry the
+   *  classification inputs. OPTIONAL on purpose — the migration-232 RPC
+   *  returns neither column (they are enriched by a follow-up read in
+   *  fetchDashboardData), and per the DASHBOARD_DATA_CACHE_KEY limit note
+   *  additions reached through nested types must be optional so a stale
+   *  cached payload stays type-valid (absent fields fall back to the
+   *  pre-fix /regulations destination in itemDetailHref). */
+  itemType?: string | null;
+  domain?: number | null;
+}
+
+/** Raw payload shape of the get_workspace_recent_changes RPC (migration 232). */
+interface RecentChangeRpcRow {
+  id: string;
+  legacy_id: string | null;
+  title: string;
+  priority: string | null;
+  effective_priority: string | null;
+  added_date: string;
 }
 
 // ── Cache key for the cached dashboard payload (consumed by lib/data.ts) ──
@@ -1633,11 +1653,32 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
     if (recentResult.error) {
       console.warn(`[supabase-server] get_workspace_recent_changes failed (This-week renders from the capped feed only): ${recentResult.error.message}`);
     }
-    const recentChanges: RecentChangeRow[] = (recentResult.data || []).map((r: any) => ({
+    // Canonical-surface routing enrichment (misroute contract): the 232 RPC
+    // predates surface routing and returns no item_type/domain, so one
+    // follow-up read supplies the surfaceOf inputs for the What-changed
+    // links. Fail-soft: on error the rows simply lack the fields and
+    // itemDetailHref falls back to the pre-fix /regulations destination.
+    const recentRows = (recentResult.data || []) as RecentChangeRpcRow[];
+    const recentTypeById = new Map<string, { item_type: string | null; domain: number | null }>();
+    if (recentRows.length > 0) {
+      const { data: typeRows, error: typeErr } = await getServiceSupabase()
+        .from("intelligence_items")
+        .select("id, item_type, domain")
+        .in("id", recentRows.map((r) => r.id));
+      if (typeErr) {
+        console.warn(`[supabase-server] recent-changes item_type enrichment failed (rows link to /regulations fallback): ${typeErr.message}`);
+      }
+      for (const t of (typeRows || []) as Array<{ id: string; item_type: string | null; domain: number | null }>) {
+        recentTypeById.set(t.id, { item_type: t.item_type ?? null, domain: t.domain ?? null });
+      }
+    }
+    const recentChanges: RecentChangeRow[] = recentRows.map((r) => ({
       id: r.legacy_id || r.id,
       title: r.title,
       priority: r.effective_priority || r.priority || "LOW",
       added: r.added_date,
+      itemType: recentTypeById.get(r.id)?.item_type ?? null,
+      domain: recentTypeById.get(r.id)?.domain ?? null,
     }));
 
     return {

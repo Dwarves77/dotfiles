@@ -72,6 +72,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import { useListOrder } from "@/lib/hooks/useListOrder";
+import { itemDetailHref } from "@/lib/item-links";
 import { applyMove, compareRanks } from "@/lib/list-order";
 import type { Resource } from "@/types/resource";
 
@@ -330,7 +331,11 @@ function PriorityRow({ r, band }: { r: Resource; band: Band }) {
   const analysis = r.whyMatters?.trim();
   return (
     <Link
-      href={`/regulations/${r.id}`}
+      // Canonical-surface routing (misroute contract): the priority band spans
+      // ALL item types (the dashboard RPC has no item_type filter), so the row
+      // links via surfaceOf — a critical market_signal opens /market, not the
+      // Regulations frame.
+      href={itemDetailHref(r)}
       prefetch={false}
       style={{
         textDecoration: "none",
