@@ -66,3 +66,23 @@ Phase B measurement proved insufficient. Companion runbook:
 One authorship firing/day ≈ 7 firings/week. Even at 2× the Phase-B cost per firing
 (bigger batch, real work), ~14 pts/week versus the old design's ~357 — and the
 per-item overhead falls ~4×. Numbers become exact after the first instrumented run.
+
+## Amendments (2026-08-08, same day)
+
+1. **Lock protocol upgrade — log-confirmed re-arm.** The Phase-B/batch re-arm step
+   previously trusted a timed window (re-arm N minutes after firing, assuming STEP 0
+   had run). Batch 3 replaced the assumption with evidence: the Postgres logs record
+   the worker's queries, so STEP 0 passage is CONFIRMED from worker query activity
+   after fire-time before the halt is re-armed. Binding from now on: no re-arm
+   without log evidence the run is past STEP 0 (or a deliberate decision to kill it).
+2. **Charter v2 — SCHEMA FACTS block.** Batch 3's logs showed error-turns on three
+   wrong schema guesses (cw.canonical_instrument_key — a charter-wording bug;
+   error_message/created_at on net._http_response; unstated integrity_flags CHECK
+   vocabularies). All three facts verified live and pinned into the charter; STEP 2
+   dedup wording corrected. Deployed 21:26:54Z; the in-flight batch-3 run is
+   unaffected (prompts bind at fire time), first effect on the next firing.
+3. **Instrumentation live.** First SELF-METERING row landed (run 268adc1f): both
+   backfill runs combined: input 384 / output 217,994 / cache-read 40,068,913 /
+   cache-write 760,718 / 192 turns — cache-read is 97.6% of raw volume (~208k
+   context re-read per turn), confirming rule 11's cost model with exact data.
+   Per-run deltas are free from here (cumulative-per-session metering).
