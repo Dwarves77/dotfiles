@@ -47,6 +47,11 @@ jobs:
             scripts/lib/check-sources-decision.selftest.mjs \
             scripts/lib/verification-decision.selftest.mjs \
             scripts/lib/error-drop-probe.selftest.mjs
+      # Migration-number collision guard (2026-08-08): two branches can claim
+      # the same migration number and nothing caught the union until merge day
+      # (PR #370's 223; wt-session-c's 237/238). Deterministic, fails the build.
+      - name: Migration number collision guard (must pass)
+        run: node scripts/verify/migration-number-collision.mjs
 
   bug-class-scan:
     name: SOFT — bug-class repo scan (review signal, never fails the build)
