@@ -1,23 +1,29 @@
 #!/usr/bin/env node
-// migration-number-collision.mjs — HARD CI guard: no two migration files may
-// share a numeric prefix.
+// migration-number-collision.mjs — SOFT scan: report duplicate migration
+// filename prefixes as a READABILITY signal. Report-only by design.
 //
-// WHY THIS EXISTS (2026-08-08). Migration numbers are claimed by branches and
-// worktrees independently, and nothing machine-checked the union until merge
-// day. Two live instances at time of writing, both eyeball-caught:
-//   - PR #370 carries a 223 that master later assigned (renumber ruling:
-//     223 -> 240, corpus series 241+; AWAITING operator).
-//   - .worktrees/wt-session-c carries 237/238 files that collide with
-//     master's 237_personal_list_order / 238_reorder_user_list_item (#401).
-// A collision that lands silently corrupts the apply order and the migrations
-// inventory. This guard turns merge-day surprise into a red PR check: the
-// colliding branch fails CI until its files are renumbered.
+// WHY REPORT-ONLY, NOT A MERGE GATE (read before "promoting" this): the
+// 2026-08-02 session-log retraction (docs/ops/session-log.md, "RETRACTION:
+// the migration collision was NOT a defect"), verified against the live DB,
+// established that Supabase versions applied migrations by TIMESTAMP — the
+// 3-digit filename prefix is a human convention with no apply-order
+// authority. Master and the coverage_gap_* series already coexist with ~25
+// duplicate prefixes, every one applied exactly once, and RENAMING an
+// applied migration is what would manufacture a real inconsistency (the
+// applied-name record desyncs from the tree). Operator-ratified there:
+// "Do not renumber existing files."
 //
-// Deterministic, zero-dependency, fails the build (bug-class-guard HARD tier).
-// Duplicate numbers can only enter via a PR, so a PR-time check is the
-// chokepoint; worktrees stay untouched (standing rule 7) — their collision
-// surfaces when they raise a PR, which is exactly when renumbering is theirs
-// to do.
+// So a duplicate prefix is NEVER a landing blocker and this scan must never
+// instruct a rename. What it IS: ambiguity in the directory and in
+// docs/inventories/migrations.md, and a prompt — when a NEW file takes a
+// number the tree already uses, the author should check whether that was
+// deliberate (parallel-lane numbering, later applied by timestamp) or an
+// accidental double-claim of the "next" number that is better taken fresh
+// BEFORE the file is ever applied. Renaming is safe ONLY pre-apply.
+//
+// Known prefix reuse at time of writing (expected in the report, not news):
+// the 006 pair, the 007 trio, and — once the corpus-integrity lanes land —
+// the coverage_gap_* 215-246 overlap with master's 215-239.
 
 import { readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -26,55 +32,43 @@ import { dirname, join } from "node:path";
 const here = dirname(fileURLToPath(import.meta.url));
 const migrationsDir = join(here, "..", "..", "supabase", "migrations");
 
-// GRANDFATHERED (frozen 2026-08-08 — exemption format: exception + reason +
-// scope, machine-checkable). These duplicate prefixes are APPLIED history from
-// the repo's earliest phase; renaming an applied migration would desync the
-// migration ledger, so they are exempted by exact filename set and this list
-// never grows. A collision is exempt ONLY if its file set matches exactly —
-// adding a third 006 or a fourth 007 still fails.
-const GRANDFATHERED = new Map([
-  ["6", ["006_multi_tenant.sql", "006_rls_multi_tenant.sql"]],
-  ["7", ["007_community_layer.sql", "007_full_brief.sql", "007_rls_community.sql"]],
-]);
-
-function isGrandfathered(num, files) {
-  const frozen = GRANDFATHERED.get(num);
-  if (!frozen) return false;
-  if (files.length !== frozen.length) return false;
-  const sorted = [...files].sort();
-  return frozen.every((f, i) => sorted[i] === f);
-}
-
 const byNumber = new Map();
 for (const name of readdirSync(migrationsDir)) {
   // Numeric prefix up to the first underscore; anything unnumbered (e.g. a
   // README) is not a migration and is ignored.
   const m = /^(\d+)_/.exec(name);
   if (!m) continue;
-  // Normalise so 007 and 7 collide too — the CLI orders numerically.
+  // Normalise so 007 and 7 count as the same prefix.
   const key = String(Number(m[1]));
   const list = byNumber.get(key) ?? [];
   list.push(name);
   byNumber.set(key, list);
 }
 
-const collisions = [...byNumber.entries()].filter(
-  ([num, files]) => files.length > 1 && !isGrandfathered(num, files)
-);
+const dupes = [...byNumber.entries()]
+  .filter(([, files]) => files.length > 1)
+  .sort(([a], [b]) => Number(a) - Number(b));
 
-if (collisions.length === 0) {
+if (dupes.length === 0) {
   console.log(
-    `migration-number-collision: OK — ${byNumber.size} numbered migrations, no duplicate prefixes beyond the frozen 006/007 grandfather set.`
+    `migration-number-collision: ${byNumber.size} numbered migrations, no duplicate prefixes.`
   );
   process.exit(0);
 }
 
-console.error("migration-number-collision: FAIL — duplicate migration numbers:");
-for (const [num, files] of collisions) {
-  console.error(`  ${num}: ${files.join("  ·  ")}`);
-}
-console.error(
-  "\nRenumber the newer file(s) to the next free number before merge. If an" +
-    "\noperator renumbering ruling is pending (see docs/tech-debt-log.md), apply it."
+console.log(
+  `migration-number-collision: ${dupes.length} duplicate prefix(es) across ${byNumber.size} numbers — READABILITY SIGNAL, not a blocker:`
 );
-process.exit(1);
+for (const [num, files] of dupes) {
+  console.log(`  ${num}: ${files.sort().join("  ·  ")}`);
+}
+console.log(
+  "\nDuplicate prefixes are cosmetic: Supabase applies by timestamp (see the" +
+    "\n2026-08-02 retraction in docs/ops/session-log.md). NEVER rename an applied" +
+    "\nmigration. If a file in THIS PR accidentally double-claimed the next free" +
+    "\nnumber and is not yet applied anywhere, renaming it now is safe and kind" +
+    "\nto future readers; if it is applied or deliberate, leave it and move on."
+);
+// Report-only: always exit 0. Promoting this to a gate would re-encode the
+// retracted "collisions block merges" premise.
+process.exit(0);

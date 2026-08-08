@@ -121,6 +121,8 @@ Either path is a migration + consumer sweep (enum change or view/column + every 
 
 **Priority:** Low (correctness unaffected; bounded growth at current user count).
 
+**Mechanism shipped (2026-08-08, same session):** `fsi-app/scripts/maintenance/list-order-orphan-sweep.mjs` — dry-run by default (report per-list orphan counts + ids), `--apply` deletes via the guarded rule-015 path (cite + prior-state snapshot) with read-back verification. Conservative orphan definition: only rows whose item_id resolves to NOTHING (deleted item / source, or a watchlist key nobody watches on any scope) — archived/dismissed/retagged items keep their positions so a restore lands where the user put it. `user_list_order` was verified EMPTY at build time, so the mechanism predates the first possible orphan. Cadence: with the monthly spot-check lane, or after any bulk item deletion.
+
 ---
 
 ## 2026-08-08 — stale pre-push checker in parked checkouts (misleading --apply suggestion)
@@ -133,10 +135,10 @@ Either path is a migration + consumer sweep (enum change or view/column + every 
 
 ---
 
-## 2026-08-08 — .worktrees/wt-session-c holds a live 237/238 migration numbering collision
+## 2026-08-08 — duplicate migration filename prefixes (COSMETIC — corrected same day)
 
-**Context:** `wt-session-c` carries `237_coverage_gap_backlog_view…` / `238_coverage_gap_rank12…` while master's 237/238 are `personal_list_order` / `reorder_user_list_item` (landed via #401). Harmless while that branch stays unpushed; a landing would collide. Belongs to the migration-renumbering ruling already AWAITING JASON (PR #370's 223 → 240, corpus series 241+) — resolve the wt-session-c pair in the same renumbering pass. Not touched now: standing rule 7 forbids restructuring migrations while another agent's worktree is live.
+**Context and correction:** `wt-session-c` carries `237_coverage_gap_*` / `238_coverage_gap_*` files while master's 237/238 are `personal_list_order` / `reorder_user_list_item` (#401). This was first logged as a "landing landmine" — that framing was WRONG and is corrected here, same session, per the 2026-08-02 session-log retraction (verified against the live DB): Supabase versions applied migrations by TIMESTAMP; the 3-digit prefix has no apply-order authority; different filenames sharing a prefix merge and apply cleanly (master + coverage_gap_* already coexist across ~25 reused prefixes, each applied exactly once); and renaming an APPLIED migration is what would create a real inconsistency. Operator-ratified there: do not renumber existing files. The handover's "migration renumbering" AWAITING-JASON item is therefore a going-forward NAMING-CONVENTION decision (what number a NEW file takes), not a defect repair.
 
-**Priority:** Medium — a numbering landmine with a known disarm path, gated on the operator's renumbering ruling.
+**What shipped (same session):** report-only duplicate-prefix scan `fsi-app/scripts/verify/migration-number-collision.mjs` in bug-class-guard's SOFT tier — surfaces an accidental double-claim of the next free number while the file is still pre-apply (the only window where renaming is safe), and by doctrine never gates a merge. Discovery during the build: the historical 006 pair and 007 trio are the earliest instances of the same cosmetic reuse.
 
-**Class fix (2026-08-08, same session):** CI guard `fsi-app/scripts/verify/migration-number-collision.mjs` wired into bug-class-guard (HARD tier) — any PR carrying a duplicate migration number now fails CI, so this class is machine-caught at the chokepoint. Discovery during guard build: master already carries two historical duplicate prefixes (006 pair, 007 trio) from the earliest phase; they are APPLIED history (renaming would desync the migration ledger) and are exempted via a frozen exact-filename grandfather set that cannot grow.
+**Priority:** Low — readability/inventory ambiguity only; convention decision with the operator.
