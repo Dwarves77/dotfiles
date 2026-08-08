@@ -69,3 +69,11 @@ jobs:
         run: node scripts/lib/type-consumer-probe.mjs . || true
       - name: Supabase error-drop scan (const { data } without error) — report only
         run: node scripts/lib/error-drop-probe.mjs . || true
+      # Duplicate migration-prefix scan (2026-08-08). REPORT-ONLY BY DOCTRINE,
+      # not by noise: the 2026-08-02 retraction (session-log) verified Supabase
+      # applies by timestamp — duplicate prefixes are cosmetic, renaming applied
+      # migrations is harmful, so this must never gate a merge. It surfaces
+      # accidental double-claims of the next free number while they are still
+      # pre-apply and safely renameable.
+      - name: Duplicate migration-prefix scan — report only
+        run: node scripts/verify/migration-number-collision.mjs || true

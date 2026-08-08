@@ -120,3 +120,25 @@ Either path is a migration + consumer sweep (enum change or view/column + every 
 **Clean fix (future):** a periodic or on-write sweep deleting `user_list_order` rows whose `item_id` no longer resolves for the list_key's population, or a DELETE hook on the archive/dismiss/unwatch paths. Keep it out of the drag RPC — the hot path stays one write.
 
 **Priority:** Low (correctness unaffected; bounded growth at current user count).
+
+**Mechanism shipped (2026-08-08, same session):** `fsi-app/scripts/maintenance/list-order-orphan-sweep.mjs` — dry-run by default (report per-list orphan counts + ids), `--apply` deletes via the guarded rule-015 path (cite + prior-state snapshot) with read-back verification. Conservative orphan definition: only rows whose item_id resolves to NOTHING (deleted item / source, or a watchlist key nobody watches on any scope) — archived/dismissed/retagged items keep their positions so a restore lands where the user put it. `user_list_order` was verified EMPTY at build time, so the mechanism predates the first possible orphan. Cadence: with the monthly spot-check lane, or after any bulk item deletion.
+
+---
+
+## 2026-08-08 — stale pre-push checker in parked checkouts (misleading --apply suggestion)
+
+**Context:** `check-pretooluse-wired.mjs` reads the FIXED path `~/.claude/settings.json` but ships per-tree: the copy on `corpus-integrity/intake-census` (main dotfiles checkout) predates the 2026-07-26 scoped-wrapper rework and cannot see the wrapper, so any push from that checkout fails discipline step 3c with a false "hook unwired" and suggests `wire-pretooluse-settings.mjs --apply` — which would rewrite global settings to satisfy an out-of-date test and re-introduce the global wiring the scoping removed. Verified 2026-08-08 during the #406 relay push (checker sha differs from master's wrapper-aware copy; wiring itself was never broken).
+
+**Immediate mitigation:** park the main checkout on master (or push from a worktree tracking master, e.g. `wt-adr016-ft`). **Clean fix:** rebase or retire `corpus-integrity/intake-census`; longer-term, the checker should refuse to run when its own tree is behind the checker's file on origin/master (a stale verifier is worse than none).
+
+**Priority:** Medium — blocks nothing when pushes originate from a current tree, but every push from the stale checkout re-arms a misleading destructive suggestion.
+
+---
+
+## 2026-08-08 — duplicate migration filename prefixes (COSMETIC — corrected same day)
+
+**Context and correction:** `wt-session-c` carries `237_coverage_gap_*` / `238_coverage_gap_*` files while master's 237/238 are `personal_list_order` / `reorder_user_list_item` (#401). This was first logged as a "landing landmine" — that framing was WRONG and is corrected here, same session, per the 2026-08-02 session-log retraction (verified against the live DB): Supabase versions applied migrations by TIMESTAMP; the 3-digit prefix has no apply-order authority; different filenames sharing a prefix merge and apply cleanly (master + coverage_gap_* already coexist across ~25 reused prefixes, each applied exactly once); and renaming an APPLIED migration is what would create a real inconsistency. Operator-ratified there: do not renumber existing files. The handover's "migration renumbering" AWAITING-JASON item is therefore a going-forward NAMING-CONVENTION decision (what number a NEW file takes), not a defect repair.
+
+**What shipped (same session):** report-only duplicate-prefix scan `fsi-app/scripts/verify/migration-number-collision.mjs` in bug-class-guard's SOFT tier — surfaces an accidental double-claim of the next free number while the file is still pre-apply (the only window where renaming is safe), and by doctrine never gates a merge. Discovery during the build: the historical 006 pair and 007 trio are the earliest instances of the same cosmetic reuse.
+
+**Priority:** Low — readability/inventory ambiguity only; convention decision with the operator.
