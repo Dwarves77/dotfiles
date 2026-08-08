@@ -120,3 +120,21 @@ Either path is a migration + consumer sweep (enum change or view/column + every 
 **Clean fix (future):** a periodic or on-write sweep deleting `user_list_order` rows whose `item_id` no longer resolves for the list_key's population, or a DELETE hook on the archive/dismiss/unwatch paths. Keep it out of the drag RPC — the hot path stays one write.
 
 **Priority:** Low (correctness unaffected; bounded growth at current user count).
+
+---
+
+## 2026-08-08 — stale pre-push checker in parked checkouts (misleading --apply suggestion)
+
+**Context:** `check-pretooluse-wired.mjs` reads the FIXED path `~/.claude/settings.json` but ships per-tree: the copy on `corpus-integrity/intake-census` (main dotfiles checkout) predates the 2026-07-26 scoped-wrapper rework and cannot see the wrapper, so any push from that checkout fails discipline step 3c with a false "hook unwired" and suggests `wire-pretooluse-settings.mjs --apply` — which would rewrite global settings to satisfy an out-of-date test and re-introduce the global wiring the scoping removed. Verified 2026-08-08 during the #406 relay push (checker sha differs from master's wrapper-aware copy; wiring itself was never broken).
+
+**Immediate mitigation:** park the main checkout on master (or push from a worktree tracking master, e.g. `wt-adr016-ft`). **Clean fix:** rebase or retire `corpus-integrity/intake-census`; longer-term, the checker should refuse to run when its own tree is behind the checker's file on origin/master (a stale verifier is worse than none).
+
+**Priority:** Medium — blocks nothing when pushes originate from a current tree, but every push from the stale checkout re-arms a misleading destructive suggestion.
+
+---
+
+## 2026-08-08 — .worktrees/wt-session-c holds a live 237/238 migration numbering collision
+
+**Context:** `wt-session-c` carries `237_coverage_gap_backlog_view…` / `238_coverage_gap_rank12…` while master's 237/238 are `personal_list_order` / `reorder_user_list_item` (landed via #401). Harmless while that branch stays unpushed; a landing would collide. Belongs to the migration-renumbering ruling already AWAITING JASON (PR #370's 223 → 240, corpus series 241+) — resolve the wt-session-c pair in the same renumbering pass. Not touched now: standing rule 7 forbids restructuring migrations while another agent's worktree is live.
+
+**Priority:** Medium — a numbering landmine with a known disarm path, gated on the operator's renumbering ruling.
