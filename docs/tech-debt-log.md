@@ -108,3 +108,15 @@ Either path is a migration + consumer sweep (enum change or view/column + every 
 **Fix (operator DDL window):** provision/rotate the bound `reconciler` credential per the migration-43 contract, out of the agent env (least-privilege — NOT injected into a session). Until then, `unverified`-origin flips must route through the sanctioned INSERT-origin pipeline path.
 
 **Priority:** Medium — blocks ad-hoc reconciliation only; the customer-visible integrity path (verified↔quarantined) is unaffected, and INSERT-origin minting works.
+
+---
+
+## 2026-08-08 — user_list_order rows orphan when an item leaves a list
+
+**Context:** The personal drag order (migrations 237 + 238, `/api/user/list-order`) stores one row per (user, list_key, item_id). Nothing deletes those rows when the underlying item leaves the list's population — an archived/dismissed regulation, an unwatched watchlist entry, or an item whose priority retag moves it out of a band keeps its stored position forever. Known open edge from the #401 build, carried into the dashboard drag write path (dashboard Top-priority rows, same `regulations` list_key).
+
+**Why it is safe today:** the comparator only ranks rows the surface actually renders, so an orphan position is dead weight, never a wrong order. Cost is storage and ladder length only (renormalisation walks the whole list including orphans).
+
+**Clean fix (future):** a periodic or on-write sweep deleting `user_list_order` rows whose `item_id` no longer resolves for the list_key's population, or a DELETE hook on the archive/dismiss/unwatch paths. Keep it out of the drag RPC — the hot path stays one write.
+
+**Priority:** Low (correctness unaffected; bounded growth at current user count).
