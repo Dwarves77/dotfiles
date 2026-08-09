@@ -33,8 +33,16 @@ try {
   if (/canonical_instrument_key.*does not exist/i.test(e.message)) {
     hasStoredColumn = false;
     console.warn("[canonical-key-uniqueness] canonical_instrument_key column absent (migration 200 not yet applied) — checking DERIVED keys only.");
-    rows = (await readAll("intelligence_items", "id, title, instrument_identifier, source_url, provenance_status, is_archived")).map((r) => ({ ...r, canonical_instrument_key: null }));
-  } else throw e;
+    try {
+      rows = (await readAll("intelligence_items", "id, title, instrument_identifier, source_url, provenance_status, is_archived")).map((r) => ({ ...r, canonical_instrument_key: null }));
+    } catch (e2) {
+      console.error(`canonical-key-uniqueness: read failed — ${e2.message}`); process.exit(2);
+    }
+  } else {
+    // No creds / read failure: self-skip with exit 2 (the sibling-audit "cannot verify here" contract),
+    // never a stack-trace crash that reads as a real collision. The lane runs this with creds in CI.
+    console.error(`canonical-key-uniqueness: read failed — ${e.message}`); process.exit(2);
+  }
 }
 const live = rows.filter((r) => r.provenance_status === "verified" && !r.is_archived);
 

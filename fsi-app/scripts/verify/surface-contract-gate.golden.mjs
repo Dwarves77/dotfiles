@@ -93,11 +93,22 @@ const MIG_DIR = resolve(ROOT, "supabase/migrations");
 let migFiles = [];
 try { migFiles = readdirSync(MIG_DIR).filter((f) => f.endsWith(".sql")); } catch { /* none */ }
 
-// C's migration is the one that ALTERs coverage_gap_candidates to add surface_test. Detect it by content.
+// C's migration is the one that ALTERs coverage_gap_candidates to add the surface_test jsonb COLUMN.
+// Detect it by the real column signature, NOT by co-occurrence of the two strings — and detect over
+// COMMENT-STRIPPED source, the same view the assertions use. (Detection bug fixed 2026-08-09: the prior
+// detector tested raw source, so migration 222 — the census-rollup artifact, which only NAMES
+// coverage_gap_candidates + surface_test in prose comments as a CONTRAST — was mis-detected as C's
+// migration, and the comment-stripped assertions then correctly failed on a migration that was never C's.
+// A prose mention must never arm PART B; only the actual `surface_test jsonb` column add on
+// coverage_gap_candidates may. Verified 2026-08-09: no in-tree migration ships that column; live
+// coverage_gap_candidates has neither surface_test nor disposition — so the correct state is PENDING-C.)
+const stripComments = (s) =>
+  s.replace(/\r\n/g, "\n").replace(/\/\*[\s\S]*?\*\//g, "").split("\n").map((l) => l.replace(/--.*$/, "")).join("\n");
 let cMig = null, cSrc = "";
 for (const f of migFiles) {
-  const src = readFileSync(resolve(MIG_DIR, f), "utf8");
-  if (/coverage_gap_candidates/i.test(src) && /surface_test/i.test(src)) { cMig = f; cSrc = src; break; }
+  const code = stripComments(readFileSync(resolve(MIG_DIR, f), "utf8"));
+  // Require BOTH the target table AND a real surface_test jsonb column definition in executable SQL.
+  if (/coverage_gap_candidates/i.test(code) && /surface_test\s+jsonb/i.test(code)) { cMig = f; cSrc = code; break; }
 }
 
 if (!cMig) {

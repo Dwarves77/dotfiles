@@ -9,11 +9,18 @@ import { createJiti } from "jiti";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-process.loadEnvFile(resolve(ROOT, ".env.local"));
+// Guarded: a missing .env.local must SELF-SKIP (exit 2, "cannot verify here"), never a stack-trace crash
+// that the goldens runner would read as a real FAIL. This is a LIVE-DB golden (mutation_leases writes);
+// it runs for real only in the secrets lane. (2026-08-09: was an unguarded loadEnvFile — ENOENT crash.)
+try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { readClient } = await jiti.import("../lib/db.mjs");
 const { acquireLease, heartbeatLease, releaseLease } = await jiti.import("../lib/mutation-lease.mjs");
-const sb = readClient();
+let sb;
+try { sb = readClient(); } catch (e) {
+  console.error(`mutation-lease.golden: no DB creds — cannot verify here (exit 2). ${e.message}`);
+  process.exit(2);
+}
 
 let failed = 0;
 const check = (name, cond) => { console.log(`${cond ? "PASS" : "FAIL"}  ${name}`); if (!cond) failed++; };

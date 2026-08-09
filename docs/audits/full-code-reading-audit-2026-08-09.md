@@ -65,9 +65,9 @@ of the root cause: **a rule without a hard gate does not hold.**
    of the pause-flag one-writer invariant is anon-tamperable. Fix: deny-all RLS.
 5. [CONFIRMED — proconfig read UNPINNED; FIXED live mig 248] **`set_provenance_status` (mig 209) dropped its `search_path` pin** that mig 160
    set — on the single most security-relevant trigger. Fix: re-add the pin.
-6. [CONFIRMED — mig 118:111 uses set_config(...,true) = TRANSACTION-local, never cleared anywhere in the repo; the depth>=1 re-stamp guard (WHEN pg_trigger_depth()=0) lets a stale INSERT origin satisfy the carve-out. Exploit needs one multi-statement txn (direct pg), not separate PostgREST calls. NOT YET FIXED — needs a migration on the most security-critical trigger; operator ruling] **Provenance-flip binding (mig 118) trusts a txn-local GUC as statement-local**
-   → a service-role txn can flip `unverified → verified` without the reconciler
-   credential, inside the guard's own threat model.
+6. [CONFIRMED + FIXED live mig 250 + PROVEN by adversarial audit. The GUC was worse than "txn-local-not-cleared": it is an ordinary SESSION GUC any role can FORGE with one `set_config('app.prov_flip_origin','INSERT',true)` — the reconciler binding was decorative, not merely leaky. Live introspection during the fix also found the guard fired ONLY on OLD='unverified', leaving the dominant `quarantined→verified` escalation (180 live rows one UPDATE away) UNGUARDED entirely. Mig 250 rebuilds the guard to gate transitions INTO 'verified', allowed only for current_user='reconciler' OR pg_trigger_depth()>=2 (the validation derivation — verified as the sole trigger writer of this column) — engine truth, unforgeable. Attacks denied live under rollback: forged-GUC escalation, direct unverified→verified, ON CONFLICT DO UPDATE. See ADR-017 + scripts/verify/prov-guard-adversarial-audit.mjs (now hard in the data-audit lane).] **Provenance-flip binding (mig 118) trusts a forgeable session GUC, and misses the dominant escalation path**
+   → a service-role write could reach `verified` without the reconciler credential,
+   by forging the GUC or by the unguarded `quarantined → verified` path.
 
 ### Capture edge function — the fleet's "dead domain" was a bug
 7. [CONFIRMED — source read: no auth check exists in the handler] **`capture-worker/index.ts` has no auth** — `Deno.serve` uses

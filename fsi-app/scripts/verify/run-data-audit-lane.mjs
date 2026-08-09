@@ -64,6 +64,29 @@ const AUDITS = [
   ["quarantine-disposition", "scripts/verify/quarantine-disposition-audit.mjs", true],
   ["unregistered-span-host", "scripts/verify/unregistered-span-host-audit.mjs", true],
   ["schema-drift", "scripts/verify/schema-drift-audit.mjs", true],
+  // ADVERSARIAL PROOFS — attack a security-critical invariant and require the attack to fail.
+  // (Class-4 fix, 2026-08-09: presence checks passed on the mig-118 guard that was one set_config
+  // call from defeat; a security invariant is proven by attacking it, not by asserting it exists.)
+  ["prov-guard-adversarial", "scripts/verify/prov-guard-adversarial-audit.mjs", true],
+  // REGISTRY-CITED AUDITS previously ABSENT from this lane (2026-08-09 wiring-truth sweep, Decision 2):
+  // each is an `audit:` enforcer of a live invariant in .discipline/governance/invariants.mjs but was
+  // never in the run list — cited-as-enforcement yet never executed. Now wired. Each self-skips (exit 2)
+  // without DB creds and runs for real in the secrets lane (this job does `npm ci` + injects the three
+  // secrets), so their FIRST real execution is the nightly/dispatch run. A red here is a genuine
+  // corpus/schema violation to fix — the mechanism working — not a wiring error.
+  ["canonical-key-uniqueness", "scripts/verify/canonical-key-uniqueness.mjs", true],
+  ["column-existence-parity", "scripts/verify/column-existence-parity.mjs", true],
+  ["deferral-hygiene", "scripts/verify/deferral-hygiene-audit.mjs", true],
+  ["flag-age", "scripts/verify/flag-age-audit.mjs", true],
+  ["format-structure", "scripts/verify/format-structure.mjs", true],
+  ["no-generic-source", "scripts/verify/no-generic-source-audit.mjs", true],
+  ["no-names", "scripts/verify/no-names.mjs", true],
+  ["pause-flag-guard-proof", "scripts/verify/pause-flag-guard-proof.mjs", true],
+  ["rls-credential-parity", "scripts/verify/rls-credential-parity.mjs", true],
+  ["routing", "scripts/verify/routing.mjs", true],
+  ["source-link", "scripts/verify/source-link-audit.mjs", true],
+  ["source-vs-item", "scripts/verify/source-vs-item.mjs", true],
+  ["staged-transit", "scripts/verify/staged-transit-audit.mjs", true],
   ["skill-conformance", "scripts/audit-skill-conformance.mjs", false],
 ];
 
