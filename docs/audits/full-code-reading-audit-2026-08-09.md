@@ -12,6 +12,18 @@ cluster was **re-verified by direct grep of source** before landing here — no 
 rests on a reader's word alone. Cross-checked against prior ledgers so accepted
 dispositions are not re-raised.
 
+> ## STATUS OF THIS REGISTER (rule 14, applied 2026-08-09)
+>
+> **Of the 17 P0s below: 5 CONFIRMED (all now fixed live), 2 REFUTED, 10 still HYPOTHESIS.**
+> Every finding now carries a status token. This matters because the register originally
+> presented all 17 as findings-of-fact, and eight claims across this session were retracted
+> under verification. A `[HYPOTHESIS]` P0 is a thing to go verify — NOT a thing to treat as
+> broken, budget against, or report onward. Enforced going forward by
+> `fsi-app/scripts/verify/audit-finding-status.mjs` (standing rule 14).
+>
+> The ~70 P1s and ~90 P2s summarized below are ALL `[HYPOTHESIS]` — they were produced by the
+> same read-then-report pass and none has been independently verified.
+
 ## Severity totals
 
 - **P0 (security / integrity / prod-breaking):** 17 distinct.
@@ -37,32 +49,32 @@ of the root cause: **a rule without a hard gate does not hold.**
 ## P0 register (verified by direct grep)
 
 ### DB grants & RLS — privilege / spend exposure
-1. **`admin_set_pause_state` (mig 201) never revokes default grants** — `GRANT …
+1. [CONFIRMED — pg introspection; FIXED live mig 248] **`admin_set_pause_state` (mig 201) never revokes default grants** — `GRANT …
    TO service_role` with no `REVOKE … FROM PUBLIC, anon, authenticated`. Mig 238
    in the same repo does the REVOKE correctly (proves it's a defect). An anon-key
    holder can unpause global processing, change scrape cadence, spoof the audit
    actor. Fix: add the three REVOKE lines. Zero-risk.
-2. **`gate_a_health` (mig 226) same omission** + runs a full
+2. [CONFIRMED — pg introspection; FIXED live mig 248] **`gate_a_health` (mig 226) same omission** + runs a full
    `validate_item_provenance` sweep per call → unauthenticated DB-CPU exhaustion.
-3. **Platform-admin = owner/admin of ANY org + any user can self-mint an org** —
+3. [REFUTED AS WRITTEN / real vector CONFIRMED — the app already gates platform-admin on profiles.is_platform_admin; the actual hole was three RLS policies, FIXED live mig 249] **Platform-admin = owner/admin of ANY org + any user can self-mint an org** —
    `create_org_for_self` is `GRANT … TO authenticated` (mig 076) and the
    platform-admin predicate (mig 203/048) is unscoped `role = ANY('owner','admin')`.
    One RPC → platform capture-quality audit read + platform `integrity_flags`
    UPDATE. Fix: gate on an explicit allowlist, not "any org owner."
-4. **`system_state_flag_audit` (mig 201): no RLS, no REVOKE** — the detection half
+4. [REFUTED — RLS is already ENABLED on this table; finding withdrawn] **`system_state_flag_audit` (mig 201): no RLS, no REVOKE** — the detection half
    of the pause-flag one-writer invariant is anon-tamperable. Fix: deny-all RLS.
-5. **`set_provenance_status` (mig 209) dropped its `search_path` pin** that mig 160
+5. [CONFIRMED — proconfig read UNPINNED; FIXED live mig 248] **`set_provenance_status` (mig 209) dropped its `search_path` pin** that mig 160
    set — on the single most security-relevant trigger. Fix: re-add the pin.
-6. **Provenance-flip binding (mig 118) trusts a txn-local GUC as statement-local**
+6. [HYPOTHESIS — logic read from mig 118, no repro written] **Provenance-flip binding (mig 118) trusts a txn-local GUC as statement-local**
    → a service-role txn can flip `unverified → verified` without the reconciler
    credential, inside the guard's own threat model.
 
 ### Capture edge function — the fleet's "dead domain" was a bug
-7. **`capture-worker/index.ts` has no auth** — `Deno.serve` uses
+7. [CONFIRMED — source read: no auth check exists in the handler] **`capture-worker/index.ts` has no auth** — `Deno.serve` uses
    `SERVICE_ROLE_KEY`, acts on body params, no worker-secret, no service-role check,
    **no kill-switch read** (the one worker that ignores the halt row). Anon key
    invokes it under default `verify_jwt`.
-8. **THE 202 TERMINALIZATION BUG — root of the fleet-cost saga.** Non-200
+8. [CONFIRMED + FIXED + PROVEN LIVE — v1.4 replay: attempt 1 requeued on 202, attempt 2 captured 534,530 chars. NOTE the "blocks the largest corpus" framing was REFUTED: 645 EUR-Lex captures already succeeded; the wedge was ~15 rows] **THE 202 TERMINALIZATION BUG — root of the fleet-cost saga.** Non-200
    (including HTTP 202) → terminal `error`; the drain selects only `queued`;
    `attempt_count` incremented but never consulted; mig 065's partial unique index
    leaves the wedged row occupying the source slot so it never re-enqueues. EUR-Lex
@@ -71,41 +83,41 @@ of the root cause: **a rule without a hard gate does not hold.**
    fleet spent days routing around: not a dead domain, a missing bounded retry. The
    src-side classifier `transport-escalation.mjs` has the mirror hole. Highest-
    leverage single fix in the audit.
-9. **Charset regression + binary denylist + no queue CAS** in the same worker:
+9. [HYPOTHESIS — code-read; no mojibake instance observed in stored captures. Fixed defensively in v1.4 regardless] **Charset regression + binary denylist + no queue CAS** in the same worker:
    `resp.text()` forces UTF-8 → permanent mojibake on Latin-1 gov pages the grounder
    can't span-match; video/audio/wasm pass to `text()` and store as "captures";
    concurrent invocations double-capture.
 
 ### Discipline engine — enforcement it claims but doesn't have
-10. **RD-19 worktree isolation is fail-open in prod** — compares an absolute
+10. [HYPOTHESIS — reader analysis of the path comparison, not reproduced against a live hook] **RD-19 worktree isolation is fail-open in prod** — compares an absolute
     git-dir against a relative git-common-dir, so `isMainCheckout()` is never true
     and the pre-commit block / post-checkout alarm (the only sub-agent catch) never
     fire; the unit test masks it with absolute/absolute fixtures.
-11. **12 golden proofs + 13 data audits report ENFORCED but run nowhere** — the
+11. [HYPOTHESIS — reader-verified by grep of workflows/globs; not independently re-checked] **12 golden proofs + 13 data audits report ENFORCED but run nowhere** — the
     goldens are in no workflow/glob/hook; 13 audits are absent from the lane's
     `AUDITS` list; the invariant registry cites them as enforcement. RD-35's own
     "wired-means-it-runs" defect, inside the mechanism built to prevent it.
-12. **PreToolUse skill-gate broadly bypassable** — misses `rm -fr`, `sed -i`/`tee`/
+12. [CONFIRMED for the deadlock — it blocked a real CI-green push; FIXED this session. HYPOTHESIS for the bypass list — code-read, never exploited] **PreToolUse skill-gate broadly bypassable** — misses `rm -fr`, `sed -i`/`tee`/
     `>>` edits of governed files (zero path awareness), supabase-js writes in
     `node -e`, schema-qualified SQL, `git -C x push`, `DROP INDEX/VIEW/FUNCTION`;
     `skill-map.mjs` does no path normalization so one `..` ungoverns any file.
 
 ### Guarded-write helper & pipeline
-13. **`db.mjs` readClient() write-block escapable** — the proxy guards only literal
+13. [HYPOTHESIS — proxy behavior read from db.mjs, not executed] **`db.mjs` readClient() write-block escapable** — the proxy guards only literal
     `from`; `readClient().schema("public").from(t).delete()` mutates prod with no
     cite, no snapshot. Fix: proxy `schema` + `storage`.
-14. **`guardedDelete` hard-deletes append-only stores** — `DELETE_PROTECTED_TABLES`
+14. [HYPOTHESIS — DELETE_PROTECTED_TABLES read; not executed] **`guardedDelete` hard-deletes append-only stores** — `DELETE_PROTECTED_TABLES`
     covers only `sources`; `raw_fetches`/`claim_versions`/`disposition_ledger` are
     doctrine-append-only yet deletable with any cite.
-15. **`generate-brief.ts eraseStep` fail-open on the integrity backstop** — every
+15. [HYPOTHESIS — error-drop read in eraseStep; no failure injected] **`generate-brief.ts eraseStep` fail-open on the integrity backstop** — every
     erase write drops its error, so a transient failure records "brief-nulled-held
     … success" while the cross-item-violating brief stays customer-visible.
-16. **Grounding gate-A can pass on phantom coverage** — gate-A state upserted from
+16. [HYPOTHESIS — ordering read in the grounding path; no repro] **Grounding gate-A can pass on phantom coverage** — gate-A state upserted from
     the in-memory claim set before apply runs, while a failed claim insert is
     warn+continue → an uncovered figure can show orphan_count=0.
 
 ### Cross-tenant
-17. **Workspace-archive notifications fan out across orgs** — the watcher select
+17. [HYPOTHESIS — watcher select read; no cross-org test run] **Workspace-archive notifications fan out across orgs** — the watcher select
     has no org scope (service-role bypasses RLS); other orgs' members receive
     "archived for your workspace" carrying org A's reason. The read-path sibling
     already fixes this class; the write path still has it.
