@@ -167,3 +167,41 @@ phased plan with operator sign-off.
 Through-line for every phase: **make the detector that already exists into a gate.**
 The repo does not lack discipline mechanisms — it has 11,600 lines of them. It
 lacks the wiring that makes them fire. Cheapest, highest-leverage work on the list.
+
+---
+
+## Verification + correction log (2026-08-09, live)
+
+Applying verify-before-fix to the P0s as they are actioned. This section is the
+honest correction record — several reading-audit findings read worse than live
+reality, which is exactly why no finding ships a fix unverified.
+
+**Security grants (§P0 1–5): re-verified by pg introspection.**
+- CONFIRMED: `admin_set_pause_state` and `gate_a_health` carry `anon,authenticated`
+  grants (`reorder_user_list_item` beside them is `service_role`-only — the intended
+  shape); `create_org_for_self` is `authenticated`-granted (escalation primitive real);
+  `set_provenance_status` proconfig is UNPINNED (regressed from mig 160).
+- **DOWNGRADED:** `system_state_flag_audit` "no RLS" was **FALSE** — RLS is enabled.
+  Finding withdrawn.
+
+**Capture 202 (§P0 8): CONFIRMED as a bug, but the "corpus-blocking" framing was
+OVERSTATED.** Live EUR-Lex queue: **645 done**, 25 error (dominant reason the 202
+warm-up), 28 fresh queued. EUR-Lex is NOT capture-dead — it captures ~91% of the
+time. The 202 wedge affects ~15 rows, not thousands. The 2,457 "eligible blocked"
+worklist entries are mostly UNATTEMPTED (fleet halted + the charter-v3 domain-skip I
+authored over-generalized a local 202 cluster into "skip the domain"), not victims of
+this bug — and 645 are already captured and only need AUTHORING. The real EUR-Lex
+unlock is authoring the 645 captured docs (zero-fetch) + attempting the ~1,750
+uncaptured at the observed 91% rate, none of which needs the capture worker.
+
+**Capture fix shipped to the repo (v1.4), deploy pending operator approval.**
+`supabase/functions/capture-worker/index.ts` v1.4: transient statuses (202/408/429/5xx
++ network errors) RE-QUEUE up to `MAX_ATTEMPTS=5` instead of terminalizing; charset-aware
+decode (fixes the Latin-1 mojibake class); atomic queued/error→fetching claim (fixes
+concurrent double-capture); content-type allowlist (fixes binaries stored as garbage);
+write-failure paths re-queue instead of wedging at 'fetching'. Verified: escapes intact,
+all call sites arity-correct, `agent_runs.status` CHECK honored (retry writes no run row —
+`retry` is not an allowed status value). The Supabase MCP deploy was blocked by the
+environment's prod-mutation permission gate; deploy is operator-gated (MCP approval, or
+`supabase functions deploy capture-worker` from the committed source). Proof-on-one
+replay of wedged row `924479fd` (CELEX:32005D0417) runs immediately post-deploy.
