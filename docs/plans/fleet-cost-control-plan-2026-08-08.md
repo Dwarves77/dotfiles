@@ -42,12 +42,16 @@ Phase B measurement proved insufficient. Companion runbook:
    `docs/runbooks/fleet-charters/authorship-worker.md`; the trigger store is a deploy
    target. Rule: edit file → update_trigger → same PR.
 4. **Maintenance workers (citation harvest, legacy remediation, summary sweep):**
-   remain disabled and UNCHANGED — their charter texts exist only in the trigger
-   store, retrieval-by-halted-fire was blocked by the session's tool classifier, and
-   amending them blind would be guesswork. Next session action: operator copies the
-   three prompts from the scheduled-tasks UI (or authorizes halted-fire retrieval);
-   they then get the same treatment (repo-versioned, self-metering, consolidation
-   into one rotating daily worker). Their combined 3 firings/day is a secondary term
+   charters RETRIEVED and repo-versioned 2026-08-09 via a no-op `update_trigger`
+   (`enabled:false` on an already-disabled trigger — returns the full stored payload
+   without firing anything, so retrieval costs nothing and needs no halted-fire and
+   no operator copy-paste; this is the correct retrieval method, use it again).
+   Files: `fleet-charters/{citation-harvest,legacy-remediation,summary-sweep}.md`.
+   Audit at retrieval: all three carry the STEP 0 kill switch and bounded reads;
+   NONE carries SELF-METERING. Amendment (metering + any consolidation) is deferred
+   to the same PR that decides their restart — amending a charter means re-sending
+   its full text through update_trigger, which is only worth spending when a restart
+   is actually on the table. Their combined 3 firings/day is a secondary term
    (~21 pts/week at measured rate) — real, but an order below the shard term was.
 
 ## Phase D — redefined (operator-gated, unchanged authority)
