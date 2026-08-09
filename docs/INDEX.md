@@ -120,6 +120,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [caros-ledge-product-audit-2026-05-15](./audits/caros-ledge-product-audit-2026-05-15.md) — Caro's Ledge product audit, v2 — 2026-05-15
 - [caros-ledge-supabase-schema-audit-2026-05-15](./audits/caros-ledge-supabase-schema-audit-2026-05-15.md) — Caro's Ledge Supabase schema audit, 2026-05-15
 - [full-code-audit-2026-08-09](./audits/full-code-audit-2026-08-09.md) — Dead code + unconnected wiring: instrument pass over every src line, root cause, phased plan
+- [full-code-reading-audit-2026-08-09](./audits/full-code-reading-audit-2026-08-09.md) — 16-reader line-by-line pass: 17 P0 (grants, capture-worker auth, the 202 bug, enforcement holes), ~70 P1, root cause, phased plan
 - [classification-rules-audit-2026-05-09](./audits/classification-rules-audit-2026-05-09.md) — Classification rules audit, 2026-05-09
 - [cleanup-audit-2026-05-11](./audits/cleanup-audit-2026-05-11.md) — Wave cleanup audit, 2026-05-11
 - [comprehensive-site-audit-2026-05-25](./audits/comprehensive-site-audit-2026-05-25.md) — Caro's Ledge, Comprehensive Site Audit
