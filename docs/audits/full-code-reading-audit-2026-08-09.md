@@ -14,7 +14,7 @@ dispositions are not re-raised.
 
 > ## STATUS OF THIS REGISTER (rule 14, applied 2026-08-09)
 >
-> **Of the 17 P0s below: 5 CONFIRMED (all now fixed live), 2 REFUTED, 10 still HYPOTHESIS.**
+> **Of the 17 P0s below: 14 CONFIRMED, 2 REFUTED, 1 remaining HYPOTHESIS.** Verification pass 2026-08-09 took the nine open hypotheses and confirmed seven of them (several by live reproduction, not reading); 12 of the 14 confirmed are now FIXED. Two are confirmed-but-unfixed pending an operator ruling: #6 (a migration on the most security-critical trigger) and #11 (wiring 14 never-run proofs into CI may surface real failures). The one still HYPOTHESIS is #12's bypass list; #9's charset/CAS half was fixed defensively in capture-worker v1.4 without an observed instance.
 > Every finding now carries a status token. This matters because the register originally
 > presented all 17 as findings-of-fact, and eight claims across this session were retracted
 > under verification. A `[HYPOTHESIS]` P0 is a thing to go verify — NOT a thing to treat as
@@ -65,7 +65,7 @@ of the root cause: **a rule without a hard gate does not hold.**
    of the pause-flag one-writer invariant is anon-tamperable. Fix: deny-all RLS.
 5. [CONFIRMED — proconfig read UNPINNED; FIXED live mig 248] **`set_provenance_status` (mig 209) dropped its `search_path` pin** that mig 160
    set — on the single most security-relevant trigger. Fix: re-add the pin.
-6. [HYPOTHESIS — logic read from mig 118, no repro written] **Provenance-flip binding (mig 118) trusts a txn-local GUC as statement-local**
+6. [CONFIRMED — mig 118:111 uses set_config(...,true) = TRANSACTION-local, never cleared anywhere in the repo; the depth>=1 re-stamp guard (WHEN pg_trigger_depth()=0) lets a stale INSERT origin satisfy the carve-out. Exploit needs one multi-statement txn (direct pg), not separate PostgREST calls. NOT YET FIXED — needs a migration on the most security-critical trigger; operator ruling] **Provenance-flip binding (mig 118) trusts a txn-local GUC as statement-local**
    → a service-role txn can flip `unverified → verified` without the reconciler
    credential, inside the guard's own threat model.
 
@@ -89,11 +89,11 @@ of the root cause: **a rule without a hard gate does not hold.**
    concurrent invocations double-capture.
 
 ### Discipline engine — enforcement it claims but doesn't have
-10. [HYPOTHESIS — reader analysis of the path comparison, not reproduced against a live hook] **RD-19 worktree isolation is fail-open in prod** — compares an absolute
+10. [CONFIRMED BY LIVE REPRO — in a real pre-commit hook, --absolute-git-dir returned /tmp/hk2/.git while --git-common-dir returned ".git"; isMainCheckout() false, evaluateCommit {blocked:false}, and the commit SUCCEEDED where doctrine requires a block. Existing tests pass green because their fixtures are absolute/absolute, a state git never produces. FIXED same day: hook now uses --path-format=absolute] **RD-19 worktree isolation is fail-open in prod** — compares an absolute
     git-dir against a relative git-common-dir, so `isMainCheckout()` is never true
     and the pre-commit block / post-checkout alarm (the only sub-agent catch) never
     fire; the unit test masks it with absolute/absolute fixtures.
-11. [HYPOTHESIS — reader-verified by grep of workflows/globs; not independently re-checked] **12 golden proofs + 13 data audits report ENFORCED but run nowhere** — the
+11. [CONFIRMED, numbers refined — 14 *.golden.mjs on disk, ZERO referenced by any workflow/glob/hook/package script (the claimed "12" is the count the registry CITES as enforcement); 13 audits cited by the registry are absent from the data-audit lane's 10-entry AUDITS list. Root cause: invariant-coverage.mjs:96 resolves selftest:/audit: tokens by git-tracked EXISTENCE, never execution. NOT YET FIXED — wiring 14 never-run proofs into CI may surface real failures; needs a staged decision] **12 golden proofs + 13 data audits report ENFORCED but run nowhere** — the
     goldens are in no workflow/glob/hook; 13 audits are absent from the lane's
     `AUDITS` list; the invariant registry cites them as enforcement. RD-35's own
     "wired-means-it-runs" defect, inside the mechanism built to prevent it.
@@ -103,21 +103,21 @@ of the root cause: **a rule without a hard gate does not hold.**
     `skill-map.mjs` does no path normalization so one `..` ungoverns any file.
 
 ### Guarded-write helper & pipeline
-13. [HYPOTHESIS — proxy behavior read from db.mjs, not executed] **`db.mjs` readClient() write-block escapable** — the proxy guards only literal
+13. [CONFIRMED BY EXECUTION — readClient().from(t).delete() threw as designed, but readClient().schema("public").from(t).delete() did NOT throw and reached the write client with no cite and no snapshot; the real supabase client does expose .schema(), so the escape is reachable in production. FIXED same day: the schema() handle is now proxied so its from() is read-only too] **`db.mjs` readClient() write-block escapable** — the proxy guards only literal
     `from`; `readClient().schema("public").from(t).delete()` mutates prod with no
     cite, no snapshot. Fix: proxy `schema` + `storage`.
-14. [HYPOTHESIS — DELETE_PROTECTED_TABLES read; not executed] **`guardedDelete` hard-deletes append-only stores** — `DELETE_PROTECTED_TABLES`
+14. [CONFIRMED BY EXECUTION — guardedDelete threw only for sources; raw_fetches, claim_versions and disposition_ledger each returned deleted=1 with a valid cite. All three ARE declared append-only (RD-46; RD-44/RD-45 + mig 208/210; mig 213) and none has a DB-level DELETE trigger or REVOKE, so this module guard was the only gate. FIXED same day: all three added to DELETE_PROTECTED_TABLES; structural DB triggers logged as follow-up] **`guardedDelete` hard-deletes append-only stores** — `DELETE_PROTECTED_TABLES`
     covers only `sources`; `raw_fetches`/`claim_versions`/`disposition_ledger` are
     doctrine-append-only yet deletable with any cite.
 15. [CONFIRMED — code read 2026-08-09: the three critical writes await without destructuring `error`; supabase-js resolves rather than throws, so the step returned briefNulled:true unconditionally. FIXED same day: each write now checks `error` and throws RetryableError. SEVERITY CORRECTED — the item stays quarantined, so nothing became customer-visible (the original wording overstated that); the real impact is that a silently-failed claim-provenance delete leaves bad-host FACT spans counted by the CROSS-ITEM audits, defeating the guarantee the step exists to provide] **`generate-brief.ts eraseStep` fail-open on the integrity backstop** — every
     erase write drops its error, so a transient failure records "brief-nulled-held
     … success" while the cross-item-violating brief stays customer-visible.
-16. [HYPOTHESIS — ordering read in the grounding path; no repro] **Grounding gate-A can pass on phantom coverage** — gate-A state upserted from
+16. [CONFIRMED — the Gate-A upsert (canonical-pipeline.ts:1661) runs BEFORE applyLedgerDiff (:1667) and is computed from the IN-MEMORY claim set; claim inserts are warn-and-continue (ledger-apply.mjs:115), and criterion 7 keys staleness on md5(full_brief) only (mig 225), so a dropped write leaves orphan_count=0 describing a corpus that was never persisted, and nothing marks it stale. FIXED same day: applyLedgerDiff now reports a failed count and the pipeline re-scans against PERSISTED claims when anything failed, clearing the state fail-closed if the reconcile cannot complete. The pre-write upsert is retained deliberately — criterion 7 must never see missing state] **Grounding gate-A can pass on phantom coverage** — gate-A state upserted from
     the in-memory claim set before apply runs, while a failed claim insert is
     warn+continue → an uncovered figure can show orphan_count=0.
 
 ### Cross-tenant
-17. [HYPOTHESIS — watcher select read; no cross-org test run] **Workspace-archive notifications fan out across orgs** — the watcher select
+17. [CONFIRMED — the watcher SELECT (overrides/route.ts:187-190) filters on item_id ONLY, on a service-role client (RLS bypassed), against a GLOBAL item corpus; the notifications table has no org_id and its RLS is per-user, so RLS DELIVERS the cross-org row rather than blocking it. The sibling read path already intersects with org_memberships. LATENT not observed (production has one org). FIXED same day: the write path now intersects watchers with the caller's org membership, and skips the fan-out entirely if the member read fails] **Workspace-archive notifications fan out across orgs** — the watcher select
     has no org scope (service-role bypasses RLS); other orgs' members receive
     "archived for your workspace" carrying org A's reason. The read-path sibling
     already fixes this class; the write path still has it.

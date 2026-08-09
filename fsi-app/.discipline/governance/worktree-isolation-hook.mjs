@@ -40,7 +40,14 @@ async function main() {
 
   // WHERE: absolute git-dir (always absolute) vs git-common-dir (shared for linked worktrees).
   const gitDir = git(['rev-parse', '--absolute-git-dir']);
-  const gitCommonDir = git(['rev-parse', '--git-common-dir']);
+  // --path-format=absolute is REQUIRED. Plain --git-common-dir returns a RELATIVE path ('.git')
+  // in a main checkout while --absolute-git-dir is absolute, so the equality test in
+  // isMainCheckout() could never be true and RD-19's pre-commit block / post-checkout alarm
+  // never fired. Reproduced end-to-end 2026-08-09 in a real pre-commit hook: the commit
+  // SUCCEEDED where doctrine requires a block (audit finding 10, CONFIRMED). The unit test
+  // passed throughout because its fixtures were absolute/absolute — a state git never produces
+  // in a main checkout.
+  const gitCommonDir = git(['rev-parse', '--path-format=absolute', '--git-common-dir']);
   const branch = git(['rev-parse', '--abbrev-ref', 'HEAD']);
 
   const ctx = { gitDir, gitCommonDir, env: process.env, branch };

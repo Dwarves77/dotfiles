@@ -184,10 +184,29 @@ async function handlePOST(request: NextRequest) {
   if (body.isArchived === true) {
     try {
       const recipients = new Set<string>();
-      const { data: watchers } = await supabase
-        .from("user_watchlist")
+      // ORG SCOPE IS REQUIRED HERE (audit finding 17, CONFIRMED 2026-08-09). This runs on a
+      // service-role client, so RLS is bypassed and the only filter was item_id — but
+      // intelligence_items is a GLOBAL corpus, so watchers in ANY org on the same item were
+      // dispatched a notification carrying this org's archive_reason, item title and
+      // archived_by. The notifications table has no org_id and its RLS is per-user
+      // (user_id = auth.uid()), so RLS DELIVERS the cross-org row rather than blocking it.
+      // The sibling read path (/api/workspace/archive-impact) already intersects with
+      // org_memberships; this write path did not. Same pattern applied here.
+      const { data: orgMembers, error: membersErr } = await supabase
+        .from("org_memberships")
         .select("user_id")
-        .in("item_id", [itemId, intelItemId]);
+        .eq("org_id", orgId);
+      if (membersErr) {
+        console.warn(`[archive-notify] org member read failed for org ${orgId}: ${membersErr.message}; skipping notification fan-out rather than notifying cross-org`);
+      }
+      const memberIds = (orgMembers ?? []).map((m) => m.user_id as string);
+      const { data: watchers } = memberIds.length
+        ? await supabase
+            .from("user_watchlist")
+            .select("user_id")
+            .in("user_id", memberIds)
+            .in("item_id", [itemId, intelItemId])
+        : { data: [] as { user_id: string }[] };
       for (const w of watchers || []) recipients.add(w.user_id as string);
       const ownerId = (data as { owner_user_id?: string | null } | null)?.owner_user_id;
       if (ownerId) recipients.add(ownerId);
