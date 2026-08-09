@@ -42,6 +42,9 @@ const CATEGORIES = [
   "coverage_gap",
   "data_integrity",
   "surface_concern",
+  // Added by migration 050 and written by fleet workers (run-summary rows).
+  // Its omission here crashed this tab the moment any workflow_gap flag existed.
+  "workflow_gap",
 ] as const;
 type Category = (typeof CATEGORIES)[number];
 
@@ -84,6 +87,7 @@ const CATEGORY_LABELS: Record<Category, string> = {
   coverage_gap: "Coverage gap",
   data_integrity: "Data integrity",
   surface_concern: "Surface concern",
+  workflow_gap: "Workflow gap",
 };
 
 const STATUS_LABELS: Record<Status, string> = {
@@ -131,8 +135,8 @@ export function PlatformIntegrityFlagsView() {
       } else {
         setData(payload);
       }
-    } catch (e: any) {
-      setError(e.message || "Network error");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Network error");
     } finally {
       setLoading(false);
     }
@@ -165,8 +169,8 @@ export function PlatformIntegrityFlagsView() {
       }
       showToast(`Flag marked ${STATUS_LABELS[nextStatus].toLowerCase()}.`);
       await load();
-    } catch (e: any) {
-      showToast(`Error: ${e.message || "Network error"}`);
+    } catch (e: unknown) {
+      showToast(`Error: ${e instanceof Error ? e.message : "Network error"}`);
     } finally {
       setPendingId(null);
     }
@@ -561,8 +565,19 @@ function CategoryBadge({ category }: { category: Category }) {
       bg: "var(--color-surface-raised)",
       bd: "var(--color-border)",
     },
+    workflow_gap: {
+      fg: "var(--color-text-secondary)",
+      bg: "var(--color-surface-raised)",
+      bd: "var(--color-border)",
+    },
   };
-  const p = palette[category];
+  // Fall back rather than crash on any future/unknown category (the defect
+  // class that took this tab down: a new DB CHECK value with no palette entry).
+  const p = palette[category] ?? {
+    fg: "var(--color-text-secondary)",
+    bg: "var(--color-surface-raised)",
+    bd: "var(--color-border)",
+  };
   return (
     <span
       className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0"

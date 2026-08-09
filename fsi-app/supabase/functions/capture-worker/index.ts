@@ -1,22 +1,29 @@
-// capture-worker v1.3 — Caro's Ledge server-side document capture.
-// CONTRACT (operator-approved, 2026-08-01; v1.3 extension operator-directed 2026-08-02):
+// capture-worker v1.4 — Caro's Ledge server-side document capture.
+// CONTRACT (operator-approved, 2026-08-01; v1.3 PDF extension 2026-08-02;
+//  v1.4 transient-retry + charset + atomic-claim + content-type allowlist, 2026-08-09):
 //  1. Raw decoded body stored verbatim. No summarization, no normalization, no cleaning.
 //     Declared transforms only:
-//       - charset decode to UTF-8
+//       - charset decode to UTF-8 (v1.4: honors the response's declared charset, not a
+//         blind UTF-8 read — a Latin-1/1252 page no longer stores as U+FFFD mojibake)
 //       - (v1.2) removal of U+0000 null characters which Postgres text columns cannot
 //         store — removal count recorded in the run row so the deviation is never silent
 //       - (v1.3) PDF TEXT EXTRACTION for content-type application/pdf, via unpdf
-//         (pdf.js). The extracted text layer is stored, page count / byte count /
-//         extracted-char count recorded as a declared_transform entry in the run row.
-//         A PDF whose text layer is empty or tiny (scanned/image PDF) is recorded as a
-//         clean failure — OCR is NOT supported and is never silently faked.
+//         (pdf.js). Extracted text layer stored; page/byte/char counts declared. No OCR.
 //  2. Strictly additive to agent_run_searches: never updates or deletes existing evidence rows.
 //  3. Failures recorded as failures; error pages / shells / walls NEVER stored as captures.
-//     Non-PDF binary content-types (images, octet-stream, zip, word) remain clean
-//     'unsupported content-type' failures.
+//     v1.4: content-type is an ALLOWLIST (text/xml/json/html/pdf) — video/audio/wasm and
+//     other binaries are clean 'unsupported content-type' failures, not decoded to garbage.
 //  4. Idempotent per final URL.
 //  5. intelligence_item_id populated when exactly one non-archived item references the
 //     capture's source_id; otherwise NULL = pool-scoped (discover by URL/signature).
+//
+//  v1.4 TRANSIENT-RETRY (the fix for the EUR-Lex cold-start wedge): a TRANSIENT non-200
+//  (HTTP 202 async/warm-up, 408, 429, 5xx) or a network fetch error RE-QUEUES the row
+//  (status='queued') up to MAX_ATTEMPTS instead of terminalizing it. EUR-Lex answers a
+//  cold request with 202 then 200 seconds later; before v1.4 the 202 became a terminal
+//  'error' and migration-065's partial unique index left the row occupying the source's
+//  slot, blocking re-enqueue forever. Only PERMANENT statuses (404/410/401/403/…) and
+//  post-cap exhaustion terminalize as 'error'.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { extractText, getDocumentProxy, getMeta } from "npm:unpdf@0";
 
@@ -29,9 +36,43 @@ const ERROR_MARKERS = [
   "error-page-container",
 ];
 const MIN_BYTES = 1000;
-// v1.3: application/pdf is handled; the rest stay refused.
-const UNSUPPORTED_BINARY_TYPES = ["image/", "application/octet-stream", "application/zip", "application/msword", "application/vnd"];
 const MAX_PDF_BYTES = 25 * 1024 * 1024; // refuse pathological downloads, recorded honestly
+
+// v1.4: transient statuses that warrant a re-queue rather than a terminal failure.
+// 202 = Accepted (EUR-Lex cold-start warm-up); 408 = Request Timeout; 429 = Too Many
+// Requests; 5xx = server-side transient. A network-level fetch throw is also transient.
+const RETRYABLE_STATUS = new Set([202, 408, 425, 429, 500, 502, 503, 504]);
+const MAX_ATTEMPTS = 5;
+
+// v1.4: content-type ALLOWLIST for the non-PDF text path. Anything not text-ish and not
+// PDF is a clean unsupported failure — never decoded and stored as a "capture".
+function isTextType(ct: string): boolean {
+  if (!ct) return true; // servers that omit content-type: treat as text, MIN_BYTES/marker gates still apply
+  return (
+    ct.startsWith("text/") ||
+    ct.includes("html") ||
+    ct.includes("xml") ||
+    ct.includes("json") ||
+    ct.includes("+text")
+  );
+}
+
+// v1.4: decode bytes using the response's declared charset, falling back to UTF-8.
+// Fixes the mojibake class (Latin-1/1252 government pages) that made stored captures
+// impossible for the grounder to span-match against.
+function decodeBody(buf: ArrayBuffer, ctype: string): string {
+  const m = /charset=([^;]+)/i.exec(ctype);
+  const declared = m ? m[1].trim().replace(/["']/g, "").toLowerCase() : "";
+  for (const cs of [declared, "utf-8"]) {
+    if (!cs) continue;
+    try {
+      return new TextDecoder(cs, { fatal: false }).decode(buf);
+    } catch {
+      /* unknown charset label — try the next */
+    }
+  }
+  return new TextDecoder("utf-8", { fatal: false }).decode(buf);
+}
 
 Deno.serve(async (req: Request) => {
   let body: Record<string, unknown> = {};
@@ -58,7 +99,9 @@ Deno.serve(async (req: Request) => {
 
   const results = [];
   for (const row of queue ?? []) {
-    if (row.status !== "queued") {
+    // An explicit queue_ids replay may target a row currently at 'error' (a v1.3 wedge)
+    // — accept 'queued' and 'error' for explicit replays; the default drain stays queued-only.
+    if (row.status !== "queued" && !(queueIds && row.status === "error")) {
       results.push({ queue_id: row.id, outcome: "skipped", detail: `status=${row.status}, not queued` });
       continue;
     }
@@ -80,23 +123,35 @@ async function processRow(supabase: any, row: any) {
     .select("id, url, name").eq("id", row.source_id).single();
   if (sErr || !src?.url) {
     report.detail = "source row or url missing";
-    await supabase.from("pending_first_fetch").update({
-      attempt_count: row.attempt_count + 1, last_attempt_at: new Date().toISOString(),
-      status: "error", last_error_text: report.detail,
-    }).eq("id", row.id);
+    await recordFailure(supabase, row, src ?? { id: row.source_id, url: null }, report, Date.now());
     return report;
   }
   report.url = src.url;
 
   let itemId: string | null = null;
-  const { data: items } = await supabase.from("intelligence_items")
+  const { data: items, error: itemsErr } = await supabase.from("intelligence_items")
     .select("id").eq("source_id", src.id).eq("is_archived", false).limit(2);
+  if (itemsErr) {
+    // Don't silently pool-scope on a read error (repo error-swallow post-mortem class):
+    // a transient read failure should retry, not mislabel scope.
+    report.detail = `item-scope read failed: ${itemsErr.message}`;
+    await recordRetry(supabase, row, src, report, Date.now(), 0);
+    return report;
+  }
   if (items && items.length === 1) itemId = items[0].id;
   report.intelligence_item_id = itemId;
 
-  await supabase.from("pending_first_fetch").update({
+  // v1.4 ATOMIC CLAIM: only transition queued/error → fetching if we win the row.
+  // Two concurrent invocations can no longer both fetch the same source.
+  const { data: claimed } = await supabase.from("pending_first_fetch").update({
     attempt_count: row.attempt_count + 1, last_attempt_at: new Date().toISOString(), status: "fetching",
-  }).eq("id", row.id);
+  }).eq("id", row.id).in("status", ["queued", "error"]).select("id");
+  if (!claimed || claimed.length === 0) {
+    report.outcome = "skipped";
+    report.detail = "row already claimed by another run";
+    return report;
+  }
+  const effectiveAttempt = row.attempt_count + 1;
 
   const runStart = Date.now();
   let resp: Response, text: string;
@@ -106,7 +161,7 @@ async function processRow(supabase: any, row: any) {
     resp = await fetch(src.url, {
       redirect: "follow",
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; CarosLedge-CaptureWorker/1.3)",
+        "User-Agent": "Mozilla/5.0 (compatible; CarosLedge-CaptureWorker/1.4)",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,application/pdf;q=0.9,*/*;q=0.8",
         "Accept-Language": "en",
       },
@@ -115,15 +170,25 @@ async function processRow(supabase: any, row: any) {
     const ctype = (resp.headers.get("content-type") || "").toLowerCase();
     report.content_type = ctype;
     isPdf = ctype.startsWith("application/pdf");
-    if (!isPdf && UNSUPPORTED_BINARY_TYPES.some((b) => ctype.startsWith(b) || ctype.includes(b))) {
-      report.detail = `unsupported content-type (${ctype}): binary document, text extraction not supported, NOT stored`;
+
+    // v1.4: transient non-200 re-queues BEFORE we try to read a warm-up body.
+    if (resp.status !== 200) {
+      report.detail = `non-200 status ${resp.status}, body NOT stored`;
+      if (RETRYABLE_STATUS.has(resp.status) && effectiveAttempt < MAX_ATTEMPTS) {
+        await recordRetry(supabase, row, src, report, runStart, resp.status);
+      } else {
+        await recordFailure(supabase, row, src, report, runStart);
+      }
+      return report;
+    }
+
+    if (!isPdf && !isTextType(ctype)) {
+      report.detail = `unsupported content-type (${ctype}): not text/pdf, text extraction not supported, NOT stored`;
       await recordFailure(supabase, row, src, report, runStart);
       return report;
     }
+
     if (isPdf) {
-      // v1.3 declared transform: PDF text-layer extraction. The bytes are decoded by
-      // pdf.js (via unpdf); the stored capture is the extracted text layer, page-merged
-      // in document order. No OCR: an image-only PDF yields ~0 chars and fails honestly.
       const buf = await resp.arrayBuffer();
       report.pdf_bytes = buf.byteLength;
       if (buf.byteLength > MAX_PDF_BYTES) {
@@ -147,11 +212,17 @@ async function processRow(supabase: any, row: any) {
         return report;
       }
     } else {
-      text = await resp.text();
+      // v1.4: charset-aware decode instead of a blind UTF-8 resp.text().
+      text = decodeBody(await resp.arrayBuffer(), ctype);
     }
   } catch (e) {
+    // v1.4: a network-level fetch throw is transient — re-queue under the cap.
     report.detail = `fetch error: ${(e as Error).message}`;
-    await recordFailure(supabase, row, src, report, runStart);
+    if (effectiveAttempt < MAX_ATTEMPTS) {
+      await recordRetry(supabase, row, src, report, runStart, 0);
+    } else {
+      await recordFailure(supabase, row, src, report, runStart);
+    }
     return report;
   }
 
@@ -163,11 +234,6 @@ async function processRow(supabase: any, row: any) {
   }
   report.chars = text?.length ?? 0;
 
-  if (resp.status !== 200) {
-    report.detail = `non-200 status ${resp.status}, body NOT stored`;
-    await recordFailure(supabase, row, src, report, runStart);
-    return report;
-  }
   if (!text || text.length < MIN_BYTES) {
     report.detail = isPdf
       ? `pdf text layer too small (${text?.length ?? 0} chars over ${report.pdf_pages ?? "?"} pages) — likely scanned/image PDF, OCR not supported, NOT stored`
@@ -217,7 +283,12 @@ async function processRow(supabase: any, row: any) {
     intelligence_item_id: itemId, errors: runErrors,
     ended_at: new Date().toISOString(), duration_ms: Date.now() - runStart,
   }).select("id").single();
-  if (runErr) { report.detail = `agent_runs insert failed: ${runErr.message}`; return report; }
+  if (runErr) {
+    // v1.4: don't leave the row stuck at 'fetching' on a write failure — re-queue it.
+    report.detail = `agent_runs insert failed: ${runErr.message}`;
+    await recordRetry(supabase, row, src, report, runStart, 0);
+    return report;
+  }
   report.run_id = run.id;
 
   const { data: cap, error: capErr } = await supabase.from("agent_run_searches").insert({
@@ -230,7 +301,14 @@ async function processRow(supabase: any, row: any) {
     result_content_excerpt: text,
     searched_at: new Date().toISOString(),
   }).select("id").single();
-  if (capErr) { report.detail = `capture insert failed: ${capErr.message}`; return report; }
+  if (capErr) {
+    // A run row exists but the capture insert failed — mark the run failed and re-queue
+    // rather than leaving a 'success' run with no body and a wedged 'fetching' row.
+    report.detail = `capture insert failed: ${capErr.message}`;
+    await supabase.from("agent_runs").update({ status: "error" }).eq("id", run.id);
+    await recordRetry(supabase, row, src, report, runStart, 0);
+    return report;
+  }
 
   await supabase.from("pending_first_fetch").update({ status: "done", last_error_text: null }).eq("id", row.id);
   report.outcome = "captured";
@@ -242,10 +320,23 @@ async function processRow(supabase: any, row: any) {
   return report;
 }
 
+// v1.4: re-queue a TRANSIENT failure so the next drain retries it (bounded by MAX_ATTEMPTS
+// at the call sites). Keeps status='queued' so migration-065's partial unique index does
+// not wedge the source slot. Deliberately writes NO agent_runs row: a transient retry is
+// not a capture outcome, and agent_runs.status has no 'retry' value (CHECK: running/
+// success/skipped/error) — the requeue + last_error_text + attempt_count are the record.
+// deno-lint-ignore no-explicit-any
+async function recordRetry(supabase: any, _row: any, _src: any, report: Record<string, unknown>, _runStart: number, _httpStatus: number) {
+  await supabase.from("pending_first_fetch").update({
+    status: "queued", last_error_text: `[transient, will retry] ${report.detail}`,
+  }).eq("id", _row.id);
+  report.outcome = "requeued";
+}
+
 // deno-lint-ignore no-explicit-any
 async function recordFailure(supabase: any, row: any, src: any, report: Record<string, unknown>, runStart: number) {
   await supabase.from("agent_runs").insert({
-    source_id: src.id, source_url: src.url, fetch_method: "capture-worker",
+    source_id: src.id, source_url: src.url ?? null, fetch_method: "capture-worker",
     status: "error", fetch_status: report.http_status,
     ended_at: new Date().toISOString(), duration_ms: Date.now() - runStart,
     errors: [{ detail: report.detail, content_type: report.content_type, at: new Date().toISOString() }],

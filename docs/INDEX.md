@@ -88,6 +88,9 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [spec-audit-research-2026-05-23](./plans/spec-audit-research-2026-05-23.md) — Spec audit, /research, built vs caros-ledge-platform-intent spec
 - [spec-audit-synthesis-2026-05-23](./plans/spec-audit-synthesis-2026-05-23.md) — Spec-vs-Built Audit: Cross-Surface Synthesis (2026-05-23)
 - [spec-audit-user-chrome-2026-05-23](./plans/spec-audit-user-chrome-2026-05-23.md) — Spec audit: user chrome (8 pages) vs caros-ledge-platform-intent
+- [fleet-cost-control-plan-2026-08-08](./plans/fleet-cost-control-plan-2026-08-08.md) — Fleet consolidation + self-metering plan; Phase D redefined (2026-08-08)
+- [main-checkout-stabilization-2026-08-08](./plans/main-checkout-stabilization-2026-08-08.md) — Main-checkout audit + restore/park fix + deferred rulings (2026-08-08)
+- [system-remediation-plan-2026-08-09](./plans/system-remediation-plan-2026-08-09.md) — Fix-before-buildout: live-verified P0s, 8-phase sequence, the data-integrity subset that gates authorship
 - [wave1-track5-widget-implementation-plan](./plans/wave1-track5-widget-implementation-plan.md) — Phase 3 Widget Implementation Plan (PR-G3)
 
 ## audits
@@ -117,6 +120,8 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [cards-clickable-audit-2026-05-12](./audits/cards-clickable-audit-2026-05-12.md) — Cards Clickable Audit — 2026-05-12
 - [caros-ledge-product-audit-2026-05-15](./audits/caros-ledge-product-audit-2026-05-15.md) — Caro's Ledge product audit, v2 — 2026-05-15
 - [caros-ledge-supabase-schema-audit-2026-05-15](./audits/caros-ledge-supabase-schema-audit-2026-05-15.md) — Caro's Ledge Supabase schema audit, 2026-05-15
+- [full-code-audit-2026-08-09](./audits/full-code-audit-2026-08-09.md) — Dead code + unconnected wiring: instrument pass over every src line, root cause, phased plan
+- [full-code-reading-audit-2026-08-09](./audits/full-code-reading-audit-2026-08-09.md) — 16-reader line-by-line pass: 17 P0 (grants, capture-worker auth, the 202 bug, enforcement holes), ~70 P1, root cause, phased plan
 - [classification-rules-audit-2026-05-09](./audits/classification-rules-audit-2026-05-09.md) — Classification rules audit, 2026-05-09
 - [cleanup-audit-2026-05-11](./audits/cleanup-audit-2026-05-11.md) — Wave cleanup audit, 2026-05-11
 - [comprehensive-site-audit-2026-05-25](./audits/comprehensive-site-audit-2026-05-25.md) — Caro's Ledge, Comprehensive Site Audit

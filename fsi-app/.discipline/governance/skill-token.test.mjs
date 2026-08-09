@@ -5,7 +5,12 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { skillLoadedInTranscript, missingFromTranscript } from './skill-token.mjs';
+import {
+  skillLoadedInTranscript,
+  missingFromTranscript,
+  skillUnresolvableInTranscript,
+  skillFileReadInTranscript,
+} from './skill-token.mjs';
 
 const SLUG = 'sprint-followups-discipline';
 let idSeq = 0;
@@ -95,4 +100,57 @@ test('missingFromTranscript returns only the unloaded slugs (resolved bare + sco
 test('empty transcript / empty slug are safe (no throw, treated as not-loaded)', () => {
   assert.equal(skillLoadedInTranscript('', SLUG), false);
   assert.equal(skillLoadedInTranscript(shape(SLUG), ''), false);
+});
+
+// ── Deadlock-escape primitives (2026-08-09, operator-directed) ────────────────────────────────
+// Context: a skill the session cannot REGISTER can never be invoked successfully, so the gate's
+// demand becomes unsatisfiable and denies forever (it blocked a legitimate CI-green `git push`).
+// These two primitives give the gate POSITIVE EVIDENCE that the demand is impossible-here, so it
+// can ASK (human confirms) instead of denying — while a session that merely SKIPPED the skill
+// still gets the hard deny. Both properties are asserted below.
+
+// A Read tool_use of a skill's own SKILL.md (substantive consultation).
+const readShape = (path) => {
+  const id = nextId();
+  return [
+    `{"type":"assistant","message":{"content":[{"type":"tool_use","id":"${id}","name":"Read","input":{"file_path":"${path.replace(/\\/g, '\\\\')}"}}]}}`,
+    `{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"${id}","content":"# SKILL"}]}}`,
+  ].join('\n');
+};
+
+test('unresolvable: an ERRORED Skill invocation is positive evidence the demand is impossible here', () => {
+  assert.equal(skillUnresolvableInTranscript(erroredShape(SLUG), SLUG), true);
+});
+
+test('unresolvable: a SUCCESSFUL invocation is not "unresolvable" (it loaded)', () => {
+  assert.equal(skillUnresolvableInTranscript(shape(SLUG), SLUG), false);
+});
+
+test('unresolvable: DISCIPLINE PRESERVED — a session that never tried gets no escape', () => {
+  assert.equal(skillUnresolvableInTranscript('', SLUG), false);
+  assert.equal(skillUnresolvableInTranscript(shape('some-other-skill'), SLUG), false);
+});
+
+test('unresolvable: an errored invocation of ANOTHER skill does not excuse this slug', () => {
+  assert.equal(skillUnresolvableInTranscript(erroredShape('source-credibility-model'), SLUG), false);
+});
+
+test('unresolvable: scoped slug form is recognized', () => {
+  assert.equal(skillUnresolvableInTranscript(erroredShape(`dotfiles/fsi-app:${SLUG}`), SLUG), true);
+});
+
+test('file-read: reading the skill SKILL.md counts as substantive consultation (posix + windows)', () => {
+  assert.equal(
+    skillFileReadInTranscript(readShape(`/repo/fsi-app/.claude/skills/${SLUG}/SKILL.md`), SLUG), true);
+  assert.equal(
+    skillFileReadInTranscript(readShape(`C:\\Users\\jason\\dotfiles\\fsi-app\\.claude\\skills\\${SLUG}\\SKILL.md`), SLUG), true);
+});
+
+test('file-read: DISCIPLINE PRESERVED — reading an unrelated file is not consultation', () => {
+  assert.equal(skillFileReadInTranscript(readShape('/repo/fsi-app/src/lib/data.ts'), SLUG), false);
+  assert.equal(skillFileReadInTranscript(readShape(`/repo/fsi-app/.claude/skills/other-skill/SKILL.md`), SLUG), false);
+});
+
+test('file-read: a Skill invocation is not a Read (the two primitives stay distinct)', () => {
+  assert.equal(skillFileReadInTranscript(shape(SLUG), SLUG), false);
 });

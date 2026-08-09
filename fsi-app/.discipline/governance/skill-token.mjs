@@ -42,11 +42,8 @@ function collectBlocks(node, uses, results) {
   }
 }
 
-// True iff a Skill tool_use for `slug` (bare OR scoped) appears in the transcript AND its tool_result
-// resolved successfully (is_error !== true). An errored or result-less invocation returns false.
-export function skillLoadedInTranscript(transcript, slug) {
-  if (!transcript || !slug) return false;
-
+/** Parse a transcript once into its tool_use blocks + a tool_use_id → errored? map. */
+function parseTranscript(transcript) {
   const uses = [];
   const results = [];
   for (const line of String(transcript).split(/\r?\n/)) {
@@ -56,15 +53,68 @@ export function skillLoadedInTranscript(transcript, slug) {
     try { obj = JSON.parse(s); } catch { continue; }
     collectBlocks(obj, uses, results);
   }
-
   // Map each resolved tool_use_id → whether its result was an error. Presence in the map = a result exists.
   const erroredById = new Map();
   for (const r of results) erroredById.set(r.tool_use_id, r.is_error === true);
+  return { uses, erroredById };
+}
 
+// True iff a Skill tool_use for `slug` (bare OR scoped) appears in the transcript AND its tool_result
+// resolved successfully (is_error !== true). An errored or result-less invocation returns false.
+export function skillLoadedInTranscript(transcript, slug) {
+  if (!transcript || !slug) return false;
+  const { uses, erroredById } = parseTranscript(transcript);
   for (const u of uses) {
     if (u.name !== "Skill" || !scopedMatchesSlug(u?.input?.skill, slug)) continue;
     // Counts only when a result EXISTS for this invocation AND that result is not an error.
     if (erroredById.has(u.id) && erroredById.get(u.id) === false) return true;
+  }
+  return false;
+}
+
+/**
+ * UNRESOLVABLE-IN-THIS-SESSION detection (2026-08-09, operator-directed).
+ *
+ * WHY THIS EXISTS. `skillLoadedInTranscript` demands a SUCCESSFUL Skill invocation. When the
+ * required skill is not registered in the session's skill list — which happens whenever the
+ * session's project root sits above/beside the directory the skills live in (this repo keeps
+ * them at `fsi-app/.claude/skills/`, one level below the repo root) — the invocation returns
+ * "Unknown skill" and can NEVER succeed. The gate then denies forever: it enforces a rule whose
+ * only escape hatch is structurally out of reach, on a session that can read the skill file
+ * perfectly well. That deadlock blocked a legitimate `git push` on 2026-08-09.
+ *
+ * True iff the session ATTEMPTED to load `slug` via the Skill tool and the attempt ERRORED —
+ * i.e. positive evidence that the demand is unsatisfiable here, not that the agent skipped it.
+ * A session that never tried gets nothing from this (the gate still denies), so the "look at
+ * the skill" discipline is preserved; only the impossible case is relaxed, and the gate ASKS
+ * (human confirmation) rather than allowing silently. See pretooluse-skill-gate.gateWrite.
+ */
+export function skillUnresolvableInTranscript(transcript, slug) {
+  if (!transcript || !slug) return false;
+  const { uses, erroredById } = parseTranscript(transcript);
+  for (const u of uses) {
+    if (u.name !== "Skill" || !scopedMatchesSlug(u?.input?.skill, slug)) continue;
+    if (erroredById.get(u.id) === true) return true;
+  }
+  return false;
+}
+
+/**
+ * SUBSTANTIVE-CONSULTATION fallback: true iff the session READ the skill's own SKILL.md.
+ *
+ * The doctrine is "the governing skill must be looked at, not merely be in context." A Read of
+ * `<...>/skills/<slug>/SKILL.md` IS looking at it — arguably more directly than a tool
+ * invocation, since it puts the actual text in the agent's context. This is accepted only in
+ * combination with the ASK path below (never as a silent allow), so a human still confirms.
+ */
+export function skillFileReadInTranscript(transcript, slug) {
+  if (!transcript || !slug) return false;
+  const { uses } = parseTranscript(transcript);
+  const needle = `skills/${slug}/SKILL.md`.toLowerCase();
+  for (const u of uses) {
+    if (u.name !== "Read") continue;
+    const p = u?.input?.file_path;
+    if (typeof p === "string" && p.replace(/\\/g, "/").toLowerCase().endsWith(needle)) return true;
   }
   return false;
 }

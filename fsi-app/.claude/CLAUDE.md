@@ -268,7 +268,8 @@ Schema (per migration 048):
 
 ```
 - category: design_drift | data_quality | source_issue | coverage_gap |
-            data_integrity | surface_concern
+            data_integrity | surface_concern | workflow_gap (added by
+            migration 050; verified against the live CHECK 2026-08-08)
 - subject_type: surface | item | source | jurisdiction | system
 - subject_ref: route path | item_id | source_id | jurisdiction code |
                system component name
