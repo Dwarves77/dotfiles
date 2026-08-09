@@ -149,6 +149,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 ## ops
 
 - [session-log](./ops/session-log.md) — Dated session-close log (accomplished / decisions / blockers / next steps)
+- [token-spend-2026-08-09](./ops/token-spend-2026-08-09.md) — Measured session token spend: method, 136.1M effective breakdown, no-bug finding, cost levers
 - [sweep-ledger](./ops/sweep-ledger.md) — Standing register of corpus-wide sweeps to run wholesale (SW-1: jurisdiction-code country/US-state collision class, PENDING post-review-lane)
 - [build-phase-spend-regime-2026-07-15](./ops/build-phase-spend-regime-2026-07-15.md) — BUILD-PHASE spend regime declared (3 controls: authorization/integrity/measurement); retro-sweep of steady-state standing figures (all information-only for build); actuals ledger (coverage-floor cost input). Config: spend-regime.mjs; doctrine build-phase-spend-regime
 - [spend-watch-disposition-2026-07-15](./ops/spend-watch-disposition-2026-07-15.md) — Spend-watch RED dated disposition: stale frozen-state config false-positive (app-lock-master + markers), (b) traced clean; reconciled to operator-priced model (commit 4da0169)
