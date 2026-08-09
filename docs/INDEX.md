@@ -90,6 +90,7 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [spec-audit-user-chrome-2026-05-23](./plans/spec-audit-user-chrome-2026-05-23.md) — Spec audit: user chrome (8 pages) vs caros-ledge-platform-intent
 - [fleet-cost-control-plan-2026-08-08](./plans/fleet-cost-control-plan-2026-08-08.md) — Fleet consolidation + self-metering plan; Phase D redefined (2026-08-08)
 - [main-checkout-stabilization-2026-08-08](./plans/main-checkout-stabilization-2026-08-08.md) — Main-checkout audit + restore/park fix + deferred rulings (2026-08-08)
+- [system-remediation-plan-2026-08-09](./plans/system-remediation-plan-2026-08-09.md) — Fix-before-buildout: live-verified P0s, 8-phase sequence, the data-integrity subset that gates authorship
 - [wave1-track5-widget-implementation-plan](./plans/wave1-track5-widget-implementation-plan.md) — Phase 3 Widget Implementation Plan (PR-G3)
 
 ## audits
