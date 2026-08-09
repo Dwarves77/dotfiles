@@ -1,13 +1,22 @@
 #!/usr/bin/env node
 // backfill-edges.mjs — PILLAR A2. Populate item_cross_references from SHARED PROVENANCE, model-independent, $0.
 //
-// Runs the pure connection-discovery engine (src/lib/connections/discover.mjs — the single logic home) over
-// the verified corpus and writes grounded edges: origin='provenance_discovery', relationship='related', and
-// basis=the real shared attributes (mig 252). This is source-growth applied to connections — it turns the
-// dormant 3% / 61-edge graph into real coverage without spending anything or touching generation.
+// Runs the pure connection-discovery engine (src/lib/connections/discover.mjs — the single scoring home)
+// over the verified corpus and hands the grounded edges to the single edge-writer
+// (src/lib/connections/write-edges.mjs) which upserts origin='provenance_discovery',
+// relationship='related', basis=the real shared attributes, score (mig 252). This is source-growth
+// applied to connections — it turns the dormant 3% / 61-edge graph into real coverage without spending
+// anything or touching generation.
 //
-// MOAT BOUNDARY: writes ONLY item_cross_references (never claims/provenance). Idempotent: upsert on
-// (source_item_id, target_item_id) refreshes basis/score; re-runs never duplicate. Non-gating.
+// WHY THE WRITE LIVES IN src/, NOT HERE: item_cross_references is written from the typed src/ layer
+// everywhere else (mint-item, link-items, canonical-pipeline). This script is a thin ORCHESTRATOR —
+// load corpus → discover → delegate the write — so the upsert has one home reusable by a future
+// scan-time hook, and this file performs no raw row mutation (rule 015: the guarded-path requirement for
+// scripts is satisfied by the write genuinely living in the src/ layer, not by a bypass trailer).
+//
+// MOAT BOUNDARY: the delegated writer touches ONLY item_cross_references (never claims/provenance).
+// Idempotent + origin-aware: re-runs refresh basis/score on our own edges and never clobber an
+// entity_extraction / agent_semantic edge (see write-edges.mjs). Non-gating.
 //
 // Usage: node scripts/connections/backfill-edges.mjs [--dry] [--limit N] [--threshold T]
 //   --dry        compute + report, write nothing (default is to write)
@@ -19,6 +28,7 @@ import { createClient } from "@supabase/supabase-js";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { discoverConnections } from "../../src/lib/connections/discover.mjs";
+import { writeDiscoveredEdges } from "../../src/lib/connections/write-edges.mjs";
 import { surfaceOf } from "../../src/lib/surface-of.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -53,6 +63,7 @@ const corpus = await loadCorpus();
 console.log(`backfill-edges: ${corpus.length} verified items loaded${DRY ? " (DRY RUN)" : ""} (threshold ${THRESHOLD}, limit ${LIMIT}/item)`);
 
 let edgesTotal = 0, crossSurfaceTotal = 0, itemsWithEdges = 0;
+const allEdges = [];
 const opts = { threshold: THRESHOLD, limit: LIMIT, surfaceOf: (t) => surfaceOf(t) };
 
 for (const item of corpus) {
@@ -61,20 +72,27 @@ for (const item of corpus) {
   itemsWithEdges++;
   crossSurfaceTotal += conns.filter((c) => c.crossSurface).length;
   edgesTotal += conns.length;
-  if (DRY) continue;
-  const edges = conns.map((c) => ({
-    source_item_id: item.id, target_item_id: c.target,
-    relationship: "related", origin: "provenance_discovery",
-    basis: c.basis, score: c.score,
-  }));
-  // upsert in chunks; a failure on one item is logged, never fatal (non-gating).
-  for (let i = 0; i < edges.length; i += 200) {
-    const { error } = await sb.from("item_cross_references")
-      .upsert(edges.slice(i, i + 200), { onConflict: "source_item_id,target_item_id" });
-    if (error) console.warn(`[backfill] upsert failed for ${item.id.slice(0, 8)}: ${error.message}`);
+  for (const c of conns) {
+    allEdges.push({
+      source_item_id: item.id, target_item_id: c.target,
+      relationship: "related", origin: "provenance_discovery",
+      basis: c.basis, score: c.score,
+    });
   }
 }
 
-console.log(`\n${DRY ? "WOULD WRITE" : "WROTE"}: ${edgesTotal} edges across ${itemsWithEdges}/${corpus.length} items; ${crossSurfaceTotal} cross-surface.`);
-console.log(DRY ? "DRY RUN — nothing written. Re-run without --dry to apply." : "Backfill complete. item_cross_references now carries provenance-grounded edges with basis.");
+console.log(`\nDISCOVERED: ${edgesTotal} edges across ${itemsWithEdges}/${corpus.length} items; ${crossSurfaceTotal} cross-surface.`);
+
+if (DRY) {
+  console.log("DRY RUN — nothing written. Re-run without --dry to apply.");
+  process.exit(0);
+}
+
+// Delegate the write to the single src/ edge-writer (origin-aware, idempotent, chunked).
+const w = await writeDiscoveredEdges(sb, allEdges);
+console.log(
+  `WROTE: ${w.written} edge rows (${w.inserted} new, ${w.refreshed} refreshed); ` +
+  `${w.skippedForeignOrigin} skipped (owned by entity/semantic origin); ${w.failedChunks} chunk failure(s).`
+);
+console.log("Backfill complete. item_cross_references now carries provenance-grounded edges with basis.");
 process.exit(0);
