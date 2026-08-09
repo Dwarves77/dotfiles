@@ -205,3 +205,26 @@ all call sites arity-correct, `agent_runs.status` CHECK honored (retry writes no
 environment's prod-mutation permission gate; deploy is operator-gated (MCP approval, or
 `supabase functions deploy capture-worker` from the committed source). Proof-on-one
 replay of wedged row `924479fd` (CELEX:32005D0417) runs immediately post-deploy.
+
+## FIXED LIVE (2026-08-09, verified by read-back)
+
+Security cluster — applied via Supabase MCP with read-back verification, committed as
+migrations 248 + 249 (audit record; data durable on execution per code-vs-data doctrine):
+- **P0 #1 admin_set_pause_state** — PUBLIC/anon/authenticated EXECUTE revoked → service_role
+  only (read-back: grantees = postgres,service_role). Anon-unpause vector closed.
+- **P0 #2 gate_a_health** — same; anon DB-CPU-exhaustion vector closed.
+- **P0 #5 set_provenance_status** — search_path re-pinned (read-back: public, extensions, pg_temp).
+- **P0 #3 create_org escalation** — DE-CONFLATED: the app already gates platform-admin on
+  profiles.is_platform_admin; the real vector was three RLS policies (integrity_flags
+  admin_read/admin_update, holdings_quality admin_read) gating on org-owner-of-any-org, which
+  let any authenticated user tamper platform flags. Aligned to is_platform_admin (read-back:
+  all three use the flag, none use org_memberships). Escalation closed.
+- **P0 #4 system_state_flag_audit** — WITHDRAWN (RLS already enabled; original finding false).
+
+Remaining security item: **P0 #6 provenance-flip GUC** (code-level logic bug in mig 118's
+guard) — needs a repro test + fix, staged for the pipeline-integrity PR, not a live DB op.
+
+Capture: **capture-worker v1.4 committed** (the 202/charset/claim/allowlist fix); the Supabase
+MCP edge-function deploy is HARD-gated by this environment (blocked twice, independent of
+operator go) — it must deploy from the committed source via `supabase functions deploy
+capture-worker` on the operator side. Proof-on-one replay of a wedged CELEX row runs post-deploy.
