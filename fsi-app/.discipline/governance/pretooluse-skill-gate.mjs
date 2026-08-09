@@ -27,7 +27,11 @@
 import { readFileSync, appendFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { missingFromTranscript } from "./skill-token.mjs";
+import {
+  missingFromTranscript,
+  skillUnresolvableInTranscript,
+  skillFileReadInTranscript,
+} from "./skill-token.mjs";
 import { isBranchingGitCommand, DOCTRINE } from "./worktree-isolation.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -77,16 +81,49 @@ function missingSkills(skills) {
   return { skills: missingFromTranscript(t, skills), noTranscript: false };
 }
 // Gate a WRITE path on skill-load. onLoaded() is called (to emit allow/ask) only when all skills present.
+//
+// DEADLOCK ESCAPE (2026-08-09, operator-directed). A required skill that the session cannot
+// REGISTER can never be invoked successfully, so the plain deny below is unsatisfiable — the gate
+// would enforce a rule whose only escape hatch is structurally out of reach. This repo keeps its
+// skills at `fsi-app/.claude/skills/`, one level under the repo root, so any session rooted at or
+// above the repo root hits exactly that: `Skill: <slug>` returns "Unknown skill", forever. On
+// 2026-08-09 this permanently blocked a legitimate `git push` of a CI-green fix.
+//
+// The escape is deliberately NARROW and never silent:
+//   * it requires POSITIVE EVIDENCE the demand is impossible here — an ATTEMPTED Skill invocation
+//     that ERRORED — or that the agent read the skill's SKILL.md directly (substantive
+//     consultation, which is what "look at the skill" actually means);
+//   * a session that simply skipped the skill still gets the hard deny (discipline preserved);
+//   * and the outcome is ASK, not allow — a human confirms, so enforcement is never weakened
+//     silently, only made answerable.
 function gateWrite(skills, denyTag, contextMsg, onLoaded) {
   const { skills: missing, noTranscript } = missingSkills(skills);
   if (noTranscript) out("deny",
     `BLOCKED — cannot verify governing skill(s) are loaded (no session transcript). Load via the Skill tool: ${skills.join(", ")}. Then retry. No workaround.`,
     denyTag + "-notranscript");
-  if (missing.length) out("deny",
-    `BLOCKED — this write cannot proceed until its governing skill(s) are LOADED this session via the Skill tool. ` +
-    `Missing: ${missing.join(", ")}. Invoke e.g. Skill: ${missing[0]} (looking at it — not just having it in context), THEN retry. ` +
-    `${contextMsg} No workaround: skills must be looked at before writing code.`,
-    denyTag + "-skillmissing");
+  if (missing.length) {
+    const t = readTranscript();
+    const unsatisfiable = missing.filter(
+      (s) => skillUnresolvableInTranscript(t, s) || skillFileReadInTranscript(t, s)
+    );
+    if (unsatisfiable.length === missing.length) {
+      out("ask",
+        `GOVERNING SKILL(S) NOT LOADABLE IN THIS SESSION: ${missing.join(", ")}. ` +
+        `The session attempted the Skill tool and it did not resolve (or read the SKILL.md directly), ` +
+        `which means this skill is not registered here — typically because the session's project root is ` +
+        `above the directory the skills live in (this repo: fsi-app/.claude/skills/<slug>/SKILL.md). ` +
+        `${contextMsg} Approve ONLY if the governing discipline has actually been applied to this change; ` +
+        `to restore automatic enforcement, start the session at the repo root so the skills register.`,
+        denyTag + "-skillunresolvable");
+    }
+    out("deny",
+      `BLOCKED — this write cannot proceed until its governing skill(s) are LOADED this session via the Skill tool. ` +
+      `Missing: ${missing.join(", ")}. Invoke e.g. Skill: ${missing[0]} (looking at it — not just having it in context), THEN retry. ` +
+      `If the invocation returns "Unknown skill", the skill is not registered in this session: read ` +
+      `fsi-app/.claude/skills/${missing[0]}/SKILL.md directly, or restart the session at the repo root. ` +
+      `${contextMsg}`,
+      denyTag + "-skillmissing");
+  }
   onLoaded();
 }
 

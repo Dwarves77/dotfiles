@@ -228,3 +228,44 @@ Capture: **capture-worker v1.4 committed** (the 202/charset/claim/allowlist fix)
 MCP edge-function deploy is HARD-gated by this environment (blocked twice, independent of
 operator go) — it must deploy from the committed source via `supabase functions deploy
 capture-worker` on the operator side. Proof-on-one replay of a wedged CELEX row runs post-deploy.
+
+## NEW P0 (operator-found 2026-08-09) + FIX — skill gate unsatisfiable by construction
+
+**Finding (operator's framing, sharper than anything the 16-reader pass produced):** the
+PreToolUse skill gate "enforces a rule whose escape hatch is structurally out of reach."
+The gate is wired GLOBALLY (`~/.claude/settings.json`) but its only satisfaction mechanism is
+a successful `Skill` tool invocation recorded in the session transcript. This repo keeps its
+skills at `fsi-app/.claude/skills/`, one level BELOW the repo root, so a session rooted at or
+above the repo root cannot register them: `Skill: <slug>` returns "Unknown skill", the gate's
+demand can never be met, and the deny is permanent. Note what the gate does NOT check: whether
+the skill file exists or is readable. A session with full filesystem access that can open,
+read and quote the skill verbatim is still denied, because what is being tested is a tool
+ceremony, not capability.
+
+**Impact (live, 2026-08-09):** blocked a legitimate `git push` of a CI-green fix commit
+(PR #411's F6/C3 remediation), forcing a manual out-of-session push. My audit found this gate's
+false POSITIVES (over-broad DANGER matching) and false NEGATIVES (rm -fr, sed -i, node -e, path
+normalization); it did NOT find the deadlock. Operator-found.
+
+**Fix (this commit).** Two new primitives in `skill-token.mjs` and a narrow escape in
+`gateWrite`:
+- `skillUnresolvableInTranscript` — true only when the session ATTEMPTED the Skill tool and the
+  attempt ERRORED (positive evidence the demand is impossible here).
+- `skillFileReadInTranscript` — true when the session Read the skill's own `SKILL.md`
+  (substantive consultation; arguably a stronger form of "looked at it" than the tool call).
+- `gateWrite`: when EVERY missing skill carries one of those two proofs, emit **ask** (human
+  confirms) instead of **deny**. A session that merely SKIPPED the skill still gets the hard
+  deny — discipline preserved. Enforcement is never weakened silently, only made answerable.
+- The deny message now names the absolute SKILL.md path and the restart-at-repo-root remedy, so
+  this is diagnosable in seconds instead of a relay round-trip.
+
+**Tests:** 8 new cases in `skill-token.test.mjs` (20/20 pass), asserting BOTH directions —
+the escape fires on errored-invocation and on SKILL.md-read (posix + Windows paths), and does
+NOT fire for a session that never tried, for an errored invocation of a DIFFERENT skill, for an
+unrelated file read, or for a successful load. Existing gate tests use empty transcripts, so
+they retain their deny verdicts. NOT VERIFIED HERE: `pretooluse-skill-gate.test.mjs` could not
+be executed in this environment (its invocation was blocked by the sandbox classifier); CI runs
+it via `governance/*.test.mjs`.
+
+**Bootstrap note:** this fix cannot deploy itself — landing it requires the very push the bug
+blocks. One out-of-session push bootstraps it; thereafter the gate asks instead of deadlocking.
