@@ -1665,6 +1665,42 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
     if (gaErr) console.warn(`[gate-a] state upsert failed for ${itemId}: ${gaErr.message}`);
   }
   const applyRes = await applyLedgerDiff(sb, itemId, diffLedger(priorClaims ?? [], incoming), { nowIso: new Date().toISOString() });
+  // PHANTOM-COVERAGE RECONCILE (audit finding 16, CONFIRMED then fixed 2026-08-09).
+  // The Gate-A upsert above is computed from the IN-MEMORY claim set and runs BEFORE these
+  // writes — deliberately, so criterion 7 never sees missing state. But claim inserts are
+  // warn-and-continue, so a dropped write leaves that stored orphan_count describing a corpus
+  // that was never persisted: the item can show orphan_count=0 while an uncovered figure has
+  // no claim behind it. Criterion 7 cannot catch it either — mig 225 keys staleness on
+  // md5(full_brief) only, never the claim corpus, so the phantom state is not even stale.
+  // Fix: when anything failed to persist, re-scan against the claims that ACTUALLY exist in
+  // the database and overwrite the state. Fail-closed: if the reconcile itself cannot be
+  // completed, blank the state so criterion 7's missing-state arm quarantines the item rather
+  // than trusting a number we know is wrong.
+  if (applyRes.applied.failed > 0) {
+    console.warn(`[gate-a] ${applyRes.applied.failed} claim write(s) failed for ${itemId}; reconciling Gate-A state against persisted claims`);
+    const { data: persisted, error: readErr } = await sb
+      .from("section_claim_provenance")
+      .select("claim_kind, claim_text, source_span")
+      .eq("intelligence_item_id", itemId);
+    const { data: gaItem2 } = await sb.from("intelligence_items").select("full_brief").eq("id", itemId).single();
+    if (readErr || !persisted) {
+      await sb.from("item_gate_a_state").delete().eq("intelligence_item_id", itemId);
+      console.warn(`[gate-a] reconcile read failed for ${itemId}; state CLEARED so criterion 7 quarantines rather than trusting phantom coverage`);
+    } else {
+      const realFacts = persisted
+        .filter((c) => c.claim_kind === "FACT")
+        .map((c) => ({ claim_text: c.claim_text ?? "", source_span: c.source_span ?? "" }));
+      const ga2 = scanBrief(gaItem2?.full_brief ?? "", realFacts, await derivedCoveredTokens(sb, itemId));
+      const { error: reErr } = await sb.from("item_gate_a_state").upsert({
+        intelligence_item_id: itemId, scanned_hash: ga2.scanned_hash, orphan_count: ga2.orphan_count,
+        orphans: ga2.orphans, gate_a_version: ga2.gate_a_version, scanned_at: new Date().toISOString(),
+      }, { onConflict: "intelligence_item_id" });
+      if (reErr) {
+        await sb.from("item_gate_a_state").delete().eq("intelligence_item_id", itemId);
+        console.warn(`[gate-a] reconcile upsert failed for ${itemId}; state CLEARED (fail-closed)`);
+      }
+    }
+  }
   const currentIds = applyRes.currentIds;
   gateFacts.push(...applyRes.touchedFacts);
   if (applyRes.applied.added === 0 && applyRes.applied.changed === 0) {

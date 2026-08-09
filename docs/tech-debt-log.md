@@ -101,13 +101,13 @@ Either path is a migration + consumer sweep (enum change or view/column + every 
 
 ---
 
-## 2026-07-26 — reconciler credential broken (operator DDL window owed)
+## 2026-07-26 — reconciler credential broken (operator DDL window owed) — RESOLVED 2026-08-09
 
-**Context:** `guard_provenance_flip()` (migration 43) blocks `provenance_status` flips OFF `'unverified'` unless `current_user='reconciler'` OR the write is INSERT-origin (`app.prov_flip_origin='INSERT'`, pg_trigger_depth>=1). The bound `reconciler` role/credential is not provisioned in the agent/service-role environment, so ad-hoc reconciliation of `unverified` items (e.g. realizing a Gate-A quarantine on the 6 unverified-orphaned briefs) is not possible from this session. Migration-43 guard is the enforcement point and is WORKING AS DESIGNED — this is a missing credential, not a bug.
+**Context:** `guard_provenance_flip()` (migration 43/118) blocked `provenance_status` flips OFF `'unverified'` unless `current_user='reconciler'` OR the write is INSERT-origin (`app.prov_flip_origin='INSERT'`, pg_trigger_depth>=1). The bound `reconciler` role/credential is not provisioned in the agent/service-role environment, so ad-hoc reconciliation of `unverified` items (e.g. realizing a Gate-A quarantine on the 6 unverified-orphaned briefs) was not possible from a service-role session.
 
-**Fix (operator DDL window):** provision/rotate the bound `reconciler` credential per the migration-43 contract, out of the agent env (least-privilege — NOT injected into a session). Until then, `unverified`-origin flips must route through the sanctioned INSERT-origin pipeline path.
+**RESOLVED by migration 250 (2026-08-09).** The wedge was a side effect of mig 118 guarding the RESTRICTIVE direction (flips OFF 'unverified', including the harmless `unverified->quarantined`). Migration 250 re-scopes the guard to the ESCALATING direction only (transitions INTO 'verified'), so restrictive flips and touch-and-derive re-grounding are open to any role while 'verified' stays bound to the validation derivation (depth>=2) or the reconciler credential. Ad-hoc reconciliation of `unverified` items off that status now works through the normal derivation path — the reconciler credential is no longer a precondition for it. The credential remains a valid least-privilege escape hatch for a direct operator-issued verified stamp, but is no longer OWED for corpus reconciliation. See migration 250 header + ADR-017; the depth binding is re-attacked every data-audit run by `scripts/verify/prov-guard-adversarial-audit.mjs`.
 
-**Priority:** Medium — blocks ad-hoc reconciliation only; the customer-visible integrity path (verified↔quarantined) is unaffected, and INSERT-origin minting works.
+**Priority:** ~~Medium~~ CLOSED.
 
 ---
 
@@ -142,3 +142,33 @@ Either path is a migration + consumer sweep (enum change or view/column + every 
 **What shipped (same session):** report-only duplicate-prefix scan `fsi-app/scripts/verify/migration-number-collision.mjs` in bug-class-guard's SOFT tier — surfaces an accidental double-claim of the next free number while the file is still pre-apply (the only window where renaming is safe), and by doctrine never gates a merge. Discovery during the build: the historical 006 pair and 007 trio are the earliest instances of the same cosmetic reuse.
 
 **Priority:** Low — readability/inventory ambiguity only; convention decision with the operator.
+
+---
+
+## 2026-08-09 — npm audit: 31 advisories, critical + most highs are BUILD-TOOLCHAIN only
+
+**Context.** `npm ci` in `fsi-app` reports 31 advisories (1 critical, 21 high, 1 moderate,
+8 low). Surfaced when the main checkout's empty `node_modules` was repaired.
+
+**Determination (rule 14).** `[CONFIRMED]` the advisories exist and the CRITICAL one is not
+runtime-reachable: `@xhmikosr/decompress` (archive extraction path traversal) arrives via
+`workflow → @workflow/nest → @swc/cli → @xhmikosr/bin-wrapper → @xhmikosr/downloader`, i.e.
+the SWC CLI's binary downloader — a build-time path that never executes in the deployed
+Next.js runtime, and whose exploit requires a malicious archive during a build (an attacker
+with build-pipeline control already). Eight of the highs are the `@workflow/*` cluster
+inheriting that same chain; `brace-expansion` is build-time glob handling. `js-yaml` is NOT
+imported by app code (`src/` has zero direct imports) despite the codebase parsing YAML —
+the agent parser does not route through it.
+`[HYPOTHESIS]` that NONE of the 21 highs is runtime-reachable: the critical chain was traced
+and js-yaml was spot-checked; the remaining highs were not individually traced.
+
+**Deliberately NOT fixed.** `npm audit fix` on Next.js 16 / React 19 with a pinned `workflow`
+SDK risks moving versions the build depends on, to close paths that do not execute in
+production. Bad trade to make casually; worse at the end of a long session.
+
+**Fix when done deliberately:** bump `workflow` / `@swc/cli` once patched versions publish,
+then verify the build (note `npm run build` cannot succeed in the cloud sandbox — next/font;
+verify on Vercel or locally). Re-run `npm audit` and re-trace anything still critical/high.
+
+**Priority:** Low — real but confined to the build toolchain; no customer-facing exposure
+identified.

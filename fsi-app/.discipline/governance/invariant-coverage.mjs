@@ -38,6 +38,7 @@ import { INVARIANTS, SKILL_FILES, SKILL_MARKER_BASELINE, MARKER_SOURCE } from '.
 import { DOCTRINES } from './doctrine-register.mjs';
 import { runSecretsReferenceAudit } from './secrets-reference-audit.mjs';
 import { scanDoctrineContradictions, DOCTRINE_FILES } from './doctrine-contradiction.mjs';
+import { isExecutionWired } from './execution-wiring.mjs';
 import { rules } from '../manifest.mjs';
 import { fitnessFunctions } from '../fitness/manifest.mjs';
 import { consistencyChecks } from '../consistency/manifest.mjs';
@@ -91,11 +92,19 @@ function resolveToken(tok) {
       const content = readRepoFile(locator);
       if (content === null) return { ok: false, detail: `audit file missing: ${locator}` };
       if (!/GOVERNING/i.test(content)) return { ok: false, detail: `audit file lacks GOVERNING skill-cite: ${locator}` };
-      return { ok: true, detail: `audit ${locator} tracked + skill-cited` };
+      // EXECUTION-WIRING (2026-08-09): tracked + skill-cited is NOT enough — the audit must actually RUN
+      // in a lane. An audit cited as enforcement but absent from run-data-audit-lane.mjs is the exact
+      // gap this closes (13 such audits existed). Resolve only if a runner executes it.
+      if (!isExecutionWired(locator)) return { ok: false, detail: `audit ${locator} tracked but NOT execution-wired (no runner runs it — add it to run-data-audit-lane.mjs)` };
+      return { ok: true, detail: `audit ${locator} tracked + skill-cited + execution-wired` };
     }
     case 'selftest': {
-      const ok = isTracked(locator);
-      return { ok, detail: `selftest ${locator} ${ok ? 'tracked' : 'NOT git-tracked (CI cannot see it)'}` };
+      if (!isTracked(locator)) return { ok: false, detail: `selftest ${locator} NOT git-tracked (CI cannot see it)` };
+      // EXECUTION-WIRING (2026-08-09): a selftest cited as enforcement must be RUN by a surface (the
+      // no-npm suite, the npmtest glob, run-goldens.mjs, a fitness sentinel spawn, or the rendering job).
+      // Tracked-but-unrun is the golden-class gap (15 goldens run by nothing) this closes.
+      if (!isExecutionWired(locator)) return { ok: false, detail: `selftest ${locator} tracked but NOT execution-wired (no runner runs it)` };
+      return { ok: true, detail: `selftest ${locator} tracked + execution-wired` };
     }
     case 'migration': {
       const re = new RegExp(`^0*${locator}_.*\\.sql$`);

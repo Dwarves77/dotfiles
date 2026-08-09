@@ -180,6 +180,15 @@ jobs:
           files=$(git ls-files 'fsi-app/src/**/*.npmtest.mjs')
           if [ -n "$files" ]; then node --test $files; else echo "no npmtest files"; fi
 
+      - name: Behavioral goldens (scripts/verify/*.golden.mjs)
+        # WIRING-TRUTH FIX (2026-08-09, Decision 2): the behavioral goldens were `selftest:`-cited as
+        # invariant enforcement, git-tracked, and run by NOTHING — two were silently red for weeks. This
+        # step runs every golden (glob-by-construction in run-goldens.mjs) after npm ci (some goldens
+        # import jiti). Pure goldens pass here; LIVE-DB goldens self-skip (exit 2) for want of secrets and
+        # run for real in the data-audit lane. A real golden FAIL fails this job.
+        working-directory: fsi-app
+        run: node scripts/verify/run-goldens.mjs
+
   rendering-guard:
     name: Rendering guard (overflow / placeholder / hydration — real-browser layout)
     runs-on: ubuntu-latest

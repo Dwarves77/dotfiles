@@ -108,11 +108,17 @@ export async function applyLedgerDiff(sb, itemId, diff, opts = {}) {
   const nowIso = opts.nowIso ?? null;
   const currentIds = [];
   const touchedFacts = [];
-  const applied = { added: 0, changed: 0, unchanged: 0, notReproduced: 0, versioned: 0 };
+  // `failed` counts writes that did NOT persist. Callers need it because Gate-A state is
+  // computed from the IN-MEMORY claim set before these writes run (canonical-pipeline: the
+  // ordering is deliberate — criterion 7 must see fresh state before set_provenance_status
+  // fires). If an insert silently drops here, that stored orphan_count describes a claim
+  // corpus that does not exist — phantom coverage. Reporting the count lets the caller
+  // reconcile against what actually persisted. (Audit finding 16, CONFIRMED 2026-08-09.)
+  const applied = { added: 0, changed: 0, unchanged: 0, notReproduced: 0, versioned: 0, failed: 0 };
   // ADD — genuinely-new claims.
   for (const n of diff.add) {
     const { data: ins, error } = await sb.from("section_claim_provenance").insert(claimPayload(n, itemId)).select("id").single();
-    if (error) { console.warn(`[ledger-apply] add insert failed (${itemId}, ${n.claim_kind}): ${error.message}`); continue; }
+    if (error) { console.warn(`[ledger-apply] add insert failed (${itemId}, ${n.claim_kind}): ${error.message}`); applied.failed += 1; continue; }
     if (ins?.id) {
       currentIds.push(ins.id); applied.added += 1;
       if (n.claim_kind === "FACT") touchedFacts.push(factTicket(ins.id, n));

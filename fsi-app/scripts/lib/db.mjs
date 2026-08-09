@@ -92,6 +92,23 @@ export function readClient() {
       if (prop === "from") {
         return (table) => readOnlyBuilder(target.from(table));
       }
+      // `schema()` returns a FRESH builder factory that this proxy never saw, so
+      // readClient().schema('public').from(t).delete() reached the real write client with no
+      // cite and no snapshot — verified by execution 2026-08-09 (audit finding 13, CONFIRMED).
+      // Guarding only the literal `from` left the guarantee one method call wide. Wrap the
+      // schema handle so its `from` is read-only too.
+      if (prop === "schema") {
+        return (name) => {
+          const handle = target.schema(name);
+          return new Proxy(handle, {
+            get(h, hp, hr) {
+              if (hp === "from") return (table) => readOnlyBuilder(h.from(table));
+              const hv = Reflect.get(h, hp, h);
+              return typeof hv === "function" ? hv.bind(h) : hv;
+            },
+          });
+        };
+      }
       const val = Reflect.get(target, prop, target);
       return typeof val === "function" ? val.bind(target) : val;
     },
@@ -162,7 +179,21 @@ export async function guardedUpdate(table, applyMatch, patch, { cite, select = "
 // Tables that must NEVER be hard-deleted — sources leave the registry by SUSPEND (status) or
 // reclassify, never DELETE (suspend-not-delete; the population-audit finding 2026-07-12). This makes the
 // convention structural: a future refactor cannot quietly add a source hard-delete without tripping here.
-export const DELETE_PROTECTED_TABLES = new Set(["sources"]);
+// Extended 2026-08-09 (audit finding 14, CONFIRMED by execution — guardedDelete happily
+// deleted from all three append-only stores with a valid cite). Each is declared append-only
+// by its own invariant or table comment: raw_fetches = RD-46-primary-text-permanent ("no
+// prune/delete path exists"); claim_versions = RD-44/RD-45 + mig 208/210 ("Append-only");
+// disposition_ledger = mig 213 ("Append-only") + the RD-9 audit-terminal allowlist. None has
+// a DB-level DELETE trigger or REVOKE, unlike census_worklist (mig 221) and
+// intelligence_item_versions (mig 053), so this module guard was the ONLY gate — and it was
+// absent. Structural DB triggers are the durable fix and are logged as follow-up; this closes
+// the script-side hole today.
+export const DELETE_PROTECTED_TABLES = new Set([
+  "sources",
+  "raw_fetches",
+  "claim_versions",
+  "disposition_ledger",
+]);
 export async function guardedDelete(table, ids, { cite, stampIso } = {}) {
   requireCite(cite);
   if (DELETE_PROTECTED_TABLES.has(table)) {
