@@ -389,14 +389,36 @@ export async function eraseStep(
 ): Promise<{ briefNulled: boolean; held: true; kind: string }> {
   "use step";
   const sb = svc();
-  await sb.from("intelligence_items").update({ full_brief: null, updated_at: new Date().toISOString() }).eq("id", itemId);
-  await sb.from("intelligence_item_sections").delete().eq("item_id", itemId);
+  // ERROR CAPTURE IS LOAD-BEARING HERE (audit 2026-08-09, finding CONFIRMED then fixed).
+  // supabase-js RESOLVES with { data, error } on a database failure — it does not throw — so
+  // `await sb...update(...)` with no destructure swallows the failure and this function used to
+  // return { briefNulled: true } unconditionally. That is a fail-OPEN on an integrity backstop:
+  // the run records "brief-nulled-held … success" while the ungroundable brief and its claim rows
+  // are still in place. The item stays quarantined either way (so nothing becomes customer-visible
+  // — the original audit overstated that), but the claim-provenance rows are counted by the
+  // CROSS-ITEM audits regardless of item status (see the comment on that delete below), so a
+  // silently-failed erase leaves bad-host FACT spans in the corpus tally — defeating the exact
+  // guarantee this step exists to provide. Throwing RetryableError makes the step retry and, on
+  // exhaustion, end the run FAILED rather than falsely successful. This is the repo's own
+  // documented error-swallow post-mortem class (agent/run, 2026-05-08).
+  const nulled = await sb.from("intelligence_items").update({ full_brief: null, updated_at: new Date().toISOString() }).eq("id", itemId);
+  if (nulled.error) {
+    throw new RetryableError(`[eraseStep] full_brief null FAILED for ${itemId}: ${nulled.error.message}`);
+  }
+  const secs = await sb.from("intelligence_item_sections").delete().eq("item_id", itemId);
+  if (secs.error) {
+    throw new RetryableError(`[eraseStep] sections delete FAILED for ${itemId}: ${secs.error.message}`);
+  }
   // Also drop the item's claim-provenance rows. The cross-item audits (unregistered-span-host, claims-tier)
   // count EVERY section_claim_provenance row regardless of item status — so leaving an erased item's claims
   // behind would keep its bad-host FACT spans in the corpus tally, defeating "the write does not stand."
   // Orphan claims after a brief erase are wrong on their own (they reference deleted sections); deleting them
   // serves both callers (research-or-erase AND the cross-item audit gate).
-  await sb.from("section_claim_provenance").delete().eq("intelligence_item_id", itemId);
+  const prov = await sb.from("section_claim_provenance").delete().eq("intelligence_item_id", itemId);
+  if (prov.error) {
+    // The highest-stakes of the three: these rows are what the cross-item audits count.
+    throw new RetryableError(`[eraseStep] claim-provenance delete FAILED for ${itemId}: ${prov.error.message}`);
+  }
   // C6 (F-07): sectionBrief harvests §14 into item_timelines; erasing the brief must ALSO drop those
   // harvested milestones, else an erased ("ungroundable/fabricated") item leaves customer-facing structured
   // timeline rows with no backing brief. Best-effort (a timeline-delete failure must not fail the erase).

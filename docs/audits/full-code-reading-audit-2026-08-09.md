@@ -109,7 +109,7 @@ of the root cause: **a rule without a hard gate does not hold.**
 14. [HYPOTHESIS — DELETE_PROTECTED_TABLES read; not executed] **`guardedDelete` hard-deletes append-only stores** — `DELETE_PROTECTED_TABLES`
     covers only `sources`; `raw_fetches`/`claim_versions`/`disposition_ledger` are
     doctrine-append-only yet deletable with any cite.
-15. [HYPOTHESIS — error-drop read in eraseStep; no failure injected] **`generate-brief.ts eraseStep` fail-open on the integrity backstop** — every
+15. [CONFIRMED — code read 2026-08-09: the three critical writes await without destructuring `error`; supabase-js resolves rather than throws, so the step returned briefNulled:true unconditionally. FIXED same day: each write now checks `error` and throws RetryableError. SEVERITY CORRECTED — the item stays quarantined, so nothing became customer-visible (the original wording overstated that); the real impact is that a silently-failed claim-provenance delete leaves bad-host FACT spans counted by the CROSS-ITEM audits, defeating the guarantee the step exists to provide] **`generate-brief.ts eraseStep` fail-open on the integrity backstop** — every
     erase write drops its error, so a transient failure records "brief-nulled-held
     … success" while the cross-item-violating brief stays customer-visible.
 16. [HYPOTHESIS — ordering read in the grounding path; no repro] **Grounding gate-A can pass on phantom coverage** — gate-A state upserted from
