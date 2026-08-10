@@ -19,6 +19,8 @@ import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { notFound, redirect } from "next/navigation";
 import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supabase-server";
+import { getViewerRelevanceForItem } from "@/lib/workspace/viewer-relevance";
+import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { ResearchFindingDetailSurface } from "@/components/research/ResearchFindingDetailSurface";
 
@@ -100,7 +102,18 @@ export default async function ResearchFindingDetailPage({
     notFound();
   }
 
-  const { resource: r } = detail;
+  const { resource: r, supersessions, connections, relevanceInput } = detail;
+
+  // Flywheel U9 (D1): the viewer's relevance-to-your-operation lens (per-request, per-org — never
+  // baked into the cached fetchIntelligenceItem result) and the connections card's gated title lookup
+  // (covers both cross-references and any supersessions involving this item).
+  const [relevance, resourceLookup] = await Promise.all([
+    getViewerRelevanceForItem(relevanceInput),
+    buildResourceLookup([
+      ...connections.map((c) => c.id),
+      ...supersessions.flatMap((s) => [s.old, s.new]),
+    ]),
+  ]);
 
   // Sprint 4: fetch section rows for section-aware display. Uses the same
   // id-or-legacy_id slug the item was resolved with. fetchIntelligenceItemSections
@@ -231,6 +244,10 @@ export default async function ResearchFindingDetailPage({
         related={related}
         relatedReason={relatedReason}
         sections={sections}
+        supersessions={supersessions}
+        connections={connections}
+        relevance={relevance}
+        resourceLookup={resourceLookup}
       />
     </>
   );
