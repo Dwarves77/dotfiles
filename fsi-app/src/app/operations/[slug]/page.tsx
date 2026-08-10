@@ -23,6 +23,8 @@ import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { notFound, redirect } from "next/navigation";
 import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supabase-server";
+import { getViewerRelevanceForItem } from "@/lib/workspace/viewer-relevance";
+import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { OperationsDetailSurface } from "@/components/operations/OperationsDetailSurface";
 import { checkMatrixEligibility } from "@/lib/agent/formats/operations-matrix";
@@ -103,7 +105,17 @@ export default async function OperationsDetailPage({
     notFound();
   }
 
-  const { resource: r } = detail;
+  const { resource: r, supersessions, connections, relevanceInput } = detail;
+
+  // Flywheel U9 (D1): the viewer's relevance-to-your-operation lens (per-request, per-org — never
+  // baked into the cached fetchIntelligenceItem result) and the connections card's gated title lookup.
+  const [relevance, resourceLookup] = await Promise.all([
+    getViewerRelevanceForItem(relevanceInput),
+    buildResourceLookup([
+      ...connections.map((c) => c.id),
+      ...supersessions.flatMap((s) => [s.old, s.new]),
+    ]),
+  ]);
 
   // Fetch section rows (reuses fetchIntelligenceItemSections — not reimplemented).
   // Returns [] when no sections have been generated yet; surface renders the
@@ -286,6 +298,10 @@ export default async function OperationsDetailPage({
         sections={sections}
         matrixEligibility={matrixEligibility}
         sourceFetchStatus={sourceFetchStatus}
+        supersessions={supersessions}
+        connections={connections}
+        relevance={relevance}
+        resourceLookup={resourceLookup}
       />
     </>
   );

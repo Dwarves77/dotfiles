@@ -21,6 +21,8 @@ import { notFound, redirect } from "next/navigation";
 import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supabase-server";
 import { getMarketIntelItems } from "@/lib/data";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
+import { getViewerRelevanceForItem } from "@/lib/workspace/viewer-relevance";
+import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import {
   MarketSignalDetailSurface,
   type PriceStat,
@@ -73,7 +75,18 @@ export default async function MarketSignalDetailPage({
     notFound();
   }
 
-  const { resource: r } = detail;
+  const { resource: r, supersessions, connections, relevanceInput } = detail;
+
+  // Flywheel U9 (D1): the viewer's relevance-to-your-operation lens (per-request, per-org — never
+  // baked into the cached fetchIntelligenceItem result) and the connections card's gated title lookup
+  // (covers both cross-references and any supersessions involving this item).
+  const [relevance, resourceLookup] = await Promise.all([
+    getViewerRelevanceForItem(relevanceInput),
+    buildResourceLookup([
+      ...connections.map((c) => c.id),
+      ...supersessions.flatMap((s) => [s.old, s.new]),
+    ]),
+  ]);
 
   // Sprint 4: fetch section rows for section-aware display. Mirrors the
   // pattern in research/[slug]/page.tsx. fetchIntelligenceItemSections
@@ -231,6 +244,10 @@ export default async function MarketSignalDetailPage({
       priceBoard={priceBoard}
       deck={deck}
       initialNote={initialNote}
+      supersessions={supersessions}
+      connections={connections}
+      relevance={relevance}
+      resourceLookup={resourceLookup}
     />
   );
 }

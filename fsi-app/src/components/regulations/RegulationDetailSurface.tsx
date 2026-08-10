@@ -37,7 +37,9 @@ import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { OwnerTeamCard } from "@/components/regulations/OwnerTeamCard";
-import { LinkedItemsCard } from "@/components/regulations/LinkedItemsCard";
+import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
+import { RelevanceBadge } from "@/components/shell/RelevanceBadge";
+import type { ItemRelevance } from "@/lib/workspace/profile";
 import { scoreResource, matchResourceSector } from "@/lib/scoring";
 import {
   extractOperationalBriefing,
@@ -63,6 +65,7 @@ import type {
   Dispute,
   Supersession,
   TimelineEntry,
+  ItemConnection,
 } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import { RegulationSections } from "@/components/regulations/sections/RegulationSections";
@@ -99,8 +102,9 @@ interface Props {
   changelog: ChangeLogEntry[];
   dispute: Dispute | null;
   supersessions: Supersession[];
-  xrefIds: string[];
-  refByIds: string[];
+  connections: ItemConnection[];
+  /** Flywheel U9 (D1) — the viewer's relevance-to-your-operation lens. Null when no org / soft-fail. */
+  relevance: ItemRelevance | null;
   resourceLookup: Record<string, { id: string; title: string; priority: string }>;
   sections?: IntelligenceItemSectionRow[];
   /** Breadcrumb middle segment, e.g. "Global · IMO". Computed on the server
@@ -153,8 +157,8 @@ export function RegulationDetailSurface({
   changelog,
   dispute,
   supersessions,
-  xrefIds,
-  refByIds,
+  connections,
+  relevance,
   resourceLookup,
   sections = [],
   groupLabel,
@@ -363,11 +367,11 @@ export function RegulationDetailSurface({
         {/* Meta rail */}
         <div id="cl-meta-rail" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <AtAGlanceCard r={r} jurisLabel={jurisLabel} modes={modes} tone={tone} />
+          <RelevanceBadge relevance={relevance} />
           <AffectedLanesCard resource={r} />
           <OwnerTeamCard resource={r} initialOwner={initialOwner} />
-          <LinkedItemsCard
-            xrefIds={xrefIds}
-            refByIds={refByIds}
+          <ItemConnectionsCard
+            connections={connections}
             supersessions={supersessions}
             selfId={r.id}
             resourceLookup={resourceLookup}

@@ -32,11 +32,14 @@
 import { useMemo, useState } from "react";
 import { formatDate } from "@/lib/format";
 import Link from "next/link";
-import type { Resource } from "@/types/resource";
+import type { Resource, ItemConnection, Supersession } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
+import type { ItemRelevance } from "@/lib/workspace/profile";
 import { ProseSection } from "@/components/regulations/sections/ProseSection";
 import { TIER_LABELS } from "@/lib/tier-labels";
 import { WatchButton } from "@/components/ui/WatchButton";
+import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
+import { RelevanceBadge } from "@/components/shell/RelevanceBadge";
 
 interface RelatedFinding {
   id: string;
@@ -59,6 +62,12 @@ interface Props {
    * Empty array falls back to the raw full_brief markdown toggle (legacy).
    */
   sections?: IntelligenceItemSectionRow[];
+  /** Flywheel U9 (D1) — item_cross_references connections + any supersessions involving this item, the
+   *  viewer's relevance-to-your-operation lens, and the gated title lookup for both. */
+  supersessions?: Supersession[];
+  connections?: ItemConnection[];
+  relevance?: ItemRelevance | null;
+  resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
 }
 
 // ── Research section-aware renderer (analogous to RegulationSections) ──
@@ -559,6 +568,10 @@ export function ResearchFindingDetailSurface({
   related,
   relatedReason,
   sections = [],
+  supersessions = [],
+  connections = [],
+  relevance = null,
+  resourceLookup = {},
 }: Props) {
   const severity = useMemo(() => deriveSeverity(r), [r]);
   const themeKey = useMemo(() => assignTheme(r), [r]);
@@ -959,6 +972,7 @@ export function ResearchFindingDetailSurface({
 
         {/* Right rail */}
         <aside style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <RelevanceBadge relevance={relevance} />
           <SideCard label="Identification">
             <KV k="ID" v={r.id} />
             <KV k="Type" v={r.type} />
@@ -983,6 +997,12 @@ export function ResearchFindingDetailSurface({
               {r.lastCitedAt && <KV k="Last cited" v={formatDate(r.lastCitedAt)} />}
             </SideCard>
           )}
+          <ItemConnectionsCard
+            connections={connections}
+            supersessions={supersessions}
+            selfId={r.id}
+            resourceLookup={resourceLookup}
+          />
         </aside>
       </div>
     </div>

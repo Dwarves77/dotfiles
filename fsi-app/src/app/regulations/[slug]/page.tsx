@@ -23,6 +23,7 @@ import { formatDate } from "@/lib/format";
 import { notFound, redirect } from "next/navigation";
 import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supabase-server";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
+import { getViewerRelevanceForItem } from "@/lib/workspace/viewer-relevance";
 import { RegulationDetailSurface } from "@/components/regulations/RegulationDetailSurface";
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
@@ -92,7 +93,11 @@ export default async function RegulationDetailPage({
     notFound();
   }
 
-  const { resource: r, changelog, dispute, supersessions, xrefIds, refByIds } = detail;
+  const { resource: r, changelog, dispute, supersessions, connections, relevanceInput } = detail;
+
+  // Flywheel U9 (D1): the viewer's relevance-to-your-operation lens. Per-request, per-org — never
+  // baked into the cached fetchIntelligenceItem result (see viewer-relevance.ts's header for why).
+  const relevance = await getViewerRelevanceForItem(relevanceInput);
 
   // Sprint 3 A5.3 (2026-05-27): fetch the 7 numbered sections backfilled
   // by A5.2. Empty array when the item has no parsed sections (the 2
@@ -103,13 +108,12 @@ export default async function RegulationDetailPage({
 
   // Targeted lookup for related-items list — only fetch the titles +
   // priorities for the cross-referenced and superseded items, not the
-  // full workspace payload. xrefIds/refByIds/supersession ids are UI-side
+  // full workspace payload. connections/supersession ids are UI-side
   // ids (legacy_id || uuid), so we look up each via legacy_id OR id.
   const resourceLookup: Record<string, { id: string; title: string; priority: string }> = {};
   const relatedIds = Array.from(
     new Set<string>([
-      ...xrefIds,
-      ...refByIds,
+      ...connections.map((c) => c.id),
       ...supersessions.flatMap((s) => [s.old, s.new]),
     ])
   ).filter(Boolean);
@@ -284,8 +288,8 @@ export default async function RegulationDetailPage({
       changelog={changelog}
       dispute={dispute}
       supersessions={supersessions}
-      xrefIds={xrefIds}
-      refByIds={refByIds}
+      connections={connections}
+      relevance={relevance}
       resourceLookup={resourceLookup}
       sections={sections}
       groupLabel={groupLabel}

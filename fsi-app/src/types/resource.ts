@@ -52,6 +52,21 @@ export interface CrossRef {
   relationship: string;
 }
 
+/**
+ * A single item_cross_references row, from the OTHER item's point of view relative to whichever item
+ * fetchIntelligenceItem was called for (flywheel U9, D1). `surface` is pre-resolved via surfaceOf so the
+ * connections card never has to know about item_type/domain routing rules itself.
+ */
+export interface ItemConnection {
+  id: string;
+  direction: "outgoing" | "incoming";
+  relationship: string;
+  origin: string;
+  basis: Array<{ signal: string; detail: string; weight: number }> | null;
+  score: number | null;
+  surface: string;
+}
+
 export interface Cluster {
   name: string;
   ids: string[];

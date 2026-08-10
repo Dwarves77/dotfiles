@@ -1,12 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 import { INTEL_ITEMS_TAG, itemTag } from "./cache/revalidate-item";
-import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
+import type { Resource, ChangeLogEntry, Dispute, Supersession, ItemConnection } from "@/types/resource";
 import type { Source, ProvisionalSource, TrustMetrics, TrustScore } from "@/types/source";
 import { computeBaselineTrustScore, createDefaultTrustMetrics } from "@/lib/trust";
 import type { SeedFallbackTrigger } from "@/lib/notifications/seed-fallback-flag";
 import { WATCHLIST_LIST_KEY, watchlistOrderKey } from "@/lib/watchlist-order";
 import { compareRanks } from "@/lib/list-order";
+import { surfaceOf } from "@/lib/surface-of.mjs";
+import type { RelevanceInput } from "@/lib/workspace/viewer-relevance";
 
 // Wave-α A2 (2026-07-11): the static seed-data import is GONE. Every
 // fallback path in this module now returns empty + `_error` sentinel
@@ -64,6 +66,16 @@ function uiId(ii: EmbeddedItem | EmbeddedItem[] | null | undefined): string | nu
   const obj = Array.isArray(ii) ? ii[0] : ii;
   if (!obj) return null;
   return obj.legacy_id || obj.id;
+}
+
+// item_cross_references' embedded source/target additionally carry item_type/domain (flywheel U9, D1) so
+// a connection's link can route to the OTHER item's own surface via surfaceOf, rather than assuming it
+// shares the viewer's current surface (a regulation can legitimately connect to a market_signal).
+type EmbeddedItemWithSurface = EmbeddedItem & { item_type: string | null; domain: number | null };
+function embeddedSurface(ii: EmbeddedItemWithSurface | EmbeddedItemWithSurface[] | null | undefined): string {
+  const obj = Array.isArray(ii) ? ii[0] : ii;
+  if (!obj) return "uncategorized";
+  return surfaceOf(obj.item_type ?? undefined, obj.domain ?? undefined);
 }
 
 async function fetchChangelog(): Promise<Record<string, ChangeLogEntry[]>> {
@@ -2304,8 +2316,8 @@ async function fetchIntelligenceItemUncached(
   changelog: ChangeLogEntry[];
   dispute: Dispute | null;
   supersessions: Supersession[];
-  xrefIds: string[];
-  refByIds: string[];
+  connections: ItemConnection[];
+  relevanceInput: RelevanceInput;
 } | null> {
   if (!isSupabaseConfigured()) return null;
 
@@ -2372,8 +2384,12 @@ async function fetchIntelligenceItemUncached(
         .maybeSingle(),
       supabase
         .from("item_cross_references")
+        // Widened for flywheel U9 (D1): relationship/origin/basis/score (mig 004/252) + item_type/domain
+        // on each embed (so surfaceOf can route a connection's link to ITS OWN surface, not assumed to
+        // be the viewer's current one) — same query, no new data path. Previously only selected
+        // source_item_id/target_item_id/{source,target}(id, legacy_id) and collapsed to bare id arrays.
         .select(
-          "source_item_id, target_item_id, source:intelligence_items!source_item_id(id, legacy_id), target:intelligence_items!target_item_id(id, legacy_id)"
+          "source_item_id, target_item_id, relationship, origin, basis, score, source:intelligence_items!source_item_id(id, legacy_id, item_type, domain), target:intelligence_items!target_item_id(id, legacy_id, item_type, domain)"
         )
         .or(`source_item_id.eq.${row.id},target_item_id.eq.${row.id}`),
       supabase
@@ -2477,22 +2493,33 @@ async function fetchIntelligenceItemUncached(
 
     // Cross-references (fetched in the Promise.all above) — single query
     // covering both directions via OR. PostgREST's .or() handles the
-    // union in one round-trip.
-    const xrefIds: string[] = [];
-    const refByIds: string[] = [];
+    // union in one round-trip. Flywheel U9 (D1): carries relationship/origin/basis/score/surface through
+    // as structured ItemConnection rows (previously collapsed to bare id arrays) — see
+    // connection-view-model.mjs (buildAllConnectionRows) for how the connections card consumes these.
+    const connections: ItemConnection[] = [];
     for (const r of (xrefRows || []) as Array<{
       source_item_id: string;
       target_item_id: string;
-      source: EmbeddedItem | EmbeddedItem[] | null;
-      target: EmbeddedItem | EmbeddedItem[] | null;
+      relationship: string | null;
+      origin: string | null;
+      basis: Array<{ signal: string; detail: string; weight: number }> | null;
+      score: number | null;
+      source: EmbeddedItemWithSurface | EmbeddedItemWithSurface[] | null;
+      target: EmbeddedItemWithSurface | EmbeddedItemWithSurface[] | null;
     }>) {
-      if (r.source_item_id === row.id) {
-        const t = uiId(r.target);
-        if (t) xrefIds.push(t);
-      } else if (r.target_item_id === row.id) {
-        const s = uiId(r.source);
-        if (s) refByIds.push(s);
-      }
+      const isOutgoing = r.source_item_id === row.id;
+      const other = isOutgoing ? r.target : r.source;
+      const otherId = uiId(other);
+      if (!otherId) continue;
+      connections.push({
+        id: otherId,
+        direction: isOutgoing ? "outgoing" : "incoming",
+        relationship: r.relationship || "related",
+        origin: r.origin || "manual",
+        basis: r.basis ?? null,
+        score: typeof r.score === "number" ? r.score : null,
+        surface: embeddedSurface(other),
+      });
     }
 
     // Supersessions involving this item (fetched in the Promise.all above).
@@ -2515,7 +2542,21 @@ async function fetchIntelligenceItemUncached(
       })
       .filter(Boolean) as Supersession[];
 
-    return { resource, changelog, dispute, supersessions, xrefIds, refByIds };
+    // relevanceInput (flywheel U9, D1): the raw tag columns relevanceForItem reads, straight off `row`
+    // (item-level facts, safe to cache alongside everything else here). Deliberately NOT the computed
+    // relevance itself — that's viewer-specific (per-org) and must be computed per-request, outside this
+    // cached fetcher (see viewer-relevance.ts's header for why baking it in here would leak across orgs).
+    const relevanceInput: RelevanceInput = {
+      title: row.title ?? null,
+      transport_modes: row.transport_modes ?? null,
+      jurisdictions: row.jurisdictions ?? null,
+      jurisdiction_iso: row.jurisdiction_iso ?? null,
+      topic_tags: row.topic_tags ?? null,
+      operational_scenario_tags: row.operational_scenario_tags ?? null,
+      compliance_object_tags: row.compliance_object_tags ?? null,
+    };
+
+    return { resource, changelog, dispute, supersessions, connections, relevanceInput };
   } catch (e) {
     // Sprint 4 task 1.10 gate: on DB error, fail CLOSED rather than serve
     // ungated legacy SEED content for what may be an unverified item.
@@ -2540,8 +2581,8 @@ export async function fetchIntelligenceItem(
   changelog: ChangeLogEntry[];
   dispute: Dispute | null;
   supersessions: Supersession[];
-  xrefIds: string[];
-  refByIds: string[];
+  connections: ItemConnection[];
+  relevanceInput: RelevanceInput;
 } | null> {
   return unstable_cache(
     () => fetchIntelligenceItemUncached(itemUiId),
