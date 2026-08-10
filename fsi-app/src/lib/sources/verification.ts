@@ -321,10 +321,6 @@ async function checkReachability(url: string, inject?: ReachInject): Promise<{
   };
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 // ────────────────────────────────────────────────────────────────────────────
 // Step 2: Content fetch
 // ────────────────────────────────────────────────────────────────────────────
