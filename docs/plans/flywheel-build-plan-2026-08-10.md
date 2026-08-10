@@ -100,12 +100,48 @@ with measured cost before any batch (fleet-budget-control discipline). L4: recur
 surfaced as candidate scorer signals via `integrity_flags` for ratification — never self-modifying the
 scoring SoT. Both need U0–U3 live first; neither ships in wave 1.
 
-## Sequencing + definition of done (wave 1)
+## U7 — Contract advance: the skills-consume unit (operator-directed 2026-08-10: "no reason all items
+## should not be wired")
 
-U0 (operator machine, minutes) → U1 → mig + U2 → U3 (U4 rides along if wave capacity allows). All $0;
-the only metered step in the entire plan (F5) is explicitly out of wave 1. DONE when: the graph is
-populated (U0 counts reported); `analyze-corpus` runs clean on demand and its ledger row shows it;
-themes visible in the UI; gap flags appear in the existing Platform flags queue with evidence; zero new
-standing schedules exist (verified by `SELECT count(*) FROM cron.job` = 0 and no new triggers).
-Build order within a session honors the relay: DDL applied live first, code commits after, PR per unit
-or one wave-PR at CC's discretion.
+The three HIGH/MED gaps from the [skill-vs-runtime delta](../audits/skill-vs-runtime-analysis-delta-2026-08-09.md),
+closed in ONE unit, its own PR: (a) role-generic system-prompt correction (the "Workspace profile
+(runtime input)" section stops promising a profile that is never fed — profile is READ-TIME, Option B);
+(b) forward-participation pathway into the contract; (c) A3: feed discovered connection candidates
+(from the now-populated graph) into `synthesiseAndWriteBrief` so new briefs write grounded "this
+matters because" — asserting ONLY graph-shown links; (d) BOTH contract-version homes bumped together
+(system-prompt.ts + contract-version.mjs SSOT — the two-homes CI test that caught the #417 attempt
+stays the guard). **Regeneration policy inline (what previously blocked this unit, dissolved by the
+Execution model ruling):** existing briefs remain valid under their stamped version; NOTHING
+auto-regenerates on the bump; regeneration is an operator-invoked pass — pilot 3 items, measure real
+cost (~$0.15/item baseline), then batches at operator cadence behind the budget kill-switch. Proofs:
+contract-version test green; a generation-path test asserting the candidates/profile reach the prompt
+assembly; pilot briefs show the new sections grounded.
+
+## U8 — Skill↔code drift gate ($0; extends execution-wiring's lesson to skills)
+
+The goldens class-fix made "proof exists but runs nowhere" mechanically impossible. This does the same
+for "skill says X, runtime encodes Y": a discipline-lane check that maps each governing skill's
+operative clauses to named runtime contract markers and FAILS on drift in either direction (skill
+edited without code, code edited without skill). Buildable now, independent, no spend trigger. Proof:
+negative-tested like execution-wiring.test.mjs (a seeded drift must redden it).
+
+## U9 — D1: read-time lens + connections into the five surfaces ($0 reads)
+
+The built-but-invisible layer becomes visible: `relevanceForItem` lens + item connections (with basis)
+rendered on Regulations / Market Intel / Research / Operations / Community item views; composes with
+U3's themes view (same D-class wave, same card patterns). Proof: fixture renders per surface; no new
+data paths (reads existing tables only).
+
+## Sequencing + definition of done
+
+U0 (operator machine, minutes) → U1 → mig + U2 → U3 (U4 rides along if wave capacity allows) → U9 with
+U3's wave → U7 as its own PR once the graph is populated (A3 needs real candidates) → U8 anytime,
+independent. All units $0 except U7's OPTIONAL operator-invoked regeneration (metered, gated,
+pilot-first). DONE when: graph populated (U0 counts reported); `analyze-corpus` runs clean on demand
+with its ledger row; themes visible; gap flags in the existing Platform flags queue with evidence;
+lens + connections visible on the five surfaces (U9); contract advanced with both homes green and the
+regeneration policy recorded (U7); drift gate red-tested then green (U8); **no major function of the
+system unwired** — skills consumed by the runtime, goldens executing (already CI-enforced), proofs
+execution-wired; zero new standing schedules (`SELECT count(*) FROM cron.job` = 0 and no new
+triggers). Build order honors the relay: DDL applied live first, code commits after, PR per unit or
+wave-PR at CC's discretion.
