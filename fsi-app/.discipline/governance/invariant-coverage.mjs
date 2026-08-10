@@ -166,6 +166,32 @@ export function auditInvariants(invariants, env) {
   return { problems, referenced };
 }
 
+// PURE marker-baseline audit (check 4), injectable so the gate's drift-catching behaviour is
+// negative-testable — mirrors the auditInvariants()/auditDoctrines() extraction (2026-08-10, U8).
+// Without this being pure+injectable, "the baseline check actually reddens on drift" was PRACTICE
+// (asserted by comment, never proven), the same turtle-at-the-top gap execution-wiring.test.mjs and
+// invariant-coverage.test.mjs's other negative tests close for checks 1-3 and the doctrine audit.
+// Catches: (a) a skill in the file map with no baseline entry (NO BASELINE — an added skill that was
+// never seeded), (b) a skill whose live marker count no longer equals its recorded baseline (MARKER
+// DRIFT — a normative statement was added or removed without triage). `env.getSkillContent(skill) ->
+// string|null` (null skipped — SKILL FILE MISSING is reported separately by the caller),
+// `env.countMarkers(content) -> number`.
+export function auditMarkerBaselines(skillFiles, baselines, env) {
+  const problems = [];
+  for (const skill of Object.keys(skillFiles)) {
+    const content = env.getSkillContent(skill);
+    if (content == null) continue;
+    const actual = env.countMarkers(content);
+    const baseline = baselines[skill];
+    if (baseline === undefined) {
+      problems.push(`NO BASELINE: ${skill} has no marker baseline (set SKILL_MARKER_BASELINE.${skill} = ${actual}).`);
+    } else if (actual !== baseline) {
+      problems.push(`MARKER DRIFT: ${skill} normative-marker count ${actual} != baseline ${baseline} — a normative statement changed; triage into INVARIANTS then re-baseline to ${actual}.`);
+    }
+  }
+  return { problems };
+}
+
 // PURE doctrine-register audit (the "UNENFORCED DOCTRINE = FAIL" core), injectable + negative-testable.
 // A doctrine is legitimate iff EITHER it is enforced by ≥1 invariant that EXISTS and is ITSELF enforced
 // (not exempt — a doctrine cannot inherit enforcement from an exempt invariant), XOR it is exempt with a
@@ -224,18 +250,12 @@ export function runInvariantCoverage() {
   });
   const problems = [...preProblems, ...invProblems];
 
-  // 4: marker baselines.
-  for (const [skill, rel] of Object.entries(SKILL_FILES)) {
-    const content = skillContent[skill];
-    if (content == null) continue;
-    const actual = countMarkers(content);
-    const baseline = SKILL_MARKER_BASELINE[skill];
-    if (baseline === undefined) {
-      problems.push(`NO BASELINE: ${skill} has no marker baseline (set SKILL_MARKER_BASELINE.${skill} = ${actual}).`);
-    } else if (actual !== baseline) {
-      problems.push(`MARKER DRIFT: ${skill} normative-marker count ${actual} != baseline ${baseline} — a normative statement changed; triage into INVARIANTS then re-baseline to ${actual}.`);
-    }
-  }
+  // 4: marker baselines, via the pure/injectable core (real skill content + real countMarkers).
+  const { problems: markerProblems } = auditMarkerBaselines(SKILL_FILES, SKILL_MARKER_BASELINE, {
+    getSkillContent: (s) => skillContent[s],
+    countMarkers,
+  });
+  problems.push(...markerProblems);
 
   // 5: no orphan mechanism (every rule/fitness/consistency mapped by ≥1 invariant).
   for (const id of ruleIds) if (!referenced.rule.has(id)) problems.push(`ORPHAN MECHANISM: rule ${id} is in the manifest but no invariant references it (map it or remove it).`);

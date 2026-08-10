@@ -47,6 +47,16 @@ export const SKILL_FILES = {
   'caros-ledge-platform-intent': 'fsi-app/.claude/skills/caros-ledge-platform-intent/SKILL.md',
   'remediation-discipline': 'fsi-app/.claude/skills/remediation-discipline/SKILL.md',
   'sprint-followups-discipline': 'fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md',
+  // 7th governing skill, added 2026-08-10 (U8, skill↔code drift gate closure): the standalone,
+  // operator-side copy of the five-surface-test rule. It was cited throughout doctrine-register.mjs
+  // (the every-decline-names-the-five-contracts residual: "The five contracts also live verbatim in
+  // caros-ledge-platform-intent... and the standalone caros-ledge-surface-contracts skill") and in
+  // skill-map.mjs's design-constraints comment ("Every skill is linked to an automatic trigger"), but
+  // was ABSENT from this map — meaning this file had ZERO marker-baseline / anchor-drift protection.
+  // A silent edit here (e.g. weakening "MUST record a five-surface test" to "should") would have gone
+  // undetected by the meta-gate even though the identical content in caros-ledge-platform-intent is
+  // drift-guarded via PI-5. See SCS-1 below.
+  'caros-ledge-surface-contracts': 'fsi-app/.claude/skills/caros-ledge-surface-contracts/SKILL.md',
 };
 
 // The exact normative-marker pattern (case-sensitive, matches rg default). The meta-gate counts
@@ -140,6 +150,12 @@ export const SKILL_MARKER_BASELINE = {
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
   // the meta-gate runs the audit). Mechanizes no-new-secrets-without-need + credential-surface-visibility.
   'sprint-followups-discipline': 18,
+  // NEW (2026-08-10, U8 skill↔code drift gate closure): caros-ledge-surface-contracts was the 7th
+  // governing skill, absent from SKILL_FILES until now (see the comment there). Live-computed count
+  // via the same MARKER_SOURCE regex over the file as committed. TRIAGE: new invariant SCS-1
+  // (enforcedBy the SAME golden PI-5 uses — this skill restates PI-5's rule verbatim for the operator's
+  // side, so it shares PI-5's enforcement mechanism rather than inventing a parallel one).
+  'caros-ledge-surface-contracts': 2,
 };
 
 export const INVARIANTS = [
@@ -485,6 +501,16 @@ export const INVARIANTS = [
     anchor: 'Every scope decision that declines or parks a candidate MUST record a five-surface test (PI-5)',
     enforcedBy: ['selftest:fsi-app/scripts/verify/surface-contract-gate.golden.mjs'],
     residual: 'Two-part enforcement. The golden (surface-contract-gate.golden.mjs) proves the completeness gate over FIXTURES red-then-green (a declined/parked row without the five-surface record FAILS; with it PASSES; kept/candidate exempt) — the invariant is ENFORCED by this fixture proof today. The LIVE DB binding — the CHECK constraint on coverage_gap_candidates that fails a declined/parked row lacking the record — is owned by SESSION C\'s forthcoming migration (DECISION 1, operator ruling 2026-07-17: C owns the table, Session A does not touch it; the gate is DORMANT, no seed rows, demonstrability lives in the golden not in production data). PENDING-C, named-not-silently-unwired: PART B of the golden SCANS the migrations tree and AUTO-ARMS the moment C\'s migration lands (asserting surface_test + disposition{declined,parked} + a CHECK referencing all five contract keys), so a missing or wrong C migration is caught mechanically. When C posts its migration number to the session log, add migration:NNN to this enforcedBy as belt-and-suspenders. The verdict QUALITY (is a surface verdict correct?) stays scope-judgment, not mechanized.',
+  },
+
+  {
+    id: 'SCS-1-surface-contracts-skill-copy',
+    skill: 'caros-ledge-surface-contracts',
+    section: 'The one rule to remember (operator-side standalone copy of PI-5)',
+    text: 'The standalone caros-ledge-surface-contracts skill is, by its own text, "the portable, operator-side copy of the same content that lives in caros-ledge-platform-intent" (PI-5): every scope decision that declines or parks a candidate MUST record a five-surface test before the decision stands. Because this is a second, independent skill FILE carrying the identical normative rule, it is a second place the rule can silently drift (weakened, narrowed, or deleted) without the PI-5 anchor/marker-baseline check in caros-ledge-platform-intent ever seeing it — the two-homes drift class (contract-version.test.mjs\'s framing) applied to skill prose instead of a stamped version.',
+    anchor: 'every scope decision that declines or parks a candidate MUST record a five-surface test',
+    enforcedBy: ['selftest:fsi-app/scripts/verify/surface-contract-gate.golden.mjs'],
+    residual: 'Shares PI-5\'s mechanism deliberately (same rule, two skill-file homes, one live gate) rather than inventing a parallel one — the golden fixture proof + the SESSION-C-owned live CHECK constraint (same PENDING-C status as PI-5) cover the RULE. What this invariant closes is narrower and was the actual gap: before 2026-08-10 this skill file was absent from SKILL_FILES, so ANY edit to this file — including one that silently weakened or deleted the MUST-record-five-surface-test line — passed the meta-gate with zero signal, even though the identical line in caros-ledge-platform-intent was already anchor+marker-baseline guarded. Registering the file in SKILL_FILES + this invariant\'s anchor + the marker baseline (2, live-computed) closes that blind spot: an edit here now either trips ANCHOR DRIFT (the anchor substring removed/reworded) or MARKER DRIFT (the file\'s normative-marker line count changes) and fails the meta-gate, forcing triage — mirroring, for skill-prose drift, what execution-wiring.mjs mirrors for run-vs-cited drift.',
   },
 
   // ───────────────────────────── remediation-discipline ─────────────────────────────
