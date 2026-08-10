@@ -127,7 +127,6 @@ const SECTIONS: SectionDef[] = [
 ];
 
 export function AdminDashboard({
-  userId,
   userEmail: _userEmail,
   initialSources = [],
   initialProvisionalSources = [],
