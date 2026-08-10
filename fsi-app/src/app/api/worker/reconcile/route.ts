@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-import { type SupabaseClient } from "@supabase/supabase-js";
 import { isGloballyPaused } from "@/lib/api/pause";
 import { recordSourceChangeTrigger } from "@/lib/sources/reconcile";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
