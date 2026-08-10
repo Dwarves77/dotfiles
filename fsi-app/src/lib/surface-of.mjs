@@ -49,7 +49,11 @@ export const SURFACE_RULES = [
 /**
  * Classify an intelligence_items row to its customer-facing surface.
  * @param {string | null | undefined} itemType intelligence_items.item_type
- * @param {number | null | undefined} domain   intelligence_items.domain (INT 1-7)
+ * @param {number | null} [domain] intelligence_items.domain (INT 1-7). Genuinely optional — the body
+ *   below already treats a non-number (including omitted/undefined) as `null`; the JSDoc now says so
+ *   explicitly so a 1-arg call (item-type-only classification, e.g. discover.mjs's UNCONDITIONAL-type
+ *   scoring) type-checks instead of arity-erroring. First surfaced by mint-item.ts (U4), this
+ *   function's first typed (.ts) consumer via discover.mjs's surfaceOf callback.
  * @returns {"regulations" | "market" | "operations" | "research" | "uncategorized"}
  */
 export function surfaceOf(itemType, domain) {
