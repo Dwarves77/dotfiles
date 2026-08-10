@@ -3,11 +3,19 @@ name: Uptime and honesty probes
 # Wave-β R0.2 (Runtime Observability). Two independent watches against the
 # deployed app:
 #
-#   1. surfaces  — every 30 min + on demand. Curls /api/health/surfaces and
-#                  asserts every must-have customer surface reports ok=true
-#                  (backing data present). Customer surfaces are auth-walled,
-#                  so this server-side probe is the only external way to catch
-#                  a surface that has silently gone empty.
+#   1. surfaces  — on demand only (workflow_dispatch). Re-shaped 2026-08-10:
+#                  the prior */30 cron crossed the health-cache halt's
+#                  30-minute staleness gate (gate-a-health-refresh was
+#                  unscheduled by operator ruling) and fail-closed on every
+#                  run while the cache was intentionally dormant — correct
+#                  behavior, but a recurring red email for a known, deliberate
+#                  state. Curls /api/health/surfaces and asserts every
+#                  must-have customer surface reports ok=true (backing data
+#                  present). Customer surfaces are auth-walled, so this
+#                  server-side probe is the only external way to catch a
+#                  surface that has silently gone empty — run it manually
+#                  (Actions → Uptime and honesty probes → Run workflow) after
+#                  any deploy or whenever a live check is wanted.
 #   2. spend     — daily at 09:00 UTC + on demand. Curls /api/health/spend and
 #                  fails ONLY on a post-freeze paid agent_runs row that does not
 #                  trace to an operator-priced line (untraceable spend, at any
@@ -41,18 +49,20 @@ name: Uptime and honesty probes
 
 on:
   schedule:
-    - cron: '*/30 * * * *'   # surfaces probe, every 30 minutes
     - cron: '0 9 * * *'      # spend watch, daily at 09:00 UTC
   workflow_dispatch:
 
 jobs:
   surfaces:
     name: Surface honesty probe
-    # Runs on EVERY trigger (the 30-min cron, the daily spend cron, and manual
-    # dispatch). Previously skipped on the daily '0 9' cron, which surfaced as
-    # "Surface honesty probe: skipped" whenever the spend watch ran — an
-    # unhelpful gap that read as a failure. Surfaces is independent of spend and
-    # should always confirm the customer surfaces are backed by real rows.
+    # On-demand only (workflow_dispatch) — re-shaped 2026-08-10. The prior
+    # */30 cron ran on every trigger (the 30-min cron, the daily spend cron,
+    # and manual dispatch) and crossed the health-cache halt's 30-minute
+    # staleness gate, fail-closing every run while the cache was
+    # intentionally dormant. Surfaces is independent of spend; run it
+    # manually (Actions → Uptime and honesty probes → Run workflow) whenever
+    # a live surfaces check is wanted.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -170,8 +180,10 @@ jobs:
 
   spend:
     name: Spend watch
-    # Runs on the daily 09:00 cron and on manual dispatch; skipped on the
-    # 30-min surfaces cron.
+    # Runs on the daily 09:00 cron and on manual dispatch. The exclusion
+    # comment below predates the removal of the */30 cron (2026-08-10); the
+    # guard is now always-true against a live schedule trigger but is left in
+    # place as a harmless, correct no-op rather than touched speculatively.
     if: github.event.schedule != '*/30 * * * *'
     runs-on: ubuntu-latest
     timeout-minutes: 5
