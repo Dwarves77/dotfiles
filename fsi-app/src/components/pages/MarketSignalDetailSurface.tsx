@@ -42,7 +42,10 @@ import {
 } from "@/lib/agent/extract-regulation-sections";
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
-import type { Resource } from "@/types/resource";
+import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
+import { RelevanceBadge } from "@/components/shell/RelevanceBadge";
+import type { ItemRelevance } from "@/lib/workspace/profile";
+import type { Resource, ItemConnection, Supersession } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 
 // ── Palette — lifted verbatim from the approved mock inline styles ──────
@@ -105,6 +108,13 @@ interface Props {
    *  server-side. Empty string when none. Item d: notes are workspace-shared,
    *  not localStorage. */
   initialNote?: string;
+  /** Flywheel U9 (D1) — item_cross_references connections + any supersessions involving this item, the
+   *  viewer's relevance-to-your-operation lens, and the gated title lookup for both. Defaulted (not
+   *  required) so this component still type-checks against any pre-U9 test fixture that omits them. */
+  supersessions?: Supersession[];
+  connections?: ItemConnection[];
+  relevance?: ItemRelevance | null;
+  resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
 }
 
 // ── Severity vocabulary (5-label, mirrors MarketPage / MarketSignalDetail) ─
@@ -210,6 +220,10 @@ export function MarketSignalDetailSurface({
   groupLabel,
   deck,
   initialNote = "",
+  supersessions = [],
+  connections = [],
+  relevance = null,
+  resourceLookup = {},
 }: Props) {
   const [tab, setTab] = useState<TabKey>("moving");
 
@@ -518,6 +532,7 @@ export function MarketSignalDetailSurface({
 
         {/* Meta rail */}
         <div id="cl-sig-rail" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <RelevanceBadge relevance={relevance} />
           <SideCard label="Signal">
             <KV k="Band" v={`B${BAND_NUM[band]} · ${BAND_LABEL[band]}`} />
             <KV k="Severity" v={<span style={{ fontWeight: 800, color: SEVERITY_TONE[severity].fg }}>{SEVERITY_LABEL[severity]}</span>} />
@@ -555,6 +570,13 @@ export function MarketSignalDetailSurface({
               </PendingFrame>
             </div>
           </SideCard>
+
+          <ItemConnectionsCard
+            connections={connections}
+            supersessions={supersessions}
+            selfId={r.id}
+            resourceLookup={resourceLookup}
+          />
         </div>
       </div>
     </div>
