@@ -20,6 +20,17 @@ import { congruence, sourceRole } from "@/lib/entities/source-role.mjs";
 import { matchExistingSubject } from "@/lib/entities/entity-resolve.mjs";
 import { domainForItemType, type Domain } from "@/lib/domains";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
+import { discoverConnections } from "@/lib/connections/discover.mjs";
+import { writeDiscoveredEdges } from "@/lib/connections/write-edges.mjs";
+import { surfaceOf } from "@/lib/surface-of.mjs";
+
+// Connection-signature column list — SAME set backfill-edges.mjs (Pillar A2) selects, so the mint-time
+// scan and the cold-start/repair scan can never diverge on what counts as "provenance." One home for
+// the column list would need a shared corpus-query module; duplicating this const (not the scoring
+// logic — that already has one home in discover.mjs) is the accepted seam until a query-layer refactor
+// gives corpus loads their own module.
+const CONNECTION_SIGNATURE_COLUMNS =
+  "id, item_type, canonical_instrument_key, source_id, operational_scenario_tags, compliance_object_tags, jurisdictions, jurisdiction_iso, topic_tags";
 
 // UNCONDITIONAL item types — their surface domain is fully determined by item_type alone
 // (domainForItemType returns the same value regardless of source.category). For these the
@@ -242,6 +253,58 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
       )
       .then(() => {}, () => {});
   }
+  // ── U4: L1 incremental connection discovery at mint (flywheel, closes the growth loop) ────────────
+  // Reuses discover.mjs's scoring (proven by the backfill, A2) and write-edges.mjs's origin-aware writer
+  // (never clobbers an entity_extraction/agent_semantic edge) — no new logic, no new write path. Runs
+  // ONCE per mint, bounded to 12 edges (discoverConnections' default limit); piggybacks this call's own
+  // clock, so it adds no resident process and no new schedule (Execution model: operator-cadence,
+  // default off). Non-fatal by construction (try/catch): a discovery failure must never fail a mint —
+  // the standalone backfill remains the cold-start/repair path if this ever misses or errors.
+  // MOAT BOUNDARY: writes ONLY item_cross_references, same table the dedup:linked edge above touches.
+  try {
+    const corpus: Array<Record<string, unknown>> = [];
+    for (let from = 0; ; from += 1000) {
+      const { data: sigRows, error: sigErr } = await sb
+        .from("intelligence_items")
+        .select(CONNECTION_SIGNATURE_COLUMNS)
+        .eq("provenance_status", "verified")
+        .eq("is_archived", false)
+        .neq("id", itemId)
+        .order("id", { ascending: true })
+        .range(from, from + 999);
+      if (sigErr) throw new Error(sigErr.message);
+      corpus.push(...(sigRows ?? []));
+      if (!sigRows || sigRows.length < 1000) break;
+    }
+    const newItemSignature = {
+      id: itemId,
+      item_type: seed.item_type,
+      canonical_instrument_key: seed.canonical_instrument_key,
+      source_id: seed.source_id,
+      operational_scenario_tags: seed.operational_scenario_tags,
+      compliance_object_tags: seed.compliance_object_tags,
+      jurisdictions: seed.jurisdictions,
+      jurisdiction_iso: seed.jurisdiction_iso,
+      topic_tags: seed.topic_tags,
+    };
+    const conns = discoverConnections(newItemSignature, corpus, { surfaceOf: (t: string) => surfaceOf(t) });
+    if (conns.length) {
+      const edges = conns.map((c: { target: string; basis: unknown; score: number }) => ({
+        source_item_id: itemId,
+        target_item_id: c.target,
+        relationship: "related",
+        origin: "provenance_discovery",
+        basis: c.basis,
+        score: c.score,
+      }));
+      await writeDiscoveredEdges(sb, edges);
+      flags.push(`discovery:${edges.length}`);
+    }
+  } catch {
+    // non-fatal — same swallow-and-continue posture as seekStudy/lowRelevance below (their
+    // .then(() => {}, () => {})); a discovery-scan failure must never surface as a mint failure.
+  }
+
   if (seekStudy) {
     await sb
       .from("integrity_flags")
