@@ -102,6 +102,26 @@ durability.
 - **The $0 layers:** Pillar F F1–F4 — the algorithmic substrate the flywheel spins on.
 - **The metered gate:** the budget kill-switch + pilot discipline (fleet-budget-control runbook) — unchanged.
 
+## Execution model — operator-scheduled, never always-on (operator ruling 2026-08-10)
+
+"I want to be able to say, run the scan of existing docs once a month or once a week. Not having it
+running automatically all the time." Binding for every recurring pass this plan introduces, and the
+generalization of the same ruling that governed the per-turn stop-hook: a check that fires with no one
+able to act on it is pure spend, and an unowned loop is how a code flaw becomes infinite cost.
+
+- **Corpus-wide passes are operator-cadence.** The backfill re-run, F1–F4 clustering/centrality/
+  convergence/trajectory, the F6 delta pass, and the docs/ contradiction audit each ship as a single
+  invocable command ("run it now") plus an OPTIONAL scheduled task at the operator's chosen cadence
+  (weekly or monthly, adjustable). DEFAULT OFF: no pass self-schedules, ever. Scheduling is a data
+  change the operator makes, not a side effect of shipping code.
+- **Event-driven steps ride existing entry points.** L1 (discovery at mint) executes inside the
+  already-scheduled scan's processing of a new item. It adds no resident process; nothing in this plan
+  polls or idles. "One scan manages multiple tasks" — the scan is the only clock the event path has.
+- **Every scheduled firing is bounded.** Kill-switch check before work (rule 11 / fleet-budget-control),
+  loop-until-dry base case inside the pass, and repeat-cap semantics on any alert it raises (the
+  stop-hook governor pattern: change-triggered immediately, unchanged-state repeats timed and hard-
+  capped). A flaw in a pass can burn at most one firing's budget, never an unbounded loop.
+
 ## Sequencing (additive to the master plan critical path)
 
 1. Land Pillar A (edges populated) — the cold-start. IN FLIGHT (PR #418).
