@@ -53,6 +53,7 @@ node --test \
   fsi-app/src/lib/credibility/*.test.mjs \
   fsi-app/src/lib/sources/*.test.mjs \
   fsi-app/src/lib/workspace/*.test.mjs \
+  fsi-app/src/lib/connections/*.test.mjs \
   fsi-app/src/lib/entities/*.test.mjs \
   fsi-app/src/lib/intake/*.test.mjs \
   fsi-app/src/lib/agent/*.test.mjs \
