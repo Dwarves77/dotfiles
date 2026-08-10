@@ -3,7 +3,7 @@
 import { useState, useId } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useResourceStore, type StoredSynopsis, type StoredChange } from "@/stores/resourceStore";
+import { useResourceStore, type StoredSynopsis } from "@/stores/resourceStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { IntelligenceBrief } from "./IntelligenceBrief";
@@ -17,16 +17,6 @@ function urgencyBadge(score: number | null): { label: string; bg: string; text: 
   if (score >= 0.6) return { label: score.toFixed(1), bg: "#FFF7ED", text: "#D97706", border: "#FED7AA" };
   if (score >= 0.3) return { label: score.toFixed(1), bg: "#EFF6FF", text: "#2563EB", border: "#BFDBFE" };
   return { label: score.toFixed(1), bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" };
-}
-
-function severityBadge(severity: string): { label: string; bg: string; text: string; border: string } {
-  switch (severity) {
-    case "critical": return { label: "CRITICAL", bg: "#FEF2F2", text: "#DC2626", border: "#FECACA" };
-    case "significant": return { label: "SIGNIFICANT", bg: "#FFF7ED", text: "#D97706", border: "#FED7AA" };
-    case "minor": return { label: "MINOR", bg: "#EFF6FF", text: "#2563EB", border: "#BFDBFE" };
-    case "administrative": return { label: "ADMINISTRATIVE", bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" };
-    default: return { label: severity.toUpperCase(), bg: "#F9FAFB", text: "#6B7280", border: "#E5E7EB" };
-  }
 }
 
 // ── Markdown components shared across all synopsis renderers ──
