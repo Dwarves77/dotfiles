@@ -72,7 +72,7 @@ export function AuthProvider({
   // first render. Components reading useAuth().loading get false from
   // the start, so role-gated UI doesn't flash between "loading" and
   // "admin-visible".
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
   // Hydrate the workspace store from server props once on mount. The
   // store is module-scoped, not React state, so this is safe to do in
