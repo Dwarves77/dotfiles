@@ -27,7 +27,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-import { type SupabaseClient } from "@supabase/supabase-js";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import { classifyReachability, REACH } from "@/lib/sources/reachability.mjs";
