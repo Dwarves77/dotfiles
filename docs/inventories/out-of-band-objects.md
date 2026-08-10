@@ -49,6 +49,17 @@ capture migration alongside the mig-009 tables; until then this inventory is the
 - **090 view security_invoker**: live is CLEAN (repaired out-of-band); disk 090 still encodes the definer-view
   regression → a fresh replay reintroduces it. Replay-hazard, tracked (CODE-5b F5); not fixed here.
 
+## gate-a-health cache surface (registered 2026-08-10)
+
+Dashboard-created, live-only (no migration records them): table `gate_a_health_cache` (singleton payload +
+computed_at), functions `gate_a_health_compute()` and `gate_a_health_refresh()` (cache writer), and the
+`gate_a_health()` reader RPC's 30-minute staleness gate wiring. The pg_cron job that fed the cache
+(`gate-a-health-refresh`, jobid 1, `*/10 * * * *` — the only cron job that ever existed live) was
+UNSCHEDULED 2026-08-10 by operator ruling; `cron.job` is now empty (read-back verified). On-demand refresh
+and re-schedule SQL: [runtime-clock-inventory-2026-08-10](../audits/runtime-clock-inventory-2026-08-10.md).
+Disposition: acceptable as a live-only cache surface while dormant; if it graduates to a load-bearing
+product path, capture in a migration (two-track policy).
+
 ## Related
 
 - [migrations](./migrations.md) — the applied-migration ledger this inventory complements (records-truth corrections there)
