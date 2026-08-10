@@ -1,4 +1,4 @@
-import type { CrossRef, Dispute, VerificationResult } from "@/types/resource";
+import type { VerificationResult } from "@/types/resource";
 
 // ── Cross-Reference Lookup ──
 export function getXrefs(

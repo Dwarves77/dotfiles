@@ -12,7 +12,7 @@
 // related_items linkage = stronger intersection.
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, ArrowLeftRight, Link2, AlertCircle } from "lucide-react";
+import { Loader2, ArrowLeftRight, Link2 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 interface Intersection {

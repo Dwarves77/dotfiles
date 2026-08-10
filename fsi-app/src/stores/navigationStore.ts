@@ -18,7 +18,7 @@ interface NavigationState {
   navigateToResource: (resourceId: string) => void;
 }
 
-export const useNavigationStore = create<NavigationState>((set, get) => ({
+export const useNavigationStore = create<NavigationState>((set) => ({
   tab: "home",
   focusView: null,
   navStack: [],

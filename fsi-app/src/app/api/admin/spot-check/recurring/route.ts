@@ -62,7 +62,6 @@ const HAIKU_MODEL = "claude-haiku-4-5-20251001";
 const HEAD_TIMEOUT_MS = 8_000;
 const CONTENT_TIMEOUT_MS = 10_000;
 const CONTENT_MAX_CHARS = 6_000;
-const MAX_REDIRECTS = 3;
 
 
 // ────────────────────────────────────────────────────────────────────────────

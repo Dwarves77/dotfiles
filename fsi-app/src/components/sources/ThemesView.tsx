@@ -14,7 +14,7 @@
 // inventing a href that would 404.
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Network, AlertCircle } from "lucide-react";
+import { Loader2, Network } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 interface Theme {

@@ -12,7 +12,7 @@
 // plus an optional per-ticket (operator-supplied) ledger cap — it no longer enforces any standing machine figure.
 
 import { paidQueueVerdict } from "../agent/deterministic-lever.mjs";
-import { assertPricedLine, pricedLineHalts, PricedLineError } from "./priced-line.mjs";
+import { assertPricedLine, pricedLineHalts } from "./priced-line.mjs";
 
 // Re-export the operator-priced-line gate so the spend client + callers import the whole guard surface from here.
 export { assertPricedLine, pricedLineHalts, PricedLineError } from "./priced-line.mjs";

@@ -24,7 +24,7 @@ import { browserlessFetch } from "@/lib/sources/canonical-fetch.mjs";
 import { fetchPrimaryWithFallback, detectRoadblock } from "@/lib/sources/primary-fallback.mjs";
 import { generateCandidates, persistExhaustionRecord } from "@/lib/sources/seek-more.mjs";
 import { looksLikePdfUrl, classifyBody, pdfToText } from "@/lib/sources/pdf-extract.mjs";
-import { anthropicError, isFatalAnthropic } from "@/lib/agent/anthropic-error.mjs";
+import { isFatalAnthropic } from "@/lib/agent/anthropic-error.mjs";
 import { streamMessagesText } from "@/lib/agent/anthropic-stream.mjs";
 // SPEND CHOKEPOINT (routing, ruling 2026-07-04): the pipeline's model calls route through the spend client
 // (spendStreamRaw = the same streamMessagesText call, ticket-gated + ceiling-enforced + accounted;

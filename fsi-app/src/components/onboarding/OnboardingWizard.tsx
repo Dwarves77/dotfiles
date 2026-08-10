@@ -805,7 +805,6 @@ function StepSectors({
 }
 
 function SectorPill({
-  id,
   label,
   selected,
   onToggle,

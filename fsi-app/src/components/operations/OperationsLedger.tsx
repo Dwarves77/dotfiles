@@ -299,7 +299,6 @@ export function OperationsLedger({
     : { critical: 0, high: 0, moderate: 0, low: 0 };
 
   const totalItems = aggregates?.totalItems ?? initialResources.length;
-  const totalJurisdictions = aggregates?.totalJurisdictions || regionCount;
 
   function submitAsk(q: string) {
     const question = q.trim();

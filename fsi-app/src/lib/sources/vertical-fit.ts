@@ -86,7 +86,7 @@ const SECTORAL_REGULATOR_MINISTRY =
  */
 export function classifyInstitutionalType(
   name: string | null | undefined,
-  url: string | null | undefined,
+  _url: string | null | undefined,
   sourceRole?: SourceRole | null
 ): InstitutionalType {
   const n = (name || "").trim();

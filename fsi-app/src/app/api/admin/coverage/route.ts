@@ -21,7 +21,7 @@ import { getServiceSupabase } from "@/lib/supabase-service";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
-import { isoToDisplayLabel, extractCountryFromIso } from "@/lib/jurisdictions/iso";
+import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import {
   TIER_1_JURISDICTIONS,
   TIER_2_JURISDICTIONS,

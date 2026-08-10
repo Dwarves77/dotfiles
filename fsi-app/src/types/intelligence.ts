@@ -12,7 +12,7 @@
 // ══════════════════════════════════════════════════════════════
 
 import type { Resource, TimelineEntry, ImpactScores, ImpactReasoning } from "./resource";
-import type { Source, IntelligenceDomain, SourceTier } from "./source";
+import type { IntelligenceDomain, SourceTier } from "./source";
 
 // ── Item Type ──
 // What kind of intelligence this item represents
