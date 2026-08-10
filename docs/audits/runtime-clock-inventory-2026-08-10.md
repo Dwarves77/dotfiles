@@ -7,6 +7,12 @@ the product, verified LIVE (not from docs) on 2026-08-10, with the containment l
 taken. Reference doc for any future "what runs on its own?" question. Method for each finding is named
 per rule 14.
 
+**Same-day correction (rule 13 corollary, pre-U0):** the original pass below omitted GitHub Actions
+`schedule:` workflows as a clock class — a real gap, not a refuted finding, since one of those clocks
+(`uptime-probes.yml`'s 30-min surfaces cron) produced a live incident during this same session (see
+item 9). Corrected in place rather than filed as a new doc, per the reuse-before-construction /
+correction-in-place convention.
+
 ## The inventory (every possible clock, checked)
 
 1. **Vercel crons — NONE.** `[CONFIRMED]` `fsi-app/vercel.json` contains no cron config (read
@@ -36,6 +42,26 @@ per rule 14.
 8. **The flywheel — zero lines built.** Its spec ships with the operator-cadence execution model
    (default OFF, operator-scheduled or on-demand only, kill-switched, bounded per firing) written in
    BEFORE construction: [recursive-compounding-discovery](../plans/recursive-compounding-discovery-2026-08-10.md).
+9. **GitHub Actions scheduled workflows — a clock class missed by the original pass, now censused.**
+   `[CONFIRMED by live browser check of the Actions tab, 2026-08-10]` Five workflows carry a `schedule:`
+   trigger or run recurringly; census as verified live:
+   - `uptime-probes.yml` — **the incident.** Carried two crons: `*/30 * * * *` (surfaces probe) and
+     `0 9 * * *` (spend watch). The `gate-a-health-refresh` pg_cron unschedule (item 3, this session)
+     put `gate_a_health()`'s 30-minute staleness gate into a permanently-stale state; the surfaces probe
+     re-asserts that gate every 30 minutes and fail-closed correctly on every run — by design, not a
+     bug, but a recurring red failure-email for a state the operator deliberately chose. **Re-shaped
+     same session:** the `*/30` cron removed; the `surfaces` job now runs on `workflow_dispatch` only
+     (manual, on demand); the `spend` job keeps its daily `0 9 * * *` cron unchanged. Workflow was
+     manually disabled to stop the red emails while the fix was pending, then re-enabled after the
+     re-shape landed.
+   - `data-audit-lane` — nightly. **KEPT**, unaffected by the health-cache halt: this is the proofs
+     lane (rule 15 execution-wiring), not a health probe.
+   - `trust-recompute` — monthly. **KEPT**, low-frequency, no dependency on the halted cache.
+   - `source-monitoring` — **disabled** (confirmed live in the Actions tab).
+   - `spot-check-monthly` — **disabled** (confirmed live in the Actions tab).
+   None of these are metered spend in the dollar sense (GitHub Actions minutes on a public repo are
+   free-tier, not billed through the app's cost surfaces) — the addition here is completeness of the
+   clock census, not a revision to the dollar bottom line below.
 
 **Bottom line:** metered spend is zero at rest and can only become nonzero through a deliberate
 operator act (release the halt, re-enable tasks, or click generate/scan in admin). `[CONFIRMED]`
@@ -59,6 +85,10 @@ operator act (release the halt, re-enable tasks, or click generate/scan in admin
   including one that caught a cap-reset defect pre-ship. The script dies with the dev container (it was
   never part of the product); the PATTERN is the durable artifact — reuse it for any future recurring
   alert: change-triggered + timed repeats + hard cap + kill switch + fail-to-silence.
+- **`uptime-probes.yml` re-shaped and re-enabled** (this session, pre-U0): removed the `*/30 * * * *`
+  surfaces cron; added `if: github.event_name == 'workflow_dispatch'` to the `surfaces` job so it runs
+  on-demand only; left the `spend` job's daily `0 9 * * *` cron unchanged. Workflow re-enabled after the
+  commit landed. Cause and full reasoning recorded under item 9 above.
 
 ## The rulings this audit operationalizes (operator, 2026-08-10)
 
