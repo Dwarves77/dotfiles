@@ -78,8 +78,18 @@ export function scoreConnection(a = {}, b = {}, surfaceOf) {
   return { score, basis, crossSurface, relationship };
 }
 
-/** Rank an item's connections against a candidate set. Returns material connections (score >= threshold),
- *  strongest first, each with its grounded basis. This is what the backfill (A2) writes as edges. */
+/**
+ * Rank an item's connections against a candidate set. Returns material connections (score >= threshold),
+ * strongest first, each with its grounded basis. This is what the backfill (A2) and mint-time discovery
+ * (U4) write as edges.
+ * @param {*} item
+ * @param {*[]} candidates
+ * @param {{threshold?: number, limit?: number, surfaceOf?: (itemType: string) => (string|null|undefined)}} [opts]
+ *   surfaceOf is untyped-JS-inferred without this annotation (TS sees only the destructured defaults,
+ *   not the no-default `surfaceOf` binding) — first surfaced when mint-item.ts (U4) became this
+ *   function's first typed (.ts) consumer. Explicit here so the shape is correct for every consumer,
+ *   not patched with a cast at each call site.
+ */
 export function discoverConnections(item, candidates, { threshold = 0.3, limit = 12, surfaceOf } = {}) {
   const out = [];
   for (const c of Array.isArray(candidates) ? candidates : []) {
