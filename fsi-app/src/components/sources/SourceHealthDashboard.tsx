@@ -26,6 +26,7 @@ import {
 import { ProvisionalReviewCard } from "@/components/sources/ProvisionalReviewCard";
 import { CanonicalSourceReview } from "@/components/sources/CanonicalSourceReview";
 import { IntersectionDetectionView } from "@/components/sources/IntersectionDetectionView";
+import { ThemesView } from "@/components/sources/ThemesView";
 import { B2ProgressBanner } from "@/components/sources/B2ProgressBanner";
 import { GlobalPauseToggle, SourceRowControls, SourceTierOverrideControl } from "@/components/sources/SourceAdminControls";
 import { SourceTierAuditPanel } from "@/components/sources/SourceTierAuditPanel";
@@ -343,6 +344,7 @@ export function SourceHealthDashboard() {
     { id: "provisional" as const, label: "Provisional", count: provisionalSources.filter((ps) => ps.status === "pending_review").length },
     { id: "canonical" as const, label: "Canonical Source Issues", count: 0 },
     { id: "intersections" as const, label: "Intersections", count: 0 },
+    { id: "themes" as const, label: "Themes", count: 0 },
   ];
 
   return (
@@ -510,6 +512,7 @@ export function SourceHealthDashboard() {
           operational scenarios + compliance objects. Populated by B.2
           regeneration emitting the new tag fields. */}
       {activeView === "intersections" && <IntersectionDetectionView />}
+      {activeView === "themes" && <ThemesView />}
     </div>
   );
 }
