@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
-import { Anton, Plus_Jakarta_Sans } from "next/font/google";
-
-const anton = Anton({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-anton",
-  display: "swap",
-});
+// SELF-HOSTED FONTS (2026-08-10, Vercel build-reliability fix): next/font/google fetches font
+// files from Google's CDN (fonts.gstatic.com) AT BUILD TIME. That live fetch failed the
+// `carosledge` Vercel project's build twice on commits that never touched this file (U9 #425,
+// U8 #426) while the twin `caros.ledge` project succeeded on the IDENTICAL commit both times —
+// a build-environment network flake, not a code defect, but one that recurred. Root-cause fix
+// (not a retry): @fontsource ships the actual woff2 files as npm package assets, resolved via
+// the npm registry (reachable) instead of Google's font CDN (the thing that was actually
+// flaking) — this removes the external-fetch-at-build-time dependency entirely, for both
+// Vercel projects, permanently. Weights match the prior next/font/google config exactly
+// (Jakarta 400/500/600/700/800 per font-usage-audit-2026-05-11.md; Anton 400 only).
+import "@fontsource/plus-jakarta-sans/400.css";
+import "@fontsource/plus-jakarta-sans/500.css";
+import "@fontsource/plus-jakarta-sans/600.css";
+import "@fontsource/plus-jakarta-sans/700.css";
+import "@fontsource/plus-jakarta-sans/800.css";
+import "@fontsource/anton/400.css";
 import { ThemeInitializer } from "@/components/ThemeInitializer";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { AppShell } from "@/components/AppShell";
@@ -14,21 +22,6 @@ import { GlobalErrorReporter } from "@/components/telemetry/GlobalErrorReporter"
 import { resolveServerBootstrap } from "@/lib/api/server-bootstrap";
 import "./theme.css";
 import "./globals.css";
-
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  // Weights aligned with Claude Design's actual usage per font-usage-audit-2026-05-11.md.
-  // 300 dropped (zero references in src/). 800 added (83 references, includes
-  // .cl-page-title + all typeset chrome from PR #84). 900 NOT loaded because
-  // Plus_Jakarta_Sans tops out at 800 in next/font/google (available weights:
-  // 200, 300, 400, 500, 600, 700, 800, variable). The single .cl-stat-number
-  // 900 reference will now faux-bold from 800 instead of 700, an incremental
-  // visual improvement; a follow-up CSS edit to change .cl-stat-number to 800
-  // would eliminate the faux-bold entirely.
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-jakarta",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Caro's Ledge — Freight Sustainability Intelligence",
@@ -49,7 +42,6 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${anton.variable} ${jakarta.variable}`}
       data-theme="light"
       suppressHydrationWarning
     >

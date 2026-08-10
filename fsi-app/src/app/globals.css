@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Self-hosted font-family names (2026-08-10; see the comment in app/layout.tsx for why).
+   @fontsource/plus-jakarta-sans and @fontsource/anton register @font-face rules under these
+   exact family names; --font-jakarta / --font-anton below just point at them, same role
+   next/font/google's generated `.variable` class used to play. */
+:root {
+  --font-jakarta: "Plus Jakarta Sans";
+  --font-anton: "Anton";
+}
+
 @theme inline {
   --color-background: var(--color-bg-base);
   --color-foreground: var(--color-text-primary);
