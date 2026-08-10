@@ -107,6 +107,56 @@ R3 SortRow: remount (recommended) or delete?  R4 BulkSelectBar: delete (recommen
 R5 recompute-trust: ops-only doc (recommended) or restore the button?
 R6 W1.1 default disposition: approve demote-to-provisional for inert never-checked rows?
 
+──────── OPERATOR RULINGS RECORDED (2026-08-10, this session) ────────
+R1 Sign-off in the PR itself, not in chat: the P1 PR description carries the complete,
+  re-verified deletion list; operator reviews and merges there.
+R2 APPROVED — delete+correct: critical-items.ts + credibility.ts deleted, Build-11
+  disposition doc corrected. Rides P2 (not this PR).
+R3 APPROVED — remount SortRow on /regulations. Rides P2.
+R4 APPROVED — delete BulkSelectBar. Rides P2.
+R5 APPROVED — document recompute-trust as ops-only (worker-auth route, rarely used);
+  no button restoration. Rides P2/P5.
+R6 APPROVED — demote-to-provisional is the default disposition for inert never-checked
+  actives. Rides W1.1 (Supabase MCP, separate from this PR).
+
+P1 EXECUTION NOTE (2026-08-10): the audit's "25 symbols + 9 modules" count was re-verified
+live rather than trusted as-is, per standing root-cause-over-patchwork practice — the audit
+predates several days of intervening commits. Findings:
+- Compiler re-run (tsc --noUnusedLocals --noUnusedParameters, clean/no incremental cache)
+  found 26 sites, not 25. Two are inside modules deleted whole in this PR (slackFormat.ts,
+  htmlReport.ts) so need no separate fix. One (generate-seed.ts, supabase/seed/, a
+  standalone `npx tsx` dev utility not wired into package.json or CI) sits outside the
+  audit's declared living-app src/ scope and is left untouched pending its own ruling.
+  The remaining 23 are fixed here.
+- TWO of the compiler's own findings were false positives from a stale incremental-build
+  cache (tsconfig.tsbuildinfo): supabase-server.ts's `Resource/ChangeLogEntry/Dispute/
+  Supersession/ItemConnection` import and vertical-fit.ts's `sourceRole` param are both
+  genuinely used 1,800+ lines into their files. Caught by re-running clean (tsbuildinfo
+  cleared) and cross-checked against a plain `tsc --noEmit` full-project compile, which
+  fails without them. Neither touched. A third, previously-masked finding surfaced once
+  sourceRole's status was corrected: `url` in the same vertical-fit.ts signature is
+  genuinely unused — fixed (parameter renamed `_url`, not removed, since it's an exported
+  function with positional callers).
+- THREE of the audit's "9 modules, zero importers" were NOT actually zero-importers: the
+  audit's import-grep was scoped to src/ and to `import ... from` syntax, which misses (a)
+  scripts/ importers outside that scope and (b) the discipline suite's own governance/
+  fitness functions, which reference some living-app files by raw file path (readFileSync)
+  rather than as TS imports — a reference class no import-grep catches.
+  - src/lib/sources/api-fetch.ts: read directly by .discipline/fitness/functions/
+    F15-spend-chokepoint.mjs and F16-transport-hold-gate.mjs (both failed red when this
+    file was deleted, which is how this was caught). KEPT.
+  - src/lib/sources/instrument-identity.ts: imported by scripts/_diag/
+    institution-resort.mjs. KEPT.
+  - src/lib/agent/extract-research-sections.ts: dynamically imported (jiti) by
+    scripts/restore-jolt.mjs. KEPT.
+  - The remaining 6 (exportStore.ts, urgency.ts, slackFormat.ts, htmlReport.ts,
+    acronyms.ts, lineage.ts) were repo-wide swept (not just src/) by literal filename,
+    zero hits outside their own file, confirmed dead, DELETED.
+Net P1 scope actually executed: 6 modules (not 9) + 23 unused-symbol sites (not 25).
+Full discipline suite (1035/1035), 16/16 fitness functions, and the invariant-coverage
+meta-gate all re-ran green after the correction; the two F15/F16 failures caught the
+api-fetch.ts miss before it shipped.
+
 DEFINITION OF DONE
 Registry: zero active sources with no role and no recorded justification; W1.1 ledger row
 exists; the scan-restoration gate is written into ADR-015's restoration checklist.
