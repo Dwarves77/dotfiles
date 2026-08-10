@@ -2196,3 +2196,27 @@ Batch 2 (fired 20:05Z): authored 1 (wsi 2018/1302, verified first-pass after slo
 ### 2026-08-09 — main checkout stabilized; relay blocks now fail-stop by rule
 
 Checkout fix executed by local relay: 45 deletions restored, wt-audit detached to free the master branch name, main checkout parked on current master; stale checker reproduced red before / green after with settings untouched — bug closed at source. Near-miss logged: the fix block was not &&-chained and a refused checkout would have let git pull merge 118 commits into the census branch; executor caught it; binding rule adopted — every relay block is &&-chained end-to-end. Full-code audit landed same branch (docs/audits/full-code-audit-2026-08-09.md): 11 dead modules, 8 unmounted components, 25 unused symbols, 159 dead exports, 4-mechanism root cause, P1-P6 plan with operator sign-off gates.
+
+## 2026-08-09/10 — wiring truth closed, connection moat built, flywheel planned (cloud session + CC relay)
+
+Eight PRs merged (411 fleet consolidation/capture v1.4 · 412 rule-14 checker · 413 eraseStep fail-open ·
+414 token-spend record · 415 mig-250 provenance depth-binding + wiring-truth · 417 mig-251 read-time
+anchoring · 416 wiring + skill-vs-runtime audits · 418 mig-252 connection discovery + rule-015 writer).
+Squash master b9dec640. Open docs PR (docs/flywheel-plan) carries the flywheel architecture + execution
+model + build plan + clock audit; merge on green is the session's last landing.
+
+Decisions: Option B read-time contextualization (ruled); flywheel = Pillar E made rigorous (feedback
+loops L1-L4, fixpoint/grounding convergence, cost decoupling); Execution model ruling — all corpus-wide
+passes on-demand + operator-scheduled, DEFAULT OFF, never always-on; per-turn unactionable checks are
+spend-for-zero-return (stop-hook governed: change-triggered + timed repeats + hard cap + kill switch);
+gate-a-health-refresh cron UNSCHEDULED live (cron.job now 0; re-enable SQL in the clock audit).
+
+Carried forward (tracked, not silent): contract-advance PR bundle (role-generic system-prompt fix +
+forward-participation + A3 cross-surface feed + BOTH contract-version homes + regeneration plan); D1
+lens/connections into the 5 surfaces; skill↔code drift gate; npm audit bump (parked on patched
+releases); U0 backfill = first action of the build (graph ~61 edges until run); PROGRAM-BOARD update
+owed at next session open (board rule: same-PR updates when threads open/close).
+
+Next session: build flywheel wave 1 per docs/plans/flywheel-build-plan-2026-08-10.md — U0 (CC runs
+backfill --dry → review → apply) → U1 cluster engine → U2 analyze-corpus + DDL + L2 gaps → U3 themes
+surface. All $0; definition of done includes zero new standing schedules.
