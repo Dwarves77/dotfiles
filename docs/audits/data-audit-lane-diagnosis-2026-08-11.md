@@ -118,3 +118,41 @@ Three items for the operator, in the order they matter:
    string in CI or moved out of the lane. Not done here: the instruction was stop, not fix.
 3. **If the lane is ever re-armed, fix (b) first.** Eighteen failures where nine are real and nine are
    plumbing is a report nobody can act on, which is how it went unread for twenty-nine runs.
+
+---
+
+## RESOLUTION (same day, operator-directed): fixed, proven green, re-armed
+
+The operator's follow-up instruction reversed the stop's second half: "resolve #5 — stopped by instruction,
+not fixed." Everything below happened after the diagnosis above and is verified in CI, not asserted.
+
+**The (a) drift went to zero first** (PR #443, docs/audits/data-drift-remediation-2026-08-11.md): all nine
+classes resolved by deterministic SQL through the existing trigger machinery, $0 spend. Not established
+above was whether the audits' findings were real or nine consistent false positives; the remediation settled
+it — the findings were REAL (111 tier groups, 837 claim stamps, the source-less item, all concretely fixed),
+with one nuance: the substrate disagreements and the fleet's collision flags traced to a derivation bug
+(migration 255), so the constraint was right and the stored data wrong in a way the audit correctly smelled.
+
+**The (b) wiring was a four-line fix plus one decision, exactly as §(b) predicted** (PR #444): the four
+unguarded `loadEnvFile` calls got the runner's own try/catch, and the five direct-Postgres audits got ONE
+shared resolver (scripts/lib/pg-conn.mjs, vocab-sync's proven candidate logic extracted) that derives a
+connection from the secrets the workflow already injects — the "give them a connection string in CI"
+decision, made without adding any secret.
+
+**Dispatch run #66 — the lane's first honest execution — then did its job**: 19 PASS (including CI
+confirmation of every drift fix) and 5 FAIL, each diagnosed to root cause (PR #445). Four were audit-harness
+defects reaching their first real run: a stale JS mirror of the canonical-key derivation (now ONE shared,
+selftest-pinned mirror), a missing `open` filter in deferral-hygiene's deleted-subject check, prov-guard
+comparing pg's SQLSTATE against a condition NAME plus a multi-statement probe the extended protocol rejects,
+rls-credential-parity iterating an unparsed name[] string, and column-existence-parity's three parser
+defects. The fifth was the audit class working: THREE real inert reconciler grants (migration 257 adds the
+missing SELECT policies) and ONE real live-code bug — source-growth.ts writing a `notes` column
+provisional_sources does not have, a PostgREST silent whole-row reject that had been eating worklist upserts
+invisibly.
+
+**Run #67 was the first fully green run** — hard failures 0, block-state resolved (Layer C teeth releasing
+generation) — and only then was the nightly cron re-armed. The lane is back to its designed state: a red
+from here on is a real finding.
+
+Of the three operator items above: (1) done and CI-confirmed; (2) done; (3) done in that order — (b) fixed
+first, green proven, then re-armed.
