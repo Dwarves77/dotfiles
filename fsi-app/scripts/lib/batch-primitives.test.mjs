@@ -63,14 +63,43 @@ test("withRetry: throws immediately on non-retryable error", async () => {
   assert.equal(calls, 1);
 });
 
-test("withRateLimit: enforces minimum interval between calls", async () => {
+// CI, 2026-08-11: this assertion failed with "interval 49ms should be >= 50ms" — a single sample against a
+// hard wall-clock floor. Diagnosed rather than re-run. The limiter stamps its reference instant just before
+// it invokes fn; the caller reads the clock just after. When that sub-millisecond crossing lands on a
+// millisecond boundary, the two Date.now() reads round to different integers and the OBSERVED gap reads one
+// low. Measured over 400 paced calls: exactly one 1ms undershoot, and a top-up-in-a-loop implementation
+// undershoots identically — so the limiter is not the defect and "fixing" it would have been a no-op.
+//
+// What the limiter actually owes the caller is (a) a floor it never misses by more than clock granularity
+// and (b) NO ACCUMULATING drift, because drift is what turns a paced batch into a 429. Both are asserted
+// below, over enough samples that a single unlucky rounding cannot pass OR fail the suite by luck.
+const CLOCK_GRANULARITY_MS = 1; // Date.now() truncates; the two reads can straddle one tick.
+
+test("withRateLimit: every gap holds the floor to within clock granularity", async () => {
+  const fn = withRateLimit(async () => Date.now(), { minIntervalMs: 20 });
+  const stamps = [];
+  for (let i = 0; i < 12; i++) stamps.push(await fn());
+  const gaps = stamps.slice(1).map((t, i) => t - stamps[i]);
+  const short = gaps.filter((g) => g < 20 - CLOCK_GRANULARITY_MS);
+  assert.deepEqual(short, [], `no gap may fall a full tick below the floor; got ${gaps.join(", ")}`);
+});
+
+test("withRateLimit: pacing error does NOT accumulate — the property a 429 actually depends on", async () => {
+  // The failure mode that matters is a limiter that runs slightly fast and compounds it, so call 50 fires
+  // far earlier than the floor implies. Total elapsed must be at least (n-1) intervals, minus one tick.
+  const fn = withRateLimit(async () => Date.now(), { minIntervalMs: 20 });
+  const stamps = [];
+  for (let i = 0; i < 12; i++) stamps.push(await fn());
+  const elapsed = stamps[stamps.length - 1] - stamps[0];
+  const floor = 20 * (stamps.length - 1) - CLOCK_GRANULARITY_MS;
+  assert.ok(elapsed >= floor, `11 gaps at a 20ms floor must span >= ${floor}ms; spanned ${elapsed}ms`);
+});
+
+test("withRateLimit: a longer floor is honoured, not just the default", async () => {
   const fn = withRateLimit(async () => Date.now(), { minIntervalMs: 50 });
   const t1 = await fn();
   const t2 = await fn();
-  assert.ok(
-    t2 - t1 >= 50,
-    `interval ${t2 - t1}ms should be >= 50ms`
-  );
+  assert.ok(t2 - t1 >= 50 - CLOCK_GRANULARITY_MS, `interval ${t2 - t1}ms should be >= 50ms (±1 tick)`);
 });
 
 test("withRateLimit: serializes concurrent calls when maxConcurrent=1", async () => {

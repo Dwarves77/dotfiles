@@ -15,6 +15,8 @@ import {
   isTestFile,
   fitnessFunction,
   LEGACY_ALLOWLIST,
+  buildCliInvocations,
+  resolveRepoRelative,
 } from './F25-module-liveness.mjs';
 
 
@@ -79,6 +81,73 @@ test('a dynamic await import() counts as a real importer', () => {
   });
   const g = buildImportGraph(t.files, t.read);
   assert.ok(g.get('fsi-app/src/lib/lazy.ts').has('fsi-app/src/app/route.ts'));
+});
+
+// ── CONSUMPTION THAT IS NOT A LITERAL IMPORT (2026-08-11) ───────────────────
+// The gate shipped listing three modules that CI runs on every pull request. These pin both halves of
+// the fix AND the scoping that keeps the fix from disabling the gate.
+
+test('a COMPUTED dynamic import resolves repo-relatively — the pathToFileURL(resolve(...)) shape', () => {
+  const t = tree({
+    'fsi-app/src/lib/coverage/identity.mjs': 'export const deterministicIdentity = 1;',
+    'fsi-app/scripts/coverage/identity-resolve.mjs':
+      'const { deterministicIdentity } = await im' + 'port(pathToFileURL(resolve(process.cwd(), ' +
+      '"src/lib/coverage/identity.mjs")).href);',
+  });
+  const g = buildImportGraph(t.files, t.read);
+  assert.ok(g.get('fsi-app/src/lib/coverage/identity.mjs')?.has('fsi-app/scripts/coverage/identity-resolve.mjs'),
+    'a specifier built at runtime is still an import');
+});
+
+test('a module path merely NAMED in a string is NOT an importer — the gate must not disable itself', () => {
+  // THE TRAP: this gate lists module paths as string literals in its own allowlist. A scan that counted
+  // any path-shaped string as a reference would make F25 an importer of everything it exempts, and it
+  // would go permanently, silently green. Only a string inside an `import(` call counts.
+  const t = tree({
+    'fsi-app/src/lib/dormant.mjs': 'export const f = 1;',
+    'fsi-app/.discipline/fitness/functions/Fxx.mjs':
+      'const ALLOW = ["fsi-app/src/lib/dormant.mjs"]; // named, never called',
+  });
+  const g = buildImportGraph(t.files, t.read);
+  assert.equal(g.get('fsi-app/src/lib/dormant.mjs'), undefined);
+});
+
+test('CLI invocation from a workflow IS consumption — the bug-class-guard shape', () => {
+  const files = ['fsi-app/scripts/lib/error-drop-probe.mjs'];
+  const invoked = buildCliInvocations(
+    ['.github/workflows/bug-class-guard.yml'],
+    () => '        run: node scripts/lib/error-drop-probe.mjs . || true\n',
+    new Set(files),
+  );
+  // working-directory: fsi-app means the path is written WITHOUT the fsi-app/ prefix.
+  assert.ok(invoked.get('fsi-app/scripts/lib/error-drop-probe.mjs')?.has('.github/workflows/bug-class-guard.yml'));
+  assert.deepEqual(findUnimported(files, new Map(), new Set(), invoked), [],
+    'a module CI runs on every PR is consumed, whatever imports it');
+  assert.deepEqual(findUnimported(files, new Map(), new Set()), files,
+    'and it reads as unconsumed the moment the CLI channel is ignored — which is the bug this fixes');
+});
+
+test('CLI invocation from an npm script IS consumption, prefixed or not', () => {
+  const files = ['fsi-app/scripts/measure-bundles.mjs'];
+  const read = () => JSON.stringify({ scripts: { 'perf:bundles': 'node scripts/measure-bundles.mjs' } });
+  assert.ok(buildCliInvocations(['fsi-app/package.json'], read, new Set(files)).has('fsi-app/scripts/measure-bundles.mjs'));
+  const read2 = () => 'run: node fsi-app/scripts/measure-bundles.mjs';
+  assert.ok(buildCliInvocations(['.github/workflows/x.yml'], read2, new Set(files)).has('fsi-app/scripts/measure-bundles.mjs'));
+});
+
+test('a CLI invocation from a MANIFEST file does not keep a module alive', () => {
+  // Symmetry with the import rule: a consumer that is itself slated for deletion is not a consumer.
+  const files = ['fsi-app/scripts/lib/helper.mjs'];
+  const invoked = buildCliInvocations(['.github/workflows/doomed.yml'],
+    () => 'run: node scripts/lib/helper.mjs', new Set(files));
+  assert.deepEqual(findUnimported(files, new Map(), new Set(['.github/workflows/doomed.yml']), invoked), files);
+});
+
+test('resolveRepoRelative prefers an exact path, then the fsi-app/ prefix, else null', () => {
+  const tracked = new Set(['fsi-app/scripts/a.mjs', 'scripts/b.mjs']);
+  assert.equal(resolveRepoRelative('scripts/a.mjs', tracked), 'fsi-app/scripts/a.mjs');
+  assert.equal(resolveRepoRelative('scripts/b.mjs', tracked), 'scripts/b.mjs');
+  assert.equal(resolveRepoRelative('scripts/nope.mjs', tracked), null);
 });
 
 // ── liveness ────────────────────────────────────────────────────────────────

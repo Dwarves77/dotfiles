@@ -84,11 +84,17 @@ const PROVEN_BUT_UNWIRED = [
   'src/lib/sources/feed-walk.mjs', 'src/lib/sources/instrument-identity.ts', 'src/lib/sources/register-walk.mjs',
 ];
 
+// RETIRED 2026-08-11, by the gate's own staleness audit, the moment CLI invocation started counting as
+// consumption: error-drop-probe.mjs, type-consumer-probe.mjs and inconclusive-report.mjs. All three are run
+// by .github/workflows/bug-class-guard.yml on EVERY pull request. They were never dormant — they were
+// invisible, because nothing imports a CLI tool (inconclusive-report.mjs exports nothing at all). Listing
+// running code as awaiting a delete-or-wire ruling is the mirror image of the proxy.ts false positive in the
+// header note, and it is worse: proxy.ts was caught before shipping, these three shipped listed.
 const SCRIPTS_LIB = [
   'block1-reaudit.mjs', 'bootstrap-test1.mjs', 'decision-log-audit.mjs', 'drift-check-reconstruction.mjs',
-  'error-drop-probe.mjs', 'exclusion-audit-reconstruction.mjs', 'fetch-quality.mjs', 'funded-release-plan.mjs',
-  'inconclusive-report.mjs', 'liveness-reconstruction.mjs', 'net-agent.mjs', 'surface-registry-reconstruction.mjs',
-  'type-consumer-probe.mjs', 'urgency.mjs', 'verify-reconstruction.mjs',
+  'exclusion-audit-reconstruction.mjs', 'fetch-quality.mjs', 'funded-release-plan.mjs',
+  'liveness-reconstruction.mjs', 'net-agent.mjs', 'surface-registry-reconstruction.mjs',
+  'urgency.mjs', 'verify-reconstruction.mjs',
 ];
 
 export const LEGACY_ALLOWLIST = [
@@ -202,6 +208,54 @@ export function resolveSpecifier(spec, fromFile, tracked) {
 
 const SPEC_RE = /(?:\bfrom\s*|\bimport\s*|\brequire\s*)\(?\s*["'`]([^"'`\n]+)["'`]/g;
 
+// ── CONSUMPTION THAT IS NOT A LITERAL IMPORT (added 2026-08-11) ────────────────────────────────────────────
+// The graph below resolved LITERAL import specifiers, and that was the whole definition of "consumed". It is
+// not. Two live consumption channels were invisible to it, and the gate reported five modules as unconsumed
+// while CI was running three of them on every pull request:
+//
+//   1. COMMAND-LINE INVOCATION. .github/workflows/bug-class-guard.yml runs `node scripts/lib/error-drop-probe
+//      .mjs`, `type-consumer-probe.mjs` and `inconclusive-report.mjs` on every PR. Nothing imports them
+//      because they are CLI tools — inconclusive-report.mjs exports nothing at all. This is the SAME class as
+//      the proxy.ts false positive in the header note, mirrored: proxy.ts is invoked by framework convention,
+//      these are invoked by workflow command. Both are "called without being imported", and a liveness gate
+//      that knows only one of the two will keep proposing the deletion of running code.
+//   2. COMPUTED SPECIFIERS. `await import(pathToFileURL(resolve(process.cwd(), "src/lib/x.mjs")).href)` is a
+//      real import the literal regex cannot see. scripts/coverage/identity-resolve.mjs reaches
+//      src/lib/coverage/identity.mjs exactly this way.
+//
+// SCOPE DISCIPLINE, because the obvious wider fix is a trap. A naive "any string that looks like a module
+// path is a reference" scan would make THIS FILE an importer of every module in its own allowlist, and the
+// gate would go permanently, silently green. So: the computed-specifier scan accepts only a string sitting
+// inside an `import(` call, and the CLI scan reads only workflow and package.json files.
+const CLI_SOURCE_GLOBS = ['.github/workflows/**/*.{yml,yaml}', 'fsi-app/package.json', 'package.json'];
+// A repo-relative module path as it appears in a `run:` line or an npm script. `fsi-app/scripts/x.mjs` and a
+// working-directory-relative `scripts/x.mjs` must both match — bug-class-guard.yml sets working-directory.
+const CLI_PATH_RE = /(?:^|[\s"'`=(])(?:\.\/)?((?:fsi-app\/)?(?:src|scripts|\.discipline)\/[A-Za-z0-9._/-]+\.(?:mjs|cjs|js|ts|tsx))/g;
+// The FIRST quoted string inside an `import(` call, in a bounded window (nested parens defeat `[^)]*`).
+const DYNAMIC_IMPORT_RE = /\bimport\s*\([^;\n]{0,240}?["'`]([^"'`\n]+)["'`]/g;
+
+/** Resolve a repo-relative path as written on a command line (a workflow may set working-directory: fsi-app). */
+export function resolveRepoRelative(p, tracked) {
+  for (const cand of [p, `fsi-app/${p}`]) if (tracked.has(cand)) return cand;
+  return null;
+}
+
+/** target -> Set(invoking file). A module CI runs is consumed, whatever does or does not import it. Pure. */
+export function buildCliInvocations(cliFiles, readFile, tracked) {
+  const invoked = new Map();
+  for (const f of cliFiles) {
+    let src;
+    try { src = readFile(f); } catch { continue; }
+    for (const m of src.matchAll(CLI_PATH_RE)) {
+      const target = resolveRepoRelative(m[1], tracked);
+      if (!target || target === f) continue;
+      if (!invoked.has(target)) invoked.set(target, new Set());
+      invoked.get(target).add(f);
+    }
+  }
+  return invoked;
+}
+
 /**
  * Build target -> Set(importer). Pure over its inputs so the selftest can drive it with a constructed
  * tree instead of the live repo — the negative-test discipline F23/F24 use on themselves.
@@ -209,25 +263,34 @@ const SPEC_RE = /(?:\bfrom\s*|\bimport\s*|\brequire\s*)\(?\s*["'`]([^"'`\n]+)["'
 export function buildImportGraph(files, readFile) {
   const tracked = new Set(files);
   const importers = new Map();
+  const add = (target, f) => {
+    if (!target || target === f) return;
+    if (!importers.has(target)) importers.set(target, new Set());
+    importers.get(target).add(f);
+  };
   for (const f of files) {
     if (!/\.(?:ts|tsx|mjs|cjs|js|jsx)$/.test(f)) continue;
     let src;
     try { src = readFile(f); } catch { continue; }
-    for (const m of src.matchAll(SPEC_RE)) {
-      const target = resolveSpecifier(m[1], f, tracked);
-      if (!target || target === f) continue;
-      if (!importers.has(target)) importers.set(target, new Set());
-      importers.get(target).add(f);
+    for (const m of src.matchAll(SPEC_RE)) add(resolveSpecifier(m[1], f, tracked), f);
+    // Computed dynamic imports: the specifier is built at runtime, so resolve the literal path fragment
+    // repo-relatively rather than through the `@/` alias or `./` relative rules.
+    for (const m of src.matchAll(DYNAMIC_IMPORT_RE)) {
+      if (resolveSpecifier(m[1], f, tracked)) continue; // already counted by the literal pass
+      add(resolveRepoRelative(m[1], tracked), f);
     }
   }
   return importers;
 }
 
-/** Modules in scope with no production importer. Pure. */
-export function findUnimported(scope, importers, manifest) {
+/**
+ * Modules in scope with no production CONSUMER — no live importer AND no live CLI invocation. Pure.
+ * `invoked` is optional so the existing selftests keep driving the import-only shape unchanged.
+ */
+export function findUnimported(scope, importers, manifest, invoked = new Map()) {
   return scope.filter((f) => {
-    const imp = importers.get(f) ?? new Set();
-    for (const i of imp) if (!isTestFile(i) && !manifest.has(i)) return false;
+    for (const i of importers.get(f) ?? []) if (!isTestFile(i) && !manifest.has(i)) return false;
+    for (const i of invoked.get(f) ?? []) if (!manifest.has(i)) return false;
     return true;
   });
 }
@@ -311,6 +374,9 @@ export const fitnessFunction = {
       'fsi-app/.discipline/**/*.mjs',
     ]);
     const importers = buildImportGraph(files, (f) => readFileSync(join(root, f), 'utf8'));
+    // CLI invocation is consumption. Read the workflow + package.json sources separately: they are not
+    // modules, so they must not enter the import graph, but what they RUN is live by definition.
+    const invoked = buildCliInvocations(globFiles(CLI_SOURCE_GLOBS), (f) => readFileSync(join(root, f), 'utf8'), new Set(files));
     const scope = files.filter(
       (f) =>
         (f.startsWith('fsi-app/src/') || f.startsWith('fsi-app/scripts/lib/')) &&
@@ -320,7 +386,7 @@ export const fitnessFunction = {
         !ENTRY_RE.test(f) &&
         !manifest.has(f),
     );
-    const unimported = findUnimported(scope, importers, manifest);
+    const unimported = findUnimported(scope, importers, manifest, invoked);
     const problems = auditLiveness(unimported, scope, ALLOWED, (f) => existsSync(join(root, f)));
     if (problems.length === 0) return PASS;
     return problems.map((msg) => violation(1, msg));
