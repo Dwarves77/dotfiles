@@ -2775,3 +2775,48 @@ the class column, until I named the closed vocabulary and pinned each class to i
 
 STILL NOT SCHEDULED. The data-audit lane remains `workflow_dispatch`-only and disabled in the Actions UI.
 Nothing was funded. The 4c relabel of the sub-floor facts remains frozen, on purpose.
+
+## Addendum 9 — re-verifying the master gap register, and getting my own re-verification wrong once (2026-08-11)
+
+Handed a new session and a claim that two of the register's twelve P1 findings were already fixed and the
+register never said so. Re-checked all twelve against live code (HEAD past #447) and live DB, not against
+the claim. Ten were already fixed and unrecorded. Two needed real work: #4 and #10.
+
+I GOT #4 WRONG ON THE FIRST PASS. I checked `pg_policies` and `information_schema.columns` and reported
+"still open" — the row policy on `profiles` is `USING (true)`, and email/linkedin_sub/is_platform_admin
+are columns on the table, so anon can read them. That is true and it is also not the whole picture: I never
+checked `information_schema.column_privileges`. Migration 165 is applied and ledgered, and its fix is a
+column-level `REVOKE`/`GRANT` on the `anon` role, not a row-policy change — anon holds zero `SELECT` on
+those three columns today, 34 non-PII columns granted instead. The row policy stays `true` on purpose
+(migration 165's own comment says so) because ~10 live readers — community author-joins,
+`invite-candidates` search, `CouncilMembersRail`, admin `MembersPanel` — read OTHER users' rows for
+legitimate display and would go silently empty under a self-only policy, the same failure class as the
+provisional-queue gap two sessions ago. The instruction I was handed asked for the row-policy tightening
+anyway; I reported the conflict instead of applying it, the operator ruled close-as-is, and #4 is FIXED on
+the mechanism that is actually live, not the one first proposed. One residual logged, not fixed:
+`authenticated` still holds column-level SELECT on those three columns for every row, not just the caller's
+own — no live route was found that exploits this, but the privilege exists and it should not.
+
+#10's RESIDUAL WAS REAL AND NARROWER THAN THE ORIGINAL FINDING. The production pipeline — Browserless,
+direct-HTTP, the API ladder — was already gated by `assertFetchAllowed` through #447. What wasn't: the
+admin manual "fetch now" button's inline `fetchViaApi` helper, a near-duplicate of `api-fetch.ts`'s shape
+that never got the gate when the ladder did. Added the call (caller `"admin-fetch-now"`, deliberately NOT
+added to `AUTHORIZED_HOLD_CALLERS` — extending that two-name frozen set is its own governed decision, not
+a side effect of a bug fix) and widened F16's `TRANSPORT_MODULES` so a future duplicate-helper bypass of
+this shape fails CI instead of waiting for another manual audit. F16: 10/10. Fitness runner: 20/20, 0
+violations. Full suite: 1236/1236 green on current master (the register's own target of 1247 is the
+post-#448-merge count, not today's).
+
+THE RULE THIS PRODUCED. A "still open" verdict is only as good as the privilege layer it checked. RLS row
+policy and column-level GRANT are two different mechanisms answering two different questions, and a table
+can be fixed on one axis while looking untouched on the other. Check both before writing a status, not just
+the one that matches the finding's original wording.
+
+Register updated in place (`docs/ops/full-system-audit-2026-07-11/master-gap-register.md`): all twelve P1
+rows carry a 2026-08-11 status and the evidence used, not just a next-action. Net: 12/12 closed, zero open
+P1 items. The P2/P3/P4 sections and the other linked registers were not re-verified this pass and still read
+as 2026-07-11 evidence.
+
+STILL NOT SCHEDULED. No cron, no `schedule:` block, nothing armed in the Actions UI — unchanged. Nothing
+here spent: two code edits, one doc rewrite, read-only SQL. Task 1 (the five rule-016 file edits, merging
+#448) and everything after it in the handoff sequence is queued, not started.
