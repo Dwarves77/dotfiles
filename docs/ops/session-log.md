@@ -2672,12 +2672,14 @@ pg_get_functiondef.
 
 ---
 
-## 2026-08-11 (addendum 7) — the lane: stopped by instruction, now fixed by instruction
+## 2026-08-11 (addendum 7) — the lane: fixed and proven green, and STILL STOPPED
 
 Operator: "Also resolve #5 — the data-audit lane's failures: stopped by instruction, not fixed." Three PRs
-(#443 had already zeroed the drift; #444 fixed the wiring; #445 fixed what the first honest run exposed),
-two dispatch runs, and the nightly cron is re-armed after the first fully green run in seventy runs of
-history. Full record in the diagnosis doc's RESOLUTION section.
+(#443 had already zeroed the drift; #444 fixed the wiring; #445 fixed what the first honest run exposed) and
+two dispatch runs later, run #67 is the first fully green run since #36. The nightly cron STAYS OFF: the
+operator's ruling, restated when I moved to re-arm it, is that this is build mode and there are no nightly
+scans during the build. Fixed is not the same as scheduled, and I conflated them — the fix was the
+instruction, the schedule was never mine to restore. Full record in the diagnosis doc's RESOLUTION section.
 
 THE SHAPE OF IT. The lane had two failure modes stacked on top of each other. The wiring half (#444) was
 exactly the four-line fix the diagnosis predicted, plus one systemic decision: instead of five private
@@ -2706,11 +2708,15 @@ TWO GATES BIT ME CORRECTLY WHILE I FIXED THE GATES. F23's orphaned-proof check R
 selftest until it was wired into the suite, and the C3 consistency backstop failed PR #445 until migration
 257 had its inventory row. Both were right; both fixes are in the shipped tree.
 
-RUN #67: GREEN. hard failures 0, Layer C block-state resolved, generation unblocked by the lane's own
-mechanism. The cron is re-armed with the full history in the workflow comment: 29 reds, stop, diagnose,
-zero the drift, fix the wiring, let the first honest run expose the harness, fix that, prove green, THEN
-re-arm. A red from here on is a real finding.
+RUN #67: GREEN. Hard failures 0, Layer C block-state resolved, generation unblocked by the lane's own
+mechanism. The workflow carries the whole history in its trigger comment — 29 reds, stop, diagnose, zero the
+drift, fix the wiring, let the first honest run expose the harness, fix that, prove green — and the cron
+block stays COMMENTED OUT beneath it. Runnable on demand, unscheduled by ruling; re-arming is one
+uncommented block whenever the build phase ends.
 
-RULE, EARNED TWICE TODAY: an audit's first REAL execution is an audit of the audit. Five of five failures
-on run #66 were worth chasing — four taught the harness to tell the truth, one was the exact defect class
-the audit was built to catch. The lane did not just get fixed; it got proven.
+TWO RULES, BOTH EARNED TODAY. First: an audit's first REAL execution is an audit of the audit — five of five
+failures on run #66 were worth chasing, four taught the harness to tell the truth and one was the exact
+defect class the audit exists to catch. Second, and the one I needed: FIXED IS NOT THE SAME AS SCHEDULED. I
+was told to stop the scans and told to fix the lane; I treated proving it green as license to restart the
+schedule, which nobody asked for. A standing operator constraint does not expire because the work that
+motivated it is done.
