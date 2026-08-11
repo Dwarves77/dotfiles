@@ -23,6 +23,11 @@ import { mkdirSync, appendFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+// Deterministic, dependency-free, name+URL only (no fetch, no LLM, $0). Safe as a STATIC import
+// here despite the no-node_modules invariant above: classify-source-role.ts imports nothing, and
+// CI runs Node 24, which strips TS types natively. Keeps registerSource honest to that module's
+// stated contract — a source is never created with a NULL role.
+import { classifySourceRole } from "../../src/lib/sources/classify-source-role.ts";
 
 // @supabase is lazy-required (not a top-level import) so this module is importable WITHOUT node_modules
 // installed — db.test.mjs injects a fake client and never touches the real one, so the discipline test
@@ -347,6 +352,16 @@ export async function registerSource(source, { cite, stampIso } = {}) {
     tier_at_creation: source.base_tier ?? 7,
     status: "active",
     admin_only: false,
+    // source_role at BIRTH. classify-source-role.ts's own contract is "a source is never created
+    // with a NULL role + placeholder content-type", but it was wired only into the three admin
+    // onboarding routes (promote / decide / bulk-approve) — NOT into this guarded path, which is
+    // how every script-created source is born. Result measured 2026-08-11: 1,719 of 2,549 registry
+    // rows carry source_role IS NULL, and a downstream triage then read "no role" as "inert" and
+    // demoted live regulators (SEC, eCFR, China MEE, Australia's Clean Energy Regulator). The
+    // classifier is deterministic, name+URL only, no fetch, no LLM, $0 — there is no reason a row
+    // was ever born without it. Explicit source.source_role still wins; null stays null when the
+    // classifier genuinely cannot determine the entity (flagged, never guessed).
+    source_role: source.source_role ?? classifySourceRole(source.name || host, source.url),
     ...(source.extra || {}),
   };
   const ins = await sb.from("sources").insert(row).select("id").single();
