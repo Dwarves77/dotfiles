@@ -150,8 +150,12 @@ capability vs delete-with-tests: per-module operator call.
 | `trust-recompute.yml` | monthly | running |
 
 **The data-audit lane is stopped, not fixed — by explicit instruction.** It had failed on EVERY
-nightly run from at least Aug 4 through Aug 11 (runs #58–#65, eight consecutive reds), emailing the
-operator each morning. Stopped two ways: disabled in the Actions UI (immediate) AND the `schedule:`
+nightly run from at least Aug 4 through Aug 11, emailing the operator each morning. **CORRECTED
+2026-08-11: not eight consecutive reds but TWENTY-NINE (#37–#65); the last green run was #36.** The
+eight-run figure came from reading only as far back as the emails in hand. Diagnosed the same day in
+`data-audit-lane-diagnosis-2026-08-11.md`: nine audits report real and GROWING drift (undispositioned
+past-bound crossings 14 → 37 in a week; one source-less LIVE item the mint chokepoint should have
+rejected), and nine fail on lane wiring. The drift half came first. Stopped two ways: disabled in the Actions UI (immediate) AND the `schedule:`
 block commented out in the workflow file (durable — re-enabling in the UI does not resurrect the
 cron). Every audit script under `scripts/verify/` remains in the tree and remains runnable on demand
 via `workflow_dispatch`; only the unattended nightly firing is stopped. **OPEN ITEM: the underlying
