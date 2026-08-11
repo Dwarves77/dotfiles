@@ -47,18 +47,61 @@ function walk(dir, out) {
 // Extract (table, method, keys[], unresolved:bool) from write-sites. Bounded window after each `.from("T")`.
 const FROM_RE = /\.from\(\s*['"`]([a-zA-Z0-9_]+)['"`]\s*\)/g;
 const WRITE_RE = /\.(insert|update|upsert)\(\s*(\{)/;
-// top-level keys of an object literal body (best-effort; identifiers or "quoted" keys before a colon).
+// TOP-LEVEL keys of an object literal body — depth-tracked (lane-diagnosis fix 2026-08-11). The first
+// real CI run flagged nested-payload keys (jsonb sub-objects like recommended_actions' {action,rationale},
+// workspace_settings' alert_config {briefingCadence,...}) as phantom COLUMNS because the old regex matched
+// a key after ANY '{' or ',', at any depth. Only depth-1 keys are column names; deeper keys are payload
+// shape. Strings are skipped (a brace inside a string literal is not structure). Known limitation kept
+// from v1: shorthand properties (`{ title, url }`) are not extracted — under-reporting, never a phantom.
 function topLevelKeys(body) {
   const keys = new Set();
-  let depth = 0, unresolved = false;
-  // very light brace tracker to only take depth-0 keys
-  const KEY_RE = /(^|[,{]\s*)(?:\.\.\.|(["'`]?)([a-zA-Z_$][\w$]*)\2\s*:)/g;
-  let m;
-  while ((m = KEY_RE.exec(body)) !== null) {
-    if (m[0].includes("...")) { unresolved = true; continue; }
-    if (m[3]) keys.add(m[3]);
+  let unresolved = false;
+  let depth = 0, i = 0;
+  const readString = (start) => {
+    const q = body[start];
+    let s = "", k = start + 1;
+    while (k < body.length) {
+      const c = body[k];
+      if (c === "\\") { s += body[k + 1] ?? ""; k += 2; continue; }
+      if (c === q) return [s, k + 1];
+      s += c; k++;
+    }
+    return [s, k];
+  };
+  while (i < body.length) {
+    const ch = body[i];
+    if (ch === '"' || ch === "'" || ch === "`") {
+      const [content, next] = readString(i);
+      if (depth === 1) {
+        // A quoted KEY is preceded by '{' or ',' — without that check, a ternary's string arm
+        // (`x ? "tier_promotion" : "tier_demotion"`) reads as "quoted thing before a colon" and
+        // becomes a phantom column (first-CI-run false positive class).
+        let p = i - 1;
+        while (p >= 0 && /\s/.test(body[p])) p--;
+        const prevCh = p >= 0 ? body[p] : "{";
+        let j = next;
+        while (j < body.length && /\s/.test(body[j])) j++;
+        if ((prevCh === "{" || prevCh === ",") && body[j] === ":" && /^[A-Za-z_$][\w$]*$/.test(content)) keys.add(content);
+      }
+      i = next; continue;
+    }
+    if (ch === "{" || ch === "[" || ch === "(") { depth++; i++; continue; }
+    if (ch === "}" || ch === "]" || ch === ")") { depth--; i++; continue; }
+    if (depth === 1) {
+      if (body.startsWith("...", i)) { unresolved = true; i += 3; continue; }
+      const m = /^[A-Za-z_$][\w$]*/.exec(body.slice(i, i + 120));
+      if (m) {
+        let p = i - 1;
+        while (p >= 0 && /\s/.test(body[p])) p--;
+        const prevCh = p >= 0 ? body[p] : "{";
+        let j = i + m[0].length;
+        while (j < body.length && /\s/.test(body[j])) j++;
+        if ((prevCh === "{" || prevCh === ",") && body[j] === ":") keys.add(m[0]);
+        i += m[0].length; continue;
+      }
+    }
+    i++;
   }
-  void depth;
   return { keys: [...keys], unresolved };
 }
 
@@ -77,6 +120,21 @@ function sliceObjectLiteral(text, openIdx) {
 const files = [];
 for (const d of SCAN_DIRS) walk(join(ROOT, d), files);
 
+// DEAD-MANIFEST SKIP (lane-diagnosis fix 2026-08-11): files already sentenced by the operator-run deletion
+// sweep (docs/audits/dead-code-manifest-2026-08-11.txt, executed by scripts/dead-code-sweep.sh) are pending
+// removal — a phantom column inside one is not a live defect, it is a file awaiting `git rm`. Skipping them
+// is reasoned and self-retiring: once the sweep runs, the manifest matches nothing and this block is a
+// no-op. Files NOT on the manifest are always scanned; the skip can never grow silently (count reported).
+let deadSkipped = 0;
+try {
+  const manifest = readFileSync(resolve(ROOT, "..", "docs/audits/dead-code-manifest-2026-08-11.txt"), "utf8")
+    .split("\n").map((l) => l.trim()).filter(Boolean);
+  const dead = new Set(manifest.map((p) => resolve(ROOT, "..", p)));
+  for (let i = files.length - 1; i >= 0; i--) {
+    if (dead.has(files[i])) { files.splice(i, 1); deadSkipped++; }
+  }
+} catch { /* manifest absent (already swept or never present) — scan everything */ }
+
 // (table -> Set(columns referenced in a literal write)) + a list of unresolved sites.
 const refs = new Map();
 let unresolvedSites = 0;
@@ -89,7 +147,14 @@ for (const file of files) {
   let fm;
   while ((fm = FROM_RE.exec(src)) !== null) {
     const table = fm[1];
-    const rest = src.slice(fm.index, fm.index + 4000); // window after .from("T")
+    // Window after .from("T") — BOUNDED AT THE NEXT .from( (lane-diagnosis fix 2026-08-11): the first
+    // real CI run attributed 390 phantom columns because an unbounded 4000-char window matched the FIRST
+    // .insert/.update ANYWHERE ahead — including writes belonging to a LATER .from("other_table") chain,
+    // so `sources` accumulated every neighbouring table's write keys. A write past the next .from()
+    // belongs to that next query, never to this one.
+    const nextFrom = src.indexOf(".from(", fm.index + fm[0].length);
+    const windowEnd = Math.min(nextFrom === -1 ? src.length : nextFrom, fm.index + 4000);
+    const rest = src.slice(fm.index, windowEnd);
     const wm = rest.match(WRITE_RE);
     if (!wm) continue;
     const openIdx = fm.index + rest.indexOf(wm[2], wm.index);
@@ -122,7 +187,7 @@ try {
     for (const c of columns) if (!have.has(c)) phantoms.push({ table, col: c });
   }
 
-  console.log(`column-existence-parity: scanned ${files.length} files; ${refs.size} tables written with literal keys; ${unresolvedSites} dynamic/spread sites unresolved (informational).`);
+  console.log(`column-existence-parity: scanned ${files.length} files (${deadSkipped} dead-manifest files skipped, pending the operator deletion sweep); ${refs.size} tables written with literal keys; ${unresolvedSites} dynamic/spread sites unresolved (informational).`);
   if (phantoms.length === 0) {
     console.log("column-existence-parity: OK — every literal write-site column exists in the live schema.");
     await client.end();

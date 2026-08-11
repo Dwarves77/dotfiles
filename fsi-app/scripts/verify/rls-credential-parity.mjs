@@ -66,9 +66,13 @@ try {
       AND privilege_type IN ('SELECT','INSERT','UPDATE','DELETE')
     ORDER BY 1,2,3;`);
 
-  // Policies: cmd + the roles they apply to.
+  // Policies: cmd + the roles they apply to. roles is CAST to text[] — pg_policies.roles is name[]
+  // (oid 1003), which node-postgres does NOT parse into a JS array; without the cast, p.roles arrives
+  // as the raw string "{reconciler}" and the for..of below iterates its CHARACTERS, so coverage stayed
+  // empty and EVERY grant to a custom role was flagged regardless of its policies (lane run #66,
+  // 2026-08-11: 5 of the 8 findings had covering policies live). Lane-diagnosis fix.
   const policies = await client.query(`
-    SELECT tablename AS table, cmd, roles, permissive
+    SELECT tablename AS table, cmd, roles::text[] AS roles, permissive
     FROM pg_policies WHERE schemaname = 'public';`);
 
   // Build coverage: table -> command -> Set(roles) that a PERMISSIVE policy grants (roles '{public}' = all).
