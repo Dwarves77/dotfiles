@@ -649,6 +649,19 @@ export const INVARIANTS = [
   },
 
   {
+    id: 'RD-52-governed-surface-coverage-ratchet',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 21: Caller-count is not wiring verification (applied to the audit layer itself)',
+    text: 'The governed-surface coverage scan RUNS IN CI and its gap counts hold to a committed, one-way-tightening per-category baseline. coverage-scan.mjs was the only module in .discipline/governance/ with ZERO inbound references — nothing imported it, no job ran it, no runner listed it — so it executed when a human remembered, which is the exact defect it exists to detect turned on the audit layer itself; its committed report had drifted 1,425 insertions / 1,170 deletions from a fresh run. Two detector defects were fixed at wiring time: `insert` was ABSENT from the write classifier, so CREATION was not a governed operation and 26 row-creating files (including the W2.F pipeline that creates sources) were not on the governed surface at all — a scan blind to birth cannot see a birth-time contract, which is why it reported zero gaps for every file carrying the source_role-at-birth defect; and classification read COMMENTS as code, reporting a retry helper that never calls the API as an ungoverned LLM call site. The ratchet fails in BOTH directions: over-baseline is a regression, under-baseline forces the ceiling down, because a must-not-exceed check leaves slack that silently reopens.',
+    anchor: 'A capability having a test (or even callers) does not prove it is wired into the flow that should use it',
+    enforcedBy: [
+      'fitness:F23',
+      'selftest:fsi-app/.discipline/fitness/functions/F23-governed-surface-coverage.test.mjs',
+    ],
+    residual: 'F23 gates the COUNT, not the disposition. It guarantees the governed surface cannot grow more ungoverned without a RED build, and that closing gaps ratchets the ceiling down; it does NOT judge whether a skill-map entry names the RIGHT skill. That distinction is live and load-bearing: apply-staged-update.ts (the intake mint chokepoint that CREATES sources) maps to environmental-policy-and-innovation + remediation-discipline and NOT to source-credibility-model, so it reads COVERED while the skill that actually governs source identity never claimed it. COVERED means "some skill maps this file", never "the claims in this file are enforced" — mapping is not enforcement, and reading it as enforcement is exactly how a coverage report can show green over a defective file. Baseline at seeding (master 3dc4f54): 113 orphaned proofs, 43 unmapped writes, 2 unmapped model, 3 unmapped routing = 156. NAMED RESIDUAL: those 156 are carried debt with no per-item review-by-phase tag, unlike the F14/F15/F22 allowlists — the ratchet BOUNDS them, it does not schedule them.',
+  },
+
+  {
     id: 'RD-10-spend-chokepoint',
     skill: 'remediation-discipline',
     section: 'Section 4.6 — the spend chokepoint (generation-side dedup-before-ground)',

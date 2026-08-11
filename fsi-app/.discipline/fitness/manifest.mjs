@@ -56,6 +56,12 @@ import { fitnessFunction as F21 } from './functions/F21-single-grounding-entry.m
 // held only in the three admin routes and was false on every automated creation path. 1,719 of 2,549
 // rows were born role-less; a triage then read "no role" as inert and demoted 869 live regulators.
 import { fitnessFunction as F22 } from './functions/F22-source-role-at-birth.mjs';
+// Governed-surface coverage ratchet (2026-08-11, operator ruling): F23 WIRES coverage-scan.mjs, which was
+// the only module in governance/ with zero inbound references — it produced a real gap list and ran only
+// when a human remembered, the same defect class it exists to detect. Gap counts now hold to a committed
+// per-category baseline that fails in BOTH directions, so closing gaps forces the ceiling down instead of
+// leaving slack that silently reopens. FS-only: no network, no DB, no model call, no schedule.
+import { fitnessFunction as F23 } from './functions/F23-governed-surface-coverage.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -75,6 +81,7 @@ export const fitnessFunctions = [
   F20,
   F21,
   F22,
+  F23,
 ];
 
 export function getFunctionById(id) {
