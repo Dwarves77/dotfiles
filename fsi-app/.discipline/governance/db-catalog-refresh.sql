@@ -69,3 +69,18 @@ from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='pub
 union all
 select 'policy:'||tablename, coalesce(qual,'')||' '||coalesce(with_check,'')
 from pg_policies where schemaname='public';
+
+-- 7. DATABASE-ORIGINATED EGRESS (-> "netCallers"). Functions whose body calls net.http_* (pg_net). This path
+-- reaches the network from inside Postgres without passing through application code, so F15 (spend
+-- chokepoint) and F16 (transport hold) cannot see it. prokind='f' matters: pg_get_functiondef() errors on an
+-- aggregate, so an unfiltered scan of public fails outright rather than returning a wrong answer.
+select distinct p.proname
+from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public' and p.prokind = 'f'
+  and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+  and pg_get_functiondef(p.oid) ~ 'net\.http_'
+order by 1;
+
+-- 8. WORK SCHEDULED INSIDE THE DATABASE (-> "cronJobs"). A pg_cron job runs on a clock no repo file records
+-- and no workflow list shows. EMPTY is the correct state; any row must be sanctioned in F24's CRON_SANCTIONED.
+select jobname, schedule from cron.job order by jobid;

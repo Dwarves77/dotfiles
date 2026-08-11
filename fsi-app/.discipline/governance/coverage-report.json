@@ -6941,11 +6941,23 @@
       ],
       "proofWired": null,
       "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/254_drop_shadow_gate_a_and_broken_hrq.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
     }
   ],
   "summary": {
-    "governed_files": 613,
-    "covered": 535,
+    "governed_files": 614,
+    "covered": 536,
     "exempt": 57,
     "gaps": 21,
     "orphaned_proofs": 0,

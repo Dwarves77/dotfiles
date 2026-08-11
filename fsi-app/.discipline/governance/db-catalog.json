@@ -1,13 +1,14 @@
 {
- "_comment": "COMMITTED SNAPSHOT of the live Postgres catalog (public schema). Facts only: what EXISTS in the database and which DB-internal references are broken. It records NO judgement about whether an object is wired \u2014 that is computed by F24 against the repo, so the snapshot and the rule cannot drift into disagreeing. Regenerate with db-catalog-refresh.sql (read-only, pg_catalog + pg_get_*def only; no data read, no write, no cost) and commit the diff.",
+ "_comment": "COMMITTED SNAPSHOT of the live Postgres catalog (public schema). Facts only: what EXISTS, which DB-internal references are broken, which functions can make outbound HTTP calls, and what is scheduled inside the database. It records NO judgement about whether an object is wired \u2014 that is computed by F24 against the repo, so the snapshot and the rule cannot drift into disagreeing. Regenerate with db-catalog-refresh.sql (read-only, pg_catalog + pg_get_*def only; no data read, no write, no cost) and commit the diff.",
  "capturedAt": "2026-08-11",
+ "capturedAfter": "migration 254 (dropped 16 shadow/broken functions + gate_a_route_b_baseline)",
  "project": "kwrsbpiseruzbfwjpvsp",
  "schema": "public",
  "method": "fsi-app/.discipline/governance/db-catalog-refresh.sql",
  "counts": {
-  "tables": 88,
+  "tables": 87,
   "views": 2,
-  "rpcFunctions": 71,
+  "rpcFunctions": 55,
   "triggerFunctions": 20,
   "triggers": 30,
   "policies": 179,
@@ -55,7 +56,6 @@
   "error_events",
   "funded_pass_runlock",
   "gate_a_health_cache",
-  "gate_a_route_b_baseline",
   "holdings_quality",
   "ingest_rejections",
   "institutions",
@@ -143,21 +143,9 @@
   "derive_source_category",
   "derive_source_intelligence_types",
   "detect_intersections",
-  "gate_a_collapse_pct",
-  "gate_a_contains_token",
-  "gate_a_deadline_tokens",
-  "gate_a_derived_covered",
-  "gate_a_extract_tokens",
-  "gate_a_figure_tokens",
   "gate_a_health",
   "gate_a_health_compute",
   "gate_a_health_refresh",
-  "gate_a_is_citation_line",
-  "gate_a_norm",
-  "gate_a_obligation_near",
-  "gate_a_scan",
-  "gate_a_scan_and_store",
-  "gate_a_ws_class",
   "get_all_surface_counts",
   "get_market_intel_items",
   "get_operations_items",
@@ -176,10 +164,6 @@
   "get_workspace_recent_changes",
   "heartbeat_funded_pass_lock",
   "heartbeat_mutation_lease",
-  "hrq_enqueue",
-  "hrq_escalate",
-  "hrq_exit",
-  "hrq_record_attempt",
   "lookup_invitation",
   "next_uncensused_portal_candidates",
   "release_funded_pass_lock",
@@ -216,22 +200,11 @@
   "update_community_post_reply_count",
   "update_updated_at"
  ],
- "internalBrokenRefs": [
-  {
-   "owner": "fn:hrq_enqueue",
-   "missingRelation": "hold_resolution_queue"
-  },
-  {
-   "owner": "fn:hrq_escalate",
-   "missingRelation": "hold_resolution_queue"
-  },
-  {
-   "owner": "fn:hrq_exit",
-   "missingRelation": "hold_resolution_queue"
-  },
-  {
-   "owner": "fn:hrq_record_attempt",
-   "missingRelation": "hold_resolution_queue"
-  }
- ]
+ "internalBrokenRefs": [],
+ "_netCallersComment": "Functions whose body calls net.http_* (pg_net). Database-originated egress is invisible to F15 (spend chokepoint) and F16 (transport hold) because it never passes through application code \u2014 so it is recorded here and gated by F24 against an explicit sanctioned list.",
+ "netCallers": [
+  "capture_worker_fetch"
+ ],
+ "_cronJobsComment": "pg_cron jobs. Work scheduled INSIDE the database runs on no repo-side schedule anyone can read. Empty is the correct state today; any entry must be sanctioned in F24.",
+ "cronJobs": []
 }
