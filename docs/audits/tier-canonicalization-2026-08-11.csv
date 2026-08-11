@@ -1,0 +1,158 @@
+source_id,url,old_base_tier,new_base_tier,institution,rule
+a7e327e5-7d53-4747-8b85-b264eab24491,"https://www.japaneselawtranslation.go.jp/",2,1,japaneselawtranslation.go.jp,legal-primary/gazette
+ed110db7-8e64-4eb5-8111-b0fe7da85bdf,"https://www.mlit.go.jp/en/kowan/kowan_fr4_000011.html",1,2,mlit.go.jp,majority
+29e01b88-0e4a-4505-be67-934edf3dc777,"https://icapcarbonaction.com/en/ets/eu-emissions-trading-system-eu-ets",2,3,icapcarbonaction.com,majority
+bac010a4-941c-451b-940f-81e836e7a829,"https://icapcarbonaction.com/en/ets/japan-gx-ets",2,3,icapcarbonaction.com,majority
+9958687c-6630-48af-9d8b-ae4e666defb4,"https://especiales.mintransporte.gov.co/semanamovilidadco/movilidad-ambientalmente-sostenible.php",1,2,mintransporte.gov.co,majority
+1f244b10-8cce-4d05-8d82-c00b12f8de35,"https://www.mpa.gov.sg/media-centre/details/no.-12-of-2024---revisions-to-the-maritime-singapore-green-initiative---green-ship-programme-for-singapore-registered-ships",1,2,mpa.gov.sg,majority
+ef6a7df9-4669-4f97-bf76-0c55081df18b,"https://www.mpa.gov.sg/maritime-singapore/sustainability/maritime-singapore-green-initiative",1,2,mpa.gov.sg,majority
+b462e539-be21-431b-a6e4-454bc3ddb514,"https://www.mpa.gov.sg/media-centre/details/singapore-gears-up-to-meet-net-zero-needs-of-shipping",1,2,mpa.gov.sg,majority
+4739fa9d-09cf-431a-bb6b-9680c6709a9c,"https://www.europarl.europa.eu/legislative-train/theme-a-european-green-deal/file-revision-of-the-weights-and-dimensions-directive",1,2,europarl.europa.eu,majority
+4b1e6685-52cc-4402-9832-9696062737e2,"https://documents.worldbank.org/en/publication/documents-reports/documentdetail/099741002102596832",2,3,worldbank.org,majority
+b053eed9-1aae-4062-bd3b-47a26f610d7e,"https://blogs.worldbank.org/en/transport/new-climate-deal-shipping-three-decades-zero",2,3,worldbank.org,majority
+bd48a204-34c2-4f07-9abb-4d4aef50999d,"https://live.worldbank.org/en/event/2024/transforming-transportation-mobilizing-finance-climate-action",2,3,worldbank.org,majority
+7f907995-bd4e-4123-8dc9-fe97c31f3398,"https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=celex:52025DC0109",2,1,eur-lex.europa.eu,majority
+38b11ede-f2be-4f4e-8915-20e683e4306f,"https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:52023PC0441",2,1,eur-lex.europa.eu,majority
+09d75ab7-96a7-4030-a25f-54483713739a,"https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:52023PC0445",2,1,eur-lex.europa.eu,majority
+32f63270-06fc-4393-9ebd-7774c9b1675d,"https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:52021DC0550",2,1,eur-lex.europa.eu,majority
+cbdea57d-8691-4c98-a10b-6c6edfc826ca,"https://eur-lex.europa.eu/EN/legal-content/summary/eu-emissions-trading-system.html",2,1,eur-lex.europa.eu,majority
+0798bcf5-90a9-4e00-88e3-6ddc4971b010,"https://www.cdp.net/en/supply-chain",3,5,cdp.net,conservative-max (under-credit, never over-credit)
+9aa0b256-d317-4a56-927b-715327590ed9,"https://www.energy.vic.gov.au/households/electric-and-efficiency-standards-for-buildings",1,2,vic.gov.au,majority
+783a6f22-17b7-4ddb-aac5-4c9f7415c424,"https://www.planning.vic.gov.au/planning-schemes/amendments/amending-a-planning-scheme",1,2,vic.gov.au,majority
+ffe158ff-994d-484f-8d9c-491f0b8350d1,"https://regjeringen.no/en/whats-new/zero-emission-requirements-for-passenger-ships-in-world-heritage-fjords/id3097475",2,1,regjeringen.no,majority
+447718ff-7291-48ce-a4c3-8ba3d35fe678,"https://ecosoc.un.org/en/events/2024/multi-stakeholder-forum-science-technology-and-innovation-sustainable-development-goals",2,3,un.org,majority
+7948f063-a9b6-4a3b-a1ac-8d9cfde1f3ff,"https://hlpf.un.org",2,3,un.org,majority
+84a0aacc-1988-4500-989e-853e56af4134,"https://unstats.un.org/sdgs/report/2024/Goal-09/",2,3,un.org,majority
+eae995c7-33f1-4acc-9355-5d2ee1d017de,"https://sdgs.un.org/tfm/STIForum2024",1,3,un.org,majority
+91e14860-bbaf-4b4e-b5ce-7c1943cea853,"https://www.eia.gov/outlooks/steo/report/natgas.php",1,3,eia.gov,majority
+e97baafc-548e-4f65-b9e7-7bfb601ba2f7,"https://www.eia.gov/outlooks/steo/",1,3,eia.gov,majority
+d76888d1-977c-4750-85de-b1676c7fc55a,"https://www.cec.org/about/agreement-on-environmental-cooperation/",1,3,cec.org,majority
+2e19bf42-b7b8-4ee1-9afd-85fec9026dcf,"https://www.easa.europa.eu/en/domains/environment/refueleu-aviation-digital-reporting-tool",1,2,easa.europa.eu,majority
+67b6cf42-22d9-4109-a1f5-6d3dee25353e,"https://www.gov.uk/guidance/domestic-private-rented-property-minimum-energy-efficiency-standard-landlord-guidance",1,2,gov.uk,majority
+bff0c529-af53-47e9-be8b-ab53de3dfd60,"https://www.gov.uk/government/collections/sustainable-aviation-fuel-saf-mandate",1,2,gov.uk,majority
+9c00979c-7292-4979-b689-32227e4e36c1,"https://climate.ec.europa.eu/eu-action/transport-decarbonisation/reducing-emissions-shipping-sector/faq-maritime-transport-eu-emissions-trading-system-ets_en",1,2,ec.europa.eu,majority
+b19cdf61-0819-4a0b-b4ee-ba258d570215,"https://www.mee.gov.cn",1,2,mee.gov.cn,majority
+5da7620b-c3a5-4daa-b8da-d7bb89bca72e,"https://www.smartfreightcentre.org/en/our-programs/emissions-accounting/global-logistics-emissions-council/",3,4,smartfreightcentre.org,majority
+6b198248-7282-4239-a7bc-086504b2786a,"https://www.iea.org/data-and-statistics/data-product/energy-prices",2,3,iea.org,majority
+cf5c446a-be56-4f57-b770-436edd568c1e,"https://www.iea.org/reports/electricity-2026/prices",2,3,iea.org,majority
+f716f6dd-1219-4945-9c8a-2a23ef322e81,"https://www.env.nm.gov/climate-change-bureau/clean-fuel-program/",1,2,nm.gov,majority
+d2b5b263-cd34-4dd7-9726-7c232a0dbaec,"https://imo.org/en/mediacentre/pressbriefings/pages/imo-approves-netzero-regulations.aspx",1,2,imo.org,majority
+a8b0e31b-004e-4970-a0de-230e22f858e3,"https://www.imo.org/en/ourwork/environment/pages/2023-imo-strategy-on-reduction-of-ghg-emissions-from-ships.aspx",1,2,imo.org,majority
+5914fff6-1d8d-48f5-84d2-799d75902ef6,"https://www.imo.org/en/mediacentre/pressbriefings/pages/cii-and-eexi-entry-into-force.aspx",1,2,imo.org,majority
+14384328-de3b-47b2-be17-d47fcff350e2,"https://www.imo.org/en/mediacentre/pressbriefings/pages/revised-ghg-reduction-strategy-for-global-shipping-adopted-.aspx",1,2,imo.org,majority
+01f34be9-9de3-41ba-87b9-faf8afe0f343,"http://nyc.gov/trucks",1,2,nyc.gov,majority
+18c9b996-3da7-44bf-b94e-0c3b6286f8a8,"https://www.nyc.gov/assets/buildings/local_laws/ll97of2019.pdf",1,2,nyc.gov,majority
+7c17c007-4e5f-4bb2-b00c-6b2fd42d4a6c,"https://www.nyc.gov/site/buildings/codes/ll97-greenhouse-gas-emissions-reductions.page",1,2,nyc.gov,majority
+c3a9e527-a34e-403c-9b2c-b2bc56fc861c,"https://www.nyc.gov/site/buildings/codes/benchmarking.page",1,2,nyc.gov,majority
+e586c653-419d-451d-ae5c-f5143c2f85dd,"https://www.epa.gov/greenvehicles/fast-facts-transportation-greenhouse-gas-emissions",1,2,epa.gov,majority
+6dff4f9e-f1c7-47f2-b29f-a0ba23c6a5f4,"https://nepis.epa.gov/exe/zypdf.cgi?dockey=p101a2vi.pdf",1,2,epa.gov,majority
+45083686-faf3-4d47-8a6c-16b50432bd2c,"https://www.flsenate.gov/session/bill/2026/1310/analyses/2026s01310.tr.pdf",1,2,flsenate.gov,gov/legislature/municipal
+c87405e5-8147-4682-9976-fe38bf63146b,"https://www.greenairnews.com/?p=8325",6,7,greenairnews.com,news/trade-press
+fda505aa-74af-4c88-8aea-14f6e34d3931,"https://diariooficial.gob.mx/",2,1,diariooficial.gob.mx,legal-primary/gazette
+738f048f-2d5c-40cc-884c-e61cfa79bbf7,"https://www.slaughterandmay.com/insights/new-insights/is-saf-taking-flight/",5,7,slaughterandmay.com,lawfirm
+572343be-d5ad-49d9-843a-20ff654956e7,"https://www.slaughterandmay.com/services/practices/environmental-social-and-governance/esg-in-apac-2025/south-korea/",6,7,slaughterandmay.com,lawfirm
+e554e0de-f1a8-43c1-b2f3-7f29a2d02031,"https://www.icao.int/corsia/corsia-eligible-fuels",1,2,icao.int,majority
+9b01a831-e570-4ce4-80e1-183af21d9fb5,"https://adb.org/what-we-do/topics/transport/overview",3,2,adb.org,intergov (SC-13 codified)
+f939efd5-a76c-474a-b181-5738e99482ad,"https://adb.org/sites/default/files/institutional-document/31315/sustainable-transport-initiative.pdf",3,2,adb.org,intergov (SC-13 codified)
+e3a3818a-7e8b-4aad-8bbb-b7668f0fbc17,"https://adb.org/documents/sustainable-transport-initiative-operational-plan",3,2,adb.org,intergov (SC-13 codified)
+7ffee0d4-035e-499a-aa6a-4eb4770798d0,"https://www.fws.gov/story/reviving-river-herring",1,2,fws.gov,majority
+4434f23d-4517-4ded-8211-34c8cc43602e,"https://www.transportpolicy.net/standard/mexico-heavy-duty-emissions/",2,4,transportpolicy.net,conservative-max (under-credit, never over-credit)
+19c851fd-046c-4da0-9245-ab43948d5493,"https://highways.dot.gov/iija/fact-sheets/carbon-reduction-program-crp",1,2,dot.gov,majority
+66d6946f-513f-4875-bf54-4143d6270478,"https://www.fmcsa.dot.gov/emergency/new-york-department-transportation-covid-19-order-motor-carriers",1,2,dot.gov,majority
+ae849760-ca44-4604-b302-5757b378c44b,"https://railroads.dot.gov/rail-network-development/planning/systems-planning/state-rail-plan-guidance",1,2,dot.gov,majority
+5ed59c15-aac0-4616-a902-c4c7cc932afe,"https://ai.fmcsa.dot.gov/sms",1,2,dot.gov,majority
+ae0e0807-b4ae-4bae-b2ac-e61d65a58bfa,"https://eld.fmcsa.dot.gov/Support/_NewsAndEventCurrentPage",1,2,dot.gov,majority
+69e0d7ea-2258-48ac-83ec-e2de60dd2cfc,"https://www.infrastructure.gov.au/infrastructure-transport-vehicles/vehicles/electric-vehicles/national-electric-vehicle-strategy",1,2,infrastructure.gov.au,gov/legislature/municipal
+8e1a0d72-7878-4b7c-b689-6430db3231fd,"https://minister.infrastructure.gov.au/c-king/media-release/australias-first-national-electric-vehicle-strategy-drive-cleaner-cheaper-run-vehicles",1,2,infrastructure.gov.au,gov/legislature/municipal
+d9dbfc19-cae9-4d08-bdb9-6ab4047f99cc,"https://www.dpiit.gov.in/static/uploads/2025/07/b6c9db15ce083fd10caa9787bf8a281f.pdf",1,2,dpiit.gov.in,gov/legislature/municipal
+b491ab5c-0e1a-4d8d-86c4-36b1df3dce31,"https://regulations.gov/",1,2,regulations.gov,gov/legislature/municipal
+708afea5-7d0f-4b6c-a62e-de0c6c628725,"https://www.in.gov.br/en/web/dou/-/portaria-n-280-de-29-de-junho-de-2020",2,1,in.gov.br,legal-primary/gazette
+50d3774d-70c7-494c-bfca-4a3cc0af7c13,"https://iuk-business-connect.org.uk/programme/zero-emission-heavy-goods-vehicles-and-infrastructure/",2,3,iuk-business-connect.org.uk,conservative-max (under-credit, never over-credit)
+995f15bc-5f80-4aff-a7f9-c2714567baf1,"https://governor.nc.gov/issues/climate",1,2,governor.nc.gov,gov/legislature/municipal
+6b47c794-9d8d-4c5d-915c-c897c29389f2,"https://unctad.org/publication/review-maritime-transport-2024",2,3,unctad.org,majority
+4242d404-5148-45a0-8477-d7f997f02c05,"https://unctad.org/publication/angola-sustainable-freight-transport-assessment",2,3,unctad.org,majority
+2d083de1-c227-402f-9c8b-b0151d7110cf,"https://asean.org/joint-ministerial-statement-of-the-thirtieth-asean-transport-ministers-meeting-30th-atm/",2,3,asean.org,majority
+848ae1a4-b2ef-49ba-aff6-209d8c9b1bb4,"https://afdc.energy.gov/fuels/laws/elec?state=nc",1,2,energy.gov,majority
+64bad663-4405-42d2-935c-f8708f962cd5,"https://arpa-e.energy.gov/news-and-media/press-releases/us-department-energy-announces-9-million-projects-modeling-optimal",1,2,energy.gov,majority
+cd4c8979-f0c8-41b1-beeb-eefc5bbb854e,"https://www.irs.gov/credits-deductions/commercial-clean-vehicle-credit",1,2,irs.gov,majority
+b083cafe-cb3b-4fc9-b56e-e542e70ed01a,"https://ww2.arb.ca.gov/sites/default/files/2023-06/act-1963.pdf",1,2,arb.ca.gov,gov/legislature/municipal
+6faa1d15-e7b5-44bf-95b7-df9334cdb7c9,"https://supplychaindigital.com/",5,7,supplychaindigital.com,news/trade-press
+6a82f0a1-eccd-4959-b3c4-5bbf1176c29a,"https://supplychaindigital.com/sustainability/dp-world-southampton-hitting-operational-net-zero-2025",6,7,supplychaindigital.com,news/trade-press
+dcfd1dee-9eef-4bad-bd02-cebced061f7d,"https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html",1,2,txdot.gov,majority
+026245a2-4a8c-4bad-809c-41f2474be64f,"https://www.mse.gov.sg/resources/sgp-2030/",1,2,mse.gov.sg,gov/legislature/municipal
+5659b930-1e7c-4201-a256-a96cc49339e2,"https://airlines.iata.org/2026/04/14/ensuring-transparency-saf-environmental-benefits",3,4,iata.org,majority
+dca0389d-a18c-491a-bece-8554db093951,"https://fred.stlouisfed.org/series/dcoilwtico",2,3,stlouisfed.org,conservative-max (under-credit, never over-credit)
+fd365853-5ed9-4fcf-9e5f-03a4cffdbff3,"https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1009448/decarbonising-transport-a-better-greener-britain.pdf",1,2,service.gov.uk,majority
+8bac576f-6aa3-46a1-b433-c3508268aec9,"https://assets.publishing.service.gov.uk/media/6051337ed3bf7f0453f7b992/non-domestic-prs-mees-epc-b-future-trajectory-implementation.pdf",1,2,service.gov.uk,majority
+85f4d03b-c4b1-4f75-bf6b-fe6cb59bdb66,"https://lovdata.no/dokument/lti/forskrift/2025-04-10-671",2,1,lovdata.no,legal-primary/gazette
+d3a6c75b-8e93-4d9a-908e-9ea6b645e3ac,"https://unece.org/transport/road-transport/working-party-automatedautonomous-and-connected-vehicles-introduction",2,1,unece.org,majority
+115e2752-af50-49bc-9120-1bd6b1f50b73,"https://www.ncdot.gov/initiatives-policies/transportation/stip/pages/about.aspx",1,2,ncdot.gov,gov/legislature/municipal
+e303db69-b87c-415c-8078-4f2ea36f37d3,"https://www.ncdot.gov/news/press-releases/pages/2025/2025-12-22-state-rail-plan-released-for-comment.aspx",1,2,ncdot.gov,gov/legislature/municipal
+f9d6e12d-f220-41fa-81e6-a251b3a0eec6,"https://emsa.europa.eu/reducing-emissions/fuel-eu-maritime-regulation.html",1,2,emsa.europa.eu,majority
+a8e5607d-8117-441c-89cf-e136b6492942,"https://biofin.org",3,4,biofin.org,conservative-max (under-credit, never over-credit)
+7d7ba38d-6eb0-4dab-b8df-c99e7144b259,"https://www.globalreporting.org/how-to-use-the-gri-standards/gri-standards-english-language/",2,4,globalreporting.org,majority
+73bca1ab-d94a-4cb6-b462-651afeeb4772,"https://cvsa.org",4,3,cvsa.org,majority
+dd3c7795-e33b-445e-a57e-cfdaa753767d,"https://www.lr.org/en/knowledge/class-news/03-26/",3,4,lr.org,majority
+95eeb686-7b47-40cb-8779-0ce980fcaf83,"https://www.nationalacademies.org/read/27432/chapter/15",2,4,nationalacademies.org,academic
+6c259072-e992-4e1c-8d65-4249e2448d8c,"https://www.now-gmbh.de/en/news/pressreleases/bmdv-supports-ramp-up-of-climate-friendly-road-freight-transport/",2,3,now-gmbh.de,conservative-max (under-credit, never over-credit)
+d3ca8dfb-0d16-46eb-b4ae-e00f3301837d,"https://www.breeam.com",2,4,breeam.com,majority
+6794b038-f851-426c-a2ca-2373cee0e765,"https://questions-statements.parliament.uk/written-statements/detail/2025-03-25/hlws548",1,2,parliament.uk,majority
+6b2408e6-489a-4df5-8e22-f72b3523c0c6,"https://committees.parliament.uk/writtenevidence/38693/html/",1,2,parliament.uk,majority
+311e4f1a-eaa9-4488-aeac-e612499b2c3c,"https://lordslibrary.parliament.uk/greenhouse-gas-emissions-trading-scheme-amendment-extension-to-maritime-activities-order-2026/",1,2,parliament.uk,majority
+be45c914-8ca6-4fe7-bd08-2b121fe4006d,"https://codot.gov/programs/environmental/greenhousegas",2,1,codot.gov,majority
+79f0d7bc-585c-4837-9669-fe39fd0aefa1,"https://www.consilium.europa.eu/en/policies/fit-for-55/",1,2,consilium.europa.eu,majority
+9c909419-f36e-4a20-ae3a-28fc52c0a094,"https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-arcx-faqs-final.pdf",1,2,lacity.gov,gov/legislature/municipal
+9f6fd0e5-7a4e-4df5-a361-e916d78ce402,"https://dbs.lacity.gov/services/code-enforcement-complaints-and-compliance/local-enforcement-agency",1,2,lacity.gov,gov/legislature/municipal
+1b9c9d45-61e2-47bf-b799-ed506760c61b,"https://dbs.lacity.gov/services/green-building-sustainability",1,2,lacity.gov,gov/legislature/municipal
+8349b70d-76f0-48f3-a250-18beda0842bf,"https://dbs.lacity.gov/sites/default/files/efs/pdf/lea/cws-dtla-swfp-revision-tpr.pdf",1,2,lacity.gov,gov/legislature/municipal
+dc1eeae4-f37b-4649-9bf6-4abf8903e54c,"https://www.dot.ga.gov/gdot/pages/freight.aspx",1,2,ga.gov,gov/legislature/municipal
+3b32e91a-33b5-4eee-bf90-71d98dcb89c1,"https://support.usgbc.org/hc/en-us/articles/25316160948755-LEED-v5",3,4,usgbc.org,majority
+17a03541-d279-45fb-bf2f-551e37744867,"https://www.strategyand.pwc.com/m1/en/strategic-foresight/sector-strategies/mobility/decarbonization-of-logistics.html",3,7,pwc.com,conservative-max (under-credit, never over-credit)
+bd9009d5-299a-4326-a0cf-f4bcc1d76414,"https://www.pwc.com/m1/en/media-centre/2025/sustainable-freight-to-cut-gcc-co2-by-2035.html",4,7,pwc.com,conservative-max (under-credit, never over-credit)
+ef20f0bc-68a4-4b55-a831-8fd332ea5ada,"https://www.ecoports.com/",3,4,ecoports.com,majority
+3c5327fb-3124-48da-b075-a5874d1f2008,"https://cityclerk.lacity.org/onlinedocs/2014/14-1478_misc_10-06-2016.pdf",1,2,lacity.org,gov/legislature/municipal
+298806bd-dda9-403a-9f94-2746dcd5a695,"https://www.airkorea.or.kr",2,3,airkorea.or.kr,conservative-max (under-credit, never over-credit)
+3e3a2d5f-9300-485e-aa5a-8fc6ede547b7,"https://www.bsr.org/en/blog/improve-sustainability-with-new-air-freight-alliance",3,6,bsr.org,conservative-max (under-credit, never over-credit)
+ea9f7bad-6476-4164-b115-ba37e8d7c83f,"https://maritime-executive.com/article/norway-adopts-zero-emissions-requirements-for-fjords",6,7,maritime-executive.com,news/trade-press
+e471ba99-a60b-442e-9f20-1d20253a4009,"https://safety4sea.com/consortium-to-assess-brazil-belgium-green-shipping-corridor/",6,7,safety4sea.com,news/trade-press
+e2b40c40-e8b4-4cff-aab8-d579d1dccf88,"https://www.michigan.gov/egle/newsroom/mi-environment/2026/07/16/st-clair-county-so2-attainment-status-change-brings-entire-regions-air-quality-back-into-attainment",2,1,michigan.gov,majority
+7a8068cf-e4bf-46c9-a03e-309f7c27843d,"https://climate-laws.org/document/climate-change-authority-act-2011_c4f5",2,4,climate-laws.org,majority
+41315731-ae19-4db2-bd0a-f4606918e4b1,"https://www.espo.be/news/espos-environmental-report-2025-european-ports-lead-the-way-in-sustainability-from-policy-to-practice",3,4,espo.be,majority
+d9bf4347-ea64-4ee6-accf-cef66f0e2cd4,"https://ghgprotocol.org/corporate-value-chain-scope-3-standard",4,3,ghgprotocol.org,majority
+d5aadce8-c12b-44e5-93ed-91995f271737,"https://regintel-content.thomsonreuters.com/",5,7,thomsonreuters.com,news/trade-press
+69c1aebe-d1c0-42f1-a36f-c3fe33cc494d,"https://acea.auto/statistics",2,4,acea.auto,association
+5aa6c2c0-2778-4359-b683-55cb8144efbf,"https://smart-freight-centre-media.s3.amazonaws.com/documents/GLEC_FRAMEWORK_v3_UPDATED_13_12_23.pdf",4,5,amazonaws.com,conservative-max (under-credit, never over-credit)
+265e631a-9a62-426e-9c20-e54256cf011b,"https://cloud.mail.iadb.org/Transport2050",2,3,iadb.org,majority
+2156a4bd-023f-4988-9b00-1300e8b51b10,"https://climatechangeauthority.gov.au/",2,1,climatechangeauthority.gov.au,majority
+205a2ebc-e28b-4234-a404-5ea47cbb3039,"https://tpm.joc.com/en/about",7,5,joc.com,majority
+a2031719-589f-4a6f-aa4e-8969e6f8a359,"https://www.joc.com/gateway/about",7,5,joc.com,majority
+d19c2bbf-c377-4a06-a31a-b26246a5674d,"https://www.antt.gov.br",1,2,antt.gov.br,gov/legislature/municipal
+4a4310ef-a0ab-4584-8c6c-6561a2a1af1c,"https://www.unep.org/topics/transport/active-mobility/colombia",1,3,unep.org,conservative-max (under-credit, never over-credit)
+b0cae3b1-3116-4c57-a725-3f479b263035,"https://www.aceee.org/research-report/t2601",2,4,aceee.org,conservative-max (under-credit, never over-credit)
+6f778230-4da0-421e-99f7-e9c8026aa741,"https://www.gios.gov.pl/en/eea/cooperation",1,2,gov.pl,majority
+d2e7cc1e-cba1-4915-87e5-97b1b56876ee,"https://www.trucking.org/news-insights/ata-statement-epas-greenhouse-gas-emission-proposals-heavy-duty-trucks",3,4,trucking.org,association
+453d9338-0c11-454a-aae9-76c453a09205,"https://masdar.ae/en/renewables/our-projects/mohammed-bin-rashid-al-maktoum-solar-park-phase-3",2,6,masdar.ae,conservative-max (under-credit, never over-credit)
+8b0ddab1-795d-4afc-9a09-e95b68294de7,"https://portal.ct.gov/deep/air/mobile-sources/ct-proposed-emissions-standards-for-cars-and-trucks",1,2,portal.ct.gov,gov/legislature/municipal
+efa19799-314a-48f0-bd04-81ac098b8d89,"https://laws-lois.justice.gc.ca/eng/regulations/sor-2022-140/fulltext.html",1,2,justice.gc.ca,gov/legislature/municipal
+46ce6080-a4a4-413e-b360-7f28b41e0671,"https://whc.unesco.org/en/news/1824",2,3,unesco.org,conservative-max (under-credit, never over-credit)
+ceecd93c-c1ff-403b-8041-9994ec6577fe,"https://ers.usda.gov",3,2,usda.gov,gov/legislature/municipal
+a749fabe-11e0-471d-bab6-7c05bd931daf,"https://apps.fas.usda.gov/newgainapi/api/report/downloadreportbyfilename?filename=biofuels+annual_brasilia_brazil_br2024-0022.pdf",1,2,usda.gov,gov/legislature/municipal
+0d561f56-17a1-4df5-bb1b-9d6a8714349a,"https://www.c2es.org/content/regulating-transportation-sector-carbon-emissions/",3,6,c2es.org,conservative-max (under-credit, never over-credit)
+ff1bedf2-8fdb-4c2b-9553-c5ba7e9d8c63,"https://www.mot.gov.sg/what-we-do/green-transport/maritime-environment-responsibility/",1,2,mot.gov.sg,gov/legislature/municipal
+acef11cb-7cb8-46a1-8828-ad95bcacae1f,"https://www.epa.nsw.gov.au/your-environment/contaminated-land/pfas-investigation-program",1,2,nsw.gov.au,majority
+086f9b83-729e-44f8-b3bf-7f22f0789b90,"https://www.ifrs.org/issued-standards/ifrs-sustainability-standards-navigator/ifrs-s2-climate-related-disclosures/",2,5,ifrs.org,conservative-max (under-credit, never over-credit)
+ddc198c4-d6a8-4b44-beb7-f708c49d64b8,"https://www.maine.gov/dep/air/mobile/cleandiesel.html",1,2,maine.gov,majority
+fa19ea7f-ab82-4eaa-9dd2-9375d8418e87,"https://about.bnef.com/energy-storage",2,4,bnef.com,conservative-max (under-credit, never over-credit)
+4cb15734-9b0c-4b28-9342-13ac59bb5430,"https://climate.cityofnewyork.us/wp-content/uploads/2024/04/planyc-2024-progress-report.pdf",2,1,cityofnewyork.us,majority
+3df9eae5-473c-4900-9900-3a475a7d53ee,"https://theicct.org/sector/freight",4,3,theicct.org,majority
+41dcc2e2-590e-485b-b795-2e2ddcd44325,"https://www.calrecycle.ca.gov/swfacilities/permits",1,2,calrecycle.ca.gov,gov/legislature/municipal
+c75ea058-f29a-4606-a76e-bb0295565958,"https://fca.org.uk/",1,2,fca.org.uk,majority
+bd700b11-3faa-4f51-ac5e-cd8d308b4326,"https://www.oregon.gov/deq/ghgp/cfp/pages/cfp-overview.aspx",1,2,oregon.gov,majority
+edcd3bf0-743b-47a6-a39d-110f290a972b,"https://beaches.mdeq.ms.gov/",2,1,ms.gov,majority
+4364f3e2-c14d-486a-9dcb-6c30c4214d54,"https://regulations.justia.com/states/california/title-13/division-2/chapter-6-5/article-6/section-1233/",3,5,justia.com,conservative-max (under-credit, never over-credit)
+e4de01ae-7c0d-4024-9736-175003d35c32,"https://undp.org/publications/international-guidebook-environmental-finance-tools",3,2,undp.org,majority
+32f7d8fd-0a12-451f-9714-c13e4ea78ff1,"https://www.theartnewspaper.com/2026/04/22/gallery-climate-coalition-launching-consultancy-casi",6,7,theartnewspaper.com,news/trade-press
+1c2b33a5-f9ae-4d2e-977f-5212174814d5,"https://aircargonews.net/",6,7,aircargonews.net,news/trade-press
+ad390895-aa37-4a99-bcc2-402fa02b6878,"https://www.aircargonews.net/policy/environment/delta-cargo-joins-sustainable-air-freight-alliance/",5,7,aircargonews.net,news/trade-press
+af509cf9-f287-431d-b80d-5390f694c6a4,"https://knowledge.dlapiper.com/dlapiperknowledge/globalemploymentlatestdevelopments/2026/eu-council-approves-omnibus-i-directive",4,7,dlapiper.com,lawfirm
+909689fb-1880-409e-84c8-d5f51523298b,"https://www.dlapiper.com/en/insights/publications/2023/03/australias-climate-change-act-potential-implications-on-the-private-sector",5,7,dlapiper.com,lawfirm
