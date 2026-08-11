@@ -2720,3 +2720,58 @@ defect class the audit exists to catch. Second, and the one I needed: FIXED IS N
 was told to stop the scans and told to fix the lane; I treated proving it green as license to restart the
 schedule, which nobody asked for. A standing operator constraint does not expire because the work that
 motivated it is done.
+
+---
+
+## Addendum 8 — the batched null-tier-host ruling (2026-08-11)
+
+The operator handed the rulings back: *"the product intent rulings are 100% yours we built all the tools for
+you to do this … you can do all of this for free."* So I ruled all 57 worklisted hosts, and nothing here
+spent: deterministic SQL plus deterministic pattern code, no LLM classification, no re-ground, no scan.
+
+THE POINT OF REGISTERING A JUNK HOST. Fifty hosts registered at their SC-13 class tier. That is not
+generosity toward them. A NULL tier does not fail the authority floor, it ESCAPES it — `null <= 2` is not
+comparable, so the span passes silently. Registering the host at T6 or T7 makes the floor able to SEE the
+span, which then gets honestly WALLED. Under-crediting is recoverable by override; a wrongly-high tier
+hollow-passes a floor. That is why `dromon.com`, a bureau of shipping by name but not on the accredited-CAB
+allowlist, is T7 and not T4.
+
+THE SEVEN I REFUSED TO REGISTER ARE A RULING, NOT A GAP. An aggregator republishes text it did not publish;
+a hosting platform hosts a publication it did not publish. Minting either any tier credits the republisher
+with the publisher's authority. They stay unregistered forever, and a span attributing to one of them is a
+re-attribution instruction. Which exposed a live defect: `surfaceNullTierHosts` re-opens its flag on every
+grounding run, so those seven kept getting the recommendation *"register at its canonical institutional
+tier"* — the exact error the ruling forbids, re-minted nightly, indefinitely. Resolving the flags would have
+fixed nothing. The flag now has two shapes and picks by class.
+
+CODIFIED, NOT JUST APPLIED. A data-only ruling rots: the rows carry the decision, the code does not, and the
+next host of the same class re-worklists as though nothing was decided. So the ruling is also in
+`host-authority.ts` — class rules where they generalise, a closed `RULED_HOST_TIER` map where they do not
+(a ministry programme on a bare `.in`, vendors, carrier corporate sites), and `permanentlyUnregisteredClass`
+now checked BEFORE the codified gov/legal rule, so a republisher cannot acquire the publisher's authority by
+sitting on a `.gov` tomorrow. A conformance test forces the code to reproduce all 57 rows in both
+directions. Where that changed an existing test's fixture — `searoutes.com` was the stock example of "a host
+we must never guess a tier for" — I changed it deliberately and said why in the test, rather than quietly
+swapping the assertion.
+
+I CLOSED EIGHT FLAGS ON WORK THAT HAD NOT HAPPENED. The verification sweep caught it: 8 of the 50 hosts had
+no `sources` row at all, because the ruling UPDATE matched only EXISTING rows while the flag-resolution
+UPDATE keyed on the ruled-host list. Their notes claimed *"its registry row(s) set to that base_tier and
+activated"*. Nothing was set. Sixty-seven FACT spans went on stamping NULL behind a resolved flag — the
+hollow-close this entire system exists to prevent, committed by me, inside the session that was supposed to
+be preventing it. Rows inserted, `source_role` taken verbatim from `classifySourceRole` and left NULL for
+the three it cannot determine rather than guessed, and the resolution notes amended to state plainly that
+the first resolution was false.
+
+THE RULE. A remediation that writes its own resolution note must key that note on the REMEDIATION LANDING,
+not on the item being in scope. "I ruled on this host" and "this host is now registered" are different
+facts, and only the second one closes a flag. Verify the effect, never the intent.
+
+TWO SMALLER ONES WORTH KEEPING. A column budget is a correctness constraint, not formatting: the
+re-attribution wording failed its own 480-char test on the first draft, and the caller's `slice()` would
+have silently truncated away the instruction that was the whole flag. And a test that asserts
+`typeof x === "string"` is not a test — mine passed a mechanical edit that had shifted the reason text into
+the class column, until I named the closed vocabulary and pinned each class to its tier.
+
+STILL NOT SCHEDULED. The data-audit lane remains `workflow_dispatch`-only and disabled in the Actions UI.
+Nothing was funded. The 4c relabel of the sub-floor facts remains frozen, on purpose.
