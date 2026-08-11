@@ -2404,3 +2404,43 @@ Plus a fourth from the portability gate: my test's FIXTURE STRING looked like a 
 Verification: full discipline suite 1052/1052, fitness runner 17 functions / 0 violations, npmtest 90/90.
 
 RULE: when adding enforcement, find the layer the codebase already enforces things in and add to it. A test that proves the same fact from outside that layer is not equivalent — it is unregistered, unowned, and invisible to the meta-gates whose entire job is to notice mechanisms like it. The bolt-on version of this gate would have passed CI and still been the wrong artifact.
+
+---
+
+## 2026-08-11 — Why the audits missed F22, and coverage-scan promoted to a CI gate (F23)
+
+OPERATOR QUESTION: "Why didn't these find that?" Answered with the detector predicates, not a guess.
+
+WHY EACH AUDIT WAS BLIND TO THE SOURCE-ROLE CONTRACT:
+1. `invariant-coverage.mjs` (the meta-gate) is a CLOSURE CHECK OVER A HAND-CURATED REGISTRY. It proves every REGISTERED invariant resolves to a live mechanism and that normative-marker counts hold across `SKILL_FILES` — which lists exactly 7 SKILL.md files. The source-role contract was prose in a `.ts` header, never registered, so the registry was complete by its own lights while missing a real contract. It validates the map, not the territory. "ALL 104 invariants are wired" is true and says nothing about whether the SET of invariants is complete.
+2. `coverage-scan.mjs` had TWO detector defects and ZERO inbound references (see below).
+3. `producer-consumer-orphan.mjs` looks for a table written and never read. `sources` had writers and readers. Correctly silent — wrong question for this defect.
+4. `execution-wiring.mjs` is a LIBRARY consumed by the meta-gate, not a standalone audit. Running it directly is a no-op that exits 0. I previously reported that no-op as "PASS", which was wrong and is corrected here.
+
+THE COVERAGE-SCAN FINDING, measured on the five files that carried the F22 defect:
+- `verification.ts` (W2.F, CREATES sources) — NOT ON THE GOVERNED SURFACE AT ALL
+- `classify-source-role.ts` (the file that DECLARED the contract) — NOT ON THE GOVERNED SURFACE AT ALL
+- `scripts/lib/db.mjs` — EXEMPT
+- `source-growth.ts` — COVERED
+- `apply-staged-update.ts` — COVERED, and mapped to environmental-policy-and-innovation + remediation-discipline, NOT source-credibility-model
+Two invisible, one exempt, two falsely green. The scan reported zero gaps for exactly the defective files.
+
+ROOT CAUSE 1 — `insert` was absent from `WRITE_RE`. The classifier governed `.update/.upsert/.delete/.rpc` — mutation and deletion, not BIRTH. 26 row-creating files were invisible, including `admin/sources/bulk-import/route.ts`, user creation and org invitations. A scan blind to creation cannot see a creation-time contract. This is the F22 defect one layer up.
+ROOT CAUSE 2 — classification read COMMENTS as code. `MODEL_RE` matched `@anthropic-ai/sdk` inside a doc comment, so `scripts/lib/batch-primitives.mjs` — a retry/ratelimit helper that never calls the API — was reported as an ungoverned LLM call site. Phantom gaps train the reader to ignore the report.
+ROOT CAUSE 3 — `coverage-scan.mjs` was the ONLY module in `.discipline/governance/` with zero inbound references. Nothing imported it, no CI job ran it, no runner listed it. Its committed report had drifted 1,425 insertions / 1,170 deletions from a fresh run. An audit that runs when a human remembers is the defect class it exists to detect, turned on the audit layer.
+
+BUILT (operator-approved: "Promote coverage-scan.mjs to a CI gate with a ratcheting threshold"):
+- Both detector defects fixed, each pinned by a test. Comment stripping preserves `https://` URLs — a naive `//` strip would eat every URL line and delete the signal.
+- `coverage-scan.mjs` refactored to a pure `runCoverageScan()` core; CLI behaviour unchanged.
+- Fitness **F23 governed-surface-coverage**, modelled on F14 (holistic: one sentinel, whole-tree analysis inside `check()`). Per-category committed ceilings, not a single total — a flat total lets 10 fixed proofs mask 10 new ungoverned writes.
+- THE RATCHET BITES BOTH WAYS. Over-baseline FAILS (regression). Under-baseline ALSO FAILS, naming the value to re-seed. A must-not-exceed check is not a ratchet: once gaps are fixed the slack silently reopens and the count drifts back up inside the allowance with the build green. Same shape as the meta-gate's MARKER BASELINE, which fails on movement in either direction. Proven RED in both directions at the runner.
+- Invariant `RD-52-governed-surface-coverage-ratchet` claims F23 (skill remediation-discipline, anchored on "A capability having a test (or even callers) does not prove it is wired into the flow that should use it").
+- `anthropic-stream.mjs` exempted for the `model` kind with the real reason: F15 names it in SANCTIONED, so it IS governed — by a mechanism, not a skill. Recording the disposition beats leaving a permanent phantom gap.
+
+BASELINE SEEDED (master 3dc4f54): 113 orphaned proofs, 43 unmapped writes, 2 unmapped model, 3 unmapped routing = 156 gaps over 580 governed files. Was 146/554 before the detector fixes; the rise is creation becoming visible, not new debt.
+
+COST: filesystem only. No network, no database, no model call, no schedule. Seconds on the existing fitness job.
+
+SEPARATE FINDING, NOT YET FIXED — F15's `enumerate()` is `['fsi-app/src/lib/**', 'fsi-app/src/app/api/**']`. It does NOT cover `fsi-app/scripts/**`. 17 files under `scripts/` make direct Anthropic API calls outside the spend chokepoint's enforcement. `scripts/lib/anthropic.mjs` is a SECOND LLM client — sanctioned by discipline rule 016 (the older "canonical wrapper" doctrine), imported by 30 scripts, with no ticket, no ceiling and no ledger, while the app side has the full ticketed chokepoint. Its own header says it is "a single place to add caps/retries"; the caps were never added. Nothing automated invokes any of them, so there is no ongoing spend — the exposure is that an agent working in this repo can spend outside the ledger by running one. The fix is F15's own shrinking-allowlist idiom applied to a widened `enumerate()`; static analysis at PR time, $0. Operator decision pending.
+
+RULE: an audit's headline number is only as good as its detector predicate. "0 gaps" from a scan that cannot see creation, reads comments as code, and runs when someone remembers is not evidence of health — it is three separate silences stacked.
