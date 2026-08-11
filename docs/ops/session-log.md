@@ -2514,3 +2514,29 @@ ORPHANED PROOFS ARE AT HARD ZERO REGARDLESS. That half never depended on the del
 VERIFICATION (un-swept tree, i.e. exactly what ships): suite 1220/1220, npmtest 90/90, goldens 13 pass + 2 cred-skips, fitness 18 functions / 0 violations, meta-gate 104 invariants + 63 doctrines PASS, coverage scan 24 gaps == baseline, commit gate 0 fail.
 
 RULE: when you have already built the precise instrument, use it. Reaching for a blunt one because it is fewer clicks is how a clean 495-path deletion turns into a 1,861-file restore problem and an alarmed operator. Second rule, learned the same hour: verify the permission a plan depends on BEFORE building on it — checking Workflow permissions took one page load and killed a plan that would otherwise have failed loudly at the last step.
+
+
+---
+
+## 2026-08-11 (addendum 2) — CI caught 7 non-portable proofs my local run could not, and the fix widened the resolver
+
+PR #439 went RED on "Discipline engine unit tests": `Cannot find package 'pg' imported from fsi-app/scripts/lib/batch-primitives.mjs`.
+
+WHY LOCAL GREEN WAS MEANINGLESS HERE. My clone has node_modules; the no-npm CI job does not. Worse, the dependency is TRANSITIVE: batch-primitives.test.mjs imports only a RELATIVE module, and that module imports `pg`. A direct-import check calls the test portable. Running it locally passes. Both signals are wrong, and only CI is an honest oracle for this class.
+
+I then checked the way CI does — a transitive import walk over every file the suite glob resolves — and it was not one file, it was SEVEN, all newly pulled in by my directory globs:
+  pg                     -> scripts/lib/batch-primitives.test.mjs
+  typescript (via drift-check.mjs)
+                         -> scripts/lib/{decision-anchors,drift-check,exclusion-audit,inconclusive-probe,surface-registry}.selftest.mjs
+  @supabase/supabase-js  -> src/lib/sources/reconcile.selftest.mjs
+Fixing only the one CI happened to reach first would have produced six more red pushes.
+
+THE FIX — wire them, do not silence them. Excluding all seven would have re-created the exact defect this PR exists to close (proofs that exist and never run). Instead they moved to the lane that CAN run them: the npm-deps step in discipline.yml, after `npm ci`. Deps were already in package.json (pg, typescript, @supabase/supabase-js). They are NOT renamed to *.npmtest.mjs — renaming a proof breaks every citation to it in the invariant registry — they are named explicitly in the step.
+
+THAT EXPOSED A SECOND, DEEPER GAP. Naming them in the workflow made coverage-scan report 7 NEW orphaned proofs (gaps 21 -> 28), because execution-wiring.mjs knew six execution surfaces and none of them was "a path written literally into a workflow step". The resolver's own header says it derives the executed set BY READING THE RUNNERS so it cannot drift from what CI does — and it was drifting, in the direction of under-reporting wiring. Added surface 7: parse discipline.yml for literal proof paths. Gaps back to 21, and adding a path to that step is now by itself sufficient to make it execution-wired.
+
+THE RATCHET DID ITS JOB IN BOTH DIRECTIONS, WHICH IS THE POINT. It REDded when the 7 became invisible (28 > 21 ceiling), and it would have REDded had I "fixed" that by lowering the ceiling to hide them. A one-directional gate would have let me quietly drop 7 proofs and call the build green.
+
+Verification after the fix: no-npm suite 1171/1171, npm lane 139/139 (was 90 — the 7 newly-wired proofs add 49 assertions), goldens 13 pass + 2 cred-skips, fitness 18/0, meta-gate 104+63 PASS, coverage 21 gaps == baseline, commit gate 0 fail. Portability re-verified by transitive walk: 0 of the 149 no-npm suite files reaches a bare package.
+
+RULE: "it passes locally" is not evidence about a no-dependency CI lane; it is evidence about your node_modules. When a gate exists precisely because environments differ, check the way the gate checks — statically, transitively — before pushing, and when CI does catch one, look for the whole class before fixing the instance.
