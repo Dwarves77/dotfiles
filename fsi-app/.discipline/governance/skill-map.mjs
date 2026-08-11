@@ -23,12 +23,14 @@ export const GOVERNED = [
     why: 'item taxonomy (item_type→format), grounding/integrity rule, source≠item, mint chokepoint (EP-9)',
     // generation + grounding logic files
     files: [
-      'fsi-app/src/lib/agent/canonical-pipeline.ts',
-      'fsi-app/src/lib/agent/system-prompt.ts',
-      'fsi-app/src/lib/agent/parse-output.ts',
-      // the ONE intelligence_items mint chokepoint (EP-9 single-mint-chokepoint / F13) — an edit here
-      // changes source↔claim-type congruence + subject-existence dedup for the whole corpus.
-      'fsi-app/src/lib/intake/mint-item.ts',
+      // DIRECTORY MAPPINGS (2026-08-11, operator wiring census): the hand list of individual files had
+      // drifted — gate-a-scan.mjs (grounding-path year/number gate) and census-writer.mjs (corpus census
+      // writes) were unmapped while sibling files were governed. The agent/ and intake/ directories ARE
+      // this skill's domain (generation, grounding, intake mint); per-file listing was the drift vector.
+      'fsi-app/src/lib/agent/',
+      'fsi-app/src/lib/intake/',
+      // 4c relabel executor (claim-label domain) — live script, referenced by run-4c-relabel.mjs.
+      'fsi-app/scripts/apply-4c-plan.mjs',
     ],
     // row mutations on the intelligence taxonomy (item_type / provenance / classification)
     ops: [/intelligence_items/i, /\bitem_type\b/i, /\bprovenance_status\b/i],
@@ -62,6 +64,12 @@ export const GOVERNED = [
       'fsi-app/src/lib/trust.ts',
       // source-pool.ts entry removed 2026-07-11: file deleted (retired module, zero importers — audit CODE-1 F-04)
       'fsi-app/src/types/source.ts',
+      // DIRECTORY MAPPINGS (2026-08-11): the source machinery (change detection, reconcile, seek-more,
+      // snapshot store, verify-item) and the citation/connection graph (write-edges' provenance-origin
+      // ownership contract) are this skill's domain — five of them carried writes with NO governing
+      // skill while trust.ts alone was mapped.
+      'fsi-app/src/lib/sources/',
+      'fsi-app/src/lib/connections/',
     ],
     ops: [/trust_score|base_tier|effective_tier|convergence/i],
   },
@@ -72,9 +80,15 @@ export const GOVERNED = [
     // the spend + transport chokepoint modules — an edit here changes the single-home guarantees
     // (RD-10 spend chokepoint / F15; RD-11 transport-hold gate / F16) the whole pipeline funnels through.
     files: [
-      'fsi-app/src/lib/llm/spend-client.ts',
+      // DIRECTORY MAPPINGS (2026-08-11): the whole spend layer (metered-emit ledger writes ride RD-10's
+      // chokepoint doctrine), the D3 disposition hooks, and the funded-pass lease/lock machinery are this
+      // skill's domain; the prior hand list covered only three files of it.
+      'fsi-app/src/lib/llm/',
       'fsi-app/src/lib/sources/fetch-hold.mjs',
       'fsi-app/src/lib/sources/canonical-fetch.mjs',
+      'fsi-app/src/lib/d3/',
+      'fsi-app/scripts/lib/funded-pass-lock.mjs',
+      'fsi-app/scripts/lib/mutation-lease.mjs',
     ],
     // delete / archive operations on existing rows
     ops: [/is_archived\b/i, /archive_reason\b/i, /\.delete\s*\(/, /\bDELETE\s+FROM\b/i],

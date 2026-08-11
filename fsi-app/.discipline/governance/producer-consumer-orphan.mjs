@@ -55,8 +55,8 @@ export const TERMINAL_SINK_ALLOWLIST = {
     reviewByPhase: 'Phase 7 (zero-reader verification) — admin bulk-import history.',
   },
   ingestion_control_log: {
-    reason: 'FIRST RUN 2026-07-03. Written by scripts/wave1-cold-start.mjs as a control-run log; no reader. DISPOSITION PENDING Phase 7 (ratify as script-only audit trail vs wire an ops reader) — grandfathered, not ratified.',
-    reviewByPhase: 'Phase 7 (zero-reader verification) — ingestion ops log.',
+    reason: 'FIRST RUN 2026-07-03. Written by scripts/wave1-cold-start.mjs as a control-run log; no reader. NOTE (2026-08-11 wiring census): wave1-cold-start.mjs is itself DEAD (zero inbound references) and is enumerated for removal in docs/audits/dead-code-manifest-2026-08-11.txt — when the sweep lands, this table loses its only code writer and THIS ENTRY MUST BE RETIRED IN THE SAME PR or the staleness audit REDs. That RED is the intended signal, not a defect.',
+    reviewByPhase: 'dead-code-sweep — retire with the manifest sweep; then Phase 7 decides the table itself.',
   },
   // portal_link_candidates: entry RETIRED 2026-07-19 — B1 (portal-harvest consumer) built the awaited
   // reader (src/lib/intake/portal-harvest.ts consumePortalCandidates), so the table is no longer a

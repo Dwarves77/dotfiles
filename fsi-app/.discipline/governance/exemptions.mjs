@@ -25,6 +25,49 @@ export const EXEMPTIONS = [
     reason: 'The canonical Anthropic wrapper itself — the sanctioned direct-call site.',
     by: 'operating-mechanism build 2026-06-06',
   },
+  // USER-ACCOUNT PLUMBING (2026-08-11, operator wiring census — wire-or-exempt, exempt side). These
+  // write PER-USER preference / notification / auth-provisioning / telemetry rows, RLS-guarded and
+  // route-auth-gated — not the intelligence corpus (sources / items / facts / trust) the governing
+  // skills exist to protect. No skill governs account plumbing BY DESIGN; mapping one falsely would be
+  // the over-mapping-decays-to-ceremony failure the skill-map header names. Grouped, not globbed wide:
+  // each entry names the surface so a NEW corpus-writing file in these dirs still gaps unless it lands
+  // in exactly these paths.
+  {
+    match: 'fsi-app/src/components/profile/',
+    kinds: ['writes'],
+    reason: 'User profile + notification-preference UI — per-user preference rows only.',
+    by: 'wiring census 2026-08-11',
+  },
+  {
+    match: 'fsi-app/src/components/settings/',
+    kinds: ['writes'],
+    reason: 'Briefing-schedule settings UI — per-user schedule rows only.',
+    by: 'wiring census 2026-08-11',
+  },
+  {
+    match: 'fsi-app/src/stores/settingsStore.ts',
+    kinds: ['writes'],
+    reason: 'Client settings store — per-user preference persistence.',
+    by: 'wiring census 2026-08-11',
+  },
+  {
+    match: 'fsi-app/src/lib/auth/provision-personal-workspace.ts',
+    kinds: ['writes'],
+    reason: 'First-login workspace provisioning — per-user org/workspace bootstrap rows.',
+    by: 'wiring census 2026-08-11',
+  },
+  {
+    match: 'fsi-app/src/lib/notifications/',
+    kinds: ['writes'],
+    reason: 'Notification dispatch + fallback flag — delivery bookkeeping rows, fail-open by design.',
+    by: 'wiring census 2026-08-11',
+  },
+  {
+    match: 'fsi-app/src/lib/telemetry/',
+    kinds: ['writes'],
+    reason: 'Error-capture telemetry — deliberately fail-open (capture-error.ts header contract); rows are diagnostics, never corpus data.',
+    by: 'wiring census 2026-08-11',
+  },
   {
     match: 'fsi-app/src/lib/agent/anthropic-stream.mjs',
     kinds: ['model'],
