@@ -172,13 +172,31 @@ jobs:
         # Violations print file:line with the function id, message, and source skill section.
         run: node fsi-app/.discipline/fitness/runner.mjs
 
-      - name: App unit tests requiring npm deps (*.npmtest.mjs)
+      - name: App unit tests requiring npm deps (*.npmtest.mjs + named npm-dependent proofs)
         # The NAMED exclusion from run-test-suite.sh's no-npm-ci glob (red-merge-class fix,
         # 2026-07-08): tests importing npm deps (jiti for TS module import) run HERE, after
         # npm ci — glob-by-construction, so a new *.npmtest.mjs joins automatically.
+        #
+        # NAMED LIST ADDED 2026-08-11 (wiring census). Seven proofs were tracked, green, and executed
+        # by NOTHING. They cannot join the no-npm suite because each reaches an npm package — most of
+        # them TRANSITIVELY, through a relative helper (batch-primitives.test.mjs imports only a
+        # relative module, which imports `pg`), so they look portable to a direct-import check and
+        # pass locally where node_modules exists. They are not renamed to *.npmtest.mjs because
+        # renaming a proof breaks every citation to it in the invariant registry; naming them here
+        # wires them with no identity change. Deps are already in package.json (pg, typescript,
+        # @supabase/supabase-js), so `npm ci` above resolves all of them.
         run: |
-          files=$(git ls-files 'fsi-app/src/**/*.npmtest.mjs')
-          if [ -n "$files" ]; then node --test $files; else echo "no npmtest files"; fi
+          set -u
+          globbed=$(git ls-files 'fsi-app/src/**/*.npmtest.mjs')
+          named="fsi-app/scripts/lib/batch-primitives.test.mjs
+          fsi-app/scripts/lib/decision-anchors.selftest.mjs
+          fsi-app/scripts/lib/drift-check.selftest.mjs
+          fsi-app/scripts/lib/exclusion-audit.selftest.mjs
+          fsi-app/scripts/lib/inconclusive-probe.selftest.mjs
+          fsi-app/scripts/lib/surface-registry.selftest.mjs
+          fsi-app/src/lib/sources/reconcile.selftest.mjs"
+          files=$(printf '%s\n%s\n' "$globbed" "$named" | tr -s ' ' | sed '/^$/d')
+          if [ -n "$files" ]; then node --test $files; else echo "no npm-dep test files"; fi
 
       - name: Behavioral goldens (scripts/verify/*.golden.mjs)
         # WIRING-TRUTH FIX (2026-08-09, Decision 2): the behavioral goldens were `selftest:`-cited as

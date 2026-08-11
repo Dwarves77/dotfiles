@@ -41,6 +41,7 @@ import { resolve, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { skillsForFile, skillsForOp } from './skill-map.mjs';
 import { isExempt } from './exemptions.mjs';
+import { isExecutionWired } from './execution-wiring.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..', '..');               // dotfiles repo root
@@ -56,7 +57,9 @@ const WRITE_RE = /\.\s*(insert|update|upsert|delete)\s*\(|\.\s*rpc\s*\(/;
 const SQL_MUT_RE = /\b(UPDATE\s+\w+\s+SET|DELETE\s+FROM|INSERT\s+INTO|ALTER\s+TABLE|DROP\s+\w+|CREATE\s+OR\s+REPLACE\s+(FUNCTION|VIEW))\b/i;
 const MODEL_RE = /api\.anthropic\.com|new\s+Anthropic\s*\(|messages\.create|@anthropic-ai\/sdk/;
 const ROUTING_RE = /runCategoryRpc|get_\w+_items\b|fetch(Market|Research|Operations|Technology|Regulations)\w*|category[-_ ]rout/i;
-const PROOF_RE = /\.selftest\.mjs$|\.test\.(mjs|ts|tsx)$/;
+// npmtest + goldens joined 2026-08-11: both ARE proofs (run by the npm-ci step / run-goldens.mjs), and
+// leaving them out of PROOF_RE let their fixture content classify them as WRITES/MODEL production gaps.
+const PROOF_RE = /\.selftest\.mjs$|\.test\.(mjs|ts|tsx)$|\.npmtest\.mjs$|(\.golden|-golden)\.mjs$/;
 
 /**
  * Strip comments so a MENTION is never read as a CALL. Block comments go first; line comments only
@@ -81,35 +84,33 @@ function walk(absDir, acc = []) {
   return acc;
 }
 
-/** Classify a file's governed kinds. `content` is classified with comments STRIPPED. */
+/** Classify a file's governed kinds. `content` is classified with comments STRIPPED.
+ *  A PROOF file classifies as PROOF ONLY: its writes/model/routing matches are FIXTURES exercising the
+ *  detector under test, not production operations — tagging a test as an ungoverned production write is
+ *  the phantom-gap class (semantics fix 2026-08-11, pinned by test). */
 export function classify(relPath, content) {
+  if (PROOF_RE.test(relPath)) return ['PROOF'];
   const kinds = [];
   const isSql = SQL_RE.test(relPath);
   const code = isSql ? String(content) : stripComments(content);
-  if (PROOF_RE.test(relPath)) kinds.push('PROOF');
   if (isSql ? SQL_MUT_RE.test(code) : WRITE_RE.test(code)) kinds.push('WRITES');
   if (!isSql && MODEL_RE.test(code)) kinds.push('MODEL');
   if (!isSql && ROUTING_RE.test(code)) kinds.push('ROUTING');
   return kinds;
 }
 
-// Precompute: which proofs are referenced by a rule/fitness function (= wired).
-function disciplineRefBlob() {
-  const dirs = ['fsi-app/.discipline/rules', 'fsi-app/.discipline/fitness/functions', 'fsi-app/.discipline/consistency'];
-  let blob = '';
-  for (const d of dirs) {
-    const abs = join(REPO, d);
-    if (!existsSync(abs)) continue;
-    for (const f of walk(abs)) blob += readFileSync(f, 'utf8');
-  }
-  return blob;
-}
-
+// ORPHANED-PROOF SEMANTICS (redefined 2026-08-11, operator wiring census). The original predicate was
+// "no rule/fitness/consistency file MENTIONS this test's basename" — which flagged 113 ordinary unit
+// tests that CI runs on every push (a citation census, not a wiring census) while MISSING the harmful
+// class entirely: 24 green, portable proof files that NO CI surface executed, among them the red-test
+// for the F22 registerSource wiring itself. Run-by-nothing is the goldens-class defect (15 goldens run
+// by nothing, found 2026-08-09); cited-by-nothing is at most a naming nicety. The predicate is now
+// isExecutionWired() — the SAME resolver the invariant meta-gate uses — so "orphaned proof" means
+// exactly "a proof CI never executes", and the two audits cannot disagree about what "wired" means.
 const KINDMAP = { WRITES: 'writes', MODEL: 'model', ROUTING: null, PROOF: null };
 
 /** Pure core. Returns { items, summary }. FS-only: no network, no DB, no model call. */
 export function runCoverageScan() {
-  const refBlob = disciplineRefBlob();
   const files = ROOTS.flatMap((r) => walk(join(REPO, r)));
   const report = { generated: 'see git/stamp', roots: ROOTS, items: [], summary: {} };
 
@@ -121,8 +122,7 @@ export function runCoverageScan() {
     if (kinds.length === 0) continue;                          // not on the governed surface
 
     const mappedSkills = [...new Set([...skillsForFile(rel).map((s) => s.skill), ...skillsForOp(content).map((s) => s.skill)])];
-    const base = rel.split('/').pop();
-    const proofWired = kinds.includes('PROOF') ? refBlob.includes(base) : null;
+    const proofWired = kinds.includes('PROOF') ? isExecutionWired(rel) : null;
 
     // per-kind status; a file is a GAP if ANY governed kind is uncovered AND not exempt for that kind
     const gaps = [];

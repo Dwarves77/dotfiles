@@ -16,6 +16,29 @@
 # Runs WITHOUT npm ci (mirrors the CI job): every listed test MUST import only node: builtins + relative .mjs
 # (glob-portability.test.mjs enforces this). Node 24 type-stripping makes relative .ts imports portable too.
 #
+# NAMED EXCLUSIONS (2026-08-11) — every omission is named, never silent. These proofs reach an npm
+# package (directly or TRANSITIVELY through a helper) and therefore cannot run in this no-npm job.
+# They are NOT unwired: they run in the "App unit tests requiring npm deps" step of discipline.yml,
+# after `npm ci`. The transitive part is the trap — batch-primitives.test.mjs imports only a relative
+# module, which imports `pg`; a direct-import check would have called it portable, and running it
+# locally passes because node_modules exists. CI is the only honest oracle for this, and it said no.
+#   pg:                    scripts/lib/batch-primitives.test.mjs
+#   typescript (via drift-check.mjs):
+#                          scripts/lib/{decision-anchors,drift-check,exclusion-audit,
+#                                       inconclusive-probe,surface-registry}.selftest.mjs
+#   @supabase/supabase-js: src/lib/sources/reconcile.selftest.mjs
+#   jiti:                  src/lib/sources/{institution,source-growth}.selftest.mjs — these two are
+#                          additionally execution-wired as F10 fitness sentinels.
+# Because of these, scripts/lib and src/lib/sources are NAMED LISTS rather than directory globs. That
+# reintroduces a drift vector, so it is bounded: coverage-scan's ORPHANED-PROOF check (F23, ratcheted
+# at 0) fails the build the moment any tracked proof stops being executed by a runner — the named list
+# cannot silently fall behind the directory again.
+# UNRUN-PROOF SWEEP (2026-08-11, operator wiring census): 24 green, portable proof files were tracked
+# but matched NO glob here and NO other CI surface — run by nothing, the exact goldens-class gap the
+# 2026-08-09 wiring-truth sweep closed one layer down. The scripts/lib entries are now DIRECTORY GLOBS
+# (the hand list had drifted 5 listed vs 21 present), and the src globs cover sources/*.selftest.mjs,
+# coverage/, d3/, and tier-labels. coverage-scan's ORPHANED-PROOF category now measures exactly this
+# (execution-wiring), so a future proof dropped outside every glob is a RED F23 gap, not a silence.
 # APP TESTS JOIN BY CONSTRUCTION (red-merge-class fix, dispatch 2026-07-08): the src/** entries are
 # DIRECTORY GLOBS, not a hand list — the hand list silently omitted 6+ app test files (prompt-cache,
 # timeline-harvest, cited-host-gate, content-change, portal-links, parse-output-blocklist,
@@ -43,15 +66,32 @@ node --test \
   fsi-app/.discipline/dispatch/*.test.mjs \
   fsi-app/.discipline/fitness/functions/*.test.mjs \
   fsi-app/.discipline/fitness/runner.test.mjs \
+  fsi-app/scripts/lib/admin-phrase-scan.selftest.mjs \
+  fsi-app/scripts/lib/check-sources-decision.selftest.mjs \
+  fsi-app/scripts/lib/db-register-source-role.test.mjs \
   fsi-app/scripts/lib/db.test.mjs \
-  fsi-app/scripts/lib/funded-release-plan.test.mjs \
-  fsi-app/scripts/lib/funded-pass-core.test.mjs \
   fsi-app/scripts/lib/deferral.selftest.mjs \
+  fsi-app/scripts/lib/entity-gate.selftest.mjs \
+  fsi-app/scripts/lib/error-drop-probe.selftest.mjs \
+  fsi-app/scripts/lib/fetch-now-decision.selftest.mjs \
   fsi-app/scripts/lib/flag-age.selftest.mjs \
+  fsi-app/scripts/lib/free-pass.selftest.mjs \
+  fsi-app/scripts/lib/funded-pass-core.test.mjs \
+  fsi-app/scripts/lib/funded-release-plan.test.mjs \
+  fsi-app/scripts/lib/liveness.selftest.mjs \
+  fsi-app/scripts/lib/reachability.selftest.mjs \
+  fsi-app/scripts/lib/type-consumer-probe.selftest.mjs \
+  fsi-app/scripts/lib/verification-decision.selftest.mjs \
+  fsi-app/scripts/lib/verify.selftest.mjs \
   fsi-app/scripts/verify/lib/*.test.mjs \
   fsi-app/src/__tests__/*.test.mjs \
   fsi-app/src/lib/credibility/*.test.mjs \
   fsi-app/src/lib/sources/*.test.mjs \
+  fsi-app/src/lib/sources/classify-source-role.selftest.mjs \
+  fsi-app/src/lib/sources/instrument-identity.selftest.mjs \
+  fsi-app/src/lib/coverage/*.test.mjs \
+  fsi-app/src/lib/d3/*.selftest.mjs \
+  fsi-app/src/lib/tier-labels.test.mjs \
   fsi-app/src/lib/workspace/*.test.mjs \
   fsi-app/src/lib/connections/*.test.mjs \
   fsi-app/src/lib/entities/*.test.mjs \
