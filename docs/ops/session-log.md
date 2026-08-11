@@ -2311,3 +2311,28 @@ DATA FIX: the 275 rows that vertical-fit.ts classified KEEP/on-vertical were RES
 NOT DONE — OPERATOR DECISION, DELIBERATELY NOT TAKEN: re-enabling the hourly `schedule:` in source-monitoring.yml. That reverses an explicit operator freeze ruling (2026-07-13) and resumes unattended external Browserless fetches with real spend, gated on the snapshot-first pipeline and an operator-go flag. Naming it as the single remaining blocker: until it is lifted, last_checked stays NULL registry-wide, no source can earn an item, and any future triage keying on activity will re-derive the same false conclusion. The guard against that is FINDING 1 being recorded here, plus the standing rule below.
 
 RULE (fourth instance of this class this session): before treating any entity as dead/unused/irrelevant, establish that the mechanism which would have produced evidence of life WAS ACTUALLY RUNNING. Absence of evidence from a disabled pipeline is not evidence of absence. Prior three: P1's src/-only import grep, the 2-table role check, the notes-text portal heuristic — all "absent where I looked". This one is worse: the observation window itself was switched off, by ruling, and nothing surfaced that to the reader of the data.
+
+## 2026-08-11 (later) — The 436 "undeterminable" sources were never undeterminable. Classifier blind spots found and fixed; 845 roles recovered.
+
+Operator challenge: "436 are never undetermined. You have the exact tools to determine. Use them." Correct on both counts.
+
+WHAT "UNDETERMINABLE" ACTUALLY MEANT. Running the real classifySourceRole over a random 45-row sample of the residue: 35 resolved IMMEDIATELY. They were never ambiguous — nothing had ever run the classifier on them (registerSource never called it; fixed earlier today). The label was a reporting artifact, not a property of the data.
+
+BLIND SPOTS FOUND IN THE REMAINING 10 — each a CLASS, not a one-off:
+1. Government hosts with no gov marker in the TLD, or "gov" as the FIRST label: gov.mb.ca could never match the anchored /\.gov\.[a-z]{2}$/.
+2. Bodies naming themselves "Government of X" on a neutral host (climatechange.novascotia.ca).
+3. .asn.au — Australia's reserved association domain, a host signal as strong as .edu, absent entirely.
+4. Commercial hosts under a country code: `tld` is the LAST label, so sevenresiduos.com.br / example.co.uk yielded "br"/"uk" and fell past the .com fallback. EVERY non-US commercial source in the registry was unclassifiable.
+5. WEAK NAME KEYWORDS OVERRIDING STRONG HOST IDENTITY — the worst class, because it produced confidently WRONG answers rather than null. `name` often carries a DOCUMENT TITLE, so "Media Centre" made mpa.gov.sg academic_research; a headline containing "MIT" made musicweek.com academic_research; "Council of the EU" made consilium.europa.eu an industry_association. Bare \bmit\b is also the German word "with". Fixed by barring government/EU/intergovernmental hosts from the two keyword-only rules and dropping bare \bmit\b. Caught only because the batch output was inspected row by row before writing — a blanket apply would have written wrong roles at ~5% and called it done.
+
+Sample resolution after fixes: 42/45 (was 35/45). Registry NULL roles 1,719 -> 874. Cohort residue 423 -> 246.
+
+CONTENT PROBES for the true residual (name+URL genuinely insufficient — this is what the tools are for): csis.org -> bipartisan nonprofit research organization; iratracker.org -> joint project of Columbia Law's Sabin Center and EDF; climatecooperation.cn -> operated on behalf of Germany's International Climate Initiative via GIZ, i.e. a bilateral government programme. Deliberately NOT hardcoded into the deterministic classifier — that would trade a real "flag, never guess" property for three domains. The classifier returns null for these by design; content-based identity is verification.ts/haikuVerifyCandidate's job, and that path is blocked by the same acquisition freeze.
+
+DATA WRITTEN: 668 EUR-Lex rows -> primary_legal_authority (applied only to rows where no earlier classifier rule could fire, exclusion list transcribed from rules 1-4, sample verified unanimous against the real module — a naive host-wide apply would have diverged, since EUR-Lex names containing "ICAO"/"IMO" correctly classify as intergovernmental). Plus 177 of a 210-row batch classified individually through the real module. Total 845 roles recovered, zero heuristic re-implementation: every verdict came from classify-source-role.ts itself.
+
+SHIPPED: classifier fixes + classify-source-role.identity-signals.test.mjs, red-test proven (sabotage the host guard -> pass 5/fail 1; restored -> 6/6). Discipline suite 1035/1035, existing selftest + tier-discipline 6/6.
+
+REMAINING, NAMED HONESTLY: 246 rows in the cohort and 874 registry-wide still NULL. The method is proven and mechanical — pull (name, host), run the module, write back — and the durable path is scripts/source-role-cleanup.mjs, whose active-only scope was fixed earlier today and which the operator can run directly with DB credentials. Nothing here is blocked on a ruling.
+
+RULE (extends the earlier one): "undeterminable" is a claim about the DETERMINER, not the entity. Before recording it, verify the determiner actually ran, and that its rules can see the signal the entity carries. Three of the four failure classes above were invisible to the classifier not because the sources were obscure but because the rules looked in the wrong place.
