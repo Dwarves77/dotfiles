@@ -25,6 +25,17 @@ export const EXEMPTIONS = [
     reason: 'The canonical Anthropic wrapper itself — the sanctioned direct-call site.',
     by: 'operating-mechanism build 2026-06-06',
   },
+  {
+    match: 'fsi-app/src/lib/agent/anthropic-stream.mjs',
+    kinds: ['model'],
+    reason:
+      'The streaming transport the spend chokepoint wraps. F15 names it in SANCTIONED alongside ' +
+      'src/lib/llm/spend-client.ts, so it is governed by a live fitness function — it was reported as an ' +
+      'ungoverned model call only because this scan asks "does a SKILL map it?" and F15 is a mechanism, ' +
+      'not a skill. Exempting for the model kind records the real disposition instead of leaving a ' +
+      'permanent phantom gap; the file stays fully in F15 scope.',
+    by: 'coverage-scan wiring 2026-08-11 (F23)',
+  },
 ];
 
 export function isExempt(path, kind) {
