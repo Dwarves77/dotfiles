@@ -14,6 +14,7 @@
 // legacy route stays identical and the suite confirms it.)
 import { urlIsRoot } from "@/lib/sources/entity-gate.mjs";
 import { mintIntelligenceItem } from "@/lib/intake/mint-item";
+import { classifySourceRole } from "@/lib/sources/classify-source-role";
 
 export interface ApplyUpdateResult {
   success: boolean;
@@ -116,7 +117,25 @@ export async function applyStagedUpdate(
         return { success: true, itemId: update.item_id };
       }
       case "new_source": {
-        const { error } = await supabase.from("sources").insert(update.proposed_changes ?? {});
+        // source_role at BIRTH on the LIVE intake path (2026-08-11). classify-source-role.ts's own
+        // contract is "a source is never created with a NULL role". It was wired into the three
+        // admin onboarding routes, and (earlier today) into scripts/lib/db.mjs registerSource —
+        // but NOT here, the machine mint chokepoint reached by runIntakeCycle and portalHarvest.
+        // This is the path that actually runs unattended, so it was the one silently minting
+        // role-less rows, and a later triage then read "no role" as "inert" and demoted live
+        // regulators. Deterministic, name+URL only, no fetch, no LLM, $0. An explicit source_role
+        // in proposed_changes still wins; null stays null when genuinely undeterminable.
+        const proposed = (update.proposed_changes ?? {}) as Record<string, unknown>;
+        const row = {
+          ...proposed,
+          source_role:
+            proposed.source_role ??
+            classifySourceRole(
+              typeof proposed.name === "string" ? proposed.name : null,
+              typeof proposed.url === "string" ? proposed.url : null
+            ),
+        };
+        const { error } = await supabase.from("sources").insert(row);
         if (error) return { success: false, error: error.message };
         return { success: true };
       }

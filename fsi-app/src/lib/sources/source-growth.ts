@@ -20,6 +20,7 @@ import { computeCitationComponent, recomputeEffectiveTier } from "@/lib/trust";
 import type { TrustMetrics } from "@/types/source";
 import { hostOf, hostInstitution, buildResolver, type SourceRow } from "@/lib/sources/institution";
 import { classTierForHost, decidePoolHostRegistration } from "@/lib/sources/host-authority";
+import { classifySourceRole } from "@/lib/sources/classify-source-role";
 
 export interface CitationEdge {
   citer_source_id: string;
@@ -126,7 +127,10 @@ export async function registerCitedSources(
         continue;
       }
       const { data: ins, error: insErr } = await supabase.from("sources")
-        .insert({ name: cs.name, url: cs.url, base_tier: classTier, tier_at_creation: classTier, status: "provisional", auto_run_enabled: false })
+        // source_role at BIRTH (2026-08-11) — see classify-source-role.ts's own contract. This path
+        // auto-surfaces sources from citations, so it mints unattended; a NULL role here is read
+        // downstream as "no role" and then as "inert". Deterministic, name+URL only, $0.
+        .insert({ name: cs.name, url: cs.url, base_tier: classTier, tier_at_creation: classTier, status: "provisional", auto_run_enabled: false, source_role: classifySourceRole(cs.name, cs.url) })
         .select("id").single();
       if (insErr) { console.warn(`[source-growth] register failed for ${cs.url}: ${insErr.message}`); out.push({ url: cs.url, source_id: null, registered: "candidate" }); continue; }
       out.push({ url: cs.url, source_id: ins?.id ?? null, registered: "new_source" });
