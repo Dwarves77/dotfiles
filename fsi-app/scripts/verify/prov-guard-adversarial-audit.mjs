@@ -42,14 +42,22 @@ if (!client) {
   process.exit(2);
 }
 
-const DENY = "insufficient_privilege"; // ERRCODE 42501 the guard raises
+// SQLSTATE the guard raises. Node-postgres reports error.code as the five-character SQLSTATE ('42501'),
+// NEVER the condition name ('insufficient_privilege') — comparing against the name classified every
+// correct denial as ERROR on the lane's first real run (#66, 2026-08-11: probe C's log line showed the
+// guard denying exactly as designed while the harness scored it ERROR). Lane-diagnosis fix.
+const DENY = "42501";
 const results = [];
 
 /** Run one probe inside BEGIN..ROLLBACK. `expect` is 'deny' | 'allow'.
  *  For 'deny': PASS iff the probe raises SQLSTATE 42501. For 'allow': PASS iff it does NOT raise. */
-async function probe(label, expect, sql, params = []) {
+async function probe(label, expect, sql, params = [], pre = []) {
   await client.query("BEGIN");
   try {
+    // pre-statements run INSIDE the probe transaction, each as its own query — a multi-statement string
+    // with bind params is rejected by the extended protocol (42601 'cannot insert multiple commands into
+    // a prepared statement'), which is exactly how probe A crashed on the lane's first real run (#66).
+    for (const p of pre) await client.query(p);
     await client.query(sql, params);
     // no error
     results.push({ label, verdict: expect === "allow" ? "PASS" : "FAIL", note: expect === "allow" ? "" : "expected denial, write was allowed" });
@@ -77,8 +85,8 @@ try {
   // A — forged GUC + direct escalation (the exact mig-118 exploit). Needs a quarantined row.
   if (qId) {
     await probe("A forged-GUC quarantined->verified DENIED", "deny",
-      `SELECT set_config('app.prov_flip_origin','INSERT',true);
-       UPDATE public.intelligence_items SET provenance_status='verified' WHERE id=$1`, [qId]);
+      `UPDATE public.intelligence_items SET provenance_status='verified' WHERE id=$1`, [qId],
+      [`SELECT set_config('app.prov_flip_origin','INSERT',true)`]);
 
     // C — ON CONFLICT DO UPDATE escalation. Build the column list dynamically (skip generated cols).
     const cols = (await client.query(

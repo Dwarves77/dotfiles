@@ -101,7 +101,10 @@ export async function registerCitedSources(
     if (existing && existing.length) { out.push({ url: cs.url, source_id: existing[0].id, registered: "existing" }); continue; }
     if (cs.rejection_reason) {
       await supabase.from("provisional_sources").upsert(
-        { name: cs.name, url: cs.url, status: "pending_review", notes: `auto-surfaced citation; blocked: ${cs.rejection_reason}` },
+        // reviewer_notes, not notes — provisional_sources has NO `notes` column, so this upsert was a
+        // PostgREST silent whole-row reject (the exact reviewer_notes class); caught by
+        // column-existence-parity's first real CI run (lane run #66, 2026-08-11).
+        { name: cs.name, url: cs.url, status: "pending_review", reviewer_notes: `auto-surfaced citation; blocked: ${cs.rejection_reason}` },
         { onConflict: "url" }
       );
       out.push({ url: cs.url, source_id: null, registered: "candidate" });
@@ -120,7 +123,8 @@ export async function registerCitedSources(
       const classTier = classTierForHost(host);
       if (classTier == null) {
         await supabase.from("provisional_sources").upsert(
-          { name: cs.name, url: cs.url, status: "pending_review", notes: `auto-surfaced citation; host did not classify to a ruled SC-13 tier (host=${host}) — worklist for tier classification` },
+          // reviewer_notes, not notes (same silent-reject fix as above — lane run #66).
+          { name: cs.name, url: cs.url, status: "pending_review", reviewer_notes: `auto-surfaced citation; host did not classify to a ruled SC-13 tier (host=${host}) — worklist for tier classification` },
           { onConflict: "url" }
         );
         out.push({ url: cs.url, source_id: null, registered: "candidate" });

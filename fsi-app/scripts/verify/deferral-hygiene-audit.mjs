@@ -71,9 +71,13 @@ for (const f of flags) {
     if (Number.isNaN(t)) undated.push(f);
     else if (t < nowMs) expiredOpen.push({ id: f.id, subject_ref: f.subject_ref, deferred_until: du });
   }
-  // deleted-subject applies to item-scoped flags whose subject no longer exists (any status worth naming
-  // while still open, since an open deferral for a gone item is the orphan the register cites).
-  if (f.subject_type === "item" && f.subject_ref && !itemIds.has(f.subject_ref)) {
+  // deleted-subject: an OPEN item-scoped flag whose subject no longer exists — an open deferral for a
+  // gone item is the orphan the register cites. OPEN ONLY (lane-diagnosis fix 2026-08-11): the code
+  // originally omitted the open filter its own comment described, so a deleted-subject flag RESOLVED
+  // through this audit's own remediation path ("resolve via a disposition dispatch") still counted as
+  // rot forever — a red no disposition could ever clear. A resolved flag for a deleted subject is the
+  // designed terminal state, not rot.
+  if (open && f.subject_type === "item" && f.subject_ref && !itemIds.has(f.subject_ref)) {
     deletedSubject.push({ id: f.id, subject_ref: f.subject_ref, status: f.status });
   }
 }

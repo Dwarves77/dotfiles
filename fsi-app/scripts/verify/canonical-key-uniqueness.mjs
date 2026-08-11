@@ -10,21 +10,14 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readAll } from "../lib/db.mjs";
+// THE shared mirror of public.derive_canonical_instrument_key() — migration 255 logic, selftest-pinned.
+// This file's private copy was still on migration 200's suffix-discarding derivation and produced six
+// FALSE collision groups on the lane's first real run (#66, 2026-08-11): distinct instruments sharing a
+// CELEX stem (22008A0221(01) vs (02)) collapsed to one derived key. One mirror now (canonical-key.mjs).
+import { deriveKey } from "../lib/canonical-key.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch {}
-
-// Mirror of public.derive_canonical_instrument_key() (migration 200) + backfill-canonical-keys.mjs.
-const ELI_MAP = { reg: "R", dir: "L", dec: "D" };
-function deriveKey(instr, src) {
-  const i = instr || "", u = src || "";
-  let m;
-  m = i.match(/([1-9]\d{4}[A-Z]\d{4})/); if (m) return m[1].toUpperCase();
-  m = i.match(/^eli\/(reg|dir|dec)\/(\d{4})\/(\d+)/); if (m) return "3" + m[2] + ELI_MAP[m[1]] + m[3].padStart(4, "0");
-  m = u.match(/CELEX(?::|%3[Aa])?([1-9]\d{4}[A-Z]\d{4})/); if (m) return m[1].toUpperCase();
-  m = u.match(/\/eli\/(reg|dir|dec)\/(\d{4})\/(\d+)/); if (m) return "3" + m[2] + ELI_MAP[m[1]] + m[3].padStart(4, "0");
-  return null;
-}
 
 let rows, hasStoredColumn = true;
 try {
