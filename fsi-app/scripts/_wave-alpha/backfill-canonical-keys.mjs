@@ -29,22 +29,11 @@ const CITE = {
   reason: "Wave-α C8 backfill canonical_instrument_key (RD-5 data step for migration 200)",
 };
 
-// EXACT mirror of public.derive_canonical_instrument_key(p_instr, p_src_url) in migration 200.
-const ELI_MAP = { reg: "R", dir: "L", dec: "D" };
-export function deriveKey(instr, src) {
-  const i = instr || "";
-  const u = src || "";
-  let m;
-  // (1) full CELEX token in instrument_identifier
-  m = i.match(/([1-9]\d{4}[A-Z]\d{4})/); if (m) return m[1].toUpperCase();
-  // (2) ELI path in instrument_identifier
-  m = i.match(/^eli\/(reg|dir|dec)\/(\d{4})\/(\d+)/); if (m) return "3" + m[2] + ELI_MAP[m[1]] + m[3].padStart(4, "0");
-  // (3) CELEX token in source_url (incl. URL-encoded CELEX%3A)
-  m = u.match(/CELEX(?::|%3[Aa])?([1-9]\d{4}[A-Z]\d{4})/); if (m) return m[1].toUpperCase();
-  // (4) ELI path in source_url
-  m = u.match(/\/eli\/(reg|dir|dec)\/(\d{4})\/(\d+)/); if (m) return "3" + m[2] + ELI_MAP[m[1]] + m[3].padStart(4, "0");
-  return null;
-}
+// THE shared mirror of public.derive_canonical_instrument_key() — migration 255 logic, selftest-pinned
+// (this file carried its own migration-200 copy until the two-mirrors drift was caught by lane run #66,
+// 2026-08-11; see scripts/lib/canonical-key.mjs). Re-exported so existing importers keep working.
+import { deriveKey } from "../lib/canonical-key.mjs";
+export { deriveKey };
 
 async function main() {
   console.log(`[c8-backfill] mode = ${APPLY ? "APPLY" : "DRY-RUN"}`);
