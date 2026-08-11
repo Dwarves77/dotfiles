@@ -52,6 +52,7 @@ import { floorSources, reattributeToFloor } from "@/lib/agent/floor-attribution.
 import { officialnessOf } from "@/lib/sources/officialness.mjs";
 import { verifyPoolTargetMatch } from "@/lib/sources/target-match.mjs";
 import { mergeNullTierAggregate, summarizeNullTierAggregate } from "@/lib/agent/null-tier-flag.mjs";
+import { permanentlyUnregisteredClass } from "@/lib/sources/host-authority";
 // stripUrlMarkers: the SINGLE JS home for the write-site URL-marker strip (drift-guarded against migration
 // 150's SQL canonicalize by url-canon.test.mjs — the two-home guarantee). Synthesis wraps URLs in emphasis
 // (*https://x/*, `https://x/`); criterion-2's URL match would otherwise capture the trailing marker.
@@ -351,15 +352,14 @@ async function surfaceNullTierHosts(
         .limit(1).maybeSingle();
       const prior = (existing?.recommended_actions as { aggregate?: { perItemFacts: Record<string, number>; sampleSpans: string[] } }[] | null)?.[0]?.aggregate ?? null;
       const agg = mergeNullTierAggregate(prior, itemId, contribution);
-      const { itemCount, factCount, description } = summarizeNullTierAggregate(host, agg);
+      // A RULED never-registerable host (aggregator / hosting platform) gets a re-attribution flag, not a
+      // register-at-tier flag — otherwise every grounding run re-mints an instruction the SC-13 ruling
+      // forbids, forever (ruling 2026-08-11).
+      const { description, action, rationale } = summarizeNullTierAggregate(host, agg, permanentlyUnregisteredClass(host));
       const row = {
         category: "source_issue", subject_type: "source", subject_ref: host,
         description: description.slice(0, 480),
-        recommended_actions: [{
-          action: "register_source",
-          rationale: `Register ${host} at its canonical institutional tier; ${factCount} FACT span(s) across ${itemCount} item(s) currently wall on fact_below_authority_floor because the host is unregistered.`,
-          aggregate: agg, sample_spans: agg.sampleSpans,
-        }],
+        recommended_actions: [{ action, rationale, aggregate: agg, sample_spans: agg.sampleSpans }],
         status: "open", created_by: "null-tier-host",
       };
       if (existing?.id) await sb.from("integrity_flags").update(row).eq("id", existing.id);
