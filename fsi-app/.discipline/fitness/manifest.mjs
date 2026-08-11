@@ -70,6 +70,14 @@ import { fitnessFunction as F23 } from './functions/F23-governed-surface-coverag
 // Holds a committed read-only catalog snapshot against the migration tree — filesystem only, no
 // credential, no schedule.
 import { fitnessFunction as F24 } from './functions/F24-db-object-migration-home.mjs';
+// Module liveness (2026-08-11): F25 mechanizes the last two classes the wiring census could only NAME
+// (§A unimported src modules, §B scripts/lib with no consumer). Re-measured with a real import graph
+// instead of basename matching: 54 modules with zero production importer, 13 of them carrying a green
+// selftest — remediation-discipline category 21 in its literal form ("a capability having a test does
+// not prove it is wired"). The graph's precision earned itself twice: it separated src/lib/verification.ts
+// from src/lib/sources/verification.ts, and it forced the entry-point list to include Next 16's proxy.ts,
+// which has no importers and gates auth for the whole application.
+import { fitnessFunction as F25 } from './functions/F25-module-liveness.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -91,6 +99,7 @@ export const fitnessFunctions = [
   F22,
   F23,
   F24,
+  F25,
 ];
 
 export function getFunctionById(id) {
