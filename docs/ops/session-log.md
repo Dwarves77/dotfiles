@@ -2669,3 +2669,48 @@ it there.
 Verification on the shipping tree: fitness 20/0, meta-gate 106 invariants + 63 doctrines PASS, suite 1217/1217,
 F24 tests 23/23, both migrations' in-file self-checks green live, committed function bodies byte-checked against
 pg_get_functiondef.
+
+---
+
+## 2026-08-11 (addendum 7) — the lane: stopped by instruction, now fixed by instruction
+
+Operator: "Also resolve #5 — the data-audit lane's failures: stopped by instruction, not fixed." Three PRs
+(#443 had already zeroed the drift; #444 fixed the wiring; #445 fixed what the first honest run exposed),
+two dispatch runs, and the nightly cron is re-armed after the first fully green run in seventy runs of
+history. Full record in the diagnosis doc's RESOLUTION section.
+
+THE SHAPE OF IT. The lane had two failure modes stacked on top of each other. The wiring half (#444) was
+exactly the four-line fix the diagnosis predicted, plus one systemic decision: instead of five private
+connection-resolution copies (two of which read local `supabase link` artifacts absent from every CI
+checkout, under a runner comment asserting they "run for real in the secrets lane"), ONE shared resolver —
+vocab-sync's proven candidate logic extracted into scripts/lib/pg-conn.mjs — derives the connection from
+the secrets the workflow already injects. No new secret. Six contract tests pin the resolution order.
+
+RUN #66, THE FIRST HONEST EXECUTION, WAS THE REAL AUDIT OF THE AUDITS. 19 PASS — including the lane itself
+CONFIRMING in CI every number from the drift remediation (0 tier violations across 1,093 institutions, 0 bad
+claim stamps, 0 undispositioned crossings, 0 source-less items). 5 FAIL, and pulling each to root cause
+found FOUR harness defects that had never been executable before (a second stale mirror of the canonical-key
+derivation producing six false collisions; a deleted-subject check missing the `open` filter its own comment
+described, so its own remediation path could never clear it; a DENY comparison against pg's condition NAME
+when node-pg reports the SQLSTATE, scoring correct denials as errors; name[] arriving unparsed so a coverage
+loop iterated a string's characters and flagged five covered grants) — and ONE catch that justifies the
+whole lane: column-existence-parity, after its parser learned to tell the truth (window bounded at the next
+.from(), depth-tracked keys, ternary arms excluded, dead-manifest files skipped with the count reported),
+still pointed at src/lib/sources/source-growth.ts writing a `notes` column provisional_sources does not
+have. PostgREST rejects the whole row silently. Auto-surfaced citation worklist upserts had been failing
+invisibly for as long as that code existed. reviewer_notes now. rls-credential-parity's three surviving
+findings were real too: inert reconciler SELECT grants, made effective by migration 257 (applied live,
+post-check green).
+
+TWO GATES BIT ME CORRECTLY WHILE I FIXED THE GATES. F23's orphaned-proof check REDded the canonical-key
+selftest until it was wired into the suite, and the C3 consistency backstop failed PR #445 until migration
+257 had its inventory row. Both were right; both fixes are in the shipped tree.
+
+RUN #67: GREEN. hard failures 0, Layer C block-state resolved, generation unblocked by the lane's own
+mechanism. The cron is re-armed with the full history in the workflow comment: 29 reds, stop, diagnose,
+zero the drift, fix the wiring, let the first honest run expose the harness, fix that, prove green, THEN
+re-arm. A red from here on is a real finding.
+
+RULE, EARNED TWICE TODAY: an audit's first REAL execution is an audit of the audit. Five of five failures
+on run #66 were worth chasing — four taught the harness to tell the truth, one was the exact defect class
+the audit was built to catch. The lane did not just get fixed; it got proven.
