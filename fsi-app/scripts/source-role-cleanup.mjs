@@ -21,7 +21,18 @@ const c = new pg.Client({ connectionString: CONN }); await c.connect();
 const q = (s, p) => c.query(s, p).then((r) => r);
 
 try {
-  const rows = (await q(`SELECT id, name, url, source_role, category FROM sources WHERE status='active'`)).rows;
+  // SCOPE FIX (2026-08-11): this read was `WHERE status='active'`, which made the cleanup blind to
+  // every non-active row — permanently. That is the wrong shape for a role backfill: a row is most
+  // likely to be missing its role precisely BECAUSE it was demoted/suspended before anyone
+  // classified it, and a NULL role is then read downstream as evidence of worthlessness (the
+  // 2026-08-10 triage demoted 869 sources partly on "no role"). Measured at the time of this fix:
+  // 1,719 of 2,549 rows registry-wide have source_role IS NULL, 820 of them outside status='active'
+  // and therefore unreachable by this tool. Roles are an identity property, not a lifecycle
+  // property — classify every row regardless of status. Pass --active-only to restore the old scope.
+  const ACTIVE_ONLY = process.argv.includes("--active-only");
+  const rows = (await q(
+    `SELECT id, name, url, source_role, category, status FROM sources${ACTIVE_ONLY ? ` WHERE status='active'` : ``}`
+  )).rows;
   const mism = [];
   for (const s of rows) {
     const proposed = classifySourceRole(s.name, s.url);
