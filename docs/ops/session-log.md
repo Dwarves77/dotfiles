@@ -2336,3 +2336,25 @@ SHIPPED: classifier fixes + classify-source-role.identity-signals.test.mjs, red-
 REMAINING, NAMED HONESTLY: 246 rows in the cohort and 874 registry-wide still NULL. The method is proven and mechanical — pull (name, host), run the module, write back — and the durable path is scripts/source-role-cleanup.mjs, whose active-only scope was fixed earlier today and which the operator can run directly with DB credentials. Nothing here is blocked on a ruling.
 
 RULE (extends the earlier one): "undeterminable" is a claim about the DETERMINER, not the entity. Before recording it, verify the determiner actually ran, and that its rules can see the signal the entity carries. Three of the four failure classes above were invisible to the classifier not because the sources were obscure but because the rules looked in the wrong place.
+
+## 2026-08-11 (correction) — Origin outranks article titles; .eu is institutional
+
+Operator correction, two parts, both right:
+(a) ".eu would most likely be institutional."
+(b) "Titles of articles often have nothing to do with source tiers. That comes from where the source originates."
+
+(b) is the deeper one and generalises the guard added earlier today. `sources.name` stores whatever a fetch captured, which is usually a DOCUMENT TITLE, not the publisher's name. "News", "Press Release", "Centre", "Council" describe the ITEM; they say nothing about the tier of the institution that published it. That is settled by the origin host. The earlier fix barred government hosts from the academic and industry-association rules but left the TRADE PRESS rule unguarded, which was the same bug one rule over: "UNESCO World Heritage Centre — News Item 1824" classified trade_press on the word "News", and "IMO ... (Press Briefing)" would have gone the same way. Both are an IGO's own output.
+
+CHANGES:
+1. Trade-press rule now carries the same strongInstitutionalHost guard as rules 3 and 7. Genuine trade press (freightwaves.com) is unaffected because its origin is commercial.
+2. Rule 1 host list extended: unesco.org, undp.org, unep.org were absent — `\bun\b` does not match inside "unesco", so UN agencies fell through to whatever keyword their document title happened to carry.
+3. .eu is registered only to EU-established entities and in this corpus is institutional (eFuel Alliance, Platform for Electromobility, IMPEL, Clean Hydrogen Partnership). It now resolves to industry_association as a FINAL fallback — after the name rules, so a self-describing name still wins, and before the vendor fallback, so a .eu can never be recorded as commercial or left null.
+4. Bare "Government" in a name is now accepted, but ONLY on a non-commercial origin. "Norwegian Government – Press Release" on regjeringen.no is the government (a .no host, no .gov marker anywhere); "Acme Consulting — Government Affairs Update" on a .com stays vendor_corporate. The origin qualifies the keyword — precisely the operator's point, applied as a rule rather than a domain allowlist. Verified both directions.
+
+Batch resolution 177/210 -> 179/210. Registry NULL roles 874 -> 872.
+
+DATA CORRECTED, not just extended: the re-apply overwrote rows written under the older logic rather than filling nulls only. UNESCO trade_press -> intergovernmental_body; Norwegian Government press release trade_press -> primary_legal_authority; UNDP null -> intergovernmental_body; Platform for Electromobility null -> industry_association. Read-back confirmed all four. Worth stating plainly: I had already written two of those wrong and would have left them wrong if the correction had only targeted unclassified rows.
+
+Verification: 8/8 identity-signals tests (two new cases pin origin-over-title and the .eu rule), full discipline suite 1043/1043.
+
+RULE: a name field is not a name. It is whatever text a fetch happened to capture, and it drifts toward document titles. Identity claims should be anchored on the origin, and a keyword should only be trusted when the origin does not contradict it.

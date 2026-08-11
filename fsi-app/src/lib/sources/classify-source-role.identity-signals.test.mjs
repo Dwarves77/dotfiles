@@ -68,3 +68,31 @@ test("still flags rather than guesses when the entity is genuinely undeterminabl
   // rather than acquire a hardcoded domain list.
   assert.equal(role("CSIS / 48th ASEAN Summit Outcomes", "www.csis.org"), null);
 });
+
+// ── Origin outranks article titles (operator correction, 2026-08-11) ────────────────────────────
+// "Titles of articles often have nothing to do with source tiers. That comes from where the source
+// originates." The `name` column stores whatever a fetch captured — usually a DOCUMENT title. Words
+// like "News", "Press Release", "Centre" belong to the item, not the publisher, and must never
+// outrank the origin host. .eu is an EU-established-entity domain, institutional in this corpus.
+
+test("article-title words never outrank an institutional origin", () => {
+  // "News Item" / "Press Briefing" are the document's title; the publisher is an IGO.
+  assert.equal(role("UNESCO World Heritage Centre — News Item 1824", "whc.unesco.org"), "intergovernmental_body");
+  assert.equal(role("IMO — Revised GHG Strategy Adopted (Press Briefing)", "www.imo.org"), "intergovernmental_body");
+  assert.equal(role("UNDP — Biodiversity Finance Work Area", "www.undp.org"), "intergovernmental_body");
+  assert.equal(role("UNEP / Active Mobility Colombia", "www.unep.org"), "intergovernmental_body");
+  // A national government publishing a press release is still the government.
+  assert.equal(role("Norwegian Government – Press Release on Fjords", "www.regjeringen.no"), "primary_legal_authority");
+  // ...but the same word on a commercial origin is a vendor's government-affairs page.
+  assert.equal(role("Acme Consulting — Government Affairs Update", "acme.com"), "vendor_corporate");
+  // Genuine trade press is unaffected.
+  assert.equal(role("FreightWaves - Daily Market Update", "www.freightwaves.com"), "trade_press");
+});
+
+test(".eu is an institutional origin, never commercial and never null", () => {
+  assert.equal(role("Platform for Electromobility / Weights & Dimensions", "www.platformelectromobility.eu"), "industry_association");
+  // A self-describing name still wins over the .eu fallback.
+  assert.equal(role("eFuel Alliance — Political Demands: Aviation", "www.efuel-alliance.eu"), "industry_association");
+  // europa.eu remains an EU institution, not merely an association.
+  assert.equal(role("Clean Hydrogen Partnership – H2Accelerate TRUCKS", "www.clean-hydrogen.europa.eu"), "primary_legal_authority");
+});

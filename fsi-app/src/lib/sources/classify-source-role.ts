@@ -32,7 +32,7 @@ export function classifySourceRole(name: string | null | undefined, url: string 
 
   // 1. Intergovernmental bodies (before government — supranational, not a national gov).
   if (/\b(imo|icao|unctad|unfccc|\bunep\b|\bun\b|united nations|oecd|\biea\b|irena|world bank|\bwto\b|ipcc|itf-oecd|international transport forum|international energy agency|international maritime|international civil aviation)\b/.test(n)
-      || /(^|\.)(imo|icao|unctad|oecd|irena|iea|wto|ipcc|unfccc|un)\.org$/.test(host) || host.endsWith(".int"))
+      || /(^|\.)(imo|icao|unctad|oecd|irena|iea|wto|ipcc|unfccc|unep|undp|unesco|un)\.org$/.test(host) || host.endsWith(".int"))
     return "intergovernmental_body";
 
   // 2. Standards / target-setting bodies (before academic — SBTi/ISO are not universities).
@@ -76,11 +76,23 @@ export function classifySourceRole(name: string | null | undefined, url: string 
       // "government of X" / "gouvernement" is how sub-national and national bodies name themselves when
       // their host carries no gov marker — the single most common miss in the 2026-08-11 audit.
       || /\b(government of|gouvernement|governo do|gobierno de)\b/.test(n)
+      // Bare "Government" ("Norwegian Government", "American Samoa Government") — but only on a
+      // NON-COMMERCIAL origin. "Government" on a .com is a vendor's government-affairs page; on a
+      // country-code or .org origin it is the government itself. Origin qualifies the keyword,
+      // which is the whole point: the word alone cannot tell you who published it.
+      || (/\bgovernment\b/.test(n) && tld !== "com" && tld !== "co" && tld !== "io"
+          && tld !== "ai" && tld !== "net" && tld !== "law" && !/\.(com|co)\.[a-z]{2}$/.test(host))
       || /\b(ministry|ministerio|minist[èe]re|ministerstv|department of|parliament|legislature|congress|senate|national assembly|chamber of deputies|house of (representatives|councillors|commons|lords)|federal register|eur-lex|legislation|official journal|secretariat of|environmental protection agenc|\bepa\b|regulatory authority)\b/.test(n))
     return "primary_legal_authority";
 
-  // 6. Trade press / news.
-  if (/\b(freightwaves|loadstar|splash247|lloyd'?s list|journal of commerce|\bjoc\b|tradewinds|greenbiz|\bedie\b|environmental finance|supply chain digital|bloomberg|reuters|news|newsletter|magazine|\bpress\b|gazette of)\b/.test(n))
+  // 6. Trade press / news. Same host-outranks-name guard as rules 3 and 7, and for the sharpest
+  // case of it: "news", "press", "newsletter" are ARTICLE-TITLE words, not publisher identity.
+  // "UNESCO World Heritage Centre — News Item 1824" and "IMO ... (Press Briefing)" are an
+  // intergovernmental body's own output; the words describe the DOCUMENT, not who wrote it.
+  // What an item is titled says nothing about the tier of the institution that published it —
+  // that is settled by where the source originates.
+  if (!strongInstitutionalHost
+      && /\b(freightwaves|loadstar|splash247|lloyd'?s list|journal of commerce|\bjoc\b|tradewinds|greenbiz|\bedie\b|environmental finance|supply chain digital|bloomberg|reuters|news|newsletter|magazine|\bpress\b|gazette of)\b/.test(n))
     return "trade_press";
 
   // 7. Industry associations.
@@ -98,6 +110,14 @@ export function classifySourceRole(name: string | null | undefined, url: string 
   // example.co.uk, example.com.au) yielded tld="br"/"uk"/"au" and fell through to null — every
   // non-US commercial source in the registry was unclassifiable. Match the commercial second level
   // too. `.law` is a professional-services gTLD (law firms publish client alerts, not regulation).
+  // .eu is registered only to entities established in the EU, and in this corpus it is an
+  // EU-LEVEL INSTITUTIONAL domain, not a commercial one: eFuel Alliance, Platform for
+  // Electromobility, IMPEL, the Clean Hydrogen Partnership. It must never fall through to
+  // vendor_corporate or to null. Placed AFTER the name rules so a self-describing name still
+  // wins (efuel-alliance.eu -> industry_association via "alliance"); this only catches the
+  // remainder, which are overwhelmingly membership/partnership bodies.
+  if (tld === "eu") return "industry_association";
+
   if (tld === "com" || tld === "co" || tld === "io" || tld === "ai" || tld === "law") return "vendor_corporate";
   if (/\.(com|co)\.[a-z]{2}$/.test(host)) return "vendor_corporate";
 
