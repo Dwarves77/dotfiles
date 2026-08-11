@@ -30,6 +30,7 @@ import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { d3GuardAdmission } from "@/lib/d3/hooks.mjs";
 import { classTierForHost } from "@/lib/sources/host-authority";
+import { classifySourceRole } from "@/lib/sources/classify-source-role";
 import { browserlessRender, BrowserlessError } from "@/lib/sources/browserless";
 import {
   checkReachability as ssotCheckReachability,
@@ -640,6 +641,13 @@ async function executeAction(
       const newSource = {
         name: candidate.name || candidate.url,
         url: candidate.url,
+        // source_role at BIRTH (2026-08-11). This is the W2.F auto-approval path: it inserts rows
+        // directly as status:'active' and produced a large share of the registry ("Auto-approved by
+        // W2.F verification pipeline" rows). It never set source_role, so every row it created was
+        // born with a NULL role, which a later triage read as "no role" and then as "inert".
+        // Deterministic, name+URL only, no fetch, no LLM, $0; null stays null when genuinely
+        // undeterminable (flagged, never guessed).
+        source_role: classifySourceRole(candidate.name || candidate.url, candidate.url),
         description: ai?.rationale ?? "",
         // base_tier is the DETERMINISTIC class tier (SC-13) — the moat resolver (institution.ts tierOfSource)
         // reads base_tier ONLY, so this is the moat-conferring value and it must never be a guess.
