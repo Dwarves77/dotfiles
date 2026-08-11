@@ -130,3 +130,40 @@ test("(c)+(d) citation + price is PERMITTED up to the price, then HALTS when the
   assert.throws(() => assertPricedSpend(line), /SPEND_PRICED_LINE_REACHED/);
   __resetSpendForTest();
 });
+
+// ── SPEND REGIME AUTHORIZATION (2026-08-11, module-liveness sweep) ──────────────────────────────────
+// spend-regime.mjs sat unimported for four weeks while SPEND_REGIME was a DEPLOYED Vercel env var, so the
+// switch controlled nothing: flipping it to steady-state in production would have changed no behaviour at
+// all while reading as a regime change. assertBudget now consults it. These prove the two halves: build-
+// phase is unchanged (no standing figure gates), and an undefined or typo'd regime refuses to authorize
+// spend rather than silently falling back to build-phase rules.
+test("REGIME: build-phase authorizes, and a standing ceiling still never gates", () => {
+  __resetSpendForTest();
+  __addSpendForTest(CEIL * 100); // far past any standing figure
+  const ticket = { purpose: "regime-check", failureClasses: ["ambiguous_authority"], necessity: {} };
+  assert.doesNotThrow(() => assertBudget(ticket, CEIL), "a standing ceiling is information-only under build-phase");
+});
+
+test("REGIME: an undefined regime REFUSES to authorize paid work (fails closed, never falls back)", async () => {
+  const prior = process.env.SPEND_REGIME;
+  try {
+    process.env.SPEND_REGIME = "steady-state";
+    // The module reads the env at import time, so re-import under a cache-busting query to observe the flip.
+    const mod = await import("./spend-regime.mjs?regime=steady-state");
+    assert.throws(() => mod.assertRegimeDefined(), /does not name a defined regime/);
+    assert.throws(() => mod.assertRegimeDefined(), /Refusing to authorize paid work/);
+  } finally {
+    if (prior === undefined) delete process.env.SPEND_REGIME; else process.env.SPEND_REGIME = prior;
+  }
+});
+
+test("REGIME: a typo'd regime is refused too (an unrecognized regime is an unauthorized one)", async () => {
+  const prior = process.env.SPEND_REGIME;
+  try {
+    process.env.SPEND_REGIME = "Build-Phase";
+    const mod = await import("./spend-regime.mjs?regime=typo");
+    assert.throws(() => mod.assertRegimeDefined(), /does not name a defined regime/);
+  } finally {
+    if (prior === undefined) delete process.env.SPEND_REGIME; else process.env.SPEND_REGIME = prior;
+  }
+});

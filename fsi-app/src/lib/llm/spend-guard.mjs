@@ -13,6 +13,7 @@
 
 import { paidQueueVerdict } from "../agent/deterministic-lever.mjs";
 import { assertPricedLine, pricedLineHalts } from "./priced-line.mjs";
+import { assertRegimeDefined, standingFiguresAreInformationOnly } from "./spend-regime.mjs";
 
 // Re-export the operator-priced-line gate so the spend client + callers import the whole guard surface from here.
 export { assertPricedLine, pricedLineHalts, PricedLineError } from "./priced-line.mjs";
@@ -134,6 +135,11 @@ export function assertTicket(ticket) {
  * @param {number} [standingCeilingUsd]  accepted for back-compat; informational only, never gates
  */
 export function assertBudget(ticket, standingCeilingUsd) {
+  // REGIME AUTHORIZATION (2026-08-11). The regime that RETIRES standing figures is now consulted rather
+  // than assumed. Under build-phase this is a no-op and behaviour is byte-identical to before; under any
+  // other value it throws, because SPEND_REGIME is a deployed env var and until this call existed, flipping
+  // it changed nothing at all. See spend-regime.mjs assertRegimeDefined for why this fails closed.
+  assertRegimeDefined();
   if (unloggedCalls > 0) {
     throw new SpendError(`SPEND_LEDGER_UNLOGGED: ${unloggedCalls} prior spend call(s) left no agent_runs row — refusing further spend (unlogged spend corrupts the seed + blinds stop conditions).`);
   }
@@ -141,7 +147,10 @@ export function assertBudget(ticket, standingCeilingUsd) {
   if (typeof cap === "number" && Number.isFinite(cap) && runningSpentUsd >= cap) {
     throw new SpendError(`SPEND_CEILING: program-total ledger $${runningSpentUsd.toFixed(4)} has reached the per-ticket cap $${cap.toFixed(2)} (ticket "${ticket.purpose}").`);
   }
-  void standingCeilingUsd; // retired as a limit — no standing-ceiling comparison
+  // Standing ceilings are information-only under build-phase (doctrine build-phase-spend-regime). The
+  // predicate is asked rather than assumed, so the day STEADY-STATE is defined this is the one line that
+  // re-enables a standing comparison — instead of someone having to rediscover that it was hard-coded here.
+  if (standingFiguresAreInformationOnly()) void standingCeilingUsd; // never gates under build-phase
 }
 
 /**
