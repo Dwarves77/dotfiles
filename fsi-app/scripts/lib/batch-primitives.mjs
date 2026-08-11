@@ -132,6 +132,16 @@ export function withRateLimit(fn, opts = {}) {
 
   async function tryExecute() {
     if (inFlight >= maxConcurrent || queue.length === 0) return;
+    // NOT CHANGED, and the reason is worth keeping (2026-08-11). CI failed here with "interval 49ms should
+    // be >= 50ms" and the obvious read is that one sleep does not guarantee the floor, so top it up in a
+    // loop. I wrote that fix, then measured it: over 400 paced calls the single sleep and the top-up loop
+    // undershoot IDENTICALLY — once each, by exactly 1ms. The loop is a no-op wearing a fix's clothes.
+    // The real cause is millisecond TRUNCATION, not an early timer. `lastCallTime` is stamped just before
+    // fn runs, the caller reads the clock just after; when that ~0.1ms crossing lands on a millisecond
+    // boundary the two reads round to different integers and the OBSERVED gap reads one low. The limiter's
+    // own floor, measured from its own stamp, is never violated, and the error does not accumulate (mean
+    // gap 20.2 over a 20ms floor). The test was asserting a wall-clock floor from a different instant than
+    // this function controls; it is the test that was fixed. See batch-primitives.test.mjs.
     const sinceLast = Date.now() - lastCallTime;
     if (sinceLast < minIntervalMs) {
       await sleep(minIntervalMs - sinceLast);
