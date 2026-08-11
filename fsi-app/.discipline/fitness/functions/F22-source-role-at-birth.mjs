@@ -30,33 +30,30 @@ import { isOverridden } from '../lib/file-content.mjs';
 
 const CLASSIFIER = 'fsi-app/src/lib/sources/classify-source-role.ts';
 
-// LEGACY ALLOWLIST — same idiom as F15's. These are one-shot region-population scripts that ALREADY
-// RAN against the live DB; each is an execution record, not a live path. Wiring the classifier into
-// them would change no data, and the rows they created are repaired by scripts/source-role-cleanup.mjs
-// rather than by editing the record of what ran.
-//
-// This is deliberately a list, not a glob: a NEW script under scripts/ is still RED. It is also
-// deliberately HERE rather than as trailing `fitness-allow` comments in the scripts themselves —
-// adding those comments stages the files, which drags these pre-rule-015 scripts into the commit-time
-// scope of rules 015/016 and fails them. Editing an already-executed script to satisfy a new gate is
-// the wrong move twice over: it rewrites the record of what ran, and it trips two other rules.
+// LEGACY ALLOWLIST — same idiom as F15's: a list, not a glob, each entry reason-bearing +
+// reviewByPhase-tagged, shrinking to empty. These 16 already-executed one-shot region-population
+// scripts ALSO carry zero inbound references (wiring census 2026-08-11) and are enumerated for removal
+// in docs/audits/dead-code-manifest-2026-08-11.txt; the sweep PR deletes the files and empties this
+// list together. Wiring the classifier into them would change no data — they ran once against the live
+// DB and the rows they created are repaired by scripts/source-role-cleanup.mjs. A NEW roleless sources
+// INSERT anywhere under src/ or scripts/ is RED.
 export const LEGACY_ALLOWLIST = [
-  { file: 'fsi-app/scripts/pr-a1-execute.mjs', reason: 'PR-A1 region population — executed once', reviewByPhase: 'never (execution record)' },
-  { file: 'fsi-app/scripts/pr-a2-execute.mjs', reason: 'PR-A2 region population — executed once', reviewByPhase: 'never (execution record)' },
-  { file: 'fsi-app/scripts/tier1-au-apac-execute.mjs', reason: 'Tier-1 AU/APAC population — executed once', reviewByPhase: 'never (execution record)' },
-  { file: 'fsi-app/scripts/tier1-ca-provinces-execute.mjs', reason: 'Tier-1 CA provinces — executed once', reviewByPhase: 'never (execution record)' },
-  { file: 'fsi-app/scripts/tier1-eu-southern-eastern-execute.mjs', reason: 'Tier-1 EU S/E — executed once', reviewByPhase: 'never (execution record)' },
-  { file: 'fsi-app/scripts/tier1-eu-western-nordic-execute.mjs', reason: 'Tier-1 EU W/Nordic — executed once', reviewByPhase: 'never (execution record)' },
-  { file: 'fsi-app/scripts/tier1-intl-cities-execute.mjs', reason: 'Tier-1 intl cities — executed once', reviewByPhase: 'never (execution record)' },
-  { file: 'fsi-app/scripts/tier1-uk-nations-execute.mjs', reason: 'Tier-1 UK nations — executed once', reviewByPhase: 'never (execution record)' },
-  { file: 'fsi-app/scripts/tier1-us-cities-execute.mjs', reason: 'Tier-1 US cities — executed once', reviewByPhase: 'never (execution record)' },
-  { file: 'fsi-app/scripts/tier1-us-dc-territories-execute.mjs', reason: 'Tier-1 US DC/territories — executed once', reviewByPhase: 'never (execution record)' },
-  { file: 'fsi-app/scripts/tier1-us-midwest-execute.mjs', reason: 'Tier-1 US midwest — executed once', reviewByPhase: 'never (execution record)' },
-  { file: 'fsi-app/scripts/tier1-us-northeast-execute.mjs', reason: 'Tier-1 US northeast — executed once', reviewByPhase: 'never (execution record)' },
-  { file: 'fsi-app/scripts/tier1-us-south-execute.mjs', reason: 'Tier-1 US south — executed once', reviewByPhase: 'never (execution record)' },
-  { file: 'fsi-app/scripts/tier1-us-west-execute.mjs', reason: 'Tier-1 US west — executed once', reviewByPhase: 'never (execution record)' },
-  { file: 'fsi-app/scripts/tier1-eu-2-clean-inserts-execute.mjs', reason: 'Tier-1 EU-2 clean inserts — executed once', reviewByPhase: 'never (execution record)' },
-  { file: 'fsi-app/scripts/wave2-cleanup-execute.mjs', reason: 'Wave-2 cleanup — executed once', reviewByPhase: 'never (execution record)' },
+  { file: 'fsi-app/scripts/pr-a1-execute.mjs', reason: 'PR-A1 region population — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
+  { file: 'fsi-app/scripts/pr-a2-execute.mjs', reason: 'PR-A2 region population — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
+  { file: 'fsi-app/scripts/tier1-au-apac-execute.mjs', reason: 'Tier-1 AU/APAC — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
+  { file: 'fsi-app/scripts/tier1-ca-provinces-execute.mjs', reason: 'Tier-1 CA provinces — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
+  { file: 'fsi-app/scripts/tier1-eu-southern-eastern-execute.mjs', reason: 'Tier-1 EU S/E — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
+  { file: 'fsi-app/scripts/tier1-eu-western-nordic-execute.mjs', reason: 'Tier-1 EU W/Nordic — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
+  { file: 'fsi-app/scripts/tier1-intl-cities-execute.mjs', reason: 'Tier-1 intl cities — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
+  { file: 'fsi-app/scripts/tier1-uk-nations-execute.mjs', reason: 'Tier-1 UK nations — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
+  { file: 'fsi-app/scripts/tier1-us-cities-execute.mjs', reason: 'Tier-1 US cities — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
+  { file: 'fsi-app/scripts/tier1-us-dc-territories-execute.mjs', reason: 'Tier-1 US DC/territories — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
+  { file: 'fsi-app/scripts/tier1-us-midwest-execute.mjs', reason: 'Tier-1 US midwest — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
+  { file: 'fsi-app/scripts/tier1-us-northeast-execute.mjs', reason: 'Tier-1 US northeast — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
+  { file: 'fsi-app/scripts/tier1-us-south-execute.mjs', reason: 'Tier-1 US south — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
+  { file: 'fsi-app/scripts/tier1-us-west-execute.mjs', reason: 'Tier-1 US west — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
+  { file: 'fsi-app/scripts/tier1-eu-2-clean-inserts-execute.mjs', reason: 'Tier-1 EU-2 clean inserts — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
+  { file: 'fsi-app/scripts/wave2-cleanup-execute.mjs', reason: 'Wave-2 cleanup — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
 ];
 
 const ALLOWLIST_FILES = new Set(LEGACY_ALLOWLIST.map((e) => e.file));

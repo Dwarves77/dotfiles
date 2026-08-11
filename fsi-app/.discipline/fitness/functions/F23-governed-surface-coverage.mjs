@@ -31,15 +31,36 @@
 import { violation } from '../lib/result.mjs';
 import { runCoverageScan } from '../../governance/coverage-scan.mjs';
 
-// Committed ceilings. Measured 2026-08-11 on master at 3dc4f54, AFTER the two detector fixes landed in
-// coverage-scan.mjs (adding `insert` to WRITE_RE, which put 26 previously-invisible row-CREATING files
-// on the governed surface, and stripping comments before classification, which removed the phantom
-// batch-primitives model hit). Lower these as gaps are closed — the gate tells you the exact value.
+// Committed ceilings. Measured 2026-08-11 on the post-wiring-sweep tree.
+//
+// SEEDED at 113/43/2/3 = 156 earlier the same day. Now 0/20/2/2 = 24. What moved, and why each move
+// is real rather than an accounting trick:
+//   orphaned_proofs 113 -> 0   The old predicate asked "does any rule CITE this test's basename?",
+//                              which flagged 113 ordinary unit tests CI runs on every push while
+//                              MISSING all 24 proofs that no CI surface executed at all. The predicate
+//                              is now isExecutionWired() — the invariant meta-gate's own resolver — and
+//                              the 24 real orphans were wired into run-test-suite.sh (suite 1065 ->
+//                              1220, all green). Zero here now means "every proof is executed", which
+//                              is the claim that matters.
+//   unmapped_writes 43 -> 20   The doctrine-governed write modules were mapped to the skills that
+//                              actually govern them (agent/, intake/, sources/, connections/, llm/,
+//                              d3/, the funded-pass lease), and user-account plumbing was exempted
+//                              per-surface with reasons. The remaining 20 are one-shot scripts already
+//                              enumerated for deletion in docs/audits/dead-code-manifest-2026-08-11.txt.
+//   unmapped_model 2, routing 2  Same: dead one-shot scripts on the manifest.
+//
+// WHY NOT ZERO YET — and why that is deliberate rather than unfinished. Every remaining gap is a file
+// on the deletion manifest. Those 495 files cannot be removed through this session's delivery path
+// (the repo's Actions token is read-only by policy, and loosening a repo-wide security setting to
+// perform a one-time deletion is the wrong trade). The deletion is therefore a separate, operator-run
+// step: apply the manifest with git, then this baseline goes to 0/0/0/0 and the F15/F22/F14 allowlist
+// entries tagged `dead-code-sweep` are removed in the same commit. Setting 0 HERE, today, would red
+// the build on a tree that still contains the files — a ceiling has to describe the tree it ships on.
 export const GAP_BASELINE = {
-  orphaned_proofs: 113,
-  unmapped_writes: 43,
+  orphaned_proofs: 0,
+  unmapped_writes: 20,
   unmapped_model: 2,
-  unmapped_routing: 3,
+  unmapped_routing: 2,
 };
 
 const LABEL = {
