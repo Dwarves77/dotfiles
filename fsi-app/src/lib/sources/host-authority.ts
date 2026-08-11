@@ -15,10 +15,14 @@
 // Enacted primary legal text / official journals (binding law) -> T1.
 const LEGAL_PRIMARY = /(^|\.)(eur-lex\.europa\.eu|federalregister\.gov|ecfr\.gov|govinfo\.gov|legislation\.gov\.uk)$/;
 // Intergovernmental / official bodies acting in an authoritative capacity -> T2.
-const GOV_INTERGOV = /(^|\.)(europa\.eu|un\.org|oecd\.org|imo\.org|icao\.int|iea\.org|who\.int|wto\.org|unfccc\.int|worldbank\.org|ipcc\.ch)$/;
+// `unesco.org` added 2026-08-11 (UN specialised agency — the same class as un.org, already listed).
+const GOV_INTERGOV = /(^|\.)(europa\.eu|un\.org|unesco\.org|oecd\.org|imo\.org|icao\.int|iea\.org|who\.int|wto\.org|unfccc\.int|worldbank\.org|ipcc\.ch)$/;
 // Government / regulator TLD stems -> T2 (regulator-guidance authority). `(^|\.)` so both the bare
 // registrable domain (gov.uk) and a subdomain (service.gov.uk) match.
-const GOV_TLD = /(^|\.)gov$|(^|\.)gov\.[a-z]{2,3}$|(^|\.)gob\.[a-z]{2,3}$|(^|\.)gouv\.[a-z]{2,3}$|(^|\.)govt\.[a-z]{2,3}$|(^|\.)go\.[a-z]{2}$|(^|\.)gc\.ca$/;
+// `canada.ca` added 2026-08-11: it is the Government of Canada's SINGLE official web presence (the GoC
+// consolidated its departments onto it), so it is a government stem in fact though it carries no gov label —
+// exactly the standing `.gc.ca` already has here.
+const GOV_TLD = /(^|\.)gov$|(^|\.)gov\.[a-z]{2,3}$|(^|\.)gob\.[a-z]{2,3}$|(^|\.)gouv\.[a-z]{2,3}$|(^|\.)govt\.[a-z]{2,3}$|(^|\.)go\.[a-z]{2}$|(^|\.)gc\.ca$|(^|\.)canada\.ca$/;
 
 /** Sub-floor for reg-family (<=T2) AND research_finding (<=T4). Used only as the NON-grounding
  *  creation-time fallback (defaultTierForHost) — NEVER as a register-at-grounding tier (SC-13). */
@@ -68,26 +72,78 @@ const VERIFIER_CAB = /(^|\.)(dnv|classnk|sgs|tuvsud|tuv|intertek|verifavia|norme
 /** Universities / academic institutions → T4 (research role). */
 const ACADEMIC_TLD = /(\.edu|\.edu\.[a-z]{2}|\.ac\.[a-z]{2})$/;
 /** Industry-body / trade-association ALLOWLIST (cer.be precedent) → T4. Curated — never a fuzzy .org rule. */
-const ASSOCIATION_ALLOW = new Set(["cer.be", "usasean.org", "wbcsd.org", "intercargo.org", "seacargocharter.org"]);
+const ASSOCIATION_ALLOW = new Set([
+  "cer.be", "usasean.org", "wbcsd.org", "intercargo.org", "seacargocharter.org",
+  // 2026-08-11 batched ruling: standard-setter / industry body, same class as cer.be.
+  "ieta.org", "goldstandard.org",
+]);
 /** Law firms → T7 commentary. */
-const LAWFIRM = /(bakermckenzie|bracewell|cliffordchance|mayerbrown|proskauer|slaughterandmay|kennedyslaw|globalelr|fenechlaw|klalaw|tauilchequer|nortonrose|whitecase|hoganlovells|(^|\.)lw\.com$|(^|\.)wfw\.com$)/;
+const LAWFIRM = /(bakermckenzie|bracewell|cliffordchance|mayerbrown|proskauer|slaughterandmay|kennedyslaw|globalelr|fenechlaw|klalaw|tauilchequer|nortonrose|whitecase|hoganlovells|(^|\.)lw\.com$|(^|\.)wfw\.com$|aoshearman|trenchrossi|(^|\.)cms\.law$|(^|\.)blakes\.com$|garrigues|dlapiper|linklaters|morihamada|allbrightlaw)/;
 /** News / trade press → T7. */
-const NEWS = /(reuters|freightwaves|loadstar|(^|\.)joc\.com$|(^|\.)tpm\.joc\.com$|lloydslist|maritime-executive|greenairnews|motortransport|logistics-manager|safety4sea|rivieramm|calmatters|plasticsnews|supplychainbrain|esgnews|theartnewspaper|fadmagazine|thomsonreuters)/;
+const NEWS = /(reuters|freightwaves|loadstar|(^|\.)joc\.com$|(^|\.)tpm\.joc\.com$|lloydslist|maritime-executive|greenairnews|motortransport|logistics-manager|safety4sea|rivieramm|calmatters|plasticsnews|supplychainbrain|esgnews|theartnewspaper|fadmagazine|thomsonreuters|balkangreenenergynews|ceenergynews|china-briefing|cyprusshippingnews|sundancetimes|sustainable-bus|ishkaglobal)/;
 /** Analysis / think-tank → T6 (Research feedstock, sub-floor). */
-const ANALYSIS = /(carbonbrief|carbon-direct|carbon-transparency|ammoniaenergy|cleanenergywire|climatepolicydatabase|climatecatalyst|renewable-carbon|sustainable-ships|(^|\.)rmi\.org$|theicct|(^|\.)wri\.org$)/;
+const ANALYSIS = /(carbonbrief|carbon-direct|carbon-transparency|ammoniaenergy|cleanenergywire|climatepolicydatabase|climatecatalyst|renewable-carbon|sustainable-ships|(^|\.)rmi\.org$|theicct|(^|\.)wri\.org$|ccarbon\.info|now-gmbh|influencemap|circularactionhub|caneurope|climatecooperation|clientearth|platformelectromobility|energyadvicehub|(^|\.)igsd\.org$|nautilusint|international-climate-initiative|oneplanetnetwork|inderscience)/;
 /** LEGAL AGGREGATORS (operator ruling #3: justia / legiscan / Cornell LII class) → PERMANENT worklist (null).
  *  They republish statutes but are NOT the official publisher — a span is a re-attribution instruction. This
- *  fires BEFORE the academic .edu rule so a legal-info-institute on .edu (law.cornell.edu) is NOT minted T4. */
-const LEGAL_AGGREGATOR = /(law\.justia|(^|\.)justia\.com$|legiscan|law\.cornell\.edu|practiceguides\.chambers|npcobserver|legalclarity)/;
+ *  fires BEFORE the academic .edu rule so a legal-info-institute on .edu (law.cornell.edu) is NOT minted T4.
+ *  `mondaq` (republishes law-firm commentary) and `up.codes` (republishes building codes) added 2026-08-11. */
+const LEGAL_AGGREGATOR = /(law\.justia|(^|\.)justia\.com$|legiscan|law\.cornell\.edu|practiceguides\.chambers|npcobserver|legalclarity|(^|\.)mondaq\.com$|(^|\.)up\.codes$)/;
+/** HOSTING PLATFORMS (2026-08-11 ruling) → PERMANENT worklist (null). A third-party SaaS that hosts someone
+ *  else's publication (Citizen Space hosts UK departmental consultations) is not the publisher either — the
+ *  same re-attribution instruction as an aggregator, arrived at from the hosting side rather than the
+ *  republishing side. Kept a SEPARATE constant so the two reasons stay legible in the flag wording. */
+const HOSTING_PLATFORM = /(^|\.)citizenspace\.com$|(^|\.)commentworks\.co\.uk$/;
+
+// ── RULED HOST INSTANCES (2026-08-11 batched ruling) ────────────────────────────────────────────────────────
+// The class regexes above generalise: they carry a rule that a NEW host of the same class also matches. A few
+// ruled hosts carry NO such derivable signal — an Indian ministry programme on a bare `.in`, a vendor or a
+// carrier's corporate site — and inventing a fuzzy rule for them (".com selling software → T7") would be the
+// exact guess SC-13 forbids. Those are recorded here as RULED INSTANCES: a closed, per-host map, sourced from
+// `scripts/_ruling/null-tier-host-ruling.mjs`. A host NOT in this map and matching no class regex still
+// worklists — the SC-13 no-guess guarantee is unchanged, this map only records rulings already made.
+const RULED_HOST_TIER: ReadonlyMap<string, number> = new Map([
+  ["moefcc-gcp.in", 2],            // India MoEFCC Green Credit Programme — ministry programme on a bare .in
+  ["infineuminsight.com", 7],      // Infineum corporate publication
+  ["searoutes.com", 7],            // routing/emissions SaaS vendor
+  ["shipzero.com", 7],             // carbon-accounting SaaS vendor
+  ["senken.io", 7],                // carbon-credit marketplace vendor
+  ["envigilance.com", 7],          // regulatory-intelligence vendor
+  ["en.reach24h.com", 7],          // REACH24H regulatory consultancy
+  ["freightcourse.com", 7],        // commercial trade-education content
+  ["newyorktruckingonline.com", 7],// commercial trucking-compliance content
+  ["onewaybit.com", 7],            // commercial compliance content
+  ["nyk.com", 7],                  // NYK Line — carrier corporate site
+  ["atoshipping.com", 7],          // shipping company corporate site
+  ["dromon.com", 7],               // Dromon Bureau of Shipping — NOT on the accredited-CAB allowlist, so T7
+]);                                //   under-credits deliberately rather than mint T4 on an unverified signal
+
+/** The class of a host that is ruled NEVER-REGISTERABLE, or null. An aggregator REPUBLISHES someone else's
+ *  text and a hosting platform HOSTS it; either way the host is not the publisher, so minting it any tier
+ *  would credit the republisher for the publisher's authority. A FACT span attributing to one of these is a
+ *  RE-ATTRIBUTION instruction, not a registration backlog item — which is why the null-tier host flag must
+ *  say something different about them (see summarizeNullTierAggregate). */
+export type PermanentWorklistClass = "aggregator" | "platform";
+export function permanentlyUnregisteredClass(host: string | null | undefined): PermanentWorklistClass | null {
+  const h = String(host || "").replace(/^www\./, "").toLowerCase().replace(/\.$/, "");
+  if (!h) return null;
+  if (LEGAL_AGGREGATOR.test(h)) return "aggregator";
+  if (HOSTING_PLATFORM.test(h)) return "platform";
+  return null;
+}
 
 /** THE register-at-grounding class tier for a host — the SC-13 codified rule EXTENDED with the ruled class table,
  *  or NULL (worklist) for an unrecognized/permanent-worklist host. Deterministic, pattern-based, no guess/default. */
 export function classTierForHost(host: string | null | undefined): number | null {
+  // PERMANENT WORKLIST FIRST — before the codified legal/gov rule, not after it. A republisher does not
+  // acquire the publisher's authority by sitting on an authoritative TLD, so the never-register ruling has to
+  // outrank every tier rule below it, not merely the academic one.
+  if (permanentlyUnregisteredClass(host) != null) return null;
   const codified = codifiedTierForHost(host);
   if (codified != null) return codified; // legal 1 / gov 2 (conservative, unchanged)
   const h = String(host || "").replace(/^www\./, "").toLowerCase().replace(/\.$/, "");
   if (!h) return null;
-  if (LEGAL_AGGREGATOR.test(h)) return null; // permanent worklist — before academic, so a .edu LII isn't minted T4
+  const ruled = RULED_HOST_TIER.get(h);
+  if (ruled != null) return ruled; // a ruling already made, recorded — not a rule inferred
   if (VERIFIER_CAB.test(h)) return 4;
   if (ACADEMIC_TLD.test(h)) return 4;
   if (ASSOCIATION_ALLOW.has(h)) return 4;

@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { classTierForHost } from "./host-authority.ts";
+import { classTierForHost, permanentlyUnregisteredClass } from "./host-authority.ts";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const read = (rel) => readFileSync(resolve(HERE, rel), "utf8");
@@ -26,9 +26,57 @@ const BULK_APPROVE = stripComments(read("../../app/api/admin/canonical-sources/b
 // ── 1. BEHAVIORAL: the worklist-on-ambiguous property is what guarantees "never a guessed stamp" ──────────
 test("classTierForHost: a Haiku-favored AMBIGUOUS host returns null (worklist), never a guessed tier", () => {
   // Hosts a model could plausibly score T1/T2/T3 but that carry NO codified/class-table rule -> null.
-  for (const h of ["searoutes.com", "globalpetrolprices.com", "some-random-consultancy.com", "trade-portal.example"]) {
+  // `searoutes.com` was listed here until 2026-08-11, when the batched ruling RULED it T7 (vendor) and
+  // recorded that ruling in RULED_HOST_TIER. That is not a weakening of this property: the guarantee is
+  // "no host is assigned a tier the code cannot justify", and a recorded ruling is a justification where a
+  // model score is not. Below-listed hosts are unruled AND match no class rule, which is the real invariant.
+  for (const h of ["globalpetrolprices.com", "some-random-consultancy.com", "trade-portal.example",
+    "widgets-r-us.co", "another-unknown-portal.net"]) {
     assert.equal(classTierForHost(h), null, `${h} must worklist (null), not a guessed tier`);
   }
+});
+
+test("classTierForHost: a RULED host returns its ruled tier, and the ruled map is CLOSED", () => {
+  // The 2026-08-11 batched ruling, recorded per host because no derivable rule covers these.
+  assert.equal(classTierForHost("searoutes.com"), 7, "ruled vendor");
+  assert.equal(classTierForHost("nyk.com"), 7, "ruled carrier corporate site");
+  assert.equal(classTierForHost("moefcc-gcp.in"), 2, "ruled ministry programme on a bare .in");
+  // CLOSED: a NEIGHBOUR of a ruled host does not inherit the ruling. This is the property that keeps the
+  // per-host map from silently becoming a fuzzy rule.
+  for (const h of ["searoutes.io", "nyk.co.jp", "moefcc-gcp.org", "notnyk.com"]) {
+    assert.equal(classTierForHost(h), null, `${h} must NOT inherit a neighbour's ruling`);
+  }
+});
+
+// ── 1b. PERMANENT WORKLIST: never-register outranks every tier rule, including the authoritative ones ──────
+test("permanentlyUnregisteredClass: aggregators and hosting platforms are ruled never-registerable", () => {
+  for (const h of ["law.cornell.edu", "www.mondaq.com", "up.codes", "legalclarity.org", "npcobserver.com",
+    "practiceguides.chambers.com", "law.justia.com"])
+    assert.equal(permanentlyUnregisteredClass(h), "aggregator", h);
+  assert.equal(permanentlyUnregisteredClass("energygovuk.citizenspace.com"), "platform");
+  for (const h of ["eur-lex.europa.eu", "epa.gov", "searoutes.com", "", null, undefined])
+    assert.equal(permanentlyUnregisteredClass(h), null, String(h));
+});
+
+test("classTierForHost: every ruled never-register host worklists, whatever tier rule it would otherwise hit", () => {
+  // law.cornell.edu is a .edu and would hit the T4 academic rule; the rest hit nothing. All must worklist.
+  for (const h of ["law.cornell.edu", "mondaq.com", "up.codes", "legalclarity.org", "npcobserver.com",
+    "practiceguides.chambers.com", "energygovuk.citizenspace.com"])
+    assert.equal(classTierForHost(h), null, `${h} is ruled never-registerable`);
+});
+
+test("classTierForHost STRUCTURE: the never-register check runs BEFORE the codified legal/gov rule", () => {
+  // No host in today's ruling is BOTH a republisher and on an authoritative TLD, so this ordering has no
+  // behavioural witness yet — and an ordering with no witness is exactly the kind that gets refactored away.
+  // Pin it structurally instead: a republisher must not acquire the publisher's authority by sitting on a
+  // .gov/.eu tomorrow. (Ordering changed 2026-08-11; before that, codified ran first.)
+  const src = stripComments(read("./host-authority.ts"));
+  const body = src.slice(src.indexOf("export function classTierForHost"));
+  const permIdx = body.indexOf("permanentlyUnregisteredClass(");
+  const codIdx = body.indexOf("codifiedTierForHost(");
+  assert.ok(permIdx > -1 && codIdx > -1, "classTierForHost must consult both checks");
+  assert.ok(permIdx < codIdx,
+    "permanentlyUnregisteredClass must be checked BEFORE codifiedTierForHost inside classTierForHost");
 });
 
 test("classTierForHost: a codified host returns its DETERMINISTIC tier (the auto-approve path)", () => {
