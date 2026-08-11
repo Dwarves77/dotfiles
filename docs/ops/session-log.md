@@ -2380,3 +2380,27 @@ Ten already-executed one-shot region-population scripts (PR-A1/A2, tier1-*) are 
 Verification: full discipline suite 1044/1044.
 
 RULE: "I wired it" is a claim about one call site. The honest form is a census of every site that performs the operation, expressed as a test, so the claim keeps holding for code that does not exist yet. Wiring one path and generalising from it is how a contract ends up true only where a human is watching.
+
+## 2026-08-11 (rebuild) — The gate was built as a bolt-on. Rebuilt as fitness function F22 + invariant SC-15.
+
+Operator: "Why would you not build this like the rest of the app to work into the future? That's a failure." Correct, and it is the standing rule about checking for an established pattern before inventing one — violated.
+
+I had put the source-role wiring gate in src/lib/sources/source-role-wired-everywhere.test.mjs: an ad-hoc test file, in the application tree, enforcing an architectural invariant. This repo already has the mechanism for exactly that and has had it for months: the fitness-function suite (F2..F21) plus the invariant registry, with F13 "single-mint-chokepoint" as the near-exact structural analog — every intelligence_items INSERT must go through the mint chokepoint. Mine is the same claim one table over. A bolt-on test also sits outside every governance property the suite provides: it is not in the fitness manifest, not in the runner's per-function reporting, has no fitness-allow override idiom, and is invisible to the invariant-coverage meta-gate.
+
+REBUILT:
+- .discipline/fitness/functions/F22-source-role-at-birth.mjs, modelled on F13: line-anchored detector, exported for behavioural testing, `// fitness-allow: F22 (reason)` override, id/name/description/source/enumerate/check shape. Unlike F13 it enumerates scripts/ as well as src/, because scripts/lib/db.mjs registerSource is a live creation path.
+- F22-source-role-at-birth.test.mjs: 9 behavioural fire-tests against constructed fixtures (not the live tree), including the false positive the first draft produced (a sources .update() followed by an insert on a DIFFERENT table) pinned so it cannot return.
+- Registered in the fitness manifest, and in governance/invariants.mjs as SC-15-source-role-at-birth (skill source-credibility-model, enforcedBy fitness:F22 + its selftest).
+- The 16 one-shot script sites now carry the trailing fitness-allow override — the suite's OWN idiom — replacing the JS allowlist Set I had hand-rolled.
+- Deleted the bolt-on test.
+Red-test proven at the runner level: unwiring apply-staged-update.ts makes it RED in the live scan; restoring returns 0 violations.
+
+THE GOVERNANCE LAYER CAUGHT THREE OF MY MISTAKES, which is the argument for using it:
+1. ORPHAN MECHANISM — F22 existed but no invariant referenced it. A fitness function that nothing claims is unowned; the meta-gate refuses it.
+2. MARKER DRIFT — I bumped the source-credibility-model baseline 14→15, assuming it counted invariants. It counts NORMATIVE MARKERS IN THE SKILL TEXT. SC-15 anchors on an existing normative line ("roles and tiers are credibility differentiation within a surface"): the skill already stated the rule, what was missing was a mechanism. No marker was added, so the bump was exactly the drift the baseline exists to catch. Reverted to 14.
+3. UNRESOLVED ENFORCEMENT — the selftest was not git-tracked, so CI could not see it. An enforcement that exists only in a working tree is not an enforcement.
+Plus a fourth from the portability gate: my test's FIXTURE STRING looked like a real aliased import and would have ERR_MODULE_NOT_FOUND in the no-npm-ci job. Splitting only the `import` keyword was not enough — the gate matches the specifier, so the alias had to be split too. Two wrong attempts before it went green; the gate was right each time.
+
+Verification: full discipline suite 1052/1052, fitness runner 17 functions / 0 violations, npmtest 90/90.
+
+RULE: when adding enforcement, find the layer the codebase already enforces things in and add to it. A test that proves the same fact from outside that layer is not equivalent — it is unregistered, unowned, and invisible to the meta-gates whose entire job is to notice mechanisms like it. The bolt-on version of this gate would have passed CI and still been the wrong artifact.

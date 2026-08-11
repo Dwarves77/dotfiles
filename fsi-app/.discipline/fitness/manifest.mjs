@@ -50,6 +50,12 @@ import { fitnessFunction as F20 } from './functions/F20-pause-flag-one-writer.mj
 // file may directly invoke generateBriefWorkflow / generateBrief / groundBrief (the old $65 bypass path). Maps
 // to invariant RD-24.
 import { fitnessFunction as F21 } from './functions/F21-single-grounding-entry.mjs';
+// Source role at birth (2026-08-11): F22 is F13 one table over — F13 makes the mint gate an invariant
+// for intelligence_items, F22 makes role-at-birth an invariant for sources. classify-source-role.ts
+// DECLARED the contract ("a source is never created with a NULL role") and nothing enforced it, so it
+// held only in the three admin routes and was false on every automated creation path. 1,719 of 2,549
+// rows were born role-less; a triage then read "no role" as inert and demoted 869 live regulators.
+import { fitnessFunction as F22 } from './functions/F22-source-role-at-birth.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -68,6 +74,7 @@ export const fitnessFunctions = [
   F19,
   F20,
   F21,
+  F22,
 ];
 
 export function getFunctionById(id) {

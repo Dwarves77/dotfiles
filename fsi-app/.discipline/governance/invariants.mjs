@@ -85,6 +85,11 @@ export const SKILL_MARKER_BASELINE = {
   // criterion)" normative line. TRIAGE: new invariant SC-12 (enforcedBy selftest slot-forcing.test.mjs).
   // 13→14 (2026-07-13): added the "standard floor is the authoring body, scoped by institution" normative
   // line. TRIAGE: new invariant SC-14 (enforcedBy selftest source-blocks.test.mjs + migration 202).
+  // Stays 14 at 2026-08-11. SC-15 (source-role-at-birth, fitness F22) was added that day, but this
+  // baseline counts NORMATIVE MARKERS IN THE SKILL TEXT, not invariants. SC-15 anchors on an existing
+  // normative line ("roles and tiers are credibility differentiation within a surface") — the skill
+  // stated the rule already; what was missing was a mechanism enforcing it. No marker was added, so
+  // bumping this to 15 is exactly the drift this baseline exists to catch (it caught it).
   'source-credibility-model': 14,
   'analysis-construction-spec': 4,
   // 9→10 (2026-07-12): the Research-positioning ruling added the analysis-follows-page-intent contract line
@@ -297,6 +302,18 @@ export const INVARIANTS = [
       'migration:135',
     ],
     residual: 'rule 019 = commit-time (scripts); migration 135 = DB guard on NEW writes; orphan-source-audit = live-data scan that must reach 0 to clear pre-existing orphans. db.mjs reclassifyToSource() is the safe path all three steer toward.',
+  },
+  {
+    id: 'SC-15-source-role-at-birth',
+    skill: 'source-credibility-model',
+    section: 'Section 5: Source Discovery Loop (role is assigned at registration, not later)',
+    text: 'Every INSERT/UPSERT into sources sets source_role at the point of creation via classifySourceRole(name, url) — deterministic, name+URL only, no fetch, no LLM. classify-source-role.ts declared this contract in its own header ("a source is never created with a NULL role + placeholder content-type") and NOTHING enforced it: it held for the three admin onboarding routes by convention and was false on every automated path (intake mint chokepoint, W2.F verification auto-approval, citation source-growth, scripts registerSource). 1,719 of 2,549 rows were born role-less, and a triage then read "no role" as inertness and demoted 869 live regulators (SEC, eCFR, ESMA, NYS DEC, China MEE, Australia CER) to provisional — gated out of every scrape/AI/index job. Role is an identity property fixed at birth; a backfill that may never run is not the enforcement point.',
+    anchor: 'roles and tiers are credibility differentiation within a surface',
+    enforcedBy: [
+      'fitness:F22',
+      'selftest:fsi-app/.discipline/fitness/functions/F22-source-role-at-birth.test.mjs',
+    ],
+    residual: 'F22 (grep-class, red-then-green: unwiring the intake mint chokepoint makes fsi-app/src/lib/intake/apply-staged-update.ts RED, restoring it returns the live scan to 0 violations; a sources .update() followed by an insert on a DIFFERENT table is GREEN — that was a real false positive in the first draft of this check). Granularity is file-level, not same-window: the inserted row is frequently assembled above the call (a newSource literal, a spread of proposed_changes), so demanding the classifier inside the 4-line window would produce false REDs. Named consequence: a file that classifies ONE sources insert and not a second would pass; no file currently contains two, and review holds that gap. Ten already-executed one-shot region-population scripts carry the trailing fitness-allow override — they ran once against the live DB, so wiring them changes no data, and the rows they created are repaired by scripts/source-role-cleanup.mjs rather than by editing the record of what ran.',
   },
   {
     id: 'SC-3-effective-tier-formula',
