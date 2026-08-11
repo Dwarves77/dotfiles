@@ -128,15 +128,13 @@ export const LEGACY_ALLOWLIST = [
     reason: 'Type module with zero references anywhere in the tree — not code, not tests, not scripts.',
     reviewByPhase: 'dead-code ruling (operator: delete)',
   },
-  {
-    file: 'fsi-app/src/lib/llm/spend-regime.mjs',
-    reason:
-      'Spend-regime DOCTRINE code with zero importers — the highest-value entry on this list. Doctrine that ' +
-      'exists only as an unimported module is doctrine nothing enforces, and this one is about spend. Needs a ' +
-      'ruling on whether the regime it encodes is live policy (then wire it) or superseded by the F15 chokepoint ' +
-      '(then delete it and say so).',
-    reviewByPhase: 'spend-doctrine ruling (operator, elevated — this one is not routine cleanup)',
-  },
+  // RETIRED 2026-08-11, same day it was listed: src/lib/llm/spend-regime.mjs was WIRED, not deleted. It was
+  // the elevated entry on this list — spend doctrine with no importer — and the investigation found worse
+  // than dormancy: SPEND_REGIME is a DEPLOYED Vercel env var, so the switch read as live and controlled
+  // nothing. spend-guard.assertBudget now calls assertRegimeDefined() before any spend, and an undefined or
+  // typo'd regime refuses to authorize paid work instead of silently falling back to build-phase rules.
+  // Behaviour under build-phase is byte-identical. This gate's own staleness audit is what forced the entry
+  // to be removed here in the same commit — the coupling working exactly as designed.
   {
     file: 'fsi-app/src/lib/d3/hooks-reconstruction.mjs',
     reason: 'Reconstruction of the d3 hooks behaviour, written as an audit artifact and never imported by product code.',

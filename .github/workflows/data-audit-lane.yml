@@ -14,8 +14,12 @@ name: Data-audit lane
 
 on:
   # AUDIT LANE STOPPED (operator ruling 2026-08-11). This lane had failed on EVERY nightly run from
-  # at least Aug 4 through Aug 11 (runs #58-#65, eight consecutive reds), emailing the operator each
-  # morning. The operator's instruction was explicit: STOP the audits, do not fix them. The lane is
+  # at least Aug 4 through Aug 11, emailing the operator each morning. CORRECTED 2026-08-11 after reading
+  # the run history properly: it is not eight consecutive reds (#58-#65) as first recorded but TWENTY-NINE
+  # (#37-#65) — the last green run was #36. Diagnosis: docs/audits/data-audit-lane-diagnosis-2026-08-11.md.
+  # Nine audits report REAL and GROWING corpus drift; nine fail on lane wiring (four crash on an unguarded
+  # .env.local read, five want a direct-Postgres connection the workflow never supplies). The drift half came
+  # FIRST; the wiring half was added on top of an already-red lane, which is why the report became unreadable. The operator's instruction was explicit: STOP the audits, do not fix them. The lane is
   # BOTH disabled in the Actions UI (immediate, stops the next fire) AND has its schedule commented
   # out HERE (durable — re-enabling the workflow in the UI does not resurrect the nightly cron; a
   # human must deliberately uncomment this block).

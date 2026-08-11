@@ -47,6 +47,12 @@ pgsodium, plpgsql, supabase_vault, uuid-ossp.
 Every one of the 20 trigger functions has at least one trigger attached. There are no orphan trigger
 functions, and no trigger points at a missing function. That half of the layer is clean.
 
+> **RESOLVED THE SAME DAY, in part.** Migration 254 dropped 16 of the 22 (findings 2 and 3 below) plus
+> `gate_a_route_b_baseline`; its 430 rows are preserved verbatim in
+> `gate-a-route-b-baseline-2026-08-11.csv`. The catalog went 181 objects → 164, F24's allowlist 22 → 5, and
+> the broken-reference allowlist to EMPTY by repair rather than exemption. What follows is the census as
+> measured; the RESOLUTION section at the end records what changed.
+
 ## Finding 1 — 22 of 181 objects exist in production with no committed migration
 
 Two tables and twenty functions are created by no migration in the repo. They exist only in the live
@@ -183,3 +189,58 @@ stops running silently the day the secret expires.
    A never-written column on a live table would not appear here.
 4. **RLS policies were read as a reference surface, not audited as policies.** Whether the 179 policies
    are individually correct is a security review, not a wiring census, and was not attempted.
+
+---
+
+## RESOLUTION (same day)
+
+### Migration 254 — 16 functions and 1 table dropped, content-gated
+
+Applied and post-verified. Four gates ran before any drop and would have aborted the migration:
+`hold_resolution_queue` must still be absent (if something re-created it, the hrq_* functions are not broken
+and the premise is wrong); the baseline table must hold exactly the 430 rows that were exported; nothing
+outside the drop set may depend on anything inside it; and the live `item_gate_a_state` version is recorded.
+Post-drop assertions then refuse to let the migration succeed if it removed anything live.
+
+| | before | after |
+|---|---|---|
+| catalog objects | 181 | **164** |
+| functions | 91 | **75** |
+| tables | 88 | **87** |
+| objects with no migration home | 22 | **5** |
+| broken DB-internal references | 1 class (4 functions) | **0** |
+
+Verified after apply: the three live `gate_a_health*` functions survive, `item_gate_a_state` holds its 984
+rows untouched, `gate_a_health()` still returns its designed staleness error (unchanged — that dormancy is
+the 2026-08-10 ruling, not a defect), and `gate_a_route_b_baseline` is gone.
+
+**The 430 rows were not destroyed.** They are committed at `gate-a-route-b-baseline-2026-08-11.csv` with full
+failure detail: 233 quarantined / 135 verified / 57 unverified / 5 pending_human_verify, across 11 item types.
+A frozen baseline belongs in git, where it is diffable and cannot silently drift, rather than in a live table
+nobody reads.
+
+### The five that remain, and why each is kept
+
+All are legitimate live objects that never got a migration home — none is dead:
+
+- `gate_a_health_cache`, `gate_a_health_compute`, `gate_a_health_refresh` — the health surface
+  `/api/health/surfaces` reads. Dormant **by operator ruling**, which is not the same as dead.
+- `capture_worker_fetch` — the runbook-sanctioned, no-metered-spend capture path.
+- `next_uncensused_portal_candidates` — dormant capability that duplicates nothing and breaks nothing.
+  Kept deliberately: deleting it would be a product decision, not hygiene.
+
+### Finding 4 is now gated, not just recorded
+
+The catalog snapshot carries two new facts, and F24 holds both:
+
+- **`netCallers`** — every function whose body calls `net.http_*`. One entry (`capture_worker_fetch`),
+  sanctioned with a reason. A new database-side egress caller is RED.
+- **`cronJobs`** — every pg_cron job. **Empty, live-verified.** A schedule appearing inside the database is RED.
+
+Both audit in both directions, so a sanction cannot outlive what it sanctions. This closes the capability gap:
+F15 (spend chokepoint) and F16 (transport hold) are blind to database-originated network calls by
+construction, because those calls never pass through application code. Now something is watching.
+
+**Still open, recorded not fixed:** `capture_worker_fetch` carries a hardcoded anon-role JWT literal in a
+`SECURITY DEFINER` body rather than a vault reference. Not a secret leak — the anon key is public by design —
+but a key rotation breaks it silently and no repo-side secret scan can see it.
