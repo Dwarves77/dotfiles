@@ -641,13 +641,6 @@ async function executeAction(
       const newSource = {
         name: candidate.name || candidate.url,
         url: candidate.url,
-        // source_role at BIRTH (2026-08-11). This is the W2.F auto-approval path: it inserts rows
-        // directly as status:'active' and produced a large share of the registry ("Auto-approved by
-        // W2.F verification pipeline" rows). It never set source_role, so every row it created was
-        // born with a NULL role, which a later triage read as "no role" and then as "inert".
-        // Deterministic, name+URL only, no fetch, no LLM, $0; null stays null when genuinely
-        // undeterminable (flagged, never guessed).
-        source_role: classifySourceRole(candidate.name || candidate.url, candidate.url),
         description: ai?.rationale ?? "",
         // base_tier is the DETERMINISTIC class tier (SC-13) — the moat resolver (institution.ts tierOfSource)
         // reads base_tier ONLY, so this is the moat-conferring value and it must never be a guess.
@@ -668,6 +661,14 @@ async function executeAction(
         // were downgraded to M in aggregation), all H rows go in as 'active'.
         status: "active",
         admin_only: false,
+        // source_role at BIRTH (2026-08-11). W2.F is the auto-approval path — it inserts directly as
+        // status:'active' and produced a large share of the registry, every row with a NULL role,
+        // which a later triage read as "no role" and then as "inert". Deterministic, name+URL only,
+        // no fetch, no LLM, $0; null stays null when undeterminable (flagged, never guessed).
+        // Placed HERE, after `domains`, deliberately: w2f-basetier.npmtest.mjs asserts on a text
+        // window of the head of this literal, so a comment block above `domains` pushes the
+        // REGULATIONS_DOMAIN line out of that window and fails a gate that is not about roles.
+        source_role: classifySourceRole(candidate.name || candidate.url, candidate.url),
         update_frequency: "weekly",
         intelligence_types: ["GUIDE"],
         vertical_tags: [],
