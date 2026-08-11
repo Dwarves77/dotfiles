@@ -88,7 +88,29 @@ audit caught it within one suite run. Entry retired. **Open DB question (operato
 
 ## Discovered, deliberately NOT acted on (operator decisions)
 
-### A. 22 src modules imported by nothing
+### A. src modules imported by nothing — MECHANIZED (F25), same day
+The list below was the grep's answer. Re-measured with a real import graph (every import / require /
+dynamic-import specifier extracted and resolved through the tsconfig `@/` alias and the real extension
+list, the way the bundler resolves), the true figure is **54 unimported modules of 383 in scope**, A and
+B combined. Now gated by **F25 (module-liveness)** / invariant **RD-54**, with all 54 carried as
+reason-bearing entries that name the ruling each one waits on.
+
+The graph earned its keep twice over the grep. It found `src/lib/verification.ts` — a 1.2 KB helper
+sitting one directory above the 50 KB W2.F pipeline `src/lib/sources/verification.ts`, imported by
+nothing, which basename matching had masked. And it forced the entry-point list to be right, which
+caught a near-miss worth recording: **`src/proxy.ts` has zero importers and looks exactly like dead
+code. It is the Next 16 middleware entry point and gates authentication for every route in the
+application.** A liveness gate that reported it dead would have invited someone to delete the auth
+boundary. Framework entry points are invoked by convention, never imported; that list is load-bearing.
+
+A coupled gap was closed alongside: F15's `SANCTIONED` set was the one list in the suite that was NOT
+stale-audited, so a deleted sanctioned path would have left the spend chokepoint permanently exempting
+a ghost. It now REDs — which matters immediately, because `scripts/lib/anthropic.mjs` (the sole
+sanctioned script-side call site) is imported only by manifest scripts and loses every consumer the
+moment the sweep lands.
+
+The original grep list, kept for the record:
+
 Unmounted UI components + dormant lib modules. Two deserve attention beyond dead-code cleanup:
 `src/lib/llm/spend-regime.mjs` (spend-regime doctrine code with zero importers — the seek-more
 dormant-capability class) and `src/lib/d3/hooks-reconstruction.mjs`. Full list:
@@ -109,7 +131,9 @@ lib/llm/spend-regime.mjs
 
 This is the P4 liveness-gate backlog (ts-prune / unmounted-component scan) — mechanize before deleting.
 
-### B. 14 scripts/lib modules with no non-test consumer after the sweep
+### B. scripts/lib modules with no non-test consumer — MECHANIZED (F25), same day
+Folded into F25 with §A above (17 of the 54). Original list, kept for the record:
+
 Proven (selftests now wired) but consumed by nothing: block1-reaudit, bootstrap-test1,
 decision-log-audit, drift-check-reconstruction, error-drop-probe, exclusion-audit-reconstruction,
 funded-release-plan, inconclusive-report, liveness-reconstruction, net-agent,
@@ -173,6 +197,11 @@ record, not wiring debt; consolidation is editorial, not mechanical.
 
 Every class this census found now has a standing gate: dead spend callers (F15, widened), unexecuted
 proofs (F23 orphaned-proofs at 0 via execution-wiring), ungoverned writes/model/routing (F23 at 0),
-unregistered mechanisms (invariant meta-gate, orphan-mechanism check), stale allowlists (F14/F15
-staleness audits), out-of-repo DDL (F24, added the same day when D was swept). The remaining
-unmechanized classes are **A and B** above — each named here with its mechanization path.
+unregistered mechanisms (invariant meta-gate, orphan-mechanism check), stale allowlists (F14/F15/F24/F25
+staleness audits), out-of-repo DDL (F24), unwired modules (F25). **Every class this census found is now
+mechanized.** A, B and D were all closed the same day they were named.
+
+What is left is not a missing gate; it is a set of RULINGS the gates are holding open and reporting:
+the 495-file deletion (one operator command), the disposition of the 54 unwired modules, the 22
+out-of-repo database objects, and the undiagnosed data-audit lane. Each is enumerated with its reason
+and its review phase in the gate that holds it, so none of them can go quiet.
