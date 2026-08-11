@@ -2358,3 +2358,25 @@ DATA CORRECTED, not just extended: the re-apply overwrote rows written under the
 Verification: 8/8 identity-signals tests (two new cases pin origin-over-title and the .eu rule), full discipline suite 1043/1043.
 
 RULE: a name field is not a name. It is whatever text a fetch happened to capture, and it drifts toward document titles. Identity claims should be anchored on the origin, and a keyword should only be trusted when the origin does not contradict it.
+
+## 2026-08-11 (wiring audit) — "Are these new rules actually wired?" No. Three MORE live paths were creating sources with no role.
+
+Operator question, and it was the right one to ask. I had wired classifySourceRole into scripts/lib/db.mjs registerSource and declared the contract restored. That was wrong: registerSource is a SCRIPTS helper. The living app creates sources through its own code, which I had not checked.
+
+Rather than grep for the call I expected, I wrote a CENSUS test that enumerates every `.from("sources").insert(`/`.upsert(` in src/ and scripts/ and requires the enclosing file to reference classifySourceRole. It immediately found three live paths, none of which I had touched:
+
+1. src/lib/intake/apply-staged-update.ts (`new_source` case) — the machine MINT CHOKEPOINT, reached by runIntakeCycle and portalHarvest. It inserted `update.proposed_changes` RAW. This is the unattended path, so it is the one that mints the most rows.
+2. src/lib/sources/verification.ts — the W2.F auto-approval pipeline, which inserts directly as status:'active'. This is the origin of the "Auto-approved by W2.F verification pipeline" rows, a large share of the registry, every one born with a NULL role.
+3. src/lib/sources/source-growth.ts — auto-surfaces sources from citations, also unattended.
+
+So the true picture before today: the classifier was wired into three ADMIN routes (human onboarding, the lowest-volume path) and nowhere else. Every automated creation path minted role-less rows. That is why 1,719 of 2,549 rows had source_role IS NULL — not neglect of a backfill, but a contract enforced only where a human happened to be clicking.
+
+All three are now wired at the point of insert, with the same contract: explicit source_role wins, null stays null when genuinely undeterminable, deterministic name+URL only, no fetch, no LLM, $0. tsc --noEmit clean on all three.
+
+THE GATE: src/lib/sources/source-role-wired-everywhere.test.mjs. A census, not a per-file assertion, so a FOURTH creation path added later fails here instead of silently minting role-less rows again. Red-test proven — unwire apply-staged-update and it reports pass 0 / fail 1; restored, 1/1. The detection regex carries a negative lookahead on `.from(` because the first version produced a false positive: a `.from("sources").update(...)` followed later by an unrelated `.from("source_trust_events").insert(...)` matched across the two statements and wrongly accused check-sources/route.ts. It also asserts it found at least two COVERED paths, so a refactor that changes the call shape fails loudly rather than passing vacuously.
+
+Ten already-executed one-shot region-population scripts (PR-A1/A2, tier1-*) are listed EXPLICITLY in an allowlist, not excluded by a glob, so a new script under scripts/ still fails. They ran once against the live DB; editing them changes no data. Rows they created are repaired by the backfill, not by rewriting the record of what ran.
+
+Verification: full discipline suite 1044/1044.
+
+RULE: "I wired it" is a claim about one call site. The honest form is a census of every site that performs the operation, expressed as a test, so the claim keeps holding for code that does not exist yet. Wiring one path and generalising from it is how a contract ends up true only where a human is watching.
