@@ -2582,3 +2582,51 @@ THE PORTABILITY GATE CAUGHT ME AGAIN, CORRECTLY. F25's selftest needs fixture te
 Verification on the exact shipping tree: no-npm suite 1207/1207 (was 1187, +19 F25 tests + 1 F15 staleness audit), npm lane 139/139, goldens 13 pass + 2 cred-skips, fitness 20 functions / 0 violations, meta-gate 106 invariants + 63 doctrines PASS, coverage 21 gaps == baseline, glob-portability green. F25 proven to bite in both directions on the LIVE tree before shipping, not just against fixtures.
 
 RULE: before a liveness gate can call anything dead, its convention list — the things invoked without being imported — has to be verified against the framework's actual version. Get that list wrong in the safe direction and you have noise; get it wrong in the other direction and the gate hands someone a licence to delete the thing holding the door shut.
+
+---
+
+## 2026-08-11 (addendum 5) — the five open items worked to the end, and a number I got wrong
+
+Operator: "Then continue on all." Five items were open. Four are now closed; the fifth is closed as far as this session's access allows, and the reason is a verified constraint rather than an unfinished attempt.
+
+### FIRST, THE CORRECTION. I said "eight consecutive reds." It is TWENTY-NINE.
+
+The data-audit lane's last green run was #36. Every run from #37 through #65 failed. I wrote "eight consecutive reds, runs #58–#65" into the workflow file, the census, and a PR body, because I read as far back as the emails the operator had in hand and did not check how much further it went. Both durable records are now corrected in place, and the correction is stated rather than quietly overwritten.
+
+The arithmetic is the smaller half. A lane red for eight nights reads as a recent regression. One red for twenty-nine reads as a lane nobody has been able to act on for a month — which is the true picture, and the reason the stop instruction was right.
+
+### THE LANE: BOTH READINGS WERE TRUE, AND THE ORDER SETTLES IT
+
+Nine audits ran correctly against live data and report REAL, GROWING drift: undispositioned past-bound crossings 14 → 37 in a week, 111 of 1,093 hosts with inconsistent base_tier, 6 items whose stored provenance_status disagrees with validate(), and one source-less LIVE item that F13's mint chokepoint should have made impossible. Nine others never reached an assertion — four crash on an unguarded `process.loadEnvFile('.env.local')` (the lane runner wraps the identical call in try/catch; these four do not), five want a direct-Postgres path the workflow never supplies.
+
+The decisive fact is the ORDER. Runs #58 and #62 ran an older ten-audit list and were red on drift ALONE. The fourteen audits carrying the wiring failures were added around Aug 9–10. **The lane did not break and then start reporting drift; it was reporting drift, and then acquired a second failure mode that made the report unreadable.** Eighteen failures where nine are real and nine are plumbing is a report nobody can act on — which is exactly how it went unread for twenty-nine runs. Recorded in full in docs/audits/data-audit-lane-diagnosis-2026-08-11.md. The lane stays STOPPED; diagnosing is not fixing and I did not re-enable anything.
+
+### spend-regime.mjs: NOT dead doctrine — a control surface that LIED
+
+This was flagged as the elevated entry on F25's list: spend doctrine with zero importers. The investigation found something worse than dormancy. `SPEND_REGIME` is a **deployed Vercel environment variable** (dormant-systems audit 2026-07-18, item 9), and the only module that reads it was imported by nothing. Setting `SPEND_REGIME=steady-state` in production would have changed NOTHING while reading, to anyone who set it, as a regime change.
+
+The ruling itself was implemented — by hard-coding build-phase behaviour into `spend-guard.assertBudget` (`void standingCeilingUsd; // retired as a limit`). Correct behaviour, reached without consulting the regime that authorizes it. So the module was wired rather than deleted: `assertBudget` now calls `assertRegimeDefined()` before any spend, and the predicate `standingFiguresAreInformationOnly()` is ASKED rather than assumed, so the day steady-state is defined there is one line to change instead of a hard-coded decision to rediscover.
+
+It FAILS CLOSED, which is the whole point. Steady-state is declared-but-undefined; silently applying build-phase rules to a flag that says steady-state would be the same lie one level down. An undefined or typo'd regime now refuses to authorize paid work. Behaviour under build-phase is byte-identical, proven by the existing 14 guard tests plus 3 new ones.
+
+F25's staleness audit REDded the moment the module gained an importer, forcing its allowlist entry to be retired in the same commit. That is the coupling working exactly as designed, on the first real use, one day after it shipped.
+
+### MIGRATION 254: the shadow implementation and the broken API are gone
+
+16 functions and 1 table dropped, content-gated in migration 219's shape: four gates run BEFORE any drop (hold_resolution_queue must still be absent, the baseline must hold exactly the 430 exported rows, nothing outside the drop set may depend on anything inside it) and post-drop assertions refuse to let the migration succeed if it removed anything live. Catalog 181 objects → 164; functions 91 → 75; no-migration-home 22 → 5; broken internal references 1 class → ZERO, by repair rather than exemption.
+
+**The 430 rows were not destroyed.** Exported verbatim with full failure detail to docs/audits/gate-a-route-b-baseline-2026-08-11.csv before the drop, and content-gated on that exact count. A frozen baseline belongs in git, where it is diffable and cannot drift, not in a live table nobody reads.
+
+What deliberately stayed: the three live gate_a_health* objects (dormant BY RULING is not dead), capture_worker_fetch (runbook-invoked), and next_uncensused_portal_candidates (dormant capability that duplicates nothing and breaks nothing — deleting it would be a product decision, not hygiene).
+
+### pg_net / pg_cron: the capability is now watched
+
+The catalog snapshot carries two new facts and F24 holds both: every function calling `net.http_*` must be sanctioned with a reason, and every pg_cron job must be sanctioned. Both audit in BOTH directions so a sanction cannot outlive what it sanctions. One net caller (capture_worker_fetch), zero cron jobs, live-verified. This closes a real hole: F15 and F16 exist to make outbound calls accountable and are blind to database-originated egress BY CONSTRUCTION, because those calls never pass through application code.
+
+### THE DELETION: blocked, and I verified it rather than assuming it
+
+Checked both push paths this session rather than repeating the earlier assumption. `git push` is refused by the session's git proxy ("not in this session's authorized repository set"); the repo's Actions token is read-only, which a workflow `permissions:` block cannot exceed. I also measured whether directory-delete could do it: only 21 of the 495 sit in fully-dead directories — **474 live in directories that also contain live files**, which is precisely the shape that produced the 1,861-file scare earlier today.
+
+So the honest answer is that this step is the operator's, and the useful work was making it one command with its own rails: `fsi-app/scripts/dead-code-sweep.sh` verifies all 495 paths exist AND are git-tracked and ABORTS on any drift (deleting from a drifted manifest is how a live file gets caught up), stages with `git rm`, commits nothing, pushes nothing, then runs the full gate battery so the four coupled gates NAME the stale entries to remove. Dry-run by default.
+
+RULE: when a number is going into a durable record, check how far back it actually goes. "Eight" was not a lie, it was the edge of what I had looked at, written down as if it were the boundary of what happened. The failure mode is not arithmetic — it is letting the shape of the available evidence set the shape of the claim.
