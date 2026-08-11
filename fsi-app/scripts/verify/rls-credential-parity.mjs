@@ -23,8 +23,7 @@
  *  the reconcile-revalidate end-to-end proof); a covering policy clears the parity flag. */
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readFileSync } from "node:fs";
-import pg from "pg";
+import { connectPg } from "../lib/pg-conn.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
@@ -42,28 +41,14 @@ const isCustomRole = (r) => !EXCLUDED_ROLES.has(r) && !r.startsWith("pg_");
 // The commands RLS gates. `ALL` on the policy side covers every command.
 const COMMANDS = ["SELECT", "INSERT", "UPDATE", "DELETE"];
 
-function connString() {
-  let ref, pool;
-  try {
-    ref = readFileSync(resolve(ROOT, "supabase/.temp/project-ref"), "utf8").trim();
-    pool = readFileSync(resolve(ROOT, "supabase/.temp/pooler-url"), "utf8").trim();
-  } catch {
-    return null;
-  }
-  const pw = process.env.SUPABASE_DB_PASSWORD;
-  if (!pw) return null;
-  return pool.replace(`postgres.${ref}@`, `postgres.${ref}:${encodeURIComponent(pw)}@`);
-}
-
-const CONN = connString();
-if (!CONN) {
-  console.error("rls-credential-parity: no DB creds (supabase/.temp/{project-ref,pooler-url} + SUPABASE_DB_PASSWORD). Cannot run — failing honest (exit 2).");
+// Shared resolver (scripts/lib/pg-conn.mjs): env URL -> local .temp link -> CI-derived pooler candidates.
+const client = await connectPg();
+if (!client) {
+  console.error("rls-credential-parity: no direct-Postgres connection (SUPABASE_DB_URL/DATABASE_URL, local supabase link + SUPABASE_DB_PASSWORD, or NEXT_PUBLIC_SUPABASE_URL-derived pooler). Cannot run — failing honest (exit 2).");
   process.exit(2);
 }
 
-const client = new pg.Client({ connectionString: CONN });
 try {
-  await client.connect();
 
   // RLS-enabled public tables.
   const rls = await client.query(`

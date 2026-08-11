@@ -16,17 +16,17 @@
  *  wiring via the meta-gate (RD-23 audit token). */
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import pg from "pg";
+import { connectPg } from "../lib/pg-conn.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* env may be pre-loaded in CI */ }
 
-const CONN = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
-if (!CONN) { console.error("pause-flag-guard-proof: need SUPABASE_DB_URL or DATABASE_URL"); process.exit(2); }
+// Shared resolver (scripts/lib/pg-conn.mjs): SUPABASE_DB_URL/DATABASE_URL still work; the CI lane's
+// NEXT_PUBLIC_SUPABASE_URL + SUPABASE_DB_PASSWORD now also resolve (lane diagnosis 2026-08-11 fix).
+const client = await connectPg();
+if (!client) { console.error("pause-flag-guard-proof: no direct-Postgres connection (SUPABASE_DB_URL/DATABASE_URL, local supabase link + SUPABASE_DB_PASSWORD, or NEXT_PUBLIC_SUPABASE_URL-derived pooler) — exit 2."); process.exit(2); }
 
-const client = new pg.Client({ connectionString: CONN });
 let red = false, green = false;
 try {
-  await client.connect();
   await client.query("BEGIN");
   // Synthetic table shaped like system_state's guarded columns; attach the REAL guard function to it.
   await client.query(`

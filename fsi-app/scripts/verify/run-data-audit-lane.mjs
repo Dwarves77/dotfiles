@@ -72,8 +72,12 @@ const AUDITS = [
   // each is an `audit:` enforcer of a live invariant in .discipline/governance/invariants.mjs but was
   // never in the run list — cited-as-enforcement yet never executed. Now wired. Each self-skips (exit 2)
   // without DB creds and runs for real in the secrets lane (this job does `npm ci` + injects the three
-  // secrets), so their FIRST real execution is the nightly/dispatch run. A red here is a genuine
-  // corpus/schema violation to fix — the mechanism working — not a wiring error.
+  // secrets). CORRECTION (2026-08-11, lane diagnosis): "runs for real in the secrets lane" was FALSE for
+  // the five pg-direct audits from the day they were wired — their connection logic wanted local
+  // `supabase link` artifacts or env vars the workflow never supplied, so they exited 2 on every run.
+  // Fixed by scripts/lib/pg-conn.mjs (shared resolver: the lane's own secrets now yield a connection);
+  // an exit 2 here is once again an honest cannot-verify, not a standing wiring hole.
+  // A red here is a genuine corpus/schema violation to fix — the mechanism working — not a wiring error.
   ["canonical-key-uniqueness", "scripts/verify/canonical-key-uniqueness.mjs", true],
   ["column-existence-parity", "scripts/verify/column-existence-parity.mjs", true],
   ["deferral-hygiene", "scripts/verify/deferral-hygiene-audit.mjs", true],

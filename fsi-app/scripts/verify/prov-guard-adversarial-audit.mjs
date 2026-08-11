@@ -30,32 +30,20 @@
  *  engine error (cannot verify). Read-only in EFFECT (all probes roll back). pg-direct via the pooler. */
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readFileSync } from "node:fs";
-import pg from "pg";
+import { connectPg } from "../lib/pg-conn.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
 
-function connString() {
-  let ref, pool;
-  try {
-    ref = readFileSync(resolve(ROOT, "supabase/.temp/project-ref"), "utf8").trim();
-    pool = readFileSync(resolve(ROOT, "supabase/.temp/pooler-url"), "utf8").trim();
-  } catch { return null; }
-  const pw = process.env.SUPABASE_DB_PASSWORD;
-  if (!pw) return null;
-  return pool.replace(`postgres.${ref}@`, `postgres.${ref}:${encodeURIComponent(pw)}@`);
-}
-
-const CONN = connString();
-if (!CONN) {
-  console.error("prov-guard-adversarial-audit: no DB creds (supabase/.temp/* + SUPABASE_DB_PASSWORD). Cannot verify — exit 2.");
+// Shared resolver (scripts/lib/pg-conn.mjs): env URL -> local .temp link -> CI-derived pooler candidates.
+const client = await connectPg();
+if (!client) {
+  console.error("prov-guard-adversarial-audit: no direct-Postgres connection (SUPABASE_DB_URL/DATABASE_URL, local supabase link + SUPABASE_DB_PASSWORD, or NEXT_PUBLIC_SUPABASE_URL-derived pooler). Cannot verify — exit 2.");
   process.exit(2);
 }
 
 const DENY = "insufficient_privilege"; // ERRCODE 42501 the guard raises
 const results = [];
-const client = new pg.Client({ connectionString: CONN });
 
 /** Run one probe inside BEGIN..ROLLBACK. `expect` is 'deny' | 'allow'.
  *  For 'deny': PASS iff the probe raises SQLSTATE 42501. For 'allow': PASS iff it does NOT raise. */
@@ -77,8 +65,6 @@ async function probe(label, expect, sql, params = []) {
 }
 
 try {
-  await client.connect();
-
   const pick = async (status) =>
     (await client.query(
       `SELECT id FROM public.intelligence_items WHERE provenance_status=$1 AND NOT is_archived ORDER BY id LIMIT 1`,

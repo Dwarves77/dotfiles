@@ -21,7 +21,7 @@
 import { resolve, dirname, join, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import pg from "pg";
+import { connectPg } from "../lib/pg-conn.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
@@ -100,27 +100,15 @@ for (const file of files) {
   }
 }
 
-function connString() {
-  let ref, pool;
-  try {
-    ref = readFileSync(resolve(ROOT, "supabase/.temp/project-ref"), "utf8").trim();
-    pool = readFileSync(resolve(ROOT, "supabase/.temp/pooler-url"), "utf8").trim();
-  } catch { return null; }
-  const pw = process.env.SUPABASE_DB_PASSWORD;
-  if (!pw) return null;
-  return pool.replace(`postgres.${ref}@`, `postgres.${ref}:${encodeURIComponent(pw)}@`);
-}
-
-const CONN = connString();
-if (!CONN) {
-  console.error("column-existence-parity: no DB creds (supabase/.temp/* + SUPABASE_DB_PASSWORD). Cannot verify against schema — exit 2.");
+// Shared resolver (scripts/lib/pg-conn.mjs): env URL -> local .temp link -> CI-derived pooler candidates.
+const client = await connectPg();
+if (!client) {
+  console.error("column-existence-parity: no direct-Postgres connection (SUPABASE_DB_URL/DATABASE_URL, local supabase link + SUPABASE_DB_PASSWORD, or NEXT_PUBLIC_SUPABASE_URL-derived pooler). Cannot verify against schema — exit 2.");
   console.error(`  (scanned ${files.length} files, ${refs.size} tables referenced by literal writes, ${unresolvedSites} unresolved dynamic sites.)`);
   process.exit(2);
 }
 
-const client = new pg.Client({ connectionString: CONN });
 try {
-  await client.connect();
   const cols = await client.query(`
     SELECT table_name AS table, column_name AS col
     FROM information_schema.columns WHERE table_schema = 'public';`);
