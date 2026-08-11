@@ -22,6 +22,29 @@ VERDICTS (live-verified 2026-08-10, do not re-derive)
   MarketSignalDetailSurface 1,111 · MarketIntelLedger 1,026 · verification.ts 1,011 ·
   ResearchLedger 1,007. src/data seed surface: 5,129 lines.
 
+──────── CORRECTION (2026-08-11): THE VERDICTS REGISTRY FIGURES ABOVE ARE STALE AND WERE MIS-DERIVED ────────
+The "Registry roles (2,071 active) ... 981 do NOTHING (47% inert; 1,041 item-less rows never checked)" line
+must NOT be re-used. Two independent problems, both verified live:
+1. STALE. Live counts on 2026-08-11 after the W1.1 pass: 1,284 active / 1,243 provisional (admin_only=false).
+   A 869-row active->provisional demotion ran 2026-08-10 21:19:35 UTC between the plan being written and W1.1
+   being picked up. See docs/ops/session-log.md 2026-08-11 entries for the full ledger.
+2. MIS-DERIVED. "No role" was computed by joining two tables (intelligence_items, section_claim_provenance).
+   `sources.source_role` IS A REAL COLUMN populated by the platform's own classifier, and `sources` carries 25
+   FK references from 20+ tables. Against the real field, 285 of the 869 demoted rows had a classifier-assigned
+   role and 150 were `primary_legal_authority` — the highest role the system assigns — while counted as "no role".
+
+BINDING METHOD FOR ANY FUTURE ROLE/USAGE/RELEVANCE QUESTION (applies to W1.2, W1.3, P3 and any successor):
+- Read the FIELD first. source_role, secondary_roles, category, classification_confidence, classification_rationale,
+  fetch_status, expected_output already hold the platform's own judgment. Do not re-derive what is recorded.
+- Enumerate the COMPLETE reference surface (all 25 FK columns into sources), not a convenient subset.
+- Where the platform ships an instrument for the question, THAT INSTRUMENT DECIDES. For source relevance /
+  on-vertical identity that is src/lib/sources/vertical-fit.ts (deterministic, $0, never auto-kills; `unknown`
+  and general-legislature both route to REVIEW pending the corpus coverage check). Do not hand-roll a heuristic
+  over names, notes text or URL shape — two such heuristics were tried on 2026-08-11 and both mis-classified.
+- If the instrument must be re-implemented in another dialect (e.g. ported to SQL), PROVE EQUIVALENCE on a real
+  sample before applying it. The 2026-08-11 pass diffed 250 rows JS-vs-SQL to 0 mismatches before touching the set.
+────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
 W1 — SOURCE REGISTRY INTEGRITY (data work, $0, Supabase MCP, guarded discipline)
 W1.1 Triage the 981 no-role actives. Dispositions: (a) DEFAULT demote to status=
   'provisional' for inert never-checked rows (provisional is already gated out of every
