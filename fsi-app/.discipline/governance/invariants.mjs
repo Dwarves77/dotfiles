@@ -662,6 +662,19 @@ export const INVARIANTS = [
   },
 
   {
+    id: 'RD-54-module-liveness',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 21: Caller-count is not wiring verification (applied to every module in the tree)',
+    text: 'Every module under fsi-app/src/** and fsi-app/scripts/lib/** MUST have at least one PRODUCTION importer, be a framework entry point invoked by convention, or carry an explicit reason-bearing + review-by-phase-tagged entry in a SHRINKING allowlist audited in both directions (an entry whose module has since gained an importer is RED; an entry naming a deleted file is RED). A test importer does NOT count as a consumer, and neither does an importer that is itself enumerated for deletion — a green proof over a module nothing calls is indistinguishable from a green proof over a live one, which is precisely what makes dormancy expensive to detect by reading.',
+    anchor: 'A capability having a test (or even callers) does not prove it is wired into the flow that should use it',
+    enforcedBy: [
+      'fitness:F25',
+      'selftest:fsi-app/.discipline/fitness/functions/F25-module-liveness.test.mjs',
+    ],
+    residual: 'Mechanizes the two classes the 2026-08-11 wiring census could only enumerate (§A 22 unimported src modules, §B 14 scripts/lib modules with no non-test consumer). Re-measured with a real import graph — every import/require/dynamic-import specifier extracted and resolved through the tsconfig @/ alias and the real extension list, the way the bundler resolves — the true count is 54 of 383 in-scope modules, 13 of them carrying a green selftest. The graph replaced basename matching for a reason and it paid twice: it separated src/lib/verification.ts (a 1.2 KB helper, zero importers) from src/lib/sources/verification.ts (the 50 KB W2.F pipeline), which the grep had masked; and it forced the entry-point list to be correct, which caught a near-miss worth recording — fsi-app/src/proxy.ts has zero importers and looks exactly like dead code, and is in fact the Next 16 middleware entry point gating authentication for every route. NAMED RESIDUAL, deliberate: F25 gates the COUNT and the EXPLANATION, never the disposition. Dormant capability and dead code are identical to a reference graph, so the gate does not propose deleting anything; each of the 54 entries names the ruling it waits on (ui-liveness / dormant-capability / dead-code / dead-code-sweep, and one elevated: src/lib/llm/spend-regime.mjs is spend DOCTRINE with zero importers, which is doctrine nothing enforces). SECOND RESIDUAL: a module reachable only through a string built at runtime is invisible to any static graph; the entry-point convention list is the sanctioned escape hatch and adding to it is a decision, asserted by the selftest to never overlap the allowlist. COUPLED FIX shipped alongside: F15\'s SANCTIONED set was the one list in the suite that was NOT stale-audited, so a deleted sanctioned path would have left the spend chokepoint permanently exempting a ghost; F15-spend-chokepoint.test.mjs now REDs on it, which matters immediately because scripts/lib/anthropic.mjs (the sole sanctioned script-side call site) is imported only by manifest scripts and loses every consumer when the sweep lands.',
+  },
+
+  {
     id: 'RD-53-db-object-migration-home',
     skill: 'remediation-discipline',
     section: 'Section 4 — category 21: Caller-count is not wiring verification (applied to the database layer)',

@@ -66,3 +66,23 @@ test('A2 STALE-ALLOWLIST AUDIT: every LEGACY_ALLOWLIST entry still has a direct 
   }
   assert.deepEqual(stale, [], `stale allowlist entries — the allowlist must SHRINK, not grandfather migrated files:\n  ${stale.join('\n  ')}`);
 });
+
+// SANCTIONED STALENESS AUDIT (2026-08-11). Added when the module-liveness sweep (F25) found that
+// scripts/lib/anthropic.mjs — the one SANCTIONED script-side call site — is imported ONLY by scripts on
+// the dead-code manifest, so the sweep leaves it consumerless and a later deletion would leave F15
+// permanently sanctioning a path that does not exist. LEGACY_ALLOWLIST was already stale-audited above;
+// SANCTIONED was not, which made it the one list in this gate that could silently grandfather a ghost.
+// A sanctioned path is a hole punched in the chokepoint on purpose; a hole pointing at nothing is a hole
+// nobody re-examines.
+test('SANCTIONED STALENESS AUDIT: every sanctioned path still exists (a ghost entry is RED)', () => {
+  const missing = [];
+  for (const f of SANCTIONED) {
+    try { readFileSync(resolve(REPO_ROOT, f), 'utf8'); }
+    catch { missing.push(f); }
+  }
+  assert.deepEqual(
+    missing,
+    [],
+    `SANCTIONED names paths that no longer exist — remove them, or the chokepoint carries exemptions for ghosts:\n  ${missing.join('\n  ')}`,
+  );
+});
