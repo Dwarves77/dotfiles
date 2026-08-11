@@ -2775,3 +2775,52 @@ the class column, until I named the closed vocabulary and pinned each class to i
 
 STILL NOT SCHEDULED. The data-audit lane remains `workflow_dispatch`-only and disabled in the Actions UI.
 Nothing was funded. The 4c relabel of the sub-floor facts remains frozen, on purpose.
+
+---
+
+## Addendum 9 — F25 was listing running code as dead (2026-08-11)
+
+Ruling the 54 F25-allowlisted modules started with reading them, and five of them were not dormant at all.
+
+`error-drop-probe.mjs`, `type-consumer-probe.mjs` and `inconclusive-report.mjs` are run by
+`.github/workflows/bug-class-guard.yml` on EVERY pull request. They executed on #447 while I was reading the
+gate that called them unconsumed. Nothing imports them because nothing imports a CLI tool —
+`inconclusive-report.mjs` has no exports at all. Separately, `src/lib/coverage/identity.mjs` is imported by
+`scripts/coverage/identity-resolve.mjs` through `import(pathToFileURL(resolve(...)).href)`, a specifier built
+at runtime that a literal-specifier regex cannot see.
+
+F25's own header warns about exactly this shape in the other direction: `proxy.ts` has zero importers and is
+the Next.js middleware entry point, "invoked by CONVENTION, never imported", and a gate reporting it as dead
+"would have invited someone to delete the auth boundary". That false positive was caught before shipping.
+This one shipped — same class, mirrored: invoked by workflow COMMAND rather than by framework convention.
+The gate knew one of the two channels and treated it as the whole definition of "consumed".
+
+Fixed by giving the gate the other two channels. CLI invocation is read from workflow files and
+package.json; computed dynamic imports resolve repo-relatively. Both are scoped narrowly on purpose, because
+the obvious wider fix is a trap: this gate lists module paths as string literals in its own allowlist, so a
+scan that counted any path-shaped string as a reference would make F25 an importer of everything it exempts
+and it would go permanently, silently green. There is a test for precisely that, alongside one asserting the
+three modules read as unconsumed the moment the CLI channel is ignored — the bug, pinned.
+
+The gate's own staleness audit named all three the instant the definition widened, and I deleted their
+entries because it told me to, not because I remembered to.
+
+`src/lib/coverage/identity.mjs` stayed on the list, correctly: its only consumer,
+`scripts/coverage/identity-resolve.mjs`, is on the dead-code manifest, and a consumer slated for deletion is
+not a consumer. Which surfaced the sharper finding — see the pre-sweep note below.
+
+PRE-SWEEP: THREE MANIFEST ENTRIES ARE THE SOLE WRITER OF DATA A LIVE SURFACE READS. Found before the
+operator ran `--apply`, by asking which tables have every writer on the manifest and a live reader in `src/`.
+`scripts/coverage/identity-resolve.mjs` is the only writer of the four `census_worklist.identity_*` columns
+that `src/lib/coverage/index-data.ts` renders (3,661 of 21,609 rows stamped — live work, 83% unstarted).
+`scripts/migrate/reclassify-fold.mjs` is the only writer of `item_changelog`, read by `fetchChangelog` (9
+rows, newest 2026-03-01 — already frozen). `scripts/sprint3-a6-find-new.mjs` is the only writer of
+`regional_data_facts`, read by `fetchOperationsCoverage` (75 rows, newest 2026-05-28 — frozen). No data is
+lost by deleting any of them; what is lost is the ability to ever refresh those three surfaces. Surfaced to
+the operator with a recommendation to keep the first and let the other two go, and the note that keeping one
+means editing the manifest and its hard-coded 495 count, which the sweep script checks.
+
+THE RULE. A liveness gate is a definition of "used", and the definition is the risky part, not the graph.
+Every channel it does not model becomes code it recommends deleting. Enumerate the channels — import,
+framework convention, command line, computed specifier — and say in the file which ones are modelled, so the
+next gap is visible as a gap rather than as a confident red.
