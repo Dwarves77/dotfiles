@@ -13,8 +13,20 @@ name: Data-audit lane
 # fork-PR runs by default regardless).
 
 on:
-  schedule:
-    - cron: '0 6 * * *'   # 06:00 UTC nightly
+  # AUDIT LANE STOPPED (operator ruling 2026-08-11). This lane had failed on EVERY nightly run from
+  # at least Aug 4 through Aug 11 (runs #58-#65, eight consecutive reds), emailing the operator each
+  # morning. The operator's instruction was explicit: STOP the audits, do not fix them. The lane is
+  # BOTH disabled in the Actions UI (immediate, stops the next fire) AND has its schedule commented
+  # out HERE (durable — re-enabling the workflow in the UI does not resurrect the nightly cron; a
+  # human must deliberately uncomment this block).
+  #
+  # Nothing is deleted: every audit script under scripts/verify/ stays in the tree and stays runnable
+  # on demand. Only the unattended nightly firing is stopped. The lane's known-failing state is NOT
+  # diagnosed here by instruction, and is recorded as an open item in
+  # docs/audits/wiring-census-2026-08-11.md.
+  #
+  # schedule:
+  #   - cron: '0 6 * * *'   # 06:00 UTC nightly — STOPPED 2026-08-11
   workflow_dispatch: {}
 
 permissions:
