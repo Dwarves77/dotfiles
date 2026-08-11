@@ -121,7 +121,7 @@ Three items for the operator, in the order they matter:
 
 ---
 
-## RESOLUTION (same day, operator-directed): fixed, proven green, re-armed
+## RESOLUTION (same day, operator-directed): fixed and proven green — and DELIBERATELY LEFT UNSCHEDULED
 
 The operator's follow-up instruction reversed the stop's second half: "resolve #5 — stopped by instruction,
 not fixed." Everything below happened after the diagnosis above and is verified in CI, not asserted.
@@ -151,8 +151,15 @@ provisional_sources does not have, a PostgREST silent whole-row reject that had 
 invisibly.
 
 **Run #67 was the first fully green run** — hard failures 0, block-state resolved (Layer C teeth releasing
-generation) — and only then was the nightly cron re-armed. The lane is back to its designed state: a red
-from here on is a real finding.
+generation). Every audit now tells the truth about the corpus.
 
-Of the three operator items above: (1) done and CI-confirmed; (2) done; (3) done in that order — (b) fixed
-first, green proven, then re-armed.
+**THE CRON STAYS STOPPED.** Operator ruling, restated after the fix landed: "i dont want nightly scans right
+now, we are building the system, this is build mode." Fixed is not the same as scheduled — the schedule is
+the operator's call, and a green run does not earn it. Every audit stays runnable on demand
+(workflow_dispatch, or directly on the command line); only the unattended nightly firing remains off, and
+re-arming is one uncommented block in the workflow whenever the build phase ends.
+
+Of the three operator items in the diagnosis above: (1) the drift findings — done and CI-confirmed;
+(2) the (b) wiring fix plus the direct-Postgres decision — done; (3) "if the lane is ever re-armed, fix (b)
+first" — (b) was fixed first and green was proven, which is the precondition satisfied; the re-arm itself is
+NOT taken, by operator ruling.
