@@ -662,6 +662,19 @@ export const INVARIANTS = [
   },
 
   {
+    id: 'RD-53-db-object-migration-home',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 21: Caller-count is not wiring verification (applied to the database layer)',
+    text: 'Every database object in the committed catalog snapshot MUST be created by a committed migration, or carry an explicit reason-bearing + review-by-phase-tagged entry in a SHRINKING allowlist that is itself audited in both directions (an entry whose object has since gained a migration is RED; an entry naming an object no longer in the snapshot is RED). Every DB-internal broken reference the snapshot records is likewise accounted for or RED. An object the repository cannot see is an object no review can read: the migration tree is the only surface a reviewer, a diff, or a gate can inspect, so DDL that lives only in the live database is doctrine that cannot be reviewed and duplication that cannot be detected.',
+    anchor: 'when the real mechanism is wired, the inferior duplicate folds into it or dies, never both left standing',
+    enforcedBy: [
+      'fitness:F24',
+      'selftest:fsi-app/.discipline/fitness/functions/F24-db-object-migration-home.test.mjs',
+    ],
+    residual: 'The database was the one layer no audit had ever swept (wiring census 2026-08-11 §D). The sweep measured 22 of 181 catalog objects created by NO committed migration — the "out-of-repo DDL" class the 2026-07-19 structure audit named and never counted — and two live defects fell straight out of it. (1) SHADOW CAPABILITY: fifteen gate_a_* SQL functions re-implement Gate A, duplicating src/lib/agent/gate-a-scan.mjs with the version literal 2026-07-30.1 hand-copied on both sides and nothing holding them equal; nothing calls the SQL copy, the TypeScript copy is what runs. Both were left standing precisely because one of them was not in the repo to be read. (2) HALF-COMPLETED CLEANUP: migration 219 dropped hold_resolution_queue on 2026-07-19 and left its four-function API (hrq_enqueue/escalate/exit/record_attempt) callable and throwing — the reviewer reads a clean DROP and cannot see callers that live outside the repo. NAMED RESIDUAL, deliberate: F24 holds a COMMITTED SNAPSHOT, so DDL applied out-of-repo AFTER the last refresh is invisible until someone re-runs governance/db-catalog-refresh.sql. It makes out-of-repo DDL impossible to keep SILENTLY, not impossible to create. Live detection needs a credentialed lane, which is a separate decision with a separate cost and is NOT implied to be covered here. SECOND NAMED RESIDUAL: pg_net and pg_cron are installed, so the database can make outbound HTTP calls and schedule work entirely outside every repo-side gate (F15 spend chokepoint, F16 transport hold). cron.job is live-verified EMPTY and the one pg_net caller (capture_worker_fetch) is the runbook-sanctioned capture path with zero automated invokers, so there is no active egress or schedule today — but the CAPABILITY is ungoverned and is recorded as an open operator item in docs/audits/db-layer-census-2026-08-11.md.',
+  },
+
+  {
     id: 'RD-10-spend-chokepoint',
     skill: 'remediation-discipline',
     section: 'Section 4.6 — the spend chokepoint (generation-side dedup-before-ground)',
