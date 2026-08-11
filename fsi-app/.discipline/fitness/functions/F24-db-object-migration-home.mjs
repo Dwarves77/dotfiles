@@ -57,7 +57,10 @@ const MIGRATIONS = 'fsi-app/supabase/migrations';
 // Read this as a work list, not as a set of permissions. Three of these are legitimate-and-should-be-
 // migrated; nineteen are proposed for deletion. None of them is "fine as is".
 export const NO_MIGRATION_HOME = [
-  // ── Legitimate live objects that simply never got a migration home ──
+  // 2026-08-11, SAME DAY: this list was 22. Migration 254 dropped the 12 shadow gate_a_* functions, the 4
+  // hrq_* functions broken by migration 219, and gate_a_route_b_baseline (430 rows preserved verbatim in
+  // docs/audits/gate-a-route-b-baseline-2026-08-11.csv). 17 entries retired by deletion, not by exemption.
+  // The five that remain are all LEGITIMATE LIVE OBJECTS that simply never got a migration home.
   {
     object: 'gate_a_health_cache',
     reason:
@@ -77,8 +80,8 @@ export const NO_MIGRATION_HOME = [
       'The cache\'s only writer. Its pg_cron schedule was DELIBERATELY unscheduled 2026-08-10 (operator ruling: ' +
       'health checks on an unfinished system are noise, halt until needed), so having no caller is the intended ' +
       'state, not a defect — gate_a_health() has a 30-minute staleness gate precisely so the dormancy is visible ' +
-      'as an explicit error instead of silently stale numbers. Re-enable: SELECT public.gate_a_health_refresh(); ' +
-      'or re-schedule it. What is unresolved is the missing migration, not the missing caller.',
+      'as an explicit error instead of silently stale numbers. Re-arm: SELECT public.gate_a_health_refresh(); ' +
+      'What is unresolved is the missing migration, not the missing caller.',
     reviewByPhase: 'db-migration-home backfill (write the CREATE FUNCTION into a migration; keep it unscheduled)',
   },
   {
@@ -87,81 +90,60 @@ export const NO_MIGRATION_HOME = [
       'NOT dead. Invoked by hand from the fleet-charter runbooks (docs/runbooks/fleet-charters/*.md), which name ' +
       'it as the ONLY sanctioned document-fetch path ("no metered API spend ever ... all document fetching goes ' +
       'through capture_worker_fetch"). It has no repo caller because its caller is a human running SQL, which is ' +
-      'a real invocation path a code-only census cannot see. Two things about it do need a decision: it is a ' +
-      'SECURITY DEFINER function that makes an outbound pg_net HTTP POST — network egress that sits entirely ' +
-      'outside the F16 transport hold and the F15 spend chokepoint — and it carries a hardcoded anon JWT in its ' +
-      'body, so a key rotation breaks it silently. Both are recorded in docs/audits/db-layer-census-2026-08-11.md.',
-    reviewByPhase: 'db-migration-home backfill + egress-governance ruling (operator)',
+      'a real invocation path a code-only census cannot see. It is also the sole entry in NET_EGRESS_SANCTIONED ' +
+      'below, and it carries a hardcoded anon JWT in its body, so a key rotation breaks it silently.',
+    reviewByPhase: 'db-migration-home backfill + vault-reference for the JWT (operator)',
   },
-
-  // ── The duplicate Gate-A implementation: fifteen functions, no caller, no migration ──
-  // Retire as one unit. Deleting them is not a behaviour change: the TypeScript implementation in
-  // src/lib/agent/gate-a-scan.mjs is what runs, and canonical-pipeline.ts writes item_gate_a_state directly.
-  ...[
-    'gate_a_collapse_pct',
-    'gate_a_contains_token',
-    'gate_a_deadline_tokens',
-    'gate_a_derived_covered',
-    'gate_a_extract_tokens',
-    'gate_a_figure_tokens',
-    'gate_a_is_citation_line',
-    'gate_a_norm',
-    'gate_a_obligation_near',
-    'gate_a_scan',
-    'gate_a_scan_and_store',
-    'gate_a_ws_class',
-  ].map((object) => ({
-    object,
-    reason:
-      'Part of the SQL re-implementation of Gate A. Duplicates src/lib/agent/gate-a-scan.mjs, shares its version ' +
-      'literal 2026-07-30.1 by hand-copy with nothing enforcing the equality, and is called by nothing (the entry ' +
-      'points gate_a_scan_and_store / gate_a_extract_tokens have zero callers in code, docs, migrations, other DB ' +
-      'objects, or pg_cron). The live path is TypeScript. PROPOSED FOR DELETION as one unit.',
-    reviewByPhase: 'db-dead-object sweep (operator-run DROP FUNCTION migration)',
-  })),
-  {
-    object: 'gate_a_route_b_baseline',
-    reason:
-      '430-row table referenced by NOTHING anywhere — no code, no migration, no doc, no other DB object. A ' +
-      'route-B before/after baseline captured out-of-band and never wired to a reader. PROPOSED FOR DELETION ' +
-      '(after the operator confirms the 430 rows are not a record worth keeping).',
-    reviewByPhase: 'db-dead-object sweep (operator ruling on the rows, then DROP TABLE migration)',
-  },
-
-  // ── The broken API of a table that migration 219 already dropped ──
-  ...['hrq_enqueue', 'hrq_escalate', 'hrq_exit', 'hrq_record_attempt'].map((object) => ({
-    object,
-    reason:
-      'API of hold_resolution_queue, which migration 219 DROPPED on 2026-07-19 (superseded by drain_worklist; ' +
-      '32/39 rows already present there, 6 verified, 1 gone, 0 needed migrating). The table went, the four ' +
-      'functions stayed, and each one now throws on a missing relation. PROPOSED FOR DELETION — it is the second ' +
-      'half of a cleanup that only ever completed one half.',
-    reviewByPhase: 'db-dead-object sweep (operator-run DROP FUNCTION migration)',
-  })),
-
   {
     object: 'next_uncensused_portal_candidates',
     reason:
       'Portal-census pagination RPC over portal_link_candidates. Zero callers in code, docs, migrations or other ' +
       'DB objects. Written for the portal census lane and never adopted — the dormant-capability class, not a ' +
-      'breakage. Keep or drop is a product call, not a hygiene one.',
+      'breakage. Kept deliberately: unlike the gate_a shadow chain it duplicates nothing and breaks nothing, so ' +
+      'deleting it would be a product decision rather than hygiene.',
     reviewByPhase: 'db-dead-object sweep (operator: adopt it or drop it)',
   },
 ];
 
-// Broken DB-internal references the snapshot records, each needing a reason to survive.
-export const BROKEN_REF_ALLOWLIST = [
+// ── DATABASE-ORIGINATED EGRESS (pg_net) ──────────────────────────────────────────────────────────────
+// A function that calls net.http_* reaches the network from INSIDE Postgres. It never passes through
+// application code, so F15 (the spend chokepoint) and F16 (the transport hold) cannot see it — the two gates
+// that exist precisely to make outbound calls accountable are both blind to this path by construction.
+// Today there is exactly one such function and it is the runbook-sanctioned capture path with no automated
+// caller, so nothing is running. The CAPABILITY is what needs governing: pg_net is installed, and nothing
+// before this stopped a future migration from adding a second, unreviewed caller.
+export const NET_EGRESS_SANCTIONED = [
   {
-    missingRelation: 'hold_resolution_queue',
+    object: 'capture_worker_fetch',
     reason:
-      'Dropped by migration 219 (2026-07-19). The four hrq_* functions that reference it are allowlisted above ' +
-      'and proposed for deletion in the same sweep; this entry and those four retire together.',
-    reviewByPhase: 'db-dead-object sweep (operator-run DROP FUNCTION migration)',
+      'The project\'s own capture-worker edge function, invoked server-side. Named in the fleet-charter runbooks ' +
+      'as the ONE sanctioned document-fetch path, explicitly to keep acquisition off metered APIs ("no metered ' +
+      'API spend ever"). Zero automated invokers — a human runs it from SQL. OPEN ITEM, recorded not fixed: the ' +
+      'Authorization header carries a hardcoded anon-role JWT literal rather than a vault reference, so a key ' +
+      'rotation breaks it silently and no repo-side secret scan can see it.',
+    reviewByPhase: 'egress-governance ruling (operator: vault-reference the JWT; decide whether DB-side egress ' +
+      'must route through one audited wrapper)',
   },
 ];
 
+// ── WORK SCHEDULED INSIDE THE DATABASE (pg_cron) ─────────────────────────────────────────────────────
+// EMPTY is the correct state and is live-verified. A pg_cron job runs on a schedule no repo file records and
+// no workflow list shows — the runtime-clock inventory of 2026-08-10 exists because exactly that class of
+// hidden clock is expensive to find by reading. One job (gate-a-health-refresh) was unscheduled that day by
+// operator ruling. Any future entry must be sanctioned here with a reason, so a schedule can never reappear
+// inside the database without a line of prose explaining it.
+export const CRON_SANCTIONED = [];
+
+// Broken DB-internal references the snapshot records, each needing a reason to survive.
+// EMPTY, and it got there by repair rather than exemption: migration 254 dropped the four hrq_* functions
+// that referenced hold_resolution_queue (itself dropped by migration 219 in July). The snapshot now records
+// zero broken internal references. A new one is RED on the refresh that captures it.
+export const BROKEN_REF_ALLOWLIST = [];
+
 const ALLOWED = new Map(NO_MIGRATION_HOME.map((e) => [e.object, e]));
 const ALLOWED_BROKEN = new Map(BROKEN_REF_ALLOWLIST.map((e) => [e.missingRelation, e]));
+const ALLOWED_NET = new Map(NET_EGRESS_SANCTIONED.map((e) => [e.object, e]));
+const ALLOWED_CRON = new Map(CRON_SANCTIONED.map((e) => [e.jobname, e]));
 
 /** Strip SQL comments so a migration that merely MENTIONS an object in prose cannot launder it. */
 export function stripSqlComments(sql) {
@@ -186,7 +168,7 @@ export function hasMigrationHome(name, migrationBlob) {
  * rather than the live tree — the negative-test discipline F23 and the meta-gate both use on themselves.
  * Returns an array of message strings ([] = pass).
  */
-export function auditCatalog(catalog, migrationBlob, allowed = ALLOWED, allowedBroken = ALLOWED_BROKEN) {
+export function auditCatalog(catalog, migrationBlob, allowed = ALLOWED, allowedBroken = ALLOWED_BROKEN, allowedNet = ALLOWED_NET, allowedCron = ALLOWED_CRON) {
   const problems = [];
   const objects = [
     ...(catalog.tables ?? []),
@@ -247,10 +229,54 @@ export function auditCatalog(catalog, migrationBlob, allowed = ALLOWED, allowedB
     }
   }
 
-  for (const e of [...allowed.values(), ...allowedBroken.values()]) {
+  // ── DATABASE-ORIGINATED EGRESS ──────────────────────────────────────────────────────────────────
+  // Both directions, same as everything else here: an unsanctioned net caller is RED, and a sanctioned
+  // entry whose function is gone is RED so the sanction list cannot outlive what it sanctions.
+  const netCallers = catalog.netCallers ?? [];
+  const netSeen = new Set(netCallers);
+  for (const fn of netCallers) {
+    if (!allowedNet.has(fn)) {
+      problems.push(
+        `UNSANCTIONED DATABASE EGRESS — "${fn}" calls net.http_* from inside Postgres. That reaches the network ` +
+          `without passing through application code, so the spend chokepoint (F15) and the transport hold (F16) ` +
+          `cannot see it. Route it through the sanctioned wrapper, or add a reason-bearing entry to ` +
+          `NET_EGRESS_SANCTIONED in F24-db-object-migration-home.mjs.`,
+      );
+    }
+  }
+  for (const entry of allowedNet.values()) {
+    if (!netSeen.has(entry.object)) {
+      problems.push(
+        `STALE ALLOWLIST — "${entry.object}" no longer appears in the snapshot's netCallers (dropped, or it ` +
+          `stopped calling net.http_*). Delete its NET_EGRESS_SANCTIONED entry.`,
+      );
+    }
+  }
+
+  // ── WORK SCHEDULED INSIDE THE DATABASE ──────────────────────────────────────────────────────────
+  const cronJobs = catalog.cronJobs ?? [];
+  const cronSeen = new Set(cronJobs.map((j) => j.jobname));
+  for (const job of cronJobs) {
+    if (!allowedCron.has(job.jobname)) {
+      problems.push(
+        `UNSANCTIONED DATABASE SCHEDULE — pg_cron job "${job.jobname}" (${job.schedule}) runs on a clock no repo ` +
+          `file records and no workflow list shows. Unschedule it, or add a reason-bearing entry to ` +
+          `CRON_SANCTIONED in F24-db-object-migration-home.mjs.`,
+      );
+    }
+  }
+  for (const entry of allowedCron.values()) {
+    if (!cronSeen.has(entry.jobname)) {
+      problems.push(
+        `STALE ALLOWLIST — pg_cron job "${entry.jobname}" is no longer scheduled. Delete its CRON_SANCTIONED entry.`,
+      );
+    }
+  }
+
+  for (const e of [...allowed.values(), ...allowedBroken.values(), ...allowedNet.values(), ...allowedCron.values()]) {
     if (!e.reason || !e.reviewByPhase) {
       problems.push(
-        `ALLOWLIST ENTRY WITHOUT A REASON — "${e.object ?? e.missingRelation}" must carry both reason and ` +
+        `ALLOWLIST ENTRY WITHOUT A REASON — "${e.object ?? e.missingRelation ?? e.jobname}" must carry both reason and ` +
           `reviewByPhase, same as F15/F22. An entry with no reason is a permanent exemption wearing a temporary label.`,
       );
     }
@@ -272,7 +298,8 @@ export const fitnessFunction = {
   name: 'db-object-migration-home',
   description:
     'Every database object in the committed catalog snapshot is created by a committed migration, or carries an ' +
-    'explicit reason-bearing exemption; every DB-internal broken reference is likewise accounted for. Closes the ' +
+    'explicit reason-bearing exemption; every DB-internal broken reference, every pg_net egress caller and every ' +
+    'pg_cron job is likewise accounted for. Closes the ' +
     'out-of-repo-DDL class the 2026-07-19 structure audit named and nobody ever counted: 22 of 181 objects, ' +
     'including a four-function API left callable after migration 219 dropped its table, and a fifteen-function SQL ' +
     're-implementation of Gate A that duplicates the TypeScript one and is called by nothing.',
