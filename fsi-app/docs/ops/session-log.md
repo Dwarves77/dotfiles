@@ -432,3 +432,37 @@ NCAER confidentiality incident (`integrity_flags` 963d4450, `beae0a7e`) — oper
 Grounding-exposure finding reported plainly per operator instruction: **nothing ever grounded, nothing customer-facing was ever exposed.** No counsel-notification trigger.
 
 NEXT (per operator's ordered queue): review-lane Group ③ remainder, the 21 B-reassignments, the scope-gate unit at a bank break, eu_clean_trucking full grounding pass, the SW-1 corpus-wide sweep. Lease state (session A): clean.
+
+## 2026-08-11 — W1.1 registry triage: audit of the 2026-08-10 bulk demotion, operator-ruled correction pass (ledger row per plan requirement)
+
+Context: remediation-and-weight plan W1.1 (triage the "981 no-role actives", R6 approved demote-to-provisional as DEFAULT for inert never-checked rows). On picking up W1.1, live verification found the work partially executed already and the plan's baseline stale. Operator challenged whether the "no role" claim was ever actually researched; a full-schema role audit confirmed it was not. This entry is the ledger row the plan requires ("counts per disposition"), covering both the prior demotion and this session's operator-ruled correction.
+
+WHAT WAS FOUND (all live-verified via Supabase MCP, read-only, before any mutation):
+- A single-statement bulk demotion ran 2026-08-10 21:19:35 UTC: 869 rows active->provisional, each tagged `[triage-2026-08-10-demoted: ... reversal = set status=active where notes has this tag]`. No ledger entry, no commit, no snapshot recorded it. This entry retroactively documents it.
+- The demotion cohort was selected on `last_checked IS NULL` (all 869 never-checked) but the tag's "no live items, grounds no claims" claim was NOT verified against the full schema. The sources table has 25 FK references from 20+ tables; the original "981 do nothing" analysis checked exactly two (intelligence_items, section_claim_provenance).
+- Full-schema audit of the 869: 82 rows carry hard role evidence (46 with live intelligence_items — item status 'monitoring' is a regulatory-lifecycle state, the most common in the corpus, NOT an inactive flag; 29 more cited on items via intelligence_item_citations; 6 cited by other sources via source_citations; 1 anchoring state_cost_facts). All 46 item-holding rows had their items BEFORE the demotion. These 82 fail the demotion tag's own stated criteria.
+- 142 further rows are institutional/legislative portals by their own notes (111 explicitly "Tier 1 official ... portal"); the plan's disposition (b) class — keep-active-with-justification awaiting ADR-015 scan restoration — that was blanket-demoted instead of researched. Cohort tier mix of the full 869: t1=311, t2=209, t3=88, t4=91, t5=49, t6=104, t7=17.
+- 645 rows have zero references in ANY of the FK-referencing tables and no portal claim: the demotion is sound for these.
+- The 98 rows still active with "no items, no claims" are NOT inert either: 98/98 in monitoring_queue, 88 with agent_runs, 82 with raw_fetches, 20 cited on items via intelligence_item_citations. Left active, untouched.
+- Plan-doc baseline (2,071 active / 981 no-role / 1,041 never-checked) matches nothing current; treat those VERDICTS figures as historical, not operative.
+
+OPERATOR RULINGS (2026-08-11, in-session):
+- R-a: Re-activate all 82 mis-demoted rows. EXECUTED.
+- R-b: Keep the 142 portal rows provisional, tag as ADR-015 re-activation candidates. EXECUTED.
+- R-c: Record everything in this ledger. THIS ENTRY.
+
+MUTATIONS EXECUTED (Supabase MCP, cite=remediation-and-weight-plan W1.1 correction; prior-value snapshot at scripts/_snapshots/w11-correction-2026-08-11-prior.json; both cohorts anchored on the demotion tag, not timestamps):
+1. 82 rows: status provisional->active, notes += `[triage-2026-08-11-reactivated: role evidence found on full-schema audit (live items / item citations / cited-by-source / cost facts); corrects 2026-08-10 demotion, operator-ruled 2026-08-11]`.
+2. 142 rows: notes += `[adr015-reactivation-candidate: institutional/legislative portal per notes; keep provisional until scan-restoration vetting, operator-ruled 2026-08-11]` (status unchanged, provisional).
+
+READ-BACK VERIFICATION (post-mutation): 82 tagged-reactivated rows all status=active (0 mismatches); 142 tagged-candidate rows all status=provisional (0 mismatches); 787 rows still carry only the demotion disposition (645 plain + 142 candidates = 787, exact); registry now 1,284 active (1,202+82) / 1,243 provisional (1,325-82) at admin_only=false. All arithmetic exact.
+
+COUNTS PER DISPOSITION (the plan's required ledger row, final state of the original 869-row demotion cohort):
+- reactivated (role evidence, mis-demoted): 82
+- provisional + ADR-015 re-activation candidate (institutional portals, disposition-b class): 142
+- provisional, plain (no role evidence anywhere in schema): 645
+- TOTAL: 869. Plus 98 no-item/no-claim rows LEFT ACTIVE (roles confirmed: monitoring queue, fetches, citations); 0 rows suspended; 0 rows deleted (suspend-not-delete doctrine untouched).
+
+HARD-GATE STATUS: preserved. Everything unvetted remains status=provisional and therefore gated out of every scrape/AI/index job; ADR-015 restoration still cannot scan an unvetted row. The 82 re-activations all have verified roles. Remaining W1.1 debt: the 142 candidates need per-institution vetting before any re-activation rides ADR-015; the 645 need nothing further.
+
+METHODOLOGY NOTE (recurrence prevention): "does this row have a role" must be answered against ALL FK references to sources (25 columns across 20+ tables: citations, cost facts, monitoring queue, raw fetches, agent runs, etc.), not a two-table item/claim check — that blind spot is what mis-demoted 82 rows including MOEJ, CalEPA, TCEQ, IMO, ICAO, EASA, and six national/state legislatures. Same class of error as the P1 audit's src/-only import grep (caught 2026-08-10): a reference census scoped too narrowly reads as "unreferenced" when it is merely unreferenced *where you looked*.
