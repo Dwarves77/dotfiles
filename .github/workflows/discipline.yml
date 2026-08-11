@@ -189,6 +189,7 @@ jobs:
           set -u
           globbed=$(git ls-files 'fsi-app/src/**/*.npmtest.mjs')
           named="fsi-app/scripts/lib/batch-primitives.test.mjs
+          fsi-app/scripts/lib/pg-conn.test.mjs
           fsi-app/scripts/lib/decision-anchors.selftest.mjs
           fsi-app/scripts/lib/drift-check.selftest.mjs
           fsi-app/scripts/lib/exclusion-audit.selftest.mjs
