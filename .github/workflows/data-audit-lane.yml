@@ -13,24 +13,19 @@ name: Data-audit lane
 # fork-PR runs by default regardless).
 
 on:
-  # AUDIT LANE STOPPED (operator ruling 2026-08-11). This lane had failed on EVERY nightly run from
-  # at least Aug 4 through Aug 11, emailing the operator each morning. CORRECTED 2026-08-11 after reading
-  # the run history properly: it is not eight consecutive reds (#58-#65) as first recorded but TWENTY-NINE
-  # (#37-#65) — the last green run was #36. Diagnosis: docs/audits/data-audit-lane-diagnosis-2026-08-11.md.
-  # Nine audits report REAL and GROWING corpus drift; nine fail on lane wiring (four crash on an unguarded
-  # .env.local read, five want a direct-Postgres connection the workflow never supplies). The drift half came
-  # FIRST; the wiring half was added on top of an already-red lane, which is why the report became unreadable. The operator's instruction was explicit: STOP the audits, do not fix them. The lane is
-  # BOTH disabled in the Actions UI (immediate, stops the next fire) AND has its schedule commented
-  # out HERE (durable — re-enabling the workflow in the UI does not resurrect the nightly cron; a
-  # human must deliberately uncomment this block).
-  #
-  # Nothing is deleted: every audit script under scripts/verify/ stays in the tree and stays runnable
-  # on demand. Only the unattended nightly firing is stopped. The lane's known-failing state is NOT
-  # diagnosed here by instruction, and is recorded as an open item in
-  # docs/audits/wiring-census-2026-08-11.md.
-  #
-  # schedule:
-  #   - cron: '0 6 * * *'   # 06:00 UTC nightly — STOPPED 2026-08-11
+  # RE-ARMED 2026-08-11 (operator instruction: "resolve #5 — stopped by instruction, not fixed").
+  # History, in order: the lane was red for TWENTY-NINE consecutive runs (#37-#65, last green #36) and was
+  # STOPPED by operator ruling on 2026-08-11. The diagnosis (docs/audits/data-audit-lane-diagnosis-2026-08-11.md)
+  # split the 18 failures into nine REAL drift findings and nine lane-wiring failures. Resolution, all three
+  # halves verified in CI on THIS workflow before this cron was uncommented:
+  #   - the DRIFT was driven to zero by deterministic remediation (PR #443; audits re-confirmed it in run #66);
+  #   - the WIRING was fixed (PR #444: guarded .env.local loads + ONE shared pg resolver on the secrets this
+  #     job already injects; PR #445: the four audit-harness defects run #66 exposed, plus migration 257);
+  #   - run #67 was the first fully GREEN run, and only then was this schedule re-armed.
+  # The lane is back to its designed state: nightly unattended drift detection with Layer C teeth (a hard red
+  # blocks generation until dispositioned). A red from here on is a REAL finding, not plumbing.
+  schedule:
+    - cron: '0 6 * * *'   # 06:00 UTC nightly — re-armed 2026-08-11 after run #67 green
   workflow_dispatch: {}
 
 permissions:
