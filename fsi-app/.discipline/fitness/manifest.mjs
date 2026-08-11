@@ -62,6 +62,14 @@ import { fitnessFunction as F22 } from './functions/F22-source-role-at-birth.mjs
 // per-category baseline that fails in BOTH directions, so closing gaps forces the ceiling down instead of
 // leaving slack that silently reopens. FS-only: no network, no DB, no model call, no schedule.
 import { fitnessFunction as F23 } from './functions/F23-governed-surface-coverage.mjs';
+// DB-object migration home (2026-08-11): F24 sweeps the one layer no audit had ever touched — the
+// database itself. 22 of 181 catalog objects exist in production with NO committed migration, the
+// "out-of-repo DDL" class the 2026-07-19 structure audit named and never counted. Two live defects fell
+// out of it: a four-function API left callable after migration 219 dropped its table, and a fifteen-
+// function SQL re-implementation of Gate A that duplicates the TypeScript one and is called by nothing.
+// Holds a committed read-only catalog snapshot against the migration tree — filesystem only, no
+// credential, no schedule.
+import { fitnessFunction as F24 } from './functions/F24-db-object-migration-home.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -82,6 +90,7 @@ export const fitnessFunctions = [
   F21,
   F22,
   F23,
+  F24,
 ];
 
 export function getFunctionById(id) {

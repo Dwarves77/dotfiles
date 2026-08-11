@@ -140,10 +140,29 @@ removed for exactly this recurring-red-email reason, leaving only the daily **sp
 fails only on a post-freeze paid `agent_runs` row that does not trace to an operator-priced line.
 That one is the untraceable-spend alarm and was deliberately left running.
 
-### D. The one unswept layer: the database side
-No census yet of Supabase functions/triggers/views vs code references (a dead SQL subgraph can hide
-orphans — F14's own named residual). Free to run (SQL against pg_catalog + local grep). Next audit to
-build if the operator wants layer-complete coverage.
+### D. The database side — SWEPT, same day (was "the one unswept layer")
+Run, findings recorded in `db-layer-census-2026-08-11.md`, standing gate shipped as **F24
+(db-object-migration-home)** / invariant **RD-53**. Headline: **22 of 181 catalog objects exist in
+production with no committed migration** — the "out-of-repo DDL" class the 2026-07-19 structure audit
+named and nobody ever counted. Two live defects fell straight out of it:
+
+- **A four-function API left callable after its table was dropped.** Migration 219 dropped
+  `hold_resolution_queue` on 2026-07-19; `hrq_enqueue` / `hrq_escalate` / `hrq_exit` /
+  `hrq_record_attempt` stayed, and each throws on a missing relation. The reviewer read a clean DROP and
+  could not see the callers, because the callers were not in the repo.
+- **Gate A is implemented twice.** Fifteen `gate_a_*` SQL functions duplicate
+  `src/lib/agent/gate-a-scan.mjs`, share its version literal `2026-07-30.1` by hand-copy with nothing
+  enforcing the equality, and are called by nothing. The TypeScript copy is what runs. This is the
+  shadow-capability class the doctrine already forbids in words; both were left standing because one of
+  them was not in the repo to be read.
+
+Also live-verified and worth the record: `cron.job` is **empty** (nothing is scheduled inside the
+database), every trigger function has a trigger, and three apparent orphans were **retracted after
+checking** — `gate_a_health_refresh` (deliberately unscheduled by operator ruling 2026-08-10),
+`capture_worker_fetch` (invoked by hand from the fleet-charter runbooks), and the `d3_runs` write
+(defined-not-applied, skips-with-log, selftest-proven). Open operator items: `pg_net` + `pg_cron` are
+installed, so database-originated egress and scheduling sit outside every repo-side gate — zero active
+today, capability ungoverned.
 
 ### E. Docs-tree duplication
 ~65k lines of markdown across `docs/` and `fsi-app/docs/` with parallel `design`/`designs`/`audits`
@@ -155,5 +174,5 @@ record, not wiring debt; consolidation is editorial, not mechanical.
 Every class this census found now has a standing gate: dead spend callers (F15, widened), unexecuted
 proofs (F23 orphaned-proofs at 0 via execution-wiring), ungoverned writes/model/routing (F23 at 0),
 unregistered mechanisms (invariant meta-gate, orphan-mechanism check), stale allowlists (F14/F15
-staleness audits). The remaining unmechanized classes are A, B, and D above — each named here with
-its mechanization path.
+staleness audits), out-of-repo DDL (F24, added the same day when D was swept). The remaining
+unmechanized classes are **A and B** above — each named here with its mechanization path.
