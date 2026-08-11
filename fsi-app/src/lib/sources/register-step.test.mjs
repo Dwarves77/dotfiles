@@ -21,8 +21,12 @@ const GOV = ["irs.gov", "epa.gov", "assets.publishing.service.gov.uk", "economia
 const AMBIGUOUS = ["searoutes.com", "truckinginfo.com", "globalpetrolprices.com", "dieselnet.com",
   "aoshearman.com", "mayerbrown.com", "cms-lawnow.com", "climatecatalyst.org", "mainelegislature.org"];
 // TRULY-UNKNOWN — no codified rule AND no class-table match → decidePoolHostRegistration worklists them.
-const WORKLIST = ["searoutes.com", "truckinginfo.com", "globalpetrolprices.com", "dieselnet.com",
-  "aoshearman.com", "cms-lawnow.com", "mainelegislature.org"];
+// `searoutes.com` and `aoshearman.com` LEFT this list on 2026-08-11: the batched null-tier ruling ruled
+// them T7 (vendor / law firm) and host-authority.ts now carries those rulings, so they are no longer
+// unknown. They remain in AMBIGUOUS above, which asserts only that codifiedTierForHost (legal/gov) is
+// still null for them — that guarantee is untouched. The hosts below are unruled AND unclassed.
+const WORKLIST = ["truckinginfo.com", "globalpetrolprices.com", "dieselnet.com",
+  "cms-lawnow.com", "mainelegislature.org", "some-random-consultancy.com"];
 
 test("codifiedTierForHost: legal-primary -> 1", () => {
   for (const h of LEGAL) assert.equal(codifiedTierForHost(h), 1, h);
@@ -100,8 +104,31 @@ test("decidePoolHostRegistration: lazy-class host auto-registers at its class ti
   assert.deepEqual(decidePoolHostRegistration("dnv.com", null), { action: "register", tier: 4 });
   assert.deepEqual(decidePoolHostRegistration("freightwaves.com", null), { action: "register", tier: 7 });
   // an unknown-class host still routes to worklist (never a guessed tier).
-  assert.deepEqual(decidePoolHostRegistration("searoutes.com", null), { action: "worklist", tier: null });
+  assert.deepEqual(decidePoolHostRegistration("truckinginfo.com", null), { action: "worklist", tier: null });
   assert.deepEqual(decidePoolHostRegistration("legiscan.com", null), { action: "worklist", tier: null });
+});
+
+// ── 2026-08-11 BATCHED RULING: the ruled hosts now auto-register, the ruled aggregators never do ───────────
+test("decidePoolHostRegistration: a RULED host auto-registers at its ruled tier (the ruling is in the code)", () => {
+  // Class-rule rulings (a NEW host of the same class also matches):
+  assert.deepEqual(decidePoolHostRegistration("pollution-waste.canada.ca", null), { action: "register", tier: 2 });
+  assert.deepEqual(decidePoolHostRegistration("whc.unesco.org", null), { action: "register", tier: 2 });
+  assert.deepEqual(decidePoolHostRegistration("ieta.org", null), { action: "register", tier: 4 });
+  assert.deepEqual(decidePoolHostRegistration("igsd.org", null), { action: "register", tier: 6 });
+  assert.deepEqual(decidePoolHostRegistration("knowledge.dlapiper.com", null), { action: "register", tier: 7 });
+  // Per-host rulings (no derivable rule — recorded, not inferred):
+  assert.deepEqual(decidePoolHostRegistration("moefcc-gcp.in", null), { action: "register", tier: 2 });
+  assert.deepEqual(decidePoolHostRegistration("searoutes.com", null), { action: "register", tier: 7 });
+  assert.deepEqual(decidePoolHostRegistration("nyk.com", null), { action: "register", tier: 7 });
+});
+
+test("decidePoolHostRegistration: a ruled AGGREGATOR/PLATFORM stays on the permanent worklist, forever", () => {
+  // These are not a backlog: the ruling is that they are NEVER registered, because a span attributing to a
+  // republisher is a re-attribution instruction. `law.cornell.edu` also proves the ordering — it is a .edu
+  // and would otherwise hit the T4 academic rule.
+  for (const h of ["law.cornell.edu", "mondaq.com", "up.codes", "legalclarity.org", "npcobserver.com",
+    "practiceguides.chambers.com", "energygovuk.citizenspace.com"])
+    assert.deepEqual(decidePoolHostRegistration(h, null), { action: "worklist", tier: null }, h);
 });
 
 // ── registerCitedSources CONTRACT (source-growth.ts, residual-sweep 2026-07-14) ──
@@ -118,7 +145,7 @@ test("registerCitedSources tier source = classTierForHost, never a guessed defau
   assert.equal(classTierForHost("dnv.com"), 4);            // CAB  -> row at 4
   assert.equal(classTierForHost("eur-lex.europa.eu"), 1);  // legal -> row at 1
   // null-classifying host -> worklist candidate, NEVER a guessed-tier `sources` row:
-  for (const h of ["en.wikipedia.org", "policycommons.net", "law.justia.com", "searoutes.com"]) {
+  for (const h of ["en.wikipedia.org", "policycommons.net", "law.justia.com", "truckinginfo.com"]) {
     assert.equal(classTierForHost(h), null, h);
   }
 });
