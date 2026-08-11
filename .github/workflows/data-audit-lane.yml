@@ -13,24 +13,29 @@ name: Data-audit lane
 # fork-PR runs by default regardless).
 
 on:
-  # AUDIT LANE STOPPED (operator ruling 2026-08-11). This lane had failed on EVERY nightly run from
-  # at least Aug 4 through Aug 11, emailing the operator each morning. CORRECTED 2026-08-11 after reading
-  # the run history properly: it is not eight consecutive reds (#58-#65) as first recorded but TWENTY-NINE
-  # (#37-#65) — the last green run was #36. Diagnosis: docs/audits/data-audit-lane-diagnosis-2026-08-11.md.
-  # Nine audits report REAL and GROWING corpus drift; nine fail on lane wiring (four crash on an unguarded
-  # .env.local read, five want a direct-Postgres connection the workflow never supplies). The drift half came
-  # FIRST; the wiring half was added on top of an already-red lane, which is why the report became unreadable. The operator's instruction was explicit: STOP the audits, do not fix them. The lane is
-  # BOTH disabled in the Actions UI (immediate, stops the next fire) AND has its schedule commented
-  # out HERE (durable — re-enabling the workflow in the UI does not resurrect the nightly cron; a
-  # human must deliberately uncomment this block).
+  # AUDIT LANE STILL STOPPED — BUILD MODE (operator ruling 2026-08-11, restated: "i dont want nightly scans
+  # right now, we are building the system, this is build mode"). The lane is now FIXED and PROVEN GREEN, but
+  # fixed is not the same as scheduled, and the schedule is the operator's call, not a consequence of the fix.
   #
-  # Nothing is deleted: every audit script under scripts/verify/ stays in the tree and stays runnable
-  # on demand. Only the unattended nightly firing is stopped. The lane's known-failing state is NOT
-  # diagnosed here by instruction, and is recorded as an open item in
-  # docs/audits/wiring-census-2026-08-11.md.
+  # HISTORY, so the next reader does not have to reconstruct it: this lane failed on EVERY run from #37
+  # through #65 — twenty-nine consecutive, last green #36 — and was STOPPED on 2026-08-11. The diagnosis
+  # (docs/audits/data-audit-lane-diagnosis-2026-08-11.md) split those 18 failures into nine REAL drift
+  # findings and nine lane-wiring failures. All three halves are now resolved:
+  #   - DRIFT: zeroed by deterministic remediation (PR #443), and re-confirmed IN CI by the audits in run #66;
+  #   - WIRING: fixed (PR #444 — guarded .env.local loads + ONE shared pg resolver, scripts/lib/pg-conn.mjs,
+  #     using the secrets this job already injects; no new secret);
+  #   - HARNESS: run #66, the lane's first honest execution, exposed four audit-harness defects and two REAL
+  #     defects (three inert reconciler grants -> migration 257; a phantom `notes` column write in
+  #     source-growth.ts that PostgREST was silently rejecting whole-row). All fixed in PR #445.
+  # Dispatch run #67 was the first FULLY GREEN run since #36: zero hard failures, Layer C block-state
+  # resolved by the lane's own mechanism.
+  #
+  # SO THE LANE IS READY, AND DELIBERATELY UNSCHEDULED. Every audit stays runnable on demand via the Actions
+  # tab (workflow_dispatch) and on the command line. Re-arming is ONE uncommented block below, a deliberate
+  # human act for when the build phase ends — not something a green run earns on its own.
   #
   # schedule:
-  #   - cron: '0 6 * * *'   # 06:00 UTC nightly — STOPPED 2026-08-11
+  #   - cron: '0 6 * * *'   # 06:00 UTC nightly — STOPPED 2026-08-11, stays stopped during build mode
   workflow_dispatch: {}
 
 permissions:
