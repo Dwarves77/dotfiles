@@ -2824,3 +2824,28 @@ THE RULE. A liveness gate is a definition of "used", and the definition is the r
 Every channel it does not model becomes code it recommends deleting. Enumerate the channels — import,
 framework convention, command line, computed specifier — and say in the file which ones are modelled, so the
 next gap is visible as a gap rather than as a confident red.
+
+ADDENDUM 9b — THE FIX I WROTE FOR A BUG THAT WAS NOT THERE. CI failed the F25 PR on an unrelated test:
+`withRateLimit: enforces minimum interval between calls`, "interval 49ms should be >= 50ms". The obvious
+read is that a single `sleep` cannot guarantee the floor because `setTimeout` fires early, so top it up in a
+loop. I wrote that, wrote a confident comment about libuv's cached loop time, and then measured it: over 400
+paced calls the single sleep and the top-up loop undershoot IDENTICALLY, once each, by exactly 1ms. The fix
+was a no-op wearing a fix's clothes, and the comment justifying it was fiction I found plausible.
+
+The real cause is millisecond TRUNCATION. The limiter stamps its reference instant just before invoking fn;
+the caller reads the clock just after. When that sub-millisecond crossing lands on a millisecond boundary the
+two `Date.now()` reads round to different integers and the observed gap reads one low. The limiter's own
+floor, from its own stamp, is never violated, and the error does not accumulate (mean 20.2 against a 20ms
+floor). So the implementation was right and the TEST was wrong: it asserted a hard wall-clock floor on a
+quantity measured from a different instant than the limiter controls, off a single sample.
+
+Reverted the implementation to what it was, kept the comment recording why it must NOT be "fixed", and
+rewrote the test to assert what the limiter actually owes: the floor to within one clock tick, over twelve
+samples rather than one, plus the property that actually prevents a 429 — that pacing error does not
+ACCUMULATE across a batch. The named `CLOCK_GRANULARITY_MS = 1` is a stated physical allowance, not a
+tolerance widened until green.
+
+TWO RULES. A red test is a hypothesis about where the defect is, not a location. I had a diagnosis, a fix and
+a rationale before I had a measurement, and the measurement refuted all three in one command. And: a fix that
+does not change the measured behaviour is not a conservative fix, it is a lie with a comment on it — the
+next reader believes the mechanism it describes.
