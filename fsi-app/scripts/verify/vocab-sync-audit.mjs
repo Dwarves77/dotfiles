@@ -8,7 +8,7 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
-import pg from "pg";
+import { connectPg } from "../lib/pg-conn.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
@@ -20,14 +20,9 @@ const COLS = {
   format_type: V.DB_FORMAT_TYPE_VALUES, signal_band: V.DB_SIGNAL_BAND_VALUES, theme: V.DB_THEME_VALUES,
 };
 
-const ref = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host.split(".")[0];
-const pw = encodeURIComponent(process.env.SUPABASE_DB_PASSWORD || "");
-const candidates = [
-  `postgresql://postgres:${pw}@db.${ref}.supabase.co:5432/postgres`,
-  ...["us-east-1","us-east-2","us-west-1","eu-central-1","eu-west-1","eu-west-2","ap-southeast-1","ap-southeast-2"].map((r) => `postgresql://postgres.${ref}:${pw}@aws-0-${r}.pooler.supabase.com:5432/postgres`),
-];
-let client;
-for (const cs of candidates) { const c = new pg.Client({ connectionString: cs, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 8000 }); try { await c.connect(); client = c; break; } catch { try { await c.end(); } catch {} } }
+// Shared resolver (scripts/lib/pg-conn.mjs) — this file's candidate-fallback logic, extracted verbatim so
+// every pg-direct audit connects the same way (lane diagnosis 2026-08-11).
+const client = await connectPg();
 if (!client) { console.error("[vocab-sync] no DB connection"); process.exit(2); }
 
 let drift = 0;

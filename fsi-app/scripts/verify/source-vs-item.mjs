@@ -12,7 +12,7 @@ import { createClient } from "@supabase/supabase-js";
 import { urlIsRoot } from "../../src/lib/sources/entity-gate.mjs";
 import { fetchAllRows } from "../../src/lib/db/paginate.mjs";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-process.loadEnvFile(resolve(ROOT, ".env.local"));
+try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 const host = (u) => { try { return new URL(u).host.replace(/^www\./, ""); } catch { return ""; } };

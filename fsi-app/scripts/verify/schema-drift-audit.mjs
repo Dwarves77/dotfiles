@@ -20,10 +20,10 @@
  *  Read-only (information_schema + pg_matviews + fs read). pg-direct via the pooler. */
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readdirSync, readFileSync } from "node:fs";
-import pg from "pg";
+import { readdirSync } from "node:fs";
 import { readMigrationSql } from "../../.discipline/lib/read-migration-sql.mjs";
 import { committedObjectNames, diffSchema, staleAllowlistEntries } from "./lib/schema-drift.mjs";
+import { connectPg } from "../lib/pg-conn.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env from secrets */ }
@@ -37,32 +37,20 @@ const ALLOWLIST = {
   // committed CREATE now exists and the allowlist bypass is removed. No genuine drift remains allowlisted.
 };
 
-function connString() {
-  let ref, pool;
-  try {
-    ref = readFileSync(resolve(ROOT, "supabase/.temp/project-ref"), "utf8").trim();
-    pool = readFileSync(resolve(ROOT, "supabase/.temp/pooler-url"), "utf8").trim();
-  } catch { return null; }
-  const pw = process.env.SUPABASE_DB_PASSWORD;
-  if (!pw) return null;
-  return pool.replace(`postgres.${ref}@`, `postgres.${ref}:${encodeURIComponent(pw)}@`);
-}
-
 function readAllMigrations() {
   const dir = resolve(ROOT, "supabase/migrations");
   const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
   return files.map((f) => readMigrationSql(resolve(dir, f)));
 }
 
-const CONN = connString();
-if (!CONN) {
-  console.error("schema-drift-audit: no DB creds (supabase/.temp/* + SUPABASE_DB_PASSWORD). Cannot verify against live schema — exit 2.");
+// Shared resolver (scripts/lib/pg-conn.mjs): env URL -> local .temp link -> CI-derived pooler candidates.
+const client = await connectPg();
+if (!client) {
+  console.error("schema-drift-audit: no direct-Postgres connection (SUPABASE_DB_URL/DATABASE_URL, local supabase link + SUPABASE_DB_PASSWORD, or NEXT_PUBLIC_SUPABASE_URL-derived pooler). Cannot verify against live schema — exit 2.");
   process.exit(2);
 }
 
-const client = new pg.Client({ connectionString: CONN });
 try {
-  await client.connect();
   const { rows } = await client.query(`
     SELECT table_name AS name,
            CASE WHEN table_type = 'BASE TABLE' THEN 'table' ELSE 'view' END AS kind
