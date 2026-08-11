@@ -122,7 +122,8 @@ test('F24 is holistic: one sentinel path so the analysis runs exactly once', () 
 });
 
 test('every shipped allowlist entry carries a reason and a reviewByPhase', () => {
-  assert.ok(NO_MIGRATION_HOME.length > 0, 'the allowlist is explicit, not empty');
+  // 2026-08-11: NO_MIGRATION_HOME reached EMPTY (22 dropped-or-backfilled via migrations 254 + 256).
+  // Empty is the target state, not a defect — the shape assertion applies to whatever entries exist.
   assert.ok(NO_MIGRATION_HOME.every((e) => e.object && e.reason && e.reviewByPhase));
   assert.ok(BROKEN_REF_ALLOWLIST.every((e) => e.missingRelation && e.reason && e.reviewByPhase));
 });

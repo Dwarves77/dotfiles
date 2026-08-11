@@ -56,54 +56,12 @@ const MIGRATIONS = 'fsi-app/supabase/migrations';
 //
 // Read this as a work list, not as a set of permissions. Three of these are legitimate-and-should-be-
 // migrated; nineteen are proposed for deletion. None of them is "fine as is".
-export const NO_MIGRATION_HOME = [
-  // 2026-08-11, SAME DAY: this list was 22. Migration 254 dropped the 12 shadow gate_a_* functions, the 4
-  // hrq_* functions broken by migration 219, and gate_a_route_b_baseline (430 rows preserved verbatim in
-  // docs/audits/gate-a-route-b-baseline-2026-08-11.csv). 17 entries retired by deletion, not by exemption.
-  // The five that remain are all LEGITIMATE LIVE OBJECTS that simply never got a migration home.
-  {
-    object: 'gate_a_health_cache',
-    reason:
-      'Dashboard-created single-row cache behind gate_a_health(). Named as a residual by the runtime-clock ' +
-      'inventory (docs/audits/runtime-clock-inventory-2026-08-10.md): acceptable for a cache surface, needs a ' +
-      'migration home if it becomes load-bearing. It is read by /api/health/surfaces, so it IS on a product path.',
-    reviewByPhase: 'db-migration-home backfill (write the CREATE TABLE into a migration; no data change)',
-  },
-  {
-    object: 'gate_a_health_compute',
-    reason: 'Computes the gate_a_health payload. Dashboard-created alongside gate_a_health_cache; same backfill.',
-    reviewByPhase: 'db-migration-home backfill (write the CREATE FUNCTION into a migration; no behaviour change)',
-  },
-  {
-    object: 'gate_a_health_refresh',
-    reason:
-      'The cache\'s only writer. Its pg_cron schedule was DELIBERATELY unscheduled 2026-08-10 (operator ruling: ' +
-      'health checks on an unfinished system are noise, halt until needed), so having no caller is the intended ' +
-      'state, not a defect — gate_a_health() has a 30-minute staleness gate precisely so the dormancy is visible ' +
-      'as an explicit error instead of silently stale numbers. Re-arm: SELECT public.gate_a_health_refresh(); ' +
-      'What is unresolved is the missing migration, not the missing caller.',
-    reviewByPhase: 'db-migration-home backfill (write the CREATE FUNCTION into a migration; keep it unscheduled)',
-  },
-  {
-    object: 'capture_worker_fetch',
-    reason:
-      'NOT dead. Invoked by hand from the fleet-charter runbooks (docs/runbooks/fleet-charters/*.md), which name ' +
-      'it as the ONLY sanctioned document-fetch path ("no metered API spend ever ... all document fetching goes ' +
-      'through capture_worker_fetch"). It has no repo caller because its caller is a human running SQL, which is ' +
-      'a real invocation path a code-only census cannot see. It is also the sole entry in NET_EGRESS_SANCTIONED ' +
-      'below, and it carries a hardcoded anon JWT in its body, so a key rotation breaks it silently.',
-    reviewByPhase: 'db-migration-home backfill + vault-reference for the JWT (operator)',
-  },
-  {
-    object: 'next_uncensused_portal_candidates',
-    reason:
-      'Portal-census pagination RPC over portal_link_candidates. Zero callers in code, docs, migrations or other ' +
-      'DB objects. Written for the portal census lane and never adopted — the dormant-capability class, not a ' +
-      'breakage. Kept deliberately: unlike the gate_a shadow chain it duplicates nothing and breaks nothing, so ' +
-      'deleting it would be a product decision rather than hygiene.',
-    reviewByPhase: 'db-dead-object sweep (operator: adopt it or drop it)',
-  },
-];
+// EMPTY, 2026-08-11, and it got there the right way: 22 → 5 by DELETION (migration 254 dropped the
+// shadow gate_a chain, the broken hrq API and the unreferenced baseline table) and 5 → 0 by BACKFILL
+// (migration 256 wrote the five legitimate live objects into the migration tree verbatim from their live
+// definitions, and moved capture_worker_fetch's hardcoded anon JWT into Supabase Vault). Every database
+// object now has a migration home. A new out-of-repo object is RED on the snapshot refresh that captures it.
+export const NO_MIGRATION_HOME = [];
 
 // ── DATABASE-ORIGINATED EGRESS (pg_net) ──────────────────────────────────────────────────────────────
 // A function that calls net.http_* reaches the network from INSIDE Postgres. It never passes through
@@ -118,11 +76,10 @@ export const NET_EGRESS_SANCTIONED = [
     reason:
       'The project\'s own capture-worker edge function, invoked server-side. Named in the fleet-charter runbooks ' +
       'as the ONE sanctioned document-fetch path, explicitly to keep acquisition off metered APIs ("no metered ' +
-      'API spend ever"). Zero automated invokers — a human runs it from SQL. OPEN ITEM, recorded not fixed: the ' +
-      'Authorization header carries a hardcoded anon-role JWT literal rather than a vault reference, so a key ' +
-      'rotation breaks it silently and no repo-side secret scan can see it.',
-    reviewByPhase: 'egress-governance ruling (operator: vault-reference the JWT; decide whether DB-side egress ' +
-      'must route through one audited wrapper)',
+      'API spend ever"). Zero automated invokers — a human runs it from SQL. The formerly-hardcoded anon JWT ' +
+      'moved to Supabase Vault (secret capture_worker_anon_key, migration 256), so a key rotation is one vault ' +
+      'update instead of a silent break inside a SECURITY DEFINER body.',
+    reviewByPhase: 'egress-governance standing review (operator: any SECOND net caller needs its own entry here)',
   },
 ];
 

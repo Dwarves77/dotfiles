@@ -2630,3 +2630,42 @@ Checked both push paths this session rather than repeating the earlier assumptio
 So the honest answer is that this step is the operator's, and the useful work was making it one command with its own rails: `fsi-app/scripts/dead-code-sweep.sh` verifies all 495 paths exist AND are git-tracked and ABORTS on any drift (deleting from a drifted manifest is how a live file gets caught up), stages with `git rm`, commits nothing, pushes nothing, then runs the full gate battery so the four coupled gates NAME the stale entries to remove. Dry-run by default.
 
 RULE: when a number is going into a durable record, check how far back it actually goes. "Eight" was not a lie, it was the edge of what I had looked at, written down as if it were the boundary of what happened. The failure mode is not arithmetic — it is letting the shape of the available evidence set the shape of the claim.
+
+---
+
+## 2026-08-11 (addendum 6) — the drift the tools were built to catch, resolved by the tools
+
+Operator: "the live data drift is 100% why we built the tools you have. Use them to resolve." Nine classes, all
+driven to zero, all verified by re-running each audit's own predicate. Full record with per-class before→after and
+method in docs/audits/data-drift-remediation-2026-08-11.md. Total metered spend: $0; every mutation deterministic
+SQL through the existing trigger machinery — fix substrate, touch rows, let the derivation recompute. The lane
+stays STOPPED; running an audit's predicate by hand is reading, not re-enabling.
+
+THE HEADLINE NUMBERS. Tiers: 111 inconsistent host groups → 0 (157 source rows, three-rung ladder: codified class
+rules 34 groups, in-group majority 59, conservative-max ties 18; every row's old and new tier in
+docs/audits/tier-canonicalization-2026-08-11.csv). Claims: 569 mis-stamped FACT + 268 stamped non-FACT → 0 + 0.
+Substrate agreement, full 908-item validate sweep: 0 stale-verified, 5 stale-quarantined → 0. Source-link,
+orphan-source: 1 → 0, 2 → 0. Deferral hygiene: 32 deleted-subject flags resolved. Quarantine disposition:
+37 undispositioned → 37 valid deferrals that EXPIRE 2026-10-31. Flag-age: 202 past-bound → 46 resolved with
+evidence + 156 held with named reopeners.
+
+THE ROOT CAUSE THAT WAS HIDING UNDER THE DRIFT. All five substrate disagreements traced to one bug:
+derive_canonical_instrument_key() discarded the OJ sequence suffix, collapsing distinct instruments sharing a
+CELEX stem onto one key — which the verified-live unique index then correctly refused. Migration 255 fixes the
+derivation at the root; 78 items re-keyed; the five recovered to verified through the normal derivation path; the
+fleet's own Aug-2 shard-8 collision flags closed with the root cause cited.
+
+THE MISTAKE, KEPT VISIBLE. When the unique index fired mid-batch on 21994A1231, I archived item bcdd0841 as
+duplicate_of_verified. Wrong: the pair are distinct instruments, (21) and (22), whose titles truncate identically
+at 70 characters. Un-archived, corrected in the flag note in so many words. RULE: when a uniqueness constraint
+fires during remediation, the constraint is evidence about the DERIVATION, not about the row. Diagnose the key
+before dispositioning the item.
+
+MIGRATION HOMES CLOSED. Migration 256 backfills the last five out-of-repo objects verbatim from live definitions
+and moves capture_worker_fetch's hardcoded anon JWT into Supabase Vault (rotation visibility; the key is public by
+design). F24's NO_MIGRATION_HOME: 22 → 5 (254, deletion) → 0 (256, backfill). The allowlist is EMPTY and F24 holds
+it there.
+
+Verification on the shipping tree: fitness 20/0, meta-gate 106 invariants + 63 doctrines PASS, suite 1217/1217,
+F24 tests 23/23, both migrations' in-file self-checks green live, committed function bodies byte-checked against
+pg_get_functiondef.
