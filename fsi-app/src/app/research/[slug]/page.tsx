@@ -98,7 +98,15 @@ export default async function ResearchFindingDetailPage({
   if (redirectTo) redirect(redirectTo);
 
   const detail = await fetchIntelligenceItem(id);
-  if (!detail) {
+  // SURFACE ADMISSION GUARD (Phase 0.1, 2026-08-11). Until now the ONLY gate on
+  // this route was fetchIntelligenceItem's `provenance_status='verified'` check,
+  // so ANY verified item rendered here under the research chrome — and this
+  // surface's heading map RELABELLED whatever section rows it found, silently
+  // dropping keys outside its own range. `canonicalSurface` is computed from the
+  // RAW (item_type, domain) by the same `surfaceOf` classifier that decides where
+  // this item's links point (src/lib/item-links.ts), so a link emitted to this
+  // surface always renders and an item belonging elsewhere always 404s.
+  if (!detail || detail.canonicalSurface !== "research") {
     notFound();
   }
 

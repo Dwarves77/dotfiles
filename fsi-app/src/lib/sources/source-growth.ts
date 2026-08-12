@@ -21,6 +21,7 @@ import type { TrustMetrics } from "@/types/source";
 import { hostOf, hostInstitution, buildResolver, type SourceRow } from "@/lib/sources/institution";
 import { classTierForHost, decidePoolHostRegistration } from "@/lib/sources/host-authority";
 import { classifySourceRole } from "@/lib/sources/classify-source-role";
+import { recordTierOpinion, type MinimalSupabaseClient } from "@/lib/sources/tier-opinion-writer";
 
 export interface CitationEdge {
   citer_source_id: string;
@@ -98,7 +99,27 @@ export async function registerCitedSources(
     // only the swallowed error is hardened here.
     const { data: existing, error: existingErr } = await supabase.from("sources").select("id").ilike("url", `%${host}%`).limit(1);
     if (existingErr) console.warn(`[source-growth] dup-source check failed for ${cs.url} (host=${host}): ${existingErr.message}`);
-    if (existing && existing.length) { out.push({ url: cs.url, source_id: existing[0].id, registered: "existing" }); continue; }
+    if (existing && existing.length) {
+      const targetId = existing[0].id;
+      // Q3 TIER-OPINION PRESERVATION (migration 091): this is the writer 091 always intended but that
+      // was never wired — 1,414 source_verifications formed tier opinions upstream and none were ever
+      // recorded, so public.get_tier_opinion_disagreements had nothing to read. Every time the agent's
+      // "New Sources Identified" table estimates a tier for a citation that matches an ALREADY-EXISTING
+      // source, preserve that estimate as a row in source_tier_opinions — regardless of whether it
+      // agrees with the source's current tier — instead of silently discarding it. Never for a
+      // newly-minted source (handled below): the whole point is repeat opinions ABOUT a source that
+      // already has a stored tier to compare against. Best-effort per recordTierOpinion's own contract
+      // (it never throws) — this whole function runs inside brief generation via canonical-pipeline.ts,
+      // and opinion recording is observational only; it must never be able to fail a regeneration.
+      if (cs.tier_estimate != null) {
+        await recordTierOpinion(supabase as unknown as MinimalSupabaseClient, {
+          targetSourceId: targetId,
+          opinedTier: cs.tier_estimate,
+        });
+      }
+      out.push({ url: cs.url, source_id: targetId, registered: "existing" });
+      continue;
+    }
     if (cs.rejection_reason) {
       await supabase.from("provisional_sources").upsert(
         // reviewer_notes, not notes — provisional_sources has NO `notes` column, so this upsert was a

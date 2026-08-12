@@ -582,8 +582,16 @@ export function ResearchFindingDetailSurface({
   // already ordered by section_order from the server fetch.
   const hasSections = sections.length > 0;
 
-  // Legacy fallback values (used when hasSections is false).
-  const shortText = r.note || r.whyMatters || r.whatIsIt || "";
+  // shortText feeds TWO places: the top summary card (rendered regardless of sections) and the
+  // no-sections fallback body below. The previous comment said "used when hasSections is false", which
+  // was true of fullText and never of shortText, and it is corrected here because it misread as dead code.
+  //
+  // ORDER CHANGED 2026-08-12 (operator directive: the description leads every item on every surface, as
+  // it already did on Regulations). what_is_it now comes FIRST. This can only change WHICH text shows
+  // when more than one field is populated; it can never remove a card, because the chain still falls
+  // through to summary and why_matters. Measured on the live corpus the day of the change: 18 of 49
+  // Research items display different leading text, 31 are unchanged, 0 lose their card.
+  const shortText = r.whatIsIt || r.note || r.whyMatters || "";
   const fullText = r.fullBrief || shortText;
   const hasFull = !!r.fullBrief && r.fullBrief.length > shortText.length;
 
