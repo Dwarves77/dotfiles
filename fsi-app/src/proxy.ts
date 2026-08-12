@@ -7,7 +7,39 @@ import { NextResponse, type NextRequest } from "next/server";
 // (GDPR/CCPA notice-at-collection). It was previously 307'd to /login.
 const PUBLIC_ROUTES = ["/login", "/signup", "/auth/callback", "/privacy"];
 
+// perf item #9: scanner/probe short-circuit. Production logs show repeated
+// hits to WordPress/PHP admin paths (this app runs neither) — each one
+// previously ran the full proxy body (Supabase client construction +
+// auth.getUser() round trip) before falling through to a 307 redirect.
+// That burns a Supabase call and a function invocation on traffic that can
+// never be a real user. Bail out to a plain 404 before any of that runs.
+//
+// DELIBERATELY NARROW: a false positive here 404s a real page, so this list
+// only matches path PREFIXES that are exclusively WordPress/PHP territory —
+// never a plausible route in this Next.js app — plus the literal `.php`
+// extension. Do not broaden this list without checking it against the
+// app's actual route table.
+const SCANNER_PROBE_PREFIXES = [
+  "/wp-admin",
+  "/wp-includes",
+  "/wp-content",
+  "/wp-login",
+  "/xmlrpc.php",
+];
+
+function isScannerProbe(pathname: string): boolean {
+  return (
+    SCANNER_PROBE_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
+    pathname.endsWith(".php")
+  );
+}
+
 export async function proxy(request: NextRequest) {
+  // Short-circuit BEFORE any auth/session logic — see comment above.
+  if (isScannerProbe(request.nextUrl.pathname)) {
+    return new NextResponse(null, { status: 404 });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
