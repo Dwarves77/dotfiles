@@ -18,6 +18,14 @@ on:
   pull_request:
     branches: [master]
 
+# COST CONTROL (2026-08-12). Same reasoning as discipline.yml: supersede obsolete
+# pull_request runs, never cancel a master validation. The group key embeds
+# github.workflow, so this workflow and discipline.yml occupy SEPARATE groups and
+# cannot cancel each other — a shared key would drop real coverage rather than waste.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   discrimination-guard:
     name: HARD — detector discrimination + SSOT units
