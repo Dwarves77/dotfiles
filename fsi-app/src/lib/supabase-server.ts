@@ -8,6 +8,8 @@ import type { SeedFallbackTrigger } from "@/lib/notifications/seed-fallback-flag
 import { WATCHLIST_LIST_KEY, watchlistOrderKey } from "@/lib/watchlist-order";
 import { compareRanks } from "@/lib/list-order";
 import { surfaceOf } from "@/lib/surface-of.mjs";
+import { canonicalSurfaceForItem, type DetailSurface } from "@/lib/item-links";
+import { stalenessOf } from "@/lib/contracts/envelope.mjs";
 import type { RelevanceInput } from "@/lib/workspace/viewer-relevance";
 
 // Wave-α A2 (2026-07-11): the static seed-data import is GONE. Every
@@ -29,6 +31,28 @@ function getSupabase() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+}
+
+// Renders a PostgrestError's full diagnostic surface (message + details +
+// hint + code) instead of just `.message`. A bare `.message` on a
+// gracefully-degraded read (render empty / fall back) has repeatedly hidden
+// the real cause in prod — e.g. a ~34KB `.in()` URL failing PostgREST's
+// query-string limit logged only "TypeError: fetch failed" with no code/
+// details to point at the URL length. Every silently-degrading Supabase
+// error log in this module should go through this helper.
+function describeSupabaseError(error: {
+  message?: string;
+  details?: string | null;
+  hint?: string | null;
+  code?: string | null;
+}): string {
+  const parts = [
+    `message=${error.message ?? "unknown"}`,
+    `details=${error.details ?? "none"}`,
+    `hint=${error.hint ?? "none"}`,
+    `code=${error.code ?? "none"}`,
+  ];
+  return parts.join(" | ");
 }
 
 // Service-role client. Bypasses RLS — server-only, never expose to the
@@ -361,7 +385,7 @@ async function fetchProvisionalSources(): Promise<ProvisionalSource[]> {
     // Do NOT swallow: log so a genuine failure is visible instead of masquerading as an empty queue.
     console.error(
       "[fetchProvisionalSources] provisional_sources read failed:",
-      error.message
+      describeSupabaseError(error)
     );
     return [];
   }
@@ -492,13 +516,40 @@ async function fetchWorkspaceResources(
 
   // Timelines from the new schema. Key is item.id (UUID), translated to UI id
   // for the lookup map the resource builder consumes.
+  //
+  // itemUuids is UNBOUNDED here: the `listings` RPC variant (066, used by
+  // /regulations and /map) is explicitly NO LIMIT (see the comment block
+  // above), so on an org with ~900 items this became a ~34KB `.in()` query
+  // string — PostgREST serialises `.in()` into the URL, and a request that
+  // large gets rejected with a 400 before it ever reaches the planner. The
+  // near-identical single-item read further down this file (`.eq("item_id",
+  // row.id)`) never hit this because it only ever sends one uuid. Chunk the
+  // `.in()` into batches well under any realistic URL-length limit, run them,
+  // and concatenate — then re-sort the merged result so we don't depend on
+  // per-batch ordering (Postgres only guarantees `sort_order` within each
+  // batch's own result set, not across batches).
+  const ITEM_TIMELINE_CHUNK_SIZE = 150;
   const itemUuids = items.map((i: any) => i.id);
-  const { data: timelineRows, error: timelineErr } = await supabase
-    .from("item_timelines")
-    .select("item_id, milestone_date, label, is_completed, sort_order")
-    .in("item_id", itemUuids)
-    .order("sort_order");
-  if (timelineErr) console.warn(`[supabase-server] item_timelines read failed (org timelines render empty): ${timelineErr.message}`);
+  const timelineRows: any[] = [];
+  let timelineErr: { message?: string; details?: string | null; hint?: string | null; code?: string | null } | null = null;
+  for (let i = 0; i < itemUuids.length; i += ITEM_TIMELINE_CHUNK_SIZE) {
+    const chunk = itemUuids.slice(i, i + ITEM_TIMELINE_CHUNK_SIZE);
+    const { data: chunkRows, error: chunkErr } = await supabase
+      .from("item_timelines")
+      .select("item_id, milestone_date, label, is_completed, sort_order")
+      .in("item_id", chunk);
+    if (chunkErr) {
+      timelineErr = chunkErr;
+      console.warn(
+        `[supabase-server] item_timelines read failed (org timelines render empty): ${describeSupabaseError(chunkErr)}`
+      );
+      break;
+    }
+    if (chunkRows) timelineRows.push(...chunkRows);
+  }
+  // Sort the merged result — do NOT rely on per-batch ordering from the
+  // `.order("sort_order")` PostgREST would otherwise apply per-request.
+  if (!timelineErr) timelineRows.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
   const timelineMap = new Map<string, any[]>();
   (timelineRows || []).forEach((t: any) => {
@@ -738,7 +789,7 @@ export async function fetchSurfaceCounts(
     });
     if (error || !data) {
       if (error) {
-        console.warn("fetchSurfaceCounts RPC unavailable, caller will fall back:", error.message);
+        console.warn("fetchSurfaceCounts RPC unavailable, caller will fall back:", describeSupabaseError(error));
       }
       return null;
     }
@@ -895,7 +946,7 @@ export async function fetchResearchPipelineRows(
       const { data: statsRows, error: statsErr } = await supabase
         .rpc("get_source_citation_stats", { source_ids: distinctSourceIds });
       if (statsErr) {
-        console.error("[research] get_source_citation_stats error:", statsErr.message);
+        console.error("[research] get_source_citation_stats error:", describeSupabaseError(statsErr));
       } else if (Array.isArray(statsRows)) {
         for (const s of statsRows) {
           if (s && typeof s.source_id === "string") {
@@ -919,7 +970,7 @@ export async function fetchResearchPipelineRows(
         .select("source_id, dimension, tag, confidence")
         .in("source_id", distinctSourceIds);
       if (biasErr) {
-        console.error("[research] source_bias_tags fetch error:", biasErr.message);
+        console.error("[research] source_bias_tags fetch error:", describeSupabaseError(biasErr));
       } else if (Array.isArray(biasRows)) {
         for (const b of biasRows) {
           if (!b || typeof b.source_id !== "string") continue;
@@ -979,7 +1030,7 @@ export async function fetchResearchSourceCoverage(): Promise<ResearchSourceCover
     const supabase = getSupabase();
     const { data, error } = await supabase.rpc("get_research_source_coverage");
     if (error) {
-      console.error("[research] get_research_source_coverage error:", error.message);
+      console.error("[research] get_research_source_coverage error:", describeSupabaseError(error));
       return [];
     }
     if (!Array.isArray(data)) return [];
@@ -1146,7 +1197,7 @@ async function runCategoryRpc(
         .select("id, name, base_tier, effective_tier")
         .in("id", chipSourceIds);
       if (srcErr) {
-        console.error(`[category-routing] source chip enrichment for ${rpcName} error:`, srcErr.message);
+        console.error(`[category-routing] source chip enrichment for ${rpcName} error:`, describeSupabaseError(srcErr));
       } else if (Array.isArray(srcRows)) {
         const byId = new Map<string, { name: string | null; base_tier: number | null; effective_tier: number | null }>();
         for (const s of srcRows as any[]) if (s?.id) byId.set(s.id, s);
@@ -1181,7 +1232,7 @@ async function runCategoryRpc(
         if (statsErr) {
           console.error(
             `[category-routing] get_source_citation_stats for ${rpcName} error:`,
-            statsErr.message
+            describeSupabaseError(statsErr)
           );
         } else if (Array.isArray(statsRows)) {
           const statsBySourceId = new Map<string, { count: number; recency: string | null }>();
@@ -1274,7 +1325,7 @@ export async function fetchSourceCitationStatsByIds(
     const { data, error } = await supabase
       .rpc("get_source_citation_stats", { source_ids: sourceIds });
     if (error) {
-      console.error("[market] get_source_citation_stats error:", error.message);
+      console.error("[market] get_source_citation_stats error:", describeSupabaseError(error));
       return out;
     }
     if (Array.isArray(data)) {
@@ -1370,7 +1421,7 @@ async function fetchWorkspaceOverrideRows(
     )
     .eq("org_id", orgId);
   if (error) {
-    console.warn("[overrides] service read failed:", error.message);
+    console.warn("[overrides] service read failed:", describeSupabaseError(error));
     return [];
   }
   const rows = (data || []) as OverrideDbRow[];
@@ -1388,7 +1439,7 @@ async function fetchWorkspaceOverrideRows(
     if (memberError) {
       // Warn-and-continue: an unresolved roster degrades to unassigned rows,
       // never a failed page render.
-      console.warn("[overrides] owner roster read failed:", memberError.message);
+      console.warn("[overrides] owner roster read failed:", describeSupabaseError(memberError));
     }
     for (const m of (memberRows || []) as Array<{
       user_id: string;
@@ -1663,7 +1714,7 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
     }
 
     if (recentResult.error) {
-      console.warn(`[supabase-server] get_workspace_recent_changes failed (This-week renders from the capped feed only): ${recentResult.error.message}`);
+      console.warn(`[supabase-server] get_workspace_recent_changes failed (This-week renders from the capped feed only): ${describeSupabaseError(recentResult.error)}`);
     }
     // Canonical-surface routing enrichment (misroute contract): the 232 RPC
     // predates surface routing and returns no item_type/domain, so one
@@ -1678,7 +1729,7 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
         .select("id, item_type, domain")
         .in("id", recentRows.map((r) => r.id));
       if (typeErr) {
-        console.warn(`[supabase-server] recent-changes item_type enrichment failed (rows link to /regulations fallback): ${typeErr.message}`);
+        console.warn(`[supabase-server] recent-changes item_type enrichment failed (rows link to /regulations fallback): ${describeSupabaseError(typeErr)}`);
       }
       for (const t of (typeRows || []) as Array<{ id: string; item_type: string | null; domain: number | null }>) {
         recentTypeById.set(t.id, { item_type: t.item_type ?? null, domain: t.domain ?? null });
@@ -2074,6 +2125,19 @@ export interface OperationsFact {
   source_name: string | null;
   source_url: string | null;
   source_note: string | null;
+  /**
+   * DATE AND FRESHNESS (2026-08-12). The /operations masthead has claimed "every fact carries a source
+   * and date" while this interface had no date field at all: `last_updated` was used for `.order()` and
+   * never selected into the result, so the claim could not be true. Both now ride on the row.
+   *
+   * `freshness` is DERIVED, never asserted — computed by stalenessOf() from last_updated against the
+   * dimension's expected cadence. It is what makes the `frozen` state visible: the sole writer of
+   * regional_data_facts is a hand-run one-shot on the dead-code manifest, so these rows are not "late",
+   * they have STOPPED UPDATING, and a surface that renders those two states identically presents a dead
+   * feed as a pending one.
+   */
+  last_updated: string | null;
+  freshness: "current" | "ageing" | "stale" | "frozen" | "unknown";
 }
 
 export interface OperationsCoverageData {
@@ -2097,12 +2161,15 @@ export async function fetchOperationsCoverage(): Promise<OperationsCoverageData>
         .select("region_id, dimension, state, fact_count, notes"),
       supabase
         .from("regional_data_facts")
-        .select("region_id, dimension, fact_label, value, status, trend, source_note, source:sources(name, url)")
+        // `last_updated` is now SELECTED, not merely ordered by. It was previously used to sort and then
+        // discarded, which is why OperationsFact had no date while the masthead claimed every fact
+        // carried one.
+        .select("region_id, dimension, fact_label, value, status, trend, source_note, last_updated, source:sources(name, url)")
         .order("last_updated", { ascending: false }),
     ]);
 
     if (regionsRes.error) {
-      console.warn("fetchOperationsCoverage regions error:", regionsRes.error.message);
+      console.warn("fetchOperationsCoverage regions error:", describeSupabaseError(regionsRes.error));
       return { regions: [], coverage: [], facts: [] };
     }
 
@@ -2123,8 +2190,22 @@ export async function fetchOperationsCoverage(): Promise<OperationsCoverageData>
       notes: c.notes,
     }));
 
-    const facts: OperationsFact[] = (factsRes.data || []).map((f: { region_id: string; dimension: string; fact_label: string; value: string; status: string | null; trend: string | null; source_note: string | null; source: { name: string; url: string } | { name: string; url: string }[] | null }) => {
+    // ONE clock read for the whole batch, passed in to the pure staleness function. envelope.mjs never
+    // reads the clock itself: a module that does is neither deterministic nor testable, and the
+    // discipline CI runs it with no wall-clock fixture.
+    const nowIso = new Date().toISOString();
+
+    const facts: OperationsFact[] = (factsRes.data || []).map((f: { region_id: string; dimension: string; fact_label: string; value: string; status: string | null; trend: string | null; source_note: string | null; last_updated: string | null; source: { name: string; url: string } | { name: string; url: string }[] | null }) => {
       const src = Array.isArray(f.source) ? f.source[0] : f.source;
+      // Regional cost and labour facts come from statistical agencies publishing on annual cycles
+      // (Eurostat labour-cost levels, BLS OEWS, packaging-waste series). Anything materially past that
+      // cadence is not late, it is unmaintained — which is the true state of this table today.
+      const freshness = f.last_updated
+        ? stalenessOf(
+            { as_of: { event_date: f.last_updated, source_published_at: f.last_updated }, expected_refresh: "annual" },
+            nowIso
+          )
+        : "unknown";
       return {
         region_code: regionCodeById.get(f.region_id) || "?",
         dimension: f.dimension,
@@ -2135,6 +2216,8 @@ export async function fetchOperationsCoverage(): Promise<OperationsCoverageData>
         source_name: src?.name ?? null,
         source_url: src?.url ?? null,
         source_note: f.source_note,
+        last_updated: f.last_updated ?? null,
+        freshness: freshness as OperationsFact["freshness"],
       };
     });
 
@@ -2172,7 +2255,7 @@ export async function fetchStateCostFacts(): Promise<StateCostFactRow[]> {
       .select("state_code, fact_label, value, unit, trend, statute_citation, effective_date, source:sources(name)")
       .order("state_code", { ascending: true });
     if (error) {
-      console.warn("fetchStateCostFacts error:", error.message);
+      console.warn("fetchStateCostFacts error:", describeSupabaseError(error));
       return [];
     }
     return (data || []).map((f: {
@@ -2261,7 +2344,7 @@ async function fetchIntelligenceItemSectionsUncached(
       .eq("item_id", uuid)
       .order("section_order", { ascending: true });
     if (error) {
-      console.warn("fetchIntelligenceItemSections error:", error.message);
+      console.warn("fetchIntelligenceItemSections error:", describeSupabaseError(error));
       return [];
     }
     return (data || []) as IntelligenceItemSectionRow[];
@@ -2318,6 +2401,7 @@ async function fetchIntelligenceItemUncached(
   supersessions: Supersession[];
   connections: ItemConnection[];
   relevanceInput: RelevanceInput;
+  canonicalSurface: DetailSurface;
 } | null> {
   if (!isSupabaseConfigured()) return null;
 
@@ -2556,7 +2640,20 @@ async function fetchIntelligenceItemUncached(
       compliance_object_tags: row.compliance_object_tags ?? null,
     };
 
-    return { resource, changelog, dispute, supersessions, connections, relevanceInput };
+    // SURFACE ADMISSION (2026-08-11). Computed from the RAW row, deliberately
+    // NOT from `resource` — the mapper above coalesces `domain: row.domain || 1`,
+    // which would classify every unclassified row as Regulations regardless of
+    // item_type and launder a defect into a verdict. The four `[slug]` routes
+    // compare this against their own surface and 404 on mismatch; see
+    // src/lib/item-links.ts for why the guard lives at the route rather than
+    // inside this fetcher (one cache entry per item, shared across surfaces —
+    // gating in here would fragment the cache four ways for the same row).
+    const canonicalSurface = canonicalSurfaceForItem({
+      type: row.item_type ?? null,
+      domain: row.domain ?? null,
+    });
+
+    return { resource, changelog, dispute, supersessions, connections, relevanceInput, canonicalSurface };
   } catch (e) {
     // Sprint 4 task 1.10 gate: on DB error, fail CLOSED rather than serve
     // ungated legacy SEED content for what may be an unverified item.
@@ -2583,6 +2680,7 @@ export async function fetchIntelligenceItem(
   supersessions: Supersession[];
   connections: ItemConnection[];
   relevanceInput: RelevanceInput;
+  canonicalSurface: DetailSurface;
 } | null> {
   return unstable_cache(
     () => fetchIntelligenceItemUncached(itemUiId),
@@ -2750,7 +2848,7 @@ async function readListOrderRanks(
   // read would cost them the whole watchlist. The error is logged rather than
   // dropped (see the agent/run error-swallow post-mortem in CLAUDE.md).
   if (error) {
-    console.warn("readListOrderRanks failed, using natural order:", error.message);
+    console.warn("readListOrderRanks failed, using natural order:", describeSupabaseError(error));
     return new Map();
   }
   const ranks = new Map<string, number>();

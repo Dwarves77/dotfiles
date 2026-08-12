@@ -2775,3 +2775,372 @@ the class column, until I named the closed vocabulary and pinned each class to i
 
 STILL NOT SCHEDULED. The data-audit lane remains `workflow_dispatch`-only and disabled in the Actions UI.
 Nothing was funded. The 4c relabel of the sub-floor facts remains frozen, on purpose.
+
+## Addendum 9 — re-verifying the master gap register, and getting my own re-verification wrong once (2026-08-11)
+
+Handed a new session and a claim that two of the register's twelve P1 findings were already fixed and the
+register never said so. Re-checked all twelve against live code (HEAD past #447) and live DB, not against
+the claim. Ten were already fixed and unrecorded. Two needed real work: #4 and #10.
+
+I GOT #4 WRONG ON THE FIRST PASS. I checked `pg_policies` and `information_schema.columns` and reported
+"still open" — the row policy on `profiles` is `USING (true)`, and email/linkedin_sub/is_platform_admin
+are columns on the table, so anon can read them. That is true and it is also not the whole picture: I never
+checked `information_schema.column_privileges`. Migration 165 is applied and ledgered, and its fix is a
+column-level `REVOKE`/`GRANT` on the `anon` role, not a row-policy change — anon holds zero `SELECT` on
+those three columns today, 34 non-PII columns granted instead. The row policy stays `true` on purpose
+(migration 165's own comment says so) because ~10 live readers — community author-joins,
+`invite-candidates` search, `CouncilMembersRail`, admin `MembersPanel` — read OTHER users' rows for
+legitimate display and would go silently empty under a self-only policy, the same failure class as the
+provisional-queue gap two sessions ago. The instruction I was handed asked for the row-policy tightening
+anyway; I reported the conflict instead of applying it, the operator ruled close-as-is, and #4 is FIXED on
+the mechanism that is actually live, not the one first proposed. One residual logged, not fixed:
+`authenticated` still holds column-level SELECT on those three columns for every row, not just the caller's
+own — no live route was found that exploits this, but the privilege exists and it should not.
+
+#10's RESIDUAL WAS REAL AND NARROWER THAN THE ORIGINAL FINDING. The production pipeline — Browserless,
+direct-HTTP, the API ladder — was already gated by `assertFetchAllowed` through #447. What wasn't: the
+admin manual "fetch now" button's inline `fetchViaApi` helper, a near-duplicate of `api-fetch.ts`'s shape
+that never got the gate when the ladder did. Added the call (caller `"admin-fetch-now"`, deliberately NOT
+added to `AUTHORIZED_HOLD_CALLERS` — extending that two-name frozen set is its own governed decision, not
+a side effect of a bug fix) and widened F16's `TRANSPORT_MODULES` so a future duplicate-helper bypass of
+this shape fails CI instead of waiting for another manual audit. F16: 10/10. Fitness runner: 20/20, 0
+violations. Full suite: 1236/1236 green on current master (the register's own target of 1247 is the
+post-#448-merge count, not today's).
+
+THE RULE THIS PRODUCED. A "still open" verdict is only as good as the privilege layer it checked. RLS row
+policy and column-level GRANT are two different mechanisms answering two different questions, and a table
+can be fixed on one axis while looking untouched on the other. Check both before writing a status, not just
+the one that matches the finding's original wording.
+
+Register updated in place (`docs/ops/full-system-audit-2026-07-11/master-gap-register.md`): all twelve P1
+rows carry a 2026-08-11 status and the evidence used, not just a next-action. Net: 12/12 closed, zero open
+P1 items. The P2/P3/P4 sections and the other linked registers were not re-verified this pass and still read
+as 2026-07-11 evidence.
+
+STILL NOT SCHEDULED. No cron, no `schedule:` block, nothing armed in the Actions UI — unchanged. Nothing
+here spent: two code edits, one doc rewrite, read-only SQL. Task 1 (the five rule-016 file edits, merging
+#448) and everything after it in the handoff sequence is queued, not started.
+
+## Addendum 10 — the other three surfaces have the same disease, and it is not in the surfaces (2026-08-11)
+
+The Operations redesign was scoped because Operations was found built to the wrong spec. The rest of the
+plan assumed the other surfaces were sound. The operator caught that assumption and told me to check all
+of them. The Market Intel spec audit had already called "built to wrong spec" a pattern rather than an
+incident, and the 2026-05-23 synthesis has said since then that FIVE of six substantive surfaces had
+fundamental gaps. Nobody had re-verified that claim, and nobody had acted on it beyond Operations.
+
+RE-VERIFIED ALL FOUR AGAINST LIVE CODE, NOT AGAINST THE AUDIT DOCS. Roughly 55 to 70 percent of the
+2026-05-23 findings are stale, and they are stale in exactly one direction: the chrome got rebuilt, the
+data and the read-shape did not. All four detail routes now exist. Market's severity vocabulary is now
+spec-exact and its TRL framing file is deleted. Research is no longer titled "Research Pipeline" and no
+longer links its rows into /regulations. Operations' "Coming soon, Phase D" banner and stub chip gallery
+are gone. Underneath all of that, three of four surfaces violate their own 2026-07-12 analysis contract,
+and the fourth is worse news than the other three: Regulations, the page the platform-intent skill calls
+"the only intelligence page currently delivering its stated intent," is a qualified NO. Two of its four
+contract clauses are structurally unanswerable at HEAD. `penalty_range`, `cost_mechanism` and
+`enforcement_body` were de-mapped as absent from schema and the tiles that read them were left in place,
+so "what it costs" renders permanent em-dashes; `binding_status` does not exist anywhere in the repo, so
+"what is binding" has no representation in the data model at all. That matters disproportionately because
+it is the reference surface the other three are measured against.
+
+I GOT A PRIOR WRONG AND CAUGHT IT BEFORE ACTING ON IT. I believed /research still shipped the editorial
+draft-staging queue that the 2026-07-12 research-is-horizon-scan ruling rejected, because the page's own
+comment at src/app/research/page.tsx:44 says "The pipeline_stage UI control still functions." Traced
+properly, pipelineStage is selected, mapped, adapted, typed, passed into the ledger, and never rendered.
+The only stage UI in the tree is admin chrome. The doctrine is CLEAN. The violation lives in a false code
+comment, and I was one step from shipping a fix for a violation that does not exist, on a comment's
+authority. Same class as the gap register: a durable statement about the past, read as current.
+
+THE REFRAME. Four defects are identical on all four surfaces and live BELOW them, which is precisely why
+four separate surface audits could not see them: a defect present on all four reads as "this page is
+under-built," four times, and produces four rebuild line items instead of one substrate line item. The
+synthesis then sequenced five rebuilds, every one of which would have re-implemented the same four bugs.
+(1) No detail route was surface-guarded. (2) Counts and rows come from two different classifiers on every
+page. (3) Roughly seventeen UI fields are bound to producers that do not exist. (4) Market and Operations
+import the Regulations prose renderer, which supports no tables and no lists, so the two pages whose
+contracts are explicitly comparative are physically unable to render a comparison.
+
+PHASE 0.1 SHIPPED HERE, the first of those four. fetchIntelligenceItemUncached gated on
+provenance_status='verified' and nothing else, so every verified item was reachable at four URLs under
+four contradictory framings, and each detail surface RELABELLED the item's stored section rows with its
+own heading map while silently dropping keys outside its range: a fifteen-section regulation opened at
+/operations/<slug> rendered keys 1 to 8 under Operations headings and dropped 9 to 15. Real content under
+false labels. The fix invents nothing. src/lib/item-links.ts already derived outbound hrefs from
+`surfaceOf`, the ratified (item_type, domain) classifier that also codegens migration 148's SQL; it now
+exports `canonicalSurfaceForItem` and both directions consume it, so an emitted link and a route guard
+cannot disagree by construction. The platform already knew which surface an item belonged to when it wrote
+a link OUT; it just never checked when a request came IN.
+
+TWO THINGS I WAS CAREFUL ABOUT. The guard classifies off the RAW row, not off the mapped Resource, because
+the mappers coalesce `domain: row.domain || 1` and classifying off a coalesced value launders a defect
+into a verdict, answering "regulations" for any unclassified row of any type. And the guard sits at the
+route rather than inside the fetcher, because the fetcher is `unstable_cache`d per item id; gating inside
+it would have needed the surface in the cache key and fragmented one cache entry into four for the same
+row. The uncategorized fallback stays pointed at Regulations on purpose: it is the same fallback the
+outbound href has always used, it keeps the defect population navigable at one honest address instead of
+404ing it out of existence, and it keeps those rows visible to surface-visibility-audit.mjs, which is what
+actually remediates them. Narrowing it is a data-layer decision about the null-domain population, and it
+belongs with that remediation, not with a routing change.
+
+Ten-case proof at src/__tests__/surface-admission.test.mjs, inside an existing run-test-suite glob so it
+is execution-wired rather than an F23 orphan. It asserts the four historical leaks are refused, that
+exactly one route admits any given item, that no item is orphaned (a guard that traded mislabelling for
+disappearance would be a worse bug), and that the admitting route always equals the route the item's own
+href points at. Suite 1246/1246. Fitness 20/20, 0 violations. Meta-gate PASS. tsc clean.
+
+OPERATOR RULINGS RECORDED in docs/plans/surface-rebuild-plan-2026-08-11.md: format-binds-UI stays a
+PER-SURFACE decision taken at Phase 2, so the acceptance gate ships as a two-way ratchet on today's
+measured counts rather than a spec-derived floor; sequencing is substrate-first across all four surfaces;
+and Operations EU/US data is IN scope to source over free HTTP, with the dead one-shot
+sprint3-a6-find-new.mjs staying on the deletion manifest rather than being revived.
+
+STILL NOT SCHEDULED. No cron, no `schedule:` block, nothing armed in the Actions UI. Nothing here spent:
+read-only code reading, five code edits, one new test, two docs. Phases 0.2 through 0.5, the acceptance
+gate, and all per-surface shape work are queued, not started.
+
+## Addendum 11 — researching the industry before specifying, and two bugs my own tests found (2026-08-12)
+
+The operator's instruction was to stop specifying in a bubble: look at how the industry actually builds
+market intelligence, regulatory intelligence, horizon scanning and jurisdictional cost surfaces, and
+make the pages work as one product rather than five. Six parallel research passes against named
+commercial practice, then a seven-document spec suite in docs/specs, then the first build unit.
+
+THE ORGANISING FINDING. Five surfaces are five LENSES ON ONE SPINE. That is literally Wood Mackenzie's
+architecture, which is why their platform is called Lens, and it is Bloomberg's grammar: load an entity,
+apply a function, and cross-module navigation works because the entity is application state rather than
+a query retyped per screen. Caro's Ledge has the inverse. Three foundation objects fix it and every
+per-surface spec now assumes all three: an entity spine, a number envelope on every figure, and six
+shared vocabularies. A fourth, the portfolio, is what makes it personal.
+
+FOUR THINGS THE RESEARCH CHANGED, not just decorated. First, almost NOTHING in this landscape binds a
+freight forwarder directly. Every regulatory intelligence product on the market is built for the
+duty-holder and our customer usually is not one; their own duties are few, methodological, and cluster
+around how they report numbers and when they stand in the importer's shoes. So `binding_position` is
+now the highest-value field in the product and it does not exist today. CountEmissions EU, Regulation
+(EU) 2026/1030, adopted this April, is the centre of gravity: the only instrument written at transport
+service organisers, voluntary to disclose but mandatory in method. A forwarder acting as CBAM indirect
+customs representative IS the authorised declarant, which is a live 2026 liability nobody is pricing.
+Second, carbon cost is already inside the freight rate: Drewry's WCI enumerates the EU ETS surcharge as
+an included component, so the industry has conceded the point and nobody shows a forwarder the
+decomposition against their own lanes. Third, the $0 constraint is far less binding than I assumed:
+THETIS-MRV publishes vessel-level VERIFIED CO2 and efficiency for every ship over 5,000 GT calling at
+EEA ports, and the SBTi dashboard publishes sector-tagged target status every Thursday including
+"commitment removed" — those two plus the EU Weekly Oil Bulletin, EIA, EEX, Eurostat, BLS OEWS, PVGIS
+and Ember are a defensible product with zero data spend. The work is ingestion discipline, not
+acquisition. Fourth, three verified corrections: the IMO Net-Zero Framework is NOT adopted (adjourned
+twice, adopt-or-fail December 2026, so it must be modelled as a scenario with adopted:false), the Green
+Claims Directive was NOT withdrawn, and PPWR became applicable yesterday. Sixteen further facts could
+not be confirmed against primary sources and are listed as UNCONFIRMED in spec 01 §9 rather than
+asserted — EUR-Lex served metadata rather than operative text on several, and CARB, IMO and Smart
+Freight Centre all block automated access.
+
+I CORRECTED MY OWN SEQUENCE. Spec 06 put the spine at Phase 2, after the Phase 0 substrate fixes. That
+is wrong on dependencies: the vocabularies and the envelope decide what an orphan field becomes, what a
+count population means, and what a cell renders when data is absent, so building 0.2 through 0.5 first
+and retrofitting the vocabulary is rework. `origin_class` in particular is unfixable retroactively.
+Foundation types now land first.
+
+SHIPPED HERE: the six vocabularies and the number envelope, plain dependency-free ESM following the
+surface-of.mjs precedent exactly. Four of the six are ADOPTED rather than invented — SDMX CL_OBS_STATUS
+for observation status, the NATO/Admiralty 6x6 for asserted claims, the ecoinvent/Weidema five-axis
+pedigree for modelled values, W3C PROV shapes for relations. Inventing bespoke scales would have cost
+the one thing these buy: the customer's LCA, assurance and procurement people already speak them.
+makeEnvelope THROWS on a figure missing derivation, unit or as-of, so the bare-number state that
+produced Market Intel's permanent em-dashes is unconstructable rather than discouraged.
+
+TWO BUGS MY OWN TESTS FOUND, both mine. The Admiralty-to-band ladder was written INVERTED, so A1, the
+best possible source-and-credibility pair, mapped to very_low. The assertion "A1 must be very_high"
+caught it immediately. And makeEnvelope defaulted optional enums to null while validateEnvelope only
+skipped undefined, so the constructor and the validator disagreed about what "absent" means and every
+envelope without an explicit origin_class threw — twelve failures from one root cause. Both are the
+ordinary reward for writing the proof before believing the code.
+
+F25 CAUGHT ME TAKING A SHORTCUT I HAD NOT NOTICED. The fitness runner failed: envelope.mjs had a passing
+proof and no production importer, which is the proven-but-unwired class this repo governs against, and
+the violation text is right that such a module is indistinguishable from a live one. The weak move was
+the LEGACY_ALLOWLIST. Instead I wired it into the exact defect spec 04 had already named: /operations
+claims "every fact carries a source and date" while OperationsFact had no date field at all, because
+`last_updated` was used to ORDER the query and then discarded. It is now selected, carried, and used to
+derive freshness. That matters beyond tidiness: the sole writer of regional_data_facts is a hand-run
+one-shot on the dead-code manifest, so those rows are not late, they have stopped updating, and
+`frozen` is the state that makes a dead feed stop looking pending.
+
+Suite 1311/1311 (was 1246, +65 here). Fitness 20/20, 0 violations. Meta-gate PASS. tsc clean.
+
+STILL NOT SCHEDULED. No cron, no `schedule:` block, nothing armed in the Actions UI. Nothing here spent:
+web research on free public sources, two new modules, two proofs, one data-layer fix, nine documents.
+Phase 0.2 through 0.5, the acceptance gate, the spine entities and every producer are queued, not
+started.
+
+## Addendum 12 — an external review found a defect in my corridor key, and it was worse than they said (2026-08-12)
+
+The operator took the flywheel design to a second model, refined it, and came back with eight missing
+functional domains plus a gap list. Most of it is right and additive. One item was a real defect in
+something I designed, and one thing they said was fine actually is not quite.
+
+THE DEFECT, AND WHY IT WAS WORSE THAN REPORTED. My corridor ID hashed
+`origin | mode | dest | coalesce(leg_ordinal,'')`. The review flagged a collision when `leg_ordinal` is
+NULL. True, and the smaller half. The severe half is that ROUTING WAS ABSENT ENTIRELY, so Asia-Europe via
+Suez and Asia-Europe via the Cape of Good Hope hashed IDENTICALLY. Those are not the same corridor: a Cape
+reroute raises fuel burn roughly 30-40%, which moves the vessel into a higher FuelEU and EU ETS penalty
+bracket. Two corridors whose statutory cost differs by a third cannot share a primary key, and had I
+shipped it, the rerouting-multiplier domain the same review asked for would have been unrepresentable in
+the schema it was meant to sit in. A content-addressed key is also the worst kind of key to get wrong,
+because changing it later rewrites every referencing row.
+
+Fixed and shipped with three collision classes closed, not one. Routing key plus an ordered via-list are
+now in the payload. NULL has a sentinel no real value can produce. And every field is LENGTH-PREFIXED,
+which kills delimiter injection as a class rather than as instances: joining with a separator lets
+("AB","C") and ("A","BC") produce one payload, and while nobody names a UN/LOCODE with a pipe, via-lists
+and carrier service strings are free text and will eventually contain anything. 14 tests including a
+180-spec matrix asserting zero collisions.
+
+TWO BUGS OF MY OWN INSIDE THE FIX. I wrote the NULL sentinel as a literal NUL byte, which made the source
+file read as binary to grep and diff and would have been fragile through the upload path this repo ships
+through. Worse, and this is the one that mattered: the JS used one sentinel and my generated SQL used
+`chr(0)`, so the two languages would have produced DIFFERENT hashes for the same corridor whenever a field
+was absent. That is precisely the failure a codegen-plus-drift-guard exists to prevent, and I introduced it
+inside the module whose entire purpose is JS/SQL parity. Both replaced with a printable `N#`. I also had
+`btrim` where JS uses `.trim()`, which disagree on tabs and newlines; now explicit on both sides.
+
+THE SECOND GENUINE GAP: MY DERIVATION ENUM CONFLATED TWO DIFFERENT CLAIMS. `calculated` was covering both
+"a number we computed" and "a number computed under a formula prescribed by law". A FuelEU penalty is not
+our arithmetic, it is the statute's, and a compliance reader must be able to see that without reading our
+method docs. Added `statutory_fixed` and `statutory_formula`, ordered above `observed`, with
+`isStatutory()`. This matters most in the surcharge-audit domain the review proposed: "your billed
+surcharge exceeds the statutory liability by X" is observed-against-statutory and defensible, whereas
+"your carrier is overcharging you by Y" needs a modelled inference of their pooling position and is an
+accusation we cannot support. Same screen, two very different sentences, and the derivation class is the
+only thing keeping them apart.
+
+F23 FALSE POSITIVE, AND I DID NOT WEAKEN THE DETECTOR TO CLEAR IT. The coverage scan flagged corridor-id
+as an unmapped DATA WRITE. It writes nothing: WRITE_RE matches `.update(` and the module calls
+`createHash("sha256").update(payload)`. Recorded as an exemption with the reason, and named the durable fix
+as EVIDENCE rather than requesting a relaxation: the class will recur because `Map.delete()`,
+`Set.delete()` and `hash.update()` are ordinary JS, and the real repair is to require a DB-client import as
+a precondition for the WRITES classification. Deliberately not done inside this unit, because narrowing a
+governance detector needs its own change with a before/after count across all 21 current unmapped writes,
+or it silently masks a real one.
+
+F25 CAUGHT THE MODULE AS UNWIRED AND THIS TIME THE ALLOWLIST WAS THE RIGHT ANSWER, WHICH IT WAS NOT LAST
+TIME. Last unit I refused the allowlist for envelope.mjs and wired it into a real defect instead. Here the
+consumer TABLE does not exist yet, so there is no honest consumer to wire to, and faking one would be worse
+than declaring it. The entry carries a NAMED LANDING POINT rather than being an indefinite parking space:
+it is deleted by the unit that creates the corridors table, and that unit fails review if it leaves the
+entry behind. The distinction between the two calls is whether a real consumer exists, not whether the
+allowlist is available.
+
+WHERE I PUSHED BACK. The brief specifies BOTH read-time computed views AND materialised `derived_values`
+marked stale on ingest. Those are two architectures and the tension resolves accidentally if nobody names
+it. Resolved explicitly: read-time for MASKS, materialised for EVIDENCE, and the discriminator is
+auditability. A statutory computation a customer filed on 14 March must be reproducible byte-for-byte, and
+a read-time view recomputed against today's inputs cannot do that. If a customer could be asked to defend
+it, materialise it; if it is a way of looking at something, compute it on read. And a small correction on
+staleness being "not an issue for build 1": the read-time MASK is already built, tested and live in the
+Operations fact path. The honest status is mask done, drain deferred. That matters because `frozen` is what
+makes the EU/US Operations data hole read as unmaintained rather than pending, and that hole is a build-1
+credibility problem.
+
+THE BEST IDEA IN THE REVIEW was the OEM equipment layer. Research was scoped TRL 1-6 and Market Intel to
+spot rates with nothing in between, and the middle band is both where the forwarder's question lives and
+the leading indicator: manufacturer commitments precede fleet tenders by 18-36 months. It also reframes the
+electrification question correctly. The forwarder does not need to know when battery trucks are available;
+they need to know when they stop costing a fifth of revenue tonnes to battery mass, which is a different and
+later computable date. Second best was the grid connection queue, because tracking euro-per-kWh missed that
+the binding constraint is a 24-36 month transformer queue, which makes it a GATE and not a cost line.
+
+Suite 1329/1329 (was 1311, +18 here). Fitness 20/20, 0 violations. Meta-gate PASS. tsc clean.
+
+STILL NOT SCHEDULED. No cron, no `schedule:` block, nothing armed in the Actions UI. Nothing here spent:
+two modules touched, three proofs, two governance records, one spec. The eight new domains are specified
+and none is built; the corridors table, the surcharge audit and every producer remain queued.
+
+## Addendum 13 — the v1 seed plan was not licensable, and the identifier layer was the real exposure (2026-08-12)
+
+The operator asked for the legally safest path: v1 on static seeds and batch CSV, no live API dependency,
+schema pre-wired so connecting a feed later is an insert. That strategy is right. But it moves the risk to
+a place the plan did not look, and the operator's instinct to ask about legal safety was the correct one.
+
+THE DISTINCTION THE PLAN MISSED. Reading an open dataset is not the same legal act as embedding it in a
+database and re-serving it to paying customers. "Is it free?" hides three separate questions: may we
+redistribute, may we use it commercially, and what attribution must ship. I did not assume; I ran a
+verification pass against published terms with URLs and dates, because asserting a licensing position I had
+not read would have been the worst possible place to speculate.
+
+FOUR OF THE NAMED SEEDS CANNOT BE EMBEDDED, AND TWO WERE THE CENTRE OF THE PLAN. GLEC v3 default factor
+tables: "No use of this publication may be made for resale or for any other commercial purpose whatsoever,
+without prior permission in writing." ISO 14083 default values, the strictest terms in the whole set: a
+single NAMED end-user licence that cannot be shared even inside our own legal entity, and "integration,
+embedding, encoding, structuring... or operationalization... within any digital or software-based
+environment" requires separate licensing. Clean Cargo carrier-specific factors: members-only, and whether a
+member may re-serve them to its own customers is unverified. IEA datasets: prohibited in terms that
+describe our exact use case, including no databases "substantially derived from" the material.
+
+AND THREE I HAD ASSUMED SAFE ARE NOT. UN/LOCODE grants only "personal, non-commercial use, without any
+right to resell or redistribute" and has no open licence anywhere. The SBTi dashboard says outright "this
+does not represent a license to repackage or resell any of the data" — which kills the diffusion engine
+behind the lead-time chart until permission is asked for. World Bank CPPI is co-produced with S&P Global
+and puts third-party clearance on the reuser.
+
+THE REAL FINDING: THE LARGEST EXPOSURE IS THE IDENTIFIER LAYER, NOT THE FACTOR LAYER. IATA codes, SCAC
+codes, IMO numbers from the S&P register and UN/LOCODE are all restricted, and the IATA terms are the most
+explicit prohibition of the set — they name our use twice, barring redistribution "including without
+limitation, its clients" and integration "in any commercial product or service". I had been treating
+identifiers as the boring, settled part of the spine. They are the risky part.
+
+THE ONE DISTINCTION THAT SAVES THE BUILD: methods are not copyrightable, tables and text are. We can be
+GLEC-conformant and ISO 14083-conformant in METHOD while populating the calculation from sources we may
+lawfully re-serve. Buy one copy of the standard for a named engineer, implement the logic, never ship the
+tables. And the substitutes are genuinely better rather than grudging: UK DESNZ factors under OGL v3.0,
+which expressly permits commercial exploitation AND sub-licensing, and EMSA THETIS-MRV per-ship verified
+data from which we derive our own carrier-and-lane intensities and OWN the derivation. THETIS-MRV also
+solves the IMO-number problem elegantly, because it publishes those numbers as part of a statutorily
+mandated disclosure under Reg (EU) 2015/757 Art. 21 — the S&P terms bind users of S&P's site and do not
+reach identifiers obtained from the EU's own legal publication.
+
+The design rule that makes the identifier layer safe: UN/LOCODE, IATA and SCAC become INPUT ALIASES we
+resolve against, never datasets we publish. A customer-supplied code maps to our own node key. Costs
+nothing functionally.
+
+SHIPPED: THE REGISTER AS A GATE, NOT A MEMO. A licence policy that lives in a document gets violated by
+whoever writes the next importer at 11pm. source-licence.mjs holds 24 sources with verdict, licence,
+attribution string, the URL read and the verification date; assertEmbeddable() THROWS; an unregistered
+source FAILS CLOSED, because that is the actual path by which unlicensed data enters a product. Refusals
+name the substitute and conditional refusals name who to ask and what to ask, so the error message is
+actionable rather than merely blocking. Conditional is NOT treated as permitted: "permitted once we send
+the notification" is not permitted until the notification is sent.
+
+TWO CORRECTIONS TO THE INCOMING TIER DESIGN. First, THE DQI DIRECTION WAS INVERTED. The draft described a
+default as "2 out of 5" upgrading to "4/5 or 5/5", i.e. higher is better, which is backwards against the
+ecoinvent/Weidema pedigree that ISO 14083 uses and that this product ALREADY SHIPS in vocabularies.mjs
+(1 = best). Two scales pointing opposite ways in one product is how a quality score silently inverts, and
+an inverted quality score is worse than none because it is confidently wrong. Same class as the Admiralty
+ladder I wrote backwards two units ago, which is a pattern I should watch in myself: I get direction
+conventions wrong when I do not write the assertion first. Second, THE LICENCE GATE WAS ABSENT from tier
+selection. A tier is not selectable merely because a row exists, so the resolver now skips a tier whose
+source is not clear and falls through to the open-licence default, and the skip is RETURNED rather than
+swallowed. Also fixed: the view excluded nothing future-dated, so a data-entry error with tomorrow's date
+would have won the ORDER BY and served as the active factor.
+
+WHERE I PUSHED BACK. "Baseline EUA prices (weekly static benchmark)" as a seed is wrong: a statutory
+formula is stable, a carbon price is not, and seeding a price then letting it age silently is exactly what
+the freshness machinery exists to catch. The formula is seedable; the price is not. And "Regulations: 100%
+fully functional day one" is true for what the law says and for the arithmetic, but not for what applies to
+THIS customer, which needs the applicability profile, and not for binding_position, which is not in the
+schema yet. The honest v1 claim is complete statutory content and computation, applicability pending —
+worth being precise about, because that sentence gets repeated to a customer.
+
+F25 flagged factor-tier as unwired. Same call as corridor-id last unit and for the same reason: the
+consumer table does not exist, so there is no honest consumer to wire to. Allowlist entry with a named
+landing point that the seed-data unit must delete.
+
+Suite 1360/1360 (was 1329, +31 here). Fitness 20/20, 0 violations. Meta-gate PASS. tsc clean.
+
+NINE ITEMS EXPLICITLY UNVERIFIED and listed in spec 10 §7, the most consequential being whether Smart
+Freight Centre accreditation conveys a data licence at all (their site returned 403 on every attempt).
+Several vendors are publicly GLEC-accredited so a commercial pathway exists, but accreditation must not be
+assumed to convey redistribution rights, and I have not read its terms.
+
+STILL NOT SCHEDULED. No cron, no `schedule:` block, nothing armed in the Actions UI. Nothing here spent:
+two new modules, one proof, one governance record, one spec. No seed data has been loaded and no table
+created; every producer remains queued.

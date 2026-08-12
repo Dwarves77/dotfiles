@@ -119,6 +119,23 @@ export interface AgentMetadata {
    *   - conversion_trigger   market_signal_brief B1/B2 featured
    *   - cross_references     market_signal_brief B3 featured
    */
+  /**
+   * The Short summary shown on /regulations/[slug] (RegulationDetailSurface `shortText`), and the
+   * search haystack on the ledgers. Added to the contract 2026-08-12.
+   *
+   * WHY IT WAS MISSING FOR SO LONG. It was written ONLY by /api/admin/scan at discovery time, and the
+   * regeneration contract never carried it. So an item that arrived by any other path, or that was
+   * regenerated after a scan that did not set it, kept an empty what_is_it permanently no matter how
+   * good its brief became. The result inverted the obvious expectation: measured 2026-08-12, the 409
+   * items with a BLANK what_is_it averaged 8.1 sections and 21.9 grounded claims against 6.7 and 16.9
+   * for the 501 that had one. The better-developed items were the blank ones, because regeneration is
+   * what develops an item and regeneration never wrote this field.
+   *
+   * Display consequence, measured the same day: 242 of 754 Regulations items render with no Short
+   * summary card at all (what_is_it AND summary both empty). Market, Operations and Research were
+   * unaffected because summary is populated there and their chains put it first.
+   */
+  what_is_it: string | null;
   what_it_changes: string | null;
   does_not_resolve: string | null;
   conversion_trigger: string | null;
@@ -602,6 +619,12 @@ function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
     if (v === "" || v.toLowerCase() === "null") return null;
     return v;
   }
+  // what_is_it joined the contract 2026-08-12 as the 20th field. OPTIONAL at the parser, not required,
+  // and that is deliberate: the contract tells the agent to emit null when the brief could not establish
+  // what the instrument is, so making it mandatory here would turn an honest null into a FAILED
+  // regeneration and push the agent toward inventing a sentence to pass the gate. Absence is a legitimate
+  // answer; the renderer falls back to summary and, failing that, omits the card.
+  const whatIsIt = readOptionalString("what_is_it");
   const whatItChanges = readOptionalString("what_it_changes");
   const doesNotResolve = readOptionalString("does_not_resolve");
   const conversionTrigger = readOptionalString("conversion_trigger");
@@ -616,6 +639,7 @@ function parseYamlFrontmatter(rawYaml: string): AgentMetadata {
     signal_band: signalBand,
     theme: theme,
     trajectory_points: trajectoryPoints,
+    what_is_it: whatIsIt,
     what_it_changes: whatItChanges,
     does_not_resolve: doesNotResolve,
     conversion_trigger: conversionTrigger,

@@ -7,15 +7,35 @@ name: Discipline engine
 # the policy. Engine, predicates, and rule modules live in
 # fsi-app/.discipline/ (Sprint Foundation Waves 0-2).
 #
-# Two jobs run independently on the same triggers:
+# FIVE jobs run independently on the same triggers:
 #
-#   validate-commits       — executes the engine against the relevant commit(s)
-#                            and fails the build on any rule FAIL.
-#   test-discipline-engine — executes the unit tests for the engine itself
-#                            (predicates + every rule + runner), so a rule
-#                            regression is caught before it merges.
+#   validate-commits       executes the engine against the relevant commit(s)
+#                          and fails the build on any rule FAIL.
+#   test-discipline-engine executes the unit tests for the engine itself
+#                          (predicates + every rule + runner) plus the
+#                          invariant-coverage meta-gate, so a rule regression
+#                          is caught before it merges.
+#   consistency-backstop   runs the C3/C4/C5 reality checks unconditionally,
+#                          override-aware.
+#   fitness-check          npm ci, then the fitness function suite and the
+#                          npm-dependent proofs.
+#   rendering-guard        real-browser layout leg, NON-BLOCKING, and by a wide
+#                          margin the most expensive job here: it installs
+#                          Playwright chromium and carries a 10-minute timeout
+#                          against everything else's 5.
 #
-# Either job failing fails the workflow; PR merge is blocked when this
+# The header said "Two jobs" from Wave 2 until 2026-08-12 while the file had
+# grown to five. A comment that miscounts the jobs it documents is the same
+# defect class the engine exists to catch, one level up, so it is corrected
+# here rather than left as harmless drift.
+#
+# RECORDED HONESTLY: the first draft of this correction said FOUR, because it was
+# written from a partial read of the file that stopped before rendering-guard. It
+# was caught by parsing the YAML and enumerating jobs[] rather than by reading
+# harder. Counting by hand is how the original miscount happened; the count above
+# is machine-derived.
+#
+# Any job failing fails the workflow; PR merge is blocked when this
 # workflow is set as a required check (Repo -> Settings -> Branches).
 
 on:
@@ -25,6 +45,40 @@ on:
   pull_request:
     branches:
       - master
+
+# COST CONTROL (2026-08-12, operator-directed after a GitHub storage alert whose
+# diagnosis found the real exposure was MINUTES, not storage).
+#
+# Measured on the billing usage page, 1-12 August: Actions Linux 1,295 min of the
+# 2,000 included, projecting to roughly 3,345 min for the month, about $8 of
+# overage. Actions storage was 359 GB-hr against a 372 GB-hr allowance, worth
+# about $0.19. The alert named storage; the money was in minutes.
+#
+# WHY THIS WORKFLOW IS THE CONSUMER. Five jobs fire on every pull_request event,
+# seven counting bug-class-guard, and GitHub rounds EVERY job up to a whole
+# billable minute, so a short job costs a full minute even when it takes twenty
+# seconds. One of the five, rendering-guard, installs Playwright chromium and is
+# NON-BLOCKING, so on a superseded commit it is pure spend against a result that
+# could never have gated the merge anyway. Delivery to this repo
+# is by GitHub web upload, which is scoped to one directory per commit, so one
+# logical unit lands as five or six commits. Without a concurrency group each of
+# those commits ran a full four-job pass to completion, and the first five passes
+# were obsolete before they finished.
+#
+# WHY cancel-in-progress IS CONDITIONAL. On a pull_request, a superseded run is
+# waste: a newer commit on the same branch will be validated instead, so
+# cancelling loses no coverage. On a push to master, every commit is a distinct
+# thing that must be validated on its own, and cancelling would silently skip
+# validation of a merged commit. So the flag is TRUE for pull_request and FALSE
+# for everything else, rather than a blanket true.
+#
+# This changes no trigger and no path filter. Filtering paths was considered and
+# REJECTED: a skipped required check reports neither success nor failure, so
+# branch protection blocks the merge forever, and a docs-only commit is exactly
+# when someone would least expect a permanent block.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   validate-commits:

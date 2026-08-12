@@ -262,11 +262,12 @@ Cite inline at the end of each subsection, not just in the sources list. Never p
 
 ## Database field emission
 
-Every regeneration writes 19 fields to intelligence_items. The full_brief column carries the markdown body produced under the format selected above. The other 18 fields are emitted as a YAML frontmatter block at the very end of the markdown output, after any New Sources Identified section. Downstream code parses the YAML and writes the fields to the row. An absent or malformed YAML block is a failed regeneration.
+Every regeneration writes 20 fields to intelligence_items. The full_brief column carries the markdown body produced under the format selected above. The other 19 fields are emitted as a YAML frontmatter block at the very end of the markdown output, after any New Sources Identified section. Downstream code parses the YAML and writes the fields to the row. An absent or malformed YAML block is a failed regeneration.
 
 Fields:
 
 - full_brief — the markdown body of the brief, structured per the format type's section list. Already produced as the body of the agent's output.
+- what_is_it — plain language explanation citing the specific legal instrument (directive/regulation number, Official Journal reference, state register citation, port authority tariff number), jurisdiction, and enforcement body. 2-3 sentences minimum. For non-regulatory formats, name what the thing IS (report, disclosure, standard, dataset, programme) and who issued it, on the same evidentiary terms. Emit on EVERY brief regardless of format. This field is a COMPRESSION of the brief you just wrote, never new claims: every element must already appear in the body or its cited sources. Under the integrity rule, emit null rather than a plausible sentence when the brief itself could not establish what the instrument is.
 - severity — one of the 5 SKILL.md severity labels. Reflects the urgency of action implied by the brief's content as it actually exists, not as it would exist if all sections were filled. Briefs that honestly omit sections under the integrity rule still emit severity, scoped to what is known and sourced.
 - priority — the 4-tier dashboard counter value, computed from severity per the mapping below. The agent computes this; downstream code does not.
 - urgency_tier — the dashboard tier value, one of 4 values per the rubric below.

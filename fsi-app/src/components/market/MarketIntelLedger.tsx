@@ -796,7 +796,10 @@ function SignalRow({ e, open, onToggle }: { e: Enriched; open: boolean; onToggle
   const { item, sev, band } = e;
   const def = SEV_BY_KEY[sev];
   const bandDef = band ? BAND_BY_KEY[band] : null;
-  const summary = item.note || item.whatIsIt || "";
+  // ORDER CHANGED 2026-08-12 (operator directive: the description leads every item on every surface, as
+  // it already did on Regulations detail). what_is_it first, falling through to summary. Measured on the
+  // live corpus that day: 27 of 64 Market items show different leading text, 37 unchanged, 0 lose it.
+  const summary = item.whatIsIt || item.note || "";
   const bodyId = `mi-body-${item.id}`;
 
   // Key figure — bind to a real sourced field (marketData.currentPrice) only;

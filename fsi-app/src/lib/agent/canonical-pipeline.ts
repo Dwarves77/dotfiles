@@ -776,7 +776,11 @@ Follow your output contract exactly: brief body, then a "## New Sources Identifi
   // research-or-erase gate: a brief that reads as a fetch-failure explanation must NOT persist.
   const cc = checkBriefContent(body);
   if (!cc.ok) return { ok: false, detail: `brief_failure_gate: ${cc.reason}` };
-  // Persist the FULL 13-field contract, not just the body. The agent emits the validated YAML metadata
+  // Persist the FULL 20-field contract, not just the body. The agent emits the validated YAML metadata
+  // (COUNT DRIFT, corrected 2026-08-12: this comment said 13, system-prompt.ts said 19, and the actual
+  // update wrote 21 columns. Three numbers for one contract in one codebase is how a field goes missing
+  // and nobody notices for months, which is exactly what happened to what_is_it. The contract is now 20
+  // named fields: full_brief plus the 19 emitted as YAML.)
   // (parseAgentOutput validates severity/format_type/topic_tags vocab); writing only full_brief left
   // format_type/severity/topic_tags/intersection fields stale — items re-grounded but stayed
   // non-conformant. (env-policy "every regeneration writes 13 fields".) last_regenerated_at is overridden
@@ -806,8 +810,14 @@ Follow your output contract exactly: brief body, then a "## New Sources Identifi
   assertDbValue("urgency_tier", md.urgency_tier, DB_URGENCY_TIER_VALUES);
   assertDbValue("format_type", md.format_type, DB_FORMAT_TYPE_VALUES);
   assertDbValue("signal_band", md.signal_band, DB_SIGNAL_BAND_VALUES);
+  // what_is_it (contract field 20, added 2026-08-12): COALESCE semantics, never a blind overwrite.
+  // A null from the agent means "the brief could not establish what this is", which must NOT erase a
+  // value /api/admin/scan or an operator already set. Only a non-null emission updates the column, so
+  // adding this field can fill blanks and can never empty a populated one.
+  const whatIsItPatch = md.what_is_it ? { what_is_it: md.what_is_it } : {};
   const { error: writeErr } = await sb.from("intelligence_items").update({
     full_brief: cleanCtl(body),
+    ...whatIsItPatch,
     severity: dbSeverity, priority: md.priority, urgency_tier: md.urgency_tier,
     format_type: md.format_type, topic_tags: md.topic_tags,
     signal_band: md.signal_band, theme: dbTheme, theme_candidate: themeCandidate, trajectory_points: md.trajectory_points,

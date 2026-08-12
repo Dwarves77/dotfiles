@@ -702,8 +702,12 @@ export function OperationsDetailSurface({
 
   const hasSections = sections.length > 0;
 
-  // Legacy fallback values.
-  const shortText = r.note || r.whyMatters || r.whatIsIt || "";
+  // shortText feeds the top summary card (rendered regardless of sections) AND the no-sections fallback
+  // body. ORDER CHANGED 2026-08-12 (operator directive: the description leads every item on every
+  // surface, as it already did on Regulations). what_is_it first. The chain still falls through to
+  // summary and why_matters, so no item can lose its card: measured on the live corpus that day, 16 of
+  // 42 Operations items show different leading text, 26 unchanged, 0 lose the card.
+  const shortText = r.whatIsIt || r.note || r.whyMatters || "";
   const fullText = r.fullBrief || shortText;
   const hasFull = !!r.fullBrief && r.fullBrief.length > shortText.length;
 
