@@ -9,6 +9,7 @@ import { WATCHLIST_LIST_KEY, watchlistOrderKey } from "@/lib/watchlist-order";
 import { compareRanks } from "@/lib/list-order";
 import { surfaceOf } from "@/lib/surface-of.mjs";
 import { canonicalSurfaceForItem, type DetailSurface } from "@/lib/item-links";
+import { stalenessOf } from "@/lib/contracts/envelope.mjs";
 import type { RelevanceInput } from "@/lib/workspace/viewer-relevance";
 
 // Wave-α A2 (2026-07-11): the static seed-data import is GONE. Every
@@ -2075,6 +2076,19 @@ export interface OperationsFact {
   source_name: string | null;
   source_url: string | null;
   source_note: string | null;
+  /**
+   * DATE AND FRESHNESS (2026-08-12). The /operations masthead has claimed "every fact carries a source
+   * and date" while this interface had no date field at all: `last_updated` was used for `.order()` and
+   * never selected into the result, so the claim could not be true. Both now ride on the row.
+   *
+   * `freshness` is DERIVED, never asserted — computed by stalenessOf() from last_updated against the
+   * dimension's expected cadence. It is what makes the `frozen` state visible: the sole writer of
+   * regional_data_facts is a hand-run one-shot on the dead-code manifest, so these rows are not "late",
+   * they have STOPPED UPDATING, and a surface that renders those two states identically presents a dead
+   * feed as a pending one.
+   */
+  last_updated: string | null;
+  freshness: "current" | "ageing" | "stale" | "frozen" | "unknown";
 }
 
 export interface OperationsCoverageData {
@@ -2098,7 +2112,10 @@ export async function fetchOperationsCoverage(): Promise<OperationsCoverageData>
         .select("region_id, dimension, state, fact_count, notes"),
       supabase
         .from("regional_data_facts")
-        .select("region_id, dimension, fact_label, value, status, trend, source_note, source:sources(name, url)")
+        // `last_updated` is now SELECTED, not merely ordered by. It was previously used to sort and then
+        // discarded, which is why OperationsFact had no date while the masthead claimed every fact
+        // carried one.
+        .select("region_id, dimension, fact_label, value, status, trend, source_note, last_updated, source:sources(name, url)")
         .order("last_updated", { ascending: false }),
     ]);
 
@@ -2124,8 +2141,22 @@ export async function fetchOperationsCoverage(): Promise<OperationsCoverageData>
       notes: c.notes,
     }));
 
-    const facts: OperationsFact[] = (factsRes.data || []).map((f: { region_id: string; dimension: string; fact_label: string; value: string; status: string | null; trend: string | null; source_note: string | null; source: { name: string; url: string } | { name: string; url: string }[] | null }) => {
+    // ONE clock read for the whole batch, passed in to the pure staleness function. envelope.mjs never
+    // reads the clock itself: a module that does is neither deterministic nor testable, and the
+    // discipline CI runs it with no wall-clock fixture.
+    const nowIso = new Date().toISOString();
+
+    const facts: OperationsFact[] = (factsRes.data || []).map((f: { region_id: string; dimension: string; fact_label: string; value: string; status: string | null; trend: string | null; source_note: string | null; last_updated: string | null; source: { name: string; url: string } | { name: string; url: string }[] | null }) => {
       const src = Array.isArray(f.source) ? f.source[0] : f.source;
+      // Regional cost and labour facts come from statistical agencies publishing on annual cycles
+      // (Eurostat labour-cost levels, BLS OEWS, packaging-waste series). Anything materially past that
+      // cadence is not late, it is unmaintained — which is the true state of this table today.
+      const freshness = f.last_updated
+        ? stalenessOf(
+            { as_of: { event_date: f.last_updated, source_published_at: f.last_updated }, expected_refresh: "annual" },
+            nowIso
+          )
+        : "unknown";
       return {
         region_code: regionCodeById.get(f.region_id) || "?",
         dimension: f.dimension,
@@ -2136,6 +2167,8 @@ export async function fetchOperationsCoverage(): Promise<OperationsCoverageData>
         source_name: src?.name ?? null,
         source_url: src?.url ?? null,
         source_note: f.source_note,
+        last_updated: f.last_updated ?? null,
+        freshness: freshness as OperationsFact["freshness"],
       };
     });
 
