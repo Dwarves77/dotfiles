@@ -2820,3 +2820,80 @@ as 2026-07-11 evidence.
 STILL NOT SCHEDULED. No cron, no `schedule:` block, nothing armed in the Actions UI — unchanged. Nothing
 here spent: two code edits, one doc rewrite, read-only SQL. Task 1 (the five rule-016 file edits, merging
 #448) and everything after it in the handoff sequence is queued, not started.
+
+## Addendum 10 — the other three surfaces have the same disease, and it is not in the surfaces (2026-08-11)
+
+The Operations redesign was scoped because Operations was found built to the wrong spec. The rest of the
+plan assumed the other surfaces were sound. The operator caught that assumption and told me to check all
+of them. The Market Intel spec audit had already called "built to wrong spec" a pattern rather than an
+incident, and the 2026-05-23 synthesis has said since then that FIVE of six substantive surfaces had
+fundamental gaps. Nobody had re-verified that claim, and nobody had acted on it beyond Operations.
+
+RE-VERIFIED ALL FOUR AGAINST LIVE CODE, NOT AGAINST THE AUDIT DOCS. Roughly 55 to 70 percent of the
+2026-05-23 findings are stale, and they are stale in exactly one direction: the chrome got rebuilt, the
+data and the read-shape did not. All four detail routes now exist. Market's severity vocabulary is now
+spec-exact and its TRL framing file is deleted. Research is no longer titled "Research Pipeline" and no
+longer links its rows into /regulations. Operations' "Coming soon, Phase D" banner and stub chip gallery
+are gone. Underneath all of that, three of four surfaces violate their own 2026-07-12 analysis contract,
+and the fourth is worse news than the other three: Regulations, the page the platform-intent skill calls
+"the only intelligence page currently delivering its stated intent," is a qualified NO. Two of its four
+contract clauses are structurally unanswerable at HEAD. `penalty_range`, `cost_mechanism` and
+`enforcement_body` were de-mapped as absent from schema and the tiles that read them were left in place,
+so "what it costs" renders permanent em-dashes; `binding_status` does not exist anywhere in the repo, so
+"what is binding" has no representation in the data model at all. That matters disproportionately because
+it is the reference surface the other three are measured against.
+
+I GOT A PRIOR WRONG AND CAUGHT IT BEFORE ACTING ON IT. I believed /research still shipped the editorial
+draft-staging queue that the 2026-07-12 research-is-horizon-scan ruling rejected, because the page's own
+comment at src/app/research/page.tsx:44 says "The pipeline_stage UI control still functions." Traced
+properly, pipelineStage is selected, mapped, adapted, typed, passed into the ledger, and never rendered.
+The only stage UI in the tree is admin chrome. The doctrine is CLEAN. The violation lives in a false code
+comment, and I was one step from shipping a fix for a violation that does not exist, on a comment's
+authority. Same class as the gap register: a durable statement about the past, read as current.
+
+THE REFRAME. Four defects are identical on all four surfaces and live BELOW them, which is precisely why
+four separate surface audits could not see them: a defect present on all four reads as "this page is
+under-built," four times, and produces four rebuild line items instead of one substrate line item. The
+synthesis then sequenced five rebuilds, every one of which would have re-implemented the same four bugs.
+(1) No detail route was surface-guarded. (2) Counts and rows come from two different classifiers on every
+page. (3) Roughly seventeen UI fields are bound to producers that do not exist. (4) Market and Operations
+import the Regulations prose renderer, which supports no tables and no lists, so the two pages whose
+contracts are explicitly comparative are physically unable to render a comparison.
+
+PHASE 0.1 SHIPPED HERE, the first of those four. fetchIntelligenceItemUncached gated on
+provenance_status='verified' and nothing else, so every verified item was reachable at four URLs under
+four contradictory framings, and each detail surface RELABELLED the item's stored section rows with its
+own heading map while silently dropping keys outside its range: a fifteen-section regulation opened at
+/operations/<slug> rendered keys 1 to 8 under Operations headings and dropped 9 to 15. Real content under
+false labels. The fix invents nothing. src/lib/item-links.ts already derived outbound hrefs from
+`surfaceOf`, the ratified (item_type, domain) classifier that also codegens migration 148's SQL; it now
+exports `canonicalSurfaceForItem` and both directions consume it, so an emitted link and a route guard
+cannot disagree by construction. The platform already knew which surface an item belonged to when it wrote
+a link OUT; it just never checked when a request came IN.
+
+TWO THINGS I WAS CAREFUL ABOUT. The guard classifies off the RAW row, not off the mapped Resource, because
+the mappers coalesce `domain: row.domain || 1` and classifying off a coalesced value launders a defect
+into a verdict, answering "regulations" for any unclassified row of any type. And the guard sits at the
+route rather than inside the fetcher, because the fetcher is `unstable_cache`d per item id; gating inside
+it would have needed the surface in the cache key and fragmented one cache entry into four for the same
+row. The uncategorized fallback stays pointed at Regulations on purpose: it is the same fallback the
+outbound href has always used, it keeps the defect population navigable at one honest address instead of
+404ing it out of existence, and it keeps those rows visible to surface-visibility-audit.mjs, which is what
+actually remediates them. Narrowing it is a data-layer decision about the null-domain population, and it
+belongs with that remediation, not with a routing change.
+
+Ten-case proof at src/__tests__/surface-admission.test.mjs, inside an existing run-test-suite glob so it
+is execution-wired rather than an F23 orphan. It asserts the four historical leaks are refused, that
+exactly one route admits any given item, that no item is orphaned (a guard that traded mislabelling for
+disappearance would be a worse bug), and that the admitting route always equals the route the item's own
+href points at. Suite 1246/1246. Fitness 20/20, 0 violations. Meta-gate PASS. tsc clean.
+
+OPERATOR RULINGS RECORDED in docs/plans/surface-rebuild-plan-2026-08-11.md: format-binds-UI stays a
+PER-SURFACE decision taken at Phase 2, so the acceptance gate ships as a two-way ratchet on today's
+measured counts rather than a spec-derived floor; sequencing is substrate-first across all four surfaces;
+and Operations EU/US data is IN scope to source over free HTTP, with the dead one-shot
+sprint3-a6-find-new.mjs staying on the deletion manifest rather than being revived.
+
+STILL NOT SCHEDULED. No cron, no `schedule:` block, nothing armed in the Actions UI. Nothing here spent:
+read-only code reading, five code edits, one new test, two docs. Phases 0.2 through 0.5, the acceptance
+gate, and all per-surface shape work are queued, not started.
