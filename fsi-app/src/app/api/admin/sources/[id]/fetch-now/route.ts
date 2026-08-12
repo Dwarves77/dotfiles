@@ -19,6 +19,7 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { browserlessRender } from "@/lib/sources/browserless";
 import { decideFetchOutcome } from "@/lib/sources/fetch-now-decision.mjs";
 import { pausedResponse } from "@/lib/api/pause";
+import { assertFetchAllowed } from "@/lib/sources/fetch-hold.mjs";
 
 const EIA_API_KEY = process.env.EIA_API_KEY;
 const NREL_API_KEY = process.env.NREL_API_KEY;
@@ -29,7 +30,15 @@ const REGULATIONS_GOV_API_KEY = process.env.REGULATIONS_GOV_API_KEY;
 // Mirror of /api/data/fetch-source's two helpers, kept inline so the
 // manual fetch can run independently and bypass cooldown logic.
 async function fetchViaApi(endpoint: string, keyEnv?: string, acceptHeader?: string): Promise<string> {
+  // TRANSPORT HOLD GATE (C5, master gap register P1 #10 residual, 2026-08-11) — this inline API-ladder
+  // helper made a raw fetch() with no assertFetchAllowed call, so an engaged SCRAPE_HOLD gated the
+  // production pipeline but not this admin manual-fetch button. "admin-fetch-now" is NOT in
+  // AUTHORIZED_HOLD_CALLERS (extending that frozen two-caller set is its own governed change, out of
+  // scope here) — passing it only makes an engaged-hold block auditable by name instead of blocking as
+  // caller=null. Default SCRAPE_HOLD (lifted) is unaffected; this changes behavior only while the hold
+  // is engaged, which is exactly the gap being closed.
   let url = endpoint;
+  assertFetchAllowed(url, process.env, "admin-fetch-now");
   const headers: Record<string, string> = { "User-Agent": "CarosLedge/1.0" };
   if (acceptHeader) headers["Accept"] = acceptHeader;
   if (keyEnv === "EIA_API_KEY" && EIA_API_KEY) url += (url.includes("?") ? "&" : "?") + `api_key=${EIA_API_KEY}`;
