@@ -2,7 +2,8 @@ import { getOperationsItems, getResourcesOnly, getSurfaceCounts } from "@/lib/da
 import { fetchOperationsCoverage, fetchStateCostFacts } from "@/lib/supabase-server";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { OperationsLedger } from "@/components/operations/OperationsLedger";
-import type { Resource } from "@/types/resource";
+import { isRegulationItem } from "@/lib/regulation-item-types";
+import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 
 // Sprint 3 (2026-05-27): force-dynamic per /community precedent. Static
 // generation at build time has no cookies; resolveOrgIdFromCookies
@@ -12,25 +13,6 @@ import type { Resource } from "@/types/resource";
 // with the user's cookie-auth context, and category-routing RPCs see
 // a real orgId.
 export const dynamic = "force-dynamic";
-
-// Build 9: regulation item_types per the canonical taxonomy in
-// environmental-policy-and-innovation SKILL Section 3. Used to extract
-// regulatory feasibility cross-references from the full workspace slim
-// payload. caros-ledge-platform-intent SKILL Section 3 names regulatory
-// feasibility by region as the first Operations capability; the content
-// itself lives on /regulations, /operations links into it.
-const REGULATION_ITEM_TYPES = new Set([
-  "regulation",
-  "directive",
-  "standard",
-  "guidance",
-  "framework",
-  "law",
-]);
-
-function isRegulationItem(r: Resource): boolean {
-  return r.domain === 1 || (typeof r.type === "string" && REGULATION_ITEM_TYPES.has(r.type));
-}
 
 export default async function Operations() {
   const t0 = Date.now();
@@ -46,7 +28,10 @@ export default async function Operations() {
   // references for Build 9's regulatory feasibility section.
   const [opsItems, fallback, aggregates, operationsCoverage, stateCosts] = await Promise.all([
     getOperationsItems(),
-    getResourcesOnly(),
+    // First-paint page only (60 rows, newest added_date first) — the client
+    // (OperationsLedger) fetches the rest after paint via /api/listings/rest
+    // and appends it to regulationsByRegion below.
+    getResourcesOnly({ limit: LIST_FIRST_PAGE_SIZE, offset: 0 }),
     // Count-integrity consistency close-out: operations-scoped counts from the single SoT
     // (migration 148), gated verified. Fails soft to scoped aggregates (069) over the
     // SURFACE_RULES-derived operations scope when the RPC is absent (pre-apply). Replaces

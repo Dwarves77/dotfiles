@@ -22,6 +22,7 @@ import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { RegulationsLedger } from "@/components/regulations/RegulationsLedger";
 import { toDate } from "@/lib/relative-time";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
+import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 
 export default async function RegulationsPage({
   searchParams,
@@ -32,8 +33,15 @@ export default async function RegulationsPage({
 
   // Listings (verified-gated server-side) for the ledger rows + the
   // single-SoT verified count bundle for the masthead / tiles / bands.
+  // First-paint page only (60 rows, newest added_date first) — RegulationsLedger
+  // fetches the rest client-side after paint via /api/listings/rest and
+  // appends it, so the initial response ships ~60 rows instead of the entire
+  // corpus. The masthead/tile counts below bind to `aggregates`, which is
+  // sourced from get_surface_counts (or its scoped-aggregates fallback) —
+  // both real RPCs, independent of how many rows are loaded — so the header
+  // count stays honest at 60, at 754, and everywhere in between.
   const [data, aggregates] = await Promise.all([
-    getListingsOnly(),
+    getListingsOnly({ limit: LIST_FIRST_PAGE_SIZE, offset: 0 }),
     getSurfaceCounts("regulations"),
   ]);
 

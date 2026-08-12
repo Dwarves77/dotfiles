@@ -25,6 +25,7 @@ import {
   type CategoryRoutedResult,
   type SourceCitationStat,
   type ResearchSourceCoverageCell,
+  type ResourcePage,
 } from "@/lib/supabase-server";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
@@ -70,6 +71,7 @@ export type {
   WorkspaceAggregates,
   ScopeFilter,
   CategoryRoutedResult,
+  ResourcePage,
 };
 
 /**
@@ -183,8 +185,15 @@ export async function getAppData() {
  * vs. ~15 for getAppData(). Falls back to seed resources on failure.
  *
  * Used by: /operations, /market, /regulations index.
+ *
+ * Optional `page` (first-paint pagination, cost-constrained ledgers): when
+ * given, threads straight through to fetchResourcesOnly → fetchWorkspaceResources,
+ * which orders by added_date descending (nulls last) and ranges the RPC
+ * result. Omitted = unpaged (existing full-corpus behavior, unchanged) — the
+ * /api/listings/rest route passes a page to fetch the remainder of whatever
+ * offset the caller already rendered.
  */
-export async function getResourcesOnly(): Promise<{
+export async function getResourcesOnly(page?: ResourcePage): Promise<{
   resources: Resource[];
   archived: Resource[];
   overrides: WorkspaceOverrideRow[];
@@ -197,7 +206,7 @@ export async function getResourcesOnly(): Promise<{
       setTimeout(() => reject(new Error("getResourcesOnly timeout")), 10000)
     );
     const orgId = await resolveOrgIdFromCookies();
-    const dataPromise = fetchResourcesOnly(orgId);
+    const dataPromise = fetchResourcesOnly(orgId, page);
     const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
     console.log(`[perf] getResourcesOnly ${Date.now() - t0}ms`);
     // SF-2 Phase 1: route-agnostic since this fetcher serves multiple
@@ -228,8 +237,10 @@ export async function getResourcesOnly(): Promise<{
  * /market and /operations DO render r.note on cards and stay on
  * getResourcesOnly until those cards are refactored or per-route summary
  * retention is added. See migration 066 header.
+ *
+ * Optional `page` — see getResourcesOnly's doc comment; same contract.
  */
-export async function getListingsOnly(): Promise<{
+export async function getListingsOnly(page?: ResourcePage): Promise<{
   resources: Resource[];
   archived: Resource[];
   overrides: WorkspaceOverrideRow[];
@@ -242,7 +253,7 @@ export async function getListingsOnly(): Promise<{
       setTimeout(() => reject(new Error("getListingsOnly timeout")), 10000)
     );
     const orgId = await resolveOrgIdFromCookies();
-    const dataPromise = fetchListingsOnly(orgId);
+    const dataPromise = fetchListingsOnly(orgId, page);
     const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
     console.log(`[perf] getListingsOnly ${Date.now() - t0}ms`);
     alertIfFallback(result, "/regulations");
