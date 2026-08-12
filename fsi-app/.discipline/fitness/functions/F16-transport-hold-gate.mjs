@@ -17,15 +17,20 @@ export const GATE_CALL_RE = /assertFetchAllowed\s*\(/;
 // A raw Browserless content endpoint (the bypass shape) — the /content render URL or the base host.
 export const RAW_BROWSERLESS_RE = /(chrome|production-[a-z0-9]+)\.browserless\.io|browserless[^\n"'`]{0,40}\/content|BROWSERLESS_BASE_URL/;
 
-// TRANSPORT MODULES (C5, 2026-07-11): every canonical fetch entry point beyond the Browserless primitive —
-// direct-HTTP, API. Each MUST carry the scrape-hold gate (assertFetchAllowed) so "hold LIVE, zero
-// fetches" is airtight across every live transport, not only Browserless (CODE-1 F-02, invariant RD-15). A
-// transport module missing the gate FAILS this gate. canonical-pipeline.ts holds the direct-HTTP + API-ladder
-// transports (directFetchClean / apiFetchForHost); the sources/ modules are the access_method transports.
+// TRANSPORT MODULES (C5, 2026-07-11; widened 2026-08-11): every canonical fetch entry point beyond the
+// Browserless primitive — direct-HTTP, API, and admin-triggered manual fetch. Each MUST carry the
+// scrape-hold gate (assertFetchAllowed) so "hold LIVE, zero fetches" is airtight across every live
+// transport, not only Browserless (CODE-1 F-02, invariant RD-15). A transport module missing the gate
+// FAILS this gate. canonical-pipeline.ts holds the direct-HTTP + API-ladder transports (directFetchClean /
+// apiFetchForHost); the sources/ modules are the access_method transports.
 // (The RSS transport rss-fetch.ts was purged 2026-07-18 (dormant-systems P-5, dead code) and removed here.)
+// Widened 2026-08-11 (master gap register P1 #10 residual): fetch-now/route.ts carries its OWN inline
+// fetchViaApi helper (mirrors api-fetch.ts's shape but is a separate function) making a raw fetch() with
+// no gate — an admin manual-fetch click bypassed an engaged hold that every other transport honored.
 export const TRANSPORT_MODULES = [
   'fsi-app/src/lib/sources/api-fetch.ts',
   'fsi-app/src/lib/agent/canonical-pipeline.ts',
+  'fsi-app/src/app/api/admin/sources/[id]/fetch-now/route.ts',
 ];
 
 // Files ALLOWED to reference the raw endpoint: the primitive itself (it IS the single home) + the hold-gate core.
