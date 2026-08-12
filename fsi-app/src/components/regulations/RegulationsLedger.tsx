@@ -74,6 +74,7 @@ import { DismissedStash } from "./DismissedStash";
 import { ArchiveDialog } from "@/components/workspace/ArchiveDialog";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
+import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 
 interface RegulationsLedgerProps {
   initialResources: Resource[];
@@ -250,13 +251,57 @@ export function RegulationsLedger({
   // row <Link> (see CardPriorityDropdown).
   const [archiveTarget, setArchiveTarget] = useState<{ id: string; title: string } | null>(null);
 
+  // ── Load-the-rest (cost-constrained first paint) ──────────────────────
+  // The server renders only the first LIST_FIRST_PAGE_SIZE rows (newest
+  // added_date first). Fetch everything after that offset once, in the
+  // background, and append it below — the rendered rows are never blocked
+  // behind this. `fetchedRestRef` guards React StrictMode's double-invoked
+  // effect (and any accidental re-run) from firing the request twice.
+  const fetchedRestRef = useRef(false);
+  const [restResources, setRestResources] = useState<Resource[]>([]);
+  const [restArchived, setRestArchived] = useState<Resource[]>([]);
+  const [restStatus, setRestStatus] = useState<"loading" | "done" | "error">("loading");
+
+  useEffect(() => {
+    if (fetchedRestRef.current) return;
+    fetchedRestRef.current = true;
+    let cancelled = false;
+
+    fetch(`/api/listings/rest?surface=regulations&offset=${LIST_FIRST_PAGE_SIZE}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`/api/listings/rest responded ${res.status}`);
+        return res.json();
+      })
+      .then((body: { resources?: Resource[]; archived?: Resource[]; error?: string }) => {
+        if (cancelled) return;
+        if (body.error) throw new Error(body.error);
+        setRestResources(body.resources ?? []);
+        setRestArchived(body.archived ?? []);
+        setRestStatus("done");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        // Never blank the list on failure — the first LIST_FIRST_PAGE_SIZE
+        // rows the server already rendered stay exactly as they are.
+        console.error(
+          `[RegulationsLedger] failed to fetch the remaining rows past offset ${LIST_FIRST_PAGE_SIZE}:`,
+          err instanceof Error ? err.message : err
+        );
+        setRestStatus("error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // ── Hydrate the shared resource store (applies workspace overrides) ──
   useEffect(() => {
-    setResources(initialResources);
-    setArchived(initialArchived);
+    setResources(initialResources.concat(restResources));
+    setArchived(initialArchived.concat(restArchived));
     if (initialOverrides.length > 0) setOverrides(initialOverrides);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialResources]);
+  }, [initialResources, restResources, restArchived]);
 
   // Personal archive layer (migration 235). The override layer above arrives
   // with the SSR payload; user_item_state is per-user so it is fetched here.
@@ -1149,6 +1194,13 @@ export function RegulationsLedger({
         Rows show jurisdiction, title, next date, and source tier where classified. Deadlines in red
         fall within 90 days. Open any regulation for the full brief, sources, and connected intelligence.
       </p>
+
+      {/* Unobtrusive background-load indicator — never blocks the rendered rows above. */}
+      {restStatus === "loading" && (
+        <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "4px 2px 0" }}>
+          Loading the full ledger…
+        </p>
+      )}
 
       {/* Dismissed-regulations recovery drawer (restore path). Renders nothing when empty. */}
       <DismissedStash dismissed={dismissedRegulations} onRestore={(id) => restoreDismissed(id)} />

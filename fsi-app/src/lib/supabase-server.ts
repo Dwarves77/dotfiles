@@ -474,9 +474,23 @@ export async function fetchSourceData(includeAdminOnly = false): Promise<SourceD
 // variant drops on /, plus another ~209 KB / 454 rows per route from
 // summary on /regulations and /map via listings.
 
+/**
+ * First-paint pagination for fetchWorkspaceResources. When present, chains
+ * `.order("added_date", { ascending: false, nullsFirst: false })` +
+ * `.range(offset, offset + limit - 1)` onto the RPC call so PostgREST slices
+ * the set-returning function server-side (no migration needed — this is a
+ * PostgREST feature on any set-returning RPC, not a SQL change). Omitted =
+ * unpaged, unbounded (existing behavior, unchanged for every caller that
+ * doesn't opt in).
+ */
+export interface ResourcePage {
+  limit: number;
+  offset: number;
+}
+
 async function fetchWorkspaceResources(
   orgId: string,
-  options: { slim?: boolean; dashboard?: boolean; listings?: boolean } = {}
+  options: { slim?: boolean; dashboard?: boolean; listings?: boolean; page?: ResourcePage } = {}
 ): Promise<{
   active: Resource[];
   archived: Resource[];
@@ -503,7 +517,17 @@ async function fetchWorkspaceResources(
   // resolveOrgIdFromCookies). Direct anon-key calls from the browser
   // still hit the membership check via their JWT cookie.
   const serviceClient = getServiceSupabase();
-  const { data: items, error } = await serviceClient.rpc(rpcName, { p_org_id: orgId });
+  // options.page (first-paint pagination): the listings RPC (066, used by
+  // /regulations) is explicitly NO LIMIT on the corpus; ordering + ranging
+  // by a real column (added_date) here gives a meaningful "first N" slice
+  // instead of shipping the entire corpus on every request.
+  const itemsQuery = options.page
+    ? serviceClient
+        .rpc(rpcName, { p_org_id: orgId })
+        .order("added_date", { ascending: false, nullsFirst: false })
+        .range(options.page.offset, options.page.offset + options.page.limit - 1)
+    : serviceClient.rpc(rpcName, { p_org_id: orgId });
+  const { data: items, error } = await itemsQuery;
 
   if (error || !items?.length) {
     return { active: [], archived: [], uuidToUiId: new Map() };
@@ -1774,7 +1798,10 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
  * Cost: 2 queries (workspace RPC + workspace_item_overrides) + 1 timeline
  * read inside fetchWorkspaceResources. Compared to ~15 for fetchDashboardData.
  */
-export async function fetchResourcesOnly(orgId: string | null): Promise<{
+export async function fetchResourcesOnly(
+  orgId: string | null,
+  page?: ResourcePage
+): Promise<{
   resources: Resource[];
   archived: Resource[];
   overrides: WorkspaceOverrideRow[];
@@ -1798,7 +1825,7 @@ export async function fetchResourcesOnly(orgId: string | null): Promise<{
   try {
     // Slim RPC — drops full_brief/operational_impact/open_questions/reasoning
     // from the wire. None are rendered by /regulations, /operations, /market.
-    const { active, archived, uuidToUiId } = await fetchWorkspaceResources(orgId, { slim: true });
+    const { active, archived, uuidToUiId } = await fetchWorkspaceResources(orgId, { slim: true, page });
     if (!active.length) {
       return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
     }
@@ -1912,7 +1939,10 @@ export async function fetchMapData(orgId: string | null): Promise<{
  * fallback; OperationsPage region heads + per-region item lists +
  * inferChipKey text scan).
  */
-export async function fetchListingsOnly(orgId: string | null): Promise<{
+export async function fetchListingsOnly(
+  orgId: string | null,
+  page?: ResourcePage
+): Promise<{
   resources: Resource[];
   archived: Resource[];
   overrides: WorkspaceOverrideRow[];
@@ -1934,7 +1964,7 @@ export async function fetchListingsOnly(orgId: string | null): Promise<{
   }
 
   try {
-    const { active, archived, uuidToUiId } = await fetchWorkspaceResources(orgId, { listings: true });
+    const { active, archived, uuidToUiId } = await fetchWorkspaceResources(orgId, { listings: true, page });
     if (!active.length) {
       return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
     }

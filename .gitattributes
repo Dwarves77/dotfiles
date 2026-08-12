@@ -3,3 +3,41 @@
 # against LF-generating .mjs SoT. Force LF on checkout so a Windows autocrlf checkout does not false-fail the
 # byte-identical guards (operator ruling 2026-07-04, guard-fix 2a).
 fsi-app/supabase/migrations/**/*.sql text eol=lf
+
+# ── EXTENDED 2026-08-12: the same rule, for every file a gate READS ──────────────────────────────────
+#
+# WHY. The 2026-07-04 ruling above fixed one instance of a CLASS. On 2026-08-12 the class reappeared
+# somewhere else: with core.autocrlf=true, a Windows checkout gave F25's import-graph regex CRLF text, so
+# the fitness runner reported 14-17 violations locally on a clean worktree while real GitHub Actions CI
+# (Linux, LF) reported 0 on the byte-identical commit 3533e127. Someone had to reproduce it on a fresh
+# origin/master worktree and cross-check the Actions log to prove the local red was fake.
+#
+# That is an hour spent proving a tool wrong, and it recurs for every new line-anchored predicate. The
+# durable fix is checkout parity, not per-regex CRLF tolerance: patching regexes one at a time leaves the
+# next predicate exposed and the next person to run the battery on Windows misled again.
+#
+# SCOPE: every extension the discipline layer reads (.discipline/ engine + fitness + governance +
+# consistency all read source, config, docs and shell as text and match line-anchored patterns).
+# Deliberately NOT a blanket `* text=auto eol=lf`, so a future binary or Windows-native script is not
+# silently rewritten; add extensions here as they are introduced.
+*.mjs  text eol=lf
+*.js   text eol=lf
+*.cjs  text eol=lf
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.sh   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.sql  text eol=lf
+*.css  text eol=lf
+
+# Belt and braces: these are read byte-for-byte by the codegen drift guards, so an editor that helpfully
+# "fixes" line endings must not be able to make a generated file differ from its generator's output.
+fsi-app/src/lib/contracts/**  text eol=lf
+fsi-app/.discipline/**        text eol=lf
+
+# NOTE FOR WINDOWS CHECKOUTS: this only takes effect on files as they are re-checked-out. After merging,
+# run `git add --renormalize .` once (or delete and re-checkout the tree) so an existing CRLF working copy
+# is converted; until then a stale local copy can still show the phantom failures described above.

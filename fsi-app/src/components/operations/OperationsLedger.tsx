@@ -28,11 +28,13 @@
  */
 
 import Link from "next/link";
-import { useCallback, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 import type { OperationsCoverageData, OperationsFact } from "@/lib/supabase-server";
 import { OperationsItemsView } from "@/components/operations/OperationsItemsView";
+import { isRegulationItem } from "@/lib/regulation-item-types";
+import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 
 // ── Severity vocabulary (Operations: Critical / High / Moderate / Low) ──
 // Hues + tints reuse the --reg-band-* tokens (identical hex in the mock).
@@ -231,16 +233,63 @@ export function OperationsLedger({
   const [activeDim, setActiveDim] = useState<string | null>(null);
   const [askValue, setAskValue] = useState("");
 
+  // ── Load-the-rest (cost-constrained first paint) ──────────────────────
+  // regulationsByRegion arrives page-limited to the first LIST_FIRST_PAGE_SIZE
+  // rows of the same getResourcesOnly fetch the page uses for D1 cross-refs.
+  // Fetch the remainder once in the background, filter it with the same
+  // isRegulationItem predicate the server applied, and append — the region
+  // cards already rendered are never blocked behind this.
+  const fetchedRestRef = useRef(false);
+  const [restRegulations, setRestRegulations] = useState<Resource[]>([]);
+  const [restStatus, setRestStatus] = useState<"loading" | "done" | "error">("loading");
+
+  useEffect(() => {
+    if (fetchedRestRef.current) return;
+    fetchedRestRef.current = true;
+    let cancelled = false;
+
+    fetch(`/api/listings/rest?surface=operations&offset=${LIST_FIRST_PAGE_SIZE}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`/api/listings/rest responded ${res.status}`);
+        return res.json();
+      })
+      .then((body: { resources?: Resource[]; error?: string }) => {
+        if (cancelled) return;
+        if (body.error) throw new Error(body.error);
+        setRestRegulations((body.resources ?? []).filter(isRegulationItem));
+        setRestStatus("done");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        // Never blank the region cards on failure — the first
+        // LIST_FIRST_PAGE_SIZE rows the server already rendered stay as-is.
+        console.error(
+          `[OperationsLedger] failed to fetch the remaining rows past offset ${LIST_FIRST_PAGE_SIZE}:`,
+          err instanceof Error ? err.message : err
+        );
+        setRestStatus("error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const allRegulationsByRegion = useMemo(
+    () => regulationsByRegion.concat(restRegulations),
+    [regulationsByRegion, restRegulations]
+  );
+
   // Regulations grouped by region for D1 cross-refs.
   const regsByRegion = useMemo(() => {
     const map: Record<string, Resource[]> = {};
     for (const r of regions) map[r.key] = [];
-    for (const r of regulationsByRegion) {
+    for (const r of allRegulationsByRegion) {
       const region = regionForResource(r);
       if (region && map[region]) map[region].push(r);
     }
     return map;
-  }, [regulationsByRegion, regions]);
+  }, [allRegulationsByRegion, regions]);
 
   // Live facts keyed by `${regionCode}|${dimKey}`.
   const factsByCell = useMemo(() => {
@@ -403,6 +452,13 @@ export function OperationsLedger({
         <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: 26, letterSpacing: "0.02em", textTransform: "uppercase", margin: 0 }}>Regional operations</h2>
         <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-muted)" }}>Six dimensions per region · click to expand</span>
       </div>
+
+      {/* Unobtrusive background-load indicator — never blocks the region cards below. */}
+      {restStatus === "loading" && (
+        <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "-8px 2px 16px" }}>
+          Loading the full ledger…
+        </p>
+      )}
 
       {/* ── Two-column grid ── */}
       <div id="ops-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 280px", gap: 24, alignItems: "start" }} className="cl-ops-grid">
