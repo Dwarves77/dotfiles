@@ -2897,3 +2897,77 @@ sprint3-a6-find-new.mjs staying on the deletion manifest rather than being reviv
 STILL NOT SCHEDULED. No cron, no `schedule:` block, nothing armed in the Actions UI. Nothing here spent:
 read-only code reading, five code edits, one new test, two docs. Phases 0.2 through 0.5, the acceptance
 gate, and all per-surface shape work are queued, not started.
+
+## Addendum 11 — researching the industry before specifying, and two bugs my own tests found (2026-08-12)
+
+The operator's instruction was to stop specifying in a bubble: look at how the industry actually builds
+market intelligence, regulatory intelligence, horizon scanning and jurisdictional cost surfaces, and
+make the pages work as one product rather than five. Six parallel research passes against named
+commercial practice, then a seven-document spec suite in docs/specs, then the first build unit.
+
+THE ORGANISING FINDING. Five surfaces are five LENSES ON ONE SPINE. That is literally Wood Mackenzie's
+architecture, which is why their platform is called Lens, and it is Bloomberg's grammar: load an entity,
+apply a function, and cross-module navigation works because the entity is application state rather than
+a query retyped per screen. Caro's Ledge has the inverse. Three foundation objects fix it and every
+per-surface spec now assumes all three: an entity spine, a number envelope on every figure, and six
+shared vocabularies. A fourth, the portfolio, is what makes it personal.
+
+FOUR THINGS THE RESEARCH CHANGED, not just decorated. First, almost NOTHING in this landscape binds a
+freight forwarder directly. Every regulatory intelligence product on the market is built for the
+duty-holder and our customer usually is not one; their own duties are few, methodological, and cluster
+around how they report numbers and when they stand in the importer's shoes. So `binding_position` is
+now the highest-value field in the product and it does not exist today. CountEmissions EU, Regulation
+(EU) 2026/1030, adopted this April, is the centre of gravity: the only instrument written at transport
+service organisers, voluntary to disclose but mandatory in method. A forwarder acting as CBAM indirect
+customs representative IS the authorised declarant, which is a live 2026 liability nobody is pricing.
+Second, carbon cost is already inside the freight rate: Drewry's WCI enumerates the EU ETS surcharge as
+an included component, so the industry has conceded the point and nobody shows a forwarder the
+decomposition against their own lanes. Third, the $0 constraint is far less binding than I assumed:
+THETIS-MRV publishes vessel-level VERIFIED CO2 and efficiency for every ship over 5,000 GT calling at
+EEA ports, and the SBTi dashboard publishes sector-tagged target status every Thursday including
+"commitment removed" — those two plus the EU Weekly Oil Bulletin, EIA, EEX, Eurostat, BLS OEWS, PVGIS
+and Ember are a defensible product with zero data spend. The work is ingestion discipline, not
+acquisition. Fourth, three verified corrections: the IMO Net-Zero Framework is NOT adopted (adjourned
+twice, adopt-or-fail December 2026, so it must be modelled as a scenario with adopted:false), the Green
+Claims Directive was NOT withdrawn, and PPWR became applicable yesterday. Sixteen further facts could
+not be confirmed against primary sources and are listed as UNCONFIRMED in spec 01 §9 rather than
+asserted — EUR-Lex served metadata rather than operative text on several, and CARB, IMO and Smart
+Freight Centre all block automated access.
+
+I CORRECTED MY OWN SEQUENCE. Spec 06 put the spine at Phase 2, after the Phase 0 substrate fixes. That
+is wrong on dependencies: the vocabularies and the envelope decide what an orphan field becomes, what a
+count population means, and what a cell renders when data is absent, so building 0.2 through 0.5 first
+and retrofitting the vocabulary is rework. `origin_class` in particular is unfixable retroactively.
+Foundation types now land first.
+
+SHIPPED HERE: the six vocabularies and the number envelope, plain dependency-free ESM following the
+surface-of.mjs precedent exactly. Four of the six are ADOPTED rather than invented — SDMX CL_OBS_STATUS
+for observation status, the NATO/Admiralty 6x6 for asserted claims, the ecoinvent/Weidema five-axis
+pedigree for modelled values, W3C PROV shapes for relations. Inventing bespoke scales would have cost
+the one thing these buy: the customer's LCA, assurance and procurement people already speak them.
+makeEnvelope THROWS on a figure missing derivation, unit or as-of, so the bare-number state that
+produced Market Intel's permanent em-dashes is unconstructable rather than discouraged.
+
+TWO BUGS MY OWN TESTS FOUND, both mine. The Admiralty-to-band ladder was written INVERTED, so A1, the
+best possible source-and-credibility pair, mapped to very_low. The assertion "A1 must be very_high"
+caught it immediately. And makeEnvelope defaulted optional enums to null while validateEnvelope only
+skipped undefined, so the constructor and the validator disagreed about what "absent" means and every
+envelope without an explicit origin_class threw — twelve failures from one root cause. Both are the
+ordinary reward for writing the proof before believing the code.
+
+F25 CAUGHT ME TAKING A SHORTCUT I HAD NOT NOTICED. The fitness runner failed: envelope.mjs had a passing
+proof and no production importer, which is the proven-but-unwired class this repo governs against, and
+the violation text is right that such a module is indistinguishable from a live one. The weak move was
+the LEGACY_ALLOWLIST. Instead I wired it into the exact defect spec 04 had already named: /operations
+claims "every fact carries a source and date" while OperationsFact had no date field at all, because
+`last_updated` was used to ORDER the query and then discarded. It is now selected, carried, and used to
+derive freshness. That matters beyond tidiness: the sole writer of regional_data_facts is a hand-run
+one-shot on the dead-code manifest, so those rows are not late, they have stopped updating, and
+`frozen` is the state that makes a dead feed stop looking pending.
+
+Suite 1311/1311 (was 1246, +65 here). Fitness 20/20, 0 violations. Meta-gate PASS. tsc clean.
+
+STILL NOT SCHEDULED. No cron, no `schedule:` block, nothing armed in the Actions UI. Nothing here spent:
+web research on free public sources, two new modules, two proofs, one data-layer fix, nine documents.
+Phase 0.2 through 0.5, the acceptance gate, the spine entities and every producer are queued, not
+started.
