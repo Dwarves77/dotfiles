@@ -8,6 +8,7 @@ import type { SeedFallbackTrigger } from "@/lib/notifications/seed-fallback-flag
 import { WATCHLIST_LIST_KEY, watchlistOrderKey } from "@/lib/watchlist-order";
 import { compareRanks } from "@/lib/list-order";
 import { surfaceOf } from "@/lib/surface-of.mjs";
+import { canonicalSurfaceForItem, type DetailSurface } from "@/lib/item-links";
 import type { RelevanceInput } from "@/lib/workspace/viewer-relevance";
 
 // Wave-α A2 (2026-07-11): the static seed-data import is GONE. Every
@@ -2318,6 +2319,7 @@ async function fetchIntelligenceItemUncached(
   supersessions: Supersession[];
   connections: ItemConnection[];
   relevanceInput: RelevanceInput;
+  canonicalSurface: DetailSurface;
 } | null> {
   if (!isSupabaseConfigured()) return null;
 
@@ -2556,7 +2558,20 @@ async function fetchIntelligenceItemUncached(
       compliance_object_tags: row.compliance_object_tags ?? null,
     };
 
-    return { resource, changelog, dispute, supersessions, connections, relevanceInput };
+    // SURFACE ADMISSION (2026-08-11). Computed from the RAW row, deliberately
+    // NOT from `resource` — the mapper above coalesces `domain: row.domain || 1`,
+    // which would classify every unclassified row as Regulations regardless of
+    // item_type and launder a defect into a verdict. The four `[slug]` routes
+    // compare this against their own surface and 404 on mismatch; see
+    // src/lib/item-links.ts for why the guard lives at the route rather than
+    // inside this fetcher (one cache entry per item, shared across surfaces —
+    // gating in here would fragment the cache four ways for the same row).
+    const canonicalSurface = canonicalSurfaceForItem({
+      type: row.item_type ?? null,
+      domain: row.domain ?? null,
+    });
+
+    return { resource, changelog, dispute, supersessions, connections, relevanceInput, canonicalSurface };
   } catch (e) {
     // Sprint 4 task 1.10 gate: on DB error, fail CLOSED rather than serve
     // ungated legacy SEED content for what may be an unverified item.
@@ -2583,6 +2598,7 @@ export async function fetchIntelligenceItem(
   supersessions: Supersession[];
   connections: ItemConnection[];
   relevanceInput: RelevanceInput;
+  canonicalSurface: DetailSurface;
 } | null> {
   return unstable_cache(
     () => fetchIntelligenceItemUncached(itemUiId),
