@@ -7,6 +7,33 @@
   ],
   "items": [
     {
+      "path": "fsi-app/src/__tests__/contracts-corridor-id.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/contracts-envelope.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/__tests__/contracts-vocabularies.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/__tests__/leakage-fix-classifier.test.mjs",
       "kinds": [
         "PROOF"
@@ -27,16 +54,14 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/app/.well-known/workflow/v1/step/route.js",
+      "path": "fsi-app/src/__tests__/surface-admission.test.mjs",
       "kinds": [
-        "WRITES"
+        "PROOF"
       ],
       "skills": [
-        "caros-ledge-platform-intent",
-        "environmental-policy-and-innovation",
-        "remediation-discipline"
+        "environmental-policy-and-innovation"
       ],
-      "proofWired": null,
+      "proofWired": true,
       "status": "COVERED"
     },
     {
@@ -1427,6 +1452,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/contracts/corridor-id.mjs",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [],
+      "proofWired": null,
+      "status": "UNMAPPED-WRITES"
+    },
+    {
       "path": "fsi-app/src/lib/coverage/identity.test.mjs",
       "kinds": [
         "PROOF"
@@ -2044,6 +2078,17 @@
     },
     {
       "path": "fsi-app/src/lib/sources/holdings-gate.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/sources/host-authority-ruling-conformance.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -3338,6 +3383,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/lib/canonical-key.selftest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/lib/check-sources-decision.selftest.mjs",
       "kinds": [
         "PROOF"
@@ -3529,6 +3583,15 @@
         "remediation-discipline"
       ],
       "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/lib/pg-conn.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
       "status": "COVERED"
     },
     {
@@ -6953,15 +7016,52 @@
       ],
       "proofWired": null,
       "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/255_canonical_key_oj_sequence_suffix.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/256_migration_homes_and_vault_capture_key.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation",
+        "source-credibility-model"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/257_reconciler_select_policies.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
     }
   ],
   "summary": {
-    "governed_files": 614,
-    "covered": 536,
+    "governed_files": 624,
+    "covered": 545,
     "exempt": 57,
-    "gaps": 21,
+    "gaps": 22,
     "orphaned_proofs": 0,
-    "unmapped_writes": 20,
+    "unmapped_writes": 21,
     "unmapped_model": 2,
     "unmapped_routing": 2
   }
