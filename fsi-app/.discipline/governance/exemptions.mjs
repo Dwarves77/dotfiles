@@ -9,6 +9,21 @@
 
 export const EXEMPTIONS = [
   {
+    match: 'fsi-app/src/lib/contracts/corridor-id.mjs',
+    kinds: ['writes'],
+    reason:
+      'FALSE POSITIVE, not a write. WRITE_RE matches `.update(` and this module calls ' +
+      'createHash("sha256").update(payload) — a crypto digest update, not a Supabase mutation. The file ' +
+      'imports node:crypto and nothing else; it has no DB client and cannot reach the database. ' +
+      'FOLLOW-UP (evidence, not a request to relax the gate): this false-positive CLASS will recur, ' +
+      'because Map.delete(), Set.delete() and hash.update() are ordinary JS. The durable fix is to ' +
+      'require a db-client OR scripts/lib/db.mjs import as a precondition for the WRITES ' +
+      'classification. Deliberately NOT done inside this unit: narrowing a governance detector needs ' +
+      'its own change with a before/after count on all 21 current unmapped writes, so it cannot ' +
+      'silently mask a real one.',
+    by: 'corridor-identity unit 2026-08-12',
+  },
+  {
     match: 'fsi-app/scripts/_diag/',
     reason: 'Read-only diagnostic convention — investigation scripts, no production writes. (A _diag that actually mutates data is itself a smell; rule 015 still scans content.)',
     by: 'operating-mechanism build 2026-06-06',
