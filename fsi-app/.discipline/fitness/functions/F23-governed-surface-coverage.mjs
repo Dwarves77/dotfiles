@@ -58,9 +58,9 @@ import { runCoverageScan } from '../../governance/coverage-scan.mjs';
 // the build on a tree that still contains the files — a ceiling has to describe the tree it ships on.
 export const GAP_BASELINE = {
   orphaned_proofs: 0,
-  unmapped_writes: 20,
-  unmapped_model: 2,
-  unmapped_routing: 2,
+  unmapped_writes: 0,
+  unmapped_model: 0,
+  unmapped_routing: 0,
 };
 
 const LABEL = {

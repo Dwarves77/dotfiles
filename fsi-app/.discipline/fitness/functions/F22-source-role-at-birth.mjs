@@ -38,22 +38,6 @@ const CLASSIFIER = 'fsi-app/src/lib/sources/classify-source-role.ts';
 // DB and the rows they created are repaired by scripts/source-role-cleanup.mjs. A NEW roleless sources
 // INSERT anywhere under src/ or scripts/ is RED.
 export const LEGACY_ALLOWLIST = [
-  { file: 'fsi-app/scripts/pr-a1-execute.mjs', reason: 'PR-A1 region population — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
-  { file: 'fsi-app/scripts/pr-a2-execute.mjs', reason: 'PR-A2 region population — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
-  { file: 'fsi-app/scripts/tier1-au-apac-execute.mjs', reason: 'Tier-1 AU/APAC — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
-  { file: 'fsi-app/scripts/tier1-ca-provinces-execute.mjs', reason: 'Tier-1 CA provinces — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
-  { file: 'fsi-app/scripts/tier1-eu-southern-eastern-execute.mjs', reason: 'Tier-1 EU S/E — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
-  { file: 'fsi-app/scripts/tier1-eu-western-nordic-execute.mjs', reason: 'Tier-1 EU W/Nordic — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
-  { file: 'fsi-app/scripts/tier1-intl-cities-execute.mjs', reason: 'Tier-1 intl cities — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
-  { file: 'fsi-app/scripts/tier1-uk-nations-execute.mjs', reason: 'Tier-1 UK nations — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
-  { file: 'fsi-app/scripts/tier1-us-cities-execute.mjs', reason: 'Tier-1 US cities — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
-  { file: 'fsi-app/scripts/tier1-us-dc-territories-execute.mjs', reason: 'Tier-1 US DC/territories — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
-  { file: 'fsi-app/scripts/tier1-us-midwest-execute.mjs', reason: 'Tier-1 US midwest — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
-  { file: 'fsi-app/scripts/tier1-us-northeast-execute.mjs', reason: 'Tier-1 US northeast — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
-  { file: 'fsi-app/scripts/tier1-us-south-execute.mjs', reason: 'Tier-1 US south — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
-  { file: 'fsi-app/scripts/tier1-us-west-execute.mjs', reason: 'Tier-1 US west — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
-  { file: 'fsi-app/scripts/tier1-eu-2-clean-inserts-execute.mjs', reason: 'Tier-1 EU-2 clean inserts — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
-  { file: 'fsi-app/scripts/wave2-cleanup-execute.mjs', reason: 'Wave-2 cleanup — executed once; DEAD (zero inbound references, wiring census 2026-08-11)', reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)' },
 ];
 
 const ALLOWLIST_FILES = new Set(LEGACY_ALLOWLIST.map((e) => e.file));

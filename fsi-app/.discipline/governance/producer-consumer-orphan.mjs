@@ -54,10 +54,10 @@ export const TERMINAL_SINK_ALLOWLIST = {
     reason: 'FIRST RUN 2026-07-03. Written by /api/admin/sources/bulk-import as a job record; no reader (no admin import-history surface consumes it). DISPOSITION PENDING Phase 7 (build the history reader vs ratify as write-only job audit) — grandfathered, not ratified.',
     reviewByPhase: 'Phase 7 (zero-reader verification) — admin bulk-import history.',
   },
-  ingestion_control_log: {
-    reason: 'FIRST RUN 2026-07-03. Written by scripts/wave1-cold-start.mjs as a control-run log; no reader. NOTE (2026-08-11 wiring census): wave1-cold-start.mjs is itself DEAD (zero inbound references) and is enumerated for removal in docs/audits/dead-code-manifest-2026-08-11.txt — when the sweep lands, this table loses its only code writer and THIS ENTRY MUST BE RETIRED IN THE SAME PR or the staleness audit REDs. That RED is the intended signal, not a defect.',
-    reviewByPhase: 'dead-code-sweep — retire with the manifest sweep; then Phase 7 decides the table itself.',
-  },
+  // ingestion_control_log: entry RETIRED 2026-08-14 — the dead-code sweep removed
+  // scripts/wave1-cold-start.mjs, this table's only code writer. With no writer it is no longer a
+  // write-orphan, so a standing allowlist entry would be exactly the stale-entry defect this list
+  // audits for. The table itself still awaits its own Phase 7 disposition.
   // portal_link_candidates: entry RETIRED 2026-07-19 — B1 (portal-harvest consumer) built the awaited
   // reader (src/lib/intake/portal-harvest.ts consumePortalCandidates), so the table is no longer a
   // write-orphan and a standing allowlist entry would be the stale-entry defect this list audits for.

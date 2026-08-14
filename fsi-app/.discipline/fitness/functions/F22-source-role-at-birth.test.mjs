@@ -89,7 +89,14 @@ test('F22 exempts the classifier itself and test files', () => {
 
 test('F22 legacy allowlist covers only already-executed one-shot scripts, never src/', () => {
   const files = LEGACY_ALLOWLIST.map((e) => e.file);
-  assert.ok(files.length > 0, 'allowlist should be explicit, not empty');
+  // EMPTY IS THE GOAL STATE, and as of the 2026-08-14 dead-code sweep it is the ACTUAL state.
+  // This assertion used to be `files.length > 0` ("allowlist should be explicit, not empty"), written
+  // when the list was shrinking and an accidentally-cleared list would have silently disabled the
+  // exemption audit. The sweep removed all 16 entries because every one named a script the manifest
+  // deleted — so the list is legitimately empty and F22 now enforces with ZERO exemptions, which is
+  // what an A2-pattern shrinking allowlist is FOR. Asserting non-emptiness here would have forced a
+  // fake entry to be invented to keep a green build, which is the defect this suite exists to catch.
+  // What still must hold on every entry, if one is ever re-added, is asserted below.
   assert.ok(
     files.every((f) => f.startsWith('fsi-app/scripts/')),
     'No src/ path may be allowlisted — the live app must always be enforced.'
