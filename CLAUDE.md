@@ -7,7 +7,9 @@ This repo is the source of truth for the Caro's Ledge product (Freight Sustainab
 | Location | Purpose |
 |---|---|
 | `fsi-app/` | The product: Next.js app, Supabase schema + migrations, workers, discipline engine |
-| `fsi-app/STATUS.md` | Live build state and session-resume recipe for the active lane |
+| `fsi-app/STATUS.md` | **HISTORICAL** (April 2026, `redesign/full-migration`). Not the resume state, not in Loading Priority. Retained as a record only |
+| `docs/PROGRAM-BOARD.md` | **The resume state**: thread table with state, evidence, deferrals. Read this, not STATUS.md |
+| `.claude/hooks/` | SessionStart + PreCompact hooks that emit the vault read-path into a session (wired in `.claude/settings.json`) |
 | `docs/` | Project memory (the brain). Read in Obsidian; maintained by agents |
 | `docs/INDEX.md` | One line per living doc. Read before opening anything else in docs/ |
 | `docs/specs/` | The current surface-spec set (00-10): what each of the five surfaces is and why. The product definition |
@@ -31,10 +33,21 @@ This repo is the source of truth for the Caro's Ledge product (Freight Sustainab
 
 1. This file.
 2. `docs/INDEX.md` — then open only what the task needs.
-3. `fsi-app/STATUS.md` — current lane state.
+3. `docs/PROGRAM-BOARD.md` — **the resume state**: the thread table with state, evidence, and deferrals.
 4. `docs/ops/` followups + tail of `docs/ops/session-log.md`.
 5. Task-relevant ADRs and runbooks.
 6. Code.
+
+`fsi-app/STATUS.md` is **NOT** in this list (operator ruling 2026-08-14). It describes April
+state — branch `redesign/full-migration`, PR #5 draft — and fed stale lane state to sessions that
+followed the protocol correctly, which is worse than a file nobody reads. It is retained as a
+historical record with a header saying so; PROGRAM-BOARD is the resume state. The one live thing it
+carried, the migration two-track policy, is stated in full in standing rule 3 below and does not
+depend on it.
+
+Loading is not automatic. `CLAUDE.md` only auto-loads when the session's cwd is the repo root, so
+a session started elsewhere never sees this list — the SessionStart hook in `.claude/settings.json`
+emits the read-path from outside the file to break that circularity.
 
 Load narrowly. Reference material constrains you; working artifacts are input. Do not bulk-load docs/.
 
@@ -42,7 +55,7 @@ Load narrowly. Reference material constrains you; working artifacts are input. D
 
 1. **Facts live in Supabase.** Regulatory facts, spans, tiers, and their integrity are owned by the database, validators, and quarantine lanes. Docs cite record IDs and migration numbers; they never restate published facts. Never hand-edit published rows; changes go through migrations and lanes.
 2. **Never fabricate** numbers, results, sources, or client names. Placeholders plus a question beat confident fiction.
-3. **Migration two-track policy** (see STATUS.md): schema DDL applies via Supabase CLI before the dependent code commits; data migrations commit with consumer code and run after merge.
+3. **Migration two-track policy**: schema DDL applies via Supabase CLI before the dependent code commits; data migrations commit with consumer code and run after merge. (Stated here in full. The former "see STATUS.md" pointer is dropped — STATUS.md is historical as of 2026-08-14.)
 4. **Decisions become ADRs** at the moment they are made: `docs/decisions/ADR-NNN-kebab.md`, frontmatter id/title/status/date/scope/supersedes/related. Enforcement trailer is deprecated (ADR-009 postscript); the convention is binding.
 5. **Machine evidence never lands in docs/ top level.** Execute logs, runlogs, snapshots, raw JSON → `docs/archive/logs/` if worth keeping, gitignored scratch (`fsi-app/scripts/tmp/`, `_snapshots/`, `_plans/`) if regenerable.
 6. **Session logs** go to `docs/ops/session-log.md` as dated appended entries. Never into this file.

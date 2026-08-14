@@ -3206,3 +3206,49 @@ Required follow-up, executed right after this merges: open a CANARY PR touching 
 `fsi-app/src/` with NO memory-file change, confirm the check goes RED, then close it UNMERGED. The
 canary must never be merged; its only purpose is to convert the gate from present to demonstrated.
 Until that canary has gone red, the gate is `[HYPOTHESIS]`, not `[CONFIRMED]`.
+
+## Addendum 15 — the read path, built against the docs instead of from memory (2026-08-14)
+
+Addendum 14 left two items to the local session: the SessionStart/PreCompact hooks, with the explicit
+instruction to verify the hook API against the official docs rather than write it from memory. Doing
+that changed the design, which is the whole reason the instruction was given.
+
+**What the docs said that memory would not have.** `SessionStart` stdout IS injected into the session's
+context, and its matcher takes `startup|resume|clear|compact|fork`. But `PreCompact` stdout goes to the
+DEBUG LOG ONLY — it never reaches the model — and `PostCompact` is the same and takes no matcher. So the
+brief's item 2, "PreCompact hook: preserve state into the compaction context", is not implementable as
+written. A PreCompact hook that printed the state would have looked correct, run green forever, and
+delivered nothing — a decorative guard of exactly the kind the memory gate's canary was built to catch.
+
+**The design that does work is a pair.** PreCompact writes a durable snapshot FILE (lane, HEAD,
+uncommitted-file list, last two vault entries); SessionStart — which fires with matcher `compact` after a
+compaction — reads that file, prints it into context, then DELETES it. One-shot by construction, so a
+stale snapshot from a dead session cannot masquerade as current state weeks later. Neither half works
+alone: the writer cannot speak to the model, the reader has nothing to say without the writer.
+
+Both hooks are node (matching the existing discipline hooks), both exit 0 on every path, both guard
+every read. A hook that wedges a session is worse than no hook. Proven end-to-end before commit: fired
+PreCompact, confirmed the snapshot content, fired SessionStart, confirmed it emitted board + last-3
+entries + branch + the recovered snapshot, and confirmed the snapshot was deleted after consumption. One
+defect found and fixed in that pass — `^##+ ` also matched the `###` sub-headings inside an addendum, so
+the "last 3 addendum headers" was showing a correction sub-heading instead of a real entry; tightened to
+`^## `.
+
+**STATUS.md retired (operator ruling).** Removed from CLAUDE.md's Loading Priority in favour of
+`docs/PROGRAM-BOARD.md`, and its own header now opens with a HISTORICAL stop-block. It described April
+state and fed it to sessions that were following the protocol CORRECTLY — a stale source of truth is
+trusted precisely because it claims to be one, which is worse than a file nobody reads. The one live
+thing it carried, the migration two-track policy, is now stated in full in standing rule 3; the dangling
+"(see STATUS.md)" pointer is gone.
+
+**INDEX correction.** The `## dispatches` line added on 2026-08-14 pointed at
+`docs/dispatches/free-chrome-acquisition-brief-2026-07-16.md`, which is untracked — a dead link in git
+and in every cloud clone, i.e. the precise defect this vault work exists to prevent, introduced by the
+work itself. Removed the same day, with a note in its place saying why. Caught only on a final
+verification sweep; the earlier check missed it because an unanchored grep matched `fsi-app/docs/
+dispatches/`, a different directory. Anchor the pattern.
+
+Open, unchanged: nothing from this unit. The hooks are local-machine scope — they ship in
+`.claude/settings.json` so they are versioned and reviewable, but they only fire for sessions whose
+project dir is this repo. A session started outside it still gets nothing, which is why the CLAUDE.md
+Loading Priority note now says so out loud.
