@@ -26,6 +26,22 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [ADR-017-provenance-verified-binding-by-derivation-depth](./decisions/ADR-017-provenance-verified-binding-by-derivation-depth.md) — The #43 provenance binding rebuilt (migration 250): guards the escalation INTO 'verified' (allowed only for current_user='reconciler' OR pg_trigger_depth()>=2 = the validation derivation, engine truth unforgeable), replacing migration 118's session-GUC origin stamp that any role could forge with set_config, and closing the previously-unguarded quarantined→verified path. Restrictive flips left open, dissolving the reconciler-credential wedge. Ships with a permanent adversarial proof wired hard into the data-audit lane — attack the invariant, don't assert its enforcement object exists (the class-4 lesson). (accepted)
 - [ADR-016-storage-side-uncap](./decisions/ADR-016-storage-side-uncap.md) — Storage-side caps retired (PRIMARY_MAX_CHARS/CORROBORATOR_MAX_CHARS gone): a fetch/storage cap makes incompleteness permanent (the pool row stores the slice, every re-analysis inherits the loss), so capping moves to the SYNTHESIS WINDOW (SYNTH_* unchanged) over a complete stored capture. Adds STORAGE_MAX_CHARS=10M as a loud-on-bind pathological-page sanity ceiling (F17 'surfaced', fires truncation-guard). fetchText max now required (omission = compile error). New scripts/remediation/refetch-capped-worklist.mjs (BUILD read-only 106/15/1; EXECUTE diff-on-recapture guarded, hold-gated) drains the legacy-capped agent_run_searches rows. GUARD-1 pool-INSERT size = finding for ruling; legacy_40k dedups to 106 not the premised 105 = finding (accepted)
 
+## specs
+
+The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs say what to build and why; [implementation-plan-2026-08-12](./plans/implementation-plan-2026-08-12.md) says in what order.
+
+- [00-foundation-the-spine](./specs/00-foundation-the-spine.md) — the thesis: why five surfaces are one product, not five. Grounded in external research against named industry practice; every non-obvious claim carries its source. Vocabulary rationale for the whole set
+- [01-regulations](./specs/01-regulations.md) — Regulations, the ONLY page whose read is a compliance-action text brief (what is binding, when, what it costs, what to do), per the 2026-07-12 `analysis-follows-page-intent` ruling. Regulatory status verified against primary sources 2026-08-12; unconfirmed items listed in its section 9 and must be re-verified before build
+- [02-market-intel](./specs/02-market-intel.md) — Market Intel: reads are COMPARATIVE and NUMERICAL (deltas, trajectories, lead-time against competitors and adjacent industries), explicitly not a compliance-action brief
+- [03-research](./specs/03-research.md) — Research, the horizon scan (`research-is-horizon-scan`): structured horizon assessments — distance, maturity, credibility of who is studying it, and the planning-assumption shift
+- [04-operations](./specs/04-operations.md) — Operations: structured jurisdictional data surfaces (feasibility, cost, labour, materials, infrastructure) for hire-vs-automate and infrastructure decisions. Explicitly a content build, not a text brief
+- [05-community](./specs/05-community.md) — Community as a core customer-facing surface co-equal with the four intelligence pages, addressing freight's structural information-isolation problem; human-operated by construction and outside machine intake (`community-is-human-space`, 2026-07-12)
+- [06-gap-register-and-sequence](./specs/06-gap-register-and-sequence.md) — the gap register and build sequence. SUPERSEDES the sequencing in [surface-rebuild-plan-2026-08-11](./plans/surface-rebuild-plan-2026-08-11.md) section 7 by inserting foundation work that plan did not yet know was needed; everything in that plan remains valid
+- [07-page-walkthrough](./specs/07-page-walkthrough.md) — THE SCREENS. Companion to specs 00-06 (which describe the data model and the gaps). Binding rule: if a component is not in this document, the customer never sees it. Reader throughout is a freight forwarder (art, live events, luxury, automotive)
+- [08-flywheel-design](./specs/08-flywheel-design.md) — how five surfaces compound instead of coexisting. DESIGN for external review, deliberately SELF-CONTAINED (readable without the rest of the repo)
+- [09-domain-extensions](./specs/09-domain-extensions.md) — integrates an external architecture review (Gemini, 2026-08-12) into specs 00-08. Additive, nothing retracted: eight functional domains genuinely missing, one real design defect
+- [10-v1-seed-plan](./specs/10-v1-seed-plan.md) — the v1 static-seed plan and the LICENCE PROBLEM in it. Licence terms verified against published sources 2026-08-12, every entry carrying the URL read and the date. Not legal advice: records what published terms say, with citations, so counsel can check the reasoning
+
 ## inventories
 
 - [components](./inventories/components.md) — Shared Components Inventory
@@ -47,6 +63,11 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [dispatch-discipline-protocol](./runbooks/dispatch-discipline-protocol.md) — Every dispatch constraint names its enforcement or is disclosed as trust-the-executor (2026-07-14 honest-limit ruling)
 - [run-structure-protocol](./runbooks/run-structure-protocol.md) — Effectful runs execute in ascending cost/irreversibility tiers; halt for operator spend-authorization at each boundary (2026-07-14)
 - [sprint4-dataops-ledger](./runbooks/sprint4-dataops-ledger.md) — Sprint 4 — Data-Operations Ledger (already-executed; do NOT re-run)
+- [live-source-anti-fabrication-audit](./runbooks/live-source-anti-fabrication-audit.md) — standing post-wave gate: live-source anti-fabrication audit
+- [fleet-charters/authorship-worker](./runbooks/fleet-charters/authorship-worker.md) — fleet charter: authorship worker (consolidated, daily). Charter cost rules in [fleet-budget-control](./runbooks/fleet-budget-control.md)
+- [fleet-charters/citation-harvest](./runbooks/fleet-charters/citation-harvest.md) — fleet charter: citation harvest
+- [fleet-charters/legacy-remediation](./runbooks/fleet-charters/legacy-remediation.md) — fleet charter: legacy remediation
+- [fleet-charters/summary-sweep](./runbooks/fleet-charters/summary-sweep.md) — fleet charter: short-summary convention sweep
 
 ## plans
 
@@ -107,12 +128,16 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [data-buildout-zero-cost-2026-08-09](./plans/data-buildout-zero-cost-2026-08-09.md) — $0 verified-corpus completion via the existing CC-grounding executor (executor-ground.mjs injected-ledger seam, no paid API, no new module). Worklist: 109 quarantined, triaged by real failure class — 806 Gate-A orphans (avg 9.5/item) are the dominant unit; each fixed by one verbatim-span FACT from captured text, Claude-in-Chrome fetching the primary when a figure is absent. Pilot 3 spanning the classes, telemetry, then scale
 - [system-remediation-plan-2026-08-09](./plans/system-remediation-plan-2026-08-09.md) — Fix-before-buildout: live-verified P0s, 8-phase sequence, the data-integrity subset that gates authorship
 - [wave1-track5-widget-implementation-plan](./plans/wave1-track5-widget-implementation-plan.md) — Phase 3 Widget Implementation Plan (PR-G3)
+- [surface-rebuild-plan-2026-08-11](./plans/surface-rebuild-plan-2026-08-11.md) — re-verification of all four intelligence surfaces against live code at HEAD `3533e12`, and the build plan that follows. Supersedes the sequencing in [spec-audit-synthesis-2026-05-23](./plans/spec-audit-synthesis-2026-05-23.md) (kept as a record of intent, materially stale as a record of state). Its own section 7 sequencing is in turn superseded by [specs/06](./specs/06-gap-register-and-sequence.md)
+- [implementation-plan-2026-08-12](./plans/implementation-plan-2026-08-12.md) — operational companion to [specs](./specs/00-foundation-the-spine.md) 00 through 06: work units, acceptance, sequence. Every unit independently shippable, independently gate-green, independently revertible
 
 ## audits
 
 - [spend-authority-disarm-case-file-2026-07-30](./audits/spend-authority-disarm-case-file-2026-07-30.md) — Root-cause case file for every spend-authorization disarm this campaign (metered gate off-path, inert SPEND_CEILING, unwired markers, ticket clobber, jiti dual-instance, the untraced $0.0438 and the unpriced $0.6442). Common cause: authorization carried in AMBIENT STATE (env, module-locals, call-site convention), whose default is "unchecked" so any new path escapes it silently. Specifies the single-choke-point fix (authorization as a required argument, ledger in the same call, fitness guard banning SDK use elsewhere) and proposes the standing rule "authorization is an argument, never an ambience". Written BEFORE the code, per operator order.
 - [ground-truth-verification-2026-07-15](./audits/ground-truth-verification-2026-07-15.md) — Ground-truth verification of 27 sampled items (~738 facts) gating the coverage-floor spend. Accuracy-defect rate ~3% (ISO 14083 lone systematic-falsehood outlier), dominant defect is PROVENANCE, namely S1 dead-citation (927 T1 facts across 26 items, one 404 EUR-Lex row) plus S2 null-source (455 across 45), both fixable free by re-point and registration. Ruling: HOLD the spend, fund the sweeps. Defines the wave-acceptance QA institution.
 - [remediation-close-2026-07-15](./audits/remediation-close-2026-07-15.md) — Close report for the audit-ruled corpus repair (Tasks 1-11): ISO conflation corrected, 727 dead-cites re-pointed, 671 null-source facts dispositioned, ReFuelEU twin deduped, Q1-Q4 quality cleanup (132 dup facts, tier-machinery stripped from 63 briefs), hold #11 URL fixed. Three-state per defect class; 8 recurrence items routed to hardening (incl. tier-machinery-in-customer-prose, archive-provenance-flip-guard-collision, standard-own-body-exemption-unwired, chrome-capture-adapter); priced re-ground queue enumerated; residual frame ~169 items. $0 unit.
+- [wave2-archive-collision-reconciliation-2026-07-15](./audits/wave2-archive-collision-reconciliation-2026-07-15.md) — read-only forensics, findings-before-fixes, nothing mutated. RE-BOUNDS THE ALARM: the "436 archived / 201 verified" figure is cumulative historical state, not that day's mutation. Delivered to inform the fix decision
+- [wave2-concurrent-race-incident-2026-07-15](./audits/wave2-concurrent-race-incident-2026-07-15.md) — incident record (recovered + hardened) for the funded-pass concurrent race that duplicated claims on 6 items and zeroed 2 items during the Wave 2 re-attribution run
 - [BRIEF-STRUCTURE-AUDIT](./audits/BRIEF-STRUCTURE-AUDIT.md) — Brief Structure Audit
 - [DESIGN-AUDIT-2026-05](./audits/DESIGN-AUDIT-2026-05.md) — Design Audit — Preview vs Live App
 - [E2E-VERIFICATION](./audits/E2E-VERIFICATION.md) — E2E Verification — PRs #20–#23
@@ -189,6 +214,16 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 - [reattribution-worklist-2026-07-14](./ops/reattribution-worklist-2026-07-14.md) — Enumerated worklist behind flag `f5a56b11` (worklist-host FACT re-attribution): 42 FACT spans / 13 items grounded to wikipedia/legiscan/policycommons at the retired `?? 5` guessed T5 stamp. Go-forward mint FIXED (source-growth.ts classTierForHost); backward relabel/re-home deferred to its own verified unit (mutates 10 verified customer briefs). 3 research_finding items are sub-floor priority.
 - [master-gap-register](./ops/full-system-audit-2026-07-11/master-gap-register.md) — FULL-SYSTEM AUDIT 2026-07-11 (13 agents, coverage PROVEN: 1,348 code files / 85 tables / 63 fns / 183 policies): 12 P1s (org-gate loss, silent-empty provisional queue, profiles no-op writes, seed-on-timeout...), P2/P3/P4 registers, intent verdicts (9× PARTIAL), 62-item pool table (45/8/9), invariant backlog. Plan: [correction-plan](./ops/full-system-audit-2026-07-11/correction-plan.md) (Tracks A–E, build-first lens).
 - [multi-tenant-foundation-followups-2026-05-15](./ops/multi-tenant-foundation-followups-2026-05-15.md) — Multi-Tenant Foundation Follow-Ups, 2026-05-15
+- [secrets-topology](./ops/secrets-topology.md) — SoT map of the credential surface: every secret NAME x vault(s) x consumers x write authority. No secret VALUES, names and topology only. Human face of the machine SoT `fsi-app/.discipline/governance/secrets-registry.mjs`; GitHub-Actions vault CI-enforced by `secrets-reference-audit.mjs` (invariant SF-11)
+- [backup-posture](./ops/backup-posture.md) — live Supabase backup posture (R0.1). Records plan tier / PITR / retention as AMBIGUOUS from tool-readable facts (the Management API surface does not expose them), plus the independent safety net that does not depend on the ambiguity
+- [observability-posture](./ops/observability-posture.md) — first-party runtime observability (R0.2): two independent GitHub Actions watches against the deployed app (`uptime-probes.yml`). No external alerting BY DESIGN — the alert channel is GitHub's failed-workflow email to the repo owner
+- [registered-deferrals-2026-07-11](./ops/registered-deferrals-2026-07-11.md) — deferrals carried forward from the Disposition dispatch. Each is dispositioning-as-BLOCKED (real finding + owner + revisit trigger), never silencing, per RD-6 / `deferral-ceiling-30d-non-renewable-without-state-change`. They RIDE, they do not ROT
+- [rendering-guard-followups-2026-07-11](./ops/rendering-guard-followups-2026-07-11.md) — registered when the `rendering-guard` browser leg (PR #273) went RED on its first CI run. The guard's FIRST CATCH, with red-then-green proof
+- [gate-a-execution-state-2026-07-14](./ops/gate-a-execution-state-2026-07-14.md) — resume anchor for the acquisition-rebuild dispatch after the GATE-A ruling; paid work BLOCKED on the Anthropic usage ceiling. Pairs with [gate-a-truth-basis](./ops/gate-a-truth-basis-2026-07-14.md)
+- [hardening-rulings-2026-07-16](./ops/hardening-rulings-2026-07-16.md) — the three operator rulings following Phase A1, recorded so they are not lost across sessions (incl. mint-gate live-flip YES: four mint gates report-only → live-hold, basis = representative calibration clears the 20% stop on all four)
+- [hardening-resume-2026-07-16](./ops/hardening-resume-2026-07-16.md) — bank-and-resume under the operator's FINAL RULING BLOCK (standing authority for the remainder, zero new approvals needed). Branch `hardening/phase-a-mint-gates`, off master, pushed
+- [wave-alpha-closeout-2026-07-11/closeout](./ops/wave-alpha-closeout-2026-07-11/closeout.md) — Wave-α correction closeout + traceability matrix. Ships with 6 sibling evidence files in the same folder (`baseline`, `c7-outcome`, `ddl-application-evidence`, `deletions-log`, `f1-verdict`, `track-b-proofs`), indexed as one unit
+- full-system-audit-2026-07-11 sub-registers — the 14 per-agent evidence registers behind [master-gap-register](./ops/full-system-audit-2026-07-11/master-gap-register.md): `CODE-1..5b`, `DB-1..4`, `INTENT`, `X`, `coverage-manifest`, `pool-coverage-62`. Child evidence of an indexed parent, indexed as one unit
 
 ## census
 
@@ -198,6 +233,13 @@ One line per living doc. archive/ holds superseded notes and machine evidence an
 
 - [decision-package-2026-07-06](./design/decision-package-2026-07-06.md) — Decision Package — 52 live non-verified items (read-only)
 - [design-principles](./design/design-principles.md) — Caro's Ledge Design Principles
+- [redesign/README](./design/redesign/README.md) — UI redesign DESIGN SOURCE OF TRUTH. The mockup binds (see feedback: design-reference-protocol — read the mockup before surface code)
+- [redesign/DESIGN-DEVIATIONS](./design/redesign/DESIGN-DEVIATIONS.md) — running log of where the build deviates from the redesign source of truth
+- [redesign/HANDOFF - Claude Code Prompt](./design/redesign/HANDOFF%20-%20Claude%20Code%20Prompt.md) — UI implementation handoff prompt
+
+## dispatches
+
+- [free-chrome-acquisition-brief-2026-07-16](./dispatches/free-chrome-acquisition-brief-2026-07-16.md) — dispatch for a Chrome/browser-access agent: free primary-source acquisition + $0 re-attribution over the held-item drain. NOTE: writes hit production Supabase (`kwrsbpiseruzbfwjpvsp`, dev/prod shared) — use the guarded path
 
 ## sprint-1
 

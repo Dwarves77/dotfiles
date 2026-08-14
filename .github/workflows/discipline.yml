@@ -130,6 +130,62 @@ jobs:
             --mode=ci \
             --range="$RANGE"
 
+      # ── Memory gate (2026-08-13) ─────────────────────────────────────────
+      # WHY. docs/ is the project memory, and memory that is not committed does
+      # not exist for any other session: cloud (Cowork) sessions clone from
+      # GitHub and never see local-disk edits, and a fresh local session that
+      # skipped /done starts blind. This step makes the write-back a property of
+      # the merge, not of anyone remembering a command: a change that touches
+      # code must, in the same range, touch docs/ops/session-log.md or
+      # docs/PROGRAM-BOARD.md.
+      #
+      # BLOCKING ON pull_request ONLY, warn on push, deliberately. Delivery to
+      # this repo is by GitHub web upload, scoped to one directory per commit
+      # (see the cost-control header above), so one logical unit lands as
+      # several pushes and the code piece may arrive before the docs piece. A
+      # push-event hard fail would false-fail that path on every unit. The PR
+      # range contains the whole unit, branch protection makes PR checks the
+      # real gate, and the push-event warning still surfaces a direct-to-master
+      # commit that skipped the vault.
+      #
+      # Lives as a STEP inside validate-commits, not a sixth job: GitHub bills
+      # every job up to a whole minute, and the cost-control header above is
+      # why we do not add jobs for twenty seconds of work.
+      - name: Memory gate — code must not outrun the vault
+        if: always()
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_SHA: ${{ github.sha }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -u
+          if [ "$EVENT_NAME" = "push" ]; then
+            case "$PUSH_BEFORE" in
+              0000000000000000000000000000000000000000|"")
+                RANGE="${PUSH_SHA}~1..${PUSH_SHA}" ;;   # branch-creation push: no before
+              *)
+                RANGE="${PUSH_BEFORE}..${PUSH_SHA}" ;;
+            esac
+          else
+            git fetch --no-tags origin "$BASE_REF" || true
+            RANGE="origin/${BASE_REF}...${PR_HEAD}"
+          fi
+          CHANGED=$(git diff --name-only "$RANGE")
+          CODE=$(printf '%s\n' "$CHANGED" | grep -E '^fsi-app/(src|supabase/migrations|scripts|\.discipline)/' || true)
+          MEMORY=$(printf '%s\n' "$CHANGED" | grep -E '^docs/(ops/session-log\.md|PROGRAM-BOARD\.md)$' || true)
+          if [ -n "$CODE" ] && [ -z "$MEMORY" ]; then
+            MSG="Memory gate: this range ($RANGE) touches code but neither docs/ops/session-log.md nor docs/PROGRAM-BOARD.md. The vault is the project memory; a change it does not record is invisible to every future session. Append a session-log addendum (or update PROGRAM-BOARD) in this PR."
+            if [ "$EVENT_NAME" = "pull_request" ]; then
+              echo "::error::$MSG"; exit 1
+            else
+              echo "::warning::$MSG (warn-only on push: piecewise web-upload delivery lands code and docs as separate pushes)"
+            fi
+          else
+            echo "memory gate OK"
+          fi
+
   test-discipline-engine:
     name: Discipline engine unit tests
     runs-on: ubuntu-latest

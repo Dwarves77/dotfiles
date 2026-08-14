@@ -3144,3 +3144,65 @@ assumed to convey redistribution rights, and I have not read its terms.
 STILL NOT SCHEDULED. No cron, no `schedule:` block, nothing armed in the Actions UI. Nothing here spent:
 two new modules, one proof, one governance record, one spec. No seed data has been loaded and no table
 created; every producer remains queued.
+
+## Addendum 14 — the vault has a write path and no read path, and the fix is a gate, not a habit (2026-08-13, Cowork session)
+
+Diagnosis (local Claude Code session, corroborated live here): docs/ is written faithfully and read by
+nobody. Sessions start blind, re-derive, and restate old findings as new. This session was the proof
+twice over — a mid-conversation compaction lost the flywheel design and I mis-described it until the
+operator forced me back to docs/specs/08; and fsi-app/STATUS.md fed me April state during a build-status
+sweep, exactly the trap it is.
+
+A second, Cowork-specific layer: cloud sessions clone from GitHub, so vault edits that never land in git
+do not exist for them at all. The CLAUDE.md rows added locally on 2026-08-13 were invisible here
+(verified: zero matches in the clone) until mirrored in this commit.
+
+What ships in this commit:
+- **Memory gate** as a step inside discipline.yml validate-commits (not a sixth job — the cost-control
+  header explains why): a PR range that touches fsi-app/{src,supabase/migrations,scripts,.discipline}
+  must also touch docs/ops/session-log.md or docs/PROGRAM-BOARD.md, else the check fails. Warn-only on
+  push events because piecewise web-upload delivery lands code and docs as separate pushes; the PR is
+  the unit and the PR is blocked. This makes the write-back a property of the merge, not of remembering
+  /done.
+- **Two repo skills**, fsi-app/.claude/skills/{resume,done}: `resume` is the boot/post-compaction
+  protocol (read INDEX board → PROGRAM-BOARD head → last session-log addendum; explicit STATUS.md trap
+  warning; the two-mechanism flywheel and `ocean` rulings restated so a cold session loads the
+  corrections, not just the roadmap). `done` is the checkpoint pen: run per completed unit and before
+  push, not only at session end. Both were also delivered to the operator as account-level skills so
+  Cowork sessions get them regardless of clone state; whether they were saved to the account is not
+  observable from here.
+- **CLAUDE.md**: the four directory rows (specs/, doctrine/, dispatches/, census/) mirrored verbatim
+  from the local session's uncommitted edit, so the constitution in git matches the one on disk.
+
+Also this session, recorded so it is not re-derived: dashboard "data disappeared" incident root-caused
+to an expired auth session — _assert_org_membership raised, every org-scoped read returned empty,
+logout/login fixed it; fail-closed demonstrated in production, no code change needed. Three operator-
+facing documents produced (technical briefing, security posture, build-effort/maintainability) — they
+live outside the repo by design, delivered as files.
+
+Open, needing the operator or the local session:
+- Push from this cloud session is proxy-blocked (repo not in the session's authorized sources), so this
+  commit lands via the operator adding the repo to session sources, or via the exported patch applied
+  locally. Not worked around, per standing rule.
+- STATUS.md's place in Loading Priority: rewrite vs retire in favor of PROGRAM-BOARD — operator ruling
+  pending, deliberately not decided here.
+- Local SessionStart/PreCompact hooks: local session's scope; verify the hook API against docs before
+  wiring, not from memory.
+
+### Correction, added by the local session on landing (2026-08-14)
+
+The Cowork handoff asserted that this commit "satisfies its own gate (code paths and session-log both
+touched)". That is FALSE, and the local session caught it before the commit was made. The gate's code
+predicate is `^fsi-app/(src|supabase/migrations|scripts|\.discipline)/`. The unit's six paths are
+`.github/workflows/discipline.yml`, `fsi-app/.claude/skills/{resume,done}/SKILL.md`, `CLAUDE.md`,
+`docs/INDEX.md`, and this file. None matches: `.claude` is not `.discipline`, and nothing touches
+`src`, `supabase/migrations`, or `scripts`. So `CODE` is empty, the `-n "$CODE"` branch never runs, and
+the step prints "memory gate OK" **vacuously**. The gate is introduced by a PR that does not exercise
+it — presence, not execution, which is exactly the failure rule 15 exists to catch. The claim was
+plausible and wrong in the same way the eight retractions behind rule 14 were: it was a pattern match
+on "this commit touches code and docs", never checked against the predicate actually written.
+
+Required follow-up, executed right after this merges: open a CANARY PR touching one comment line under
+`fsi-app/src/` with NO memory-file change, confirm the check goes RED, then close it UNMERGED. The
+canary must never be merged; its only purpose is to convert the gate from present to demonstrated.
+Until that canary has gone red, the gate is `[HYPOTHESIS]`, not `[CONFIRMED]`.
