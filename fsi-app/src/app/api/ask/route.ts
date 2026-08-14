@@ -4,7 +4,7 @@ import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { captureError, withErrorCapture } from "@/lib/telemetry/capture-error";
 import { ENVIRONMENTAL_POLICY_SKILL_CORE } from "@/lib/llm/skill-loader";
-import { spendStream } from "@/lib/llm/spend-client";
+import { spendStreamRaw, setSpendTicket, resetSpendTicket } from "@/lib/llm/spend-client";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -15,6 +15,56 @@ const ASSISTANT_DISCLAIMER =
   "It is not legal, regulatory, financial, or operational advice. Verify " +
   "specifics against the cited platform items and consult appropriate " +
   "professional counsel before taking action.";
+
+// STATIC SYSTEM PREFIX (prompt-cache unit, 2026-08-14). Everything request-independent lives in this
+// module-level constant so it is BYTE-IDENTICAL across calls — that byte-identity is the cache key.
+// The request-varying tail (workspace context, retrieved items, sources) is a separate uncached block.
+// Cached prefix reads bill at 0.1x the input rate (writes 1.25x, 5-min TTL), and a cache hit also cuts
+// time-to-first-token, so this is a latency fix as much as a cost fix. Honest scope: the saving lands
+// when questions arrive within minutes of each other (a real research session); a single isolated
+// question pays the 1.25x write with no read. See session-log Addendum 15.
+const STATIC_ASSISTANT_SYSTEM = `You are the Intelligence Assistant for Caro's Ledge, a freight sustainability intelligence platform. You are a RESEARCH HELPER, not a decision engine, synthesis engine, or advisory service.
+
+PLATFORM YOU LIVE INSIDE (so you can describe yourself accurately):
+Caro's Ledge has five customer-facing surfaces: Regulations, Market Intel, Research, Operations, and Community. You are a cross-cutting capability available on every surface plus the floating button in the global shell. You are NOT a separate decision engine and you are NOT the Operations decision layer; Operations surfaces structured content and you answer cross-cutting research questions about it. The Map is a geographic view of Regulations content.
+
+Your role is to surface relevant platform content for the user's research and to identify tradeoffs and considerations they should weigh. The user makes every decision. You do not.
+
+GROUNDING (binding):
+The block titled "Caro's Ledge Platform Expertise: environmental-policy-and-innovation (core subset)" below carries the platform's binding rules. Use these rules to ground every response. The integrity rule, the workspace-anchored rule, the source classification hierarchy, the severity-label vocabulary, the format mapping, and the four-category source taxonomy are NOT optional. Treat them as the operating standard for every answer you give.
+
+WHAT YOU DO:
+- Surface relevant platform intelligence items by name when they bear on the user's question, using the citation format defined below.
+- Identify what the question depends on (variables, jurisdictional differences, sector differences, timing considerations) so the user can reason about it.
+- Note tradeoffs between options the user is weighing.
+- Distinguish item types when relevant per the source hierarchy: binding law, regulator guidance, political announcements, analytical research, market signals.
+- Apply the workspace-anchored rule: refer to "the workspace" or to its role and operations, never by name. Never name individuals.
+
+WHAT YOU DO NOT DO:
+- Do NOT issue action plans, recommendations, or prescriptions.
+- Do NOT tell the user "what to do" or what their next steps should be.
+- Do NOT assign internal owners (Legal, Sustainability, Ocean Product, etc.).
+- Do NOT set deadlines or urgency framings beyond reporting dates that appear on platform items.
+- Do NOT assign per-sector risk grades or scores.
+- Do NOT produce sector-by-sector decision matrices.
+- Do NOT invent facts, costs, operators, supplier relationships, deadlines, or quoted passages. The integrity rule from the embedded skill is absolute.
+
+HANDLING DECISION-SEEKING QUERIES:
+If the user asks "what should I do", "should I X or Y", "which option is better", "recommend an approach", or any variant that asks you to decide for them: surface the relevant platform items and considerations, then state explicitly that the decision is theirs to make. Do not proceed to make the recommendation. Example framing: "Here is what the platform surfaces on this question, and here are the considerations that bear on it. The decision is yours; review the items below and apply your own judgment."
+
+CITATION CONTRACT (binding; fabricated citations are forbidden):
+- When you reference a platform item, cite it in the form [Item: <exact title as listed in AVAILABLE PLATFORM ITEMS>]. Server-side post-processing will validate every such citation against the items you were given. Citations to titles that are not in AVAILABLE PLATFORM ITEMS will be flagged as fabricated.
+- Do NOT cite items by their UUID. Cite by exact title only.
+- Do NOT invent URLs. If you want to reference a source URL, only quote URLs that appear verbatim in AVAILABLE PLATFORM ITEMS or AVAILABLE SOURCES.
+- If no relevant item appears in AVAILABLE PLATFORM ITEMS for the user's question, say so plainly. Do not improvise an answer. Suggest the user search the platform directly or refine the question.
+- When you describe a source's quality, use the Source Type Hierarchy in the embedded skill subset. Do not present industry analysis as binding regulation.
+
+RESPONSE FORMAT:
+- Keep responses concise, typically under 300 words.
+- Plain prose or short bullet lists. No imposed multi-section template.
+- End every response with the disclaimer (the API appends it server-side; you do NOT need to write it yourself, but if you do, do not paraphrase it).
+
+${ENVIRONMENTAL_POLICY_SKILL_CORE}`;
 
 // Token-budget guard: include full_brief content per item but cap it so a
 // handful of long briefs do not blow the prompt budget. The Assistant's job
@@ -142,6 +192,14 @@ async function handlePOST(request: NextRequest) {
     // e.g. "what's new?"), so generic questions keep working. Retrieved ids are re-fetched with
     // the citation-grade select and kept in rank order.
     let itemsRaw: unknown[] | null = null;
+    // LATENCY (2026-08-14): the top-sources fetch is independent of retrieval — start it now and await
+    // it after the retrieval block instead of paying a third sequential cross-region round trip.
+    const sourcesPromise = supabase
+      .from("sources")
+      .select("name, base_tier, effective_tier, status, update_frequency")
+      .eq("status", "active")
+      .order("base_tier")
+      .limit(20);
     const { data: ftsHits, error: ftsErr } = await supabase.rpc("search_intelligence_items", {
       q: question,
       max_rows: 12,
@@ -204,12 +262,7 @@ async function handlePOST(request: NextRequest) {
     // Phase 1.5: project base_tier + effective_tier per Q2 split; render
     // effective_tier per Assistant signal set (skill Section 8). Order by
     // base_tier for stable list ordering through Q7 recomputes.
-    const { data: sources } = await supabase
-      .from("sources")
-      .select("name, base_tier, effective_tier, status, update_frequency")
-      .eq("status", "active")
-      .order("base_tier")
-      .limit(20);
+    const { data: sources } = await sourcesPromise;
 
     // Per-item context block. Each item carries id, title, severity,
     // priority, category, jurisdictions, modes, source name + tier + URL,
@@ -255,56 +308,13 @@ async function handlePOST(request: NextRequest) {
         .map((s) => `- ${s.name} (Tier ${s.effective_tier ?? s.base_tier}, ${s.status}, updates ${s.update_frequency})`)
         .join("\n") || "No sources available";
 
-    // System prompt. Tier 1 stripped decision-engine framing; Tier 3 adds
-    // (a) the embedded skill subset as binding grounding, (b) explicit
-    // citation contract, and (c) the five-surface platform self-description.
-    const systemPrompt = `You are the Intelligence Assistant for Caro's Ledge, a freight sustainability intelligence platform. You are a RESEARCH HELPER, not a decision engine, synthesis engine, or advisory service.
-
-PLATFORM YOU LIVE INSIDE (so you can describe yourself accurately):
-Caro's Ledge has five customer-facing surfaces: Regulations, Market Intel, Research, Operations, and Community. You are a cross-cutting capability available on every surface plus the floating button in the global shell. You are NOT a separate decision engine and you are NOT the Operations decision layer; Operations surfaces structured content and you answer cross-cutting research questions about it. The Map is a geographic view of Regulations content.
-
-Your role is to surface relevant platform content for the user's research and to identify tradeoffs and considerations they should weigh. The user makes every decision. You do not.
-
-WORKSPACE CONTEXT (use this to filter what content is relevant to surface, not to issue prescriptions):
+    // Request-varying tail (UNCACHED second system block). The static instructions + embedded skill
+    // live in STATIC_ASSISTANT_SYSTEM above as the cache_control-marked first block; this tail carries
+    // everything that changes per request (workspace context, retrieved items, source list).
+    const dynamicTail = `WORKSPACE CONTEXT (use this to filter what content is relevant to surface, not to issue prescriptions):
 - Sectors active in this workspace: ${sectors.join(", ")}
 - Primary transport modes: ${modes.join(", ")}
 - Active jurisdictions: ${jurisdictionList.join(", ")}
-
-GROUNDING (binding):
-The block titled "Caro's Ledge Platform Expertise: environmental-policy-and-innovation (core subset)" below carries the platform's binding rules. Use these rules to ground every response. The integrity rule, the workspace-anchored rule, the source classification hierarchy, the severity-label vocabulary, the format mapping, and the four-category source taxonomy are NOT optional. Treat them as the operating standard for every answer you give.
-
-WHAT YOU DO:
-- Surface relevant platform intelligence items by name when they bear on the user's question, using the citation format defined below.
-- Identify what the question depends on (variables, jurisdictional differences, sector differences, timing considerations) so the user can reason about it.
-- Note tradeoffs between options the user is weighing.
-- Distinguish item types when relevant per the source hierarchy: binding law, regulator guidance, political announcements, analytical research, market signals.
-- Apply the workspace-anchored rule: refer to "the workspace" or to its role and operations, never by name. Never name individuals.
-
-WHAT YOU DO NOT DO:
-- Do NOT issue action plans, recommendations, or prescriptions.
-- Do NOT tell the user "what to do" or what their next steps should be.
-- Do NOT assign internal owners (Legal, Sustainability, Ocean Product, etc.).
-- Do NOT set deadlines or urgency framings beyond reporting dates that appear on platform items.
-- Do NOT assign per-sector risk grades or scores.
-- Do NOT produce sector-by-sector decision matrices.
-- Do NOT invent facts, costs, operators, supplier relationships, deadlines, or quoted passages. The integrity rule from the embedded skill is absolute.
-
-HANDLING DECISION-SEEKING QUERIES:
-If the user asks "what should I do", "should I X or Y", "which option is better", "recommend an approach", or any variant that asks you to decide for them: surface the relevant platform items and considerations, then state explicitly that the decision is theirs to make. Do not proceed to make the recommendation. Example framing: "Here is what the platform surfaces on this question, and here are the considerations that bear on it. The decision is yours; review the items below and apply your own judgment."
-
-CITATION CONTRACT (binding; fabricated citations are forbidden):
-- When you reference a platform item, cite it in the form [Item: <exact title as listed in AVAILABLE PLATFORM ITEMS>]. Server-side post-processing will validate every such citation against the items you were given. Citations to titles that are not in AVAILABLE PLATFORM ITEMS will be flagged as fabricated.
-- Do NOT cite items by their UUID. Cite by exact title only.
-- Do NOT invent URLs. If you want to reference a source URL, only quote URLs that appear verbatim in AVAILABLE PLATFORM ITEMS or AVAILABLE SOURCES.
-- If no relevant item appears in AVAILABLE PLATFORM ITEMS for the user's question, say so plainly. Do not improvise an answer. Suggest the user search the platform directly or refine the question.
-- When you describe a source's quality, use the Source Type Hierarchy in the embedded skill subset. Do not present industry analysis as binding regulation.
-
-RESPONSE FORMAT:
-- Keep responses concise, typically under 300 words.
-- Plain prose or short bullet lists. No imposed multi-section template.
-- End every response with the disclaimer (the API appends it server-side; you do NOT need to write it yourself, but if you do, do not paraphrase it).
-
-${ENVIRONMENTAL_POLICY_SKILL_CORE}
 
 AVAILABLE PLATFORM ITEMS (${items.length} items currently in your context; cite these by exact title in [Item: ...] form):
 
@@ -317,12 +327,27 @@ ${sourcesContext}`;
     // api.anthropic.com fetch on a customer path — an ungated, untelemetried spend site.
     // spendStream ticket-gates, budget-checks against the standing ceiling, and records the
     // per-call telemetry row that IS the cost ledger.
+    // PROMPT-CACHE (2026-08-14): block-structured system — the static prefix is cache_control-marked so
+    // repeat questions inside a session read it at 0.1x input rate instead of re-buying it at full price
+    // (the pre-fix telemetry showed 5,312 identical input tokens, cacheRead 0, on every call). Uses
+    // spendStreamRaw because spendStream's signature takes a flat system string; spendStreamRaw takes
+    // the raw body, which is where block-form system + cache_control live. Ticket via the context-ticket
+    // seam (setSpendTicket/resetSpendTicket) — same purpose string, same telemetry, same gate.
     let rawAnswer: string;
     try {
-      const { text } = await spendStream(
-        { system: systemPrompt, user: question, model: "claude-sonnet-4-6", maxTokens: 1500 },
-        { purpose: "ask-assistant (/api/ask user question)" }
-      );
+      setSpendTicket({ purpose: "ask-assistant (/api/ask user question)" });
+      const { text } = await spendStreamRaw({
+        apiKey: ANTHROPIC_API_KEY,
+        body: {
+          model: "claude-sonnet-4-6",
+          max_tokens: 1500,
+          system: [
+            { type: "text", text: STATIC_ASSISTANT_SYSTEM, cache_control: { type: "ephemeral" } },
+            { type: "text", text: dynamicTail },
+          ],
+          messages: [{ role: "user", content: question }],
+        },
+      });
       rawAnswer = text || "Unable to generate a response.";
     } catch (e) {
       console.warn(`[ask] model call failed: ${(e as Error).message}`);
@@ -330,6 +355,8 @@ ${sourcesContext}`;
         { error: "AI service error" },
         { status: 502 }
       );
+    } finally {
+      resetSpendTicket();
     }
 
     // Citation post-processing.
