@@ -3252,3 +3252,32 @@ Open, unchanged: nothing from this unit. The hooks are local-machine scope — t
 `.claude/settings.json` so they are versioned and reviewable, but they only fire for sessions whose
 project dir is this repo. A session started outside it still gets nothing, which is why the CLAUDE.md
 Loading Priority note now says so out loud.
+
+## Addendum 16 — the Assistant was re-buying its own instructions on every question (2026-08-14, Cowork session)
+
+Operator flagged $0.069 for three Ask-bar questions as feeling high, and the instinct was right in
+structure if not in scale. Telemetry on all three paid rows: exactly 5,312 input tokens each,
+cacheReadTokens 0, cacheWriteTokens 0. The question is a rounding error inside that payload — the rest
+is the same static system prompt and skill subset, re-sent and re-billed at full Sonnet input rate every
+call. The repo has had a tested prompt-cache module (prompt-cache.mjs, Phase-3a) since July; /api/ask
+was simply never migrated onto it.
+
+Shipped in this unit (fsi-app/src/app/api/ask/route.ts):
+- System prompt split into a byte-stable STATIC_ASSISTANT_SYSTEM module constant (role, contracts,
+  embedded skill core) marked cache_control ephemeral, plus an uncached per-request tail (workspace
+  context, retrieved items, sources). Call moved from spendStream (flat-string system) to
+  spendStreamRaw with block-form system, ticket via the context-ticket seam — same purpose string,
+  same telemetry, same gate. tsc clean.
+- Latency: the top-sources fetch was the third of three SEQUENTIAL cross-region DB round trips and is
+  independent of retrieval — now started before the retrieval block and awaited after it.
+
+HONEST SCOPE, recorded so nobody oversells it: the ephemeral cache TTL is 5 minutes. The saving (~60%
+per question) and the time-to-first-token win land when questions arrive within a session — the real
+usage pattern once users exist. A single isolated question pays the 1.25x cache write with no read,
+i.e. slightly MORE than before. The three historical calls were hours apart and would not have hit.
+The remaining latency lever is streaming the answer to the client (the route waits for the full
+completion before responding; AskAssistant.tsx renders nothing until then) — that is a UI + route
+change, named here as the follow-up, deliberately not smuggled into this unit.
+
+This commit touches fsi-app/src and this file in the same range, so it is the memory gate's first
+non-vacuous green exercise (the canary PR #456 proved the red path; this proves the green).
