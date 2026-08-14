@@ -239,7 +239,10 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 
 ## dispatches
 
-- [free-chrome-acquisition-brief-2026-07-16](./dispatches/free-chrome-acquisition-brief-2026-07-16.md) — dispatch for a Chrome/browser-access agent: free primary-source acquisition + $0 re-attribution over the held-item drain. NOTE: writes hit production Supabase (`kwrsbpiseruzbfwjpvsp`, dev/prod shared) — use the guarded path
+_No dispatch is currently committed. `docs/dispatches/` exists on the operator's disk but is
+untracked, so any INDEX line pointing into it would be a dead link in git and in every cloud clone —
+the exact defect this vault's read-path work exists to prevent (a link added 2026-08-14 was removed
+for this reason the same day). Commit a dispatch before indexing it._
 
 ## sprint-1
 

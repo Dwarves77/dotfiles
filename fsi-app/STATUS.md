@@ -1,4 +1,18 @@
-# redesign/full-migration — Status
+# redesign/full-migration — Status [HISTORICAL — DO NOT USE AS CURRENT STATE]
+
+> **STOP. This file is a historical record, retired 2026-08-14 by operator ruling.**
+>
+> It describes the editorial migration as of **April 2026** — branch `redesign/full-migration`,
+> PR #5 (draft) — and has not tracked reality since. It has repeatedly fed April state to sessions
+> that were following the loading protocol correctly, which is worse than a file nobody reads:
+> a stale source of truth is trusted precisely because it claims to be one.
+>
+> **The resume state is [`docs/PROGRAM-BOARD.md`](../docs/PROGRAM-BOARD.md).** For what actually
+> shipped, read `git log`. For the last session's account, read the final addendum of
+> [`docs/ops/session-log.md`](../docs/ops/session-log.md).
+>
+> This file has been removed from CLAUDE.md's Loading Priority. Nothing below is maintained.
+> The migration two-track policy it used to carry now lives in full in CLAUDE.md standing rule 3.
 
 Live status of the editorial migration on `redesign/full-migration`.
 Updated as commits land. Source of truth for "what's done, what's next."

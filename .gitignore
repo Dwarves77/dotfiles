@@ -66,3 +66,7 @@ fsi-app/scripts/_snapshots/
 fsi-app/scripts/_plans/
 
 .obsidian/
+
+# PreCompact state snapshot: written by .claude/hooks/pre-compact-snapshot.mjs,
+# consumed and deleted by the SessionStart hook. Transient, per-session, never committed.
+.claude/precompact-state.md
