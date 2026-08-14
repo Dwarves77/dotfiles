@@ -3145,7 +3145,115 @@ STILL NOT SCHEDULED. No cron, no `schedule:` block, nothing armed in the Actions
 two new modules, one proof, one governance record, one spec. No seed data has been loaded and no table
 created; every producer remains queued.
 
-## Addendum 15 — the Assistant was re-buying its own instructions on every question (2026-08-14, Cowork session)
+## Addendum 14 — the vault has a write path and no read path, and the fix is a gate, not a habit (2026-08-13, Cowork session)
+
+Diagnosis (local Claude Code session, corroborated live here): docs/ is written faithfully and read by
+nobody. Sessions start blind, re-derive, and restate old findings as new. This session was the proof
+twice over — a mid-conversation compaction lost the flywheel design and I mis-described it until the
+operator forced me back to docs/specs/08; and fsi-app/STATUS.md fed me April state during a build-status
+sweep, exactly the trap it is.
+
+A second, Cowork-specific layer: cloud sessions clone from GitHub, so vault edits that never land in git
+do not exist for them at all. The CLAUDE.md rows added locally on 2026-08-13 were invisible here
+(verified: zero matches in the clone) until mirrored in this commit.
+
+What ships in this commit:
+- **Memory gate** as a step inside discipline.yml validate-commits (not a sixth job — the cost-control
+  header explains why): a PR range that touches fsi-app/{src,supabase/migrations,scripts,.discipline}
+  must also touch docs/ops/session-log.md or docs/PROGRAM-BOARD.md, else the check fails. Warn-only on
+  push events because piecewise web-upload delivery lands code and docs as separate pushes; the PR is
+  the unit and the PR is blocked. This makes the write-back a property of the merge, not of remembering
+  /done.
+- **Two repo skills**, fsi-app/.claude/skills/{resume,done}: `resume` is the boot/post-compaction
+  protocol (read INDEX board → PROGRAM-BOARD head → last session-log addendum; explicit STATUS.md trap
+  warning; the two-mechanism flywheel and `ocean` rulings restated so a cold session loads the
+  corrections, not just the roadmap). `done` is the checkpoint pen: run per completed unit and before
+  push, not only at session end. Both were also delivered to the operator as account-level skills so
+  Cowork sessions get them regardless of clone state; whether they were saved to the account is not
+  observable from here.
+- **CLAUDE.md**: the four directory rows (specs/, doctrine/, dispatches/, census/) mirrored verbatim
+  from the local session's uncommitted edit, so the constitution in git matches the one on disk.
+
+Also this session, recorded so it is not re-derived: dashboard "data disappeared" incident root-caused
+to an expired auth session — _assert_org_membership raised, every org-scoped read returned empty,
+logout/login fixed it; fail-closed demonstrated in production, no code change needed. Three operator-
+facing documents produced (technical briefing, security posture, build-effort/maintainability) — they
+live outside the repo by design, delivered as files.
+
+Open, needing the operator or the local session:
+- Push from this cloud session is proxy-blocked (repo not in the session's authorized sources), so this
+  commit lands via the operator adding the repo to session sources, or via the exported patch applied
+  locally. Not worked around, per standing rule.
+- STATUS.md's place in Loading Priority: rewrite vs retire in favor of PROGRAM-BOARD — operator ruling
+  pending, deliberately not decided here.
+- Local SessionStart/PreCompact hooks: local session's scope; verify the hook API against docs before
+  wiring, not from memory.
+
+### Correction, added by the local session on landing (2026-08-14)
+
+The Cowork handoff asserted that this commit "satisfies its own gate (code paths and session-log both
+touched)". That is FALSE, and the local session caught it before the commit was made. The gate's code
+predicate is `^fsi-app/(src|supabase/migrations|scripts|\.discipline)/`. The unit's six paths are
+`.github/workflows/discipline.yml`, `fsi-app/.claude/skills/{resume,done}/SKILL.md`, `CLAUDE.md`,
+`docs/INDEX.md`, and this file. None matches: `.claude` is not `.discipline`, and nothing touches
+`src`, `supabase/migrations`, or `scripts`. So `CODE` is empty, the `-n "$CODE"` branch never runs, and
+the step prints "memory gate OK" **vacuously**. The gate is introduced by a PR that does not exercise
+it — presence, not execution, which is exactly the failure rule 15 exists to catch. The claim was
+plausible and wrong in the same way the eight retractions behind rule 14 were: it was a pattern match
+on "this commit touches code and docs", never checked against the predicate actually written.
+
+Required follow-up, executed right after this merges: open a CANARY PR touching one comment line under
+`fsi-app/src/` with NO memory-file change, confirm the check goes RED, then close it UNMERGED. The
+canary must never be merged; its only purpose is to convert the gate from present to demonstrated.
+Until that canary has gone red, the gate is `[HYPOTHESIS]`, not `[CONFIRMED]`.
+
+## Addendum 15 — the read path, built against the docs instead of from memory (2026-08-14)
+
+Addendum 14 left two items to the local session: the SessionStart/PreCompact hooks, with the explicit
+instruction to verify the hook API against the official docs rather than write it from memory. Doing
+that changed the design, which is the whole reason the instruction was given.
+
+**What the docs said that memory would not have.** `SessionStart` stdout IS injected into the session's
+context, and its matcher takes `startup|resume|clear|compact|fork`. But `PreCompact` stdout goes to the
+DEBUG LOG ONLY — it never reaches the model — and `PostCompact` is the same and takes no matcher. So the
+brief's item 2, "PreCompact hook: preserve state into the compaction context", is not implementable as
+written. A PreCompact hook that printed the state would have looked correct, run green forever, and
+delivered nothing — a decorative guard of exactly the kind the memory gate's canary was built to catch.
+
+**The design that does work is a pair.** PreCompact writes a durable snapshot FILE (lane, HEAD,
+uncommitted-file list, last two vault entries); SessionStart — which fires with matcher `compact` after a
+compaction — reads that file, prints it into context, then DELETES it. One-shot by construction, so a
+stale snapshot from a dead session cannot masquerade as current state weeks later. Neither half works
+alone: the writer cannot speak to the model, the reader has nothing to say without the writer.
+
+Both hooks are node (matching the existing discipline hooks), both exit 0 on every path, both guard
+every read. A hook that wedges a session is worse than no hook. Proven end-to-end before commit: fired
+PreCompact, confirmed the snapshot content, fired SessionStart, confirmed it emitted board + last-3
+entries + branch + the recovered snapshot, and confirmed the snapshot was deleted after consumption. One
+defect found and fixed in that pass — `^##+ ` also matched the `###` sub-headings inside an addendum, so
+the "last 3 addendum headers" was showing a correction sub-heading instead of a real entry; tightened to
+`^## `.
+
+**STATUS.md retired (operator ruling).** Removed from CLAUDE.md's Loading Priority in favour of
+`docs/PROGRAM-BOARD.md`, and its own header now opens with a HISTORICAL stop-block. It described April
+state and fed it to sessions that were following the protocol CORRECTLY — a stale source of truth is
+trusted precisely because it claims to be one, which is worse than a file nobody reads. The one live
+thing it carried, the migration two-track policy, is now stated in full in standing rule 3; the dangling
+"(see STATUS.md)" pointer is gone.
+
+**INDEX correction.** The `## dispatches` line added on 2026-08-14 pointed at
+`docs/dispatches/free-chrome-acquisition-brief-2026-07-16.md`, which is untracked — a dead link in git
+and in every cloud clone, i.e. the precise defect this vault work exists to prevent, introduced by the
+work itself. Removed the same day, with a note in its place saying why. Caught only on a final
+verification sweep; the earlier check missed it because an unanchored grep matched `fsi-app/docs/
+dispatches/`, a different directory. Anchor the pattern.
+
+Open, unchanged: nothing from this unit. The hooks are local-machine scope — they ship in
+`.claude/settings.json` so they are versioned and reviewable, but they only fire for sessions whose
+project dir is this repo. A session started outside it still gets nothing, which is why the CLAUDE.md
+Loading Priority note now says so out loud.
+
+## Addendum 16 — the Assistant was re-buying its own instructions on every question (2026-08-14, Cowork session)
 
 Operator flagged $0.069 for three Ask-bar questions as feeling high, and the instinct was right in
 structure if not in scale. Telemetry on all three paid rows: exactly 5,312 input tokens each,
