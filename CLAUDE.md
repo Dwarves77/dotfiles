@@ -10,10 +10,14 @@ This repo is the source of truth for the Caro's Ledge product (Freight Sustainab
 | `fsi-app/STATUS.md` | Live build state and session-resume recipe for the active lane |
 | `docs/` | Project memory (the brain). Read in Obsidian; maintained by agents |
 | `docs/INDEX.md` | One line per living doc. Read before opening anything else in docs/ |
+| `docs/specs/` | The current surface-spec set (00-10): what each of the five surfaces is and why. The product definition |
 | `docs/decisions/` | ADRs (ADR-NNN-kebab.md, frontmatter per ADR-009). Decisions with reasoning |
 | `docs/inventories/` | Living inventories: components, discipline, migrations, worktrees |
+| `docs/doctrine/` | Doctrine seeds: standing rules extracted from rulings, cited by ID |
 | `docs/runbooks/` | Procedures and playbooks that get re-executed |
 | `docs/plans/` | Specs, prework, proposals, frameworks |
+| `docs/dispatches/` | Briefs written for another agent to execute; dated, scoped, authority-bounded |
+| `docs/census/` | Corpus-wide enumerations backed by a DB table (e.g. `census_worklist`) |
 | `docs/audits/` | Dated audits, investigations, verifications |
 | `docs/ops/` | Followups, session-log.md, operational logs |
 | `docs/sprint-1/`, `docs/sprint-2/` | Sprint-scoped working sets |
