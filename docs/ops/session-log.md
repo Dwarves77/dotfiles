@@ -3335,3 +3335,23 @@ anything outside its root looks broken and anything indexed in prose looks orpha
 
 Gates on the swept tree: suite 1367 pass / 0 fail, fitness 20 functions / 0 violations, meta-gate PASS
 (106 invariants + 63 doctrines wired), coverage 0/0/0/0, tsc clean.
+
+## Addendum 18 — the dispatches gap closed, and the link now resolves in git (2026-08-14)
+
+Closes the last standing item from the vault read-path work. `docs/dispatches/` held one brief
+(`free-chrome-acquisition-brief-2026-07-16.md`) that existed only on the operator's disk. An INDEX line
+pointing at it was added on 2026-08-14, found to be a dead link in git, and removed the same day with a
+placeholder note explaining why. That note was accurate but it was a workaround, not a fix: the vault
+still had a document no cloud session could see, which is the exact condition Addendum 14 named.
+
+Committed the brief and restored the real INDEX line. Screened before committing rather than after,
+because the brief documents writes against production Supabase: no credential VALUES are present (the
+only match was the env-var NAME `SUPABASE_SERVICE_ROLE_KEY`, which is the documented convention in
+`docs/ops/secrets-topology.md`), no JWTs, no high-entropy strings — the long tokens all proved to be URL
+slugs. The one identifier, the Supabase project ref, is already committed in 44 other tracked files, so
+this adds no new exposure. The INDEX line carries the production-writes warning forward rather than
+burying it in the brief.
+
+Not a rule change. The standing convention is unchanged and now demonstrated rather than described:
+commit the document first, then index it. An INDEX line is a promise the file exists for every reader,
+not just the one who wrote it.
