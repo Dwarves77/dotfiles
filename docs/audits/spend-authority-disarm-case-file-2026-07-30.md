@@ -5,7 +5,7 @@
 was not actually binding the path that spent.
 **Prerequisite of:** the engine-scale metered run (the 2,452-instrument catalogue) and the policy proposal.
 
-Related: [session-log](../ops/session-log.md) (case-file instances 1–10), [ADR-015](../decisions/ADR-015-source-monitoring-restored.md).
+Related: [session-log](../ops/session-log.md) (case-file instances 1–10), [ADR-015](../decisions/ADR-015-restore-source-monitoring-supersede-adr-012.md).
 
 ---
 

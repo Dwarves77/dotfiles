@@ -3281,3 +3281,57 @@ change, named here as the follow-up, deliberately not smuggled into this unit.
 
 This commit touches fsi-app/src and this file in the same range, so it is the memory gate's first
 non-vacuous green exercise (the canary PR #456 proved the red path; this proves the green).
+
+## Addendum 17 — the dead-code sweep landed, and the Obsidian graph mostly cleared itself (2026-08-14, Cowork session)
+
+Operator, looking at the Obsidian graph view of docs/, asked whether it now makes unwired and dead
+material easy to see. It makes the DOCS question easy and says nothing about CODE — two different
+graphs, and the valuable one is not in that picture. Both measured rather than eyeballed.
+
+### The sweep (the real finding)
+
+`docs/audits/dead-code-manifest-2026-08-11.txt` enumerated 495 dead one-shot scripts on 2026-08-11.
+Verified this session: all 495 were STILL PRESENT. They were not deleted then for a stated delivery
+reason (web-UI one-file-per-commit + read-only Actions token), and that constraint no longer binds.
+Applied the manifest exactly as the census prescribed, plus its four named follow-on edits in the same
+commit: 15 F15 allowlist entries, 16 F22 allowlist entries, the `ingestion_control_log`
+producer-consumer entry, and GAP_BASELINE to 0/0/0/0. `fsi-app/scripts` goes 648 -> 153 files.
+
+BASELINE MEASURED, NOT ASSUMED: the census predicted 0/0/0/0 and `coverage-scan.mjs` on the swept tree
+returned exactly that (503 governed files, 488 covered, 15 exempt, 0 gaps). Predicted and observed
+agreed, which is the point of having written the prediction down.
+
+THE DESIGNED RED FIRED, and it was informative. `run-test-suite.sh` went 1366/1 after the sweep:
+F22's test asserted `LEGACY_ALLOWLIST.length > 0` ("allowlist should be explicit, not empty"), and the
+sweep legitimately emptied it because every one of its 16 entries named a deleted script. An empty
+A2-pattern shrinking allowlist is the GOAL state, not a fault — F22 now enforces with zero exemptions.
+Keeping the assertion would have forced inventing a fake entry to hold a green build, which is exactly
+the defect class this suite exists to catch. Assertion replaced with a comment recording why; the
+substantive assertions (no src/ paths, every entry carries reason + reviewByPhase) are untouched and
+still guard any future re-addition.
+
+### The docs question: the graph looks worse than it is
+
+First scan reported 53 orphans + 36 broken link targets, which matches the visual sparse ring. Checking
+each class against the filesystem instead of trusting the scan collapsed nearly all of it:
+
+- 36 of the orphans are `docs/archive/**` — INDEX states archive is deliberately not indexed. Correct.
+- 14 more are the full-system-audit sub-registers — INDEX line 226 indexes them as ONE unit
+  ("child evidence of an indexed parent"). A documented convention, not an oversight.
+- Most "broken" links resolve fine: they point OUTSIDE the Obsidian vault (fsi-app/.claude/skills/*,
+  fsi-app/docs/ops/*) and work on GitHub; the vault root is docs/, so Obsidian alone cannot see them.
+- ADR-010's `relative/path.md` and `wikilinks` are illustrative examples inside a doc ABOUT link
+  conventions.
+
+GENUINELY BROKEN: one. `spend-authority-disarm-case-file-2026-07-30.md` pointed at
+`ADR-015-source-monitoring-restored.md`; the file is `ADR-015-restore-source-monitoring-supersede-adr-012.md`.
+Fixed. A handful of bare `[[rule-*]]` / `[[vocabulary-*]]` wikilinks survive in 2026-05-15 prework docs
+and resolve to nothing; they are historical planning references to skill rule IDs, left alone rather
+than invented into files.
+
+METHOD NOTE worth keeping: the naive scan's "36 broken" was 97% false positives because it treated the
+Obsidian vault as the universe. A graph view is a good orphan detector and a bad link validator, since
+anything outside its root looks broken and anything indexed in prose looks orphaned.
+
+Gates on the swept tree: suite 1367 pass / 0 fail, fitness 20 functions / 0 violations, meta-gate PASS
+(106 invariants + 63 doctrines wired), coverage 0/0/0/0, tsc clean.
