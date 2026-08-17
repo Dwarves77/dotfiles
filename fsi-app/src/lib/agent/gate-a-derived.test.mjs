@@ -42,7 +42,7 @@ function fakeSb(tables) {
 const ITEM = "item-1";
 const derivedRow = (basis) => ({ intelligence_item_id: ITEM, claim_kind: "DERIVED", claim_text: "1 June 2027", basis_claim_id: basis });
 const basisFact = (id, span, sr) => ({ id, claim_kind: "FACT", source_span: span, search_result_id: sr });
-const cap = (id, excerpt) => ({ id, result_content_excerpt: excerpt });
+const cap = (id, excerpt) => ({ id, result_content: excerpt });
 
 test("(a) derivedCoveredTokens: DERIVED + basis FACT + basis span verbatim in capture → covered", async () => {
   const sb = fakeSb({

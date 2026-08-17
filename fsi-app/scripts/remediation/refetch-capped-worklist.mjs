@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // refetch-capped-worklist.mjs — ADR-016 storage-side uncap: re-capture the legacy STORAGE-CAPPED pool rows in
 // FULL, so the permanent slice the retired PRIMARY_MAX_CHARS / CORROBORATOR_MAX_CHARS caps baked into
-// agent_run_searches.result_content_excerpt is undone. The caps are gone in code (generation-config.ts); this
+// agent_run_searches.result_content is undone. The caps are gone in code (generation-config.ts); this
 // script drains the rows CAPTURED under the old caps.
 //
 // MODES (acquire-primaries-batch.mjs pattern — guarded writes via scripts/lib/db.mjs, dry-run default):
@@ -36,9 +36,9 @@ const CUTOFF = "2026-06-28"; // premise-2 legacy-cap date boundary
 const PRE_ADR016_SKILL = "remediation-discipline";
 
 // ── The three legacy populations, EXACT premise-2 predicates (a row belongs to exactly one — the length
-//    ranges are disjoint). `len` is length(result_content_excerpt); `searched_at` gates only legacy_40k.
+//    ranges are disjoint). `len` is length(result_content); `searched_at` gates only legacy_40k.
 function classify(row) {
-  const len = (row.result_content_excerpt || "").length;
+  const len = (row.result_content || "").length;
   if (row.searched_at && row.searched_at < CUTOFF && len >= 39900 && len <= 40000) return "legacy_40k";
   if (len === 600000) return "primary_600k";
   if (len === 60000 || (len >= 59900 && len <= 59999)) return "corroborator_60k";
@@ -49,11 +49,11 @@ function classify(row) {
 const dedupKey = (r) => `${r.intelligence_item_id}|${r.result_url}`;
 
 async function buildWorklist() {
-  // READ-ONLY, paged past the 1000-row cap (readAll). We must pull result_content_excerpt to derive length
+  // READ-ONLY, paged past the 1000-row cap (readAll). We must pull result_content to derive length
   // (PostgREST cannot filter/compute length server-side); the table is ~2.9k rows / ~32MB — a one-shot build read.
   const rows = await readAll(
     "agent_run_searches",
-    "id, intelligence_item_id, result_url, search_query, searched_at, result_index, result_content_excerpt",
+    "id, intelligence_item_id, result_url, search_query, searched_at, result_index, result_content",
   );
   const pops = { legacy_40k: [], corroborator_60k: [], primary_600k: [] };
   const seen = { legacy_40k: new Set(), corroborator_60k: new Set(), primary_600k: new Set() };
@@ -71,7 +71,7 @@ async function buildWorklist() {
       result_url: r.result_url,
       search_query: r.search_query,
       searched_at: r.searched_at,
-      old_length: (r.result_content_excerpt || "").length,
+      old_length: (r.result_content || "").length,
     });
   }
   return { pops, rawCounts };
@@ -150,7 +150,7 @@ async function execute(worklist) {
     }
     // Replace the stored capture (guarded, snapshotted + reversible). The new text is already the transport's
     // cleaned/whitespace-collapsed form (same normalization the pipeline stores), so FACT-span .includes() stays apples-to-apples.
-    await guardedUpdate("agent_run_searches", (qb) => qb.eq("id", row.id), { result_content_excerpt: newText },
+    await guardedUpdate("agent_run_searches", (qb) => qb.eq("id", row.id), { result_content: newText },
       { cite: { skill: PRE_ADR016_SKILL, reason: `ADR-016 recapture: replace legacy-capped capture (${row.old_length}ch) for ${row.result_url} with full ${newText.length}ch; all grounded FACT spans preserved` } });
     replaced++; stat.replacedClean++;
     const rec = newText.length > row.old_length;

@@ -40,7 +40,7 @@ const MAX_PDF_BYTES = 25 * 1024 * 1024; // refuse pathological downloads, record
 
 // STORAGE_MAX_CHARS — ADR-016's pathological-page sanity ceiling, enforced on THIS write path too.
 //
-// WHY THIS EXISTS. `agent_run_searches.result_content_excerpt` has TWO independent writers: the
+// WHY THIS EXISTS. `agent_run_searches.result_content` has TWO independent writers: the
 // Next.js canonical pipeline (which reads STORAGE_MAX_CHARS from src/lib/agent/generation-config.ts
 // and binds via fetchWithTransport) and this Deno Edge Function, which imports only supabase-js and
 // unpdf and therefore CANNOT see that module. Until now this worker enforced a FLOOR (MIN_BYTES) and
@@ -340,7 +340,7 @@ async function processRow(supabase: any, row: any) {
     result_url: resp.url,
     result_title: title,
     result_index: 0,
-    result_content_excerpt: text,
+    result_content: text,
     searched_at: new Date().toISOString(),
   }).select("id").single();
   if (capErr) {

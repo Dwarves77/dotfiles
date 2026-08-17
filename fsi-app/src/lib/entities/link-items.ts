@@ -37,8 +37,8 @@ export async function linkItems(sb: SupabaseClient, itemId: string): Promise<Lin
   } catch { corpus = []; }
 
   const { data: item } = await sb.from("intelligence_items").select("full_brief").eq("id", itemId).single();
-  const { data: pool } = await sb.from("agent_run_searches").select("result_content_excerpt").eq("intelligence_item_id", itemId);
-  const content = `${(item as { full_brief?: string } | null)?.full_brief ?? ""} ${(pool ?? []).map((r: { result_content_excerpt?: string }) => r.result_content_excerpt ?? "").join(" ")}`;
+  const { data: pool } = await sb.from("agent_run_searches").select("result_content").eq("intelligence_item_id", itemId);
+  const content = `${(item as { full_brief?: string } | null)?.full_brief ?? ""} ${(pool ?? []).map((r: { result_content?: string }) => r.result_content ?? "").join(" ")}`;
   if (content.trim().length < 20) return { edges: 0, surfaced: 0, skipped: true };
 
   const writes: LinkWrite[] = planLinkWrites(content, corpus, itemId);

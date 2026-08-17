@@ -35,8 +35,8 @@ export async function derivedCoveredTokens(sb, itemId) {
   const srIds = [...new Set((bases || []).map((b) => b.search_result_id).filter(Boolean))];
   const capById = new Map();
   if (srIds.length) {
-    const { data: caps } = await sb.from("agent_run_searches").select("id, result_content_excerpt").in("id", srIds);
-    for (const c of caps || []) capById.set(c.id, c.result_content_excerpt || "");
+    const { data: caps } = await sb.from("agent_run_searches").select("id, result_content").in("id", srIds);
+    for (const c of caps || []) capById.set(c.id, c.result_content || "");
   }
 
   for (const d of derived) {

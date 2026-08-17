@@ -58,7 +58,7 @@ async function main() {
     readAll("intelligence_items", "id, legacy_id, title, item_type, provenance_status, source_id, source_url, is_archived"),
     readAll("raw_fetches", "id, source_id, file_path, html_bytes, fetched_at, http_status"),
     readAll("sources", "id, url, base_tier, tier_override"),
-    readAll("agent_run_searches", "intelligence_item_id, result_content_excerpt"),
+    readAll("agent_run_searches", "intelligence_item_id, result_content"),
     readAll("section_claim_provenance", "intelligence_item_id, claim_kind, extracted_at"),
   ]);
 
@@ -77,7 +77,7 @@ async function main() {
   for (const r of pool) {
     const id = r.intelligence_item_id;
     if (!id) continue;
-    const len = (r.result_content_excerpt || "").length;
+    const len = (r.result_content || "").length;
     const cur = poolByItem.get(id) || { usable: 0, rows: 0 };
     cur.rows++;
     if (len > POOL_USABLE_MIN) cur.usable++;

@@ -14,7 +14,7 @@ export const BROWSERLESS_FETCH_CONCURRENCY = Number(process.env.BROWSERLESS_FETC
 
 // ── ADR-016 storage-side uncap (operator ruling 2026-07-21): "We are NOT supposed to cap, because then the
 // system runs analysis on incomplete data." A cap at FETCH/STORAGE time makes incompleteness PERMANENT — the
-// pool row (agent_run_searches.result_content_excerpt, a TEXT column, migration 112) stores the SLICED text and
+// pool row (agent_run_searches.result_content, a TEXT column, migration 112) stores the SLICED text and
 // every re-analysis inherits the loss. So the primary/corroborator FETCH caps are RETIRED: the pipeline now
 // captures and STORES the FULL document. Capping becomes a SYNTHESIS-WINDOW decision only (SYNTH_INPUT_BUDGET_CHARS
 // / SYNTH_PRIMARY_HARD_CEILING_CHARS below), applied OVER a complete stored capture — a window that re-opens on
@@ -25,7 +25,7 @@ export const BROWSERLESS_FETCH_CONCURRENCY = Number(process.env.BROWSERLESS_FETC
  *  are KB-to-low-MB; this exists only to bound a runaway / adversarial page whose body never terminates. Sized
  *  far above any real legal text so it never binds in normal operation; if it DOES bind it fails LOUD like every
  *  other cap on this path — the fetch reports truncated + fullLength and recordTruncation fires the
- *  truncation-guard integrity_flag (F17 classifies it 'surfaced', never silent). result_content_excerpt is TEXT
+ *  truncation-guard integrity_flag (F17 classifies it 'surfaced', never silent). result_content is TEXT
  *  (~1GB, migration 112) so DB storage is not the constraint. Overridable via env for an operator-authorized change. */
 export const STORAGE_MAX_CHARS = Number(process.env.STORAGE_MAX_CHARS || 10_000_000);
 

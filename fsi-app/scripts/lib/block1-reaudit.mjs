@@ -69,7 +69,7 @@ async function seed(c, key, opts) {
      VALUES ($1,'key_obligations',1,$2,$3) RETURNING id`,
     [iid, `Facts grounded. ${o.slots.join("; ")}. See ${url}.${o.extraContent}`, [src]])).rows[0].id;
   const srch = (await c.query(
-    `INSERT INTO public.agent_run_searches (intelligence_item_id,search_query,result_url,result_title,result_index,result_content_excerpt,searched_at)
+    `INSERT INTO public.agent_run_searches (intelligence_item_id,search_query,result_url,result_title,result_index,result_content,searched_at)
      VALUES ($1,'q',$2,'r',0,$3,NOW()) RETURNING id`, [iid, url, EXCERPT])).rows[0].id;
   const tickN = o.tick ? o.slots.length : (o.tickN ?? 0);
   for (let i = 0; i < o.slots.length; i++) {
