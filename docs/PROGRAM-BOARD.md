@@ -1299,38 +1299,73 @@ on these rows; population ruling on the 110 relevant would-mints is the operator
 | OPEN | First GREEN backup run not yet observed | two manual re-runs RED on the documented 6-12h quota-recalculation lag; 08:17 UTC scheduled run is the next check |
 | OPEN | Quota = 2 GB is `[HYPOTHESIS]` | billing endpoint 404s, CLI lacks `user` scope; keep-7 holds under 1 GB or 2 GB either way |
 | REFUTED | Cap `result_content_excerpt` at 2,000 chars + backfill | reverses ADR-016 by name; column is the grounding pool (`canonical-pipeline.ts:1008`, `>200` gates at :877/:1007/:1053). WITHDRAWN by operator |
-| IN FLIGHT | ADR-016 ceiling enforced on 1 of 2 writers | capture-worker (Deno) has MIN_BYTES floor, no ceiling; 3 rows over 10M (17.8M/12.6M/10.4M), all post-ruling. Fix WRITTEN and fitness-proven but **uncommitted in a worktree** — recovery pointer below, "Where the ceiling fix actually is" |
+| CLOSED | ADR-016 ceiling enforced on 1 of 2 writers | capture-worker (Deno) had MIN_BYTES floor, no ceiling; 3 rows over 10M (17.8M/12.6M/10.4M), all post-ruling. FIXED — worker reads the same env var with the same fallback, binds LOUD (warn + `integrity_flags`); F26 asserts parity across both writers, registered under RD-12. Addendum below |
 | DEFERRED | Split the dump (exclude `agent_run_searches`, weekly pool snapshot) | approved, not started. Requires restore drill to assert the pool manifest on the weekly path + `backup-posture.md` to state the split RPO explicitly (24h product / 7d pool) |
 | DEFERRED | Rename `result_content_excerpt` | approved, own migration + codegen sweep, after the above |
 | PENDING OPERATOR | Doctrine seed: "name the consumers and the governing ADR" as a structural requirement of any producer-change proposal | wording ruling owed before drafting; do not start |
 | PENDING OPERATOR | Assistant spend cap | ruling owed; do not start |
 
-### Where the ceiling fix actually is (recovery pointer, written 2026-08-17)
+### Addendum — the ceiling fix, LANDED (2026-08-17)
 
-The row above said "IN FLIGHT, not landed" and recorded nothing about *where*, which makes it
-unrecoverable by a session that only reads this board. Recovered from disk and verified against the
-working tree, not transcribed from summary:
+Supersedes the recovery pointer that stood here while the work was uncommitted. The pointer did its
+job: the row it replaced said "IN FLIGHT, not landed" and named no location, and the entire fix was
+sitting in an uncommitted worktree, one `git worktree remove` from gone.
 
-- **Worktree** `C:/Users/jason/dotfiles/.worktrees/wt-capceiling`, branch
-  `capture-worker-storage-ceiling`, HEAD `88dad99f` (= PR #460; one commit behind `master`
-  `abd30c57`, which is PR #461 — the commit that added this very table).
-- **Nothing is committed.** The entire fix lives as an uncommitted working tree: 2 modified files
-  (+74 lines) and 1 untracked file. A `git worktree remove` or a stray `git checkout .` destroys it.
-  This is the whole reason this pointer exists.
+**What the defect actually was.** Not a missing constant — a missing *writer*.
+`agent_run_searches.result_content_excerpt` has TWO independent writers: the Next.js canonical
+pipeline (`generation-config.ts:30`, bound via `fetchWithTransport`) and the Deno capture-worker.
+The Edge Function runs on a different runtime and imports only supabase-js + unpdf, so it structurally
+CANNOT import the pipeline's config module. It enforced a FLOOR (`MIN_BYTES`) and no ceiling at all.
+ADR-016's 10M pathological-page bound was therefore live on exactly one of the column's two paths,
+and three captures landed over it — 17,787,345 / 12,579,090 / 10,351,091 chars, all
+`capture-worker:first-fetch`, all dated AFTER the 2026-07-21 ruling. Nothing fired, because the
+unguarded path had nothing to fire.
 
-| File | State | What it does |
-|---|---|---|
-| `fsi-app/supabase/functions/capture-worker/index.ts` | modified, +65 | `STORAGE_MAX_CHARS = Number(Deno.env.get("STORAGE_MAX_CHARS") \|\| 10_000_000)`. On bind: truncates, warns `[truncation-guard]` with collected/full, pushes a `storage-ceiling-bind` declared transform onto the run, and inserts a `coverage_gap` row into `integrity_flags` (after the capture lands, `subject_type` falling back to `source` because first-fetch rows carry a null item) |
-| `fsi-app/.discipline/fitness/manifest.mjs` | modified, +9 | imports and registers `F26` |
-| `fsi-app/.discipline/fitness/functions/F26-storage-ceiling-parity.mjs` | **untracked**, 81 lines | asserts PARITY, not presence: both writers must resolve the same env var with the same fallback literal, and the worker's ceiling must be loud (`[truncation-guard]` + `integrity_flags` both present) |
+**What landed.**
 
-**Verified** (re-run 2026-08-17 in that worktree, not taken on trust): `node
-.discipline/fitness/runner.mjs` → *21 function(s) checked, 0 violation(s)*, with `[F26]
-storage-ceiling-parity (2 files) PASS`. The Next.js side reads
-`generation-config.ts:30 STORAGE_MAX_CHARS = Number(process.env.STORAGE_MAX_CHARS || 10_000_000)`,
-so the two literals agree. F26 was proven by attack per standing rule 15 (worker literal diverged to
-`5_000_000` → violation; reverted → PASS).
+- `supabase/functions/capture-worker/index.ts` — `STORAGE_MAX_CHARS` read from env with the SAME
+  fallback as the Next.js side. Deliberately *not* a hand-copied `10_000_000`: the copied literal is
+  the divergence that causes this class (cf. the `gate_a_*` version literal, db-layer census
+  2026-08-11). A bind is LOUD, doing all three things `recordTruncation()` does on the pipeline path
+  — warns `[truncation-guard]` with collected/full, declares a `storage-ceiling-bind` transform on
+  the run, and files a `coverage_gap` `integrity_flag` *after* the capture lands (so a flag never
+  points at a row that failed to store; `subject_type` falls back to `source` because first-fetch
+  rows carry a null item, and a flag with a null `subject_ref` is unactionable — which is how a loud
+  gate goes quiet again). A failed flag insert does not fail the capture, and is not silent either.
+- `.discipline/fitness/functions/F26-storage-ceiling-parity.mjs` + its test, registered in
+  `fitness/manifest.mjs`. F26 asserts **PARITY, not presence** — presence is exactly what let the
+  `gate_a_*` literal drift. Both writers must resolve the same env var with the same fallback, AND
+  the worker's ceiling must be loud, because a silent ceiling satisfies a parity check perfectly
+  while quietly slicing the grounding pool.
+- `.discipline/governance/invariants.mjs` — registered under **RD-12** (the size-cap doctrine), whose
+  text now states the every-WRITER scope: a cap binds on the COLUMN, so it must hold at every process
+  that writes that column. A parallel invariant was not minted; this hole *is* an RD-12 violation.
 
-**Still owed before this can land:** F26 negative test wired into a lane (rule 15
-execution-wiring), full test suite, invariant-coverage meta-gate, `tsc`, and the unit's own
-addendum. The branch also needs rebasing onto `abd30c57` before the PR.
+**Verification** (standing rule 15 — a proof that does not execute is not a proof, and a guard is
+proven by attack, not by presence):
+
+| Gate | Result |
+|---|---|
+| `F26-storage-ceiling-parity.test.mjs` | 19/19 — fixture-driven RED cases: divergence in BOTH directions, ceiling removed, ceiling hard-coded, wrong env var name, and the silent-ceiling cases |
+| execution-wiring | automatic — `run-test-suite.sh:67` already globs `fitness/functions/*.test.mjs` |
+| fitness runner | 21 functions / 0 violations |
+| full discipline suite | 1386 / 1386 |
+| invariant-coverage meta-gate | PASS |
+| `tsc --noEmit` | clean |
+
+Two things the gates caught that a self-report would have missed. The meta-gate rejected F26 as an
+**ORPHAN MECHANISM** — a fitness function no invariant referenced — which is what forced the RD-12
+registration rather than leaving the gate unowned. And F26's first draft carried a module-level `Map`
+to pass the first file's reading across to the second, making the verdict depend on enumeration order
+and leaking state between runs in one process; it was restructured to the holistic F14/F23/F24 idiom
+with the decision logic as a pure function the test drives with constructed fixtures.
+
+**Named residual, stated rather than implied away.** F26 is a STATIC source-text check by necessity —
+the two runtimes cannot share an import, so agreement can only be verified in the text before deploy.
+A divergence introduced by setting `STORAGE_MAX_CHARS` to *different values in the Vercel and Supabase
+environments* is invisible to it. That is the out-of-repo config-boundary class, not a code gate, and
+it is recorded as such on RD-12.
+
+**Not done here, deliberately:** the three known over-ceiling captures are historical rows. This
+change stops new ones and makes any future bind loud; it does not re-capture the three, whose tails
+were never collected and cannot be recovered from the stored row.
