@@ -38,6 +38,26 @@ const ERROR_MARKERS = [
 const MIN_BYTES = 1000;
 const MAX_PDF_BYTES = 25 * 1024 * 1024; // refuse pathological downloads, recorded honestly
 
+// STORAGE_MAX_CHARS — ADR-016's pathological-page sanity ceiling, enforced on THIS write path too.
+//
+// WHY THIS EXISTS. `agent_run_searches.result_content_excerpt` has TWO independent writers: the
+// Next.js canonical pipeline (which reads STORAGE_MAX_CHARS from src/lib/agent/generation-config.ts
+// and binds via fetchWithTransport) and this Deno Edge Function, which imports only supabase-js and
+// unpdf and therefore CANNOT see that module. Until now this worker enforced a FLOOR (MIN_BYTES) and
+// no ceiling at all, so ADR-016's ceiling was live on one of two paths. Three captures landed above
+// it with no signal — 17,787,345 / 12,579,090 / 10,351,091 chars, all `capture-worker:first-fetch`,
+// all dated AFTER the 2026-07-21 ruling. One column, two writers, two rules.
+//
+// SAME NAME, SAME DEFAULT, SAME SOURCE OF TRUTH — deliberately NOT a hand-copied 10_000_000. The
+// literal is the divergence that caused this (cf. the gate_a_* hand-copied version literal in the
+// 2026-08-11 db-layer census). Both readers resolve `STORAGE_MAX_CHARS` from env with an identical
+// fallback, and F26 asserts the two agree so they cannot drift apart again.
+//
+// NOT A STORAGE CAP ON GOOD DATA. ADR-016 forbids capping to make the pipeline cheaper — a storage
+// slice makes incompleteness permanent. This is the ceiling that ADR itself specifies, and it is
+// LOUD ON BIND: a hit warns and files a coverage_gap integrity_flag, never a silent trim.
+const STORAGE_MAX_CHARS = Number(Deno.env.get("STORAGE_MAX_CHARS") || 10_000_000);
+
 // v1.4: transient statuses that warrant a re-queue rather than a terminal failure.
 // 202 = Accepted (EUR-Lex cold-start warm-up); 408 = Request Timeout; 429 = Too Many
 // Requests; 5xx = server-side transient. A network-level fetch throw is also transient.
@@ -266,9 +286,31 @@ async function processRow(supabase: any, row: any) {
     title = src.name;
   }
 
+  // ADR-016 storage ceiling, LOUD ON BIND. A silent ceiling is a decorative gate, so a bind here does
+  // all three things the Next.js path's recordTruncation() does: declares the transform on the run,
+  // warns with collected/full, and files a coverage_gap integrity_flag. Never a quiet trim.
+  let ceilingBind: { collected: number; fullLength: number } | null = null;
+  if (text.length > STORAGE_MAX_CHARS) {
+    ceilingBind = { collected: STORAGE_MAX_CHARS, fullLength: text.length };
+    text = text.slice(0, STORAGE_MAX_CHARS);
+    report.chars = text.length;
+    report.storage_ceiling_bind = ceilingBind;
+    console.warn(
+      `[truncation-guard] capture-worker: ${resp.url} — collected ${ceilingBind.collected}/${ceilingBind.fullLength} chars ` +
+      `(cap ${STORAGE_MAX_CHARS}; capture-worker:first-fetch)`,
+    );
+  }
+
   const runErrors: Record<string, unknown>[] = [];
   if (report.nulls_removed && (report.nulls_removed as number) > 0) {
     runErrors.push({ declared_transform: "u0000-removal", count: report.nulls_removed, at: new Date().toISOString() });
+  }
+  if (ceilingBind) {
+    runErrors.push({
+      declared_transform: "storage-ceiling-bind", cap: STORAGE_MAX_CHARS,
+      collected: ceilingBind.collected, full_length: ceilingBind.fullLength,
+      at: new Date().toISOString(),
+    });
   }
   if (isPdf) {
     runErrors.push({
@@ -308,6 +350,29 @@ async function processRow(supabase: any, row: any) {
     await supabase.from("agent_runs").update({ status: "error" }).eq("id", run.id);
     await recordRetry(supabase, row, src, report, runStart, 0);
     return report;
+  }
+
+  // Filed only after the capture actually landed, so a flag never points at a row that failed to
+  // store. subject_type falls back to 'source' because a first-fetch capture usually has no item yet
+  // (all three known over-ceiling rows carry intelligence_item_id = NULL) — a flag whose subject_ref
+  // is null is unactionable, which is how a loud gate goes quiet again.
+  if (ceilingBind) {
+    const { error: flagErr } = await supabase.from("integrity_flags").insert({
+      category: "coverage_gap",
+      subject_type: itemId ? "item" : "source",
+      subject_ref: itemId ?? src.id,
+      description:
+        `capture-worker hit the ADR-016 storage ceiling on ${resp.url}: collected ${ceilingBind.collected} of ` +
+        `${ceilingBind.fullLength} chars (cap ${STORAGE_MAX_CHARS}). The stored capture is the head of the ` +
+        `document; the tail was not captured, so any grounding off this row is incomplete.`,
+      recommended_actions: [
+        { action: "Assess whether the tail carries obligations", rationale: "ADR-016: relevance is not pre-identifiable — a qualifying clause can sit anywhere in the document." },
+        { action: "Re-capture in parts or raise STORAGE_MAX_CHARS for this source", rationale: "The ceiling is a pathological-page sanity bound, not an operating cap; a genuine large instrument warrants an operator-authorized raise." },
+      ],
+      created_by: "capture-worker",
+    });
+    // A failed flag insert must not fail the capture — but it must not be silent either.
+    if (flagErr) console.warn(`[truncation-guard] capture-worker: FLAG INSERT FAILED for ${resp.url}: ${flagErr.message}`);
   }
 
   await supabase.from("pending_first_fetch").update({ status: "done", last_error_text: null }).eq("id", row.id);

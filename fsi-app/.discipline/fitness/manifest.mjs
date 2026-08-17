@@ -78,6 +78,14 @@ import { fitnessFunction as F24 } from './functions/F24-db-object-migration-home
 // from src/lib/sources/verification.ts, and it forced the entry-point list to include Next 16's proxy.ts,
 // which has no importers and gates auth for the whole application.
 import { fitnessFunction as F25 } from './functions/F25-module-liveness.mjs';
+// Storage-ceiling parity (2026-08-17): agent_run_searches.result_content_excerpt has TWO writers and,
+// until now, one ceiling. The Deno capture-worker cannot import the Next.js config module, so ADR-016's
+// 10M pathological-page bound was enforced on the pipeline path and absent on the worker path — three
+// captures landed over it (17.8M / 12.6M / 10.4M chars), all AFTER the ruling, with no signal, because
+// the unguarded path had nothing to fire. F26 asserts the two readers resolve the same env var with the
+// same fallback literal, and that a worker bind is LOUD (warn + integrity_flags) rather than a quiet
+// slice of the grounding pool. Parity, not presence: a hand-copied constant is the divergence itself.
+import { fitnessFunction as F26 } from './functions/F26-storage-ceiling-parity.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -100,6 +108,7 @@ export const fitnessFunctions = [
   F23,
   F24,
   F25,
+  F26,
 ];
 
 export function getFunctionById(id) {
