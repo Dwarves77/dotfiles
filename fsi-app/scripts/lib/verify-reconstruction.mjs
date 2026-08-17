@@ -56,7 +56,7 @@ async function seed(c) {
      VALUES ($1,'key_obligations',1,$2,$3) RETURNING id`,
     [ID.item, `Facts grounded in source. See ${SRC_URL}. effective_date 2026-01-01; primary_deadline 2026-06-30; jurisdictional_scope European Union; penalty_summary fines up to EUR 50000.`, [ID.source]])).rows[0].id;
   const srch = (await c.query(
-    `INSERT INTO public.agent_run_searches (intelligence_item_id,search_query,result_url,result_title,result_index,result_content_excerpt,searched_at)
+    `INSERT INTO public.agent_run_searches (intelligence_item_id,search_query,result_url,result_title,result_index,result_content,searched_at)
      VALUES ($1,'q',$2,'r',0,$3,NOW()) RETURNING id`, [ID.item, SRC_URL, EXCERPT])).rows[0].id;
   for (const f of ["effective_date 2026-01-01", "primary_deadline 2026-06-30", "jurisdictional_scope European Union", "penalty_summary fines up to EUR 50000"]) {
     await c.query(

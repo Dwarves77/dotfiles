@@ -1,7 +1,7 @@
 // Sprint 4 Block 1 task 1.14 + Component 7 — span-check fetch with timeout policy.
 //
 // When provenance validation must fetch source content to verify a FACT span
-// (the Component 3 fallback path: cached agent_run_searches.result_content_excerpt
+// (the Component 3 fallback path: cached agent_run_searches.result_content
 // is missing or stale), this is the fetch. Policy (operator ruling 2026-05-29):
 //   - On timeout / network unreachable -> throw RetryableError so the WDK retries
 //     2-3 times with backoff. A timeout means the claim is UNVERIFIED; we do NOT

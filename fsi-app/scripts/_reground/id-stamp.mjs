@@ -39,8 +39,8 @@ if (!held) { console.error(`LEASE NOT HELD by "${HOLDER}" for ${it.id} — refus
 let capture = "";
 try { const snap = await getSnapshot(sb, { sourceId: it.source_id }); if (snap.found && snap.content) capture = snap.content; } catch { /* no snapshot */ }
 {
-  const { data: pool } = await sb.from("agent_run_searches").select("result_content_excerpt,result_index").eq("intelligence_item_id", it.id).order("result_index");
-  const poolText = (pool ?? []).map((r) => r.result_content_excerpt || "").filter((t) => t.length > 200).join("\n\n");
+  const { data: pool } = await sb.from("agent_run_searches").select("result_content,result_index").eq("intelligence_item_id", it.id).order("result_index");
+  const poolText = (pool ?? []).map((r) => r.result_content || "").filter((t) => t.length > 200).join("\n\n");
   capture = [capture, poolText].filter(Boolean).join("\n\n");
 }
 if (!capture) { console.error(`no staged capture for ${it.legacy_id || it.id.slice(0, 8)} — cannot verify; REASSIGN-TO-A`); process.exit(3); }

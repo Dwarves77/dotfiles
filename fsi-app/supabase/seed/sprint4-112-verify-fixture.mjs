@@ -146,7 +146,7 @@ async function seed(client) {
 
   const { rows: srch } = await client.query(
     `INSERT INTO public.agent_run_searches
-       (intelligence_item_id, search_query, result_url, result_title, result_index, result_content_excerpt, searched_at)
+       (intelligence_item_id, search_query, result_url, result_title, result_index, result_content, searched_at)
      VALUES ($1, 'sentinel q', $2, 'sentinel result', 0, $3, NOW()) RETURNING id`,
     [ID.critValid, SRC_URL, EXCERPT]
   );

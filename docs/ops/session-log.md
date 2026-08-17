@@ -3435,3 +3435,79 @@ Ruled: fix forward, do not touch the rows.
 
 The capture-worker ceiling fix is IN FLIGHT and uncommitted at the time of writing (one writer per unit).
 It is not checkpointed here and no part of this entry should be read as claiming it shipped.
+
+---
+
+## 2026-08-17 (addendum) — Ceiling fix LANDED, dump SPLIT, pool column RENAMED
+
+Continuation of the entry above, whose "Deliberately NOT in this entry" note is now discharged: the
+capture-worker ceiling fix shipped.
+
+### 1. ADR-016 ceiling on the second writer — PR #463
+
+`agent_run_searches.result_content_excerpt` had TWO writers and one ceiling. The Deno capture-worker
+cannot import the Next.js config module, so it enforced a floor (`MIN_BYTES`) and no ceiling at all;
+three captures landed over the 10M bound with no signal, all post-ruling. The worker now reads the
+same env var with the same fallback and binds LOUD (warn + declared transform + `coverage_gap` flag,
+filed after the capture lands so it never points at a row that failed to store).
+
+F26 asserts PARITY, not presence — presence is what let the `gate_a_*` version literal drift.
+Registered under **RD-12** (the size-cap doctrine), whose text now states the every-WRITER scope: a
+cap binds on the COLUMN, so it must hold at every process that writes that column.
+
+Two things the gates caught that a self-report would not have: the meta-gate rejected F26 as an
+`ORPHAN MECHANISM`, which forced the RD-12 registration rather than leaving the gate unowned; and
+F26's first draft carried a module-level `Map` making its verdict depend on enumeration order.
+
+Board recovery pointer (PR #462) preceded it, because the whole fix was sitting uncommitted in a
+worktree with nothing on the board saying where.
+
+### 2. Backup dump SPLIT into two lanes — `caros-ledge-backups` d1e7105 / 1e0a783
+
+`agent_run_searches` measured 173 MB of a 329 MB public schema — **55.2%** — re-dumped nightly
+alongside product data orders of magnitude smaller. That is what broke the artifact quota.
+
+  PRODUCT lane — nightly, everything minus the pool's data.  **RPO 24h**, 7d retention, 30 MB gz.
+  POOL lane    — Sundays, riding the same run.               **RPO 7d**, 21d retention, 107 MB gz.
+
+Peak storage 961 MB -> 532 MB. Pool retention was corrected 35d -> 21d mid-unit: the first figure
+cut only 22%, sized from a guess; 21d cuts 45% and still keeps 3 generations. Sizes are measured
+(run 32044695600), not estimated.
+
+One cron, not two — the pool drill needs the product lane's schema, so a separate weekly cron would
+have produced a run with no product dump and a permanently skipped drill. The `plan` job asserts
+pool-implies-product so a future edit cannot reintroduce that silent skip.
+
+**`[CONFIRMED]`** lane planning, the exclusion firing loudly, and both dumps succeeding.
+**`[HYPOTHESIS]`** BOTH restore drills — they have never executed. Artifact *upload* fails on the
+standing quota red (recalculates every 6-12h, red since 08-13, unrelated to the split). The drills
+are wired and their assertions written; they are NOT proven green. Re-dispatching does not help.
+
+### 3. `result_content_excerpt` -> `result_content` — migration 264, PR #465
+
+The name asserted a truncation ADR-016 forbids, and was part of why a 2,000-char cap proposal looked
+reasonable enough to reach the operator. Blast radius verified live: exactly 1 function
+(`validate_item_provenance`), 0 views/indexes/constraints/policies, 51 live-code references across
+15 files, 17 historical migrations left untouched.
+
+The hazard: Postgres stores function bodies as TEXT, so `RENAME COLUMN` neither rewrites them nor
+refuses — a bare rename breaks the provenance gate silently until next called. Rename + rebuild run
+in one atomic block, and the gate is rebuilt from its own `pg_get_functiondef`, never hand-transcribed.
+
+Applied to production, then verified rather than trusted: old column absent, 0 functions on the old
+name, verified items 826 -> 826, pool 4029 -> 4029, longest capture still 17,787,345 chars. The gate
+was **executed** over 5 verified items — `valid=true` on all 5 — so criterion 3's span check is live.
+
+### 4. Flaky gate retired — PR #464
+
+`batch-primitives.test.mjs` asserted `interval >= 50ms` measured with `Date.now()` against a
+`setTimeout` deadline on libuv's monotonic clock. The two disagree by ~1ms, so a correct sleep reads
+as 49. A gate that reds at random is worse than no gate: it trains everyone to re-run CI instead of
+reading it. 2ms tolerance plus an upper bound; the failure it exists to catch reads as ~0ms, not 49.
+
+### Owed / not done
+
+- Both split-dump restore drills remain unproven until the artifact quota recalculates.
+- The three historical over-ceiling captures are NOT re-captured; their tails were never collected
+  and cannot be recovered from the stored row.
+- Pending operator ruling, not started: the doctrine-seed wording, and the assistant spend cap.

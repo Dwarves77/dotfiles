@@ -58,7 +58,7 @@ test("pool half stays item-scoped: >=2 content-bearing rows count regardless of 
   const sb = fakeSb({
     sourceUrl: "https://federalregister.gov/",
     snapshotBytes: 76_000,
-    poolRows: [{ result_content_excerpt: "x".repeat(300) }, { result_content_excerpt: "y".repeat(300) }, { result_content_excerpt: "thin" }],
+    poolRows: [{ result_content: "x".repeat(300) }, { result_content: "y".repeat(300) }, { result_content: "thin" }],
   });
   const h = await holdingsForItem(sb, "item-3", "src-portal", "https://www.federalregister.gov/documents/d1");
   assert.equal(h.snapshotBytes, 0);

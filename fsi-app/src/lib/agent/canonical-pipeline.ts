@@ -853,7 +853,7 @@ Follow your output contract exactly: brief body, then a "## New Sources Identifi
  *  A thin primary source is the TRIGGER to research wider, never a reason to emit a thin brief. */
 /** LIVE holdings for an item (the no-execution-from-stale-state fetch guard): the largest stored snapshot for
  *  the item's source (raw_fetches.html_bytes) + the count of content-bearing pool rows (agent_run_searches with
- *  result_content_excerpt > 200ch). Read FRESH at the fetch seam — never from a plan/manifest. */
+ *  result_content > 200ch). Read FRESH at the fetch seam — never from a plan/manifest. */
 export async function holdingsForItem(sb: ReturnType<typeof svc>, itemId: string, sourceId: string | null, itemSourceUrl: string | null = null): Promise<{ snapshotBytes: number; usablePoolRows: number }> {
   let snapshotBytes = 0;
   if (sourceId) {
@@ -873,8 +873,8 @@ export async function holdingsForItem(sb: ReturnType<typeof svc>, itemId: string
       snapshotBytes = Number(snaps?.[0]?.html_bytes ?? 0);
     }
   }
-  const { data: pool } = await sb.from("agent_run_searches").select("result_content_excerpt").eq("intelligence_item_id", itemId);
-  const usablePoolRows = (pool ?? []).filter((r) => ((r as { result_content_excerpt?: string }).result_content_excerpt || "").length > 200).length;
+  const { data: pool } = await sb.from("agent_run_searches").select("result_content").eq("intelligence_item_id", itemId);
+  const usablePoolRows = (pool ?? []).filter((r) => ((r as { result_content?: string }).result_content || "").length > 200).length;
   return { snapshotBytes, usablePoolRows };
 }
 /** PRICED-LINE CARRY-FORWARD (operator ruling 2026-07-30 — the sole dollar authority must not be droppable).
@@ -963,14 +963,14 @@ export async function generateBrief(itemId: string, caller: string | null = null
   const fetchedUrlSet = new Set(fetched.map((b) => b.url));
   const poolRows = fetched.map((b, i) => ({
     intelligence_item_id: itemId, search_query: "canonical:generate-pool", result_url: b.url,
-    result_title: "generate pool source", result_index: i, result_content_excerpt: cleanCtl(b.text), searched_at: ts,
+    result_title: "generate pool source", result_index: i, result_content: cleanCtl(b.text), searched_at: ts,
   }));
   const refRows = corroborators
     .filter((c) => c.url && !fetchedUrlSet.has(c.url))
     .map((c) => ({
       intelligence_item_id: itemId, search_query: "canonical:discovered-ref", result_url: c.url,
       result_title: c.name || "discovered reference", result_index: 80,
-      result_content_excerpt: (c.name || c.why || "discovered reference").slice(0, 180), searched_at: ts,
+      result_content: (c.name || c.why || "discovered reference").slice(0, 180), searched_at: ts,
     }));
   await sb.from("agent_run_searches").delete().eq("intelligence_item_id", itemId);
   const { error: poolErr } = await sb.from("agent_run_searches").insert([...poolRows, ...refRows]);
@@ -1000,12 +1000,12 @@ async function generateBriefFromStoredImpl(itemId: string): Promise<StepResult> 
   if (itErr || !it) return { ok: false, detail: `item not found${itErr ? `: ${itErr.message}` : ""}` };
   // I1 (attribution): rich ticket for the stored-path re-synthesis Sonnet call (see generate for rationale).
   setSpendTicket(withPricedLine({ purpose: "canonical:generate-stored", itemId, sourceId: it.source_id ?? null }));
-  const { data: pool, error: poolErr } = await sb.from("agent_run_searches").select("result_url, result_title, result_content_excerpt, search_query, searched_at, result_index").eq("intelligence_item_id", itemId).order("result_index");
+  const { data: pool, error: poolErr } = await sb.from("agent_run_searches").select("result_url, result_title, result_content, search_query, searched_at, result_index").eq("intelligence_item_id", itemId).order("result_index");
   if (poolErr) console.warn(`[canonical] stored-pool read failed for ${itemId}: ${poolErr.message}`);
   const rows = pool ?? [];
   // generate-pool rows carry the fetched source CONTENT (>200ch); discovered-ref stubs (<200ch) are leads only.
-  const usable = rows.filter((r) => typeof r.result_url === "string" && (r.result_content_excerpt || "").length > 200);
-  const fetched = usable.map((r) => ({ url: r.result_url as string, text: r.result_content_excerpt as string }));
+  const usable = rows.filter((r) => typeof r.result_url === "string" && (r.result_content || "").length > 200);
+  const fetched = usable.map((r) => ({ url: r.result_url as string, text: r.result_content as string }));
   if (!fetched.length) return { ok: false, detail: NO_STORED_POOL };
   // GUARD 3 — staleness visible: the pool's OLDEST fetch date is the age of the grounding bytes being
   // reused, and fetch date is part of regulatory provenance. Surface it in the detail (-> agent_runs)
@@ -1048,10 +1048,10 @@ async function generateBriefRefreshPrimaryImpl(itemId: string, caller: string | 
   const truncEvents: TruncEvent[] = [];
   if (pf.truncated) truncEvents.push({ url: primaryUrl, collected: primary.length, fullLength: pf.fullLength ?? primary.length, cap: pf.cap ?? STORAGE_MAX_CHARS, transport: "primary" });
   // 2. REUSE existing pool corroborators (NO web_search) — content rows >200ch (excluding the primary).
-  const { data: priorPool, error: priorPoolErr } = await sb.from("agent_run_searches").select("result_url, result_title, result_content_excerpt").eq("intelligence_item_id", itemId);
+  const { data: priorPool, error: priorPoolErr } = await sb.from("agent_run_searches").select("result_url, result_title, result_content").eq("intelligence_item_id", itemId);
   if (priorPoolErr) console.warn(`[canonical] refresh-primary prior-pool read failed for ${itemId}: ${priorPoolErr.message}`);
-  const priorCorr = (priorPool ?? []).filter((r) => typeof r.result_url === "string" && r.result_url !== primaryUrl && (r.result_content_excerpt ?? "").length > 200);
-  const fetchedCorr = priorCorr.map((r) => ({ url: r.result_url as string, text: r.result_content_excerpt as string }));
+  const priorCorr = (priorPool ?? []).filter((r) => typeof r.result_url === "string" && r.result_url !== primaryUrl && (r.result_content ?? "").length > 200);
+  const fetchedCorr = priorCorr.map((r) => ({ url: r.result_url as string, text: r.result_content as string }));
   // WRITE-SIDE ERROR-BODY GATE (RD-14): drop any error-body capture (a junk re-fetch primary OR a stale junk
   // corroborator inherited from the prior pool) so it is never re-stored; a junk-only set HOLDS NO_REACHABLE_SOURCE.
   const cap = captureForStorage([{ url: primaryUrl, text: primary }, ...fetchedCorr]);
@@ -1067,14 +1067,14 @@ async function generateBriefRefreshPrimaryImpl(itemId: string, caller: string | 
   const fetchedUrlSet = new Set(fetched.map((b) => b.url));
   const poolRows = fetched.map((b, i) => ({
     intelligence_item_id: itemId, search_query: "canonical:generate-pool", result_url: b.url,
-    result_title: "generate pool source", result_index: i, result_content_excerpt: cleanCtl(b.text), searched_at: ts,
+    result_title: "generate pool source", result_index: i, result_content: cleanCtl(b.text), searched_at: ts,
   }));
   const refRows = corroborators
     .filter((c) => c.url && !fetchedUrlSet.has(c.url))
     .map((c) => ({
       intelligence_item_id: itemId, search_query: "canonical:discovered-ref", result_url: c.url,
       result_title: c.name || "discovered reference", result_index: 80,
-      result_content_excerpt: (c.name || "discovered reference").slice(0, 180), searched_at: ts,
+      result_content: (c.name || "discovered reference").slice(0, 180), searched_at: ts,
     }));
   await sb.from("agent_run_searches").delete().eq("intelligence_item_id", itemId);
   const { error: poolErr } = await sb.from("agent_run_searches").insert([...poolRows, ...refRows]);
@@ -1266,9 +1266,9 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   };
   addKnown(it.source_url);
   try {
-    const { data: realPool, error: rpErr } = await sb.from("agent_run_searches").select("result_url, result_content_excerpt").eq("intelligence_item_id", itemId);
+    const { data: realPool, error: rpErr } = await sb.from("agent_run_searches").select("result_url, result_content").eq("intelligence_item_id", itemId);
     if (rpErr) console.warn(`[cited-host-gate] pool read failed for ${itemId} (gate fails closed): ${rpErr.message}`);
-    for (const p of realPool ?? []) if (((p.result_content_excerpt as string | null)?.length ?? 0) > 200) addKnown(p.result_url as string);
+    for (const p of realPool ?? []) if (((p.result_content as string | null)?.length ?? 0) > 200) addKnown(p.result_url as string);
     for (let from = 0; ; from += 1000) {
       const { data: regs, error: rgErr } = await sb.from("sources").select("url").order("id").range(from, from + 999);
       if (rgErr) { console.warn(`[cited-host-gate] registry read failed (gate fails closed): ${rgErr.message}`); break; }
@@ -1286,7 +1286,7 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
     for (const cs of allowed) {
       const { data: ex, error: exErr } = await sb.from("agent_run_searches").select("id").eq("intelligence_item_id", itemId).eq("result_url", cs.url).limit(1);
       if (exErr) console.warn(`[cited-host-gate] stub dedup read failed for ${cs.url}: ${exErr.message}`);
-      if (!ex?.length) await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical:cited-source", result_url: cs.url, result_title: cs.name, result_index: 90, result_content_excerpt: (cs.name as string).slice(0, 280), searched_at: new Date().toISOString() });
+      if (!ex?.length) await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical:cited-source", result_url: cs.url, result_title: cs.name, result_index: 90, result_content: (cs.name as string).slice(0, 280), searched_at: new Date().toISOString() });
     }
   } catch { /* non-fatal */ }
   // CITED-URL completeness (criterion 2), now host-gated: the model cites real sources INLINE in
@@ -1302,7 +1302,7 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
     for (const c of allowed) {
       const { data: ex, error: exErr } = await sb.from("agent_run_searches").select("id").eq("intelligence_item_id", itemId).eq("result_url", c.url).limit(1);
       if (exErr) console.warn(`[cited-host-gate] stub dedup read failed for ${c.url}: ${exErr.message}`);
-      if (!ex?.length) await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical:cited-url", result_url: c.url, result_title: "cited in brief", result_index: 91, result_content_excerpt: "", searched_at: new Date().toISOString() });
+      if (!ex?.length) await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical:cited-url", result_url: c.url, result_title: "cited in brief", result_index: 91, result_content: "", searched_at: new Date().toISOString() });
     }
   } catch { /* non-fatal */ }
   // Surface the refused citations durably (no silent drop — same shape as the error-body gate).
@@ -1322,7 +1322,7 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   // Grounding corpus = the pool generate already fetched + stored (the SAME content the brief was
   // synthesised from), so a source that is unfetchable on re-check (PDF/Cloudflare) does not break
   // grounding. Fall back to fetching the section/source URLs only when no stored pool exists.
-  const { data: pool, error: poolErr } = await sb.from("agent_run_searches").select("id, result_url, result_content_excerpt, result_index").eq("intelligence_item_id", itemId).order("result_index");
+  const { data: pool, error: poolErr } = await sb.from("agent_run_searches").select("id, result_url, result_content, result_index").eq("intelligence_item_id", itemId).order("result_index");
   if (poolErr) console.warn(`[canonical] ground pool read failed for ${itemId}; falling back to section/source URL fetch: ${poolErr.message}`);
   let fetched: Array<{ url: string; text: string }>;
   let searchRows: Array<{ id: string; result_url: string }>;
@@ -1334,7 +1334,7 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
     // or slot-forcing nomination — all three derive from `fetched`, so gating it here gates all three. Grounding
     // a FACT to a 404 body is the fabricate-via-error-page moat breach. Excluded captures are SURFACED, never
     // silently dropped. isErrorBody computes at read time (render-derive; no DDL).
-    const pooled = pool.map((r) => ({ url: r.result_url as string, text: (r.result_content_excerpt as string) || "" })).filter((b) => b.text.length > 200);
+    const pooled = pool.map((r) => ({ url: r.result_url as string, text: (r.result_content as string) || "" })).filter((b) => b.text.length > 200);
     const { usable, errorBodies } = partitionErrorBodies(pooled);
     fetched = usable as Array<{ url: string; text: string }>;
     if (errorBodies.length) {
@@ -1359,7 +1359,7 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
     searchRows = [];
     ownSearches = true;
     for (let i = 0; i < fetched.length; i++) {
-      const { data: r, error: rErr } = await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical ground", result_url: fetched[i].url, result_title: "source", result_index: i, result_content_excerpt: fetched[i].text, searched_at: new Date().toISOString() }).select("id, result_url").single();
+      const { data: r, error: rErr } = await sb.from("agent_run_searches").insert({ intelligence_item_id: itemId, search_query: "canonical ground", result_url: fetched[i].url, result_title: "source", result_index: i, result_content: fetched[i].text, searched_at: new Date().toISOString() }).select("id, result_url").single();
       if (rErr) console.warn(`[canonical] ground fallback search insert failed for ${itemId} (${fetched[i].url}): ${rErr.message}`);
       if (r) { searchIds.push(r.id); searchRows.push({ id: r.id, result_url: r.result_url }); }
     }

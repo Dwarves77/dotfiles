@@ -162,7 +162,7 @@ async function main() {
     const insSearch = async (itemId, url, excerpt) => {
       const { rows } = await client.query(
         `INSERT INTO public.agent_run_searches
-           (intelligence_item_id, search_query, result_url, result_title, result_index, result_content_excerpt, searched_at)
+           (intelligence_item_id, search_query, result_url, result_title, result_index, result_content, searched_at)
          VALUES ($1, 'sentinel q', $2, 'sentinel result', 0, $3, NOW()) RETURNING id`,
         [itemId, url, excerpt]
       );
@@ -181,7 +181,7 @@ async function main() {
     const SLOTS = ["effective_date", "primary_deadline", "jurisdictional_scope", "penalty_summary"];
     const SRC_URL = "https://selftest.example.gov/source-114";
     // The excerpt contains each FACT source_span VERBATIM as a substring, so the
-    // criterion-3 span-check (case-insensitive substring of result_content_excerpt)
+    // criterion-3 span-check (case-insensitive substring of result_content)
     // passes for the valid items. The spans below are exact substrings of this text.
     const EXCERPT =
       "The regulation enters force on effective_date 2026-01-01. " +
