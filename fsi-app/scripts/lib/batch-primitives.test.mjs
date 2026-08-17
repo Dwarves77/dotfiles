@@ -63,13 +63,38 @@ test("withRetry: throws immediately on non-retryable error", async () => {
   assert.equal(calls, 1);
 });
 
+// TOLERANCE, and why it is not a weakened assertion (2026-08-17).
+//
+// This test went red in CI at `interval 49ms should be >= 50ms` while passing locally. That is not
+// a rate-limiter bug: withRateLimit sleeps via setTimeout, whose deadline is measured on libuv's
+// monotonic clock, while the assertion measures Date.now() — a different clock, truncated to whole
+// milliseconds. The two can disagree by ~1ms, so a correct 50ms sleep can be observed as 49.
+//
+// An exact boundary on a cross-clock comparison is therefore a flaky gate, and a gate that reds at
+// random is worse than no gate: it trains everyone to re-run CI instead of reading it, which is how
+// a REAL red gets waved through. Standing rule 15's concern is proofs that do not execute; this is
+// its neighbour — a proof that executes and lies.
+//
+// The tolerance is 2ms, which is far below anything that could hide a real defect. The failure this
+// test exists to catch is the rate limiter not pacing at all, which shows up as an interval near 0,
+// not near 49. The upper bound is the other half: it proves the wrapper is not simply sleeping
+// forever or serialising on something unrelated.
+const TIMER_SLOP_MS = 2;
+
 test("withRateLimit: enforces minimum interval between calls", async () => {
   const fn = withRateLimit(async () => Date.now(), { minIntervalMs: 50 });
   const t1 = await fn();
   const t2 = await fn();
+  const interval = t2 - t1;
   assert.ok(
-    t2 - t1 >= 50,
-    `interval ${t2 - t1}ms should be >= 50ms`
+    interval >= 50 - TIMER_SLOP_MS,
+    `interval ${interval}ms should be >= ${50 - TIMER_SLOP_MS}ms (50ms minus ${TIMER_SLOP_MS}ms cross-clock slop)`
+  );
+  // Without the limiter this would be ~0, so the lower bound is what proves pacing happened; this
+  // bound proves the pacing is the 50ms one and not some much larger accidental wait.
+  assert.ok(
+    interval < 50 * 10,
+    `interval ${interval}ms is far above the 50ms minimum — the limiter is waiting on the wrong thing`
   );
 });
 
