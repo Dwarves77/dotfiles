@@ -1289,3 +1289,17 @@ fixes landed mid-sweep: keyset --census-exclude URL-blowup workaround, census-wr
 preservation (+3 tests), dedup->dedup_hit disposition mapping (+1 test, table-wide sweep, 0 residuals),
 EUR-Lex cap_hit correction. Rollup consumption: Session B's census_rollup_by_surface view self-activates
 on these rows; population ruling on the 110 relevant would-mints is the operator's next decision point.
+
+## Backup / storage thread (opened + advanced 2026-08-17)
+
+| State | Item | Evidence |
+|---|---|---|
+| CLOSED | Nightly backup quota failure (5 consecutive reds, 08-13..08-17) | root cause = artifact storage quota, not workflow logic; dump succeeded every run |
+| CLOSED | Artifact retention 90 -> 7 | `Dwarves77/caros-ledge-backups` commit `08d9e7e`; 36 artifacts / 2.04 GB -> 7 / 0.88 GB |
+| OPEN | First GREEN backup run not yet observed | two manual re-runs RED on the documented 6-12h quota-recalculation lag; 08:17 UTC scheduled run is the next check |
+| OPEN | Quota = 2 GB is `[HYPOTHESIS]` | billing endpoint 404s, CLI lacks `user` scope; keep-7 holds under 1 GB or 2 GB either way |
+| REFUTED | Cap `result_content_excerpt` at 2,000 chars + backfill | reverses ADR-016 by name; column is the grounding pool (`canonical-pipeline.ts:1008`, `>200` gates at :877/:1007/:1053). WITHDRAWN by operator |
+| OPEN | ADR-016 ceiling enforced on 1 of 2 writers | capture-worker (Deno) has MIN_BYTES floor, no ceiling; 3 rows over 10M (17.8M/12.6M/10.4M), all post-ruling. Fix IN FLIGHT, not landed |
+| DEFERRED | Split the dump (exclude `agent_run_searches`, weekly pool snapshot) | approved, not started. Requires restore drill to assert the pool manifest on the weekly path + `backup-posture.md` to state the split RPO explicitly (24h product / 7d pool) |
+| DEFERRED | Rename `result_content_excerpt` | approved, own migration + codegen sweep, after the above |
+| PENDING OPERATOR | Doctrine seed: "name the consumers and the governing ADR" as a structural requirement of any producer-change proposal | wording ruling owed before drafting; do not start |

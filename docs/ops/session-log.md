@@ -3355,3 +3355,83 @@ burying it in the brief.
 Not a rule change. The standing convention is unchanged and now demonstrated rather than described:
 commit the document first, then index it. An INDEX line is a promise the file exists for every reader,
 not just the one who wrote it.
+
+## Addendum 19 — retention-7 landed, a proposal to truncate the grounding pool was refuted, and the refutation found the real hole (2026-08-17)
+
+### Retention-7 (COMPLETE)
+
+The nightly backup had been failing for five consecutive days (2026-08-13 through 2026-08-17). `pg_dump`
+succeeded every morning — 137 MB written — and only the upload was rejected: `Failed to CreateArtifact:
+Artifact storage quota has been hit`. Cause was retention depth against a growing dump, not workflow logic.
+
+36 artifacts totalled 2.04 GB. Deleted 29, kept the newest 7, now 0.88 GB. Workflow commit `08d9e7e` in
+`Dwarves77/caros-ledge-backups` takes `retention-days: 90 -> 7` with the two prose references at lines 3
+and 43; `grep '90'` on that file now returns nothing, and a live run log confirms `retention-days: 7`.
+`dumps/baseline-2026-07-11/` was verified as committed repo content (3 files, 26.8 MB), not an artifact, so
+artifact deletion could not reach it.
+
+The 14-day rule originally proposed was measured and rejected before executing: dumps grew 5.3x in five
+weeks (26 MB on 07-11 to 137 MB on 08-17), so 14 days settles at ~1.92 GB and would have re-broken within
+about two weeks. Keep-7 settles at ~0.96 GB.
+
+**The 2 GB quota figure is [HYPOTHESIS], not fact, and must stay labelled.** The billing endpoint 404s and
+the CLI lacks the `user` scope, so 2 GB is inferred from GitHub's documented private-repo allowance plus the
+observed refusal at 2.04 GB. Keep-7 holds under either 1 GB or 2 GB, which is why the decision does not
+depend on resolving it — but the number itself has not been read from any authority.
+
+Backup re-run outcome: fired twice (14:35 and 15:23 UTC), **both RED with the same quota error**. This is
+the documented 6-12h usage-recalculation lag, not a new failure — deletion completed ~14:25 UTC, so both
+runs hit stale accounting. The dump succeeded in both. The 08:17 UTC scheduled run lands ~18h after
+deletion and is expected to clear on its own; it has NOT yet been observed green, and this entry does not
+claim it has.
+
+### Unit 2 proposed, and REFUTED (record the method failure, not just the outcome)
+
+A Cowork agent proposed capping `agent_run_searches.result_content_excerpt` at 2,000 chars with a CHECK
+constraint plus a destructive backfill, on the reasoning that a column named "excerpt" holding 113k chars
+on average was a writer bug inflating every dump.
+
+That was wrong, and the local session refuted it before anything ran. `result_content_excerpt` is the
+GROUNDING SOURCE POOL: `canonical-pipeline.ts:1008` maps it straight into the text fed to grounding, and the
+`.length > 200` gates at `:877`, `:1007` and `:1053` decide whether an item is groundable at all. Capping it
+is not a new idea — it is a reversal of ADR-016, an accepted operator ruling dated 2026-07-21 that names
+this exact column and quotes the operator verbatim: "We are NOT supposed to cap, because then the system
+runs analysis on incomplete data."
+
+**Name the method failure plainly: a writer bug was inferred from a column NAME and a SIZE STATISTIC,
+without reading the consumer twelve lines away or the ADR that governs that column by name.** Neither
+required new information — both were already in the repo. The same class as Addendum 17's own method note,
+one day later. The operator's own read of ADR-016 section 2 added the detail that settles it: 122 rows are
+ALREADY damaged by legacy caps (106 at 40k, 1 at 600k, 15 at 60k), so the proposal reinstated a known
+defect twenty times harder.
+
+A 2,000-char cap would also have been the worst failure shape available: it clears the `>200` gate, so items
+would look groundable and be quietly grounded on a truncated head — green, and wrong.
+
+### The real finding the refutation surfaced [CONFIRMED, both sides]
+
+Diagnosing the size question correctly found a defect the wrong diagnosis would have buried: **ADR-016's 10M
+`STORAGE_MAX_CHARS` ceiling is enforced on ONE of the column's TWO writers.**
+
+`fsi-app/supabase/functions/capture-worker/index.ts` is a Deno Edge Function importing only
+`jsr:@supabase/supabase-js` and `npm:unpdf` (lines 27-28), so it provably cannot see
+`src/lib/agent/generation-config.ts`. `grep MAX_CHARS|MAX_BYTES` returns 0 matches. It enforces a FLOOR
+(`MIN_BYTES = 1000`, line 38) and no ceiling, writing the fetched text raw at line 301.
+
+Three captures landed above the ceiling with no signal: 17,787,345 / 12,579,090 / 10,351,091 chars, all
+carrying `search_query = 'capture-worker:first-fetch'`, dated 2026-08-01, 08-01 and 08-07 — all AFTER the
+07-21 ruling. Write path and timestamps corroborate; verified independently from both sides.
+
+**Loud-on-bind was satisfied in design and unsatisfied in fact on the second writer.** ADR-016 specifies the
+ceiling as loud on bind, and on the pipeline path `recordTruncation()` warns and files a `coverage_gap`
+integrity_flag. On the worker path there is no bind, so no event fires and nothing reaches the operator
+queue. A 17.8M-char capture arrived silently.
+
+Inverse-failure distinction, which decides the remedy: these three rows are **complete captures exceeding a
+sanity bound**, NOT damaged ones. Retro-truncating them would recreate ADR-016 section 2 on a smaller scale.
+Ruled: fix forward, do not touch the rows.
+
+### Deliberately NOT in this entry
+
+The capture-worker ceiling fix is IN FLIGHT and uncommitted at the time of writing (one writer per unit).
+It is not checkpointed here and no part of this entry should be read as claiming it shipped.
