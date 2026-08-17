@@ -1299,7 +1299,38 @@ on these rows; population ruling on the 110 relevant would-mints is the operator
 | OPEN | First GREEN backup run not yet observed | two manual re-runs RED on the documented 6-12h quota-recalculation lag; 08:17 UTC scheduled run is the next check |
 | OPEN | Quota = 2 GB is `[HYPOTHESIS]` | billing endpoint 404s, CLI lacks `user` scope; keep-7 holds under 1 GB or 2 GB either way |
 | REFUTED | Cap `result_content_excerpt` at 2,000 chars + backfill | reverses ADR-016 by name; column is the grounding pool (`canonical-pipeline.ts:1008`, `>200` gates at :877/:1007/:1053). WITHDRAWN by operator |
-| OPEN | ADR-016 ceiling enforced on 1 of 2 writers | capture-worker (Deno) has MIN_BYTES floor, no ceiling; 3 rows over 10M (17.8M/12.6M/10.4M), all post-ruling. Fix IN FLIGHT, not landed |
+| IN FLIGHT | ADR-016 ceiling enforced on 1 of 2 writers | capture-worker (Deno) has MIN_BYTES floor, no ceiling; 3 rows over 10M (17.8M/12.6M/10.4M), all post-ruling. Fix WRITTEN and fitness-proven but **uncommitted in a worktree** — recovery pointer below, "Where the ceiling fix actually is" |
 | DEFERRED | Split the dump (exclude `agent_run_searches`, weekly pool snapshot) | approved, not started. Requires restore drill to assert the pool manifest on the weekly path + `backup-posture.md` to state the split RPO explicitly (24h product / 7d pool) |
 | DEFERRED | Rename `result_content_excerpt` | approved, own migration + codegen sweep, after the above |
 | PENDING OPERATOR | Doctrine seed: "name the consumers and the governing ADR" as a structural requirement of any producer-change proposal | wording ruling owed before drafting; do not start |
+| PENDING OPERATOR | Assistant spend cap | ruling owed; do not start |
+
+### Where the ceiling fix actually is (recovery pointer, written 2026-08-17)
+
+The row above said "IN FLIGHT, not landed" and recorded nothing about *where*, which makes it
+unrecoverable by a session that only reads this board. Recovered from disk and verified against the
+working tree, not transcribed from summary:
+
+- **Worktree** `C:/Users/jason/dotfiles/.worktrees/wt-capceiling`, branch
+  `capture-worker-storage-ceiling`, HEAD `88dad99f` (= PR #460; one commit behind `master`
+  `abd30c57`, which is PR #461 — the commit that added this very table).
+- **Nothing is committed.** The entire fix lives as an uncommitted working tree: 2 modified files
+  (+74 lines) and 1 untracked file. A `git worktree remove` or a stray `git checkout .` destroys it.
+  This is the whole reason this pointer exists.
+
+| File | State | What it does |
+|---|---|---|
+| `fsi-app/supabase/functions/capture-worker/index.ts` | modified, +65 | `STORAGE_MAX_CHARS = Number(Deno.env.get("STORAGE_MAX_CHARS") \|\| 10_000_000)`. On bind: truncates, warns `[truncation-guard]` with collected/full, pushes a `storage-ceiling-bind` declared transform onto the run, and inserts a `coverage_gap` row into `integrity_flags` (after the capture lands, `subject_type` falling back to `source` because first-fetch rows carry a null item) |
+| `fsi-app/.discipline/fitness/manifest.mjs` | modified, +9 | imports and registers `F26` |
+| `fsi-app/.discipline/fitness/functions/F26-storage-ceiling-parity.mjs` | **untracked**, 81 lines | asserts PARITY, not presence: both writers must resolve the same env var with the same fallback literal, and the worker's ceiling must be loud (`[truncation-guard]` + `integrity_flags` both present) |
+
+**Verified** (re-run 2026-08-17 in that worktree, not taken on trust): `node
+.discipline/fitness/runner.mjs` → *21 function(s) checked, 0 violation(s)*, with `[F26]
+storage-ceiling-parity (2 files) PASS`. The Next.js side reads
+`generation-config.ts:30 STORAGE_MAX_CHARS = Number(process.env.STORAGE_MAX_CHARS || 10_000_000)`,
+so the two literals agree. F26 was proven by attack per standing rule 15 (worker literal diverged to
+`5_000_000` → violation; reverted → PASS).
+
+**Still owed before this can land:** F26 negative test wired into a lane (rule 15
+execution-wiring), full test suite, invariant-coverage meta-gate, `tsc`, and the unit's own
+addendum. The branch also needs rebasing onto `abd30c57` before the PR.
