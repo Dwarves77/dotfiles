@@ -1,0 +1,31 @@
+-- 265 — Drop the detect_intersections RPC: the flywheel U3 supersession retires the second scoring home.
+--
+-- WHAT GOES, AND WHY.
+--
+-- Migration 023 created detect_intersections(min_strength int, max_results int): a SQL function that
+-- RE-SCORED item pairs at read time from operational_scenario_tags / compliance_object_tags overlap
+-- plus related_items linkage (3 pts/scenario, 2 pts/compliance-object, 5 pts explicit-link,
+-- 2 pts both-high-priority). It predates the connection-discovery engine. Since migration 252 and the
+-- flywheel wave (U0-U4), item_cross_references carries the ONE scoring home's persisted output —
+-- discover.mjs scores with grounded basis, write-edges.mjs / mint-item.ts persist it — and the
+-- flywheel build plan (docs/plans/flywheel-build-plan-2026-08-10.md, U3) names this exact
+-- retirement: "detect_intersections supersession lands here ... retire the RPC's scoring."
+--
+-- THE EVIDENCE: as of this migration the function's ONLY caller, /api/admin/intersections
+-- (route.ts:46), has been re-pointed to read item_cross_references and assemble pairs via
+-- src/lib/connections/pair-view.mjs (this PR). grep over src/ and scripts/ finds no other
+-- .rpc("detect_intersections") call. The read path this function served is fully replaced; two
+-- parallel scoring homes for the same question is exactly the divergence class the single-scoring-home
+-- rule exists to prevent.
+--
+-- ORDERING (two-track policy, CLAUDE.md standing rule 3): this is a DROP whose safety depends on the
+-- CONSUMER change, not schema the code depends on — the reverse of the DDL-first case. It applies
+-- AFTER the re-pointed route merges, so no deploy window ever runs the old route against a missing
+-- function.
+--
+-- WHAT DELIBERATELY STAYS: migration 023's historical file (history, not live schema);
+-- migration 160's search_path pin on this function (160 is history — the ALTER it ran dies with the
+-- function); intersection_summary on intelligence_items (item-level prose written at generation,
+-- read by the intersections view's cards — not part of the RPC's scoring).
+
+DROP FUNCTION IF EXISTS public.detect_intersections(integer, integer);

@@ -19,12 +19,12 @@
 // is counted and returned for the caller to log, never thrown — a wrong edge never blocks a brief or a
 // customer read.
 //
-// Directionality note (safe default, refinement deferred with its dependency): discover.mjs signals are
-// symmetric, and the backfill loops every item, so both (A,B) and (B,A) get produced. This writer keeps
-// both directions — the readers of the graph that filter source-only REQUIRE both, so canonicalizing to
-// source<target here would hide edges. Whether to canonicalize (halving row count) is a change to make
-// WITH the reader-wiring step (Pillar D / the detect_intersections supersession), where the consumer
-// query semantics are in scope — not a silent change inside a lint fix.
+// Directionality (ADR-018, decided with the U3 detect_intersections supersession): discover.mjs signals
+// are symmetric, and the backfill loops every item, so both (A,B) and (B,A) get produced. This writer
+// keeps both directions AT REST — the readers of the graph that filter source-only REQUIRE both, so
+// canonicalizing to source<target here would hide edges. Readers that need undirected pairs
+// canonicalize at read time via pair-view.mjs (collapsePairs), never by a second storage shape or a
+// second SQL collapse home.
 
 const pairKey = (s, t) => `${s}|${t}`;
 

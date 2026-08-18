@@ -1369,3 +1369,43 @@ it is recorded as such on RD-12.
 **Not done here, deliberately:** the three known over-ceiling captures are historical rows. This
 change stops new ones and makes any future bind loud; it does not re-capture the three, whose tails
 were never collected and cannot be recovered from the stored row.
+
+## Flywheel thread (opened ON THE BOARD 2026-08-17 — units were previously tracked only in docs/plans/flywheel-build-plan-2026-08-10.md, violating this board's own standing rule)
+
+| Unit | What | State | Evidence |
+|---|---|---|---|
+| U0 | Populate the graph (backfill-edges.mjs) | **DONE — refreshed live 2026-08-17** | `[CONFIRMED]` live query 2026-08-17: item_cross_references held 1,771 rows — 1,710 `provenance_discovery` (score 0.3–1.0) + 51 manual + 10 entity_extraction (the old "~61-edge" graph is exactly the legacy remainder). Engine replay (repo's own discover.mjs over the MCP-fetched live corpus, threshold 0.3 / limit 12) computes 1,768 edges across 157/806 items; the 1,710 live rows were an EXACT subset — 0 score drift, 0 rows the engine would not produce. That is a backfill's fingerprint: zero items minted since U4 landed (#424), so mint-time discovery cannot have written them. NO run record exists in the vault; who/when unknown — operator asked 2026-08-17. **Refresh EXECUTED 2026-08-17**: the writer's own partition logic (`writeDiscoveredEdges`, real module, stub client) classified 55 new / 1,710 refreshed-identical / 3 skipped-foreign-origin; the 55 new rows were applied. Live now **1,765 provenance_discovery** + 51 manual + 10 entity_extraction = 1,826. Verified by digest: pd_rows 1765 and edge md5 `31615bc1…` match the offline engine output exactly |
+| U1 | Cluster engine (cluster.mjs) | BUILT | #421 `ef5bb72d`; test in suite |
+| U2 | analyze-corpus: themes + L2 gaps | **DONE — first run persisted 2026-08-17** | `[CONFIRMED]` connection_themes = 0 rows, connection_theme_runs = 0 rows before this session (live query). **Run EXECUTED 2026-08-17** over the POST-refresh graph: **4 themes** persisted (two 2-member pairs, plus cross-surface clusters of 60 and 93 members each spanning market+operations+regulations+research), **3 jurisdiction_span gaps** opened as `flywheel-gap:` integrity_flags, first `connection_theme_runs` row closed `status='ok'` (nodes_read 806, edges_read 1,826, nodes_clustered 157, edges_used 1,247, rounds 3). All 15 post-conditions verified including per-theme member md5s. **NOTE the dry pass over the PRE-refresh graph reported 5 themes / 5 gaps: the 55 new edges MERGED two clusters, so 4/3 is the correct post-refresh figure, not a shortfall** — stated because the earlier number is already in this session's record |
+| U3 | Themes API/view + detect_intersections supersession | **DONE (this PR)** | Themes route/view were #423; the supersession that did NOT land then is executed here: admin/intersections re-pointed to the persisted graph via `src/lib/connections/pair-view.mjs` (pure, tested — canonical pairs, basis merge, max score, bands), IntersectionDetectionView rebinds to score+basis, migration 265 drops the RPC (applies post-merge — drop depends on the consumer change, the reverse of DDL-first), ADR-018 decides directionality: both directions at rest, canonicalize at the reader |
+| U4 | L1 discovery at mint | BUILT | #424 `253a3c73` (mint-item.ts) |
+| U5 | L3 anticipatory targeting | BLOCKED | build plan §U5 — needs B1 contract advance |
+| U6 | F5 theme briefs + L4 | DESIGNED, GATED | no source file `[CONFIRMED]`; metered — budget kill-switch + operator ruling owed before any build |
+| U7 | Contract advance | NOT BUILT; **precondition now met** | needs a populated graph — which now exists. Build not started; its regeneration option is metered (~$0.15/item `[DOC-STATED]`) |
+| U8 | Skill ↔ code drift gate | BUILT | #426 `ecb88515` |
+| U9 | Lens + connections on surfaces | BUILT, 4 of 5 | #425 `23b678ca`; Community not wired (deliberate) |
+
+**Flywheel wave 1 (U0–U3) — DATA COMPLETE 2026-08-17, CODE PENDING MERGE.** U0 refreshed (55 edges)
+and U2's first run persisted (4 themes, 3 gaps, run ledger `ok`), both digest-verified: the L1/L2
+compounding loop is live end-to-end at **$0** — no LLM call and no paid fetch in either step.
+Remaining for wave-1 close: merge this PR, then apply **migration 265** (the drop follows the
+consumer, never precedes it). After that the next flywheel work is gated (U6, metered, operator
+ruling owed) or blocked on non-flywheel threads (U5←B1 contract advance, U7 build not started).
+
+**Execution lane, stated rather than hidden.** The two runs did NOT execute `backfill-edges.mjs` /
+`analyze-corpus.mjs` as processes: this container's egress denies the DB host (`Host not in
+allowlist: kwrsbpiseruzbfwjpvsp.supabase.co`, verbatim). Every scoring, clustering and gap decision
+was still made by the repo's own modules — `discover.mjs`, `writeDiscoveredEdges` (the real writer,
+handed a stub client so its origin-ownership partition ran unmodified), `cluster.mjs`, `gaps.mjs`,
+`surface-of.mjs` — driven by a harness that emitted the exact rows those writers would have sent;
+the Supabase MCP was TRANSPORT ONLY, and no scoring logic was reimplemented anywhere.
+
+**What this lane did NOT carry: `scripts/lib/db.mjs`'s guarded path, so no prior-state snapshot was
+written to `scripts/_snapshots/`** (rule 015's reversibility mechanism). Mitigation, not equivalence:
+both writes are additive and reconstructible — U0's 55 rows are `INSERT … ON CONFLICT DO UPDATE …
+WHERE origin='provenance_discovery'`, so foreign origins are untouchable by construction (verified
+after: 51 manual + 10 entity_extraction, unchanged), and U2's two target tables held ZERO rows
+beforehand, so the prior state is the empty set and the run is undone by a `DELETE`. **A future
+analyze-corpus run over a non-empty `connection_themes` MUST go through the guarded path or
+replicate its snapshot** — the empty-table argument does not generalize, and this is the one place
+this lane is weaker than the sanctioned one.

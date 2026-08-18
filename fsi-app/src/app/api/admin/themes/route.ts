@@ -10,12 +10,10 @@
 //     this is "top N most convergent themes", matching the intersections route's limit semantics)
 //
 // Auth: requireAuth + rate limit + platform-admin gate (mirrors admin/intersections, admin/coverage).
-// Superseding note (flywheel U3, build plan): detect_intersections (migration 023's RPC, still live
-// and still the source for admin/intersections) is NOT touched by this route or retired here — it
-// scores item-pairs from operational_scenario_tags/compliance_object_tags, a different signal from
-// connection_themes' clustered graph. U3 adds this route alongside it; deciding whether/how to fold
-// admin/intersections into the themes view is the "supersession" the build plan names, and is a UI/UX
-// call (D1, customer surface placement) deliberately left open per the plan, not a data-layer change.
+// Superseding note (flywheel U3 — EXECUTED 2026-08-17): the detect_intersections RPC is retired
+// (migration 265) and admin/intersections now assembles pairs from the persisted graph via
+// pair-view.mjs. The two admin views split the same graph by grain: this route serves THEMES
+// (clusters), admin/intersections serves PAIRS (edges). One scoring home (discover.mjs) feeds both.
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
