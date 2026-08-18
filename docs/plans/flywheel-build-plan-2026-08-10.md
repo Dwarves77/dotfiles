@@ -15,7 +15,10 @@ reconciliation.
 
 ## U0 — Populate the graph (data step; the gate for everything below)
 
-The corpus backfill has NOT run; the graph is still ~61 edges. On the operator's machine (creds):
+The corpus backfill has NOT run; the graph is still ~61 edges. *(Correction 2026-08-17: stale — a
+backfill has since run, unrecorded; the live graph carries 1,710 provenance_discovery edges that
+exactly match the engine's output. See the Flywheel thread on PROGRAM-BOARD for the measured state;
+this section stands as the 2026-08-10 record.)* On the operator's machine (creds):
 `node scripts/connections/backfill-edges.mjs --dry` → review edge/cross-surface/skip counts → run live.
 Definition of done: reported counts; `item_cross_references` carries `origin='provenance_discovery'`
 rows with basis+score. No code. Everything below clusters NOTHING until this runs.
