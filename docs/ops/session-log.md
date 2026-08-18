@@ -3600,3 +3600,69 @@ rule: never hand-copy generated SQL. Verify the bytes.**
 
 Next step for a cold session: confirm the PR merged, then apply migration 265 and verify
 `detect_intersections` is absent and `/api/admin/intersections` still returns pairs.
+
+---
+
+## Addendum 21 — migration 265 applied after its consumer, and the drop's own PR shipped an unrun proof (2026-08-18)
+
+Discharges Addendum 20's closing line verbatim ("confirm the PR merged, then apply migration 265 and
+verify `detect_intersections` is absent and `/api/admin/intersections` still returns pairs").
+
+### The premise was false, and that was the first finding
+
+The task arrived as "post-merge task for PR #467". **#467 was still OPEN.** `origin/master` was
+`39759e96` (#466) and `mergedAt` was null. Had the DROP been applied on the stated premise, production
+would have been running `route.ts:46`'s `.rpc("detect_intersections")` against a function that no longer
+existed — the precise inversion the migration's ORDERING note exists to prevent, executed in the name of
+honouring it. Checks were green and `mergeStateStatus` was CLEAN, so #467 was merged first under the
+standing merge delegation (squash, `93611d4c`), and only then did the drop run.
+
+**Merge is not the safety condition — DEPLOY is.** The migration header says it applies "AFTER the
+re-pointed route merges", but merging only changes the source; production keeps serving the old bundle
+until Vercel finishes. At merge time one of the two deploys was still `pending`. That was waited out to
+`success` on both before the DROP. The header's wording is slightly weaker than the property it needs;
+recorded here rather than edited into applied history.
+
+### Applied and verified on both sides
+
+Baseline first, so the post-check could not pass vacuously: `pg_proc`/`pg_namespace` returned exactly one
+`detect_intersections` with identity args `min_strength integer, max_results integer` — the DROP's exact
+signature. Post-drop the same query returns zero rows. `to_regclass` was deliberately not used: it
+resolves relations, returns NULL for functions, and would have "passed" identically against a live
+function.
+
+Surface proof, which is the only thing that tests the reader rather than the catalogue: /admin → Sources
+→ Intersections, loaded against production after the drop, renders `Total pairs 200 · Strong (>=0.9) 200
+· Medium 0 · Weak 0 · Explicitly linked 0`, per-pair scores (`1.00`) and grounded basis chips (`Basis
+(4)` / `Basis (6)` — "grounded in the same source", "both touch ocean-bunkering", …). No error state; a
+console read filtered for `error|failed|500|404|PGRST|42883` across a full post-drop load returned
+nothing.
+
+### The finding worth keeping: #467 shipped a proof that never ran
+
+`pair-view.test.mjs` was the ONLY behavioural proof of the replacement reader, and **CI never executed
+it.** The npm-dep lane globs `fsi-app/src/**/*.npmtest.mjs` plus a fixed named list; a `.test.mjs` under
+`src/` matches neither, and nothing in `.github/` or `.discipline/` references it. #467's green CI was
+green because the test did not run — not because it passed. Standing rule 15's exact class ("a verifier
+that is git-tracked and run by NOTHING is a lie the coverage gate must not rubber-stamp"), arriving on
+the same PR that deleted the old scoring home, so for a window the new reader had no executed proof at
+all and the old one was gone.
+
+Fixed by renaming to `pair-view.npmtest.mjs` — the house wiring mechanism (the workflow's own comment
+says naming is what wires a proof; 19 sibling proofs already carry the suffix). No new machinery, no
+identity change, now matched by the glob and passing 8/8.
+
+Method note: this was found by pulling on the FIRST residual rather than filing it. The migration's
+evidence line scoped its grep to `src/` and `scripts/`, which missed
+`fsi-app/supabase/seed/verify-intersections.mjs` — a live `.rpc("detect_intersections")` caller under
+`supabase/seed/`, outside that scope. That script is now dead (its whole subject is the dropped
+function, and its `min_strength` 5/10 integer scale does not exist in the 0..1 score model), is not
+execution-wired, and is deleted here rather than left to fail on first use. Checking whether IT was
+wired is what surfaced the wiring question for `pair-view.test.mjs`. **A grep scoped to two directories
+is not a grep over the repo, and the gap between them is where both of these lived.**
+
+### Not done, deliberately
+
+The historical audit registers that mention `verify-intersections`
+(`docs/ops/full-system-audit-2026-07-11/`) are the dated applied record and are not edited, same
+convention as migration 264's 17 historical references.
