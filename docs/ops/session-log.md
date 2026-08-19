@@ -3666,3 +3666,93 @@ is not a grep over the repo, and the gap between them is where both of these liv
 The historical audit registers that mention `verify-intersections`
 (`docs/ops/full-system-audit-2026-07-11/`) are the dated applied record and are not edited, same
 convention as migration 264's 17 historical references.
+
+---
+
+## Addendum 22 — flywheel wave 1 re-run through the guarded path; the earlier MCP-transport write verified correct (2026-08-18)
+
+Closes the residual Addendum 20 named verbatim: *"The next analyze-corpus run, over a non-empty
+`connection_themes`, must go through the guarded path or replicate its snapshot."* This was a
+VERIFICATION, not a fix. It passed on every number.
+
+### Why a re-run at all
+
+U0's edge refresh and U2's first theme run were executed on 2026-08-17 with the Supabase MCP as
+transport, because that container's egress denies the DB host. The rows were computed by the repo's own
+engines and digest-verified, but they did not pass through `scripts/lib/db.mjs`, so **no prior-state
+snapshot existed** and rule 015's reversibility mechanism was absent for those writes.
+
+### Result: no material change, on every axis
+
+| | before | after |
+|---|---|---|
+| `item_cross_references` | 1,826 (1,765 pd · 51 manual · 10 entity) | **identical** |
+| `connection_themes` | 4 | 4 (replaced in place, same ids) |
+| open `flywheel-gap:` flags | 3 | 3 (0 opened, 0 resolved) |
+| `connection_theme_runs` | 1 | 2 (appended, `ok`) |
+
+Dry passes matched the predicted figures exactly before anything was written: backfill-edges discovered
+**1,768 edges across 157/806 items**; analyze-corpus clustered **4 themes / 3 jurisdiction_span gaps**
+(157 nodes, 1,247 undirected edges, 3 rounds). The live backfill then wrote **0 new, 1,765 refreshed, 3
+skipped foreign-origin, 0 chunk failures** — and 1,768 − 3 foreign-origin skips = 1,765 reconciles the
+discovered count against the stored count exactly.
+
+Both `connection_theme_runs` rows carry IDENTICAL metrics (nodes_read 806, edges_read 1,826,
+nodes_clustered 157, edges_used 1,247, themes_written 4, gaps_flagged 3, rounds 3). **The earlier
+MCP-transport write is therefore verified correct by independent re-execution**, which is the strongest
+statement available about it — the sanctioned engines, run fresh, reproduce it row-for-row.
+
+Incidental: run 1 (hand-driven over MCP) took 31m45s wall; run 2 (sanctioned path) took **2.9s**.
+
+### The residual is closed, and the proof is content, not presence
+
+Four snapshots landed in `scripts/_snapshots/` (the dir's newest prior file was 2026-07-18 — the
+08-17 writes had produced none, exactly as Addendum 20 recorded):
+
+- `…21-56-00-378Z_connection_theme_runs.jsonl` — guardedInsert, run row opened
+- `…21-56-00-861Z_connection_themes.jsonl` — **guardedDelete: the 4 PRIOR theme rows in full**
+- `…21-56-01-133Z_connection_themes.jsonl` — guardedInsertMany, `_inserted` reversal ids
+- `…21-56-01-521Z_connection_theme_runs.jsonl` — guardedUpdate, run row closed
+
+Each carries the rule-015 `_cite` (skill `flywheel-build-plan-2026-08-10` + reason). The delete
+snapshot holds real prior state — member counts 2 / 2 / 60 / 93, matching Addendum 20's description of
+the four themes.
+
+**Verified beyond presence.** Reconstructing the `(theme_id, member_id)` set from the on-disk prior
+snapshot and digesting it byte-wise gives **157 pairs, md5 `693a28e8…`**; the live DB, digested with
+`COLLATE "C"` so the ordering cannot differ, gives **157 pairs, md5 `693a28e8…`**. Identical. The
+replace was a true content no-op — same theme ids, same membership — not merely the same COUNT of
+themes. (`COLLATE "C"` was deliberate: a default-collation sort could have ordered punctuation
+differently from a byte sort and manufactured a false mismatch.)
+
+### One thing NOT closed, and it is not an oversight
+
+**U0 still writes no snapshot, by design.** `backfill-edges.mjs` does not use `db.mjs`; its header
+argues rule 015 is satisfied because the write "genuinely lives in the src/ layer"
+(`write-edges.mjs`), and `grep` confirms that writer references neither `db.mjs` nor any snapshot. So
+this run produced snapshots for `connection_themes` and `connection_theme_runs` only — none for
+`item_cross_references`.
+
+Addendum 20's tolerance argument for U0 was that its upsert is `ON CONFLICT DO UPDATE … WHERE
+origin='provenance_discovery'`, so foreign-origin rows are unreachable. That argument is sound but it
+establishes **isolation, not reversibility**: this run REFRESHED 1,765 rows, overwriting `basis` and
+`score` on every one, with no capture of their prior values. It was harmless here precisely because the
+digest work proves the values were identical — but a future backfill over a drifted corpus would
+overwrite prior basis/score with no way back.
+
+Not patched unilaterally: the current behaviour is a documented, deliberate design position, and
+reversing it is a ruling, not a cleanup. Recorded decision-ready per rule 13 — the mechanism is named
+(`write-edges.mjs` would need the guarded path or an equivalent prior-value capture), the blast radius
+is known (1,765 rows/run), and the trigger is known (any run where `inserted > 0` or refreshed values
+differ). Remediation-discipline signal 5 fits it exactly: a preservation argument that survives only as
+a docstring, with no mechanical check.
+
+### Execution note
+
+Run from the main checkout, which sits 2 commits behind `origin/master`. That was verified safe rather
+than assumed: `git diff 39759e96 origin/master` over the scripts' whole dependency graph shows the only
+change is **comment-only** in `write-edges.mjs` (the ADR-018 directionality note); `discover.mjs`,
+`cluster.mjs`, `gaps.mjs`, `surface-of.mjs` and `db.mjs` are untouched, and `pair-view.mjs` is not on
+this path. No git operation was performed there (RD-19). Its `node_modules` was an EMPTY directory and
+needed `npm ci` before anything would import — the same tooling gap that failed the pre-push `tsc` step
+on 2026-08-18; it is a missing toolchain, never a code error.
