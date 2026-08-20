@@ -3757,6 +3757,62 @@ this path. No git operation was performed there (RD-19). Its `node_modules` was 
 needed `npm ci` before anything would import — the same tooling gap that failed the pre-push `tsc` step
 on 2026-08-18; it is a missing toolchain, never a code error.
 
+## Addendum 24 — Operations gets a cross-region matrix, and the page stops holding two coverage truths (2026-08-18, Cowork session)
+
+WO-9. The first work order that visibly changes a customer surface.
+
+### What the data actually is, checked before building anything
+
+5 regions (ASIA, EU, UAE, UK, US) × 5 sourced dimensions = 25 cells. 75 fact rows, all belonging to
+ASIA, UAE and UK — **EU and US hold zero on every dimension**. `regulatory_feasibility` has zero rows
+in `regional_data_facts` at all; D1 was being derived from regulation cross-references and then counted
+in the same n/N as the five fact-sourced dimensions.
+
+And the constraint that decided the scope: **`value` is free text.** A representative row reads
+`"AED 0.23–0.38/kWh (tiered); blended business rate approx. AED 0.405/kWh (USD 0.110/kWh) all-in"`.
+There is no numeric column, no unit column, no currency column, and no reference-period column.
+`source_id` is NULL on all 75 rows, so the only provenance is a free-text `source_note` with a URL in it.
+
+### What that means for the spec, stated rather than worked around
+
+Spec 04 component 2 asks for dual-layer cells: native value primary, index-vs-base secondary. **That is
+not computable on this schema.** An index needs a number and a unit; parsing one out of that string
+would invent precision the source never had, which the spec itself calls worse than a gap. So the
+matrix ships without an index, the base-region control REORDERS COLUMNS and its own label says so, and
+the index layer is recorded as blocked on WO-12's number envelope plus a schema migration. I would
+rather ship a comparison that is honest about what it cannot do than one that quietly fabricates.
+
+### What shipped
+
+`src/lib/operations/region-grid.mjs` — pure, and consumed by BOTH the new matrix and OperationsLedger's
+coverage rail, so the page has one computation home and cannot show two coverage numbers. Every figure
+it returns carries `basis: 'sourced-facts'`; cross-reference counts ride alongside and are never added
+in. It also RECONCILES `region_dimension_coverage` — a table that until now was fetched, threaded
+through the page, and consumed only by a `console.log` — against the facts present, and RETURNS the
+disagreements rather than silently preferring one source. The surface renders that mismatch.
+
+`RegionDimensionMatrix.tsx` — dimensions as rows, regions as columns, mounted above the accordions
+(which stay, as the per-region deep read). Selecting a dimension expands it into a side-by-side compare
+of that dimension's facts across every region, with per-fact provenance parsed out of `source_note` and
+the freshness state (including `frozen`, which is the honest label for rows whose sole writer was a
+hand-run one-shot). EU and US render as two empty columns with an explicit statement of why.
+
+That last part is the point. The register's ordering argument for doing this first is that a grid makes
+the EU/US hole visible in one glance, which correctly PRICES the producer work instead of hiding it
+behind closed panels. It now does.
+
+### Method note
+
+WO-3's first draft was caught by F25 for extracting a module with no production importer. This time the
+module had two real consumers by construction before the gate ran, and F25 passed. I also caught a
+React defect in my own component on review — fragments inside a `.map()` carrying the key on the child
+`<tr>` instead of on the fragment — and fixed it before the gates rather than after.
+
+### Owed, unchanged
+
+The matrix gives the data somewhere to land. It does not produce data. EU and US stay empty until
+WO-17, `emission_factors` stays empty and unread until WO-18, and Market still ingests no price series
+(WO-16). What changed is that the emptiness is now legible instead of hidden.
 ## Addendum 23 — the paragraph-only renderer retired from three surfaces, and F25 corrected my structure (2026-08-18, Cowork session)
 
 WO-3 of the master execution plan, the operator's approved A1 ruling.
