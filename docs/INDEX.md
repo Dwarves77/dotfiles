@@ -194,6 +194,8 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 ## ops
 
 - [session-log](./ops/session-log.md) — Dated session-close log (accomplished / decisions / blockers / next steps)
+- [wo5-orphan-disposition-2026-08-20](./ops/wo5-orphan-disposition-2026-08-20.md) — WO-5 measured orphan-field inventory + disposition options; ⛔ operator-gated, 4 rulings requested
+- [wo6-tag-gap-diagnosis-2026-08-20](./ops/wo6-tag-gap-diagnosis-2026-08-20.md) — WO-6 root cause ($0): August bulk import bypassed both tag producers; WO-7 tags-only pass priced (Haiku $2–3 / Sonnet $5–7), ⛔ price ruling owed
 - [token-spend-2026-08-09](./ops/token-spend-2026-08-09.md) — Measured session token spend: method, 136.1M effective breakdown, no-bug finding, cost levers
 - [sweep-ledger](./ops/sweep-ledger.md) — Standing register of corpus-wide sweeps to run wholesale (SW-1: jurisdiction-code country/US-state collision class, PENDING post-review-lane)
 - [build-phase-spend-regime-2026-07-15](./ops/build-phase-spend-regime-2026-07-15.md) — BUILD-PHASE spend regime declared (3 controls: authorization/integrity/measurement); retro-sweep of steady-state standing figures (all information-only for build); actuals ledger (coverage-floor cost input). Config: spend-regime.mjs; doctrine build-phase-spend-regime

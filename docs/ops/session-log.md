@@ -3757,92 +3757,6 @@ this path. No git operation was performed there (RD-19). Its `node_modules` was 
 needed `npm ci` before anything would import — the same tooling gap that failed the pre-push `tsc` step
 on 2026-08-18; it is a missing toolchain, never a code error.
 
-## Addendum 25 — WO-4: the trap was disarmed, and the guard I planned to build already existed (2026-08-18, Cowork session)
-
-The operator called the v1 build plan sloppy, and he was right; this unit is the first one executed
-under v2's rule 0.15 (read every table and mechanism before building), and the rule immediately paid
-twice IN ONE WORK ORDER.
-
-**First payment: I did not build a redundant guard.** v1/v2 WO-4 said "add an automated check that
-runs both classifiers and fails if they disagree." Reading before building found the check ALREADY
-RUNNING IN CI: `vocab-drift-guard.test.mjs` regenerates migration 148's `surface_of()` CASE from
-`SURFACE_RULES` and asserts the migration embeds it byte-for-byte — the SQL is generated, never
-hand-edited. My planned parity check would have been a second mechanism for one invariant, the exact
-shape the meta-gate calls ORPHAN MECHANISM from the other direction. Recorded as plan correction C9.
-
-**Second payment: the fix I did make is smaller and sharper than planned.** The DB already guarantees
-`domain` NOT NULL + CHECK 1–7 (verified live: 0 out-of-range rows), so the `row.domain || 1` coalesce
-could never launder a NULL — the only thing it ever laundered was "this payload did not SELECT the
-column", silently classifying such rows as Regulations (and the reproduction test shows why that is a
-verdict: domain 1 OUTRANKS a market item_type in the precedence rules). Three mapper sites now emit
-`?? undefined`, "not fetched" reads as unclassified, and `domain-laundering.test.mjs` locks the
-pattern out of `supabase-server.ts` at source-text level.
-
-**Also landed: master execution plan v2 into the vault** (`docs/plans/master-execution-plan-2026-08-17.md`)
-with its corrections registry — nine v1 claims that did not survive reading the tables, including the
-two big ones: the number envelope and the `origin_class` vocabulary already exist in production schema
-(migration 258) and are to be EXTENDED, never re-invented. Until this commit the plan existed only in
-chat, which rule B7 should have caught earlier.
-
-Gates: 1389/1389, fitness 21/0, meta-gate PASS, tsc clean. Next per v2: WO-5 (orphan-field
-disposition table, ⛔ operator-gated) and WO-6 (tag-gap diagnosis, $0).
-
-## Addendum 24 — Operations gets a cross-region matrix, and the page stops holding two coverage truths (2026-08-18, Cowork session)
-
-WO-9. The first work order that visibly changes a customer surface.
-
-### What the data actually is, checked before building anything
-
-5 regions (ASIA, EU, UAE, UK, US) × 5 sourced dimensions = 25 cells. 75 fact rows, all belonging to
-ASIA, UAE and UK — **EU and US hold zero on every dimension**. `regulatory_feasibility` has zero rows
-in `regional_data_facts` at all; D1 was being derived from regulation cross-references and then counted
-in the same n/N as the five fact-sourced dimensions.
-
-And the constraint that decided the scope: **`value` is free text.** A representative row reads
-`"AED 0.23–0.38/kWh (tiered); blended business rate approx. AED 0.405/kWh (USD 0.110/kWh) all-in"`.
-There is no numeric column, no unit column, no currency column, and no reference-period column.
-`source_id` is NULL on all 75 rows, so the only provenance is a free-text `source_note` with a URL in it.
-
-### What that means for the spec, stated rather than worked around
-
-Spec 04 component 2 asks for dual-layer cells: native value primary, index-vs-base secondary. **That is
-not computable on this schema.** An index needs a number and a unit; parsing one out of that string
-would invent precision the source never had, which the spec itself calls worse than a gap. So the
-matrix ships without an index, the base-region control REORDERS COLUMNS and its own label says so, and
-the index layer is recorded as blocked on WO-12's number envelope plus a schema migration. I would
-rather ship a comparison that is honest about what it cannot do than one that quietly fabricates.
-
-### What shipped
-
-`src/lib/operations/region-grid.mjs` — pure, and consumed by BOTH the new matrix and OperationsLedger's
-coverage rail, so the page has one computation home and cannot show two coverage numbers. Every figure
-it returns carries `basis: 'sourced-facts'`; cross-reference counts ride alongside and are never added
-in. It also RECONCILES `region_dimension_coverage` — a table that until now was fetched, threaded
-through the page, and consumed only by a `console.log` — against the facts present, and RETURNS the
-disagreements rather than silently preferring one source. The surface renders that mismatch.
-
-`RegionDimensionMatrix.tsx` — dimensions as rows, regions as columns, mounted above the accordions
-(which stay, as the per-region deep read). Selecting a dimension expands it into a side-by-side compare
-of that dimension's facts across every region, with per-fact provenance parsed out of `source_note` and
-the freshness state (including `frozen`, which is the honest label for rows whose sole writer was a
-hand-run one-shot). EU and US render as two empty columns with an explicit statement of why.
-
-That last part is the point. The register's ordering argument for doing this first is that a grid makes
-the EU/US hole visible in one glance, which correctly PRICES the producer work instead of hiding it
-behind closed panels. It now does.
-
-### Method note
-
-WO-3's first draft was caught by F25 for extracting a module with no production importer. This time the
-module had two real consumers by construction before the gate ran, and F25 passed. I also caught a
-React defect in my own component on review — fragments inside a `.map()` carrying the key on the child
-`<tr>` instead of on the fragment — and fixed it before the gates rather than after.
-
-### Owed, unchanged
-
-The matrix gives the data somewhere to land. It does not produce data. EU and US stay empty until
-WO-17, `emission_factors` stays empty and unread until WO-18, and Market still ingests no price series
-(WO-16). What changed is that the emptiness is now legible instead of hidden.
 ## Addendum 23 — the paragraph-only renderer retired from three surfaces, and F25 corrected my structure (2026-08-18, Cowork session)
 
 WO-3 of the master execution plan, the operator's approved A1 ruling.
@@ -3917,3 +3831,155 @@ session's landed decision without a ruling is the same class of error as making 
 The renderer gives these surfaces correct rendering, not content. Market Intel ingests no price or
 index series; Operations holds 75 `regional_data_facts` rows with EU and US at zero; `emission_factors`
 is applied and empty. Honest emptiness replaces garbled output. Producers are WO-16/17/18.
+
+## Addendum 24 — Operations gets a cross-region matrix, and the page stops holding two coverage truths (2026-08-18, Cowork session)
+
+WO-9. The first work order that visibly changes a customer surface.
+
+### What the data actually is, checked before building anything
+
+5 regions (ASIA, EU, UAE, UK, US) × 5 sourced dimensions = 25 cells. 75 fact rows, all belonging to
+ASIA, UAE and UK — **EU and US hold zero on every dimension**. `regulatory_feasibility` has zero rows
+in `regional_data_facts` at all; D1 was being derived from regulation cross-references and then counted
+in the same n/N as the five fact-sourced dimensions.
+
+And the constraint that decided the scope: **`value` is free text.** A representative row reads
+`"AED 0.23–0.38/kWh (tiered); blended business rate approx. AED 0.405/kWh (USD 0.110/kWh) all-in"`.
+There is no numeric column, no unit column, no currency column, and no reference-period column.
+`source_id` is NULL on all 75 rows, so the only provenance is a free-text `source_note` with a URL in it.
+
+### What that means for the spec, stated rather than worked around
+
+Spec 04 component 2 asks for dual-layer cells: native value primary, index-vs-base secondary. **That is
+not computable on this schema.** An index needs a number and a unit; parsing one out of that string
+would invent precision the source never had, which the spec itself calls worse than a gap. So the
+matrix ships without an index, the base-region control REORDERS COLUMNS and its own label says so, and
+the index layer is recorded as blocked on WO-12's number envelope plus a schema migration. I would
+rather ship a comparison that is honest about what it cannot do than one that quietly fabricates.
+
+### What shipped
+
+`src/lib/operations/region-grid.mjs` — pure, and consumed by BOTH the new matrix and OperationsLedger's
+coverage rail, so the page has one computation home and cannot show two coverage numbers. Every figure
+it returns carries `basis: 'sourced-facts'`; cross-reference counts ride alongside and are never added
+in. It also RECONCILES `region_dimension_coverage` — a table that until now was fetched, threaded
+through the page, and consumed only by a `console.log` — against the facts present, and RETURNS the
+disagreements rather than silently preferring one source. The surface renders that mismatch.
+
+`RegionDimensionMatrix.tsx` — dimensions as rows, regions as columns, mounted above the accordions
+(which stay, as the per-region deep read). Selecting a dimension expands it into a side-by-side compare
+of that dimension's facts across every region, with per-fact provenance parsed out of `source_note` and
+the freshness state (including `frozen`, which is the honest label for rows whose sole writer was a
+hand-run one-shot). EU and US render as two empty columns with an explicit statement of why.
+
+That last part is the point. The register's ordering argument for doing this first is that a grid makes
+the EU/US hole visible in one glance, which correctly PRICES the producer work instead of hiding it
+behind closed panels. It now does.
+
+### Method note
+
+WO-3's first draft was caught by F25 for extracting a module with no production importer. This time the
+module had two real consumers by construction before the gate ran, and F25 passed. I also caught a
+React defect in my own component on review — fragments inside a `.map()` carrying the key on the child
+`<tr>` instead of on the fragment — and fixed it before the gates rather than after.
+
+### Owed, unchanged
+
+The matrix gives the data somewhere to land. It does not produce data. EU and US stay empty until
+WO-17, `emission_factors` stays empty and unread until WO-18, and Market still ingests no price series
+(WO-16). What changed is that the emptiness is now legible instead of hidden.
+
+## Addendum 25 — WO-4: the trap was disarmed, and the guard I planned to build already existed (2026-08-18, Cowork session)
+
+The operator called the v1 build plan sloppy, and he was right; this unit is the first one executed
+under v2's rule 0.15 (read every table and mechanism before building), and the rule immediately paid
+twice IN ONE WORK ORDER.
+
+**First payment: I did not build a redundant guard.** v1/v2 WO-4 said "add an automated check that
+runs both classifiers and fails if they disagree." Reading before building found the check ALREADY
+RUNNING IN CI: `vocab-drift-guard.test.mjs` regenerates migration 148's `surface_of()` CASE from
+`SURFACE_RULES` and asserts the migration embeds it byte-for-byte — the SQL is generated, never
+hand-edited. My planned parity check would have been a second mechanism for one invariant, the exact
+shape the meta-gate calls ORPHAN MECHANISM from the other direction. Recorded as plan correction C9.
+
+**Second payment: the fix I did make is smaller and sharper than planned.** The DB already guarantees
+`domain` NOT NULL + CHECK 1–7 (verified live: 0 out-of-range rows), so the `row.domain || 1` coalesce
+could never launder a NULL — the only thing it ever laundered was "this payload did not SELECT the
+column", silently classifying such rows as Regulations (and the reproduction test shows why that is a
+verdict: domain 1 OUTRANKS a market item_type in the precedence rules). Three mapper sites now emit
+`?? undefined`, "not fetched" reads as unclassified, and `domain-laundering.test.mjs` locks the
+pattern out of `supabase-server.ts` at source-text level.
+
+**Also landed: master execution plan v2 into the vault** (`docs/plans/master-execution-plan-2026-08-17.md`)
+with its corrections registry — nine v1 claims that did not survive reading the tables, including the
+two big ones: the number envelope and the `origin_class` vocabulary already exist in production schema
+(migration 258) and are to be EXTENDED, never re-invented. Until this commit the plan existed only in
+chat, which rule B7 should have caught earlier.
+
+Gates: 1389/1389, fitness 21/0, meta-gate PASS, tsc clean. Next per v2: WO-5 (orphan-field
+disposition table, ⛔ operator-gated) and WO-6 (tag-gap diagnosis, $0).
+## Addendum 26 — the operator ruled on everything at once, and the tag gap turned out to be one bulk import (2026-08-20, Cowork session)
+
+The operator issued rulings on the full decision queue in one message. Recorded here and on the board;
+the board's PENDING-OPERATOR section shrinks accordingly.
+
+### Rulings received 2026-08-20
+
+1. **Merge #470/#471/#472** — executed by me through the browser this session, in that order. #471 and
+   #472 each conflicted on `docs/PROGRAM-BOARD.md` + `docs/ops/session-log.md` (three PRs appending to
+   the same two files); resolved keep-both in GitHub's conflict editor. That editor's accept-both stacks
+   current-branch-first, which left the addenda numbered 25, 24, 23 top-to-bottom on master. This commit
+   reorders them 23, 24, 25 — blank-line-only diff plus the move, no content change (verified by
+   line-multiset equality before writing).
+2. **WO-6 → WO-7**: diagnosis now ($0, done below), fix approved in principle, **price still owed to the
+   operator before any metered call**. That gate stands.
+3. **WO-5**: full disposition table owed. Produced this session: `docs/ops/wo5-orphan-disposition-2026-08-20.md`.
+4. **WO-12.3**: the 75 free-text `regional_data_facts` rows are to be **RE-KEYED** through the envelope
+   (option A), not grandfathered.
+5. **WO-16.2**: **FEED** `published_price_statistics` from `market_series` first pass; retire later once
+   the series table is proven. Two sources of truth is a transitional state with an end date, not a design.
+6. **WO-19**: proceed as recommended — the live 7-value `origin_class` vocabulary is NOT widened; backfill
+   stamps what is derivable from source metadata; NULL explicitly documented as "pre-vocabulary".
+7. **U0 snapshot-parity residual**: **ACCEPTED AND CLOSED** on the #469 parity proof (digest match over
+   1,765 edges). The board row moves to CLOSED. A reconstructed snapshot would have been weaker evidence
+   than the parity run; the gap is recorded, not repaired, and that is the ruling.
+8. **Standing items UNBLOCKED**: U6 theme briefs (metered — price first, same discipline as WO-7),
+   Assistant spend cap (I owe a proposed number), doctrine seed wording (I owe a draft for approval),
+   T9 re-spec (I owe the re-spec). None of these executes without its stated gate clearing.
+
+### WO-6 — tag-gap root cause, measured, $0
+
+The question was why 645 of 806 flywheel-corpus items carry no scenario tags. The answer is one number:
+**tags are written only by the B.2 regeneration pipeline** (`parse-output.ts`, contract versions
+2026-04-29 / 2026-05-27) **and by seeded mints (U4)** — and the corpus outgrew both.
+
+Measured on live `intelligence_items` (1,062 rows):
+
+| Population | n | with scenario tags |
+|---|---|---|
+| Regenerated at 2026-05-27 contract | 210 | 208 (99%) |
+| Regenerated at 2026-04-29 contract | 95 | 89 (94%) |
+| Never regenerated | 757 | 15 (2%) |
+
+Of the 757 never-regenerated, **631 were created in August 2026** — a bulk import that went through
+neither the regeneration pipeline nor a seeded mint. The rest are pre-campaign leftovers. The monthly
+series makes it unambiguous: April 131/145 tagged, May 154/271, August **16/632**. The engine did not
+drift; the corpus was refilled underneath it through a side door.
+
+The fix does NOT require full regeneration. All 655 untagged non-archived items already hold their
+content in `intelligence_item_sections` (avg 6,589 chars, median 5,152, none under 500) — a tags-only
+classifier pass over stored content needs zero fetching. Priced for the operator: Haiku
+(the sanctioned classifier tier, generation-config model-tier rule) ≈ **$2–3 total**; Sonnet ≈ **$5–7**.
+Ruling owed on which tier and the cap before WO-7 runs. Spend ceiling context: $85 standing, ~$74 headroom.
+
+### WO-5 — disposition inventory, measured, $0
+
+Full table in `docs/ops/wo5-orphan-disposition-2026-08-20.md`. The plan's premise needed one correction:
+`signal_band` is NOT unread — `MarketIntelLedger` and `MarketSignalDetailSurface` both consume it and
+gate `TrajectoryBars` on it. The real inventory: `instrument_identifier` (675 rows) has four BACKEND
+consumers and zero user-facing display; `signal_band` (60 rows) is wired and sparse, a population
+problem not a wiring problem; `trajectory_points` (0 rows ever) has a wired, honestly-gated reader and
+a producer that has never fired; `marketData.currentPrice` has a reader and NO producer anywhere in
+`src/` — a dead interface field rendering em-dashes. Nothing in the inventory is deletable without
+breaking a real consumer except the `marketData` interface field itself, and that one is WO-13's call
+under the WO-16.2 feed ruling.
