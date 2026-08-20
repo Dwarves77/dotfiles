@@ -3756,3 +3756,33 @@ change is **comment-only** in `write-edges.mjs` (the ADR-018 directionality note
 this path. No git operation was performed there (RD-19). Its `node_modules` was an EMPTY directory and
 needed `npm ci` before anything would import — the same tooling gap that failed the pre-push `tsc` step
 on 2026-08-18; it is a missing toolchain, never a code error.
+
+## Addendum 25 — WO-4: the trap was disarmed, and the guard I planned to build already existed (2026-08-18, Cowork session)
+
+The operator called the v1 build plan sloppy, and he was right; this unit is the first one executed
+under v2's rule 0.15 (read every table and mechanism before building), and the rule immediately paid
+twice IN ONE WORK ORDER.
+
+**First payment: I did not build a redundant guard.** v1/v2 WO-4 said "add an automated check that
+runs both classifiers and fails if they disagree." Reading before building found the check ALREADY
+RUNNING IN CI: `vocab-drift-guard.test.mjs` regenerates migration 148's `surface_of()` CASE from
+`SURFACE_RULES` and asserts the migration embeds it byte-for-byte — the SQL is generated, never
+hand-edited. My planned parity check would have been a second mechanism for one invariant, the exact
+shape the meta-gate calls ORPHAN MECHANISM from the other direction. Recorded as plan correction C9.
+
+**Second payment: the fix I did make is smaller and sharper than planned.** The DB already guarantees
+`domain` NOT NULL + CHECK 1–7 (verified live: 0 out-of-range rows), so the `row.domain || 1` coalesce
+could never launder a NULL — the only thing it ever laundered was "this payload did not SELECT the
+column", silently classifying such rows as Regulations (and the reproduction test shows why that is a
+verdict: domain 1 OUTRANKS a market item_type in the precedence rules). Three mapper sites now emit
+`?? undefined`, "not fetched" reads as unclassified, and `domain-laundering.test.mjs` locks the
+pattern out of `supabase-server.ts` at source-text level.
+
+**Also landed: master execution plan v2 into the vault** (`docs/plans/master-execution-plan-2026-08-17.md`)
+with its corrections registry — nine v1 claims that did not survive reading the tables, including the
+two big ones: the number envelope and the `origin_class` vocabulary already exist in production schema
+(migration 258) and are to be EXTENDED, never re-invented. Until this commit the plan existed only in
+chat, which rule B7 should have caught earlier.
+
+Gates: 1389/1389, fitness 21/0, meta-gate PASS, tsc clean. Next per v2: WO-5 (orphan-field
+disposition table, ⛔ operator-gated) and WO-6 (tag-gap diagnosis, $0).
