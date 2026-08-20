@@ -3786,3 +3786,134 @@ chat, which rule B7 should have caught earlier.
 
 Gates: 1389/1389, fitness 21/0, meta-gate PASS, tsc clean. Next per v2: WO-5 (orphan-field
 disposition table, ⛔ operator-gated) and WO-6 (tag-gap diagnosis, $0).
+
+## Addendum 24 — Operations gets a cross-region matrix, and the page stops holding two coverage truths (2026-08-18, Cowork session)
+
+WO-9. The first work order that visibly changes a customer surface.
+
+### What the data actually is, checked before building anything
+
+5 regions (ASIA, EU, UAE, UK, US) × 5 sourced dimensions = 25 cells. 75 fact rows, all belonging to
+ASIA, UAE and UK — **EU and US hold zero on every dimension**. `regulatory_feasibility` has zero rows
+in `regional_data_facts` at all; D1 was being derived from regulation cross-references and then counted
+in the same n/N as the five fact-sourced dimensions.
+
+And the constraint that decided the scope: **`value` is free text.** A representative row reads
+`"AED 0.23–0.38/kWh (tiered); blended business rate approx. AED 0.405/kWh (USD 0.110/kWh) all-in"`.
+There is no numeric column, no unit column, no currency column, and no reference-period column.
+`source_id` is NULL on all 75 rows, so the only provenance is a free-text `source_note` with a URL in it.
+
+### What that means for the spec, stated rather than worked around
+
+Spec 04 component 2 asks for dual-layer cells: native value primary, index-vs-base secondary. **That is
+not computable on this schema.** An index needs a number and a unit; parsing one out of that string
+would invent precision the source never had, which the spec itself calls worse than a gap. So the
+matrix ships without an index, the base-region control REORDERS COLUMNS and its own label says so, and
+the index layer is recorded as blocked on WO-12's number envelope plus a schema migration. I would
+rather ship a comparison that is honest about what it cannot do than one that quietly fabricates.
+
+### What shipped
+
+`src/lib/operations/region-grid.mjs` — pure, and consumed by BOTH the new matrix and OperationsLedger's
+coverage rail, so the page has one computation home and cannot show two coverage numbers. Every figure
+it returns carries `basis: 'sourced-facts'`; cross-reference counts ride alongside and are never added
+in. It also RECONCILES `region_dimension_coverage` — a table that until now was fetched, threaded
+through the page, and consumed only by a `console.log` — against the facts present, and RETURNS the
+disagreements rather than silently preferring one source. The surface renders that mismatch.
+
+`RegionDimensionMatrix.tsx` — dimensions as rows, regions as columns, mounted above the accordions
+(which stay, as the per-region deep read). Selecting a dimension expands it into a side-by-side compare
+of that dimension's facts across every region, with per-fact provenance parsed out of `source_note` and
+the freshness state (including `frozen`, which is the honest label for rows whose sole writer was a
+hand-run one-shot). EU and US render as two empty columns with an explicit statement of why.
+
+That last part is the point. The register's ordering argument for doing this first is that a grid makes
+the EU/US hole visible in one glance, which correctly PRICES the producer work instead of hiding it
+behind closed panels. It now does.
+
+### Method note
+
+WO-3's first draft was caught by F25 for extracting a module with no production importer. This time the
+module had two real consumers by construction before the gate ran, and F25 passed. I also caught a
+React defect in my own component on review — fragments inside a `.map()` carrying the key on the child
+`<tr>` instead of on the fragment — and fixed it before the gates rather than after.
+
+### Owed, unchanged
+
+The matrix gives the data somewhere to land. It does not produce data. EU and US stay empty until
+WO-17, `emission_factors` stays empty and unread until WO-18, and Market still ingests no price series
+(WO-16). What changed is that the emptiness is now legible instead of hidden.
+## Addendum 23 — the paragraph-only renderer retired from three surfaces, and F25 corrected my structure (2026-08-18, Cowork session)
+
+WO-3 of the master execution plan, the operator's approved A1 ruling.
+
+### What was wrong
+
+`regulations/sections/ProseSection.tsx` is 94 lines: split on blank lines, emit `<p>`, inline
+bold/italic/code/link. No table, no list, no heading. Its docstring scopes it to "the tight
+2-3-paragraph surface the mockup specifies" and names the escape hatch: "callers can swap in
+IntelligenceBrief's renderer." Operations, Market Intel and Research imported it anyway.
+
+Measured, not assumed: across `intelligence_item_sections`, 978 sections carry a markdown table, 714 a
+bullet list, 213 a numbered list, 2,870 a heading. On the three surfaces that reuse it, **114 of 116
+items** hold content it cannot draw. A GFM table reaching ProseSection renders as a paragraph of pipe
+characters. This was breaking live pages, not merely blocking future comparative work.
+
+The defect is precise: a renderer built for tight regulation prose, reused on three surfaces whose
+content is tabular. Not a missing capability — react-markdown and remark-gfm were already installed
+and already used by two components in `resource/`.
+
+### What shipped
+
+`components/shared/GfmSection.tsx` — same libraries, a section-scoped component map (table with an
+overflow wrapper so a wide matrix scrolls rather than clips, thead/th/td, ul/ol/li, in-content
+headings rendered subordinate to the section title, code/link/blockquote/hr). Paragraph style copied
+byte-for-byte from ProseSection so sections that were already prose render identically; only content
+ProseSection was destroying changes appearance. IntelligenceBrief's `createComponents` was NOT lifted:
+it is brief-scoped, takes a `briefId`, and its heading overrides carry per-brief anchor identity that
+has no meaning on a section.
+
+10 call sites moved. RegulationSections keeps ProseSection deliberately.
+
+### F25 caught a real defect in my structure, and the fix was to delete, not to allowlist
+
+My first draft extracted block detection to `src/lib/render/section-markdown.mjs` with 9 passing
+tests. F25 module-liveness went RED: **UNWIRED MODULE — no production importer.** The gate was right.
+I had extracted logic for testability and then never called it from the component — remediation
+-discipline category 21 in its literal form, on the very unit whose point is that a green suite over a
+dormant thing looks exactly like a green suite over a live one.
+
+Three options existed and two were wrong. Manufacturing a consumer inside GfmSection to satisfy the
+gate would have been a fake caller. An allowlist entry would have been a misuse of a mechanism meant
+for documented dormancy awaiting an operator ruling. I deleted the module and its test, reverted the
+`run-test-suite.sh` glob line I had added for it, and moved the proof to where it is actually
+load-bearing: `src/__tests__/prose-renderer-scope.test.mjs`, which asserts the renderer WIRING rather
+than re-testing a markdown library.
+
+Proven by attack, not by presence: re-pointing Operations back to ProseSection turns the guard RED
+3/5; restoring returns GREEN 5/5.
+
+### A refuted finding from Addendum 21, recorded because the record is now wrong
+
+Addendum 21 states that `pair-view.test.mjs` "was executed by nothing" and that "#467's CI was green
+because the test never ran", and renamed it to `pair-view.npmtest.mjs` on that basis.
+
+That claim does not survive checking. `run-test-suite.sh` line 97 carried
+`fsi-app/src/lib/connections/*.test.mjs` **at #467 and at its parent 39759e9** — verified with
+`git show <sha>:...` on both. `discipline.yml:209` invokes that script as the "Discipline engine unit
+tests" job. Executing that exact glob against #467's tree runs pair-view's 8 tests (they appear as
+subtests 41-48). And the arithmetic corroborates from a third direction: this session measures the
+master baseline at **1386**, while #467 measured **1394** — a delta of exactly the 8 pair-view tests,
+which is only possible if they were running in that lane.
+
+Consequence of the rename: a test with no npm dependencies now sits in the lane reserved for
+npm-dependent proofs. It still executes (that lane globs `src/**/*.npmtest.mjs`), so nothing is
+broken and no action is urgent — but the file is misclassified and the vault records a finding that
+is false. Left for the operator to rule on rather than silently reverted, because reversing another
+session's landed decision without a ruling is the same class of error as making one.
+
+### Owed, unchanged
+
+The renderer gives these surfaces correct rendering, not content. Market Intel ingests no price or
+index series; Operations holds 75 `regional_data_facts` rows with EU and US at zero; `emission_factors`
+is applied and empty. Honest emptiness replaces garbled output. Producers are WO-16/17/18.

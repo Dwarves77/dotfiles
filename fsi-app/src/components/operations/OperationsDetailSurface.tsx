@@ -39,7 +39,7 @@ import type { Resource, ItemConnection, Supersession } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import type { MatrixEligibility } from "@/lib/agent/formats/operations-matrix";
 import type { ItemRelevance } from "@/lib/workspace/profile";
-import { ProseSection } from "@/components/regulations/sections/ProseSection";
+import { GfmSection } from "@/components/shared/GfmSection";
 import { TIER_LABELS } from "@/lib/tier-labels";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
@@ -390,7 +390,7 @@ function OperationsSectionCard({
           </p>
         ) : (
           /* Reuse the platform's shared prose renderer — not re-implemented. */
-          <ProseSection markdown={contentMd} />
+          <GfmSection markdown={contentMd} />
         )}
       </div>
     </section>

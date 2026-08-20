@@ -95,6 +95,7 @@ node --test \
   fsi-app/src/lib/tier-labels.test.mjs \
   fsi-app/src/lib/workspace/*.test.mjs \
   fsi-app/src/lib/connections/*.test.mjs \
+  fsi-app/src/lib/operations/*.test.mjs \
   fsi-app/src/lib/entities/*.test.mjs \
   fsi-app/src/lib/intake/*.test.mjs \
   fsi-app/src/lib/agent/*.test.mjs \
