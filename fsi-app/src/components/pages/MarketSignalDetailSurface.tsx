@@ -34,7 +34,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import Link from "next/link";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { WatchButton } from "@/components/ui/WatchButton";
-import { ProseSection } from "@/components/regulations/sections/ProseSection";
+import { GfmSection } from "@/components/shared/GfmSection";
 import { TrajectoryBars } from "@/components/market/TrajectoryBars";
 import {
   extractRegulationSections,
@@ -440,7 +440,7 @@ export function MarketSignalDetailSurface({
           {tab === "moving" && (
             <SectionCard title="What's moving and what triggered it">
               {sectionMap["1"] ? (
-                <ProseSection markdown={sectionMap["1"]} />
+                <GfmSection markdown={sectionMap["1"]} />
               ) : (
                 <PendingFrame header="Movement analysis pending">
                   What moved and what triggered it appears here once the signal brief is generated for
@@ -458,7 +458,7 @@ export function MarketSignalDetailSurface({
             <SectionCard title="Operational and cost implications by mode">
               {sectionMap["4"] ? (
                 <>
-                  <ProseSection markdown={sectionMap["4"]} />
+                  <GfmSection markdown={sectionMap["4"]} />
                   <p style={{ fontSize: 11.5, lineHeight: 1.5, color: C.muted, margin: "14px 0 0" }}>
                     Per-mode cost facts (Air / Road / Ocean) as first-class sourced records land with the
                     state-level cost-fact backend. Where a mode lacks a sourced figure it reads as an em-dash,
@@ -477,7 +477,7 @@ export function MarketSignalDetailSurface({
           {tab === "talking" && (
             <SectionCard title="Client conversation talking points">
               {sectionMap["6"] ? (
-                <ProseSection markdown={sectionMap["6"]} />
+                <GfmSection markdown={sectionMap["6"]} />
               ) : (
                 <PendingFrame header="Talking points pending">
                   What the workspace can credibly say, the pitfalls to avoid, and the questions to pose to
@@ -654,12 +654,12 @@ function DriversTab({ r, sectionMap, band }: { r: Resource; sectionMap: Record<s
     <>
       {sectionMap["2"] && (
         <SectionCard title="Who's driving it and what they want">
-          <ProseSection markdown={sectionMap["2"]} />
+          <GfmSection markdown={sectionMap["2"]} />
         </SectionCard>
       )}
       {sectionMap["3"] && (
         <SectionCard title="Expected trajectory and conversion triggers">
-          <ProseSection markdown={sectionMap["3"]} />
+          <GfmSection markdown={sectionMap["3"]} />
         </SectionCard>
       )}
       {r.conversionTrigger && (
@@ -686,7 +686,7 @@ function DriversTab({ r, sectionMap, band }: { r: Resource; sectionMap: Record<s
       )}
       {sectionMap["5"] && (
         <SectionCard title="Competitive implications">
-          <ProseSection markdown={sectionMap["5"]} />
+          <GfmSection markdown={sectionMap["5"]} />
         </SectionCard>
       )}
       {!anySection && !hasTrajectory && !r.conversionTrigger && (
@@ -759,7 +759,7 @@ function DoNowTab({ r, sectionMap }: { r: Resource; sectionMap: Record<string, s
   return (
     <SectionCard title="What the workspace should do now">
       {sectionMap["7"] ? (
-        <ProseSection markdown={sectionMap["7"]} />
+        <GfmSection markdown={sectionMap["7"]} />
       ) : (
         <PendingFrame header="Recommended actions pending">
           The actions the workspace should take — with owners and deadlines — appear here once the signal brief
@@ -831,7 +831,7 @@ function SourcesTab({ r, sectionMap, band }: { r: Resource; sectionMap: Record<s
 
       {sectionMap["8"] && (
         <SectionCard title="Source notes">
-          <ProseSection markdown={sectionMap["8"]} />
+          <GfmSection markdown={sectionMap["8"]} />
         </SectionCard>
       )}
 
