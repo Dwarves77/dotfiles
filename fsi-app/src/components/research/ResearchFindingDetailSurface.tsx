@@ -35,7 +35,7 @@ import Link from "next/link";
 import type { Resource, ItemConnection, Supersession } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import type { ItemRelevance } from "@/lib/workspace/profile";
-import { ProseSection } from "@/components/regulations/sections/ProseSection";
+import { GfmSection } from "@/components/shared/GfmSection";
 import { TIER_LABELS } from "@/lib/tier-labels";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
@@ -75,7 +75,7 @@ interface Props {
 // Renders the 6 Research Summary sections from intelligence_item_sections rows.
 // Section keys "1"–"6" map to the canonical Research Summary headings per
 // analysis-construction-spec SKILL.md §7 and system-prompt.ts lines 213-220.
-// Each section is a SectionCard with a prose body (ProseSection-style inline
+// Each section is a SectionCard with a prose body (GfmSection-style inline
 // markdown). The Sources section (key "6") is rendered as a plain source list.
 //
 // Integrity-preserving: rows with empty content_md produce no card. The block
@@ -179,7 +179,7 @@ function ResearchSectionCard({
       </div>
       {/* Section body — shared generic prose renderer (reused, not re-implemented). */}
       <div style={{ padding: "18px 22px 22px" }}>
-        <ProseSection markdown={contentMd} />
+        <GfmSection markdown={contentMd} />
       </div>
     </section>
   );
