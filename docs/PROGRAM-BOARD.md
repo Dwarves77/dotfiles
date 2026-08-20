@@ -1415,3 +1415,13 @@ beforehand, so the prior state is the empty set and the run is undone by a `DELE
 analyze-corpus run over a non-empty `connection_themes` MUST go through the guarded path or
 replicate its snapshot** — the empty-table argument does not generalize, and this is the one place
 this lane is weaker than the sanctioned one.
+
+## Guards thread — WO-4 EXECUTED, and half of it turned out to already exist (2026-08-18)
+
+| State | Item | Evidence |
+|---|---|---|
+| **DONE-BY-EXISTING-MECHANISM (found, not built)** | Classifier-drift guard between the TS and SQL surface classifiers | `[CONFIRMED]` `vocab-drift-guard.test.mjs` regenerates migration 148's `surface_of()` CASE from `SURFACE_RULES` (`renderSurfaceOfSql()`) and asserts byte-equality in CI; the SQL is GENERATED, never hand-edited. Building the planned parity check would have been a SECOND mechanism for one invariant — caught by reading before building (plan v2 correction C9). Write-time guard also exists: `domain` is NOT NULL + CHECK 1–7 at the DB, 0 out-of-range rows |
+| **DONE** | Null-domain laundering trap removed | 3 mapper sites in `supabase-server.ts` (611/1152/2539) changed `row.domain \|\| 1` → `?? undefined`. Because the DB forbids null, the ONLY value the coalesce ever laundered was "column not selected by this payload" — which now reads as unclassified instead of a Regulations verdict. `item-links.ts`'s IMPORTANT note updated from warning to fixed-record |
+| Proof | `src/__tests__/domain-laundering.test.mjs` (3 tests, in the `__tests__` glob) | Locks the pattern out at source-text level (the vocab-drift/F26 idiom); pins `surfaceOf(unknown, null) = uncategorized`; REPRODUCES the laundering (`surfaceOf('market_signal', 1) = 'regulations'` — domain 1 outranks the market item_type, which is exactly why a default of 1 was a verdict) |
+| Gates | suite **1389/1389** (1386+3), fitness 21/0, meta-gate PASS, tsc clean | — |
+| Also in this PR | **Master execution plan v2 lands in the vault** (`docs/plans/master-execution-plan-2026-08-17.md`) | v1 existed only in chat; v2 is schema-verified with a 9-item corrections registry and per-table Appendix A. Rule 0.15: no WO starts without re-reading its tables |
