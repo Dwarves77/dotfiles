@@ -64,10 +64,12 @@ export type DetailSurface = "regulations" | "market" | "operations" | "research"
  * fallback is a data-layer decision about the null-domain population, not a
  * routing one, and belongs with that remediation rather than here.
  *
- * IMPORTANT — pass the RAW `intelligence_items.item_type` / `.domain`. Several
- * row mappers coalesce a null domain to 1 (`row.domain || 1`), which makes an
- * unclassified row of ANY item_type answer "regulations" via the domain rule.
- * Classifying off a coalesced value launders a defect into a verdict.
+ * IMPORTANT — pass the RAW `intelligence_items.item_type` / `.domain`. Row
+ * mappers historically coalesced a missing domain to 1 (`row.domain || 1`),
+ * which made an unclassified row of ANY item_type answer "regulations" via the
+ * domain rule; classifying off a coalesced value launders a defect into a
+ * verdict. Fixed 2026-08-18 (WO-4): mappers emit `row.domain ?? undefined`, and
+ * domain-laundering.test.mjs locks the pattern out of supabase-server.ts.
  */
 export function canonicalSurfaceForItem(item: {
   type?: string | null;

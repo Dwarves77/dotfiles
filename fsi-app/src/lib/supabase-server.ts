@@ -608,7 +608,11 @@ async function fetchWorkspaceResources(
       // column; row.full_brief is undefined and Resource.fullBrief stays
       // undefined — list surfaces never read it.
       fullBrief: row.full_brief || undefined,
-      domain: row.domain || 1,
+      // WO-4 (2026-08-18): never coalesce domain. The DB guarantees NOT NULL + CHECK 1-7, so a
+      // missing value here means the payload did not SELECT the column - and "not fetched" must
+      // read as unclassified, never as Regulations. `|| 1` made an unselected domain answer
+      // domain=1: the laundering item-links.ts warns about (classifying off a coalesced value).
+      domain: row.domain ?? undefined,
       timeline: (timelines || []).map((t: any) => ({
         date: t.milestone_date,
         label: t.label,
@@ -1149,7 +1153,8 @@ function rpcRowToResource(row: any): Resource {
     whyMatters: row.why_matters || "",
     keyData: row.key_data || [],
     fullBrief: row.full_brief || undefined,
-    domain: row.domain || 1,
+    // WO-4 (2026-08-18): never coalesce domain - see the note at the first mapper site.
+    domain: row.domain ?? undefined,
     timeline: [],
     modes: row.transport_modes || [],
     topic: row.category || undefined,
@@ -2536,7 +2541,8 @@ async function fetchIntelligenceItemUncached(
       whyMatters: row.why_matters || "",
       keyData: row.key_data || [],
       fullBrief: row.full_brief || undefined,
-      domain: row.domain || 1,
+      // WO-4 (2026-08-18): never coalesce domain - see the note at the first mapper site.
+      domain: row.domain ?? undefined,
       timeline: (timelineRows || []).map((t: any) => ({
         date: t.milestone_date,
         label: t.label,
@@ -2671,7 +2677,7 @@ async function fetchIntelligenceItemUncached(
     };
 
     // SURFACE ADMISSION (2026-08-11). Computed from the RAW row, deliberately
-    // NOT from `resource` — the mapper above coalesces `domain: row.domain || 1`,
+    // NOT from `resource` — the mapper above emits `domain: row.domain ?? undefined` (WO-4),
     // which would classify every unclassified row as Regulations regardless of
     // item_type and launder a defect into a verdict. The four `[slug]` routes
     // compare this against their own surface and 404 on mismatch; see
