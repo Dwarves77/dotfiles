@@ -35,6 +35,8 @@ import type { OperationsCoverageData, OperationsFact } from "@/lib/supabase-serv
 import { OperationsItemsView } from "@/components/operations/OperationsItemsView";
 import { isRegulationItem } from "@/lib/regulation-item-types";
 import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
+import { RegionDimensionMatrix } from "@/components/operations/RegionDimensionMatrix";
+import { buildRegionGrid } from "@/lib/operations/region-grid.mjs";
 
 // ── Severity vocabulary (Operations: Critical / High / Moderate / Low) ──
 // Hues + tints reuse the --reg-band-* tokens (identical hex in the mock).
@@ -81,6 +83,11 @@ const DIMENSIONS: Dimension[] = [
   { num: 5, key: "infrastructure", db: "infrastructure", name: "Infrastructure capacity", summary: "Port dwell, air-cargo capacity, shore power, and electric-truck charging. Where lanes flow and where they bottleneck." },
   { num: 6, key: "cost", db: "operational_cost", name: "Operational cost data", summary: "Per-unit grid, fuel, handling, and drayage rates. The cost-baseline inputs for tender pricing and pass-through math." },
 ];
+
+// The five dimensions with rows in regional_data_facts. D1 (regulatory_feasibility) is NOT one of
+// them — zero rows, derived from regulation cross-references — so it is excluded here and counted
+// separately wherever coverage is reported (spec 04 §10: two contradictory truths for D1).
+const SOURCED_DIMENSIONS = DIMENSIONS.filter((d) => d.key !== "regulatory");
 
 // Short dimension names for the chip strip (mock uses first two words).
 const DIM_SHORT: Record<string, string> = {
@@ -315,17 +322,45 @@ export function OperationsLedger({
   // Dimension coverage (regions with data / total regions). Computed, never
   // hard-coded. D1 counts regions with ≥1 regulation; D2–D6 count regions with
   // ≥1 live fact.
+  // ONE computation home (WO-9). This is the same module RegionDimensionMatrix renders, so the
+  // coverage rail and the matrix cannot disagree on this page. D1 (regulatory) counts from regulation
+  // cross-references and the other five from sourced facts — two populations, never summed into one
+  // figure; the module returns each carrying its basis.
+  const sharedGrid = useMemo(
+    () =>
+      buildRegionGrid({
+        regionKeys: regions.map((r) => r.key),
+        sourcedDimensions: SOURCED_DIMENSIONS.map((d) => d.db),
+        facts: (operationsCoverage?.facts ?? []).map((f) => ({
+          regionKey: f.region_code,
+          dimension: f.dimension,
+          factLabel: f.fact_label,
+          lastUpdated: f.last_updated,
+        })),
+        coverageRows: (operationsCoverage?.coverage ?? []).map((c) => ({
+          regionKey: c.region_code,
+          dimension: c.dimension,
+          state: c.state,
+          factCount: c.fact_count,
+        })),
+        crossRefCountsByRegion: Object.fromEntries(regions.map((r) => [r.key, regsByRegion[r.key]?.length ?? 0])),
+      }),
+    [regions, operationsCoverage, regsByRegion]
+  );
+
   const dimCoverage = useMemo(() => {
     const cov: Record<string, number> = {};
+    const byDb: Record<string, number> = Object.fromEntries(
+      sharedGrid.dimensionCoverage.map((d: { dimension: string; filled: number }) => [d.dimension, d.filled])
+    );
     for (const d of DIMENSIONS) {
-      if (d.key === "regulatory") {
-        cov[d.key] = regions.filter((r) => (regsByRegion[r.key]?.length ?? 0) > 0).length;
-      } else {
-        cov[d.key] = regions.filter((r) => factsFor(r.key, d.key).length > 0).length;
-      }
+      cov[d.key] =
+        d.key === "regulatory"
+          ? regions.filter((r) => (regsByRegion[r.key]?.length ?? 0) > 0).length
+          : byDb[d.db] ?? 0;
     }
     return cov;
-  }, [regions, regsByRegion, factsFor]);
+  }, [regions, regsByRegion, sharedGrid]);
 
   const regionCount = regions.length;
 
@@ -459,6 +494,17 @@ export function OperationsLedger({
           Loading the full ledger…
         </p>
       )}
+
+      {/* ── WO-9: regions side by side, BEFORE the per-region accordions ──
+          Spec 04 acceptance 1: two regions on one axis for one dimension without expanding
+          accordions. The accordions below stay as the per-region deep read. */}
+      <RegionDimensionMatrix
+        regions={regions.map((r) => ({ key: r.key, label: r.label }))}
+        dimensions={SOURCED_DIMENSIONS.map((d) => ({ key: d.key, db: d.db, name: d.name }))}
+        facts={operationsCoverage?.facts ?? []}
+        coverageRows={operationsCoverage?.coverage ?? []}
+        crossRefCountsByRegion={Object.fromEntries(regions.map((r) => [r.key, regsByRegion[r.key]?.length ?? 0]))}
+      />
 
       {/* ── Two-column grid ── */}
       <div id="ops-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 280px", gap: 24, alignItems: "start" }} className="cl-ops-grid">
