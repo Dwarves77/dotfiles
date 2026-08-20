@@ -3756,3 +3756,78 @@ change is **comment-only** in `write-edges.mjs` (the ADR-018 directionality note
 this path. No git operation was performed there (RD-19). Its `node_modules` was an EMPTY directory and
 needed `npm ci` before anything would import — the same tooling gap that failed the pre-push `tsc` step
 on 2026-08-18; it is a missing toolchain, never a code error.
+
+## Addendum 23 — the paragraph-only renderer retired from three surfaces, and F25 corrected my structure (2026-08-18, Cowork session)
+
+WO-3 of the master execution plan, the operator's approved A1 ruling.
+
+### What was wrong
+
+`regulations/sections/ProseSection.tsx` is 94 lines: split on blank lines, emit `<p>`, inline
+bold/italic/code/link. No table, no list, no heading. Its docstring scopes it to "the tight
+2-3-paragraph surface the mockup specifies" and names the escape hatch: "callers can swap in
+IntelligenceBrief's renderer." Operations, Market Intel and Research imported it anyway.
+
+Measured, not assumed: across `intelligence_item_sections`, 978 sections carry a markdown table, 714 a
+bullet list, 213 a numbered list, 2,870 a heading. On the three surfaces that reuse it, **114 of 116
+items** hold content it cannot draw. A GFM table reaching ProseSection renders as a paragraph of pipe
+characters. This was breaking live pages, not merely blocking future comparative work.
+
+The defect is precise: a renderer built for tight regulation prose, reused on three surfaces whose
+content is tabular. Not a missing capability — react-markdown and remark-gfm were already installed
+and already used by two components in `resource/`.
+
+### What shipped
+
+`components/shared/GfmSection.tsx` — same libraries, a section-scoped component map (table with an
+overflow wrapper so a wide matrix scrolls rather than clips, thead/th/td, ul/ol/li, in-content
+headings rendered subordinate to the section title, code/link/blockquote/hr). Paragraph style copied
+byte-for-byte from ProseSection so sections that were already prose render identically; only content
+ProseSection was destroying changes appearance. IntelligenceBrief's `createComponents` was NOT lifted:
+it is brief-scoped, takes a `briefId`, and its heading overrides carry per-brief anchor identity that
+has no meaning on a section.
+
+10 call sites moved. RegulationSections keeps ProseSection deliberately.
+
+### F25 caught a real defect in my structure, and the fix was to delete, not to allowlist
+
+My first draft extracted block detection to `src/lib/render/section-markdown.mjs` with 9 passing
+tests. F25 module-liveness went RED: **UNWIRED MODULE — no production importer.** The gate was right.
+I had extracted logic for testability and then never called it from the component — remediation
+-discipline category 21 in its literal form, on the very unit whose point is that a green suite over a
+dormant thing looks exactly like a green suite over a live one.
+
+Three options existed and two were wrong. Manufacturing a consumer inside GfmSection to satisfy the
+gate would have been a fake caller. An allowlist entry would have been a misuse of a mechanism meant
+for documented dormancy awaiting an operator ruling. I deleted the module and its test, reverted the
+`run-test-suite.sh` glob line I had added for it, and moved the proof to where it is actually
+load-bearing: `src/__tests__/prose-renderer-scope.test.mjs`, which asserts the renderer WIRING rather
+than re-testing a markdown library.
+
+Proven by attack, not by presence: re-pointing Operations back to ProseSection turns the guard RED
+3/5; restoring returns GREEN 5/5.
+
+### A refuted finding from Addendum 21, recorded because the record is now wrong
+
+Addendum 21 states that `pair-view.test.mjs` "was executed by nothing" and that "#467's CI was green
+because the test never ran", and renamed it to `pair-view.npmtest.mjs` on that basis.
+
+That claim does not survive checking. `run-test-suite.sh` line 97 carried
+`fsi-app/src/lib/connections/*.test.mjs` **at #467 and at its parent 39759e9** — verified with
+`git show <sha>:...` on both. `discipline.yml:209` invokes that script as the "Discipline engine unit
+tests" job. Executing that exact glob against #467's tree runs pair-view's 8 tests (they appear as
+subtests 41-48). And the arithmetic corroborates from a third direction: this session measures the
+master baseline at **1386**, while #467 measured **1394** — a delta of exactly the 8 pair-view tests,
+which is only possible if they were running in that lane.
+
+Consequence of the rename: a test with no npm dependencies now sits in the lane reserved for
+npm-dependent proofs. It still executes (that lane globs `src/**/*.npmtest.mjs`), so nothing is
+broken and no action is urgent — but the file is misclassified and the vault records a finding that
+is false. Left for the operator to rule on rather than silently reverted, because reversing another
+session's landed decision without a ruling is the same class of error as making one.
+
+### Owed, unchanged
+
+The renderer gives these surfaces correct rendering, not content. Market Intel ingests no price or
+index series; Operations holds 75 `regional_data_facts` rows with EU and US at zero; `emission_factors`
+is applied and empty. Honest emptiness replaces garbled output. Producers are WO-16/17/18.
