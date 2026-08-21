@@ -3983,3 +3983,119 @@ a producer that has never fired; `marketData.currentPrice` has a reader and NO p
 `src/` — a dead interface field rendering em-dashes. Nothing in the inventory is deletable without
 breaking a real consumer except the `marketData` interface field itself, and that one is WO-13's call
 under the WO-16.2 feed ruling.
+
+## Addendum 27 — WO-7 landed free, WO-8's formula had a pole in it, and the flywheel finally sheared (2026-08-20/21, Cowork session)
+
+Two work orders, one session boundary crossed at midnight. WO-7 (tag backfill) closed clean. WO-8
+(theme re-score) found a defect in its OWN approved formula before a line of it was coded, which
+changed the plan mid-flight — recorded here as the operator's ruling, not mine.
+
+### WO-7 — tag backfill, $0, session-executor via MCP transport (2026-08-20)
+
+655 targets: untagged, non-archived, content already stored in `intelligence_item_sections` (the
+population WO-6 measured). Rule-015 discipline held even without the guarded path — a snapshot was
+taken BEFORE any write (`snapshot-prior.json`, md5 `7c15b971…`, 655 rows) so the run is reversible on
+paper even though it did not go through `db.mjs`.
+
+Result: **414 newly tagged, 241 honest empties.** No forced tags — 241 rows had content that did not
+support a scenario/compliance tag under the same classifier discipline the regeneration pipeline uses,
+and they were left untagged rather than stamped with something defensible-looking. Populations outside
+scope were verified untouched, not just assumed untouched:
+
+| population | before | after | note |
+|---|---|---|---|
+| regenerated rows (208 + 89) | 297 | 297 | untouched, verified pre/post |
+| `signal_band` | 60 | 60 | untouched; no `market_signal_brief` rows in the population |
+| corpus scenario coverage | 312 items | **726 items** | |
+| compliance coverage | 315 items | **845 items** | |
+
+~30 deliberate new open-vocabulary tags were minted where the existing vocabulary had no honest fit,
+in families: `customs-transit`, `tir-carnet-transit`, `dangerous-goods-transport-{road,rail,inland-
+waterway}`, `air-carrier-operating-ban`, `road-transit-permit-quota`, `rail-freight-corridor`,
+`air-navigation-charges`, and others. These are additive open-vocabulary tags, not a schema change.
+
+**The number that mattered for WO-8:** the largest tag after backfill is
+`emissions-reporting-Scope3` at **162/726 (22%)**. WO-7 closed its own ticket cleanly and, in the same
+motion, built the skewed frequency distribution that broke WO-8's approved formula the next day.
+
+### WO-8 — the approved formula had a pole in it, found before coding (2026-08-21)
+
+Before writing a line of the re-score, I checked the approved reciprocal idf form against the actual
+tag-frequency distribution WO-7 had just produced, per rule 0.15 (read the tables before building).
+The form is:
+
+```
+1 / (1 + log2(f / R))
+```
+
+This has a **division-by-zero pole at f = R/2** and a **sign inversion below it** — for any tag
+frequency under half the reference frequency, the denominator goes negative and the formula returns a
+negative weight that, once clamped, floors the tag instead of boosting it. That is the exact opposite
+of what an idf-style term is for: rare tags should score HIGHER, not get clamped to the floor.
+
+Verified live rather than argued from the algebra: with **REF_FREQ = 9**, **23 of the 79 eligible
+tags fall in the broken range** (f < 4.5) — nearly a third of the vocabulary would have been actively
+punished by the term meant to reward its rarity.
+
+**Operator ruling:** adopt the linear-log form `clamp(1 - 0.25 * log2(f/R), 0.25, 1.0)` instead, hitting
+the same two anchor points as the original (weight 1.0 at f=R, floor 0.25 at f=8R) but
+without the pole. The operator also ruled a process principle worth recording verbatim in spirit: **when
+a better path is found mid-plan, reevaluate rather than ride the approved-but-worse path** — the ADR
+records measured alternatives, not just argued ones. The pole was found by reading the numbers, not by
+disliking the math; the ruling was made the same way.
+
+### Comparative replay, not argument: three variants measured offline
+
+Rather than defend the linear-log form on paper, all three candidate idf forms were run offline over the
+same 806-item snapshot through the repo's own clustering modules — no reimplementation, no simulated
+scoring:
+
+| variant | themes | largest theme | share | verdict |
+|---|---|---|---|---|
+| flat (no idf term) | 36 | 140 | 19.3% | **FAIL** — generic hub (OECD ITF pivot swallows everything near it) |
+| linear-log (ruled form) | 39 | 77 | 10.6% | **PASS** |
+| power(-2/3) | 38 | 96 | 13.2% | pass, but worse than linear-log |
+
+Linear-log was adopted **by measurement**, not by the strength of the argument for it — it produced the
+smallest generic hub of the three and was the only one that both passed the hub-size gate and matched
+the operator-ruled formula shape.
+
+### Phase 4 DB write — multi-agent, one writer per system
+
+Executed with a Fable coordinator and Sonnet executor shards, one writer per system (no two agents
+writing the same table). Result: **81 upsert batches / 4,025 rows**, **593 stale `pd` edges deleted**,
+themes **4 → 39 replaced**, ledger row `7afa4960` closed `ok`.
+
+**Deviation D1, recorded honestly rather than smoothed over:** executor shard 3's first batch-29
+transmission dropped 3 of its 50 payload rows in transit (server reported `written: 47`). The per-batch
+row-count gate caught the mismatch immediately — before the run continued past it. The coordinator
+re-applied batch 29 verbatim from disk (`written: 50`, correct), and every remaining batch ran with a
+server-side payload-md5 self-check added on the spot: the write statement returns the md5 of the
+payload the server actually received, checked against the md5 computed locally before send. All
+subsequent batches came back md5-ok. **This is the durable lesson of the session: agent-transmitted
+statements must self-verify** — a row-count gate catches a dropped row only if you're counting; an md5
+catches silent corruption a count could still pass.
+
+### Final verification
+
+| table | before | after | delta |
+|---|---|---|---|
+| `pd` edges | 1,765 | **4,064** | +2,892 added, −593 stale, 1,172 rescored |
+| `manual` edges | 51 | 51 | untouched |
+| `entity_extraction` edges | 10 | 10 | untouched |
+| `connection_themes` | 4 | **39** | largest 77 = 10.6% of 726 |
+
+The live `pd` digest equals the offline replay's PREDICTED digest byte-for-byte (`7609ed99…`, 4,064
+rows) — the run that touched the database reproduces exactly what the dry replay said it would, which
+is the strongest available statement about it. All three operator-approved targets PASS. **Total spend:
+$0.**
+
+### Named residuals
+
+- The coverage-gap flag reflection is deferred to the next `analyze-corpus` run; this run's ledger row
+  honestly records `gaps_flagged=0` rather than back-filling a number that pass didn't compute.
+- `db.mjs`'s guarded-path snapshot writers were not used for this run; local snapshot files stood in
+  instead (`edges-prior.json f1bb433d…`, `themes-prior.json 901a5e99…`, `corpus.json 503303d6…`). Same
+  residual lineage as Addendum 20/26 — the guarded path's reversibility mechanism is still not what
+  carried this write, and that gap is named again rather than assumed closed by repetition.
+- **U6 remains parked for the operator** — unchanged this session, not touched by WO-7 or WO-8.
