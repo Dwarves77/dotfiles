@@ -20,7 +20,7 @@ import { congruence, sourceRole } from "@/lib/entities/source-role.mjs";
 import { matchExistingSubject } from "@/lib/entities/entity-resolve.mjs";
 import { domainForItemType, type Domain } from "@/lib/domains";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
-import { discoverConnections } from "@/lib/connections/discover.mjs";
+import { discoverConnections, computeTagFrequencies } from "@/lib/connections/discover.mjs";
 import { writeDiscoveredEdges } from "@/lib/connections/write-edges.mjs";
 import { surfaceOf } from "@/lib/surface-of.mjs";
 
@@ -287,7 +287,10 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
       jurisdiction_iso: seed.jurisdiction_iso,
       topic_tags: seed.topic_tags,
     };
-    const conns = discoverConnections(newItemSignature, corpus, { surfaceOf: (t: string) => surfaceOf(t) });
+    // ADR-019: frequency map from this same already-loaded corpus — no new query, same discipline as
+    // backfill-edges.mjs (the two callers must never diverge on what "shared provenance" weighs).
+    const freqMap = computeTagFrequencies(corpus);
+    const conns = discoverConnections(newItemSignature, corpus, { surfaceOf: (t: string) => surfaceOf(t), freqMap });
     if (conns.length) {
       const edges = conns.map((c: { target: string; basis: unknown; score: number }) => ({
         source_item_id: itemId,
