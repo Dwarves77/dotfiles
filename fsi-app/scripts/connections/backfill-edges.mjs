@@ -27,7 +27,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { discoverConnections } from "../../src/lib/connections/discover.mjs";
+import { discoverConnections, computeTagFrequencies } from "../../src/lib/connections/discover.mjs";
 import { writeDiscoveredEdges } from "../../src/lib/connections/write-edges.mjs";
 import { surfaceOf } from "../../src/lib/surface-of.mjs";
 
@@ -62,9 +62,13 @@ async function loadCorpus() {
 const corpus = await loadCorpus();
 console.log(`backfill-edges: ${corpus.length} verified items loaded${DRY ? " (DRY RUN)" : ""} (threshold ${THRESHOLD}, limit ${LIMIT}/item)`);
 
+// ADR-019: frequency map computed from this same already-loaded corpus, no new query.
+const freqMap = computeTagFrequencies(corpus);
+console.log(`backfill-edges: ADR-019 freqMap — ${freqMap.freq.size} distinct scenario tags, REF_FREQ=${freqMap.refFreq}`);
+
 let edgesTotal = 0, crossSurfaceTotal = 0, itemsWithEdges = 0;
 const allEdges = [];
-const opts = { threshold: THRESHOLD, limit: LIMIT, surfaceOf: (t) => surfaceOf(t) };
+const opts = { threshold: THRESHOLD, limit: LIMIT, surfaceOf: (t) => surfaceOf(t), freqMap };
 
 for (const item of corpus) {
   const conns = discoverConnections(item, corpus, opts);
