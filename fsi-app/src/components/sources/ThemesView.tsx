@@ -14,8 +14,16 @@
 // inventing a href that would 404.
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Network } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, Network } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { GfmSection } from "@/components/shared/GfmSection";
+
+interface ThemeBrief {
+  title: string;
+  brief_md: string;
+  generated_at: string;
+  stale: boolean;
+}
 
 interface Theme {
   id: string;
@@ -26,6 +34,7 @@ interface Theme {
   density: number;
   convergence: number;
   pivots: { id: string; centrality: number }[];
+  brief: ThemeBrief | null;
 }
 
 interface Stats {
@@ -195,6 +204,9 @@ function Section({ title, subtitle, children }: { title: string; subtitle: strin
 }
 
 function ThemeCard({ theme }: { theme: Theme }) {
+  const [briefOpen, setBriefOpen] = useState(false);
+  const brief = theme.brief;
+
   return (
     <div className="rounded-lg border p-3" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}>
       <div className="flex items-start justify-between gap-3">
@@ -232,6 +244,54 @@ function ThemeCard({ theme }: { theme: Theme }) {
           <div className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>density {theme.density.toFixed(2)}</div>
         </div>
       </div>
+
+      {brief && (
+        <div className="mt-2 pt-2" style={{ borderTop: "1px solid var(--color-border)" }}>
+          <button
+            type="button"
+            className="flex items-center gap-1.5 text-[11px] font-medium"
+            style={{ color: "var(--color-primary)" }}
+            onClick={() => setBriefOpen((open) => !open)}
+          >
+            {briefOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            Brief
+            {brief.stale && (
+              <span
+                className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                style={{ color: "var(--color-warning)", backgroundColor: "var(--color-warning)15" }}
+              >
+                STALE
+              </span>
+            )}
+          </button>
+
+          {briefOpen && (
+            <div className="mt-2 space-y-2">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                  {brief.title}
+                </span>
+                <span className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+                  Generated {new Date(brief.generated_at).toLocaleString()}
+                </span>
+              </div>
+
+              {brief.stale && (
+                <div
+                  className="text-[11px] font-medium px-2 py-1 rounded"
+                  style={{ color: "var(--color-warning)", backgroundColor: "var(--color-warning)15" }}
+                >
+                  STALE — membership changed since generation
+                </div>
+              )}
+
+              <div className="p-2 rounded" style={{ backgroundColor: "var(--color-surface-raised)" }}>
+                <GfmSection markdown={brief.brief_md} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
