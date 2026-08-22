@@ -4099,3 +4099,123 @@ $0.**
   residual lineage as Addendum 20/26 — the guarded path's reversibility mechanism is still not what
   carried this write, and that gap is named again rather than assumed closed by repetition.
 - **U6 remains parked for the operator** — unchanged this session, not touched by WO-7 or WO-8.
+
+## Addendum 28 — the operator caught a paraphrase wearing a ruling's clothes, and 632 customs items came out reversibly (2026-08-21, Cowork session)
+
+WO-26 opened because the operator looked at the live corpus and didn't like what he saw: customs and
+transport-administration law sitting alongside sustainability items as if they belonged to the same
+platform. He was right to stop and ask what happened, because nobody had ruled that scope — a paraphrase
+had, three weeks earlier, without anyone noticing the difference at the time.
+
+### C11 — tracing the drift to its actual cause
+
+The 2026-08-09 analysis-anchoring resolution doc contained the line "Regulation scope: anything and
+everything... import/export... not a narrow filter." Read again this session, next to what actually
+happened in August, that line is describing the platform's read-time posture — it is not an operator
+ruling on what intake should accept. Nobody had marked it as paraphrase versus ruling at the time,
+because the corpus it was written against was already sustainability-shaped and the distinction cost
+nothing to blur.
+
+The August 1–7 EUR-Lex fleet backfill did not blur it — it executed the line literally, as an intake
+filter, and pulled in 632 items across the full breadth of "anything and everything... import/export"
+EUR-Lex law. Only 2 of the 632 carried a sustainability theme. The platform's fail-open relevance floor
+(mint anyway below the 40-point relevance score, never refuse) let all 632 land as live and
+indistinguishable from real corpus, and they sat there through WO-6, WO-7, and WO-8 before this session's
+review surfaced them. Recorded as **Correction C11**: the anchoring doc's line was paraphrase, never a
+ruling, and the backfill that read it as one is the actual root cause.
+
+### The ruling, and the vision behind it
+
+The operator's scope ruling, same day: **Caro's Ledge is a freight-sustainability platform, first.**
+Customs and transport-administration law is out of scope for what the platform ingests and serves today
+— but not because it's worthless. He gave the reason in the same breath, as his own long-term pitch for
+the product, and it's worth recording close to verbatim because it's the reason the disposition below is
+an archive and not a delete:
+
+> A tool that will eventually take ALL regulations for any freight forwarder and categorize them
+> recognizably and actionably — starting with sustainability, ingesting customs and other domains later.
+
+Customs is a **parked future vertical**, not waste. Edge zones ruled IN — CBAM/ETS-at-the-border, ESG
+supply-chain due diligence, energy/fuel taxation reliefs — because they sit close enough to sustainability
+that excluding them would be the narrow-filter mistake in the other direction. Dangerous goods and
+customs digitalization ruled OUT for now. Recorded as ADR-020.
+
+### The purge — 537 out, reversibly, at $0
+
+910 live items, classified by rules + per-item judgment, two clean false-positive sweeps behind it (zero
+sustainability-worded titles stranded in OUT; the tag-less IN items read as legitimate on individual
+review). The method was checked against the platform's own pre-drift history first: the pre-August corpus
+splits 251 IN / 3 OUT under the same rules, which is the confirmation that the *classifier* never drifted
+— only the August intake path did.
+
+Result: 357 base IN + 3 attention-item IN (a verified port-reception waste instrument, and the
+vehicle-tax reduced-rate pair that pairs with the already-IN Eurovignette family) + 13 ops-context items
+kept by the operator's own class ruling = **373 live**. 526 base OUT + 7 attention-item OUT + 4 junk feed
+captures = **537 archived**. Every one of the 537 is a reversible `is_archived` flip, not a delete; the
+pre-archive snapshot (md5 `3bbf6132`) is the undo artifact for the whole batch, executed via checksummed
+batched UPDATEs, Sonnet executor shards, count+md5 gates.
+
+Of the 10 borderline attention items, 3 had truncated titles that needed their parent instrument checked
+before a ruling was possible — Implementing Reg 2022/89 turned out to be port-reception waste rules (IN),
+Decision 167/2006 a cargo-shipping trade-defence decision (OUT), Implementing Decision 2023/2697 a rail
+TSI derogation (OUT). All three were verified, not guessed, before disposition.
+
+### The flywheel re-run, and D2/D3
+
+With the corpus purged, the flywheel re-ran under ADR-019's weighting over what remained: 806 verified
+items collapsed to **276** (209 tagged), REF_FREQ moved 9 → 10, edges went 4,064 → **1,954** (1,746
+transported, 208 no-op, 2,249 stale deleted), and 39 themes collapsed to **9** — every one of them
+sustainability or ops, with the generic-hub problem gone along with the corpus that was generating it.
+Live digest `4af6b8aa` matched the offline replay's predicted digest byte-for-byte; pd=1,954, manual=51,
+entity=10, themes=9; ledger row `d7741530` closed `ok`.
+
+Two deviations, both caught before they became damage:
+
+- **D2** — a stale WO-8-era upsert got REPLAYED into the DB by the transport layer after its own delete
+  had already run, provable because it carried the *old* idf score (`0.54618`) that only the pre-ADR-019
+  flat-weight scheme could have produced. The digest gate caught the mismatch, not a row count — a targeted
+  delete cleared it and the digest went clean. The durable lesson, worth repeating from Addendum 27's D1
+  in its sharper form: at-least-once transport delivery means a batch can pass its row-count check while
+  its *content* silently regresses to a stale prior state. Per-batch counts are not sufficient; end-state
+  digests are mandatory.
+- **D3** — the first delete-batch generation referenced a nonexistent `.id` field on the edge rows, which
+  would have produced `'None'` literals in the delete predicate. The executor agent's STOP discipline
+  caught it before a single delete executed; regenerated keyed on `(source, target)` pairs instead, ran
+  clean.
+
+(For the record, Addendum 27's D1 — dropped-row transmission caught by the count gate — is the same class
+of finding one layer up: a count gate catches loss, a digest gate catches corruption. Both are now
+standing discipline on this transport.)
+
+### U6 lands alongside the purge
+
+Separately from WO-26 but landing the same window: migration 266 (`theme_briefs`) is applied live, the
+read path is coded and gated in `wt-u6` (suite 1416/1416, `tsc` clean, fitness 21/0), two pilot briefs
+were operator-approved as the template, and all **9 briefs** — one per surviving theme
+(68/57/33/22/6/5/4/2/2 members) — are written to `theme_briefs` with every row hash-fresh against live
+`connection_themes`. The writes used transcription-invariant SQL (literal UTF-8, no \uXXXX escapes) with
+a server-side `md5(payload)` self-check per statement; that checksum caught two agent transcription
+corruptions and one escape-vs-glyph mismatch before any bad byte landed. The L4 re-run over the
+post-purge 1,954-edge graph re-measured all 5 pre-purge candidates: the 0.30-floor threshold note
+survives and is proposed (178 edges, 9.1% near-floor, down from 14.5%); the dangerous-goods and
+customs-declaration vocabulary merges **dissolved with the purge** (their co-occurrence collapsed to ≤2
+item-pairs — the purge retired the evidence for them); the `shared_compliance_object` re-weight is
+insufficient_evidence (its cross-type gap narrowed 25.3→10.2pts on a 10x-smaller sample); and the
+`same_instrument` dormant-signal note survives unchanged (0 of 1,954 edges). All 5 verdicts are queued
+in `integrity_flags` for operator ratification — nothing is applied to the scorer without a ruling.
+
+### Named residuals
+
+- The `coverage_gap` integrity flags from the old 39-theme, 806-item world are stale and not reflected
+  by this run; that reconciliation rides the next `analyze-corpus` pass.
+- Sources registry untouched — this run reclassified `intelligence_items` and rebuilt the connection
+  graph over the survivors, nothing else.
+- ADR-019's targets (largest theme <25%, ≥10 themes) were measured against the 726-tagged corpus that
+  the purge just retired. On the new 209-tagged base the largest theme is 32.5% (maritime
+  decarbonisation, 68 members) and there are 9 themes — both numbers a mechanical consequence of the
+  corpus shrinking, not a re-run of ADR-019's own comparative measurement. Re-ratifying against the
+  sustainability-only corpus is its own owed operator-ruled item, named in ADR-020's consequences and
+  not closed here.
+- A `regulatory_domain` dimension (sustainability | customs | ...) is backlogged as the architecture
+  precondition for ever restoring customs as its own vertical, per the operator's pitch. Design owed
+  before build, per ADR-020.
