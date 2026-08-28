@@ -83,3 +83,34 @@ is the reason the consequences below include a standing architecture item rather
   The new base is 276 verified items (209 tagged), and ADR-019's targets need re-ratification against it
   — see the companion run record for the current numbers (largest theme 32.5% of 209 tagged, 9 themes).
   This ADR does not re-ratify them; it records that the ground under them moved.
+
+## Amendment 1 — tags are scope declarations (operator-ruled 2026-08-22)
+
+The operator's ruling, verbatim principle: **"If tags exist with that then it's in scope."** The scenario-tag
+vocabulary is itself a scope surface — a reader seeing `dangerous-goods-classification` or
+`customs-declaration-import` offered as a scenario lens reads the domain as covered. Consequences, all
+executed 2026-08-22 at $0, snapshot-first:
+
+- **Two leaked items archived.** 96/127/EC and 96/513/EC (Directive 93/75/EEC Art 5(4) dangerous-goods
+  vessel-notification derogations, EUR-Lex-verified) survived the WO-26 classifier on truncated titles.
+  Operator condition ("keep only if within sustainability information") tested against the live graph and
+  FAILED — zero sustainability scenario tags, all 14 edges via the DG tag alone. Archived reversibly
+  (archive_reason stamped); their 14 pd edges deleted.
+- **The `customs-declaration-*` and `dangerous-goods-*` tag families retired from the live vocabulary.**
+  32 live items stripped of the scenario tags, 3 of a legacy freeform `customs` tag (items stay live —
+  CBAM keeps `CBAM-declaration`/`carbon-border-adjustment`, the sustainability-native framing; the
+  fuel-duty pair stays IN per the edge-zone ruling). 95 affected pd edges re-derived under engine
+  semantics: 77 deleted (below the 0.3 floor without the stripped signal), 18 rescored. End state
+  verified: pd=1,863, zero residual stripped-tag basis entries, digest `a370ca07`.
+- **Root cause fixed at its home.** The families came from the tagger core glossary in
+  `src/lib/agent/system-prompt.ts` ("Customs/trade" group, written pre-ADR-020) — this is why the WO-7
+  backfill sprayed customs tags onto US state environmental items. The group is now
+  "Border-carbon/due-diligence: CBAM-declaration, EUDR-due-diligence"; the customs/DG entries are gone,
+  so no future tagging pass can reintroduce them.
+- **Deliberately untouched:** the locked 18-value `compliance_object_tags` party vocabulary keeps
+  `customs-broker`/`importer`/`exporter` — those name WHO a sustainability rule obligates (freight-world
+  parties), not a regulatory domain. Test fixture strings are not vocabulary.
+- **Named gap:** 90/170/EEC and 1800/2001 (waste-shipment law, IN scope) are now honest tag-empties;
+  a sustainability-native waste-shipment scenario tag is owed at the next vocabulary review.
+- L4 candidates #2/#3 (the customs/DG vocabulary merges) are resolved by this amendment — the vocabulary
+  they proposed to merge no longer exists in live scope.

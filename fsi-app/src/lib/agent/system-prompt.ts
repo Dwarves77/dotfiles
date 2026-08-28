@@ -334,7 +334,7 @@ operational_scenario_tags vocabulary (open; prefer the core glossary):
 
 Lower-case kebab-case. Drives intersection detection. Emit 0-5 tags. Prefer the core glossary; emit a new scenario only when the core doesn't fit and the substance is clearly operational (not generic).
 
-Core glossary (~36 values, prefer these):
+Core glossary (~32 values, prefer these):
 
 Ocean: ocean-bunkering, ocean-fuel-blend-mandate, ocean-emissions-MRV, vessel-port-call, vessel-shore-power, vessel-CII-rating, green-shipping-corridor
 
@@ -342,7 +342,7 @@ Air: air-fueling, SAF-blending, aircraft-emissions-CORSIA, aircraft-emissions-ET
 
 Road: road-cabotage, drayage, urban-truck-zone, truck-CO2-standard, road-charging-infrastructure
 
-Customs/trade: customs-declaration-import, customs-declaration-export, CBAM-declaration, EUDR-due-diligence, dangerous-goods-classification
+Border-carbon/due-diligence: CBAM-declaration, EUDR-due-diligence
 
 Carbon/ETS: ETS-allowance-purchase, ETS-allowance-surrender, carbon-pricing-pass-through, carbon-border-adjustment
 
@@ -399,7 +399,7 @@ format_type: regulatory_fact_document
 topic_tags: [emissions, reporting]
 signal_band: null
 theme: null
-operational_scenario_tags: [CBAM-declaration, customs-declaration-import, emissions-reporting-Scope3]
+operational_scenario_tags: [CBAM-declaration, carbon-border-adjustment, emissions-reporting-Scope3]
 compliance_object_tags: [importer, customs-broker, manufacturer-producer]
 related_items: [b3c4d5e6-f7a8-4901-2345-678901234567]
 intersection_summary: "Overlaps with EU ETS for Shipping on emissions-reporting-Scope3; CBAM declarants importing covered goods that arrived via EU-ETS-priced ocean freight face dual reporting obligations on the same emission units."
