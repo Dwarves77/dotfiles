@@ -4295,3 +4295,100 @@ compliance, not customs scope. Test-fixture strings are not vocabulary either.
 - **A process lesson worth keeping:** WO-26 audited items and left the vocabulary alone. A scope ruling
   is not executed until every surface that DECLARES scope is swept — corpus, tags, and the prompts that
   mint them. The classifier was measured and validated; the glossary it fed from was never read.
+
+## Addendum 30 — two alarms had been ringing for weeks and nobody was listening (2026-08-28, Cowork session)
+
+This addendum is not about a work order. It is about what the operator's own alerting was telling us
+while we shipped WO-26, U6 and ADR-020 Amendment 1, and what it took to actually read it.
+
+### A date correction first, because the log should not lie about its own timeline
+
+Addenda 28 and 29 carry headers of 2026-08-21 and 2026-08-22. The git record is the truth: PR #474 and
+#475 landed 2026-08-21, and PR #476 (the vocabulary retirement Addendum 29 describes) landed
+**2026-08-28**. The 08-22 header came from the runtime clock mid-session and is wrong by six days. The
+work and its measurements are unaffected; the header is not, and it is corrected here rather than
+edited silently in place.
+
+### The backup lane had been dark for 9 nights
+
+A GitHub notification surfaced `db-backup` failing. Reading the job log rather than assuming: **9
+consecutive red runs, #47 (Aug 20) through #55 (Aug 28)**, every one of them
+`Failed to CreateArtifact: Artifact storage quota has been hit`.
+
+The part that matters is what "failed" meant. `pg_dump` succeeded every single night. The **upload**
+was refused — and because the `dump` job failed, `pool-dump` and BOTH restore drills were skipped by
+their `needs:` edges. So the true state was not "last night's backup is missing"; it was **9 nights
+with no stored backup and no restore test**, underneath a week in which we archived 539 corpus items
+and rewrote 2,000+ graph edges. The undo layer was gone precisely while we were leaning on it hardest.
+
+Root cause is not the workflow. The 2026-08-17 split-lane design was correct and its own sizing note
+is honest — 532 MB — but GitHub **Free** caps artifact storage at 500 MB. That design was always going
+to breach; the August fix bought three days.
+
+The operator upgraded to **GitHub Pro** (500 MB → 2 GB). I made **no workflow change** — it was never
+the defect, and editing a correct file speculatively is the thing this project keeps refusing to do.
+Verification was a manual `workflow_dispatch` with `lanes=both`, deliberately chosen over waiting for
+the nightly so the weekly pool lane and both drills ran in the same invocation: **all 5 jobs green in
+1m 59s**, artifacts `db-dump` 28.8 MB and `pool-dump` 102 MB with sha256 digests, sizes within 4% of
+the Aug-17 prediction. Both drills ASSERT (manifest row counts, the exclusion in both directions, the
+pool content column), so this is a verified restore, not a completed upload. Full record in
+`docs/ops/backup-restoration-2026-08-28.md`.
+
+**The residual I want the next session to see:** the lane was dead for 9 days and the only signal was
+an email. `backup-posture.md` commits to an RPO. Nothing commits to noticing when the RPO is not being
+met. Detection latency is now the weakest link in the recovery story, and this run does not fix it.
+
+### Spend watch had been red for ~16 days, and it was telling the truth
+
+Same pattern, different lane. `Uptime and honesty probes / Spend watch` red daily. The verdict:
+`ANOMALY: 3 of 3 paid row(s) since the freeze do NOT trace to an operator-priced line`.
+
+Queried `agent_runs` directly rather than trusting the summary. The three rows:
+
+| Started | Cost | Purpose |
+|---|---|---|
+| 2026-08-12 21:28Z | $0.022881 | `ask-assistant (/api/ask user question)` |
+| 2026-08-13 14:53Z | $0.023556 | same |
+| 2026-08-13 16:38Z | $0.022401 | same |
+
+$0.0688 total, `claude-sonnet-4-6`, all `status=success`, all `authorizationRef: null`.
+
+**This is product runtime, not build spend — the $0-on-the-build doctrine is intact.** These are real
+signed-in users asking the Assistant questions on the deployed app.
+
+Two findings fall out of it, and the second is the serious one.
+
+1. **The probe cannot distinguish product runtime from a leak.** Spend-watch's contract is "every
+   post-freeze paid row traces to an operator-priced line." The funded-pass runner writes those
+   markers; the Assistant route never learned to. So *every* Assistant question is untraceable **by
+   construction**, and the probe stays red forever while the feature is used. That is the exact
+   alert-fatigue failure this probe was rebuilt in July 2026 to kill, reintroduced one layer over.
+
+2. **⚠ The ratified Assistant caps do not exist in code.** The operator ratified $10/month, $0.10 per
+   request, and a kill switch, with the Assistant staying OFF. I read `src/app/api/ask/route.ts`: it
+   checks auth, applies a per-user rate limit of **60 requests/minute** (`rate-limit.ts`), and then
+   calls the API if `ANTHROPIC_API_KEY` is set. There is **no monthly ceiling, no per-request cap, and
+   no kill switch**. "The Assistant is OFF" is currently enforced by nobody happening to use it, not by
+   anything in the system. At the measured ~$0.023/question against a 60/min limit, one signed-in user
+   represents roughly **$80/hour** of unbounded exposure. Nothing was breached — every call was well
+   under the $0.10 cap — but the cap is not real and neither is the freeze.
+
+I made **no changes** to the spend path. Implementing caps is a change to a spend mechanism and stops
+for a ruling, which is exactly what the standing rules require. Recorded as a DEFECT on the board.
+
+### What I did NOT do, said plainly
+
+- Did not touch `db-backup.yml`, did not advance the spend freeze baseline, did not implement the
+  Assistant caps, did not sweep the ~10 tagger-noise items the operator ruled to leave alone.
+- Did not verify whether `ANTHROPIC_API_KEY` is still set in production. The 3 successful rows prove
+  the path worked on Aug 12-13; I did not probe production to check its state today, and that is an
+  open question, not a finding.
+
+### Next step for a cold session
+
+Ruling owed on the Assistant caps (implement / leave / disable the route). If ruled implement, it is
+one PR touching `api/ask/route.ts` (kill switch defaulting OFF, per-request pre-flight, monthly
+ceiling read from `agent_runs`) plus authorization markers so legitimate product spend traces, plus
+advancing `FREEZE_SINCE_ISO` past 2026-08-13 now that those 3 rows are accounted for. After that, the
+build resumes at the **WO-19 / WO-12 spine** (Stage 8), which gates the Stage 7 producers (WO-16/17/18)
+that are the difference between honest-empty surfaces and a real product.
