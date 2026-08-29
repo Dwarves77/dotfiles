@@ -4,16 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { scoreConnection, discoverConnections, computeTagFrequencies } from "./discover.mjs";
 
-const reg = { id: "r1", item_type: "regulation", canonical_instrument_key: "32024R1610", source_id: "s1", compliance_object_tags: ["cbam-certificate"], operational_scenario_tags: ["ocean-import"], jurisdictions: ["eu"], topic_tags: ["carbon-pricing"] };
-
-test("same instrument dominates and names the relationship", () => {
-  const mkt = { id: "m1", item_type: "market_signal", canonical_instrument_key: "32024R1610", jurisdictions: ["eu"], topic_tags: ["carbon-pricing"] };
-  const r = scoreConnection(reg, mkt);
-  assert.ok(r.score >= 0.9);
-  assert.equal(r.relationship, "same_instrument");
-  assert.equal(r.crossSurface, true); // regulation <-> market_signal
-  assert.ok(r.basis.some((b) => b.signal === "same_instrument"));
-});
+const reg = { id: "r1", item_type: "regulation", source_id: "s1", compliance_object_tags: ["cbam-certificate"], operational_scenario_tags: ["ocean-import"], jurisdictions: ["eu"], topic_tags: ["carbon-pricing"] };
 
 test("shared compliance object + jurisdiction+topic accumulate, grounded in basis", () => {
   const research = { id: "res1", item_type: "research_finding", compliance_object_tags: ["cbam-certificate"], jurisdictions: ["eu"], topic_tags: ["carbon-pricing"] };
@@ -43,7 +34,7 @@ test("same item / missing ids never self-connect", () => {
 });
 
 test("discoverConnections ranks cross-surface first, respects threshold + limit", () => {
-  const sameSurfaceStrong = { id: "r2", item_type: "regulation", canonical_instrument_key: "32024R1610" }; // same instrument, same surface
+  const sameSurfaceStrong = { id: "r2", item_type: "regulation", source_id: "s1", operational_scenario_tags: ["ocean-import"], compliance_object_tags: ["cbam-certificate"] }; // shares source+scenario+compliance, same surface — higher raw score, still ranked behind cross-surface
   const crossSurfaceWeaker = { id: "m2", item_type: "market_signal", compliance_object_tags: ["cbam-certificate"], jurisdictions: ["eu"], topic_tags: ["carbon-pricing"] };
   const noise = { id: "n", item_type: "regulation", jurisdictions: ["brazil"], topic_tags: ["labor"] };
   const out = discoverConnections(reg, [sameSurfaceStrong, crossSurfaceWeaker, noise], { threshold: 0.3, limit: 5 });

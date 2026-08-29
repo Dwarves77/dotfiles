@@ -28,7 +28,7 @@ const lookup = {
 test("buildConnectionRows: a provenance_discovery row carries a real basis summary and href by surface", () => {
   const rows = buildConnectionRows(
     [{ id: "item-a", direction: "outgoing", relationship: "related", origin: "provenance_discovery",
-       basis: [{ signal: "same_instrument", detail: "both concern X", weight: 0.9 }], score: 0.9, surface: "regulations" }],
+       basis: [{ signal: "shared_source", detail: "both concern X", weight: 0.4 }], score: 0.4, surface: "regulations" }],
     lookup
   );
   assert.equal(rows.length, 1);
@@ -36,7 +36,7 @@ test("buildConnectionRows: a provenance_discovery row carries a real basis summa
   assert.equal(rows[0].label, "References");
   assert.equal(rows[0].discovered, true);
   assert.equal(rows[0].href, "/regulations/item-a");
-  assert.deepEqual(rows[0].basisSummary, [{ signal: "same_instrument", weight: 0.9 }]);
+  assert.deepEqual(rows[0].basisSummary, [{ signal: "shared_source", weight: 0.4 }]);
 });
 
 test("buildConnectionRows: discovered (basis-scored) rows sort before non-discovered rows, by score desc", () => {
@@ -106,7 +106,7 @@ test("buildAllConnectionRows: supersessions render first, ahead of discovered/ot
     [{ old: "self-id", new: "item-a", date: "d", severity: "major", note: "" }],
     "self-id",
     [{ id: "item-b", direction: "outgoing", relationship: "related", origin: "provenance_discovery",
-       basis: [{ signal: "same_instrument", detail: "d", weight: 0.9 }], score: 0.9, surface: "market" }],
+       basis: [{ signal: "shared_source", detail: "d", weight: 0.4 }], score: 0.4, surface: "market" }],
     lookup
   );
   assert.deepEqual(rows.map((r) => r.id), ["item-a", "item-b"]);

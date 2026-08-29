@@ -105,13 +105,16 @@ test("recency degrades gracefully: no dates ⇒ convergence = span × density ex
 test("dominantSignals aggregate basis across intra-theme edges, strongest first, grounded", () => {
   const nodes = [node("d1"), node("d2"), node("d3")];
   const edges = [
-    { source: "d1", target: "d2", score: 0.9, basis: [{ signal: "same_instrument", detail: "i", weight: 0.9 }] },
+    { source: "d1", target: "d2", score: 0.9, basis: [{ signal: "shared_source", detail: "i", weight: 0.4 }] },
     { source: "d2", target: "d3", score: 0.3, basis: [{ signal: "shared_scenario", detail: "s", weight: 0.3 }] },
     { source: "d1", target: "d3", score: 0.3, basis: [{ signal: "shared_scenario", detail: "s2", weight: 0.3 }] },
   ];
   const out = clusterGraph(nodes, edges);
   const sig = out.themes[0].dominantSignals;
-  assert.equal(sig[0].signal, "same_instrument");
+  // shared_scenario sums to 0.6 across the two edges it appears on (0.3 + 0.3), beating shared_source's
+  // single 0.4 — dominantSignals sums weight PER SIGNAL across intra-theme edges, not per edge.
+  assert.equal(sig[0].signal, "shared_scenario");
+  assert.equal(sig[0].weight, 0.6);
   assert.ok(sig.every((s) => s.weight > 0)); // nothing invented — every signal traces to real basis weight
 });
 
