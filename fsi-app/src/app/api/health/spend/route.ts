@@ -37,7 +37,34 @@ const MONTHLY_CEILING_USD = 130;
 // authorizations (priced run $20-bound + Step-2 $12-bound + Segment-0 A/B + retries; grounding crons frozen),
 // i.e. NO leak. The baseline advances past that verified-authorized spend (latest paid row 07-15 02:00Z); paid
 // rows from here forward carry funded-pass priced-line markers and are traced per row.
-const FREEZE_SINCE_ISO = process.env.SPEND_FREEZE_SINCE_ISO ?? "2026-07-15T03:00:00Z";
+// MOVED FORWARD 2026-08-28 (operator ruling: "There is no spending. NO spend during build"). Spend-watch had
+// been RED for ~16 consecutive days on THREE rows, and a probe that is permanently red is a probe nobody reads —
+// the exact alert-fatigue failure the 2026-07-15 move above was made to prevent, recurring one cause later.
+//
+// THE THREE ROWS, identified not assumed (agent_runs, queried 2026-08-28):
+//   2026-08-12 21:28Z  $0.022881   purpose "ask-assistant (/api/ask user question)"
+//   2026-08-13 14:53Z  $0.023556   same
+//   2026-08-13 16:38Z  $0.022401   same
+// $0.0688 total, model claude-sonnet-4-6, all status=success, all authorizationRef=null. These are PRODUCT
+// RUNTIME — real signed-in users asking the Assistant questions on the deployed app — not build spend. The
+// $0-on-the-build doctrine was never violated.
+//
+// WHY THEY WERE UNTRACEABLE, and why advancing is honest rather than a whitewash: unlike the 07-15 move (where
+// every row traced to a real operator authorization), these rows carried NO authorization at all. The ask route
+// set a ticket with no priced line and no budgetCapUsd, so under BUILD-PHASE — where "the sole dollar gate is
+// the operator-priced line" (spend-regime.mjs) — it spent outside the authorization model entirely. That is a
+// genuine defect, and the baseline is NOT advancing because the rows turned out fine. It advances because the
+// CAUSE IS CLOSED: `api/ask` now refuses unless ASSISTANT_ENABLED === "true" (fail-closed, default OFF), the
+// refusal precedes every paid call, and .discipline/assistant-spend-gate.test.mjs pins the gate AND its ordering
+// (attack-proven: deleting the gate or weakening the comparison both go RED). No further ask-assistant row can
+// be minted while the Assistant is off.
+//
+// DEBT NAMED AT THE POINT IT BITES: if the Assistant is ever deliberately enabled, its spend will again lack an
+// authorization marker and will again red this probe. Enabling it therefore OWES a batch-marker or priced-line
+// write on the ask path (see spend-health.mjs isBatchMarkerRow / isPricedLineRow) BEFORE the flag is flipped.
+// Building that plumbing now, for a feature that is off, would be speculative work for a state that does not
+// exist — so it is recorded here, where whoever flips the flag will read it, rather than built on spec.
+const FREEZE_SINCE_ISO = process.env.SPEND_FREEZE_SINCE_ISO ?? "2026-08-13T17:00:00Z";
 
 export async function GET(request: NextRequest) {
   const denied = workerAuthGuard(request);
