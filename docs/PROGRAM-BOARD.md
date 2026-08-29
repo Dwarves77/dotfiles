@@ -1498,3 +1498,11 @@ this lane is weaker than the sanctioned one.
 | ⛔ **NOT BUILT — next up** | **`db-backup` heartbeat** (assert last run succeeded within 36h). THE fix for detection latency: backup dark 9 days, spend-watch red ~16 days, both signals unread emails. Designed, lives in `caros-ledge-backups` (separate repo/PR) | `docs/ops/backup-restoration-2026-08-28.md` |
 | ⛔ **NOT BUILT** | `FREEZE_SINCE_ISO` still predates the 3 accounted-for rows, and the Assistant path writes no authorization marker — so spend-watch stays red on history even though the gate stops new rows | `src/app/api/health/spend/route.ts` |
 | ⛔ **NOT GUARDED** | Data-side scope assertion (no live item carries a retired tag) needs DB access the depless suite lacks → data-audit lane, currently Disabled. Truncated-title classifier weakness (how 96/127/EC + 96/513/EC survived WO-26) also unguarded | session-log Addendum 31 |
+
+## Alarms made trustworthy (2026-08-28)
+
+| State | Item | Evidence |
+|---|---|---|
+| **DONE ($0)** | **Spend-watch baseline advanced** 2026-07-15T03:00Z → **2026-08-13T17:00Z**. The 3 rows are named in-code (08-12/08-13, $0.0688, all `ask-assistant`, all `authorizationRef: null` — product runtime, NOT build spend). Advancing is justified by CAUSE CLOSED (the fail-closed gate), explicitly NOT by "the rows were fine" — unlike the 07-15 move, these traced to no authorization at all. Verified live: **0 paid rows after the new baseline**; latest paid row ever 08-13 16:38Z | `fsi-app/src/app/api/health/spend/route.ts`; session-log Addendum 32 |
+| **DEBT NAMED AT THE FLAG** | Enabling the Assistant OWES a batch-marker/priced-line write on the ask path first, or spend-watch reds again. Recorded in the comment beside `FREEZE_SINCE_ISO`, not in a doc — whoever flips the flag reads it there. Deliberately NOT built on spec for a feature that is off | same |
+| **DONE ($0) — logic unit-tested** | **`backup-heartbeat.yml`** for `caros-ledge-backups`: independent watcher (10:00 UTC, after the 08:17 backup) asserting the last `db-backup` run completed, SUCCEEDED, and is <36h old. Watcher is separate from watched by design — a check inside the job cannot fire when the job never runs. All 5 branches exercised locally (fresh→GREEN; failure→RED; 50h stale→RED; zero runs→RED; cancelled→RED) | `/root/work/backup-heartbeat/backup-heartbeat.yml`; session-log Addendum 32 |
