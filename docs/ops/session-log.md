@@ -4392,3 +4392,85 @@ ceiling read from `agent_runs`) plus authorization markers so legitimate product
 advancing `FREEZE_SINCE_ISO` past 2026-08-13 now that those 3 rows are accounted for. After that, the
 build resumes at the **WO-19 / WO-12 spine** (Stage 8), which gates the Stage 7 producers (WO-16/17/18)
 that are the difference between honest-empty surfaces and a real product.
+
+## Addendum 31 — the operator pointed out I was asking him to rule on a rule he had already made (2026-08-28, Cowork session)
+
+Addendum 30 closed with "ruling owed on the Assistant caps." The operator's reply: **"There is no
+spending. I'm not sure why I'm ruling on that when we said NO spend during build."**
+
+He is right, and the error is worth recording precisely because it is the mirror image of C11. C11 was
+treating a paraphrase as a ruling. This is **treating an existing ruling as if it were still open** — I
+took a standing doctrine ($0 during build), converted it into a menu of dollar figures, and handed it
+back as a decision. That is not deference, it is offloading.
+
+### Reading the regime made it sharper than I had it
+
+`src/lib/llm/spend-regime.mjs` states the build-phase contract in its own words: under BUILD-PHASE **"the
+sole dollar gate is the operator-priced line"**, and every standing dollar figure is information-only and
+"MUST NOT gate or halt a paid call." So the Assistant path was never *under-capped* — a cap there would
+have been decorative by design. It was **outside the authorization model entirely**: it carries no priced
+line, sets no `budgetCapUsd`, and therefore spent under no dollar authority at all. The ratified
+$10/month + $0.10/request figures belong to the future STEADY-STATE regime; they were never a build-phase
+authorization, and presenting them as the live question was my mistake.
+
+I also owe a correction to Addendum 30's own text: I wrote that the ask route had "auth, a rate limit,
+and nothing else." **Wrong** — I read the route's guard block and never its call site. It DOES route
+through the F15 spend chokepoint (`spendStreamRaw` + `setSpendTicket`, migrated PR #248), and
+`assertBudget` enforces real invariants: fail-closed if the regime env is undefined, and refusal of all
+further spend if any prior call left no `agent_runs` row (unlogged spend is mechanically impossible).
+The chokepoint is well built. What was missing was narrower and worse: nothing said OFF.
+
+### What I built — enforcement, not another note
+
+Addendum 30 recorded lessons and built ZERO guards, which the operator caught by asking whether fixes were
+actually in place. This addendum is the correction to that too.
+
+**1. Assistant fail-closed gate** (`api/ask/route.ts`). `ASSISTANT_ENABLED === "true"`, exact string.
+Unset, empty, `"1"`, `"yes"`, or any typo all read OFF. The refusal (503) sits BEFORE the key check and
+before any spend path is touched. Deliberately NOT a dollar cap: under build-phase a cap cannot gate, so a
+cap would be theatre. "OFF" is now enforced by code rather than by nobody happening to use it — which is
+what it was on 2026-08-12/13 when $0.0688 of `ask-assistant` spend landed through a feature believed off.
+
+**2. `assistant-spend-gate.test.mjs`** (4 tests) pinning it. The load-bearing assertion is ORDERING: the
+gate's character offset must precede `setSpendTicket(` and `spendStreamRaw(`, because a gate downstream of
+the paid call reads as present while spending anyway. Proven BY ATTACK: deleting the gate → RED 2/4;
+weakening `=== "true"` to a truthy `!!process.env.X` → RED 1/4; restoring → GREEN 4/4.
+
+**3. Retired-scope-vocabulary guard** (`vocab-drift-guard.test.mjs` 3e). Static scan: the tagger glossary
+must not contain `customs-declaration-import/export` or `dangerous-goods-classification`. This closes the
+UPSTREAM cause of the whole WO-26/Amendment-1 saga — the families reached the corpus through the glossary
+(WO-7 sprayed customs tags onto US state environmental items), so removing them without pinning them left
+the next edit free to reintroduce the class silently. Proven BY ATTACK: re-adding one tag → RED with a
+message naming ADR-020 and pointing at the `regulatory_domain` precondition; removing it → GREEN. The
+guard also asserts the REPLACEMENT group still exists, so it cannot pass vacuously against a deleted
+section (the F23 orphaned-proof lesson).
+
+### An error inside the fix, caught by the fix itself
+
+`assistant-spend-gate.test.mjs` FAILED on its first run — its direct-API scan flagged the route's own
+comment, the one that names `api.anthropic.com` in order to warn against it. My regex was reading prose as
+code. Fixed by stripping comments before the scan (structural assertions still read raw source). Recording
+it because a guard whose first act is a false positive would have trained someone to ignore it, and that
+is the alert-fatigue failure this session already met twice.
+
+### Gates
+
+Suite **1421/1421** (1416 + 5 new), `tsc` clean, fitness **21 / 0**. New tests auto-wire: the canonical
+suite globs `src/__tests__/*.test.mjs`, so they run in pre-push AND CI by construction.
+
+### Still NOT guarded, said plainly
+
+- **Detection latency.** The backup lane died for 9 days and spend-watch was red ~16 days; both signals
+  were unread emails. A `db-backup` heartbeat (assert the last run succeeded within 36h) is designed and
+  NOT yet built — it lives in the `caros-ledge-backups` repo, a separate PR.
+- **Spend-watch still reds** on the 3 historical rows: the Assistant path writes no authorization marker
+  and `FREEZE_SINCE_ISO` still predates them. The gate stops NEW rows; it does not clear the old ones.
+- **Data-side scope assertion** (no live item carries a retired tag) needs DB access, which the depless
+  discipline suite does not have; it belongs in the data-audit lane, currently Disabled.
+- **Truncated-title classifier weakness** (how 96/127/EC and 96/513/EC survived WO-26) is unguarded.
+
+### Next step for a cold session
+
+Build the backup heartbeat in `caros-ledge-backups`, then advance `FREEZE_SINCE_ISO` past 2026-08-13 with
+the 3 rows accounted for so spend-watch can go green and mean something again. Then the build resumes at
+the **WO-19 / WO-12 spine**.
