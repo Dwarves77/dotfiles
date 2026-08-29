@@ -1516,3 +1516,12 @@ this lane is weaker than the sanctioned one.
 | **DEFECT → WO-28** | `mint-item.ts` dedup-linked edge writes `relationship:'references'` — forbidden by the live CHECK, error swallowed; zero such rows ever landed. Fix + guard test ride WO-28 | scope §3 WO-28; live CHECK read 2026-08-29 |
 | **FLAG** | U9 listed not-started but its components are on master and wired (ItemConnectionsCard + view-model + resource-lookup, four surfaces) — close-out audit owed, not a build. Stage 4–6 WO texts (10/11/13/14/15/21/22/24/25) exist only in the uncommitted v1 plan — spec-from-repo pass owed per WO before Sonnet execution | scope §4 |
 | ⛔ PENDING OPERATOR (unchanged) | WO-5 rulings B1–B4 · WO-19 backfill mapping ratification (WO itself ruled proceed) · DDL window for the WO-12(+19) migration family | scope §6 |
+
+## Wave 2 lanes 1–3: WO-28 lineage + U8 drift gate + U9 closed (2026-08-29)
+
+| State | Item | Evidence |
+|---|---|---|
+| **DONE ($0)** | WO-28 phase 1: typed lineage edges (implements/amends/depends_on; derogation preserved in basis pending CHECK widening); `lineage-gap:absent-parent` coverage_gap feed (L2); mint-item silent `references` write fixed (CHECK-legal `related`); guard `relationship-check-literals.test.mjs` parses the allowed set from migration 004, attack-proven RED | entity-resolve.mjs + tests; Addendum 34 |
+| **DONE ($0)** | U8 skill↔code drift gate: 6 governing skills / 29 citing files pinned by content hash; 4 drift shapes + unpinned-citation fail loud; 5 seeded-drift negative tests | `.discipline/governance/skill-contract-map.mjs`, `skill-drift-gate.test.mjs` |
+| **CLOSED** | U9: audit verdict DONE since PR #425 (`23b678ca`) — connections + relevance lens wired on all four intelligence surfaces, proofs run green. Tracker corrected from "not started". Residuals named, not reopened: five-surface wording → four + Community out-of-scope per spec 05; component-render proof infra absent repo-wide (backlog, shared with U3) | U9 audit, Addendum 34; board line ~1386 already said BUILT 4-of-5 |
+| **CORRECTION** | C15 (flag-as-commentary, rule 13) + C16 (upload before full CI-equivalent). Ruling: browser landing IS the method, executor-owned end-to-end; complete gate set (suite+tsc+fitness+runner --mode=ci) runs locally before any upload | Addendum 34 |

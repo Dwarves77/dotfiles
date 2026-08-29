@@ -13,10 +13,14 @@ interface LinkWrite { table: string; row: Record<string, unknown> }
 export interface LinkResult { edges: number; surfaced: number; skipped: boolean }
 
 /**
- * Wire an item's content-mentioned entities into item_cross_references (origin='entity_extraction') and
- * surface ambiguous/unknown-standard candidates to integrity_flags. Read-then-write, idempotent:
+ * Wire an item's content-mentioned entities into item_cross_references (origin='entity_extraction',
+ * relationship TYPED per classifyRelationship — WO-28/ADR-021) and surface ambiguous/unknown-standard
+ * candidates + absent-parent lineage gaps to integrity_flags. Read-then-write, idempotent:
  *  - edges upsert on (source_item_id, target_item_id) — re-runs never duplicate.
- *  - the surface flag is created only when there is none open for this item (no re-run spam).
+ *  - each aggregated flag is created only when there is none open for this item IN ITS OWN created_by
+ *    namespace ("intake-entity-link" for ambiguous/unknown mentions, "lineage-gap:absent-parent" for
+ *    lineage-shaped mentions resolving to zero items) — no re-run spam, and the two flag kinds never
+ *    clobber each other's open/closed state.
  * Deterministic (no LLM). Non-gating: a link failure never invalidates an already-grounded brief.
  */
 export async function linkItems(sb: SupabaseClient, itemId: string): Promise<LinkResult> {
@@ -52,8 +56,11 @@ export async function linkItems(sb: SupabaseClient, itemId: string): Promise<Lin
       if (!error) edges++;
       else console.warn(`[linkStep] edge upsert failed for ${itemId}: ${error.message}`);
     } else if (w.table === "integrity_flags") {
-      // idempotent: one open entity-link candidate flag per item
-      const { data: existing } = await sb.from("integrity_flags").select("id").eq("subject_ref", itemId).eq("created_by", "intake-entity-link").eq("status", "open").maybeSingle();
+      // idempotent: one open flag per item PER NAMESPACE (created_by) — the entity-link candidate flag
+      // ("intake-entity-link") and the WO-28 lineage-gap flag ("lineage-gap:absent-parent") are separate
+      // aggregations of separate signal, so each gets its own one-open-flag dedup rather than sharing one.
+      const createdBy = String((w.row as { created_by?: unknown }).created_by ?? "");
+      const { data: existing } = await sb.from("integrity_flags").select("id").eq("subject_ref", itemId).eq("created_by", createdBy).eq("status", "open").maybeSingle();
       if (!existing) { const { error } = await sb.from("integrity_flags").insert(w.row); if (!error) surfaced++; }
     }
   }

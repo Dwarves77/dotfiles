@@ -58,17 +58,112 @@ export function classifyBucket(mention, resolvedCount) {
   return "surface"; // ambiguous(>1) / unmatched(0) / shaped-unknown — Admin-research, never guessed
 }
 
+// LINEAGE TYPING (WO-28 phase 1, ADR-021): classify a WIRE-ELIGIBLE mention as a typed lineage
+// relationship by the phrase shape EU legislative titles/content use around it, or 'related' (today's
+// unchanged default) when no pattern matches. Pure, deterministic. NEVER widens wiring — this only
+// changes what relationship an ALREADY-wired edge carries (classifyBucket decided wiring; this decides
+// typing); an untyped mention keeps exactly today's behavior ('related', no basis).
+//
+// Direction is always child (the mentioning/citing item) → parent (the resolved mention target), which is
+// already how planLinkWrites emits edges (source=itemId, target=resolved) — typing rides that direction,
+// it does not change it.
+//
+// `derogates_under` is NOT a legal CHECK value yet (item_cross_references_relationship_check, migration
+// 004, allows exactly {related, supersedes, implements, conflicts, amends, depends_on} — verified live
+// 2026-08-29; the CHECK widening rides the WO-12/19 DDL window). Derogation-shaped mentions therefore
+// still emit 'depends_on' so the write stays CHECK-legal today, but the precise verb ("derogates under
+// <mention>") is preserved in the edge's own `basis` entry rather than lost — the UI's basisSummary reads
+// it verbatim (connection-view-model.mjs), so nothing about WHY the edge exists is silently flattened.
+const RE_IMPLEMENTS = /\b(implementing|application of)\b/i;
+const RE_SELF_IMPLEMENTING_TITLE = /^\s*commission implementing\b/i;
+const RE_AMENDS = /\bamending\b/i;
+const RE_SUPPLEMENTS_DELEGATED = /\b(supplementing|delegated)\b/i;
+const RE_AUTHORISES = /\bauthoris/i; // authoris(ing/ed/ation) — EN/GB spelling, EUR-Lex convention
+const RE_IN_ACCORDANCE = /\bin accordance with\b/i;
+const LINEAGE_WINDOW = 200; // chars each side of the mention — "near the mention", not whole-document lore
+
+// content may hold several distinct parent mentions (an act can implement one instrument and reference
+// another in passing); windowing around THIS mention's literal occurrence keeps typing mention-specific
+// instead of letting one pattern anywhere in the content leak onto every wired edge. Falls back to the
+// whole content when the canonical text isn't found verbatim (e.g. a dictionary canonical differs from
+// the matched alias) — degrades to the pre-windowing behavior, never throws.
+function windowAroundMention(content, mentionCanonical) {
+  const text = String(content || "");
+  const needle = String(mentionCanonical || "");
+  if (!needle) return text;
+  const idx = text.toLowerCase().indexOf(needle.toLowerCase());
+  if (idx === -1) return text;
+  return text.slice(Math.max(0, idx - LINEAGE_WINDOW), Math.min(text.length, idx + needle.length + LINEAGE_WINDOW));
+}
+
+/**
+ * @param {string} content the citing item's text (full_brief + grounding pool, as planLinkWrites receives it)
+ * @param {string} mentionCanonical the resolved mention's canonical text (the parent instrument's identifier/name)
+ * @param {string} [selfTitle] the citing (child) item's own title — fallback signal when the content near
+ *   the mention doesn't carry the phrase itself (e.g. "Commission Implementing Regulation ..." titles that
+ *   describe themselves rather than repeating "implementing" beside the parent's number in the body)
+ * @returns {{relationship: string, basis: Array<{signal:string, detail:string, weight:number}>|null}}
+ */
+export function classifyRelationship(content, mentionCanonical, selfTitle) {
+  const near = windowAroundMention(content, mentionCanonical);
+  const title = String(selfTitle || "");
+  // derogation shape checked first (most specific — needs BOTH signals present) so a generic "amending" or
+  // "delegated" elsewhere in the window can't shadow it.
+  if (RE_AUTHORISES.test(near) && RE_IN_ACCORDANCE.test(near)) {
+    return { relationship: "depends_on", basis: [{ signal: "lineage", detail: `derogates under ${mentionCanonical}`, weight: 0 }] };
+  }
+  if (RE_AMENDS.test(near)) {
+    return { relationship: "amends", basis: [{ signal: "lineage", detail: `amends ${mentionCanonical}`, weight: 0 }] };
+  }
+  if (RE_SUPPLEMENTS_DELEGATED.test(near)) {
+    return { relationship: "depends_on", basis: [{ signal: "lineage", detail: `supplements ${mentionCanonical}`, weight: 0 }] };
+  }
+  if (RE_IMPLEMENTS.test(near) || RE_SELF_IMPLEMENTING_TITLE.test(title)) {
+    return { relationship: "implements", basis: [{ signal: "lineage", detail: `implements ${mentionCanonical}`, weight: 0 }] };
+  }
+  return { relationship: "related", basis: null };
+}
+
 // One-shot for the linkStep: detect over content, resolve each vs corpus, split into edges-to-wire +
-// candidates-to-surface. Never self-links; dedups edges by target.
+// candidates-to-surface. Never self-links; dedups edges by target. Wire edges carry a typed `relationship`
+// (classifyRelationship, identifier mentions only — WO-28) + `basis` when a lineage pattern matched, else
+// today's unchanged 'related'/no-basis. `lineageGaps`: identifier mentions that resolve to ZERO items but
+// ARE lineage-pattern-shaped (implements/amends/supplements/derogation) — these still land in `surface`
+// too (unchanged posture), but are additionally distinguished here because they are a specific, actionable
+// discovery target (an enabling/parent act absent from the corpus), not generic ambiguity.
 export function planLinks(content, corpus, selfId) {
-  const edges = [], surface = [];
+  const selfRow = (corpus || []).find((c) => c.id === selfId);
+  const selfTitle = selfRow ? selfRow.title : "";
+  // The item's OWN instrument number almost always appears in its own content/title right beside the
+  // lineage phrase that names its PARENT ("Commission Implementing Regulation (EU) 2026/394 ... for the
+  // application of Regulation (EU) 2023/1805") — close enough to fall inside the same LINEAGE_WINDOW as
+  // the real parent mention. Without this exclusion the self-number, unresolved (it is deliberately
+  // excluded from the resolve() pool, never a link target), would ALSO get swept into lineageGaps as a
+  // false "missing parent" naming itself. resolve()'s excludeId already keeps the self out of WIRE edges;
+  // this keeps it out of the gap feed the same way.
+  const selfOwnId = selfRow ? norm(selfRow.instrument_identifier) : "";
+  const edges = [], surface = [], lineageGaps = [];
   for (const m of detectMentions(content)) {
     const r = resolve(m, corpus, selfId);
     const bucket = classifyBucket(m, r.count);
-    if (bucket === "wire") edges.push({ target_item_id: r.ids[0], via: m.canonical, kind: m.kind });
-    else surface.push({ mention: m.canonical, kind: m.kind, resolvedCount: r.count });
+    if (bucket === "wire") {
+      let relationship = "related", basis = null;
+      if (m.kind === "identifier") {
+        const typed = classifyRelationship(content, m.canonical, selfTitle);
+        relationship = typed.relationship;
+        basis = typed.basis;
+      }
+      edges.push({ target_item_id: r.ids[0], via: m.canonical, kind: m.kind, relationship, basis });
+    } else {
+      surface.push({ mention: m.canonical, kind: m.kind, resolvedCount: r.count });
+      const isSelf = m.kind === "identifier" && selfOwnId && norm(m.canonical) === selfOwnId;
+      if (m.kind === "identifier" && r.count === 0 && !isSelf) {
+        const typed = classifyRelationship(content, m.canonical, selfTitle);
+        if (typed.relationship !== "related") lineageGaps.push({ mention: m.canonical, relationship: typed.relationship });
+      }
+    }
   }
-  return { edges: uniqBy(edges, (e) => e.target_item_id), surface };
+  return { edges: uniqBy(edges, (e) => e.target_item_id), surface, lineageGaps: uniqBy(lineageGaps, (g) => g.mention) };
 }
 
 // SUBJECT-EXISTENCE dedup (phase-intake-gate piece 2) at the mint chokepoint. HIGH-PRECISION only — a new
@@ -102,9 +197,10 @@ export function planLinks(content, corpus, selfId) {
  * Free-text reg-numbers are REFERENCES — they describe a relation (amends / implements / applies), never
  * identity. Title scraping survives ONLY as the fallback for items carrying no identifier at all.
  *
- * NOTE (product capability, not built here): those references are valuable RELATIONSHIP data —
- * implementing-act → parent-act linkage. Capturing them as edges is a future capability; this function's
- * job is to make sure they are never mistaken for identity.
+ * NOTE (product capability): those references are valuable RELATIONSHIP data — implementing-act →
+ * parent-act linkage. Capturing them as edges is built (WO-28 phase 1, ADR-021) — see classifyRelationship
+ * below and its use in planLinks/planLinkWrites; this function's job stays making sure they are never
+ * mistaken for identity.
  */
 function ownRegNums(o) {
   const id = String(o?.instrument_identifier || "").trim();
@@ -147,13 +243,21 @@ export function assertMoatBoundary(writes) {
 }
 
 // PURE: turn a link plan into the exact DB write ops (no execution) so the moat boundary is checkable
-// without a DB. Wire edges → item_cross_references (origin=entity_extraction); the surface set → ONE
-// aggregated integrity_flags candidate row (never one-flag-per-mention spam; never silently dropped).
+// without a DB. Wire edges → item_cross_references (origin=entity_extraction, relationship TYPED per
+// classifyRelationship — WO-28); the surface set → ONE aggregated integrity_flags candidate row (never
+// one-flag-per-mention spam; never silently dropped); lineageGaps → ONE further aggregated integrity_flags
+// row in its own dedup namespace (lineage-gap:absent-parent — link-items.ts's executor dedups it the same
+// one-open-flag-per-item way it already dedups the entity-link flag), naming the missing parent
+// instrument(s) as an L2 discovery target.
 export function planLinkWrites(content, corpus, itemId) {
-  const { edges, surface } = planLinks(content, corpus, itemId);
+  const { edges, surface, lineageGaps } = planLinks(content, corpus, itemId);
   const writes = edges.map((e) => ({
     table: "item_cross_references",
-    row: { source_item_id: itemId, target_item_id: e.target_item_id, relationship: "related", origin: "entity_extraction" },
+    row: {
+      source_item_id: itemId, target_item_id: e.target_item_id,
+      relationship: e.relationship, origin: "entity_extraction",
+      ...(e.basis ? { basis: e.basis } : {}),
+    },
   }));
   if (surface.length) writes.push({
     table: "integrity_flags",
@@ -162,6 +266,15 @@ export function planLinkWrites(content, corpus, itemId) {
       description: `Entity mentions needing review (ambiguous / unknown-standard): ${surface.map((s) => `${s.mention}(${s.resolvedCount})`).join(", ")}`.slice(0, 480),
       recommended_actions: surface.slice(0, 20).map((s) => ({ action: "review_entity_mention", rationale: `${s.kind}:${s.mention} resolved to ${s.resolvedCount} item(s)` })),
       status: "open", created_by: "intake-entity-link",
+    },
+  });
+  if (lineageGaps.length) writes.push({
+    table: "integrity_flags",
+    row: {
+      category: "coverage_gap", subject_type: "item", subject_ref: itemId,
+      description: `Enabling/parent instrument(s) named but absent from the corpus: ${lineageGaps.map((g) => `${g.mention} (${g.relationship})`).join(", ")}`.slice(0, 480),
+      recommended_actions: lineageGaps.slice(0, 20).map((g) => ({ action: "acquire_parent_instrument", rationale: `item ${g.relationship} ${g.mention}, which does not resolve to any item in the corpus` })),
+      status: "open", created_by: "lineage-gap:absent-parent",
     },
   });
   assertMoatBoundary(writes); // belt-and-suspenders: the plan itself can never carry a forbidden write

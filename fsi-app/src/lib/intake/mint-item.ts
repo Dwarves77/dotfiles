@@ -245,10 +245,16 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
 
   // ── Post-insert surfacing (non-fatal). item_cross_references + integrity_flags ONLY. ─────────────
   if (linkTargetId && linkTargetId !== itemId) {
+    // "references" was CHECK-illegal (item_cross_references_relationship_check, migration 004, allows
+    // exactly {related, supersedes, implements, conflicts, amends, depends_on}) and the error below was
+    // swallowed — every dedup:linked mint has silently failed to write this edge since the CHECK landed.
+    // See ADR-021 / docs/plans/connection-redesign-and-build-scope-2026-08-29.md WO-28's latent-defect
+    // note. Fixed to a CHECK-legal value; guarded against recurrence by
+    // .discipline/relationship-check-literals.test.mjs.
     await sb
       .from("item_cross_references")
       .upsert(
-        { source_item_id: itemId, target_item_id: linkTargetId, relationship: "references", origin: "entity_extraction" },
+        { source_item_id: itemId, target_item_id: linkTargetId, relationship: "related", origin: "entity_extraction" },
         { onConflict: "source_item_id,target_item_id", ignoreDuplicates: true }
       )
       .then(() => {}, () => {});
