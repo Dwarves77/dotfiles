@@ -8,7 +8,7 @@
 // the real shared attributes that justify the connection. No basis, no edge, no card.
 //
 // Score bands mirror pair-view.mjs (documented heuristic against discover.mjs's weights:
-// same_instrument 0.9, shared_source 0.4, shared_scenario 0.3/tag, shared_compliance_object
+// shared_source 0.4, shared_scenario 0.3/tag, shared_compliance_object
 // 0.18/tag, shared_jurisdiction_topic 0.2):
 //   strong >= 0.9 · medium >= 0.5 · weak < 0.5 · explicit = curated edge, no engine score.
 
@@ -55,7 +55,6 @@ const PRIORITY_COLORS: Record<string, string> = {
 // Signal chip palette — substantive signals lead with primary; the weaker corroborating signals stay
 // neutral so a card's visual weight tracks the engine's weights.
 const SIGNAL_COLORS: Record<string, string> = {
-  same_instrument: "var(--color-primary)",
   shared_source: "var(--color-success)",
   shared_scenario: "var(--color-primary)",
   shared_compliance_object: "var(--color-warning)",
