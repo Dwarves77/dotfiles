@@ -253,15 +253,6 @@ export interface Resource {
   lastCitedAt?: string | null;
 }
 
-// ── Verification ──
-
-export interface VerificationResult {
-  xrefCount: number;
-  disputeCount: number;
-  label: string;
-  color: string;
-}
-
 // ── Share Package ──
 
 export interface SharePackage {
