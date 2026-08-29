@@ -20,9 +20,9 @@
 // minScore as usual.
 //
 // SCORE BANDS (documented heuristic, not an invented magic number — same posture as theme-stats'
-// convergence bands): discover.mjs weights are same_instrument 0.9, shared_source 0.4,
+// convergence bands): discover.mjs weights are shared_source 0.4,
 // shared_scenario 0.3/tag, shared_compliance_object 0.18/tag, shared_jurisdiction_topic 0.2.
-//   strong  >= 0.9  — same-instrument-dominated or several substantive signals stacked
+//   strong  >= 0.9  — several substantive signals stacked
 //   medium  >= 0.5  — multiple substantive signals (e.g. source + scenario)
 //   weak    <  0.5  — a single substantive signal near the 0.3 discovery threshold
 export const BANDS = { strong: 0.9, medium: 0.5 };

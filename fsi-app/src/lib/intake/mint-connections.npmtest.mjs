@@ -71,14 +71,16 @@ const seed = (overrides = {}) => ({
   source_url: "https://example.gov/reg/new",
   item_type: "regulation",
   domain: 1,
-  canonical_instrument_key: "reg-2020-1056",
   operational_scenario_tags: ["dangerous-goods-transport-road"],
   ...overrides,
 });
 
 test("mint: corpus shares provenance with the new item → discovers edges, writes ONLY item_cross_references", async () => {
+  // fakeClient's default sourcesRows resolves the new item's source_id to "src-1" (Fix A source-link);
+  // the corpus row shares that source_id, so the shared_source signal (weight 0.4) fires and clears the
+  // 0.3 discovery threshold — same signal discover.mjs actually emits, not the removed key-equality one.
   const sb = fakeClient({
-    corpusRows: [{ id: "existing-1", item_type: "market_signal", canonical_instrument_key: "reg-2020-1056" }],
+    corpusRows: [{ id: "existing-1", item_type: "market_signal", source_id: "src-1" }],
   });
   const r = await mintIntelligenceItem(sb, { seed: seed(), origin: "staged_materialization" });
   assert.equal(r.ok, true, r.error);
@@ -91,7 +93,7 @@ test("mint: corpus shares provenance with the new item → discovers edges, writ
   assert.equal(written.source_item_id, "new-1");
   assert.equal(written.target_item_id, "existing-1");
   assert.equal(written.origin, "provenance_discovery");
-  assert.ok(written.basis.some((b) => b.signal === "same_instrument"), "grounded in the real shared instrument, not invented");
+  assert.ok(written.basis.some((b) => b.signal === "shared_source"), "grounded in the real shared source, not invented");
 
   // MOAT BOUNDARY: no write reaches any table besides item_cross_references — no claims/provenance touch.
   const otherTableWrites = sb.writesLog().filter((w) => w.table !== "item_cross_references");
@@ -99,8 +101,11 @@ test("mint: corpus shares provenance with the new item → discovers edges, writ
 });
 
 test("mint: no corpus overlap → mint succeeds, no discovery flag, no edge write", async () => {
-  const sb = fakeClient({ corpusRows: [{ id: "unrelated-1", item_type: "research_finding" }] });
-  const r = await mintIntelligenceItem(sb, { seed: seed({ canonical_instrument_key: "reg-other" }), origin: "staged_materialization" });
+  // Different source_id and no shared operational_scenario_tags → no basis at all (not just a weak one).
+  const sb = fakeClient({
+    corpusRows: [{ id: "unrelated-1", item_type: "research_finding", source_id: "src-other", operational_scenario_tags: ["unrelated-tag"] }],
+  });
+  const r = await mintIntelligenceItem(sb, { seed: seed(), origin: "staged_materialization" });
   assert.equal(r.ok, true, r.error);
   assert.ok(!r.flags.some((f) => f.startsWith("discovery:")), "no shared basis → no discovery flag");
   assert.deepEqual(sb.writesLog(), [], "no basis found → nothing written to item_cross_references");

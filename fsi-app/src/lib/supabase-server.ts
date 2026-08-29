@@ -164,25 +164,6 @@ async function fetchDisputes(): Promise<Record<string, Dispute>> {
   return result;
 }
 
-async function fetchXrefPairs(): Promise<[string, string][]> {
-  const supabase = getSupabase();
-  // .limit(500) defensively. Currently ~50 pairs; bounds the read as the
-  // table grows so a runaway link-detection job can't blow up the dashboard
-  // data path.
-  const { data: rows } = await supabase
-    .from("item_cross_references")
-    .select("source:intelligence_items!source_item_id(id, legacy_id), target:intelligence_items!target_item_id(id, legacy_id)")
-    .limit(500);
-
-  const pairs: [string, string][] = [];
-  for (const row of rows || []) {
-    const s = uiId(row.source);
-    const t = uiId(row.target);
-    if (s && t) pairs.push([s, t]);
-  }
-  return pairs;
-}
-
 async function fetchSupersessions(): Promise<Supersession[]> {
   const supabase = getSupabase();
   // .limit(500) defensively, ordered most-recent-first so the first 500
@@ -1547,7 +1528,7 @@ interface RecentChangeRpcRow {
 // A shape change reached through a nested type (Resource, Supersession, …)
 // does not rotate the key mechanically — additions through nested types MUST
 // be optional fields, or rotate this key by hand in the same commit.
-export const DASHBOARD_DATA_CACHE_KEY = "app-data-1ac1bd65";
+export const DASHBOARD_DATA_CACHE_KEY = "app-data-6c3e4c27";
 
 export interface DashboardData {
   resources: Resource[];
@@ -1555,7 +1536,6 @@ export interface DashboardData {
   recentChanges: RecentChangeRow[];
   changelog: Record<string, ChangeLogEntry[]>;
   disputes: Record<string, Dispute>;
-  xrefPairs: [string, string][];
   supersessions: Supersession[];
   auditDate: string;
   synopses: SectorSynopsis[];
@@ -1599,7 +1579,6 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
     recentChanges: [],
     changelog: {},
     disputes: {},
-    xrefPairs: [],
     supersessions: [],
     // Honest empty: no detection pass backs this payload. WhatChanged
     // renders "no detection pass on record" for a falsy auditDate.
@@ -1629,7 +1608,6 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       { active: resources, archived, uuidToUiId },
       changelog,
       disputes,
-      xrefPairs,
       supersessions,
     ] = await withTimeout(
       Promise.all([
@@ -1641,7 +1619,6 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
         fetchWorkspaceResources(orgId, { dashboard: true }),
         fetchChangelog(),
         fetchDisputes(),
-        fetchXrefPairs(),
         fetchSupersessions(),
       ]),
       8000, // 8 second timeout
@@ -1655,7 +1632,6 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
         { active: [] as Resource[], archived: [] as Resource[], uuidToUiId: new Map<string, string>() },
         {} as Record<string, ChangeLogEntry[]>,
         {} as Record<string, Dispute>,
-        [] as [string, string][],
         [] as Supersession[],
       ]
     );
@@ -1779,7 +1755,6 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       recentChanges,
       changelog,
       disputes,
-      xrefPairs,
       supersessions,
       auditDate,
       synopses,
@@ -1848,11 +1823,11 @@ export async function fetchResourcesOnly(
 
 /**
  * Slim variant for the /map surface: resources + relationship payload
- * the map view consumes (changelog, disputes, xrefPairs, supersessions).
+ * the map view consumes (changelog, disputes, supersessions).
  * Drops sources/provisional/conflicts/synopses/intelligenceChanges/
  * sectorDisplayNames/overrides.
  *
- * Cost: 5 queries (workspace RPC + 4 relationship reads). Compared to
+ * Cost: 4 queries (workspace RPC + 3 relationship reads). Compared to
  * ~15 for fetchDashboardData.
  */
 export async function fetchMapData(orgId: string | null): Promise<{
@@ -1860,7 +1835,6 @@ export async function fetchMapData(orgId: string | null): Promise<{
   archived: Resource[];
   changelog: Record<string, ChangeLogEntry[]>;
   disputes: Record<string, Dispute>;
-  xrefPairs: [string, string][];
   supersessions: Supersession[];
   _error?: string;
   _fallbackTrigger?: SeedFallbackTrigger;
@@ -1871,7 +1845,6 @@ export async function fetchMapData(orgId: string | null): Promise<{
     archived: [] as Resource[],
     changelog: {} as Record<string, ChangeLogEntry[]>,
     disputes: {} as Record<string, Dispute>,
-    xrefPairs: [] as [string, string][],
     supersessions: [] as Supersession[],
   };
 
@@ -1883,13 +1856,12 @@ export async function fetchMapData(orgId: string | null): Promise<{
   }
 
   try {
-    const [{ active, archived }, changelog, disputes, xrefPairs, supersessions] = await withTimeout(
+    const [{ active, archived }, changelog, disputes, supersessions] = await withTimeout(
       Promise.all([
         // Slim RPC — /map renders pins/lines, never full_brief.
         fetchWorkspaceResources(orgId, { slim: true }),
         fetchChangelog(),
         fetchDisputes(),
-        fetchXrefPairs(),
         fetchSupersessions(),
       ]),
       8000,
@@ -1897,13 +1869,11 @@ export async function fetchMapData(orgId: string | null): Promise<{
         { active: [] as Resource[], archived: [] as Resource[], uuidToUiId: new Map<string, string>() },
         {} as Record<string, ChangeLogEntry[]>,
         {} as Record<string, Dispute>,
-        [] as [string, string][],
         [] as Supersession[],
       ] as [
         { active: Resource[]; archived: Resource[]; uuidToUiId: Map<string, string> },
         Record<string, ChangeLogEntry[]>,
         Record<string, Dispute>,
-        [string, string][],
         Supersession[],
       ]
     );
@@ -1917,7 +1887,6 @@ export async function fetchMapData(orgId: string | null): Promise<{
       archived,
       changelog,
       disputes,
-      xrefPairs,
       supersessions,
     };
   } catch (e) {
@@ -1997,7 +1966,6 @@ export async function fetchListingsMapData(orgId: string | null): Promise<{
   archived: Resource[];
   changelog: Record<string, ChangeLogEntry[]>;
   disputes: Record<string, Dispute>;
-  xrefPairs: [string, string][];
   supersessions: Supersession[];
   _error?: string;
   _fallbackTrigger?: SeedFallbackTrigger;
@@ -2008,7 +1976,6 @@ export async function fetchListingsMapData(orgId: string | null): Promise<{
     archived: [] as Resource[],
     changelog: {} as Record<string, ChangeLogEntry[]>,
     disputes: {} as Record<string, Dispute>,
-    xrefPairs: [] as [string, string][],
     supersessions: [] as Supersession[],
   };
 
@@ -2020,12 +1987,11 @@ export async function fetchListingsMapData(orgId: string | null): Promise<{
   }
 
   try {
-    const [{ active, archived }, changelog, disputes, xrefPairs, supersessions] = await withTimeout(
+    const [{ active, archived }, changelog, disputes, supersessions] = await withTimeout(
       Promise.all([
         fetchWorkspaceResources(orgId, { listings: true }),
         fetchChangelog(),
         fetchDisputes(),
-        fetchXrefPairs(),
         fetchSupersessions(),
       ]),
       8000,
@@ -2033,13 +1999,11 @@ export async function fetchListingsMapData(orgId: string | null): Promise<{
         { active: [] as Resource[], archived: [] as Resource[], uuidToUiId: new Map<string, string>() },
         {} as Record<string, ChangeLogEntry[]>,
         {} as Record<string, Dispute>,
-        [] as [string, string][],
         [] as Supersession[],
       ] as [
         { active: Resource[]; archived: Resource[]; uuidToUiId: Map<string, string> },
         Record<string, ChangeLogEntry[]>,
         Record<string, Dispute>,
-        [string, string][],
         Supersession[],
       ]
     );
@@ -2053,7 +2017,6 @@ export async function fetchListingsMapData(orgId: string | null): Promise<{
       archived,
       changelog,
       disputes,
-      xrefPairs,
       supersessions,
     };
   } catch (e) {

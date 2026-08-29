@@ -22,7 +22,7 @@ function fakeClient(existing, captured, { upsertError = null } = {}) {
 
 const edge = (s, t, score = 0.5) => ({
   source_item_id: s, target_item_id: t, relationship: "related",
-  origin: "provenance_discovery", basis: [{ signal: "same_instrument" }], score,
+  origin: "provenance_discovery", basis: [{ signal: "shared_source" }], score,
 });
 
 test("origin ownership: skip foreign-origin pairs, refresh own, insert absent", async () => {

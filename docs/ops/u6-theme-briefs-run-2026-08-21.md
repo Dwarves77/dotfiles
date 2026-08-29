@@ -75,3 +75,19 @@ ratification — nothing is applied to the scorer without a ruling.
   the staleness contract guarding reads in the meantime.
 - Run artifacts (per-theme inputs, per-brief SQL with expected md5s, L4 scripts and JSON outputs)
   retained in the session workspace and reproducible from the live tables plus this record.
+
+## Correction (2026-08-29, WO-27 — rule 14, in place)
+
+Two claims in the L4 table above did not survive re-measurement:
+
+- **"a single low-idf shared_scenario tag" is REFUTED.** The near-floor band's driving tags carry
+  **idf = 1.000** (full weight; live REF_FREQ 11.5) — ADR-019 never discounts rarer-than-median
+  tags. The band exists because those edges carry exactly ONE basis entry, and row-level reads show
+  they are correct instrument-family clusters (member-state fuel-excise derogations, RED II scheme
+  recognitions). Ruled 2026-08-29: floor unchanged; the structural fix is WO-28 lineage typing
+  (ADR-021).
+- **Counts are stale**: the table's 1,954 edges / 178 near-floor predate the vocabulary
+  retirement; live at correction time is **1,863 / 160**.
+- **Candidate 5 ("same_instrument dormant") is REFUTED, not dormant**: the signal was structurally
+  impossible (migration 200's unique index over exactly the discovery population) and was removed
+  from the scorer in WO-27. All 5 L4 flags are resolved (see ADR-021).

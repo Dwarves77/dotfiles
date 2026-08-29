@@ -137,7 +137,6 @@ function appDataSeedFallback(_fallbackTrigger?: SeedFallbackTrigger) {
     recentChanges: [] as import("@/lib/supabase-server").RecentChangeRow[],
     changelog: {} as Record<string, ChangeLogEntry[]>,
     disputes: {} as Record<string, Dispute>,
-    xrefPairs: [] as [string, string][],
     supersessions: [] as Supersession[],
     auditDate: AUDIT_DATE,
     synopses: [],
@@ -273,7 +272,7 @@ export async function getListingsOnly(page?: ResourcePage): Promise<{
 
 /**
  * Slim fetcher for /map: resources + the relationship payload the map
- * surface needs (changelog, disputes, xrefPairs, supersessions). Drops
+ * surface needs (changelog, disputes, supersessions). Drops
  * sources, provisional sources, conflicts, synopses, intelligence
  * changes, sector display names, and overrides.
  *
@@ -284,7 +283,6 @@ export async function getMapData(): Promise<{
   archived: Resource[];
   changelog: Record<string, ChangeLogEntry[]>;
   disputes: Record<string, Dispute>;
-  xrefPairs: [string, string][];
   supersessions: Supersession[];
   _error?: string;
   _fallbackTrigger?: SeedFallbackTrigger;
@@ -308,7 +306,6 @@ export async function getMapData(): Promise<{
       archived: [],
       changelog: {},
       disputes: {},
-      xrefPairs: [],
       supersessions: [],
       _error: SEED_FALLBACK_ERROR,
       _fallbackTrigger: "exception",
@@ -327,7 +324,6 @@ export async function getListingsMapData(): Promise<{
   archived: Resource[];
   changelog: Record<string, ChangeLogEntry[]>;
   disputes: Record<string, Dispute>;
-  xrefPairs: [string, string][];
   supersessions: Supersession[];
   _error?: string;
   _fallbackTrigger?: SeedFallbackTrigger;
@@ -351,7 +347,6 @@ export async function getListingsMapData(): Promise<{
       archived: [],
       changelog: {},
       disputes: {},
-      xrefPairs: [],
       supersessions: [],
       _error: SEED_FALLBACK_ERROR,
       _fallbackTrigger: "exception",
