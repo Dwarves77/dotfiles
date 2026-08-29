@@ -4474,3 +4474,66 @@ suite globs `src/__tests__/*.test.mjs`, so they run in pre-push AND CI by constr
 Build the backup heartbeat in `caros-ledge-backups`, then advance `FREEZE_SINCE_ISO` past 2026-08-13 with
 the 3 rows accounted for so spend-watch can go green and mean something again. Then the build resumes at
 the **WO-19 / WO-12 spine**.
+
+## Addendum 32 — making the two alarms mean something again (2026-08-28, Cowork session)
+
+Two probes had been red for weeks and neither was telling anyone anything. Addendum 31 built the gate
+that stops the cause; this closes the loop on both signals so a future red is information rather than
+wallpaper.
+
+### Spend-watch: baseline advanced past the three accounted-for rows
+
+`FREEZE_SINCE_ISO` moved 2026-07-15T03:00:00Z → **2026-08-13T17:00:00Z**.
+
+The three rows are named in the code comment, not summarised away: 08-12 21:28Z $0.022881, 08-13 14:53Z
+$0.023556, 08-13 16:38Z $0.022401 — all `ask-assistant (/api/ask user question)`, $0.0688 total, all
+`authorizationRef: null`. Product runtime, not build spend.
+
+**The honest distinction from the 2026-07-15 move**, written into the comment because it matters: that
+one advanced past rows that *were* traceable to real operator authorizations. These rows were traceable
+to nothing — the ask route carried no priced line and no cap, so under build-phase it spent outside the
+authorization model entirely. The baseline is therefore **not** advancing because the rows turned out
+fine. It advances because **the cause is closed**: the route now refuses unless `ASSISTANT_ENABLED ===
+"true"`, the refusal precedes every paid call, and the gate plus its ordering are attack-proven. No
+further `ask-assistant` row can be minted while the Assistant is off.
+
+Verified against live data before committing: **0 paid rows after the new baseline**; latest paid row
+ever is 2026-08-13 16:38:19Z. Also verified how the probe scopes its count (month-to-date, then filtered
+by the baseline — `route.ts` monthStart) so the claim "this goes green" is about the mechanism, not a
+guess.
+
+**Debt named where it bites**, in the comment beside the constant rather than in a doc nobody opens: if
+the Assistant is ever deliberately enabled, its spend will again lack an authorization marker and again
+red this probe. Enabling therefore OWES a batch-marker or priced-line write on the ask path FIRST.
+Building that plumbing now, for a feature that is off, would be speculative work for a state that does
+not exist — so it is recorded at the flag, for whoever flips it.
+
+### db-backup heartbeat: the watcher must be independent of the watched
+
+Written for `caros-ledge-backups` (separate repo, separate PR). Runs 10:00 UTC daily, ~1h43m after the
+08:17 backup, so a failure is seen the same morning.
+
+The design point: a check living INSIDE the job it watches cannot fire when that job fails to run at all
+— wrong schedule, disabled workflow, exhausted quota, runner outage. So this is its own workflow, reading
+the repo's own Actions history via the built-in `GITHUB_TOKEN` (`actions: read`), adding no new
+credential surface.
+
+Three failure modes, each with an explicit exit, because the lesson of the 9-night outage was that
+**silence looked identical to success**:
+1. **No completed runs at all** — workflow renamed, deleted, or disabled. Alarms rather than passing
+   vacuously on empty history.
+2. **Latest completed run did not succeed** — this is the 2026-08-20..28 outage exactly.
+3. **Latest success is stale** (>36h) — the case the outage would NOT have hit: green history, nothing
+   new firing. 36h rather than 24h so one slow-but-successful run does not cry wolf.
+
+Logic unit-tested locally against canned API payloads before shipping — all five branches exercised
+(fresh success → GREEN; recent failure → RED; 50h-stale success → RED; zero runs → RED; cancelled →
+RED). The date arithmetic and jq null-coalescing are the parts that silently misbehave, so they were run,
+not eyeballed.
+
+### Still open after this
+
+- **WO-19 / WO-12 spine** (Stage 8) — the real build work, gating the Stage 7 producers.
+- **Node 20 deprecation** on the backup repo's upload/download-artifact actions.
+- **Data-side scope assertion** (data-audit lane, Disabled) and the **truncated-title classifier
+  weakness** remain unguarded, unchanged from Addendum 31.
