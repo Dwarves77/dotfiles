@@ -8,6 +8,24 @@ import { spendStreamRaw, setSpendTicket, resetSpendTicket } from "@/lib/llm/spen
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
+// ── ASSISTANT ENABLEMENT (fail-closed). Operator standing doctrine: NO SPEND DURING BUILD.
+// This route is the platform's only user-triggered paid path. Under the BUILD-PHASE regime
+// (src/lib/llm/spend-regime.mjs) "the sole dollar gate is the operator-priced line", and this route
+// carries no priced line and no per-ticket cap — so before this gate existed it could spend while
+// sitting OUTSIDE the authorization model entirely. It did: 3 paid rows (2026-08-12/13, $0.0688,
+// purpose "ask-assistant") landed while the Assistant was believed to be OFF, because "OFF" was
+// enforced by nobody happening to use it rather than by anything in the code.
+//
+// FAIL-CLOSED BY CONSTRUCTION: enabled ONLY when ASSISTANT_ENABLED === "true", exactly. Unset,
+// empty, "1", "yes", or any typo all read as OFF. An env var that must be deliberately set to a
+// single exact value cannot be switched on by accident or by a partial deploy.
+//
+// This is NOT a dollar cap and deliberately not one: under build-phase, standing dollar figures are
+// information-only and never gate (spend-regime.mjs), so a cap here would be decorative. The ratified
+// $10/month + $0.10/request figures belong to the future STEADY-STATE regime, to be wired when the
+// operator deliberately flips this on — they are not a build-phase authorization.
+const ASSISTANT_ENABLED = process.env.ASSISTANT_ENABLED === "true";
+
 // Per-response disclaimer text. Kept identical to the Tier 1 wording so
 // downstream UI rendering remains stable.
 const ASSISTANT_DISCLAIMER =
@@ -128,6 +146,15 @@ async function handlePOST(request: NextRequest) {
 
   const limited = checkRateLimit(auth.userId);
   if (limited) return limited;
+
+  // Enablement gate BEFORE the key check and before any spend path is touched: a disabled Assistant
+  // must be indistinguishable from an unbuilt one from the caller's side, and must reach no paid call.
+  if (!ASSISTANT_ENABLED) {
+    return NextResponse.json(
+      { error: "The Intelligence Assistant is currently disabled." },
+      { status: 503 },
+    );
+  }
 
   if (!ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "AI assistant not configured" }, { status: 500 });
