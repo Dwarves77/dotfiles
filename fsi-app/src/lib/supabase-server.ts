@@ -1528,7 +1528,7 @@ interface RecentChangeRpcRow {
 // A shape change reached through a nested type (Resource, Supersession, …)
 // does not rotate the key mechanically — additions through nested types MUST
 // be optional fields, or rotate this key by hand in the same commit.
-export const DASHBOARD_DATA_CACHE_KEY = "app-data-1ac1bd65";
+export const DASHBOARD_DATA_CACHE_KEY = "app-data-6c3e4c27";
 
 export interface DashboardData {
   resources: Resource[];
