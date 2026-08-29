@@ -78,3 +78,41 @@ test("surface classification: surface-coverage.ts delegates to surfaceOf (no com
     "surface-coverage.ts must NOT define its own MARKET_ITEM_TYPES set — that is the competing vocab home. Use surfaceOf.",
   );
 });
+
+// 3e — RETIRED SCOPE VOCABULARY must not return (ADR-020 Amendment 1, operator ruling 2026-08-28:
+// "if tags exist with that then it's in scope"). The customs-declaration-* and dangerous-goods-*
+// scenario families were removed from the tagger's core glossary because the vocabulary IS a scope
+// surface: a reader offered `dangerous-goods-classification` as a scenario lens reads the domain as
+// covered, whatever any doc says. WHY A GUARD AND NOT JUST AN EDIT: the families reached the corpus
+// in the first place through the glossary (the WO-7 backfill sprayed customs tags onto US state
+// environmental items), so the glossary is the upstream cause. Removing them without pinning them
+// leaves the next edit free to reintroduce the whole class silently — the exact drift this file exists
+// to prevent, one vocabulary over.
+//
+// NOT COVERED HERE, deliberately: `compliance_object_tags` keeps customs-broker/importer/exporter.
+// Those name WHO a sustainability rule obligates (real freight parties), not a regulatory domain.
+test("scope vocab: retired customs/dangerous-goods scenario families stay out of the tagger glossary", () => {
+  const src = read("src/lib/agent/system-prompt.ts");
+  const RETIRED = [
+    "customs-declaration-import",
+    "customs-declaration-export",
+    "dangerous-goods-classification",
+  ];
+  for (const tag of RETIRED) {
+    assert.ok(
+      !src.includes(tag),
+      `system-prompt.ts reintroduces the retired scenario tag "${tag}". ADR-020 Amendment 1 retired the ` +
+        `customs-declaration-* and dangerous-goods-* families from live scope: the tag vocabulary is a scope ` +
+        `declaration, so offering this tag re-declares a domain the platform does not cover. If customs is ` +
+        `being restored as a vertical, that needs the regulatory_domain dimension first (ADR-020 backlog), ` +
+        `not a tag added back to the sustainability glossary.`,
+    );
+  }
+  // The replacement group must still exist — a guard that passes because the whole section was deleted
+  // would be vacuous (the F23 orphaned-proof lesson, one file over).
+  assert.ok(
+    /Border-carbon\/due-diligence:\s*CBAM-declaration/.test(src),
+    "The Border-carbon/due-diligence glossary group is missing — CBAM's border mechanism must still be " +
+      "expressible via CBAM-declaration, or this guard is passing vacuously against a deleted section.",
+  );
+});
