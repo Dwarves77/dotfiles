@@ -4581,3 +4581,58 @@ the worktree: suite 1420/1420 (one deleted impossible-input test), tsc clean, fi
 - WO-19 (CLOCK) / WO-12 / WO-20 spine — next wave, per the scope's §4.
 - WO-5 rulings B1–B4; U9 close-out audit (built on master, listed not-started); Stage 4–6 WO texts
   vault-absent (spec-from-repo owed); Node 20 bump on the backup repo.
+
+## Addendum 34 — two corrections from the operator, and Wave 2's first three lanes land (2026-08-29, Cowork session)
+
+### C15 and C16, both operator-caught
+
+- **C15 (rule 13 violated).** After landing PR #480 I reported the browser-landing friction as an
+  "honest note" — a flag as commentary, with no fix attached and no verification of whether the
+  underlying limit (git-proxy push refusal) was even fixable. Investigated on the operator's demand:
+  the proxy error's advertised remedy ("add the repository to the session's sources") has NO
+  user-facing implementation yet (docs + upstream issues #76248/#84581, checked 2026-08-29). Ruling
+  received and binding: the browser landing IS the method, not a workaround; the executor owns it
+  end-to-end, every time; no landing step is ever handed to the operator; known-recorded limits are
+  not re-tested (the ledger exists so they are not re-derived).
+- **C16 (partial gate before upload).** PR #480 was uploaded after suite/tsc/fitness but WITHOUT the
+  discipline engine's commit-rules pass — rule 021 (dashboard cache key must rotate with the payload
+  shape) went red on the PR instead of locally. Binding protocol from now on: the COMPLETE
+  CI-equivalent runs locally before the first byte is uploaded — canonical suite, tsc, fitness, AND
+  `runner.mjs --mode=ci` over the range. A PR goes green on its first check run or it does not open.
+
+### Wave 2, lanes 1–3 (Sonnet, disjoint write sets per the scope's §6a)
+
+- **WO-28 phase 1 — lineage typing (ADR-021 LINEAGE class).** `classifyRelationship` in
+  entity-resolve.mjs types wired identifier-mentions by a ±200-char proximity window:
+  implements / amends / depends_on (supplementing, delegated), derogation emits `depends_on` with
+  the verb preserved in a `lineage` basis entry (`derogates_under` waits for the WO-12/19 CHECK
+  widening). Typing never widens wiring. Unresolved lineage parents now emit one aggregated
+  `coverage_gap` flag (`lineage-gap:absent-parent`, one-open-flag dedup) — the L2 discovery feed.
+  Two executor-caught traps, both regression-tested: an act's own reg-number sits inside the same
+  window as its parent's (self-exclusion via `instrument_identifier`), and `discover.mjs`'s internal
+  `relationship:"none"` scoring field is not a DB row (narrow documented scanner exclusion).
+- **The silent-write fix.** `mint-item.ts` wrote `relationship:"references"` on dedup-linked mints —
+  a value the live CHECK forbids — with the error swallowed; zero such rows ever landed. Now writes
+  CHECK-legal `related`. New guard `relationship-check-literals.test.mjs` parses the allowed set out
+  of migration 004 (never hand-copied) and sweeps src/ for illegal literals; proven RED by
+  temporarily reintroducing the defect, then green on the fix.
+- **U8 — skill↔code drift gate.** `skill-contract-map.mjs` pins all 6 governing skills cited from
+  29 src/scripts files (full-content sha256 over hand-picked clause markers — honest-coarse over
+  fragile-precise); `skill-drift-gate.test.mjs` fails on skill-edited-without-code,
+  code-edited-without-skill, missing skill, or unpinned citation — 5 seeded-drift negative tests
+  per the execution-wiring pattern. All cited skills resolved in-repo; nothing fabricated.
+- **U9 — close-out audit (read-only): DONE, tracker was stale.** Connections card + relevance lens
+  wired on all four intelligence surfaces since PR #425 (`23b678ca`); both executable proofs run
+  green; the board itself already said "BUILT, 4 of 5" at line 1386. Two named residuals, neither
+  reopening U9: the unit's own five-surface wording should read "four intelligence surfaces
+  (Community out of scope — different contract shape, per spec 05)"; and "fixture renders per
+  surface" was never buildable as written — the repo has NO React component-render test
+  infrastructure (shared with U3, its own backlog item).
+
+Gates this landing (C16 protocol, before upload): suite 1453/1453, tsc clean, fitness 21/0,
+discipline runner --mode=ci green over the range.
+
+### Still open
+
+WO-19 + WO-12 spine authoring lane and WO-20 spec (Wave 2 lanes 4–5, next); WO-5 rulings B1–B4;
+DDL window for the WO-12/19 migration family; Node 20 bump on the backup repo.
