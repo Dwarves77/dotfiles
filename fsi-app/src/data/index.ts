@@ -4,7 +4,6 @@
 import { SEED_RESOURCES, AUDIT_DATE } from "./seed-resources";
 import { CHANGE_LOG } from "./seed-changelog";
 import { SEED_DISPUTES } from "./seed-disputes";
-import { XREF_PAIRS } from "./seed-xrefs";
 import { SUPERSESSIONS } from "./seed-supersessions";
 import { SEED_ARC } from "./seed-archive";
 import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
@@ -36,9 +35,6 @@ export const disputes: Record<string, Dispute> = Object.fromEntries(
     },
   ])
 );
-
-// Convert xref pairs
-export const xrefPairs: [string, string][] = XREF_PAIRS.map((pair) => [pair[0], pair[1]]);
 
 // Convert supersessions — agent-created format uses different field names
 export const supersessions: Supersession[] = SUPERSESSIONS.map((s) => ({
