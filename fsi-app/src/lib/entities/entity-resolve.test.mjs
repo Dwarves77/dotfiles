@@ -5,7 +5,7 @@
 // standard-shaped → surfaced, not dropped.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { detectMentions, resolve, classifyBucket, planLinks, planLinkWrites, assertMoatBoundary, LINK_ALLOWED_TABLES, matchExistingSubject } from "./entity-resolve.mjs";
+import { detectMentions, resolve, classifyBucket, classifyRelationship, planLinks, planLinkWrites, assertMoatBoundary, LINK_ALLOWED_TABLES, matchExistingSubject } from "./entity-resolve.mjs";
 import { NAMED_ENTITIES, NAMED_ENTITIES_COUNT } from "./canonical-entities.mjs";
 
 // fixture corpus mirroring the live shape (id, title, instrument_identifier)
@@ -172,4 +172,178 @@ test("identifier-less item still matches by title reg_number", () => {
   const bare = { title: "Regulation (EU) 2015/757 on monitoring of CO2 emissions from maritime transport" };
   assert.deepEqual(matchExistingSubject(bare, [existing]), [{ id: "existing-757", how: "reg_number" }],
     "an item with no identifier must still fall back to title scraping");
+});
+
+// ══════════════════════════════════════════════════════════════════════════════════════════════════════
+// WO-28 phase 1 (ADR-021) — LINEAGE TYPING + THE GAP FEED
+// Fixtures below reuse the exact live-title shapes read in the 2026-08-29 governing session (the same
+// implementing/amending titles matchExistingSubject's own regression tests above already carry), plus one
+// derogation-shaped fixture matching the ADR's "six-state fuel-excise derogations" family (Council
+// Directive 2003/96/EC, Article 19 — the real EU energy-taxation derogation mechanism).
+// ══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+// ── classifyRelationship (isolated — no corpus, no resolution; pure pattern classification) ──────────
+
+test("classifyRelationship: 'application of' near the mention → implements", () => {
+  const content = "Commission Implementing Regulation (EU) 2026/394 of 23 February 2026 laying down rules for the application of Regulation (EU) 2023/1805 of the European Parliament and of the Council, as regards access rights.";
+  const r = classifyRelationship(content, "2023/1805");
+  assert.equal(r.relationship, "implements");
+  assert.deepEqual(r.basis, [{ signal: "lineage", detail: "implements 2023/1805", weight: 0 }]);
+});
+
+test("classifyRelationship: SELF TITLE 'Commission Implementing ...' is a fallback signal when the content near the mention doesn't say 'implementing'/'application of'", () => {
+  const content = "This instrument concerns Regulation (EU) 2023/1805 and the FuelEU database access rights.";
+  const r = classifyRelationship(content, "2023/1805", "Commission Implementing Regulation (EU) 2026/394 of 23 February 2026");
+  assert.equal(r.relationship, "implements");
+});
+
+test("classifyRelationship: 'amending' near the mention → amends", () => {
+  const content = "Commission Delegated Regulation (EU) 2024/3214 of 16 October 2024 amending Regulation (EU) 2015/757 of the European Parliament and of the Council as regards the rules for the monitoring of greenhouse gas emissions from offshore ships.";
+  const r = classifyRelationship(content, "2015/757");
+  assert.equal(r.relationship, "amends");
+  assert.deepEqual(r.basis, [{ signal: "lineage", detail: "amends 2015/757", weight: 0 }]);
+});
+
+test("classifyRelationship: 'supplementing'/'Delegated' near the mention → depends_on (CHECK has no dedicated 'supplements' value)", () => {
+  const content = "Commission Delegated Regulation (EU) 2024/5555 of 4 March 2024 supplementing Regulation (EU) 2023/1805 of the European Parliament and of the Council with regard to alternative fuels reporting.";
+  const r = classifyRelationship(content, "2023/1805");
+  assert.equal(r.relationship, "depends_on");
+  assert.deepEqual(r.basis, [{ signal: "lineage", detail: "supplements 2023/1805", weight: 0 }]);
+});
+
+test("classifyRelationship: derogation shape (authoris… + in accordance with) → depends_on, verb preserved in basis (derogates_under is not CHECK-legal yet)", () => {
+  const content = "Council Implementing Decision (EU) 2026/700 of 14 January 2026 authorising Latvia to apply, in accordance with Article 19 of Council Directive 2003/96/EC, a reduced level of taxation to gas oil used as fuel for waste collection vehicles.";
+  const r = classifyRelationship(content, "2003/96");
+  assert.equal(r.relationship, "depends_on", "derogates_under is not in the item_cross_references_relationship_check yet (WO-12/19 DDL window) — depends_on stays CHECK-legal");
+  assert.deepEqual(r.basis, [{ signal: "lineage", detail: "derogates under 2003/96", weight: 0 }], "the precise verb ('derogates under') is preserved in basis even though the relationship column can't carry it yet");
+});
+
+test("classifyRelationship: derogation priority — 'authoris…in accordance with' wins over an incidental 'amending' elsewhere in the SAME window", () => {
+  const content = "Council Implementing Decision authorising France, amending nothing else in the text, in accordance with Article 19 of Council Directive 2003/96/EC, to apply a reduced rate.";
+  const r = classifyRelationship(content, "2003/96");
+  assert.equal(r.relationship, "depends_on");
+  assert.ok(r.basis[0].detail.startsWith("derogates under"), "the more specific derogation shape must win, not the incidental 'amending' token");
+});
+
+test("classifyRelationship: no pattern near the mention → related, no basis (today's unchanged default)", () => {
+  const content = "AFIR interoperates with the FuelEU rules set out in Regulation (EU) 2023/1805.";
+  const r = classifyRelationship(content, "2023/1805");
+  assert.equal(r.relationship, "related");
+  assert.equal(r.basis, null);
+});
+
+test("classifyRelationship: WINDOWED — a pattern word far (>200 chars) from the mention does NOT type it; typing is mention-specific, not whole-document", () => {
+  const filler = "x".repeat(260);
+  const content = `This act is amending an unrelated instrument. ${filler} It also cites Regulation (EU) 2023/1805 in passing, with no lineage language nearby.`;
+  const r = classifyRelationship(content, "2023/1805");
+  assert.equal(r.relationship, "related", "the 'amending' token is far outside the LINEAGE_WINDOW around 2023/1805 and must not leak onto it");
+});
+
+// ── Full pipeline: planLinks / planLinkWrites — typed WIRE edges (Task A) ──────────────────────────────
+
+const LINEAGE_CORPUS = [
+  ...CORPUS,
+  { id: "mrv757", title: "EU MRV Regulation", instrument_identifier: "2015/757" },
+  // the self item, present in corpus (as it would be at real link-time — the mint already inserted its own
+  // row) with its OWN instrument number, distinct from the parent it implements.
+  { id: "impl394", title: "Commission Implementing Regulation (EU) 2026/394 of 23 February 2026 laying down rules for the application of Regulation (EU) 2023/1805 of the European Parliament and of the Council", instrument_identifier: "2026/394" },
+  // the derogation decision's own row, same reasoning — without it "2026/700" (the decision's own number,
+  // sitting right beside "authorising...in accordance with" in its own title) would itself be swept into
+  // lineageGaps as a false "missing parent", the same class the impl394 self-exclusion test above pins.
+  { id: "x-derogation-700", title: "Council Implementing Decision (EU) 2026/700 of 14 January 2026 authorising Latvia to apply a reduced level of taxation to gas oil used as fuel for waste collection vehicles", instrument_identifier: "2026/700" },
+];
+
+test("planLinks: an implementing act wires a TYPED 'implements' edge to its parent (not the default 'related')", () => {
+  const content = "Commission Implementing Regulation (EU) 2026/394 of 23 February 2026 laying down rules for the application of Regulation (EU) 2023/1805 of the European Parliament and of the Council, as regards access rights and the functional and technical specifications of the FuelEU database.";
+  const { edges } = planLinks(content, LINEAGE_CORPUS, "impl394");
+  const toParent = edges.find((e) => e.target_item_id === "fueleu_num");
+  assert.ok(toParent, "must wire to the FuelEU parent item");
+  assert.equal(toParent.relationship, "implements");
+  assert.deepEqual(toParent.basis, [{ signal: "lineage", detail: "implements 2023/1805", weight: 0 }]);
+});
+
+test("planLinks: the citing item's OWN reg-number never becomes a lineage gap, even sitting inside the same lineage-pattern window as the real parent mention", () => {
+  const content = "Commission Implementing Regulation (EU) 2026/394 of 23 February 2026 laying down rules for the application of Regulation (EU) 2023/1805 of the European Parliament and of the Council.";
+  const { lineageGaps } = planLinks(content, LINEAGE_CORPUS, "impl394");
+  assert.ok(!lineageGaps.some((g) => g.mention === "2026/394"), `the self's own number must never appear as a missing parent; got ${JSON.stringify(lineageGaps)}`);
+});
+
+test("planLinks: an amending act wires a TYPED 'amends' edge to the act it amends", () => {
+  const content = "Commission Delegated Regulation (EU) 2024/3214 of 16 October 2024 amending Regulation (EU) 2015/757 of the European Parliament and of the Council as regards the rules for the monitoring of greenhouse gas emissions from offshore ships.";
+  const { edges } = planLinks(content, LINEAGE_CORPUS, "x-amend-3214");
+  const toParent = edges.find((e) => e.target_item_id === "mrv757");
+  assert.ok(toParent, "must wire to the MRV parent item");
+  assert.equal(toParent.relationship, "amends");
+});
+
+test("planLinks: an UNTYPED (no lineage pattern) identifier mention still wires 'related' with no basis — today's behavior unchanged", () => {
+  // plain CORPUS here, not LINEAGE_CORPUS — impl394's title itself CONTAINS "2023/1805" (it names its
+  // parent), so with impl394 in the pool "2023/1805" would resolve to TWO items (fueleu_num + impl394) and
+  // fall to ambiguous/surface instead of wiring. That is real, pre-existing resolve() behavior (unrelated to
+  // WO-28), not something this test is about — CORPUS keeps the fixture to the single-resolution case.
+  const { edges } = planLinks("AFIR interoperates with the FuelEU rules set out in Regulation (EU) 2023/1805.", CORPUS, "afir");
+  const toParent = edges.find((e) => e.target_item_id === "fueleu_num");
+  assert.ok(toParent);
+  assert.equal(toParent.relationship, "related");
+  assert.equal(toParent.basis, null);
+});
+
+test("planLinks: NAMED-entity wire edges stay 'related' (typing is scoped to identifier mentions only, per brief)", () => {
+  const { edges } = planLinks("GLEC Framework v3 is aligned with ISO 14083 and the GHG Protocol.", LINEAGE_CORPUS, "glecv3");
+  for (const e of edges) { assert.equal(e.kind, "named"); assert.equal(e.relationship, "related"); assert.equal(e.basis, null); }
+});
+
+// ── Full pipeline: the gap feed (Task B) ────────────────────────────────────────────────────────────────
+
+test("planLinks: a derogation-shaped mention that resolves to ZERO corpus items becomes a lineageGap (Council Directive 2003/96/EC absent from the corpus)", () => {
+  const content = "Council Implementing Decision (EU) 2026/700 of 14 January 2026 authorising Latvia to apply, in accordance with Article 19 of Council Directive 2003/96/EC, a reduced level of taxation to gas oil used as fuel for waste collection vehicles.";
+  const { edges, surface, lineageGaps } = planLinks(content, LINEAGE_CORPUS, "x-derogation-700");
+  assert.deepEqual(edges, [], "2003/96 is not in the corpus, so it cannot wire — no edge");
+  assert.ok(surface.some((s) => s.mention === "2003/96" && s.resolvedCount === 0), "unresolved posture is unchanged: still folds into the generic surface set too");
+  assert.deepEqual(lineageGaps, [{ mention: "2003/96", relationship: "depends_on" }]);
+});
+
+test("planLinks: a resolved-count-0 mention with NO lineage pattern stays generic surface only — not every unresolved mention is a lineage gap", () => {
+  const { surface, lineageGaps } = planLinks("Report prepared per ISO 14084.", LINEAGE_CORPUS, "x");
+  assert.ok(surface.some((s) => /14084/.test(s.mention)));
+  assert.deepEqual(lineageGaps, [], "a shaped/unknown-standard mention with no lineage phrasing must not manufacture a gap");
+});
+
+test("planLinkWrites: the lineage gap surfaces as ONE aggregated coverage_gap integrity_flags row in its own dedup namespace", () => {
+  const content = "Council Implementing Decision (EU) 2026/700 authorising Latvia to apply, in accordance with Article 19 of Council Directive 2003/96/EC, a reduced level of taxation to gas oil used as fuel for waste collection vehicles.";
+  const writes = planLinkWrites(content, LINEAGE_CORPUS, "x-derogation-700");
+  const gapFlags = writes.filter((w) => w.table === "integrity_flags" && w.row.created_by === "lineage-gap:absent-parent");
+  assert.equal(gapFlags.length, 1, "exactly one aggregated lineage-gap flag, never one-per-mention spam");
+  const row = gapFlags[0].row;
+  assert.equal(row.category, "coverage_gap");
+  assert.equal(row.subject_type, "item");
+  assert.equal(row.subject_ref, "x-derogation-700");
+  assert.equal(row.status, "open");
+  assert.ok(row.description.includes("2003/96"));
+  assert.ok(row.description.length <= 480);
+  assert.ok(Array.isArray(row.recommended_actions) && row.recommended_actions.length === 1);
+  assert.doesNotThrow(() => assertMoatBoundary(writes));
+});
+
+test("planLinkWrites: typed edge rows carry `relationship` + `basis`; untyped edge rows carry no basis field at all", () => {
+  const content = "Commission Implementing Regulation (EU) 2026/394 of 23 February 2026 laying down rules for the application of Regulation (EU) 2023/1805 of the European Parliament and of the Council.";
+  const writes = planLinkWrites(content, LINEAGE_CORPUS, "impl394");
+  const edgeWrite = writes.find((w) => w.table === "item_cross_references" && w.row.target_item_id === "fueleu_num");
+  assert.equal(edgeWrite.row.relationship, "implements");
+  assert.equal(edgeWrite.row.origin, "entity_extraction");
+  assert.deepEqual(edgeWrite.row.basis, [{ signal: "lineage", detail: "implements 2023/1805", weight: 0 }]);
+
+  const untypedWrites = planLinkWrites("AFIR interoperates with the FuelEU rules set out in Regulation (EU) 2023/1805.", CORPUS, "afir"); // plain CORPUS — see the note in the planLinks version of this fixture above
+  const untypedEdge = untypedWrites.find((w) => w.table === "item_cross_references" && w.row.target_item_id === "fueleu_num");
+  assert.equal(untypedEdge.row.relationship, "related");
+  assert.ok(!("basis" in untypedEdge.row), "an untyped edge row must not carry a basis key at all — exactly today's shape");
+});
+
+test("planLinkWrites: a lineage-gap flag and a generic surface flag can coexist for the same item without colliding", () => {
+  const content = "Council Implementing Decision authorising Latvia in accordance with Article 19 of Council Directive 2003/96/EC. Report also prepared per ISO 14084.";
+  const writes = planLinkWrites(content, LINEAGE_CORPUS, "x-both-flags");
+  const flagTables = writes.filter((w) => w.table === "integrity_flags");
+  assert.equal(flagTables.length, 2, "one intake-entity-link surface flag + one lineage-gap flag — distinct created_by namespaces");
+  const createdBys = flagTables.map((w) => w.row.created_by).sort();
+  assert.deepEqual(createdBys, ["intake-entity-link", "lineage-gap:absent-parent"]);
 });
