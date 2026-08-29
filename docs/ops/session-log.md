@@ -4537,3 +4537,47 @@ not eyeballed.
 - **Node 20 deprecation** on the backup repo's upload/download-artifact actions.
 - **Data-side scope assertion** (data-audit lane, Disabled) and the **truncated-title classifier
   weakness** remain unguarded, unchanged from Addendum 31.
+
+## Addendum 33 — the strongest signal in the scorer had never fired once, and the operator asked the right question (2026-08-29, Cowork session)
+
+The operator asked what the 0.30-floor ruling was actually about, then pushed past the question as
+posed: "we may be thinking within a box we've constructed ourselves on what these connections mean."
+He was right, and the way out of the box was a full read of the layer — every connection module,
+producer, consumer, migration, and governing ADR, then live measurement before any claim.
+
+### What the read proved
+
+- **`same_instrument` (weight 0.9, "the strongest, cross-surface-defining signal") was dead by
+  construction.** Migration 200's partial unique index guarantees `canonical_instrument_key` is
+  unique over exactly the population both discovery callers load (verified + non-archived), so the
+  equality the signal tests can never be true. 0 of 1,863 edges ever carried it. Its test passed by
+  asserting a schema-impossible input — rule 15's class, one level deeper. Removed (WO-27, ADR-021),
+  with the index named in a comment so nobody re-adds it.
+- **The L4 near-floor story was wrong twice.** The flag said "a single low-idf shared_scenario tag";
+  measured, those tags carry idf = 1.000 — full weight, REF_FREQ 11.5. And the band is not noise:
+  row-level reads show correct instrument-family clusters (six member-state fuel-excise derogations,
+  RED II scheme recognitions) that are thin only because family/lineage is unmodeled. Ruled: floor
+  unchanged, all 5 L4 flags resolved with in-place corrections (snapshot md5 `4476fd0a`, rule-015).
+- **A dead fetch on three hot pages.** `fetchXrefPairs` ran on every dashboard/map/listings load;
+  its only consumers (`getXrefs`/`getVerification`) were imported by nothing — and F25's allowlist
+  had been holding `verification.ts` as "operator: delete, or rename and wire" all along. Deleted
+  end to end (chain, seed file, stale allowlist entry).
+- **A silent write failure found while verifying a CHECK constraint:** `mint-item.ts` writes
+  `relationship:'references'` for dedup-linked mints — a value `item_cross_references_relationship_check`
+  forbids — with the error swallowed. Live table: zero `references` rows ever. Every news-duplicate
+  link edge has silently failed. Fix assigned to WO-28 with a guard test.
+
+### The redesign, ratified
+
+`docs/plans/connection-redesign-and-build-scope-2026-08-29.md` (operator: "do so then proceed") —
+three connection classes (AFFINITY / FAMILY / LINEAGE), WO-27 removals executed this session by
+three Sonnet lanes with disjoint write sets under the §6a multi-agent model, WO-28 lineage typing
+next (no migration needed for implements/amends/depends_on — CHECK verified live; `derogates_under`
+rides the WO-12/19 DDL window), WO-29 family key deferred with a named revisit trigger. Gates in
+the worktree: suite 1420/1420 (one deleted impossible-input test), tsc clean, fitness 21/0.
+
+### Still open after this
+
+- WO-19 (CLOCK) / WO-12 / WO-20 spine — next wave, per the scope's §4.
+- WO-5 rulings B1–B4; U9 close-out audit (built on master, listed not-started); Stage 4–6 WO texts
+  vault-absent (spec-from-repo owed); Node 20 bump on the backup repo.
