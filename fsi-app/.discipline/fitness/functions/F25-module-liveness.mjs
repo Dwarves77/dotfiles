@@ -114,15 +114,8 @@ export const LEGACY_ALLOWLIST = [
   })),
 
   // ── 7 src modules with neither importer nor proof ──
-  {
-    file: 'fsi-app/src/lib/verification.ts',
-    reason:
-      'A 1.2 KB cross-reference helper (getXrefs) sitting one directory above src/lib/sources/verification.ts, ' +
-      'the 50 KB W2.F auto-verification pipeline. Nothing imports it, and the near-identical name is itself a ' +
-      'hazard: a reader searching for "verification" finds the wrong file first. The basename-matching census ' +
-      'could not see this one at all.',
-    reviewByPhase: 'dead-code ruling (operator: delete, or rename and wire)',
-  },
+  // fsi-app/src/lib/verification.ts entry REMOVED (WO-27, 2026-08-29): the dead-code ruling it
+  // awaited was executed — the module (and its dead fetchXrefPairs feed chain) is deleted, not renamed.
   {
     file: 'fsi-app/src/types/intelligence.ts',
     reason: 'Type module with zero references anywhere in the tree — not code, not tests, not scripts.',
