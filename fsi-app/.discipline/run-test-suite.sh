@@ -57,6 +57,8 @@ node --test \
   fsi-app/.discipline/glob-portability.test.mjs \
   fsi-app/.discipline/vocab-drift-guard.test.mjs \
   fsi-app/.discipline/assistant-spend-gate.test.mjs \
+  fsi-app/.discipline/relationship-check-literals.test.mjs \
+  fsi-app/.discipline/skill-drift-gate.test.mjs \
   fsi-app/.discipline/lib/*.test.mjs \
   fsi-app/.discipline/rules/*.test.mjs \
   fsi-app/.discipline/consistency/*.test.mjs \
