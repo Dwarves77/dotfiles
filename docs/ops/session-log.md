@@ -5142,3 +5142,27 @@ uploaded tree byte-identical to gated commit 3a354403.
 **Next:** land #488, dispatch dry (regional) and read the plan — expected ~7 Eurostat current-state
 rows + 3 BLS — then apply, then verify by SQL and population report that regional_data_facts has
 enveloped values and /operations renders the indexed layer.
+
+## Addendum 42 — regional is populated and live; the market chain begins from evidence (2026-08-30, Cowork session)
+
+**Phase 1 of the population plan is done, verified at every layer.** PR #488 landed (squash
+`db4e8ec8`). Run #3 (dry, eurostat): 283 observations -> 8 current-state candidate rows, 275
+superseded periods dropped — exactly the reduction the 23505 analysis predicted. Run #4 (apply,
+eurostat): 8 rows written through the guarded path. Run #5 (dry, bls): 3 candidates, plan insert 3,
+2025 OEWS data. Run #6 (apply, bls): 3 written. Live SQL after: `regional_data_facts` 86 rows, **11
+enveloped** (8 EU electricity price bands IA-IG + all-bands at 2025-S2, EUR/kWh; 3 US freight
+occupation median wages at 2025, USD/year), every row carrying the mechanically-derived `value` text
+and the full 267 envelope. The live /operations matrix now renders "Operational cost data: 8
+current" for EU and "Labor markets: 3 current" for US — both cells said "no data" this morning.
+First producer writes in the system's history, and the first data on those two cells ever.
+
+**Phase 2 starts the way the plan requires: read the real format before writing a line of parser.**
+The market chain is missing three layers (fetcher, reader, attachment ruling — addendum 41). The
+fetcher cannot be written honestly from this sandbox: energy.ec.europa.eu is unreachable (HTTP 000)
+and the bulletin's price files are .xlsx. `inspect-oil-bulletin.yml` (dispatch-only, read-only, no
+secrets mounted, no schedule — build-mode ruling) runs where the source IS reachable: it scrapes the
+bulletin page for its document/download links, downloads each price workbook, and prints the zip
+listing, sheet names, first sheet XML and sharedStrings to the log. An .xlsx is a zip of XML; plain
+`unzip -p` + `head` expose the structure with zero new dependencies. The fetch+normalize step gets
+written against that logged evidence, and only then does the /market series-board reader get built —
+so it renders real rows on its first day, not a location with nothing in it.
