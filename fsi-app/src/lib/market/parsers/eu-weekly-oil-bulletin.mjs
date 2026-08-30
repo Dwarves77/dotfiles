@@ -19,10 +19,10 @@
 // EVERY ROW GETS THE FULL ENVELOPE (WO-16 executor brief: "Every row it produces must carry a full
 // envelope AND origin_class from day one"): derivation='observed' (these are the primary reported
 // national-survey prices, not a calculation), origin_class='official' (European Commission publication).
-// source_key names the registry's producer entry (src/lib/market/series-registry.mjs); it is NOT YET a
-// registered public.data_sources row (see the registry entry's own note) — every row this parser emits
-// still carries it, so the DB's FK check is what fails closed on write, not this parser silently
-// omitting provenance to dodge the FK.
+// source_key names the registry's producer entry (src/lib/market/series-registry.mjs), a REGISTERED
+// public.data_sources row since 2026-08-30 (CC BY 4.0, Decision 2011/833/EU — see the registry entry's
+// note). Every row this parser emits carries it, so any future de-registration fails closed at the FK,
+// never by this parser silently omitting provenance.
 //
 // PLAIN ESM, ZERO DEPENDENCIES. Pure — no fs, no fetch, no clock read (asAtDate/referencePeriod come
 // straight from the input's own week_ending column, never from `new Date()`).
