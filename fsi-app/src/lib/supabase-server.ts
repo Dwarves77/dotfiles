@@ -2136,6 +2136,28 @@ export interface OperationsFact {
    */
   last_updated: string | null;
   freshness: "current" | "ageing" | "stale" | "frozen" | "unknown";
+  /**
+   * THE NUMBER ENVELOPE (WO-12, migration 267 — src/lib/contracts/provenance-envelope.mjs), added
+   * 2026-08-30. All 11 columns are additive and nullable; a row's envelope is either fully populated
+   * (WO-17's `buildEnvelopeRow` writes all 11 together) or fully NULL (the 75 legacy free-text rows,
+   * still 100% of live data as of this read — both WO-17 producers are kill-switched off). NEVER
+   * assume that atomicity when reading, though: a row with `value_numeric` set and `unit` NULL is a
+   * malformed envelope per migration 267's own column comment, and the render gate
+   * (`isEnvelopedFact` in `@/lib/operations/region-grid.mjs`) treats it as un-enveloped rather than
+   * rendering a bare number with no unit. `value` (legacy free text) stays populated on every row
+   * regardless — it is the display fallback for anything not enveloped.
+   */
+  value_numeric: number | null;
+  unit: string | null;
+  currency: string | null;
+  derivation: string | null;
+  origin_class: string | null;
+  source_key: string | null;
+  source_ref: string | null;
+  n_observations: number | null;
+  method_version: string | null;
+  as_at_date: string | null;
+  reference_period: string | null;
 }
 
 export interface OperationsCoverageData {
@@ -2162,7 +2184,17 @@ export async function fetchOperationsCoverage(): Promise<OperationsCoverageData>
         // `last_updated` is now SELECTED, not merely ordered by. It was previously used to sort and then
         // discarded, which is why OperationsFact had no date while the masthead claimed every fact
         // carried one.
-        .select("region_id, dimension, fact_label, value, status, trend, source_note, last_updated, source:sources(name, url)")
+        //
+        // WO-12 layer 2 (2026-08-30): the 11 envelope columns migration 267 added (value_numeric, unit,
+        // currency, derivation, origin_class, source_key, source_ref, n_observations, method_version,
+        // as_at_date, reference_period) are now selected too, so an enveloped row is distinguishable
+        // from a legacy free-text one downstream. All nullable/additive — selecting them costs nothing
+        // on the 75 live rows, which are 100% NULL on every one of the 11 today (rule 0.15 re-read this
+        // session). NOT part of DashboardData / DASHBOARD_DATA_CACHE_KEY (rule 021): this fetcher is
+        // called only from src/app/operations/page.tsx, a `force-dynamic` route, and is not wrapped in
+        // unstable_cache anywhere in this module — so there is no cached payload shape for this select
+        // to rotate a key for.
+        .select("region_id, dimension, fact_label, value, status, trend, source_note, last_updated, value_numeric, unit, currency, derivation, origin_class, source_key, source_ref, n_observations, method_version, as_at_date, reference_period, source:sources(name, url)")
         .order("last_updated", { ascending: false }),
     ]);
 
@@ -2193,7 +2225,15 @@ export async function fetchOperationsCoverage(): Promise<OperationsCoverageData>
     // discipline CI runs it with no wall-clock fixture.
     const nowIso = new Date().toISOString();
 
-    const facts: OperationsFact[] = (factsRes.data || []).map((f: { region_id: string; dimension: string; fact_label: string; value: string; status: string | null; trend: string | null; source_note: string | null; last_updated: string | null; source: { name: string; url: string } | { name: string; url: string }[] | null }) => {
+    const facts: OperationsFact[] = (factsRes.data || []).map((f: {
+      region_id: string; dimension: string; fact_label: string; value: string; status: string | null;
+      trend: string | null; source_note: string | null; last_updated: string | null;
+      source: { name: string; url: string } | { name: string; url: string }[] | null;
+      value_numeric: number | string | null; unit: string | null; currency: string | null;
+      derivation: string | null; origin_class: string | null; source_key: string | null;
+      source_ref: string | null; n_observations: number | null; method_version: string | null;
+      as_at_date: string | null; reference_period: string | null;
+    }) => {
       const src = Array.isArray(f.source) ? f.source[0] : f.source;
       // Regional cost and labour facts come from statistical agencies publishing on annual cycles
       // (Eurostat labour-cost levels, BLS OEWS, packaging-waste series). Anything materially past that
@@ -2216,6 +2256,27 @@ export async function fetchOperationsCoverage(): Promise<OperationsCoverageData>
         source_note: f.source_note,
         last_updated: f.last_updated ?? null,
         freshness: freshness as OperationsFact["freshness"],
+        // `numeric` columns round-trip through postgrest as strings; coerce to a real number so
+        // downstream `isEnvelopedFact` (a strict `typeof === "number"` check) sees a proper envelope
+        // rather than failing closed on every row. A non-finite parse (should not happen — the DB
+        // column is `numeric`) still falls back to null rather than propagating NaN.
+        value_numeric:
+          f.value_numeric === null || f.value_numeric === undefined
+            ? null
+            : (() => {
+                const n = typeof f.value_numeric === "number" ? f.value_numeric : parseFloat(f.value_numeric);
+                return Number.isFinite(n) ? n : null;
+              })(),
+        unit: f.unit ?? null,
+        currency: f.currency ?? null,
+        derivation: f.derivation ?? null,
+        origin_class: f.origin_class ?? null,
+        source_key: f.source_key ?? null,
+        source_ref: f.source_ref ?? null,
+        n_observations: f.n_observations ?? null,
+        method_version: f.method_version ?? null,
+        as_at_date: f.as_at_date ?? null,
+        reference_period: f.reference_period ?? null,
       };
     });
 

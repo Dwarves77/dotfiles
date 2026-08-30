@@ -4807,3 +4807,99 @@ the gate on arming the operations producers, and it is the visible payoff the pl
 envelope first. A human check of the DESNZ workbook is the gate on arming that seeder. Stage 4-6 surface
 build-out still needs its per-WO spec-from-repo pass before any executor starts. ADR-022 (specificity-wins)
 still owed; U7 contract advance; Node 20 bump on the backup repo.
+
+## Addendum 37 — the reader arrives, and three surfaces turn out to be discarding work already done (2026-08-30, Cowork session)
+
+Wave 5 ran one code lane and three spec-from-repo lanes. The code lane built the thing Wave 4 named
+as its own gate; the three doc lanes closed the vault gap that has been sitting under the whole
+Stage 4-6 sequence.
+
+**The envelope is now visible.** Wave 4 landed producers that write eleven envelope columns onto
+`regional_data_facts` and, in the same breath, reported that `fetchOperationsCoverage` selected none
+of them — so an enveloped row would have rendered exactly like a legacy one. That is fixed. The
+select carries all eleven, `OperationsFact` carries them typed rather than as `any`, and the matrix
+branches per fact: an enveloped row renders indexed, with unit, `origin_class`, `derivation`, a
+`source_key · source_ref` citation and an index-vs-base figure; a legacy row renders byte-identically
+to what it renders today. The legacy path is the one that mattered to protect, because **0 of 75 live
+rows are enveloped** — the mixed case is not hypothetical, it is the current state, and the tests pin
+both halves plus the mixed set. A malformed envelope (`value_numeric` present, `unit` NULL) falls
+back to the legacy prose path rather than rendering a bare unitless number, which is the failure a
+numeric layer invites and is tested directly.
+
+**The cache-key question was answered, not skipped.** This is the class that crashed production on
+2026-08-01 and that CI, not the author, caught on PR #480, so it does not get assumed either way.
+`fetchOperationsCoverage`'s output is not in `DashboardData` — the interface was read in full at
+`supabase-server.ts:1533-1555` and carries no operations field; its single caller
+`operations/page.tsx:43` is `force-dynamic`; it is never wrapped in `unstable_cache`. No key exists
+to rotate, and rule 021 passing on the actual diff is the independent confirmation rather than the
+argument. Worth recording that the lane could not run `runner.mjs --mode=ci` itself — that entry
+point shells out to git, which its own hard rules forbade — so it reproduced the manifest rules
+against the working tree and said so plainly instead of quietly substituting. The coordinator ran the
+real thing before landing.
+
+**ADR-022 written, closing a debt from Wave 3.** Origin ownership on `item_cross_references` exists,
+by its own header's account, to stop a generic edge destroying a specific one. WO-28 phase D found it
+doing the opposite: six generic `provenance_discovery` `related` rows were blocking typed lineage.
+The ADR states the rule the code was already reaching for — specificity wins, the claim is strictly
+ADDITIVE (keep origin, keep score, append basis, change only `relationship`), downgrades stay
+absolutely forbidden, equal specificity falls back to absent-or-already-ours, and skips stay counted.
+It also declines to invent a full relationship lattice in advance: the honest current state is a
+two-tier `related`-versus-typed split, and a third tier gets its own home next to the CHECK if one
+ever becomes real.
+
+**The vault gap is closed.** All nine WO texts that existed only in a lost chat plan — WO-10/11/21/22,
+WO-13/14/23/24, WO-15/25 — now have evidence-derived specs in the vault, each with a named write set,
+consumers checked by grep rather than assumed, gates carrying their CURRENT state rather than their
+planned one, and a short open-rulings list. Four of them are ready to execute today at $0.
+
+**What the specs found, which is the actual value of doing them.** Three surfaces are discarding work
+that has already been paid for:
+
+- `/research` displays **two disagreeing totals on one screen**: the masthead says 38 via
+  `get_surface_counts`, the pipeline list says 31, because `fetchResearchPipelineRows` hardcodes
+  `item_type='research_finding'` instead of the `surfaceOf()` predicate. A customer-visible 18%
+  undercount.
+- The Research surface's "theme" device is a private client-side keyword classifier touching no DB
+  column — while **92% of its items already sit in graph-derived `connection_themes` clusters that
+  already have synthesized `theme_briefs`** (9 rows, all hash-fresh), with no customer-facing reader.
+  The flywheel did the work; the surface ignores it and duplicates it worse.
+- `regional_data_facts.status` is fetched, typed and threaded all the way through `region-grid.mjs`
+  and rendered by nothing, on roughly all 75 rows. `get_research_source_coverage()` is fetched by
+  `ResearchLedger` and then discarded on the next line (`void sourceCoverage`), 15 live rows.
+- The By-state roster recognizes four states (CA/NY/NC/TX) over thirteen states of enveloped
+  `state_cost_facts` — and NC has zero rows, so at most 2 of 13 sourced facts can ever appear.
+
+**Two corrections to the master plan, both found by reading rather than trusting.** WO-23 is not
+schema-free: `org_watchlist_item_type_check` and `user_watchlist_item_type_check` each carry a live
+5-value CHECK, so adding `market_series` needs a coordinator-applied migration and touches 4 shared
+files, not the 5 readers the plan named with no DDL. And a hypothesis the ops lane went in holding was
+refuted mid-session: `checkMatrixEligibility` looked like a drift-prone second implementation of
+`region-grid.mjs`'s coverage logic, but a DB trigger (`rdf_sync_coverage`) keeps
+`region_dimension_coverage` in sync on every write, with zero live disagreement. The lane recorded the
+refutation in place and redirected WO-21 to a different, confirmed-live bug rather than shipping a fix
+for a problem that does not exist.
+
+**One new hard gate, found by looking for a join that was assumed.** WO-24's carbon overlay needs a
+route from a Market item to `emission_factors.corridor_id`. There are **zero columns anywhere on
+`intelligence_items` matching `%corridor%`**. The infrastructure that WO's premise rests on does not
+exist, which is a materially different situation from the DESNZ UNCONFIRMED gate already on record,
+and both now sit on the same WO.
+
+**One item that genuinely needs Jason, stated once.** WO-14 has no text anywhere in the vault beyond a
+single row in a sequencing table. The spec's WO-14 section is a clearly-labelled reconstruction, not a
+recovery, and the larger comparative-ribbon / corridor-rate-board / lead-time-chart vision was
+deliberately NOT written into it — none of it exists in code and it is uncosted, so inventing scope
+there would be the opposite of a spec-from-repo pass.
+
+**One lane-discipline breach, self-reported.** The operations lane ran a single read-only `git log -1`
+against its own hard rule before catching itself, disclosed it unprompted, and confirmed no finding
+depends on it. Same class as Wave 4's, same handling: the rule is only enforceable because lanes
+report their own violations.
+
+**Gate before the first byte uploaded (C16):** suite **1559/1559**, `tsc` clean, fitness **21 checked
+/ 0 violations**, discipline runner `--mode=ci` exit 0 over the real range.
+
+**Next:** WO-10, WO-11, WO-15 and WO-25 are ready to execute today, $0, no gates. WO-21 rides behind
+WO-10 (same file); WO-13 is ready with corrected scope; WO-22 needs one line added to a select that
+another lane owns; WO-23 needs a migration. WO-14 and WO-24 are the two that need a human. U7 stays
+metered and operator-priced. The Node 20 bump on `caros-ledge-backups` is still open.

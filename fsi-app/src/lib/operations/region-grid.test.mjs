@@ -2,7 +2,18 @@
 // Executed via the src/lib/operations glob added to run-test-suite.sh in this commit.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildRegionGrid, orderRegions, sourceUrlFromNote, sourceNameFromNote } from "./region-grid.mjs";
+import {
+  buildRegionGrid,
+  orderRegions,
+  sourceUrlFromNote,
+  sourceNameFromNote,
+  isEnvelopedFact,
+  indexAgainstBase,
+  formatEnvelopedValue,
+  originClassLabel,
+  originClassStrength,
+  derivationLabel,
+} from "./region-grid.mjs";
 
 const REGIONS = ["ASIA", "EU", "UAE", "UK", "US"];
 const DIMS = ["infrastructure", "labor_markets", "materials_sourcing", "operational_cost", "regional_resources"];
@@ -118,6 +129,84 @@ test("source notes split into name and URL, and never guess when absent", () => 
   assert.equal(sourceUrlFromNote("no link here"), null);
   assert.equal(sourceUrlFromNote(null), null);
   assert.equal(sourceNameFromNote("https://only-a-url.example"), null);
+});
+
+// ── Layer 2: the envelope gate (WO-12 render rule) ──────────────────────────────────────────────
+
+test("isEnvelopedFact: a legacy free-text fact (no envelope columns) is NOT enveloped", () => {
+  const legacy = {
+    regionKey: "UK", dimension: "infrastructure", factLabel: "Port dwell",
+    value: "AED 0.23-0.38/kWh (tiered)", sourceNote: "SP Group · https://spgroup.com.sg",
+  };
+  assert.equal(isEnvelopedFact(legacy), false);
+  assert.equal(isEnvelopedFact(undefined), false);
+  assert.equal(isEnvelopedFact(null), false);
+});
+
+test("isEnvelopedFact: value_numeric + unit both present IS enveloped", () => {
+  const enveloped = { valueNumeric: 0.2153, unit: "EUR/kWh" };
+  assert.equal(isEnvelopedFact(enveloped), true);
+});
+
+test("isEnvelopedFact: a MALFORMED envelope (value_numeric with NULL unit) is NOT enveloped — the render " +
+  "guard migration 267's own column comment says the DB does not add", () => {
+  assert.equal(isEnvelopedFact({ valueNumeric: 0.2153, unit: null }), false);
+  assert.equal(isEnvelopedFact({ valueNumeric: 0.2153, unit: "" }), false);
+  assert.equal(isEnvelopedFact({ valueNumeric: 0.2153 }), false);
+  // The reverse malformation — a unit with no number — is equally not enveloped.
+  assert.equal(isEnvelopedFact({ valueNumeric: null, unit: "EUR/kWh" }), false);
+  assert.equal(isEnvelopedFact({ valueNumeric: NaN, unit: "EUR/kWh" }), false);
+});
+
+test("indexAgainstBase: same unit, base != 0 -> a real index, 100 = parity", () => {
+  const base = { valueNumeric: 0.20, unit: "EUR/kWh" };
+  assert.equal(indexAgainstBase(base, base), 100);
+  assert.equal(indexAgainstBase({ valueNumeric: 0.25, unit: "EUR/kWh" }, base), 125);
+  assert.equal(indexAgainstBase({ valueNumeric: 0.10, unit: "EUR/kWh" }, base), 50);
+});
+
+test("indexAgainstBase: never fabricates across mismatched units, a zero base, or a non-envelope input", () => {
+  const eur = { valueNumeric: 0.20, unit: "EUR/kWh" };
+  const usd = { valueNumeric: 0.22, unit: "USD/kWh" };
+  assert.equal(indexAgainstBase(eur, usd), null, "mismatched units");
+  assert.equal(indexAgainstBase(eur, { valueNumeric: 0, unit: "EUR/kWh" }), null, "division by zero base");
+  assert.equal(indexAgainstBase({ valueNumeric: 0.2153, unit: null }, eur), null, "malformed fact input");
+  assert.equal(indexAgainstBase(eur, null), null, "no base selected");
+  assert.equal(indexAgainstBase(eur, undefined), null);
+});
+
+test("formatEnvelopedValue: rounds to what n_observations honestly supports, never a raw float", () => {
+  assert.equal(formatEnvelopedValue({ valueNumeric: 0.215327, unit: "EUR/kWh", nObservations: null }), "0.2 EUR/kWh");
+  assert.equal(formatEnvelopedValue({ valueNumeric: 0.215327, unit: "EUR/kWh", nObservations: 3 }), "0.22 EUR/kWh");
+  assert.equal(formatEnvelopedValue({ valueNumeric: 0.215327, unit: "EUR/kWh", nObservations: 40 }), "0.2153 EUR/kWh");
+  assert.equal(formatEnvelopedValue({ valueNumeric: 0.2153, unit: null }), null, "malformed envelope formats to nothing, never a bare number");
+});
+
+test("originClassLabel / originClassStrength / derivationLabel: single lookup home, unknown codes are null", () => {
+  assert.equal(originClassLabel("official"), "Official source");
+  assert.equal(originClassStrength("official"), 7);
+  assert.equal(originClassStrength("community"), 1);
+  assert.equal(derivationLabel("observed"), "Observed");
+  assert.equal(originClassLabel("not-a-real-class"), null);
+  assert.equal(originClassStrength(undefined), null);
+  assert.equal(derivationLabel(null), null);
+});
+
+test("buildRegionGrid: a mixed cell carries both legacy and enveloped facts through unchanged, and " +
+  "factCount/state are presence-based — envelope state never changes coverage math", () => {
+  const facts = [
+    { regionKey: "EU", dimension: "operational_cost", factLabel: "Grid rate", value: "EUR 0.2153/kWh",
+      sourceNote: "Eurostat · https://ec.europa.eu", valueNumeric: 0.2153, unit: "EUR/kWh",
+      derivation: "observed", originClass: "official" },
+    { regionKey: "EU", dimension: "operational_cost", factLabel: "Fuel surcharge", value: "prose only, no envelope",
+      sourceNote: "hand-entered" },
+  ];
+  const g = buildRegionGrid({ regionKeys: ["EU"], sourcedDimensions: ["operational_cost"], facts });
+  const cell = g.byCell["EU|operational_cost"];
+  assert.equal(cell.state, "populated");
+  assert.equal(cell.factCount, 2);
+  assert.equal(cell.facts.filter(isEnvelopedFact).length, 1, "exactly the one row with value_numeric+unit");
+  assert.equal(cell.facts.find((f) => f.factLabel === "Grid rate").originClass, "official", "envelope fields pass through unchanged");
 });
 
 test("degenerate inputs never throw and never invent cells", () => {
