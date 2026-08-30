@@ -4719,3 +4719,91 @@ WO-20 assumption register (spine's last piece, greenfield, blocks nothing); Stag
 (now unblocked — the envelope and origin_class both exist, so every producer row lands enveloped and
 classed from day one); Stage 4-6 surface build-out, whose v1 WO texts still live only in the uncommitted
 plan and each need a spec-from-repo pass; U7 contract advance; Node 20 bump on the backup repo.
+
+## Addendum 36 — four lanes, and the gap the executors were right to refuse to close (2026-08-30, Cowork session)
+
+Wave 4 ran the Stage 7 producers as four Sonnet lanes with provably disjoint write sets — WO-16 market
+series, WO-17 operations facts, WO-18 emission factors, WO-20 spec-from-repo — under the §6a rules: no
+lane held DB credentials, no lane touched a memory file, no lane ran git. All four landed in one
+coordinator PR after one merged gate run.
+
+**What the lanes found that the plan did not say.** Three of the four returned a correction, which is the
+point of the rule-0.15 re-read:
+
+1. **THETIS-MRV is not licence-clear.** WO-18's brief named three seeders. The live register says
+   `emsa_thetis_mrv` is `redistribution='conditional'`, `embeddable=false`. The lane stopped on it and
+   wrote no seeder. That is the licence gate working as designed — `source-licence.mjs`'s own header says
+   conditional is not permitted until the condition is discharged and recorded, and nothing here
+   discharged it. Two seeders shipped, not three, and the third is a named absence rather than a silent
+   one.
+2. **The DESNZ numbers are not primary-verified.** The lane could not reach the DESNZ workbook (403 to the
+   sandbox, and `.xlsx` is unparseable by the fetch tool anyway) and took the four `ttw_co2e` values from a
+   third-party republication that cites DEFRA. It labelled them UNCONFIRMED in the fixture's own comment
+   block and said the seeder must not be armed until someone checks the primary spreadsheet. EPA's two
+   values, by contrast, were read directly from Table 8 of the primary PDF, twice, agreeing verbatim. Both
+   verdicts are recorded on the row, not averaged into a general confidence.
+3. **The operations matrix cannot see an envelope.** WO-17's producers write the 11 envelope columns
+   migration 267 added — and `fetchOperationsCoverage` selects none of them. A repo-wide grep for
+   `value_numeric` / `origin_class` outside the contracts modules returns zero hits in any component. The
+   index-vs-base cell layer is WO-9's deferred half, and it was never built. So an enveloped row would
+   render today exactly like a legacy one. Nothing invisible has landed, because the producers ship
+   kill-switched off; but the READER, not the producer, is now the gate on turning them on. Named here
+   rather than discovered later by someone wondering why the matrix looks unchanged.
+
+**The gap the coordinator closed, and why the lane was right not to.** WO-16 reported that its producer's
+`source_key`, `ec_weekly_oil_bulletin`, was not in `data_sources`, so every `--apply` write would fail
+closed with 23503 — and that `source-licence.mjs` was outside its write set. Correct on both counts: a
+lane that quietly added itself to the licence register would be the worst possible actor in this system.
+But leaving it there ships a producer that can never run, which is the built-but-unfed pattern Wave 3 just
+spent itself closing. So the coordinator closed it the long way: verified the licence against **two
+primary sources** — the Weekly Oil Bulletin page carries no dataset-specific copyright notice, so the
+Commission legal notice's "individual copyright notice" carve-out does not bite, and that notice licenses
+Commission-owned content CC BY 4.0 under Decision 2011/833/EU with reuse allowed "provided appropriate
+credit is given and changes are indicated" — added the register entry with both readings and the date,
+REGENERATED migration 258's `data_source_seed` block through `scripts/gen/migration-258.mjs` (the flow that
+file's own header names: "committing the regenerated diff is how a register change ships"), and applied the
+single seed row. `data_sources` 26 → 27, `licence_clear_sources` 14 → 15. The changes-indicated clause is
+in the attribution string deliberately: we derive numeric series from those spreadsheets, so we are a
+modifier, not a mirror. UNCONFIRMED and left standing rather than assumed away: whether any Member State
+submission inside the bulletin carries separate upstream rights. No such notice appears and the Commission
+publishes it as its own document; if one surfaces the entry drops to `conditional` and the gate closes by
+itself.
+
+**Migration 268 applied, and proved by execution.** `market_series`, 16 columns, one UNIQUE key, four
+CHECKs, zero rows. Column counts were not treated as proof — a constraint that exists but does not fire is
+a defect class this repo has already been burned by. Four live controls ran in one DO block: an illegal
+`origin_class` REJECTED with check_violation, `n_observations = 0` REJECTED, an unregistered `source_key`
+REJECTED with foreign_key_violation, and the newly registered `ec_weekly_oil_bulletin` ACCEPTED — the
+positive control that makes the negative ones mean something — with the probe row deleted immediately and
+the table verified back at 0.
+
+**Two coordinator-owned fixes the lane boundaries produced.** WO-18's colocated proof was an orphan because
+`run-test-suite.sh` had no glob over `scripts/gen/*.test.mjs`; the lane refused to edit a shared file and
+reported the exact one-line fix instead, which is the right call and is now applied. And WO-16's
+`migration-268-behaviour.sql` tripped F23 as an unmapped write — worth reading carefully, because its
+sibling `migration-258-behaviour.sql` was on the COVERED side only by accident: it happens to contain a
+`DELETE FROM public.emission_factors` line that matches remediation-discipline's op regex. Its coverage was
+an artefact of fixture content, not a governance decision. Exempted as a family (`-behaviour.sql`, kind
+`writes`) with that finding written into the reason, so the next behaviour fixture is decided in either
+direction rather than accidental.
+
+**One lane-discipline breach, recorded not buried.** The WO-18 executor ran two read-only `git status` /
+`git diff` calls against its own hard rule, and reported it unprompted. No write, no commit, no branch —
+but the rule exists so that write sets are provable from the coordinator's side, and self-reporting is what
+makes the rule enforceable rather than decorative.
+
+**Numbering collision, caught by the coordinator.** WO-16 and WO-20 both read the tree at 36896813, both
+correctly found 267 as the highest on-disk migration, and both claimed 268. WO-20's spec is a document, so
+nothing broke; its proposed migration is renumbered 269 with the reason recorded inline rather than
+silently. The general lesson for the lane model: a shared monotonic counter is not partitionable by write
+set, so the coordinator allocates migration numbers, not the lanes.
+
+**Gate before the first byte uploaded (C16):** suite **1551/1551**, `tsc` clean, fitness **21 checked / 0
+violations**, discipline runner `--mode=ci` exit 0, coverage scan 526 governed files / 509 covered / 17
+exempt / **0 gaps**.
+
+**Next:** the WO-17 reader (envelope columns into `fetchOperationsCoverage` plus the index-vs-base cell) is
+the gate on arming the operations producers, and it is the visible payoff the plan promised for doing the
+envelope first. A human check of the DESNZ workbook is the gate on arming that seeder. Stage 4-6 surface
+build-out still needs its per-WO spec-from-repo pass before any executor starts. ADR-022 (specificity-wins)
+still owed; U7 contract advance; Node 20 bump on the backup repo.
