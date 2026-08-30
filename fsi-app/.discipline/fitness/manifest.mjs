@@ -86,6 +86,13 @@ import { fitnessFunction as F25 } from './functions/F25-module-liveness.mjs';
 // same fallback literal, and that a worker bind is LOUD (warn + integrity_flags) rather than a quiet
 // slice of the grounding pool. Parity, not presence: a hand-copied constant is the divergence itself.
 import { fitnessFunction as F26 } from './functions/F26-storage-ceiling-parity.mjs';
+// Producer seam proof (2026-08-30): F27 mechanizes "one proof imports every seam a producer composes",
+// generalising the WO-17 buildEnvelopeRow miss (parser/planUpsert each proven, the orchestrator's call
+// to buildEnvelopeRow proven by nothing, a NOT-NULL `value` never written) to every producer under
+// scripts/producers/**. It caught the SAME gap one lane over the same day: eu-weekly-oil-bulletin.mjs's
+// parser->planner seam was validated only by a live --apply, closed now by
+// market-producer-composition.test.mjs. Filesystem only: no network, no DB, no model call.
+import { fitnessFunction as F27 } from './functions/F27-producer-seam-proof.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -109,6 +116,7 @@ export const fitnessFunctions = [
   F24,
   F25,
   F26,
+  F27,
 ];
 
 export function getFunctionById(id) {
