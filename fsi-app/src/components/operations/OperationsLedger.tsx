@@ -37,6 +37,7 @@ import { isRegulationItem } from "@/lib/regulation-item-types";
 import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 import { RegionDimensionMatrix } from "@/components/operations/RegionDimensionMatrix";
 import { buildRegionGrid } from "@/lib/operations/region-grid.mjs";
+import { STATE_LABELS, buildStateRoster, formatFactStatus } from "@/lib/operations/state-roster.mjs";
 
 // ── Severity vocabulary (Operations: Critical / High / Moderate / Low) ──
 // Hues + tints reuse the --reg-band-* tokens (identical hex in the mock).
@@ -122,17 +123,34 @@ function regionForResource(r: Resource): string | null {
 // US sub-national grouping for the By-state sub-list. A regulation tagged to a
 // state IS that state's data (regulation cross-ref); its per-state COST figure
 // is separate sourced backend (migration 151) and shows pending until landed.
-const US_STATE_MATCH: { code: string; label: string; patterns: RegExp[] }[] = [
-  { code: "US-CA", label: "California", patterns: [/california/i, /\bCARB\b/, /los angeles/i, /port of la\b/i, /\bSB[\s-]?25[13]\b/i] },
-  { code: "US-NY", label: "New York", patterns: [/new york/i, /\bNYC\b/, /local law 97/i, /\bLL97\b/i, /ny harbor/i] },
-  { code: "US-NC", label: "North Carolina", patterns: [/north carolina/i, /\bNC DEQ\b/i, /\bNC Register\b/i] },
-  { code: "US-TX", label: "Texas", patterns: [/\btexas\b/i, /\bTCEQ\b/i] },
+//
+// WO-10: extended from 4 to all 14 codes this surface knows a label for (STATE_LABELS —
+// the 13 states live in state_cost_facts plus NC). The original 4 (CA, NY, NC, TX) keep their
+// hand-tuned title/note patterns (agency acronyms, bill numbers, ports); the newly added 10 get a
+// plain state-name pattern — cheap, and correct for the common case of a regulation whose title
+// names the state — with the union in ByStateSubList (buildStateRoster) as the real fix: a state
+// with a sourced cost fact renders even when NO regulation ever matches it here.
+const US_STATE_MATCH: { code: string; patterns: RegExp[] }[] = [
+  { code: "US-CA", patterns: [/california/i, /\bCARB\b/, /los angeles/i, /port of la\b/i, /\bSB[\s-]?25[13]\b/i] },
+  { code: "US-NY", patterns: [/new york/i, /\bNYC\b/, /local law 97/i, /\bLL97\b/i, /ny harbor/i] },
+  { code: "US-NC", patterns: [/north carolina/i, /\bNC DEQ\b/i, /\bNC Register\b/i] },
+  { code: "US-TX", patterns: [/\btexas\b/i, /\bTCEQ\b/i] },
+  { code: "US-AZ", patterns: [/\barizona\b/i] },
+  { code: "US-CO", patterns: [/\bcolorado\b/i] },
+  { code: "US-FL", patterns: [/\bflorida\b/i] },
+  { code: "US-GA", patterns: [/\bgeorgia\b/i] },
+  { code: "US-IL", patterns: [/\billinois\b/i] },
+  { code: "US-MA", patterns: [/\bmassachusetts\b/i] },
+  { code: "US-NJ", patterns: [/\bnew jersey\b/i] },
+  { code: "US-OH", patterns: [/\bohio\b/i] },
+  { code: "US-PA", patterns: [/\bpennsylvania\b/i] },
+  { code: "US-WA", patterns: [/\bwashington\b/i] },
 ];
 
 function usStateForResource(r: Resource): { code: string; label: string } | null {
   const text = `${r.jurisdiction || ""} ${r.title} ${r.note || ""}`;
   for (const s of US_STATE_MATCH) {
-    for (const re of s.patterns) if (re.test(text)) return { code: s.code, label: s.label };
+    for (const re of s.patterns) if (re.test(text)) return { code: s.code, label: STATE_LABELS[s.code] || s.code };
   }
   return null;
 }
@@ -770,6 +788,12 @@ function FactList({ facts }: { facts: OperationsFact[] }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 6, margin: 0 }}>
       {facts.map((f, i) => {
         const source = f.source_name || f.source_note || "";
+        // WO-10: `status` (regional_data_facts.status — e.g. "Constrained", "Tight pool") was
+        // fetched, typed, and threaded all the way to this cell's fact object, then never rendered
+        // by anything. It answers a different question than `trend` (trend = direction of change;
+        // status = current real-world availability read), so it renders as its own line, not
+        // folded into the trend arrow — and is omitted cleanly (no empty line) when null.
+        const status = formatFactStatus(f.status);
         return (
           <div key={i} style={{ fontSize: 11.5, lineHeight: 1.5, color: "var(--color-text-primary)" }}>
             <span style={{ color: "var(--color-text-secondary)" }}>{f.fact_label}: </span>
@@ -777,6 +801,11 @@ function FactList({ facts }: { facts: OperationsFact[] }) {
             {f.trend && (
               <span title="trend" style={{ marginLeft: 5, fontSize: 10.5, color: f.trend === "up" ? "var(--reg-band-immediate)" : f.trend === "down" ? "var(--reg-band-awareness)" : "var(--color-text-muted)" }}>
                 {f.trend === "up" ? "▲" : f.trend === "down" ? "▼" : "→"}
+              </span>
+            )}
+            {status && (
+              <span style={{ display: "block", fontSize: 10.5, fontStyle: "italic", color: "var(--color-text-secondary)", marginTop: 1 }}>
+                {status}
               </span>
             )}
             {source && (
@@ -810,6 +839,12 @@ function ByStateSubList({
   // COST figures come from state_cost_facts (migration 152) — each carries its
   // own statute citation + source. A state with no sourced fact shows a dash,
   // never a national average presented as state law.
+  //
+  // WO-10 fix: the roster used to come ONLY from matched regulations, so a state with a sourced
+  // cost fact but no matching regulation title never got a row — at most 2 of 13 sourced state
+  // cost facts (CA, NY) could ever render. buildStateRoster takes the UNION of regulation-matched
+  // states and stateCosts' keys, so all 13 sourced states can render, each showing its real cost
+  // figure, with an honest "0 regs" for a state that has cost data but no matched regulation.
   const states = useMemo(() => {
     const map = new Map<string, { code: string; label: string; regs: Resource[] }>();
     for (const r of regs) {
@@ -819,8 +854,8 @@ function ByStateSubList({
       entry.regs.push(r);
       map.set(s.code, entry);
     }
-    return Array.from(map.values()).sort((a, b) => b.regs.length - a.regs.length);
-  }, [regs]);
+    return buildStateRoster(Array.from(map.values()), stateCosts.keys()) as { code: string; label: string; regs: Resource[] }[];
+  }, [regs, stateCosts]);
 
   return (
     <>
@@ -831,7 +866,7 @@ function ByStateSubList({
         style={{ width: "100%", textAlign: "left", fontFamily: "inherit", padding: "11px 18px", background: "var(--color-bg-base)", border: "none", borderTop: "1px solid var(--color-border-subtle)", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}
       >
         <span style={{ fontSize: 12, fontWeight: 800, color: "var(--color-primary)" }}>
-          {subOpen ? "Hide state breakdown" : `By state · ${states.length} with regulations →`}
+          {subOpen ? "Hide state breakdown" : `By state · ${states.length} states →`}
         </span>
         <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>state law is state-level data — never a national average</span>
       </button>
@@ -842,7 +877,9 @@ function ByStateSubList({
             <div key={st.code} style={{ display: "grid", gridTemplateColumns: "150px 1fr auto auto", gap: 12, alignItems: "center", padding: "11px 18px", borderBottom: "1px solid var(--color-border-subtle)" }} className="cl-ops-state">
               <span style={{ fontSize: 12.5, fontWeight: 800 }}>{st.label}</span>
               <span style={{ fontSize: 11.5, color: "var(--color-text-secondary)", lineHeight: 1.5 }}>
-                {st.regs.slice(0, 2).map((r) => r.title).join(" · ") || "Regulations in scope"}
+                {st.regs.length > 0
+                  ? st.regs.slice(0, 2).map((r) => r.title).join(" · ")
+                  : "No regulations matched to this state yet"}
               </span>
               {/* Per-state cost figure: real sourced fact where present (each with
                   its own citation, in the tooltip + a visible source line); an
