@@ -36,6 +36,7 @@ import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { TrajectoryBars } from "@/components/market/TrajectoryBars";
+import { buildCarbonOverlayView } from "@/lib/market/carbon-overlay-view.mjs";
 import {
   extractRegulationSections,
   type SourceEntry,
@@ -75,6 +76,25 @@ const C = {
   hairStrong: "rgba(0,0,0,0.18)",
 } as const;
 
+// ── Carbon overlay (WO-24, re-scoped 2026-08-30) — emission_factors modal_default rows ──────────────
+// See docs/plans/unblocking-the-five-2026-08-30.md §2 and src/lib/market/select-modal-factor.mjs's own
+// header for the ruling. No corridor identity exists (Gate 2 deferred to a future WO), so this is the
+// jurisdiction+mode-keyed modal_default row shape, fetched whole (2 rows today) and selected client-side
+// by the pure selectModalFactor/buildCarbonOverlayView pair — never pre-picked in the fetch layer.
+export interface EmissionFactorRow {
+  factor_id: string;
+  mode: string;
+  vehicle_class: string | null;
+  jurisdiction: string | null;
+  quantity_basis: string;
+  ttw_co2e: number | null;
+  wtt_co2e: number | null;
+  wtw_co2e: number | null;
+  source_key: string;
+  tier: string;
+  scope_kind: string;
+}
+
 // ── Price-board record (migration 151 backing store) ────────────────────
 export interface PriceStat {
   label: string;
@@ -100,6 +120,11 @@ interface Props {
   /** Published price statistics for the hero board (migration 151). Empty →
    *  honest §4 published-statistics pending frame. NEVER faked. */
   priceBoard?: PriceStat[];
+  /** WO-24 (re-scoped 2026-08-30): the whole modal_default emission_factors table (2 rows today, no
+   *  per-item filter is possible — no corridor join exists). Selected per-signal, client-side, by
+   *  DriversTab's carbon-overlay slot via selectModalFactor/buildCarbonOverlayView. Empty → every
+   *  corridor-band signal renders the honest no_factor pending frame. NEVER faked. */
+  carbonFactors?: EmissionFactorRow[];
   /** Breadcrumb middle segment, e.g. "B1 · Price signals · United States". */
   groupLabel?: string;
   /** Hero deck sub-line, e.g. "U.S. EIA · published May 9, 2026". */
@@ -217,6 +242,7 @@ export function MarketSignalDetailSurface({
   sections = [],
   convergence = null,
   priceBoard = [],
+  carbonFactors = [],
   groupLabel,
   deck,
   initialNote = "",
@@ -451,7 +477,7 @@ export function MarketSignalDetailSurface({
           )}
 
           {tab === "drivers" && (
-            <DriversTab r={r} sectionMap={sectionMap} band={band} />
+            <DriversTab r={r} sectionMap={sectionMap} band={band} carbonFactors={carbonFactors} />
           )}
 
           {tab === "cost" && (
@@ -646,8 +672,26 @@ function PriceBoard({ stats }: { stats: PriceStat[] }) {
 }
 
 // ── Drivers & trajectory tab ────────────────────────────────────────────
-function DriversTab({ r, sectionMap, band }: { r: Resource; sectionMap: Record<string, string>; band: BandKey }) {
+function DriversTab({
+  r,
+  sectionMap,
+  band,
+  carbonFactors = [],
+}: {
+  r: Resource;
+  sectionMap: Record<string, string>;
+  band: BandKey;
+  carbonFactors?: EmissionFactorRow[];
+}) {
   const hasTrajectory = band === "price" && (r.trajectoryPoints?.points?.length ?? 0) > 0;
+  // WO-24 (re-scoped 2026-08-30): corridors & routes signals (B3) are exactly where a carbon-cost
+  // overlay attaches conceptually (spec 07's mock draws it on the same corridor as a rate board). No
+  // corridor identity exists yet (Gate 2, deferred), so this keys off jurisdiction_iso + emission_factors
+  // instead — see select-modal-factor.mjs's header for the three-state ruling this renders honestly.
+  const hasCarbonOverlay = band === "corridor";
+  const carbonOverlay = hasCarbonOverlay
+    ? buildCarbonOverlayView({ jurisdictionIso: r.jurisdictionIso ?? [], factors: carbonFactors })
+    : null;
   const anySection = sectionMap["2"] || sectionMap["3"] || sectionMap["5"];
 
   return (
@@ -684,12 +728,40 @@ function DriversTab({ r, sectionMap, band }: { r: Resource; sectionMap: Record<s
           <TrajectoryBars trajectoryPoints={r.trajectoryPoints} />
         </SectionCard>
       )}
+      {hasCarbonOverlay && carbonOverlay && (
+        <SectionCard title="Carbon cost overlay">
+          {carbonOverlay.state === "resolved" && carbonOverlay.figure ? (
+            <div>
+              <p style={{ fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1, color: C.ink, margin: "0 0 4px" }}>
+                {carbonOverlay.figure.value}
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.ink2 }}> {carbonOverlay.figure.unit}</span>
+              </p>
+              <span
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 800,
+                  letterSpacing: "0.11em",
+                  textTransform: "uppercase",
+                  color: C.brass,
+                  display: "block",
+                  margin: "0 0 8px",
+                }}
+              >
+                National modal default · not corridor-specific
+              </span>
+              <p style={{ fontSize: 12, lineHeight: 1.6, color: C.ink2, margin: 0 }}>{carbonOverlay.body}</p>
+            </div>
+          ) : (
+            <PendingFrame header={carbonOverlay.header}>{carbonOverlay.body}</PendingFrame>
+          )}
+        </SectionCard>
+      )}
       {sectionMap["5"] && (
         <SectionCard title="Competitive implications">
           <GfmSection markdown={sectionMap["5"]} />
         </SectionCard>
       )}
-      {!anySection && !hasTrajectory && !r.conversionTrigger && (
+      {!anySection && !hasTrajectory && !hasCarbonOverlay && !r.conversionTrigger && (
         <SectionCard title="Drivers & trajectory">
           <PendingFrame header="Drivers and trajectory pending">
             Who is driving this signal, the expected price path, and the conversion triggers appear here once
