@@ -5336,3 +5336,64 @@ market_series 6). The remaining UNFILLED entries are legitimately mid-build or b
 **Next:** nothing is blocked. Optional follow-ups: SERIES_ITEM_MAP ratification to attach these
 series to published_price_statistics; Phase 3 durability (a seam-proof per producer directory
 alongside F23); re-arm the schedules in one reviewed diff when build mode ends.
+
+## Addendum 48 — Wave 14: the seam gate, and the three producers that had no composition proof (2026-08-30, Cowork session)
+
+**Phase 3 durability, executed.** The session's own incidents named a defect class the repo had no gate
+for: a producer whose PARTS are each unit-tested while the COMPOSITION that actually runs in production
+is exercised by nothing. Twice this session, in production:
+  * WO-17: `runEnvelopeProducer` built rows inline instead of routing through `buildEnvelopeRow`, writing
+    a NULL into `regional_data_facts.value` (TEXT NOT NULL). `buildEnvelopeRow` was fully unit-tested.
+    Suite, tsc, fitness and the discipline engine were ALL GREEN while the producer was broken.
+  * Market lane: `eu-weekly-oil-bulletin.mjs` composes `parseEuWeeklyOilBulletinCsv -> planMarketSeriesUpsert`.
+    Both halves had proofs. Nothing proved the seam. It shipped validated only by a live `--apply`.
+
+**F27 producer-seam-proof.** For every producer entry point under `scripts/producers/**`, the set of
+first-party seam modules it imports must be covered by ONE proof importing every seam together. Two
+proofs each covering half do not prove the join. Filesystem-pure; both-directions audit (a stale
+exemption and a fixed-but-still-exempt entry are each RED). Registered in the fitness manifest and
+wired to a new invariant `RD-9b-producer-composition-proof` — RD-9's half-slice class one level in.
+
+**A coordinator error, corrected by the lane, recorded because the correction is the point.** I told
+the lane the regional lane already had a composition proof, citing `run-envelope-producer.test.mjs`.
+It does not. My evidence was `grep -l` on the parser NAME, which matched the string
+`method_version: "eurostat-nrg-pc-205-parser@1"` inside a fixture — a string literal, not an import.
+The lane checked the actual import statements, found only `./run-envelope-producer.mjs`, and said so
+instead of building to my wrong spec. The gap was THREE producers, not one. Grepping for a name is not
+evidence of a dependency; the import statement is.
+
+**Shipped with ZERO exemptions.** The first pass recorded the two regional gaps as reason-bearing
+`SEAM_EXEMPTIONS` entries. That was honest but wrong to ship: a gate with day-one slack is how a gate
+becomes ceremony (F23's own header says exactly this). Both were closed with real proofs and the
+exemption list is empty.
+
+**Three composition proofs, each asserting against constraints read from the LIVE database, not from
+memory or migration text:**
+  * `market-producer-composition.test.mjs` — real fetcher-shaped CSV at the production-verified values
+    of week 2026-08-24 through parse -> plan; asserts `label` NOT NULL (the market analogue of the
+    column that took production down), the `series_key` format CHECK, both vocabulary CHECKs,
+    `n_observations > 0 OR NULL`, and idempotency on a second pass.
+  * `regional-bls-oews-composition.test.mjs` and `regional-eurostat-nrg-pc-205-composition.test.mjs` —
+    committed upstream fixtures through `parser -> toCandidateRows -> latestPerNaturalKey`; the
+    `value` non-empty assertion is the literal WO-17 regression guard. The Eurostat proof also pins the
+    23505 half: ~40 semesters collapsing to one row per (region, dimension, fact_label), newest wins.
+
+**A second self-inflicted error, also caught by the lane.** My append to `invariants.mjs` left `},,` —
+a sparse-array hole. My verification (module imports, 107 entries) passed because a sparse array is
+valid JS; the hole only surfaced as `Cannot read properties of undefined` in the meta-gate. Checking
+that a module LOADS is not checking that it is well-formed. Fixed, and re-verified by scanning for
+holes explicitly.
+
+**Gate (coordinator-run, not taken on the lane's word):** suite 1690/1690, tsc clean, fitness 22/22
+(0 violations, F27 included), discipline runner `--mode=ci` exit 0. The meta-gate additionally required
+the new proofs be git-tracked before it would count them — correct, since CI can only see tracked files.
+
+**What F27 explicitly does NOT do, recorded so nobody mistakes its scope:** it cannot tell you a fixture
+matches reality. BOTH Wave 13 defects (the EU block keyed on a legend string; the A1087 "Notes:" cell)
+were fixtures faithfully encoding a wrong belief about the source, and a composition proof over those
+fixtures would have been green. That class is held by ADR-023 point 4 — dry run, human reads the plan,
+then apply — which is what actually caught both, loudly, writing nothing. F27 holds the seam; the
+dry-run rule holds the reality. Neither substitutes for the other.
+
+**Next:** nothing blocked. Optional and unchanged: SERIES_ITEM_MAP ratification; re-arm the schedules in
+one reviewed diff when build mode ends (operator call, still deliberately unbuilt).
