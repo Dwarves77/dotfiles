@@ -6251,3 +6251,44 @@ Gates: suite 1690 → **1719/1719**, tsc clean, fitness 22/22, C3/C5 PASS.
 
 **Next:** land this, re-dispatch DESNZ dry (the plan should now report a real `already live` count of
 0 against a successful read, not a fallback), read it, then apply.
+
+## Addendum 61 — DESNZ applied; the idempotency fix proven by execution (2026-08-30, Cowork session)
+
+The DESNZ gate is discharged and the rows are live. Sequence, all four steps verified rather than
+assumed:
+
+**1. Re-dispatched dry after the fix landed (run #12, `d5feb91`).** The warning line from run #11 is
+GONE — no `could not read existing emission_factors rows`. So `already live (skip, idempotent): 0` in
+that run was a REAL measurement against a successful read, not the catch-block fallback, and it agreed
+with the live table (0 DESNZ rows). All four values printed digit-for-digit as read from the primary
+workbook in Addendum 55: 0.36362, 0.07703, 0.10163, 0.02779.
+
+**2. Applied (run #13).** `emission_factors` **2 → 6**.
+
+**3. Verified the write by querying, not by trusting the exit code.** All four GB rows live with
+`derivation='observed'`, `origin_class='official'`, `gwp_basis='AR5_GWP100'`, per-gas populated.
+Three checks that could each have failed and did not:
+- `duplicate_natural_keys` = **0** (grouped on the eight-column natural key over non-superseded rows)
+- `rows_failing_gas_reconciliation` = **0** — every one of the six rows satisfies
+  `co2_fossil + ch4*28 + n2o*265 ≈ ttw_co2e` within 2e-5, EPA's rows included. The per-gas conversion
+  from Addendum 58 survives the round trip through Postgres numerics.
+- `non_ar5_rows` = **0**; jurisdictions now **GB, US**.
+
+**4. Proved the idempotency fix is real, not merely present (run #14, dry).**
+`already live (skip, idempotent): 4  |  to write: 0`. The same seeder that structurally could not
+report anything but 0 now identifies all four as live and declines to write. **That is the
+non-vacuous proof** — a fix that only makes a test pass is not the same as a fix that changes
+production behaviour, and this one demonstrably does. It cost one free dispatch to know rather than
+believe.
+
+**What the whole DESNZ thread actually demonstrates.** The dry-run-then-read gate caught three
+separate defects on this producer family: the B1088 legend-row key collision (Wave 13), the
+newest-first ordering trap (Wave 13), and now a dead idempotency guard — plus, before any of them, the
+fact that all four published values were wrong by 13-19%. Not one of those was caught by a test. Every
+one was caught by a human-equivalent reading a plan before authorising a write.
+
+**Still open, unchanged and still not guessed at:** how EPA seeded 2 live rows through this same
+module while the read was broken. `emission_factors` now holds 6 rows across both sources and both
+reconcile, so nothing is wrong with the DATA; the question is only about the route that run took.
+
+**All six stores remain filled**; `emission_factors` is the one that moved, 2 → 6.
