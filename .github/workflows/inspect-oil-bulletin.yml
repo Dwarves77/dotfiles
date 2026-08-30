@@ -1,0 +1,80 @@
+name: Inspect oil bulletin format
+
+# PHASE 2 STEP 1 of the market_series population plan (docs/ops/session-log.md addendum 42).
+#
+# WHY THIS EXISTS. The EU Weekly Oil Bulletin producer is a parser with --input and no fetcher — that
+# is the WO-16 design's own documented gap, and it is why market_series sits at 0 rows. Building the
+# fetcher requires knowing the live file's exact machine format, and the standing rule (rule 0.15 /
+# CLAUDE.md rule 2) forbids writing a parser against a format nobody has read. The authoring sandbox
+# cannot reach energy.ec.europa.eu (HTTP 000, org egress policy) and cannot parse .xlsx. This runner
+# can reach the source, and .xlsx is a zip of XML that plain `unzip` + `head` can expose.
+#
+# SO: this workflow downloads the bulletin's price files and prints their REAL structure to the log —
+# sheet names, dimensions, the first rows of sheet XML, shared strings. An operator (or the session
+# that dispatched it) reads the log and writes the fetch+normalize step against evidence, not guesses.
+#
+# READ-ONLY EVERYWHERE: no repo writes, no DB access (no secrets are even mounted), no artifact
+# uploads. Output is the log, nothing else. $0: public unauthenticated documents, CC BY 4.0
+# (Decision 2011/833/EU; data_sources 'ec_weekly_oil_bulletin', registered).
+#
+# BUILD MODE: dispatch-only, no schedule — same ruling as producers.yml (ADR-023 amendment).
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: inspect-oil-bulletin
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Find this week's file links on the bulletin page
+        run: |
+          set -eu
+          PAGE_URL="https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en"
+          curl -sSL --max-time 60 -o page.html "$PAGE_URL"
+          echo "== every document/download link on the page, with nearby link text =="
+          grep -oE 'href="[^"]*document/download[^"]*"' page.html | sed 's/href=//; s/"//g' | sort -u | tee links.txt
+          echo
+          echo "== anchor text context (to tell 'with taxes' from 'without taxes') =="
+          # Print each anchor tag whole so the label travels with its URL.
+          tr '>' '>\n' < page.html | grep -iE 'document/download|taxes|price' | head -60 || true
+
+      - name: Download the price workbooks
+        run: |
+          set -eu
+          i=0
+          while read -r url; do
+            i=$((i+1))
+            case "$url" in http*) full="$url";; *) full="https://energy.ec.europa.eu$url";; esac
+            echo "== downloading file $i: $full =="
+            curl -sSL --max-time 120 -o "file$i.bin" "$full"
+            ls -la "file$i.bin"
+            file "file$i.bin" || true
+          done < links.txt
+
+      - name: Expose each workbook's real structure
+        run: |
+          set -eu
+          for f in file*.bin; do
+            echo "======================================================================"
+            echo "== $f =="
+            if ! unzip -l "$f" >/dev/null 2>&1; then
+              echo "-- not a zip/xlsx; first 400 bytes: --"
+              head -c 400 "$f" | od -c | head -20
+              continue
+            fi
+            echo "-- zip listing --"
+            unzip -l "$f"
+            echo "-- workbook.xml (sheet names) --"
+            unzip -p "$f" xl/workbook.xml 2>/dev/null | head -c 2000; echo
+            echo "-- first sheet: dimension + first 4000 chars of XML --"
+            first_sheet=$(unzip -l "$f" | grep -oE 'xl/worksheets/sheet[0-9]+\.xml' | sort | head -1)
+            echo "(first sheet file: $first_sheet)"
+            unzip -p "$f" "$first_sheet" 2>/dev/null | head -c 4000; echo
+            echo "-- sharedStrings.xml: first 3000 chars --"
+            unzip -p "$f" xl/sharedStrings.xml 2>/dev/null | head -c 3000; echo
+          done
