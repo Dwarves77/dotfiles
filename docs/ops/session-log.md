@@ -5093,3 +5093,52 @@ found and fixed by wiring `scripts/verify/*.test.mjs` into the suite glob, the s
 **Next:** first live dry run of the armed producers, read the plan, then apply, then confirm
 `market_series` and the `regional_data_facts` envelope are non-empty. These parsers have never met a
 live endpoint; a fixture proves the parse, not that the endpoint still returns that shape.
+
+## Addendum 41 — the live runs did their job, and the full read did the rest (2026-08-30, Cowork session)
+
+**The prediction in the last entry held.** "A fixture proves the parse, not that the endpoint still
+returns that shape" — and more than that: it does not prove the seam between the layers. Run #1
+(dry, all producers) proved both regional parsers against their live endpoints for the first time:
+Eurostat nrg_pc_205 parsed 283 real observations, BLS OEWS parsed 3 (so the inferred series-ID
+convention is confirmed working live). It also showed the EU Weekly Oil Bulletin producer exiting 2:
+it is a parser with `--input` and no fetcher — nothing anywhere downloads the bulletin. Run #2
+(apply, eurostat) then failed on its first row: `null value in column "value" of relation
+"regional_data_facts" violates not-null constraint`.
+
+**Root cause, not symptom.** Both parsers return OBSERVATIONS, their headers say "shaped for
+buildEnvelopeRow", and buildEnvelopeRow is the one home that derives the NOT NULL `value` column
+mechanically from value_numeric + unit. run-envelope-producer.mjs passed observations STRAIGHT to
+planUpsert and guardedInsert; the one home existed, was tested, and was wired to nothing. Every
+layer had a green fixture proof and the seam had none.
+
+**Operator ruling, verbatim intent:** stop doing things to find out what works; read every line of
+the pipeline, build the plan from the actual code, populate now, defer schedules. The full read
+(~2,700 lines: producers, parsers, envelope modules, db.mjs, both refreshers, seeders, readers,
+workflow, plus live pg_constraint/information_schema) found the SECOND latent defect before it could
+fire: the live UNIQUE key is (region_id, dimension, fact_label), the Eurostat fact_label carries the
+band but not the semester, so ~40 of the 283 candidates share each key and the apply would have died
+23505 on its second insert even with the seam fixed. planUpsert dedupes against existing rows only,
+never against the candidate set.
+
+**Shipped in #488:** `toCandidateRows()` (the seam) + `latestPerNaturalKey()` (current-state
+reduction: newest as_at_date wins, reference_period tie-break) in run-envelope-producer.mjs, with 10
+proofs pinned to the real payload shapes and verified red-then-green; `scripts/producers/*/*.test.mjs`
+added to the suite glob (the directory had NO glob — F23 would have called the new test orphaned);
+producers.yml loses its `schedule:` block per the build-mode ruling (kept as a comment with the exact
+crons, re-arming is one reviewed diff); ADR-023 amended accordingly; and three stale comments
+(series-registry, market producer, market parser) claiming ec_weekly_oil_bulletin is unregistered
+were corrected — it has been a live data_sources row since the 258 seed regen.
+
+**The full read also settled what market_series actually is:** missing THREE layers, not one. No
+fetcher (by documented design), NO READER (nothing in src/ selects market_series at all — the
+population report's "reader" line was aspirational), and the PPS attachment map is deliberately
+empty pending an operator ruling. Populating it shows nothing until the reader exists. That is
+Phase 2: a runner-side inspection dispatch to read the bulletin file's real structure from the log,
+then fetch+normalize against the verified format, then the series board.
+
+**Gate (C16):** suite **1611/1611**, tsc clean, fitness **21 / 0**, discipline runner exit 0,
+uploaded tree byte-identical to gated commit 3a354403.
+
+**Next:** land #488, dispatch dry (regional) and read the plan — expected ~7 Eurostat current-state
+rows + 3 BLS — then apply, then verify by SQL and population report that regional_data_facts has
+enveloped values and /operations renders the indexed layer.
