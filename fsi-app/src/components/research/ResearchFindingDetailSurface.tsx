@@ -25,6 +25,17 @@
  *     brief toggle (legacy fallback)
  *   - Sources panel (primary source + tier legend)
  *   - Related findings panel (same theme, else same source)
+ *   - Right rail: theme-brief card (WO-25, flywheel U6 surfacing) — a
+ *     read-only render of an already-synthesized `theme_briefs` row for
+ *     the graph-derived `connection_themes` cluster this item belongs to,
+ *     when one exists. This is CLUSTER-level synthesis across many items
+ *     (up to 68 on the live corpus), not analysis of this finding alone —
+ *     kept visually distinct from the main-column content for exactly that
+ *     reason (see the card's own "Cluster synthesis" label). A mismatch
+ *     between the brief's stored member_hash and the theme's live
+ *     member_ids renders a STALE badge; staleness is never silent
+ *     (migration 266). No LLM call, no generation, ever, from this
+ *     component — it renders rows a prior operator-directed pass produced.
  *
  * Severity + theme vocabularies match ResearchView.tsx exactly.
  */
@@ -40,6 +51,7 @@ import { TIER_LABELS } from "@/lib/tier-labels";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadge } from "@/components/shell/RelevanceBadge";
+import type { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
 
 interface RelatedFinding {
   id: string;
@@ -48,6 +60,10 @@ interface RelatedFinding {
   sourceName: string | null;
   addedDate: string | null;
 }
+
+/** WO-25 — the theme-brief view-model, as returned by selectThemeBriefForItem. null = honest
+ *  omission (item is in no live cluster, or its cluster has no brief yet). */
+type ThemeBriefView = ReturnType<typeof selectThemeBriefForItem>;
 
 interface Props {
   resource: Resource;
@@ -68,6 +84,11 @@ interface Props {
   connections?: ItemConnection[];
   relevance?: ItemRelevance | null;
   resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
+  /** WO-25 — the graph-derived cluster brief covering this item, if any. null renders no card
+   *  (item is in no live `connection_themes` cluster, or that cluster has no `theme_briefs` row
+   *  yet) — honest omission, matching this surface's other "no X on file" empty states. Never
+   *  fetched or generated client-side; always supplied by the server component. */
+  themeBrief?: ThemeBriefView;
 }
 
 // ── Research section-aware renderer (analogous to RegulationSections) ──
@@ -561,6 +582,105 @@ function ThemePill({ themeKey }: { themeKey: ThemeKey }) {
   );
 }
 
+// ── Theme-brief card (WO-25, flywheel U6 surfacing) ──
+//
+// Right-rail card, matching ItemConnectionsCard's visual weight (spec §2.7 open ruling 1,
+// recommended placement) rather than a main-column block — brief_md is synthesis ACROSS a
+// cluster (up to 68 members on the live corpus), not analysis of this item alone, and giving it
+// main-column weight risks a reader mistaking cluster-level prose for item-specific content, the
+// same confusion the numbered ResearchSectionCards exist to avoid for item-level text. Renders
+// nothing when `brief` is null/undefined — the parent decides that (honest omission), this
+// component only draws what it is handed. Never fetches, never calls an LLM: brief_md is a
+// pre-generated string, prop-drilled from the server component.
+function ThemeBriefCard({ brief }: { brief: ThemeBriefView }) {
+  if (!brief) return null;
+  return (
+    <div className="cl-card" style={{ padding: "14px 16px" }}>
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 800,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "var(--color-text-muted)",
+          marginBottom: 4,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <span>Cluster synthesis</span>
+        {brief.stale && (
+          <span
+            style={{
+              fontSize: 9,
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              padding: "2px 6px",
+              borderRadius: 3,
+              color: "var(--color-high, var(--color-text-primary))",
+              background: "var(--color-high-bg, var(--color-surface))",
+              border: "1px solid var(--color-high-border, var(--color-border))",
+            }}
+            title="This theme's membership has changed since the brief below was generated — content may no longer reflect the live cluster."
+          >
+            STALE
+          </span>
+        )}
+      </div>
+      <div
+        style={{
+          fontSize: 10.5,
+          color: "var(--color-text-muted)",
+          fontStyle: "italic",
+          marginBottom: 10,
+          lineHeight: 1.4,
+        }}
+      >
+        Synthesis across {brief.memberCount} items in this finding&apos;s connection-graph
+        cluster — not analysis of this finding alone.
+      </div>
+      <div
+        style={{
+          fontSize: 13,
+          fontWeight: 700,
+          color: "var(--color-text-primary)",
+          marginBottom: 8,
+        }}
+      >
+        {brief.title}
+      </div>
+      {brief.stale && (
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: "var(--color-high, var(--color-text-primary))",
+            background: "var(--color-high-bg, var(--color-surface))",
+            border: "1px solid var(--color-high-border, var(--color-border))",
+            borderRadius: 3,
+            padding: "6px 8px",
+            marginBottom: 10,
+          }}
+        >
+          STALE — the cluster&apos;s membership changed since this brief was generated.
+        </div>
+      )}
+      <div
+        style={{
+          fontSize: 12.5,
+          lineHeight: 1.55,
+          maxHeight: 260,
+          overflowY: "auto",
+        }}
+      >
+        <GfmSection markdown={brief.briefMd} />
+      </div>
+    </div>
+  );
+}
+
 // ── Main surface ──
 
 export function ResearchFindingDetailSurface({
@@ -572,6 +692,7 @@ export function ResearchFindingDetailSurface({
   connections = [],
   relevance = null,
   resourceLookup = {},
+  themeBrief = null,
 }: Props) {
   const severity = useMemo(() => deriveSeverity(r), [r]);
   const themeKey = useMemo(() => assignTheme(r), [r]);
@@ -1011,6 +1132,7 @@ export function ResearchFindingDetailSurface({
             selfId={r.id}
             resourceLookup={resourceLookup}
           />
+          {themeBrief && <ThemeBriefCard brief={themeBrief} />}
         </aside>
       </div>
     </div>

@@ -344,7 +344,6 @@ const ASK_CHIPS = [
 const ROWS_COLLAPSED = 4;
 
 export function ResearchLedger({ items, aggregates, total, sourceCoverage }: ResearchLedgerProps) {
-  void sourceCoverage; // reserved: matrix currently derived from loaded rows
 
   // Enrich once. Fetch-error items rejected so they never surface.
   const enriched = useMemo(
@@ -417,6 +416,26 @@ export function ResearchLedger({ items, aggregates, total, sourceCoverage }: Res
     }
     return c;
   }, [displayed]);
+
+  // WO-15 (2026-08-30): source registry breadth, from get_research_source_coverage() (migration 100)
+  // via the sourceCoverage prop — 15 live (transport_mode x jurisdiction_iso) cells, previously fetched
+  // and discarded (`void sourceCoverage`). Ruled to surface it (option (a) of the WO): the RPC is real,
+  // already cached $0, and answers a different question than the analytical-depth matrix above ("how
+  // broad is our source REGISTRY across modes/jurisdictions" vs. "how deep is the evidence behind
+  // findings shown right now") — grouped by transport mode for a compact rail read, sorted by breadth.
+  const registryByMode = useMemo(() => {
+    if (!sourceCoverage || sourceCoverage.length === 0) return [];
+    const byMode = new Map<string, { sources: number; jurisdictions: Set<string> }>();
+    for (const cell of sourceCoverage) {
+      const entry = byMode.get(cell.transportMode) ?? { sources: 0, jurisdictions: new Set<string>() };
+      entry.sources += cell.sourceCount;
+      entry.jurisdictions.add(cell.jurisdictionIso);
+      byMode.set(cell.transportMode, entry);
+    }
+    return Array.from(byMode.entries())
+      .map(([mode, v]) => ({ mode, sources: v.sources, jurisdictionCount: v.jurisdictions.size }))
+      .sort((a, b) => b.sources - a.sources);
+  }, [sourceCoverage]);
 
   // Theme groups over displayed, recency-sorted.
   const groups = useMemo(() => {
@@ -840,6 +859,25 @@ export function ResearchLedger({ items, aggregates, total, sourceCoverage }: Res
                 Distribution across the source classes over the findings shown. Discriminator is analytical depth, not publication form.
               </p>
             </RailCard>
+            {registryByMode.length > 0 && (
+              <RailCard>
+                <p style={{ ...eyebrow, letterSpacing: "0.13em", margin: "0 0 10px" }}>Source registry breadth</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {registryByMode.map((r) => (
+                    <div key={r.mode} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, textTransform: "capitalize" }}>{r.mode}</span>
+                      <span style={{ fontSize: 11.5, color: "var(--color-text-secondary)" }}>
+                        <span style={{ fontFamily: "var(--font-display)", fontSize: 16, color: "var(--reg-band-action)" }}>{r.sources}</span>
+                        {" "}sources · {r.jurisdictionCount} {r.jurisdictionCount === 1 ? "jurisdiction" : "jurisdictions"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p style={{ fontSize: 11, color: "var(--color-text-muted)", lineHeight: 1.55, margin: "10px 0 0" }}>
+                  How broad our active source registry is by transport mode and jurisdiction — the registry we monitor, not the findings shown above.
+                </p>
+              </RailCard>
+            )}
             <RailCard>
               <p style={{ ...eyebrow, letterSpacing: "0.13em", margin: "0 0 8px" }}>Methodology</p>
               <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: 0 }}>
