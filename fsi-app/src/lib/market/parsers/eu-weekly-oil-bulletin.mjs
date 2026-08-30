@@ -1,14 +1,14 @@
 // Parser for the EU Weekly Oil Bulletin (WO-16's first market_series producer).
 //
 // SCOPE OF THIS LANE, STATED HONESTLY. This module parses a NORMALIZED CSV extract of the bulletin —
-// week_ending;product_slug;price_eur;n_member_states — into market_series rows. It does NOT fetch the
-// live publication from the European Commission (energy.ec.europa.eu). Building that fetch/normalize
-// step requires verifying the live file's exact machine-readable shape against a real network read,
-// which this lane does not perform (rule 0.15 / CLAUDE.md rule 2 — never fabricate a claim about an
-// external format not actually read). scripts/producers/market/eu-weekly-oil-bulletin.mjs's own header
-// names this as the specific, small follow-up a later pass adds (a `fetchBulletin()` that downloads the
-// live file and normalizes it to the CSV contract below); this module and its CLI caller work from
-// `--input <path>` (or stdin) today, and are fully testable against the committed fixture without it.
+// week_ending;product_slug;price_eur;n_member_states — into market_series rows. It does NOT itself fetch
+// the live publication from the European Commission (energy.ec.europa.eu); that fetch/extract step is
+// now BUILT, as scripts/producers/market/fetch-oil-bulletin.mjs (2026-08-30), against the live workbook
+// structure verified by two GitHub-runner inspection runs that actually downloaded the file — see that
+// script's and src/lib/market/oil-bulletin-workbook.mjs's own headers for the citation and the parsing
+// contract. This module and its CLI caller (scripts/producers/market/eu-weekly-oil-bulletin.mjs) still
+// work from `--input <path>` (or stdin) — fetch-oil-bulletin.mjs's stdout IS that input, piped straight
+// in — and remain fully testable against the committed fixture independent of the live fetch.
 //
 // THE PRODUCT LINE (public knowledge, not fabricated — the Bulletin's own published product set):
 // Euro-Super 95, automotive gas oil (diesel), heating gas oil and LPG motor fuel are quoted in EUR per

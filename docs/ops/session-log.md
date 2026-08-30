@@ -5204,3 +5204,35 @@ changes the envelope. Guessing any of that is exactly what rule 0.15 forbids. Th
 inspection workflow with a pass-2 step that prints the rels file, header rows 1-4 and the LAST row
 of both price sheets, and the average/date-related sharedStrings. The fetch+normalize lane starts
 when that evidence is on screen.
+
+## Addendum 44 — the fetcher exists, built from evidence, and the market chain is whole on paper (2026-08-30, Cowork session)
+
+**Inspection pass 2 (run #2) settled the two questions that gated the fetcher.** Verbatim from the
+live workbook: rId1 -> sheet1.xml ("Prices with taxes"), rId2 -> sheet2.xml ("Prices wo taxes"); and
+sharedStrings carries "EU - European Union" plus the Commission's own caveat "preliminary; weighted
+averages for EU and EUR may change when final weights (annual consumption) for corresponding years
+arrive". So an EU-average block exists IN the published file, the averages are the Commission's own,
+and derivation='observed' / origin_class='official' hold — nothing is computed by us. The pass also
+showed the trailing rows (r=1107/1109) are footnote cells, so a data row is identified by its date,
+never by being last.
+
+**Lane A (Sonnet executor) built the missing layer against that evidence:** a pure OOXML module
+(`src/lib/market/oil-bulletin-workbook.mjs` — sheet resolution via workbook.xml+rels, never
+position; header-keyed EU-block location, never column letters; both date encodings; fail-closed
+`OilBulletinStructureError` naming exactly what was not found) and a CI-side CLI
+(`scripts/producers/market/fetch-oil-bulletin.mjs` — scrape the bulletin page for the
+Prices_History link with the known-UUID fallback, download, unzip -p, extract, human-readable
+report to stderr, normalized CSV to stdout/--out). It writes NOTHING; the guarded write and both
+gates stay in the existing producer, which now consumes the CSV via --input in producers.yml.
+24 new proofs, including feeding the emitted CSV through the existing parseEuWeeklyOilBulletinCsv
+and asserting 0 warnings. Fixture header states plainly: structure primary-verified from the
+2026-08-30 inspection runs, numbers synthetic — the real-numbers proof is the CI dry run an
+operator reads before apply. n_member_states is deliberately omitted from the CSV (optional per
+the parser's own contract) rather than guessed.
+
+**Coordinator re-verified:** suite 1635/1635 in this worktree (1611 pre-Wave-11 base + 24), tsc
+clean, producers.yml still valid YAML, diffs contained to the named files.
+
+**Next:** land, dispatch dry (eu-weekly-oil-bulletin), read the extraction report and the plan —
+expected 6 creates, one per product, at the workbook's latest week — then apply, then verify
+market_series is non-empty and the /market series board renders its first solid cards.

@@ -28,12 +28,15 @@
 // posture stays for any FUTURE unregistered source (provenance-envelope.mjs's own header): never widen
 // the FK, never point source_key at a wrongly-attributed row to make a 23503 go away.
 //
-// INPUT. This lane does not fetch the live bulletin (see the parser module's own header for why —
-// verifying the live file's exact machine format needs a network read this lane does not perform).
-// --input <path> reads a NORMALIZED CSV already in this pipeline's contract (see the parser header);
-// omit --input to read the same contract from stdin. Building the live fetch + normalize step is a named,
-// separate follow-up (see the parser module header) — this script's job is parse -> plan -> guarded
-// write, fully functional and fixture-tested without it.
+// INPUT. This script itself does not fetch the live bulletin — --input <path> reads a NORMALIZED CSV
+// already in this pipeline's contract (see the parser header); omit --input to read the same contract
+// from stdin. The live fetch + extract step named as a follow-up in earlier revisions of this comment is
+// now BUILT: scripts/producers/market/fetch-oil-bulletin.mjs (2026-08-30, against the workbook structure
+// verified live by two GitHub-runner inspection runs — see that script's and oil-bulletin-workbook.mjs's
+// own headers). Compose it with this script exactly as producers.yml's "EU Weekly Oil Bulletin ->
+// market_series" step does: fetch-oil-bulletin.mjs writes a normalized CSV, this script reads it via
+// --input. This script's own job stays parse -> plan -> guarded write, fully functional and
+// fixture-tested independent of the fetch step.
 //
 // Usage:
 //   node scripts/producers/market/eu-weekly-oil-bulletin.mjs --input path/to/bulletin.csv          # dry (default)

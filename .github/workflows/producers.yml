@@ -128,14 +128,19 @@ jobs:
           fi
 
       - name: EU Weekly Oil Bulletin -> market_series
+        # Two-stage: fetch-oil-bulletin.mjs (2026-08-30) downloads the live workbook and extracts the
+        # latest week's EU-average prices to a normalized CSV — writes nothing, no kill switch of its
+        # own (see its header). eu-weekly-oil-bulletin.mjs then reads that CSV via --input and does the
+        # actual guarded parse -> plan -> write, gated by --apply + the env switch below, unchanged.
         if: env.RUN_PRODUCER == 'all' || env.RUN_PRODUCER == 'eu-weekly-oil-bulletin'
         env:
           MARKET_PRODUCER_EU_OIL_BULLETIN_ENABLED: '1'
         run: |
+          node scripts/producers/market/fetch-oil-bulletin.mjs --out /tmp/wob.csv
           if [ "$RUN_MODE" = "apply" ]; then
-            node scripts/producers/market/eu-weekly-oil-bulletin.mjs --apply
+            node scripts/producers/market/eu-weekly-oil-bulletin.mjs --input /tmp/wob.csv --apply
           else
-            node scripts/producers/market/eu-weekly-oil-bulletin.mjs
+            node scripts/producers/market/eu-weekly-oil-bulletin.mjs --input /tmp/wob.csv
           fi
 
       # Runs even when a producer failed, so the log always ends with the true state of the stores
