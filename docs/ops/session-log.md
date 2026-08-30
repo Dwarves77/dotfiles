@@ -5006,3 +5006,90 @@ That lane also found, and deliberately did **not** fix, a dead branch: only the 
 **Gate before the first byte uploaded (C16):** suite **1592/1592**, `tsc` clean, fitness **21 checked / 0 violations**, discipline runner `--mode=ci` exit 0 over the real range. Two lanes edited `supabase-server.ts` in disjoint regions and were merged three-way with zero conflicts, then gated as one tree.
 
 **Next:** WO-23 needs a CHECK-widening migration on both `org_watchlist` and `user_watchlist`. The severity-enum-to-UI-bucket mapping needs a ruling. `fetchWorkspaceResources` not populating `jurisdictionIso` is a named gap. WO-14 and WO-24 remain the two that need a human — WO-14 because no vault text for it exists anywhere, WO-24 because there is no join path from a Market item to `emission_factors.corridor_id`. U7 stays metered and operator-priced; the Node 20 bump on `caros-ledge-backups` is still open.
+
+## Addendum 40 — the producers had nowhere to run, and nothing said so (2026-08-30, Cowork session)
+
+A direct operator challenge ended four waves of a pattern I had not seen: *"first we build the place
+to put the information THEN we populate it. So the plan has to include populating after building the
+location. All of these items you reported on, are they finished and fixed?"*
+
+They were not. Three were containers I built and left empty, **and I had reported that emptiness back
+as findings** — as though a store with no rows were an observation about the system rather than a
+description of my own unfinished work. That is the error worth recording, because it is a reporting
+failure before it is a build failure: a status line reading "0 rows, producer kill-switched off"
+looks like diligence and is actually an unstarted job wearing a finished job's clothes.
+
+**What was true, measured:**
+
+    market_series               0 rows                  reader: market series board
+    emission_factors            0 rows                  reader: /admin/factors
+    regional_data_facts        75 rows, 0 enveloped     reader: matrix indexed layer (WO-9 L2)
+
+Schema applied, producers written and fixture-tested, readers built and rendering, every gate green
+the whole time.
+
+**The cause was not caution.** The producers were correct and **unrunnable**. This authoring
+environment has no outbound access to any of their sources — `ec.europa.eu`, `energy.ec.europa.eu`,
+`api.bls.gov`, all HTTP 000 under the org egress policy — and none to the Supabase host either. There
+was no environment anywhere in which a producer could execute. A producer's design specified its
+parser, its fixture, its idempotency key, its guarded write path and its kill switch: everything
+except **where it runs and when**. Its own kill-switch comment says the flag exists "so a scheduled
+invocation can never silently turn this producer on" — presuming a scheduled invocation nobody had
+built. The layer was designed as scripts a person remembers to run, and no person and no schedule was
+ever named.
+
+**ADR-023: a producer is not complete until it has a named runtime and a schedule.** Store, producer,
+reader and runner ship together or the work order is not done. The runtime is GitHub Actions — the
+only environment here that reaches the sources, already holds the two secrets a producer needs, and
+leaves a readable log. Schedules match each source's real publication cadence rather than a
+convenient round number: the EU Weekly Oil Bulletin publishes Thursdays so it runs Fridays; Eurostat
+`nrg_pc_205` is bi-annual and BLS OEWS annual, so they sweep monthly. Over-polling an open API is not
+free in goodwill even when it is free in money.
+
+**The two gates stay separate because they answer different questions.** The source-level `ENABLED`
+constant answers "may this producer EVER write?" — a reviewed-code-change gate, visible in
+`git diff`, which is what stops a schedule silently arming something nobody vetted. The workflow's
+`mode` answers "may THIS run write?" Manual dispatch defaults to dry; **scheduled runs apply, because
+a schedule that only ever dry-runs is theatre.** Fast disarm is the Actions tab, which stops every
+producer instantly with no deploy — and that matters more than fast arming, because you cannot stop a
+misbehaving worker with a pull request. Collapsing the source constant into a pure runtime env var
+was considered and rejected: it trades away the diff-visibility that is the constant's only real job.
+
+**A rejected option, named because it was tempting.** A dispatch-only workflow would have been smaller
+and would have looked like a fix. It is a button: it leaves "does the site have data" depending on
+someone remembering, which is the exact condition that produced three empty stores.
+
+**The gate that did not exist at all.** Every check in this repo answers *"is the code correct?"* —
+the suite, `tsc`, the fitness functions, the discipline engine. None answered *"is there anything to
+show?"*, so emptiness had to be noticed by a person asking, which is precisely the check that gets
+skipped on the day it matters. `scripts/verify/population-report.mjs` reports, per store: rows, the
+non-null count of the column that decides whether its reader shows anything, the reader's name, and
+the producer that would fill it. Deliberately **not** pass/fail: mid-build, empty is the CORRECT
+state, and a gate that went red for being mid-build would be switched off within a week. `--strict`
+exists for the one caller where empty genuinely is a failure — the step right after an `--apply`.
+
+The state it exists to catch is not "empty". It is **`ROWS_NO_VALUES`**: `regional_data_facts` sat at
+75 rows and zero enveloped values, so every count-based check read healthy while the reader over it
+rendered nothing. Row count was the wrong question. Pinned by a test against the real historical
+numbers, so the incident is documented by the test and not only by this note.
+
+**Populated this pass:** `emission_factors` 0 → 2, from the EPA fixture, which is offline and
+primary-verified (2025 Emission Factors Hub, Table 8, read twice). Both rows licence-clear, both
+fully enveloped, zero illegal modal-with-operator, and a second pass writes 0 — idempotent. The rows
+came from the seeder's own `validateAll()` rather than being hand-typed, so the vocabulary and CHECK
+contract is the module's. `/admin/factors` has content.
+
+**Not armed, deliberately:** the DESNZ seeder. Its four values come from a third-party republication
+rather than the primary workbook. Populated, visible and wrong is worse than empty; arming it would
+be this same failure in the other direction.
+
+**Definition of done has changed.** "Producer written and fixture-tested" is no longer done. Done is:
+written, fixture-tested, armed, scheduled, run once, and the store observed non-empty by the
+population report.
+
+**Gate (C16):** suite **1601/1601**, `tsc` clean, fitness **21 / 0** — one orphaned-proof violation
+found and fixed by wiring `scripts/verify/*.test.mjs` into the suite glob, the same class Wave 4 hit.
+
+**Next:** first live dry run of the armed producers, read the plan, then apply, then confirm
+`market_series` and the `regional_data_facts` envelope are non-empty. These parsers have never met a
+live endpoint; a fixture proves the parse, not that the endpoint still returns that shape.
