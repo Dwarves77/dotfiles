@@ -3003,13 +3003,21 @@ export async function fetchIntelligenceItem(
  * WatchButton to five values but left this type at three, which silently
  * labelled every watched research finding a "Signal" and linked it to
  * /market#id. Both tables were empty, so no user ever saw it.
+ *
+ * "market_series" (WO-23, migration 270) is TEAM SCOPE ONLY: org_watchlist's
+ * CHECK admits it, user_watchlist's deliberately does not (route.ts's
+ * TEAM_ONLY_TYPES gate is the enforcement point). It is included in this
+ * union unconditionally rather than as a personal/team-split type because a
+ * WatchlistItem's `scope` field, not its `type`, is what already carries
+ * that distinction — the same pattern every other type here already follows.
  */
 export type WatchlistItemType =
   | "source"
   | "reg"
   | "signal"
   | "research"
-  | "operations";
+  | "operations"
+  | "market_series";
 
 /**
  * Which list a watch lives on. Personal watches (user_watchlist) are visible
@@ -3080,6 +3088,82 @@ const ITEM_BACKED_TYPES: ReadonlySet<string> = new Set([
 
 const WATCHLIST_UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const SOURCE_FALLBACK: Record<WatchlistItemType, string> = {
+  reg: "REG",
+  research: "RESEARCH",
+  operations: "OPERATIONS",
+  source: "SOURCE",
+  signal: "SIGNAL",
+  market_series: "SERIES",
+};
+
+/**
+ * The per-row title/source/jurisdiction resolution fetchWatchlist's render
+ * step applies to every WatchRow. Extracted as a pure function (no I/O, three
+ * pre-fetched lookup maps in) so the exact branch a market_series row takes
+ * is directly unit-testable without a live Supabase client — this is the
+ * function the mislabel regression test (WO-23) exercises, red-then-green
+ * against the fall-through this file's own WatchlistItemType doc comment
+ * warns about.
+ *
+ * ORDER MATTERS: ITEM_BACKED_TYPES (reg/research/operations, resolved
+ * against intelligence_items) is checked first, then "source" (against
+ * sources), then "market_series" (against market_series, by id — NOT
+ * legacy_id/uuid against intelligence_items, since market_series rows are
+ * not intelligence_items rows at all), and only then the bare "signal"
+ * fallback. A market_series row must resolve in its own branch — falling
+ * through to the last one silently mislabels it "Signal".
+ */
+export function resolveWatchlistTypeFields(
+  itemType: WatchlistItemType,
+  itemId: string,
+  maps: {
+    itemMeta: Map<string, { title: string; jurisdiction: string | null }>;
+    sourceLabels: Map<string, { name: string; jurisdiction: string | null }>;
+    marketSeriesLabels: Map<string, { label: string }>;
+  }
+): { type: WatchlistItemType; title: string; source: string; jurisdiction?: string } {
+  if (ITEM_BACKED_TYPES.has(itemType)) {
+    const meta = maps.itemMeta.get(itemId);
+    return {
+      type: itemType,
+      title: meta?.title || itemId,
+      source: meta?.jurisdiction || SOURCE_FALLBACK[itemType],
+      ...(meta?.jurisdiction ? { jurisdiction: meta.jurisdiction } : {}),
+    };
+  }
+
+  if (itemType === "source") {
+    const meta = maps.sourceLabels.get(itemId);
+    return {
+      type: "source",
+      title: meta?.name || itemId,
+      source: meta?.name || SOURCE_FALLBACK.source,
+      ...(meta?.jurisdiction ? { jurisdiction: meta.jurisdiction } : {}),
+    };
+  }
+
+  // market_series: resolved by id against the market_series table, NOT the
+  // ITEM_BACKED_TYPES intelligence_items lookup and NOT the bare "signal"
+  // fallback below — this branch is what keeps a watched series from
+  // silently rendering mislabelled as "Signal" (the exact defect this file's
+  // own WatchlistItemType doc comment already records once).
+  if (itemType === "market_series") {
+    const meta = maps.marketSeriesLabels.get(itemId);
+    return {
+      type: "market_series",
+      title: meta?.label || itemId,
+      source: meta?.label || SOURCE_FALLBACK.market_series,
+    };
+  }
+
+  return {
+    type: "signal",
+    title: itemId,
+    source: SOURCE_FALLBACK.signal,
+  };
+}
 
 interface WatchRow {
   item_type: WatchlistItemType;
@@ -3322,6 +3406,26 @@ export async function fetchWatchlist(
       }
     }
 
+    // market_series rows (WO-23, migration 270, TEAM SCOPE ONLY) are NOT
+    // ITEM_BACKED_TYPES — they are not intelligence_items rows at all, so a
+    // legacy_id/uuid lookup against that table would never match. They are
+    // identified by their own `id` (uuid) against the market_series table,
+    // same shape as the sourceIds/sourceLabels block above. `label` is the
+    // table's own NOT NULL display column (migration 268).
+    const marketSeriesIds = rows
+      .filter((r) => r.item_type === "market_series")
+      .map((r) => r.item_id);
+    const marketSeriesLabels = new Map<string, { label: string }>();
+    if (marketSeriesIds.length > 0) {
+      const { data: series } = await supabase
+        .from("market_series")
+        .select("id, label")
+        .in("id", marketSeriesIds);
+      for (const s of (series || []) as Array<{ id: string; label: string }>) {
+        marketSeriesLabels.set(s.id, { label: s.label });
+      }
+    }
+
     // Attribution for team rows. A departed member (added_by_user_id nulled by
     // ON DELETE SET NULL) simply renders without a name rather than blocking.
     const adderIds = Array.from(
@@ -3342,14 +3446,6 @@ export async function fetchWatchlist(
       }
     }
 
-    const SOURCE_FALLBACK: Record<WatchlistItemType, string> = {
-      reg: "REG",
-      research: "RESEARCH",
-      operations: "OPERATIONS",
-      source: "SOURCE",
-      signal: "SIGNAL",
-    };
-
     return rows.map((r): WatchlistItem => {
       const common = {
         id: r.item_id,
@@ -3361,33 +3457,13 @@ export async function fetchWatchlist(
           : {}),
       };
 
-      if (ITEM_BACKED_TYPES.has(r.item_type)) {
-        const meta = itemMeta.get(r.item_id);
-        return {
-          ...common,
-          type: r.item_type,
-          title: meta?.title || r.item_id,
-          source: meta?.jurisdiction || SOURCE_FALLBACK[r.item_type],
-          ...(meta?.jurisdiction ? { jurisdiction: meta.jurisdiction } : {}),
-        };
-      }
-
-      if (r.item_type === "source") {
-        const meta = sourceLabels.get(r.item_id);
-        return {
-          ...common,
-          type: "source",
-          title: meta?.name || r.item_id,
-          source: meta?.name || SOURCE_FALLBACK.source,
-          ...(meta?.jurisdiction ? { jurisdiction: meta.jurisdiction } : {}),
-        };
-      }
-
       return {
         ...common,
-        type: "signal",
-        title: r.item_id,
-        source: SOURCE_FALLBACK.signal,
+        ...resolveWatchlistTypeFields(r.item_type, r.item_id, {
+          itemMeta,
+          sourceLabels,
+          marketSeriesLabels,
+        }),
       };
     });
   } catch (e) {
