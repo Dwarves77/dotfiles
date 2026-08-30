@@ -26,6 +26,7 @@ import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import {
   MarketSignalDetailSurface,
   type PriceStat,
+  type EmissionFactorRow,
 } from "@/components/pages/MarketSignalDetailSurface";
 
 const UUID_RE =
@@ -209,6 +210,43 @@ export default async function MarketSignalDetailPage({
     }
   }
 
+  // WO-24 (re-scoped 2026-08-30): carbon overlay. emission_factors has no corridor join (no column on
+  // intelligence_items matches %corridor%, and emission_factors.corridor_id has nothing to join
+  // against — Gate 2, deferred to a future WO per docs/plans/unblocking-the-five-2026-08-30.md §2), so
+  // this fetches the WHOLE modal_default tier — 2 rows today, road+rail, both jurisdiction US — and
+  // hands the raw rows to MarketSignalDetailSurface. Selection (which row, if any, applies to THIS
+  // signal's jurisdiction_iso) happens client-side via the pure selectModalFactor/buildCarbonOverlayView
+  // pair (src/lib/market/select-modal-factor.mjs) — never pre-picked here, so the three-state honesty
+  // rule (resolved / ambiguous / no_factor) is enforced in one place, not duplicated into this fetch.
+  // Fail-soft to []: DriversTab's carbon-overlay slot renders every corridor-band signal as the honest
+  // no_factor pending frame when this table is empty or unreachable, never a blank hole.
+  let carbonFactors: EmissionFactorRow[] = [];
+  if (
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    (process.env.SUPABASE_SERVICE_ROLE_KEY)
+  ) {
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { persistSession: false } }
+      );
+      const { data: factorRows, error: factorErr } = await supabase
+        .from("emission_factors")
+        .select("factor_id, mode, vehicle_class, jurisdiction, quantity_basis, ttw_co2e, wtt_co2e, wtw_co2e, source_key, tier, scope_kind")
+        .eq("tier", "modal_default")
+        .is("superseded_by", null);
+      if (factorErr) {
+        console.error("[market/[slug]] carbon-overlay factor fetch failed", factorErr);
+      }
+      if (Array.isArray(factorRows)) {
+        carbonFactors = factorRows;
+      }
+    } catch {
+      // Soft-fail (table empty, unreachable, or not yet applied) — honest no_factor pending frame.
+    }
+  }
+
   // Item d (notes → workspace_item_overrides.notes): read the workspace note
   // server-side so NotesField initializes from the SHARED store, not
   // localStorage. r.id may be a legacy slug — resolve the UUID first. Fail-soft
@@ -277,6 +315,7 @@ export default async function MarketSignalDetailPage({
       sections={sections}
       convergence={convergence}
       priceBoard={priceBoard}
+      carbonFactors={carbonFactors}
       deck={deck}
       initialNote={initialNote}
       supersessions={supersessions}

@@ -71,7 +71,7 @@ export default async function Market() {
   return (
     <>
       <EditorialMasthead title="Market Intelligence" meta={meta} />
-      <MarketIntelLedger initialResources={marketIntel.resources} aggregates={aggregates} />
+      <MarketIntelLedger initialResources={marketIntel.resources} aggregates={aggregates} seriesBoard={seriesBoard} />
       <MarketSeriesBoard board={seriesBoard} />
     </>
   );

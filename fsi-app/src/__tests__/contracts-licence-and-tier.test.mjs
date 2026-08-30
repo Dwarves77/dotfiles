@@ -36,6 +36,11 @@ const MODAL = Object.freeze({
 
 // ── 1. the register is well-formed and evidence-bearing ──────────────────
 
+/** Escape a register string for use inside a RegExp — askWho contains commas, dashes and parentheses. */
+function escapeRe(v) {
+  return String(v).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 test("every register entry carries a verdict, a URL and the date it was verified", () => {
   for (const k of SOURCE_KEYS) {
     const e = SOURCE_LICENCES[k];
@@ -117,8 +122,33 @@ test("a refusal names the substitute, so the message is actionable rather than m
 });
 
 test("a conditional refusal names the question and the recipient", () => {
-  assert.throws(() => assertEmbeddable("emsa_thetis_mrv"), /To discharge: ask/);
+  // STRUCTURAL, not source-pinned. This test previously named emsa_thetis_mrv as its example and
+  // went RED the day that entry was discharged to `permitted` (2026-08-30) — the test was asserting
+  // a fact about the register rather than the behaviour of the refusal. A discharge is the register
+  // working correctly and must never break this gate. So: every conditional entry that carries an
+  // askWhat must produce a refusal naming both the question and who to ask.
+  const conditional = SOURCE_KEYS.filter((k) => SOURCE_LICENCES[k].redistribution === "conditional");
+  assert.ok(conditional.length > 0, "register has no conditional entry to exercise the refusal path");
+  for (const k of conditional) {
+    const e = SOURCE_LICENCES[k];
+    if (!e.askWhat) continue;
+    assert.throws(() => assertEmbeddable(k), /To discharge: ask/, `${k} must name the discharge path`);
+    assert.throws(() => assertEmbeddable(k), new RegExp(escapeRe(e.askWho)), `${k} must name the recipient`);
+  }
+  // One concrete anchor, kept so the structural loop cannot pass vacuously on an empty register.
   assert.throws(() => assertEmbeddable("clean_cargo_aggregate"), /smartfreightcentre/);
+});
+
+test("a discharged entry stops refusing — emsa_thetis_mrv, discharged 2026-08-30", () => {
+  // The other direction of the same gate. THETIS-MRV sat conditional because no dataset licence had
+  // been read; the EMSA site notice ("Reproduction is authorised, provided the source is
+  // acknowledged") was verified against the primary page on 2026-08-30 and the verdict moved to
+  // permitted. Asserting the POSITIVE here means a silent regression to `conditional` is RED, which
+  // matters: this entry gates factor-tier's rank-2 verified_operator_avg tier.
+  assert.equal(assertEmbeddable("emsa_thetis_mrv"), true);
+  assert.equal(SOURCE_LICENCES.emsa_thetis_mrv.redistribution, "permitted");
+  assert.match(attributionFor("emsa_thetis_mrv"), /EMSA THETIS-MRV/,
+    "a permitted-with-acknowledgement source must still ship its attribution");
 });
 
 test("every prohibited entry either names a substitute or explains why none exists", () => {
@@ -146,7 +176,19 @@ test("triage partitions the register with no source in two buckets", () => {
   assert.equal(green.length + amber.length + red.length, SOURCE_KEYS.length);
   assert.ok(green.includes("desnz_ghg_factors"));
   assert.ok(red.includes("glec_framework"));
-  assert.ok(amber.includes("emsa_thetis_mrv"));
+  // Amber is asserted STRUCTURALLY, not by naming a member. Pinning a specific source here made this
+  // test go RED on 2026-08-30 when emsa_thetis_mrv was legitimately discharged to permitted — the
+  // bucket is a function of the verdicts, so assert that relationship instead of today's membership.
+  assert.ok(amber.length > 0, "triage must exercise the amber bucket");
+  for (const k of amber) {
+    assert.ok(["conditional", "unverified"].includes(SOURCE_LICENCES[k].redistribution),
+      `${k} is in amber but its verdict is "${SOURCE_LICENCES[k].redistribution}"`);
+    assert.equal(REDISTRIBUTION[SOURCE_LICENCES[k].redistribution].embeddable, false,
+      `${k} is in amber and must not be embeddable`);
+  }
+  for (const k of green) {
+    assert.equal(SOURCE_LICENCES[k].redistribution, "permitted", `${k} is green but not permitted`);
+  }
 });
 
 // ── 3. DQI direction: 1 = BEST, asserted both ways ───────────────────────

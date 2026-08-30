@@ -29,6 +29,7 @@ export const WATCHLIST_TYPE_LABEL: Record<WatchlistItemType, string> = {
   signal: "Signal",
   research: "Research",
   operations: "Operations",
+  market_series: "Series",
 };
 
 /**
@@ -48,6 +49,14 @@ export const WATCHLIST_TYPE_LABEL: Record<WatchlistItemType, string> = {
  * default across the platform, so the fragment matched nothing and the link
  * simply landed at the top of the index. /market/[slug] is the real detail
  * route and is what WatchButton's own surface already uses.
+ *
+ * `market_series` (WO-23, migration 270) is the newest case, and it is
+ * ANOTHER honest null, not a guess: there is no per-series detail route in
+ * the app today — /market renders the signal board, not a market_series
+ * table, and market_series rows are per-period observations, not stable
+ * per-page entities. Inventing a route here would 404 the moment a
+ * market_series row was actually watched. When a real detail surface for a
+ * series ships, this is the one case that changes.
  */
 export function watchlistHref(item: {
   type: WatchlistItemType;
@@ -64,6 +73,8 @@ export function watchlistHref(item: {
     case "signal":
       return `/market/${id}`;
     case "source":
+      return null;
+    case "market_series":
       return null;
   }
 }

@@ -17,9 +17,21 @@
  * A series whose value is unobserved (null value_numeric) still renders as an honest em dash inside a
  * populated card, never a fabricated number — same "—" convention OperationsLedger's By-state
  * sub-list already uses for a state with no sourced cost fact.
+ *
+ * WATCHING (L6, WO-23 follow-up). Each POPULATED series row mounts a <WatchButton
+ * itemType="market_series">, keyed against the *series row's own* `id` (MarketSeriesDisplayRow.id —
+ * the winning market_series.id, uuid), NOT `seriesKey`. This is the exact identity fetchWatchlist's
+ * resolveWatchlistTypeFields (supabase-server.ts) resolves a watched market_series row by; keying on
+ * seriesKey instead would produce a watch row the reader can never look up. The watchable identity is
+ * the SERIES ROW, not the producer group — one WatchButton per row, never one per <ProducerCard>. This
+ * component stays a server component: WatchButton is a "use client" leaf, and a server component
+ * rendering a client component directly needs no wrapper (the boundary only bites the other direction —
+ * a client component importing server code, which is why WatchButton itself gets its itemType vocabulary
+ * via a type-only import rather than a runtime one).
  */
 
 import type { MarketSeriesBoardVM, MarketSeriesProducerGroup } from "@/lib/supabase-server";
+import { WatchButton } from "@/components/ui/WatchButton";
 
 interface MarketSeriesBoardProps {
   board: MarketSeriesBoardVM;
@@ -151,10 +163,17 @@ function ProducerCard({ group }: { group: MarketSeriesProducerGroup }) {
                   {s.displayValue}
                 </span>
               </div>
-              <p style={{ fontSize: 9.5, color: "var(--color-text-muted)", margin: "2px 0 0" }}>
-                {s.referencePeriod ? `period ${s.referencePeriod}` : "no reference period"}
-                {s.observationCount > 1 ? ` · ${s.observationCount} observations on record` : ""}
-              </p>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 2, flexWrap: "wrap" }}>
+                <p style={{ fontSize: 9.5, color: "var(--color-text-muted)", margin: 0 }}>
+                  {s.referencePeriod ? `period ${s.referencePeriod}` : "no reference period"}
+                  {s.observationCount > 1 ? ` · ${s.observationCount} observations on record` : ""}
+                </p>
+                {/* The watchable identity is this SERIES ROW's own market_series.id — see this
+                    file's header for why. `id` can be null only if a raw row omitted it
+                    (defensive); no id means nothing to watch, so the control is simply absent
+                    rather than mounted against a lookup that can never resolve. */}
+                {s.id && <WatchButton itemType="market_series" itemId={s.id} />}
+              </div>
             </div>
           ))}
         </div>

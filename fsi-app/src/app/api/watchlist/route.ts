@@ -7,6 +7,13 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { APP_DATA_TAG } from "@/lib/data";
+import {
+  TEAM_ONLY_TYPES,
+  isTeamOnlyScopeViolation,
+} from "@/lib/watchlist-scope";
+// Re-exported under their original names — see the comment further down for
+// why they now live in a shared module rather than being defined here.
+export { TEAM_ONLY_TYPES, isTeamOnlyScopeViolation };
 
 // /api/watchlist — the watchlist WRITER + READER, both scopes.
 //
@@ -33,14 +40,56 @@ import { APP_DATA_TAG } from "@/lib/data";
 // for both), which is why every value that reaches PostgREST goes through an
 // encoded builder method and never through string interpolation into a filter.
 
-const ITEM_TYPES = new Set(["source", "reg", "signal", "research", "operations"]);
+// ITEM_TYPES and TEAM_ONLY_TYPES are exported (alongside isTeamOnlyScopeViolation
+// below) purely for direct unit test of the real validation, the same
+// route.ts-exports-a-pure-decision-function pattern
+// src/app/api/admin/sources/bulk-import/route.ts's headReachabilityDecision
+// already uses — it changes nothing about the route's HTTP contract.
+export const ITEM_TYPES = new Set([
+  "source",
+  "reg",
+  "signal",
+  "research",
+  "operations",
+  "market_series",
+]);
 const SCOPES = new Set(["personal", "team"]);
+
+// market_series is a TEAM-scope-only watchable type (WO-23). Migration 270
+// widened org_watchlist_item_type_check to admit it but deliberately left
+// user_watchlist_item_type_check untouched — series watching is a team
+// feature by standing ruling, and personal watching of a series is a
+// separate, unruled question. ITEM_TYPES above is a flat, scope-blind gate
+// shared by GET/POST/DELETE, so simply adding "market_series" to it would let
+// a personal-scope market_series write pass this gate, reach the
+// still-narrow user_watchlist CHECK, and surface as a raw Postgres 500
+// instead of this route's own clean 400. TEAM_ONLY_TYPES is the second,
+// scope-aware gate that catches that case first, with a real reason.
+//
+// Applied at the WRITE handlers (POST, DELETE) only, not GET: GET's `scope`
+// query param is not used to select which table to read (it always reads
+// personal AND team and returns both), so it can never reach a CHECK
+// violation and gating it here would only break the ability to check a
+// market_series item's team-watched status without the caller remembering to
+// pass scope=team explicitly — an artificial requirement GET does not
+// otherwise have for any other item_type.
+//
+// TEAM_ONLY_TYPES and isTeamOnlyScopeViolation itself now live in
+// src/lib/watchlist-scope.ts (L6, WO-23 follow-up), imported and re-exported
+// here under their original names so this file's own tests
+// (route.npmtest.mjs) keep passing unchanged. They moved because
+// WatchButton.tsx — a "use client" component — needs the SAME decision to
+// avoid rendering a personal watch control this route will reject, and this
+// file is not safe for a client component to import (getServiceSupabase,
+// next/cache's revalidateTag, requireAuth are genuinely server-only runtime
+// code). watchlist-scope.ts has zero dependencies, so both sides import it
+// directly instead of one copying the other's vocabulary a third time.
 
 // The team note is shown to every member of the org. Bounded so one member
 // cannot push an unbounded blob onto everyone else's rail.
 const NOTE_MAX = 280;
 
-const TYPES_HINT = "source|reg|signal|research|operations";
+const TYPES_HINT = "source|reg|signal|research|operations|market_series";
 
 type Scope = "personal" | "team";
 
@@ -73,6 +122,18 @@ const noOrgError = () =>
   NextResponse.json(
     { error: "No organization membership resolved for this user; team scope unavailable" },
     { status: 403 }
+  );
+
+// The scope-conditional rejection for a TEAM_ONLY_TYPES item requested at
+// scope=personal. Names the actual reason (team-scope only), not a generic
+// "invalid type" — the caller did name a real item_type, just at a scope that
+// does not support it yet.
+export const teamOnlyError = (itemType: string) =>
+  NextResponse.json(
+    {
+      error: `item_type "${itemType}" is only watchable at scope=team; personal watching of ${itemType} is not supported`,
+    },
+    { status: 400 }
   );
 
 // GET /api/watchlist?item_type=reg&item_id=<id>
@@ -160,6 +221,10 @@ async function handlePOST(request: NextRequest) {
     );
   }
 
+  if (isTeamOnlyScopeViolation(itemType, scope)) {
+    return teamOnlyError(itemType);
+  }
+
   const rawNote = typeof body.note === "string" ? body.note.trim() : "";
   if (rawNote.length > NOTE_MAX) {
     return NextResponse.json(
@@ -225,6 +290,9 @@ async function handleDELETE(request: NextRequest) {
 
   const p = readParams(request);
   if (!p) return paramError();
+  if (isTeamOnlyScopeViolation(p.itemType, p.scope)) {
+    return teamOnlyError(p.itemType);
+  }
 
   const supabase = getServiceSupabase();
 
