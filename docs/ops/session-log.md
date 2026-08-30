@@ -5397,3 +5397,582 @@ dry-run rule holds the reality. Neither substitutes for the other.
 
 **Next:** nothing blocked. Optional and unchanged: SERIES_ITEM_MAP ratification; re-arm the schedules in
 one reviewed diff when build mode ends (operator call, still deliberately unbuilt).
+
+## Addendum 49 — status audit against the 2026-08-29 scope: what is actually done, and one row a cold session will misread (2026-08-30, Cowork session)
+
+**No code this addendum.** The operator asked for build status against the connection-redesign +
+full-build-scope doc (2026-08-29). I answered from the live repo and the live database rather than
+from the plan, because the plan is a day stale and this session changed a lot of what it describes.
+Recording the verified findings so the next session does not have to re-derive them.
+
+**The state change that matters: ALL SIX STORES ARE FILLED.** Queried live:
+market_series 6/6, emission_factors 2/2, regional_data_facts 86 rows / 11 enveloped,
+state_cost_facts 13/13, published_price_statistics 4/4, theme_briefs 9/9. The population report's
+own summary line now reads "All readers have data" for the first time in the program's history. That
+doc was written when three of those were finished containers holding nothing.
+
+**Verified landed since the scope doc was written** (each checked in code or the DB, not taken from
+the board):
+  * WO-27 both halves — `same_instrument` is gone from discover.mjs with the uniqueness proof left as
+    a comment in its place; `fetchXrefPairs` / `getXrefs` / `getVerification` return zero hits repo-wide.
+  * WO-28 lineage — typed edges EXIST in `item_cross_references`: 5 `implements`, 5 `amends`,
+    1 `depends_on` (1918 `related`). That vocabulary was rendered by connection-view-model.mjs and
+    produced by nothing before. The swallowed `relationship: "references"` CHECK violation in
+    mint-item.ts is also gone.
+  * WO-12 + WO-19 — migration 267 applied live; `origin_class` present on intelligence_items and
+    regional_data_facts; backfill stamped 241 of 274 verified-live items, 33 NULL as documented.
+  * Operations lane COMPLETE (WO-10, 11, 21, 22). Research lane COMPLETE (WO-15, 25). U8 done,
+    U9 closed by audit. WO-16/17/18 built, armed, dispatched, populated (this session).
+
+**THE ROW A COLD SESSION WILL MISREAD, recorded deliberately.** The board carries
+`**DONE (WO-20)**`. That is the SPEC-FROM-REPO pass, not the build. There is no `assumption_register`
+table: `information_schema.tables` returns 0 for it, confirmed live this session. WO-20's deliverable
+so far is `docs/plans/wo20-assumption-register-spec.md` (10 catalogued assumptions, 13 numeric
+literals, 3 files, greenfield confirmed). Anyone reading the board row alone would conclude the table
+exists. It does not. I checked precisely because the row and the schema disagreed, and the honest
+answer is that both are correct about different things.
+
+**The remaining backlog, in the four buckets it actually falls into:**
+  1. BLOCKED ON THE OPERATOR, not buildable — WO-14 (zero vault text anywhere; the spec is a labelled
+     reconstruction needing ratification), WO-24 (no join path: zero `%corridor%` columns on
+     intelligence_items, so the carbon overlay depends on infrastructure that does not exist),
+     WO-5 rulings B1-B4, DESNZ primary-workbook verification before that seeder arms.
+  2. NEEDS A DDL WINDOW — WO-23, a CHECK-widening migration on BOTH org_watchlist and user_watchlist.
+  3. BUILDABLE NOW, no ruling needed — WO-20's actual table (the only substantial one), ADR-022
+     (specificity-wins) owed, fetchWorkspaceResources jurisdictionIso gap, severity-enum -> UI-bucket
+     mapping needs a ruling, Node 20 bump on caros-ledge-backups.
+  4. DEFERRED BY DESIGN, correctly — WO-29 family basis (the scope doc set the revisit trigger at ~50
+     resolved lineage pairs; we have 11, so building it now would corroborate almost nothing);
+     re-arming schedules (blocked by the operator's own build-mode ruling); U7 (metered,
+     operator-priced).
+
+**Scored honestly:** the spine and the producers are done. Of the three surface lanes, Operations and
+Research are complete and Market is 1 of 4, with the other three sitting on the operator's desk rather
+than an executor's. Excluding what is blocked and what is deliberately deferred, the buildable
+backlog is WO-20's table plus four small items.
+
+**Next for a cold session:** nothing is blocked for you. Either take WO-20 (spec is written and
+greenfield is confirmed, so it is a clean start), or wait for the four rulings that unblock the
+Market lane. Do NOT read `DONE (WO-20)` as "the table exists".
+
+## Addendum 50 — the five "needs Jason" items, unblocked by measurement (2026-08-30, Cowork session)
+
+Jason: *"these items should not be waiting on me, build a plan now to complete them with sonnet
+agents."* He listed five: WO-14 (no vault text), WO-24 (no corridor join), WO-5 B1-B4, DESNZ
+verification, WO-23 (DDL window).
+
+I checked each against the live repo and database before planning anything. **Four of the five were
+blocked on a claim that was true when written and is no longer true.** The fifth was blocked on a
+verification I can now perform myself. Plan landed at `docs/plans/unblocking-the-five-2026-08-30.md`.
+
+**WO-14 was overtaken by events, not awaiting ratification.** The market spec reconstructed WO-14 as
+two parts and flagged the reconstruction as the single highest-priority operator ruling in the whole
+document. Both parts subsequently shipped under WO-16 layer 3: `MarketSeriesBoard.tsx` renders one card
+per registry producer with cadence and a three-state implemented badge (§2.1), and
+`fetchMarketSeriesBoard` → `buildSeriesBoard` is the latest-per-series reader (§2.2). I confirmed both
+by reading the files, not by grepping for names — the lesson from my own Wave-14 grep error still
+applies. What did NOT ship is the "Sources tracked" rail card at `MarketIntelLedger.tsx:757-772`, and
+it is now worse than an unbuilt card: it still reads *"populates here once the commodity-price feed is
+connected"* while a sibling card on the same route renders 6 observed series. **The page states a
+falsehood about itself.** Closed WO-14 as absorbed, filed the stale card as the residual defect. I did
+not need to guess what WO-14 meant, which is what made the original escalation correct at the time.
+
+**WO-24: I measured the recommended fallback before adopting it, and the measurement changed the
+answer.** The spec recommended re-keying the carbon overlay off `jurisdictionIso` instead of the
+missing corridor id. True that the corridor gate is real (0 `%corridor%` columns, 0 `%corridor%`
+tables, still). But `jurisdiction_iso` is a **TEXT ARRAY**, which the recommendation did not account
+for. Of 77 market signals: 20 are `["US"]`, 19 are `["GLOBAL"]`, 9 are empty arrays, and ~10 are
+multi-country arrays like `["CN","IR","SG","US"]` where **no single national factor is defensible** —
+picking one element would be fabricating a corridor. And `emission_factors` is 2 rows, both EPA, both
+`jurisdiction='US'`. So at most **5 of the 15 corridor-band signals** could render a number today.
+
+The root cause that follows: **WO-24's binding constraint was never the corridor join.** A perfect
+corridor entity built tomorrow would still render against 2 factor rows in 1 jurisdiction. Factor
+coverage is first; corridor identity is second. That redirects effort away from a large unscoped
+corridor build toward seeding more modal defaults, which is cheap and $0. Re-scoped WO-24 to the
+jurisdiction key with three explicit tested states — `resolved`, `ambiguous` (multi-element array,
+pending frame, never a number), `no_factor` — and deferred corridor identity to its own future WO.
+
+**WO-5 B1-B4: took all four.** The gate on that table was "⛔ before any deletion," and only B4 deletes
+anything — a type block with zero references. B1 splits by surface: NO for Market (1/77, that row
+anomalous) and YES for Regulations (675/1,062, CELEX-clean, 4 backend consumers so deletion was never
+viable). Same field, different populations, different answers. B2 yes but folded into the WO-7 pass at
+zero marginal cost, explicitly not a reason to run WO-7 — the $0 doctrine holds. B3 keep, the reader is
+already honest when empty. B4 re-point plus delete the dead block, now stronger than when written
+because `market_series` gives it a real second channel.
+
+**DESNZ: the gate was never "a human must decide," it was "someone must read the primary cell."** The
+recorded blocker names both halves — 403 from the sandboxed proxy on
+`assets.publishing.service.gov.uk`, and the fetch tool cannot parse an `.xlsx` binary. Both are solved,
+and were solved in this same session on the same class of problem: the browser reaches gov.uk, and the
+in-browser ZIP-walk plus `DecompressionStream('deflate-raw')` technique that read the EU Weekly Oil
+Bulletin cell-for-cell reads a DESNZ workbook exactly as well. That technique is what caught the B1088
+legend-row collision and the newest-first ordering trap, neither of which any test would have caught.
+Coordinator performs it directly, not a Sonnet lane, because the verifier must be the party that read
+the cell and DB writes are coordinator-only. Branches decided in advance so the outcome is not
+negotiated afterwards, including the honest one: if the workbook is unreachable or the tab shape
+differs, the gate stays shut and I say so.
+
+**WO-23: there is no DDL window to schedule.** `org_watchlist` is 0 rows, so widening its CHECK runs no
+validation scan and holds the lock for microseconds against zero tuples. The phrase "DDL window"
+implies a scan or a rewrite; neither occurs. The real work is the code half, which the master plan
+undercounted — four files, including a shared `ITEM_TYPES` Set with no scope branch (widening it flatly
+would let a personal watch reach the unwidened `user_watchlist` CHECK and return a raw 500 instead of a
+clean 400) and `fetchWatchlist`'s fall-through to a bare `type: "signal"` literal, which would silently
+mislabel a `market_series` row — the exact defect that file's own comment records happening once
+before. One premise turned out stale in a useful direction: `user_watchlist` now has 1 live row, so
+widening only `org_watchlist` is strictly safer than when it was specced, not merely as specced.
+
+**One thing I flagged rather than quietly did.** Standing merge authority excludes schema migrations. I
+read *"these items should not be waiting on me"*, with the DDL named in it, as lifting that gate for
+migration 270 specifically, on the characterisation that it is additive, zero-row, and exactly
+reversible. I said so in the plan instead of proceeding silently, because reinterpreting a safety gate
+on my own authority is how gates stop meaning anything.
+
+**Lane design correction the spec had wrong.** The market spec said WO-13 and WO-14 could run in
+parallel because their `MarketIntelLedger.tsx` edits sit at disjoint line ranges (~805 vs ~757). Line
+ranges are not disjoint write sets — two open PRs against one file conflict at land time regardless of
+distance. Merged them into a single lane. Four lanes total, disjoint by file: L1 market ledger, L2
+watchlist code (gated on migration 270), L3 carbon overlay, L4 regulations chip (after L1).
+
+**What genuinely still needs Jason, stated once:** the THETIS-MRV licence question.
+`emsa_thetis_mrv` carries `redistribution: "conditional"` and `LICENCE_STATUS.conditional.embeddable
+= false`, which keeps `factor-tier.mjs`'s `verified_operator_avg` tier — rank 2 of the hierarchy —
+structurally empty. That is a redistribution judgement, not a technical one; no measurement resolves
+it. No lane touches it.
+
+**Next:** execute the four lanes and the two coordinator items per the plan's sequencing.
+
+## Addendum 51 — L1 market ledger (2026-08-30, Cowork session)
+
+I worked lane 1 ("Market ledger") of a four-lane Wave 16 split, in worktree `wt-l1`
+(`wave16/l1-market-ledger`, based on `origin/master` = `3cd2dcfb`). The brief specified four changes:
+A (WO-14 residual rail card), B (WO-5 B4 key-figure re-point), C (delete the dead `marketData` type
+block), D (no-op — do not build the WO-5 B1 identifier chip on Market).
+
+**Correction to the brief, found before touching anything: Changes B and C were already done.** The
+brief was written against an earlier state of the repo. `origin/master` at this worktree's base
+(`3cd2dcfb`) already contains commit `99fe8061` ("Wave 7: WO-21/22/13 executed... Market price board
+un-silenced"), which is WO-13 itself — the exact re-point and deletion the brief asked me to do. I
+verified this before writing anything, not by trusting the commit message:
+  - `grep -rn "marketData" fsi-app/src/` returns exactly six hits, ALL comments/documentation
+    describing the historical defect (`types/resource.ts:214`, `MarketIntelLedger.tsx:809`,
+    `contracts-envelope.test.mjs:8,55`, `supabase-server.ts:1388`, `contracts/envelope.mjs:9`) — zero
+    live interface fields, zero live readers. `types/resource.ts` carries no `marketData` block; in its
+    place is a `priceStat` field (added by WO-13) with a comment naming the exact re-point.
+  - `MarketIntelLedger.tsx`'s `SignalRow` key figure (now ~line 811, shifted by my Change A insert)
+    already reads `item.priceStat?.valueDisplay` — not `item.marketData?.currentPrice`.
+  - `src/lib/data.ts` (`getMarketIntelItems`) already batch-decorates `priceStat` from
+    `published_price_statistics` onto Market list resources, one row per item, lowest `sort_order` —
+    exactly the WO-13 spec's mechanism, in `data.ts` as the spec recommended.
+  - PROGRAM-BOARD.md itself already records this at the Wave 7 section: "DONE (WO-13) | WO-5 B4
+    re-point executed... Of 48 cards on `/market`, 1 shows a real figure and 47 keep the honest em-dash."
+
+So my actual write set this session was Change A only (B1 chip stays correctly un-built, confirmed
+by a fresh `grep -rn "instrument_identifier" src/components/market src/app/market` returning nothing).
+I did not touch `resource.ts`, `data.ts`, or the key-figure binding — there was nothing left to do
+there, and re-doing already-correct work risked introducing a regression into a file I was told not to
+diverge from unnecessarily.
+
+**Change A — the "Sources tracked" rail card.** Replaced the static placeholder paragraph in
+`MarketIntelLedger.tsx` (previously ~lines 756-771: "The price-data source roster populates here once
+the commodity-price feed is connected...") with a real component, `SourcesTrackedCard`, driven by the
+same `MarketSeriesBoardVM` the page already fetches via `fetchMarketSeriesBoard()` for
+`<MarketSeriesBoard>` — no new fetch, no new query, per the brief's constraint. `MarketIntelLedgerProps`
+gained an optional `seriesBoard?: MarketSeriesBoardVM` field; `page.tsx` now passes
+`seriesBoard={seriesBoard}` into `<MarketIntelLedger>` alongside the existing prop to `<MarketSeriesBoard>`.
+The card lists one row per registry producer — name, cadence, and an honest state badge ("Live" /
+"Pending" / "Not built yet", mirroring `MarketSeriesBoard.tsx`'s own `STATE_META` vocabulary without
+duplicating its full per-series layout) — and falls back to an explicit "No price-data producers are
+registered yet" line if `seriesBoard` is ever absent, rather than rendering nothing. Did not touch
+`series-board-view-model.mjs`, `MarketSeriesBoard.tsx`, or any file outside the named write set.
+
+**On testing (rule 6).** I did not add a new pure-transform test for Change A. The component consumes
+`buildSeriesBoard`'s already-built, already-unit-tested output (`market-series-board-view-model.test.mjs`,
+untouched here) and does pure JSX rendering/lookup on it — no new pure function was written. I checked
+whether a targeted unit test was feasible: this repo's whole discipline suite runs via plain `node --test`
+against `.mjs`/`.ts` files (Node 22's built-in type-stripping, no JSX transform); there is no `.test.tsx`
+file anywhere in the tree and no test runner configured that can import a file containing JSX. Building
+that infra was out of this lane's write set, so I left the mapping logic inline and verified it by reading
+it against `MarketSeriesBoard.tsx`'s conventions and by `npx tsc --noEmit` (clean) rather than inventing a
+test the repo has no way to run.
+
+**Change D confirmed NO-OP**, as briefed: no `instrument_identifier` chip exists anywhere under
+`src/components/market` or `src/app/market`, and I did not add one.
+
+**Gates run from `/root/work/wt-l1` (had to `npm ci` first — `node_modules` was absent, which is why
+the first `tsc --noEmit` pass returned dozens of `Cannot find module 'zustand'`-class errors; those
+cleared entirely after install and were not real defects):**
+  - `sh fsi-app/.discipline/run-test-suite.sh` → **1690/1690 passing** (matches the stated baseline).
+  - `cd fsi-app && npx tsc --noEmit` → clean, 0 errors.
+  - `node fsi-app/.discipline/fitness/runner.mjs` → **22/22 fitness functions, 0 violations** (F27
+    producer-seam-proof included).
+  - `node fsi-app/.discipline/runner.mjs --mode=ci --range=origin/master..HEAD` → exit 0, clean, run
+    against the actual commit (see PR).
+
+Never staged `fsi-app/src/lib/agent/slot-forcing.mjs` (local CRLF/binary-diff noise, confirmed via
+`git diff` showing "Binary files ... differ" with no content change) or the runtime-clock-inventory
+audit doc, per the hard constraint. Staged files by name only.
+
+## Addendum 52 — L3 carbon overlay: WO-24 re-scoped to jurisdiction + mode, three states, honest pending frame (2026-08-30, Cowork session)
+
+**Executed as dispatched.** Branch `wave16/l3-carbon-overlay` off `origin/master` = `3cd2dcfb`. Per the
+ruling in `docs/plans/unblocking-the-five-2026-08-30.md` §2 ("WO-24 — no `%corridor%` join path
+exists"): corridor identity stays DEFERRED (zero columns matching `%corridor%` on `intelligence_items`,
+confirmed again this session, not rebuilt), and the overlay re-keys on `jurisdiction_iso` +
+`emission_factors`' `modal_default` tier instead.
+
+**Two files, three states.** `src/lib/market/select-modal-factor.mjs` — pure, zero-dependency selection
+over `{ jurisdictionIso, factors, mode }` returning exactly one of `resolved` / `ambiguous` / `no_factor`.
+The load-bearing rule, tested explicitly: a multi-element jurisdiction array (e.g.
+`["CN","IR","SG","US"]`) returns `ambiguous` **even when one element (US) has a live factor row** —
+picking it would fabricate a corridor the signal never named. `"GLOBAL"` and `[]` never resolve either.
+`src/lib/market/carbon-overlay-view.mjs` composes the selector into the exact display copy
+`DriversTab`'s new carbon-overlay slot renders — the only caller the slot invokes, so the selection logic
+and its consumer cannot drift from each other.
+
+**A design decision this brief explicitly delegated, made and documented in the module's own header:
+MODE.** The two live `emission_factors` rows (`epa_egrid`, both jurisdiction `US`) differ only by mode —
+road `medium_heavy_duty_truck` (ttw_co2e 0.128411) and rail `freight_rail_average` (ttw_co2e 0.014505).
+That means "single jurisdiction, a factor exists" is not sufficient by itself: for `US` specifically,
+TWO rows match on jurisdiction alone. `selectModalFactor` accepts an optional `mode` (exact-match only,
+never inferred or translated); when omitted and more than one candidate row survives the jurisdiction
+filter, that resolves to `no_factor` (reason `no_mode_basis`) rather than an arbitrary pick — "no basis
+to pick a mode" is a non-resolved state, exactly as the brief anticipated. `DriversTab` does not attempt
+to derive `mode` from any signal field today (no verified mapping between a market signal's own
+mode-ish fields and the `emission_factors.mode` vocabulary exists this session), so in practice, with
+today's 2-row table, **every** live corridor-band `US` signal renders `no_factor`, not `resolved` — an
+honest, deliberately conservative outcome, not a bug; wiring a real per-signal mode is future work, left
+undone rather than guessed.
+
+**Piece 2, wired through the existing per-page fetch pattern.** `src/app/market/[slug]/page.tsx` already
+does its own inline service-role Supabase reads with try/catch fail-soft for this route's other props
+(`priceBoard`, `convergence`, `initialNote`) rather than routing through `supabase-server.ts` — that is
+the actual local precedent for THIS page, so the new `carbonFactors` fetch (whole `modal_default` tier,
+`superseded_by IS NULL`, currently 2 rows) matches it exactly rather than introducing a new pattern.
+`MarketSignalDetailSurface.tsx` gains a `carbonFactors` prop (default `[]`) and an `EmissionFactorRow`
+export, mirroring `PriceStat`. `DriversTab` gains a `hasCarbonOverlay = band === "corridor"` gate as an
+exact peer of the existing `hasTrajectory` (`band === "price"`) gate — same `SectionCard` shape, same
+`PendingFrame` house style for the two non-resolved states, folded into the tab's existing
+"nothing rendered" fallback check so the generic "Drivers and trajectory pending" frame never doubles up
+with the carbon-overlay pending frame. `resolved` renders the figure with an explicit
+"National modal default · not corridor-specific" eyebrow and a body sentence saying so — the brief's
+"say it on the surface" requirement, not just implied by omission.
+
+**F27, and an honest finding about its actual scope.** The brief said F27 would gate this seam. Reading
+`F27-producer-seam-proof.mjs` in full: as literally coded, `isProducerEntryPoint()`/`collectProducers()`
+scan only `scripts/producers/**` files carrying a `#!/usr/bin/env node` shebang — `select-modal-factor.mjs`
+(under `src/lib/market/`) and its real consumer (`MarketSignalDetailSurface.tsx`, a `.tsx` component, not
+a producer script) are both outside that scope. **F27 as it stands today does NOT gate this pair and will
+not go red if the composition proof below is deleted** — verified by reading the gate's own
+`enumerate()`/`check()`, not asserted. The brief's instruction to build the proof anyway was followed:
+`src/__tests__/market-carbon-overlay-composition.test.mjs` imports `select-modal-factor.mjs` AND
+`carbon-overlay-view.mjs` together (same shape as `market-producer-composition.test.mjs`'s
+parser→planner proof) and asserts the real end-to-end shape, including the ambiguous-survives-to-the-view
+case and a `figure` populated **iff** `state === "resolved"` — the one place a fabricated number could
+leak. The gap and the reasoning for not silently working around it are recorded in the proof file's own
+header, per the "no silent exemption" instruction; this is a scope FINDING about F27, not a defect in it.
+
+**Red-then-green, actually run, not just claimed.** `select-modal-factor.test.mjs`'s 18 cases were first
+run against a naive two-state stub (pick any jurisdiction element with a matching row) — 10 of 18 failed,
+including the load-bearing ambiguous-wins-over-partial-match case. The real implementation was then
+restored and all 18 passed. Both runs' outputs were read, not assumed.
+
+**A discrepancy between this brief and the live worktree, found and worked around rather than silently
+"fixed."** The brief instructed reading `docs/plans/unblocking-the-five-2026-08-30.md` §2 as the ruling
+to execute. That file **does not exist on this branch or on `origin/master`** — it lives only in commit
+`05a48df8` on the unmerged sibling branch `wave15/status-audit` (same `origin/master` base). I read its
+content via `git show 05a48df8:docs/plans/unblocking-the-five-2026-08-30.md` rather than treating the
+brief as unexecutable; its WO-24 §2 content is quoted/paraphrased accurately above and matches the
+"Measured live facts" block the brief itself supplied verbatim. **This addendum does not create that
+file on this branch** — doing so is out of this lane's write set (it is `wave15`'s own doc commit) and
+would risk a merge conflict or content fork with the real one; the coordinator should land `wave15`'s
+commit (or cherry-pick it) so the citation resolves once branches merge. Flagged per CLAUDE.md rule 13,
+not silently worked around.
+
+**A second addendum-numbering note, same root cause.** This worktree's `docs/ops/session-log.md` (based
+on `origin/master` = `3cd2dcfb`) ends at Addendum 48 — the brief's assigned "Addendum 52" leaves a gap
+(49-51) for sibling lanes' entries (L1/L2/L4, the DESNZ verification, and the `wave15` plan-doc commit
+itself, none merged into this branch's base yet). Titled exactly as instructed for cross-lane
+consistency; the coordinator should verify no numbering collision at merge time, since this branch alone
+cannot see what the other lanes actually wrote.
+
+**Gate, run by this lane, all four green:** `run-test-suite.sh` 1714/1714 (was 1690; +24 from the two new
+proof files — 18 unit + 6 composition), `tsc --noEmit` clean (one real type error introduced by this
+lane's own change, `EmissionFactorRow.jurisdiction: string | null` vs the selector's JSDoc `string`,
+found and fixed before reporting green — the rest of the pre-existing `tsc` noise, e.g. missing `zustand`
+types, is unrelated to this lane and present on a clean checkout before `npm ci`), fitness 22/22 functions
+0 violations (F27 included, PASS as expected given its scope finding above), discipline runner
+`--mode=ci --range=origin/master..HEAD` exit 0 against the actual commit (see next paragraph for why an
+empty range initially returned silently).
+
+**Write set, exactly as scoped:** `src/components/pages/MarketSignalDetailSurface.tsx`,
+`src/app/market/[slug]/page.tsx`, `src/lib/market/select-modal-factor.mjs`,
+`src/lib/market/carbon-overlay-view.mjs`, `src/__tests__/select-modal-factor.test.mjs`,
+`src/__tests__/market-carbon-overlay-composition.test.mjs`, this addendum, and the PROGRAM-BOARD row.
+Nothing in Lane 1 (`MarketIntelLedger.tsx`, `app/market/page.tsx`, `types/resource.ts`), Lane 2
+(watchlist files), the seeders, or any migration was touched. No Supabase call was made, no credential
+was used, no DB was touched. Never `git add -A` — named files staged only;
+`docs/audits/runtime-clock-inventory-2026-08-10.md` and `fsi-app/src/lib/agent/slot-forcing.mjs` were
+already dirty in this worktree from something outside this lane's work and are left untouched and
+unstaged.
+
+## Addendum 53 — L2 watchlist wiring for market_series (2026-08-30, Cowork session)
+
+I executed WO-23's "watchlist code half" as Lane 2 of the wave16 market-lane dispatch, in worktree
+`wt-l2` / branch `wave16/l2-watchlist`. The coordinator applied migration 270 before dispatching me
+(two-track policy) — I only `git add`ed it by name, never edited it, never touched the database myself.
+
+**What I changed, in the four named files:**
+
+- `src/app/api/watchlist/route.ts` — `ITEM_TYPES` widened to admit `market_series`. Added a SECOND,
+  scope-aware gate (`TEAM_ONLY_TYPES` + `isTeamOnlyScopeViolation`, exported alongside `teamOnlyError`
+  purely for unit test, the same pattern `bulk-import/route.ts`'s `headReachabilityDecision` already
+  uses) applied at the two WRITE handlers, `handlePOST` and `handleDELETE`. A personal-scope
+  `market_series` write now gets the route's own clean 400 naming the real reason
+  (`item_type "market_series" is only watchable at scope=team; ...`) instead of reaching the
+  un-widened `user_watchlist` CHECK as a raw Postgres 500. I deliberately did NOT add this guard to
+  `handleGET`: I read `handleGET` closely and confirmed its `scope` query param is never actually used
+  to select which table to read — it always reads personal AND team and returns both — so gating it
+  there would only have broken the ability to check a market_series item's team-watched status without
+  the caller remembering to pass `scope=team`, an artificial requirement no other item_type has. This
+  is a documented judgment call, not a literal reading of the brief's "GET/POST/DELETE" phrasing; I've
+  flagged it for the coordinator rather than silently picking one.
+
+- `src/lib/supabase-server.ts` — `WatchlistItemType` widened to six values, doc comment extended to
+  name the team-scope-only rule. `SOURCE_FALLBACK` gained `market_series: "SERIES"`. I extracted the
+  per-row type/title/source resolution out of `fetchWatchlist`'s inline `rows.map` into a new exported
+  pure function, `resolveWatchlistTypeFields(itemType, itemId, {itemMeta, sourceLabels,
+  marketSeriesLabels})` — this is what makes the branch order (ITEM_BACKED_TYPES → source →
+  market_series → signal fallback) directly unit-testable without a live Supabase client. The new
+  market_series branch resolves by `id` (uuid) against a fresh `market_series` select (`id, label`),
+  mirroring the existing `sourceIds`/`sourceLabels` block exactly as the spec directed — NOT the
+  `ITEM_BACKED_TYPES` `intelligence_items` lookup, since market_series rows are not intelligence_items
+  rows at all.
+
+- `src/lib/watchlist-links.ts` — `WATCHLIST_TYPE_LABEL.market_series = "Series"`. `watchlistHref`
+  gained `case "market_series": return null` with a comment explaining why null is the honest answer
+  (no per-series detail route exists; /market renders the board, not a series page; a market_series
+  row is a per-period observation, not a stable per-page entity) — matching the `source` case's own
+  precedent exactly.
+
+**RED-then-GREEN, actually observed, not just claimed.** Before trusting my own fix, I stashed just
+`src/lib/supabase-server.ts` (`git stash push --keep-index -- src/lib/supabase-server.ts`), re-ran the
+new `resolveWatchlistTypeFields` test file, and watched all 5 tests fail with
+`resolveWatchlistTypeFields is not a function` (the function didn't exist pre-fix — the old inline
+logic went straight from ITEM_BACKED_TYPES → "source" → a bare `type: "signal"` literal, with no
+market_series case at all, so any market_series row reaching it would have fallen through to the
+"Signal" mislabel the file's own doc comment already records happening once). `git stash pop` restored
+the fix; all 5 tests went green immediately after, with no other change.
+
+**The three "no direct edit" readers, verified by grep myself rather than trusted from the brief:**
+`DashboardWatchlist.tsx` — zero `item_type`/type-literal matches. `WatchlistSurface.tsx` — imports
+`WatchlistItemType`/`WATCHLIST_TYPE_LABEL`/`watchlistHref` from the shared modules, its only type-shaped
+code is `type TypeFilterValue = "all" | WatchlistItemType` and a `presentTypes` array built generically
+from live rows; the filter chip label comes from `WATCHLIST_TYPE_LABEL[t]`, so widening that map (which
+I did) is the whole fix — confirmed by reading the render code, not just grep. `ArchiveDialog.tsx` —
+zero `item_type` literals. `archive-impact/route.ts` — reads `user_watchlist`/`org_watchlist` filtered
+only by `item_id` (matched against `intelligence_items.id`/`legacy_id`), with NO `item_type` filter
+anywhere in the file; it can never see a market_series row through this path since market_series ids
+don't come from `intelligence_items`. All four claims in the brief held.
+
+**Tests added:** `src/app/api/watchlist/route.npmtest.mjs` (6 tests — the scope-conditional gate, both
+directions, plus every pre-existing type unaffected, plus the 400 body's exact reason string),
+`src/lib/supabase-server-watchlist.npmtest.mjs` (5 tests — the mislabel regression plus the three
+untouched branches), `src/lib/watchlist-links.npmtest.mjs` (5 tests — the label and href for
+market_series plus its unaffected siblings). All new `*.npmtest.mjs` files live under the `git ls-files
+'fsi-app/src/**/*.npmtest.mjs'` glob in discipline.yml's "App unit tests requiring npm deps" job, so
+they join CI by construction; they are NOT run by `run-test-suite.sh` (that job explicitly excludes
+npm-dependent tests, by design, per that script's own header) — I ran them directly with `node --test`
+after `npm ci` to verify them myself rather than trusting the CI glob alone.
+
+**A scope discrepancy between my dispatch and the WO-23 spec, flagged rather than silently resolved
+either way.** The spec's own named write set (§3) lists five items, including `WatchButton.tsx`'s
+`itemType` union widening (item 5) and a contingent UI attachment point (item 6). My dispatch explicitly
+scoped this pass to "Lane 2, Watchlist code half" and explicitly forbade touching `WatchButton.tsx` or
+building any UI attachment point. I followed the dispatch's narrower scope (it read as a deliberate,
+intentional split of WO-23 across lanes) and did not touch `WatchButton.tsx`. I confirmed this is safe
+to defer: `WatchButton`'s `itemType` prop is a separate, locally-hardcoded 5-value union, NOT imported
+from `WatchlistItemType`, so leaving it unwidened causes no compile error and no runtime breakage —
+nothing in this lane's change touches it. This is a real, named gap against WO-23's full scope, not a
+silent drop: WatchButton's union and the UI attachment point remain open for a future lane.
+
+**Final state:** suite 1690/1690 (unchanged — my new npmtest files are outside that glob by design;
+verified separately, 16/16 passing across the three new files), `tsc --noEmit` clean, fitness 22/22
+functions (0 violations), discipline runner `--mode=ci --range=origin/master..HEAD` exit 0 against the
+actual commit. Commit SHA and full CI-equivalent transcript are in this session's report to the
+coordinator.
+
+**Next:** WatchButton.tsx's itemType union + the UI attachment point (WO-23 spec §3 items 5-6) are
+still open, contingent on WO-14 per the spec's own serialization note. Nothing else blocked in this
+lane's scope.
+
+## Addendum 54 — THETIS-MRV discharged to permitted; corridor-identity correction (2026-08-30, Cowork session)
+
+Jason, mid-turn: *"the emsa is free to all"*, with `https://www.emsa.europa.eu/thetis-mrv.html`. That is
+the operator ruling on the one item I had named as genuinely his in Addendum 50.
+
+**I verified it against the primary source before flipping the field, and it holds.** The THETIS-MRV
+page itself carries no licence wording at all, so it does not on its own support the claim. EMSA's site
+notice does, verbatim: *"Reproduction is authorised, provided the source is acknowledged, save where
+otherwise stated."* Under this register's own definitions that is `permitted`, not `conditional`:
+`conditional` means permitted-subject-to-an-act-we-must-perform (notify, register, accredit), and
+acknowledgement is not such an act — every `permitted` entry here already carries an attribution string,
+GeoNames under CC BY 4.0 being the precedent. No commercial carve-out, no prior-permission requirement
+in the general case.
+
+**Two things I recorded in the entry rather than glossing.** (1) The notice is site-wide, not
+dataset-specific, and carries a "save where otherwise stated" tail; I read the THETIS-MRV page the same
+day and it states nothing to the contrary, so the site notice governs, but if EMSA ever marks the
+dataset separately this must be re-verified. (2) EMSA is an EU agency, so Commission Decision
+2011/833/EU does not apply to it directly — the authorisation stands on EMSA's own notice, not on the
+Commission reuse decision. The old entry's `askWhat` asked exactly that question and it is now moot. I
+also learned from the page that the annual fleet report is produced by DG CLIMA, which would fall under
+2011/833/EU in its own right; supporting context, not load-bearing.
+
+Register 15 green / 3 amber → **16 green / 2 amber**. This unblocks `factor-tier.mjs`'s
+`verified_operator_avg` (rank 2), which was structurally empty, and clears the path to two red entries
+(Clean Cargo substitute, lawful IMO numbers). Seeding is separate work and is NOT authorised by the
+entry alone.
+
+**The register change shipped the way the generator says to ship it.** `scripts/gen/migration-258.mjs`'s
+header: *"Committing the regenerated diff is how a register change ships."* Edited
+`source-licence.mjs`, re-ran the generator, committed the regenerated 258 block, and applied the
+matching upsert to live `data_sources` (coordinator-only write). Verified live: `redistribution`
+`permitted`, `embeddable` true, `verified_on` 2026-08-30, `ask_what` NULL.
+
+**Two tests went red, and they were right to.** `contracts-licence-and-tier.test.mjs` pinned
+`emsa_thetis_mrv` as its example of a conditional refusal and as its named member of the amber bucket.
+Both were asserting a *fact about the register* rather than the *behaviour of the gate*, so a
+legitimate discharge broke them. I did not re-point them at another source, which would only move the
+staleness; I made both structural — every conditional entry with an `askWhat` must name its discharge
+path and recipient, and every amber member must be non-embeddable — with concrete anchors kept only so
+the loops cannot pass vacuously. Then I added the missing opposite assertion: `assertEmbeddable`
+returns true for THETIS-MRV and the entry is `permitted`, so a silent regression to `conditional` is
+now RED. Suite 1690 → 1691.
+
+**One small correctness fix while in there.** `renderDataSourceSeedSql` hardcoded
+`Register verified 2026-08-12` into the generated header, which would have asserted a stale date the
+moment any entry was re-verified. It now derives the latest entry-level `verifiedOn`. The generated
+line reads "Register verified through 2026-08-30".
+
+**A correction to my own Addendum 50 / the plan doc, recorded because it makes the next gate smaller.**
+I wrote that corridor identity "does not exist" and that Gate 2 was "design and build an entity that
+does not exist." **That was too strong.** `src/lib/contracts/corridor-id.mjs` exists, is drift-guarded
+against SQL, and carries a well-reasoned content-addressed scheme (routing is part of the payload
+precisely so Suez and Cape do not collide); `cl_corridor_id()` and `cl_corridor_field()` are live
+functions in the database. What is actually missing is narrower: **corridor attributes on
+`intelligence_items` to feed the mint, and a column to store the result.** The join is still absent, so
+WO-24's re-scope to the jurisdiction key stands unchanged, but the eventual corridor work is
+"populate the inputs to an existing minting function," not "invent an entity." I overstated it by
+reading the absence of a column as the absence of the whole capability, without checking the contracts
+module. Same error shape as the Wave-14 grep mistake: absence of one artefact is not absence of the
+system.
+
+**Next:** DESNZ primary-source verification in the browser, then land waves 15/16.
+
+## Addendum 55 — DESNZ verified against the primary; all four values were wrong (2026-08-30, Cowork session)
+
+I discharged the DESNZ gate myself. The recorded blocker said it needed *"a human (or an agent with
+unrestricted network egress)"* because `assets.publishing.service.gov.uk` returned 403 and the fetch
+tool cannot parse `.xlsx`. Both halves were solvable from here and I should have seen it sooner: the
+403 was **the sandbox egress proxy, not gov.uk** — the browser fetched the workbook with a clean 200,
+1,796,009 bytes, ZIP magic `50 4b 03 04` — and the in-browser ZIP central-directory walk plus
+`DecompressionStream('deflate-raw')` that read the EU Weekly Oil Bulletin reads a DESNZ workbook
+identically. The gate was never "a human must decide." It was "someone must read the primary cell."
+
+**The sheet was resolved by name, never by position:** `xl/workbook.xml` + `xl/_rels/workbook.xml.rels`
+→ `'Freighting goods'` → `rId31` → `xl/worksheets/sheet31.xml`. It happens to be sheet31; that is a
+coincidence I did not rely on.
+
+**A parser defect I made and caught before it corrupted a value.** My first cell regex was
+`<c\b([^>]*)>([\s\S]*?)<\/c>`, which treats a SELF-CLOSING empty cell `<c r="A24" s="130"/>` as an
+opening tag: `[^>]*` eats the trailing slash, then the lazy body swallows the *next* cell's `<v>`. Every
+row beginning with an empty cell came out shifted three columns left. I found it because row 24's block
+labels rendered as bare shared-string indices at columns A/E/I/M instead of text at D/H/L/P, which made
+no sense, so I read the raw XML instead of trusting my own output. Fixed with
+`<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)`. Had I not checked, I would have read the wrong column and
+"confirmed" the fixture against garbage. **Same lesson as the Wave-14 grep error: my own tool output is
+not evidence until I have checked what produced it.**
+
+**The trap the sheet actually sets.** `Freighting goods` does not use one column layout throughout. Row
+24 blocks the VANS section by FUEL (D=Diesel, H=Petrol, L=CNG, P=LPG, T=Unknown, X=PHEV, AB=BEV). Rows
+40 and 68 re-block the HGV sections by LADEN PERCENTAGE (D=0% Laden, H=50%, L=100%, **P=Average
+laden**), each followed by its own repeated header row. So the average-laden total for an HGV is column
+**P**, and column D on an HGV `tonne.km` row is 0% Laden and empty by construction — zero tonnes
+carried. Reading D, the obvious column, would have produced nonsense. Rail (rows 105-106) reverts to the
+plain D/E/F/G layout.
+
+**All four fixture values were wrong.** Against the primary:
+
+| row | fixture | primary | error |
+|---|---|---|---|
+| Rigid (>7.5t-17t), tonne.km, avg laden | 0.296 | **0.36362** | 18.6% LOW |
+| Articulated (>33t) | 0.091 | **0.07703** | 18.1% HIGH |
+| All HGVs | 0.115 | **0.10163** | 13.2% HIGH |
+| Rail freight train | 0.024 | **0.02779** | 13.6% LOW |
+
+No laden column reproduces the old numbers either, so they are not a mis-picked column of the 2025 set —
+they look like a different year or derivation entirely. The third-party republication
+(`starrybodies/ghg-calculator`) cites DEFRA 2025 but does not reproduce it.
+
+**An independent check that I read the right cells**, not a plausible-looking neighbour: for every row
+the three per-gas columns sum to the published total — 0.35979+0.00008+0.00375 = 0.36362;
+0.10012+0.00002+0.00149 = 0.10163; 0.02749+0.00002+0.00028 = 0.02779. I did this deliberately because
+"the number looks right" is not verification.
+
+**`gwp_basis` corrected from `unstated` to `AR5_GWP100`.** The workbook states it verbatim: *"The GWPs
+used in the calculation of CO2e are based on the Intergovernmental Panel on Climate Change (IPCC) Fifth
+Assessment Report (AR5) over a 100-year period."* The previous `unstated` was honest at the time and is
+no longer necessary.
+
+**Per-gas columns stay NULL, for a NEW reason I am naming rather than guessing at.** The old header left
+them null because it did not trust the third-party split; that reason is gone. They stay null because
+DESNZ publishes them as *"kg CO2e of CH4 per unit"* — already GWP-weighted — whereas the column names
+`co2_fossil`/`ch4`/`n2o` read as raw gas mass, and neither the migration nor the table carries a comment
+saying which. Writing a CO2e-weighted value into a mass column would be a silent ~28x unit error on CH4.
+Open item for the coordinator.
+
+**What this means about the discipline.** The fixture's own header said *"ACTION BEFORE --apply: verify
+each ttw_co2e value against the DESNZ full-set xlsx."* That sentence kept four wrong
+`origin_class='official'` emission factors out of production for eighteen days. The rule it enforces —
+populated, visible and wrong is worse than empty — earned its keep today.
+
+**Armed the seeder in `producers.yml`** as a named dispatch option (`desnz-emission-factors`),
+deliberately NOT in the `all` fan-out: `all` is the recurring sweep for sources that republish on a
+cadence, and a published annual factor set is a one-off seed of a fixed table (2025 v1, next publication
+June 2026). Sweeping it every run would be a no-op upsert forever and blur "fetch what changed" against
+"seed what is fixed". The workflow header now records the whole verification, including the column trap,
+so the next person does not re-derive it.
+
+**I could not `--apply` from here**: the sandbox egress allowlist does not include the Supabase host, so
+the seeder runs where the other producers run. Dispatch dry → read the plan → apply, per ADR-023 §4.
+
+**Next:** land waves 15/16, then dispatch `desnz-emission-factors`.
+
+## Addendum 56 — Wave 16 consolidated into one landing (2026-08-30, Cowork session)
+
+Five branches came out of this wave: the wave-15 status audit and plan, and lanes L1 (market ledger),
+L2 (watchlist), L3 (carbon overlay), plus the coordinator's licence/DESNZ work. I consolidated them
+into one integration branch rather than landing five PRs, for two reasons.
+
+**The mechanical one:** every branch appends to `docs/ops/session-log.md` and `docs/PROGRAM-BOARD.md`
+from the same base, so landing them in sequence conflicts on the memory files four times over. Landing
+via the browser uploads file CONTENT, not diffs, so each of those conflicts would have to be resolved by
+hand against a moving remote — four chances to lose an addendum.
+
+**The one that actually matters:** the addenda have a reading order. Written as separate PRs they would
+have landed 49/50, 51, 53, 52, 54/55 — with L2's addendum ahead of L3's because L2 finished first. A
+session log whose numbering runs backwards in the middle is a log people stop trusting. Rebuilt in
+order: 49, 50, 51, 52, 53, 54, 55.
+
+**The disjoint write sets held.** Not one code file was claimed by two lanes — 21 code files, zero
+overlaps, so the only conflicts were the two memory files that every lane is *required* to touch. That
+is the §6a lane model working as designed, and it is worth recording as evidence that the file-level
+(not line-range) rule from Addendum 50 is the right one.
+
+**Integration gates, run on the merged result, not on the lanes separately:** suite 1715/1715 (baseline
+1690, +25 across three lanes); `tsc --noEmit` clean; fitness 22/22 with 0 violations; the three
+`*.npmtest.mjs` watchlist files 16/16 under `node --test`. Each lane had reported green on its own
+branch; this is the check that they are green *together*, which is the only claim that matters at land
+time.
