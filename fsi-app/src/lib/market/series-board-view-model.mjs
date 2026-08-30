@@ -92,6 +92,13 @@ function seriesKeyPrefix(seriesKey) {
 /**
  * @typedef {object} SeriesDisplayRow
  * @property {string} seriesKey
+ * @property {string|null} id  the WINNING row's own market_series.id (uuid) — the specific observation
+ *   this display row renders (latest reference_period per series_key). This is the identity a
+ *   WatchButton mounted on this row must watch: fetchWatchlist's resolveWatchlistTypeFields (WO-23)
+ *   resolves a watched market_series row by `id` against the market_series table, NOT by series_key
+ *   (see supabase-server.ts's own comment on that branch) — so this field is what MarketSeriesBoard.tsx
+ *   passes as WatchButton's itemId. Null only if the raw row the caller fetched omitted `id` (defensive;
+ *   fetchMarketSeriesBoard's select always includes it).
  * @property {string} label
  * @property {string} displayValue
  * @property {string|null} emptyReason
@@ -144,6 +151,7 @@ export function buildSeriesBoard(rawRows, { producers = MARKET_SERIES_PRODUCERS 
     const { text, emptyReason } = formatSeriesValue(row);
     return {
       seriesKey,
+      id: row.id ?? null,
       label: row.label ?? seriesKey,
       displayValue: text,
       emptyReason,
