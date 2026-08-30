@@ -38,6 +38,7 @@ import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 import { RegionDimensionMatrix } from "@/components/operations/RegionDimensionMatrix";
 import { buildRegionGrid } from "@/lib/operations/region-grid.mjs";
 import { STATE_LABELS, buildStateRoster, formatFactStatus } from "@/lib/operations/state-roster.mjs";
+import { resolveRegionCode } from "@/lib/operations/region-crosswalk.mjs";
 
 // ── Severity vocabulary (Operations: Critical / High / Moderate / Low) ──
 // Hues + tints reuse the --reg-band-* tokens (identical hex in the mock).
@@ -101,23 +102,24 @@ const DIM_SHORT: Record<string, string> = {
 };
 
 // ── Region grouping for regulation cross-refs (D1) ──
-
-const REGION_MATCH: Record<string, RegExp[]> = {
-  EU: [/^eu$/i, /european union/i, /\bgermany\b/i, /\bfrance\b/i, /\bnetherlands\b/i, /\bbelgium\b/i, /\bitaly\b/i, /\bspain\b/i, /\beur\b/i],
-  US: [/^us$/i, /united states/i, /\bcalifornia\b/i, /\bnew york\b/i, /\btexas\b/i, /us-[a-z]{2}/i, /\bepa\b/i, /\bcarb\b/i, /\bnorth carolina\b/i],
-  ASIA: [/singapore/i, /hong kong/i, /\bsg\b/i, /\bhk\b/i, /asia/i, /\bchina\b/i, /\bjapan\b/i, /\bkorea\b/i],
-  UK: [/^uk$/i, /united kingdom/i, /\bgb\b/i, /\bbritain\b/i],
-  UAE: [/\buae\b/i, /\bdubai\b/i, /united arab/i, /\babu dhabi\b/i],
-};
-
-function regionForResource(r: Resource): string | null {
-  const text = `${r.jurisdiction || ""} ${r.title}`;
-  for (const region of Object.keys(REGION_MATCH)) {
-    for (const re of REGION_MATCH[region]) {
-      if (re.test(text)) return region;
-    }
-  }
-  return null;
+//
+// WO-22 (2026-08-30): this used to be `REGION_MATCH`, a hand-written `Record<string, RegExp[]>`
+// tested against `${r.jurisdiction} ${r.title}` — a second, independently-maintained, strictly
+// weaker copy of the lookup `resolveItemRegionCodes` (src/lib/agent/formats/operations-matrix.ts)
+// already gets right against the canonical `regions.iso_codes` crosswalk. Replaced outright (not
+// kept as a fallback layer): rule 0.15 (this session, live query against kwrsbpiseruzbfwjpvsp)
+// found every regulation-type row's `jurisdictions` column holds clean ISO/region/supranational
+// codes (EU, DE, US-CA, ASIA, ICAO, OECD, GLOBAL, ...), never bare free-text words like
+// "Singapore" — so a title-text regex has nothing left to catch that the crosswalk doesn't already
+// resolve correctly (or correctly leave unresolved, for codes this platform tracks no region for).
+// See region-crosswalk.mjs's own header comment for a concrete, traced live example of a
+// regulation the old regex silently dropped from every region (jurisdictions=['FR'], no "France"/
+// "French"-name regex hit) that this fix now groups correctly.
+function regionForResource(r: Resource, regions: Region[]): string | null {
+  return resolveRegionCode(
+    regions.map((rg) => ({ code: rg.key, isoCodes: rg.isoCodes })),
+    { jurisdictionIso: r.jurisdictionIso ?? null, jurisdiction: r.jurisdiction ?? null }
+  );
 }
 
 // US sub-national grouping for the By-state sub-list. A regulation tagged to a
@@ -187,16 +189,21 @@ interface Region {
   key: string;
   label: string;
   severity: Severity;
+  /** WO-22: regions.iso_codes crosswalk — which ISO/supranational jurisdiction codes belong to
+   *  this region, for regionForResource's D1 grouping. Empty when the live roster carries none. */
+  isoCodes: string[];
 }
 
 // Fallback region roster if the regions table has not been configured (the
-// live roster comes from operationsCoverage.regions when present).
+// live roster comes from operationsCoverage.regions when present). isoCodes below match the live
+// regions.iso_codes crosswalk confirmed 2026-08-30 (rule 0.15) — kept as the fallback's own static
+// copy so the fallback roster still groups regulations correctly even with no DB configured.
 const DEFAULT_REGIONS: Region[] = [
-  { key: "EU", label: "European Union", severity: "critical" },
-  { key: "US", label: "United States", severity: "critical" },
-  { key: "ASIA", label: "Asia · Singapore + Hong Kong", severity: "high" },
-  { key: "UK", label: "United Kingdom", severity: "high" },
-  { key: "UAE", label: "UAE · Dubai", severity: "moderate" },
+  { key: "EU", label: "European Union", severity: "critical", isoCodes: ["EU", "DE", "NL", "BE", "FR", "IT", "ES"] },
+  { key: "US", label: "United States", severity: "critical", isoCodes: ["US", "US-CA", "US-NY", "US-TX"] },
+  { key: "ASIA", label: "Asia · Singapore + Hong Kong", severity: "high", isoCodes: ["SG", "HK", "CN", "JP", "KR"] },
+  { key: "UK", label: "United Kingdom", severity: "high", isoCodes: ["GB"] },
+  { key: "UAE", label: "UAE · Dubai", severity: "moderate", isoCodes: ["AE"] },
 ];
 
 // ── Component ──
@@ -247,6 +254,7 @@ export function OperationsLedger({
         severity: (["critical", "high", "moderate", "low"].includes(r.severity || "")
           ? r.severity
           : "low") as Severity,
+        isoCodes: Array.isArray(r.isoCodes) ? r.isoCodes : [],
       }));
     }
     return DEFAULT_REGIONS;
@@ -310,7 +318,7 @@ export function OperationsLedger({
     const map: Record<string, Resource[]> = {};
     for (const r of regions) map[r.key] = [];
     for (const r of allRegulationsByRegion) {
-      const region = regionForResource(r);
+      const region = regionForResource(r, regions);
       if (region && map[region]) map[region].push(r);
     }
     return map;
@@ -680,7 +688,6 @@ function RegionCard({
                 dim={d}
                 spotlight={activeDim === d.key}
                 regionKey={region.key}
-                regionHue={meta.hue}
                 regs={d.key === "regulatory" ? regs : []}
                 facts={d.key === "regulatory" ? [] : factsFor(region.key, d.key)}
               />
@@ -705,12 +712,11 @@ function RegionCard({
 // ── Dimension cell ──
 
 function DimensionCell({
-  dim, spotlight, regionKey, regionHue, regs, facts,
+  dim, spotlight, regionKey, regs, facts,
 }: {
   dim: Dimension;
   spotlight: boolean;
   regionKey: string;
-  regionHue: string;
   regs: Resource[];
   facts: OperationsFact[];
 }) {
@@ -728,8 +734,19 @@ function DimensionCell({
     background: pending ? "var(--color-bg-base)" : "var(--color-bg-surface)",
   };
 
-  // Headline figure: D2–D6 use the first sourced fact value, in the region's
-  // context hue (HANDOFF §2). D1 carries no figure (regulation cross-refs).
+  // Headline figure: D2–D6 use the first sourced fact value. D1 carries no figure (regulation
+  // cross-refs).
+  //
+  // WO-21: this used to render in the region's regulatory-severity hue (`regionHue`, derived
+  // solely from `deriveRegionSeverity(regs, ...)` — the worst REGULATION in the region). A
+  // labour-cost or materials-sourcing figure has no relationship to a regulatory threshold, so
+  // painting it in the same "Critical: threshold breached, immediate cost impact" red asserted a
+  // severity judgement that does not exist — no cost/labour/materials/infrastructure severity
+  // model exists on this surface (spec 04 §1/§3 forbid inventing one). D2–D6 figures now render
+  // in the ordinary primary text colour, carrying no severity claim at all — neutral, not a
+  // trend-based signal, per this WO's own recommendation against a second informal severity
+  // convention. `regionHue`/`SEV_META` stay exactly where they already correctly apply: D1's own
+  // rendering, the region chip, and the severity tiles — none of that changes here.
   const figure = !isD1 && facts.length > 0 ? facts[0].value : null;
 
   return (
@@ -739,7 +756,7 @@ function DimensionCell({
           D{dim.num} · {dim.name}
         </span>
         {figure && (
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 19, color: regionHue, whiteSpace: "nowrap" }}>{figure}</span>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 19, color: "var(--color-text-primary)", whiteSpace: "nowrap" }}>{figure}</span>
         )}
       </div>
 

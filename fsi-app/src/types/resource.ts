@@ -210,14 +210,23 @@ export interface Resource {
   actionOwner?: string;        // Suggested internal owner: Legal, Sustainability, Ocean Product, etc.
   lastVerifiedDate?: string;   // ISO date when data was last verified against source
 
-  // Market data snapshot (for regulations with pricing impact)
-  marketData?: {
-    currentPrice?: string;     // e.g. "€68/tCO2" for ETS
-    previousPrice?: string;    // e.g. "€85/tCO2 (2023)"
-    priceSource?: string;      // e.g. "ICAP Allowance Price Explorer"
-    priceDate?: string;        // When the price was captured
-    freightCostImpact?: string; // e.g. "+$15-25/TEU on EU port calls"
-  };
+  // WO-13 B4 re-point (2026-08-30): the Market list-page key figure now
+  // binds here instead of the removed `marketData.currentPrice` orphan
+  // (no producer ever wrote it — WO-5 B4 finding, docs/ops/wo5-orphan-
+  // disposition-2026-08-20.md row 4). Batch-decorated onto Market list
+  // resources in getMarketIntelItems() (src/lib/data.ts) from
+  // published_price_statistics, one row per item (lowest sort_order —
+  // mirrors PriceBoard's own ordering convention). null/absent means "no
+  // price dimension" for this item — render the honest em-dash, never
+  // fabricate a figure. Present ONLY on /market list-page Resources; the
+  // detail page's own PriceBoard fetch (market/[slug]/page.tsx) is a
+  // separate, untouched reader of the same table.
+  priceStat?: {
+    label: string;
+    valueDisplay: string;
+    unit?: string | null;
+    releasedAt?: string | null;
+  } | null;
 
   // Taxonomy (Phase 2+)
   category?: string;

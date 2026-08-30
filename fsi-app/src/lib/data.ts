@@ -19,11 +19,13 @@ import {
   fetchOperationsItems,
   fetchTechnologyItems,
   fetchSourceCitationStatsByIds,
+  fetchPriceStatsByItemIds,
   fetchResearchSourceCoverage,
   SEED_FALLBACK_ERROR,
   type ScopeFilter,
   type CategoryRoutedResult,
   type SourceCitationStat,
+  type MarketPriceStat,
   type ResearchSourceCoverageCell,
   type ResourcePage,
 } from "@/lib/supabase-server";
@@ -805,18 +807,59 @@ const cachedTechnology = unstable_cache(
   { revalidate: 60, tags: [APP_DATA_TAG] }
 );
 
+// WO-13 B4 re-point (2026-08-30): batch price-stat decoration for the
+// Market list-page key figure, from published_price_statistics — the same
+// table PriceBoard already reads on the detail route, now ALSO read here,
+// list-scoped (see fetchPriceStatsByItemIds' header in supabase-server.ts).
+//
+// Cache-key note (rule 021): this is a BRAND NEW cache key
+// ("market-price-stats-v1") — it does not modify what `cachedMarketIntel`
+// ("market-intel-items-v1") caches or returns, so there is no existing
+// payload shape to go stale-incompatible and nothing to rotate. Mirrors the
+// cachedCitationStats precedent below exactly (own key, own shape, decorated
+// onto Resource[] by the caller here rather than baked into the RPC cache).
+const cachedMarketPriceStats = unstable_cache(
+  async (sortedIdsKey: string): Promise<Record<string, MarketPriceStat>> => {
+    if (!sortedIdsKey) return {};
+    const ids = sortedIdsKey.split(",").filter(Boolean);
+    const map = await fetchPriceStatsByItemIds(ids);
+    const obj: Record<string, MarketPriceStat> = {};
+    for (const [k, v] of map.entries()) obj[k] = v;
+    return obj;
+  },
+  ["market-price-stats-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
 /**
  * Fetch the /market category-routed row payload. Wraps
  * get_market_intel_items, MINUS the trade-press outlets the skill routes
  * to Research (FreightWaves, Loadstar, GreenBiz, Environmental Finance,
  * Splash247, Supply Chain Digital, Edie, Reuters Sustainable Business).
  *
+ * WO-13 B4: after the category RPC returns, batch-decorates each resource
+ * with `priceStat` from published_price_statistics (see
+ * cachedMarketPriceStats above). Live-verified 2026-08-30: of the 48
+ * verified, non-archived items this RPC currently returns, exactly 1 has a
+ * published_price_statistics row to attach — every other card keeps the
+ * honest em-dash. Non-fatal: a price-stat lookup failure leaves every
+ * resource's `priceStat` unset, same as before this decoration existed.
+ *
  * Falls back to an empty result on error so the page still renders.
  */
 export async function getMarketIntelItems(): Promise<CategoryRoutedResult> {
   try {
     const orgId = await resolveOrgIdFromCookies();
-    return await cachedMarketIntel(orgId);
+    const result = await cachedMarketIntel(orgId);
+    const ids = Array.from(new Set(result.resources.map((r) => r.id).filter(Boolean))).sort();
+    if (ids.length === 0) return result;
+    const statsByItemId = await cachedMarketPriceStats(ids.join(","));
+    return {
+      ...result,
+      resources: result.resources.map((r) =>
+        statsByItemId[r.id] ? { ...r, priceStat: statsByItemId[r.id] } : r
+      ),
+    };
   } catch (e) {
     console.error("getMarketIntelItems failed, returning empty:", e);
     return { resources: [], total: 0 };

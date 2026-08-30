@@ -157,13 +157,40 @@ export default async function MarketSignalDetailPage({
         process.env.SUPABASE_SERVICE_ROLE_KEY!,
         { auth: { persistSession: false } }
       );
-      const { data: priceRows } = await supabase
-        .from("published_price_statistics")
-        .select(
-          "label, value_display, unit, context_line, severity_tone, source_tier, released_at, next_release_at, next_release_label, sort_order"
-        )
-        .eq("item_id", r.id)
-        .order("sort_order", { ascending: true });
+      // DEFECT FIXED 2026-08-30 (found by the WO-13 lane while verifying its own
+      // re-point, reproduced against live data before being touched). `r.id` is
+      // `legacy_id || uuid` (rpcRowToResource), but published_price_statistics.item_id
+      // is a uuid FK. Passing a legacy_id into a uuid-typed .eq() makes Postgres raise
+      // 22P02 (invalid input syntax for type uuid) — and because this call destructured
+      // only `data` and never `error`, the failure was SILENT. Live evidence: BOTH rows
+      // in published_price_statistics belong to items that carry a legacy_id
+      // (`lng-natural-gas-price-intelligence`, `crude-oil-jet-fuel-price-intelligence`),
+      // so the slug route — the only route a reader reaches this page by — could never
+      // render a price board for either of the only two items that have one. The board
+      // was not "empty pending the feed writer"; it was erroring and swallowing it.
+      // Fix: resolve to the uuid first when `r.id` is not already one, and CAPTURE the
+      // error so a future failure of this class is loud in logs instead of invisible.
+      let priceItemId: string | null = UUID_RE.test(r.id) ? r.id : null;
+      if (!priceItemId) {
+        const { data: idRow } = await supabase
+          .from("intelligence_items")
+          .select("id")
+          .eq("legacy_id", r.id)
+          .maybeSingle();
+        priceItemId = idRow?.id ?? null;
+      }
+      const { data: priceRows, error: priceErr } = priceItemId
+        ? await supabase
+            .from("published_price_statistics")
+            .select(
+              "label, value_display, unit, context_line, severity_tone, source_tier, released_at, next_release_at, next_release_label, sort_order"
+            )
+            .eq("item_id", priceItemId)
+            .order("sort_order", { ascending: true })
+        : { data: null, error: null };
+      if (priceErr) {
+        console.error("[market/[slug]] price-board fetch failed", priceErr);
+      }
       if (Array.isArray(priceRows)) {
         priceBoard = priceRows.map((p) => ({
           label: p.label,
