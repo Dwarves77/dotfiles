@@ -8,7 +8,20 @@
 // energy.ec.europa.eu is blocked by this sandbox's egress policy (same org-policy denial noted in
 // eurostat-nrg-pc-205-producer.mjs and bls-oews-producer.mjs's own headers). It runs where the other
 // producers already do — a GitHub Actions runner (.github/workflows/producers.yml) — which is the
-// environment that actually performed the two verification reads below.
+// environment that actually performed the verification reads cited below.
+//
+// REVISION HISTORY, STATED PLAINLY. The first live producers run against the real file (producers run
+// #7, 2026-08-30) exited 2 — OilBulletinStructureError, by design, fail-closed — because the EU-average
+// block was keyed on the display string "EU - European Union", and that string is not a header anywhere
+// in the real workbook (it turned out to be a legend-row label near the bottom of the sheet, not
+// column-aligned with anything a header scan would see). A third inspection pass (browser fetch,
+// 2026-08-30, 4,455,028 bytes — the same file the CI runner downloaded) read the raw sheet2.xml
+// cell-by-cell and found the real key: row 1 carries a MACHINE identifier per column
+// ("EU_price_wo_tax_{product}", "EUR_price_wo_tax_{product}", "{CC}_price_wo_tax_{product}", plus
+// repeating "CTR" marker columns), not a merged block-name cell. oil-bulletin-workbook.mjs's own header
+// carries the full structural citation and the fix; this script did not need a code change, only this
+// note, since it never assumed the block shape itself — it just calls resolveHeaderBlocks and reports
+// whatever headerResolution says.
 //
 // WRITES NOTHING. This script has no kill switch of its own and needs no DB credentials — it fetches,
 // parses, prints a report to stderr, and prints CSV to stdout (or --out). The write gates (--apply +
@@ -17,22 +30,22 @@
 //   node scripts/producers/market/fetch-oil-bulletin.mjs \
 //     | node scripts/producers/market/eu-weekly-oil-bulletin.mjs --apply
 //
-// VERIFIED PRIMARY-SOURCE EVIDENCE (two independent GitHub-runner inspection runs, 2026-08-30, that
-// downloaded the live file):
+// VERIFIED PRIMARY-SOURCE EVIDENCE (three independent inspection passes of the live file, 2026-08-30 —
+// two GitHub-runner reads plus the browser fetch that found the real row-1 shape, see above):
 //   * The bulletin page (BULLETIN_PAGE_URL below) carries a link whose filename contains
 //     "Prices_History" — "Price developments 2005 onwards", ~4.25 MB, page-dated 27 August 2026. This
 //     script scrapes the page for that link rather than hardcoding its UUID (the UUID has been stable
-//     across both reads, but the page is the durable address); if scraping finds no such link, it falls
-//     back to the known UUID URL (FALLBACK_XLSX_URL below) and SAYS SO on stderr — never silently.
+//     across all three reads, but the page is the durable address); if scraping finds no such link, it
+//     falls back to the known UUID URL (FALLBACK_XLSX_URL below) and SAYS SO on stderr — never silently.
 //   * The .xlsx's xl/workbook.xml lists "Prices with taxes" (sheetId=2, r:id=rId1) and "Prices wo taxes"
 //     (sheetId=3, r:id=rId2) among its sheets; xl/_rels/workbook.xml.rels maps rId1->worksheets/sheet1.xml,
 //     rId2->worksheets/sheet2.xml. This script always resolves "Prices wo taxes" by name through that
 //     mapping (oil-bulletin-workbook.mjs's parseSheetNames) — never by assumed sheet order or a
 //     hardcoded "sheet2.xml" path, since nothing in the verified evidence guarantees that stays sheet 2.
-//   * Full structural detail (3 header rows, repeating country-block column layout, the EU-average
-//     block, footer-row shape, date-cell ambiguity) is documented in oil-bulletin-workbook.mjs's own
-//     header — this script is a thin I/O shell around that pure module; see it for the actual parsing
-//     contract and citations.
+//   * Full structural detail (3 header rows, the row-1 machine-id EU/EUR/country columns, the row-2
+//     display-text cross-check, footer/legend-row shape, the newest-first data-row order, and the
+//     serial-date conversion) is documented in oil-bulletin-workbook.mjs's own header — this script is a
+//     thin I/O shell around that pure module; see it for the actual parsing contract and citations.
 //
 // CI-RUNNER-SIDE BY DESIGN. This mirrors exactly why the producer split fetch out of the parser in the
 // first place (see eu-weekly-oil-bulletin.mjs and its parser module's headers): verifying a live external
