@@ -14,6 +14,7 @@
 import { useEffect, useState } from "react";
 import { Tag, Building, Layers, Clock, Link as LinkIcon } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { toDisplaySeverity } from "@/lib/agent/metadata-vocab";
 
 interface ItemMetadata {
   id: string;
@@ -34,6 +35,17 @@ interface ItemMetadata {
   regeneration_skill_version: string | null;
 }
 
+// Addendum 63 (2026-08-30): this map is keyed on the DISPLAY form
+// ("ACTION REQUIRED") per SKILL.md, but `meta.severity` (below) arrives as
+// the DB form (lowercase_underscore, canonical since migration 102 — see
+// @/lib/agent/metadata-vocab's header) straight off /api/intelligence-
+// items/[id]/metadata's raw `.select(...)`, no conversion applied. Keying
+// this map on DISPLAY form meant `SEVERITY_COLORS[meta.severity]` NEVER
+// matched — every chip silently rendered the neutral fallback colour
+// regardless of actual severity, and the raw DB string ("action_required")
+// rendered as visible chip text instead of a label. Fixed by converting
+// through toDisplaySeverity (the one place this display<->db mapping
+// lives) before both the color lookup and the rendered text, below.
 const SEVERITY_COLORS: Record<string, string> = {
   "ACTION REQUIRED": "var(--color-error)",
   "COST ALERT": "var(--color-warning)",
@@ -87,7 +99,10 @@ export function IntelligenceMetadataStrip({ itemId }: Props) {
   // If the item hasn't been regenerated under the current contract, skip
   if (!meta.regeneration_skill_version) return null;
 
-  const sevColor = meta.severity ? SEVERITY_COLORS[meta.severity] || "var(--color-text-secondary)" : null;
+  // meta.severity is DB form ("action_required"); SEVERITY_COLORS is keyed on the DISPLAY form
+  // toDisplaySeverity produces ("ACTION REQUIRED") — see the map's comment above.
+  const severityDisplay = meta.severity ? toDisplaySeverity(meta.severity) : null;
+  const sevColor = severityDisplay ? SEVERITY_COLORS[severityDisplay] || "var(--color-text-secondary)" : null;
   const urgColor = meta.urgency_tier ? URGENCY_COLORS[meta.urgency_tier] || "var(--color-text-muted)" : null;
 
   const hasIntersection = meta.intersection_summary || meta.related_items.length > 0;
@@ -99,9 +114,9 @@ export function IntelligenceMetadataStrip({ itemId }: Props) {
     >
       {/* Top row: severity + urgency + format + last regen */}
       <div className="flex items-center gap-3 flex-wrap text-[11px]">
-        {meta.severity && sevColor && (
+        {severityDisplay && sevColor && (
           <span className="px-2 py-0.5 rounded font-semibold uppercase tracking-wide" style={{ color: sevColor, backgroundColor: "var(--color-surface-raised)" }}>
-            {meta.severity}
+            {severityDisplay}
           </span>
         )}
         {meta.urgency_tier && urgColor && (
