@@ -5298,3 +5298,41 @@ Coordinator gate re-run: suite 1654/1654, tsc clean.
 landing (upload of oil-bulletin-workbook.mjs, both test files, this session-log) is the single next
 step. After it merges: dispatch dry (expect the six-product plan at week 2026-08-24), read it,
 dispatch apply, verify market_series non-empty and /market solid cards, record in the next addendum.
+
+## Addendum 47 — market_series is populated; the chain runs end to end against the real file (2026-08-30, Cowork session)
+
+**Wave 13b landed (PR #493, master 55dea0bb) and the chain completed.** Run #9 (dry) SUCCEEDED —
+the first green oil-bulletin run in the program's history. Its report, read in full before applying:
+
+    fetch-oil-bulletin: downloaded 4455028 bytes
+    fetch-oil-bulletin: "Prices wo taxes" -> xl/worksheets/sheet2.xml
+    fetch-oil-bulletin: date column = A, EU block = "EU - European Union"
+      EU column C "Euro-super 95  (I)"                                  -> eurosuper-95
+      EU column D "Gas oil automobile Automotive gas oil Dieselkraft..." -> automotive-diesel
+      EU column E "Gas oil de chauffage Heating gas oil Heizöl (II)"    -> heating-gas-oil
+      EU column F "Fuel oil - Schweres Heizöl (III) Soufre"             -> residual-fuel-oil-1pct
+      EU column G "... Soufre > 1% Sulphur > 1% ..."                    -> heavy-fuel-oil-3-5pct
+      EU column H "GPL pour moteur LPG motor fuel"                      -> lpg-motor-fuel
+    week 2026-08-24, 6 values, 0 warnings
+    plan — 6 to create, 0 to update, 0 skipped
+
+**Coordinator cross-check, independent of the runner:** the six values were read directly out of the
+live workbook in the browser (row 4, columns C..H) BEFORE the run and match the runner's extraction
+digit for digit. Units are right too, and not by luck: row 3 carries "1000 l" over the liquid columns
+and "t" over the two fuel-oil columns, and the emitted rows carry EUR/1000L and EUR/tonne accordingly.
+
+**Run #10 (apply) SUCCEEDED. market_series: 0 -> 6 rows.** Verified by SQL against the live database,
+not by trusting the log: all six series_keys present at reference_period 2026-08-24, derivation
+'observed', origin_class 'official' (correct — these are the Commission's own published weighted
+averages, not anything this pipeline computes). /market on carosledge.com now renders "6 OBSERVED
+SERIES · 1/4 PRODUCERS BUILT" with six solid cards and the DG ENER attribution line; the three
+unbuilt registry producers still say so plainly. WO-16 is done under ADR-023's amended definition:
+written, fixture-tested, armed, dispatched, run, and the store observed non-empty.
+
+**Two of three stores are now FILLED** (emission_factors 2/2 EPA, regional_data_facts 11 enveloped,
+market_series 6). The remaining UNFILLED entries are legitimately mid-build or blocked on a human
+(DESNZ needs the primary workbook verified before that seeder is armed).
+
+**Next:** nothing is blocked. Optional follow-ups: SERIES_ITEM_MAP ratification to attach these
+series to published_price_statistics; Phase 3 durability (a seam-proof per producer directory
+alongside F23); re-arm the schedules in one reviewed diff when build mode ends.
