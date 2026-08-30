@@ -1,0 +1,145 @@
+name: Data producers
+
+# THE LAYER THE PRODUCER DESIGN NEVER HAD. See docs/decisions/ADR-023-producer-execution-model.md.
+#
+# Waves 4-7 built three stores, the producers that fill them, and the readers that display them, and
+# shipped all three empty. Not caution, and not an unfinished producer: the environment that authors
+# this codebase has no outbound access to the sources (ec.europa.eu, energy.ec.europa.eu, api.bls.gov
+# — all HTTP 000 under the org egress policy, confirmed 2026-08-30) and none to Supabase either.
+# Every producer was born unrunnable, because nothing in the design said WHERE one runs. This is that
+# missing layer: a named runtime with a schedule.
+#
+# WHY HERE. This runner reaches the sources, already holds the two secrets a producer needs
+# (NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY — the pair data-audit-lane.yml uses), and
+# leaves a log an operator can read afterwards. Free minutes; every source is an open,
+# unauthenticated, licence-cleared API. $0 in the standing sense: no metered call, no key, no charge.
+#
+# SCHEDULES MATCH EACH SOURCE'S REAL CADENCE, not a convenient round number:
+#   * EU Weekly Oil Bulletin publishes Thursdays -> Friday 06:00 UTC.
+#   * Eurostat nrg_pc_205 is bi-annual, BLS OEWS annual -> monthly, 1st at 06:20 UTC. Often enough to
+#     catch a release within weeks, rare enough that the run is almost always a no-op upsert.
+#     Over-polling an open API is not free in goodwill even when it is free in money.
+#
+# TWO GATES, GUARDING TWO DIFFERENT QUESTIONS (ADR-023 §3):
+#   1. Each producer's source-level `const ENABLED` — "may this producer EVER write?" A
+#      reviewed-code-change gate: arming shows up in `git diff`. That is what stops a schedule from
+#      silently turning on a producer nobody vetted.
+#   2. This workflow's `mode` — "is THIS run allowed to write?" Manual dispatch defaults to `dry`.
+#      SCHEDULED RUNS APPLY, because a schedule that only ever dry-runs is theatre.
+#   FAST DISARM is the Actions tab: disable this workflow and every producer stops immediately, with
+#   no deploy. That matters more than fast arming, and a source constant alone cannot provide it —
+#   you cannot stop a misbehaving worker with a pull request.
+#
+# NOT ARMED, deliberately: the DESNZ emission-factor seeder. Its four ttw_co2e values come from a
+# third-party republication, not the primary DESNZ workbook (403 to the sandbox; .xlsx is unparseable
+# by the fetch tool). Populated, visible and wrong is worse than empty. EPA's two values ARE
+# primary-verified (2025 Emission Factors Hub, Table 8, read twice) and were applied 2026-08-30.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry = fetch, parse, print the plan, write nothing. apply = write through the guarded path.'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+      producer:
+        description: 'Which producer to run.'
+        required: true
+        default: 'all'
+        type: choice
+        options: [all, eurostat-nrg-pc-205, bls-oews, eu-weekly-oil-bulletin]
+  schedule:
+    # EU Weekly Oil Bulletin — published Thursday, read Friday.
+    - cron: '0 6 * * 5'
+    # Eurostat (bi-annual) + BLS OEWS (annual) — monthly sweep.
+    - cron: '20 6 1 * *'
+
+concurrency:
+  group: data-producers
+  cancel-in-progress: false
+
+env:
+  # A scheduled run applies; a manual run does what the operator picked, defaulting to dry.
+  RUN_MODE: ${{ github.event_name == 'schedule' && 'apply' || inputs.mode }}
+  # Friday cron -> market only. Monthly cron -> regional only. Manual -> the operator's choice.
+  RUN_PRODUCER: >-
+    ${{ github.event.schedule == '0 6 * * 5' && 'eu-weekly-oil-bulletin'
+     || github.event.schedule == '20 6 1 * *' && 'regional'
+     || inputs.producer }}
+
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      - name: This run's gates
+        run: |
+          echo "trigger  = ${{ github.event_name }} ${{ github.event.schedule }}"
+          echo "mode     = $RUN_MODE"
+          echo "producer = $RUN_PRODUCER"
+          echo "A producer whose own ENABLED flag is false no-ops regardless of mode. That is the"
+          echo "arming gate working as designed, not a failure — arm it in source, in a reviewed commit."
+
+      - name: Population BEFORE
+        run: node scripts/verify/population-report.mjs
+
+      - name: Eurostat nrg_pc_205 -> regional_data_facts
+        if: env.RUN_PRODUCER == 'all' || env.RUN_PRODUCER == 'regional' || env.RUN_PRODUCER == 'eurostat-nrg-pc-205'
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then
+            node scripts/producers/regional/eurostat-nrg-pc-205-producer.mjs --apply
+          else
+            node scripts/producers/regional/eurostat-nrg-pc-205-producer.mjs
+          fi
+
+      - name: BLS OEWS -> regional_data_facts
+        if: env.RUN_PRODUCER == 'all' || env.RUN_PRODUCER == 'regional' || env.RUN_PRODUCER == 'bls-oews'
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then
+            node scripts/producers/regional/bls-oews-producer.mjs --apply
+          else
+            node scripts/producers/regional/bls-oews-producer.mjs
+          fi
+
+      - name: EU Weekly Oil Bulletin -> market_series
+        if: env.RUN_PRODUCER == 'all' || env.RUN_PRODUCER == 'eu-weekly-oil-bulletin'
+        env:
+          MARKET_PRODUCER_EU_OIL_BULLETIN_ENABLED: '1'
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then
+            node scripts/producers/market/eu-weekly-oil-bulletin.mjs --apply
+          else
+            node scripts/producers/market/eu-weekly-oil-bulletin.mjs
+          fi
+
+      # Runs even when a producer failed, so the log always ends with the true state of the stores
+      # rather than only the exception that got there first.
+      - name: Population AFTER
+        if: always()
+        run: node scripts/verify/population-report.mjs
