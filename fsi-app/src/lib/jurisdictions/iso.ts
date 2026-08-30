@@ -67,6 +67,28 @@ const ISO_3166_2_PATTERN = /^[A-Z]{2}-[A-Z0-9]{1,3}$/;
 // ══════════════════════════════════════════════════════════════
 
 /**
+ * Normalize a raw `jurisdiction_iso` column read (from any RPC row or direct
+ * query) into the array `Resource.jurisdictionIso` expects, or `undefined`
+ * when the column was not selected / not present on this row.
+ *
+ * `intelligence_items.jurisdiction_iso` is a TEXT ARRAY (migration 033) —
+ * never a scalar. A mapper that read it as `row.jurisdiction_iso as string`
+ * or narrowed it with `?.[0]` would silently keep only the first code and
+ * drop the rest; this guard passes the WHOLE array through unchanged
+ * (empty-array and multi-element cases included) and degrades to
+ * `undefined` only when `Array.isArray` fails — i.e. the query genuinely
+ * didn't fetch the column (undefined/null), not when it fetched an empty
+ * or single-element array.
+ *
+ * Single home for the guard every `jurisdictionIso` mapper site in
+ * supabase-server.ts uses (Addendum 63, 2026-08-30) — one copy instead of
+ * the same `Array.isArray(...) ? ... : undefined` re-typed at each site.
+ */
+export function normalizeJurisdictionIsoColumn(value: unknown): string[] | undefined {
+  return Array.isArray(value) ? (value as string[]) : undefined;
+}
+
+/**
  * Map an array of legacy free-text jurisdiction strings (e.g.
  * ["us", "eu"]) to the canonical ISO codes used by the new
  * jurisdiction_iso column (e.g. ["US", "EU"]).
