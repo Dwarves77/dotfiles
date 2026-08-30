@@ -5976,3 +5976,186 @@ is the §6a lane model working as designed, and it is worth recording as evidenc
 `*.npmtest.mjs` watchlist files 16/16 under `node --test`. Each lane had reported green on its own
 branch; this is the check that they are green *together*, which is the only claim that matters at land
 time.
+
+## Addendum 57 — L6: market_series is actually watchable now (2026-08-30, Cowork session)
+
+Addendum 53 (L2) shipped the "watchlist code half" of WO-23 — the DB CHECK widened, the API route
+accepting `market_series` at team scope, `fetchWatchlist` resolving its label — and explicitly named
+the gap it left open: `WatchButton.tsx`'s `itemType` union and the UI attachment point. I executed as
+Lane 6 (`wt-l6`, branch `wave16/l6-watch-mount`) to close it. Before this, a watchable type existed with
+literally no control anywhere in the UI that could watch it — the operator's brief called this exactly
+right.
+
+**Defect 1 — the hardcoded type union, fixed by importing the real one.** `WatchButton.tsx`'s
+`itemType` prop was a locally hardcoded 5-value literal union, a duplicate of `WatchlistItemType`
+(`src/lib/supabase-server.ts`), which had already grown to 6 values. I changed it to
+`import type { WatchlistItemType } from "@/lib/data";` and used that type directly — the exact
+precedent `watchlist-links.ts` already established (it does the same import for the same reason, and is
+already consumed by two "use client" components, `WatchlistSurface.tsx` and `DashboardWatchlist.tsx`).
+`isolatedModules: true` in `tsconfig.json` guarantees a `import type` statement is fully erased at
+compile time, so this never bundles `supabase-server.ts` (or any of its `next/cache`/Supabase imports)
+into the client — confirmed, not assumed, by `tsc --noEmit` running clean and the F9 build-compiles
+fitness function passing.
+
+**The brief's F8 claim was wrong, and I read the function rather than trust the description.** The
+brief said F8 ("client-server-tier-boundary") "WILL go red if you import server code into a client
+component." I read `.discipline/fitness/functions/F8-client-server-tier-boundary.mjs` in full: it
+matches `body.tier`/`body.base_tier`/`body.effective_tier` assignments and object literals near a
+fetch/POST call — a check about NOT smuggling a `tier` field into a request body, unrelated to module
+imports entirely. There is no fitness function in this repo that statically checks the client/server
+import boundary; the real backstop is Next.js's own build (F9) plus the `isolatedModules` type-erasure
+guarantee. F8 passed (as it always would have) and was never the actual gate.
+
+**Defect 3 — team-only enforcement, which WAS a real client/server boundary problem.** Unlike the type
+(erased, so free to import), `TEAM_ONLY_TYPES`/`isTeamOnlyScopeViolation` are real runtime functions
+that lived only in `src/app/api/watchlist/route.ts` — a file that also imports `getServiceSupabase`,
+`next/cache`'s `revalidateTag`, and `requireAuth`, genuinely unsafe to pull into a client bundle. I
+created `src/lib/watchlist-scope.ts` — zero imports, zero I/O — holding `TEAM_ONLY_TYPES`,
+`isTeamOnlyWatchType(itemType)`, and `isTeamOnlyScopeViolation(itemType, scope)`. `route.ts` now imports
+and re-exports the first and third under their original names (its own `route.npmtest.mjs`, which
+imports `ITEM_TYPES`/`TEAM_ONLY_TYPES`/`isTeamOnlyScopeViolation`/`teamOnlyError` straight from
+`route.ts`, passes unchanged — verified by running it). `WatchButton.tsx` imports `isTeamOnlyWatchType`
+directly (a real runtime import this time, safe because the module has nothing else in it) and branches
+its render: for a team-only type, the personal control is never shown; if no workspace resolves either,
+a disabled explainer renders instead of a control that can only 403; otherwise the lone team pill
+renders, sourced from `teamWatched`/`teamAvailable` from the existing GET response so a team-only type's
+watched state is never read off the (always-false, for that type) personal `watched` flag.
+
+**Defect 2 — mounting the button on the right identity, verified by reading the resolver, not
+guessing.** `MarketSeriesBoard.tsx` (deliberately a server component — its own header says so) needed a
+`WatchButton` per SERIES ROW. I read `resolveWatchlistTypeFields`'s `market_series` branch in
+`supabase-server.ts` before writing anything: it resolves a watched row by `maps.marketSeriesLabels.get(itemId)`,
+where `marketSeriesLabels` is built from `.from("market_series").select("id, label").in("id", marketSeriesIds)`
+— i.e. the identity is `market_series.id` (the table's uuid primary key), never `series_key`. The board's
+existing pipeline (`fetchMarketSeriesBoard` → `buildSeriesBoard` → `MarketSeriesDisplayRow`) did not carry
+`id` at all — the select list omitted it and `toDisplayRow` didn't emit it — so I threaded it through: added
+`id` to `fetchMarketSeriesBoard`'s `.select(...)`, added `id: row.id ?? null` to `toDisplayRow` in
+`series-board-view-model.mjs`, and added `id: string | null` to both `MarketSeriesDisplayRow` (TS) and the
+`SeriesDisplayRow` JSDoc typedef. `latestPerSeries` already returns the whole winning raw row, so this was a
+pure passthrough, not a new reduction. `MarketSeriesBoard.tsx` mounts `<WatchButton itemType="market_series"
+itemId={s.id} />` per populated series row (guarded on `s.id` being truthy), composed directly — no client
+wrapper needed, since a server component rendering a "use client" leaf is the unproblematic direction of the
+boundary; the boundary only bites when a client component reaches for server code, which is exactly Defect
+1/3 above.
+
+**Tests, red-then-green, actually observed.** No JSX test infrastructure exists in this repo (confirmed
+by grep — no `.test.tsx` anywhere), so per the brief's own instruction I extracted decisions into pure
+functions and tested those instead of skipping the test:
+- `src/lib/watchlist-scope.npmtest.mjs` (6 tests) — written BEFORE `watchlist-scope.ts` existed; ran it
+  and watched all 6 fail with `MODULE_NOT_FOUND` (confirmed by hand, this session), then wrote the
+  module and watched all 6 go green.
+- `src/components/ui/WatchButton.npmtest.mjs` (4 tests) — a structural/source-text test, since
+  `itemType`'s type is compile-time-only and there is no way to probe a TypeScript type at runtime.
+  Written and run BEFORE the WatchButton.tsx fix; all 4 failed against the pre-fix hardcoded union
+  (confirmed by hand, this session — the file still had `itemType: "source" | "reg" | "signal" |
+  "research" | "operations"` and no `WatchlistItemType` import). After the fix, all 4 pass. This is
+  deliberately narrower than `tsc --noEmit` (the authoritative type check, already in the CI-equivalent
+  gate) — it exists to catch the SPECIFIC regression (a re-hardcoded literal union reappearing) fast and
+  by name, not to replace type-checking.
+- `src/__tests__/market-series-board-view-model.test.mjs` — 2 new tests for the `id` passthrough (the
+  winning row's `id` survives the latest-per-series reduction; a row missing `id` renders `null`, never
+  a fabricated one). New functionality, not a pre-existing regression, so these were written and
+  confirmed passing rather than red-then-green'd against nothing.
+
+**A rendering choice I made without an explicit spec, named here rather than silently picked.** For a
+team-only type with no team available (no workspace resolved), I render a disabled dashed "Watch" pill
+with an explanatory title rather than nothing at all — matching the existing "no affordance that can
+only fail" principle the component already applies to the team pill for every other type, extended
+consistently to the sole-control case. This is a judgment call, not a spec requirement; a reviewer who
+wants the widget to render nothing instead can say so.
+
+**Gates, all run this session, on this branch:** `run-test-suite.sh` 1717/1717 (baseline 1715 — the +2
+are the new `id`-passthrough tests in `market-series-board-view-model.test.mjs`, the only new test file
+under a glob that script covers; the two new `.npmtest.mjs` files are the run-test-suite.sh header's own
+NAMED EXCLUSION for npm-dependent tests, run separately). `npx tsc --noEmit` clean. Fitness runner:
+22/22 functions, 0 violations (F8 included, and it passed, per the correction above — not because it
+gates this change, but because it was never triggered by it). Discipline runner `--mode=ci
+--range=origin/master..HEAD`: 4 pass / 0 fail / 5 skip against the pre-commit range; re-run after
+committing (see report). The five watchlist `*.npmtest.mjs` files together (`route.npmtest.mjs`,
+`supabase-server-watchlist.npmtest.mjs`, `watchlist-links.npmtest.mjs`, the two new ones):
+26/26 — the three named in the brief plus the two this lane added.
+
+**Files touched:** `src/components/ui/WatchButton.tsx`, `src/components/market/MarketSeriesBoard.tsx`,
+`src/app/api/watchlist/route.ts`, `src/lib/supabase-server.ts`, `src/lib/market/series-board-view-model.mjs`,
+`src/__tests__/market-series-board-view-model.test.mjs`. New: `src/lib/watchlist-scope.ts`,
+`src/lib/watchlist-scope.npmtest.mjs`, `src/components/ui/WatchButton.npmtest.mjs`.
+
+**Next:** WO-23 is now fully closed end-to-end — schema, API, reader, and UI. No open thread from this
+lane.
+
+## Addendum 58 — closing the three things I had deferred rather than fixed (2026-08-30, Cowork session)
+
+Jason, mid-wave: *"everything else doesn't matter unless everything is fixed, leave nothing broken and
+no workarounds."* Fair. I had left three things labelled "open question" that were really me declining
+to do the work. Two are now fixed and one is answered with a measurement instead of a shrug.
+
+### 1. The per-gas columns — I said the semantics were unknowable; they were one file away
+
+I left `co2_fossil`/`ch4`/`n2o` NULL on the DESNZ rows because DESNZ publishes them CO2e-weighted while
+the column names read as gas mass, and no column comment says which. I called it an open question for
+the coordinator. **That was me, and the answer was sitting in the sibling fixture.**
+
+`epa-modal-defaults-2025.json`'s own header states the identity `ttw_co2e = co2_fossil + ch4_kg*28 +
+n2o_kg*265`, and its live rows satisfy it exactly: `0.1274 + 1.1e-6*28 + 3.7e-6*265 = 0.128411`, the
+published total, to the last digit. Both EPA rows check out. **The columns are gas MASS.** A guess would
+have been a silent ~28x error on CH4; the answer was recoverable by arithmetic from a file already in
+the repo.
+
+So DESNZ's columns are divided by the AR5 GWP-100 coefficients the workbook itself declares — 28 for
+CH4, 265 for N2O — and `co2_fossil` is taken as published, since CO2 has GWP 1 and its CO2e column IS
+its mass. This is an exact unit conversion with a stated divisor, not a model, and it uses the source's
+own basis rather than one I picked.
+
+**Rounded to 3 significant figures**, because DESNZ publishes the CH4 column to as little as ONE
+significant figure (8e-5) and carrying nine digits would invent precision the source does not have.
+Reconciliation after rounding holds to within 1.31e-5 worst case.
+
+**One thing the round-trip caught that I would otherwise have missed:** the articulated >33t row does
+not reconcile exactly even before rounding — 0.07702 computed against 0.07703 published. That is
+DESNZ's own rounding in its per-gas columns, not mine. `ttw_co2e` is kept as PUBLISHED in every row;
+the per-gas columns are never allowed to restate the headline figure. Recorded in the fixture header so
+nobody later "fixes" the discrepancy by recomputing the total.
+
+### 2. `market_series` was watchable in the database and unwatchable in the product
+
+WO-23 widened the CHECK, taught the route, taught `fetchWatchlist`, taught `watchlistHref` — and
+shipped **no way for a user to watch anything**. I had scoped `WatchButton` out of the L2 brief, and the
+lane correctly flagged that as a gap against WO-23's own named write set rather than silently accepting
+it. A watchable type with no control is broken, not deferred.
+
+Lane L6 closed it, and did it better than I asked. `WatchButton` carried a **hardcoded 5-value copy** of
+a union whose real home is `WatchlistItemType` — already drifted, and exactly the defect that file's own
+comment records happening once before. The fix is `import type`, deleting the duplicate, not widening
+it; the runtime half (`TEAM_ONLY_TYPES`, `isTeamOnlyWatchType`) moved to a new zero-dependency
+`watchlist-scope.ts` that both the server route and the client button import, because a *value* cannot
+ride type erasure across the boundary the way a type can. The board now threads `market_series.id`
+through to a per-series watch control, and the button renders **team-only** for team-only types — a
+control that offers an action the API will reject with a 400 is itself a defect.
+
+**The lane corrected me again, and was right.** I told it F8 `client-server-tier-boundary` would go red
+on a server import into a client component. It read F8 and found it only matches `body.tier`-shaped
+assignments and has nothing to do with imports; there is no fitness function statically checking that
+boundary. It said so instead of working around a constraint that did not exist. That is four out of four
+lanes this wave correcting a factual error in my brief, which says something about how I am writing
+briefs: I have been describing the repo from the specs rather than from the repo.
+
+### 3. F27's scope — measured, not shrugged at
+
+L3 found that F27 does not gate `.tsx` consumers of pure lib modules. I was about to record that as an
+open item. Instead I measured what widening it would cost.
+
+**Result: 15 surfaces compose two or more `src/lib/**` seams with no single test importing the set.**
+This is pre-existing and repo-wide, not introduced by this wave. And one of them is
+`canonical-pipeline.ts`, which composes **32** seams — requiring a single test to import all 32 together
+would produce a useless mega-test, not a proof.
+
+So the honest conclusion is that **F27 is correctly scoped and is not broken.** Its rule — one proof
+imports the whole seam set — works for producers because a producer is a narrow 2-5 seam pipeline. It
+does not generalize to consumers, where a coordinator module legitimately composes dozens. The reader
+seam class is real but differently shaped and needs a different rule (pairwise coverage, or a size
+threshold), with 15 sites of blast radius. That is a wave of its own with a design decision in it, and
+bolting a bad gate on now would be the workaround. The measurement is recorded here so the next session
+starts from data rather than from "someone should look at this."
+
+L3's composition proof for the carbon overlay was built voluntarily and is a real proof, not a
+placeholder — it stands regardless of what F27's scope eventually becomes.
