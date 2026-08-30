@@ -4903,3 +4903,82 @@ report their own violations.
 WO-10 (same file); WO-13 is ready with corrected scope; WO-22 needs one line added to a select that
 another lane owns; WO-23 needs a migration. WO-14 and WO-24 are the two that need a human. U7 stays
 metered and operator-priced. The Node 20 bump on `caros-ledge-backups` is still open.
+
+## Addendum 38 — the surface predicate had five homes, and three of them were wrong (2026-08-30, Cowork session)
+
+Wave 6 executed the four WOs the Wave-5 specs marked ready, and then fixed the thing one of those lanes
+found and correctly refused to fix itself.
+
+**What the lanes shipped.** WO-10 made the Operations ledger show data it was already fetching:
+`regional_data_facts.status` is populated on **75 of 75** rows, was typed and threaded all the way
+through `region-grid.mjs`, and was rendered by nothing; and the By-state roster recognized four states
+(one of which, NC, has zero rows) over thirteen states of live `state_cost_facts`, so at most 2 of 13
+sourced facts could ever appear. Both fixed. WO-11 grounded the Assistant on Operations data for the
+first time — `/api/ask` read only `intelligence_items` and `sources`, with grep-confirmed zero
+references to any of the three Operations tables, so it could not answer a question about operating
+costs from data the platform holds. It now assembles a provenanced block carrying source and as-of on
+legacy rows and the full envelope on enveloped ones, with a sourceless row marked rather than silently
+presented as sourced, and the lane built it without making a single live Assistant call. WO-25 gave the
+flywheel's `theme_briefs` their first customer-facing reader: **34 of 38** Research items now show a
+cluster-synthesis card, staleness never silent, importing the existing `brief-staleness.mjs` rather
+than writing a second hash rule.
+
+**The finding that mattered more than the WO it came from.** WO-15's brief was to fix
+`fetchResearchPipelineRows`, which hardcoded `item_type = 'research_finding'` instead of using
+`surfaceOf()` — the 31-versus-38 defect that put two disagreeing totals on one `/research` screen. The
+lane did that, and then proved, live, that **it would not have moved the number a customer sees**:
+`research/page.tsx` intersects its rows against `get_research_items`, and that RPC carried the
+*identical* narrowing independently. The lane reported the mismatch against its own spec instead of
+widening its write set to force the count, which is the behaviour the lane rules exist to produce.
+
+**So the real defect: the surface predicate had five homes.** `surface_of(p_item_type, p_domain)`
+(migration 148) is the database half of the ONE home — generated from `SURFACE_RULES` in
+`src/lib/surface-of.mjs` by `renderSurfaceOfSql()`, with the vocab-drift guard asserting the migration
+contains exactly that text so the two halves can never diverge. `get_surface_counts` uses it. The three
+category-routing RPCs did not: each carried a hand-written `item_type IN (...)` list. All three had
+drifted, and all three drifts were customer-visible. Measured live before touching anything, over
+verified non-archived items — hardcoded list versus `surface_of`:
+
+    research     31 -> 38    (+7  under-routed)
+    market       56 -> 48    (-8  net; 12 leave, 4 arrive)
+    operations   21 -> 24    (+3  under-routed)
+
+**Market shrinking needed a ruling, so the twelve were enumerated before the migration was written.**
+4 `initiative` domain 7 → research (including the UN STI Forum item that WO-25 had just listed as one
+of the four Research items with no theme), 3 `market_signal` domain 7 → research, 3 `initiative`
+domain 3 → operations (Blue Visby's prototype trials — an operational GHG measure), 1 `initiative`
+domain 1 → regulations, 1 `market_signal` domain 1 → regulations. Every one MOVES; none disappears.
+The two going to regulations are ADR-020's regulation precedence doing exactly what it was decided to
+do: a domain-1 item is a regulation first, whatever its `item_type` says. So Market losing 8 net is a
+**correction** — those items were being shown on a surface the platform's own decided predicate says
+they do not belong to. That is a ruling I made on the evidence, not a side effect I accepted.
+
+**Where the fix went, and why not the cheaper place.** Deleting `page.tsx`'s intersection was the
+smaller diff and it was wrong: `get_research_items` runs its rows through
+`_workspace_active_items(p_org_id)` behind `_assert_org_membership`, so the intersection is also the
+org-scoping boundary. Removing it would have traded a routing bug for a tenancy bug. Migration 269
+therefore rewrites the WHERE predicate of all three RPCs to call `surface_of` and changes **nothing
+else** — every other line is byte-identical to the live definition read from `pg_get_functiondef()`
+immediately before the file was written. Verified per function after applying: uses the one home, no
+hardcoded list left, org scoping intact, SECURITY DEFINER intact, `search_path` still pinned.
+
+**Two spec corrections, both from lanes checking rather than trusting.** The research spec asserted
+that fixing the page fetcher alone would close the 7-item gap; WO-15 proved that false. And the spec's
+92% theme coverage is **89.5% (34/38)** live — membership drift since it was authored. WO-25's join
+computes coverage per item rather than hardcoding a count, so it renders correctly against whatever the
+live number is; the spec's number was a snapshot, and snapshots in specs age.
+
+**Owed, and named rather than quietly skipped.** The duplicated theme/severity taxonomy
+(`THEMES` / `THEME_KEYWORDS` / `deriveSeverity`) still exists in both `ResearchLedger.tsx` and
+`ResearchFindingDetailSurface.tsx`. Both lanes were told not to extract it, and both correctly did not
+— a shared extraction done by two parallel lanes is how you get two extractions. It needs one lane that
+owns both consumers.
+
+**Gate before the first byte uploaded (C16):** suite **1582/1582**, `tsc` clean, fitness **21 checked /
+0 violations**, consistency C3 and C5 pass, discipline runner `--mode=ci` exit 0 over the real range.
+
+**Next:** WO-21 rides behind WO-10 in the same file; WO-13 is ready with corrected scope; WO-22 needs
+one line (`regions.iso_codes` into the operations select); WO-23 needs a CHECK-widening migration. The
+taxonomy extraction needs a lane. WO-14 and WO-24 are still the two that need a human — WO-14 because
+its text does not exist anywhere, WO-24 because it has no join path to `emission_factors.corridor_id`
+at all. U7 stays metered and operator-priced. Node 20 bump on `caros-ledge-backups` still open.
