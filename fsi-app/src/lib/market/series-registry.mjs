@@ -30,10 +30,10 @@ export const MARKET_SERIES_PRODUCERS = Object.freeze([
     sourceKey: "ec_weekly_oil_bulletin",
     sourceName: "European Commission, DG ENER — Weekly Oil Bulletin",
     sourceUrl: "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
-    // NOT YET a public.data_sources row — see scripts/producers/market/eu-weekly-oil-bulletin.mjs's own
-    // header. src/lib/contracts/source-licence.mjs is outside this lane's write set (WO-12/19 lane), so
-    // this producer's FK write fails closed (23503) until an operator lands that registration.
-    licenceStatus: "unregistered — data_sources FK will refuse a write until source-licence.mjs gains this entry",
+    // REGISTERED 2026-08-30: source-licence.mjs gained the ec_weekly_oil_bulletin entry (CC BY 4.0,
+    // Decision 2011/833/EU) and migration 258's data_source_seed was regenerated and applied — confirmed
+    // live in public.data_sources this session. The FK no longer blocks a write.
+    licenceStatus: "registered (public.data_sources 'ec_weekly_oil_bulletin', CC BY 4.0, Decision 2011/833/EU)",
     derivation: "observed",
     originClass: "official",
     producerScript: "scripts/producers/market/eu-weekly-oil-bulletin.mjs",
