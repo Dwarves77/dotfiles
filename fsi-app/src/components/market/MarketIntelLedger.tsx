@@ -39,6 +39,7 @@ import Link from "next/link";
 import { useMemo, useRef, useState, type CSSProperties } from "react";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
+import type { MarketSeriesBoardVM, MarketSeriesProducerGroup } from "@/lib/supabase-server";
 
 interface MarketIntelLedgerProps {
   initialResources: Resource[];
@@ -47,6 +48,15 @@ interface MarketIntelLedgerProps {
    *  totalItems === 0 (or missing distributions) signals the fail-soft
    *  path, in which case counts derive from the loaded verified rows. */
   aggregates: WorkspaceAggregates;
+  /** WO-14 residual: the market_series registry board, already fetched by
+   *  the page (fetchMarketSeriesBoard → buildSeriesBoard, both untouched
+   *  here — no new fetch, no new query). Drives the "Sources tracked" rail
+   *  card below as a compact, registry-honest roster (name / cadence /
+   *  state), NOT a second copy of <MarketSeriesBoard>'s per-series layout.
+   *  Optional so a caller that genuinely has no board yet still renders the
+   *  card's own "no producers registered" honest-empty line rather than
+   *  crashing. */
+  seriesBoard?: MarketSeriesBoardVM;
 }
 
 // ── Severity vocab ─────────────────────────────────────────────────────
@@ -222,7 +232,7 @@ interface Enriched {
   band: BandKey | null;
 }
 
-export function MarketIntelLedger({ initialResources, aggregates }: MarketIntelLedgerProps) {
+export function MarketIntelLedger({ initialResources, aggregates, seriesBoard }: MarketIntelLedgerProps) {
   const [sevFilter, setSevFilter] = useState<SevKey | null>(null);
   const [bandFilter, setBandFilter] = useState<BandKey | null>(null);
   const [openRows, setOpenRows] = useState<Record<string, boolean>>({});
@@ -753,22 +763,7 @@ export function MarketIntelLedger({ initialResources, aggregates }: MarketIntelL
             </p>
           </div>
 
-          <div style={{ background: "var(--color-bg-surface)", border: cardBorder, borderRadius: 8, padding: "14px 16px" }}>
-            <p style={{ ...railLbl, marginBottom: 8 }}>Sources tracked</p>
-            <div
-              style={{
-                border: "1px dashed rgba(0,0,0,0.25)",
-                borderRadius: 6,
-                background: "var(--color-bg-base)",
-                padding: "11px 13px",
-              }}
-            >
-              <p style={{ fontSize: 11.5, color: "var(--color-text-secondary)", lineHeight: 1.55, margin: 0 }}>
-                The price-data source roster populates here once the commodity-price feed is connected. The
-                live source registry is under Sources → Source Health.
-              </p>
-            </div>
-          </div>
+          <SourcesTrackedCard board={seriesBoard} />
         </div>
       </div>
 
@@ -787,6 +782,84 @@ export function MarketIntelLedger({ initialResources, aggregates }: MarketIntelL
           .cl-mi-tiles { grid-template-columns: 1fr !important; }
         }
       `}</style>
+    </div>
+  );
+}
+
+// ── Sources tracked (WO-14 residual) ────────────────────────────────────
+// A compact, registry-driven roster of the market_series producers — NOT a
+// second copy of <MarketSeriesBoard>'s per-series layout (that component
+// owns the full board; this is a narrow rail summary one level up). Reads
+// the same already-fetched `MarketSeriesBoardVM` the page hands to
+// <MarketSeriesBoard>: no new fetch, no new query. A producer with no rows
+// says so plainly (STATE_META below mirrors MarketSeriesBoard.tsx's own
+// not_built / registered_unpopulated / populated vocabulary) — never a
+// fabricated figure, never a blank hole, matching HONEST STATE (top of
+// file) and MarketSeriesBoard.tsx's own header philosophy.
+const RAIL_STATE_META: Record<MarketSeriesProducerGroup["state"], { label: string; color: string }> = {
+  not_built: { label: "Not built yet", color: "var(--color-text-muted)" },
+  registered_unpopulated: { label: "Pending", color: "var(--brass)" },
+  populated: { label: "Live", color: "var(--color-primary)" },
+};
+
+function SourcesTrackedCard({ board }: { board?: MarketSeriesBoardVM }) {
+  const groups = board?.groups ?? [];
+  return (
+    <div style={{ background: "var(--color-bg-surface)", border: "1px solid var(--color-border)", borderRadius: 8, padding: "14px 16px" }}>
+      <p style={{ ...railLbl, marginBottom: 8 }}>Sources tracked</p>
+      {groups.length === 0 ? (
+        <div
+          style={{
+            border: "1px dashed var(--honest-dashed, rgba(0,0,0,0.25))",
+            borderRadius: 6,
+            background: "var(--color-bg-base)",
+            padding: "11px 13px",
+          }}
+        >
+          <p style={{ fontSize: 11.5, color: "var(--color-text-secondary)", lineHeight: 1.55, margin: 0 }}>
+            No price-data producers are registered yet.
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {groups.map((g) => {
+            const meta = RAIL_STATE_META[g.state];
+            return (
+              <div
+                key={g.keyPrefix}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "baseline",
+                  gap: 8,
+                  borderTop: "1px solid var(--color-border-subtle)",
+                  paddingTop: 6,
+                }}
+              >
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, display: "block", lineHeight: 1.35 }}>{g.name}</span>
+                  <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>{g.cadence}</span>
+                </span>
+                <span
+                  style={{
+                    fontSize: 9.5,
+                    fontWeight: 800,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: meta.color,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {meta.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <p style={{ fontSize: 10, color: "var(--color-text-muted)", lineHeight: 1.5, margin: "10px 0 0" }}>
+        Dated observations for each producer are on the market series board below.
+      </p>
     </div>
   );
 }
