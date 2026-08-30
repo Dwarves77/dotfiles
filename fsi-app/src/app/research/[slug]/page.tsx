@@ -8,8 +8,17 @@
  *     human-readable slug.
  *   - Related findings selected server-side: items sharing the row's
  *     `theme` column when populated, falling back to items from the same
- *     source when theme is NULL (which is the case for the majority of
- *     rows today). Capped at 5.
+ *     source when theme is NULL. Capped at 5. CORRECTED 2026-08-30 (WO-25):
+ *     `theme` is NULL on ALL 38 live Research-surface rows today, not "the
+ *     majority" — the theme-match step is currently dead in practice, and
+ *     the fallback is what every populated panel is actually running. See
+ *     the inline comment above `relatedReason` below.
+ *   - Theme-brief card (WO-25, flywheel U6 surfacing, 2026-08-30): a
+ *     read-only, $0 join from this item's id into `connection_themes` /
+ *     `theme_briefs` — an already-synthesized editorial brief for the
+ *     graph-derived cluster this item belongs to, when one exists.
+ *     Renders nothing when the item is in no cluster or the cluster has no
+ *     brief yet (honest omission). See src/lib/research/theme-brief.mjs.
  *
  * Layout: EditorialMasthead at the top (matching the regulations detail
  * shape) + ResearchFindingDetailSurface below.
@@ -21,6 +30,7 @@ import { notFound, redirect } from "next/navigation";
 import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supabase-server";
 import { getViewerRelevanceForItem } from "@/lib/workspace/viewer-relevance";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
+import { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { ResearchFindingDetailSurface } from "@/components/research/ResearchFindingDetailSurface";
 
@@ -139,8 +149,23 @@ export default async function ResearchFindingDetailPage({
   //      fall back to items from the same source (cap = 5, excluding self).
   //   3. If neither yields anything (orphan or no peers), pass [] to the
   //      surface and let it render an empty state.
+  //
+  // STEP 1 IS DEAD IN PRACTICE (WO-25, 2026-08-30 — documented per the corrected spec,
+  // docs/plans/research-lane-spec-from-repo.md §2.3 item 2, option (a): comment-only, no
+  // behavior change). Live measurement this session: 0 of 38 verified/non-archived
+  // Research-surface rows populate `theme` (same finding as the spec's §0 table). Step 1
+  // can therefore never match today — every "Related findings" panel that shows anything
+  // is running step 2 (the same-source fallback) exclusively. This is real fallback
+  // behavior working as designed, not a bug; it is named here so a future reader does not
+  // assume step 1 is exercised. Swapping the primary signal to the item_cross_references
+  // graph instead of the inert `theme` column is a real design option (spec §2.3 item 2,
+  // option (b)) deliberately NOT taken by this pass — see the spec's open ruling §2.7.2.
   let related: ReturnType<typeof pickRelated>[] = [];
   let relatedReason: "theme" | "source" | "none" = "none";
+  // Theme-brief card (WO-25, flywheel U6 surfacing). Populated below, alongside `related`,
+  // once `self.id` (the row's raw uuid) is resolved — read-only, $0, no generation. See
+  // src/lib/research/theme-brief.mjs for the join contract and the U7-boundary note.
+  let themeBrief: ReturnType<typeof selectThemeBriefForItem> = null;
 
   if (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -204,9 +229,35 @@ export default async function ResearchFindingDetailPage({
             relatedReason = "source";
           }
         }
+
+        // Theme brief (WO-25, flywheel U6). connection_themes is small (9 rows live) and
+        // public-read (migration 253); reading all of it and matching in-process is the
+        // same shape api/admin/themes/route.ts already uses, narrowed to one item. A
+        // second query for the matching theme_briefs row only runs when self.id is
+        // actually a member of a live theme, so an item outside every cluster (the
+        // honest-omission case) costs one query, not two. NO write, NO LLM call, NO
+        // regeneration — a pure read of rows a prior operator-directed pass produced.
+        // See src/lib/research/theme-brief.mjs for the join/orphan/staleness contract.
+        const { data: themeRows } = await supabase
+          .from("connection_themes")
+          .select("id, member_ids");
+        const matchedTheme =
+          themeRows && themeRows.length > 0
+            ? (themeRows as { id: string; member_ids: string[] }[]).find(
+                (t) => Array.isArray(t.member_ids) && t.member_ids.includes(self.id)
+              )
+            : null;
+        if (matchedTheme) {
+          const { data: briefRows } = await supabase
+            .from("theme_briefs")
+            .select("theme_id, title, brief_md, member_hash, generated_at")
+            .eq("theme_id", matchedTheme.id)
+            .limit(1);
+          themeBrief = selectThemeBriefForItem(self.id, [matchedTheme], briefRows || []);
+        }
       }
     } catch {
-      // Soft-fail — surface renders the empty state.
+      // Soft-fail — surface renders the empty state (no related findings, no theme-brief card).
     }
   }
 
@@ -256,6 +307,7 @@ export default async function ResearchFindingDetailPage({
         connections={connections}
         relevance={relevance}
         resourceLookup={resourceLookup}
+        themeBrief={themeBrief}
       />
     </>
   );
