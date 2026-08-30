@@ -13,6 +13,7 @@ import { canonicalSurfaceForItem, type DetailSurface } from "@/lib/item-links";
 import { stalenessOf } from "@/lib/contracts/envelope.mjs";
 import type { RelevanceInput } from "@/lib/workspace/viewer-relevance";
 import { buildSeriesBoard } from "@/lib/market/series-board-view-model.mjs";
+import { normalizeJurisdictionIsoColumn } from "@/lib/jurisdictions/iso";
 
 // Wave-α A2 (2026-07-11): the static seed-data import is GONE. Every
 // fallback path in this module now returns empty + `_error` sentinel
@@ -608,6 +609,15 @@ async function fetchWorkspaceResources(
       modes: row.transport_modes || [],
       topic: row.category || undefined,
       jurisdiction: row.jurisdictions?.[0] || undefined,
+      // Addendum 63 (2026-08-30): wired to read the column, but every RPC this function calls
+      // (get_workspace_intelligence / _slim / _dashboard / _listings) projects `ii.jurisdictions`
+      // only — none of their RETURNS TABLE lists include `ii.jurisdiction_iso` (confirmed against
+      // the live migration bodies: 120 for the base/slim pair, 077 for dashboard/listings), even
+      // though the shared `_workspace_active_items` some of them source from DOES carry it. So
+      // `row.jurisdiction_iso` is undefined today and this stays dormant — same "pass through when
+      // the RPC catches up" pattern already used below for severity/signalBand/theme (Phase 3C) —
+      // until a migration (lane `la`) adds the column to these RPCs' output.
+      jurisdictionIso: normalizeJurisdictionIsoColumn(row.jurisdiction_iso),
       sourceId: row.source_id || undefined,
       isArchived: row.effective_archived || false,
     };
@@ -1166,6 +1176,12 @@ function rpcRowToResource(row: any): Resource {
     modes: row.transport_modes || [],
     topic: row.category || undefined,
     jurisdiction: row.jurisdictions?.[0] || undefined,
+    // Addendum 63 (2026-08-30): dormant for the same reason as fetchWorkspaceResources's mapper —
+    // get_market_intel_items / get_research_items / get_operations_items / get_technology_items
+    // (migration 269, the latest redefinition) project `ii.jurisdictions` only; `jurisdiction_iso`
+    // is not in any of their RETURNS TABLE lists, so `row.jurisdiction_iso` is undefined until a
+    // migration adds it.
+    jurisdictionIso: normalizeJurisdictionIsoColumn(row.jurisdiction_iso),
     sourceId: row.source_id || undefined,
     isArchived: row.effective_archived || false,
     // Phase 3C: pass through new schema columns when RPC includes them.
@@ -2815,9 +2831,11 @@ async function fetchIntelligenceItemUncached(
       modes: row.transport_modes || [],
       topic: row.category || undefined,
       jurisdiction: row.jurisdictions?.[0] || undefined,
-      jurisdictionIso: Array.isArray(row.jurisdiction_iso)
-        ? row.jurisdiction_iso
-        : undefined,
+      // This fetcher reads `select("*")` directly against intelligence_items (service-role,
+      // bypasses RLS), so jurisdiction_iso IS present on `row` here — unlike the two RPC-backed
+      // mappers above, where it is currently always undefined (Addendum 63). Shared guard so all
+      // three sites stay byte-identical rather than re-typing `Array.isArray(...) ? ... : undefined`.
+      jurisdictionIso: normalizeJurisdictionIsoColumn(row.jurisdiction_iso),
       sourceId: row.source_id || undefined,
       isArchived: row.is_archived || false,
       // P1-2 (DEEP-AUDIT S2): populate the provenance chip (source name + tier)

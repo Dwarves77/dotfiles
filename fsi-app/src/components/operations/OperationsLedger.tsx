@@ -39,6 +39,7 @@ import { RegionDimensionMatrix } from "@/components/operations/RegionDimensionMa
 import { buildRegionGrid } from "@/lib/operations/region-grid.mjs";
 import { STATE_LABELS, buildStateRoster, formatFactStatus } from "@/lib/operations/state-roster.mjs";
 import { resolveRegionCode } from "@/lib/operations/region-crosswalk.mjs";
+import { SEVERITY_TO_OPERATIONS_BUCKET } from "@/lib/agent/metadata-vocab";
 
 // ── Severity vocabulary (Operations: Critical / High / Moderate / Low) ──
 // Hues + tints reuse the --reg-band-* tokens (identical hex in the mock).
@@ -158,13 +159,9 @@ function usStateForResource(r: Resource): { code: string; label: string } | null
 }
 
 // ── Severity derivation for regulations ──
-
-const SEVERITY_COLUMN_TO_KEY: Record<string, Severity> = {
-  critical: "critical", high: "high", moderate: "moderate", low: "low",
-  action_required: "critical", cost_alert: "high", window_closing: "moderate",
-  competitive_edge: "moderate", monitoring: "low", immediate: "critical",
-  watch: "moderate", reference: "low", background: "low",
-};
+// Addendum 63 (2026-08-30): the DB-value -> bucket-key mapping is shared with
+// OperationsItemsView.tsx via SEVERITY_TO_OPERATIONS_BUCKET (metadata-vocab.ts) — it used to be
+// a byte-identical copy hand-typed independently in both files.
 
 function deriveRegionSeverity(regs: Resource[], fallback: Severity): Severity {
   // The region card's chip = the most severe regulation in scope, so the chip
@@ -173,7 +170,7 @@ function deriveRegionSeverity(regs: Resource[], fallback: Severity): Severity {
   let worst = 3;
   for (const r of regs) {
     let sev: Severity = "low";
-    if (r.severity && SEVERITY_COLUMN_TO_KEY[r.severity]) sev = SEVERITY_COLUMN_TO_KEY[r.severity];
+    if (r.severity && SEVERITY_TO_OPERATIONS_BUCKET[r.severity]) sev = SEVERITY_TO_OPERATIONS_BUCKET[r.severity];
     else if (r.priority === "CRITICAL") sev = "critical";
     else if (r.priority === "HIGH") sev = "high";
     else if (r.priority === "MODERATE") sev = "moderate";

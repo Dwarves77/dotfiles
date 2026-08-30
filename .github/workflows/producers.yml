@@ -44,8 +44,28 @@ name: Data producers
 # average-laden total for an HGV is column P, not D. The fixture now carries the primary's values,
 # the sheet/row/column for each, and gwp_basis AR5_GWP100 (stated verbatim in the workbook).
 # "Populated, visible and wrong is worse than empty" held four bad official-class factors out of
-# production. EPA's two values were primary-verified separately (2025 Emission Factors Hub, Table 8,
-# read twice) and were applied 2026-08-30.
+# production.
+#
+# EPA emission-factor seeder: WIRED 2026-08-30, same day, as its own named dispatch option
+# (epa-emission-factors), also deliberately excluded from 'all' for the reason stated on that step.
+# EPA's two values were primary-verified separately (2025 GHG Emission Factors Hub, Table 8, read
+# twice) and were correct from the start — no column trap here. But "correct" and "seeded through a
+# guarded runtime" turned out to be two different claims. `emission-factors-common.mjs` and
+# `emission-factors-epa.mjs` were both created in commit c6c228ff and untouched until today's
+# orderBy fix (d5feb910), so the code path was IDENTICAL when EPA's two rows landed live on
+# 2026-08-30 — and that code path was broken the whole time: `readAll` defaults its pagination
+# `orderBy` to "id", `emission_factors` has no `id` column (PK is `factor_id`), so the live-rows read
+# threw on every call, proven by producers run #11's own log. The seeder is fail-closed
+# (`if (apply) throw e`), so an `--apply` through it would have ABORTED, not written. THEREFORE EPA'S
+# TWO ROWS WERE NOT WRITTEN BY THIS SEEDER. Both share one `created_at` to the microsecond
+# (2026-08-30 09:59:27.594741+00), a single batch insert, and the seeder was wired to no runtime at
+# all until this workflow change — they were inserted by direct SQL from a coordinator session, which
+# is how they bypassed the broken read. Consequence worth carrying forward: those two rows skipped
+# the guarded write path, so they carry no snapshot and no cite. The values are correct and reconcile
+# (`co2_fossil + ch4*28 + n2o*265 = ttw_co2e` holds for both), but their provenance trail is thinner
+# than rule-015 requires. Re-seeding them through the now-working seeder is NOT authorised by this
+# workflow change and must not be attempted here — a duplicate insert is worse than a thin trail, and
+# the natural-key skip would refuse the write anyway.
 
 on:
   workflow_dispatch:
@@ -61,7 +81,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, eurostat-nrg-pc-205, bls-oews, eu-weekly-oil-bulletin, desnz-emission-factors]
+        options: [all, eurostat-nrg-pc-205, bls-oews, eu-weekly-oil-bulletin, desnz-emission-factors, epa-emission-factors]
   # BUILD MODE (operator ruling 2026-08-30): no schedule while the site is being built — population
   # happens by explicit dispatch, read, then applied. The runtime, both gates, and the cadence notes
   # above all stay, so re-arming when build mode ends is exactly this block, restored in one reviewed
@@ -181,6 +201,39 @@ jobs:
             node scripts/gen/emission-factors-desnz.mjs --apply
           else
             node scripts/gen/emission-factors-desnz.mjs
+          fi
+
+      - name: EPA modal defaults -> emission_factors
+        # Seeds two US modal_default rows from the fixture, through the same guarded path and shared
+        # natural-key idempotency module (scripts/gen/emission-factors-common.mjs) as the DESNZ step
+        # above — both seeders share it, and the orderBy:"factor_id" fix documented on that step
+        # corrects the live-rows read for both sources, not DESNZ alone.
+        #
+        # UNTIL TODAY THIS SEEDER WAS WIRED TO NOTHING. emission-factors-epa.mjs existed, was tested,
+        # and had already contributed two live rows to emission_factors (2026-08-30) — but no workflow
+        # and no script anywhere in the repo referenced it (confirmed by `git grep "emission-factors-epa"`:
+        # only a doc comment and a help string turned up, no caller). Those two rows were NOT written by
+        # this seeder: the shared read it depends on threw for the whole period they were inserted (see
+        # the DESNZ step's history above), the seeder is fail-closed (`if (apply) throw e`), so an
+        # --apply through it would have ABORTED rather than written. Both rows share one `created_at` to
+        # the microsecond — a single batch insert — and the seeder had no runtime to originate from; they
+        # were inserted by direct SQL from a coordinator session, bypassing the broken read. The values
+        # are correct and reconcile (`co2_fossil + ch4*28 + n2o*265 = ttw_co2e` holds for both), but they
+        # carry no snapshot and no cite because they skipped guardedInsertMany. Do NOT dispatch this step
+        # with --apply to backfill that gap — the natural-key skip will just report both already live,
+        # and a duplicate insert is worse than a thin provenance trail.
+        #
+        # NOT in the 'all' fan-out, deliberately, for the same reason as DESNZ above: 'all' is the
+        # recurring data sweep for sources that republish on a cadence. A published EPA factor set is a
+        # ONE-OFF seed of a fixed table (2025 GHG Emission Factors Hub), so sweeping it every run would
+        # be a no-op upsert forever and would blur the line between "fetch what changed" and "seed what
+        # is fixed". Dispatch it by name when the factor set changes.
+        if: env.RUN_PRODUCER == 'epa-emission-factors'
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then
+            node scripts/gen/emission-factors-epa.mjs --apply
+          else
+            node scripts/gen/emission-factors-epa.mjs
           fi
 
       # Runs even when a producer failed, so the log always ends with the true state of the stores

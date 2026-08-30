@@ -25,6 +25,7 @@
 
 import Link from "next/link";
 import type { Resource } from "@/types/resource";
+import { SEVERITY_TO_OPERATIONS_BUCKET } from "@/lib/agent/metadata-vocab";
 
 // ── Severity vocabulary (Operations: Critical / High / Moderate / Low) ──
 
@@ -44,26 +45,12 @@ const SEVERITY_LABEL: Record<Severity, string> = {
   low: "Low",
 };
 
-// Column-first severity mapping (same as OperationsPage).
-const SEVERITY_COLUMN_TO_KEY: Record<string, Severity> = {
-  critical: "critical",
-  high: "high",
-  moderate: "moderate",
-  low: "low",
-  action_required: "critical",
-  cost_alert: "high",
-  window_closing: "moderate",
-  competitive_edge: "moderate",
-  monitoring: "low",
-  immediate: "critical",
-  watch: "moderate",
-  reference: "low",
-  background: "low",
-};
-
 function deriveSeverity(r: Resource): Severity {
-  if (r.severity && SEVERITY_COLUMN_TO_KEY[r.severity]) {
-    return SEVERITY_COLUMN_TO_KEY[r.severity];
+  // Addendum 63 (2026-08-30): the DB-value -> bucket-key mapping is shared with
+  // OperationsLedger.tsx via SEVERITY_TO_OPERATIONS_BUCKET (metadata-vocab.ts) — it used to be
+  // a byte-identical copy hand-typed independently in both files.
+  if (r.severity && SEVERITY_TO_OPERATIONS_BUCKET[r.severity]) {
+    return SEVERITY_TO_OPERATIONS_BUCKET[r.severity];
   }
   const text = `${r.title} ${r.note || ""}`.toLowerCase();
   if (/\b(action required|immediate|deadline|effective \d|in force)\b/.test(text)) return "critical";
