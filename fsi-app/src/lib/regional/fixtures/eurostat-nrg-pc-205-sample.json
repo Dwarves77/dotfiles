@@ -1,0 +1,66 @@
+{
+  "_test_fixture_note": "Illustrative test data shaped as Eurostat's documented JSON-stat 2.0 response for dataset nrg_pc_205 (https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nrg_pc_205). This is NOT a live capture — outbound network access to ec.europa.eu was unavailable in the sandbox this fixture was authored in (agent-proxy denied the CONNECT, 2026-08-30). The dimension/value SHAPE follows Eurostat's published JSON-stat 2.0 format; the consumption-band codes (nrg_cons) are illustrative placeholders, not verified against the live vocabulary. The parser (eurostat-nrg-pc-205-parser.mjs) is fully data-driven off this shape and does not hardcode band codes, so it is correct against the real API's actual band set without a code change — only this fixture's realism is unverified.",
+  "version": "2.0",
+  "class": "dataset",
+  "label": "Electricity prices for non-household consumers - bi-annual data (from 2007 onwards)",
+  "source": "Eurostat",
+  "updated": "2026-06-13",
+  "id": ["freq", "product", "nrg_cons", "unit", "tax", "currency", "geo", "time"],
+  "size": [1, 1, 2, 1, 1, 1, 2, 2],
+  "dimension": {
+    "freq": {
+      "label": "Time frequency",
+      "category": { "index": { "S": 0 }, "label": { "S": "Semi-annual" } }
+    },
+    "product": {
+      "label": "Product",
+      "category": { "index": { "6000": 0 }, "label": { "6000": "Electricity" } }
+    },
+    "nrg_cons": {
+      "label": "Consumption band",
+      "category": {
+        "index": { "MWH20-499": 0, "MWH500-1999": 1 },
+        "label": {
+          "MWH20-499": "20 MWh < Consumption < 500 MWh",
+          "MWH500-1999": "500 MWh < Consumption < 2 000 MWh"
+        }
+      }
+    },
+    "unit": {
+      "label": "Unit of measure",
+      "category": { "index": { "KWH": 0 }, "label": { "KWH": "Kilowatt-hour" } }
+    },
+    "tax": {
+      "label": "Taxes",
+      "category": { "index": { "I_TAX": 0 }, "label": { "I_TAX": "All taxes and levies included" } }
+    },
+    "currency": {
+      "label": "Currency",
+      "category": { "index": { "EUR": 0 }, "label": { "EUR": "Euro" } }
+    },
+    "geo": {
+      "label": "Geopolitical entity (reporting)",
+      "category": {
+        "index": { "EU27_2020": 0, "DE": 1 },
+        "label": { "EU27_2020": "European Union - 27 countries (from 2020)", "DE": "Germany" }
+      }
+    },
+    "time": {
+      "label": "Time",
+      "category": {
+        "index": { "2025-S1": 0, "2025-S2": 1 },
+        "label": { "2025-S1": "2025-S1", "2025-S2": "2025-S2" }
+      }
+    }
+  },
+  "value": {
+    "0": 0.2043,
+    "1": 0.2087,
+    "2": 0.2211,
+    "3": 0.2255,
+    "4": 0.1821,
+    "5": 0.1856,
+    "6": 0.1998
+  },
+  "status": {}
+}

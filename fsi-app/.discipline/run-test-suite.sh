@@ -88,6 +88,7 @@ node --test \
   fsi-app/scripts/lib/verification-decision.selftest.mjs \
   fsi-app/scripts/lib/verify.selftest.mjs \
   fsi-app/scripts/verify/lib/*.test.mjs \
+  fsi-app/scripts/gen/*.test.mjs \
   fsi-app/src/__tests__/*.test.mjs \
   fsi-app/src/lib/credibility/*.test.mjs \
   fsi-app/src/lib/sources/*.test.mjs \

@@ -9,6 +9,23 @@
 
 export const EXEMPTIONS = [
   {
+    match: '-behaviour.sql',
+    kinds: ['writes'],
+    reason:
+      'Hand-run behavioural PROOF fixtures for the migration codegen family (scripts/gen/' +
+      'migration-NNN-behaviour.sql). They exist to be executed against a scratch database and to ' +
+      'DEMONSTRATE what the migration CHECKs reject; they are not a production write path, are ' +
+      'referenced by no lane, no route and no scheduled pass, and never run against live data. ' +
+      'FINDING recorded rather than relied on (rule 14): migration-258-behaviour.sql was already ' +
+      'on the covered side of this scan, but only INCIDENTALLY — it happens to contain a ' +
+      '`DELETE FROM public.emission_factors` line, which matches remediation-discipline\'s ' +
+      '/\\bDELETE\\s+FROM\\b/i op regex. Its coverage was an artefact of fixture content, not a ' +
+      'governance decision. migration-268-behaviour.sql contains only INSERTs and therefore gapped, ' +
+      'which is what surfaced the class. This entry states the rule for the whole family once, so ' +
+      'the next behaviour fixture is decided rather than accidental in either direction.',
+    by: 'Wave 4 producers (WO-16/17/18/20) coordinator, 2026-08-30',
+  },
+  {
     match: 'fsi-app/src/lib/contracts/corridor-id.mjs',
     kinds: ['writes'],
     reason:
