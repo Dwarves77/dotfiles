@@ -122,6 +122,36 @@ test("buildSeriesBoard names every implemented producer even when nothing has be
   assert.deepEqual(implementedNames, ["EU Weekly Oil Bulletin"]);
 });
 
+// ── buildSeriesBoard: id passthrough (L6, watch mount identity) ────────
+//
+// fetchWatchlist's resolveWatchlistTypeFields (supabase-server.ts, WO-23) resolves a watched
+// market_series row by its `id` (uuid) against the market_series table, NOT by series_key. A
+// WatchButton mounted on this display row must therefore watch `id`, not `seriesKey` — this test
+// pins that the winning row's `id` survives the latest-per-series reduction instead of being
+// dropped, which would leave the board with nothing to mount a watch against.
+
+test("buildSeriesBoard threads the winning row's `id` through to the display row (watch-mount identity)", () => {
+  const rows = [
+    { id: "aaaaaaaa-0000-0000-0000-000000000001", series_key: "eu-oil-bulletin:automotive-diesel", label: "Diesel", value_numeric: 1500, unit: "EUR/1000L", currency: "EUR", reference_period: "2026-08-10", as_at_date: "2026-08-10" },
+    { id: "aaaaaaaa-0000-0000-0000-000000000002", series_key: "eu-oil-bulletin:automotive-diesel", label: "Diesel", value_numeric: 1543.21, unit: "EUR/1000L", currency: "EUR", reference_period: "2026-08-24", as_at_date: "2026-08-24" },
+  ];
+  const board = buildSeriesBoard(rows);
+  const group = board.groups.find((g) => g.keyPrefix === "eu-oil-bulletin");
+  const s = group.series[0];
+  // The LATER row (2026-08-24) wins the reduction, so its id — not the earlier row's — must be the one
+  // threaded through.
+  assert.equal(s.id, "aaaaaaaa-0000-0000-0000-000000000002");
+});
+
+test("buildSeriesBoard renders `id: null` (never throws) for a row missing `id`, rather than fabricating one", () => {
+  const rows = [
+    { series_key: "eu-oil-bulletin:automotive-diesel", label: "Diesel", value_numeric: 1500, unit: "EUR/1000L", currency: "EUR", reference_period: "2026-08-10", as_at_date: "2026-08-10" },
+  ];
+  const board = buildSeriesBoard(rows);
+  const group = board.groups.find((g) => g.keyPrefix === "eu-oil-bulletin");
+  assert.equal(group.series[0].id, null);
+});
+
 test("a producer with rows for ONE of its series still shows state 'populated' for the group as a whole", () => {
   const rows = [
     { series_key: "eu-oil-bulletin:eurosuper-95", label: "Petrol", value_numeric: 1600, unit: "EUR/1000L", currency: "EUR", reference_period: "2026-08-24", as_at_date: "2026-08-24" },
