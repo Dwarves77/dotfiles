@@ -2496,6 +2496,11 @@ export async function fetchStateCostFacts(): Promise<StateCostFactRow[]> {
 /** One series' display-ready row — mirrors series-board-view-model.mjs's SeriesDisplayRow typedef. */
 export interface MarketSeriesDisplayRow {
   seriesKey: string;
+  /** The winning row's own market_series.id (uuid) — the exact identity fetchWatchlist's
+   *  resolveWatchlistTypeFields resolves a watched market_series row by (NOT series_key). This is what
+   *  MarketSeriesBoard.tsx passes as WatchButton's itemId. See series-board-view-model.mjs's
+   *  SeriesDisplayRow typedef for the full rationale. */
+  id: string | null;
   label: string;
   displayValue: string;
   emptyReason: string | null;
@@ -2563,7 +2568,7 @@ export async function fetchMarketSeriesBoard(): Promise<MarketSeriesBoardVM> {
     const { data, error } = await supabase
       .from("market_series")
       .select(
-        "series_key, label, value_numeric, unit, currency, derivation, origin_class, source_key, source_ref, n_observations, method_version, as_at_date, reference_period"
+        "id, series_key, label, value_numeric, unit, currency, derivation, origin_class, source_key, source_ref, n_observations, method_version, as_at_date, reference_period"
       )
       .order("reference_period", { ascending: false })
       .limit(SERIES_HISTORY_LIMIT);
