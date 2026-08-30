@@ -65,6 +65,25 @@ export const SOURCE_LICENCES = Object.freeze({
     url: "https://ec.europa.eu/eurostat/about-us/policies/copyright", verifiedOn: "2026-08-12",
     note: "Modifications must be flagged to the end user, and a transformation must not imply Eurostat endorsement.",
   },
+  ec_weekly_oil_bulletin: {
+    key: "ec_weekly_oil_bulletin", name: "European Commission Weekly Oil Bulletin (DG ENER)",
+    redistribution: "permitted", licence: "CC BY 4.0 (Decision 2011/833/EU)",
+    attribution: "Source: European Commission, Weekly Oil Bulletin (DG Energy). "
+               + "\u00a9 European Union — reused under Decision 2011/833/EU (CC BY 4.0); changes indicated.",
+    url: "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en", verifiedOn: "2026-08-30",
+    note: "Weekly national fuel prices with and without taxes, submitted by Member States and published by "
+        + "the Commission as XLSX. VERIFIED 2026-08-30 against two primary sources, not by analogy to the "
+        + "sibling Eurostat/EUR-Lex entries: (1) the bulletin page itself carries NO dataset-specific "
+        + "copyright notice, so it does not fall in the Commission legal notice's 'individual copyright "
+        + "notice' carve-out; (2) the Commission legal notice states Commission-owned content is licensed "
+        + "CC BY 4.0 under Decision 2011/833/EU, reuse allowed 'provided appropriate credit is given and "
+        + "changes are indicated' — hence the changes-indicated clause in the attribution above, which "
+        + "matters here because we derive numeric series from the published spreadsheets. UNCONFIRMED and "
+        + "recorded rather than assumed away: whether any individual Member State submission carries "
+        + "separate upstream rights. No such notice appears on the publication, and the Commission "
+        + "publishes it as its own document, so the default applies; if a Member State notice ever "
+        + "surfaces, this entry drops to `conditional` and the gate closes automatically.",
+  },
   eia: {
     key: "eia", name: "US Energy Information Administration", redistribution: "permitted",
     licence: "US public domain (17 USC 105)", attribution: "Source: U.S. Energy Information Administration",
