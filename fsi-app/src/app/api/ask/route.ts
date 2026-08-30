@@ -5,6 +5,7 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { captureError, withErrorCapture } from "@/lib/telemetry/capture-error";
 import { ENVIRONMENTAL_POLICY_SKILL_CORE } from "@/lib/llm/skill-loader";
 import { spendStreamRaw, setSpendTicket, resetSpendTicket } from "@/lib/llm/spend-client";
+import { buildOperationsAskContext } from "@/lib/agent/operations-ask-context.mjs";
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -227,6 +228,28 @@ async function handlePOST(request: NextRequest) {
       .eq("status", "active")
       .order("base_tier")
       .limit(20);
+    // WO-11 (2026-08-30, docs/plans/operations-lane-spec-from-repo.md §WO-11): ground the Assistant on
+    // the three Operations tables it was previously blind to — confirmed by full-file grep this session
+    // that /api/ask referenced ZERO of regional_data_facts / region_dimension_coverage / state_cost_facts
+    // before this change. Read locally through this route's OWN service-role client (not through
+    // fetchOperationsCoverage()/fetchStateCostFacts() in supabase-server.ts, which is reader-lane
+    // territory this route does not write to) — the same three tables, the same join shape. 75 +
+    // 13 live rows today (rule 0.15, re-confirmed this session): cheap enough to fetch in full, no FTS
+    // filtering, same posture as sourcesContext above. Started alongside sourcesPromise so it pays no
+    // extra sequential round trip.
+    const operationsPromise = Promise.all([
+      supabase.from("regions").select("code"),
+      supabase
+        .from("regional_data_facts")
+        .select(
+          "dimension, fact_label, value, status, trend, source_note, last_updated, value_numeric, unit, currency, derivation, origin_class, source_key, source_ref, n_observations, method_version, as_at_date, reference_period, region:regions(code), source:sources(name)"
+        ),
+      supabase
+        .from("state_cost_facts")
+        .select(
+          "state_code, state_label, dimension, fact_label, value, unit, trend, statute_citation, effective_date, origin_class, source:sources(name)"
+        ),
+    ]);
     const { data: ftsHits, error: ftsErr } = await supabase.rpc("search_intelligence_items", {
       q: question,
       max_rows: 12,
@@ -291,6 +314,99 @@ async function handlePOST(request: NextRequest) {
     // base_tier for stable list ordering through Q7 recomputes.
     const { data: sources } = await sourcesPromise;
 
+    // WO-11: normalize the three Operations reads into the plain-object shape
+    // operations-ask-context.mjs's pure formatters expect (a sibling module to this
+    // route, not under src/lib/operations/** — see that module's header). Fails soft to
+    // empty arrays per-table, same posture as the rest of this route: a transient error on
+    // one Operations table must not take down the whole Assistant response.
+    const [regionsRes, regionalFactsRes, stateCostFactsRes] = await operationsPromise;
+    if (regionsRes.error) console.warn(`[ask] operations regions fetch failed: ${regionsRes.error.message}`);
+    if (regionalFactsRes.error) console.warn(`[ask] operations regional_data_facts fetch failed: ${regionalFactsRes.error.message}`);
+    if (stateCostFactsRes.error) console.warn(`[ask] operations state_cost_facts fetch failed: ${stateCostFactsRes.error.message}`);
+
+    const regionCodes: string[] = (regionsRes.data ?? [])
+      .map((r: { code: string | null }) => r.code)
+      .filter((c): c is string => typeof c === "string" && c.length > 0);
+
+    const regionalFacts = (regionalFactsRes.data ?? []).map((f: {
+      dimension: string;
+      fact_label: string;
+      value: string;
+      status: string | null;
+      trend: string | null;
+      source_note: string | null;
+      last_updated: string | null;
+      value_numeric: number | null;
+      unit: string | null;
+      currency: string | null;
+      derivation: string | null;
+      origin_class: string | null;
+      source_key: string | null;
+      source_ref: string | null;
+      n_observations: number | null;
+      method_version: string | null;
+      as_at_date: string | null;
+      reference_period: string | null;
+      region: { code: string } | { code: string }[] | null;
+      source: { name: string } | { name: string }[] | null;
+    }) => {
+      const region = Array.isArray(f.region) ? f.region[0] : f.region;
+      const src = Array.isArray(f.source) ? f.source[0] : f.source;
+      return {
+        region_code: region?.code ?? "?",
+        dimension: f.dimension,
+        fact_label: f.fact_label,
+        value: f.value,
+        status: f.status,
+        trend: f.trend,
+        source_name: src?.name ?? null,
+        source_note: f.source_note,
+        last_updated: f.last_updated,
+        value_numeric: f.value_numeric,
+        unit: f.unit,
+        currency: f.currency,
+        derivation: f.derivation,
+        origin_class: f.origin_class,
+        source_key: f.source_key,
+        source_ref: f.source_ref,
+        n_observations: f.n_observations,
+        method_version: f.method_version,
+        as_at_date: f.as_at_date,
+        reference_period: f.reference_period,
+      };
+    });
+
+    const stateCostFacts = (stateCostFactsRes.data ?? []).map((f: {
+      state_code: string;
+      state_label: string | null;
+      dimension: string | null;
+      fact_label: string;
+      value: string;
+      unit: string | null;
+      trend: string | null;
+      statute_citation: string | null;
+      effective_date: string | null;
+      origin_class: string | null;
+      source: { name: string } | { name: string }[] | null;
+    }) => {
+      const src = Array.isArray(f.source) ? f.source[0] : f.source;
+      return {
+        state_code: f.state_code,
+        state_label: f.state_label,
+        dimension: f.dimension,
+        fact_label: f.fact_label,
+        value: f.value,
+        unit: f.unit,
+        trend: f.trend,
+        statute_citation: f.statute_citation,
+        effective_date: f.effective_date,
+        source_name: src?.name ?? null,
+        origin_class: f.origin_class,
+      };
+    });
+
+    const operationsContext = buildOperationsAskContext({ regionCodes, regionalFacts, stateCostFacts });
+
     // Per-item context block. Each item carries id, title, severity,
     // priority, category, jurisdictions, modes, source name + tier + URL,
     // a truncated brief, a truncated intersection summary, and the count
@@ -348,7 +464,9 @@ AVAILABLE PLATFORM ITEMS (${items.length} items currently in your context; cite 
 ${itemsContext}
 
 AVAILABLE SOURCES (top registered sources by tier, for credibility framing):
-${sourcesContext}`;
+${sourcesContext}
+
+${operationsContext}`;
 
     // Call Claude THROUGH the spend chokepoint (F15). This route was the last raw
     // api.anthropic.com fetch on a customer path — an ungated, untelemetried spend site.
