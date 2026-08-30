@@ -20,7 +20,7 @@
 // executes the plan it is handed.
 
 import { readClient, readAll, guardedInsert, guardedUpdate } from "../../../scripts/lib/db.mjs";
-import { planUpsert } from "../../../src/lib/regional/regional-facts-envelope.mjs";
+import { buildEnvelopeRow, planUpsert } from "../../../src/lib/regional/regional-facts-envelope.mjs";
 
 const ENVELOPE_SELECT =
   "id, region_id, dimension, fact_label, value, value_numeric, unit, currency, derivation, " +
@@ -61,11 +61,76 @@ async function readExistingForSource(sourceKey, regionIdToCode) {
 }
 
 /**
+ * Turn a parser's OBSERVATIONS into rows the table will actually accept.
+ *
+ * THE STEP THAT WAS MISSING, and the reason `regional_data_facts` sat at 75 rows / 0 enveloped values
+ * through Waves 4-7. Both parsers document their return as "observations shaped for buildEnvelopeRow",
+ * and this orchestrator passed them STRAIGHT to planUpsert and guardedInsert — buildEnvelopeRow was
+ * written, tested, and never called by anything. `regional_data_facts.value` is TEXT NOT NULL
+ * (migration 106; migration 267's envelope columns are additive and did not relax it), and an
+ * observation does not carry `value` — only buildEnvelopeRow derives it, mechanically, from
+ * value_numeric + unit. So the first live --apply failed at the first row with
+ * `null value in column "value" ... violates not-null constraint` (run #2, 2026-08-30).
+ *
+ * WHY NO TEST CAUGHT IT: the parsers are proved against fixtures, buildEnvelopeRow is proved against a
+ * hand-built observation, and planUpsert is proved against buildEnvelopeRow output. Every layer was
+ * green in isolation and NOTHING exercised the seam between them, because this orchestrator had no
+ * proof at all. run-envelope-producer.test.mjs is now that proof, and it asserts the candidate row
+ * carries every NOT-NULL column of the live table rather than merely "has a value field" — the
+ * assertion that would have failed red before this change.
+ *
+ * Kept exported and pure so the seam is testable without a database.
+ * @param {Array<object>} observations - parser output
+ * @returns {Array<object>} full envelope rows (parser fields + mechanically-derived `value`)
+ */
+export function toCandidateRows(observations) {
+  return (observations ?? []).map(buildEnvelopeRow);
+}
+
+/**
+ * Reduce candidates to the LATEST observation per natural key, (region_code, dimension, fact_label),
+ * which is the live UNIQUE constraint (regional_data_facts_region_id_dimension_fact_label_key,
+ * re-read from pg_constraint 2026-08-30).
+ *
+ * WHY THIS EXISTS. regional_data_facts is a CURRENT-STATE table: one row per fact label, refreshed in
+ * place, never a time series. The Eurostat parser honestly emits one observation per (consumption
+ * band, semester) present in the payload, and its fact_label carries the band but NOT the semester,
+ * so a live payload (283 observations = ~7 bands x ~40 semesters, run #1 2026-08-30) contains ~40
+ * candidates per key. planUpsert dedupes candidates against EXISTING rows only, never against each
+ * other, so an apply would insert one semester of the first band and then die with 23505
+ * unique_violation on the second. Found by reading planUpsert against pg_constraint, before any
+ * second live apply was attempted.
+ *
+ * "Latest" is decided by as_at_date (ISO date, every producer sets it), tie-broken by
+ * reference_period string compare, both mechanical, no clock read, fully deterministic for a given
+ * payload. Older periods are dropped, not written: history belongs to a series table (market_series
+ * is that shape), not to this one.
+ * @param {Array<object>} candidates - buildEnvelopeRow() output
+ * @returns {Array<object>} at most one candidate per (region_code, dimension, fact_label)
+ */
+export function latestPerNaturalKey(candidates) {
+  const latest = new Map();
+  for (const c of candidates ?? []) {
+    const key = `${c.region_code}|${c.dimension}|${c.fact_label}`;
+    const prev = latest.get(key);
+    if (
+      !prev ||
+      String(c.as_at_date) > String(prev.as_at_date) ||
+      (String(c.as_at_date) === String(prev.as_at_date) &&
+        String(c.reference_period) > String(prev.reference_period))
+    ) {
+      latest.set(key, c);
+    }
+  }
+  return [...latest.values()];
+}
+
+/**
  * @param {{
  *   producerName: string,
  *   enabled: boolean,
  *   sourceKey: string,
- *   fetchAndParse: () => Promise<object[]>,   // returns buildEnvelopeRow()-shaped candidate rows
+ *   fetchAndParse: () => Promise<object[]>,   // returns OBSERVATIONS (buildEnvelopeRow input), not table rows
  *   cite: {skill: string, reason: string},
  * }} config
  */
@@ -81,8 +146,17 @@ export async function runEnvelopeProducer({ producerName, enabled, sourceKey, fe
   const APPLY = args.includes("--apply");
   const DRY = !APPLY;
 
-  const candidates = await fetchAndParse();
-  console.log(`${producerName}: parsed ${candidates.length} candidate row(s) from the source.`);
+  const observations = await fetchAndParse();
+  // Observations are NOT table rows: buildEnvelopeRow is what derives the NOT-NULL `value` column from
+  // the envelope. Skipping it is what made every --apply fail closed. See toCandidateRows above.
+  const allCandidates = toCandidateRows(observations);
+  // Current-state table: keep only the latest observation per natural key. See latestPerNaturalKey
+  // above for why writing every period would violate the live UNIQUE constraint on the second row.
+  const candidates = latestPerNaturalKey(allCandidates);
+  console.log(
+    `${producerName}: parsed ${allCandidates.length} observation(s) -> ${candidates.length} current-state candidate row(s)` +
+      (allCandidates.length !== candidates.length ? ` (${allCandidates.length - candidates.length} superseded period(s) dropped)` : ""),
+  );
   if (!candidates.length) {
     console.log(`${producerName}: nothing to write.`);
     return { ran: true, candidates: 0, plan: { toInsert: [], toUpdate: [], unchanged: 0 } };
