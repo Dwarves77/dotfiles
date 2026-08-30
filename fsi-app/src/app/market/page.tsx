@@ -9,6 +9,12 @@
  *   - <MarketIntelLedger> — five severity tiles → three-band strip → Ask bar
  *     → severity-banded signal ledger (HANDOFF §6.4). Reuses the TEMPLATE 02
  *     index archetype.
+ *   - <MarketSeriesBoard> — WO-16 layer 3: the missing reader for `market_series`, a
+ *     different table from the intelligence-item rows above (dated numeric observations —
+ *     EU oil bulletin product prices, EEX/ECB/EIA once built — not signal cards). Grouped
+ *     by registry producer (src/lib/market/series-registry.mjs) via the pure
+ *     buildSeriesBoard transform (src/lib/market/series-board-view-model.mjs); renders the
+ *     honest "registered, not yet populated" state per producer instead of a blank hole.
  *
  * COUNTS (binding — THE severity card-swap): the tiles read
  * get_surface_counts('market').by_severity, the band strip reads .by_band,
@@ -21,8 +27,10 @@
  */
 
 import { getMarketIntelItems, getSurfaceCounts } from "@/lib/data";
+import { fetchMarketSeriesBoard } from "@/lib/supabase-server";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { MarketIntelLedger } from "@/components/market/MarketIntelLedger";
+import { MarketSeriesBoard } from "@/components/market/MarketSeriesBoard";
 
 // Sprint 3 (2026-05-27): force-dynamic per /community precedent. Static
 // generation at build time has no cookies; resolveOrgIdFromCookies returns
@@ -35,9 +43,13 @@ const BAND_VOCAB_SIZE = 3; // price / corporate / corridor (fixed taxonomy)
 export default async function Market() {
   // Category-routed verified market rows (fail CLOSED) + the single-SoT
   // verified count bundle (by_severity tiles / by_band bands / total_items).
-  const [marketIntel, aggregates] = await Promise.all([
+  // WO-16 layer 3: the market_series board runs alongside the category-routed rows above — a
+  // separate table, separate fetcher (fetchMarketSeriesBoard fails soft to the empty/unpopulated
+  // registry state, never throws), so its absence or emptiness never blocks the signal ledger.
+  const [marketIntel, aggregates, seriesBoard] = await Promise.all([
     getMarketIntelItems(),
     getSurfaceCounts("market"),
+    fetchMarketSeriesBoard(),
   ]);
 
   const totalSignals = aggregates.totalItems || marketIntel.resources.length;
@@ -60,6 +72,7 @@ export default async function Market() {
     <>
       <EditorialMasthead title="Market Intelligence" meta={meta} />
       <MarketIntelLedger initialResources={marketIntel.resources} aggregates={aggregates} />
+      <MarketSeriesBoard board={seriesBoard} />
     </>
   );
 }
