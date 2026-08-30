@@ -1380,6 +1380,110 @@ export async function fetchSourceCitationStatsByIds(
   }
 }
 
+// ── Market list-page price stat (WO-13 B4 re-point) ───────────
+//
+// published_price_statistics (migration 151/152) was, until this WO, read
+// ONLY on the /market/[slug] detail route (PriceBoard). The /market LIST
+// page's key figure was bound to `marketData.currentPrice`, a field with
+// no producer anywhere (WO-5 B4 finding; docs/ops/wo5-orphan-disposition-
+// 2026-08-20.md row 4). This is a SECOND, list-scoped reader of the same
+// table, added alongside the existing detail-page reader — PriceBoard's
+// own fetch (market/[slug]/page.tsx:149-183) is untouched.
+//
+// One row per item_id (lowest sort_order), mirroring PriceBoard's own
+// ordering convention (`.order("sort_order", { ascending: true })`,
+// market/[slug]/page.tsx:166 / MarketSignalDetailSurface.tsx:161-166) —
+// the list page renders a single key figure, not the full multi-stat
+// board, so only the first (lowest-sort_order) row per item is kept.
+//
+// Failure is non-fatal: callers receive an empty Map and every row renders
+// the honest em-dash "no price dimension" (unchanged pre-WO-13 behaviour).
+export interface MarketPriceStat {
+  label: string;
+  valueDisplay: string;
+  unit: string | null;
+  releasedAt: string | null;
+}
+
+// Market Resource.id is `legacy_id || uuid` (rpcRowToResource, above) but
+// published_price_statistics.item_id is a UUID FK column. Passing a
+// legacy-id-shaped string into .eq/.in on a uuid column raises Postgres
+// 22P02 ("invalid input syntax for type uuid") — CONFIRMED live 2026-08-30:
+// `SELECT * FROM published_price_statistics WHERE item_id =
+// 'lng-natural-gas-price-intelligence'` (that item's real Resource.id, since
+// it carries a legacy_id) raises exactly that error. Because .in() rejects
+// the WHOLE list on one malformed value, this would silently zero out every
+// item's priceStat, not just the mismatched one. Resolve legacy ids to their
+// real uuid first, mirroring the uuidIds/legacyIds split fetchWatchlist uses
+// below for the identical id-shape ambiguity.
+const MARKET_ITEM_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function fetchPriceStatsByItemIds(
+  itemIds: string[]
+): Promise<Map<string, MarketPriceStat>> {
+  const out = new Map<string, MarketPriceStat>();
+  if (!isSupabaseConfigured() || itemIds.length === 0) return out;
+  try {
+    const supabase = getSupabase();
+
+    const uuidIds = itemIds.filter((id) => MARKET_ITEM_UUID_RE.test(id));
+    const legacyIds = itemIds.filter((id) => !MARKET_ITEM_UUID_RE.test(id));
+    // Re-key the final result back to the caller's original id (which may be
+    // a legacy_id) so getMarketIntelItems() can look it up by Resource.id.
+    const callerIdByUuid = new Map<string, string>(uuidIds.map((id) => [id, id]));
+
+    if (legacyIds.length > 0) {
+      const { data: resolved, error: resolveErr } = await supabase
+        .from("intelligence_items")
+        .select("id, legacy_id")
+        .in("legacy_id", legacyIds);
+      if (resolveErr) {
+        console.error("[market] fetchPriceStatsByItemIds legacy_id resolve error:", describeSupabaseError(resolveErr));
+      } else if (Array.isArray(resolved)) {
+        for (const row of resolved) {
+          if (row && typeof row.id === "string" && typeof row.legacy_id === "string") {
+            uuidIds.push(row.id);
+            callerIdByUuid.set(row.id, row.legacy_id);
+          }
+        }
+      }
+    }
+    if (uuidIds.length === 0) return out;
+
+    const { data, error } = await supabase
+      .from("published_price_statistics")
+      .select("item_id, label, value_display, unit, released_at, sort_order")
+      .in("item_id", uuidIds)
+      .order("item_id", { ascending: true })
+      .order("sort_order", { ascending: true });
+    if (error) {
+      console.error("[market] fetchPriceStatsByItemIds error:", describeSupabaseError(error));
+      return out;
+    }
+    if (Array.isArray(data)) {
+      for (const row of data) {
+        // Rows arrive grouped by item_id, sort_order ascending within each
+        // group — keep only the FIRST row seen per item_id (lowest sort_order).
+        if (row && typeof row.item_id === "string") {
+          const callerId = callerIdByUuid.get(row.item_id) ?? row.item_id;
+          if (!out.has(callerId)) {
+            out.set(callerId, {
+              label: row.label,
+              valueDisplay: row.value_display,
+              unit: row.unit ?? null,
+              releasedAt: row.released_at ?? null,
+            });
+          }
+        }
+      }
+    }
+    return out;
+  } catch (e) {
+    console.error("[market] fetchPriceStatsByItemIds failed:", e);
+    return out;
+  }
+}
+
 // ── Master Fetch ─────────────────────────────────────────────
 
 export interface SectorSynopsis {
@@ -2128,6 +2232,15 @@ export interface OperationsRegion {
   label: string;
   severity: string | null;
   displayOrder: number;
+  /**
+   * WO-22 (2026-08-30): the ISO/supranational code crosswalk `regions.iso_codes` already carries
+   * live (EU→[EU,DE,NL,BE,FR,IT,ES], US→[US,US-CA,US-NY,US-TX], ASIA→[SG,HK,CN,JP,KR], UK→[GB],
+   * UAE→[AE]) — added so OperationsLedger.tsx can group regulations into region cards against the
+   * same canonical crosswalk `resolveItemRegionCodes` (operations-matrix.ts) already uses, instead
+   * of a duplicated, weaker title-text regex. Additive; empty array when the column has no rows
+   * (never null, so a caller never needs an extra null-check beyond the array itself).
+   */
+  isoCodes: string[];
 }
 
 export interface OperationsCoverageRow {
@@ -2199,7 +2312,13 @@ export async function fetchOperationsCoverage(): Promise<OperationsCoverageData>
     const [regionsRes, coverageRes, factsRes] = await Promise.all([
       supabase
         .from("regions")
-        .select("id, code, label, severity, display_order")
+        // WO-22: iso_codes added (surgical, this select only) so OperationsLedger.tsx can group
+        // regulations via the canonical crosswalk instead of a duplicated title-text regex. Not
+        // part of DashboardData / DASHBOARD_DATA_CACHE_KEY (rule 021) for the same reason the rest
+        // of this fetcher isn't — see the `regional_data_facts` select's note a few lines below:
+        // fetchOperationsCoverage is called only from src/app/operations/page.tsx, a
+        // `force-dynamic` route, and is not wrapped in unstable_cache anywhere in this module.
+        .select("id, code, label, severity, display_order, iso_codes")
         .order("display_order", { ascending: true }),
       supabase
         .from("region_dimension_coverage")
@@ -2228,12 +2347,13 @@ export async function fetchOperationsCoverage(): Promise<OperationsCoverageData>
       return { regions: [], coverage: [], facts: [] };
     }
 
-    const regions: OperationsRegion[] = (regionsRes.data || []).map((r: { id: string; code: string; label: string; severity: string | null; display_order: number }) => ({
+    const regions: OperationsRegion[] = (regionsRes.data || []).map((r: { id: string; code: string; label: string; severity: string | null; display_order: number; iso_codes: string[] | null }) => ({
       id: r.id,
       code: r.code,
       label: r.label,
       severity: r.severity,
       displayOrder: r.display_order,
+      isoCodes: Array.isArray(r.iso_codes) ? r.iso_codes : [],
     }));
     const regionCodeById = new Map(regions.map((r) => [r.id, r.code]));
 
