@@ -6849,3 +6849,70 @@ PROGRAM-BOARD's own shorthand carries the same imprecision.
 migration 033) → all eight RPCs now project it (272) → `normalizeJurisdictionIsoColumn` (lane `lb`) →
 `Resource.jurisdictionIso` on list and ledger surfaces that have been receiving `undefined` since the
 field was declared.
+
+## Addendum 68 — Node 20 deprecation on caros-ledge-backups: I read release notes instead of the manifest (2026-08-30, Cowork session)
+
+The last open item on my list that did not need Jason: `db-backup.yml` in `Dwarves77/caros-ledge-backups`
+was emitting Node 20 deprecation warnings. It is now clear, in two commits, because the first one was
+half wrong and the run said so.
+
+**Measured before touching anything.** Run `33315121186` produced exactly four warnings, all Node 20
+deprecation: `upload-artifact@v4` in jobs `dump` and `pool-dump`, `download-artifact@v4` in jobs
+`restore-drill` and `pool-restore-drill`. `backup-heartbeat.yml` uses no actions at all and needed no
+change. Five jobs, all `runs-on: ubuntu-latest`.
+
+**The error.** I chose `@v6` for BOTH actions on the strength of the v6.0.0 release notes — upload's
+"now runs on Node.js 24 (runs.using: node24)", download's "BREAKING CHANGE: this update supports Node
+v24.x". That is prose about a release, not the action's own manifest, and I did not check the manifest.
+Commit `7e87ea3` landed four clean one-line changes (lines 141, 177, 208, 302; diff verified from the
+`.patch`: 1 file, +4/-4, four one-line hunks, nothing else touched).
+
+**The run refused it.** Run `33337647069` on `7e87ea3` went 5/5 green and still emitted **two** Node 20
+annotations, both naming `actions/download-artifact@v6`. Four warnings became two. The upload half was
+right; the download half was exactly the guess I keep being told not to make.
+
+**Then I read the primary source** — `runs.using` in each tag's own `action.yml`, fetched per tag:
+
+| tag | `actions/upload-artifact` | `actions/download-artifact` |
+|---|---|---|
+| v4 | node20 | node20 |
+| v5 | node20 | node20 |
+| v6 | **node24** | node20 |
+| v7 | node24 | **node24** |
+| v8 | *(no such tag)* | node24 |
+
+Download's v6.0.0 release notes say it supports Node 24; its v6 manifest still declares `node20`. Both
+statements can be true — the code may run under 24 — but the runner reads the manifest, and the manifest
+is what emits the warning. **Release notes are not the artifact the runtime reads.**
+
+**Commit `5f78029`:** `download-artifact` v6 → v7 on lines 208 and 302 only (`.patch`: 1 file, +2/-2).
+`v7` and not `v8` because v7 is the LOWEST download-artifact major that is node24 and its input surface
+is byte-identical to v4's and v6's (`name, artifact-ids, path, pattern, merge-multiple, github-token,
+repository, run-id`); v8 adds `skip-decompress` and `digest-mismatch`, new behaviour this workflow has
+no reason to take on. The workflow uses only `pattern`, `merge-multiple`, `path` on download and
+`name`, `path`, `retention-days`, `if-no-files-found` on upload — all present in v6/v7 unchanged.
+Upload stays at v6 for the same reason: it is already node24 and its input set is identical to v4's.
+
+**Verified by execution, not by assumption.** Run `33337950971` on `5f78029`: five jobs
+(`plan`, `dump`, `pool-dump`, `restore-drill`, `pool-restore-drill`) all completed successfully, and the
+run carries **zero annotations** — no annotations section at all. Both restore drills passing is also
+the proof that artifacts written by `upload-artifact@v6` are readable by `download-artifact@v7`; I did
+not assume the cross-major pairing, the drill exercised it.
+
+**Mechanism worth keeping.** `git clone` of that repo fails on auth, `raw.githubusercontent.com` 404s
+because it is private, and the file references `${{ secrets.SUPABASE_DB_URL }}` so the fetch tool
+refuses to hand me its contents — I could not edit it locally and re-upload. GitHub's CodeMirror 6
+editor does expose its `EditorView`, just not where CM6 normally puts it: `document
+.querySelector('.cm-content').cmTile.view`. From there `view.state.doc` gives exact line text and
+`view.dispatch({changes})` makes surgical edits with no typing and no coordinate clicking. Two further
+notes: the tab was backgrounded, so `requestAnimationFrame` never fired and CodeMirror would not
+re-render its virtualised viewport — scrolling to an off-screen line is impossible in that state, but
+`dispatch` does not need rendering. And `/OWNER/REPO/raw/<ref>/<path>` is same-origin from github.com,
+which is how the per-tag `action.yml` reads and the workflow's own `with:` blocks were obtained.
+
+**The rule this cost.** "Ran it" and "read the file" are different bases, and so are "read the file"
+and "read something ABOUT the file". Release notes, changelogs and blog posts are the third category.
+For anything the runtime parses, read the thing the runtime parses.
+
+**Open:** nothing on this thread. Schedule re-arm in `producers.yml` remains Jason's call. WO-29 still
+needs ~50 lineage pairs against 11 held.
