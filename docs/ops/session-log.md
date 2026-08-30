@@ -5276,3 +5276,25 @@ method (resolve cells first, print small) is the one to reuse.
 
 **Next:** land Wave 13, re-dispatch dry, read the six-product plan at the workbook's latest week
 (expect 2026-08-24 or newer), apply, verify market_series non-empty and /market renders solid cards.
+
+## Addendum 46 — run #8: one footnote cell survives, and the fix is one classification rule (2026-08-30, Cowork session)
+
+**Wave 13 landed (PR #492, master a4178408) and run #8 (dry, eu-weekly-oil-bulletin) got PAST header
+resolution** — the machine-id key works against the live file — then failed on the next layer:
+`date cell A1087: value "Notes:" (type s) parses as neither an Excel serial nor an ISO-ish date
+string`, exit 2. Wave 13's rule said a footer row's date-column cell is simply absent. Inspection
+pass 4 (browser re-fetch, full-column scan of every A cell below row 3) shows that is false for
+EXACTLY ONE cell in the whole sheet: A1087, shared string "Notes:", the first row of the footer
+block. Every other populated A cell is a numeric serial.
+
+**Fix (same Lane A executor, resumed with the evidence; coordinator re-verified):** a row whose
+date cell does not parse as a date is CLASSIFIED as footer/legend and skipped — never a thrown
+error; the systemic fail-closed guard stays (extractLatestEuRow still throws "no data row found"
+when ZERO rows parse, which is what a real format drift looks like). Fixture gained an A="Notes:"
+row mirroring A1087; module tests 31 -> 32, red-then-green (8/32 fail against the pre-fix module).
+Coordinator gate re-run: suite 1654/1654, tsc clean.
+
+**State at checkpoint:** fix committed locally in wt-wave13 but NOT yet uploaded/PR'd — the branch
+landing (upload of oil-bulletin-workbook.mjs, both test files, this session-log) is the single next
+step. After it merges: dispatch dry (expect the six-product plan at week 2026-08-24), read it,
+dispatch apply, verify market_series non-empty and /market solid cards, record in the next addendum.
