@@ -6185,3 +6185,69 @@ check as local noise before filtering to C3/C5. Filtering by check rather than b
 habit that found it.
 
 Re-verified after the fix: C3 PASS, C5 PASS, suite 1717/1717, tsc clean, fitness 22/22.
+
+## Addendum 60 — the dry-run plan caught a dead idempotency guard (2026-08-30, Cowork session)
+
+I dispatched the DESNZ seeder dry (producers run #11, SUCCESS on `03697e8`) and read the plan before
+applying, per ADR-023 §4. **The four values were right. Line 17 was not.**
+
+```
+[desnz-seed] could not read existing emission_factors rows
+  (readAll(emission_factors) failed: column emission_factors.id does not exist)
+  — dry-run proceeds assuming none exist.
+[desnz-seed] fixture rows: 4 | already live (skip, idempotent): 0 | to write: 4
+   modal_default|modal|road|rigid_hgv_7.5-17t|diesel|GB|desnz_ghg_factors|2025-06-10  ttw_co2e=0.36362
+   modal_default|modal|road|articulated_hgv_gt33t|diesel|GB|desnz_ghg_factors|2025-06-10 ttw_co2e=0.07703
+   modal_default|modal|road|hgv_all_diesel_average|diesel|GB|desnz_ghg_factors|2025-06-10 ttw_co2e=0.10163
+   modal_default|modal|rail|rail_freight_average|diesel_average|GB|desnz_ghg_factors|2025-06-10 ttw_co2e=0.02779
+```
+
+All four match the primary workbook readings from Addendum 55 exactly. But
+`already live (skip, idempotent): 0` was **the catch-block fallback, not a measurement**.
+
+**Root cause.** `readAll(table, columns, { match, orderBy = "id" })` paginates with `.order(orderBy)`.
+`emission_factors` has **no `id` column** — migration 258 keys it on `factor_id` (verified live: the
+only PK/UNIQUE on the table is `emission_factors_pkey PRIMARY KEY (factor_id)`). The seeder's call
+site passed no `orderBy`, so the read threw **every time**, and the whole natural-key idempotency rule
+that `emission-factors-common.mjs`'s own header describes at length was unreachable in production.
+
+**I got the consequence wrong at first and corrected myself by reading the rest of the block.** My
+first reaction was "an apply would insert duplicates, and there is no UNIQUE constraint to stop it."
+Wrong. The next line is `if (apply) throw e; // never write blind if we can't confirm what already
+exists`. The seeder is **fail-closed**: an `--apply` run would have **aborted**, not duplicated. The
+design is right; only the column name was wrong. Recording the wrong first reading because reaching
+for the alarming conclusion before finishing the function is exactly the habit this log exists to
+catch, and I did it again.
+
+**Why every test missed it.** All five existing `seedFactors` tests inject
+`readAllFn: async () => [...]` — a stub that ignores its arguments entirely. They prove the
+idempotency *logic* and say nothing about whether the read can succeed against the real schema. Parts
+tested, composition untested: **the exact defect class F27 exists for, arriving on a seam F27 does not
+scan** (F27 covers producer entry points under `scripts/producers/**`; this is `scripts/gen/`). That
+is a second, independent data point for the reader-seam gap measured in Addendum 58 — and unlike the
+15 sites there, this one had a live consequence.
+
+**Fix:** pass `orderBy: "factor_id"` at the call site. Two tests added, both confirmed RED first
+(13 pass / 2 fail before the fix, 15/15 after):
+1. `seedFactors` must pass `orderBy: "factor_id"` — asserts on the options object the stub receives,
+   which is what no existing test did.
+2. Every column the seeder reads, `orderBy` included, must exist in migration 258's `CREATE TABLE` —
+   reads the applied artifact, so a rename on either side is RED rather than a PostgREST error found
+   by dispatching a workflow.
+
+**I also corrected a claim I wrote myself today.** The `producers.yml` DESNZ step comment said
+*"idempotent on the natural key — a re-run with the rows already live writes nothing."* Aspirationally
+true, actually unreachable. The comment now records that it was false when written and why, rather
+than being quietly edited to look like it was always right. Same pattern Addendum 58 flagged: I
+asserted a property from the module header instead of verifying it against the code path.
+
+**Open question I am NOT resolving by guessing:** EPA seeded 2 live rows on 2026-08-30 through this
+same shared module. With the read broken, an `--apply` should have aborted the same way. Either EPA
+was applied by a different route, or something about that run differed. `emission_factors` holds 2 EPA
+rows and 0 DESNZ rows [CONFIRMED live this session]. Flagged for whoever picks this up; it does not
+block DESNZ, and the fix corrects both seeders regardless.
+
+Gates: suite 1690 → **1719/1719**, tsc clean, fitness 22/22, C3/C5 PASS.
+
+**Next:** land this, re-dispatch DESNZ dry (the plan should now report a real `already live` count of
+0 against a successful read, not a fallback), read it, then apply.
