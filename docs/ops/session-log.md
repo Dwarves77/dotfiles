@@ -6292,3 +6292,560 @@ module while the read was broken. `emission_factors` now holds 6 rows across bot
 reconcile, so nothing is wrong with the DATA; the question is only about the route that run took.
 
 **All six stores remain filled**; `emission_factors` is the one that moved, 2 → 6.
+
+## Addendum 62 — WO-20 assumption register (2026-08-30, Cowork session)
+
+Sonnet executor lane, worktree `wt-la`, branch `wave18/la`, off `origin/master` `654d959e`. Built the
+`assumption_register` migration, generator, anti-drift test, 10-row seed fixture, and a dry-run-only
+seeder per `docs/plans/wo20-assumption-register-spec.md`. **No DDL applied. No DB access at any point.
+No seed written.** Migration and seed are the coordinator's to run, per CLAUDE.md standing rule 3 and
+this WO's own §5 step 5.
+
+**1. Migration 271, not 269.** The spec names this migration "269" (itself a correction of a lost v1
+draft's "268") and says so in its own §5 header. By the time this lane read the tree, **269 and 270 had
+both already landed as unrelated migrations** (`269_routing_rpcs_use_surface_of`,
+`270_widen_org_watchlist_market_series`, both same-day 2026-08-30, both visible in
+`docs/inventories/migrations.md` before I touched it). 271 is the real next-free number. The spec's DDL
+content (§3) is unaffected; only the file number moved, and the generator's own header names the
+correction rather than silently landing a file whose comments claim to be "269." This is exactly the
+kind of drift the brief warned about generically ("270 is the highest on disk; your migration is 271")
+and the brief was right and specific where the spec (written earlier the same day) was stale.
+
+**2. `migration-268-market-series.mjs` was the right precedent to follow, not `267`.** The spec's own §5
+step 1 says to mirror `migration-267-origin-class-and-envelope.mjs`, but 267 is an ALTER-only migration
+(extending three EXISTING tables). WO-20 needs a brand-new `CREATE TABLE`, which is exactly 268's shape
+(and the brief said so explicitly — "read migration-268-market-series.mjs first, it is the closest
+precedent"). Followed 268: hand-written `CREATE TABLE` for the table's own identity/registry columns,
+then the GENERATED `ALTER TABLE ... ADD COLUMN` envelope splice, then RLS, then a post-apply DO-block
+column/constraint/row-count assertion. One real deviation from 268's shape: 268 uses a composite
+`UNIQUE(series_key, reference_period)` as its idempotency key; `assumption_register`'s natural key is a
+single column (`assumption_key`), declared inline in the `CREATE TABLE` rather than as a separate
+`ALTER TABLE ... ADD CONSTRAINT` — there is only one UNIQUE constraint on this table, asserted by the
+anti-drift test and by the migration's own post-apply DO-block.
+
+**3. The envelope is narrowed, per spec §3 — `currency` and `reference_period` excluded.** Neither of
+the 10 catalogued constants is a monetary rate (a connection-scorer weight, an idf coefficient, a
+confidence threshold, an urgency-score mapping, a pedigree floor — none is a price) or a period
+aggregate (a scorer weight is a standing modelling choice, current until retuned, not "Q2's scorer
+weight"). `renderEnvelopeDDL`'s own contract makes this a one-line `columns` argument, not a fork of the
+renderer. The narrowed 9-column set is asserted against both the generator's exported constant and the
+migration's own DDL text (comments stripped first — the migration's own header prose legitimately
+*discusses* `currency`/`reference_period` in English to explain why they're absent, which would
+false-positive a naive whole-file string search for either word; caught this in my own first test draft
+and fixed the two tests that assumed prose-free DDL, rather than weakening the assertion).
+
+**4. All 10 `code_location` pointers re-verified this session — zero corrections needed.** The brief
+asked, correctly, that I open every named file and confirm the literal is at or near the cited line, and
+correct any that had moved. I did: `discover.mjs` (`W = {...}` at line 84, `PER_TAG_CAP` at 85, the idf
+clamp formula at line 55), `pair-view.mjs` (`assemblePairs(..., { minScore = 0.3 ...`) at line 83), both
+`recommend-classification/route.ts` files (the bias-tag confidence-guidance sentence at line 124 in the
+`canonical-sources` route, line 125 in the sibling `sources` route — spec cited only the first with a
+line number and called the second "equivalent line," which it is, one line later, identical text),
+`urgency.mjs` (both mapping objects, lines 8-22), `factor-tier.mjs` (all five `pedigreeFloor` values at
+their cited lines 41/47/54/61/68). Every one matched on the first read. Reporting a genuinely clean
+verification plainly, not manufacturing a correction to look thorough — the spec's own §0/§2 was itself
+a careful spec-from-repo pass, and it held up under independent re-check.
+
+**5. Two tensions inside the spec itself, resolved and flagged, not silently picked one way.**
+
+- **Granularity.** Spec §3's own naming example — `urgency.priority-to-score.high` — reads as one row
+  per individual numeric literal, which would produce well over 10 rows (row 6's idf formula alone packs
+  3 literals: discount coefficient, clamp floor, clamp ceiling; row 8 packs 2 thresholds; row 9 packs 8
+  values across two lookup tables; row 10 packs 5 pedigree floors). Spec §5.4 separately and explicitly
+  commits to "10 rows, one per §2 entry." I followed §5.4's more specific, more binding numeric
+  commitment — exactly 10 rows in the fixture, matching the brief's own "encode them as a fixture, one
+  row per assumption" where "assumption" reads most naturally as one §2 table row. Every packed
+  sub-literal for rows 6/8/9/10 is transcribed in full inside `rationale`/`unit`, never silently dropped;
+  `value_numeric` carries the single most consequential literal per row (documented per-row in the
+  fixture's own header comment). This doesn't foreclose a future WO decomposing these into per-literal
+  rows — the schema (a UNIQUE `assumption_key` text column) supports either granularity without a schema
+  change.
+- **Subsystem naming.** Spec §3 states the schema RULE: `subsystem` = "first key segment" of
+  `assumption_key`. Spec §7 Q2 separately NAMES the 4 subsystem values as hyphenated compounds
+  (`connections-scorer`, `urgency`, `emission-factors`, `bias-classification`). Applying §3's own
+  illustrative example literally (`connections.scorer.weight.shared_source`) would make the first
+  segment `connections`, not `connections-scorer` — disagreeing with §7's own named list. I made
+  `assumption_key`'s first segment the hyphenated §7 name (`connections-scorer.weight.shared_source`),
+  so §3's structural rule and §7's named list agree exactly, rather than reproducing §3's own example
+  verbatim and leaving the two spec passages contradicting each other in the shipped artifact.
+
+**6. The `readAll` orderBy lesson — applied, and its precondition genuinely did not reproduce here.**
+The brief warned, correctly as a general caution (and it is exactly what bit Addendum 60's lane on
+`emission_factors`/`factor_id`), that `readAll`'s `orderBy` defaults to `"id"` and omitting it is fatal
+when a table's real PK isn't literally `id`. I read `scripts/lib/db.mjs`'s `readAll` myself, as
+instructed, and then checked the actual DDL: `assumption_register`'s PK **is** literally `id` (spec §3's
+own `CREATE TABLE: id uuid PRIMARY KEY DEFAULT gen_random_uuid()`). So, unlike `emission_factors`, the
+default here would **not** have thrown — the specific failure mode the brief described does not
+reproduce on this table. I still pass `orderBy: "assumption_key"` explicitly rather than relying on the
+coincidence: defensively (a future PK rename away from bare `id` — exactly the shape `emission_factors`
+already has — would otherwise silently reintroduce this failure class with nothing catching it), and
+because `assumption_key` is the register's real natural key and gives a materially more useful sort
+order for a human reading the dry-run/apply console report (grouped by subsystem/dot-path) than an
+opaque random uuid would. A dedicated test (`seedAssumptions reads assumption_register ordered by
+assumption_key, not readAll's default 'id'`) asserts the exact value passed via a real `readAllFn` spy
+that records its arguments, not a stub that ignores them — per the brief's explicit instruction.
+
+**7. Gates, all green.** Suite 1755/1755 (baseline 1719 + 36 new tests: 15 in
+`contracts-assumption-register-migration.test.mjs`, 21 in `assumption-register-common.test.mjs`), `tsc
+--noEmit` clean, fitness 22/22 with 0 violations, C3 (`docs/inventories/migrations.md` cross-reference)
+PASS after adding the 271 row, C5 PASS, C4 flagged as local-worktree noise per the brief and not
+investigated further. `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD` exit 0 (run
+again after this commit lands, against the real diff, per the brief's own instruction to run the
+COMPLETE gate sequence before finishing).
+
+**8. Smoke-tested the seeder's dry-run path without any DB access.** `node
+scripts/gen/assumption-register-seed.mjs` with no `.env.local` present: `readClient()` throws
+immediately (`db.mjs: load env ... before use`) BEFORE any network call is attempted, the seeder's own
+catch block reports the warning and proceeds dry, correctly listing all 10 fixture rows as "to write."
+Exit 0. No Supabase client was ever constructed with real credentials; nothing reached the network.
+
+**What is deliberately NOT done here, per the brief and per spec §6's own anti-scope list:** migration
+271 is not applied; the fixture is not seeded (`--apply` never invoked against a real database); no
+admin-panel reader (spec §4's named minimum first reader) and no drift-check script (spec §4's named-
+but-explicitly-unbuilt `scripts/verify/assumption-register-drift.mjs`) were written. Discovered a Wave 8
+question I did not chase down (it belongs to whoever built the older `wave18/la` worktree's prior state,
+not this WO): `fsi-app/src/lib/agent/slot-forcing.mjs` shows as locally modified (CRLF noise, per the
+brief's own warning) and was left untouched and unstaged, per the brief's explicit hard constraint.
+
+**Brief accuracy, checked as instructed.** The brief's warnings held up well against measurement in this
+lane, unlike several prior lanes' briefs (Addendum 58's "4 of 4 lanes corrected me"): migration numbering
+(271, not the spec's stale 269) was exactly right; 268-not-267 as the precedent was exactly right; the
+`readAll` orderBy caution was right in spirit and correctly flagged as conditional ("if the PK is not
+literally named `id`") — the one place worth stating plainly is that the condition itself does not hold
+for this table, which I verified rather than assumed, and reported here rather than silently passing
+`orderBy` without saying why it mattered less than advertised.
+
+## Addendum 63 — jurisdictionIso gap + severity mapping ruling (2026-08-30, Cowork session)
+
+Two surface/reader items, both verified against the repo before touching anything (the brief said
+to treat itself as a hypothesis, and it was wrong in specific, useful ways).
+
+**Item 1 — `fetchWorkspaceResources` / `jurisdictionIso`. The brief's line pointers were wrong; the
+underlying finding was right for a deeper reason than stated.**
+
+`supabase-server.ts:1058`'s `jurisdictionIso: string` and the mapper at `:1077` are
+**`ResearchSourceCoverageCell`**, not `Resource` — a completely unrelated interface backing
+`fetchResearchSourceCoverage()`, which pivots the `sources` table (not `intelligence_items`) by
+`(transport_mode x jurisdiction_iso)` for the `/research` coverage-matrix tab. Its `jurisdiction_iso`
+really is a scalar there (confirmed by the `typeof row.jurisdiction_iso !== "string"` guard at line
+1074) — a different column, on a different table, correctly typed. Nothing to fix there. The mapper
+at `:1168` (`jurisdiction: row.jurisdictions?.[0]`, inside `rpcRowToResource`) is real and is one of
+the two broken sites, but that line sets `jurisdiction` (singular, legacy), not `jurisdictionIso`.
+
+The real declaration is `Resource.jurisdictionIso?: string[]` in `src/types/resource.ts:185` —
+already an array type, no scalar/array mismatch in the type itself. `intelligence_items.jurisdiction_iso`
+IS a TEXT ARRAY (migration 033), confirmed. Two of the three row-mapper sites that build a `Resource`
+never set the field: `fetchWorkspaceResources`'s inline mapper (~line 572) and its sibling
+`rpcRowToResource` (~line 1146, used by `get_market_intel_items`/`get_research_items`/
+`get_operations_items`/`get_technology_items`).
+
+**Why a TypeScript-only mapper fix cannot, by itself, make this field populate — the part the brief
+didn't anticipate.** I read every customer-facing RPC's live `RETURNS TABLE` (the highest-numbered
+migration that redefines each): `get_workspace_intelligence` / `_slim` (migration 120, the live
+gate-injection body), `_dashboard` / `_listings` (migration 077), and `get_market_intel_items` /
+`get_research_items` / `get_operations_items` / `get_technology_items` (migration 269, the latest
+redefinition). **None of the eight project `ii.jurisdiction_iso` in their SELECT or RETURNS TABLE —
+only `ii.jurisdictions`.** Even `_workspace_active_items`, the shared internal function four of
+these RPCs source from, DOES carry `jurisdiction_iso` (migration 077/117) — it's projected away by
+every one of the eight customer-facing wrappers before the row ever reaches `supabase-server.ts`. So
+`row.jurisdiction_iso` is structurally `undefined` on every row these two mappers see, regardless of
+what the TS mapper does. The real fix is an RPC/migration change, and migrations are lane `la`'s,
+out of scope here (hard constraint #4).
+
+Meanwhile the **third** `Resource`-mapper, `fetchIntelligenceItemUncached` (~line 2694, feeds the
+`/regulations|market|operations/[slug]` detail pages via `fetchIntelligenceItemSections`), reads
+`select("*")` directly against `intelligence_items` (service-role, bypasses RLS) — `jurisdiction_iso`
+IS on that row, and it was already correctly mapped: `Array.isArray(row.jurisdiction_iso) ?
+row.jurisdiction_iso : undefined`. Detail pages were never broken; only list/ledger surfaces were.
+
+**Named consumers**, split by which mapper feeds them:
+- **Detail surfaces (already fed correctly, no defect)**: `RegulationDetailSurface.tsx`,
+  `AffectedLanesCard.tsx`, `MarketSignalDetailSurface.tsx`, `app/regulations/[slug]/page.tsx`.
+- **List/ledger surfaces (starved — `jurisdictionIso` was always `undefined`, so each ran its own
+  fallback)**: `DashboardTopPriority.tsx`, `RegulationsLedger.tsx`, `MapPageView.tsx`,
+  `OperationsItemsView.tsx`, `OperationsLedger.tsx`, `MarketIntelLedger.tsx`,
+  `app/community/page.tsx`.
+
+**What I changed.** Extracted the working detail-fetcher's guard into a single pure helper,
+`normalizeJurisdictionIsoColumn` (`src/lib/jurisdictions/iso.ts` — the repo's existing pure
+jurisdiction-ISO utilities module, reused rather than a new file), and wired all three mapper sites
+in `supabase-server.ts` to call it: the two previously-silent ones (dormant today, commented as such
+— exactly the "pass through when the RPC catches up" pattern this file already uses for
+severity/signalBand/theme, "Phase 3C") and the one that already worked (now DRY instead of a third
+independent `Array.isArray` re-typing). Zero behavior change today for any consumer — the RPCs still
+don't send the column — but the moment a migration adds `ii.jurisdiction_iso` to the eight RPCs'
+output, list surfaces start receiving it with no further TS change. **Decision-ready spec for lane
+`la`**: add `jurisdiction_iso text[]` to the `RETURNS TABLE` + `SELECT` list of
+`get_workspace_intelligence`, `get_workspace_intelligence_slim` (currently read `intelligence_items`
+directly), and thread it through `_workspace_active_items`'s existing `jurisdiction_iso` column into
+`get_workspace_intelligence_dashboard`/`_listings`/`get_market_intel_items`/`get_research_items`/
+`get_operations_items`/`get_technology_items`'s own `RETURNS TABLE` + `SELECT` lists (all currently
+source from `_workspace_active_items`, which already carries the column — pure passthrough, no new
+join). No TS change needed once that lands.
+
+**Tests** (`src/__tests__/jurisdiction-iso-mapping.test.mjs`, 7 tests, RED-first confirmed by
+stashing the two source files and re-running — `SyntaxError: does not provide an export`, then
+GREEN after unstashing): the pure guard against the real column shapes (empty array, single-element,
+multi-element, undefined, null, non-array scalar) plus source-text regression locks (all 3 mapper
+call sites present; no lossy `?.[0]` narrowing anywhere in the file).
+
+**Item 2 — severity → UI-bucket mapping. Ruling: NOT single-homed; two concrete defects found and
+fixed, one duplication and one silent fall-through-to-default.**
+
+`src/lib/agent/metadata-vocab.ts` correctly single-homes the severity VALUE SET and the write-
+boundary display↔db conversion (`SEVERITY_DISPLAY_TO_DB`, `DB_SEVERITY_VALUES`, `toDbSeverity`,
+`toDisplaySeverity`) — its own header even predicts the read-side gap I found: *"when the
+surface-severity consolidation follow-on lands... instead of the four divergent per-component
+vocabularies that exist today."* That follow-on hadn't landed. Read every place severity becomes a
+badge/color/bucket:
+
+1. **[CONFIRMED, real bug] `IntelligenceMetadataStrip.tsx`** — `SEVERITY_COLORS` was keyed on the
+   DISPLAY form (`"ACTION REQUIRED"`), but `meta.severity` is always DB form
+   (`"action_required"`), confirmed by reading `/api/intelligence-items/[id]/metadata/route.ts`'s
+   raw `.select("...severity...")` with no conversion. The lookup could never hit — every severity
+   chip in this component silently rendered the neutral fallback color, and the raw DB string
+   (with its underscore) rendered as the visible chip text, for every item, regardless of actual
+   severity. This is exactly "missing so some severity values fall through to a default," found in
+   code, not measured live (no DB access, per constraint). **Fixed**: converts through
+   `toDisplaySeverity` (imported from `metadata-vocab.ts`) before both the color lookup and the
+   rendered text.
+2. **[CONFIRMED, real duplication] `OperationsItemsView.tsx` and `OperationsLedger.tsx`** each
+   hand-typed a byte-identical 13-entry `SEVERITY_COLUMN_TO_KEY` map (DB severity → one of
+   critical/high/moderate/low) independently — the named defect class (`WatchlistItemType`,
+   `ITEM_TYPES`, `surface_of`) recurring a fourth time. **Fixed**: consolidated into
+   `SEVERITY_TO_OPERATIONS_BUCKET`, exported from `metadata-vocab.ts` (the file that already
+   predicted this consolidation); both components import it, presentational color/label tables
+   stay local (this module has no CSS knowledge).
+3. **Observed, not fixed**: `MarketIntelLedger.tsx`, `MarketSignalDetailSurface.tsx`,
+   `ResearchPipelineQueueView.tsx`, and `ActionList.tsx` each also hand-copy the 5 SKILL-form DB
+   literals (`"action_required"` etc.) as their own object keys instead of importing them from
+   `metadata-vocab.ts`. Two of these (Market surfaces) legitimately use a DIFFERENT bucket
+   vocabulary than Operations' 4-way collapse (they keep the SKILL's own 5-way split with per-
+   surface color tokens) — that divergence in BUCKETING looks like a deliberate design choice, not
+   a bug, so I did not force it into one shape. But neither Market map recognizes the 8 extra
+   `DB_SEVERITY_VALUES` legacy entries (critical/high/moderate/low/immediate/watch/reference/
+   background) that Operations' map does — grepped `scripts/producers/**` and `supabase/
+   migrations/**` for any current writer of those 8 values and found none, so this is a
+   completeness gap with (from the code, not a live count) no active writer today, not a confirmed
+   live defect. Left as tech-debt rather than force-fixed across three more live customer surfaces
+   in one pass with no render harness to check against (no jsdom/testing-library exists in this
+   repo — confirmed by search — so a visual change here has no automated check at all).
+
+**Tests** (`src/lib/agent/severity-ui-bucket.test.mjs`, 9 tests, RED-first confirmed the same way —
+stash, run, see `SyntaxError`/`doesNotMatch` failures, unstash, GREEN): `SEVERITY_TO_OPERATIONS_BUCKET`
+covers every `DB_SEVERITY_VALUES` entry (no silent fall-through), both components import the shared
+map with no local copy, `IntelligenceMetadataStrip` converts through `toDisplaySeverity` before the
+lookup and no longer renders the raw DB string, and `toDisplaySeverity` itself is pinned against the
+exact bug scenario (DB form → DISPLAY form for all 5 SKILL labels, pass-through for the 4 legacy
+values, null-safe).
+
+**Where the brief was wrong, plainly:**
+- The `supabase-server.ts:1058`/`:1077` line pointers were a different interface entirely
+  (`ResearchSourceCoverageCell`, backing the `/research` coverage matrix over `sources`, not
+  `Resource`/`intelligence_items`) — correctly scalar, nothing to fix there.
+- ":1168" is real but sets `jurisdiction` (singular), not `jurisdictionIso` — the brief conflated
+  the two fields.
+- The brief framed this as "the mapper never sets it," implying a TS-only fix. The actual gap is
+  one level deeper: none of the eight customer RPCs project `jurisdiction_iso` at all, so no TS
+  mapper change alone can populate the field — the RPC/migration side (lane `la`) has to move
+  first. I did the TS half now and left an exact, decision-ready migration spec for the rest,
+  rather than either silently doing nothing or writing dead-looking code with no explanation.
+
+**Gates**: suite 1719 → **1735/1735** (16 new: 7 + 9), `tsc --noEmit` clean, fitness **22/22, 0
+violations** (F23 governed-surface-coverage confirms both new test files are execution-wired, not
+orphaned), discipline runner `--mode=ci --range=origin/master..HEAD` clean against the real commit.
+
+## Addendum 64 — EPA seeder wired to a runtime; how its rows actually landed (2026-08-30, Cowork session)
+
+Lane `lc`, worktree `wt-lc`, scoped to `.github/workflows/producers.yml` only. Two things done: wired
+`emission-factors-epa.mjs` into the workflow as a named dispatch option (it had none), and closed the
+open question Addendum 60/61 flagged and declined to guess at.
+
+**The wiring gap, confirmed myself.** `git grep "emission-factors-epa"` returns exactly two hits
+before this change: a doc-comment cross-reference inside `emission-factors-common.mjs`'s own header,
+and a help string in `src/app/admin/factors/page.tsx`. No workflow, no script, no caller anywhere.
+The DESNZ sibling was wired earlier today as `desnz-emission-factors`, deliberately not in the `all`
+fan-out (one-off annual seed of a fixed table, not a cadence sweep). I added `epa-emission-factors` as
+the same shape: same `if:` keyed on `env.RUN_PRODUCER`, same dry/apply branch, placed before
+`Population AFTER`, not in `all`, same "one-off seed vs. cadence sweep" rationale on the step comment.
+
+**Read myself, not asserted:** `emission-factors-common.mjs` and `emission-factors-epa.mjs` were both
+added in one commit, `c6c228ff` (`git log --oneline -- <both paths>` returns exactly `d5feb910` then
+`c6c228ff`, nothing between), and untouched until today's `orderBy` fix in `d5feb910`. So the code path
+was byte-identical when EPA's two rows landed. `scripts/lib/db.mjs:129` reads
+`export async function readAll(table, columns = "*", { match, orderBy = "id" } = {}) {` — confirmed
+live in this worktree, not recalled from the addendum trail — so the "id" default and the missing
+`emission_factors.id` column are exactly what Addendum 60 says they are. `emission-factors-common.mjs`
+is fail-closed (`if (apply) throw e;` at the catch around the read), also confirmed by reading the file
+directly. Given all of that, an `--apply` through this seeder during the broken-read period could only
+have aborted, never written — so EPA's two live rows were not written by this seeder.
+
+**One claim in this addendum I did not independently re-verify: the `created_at` microsecond match.**
+This worktree has no DB credentials by design (rule 3 of my brief: no database access, no seeding, no
+`--apply`) — confirmed by running the seeder itself below, which fails closed on the missing
+`NEXT_PUBLIC_SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` pair rather than reaching Supabase. The specific
+fact that both EPA rows share `created_at = 2026-08-30 09:59:27.594741+00` was supplied by the
+dispatching session's own same-day investigation, not queried by me. I found nothing in this repo that
+contradicts it — no other row-insertion path for `emission_factors` exists outside this seeder and
+`scripts/gen/emission-factors-desnz.mjs` (both share the same broken-then-fixed read), and Addendum 60
+already recorded the open question in the same terms, so a single-batch direct-SQL insert from a
+coordinator session is the only route consistent with everything I could check. Recording the
+distinction — established-by-me vs. relayed-and-uncontradicted — rather than presenting both with equal
+confidence, per rule 14.
+
+**Consequence carried into the workflow comment, not just this log:** EPA's two live rows skipped
+`guardedInsertMany`, so they carry no snapshot and no cite — thinner provenance than rule-015 wants,
+even though the values are correct and reconcile (`co2_fossil + ch4*28 + n2o*265 = ttw_co2e` holds for
+both, per Addendum 61's own live-query check, which covered EPA's rows already). Re-seeding through the
+newly-wired step is explicitly out of scope for this change and is called out as such in the step's own
+comment: the natural-key skip will report both already live and decline to write, so nothing needs to
+be done, and attempting `--apply` here would only risk it.
+
+**Ran the seeder dry, from `fsi-app/`, no credentials present (expected fail-closed on the DB read):**
+```
+[epa-seed] could not read existing emission_factors rows (db.mjs: load env (NEXT_PUBLIC_SUPABASE_URL +
+  SUPABASE_SERVICE_ROLE_KEY) before use.) — dry-run proceeds assuming none exist.
+[epa-seed] mode = DRY-RUN
+[epa-seed] fixture rows: 2  |  already live (skip, idempotent): 0  |  to write: 2
+   modal_default|modal|road|medium_heavy_duty_truck|diesel|US|epa_egrid|2025-01-01  ttw_co2e=0.128411
+   modal_default|modal|rail|freight_rail_average|diesel|US|epa_egrid|2025-01-01  ttw_co2e=0.014505
+[epa-seed] DRY-RUN — pass --apply to write.
+```
+Exit 0. Both fixture rows validated and printed in the plan; the only failure is the expected
+missing-credentials one, not a defect in the seeder. (A `MODULE_TYPELESS_PACKAGE_JSON` warning from an
+unrelated `.ts` file printed alongside it — pre-existing Node ESM-detection noise, not from this
+change, not an error.)
+
+**Header correction.** `producers.yml`'s header previously read as though DESNZ were the only
+emission-factor seeder that needed arming, and stated EPA's values were "applied 2026-08-30" without
+qualifying that the seeder itself never ran. Added a parallel EPA block after the DESNZ block, same
+structure, recording the c6c228ff/d5feb910 timeline, the `readAll`/`orderBy` mechanism, the fail-closed
+guarantee, the direct-SQL route, and the no-snapshot/no-cite consequence — so nobody re-derives this or,
+worse, re-seeds to "fix" a provenance gap that a duplicate insert would only make worse.
+
+**Options list, machine-checked:** `python3 -c "import yaml; yaml.safe_load(...)"` parses clean;
+`producer.options` == `['all', 'eurostat-nrg-pc-205', 'bls-oews', 'eu-weekly-oil-bulletin',
+'desnz-emission-factors', 'epa-emission-factors']`, exactly the six named in the brief.
+
+**Nothing in this pass contradicts Addendum 60/61.** The open question they flagged is now
+[CONFIRMED, with one input relayed rather than independently queried] rather than open: EPA's rows
+predate any working runtime for this seeder and came in by direct SQL, not through a silent
+`--apply` success.
+
+## Addendum 65 — Wave 18 consolidated; migration 271 applied (2026-08-30, Cowork session)
+
+Three lanes, integrated and landed together for the same reason Wave 16 was: every lane must touch the
+two memory files, so sequential landing conflicts on them, and the addenda have a reading order
+(62, 63, 64) that finish order would have scrambled.
+
+**Two files were NOT pure appends and the naive merge silently dropped both — caught before landing,
+recorded because it will happen again.** Wave 16's consolidation script assumed every lane only appends
+to the memory files. Here, lane `la` inserted its migration row into `docs/inventories/migrations.md`
+in NUMERIC order (correctly — the file is ordered by migration number, not by arrival), and lane `lc`
+EDITED an existing board row in place, turning Addendum 60's "⚠ OPEN — how did EPA seed?" into
+"RESOLVED". A pure-append merge drops both. Dropping the migrations row would have failed CI's C3
+check; dropping the board edit would have left a resolved question standing as open. **The fix is not a
+smarter script — it is checking the assertion.** The script prints "NOT a pure append" and I acted on
+it rather than reading past it.
+
+**Migration 271 applied live** by the coordinator under two-track policy, before the dependent code
+merged. Post-apply verified by query, not by presence: 20 columns, 4 CHECK constraints, 1 UNIQUE,
+0 rows, RLS enabled. `assumption_register` exists.
+
+**Integration gates on the MERGED result, not lane-by-lane:** suite 1719 → **1771/1771** (+52 across
+three lanes), `tsc --noEmit` clean, fitness **22/22 with 0 violations**, consistency **C3 and C5 PASS**.
+
+**Write sets were disjoint by file again** — 16 code files, zero cross-lane overlap. The only conflicts
+were the three shared memory files every lane is required to touch.
+
+**What the lanes found that the briefs did not predict**, all three worth keeping:
+
+1. **Lane `lb` corrected my line pointers and then went a level deeper than the task.** I sent it to
+   `supabase-server.ts:1058/1077`, which turned out to be `ResearchSourceCoverageCell` — an unrelated
+   interface pivoting `sources`, correctly scalar, nothing to fix. The real declaration is
+   `Resource.jurisdictionIso?: string[]` in `types/resource.ts`, already array-typed. Then the finding
+   I had not anticipated: it read the live `RETURNS TABLE` of all eight customer-facing RPCs and
+   **none of them project `ii.jurisdiction_iso` at all**, even though `_workspace_active_items`, which
+   several of them source from, carries it. So no TypeScript change alone can populate that field. It
+   did the TS half (one normalizer, three mapper sites, dormant-passthrough pattern the file already
+   uses), left an exact migration spec, and said so instead of shipping a fix that could not work.
+
+2. **Lane `lb` also found two live severity defects while answering "does this need a ruling".**
+   `IntelligenceMetadataStrip`'s colour map was keyed on the DISPLAY form of severity but fed the DB
+   form, so **every severity chip silently fell through to the neutral default** — confirmed by reading
+   the metadata route's raw select, not inferred. And `OperationsItemsView` / `OperationsLedger`
+   carried a byte-identical 13-entry bucket map, the same duplication class as `WatchlistItemType` and
+   `ITEM_TYPES`. Both fixed, both pinned RED-first. It left the Market surfaces' narrower 5-bucket
+   vocabulary alone as a legitimate design difference with no confirmed defect — the right call, and it
+   said why rather than tidying it.
+
+3. **Lane `lc` verified every claim in its brief and flagged the one it could not.** It re-derived the
+   `c6c228ff` co-creation, `readAll`'s `orderBy` default, the missing `id` column and the fail-closed
+   throw itself, and explicitly recorded that the `created_at` microsecond match came from me because
+   it has no DB credentials by design. That is the distinction I have been sloppy about all session.
+
+**Next:** the RPC half of the jurisdictionIso fix — migration 272 adding `jurisdiction_iso text[]` to
+the `RETURNS TABLE` and `SELECT` of the eight customer-facing RPCs, per lane `lb`'s spec.
+
+## Addendum 66 — migration 272: the eight RPCs project jurisdiction_iso (2026-08-30, Cowork session)
+
+Lane `ld`, worktree `wt-ld`, branch `wave18/ld`, off `wave18/integration` `8a76f0ce`. Scope: write
+migration 272 per lane `lb`'s decision-ready spec (Addendum 63) — add `jurisdiction_iso text[]` to
+the `RETURNS TABLE` and `SELECT` of the eight customer-facing RPCs. **No DDL applied, no DB access,
+no credentials** — coordinator-only per CLAUDE.md standing rule 3 and this lane's explicit brief.
+
+**Source migration for each of the eight, verified by `git grep -n "CREATE OR REPLACE FUNCTION
+public.<name>"` across every file in `fsi-app/supabase/migrations/` and taking the highest number —
+not from `pg_get_functiondef`, which this lane cannot reach:**
+
+- `get_workspace_intelligence` ← migration 120
+- `get_workspace_intelligence_slim` ← migration 120
+- `get_workspace_intelligence_dashboard` ← migration 077
+- `get_workspace_intelligence_listings` ← migration 077
+- `get_research_items` ← migration 269
+- `get_operations_items` ← migration 269
+- `get_market_intel_items` ← migration 269
+- `get_technology_items` ← **migration 134, not 269**
+
+**Where the brief was wrong.** It listed all four of `get_market_intel_items` / `get_research_items` /
+`get_operations_items` / `get_technology_items` under "migration 269." I read migration 269 in full
+before trusting that: it contains exactly three `CREATE OR REPLACE FUNCTION` statements —
+`get_research_items`, `get_operations_items`, `get_market_intel_items` — and `get_technology_items` is
+not one of them. `git grep` confirms `get_technology_items`'s only two definitions on disk are
+migrations 133 (creation) and 134 (fix); its live body still carries its own hardcoded
+`WHERE ii.item_type IN ('technology', 'innovation', 'tool')`, never converted to `surface_of()` by
+269. This is the kind of error rule B4 exists for — the brief predicted a shape, and I measured
+against the actual file instead of trusting the prediction. Sourced `get_technology_items` from 134
+in the migration.
+
+**Discipline applied (269's own precedent, read before writing anything).** I extracted each of the
+eight function bodies from my new file and from its cited source migration with a small Python script,
+stripped exactly the one appended `RETURNS TABLE` column (`jurisdiction_iso text[]`) and the one
+appended `SELECT` expression (`ii.jurisdiction_iso`), and diffed what remained. All eight reduced to a
+zero-diff match — nothing else moved: same column order otherwise, same `LANGUAGE`/`SECURITY
+DEFINER`, same `SET search_path` presence-or-absence exactly as each source had it (120's and 077's
+lack an explicit `search_path` clause; 269's three have one — I preserved that inconsistency rather
+than normalizing it, because normalizing anything beyond the projection is exactly what this
+discipline forbids), same joins, `WHERE`, `ORDER BY`, org-scoping (`_assert_org_membership` plus
+either `_workspace_active_items(p_org_id)` or the inline `workspace_item_overrides` join, whichever
+the source used).
+
+**Where the column comes from, confirmed by reading, not assumed.** Two of the eight
+(`get_workspace_intelligence`/`_slim`, `get_market_intel_items`) read `public.intelligence_items ii`
+directly — `jurisdiction_iso` is a plain column on that table (migration 033), no join added. The
+other six read `public._workspace_active_items(p_org_id) ii` (or, for `get_research_items` /
+`get_operations_items` / `get_technology_items`, that same aliased output joined to `sources` and a
+second `intelligence_items src` alias for two extra columns) — `_workspace_active_items`'s own latest
+definition (migration 117) already `SELECT`s `ii.jurisdiction_iso` into its own `RETURNS TABLE`
+(it sits between `intersection_summary` and `agent_integrity_flag`), so referencing `ii.jurisdiction_iso`
+in all six is pure passthrough of a function that already carries the column. `_workspace_active_items`
+itself is unchanged by this migration.
+
+**Positional-vs-name consumption, checked rather than assumed.** `grep`'d every `.rpc(` call in
+`src/lib/supabase-server.ts` naming one of the eight — all go through standard supabase-js
+`supabase.rpc(name, { p_org_id })` / `serviceClient.rpc(...)`, which returns PostgREST's JSON-object
+encoding of a `RETURNS TABLE` result: one object per row, keyed by column name. I then read the three
+existing `Resource`-mapper call sites lane `lb` already wired (supabase-server.ts ~line 620, ~line
+1184, ~line 2838) — all three read `row.jurisdiction_iso` by property name. No caller depends on
+column position, so appending `jurisdiction_iso` at the end of every RETURNS TABLE/SELECT list is
+behavior-preserving for every existing field and additive for the new one. Appending, not inserting
+mid-list, was also the simplest way to keep the byte-diff to exactly one line per function.
+
+**Rollback.** No rollback file. I checked `fsi-app/supabase/rollbacks/` for the convention first: every
+migration in this function's own lineage that only redefines an existing `SECURITY DEFINER` function
+via `CREATE OR REPLACE` — 071, 073, 077, 117, 120, 125, 133, 134, 148, and 269 itself — has zero
+matching rollback files (`ls fsi-app/supabase/rollbacks/` confirms none of those numbers appear).
+`CREATE OR REPLACE FUNCTION` is its own reversal once the prior body is known, and every prior body
+this migration touches is reproduced verbatim in the migration it cites (120/077/269/134), so the
+migration's own header states the exact reversal (re-run each named source's body) rather than
+shipping a separate file for a class that has never had one. Rollback files DO exist for schema-shape
+migrations (state_cost_facts/regional_data_facts column drops, etc. — 264, 267) — this is a different
+class, and I did not force this migration into that convention.
+
+**Migrations inventory.** Row 272 inserted immediately after row 271, in numeric order, per the
+standing correction in Addendum 59/65 about the last consolidation's ordering mistake. Re-ran the
+fitness runner's F6 (migrations-numeric-ordering) after the insert — PASS, over 241 files, confirming
+the ordering held.
+
+**What I got wrong and corrected in this session.** My first extraction script diff for
+`get_workspace_intelligence`/`_slim`/`get_workspace_intelligence_dashboard`/`_listings`/
+`get_market_intel_items`/`get_technology_items` initially showed non-empty diffs; I read them closely
+before concluding anything was wrong, and every one turned out to be the extraction script bleeding a
+trailing `GRANT EXECUTE` / `COMMIT` / next-function's leading comment from the SOURCE file into the
+captured span — an artifact of "capture everything up to the next `CREATE OR REPLACE FUNCTION`" in a
+file where the next function starts a few lines later than the current one's `$function$;` terminator.
+The function BODY itself (`BEGIN … END; $function$` or `$$ … $$ LANGUAGE …`) matched exactly except
+the one intended addition in each case. I did not skip this check on the two that matched cleanly
+(`get_research_items`, `get_operations_items`) either — same script, same method, for all eight.
+
+**Where this brief was otherwise right.** The eight-RPC list, the "projected away not absent" framing,
+the byte-identical-except-projection discipline pointer to migration 269, the by-name-vs-positional
+question, and the instruction to source bodies from migration files rather than a live catalog were
+all correct and matched what I found independently.
+
+**Gates**, run from `/root/work/wt-ld`: suite **1771/1771** (baseline held, migration files carry no
+tests of their own — this is a pure DDL diff), `tsc --noEmit` clean, fitness **22/22, 0 violations**
+(F6 migrations-numeric-ordering PASS), discipline runner `--mode=ci --range=origin/master..HEAD` clean
+against the committed diff, consistency runner **C3 PASS, C5 PASS**, C4 44 drift records — all
+pre-existing untracked worktrees under `/root/work/` unrelated to this change (same noise the brief
+flagged in advance).
+
+**Not done, by explicit scope.** Migration 272 is **not applied** — DDL is coordinator-only. No
+`.env.local`, no Supabase MCP call, no credential was touched this session.
+
+## Addendum 67 — migration 272 applied; CREATE OR REPLACE cannot widen a RETURNS TABLE (2026-08-30, Cowork session)
+
+Lane `ld` wrote migration 272 to add `jurisdiction_iso text[]` to the eight customer-facing RPCs, using
+`CREATE OR REPLACE FUNCTION` throughout — the pattern migration 269 used on three of these same
+functions this morning. **Postgres refused it on my first apply:**
+
+```
+ERROR: 42P13: cannot change return type of existing function
+DETAIL: Row type defined by OUT parameters is different.
+HINT:  Use DROP FUNCTION get_workspace_intelligence(uuid) first.
+```
+
+`CREATE OR REPLACE` can change a function's BODY but never its `RETURNS TABLE` shape. Migration 269 got
+away with it because it changed only a `WHERE` predicate; this migration adds a column. **The lane
+could not have found this — it has no database access by design, and no test in this repo executes DDL.**
+It is exactly the class of defect the coordinator exists to catch, and it cost one apply attempt.
+
+**Two things the rewrite had to get right that the error message does not mention.**
+
+1. **`DROP` discards the ACL.** I read the live grants BEFORE dropping: all eight carried
+   `=X/postgres | postgres=X/postgres | anon=X/postgres | authenticated=X/postgres | service_role=X/postgres`.
+   Postgres re-creates only the `=X/postgres` PUBLIC grant on a fresh `CREATE`; the three named roles are
+   not restored. Had I not re-granted them explicitly, **every customer read would have started 403ing**
+   — a far worse outcome than the failed apply. Verified post-apply that all eight ACLs are byte-identical
+   to the pre-drop reading.
+2. **The DROP needs no deploy window, and I checked why rather than assuming.** Postgres DDL is
+   transactional: the eight DROPs and eight CREATEs commit together, so no concurrent session ever sees a
+   missing function. This is NOT the migration-265 case, where a DROP's safety depended on a consumer
+   change shipping first — there the function was going away permanently; here it is replaced in the same
+   transaction.
+
+**One precondition I verified before applying, because five of the eight would have broken silently.**
+`get_workspace_intelligence_dashboard`, `_listings`, `get_research_items`, `get_operations_items` and
+`get_technology_items` select `ii.jurisdiction_iso` from `public._workspace_active_items(p_org_id)`, not
+from the base table. If that helper did not project the column, those five would have failed at CREATE.
+Confirmed live that it does before touching anything.
+
+**Post-apply verification, by execution rather than presence.** All eight: `returns_iso_col` true,
+`SECURITY DEFINER` intact, `_assert_org_membership` still in the body, ACL restored. Return-column counts
+34/29/31/31/33/26/28/29 — each exactly one more than before. And the positive control that matters most:
+calling `get_market_intel_items` from a service-role session **raised `42501 Authentication required`
+from `_assert_org_membership`**, which proves the body executes AND that the org-scoping gate survived the
+drop-and-recreate. A function that returned rows to an unauthenticated caller would have been the real
+disaster, and that is the check I would have skipped if I were moving fast.
+
+**Lane `ld` also corrected my brief again, the sixth correction today.** I told it
+`get_technology_items` came from migration 269. It read 269 in full, found exactly three
+`CREATE OR REPLACE FUNCTION` statements (research / operations / market), and sourced
+`get_technology_items` from migration 134 instead — where its `WHERE ii.item_type IN ('technology',
+'innovation','tool')` still sits, never converted to `surface_of()`. It also flagged that the
+PROGRAM-BOARD's own shorthand carries the same imprecision.
+
+**This closes the jurisdictionIso chain end to end:** `intelligence_items.jurisdiction_iso` (array,
+migration 033) → all eight RPCs now project it (272) → `normalizeJurisdictionIsoColumn` (lane `lb`) →
+`Resource.jurisdictionIso` on list and ledger surfaces that have been receiving `undefined` since the
+field was declared.
