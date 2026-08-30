@@ -113,6 +113,21 @@ export async function seedFactors({ label, rows, cite, apply, readAllFn = readAl
   try {
     existing = await readAllFn("emission_factors", "factor_id, tier, scope_kind, mode, vehicle_class, energy_carrier, jurisdiction, source_key, valid_from, superseded_by", {
       match: (qb) => qb.eq("source_key", sourceKey).is("superseded_by", null),
+      // MUST be passed explicitly. readAll paginates with `.order(orderBy)` and orderBy DEFAULTS TO
+      // "id" — but `emission_factors` has no `id` column. Migration 258 keys it on `factor_id`
+      // (verified live 2026-08-30: information_schema reports no `id`, and the only PK/UNIQUE on the
+      // table is `emission_factors_pkey PRIMARY KEY (factor_id)`).
+      //
+      // WITHOUT THIS THE READ ALWAYS THREW, and the whole natural-key idempotency rule this module's
+      // header describes was unreachable in production. It cost a real dispatch to find: producers
+      // run #11 (DESNZ, dry, 2026-08-30) printed `already live (skip, idempotent): 0`, which was the
+      // catch-block FALLBACK below, not a measurement — and the `if (apply) throw e` line means an
+      // --apply run would have ABORTED rather than written blind. The fail-closed branch did exactly
+      // its job; the bug was that the read could never succeed for this table in the first place.
+      //
+      // Found by READING THE DRY-RUN PLAN before applying (ADR-023 §4), which is the third defect
+      // that gate has caught on this producer family.
+      orderBy: "factor_id",
     });
   } catch (e) {
     if (apply) throw e; // never write blind if we can't confirm what already exists

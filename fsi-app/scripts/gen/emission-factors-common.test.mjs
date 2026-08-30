@@ -199,3 +199,62 @@ test("buildRow merges the fixture header (source_key/as_at_date/valid_from) into
   assert.equal(row.mode, "road");
   assert.deepEqual(header, { source_key: "desnz_ghg_factors", as_at_date: "2025-06-10", valid_from: "2025-06-10" });
 });
+
+// ── The read has to actually work against the real table ────────────────────
+//
+// WHY THESE EXIST. Every seedFactors test above injects `readAllFn: async () => [...]`, a stub that
+// ignores its arguments. That proves the idempotency LOGIC and says nothing about whether the read
+// can succeed against the live schema — and it could not. readAll paginates with `.order(orderBy)`
+// where orderBy DEFAULTS to "id", `emission_factors` has no `id` column (PK is `factor_id`), so the
+// real read threw every time and the catch block swallowed it on dry runs. Producers run #11
+// (2026-08-30) printed "already live (skip, idempotent): 0" that was the fallback, not a
+// measurement. Parts tested, composition untested — the defect class F27 exists for, arriving on the
+// one seam F27 does not scan.
+
+test("seedFactors reads emission_factors ordered by factor_id — NOT readAll's default 'id', which does not exist on this table", async () => {
+  let seenOpts = null;
+  const rows = loadFixtureRows(DESNZ_FIXTURE);
+  await seedFactors({
+    label: "orderby-probe",
+    rows,
+    cite: "test",
+    apply: false,
+    readAllFn: async (_table, _cols, opts) => { seenOpts = opts; return []; },
+    insertFn: async () => { throw new Error("dry run must not write"); },
+  });
+  assert.ok(seenOpts, "readAll was never called — the idempotency read has been removed");
+  assert.equal(
+    seenOpts.orderBy, "factor_id",
+    "seedFactors must pass orderBy:'factor_id'. readAll defaults to 'id' and emission_factors has no " +
+    "such column, so omitting this makes the read throw and the idempotency rule unreachable."
+  );
+});
+
+test("every column seedFactors reads, orderBy included, exists in the applied migration 258 DDL", () => {
+  // Binds the seeder's read to the artifact that actually shipped, so a rename on either side is RED
+  // rather than a runtime PostgREST error discovered by dispatching a workflow.
+  const sql = readFileSync(MIGRATION_258, "utf8");
+  const create = sql.match(/CREATE TABLE (?:IF NOT EXISTS )?public\.emission_factors\s*\(([\s\S]*?)\n\s*\);/);
+  assert.ok(create, "could not locate the emission_factors CREATE TABLE in migration 258");
+  const ddl = create[1];
+
+  let seenCols = null, seenOpts = null;
+  const rows = loadFixtureRows(DESNZ_FIXTURE);
+  return seedFactors({
+    label: "column-probe",
+    rows,
+    cite: "test",
+    apply: false,
+    readAllFn: async (_t, cols, opts) => { seenCols = cols; seenOpts = opts; return []; },
+    insertFn: async () => { throw new Error("dry run must not write"); },
+  }).then(() => {
+    const wanted = seenCols.split(",").map((c) => c.trim()).concat(seenOpts.orderBy);
+    for (const col of wanted) {
+      assert.match(
+        ddl, new RegExp(`(^|\\n)\\s*${col}\\s`),
+        `seedFactors reads "${col}" but migration 258 declares no such column on emission_factors`
+      );
+    }
+    assert.ok(!/\bid\s+uuid/.test(ddl.split("\n")[1] || ""), "sanity: emission_factors is not keyed on a bare `id`");
+  });
+});
