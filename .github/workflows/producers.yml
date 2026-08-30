@@ -160,6 +160,16 @@ jobs:
         # (scripts/lib/db.mjs guardedInsertMany), idempotent on the natural key — a re-run with the
         # rows already live writes nothing.
         #
+        # THAT IDEMPOTENCY CLAIM WAS FALSE WHEN FIRST WRITTEN HERE (2026-08-30) and is recorded rather
+        # than quietly corrected. The natural-key skip depends on reading the live rows first, and that
+        # read always threw: readAll defaults its pagination `orderBy` to "id", and emission_factors is
+        # keyed on `factor_id` with no `id` column at all. Run #11 (dry) printed
+        # "already live (skip, idempotent): 0" that was the catch-block fallback, not a measurement.
+        # The seeder is fail-closed (`if (apply) throw e`), so an --apply run would have ABORTED rather
+        # than duplicating — but the guarantee this line asserts did not exist. Fixed by passing
+        # orderBy:"factor_id" at the call site, pinned by two tests that bind the read to migration
+        # 258's DDL. Caught by reading the dry-run plan before applying, per ADR-023 §4.
+        #
         # NOT in the 'all' fan-out, deliberately. 'all' is the recurring data sweep: sources that
         # republish on a cadence. A published factor set is a ONE-OFF seed of a fixed annual table
         # (DESNZ 2025 v1, next publication June 2026), so sweeping it every run would be a no-op
