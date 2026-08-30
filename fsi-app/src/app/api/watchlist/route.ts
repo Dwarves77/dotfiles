@@ -7,6 +7,13 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { APP_DATA_TAG } from "@/lib/data";
+import {
+  TEAM_ONLY_TYPES,
+  isTeamOnlyScopeViolation,
+} from "@/lib/watchlist-scope";
+// Re-exported under their original names — see the comment further down for
+// why they now live in a shared module rather than being defined here.
+export { TEAM_ONLY_TYPES, isTeamOnlyScopeViolation };
 
 // /api/watchlist — the watchlist WRITER + READER, both scopes.
 //
@@ -66,13 +73,17 @@ const SCOPES = new Set(["personal", "team"]);
 // market_series item's team-watched status without the caller remembering to
 // pass scope=team explicitly — an artificial requirement GET does not
 // otherwise have for any other item_type.
-export const TEAM_ONLY_TYPES = new Set(["market_series"]);
-
-/** The real scope-conditional decision handlePOST and handleDELETE both gate
- *  writes on. Exported for direct unit test. */
-export function isTeamOnlyScopeViolation(itemType: string, scope: string): boolean {
-  return TEAM_ONLY_TYPES.has(itemType) && scope !== "team";
-}
+//
+// TEAM_ONLY_TYPES and isTeamOnlyScopeViolation itself now live in
+// src/lib/watchlist-scope.ts (L6, WO-23 follow-up), imported and re-exported
+// here under their original names so this file's own tests
+// (route.npmtest.mjs) keep passing unchanged. They moved because
+// WatchButton.tsx — a "use client" component — needs the SAME decision to
+// avoid rendering a personal watch control this route will reject, and this
+// file is not safe for a client component to import (getServiceSupabase,
+// next/cache's revalidateTag, requireAuth are genuinely server-only runtime
+// code). watchlist-scope.ts has zero dependencies, so both sides import it
+// directly instead of one copying the other's vocabulary a third time.
 
 // The team note is shown to every member of the org. Bounded so one member
 // cannot push an unbounded blob onto everyone else's rail.
