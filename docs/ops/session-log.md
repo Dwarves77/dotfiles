@@ -5236,3 +5236,43 @@ clean, producers.yml still valid YAML, diffs contained to the named files.
 **Next:** land, dispatch dry (eu-weekly-oil-bulletin), read the extraction report and the plan —
 expected 6 creates, one per product, at the workbook's latest week — then apply, then verify
 market_series is non-empty and the /market series board renders its first solid cards.
+
+## Addendum 45 — first live dispatch fails loudly, and the failure buys the real structure (2026-08-30, Cowork session)
+
+**Producers run #7 (dry, eu-weekly-oil-bulletin, master 899281c3) exited 2 — the fetcher's own
+structural-failure path, working exactly as designed:** download fine (4,455,028 bytes), sheet
+resolution fine ("Prices wo taxes" -> sheet2.xml), then `no header block named "EU - European
+Union" found among 225 block(s)` with every observed header printed. Nothing was written; dry mode
+plus fail-closed did their job.
+
+**Root cause, from evidence, not from guessing.** Pass-2's runner evidence proved "EU - European
+Union" exists in sharedStrings but never pinned WHERE — the runner log truncated the 226-column
+row lines of the pass-2 step before rows 2-3 ever printed, so Wave 12 was built on an assumption
+about row 1 that the evidence did not actually contain. A third inspection pass (browser fetch of
+the same 4,455,028-byte file, same-origin on the Commission's own page, unzipped in-browser via
+DecompressionStream) read sheet2 cell-by-cell: row 1 is a MACHINE-IDENTIFIER row (A1 sheet title;
+repeating "CTR" markers; "EU_price_wo_tax_{product}" / "EUR_..." / "{CC}_..." per data column),
+row 2 carries the product display names, row 3 carries "Date" + units, and "EU - European Union"
+appears in exactly ONE cell of the sheet — B1088, a legend row. The Wave 12 key was a legend
+string, not a header.
+
+**Second defect found by reading, before it could lie:** the live sheet lists data rows
+NEWEST-first (A4 = serial 46258 = 2026-08-24). `extractEuSeries` did `slice(-weeks).reverse()`,
+which assumes oldest-first — a naive header fix alone would have applied the OLDEST 2005 week as
+the latest price, silently. The loud failure protected the quiet one.
+
+**Wave 13 (Lane A executor, coordinator re-verified):** EU block now keyed on row-1 machine ids
+(`/^EU_price_wo_tax_(.+)$/` — cannot collide with EUR_ by construction), suffix -> slug mapped
+mechanically, row-2 display text demoted to a fail-closed CROSS-CHECK (two keys disagreeing
+throws; missing/unmatched display text only warns); data rows sorted by week_ending explicitly,
+never document order. Fixtures rebuilt to the real shape (EU_/EUR_/AT_ blocks, CTR markers,
+legend row carrying the real legend string, newest-first serials); 24 -> 31 module tests,
+red-then-green verified (17 of 31 fail against the old module). Gate: suite 1653/1653, tsc clean,
+fitness 21/21 (0 violations), discipline runner exit 0.
+
+**Lesson pinned:** evidence that a string EXISTS in a file is not evidence of where it is. The
+pass-2 step printed raw XML rows and the log's line-length ceiling ate the substance; the pass-3
+method (resolve cells first, print small) is the one to reuse.
+
+**Next:** land Wave 13, re-dispatch dry, read the six-product plan at the workbook's latest week
+(expect 2026-08-24 or newer), apply, verify market_series non-empty and /market renders solid cards.

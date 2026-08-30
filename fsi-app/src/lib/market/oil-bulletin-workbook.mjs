@@ -5,43 +5,79 @@
 // the structural-parsing logic (the part that can be gotten subtly wrong) run under `node --test` with
 // zero I/O, against a fixture that mirrors the real file's shape.
 //
-// STRUCTURE IS PRIMARY-VERIFIED, 2026-08-30, TWO INDEPENDENT GITHUB-RUNNER INSPECTION RUNS THAT
-// DOWNLOADED THE LIVE FILE (see fetch-oil-bulletin.mjs's own header for the full citation). What was
-// actually read:
-//   * xl/workbook.xml lists sheets "Prices with taxes" (sheetId=2, r:id=rId1), "Prices wo taxes"
-//     (sheetId=3, r:id=rId2), "Consumption", "VAT", "Excise duties", "Excise duties - components",
-//     "Other Indirect Taxes" — never assume sheet order, always resolve name -> r:id -> Target via
-//     xl/_rels/workbook.xml.rels (rId1 -> worksheets/sheet1.xml, rId2 -> worksheets/sheet2.xml, verified).
-//   * Both price sheets: dimension A1:HR1109, frozen panes ySplit=3 (THREE header rows), and a repeating
-//     column layout of [1 narrow spacer col + 6-7 data cols] per country block. Row-1 cells are
-//     shared-string refs (t="s") carrying country/product headers.
-//   * sharedStrings.xml includes verbatim (quoted exactly as read, including a leading/trailing space
-//     that is part of the real string): "Euro-super 95  (I)", "Euro-super 95_x000D_(I)" (Excel's own
-//     `_x000D_` in-band escape for an embedded CR — decoded here as a literal character, never left as
-//     the six-character token, so header matching sees the same text either way), "Gas oil automobile
-//     Automotive gas oil Dieselkraftstoff (I)", " Gas oil de chauffage Heating gas oil Heizöl (II)",
-//     " Fuel oil - Schweres Heizöl (III) Soufre " (the base/first fuel-oil grade — the captured text has
-//     no percentage suffix; see PRODUCT_MATCHERS below for how that ambiguity is resolved), " Fuel oil
+// REVISION HISTORY, STATED PLAINLY. The first revision of this module keyed the EU-average block on the
+// display string "EU - European Union" found (it believed) in header row 1. The first live CI run against
+// the real file (producers run #7, 2026-08-30) failed loudly and by design — exit 2, OilBulletinStructureError
+// — because that string is NOT a header anywhere in the real workbook: it is a LEGEND-row label, one cell,
+// far below the data (see "WHAT rows 1-3 ACTUALLY ARE" below). The failure was correct behaviour (fail
+// closed, name the problem) but the underlying key was simply wrong. This revision replaces it with the key
+// the file actually carries — see "WHY THE MACHINE ROW IS PRIMARY" below — from a third inspection pass
+// (browser fetch, 2026-08-30, 4,455,028 bytes, the same file the CI runner downloaded) that read the raw
+// sheet2.xml cell-by-cell instead of trusting the first pass's assumption about what row 1 would contain.
+//
+// WHAT ROWS 1-3 ACTUALLY ARE (verified, inspection pass 3, sheet "Prices wo taxes" -> xl/worksheets/sheet2.xml):
+//   * Row 1 is a MACHINE-IDENTIFIER row, not a display-label row. A1 carries the sheet's own title
+//     ("Consumer prices of petroleum products net of duties and taxes"); most other row-1 cells carry a
+//     repeating "CTR" marker string (one before every country/EU/EUR column group — verified at B1 before
+//     the EU block's C..H, and again at I1 before the EUR block's J.. — a spacer role, not a country code);
+//     and the actual data columns carry machine identifiers of the shape "{PREFIX}_price_wo_tax_{product}",
+//     e.g. "EU_price_wo_tax_euro95", "EUR_price_wo_tax_diesel", "AT_price_wo_tax_heating_oil", one per
+//     country code plus "EU_" (the bloc-wide average, this module's target) and "EUR_" (the euro-area
+//     subset average — texually adjacent to "EU_" but a DIFFERENT aggregate; see EU_PRICE_WO_TAX_RE below
+//     for why the two cannot collide). Non-euro countries additionally carry a "{CC}_exchange_rate" column.
+//   * Row 2 carries the human-readable product display name per column — the six verbatim strings quoted
+//     below, repeated under every country/EU/EUR block (it is the same physical commodity column,
+//     independent of whose price it is), which is exactly why row 2 makes a good CROSS-CHECK but a bad
+//     PRIMARY key: it cannot by itself tell an EU_ column from an AT_ column, only what product a column is.
+//   * Row 3 carries "Date" (over the leading date column) and the unit ("1000 l" or "t") over the price
+//     columns that carry one in the verified evidence.
+//   * "EU - European Union" is shared string ss[417] in the live file and appears in EXACTLY ONE cell of
+//     sheet2: B1088 — a LEGEND row near the bottom of the sheet, not a header row, not column-aligned with
+//     anything a header-scan would see (header rows 1-3 never reach row 1088). It is real text in the real
+//     file; it is simply not where the first revision of this module looked for it.
+//   * Data rows start at row 4 and run NEWEST-FIRST, descending as the row index grows (verified: A4 is a
+//     numeric Excel serial 46258 == 2026-08-24, the latest published week at inspection time; later rows
+//     hold earlier weeks). Nothing about that ordering is assumed to hold structurally for a future file —
+//     see extractEuSeries below for why this module sorts explicitly instead of trusting document order.
+//   * Trailing rows (observed at r=1102..1109) are footer/legend rows, `spans="2:11"` or `spans="2:8"`,
+//     holding shared-string cells (footnote markers like "(I)"/"(II)", the Commission's disclaimer text,
+//     and the B1088 legend cell above) — never a Date-column cell. A row is a DATA row iff its Date-column
+//     cell carries a value that parses as a date (see parseDateCell); a footer/legend row's Date-column
+//     cell is simply absent, so it is skipped by construction, never by a row-index cutoff this module
+//     would have to keep in sync with the file by hand.
+//
+// WHY THE MACHINE ROW IS PRIMARY, THE DISPLAY ROW IS A CROSS-CHECK, NEVER THE REVERSE. Row 1's machine
+// identifiers are the file's own namespacing: "EU_price_wo_tax_*" cannot collide with "EUR_price_wo_tax_*"
+// (see EU_PRICE_WO_TAX_RE — the regex requires the literal "EU_price_wo_tax_" prefix, and "EUR_price_wo_tax_"
+// fails that prefix at the very next character) or with any country code, because the file itself uses this
+// row to disambiguate columns that otherwise look identical under row 2 (the euro95 column under EU_, EUR_,
+// and every country block all carry the SAME row-2 display text — row 2 alone cannot tell them apart). Row 2
+// is still read and still matters: resolveHeaderBlocks runs the SAME PRODUCT_MATCHERS this module has always
+// used against every EU column's row-2 text and, when both keys disagree about which of the six products a
+// column is, THROWS rather than picking one silently — two independent keys disagreeing means the file's
+// format drifted in a way this module has not verified, not a case to guess through.
+//
+//   * sharedStrings.xml includes verbatim (quoted exactly as read, including a leading/trailing space that
+//     is part of the real string): "Euro-super 95  (I)", "Euro-super 95_x000D_(I)" (Excel's own `_x000D_`
+//     in-band escape for an embedded CR — decoded here as a literal character, never left as the
+//     six-character token, so header matching sees the same text either way), "Gas oil automobile
+//     Automotive gas oil Dieselkraftstoff (I)", " Gas oil de chauffage Heating gas oil Heizöl (II)", " Fuel
+//     oil - Schweres Heizöl (III) Soufre " (the base/first fuel-oil grade — the captured text has no
+//     percentage suffix; see PRODUCT_MATCHERS below for how that ambiguity is resolved), " Fuel oil
 //     -Schweres Heizöl (III) Soufre > 1% Sulphur > 1% Schwefel > 1%" (the second, high-sulphur grade —
 //     matched to this pipeline's `heavy-fuel-oil-3-5pct` slug, the Bulletin's own name for the ">1% S"
-//     grade), "GPL pour moteur LPG motor fuel", "Date", "1000 l", "1000L", and "EU - European Union"
-//     (the EU-average block's own header, matched by exact text — never inferred from a fixed column
-//     letter, since nothing in the verified evidence pins the EU block to a specific column and a future
-//     country being added/removed would silently shift it).
-//   * Trailing rows (observed at r=1107/1109) are footer notes, `spans="2:8"`, holding the Commission's
-//     own "preliminary; weighted averages … may change" caveat as shared-string cells — not data. A row
-//     is a DATA row iff its Date-column cell carries a value that parses as a date (see parseDateCell);
-//     a footer row's Date-column cell is simply absent, so it is skipped by construction, never by a
-//     row-index cutoff this module would have to keep in sync with the file by hand.
-//   * Date-cell ENCODING was NOT verified (could be an Excel 1900-epoch serial with a date number
-//     format, or a literal ISO-ish string). parseDateCell handles both and throws a named,
-//     structure-specific error — never a silent guess — for anything that is neither.
+//     grade), "GPL pour moteur LPG motor fuel", "Date", "1000 l", "1000L", and "EU - European Union" (the
+//     legend-row string described above — read here only for that one cell's sake, never as a header key).
+//   * Date-cell ENCODING was NOT fully re-verified this pass beyond confirming the numeric-serial case
+//     (46258 == 2026-08-24, per this module's own EXCEL_1900_EPOCH_OFFSET_DAYS convention). parseDateCell
+//     still handles both a numeric serial and an ISO-ish string, and throws a named, structure-specific
+//     error — never a silent guess — for anything that is neither.
 //
-// EU-AVERAGE, NOT A COMPUTED AVERAGE OF THIS MODULE'S OWN. The "EU - European Union" block's values are
-// the Commission's own published weighted averages (shared-string caveat above is literally about how
-// THEY compute it) — this module reads that block's cells verbatim. It NEVER averages country columns
-// itself; if the EU block cannot be located, resolveHeaderBlocks throws rather than falling back to an
-// average this pipeline did not verify.
+// EU-AVERAGE, NOT A COMPUTED AVERAGE OF THIS MODULE'S OWN. The EU_price_wo_tax_* columns' values are the
+// Commission's own published weighted averages (the B1088 legend cell and the footer disclaimer are
+// literally about how THEY compute it) — this module reads that block's cells verbatim. It NEVER averages
+// country columns itself; if no column's row-1 text matches EU_PRICE_WO_TAX_RE, resolveHeaderBlocks throws
+// rather than falling back to an average this pipeline did not verify.
 //
 // PLAIN ESM, ZERO DEPENDENCIES, NO fs/fetch/child_process — pure string-in, data-out. The orchestrator
 // (fetch-oil-bulletin.mjs) owns every I/O boundary.
@@ -208,10 +244,36 @@ export function* iterateRows(sheetXml) {
 
 // ── header resolution ────────────────────────────────────────────────────────────────────────────────
 
-const EU_BLOCK_NAME = "EU - European Union";
+// The legend-row string (verified: shared string ss[417], appears in exactly one cell, B1088, of the real
+// sheet2.xml). Kept here only as a documented fact and for diagnostic display (euBlock.name below) — it is
+// NEVER used to locate the EU block. Locating by this string is exactly what the first revision of this
+// module did, and it is exactly why that revision threw on the live file (see the module header above).
+const EU_LEGEND_TEXT = "EU - European Union";
 
-/** Explicit, documented fuzzy matchers, checked in order (most specific first — both fuel-oil grades
- *  contain "Fuel oil", so the >1%-sulphur grade must be tried before the elimination fallback below). */
+/** The EU-average block's row-1 machine-identifier prefix. Deliberately anchored at the START of the
+ *  string (`^`) with the trailing underscore included in the literal prefix, so "EUR_price_wo_tax_*" (the
+ *  euro-area block — a DIFFERENT aggregate) can never match: after "EU" the next required character is
+ *  "_", but EUR_'s next character is "R" — the two prefixes diverge at the very next byte, by construction,
+ *  with no extra exclusion logic needed. */
+const EU_PRICE_WO_TAX_RE = /^EU_price_wo_tax_(.+)$/;
+
+/** Row-1 suffix (the part of "EU_price_wo_tax_{suffix}" after the prefix) -> this pipeline's slug. Closed
+ *  vocabulary, mechanical mapping — an EU column whose suffix is not a key here is left unmapped with a
+ *  warning (see resolveHeaderBlocks), never guessed from row 2 alone. */
+const EU_SUFFIX_TO_SLUG = {
+  euro95: "eurosuper-95",
+  diesel: "automotive-diesel",
+  heating_oil: "heating-gas-oil",
+  fuel_oil_1: "residual-fuel-oil-1pct",
+  fuel_oil_2: "heavy-fuel-oil-3-5pct",
+  LPG: "lpg-motor-fuel",
+};
+
+/** Explicit, documented fuzzy matchers over row-2 DISPLAY text, checked in order (most specific first —
+ *  both fuel-oil grades contain "Fuel oil", so the >1%-sulphur grade must be tried before the elimination
+ *  fallback below). Used ONLY as the cross-check against the row-1 machine-id mapping above (see
+ *  resolveHeaderBlocks) — never as the primary key, since row 2's text repeats identically under every
+ *  country/EU/EUR block and so cannot by itself say which block a column belongs to. */
 const PRODUCT_MATCHERS = [
   { slug: "eurosuper-95", test: (h) => /euro[\s-]*super\s*95/i.test(h) },
   { slug: "automotive-diesel", test: (h) => /(automotive gas oil|gas oil automobile|dieselkraftstoff)/i.test(h) },
@@ -267,19 +329,23 @@ function indexByCol(cells, sharedStrings) {
 }
 
 /**
- * Resolves the three header rows into country blocks and locates the EU-average block, mapping its
- * product columns to this pipeline's six slugs.
+ * Resolves the three header rows, locates the EU-average block by its row-1 MACHINE identifier
+ * ("EU_price_wo_tax_{suffix}" — see EU_PRICE_WO_TAX_RE), cross-checks each mapped column against row 2's
+ * human-readable product text, and maps every EU column to this pipeline's six slugs.
  *
- * Column layout (verified): a block starts at the column where the top header row (row1) carries text
- * (the country/EU name — a merged cell in the real file, so only its first column has that text); every
- * subsequent column with row2/row3 text but no row1 text of its own belongs to that same block, until
- * the next row1-labelled column starts a new one. A column with no text in any of the three rows is a
- * spacer and is skipped — never counted as a data column.
+ * TWO-KEY DESIGN, FAIL CLOSED. Row 1 (machine id) is primary: it is the only column-level text in the real
+ * file that says WHICH block ("EU_", "EUR_", a country code) a column belongs to, since row 2's product
+ * text is identical across every block. Row 2 is still read for every EU column and run through the same
+ * PRODUCT_MATCHERS this module has always used, as an independent cross-check: if row 2 names a DIFFERENT
+ * product than row 1's suffix implies, that is two independent keys disagreeing — a signal of format drift
+ * this module has not verified, not a case to silently prefer one key over the other — so it throws. A
+ * missing or unrecognised row-2 text is a warning only (row 1's mapping is kept); an unrecognised row-1
+ * suffix is a warning only (the column is left unmapped, slug null).
  *
  * @param {WorkbookCell[]} row1Cells @param {WorkbookCell[]} row2Cells @param {WorkbookCell[]} row3Cells
  * @param {string[]} sharedStrings
  * @returns {{
- *   blocks: Array<{ name: string, columns: Array<{ col: string, headerText: string }> }>,
+ *   blocks: Array<{ col: string, headerText: string }>,
  *   euBlock: { name: string, columns: Array<{ col: string, headerText: string, slug: string|null }> },
  *   dateCol: string,
  *   warnings: string[],
@@ -292,6 +358,9 @@ export function resolveHeaderBlocks(row1Cells, row2Cells, row3Cells, sharedStrin
   const allCols = new Set([...row1.keys(), ...row2.keys(), ...row3.keys()]);
   const sortedCols = [...allCols].sort((a, b) => colToNum(a) - colToNum(b));
 
+  // Date column: unchanged from the earlier revision, and it already works on the real file — the merged
+  // text of rows 1-3 for column A includes row 3's "Date", regardless of what row 1's own text says there
+  // (A1 carries the sheet's title, not "Date" — row 3 is what actually says it).
   let dateCol = null;
   for (const col of sortedCols) {
     const merged = [row1.get(col), row2.get(col), row3.get(col)].filter(Boolean).join(" ");
@@ -304,36 +373,59 @@ export function resolveHeaderBlocks(row1Cells, row2Cells, row3Cells, sharedStrin
     throw new OilBulletinStructureError('header rows 1-3 contain no column whose text matches "Date" — cannot identify the date column');
   }
 
-  const blocks = [];
-  let current = null;
-  for (const col of sortedCols) {
-    if (col === dateCol) continue;
-    const blockName = row1.get(col);
-    const productText = [row2.get(col), row3.get(col)].filter(Boolean).join(" ").trim();
-    if (blockName) {
-      current = { name: blockName, columns: [] };
-      blocks.push(current);
-      if (productText) current.columns.push({ col, headerText: productText });
-      continue;
-    }
-    if (!productText) continue; // spacer column
-    if (!current) continue; // product text before any block header — cannot happen in the verified
-    // layout (every block starts with its own row1 label); ignored rather than mis-attributed.
-    current.columns.push({ col, headerText: productText });
+  // Diagnostic-only list of every column's row-1 text (excluding the date column) — NOT a semantic block
+  // model any more (row 1 carries a per-column machine id now, not a merged block label spanning several
+  // columns). Its only job is to make the "no EU column found" error below actually useful to a reader.
+  const blocks = sortedCols
+    .filter((col) => col !== dateCol && row1.get(col))
+    .map((col) => ({ col, headerText: row1.get(col) }));
+
+  const euColumns = [];
+  for (const b of blocks) {
+    const m = EU_PRICE_WO_TAX_RE.exec(b.headerText);
+    if (m) euColumns.push({ col: b.col, machineId: b.headerText, suffix: m[1] });
   }
 
-  const euBlock = blocks.find((b) => b.name.trim() === EU_BLOCK_NAME);
-  if (!euBlock) {
+  if (euColumns.length === 0) {
     throw new OilBulletinStructureError(
-      `no header block named "${EU_BLOCK_NAME}" found among ${blocks.length} block(s): ${blocks.map((b) => b.name).join(" | ") || "(none)"}`,
+      `no column's row-1 header matched ${EU_PRICE_WO_TAX_RE} among ${blocks.length} observed header(s): ` +
+        `${blocks.map((b) => b.headerText).join(" | ") || "(none)"}`,
     );
   }
 
   const warnings = [];
-  for (const c of euBlock.columns) {
-    c.slug = matchProductSlug(c.headerText);
-    if (!c.slug) warnings.push(`EU block column ${c.col} ("${c.headerText}") did not match any known product — left unmapped`);
+  for (const c of euColumns) {
+    c.slug = EU_SUFFIX_TO_SLUG[c.suffix] ?? null;
+    if (!c.slug) {
+      warnings.push(`EU column ${c.col} ("${c.machineId}") has an unrecognised suffix "${c.suffix}" — left unmapped`);
+      continue; // no known slug to cross-check row 2 against
+    }
+    const displayText = row2.get(c.col);
+    if (!displayText) {
+      warnings.push(`EU column ${c.col} ("${c.machineId}") has no row-2 display text to cross-check against — keeping the machine-id mapping to "${c.slug}"`);
+      continue;
+    }
+    const displaySlug = matchProductSlug(displayText);
+    if (!displaySlug) {
+      warnings.push(
+        `EU column ${c.col} ("${c.machineId}") row-2 display text "${displayText}" did not match any known product — keeping the machine-id mapping to "${c.slug}"`,
+      );
+      continue;
+    }
+    if (displaySlug !== c.slug) {
+      throw new OilBulletinStructureError(
+        `EU column ${c.col}: row-1 machine id "${c.machineId}" maps to slug "${c.slug}", but row-2 display text ` +
+          `"${displayText}" maps to slug "${displaySlug}" — two independent keys disagree, refusing to guess which is right`,
+      );
+    }
   }
+
+  const euBlock = {
+    // Display name only (used in fetch-oil-bulletin.mjs's stderr report and in messages elsewhere) — the
+    // legend text is real and still describes what this block IS, it is just never used to locate it.
+    name: EU_LEGEND_TEXT,
+    columns: euColumns.map((c) => ({ col: c.col, headerText: row2.get(c.col) ?? c.machineId, slug: c.slug })),
+  };
 
   return { blocks, euBlock, dateCol, warnings };
 }
@@ -342,7 +434,7 @@ export function resolveHeaderBlocks(row1Cells, row2Cells, row3Cells, sharedStrin
 
 const EXCEL_1900_EPOCH_OFFSET_DAYS = 25569; // Excel serial 25569 == 1970-01-01 (per this pipeline's own
 // documented convention — Excel's 1900 date system, off-by-one leap-year bug included since it is baked
-// into every serial the real file would contain).
+// into every serial the real file would contain). Re-confirmed inspection pass 3: serial 46258 == 2026-08-24.
 const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})/;
 
 /**
@@ -385,11 +477,20 @@ function isDataRow(row, dateCol) {
 
 /**
  * Walks every row of the sheet, keeps the ones with a parseable date in the date column (the verified
- * "a data row is identified by having a date in its leading column" rule — footer rows have no cell
- * there at all, so they are excluded by construction), and returns the latest `weeks` of them, most
- * recent first. Each EU-block column with a numeric price cell in a given row contributes to that
- * row's `prices`; a missing or non-numeric price cell for a mapped slug is a per-row warning, never a
+ * "a data row is identified by having a date in its leading column" rule — footer/legend rows have no
+ * cell there at all, so they are excluded by construction), and returns the latest `weeks` of them, most
+ * recent first. Each EU-block column with a numeric price cell in a given row contributes to that row's
+ * `prices`; a missing or non-numeric price cell for a mapped slug is a per-row warning, never a
  * fabricated value and never a thrown error (one missing cell must not sink the whole extraction).
+ *
+ * ORDERING: NEVER TRUST DOCUMENT ORDER. The real workbook lists data rows NEWEST-FIRST (verified
+ * inspection pass 3: row 4 = serial 46258 = 2026-08-24, descending as the row index grows) — but nothing
+ * here assumes any particular document order holds, including that one. An earlier version of this
+ * function did `dataRows.slice(-weeks).reverse()`, which assumes document order is OLDEST-first; run
+ * against the real, newest-first file it silently returns the OLDEST `weeks` rows, mislabelled as the
+ * latest. This version collects every data row and sorts explicitly by `week_ending` (a plain string
+ * compare is safe: week_ending is always produced as an ISO YYYY-MM-DD string by parseDateCell), so the
+ * result is correct regardless of what order the sheet happens to list rows in.
  *
  * @param {string} sheetXml
  * @param {string[]} sharedStrings
@@ -404,7 +505,7 @@ export function extractEuSeries(sheetXml, sharedStrings, headerResolution, opts 
 
   for (const row of iterateRows(sheetXml)) {
     if (row.rowIndex == null || row.rowIndex <= 3) continue; // header rows themselves are never data
-    if (!isDataRow(row, dateCol)) continue; // footer / blank row — skipped by construction, not by index
+    if (!isDataRow(row, dateCol)) continue; // footer / legend / blank row — skipped by construction
     const dateCell = row.cells.find((c) => c.col === dateCol);
     const weekEnding = parseDateCell(dateCell, sharedStrings); // throws, named, if the value doesn't parse
 
@@ -425,7 +526,8 @@ export function extractEuSeries(sheetXml, sharedStrings, headerResolution, opts 
     dataRows.push({ week_ending: weekEnding, prices, warnings });
   }
 
-  return dataRows.slice(-weeks).reverse(); // most recent first
+  dataRows.sort((a, b) => (a.week_ending < b.week_ending ? 1 : a.week_ending > b.week_ending ? -1 : 0));
+  return dataRows.slice(0, weeks);
 }
 
 /** Convenience wrapper: the single latest data row. Throws OilBulletinStructureError if there is none. */
