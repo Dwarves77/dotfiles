@@ -5166,3 +5166,41 @@ listing, sheet names, first sheet XML and sharedStrings to the log. An .xlsx is 
 `unzip -p` + `head` expose the structure with zero new dependencies. The fetch+normalize step gets
 written against that logged evidence, and only then does the /market series-board reader get built —
 so it renders real rows on its first day, not a location with nothing in it.
+
+## Addendum 43 — the reader lane delivers, and the workbook shows its shape (2026-08-30, Cowork session)
+
+**Executed per the §6a lane model, as the operator directed:** the coordinator designs, gates, and
+lands; Sonnet lanes execute. Lane B (market reader, disjoint write set under src/) built WO-16's
+missing layer 3 while the coordinator extracted format evidence from inspection run #1.
+
+**Lane B, landed in this wave:** `MarketSeriesBoard` on /market — a server component fed by
+`fetchMarketSeriesBoard()` (supabase-server.ts conventions, fail-soft, no cache wrap because /market
+is force-dynamic, rule 021 not in play) over a pure view-model
+(`src/lib/market/series-board-view-model.mjs`, zero deps). The lane REUSED the existing
+`latestPerSeries` reducer from refresh-published-price-statistics.mjs instead of writing a second
+home for the same reduction, and the board renders every registry producer ALWAYS: stubs as
+not-built, implemented-but-empty as an explicit brass "Pending" (the honest mid-build state, said
+out loud), populated as solid cards. 11 new view-model proofs in src/__tests__ (the glob that
+actually runs for src/lib/market siblings). Suite 1611 -> 1622, tsc clean, re-verified by the
+coordinator, not taken on the lane's word.
+
+**Inspection run #1, read in full via raw logs:** the bulletin page carries four machine-readable
+workbooks; the one that matters is `Weekly_Oil_Bulletin_Prices_History_maticni_4web.xlsx` ("Price
+developments 2005 onwards", 4.25 MB, page-dated 27 AUGUST 2026, stable UUID download URL — updated
+weekly, which makes it the right fetch target for a series table: one file carries the whole
+history AND this week). Verbatim from its workbook.xml: sheets "Prices with taxes" (rId1), "Prices
+wo taxes" (rId2), "Consumption", "VAT", "Excise duties", "Excise duties - components", "Other
+Indirect Taxes". The two price sheets are ~8.7 MB each; first physical sheet dimension A1:HR1109
+(226 columns x 1109 rows ~ weekly since 2005), frozen panes ySplit=3 (3 header rows), column
+pattern = repeating [narrow spacer + six data columns] country blocks; sharedStrings confirms the
+six-product vocabulary (Euro-super 95, automotive gas oil, heating gas oil, two fuel-oil sulphur
+grades, LPG motor fuel) and per-country CTR codes (AT_, BE_, ...).
+
+**What pass 1 did NOT show, so the fetcher is not written yet:** the rId->sheetN.xml physical
+mapping, any actual data row (date format, cell layout), and whether an EU-AVERAGE column exists —
+the existing parser's product labels say "EU average", and if the workbook is per-country only,
+emitting an average we compute ourselves would be derivation='calculated', not 'observed', which
+changes the envelope. Guessing any of that is exactly what rule 0.15 forbids. This wave amends the
+inspection workflow with a pass-2 step that prints the rels file, header rows 1-4 and the LAST row
+of both price sheets, and the average/date-related sharedStrings. The fetch+normalize lane starts
+when that evidence is on screen.

@@ -12,6 +12,7 @@ import { RESEARCH_CANDIDATE_OR } from "@/lib/research/surface-candidate.mjs";
 import { canonicalSurfaceForItem, type DetailSurface } from "@/lib/item-links";
 import { stalenessOf } from "@/lib/contracts/envelope.mjs";
 import type { RelevanceInput } from "@/lib/workspace/viewer-relevance";
+import { buildSeriesBoard } from "@/lib/market/series-board-view-model.mjs";
 
 // Wave-α A2 (2026-07-11): the static seed-data import is GONE. Every
 // fallback path in this module now returns empty + `_error` sentinel
@@ -2487,6 +2488,95 @@ export async function fetchStateCostFacts(): Promise<StateCostFactRow[]> {
   } catch (e) {
     console.warn("fetchStateCostFacts exception:", e instanceof Error ? e.message : String(e));
     return [];
+  }
+}
+
+// ── Market series board (WO-16 layer 3) ──────────────────────────
+
+/** One series' display-ready row — mirrors series-board-view-model.mjs's SeriesDisplayRow typedef. */
+export interface MarketSeriesDisplayRow {
+  seriesKey: string;
+  label: string;
+  displayValue: string;
+  emptyReason: string | null;
+  asAtDate: string | null;
+  referencePeriod: string | null;
+  observationCount: number;
+  sourceKey: string | null;
+  sourceRef: string | null;
+}
+
+/** One registry producer's group — mirrors series-board-view-model.mjs's ProducerGroup typedef. */
+export interface MarketSeriesProducerGroup {
+  keyPrefix: string;
+  name: string;
+  implemented: boolean;
+  cadence: string;
+  sourceName: string;
+  sourceUrl: string;
+  licenceStatus: string;
+  state: "not_built" | "registered_unpopulated" | "populated";
+  series: MarketSeriesDisplayRow[];
+}
+
+/** The full /market series board payload — mirrors buildSeriesBoard's return shape. */
+export interface MarketSeriesBoardVM {
+  groups: MarketSeriesProducerGroup[];
+  unregistered: MarketSeriesDisplayRow[];
+  totalObservedSeries: number;
+  totalProducers: number;
+  implementedProducerCount: number;
+  isEmpty: boolean;
+}
+
+// Computed once via the same pure builder every populated call uses (not a hand-written literal) so
+// the unconfigured/error fallback renders the SAME honest "registry lists every producer, all
+// unpopulated" state as a real empty table — never a blank hole either way.
+const EMPTY_MARKET_SERIES_BOARD: MarketSeriesBoardVM = buildSeriesBoard([]) as MarketSeriesBoardVM;
+
+/**
+ * Fetches market_series rows and hands them to buildSeriesBoard (src/lib/market/
+ * series-board-view-model.mjs) — the pure, unit-tested transform that reduces to the LATEST row per
+ * series_key, counts recent observations per series, and groups by registry producer
+ * (src/lib/market/series-registry.mjs). This fetcher is the I/O boundary only: it queries and
+ * returns whatever the view-model builds, never re-deriving "latest wins" or the grouping itself
+ * (see that module's own header — ONE home for those decisions).
+ *
+ * NOT wrapped in unstable_cache: fetchMarketSeriesBoard is called only from
+ * src/app/market/page.tsx, a `force-dynamic` route (no static generation, so no baked-in stale
+ * payload to worry about) — same reasoning fetchOperationsCoverage's header gives a few hundred
+ * lines up, and the same reason rule 021 (a cached fetcher's cache key must rotate with payload
+ * shape) does not apply here: there is no cache key.
+ *
+ * `.order(...).limit(SERIES_HISTORY_LIMIT)` is a defensive row cap, not a business decision — at
+ * today's scale (one implemented producer, 6 series, weekly) the whole table fits comfortably under
+ * it. Should market_series ever grow past it, `observationCount` on each series silently becomes a
+ * "count within the most recent N rows fetched" rather than an all-time count — an honest bound, not
+ * a promise that this fetcher will paginate the full history.
+ */
+const SERIES_HISTORY_LIMIT = 1000;
+
+export async function fetchMarketSeriesBoard(): Promise<MarketSeriesBoardVM> {
+  if (!isSupabaseConfigured()) return EMPTY_MARKET_SERIES_BOARD;
+  try {
+    const supabase = getServiceSupabase();
+    const { data, error } = await supabase
+      .from("market_series")
+      .select(
+        "series_key, label, value_numeric, unit, currency, derivation, origin_class, source_key, source_ref, n_observations, method_version, as_at_date, reference_period"
+      )
+      .order("reference_period", { ascending: false })
+      .limit(SERIES_HISTORY_LIMIT);
+
+    if (error) {
+      console.warn("fetchMarketSeriesBoard error:", describeSupabaseError(error));
+      return EMPTY_MARKET_SERIES_BOARD;
+    }
+
+    return buildSeriesBoard(data ?? []) as MarketSeriesBoardVM;
+  } catch (e) {
+    console.warn("fetchMarketSeriesBoard exception:", e instanceof Error ? e.message : String(e));
+    return EMPTY_MARKET_SERIES_BOARD;
   }
 }
 
