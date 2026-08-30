@@ -41,10 +41,15 @@
 //     see extractEuSeries below for why this module sorts explicitly instead of trusting document order.
 //   * Trailing rows (observed at r=1102..1109) are footer/legend rows, `spans="2:11"` or `spans="2:8"`,
 //     holding shared-string cells (footnote markers like "(I)"/"(II)", the Commission's disclaimer text,
-//     and the B1088 legend cell above) — never a Date-column cell. A row is a DATA row iff its Date-column
-//     cell carries a value that parses as a date (see parseDateCell); a footer/legend row's Date-column
-//     cell is simply absent, so it is skipped by construction, never by a row-index cutoff this module
-//     would have to keep in sync with the file by hand.
+//     and the B1088 legend cell above). A row is a DATA row iff its Date-column cell carries a value that
+//     PARSES as a date (see parseDateCell) — NOT merely iff that cell is present. Inspection pass 4
+//     (browser re-fetch, 2026-08-30, same 4,455,028-byte file, a full-column scan of every populated A
+//     cell below row 3) found the earlier claim here ("a footer row's Date-column cell is simply absent")
+//     was true of every footer/legend row EXCEPT ONE: A1087, a shared-string cell (t="s") resolving to
+//     "Notes:" — the first row of the footer block, which DOES occupy the date column, just with text
+//     that is not a date. So the correct rule is: a footer/legend row's Date-column cell is either absent
+//     OR present-but-unparseable, and either shape is skipped, never by a row-index cutoff this module
+//     would have to keep in sync with the file by hand — see extractEuSeries below for the classification.
 //
 // WHY THE MACHINE ROW IS PRIMARY, THE DISPLAY ROW IS A CROSS-CHECK, NEVER THE REVERSE. Row 1's machine
 // identifiers are the file's own namespacing: "EU_price_wo_tax_*" cannot collide with "EUR_price_wo_tax_*"
@@ -476,12 +481,24 @@ function isDataRow(row, dateCol) {
  */
 
 /**
- * Walks every row of the sheet, keeps the ones with a parseable date in the date column (the verified
- * "a data row is identified by having a date in its leading column" rule — footer/legend rows have no
- * cell there at all, so they are excluded by construction), and returns the latest `weeks` of them, most
- * recent first. Each EU-block column with a numeric price cell in a given row contributes to that row's
- * `prices`; a missing or non-numeric price cell for a mapped slug is a per-row warning, never a
- * fabricated value and never a thrown error (one missing cell must not sink the whole extraction).
+ * Walks every row of the sheet, keeps the ones with a parseable date in the date column, and returns the
+ * latest `weeks` of them, most recent first. Each EU-block column with a numeric price cell in a given
+ * row contributes to that row's `prices`; a missing or non-numeric price cell for a mapped slug is a
+ * per-row warning, never a fabricated value and never a thrown error (one missing cell must not sink the
+ * whole extraction).
+ *
+ * A ROW IS DATA IFF ITS DATE-COLUMN CELL PARSES AS A DATE — NOT MERELY IFF THAT CELL IS PRESENT. The
+ * original rule here ("a footer row's Date-column cell is simply absent") was itself corrected by
+ * inspection pass 4 (browser re-fetch of the live 4,455,028-byte file, 2026-08-30, a full-column scan of
+ * every populated A cell below row 3): exactly one row in the whole sheet does NOT fit that rule — A1087,
+ * a shared-string cell (t="s") resolving to "Notes:", the first row of the footer block. Every other
+ * populated date-column cell in the sheet is a plain numeric serial. So the date column is not reliably
+ * EMPTY on a footer row, only reliably NOT A DATE — the classification below reflects that: a date-column
+ * cell that fails to parse marks the row as footer/legend and it is skipped, exactly like a genuinely
+ * absent cell, rather than thrown on. This is a per-row classification, not a relaxed error policy: the
+ * systemic guard is still extractLatestEuRow's own check below, which throws when EVERY row's date fails
+ * to parse (or there simply are no rows) — real format drift still fails closed, one known footnote row
+ * merely does not count as drift.
  *
  * ORDERING: NEVER TRUST DOCUMENT ORDER. The real workbook lists data rows NEWEST-FIRST (verified
  * inspection pass 3: row 4 = serial 46258 = 2026-08-24, descending as the row index grows) — but nothing
@@ -505,9 +522,18 @@ export function extractEuSeries(sheetXml, sharedStrings, headerResolution, opts 
 
   for (const row of iterateRows(sheetXml)) {
     if (row.rowIndex == null || row.rowIndex <= 3) continue; // header rows themselves are never data
-    if (!isDataRow(row, dateCol)) continue; // footer / legend / blank row — skipped by construction
+    if (!isDataRow(row, dateCol)) continue; // date column genuinely empty — footer/legend row, skip
     const dateCell = row.cells.find((c) => c.col === dateCol);
-    const weekEnding = parseDateCell(dateCell, sharedStrings); // throws, named, if the value doesn't parse
+    let weekEnding;
+    try {
+      weekEnding = parseDateCell(dateCell, sharedStrings);
+    } catch (err) {
+      // Date column is present but its text is not a date (verified live: A1087 "Notes:", the first
+      // footer row) — that classifies this row as footer/legend, not a structural failure. Only
+      // extractLatestEuRow's "zero rows parsed" guard below still fails closed on real drift.
+      if (err instanceof OilBulletinStructureError) continue;
+      throw err;
+    }
 
     const byCol = new Map(row.cells.map((c) => [c.col, c]));
     const prices = {};
