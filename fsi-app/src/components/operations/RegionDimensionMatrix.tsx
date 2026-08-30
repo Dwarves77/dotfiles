@@ -15,15 +15,15 @@
  * see at a glance, which is the point — the register's ordering argument is that making the gap visible
  * correctly PRICES the producer work rather than hiding it behind closed panels.
  *
- * WHAT IT DELIBERATELY DOES NOT RENDER, because the data cannot support it honestly:
- *   - No index versus a base region, and no normalisation. `regional_data_facts.value` is free text
- *     ("AED 0.23-0.38/kWh (tiered); blended business rate approx. AED 0.405/kWh (USD 0.110/kWh) all-in")
- *     with no numeric, unit, currency or reference-period column. Spec 04 component 2's dual-layer cell
- *     needs the number envelope (WO-12) plus a schema migration. Deriving a number from that string
- *     would be the fabricated-claim failure the spec calls worse than a gap. The base-region control
- *     therefore REORDERS COLUMNS and says so in its own label.
- *   - No reference period, because the column does not exist. `last_updated` is when the row was
- *     written, which is a different fact, and it is labelled as such.
+ * LAYER 2 (WO-9's deferred half, landed 2026-08-30 on WO-12's migration 267): a fact row that carries
+ * the full number envelope (value_numeric + unit at minimum — see `isEnvelopedFact`) now renders as an
+ * indexed number, with unit/derivation/origin_class shown, and indexes against the chosen base region
+ * when that region ALSO carries an enveloped fact in the same unit for the same cell. A row that does
+ * NOT carry the envelope — which is 100% of the 75 live rows as of this write, both WO-17 producers
+ * being kill-switched off — renders EXACTLY as before: the free-text `value` column, unchanged. A
+ * malformed envelope (value_numeric with a NULL unit) is NOT enveloped per `isEnvelopedFact` and also
+ * falls back to the legacy path, never a bare number with no unit. The base-region control's own label
+ * says which case applies to the data actually loaded, rather than a single static disclaimer.
  *
  * All computation lives in `@/lib/operations/region-grid.mjs`, which OperationsLedger's coverage rail
  * also consumes, so this surface cannot show two different coverage numbers for one page.
@@ -36,6 +36,12 @@ import {
   orderRegions,
   sourceUrlFromNote,
   sourceNameFromNote,
+  isEnvelopedFact,
+  indexAgainstBase,
+  formatEnvelopedValue,
+  originClassLabel,
+  originClassStrength,
+  derivationLabel,
 } from "@/lib/operations/region-grid.mjs";
 
 export interface MatrixRegion { key: string; label: string }
@@ -95,6 +101,21 @@ export function RegionDimensionMatrix({
           sourceUrl: f.source_url,
           lastUpdated: f.last_updated,
           freshness: f.freshness,
+          // Layer 2 (WO-12 envelope, migration 267) — carried through unchanged so isEnvelopedFact /
+          // indexAgainstBase / formatEnvelopedValue below can read them. NULL on every one of the 75
+          // live rows today (rule 0.15 re-read 2026-08-30); the dual-layer render below is exercised
+          // by fixtures in region-grid.test.mjs, not yet by live data.
+          valueNumeric: f.value_numeric,
+          unit: f.unit,
+          currency: f.currency,
+          derivation: f.derivation,
+          originClass: f.origin_class,
+          sourceKey: f.source_key,
+          sourceRef: f.source_ref,
+          nObservations: f.n_observations,
+          methodVersion: f.method_version,
+          asAtDate: f.as_at_date,
+          referencePeriod: f.reference_period,
         })),
         coverageRows: coverageRows.map((c) => ({
           regionKey: c.region_code,
@@ -113,6 +134,29 @@ export function RegionDimensionMatrix({
   );
   const orderedRegions = orderedKeys.map((k) => regions.find((r) => r.key === k)!).filter(Boolean);
   const coverageByRegion = Object.fromEntries(grid.regionCoverage.map((r: any) => [r.regionKey, r]));
+
+  // Layer 2: whether ANY loaded fact carries a valid envelope. Governs the base-region control's own
+  // disclaimer (honest per the data actually on screen, never a static claim) — true today only in
+  // tests, since 0 of 75 live rows are enveloped.
+  const anyEnveloped = useMemo(
+    () => grid.cells.some((c: any) => c.facts.some(isEnvelopedFact)),
+    [grid]
+  );
+
+  // For an enveloped fact in a non-base region's cell, find the base region's matching fact in the
+  // SAME cell to index against: same fact_label preferred (the same series), else the first enveloped
+  // fact the base region's cell carries for this dimension. Returns null (no index) rather than
+  // guessing across an unrelated series.
+  const baseFactFor = (dimDb: string, fact: any): any => {
+    if (!baseRegion) return null;
+    const baseCell = grid.byCell[`${baseRegion}|${dimDb}`];
+    const baseFacts: any[] = baseCell?.facts ?? [];
+    return (
+      baseFacts.find((bf) => bf.factLabel === fact.factLabel && isEnvelopedFact(bf)) ??
+      baseFacts.find(isEnvelopedFact) ??
+      null
+    );
+  };
 
   if (regions.length === 0 || dimensions.length === 0) return null;
 
@@ -150,7 +194,9 @@ export function RegionDimensionMatrix({
           </button>
         ))}
         <span style={{ color: "var(--color-text-muted)" }}>
-          (moves that column first; values are not indexed — the stored figures are free text, not numbers)
+          {anyEnveloped
+            ? "(moves that column first; sourced numeric facts index against it — legacy free-text facts are still not indexed)"
+            : "(moves that column first; values are not indexed — the stored figures are free text, not numbers)"}
         </span>
       </div>
 
@@ -223,20 +269,13 @@ export function RegionDimensionMatrix({
                               </span>
                             ) : (
                               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                                {c.facts.map((f: any, i: number) => {
-                                  const url = f.sourceUrl ?? sourceUrlFromNote(f.sourceNote);
-                                  const name = f.sourceName ?? sourceNameFromNote(f.sourceNote);
-                                  return (
-                                    <div key={i}>
-                                      <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{f.factLabel}</div>
-                                      <div style={{ fontSize: 12, color: "var(--color-text-primary)", lineHeight: 1.5 }}>{f.value}</div>
-                                      <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>
-                                        {name ? (url ? <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-primary)", textDecoration: "underline" }}>{name}</a> : name) : "source not linked"}
-                                        {f.lastUpdated ? ` · row written ${String(f.lastUpdated).slice(0, 10)}` : " · no date on row"}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                                {c.facts.map((f: any, i: number) =>
+                                  isEnvelopedFact(f) ? (
+                                    <EnvelopedFactRow key={i} fact={f} baseFact={baseFactFor(d.db, f)} isBaseColumn={r.key === baseRegion} />
+                                  ) : (
+                                    <LegacyFactRow key={i} fact={f} />
+                                  )
+                                )}
                               </div>
                             )}
                           </td>
@@ -268,6 +307,89 @@ export function RegionDimensionMatrix({
         </p>
       )}
     </section>
+  );
+}
+
+// ── Fact row rendering, split by envelope state ──────────────────────────────────────────────────
+// TWO components, not one branching component: the render-rule (WO-12 step 4) is "a mixed table
+// renders enveloped rows indexed and legacy rows as labelled prose" — two genuinely different
+// treatments of two genuinely different data shapes, not one component with an `if` inside that a
+// later edit could accidentally let leak across.
+
+/** UNCHANGED from the pre-envelope render (verbatim markup) — the legacy free-text path this surface
+ *  has always used, and the one 100% of live rows exercise today. */
+function LegacyFactRow({ fact: f }: { fact: any }) {
+  const url = f.sourceUrl ?? sourceUrlFromNote(f.sourceNote);
+  const name = f.sourceName ?? sourceNameFromNote(f.sourceNote);
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{f.factLabel}</div>
+      <div style={{ fontSize: 12, color: "var(--color-text-primary)", lineHeight: 1.5 }}>{f.value}</div>
+      <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>
+        {name ? (url ? <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-primary)", textDecoration: "underline" }}>{name}</a> : name) : "source not linked"}
+        {f.lastUpdated ? ` · row written ${String(f.lastUpdated).slice(0, 10)}` : " · no date on row"}
+      </div>
+    </div>
+  );
+}
+
+// Origin-class accent, banded by strength (vocabularies.mjs ORIGIN_CLASS: 1 weakest .. 7 strongest) —
+// same three-tier idiom as this file's own FRESHNESS_COLOR above, so a reader who has already learned
+// "green/amber/muted = good/caution/unknown" on this page does not have to learn a second code.
+function originClassColor(strength: number | null): string {
+  if (strength === null) return "var(--color-text-muted)";
+  if (strength >= 6) return "var(--color-success)"; // verified, official
+  if (strength >= 3) return "var(--color-warning)"; // modelled, derived, partner
+  return "var(--color-error)"; // community, community-corroborated — never citable as fact
+}
+
+/** THE dual-layer render: an indexed number, in its unit, with unit/derivation/origin_class shown
+ *  rather than hidden (task requirement — provenance surfaced, not suppressed), plus an index against
+ *  the chosen base region when one is selected and comparable (`indexAgainstBase` — same unit, both
+ *  sides enveloped, never fabricated across a unit mismatch). */
+function EnvelopedFactRow({ fact: f, baseFact, isBaseColumn }: { fact: any; baseFact: any; isBaseColumn: boolean }) {
+  const display = formatEnvelopedValue(f);
+  const originLabel = originClassLabel(f.originClass);
+  const strength = originClassStrength(f.originClass);
+  const derivLabel = derivationLabel(f.derivation);
+  const idx = !isBaseColumn ? indexAgainstBase(f, baseFact) : null;
+  const period = f.referencePeriod ? `for ${f.referencePeriod}` : f.asAtDate ? `as at ${String(f.asAtDate).slice(0, 10)}` : null;
+
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{f.factLabel}</div>
+      <div style={{ fontSize: 12, color: "var(--color-text-primary)", lineHeight: 1.5, fontWeight: 600 }}>
+        {display ?? f.value}
+        {idx !== null && (
+          <span style={{ fontSize: 11, fontWeight: 400, color: "var(--color-text-secondary)", marginLeft: 6 }}>
+            (index {Math.round(idx)} vs base)
+          </span>
+        )}
+      </div>
+      {/* Provenance chips — surfaced, never suppressed. */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 5, margin: "3px 0 2px" }}>
+        {originLabel && (
+          <span
+            title={`origin_class: ${f.originClass}`}
+            style={{
+              fontSize: 9.5, fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase",
+              padding: "1px 6px", borderRadius: 4, border: "1px solid",
+              borderColor: originClassColor(strength), color: originClassColor(strength),
+              backgroundColor: `${originClassColor(strength)}14`,
+            }}
+          >
+            {originLabel}
+          </span>
+        )}
+        {derivLabel && (
+          <span style={{ fontSize: 10, color: "var(--color-text-muted)", alignSelf: "center" }}>{derivLabel}</span>
+        )}
+      </div>
+      <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 1 }}>
+        {f.sourceKey ? `${f.sourceKey}${f.sourceRef ? ` · ${f.sourceRef}` : ""}` : "source not linked"}
+        {period ? ` · ${period}` : ""}
+      </div>
+    </div>
   );
 }
 
