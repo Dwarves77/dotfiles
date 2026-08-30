@@ -1,0 +1,37 @@
+{
+  "_test_fixture_note": "Illustrative test data shaped as the documented BLS Public Data API v2 timeseries response (https://www.bls.gov/developers/api_signature_v2.htm) for the OEWS national annual-median-wage series this producer requests. This is NOT a live capture — outbound network access to api.bls.gov was unavailable in the sandbox this fixture was authored in (agent-proxy denies non-allowlisted hosts). The series IDs were computed by buildOewsSeriesId() (see bls-oews-parser.mjs), not hand-typed. The wage VALUES below are illustrative placeholders in a plausible range for the named occupations, not BLS-reported figures.",
+  "status": "REQUEST_SUCCEEDED",
+  "responseTime": 92,
+  "message": [],
+  "Results": {
+    "series": [
+      {
+        "seriesID": "OEUN000000000000053303213",
+        "data": [
+          { "year": "2024", "period": "A01", "periodName": "Annual", "value": "54320", "footnotes": [{}] },
+          { "year": "2023", "period": "A01", "periodName": "Annual", "value": "52620", "footnotes": [{}] }
+        ]
+      },
+      {
+        "seriesID": "OEUN000000000000053706213",
+        "data": [
+          { "year": "2024", "period": "A01", "periodName": "Annual", "value": "37260", "footnotes": [{}] },
+          { "year": "2023", "period": "A01", "periodName": "Annual", "value": "35980", "footnotes": [{}] }
+        ]
+      },
+      {
+        "seriesID": "OEUN000000000000053104713",
+        "data": [
+          { "year": "2024", "period": "A01", "periodName": "Annual", "value": "63410", "footnotes": [{ "code": "*", "text": "not shown" }] },
+          { "year": "2023", "period": "A01", "periodName": "Annual", "value": "*", "footnotes": [{ "code": "*", "text": "data does not meet publication guidelines" }] }
+        ]
+      },
+      {
+        "seriesID": "OEUN000000000000099999913",
+        "data": [
+          { "year": "2024", "period": "A01", "periodName": "Annual", "value": "41000", "footnotes": [{}] }
+        ]
+      }
+    ]
+  }
+}
