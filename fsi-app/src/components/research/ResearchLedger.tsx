@@ -43,6 +43,14 @@ import {
 } from "react";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import type { WorkspaceAggregates } from "@/lib/data";
+import {
+  THEME_KEYS,
+  THEME_LABELS,
+  SEVERITY_KEYS,
+  SEVERITY_LABELS,
+  assignTheme as classifyTheme,
+  deriveSeverity as classifySeverity,
+} from "@/lib/research/taxonomy.mjs";
 
 // ── Types (exported; consumed by research/page.tsx adapter) ──
 
@@ -82,10 +90,13 @@ interface ResearchLedgerProps {
 }
 
 // ── Severity vocabulary (research-relevance labels; client-classified) ──
+//
+// The classification RULES (keyword regexes, DB-column short-circuit, the 4 severity buckets and
+// 7 theme keys themselves) live in ONE home: src/lib/research/taxonomy.mjs, shared with
+// ResearchFindingDetailSurface.tsx. What stays local here is UI-only: tile copy (sub/hue/chipBd/
+// gradient) and band copy (summary/bandSub) that the detail surface has no equivalent of.
 
-type Severity = "action" | "cost" | "monitor" | "background";
-
-const SEVERITY_ORDER: Severity[] = ["action", "cost", "monitor", "background"];
+type Severity = (typeof SEVERITY_KEYS)[number];
 
 interface SevMeta {
   label: string;
@@ -100,28 +111,28 @@ interface SevMeta {
 
 const SEV: Record<Severity, SevMeta> = {
   action: {
-    label: "Action required",
+    label: SEVERITY_LABELS.action,
     sub: "In your verticals, this week",
     hue: "var(--res-sev-action)",
     chipBd: "var(--res-sev-action-bd)",
     gradient: "var(--reg-band-immediate-strip)",
   },
   cost: {
-    label: "Cost alert",
+    label: SEVERITY_LABELS.cost,
     sub: "Affecting margins",
     hue: "var(--res-sev-cost)",
     chipBd: "var(--res-sev-cost-bd)",
     gradient: "var(--reg-band-action-strip)",
   },
   monitor: {
-    label: "Monitor",
+    label: SEVERITY_LABELS.monitor,
     sub: "Trending themes",
     hue: "var(--res-sev-monitor)",
     chipBd: "var(--res-sev-monitor-bd)",
     gradient: "var(--reg-band-monitor-strip)",
   },
   background: {
-    label: "Background",
+    label: SEVERITY_LABELS.background,
     sub: "Awareness coverage",
     hue: "var(--res-sev-background)",
     chipBd: "var(--res-sev-background-bd)",
@@ -131,14 +142,7 @@ const SEV: Record<Severity, SevMeta> = {
 
 // ── Theme vocabulary (client-classified; column-first when it lands) ──
 
-type ThemeKey =
-  | "emissions"
-  | "fuels"
-  | "packaging"
-  | "carbon"
-  | "cold-chain"
-  | "last-mile"
-  | "disclosure";
+type ThemeKey = (typeof THEME_KEYS)[number];
 
 interface Theme {
   key: ThemeKey;
@@ -148,99 +152,59 @@ interface Theme {
   bandSub: string;
 }
 
-const THEMES: Theme[] = [
-  {
-    key: "emissions",
-    label: "Emissions accounting",
+const THEME_BAND_COPY: Record<ThemeKey, { summary: string; bandSub: string }> = {
+  emissions: {
     summary:
       "Methodology shifts and quantified frameworks that change how the workspace reports Scope 3.",
     bandSub: "methodology shifts · Scope 3 reporting",
   },
-  {
-    key: "fuels",
-    label: "Fuels & SAF",
+  fuels: {
     summary:
       "Production capacity, feedstock constraints, price trajectory, pathway cost crossover.",
     bandSub: "fuel-mix planning · forward-buy decisions",
   },
-  {
-    key: "packaging",
-    label: "Packaging & circular",
+  packaging: {
     summary:
       "PPWR reuse targets, recyclability standards, crate verification methods, and PFAS restrictions.",
     bandSub: "reuse targets · crate inventories",
   },
-  {
-    key: "carbon",
-    label: "Carbon markets",
+  carbon: {
     summary:
       "EU ETS price trajectory, CBAM design, voluntary carbon market quality.",
     bandSub: "pass-through math · surcharge cost lines",
   },
-  {
-    key: "cold-chain",
-    label: "Cold-chain & art",
+  "cold-chain": {
     summary:
       "Climate-controlled crate materials, insulation lifecycle, refrigerant transitions, conservation-grade packaging.",
     bandSub: "crate materials · conservation packaging",
   },
-  {
-    key: "last-mile",
-    label: "Last-mile electrification",
+  "last-mile": {
     summary:
       "EV cargo capacity, charging rollout, zero-emission cargo bay restrictions.",
     bandSub: "EV capacity · urban zones",
   },
-  {
-    key: "disclosure",
-    label: "Disclosure regimes",
+  disclosure: {
     summary:
       "CSRD omnibus revisions, ISSB S2 interpretations, and emerging disclosure frameworks.",
     bandSub: "tender language · verifier conversations",
   },
-];
-
-const THEME_KEYWORDS: Record<ThemeKey, RegExp[]> = {
-  emissions: [/scope ?3/i, /ghg/i, /emission/i, /co2|carbon footprint|tco2e|mtco2e/i, /accounting/i, /lca/i, /lifecycle/i],
-  fuels: [/\bsaf\b/i, /sustainable aviation fuel/i, /hydrogen/i, /ammonia/i, /\bhefa\b/i, /e-saf/i, /biofuel/i, /alternative fuel/i, /marine fuel/i, /\blng\b/i],
-  packaging: [/packaging/i, /\bppwr\b/i, /reuse/i, /crate/i, /pfas/i, /recyclable/i, /circular/i, /pet resin/i],
-  carbon: [/\beu ets\b/i, /\bets\b/i, /carbon market/i, /carbon price/i, /\bcbam\b/i, /\beua\b/i, /allowance/i, /carbon pricing/i],
-  "cold-chain": [/cold[- ]?chain/i, /climate[- ]?control/i, /refrigerant/i, /art handling/i, /fine art/i, /conservation/i, /vip|vacuum insulated/i],
-  "last-mile": [/last[- ]?mile/i, /\bev\b/i, /ehgv/i, /electric truck/i, /urban delivery/i, /zero[- ]?emission/i, /\bzev\b/i, /battery/i],
-  disclosure: [/\bcsrd\b/i, /\bissb\b/i, /\bsfdr\b/i, /\btcfd\b/i, /disclosure/i, /reporting standard/i, /\bs2\b/i, /verifier/i],
 };
 
-const THEME_COLUMN_TO_KEY: Record<string, ThemeKey> = {
-  emissions_accounting: "emissions",
-  fuels_saf: "fuels",
-  packaging_circular: "packaging",
-  carbon_markets: "carbon",
-  cold_chain_art: "cold-chain",
-  last_mile_electrification: "last-mile",
-  disclosure_regimes: "disclosure",
-};
+const THEMES: Theme[] = THEME_KEYS.map((key) => ({
+  key,
+  label: THEME_LABELS[key],
+  summary: THEME_BAND_COPY[key].summary,
+  bandSub: THEME_BAND_COPY[key].bandSub,
+}));
 
 function assignTheme(item: ResearchPipelineItem): ThemeKey | null {
   const themeCol = (item as unknown as { theme?: string }).theme;
-  if (themeCol && THEME_COLUMN_TO_KEY[themeCol]) return THEME_COLUMN_TO_KEY[themeCol];
-  const text = `${item.title} ${item.summary}`;
-  for (const theme of THEMES) {
-    for (const re of THEME_KEYWORDS[theme.key]) {
-      if (re.test(text)) return theme.key;
-    }
-  }
-  return null;
+  return classifyTheme(`${item.title} ${item.summary}`, themeCol) as ThemeKey | null;
 }
 
 function deriveSeverity(item: ResearchPipelineItem): Severity {
-  const text = `${item.title} ${item.summary}`.toLowerCase();
-  if (/\b(action required|immediate|deadline|must file|cease)\b/.test(text)) return "action";
-  if (/\b(cost|surcharge|pass[- ]?through|price|margin|\/kwh|tco)\b/.test(text)) return "cost";
-  if (item.addedDate) {
-    const age = Date.now() - new Date(item.addedDate).getTime();
-    if (age >= 0 && age < 14 * 24 * 60 * 60 * 1000) return "monitor";
-  }
-  return "background";
+  const text = `${item.title} ${item.summary}`;
+  return classifySeverity(text, item.addedDate) as Severity;
 }
 
 // ── Vertical relevance (workspace verticals: live events + fine art) ──
@@ -513,7 +477,7 @@ export function ResearchLedger({ items, aggregates, total, sourceCoverage }: Res
           className="cl-res-tiles"
           style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, margin: "0 0 18px" }}
         >
-          {SEVERITY_ORDER.map((key) => {
+          {SEVERITY_KEYS.map((key) => {
             const m = SEV[key];
             const count = severityCounts[key];
             const pressed = activeSeverity === key;

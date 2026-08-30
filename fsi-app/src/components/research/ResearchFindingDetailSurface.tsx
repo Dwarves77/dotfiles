@@ -52,6 +52,14 @@ import { WatchButton } from "@/components/ui/WatchButton";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadge } from "@/components/shell/RelevanceBadge";
 import type { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
+import {
+  THEME_KEYS,
+  THEME_LABELS,
+  SEVERITY_KEYS,
+  SEVERITY_LABELS,
+  assignTheme as classifyTheme,
+  deriveSeverity as classifySeverity,
+} from "@/lib/research/taxonomy.mjs";
 
 interface RelatedFinding {
   id: string;
@@ -206,18 +214,15 @@ function ResearchSectionCard({
   );
 }
 
-// ── Severity vocabulary (mirrors ResearchView.tsx, kept local so the
-//    detail surface compiles without modifying ResearchView per the
-//    dispatch's "no modifications outside new files" rule) ──
+// ── Severity vocabulary. Classification rules (keywords, DB-column short-circuit, the label
+//    text itself) live in ONE home: src/lib/research/taxonomy.mjs, shared with ResearchLedger.tsx
+//    (extracted from what was previously two independently-drifted copies — see that module's
+//    header for the full comparison). SEVERITY_TONE (color-only) has no equivalent there and
+//    stays local: it is this surface's own presentation, not a classification rule. ──
 
-type Severity = "action" | "cost" | "monitor" | "background";
+type Severity = (typeof SEVERITY_KEYS)[number];
 
-const SEVERITY_LABEL: Record<Severity, string> = {
-  action: "Action required",
-  cost: "Cost alert",
-  monitor: "Monitor",
-  background: "Background",
-};
+const SEVERITY_LABEL: Record<Severity, string> = SEVERITY_LABELS;
 
 const SEVERITY_TONE: Record<Severity, { fg: string; bg: string; bd: string }> = {
   action: {
@@ -242,75 +247,25 @@ const SEVERITY_TONE: Record<Severity, { fg: string; bg: string; bd: string }> = 
   },
 };
 
-// ── Theme vocabulary (mirrors ResearchView.tsx) ──
+// ── Theme vocabulary. Classification rules (keywords, theme-column mapping, label text) live in
+//    ONE home: src/lib/research/taxonomy.mjs, shared with ResearchLedger.tsx. This surface's own
+//    header comment used to say "mirrors ResearchView.tsx" — a filename that no longer exists in
+//    this repo; that comment was itself the evidence, during extraction, that this copy had gone
+//    stale relative to ResearchLedger.tsx. See taxonomy.mjs's header for the full drift
+//    comparison and the (disclosed, evidence-based) resolution. ──
 
-type ThemeKey =
-  | "emissions"
-  | "fuels"
-  | "packaging"
-  | "carbon"
-  | "cold-chain"
-  | "last-mile"
-  | "disclosure";
+type ThemeKey = (typeof THEME_KEYS)[number];
 
-const THEME_LABEL: Record<ThemeKey, string> = {
-  emissions: "Emissions accounting",
-  fuels: "Fuels & SAF",
-  packaging: "Packaging & circular",
-  carbon: "Carbon markets",
-  "cold-chain": "Cold-chain & art",
-  "last-mile": "Last-mile electrification",
-  disclosure: "Disclosure regimes",
-};
-
-const THEME_COLUMN_TO_KEY: Record<string, ThemeKey> = {
-  emissions_accounting: "emissions",
-  fuels_saf: "fuels",
-  packaging_circular: "packaging",
-  carbon_markets: "carbon",
-  cold_chain_art: "cold-chain",
-  last_mile_electrification: "last-mile",
-  disclosure_regimes: "disclosure",
-};
-
-const THEME_KEYWORDS: Record<ThemeKey, RegExp[]> = {
-  emissions: [/scope ?3/i, /ghg/i, /emission/i, /co2|carbon footprint|tco2e/i, /accounting/i, /lca/i, /lifecycle/i],
-  fuels: [/\bsaf\b/i, /sustainable aviation fuel/i, /hydrogen/i, /\bhefa\b/i, /e-saf/i, /biofuel/i, /alternative fuel/i, /marine fuel/i],
-  packaging: [/packaging/i, /\bppwr\b/i, /reuse/i, /crate/i, /pfas/i, /recyclable/i, /circular/i, /pet resin/i],
-  carbon: [/\beu ets\b/i, /\bets\b/i, /carbon market/i, /carbon price/i, /\bcbam\b/i, /\beua\b/i, /allowance/i, /carbon pricing/i],
-  "cold-chain": [/cold[- ]?chain/i, /climate[- ]?control/i, /refrigerant/i, /art handling/i, /fine art/i, /conservation/i],
-  "last-mile": [/last[- ]?mile/i, /\bev\b.*(fleet|charging|cargo)/i, /urban delivery/i, /zero[- ]?emission/i, /\bzev\b/i],
-  disclosure: [/\bcsrd\b/i, /\bissb\b/i, /\bsfdr\b/i, /\btcfd\b/i, /disclosure/i, /reporting standard/i, /\bs2\b/i],
-};
+const THEME_LABEL: Record<ThemeKey, string> = THEME_LABELS;
 
 function assignTheme(r: Resource): ThemeKey | null {
-  const themeCol = r.theme;
-  if (themeCol && THEME_COLUMN_TO_KEY[themeCol]) {
-    return THEME_COLUMN_TO_KEY[themeCol];
-  }
   const text = `${r.title} ${r.note || ""} ${r.whyMatters || ""}`;
-  for (const key of Object.keys(THEME_KEYWORDS) as ThemeKey[]) {
-    for (const re of THEME_KEYWORDS[key]) {
-      if (re.test(text)) return key;
-    }
-  }
-  return null;
+  return classifyTheme(text, r.theme) as ThemeKey | null;
 }
 
 function deriveSeverity(r: Resource): Severity {
-  // Honor migration-102 severity column when present.
-  const sev = r.severity?.toLowerCase();
-  if (sev === "action" || sev === "cost" || sev === "monitor" || sev === "background") {
-    return sev as Severity;
-  }
-  const text = `${r.title} ${r.note || ""}`.toLowerCase();
-  if (/\b(action required|immediate|deadline|must file|cease)\b/.test(text)) return "action";
-  if (/\b(cost|surcharge|pass[- ]?through|price|margin)\b/.test(text)) return "cost";
-  if (r.added) {
-    const age = Date.now() - new Date(r.added).getTime();
-    if (age >= 0 && age < 14 * 24 * 60 * 60 * 1000) return "monitor";
-  }
-  return "background";
+  const text = `${r.title} ${r.note || ""}`;
+  return classifySeverity(text, r.added, r.severity) as Severity;
 }
 
 // ── Date formatting ──
