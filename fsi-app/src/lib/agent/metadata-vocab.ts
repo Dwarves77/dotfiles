@@ -41,6 +41,21 @@ export const DB_SEVERITY_VALUES = new Set<string>([
   "critical", "high", "moderate", "low",
   "immediate", "watch", "reference", "background",
 ]);
+// ── severity: DB form -> the 4-bucket Operations column key ──
+// (Addendum 63, 2026-08-30.) This file's own header above says the read/display surfaces are
+// meant to eventually share one definition instead of "the four divergent per-component
+// vocabularies that exist today" — this is that follow-on for one concrete instance:
+// OperationsItemsView.tsx and OperationsLedger.tsx each hand-copied this exact 13-entry map
+// independently (byte-identical). Presentational tone/colour tokens stay local to each
+// component (this module has no CSS knowledge); only the DB-value -> bucket-key mapping is
+// shared, so the two copies cannot silently drift from each other again.
+export const SEVERITY_TO_OPERATIONS_BUCKET: Readonly<Record<string, "critical" | "high" | "moderate" | "low">> = {
+  critical: "critical", high: "high", moderate: "moderate", low: "low",
+  action_required: "critical", cost_alert: "high", window_closing: "moderate",
+  competitive_edge: "moderate", monitoring: "low", immediate: "critical",
+  watch: "moderate", reference: "low", background: "low",
+};
+
 export const DB_PRIORITY_VALUES = new Set<string>(["CRITICAL", "HIGH", "MODERATE", "LOW"]);
 export const DB_URGENCY_TIER_VALUES = new Set<string>(["watch", "elevated", "stable", "informational"]);
 export const DB_FORMAT_TYPE_VALUES = new Set<string>([
