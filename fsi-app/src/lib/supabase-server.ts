@@ -8,6 +8,7 @@ import type { SeedFallbackTrigger } from "@/lib/notifications/seed-fallback-flag
 import { WATCHLIST_LIST_KEY, watchlistOrderKey } from "@/lib/watchlist-order";
 import { compareRanks } from "@/lib/list-order";
 import { surfaceOf } from "@/lib/surface-of.mjs";
+import { RESEARCH_CANDIDATE_OR } from "@/lib/research/surface-candidate.mjs";
 import { canonicalSurfaceForItem, type DetailSurface } from "@/lib/item-links";
 import { stalenessOf } from "@/lib/contracts/envelope.mjs";
 import type { RelevanceInput } from "@/lib/workspace/viewer-relevance";
@@ -885,15 +886,30 @@ export async function fetchResearchPipelineRows(
   try {
     const supabase = getSupabase();
 
-    // Total count first — exact head, no rows on the wire. Drives the
-    // "Showing N of M" disclosure.
-    const countQuery = await supabase
+    // Total count. WO-15 (2026-08-30): admission is surfaceOf(item_type, domain) === 'research' — the
+    // one SoT (src/lib/surface-of.mjs), not a hardcoded item_type literal. The prior
+    // `.eq("item_type", "research_finding")` here was narrower than surfaceOf's own 'research' rule
+    // (domain=7 also admits, independent of item_type) and undercounted the live corpus by 7 rows (31
+    // vs the true 38 — verified live against get_surface_counts('research').total_items, which already
+    // computes via surface_of(), migration 148's SQL twin of this same function). Can't push surfaceOf's
+    // full precedence into a single PostgREST filter, so this fetches the small DB-side candidate
+    // superset (RESEARCH_CANDIDATE_OR — domain=7 OR item_type=research_finding; ~39 live rows, not a
+    // table scan) and lets the real surfaceOf() make the actual admission call, exactly as
+    // src/lib/dashboard/surface-coverage.ts's classifyItem fallback already does. No `count: exact
+    // head: true` shortcut here — the count must reflect the same post-fetch surfaceOf filter as the
+    // row query below, or the two would drift from each other the way the masthead and list just did.
+    const { data: countRows, error: countError } = await supabase
       .from("intelligence_items")
-      .select("id", { count: "exact", head: true })
+      .select("item_type, domain")
       .eq("is_archived", false)
       .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
-      .eq("item_type", "research_finding"); // routing contract (migration 125 get_research_items): Research surface is research_finding ONLY
-    const total = typeof countQuery.count === "number" ? countQuery.count : 0;
+      .or(RESEARCH_CANDIDATE_OR);
+    if (countError) {
+      console.error("[research] fetchResearchPipelineRows count error:", countError);
+    }
+    const total = Array.isArray(countRows)
+      ? countRows.filter((r: any) => surfaceOf(r.item_type, r.domain) === "research").length
+      : 0;
 
     // First page of rows. Same shape as the prior /research fetcher so
     // ResearchView's adapter logic stays identical. We do NOT join
@@ -902,14 +918,21 @@ export async function fetchResearchPipelineRows(
     // owner / partner-flag / per-workspace pinning lands, that join goes
     // here — orgId is already wired through.
     void orgId; // reserved for the override join when pipeline_overrides land
+    // Same WO-15 fix as the count query above: fetch the domain=7-or-research_finding candidate
+    // superset (RESEARCH_CANDIDATE_OR), also carrying `domain` now so surfaceOf() can classify each row
+    // after the fetch. The candidate set is ~39 live rows, well under `cap` (100), so ordering/limiting
+    // on the DB side first and dropping the ~1 non-'research' row (a domain=7 regulation-itemType row,
+    // e.g. a framework) afterward cannot truncate a row that should have been admitted — if the
+    // candidate population ever grows past `cap`, filter-after-limit could undercount again; flagged
+    // here rather than silently risked.
     const { data, error } = await supabase
       .from("intelligence_items")
       .select(
-        "id, legacy_id, title, summary, pipeline_stage, transport_modes, jurisdictions, added_date, what_it_changes, does_not_resolve, source:sources(id, name, url, base_tier, effective_tier)"
+        "id, legacy_id, title, summary, pipeline_stage, transport_modes, jurisdictions, added_date, what_it_changes, does_not_resolve, item_type, domain, source:sources(id, name, url, base_tier, effective_tier)"
       )
       .eq("is_archived", false)
       .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
-      .eq("item_type", "research_finding") // routing contract: regulations/guidance do NOT belong on /research (was wrong-surface-leaking ~102 non-research items)
+      .or(RESEARCH_CANDIDATE_OR) // DB-side candidate superset; surfaceOf() below is the actual admission authority
       .order("added_date", { ascending: false })
       .limit(cap);
 
@@ -918,9 +941,11 @@ export async function fetchResearchPipelineRows(
       return { rows: [], total, cap };
     }
 
+    const admitted = data.filter((row: any) => surfaceOf(row.item_type, row.domain) === "research");
+
     // Shape rows first (without citation stats); next step fans out a
     // single RPC call for all unique source_ids in this page.
-    const baseRows: ResearchPipelineRow[] = data.map((row: any) => {
+    const baseRows: ResearchPipelineRow[] = admitted.map((row: any) => {
       const src = Array.isArray(row.source) ? row.source[0] : row.source;
       return {
         id: row.legacy_id || row.id,
