@@ -802,11 +802,15 @@ function SignalRow({ e, open, onToggle }: { e: Enriched; open: boolean; onToggle
   const summary = item.whatIsIt || item.note || "";
   const bodyId = `mi-body-${item.id}`;
 
-  // Key figure — bind to a real sourced field (marketData.currentPrice) only;
-  // otherwise the honest em-dash. No invented numbers, ever (HANDOFF §1/§4).
-  const priceFigure = item.marketData?.currentPrice?.trim() || null;
+  // Key figure — WO-13 B4 re-point: bind to a real sourced field
+  // (item.priceStat, batch-decorated from published_price_statistics in
+  // getMarketIntelItems, src/lib/data.ts) only; otherwise the honest
+  // em-dash. No invented numbers, ever (HANDOFF §1/§4). Replaces the prior
+  // `marketData.currentPrice` binding, which had no producer anywhere in
+  // src and always rendered the em-dash (WO-5 B4 finding).
+  const priceFigure = item.priceStat?.valueDisplay?.trim() || null;
   const figLabel = priceFigure
-    ? item.marketData?.priceDate || item.marketData?.priceSource || "current price"
+    ? item.priceStat?.releasedAt || item.priceStat?.label || "current price"
     : "no price dimension";
   const figHue = priceFigure ? def.hueVar : "var(--mi-fig-empty)";
 
