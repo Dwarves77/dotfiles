@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import type { WatchlistItemType } from "@/lib/data";
+import { isTeamOnlyWatchType } from "@/lib/watchlist-scope";
 
 /** WatchButton — the WIRED watch toggle (chrome-audit S2-04, browser wave).
  *
@@ -29,6 +31,28 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 // The team API accepts an optional note; this button deliberately does not send
 // one. A note needs an input surface, and adding a text field to a two-word
 // toggle would be the wrong home for it.
+//
+// Team-only types (L6, Defect 3 — WO-23 follow-up): market_series is watchable
+// at TEAM scope only (org_watchlist's CHECK admits it, user_watchlist's
+// deliberately does not — /api/watchlist/route.ts's isTeamOnlyScopeViolation
+// rejects a personal write with a clean 400). A button that still offered the
+// personal control for such a type would be an affordance the API can only
+// reject, so isTeamOnlyWatchType (src/lib/watchlist-scope.ts, the SAME
+// decision route.ts's write handlers gate on) branches the render: the
+// personal button is never shown for a team-only type, and when no team is
+// available either (no workspace resolved) the widget renders a disabled
+// explainer instead of a control that could only 403 — the same "no
+// affordance that can only fail" principle the !teamAvailable branch above
+// already applies to the team pill for every other type.
+//
+// itemType's type is WatchlistItemType (src/lib/supabase-server.ts, imported
+// type-only via @/lib/data — the same precedent watchlist-links.ts already
+// uses), not a locally hardcoded literal union. It used to be a hand-copied
+// 5-value union that drifted the moment market_series (a 6th value) shipped,
+// silently omitting the newest watchable type from this button's own prop
+// type without either side raising a compile error. Importing the type means
+// a 7th value added to the real union is a compile error here too, by
+// construction, instead of a second place someone has to remember to update.
 const DEFAULT_PALETTE = {
   accent: "var(--color-primary)",
   hairStrong: "var(--color-border)",
@@ -44,7 +68,7 @@ export function WatchButton({
   itemId,
   palette = DEFAULT_PALETTE,
 }: {
-  itemType: "source" | "reg" | "signal" | "research" | "operations";
+  itemType: WatchlistItemType;
   itemId: string;
   palette?: { accent: string; hairStrong: string; tint: string; card: string; ink: string };
 }) {
@@ -150,38 +174,78 @@ export function WatchButton({
     </button>
   );
 
+  // `soleControl` is true when this is a team-only itemType (Defect 3): there
+  // is no personal button beside it, so the label and title speak for a watch
+  // toggle on their own terms rather than as a secondary "Team" pill.
+  const teamButton = (soleControl: boolean) => (
+    <button
+      type="button"
+      aria-pressed={teamWatched}
+      disabled={!loaded}
+      onClick={() => toggle("team")}
+      title={
+        teamFailed
+          ? "Save failed — click to retry"
+          : teamWatched
+            ? "On the workspace watchlist — every member sees this. Click to remove it for everyone."
+            : soleControl
+              ? "Watch on the workspace watchlist — every member sees it. Personal watching is not available for this item."
+              : "Add to the workspace watchlist so every member sees it"
+      }
+      style={{
+        fontFamily: "var(--font-sans)",
+        fontSize: 11.5,
+        fontWeight: 700,
+        padding: soleControl ? "8px 16px" : "8px 12px",
+        borderRadius: 6,
+        border: `1px solid ${teamWatched ? palette.accent : palette.hairStrong}`,
+        background: teamWatched ? palette.tint : palette.card,
+        color: teamWatched ? palette.accent : palette.ink,
+        cursor: loaded ? "pointer" : "default",
+        opacity: loaded ? 1 : 0.6,
+      }}
+    >
+      {soleControl ? (teamWatched ? "Watching (team)" : "Watch (team)") : teamWatched ? "Team ✓" : "Team"}
+    </button>
+  );
+
+  if (isTeamOnlyWatchType(itemType)) {
+    // No personal control, ever: user_watchlist's CHECK does not admit this
+    // type (route.ts's isTeamOnlyScopeViolation would 400 the write), so
+    // offering it would be an affordance the API can only reject.
+    if (!teamAvailable) {
+      // And no team control either — no workspace resolved, so the write
+      // would 403. Nothing here can succeed; render a disabled explainer
+      // instead of a control that can only fail, same principle the
+      // pre-existing !teamAvailable branch below applies to the team pill.
+      return (
+        <span
+          title="Watching this item requires a workspace membership"
+          style={{
+            display: "inline-block",
+            fontFamily: "var(--font-sans)",
+            fontSize: 11.5,
+            fontWeight: 700,
+            padding: "8px 16px",
+            borderRadius: 6,
+            border: `1px dashed ${palette.hairStrong}`,
+            color: palette.ink,
+            opacity: 0.5,
+          }}
+        >
+          Watch
+        </span>
+      );
+    }
+    return teamButton(true);
+  }
+
   if (!teamAvailable) return personalButton;
 
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
       {personalButton}
-      <button
-        type="button"
-        aria-pressed={teamWatched}
-        disabled={!loaded}
-        onClick={() => toggle("team")}
-        title={
-          teamFailed
-            ? "Save failed — click to retry"
-            : teamWatched
-              ? "On the workspace watchlist — every member sees this. Click to remove it for everyone."
-              : "Add to the workspace watchlist so every member sees it"
-        }
-        style={{
-          fontFamily: "var(--font-sans)",
-          fontSize: 11.5,
-          fontWeight: 700,
-          padding: "8px 12px",
-          borderRadius: 6,
-          border: `1px solid ${teamWatched ? palette.accent : palette.hairStrong}`,
-          background: teamWatched ? palette.tint : palette.card,
-          color: teamWatched ? palette.accent : palette.ink,
-          cursor: loaded ? "pointer" : "default",
-          opacity: loaded ? 1 : 0.6,
-        }}
-      >
-        {teamWatched ? "Team ✓" : "Team"}
-      </button>
+      {teamButton(false)}
     </span>
   );
 }
