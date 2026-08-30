@@ -75,8 +75,9 @@ test("parseSheetNames throws a named error when a sheet's r:id has no matching R
 
 test("parseSharedStrings returns the verbatim table in index order, decoding entities and the CR escape", () => {
   const strings = parseSharedStrings(SHARED_STRINGS_XML);
-  assert.equal(strings.length, 25);
+  assert.equal(strings.length, 26);
   assert.equal(strings[SI.DATE], "Date");
+  assert.equal(strings[SI.FOOTER_NOTES_HEADER], "Notes:");
   assert.equal(strings[SI.EU_LEGEND], "EU - European Union");
   assert.equal(strings[SI.EUROSUPER_95], "Euro-super 95  (I)");
   assert.equal(strings[SI.FUEL_OIL_HIGH_SULPHUR], " Fuel oil -Schweres Heizöl (III) Soufre > 1% Sulphur > 1% Schwefel > 1%");
@@ -89,7 +90,7 @@ test("parseSharedStrings returns the verbatim table in index order, decoding ent
 
 test("iterateRows yields rows in document order with correctly parsed cell refs, cols and types", () => {
   const rows = [...iterateRows(SHEET_WO_TAXES_XML)];
-  assert.equal(rows.length, 9);
+  assert.equal(rows.length, 10);
   assert.equal(rows[0].rowIndex, 1);
   const a1 = rows[0].cells.find((c) => c.ref === "A1");
   assert.equal(a1.col, "A");
@@ -160,9 +161,9 @@ test('the "EU - European Union" legend string is never mistaken for a header, ev
 test('the legend row itself (real "EU - European Union" cell, no Date-column cell) is never read as a header row (rows 1-3 only)', () => {
   const strings = parseSharedStrings(SHARED_STRINGS_XML);
   const rows = [...iterateRows(SHEET_WO_TAXES_XML)];
-  const legendRow = rows.find((r) => r.rowIndex === 7);
+  const legendRow = rows.find((r) => r.rowIndex === 8);
   assert.equal(legendRow.cells.find((c) => c.col === "B").value, String(SI.EU_LEGEND));
-  // headerRows() only ever looks at rowIndex 1/2/3 — row 7 (the legend row) cannot leak into header
+  // headerRows() only ever looks at rowIndex 1/2/3 — row 8 (the legend row) cannot leak into header
   // resolution by construction, which extractEuSeries's "legend/footer rows never appear as data" test
   // (below) additionally confirms end to end.
   const [r1, r2, r3] = headerRows(SHEET_WO_TAXES_XML);
@@ -322,7 +323,23 @@ test("PIN: extractEuSeries sorts explicitly by week_ending and is correct even w
 test("legend row (real \"EU - European Union\" cell, no Date-column cell) and footer rows (spans=2:8) never appear as data rows", () => {
   const { strings, headerResolution } = resolveFixture(SHEET_WO_TAXES_XML);
   const series = extractEuSeries(SHEET_WO_TAXES_XML, strings, headerResolution, { weeks: 10 });
-  assert.equal(series.length, 3); // only the three real data rows — rows 7 (legend), 8, 9 (footers) never counted
+  assert.equal(series.length, 3); // only the three real data rows — rows 7 ("Notes:"), 8 (legend), 9, 10 (footers) never counted
+});
+
+test('PIN (inspection pass 4): the "Notes:" row (A7, date-column cell PRESENT but text, not absent — mirroring the real A1087) is classified as footer and skipped, never thrown on, and the correct latest week is still returned', () => {
+  const { strings, headerResolution } = resolveFixture(SHEET_WO_TAXES_XML);
+  // Confirm the row really does have an occupied (non-empty) date-column cell, unlike every other
+  // footer/legend row in this fixture — this is the exact shape that used to throw.
+  const rows = [...iterateRows(SHEET_WO_TAXES_XML)];
+  const notesRow = rows.find((r) => r.rowIndex === 7);
+  const notesDateCell = notesRow.cells.find((c) => c.col === "A");
+  assert.ok(notesDateCell && notesDateCell.value != null && notesDateCell.value !== "");
+
+  // extractEuSeries must not throw on this sheet, and must still find exactly the 3 real weeks.
+  const series = extractEuSeries(SHEET_WO_TAXES_XML, strings, headerResolution, { weeks: 10 });
+  assert.equal(series.length, 3);
+  const latest = extractLatestEuRow(SHEET_WO_TAXES_XML, strings, headerResolution);
+  assert.equal(latest.week_ending, "2026-08-24");
 });
 
 test("extractLatestEuRow throws a named error when the sheet has no data rows at all", () => {
@@ -336,11 +353,23 @@ test("extractLatestEuRow throws a named error when the sheet has no data rows at
   assert.throws(() => extractLatestEuRow(noDataSheet, strings, headerResolution), OilBulletinStructureError);
 });
 
-test("a data row with an unparseable date fails closed naming the raw resolved value, not silently skipped", () => {
+// SUPERSEDED BY INSPECTION PASS 4. This test used to assert that a row whose date-column cell is present
+// but unparseable makes extractLatestEuRow throw immediately, naming the raw value (SHEET_BAD_DATE_XML's
+// one row has exactly that shape: A4 resolves to the footer-note text, not a date). That was correct
+// under the old "any date-column cell present must parse" rule, but inspection pass 4 (the real A1087
+// "Notes:" row) showed that rule was wrong: a present-but-unparseable date-column cell is now the
+// definition of a footer row and is SKIPPED, not thrown on (see extractEuSeries's own comment). Since
+// SHEET_BAD_DATE_XML's only row is now classified as footer, the sheet has ZERO data rows — which is
+// still the correct thing to fail closed on, just at extractLatestEuRow's "no data row found" systemic
+// guard rather than at parseDateCell directly. This is exactly the scenario the coordinator asked to pin:
+// "a sheet where NO date cell parses still throws via extractLatestEuRow."
+test("PIN: a sheet where every date-column cell fails to parse still throws via extractLatestEuRow's systemic guard, even though no individual row throws any more", () => {
   const { strings, headerResolution } = resolveFixture(SHEET_BAD_DATE_XML);
+  assert.doesNotThrow(() => extractEuSeries(SHEET_BAD_DATE_XML, strings, headerResolution, { weeks: 10 }));
+  assert.equal(extractEuSeries(SHEET_BAD_DATE_XML, strings, headerResolution, { weeks: 10 }).length, 0);
   assert.throws(
     () => extractLatestEuRow(SHEET_BAD_DATE_XML, strings, headerResolution),
-    (err) => err instanceof OilBulletinStructureError && /preliminary/.test(err.message),
+    (err) => err instanceof OilBulletinStructureError && /no data row found/.test(err.message),
   );
 });
 

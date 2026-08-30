@@ -53,10 +53,13 @@ export const SI = {
   AT_EURO95: 22,
   AT_DIESEL: 23,
   EU_BOGUS_SUFFIX: 24, // row-1 id with a suffix EU_SUFFIX_TO_SLUG does not recognise
+  FOOTER_NOTES_HEADER: 25, // "Notes:" — verified verbatim at A1087, the one footer row whose date-column
+  // cell is present (t="s") but does not parse as a date; see the workbook module's header and
+  // extractEuSeries's own comment for inspection pass 4's full-column scan.
 };
 
 export const SHARED_STRINGS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="25" uniqueCount="25">
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="26" uniqueCount="26">
   <si><t>Date</t></si>
   <si><t>EU - European Union</t></si>
   <si><t>Euro-super 95  (I)</t></si>
@@ -82,6 +85,7 @@ export const SHARED_STRINGS_XML = `<?xml version="1.0" encoding="UTF-8" standalo
   <si><t>AT_price_wo_tax_euro95</t></si>
   <si><t>AT_price_wo_tax_diesel</t></si>
   <si><t>EU_price_wo_tax_mystery_grade</t></si>
+  <si><t>Notes:</t></si>
 </sst>`;
 
 // xl/workbook.xml — two price sheets (as verified) plus a couple of the other named sheets, to prove
@@ -117,12 +121,18 @@ export const WORKBOOK_RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalon
 // (serial 46258 == 2026-08-24), r=5 is the prior week (serial 46251 == 2026-08-17), r=6 is the week before
 // that (serial 46244 == 2026-08-10). r=4 deliberately omits column G (EU fuel_oil_2 /
 // heavy-fuel-oil-3-5pct) to exercise the "missing price -> warning, not fabricated" path on the row
-// extractLatestEuRow actually returns. r=7 is a LEGEND row (B7 = the real "EU - European Union" string,
-// no Date-column cell) modelling the real file's B1088 legend cell — must never be read as a header or as
-// data. r=8/9 are footer notes (spans="2:8", no Date-column cell) mirroring the real trailing note rows.
+// extractLatestEuRow actually returns.
+//
+// r=7 is the "Notes:" row — inspection pass 4's finding, mirroring the real file's A1087: A7 IS present
+// (t="s") but resolves to "Notes:", not a date. This is the first row of the footer block and the one
+// case where a footer row's date-column cell is occupied rather than absent; extractEuSeries must
+// classify it as footer (skip it, keep going) rather than throw. r=8 is a LEGEND row (B8 = the real
+// "EU - European Union" string, no Date-column cell at all) modelling the real file's B1088 legend cell —
+// must never be read as a header or as data. r=9/10 are footer notes (spans="2:8", no Date-column cell)
+// mirroring the real trailing note rows.
 export const SHEET_WO_TAXES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <dimension ref="A1:N9"/>
+  <dimension ref="A1:N10"/>
   <sheetViews>
     <sheetView><pane ySplit="3" topLeftCell="A4" state="frozen"/></sheetView>
   </sheetViews>
@@ -199,13 +209,16 @@ export const SHEET_WO_TAXES_XML = `<?xml version="1.0" encoding="UTF-8" standalo
       <c r="N6"><v>1500.0</v></c>
     </row>
     <row r="7">
-      <c r="B7" t="s"><v>${SI.EU_LEGEND}</v></c>
+      <c r="A7" t="s"><v>${SI.FOOTER_NOTES_HEADER}</v></c>
     </row>
-    <row r="8" spans="2:8">
-      <c r="B8" t="s"><v>${SI.FOOTER_NOTE}</v></c>
+    <row r="8">
+      <c r="B8" t="s"><v>${SI.EU_LEGEND}</v></c>
     </row>
     <row r="9" spans="2:8">
       <c r="B9" t="s"><v>${SI.FOOTER_NOTE}</v></c>
+    </row>
+    <row r="10" spans="2:8">
+      <c r="B10" t="s"><v>${SI.FOOTER_NOTE}</v></c>
     </row>
   </sheetData>
 </worksheet>`;
