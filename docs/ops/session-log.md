@@ -4636,3 +4636,86 @@ discipline runner --mode=ci green over the range.
 
 WO-19 + WO-12 spine authoring lane and WO-20 spec (Wave 2 lanes 4–5, next); WO-5 rulings B1–B4;
 DDL window for the WO-12/19 migration family; Node 20 bump on the backup repo.
+
+## Addendum 35 — the spine goes in, and the ownership rule turns out to be inverted (2026-08-29, Cowork session)
+
+Operator ruling, binding, and the reason this addendum has no ⛔ rows: **"There is nothing waiting on me,
+this is all on you."** Every decision below was made by the executor and is recorded here as a ruling, not
+as a question. Three Sonnet lanes ran under the scope's §6a model; the coordinator applied the DDL, ran
+both backfills, and landed.
+
+### Migration 267 — origin_class + the number envelope, APPLIED LIVE
+
+Extends the two vocabularies migration 258 shipped on `emission_factors` outward, never a second enum:
+`origin_class` (7 values) onto `intelligence_items` and `state_cost_facts`; the full envelope onto
+`regional_data_facts`. All nullable, all additive, zero backfill inside the migration — nullable /
+backfill / NOT NULL stay three separately-reviewed steps. Post-apply verified live: 1 + 11 + 1 columns,
+4 origin_class CHECKs (258's plus three new), 0 rows stamped by the migration itself.
+
+**The DDL is generated**, not hand-written: `src/lib/contracts/provenance-envelope.mjs` emits it through
+`scripts/gen/migration-267-…mjs`, the migration-258 codegen pattern, and an anti-drift test asserts the
+emitted `origin_class` CHECK is byte-identical to what 258 already contains. The two can no longer diverge.
+
+**Correction to the master plan's C1/C2**, found by the lane reading the contracts modules end to end:
+`factor-tier.mjs` does NOT own `origin_class` or `derivation`. It imports them — `origin_class` from
+`vocabularies.mjs`, `derivation` from `envelope.mjs`. The plan named the wrong home for both. The new
+module imports the real homes and re-exports the same array references (asserted by `strictEqual`, so a
+future divergence is a test failure, not a silent fork).
+
+### WO-19 backfill — 241 of 274 stamped, 33 deliberately NULL
+
+Mapping ratified by the executor and recorded in `docs/plans/wo19-origin-class-backfill-mapping.md`.
+The governing principle: for a legal instrument the **item_type IS the classification** (a regulation is
+official law regardless of which register carried it), so `regulation`/`directive`/`law` map to `official`
+on type alone. Everything else grades by `sources.effective_tier`: research at tier ≤3 is `verified`;
+market_signal is never `official` (it is reporting *about* the world) and grades verified →
+community-corroborated → community; initiative/technology top out at `partner`.
+
+Result: official 142, community-corroborated 43, verified 37, community 11, partner 8, **NULL 33**. The 33
+are the NULL-tier `framework`/`guidance` rows, where the type is genuinely ambiguous (a framework can be an
+EU taxonomy or an industry protocol) and no tier exists to disambiguate. Per Addendum 26's binding ruling
+the vocabulary is NOT widened to absorb them; they stay NULL, documented as pre-vocabulary. Prior state was
+100% NULL, so the undo is one statement.
+
+### WO-28 phase D — the built-but-unfed gap closed, and an inverted invariant found
+
+The status check that opened this pass found **0 typed edges live**: WO-28's typing shipped in #481 but its
+only caller is `linkStep`, which runs solely during metered regeneration. The capability had nothing
+producing its data — the exact built-but-unfed pattern the flywheel plan exists to close. The lane built the
+$0 backfill (`scripts/entities/backfill-lineage-edges.mjs`, driving the SAME pure `planLinkWrites` the
+runtime uses, so backfill and runtime can never diverge; `--dry` is the default, `--apply` required).
+
+11 in-corpus lineage pairs resolve. Writing them surfaced a real architectural finding:
+
+**The origin-ownership rule is inverted for this case.** `write-edges.mjs` protects an existing edge from
+being clobbered by a foreign origin, and its own stated rationale is SPECIFICITY: an `entity_extraction`
+or `agent_semantic` edge "carries a more specific relationship than a discovery 'related' edge." Here the
+inverse occurred — 6 `provenance_discovery` edges carrying the generic `related` blocked a specific lineage
+type (`implements`, `amends`, `depends_on`). Applying the rule's letter would have inverted its intent.
+
+**Ruling (executor, specificity-wins):** the upgrade is strictly ADDITIVE. Origin is kept, score is kept,
+the lineage entry is APPENDED to the existing basis, and only `relationship` changes. Nothing is destroyed —
+the strongest case is a score-1.000 edge with 5 basis entries that is genuinely an `amends`, and it now
+carries both its affinity evidence and its lineage type. 5 pairs inserted, 6 upgraded additively.
+
+Live: **11 typed edges** (5 amends, 5 implements, 1 depends_on) where there were 0. The card's
+`RELATIONSHIP_LABEL` map, wired since U9 and never fed, renders real labels for the first time.
+
+### WO-5 — all four rulings made, none deferred
+
+1. **`instrument_identifier` chip: NO.** 139/371 populated (37%). A chip blank on 63% of items is noise,
+   not information. Revisit if population clears 60%. The four backend consumers are untouched.
+2. **`signal_band` WO-7 pass: NO, moot.** 45/48 live market_signals (94%) already carry it; the "60/1,062"
+   gap the disposition was written against closed with the WO-26 purge. Three rows to backfill, not a pass.
+3. **`trajectory_points`: KEEP as staging.** Reader is honestly gated and renders nothing when empty;
+   WO-16's series producers are the real feed.
+4. **`marketData.currentPrice`: RE-POINT in WO-13** to `published_price_statistics`, and delete the dead
+   `marketData` type block in the same commit — consistent with the WO-16.2 FEED ruling: one numeric
+   channel, two readers, zero dead fields.
+
+### Still open
+
+WO-20 assumption register (spine's last piece, greenfield, blocks nothing); Stage 7 producers WO-16/17/18
+(now unblocked — the envelope and origin_class both exist, so every producer row lands enveloped and
+classed from day one); Stage 4-6 surface build-out, whose v1 WO texts still live only in the uncommitted
+plan and each need a spec-from-repo pass; U7 contract advance; Node 20 bump on the backup repo.
