@@ -6159,3 +6159,29 @@ starts from data rather than from "someone should look at this."
 
 L3's composition proof for the carbon overlay was built voluntarily and is a real proof, not a
 placeholder — it stands regardless of what F27's scope eventually becomes.
+
+## Addendum 59 — CI caught what I did not: migration 270 unclaimed in the inventory (2026-08-30, Cowork session)
+
+The Discipline engine's consistency layer failed the branch: **C3 migrations-reality**, one record —
+*"Migration file 270_widen_org_watchlist_market_series.sql exists on disk but is not listed in
+docs/inventories/migrations.md."*
+
+Correct, and mine. I applied migration 270 live, wrote the file, wrote the reversal, verified both
+constraints post-apply, briefed the code lane on the four files — and never claimed it in the
+inventory. Neither did the lane, because I did not put it in the brief. The gate exists precisely
+because a migration that is applied but unclaimed is invisible to the next person reading the
+inventory as the register of what the database contains.
+
+Row added, carrying what a future reader actually needs: that `user_watchlist` is deliberately NOT
+widened and why that is now the *safer* state rather than merely the specced one (its row count changed
+under the plan's premise); that there is no "DDL window" because a zero-row table runs no validation
+scan; the post-apply verification of BOTH constraints including the negative half; the four code files
+and the specific trap in each; and the exact reversal.
+
+**The failure ran in 9 seconds and told me precisely what was wrong.** Worth noting against the local
+run: C4 reported 37 records here, all of them worktrees on this machine that do not exist in a fresh CI
+checkout — so the local consistency run is noisy in a way CI is not, and I nearly dismissed the whole
+check as local noise before filtering to C3/C5. Filtering by check rather than by total count is the
+habit that found it.
+
+Re-verified after the fix: C3 PASS, C5 PASS, suite 1717/1717, tsc clean, fitness 22/22.
