@@ -56,6 +56,34 @@ jobs:
             file "file$i.bin" || true
           done < links.txt
 
+      - name: History workbook — rels, price-sheet rows, comments (pass 2 evidence)
+        run: |
+          set -eu
+          # Pass 1 (run #1) identified file 25 as Weekly_Oil_Bulletin_Prices_History_maticni_4web.xlsx
+          # ("Price developments 2005 onwards", 4.25 MB, updated weekly) and printed its sheet NAMES
+          # ("Prices with taxes" rId1, "Prices wo taxes" rId2, ...) but not which physical sheetN.xml
+          # each rId maps to, and no actual data rows. A parser written without seeing a real data row
+          # would be a guess; this step prints exactly the missing evidence.
+          f=$(grep -l "Prices wo taxes" file*.bin 2>/dev/null | head -1 || true)
+          if [ -z "$f" ]; then
+            for g in file*.bin; do
+              if unzip -p "$g" xl/workbook.xml 2>/dev/null | grep -q "Prices wo taxes"; then f="$g"; break; fi
+            done
+          fi
+          echo "== history workbook identified as: $f =="
+          echo "-- workbook.xml.rels (rId -> physical sheet file) --"
+          unzip -p "$f" xl/_rels/workbook.xml.rels
+          echo
+          for sheet in xl/worksheets/sheet1.xml xl/worksheets/sheet2.xml; do
+            echo "== $sheet: header rows (rows 1-4) =="
+            # Rows live on single giant lines; split on row boundaries first, then take the first rows.
+            unzip -p "$f" "$sheet" | sed 's/<row /\n<row /g' | sed -n '2,5p' | head -c 12000; echo
+            echo "== $sheet: LAST row (most recent week) =="
+            unzip -p "$f" "$sheet" | sed 's/<row /\n<row /g' | tail -2 | head -c 8000; echo
+          done
+          echo "-- sharedStrings: entries mentioning Euro-super / EU / average / Date --"
+          unzip -p "$f" xl/sharedStrings.xml | sed 's/><si/>\n<si/g' | grep -iE 'euro-super|average|moyenne|EU27|European|Date|Prix|1000 L|1000L' | head -40 || true
+
       - name: Expose each workbook's real structure
         run: |
           set -eu
