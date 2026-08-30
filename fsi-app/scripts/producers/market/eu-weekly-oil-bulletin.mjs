@@ -21,16 +21,12 @@
 // silently downgrade to a dry run (a silent downgrade would hide that the switch is off from whoever is
 // watching the exit code).
 //
-// A THIRD GATE THAT IS NOT THIS SCRIPT'S TO CLEAR: market_series.source_key has a NOT-a-CHECK, an actual
-// FK to public.data_sources(source_key). The registry's 'ec_weekly_oil_bulletin' source_key
-// (src/lib/market/series-registry.mjs) is NOT YET a row in that table —
-// src/lib/contracts/source-licence.mjs (the licence register's single vocabulary home) is outside this
-// lane's write set (WO-12/19 lane; see docs/plans/connection-redesign-and-build-scope-2026-08-29.md §6a
-// wave 2). So EVEN WITH BOTH GATES ABOVE OPEN, a real --apply write fails closed with a 23503
-// foreign_key_violation until an operator lands that data_sources row and migration 258's seed is
-// regenerated. This is the CORRECT behaviour for an unregistered source (provenance-envelope.mjs's own
-// header: "Unregistered sources fail closed"), not a bug to route around — never widen the FK, never
-// point source_key at a different, wrongly-attributed data_sources row to make the error go away.
+// THE THIRD GATE IS NOW CLEAR (2026-08-30): market_series.source_key is a real FK to
+// public.data_sources(source_key), and 'ec_weekly_oil_bulletin' IS a live row in that table —
+// src/lib/contracts/source-licence.mjs gained the entry (CC BY 4.0, Decision 2011/833/EU) and migration
+// 258's data_source_seed was regenerated and applied, confirmed live this session. The fail-closed
+// posture stays for any FUTURE unregistered source (provenance-envelope.mjs's own header): never widen
+// the FK, never point source_key at a wrongly-attributed row to make a 23503 go away.
 //
 // INPUT. This lane does not fetch the live bulletin (see the parser module's own header for why —
 // verifying the live file's exact machine format needs a network read this lane does not perform).

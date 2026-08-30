@@ -49,13 +49,22 @@ runner ship together, or the work order is not done.**
    and every source is an open, unauthenticated, licence-cleared API: $0 in the standing sense — no
    metered call, no key, no per-request charge.
 
-2. **Each producer runs on a schedule matched to its source's real publication cadence**, not a
+2. **BUILD-MODE AMENDMENT (operator ruling 2026-08-30, supersedes the schedule half of this decision
+   until build mode ends):** while the site is being built, producers run by EXPLICIT DISPATCH only —
+   dry, plan read, then apply. The `schedule:` block is removed from producers.yml (left in place as a
+   commented block with its exact crons), because a schedule that applies unreviewed writes into a
+   system still being assembled is the wrong risk order: populate first, observe, then automate. The
+   runtime, both gates, and the cadence rationale below all stand; re-arming is that one commented
+   block, restored in one reviewed diff, when the operator ends build mode.
+
+3. **Each producer runs on a schedule matched to its source's real publication cadence** (deferred by
+   the amendment above), not a
    convenient round number. The EU Weekly Oil Bulletin publishes Thursdays, so it runs Fridays.
    Eurostat `nrg_pc_205` is bi-annual and BLS OEWS annual, so they run monthly — often enough to
    catch a release within weeks, rarely enough that the run is almost always a no-op upsert.
    Over-polling an open API is not free in goodwill even when it is free in money.
 
-3. **Two gates, guarding two different questions, and they stay separate.**
+4. **Two gates, guarding two different questions, and they stay separate.**
    - The producer's source-level `const ENABLED` answers *"has a human reviewed this producer and
      agreed it may ever write?"* It is a reviewed-code-change gate: flipping it appears in
      `git diff`. This is what stops a schedule from silently arming a producer nobody vetted.
@@ -65,11 +74,11 @@ runner ship together, or the work order is not done.**
      with no deploy. That matters more than fast arming, and the source constant alone could not
      provide it — you cannot stop a misbehaving worker with a pull request.
 
-4. **First live run is dry, inspected, then applied.** These producers have parser tests against
+5. **First live run is dry, inspected, then applied.** These producers have parser tests against
    committed fixtures, never a live endpoint. A fixture proves the parse; it does not prove the
    endpoint still returns that shape. The first `apply` follows a `dry` whose plan a human read.
 
-5. **Population is a reported state, not something anyone has to notice.**
+6. **Population is a reported state, not something anyone has to notice.**
    `scripts/verify/population-report.mjs` prints, for every store: rows, the non-null count of the
    column that decides whether its reader shows anything, the reader's name, and the producer that
    would fill it. It runs before and after every producer run and on every PR.
@@ -93,6 +102,20 @@ runner ship together, or the work order is not done.**
   observed non-empty by the population report.
 - A store that is legitimately mid-build now says so out loud on every PR instead of looking
   finished.
+- **The first live run earned its keep immediately, which is the point.** Run #1 (dry, 2026-08-30)
+  showed both regional producers fetching and parsing their live sources correctly — 283 and 3
+  candidate rows, full envelopes — and showed the EU Weekly Oil Bulletin producer had no input at all:
+  it is a parser with `--input`, never a fetcher. Run #2 (`apply`, eurostat) then failed at its first
+  row with `null value in column "value" ... violates not-null constraint`, because the orchestrator
+  passed parser OBSERVATIONS straight to the guarded insert and never called `buildEnvelopeRow`, the
+  one home that derives that NOT-NULL column. Both defects had been in `master` since Wave 4 with
+  every gate green.
+- **Fixture tests prove layers; only a live run proves a seam.** Each layer here had a passing proof —
+  parser against a fixture, `buildEnvelopeRow` against a hand-built observation, `planUpsert` against
+  `buildEnvelopeRow` output — and the seam that joined them had no proof at all, so a chain of correct
+  parts could not write a row. The orchestrator now has `run-envelope-producer.test.mjs`, and its
+  assertion is against the live table's NOT-NULL column set rather than against "the field exists":
+  a candidate row that satisfies the planner but not the table is precisely the failure that occurred.
 - **Recorded, not fixed here:** the DESNZ seeder stays unarmed. Its four `ttw_co2e` values came from
   a third-party republication, not the primary DESNZ workbook (403 to the sandbox; the file is
   `.xlsx`, which the fetch tool cannot parse). Arming a producer whose numbers are UNCONFIRMED would

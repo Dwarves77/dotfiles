@@ -50,24 +50,24 @@ on:
         default: 'all'
         type: choice
         options: [all, eurostat-nrg-pc-205, bls-oews, eu-weekly-oil-bulletin]
-  schedule:
-    # EU Weekly Oil Bulletin — published Thursday, read Friday.
-    - cron: '0 6 * * 5'
-    # Eurostat (bi-annual) + BLS OEWS (annual) — monthly sweep.
-    - cron: '20 6 1 * *'
+  # BUILD MODE (operator ruling 2026-08-30): no schedule while the site is being built — population
+  # happens by explicit dispatch, read, then applied. The runtime, both gates, and the cadence notes
+  # above all stay, so re-arming when build mode ends is exactly this block, restored in one reviewed
+  # diff:
+  #   schedule:
+  #     - cron: '0 6 * * 5'    # EU Weekly Oil Bulletin — published Thursday, read Friday
+  #     - cron: '20 6 1 * *'   # Eurostat (bi-annual) + BLS OEWS (annual) — monthly sweep
 
 concurrency:
   group: data-producers
   cancel-in-progress: false
 
 env:
-  # A scheduled run applies; a manual run does what the operator picked, defaulting to dry.
-  RUN_MODE: ${{ github.event_name == 'schedule' && 'apply' || inputs.mode }}
-  # Friday cron -> market only. Monthly cron -> regional only. Manual -> the operator's choice.
-  RUN_PRODUCER: >-
-    ${{ github.event.schedule == '0 6 * * 5' && 'eu-weekly-oil-bulletin'
-     || github.event.schedule == '20 6 1 * *' && 'regional'
-     || inputs.producer }}
+  # Build mode: dispatch-only, so the mode and producer are exactly what the operator picked. When the
+  # schedule block is restored, restore the schedule-aware expressions with it (see git history at this
+  # line for the exact pair).
+  RUN_MODE: ${{ inputs.mode }}
+  RUN_PRODUCER: ${{ inputs.producer }}
 
 jobs:
   produce:
