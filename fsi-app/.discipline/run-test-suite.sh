@@ -59,6 +59,7 @@ node --test \
   fsi-app/.discipline/assistant-spend-gate.test.mjs \
   fsi-app/.discipline/relationship-check-literals.test.mjs \
   fsi-app/.discipline/skill-drift-gate.test.mjs \
+  fsi-app/.discipline/notification-preferences-save-path.test.mjs \
   fsi-app/.discipline/lib/*.test.mjs \
   fsi-app/.discipline/rules/*.test.mjs \
   fsi-app/.discipline/consistency/*.test.mjs \
@@ -72,6 +73,7 @@ node --test \
   fsi-app/scripts/lib/admin-phrase-scan.selftest.mjs \
   fsi-app/scripts/lib/canonical-key.selftest.mjs \
   fsi-app/scripts/lib/check-sources-decision.selftest.mjs \
+  fsi-app/scripts/lib/community-topics-seed.test.mjs \
   fsi-app/scripts/lib/db-register-source-role.test.mjs \
   fsi-app/scripts/lib/db.test.mjs \
   fsi-app/scripts/lib/deferral.selftest.mjs \
@@ -90,6 +92,7 @@ node --test \
   fsi-app/scripts/verify/*.test.mjs \
   fsi-app/scripts/verify/lib/*.test.mjs \
   fsi-app/scripts/gen/*.test.mjs \
+  fsi-app/scripts/mint/*.test.mjs \
   fsi-app/scripts/producers/*/*.test.mjs \
   fsi-app/src/__tests__/*.test.mjs \
   fsi-app/src/lib/credibility/*.test.mjs \
@@ -99,6 +102,8 @@ node --test \
   fsi-app/src/lib/coverage/*.test.mjs \
   fsi-app/src/lib/d3/*.selftest.mjs \
   fsi-app/src/lib/tier-labels.test.mjs \
+  fsi-app/src/lib/tier-badge-tone.test.mjs \
+  fsi-app/src/components/community/community-sidebar-route.test.mjs \
   fsi-app/src/lib/workspace/*.test.mjs \
   fsi-app/src/lib/connections/*.test.mjs \
   fsi-app/src/lib/operations/*.test.mjs \

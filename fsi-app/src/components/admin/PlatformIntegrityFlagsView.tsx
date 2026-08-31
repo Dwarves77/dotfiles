@@ -51,6 +51,21 @@ type Category = (typeof CATEGORIES)[number];
 const STATUSES = ["open", "in_review", "resolved", "archived"] as const;
 type Status = (typeof STATUSES)[number];
 
+// analyze-corpus.mjs (flywheel U2) writes coverage_gap rows whose subject_ref is a connection_themes
+// id under created_by's "flywheel-gap:" namespace (see scripts/connections/analyze-corpus.mjs and
+// src/lib/connections/gaps.mjs). subject_type on those rows is "system" — the closest legal value
+// integrity_flags' DB CHECK constraint (migration 048) allows for a subject that isn't an item,
+// source, surface, or jurisdiction — but "system: <uuid>" reads as an opaque component name to an
+// operator. Recognize the namespace and label the subject "Theme" instead so it's legible without a
+// deep link into a table that has no dedicated detail route; deliberately no navigable href here —
+// the theme id is not an intelligence_items id, and rendering one as a broken item link is the exact
+// defect this fixed.
+const GAP_NAMESPACE_PREFIX = "flywheel-gap:";
+function subjectLabel(row: Pick<PlatformFlag, "subject_type" | "subject_ref" | "created_by">): string {
+  if (row.created_by.startsWith(GAP_NAMESPACE_PREFIX)) return "theme";
+  return row.subject_type;
+}
+
 interface RecommendedAction {
   action: string;
   rationale?: string;
@@ -307,7 +322,7 @@ export function PlatformIntegrityFlagsView() {
                         className="text-[12px] font-mono"
                         style={{ color: "var(--color-text-muted)" }}
                       >
-                        {row.subject_type}:
+                        {subjectLabel(row)}:
                       </span>
                       <span
                         className="text-[12px] font-mono break-all"

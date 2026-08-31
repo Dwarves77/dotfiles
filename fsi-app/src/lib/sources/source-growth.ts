@@ -86,10 +86,34 @@ export interface CitedSourceInput {
 
 /** Register cited sources: a fetchable source becomes a `sources` row (so it can be cited and
  *  accumulate credibility); a blocked one becomes a `provisional_sources` candidate carrying its
- *  rejection_reason. Returns the resolved source_id per input (null for candidates). Idempotent. */
+ *  rejection_reason. Returns the resolved source_id per input (null for candidates). Idempotent
+ *  for the REGISTRATION side effect (source_id resolution / row creation never duplicates); NOT
+ *  idempotent for the tier-opinion side effect unless the caller passes `skipTierOpinions: true` —
+ *  see the `opts` param doc below. */
 export async function registerCitedSources(
   supabase: SupabaseClient,
-  cited: CitedSourceInput[]
+  cited: CitedSourceInput[],
+  opts?: {
+    /** DOUBLE-INVOCATION FIX (tier-opinion chain, S2): the canonical workflow
+     *  (generate-brief.ts) calls registerCitedSources TWICE for the SAME cited list parsed from
+     *  the SAME full_brief — once directly from registerBriefSources (the pre-grounding "register"
+     *  step, which always runs) and once more inside growSourcesFromBrief (the later "grow" step,
+     *  which always runs after register on every path that reaches it). Registration itself is
+     *  idempotent (the second call's `ilike` lookup just finds the row the first call created/
+     *  matched), but the tier-opinion write below is NOT idempotent — nothing dedupes it. Before
+     *  this fix, a citation matching a PRE-EXISTING source recorded TWO opinion rows per single
+     *  brief generation (double-counting toward get_tier_opinion_disagreements' >=5 threshold),
+     *  and a citation whose source was FRESHLY MINTED by the register step recorded a spurious
+     *  opinion in the grow step too, because by then that source already "exists" (the register-
+     *  vs-new_source branch can no longer tell newly-minted-this-pass apart from genuinely
+     *  pre-existing). growSourcesFromBrief now passes `skipTierOpinions: true` for its internal
+     *  re-registration call (it only needs the resolved source_id to build citation edges; the
+     *  opinion for these exact citations was already correctly recorded by the earlier register
+     *  step, which is the ONLY call site that can distinguish new-this-pass from pre-existing).
+     *  Other callers (registerBriefSources's direct call, registerPoolHostsForGrounding, any
+     *  standalone/test invocation) omit this and keep recording, unchanged. */
+    skipTierOpinions?: boolean;
+  }
 ): Promise<Array<{ url: string; source_id: string | null; registered: "existing" | "new_source" | "candidate" }>> {
   const out: Array<{ url: string; source_id: string | null; registered: "existing" | "new_source" | "candidate" }> = [];
   for (const cs of cited) {
@@ -111,7 +135,7 @@ export async function registerCitedSources(
       // already has a stored tier to compare against. Best-effort per recordTierOpinion's own contract
       // (it never throws) — this whole function runs inside brief generation via canonical-pipeline.ts,
       // and opinion recording is observational only; it must never be able to fail a regeneration.
-      if (cs.tier_estimate != null) {
+      if (cs.tier_estimate != null && !opts?.skipTierOpinions) {
         await recordTierOpinion(supabase as unknown as MinimalSupabaseClient, {
           targetSourceId: targetId,
           opinedTier: cs.tier_estimate,
@@ -311,7 +335,14 @@ export async function growSourcesFromBrief(
   brief: string
 ): Promise<{ registered: Array<{ url: string; source_id: string | null; registered: string }>; citationsRecorded: number; compound: Awaited<ReturnType<typeof compoundSourceCredibility>>; reputation: { before: number; after: number; changed: boolean } | null }> {
   const cited = parseNewSourcesFromBrief(brief);
-  const registered = await registerCitedSources(supabase, cited);
+  // skipTierOpinions: true — see registerCitedSources' `opts` doc. In the ONE live workflow
+  // (generate-brief.ts), registerBriefSources already ran registerCitedSources on this exact
+  // `cited` list (same full_brief, unchanged between steps) and correctly recorded the tier
+  // opinion for every citation that matched a source pre-existing BEFORE this generation pass.
+  // This call exists to re-resolve each citation's source_id for the edges below, not to
+  // register/opine again — doing so would double-count every pre-existing citation's opinion and
+  // wrongly opine on sources this SAME pass just minted (which now read as "existing").
+  const registered = await registerCitedSources(supabase, cited, { skipTierOpinions: true });
   const edges = registered
     .filter((r) => r.source_id) // candidates (blocked) cannot cite yet
     .map((r) => ({ citing_source_id: r.source_id as string, cited_source_id: citedSourceId }));

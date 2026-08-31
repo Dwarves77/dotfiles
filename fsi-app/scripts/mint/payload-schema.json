@@ -1,0 +1,257 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "mint-payload-schema.json",
+  "title": "M0 mint payload",
+  "description": "One intelligence_items mint, authored $0 in-session, in the exact shape the coordinator applies through the guarded write path (mint-item.ts -> sectionBrief -> groundBrief/applyLedgerDiff -> item_gate_a_state), per docs in this directory's MINT-RUNBOOK.md. validate-mint-payload.mjs checks this shape against validate_item_provenance criteria C1-C7 before the coordinator ever touches the DB.",
+  "type": "object",
+  "required": [
+    "item",
+    "source",
+    "sections",
+    "search_results",
+    "claims"
+  ],
+  "additionalProperties": true,
+  "_additionalProperties_note": "true (not false) at every level in this schema: authors may attach a `_note`/`_proof_note`/`_domain_note` free-text field anywhere to record how a value was resolved (a source lookup, a deliberate omission) -- see example-payload.json. validate-mint-payload.mjs, the real gate, ignores unknown keys entirely; this schema is a shape reference, not a strict contract.",
+  "properties": {
+    "item": {
+      "type": "object",
+      "required": [
+        "source_url",
+        "item_type",
+        "title",
+        "full_brief"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "source_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "The live document URL (census_worklist.document_url). Becomes intelligence_items.source_url."
+        },
+        "item_type": {
+          "type": "string",
+          "description": "One of item-type-required-slots.json's keys."
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "CRITICAL",
+            "HIGH",
+            "MODERATE",
+            "LOW"
+          ],
+          "default": "MODERATE"
+        },
+        "title": {
+          "type": "string"
+        },
+        "domain": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "full_brief": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The authored brief prose (markdown). Criterion 6 requires non-blank; criterion 7 (Gate A) scans this text for figures/deadline-dates."
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "id",
+        "url",
+        "status"
+      ],
+      "additionalProperties": true,
+      "description": "The resolved registered `sources` row for item.source_url (looked up live by the author before authoring the payload -- see MINT-RUNBOOK.md step 2). Must already exist and be active; this kit mints NOTHING into `sources`.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "base_tier": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "tier_override": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "status": {
+          "type": "string"
+        },
+        "institution_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "registry_sources": {
+      "type": "array",
+      "description": "Any OTHER `sources` rows a claim cites (corroborators). Each must be a real, live-registered, active source the author looked up -- never invented.",
+      "items": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "base_tier": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "tier_override": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "institution_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "default": []
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "section_key",
+          "section_order",
+          "content_md"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "section_key": {
+            "type": "string"
+          },
+          "section_order": {
+            "type": "integer"
+          },
+          "content_md": {
+            "type": "string"
+          },
+          "is_conditional": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "search_results": {
+      "type": "array",
+      "description": "Mirrors the agent_run_searches rows the mint would write -- one per REAL fetched source. result_content must be the actual fetched text (not a stub) for any URL a FACT claim's span must be found in.",
+      "items": {
+        "type": "object",
+        "required": [
+          "result_url",
+          "result_content"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "result_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "result_title": {
+            "type": "string"
+          },
+          "result_content": {
+            "type": "string"
+          },
+          "result_index": {
+            "type": "integer"
+          },
+          "search_query": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "section_key",
+          "claim_kind",
+          "claim_text"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "section_key": {
+            "type": "string",
+            "description": "Must match a sections[].section_key."
+          },
+          "claim_kind": {
+            "type": "string",
+            "enum": [
+              "FACT",
+              "ANALYSIS",
+              "LEGAL",
+              "GAP",
+              "DERIVED"
+            ]
+          },
+          "claim_text": {
+            "type": "string"
+          },
+          "source_span": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "FACT only: the VERBATIM substring copied from source_url's fetched text."
+          },
+          "source_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "FACT/grounded-ANALYSIS only: which search_results[].result_url (or item.source_url) the span was copied from."
+          },
+          "slot_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Required for a claim covering an item_type_required_slots row."
+          },
+          "mint_hold_reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          }
+        }
+      }
+    }
+  }
+}

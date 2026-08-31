@@ -600,7 +600,7 @@ function GroupRow({
 
   return (
     <SidebarRow
-      href={`/community/groups/${membership.group.slug}`}
+      href={`/community/${membership.group.slug}`}
       icon={icon}
       iconColor={iconColor}
       label={membership.group.name}

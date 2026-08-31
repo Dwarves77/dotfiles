@@ -1,0 +1,104 @@
+{
+  "_proof_note": "M0 task 5 proof payload. CELEX 32011L0037 (Commission Directive 2011/37/EU, replacing Annex II to the End-of-Life Vehicles Directive 2000/53/EC) was chosen over the 5 sample URLs literally listed in mint-ground-truth.md because none of those 5 returned full legal text within this session's WebFetch budget (3 landing-page-only, 2 rate-limited by the WebFetch proxy after retries -- see the M0 report's reachability table); 32011L0037 is a genuinely would_mint census row (surface_tags regulations+operations, confirmed live), clearly on-vertical under ADR-020 (freight/automotive hazardous-substance restriction, an End-of-Life Vehicles Directive amendment -- not customs/trade administration), and is the ONE CELEX URL across 8 attempts that returned real, verbatim, fetchable article text. Every claim below is sourced to a sentence this session actually fetched via WebFetch from the live EUR-Lex page on 2026-08-31 -- nothing invented, nothing paraphrased into a FACT span. Two honest facts recorded for the coordinator, not hidden: (1) this exact source_url already exists as a 'verified' intelligence_items row in the live corpus (id 2b3c4c9b-0d85-433f-b7c3-44c6d15ca52f) -- so this payload is a MECHANISM proof, not a live gap-fill; applying it through mint-item.ts would safely no-op via its source_url idempotency probe (action:'exists'), never a duplicate. (2) the 'sources' registry already carries this URL active at tier 1 (id 966d155b-de56-4002-95c9-c5e8f0c76e4e), which is why criterion 1 is satisfiable here without any new source registration.",
+  "item": {
+    "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011L0037",
+    "item_type": "directive",
+    "priority": "MODERATE",
+    "title": "Commission Directive 2011/37/EU of 30 March 2011 amending Annex II to Directive 2000/53/EC on end-of-life vehicles",
+    "instrument_identifier": "2011/37/EU",
+    "canonical_instrument_key": "CELEX:32011L0037",
+    "jurisdiction_iso": "EU",
+    "_domain_note": "domain omitted deliberately -- item_type='directive' is in mint-item.ts's UNCONDITIONAL_DOMAIN_TYPES, so canonicalDomainOverride() derives+stamps the correct domain at insert regardless of any seed value; no benefit to guessing it here.",
+    "full_brief": "# Commission Directive 2011/37/EU — Annex II Amendment to the End-of-Life Vehicles Directive (2000/53/EC)\n\nCommission Directive 2011/37/EU replaces Annex II to Directive 2000/53/EC (the End-of-Life Vehicles Directive), which lists the exemptions from Directive 2000/53/EC's prohibition on lead, mercury, cadmium and hexavalent chromium in vehicle materials and components.\n\nDirective 2000/53/EC prohibits the use of lead, mercury, cadmium or hexavalent chromium in materials and components of vehicles put on the market after 1 July 2003, other than in cases listed in Annex II.\n\nThis Directive shall enter into force on the 20th day following its publication in the Official Journal of the European Union.\n\nMember States shall bring into force the laws, regulations and administrative provisions necessary to comply with this Directive by 31 December 2011 at the latest.\n\nThis Directive is addressed to the Member States.\n\n*Analytical inference:* this Commission directive amends only Annex II of Directive 2000/53/EC; it does not itself state penalties for non-compliance — enforcement provisions live in the parent Directive and were not part of the text fetched for this item.\n\nSource: https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011L0037"
+  },
+  "source": {
+    "_note": "Read live from public.sources 2026-08-31 (Supabase MCP execute_sql, read-only) -- already registered and active, no registration write needed for this proof.",
+    "id": "966d155b-de56-4002-95c9-c5e8f0c76e4e",
+    "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011L0037",
+    "base_tier": 1,
+    "tier_override": null,
+    "status": "active",
+    "institution_id": null
+  },
+  "registry_sources": [],
+  "sections": [
+    {
+      "section_key": "summary",
+      "section_order": 1,
+      "content_md": "Commission Directive 2011/37/EU replaces Annex II to Directive 2000/53/EC (the End-of-Life Vehicles Directive), which lists the exemptions from Directive 2000/53/EC's prohibition on lead, mercury, cadmium and hexavalent chromium in vehicle materials and components."
+    },
+    {
+      "section_key": "obligations",
+      "section_order": 2,
+      "content_md": "Directive 2000/53/EC prohibits the use of lead, mercury, cadmium or hexavalent chromium in materials and components of vehicles put on the market after 1 July 2003, other than in cases listed in Annex II.\n\nThis Directive shall enter into force on the 20th day following its publication in the Official Journal of the European Union.\n\nMember States shall bring into force the laws, regulations and administrative provisions necessary to comply with this Directive by 31 December 2011 at the latest.\n\nThis Directive is addressed to the Member States."
+    },
+    {
+      "section_key": "gaps_and_analysis",
+      "section_order": 3,
+      "content_md": "*Analytical inference:* this Commission directive amends only Annex II of Directive 2000/53/EC; it does not itself state penalties for non-compliance — enforcement provisions live in the parent Directive and were not part of the text fetched for this item."
+    },
+    {
+      "section_key": "sources_and_citations",
+      "section_order": 4,
+      "content_md": "Source: https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011L0037"
+    }
+  ],
+  "search_results": [
+    {
+      "_note": "The verbatim article/recital text this session's WebFetch calls returned from the live EUR-Lex page for CELEX:32011L0037 on 2026-08-31 (two calls; text concatenated here as the fetched pool the coordinator's real mint would store as one or more agent_run_searches rows). Every FACT source_span below is a substring of this text.",
+      "result_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011L0037",
+      "result_title": "Commission Directive 2011/37/EU of 30 March 2011 amending Annex II to Directive 2000/53/EC on end-of-life vehicles",
+      "search_query": "canonical:mint-proof",
+      "result_index": 0,
+      "result_content": "Article 1: Annex II to Directive 2000/53/EC is replaced by the text set out in the Annex to this Directive. Article 2: Member States shall bring into force the laws, regulations and administrative provisions necessary to comply with this Directive by 31 December 2011 at the latest. Article 3: This Directive shall enter into force on the 20th day following its publication in the Official Journal of the European Union. Article 4: This Directive is addressed to the Member States. Directive 2000/53/EC prohibits the use of lead, mercury, cadmium or hexavalent chromium in materials and components of vehicles put on the market after 1 July 2003, other than in cases listed in Annex II."
+    }
+  ],
+  "claims": [
+    {
+      "section_key": "obligations",
+      "claim_kind": "FACT",
+      "claim_text": "[effective_date] This Directive shall enter into force on the 20th day following its publication in the Official Journal of the European Union.",
+      "source_span": "This Directive shall enter into force on the 20th day following its publication in the Official Journal of the European Union.",
+      "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011L0037",
+      "slot_key": "effective_date"
+    },
+    {
+      "section_key": "obligations",
+      "claim_kind": "FACT",
+      "claim_text": "[primary_deadline] Member States shall bring into force the laws, regulations and administrative provisions necessary to comply with this Directive by 31 December 2011 at the latest.",
+      "source_span": "Member States shall bring into force the laws, regulations and administrative provisions necessary to comply with this Directive by 31 December 2011 at the latest.",
+      "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011L0037",
+      "slot_key": "primary_deadline"
+    },
+    {
+      "section_key": "obligations",
+      "claim_kind": "FACT",
+      "claim_text": "[jurisdictional_scope] This Directive is addressed to the Member States.",
+      "source_span": "This Directive is addressed to the Member States.",
+      "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011L0037",
+      "slot_key": "jurisdictional_scope"
+    },
+    {
+      "section_key": "obligations",
+      "claim_kind": "FACT",
+      "claim_text": "Directive 2000/53/EC prohibits the use of lead, mercury, cadmium or hexavalent chromium in materials and components of vehicles put on the market after 1 July 2003, other than in cases listed in Annex II.",
+      "source_span": "Directive 2000/53/EC prohibits the use of lead, mercury, cadmium or hexavalent chromium in materials and components of vehicles put on the market after 1 July 2003, other than in cases listed in Annex II.",
+      "source_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011L0037",
+      "slot_key": null
+    },
+    {
+      "section_key": "gaps_and_analysis",
+      "claim_kind": "GAP",
+      "claim_text": "[penalty_summary] not available from primary sources as of grounding",
+      "slot_key": "penalty_summary"
+    },
+    {
+      "section_key": "gaps_and_analysis",
+      "claim_kind": "ANALYSIS",
+      "claim_text": "this Commission directive amends only Annex II of Directive 2000/53/EC; it does not itself state penalties for non-compliance — enforcement provisions live in the parent Directive and were not part of the text fetched for this item.",
+      "source_span": null,
+      "source_url": null,
+      "slot_key": null
+    }
+  ]
+}

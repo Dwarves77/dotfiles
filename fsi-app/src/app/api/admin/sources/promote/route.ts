@@ -174,7 +174,9 @@ export async function POST(request: NextRequest) {
       intelligence_types: [] as string[], // derived by the migration-123 trigger from category; never hardcoded
       vertical_tags: [],
       notes:
-        `Promoted from provisional 2026-04-28 by reviewer ${auth.userId.slice(0, 8)}. ` +
+        // F18: live promotion date, not a frozen literal (matches bulk-approve/decide's
+        // `${now.slice(0, 10)}` convention — full-read-audit-2026-08-31.md §2.2).
+        `Promoted from provisional ${now.slice(0, 10)} by reviewer ${auth.userId.slice(0, 8)}. ` +
         `Discovered via ${prov.discovered_via}. ${body.reviewerNotes || ""}`.trim(),
     };
 

@@ -34,10 +34,14 @@ test("the implemented producer's cadenceDays is a positive integer; every stub's
   }
 });
 
-test("exactly ONE producer is implemented in this lane: EU Weekly Oil Bulletin", () => {
+// Updated 2026-08-31 (lane P2, build/wave-p2): ecb-fx-producer.mjs shipped, flipping series-registry.mjs's
+// ecb-fx entry to implemented:true (kill-switched off by default — see that producer's own header). This
+// is a mechanically necessary update to this exact assertion, coupled 1:1 to the registry edit the lane
+// was instructed to make; nothing else in this file changed. eex-eua and eia-v2 remain undocumented stubs
+// (no evidence gathered this lane to flip either — see the registry entry's own notes).
+test("exactly TWO producers are implemented in this lane: EU Weekly Oil Bulletin, ECB FX", () => {
   const impl = implementedProducers();
-  assert.equal(impl.length, 1);
-  assert.equal(impl[0].keyPrefix, "eu-oil-bulletin");
+  assert.deepEqual(impl.map((p) => p.keyPrefix), ["eu-oil-bulletin", "ecb-fx"]);
 });
 
 test("the three stubs carry NO producerScript/parserModule — documented, not half-built", () => {
