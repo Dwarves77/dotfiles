@@ -31,6 +31,33 @@ function normPair(a, b) {
   return null; // neither looks like a year → not an instrument pair
 }
 
+/** PURE. All pair-keys an "N/N" occurrence can legitimately denote — INFORMATION-PRESERVING.
+ *
+ *  DEFECT THIS CLOSES (CELEX 32025R2083, CBAM, 2026-07-30): normPair range-tests both halves to decide which is
+ *  the year and returns null when BOTH fall in 1950..2099 — its comment says that means "neither looks like a
+ *  year", but the live case is the opposite: BOTH do. EU serials now routinely exceed 2000 (2025/2083 is real),
+ *  so such instruments were invisible to the capture scan while the positional expected-side (parseYearNumber)
+ *  still derived them. That asymmetry produced a hard MISMATCH — the false hold the module's own
+ *  "precision over recall" note calls the worst outcome — and it grounded CBAM's 75K draft to zero claims.
+ *
+ *  Two regimes:
+ *   - STRUCTURALLY DETERMINISTIC forms (CELEX `3YYYY[RLD]NNNN`, trailing suffix `YYYY/N/EU`) carry the year in a
+ *     known position. `yearFirst: true` parses positionally and never infers — a year-like serial is impossible
+ *     to misread there.
+ *   - GENUINELY AMBIGUOUS prose pairs ("(EU) 2025/2083" is year/number; "(EC) No 1610/2024" is number/year) keep
+ *     BOTH interpretations when both halves are year-like. Dropping the occurrence loses real signal; guessing
+ *     one invents it. Retaining both is honest, and the reversal is neutralised at the comparison site
+ *     (see the reversal-closure in verifyTargetMatch) so it can never manufacture a phantom foreign instrument.
+ */
+function pairKeysFor(a, b, { yearFirst = false } = {}) {
+  const na = Number(a), nb = Number(b);
+  if (!Number.isFinite(na) || !Number.isFinite(nb)) return [];
+  if (yearFirst) return isYear(na) ? [pairKey({ year: na, number: nb })] : [];
+  if (isYear(na) && isYear(nb)) return [pairKey({ year: na, number: nb }), pairKey({ year: nb, number: na })];
+  const p = normPair(a, b);
+  return p ? [pairKey(p)] : [];
+}
+
 const pairKey = (p) => `${p.year}/${p.number}`;
 
 /** PURE. Scan capture text for instrument identifiers in a CLEAR instrument context, returned as normalized
@@ -44,19 +71,16 @@ export function scanInstrumentIds(text) {
   const found = new Set();
   // CELEX (sector 3 = legislation): 3 YYYY [RLD] NNNN
   for (const m of s.matchAll(/\b3(\d{4})[RLD](\d{4})\b/g)) {
-    const p = normPair(m[1], m[2]);
-    if (p) found.add(pairKey(p));
+    for (const k of pairKeysFor(m[1], m[2], { yearFirst: true })) found.add(k); // CELEX: year position is structural
   }
   // Prose: an instrument word within a short window before an (EU)/(EC) year/number pair, either order.
   const re = /\b(regulation|directive|decision|reg\.?|dir\.?)\b[^\n.;]{0,40}?\(?\b(?:eu|ec)\b\)?\s*(?:no\.?\s*)?(\d{1,4})\s*\/\s*(\d{1,4})/gi;
   for (const m of s.matchAll(re)) {
-    const p = normPair(m[2], m[3]);
-    if (p) found.add(pairKey(p));
+    for (const k of pairKeysFor(m[2], m[3])) found.add(k); // prose: ambiguous — keep both readings
   }
   // Trailing-suffix directive form: "2014/95/EU"
   for (const m of s.matchAll(/\b(\d{4})\s*\/\s*(\d{1,4})\s*\/\s*(?:eu|ec)\b/gi)) {
-    const p = normPair(m[1], m[2]);
-    if (p) found.add(pairKey(p));
+    for (const k of pairKeysFor(m[1], m[2], { yearFirst: true })) found.add(k); // "2014/95/EU": year first
   }
   return found;
 }
@@ -76,7 +100,7 @@ export function expectedInstrumentIds(item = {}) {
   });
   for (const c of eu.celex) {
     const m = String(c).match(/^3(\d{4})[RLD](\d{4})$/);
-    if (m) { const p = normPair(m[1], m[2]); if (p) keys.add(pairKey(p)); }
+    if (m) for (const k of pairKeysFor(m[1], m[2], { yearFirst: true })) keys.add(k); // CELEX: structural, never inferred
   }
   return keys;
 }
@@ -132,7 +156,12 @@ export function verifyTargetMatch(item = {}, captureText = "") {
       reason: `capture bears the item's own identifier (${foundOwn[0] || rawHit})` };
   }
 
-  const conflicting = [...inText].filter((k) => !expected.has(k));
+  // REVERSAL-CLOSURE: an ambiguous prose pair contributes BOTH readings, so the reversal of the item's own key
+  // ("2083/2025" for 2025/2083) can appear in the scan. It is an artefact of retaining information, never a real
+  // foreign instrument — excluding it here keeps the widened detection from manufacturing a phantom conflict.
+  const reverseOf = (k) => { const [y, n] = String(k).split("/"); return `${n}/${y}`; };
+  const expectedClosure = new Set([...expected, ...[...expected].map(reverseOf)]);
+  const conflicting = [...inText].filter((k) => !expectedClosure.has(k));
   const hasExpectedId = expected.size > 0 || Boolean(String(item.identifier || item.instrument_identifier || item.canonicalKey || item.canonical_instrument_key || "").trim());
 
   // MISMATCH (hard hold): the item HAS an identifier, it is ABSENT from the capture, and the capture bears a
