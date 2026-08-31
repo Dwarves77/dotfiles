@@ -16,14 +16,7 @@
 
 import type { SourceEntry } from "@/lib/agent/extract-regulation-sections";
 import { renderableSourceEntries } from "@/lib/agent/source-entry-filter.mjs";
-
-const TIER_STYLE: Record<number, { fg: string; bg: string }> = {
-  1: { fg: "#fff", bg: "var(--color-critical)" },
-  2: { fg: "#fff", bg: "var(--color-high)" },
-  3: { fg: "var(--color-text-primary)", bg: "var(--color-moderate-bg)" },
-  4: { fg: "var(--color-text-primary)", bg: "var(--color-surface-raised)" },
-  5: { fg: "var(--color-text-muted)", bg: "var(--color-surface-raised)" },
-};
+import { clampTier, tierToneFor } from "@/lib/tier-badge-tone";
 
 export function SourcesList({ entries }: { entries: SourceEntry[] }) {
   // F-1 forbidden-class guard: never emit a row for a null/placeholder-name entry
@@ -33,7 +26,7 @@ export function SourcesList({ entries }: { entries: SourceEntry[] }) {
   return (
     <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
       {visible.map((e, i) => {
-        const tone = e.tier ? TIER_STYLE[e.tier] : null;
+        const tone = e.tier ? tierToneFor(e.tier) : null;
         return (
           <li
             key={i}
@@ -55,12 +48,13 @@ export function SourcesList({ entries }: { entries: SourceEntry[] }) {
                   letterSpacing: "0.1em",
                   color: tone.fg,
                   background: tone.bg,
+                  ...(tone.border ? { border: tone.border } : null),
                   padding: "3px 8px",
                   borderRadius: 3,
                   whiteSpace: "nowrap",
                 }}
               >
-                T{e.tier}
+                T{clampTier(e.tier)}
               </span>
             ) : (
               <span style={{ width: 32 }} aria-hidden="true" />
