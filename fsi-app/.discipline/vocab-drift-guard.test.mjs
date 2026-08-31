@@ -27,17 +27,11 @@ test("domain labels: domains.ts DOMAIN_LABELS is canonical; constants.ts has no 
   );
 });
 
-// 3b — severity must be DB-CHECK-valid. intelligence_items.severity CHECK (migration 102) allows
-// 'moderate', NOT 'medium' (mig-102 even backfilled existing 'medium' -> 'moderate'). A write of
-// "medium" violates the constraint. Guard: the live TS surface emits no "medium" severity literal.
-test("severity vocab: intelligence.ts emits no DB-invalid \"medium\" (mig-102 CHECK uses \"moderate\")", () => {
-  const mig = read("supabase/migrations/102_severity_band_theme_columns.sql");
-  assert.ok(/severity/i.test(mig) && /'moderate'/.test(mig), "mig-102 must define the severity CHECK with 'moderate'");
-  assert.ok(
-    !/"medium"/.test(read("src/types/intelligence.ts")),
-    'intelligence.ts must not use severity literal "medium" — the intelligence_items.severity CHECK (migration 102) rejects it; use "moderate" (mapPriorityToSeverity + the IntelligenceItem.severity type).',
-  );
-});
+// 3b RETIRED (Wave A4, 2026-08-31): src/types/intelligence.ts — the file this guard read — was
+// confirmed dead code (zero references anywhere in the tree, per full-read-audit-2026-08-31.md §5)
+// and deleted in the same commit. The severity vocab it guarded ('moderate', not 'medium', per the
+// migration-102 CHECK) has no other live TS-surface literal home at time of deletion; if one is
+// added later, re-add a guard pointed at it rather than reviving this dead-file check.
 
 // 3c — surface classification has ONE home across the JS/SQL boundary (count-integrity build, binding 3).
 // The SQL surface_of() CASE in migration 148 is GENERATED from src/lib/surface-of.mjs SURFACE_RULES via
