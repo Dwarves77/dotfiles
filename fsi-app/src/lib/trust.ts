@@ -435,12 +435,6 @@ export function evaluateDemotion(source: Source): DemotionEvaluation {
         }
         break;
 
-      case "critical_conflict":
-        // This requires checking conflict records — handled at the conflict resolution level
-        // Here we check if the conflict_count against T1 sources is > 0
-        // (Would need conflict detail data passed in for full check)
-        break;
-
       case "extended_inaccessibility":
         if (m.last_accessible) {
           const daysSince = Math.floor(
@@ -458,10 +452,6 @@ export function evaluateDemotion(source: Source): DemotionEvaluation {
           fired = true;
           currentValue = `${(m.accessibility_rate * 100).toFixed(1)}% accessibility over ${m.total_checks} checks`;
         }
-        break;
-
-      case "paywall_introduced":
-        // This is event-driven, not metric-driven — checked when paywall_change event occurs
         break;
 
       case "no_substantive_update":
