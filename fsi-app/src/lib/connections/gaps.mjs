@@ -23,6 +23,20 @@
 //
 // Every finding's evidence traces to real theme/member data (grounding rule, CLAUDE.md standing rule 2)
 // — nothing here fabricates a jurisdiction, surface, or member that isn't already in the input.
+//
+// subject_type [FIXED 2026-08-31, coordinator-verified defect]: a gap's subject_ref is always
+// theme.id (a connection_themes id — this detector operates on clustered themes, never on a single
+// intelligence_items row), but every finding here previously stamped subject_type "item". That lied
+// about what subject_ref points at and made every emitted coverage_gap flag unresolvable by any
+// consumer that reads subject_type:"item" and looks subject_ref up against intelligence_items.id
+// (e.g. scripts/verify/deferral-hygiene-audit.mjs's DELETED-SUBJECT check, quarantine-disposition-
+// audit.mjs's subject_type="item" read) — the theme id is never a real item id, so those lookups
+// always miss. integrity_flags.subject_type is DB-CHECK-constrained (migration 048) to exactly
+// {'surface','item','source','jurisdiction','system'} — there is no 'theme' value, and widening the
+// constraint is a migration, out of scope for this pure module. "system" is the least-wrong legal
+// value: migration 048's own column comment defines subject_type='system' as "free-text component
+// name" (not claimed to resolve against any specific table), which is exactly true of a theme id and,
+// unlike "item", makes no false claim that lets an item-scoped consumer mis-resolve it.
 
 /** Jurisdiction keys that mean "everywhere" rather than a specific place — never a meaningful "home"
  *  to be missing. Matched case-insensitively (profile keys have been seen as both 'global' (the
@@ -73,7 +87,7 @@ function homeJurisdictions(profile) {
  * Detect coverage gaps in a set of clustered themes (cluster.mjs output).
  * @param {Array<{id:string,members:string[],surfaces:string[],pivots:Array<{id:string,centrality:number}>}>} themes
  * @param {{profile?:{jurisdictions?:Record<string,number>}, jurisdictionsByMember?:Map<string,string|string[]>|Record<string,string|string[]>}} [opts]
- * @returns {Array<{type:string,category:'coverage_gap',subject_type:'item',subject_ref:string,description:string,recommended_actions:string[],evidence:object}>}
+ * @returns {Array<{type:string,category:'coverage_gap',subject_type:'system',subject_ref:string,description:string,recommended_actions:string[],evidence:object}>}
  */
 export function detectGaps(themes, { profile, jurisdictionsByMember } = {}) {
   const gaps = [];
@@ -101,7 +115,7 @@ export function detectGaps(themes, { profile, jurisdictionsByMember } = {}) {
           gaps.push({
             type: "jurisdiction_span_gap",
             category: "coverage_gap",
-            subject_type: "item",
+            subject_type: "system", // theme id, not an item id — see file-header note
             subject_ref: theme.id,
             description: `Theme ${theme.id} spans ${spanned.size} jurisdictions (${[...spanned].sort().join(", ")}) with no member in ${home}, a jurisdiction this workspace weights as home.`,
             recommended_actions: [`Confirm whether ${home} coverage for this theme exists outside this cluster before treating it as a real gap.`],
@@ -118,7 +132,7 @@ export function detectGaps(themes, { profile, jurisdictionsByMember } = {}) {
       gaps.push({
         type: "surface_gap",
         category: "coverage_gap",
-        subject_type: "item",
+        subject_type: "system", // theme id, not an item id — see file-header note
         subject_ref: theme.id,
         description: `Theme ${theme.id} connects regulation and research signals (${members.length} members) with no market signal tracked.`,
         recommended_actions: ["Check whether a market-signal item for this theme exists but scored below the discovery threshold."],
@@ -133,7 +147,7 @@ export function detectGaps(themes, { profile, jurisdictionsByMember } = {}) {
       gaps.push({
         type: "pivot_operations_gap",
         category: "coverage_gap",
-        subject_type: "item",
+        subject_type: "system", // theme id, not an item id — see file-header note
         subject_ref: theme.id,
         description: `Theme ${theme.id}'s pivot (${pivots[0].id}, centrality ${pivots[0].centrality}) has no operations-surface counterpart among ${members.length} members.`,
         recommended_actions: ["Review whether this theme has an operational impact that isn't yet captured as an operations-surface item."],

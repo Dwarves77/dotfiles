@@ -24,7 +24,10 @@ test("jurisdiction-span gap: theme spans >=2 jurisdictions, profile's home juris
   assert.equal(out[0].type, "jurisdiction_span_gap");
   assert.equal(out[0].subject_ref, "a1");
   assert.equal(out[0].category, "coverage_gap");
-  assert.equal(out[0].subject_type, "item");
+  // subject_ref is a connection_themes id, never an intelligence_items id — subject_type must be a
+  // value integrity_flags' CHECK constraint (migration 048) actually allows for that ("item" would
+  // silently lie about what subject_ref resolves against; see gaps.mjs's file-header note).
+  assert.equal(out[0].subject_type, "system");
   assert.deepEqual(out[0].evidence.spannedJurisdictions, ["EU", "GB"]);
   assert.equal(out[0].evidence.missingHome, "US");
 });
@@ -75,6 +78,7 @@ test("surface gap: regulations + research present, market absent → fires", () 
   assert.equal(out.length, 1);
   assert.equal(out[0].type, "surface_gap");
   assert.equal(out[0].subject_ref, "a1");
+  assert.equal(out[0].subject_type, "system");
 });
 
 test("surface gap: does NOT fire when market IS present", () => {
@@ -95,6 +99,7 @@ test("pivot/operations gap: >=3 members, no operations surface, real pivot → f
   assert.equal(out.length, 1);
   assert.equal(out[0].type, "pivot_operations_gap");
   assert.equal(out[0].evidence.pivotId, "a2");
+  assert.equal(out[0].subject_type, "system");
 });
 
 test("pivot/operations gap: does NOT fire when operations IS present", () => {
