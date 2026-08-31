@@ -380,13 +380,15 @@ export const DEMOTION_TRIGGERS: DemotionTrigger[] = [
     severity: "flagged",
     tiers_affected: [2, 3, 4, 5, 6],
   },
-  {
-    trigger: "critical_conflict",
-    description: "Source published information directly contradicting T1 legal text",
-    condition: "Any conflict where this source contradicts a T1 source AND the T1 source is confirmed correct",
-    severity: "immediate",
-    tiers_affected: [2, 3, 4, 5, 6],
-  },
+  // "critical_conflict" (contradicts a confirmed-correct T1 source) removed from the vocabulary
+  // 2026-08-31 (Wave A3). Its only possible data source, per-conflict records naming the opposing
+  // source's tier and which side was confirmed correct, does not exist reachably: the table shaped
+  // for it (source_conflicts) was dropped 0-rows/writer-less by migration 215 (2026-07-18); the
+  // surviving item_disputes table is read-only in code (no INSERT/UPDATE call site) and has no
+  // tier or resolution-outcome column to answer "T1 confirmed correct"; and the source_trust_events
+  // event types built for this (conflict_opened/conflict_resolved) have zero writers anywhere in
+  // src/. A stub that can never fire misrepresents the demotion vocabulary as broader than the
+  // fireable set; see trust-evaluators.npmtest.mjs for the pinning test.
   {
     trigger: "extended_inaccessibility",
     description: "Source has been inaccessible for 30+ consecutive days",
@@ -401,13 +403,15 @@ export const DEMOTION_TRIGGERS: DemotionTrigger[] = [
     severity: "immediate",
     tiers_affected: [3, 4, 5, 6],
   },
-  {
-    trigger: "paywall_introduced",
-    description: "Previously open-access source is now behind a paywall",
-    condition: "paywalled changed from FALSE to TRUE",
-    severity: "flagged",
-    tiers_affected: [3, 4, 5, 6],
-  },
+  // "paywall_introduced" (paywalled flips FALSE -> TRUE) removed from the vocabulary 2026-08-31
+  // (Wave A3). sources.paywalled (migration 004) is written only at row creation — grep across
+  // src/ and scripts/ finds no UPDATE of it thereafter, and the one live per-source check pipeline
+  // (assessAndUpdateSource in api/worker/check-sources) has no paywall-detection signal in its
+  // reachability/decision vocabulary (reachability.mjs, check-sources-decision.mjs). No prior value
+  // is ever recorded either: the paywall_change trust-event type has zero writers. There is no
+  // reachable "changed from FALSE to TRUE" to observe, and building the underlying paywall
+  // detector would be new product capability, not a plumbing fix. See
+  // trust-evaluators.npmtest.mjs for the pinning test.
   {
     trigger: "no_substantive_update",
     description: "Source has not published substantive new content within 3x its stated update frequency",
