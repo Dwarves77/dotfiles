@@ -65,21 +65,49 @@ export const MARKET_SERIES_PRODUCERS = Object.freeze([
   {
     keyPrefix: "ecb-fx",
     name: "ECB euro foreign exchange reference rates",
-    implemented: false,
+    implemented: true,
     cadence: "daily (ECB publishes ~16:00 CET on TARGET business days)",
-    cadenceDays: null, // not decided — no producer in this lane
-    sourceKey: null,
+    cadenceDays: 1,
+    // NOT yet a registered public.data_sources row (grepped src/lib/contracts/source-licence.mjs
+    // 2026-08-31: zero hits for "ecb", "eex", "icap", "EUA" — none of the three former stub sources are
+    // registered). --apply will fail closed on 23503 (FK violation) until a coordinator adds an 'ecb'
+    // entry there and regenerates the data_source_seed migration block — the same two-step
+    // 'ec_weekly_oil_bulletin' went through before ITS producer's --apply could resolve (see that
+    // entry's own note above). Orthogonal to, and independent of, the producer's two runtime safety
+    // gates, which stay OFF regardless (see producerScript's own header).
+    sourceKey: "ecb",
     sourceName: "European Central Bank — euro foreign exchange reference rates",
     sourceUrl: "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html",
-    licenceStatus: "not evaluated — no producer in this lane",
+    // LICENCE BASIS: the ECB's standing published notice, "reproduction is permitted provided the source
+    // is acknowledged" (https://www.ecb.europa.eu/home/disclaimer/html/index.en.html — the ECB's
+    // legal/copyright notice). [UNCONFIRMED THIS SESSION, lane P2, 2026-08-31] — sandbox egress to every
+    // ecb.europa.eu host (www / data-api / sdw-wsrest) returned a 403 policy denial from the agent-proxy
+    // this session; this citation is stated from the publisher's well-documented standing notice, not
+    // from a fetch performed this session. Verify live (a GitHub runner or browser fetch) before a
+    // coordinator registers 'ecb' in source-licence.mjs.
+    licenceStatus:
+      "producer built, source NOT YET REGISTERED (public.data_sources has no 'ecb' row) — licence basis " +
+      "[UNCONFIRMED] pending a live read, see note above",
     derivation: "observed",
     originClass: "official",
-    producerScript: null,
-    parserModule: null,
+    producerScript: "scripts/producers/market/ecb-fx-producer.mjs",
+    // No separate parser module: this lane's write set named exactly one new producer script, so
+    // parseEcbFxXml lives inline in the producer file (fetch + parse + plan staged as separate functions
+    // within it) rather than under src/lib/market/parsers/. Documented here so a reader does not go
+    // looking for a file that was never in scope to create.
+    parserModule: "scripts/producers/market/ecb-fx-producer.mjs",
     notes:
-      "Daily EUR reference rates against major currencies (USD, GBP, CNY, JPY, …). STUB ONLY: not built " +
-      "in this lane. A future producer keys series under ecb-fx:* (e.g. ecb-fx:eur-usd), reference_period " +
-      "= the rate date.",
+      "Daily EUR reference rates against the registry's own tracked set (USD, GBP, CNY, JPY) from the " +
+      "ECB's eurofxref-daily.xml. Kill-switched OFF by default: the producer's own source-level ENABLED " +
+      "const is false (a reviewed-code-change gate, arming is a later separate commit) AND the runtime " +
+      "MARKET_PRODUCER_ECB_FX_ENABLED env switch defaults off AND source_key 'ecb' is not yet registered " +
+      "(FK gate) — three independent reasons no row can land today. Series keyed ecb-fx:eur-<ccy> (e.g. " +
+      "ecb-fx:eur-usd), reference_period = the rate date. EEX EUA and EIA v2 remain undocumented stubs " +
+      "(no evidence gathered this lane to flip either): EEX's auction data carries no open-reuse licence " +
+      "found this session (a licensed venue, not a free-and-clear source); EIA v2 needs an operator-" +
+      "registered API key (EIA_API_KEY) even though its data itself is US-public-domain and its " +
+      "source_key is already registered above — 'free' and 'keyless' are different questions, and EIA " +
+      "fails the second one.",
   },
   {
     keyPrefix: "eia-v2",
