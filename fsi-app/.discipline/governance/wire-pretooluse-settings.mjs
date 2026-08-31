@@ -17,7 +17,7 @@
 import { readFileSync, writeFileSync, copyFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve, dirname } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const SETTINGS = resolve(homedir(), ".claude", "settings.json");
 const HOOK = resolve(dirname(fileURLToPath(import.meta.url)), "pretooluse-skill-gate.mjs");
@@ -35,7 +35,6 @@ const FALLBACK = JSON.stringify({
     permissionDecisionReason: "skill-gate backstop: hook process failed to launch — failing closed.",
   },
 });
-const canonicalCommand = `node "${pathToFileURL(HOOK).pathname.replace(/^\//, "")}" || printf %s '${FALLBACK}'`;
 // NB: keep Windows path in a node-friendly form; node accepts forward-slashed C:/... paths.
 const cmdWin = `node "${HOOK.replaceAll("\\", "/")}" || printf %s '${FALLBACK}'`;
 
