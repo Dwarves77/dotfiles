@@ -100,6 +100,7 @@ interface BulkImportResponse {
     provisional_inserted: number;
     rejected: number;
   };
+  audit_log_error?: string;
 }
 
 
@@ -629,7 +630,15 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  await supabase.from("bulk_imports").insert({
+  // The bulk_imports row IS the audit trail for the writes already applied above
+  // (sources / provisional_sources). A swallowed insert here would leave those
+  // writes with no record — same write-consequence-swallow class as the dedup
+  // read fixed above (Wave-α A4). The database mutations already happened and
+  // cannot be rolled back from here, so "fail closed" means: never let the
+  // audit-log failure be silent. Surface it in the response AND raise a
+  // data_integrity flag (same convention as audit-gate.ts's DATA_AUDIT_BLOCK),
+  // so an operator sees it even if nobody is looking at this response body.
+  const { error: auditErr } = await supabase.from("bulk_imports").insert({
     imported_by: auth.userId,
     format: body.format,
     total_rows: summary.total_rows,
@@ -650,13 +659,38 @@ export async function POST(request: NextRequest) {
     },
   });
 
+  let auditLogError: string | undefined;
+  if (auditErr) {
+    auditLogError = `bulk_imports audit row failed to write: ${auditErr.message}`;
+    await supabase
+      .from("integrity_flags")
+      .insert({
+        category: "data_integrity",
+        subject_type: "system",
+        subject_ref: "bulk-import-audit",
+        description: `bulk_imports audit insert failed after apply: ${auditErr.message}. imported_by=${auth.userId} format=${body.format} total_rows=${summary.total_rows} sources_inserted=${sourcesInserted} provisional_inserted=${provisionalInserted} rejected=${rejected}. The underlying sources/provisional_sources writes already committed — only the audit trail row is missing.`,
+        recommended_actions: [
+          {
+            action: "Verify the sources/provisional_sources rows from this apply and backfill a bulk_imports row manually if needed",
+            rationale: "the audit insert failed after the writes it should have recorded had already committed",
+          },
+        ],
+        status: "open",
+        created_by: "bulk-import-route",
+      })
+      .then(() => {}, () => {
+        // integrity_flags itself failed to accept the write — audit_log_error in
+        // the response body is still returned to the caller, so this is not silent.
+      });
+  }
+
   const applied = {
     sources_inserted: sourcesInserted,
     provisional_inserted: provisionalInserted,
     rejected,
   };
 
-  const resp: BulkImportResponse = { preview, summary, applied };
+  const resp: BulkImportResponse = { preview, summary, applied, ...(auditLogError ? { audit_log_error: auditLogError } : {}) };
   return NextResponse.json(resp, {
     headers: rateLimitHeaders(auth.userId),
   });
