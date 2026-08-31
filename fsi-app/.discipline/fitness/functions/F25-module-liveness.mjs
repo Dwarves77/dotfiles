@@ -69,11 +69,7 @@ export const isTestFile = (f) =>
 
 // ── The allowlist. Grouped by class; every entry carries the decision it is waiting on. ──
 const COMPONENTS = [
-  'credibility/JurisdictionChip.tsx', 'credibility/ProvenancePanel.tsx', 'credibility/SignalStrength.tsx',
-  'regulations/BulkSelectBar.tsx', 'regulations/ConfidenceFacet.tsx', 'regulations/SectorChipFilter.tsx',
-  'regulations/SortRow.tsx', 'regulations/ViewToggles.tsx', 'resource/SectorSynopsis.tsx',
-  'shell/SectionHeader.tsx', 'shell/StatStrip.tsx', 'sources/SourceProvenanceBadge.tsx',
-  'ui/Pill.tsx', 'ui/RowCard.tsx', 'ui/Tag.tsx', 'ui/Toggle.tsx', 'ui/Tooltip.tsx',
+  'resource/SectorSynopsis.tsx',
 ];
 
 const PROVEN_BUT_UNWIRED = [
@@ -92,7 +88,7 @@ const SCRIPTS_LIB = [
 ];
 
 export const LEGACY_ALLOWLIST = [
-  // ── 17 components built and never mounted ──
+  // ── 1 component built and never mounted (16 deleted, Wave A4 2026-08-31 — full-read-audit-2026-08-31.md §5) ──
   ...COMPONENTS.map((c) => ({
     file: `fsi-app/src/components/${c}`,
     reason:
@@ -116,11 +112,8 @@ export const LEGACY_ALLOWLIST = [
   // ── 7 src modules with neither importer nor proof ──
   // fsi-app/src/lib/verification.ts entry REMOVED (WO-27, 2026-08-29): the dead-code ruling it
   // awaited was executed — the module (and its dead fetchXrefPairs feed chain) is deleted, not renamed.
-  {
-    file: 'fsi-app/src/types/intelligence.ts',
-    reason: 'Type module with zero references anywhere in the tree — not code, not tests, not scripts.',
-    reviewByPhase: 'dead-code ruling (operator: delete)',
-  },
+  // fsi-app/src/types/intelligence.ts entry REMOVED (Wave A4, 2026-08-31): the dead-code ruling it
+  // awaited was executed — the module is deleted, not renamed (full-read-audit-2026-08-31.md §5).
   // RETIRED 2026-08-11, same day it was listed: src/lib/llm/spend-regime.mjs was WIRED, not deleted. It was
   // the elevated entry on this list — spend doctrine with no importer — and the investigation found worse
   // than dormancy: SPEND_REGIME is a DEPLOYED Vercel env var, so the switch read as live and controlled
@@ -176,6 +169,19 @@ export const LEGACY_ALLOWLIST = [
     file: 'fsi-app/scripts/lib/batch-primitives.mjs',
     reason: 'Batch primitives consumed only by its own proof and two manifest scripts. Same sweep coupling as anthropic.mjs.',
     reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)',
+  },
+
+  // ── Newly coupled by Wave A4 (2026-08-31), not itself on the audit's dead-code manifest ──
+  {
+    file: 'fsi-app/src/lib/credibility/chip-selection.mjs',
+    reason:
+      'Was WORKING-WIRED at audit time (full-read-2026-08-31/L11-lib-C.md: "confirmed consumed by BiasBadge.tsx") — ' +
+      'its only production importer. BiasBadge.tsx was itself confirmed dead (zero importers of BiasBadge.tsx) and ' +
+      'deleted in the same Wave A4 PR as part of the whole credibility/ subsystem, which orphans this module as a ' +
+      'side effect. Not on the audit\'s §5 manifest, so not deleted here — the well-tested (8 cases, not vacuous per ' +
+      'the same lane report) selectBiasChipsForDisplay implementation is left in place pending a call on whether it ' +
+      'has another home to wire into or should be deleted with its test in a follow-up.',
+    reviewByPhase: 'dormant-capability ruling (operator: wire selectBiasChipsForDisplay elsewhere, or delete module + chip-selection.test.mjs together)',
   },
 ];
 
