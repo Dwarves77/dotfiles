@@ -1,0 +1,15 @@
+{
+  "_comment": "Mirrors the live public.item_type_required_slots table (coordinator-dumped 2026-08-31, mint-ground-truth.md). Criterion 5 requires >=1 FACT or GAP claim per row whose claim_text contains the slot_key literally (case-insensitive substring). If this table changes live, re-dump and update this file.",
+  "regulation":       ["effective_date", "jurisdictional_scope", "penalty_summary", "primary_deadline"],
+  "directive":        ["effective_date", "jurisdictional_scope", "penalty_summary", "primary_deadline"],
+  "standard":         ["effective_date", "jurisdictional_scope", "penalty_summary", "primary_deadline"],
+  "guidance":         ["effective_date", "jurisdictional_scope", "penalty_summary", "primary_deadline"],
+  "framework":        ["effective_date", "jurisdictional_scope", "penalty_summary", "primary_deadline"],
+  "market_signal":    ["action_now", "conversion_trigger", "driving_parties", "signal_event"],
+  "initiative":       ["action_now", "conversion_trigger", "driving_parties", "signal_event"],
+  "technology":       ["deployment_reality", "operational_fit", "procurement_window", "supplier_access"],
+  "tool":             ["deployment_reality", "operational_fit", "procurement_window", "supplier_access"],
+  "innovation":       ["deployment_reality", "operational_fit", "procurement_window", "supplier_access"],
+  "research_finding": ["decision_relevance", "does_not_resolve", "finding", "methodology_limits"],
+  "regional_data":    ["cost_baseline", "feasibility_choice", "pending_change", "region_jurisdiction"]
+}
