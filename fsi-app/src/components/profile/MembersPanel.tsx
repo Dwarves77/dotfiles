@@ -21,6 +21,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { Copy, Check } from "lucide-react";
 import { AccountCard, TextInput } from "@/components/account/AccountPrimitives";
 
 interface Member {
@@ -36,6 +37,12 @@ interface MembersResponse {
   members: Member[];
   caller_role: "owner" | "admin" | "member" | "viewer";
   caller_membership_id: string;
+}
+
+interface EmailDelivery {
+  delivered: boolean;
+  configured: boolean;
+  reason?: string;
 }
 
 interface MembersPanelProps {
@@ -61,6 +68,8 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [inviteDelivery, setInviteDelivery] = useState<EmailDelivery | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   const [banTarget, setBanTarget] = useState<Member | null>(null);
 
@@ -179,6 +188,8 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
     if (!orgId || !inviteEmail.trim()) return;
     setInviting(true);
     setInviteUrl(null);
+    setInviteDelivery(null);
+    setInviteCopied(false);
     try {
       const res = await fetch(`/api/orgs/${orgId}/invitations`, {
         method: "POST",
@@ -191,6 +202,7 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
       else {
         flash("ok", `Invitation created for ${inviteEmail.trim()}`);
         setInviteUrl(payload?.invitation?.invite_url ?? null);
+        setInviteDelivery(payload?.email_delivery ?? null);
         setInviteEmail("");
         await load();
       }
@@ -198,6 +210,17 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
       flash("err", e instanceof Error ? e.message : "Network error");
     } finally {
       setInviting(false);
+    }
+  }
+
+  async function copyInviteUrl() {
+    if (!inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2000);
+    } catch {
+      // ignore — clipboard API unavailable; the field is still selectable/copyable by hand.
     }
   }
 
@@ -275,16 +298,70 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
           <div
             style={{
               fontSize: 11,
-              padding: "8px 12px",
+              padding: "10px 12px",
               borderRadius: 6,
               margin: "0 0 12px",
               background: "var(--color-bg-ai-strip)",
               border: "1px solid var(--color-active-border)",
               color: "var(--color-text-secondary)",
-              wordBreak: "break-all",
             }}
           >
-            Invitation link (email delivery pending): <span style={{ color: "var(--color-primary)", fontWeight: 700 }}>{inviteUrl}</span>
+            <p style={{ margin: "0 0 8px", lineHeight: 1.5 }}>
+              {inviteDelivery?.delivered ? (
+                <>An email was sent to the invitee. You can also share this link directly:</>
+              ) : inviteDelivery && inviteDelivery.configured ? (
+                <>
+                  <b>Email delivery failed</b>
+                  {inviteDelivery.reason ? <> — {inviteDelivery.reason}</> : null}. Copy this link
+                  and send it to the invitee:
+                </>
+              ) : (
+                <>
+                  <b>Email is not configured</b> on this deployment — copy this link and send it to
+                  the invitee:
+                </>
+              )}
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <code
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  padding: "6px 8px",
+                  borderRadius: 4,
+                  background: "var(--surface)",
+                  color: "var(--color-primary)",
+                  fontWeight: 700,
+                  fontSize: 11,
+                  wordBreak: "break-all",
+                }}
+              >
+                {inviteUrl}
+              </code>
+              <button
+                type="button"
+                onClick={copyInviteUrl}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "6px 10px",
+                  borderRadius: 5,
+                  border: "1px solid var(--color-border-medium)",
+                  background: "var(--surface)",
+                  color: "var(--color-text-primary)",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                {inviteCopied ? <Check size={11} /> : <Copy size={11} />}
+                {inviteCopied ? "Copied" : "Copy"}
+              </button>
+            </div>
           </div>
         )}
 

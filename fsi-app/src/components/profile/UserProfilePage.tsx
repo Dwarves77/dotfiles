@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { getWorkspaceProfile } from "@/lib/workspace/profile";
 import { ALL_SECTORS, JURISDICTIONS } from "@/lib/constants";
 import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
 import { AccountMasthead } from "@/components/account/AccountMasthead";
@@ -28,6 +29,21 @@ import { MembersPanel } from "@/components/profile/MembersPanel";
 // Reads/writes the canonical `profiles` table (migration 075 phase 2).
 // Sector / jurisdiction editing lives in Settings; the Sector profile and
 // Jurisdictions tabs here are read-only summaries that link there.
+//
+// Sector profile fix (Wave H1, REC-2 §14): the Sector profile tab and the
+// "Sectors followed" stat tile used to read `profiles.sector_overrides` — a
+// per-user column nothing ever writes going forward (Settings and the
+// onboarding wizard both write `workspace_settings.sector_profile`; see
+// OnboardingWizard.tsx's persistSectors comment) and that the platform's
+// actual read-time relevance lens (`getWorkspaceProfile` in
+// lib/workspace/profile.ts, the one live consumer of "sectors" data) never
+// reads either. That made this panel's own copy — "These sectors filter
+// your default view, briefings, and urgency scoring" — false for every org:
+// the tab would show "No sectors selected" regardless of what the workspace
+// actually had configured. Fixed by reading the same `workspace_settings`
+// row `getWorkspaceProfile` reads, so the summary matches what the platform
+// really uses. See src/lib/workspace/profile.npmtest.mjs for the pinned
+// contract this now depends on.
 // ───────────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -70,7 +86,6 @@ interface ProfileRow {
   full_name: string | null;
   bio: string | null;
   avatar_url: string | null;
-  sector_overrides: string[] | null;
   jurisdiction_overrides: string[] | null;
   transport_mode_overrides: string[] | null;
   verifier_status: "none" | "pending" | "active" | "revoked" | null;
@@ -83,7 +98,6 @@ const EMPTY_PROFILE: ProfileRow = {
   full_name: null,
   bio: null,
   avatar_url: null,
-  sector_overrides: [],
   jurisdiction_overrides: [],
   transport_mode_overrides: [],
   verifier_status: "none",
@@ -105,6 +119,7 @@ export function UserProfilePage({ userId, userEmail }: Props) {
 
   const [tab, setTab] = useState<TabKey>("personal");
   const [profile, setProfile] = useState<ProfileRow>({ ...EMPTY_PROFILE, id: userId });
+  const [workspaceSectors, setWorkspaceSectors] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -114,7 +129,7 @@ export function UserProfilePage({ userId, userEmail }: Props) {
       const { data, error } = await supabase
         .from("profiles")
         .select(
-          "id, full_name, bio, avatar_url, sector_overrides, jurisdiction_overrides, transport_mode_overrides, verifier_status, verifier_since, created_at"
+          "id, full_name, bio, avatar_url, jurisdiction_overrides, transport_mode_overrides, verifier_status, verifier_since, created_at"
         )
         .eq("id", userId)
         .maybeSingle();
@@ -124,7 +139,6 @@ export function UserProfilePage({ userId, userEmail }: Props) {
         setProfile({
           ...EMPTY_PROFILE,
           ...data,
-          sector_overrides: data.sector_overrides ?? [],
           jurisdiction_overrides: data.jurisdiction_overrides ?? [],
           transport_mode_overrides: data.transport_mode_overrides ?? [],
         });
@@ -135,6 +149,20 @@ export function UserProfilePage({ userId, userEmail }: Props) {
       cancelled = true;
     };
   }, [userId, supabase]);
+
+  // Sector profile tab (REC-2 §14 fix): read the same workspace_settings row
+  // getWorkspaceProfile reads for the platform's actual relevance lens — not
+  // the dead profiles.sector_overrides column. See the header comment above.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const wp = await getWorkspaceProfile(supabase, orgId);
+      if (!cancelled) setWorkspaceSectors(wp.verticals);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId, supabase]);
 
   const persist = async (patch: Partial<ProfileRow>) => {
     setError(null);
@@ -151,15 +179,14 @@ export function UserProfilePage({ userId, userEmail }: Props) {
   };
 
   const stats = useMemo(() => {
-    const sectors = profile.sector_overrides ?? [];
     const juris = profile.jurisdiction_overrides ?? [];
     return {
-      sectorCount: sectors.length,
-      highlighted: sectors.filter((id) => CORE_SECTORS.has(id)).length,
+      sectorCount: workspaceSectors.length,
+      highlighted: workspaceSectors.filter((id) => CORE_SECTORS.has(id)).length,
       jurisCount: juris.length,
       jurisLabels: juris.slice(0, 3).map((id) => JURIS_LABEL.get(id) || id),
     };
-  }, [profile]);
+  }, [profile, workspaceSectors]);
 
   if (loading) {
     return (
@@ -300,7 +327,7 @@ export function UserProfilePage({ userId, userEmail }: Props) {
         )}
         {tab === "organization" && <OrganizationPanel orgId={orgId} />}
         {tab === "members" && <MembersPanel orgId={orgId} callerUserId={userId} />}
-        {tab === "sectors" && <SectorProfileTab sectorIds={profile.sector_overrides ?? []} />}
+        {tab === "sectors" && <SectorProfileTab sectorIds={workspaceSectors} />}
         {tab === "jurisdictions" && <JurisdictionsTab jurisIds={profile.jurisdiction_overrides ?? []} />}
         {tab === "verifier" && <VerifierTab status={profile.verifier_status ?? "none"} onApply={() => persist({ verifier_status: "pending" })} />}
         {tab === "activity" && <ActivityTab />}
