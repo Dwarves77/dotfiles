@@ -41,6 +41,14 @@ import { derivedCoveredTokens } from "@/lib/agent/gate-a-derived.mjs";
 import { decodeHtmlBytes } from "@/lib/sources/charset-decode.mjs";
 import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
+// U7 — brief generation now CONSUMES the connection graph (not only feeds it). selectBriefCandidates
+// is the pure-core-plus-DI module (src/lib/connections/brief-candidates.mjs); the concrete Supabase
+// readers are built here (candidateReadersFor, below) so the module itself stays DB-free and testable
+// with fakes. formatCandidateBlock renders the CANDIDATE CONNECTIONS block spliced into the synthesis
+// prompt in synthesiseAndWriteBrief; the A3 assertion rule in system-prompt.ts governs what the model
+// may DO with it, and the related_items write-back below (~line 840 by the build-plan's own reference)
+// is the enforcement backstop.
+import { selectBriefCandidates, formatCandidateBlock } from "@/lib/connections/brief-candidates.mjs";
 import { parseAgentOutput, extractClaimLedgerLenient, crossLinkClaimSources, findYamlBlock } from "@/lib/agent/parse-output";
 import { specForItemType } from "@/lib/agent/extract-registry";
 import { growSourcesFromBrief, parseNewSourcesFromBrief, registerCitedSources, registerPoolHostsForGrounding } from "@/lib/sources/source-growth";
@@ -688,6 +696,43 @@ export interface StepResult { ok: boolean; detail: string; usage?: UsageTelemetr
 // the fallback must key on "no pool", not on any ok:false.
 export const NO_STORED_POOL = "no usable stored pool (needs a fresh scrape)";
 
+// U7 CANDIDATE READERS — the concrete Supabase-backed implementation of brief-candidates.mjs's injected
+// deps contract (loadCrossReferences / loadThemeForItem / loadThemeBrief). Kept here, not inside the
+// module, so brief-candidates.mjs stays DB-free and its tests inject fakes with no live DB. Two-step
+// live filter (not an embedded PostgREST join) for loadCrossReferences: read the item's xref rows, then
+// check liveness of the "other" endpoints separately — the same population discipline
+// backfill-edges.mjs / mint-item.ts already apply (provenance_status='verified' AND is_archived=false)
+// for the candidate list, so only real, customer-visible items are ever offered to the model.
+function candidateReadersFor(sb: SupabaseClient) {
+  return {
+    async loadCrossReferences(itemId: string) {
+      const { data: rows, error } = await sb
+        .from("item_cross_references")
+        .select("source_item_id, target_item_id, relationship, origin, basis, score")
+        .or(`source_item_id.eq.${itemId},target_item_id.eq.${itemId}`);
+      if (error || !rows?.length) return [];
+      const otherIds = [...new Set(rows.map((r) => (r.source_item_id === itemId ? r.target_item_id : r.source_item_id)).filter((id) => id && id !== itemId))];
+      if (!otherIds.length) return [];
+      const { data: liveItems } = await sb.from("intelligence_items").select("id").eq("provenance_status", "verified").eq("is_archived", false).in("id", otherIds);
+      const live = new Set((liveItems ?? []).map((x: { id: string }) => x.id));
+      return rows.filter((r) => live.has(r.source_item_id === itemId ? r.target_item_id : r.source_item_id));
+    },
+    async loadThemeForItem(itemId: string) {
+      const { data } = await sb
+        .from("connection_themes")
+        .select("id, member_ids, dominant_signals, convergence")
+        .contains("member_ids", [itemId])
+        .limit(1)
+        .maybeSingle();
+      return data ?? null;
+    },
+    async loadThemeBrief(themeId: string) {
+      const { data } = await sb.from("theme_briefs").select("theme_id, title, brief_md, member_hash, generated_at").eq("theme_id", themeId).maybeSingle();
+      return data ?? null;
+    },
+  };
+}
+
 /** Synthesise the format-selected brief ACROSS a source pool and persist full_brief. SHARED by
  *  generateBrief (fresh-fetched pool) and generateBriefFromStored (saved pool) so the skill-bearing
  *  synthesis prompt lives in ONE place (no drift). Does NOT touch agent_run_searches — the caller owns
@@ -716,6 +761,18 @@ async function synthesiseAndWriteBrief(
   const discoveredHint = corroborators.length
     ? `\nCorroborating sources discovered for this item (cite the ones you actually use; list each under "## New Sources Identified" with a tier estimate + why it matters — these grow the source registry):\n${corroborators.map((c) => `- ${c.name} — ${c.url}${c.why ? " — " + c.why : ""}`).join("\n")}`
     : "";
+  // U7 — fetch this item's graph candidates BEFORE synthesis and offer them as the CANDIDATE
+  // CONNECTIONS block (the A3 assertion rule in system-prompt.ts governs how the model may use it).
+  // Non-gating: a candidate-read failure (transient DB error, brand-new item with no graph presence
+  // yet) never blocks generation — it degrades to no candidates, the same honest-empty posture every
+  // other optional context source in this function already takes.
+  let candidateBlock = "";
+  try {
+    const candidateSelection = await selectBriefCandidates(it.id, candidateReadersFor(sb));
+    candidateBlock = formatCandidateBlock(candidateSelection);
+  } catch (e) {
+    console.warn(`[canonical] item ${it.id}: candidate-connection read failed (non-gating, proceeding with none): ${e instanceof Error ? e.message : String(e)}`);
+  }
   // FORMAT DETERMINISM (2026-06-09): the brief format is f(item_type) by contract (CLAUDE.md format
   // mapping), NOT an agent free-choice. The agent was emitting the wrong format (e.g. market_signal_brief
   // for a regulation/framework) → a market brief structurally has no reg slots → criterion-5
@@ -745,7 +802,7 @@ LEGAL LINE — state what the text REQUIRES and whom it falls on AS DEFINED. Do 
   const user = `Generate the ${it.item_type} brief for: "${it.title}".${formatDirective}${regCoverage}${slotDirective}
 Synthesise ACROSS ALL the SOURCE blocks in your reference corpus (the SOURCE CONTENT in your system context) — do NOT rely on the primary source alone; the corroborating sources carry detail (participants, phase, timing, operational specifics) the primary may lack. The corpus carries ${fetched.length} sources.
 Apply the Forward-Intelligence Rule: for in-progress work surface design, participants/parties, current phase/status, and expected timing as first-class (these ARE the finding); a stated schedule is a FACT (cite it), otherwise emit a labeled "Analytical inference:" estimate; set severity MONITORING with a re-check window when the outcome is still pending.
-Apply the No-Vacuum Rule: where the topic connects to a specific regulation, market signal, or operational decision, name and link it — that connection is direction, not decoration.
+Apply the No-Vacuum Rule: where the topic connects to a specific regulation, market signal, or operational decision, name and link it — that connection is direction, not decoration.${candidateBlock}
 Ground every FACT claim's source_span as a VERBATIM substring of one of the SOURCE blocks in the reference corpus; set source_url to THAT block's url. HARD RULE: a FACT claim's source_url MUST be one of the SOURCE block urls actually provided in the corpus — never a URL you only saw while searching. A source you know of but that is NOT among the corpus blocks may be listed under "## New Sources Identified" as a lead for later retrieval, but MUST NOT be used as a FACT source_url or source_span; carry its content as a labeled "Analytical inference:" or omit it. Item source_id for the primary FACT source_id: ${it.source_id}.${discoveredHint}
 VALIDATION DISCIPLINE — the brief is auto-validated and REJECTED (rolled back to quarantine) if violated. Before you finish, RE-READ the WHOLE brief and fix every instance — these two are the dominant rejection causes on long briefs:
 - LABELING / binding verbs: every analytical, interpretive or forward-looking sentence MUST start with "Analytical inference:", "Industry interpretation:", or "Operational implication:". In particular ANY sentence using a binding-obligation verb (must, requires, mandates, obligates, prohibits, "applies to", shall) MUST EITHER (a) be a VERBATIM quote from a SOURCE block (so it grounds as a FACT) OR (b) begin with one of those labels. No unlabeled, unsourced "X must/requires Y" is allowed ANYWHERE — sweep every section, not just the first; this is the single most common long-brief rejection.
@@ -837,6 +894,18 @@ Follow your output contract exactly: brief body, then a "## New Sources Identifi
   // related_items is READ-DERIVED from item_cross_references (migration 146, Option A: related_items_derived()
   // + item_related_items_derived view — NO write-back trigger; the provenance guard stays untouched). Route the
   // agent's semantic intersections to edges (origin=agent_semantic), never to the column. FK-safe, never self.
+  //
+  // U7 — THE ENFORCEMENT BACKSTOP for the A3 assertion rule (system-prompt.ts): this is the one place a
+  // model-emitted related_items UUID is checked before it becomes a real edge. The check below is
+  // "exists in intelligence_items" (an FK-safety check), which a CANDIDATE CONNECTIONS id already
+  // satisfies by construction — every candidate selectBriefCandidates offers IS a real, live
+  // intelligence_items.id (it was read FROM item_cross_references or connection_themes), so no widening
+  // was needed here to accept them as legal: a candidate id is not "in the fetched source pool" for
+  // THIS run, but it is a real item id, which is exactly what this filter has always admitted. system-
+  // prompt.ts's A3 rule is what keeps the model from asserting a candidate it does not actually
+  // evidence; this filter's job stays "never let a non-existent id become an edge", not "prove the
+  // model's reasoning was sound" — that half is prompt discipline + the operator's own read of the
+  // resulting intersection_summary, not a mechanical check.
   const relTargets = cleanUuids(md.related_items).filter((t) => t && t !== it.id);
   if (relTargets.length) {
     const { data: existing } = await sb.from("intelligence_items").select("id").in("id", relTargets);

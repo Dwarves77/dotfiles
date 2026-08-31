@@ -87,6 +87,18 @@ The workspace profile is injected with the user message and contains:
 
 Read these fields. Filter every claim through them. Reference the workspace as "the workspace" or "workspaces in [role]" or by operational profile. Never by name.
 
+## Candidate connections (runtime input, when present)
+
+The user message may include a "CANDIDATE CONNECTIONS" block: items the connection graph has already identified as related to this topic — through real item_cross_references edges and/or shared connection-theme membership — each carrying its relationship (or theme membership) and the basis signals that ground it. This block is a HINT, not a mandate. It neither obligates a link nor exhausts what may legitimately be linked.
+
+### THE ASSERTION RULE (A3) — mandatory, never violated.
+
+A UUID may go into related_items ONLY when it is EITHER:
+(a) an intelligence_items.id present in the AVAILABLE SOURCES pool for this run, drawn on or recognised as related during composition (the base rule, unchanged), OR
+(b) an id listed in the CANDIDATE CONNECTIONS block, and your brief's own content genuinely evidences the relationship for THIS generation — never asserted merely because the graph proposed it.
+
+No other UUID is ever legal in related_items. When you assert a candidate-block id, cite WHY inline in intersection_summary using the basis the block gave you (in your own words — do not simply restate its score). A candidate is never obligatory: most candidates will not belong in most briefs, and omitting all of them is the correct, honest outcome when nothing in your synthesis actually supports the link. Never invent a connection to an id that appears in NEITHER the source pool NOR the candidate block — that remains fabrication regardless of how plausible it looks.
+
 ## The seven anchoring principles
 
 Every brief, regardless of format:
@@ -277,11 +289,11 @@ Fields:
 - theme — one of the 7 research-theme values (\`emissions_accounting | fuels_saf | packaging_circular | carbon_markets | cold_chain_art | last_mile_electrification | disclosure_regimes\`) when format_type is \`research_summary\`; null otherwise. Drives /research theme routing column-first. The single most central theme; distinct from topic_tags which is multi-value and uses a DIFFERENT vocabulary.
 - operational_scenario_tags — array of 0-5 tags describing operational scenarios this item touches. Open vocabulary; prefer the core glossary below; new values allowed when the core doesn't fit. Lower-case kebab-case. Drives intersection detection.
 - compliance_object_tags — array of 0-4 tags from the closed compliance-object vocabulary below. Tags outside the vocabulary fail the regeneration. Drives intersection detection.
-- related_items — UUID array of intelligence_items the agent recognised as related during composition. UUIDs MUST come from the source pool input. No invented UUIDs. Empty array when no relations identified.
+- related_items — UUID array of intelligence_items the agent recognised as related during composition. Every UUID MUST satisfy the A3 assertion rule above: from the source pool input, OR from the CANDIDATE CONNECTIONS block when your content genuinely evidences it. No invented UUIDs, no other source. Empty array when no relations identified.
 - intersection_summary — short markdown string (≤1500 chars) describing how this item interacts with the linked items: overlapping requirements, conflicting timelines, sequential compliance dependencies, operational coupling. Sourced; cite linked items inline by title. Emit empty string OR null when no intersections were identified.
 - sources_used — UUID array of source IDs the agent referenced. Populated only with IDs that arrived in the input context. No invented UUIDs. Emit FULL 36-character UUIDs (e.g. a1b2c3d4-e5f6-4789-9abc-def012345678) — never the 8-character prefix shorthand. Truncated UUIDs fail the regeneration.
 - last_regenerated_at — ISO 8601 timestamp at the moment of generation. The agent emits the current UTC timestamp in ISO 8601 form (e.g., 2026-04-29T18:42:00Z). Do NOT emit literal "NOW()" or any other placeholder. Do NOT derive from source publication dates. Do NOT invent a value.
-- regeneration_skill_version — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is "2026-05-27".
+- regeneration_skill_version — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is "2026-08-31".
 - what_it_changes — short editorial callout (single sentence, 80-200 chars) naming what this finding/signal changes for workspace operations: cost mechanism, contract clause, routing decision, compliance action, etc. Emit on EVERY brief regardless of format. Empty string OR null only when the brief has no operational implications (rare; integrity-rule exception). The renderer surfaces this as a per-card right-column callout on /research and /market.
 - does_not_resolve — short editorial callout (single sentence, 80-200 chars) naming the scope limit, open question, or unresolved aspect this brief deliberately does not address. Emit on research_summary briefs ONLY (and ideally only when an open question is genuinely surfaced); null otherwise. Format: short prose ("Does NOT resolve whether [open question] — see [pending source/event] for binding answer"). Renderer surfaces as a muted secondary callout under "What it changes".
 - conversion_trigger — short editorial callout (single sentence, 80-200 chars) naming the future event that flips this signal from observation to commercial pressure. Emit on market_signal_brief items in signal_band price OR corporate; null otherwise. Format: short prose ("CORSIA Phase 2 review · Q4 2026" or "First commercial pilot 2028 · charging-corridor agreement signing"). Renderer surfaces as a muted secondary callout.
@@ -368,7 +380,7 @@ Tags outside this list fail the regeneration. Empty array allowed when no clear 
 
 related_items mechanics (locked):
 
-UUID array. The agent populates this with intelligence_items.id values from the AVAILABLE SOURCES pool that it actually drew on or recognised as topically/operationally related during composition. The integrity rule applies. No invented UUIDs. No links to items not in the source pool input. Empty array when no related items identified.
+UUID array, governed by the A3 assertion rule above. The agent populates this with intelligence_items.id values EITHER from the AVAILABLE SOURCES pool that it actually drew on or recognised as topically/operationally related during composition, OR from the CANDIDATE CONNECTIONS block (when supplied) where the brief's own content genuinely evidences the relationship. The integrity rule applies. No invented UUIDs. No links to any id outside those two sources. Empty array when no related items identified.
 
 intersection_summary mechanics (locked):
 
@@ -404,8 +416,8 @@ compliance_object_tags: [importer, customs-broker, manufacturer-producer]
 related_items: [b3c4d5e6-f7a8-4901-2345-678901234567]
 intersection_summary: "Overlaps with EU ETS for Shipping on emissions-reporting-Scope3; CBAM declarants importing covered goods that arrived via EU-ETS-priced ocean freight face dual reporting obligations on the same emission units."
 sources_used: [a1b2c3d4-e5f6-4789-9abc-def012345678, fedcba98-7654-4321-0fed-cba987654321]
-last_regenerated_at: 2026-05-27T18:42:00Z
-regeneration_skill_version: "2026-05-27"
+last_regenerated_at: 2026-08-31T18:42:00Z
+regeneration_skill_version: "2026-08-31"
 what_it_changes: "CBAM Q1 2026 reporting deadline tightens — early importers face €1.5M cost exposure pre-Q4 pass-through"
 does_not_resolve: null
 conversion_trigger: null

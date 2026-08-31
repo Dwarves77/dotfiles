@@ -10,4 +10,10 @@
 // The binding: this constant MUST equal the version the system prompt tells the model to stamp. That is
 // enforced mechanically by contract-version.test.mjs (reads system-prompt.ts and asserts the string matches),
 // so a future contract bump fails the build until BOTH homes advance together — no silent re-drift.
-export const CURRENT_SKILL_CONTRACT_VERSION = "2026-05-27";
+// 2026-08-31 (flywheel U7, connection-redesign-and-build-scope-2026-08-29.md §4 order 8): brief
+// synthesis now reads the connection graph (src/lib/connections/brief-candidates.mjs) and offers a
+// CANDIDATE CONNECTIONS block before generation, under the A3 assertion rule in system-prompt.ts —
+// related_items may now be drawn from that block (in addition to the source pool), never invented
+// beyond either. Both homes (this constant + system-prompt.ts's two YAML stamps) advance together —
+// contract-version.test.mjs is the drift guard.
+export const CURRENT_SKILL_CONTRACT_VERSION = "2026-08-31";
