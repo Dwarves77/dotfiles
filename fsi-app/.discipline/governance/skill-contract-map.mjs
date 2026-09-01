@@ -88,7 +88,7 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
     skillPath: 'fsi-app/.claude/skills/remediation-discipline/SKILL.md',
-    contentHash: '6f3cf06102dad1c49557b459c1332240a9504c72b9e2950bbfe33d7d2ef024f4',
+    contentHash: 'a6975cde1b7b8c01c3a0077d5a03608d827b6decb3b8f73ffcff2ec663d5d07e',
     citingFiles: [
       'fsi-app/scripts/_wave-alpha/backfill-canonical-keys.mjs',
       'fsi-app/scripts/lib/deferral.mjs',
