@@ -48,6 +48,7 @@ import { AdminIssuesRail, type IssueNavTarget } from "@/components/admin/redesig
 import { WorkspacesUsageRow } from "@/components/admin/redesign/WorkspacesUsageRow";
 import { MembersPanel } from "@/components/admin/redesign/MembersPanel";
 import { FlagsRejectionsQueue } from "@/components/admin/redesign/FlagsRejectionsQueue";
+import { CorpusTurnPanel } from "@/components/admin/CorpusTurnPanel";
 
 interface AdminDashboardProps {
   userId: string;
@@ -102,7 +103,7 @@ const SECTIONS: SectionDef[] = [
   {
     name: "Ingest",
     sub: "Staged updates, flags & rejections (combined), regulatory scan scheduling.",
-    tabs: ["Flags & rejections", "Staged updates", "Regulatory scan"],
+    tabs: ["Flags & rejections", "Staged updates", "Regulatory scan", "Corpus turns"],
   },
   {
     name: "Coverage",
@@ -596,6 +597,7 @@ export function AdminDashboard({
       if (tab === "Flags & rejections") return <FlagsRejectionsQueue />;
       if (tab === "Staged updates") return renderStaged();
       if (tab === "Regulatory scan") return renderScan();
+      if (tab === "Corpus turns") return <CorpusTurnPanel />;
     }
 
     // Coverage

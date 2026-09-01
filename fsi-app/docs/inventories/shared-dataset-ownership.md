@@ -110,10 +110,27 @@ who may write a shared table; the test enforces it on every future PR.
       "src/workflows/generate-brief.ts",
       "scripts/_reground/free-pass-run.mjs",
       "scripts/_reground/restore-overclear.mjs"
+    ],
+    "corpus_turn_requests": [
+      "src/app/api/admin/corpus-turn-requests/route.ts",
+      "scripts/turns/consume-turn-requests.mjs"
     ]
   }
 }
 ```
+
+Note (added by lane EV, 2026-09-01): `corpus_turn_requests` (migration 277) is a NEW shared dataset — a
+10th, alongside `section_claim_provenance` above. Its actual FIRST writer is the migration's own
+`enqueue_corpus_turn_request()` trigger function (SQL, `supabase/migrations/277_corpus_turn_requests.sql`)
+— not listed in the JSON block above because it is SQL, not a `scripts/`/`src/` file the scanner test
+walks (`SCAN_EXTS` is `.mjs/.js/.ts/.tsx/.cjs`), so it cannot appear there by construction, exactly the
+same reason no other table's DB-level trigger (e.g. `set_provenance_status`, migration 115/209) appears
+in this JSON block either — the scanner's scope is application-code writers, and a trigger is schema, not
+application code. The two entries actually listed are the ones the scanner CAN and does see:
+`src/app/api/admin/corpus-turn-requests/route.ts` (the admin route's manual/backfill INSERT) and
+`scripts/turns/consume-turn-requests.mjs` (the consumer's `guardedUpdate` stamping `consumed_at`/
+`consumed_by`). See the dataset's own detail section below for the full writer/reader picture including
+the trigger.
 
 Note (resolved at merge, 2026-09-01): the writers this register originally pre-registered from the
 parallel lane (`discover-for-items.mjs`, `generate-theme-brief.mjs`, `ratify-flag-to-census.mjs`,
@@ -280,6 +297,32 @@ Replace policy: guarded insert/update/delete, with every change mirrored into th
 `claim_versions` ledger by `ledger-apply.mjs` (lines 132, 162) — `claim_versions` itself is in
 `scripts/lib/db.mjs`'s `DELETE_PROTECTED_TABLES` (never hard-deletable), which is what makes every
 `section_claim_provenance` mutation reversible.
+
+### `corpus_turn_requests` — a 10th shared dataset, added by lane EV (2026-09-01), migration 277
+
+The queue that closes the "what needs a flywheel turn" gap: every producer that changes
+`intelligence_items.provenance_status` / `is_archived` / one of the three tag columns OUTSIDE the in-app
+rule-16 chokepoints (`mint-item.ts`, `apply-staged-update.ts`) previously left no record that a turn
+(connection discovery + forward-event extraction) was ever needed. One open row per item
+(`consumed_at IS NULL`), enforced by a partial-unique index on `intelligence_item_id`.
+
+| Writer | Kind | Evidence |
+|---|---|---|
+| `supabase/migrations/277_corpus_turn_requests.sql` (`enqueue_corpus_turn_request()` trigger function) | **DB trigger — the primary/mechanical writer.** `AFTER INSERT OR UPDATE OF (provenance_status, is_archived, operational_scenario_tags, compliance_object_tags, topic_tags) ON intelligence_items`; INSERTs `reason ∈ {inserted, verified, unarchived, updated, tags_applied}`. NOT in the JSON allowlist block above — it is SQL, outside the scanner's `scripts/`/`src/` scan scope, same reason `set_provenance_status` (migration 115/209) is absent from every other table's entry in this document. | migration 277's own `CREATE TRIGGER enqueue_corpus_turn_request_trg` |
+| `src/app/api/admin/corpus-turn-requests/route.ts` | POST — operator-triggered `reason='manual'` INSERT, one item (`{itemId}`) or a live-corpus backfill (`{all:true}`, skipping items that already carry an open request) | `.from("corpus_turn_requests").insert(...)`, both the single-item and chunked-backfill call sites |
+| `scripts/turns/consume-turn-requests.mjs` | `--mark-consumed --by <label>` — `guardedUpdate` stamps `consumed_at`/`consumed_by` on exactly the open rows the same run read | `guardedUpdate("corpus_turn_requests", ...)` |
+
+Readers: `src/app/api/admin/corpus-turn-requests/route.ts` (GET — open requests + last-consumed
+timestamp, for the admin `CorpusTurnPanel`), `scripts/turns/consume-turn-requests.mjs` (`readAll`, the
+producer side of the hand-off to `discover-for-items.mjs --ids`), and — going forward — the corpus-turn
+GitHub Actions workflow a sibling lane (RT) owns, which is expected to invoke
+`consume-turn-requests.mjs` itself rather than read the table directly.
+
+Replace policy: append-only from the trigger and the manual-request route (INSERT only, `manual` is the
+only reason value the trigger itself never writes); `consumed_at`/`consumed_by` is the only ever-mutated
+pair, written once per row by the consumer script (never by the trigger, never by the route). No DELETE
+path exists anywhere in this wave (rows are retired by being marked consumed, not removed); `ON DELETE
+CASCADE` from `intelligence_items` is the only way a row disappears (the item itself was deleted).
 
 ---
 
