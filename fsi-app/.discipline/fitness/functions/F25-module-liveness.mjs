@@ -78,11 +78,18 @@ const COMPONENTS = [
 // health/spend/route.ts respectively), so F25 enforces their liveness going forward instead of
 // exempting it. Leaving either entry in place after wiring would itself trip the STALE ALLOWLIST check
 // below ("now HAS a production importer; it got wired").
+// 'src/lib/sources/amendment-diff.mjs' and 'src/lib/sources/change-sweep.mjs' REMOVED (lane CD,
+// change-detection chain repair, 2026-09-01): both now have real production importers.
+// change-sweep.mjs's bridgeChangedSourceToStagedUpdates is called from src/lib/sources/reconcile.ts's
+// runReconcilePass (itself now called from src/app/api/worker/check-sources/route.ts, in-process, and
+// from the manual-redrive /api/worker/reconcile route) — no longer a selftest-only module. change-sweep.mjs
+// imports amendment-diff.mjs's diffDocuments directly for that same bridge, which is what gives
+// amendment-diff.mjs its own first production importer (previously proven only by its own test).
 const PROVEN_BUT_UNWIRED = [
   'src/lib/coverage/identity.mjs',
   'src/lib/intake/census-writer.mjs', 'src/lib/intake/intake-url-corpus.mjs',
   'src/lib/llm/metered-emit.mjs', 'src/lib/llm/program-total.mjs',
-  'src/lib/sources/amendment-diff.mjs', 'src/lib/sources/api-fetch.ts', 'src/lib/sources/change-sweep.mjs',
+  'src/lib/sources/api-fetch.ts',
   'src/lib/sources/feed-walk.mjs', 'src/lib/sources/instrument-identity.ts', 'src/lib/sources/register-walk.mjs',
 ];
 

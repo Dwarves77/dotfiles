@@ -117,6 +117,19 @@ who may write a shared table; the test enforces it on every future PR.
     "corpus_turn_requests": [
       "src/app/api/admin/corpus-turn-requests/route.ts",
       "scripts/turns/consume-turn-requests.mjs"
+    ],
+    "monitoring_queue": [
+      "src/app/api/worker/check-sources/route.ts",
+      "src/lib/sources/reconcile.ts"
+    ],
+    "intelligence_changes": [
+      "src/lib/sources/reconcile.ts"
+    ],
+    "staged_updates": [
+      "src/app/api/community/posts/[id]/promote/route.ts",
+      "src/app/api/admin/scan/route.ts",
+      "src/lib/intake/run-intake-cycle.ts",
+      "src/lib/sources/change-sweep.mjs"
     ]
   }
 }
@@ -330,6 +343,73 @@ only reason value the trigger itself never writes); `consumed_at`/`consumed_by` 
 pair, written once per row by the consumer script (never by the trigger, never by the route). No DELETE
 path exists anywhere in this wave (rows are retired by being marked consumed, not removed); `ON DELETE
 CASCADE` from `intelligence_items` is the only way a row disappears (the item itself was deleted).
+### `monitoring_queue`, `intelligence_changes`, `staged_updates` — three tables registered by lane CD (change-detection chain repair, 2026-09-01)
+
+Not part of the original operator-named harness/flywheel seed list, but the chain these three tables form
+(detection → queue → reconcile → intelligence_changes → analysis-review) gained real new writers this lane
+— `staged_updates` in particular gains its first-ever `update_item` writer — so they are registered here
+on the doc's own stated criterion (a table more than one live path writes) rather than left silently out.
+
+#### `monitoring_queue`
+
+No partition — one row per (source, check), written by two collaborators in the SAME chain, never in
+conflict because each owns a disjoint column set.
+
+| Writer | Operation | Evidence |
+|---|---|---|
+| `src/app/api/worker/check-sources/route.ts` | INSERT — one row per source checked, `change_detected` computed from `content-change.mjs`'s fingerprint compare (migration 161's `sources.last_content_hash`) | `assessAndUpdateSource`, `.from("monitoring_queue").insert({...})` |
+| `src/lib/sources/reconcile.ts` | UPDATE — stamps `reconciled_at` on the SAME row once its change has been recorded, so re-runs are idempotent (migration 124) | `runReconcilePass`, `.from("monitoring_queue").update({ reconciled_at: ... })` |
+
+Replace policy: append-only INSERT + one idempotency-stamp UPDATE per row (`reconciled_at`, migration
+124's own claim query: `change_detected = true AND reconciled_at IS NULL`) — never a delete, never a
+second UPDATE of an already-reconciled row.
+
+#### `intelligence_changes`
+
+No partition — append-only change log, one writer file with two entry points (a full field-diff and a
+lightweight "source changed" trigger), both reached only from the reconcile pass.
+
+| Writer | Evidence |
+|---|---|
+| `src/lib/sources/reconcile.ts` (`recordItemChange` — full field-diff; `recordSourceChangeTrigger` — lightweight trigger, no content diff needed) | Both called from `runReconcilePass`, itself called from `/api/worker/reconcile` (manual re-drive, worker-secret gated) and, as of this lane, in-process from `/api/worker/check-sources` after every scan batch |
+
+Replace policy: append-only INSERT, never update or delete — an item's change history accumulates one row
+per detected change.
+
+RLS note (verified, not assumed — this lane's own migration 279): this table had **RLS DISABLED** with no
+policy in any migration prior to 279 — worse than "no customer SELECT policy," it was the same
+anon-writable-residue shape migration 230 fixed for 8 other tables. Migration 279 enables RLS with a public
+SELECT policy mirroring migration 103 (customer reads of a live item's change history); no INSERT/UPDATE
+policy is added since both current writers already write service-role (bypasses RLS by default).
+
+#### `staged_updates`
+
+No partition — ownership is by `update_type` (the migration-004 CHECK: `new_item`, `update_item`,
+`status_change`, `new_source`, `source_conflict`, `archive_item`), each type owned by a disjoint writer set.
+**Approve/reject is RETIRED** (`src/app/admin/page.tsx` / `AdminDashboard.tsx`'s own comment: "the
+machine gates ARE the approval... the staged-updates surface is VISIBILITY-ONLY — there is no human
+approve/reject") — every writer below either self-materializes (`run-intake-cycle.ts`, `new_item` only,
+via `applyStagedUpdate`) or stages a row for VISIBILITY with no live consumer that applies it.
+
+| Writer | `update_type` | Evidence |
+|---|---|---|
+| `src/lib/intake/run-intake-cycle.ts` | `new_item` (INSERT), then self-updates `status`/`materialized_at` (UPDATE x2) after machine-gated apply (no human step) | lines ~120 (insert), ~142/156 (update) |
+| `src/app/api/community/posts/[id]/promote/route.ts` | `new_item` (INSERT) — a promoted community post, staged for admin review | line 315; comment there ("the admin queue materializes it on approval") is **STALE** against the retirement above — no live materializer reads a pending `new_item` row from this path today |
+| `src/app/api/admin/scan/route.ts` | `new_item` (INSERT) — an admin-triggered Sonnet scan's findings, staged for visibility-only review | line 418 |
+| `src/lib/sources/change-sweep.mjs` (`bridgeChangedSourceToStagedUpdates`) | **NEW, this lane** — `update_item`, the type's first-ever production writer. `proposed_changes` is always `{}` (no autonomous rewrite of item content — an explicit operator constraint); the amendment-diff summary (or a fingerprint-changed fallback note when fewer than two `raw_fetches` captures exist to diff) rides in `reason` | called from `src/lib/sources/reconcile.ts`'s `runReconcilePass`, once per changed source's live items |
+
+**Open finding, not resolved by this registration** (same posture as the doc's existing "Open leaks
+summary"): `update_item` staged rows — both this lane's new bridge rows and any hand-staged review row —
+have **no live consumer**. `applyStagedUpdate`'s `update_item` case exists and is fully wired to rule 16
+(`src/lib/intake/apply-staged-update.ts`), but is called from production **only** for `new_item` (via
+`run-intake-cycle.ts` / `portal-harvest.ts`'s dry-pre-pass). A `update_item` row this lane stages sits
+`status='pending'` indefinitely — visible on the admin Ingest dashboard, never auto-applied, and rule 16
+never re-runs from it until a future lane wires a consumer (or a human uses a still-to-be-built manual
+apply action) for that `update_type`. Recorded here rather than silently assumed working.
+
+Replace policy: append-only INSERT per staged proposal; `status`/`materialized_at`/`materialization_error`
+UPDATE is self-scoped to the row's own writer (`run-intake-cycle.ts` only updates rows it just inserted in
+the same pass) — no writer updates another writer's row.
 
 ---
 
@@ -438,6 +518,13 @@ real tree rather than only against the subset this document's author happened to
    as tables to register for capture-worker — reading the Edge Function shows both are READ there
    (`.from("sources").select(...)` line 266-267; `.from("intelligence_items").select(...)` line 276-277),
    never written, so neither belongs in a write-ownership register entry for this file.
+6. **`staged_updates` / `update_type = 'update_item'`** — lane CD (2026-09-01) added this type's first-ever
+   production writer (`change-sweep.mjs`'s `bridgeChangedSourceToStagedUpdates`, called from
+   `reconcile.ts`), but no live path CONSUMES an `update_item` row: `applyStagedUpdate`'s `update_item`
+   case exists and is fully wired to rule 16, yet is called in production only for `new_item`
+   (`run-intake-cycle.ts` / `portal-harvest.ts`). Approve/reject is retired (see the `staged_updates`
+   section above), so a staged `update_item` row sits `pending` indefinitely — visible on the admin
+   dashboard, never applied — until a future lane wires a consumer for that type.
 
 All six are genuine open items, not resolved by this document — they are recorded so the next lane (or
 the merge) has a named list instead of a silent gap.
