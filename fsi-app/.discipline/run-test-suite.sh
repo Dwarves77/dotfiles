@@ -86,6 +86,7 @@ node --test \
   fsi-app/scripts/lib/funded-release-plan.test.mjs \
   fsi-app/scripts/lib/liveness.selftest.mjs \
   fsi-app/scripts/lib/reachability.selftest.mjs \
+  fsi-app/scripts/lib/run-artifact.test.mjs \
   fsi-app/scripts/lib/type-consumer-probe.selftest.mjs \
   fsi-app/scripts/lib/verification-decision.selftest.mjs \
   fsi-app/scripts/lib/verify.selftest.mjs \
