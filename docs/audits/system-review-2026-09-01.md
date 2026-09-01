@@ -90,6 +90,11 @@ was executed queue-wide (session-log 7203), forward-events-run-001's dedupe-key 
 
 ### 2.4 The flywheel (self-improvement of the corpus)
 
+Scope note (ledger Section C): "the flywheel" names two mechanisms in this repo. This review covers the
+corpus flywheel (connection discovery through anticipation, U0–U9, live, pure computation, no LLM). The
+second, decision propagation (`docs/specs/08-flywheel-design.md`), is DESIGNED ONLY, has no `entities`
+table, and is not assessed here.
+
 Pure units in `src/lib/connections/`: discover (4 signals, ADR-019 idf), cluster (label propagation),
 gaps (3 types), anticipate (U5), theme-delta (F6), signal-candidates (L4), flag-namespaces, brief
 candidates/staleness, pair-view. Orchestrated by `scripts/connections/analyze-corpus.mjs` (17-step pass,
