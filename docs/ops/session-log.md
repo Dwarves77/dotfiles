@@ -7231,3 +7231,39 @@ live coverage). Blocking only those 459 rows; the clean pool keeps moving.
 
 **Next step for a cold session:** batch-003 from the clean pool with the fixed selection query
 (holder-join included); runbook corrections ride the next code train per the proposer pass.
+
+## Addendum 77 — 2026-09-01 (cloud session): archived-holder ruling executed — 37 items un-archived, 528 census rows reconciled
+
+First person, coordinator. Operator ruling this block (AskUserQuestion, quoted option): **"Un-archive
+rule-matched items"** — where the ratified screen says on-vertical, restore the existing rich verified
+item instead of minting a thin duplicate; screen-off rows stay archived and reconcile.
+
+**Execution, with the suffix-correct key derivation** (parenthetical CELEX suffixes now retained —
+Addendum 76's caveat closed): 529 unreconciled would_mint rows had an archived holder and no live
+verified holder. Screen split: 38 on_vertical, 491 off_vertical.
+
+- **On-vertical (38 → 37 executed):** pilot-first (21f91276, stayed verified, zero flags), then the
+  batch. 37 items un-archived — all 37 live+verified after the trigger recompute, each stamped with an
+  archive_note audit tag `[unarchived 2026-09-01 per operator ruling: archived-holder policy, ratified
+  screen on_vertical]`; their 37 census rows reconciled. The 38th pair (census 0976b5da → item 70edf0e8)
+  was EXCLUDED before apply: that is the mis-keyed item (rail-freight-corridor title holding SES key
+  32018D0491, mint-run-006 defect 2) — un-archiving it would have reconciled a SES census row into a
+  rail item; it stays with the investigation task.
+- **Off-vertical (491):** census rows reconciled into their archived items (245+246, count-verified by
+  the M3 lane), items untouched — the 2026-08-21 archive and the current screen agree on them.
+
+**Corpus and queue after this block (ran the queries):** 643 of 3,661 would_mint rows reconciled; 3,018
+remain. Live items 417 (320 verified) — the un-archive restored 37 rich verified items to the live
+corpus at zero authoring cost, which was the ruling's point.
+
+**Errors made and corrected:** the initial 459 figure undercounted (my derivation dropped parenthetical
+CELEX suffixes; corrected derivation found 529). No mis-writes: the suffix caveat was caught before any
+suffixed row was reconciled.
+
+**Open threads:** 32018D0491 mis-keying investigation (one census row + one item held back); 8
+live-quarantined-holder rows (AFIR-precedent class); batch-003 (clean pool, fixed selection query);
+1,313 CELEX-underivable rows need per-shape identity derivation; runbook corrections train; parked
+ratifications (#64) unchanged.
+
+**Next step for a cold session:** batch-003 dispatch with the holder-join selection query, then the
+runbook-corrections governing-file train per mint/LAST-PROPOSER-PASS.md.
