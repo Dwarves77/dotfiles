@@ -1,0 +1,69 @@
+{
+  "harness_family": "fetch-drain",
+  "harness_version": "sha256:763f9e0293042adf",
+  "run_id": "fetch-drain-run-001",
+  "started_at": "2026-08-31T22:05:00Z",
+  "config": {
+    "worker_version_deployed": "v7 (code-level v1.5: realistic browser headers + one same-invocation 403 retry) — redeployed immediately before this run, per docs/ops/session-log.md Addendum 72a",
+    "invocation_mechanism": "mcp__Supabase__execute_sql calling net.http_post against the capture-worker edge function, batched",
+    "invocations": 25,
+    "supabase_project": "kwrsbpiseruzbfwjpvsp",
+    "db_access": "guarded write path via capture-worker itself (agent_run_searches / pending_first_fetch) — this lane invoked the worker over pg_net, did not write application tables directly"
+  },
+  "inputs_ref": [
+    "live query: pending_first_fetch rows with status IN ('queued','error'), project kwrsbpiseruzbfwjpvsp — no static input file"
+  ],
+  "per_item": [
+    {
+      "id": "https://diputados.gob.mx/leyesbiblio/pdf/*.pdf (large-PDF class)",
+      "outcome": "hang_past_120s_timeout",
+      "verdict": null,
+      "evidence_refs": [
+        "/root/work/dotfiles/docs/ops/session-log.md"
+      ],
+      "error": "large-PDF fetches stall/hang mid-download past pg_net's ~120s caller timeout under v1.5"
+    },
+    {
+      "id": "(queue_id not recorded in the surviving evidence — WORKER_RESOURCE_LIMIT crash row)",
+      "outcome": "terminal_error",
+      "verdict": null,
+      "evidence_refs": [
+        "/root/work/dotfiles/docs/ops/session-log.md"
+      ],
+      "error": "WORKER_RESOURCE_LIMIT — a pathological PDF was buffered fully into memory before any size check"
+    }
+  ],
+  "metrics": {
+    "invocations": 25,
+    "new_captures_stored": 85,
+    "queue_queued": {
+      "before": 143,
+      "after": 35
+    },
+    "queue_done": {
+      "before": 1100,
+      "after": 1183
+    },
+    "queue_errors": {
+      "before": 128,
+      "after": 150
+    },
+    "capture_success_rate_by_attempt_class": "not computed this run — F1 predates the error-ladder's attempt-class taxonomy, which fetch-drain-run-002.json's replay built. This run's only success measure is the aggregate 85 new captures across 25 invocations; per-class breakdown starts at run-002."
+  },
+  "defects_found": [
+    {
+      "description": "Large-PDF fetches (diputados.gob.mx-class sources) stall/hang mid-download past pg_net's ~120s caller timeout under v1.5.",
+      "root_cause": "v1.5 has no fetch-level timeout of its own (no AbortSignal) — a slow-drip download can run indefinitely on the worker side even after the pg_net caller has given up at 120s.",
+      "fix_ref": "commit 0735a410 (Wave F1b, capture-worker v1.6 — FETCH_TIMEOUT_MS 45s via AbortSignal.timeout() on both fetch calls) — authored, not yet deployed as of this run"
+    },
+    {
+      "description": "One invocation crashed with WORKER_RESOURCE_LIMIT after buffering a pathological PDF fully into memory before checking its size.",
+      "root_cause": "v1.5 reads the full response body before any size check — no pre-buffer guard against Content-Length.",
+      "fix_ref": "commit 0735a410 — pre-buffer size guard (MAX_PDF_BYTES 25MB unchanged, new MAX_TEXT_BYTES 50MB, checked against Content-Length before any body bytes are read) — authored, not yet deployed as of this run"
+    }
+  ],
+  "full_trace_refs": [
+    "/root/work/dotfiles/docs/ops/session-log.md (Addendum 72a, ~lines 7070-7080: 'Sonnet drain lane F1 ran 25 pg_net invocations — 85 new captures stored, queue 143->35 queued / done 1,100->1,183; errors 128->150 ... large-PDF fetches (diputados.gob.mx) hang past 120s and one WORKER_RESOURCE_LIMIT crash')"
+  ],
+  "proposer_notes": "This is the thinnest-evidenced artifact in this retrofit: F1 has no dedicated report file at all (unlike batch-001 or fetch-error-dispositions.md) — only the one paragraph in docs/ops/session-log.md Addendum 72a survives. per_item's two entries are the only two findings that paragraph names; no queue_id, URL list, or per-row detail for the other invocations survives to reconstruct honestly, so per_item stops at those two rather than inventing coverage of the other 23 invocations. started_at is INFERRED, not self-reported: Addendum 72a's heading only carries a date ('2026-08-31, same session'), and its own narrative places F1 immediately after commit 6227e41f's merge + the v7 capture-worker redeploy it describes. This artifact uses that merge commit's own committer timestamp (2026-08-31T22:00:35Z, `git log -1 6227e41f --format=%cI`) plus a nominal 5 minutes for the redeploy step, as a defensible lower-bound estimate — flagged here rather than asserted as fact. This gap is exactly the case Wave MH-2's emission-in-the-harness wiring (plan §2) exists to close for every future fetch-drain run: had the drain lane's protocol emitted a run artifact as F1 finished, this thinness would not exist."
+}
