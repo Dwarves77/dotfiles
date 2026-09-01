@@ -388,28 +388,35 @@ No partition — ownership is by `update_type` (the migration-004 CHECK: `new_it
 `status_change`, `new_source`, `source_conflict`, `archive_item`), each type owned by a disjoint writer set.
 **Approve/reject is RETIRED** (`src/app/admin/page.tsx` / `AdminDashboard.tsx`'s own comment: "the
 machine gates ARE the approval... the staged-updates surface is VISIBILITY-ONLY — there is no human
-approve/reject") — every writer below either self-materializes (`run-intake-cycle.ts`, `new_item` only,
-via `applyStagedUpdate`) or stages a row for VISIBILITY with no live consumer that applies it.
+approve/reject") — every writer below either self-materializes (`run-intake-cycle.ts`) or stages a row for
+VISIBILITY with no live consumer that applies it.
 
 | Writer | `update_type` | Evidence |
 |---|---|---|
-| `src/lib/intake/run-intake-cycle.ts` | `new_item` (INSERT), then self-updates `status`/`materialized_at` (UPDATE x2) after machine-gated apply (no human step) | lines ~120 (insert), ~142/156 (update) |
+| `src/lib/intake/run-intake-cycle.ts` | `new_item` (INSERT), then self-updates `status`/`materialized_at` (UPDATE x2) after machine-gated apply (no human step) | lines ~328 (insert), ~351/365 (update) |
+| `src/lib/intake/run-intake-cycle.ts` (`drainChangeSweepUpdates`) | **NEW, lane INTAKE (2026-09-01)** — `update_item` (UPDATE only, `status`/`materialized_at`/`reviewer_notes`) — the consumer for change-sweep's bridge rows below. Selects pending rows whose `reason` carries `CHANGE_SWEEP_STAGED_MARKER` (`change-sweep.mjs`'s own exported marker — a hand-staged/other-origin `update_item` row is never selected), applies each through the SAME `applyStagedUpdate` chokepoint the row above uses, then calls `verifyItem` (the $0 snapshot-first entry, `src/lib/sources/verify-item.mjs`) EXPLICITLY, bounded by `UPDATE_DRAIN_LIMIT` | `drainChangeSweepUpdates`, called from `runIntakeCycle` every apply-mode invocation |
 | `src/app/api/community/posts/[id]/promote/route.ts` | `new_item` (INSERT) — a promoted community post, staged for admin review | line 315; comment there ("the admin queue materializes it on approval") is **STALE** against the retirement above — no live materializer reads a pending `new_item` row from this path today |
 | `src/app/api/admin/scan/route.ts` | `new_item` (INSERT) — an admin-triggered Sonnet scan's findings, staged for visibility-only review | line 418 |
-| `src/lib/sources/change-sweep.mjs` (`bridgeChangedSourceToStagedUpdates`) | **NEW, this lane** — `update_item`, the type's first-ever production writer. `proposed_changes` is always `{}` (no autonomous rewrite of item content — an explicit operator constraint); the amendment-diff summary (or a fingerprint-changed fallback note when fewer than two `raw_fetches` captures exist to diff) rides in `reason` | called from `src/lib/sources/reconcile.ts`'s `runReconcilePass`, once per changed source's live items |
+| `src/lib/sources/change-sweep.mjs` (`bridgeChangedSourceToStagedUpdates`) | `update_item`, the type's first production writer (lane CD, 2026-09-01). `proposed_changes` is always `{}` (no autonomous rewrite of item content — an explicit operator constraint); the amendment-diff summary (or a fingerprint-changed fallback note when fewer than two `raw_fetches` captures exist to diff) rides in `reason`, prefixed with the exported `CHANGE_SWEEP_STAGED_MARKER` — the identifying marker `run-intake-cycle.ts`'s drain matches on | called from `src/lib/sources/reconcile.ts`'s `runReconcilePass`, once per changed source's live items |
 
-**Open finding, not resolved by this registration** (same posture as the doc's existing "Open leaks
-summary"): `update_item` staged rows — both this lane's new bridge rows and any hand-staged review row —
-have **no live consumer**. `applyStagedUpdate`'s `update_item` case exists and is fully wired to rule 16
-(`src/lib/intake/apply-staged-update.ts`), but is called from production **only** for `new_item` (via
-`run-intake-cycle.ts` / `portal-harvest.ts`'s dry-pre-pass). A `update_item` row this lane stages sits
-`status='pending'` indefinitely — visible on the admin Ingest dashboard, never auto-applied, and rule 16
-never re-runs from it until a future lane wires a consumer (or a human uses a still-to-be-built manual
-apply action) for that `update_type`. Recorded here rather than silently assumed working.
+**Resolved, lane INTAKE (2026-09-01)** (was the doc's own "Open finding" here, and open item 6 in "Open
+leaks summary" below — both superseded by this note): change-sweep's bridge rows are no longer a dead end.
+`run-intake-cycle.ts` now drains them every apply-mode invocation via `drainChangeSweepUpdates` — apply
+through the same `applyStagedUpdate` chokepoint, then an EXPLICIT `verifyItem` re-verify call (never folded
+into `apply-staged-update.ts` itself — that file's `NON_SUBSTANTIVE_UPDATE_FIELDS` boundary stays
+content-shaped, per the file's own forbidden-to-edit status for this lane; see `run-intake-cycle.ts`'s
+`drainChangeSweepUpdates` doc comment for the full reasoning). **Still genuinely open, narrower than
+before**: a hand-staged or otherwise-originated `update_item` row — one without the change-sweep marker —
+still has no live consumer; the drain is deliberately scoped to the change-detection chain, not a general
+`update_item` auto-applier, so such a row still sits `status='pending'` indefinitely.
 
-Replace policy: append-only INSERT per staged proposal; `status`/`materialized_at`/`materialization_error`
-UPDATE is self-scoped to the row's own writer (`run-intake-cycle.ts` only updates rows it just inserted in
-the same pass) — no writer updates another writer's row.
+Replace policy: append-only INSERT per staged proposal (three of the writers above: `run-intake-cycle.ts`
+for `new_item`, `.../promote/route.ts`, `.../scan/route.ts`, `change-sweep.mjs` for `update_item`);
+`status`/`materialized_at`/`materialization_error`/`reviewer_notes` UPDATE is scoped to rows the SAME
+apply-mode `runIntakeCycle` invocation is actively dispositioning — for `new_item` that is always a row it
+just inserted in the same pass; for `update_item` it is a row a DIFFERENT writer (`change-sweep.mjs`)
+staged earlier, selected only by the `pending` + change-sweep-marker filter — no writer ever updates a row
+outside that filter, and a row processed once (status flipped off `pending`) is never re-selected.
 
 ---
 
@@ -518,13 +525,14 @@ real tree rather than only against the subset this document's author happened to
    as tables to register for capture-worker — reading the Edge Function shows both are READ there
    (`.from("sources").select(...)` line 266-267; `.from("intelligence_items").select(...)` line 276-277),
    never written, so neither belongs in a write-ownership register entry for this file.
-6. **`staged_updates` / `update_type = 'update_item'`** — lane CD (2026-09-01) added this type's first-ever
-   production writer (`change-sweep.mjs`'s `bridgeChangedSourceToStagedUpdates`, called from
-   `reconcile.ts`), but no live path CONSUMES an `update_item` row: `applyStagedUpdate`'s `update_item`
-   case exists and is fully wired to rule 16, yet is called in production only for `new_item`
-   (`run-intake-cycle.ts` / `portal-harvest.ts`). Approve/reject is retired (see the `staged_updates`
-   section above), so a staged `update_item` row sits `pending` indefinitely — visible on the admin
-   dashboard, never applied — until a future lane wires a consumer for that type.
+6. **`staged_updates` / `update_type = 'update_item'`** — **RESOLVED, lane INTAKE (2026-09-01)**: lane CD
+   added this type's first-ever production writer (`change-sweep.mjs`'s `bridgeChangedSourceToStagedUpdates`,
+   called from `reconcile.ts`), but nothing consumed the rows it staged. `run-intake-cycle.ts` now does —
+   `drainChangeSweepUpdates`, run from inside every apply-mode `runIntakeCycle` invocation — for rows
+   carrying the change-sweep marker specifically. See the `staged_updates` section above for the full
+   writer/consumer detail and the narrower gap that remains (a marker-less `update_item` row still has no
+   consumer).
 
-All six are genuine open items, not resolved by this document — they are recorded so the next lane (or
-the merge) has a named list instead of a silent gap.
+The five items above remain genuinely open, not resolved by this document — they are recorded so the next
+lane (or the merge) has a named list instead of a silent gap. Item 6's original gap is closed as of the
+note in that item.

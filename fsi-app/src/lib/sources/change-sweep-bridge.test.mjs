@@ -9,6 +9,7 @@ import {
   summarizeAmendmentDiff,
   fingerprintChangedNote,
   bridgeChangedSourceToStagedUpdates,
+  CHANGE_SWEEP_STAGED_MARKER,
 } from "./change-sweep.mjs";
 import { diffDocuments } from "./amendment-diff.mjs";
 
@@ -95,8 +96,12 @@ test("bridge: fewer than two captures -> fingerprint-changed note, LOW confidenc
   for (const row of svc.staged) {
     assert.equal(row.update_type, "update_item");
     assert.deepEqual(row.proposed_changes, {}, "no autonomous rewrite of item content");
-    assert.match(row.reason, /^\[change-sweep\]/);
+    assert.ok(row.reason.startsWith(CHANGE_SWEEP_STAGED_MARKER), "reason must carry the run-intake-cycle.ts drain marker");
   }
+});
+
+test("CHANGE_SWEEP_STAGED_MARKER: exported for the run-intake-cycle.ts drain consumer, not hand-copied", () => {
+  assert.equal(CHANGE_SWEEP_STAGED_MARKER, "[change-sweep]");
 });
 
 test("bridge: two captures present -> amendment-diff summary, MEDIUM confidence", async () => {

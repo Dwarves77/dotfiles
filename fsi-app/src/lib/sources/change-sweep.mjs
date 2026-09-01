@@ -94,6 +94,16 @@ export async function sweepAllChangedSources(svc, loaders, deps, { act = false, 
 // diff shows" signal real, queryable, and reviewable, exactly the same non-autonomous posture
 // content-change.mjs's header documents for the detection half ("Downstream auto-action on a change is
 // deliberately NOT wired here").
+//
+// CONSUMER (lane INTAKE, 2026-09-01): run-intake-cycle.ts drains these rows by matching
+// CHANGE_SWEEP_STAGED_MARKER against `reason` — the only way a downstream reader can identify a
+// change-sweep-originated update_item row without inspecting `proposed_changes` (always `{}`, so it
+// carries no distinguishing signal of its own). Exported so the marker is a single string literal, never
+// copy-pasted into a second file to drift.
+
+/** The `reason`-field prefix every row this bridge stages carries (see summarizeAmendmentDiff /
+ *  fingerprintChangedNote below for what follows it). The ONE identifying marker a consumer matches on. */
+export const CHANGE_SWEEP_STAGED_MARKER = "[change-sweep]";
 
 /**
  * PURE: human-readable summary from a diffDocuments() result.
@@ -169,7 +179,7 @@ export async function bridgeChangedSourceToStagedUpdates(svc, { sourceId, items,
       source_id: sourceId,
       update_type: "update_item",
       proposed_changes: {},
-      reason: `[change-sweep] ${summary}`,
+      reason: `${CHANGE_SWEEP_STAGED_MARKER} ${summary}`,
       source_url: sourceUrl,
       confidence,
     });
