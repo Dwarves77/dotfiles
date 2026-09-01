@@ -94,6 +94,7 @@ node --test \
   fsi-app/scripts/verify/lib/*.test.mjs \
   fsi-app/scripts/gen/*.test.mjs \
   fsi-app/scripts/mint/*.test.mjs \
+  fsi-app/scripts/forward-events/*.test.mjs \
   fsi-app/scripts/producers/*/*.test.mjs \
   fsi-app/src/__tests__/*.test.mjs \
   fsi-app/src/lib/credibility/*.test.mjs \
