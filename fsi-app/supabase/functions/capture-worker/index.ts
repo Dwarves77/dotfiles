@@ -1,7 +1,8 @@
-// capture-worker v1.5 — Caro's Ledge server-side document capture.
+// capture-worker v1.6 — Caro's Ledge server-side document capture.
 // CONTRACT (operator-approved, 2026-08-01; v1.3 PDF extension 2026-08-02;
 //  v1.4 transient-retry + charset + atomic-claim + content-type allowlist, 2026-08-09;
-//  v1.5 realistic browser headers + one same-invocation 403 retry, 2026-08-31):
+//  v1.5 realistic browser headers + one same-invocation 403 retry, 2026-08-31;
+//  v1.6 fetch timeout + pre-buffer size guard (PDF + text), 2026-09-01):
 //  1. Raw decoded body stored verbatim. No summarization, no normalization, no cleaning.
 //     Declared transforms only:
 //       - charset decode to UTF-8 (v1.4: honors the response's declared charset, not a
@@ -37,6 +38,32 @@
 //  where the first did not. This is NOT a queue re-enqueue: it does not touch attempt_count,
 //  does not add 403 to RETRYABLE_STATUS, and does not consume a MAX_ATTEMPTS slot — a 403
 //  that survives both attempts terminalizes exactly as before (recordFailure, PERMANENT).
+//
+//  v1.6 FETCH TIMEOUT + PRE-BUFFER SIZE GUARD (2026-09-01, F1's findings on the
+//  pending_first_fetch drain): two defects found running the drain against v1.5.
+//  (1) HANG PAST THE pg_net BUDGET — v1.5 had no per-fetch deadline. A large legislature PDF
+//      (diputados.gob.mx-class sources) can stall mid-download — slow drip, not a clean error —
+//      and pg_net's caller-side timeout is ~120s, well past what a single edge-function
+//      invocation should spend blocked on one row. FETCH_TIMEOUT_MS now bounds BOTH fetch
+//      calls (primary and the 403 alt-header retry) with AbortSignal.timeout(). Aborting a
+//      fetch aborts body consumption too (WHATWG fetch semantics, not just connect/headers),
+//      so a slow-drip download is caught, not only a slow connect. A timeout throws inside the
+//      existing try/catch exactly like any other network error, so it falls into the existing
+//      recordRetry() transient path unchanged — no new outcome, no new status.
+//  (2) COMPUTE EXHAUSTION (one invocation died WORKER_RESOURCE_LIMIT) — v1.5 checked
+//      MAX_PDF_BYTES only AFTER `resp.arrayBuffer()` had already buffered the entire body into
+//      memory, so a pathological download paid its full memory cost before being refused, AND
+//      the non-PDF text path had no ceiling at all (unbounded `resp.arrayBuffer()`, same crash
+//      class waiting to happen on a mislabeled binary or a runaway text endpoint). Both paths
+//      now (a) check Content-Length against a cap BEFORE reading any body bytes when the
+//      header is present — refuses with zero bytes read; and (b) read the body through the
+//      shared readCappedBody() stream reader, which aborts the read the moment the cap is
+//      crossed — covering both the missing-Content-Length case AND a present-but-understated
+//      header, so no residual risk is left undocumented: the cap is enforced on bytes actually
+//      read, not on a value the server merely claims. PDF uses MAX_PDF_BYTES (25MB, unchanged);
+//      the new non-PDF path uses MAX_TEXT_BYTES (50MB — see its definition for why the ceiling
+//      differs). Every other v1.4/v1.5 behavior — retry semantics, header fingerprints, storage
+//      ceiling, content-type allowlist, failure/retry wording — is unchanged.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { extractText, getDocumentProxy, getMeta } from "npm:unpdf@0";
 
@@ -50,6 +77,23 @@ const ERROR_MARKERS = [
 ];
 const MIN_BYTES = 1000;
 const MAX_PDF_BYTES = 25 * 1024 * 1024; // refuse pathological downloads, recorded honestly
+
+// v1.6: pre-buffer size guard for the non-PDF text/html/xml/json path — same discipline as
+// MAX_PDF_BYTES, applied via the shared readCappedBody() helper below. Deliberately larger
+// than MAX_PDF_BYTES: pdf.js parsing (getDocumentProxy/extractText) is the expensive step on
+// the PDF path, so 25MB is already a heavy in-memory parse, whereas this path is only a
+// charset decode + null-strip before STORAGE_MAX_CHARS (10M chars) truncates whatever lands —
+// STORAGE_MAX_CHARS, not this constant, is what bounds normal-operation storage cost. This
+// ceiling exists purely to catch the WORKER_RESOURCE_LIMIT class of pathological download (a
+// mislabeled binary dump, a runaway streaming endpoint) before it gets fully buffered, so a
+// looser 50MB is a "clearly pathological" line, not a value tuned against real traffic.
+const MAX_TEXT_BYTES = 50 * 1024 * 1024;
+
+// v1.6: hard per-fetch deadline. pg_net's caller-side timeout is ~120s; this must be well
+// under that so a hung fetch always fails inside the invocation instead of the invocation
+// getting killed out from under an in-flight request. Applies to both the primary fetch and
+// the 403 alt-header retry (see PDF's fetch() calls below).
+const FETCH_TIMEOUT_MS = 45_000;
 
 // STORAGE_MAX_CHARS — ADR-016's pathological-page sanity ceiling, enforced on THIS write path too.
 //
@@ -123,6 +167,55 @@ function decodeBody(buf: ArrayBuffer, ctype: string): string {
     }
   }
   return new TextDecoder("utf-8", { fatal: false }).decode(buf);
+}
+
+// v1.6: thrown by readCappedBody when the cap is crossed WHILE STREAMING (as opposed to the
+// Content-Length pre-check, which never starts a read at all). Carries the byte count actually
+// read so the failure detail is honest about how far the stream got before being cut. Shared
+// by both the PDF (MAX_PDF_BYTES) and non-PDF text (MAX_TEXT_BYTES) call sites.
+class BodyTooLargeError extends Error {
+  constructor(public bytesRead: number) {
+    super(`body exceeded ${bytesRead} bytes read`);
+  }
+}
+
+// v1.6: read a response body as a stream, aborting the read the instant the running total
+// crosses capBytes — never buffers the whole body first. This is what makes the size guard
+// PRE-BUFFER: a pathological download is refused mid-stream, not after paying its full memory
+// cost the way `resp.arrayBuffer()` did for every path in v1.5. Runs unconditionally (not only
+// when Content-Length is missing), so a response that understates its own Content-Length is
+// still caught on actual bytes read. Shared by the PDF and non-PDF text branches in
+// processRow() so both pay the same pre-buffer discipline.
+async function readCappedBody(resp: Response, capBytes: number): Promise<Uint8Array> {
+  const reader = resp.body?.getReader();
+  if (!reader) {
+    // No streaming body on this response — the Response/body-stream contract does not
+    // guarantee one, though no real HTTP response has been observed to omit it. arrayBuffer()
+    // is the only option here; the cap is still enforced post-hoc (thrown, not silently
+    // accepted) rather than left as a silent residual, but a body this large AND
+    // non-streamable would pay its full buffering cost before that check runs — the one
+    // honestly-documented gap this guard cannot pre-empt without a stream to read from.
+    const buf = new Uint8Array(await resp.arrayBuffer());
+    if (buf.byteLength > capBytes) throw new BodyTooLargeError(buf.byteLength);
+    return buf;
+  }
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    total += value.byteLength;
+    if (total > capBytes) {
+      try { await reader.cancel(); } catch { /* best-effort abort of the underlying stream */ }
+      throw new BodyTooLargeError(total);
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const c of chunks) { out.set(c, offset); offset += c.byteLength; }
+  return out;
 }
 
 Deno.serve(async (req: Request) => {
@@ -209,7 +302,9 @@ async function processRow(supabase: any, row: any) {
   let isPdf = false;
   let title: string | null = null;
   try {
-    resp = await fetch(src.url, { redirect: "follow", headers: PRIMARY_HEADERS });
+    resp = await fetch(src.url, {
+      redirect: "follow", headers: PRIMARY_HEADERS, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
     report.http_status = resp.status;
 
     // v1.5: one same-invocation retry on 403 with an alternate real-browser fingerprint.
@@ -218,7 +313,9 @@ async function processRow(supabase: any, row: any) {
     // through to the existing 403 handling exactly as before.
     if (resp.status === 403) {
       try {
-        const retryResp = await fetch(src.url, { redirect: "follow", headers: ALT_HEADERS_ON_403 });
+        const retryResp = await fetch(src.url, {
+          redirect: "follow", headers: ALT_HEADERS_ON_403, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        });
         report.http_status_403_retry = retryResp.status;
         if (retryResp.status !== 403) {
           resp = retryResp;
@@ -252,15 +349,41 @@ async function processRow(supabase: any, row: any) {
     }
 
     if (isPdf) {
-      const buf = await resp.arrayBuffer();
-      report.pdf_bytes = buf.byteLength;
-      if (buf.byteLength > MAX_PDF_BYTES) {
-        report.detail = `pdf too large (${buf.byteLength} bytes > ${MAX_PDF_BYTES} cap), NOT stored`;
+      // v1.6 PRE-BUFFER SIZE GUARD, step 1: a declared Content-Length over the cap is refused
+      // with ZERO body bytes read — cheapest possible rejection, no streaming needed.
+      const declaredLenRaw = resp.headers.get("content-length");
+      const declaredLen = declaredLenRaw ? Number(declaredLenRaw) : NaN;
+      const hasDeclaredLen = Number.isFinite(declaredLen) && declaredLen >= 0;
+      if (hasDeclaredLen && declaredLen > MAX_PDF_BYTES) {
+        report.pdf_bytes = declaredLen;
+        report.detail = `pdf too large (Content-Length ${declaredLen} bytes > ${MAX_PDF_BYTES} cap), refused before buffering, NOT stored`;
         await recordFailure(supabase, row, src, report, runStart);
         return report;
       }
+
+      // v1.6 PRE-BUFFER SIZE GUARD, step 2: stream-read with a running cap. Runs even when
+      // Content-Length passed step 1 (or was absent), so a response that understates its own
+      // size — or omits the header entirely — is still cut off on ACTUAL bytes read, never
+      // fully buffered first. See readCappedBody / BodyTooLargeError above.
+      let buf: Uint8Array;
       try {
-        const pdf = await getDocumentProxy(new Uint8Array(buf));
+        buf = await readCappedBody(resp, MAX_PDF_BYTES);
+      } catch (e) {
+        if (e instanceof BodyTooLargeError) {
+          report.pdf_bytes = e.bytesRead;
+          report.detail = `pdf too large (>${MAX_PDF_BYTES} cap, exceeded mid-stream` +
+            (hasDeclaredLen ? "" : "; no Content-Length was declared") + `), NOT stored`;
+          await recordFailure(supabase, row, src, report, runStart);
+          return report;
+        }
+        // Any other read failure (network drop, or the FETCH_TIMEOUT_MS abort firing mid-stream
+        // on a slow-drip download) is a transient fetch problem, not a size verdict — rethrow
+        // into the outer catch so it takes the existing recordRetry() transient path.
+        throw e;
+      }
+      report.pdf_bytes = buf.byteLength;
+      try {
+        const pdf = await getDocumentProxy(buf);
         const { totalPages, text: extracted } = await extractText(pdf, { mergePages: true });
         report.pdf_pages = totalPages;
         text = typeof extracted === "string" ? extracted : String(extracted ?? "");
@@ -275,8 +398,36 @@ async function processRow(supabase: any, row: any) {
         return report;
       }
     } else {
+      // v1.6 PRE-BUFFER SIZE GUARD for the non-PDF text path — same two-step discipline as
+      // the PDF branch above, against MAX_TEXT_BYTES instead of MAX_PDF_BYTES. Before v1.6
+      // this branch called `resp.arrayBuffer()` with no ceiling at all: the WORKER_RESOURCE_LIMIT
+      // crash F1 hit was traced to unbounded PDF buffering, but a mislabeled binary or a
+      // runaway text endpoint would have hit the identical failure mode here, uncapped.
+      const declaredLenRaw = resp.headers.get("content-length");
+      const declaredLen = declaredLenRaw ? Number(declaredLenRaw) : NaN;
+      const hasDeclaredLen = Number.isFinite(declaredLen) && declaredLen >= 0;
+      if (hasDeclaredLen && declaredLen > MAX_TEXT_BYTES) {
+        report.detail = `body too large (Content-Length ${declaredLen} bytes > ${MAX_TEXT_BYTES} cap), refused before buffering, NOT stored`;
+        await recordFailure(supabase, row, src, report, runStart);
+        return report;
+      }
+      let rawBuf: Uint8Array;
+      try {
+        rawBuf = await readCappedBody(resp, MAX_TEXT_BYTES);
+      } catch (e) {
+        if (e instanceof BodyTooLargeError) {
+          report.detail = `body too large (>${MAX_TEXT_BYTES} cap, exceeded mid-stream` +
+            (hasDeclaredLen ? "" : "; no Content-Length was declared") + `), NOT stored`;
+          await recordFailure(supabase, row, src, report, runStart);
+          return report;
+        }
+        // As with the PDF branch: any other failure (network drop, or FETCH_TIMEOUT_MS firing
+        // mid-stream) is transient, not a size verdict — rethrow into the outer catch so it
+        // takes the existing recordRetry() transient path.
+        throw e;
+      }
       // v1.4: charset-aware decode instead of a blind UTF-8 resp.text().
-      text = decodeBody(await resp.arrayBuffer(), ctype);
+      text = decodeBody(rawBuf.buffer as ArrayBuffer, ctype);
     }
   } catch (e) {
     // v1.4: a network-level fetch throw is transient — re-queue under the cap.
