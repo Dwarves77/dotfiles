@@ -7409,3 +7409,67 @@ candidates), refresh the stale mint/meta-harness F28 artifacts (meta-harness-run
 run the full suite (expect green incl. the registry test), land ONE squashed train on master per the
 Train-7 method. Then: the census-wave tagging gap goes to the next proposer pass as the first
 corpus-outcome finding.
+
+## Addendum 81 — 2026-09-01 (cloud session): the system review, nine completion lanes, four migrations live, and the train that could not push
+
+**Ordered by the operator after Addendum 80:** a thorough review of the whole system (intent vs. actual,
+tools, skills, wiring, dead code, usability, the market/utilities/research interface question, a
+competitive read) and a fix for "why is anything blocked, nothing should be blocked." Rulings taken in
+the same session: no standing schedules during build; items are processed when they arrive and
+everything already in the system gets one deliberate run; record-grade items MAY appear on customer
+surfaces, labeled; the change-detection chain is wired, not deleted; GitHub is reached ONLY through the
+browser, never a direct connector.
+
+**The review** is `docs/audits/system-review-2026-09-01.md` (indexed). Verdict: not a product yet, a
+strong substrate. Live numbers that settle the population question: 2,561 sources; 21,609 census
+documents; 3,661 `would_mint`; **322 live items**; 513 verified-but-archived of which **491 were
+archived 2026-08-21 under the WO-26 scope ruling with no `archive_reason` stamped** (Addendum 28), now
+blocking 456 queue rows. Every ingestion hop was session-only; paid grounding frozen; census-wave items
+carry empty signature tags so discovery scores nothing (verified: 0 edges for 8 items). Market Intel's
+redesign shipped visually (July, #215/#219/#223) with 1 of 48 series populated and 3 of 4 producers
+unbuilt; "utilities" appears nowhere in the repo (mapped to Operations, UNCONFIRMED). The 901 forward
+obligations rendered only on an admin tab. **Root cause of every blockage: no execution layer of its own**
+(`producers.yml`'s own header: "missing layer: a named runtime"). The scale layer competitors sell
+(register walks of EUR-Lex/Federal Register, feed walks, change sweep, provision-level diff) already
+existed in the repo, dormant, in F25's allowlist.
+
+**Nine Sonnet lanes, disjoint write sets, all merged to `lane/integration` (32 commits ahead of master):**
+RT (corpus-turn + source-sweep GitHub workflows, dispatch/push only, `scripts/turns/**`, the source-sweep
+family), HYG (dead/stale cleanup; F14 now sees guarded writers and edge functions; 19 F25-pinned modules
+archived; one of my review claims REFUTED: the community invitation routes are live), DOC (skill↔prompt
+parity now test-enforced; the skill was 14 rules and 13 fields against the prompt's 16 and 20), TAG
+(deterministic tag proposals bound to the vocab SoT, operator-ratified, 32/32 + 19/19 + 6/7 coverage),
+EV (`corpus_turn_requests` queue + trigger, admin buttons for "Run intake now" and "Request corpus
+turn"), POP (record-grade tier end to end: migration, mint path, validator profile, badge on Regulations,
+WO-26 stamp script, population plan), SURF (obligations on Regulations list + detail, ThemeStrip on
+Research, EIA petroleum producer; EEX EUA honestly unbuilt, no free licence), CD (change detection rebuilt
+hop by hop: fingerprint → queue → in-process reconcile → change-sweep → staged update; `ChangedSinceStrip`
+on the home page; intelligence_changes had NO RLS, fixed), intake-updates (run-intake now drains
+change-sweep `update_item` rows through the one chokepoint and re-verifies on the $0 path).
+
+**Coordinator integration closed every cross-lane item:** F28 rule (b) gained a hash-pinned first-run
+acknowledgment (a registered family with zero artifacts passes only with a matching PENDING-RUN.md);
+record-facts.mjs added to the mint governing set in all three homes; tag-presence wired into
+run-mint-batch; F23 and F25 to zero; the writer registry caught two real unregistered writers on merged
+trees; producers.yml gained the ecb-fx step (EIA waits on an operator-created secret, documented);
+migration 280 (theme_briefs public read, customers could not see briefs). **Migrations 277, 278, 279,
+280 applied live.** meta-harness-run-005 written (F28 demanded it, third consecutive self-catch).
+Gates on the merged tree: **suite 2,545/2,545, tsc clean, fitness 23/0, meta-gate PASS.**
+
+**Errors of mine, corrected on the record.** (1) I listed two live routes as dead; refuted by lane HYG,
+corrected in place. (2) I accepted a lane's "committed" report that was false; caught only because the
+merged fitness run lacked the violation the change should have raised; every lane brief now demands a
+`git log -1` confirmation. (3) An unquoted heredoc executed a backticked phrase and spliced git output
+into a JSON artifact; rewritten through Python. (4) My first competitive framing came from generic
+knowledge; replaced with two cited external reads before the review was written.
+
+**The train cannot push from here.** `git push --dry-run` returns the git-proxy 403 the ledger records
+(repo not in this session's sources). Operator ruling: land through the browser, never a direct
+connector. That landing is the next act; the lane worktrees are removed first (C4 noise).
+
+**Next step for a cold session:** if `origin/master` does not yet contain Addendum 81, the train is
+on `lane/integration` in the cloud worktree and must be landed via the GitHub web UI (one squashed
+train, per the Train-7 method). After landing: dispatch `corpus-turn.yml` (mode apply, since
+1970-01-01) for the first full turn, `source-sweep.yml` for the first register walk, run
+`stamp-wo26-archive-reason.mjs --execute`, `propose-tags.mjs --untagged --execute`, ratify, then
+batch-003 (`run-mint-batch --grade record`) discharges the mint marker as mint-run-007.
