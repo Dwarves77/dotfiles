@@ -20,6 +20,7 @@ import { getListingsOnly, getSurfaceCounts } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { RegulationsLedger } from "@/components/regulations/RegulationsLedger";
+import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingObligationsStrip";
 import { toDate } from "@/lib/relative-time";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
@@ -96,6 +97,11 @@ export default async function RegulationsPage({
     <>
       <SystemErrorBanner message={data._error} />
       <EditorialMasthead title="Regulations" meta={meta} />
+      {/* Lane SURF (2026-09-01): customer-facing top strip for item_forward_events ("what is due,
+          when") — see UpcomingObligationsStrip.tsx's own header. Self-contained server component: reads
+          its own data via the request-scoped client, so it needs no props from this page's own fetches
+          and soft-fails to nothing (never breaks the page) on a read error. */}
+      <UpcomingObligationsStrip variant="list" />
       <RegulationsLedger
         initialResources={data.resources}
         initialArchived={data.archived}

@@ -81,7 +81,18 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, eurostat-nrg-pc-205, bls-oews, eu-weekly-oil-bulletin, desnz-emission-factors, epa-emission-factors]
+        # eia-v2-petroleum-spot (lane SURF, 2026-09-01): scripts/producers/market/
+        # eia-v2-petroleum-spot-producer.mjs — WTI/Brent/diesel/jet-fuel/RBOB/propane spot prices into
+        # market_series. Listed here as a dispatchable choice per this lane's write-set instruction
+        # ("producer choices only"), but deliberately has NO run step below yet and is not in 'all':
+        # its live-fetch API key is registered only as a local-.env credential
+        # (.discipline/governance/secrets-registry.mjs TOPOLOGY), not a github-actions one, and this
+        # repo's secrets-reference-audit fails the build on any workflow secret reference not in
+        # WORKFLOW_SECRETS — a run step reading that credential here would trip that gate. Registering
+        # the credential as a GitHub Actions secret and adding its name to WORKFLOW_SECRETS (both outside
+        # this lane's write set) is the prerequisite; once done, a run step mirroring the EU Weekly Oil
+        # Bulletin step's dry/apply shape is the remaining wiring.
+        options: [all, eurostat-nrg-pc-205, bls-oews, eu-weekly-oil-bulletin, desnz-emission-factors, epa-emission-factors, eia-v2-petroleum-spot]
   # BUILD MODE (operator ruling 2026-08-30): no schedule while the site is being built — population
   # happens by explicit dispatch, read, then applied. The runtime, both gates, and the cadence notes
   # above all stay, so re-arming when build mode ends is exactly this block, restored in one reviewed
