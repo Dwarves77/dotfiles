@@ -75,7 +75,20 @@ export const SKILL_MARKER_BASELINE = {
   // 18→19 (2026-07-11, Wave-α C8): added "Canonical instrument key (dedup-before-grounding identity)"
   // normative line ("Two VERIFIED, non-archived items MUST NOT share a canonical instrument key").
   // TRIAGE: new invariant EP-11 (enforcedBy audit canonical-key-uniqueness.mjs + migration 200).
-  'environmental-policy-and-innovation': 20,
+  // 20→21 (2026-09-01, lane DOC, governing-skill parity): the skill's "Rules for All Output" was stale
+  // at 14 rules against the runtime prompt's 16, and its field-emission section still enumerated the
+  // original 13 fields under a stale "19-field contract" label instead of the prompt's actual 20. Fixed
+  // by copying rules 15-16 and the seven missing field bullets (what_is_it, signal_band, theme,
+  // what_it_changes, does_not_resolve, conversion_trigger, cross_references) verbatim from
+  // system-prompt.ts. This is a COPY CORRECTION (no new doctrine — the rule text and field contract were
+  // already live in the prompt; only the skill's mirror was behind) that happens to add exactly one new
+  // MARKER_SOURCE hit: the does_not_resolve field's prompt-verbatim description ends "...for binding
+  // answer", and "binding" is a marker token. TRIAGE: NOT a new bare rule needing its own invariant — the
+  // does_not_resolve field is already covered by the whole-file 20-field enumeration EP-13 binds. New
+  // invariant EP-13-skill-prompt-parity registered instead for the parity guarantee itself (enforcedBy
+  // selftest skill-prompt-parity.test.mjs), anchored on the new "is enforced by
+  // `src/lib/agent/skill-prompt-parity.test.mjs`" line added to the Rules section. Re-baseline to 21.
+  'environmental-policy-and-innovation': 21,
   // 10→11 (2026-07-03): added the "Floor-qualifying source reaches grounding COMPLETE (the truncation
   // moat)" normative line. TRIAGE: new invariant SC-10 (enforcedBy selftest source-blocks.test.mjs).
   // 11→12 (2026-07-03): added the "Floor-first span re-attribution (the attribution half of the moat)"
@@ -284,6 +297,16 @@ export const INVARIANTS = [
     anchor: 'Unit attachment is a factual claim, not formatting',
     enforcedBy: ['migration:224', 'migration:225'],
     residual: 'ASYMMETRIC by construction, and the asymmetry is the point. The ATTACHED half is enforced LIVE and mechanically: Gate A (migration 224 item_gate_a_state + migration 225 criterion 7 in validate_item_provenance) tokenizes number+unit as ONE literal token via the shared gate-a-match matcher and orphans any token not verbatim-groundable, so an inferred unit self-quarantines the brief — this is the gate that CAUGHT the origin case ("11v 11-EHC 31 12" rendered as "31 tonnes", where 31 was a row identifier). The OMITTED half is NOT mechanically detectable: a figure the brief never emits leaves no token to scan, so "stated the number bare to dodge the gate" and "correctly declined to state an ungroundable figure" are indistinguishable to any scanner. That residue is authoring judgment carried by the prompt contract (system-prompt.ts figure-expression block, synced to this skill). DELIBERATELY NOT closed by loosening the matcher to strip units — that is the dig-fallback class (case-file instance 7, literal-and-exact at every coverage decision) and is forbidden. SANCTIONED DIRECTION if the prompt proves insufficient: a Gate-B-style explicit composed-claim kind linking the verbatim bare-number span to the verbatim header/unit span (auditable rows, scanner stays mechanical), brought to the operator as a proposal before building.',
+  },
+
+  {
+    id: 'EP-13-skill-prompt-parity',
+    skill: 'environmental-policy-and-innovation',
+    section: 'The 16 Rules for All Output / Database Field Emission',
+    text: 'The skill\'s numbered rules list and its 20-field database-contract enumeration are kept at exact parity — same numbering, same wording, same field set — with the operative runtime contract in src/lib/agent/system-prompt.ts. The header\'s "Synced to ... (canonical)" claim is not honor-system: a wording or field-set drift between the two files must be caught mechanically, not discovered by inspection.',
+    anchor: 'is enforced by `src/lib/agent/skill-prompt-parity.test.mjs`',
+    enforcedBy: ['selftest:fsi-app/src/lib/agent/skill-prompt-parity.test.mjs'],
+    residual: 'The selftest extracts the numbered-rules block (anchored on the "Rules for All Output" heading through the first non-numbered line) and the Fields: bullet block (anchored between "Fields:" and "Severity to priority mapping") from both files via regex, normalizes whitespace, and asserts equal rule count/text and equal field-name sets. It proves STRUCTURAL parity of these two specific contract surfaces (rule text, field names) — it does NOT parse or compare the rest of each file (section lists, vocabularies, changelog, etc.), and a rewrite that keeps rule/field text identical while changing surrounding prose elsewhere in either file is not caught by this invariant. contract-version.test.mjs remains the separate, narrower guard for the regeneration_skill_version literal alone.',
   },
 
   // ───────────────────────────── source-credibility-model ─────────────────────────────

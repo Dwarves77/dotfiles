@@ -118,7 +118,11 @@ export const PINNED_MANIFEST = {
   },
   'environmental-policy-and-innovation': {
     skillPath: 'fsi-app/.claude/skills/environmental-policy-and-innovation/SKILL.md',
-    contentHash: '910c9f01d3516c89943eb3a48a2b5fb075a48ace7c6aea76cf23971cae233497',
+    // Re-pinned 2026-09-01 (lane DOC, governing-skill parity): SKILL.md's "Rules for All Output" was
+    // brought to parity with system-prompt.ts's 16 rules (was 14) and the Database Field Emission
+    // section's Fields: enumeration was brought to the full 20-field list (was 13) — see the SKILL.md
+    // changelog entry and invariants.mjs's EP-13-skill-prompt-parity for the full account.
+    contentHash: '2e86aed5da3ede2635df429a68f7f425f8a0b867ccc350c4b887a8dd6d136b95',
     citingFiles: [
       'fsi-app/scripts/_wave-alpha/backfill-canonical-keys.mjs',
       'fsi-app/scripts/audit-skill-conformance.mjs',

@@ -1,7 +1,14 @@
 // Operative contract for /api/agent/run. Synced to
 // fsi-app/.claude/skills/environmental-policy-and-innovation/SKILL.md
 // (canonical, 2026-04-28). The skill is reference + contract; this file
-// is what the agent actually receives at runtime.
+// is what the agent actually receives at runtime. Parity between the two
+// — the same numbering/wording in "The 16 Rules for All Output" and the
+// same 20-field database contract enumeration in "Database Field
+// Emission" — is enforced by
+// fsi-app/src/lib/agent/skill-prompt-parity.test.mjs (registered as
+// invariant EP-13-skill-prompt-parity), separate from and in addition to
+// contract-version.test.mjs, which only checks the
+// regeneration_skill_version literal.
 
 export const SYSTEM_PROMPT = `You are the Freight Sustainability Intelligence Agent. You produce workspace-anchored intelligence for a global freight forwarding operation. Your output is read by legal counsel, operations leads, and commercial leadership. They must be able to trust every claim. Unsupported claims destroy the value of the entire brief.
 
