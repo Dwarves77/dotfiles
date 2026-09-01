@@ -1,0 +1,88 @@
+{
+  "harness_family": "forward-events",
+  "harness_version": "sha256:9cdddf78ca48b39f",
+  "run_id": "forward-events-run-001",
+  "started_at": "2026-09-01T14:30:00Z",
+  "finished_at": "2026-09-01T14:52:42Z",
+  "config": {
+    "corpus_slice": "all live non-archived provenance_status=verified intelligence_items (322)",
+    "transport_prefilter": "only claims/sections whose text matches \\m(19|20)[0-9]{2}\\M were exported; a text with no 4-digit year cannot yield a dated event, so this is a transport reduction with no effect on output",
+    "inputs": "3,362 dated FACT/GAP claims + 2,081 dated sections",
+    "extractor_version": "fe1-2026-09-01.1",
+    "write_path": "coordinator-applied batched INSERT ... ON CONFLICT DO NOTHING, 8 files, executed verbatim by a Sonnet lane"
+  },
+  "inputs_ref": [
+    "/root/work/forward-events/live-claims.json",
+    "/root/work/forward-events/live-sections.json"
+  ],
+  "per_item": [
+    {
+      "id": "corpus-slice:live-verified-322",
+      "outcome": "extracted",
+      "evidence": "322 items processed, 137 produced >=1 event, 902 events emitted, 834 skips recorded with reasons; ran it"
+    }
+  ],
+  "metrics": {
+    "items_processed": 322,
+    "items_with_events": 137,
+    "events_emitted": 902,
+    "rows_loaded": 901,
+    "rows_collapsed_by_dedupe": 1,
+    "skips": 834,
+    "future_events_live": 521,
+    "by_kind": {
+      "other": 392,
+      "compliance_deadline": 308,
+      "phase_step": 64,
+      "entry_into_force": 120,
+      "consultation_close": 4,
+      "review_or_report": 14
+    },
+    "by_confidence": {
+      "high": 404,
+      "medium": 498
+    },
+    "by_precision": {
+      "year": 382,
+      "day": 502,
+      "month": 18
+    },
+    "extraction_precision": "902/902 events verified mechanically: source_span is a verbatim substring of its source object, the event_date year appears in that span, and the confidence/source_kind grounding rule holds. 0 violations. Semantic spot-check of 13 events (8 future, 5 other-kind) found no wrong date and no wrong kind.",
+    "coverage": "137 of 189 live verified items whose brief carries forward-obligation language produced >=1 event (72.5%)",
+    "before_after": "date columns knew 5 future compliance deadlines corpus-wide; this run makes 521 future dated events queryable"
+  },
+  "defects_found": [
+    {
+      "description": "Migration 274 shipped UNIQUE (item, event_date, event_kind, source_span). Measured against this run, 382 of 902 spans are a BARE YEAR because that is all the source says, so 489 of 902 events (54%) would have been silently discarded by ON CONFLICT DO NOTHING with no error. Found by the coordinator BEFORE any insert, by counting candidate keys against the real run rather than trusting the schema.",
+      "root_cause": "the key was designed against FE-1 24-item fixture, where spans were usually full date phrases; the real corpus distribution is different",
+      "fix_ref": "migration 275 (applied): unique index on (item, date, kind, md5(obligation_text), coalesce(source_claim_id, source_section_id)) — measured to keep 901 of 902 where the old key kept 413"
+    },
+    {
+      "description": "The other bucket is 391 of 901 rows (43%). 18 of those carry corporate or SDG target language (our net-zero by 2050 target, SBTi commitments, UN Goal 9 Target 9.4) rather than an obligation binding the instrument itself. Correctly not mis-classified as a compliance_deadline, but a consumer building a what-is-due view must filter kind, not just date.",
+      "root_cause": "market-intel and research items legitimately quote third-party dated targets; the extractor has no notion of whose obligation a date is",
+      "fix_ref": null
+    },
+    {
+      "description": "source_span is frequently the bare date alone rather than the surrounding clause, which passes the verbatim guard but is thin evidence for a human reviewing one row. obligation_text carries the context and is populated, so the row is reviewable, but span alone is not sufficient provenance display.",
+      "root_cause": "the extractor span is the matched date token, not the matched clause",
+      "fix_ref": null
+    }
+  ],
+  "full_trace_refs": [
+    "scripts/forward-events/DRY-RUN-REPORT.md",
+    "/root/work/forward-events/live-events.json",
+    "/root/work/forward-events/live-skips.json",
+    "/root/work/forward-events/run-live.mjs",
+    "/root/work/forward-events/load-1.sql",
+    "/root/work/forward-events/load-2.sql",
+    "/root/work/forward-events/load-3.sql",
+    "/root/work/forward-events/load-4.sql",
+    "/root/work/forward-events/load-5.sql",
+    "/root/work/forward-events/load-6.sql",
+    "/root/work/forward-events/load-7.sql",
+    "/root/work/forward-events/load-8.sql",
+    "supabase/migrations/274_item_forward_events.sql",
+    "supabase/migrations/275_item_forward_events_dedupe_key_fix.sql"
+  ],
+  "proposer_notes": "Next cycle: (1) widen source_span to the matched clause so a single row is self-evidencing, and re-run; the dedupe index already discriminates on obligation_text so a span change will not duplicate rows. (2) Decide whose-obligation semantics for the other bucket - a party or scope column would let a what-is-due view exclude third-party corporate targets without dropping them. (3) 185 of 322 items produced no event; sample them to separate genuinely date-free items from extractor misses. (4) The derived headline write-back into intelligence_items.compliance_deadline / entry_into_force / next_review_date is deliberately NOT done in run-001: prove extraction quality first, then derive. next_review_date remains referenced by no prompt, parser or pipeline code, so it needs a writer as well as a value."
+}
