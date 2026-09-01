@@ -45,7 +45,9 @@ fsi-app/scripts/harness-runs/
     ...
   source-sweep/
     source-sweep-run-001.json
-    ...
+    traces/                       # the family's raw walker results (full traces) — one level BELOW the
+      source-sweep-run-001.raw-result.json   # family dir, so F28's family-level *.json artifact glob
+    ...                                      # never validates a trace as an artifact (2026-09-01)
 ```
 
 One directory per harness family. Five exist today: `mint`, `screen`, and `fetch-drain` — matching the

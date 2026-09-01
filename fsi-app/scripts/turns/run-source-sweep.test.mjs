@@ -4,7 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  parseArgs, portalFor, shapeRunOutput, upsertPortalLinkCandidates, SOURCE_SWEEP_GOVERNING_FILES,
+  parseArgs, portalFor, shapeRunOutput, upsertPortalLinkCandidates, SOURCE_SWEEP_GOVERNING_FILES, defaultTraceDir,
 } from "./run-source-sweep.mjs";
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────
@@ -111,6 +111,42 @@ test("shapeRunOutput: register-eurlex — one per_item per day, error days flagg
   assert.deepEqual(shaped.inputsRef, ["https://x/1", "https://x/2"]);
 });
 
+test("shapeRunOutput: dry mode never says 'upserted' (source-sweep-run-001 read '221 upserted' for 0 writes)", () => {
+  const result = {
+    register: "eurlex-oj", series: "L", from: "2026-08-28", to: "2026-08-28",
+    days: [{ day: "2026-08-28", url: "https://x/1", extracted: 2, upserted: 2, urls: ["https://x/a", "https://x/b"], duplicate_of: null, error: null }],
+    upserted: 2, failed: 0,
+  };
+  const dry = shapeRunOutput("register-eurlex", result, "/tmp/report.json", "dry");
+  assert.doesNotMatch(dry.perItem[0].verdict, /\bupserted\b/);
+  assert.match(dry.perItem[0].verdict, /planned \(dry, nothing written\)/);
+  assert.equal(dry.metrics.mode, "dry");
+  const apply = shapeRunOutput("register-eurlex", result, "/tmp/report.json", "apply");
+  assert.match(apply.perItem[0].verdict, /2 upserted/);
+  assert.equal(apply.metrics.mode, "apply");
+  // Feed and Federal Register verdicts carry the same distinction.
+  const fr = shapeRunOutput("register-federal-register", { register: "federal-register", from: "a", to: "b", types: ["RULE"], term: null, pages: [{ page: 1, url: "https://x", results: 5, upserted: 5 }], upserted: 5, failed: 0, totalCount: 5, totalPages: 1, droppedPages: 0 }, "/tmp/r.json", "dry");
+  assert.doesNotMatch(fr.perItem[0].verdict, /\bupserted\b/);
+  const feed = shapeRunOutput("feed", { feedUrl: "https://f", ok: true, entries: 3, upserted: 3, failed: 0 }, "/tmp/r.json", "dry");
+  assert.doesNotMatch(feed.perItem[0].verdict, /\bupserted\b/);
+});
+
+test("shapeRunOutput: register-eurlex — a duplicate_of day is its own outcome and counted in metrics", () => {
+  const result = {
+    register: "eurlex-oj", series: "L", from: "2026-08-28", to: "2026-08-29",
+    days: [
+      { day: "2026-08-28", url: "https://x/1", extracted: 2, upserted: 2, urls: ["https://x/a", "https://x/b"], duplicate_of: null, error: null },
+      { day: "2026-08-29", url: "https://x/2", extracted: 0, upserted: 0, urls: [], duplicate_of: "2026-08-28", error: null },
+    ],
+    upserted: 2, failed: 0,
+  };
+  const shaped = shapeRunOutput("register-eurlex", result, "/tmp/report.json", "apply");
+  assert.equal(shaped.perItem[1].outcome, "duplicate_edition");
+  assert.match(shaped.perItem[1].verdict, /2026-08-28 edition again/);
+  assert.equal(shaped.metrics.days_duplicate_edition, 1);
+  assert.equal(shaped.metrics.extracted_total, 2);
+});
+
 test("shapeRunOutput: register-federal-register — one per_item per page", () => {
   const result = {
     register: "federal-register", from: "2026-08-01", to: "2026-08-02", types: ["RULE"], term: undefined,
@@ -191,4 +227,9 @@ test("SOURCE_SWEEP_GOVERNING_FILES names the driver plus both walker modules", (
     "src/lib/sources/register-walk.mjs",
     "src/lib/sources/feed-walk.mjs",
   ]);
+});
+
+test("defaultTraceDir: the raw-result trace lives BELOW the family dir, never beside the artifacts F28 validates", () => {
+  const d = defaultTraceDir("/repo/fsi-app/scripts/harness-runs/source-sweep");
+  assert.equal(d, "/repo/fsi-app/scripts/harness-runs/source-sweep/traces");
 });

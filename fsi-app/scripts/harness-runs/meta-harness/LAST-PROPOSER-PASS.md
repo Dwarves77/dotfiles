@@ -1,8 +1,8 @@
 # Last proposer pass — meta-harness
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `meta-harness` now has **five** artifacts
-(`meta-harness-run-001` … `meta-harness-run-005`); F28's rule (d) requires this file to name the latest
-verbatim: **meta-harness-run-005**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `meta-harness` now has **six** artifacts
+(`meta-harness-run-001` … `meta-harness-run-006`); F28's rule (d) requires this file to name the latest
+verbatim: **meta-harness-run-006**.
 
 **Artifacts read:** meta-harness-run-001, -002, -003, -004, -005.
 
@@ -78,3 +78,40 @@ back to green.
 cycle; until then no further edits to the mint or source-sweep governing files.
 
 **Family gates status:** suite green except the F28 staleness this pass resolves; fitness runner green.
+
+
+---
+
+## Pass over meta-harness-run-006 (2026-09-01, coordinator)
+
+**Artifacts read:** all six. **Full traces read:** `forward-events-run-002.json`,
+`source-sweep-run-001.json` and its raw result (moved to `traces/` this landing), the four GitHub Actions
+job logs (corpus-turn #1–#3, source-sweep #1), the live EUR-Lex daily view for 30 August 2026 in the
+browser, and `forward-events-run-001.json`'s metrics.
+
+**Hypotheses (verified, with basis):**
+1. **Run-005's proposal ("discharge both markers by real runs") was executed and it worked as a gate
+   should.** The runtime ran; the artifacts landed; reading them against reality found eight defects,
+   seven authored in a sandbox that could not execute the code (`PENDING-RUN.md`'s own admission for
+   source-sweep). Basis: run-006's `defects_found`, each with the log line or page that showed it.
+2. **Dry-first is the discipline that mattered.** Every wrong write the defects would have caused
+   (~210 chrome rows, 2 duplicate-edition re-persists) was in source-sweep apply mode, which never ran.
+   The corpus-turn apply run wrote only through code that had already run for real once (discover,
+   analyze) or wrote nothing (extraction, 0 events). Basis: the job logs.
+3. **A claim ahead of its evidence recurred and was caught by the same habit run-005 named.** The
+   coordinator reported "shape mismatch" to the operator, then read run-001 and retracted within
+   minutes. The mechanism is unchanged: read the artifact before stating the finding. Recorded in
+   run-006 `per_item[4]` so it is not smoothed over.
+4. **F28's family-level glob is a contract, and the source-sweep driver violated it on first run.**
+   `<runId>.raw-result.json` beside the artifact was reported as an INVALID ARTIFACT — the right call —
+   and the fix is structural (`traces/` subdirectory, documented in CONVENTION.md), not an allowlist.
+
+**Proposal for the next cycle:**
+1. **source-sweep-run-002 (dry re-walk of 25–31 Aug)** to discharge the marker; assert
+   `days_duplicate_edition = 2` and single-digit `extracted` per weekday before the first apply walk.
+2. **Skip-reason histogram in forward-events metrics** (see `forward-events/LAST-PROPOSER-PASS.md`).
+3. **Operator: enable "Allow GitHub Actions to create and approve pull requests"** — the one defect this
+   session cannot close; every turn and sweep PR is hand-opened until then.
+
+**Family gates status:** this landing edits `CONVENTION.md` (a meta-harness governing file), which is why
+run-006 exists; with it, F28 is green on the merged tree (checked by the landing train's fitness run).

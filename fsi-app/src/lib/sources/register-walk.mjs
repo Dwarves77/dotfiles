@@ -76,32 +76,68 @@ export function dateRange(fromIso, toIso) {
 
 // ── walkers (dep-injected; no network in this module) ────────────────────────────────────────────────
 
+/** An OJ daily view lists its acts as `/legal-content/<LANG>/TXT/?uri=OJ:...` links (verified against the
+ *  live page for the 28 August 2026 L-series edition, source-sweep-run-001's proposer pass); `/eli/...`
+ *  is the other act-link shape EUR-Lex serves. Everything else the page carries — "Regulations",
+ *  "Legal notice", "Official Journal C series daily view", "Access to the Official Journal" — is site
+ *  chrome that ALSO satisfies extractPortalLinks's generic INSTRUMENT_RE (that extractor is a
+ *  portal-HOMEPAGE harvester, tuned to find instrument-looking deep links on an arbitrary portal; a
+ *  register's daily view is a known page shape and deserves the precise filter). source-sweep-run-001
+ *  measured the cost of not filtering: 31-32 "extracted" links per day against a 2-act edition. */
+const OJ_ACT_LINK_RE = /\/(legal-content|eli)\//i;
+
+/** @param {Array<{url:string,anchorText?:string|null}>} links */
+export function ojActLinksOnly(links) {
+  return links.filter((l) => OJ_ACT_LINK_RE.test(new URL(l.url).pathname));
+}
+
 /**
  * Walk the EUR-Lex OJ daily views for a date range: per day, fetch the daily-view HTML (injected,
- * free direct in the live binding) → extractPortalLinks → persist (injected — B1's ONE write-site).
- * A fetch failure on one day is recorded and the walk continues (a register day can 404 on weekends —
- * absence of an OJ is a normal outcome, not an error).
+ * free direct in the live binding) → extractPortalLinks → ojActLinksOnly → persist (injected — B1's
+ * ONE write-site). A fetch failure on one day is recorded and the walk continues.
+ *
+ * WEEKENDS / NON-PUBLICATION DAYS: EUR-Lex does NOT 404 a date with no edition — it serves the LAST
+ * PUBLISHED edition under the requested `ojDate` (verified 2026-09-01: `ojDate=30082026`, a Sunday,
+ * renders the 28 August 2026 edition). source-sweep-run-001 therefore re-extracted the same acts on
+ * 29 and 30 August and reported them as that day's enumeration. A day whose act-link set is IDENTICAL
+ * to an earlier day's in the same walk is recorded as `duplicate_of` that day with 0 extracted and is
+ * NOT persisted again — the acts already landed under the day that actually published them. Two
+ * genuinely distinct editions can never carry an identical act set, so this cannot suppress a real day.
  *
  * UNCAPPED BY DEFAULT (R2 no-cap rule, 2026-07-20): a free enumeration is never capped. `extractPortalLinks`
  * hardcodes DEFAULT_CAP=40; a daily view routinely lists more than 40 instruments, so passing the default
  * would silently floor a busy OJ day. This walker passes `cap` (default Infinity — no ceiling) so every day
  * walks to the full extent of what its HTML lists. A caller may still pass a finite `cap` for a probe.
+ *
+ * Each day's result carries `urls` (the act links it enumerated) so a dry run's artifact is auditable
+ * from the repo — run-001's raw result held counts only, which is how the two defects above went
+ * unmeasured until the live page was read by hand.
  * @param {{fetchHtml:(url:string)=>Promise<string>, persist:(links:Array<{url:string,anchorText?:string|null}>)=>Promise<{upserted:number,failed:number}>}} deps
  * @param {{from:string, to:string, series?:string, cap?:number}} opts
  */
 export async function walkEurlexOj(deps, { from, to, series = "L", cap = Infinity }) {
   const days = [];
   let upserted = 0, failed = 0;
+  /** @type {Map<string, string>} act-set signature → first day that produced it */
+  const seenEditions = new Map();
   for (const day of dateRange(from, to)) {
     const url = ojDailyViewUrl(day, series);
     try {
       const html = await deps.fetchHtml(url);
-      const links = extractPortalLinks(html, url, { cap });
+      const links = ojActLinksOnly(extractPortalLinks(html, url, { cap }));
+      const urls = links.map((l) => l.url);
+      const signature = urls.slice().sort().join("\n");
+      const duplicateOf = links.length > 0 ? seenEditions.get(signature) ?? null : null;
+      if (duplicateOf) {
+        days.push({ day, url, extracted: 0, upserted: 0, urls: [], duplicate_of: duplicateOf, error: null });
+        continue;
+      }
+      if (links.length > 0) seenEditions.set(signature, day);
       const p = await deps.persist(links);
       upserted += p.upserted; failed += p.failed;
-      days.push({ day, url, extracted: links.length, upserted: p.upserted, error: null });
+      days.push({ day, url, extracted: links.length, upserted: p.upserted, urls, duplicate_of: null, error: null });
     } catch (e) {
-      days.push({ day, url, extracted: 0, upserted: 0, error: e instanceof Error ? e.message : String(e) });
+      days.push({ day, url, extracted: 0, upserted: 0, urls: [], duplicate_of: null, error: e instanceof Error ? e.message : String(e) });
     }
   }
   return { register: "eurlex-oj", series, from, to, days, upserted, failed };

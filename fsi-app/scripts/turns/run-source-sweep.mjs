@@ -182,19 +182,28 @@ export async function upsertPortalLinkCandidates(sb, sourceId, links) {
 /** Build this run's per_item / metrics / inputs_ref / full_trace_refs from one walker's raw result.
  *  PURE (no I/O) so the shaping is independently testable. `reportPath` is where the raw result was
  *  written on disk (the artifact's full_trace_refs pointer). */
-export function shapeRunOutput(walker, result, reportPath) {
+export function shapeRunOutput(walker, result, reportPath, mode = "apply") {
+  // In dry mode the injected persist() COUNTS the plan and writes nothing, so a count labelled
+  // "upserted" would assert a write that never happened (source-sweep-run-001 read "221 upserted"
+  // for a run that wrote 0 rows). The metric key stays `upserted` (the per-family standing metric in
+  // CONVENTION.md reads it); `mode` is carried alongside and every verdict names what the number is.
+  const wrote = mode === "apply";
+  const verb = wrote ? "upserted" : "planned (dry, nothing written)";
   if (walker === "register-eurlex") {
     const perItem = result.days.map((d) => ({
       id: d.day,
-      outcome: d.error ? "error" : "walked",
-      verdict: `${d.extracted} extracted, ${d.upserted} upserted`,
+      outcome: d.error ? "error" : d.duplicate_of ? "duplicate_edition" : "walked",
+      verdict: d.duplicate_of
+        ? `EUR-Lex served the ${d.duplicate_of} edition again (no publication this date) — 0 extracted, nothing re-persisted`
+        : `${d.extracted} act link(s) extracted, ${d.upserted} ${verb}`,
       evidence_refs: [d.url],
       error: d.error ?? null,
     }));
     const metrics = {
-      register: result.register, series: result.series, from: result.from, to: result.to,
+      register: result.register, series: result.series, from: result.from, to: result.to, mode,
       days_walked: result.days.length,
       days_with_error: result.days.filter((d) => d.error).length,
+      days_duplicate_edition: result.days.filter((d) => d.duplicate_of).length,
       extracted_total: result.days.reduce((s, d) => s + d.extracted, 0),
       upserted: result.upserted, failed: result.failed,
     };
@@ -204,12 +213,12 @@ export function shapeRunOutput(walker, result, reportPath) {
     const perItem = result.pages.map((p) => ({
       id: `page-${p.page}`,
       outcome: "walked",
-      verdict: `${p.results} result(s), ${p.upserted} upserted`,
+      verdict: `${p.results} result(s), ${p.upserted} ${verb}`,
       evidence_refs: [p.url],
       error: null,
     }));
     const metrics = {
-      register: result.register, from: result.from, to: result.to, types: result.types, term: result.term,
+      register: result.register, from: result.from, to: result.to, types: result.types, term: result.term, mode,
       pages_walked: result.pages.length,
       upserted: result.upserted, failed: result.failed,
       total_count: result.totalCount, total_pages: result.totalPages, dropped_pages: result.droppedPages,
@@ -220,17 +229,24 @@ export function shapeRunOutput(walker, result, reportPath) {
   const perItem = [{
     id: result.feedUrl,
     outcome: result.ok ? "walked" : "error",
-    verdict: result.ok ? `${result.entries} entries, ${result.upserted} upserted` : null,
+    verdict: result.ok ? `${result.entries} entries, ${result.upserted} ${verb}` : null,
     evidence_refs: [result.feedUrl],
     error: result.ok ? null : result.error,
   }];
   const metrics = {
-    feed_url: result.feedUrl, ok: result.ok,
+    feed_url: result.feedUrl, ok: result.ok, mode,
     entries: result.ok ? result.entries : 0,
     upserted: result.ok ? result.upserted : 0,
     failed: result.ok ? result.failed : 0,
   };
   return { perItem, metrics, inputsRef: [result.feedUrl], fullTraceRefs: [reportPath] };
+}
+
+/** Where a run's raw walker result (its full trace) is written when --out-dir is not given: one level
+ *  below the family directory, so F28's family-level `*.json` artifact glob never sees it. PURE.
+ *  @param {string} harnessRunsDir */
+export function defaultTraceDir(harnessRunsDir) {
+  return join(harnessRunsDir, "traces");
 }
 
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -256,7 +272,12 @@ async function main() {
 
   const { walker, mode, from, to, feedUrl, series, types, term, maxPages, perPage, sourceName } = parsed;
   const harnessRunsDir = resolve(parsed.harnessRunsDir || DEFAULT_HARNESS_RUNS_DIR);
-  const outDir = resolve(parsed.outDir || harnessRunsDir);
+  // The raw walker result (the run's FULL TRACE — per-day act URLs in the EUR-Lex case) is kept in the
+  // repo, one level BELOW the family directory. F28 treats every family-level *.json under
+  // scripts/harness-runs/<family>/ as a run artifact and validates it against CONVENTION.md's schema;
+  // run-001's trace was written beside its artifact and F28 correctly rejected it as an INVALID
+  // ARTIFACT (2026-09-01). traces/ is where full_trace_refs point from now on.
+  const outDir = resolve(parsed.outDir || defaultTraceDir(harnessRunsDir));
 
   const portal = portalFor({ walker, feedUrl, sourceName });
 
@@ -309,6 +330,9 @@ async function main() {
   let result = null;
   let runError = null;
   let reportPath = null;
+  // Stamped BEFORE the walk, not inside `finally` — source-sweep-run-001 recorded its started_at at the
+  // moment the artifact was assembled (i.e. its finish time) and carried no finished_at at all.
+  const startedAt = new Date().toISOString();
 
   try {
     runId = claimRunId(harnessRunsDir, "source-sweep");
@@ -331,7 +355,7 @@ async function main() {
   } finally {
     if (runId) {
       const harnessVersion = hashHarnessVersion(SOURCE_SWEEP_GOVERNING_FILES, FSI_ROOT);
-      const shaped = result && reportPath ? shapeRunOutput(walker, result, reportPath) : null;
+      const shaped = result && reportPath ? shapeRunOutput(walker, result, reportPath, mode) : null;
       const defectsFound = [];
       if (runError) {
         defectsFound.push({
@@ -344,7 +368,8 @@ async function main() {
         harness_family: "source-sweep",
         harness_version: harnessVersion,
         run_id: runId,
-        started_at: new Date().toISOString(),
+        started_at: startedAt,
+        finished_at: new Date().toISOString(),
         config: {
           walker, mode, from, to, feed_url: feedUrl, series, types, term: term ?? null,
           max_pages: maxPages, per_page: perPage, source_id: sourceId, portal_url: portal.url,

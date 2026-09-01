@@ -1,0 +1,117 @@
+{
+  "harness_family": "meta-harness",
+  "harness_version": "sha256:3196c79c3ba99237",
+  "run_id": "meta-harness-run-006",
+  "started_at": "2026-09-01T22:10:00Z",
+  "finished_at": "2026-09-01T23:45:00Z",
+  "config": {
+    "wave": "First execution of the named runtime: corpus-turn runs #1-#3 (dry, dry, apply) and source-sweep run #1 (dry) on GitHub Actions, read against the live database and the live EUR-Lex site",
+    "why": "meta-harness-run-005 recorded MH-7-named-runtime as 'first execution pending (needs GitHub, not this sandbox)'. This run is that execution and the reading of its artifacts, per PROPOSER-RUNBOOK.md's precondition (read the full prior record before the next run)",
+    "files_changed": [
+      ".github/workflows/corpus-turn.yml (commit step tolerates dry, PR #508; extraction traces retained under scripts/_snapshots/turn-<run_id>/; PR-create failure names the repo setting and the compare URL)",
+      ".github/workflows/source-sweep.yml (PR-create failure names the repo setting and the compare URL)",
+      ".github/workflows/discipline.yml (memory gate: scripts/harness-runs/** and scripts/turns/LAST-TURN.json are run records, not code)",
+      "src/lib/sources/register-walk.mjs (ojActLinksOnly; duplicate_of edition detection; per-day urls)",
+      "scripts/turns/run-source-sweep.mjs (started_at before the walk, finished_at written; dry verdict wording; defaultTraceDir = <family>/traces/)",
+      "scripts/turns/apply-extraction-output.mjs (raw NUL byte -> \\u0000 escape)",
+      "scripts/harness-runs/CONVENTION.md (traces/ subdirectory documented)",
+      "scripts/harness-runs/forward-events/{PENDING-RUN.md deleted, LAST-PROPOSER-PASS.md}",
+      "scripts/harness-runs/source-sweep/{PENDING-RUN.md re-pinned, traces/source-sweep-run-001.raw-result.json moved}"
+    ]
+  },
+  "inputs_ref": [
+    "scripts/harness-runs/forward-events/forward-events-run-002.json",
+    "scripts/harness-runs/source-sweep/source-sweep-run-001.json",
+    "scripts/harness-runs/source-sweep/traces/source-sweep-run-001.raw-result.json",
+    "scripts/turns/LAST-TURN.json",
+    "GitHub Actions: corpus-turn runs 33564917915 (#1), 33565827137 (#2), 33566259450 (#3); source-sweep run 33566698207 (#1)",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=30082026 (read in the browser: renders the 28 August 2026 edition, 2 acts)"
+  ],
+  "per_item": [
+    {
+      "id": "corpus-turn-run-1-dry",
+      "outcome": "failed",
+      "evidence": "exit 128 at the commit step: git add of scripts/turns/LAST-TURN.json, which only apply mode writes. Fixed by PR #508 (9e434fa8)."
+    },
+    {
+      "id": "corpus-turn-run-2-dry",
+      "outcome": "passed",
+      "evidence": "41s. discover: 1936 edges across 209/322 items (dry). export: 322 in scope, 185 lack forward events. extraction: 185 processed, 0 events, 276 skips (correct: 322-137=185 is run-001's no-event set). analyze: 10 themes, 13 gaps, 7 anticipate, 303 signal candidates (dry)."
+    },
+    {
+      "id": "corpus-turn-run-3-apply",
+      "outcome": "passed_with_defect",
+      "evidence": "DB effects applied through the guarded path: 1931 edge rows (107 new, 1824 refreshed, 5 skipped as owned by entity/semantic origin, snapshot captured); analyze persisted 14 themes (replaced 9), theme delta persisted=8 split=1 appeared=4, 12 gap + 7 anticipate + 297 signal flags opened, VERIFY PASS; marker recorded; forward-events-run-002 committed and pushed to turn/33566259450. Final step failed: gh pr create refused (repo setting). PR #509 opened by hand; its discipline checks then failed (memory gate, F28 rule (c) stale marker, F28 rule (d) missing attestation) — all three addressed in this landing."
+    },
+    {
+      "id": "source-sweep-run-1-dry",
+      "outcome": "passed_with_defect",
+      "evidence": "7 days walked, 0 errors, 221 'extracted'. Read against the live site: Sunday 30 Aug renders the 28 Aug edition (2 acts); 31-32 links/day are site chrome passing INSTRUMENT_RE. started_at stamped at finish, no finished_at; raw result written as a family-level *.json, which F28 then rejected as an INVALID ARTIFACT on the train that merged it. All fixed in this landing; the marker names run-002 as the discharge."
+    },
+    {
+      "id": "coordinator-claim-shape-mismatch",
+      "outcome": "retracted",
+      "evidence": "the coordinator told the operator run-002's 0 events was 'a shape mismatch between exporter and extractor' before reading forward-events-run-001's metrics; retracted within minutes on the record. Recorded here because meta-harness-run-005's proposer_notes made the same class of error (a claim ahead of its evidence) the standing thing to watch."
+    }
+  ],
+  "metrics": {
+    "workflow_runs_executed": 4,
+    "workflow_runs_green_end_to_end": 1,
+    "db_writes_through_guarded_path": "1931 item_cross_references rows; 14 connection_themes; 316 flywheel flags (12 gap, 7 anticipate, 297 signal); 1 connection_discovery_runs row status=ok",
+    "defects_found_by_reading_artifacts_against_reality": 8,
+    "defects_fixed_in_same_landing": 7,
+    "defects_requiring_operator": 1,
+    "wrong_writes_prevented_by_dry_first": "~210 chrome rows and 2 duplicate-edition re-persists into portal_link_candidates (source-sweep apply mode never ran)"
+  },
+  "defects_found": [
+    {
+      "description": "corpus-turn.yml's commit step assumed LAST-TURN.json exists; dry mode never writes it (run #1 exit 128).",
+      "root_cause": "the commit step was written for apply mode and never executed in dry mode before landing (this sandbox cannot run the workflow)",
+      "fix_ref": "PR #508 9e434fa8"
+    },
+    {
+      "description": "GitHub Actions cannot open the turn/sweep PRs: 'GitHub Actions is not permitted to create or approve pull requests'.",
+      "root_cause": "repository setting Settings -> Actions -> General -> 'Allow GitHub Actions to create and approve pull requests' is off; the workflows assumed the default-on state of a fresh repo. The classifier blocks this session from the Settings page; operator action.",
+      "fix_ref": "both workflows now print the compare URL and name the setting on failure; PRs #509 and this train opened by hand"
+    },
+    {
+      "description": "The discipline memory gate classifies fsi-app/scripts/** as code, so an automated turn PR (run records only) can never pass it.",
+      "root_cause": "the gate predates any machine-emitted commit under scripts/",
+      "fix_ref": ".github/workflows/discipline.yml memory gate exclusion for scripts/harness-runs/** and scripts/turns/LAST-TURN.json"
+    },
+    {
+      "description": "forward-events-run-002's full_trace_refs point at /tmp on an ephemeral runner; its 276 skip reasons are unreadable from the repo.",
+      "root_cause": "corpus-turn.yml passed /tmp paths to run-extraction.mjs and only uploaded scripts/_snapshots/",
+      "fix_ref": "corpus-turn.yml: corpus + events + skipped under scripts/_snapshots/turn-<run_id>/ (retained 90 days by the existing upload step)"
+    },
+    {
+      "description": "walkEurlexOj reports 31-32 'extracted' links per day for a 2-act edition: extractPortalLinks's generic INSTRUMENT_RE accepts the daily view's navigation chrome.",
+      "root_cause": "a portal-homepage harvester reused unfiltered on a register page of known shape",
+      "fix_ref": "register-walk.mjs ojActLinksOnly (/legal-content/ or /eli/); 3 tests"
+    },
+    {
+      "description": "EUR-Lex serves the last published edition for a weekend ojDate; the walker re-extracted 28 Aug on 29 and 30 Aug and counted it as those days' enumeration.",
+      "root_cause": "the walker's own header assumed weekends 404 ('a register day can 404 on weekends'); the site redirects instead",
+      "fix_ref": "register-walk.mjs duplicate_of detection (identical act-set within one walk); test"
+    },
+    {
+      "description": "source-sweep-run-001 stamps started_at at finish time and has no finished_at; its dry verdicts say 'upserted' for 0 writes; its raw result carries counts only (no URLs) and was written as a family-level *.json that F28 rejects as an invalid artifact.",
+      "root_cause": "the driver was authored in a sandbox that could not run it (PENDING-RUN.md's own admission); first execution exposed all four",
+      "fix_ref": "run-source-sweep.mjs: startedAt before try, finished_at in finally, shapeRunOutput(mode), defaultTraceDir; register-walk.mjs per-day urls; run-001 trace moved to traces/; CONVENTION.md; 3 tests"
+    },
+    {
+      "description": "apply-extraction-output.mjs contained a raw NUL byte as the dedupe-key separator; grep reported 'binary file matches'.",
+      "root_cause": "a control character typed into source instead of its escape",
+      "fix_ref": "\\u0000 escape, same runtime value; 16 tests still pass"
+    }
+  ],
+  "full_trace_refs": [
+    "scripts/harness-runs/forward-events/forward-events-run-002.json",
+    "scripts/harness-runs/forward-events/LAST-PROPOSER-PASS.md",
+    "scripts/harness-runs/source-sweep/source-sweep-run-001.json",
+    "scripts/harness-runs/source-sweep/traces/source-sweep-run-001.raw-result.json",
+    "scripts/harness-runs/source-sweep/PENDING-RUN.md",
+    "docs/ops/session-log.md (Addendum 82)"
+  ],
+  "proposer_notes": "The named runtime works: four workflow dispatches reached the database and the public web, one full apply turn landed real flywheel state through the guarded path, and every run left an artifact. Reading those artifacts against reality (the live EUR-Lex page, run-001's metrics, the Actions logs) found eight defects, seven of them authored in a sandbox that could not execute the code they were in, which is the exact failure mode PENDING-RUN.md markers exist to declare. Dry-first prevented every wrong write. The one item this session cannot close is the repository setting that lets Actions open its own PRs; until the operator flips it, every turn and sweep needs a hand-opened PR from the compare URL the workflow now prints. Next proposer pass: source-sweep-run-002 (dry re-walk, expected days_duplicate_edition=2 and single-digit acts per weekday) discharges the source-sweep marker; then the first apply walk; then the skip-reason histogram proposed in forward-events/LAST-PROPOSER-PASS.md."
+}

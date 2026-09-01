@@ -1,0 +1,59 @@
+{
+  "register": "eurlex-oj",
+  "series": "L",
+  "from": "2026-08-25",
+  "to": "2026-08-31",
+  "days": [
+    {
+      "day": "2026-08-25",
+      "url": "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=25082026",
+      "extracted": 32,
+      "upserted": 32,
+      "error": null
+    },
+    {
+      "day": "2026-08-26",
+      "url": "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=26082026",
+      "extracted": 31,
+      "upserted": 31,
+      "error": null
+    },
+    {
+      "day": "2026-08-27",
+      "url": "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=27082026",
+      "extracted": 31,
+      "upserted": 31,
+      "error": null
+    },
+    {
+      "day": "2026-08-28",
+      "url": "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=28082026",
+      "extracted": 32,
+      "upserted": 32,
+      "error": null
+    },
+    {
+      "day": "2026-08-29",
+      "url": "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=29082026",
+      "extracted": 32,
+      "upserted": 32,
+      "error": null
+    },
+    {
+      "day": "2026-08-30",
+      "url": "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=30082026",
+      "extracted": 32,
+      "upserted": 32,
+      "error": null
+    },
+    {
+      "day": "2026-08-31",
+      "url": "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=31082026",
+      "extracted": 31,
+      "upserted": 31,
+      "error": null
+    }
+  ],
+  "upserted": 221,
+  "failed": 0
+}
