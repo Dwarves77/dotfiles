@@ -115,16 +115,13 @@ who may write a shared table; the test enforces it on every future PR.
 }
 ```
 
-Notes on entries above that are **not yet present in this worktree** (pre-registered per the operator's
-instruction so the parallel lane's merge doesn't red the writer-registry test):
-`scripts/connections/discover-for-items.mjs`, `scripts/connections/generate-theme-brief.mjs`,
-`scripts/connections/ratify-flag-to-census.mjs`, `scripts/mint/run-mint-batch.mjs`,
-`scripts/forward-events/run-extraction.mjs`. `src/lib/connections/write-edges.mjs` already exists in this
-worktree (direct `sb.from(...).upsert(...)`, see below); the parallel lane's version is described as
-"snapshot-guarded" — TO-VERIFY whether that changes the write call shape enough to need a second entry
-after merge. `scripts/forward-events/load-forward-events.mjs` is listed alongside the task-specified
-`run-extraction.mjs` because `scripts/harness-runs/forward-events/PROTOCOL.md` names the former as the
-actual intended loader (see the `item_forward_events` section below) — TO-VERIFY which name survives.
+Note (resolved at merge, 2026-09-01): the writers this register originally pre-registered from the
+parallel lane (`discover-for-items.mjs`, `generate-theme-brief.mjs`, `ratify-flag-to-census.mjs`,
+`run-mint-batch.mjs`, `run-extraction.mjs`) are now present in this tree. `src/lib/connections/write-edges.mjs`
+landed snapshot-guarded (prior-state JSONL capture before any edge REFRESH, R1 operator ruling); same
+file, same entry, no second entry needed. `scripts/forward-events/load-forward-events.mjs` (a name from
+PROTOCOL.md) was never created and is not allowlisted; `run-extraction.mjs` plus the intake writers are
+the writers of record (see the `item_forward_events` section below).
 
 ---
 
