@@ -1753,7 +1753,9 @@ explicit brief.
 | **RAN — first source sweep (dry)** | run 33566698207 EUR-Lex OJ L 25–31 Aug: 7 days, 0 errors; artifact read against the live site → chrome + weekend-redirect defects, fixed; **apply never ran, no wrong write** | Addendum 82; `source-sweep/PENDING-RUN.md` |
 | **FIXED (7 of 8 defects)** | memory gate exempts run records; extraction traces retained; forward-events marker discharged + proposer pass; EUR-Lex act-only filter + `duplicate_of`; sweep timestamps/wording/urls/`traces/`; NUL byte; meta-harness-run-006 | Addendum 82 |
 | **OPERATOR — 1 toggle** | Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests" (both workflows fail their last step without it; PRs hand-opened from the printed compare URL until then) | Addendum 82 |
-| **NEXT** | source-sweep-run-002 dry (expect `days_duplicate_edition=2`) → first apply walk → WO-26 stamp → tag ratification → batch-003 records (mint-run-007) → EIA secret | Addendum 82 |
+| **RAN — source-sweep-run-002 (dry, fixed walker)** | `days_duplicate_edition=2`, 7 acts/week, 28 Aug = the live page's 2 acts; marker discharged; proposer pass written | Addendum 82 postscript |
+| **FIXED (9th defect)** | run_id collision when a run is dispatched before the prior artifact's PR merges; both workflows now hydrate unmerged sibling artifacts before claiming | Addendum 82 postscript |
+| **NEXT** | re-dispatch source-sweep apply (→ run-003; DB effect already applied once, idempotent) → WO-26 stamp → tag ratification → batch-003 records (mint-run-007) → EIA secret → FR + feed first walks (dry) → ledger consume hop | Addendum 82 postscript |
 
 ## Completion lanes + system review — LANDED as PR #507 (2026-09-01)
 
