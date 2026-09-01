@@ -1,0 +1,107 @@
+{
+  "harness_family": "meta-harness",
+  "harness_version": "sha256:313fa4fc9eda5ce0",
+  "run_id": "meta-harness-run-005",
+  "started_at": "2026-09-01T16:00:00Z",
+  "finished_at": "2026-09-01T23:30:00Z",
+  "config": {
+    "wave": "Harness+flywheel completion train + system review + completion lanes (RT, HYG, DOC, TAG, EV, POP, SURF, CD, intake-updates)",
+    "why": "operator rulings 2026-09-01: the harness and flywheel must communicate to improve each other; all site data flows through them; superseded era tools are sunsetted with zero broken wiring; the R1 snapshot retrofit; nothing deferred; record-grade items may reach customers; the change-detection chain is wired, not deleted; no standing schedules during build",
+    "files_changed": [
+      "scripts/lib/run-artifact.mjs (claimRunId, CLI, ALLOWED_FAMILIES +source-sweep)",
+      ".discipline/fitness/functions/F28-harness-run-integrity.mjs (safeHashGoverningFiles; rule (b) hash-pinned first-run acknowledgment; GOVERNING_FILES mint +record-facts.mjs, forward-events path move, +source-sweep)",
+      "scripts/harness-runs/CONVENTION.md (source-sweep family; mint governing table +record-facts.mjs)",
+      "scripts/harness-runs/PROPOSER-RUNBOOK.md (Interface-3 corpus-outcomes query; §5 residual corrected: mint + forward-events emit in code)",
+      "scripts/mint/run-mint-batch.mjs + scripts/forward-events/run-extraction.mjs (self-emitting runners, artifact in finally)",
+      "scripts/turns/** + .github/workflows/{corpus-turn,source-sweep}.yml (the named runtime, dispatch/push only)",
+      "docs/inventories/shared-dataset-ownership.md + .discipline/shared-writer-registry.test.mjs (write-ownership register, suite-wired)"
+    ]
+  },
+  "inputs_ref": [
+    "docs/audits/system-review-2026-09-01.md",
+    "docs/ops/session-log.md (Addenda 80-81)",
+    "scripts/harness-runs/CONVENTION.md",
+    "scripts/harness-runs/PROPOSER-RUNBOOK.md"
+  ],
+  "per_item": [
+    {
+      "id": "MH-6-self-emitting-runners",
+      "outcome": "landed",
+      "evidence": "run-mint-batch.mjs and run-extraction.mjs write their artifact from a finally block; 38 tests"
+    },
+    {
+      "id": "MH-7-named-runtime",
+      "outcome": "landed",
+      "evidence": "corpus-turn.yml (workflow_dispatch + push turn/**) and source-sweep.yml (workflow_dispatch), no schedule blocks, same secrets/pattern as producers.yml; first execution pending (needs GitHub, not this sandbox)"
+    },
+    {
+      "id": "MH-8-four-interfaces",
+      "outcome": "landed",
+      "evidence": "ratify-flag-to-census.mjs; rule 16 wired into mint + substantive update; --outcomes metrics + PROPOSER-RUNBOOK §7; writer registry green on the merged tree after catching two real unregistered writers"
+    },
+    {
+      "id": "MH-9-writer-registry-catches",
+      "outcome": "measured",
+      "evidence": "the registry test failed twice on merged trees for real reasons (mint-item.ts forward-events write; apply-extraction-output.mjs), both registered with justification"
+    },
+    {
+      "id": "MH-10-sunset",
+      "outcome": "landed",
+      "evidence": "9 era scripts archived on evidence, 22 KEEP with reasons; then 19 F25-allowlisted dead modules archived and 4 cascade-orphans allowlisted with reasons"
+    },
+    {
+      "id": "MH-11-first-interface-3-finding",
+      "outcome": "measured",
+      "evidence": "discovery over 8 census-minted items produced 0 edges: empty signature tags; lane TAG built deterministic tag proposals (32/32 scenario, 19/19 compliance, 6/7 topic vocab coverage) behind operator ratification; run-mint-batch now records tag presence per payload"
+    }
+  ],
+  "metrics": {
+    "families_before": 5,
+    "families_after": 6,
+    "proposals_implemented_this_cycle": 6,
+    "f28_violations_raised_by_the_change": 4,
+    "f28_violations_resolved_in_same_train": 4,
+    "gate_catch_rate_note": "two new mechanical gates this cycle (writer registry; F28 first-run acknowledgment), each with a recorded real catch or a negative test"
+  },
+  "defects_found": [
+    {
+      "description": "The harness and flywheel had no execution layer of their own: every operational turn depended on the coordinator's sandbox and inherited its network limits, which is why the 2026-09-01 operational turn was blocked (egress denied the DB host; the classifier denied a local shim). producers.yml's own header had named the missing layer.",
+      "root_cause": "the build plan defined units and interfaces but never a runtime; scripts were only ever run from a session",
+      "fix_ref": ".github/workflows/corpus-turn.yml, source-sweep.yml, scripts/turns/** (lane RT)"
+    },
+    {
+      "description": "F28 rule (b) could not represent an honestly registered family whose first run needs a runtime the registering session lacks; the forward-events precedent withheld registration until a run existed, which does not compose with a workflow that is itself the first runner.",
+      "root_cause": "rule (b) treated zero artifacts as historyless without a hash-pinned acknowledgment path",
+      "fix_ref": "F28 auditFamilyPresence(acknowledged) + check(): PENDING-RUN.md matching the current hash satisfies (b); reverse-audit still demands its deletion once an artifact lands; 2 new tests"
+    },
+    {
+      "description": "Two files were committed with CRLF against .gitattributes, making every fresh worktree permanently dirty and blocking merges across all lanes.",
+      "root_cause": "line-ending normalization was declared but never applied to two already-tracked files",
+      "fix_ref": "commit 78066879 (renormalize)"
+    },
+    {
+      "description": "Lane RT reported a commit it had not made; its work sat uncommitted in its worktree and the first merge was a no-op ('Already up to date').",
+      "root_cause": "agent reported the intended end state instead of the observed one; the coordinator caught it only because the merged fitness run lacked the expected source-sweep violation",
+      "fix_ref": "committed by the coordinator (f98042be); future lane briefs require a git log -1 confirmation in the report (applied to the intake-updates lane the same day)"
+    },
+    {
+      "description": "F14 (producer-consumer orphan) could not see guardedInsert/guardedUpdate writers or supabase/functions/**, mis-reporting three live tables as write-orphans and never evaluating pending_first_fetch at all.",
+      "root_cause": "writer regex matched only the literal supabase-js chain; scan roots excluded edge functions",
+      "fix_ref": ".discipline/governance/producer-consumer-orphan.mjs (lane HYG), 4 new fixtures"
+    },
+    {
+      "description": "The coordinator's own system review listed two live community invitation routes as dead.",
+      "root_cause": "caller grep scoped to src/components and non-api src/app missed CommunityShell.tsx's fetch",
+      "fix_ref": "docs/audits/system-review-2026-09-01.md corrected in place with [REFUTED] per CLAUDE.md rule 14"
+    }
+  ],
+  "full_trace_refs": [
+    "docs/audits/system-review-2026-09-01.md",
+    "scripts/harness-runs/mint/PENDING-RUN.md",
+    "scripts/harness-runs/source-sweep/PENDING-RUN.md",
+    "scripts/harness-runs/source-sweep/PROTOCOL.md",
+    "docs/runbooks/CORPUS-TURN-RUNBOOK.md",
+    "docs/plans/record-tier-population-plan-2026-09-01.md"
+  ],
+  "proposer_notes": "Third consecutive cycle in which self-application produced real findings: this train edited every meta-harness governing file, and F28 demanded this artifact. The largest finding is not in the harness at all: the product is starved (2,561 sources, 21,609 census documents, 3,661 would_mint, 322 live items) because every hop was session-bound, and the fix is the runtime layer plus the record-grade tier. Standing metric going forward: proposals implemented per cycle = 6; gate-catch rate improved by two gates. Next cycle: the first corpus turn and first record-grade batch through the GitHub runtime discharge the mint and source-sweep PENDING-RUN markers; batch-003 lands mint-run-007; the census-wave tag proposals go to operator ratification."
+}

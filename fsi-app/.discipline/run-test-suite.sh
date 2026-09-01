@@ -92,6 +92,8 @@ node --test \
   fsi-app/scripts/verify/lib/*.test.mjs \
   fsi-app/scripts/gen/*.test.mjs \
   fsi-app/scripts/mint/*.test.mjs \
+  fsi-app/scripts/mint/lib/*.test.mjs \
+  fsi-app/scripts/turns/*.test.mjs \
   fsi-app/scripts/forward-events/*.test.mjs \
   fsi-app/scripts/connections/*.test.mjs \
   fsi-app/scripts/producers/*/*.test.mjs \
@@ -115,4 +117,5 @@ node --test \
   fsi-app/src/lib/auth/*.test.mjs \
   fsi-app/src/lib/llm/*.test.mjs \
   fsi-app/src/lib/telemetry/*.test.mjs \
-  fsi-app/src/lib/health/*.test.mjs
+  fsi-app/src/lib/health/*.test.mjs \
+  fsi-app/src/lib/dashboard/*.test.mjs

@@ -108,6 +108,21 @@ test('RED: a family whose only file is INVALID counts as zero valid artifacts (n
   assert.match(problems[0], /NO ARTIFACTS/);
 });
 
+test('GREEN: a zero-artifact family is silent when it is ACKNOWLEDGED (hash-pinned PENDING-RUN.md, first run pending)', () => {
+  const { byFamily } = scanArtifacts({});
+  const problems = auditFamilyPresence(['mint', 'source-sweep'], byFamily, new Set(['source-sweep']));
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /"mint"/);
+  assert.doesNotMatch(problems.join('\n'), /"source-sweep"/);
+});
+
+test('RED: acknowledgment is per-family and never silences a family with no marker', () => {
+  const { byFamily } = scanArtifacts({});
+  const problems = auditFamilyPresence(['screen'], byFamily, new Set(['source-sweep']));
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /NO ARTIFACTS/);
+});
+
 test('GREEN: a family with ≥1 valid artifact is silent', () => {
   const { byFamily } = scanArtifacts({
     'fsi-app/scripts/harness-runs/mint/mint-run-001.json': JSON.stringify(validArtifact()),

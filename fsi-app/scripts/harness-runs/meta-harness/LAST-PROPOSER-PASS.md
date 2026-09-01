@@ -1,10 +1,10 @@
 # Last proposer pass — meta-harness
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `meta-harness` now has **four** artifacts
-(`meta-harness-run-001` … `meta-harness-run-004`); F28's rule (d) requires this file to name the latest
-verbatim: **meta-harness-run-004**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `meta-harness` now has **five** artifacts
+(`meta-harness-run-001` … `meta-harness-run-005`); F28's rule (d) requires this file to name the latest
+verbatim: **meta-harness-run-005**.
 
-**Artifacts read:** meta-harness-run-001, -002, -003, -004.
+**Artifacts read:** meta-harness-run-001, -002, -003, -004, -005.
 
 **Full traces read:** `scripts/harness-runs/CONVENTION.md` and `PROPOSER-RUNBOOK.md` in full,
 `scripts/lib/run-artifact.mjs`, `.discipline/fitness/functions/F28-harness-run-integrity.mjs` (including
@@ -55,3 +55,26 @@ and `forward-events-run-001.json` with its own `full_trace_refs`.
 artifact, and the two test updates (`run-artifact.test.mjs`'s `ALLOWED_FAMILIES` assertion and F28's own
 CONVENTION-parity row count), which together take F28 from the two violations the registration raised
 back to green.
+
+
+---
+
+## Pass over meta-harness-run-005 (2026-09-01, coordinator)
+
+**Artifacts read:** all five. **Full traces read:** `docs/audits/system-review-2026-09-01.md`, both
+`PENDING-RUN.md` markers (mint, source-sweep), `source-sweep/PROTOCOL.md`, `CORPUS-TURN-RUNBOOK.md`,
+`record-tier-population-plan-2026-09-01.md`, and the six lane reports summarized in Addendum 81.
+
+**Hypotheses (verified, with basis):**
+1. **The runtime layer is the highest-leverage change this harness has produced**, because it removes
+   the session as a dependency for every family at once. Basis: every blocked step on 2026-09-01 traced to
+   the sandbox's limits, not to the tools.
+2. **Agents report intended state.** One lane reported a commit it had not made; another reported a
+   registration the code refuted. Both were caught by running the tools, not by reading the reports.
+   Proposal, implemented: every lane brief now requires `git log -1` in the report and every claim is
+   checked against the merged fitness run before acceptance.
+
+**Proposal:** discharge both PENDING-RUN markers by real runs through the GitHub runtime on the next
+cycle; until then no further edits to the mint or source-sweep governing files.
+
+**Family gates status:** suite green except the F28 staleness this pass resolves; fitness runner green.

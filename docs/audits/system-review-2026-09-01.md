@@ -167,7 +167,7 @@ least automated path it has.
 - The entire intake chain (§2.2). `POST /api/admin/run-intake`, `/admin/promotion-policy`, `/admin/users`: zero callers.
 - Every flywheel script and every harness runner: no workflow, route, or cron (`vercel.json` empty; only `trust-recompute.yml` and the spend probe in `uptime-probes.yml` are armed).
 - `POST /api/worker/reconcile`: zero callers, and its input `monitoring_queue.change_detected` is hardcoded `false` at the writer (`content-change.mjs:4`). A doubly dead chain.
-- `community/invitations/[id]/accept` and `/decline`: zero callers; the UI hits the workspace-level `/api/invitations/[token]/…` instead.
+- ~~`community/invitations/[id]/accept` and `/decline`: zero callers~~ **[REFUTED 2026-09-01, corrected in place per CLAUDE.md rule 14]:** lane HYG verified `CommunityShell.tsx:287` calls both from the community group-invitation rows on `/community/browse`; they are a distinct, live feature from the workspace-level `/api/invitations/[token]/…` routes. My grep scope missed the caller. Untouched.
 - `pending_first_fetch`: live enqueue trigger (065), consumer route deleted 2026-07-11, drained only by hand via the edge function. Invisible to F14 (scan excludes edge functions).
 - Forward events: no customer-facing surface.
 - Community editorial pickups: not consumed by Research (intent skill, correction 3).
@@ -344,5 +344,11 @@ Coordinator: land the current train first (F28 artifact refresh, full suite, one
 master), then dispatch RT and HYG and DOC in parallel (disjoint), then EV/TAG/POP/SURF in parallel
 (disjoint), then run the first corpus turn through Lane RT and verify against the register.
 
-Two operator decisions gate the plan: the record-grade item tier (Lane POP), and whether
-`worker/reconcile` is deleted or wired (Lane HYG). Everything else is execution.
+Two operator decisions gated the plan and both were ruled 2026-09-01: record-grade items may appear on
+customer surfaces (yes, labeled), and the change-detection chain is wired, not deleted (it is what buyers
+pay for second). All seven lanes plus a ninth (the staged `update_item` consumer the change-detection lane
+found missing) landed on `lane/integration` the same day; migrations 277–280 are applied live. What the
+plan did NOT produce yet, honestly: the first corpus turn and the first record-grade batch both wait on
+the GitHub runtime's first execution (the workflows exist, dispatch-gated per the no-schedule ruling), the
+EIA producer waits on an operator-created repository secret, and the EEX EUA price series stays unbuilt
+because no free-reuse licence could be confirmed.

@@ -90,7 +90,7 @@ const PROVEN_BUT_UNWIRED = [
   'src/lib/intake/census-writer.mjs', 'src/lib/intake/intake-url-corpus.mjs',
   'src/lib/llm/metered-emit.mjs', 'src/lib/llm/program-total.mjs',
   'src/lib/sources/api-fetch.ts',
-  'src/lib/sources/feed-walk.mjs', 'src/lib/sources/instrument-identity.ts', 'src/lib/sources/register-walk.mjs',
+  'src/lib/sources/instrument-identity.ts', 
 ];
 
 // SCRIPTS_LIB (the 15 "proven, never consumed" scripts/lib entries) ARCHIVED 2026-09-01 (lane hyg,

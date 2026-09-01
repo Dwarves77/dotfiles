@@ -92,7 +92,7 @@ on:
         # the credential as a GitHub Actions secret and adding its name to WORKFLOW_SECRETS (both outside
         # this lane's write set) is the prerequisite; once done, a run step mirroring the EU Weekly Oil
         # Bulletin step's dry/apply shape is the remaining wiring.
-        options: [all, eurostat-nrg-pc-205, bls-oews, eu-weekly-oil-bulletin, desnz-emission-factors, epa-emission-factors, eia-v2-petroleum-spot]
+        options: [all, eurostat-nrg-pc-205, bls-oews, eu-weekly-oil-bulletin, ecb-fx, desnz-emission-factors, epa-emission-factors, eia-v2-petroleum-spot]
   # BUILD MODE (operator ruling 2026-08-30): no schedule while the site is being built — population
   # happens by explicit dispatch, read, then applied. The runtime, both gates, and the cadence notes
   # above all stay, so re-arming when build mode ends is exactly this block, restored in one reviewed
@@ -185,6 +185,22 @@ jobs:
           else
             node scripts/producers/market/eu-weekly-oil-bulletin.mjs --input /tmp/wob.csv
           fi
+
+      - name: ecb-fx (ECB euro reference rates; ENABLED gate in the file, dry unless mode=apply)
+        # ecb-fx-producer.mjs shipped earlier without a dispatch step (found by lane SURF, 2026-09-01).
+        # Same three gates as every market producer: reviewed-code ENABLED const, the env switch, --apply.
+        if: env.RUN_PRODUCER == 'all' || env.RUN_PRODUCER == 'ecb-fx'
+        env:
+          MARKET_PRODUCER_ECB_FX_ENABLED: '1'
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then
+            node scripts/producers/market/ecb-fx-producer.mjs --apply
+          else
+            node scripts/producers/market/ecb-fx-producer.mjs
+          fi
+      # eia-v2-petroleum-spot has NO run step yet: it needs the EIA_API_KEY repository secret, which only
+      # the operator can create (then register in .discipline/governance/secrets-registry.mjs
+      # WORKFLOW_SECRETS and add a step mirroring ecb-fx that maps EIA_API_KEY from the repository secret).
 
       - name: DESNZ modal defaults -> emission_factors
         # Seeds four GB freight modal_default rows from the fixture, through the guarded path

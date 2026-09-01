@@ -100,6 +100,7 @@ who may write a shared table; the test enforces it on every future PR.
     ],
     "item_forward_events": [
       "scripts/forward-events/run-extraction.mjs",
+      "scripts/turns/apply-extraction-output.mjs",
       "src/lib/intake/mint-item.ts",
       "src/lib/intake/apply-staged-update.ts"
     ],

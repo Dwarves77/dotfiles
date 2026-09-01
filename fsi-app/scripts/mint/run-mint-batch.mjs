@@ -54,6 +54,7 @@ import { fileURLToPath } from "node:url";
 import { validateMintPayload } from "./validate-mint-payload.mjs";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
 import { buildRecordPayload } from "../../src/lib/intake/record-facts.mjs";
+import { checkTagPresence } from "./lib/tag-presence-check.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -74,16 +75,11 @@ export const MINT_GOVERNING_FILES = Object.freeze([
   "scripts/mint/lib/gate-a-scan.mjs",
   "scripts/mint/lib/gate-a-match.mjs",
   "scripts/mint/lib/canonicalize-citation-url.mjs",
-  // NOT ADDED HERE: src/lib/intake/record-facts.mjs (the --grade record payload builder, Lane POP
-  // 2026-09-01) is just as governing as the files above — a change to its extraction logic changes what
-  // a record batch produces the same way a change to validate-mint-payload.mjs changes what it accepts —
-  // but this array is asserted BYTE-FOR-BYTE against .discipline/fitness/functions/F28's hardcoded
-  // GOVERNING_FILES.mint list by this file's own test suite (run-mint-batch.test.mjs's
-  // "MINT_GOVERNING_FILES matches F28's hardcoded mint entry" test), and F28 itself is outside this
-  // lane's write set. Adding the entry here without F28 catching up would make THIS array wrong about
-  // what F28 actually hashes, which is worse than the named gap: F28 mint staleness on this addition is
-  // expected and coordinator-owned (see this lane's VERIFY instructions) — the coordinator should add
-  // 'src/lib/intake/record-facts.mjs' to both F28's list and this array in the same commit.
+  // record-facts.mjs (the --grade record payload builder, Lane POP 2026-09-01): a change to its
+  // extraction logic changes what a record batch produces exactly as validate-mint-payload.mjs changes
+  // what it accepts. Added to this array AND F28's GOVERNING_FILES.mint AND CONVENTION.md's table in
+  // the same commit (coordinator, 2026-09-01), so the byte-for-byte parity test holds.
+  "src/lib/intake/record-facts.mjs",
 ]);
 
 function usage() {
@@ -293,8 +289,12 @@ export function runBatch(payloads, { baseDir } = {}) {
   payloads.forEach((payload, index) => {
     const id = String(payloadId(payload, index));
     const { valid, failures, recommended_status } = validateMintPayload(payload, { baseDir });
+    // Interface-3 prevention (lane TAG, 2026-09-01): an item minted with empty signature tags is
+    // invisible to discovery. Non-blocking by design (an empty array is sometimes the honest answer),
+    // but recorded per payload so the artifact's corpus-outcome metrics can grade it.
+    const tag_presence = checkTagPresence(payload);
 
-    report.results.push({ id, valid, recommended_status, failures });
+    report.results.push({ id, valid, recommended_status, failures, tag_presence });
 
     if (valid) {
       validCount += 1;
