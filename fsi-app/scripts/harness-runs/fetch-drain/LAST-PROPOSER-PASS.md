@@ -1,44 +1,51 @@
 # Last proposer pass — fetch-drain
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `fetch-drain` has 2 artifacts (`fetch-drain-run-001`,
-`fetch-drain-run-002`) — F28's rule (d) requires this file starting at N=2, and this is that pass.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `fetch-drain` now has **three** artifacts
+(`fetch-drain-run-001`, `-002`, `-003`); F28's rule (d) requires this file to name the latest verbatim:
+**fetch-drain-run-003**.
 
-**Artifacts read:** fetch-drain-run-001, fetch-drain-run-002.
+**Artifacts read:** fetch-drain-run-001, fetch-drain-run-002, fetch-drain-run-003.
 
-**Full traces read:** `/root/work/build/fetch-error-dispositions.md` (both artifacts' sole
-`full_trace_refs` entry — run-002 replays run-001's own error-row population, so the same document
-carries both runs' evidence; per-class tables for all 127 still-error rows plus the 5 cleared-on-replay
-and 2 pre-emptively-skipped rows are read in full, not just the class-summary counts).
+**Full traces read:** `/root/work/build/fetch-error-dispositions.md` in its post-v1.6 state (the single
+document carrying all three runs' per-row evidence — run-003 updated it in place with the v1.6 ladder
+outcomes), plus `fetch-drain-run-003.json`'s own per_item rows and `defects_found`, and the deployed
+worker source `cw-v16.ts` (sha256 `82889d10f522c40bc…` verified against `get_edge_function` at deploy,
+per the F2 lane record).
 
-**Hypotheses:**
-1. `fetch-drain-run-001.json`'s TCP-stall/hang finding (diputados.gob.mx, a PDF) and
-   `fetch-drain-run-002.json`'s `defects_found[0]` (gios.gov.pl, npc.gov.cn — plain HTML, same
-   "Connection timed out (os error 110)" signature) together confirm the timeout defect is HOST-LEVEL
-   (any slow/unresponsive TCP peer under v1.5's no-fetch-timeout design), not PDF-specific as the F1
-   finding alone might have suggested. The fix (`AbortSignal.timeout(45000)`, commit `0735a410`, v1.6)
-   is AUTHORED but **NOT YET DEPLOYED** as of run-002 — both artifacts' `defects_found[0]`-class entries
-   share `fix_ref: "commit 0735a410 ... authored, not yet deployed as of this run"` verbatim.
-2. `fetch-drain-run-002.json`'s `defects_found[1]` — 12 of 127 errors are
-   `http2 error: stream error received: unexpected internal error encountered`, 10 of 12 on `*.gov.au`
-   domains sharing an IPv6 prefix family, plus `fred.stlouisfed.org` and
-   `pollution-waste.canada.ca` — is EXPLICITLY named `fix_ref: null` and explicitly NOT addressed by
-   v1.6's `AbortSignal.timeout` (a connection-layer error, not a hang). This is a genuinely open,
-   separate investigation thread, not something v1.6's deploy will incidentally close.
-3. No new hypothesis beyond what run-002 already diagnosed — both open items are named, with root
-   causes, in `fetch-drain-run-002.json`'s own `defects_found`. This pass's job is to confirm neither
-   has quietly been superseded (it has not — v1.6 remains undeployed as of this pass) and to flag the
-   deploy as the standing blocker on the resume queue (build plan §4: "deploy worker v1.6 + finish
-   drain").
+**Hypotheses (verified against run-003, not taken on its word):**
+1. The prior pass's proposal 1 (deploy v1.6) is **DONE**: worker deployed as function version 8,
+   content-hash-verified, and the ladder rerun confirms the fix's mechanism — the 4 rows that previously
+   HUNG the worker (v1.5's no-timeout design) now fail as clean 45-second `AbortSignal.timeout` errors.
+   The timeout defect class is closed as diagnosed (host-level TCP stall, not PDF-specific).
+2. The prior pass's proposal 2 (HTTP/2 investigation) remains **OPEN**, now with a third confirming
+   replay: the 12 `http2 stream error` rows (10 `*.gov.au`, `fred.stlouisfed.org`,
+   `pollution-waste.canada.ca`) are byte-identical across three runs. Connection-layer, v1.6 correctly
+   did not touch it. `fix_ref: null` stands.
+3. **New defect class this cycle, not covered by any prior proposal:** `WORKER_RESOURCE_LIMIT` — pdf.js
+   parse-time compute exhaustion (2 rows: regulations.gov + lacity.gov PDFs), which kills the isolate
+   BEFORE the pre-buffer size guard can apply (the guard bounds bytes buffered, not parse CPU). v1.6 was
+   never scoped to fix it; recorded in run-003's `defects_found` with root cause.
+4. The queue itself is fully drained: 1,235 done / 136 error / 5 skipped / 0 queued / 0 fetching. Net new
+   captures from the v1.6 ladder: 0 — the residual error set is dominated by classes outside v1.6's scope
+   (403/404/HTTP2/DNS/TLS) plus the new PDF-compute class. Basis for all four: read run-003 +
+   dispositions doc in full; the deploy and ladder were executed by the F2 lane this session (ran it, that
+   lane's transcript is the primary record).
+5. `PENDING-RUN.md`'s marker is discharged exactly per its own instructions: the planned run landed as
+   `fetch-drain-run-003.json` whose `harness_version` matches the marker's recorded hash — the marker is
+   deleted in the same landing that adds the artifact (F28 rule (c)'s "landed artifact matches marker →
+   marker is stale and must be deleted").
 
 **Proposal:**
-1. **Deploy worker v1.6** (commit `0735a410`) — the `AbortSignal.timeout(45000)` fix is authored and
-   proven against both `fetch-drain-run-001`/`-002`'s timeout-class rows but has never shipped. This is
-   not a code proposal (the code exists); it is the deploy step itself, already queued in the build
-   plan's resume order (§4).
-2. **Open an HTTP/2 investigation thread** for the `*.gov.au`-clustered `http2_stream_error` class (12
-   of 127 rows) — determine whether Deno's fetch client needs an HTTP/1.1 fallback for this host
-   cluster, or whether the CDN/edge configuration on these hosts is the actual fault, before proposing a
-   code fix. `fix_ref: null` stands; this pass does not close it, it scopes the next investigation.
+1. **PDF parse-compute guard investigation** — determine whether pdf.js parsing can be bounded inside the
+   worker (page-count cap, worker-side timeout wrapping the parse call, or offloading PDF text extraction
+   entirely) before proposing code; 2 known reproducer rows exist. Investigation-first, same posture as
+   the HTTP/2 thread.
+2. **HTTP/2 thread continues as scoped** — next concrete step remains an HTTP/1.1-fallback experiment
+   against one `*.gov.au` reproducer, still unproposed as code pending that experiment.
+3. **No further drain batches proposed**: the queue is empty; fetch-drain's next run should be triggered
+   by real new intake (mint batches 002+ registering sources with fetchable documents), not by re-replaying
+   a residual error set three runs have now characterized identically.
 
-**Family gates status:** not yet run — v1.6's deploy is the coordinator-level action this pass surfaces,
-not a code change this lane gates. The HTTP/2 thread has no proposal to gate yet (investigation-first).
+**Family gates status:** this landing adds the run artifact, deletes the discharged `PENDING-RUN.md`, and
+updates this attestation — no governing-file change (`capture-worker/index.ts` on the tree already IS the
+deployed v1.6 content run-003 hashed). Fitness suite incl. F28 runs in the landing train's CI.

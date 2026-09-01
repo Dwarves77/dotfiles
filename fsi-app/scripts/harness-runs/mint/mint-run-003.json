@@ -1,0 +1,204 @@
+{
+  "harness_family": "mint",
+  "harness_version": "sha256:b654b1aeb507a4ed",
+  "run_id": "mint-run-003",
+  "started_at": "2026-09-01T07:52:44Z",
+  "config": {
+    "vault": "/root/work/dotfiles",
+    "wave": "M2 (build plan §4 resume queue item: 'M2 full-text rebuild + apply batch-001 UNDER the hardened validator') — this run is the rebuild half; DB apply is explicitly out of scope (coordinator applies next)",
+    "scope": "Re-fetch all six batch-001 documents in FULL through claude-in-chrome per MINT-RUNBOOK.md §1a's slice-extraction law, rebuild search_results[0].result_content/fetched_length/archived_source_path by script (never by hand), re-derive any FACT span that no longer matches the verified full source, and re-run validate-mint-payload.mjs (the Wave MH-3 hardened validator, origin/master 9282aa3c) until all six pass clean.",
+    "slice_extraction_law_applied": {
+      "source": "MINT-RUNBOOK.md §1a (Wave MH-3)",
+      "measure_first": "Recorded each document's live in-page length (normalized `#text` node's .textContent.replace(/\\s+/g,' ').trim()) as fetched_length BEFORE extracting any slice, independent of extraction.",
+      "slice_size_deviation": "§1a's documented ceiling is <=8,000 chars/call, itself corrected down from a prior 20,000-char claim. This run found EMPIRICALLY that the ~1.0-1.5K ceiling §1a describes for an arbitrary return value in fact also binds a bare `text.slice(i,i+N)` return once N exceeds ~1,000-1,100 chars (tested N=8000, 1200: both truncated with a [TRUNCATED] marker; N=1000, 800: both returned complete). Used N=900 for every slice this run as the empirically-verified safe unit — smaller than §1a's stated ceiling, per its own 'a smaller slice is always safe' instruction. Logged as a new defect against §1a's text (defects_found[0]).",
+      "verification_per_slice": "Each slice's returned length was checked against the requested window and its head/tail ~40 chars logged before acceptance; two slices in 32019R1242 came back [BLOCKED: Cookie/query string data] and were recovered by halving to 450-char sub-slices per §1a's fallback (recorded honestly, not silently patched over).",
+      "rebuild_by_script": "Every source-<celex>.txt was rebuilt from empty by Node.js script only — either direct programmatic writes from in-session extraction results, or (for the four largest documents) by processing the harness's own persisted browser_batch tool-result JSON files with a Node script (stripping tool-call markers, dropping the trailing 'Tab Context' metadata block, concatenating slices in order) — never by manual retyping.",
+      "integrity_check_used": "SHA-256 (crypto.subtle.digest in-page vs. Node crypto.createHash locally) rather than the head/tail-80-char spot check MINT-RUNBOOK.md suggests — a strictly stronger, definitive full-string-equality proof, computed for every one of the six documents and matching on every one."
+    },
+    "fetch_mechanism": "claude-in-chrome real-browser navigation to each EUR-Lex TXT page (wait ~8s for the WAF challenge to clear and the real act text to render), extraction via javascript_tool reading the normalized #text DOM node in <=900-char slices, batched through browser_batch.",
+    "validator_used": "fsi-app/scripts/mint/validate-mint-payload.mjs @ origin/master 9282aa3c (the Wave MH-3 hardened validator — capture-completeness gate at 0.98 floor / 50-char tolerance, unicode-integrity cross-check against archived_source_path). NOTE: this repo's local `master` branch (801cbadd) was one commit BEHIND origin/master and still carried the pre-MH-3, 250-line validator with no capture-completeness or unicode-integrity gates at all. This run initially validated against that stale local copy by mistake (all six passed, but under the WRONG, weaker validator) before the discrepancy was caught mid-run by diffing local master against origin/master; every validator run reported in this artifact was then re-run against the actual origin/master hardened validate-mint-payload.mjs (582 lines) + payload-schema.json, copied verbatim via `git show origin/master:<path>` into a scratch harness directory so as not to touch the local worktree/checkout. Recorded as defects_found[1] below.",
+    "supabase_project": "kwrsbpiseruzbfwjpvsp",
+    "db_access": "none this run — zero DB reads or writes; this is a mint lane that only prepares/validates payloads, per MINT-RUNBOOK.md's hard boundary. The coordinator applies the six validated payloads next.",
+    "spend": "$0 — in-session Sonnet + claude-in-chrome only; no paid API calls"
+  },
+  "inputs_ref": [
+    "fsi-app/scripts/harness-runs/mint/mint-run-001.json",
+    "fsi-app/scripts/harness-runs/mint/mint-run-002.json",
+    "fsi-app/scripts/mint/MINT-RUNBOOK.md",
+    "fsi-app/scripts/mint/validate-mint-payload.mjs",
+    "fsi-app/scripts/mint/payload-schema.json",
+    "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md",
+    "/root/work/mint/batch-001/HARDENED-VALIDATOR-REJECTIONS-mh3.md",
+    "/root/work/mint/batch-001/payload-32006R1692.json",
+    "/root/work/mint/batch-001/payload-32009L0123.json",
+    "/root/work/mint/batch-001/payload-32015R0757.json",
+    "/root/work/mint/batch-001/payload-32019R1242.json",
+    "/root/work/mint/batch-001/payload-32023R0956.json",
+    "/root/work/mint/batch-001/payload-32023R1804.json"
+  ],
+  "per_item": [
+    {
+      "id": "32006R1692",
+      "outcome": "minted_hardened_validator_pass",
+      "verdict": "valid=true; failures=[]; recommended_status=verified; gate_a.orphan_count=0.",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32006R1692.json",
+        "/root/work/mint/batch-001/source-32006R1692.txt"
+      ],
+      "fetched_length_old": 43813,
+      "fetched_length_current": 43327,
+      "fetched_length_delta": -486,
+      "file_len_equals_inpage_len": true,
+      "source_sha256": "sha256:4f90522163af3340f2d28630b6c6d86a46ece5aff6edabc05574ffbf8e8e5ec0",
+      "error": null
+    },
+    {
+      "id": "32009L0123",
+      "outcome": "minted_hardened_validator_pass",
+      "verdict": "valid=true; failures=[]; recommended_status=verified; gate_a.orphan_count=0.",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32009L0123.json",
+        "/root/work/mint/batch-001/source-32009L0123.txt"
+      ],
+      "fetched_length_old": 12237,
+      "fetched_length_current": 12086,
+      "fetched_length_delta": -151,
+      "file_len_equals_inpage_len": true,
+      "source_sha256": "sha256:66f23960f5318347756cef112aaa4de35e7e6ccdf71aeb06327ecda9aa9deeeb",
+      "error": null
+    },
+    {
+      "id": "32015R0757",
+      "outcome": "minted_hardened_validator_pass",
+      "verdict": "valid=true; failures=[]; recommended_status=verified; gate_a.orphan_count=0. FACT span re-derived from verified full source this run (see defects_found).",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32015R0757.json",
+        "/root/work/mint/batch-001/source-32015R0757.txt"
+      ],
+      "fetched_length_old": 75954,
+      "fetched_length_current": 75206,
+      "fetched_length_delta": -748,
+      "file_len_equals_inpage_len": true,
+      "source_sha256": "sha256:afc534085646ec5b4f7f957851df256a95ecd48bad3ebcde7f2046094d50a29b",
+      "error": null
+    },
+    {
+      "id": "32019R1242",
+      "outcome": "minted_hardened_validator_pass",
+      "verdict": "valid=true; failures=[]; recommended_status=verified; gate_a.orphan_count=0.",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32019R1242.json",
+        "/root/work/mint/batch-001/source-32019R1242.txt"
+      ],
+      "fetched_length_old": 102988,
+      "fetched_length_current": 101874,
+      "fetched_length_delta": -1114,
+      "file_len_equals_inpage_len": true,
+      "source_sha256": "sha256:d52344a367b31dca7bb751168d062b21962889e787124f57ff413c2610e6acfd",
+      "error": null
+    },
+    {
+      "id": "32023R0956",
+      "outcome": "minted_hardened_validator_pass",
+      "verdict": "valid=true; failures=[]; recommended_status=verified; gate_a.orphan_count=0. FACT span re-derived from verified full source this run (see defects_found).",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32023R0956.json",
+        "/root/work/mint/batch-001/source-32023R0956.txt"
+      ],
+      "fetched_length_old": 174417,
+      "fetched_length_current": 172833,
+      "fetched_length_delta": -1584,
+      "file_len_equals_inpage_len": true,
+      "source_sha256": "sha256:70c89b0a34ff7e10a5d0dc22f4f45621055f5ff487f000456368f1063a553c84",
+      "error": null
+    },
+    {
+      "id": "32023R1804",
+      "outcome": "minted_hardened_validator_pass",
+      "verdict": "valid=true; failures=[]; recommended_status=verified; gate_a.orphan_count=0.",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32023R1804.json",
+        "/root/work/mint/batch-001/source-32023R1804.txt"
+      ],
+      "fetched_length_old": 178953,
+      "fetched_length_current": 177407,
+      "fetched_length_delta": -1546,
+      "file_len_equals_inpage_len": true,
+      "source_sha256": "sha256:2c164cde82e02d55aa278776a8763b842ff2f8d8148ce0eb909bb95a30779af4",
+      "error": null
+    }
+  ],
+  "metrics": {
+    "docs_attempted": 6,
+    "docs_validator_pass_final": 6,
+    "validator_first_pass_rate": 0.667,
+    "validator_first_pass_rate_note": "4/6 payloads (32006R1692, 32009L0123, 32019R1242, 32023R1804) passed the hardened validator on the first run immediately after the by-script result_content/fetched_length/archived_source_path update. 2/6 (32015R0757, 32023R0956) failed their first post-update run with fact_span_not_in_source and required one FACT-span re-derivation cycle each before passing; both pass clean as of the second run. 6/6 = 1.0 on final pass.",
+    "fact_spans_rederived": 2,
+    "capture_ratio_before": {
+      "32006R1692": 0.0642,
+      "32009L0123": 0.9873,
+      "32015R0757": 0.0334,
+      "32019R1242": 0.0254,
+      "32023R0956": 0.0136,
+      "32023R1804": 0.0123
+    },
+    "capture_ratio_after": {
+      "32006R1692": 1,
+      "32009L0123": 1,
+      "32015R0757": 1,
+      "32019R1242": 1,
+      "32023R0956": 1,
+      "32023R1804": 1
+    },
+    "fetched_length_deltas_vs_mint_run_001_recorded": {
+      "32006R1692": -486,
+      "32009L0123": -151,
+      "32015R0757": -748,
+      "32019R1242": -1114,
+      "32023R0956": -1584,
+      "32023R1804": -1546
+    },
+    "fetched_length_delta_note": "All six current live-fetch lengths are 0.3%-1.3% SHORTER than mint-run-001.json's originally recorded fetched-length figures, consistently across all six documents. Root cause investigated and attributed to extraction-method normalization, not page content change: this run's measurement uses the DOM node's .textContent with whitespace collapsed to single spaces (`.replace(/\\s+/g,' ').trim()`), matching the format already used elsewhere in these payloads' result_content fields, whereas the figures recorded in mint-run-001.json/BATCH-001-REPORT-v2.md's fetch table were taken from an in-page raw-length read (e.g. innerText/full textContent) that preserves multiple/trailing whitespace runs as multiple characters. A uniform small shrink across all six independently-fetched documents, rather than isolated to one, is consistent with a measurement-convention difference rather than six coincidental live edits to EUR-Lex act text. Recorded honestly rather than silently reconciled; not treated as evidence of page drift."
+  },
+  "defects_found": [
+    {
+      "description": "MINT-RUNBOOK.md §1a's stated <=8,000-char javascript_tool slice ceiling ('round-trips complete and untruncated in practice') does not hold: this run empirically found the return-value channel truncates a bare `text.slice(i,i+N)` return once N exceeds roughly 1,000-1,100 characters, not 8,000 — tested directly (N=8000 and N=1200 both truncated with a [TRUNCATED] marker; N=1000 and N=800 both returned complete). All extraction this run used N=900 slices instead, per §1a's own fallback instruction ('a smaller slice is always safe... NEVER quietly accept a truncated slice as close enough').",
+      "root_cause": "Unconfirmed from this session alone — plausibly a client- or tool-side response-size cap on the javascript_tool return channel that does not scale with the literal string-slice bound requested, independent of the requested slice length. Not investigated further here since the ≤900-char workaround is reliable and $0.",
+      "fix_ref": null
+    },
+    {
+      "description": "This run's local git checkout of `master` (801cbadd) was one commit behind origin/master (9282aa3c) and still carried the PRE-hardening validate-mint-payload.mjs (250 lines: no capture-completeness gate, no unicode-integrity gate) and payload-schema.json, despite `git fetch` having been run. All six payloads were validated against this stale, weaker validator on the first pass without the discrepancy being noticed. Caught mid-run by diffing local `master` against `origin/master` for fsi-app/scripts/mint/*, which showed a 342-line/19-line diff on exactly the two files the task named as 'the hardened validator now on master.' Every validator run reported as authoritative in this artifact's per_item[] was then re-executed against the genuine origin/master validate-mint-payload.mjs + payload-schema.json (fetched verbatim via `git show origin/master:<path>` into a scratch directory, so the local worktree/checkout — shared with many other active git worktrees under /root/work/wt-* — was never touched or checked out). All six payloads pass identically under the real hardened validator (confirmed by re-running, not assumed).",
+      "root_cause": "`git fetch` updates remote-tracking refs (origin/master) but does not move the local `master` branch pointer or its checked-out working tree; this repo's local `master` had its own commit (801cbadd, 'Memory: Addendum 73') layered on an older base and was never fast-forwarded or merged to origin/master's 9282aa3c inside this session, so `origin/master` and the local `master` used by default in fsi-app/ diverged silently.",
+      "fix_ref": "Not a code fix — a process fix applied within this run: validator invocations for this artifact's per_item[] verdicts were run against files fetched directly from origin/master via `git show`, bypassing the stale local checkout entirely, rather than modifying the shared local git state (git checkout/merge/rebase of `master` was deliberately avoided to not disturb other concurrent worktrees on this branch)."
+    },
+    {
+      "description": "payload-32015R0757.json's jurisdictional_scope claim's source_span/claim_text ('...as well as within ports under the jurisdiction of a Member State.') was missing the words 'of call' present in the true source ('...as well as within ports of call under the jurisdiction of a Member State.'). Caught by the hardened validator's fact_span_not_in_source check once result_content held the real, byte-verified full text; the old excerpt-shaped capture had apparently been hand-transcribed close enough to itself to self-validate.",
+      "root_cause": "Batch-001's original hand-transcription (pre-hardening) copied the claim span from an incomplete/earlier reading of the page rather than the verbatim source, and nothing at the time cross-checked it against an independently archived full capture.",
+      "fix_ref": "payload-32015R0757.json: source_span, claim_text, full_brief, and the relevant sections[].content_md corrected to the verbatim source substring located via indexOf() against source-32015R0757.txt (4 occurrences fixed programmatically) — this run."
+    },
+    {
+      "description": "payload-32023R0956.json's jurisdictional_scope claim had TWO discrepancies against the true source: (1) it used straight quotes 'CBAM' where the live source uses curly quotes ‘CBAM’ (U+2018/U+2019, confirmed by codepoint inspection); (2) it said 'the goods' where the true source says 'the goods listed in Annex I'. This directly contradicts BATCH-001-REPORT-v2.md's prior claim of having already fixed the curly-vs-straight-quote bug for this document — that earlier 'fix' was itself wrong relative to the genuine live EUR-Lex source once independently re-verified this run.",
+      "root_cause": "Same class as 32015R0757 above: a prior session's manual quote-direction correction was made without a freshly re-verified, byte-exact full-text reference to check it against, so it could not actually be confirmed correct at the time it was made.",
+      "fix_ref": "payload-32023R0956.json: source_span corrected to the exact verbatim true-source substring (verified present in source-32023R0956.txt via indexOf() before writing); all straight-quote 'CBAM' occurrences in full_brief/sections/claim_text updated to curly ‘CBAM’, and 'embedded in goods listed in Annex I' corrected to 'embedded in the goods listed in Annex I' throughout, for consistency beyond the strict validator requirement — this run."
+    }
+  ],
+  "full_trace_refs": [
+    "/root/work/mint/batch-001/payload-32006R1692.json",
+    "/root/work/mint/batch-001/payload-32009L0123.json",
+    "/root/work/mint/batch-001/payload-32015R0757.json",
+    "/root/work/mint/batch-001/payload-32019R1242.json",
+    "/root/work/mint/batch-001/payload-32023R0956.json",
+    "/root/work/mint/batch-001/payload-32023R1804.json",
+    "/root/work/mint/batch-001/source-32006R1692.txt",
+    "/root/work/mint/batch-001/source-32009L0123.txt",
+    "/root/work/mint/batch-001/source-32015R0757.txt",
+    "/root/work/mint/batch-001/source-32019R1242.txt",
+    "/root/work/mint/batch-001/source-32023R0956.txt",
+    "/root/work/mint/batch-001/source-32023R1804.txt",
+    "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md",
+    "/root/work/mint/batch-001/HARDENED-VALIDATOR-REJECTIONS-mh3.md",
+    "fsi-app/scripts/harness-runs/mint/mint-run-001.json",
+    "fsi-app/scripts/harness-runs/mint/mint-run-002.json"
+  ],
+  "proposer_notes": "This run completes build plan §4's parked 'M2 full-text rebuild + apply batch-001 UNDER the hardened validator' item — the rebuild half only; DB apply remains explicitly the coordinator's step, not this lane's (MINT-RUNBOOK.md's hard $0/no-DB-writes boundary was held throughout: zero Supabase calls made this run). All six batch-001 documents were re-fetched in full via claude-in-chrome (not re-derived from the old excerpts), sliced at an empirically-verified-safe 900 chars/call (a correction to MINT-RUNBOOK.md §1a's stated 8,000-char ceiling, logged as defects_found[0]), rebuilt by script only, and SHA-256-verified byte-exact against the live in-page string before any payload was touched. All six now pass fsi-app/scripts/mint/validate-mint-payload.mjs (origin/master 9282aa3c, the genuine Wave MH-3 hardened validator) with valid=true, 0 failures, 0 Gate-A orphans. Two of six required a genuine FACT-span correction (32015R0757, 32023R0956) after the fresh full-text capture surfaced pre-existing hand-transcription errors that an intra-payload-only check could not have caught — both are documented in defects_found with the exact wording fixed, and neither was accepted by weakening or bypassing any validator check. A process defect was also caught and corrected mid-run: this session's local git checkout of `master` had silently diverged one commit behind origin/master and still carried the PRE-hardening (250-line) validator; every verdict in per_item[] reflects a re-run against the real origin/master hardened validator fetched via `git show`, not the stale local one first used by mistake (defects_found[1]). Not investigated or changed this run, out of scope: BATCH-001-REPORT-v2.md's full historical fetch-mechanism narrative (updated only with this run's final results table, not rewritten), and the local `master` branch's divergence from origin/master itself (left as-is — this run reads origin/master content by reference rather than mutating local git state shared with other active worktrees)."
+}

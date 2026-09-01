@@ -7147,3 +7147,50 @@ bottom, nothing landed red and nothing was worked around.
 
 This train does not touch the DB, does not deploy the capture-worker, and does not run the browser
 landing — those stay with the next lane (Phase 2), per standing rule.
+
+## Addendum 75 — 2026-09-01 (cloud session): v1.6 deployed + queue drained; batch-001 minted; canonical-key dedup gap found
+
+First person, coordinator. Three threads closed this block, one systemic gap opened and scoped.
+
+**Capture-worker v1.6 deployed, first-fetch queue drained to zero (F2 lane, delegated deploy with hash
+verification).** Function version 8, source sha256 `82889d10…` verified via `get_edge_function` re-read
+after the placeholder-deploy lesson. Ladder rerun: the 4 rows that used to hang v1.5 now fail as clean
+45s timeouts — the fix works as diagnosed. Final queue state: 1,235 done / 136 error / 5 skipped /
+0 queued / 0 fetching. Net new captures from the ladder: 0; the residual errors are classes v1.6 never
+targeted (403/404/HTTP2/DNS/TLS) plus a NEW class F2 found: `WORKER_RESOURCE_LIMIT`, pdf.js parse-time
+compute exhaustion (2 rows) that kills the isolate before the size guard applies. Recorded in
+`fetch-drain-run-003.json`; `PENDING-RUN.md` discharged and deleted in this train per its own text.
+
+**Batch-001 minted (M2 authorship → coordinator-generated SQL → M3 verbatim apply).** M2 rebuilt all six
+payloads with full-text captures per MINT-RUNBOOK §1a (browser through the EUR-Lex WAF; SHA-256-verified
+against the live page), all six re-validated green by me from a pinned `origin/master` worktree before
+apply — the stale-checkout near-miss M2 caught is why that re-check is now standing practice. Apply
+outcome: **4 minted, all verified first-pass** (32009L0123 `bfae9c86`, 32006R1692 `36c92d72`,
+32015R0757 `9a22c296`, 32023R1804 `a86dcc05`), each through M0's write order with the provenance flip
+left entirely to `set_provenance_status`; DB deltas exact (+4 items/+16 sections/+23 claims/+4
+searches/+4 gate-A/+4 citations), zero residual open flags. **2 not minted, correctly:** 32023R0956
+(CBAM) already live-verified and far richer (14 sections/67 claims — my pre-apply check caught it);
+32019R1242 collided on `uq_intelligence_items_canonical_key_verified_live` at flip time and rolled back
+atomically — a live verified HDV-CO2 item already holds the key under a different URL variant. All six
+census rows reconciled (`enumeration_status='reconciled'`, item ids in notes).
+
+**The systemic finding (mint-run-004 `defects_found[0]`):** item identity is normalized
+`canonical_instrument_key` (trigger strips `CELEX:`), but every dedup check in the kit is URL-exact —
+runbook step 1 and the queue-level "111 already minted" count share the blind spot. Two of six batch-001
+rows were duplicates the kit could not see. Before batch-002: canonical-key dedup pass over the full
+remaining ~3,655-row queue; the 111 figure is a floor, not a count. Scoped in the updated
+`mint/LAST-PROPOSER-PASS.md` (proposal 1) alongside the census-mechanics runbook fix (my own
+`resolved_into_id` misread — an intra-worklist FK, caught by the constraint, zero rows written; recorded
+honestly in mint-run-004 `defects_found[1]`).
+
+**Errors made and corrected this block:** (1) the `resolved_into_id` misread above; (2) none in apply —
+the pilot-first, stop-on-error protocol held, and the one hard failure (23505) was contained by design.
+
+**Open threads:** canonical-key dedup pass (next mint cycle, blocking batch-002 lane dispatch); PDF
+parse-compute investigation (2 reproducers); HTTP/2 `*.gov.au` experiment; quarantined AFIR duplicate
+`62ba40b0` (live, quarantined, same instrument as new verified `a86dcc05`) — archiving it is a
+destructive half, parked for the operator with the other ratifications; U7/U9 and the rest of the build
+plan resume queue.
+
+**Next step for a cold session:** run the canonical-key dedup pass over the would_mint queue, then
+dispatch mint batch-002 (40-80 rows, proposer-first per PROPOSER-RUNBOOK).
