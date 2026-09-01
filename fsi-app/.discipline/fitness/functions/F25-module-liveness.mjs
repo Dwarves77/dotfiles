@@ -72,10 +72,16 @@ const COMPONENTS = [
   'resource/SectorSynopsis.tsx',
 ];
 
+// Wave W2 (2026-09-01, unwired-module disposition register docs/plans/unwired-disposition-2026-08-31.md
+// §A/§B, wires #2 and #5): 'src/lib/agent/derived-consistency.mjs' and 'src/lib/llm/spend-gauge.mjs'
+// REMOVED from this list — both now have a real production importer (canonical-pipeline.ts:~1738 and
+// health/spend/route.ts respectively), so F25 enforces their liveness going forward instead of
+// exempting it. Leaving either entry in place after wiring would itself trip the STALE ALLOWLIST check
+// below ("now HAS a production importer; it got wired").
 const PROVEN_BUT_UNWIRED = [
-  'src/lib/agent/derived-consistency.mjs', 'src/lib/coverage/identity.mjs',
+  'src/lib/coverage/identity.mjs',
   'src/lib/intake/census-writer.mjs', 'src/lib/intake/intake-url-corpus.mjs',
-  'src/lib/llm/metered-emit.mjs', 'src/lib/llm/program-total.mjs', 'src/lib/llm/spend-gauge.mjs',
+  'src/lib/llm/metered-emit.mjs', 'src/lib/llm/program-total.mjs',
   'src/lib/sources/amendment-diff.mjs', 'src/lib/sources/api-fetch.ts', 'src/lib/sources/change-sweep.mjs',
   'src/lib/sources/feed-walk.mjs', 'src/lib/sources/instrument-identity.ts', 'src/lib/sources/register-walk.mjs',
 ];
@@ -183,6 +189,12 @@ export const LEGACY_ALLOWLIST = [
       'has another home to wire into or should be deleted with its test in a follow-up.',
     reviewByPhase: 'dormant-capability ruling (operator: wire selectBiasChipsForDisplay elsewhere, or delete module + chip-selection.test.mjs together)',
   },
+
+  // Meta-harness substrate entry (scripts/lib/run-artifact.mjs) REMOVED (Wave MH-2, 2026-09-01): the
+  // wiring it was waiting on landed on schedule — screen-worklist.mjs now imports writeRunArtifact/
+  // hashHarnessVersion from it directly (its own execution path, per build plan §2's "emission is in the
+  // harness"), giving it a real production importer. The entry said to remove it "the same wave those
+  // callers land" — this is that wave.
 ];
 
 const ALLOWED = new Map(LEGACY_ALLOWLIST.map((e) => [e.file, e]));
