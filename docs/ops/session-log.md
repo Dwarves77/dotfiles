@@ -7194,3 +7194,40 @@ plan resume queue.
 
 **Next step for a cold session:** run the canonical-key dedup pass over the would_mint queue, then
 dispatch mint batch-002 (40-80 rows, proposer-first per PROPOSER-RUNBOOK).
+
+## Addendum 76 — 2026-09-01 (cloud session): dedup pass reconciled 104; batch-002 minted 5/5 first-pass; archived-holder policy parked
+
+First person, coordinator. Same session as Addendum 75, next block.
+
+**Canonical-key dedup pass (mint-run-004 proposal 1) executed queue-wide.** Derived normalized keys for
+2,342 of the 3,655 then-remaining would_mint rows (CELEX and ELI URL forms); 104 rows were already
+covered by live verified items under different URL variants — reconciled into them (title-identical on a
+10-row sample before writing). Post-pass anatomy: 1,771 clean rows (derivable key, no holder anywhere) =
+the dispatch pool; 459 rows whose key is held by an ARCHIVED verified item (456 of them from a 530-item
+archive wave dated 2026-08-21 that carries no archive_reason); 8 held by live quarantined items; 1,313
+CELEX-underivable (non-EUR-Lex shapes, need per-shape identity work). One derivation caveat found and
+recorded: parenthetical CELEX suffixes (e.g. `21994A1231(53)`) truncate under my regex — none of the 104
+reconciled rows carried one (verified), but batch-003's derivation must keep the suffix.
+
+**Batch-002: 8 dispatched → 5 minted, all verified first-pass.** M4 (Sonnet) authored under the runbook
+with the canonical-key pre-check made mandatory — it caught 3 archived-holder conflicts my own batch
+selection had let through (my selection query dropped the holder predicate; recorded as mint-run-006
+defect, fix named for batch-003). The 5 payloads validator-green; apply via gen-apply-sql2 added a
+canonical-key abort guard and guarded INLINE source registration (4 sources registered in-block per the
+live registry convention). Items: 32009D0320 `7e554d10`, 32008R0536 `618dd97e`, 32014R0788 `831bc4be`,
+32022D0779 `128bc6c1`, 32024R3170 `e03b8fe1`. Deltas exact, zero flag residue, census rows reconciled.
+Corpus now 1,071 items; 9 minted this session across batches 001-002, 9/9 live-verified first-pass.
+
+**New findings recorded (mint-run-006):** 32018D0491 mis-keying (archived rail-freight-corridor item
+holds the SES-decision's CELEX key — one is wrong, predates this session); runbook §1a slice ceiling is
+fiction (browser tool truncates ~950 chars, not 8,000 — M4 did the 66K doc in 69+ slices); Gate-A
+citation-line bare-year false positive (payload-level workaround applied, scanner fix scoped).
+
+**Parked for the operator (decision artifact, one category-level question):** the 459 archived-holder
+rows. Options: (a) un-archive existing rich verified items where the ratified screen now says
+on-vertical (restores full content, no re-mint — my recommendation for rule-matched rows), (b) mint
+fresh thin items alongside the archived ones (duplication), (c) reconcile into the archived items (no
+live coverage). Blocking only those 459 rows; the clean pool keeps moving.
+
+**Next step for a cold session:** batch-003 from the clean pool with the fixed selection query
+(holder-join included); runbook corrections ride the next code train per the proposer pass.
