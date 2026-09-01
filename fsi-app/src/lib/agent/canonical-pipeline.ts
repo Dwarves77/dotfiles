@@ -38,6 +38,13 @@ import { summarizeLedger, ledgerRegression } from "@/lib/agent/ledger-dominance.
 import { diffLedger, applyLedgerDiff } from "@/lib/agent/ledger-apply.mjs";
 import { scanBrief } from "@/lib/agent/gate-a-scan.mjs";
 import { derivedCoveredTokens } from "@/lib/agent/gate-a-derived.mjs";
+import { norm } from "@/lib/agent/gate-a-match.mjs";
+// Gate B (derived-consistency, operator ruling 2026-07-27; unwired-module disposition register
+// #5, docs/plans/unwired-disposition-2026-08-31.md §B). isDerivedConsistent had zero production
+// callers before this wave — its own header comment claimed it was already called by "both tiers"
+// of DERIVED mint runners; false. See the call site below, next to its already-wired Gate-A
+// sibling (derivedCoveredTokens above).
+import { isDerivedConsistent } from "@/lib/agent/derived-consistency.mjs";
 import { decodeHtmlBytes } from "@/lib/sources/charset-decode.mjs";
 import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
@@ -1736,6 +1743,44 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
     // so a labeled derived date is not re-orphaned on re-scan. Pure DB lookup; re-grounds-never-destroy keeps the
     // DERIVED claims across this non-destructive apply, so a stale basis (not the re-scan) is what reverts coverage.
     const derivedCovered = await derivedCoveredTokens(sb, itemId);
+    // Gate B (derived-consistency, wire #5) — narrows derivedCovered ONCE MORE, in place. Gate-A's
+    // own lookup (just above) already drops a token whose basis is missing/stale; this drops a
+    // token whose basis-grounded date does NOT actually follow arithmetically from its stated
+    // recurring rule (e.g. an "annual June 1" rule grounding a July date — isDerivedConsistent,
+    // derived-consistency.mjs). A dropped token falls straight into scanBrief's normal orphan path
+    // below (ga.orphans / orphan_count) — the IDENTICAL fate an uncovered or stale token already
+    // gets; no new hold mechanism needed, matching the sibling call's own scope exactly. Same
+    // error-handling posture as the Gate-A upsert three lines below (warn, never throw, never
+    // abort the ground): a lookup failure here can only ever NARROW derivedCovered, so it degrades
+    // toward orphaning (fail-closed on the arithmetic check), never toward silently trusting an
+    // unchecked DERIVED claim.
+    if (derivedCovered.size) {
+      try {
+        const { data: derivedRows } = await sb
+          .from("section_claim_provenance")
+          .select("claim_text, basis_claim_id")
+          .eq("intelligence_item_id", itemId)
+          .eq("claim_kind", "DERIVED");
+        const basisIds = [...new Set((derivedRows ?? []).map((d) => d.basis_claim_id).filter(Boolean))];
+        const spanById = new Map();
+        if (basisIds.length) {
+          const { data: bases } = await sb
+            .from("section_claim_provenance")
+            .select("id, source_span")
+            .in("id", basisIds)
+            .eq("claim_kind", "FACT");
+          for (const b of bases ?? []) spanById.set(b.id, b.source_span);
+        }
+        for (const d of derivedRows ?? []) {
+          const tok = norm(d.claim_text ?? "");
+          if (!derivedCovered.has(tok)) continue; // already uncovered; nothing to narrow
+          const basisSpan = d.basis_claim_id ? spanById.get(d.basis_claim_id) : null;
+          if (!basisSpan || !isDerivedConsistent(basisSpan, d.claim_text ?? "")) derivedCovered.delete(tok);
+        }
+      } catch (e) {
+        console.warn(`[gate-b] derived-consistency check failed for ${itemId}: ${(e as Error).message}`);
+      }
+    }
     const ga = scanBrief(gaItem?.full_brief ?? "", gaFacts, derivedCovered);
     const { error: gaErr } = await sb.from("item_gate_a_state").upsert({
       intelligence_item_id: itemId, scanned_hash: ga.scanned_hash, orphan_count: ga.orphan_count,
