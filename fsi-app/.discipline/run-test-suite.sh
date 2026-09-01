@@ -95,6 +95,7 @@ node --test \
   fsi-app/scripts/gen/*.test.mjs \
   fsi-app/scripts/mint/*.test.mjs \
   fsi-app/scripts/forward-events/*.test.mjs \
+  fsi-app/scripts/connections/*.test.mjs \
   fsi-app/scripts/producers/*/*.test.mjs \
   fsi-app/src/__tests__/*.test.mjs \
   fsi-app/src/lib/credibility/*.test.mjs \
@@ -108,6 +109,7 @@ node --test \
   fsi-app/src/components/community/community-sidebar-route.test.mjs \
   fsi-app/src/lib/workspace/*.test.mjs \
   fsi-app/src/lib/connections/*.test.mjs \
+  fsi-app/src/lib/forward-events/*.test.mjs \
   fsi-app/src/lib/operations/*.test.mjs \
   fsi-app/src/lib/entities/*.test.mjs \
   fsi-app/src/lib/intake/*.test.mjs \

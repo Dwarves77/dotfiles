@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, ALL_NAMESPACES,
+  GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, FLYWHEEL_DEFECT_NAMESPACE, ALL_NAMESPACES,
   createdBy, buildSubjectRef, isInNamespace,
 } from "./flag-namespaces.mjs";
 
@@ -21,6 +21,8 @@ test("createdBy: matches the pre-refactor inline shape ${NAMESPACE}${type}", () 
   assert.equal(createdBy(GAP_NAMESPACE, "jurisdiction_span_gap"), "flywheel-gap:jurisdiction_span_gap");
   assert.equal(createdBy(ANTICIPATE_NAMESPACE, "no_coverage"), "flywheel-anticipate:no_coverage");
   assert.equal(createdBy(SIGNAL_NAMESPACE, "shared_regulation_identifier"), "flywheel-signal:shared_regulation_identifier");
+  assert.equal(createdBy(FLYWHEEL_DEFECT_NAMESPACE, "discovery"), "flywheel-defect:discovery");
+  assert.equal(createdBy(FLYWHEEL_DEFECT_NAMESPACE, "forward-events"), "flywheel-defect:forward-events");
 });
 
 test("createdBy: refuses a namespace not ending in ':' and an empty subtype", () => {

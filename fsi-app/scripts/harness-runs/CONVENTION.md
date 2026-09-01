@@ -51,7 +51,9 @@ three iterated harnesses in `fsi-app/scripts/mint/`, `fsi-app/scripts/mint/scree
 "self-application"): the meta-harness layer's own family, whose "runs" are the waves that build or extend
 this substrate (this file, `PROPOSER-RUNBOOK.md`, `run-artifact.mjs`, `F28`) rather than a mint batch, a
 screen round, or a fetch-drain lane — plus `forward-events`, registered over
-`scripts/forward-events/extract-forward-events.mjs`: a family whose "runs" are neither a mint batch, a
+`src/lib/forward-events/extract-forward-events.mjs` (moved there from `scripts/forward-events/` in lane
+FIX, 2026-09-01, once the intake mint chokepoint needed to import it as a runtime `src/lib` module): a
+family whose "runs" are neither a mint batch, a
 screen round, a fetch-drain lane, nor a meta-harness wave, but a fifth shape of its own — one extraction
 pass over a defined corpus slice, pulling forward-looking-obligation events (a date, a kind, a source
 span) out of source text; never a mint (nothing is minted) and never a fetch (nothing is fetched).
@@ -239,7 +241,7 @@ and prefixed `sha256:`. Each family's harness files:
 | `screen` | `scripts/mint/screen-rules.mjs`, `screen-worklist.mjs` |
 | `fetch-drain` | `supabase/functions/capture-worker/index.ts` |
 | `meta-harness` | `scripts/harness-runs/CONVENTION.md`, `PROPOSER-RUNBOOK.md`, `../lib/run-artifact.mjs`, `../../.discipline/fitness/functions/F28-harness-run-integrity.mjs` |
-| `forward-events` | `scripts/forward-events/extract-forward-events.mjs`, `../harness-runs/forward-events/PROTOCOL.md` |
+| `forward-events` | `src/lib/forward-events/extract-forward-events.mjs`, `../../../scripts/harness-runs/forward-events/PROTOCOL.md` |
 
 A harness-family README or runbook edit that doesn't touch the files above does not change
 `harness_version` — the hash tracks *behavior-bearing* files, not documentation. If a family's file list

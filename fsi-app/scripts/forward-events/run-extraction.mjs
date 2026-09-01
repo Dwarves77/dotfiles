@@ -39,7 +39,7 @@ import { parseArgs } from "node:util";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname, basename, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { extractForwardEvents, EXTRACTOR_VERSION } from "./extract-forward-events.mjs";
+import { extractForwardEvents, EXTRACTOR_VERSION } from "../../src/lib/forward-events/extract-forward-events.mjs";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -48,8 +48,11 @@ const DEFAULT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "forward-ev
 
 // The forward-events family's governing files — identical to CONVENTION.md's harness_version table and
 // F28's GOVERNING_FILES.'forward-events' (.discipline/fitness/functions/F28-harness-run-integrity.mjs).
+// The extractor moved to src/lib/forward-events/ (lane FIX, 2026-09-01 — see that file's header for why
+// runtime src/ code needed it there); this path list, F28's table, and this script's own import above
+// all advance together, or run-extraction.test.mjs's cross-check below fails the build.
 export const FORWARD_EVENTS_GOVERNING_FILES = Object.freeze([
-  "scripts/forward-events/extract-forward-events.mjs",
+  "src/lib/forward-events/extract-forward-events.mjs",
   "scripts/harness-runs/forward-events/PROTOCOL.md",
 ]);
 

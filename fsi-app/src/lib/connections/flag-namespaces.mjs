@@ -1,19 +1,27 @@
 // flag-namespaces.mjs — SINGLE SOURCE OF TRUTH for the flywheel's integrity_flags `created_by`
 // namespaces and subject_ref construction. PURE, no DB, no LLM.
 //
-// WHY THIS EXISTS. Three independent flywheel passes write integrity_flags rows through the same
+// WHY THIS EXISTS. Independent flywheel passes write integrity_flags rows through the same
 // dedup-before-insert / resolve-if-stale convention analyze-corpus.mjs established for coverage_gap
 // (U2, see its own file header): gap detection (gaps.mjs), anticipated-coverage detection
-// (anticipate.mjs, U5), and signal-candidate detection (signal-candidates.mjs, L4). Each producer
-// must own a DISJOINT `created_by` PREFIX so analyze-corpus.mjs's per-writer
-// `created_by LIKE '<namespace>%'` read never touches — and never resolves-as-stale — a row another
-// writer opened. This is the same isolation write-edges.mjs's ORIGIN OWNERSHIP note establishes for
-// item_cross_references, applied here to integrity_flags.
+// (anticipate.mjs, U5), signal-candidate detection (signal-candidates.mjs, L4), and — born with rule
+// 16 (contract v2026-09-01, "participate in the corpus flywheel on every mint or substantive
+// update") — the mint chokepoint's own rule-16(d) defect recording (mint-item.ts: a failure of
+// connection discovery or forward-event extraction is a recorded integrity_flags defect, never a
+// silent skip). Each producer must own a DISJOINT `created_by` PREFIX so analyze-corpus.mjs's
+// per-writer `created_by LIKE '<namespace>%'` read never touches — and never resolves-as-stale — a
+// row another writer opened. This is the same isolation write-edges.mjs's ORIGIN OWNERSHIP note
+// establishes for item_cross_references, applied here to integrity_flags.
 //
 // Before this module, `GAP_NAMESPACE = "flywheel-gap:"` was a private constant declared inline in
 // analyze-corpus.mjs. This file is the SoT it now imports from; ANTICIPATE_NAMESPACE and
 // SIGNAL_NAMESPACE are the two new namespaces born here (not invented ad hoc in their producer
-// modules) so a future fourth producer has one obvious place to register, not three files to grep.
+// modules) so a future producer has one obvious place to register, not three files to grep.
+// FLYWHEEL_DEFECT_NAMESPACE is the fourth, born the same way for mint-item.ts's rule-16(d) writes —
+// distinguished from GAP_NAMESPACE (a corpus-structure finding from the U2 clustering pass) because a
+// defect is "the flywheel itself failed to run for this item," a different kind of fact with a
+// different producer (the mint chokepoint, not analyze-corpus.mjs) and a different subject_type
+// ("item", the minted row — never "system" or a theme id).
 //
 // Every namespace is terminated with ':' by construction (enforced by createdBy below) so a
 // `LIKE '<ns>%'` scan can never false-positive-match a differently-named namespace that merely
@@ -22,8 +30,11 @@
 export const GAP_NAMESPACE = "flywheel-gap:";
 export const ANTICIPATE_NAMESPACE = "flywheel-anticipate:";
 export const SIGNAL_NAMESPACE = "flywheel-signal:";
+export const FLYWHEEL_DEFECT_NAMESPACE = "flywheel-defect:";
 
-export const ALL_NAMESPACES = Object.freeze([GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE]);
+export const ALL_NAMESPACES = Object.freeze([
+  GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, FLYWHEEL_DEFECT_NAMESPACE,
+]);
 
 /**
  * Build an integrity_flags.created_by value for one finding `subtype` under `namespace`.

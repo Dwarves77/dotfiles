@@ -1648,6 +1648,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/connections/anticipate.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/connections/brief-candidates.test.mjs",
       "kinds": [
         "PROOF"
@@ -1716,6 +1727,28 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/connections/flag-namespaces.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/connections/forward-event-format.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/connections/gaps.test.mjs",
       "kinds": [
         "PROOF"
@@ -1729,6 +1762,28 @@
     },
     {
       "path": "fsi-app/src/lib/connections/pair-view.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/connections/signal-candidates.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/connections/theme-delta.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -1896,6 +1951,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/forward-events/extract-forward-events.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/health/spend-health.test.mjs",
       "kinds": [
         "PROOF"
@@ -1997,6 +2061,17 @@
     },
     {
       "path": "fsi-app/src/lib/intake/mint-failclosed.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/intake/mint-forward-participation.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -3072,6 +3147,35 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/connections/discover-for-items.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/connections/generate-theme-brief.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "source-credibility-model"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/connections/ratify-flag-to-census.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/entities/backfill-lineage-edges.mjs",
       "kinds": [
         "WRITES"
@@ -3096,13 +3200,13 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/scripts/forward-events/extract-forward-events.test.mjs",
+      "path": "fsi-app/scripts/forward-events/run-extraction.test.mjs",
       "kinds": [
         "PROOF"
       ],
       "skills": [],
-      "proofWired": false,
-      "status": "ORPHANED-PROOF"
+      "proofWired": true,
+      "status": "COVERED"
     },
     {
       "path": "fsi-app/scripts/funded-pass.mjs",
@@ -3448,6 +3552,15 @@
     },
     {
       "path": "fsi-app/scripts/lib/verify.selftest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/mint/run-mint-batch.test.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -6413,14 +6526,25 @@
       ],
       "proofWired": null,
       "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/276_connection_theme_runs_theme_delta.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
     }
   ],
   "summary": {
-    "governed_files": 573,
-    "covered": 555,
+    "governed_files": 585,
+    "covered": 568,
     "exempt": 17,
-    "gaps": 1,
-    "orphaned_proofs": 1,
+    "gaps": 0,
+    "orphaned_proofs": 0,
     "unmapped_writes": 0,
     "unmapped_model": 0,
     "unmapped_routing": 0

@@ -30,6 +30,7 @@ import { ThemesView } from "@/components/sources/ThemesView";
 import { B2ProgressBanner } from "@/components/sources/B2ProgressBanner";
 import { GlobalPauseToggle, SourceRowControls, SourceTierOverrideControl } from "@/components/sources/SourceAdminControls";
 import { SourceTierAuditPanel } from "@/components/sources/SourceTierAuditPanel";
+import { UpcomingObligationsPanel } from "@/components/admin/UpcomingObligationsPanel";
 
 // ── Tier Summary Card ──
 
@@ -345,6 +346,7 @@ export function SourceHealthDashboard() {
     { id: "canonical" as const, label: "Canonical Source Issues", count: 0 },
     { id: "intersections" as const, label: "Intersections", count: 0 },
     { id: "themes" as const, label: "Themes", count: 0 },
+    { id: "obligations" as const, label: "Upcoming obligations", count: 0 },
   ];
 
   return (
@@ -513,6 +515,13 @@ export function SourceHealthDashboard() {
           regeneration emitting the new tag fields. */}
       {activeView === "intersections" && <IntersectionDetectionView />}
       {activeView === "themes" && <ThemesView />}
+
+      {/* Upcoming obligations — item_forward_events (migration 274/275, the forward-events harness,
+          rule 16(b)). Flywheel-adjacent, same posture as Themes: an admin-only read surface next to the
+          registry it draws from. Mounted here (lane FIX, 2026-09-01) after UpcomingObligationsPanel.tsx
+          shipped unmounted — this dashboard's own tab set + sourceStore's activeView union were the
+          named natural home, widened rather than routed around. */}
+      {activeView === "obligations" && <UpcomingObligationsPanel />}
     </div>
   );
 }

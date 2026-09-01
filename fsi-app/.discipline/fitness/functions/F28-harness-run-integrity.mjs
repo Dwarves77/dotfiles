@@ -121,8 +121,13 @@ export const GOVERNING_FILES = Object.freeze({
   // family with zero valid artifacts (see auditStalenessCoupling), so this family's hash is never
   // actually computed until it has ≥1 valid artifact, which the coordinator lands in the same commit as
   // these two files.
+  // Moved to src/lib/forward-events/ (lane FIX, 2026-09-01): the intake mint chokepoint (a runtime
+  // src/lib module, contract rule 16) now calls this extractor, and no runtime src/ file imports from
+  // scripts/ anywhere in this repo — see the extractor's own header for the full layering argument.
+  // Content unchanged by the move; run-extraction.mjs's FORWARD_EVENTS_GOVERNING_FILES and this entry
+  // stay identical by the cross-check in run-extraction.test.mjs.
   'forward-events': Object.freeze([
-    'scripts/forward-events/extract-forward-events.mjs',
+    'src/lib/forward-events/extract-forward-events.mjs',
     'scripts/harness-runs/forward-events/PROTOCOL.md',
   ]),
 });

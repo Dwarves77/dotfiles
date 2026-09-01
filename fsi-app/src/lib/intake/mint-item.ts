@@ -13,8 +13,11 @@
 // PRECOMPUTE the inputs (verdict, item_type, source-role, relevance).
 //
 // MOAT BOUNDARY: this writes intelligence_items (the mint — the ONE sanctioned INSERT site, enforced by
-// the single-mint-chokepoint fitness function), item_cross_references (link edges), and integrity_flags
-// (surfacing). It NEVER writes section_claim_provenance — extraction/links never ground reg facts.
+// the single-mint-chokepoint fitness function), item_cross_references (link edges), integrity_flags
+// (surfacing), and — contract rule 16 (2026-09-01, "the forward-participation clause") —
+// item_forward_events (dated obligations extracted from this item's already-grounded content, see the
+// post-insert block below). It NEVER writes section_claim_provenance — extraction/links never ground reg
+// facts; it only READS that table (and intelligence_item_sections) to feed the forward-events extractor.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { congruence, sourceRole } from "@/lib/entities/source-role.mjs";
 import { matchExistingSubject } from "@/lib/entities/entity-resolve.mjs";
@@ -23,6 +26,8 @@ import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
 import { discoverConnections, computeTagFrequencies } from "@/lib/connections/discover.mjs";
 import { writeDiscoveredEdges } from "@/lib/connections/write-edges.mjs";
 import { surfaceOf } from "@/lib/surface-of.mjs";
+import { FLYWHEEL_DEFECT_NAMESPACE, createdBy } from "@/lib/connections/flag-namespaces.mjs";
+import { extractForwardEvents } from "@/lib/forward-events/extract-forward-events.mjs";
 
 // Connection-signature column list — SAME set backfill-edges.mjs (Pillar A2) selects, so the mint-time
 // scan and the cold-start/repair scan can never diverge on what counts as "provenance." One home for
@@ -109,6 +114,42 @@ export interface MintResult {
   error?: string;
   /** F6: set when this result came from a dryRun (every gate ran, no INSERT). ok:true => would_mint. */
   dryRun?: boolean;
+}
+
+/**
+ * Rule 16(d) (system-prompt.ts, "the forward-participation clause"): a failure of connection discovery
+ * (16a) or forward-event extraction (16b) is a RECORDED integrity_flags defect, never a silent skip.
+ * Shared by both post-insert blocks below so the two writers can never drift on category/created_by/
+ * subject_type shape — same "one home for the shape" discipline flag-namespaces.mjs's createdBy already
+ * enforces for the namespace prefix itself. Best-effort: the write itself must never throw back into a
+ * mint that already succeeded — a failure to RECORD the defect is swallowed exactly like the other
+ * post-insert flag writes in this file (seekStudy / lowRelevance's `.then(() => {}, () => {})`).
+ * @param {SupabaseClient} sb
+ * @param {string} itemId
+ * @param {"discovery"|"forward-events"} subtype - which rule-16 step failed
+ * @param {string} message - the caught error's message, verbatim
+ */
+export async function recordFlywheelDefect(
+  sb: SupabaseClient,
+  itemId: string,
+  subtype: "discovery" | "forward-events",
+  message: string
+): Promise<void> {
+  const step = subtype === "discovery" ? "(a) connection discovery" : "(b) forward-event extraction";
+  await sb
+    .from("integrity_flags")
+    .insert({
+      category: "data_quality",
+      subject_type: "item",
+      subject_ref: itemId,
+      description: `rule 16 ${step} failed at mint for item ${itemId}: ${message}`,
+      recommended_actions: [
+        { action: "investigate", rationale: `${step} did not run for this item — the mint proceeded (non-fatal by design), but the flywheel step itself never completed and must be re-run or diagnosed` },
+      ],
+      status: "open",
+      created_by: createdBy(FLYWHEEL_DEFECT_NAMESPACE, subtype),
+    })
+    .then(() => {}, () => {});
 }
 
 interface SubjectMatch { id: string; how: string }
@@ -259,13 +300,15 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
       )
       .then(() => {}, () => {});
   }
-  // ── U4: L1 incremental connection discovery at mint (flywheel, closes the growth loop) ────────────
+  // ── U4 / rule 16(a): L1 incremental connection discovery at mint (flywheel, closes the growth loop) ──
   // Reuses discover.mjs's scoring (proven by the backfill, A2) and write-edges.mjs's origin-aware writer
   // (never clobbers an entity_extraction/agent_semantic edge) — no new logic, no new write path. Runs
   // ONCE per mint, bounded to 12 edges (discoverConnections' default limit); piggybacks this call's own
   // clock, so it adds no resident process and no new schedule (Execution model: operator-cadence,
   // default off). Non-fatal by construction (try/catch): a discovery failure must never fail a mint —
-  // the standalone backfill remains the cold-start/repair path if this ever misses or errors.
+  // the standalone backfill remains the cold-start/repair path if this ever misses or errors. Rule 16(d):
+  // a failure here is RECORDED as an integrity_flags defect (recordFlywheelDefect above) — never a
+  // silent skip, which is the class fix for this block's pre-rule-16 posture (an empty catch).
   // MOAT BOUNDARY: writes ONLY item_cross_references, same table the dedup:linked edge above touches.
   try {
     const corpus: Array<Record<string, unknown>> = [];
@@ -309,9 +352,61 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
       await writeDiscoveredEdges(sb, edges);
       flags.push(`discovery:${edges.length}`);
     }
-  } catch {
+  } catch (e: unknown) {
     // non-fatal — same swallow-and-continue posture as seekStudy/lowRelevance below (their
-    // .then(() => {}, () => {})); a discovery-scan failure must never surface as a mint failure.
+    // .then(() => {}, () => {})); a discovery-scan failure must never surface as a mint failure. Rule
+    // 16(d): record it, do not just swallow it.
+    await recordFlywheelDefect(sb, itemId, "discovery", e instanceof Error ? e.message : String(e));
+    flags.push("discovery-failed");
+  }
+
+  // ── rule 16(b): forward-event extraction at mint time (flywheel, "the forward-participation clause") ─
+  // Reads back this item's already-grounded content — section_claim_provenance (FACT/GAP claims) and
+  // intelligence_item_sections (rendered section markdown) — and runs the SAME pure extractor the
+  // forward-events harness family uses (src/lib/forward-events/extract-forward-events.mjs), so there is
+  // exactly one extraction implementation, never a second copy grown here. A brand-new mint typically has
+  // ZERO rows in either table yet (grounding/section-extraction is a later regeneration pass — this
+  // file's own header: "NEVER writes section_claim_provenance"), so extraction usually runs over empty
+  // input and emits nothing; that is a correct, honest zero, not a skip. Non-fatal by construction: an
+  // extraction failure must never fail a mint. Rule 16(d): a failure here is a RECORDED integrity_flags
+  // defect, same posture and same helper as the discovery block above.
+  // MOAT BOUNDARY: writes ONLY item_forward_events, a table nothing else in this chokepoint touches. A
+  // plain INSERT (no upsert/onConflict) is correct and safe here: itemId is a row this call itself just
+  // minted, so no item_forward_events row for it can already exist — there is nothing to conflict with.
+  try {
+    const [{ data: claimRows, error: claimErr }, { data: sectionRows, error: sectionErr }] = await Promise.all([
+      sb
+        .from("section_claim_provenance")
+        .select("id, claim_kind, claim_text, source_span")
+        .eq("intelligence_item_id", itemId)
+        .in("claim_kind", ["FACT", "GAP"]),
+      sb.from("intelligence_item_sections").select("id, section_key, content_md").eq("item_id", itemId),
+    ]);
+    if (claimErr) throw new Error(`section_claim_provenance read failed: ${claimErr.message}`);
+    if (sectionErr) throw new Error(`intelligence_item_sections read failed: ${sectionErr.message}`);
+
+    const claims = (claimRows ?? []).map((r: Record<string, unknown>) => ({
+      claim_id: r.id as string,
+      kind: r.claim_kind as "FACT" | "GAP",
+      text: r.claim_text as string,
+      span: (r.source_span as string | null) ?? null,
+    }));
+    const sections = (sectionRows ?? []).map((r: Record<string, unknown>) => ({
+      section_id: r.id as string,
+      key: r.section_key as string,
+      md: (r.content_md as string | null) ?? "",
+    }));
+
+    const { events } = extractForwardEvents({ claims, sections });
+    if (events.length) {
+      const rows = events.map((ev: object) => ({ intelligence_item_id: itemId, ...(ev as Record<string, unknown>) }));
+      const { error: fwdErr } = await sb.from("item_forward_events").insert(rows);
+      if (fwdErr) throw new Error(`item_forward_events insert failed: ${fwdErr.message}`);
+      flags.push(`forward-events:${events.length}`);
+    }
+  } catch (e: unknown) {
+    await recordFlywheelDefect(sb, itemId, "forward-events", e instanceof Error ? e.message : String(e));
+    flags.push("forward-events-failed");
   }
 
   if (seekStudy) {

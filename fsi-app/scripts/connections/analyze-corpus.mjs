@@ -32,8 +32,11 @@
 //
 // F6 (theme-delta) captures the PRIOR theme set (id + member_ids) before the guardedDelete-all this
 // file has always performed, diffs it against the freshly clustered set, and attaches the digest onto
-// THIS run's connection_theme_runs row (args.theme_delta) — see the persist step below for why args,
-// not a new column (no migration in this lane's write set).
+// THIS run's connection_theme_runs.theme_delta column (migration 276) — see the persist step below.
+// (Prior to migration 276 the digest rode inside the already-JSONB `args` column as `args.theme_delta`;
+// that was a documented placeholder — args is "the CLI args the pass ran with", not a result — and
+// migration 276 gives the digest its own durable column. Clean cutover: no dual-write, no read fallback
+// to args.theme_delta for old rows.)
 //
 // Usage: node scripts/connections/analyze-corpus.mjs [--dry] [--signals]
 //   --dry      compute + report (themes, gaps, anticipated targets, signal candidates), write nothing
@@ -265,17 +268,9 @@ try {
     console.log(`SIGNALS REFLECTED: ${signalResult.inserted} opened, ${signalResult.resolved} resolved (${signalResult.unchanged} already open, unchanged).`);
   }
 
-  // F6: attach the theme-delta digest to THIS run's ledger row. No `theme_delta` column exists on
-  // connection_theme_runs (migration 253) and adding one is a schema migration outside this lane's
-  // write set (supabase/migrations/** is not in FW1's write set, and a new migration file risks a
-  // number collision with the other lanes building in parallel) — so the digest rides inside the
-  // already-JSONB `args` column instead, merged alongside the run's own CLI-args record. `args` is
-  // documented as "the CLI args the pass ran with (threshold, limit, dry, etc.) — the reproducibility
-  // record"; theme_delta is additive to that intent (a record of what this specific invocation
-  // changed), not a repurposing of an unrelated field. TO-VERIFY (flagged in the FW1 report): whether
-  // the coordinator wants a dedicated `connection_theme_runs.theme_delta jsonb` column instead —
-  // trivial to add later (ALTER TABLE ... ADD COLUMN, additive, no backfill) without disturbing this
-  // digest's shape.
+  // F6: attach the theme-delta digest to THIS run's ledger row via its own column (migration 276 —
+  // connection_theme_runs.theme_delta jsonb, nullable). `args` reverts to holding only the run's CLI
+  // args, matching its migration-253 documented meaning.
   await guardedUpdate(
     "connection_theme_runs",
     (qb) => qb.eq("id", runId),
@@ -287,7 +282,8 @@ try {
       themes_written: insRes.inserted,
       gaps_flagged: gaps.length,
       rounds: clustered.rounds,
-      args: { dry: false, signals: RUN_SIGNALS, theme_delta: themeDelta },
+      args: { dry: false, signals: RUN_SIGNALS },
+      theme_delta: themeDelta,
     },
     { cite: CITE },
   );

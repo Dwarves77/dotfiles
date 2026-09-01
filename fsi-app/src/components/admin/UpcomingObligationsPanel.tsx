@@ -11,10 +11,12 @@
  *
  * Backed by: GET /api/admin/forward-events (auth, rate-limit, platform-admin gate, no-store).
  *
- * MOUNT: not wired into a page by this lane — see the FW1 report's "where mounted" note. The natural
- * host (SourceHealthDashboard.tsx's tab set) requires widening src/stores/sourceStore.ts's activeView
- * union type, a file outside this component's own file and outside FW1's write set; ship-the-component-
- * and-note-the-mount is the dispatch's own fallback for exactly this shape of collision.
+ * MOUNT (lane FIX, 2026-09-01): SourceHealthDashboard.tsx's tab set, as a new "obligations" tab next to
+ * Themes — src/stores/sourceStore.ts's activeView union was widened to carry it (the FW1 report's own
+ * "where mounted" note named this as the natural host, blocked only on that widening). Reached in the
+ * UI via Admin → Sources → any sub-tab → the SourceHealthDashboard's own "Upcoming obligations" tab —
+ * AdminDashboard.tsx mounts SourceHealthDashboard once for its whole "Sources" section regardless of
+ * which AdminDashboard sub-tab is active, so this panel is reachable from all of them.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -243,7 +245,7 @@ function EmptyState() {
         No upcoming obligations match the current filters
       </h3>
       <p className="mt-1 text-xs max-w-md" style={{ color: "var(--color-text-secondary)" }}>
-        item_forward_events is populated by scripts/forward-events/extract-forward-events.mjs, an
+        item_forward_events is populated by src/lib/forward-events/extract-forward-events.mjs, an
         operator-run extraction pass — not a live trigger.
       </p>
       <p className="mt-3 text-[11px] inline-flex items-center gap-1.5" style={{ color: "var(--color-text-muted)" }}>
