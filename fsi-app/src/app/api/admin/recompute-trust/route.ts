@@ -6,6 +6,28 @@
 // to reflect current earned signals. Designed to run on a monthly cron
 // from .github/workflows/trust-recompute.yml.
 //
+// DEMOTION (Wave W2, wire #25 of the unwired-module disposition register,
+// docs/plans/unwired-disposition-2026-08-31.md §J). evaluateDemotion had
+// ZERO production callers before this wave — sources could only ever be
+// promoted or manually tier-overridden; nothing in the live system ever
+// reduced a source's tier from its own degrading accuracy/reliability/
+// accessibility history. This loop now calls it per source, same as the
+// trust-score recompute above, and RECORDS every fired verdict to
+// source_trust_events (event_type='tier_demotion', details.applied=false)
+// — see demotionOutcomeFor below.
+//
+// PROPOSE-ONLY, not auto-apply (deliberate, conservative choice — see
+// demotionOutcomeFor's doc comment for the full basis). No sources.base_tier
+// or sources.effective_tier write happens here. Every fired verdict is
+// still recorded and surfaced loudly in this route's response summary
+// (demotions_proposed / demotion_record_failed), so nothing is silent —
+// only the tier mutation itself is deferred to an operator/future wave.
+//
+// Fail-soft per source: a thrown demotion evaluation or a failed
+// source_trust_events insert is caught, counted, and named in the
+// response's demotion_failures — it never aborts the sweep and never
+// blocks that source's trust-score update (already written above it).
+//
 // Auth: x-worker-secret header (same WORKER_SECRET pattern as
 // /api/worker/check-sources). NOT user-facing.
 
@@ -16,10 +38,81 @@ import { getServiceSupabase } from "@/lib/supabase-service";
 import {
   computeTrustScore,
   computeOverallScore,
+  evaluateDemotion,
 } from "@/lib/trust";
-import type { TrustMetrics, SourceTier } from "@/types/source";
+import type { DemotionEvaluation } from "@/lib/trust";
+import type { TrustMetrics, SourceTier, Source } from "@/types/source";
 import { isGloballyPaused } from "@/lib/api/pause";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
+
+// ── Demotion recording decision (pure, exported for testability — same
+// route.ts-exports-a-pure-function pattern src/app/api/admin/sources/
+// bulk-import/route.ts's headReachabilityDecision and src/app/api/
+// watchlist/route.ts's isTeamOnlyScopeViolation already use). ──
+//
+// WHY PROPOSE-ONLY (applied: false, always, regardless of a fired trigger's
+// own `severity: "immediate" | "flagged"`):
+//   1. evaluateDemotion's own return shape names its result `recommended_tier`
+//      — a recommendation, not a directive — computed as `min(7, base_tier+1)`
+//      (src/lib/trust.ts).
+//   2. Every other live tier-mutation path in this codebase writes
+//      `effective_tier`, the DYNAMIC column, and explicitly documents
+//      `base_tier` as never machine-written: src/lib/sources/source-growth.ts
+//      "Writes effective_tier ONLY (the dynamic column; base_tier + the
+//      compat `tier` are never touched — the moat)". evaluateDemotion's
+//      recommended_tier is base_tier-relative, so applying it live would mean
+//      this monthly cron writing base_tier — the one column every sibling
+//      mechanism (recomputeEffectiveTier, tier-override) deliberately never
+//      touches. That is a new capability this wave was not asked to build.
+//   3. The register's own WIRE recommendation (unwired-disposition-
+//      2026-08-31.md #25) describes the gap as "sources can currently only
+//      ever be promoted, never automatically demoted" and asks only that the
+//      evaluation run in this loop and its verdict be acted on "the same way
+//      the route already acts on promotion verdicts" — but this route does
+//      not itself act on any promotion verdict today (it only writes
+//      trust_score_* columns), so there is no live auto-apply pattern here to
+//      mirror. Recording every fired verdict (this function) with no tier
+//      write is the conservative reading of that instruction.
+// A later, deliberately-scoped wave can flip `applied` to true for
+// `severity: "immediate"` triggers once an operator ruling authorizes a
+// base_tier (or effective_tier) write from this path — the recorded rows
+// already carry everything that decision would need (recommended_tier,
+// every fired trigger + its current_value).
+export function demotionOutcomeFor(
+  sourceId: string,
+  evalResult: DemotionEvaluation
+):
+  | { proposed: false }
+  | {
+      proposed: true;
+      event: {
+        source_id: string;
+        event_type: "tier_demotion";
+        details: {
+          proposed: true;
+          applied: false;
+          recommended_tier: SourceTier;
+          triggers_fired: DemotionEvaluation["triggers_fired"];
+        };
+        created_by: "worker";
+      };
+    } {
+  if (!evalResult.triggered) return { proposed: false };
+  return {
+    proposed: true,
+    event: {
+      source_id: sourceId,
+      event_type: "tier_demotion",
+      details: {
+        proposed: true,
+        applied: false,
+        recommended_tier: evalResult.recommended_tier,
+        triggers_fired: evalResult.triggers_fired,
+      },
+      created_by: "worker",
+    },
+  };
+}
 
 
 export async function POST(request: NextRequest) {
@@ -47,7 +140,7 @@ export async function POST(request: NextRequest) {
       supabase
         .from("sources")
         .select(
-          "id, name, base_tier, confirmation_count, conflict_count, accuracy_rate, accessibility_rate, total_checks, lead_time_samples, avg_lead_time_days, independent_citers, highest_citing_tier, total_citations, self_citation_count, conflict_total, last_checked"
+          "id, name, base_tier, confirmation_count, conflict_count, accuracy_rate, accessibility_rate, total_checks, lead_time_samples, avg_lead_time_days, independent_citers, highest_citing_tier, total_citations, self_citation_count, conflict_total, last_checked, last_accessible, created_at, last_substantive_change, update_frequency"
         )
         .eq("processing_paused", false)
         .order("id", { ascending: true })
@@ -64,6 +157,15 @@ export async function POST(request: NextRequest) {
   let updated = 0;
   let failed = 0;
   const failures: string[] = [];
+
+  // Demotion (Wave W2, wire #25) — loud counters, separate from the trust-score
+  // failures above: a demotion evaluation/record failure never blocks or is
+  // blocked by that source's trust-score update.
+  let demotionsProposed = 0;
+  let demotionRecordFailed = 0;
+  let demotionEvalFailed = 0;
+  const demotionFailures: string[] = [];
+  const demotionSamples: Array<{ source: string; recommended_tier: number; triggers: string[] }> = [];
 
   // Distribution buckets reported back to the workflow log so the cron run
   // surfaces meaningful telemetry, not just a count.
@@ -82,7 +184,7 @@ export async function POST(request: NextRequest) {
       successful_checks: 0, // not on this select; not used by the formula
       consecutive_accessible: 0,
       accessibility_rate: s.accessibility_rate ?? 0,
-      last_accessible: null,
+      last_accessible: s.last_accessible ?? null,
       last_inaccessible: null,
       lead_time_samples: s.lead_time_samples || 0,
       avg_lead_time_days: s.avg_lead_time_days || 0,
@@ -115,6 +217,43 @@ export async function POST(request: NextRequest) {
       updated++;
     }
 
+    // DEMOTION (Wave W2, wire #25 — evaluateDemotion has never been called from
+    // production before this). Own try/catch: a thrown evaluation or a failed
+    // source_trust_events insert is fail-soft PER SOURCE — it must not abort the
+    // sweep and must not roll back the trust-score update already written above.
+    // See demotionOutcomeFor's doc comment for why this is propose-only.
+    try {
+      const demotionSource = {
+        base_tier: s.base_tier,
+        created_at: s.created_at,
+        last_substantive_change: s.last_substantive_change,
+        update_frequency: s.update_frequency,
+        trust_metrics: metrics,
+        // evaluateDemotion (src/lib/trust.ts) reads ONLY base_tier, trust_metrics,
+        // last_substantive_change, update_frequency, and created_at — every other
+        // Source field is irrelevant to its verdict, so this narrow object stands
+        // in for the full row the admin surfaces read elsewhere.
+      } as unknown as Source;
+      const demotionEval = evaluateDemotion(demotionSource);
+      const outcome = demotionOutcomeFor(s.id, demotionEval);
+      if (outcome.proposed) {
+        demotionsProposed++;
+        demotionSamples.push({
+          source: s.name,
+          recommended_tier: outcome.event.details.recommended_tier,
+          triggers: outcome.event.details.triggers_fired.map((t) => t.trigger.trigger),
+        });
+        const { error: evErr } = await supabase.from("source_trust_events").insert(outcome.event);
+        if (evErr) {
+          demotionRecordFailed++;
+          demotionFailures.push(`${s.name}: source_trust_events insert failed: ${evErr.message}`);
+        }
+      }
+    } catch (e: any) {
+      demotionEvalFailed++;
+      demotionFailures.push(`${s.name}: demotion evaluation threw: ${e?.message ?? String(e)}`);
+    }
+
     if (overall <= 20) distribution["0-20"]++;
     else if (overall <= 40) distribution["21-40"]++;
     else if (overall <= 60) distribution["41-60"]++;
@@ -144,6 +283,15 @@ export async function POST(request: NextRequest) {
     total_sources: sources.length,
     distribution,
     tier_averages: tierAverages,
+    // DEMOTION (Wave W2, wire #25). PROPOSE-ONLY: demotions_proposed counts sources
+    // with >=1 fired trigger this pass, each recorded to source_trust_events
+    // (event_type='tier_demotion', details.applied=false) — no sources.base_tier or
+    // effective_tier write happens here. See demotionOutcomeFor's doc comment.
+    demotions_proposed: demotionsProposed,
+    demotion_record_failed: demotionRecordFailed,
+    demotion_eval_failed: demotionEvalFailed,
+    demotion_failures: demotionFailures.slice(0, 10), // first 10 only — workflow log is finite
+    demotion_samples: demotionSamples.slice(0, 10), // first 10 only — response body is finite
     computed_at: now,
   });
 }
