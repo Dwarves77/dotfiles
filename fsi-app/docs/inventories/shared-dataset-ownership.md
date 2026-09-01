@@ -71,6 +71,7 @@ who may write a shared table; the test enforces it on every future PR.
     ],
     "integrity_flags": [
       "src/lib/intake/mint-item.ts",
+      "src/lib/intake/flywheel-defect.ts",
       "src/lib/entities/link-items.ts",
       "src/lib/agent/canonical-pipeline.ts",
       "src/workflows/generate-brief.ts",
@@ -96,7 +97,8 @@ who may write a shared table; the test enforces it on every future PR.
     ],
     "item_forward_events": [
       "scripts/forward-events/run-extraction.mjs",
-      "src/lib/intake/mint-item.ts"
+      "src/lib/intake/mint-item.ts",
+      "src/lib/intake/apply-staged-update.ts"
     ],
     "theme_briefs": [
       "src/lib/research/theme-brief.mjs",
@@ -193,6 +195,7 @@ other producer below.
 |---|---|---|---|
 | `intake-seek-study` | `src/lib/intake/mint-item.ts` (research_finding minted on a news/press source) | **OPEN — no automated resolver found.** Only the generic manual admin endpoint `src/app/api/admin/integrity-flags/[id]/resolve/route.ts` resolves it (human-in-the-loop). | mint-item.ts lines 318-327 |
 | `intake-relevance` | `src/lib/intake/mint-item.ts` (low freight-sustainability relevance at intake, fail-open by design) | **OPEN — same as above**; comment names an intended "disposition FLAG RESOLVER (Unit 2)" that does not exist as a script anywhere in the repo at time of audit. | mint-item.ts lines 336-350 |
+| `flywheel-defect:discovery` / `:forward-events` / `:stale-events` | `src/lib/intake/flywheel-defect.ts` (`recordFlywheelDefect`, rule 16(d) — moved 2026-09-01 from a private export in mint-item.ts so mint-item.ts and apply-staged-update.ts share ONE writer shape) | **OPEN — no automated resolver found**, same posture as `intake-seek-study`/`intake-relevance` above; resolved today only via the generic manual admin endpoint. | flywheel-defect.ts; called from mint-item.ts (mint time) and apply-staged-update.ts (`update_item`, substantive updates only) |
 | `flywheel-gap:jurisdiction_span_gap` / `:surface_gap` / `:pivot_operations_gap` | `scripts/connections/analyze-corpus.mjs` | **Self-resolving** — the same script closes any of its own open flags whose gap no longer reproduces on the latest pass (lines 143-152, `guardedUpdate(..., status: "resolved", resolved_by: "analyze-corpus.mjs")`). Not an open leak. | analyze-corpus.mjs lines 118-152 |
 | (entity-link candidate/lineage-gap namespace, exact value set by `entity-resolve.mjs`) | `src/lib/entities/link-items.ts` | **TO-VERIFY** — idempotent one-open-flag-per-namespace-per-item guard exists (lines 59-64), but no resolver was located for this namespace in the time available. | link-items.ts lines 58-64 |
 | (ratified-to-census namespace) | `scripts/connections/ratify-flag-to-census.mjs` | **Pre-registered (parallel lane)** — its own name implies it is itself a *resolver* for some existing flag category, converting a flag into a `census_worklist` entry. **TO-VERIFY at merge** which `created_by` namespace(s) it consumes, and whether it closes the two OPEN leaks above. | not yet present |
@@ -220,18 +223,27 @@ Migration 274/275. Dedupe key (as fixed by 275, after 274's first key silently d
 real run — see migration 275's header): `(intelligence_item_id, event_date, event_kind,
 md5(obligation_text), coalesce(source_claim_id, source_section_id))`.
 
-**Writers (resolved at merge, 2026-09-01).** The extractor
-(`src/lib/forward-events/extract-forward-events.mjs`, moved from `scripts/forward-events/` for src-layer
-reuse) is confirmed **pure** — it computes event objects, no DB call. Two write paths exist:
+**Writers (resolved at merge, 2026-09-01; `apply-staged-update.ts` added 2026-09-01, lane FIX).** The
+extractor (`src/lib/forward-events/extract-forward-events.mjs`, moved from `scripts/forward-events/` for
+src-layer reuse) is confirmed **pure** — it computes event objects, no DB call. The read-back-and-extract
+sequence itself (section_claim_provenance + intelligence_item_sections → extractForwardEvents) is also
+factored to ONE place, `src/lib/forward-events/read-and-extract.mjs`, shared by both src/ writers below so
+neither hand-copies the read. Three write paths exist:
 1. `src/lib/intake/mint-item.ts` — writes extracted events at mint time (contract rule 16(b)); plain
    insert is safe there because the item is newly minted, and failures are recorded as
    `flywheel-defect:` integrity flags per rule 16(d).
-2. Batch/backfill runs: `scripts/forward-events/run-extraction.mjs` emits apply-ready rows and always
+2. `src/lib/intake/apply-staged-update.ts` (`update_item`, SUBSTANTIVE updates only) — re-extracts on every
+   substantive `update_item` (contract rule 16, "on every mint or substantive update"); unlike mint-item.ts
+   the target item may already carry rows, so this path writes idempotently against the 275 dedupe key at
+   the application layer (PostgREST's upsert `onConflict` cannot target the 275 index, which is
+   expression-based) rather than a plain insert, and never deletes — an existing row whose supporting
+   claim/section is gone is flagged `flywheel-defect:stale-events` instead.
+3. Batch/backfill runs: `scripts/forward-events/run-extraction.mjs` emits apply-ready rows and always
    records a harness run artifact; the coordinator applies the rows via the guarded path against the
    275 dedupe key. `load-forward-events.mjs` (named in PROTOCOL.md) was never created; the runner
    supersedes that name and PROTOCOL.md's reference is historical.
 The recorded 901-event first run (`forward-events-run-001.json`) predates the runner and was applied by
-the coordinator directly; all future loads go through path 1 or 2.
+the coordinator directly; all future loads go through path 1, 2, or 3.
 
 | Writer | Evidence |
 |---|---|
