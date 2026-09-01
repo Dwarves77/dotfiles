@@ -114,6 +114,30 @@ jobs:
           echo "from/to = ${{ inputs.from }} .. ${{ inputs.to }}"
           echo "feed    = ${{ inputs.feed_url }}"
 
+      # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
+      # claimRunId (scripts/lib/run-artifact.mjs) numbers the next artifact from the files it can see in
+      # the checked-out tree, i.e. master. Artifacts land through a PR, so a run dispatched before the
+      # previous run's PR merged sees a stale count and claims the SAME run_id (source-sweep run #3 on
+      # 2026-09-01 wrote a second "source-sweep-run-002" while run #2's was still on its branch). The
+      # unmerged sibling branches are fetched and their source-sweep artifacts placed in the working tree
+      # (untracked; removed again before the commit step, never committed by this run) so the claim
+      # counts above them.
+      - name: Hydrate unmerged source-sweep artifacts from sibling branches (run_id collision guard)
+        run: |
+          git fetch --no-tags origin '+refs/heads/source-sweep/*:refs/remotes/origin/source-sweep/*' || true
+          : > /tmp/hydrated-artifacts.txt
+          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/source-sweep/*'); do
+            for f in $(git ls-tree -r --name-only "$b" -- fsi-app/scripts/harness-runs/source-sweep/); do
+              rel="${f#fsi-app/}"
+              if [ ! -e "$rel" ]; then
+                mkdir -p "$(dirname "$rel")"
+                git show "$b:$f" > "$rel"
+                echo "$rel" >> /tmp/hydrated-artifacts.txt
+              fi
+            done
+          done
+          echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged source-sweep file(s) from sibling branches"
+
       - name: run-source-sweep.mjs
         run: |
           args=(--walker "${{ inputs.walker }}" --mode "${{ inputs.mode }}")
@@ -129,6 +153,12 @@ jobs:
       # discover-for-items/forward-events. A dispatch normally runs against master, which is typically
       # branch-protected, so this lands on its own branch and opens a PR (corpus-turn.yml's own pattern)
       # rather than pushing straight to whatever ref triggered the run.
+      - name: Remove hydrated sibling artifacts (they belong to their own branches)
+        if: always()
+        run: |
+          if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
+          rm -rf scripts/harness-runs/*/.claims
+
       - name: Commit the source-sweep harness-run artifact and open a PR
         if: always()
         env:

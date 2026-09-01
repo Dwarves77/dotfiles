@@ -7544,3 +7544,16 @@ upload → Codespace → PR → squash-merge), then close PR #509 as superseded 
 (register-eurlex, 2026-08-25..2026-08-31, **dry**) and check `days_duplicate_edition = 2` and
 single-digit acts per weekday; then apply. Then the standing list: WO-26 stamp, tag proposals +
 ratification, batch-003 records (mint-run-007), EIA secret. Operator: the Actions PR setting.
+
+**Postscript (same session, after Train 9 = `5bd1e147`).** Source-sweep run #2 (dry, same week) proved the
+walker fix on the live site: `days_duplicate_edition = 2`, 7 acts across the week, 28 August = the two
+acts the page shows, `started_at` 3.7 s before `finished_at`, hash `7df464313565f9b4` = the marker.
+Then the first APPLY walk exposed a ninth defect: dispatched before run-002's PR had merged, it counted
+master's artifacts and wrote a second `source-sweep-run-002.json` (run_id collision under the PR-landing
+model; `claimRunId` sees only the checked-out tree). Its DB effect stands and is correct (7
+`portal_link_candidates` rows, the EUR-Lex portal source registered); its artifact is discarded with its
+branch and the apply walk re-dispatched after this lands, numbering honestly as run-003. Structural fix
+in both workflows: hydrate unmerged sibling artifact branches before the runner claims an id, remove
+them before the commit step. This train: run-002 landed, source-sweep marker deleted (discharged),
+`source-sweep/LAST-PROPOSER-PASS.md` written (rule (d), two artifacts), collision guard. Gates: suite
+2,541/2,541 · fitness 23/0 · meta-gate PASS.
