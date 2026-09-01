@@ -27,7 +27,13 @@ import { join, resolve, relative } from "node:path";
 // governing files (CONVENTION.md, PROPOSER-RUNBOOK.md, this file, and F28 itself — F28's GOVERNING_FILES
 // table) are self-referential by construction — a change to this file is itself a change to one of the
 // meta-harness family's own governing files, exactly the "the loop applies to itself" plan §1 describes.
-export const ALLOWED_FAMILIES = Object.freeze(["mint", "screen", "fetch-drain", "meta-harness"]);
+export const ALLOWED_FAMILIES = Object.freeze([
+  "mint",
+  "screen",
+  "fetch-drain",
+  "meta-harness",
+  "forward-events",
+]);
 
 const REQUIRED_TOP_LEVEL = Object.freeze([
   "harness_family",
