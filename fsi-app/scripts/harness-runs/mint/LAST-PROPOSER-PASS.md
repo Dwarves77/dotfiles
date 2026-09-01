@@ -1,69 +1,53 @@
 # Last proposer pass — mint
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **two** artifacts (`mint-run-001.json`,
-`mint-run-002.json`) — F28's rule (d) requires this file once a family reaches ≥2 artifacts, and it names
-the latest one below.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **four** artifacts (`mint-run-001` …
+`mint-run-004`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-004**.
 
-**Artifacts read:** mint-run-001, mint-run-002.
+**Artifacts read:** mint-run-001, mint-run-002, mint-run-003, mint-run-004.
 
-**Full traces read:** `BATCH-001-REPORT.md`, `BATCH-001-REPORT-v2.md`, `transport-proof-raw.json`,
-`queue-10.json`, `payload-32006R1692.json`, `payload-32009L0123.json`, `payload-32015R0757.json`,
-`payload-32019R1242.json`, `payload-32023R0956.json`, `payload-32023R1804.json`,
-`source-32006R1692.txt`, `source-32009L0123.txt`, `source-32015R0757.txt`, `source-32019R1242.txt`,
-`source-32023R0956.txt`, `source-32023R1804.txt` (all under `/root/work/mint/batch-001/`, every path in
-`mint-run-001.json`'s `full_trace_refs`), plus `MINT-RUNBOOK.md`, `validate-mint-payload.mjs` (in full,
-including its header's KNOWN SIMPLIFICATIONS block), `payload-schema.json`, and
-`validate-mint-payload.test.mjs`, per Wave MH-3's dispatch.
+**Full traces read:** `BATCH-001-REPORT-v2.md` §8 (the M2 full-text rebuild record, superseding §1-§5's
+excerpt-era numbers), `HARDENED-VALIDATOR-REJECTIONS-mh3.md`, all six `payload-<celex>.json` and
+`source-<celex>.txt` pairs as rebuilt by M2, `apply-snapshot-pre.json`, `gen-apply-sql.mjs` and the five
+generated `apply-<celex>.sql` files, and the M3 apply lane's per-item verification rows (all under
+`/root/work/mint/batch-001/`, every path in `mint-run-003.json`/`mint-run-004.json` `full_trace_refs`).
 
-**Hypotheses (verified against the traces, not taken on the artifact's word):**
-1. `defects_found[0]` (capture-completeness) checks out: `payload-32019R1242.json`'s own `search_results[0]`
-   holds a 2,621-char `result_content`, while `BATCH-001-REPORT-v2.md` §3's fetch table records
-   `window.__docs['32019R1242'].length` at 102,988 — a directly-verifiable 39x gap, confirmed for all six
-   payloads (`result_content.length` values 2,195-12,082 against recorded fetches 12,237-178,953). The
-   defect's `root_cause` (`javascript_tool`'s ~1.0-1.5K-char truncation defeating the runbook's suggested
-   20,000-char slice) is corroborated by `BATCH-001-REPORT-v2.md` §1's own "Tool-output truncation finding."
-2. `defects_found[1]`/`[2]` (the × → x and curly-quote transcription bugs) check out against the ACTUAL
-   payload/source pair: `payload-32019R1242.json`'s `claims[]` for `jurisdictional_scope`/`penalty_summary`
-   and `source-32019R1242.txt`'s Article 8/Article 2 text both now carry the real `×` (the bug was already
-   corrected in-session per `mint-run-001.json`'s own `proposer_notes` before the batch report went green) —
-   confirming the *fixed* state, and that the bug, while it existed, was undetectable by criterion 3 alone
-   because BOTH of a payload's own fields (`source_span` and `result_content`) carried the identical error.
-   A red test built against this exact hypothesis, with `validate-mint-payload.mjs`'s archive cross-check
-   DISABLED, reproduces the historical gap directly (`validate-mint-payload.test.mjs`, "criterion 3 alone
-   should NOT catch a corruption shared by both payload fields").
-3. `defects_found[0]`'s root_cause also names the missing law: the 8KB-slice workaround
-   `BATCH-001-REPORT-v2.md` improvised in-session existed only as lane-report prose, never codified in
-   `MINT-RUNBOOK.md` — confirmed by reading the pre-MH-3 runbook in full: it named none of
-   `fetched_length`, slice bounds, head/tail verification, or archive-before-authoring.
-4. No new defect beyond what `mint-run-001.json` already named — this pass implements exactly the three
-   proposals the prior `LAST-PROPOSER-PASS.md` scoped, without inventing new scope.
+**Hypotheses (verified, with basis):**
+1. `mint-run-003`'s claim that all six payloads pass the hardened validator was independently re-verified
+   by the coordinator immediately before apply: a fresh `git worktree` at `origin/master` `9282aa3c`,
+   `validate-mint-payload.mjs` run on all six — 6/6 `valid: true`, 0 failures, 0 Gate-A orphans (basis:
+   ran it, 2026-09-01). The re-verification step exists because mint-run-003's own `defects_found`
+   records a stale-local-checkout near-miss; running the validator from a pinned origin/master worktree
+   is the cheap structural answer and should become standing coordinator practice.
+2. `mint-run-004`'s central finding checks out mechanically: item identity in this database is
+   **normalized `canonical_instrument_key`** (trigger `trg_set_canonical_instrument_key` strips the
+   `CELEX:` prefix on INSERT; partial unique index `uq_intelligence_items_canonical_key_verified_live`
+   enforces one verified live row per key), while every dedup check in the mint kit — MINT-RUNBOOK step 1's
+   `WHERE source_url = ...`, the queue-level "111 already minted" count — is **URL-exact**. Two of six
+   batch-001 rows (32019R1242, 32023R0956) were already covered by live verified items under different
+   EUR-Lex URL variants (`/eli/reg/.../oj`, `/legal-content/EN/TXT?uri=` without the slash). Basis: ran
+   the live queries; read the trigger and index definitions; the 23505 collision on the 32019R1242 apply
+   is the direct experimental confirmation. The DO-block design contained the failure exactly as intended
+   (atomic rollback, zero partial rows — verified by post-error count checks).
+3. The apply path itself is proven: four items minted end-to-end through M0's write order
+   (item → sections → search row → Gate-A pre-write → claims → citation), each flipping to `verified` on
+   the final claim insert via `set_provenance_status` at trigger depth 2 — no direct `provenance_status`
+   write anywhere, `guard_provenance_flip` untripped, zero residual open data-quality flags. Live-verify
+   first-pass rate: 4/4. Basis: M3 lane verification rows + coordinator post-apply delta check
+   (+4/+16/+23/+4/+4/+4, flags unchanged).
 
-**Proposal implemented (Wave MH-3, this run):**
-- (a) **Capture-completeness gate** — `search_results[].fetched_length` is now a required schema field
-  (`payload-schema.json`); `validate-mint-payload.mjs` fails any `result_content` whose length diverges
-  from it beyond a 50-char tolerance, or whose capture ratio falls under a 0.98 floor
-  (`capture_incomplete` / `capture_length_mismatch` / `capture_length_exceeds_fetched` /
-  `missing_fetched_length`).
-- (b) **Unicode-integrity check** — NFKC + known-substitution-class (×, curly quotes, en/em dash, NBSP)
-  comparison of every FACT `source_span` against an independently archived source
-  (`search_results[].archived_source_path`, new optional schema field), plus a separate scan of authored
-  prose (`full_brief`/`sections[].content_md`) for the same substitution classes. Six new failure reasons;
-  falls back to a weaker `result_content`-only comparison when no archive is named (documented as a known
-  simplification, matching this file's existing header-comment convention).
-- (c) **`MINT-RUNBOOK.md` §1a, the ≤8,000-char slice-and-rebuild procedure, codified as law** — measure
-  `fetched_length` first, slice at ≤8,000 chars, verify length + head/tail per slice, rebuild by script
-  from empty, archive the rebuilt text BEFORE authoring any claim, then author claims from the archive —
-  removing the possibility that `result_content` and a claim's `source_span` are typed by the same hand
-  from the same reading of the page (the mechanism (b)'s check now depends on).
-- **Retrofit**: batch-001's six payloads got ONLY `fetched_length` added (no `result_content` change) —
-  the hardened validator now rejects all six for capture-incompleteness (`HARDENED-VALIDATOR-REJECTIONS-mh3.md`),
-  proving the defect class is structurally closed. Re-fetching them to actually PASS is explicitly deferred
-  ("M2 full-text rebuild," build plan §4) — not this wave's scope.
-- `mint-run-001.json`'s `defects_found[0]` and `[2]` `fix_ref` fields were updated in place to point at
-  this landing (their `description`/`root_cause` were left untouched — only the "is this fixed yet" pointer
-  changed, which is the field's documented purpose).
+**Proposal (scoped for the next mint cycle — NOT implemented in this landing):**
+1. **Canonical-key dedup, kit-wide.** Derive the CELEX/normalized key from each queue URL, compare
+   against live `canonical_instrument_key` holders (verified+live at minimum; report archived/quarantined
+   holders as context), and re-run this over the full remaining ~3,655-row would_mint queue BEFORE
+   batch-002 lane dispatch. The 111 "already minted" figure is URL-exact and therefore a floor, not a
+   count; expect it to rise. Also upgrade MINT-RUNBOOK step 1 from the `source_url` check to the
+   canonical-key check.
+2. **Census resolution mechanics into the runbook.** `census_worklist.resolved_into_id` is an
+   intra-worklist self-FK (dedup chains), not an item pointer; the terminal state for a minted/covered row
+   is `enumeration_status='reconciled'` with the item id recorded in `notes`. mint-run-004's
+   `defects_found[1]` records the coordinator's own misread (caught by the FK, zero rows written); naming
+   the mechanism in MINT-RUNBOOK's apply section closes the recurrence path.
 
-**Family gates status:** GREEN — `node --test scripts/mint/validate-mint-payload.test.mjs` (33/33, 21
-pre-existing + 12 new), `sh .discipline/run-test-suite.sh`, `npx tsc --noEmit`, and
-`node .discipline/fitness/runner.mjs` (23 functions incl. F28, 0 violations) all pass under this wave's
-diff — see the Wave MH-3 lane report for full gate tails.
+**Family gates status:** this landing adds run artifacts and attestation files only (no governing-file
+change — `harness_version` for both runs matches the current tree). Kit tests and the fitness suite run
+in the landing train's CI as usual.
