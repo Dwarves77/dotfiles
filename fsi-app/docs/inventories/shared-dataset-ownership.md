@@ -96,7 +96,7 @@ who may write a shared table; the test enforces it on every future PR.
     ],
     "item_forward_events": [
       "scripts/forward-events/run-extraction.mjs",
-      "scripts/forward-events/load-forward-events.mjs"
+      "src/lib/intake/mint-item.ts"
     ],
     "theme_briefs": [
       "src/lib/research/theme-brief.mjs",
@@ -220,18 +220,18 @@ Migration 274/275. Dedupe key (as fixed by 275, after 274's first key silently d
 real run — see migration 275's header): `(intelligence_item_id, event_date, event_kind,
 md5(obligation_text), coalesce(source_claim_id, source_section_id))`.
 
-**Current writer: TO-VERIFY.** `scripts/forward-events/extract-forward-events.mjs` (FE-1) is confirmed
-**pure** — it computes event objects but contains no `.from(`/`.insert(`/DB call of any kind (grepped the
-full 712-line file). `scripts/harness-runs/forward-events/PROTOCOL.md` (staged for a coordinator to place)
-names the actual loader as `scripts/forward-events/load-forward-events.mjs`, and states this repo's own
-`forward-events-run-001.json` — which records a completed run — should land "together with (or immediately
-ahead of)" that protocol file. At time of audit `load-forward-events.mjs` is **not present** in this
-worktree, yet `scripts/harness-runs/forward-events/forward-events-run-001.json` exists and the commit log
-(`git log --oneline`, this branch's parent history) shows "Forward-events harness: extractor,
-item_forward_events (274+275), family registration, first run (901 events)" already landed on a prior
-commit. **Open question for the merge**: reconcile whether the loader is named `load-forward-events.mjs`
-(per PROTOCOL.md) or `run-extraction.mjs` (per this task's brief) — both names are pre-registered in the
-allowlist above so neither naming breaks the test.
+**Writers (resolved at merge, 2026-09-01).** The extractor
+(`src/lib/forward-events/extract-forward-events.mjs`, moved from `scripts/forward-events/` for src-layer
+reuse) is confirmed **pure** — it computes event objects, no DB call. Two write paths exist:
+1. `src/lib/intake/mint-item.ts` — writes extracted events at mint time (contract rule 16(b)); plain
+   insert is safe there because the item is newly minted, and failures are recorded as
+   `flywheel-defect:` integrity flags per rule 16(d).
+2. Batch/backfill runs: `scripts/forward-events/run-extraction.mjs` emits apply-ready rows and always
+   records a harness run artifact; the coordinator applies the rows via the guarded path against the
+   275 dedupe key. `load-forward-events.mjs` (named in PROTOCOL.md) was never created; the runner
+   supersedes that name and PROTOCOL.md's reference is historical.
+The recorded 901-event first run (`forward-events-run-001.json`) predates the runner and was applied by
+the coordinator directly; all future loads go through path 1 or 2.
 
 | Writer | Evidence |
 |---|---|

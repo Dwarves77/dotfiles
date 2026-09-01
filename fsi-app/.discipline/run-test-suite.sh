@@ -59,6 +59,7 @@ node --test \
   fsi-app/.discipline/assistant-spend-gate.test.mjs \
   fsi-app/.discipline/relationship-check-literals.test.mjs \
   fsi-app/.discipline/skill-drift-gate.test.mjs \
+  fsi-app/.discipline/shared-writer-registry.test.mjs \
   fsi-app/.discipline/notification-preferences-save-path.test.mjs \
   fsi-app/.discipline/lib/*.test.mjs \
   fsi-app/.discipline/rules/*.test.mjs \
