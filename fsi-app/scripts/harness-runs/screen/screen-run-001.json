@@ -1,0 +1,37 @@
+{
+  "harness_family": "screen",
+  "harness_version": "sha256:4cde0a0ffbbabcaf",
+  "run_id": "screen-run-001",
+  "started_at": "2026-08-31T17:28:25Z",
+  "config": {
+    "rules_version": "round 1 — 12 title/CELEX rules, commit ff93fdc7",
+    "input": "/root/work/build/census-would-mint.json (3,661 would_mint census rows)",
+    "reviewed_merge": "none — round 1 predates the --reviewed flag (added in round 2, commit 4f29b053)"
+  },
+  "inputs_ref": [
+    "/root/work/build/census-would-mint.json"
+  ],
+  "per_item": [],
+  "metrics": {
+    "on_vertical": 193,
+    "off_vertical": 156,
+    "ambiguous": 3312,
+    "decided_total": 349,
+    "ambiguous_rate": "3312/3661 = 90.47%",
+    "operator_overturn_rate": "not applicable — round 1 has no reviewed/operator pass to overturn against; the first such pass is round 2 (screen-run-002.json)"
+  },
+  "defects_found": [
+    {
+      "description": "Round 1's own raw per-row classification output — the file that would show exactly which 349 rows were decided on_vertical/off_vertical and by which rule — was never written to a run-scoped path. screen-worklist.mjs (as authored in commit ff93fdc7) wrote to a fixed <input-basename>.screen-results.json; when round 2 ran against the same input with no --out-basename override, its output silently replaced round 1's on disk. All that survives round 1 today is its aggregate counts (docs/ops/session-log.md Addendum 70: 'round-1 rules left 3,312 ambiguous'; commit 4f29b053's message: \"Round-1's 349 already-decided verdicts confirmed byte-identical throughout\") and the round-1 source code itself (still reachable via `git show ff93fdc7:...`, since screen-rules.mjs/screen-worklist.mjs are versioned, unlike their JSON output).",
+      "root_cause": "screen-worklist.mjs's CLI (commit ff93fdc7) had no run-numbered output path and no overwrite guard; --out-basename was only added in round 2 (commit 4f29b053), by which point round 1's file was already gone.",
+      "fix_ref": "fsi-app/scripts/lib/run-artifact.mjs's writeRunArtifact refuses to overwrite an existing <run_id>.json by default (Wave MH-1, this convention) — the structural fix. screen-worklist.mjs itself is not yet wired to call writeRunArtifact; that emission-in-the-harness wiring is Wave MH-2's scope (plan §2/§3)."
+    }
+  ],
+  "full_trace_refs": [
+    "fsi-app/scripts/mint/screen-rules.mjs (git show ff93fdc7:fsi-app/scripts/mint/screen-rules.mjs — round-1 rule source, the one literal round-1 artifact that survives unmodified)",
+    "fsi-app/scripts/mint/screen-worklist.mjs (git show ff93fdc7:fsi-app/scripts/mint/screen-worklist.mjs)",
+    "/root/work/dotfiles/docs/ops/session-log.md (Addendum 70, ~line 6991: 'round-1 rules left 3,312 ambiguous')",
+    "/root/work/build/census-would-mint.json (round 1's actual input file, still on disk, byte-identical to what round 1 consumed — it is also round 2's --input)"
+  ],
+  "proposer_notes": "started_at uses commit ff93fdc7's own authored timestamp (2026-08-31T17:28:25Z, `git log -1 ff93fdc7 --format=%aI`) as the best-available basis — round 1's actual screening-run timestamp does not survive (that is exactly the loss this artifact documents); the code was authored and the classifier run against the full 3,661-row dump in the same session per the commit message. metrics.on_vertical/off_vertical/ambiguous (193/156/3312) were NOT taken on faith from the lossy prose record — they were reproduced this session by `git show ff93fdc7:fsi-app/scripts/mint/{screen-rules,screen-worklist}.mjs` into a scratch dir and re-running that exact historical code against /root/work/build/census-would-mint.json (the real, still-present round-1 input): output was on_vertical=193, off_vertical=156, ambiguous=3312, decided=349 — an exact match to commit 4f29b053's '349 already-decided verdicts confirmed byte-identical' claim, which independently corroborates this reconstruction rather than merely repeating it. This replay recovers the AGGREGATE counts only; it does not and cannot recover which 349 specific rows were decided which way with what basis string, since that per-row detail is what actually failed to survive — per_item is deliberately left empty rather than backfilled from a replay this session cannot honestly attribute to the real round-1 run (the real run's exact code state at the moment it ran, versus this session's replay of the committed code, are not provably identical, even though highly likely to be). harness_version hashes that same checked-out ff93fdc7 snapshot (not the current HEAD, which is round 3's state) via hashHarnessVersion — reproducible by any future reader from git history alone."
+}

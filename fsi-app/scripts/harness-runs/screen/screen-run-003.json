@@ -1,0 +1,66 @@
+{
+  "harness_family": "screen",
+  "harness_version": "sha256:8417a3f3a96d00c3",
+  "run_id": "screen-run-003",
+  "started_at": "2026-08-31T20:18:34Z",
+  "config": {
+    "rules_version": "round 3 — mechanism-test re-audit (Wave M-screen-3, 2026-08-31) + operator reclassification ruling (2026-08-31), commit 6227e41f (current HEAD)",
+    "input": "/root/work/build/census-would-mint.json",
+    "mechanism_test": "An instrument is ON-VERTICAL if it PRICES, CAPS, STANDARDS, VERIFIES, or ENABLES the carbon/environmental intensity of freight movement (any mode) or of freight fuels, vehicles, vessels, infrastructure, or logistics supply chains; OFF-VERTICAL only if it fails all five mechanism prongs (screen-rules.mjs header comment)",
+    "reviewed_file": "fsi-app/scripts/mint/reviewed-verdicts.json — same 1,746-entry file as round 2, with 14 entries' verdicts updated by the operator's ruling",
+    "baseline_corrected": "round 2 (census-final.screen-results.json, 1630/1775/256)"
+  },
+  "inputs_ref": [
+    "/root/work/build/census-would-mint.json",
+    "/root/work/build/census-final.screen-results.json"
+  ],
+  "per_item": [],
+  "metrics": {
+    "on_vertical": 1729,
+    "off_vertical": 1676,
+    "ambiguous": 256,
+    "on_vertical_by_provenance": {
+      "rule": 1055,
+      "reviewed": 674
+    },
+    "off_vertical_by_provenance": {
+      "rule": 860,
+      "reviewed": 816
+    },
+    "ambiguous_by_provenance": {
+      "rule": 0,
+      "reviewed": 256
+    },
+    "ambiguous_rate": "256/3661 = 6.99% — unchanged from round 2; round 3 only reclassifies already-decided rows, it never touches the ambiguous bucket (confirmed by this session's row-by-row diff against round 2)",
+    "corrections_vs_round_2": {
+      "total_rows_reclassified": 99,
+      "all_reclassified_direction": "off_vertical -> on_vertical (none the reverse, none to/from ambiguous)",
+      "rule_provenance_flips": 85,
+      "rule_provenance_flips_distinct_rules": 8,
+      "rules_flipped_with_row_counts": {
+        "ses_performance_plan_administration": 25,
+        "denylist_atm_air_services_bilateral": 17,
+        "ship_classification_society_accreditation": 9,
+        "ses_route_charging_zone_administration": 9,
+        "port_state_control_administration": 8,
+        "rail_freight_corridor_governance": 7,
+        "transit_ecopoints_bilateral_agreement": 6,
+        "heavy_goods_vehicle_charging_administration": 4
+      },
+      "of_which_operator_ruling_tagged": 6,
+      "of_which_mechanism_reaudit_beyond_operators_list": 2,
+      "reviewed_provenance_flips": 14,
+      "method": "computed this session by diffing census-final.screen-results.json (round 2) against census-final-v3.screen-results.json (round 3) row-by-row by census_worklist id"
+    },
+    "mechanism_question_flags": "23 ON_VERTICAL_RULES entries carry mechanismQuestion (satisfy no mechanism prong on a strict freight reading per this re-audit, but are NEVER silently flipped off per the hard rule) — left on_vertical, flagged for operator review, not yet resolved"
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/root/work/build/census-final-v3.screen-results.json",
+    "/root/work/build/census-final-v3.screen-summary.md",
+    "fsi-app/scripts/mint/screen-rules.mjs",
+    "fsi-app/scripts/mint/reviewed-verdicts.json",
+    "/root/work/dotfiles/docs/ops/session-log.md (Addendum 71: 'M-screen rounds 1-3 (mechanism test + operator reclassification ruling 2026-08-31: final 1,729 mint / 1,676 off-vertical / 256 need-fetch)')"
+  ],
+  "proposer_notes": "started_at is census-final-v3.screen-summary.md's own self-reported 'Generated: 2026-08-31T20:18:34.068Z'. harness_version hashes the CURRENT HEAD screen-rules.mjs/screen-worklist.mjs, which IS round 3's landed state PLUS this same Wave MH-1 commit's one-line CONVENTION.md pointer added to screen-worklist.mjs's header (screen-worklist.mjs is one of the two hashed files) — unlike round 1/2, no historical git-checkout was needed, but this hash is therefore Wave-MH-1-inclusive, not byte-identical to the pre-MH-1 state commit 6227e41f alone produced. This run's own defects_found is empty: round 3 is itself the correction pass for round 2's defects_found[0]; nothing wrong with round 3's own mechanism has been found by any later pass (there is no round 4 yet). The 23 mechanismQuestion-flagged rules (metrics.mechanism_question_flags) are a genuinely open item, not recorded as a defect because the hard rule that leaves them on_vertical-pending-review is deliberate design, not a bug — a future proposer pass should read them (screen-rules.mjs, grep 'mechanismQuestion:') before assuming round 3 is the final word on ADR-020-vs-mechanism-test tension, especially in core_sustainability_climate_environment, the largest ON_VERTICAL bucket per screen-rules.mjs's own header comment."
+}
