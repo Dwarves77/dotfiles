@@ -7570,3 +7570,14 @@ document sources from the mint path, so the first by id won. Fixed in the driver
 seven rows. Registry observation for an ADR: two source kinds (institution vs citation document) share
 one table under a host-uniqueness rule only one of them obeys. Gates: suite 2,545/2,545 · fitness 23/0
 · meta-gate PASS.
+
+**Postscript 3.** Train 11 = `d329ffd`. Run-004 (apply) registered the OJ portal row correctly
+(`260089a9-…`) and then reported an **eleventh defect** by its own numbers: seven days, HTTP 200, 0.3 s,
+zero act links, zero errors — an hour after run-003 found seven acts and while the browser still rendered
+them. The server answered with something other than the register and the walker called it an empty week.
+Fixed: `looksLikeOjDailyView` (a zero-link page without the daily-view markers is an ERROR day with byte
+count and page head as evidence), per-day `bytes`, `politeFetch` one request/second across all walkers.
+Cause labelled [INFERRED] (rate-limit/interstitial after four full walks of one week within an hour);
+run-004 kept no body, which is what the fix now records. Marker re-pinned to `sha256:5a6a5a4649f79eec`;
+run-005 (apply, after a pause) discharges it. The seven candidate rows still point at the 1976-opinion
+row until run-005 upserts. Gates: suite 2,547/2,547 · fitness 23/0 · meta-gate PASS.

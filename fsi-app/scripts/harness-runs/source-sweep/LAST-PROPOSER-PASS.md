@@ -1,8 +1,8 @@
 # Last proposer pass — source-sweep
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `source-sweep` now has **three** artifacts
-(`source-sweep-run-001` … `source-sweep-run-003`); F28's rule (d) requires this file to name the latest
-verbatim: **source-sweep-run-003**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `source-sweep` now has **four** artifacts
+(`source-sweep-run-001` … `source-sweep-run-004`); F28's rule (d) requires this file to name the latest
+verbatim: **source-sweep-run-004**.
 
 **Artifacts read:** source-sweep-run-001 (2026-09-01T22:31Z, `sha256:87e06e9784e8e21b`, the driver's
 first execution, dry) and source-sweep-run-002 (2026-09-01T23:00:22Z → 23:00:26Z,
@@ -78,3 +78,26 @@ through the database after the run.
 
 **Proposal:** run-004 (apply) to discharge the marker and heal the seven rows; then the FR and feed
 first walks proposed above.
+
+
+---
+
+## Pass over source-sweep-run-004 (2026-09-01, coordinator)
+
+**Artifacts read:** all four. **Full traces read:** `traces/source-sweep-run-004.raw-result.json`
+(seven days, `extracted 0`, `urls []`, `error null`); the Actions job log (the whole walk in 0.3 s);
+the live daily view for 26 August in the browser at the same minute (renders its act).
+
+**Hypotheses (verified, with basis):**
+1. **The run-003 fix worked:** `config.source_id 260089a9-…` is a fresh row registered by
+   `resolvePortalSourceId` (not the 1976 opinion). Basis: the artifact's config; the id is new.
+2. **Defect (eleventh): a page that is not the register was reported as an empty week.** Seven HTTP
+   200 responses in 0.3 s, no act links, no errors. The walker had no way to tell "no acts" from "not
+   the daily view". Fixed: `looksLikeOjDailyView` + `bytes` per day; `politeFetch` one request/second.
+   The cause is inferred (rate-limit/interstitial after four full walks of one week within an hour) —
+   run-004 kept no page body, which is exactly what the fix now records for a failing day.
+3. **The seven candidate rows still point at `000d2ee5-…`** (run-004 upserted nothing). Run-005 heals
+   them if the register answers; if it does not, the artifact will say so with evidence.
+
+**Proposal:** run-005 (apply) after a pause of at least several minutes; read its `days_with_error`
+before anything else. Then FR and feed first walks (dry). No governing-file edits until run-005 lands.

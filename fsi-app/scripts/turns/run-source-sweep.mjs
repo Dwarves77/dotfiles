@@ -337,19 +337,37 @@ async function main() {
     `run-source-sweep: walker=${walker} mode=${mode} portal=${portal.url} source_id=${sourceId ?? "(none yet — first apply run will register it)"}`
   );
 
-  const fetchOpts = { headers: { "user-agent": "FSI-source-sweep/1.0 (+corpus-turn)" } };
+  const fetchOpts = {
+    headers: {
+      "user-agent": "FSI-source-sweep/1.0 (+corpus-turn)",
+      accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
+      "accept-language": "en",
+    },
+  };
+  // POLITENESS. One register day per second, never a burst: source-sweep-run-004 fired seven daily-view
+  // requests in 0.3 s (the fourth full walk of the same week within an hour) and got seven HTTP 200
+  // pages that were not the register (see register-walk.mjs's looksLikeOjDailyView). A register walk is
+  // a bounded enumeration, not a scrape; a one-second gap costs a week-walk seven seconds.
+  const FETCH_GAP_MS = Number(process.env.SOURCE_SWEEP_FETCH_GAP_MS ?? 1000);
+  let lastFetchAt = 0;
+  async function politeFetch(url) {
+    const wait = lastFetchAt + FETCH_GAP_MS - Date.now();
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    lastFetchAt = Date.now();
+    return fetch(url, fetchOpts);
+  }
   async function fetchHtmlImpl(url) {
-    const res = await fetch(url, fetchOpts);
+    const res = await politeFetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
     return res.text();
   }
   async function fetchJsonImpl(url) {
-    const res = await fetch(url, fetchOpts);
+    const res = await politeFetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
     return res.json();
   }
   async function fetchTextImpl(url) {
-    const res = await fetch(url, fetchOpts);
+    const res = await politeFetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
     return res.text();
   }
