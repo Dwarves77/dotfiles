@@ -79,6 +79,12 @@ auto-merges.
 - `scripts/turns/LAST-TURN.json` — the "since when did this turn's `--since` default cover" marker,
   updated ONLY on a successful apply-mode turn, to that run's own start timestamp (not "now" at the
   moment it is recorded — see `last-turn-date.mjs`'s own header for why).
+- `scripts/_snapshots/turn-<run-id>/turn-corpus.{json,events.json,skipped.json}` — the turn's FULL
+  TRACES for extraction (the corpus slice and `run-extraction.mjs`'s events/skipped outputs, which the
+  forward-events artifact's `full_trace_refs` name). Kept here, not on `/tmp`, precisely so the
+  workflow-artifact upload below retains them: forward-events-run-002 (the first runtime turn,
+  2026-09-01) pointed its refs at `/tmp` on a runner that no longer existed, and its 276 skip reasons
+  were unreadable from the repo.
 - `scripts/_snapshots/**` — every guarded write's prior-row snapshot (rule 015's reversibility record).
   This directory is `.gitignore`d at the repo root (`fsi-app/scripts/_snapshots/`) — the workflow keeps
   it that way rather than fighting the ignore rule, and instead uploads it as a GitHub Actions **workflow
@@ -94,6 +100,26 @@ auto-merges.
 artifact), via a fresh `source-sweep/<run-id>` branch and PR, and uploads its own `scripts/_snapshots/**`
 workflow artifact the same way.
 
+## When the workflow cannot open its own PR (seen on the first runs, 2026-09-01)
+
+Both workflows end by pushing their branch and running `gh pr create`. On this repository that last
+step failed with `GitHub Actions is not permitted to create or approve pull requests` — the repository
+setting **Settings → Actions → General → Workflow permissions → "Allow GitHub Actions to create and
+approve pull requests"** is off. Everything before it is real: the DB writes (apply mode), the harness
+artifact commit, and the pushed `turn/<run-id>` / `source-sweep/<run-id>` branch. Two ways out:
+
+1. **Operator, once:** enable the setting. Every later turn and sweep opens its own PR.
+2. **Until then, per run:** open the PR by hand from the compare URL the failing step prints
+   (`https://github.com/Dwarves77/dotfiles/compare/master...turn/<run-id>?expand=1`), let the discipline
+   checks run, squash-merge, delete the branch. The discipline memory gate exempts these run-record
+   commits (`scripts/harness-runs/**`, `scripts/turns/LAST-TURN.json`), so a hand-opened turn PR passes
+   without a session-log addendum; the proposer pass over the new artifact lands with its own addendum
+   as always.
+
+The first runtime turn (corpus-turn run 33566259450, apply, since 1970-01-01) and the first sweep
+(source-sweep run 33566698207, dry) both landed by path 2, inside the train that also fixed what
+reading their artifacts found (session-log Addendum 82, meta-harness-run-006).
+
 ## The first full backfill over ALL existing items
 
 Dispatch `corpus-turn.yml` with `mode: apply` and `since: 1970-01-01` — the epoch value
@@ -107,6 +133,14 @@ normal apply path with the widest possible `since`. Every step downstream is alr
 ledger upserts on `UNIQUE url`), so a full backfill can be safely re-dispatched if it fails partway
 through — a re-run only re-covers what a prior partial run did not finish, at the cost of re-examining
 (never re-writing) what it already did.
+
+**It has been done** (2026-09-01, run 33566259450): discover wrote 1,931 edge rows (107 new, 1,824
+refreshed, 5 skipped as owned by the entity/semantic origin, prior state snapshotted); export found 185
+of 322 live items without a forward event and the extractor confirmed 0 events for them (they are exactly
+forward-events-run-001's no-event set, 322 − 137); analyze persisted 14 themes (replacing 9; delta:
+8 persisted, 1 split, 4 appeared), opened 12 coverage-gap, 7 anticipate and 297 signal-candidate flags,
+and its own VERIFY passed. `scripts/turns/LAST-TURN.json` now carries that run's start time, so the next
+dispatch with a blank `since` is incremental.
 
 ## Standing rule: no schedule during build
 

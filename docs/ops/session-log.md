@@ -7473,3 +7473,74 @@ train, per the Train-7 method). After landing: dispatch `corpus-turn.yml` (mode 
 1970-01-01) for the first full turn, `source-sweep.yml` for the first register walk, run
 `stamp-wo26-archive-reason.mjs --execute`, `propose-tags.mjs --untagged --execute`, ratify, then
 batch-003 (`run-mint-batch --grade record`) discharges the mint marker as mint-run-007.
+
+## Addendum 82 — 2026-09-01 (cloud session): the train landed, the runtime ran for real, and what its first artifacts taught
+
+**Landing.** Train 8 (`lane/integration`) landed as PR #507 → `9ea3bf58` via bundle → GitHub web upload
+→ Codespace → PR (the Train-7 method; operator ruling: browser only, never a direct connector). Two CI
+fixes on the way (`27174038`: rule 015 fired on a proof file that fakes a client; `changed-since.test`
+needed npm deps and became a `.npmtest`). Corpus-turn run #1 (dry) then failed at its commit step
+(`git add scripts/turns/LAST-TURN.json`, which only apply mode writes) → PR #508 → `9e434fa8`. Every
+transport branch (`Dwarves77-patch-21..23`, `build/forward-events-harness`) and Codespace deleted.
+
+**The runtime ran.** Corpus-turn #2 (dry, 41s) reached the live DB: discover 1,936 edges across 209/322
+items; export 322 in scope, 185 without a forward event; extraction 185 → 0 events, 276 skips;
+analyze 10 themes, 13 gaps, 7 anticipate targets, 303 signal candidates. **Corpus-turn #3 (apply,
+since 1970-01-01) is the first real turn**: 1,931 edge rows through the guarded path (107 new, 1,824
+refreshed, 5 skipped as entity/semantic-owned, snapshot captured), 14 themes persisted (replaced 9;
+delta 8 persisted / 1 split / 4 appeared), 12 gap + 7 anticipate + 297 signal flags opened, VERIFY
+PASS, marker recorded, `forward-events-run-002` committed and pushed to `turn/33566259450`.
+Source-sweep #1 (EUR-Lex OJ L, 25–31 Aug, dry) walked 7 days with 0 errors and pushed
+`source-sweep-run-001`.
+
+**One error of mine, on the record.** I told the operator run #2's 0-event extraction was "a shape
+mismatch between the exporter and the extractor." Then I read `forward-events-run-001.json`: 322 items,
+137 with events; 322 − 137 = 185, exactly the exporter's selection (items with no forward-event row).
+Those 185 produced nothing the first time and produced nothing again. The field shapes match
+(checked against `read-and-extract.mjs`). Retracted within minutes; recorded in
+`forward-events/LAST-PROPOSER-PASS.md` and meta-harness-run-006 `per_item[4]`. Same class as run-005's
+finding: a claim ahead of its evidence.
+
+**What reading the artifacts against reality found (eight defects, seven fixed in this train):**
+1. Both workflows' final `gh pr create` fails: *"GitHub Actions is not permitted to create or approve
+   pull requests"* — repo setting **Settings → Actions → General → Allow GitHub Actions to create and
+   approve pull requests** is off. The classifier blocks this session from Settings. **Operator: one
+   toggle.** Until then every turn/sweep PR is hand-opened from the compare URL the step now prints.
+   PR #509 (the turn) was opened by hand and is superseded by this train, which merges the same commit.
+2. The discipline memory gate treats `fsi-app/scripts/**` as code, so a turn PR of run records can never
+   pass it (#509 red). Gate now exempts `scripts/harness-runs/**` and `scripts/turns/LAST-TURN.json`.
+3. `forward-events-run-002`'s `full_trace_refs` pointed at `/tmp` on a dead runner; its 276 skip
+   reasons were unreadable. Traces now live under `scripts/_snapshots/turn-<run_id>/`, retained 90 days
+   by the existing artifact upload.
+4. F28 rule (c): run-002 discharged `forward-events/PENDING-RUN.md` (deleted). Rule (d): two runs need a
+   proposer pass — written, with a skip-reason-histogram proposal.
+5. **Source-sweep chrome:** the 28 Aug edition lists 2 acts; the walker reported 32 links/day. ~30 are
+   navigation ("Regulations", "Legal notice", "Official Journal C series…") passing the generic
+   `INSTRUMENT_RE`. `walkEurlexOj` now keeps only `/legal-content/` and `/eli/` act links.
+6. **Source-sweep weekends:** EUR-Lex serves the last published edition for a weekend `ojDate` (I read
+   `ojDate=30082026` in the browser: it renders 28 August). The walker re-extracted Friday on Saturday
+   and Sunday. Now detected as `duplicate_of` and not re-persisted. In apply mode, 5+6 would have written
+   ~210 junk rows and 2 duplicate editions into `portal_link_candidates`; dry-first prevented it.
+7. **Source-sweep artifact:** `started_at` stamped at finish, no `finished_at`; dry verdicts said
+   "221 upserted" for 0 writes; raw result carried counts without URLs; and it was written as a
+   family-level `*.json`, which F28 correctly rejected as an INVALID ARTIFACT on the merged tree. Fixed:
+   timestamps, "planned (dry, nothing written)" wording, per-day `urls`, `traces/` subdirectory
+   (documented in CONVENTION.md), run-001's trace moved. `source-sweep/PENDING-RUN.md` re-pinned
+   (`sha256:7df464313565f9b4`), discharged by run-002.
+8. `apply-extraction-output.mjs` carried a raw NUL byte as its dedupe-key separator (grep: "binary
+   file matches"). Now `"\u0000"`, same runtime value.
+
+CONVENTION.md is a meta-harness governing file, so F28 demanded **meta-harness-run-006** (written; sixth
+consecutive self-catch) and the meta-harness proposer pass names it.
+
+**Gates on this train (merged tree = master + turn branch + sweep branch + fixes):** suite 2,541/2,541
+· fitness 23/0 · tsc clean · meta-gate PASS · discipline engine clean on the range. C4 reports only this
+container's historical worktrees (CI has one).
+
+**Next step for a cold session:** if `origin/master` lacks this addendum, the train is
+`train/first-turn-fixes` in `/root/work/lanes/train` — land it via the browser path (bundle → web
+upload → Codespace → PR → squash-merge), then close PR #509 as superseded and delete
+`turn/33566259450`, `source-sweep/33566698207`. After landing: dispatch `source-sweep.yml`
+(register-eurlex, 2026-08-25..2026-08-31, **dry**) and check `days_duplicate_edition = 2` and
+single-digit acts per weekday; then apply. Then the standing list: WO-26 stamp, tag proposals +
+ratification, batch-003 records (mint-run-007), EIA secret. Operator: the Actions PR setting.

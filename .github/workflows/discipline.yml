@@ -173,7 +173,14 @@ jobs:
             RANGE="origin/${BASE_REF}...${PR_HEAD}"
           fi
           CHANGED=$(git diff --name-only "$RANGE")
-          CODE=$(printf '%s\n' "$CHANGED" | grep -E '^fsi-app/(src|supabase/migrations|scripts|\.discipline)/' || true)
+          # Run RECORDS are not code: scripts/harness-runs/** (every family's run artifacts, PENDING-RUN.md
+          # and LAST-PROPOSER-PASS.md — F28 audits these as the run's own memory) and the corpus-turn
+          # marker scripts/turns/LAST-TURN.json are emitted by the GitHub-Actions runtimes
+          # (corpus-turn.yml, source-sweep.yml) on their own branches. Gating those PRs on a session-log
+          # addendum would demand a first-person memory entry from a machine (corpus-turn PR #509 failed
+          # here, 2026-09-01). The proposer pass over those artifacts is a human/coordinator act that
+          # lands with its own addendum, as it always has.
+          CODE=$(printf '%s\n' "$CHANGED" | grep -E '^fsi-app/(src|supabase/migrations|scripts|\.discipline)/' | grep -vE '^fsi-app/scripts/(harness-runs/|turns/LAST-TURN\.json$)' || true)
           MEMORY=$(printf '%s\n' "$CHANGED" | grep -E '^docs/(ops/session-log\.md|PROGRAM-BOARD\.md)$' || true)
           if [ -n "$CODE" ] && [ -z "$MEMORY" ]; then
             MSG="Memory gate: this range ($RANGE) touches code but neither docs/ops/session-log.md nor docs/PROGRAM-BOARD.md. The vault is the project memory; a change it does not record is invisible to every future session. Append a session-log addendum (or update PROGRAM-BOARD) in this PR."

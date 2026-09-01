@@ -167,18 +167,24 @@ jobs:
       - name: export-corpus-for-extraction.mjs
         run: node scripts/turns/export-corpus-for-extraction.mjs --out /tmp/turn-corpus.json --since "${{ steps.since.outputs.value }}"
 
+      # The corpus file and run-extraction.mjs's events/skipped outputs are this turn's FULL TRACES (the
+      # forward-events artifact's full_trace_refs point at them). They live under scripts/_snapshots/
+      # (gitignored) so the upload-artifact step below retains them for 90 days — forward-events-run-002's
+      # refs pointed at /tmp on a runner that no longer exists, so its 276 skip reasons were unreadable.
       - name: run-extraction.mjs (forward-events)
         run: |
+          mkdir -p "scripts/_snapshots/turn-${{ github.run_id }}"
+          cp /tmp/turn-corpus.json "scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.json"
           if [ "${{ steps.turn.outputs.mode }}" = "apply" ]; then
-            node scripts/forward-events/run-extraction.mjs --input /tmp/turn-corpus.json --execute
+            node scripts/forward-events/run-extraction.mjs --input "scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.json" --execute
           else
-            node scripts/forward-events/run-extraction.mjs --input /tmp/turn-corpus.json
+            node scripts/forward-events/run-extraction.mjs --input "scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.json"
           fi
 
       # ── 4. load the extracted events — apply mode only (dry mode's run-extraction.mjs wrote no events file) ──
       - name: apply-extraction-output.mjs
         if: steps.turn.outputs.mode == 'apply'
-        run: node scripts/turns/apply-extraction-output.mjs --events /tmp/turn-corpus.events.json --execute
+        run: node scripts/turns/apply-extraction-output.mjs --events "scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.events.json" --execute
 
       # ── 5. analyze-corpus — themes, coverage gaps, and (behind --signals) L4 signal candidates ─────────
       - name: analyze-corpus.mjs
@@ -239,6 +245,13 @@ jobs:
             exit 0
           fi
           body=$'Automated corpus turn (run ${{ github.run_id }}, trigger ${{ github.event_name }}).\n\nMode: ${{ steps.turn.outputs.mode }}\nSince: ${{ steps.since.outputs.value }}\nSignals flag: "${{ steps.signals.outputs.flag }}"\n\nLands the harness-run artifacts for this turn under scripts/harness-runs/** and the updated turn marker at scripts/turns/LAST-TURN.json. See docs/runbooks/CORPUS-TURN-RUNBOOK.md.'
-          gh pr create --base master --head "$branch" \
+          if ! gh pr create --base master --head "$branch" \
             --title "Corpus turn: $branch (mode=${{ steps.turn.outputs.mode }})" \
-            --body "$body"
+            --body "$body"; then
+            # Seen on runs #3 (2026-09-01): "GitHub Actions is not permitted to create or approve pull
+            # requests" — the repository setting Settings → Actions → General → Workflow permissions →
+            # "Allow GitHub Actions to create and approve pull requests" is off. The turn's DB effects and
+            # the pushed branch are both real; only the PR is missing. Open it by hand at the URL below.
+            echo "::error::PR creation failed. The turn branch IS pushed. Open the PR by hand: https://github.com/${{ github.repository }}/compare/master...${branch}?expand=1 — or enable 'Allow GitHub Actions to create and approve pull requests' under Settings → Actions → General so future turns open their own."
+            exit 1
+          fi

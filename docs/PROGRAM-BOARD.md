@@ -1744,7 +1744,18 @@ explicit brief.
 | **TRAIN 5 — canonical-key dedup pass reconciled queue-wide, mint batch-002 applied (2026-09-01)** | Dedup pass (mint-run-004 proposal 1) executed over 2,342 of the 3,655 then-remaining would_mint rows: 104 rows reconciled into live verified holders under different URL variants; queue anatomy now **1,771 clean dispatch pool / 459 archived-holder / 8 quarantined-holder / 1,313 CELEX-underivable**. Batch-002: 8 dispatched, **5 minted, all verified first-pass** (32009D0320, 32008R0536, 32014R0788, 32022D0779, 32024R3170) — the now-mandatory canonical-key pre-check caught 3 archived-holder conflicts the batch selection query had missed (fix scoped for batch-003). **Batches 001-002 combined: 9 items minted, 9/9 verified first-pass; 115 census rows reconciled.** **459 rows parked for operator ruling** — archived-holder policy (un-archive / mint-fresh-thin / reconcile-into-archived), blocking only those rows. **Next: batch-003 from the 1,771-row clean pool** | `mint-run-005.json`, `mint-run-006.json`; Addendum 76 |
 | **TRAIN 7 — AFIR regression reversed, migration 272 registered, Vercel duplicate deleted (2026-09-01)** | AFIR regression (mine): batch-001's canonical-key guard blocked only on live-verified holders, so an archived rich holder did not stop a mint — my thin 1,676-char AFIR item went live over the operator's pre-existing 25,255-char verified item; reversed (`ff95b385` restored live+verified, `a86dcc05` archived as `duplicate_of_verified`). **Open, not fixed:** CELEX 32015R0757 (MRV) — thin mint live, 40,023-char item live but quarantined (invisible); needs provenance repair before the thin mint can retire, and batch-003's selection query must block on ANY holder state, not just live-verified. 32018D0491 mis-keying retracted as my own error — the item is correctly the rail-freight-corridor decision; un-archived as rule-matched on-vertical. **Migration 272** was applied live but never registered in `schema_migrations`; registered as a catch-up row (DROP+CREATE discards ACL grants — same class as 273, one migration later). **Vercel:** duplicate project `caros.ledge` (no domain, created 4 min after `carosledge`) had double-built every commit since March; billing panel confirmed the cause ($15.65/$15.77 Build CPU Minutes against a $20 Pro credit). Deleted; `carosledge`/`corvette23` verified intact via the API. Landing method changed to one squashed commit per train. **Corrected on the record:** the 'no forward data' claim was wrong — 179/322 live verified briefs name a future year and 1,143 grounded claims do too; the real gap is extraction into columns (19 `compliance_deadline`, 58 `entry_into_force`, 0 `next_review_date`), not absent intelligence. **Next:** `forward-events` harness family (extractor + migration + registration) in build, then batch-003 with the holder-blocking selection query | Addendum 78 |
 
-## Completion lanes + system review — BUILT, GATES GREEN, AWAITING BROWSER LANDING (2026-09-01)
+## First runtime turn + sweep — LANDED, RAN, AUDITED (2026-09-01)
+
+| State | Item | Evidence |
+|---|---|---|
+| **LANDED** | Train 8 → PR #507 `9ea3bf58`; corpus-turn commit-step fix → PR #508 `9e434fa8`; this train (turn + sweep artifacts + eight-defect fix set) | Addendum 82 |
+| **RAN — first real corpus turn** | run 33566259450 apply since 1970-01-01: 1,931 edge rows (107 new), 14 themes (replaced 9), 12 gap + 7 anticipate + 297 signal flags, VERIFY PASS, `LAST-TURN.json` recorded, forward-events-run-002 | Addendum 82; `CORPUS-TURN-RUNBOOK.md` |
+| **RAN — first source sweep (dry)** | run 33566698207 EUR-Lex OJ L 25–31 Aug: 7 days, 0 errors; artifact read against the live site → chrome + weekend-redirect defects, fixed; **apply never ran, no wrong write** | Addendum 82; `source-sweep/PENDING-RUN.md` |
+| **FIXED (7 of 8 defects)** | memory gate exempts run records; extraction traces retained; forward-events marker discharged + proposer pass; EUR-Lex act-only filter + `duplicate_of`; sweep timestamps/wording/urls/`traces/`; NUL byte; meta-harness-run-006 | Addendum 82 |
+| **OPERATOR — 1 toggle** | Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests" (both workflows fail their last step without it; PRs hand-opened from the printed compare URL until then) | Addendum 82 |
+| **NEXT** | source-sweep-run-002 dry (expect `days_duplicate_edition=2`) → first apply walk → WO-26 stamp → tag ratification → batch-003 records (mint-run-007) → EIA secret | Addendum 82 |
+
+## Completion lanes + system review — LANDED as PR #507 (2026-09-01)
 
 | State | Item | Evidence |
 |---|---|---|
@@ -1756,8 +1767,7 @@ explicit brief.
 | **BUILT — customer surfaces (SURF)** | obligations strip on Regulations list + detail; ThemeStrip on Research; migration 280 (**applied**, theme_briefs public read); EIA producer (needs operator secret); EEX EUA unbuilt (licence) | Addendum 81 |
 | **BUILT — tags (TAG), parity (DOC), hygiene (HYG)** | tag proposals + apply behind `ratify:tags`; skill↔prompt parity test; F14/registry blind spots fixed; 19 dead modules archived; `resume` retired | Addendum 81 |
 | **GATES** | suite 2,545/2,545 · tsc clean · fitness 23/0 · meta-gate PASS · F28 green via meta-harness-run-005 + mint/source-sweep markers | this train |
-| **BLOCKED — landing transport** | container cannot push (git-proxy 403, ledger-known); operator ruling: browser only | Addendum 81 |
-| **NEXT** | browser landing → first corpus turn → first source sweep → WO-26 stamp → tag ratification → batch-003 records (mint-run-007) | Addendum 81 |
+| **LANDED** | via bundle → web upload → Codespace → PR #507 (`9ea3bf58`); the thread above carries what happened next | Addendum 82 |
 
 ## Harness+flywheel completion train — built, LANDED INTO THE TRAIN ABOVE (2026-09-01)
 

@@ -83,6 +83,61 @@ test("walkEurlexOj: uncapped by default (R2 no-cap rule) — a >40-link day is n
   assert.equal(rCapped.days[0].extracted, 10, "a finite cap still bounds a probe walk");
 });
 
+test("walkEurlexOj: site chrome that matches the generic instrument regex is NOT an act (source-sweep-run-001 defect)", async () => {
+  // Modelled on the live 28 August 2026 L-series daily view: two acts plus the navigation chrome
+  // extractPortalLinks's INSTRUMENT_RE accepts ("Regulations", "Legal notice", "Official Journal ...").
+  const html = `<html><body>
+    <a href="/oj/direct-access.html">Access to the Official Journal</a>
+    <a href="/oj/daily-view/C-series/default.html">Official Journal C series daily view</a>
+    <a href="/oj/browse-oj.html">Browse the Official Journal</a>
+    <a href="/content/legal-notice.html">Legal notice</a>
+    <a href="/advanced-search-form.html">Advanced search legislation</a>
+    <a href="/legal-content/EN/TXT/?uri=OJ:L_202601310">Commission Delegated Regulation (EU) 2026/1310</a>
+    <a href="/eli/reg/2026/1534/oj">UN Regulation No. 129 [2026/1534]</a>
+  </body></html>`;
+  const persisted = [];
+  const r = await walkEurlexOj(
+    { fetchHtml: async () => html, persist: async (l) => { persisted.push(...l); return { upserted: l.length, failed: 0 }; } },
+    { from: "2026-08-28", to: "2026-08-28" }
+  );
+  assert.equal(r.days[0].extracted, 2, "only the two act links count");
+  assert.deepEqual(r.days[0].urls, [
+    "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601310",
+    "https://eur-lex.europa.eu/eli/reg/2026/1534/oj",
+  ]);
+  assert.equal(persisted.length, 2, "persist receives acts only, never chrome");
+});
+
+test("walkEurlexOj: a date EUR-Lex answers with an already-walked edition is duplicate_of that day, not persisted twice", async () => {
+  // EUR-Lex serves the LAST PUBLISHED edition for a weekend ojDate (verified 2026-09-01: Sunday 30 Aug
+  // renders the 28 Aug edition). Friday publishes; Saturday and Sunday echo Friday; Monday publishes anew.
+  const edition = (n) => `<html><body><a href="/legal-content/EN/TXT/?uri=OJ:L_2026${n}">Regulation ${n}</a></body></html>`;
+  const persisted = [];
+  const r = await walkEurlexOj(
+    {
+      fetchHtml: async (url) => (url.includes("31082026") ? edition("0002") : edition("0001")),
+      persist: async (l) => { persisted.push(...l); return { upserted: l.length, failed: 0 }; },
+    },
+    { from: "2026-08-28", to: "2026-08-31" }
+  );
+  assert.deepEqual(r.days.map((d) => [d.day, d.extracted, d.duplicate_of]), [
+    ["2026-08-28", 1, null],
+    ["2026-08-29", 0, "2026-08-28"],
+    ["2026-08-30", 0, "2026-08-28"],
+    ["2026-08-31", 1, null],
+  ]);
+  assert.equal(persisted.length, 2, "each edition is persisted exactly once");
+  assert.equal(r.upserted, 2);
+});
+
+test("walkEurlexOj: an empty day is never a duplicate (no acts is its own honest outcome)", async () => {
+  const r = await walkEurlexOj(
+    { fetchHtml: async () => "<html><body><a href='/oj/browse-oj.html'>Browse the Official Journal</a></body></html>", persist: async (l) => ({ upserted: l.length, failed: 0 }) },
+    { from: "2026-08-29", to: "2026-08-30" }
+  );
+  assert.deepEqual(r.days.map((d) => [d.extracted, d.duplicate_of]), [[0, null], [0, null]]);
+});
+
 test("walkFederalRegister: pages until next_page_url absent; page cap reports droppedPages, never silent", async () => {
   const mkPage = (n, hasNext, totalPages) => ({
     count: 42, total_pages: totalPages,
