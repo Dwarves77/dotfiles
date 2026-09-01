@@ -4,7 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  parseArgs, portalFor, shapeRunOutput, upsertPortalLinkCandidates, SOURCE_SWEEP_GOVERNING_FILES, defaultTraceDir,
+  parseArgs, portalFor, shapeRunOutput, upsertPortalLinkCandidates, SOURCE_SWEEP_GOVERNING_FILES, defaultTraceDir, resolvePortalSourceId, portalUrlKey,
 } from "./run-source-sweep.mjs";
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────
@@ -232,4 +232,45 @@ test("SOURCE_SWEEP_GOVERNING_FILES names the driver plus both walker modules", (
 test("defaultTraceDir: the raw-result trace lives BELOW the family dir, never beside the artifacts F28 validates", () => {
   const d = defaultTraceDir("/repo/fsi-app/scripts/harness-runs/source-sweep");
   assert.equal(d, "/repo/fsi-app/scripts/harness-runs/source-sweep/traces");
+});
+
+// ── resolvePortalSourceId (source-sweep-run-003 finding: host-key dedup attached OJ candidates to a 1976 opinion) ──
+
+const EURLEX_DOC_ROWS = [
+  { id: "000d2ee5", url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31976A0456", status: "active" },
+  { id: "111aaaaa", url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R1805", status: "active" },
+];
+const fakeDb = (rows, onRegister) => ({
+  readAll: async () => rows,
+  registerSource: async (src, opts) => { onRegister?.(src, opts); return { source_id: "NEW", created: true, host: "eur-lex.europa.eu" }; },
+  institutionKey: (u) => new URL(u).host,
+});
+const PORTAL = { url: "https://eur-lex.europa.eu", name: "EUR-Lex Official Journal" };
+
+test("resolvePortalSourceId: never resolves the portal to a same-host DOCUMENT row (dry → null)", async () => {
+  const id = await resolvePortalSourceId(fakeDb(EURLEX_DOC_ROWS), PORTAL, "dry", {});
+  assert.equal(id, null);
+});
+
+test("resolvePortalSourceId: apply registers a dedicated portal row with a key host-dedup cannot match", async () => {
+  let seen = null;
+  const id = await resolvePortalSourceId(fakeDb(EURLEX_DOC_ROWS, (src) => { seen = src; }), PORTAL, "apply", { skill: "x", reason: "y" });
+  assert.equal(id, "NEW");
+  assert.equal(seen.url, "https://eur-lex.europa.eu");
+  assert.equal(seen.name, "EUR-Lex Official Journal");
+  assert.equal(seen.institutionKey, "eur-lex.europa.eu#portal");
+});
+
+test("resolvePortalSourceId: an existing exact-url portal row wins in both modes and is never re-registered", async () => {
+  const rows = [...EURLEX_DOC_ROWS, { id: "PORTAL", url: "https://eur-lex.europa.eu/", status: "active" }];
+  let registered = 0;
+  assert.equal(await resolvePortalSourceId(fakeDb(rows, () => registered++), PORTAL, "dry", {}), "PORTAL");
+  assert.equal(await resolvePortalSourceId(fakeDb(rows, () => registered++), PORTAL, "apply", {}), "PORTAL");
+  assert.equal(registered, 0);
+});
+
+test("portalUrlKey: trailing slash, hash and host case do not break exact matching", () => {
+  assert.equal(portalUrlKey("https://EUR-Lex.europa.eu/"), portalUrlKey("https://eur-lex.europa.eu"));
+  assert.equal(portalUrlKey("https://www.federalregister.gov/#top"), "https://www.federalregister.gov");
+  assert.notEqual(portalUrlKey("https://eur-lex.europa.eu/oj"), portalUrlKey("https://eur-lex.europa.eu"));
 });

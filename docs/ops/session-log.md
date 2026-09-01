@@ -7557,3 +7557,16 @@ in both workflows: hydrate unmerged sibling artifact branches before the runner 
 them before the commit step. This train: run-002 landed, source-sweep marker deleted (discharged),
 `source-sweep/LAST-PROPOSER-PASS.md` written (rule (d), two artifacts), collision guard. Gates: suite
 2,541/2,541 · fitness 23/0 · meta-gate PASS.
+
+**Postscript 2.** Train 10 = `2133d93`. The re-dispatched apply walk numbered itself run-003 (collision
+guard works live), upserted the same 7 rows (`first_seen_at` from the discarded apply, `last_seen_at`
+from run-003, no duplicates). Reading the parent back exposed a **tenth defect**: `config.source_id`
+resolves to "EUR-Lex / 76/456/EEC Commission Opinion (road vehicle type-approval Regulation)", a
+document-level `sources` row. `registerSource` dedups by host and eur-lex.europa.eu already has 724
+document sources from the mint path, so the first by id won. Fixed in the driver
+(`resolvePortalSourceId`: exact portal URL; dedicated portal row on first apply via an
+`institutionKey` override the host-dedup cannot match; 4 tests). Marker re-pinned to
+`sha256:01508f9bb2e7ca58`, discharged by run-004 (apply), whose `UNIQUE url` upsert re-points the
+seven rows. Registry observation for an ADR: two source kinds (institution vs citation document) share
+one table under a host-uniqueness rule only one of them obeys. Gates: suite 2,545/2,545 · fitness 23/0
+· meta-gate PASS.
