@@ -1,0 +1,163 @@
+{
+  "harness_family": "mint",
+  "harness_version": "sha256:b654b1aeb507a4ed",
+  "run_id": "mint-run-002",
+  "started_at": "2026-09-01T05:22:08Z",
+  "config": {
+    "vault": "/root/work/dotfiles",
+    "wave": "MH-3 (build plan §3, 'first live loop' — the mint family's first proposer-driven self-improvement)",
+    "scope": "Proposer pass over mint-run-001.json (per PROPOSER-RUNBOOK.md/LAST-PROPOSER-PASS.md) implementing its top proposals through the family's own gates: (a) capture-completeness gate in validate-mint-payload.mjs (required search_results[].fetched_length + a length/ratio check against result_content), (b) unicode-integrity check (NFKC + known-substitution-class comparison of every FACT source_span against an independently archived source, search_results[].archived_source_path), (c) MINT-RUNBOOK.md's <=8,000-char slice-and-rebuild procedure codified as law (§1a) with fetched_length recording and by-script (not hand-copied) payload assembly.",
+    "retrofit": "batch-001's six existing payload-<celex>.json files (unchanged since mint-run-001.json) had ONLY search_results[0].fetched_length added, from BATCH-001-REPORT-v2.md §3's real fetch table (43813/12237/75954/102988/174417/178953 chars) -- result_content was NOT touched. This is deliberately NOT a re-mint; it proves the hardened gate now structurally rejects the excerpt-shaped captures batch-001 actually produced. Re-fetching them under the new slice-and-rebuild law is out of MH-3's scope (parked as 'M2 full-text rebuild', build plan §4).",
+    "spend": "$0 -- in-session Sonnet only; validator runs are local Node, no DB, no network",
+    "db_access": "none this wave (no Supabase calls -- this run is entirely a code-and-fixture change against already-archived batch-001 evidence)"
+  },
+  "inputs_ref": [
+    "fsi-app/scripts/harness-runs/mint/mint-run-001.json",
+    "fsi-app/scripts/harness-runs/mint/LAST-PROPOSER-PASS.md",
+    "fsi-app/scripts/harness-runs/mint/PENDING-RUN.md",
+    "fsi-app/scripts/mint/MINT-RUNBOOK.md",
+    "fsi-app/scripts/mint/validate-mint-payload.mjs",
+    "fsi-app/scripts/mint/payload-schema.json",
+    "/root/work/mint/batch-001/BATCH-001-REPORT.md",
+    "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md",
+    "/root/work/mint/batch-001/payload-32006R1692.json",
+    "/root/work/mint/batch-001/payload-32009L0123.json",
+    "/root/work/mint/batch-001/payload-32015R0757.json",
+    "/root/work/mint/batch-001/payload-32019R1242.json",
+    "/root/work/mint/batch-001/payload-32023R0956.json",
+    "/root/work/mint/batch-001/payload-32023R1804.json",
+    "/root/work/mint/batch-001/source-32006R1692.txt",
+    "/root/work/mint/batch-001/source-32009L0123.txt",
+    "/root/work/mint/batch-001/source-32015R0757.txt",
+    "/root/work/mint/batch-001/source-32019R1242.txt",
+    "/root/work/mint/batch-001/source-32023R0956.txt",
+    "/root/work/mint/batch-001/source-32023R1804.txt"
+  ],
+  "per_item": [
+    {
+      "id": "32006R1692",
+      "outcome": "hardened_validator_rejected_capture_incomplete",
+      "verdict": "valid=false (was valid=true pre-MH-3); failures=[capture_incomplete]; recommended_status=quarantined",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32006R1692.json",
+        "/root/work/mint/batch-001/source-32006R1692.txt",
+        "/root/work/mint/batch-001/HARDENED-VALIDATOR-REJECTIONS-mh3.md"
+      ],
+      "error": null
+    },
+    {
+      "id": "32009L0123",
+      "outcome": "hardened_validator_rejected_capture_incomplete",
+      "verdict": "valid=false (was valid=true pre-MH-3); failures=[capture_length_mismatch]; recommended_status=quarantined",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32009L0123.json",
+        "/root/work/mint/batch-001/source-32009L0123.txt",
+        "/root/work/mint/batch-001/HARDENED-VALIDATOR-REJECTIONS-mh3.md"
+      ],
+      "error": null
+    },
+    {
+      "id": "32015R0757",
+      "outcome": "hardened_validator_rejected_capture_incomplete",
+      "verdict": "valid=false (was valid=true pre-MH-3); failures=[capture_incomplete]; recommended_status=quarantined",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32015R0757.json",
+        "/root/work/mint/batch-001/source-32015R0757.txt",
+        "/root/work/mint/batch-001/HARDENED-VALIDATOR-REJECTIONS-mh3.md"
+      ],
+      "error": null
+    },
+    {
+      "id": "32019R1242",
+      "outcome": "hardened_validator_rejected_capture_incomplete",
+      "verdict": "valid=false (was valid=true pre-MH-3); failures=[capture_incomplete]; recommended_status=quarantined",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32019R1242.json",
+        "/root/work/mint/batch-001/source-32019R1242.txt",
+        "/root/work/mint/batch-001/HARDENED-VALIDATOR-REJECTIONS-mh3.md"
+      ],
+      "error": null
+    },
+    {
+      "id": "32023R0956",
+      "outcome": "hardened_validator_rejected_capture_incomplete",
+      "verdict": "valid=false (was valid=true pre-MH-3); failures=[capture_incomplete]; recommended_status=quarantined",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32023R0956.json",
+        "/root/work/mint/batch-001/source-32023R0956.txt",
+        "/root/work/mint/batch-001/HARDENED-VALIDATOR-REJECTIONS-mh3.md"
+      ],
+      "error": null
+    },
+    {
+      "id": "32023R1804",
+      "outcome": "hardened_validator_rejected_capture_incomplete",
+      "verdict": "valid=false (was valid=true pre-MH-3); failures=[capture_incomplete]; recommended_status=quarantined",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32023R1804.json",
+        "/root/work/mint/batch-001/source-32023R1804.txt",
+        "/root/work/mint/batch-001/HARDENED-VALIDATOR-REJECTIONS-mh3.md"
+      ],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "validator_distinct_failure_reasons_before": 17,
+    "validator_distinct_failure_reasons_after": 27,
+    "validator_new_failure_reasons_added": 10,
+    "validator_new_gate_categories_added": 2,
+    "validator_new_gate_categories": "capture-completeness (4 reasons: missing_fetched_length, capture_incomplete, capture_length_mismatch, capture_length_exceeds_fetched), unicode-integrity (6 reasons: fact_span_matches_payload_only_not_archive, fact_span_unicode_substitution, fact_span_not_in_archived_source, fact_span_unicode_normalization_mismatch, archived_source_path_unreadable, prose_unicode_substitution)",
+    "kit_test_count_before": 21,
+    "kit_test_count_after": 33,
+    "kit_tests_added": 12,
+    "batch001_retrofit_rejection_rate": "6/6 = 100% -- every batch-001 payload now fails the hardened validator's capture-completeness gate (5/6 capture_incomplete, 1/6 capture_length_mismatch -- 32009L0123's 12,082/12,237 = 98.73% capture ratio clears the 0.98 floor but still misses the 50-char tolerance, so it fails the finer-grained reason instead of the coarse one)",
+    "batch001_capture_ratios": {
+      "32006R1692": 0.0642,
+      "32009L0123": 0.9873,
+      "32015R0757": 0.0334,
+      "32019R1242": 0.0254,
+      "32023R0956": 0.0136,
+      "32023R1804": 0.0123
+    },
+    "unicode_integrity_red_tests_added": 2,
+    "unicode_integrity_red_tests_note": "Reproduce batch-001's two ACTUAL historical bugs (the x/x-for-x multiplication-sign substitution in 32019R1242 and the curly-vs-straight-quote substitution in 32023R0956) using the real strings copied verbatim from source-32019R1242.txt / source-32023R0956.txt, with a companion 'archived source' fixture proving the archive-cross-check catches what criterion 3 (payload-internal only) provably misses -- see validate-mint-payload.test.mjs."
+  },
+  "defects_found": [
+    {
+      "description": "mint-run-001.json's defects_found[0] (capture-completeness: nothing stopped a payload whose result_content was an excerpt of the fetched document) -- FIXED this wave.",
+      "root_cause": "See mint-run-001.json's defects_found[0].root_cause (javascript_tool's ~1.0-1.5K-char return-value truncation defeated MINT-RUNBOOK.md's suggested 20000-char slice, driving an ad-hoc targeted-excerpt workaround with no length check against the real fetch).",
+      "fix_ref": "scripts/mint/validate-mint-payload.mjs (capture-completeness gate: required fetched_length + tolerance/floor check) + scripts/mint/payload-schema.json (fetched_length, archived_source_path) + scripts/mint/MINT-RUNBOOK.md §1a (<=8,000-char slice-and-rebuild law) -- Wave MH-3, this commit"
+    },
+    {
+      "description": "mint-run-001.json's defects_found[2] (validator has no unicode-normalization or external-source comparison step; an intra-payload comparison cannot catch a hand-transcription error typed identically into both source_span and result_content) -- FIXED this wave.",
+      "root_cause": "See mint-run-001.json's defects_found[2].root_cause. Confirmed independently this wave: a red test with archived_source_path DISABLED shows criterion 3 alone genuinely does not catch a shared × -> x corruption (validate-mint-payload.test.mjs, 'criterion 3 alone should NOT catch...').",
+      "fix_ref": "scripts/mint/validate-mint-payload.mjs (unicode-integrity check: NFKC + known-substitution-class comparison against search_results[].archived_source_path when present) + scripts/mint/MINT-RUNBOOK.md §1a step 5 (archive the rebuilt text BEFORE authoring claims, so it is not retyped from the same reading) -- Wave MH-3, this commit"
+    },
+    {
+      "description": "mint-run-001.json's defects_found[1] (the two actual transcription bugs, × -> x and curly-vs-straight quotes) was a process/verification fix in-session, not a code fix, per its own fix_ref. Wave MH-3 adds the code-level guard (the unicode-integrity check above) so the SAME class of bug is now caught mechanically rather than only by an ad-hoc manual cross-check -- no new occurrence found this wave; not a new defect, cross-referenced for completeness.",
+      "root_cause": "",
+      "fix_ref": "same as defects_found[1] above (scripts/mint/validate-mint-payload.mjs's unicode-integrity check)"
+    },
+    {
+      "description": "One of batch-001's six payloads (32009L0123) has a MUCH higher capture ratio (98.73%) than the other five (1.2%-6.4%) -- its excerpt happened to cover nearly the entire 12,237-char document, still 155 chars short of a clean match (beyond the 50-char tolerance), so it fails the gate's finer-grained capture_length_mismatch reason rather than the coarse capture_incomplete one. Not a validator defect -- both reasons correctly reject the payload -- but worth naming explicitly rather than silently treating all six as identically-shaped, per PROPOSER-RUNBOOK.md's 'measurement, not assertion.'",
+      "root_cause": "32009L0123 is the shortest of the six source documents (12,237 chars, a Directive amending only two articles) and batch-001's targeted-excerpt strategy (see mint-run-001.json defects_found[0]) happened to cite most of its content across the required slots, unlike the other five (43,813-178,953 chars) where the same excerpt strategy captured a much smaller fraction.",
+      "fix_ref": null
+    }
+  ],
+  "full_trace_refs": [
+    "fsi-app/scripts/mint/validate-mint-payload.mjs",
+    "fsi-app/scripts/mint/validate-mint-payload.test.mjs",
+    "fsi-app/scripts/mint/payload-schema.json",
+    "fsi-app/scripts/mint/MINT-RUNBOOK.md",
+    "fsi-app/scripts/mint/testdata/archived-source-32019R1242-excerpt.txt",
+    "fsi-app/scripts/mint/testdata/archived-source-32023R0956-excerpt.txt",
+    "/root/work/mint/batch-001/HARDENED-VALIDATOR-REJECTIONS-mh3.md",
+    "/root/work/mint/batch-001/payload-32006R1692.json",
+    "/root/work/mint/batch-001/payload-32009L0123.json",
+    "/root/work/mint/batch-001/payload-32015R0757.json",
+    "/root/work/mint/batch-001/payload-32019R1242.json",
+    "/root/work/mint/batch-001/payload-32023R0956.json",
+    "/root/work/mint/batch-001/payload-32023R1804.json"
+  ],
+  "proposer_notes": "This run IS a proposer-pass implementation cycle (build plan §3's 'first live loop'), not a new mint batch -- no new items were fetched or minted; per_item records the SIX EXISTING batch-001 payloads' verdicts under the hardened validator, per this wave's dispatch. mint-run-001.json's defects_found[0] and [2] fix_ref fields were updated in place to point at this wave's landing (the field's own schema purpose -- 'null when no fix has been authored yet' implies updating it once one is; the description/root_cause fields were left untouched, preserving the historical record of what actually happened in batch-001). LAST-PROPOSER-PASS.md was rewritten to name mint-run-002 (F28 rule (d): mint now has 2 valid artifacts, so this file is required going forward, not optional as it was for run-001). PENDING-RUN.md is deleted -- its recorded pending hash (sha256:81e11f37f14db382, MH-2's runbook-only edit) is superseded by further governing-file edits this wave made (the hash below, sha256:b654b1aeb507a4ed, IS this run's own harness_version, so F28 rule (c) sees a matching artifact and needs no new PENDING-RUN.md). Deferred, explicitly out of MH-3's scope per the dispatch: re-fetching batch-001's six documents under the new slice-and-rebuild law and re-minting them so they PASS the hardened validator -- that is 'M2 full-text rebuild + apply batch-001 UNDER the hardened validator' in the build plan's §4 resume queue, a distinct, later task. This wave deliberately did not touch any result_content to make a payload pass; the six rejections above are the proof the defect class is now structurally caught, not a bug in this run."
+}

@@ -1,0 +1,241 @@
+{
+  "harness_family": "mint",
+  "harness_version": "sha256:39e0a776200e1d80",
+  "run_id": "mint-run-001",
+  "started_at": "2026-09-01T00:49:22Z",
+  "config": {
+    "vault": "/root/work/dotfiles",
+    "wave": "M1 (v1, transport gate) + M1b (v2, browser-fetched — this batch's actual result)",
+    "candidate_pool_definition": "census-final-v3.screen-results.json rows where verdict==='on_vertical' && document_url contains 'eur-lex.europa.eu' && title present && surface_tags includes 'regulations'",
+    "candidate_pool_size": 989,
+    "batch_target_size": "40-80 payloads per MINT-RUNBOOK.md §6",
+    "selection": "literal first-10 rows of the 989-row pool (queue-10.json); extended past position 10, per MINT-RUNBOOK.md step 0's live registration/duplicate checks, to reach all 8 registered-but-unminted rows the pool actually contains",
+    "fetch_mechanism_v1": "net.http_get (pg_net) against eur-lex.europa.eu — blocked at the WAF/CDN layer (AWS WAF JS challenge, x-amzn-waf-action: challenge) on every one of 7 requests across 4 URLs; batch gate failed, 0 items minted, steps 2-4 not attempted (BATCH-001-REPORT.md)",
+    "fetch_mechanism_v2": "claude-in-chrome real-browser navigation to clear the WAF challenge, then same-origin fetch(url,{credentials:'include'}) + DOMParser on '#text', with a real navigation (not fetch) as the fallback when a fresh 202 challenge reappeared same-origin (BATCH-001-REPORT-v2.md §1)",
+    "supabase_project": "kwrsbpiseruzbfwjpvsp",
+    "db_access": "read-only (SELECT against sources, intelligence_items only) — zero writes, per MINT-RUNBOOK.md's hard boundary",
+    "spend": "$0 — in-session Sonnet only"
+  },
+  "inputs_ref": [
+    "/root/work/build/census-final-v3.screen-results.json",
+    "/root/work/mint/batch-001/queue-10.json"
+  ],
+  "per_item": [
+    {
+      "id": "32006R1692",
+      "outcome": "minted",
+      "verdict": "valid, 0 orphans — clean on first validator pass and first live-verify pass",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32006R1692.json",
+        "/root/work/mint/batch-001/source-32006R1692.txt"
+      ],
+      "error": null
+    },
+    {
+      "id": "32009L0123",
+      "outcome": "minted",
+      "verdict": "valid, 0 orphans — needed a fix-and-rerun cycle (C4 unlabeled_assertion + C7 orphan on a Gate-A near-miss) before the validator went clean; live-verify clean on first pass",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32009L0123.json",
+        "/root/work/mint/batch-001/source-32009L0123.txt"
+      ],
+      "error": null
+    },
+    {
+      "id": "32015R0757",
+      "outcome": "minted",
+      "verdict": "valid, 0 orphans — needed a fix-and-rerun cycle (C7 orphan on an uncited date) before the validator went clean; live-verify clean on first pass",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32015R0757.json",
+        "/root/work/mint/batch-001/source-32015R0757.txt"
+      ],
+      "error": null
+    },
+    {
+      "id": "32019R1242",
+      "outcome": "minted",
+      "verdict": "valid, 0 orphans — clean on first validator pass, but its × (multiplication sign) mistranscribed as ASCII 'x' was NOT caught by the validator (see defects_found[2]) — only by the independent source-file cross-check",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32019R1242.json",
+        "/root/work/mint/batch-001/source-32019R1242.txt"
+      ],
+      "error": null
+    },
+    {
+      "id": "32023R0956",
+      "outcome": "minted",
+      "verdict": "valid, 0 orphans — needed a fix-and-rerun cycle (C3 fact_span_not_in_source from a curly-vs-straight-quote transcription bug, + C7 orphan on an un-cited inferred date) before the validator went clean",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32023R0956.json",
+        "/root/work/mint/batch-001/source-32023R0956.txt"
+      ],
+      "error": null
+    },
+    {
+      "id": "32023R1804",
+      "outcome": "minted",
+      "verdict": "valid, 0 orphans — clean on first validator pass and first live-verify pass; primary_deadline slot covered as GAP (no penalty/sanction clause found in the 178,953-char full text, verified by exhaustive string search)",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/payload-32023R1804.json",
+        "/root/work/mint/batch-001/source-32023R1804.txt"
+      ],
+      "error": null
+    },
+    {
+      "id": "32011L0037",
+      "outcome": "skipped_already_verified_duplicate",
+      "verdict": "already 'verified' in intelligence_items (id 2b3c4c9b-...) — no payload authored, not double-counted",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md"
+      ],
+      "error": null
+    },
+    {
+      "id": "32025D0210",
+      "outcome": "skipped_already_verified_duplicate",
+      "verdict": "already 'verified' in intelligence_items (id adbf2587-...)",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md"
+      ],
+      "error": null
+    },
+    {
+      "id": "32016R2071",
+      "outcome": "skipped_already_verified_duplicate",
+      "verdict": "already 'verified' in intelligence_items (id fae50023-...)",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md"
+      ],
+      "error": null
+    },
+    {
+      "id": "32006D0507",
+      "outcome": "flagged_source_not_registered",
+      "verdict": "no sources row — flagged per MINT-RUNBOOK.md step 0, not fetched, not invented",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md"
+      ],
+      "error": null
+    },
+    {
+      "id": "32025R1045",
+      "outcome": "flagged_source_not_registered",
+      "verdict": "no sources row",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md"
+      ],
+      "error": null
+    },
+    {
+      "id": "32019D1741",
+      "outcome": "flagged_source_not_registered",
+      "verdict": "no sources row",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md"
+      ],
+      "error": null
+    },
+    {
+      "id": "32014R0788",
+      "outcome": "flagged_source_not_registered",
+      "verdict": "no sources row",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md"
+      ],
+      "error": null
+    },
+    {
+      "id": "32026D0406",
+      "outcome": "flagged_source_not_registered",
+      "verdict": "no sources row",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md"
+      ],
+      "error": null
+    },
+    {
+      "id": "32008R1272",
+      "outcome": "flagged_source_not_registered",
+      "verdict": "no sources row",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md"
+      ],
+      "error": null
+    },
+    {
+      "id": "32008R0536",
+      "outcome": "flagged_source_not_registered",
+      "verdict": "no sources row",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md"
+      ],
+      "error": null
+    },
+    {
+      "id": "22003A0321(01)",
+      "outcome": "flagged_off_vertical_relevance_rescreen",
+      "verdict": "census-classifier false positive — Austria/FYROM transit-ecopoints bilateral, a customs/transit-administration agreement, not a sustainability instrument; recommend archive_reason='off_domain'",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md"
+      ],
+      "error": null
+    },
+    {
+      "id": "22022D0645",
+      "outcome": "flagged_off_vertical_relevance_rescreen",
+      "verdict": "census-classifier false positive — US-EU Bilateral Oversight Board civil-aviation-safety cooperation record, aviation-administration not sustainability; recommend archive_reason='off_domain'",
+      "evidence_refs": [
+        "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md"
+      ],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "attempted": 18,
+    "minted": 6,
+    "already_verified_duplicate": 3,
+    "source_not_registered": 7,
+    "off_vertical_excluded_relevance_rescreen": 2,
+    "validator_first_pass_rate": "3/6 = 50% — 32006R1692, 32019R1242, 32023R1804 passed validate-mint-payload.mjs clean on the first run; 32009L0123, 32015R0757, 32023R0956 needed at least one fix-and-rerun cycle",
+    "validator_final_pass_rate": "6/6 = 100%",
+    "live_verify_first_pass_rate": "4/6 = 66.7% — independent verbatim (case-insensitive, whitespace-normalized) cross-check of every FACT source_span against the archived source-<celex>.txt file; 32019R1242 (× vs x) and 32023R0956 (curly vs straight quotes) failed this check on first pass",
+    "live_verify_final_rate": "6/6 = 100% after the two transcription bugs were fixed",
+    "candidate_pool_bottleneck": "only 8 of the 989-row candidate pool were registered-but-unminted system-wide (66 of 719 active EUR-Lex sources rows lack a minted item; only 8 of those fall inside this pool) — source registration, not fetch transport, is this batch's real throughput constraint (BATCH-001-REPORT-v2.md §7)"
+  },
+  "defects_found": [
+    {
+      "description": "The six source-<celex>.txt archive files hold only narrow ~600-900-char cited-excerpt windows (2-12KB total per file) around each FACT claim's offsets, not the full fetched documents (43,813-178,953 chars each) — even though window.__docs[celex].length confirmed each full document was actually fetched into page memory.",
+      "root_cause": "javascript_tool's return-value channel truncates to roughly 1.0-1.5K characters regardless of the requested slice size (a 20,000-char or even 3,000-char return is silently cut off mid-string with a [TRUNCATED] marker, no error) — the MINT-RUNBOOK.md-suggested '20000-char substrings per call' does not work as written. Worked around this batch via small indexOf/regex offset probes plus small (~600-900-char) windowed returns, i.e. a deliberate targeted-excerpt strategy, not a full-document dump.",
+      "fix_ref": "scripts/mint/validate-mint-payload.mjs (Wave MH-3, mint-run-002.json) -- capture-completeness gate"
+    },
+    {
+      "description": "Two transcription bugs were introduced while manually copying cited spans into source-<celex>.txt / payload FACT claims: an ASCII 'x' substituted for the source's real '×' (multiplication sign) in 32019R1242's Article 8 excerpt and jurisdictional_scope span; curly quotation marks ('...') substituted for the source's straight quotes around 'CBAM' in 32023R0956.",
+      "root_cause": "manual transcription during the targeted-excerpt copying described in defects_found[0]; neither bug was caught until the independent verbatim cross-check against the archived source file (BATCH-001-REPORT-v2.md §4-5).",
+      "fix_ref": "corrected in-session before BATCH-001-REPORT-v2.md was reported green — a process/verification fix, not a code fix"
+    },
+    {
+      "description": "validate-mint-payload.mjs's criterion 3 (fact_span_not_in_source) only checks internal self-consistency between a payload's own result_content and source_span fields; it does not compare either against the independently archived primary-source file. The 32019R1242 × → x substitution was present identically in both fields, so it passed the validator clean while silently diverging from the real fetched text — a payload can be internally self-consistent yet not truly verbatim.",
+      "root_cause": "the kit's validator (a $0, in-session proxy for the live validate_item_provenance RPC, per MINT-RUNBOOK.md §5) has no unicode-normalization or external-source comparison step; its scope is intra-payload only.",
+      "fix_ref": "scripts/mint/validate-mint-payload.mjs (Wave MH-3, mint-run-002.json) -- unicode-integrity check"
+    }
+  ],
+  "full_trace_refs": [
+    "/root/work/mint/batch-001/BATCH-001-REPORT.md",
+    "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md",
+    "/root/work/mint/batch-001/transport-proof-raw.json",
+    "/root/work/mint/batch-001/queue-10.json",
+    "/root/work/mint/batch-001/payload-32006R1692.json",
+    "/root/work/mint/batch-001/payload-32009L0123.json",
+    "/root/work/mint/batch-001/payload-32015R0757.json",
+    "/root/work/mint/batch-001/payload-32019R1242.json",
+    "/root/work/mint/batch-001/payload-32023R0956.json",
+    "/root/work/mint/batch-001/payload-32023R1804.json",
+    "/root/work/mint/batch-001/source-32006R1692.txt",
+    "/root/work/mint/batch-001/source-32009L0123.txt",
+    "/root/work/mint/batch-001/source-32015R0757.txt",
+    "/root/work/mint/batch-001/source-32019R1242.txt",
+    "/root/work/mint/batch-001/source-32023R0956.txt",
+    "/root/work/mint/batch-001/source-32023R1804.txt"
+  ],
+  "proposer_notes": "Retrofit basis (Wave MH-1): both BATCH-001-REPORT.md (v1, transport-gate failure via pg_net, 0 minted) and BATCH-001-REPORT-v2.md (v2, browser-fetched, 6 minted) are folded into this one run artifact — v2 is the same numbered batch re-run via the mechanism v1's own report recommended, not a separate batch. started_at uses the batch-001 directory's earliest file mtime (transport-proof-raw.json, 2026-09-01T00:49:22.704Z, truncated to the second), i.e. self-reported via filesystem, not inferred from prose. harness_version hashes the CURRENT repo state of the files named in CONVENTION.md's table, AS OF THIS WAVE'S LANDING (i.e. including this same commit's one-line CONVENTION.md pointer added to MINT-RUNBOOK.md itself, since that file is one of the hashed ones) — not the exact byte state batch-001 ran against, which predates that pointer line by definition. `git log` confirms none of the seven hashed files changed between batch-001's run and this wave's landing OTHER than that one pointer line this same wave added; a future reader diffing against an EARLIER checkout of MINT-RUNBOOK.md (pre-Wave-MH-1) will see a harmless one-line delta, not drift. validator_first_pass_rate and live_verify_first_pass_rate were computed by reading BATCH-001-REPORT-v2.md §4-5's per-payload fix list line by line (any payload named in a 'Fixes applied along the way' entry counts as not-first-pass for the specific check(s) it names) — 32023R0956's curly-quote bug is counted once (it is simultaneously the validator's C3 failure and the live-verify failure — same root cause, same bug). MH-3 (plan §3) is explicitly scoped to fix defects_found[0] (as runbook law) and defects_found[2] (unicode-normalization span checking) against this exact batch; when MH-3 lands, its own mint-run-* artifact should set fix_ref on these two entries to the landing commit and this run's payloads should be the ones MH-3 re-validates under the hardened gate (plan §3 'Done when')."
+}
