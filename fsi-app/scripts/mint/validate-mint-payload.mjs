@@ -364,12 +364,58 @@ export function validateMintPayload(payload, opts = {}) {
   const searchResults = payload?.search_results || [];
   const claims = payload?.claims || [];
 
+  // ── GRADE DISCRIMINATOR (Lane POP, 2026-09-01, migration 278) — item.grade: "record" | "brief"
+  //    (absent/anything-else defaults to "brief", so this is a strict ADDITION: an omitted grade field
+  //    runs the identical brief-grade path this validator has always run, byte-for-byte). C1-C7 below
+  //    are NEVER branched on grade -- the live public.validate_item_provenance function they replicate
+  //    knows nothing of item_grade and enforces the same seven criteria unconditionally (see migration
+  //    278's header). The only grade-specific behavior is the two RECORD-PURITY kit checks immediately
+  //    below: they encode "no synthesis" as a mechanically-checkable rule rather than trusting every
+  //    future record-payload author to remember it, exactly the doctrine every other kit-level check in
+  //    this file already follows (capture-completeness, unicode integrity). ──
+  const grade = item.grade === "record" ? "record" : "brief";
+
   // ── KIT-LEVEL structural guards (not live DB criteria -- catch a malformed payload before C1-C7 run
   //    on garbage). Reported with criterion:"kit" so they are never confused with the seven real numbers. ──
   const sectionKeys = new Set(sections.map((s) => s.section_key));
   for (const c of claims) {
     if (!sectionKeys.has(c.section_key)) {
       failures.push({ criterion: "kit", reason: "claim_references_unknown_section_key", claim: c.claim_text, section_key: c.section_key });
+    }
+  }
+
+  // ── RECORD-PURITY (grade === "record" only) ─────────────────────────────────────────────────────
+  //   1. claim_kind restricted to FACT/GAP -- ANALYSIS/LEGAL/DERIVED are how a synthesized brief's own
+  //      interpretation enters a payload (criterion 4's label-syntax rules exist for exactly that
+  //      content); a record-grade item carries none of it, by definition ("no synthesis").
+  //   2. every FACT claim's source_span appears verbatim (case-insensitive substring, matching
+  //      criterion 3's own comparison) inside item.full_brief -- the "short extracted description made
+  //      ONLY of verbatim FACT spans" is not just a naming convention, it is checked.
+  //   Both are ADDITIVE to C1-C7, never a replacement for any of them -- a record payload still has to
+  //   clear the exact same seven criteria a brief payload does (grade is a label on what already passed
+  //   honestly, per migration 278's header).
+  if (grade === "record") {
+    for (const c of claims) {
+      if (!["FACT", "GAP"].includes(c.claim_kind)) {
+        failures.push({
+          criterion: "kit",
+          reason: "record_grade_forbidden_claim_kind",
+          claim: c.claim_text,
+          claim_kind: c.claim_kind,
+        });
+      }
+    }
+    const fullBriefLower = String(item.full_brief ?? "").toLowerCase();
+    for (const c of claims) {
+      if (c.claim_kind !== "FACT" || !c.source_span || String(c.source_span).trim() === "") continue;
+      if (!fullBriefLower.includes(String(c.source_span).trim().toLowerCase())) {
+        failures.push({
+          criterion: "kit",
+          reason: "record_grade_full_brief_not_extractive",
+          claim: c.claim_text,
+          source_span: c.source_span,
+        });
+      }
     }
   }
 

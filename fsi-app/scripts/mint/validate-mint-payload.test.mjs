@@ -412,3 +412,84 @@ test("kit RED: prose scan catches a substitution-class divergence in full_brief 
   assert.equal(f.substitution_class, "curly_single_quote");
   assert.equal(f.location, "full_brief");
 });
+
+// ── Lane POP (2026-09-01, migration 278): grade discriminator ────────────────────────────────────────
+// basePayload() carries only FACT/GAP claims, and its full_brief already textually contains both FACT
+// claims' source_span verbatim -- so it satisfies BOTH record-purity kit checks unmodified, and setting
+// item.grade="record" on an unmutated clone is itself a real, meaningful assertion (not a fixture built
+// backwards from the check).
+
+test("grade omitted (absent from item{}) behaves EXACTLY like grade='brief' -- the discriminator is a strict addition, not a behavior change", () => {
+  const withGrade = basePayload();
+  withGrade.item.grade = "brief";
+  const withoutGrade = basePayload(); // no .grade field at all
+  const r1 = validateMintPayload(withGrade);
+  const r2 = validateMintPayload(withoutGrade);
+  assert.deepEqual(r1, r2, "an explicit grade:'brief' and an absent grade field must validate identically");
+  assert.deepEqual(r2.failures, [], "brief-grade behavior (this file's whole existing suite) is unchanged by the discriminator's addition");
+});
+
+test("grade='record' GREEN: a payload whose claims are already FACT/GAP-only and whose full_brief already quotes every FACT span passes with zero failures", () => {
+  const p = basePayload();
+  p.item.grade = "record";
+  const r = validateMintPayload(p);
+  assert.deepEqual(r.failures, []);
+  assert.equal(r.valid, true);
+  assert.equal(r.recommended_status, "verified");
+});
+
+test("grade='record' RED: an ANALYSIS claim in a record-grade payload -> record_grade_forbidden_claim_kind (no synthesis)", () => {
+  const p = basePayload();
+  p.item.grade = "record";
+  p.claims.push({
+    section_key: "body",
+    claim_kind: "ANALYSIS",
+    claim_text: "*Per the workspace's reading:* this rule is significant for operators.",
+    slot_key: null,
+  });
+  const r = validateMintPayload(p);
+  const f = r.failures.find((x) => x.criterion === "kit" && x.reason === "record_grade_forbidden_claim_kind");
+  assert.ok(f, "an ANALYSIS claim must be rejected on a record-grade payload");
+  assert.equal(f.claim_kind, "ANALYSIS");
+});
+
+test("grade='record' RED: a LEGAL claim in a record-grade payload is also forbidden (same rule, different kind)", () => {
+  const p = basePayload();
+  p.item.grade = "record";
+  p.claims.push({ section_key: "body", claim_kind: "LEGAL", claim_text: "*Legal confirmation required:* consult counsel.", slot_key: null });
+  const r = validateMintPayload(p);
+  assert.ok(r.failures.some((x) => x.criterion === "kit" && x.reason === "record_grade_forbidden_claim_kind" && x.claim_kind === "LEGAL"));
+});
+
+test("grade='record' RED: a FACT claim whose source_span is NOT quoted in full_brief -> record_grade_full_brief_not_extractive", () => {
+  const p = basePayload();
+  p.item.grade = "record";
+  // full_brief no longer contains this FACT's source_span verbatim -- the 'short extracted description'
+  // must be built ONLY from the payload's own FACT spans; a paraphrase (even an accurate one) fails.
+  p.item.full_brief = "The rule takes effect at the start of next year. Compliance is required by 1 January 2027.";
+  const r = validateMintPayload(p);
+  const f = r.failures.find((x) => x.criterion === "kit" && x.reason === "record_grade_full_brief_not_extractive");
+  assert.ok(f, "a FACT source_span absent from full_brief must fail the extractive-only check on a record-grade payload");
+  assert.equal(f.source_span, "enters into force on 1 January 2026");
+});
+
+test("grade='record': the SAME ANALYSIS payload is untouched (still GREEN on that check) when grade is 'brief' or absent -- the purity checks are grade-gated, not global", () => {
+  const p = basePayload();
+  p.claims.push({
+    section_key: "body",
+    claim_kind: "ANALYSIS",
+    claim_text: "*Per the workspace's reading:* not backed anywhere; would need C4 label discipline to pass, unrelated to record-purity.",
+    slot_key: null,
+  });
+  // Deliberately NOT setting item.grade -> defaults to "brief" -> record-purity checks never run.
+  const r = validateMintPayload(p);
+  assert.ok(!r.failures.some((f) => f.reason === "record_grade_forbidden_claim_kind"), "record-purity must never fire for grade='brief'/absent");
+});
+
+test("grade='record': C1-C7 still apply in full (grade is additive, never a bypass) -- a bad source still fails criterion 1", () => {
+  const p = basePayload();
+  p.item.grade = "record";
+  p.source.status = "suspended";
+  const r = validateMintPayload(p);
+  assert.ok(r.failures.some((f) => f.criterion === 1 && f.reason === "source_not_active"), "criterion 1 must still fire on a record-grade payload");
+});

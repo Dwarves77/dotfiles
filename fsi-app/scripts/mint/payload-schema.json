@@ -55,7 +55,13 @@
         "full_brief": {
           "type": "string",
           "minLength": 1,
-          "description": "The authored brief prose (markdown). Criterion 6 requires non-blank; criterion 7 (Gate A) scans this text for figures/deadline-dates."
+          "description": "The authored brief prose (markdown). Criterion 6 requires non-blank; criterion 7 (Gate A) scans this text for figures/deadline-dates. For grade='record' this is NOT synthesized prose -- it is the short extracted description built ONLY by concatenating this payload's own FACT/GAP claims (src/lib/intake/record-facts.mjs's buildRecordFullBrief); still required non-blank (criterion 6 is unconditional on grade)."
+        },
+        "grade": {
+          "type": "string",
+          "enum": ["brief", "record"],
+          "default": "brief",
+          "description": "Lane POP (2026-09-01, migration 278). 'brief' (default, omit for the historical behavior) = a synthesized, grounded brief. 'record' = a catalogue record: identity + a short description made ONLY of verbatim FACT/GAP spans, no synthesis, $0. Grade does NOT change which of criteria 1-7 apply -- validate-mint-payload.mjs's grade discriminator adds two ADDITIONAL record-purity kit checks (claim_kind restricted to FACT/GAP; every FACT source_span present in full_brief) on top of the unchanged C1-C7 path. See item-type-required-slots.json's header for why required slots are identical across both grades."
         }
       }
     },

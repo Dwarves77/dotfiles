@@ -65,6 +65,19 @@ export interface MintPlan {
   relevance?: number | null;
   /** Where the mint originates (audit only). */
   origin: "first_fetch" | "staged_materialization";
+  /**
+   * Item tier (Lane POP, 2026-09-01; migration 278 `intelligence_items.item_grade`). Omitted or
+   * "brief" (the default) mints the historical synthesized-brief item, unchanged. "record" mints a
+   * RECORD-GRADE item — identity + dates + a short description made ONLY of verbatim FACT/GAP spans
+   * (no synthesis) — by stamping `seed.item_grade = "record"` before the single INSERT below. This is
+   * a LABEL, not a second gate: a record-grade seed must independently satisfy the exact same
+   * validate_item_provenance C1-C7 criteria a brief-grade seed does (see
+   * scripts/mint/validate-mint-payload.mjs's grade discriminator, same commit, for how a record
+   * payload is built to clear them). Rule 16 (discovery + forward-event extraction, below) runs
+   * post-insert unconditionally on every successful mint, unaffected by grade — verified by inspection:
+   * neither block below reads `seed.item_grade` or `plan.grade`.
+   */
+  grade?: "record" | "brief";
 }
 
 export type MintAction = "minted" | "retyped" | "linked" | "exists" | "duplicate" | "unsourced";
@@ -126,6 +139,12 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
   const seed: Record<string, unknown> = { ...plan.seed };
   const sourceUrl = String(seed.source_url ?? "");
   const itemType = (seed.item_type as string | undefined) ?? undefined;
+
+  // Lane POP (2026-09-01, migration 278): stamp the item tier. A caller-preset seed.item_grade (a
+  // record payload applied through this chokepoint would already carry `item.grade` from
+  // buildRecordPayload) is trusted as-is; plan.grade is the fallback for a caller that supplies grade
+  // out-of-band from its seed object. Default "brief" — every pre-existing caller is unaffected.
+  if (seed.item_grade == null) seed.item_grade = plan.grade ?? "brief";
 
   // ── Idempotency short-circuits: return an existing row, never an INSERT ──────────────────────────
   // FAIL-CLOSED (C4, 2026-07-11): a READ ERROR during a duplicate-probe must NEVER proceed to mint —

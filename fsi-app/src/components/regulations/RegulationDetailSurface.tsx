@@ -39,6 +39,7 @@ import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { OwnerTeamCard } from "@/components/regulations/OwnerTeamCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadge } from "@/components/shell/RelevanceBadge";
+import { RecordGradeBadge } from "@/components/shell/RecordGradeBadge";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import { scoreResource, matchResourceSector } from "@/lib/scoring";
 import {
@@ -272,6 +273,7 @@ export function RegulationDetailSurface({
                 {typeof r.sourceTier === "number" && (
                   <TierBadge tier={r.sourceTier} />
                 )}
+                <RecordGradeBadge itemGrade={r.itemGrade} />
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 {(r.fullBrief || r.url) && (

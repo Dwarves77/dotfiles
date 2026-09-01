@@ -1,5 +1,6 @@
 {
   "_comment": "Mirrors the live public.item_type_required_slots table (coordinator-dumped 2026-08-31, mint-ground-truth.md). Criterion 5 requires >=1 FACT or GAP claim per row whose claim_text contains the slot_key literally (case-insensitive substring). If this table changes live, re-dump and update this file.",
+  "_grade_note": "Lane POP (2026-09-01, migration 278): this list IS 'the provenance minimum' -- it is UNCHANGED for grade='record'. The live public.item_type_required_slots table criterion 5 queries is keyed by item_type alone, with no grade column and no coordinator-side plan to add one; a record-grade item clears criterion 5 through the exact same per-item_type slot list a brief-grade item does (src/lib/intake/record-facts.mjs emits one FACT-or-GAP claim per slot here, honestly GAP when the captured text does not state it -- see that file's SLOT_TRIGGERS). There is no separate, smaller 'record slots' list to maintain, and inventing one would let a record item pass this local validator while failing the live DB gate on apply.",
   "regulation":       ["effective_date", "jurisdictional_scope", "penalty_summary", "primary_deadline"],
   "directive":        ["effective_date", "jurisdictional_scope", "penalty_summary", "primary_deadline"],
   "standard":         ["effective_date", "jurisdictional_scope", "penalty_summary", "primary_deadline"],

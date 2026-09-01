@@ -53,7 +53,8 @@ who may write a shared table; the test enforces it on every future PR.
       "src/app/api/admin/integrity-flags/[id]/resolve/route.ts",
       "src/app/api/admin/triage/pending-jurisdiction-review/route.ts",
       "scripts/mint/run-mint-batch.mjs",
-      "scripts/connections/apply-tags.mjs"
+      "scripts/connections/apply-tags.mjs",
+      "scripts/mint/stamp-wo26-archive-reason.mjs"
     ],
     "item_cross_references": [
       "src/lib/intake/mint-item.ts",
@@ -160,6 +161,7 @@ narrow-touch-for-recompute / tombstone-delete), not a data column.
 | `scripts/_reground/tombstone-delete.mjs` (KEEP) | DELETE — the **one** sanctioned disposition-delete vehicle; writes `disposition_ledger` FIRST, fail-closed (`guardedDelete` only reached after the tombstone commits) | line 106, `guardedDelete("intelligence_items", [it.id], ...)`; invariant enforced at `.discipline/governance/invariants.mjs:812` |
 | `scripts/mint/run-mint-batch.mjs` | **Pre-registered (parallel lane)** — expected mint-batch runner | not yet present |
 | `scripts/connections/apply-tags.mjs` | UPDATE — merges an operator-ratified `derive-tags.mjs` tag proposal onto `operational_scenario_tags`/`compliance_object_tags`/`topic_tags` (never removes an existing tag, never overwrites a non-empty array — only appends absent tags, capped at `derive-tags.mjs`'s `FIELD_CAPS`) via `guardedUpdate`, only for a flag resolved with `resolution_note` containing `ratify:tags` (lane TAG, 2026-09-01 — closes the August-census-wave empty-tag gap so `discover.mjs` can score edges for these items) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, ...)` in `deps.updateItem` |
+| `scripts/mint/stamp-wo26-archive-reason.mjs` (Lane POP, 2026-09-01) | UPDATE — `archive_reason` only, on the 491 WO-26 rows Addendum 28 archived without stamping one | `guardedUpdate("intelligence_items", applyMatch, { archive_reason: ... }, { cite, select })`, `--dry` by default |
 
 Replace policy: guarded per-row UPDATE/INSERT (never a bulk replace); DELETE is single-purpose and
 gated behind a tombstone write (see `tombstone-delete.mjs` above) — this is a **guarded delete**, not a

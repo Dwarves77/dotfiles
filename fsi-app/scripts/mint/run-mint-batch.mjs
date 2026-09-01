@@ -32,8 +32,17 @@
 // Interface-3 metrics vocabulary, MINT-RUNBOOK.md §6/§8) that this DB-less environment cannot compute
 // itself. See enrichRunArtifactMetrics() and the "--outcomes" section below.
 //
+// A THIRD mode, --census-rows <file> --grade record (Lane POP, 2026-09-01), builds RECORD-GRADE
+// payloads from a JSON export of `would_mint` census_worklist rows (see loadCensusRows / CensusRow's
+// shape below) via src/lib/intake/record-facts.mjs's buildRecordPayload — no LLM, no fetch, $0 — then
+// runs the SAME validateMintPayload gate as --batch-file over the result. A row that fails to BUILD (no
+// captured text, missing source, etc.) is recorded as a `build_failed` per_item entry rather than
+// crashing the batch — see buildPayloadsFromCensusRows.
+//
 // USAGE:
 //   node scripts/mint/run-mint-batch.mjs --batch-file path/to/batch.json [--execute]
+//                                         [--harness-runs-dir dir] [--out-dir dir]
+//   node scripts/mint/run-mint-batch.mjs --census-rows path/to/rows.json --grade record [--execute]
 //                                         [--harness-runs-dir dir] [--out-dir dir]
 //   node scripts/mint/run-mint-batch.mjs --outcomes path/to/outcomes.json [--run-id mint-run-NNN]
 //                                         [--harness-runs-dir dir]
@@ -44,6 +53,7 @@ import { resolve, dirname, basename, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateMintPayload } from "./validate-mint-payload.mjs";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
+import { buildRecordPayload } from "../../src/lib/intake/record-facts.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -64,12 +74,24 @@ export const MINT_GOVERNING_FILES = Object.freeze([
   "scripts/mint/lib/gate-a-scan.mjs",
   "scripts/mint/lib/gate-a-match.mjs",
   "scripts/mint/lib/canonicalize-citation-url.mjs",
+  // NOT ADDED HERE: src/lib/intake/record-facts.mjs (the --grade record payload builder, Lane POP
+  // 2026-09-01) is just as governing as the files above — a change to its extraction logic changes what
+  // a record batch produces the same way a change to validate-mint-payload.mjs changes what it accepts —
+  // but this array is asserted BYTE-FOR-BYTE against .discipline/fitness/functions/F28's hardcoded
+  // GOVERNING_FILES.mint list by this file's own test suite (run-mint-batch.test.mjs's
+  // "MINT_GOVERNING_FILES matches F28's hardcoded mint entry" test), and F28 itself is outside this
+  // lane's write set. Adding the entry here without F28 catching up would make THIS array wrong about
+  // what F28 actually hashes, which is worse than the named gap: F28 mint staleness on this addition is
+  // expected and coordinator-owned (see this lane's VERIFY instructions) — the coordinator should add
+  // 'src/lib/intake/record-facts.mjs' to both F28's list and this array in the same commit.
 ]);
 
 function usage() {
   return [
     "Usage:",
     "  node scripts/mint/run-mint-batch.mjs --batch-file path/to/batch.json [--execute]",
+    "                                        [--harness-runs-dir dir] [--out-dir dir] [--out-basename name]",
+    "  node scripts/mint/run-mint-batch.mjs --census-rows path/to/rows.json --grade record [--execute]",
     "                                        [--harness-runs-dir dir] [--out-dir dir] [--out-basename name]",
     "  node scripts/mint/run-mint-batch.mjs --outcomes path/to/outcomes.json [--run-id mint-run-NNN]",
     "                                        [--harness-runs-dir dir]",
@@ -91,6 +113,146 @@ export function loadBatch(batchPath) {
   throw new Error(
     `--batch-file must be a JSON array of payloads, or an object { "payloads": [...] }; got ${typeof parsed}`,
   );
+}
+
+// ── --census-rows (Lane POP, 2026-09-01): record-grade payload building ────────────────────────────
+//
+// A CENSUS ROW (this script's own input contract — no exporter ships in this lane's write set; see
+// docs/plans/record-tier-population-plan-2026-09-01.md for the full sequence a future census-worklist
+// export would follow) is one `would_mint` census_worklist row ENRICHED with what buildRecordPayload
+// needs and census_worklist itself does not carry (migration 221's columns are identity/enumeration
+// only — no title, item_type, or captured text):
+//   {
+//     "row_id": "<census_worklist.id, optional, for traceability>",
+//     "source_url": "https://…",                  // required — becomes item.source_url
+//     "item_type": "directive",                    // required — one of item-type-required-slots.json's keys
+//     "title": "…",                                 // required
+//     "instrument_identifier": "…",                 // optional
+//     "canonical_instrument_key": "CELEX:…",         // optional
+//     "jurisdiction_iso": "EU",                      // optional
+//     "priority": "MODERATE",                        // optional, default MODERATE
+//     "source": { "id": "…", "url": "…", "base_tier": 1, "tier_override": null, "status": "active" },
+//     "captured_text": "…",                          // the FULL fetched document text, OR:
+//     "captured_text_path": "relative/to/this/file.txt",
+//     "fetched_length": 12345,                       // optional; defaults to captured_text.length
+//     "agent_run_searches_id": "…"                    // recognized but NOT resolvable by this DB-less
+//                                                      // script — a row naming only this field fails to
+//                                                      // build with a clear error, it never silently skips
+//   }
+
+/** Load and normalize a --census-rows file into a bare array of row objects. Same array-or-{key:[...]}
+ *  normalization as loadBatch, for consistency across this script's input modes. */
+export function loadCensusRows(censusRowsPath) {
+  const raw = readFileSync(censusRowsPath, "utf8");
+  const parsed = JSON.parse(raw);
+  if (Array.isArray(parsed)) return parsed;
+  if (parsed && Array.isArray(parsed.rows)) return parsed.rows;
+  throw new Error(
+    `--census-rows must be a JSON array of rows, or an object { "rows": [...] }; got ${typeof parsed}`,
+  );
+}
+
+/** A census row's own id for build-failure reporting — mirrors payloadId's preference order. */
+function censusRowId(row, index) {
+  return row?.row_id ?? row?.canonical_instrument_key ?? row?.instrument_identifier ?? row?.source_url ?? `census-index-${index}`;
+}
+
+/**
+ * Build one record-grade payload per census row via src/lib/intake/record-facts.mjs's buildRecordPayload
+ * — no LLM, no fetch, $0. A row that cannot be built (unreadable captured_text_path, no captured text at
+ * all, a missing required field buildRecordPayload itself rejects) is recorded in `buildFailures` rather
+ * than thrown — one bad row must never abort an entire census-rows run. Returns
+ * `{ payloads, buildFailures }`; `payloads` carry a top-level `id` (the row's own id) so payloadId() /
+ * run-artifact traceability point back to the SAME row identifier reported for a build failure.
+ * @param {object[]} rows
+ * @param {{ baseDir: string, requiredSlotsByType?: Record<string,string[]> }} opts `baseDir` resolves a
+ *   row's `captured_text_path` (the --census-rows file's own directory, same convention
+ *   validate-mint-payload.mjs uses for `archived_source_path`).
+ */
+export function buildPayloadsFromCensusRows(rows, { baseDir, requiredSlotsByType = {} } = {}) {
+  const payloads = [];
+  const buildFailures = [];
+
+  rows.forEach((row, index) => {
+    const id = String(censusRowId(row, index));
+    try {
+      let capturedText = row?.captured_text ?? null;
+      if (capturedText == null && row?.captured_text_path) {
+        capturedText = readFileSync(resolve(baseDir, row.captured_text_path), "utf8");
+      }
+      if (capturedText == null && row?.agent_run_searches_id) {
+        throw new Error(
+          `agent_run_searches_id (${row.agent_run_searches_id}) requires live DB access this DB-less ` +
+          `script does not have — supply captured_text or captured_text_path instead (see ` +
+          `docs/plans/record-tier-population-plan-2026-09-01.md)`,
+        );
+      }
+      if (capturedText == null) {
+        throw new Error("no captured_text, captured_text_path, or agent_run_searches_id — nothing to extract from");
+      }
+
+      const requiredSlots = requiredSlotsByType[row?.item_type] || [];
+      const payload = buildRecordPayload({
+        sourceUrl: row?.source_url,
+        itemType: row?.item_type,
+        title: row?.title,
+        instrumentIdentifier: row?.instrument_identifier ?? null,
+        canonicalInstrumentKey: row?.canonical_instrument_key ?? null,
+        jurisdictionIso: row?.jurisdiction_iso ?? null,
+        priority: row?.priority ?? "MODERATE",
+        source: row?.source,
+        capturedText,
+        fetchedLength: row?.fetched_length,
+        requiredSlots,
+      });
+      payload.id = id; // carry the row's own id through for payloadId()/traceability
+      payloads.push(payload);
+    } catch (err) {
+      buildFailures.push({ id, error: err.message });
+    }
+  });
+
+  return { payloads, buildFailures };
+}
+
+/**
+ * Merge --census-rows build failures into a runBatch() result, in the SAME shape runBatch returns, so
+ * printSummary/buildRunArtifact treat a census-rows run identically to a batch-file run. A build failure
+ * is reported as outcome "build_failed" (distinct from validateMintPayload's "validation_failed" — the
+ * payload never existed to validate) and counted into `invalid`/`attempted` so validator_first_pass_rate
+ * stays honest against the FULL census-rows population, not just the rows that made it to a payload.
+ */
+export function mergeCensusBuildFailures(buildFailures, runResult) {
+  const buildPerItem = buildFailures.map((bf) => ({
+    id: bf.id,
+    outcome: "build_failed",
+    verdict: `record payload build failed: ${bf.error}`,
+    evidence_refs: [],
+    error: bf.error,
+  }));
+  const buildResults = buildFailures.map((bf) => ({
+    id: bf.id,
+    valid: false,
+    recommended_status: "quarantined",
+    failures: [{ criterion: "kit", reason: "record_build_failed", detail: bf.error }],
+  }));
+
+  const attempted = buildFailures.length + runResult.metrics.attempted;
+  const valid = runResult.metrics.valid;
+  const invalid = attempted - valid;
+  const rate =
+    attempted > 0 ? `${valid}/${attempted} = ${((valid / attempted) * 100).toFixed(2)}%` : "0/0 (empty batch)";
+
+  return {
+    perItem: [...buildPerItem, ...runResult.perItem],
+    metrics: { attempted, valid, invalid, build_failed: buildFailures.length, validator_first_pass_rate: rate },
+    applyReady: runResult.applyReady,
+    report: {
+      generated_at: runResult.report.generated_at,
+      attempted,
+      results: [...buildResults, ...runResult.report.results],
+    },
+  };
 }
 
 /**
@@ -323,6 +485,8 @@ function main() {
   const { values } = parseArgs({
     options: {
       "batch-file": { type: "string" },
+      "census-rows": { type: "string" },
+      grade: { type: "string" },
       execute: { type: "boolean", default: false },
       "dry-run": { type: "boolean", default: false },
       "harness-runs-dir": { type: "string" },
@@ -348,28 +512,60 @@ function main() {
     return;
   }
 
-  if (!values["batch-file"]) {
+  const usingCensusRows = !!values["census-rows"];
+  if (values["batch-file"] && usingCensusRows) {
+    console.error(`--batch-file and --census-rows are mutually exclusive — pass exactly one.\n${usage()}`);
+    process.exit(1);
+  }
+  if (!values["batch-file"] && !usingCensusRows) {
     console.error(usage());
     process.exit(1);
   }
+  if (usingCensusRows && values.grade !== "record") {
+    console.error(`--census-rows requires --grade record (this script builds only record-grade payloads from census rows).\n${usage()}`);
+    process.exit(1);
+  }
+  if (!usingCensusRows && values.grade && values.grade !== "brief" && values.grade !== "record") {
+    console.error(`--grade must be "brief" or "record"; got ${JSON.stringify(values.grade)}.\n${usage()}`);
+    process.exit(1);
+  }
 
-  const batchPath = resolve(values["batch-file"]);
+  const inputPath = resolve(usingCensusRows ? values["census-rows"] : values["batch-file"]);
   const execute = values.execute === true && values["dry-run"] !== true;
-  const outDir = resolve(values["out-dir"] || dirname(batchPath));
+  const outDir = resolve(values["out-dir"] || dirname(inputPath));
   const startedAt = new Date().toISOString();
+
+  // Loads + validates this run's payloads uniformly for either input mode, merging any --census-rows
+  // build failures into the SAME shape a batch-file run produces (mergeCensusBuildFailures) so every
+  // downstream consumer (printSummary, buildRunArtifact) is input-mode-agnostic.
+  function loadAndRun() {
+    if (usingCensusRows) {
+      const rows = loadCensusRows(inputPath);
+      const requiredSlotsByType = JSON.parse(
+        readFileSync(resolve(HERE, "item-type-required-slots.json"), "utf8"),
+      );
+      const { payloads, buildFailures } = buildPayloadsFromCensusRows(rows, {
+        baseDir: dirname(inputPath),
+        requiredSlotsByType,
+      });
+      const runResult = runBatch(payloads, { baseDir: dirname(inputPath) });
+      return mergeCensusBuildFailures(buildFailures, runResult);
+    }
+    const payloads = loadBatch(inputPath);
+    return runBatch(payloads, { baseDir: dirname(inputPath) });
+  }
 
   if (!execute) {
     // DRY RUN (default): validate in full, print the apply-ready preview, write NOTHING to disk — no
     // output files, no run artifact. A preview is not "a run" CONVENTION.md's schema needs to remember;
     // pass --execute to make it one.
-    let payloads;
+    let result;
     try {
-      payloads = loadBatch(batchPath);
+      result = loadAndRun();
     } catch (err) {
-      console.error(`Failed to read/parse --batch-file ${batchPath}: ${err.message}`);
+      console.error(`Failed to read/build ${usingCensusRows ? "--census-rows" : "--batch-file"} ${inputPath}: ${err.message}`);
       process.exit(1);
     }
-    const result = runBatch(payloads, { baseDir: dirname(batchPath) });
     printSummary(result, { dryRun: true });
     process.exit(result.metrics.invalid > 0 ? 1 : 0);
     return;
@@ -386,12 +582,11 @@ function main() {
 
   try {
     runId = claimRunId(harnessRunsDir, "mint");
-    const payloads = loadBatch(batchPath);
-    result = runBatch(payloads, { baseDir: dirname(batchPath) });
+    result = loadAndRun();
     printSummary(result, { dryRun: false });
 
     mkdirSync(outDir, { recursive: true });
-    const base = values["out-basename"] || basename(batchPath, extname(batchPath));
+    const base = values["out-basename"] || basename(inputPath, extname(inputPath));
     applyReadyPath = join(outDir, `${base}.apply-ready.json`);
     reportPath = join(outDir, `${base}.mint-batch-report.json`);
     result.report.generated_at = new Date().toISOString();
@@ -409,7 +604,7 @@ function main() {
         harnessVersion,
         startedAt,
         finishedAt: new Date().toISOString(),
-        batchPath,
+        batchPath: inputPath,
         outDir,
         execute,
         result,

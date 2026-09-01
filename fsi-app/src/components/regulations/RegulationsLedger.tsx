@@ -72,6 +72,7 @@ import { TIER1_PRIORITY_ISOS } from "@/lib/tier1-priority-jurisdictions";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { DismissedStash } from "./DismissedStash";
 import { ArchiveDialog } from "@/components/workspace/ArchiveDialog";
+import { RecordGradeBadge } from "@/components/shell/RecordGradeBadge";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
@@ -1419,6 +1420,7 @@ function RegRow({
             T{tier}
           </span>
         )}
+        <RecordGradeBadge itemGrade={r.itemGrade} />
         {/* Phase 0 (operator go 2026-08-01): per-row ⋯ retag/dismiss —
             the built-but-unwired "card" variant, now mounted. Safe
             inside the row <Link>: the popover stops propagation. */}
