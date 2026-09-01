@@ -40,20 +40,28 @@ fsi-app/scripts/harness-runs/
     meta-harness-run-002.json
     meta-harness-run-003.json
     ...
+  forward-events/
+    forward-events-run-001.json
+    ...
 ```
 
-One directory per harness family. Four exist today: `mint`, `screen`, and `fetch-drain` — matching the
+One directory per harness family. Five exist today: `mint`, `screen`, and `fetch-drain` — matching the
 three iterated harnesses in `fsi-app/scripts/mint/`, `fsi-app/scripts/mint/screen-*.mjs`, and
 `supabase/functions/capture-worker/` — plus `meta-harness` itself (Wave MH-4, build plan §3
 "self-application"): the meta-harness layer's own family, whose "runs" are the waves that build or extend
 this substrate (this file, `PROPOSER-RUNBOOK.md`, `run-artifact.mjs`, `F28`) rather than a mint batch, a
-screen round, or a fetch-drain lane. `meta-harness-run-001` through `-003` retrofit MH-1, MH-2, and MH-3
+screen round, or a fetch-drain lane — plus `forward-events`, registered over
+`scripts/forward-events/extract-forward-events.mjs`: a family whose "runs" are neither a mint batch, a
+screen round, a fetch-drain lane, nor a meta-harness wave, but a fifth shape of its own — one extraction
+pass over a defined corpus slice, pulling forward-looking-obligation events (a date, a kind, a source
+span) out of source text; never a mint (nothing is minted) and never a fetch (nothing is fetched).
+`meta-harness-run-001` through `-003` retrofit MH-1, MH-2, and MH-3
 respectively — the same real-evidence retrofit discipline this file's own "screen-v1 loss" section
 applies to the three original families, applied one layer up, to the harness that builds harnesses. A new
-harness family — meta-harness included — gets a new subdirectory and one addition to `ALLOWED_FAMILIES`
-in `run-artifact.mjs` — never a family folded into an existing one just because it seemed similar (mint
-and screen already looked similar to each other before this convention existed, and that resemblance is
-exactly what made the loss below possible).
+harness family — meta-harness and forward-events included — gets a new subdirectory and one addition to
+`ALLOWED_FAMILIES` in `run-artifact.mjs` — never a family folded into an existing one just because it
+seemed similar (mint and screen already looked similar to each other before this convention existed, and
+that resemblance is exactly what made the loss below possible).
 
 **meta-harness's standing metric** (build plan §2's "measurement, not assertion," per family): *proposals
 implemented per cycle* — of a meta-harness proposer pass's hypotheses, how many land as a diff in the
@@ -66,6 +74,18 @@ fitness function) rather than only by a human/proposer reading full traces after
 small-N, retrospectively-computed number, not a statistically robust rate — see
 `meta-harness/LAST-PROPOSER-PASS.md` for the current count and its method, recomputed at each meta-harness
 run rather than asserted once and left stale.
+
+**forward-events's standing metric** (build plan §2's "measurement, not assertion," per family): *extraction
+precision* — of the emitted events a human hand-checked against their source text, the fraction whose
+date, kind, and span all match — over events checked, not over all events emitted, since a run over a
+large corpus slice checks a sample, not the whole population (same "checked, not emitted" honesty
+`screen`'s ambiguous rate and `mint`'s validator-pass rate already apply to their own denominators) —
+plus *coverage*: of the items in the run's corpus slice whose brief carries forward-obligation language
+(a renewal date, a notice period, a sunset clause — whatever the family's own extraction protocol defines
+as in-scope), the fraction with at least one extracted event. Precision without coverage would hide a
+harness that only ever finds the easy events; coverage without precision would hide one that emits noise
+to inflate its hit rate — the two are reported together for exactly that reason, the same pairing
+`screen`'s ambiguous rate and operator-overturn rate serve for that family.
 
 **A named risk of self-application** (surfaced by meta-harness's own first proposer pass, Wave MH-4):
 `meta-harness`'s governing files ARE this file and `PROPOSER-RUNBOOK.md` — the two documents every wave
@@ -111,7 +131,7 @@ must be present so a reader never has to guess whether "absent" means "none foun
 {
   // ── identity ──────────────────────────────────────────────────────────────────────
   "harness_family": "mint",              // one of ALLOWED_FAMILIES — "mint" | "screen" | "fetch-drain" |
-                                          // "meta-harness"
+                                          // "meta-harness" | "forward-events"
   "harness_version": "sha256:9f2a1c...", // content hash of the harness's own source files (see below) —
                                           // NOT a human-assigned version string. Two runs against
                                           // byte-identical harness code always get the same hash; any
@@ -219,6 +239,7 @@ and prefixed `sha256:`. Each family's harness files:
 | `screen` | `scripts/mint/screen-rules.mjs`, `screen-worklist.mjs` |
 | `fetch-drain` | `supabase/functions/capture-worker/index.ts` |
 | `meta-harness` | `scripts/harness-runs/CONVENTION.md`, `PROPOSER-RUNBOOK.md`, `../lib/run-artifact.mjs`, `../../.discipline/fitness/functions/F28-harness-run-integrity.mjs` |
+| `forward-events` | `scripts/forward-events/extract-forward-events.mjs`, `../harness-runs/forward-events/PROTOCOL.md` |
 
 A harness-family README or runbook edit that doesn't touch the files above does not change
 `harness_version` — the hash tracks *behavior-bearing* files, not documentation. If a family's file list
