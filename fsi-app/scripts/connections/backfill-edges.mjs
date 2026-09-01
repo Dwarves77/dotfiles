@@ -18,6 +18,15 @@
 // Idempotent + origin-aware: re-runs refresh basis/score on our own edges and never clobber an
 // entity_extraction / agent_semantic edge (see write-edges.mjs). Non-gating.
 //
+// R1 RETROFIT (rule-015 reversibility): before this retrofit, a refreshed own-origin edge (basis/score
+// overwritten by the upsert) had no captured prior value anywhere. This script's writes cannot adopt
+// scripts/lib/db.mjs's guardedUpdate/guardedInsertMany directly — the write genuinely lives in
+// write-edges.mjs (src/), not here, by this file's own stated design (see its header) — so the
+// retrofit is applied at the one real write site instead: write-edges.mjs's `snapshot` option (opt-in,
+// see its own header) is now supplied here, writing prior-row JSONL snapshots to
+// scripts/_snapshots/ in db.mjs's exact byte format BEFORE any refresh overwrites a row. Inserts of
+// new edges need no prior capture (nothing existed to lose).
+//
 // Usage: node scripts/connections/backfill-edges.mjs [--dry] [--limit N] [--threshold T]
 //   --dry        compute + report, write nothing (default is to write)
 //   --limit N    max edges per item (default 12)
@@ -37,6 +46,15 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_
   console.error("backfill-edges: no DB creds — cannot run here (exit 2).");
   process.exit(2);
 }
+
+// Same snapDir() convention as db.mjs (DISCIPLINE_SNAP_DIR override for tests, else scripts/_snapshots
+// resolved relative to this file) — kept local rather than imported, since db.mjs's snapDir() is
+// private and this script deliberately does not adopt db.mjs's write client (see header above).
+const SNAP_DIR = process.env.DISCIPLINE_SNAP_DIR ? resolve(process.env.DISCIPLINE_SNAP_DIR) : resolve(ROOT, "scripts", "_snapshots");
+const CITE = {
+  skill: "flywheel-build-plan-2026-08-10",
+  reason: "R1 retrofit: snapshot the prior item_cross_references row of every edge this backfill refreshes, before write-edges.mjs's upsert overwrites it.",
+};
 const args = process.argv.slice(2);
 const DRY = args.includes("--dry");
 const LIMIT = Number(args[args.indexOf("--limit") + 1]) || 12;
@@ -92,11 +110,13 @@ if (DRY) {
   process.exit(0);
 }
 
-// Delegate the write to the single src/ edge-writer (origin-aware, idempotent, chunked).
-const w = await writeDiscoveredEdges(sb, allEdges);
+// Delegate the write to the single src/ edge-writer (origin-aware, idempotent, chunked). `snapshot`
+// opts into the R1 prior-state capture for every refreshed row (see file header).
+const w = await writeDiscoveredEdges(sb, allEdges, { snapshot: { dir: SNAP_DIR, cite: CITE } });
 console.log(
   `WROTE: ${w.written} edge rows (${w.inserted} new, ${w.refreshed} refreshed); ` +
   `${w.skippedForeignOrigin} skipped (owned by entity/semantic origin); ${w.failedChunks} chunk failure(s).`
 );
+if (w.snapshot) console.log(`SNAPSHOT: prior state of ${w.refreshed} refreshed row(s) captured to ${w.snapshot}`);
 console.log("Backfill complete. item_cross_references now carries provenance-grounded edges with basis.");
 process.exit(0);

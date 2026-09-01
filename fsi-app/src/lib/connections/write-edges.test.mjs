@@ -69,3 +69,83 @@ test("a failed chunk is counted, not thrown (non-gating)", async () => {
   assert.equal(r.failedChunks, 1);
   assert.equal(r.written, 0, "a failed chunk contributes 0 written");
 });
+
+// ── R1 retrofit: prior-state snapshot capture (opt-in) ──────────────────────────────────────────
+
+import { readFileSync, rmSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { randomUUID } from "node:crypto";
+
+// db.mjs's own snapshot() format, reproduced here as an independent fixture (NOT imported from
+// db.mjs — that would just prove the two functions call the same code, not that the byte SHAPE
+// matches). This is the exact format string db.mjs's snapshot() emits per line.
+function dbMjsShapedLine(cite, table, prior) {
+  return JSON.stringify({ _cite: cite, table, prior }) + "\n";
+}
+
+test("snapshot: omitted -> no filesystem write, pre-retrofit behavior unchanged (mint-item.ts's call site)", async () => {
+  const existing = [{ source_item_id: "E", target_item_id: "F", origin: "provenance_discovery", basis: [], score: 0.4 }];
+  const captured = [];
+  const r = await writeDiscoveredEdges(fakeClient(existing, captured), [edge("E", "F")]); // no opts.snapshot
+  assert.equal(r.snapshot, null);
+});
+
+test("snapshot: a REFRESH captures the prior row; a plain INSERT captures nothing (no prior row to lose)", async () => {
+  const dir = join(tmpdir(), `write-edges-snap-${randomUUID()}`);
+  const existing = [{ source_item_id: "E", target_item_id: "F", origin: "provenance_discovery", basis: [{ signal: "shared_source" }], score: 0.4 }];
+  const captured = [];
+  const cite = { skill: "flywheel-build-plan-2026-08-10", reason: "test" };
+  const r = await writeDiscoveredEdges(
+    fakeClient(existing, captured),
+    [edge("E", "F", 0.9), edge("G", "H", 0.5)], // E,F refreshes; G,H is a fresh insert
+    { snapshot: { dir, cite, stampIso: "2026-09-01T00:00:00.000Z" } },
+  );
+  assert.equal(r.refreshed, 1);
+  assert.equal(r.inserted, 1);
+  assert.ok(r.snapshot, "a snapshot file path is returned when a refresh occurred");
+  assert.ok(existsSync(r.snapshot));
+
+  const lines = readFileSync(r.snapshot, "utf8").trim().split("\n");
+  assert.equal(lines.length, 1, "only the ONE refreshed row is snapshotted — the insert needs no prior capture");
+  const parsed = JSON.parse(lines[0]);
+  assert.deepEqual(parsed._cite, cite);
+  assert.equal(parsed.table, "item_cross_references");
+  assert.equal(parsed.prior.source_item_id, "E");
+  assert.equal(parsed.prior.target_item_id, "F");
+  assert.equal(parsed.prior.score, 0.4, "captures the PRIOR score (0.4), not the new one (0.9)");
+
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("snapshot: byte-format matches db.mjs's snapshot() shape exactly (one JSON line per row, {_cite,table,prior})", async () => {
+  const dir = join(tmpdir(), `write-edges-snap-${randomUUID()}`);
+  const priorRow = { source_item_id: "E", target_item_id: "F", origin: "provenance_discovery", basis: [], score: 0.4 };
+  const existing = [priorRow];
+  const cite = { skill: "flywheel-build-plan-2026-08-10", reason: "test" };
+  const stampIso = "2026-09-01T00:00:00.000Z";
+  const r = await writeDiscoveredEdges(
+    fakeClient(existing, []),
+    [edge("E", "F", 0.9)],
+    { snapshot: { dir, cite, stampIso } },
+  );
+  const actual = readFileSync(r.snapshot, "utf8");
+  const expected = dbMjsShapedLine(cite, "item_cross_references", priorRow);
+  assert.equal(actual, expected, "byte-identical to db.mjs's snapshot() line format");
+
+  const expectedStamp = stampIso.replace(/[:.]/g, "-");
+  assert.ok(r.snapshot.endsWith(`${expectedStamp}_item_cross_references.jsonl`), "filename mirrors db.mjs's <stamp>_<table>.jsonl convention");
+
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("snapshot: no refreshes occurred -> no file is written even when opted in", async () => {
+  const dir = join(tmpdir(), `write-edges-snap-${randomUUID()}`);
+  const r = await writeDiscoveredEdges(
+    fakeClient([], []),
+    [edge("G", "H")], // pure insert, nothing to refresh
+    { snapshot: { dir, cite: { skill: "x", reason: "y" } } },
+  );
+  assert.equal(r.snapshot, null);
+  assert.ok(!existsSync(dir), "snapDir is never created when there is nothing to snapshot");
+});

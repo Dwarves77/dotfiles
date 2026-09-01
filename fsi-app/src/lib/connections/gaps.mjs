@@ -53,6 +53,12 @@ const GENERIC_JURISDICTIONS = new Set(["global", "worldwide", "all"]);
 // match. Filed as follow-up rather than fixed here: a real ISO-3166 alias table + subnational-parent
 // containment check is its own scoped piece of work, not a guess to bury in a string comparison.
 
+// flag-namespaces.mjs is the SoT for subject_ref construction (task "flag-namespaces", refactor).
+// A gap's subject_ref is always a bare theme.id (a single part), and buildSubjectRef(x) === x for one
+// part — so this import changes NO existing gap's subject_ref, it only stops this file hand-rolling
+// the same convention flag-namespaces.mjs now owns.
+import { buildSubjectRef } from "./flag-namespaces.mjs";
+
 const lc = (s) => String(s || "").toLowerCase().trim();
 
 /** Normalize a jurisdictionsByMember lookup (Map or plain object) to a Set of ISO codes for one member.
@@ -116,7 +122,7 @@ export function detectGaps(themes, { profile, jurisdictionsByMember } = {}) {
             type: "jurisdiction_span_gap",
             category: "coverage_gap",
             subject_type: "system", // theme id, not an item id — see file-header note
-            subject_ref: theme.id,
+            subject_ref: buildSubjectRef(theme.id),
             description: `Theme ${theme.id} spans ${spanned.size} jurisdictions (${[...spanned].sort().join(", ")}) with no member in ${home}, a jurisdiction this workspace weights as home.`,
             recommended_actions: [`Confirm whether ${home} coverage for this theme exists outside this cluster before treating it as a real gap.`],
             evidence: { themeId: theme.id, spannedJurisdictions: [...spanned].sort(), missingHome: home, memberCount: members.length },
@@ -133,7 +139,7 @@ export function detectGaps(themes, { profile, jurisdictionsByMember } = {}) {
         type: "surface_gap",
         category: "coverage_gap",
         subject_type: "system", // theme id, not an item id — see file-header note
-        subject_ref: theme.id,
+        subject_ref: buildSubjectRef(theme.id),
         description: `Theme ${theme.id} connects regulation and research signals (${members.length} members) with no market signal tracked.`,
         recommended_actions: ["Check whether a market-signal item for this theme exists but scored below the discovery threshold."],
         evidence: { themeId: theme.id, surfaces: [...surfaces].sort(), memberCount: members.length },
@@ -148,7 +154,7 @@ export function detectGaps(themes, { profile, jurisdictionsByMember } = {}) {
         type: "pivot_operations_gap",
         category: "coverage_gap",
         subject_type: "system", // theme id, not an item id — see file-header note
-        subject_ref: theme.id,
+        subject_ref: buildSubjectRef(theme.id),
         description: `Theme ${theme.id}'s pivot (${pivots[0].id}, centrality ${pivots[0].centrality}) has no operations-surface counterpart among ${members.length} members.`,
         recommended_actions: ["Review whether this theme has an operational impact that isn't yet captured as an operations-surface item."],
         evidence: { themeId: theme.id, pivotId: pivots[0].id, pivotCentrality: pivots[0].centrality, surfaces: [...surfaces].sort(), memberCount: members.length },
