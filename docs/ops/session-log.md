@@ -7231,3 +7231,55 @@ live coverage). Blocking only those 459 rows; the clean pool keeps moving.
 
 **Next step for a cold session:** batch-003 from the clean pool with the fixed selection query
 (holder-join included); runbook corrections ride the next code train per the proposer pass.
+
+## Addendum 77 — 2026-09-01 (cloud session): archived-holder ruling executed — 37 items un-archived, 528 census rows reconciled
+
+First person, coordinator. Operator ruling this block (AskUserQuestion, quoted option): **"Un-archive
+rule-matched items"** — where the ratified screen says on-vertical, restore the existing rich verified
+item instead of minting a thin duplicate; screen-off rows stay archived and reconcile.
+
+**Execution, with the suffix-correct key derivation** (parenthetical CELEX suffixes now retained —
+Addendum 76's caveat closed): 529 unreconciled would_mint rows had an archived holder and no live
+verified holder. Screen split: 38 on_vertical, 491 off_vertical.
+
+- **On-vertical (38 → 37 executed):** pilot-first (21f91276, stayed verified, zero flags), then the
+  batch. 37 items un-archived — all 37 live+verified after the trigger recompute, each stamped with an
+  archive_note audit tag `[unarchived 2026-09-01 per operator ruling: archived-holder policy, ratified
+  screen on_vertical]`; their 37 census rows reconciled. The 38th pair (census 0976b5da → item 70edf0e8)
+  was EXCLUDED before apply: that is the mis-keyed item (rail-freight-corridor title holding SES key
+  32018D0491, mint-run-006 defect 2) — un-archiving it would have reconciled a SES census row into a
+  rail item; it stays with the investigation task.
+- **Off-vertical (491):** census rows reconciled into their archived items (245+246, count-verified by
+  the M3 lane), items untouched — the 2026-08-21 archive and the current screen agree on them.
+
+**Corpus and queue after this block (ran the queries):** 643 of 3,661 would_mint rows reconciled; 3,018
+remain. Live items 417 (320 verified) — the un-archive restored 37 rich verified items to the live
+corpus at zero authoring cost, which was the ruling's point.
+
+**Errors made and corrected:** the initial 459 figure undercounted (my derivation dropped parenthetical
+CELEX suffixes; corrected derivation found 529). No mis-writes: the suffix caveat was caught before any
+suffixed row was reconciled.
+
+**Open threads:** 32018D0491 mis-keying investigation (one census row + one item held back); 8
+live-quarantined-holder rows (AFIR-precedent class); batch-003 (clean pool, fixed selection query);
+1,313 CELEX-underivable rows need per-shape identity derivation; runbook corrections train; parked
+ratifications (#64) unchanged.
+
+**Next step for a cold session:** batch-003 dispatch with the holder-join selection query, then the
+runbook-corrections governing-file train per mint/LAST-PROPOSER-PASS.md.
+
+## Addendum 78 — 2026-09-01 (cloud session): AFIR regression found and reversed, migration 272 registered, Vercel duplicate deleted
+
+Coordinator, first person. Four corrections and findings this block, all verified live.
+
+**AFIR regression, mine, found and reversed.** Batch-001's canonical-key guard blocked only on LIVE VERIFIED holders, so an ARCHIVED rich holder did not stop a mint. The result: my 1,676-char AFIR item (4 sections, 6 claims) went live while the operator's pre-existing 25,255-char HIGH-priority AFIR item (11 sections, 33 claims, verified) stayed archived. Under the operator's archived-holder ruling the correct action was to restore the rich item, not mint a thin one. Reversed: `ff95b385` restored live+verified, `a86dcc05` archived as `duplicate_of_verified` with the root cause in its archive_note, census row repointed. **A second instance of the same class is OPEN, not fixed:** CELEX 32015R0757 (MRV) — my 1,833-char mint is live while a 40,023-char, 14-section "EU MRV Regulation" item sits LIVE but QUARANTINED, so invisible. That one cannot be restored by un-archiving; it needs provenance repair first, and the repair must retire the thin mint in the same pass or the two collide on the canonical key. Batch-003's selection query must block on ANY holder state, not just live-verified.
+
+**32018D0491 was NOT mis-keyed — my error, retracted.** mint-run-006 `defects_found[1]` records a suspected mis-keying between a rail-freight-corridor item and the SES decision. Reading the live item, its title and CELEX agree: 32018D0491 IS the North Sea-Mediterranean rail freight corridor compliance decision. The "SES performance targets" label was my own invention in the batch-002 queue file and it propagated into the run artifact as a false defect. That entry is retracted here on the record; the item was un-archived as rule-matched on-vertical.
+
+**Migration 272 was applied but never registered.** The eight customer RPCs project `jurisdiction_iso` live, and `272_customer_rpcs_project_jurisdiction_iso.sql` is in the repo, but `supabase_migrations.schema_migrations` had no row for it. A files-versus-applied diff would show it pending forever and any process trusting that history would re-run it, which is not harmless: 272 uses DROP + CREATE (CREATE OR REPLACE cannot widen a RETURNS TABLE, 42P13) and DROP discards the explicit anon/authenticated/service_role grants. Registered as a catch-up row with that reasoning in its statements. Same class as migration 273, recurring one migration later.
+
+**Vercel: a duplicate project had been double-building every commit since March.** Two projects were linked to this repo: `carosledge` (holds carosledge.com) and `caros.ledge` (no custom domain, framework null, created four minutes earlier). Every commit built twice, 19ms apart. The operator's billing panel confirmed the cause: Build CPU Minutes $15.65 of $15.77 consumed against a $20 Pro credit. The operator deleted `caros.ledge`; `carosledge` and `corvette23` verified intact via the Vercel API afterwards. The twin's only ever use was accidental — in August it acted as a control proving a font-fetch build failure was a network flake — and that root cause was permanently fixed by self-hosting fonts. **My own contribution to the burn is the landing method:** one commit per file meant a five-file train triggered ten preview builds. Changed as of this addendum: one squashed commit per train.
+
+**Corrected on the record: the corpus is NOT missing forward data.** I stated that there was "no forward data in the corpus at all." That was wrong and the operator challenged it. Measured: 179 of 322 live verified briefs name a future year, 189 carry forward-obligation language, and 1,143 grounded FACT/GAP claims name a future year (324 `primary_deadline`, 327 `effective_date`). What is missing is the EXTRACTION into queryable columns: 19 items have `compliance_deadline`, 58 have `entry_into_force`, 0 have `next_review_date`, and that last field appears in no prompt, parser or pipeline code. EU Aviation ETS has a section reading "**Deadline:** Before 1 January 2026" with a null deadline column. U5/L3 is blocked by that extraction gap, not by absent intelligence, and the fix needs no regeneration and no contract advance because the dates are already grounded in claims.
+
+**Next step for a cold session:** the `forward-events` harness family (extractor + migration + registration) is in build; land it, then batch-003 with the holder-blocking selection query.
