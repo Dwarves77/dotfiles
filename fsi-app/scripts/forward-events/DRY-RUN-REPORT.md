@@ -1,6 +1,6 @@
 # Forward-Event Extractor — Dry-Run (FE-1)
 
-**Extractor:** `scripts/forward-events/extract-forward-events.mjs`, `EXTRACTOR_VERSION = 'fe1-2026-09-01.1'`
+**Extractor:** `src/lib/forward-events/extract-forward-events.mjs` (moved from `scripts/forward-events/` in lane FIX, 2026-09-01), `EXTRACTOR_VERSION = 'fe1-2026-09-01.1'`
 **Run against:** `/root/work/forward-events/fixture-24-items.json` (24 live items, 796 FACT/GAP claims, 220 sections)
 
 ## Top-line numbers (RAN, not estimated)
@@ -34,7 +34,7 @@ Three items are pure market-intelligence content (LNG & Natural Gas Price Intell
 The extractor takes no file paths and does no I/O by design (pure function, dependency-injected input):
 
 ```js
-import { extractForwardEvents } from './scripts/forward-events/extract-forward-events.mjs';
+import { extractForwardEvents } from './src/lib/forward-events/extract-forward-events.mjs';
 import { readFileSync } from 'node:fs';
 const items = JSON.parse(readFileSync('/root/work/forward-events/fixture-24-items.json', 'utf8'));
 for (const item of items) {

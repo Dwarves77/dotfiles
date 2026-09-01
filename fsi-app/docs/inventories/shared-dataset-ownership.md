@@ -76,7 +76,6 @@ who may write a shared table; the test enforces it on every future PR.
       "src/lib/agent/canonical-pipeline.ts",
       "src/workflows/generate-brief.ts",
       "src/lib/d3/hooks.mjs",
-      "src/lib/d3/hooks-reconstruction.mjs",
       "src/lib/notifications/seed-fallback-flag.ts",
       "src/lib/sources/seek-more.mjs",
       "src/lib/sources/verify-item.mjs",
@@ -89,7 +88,8 @@ who may write a shared table; the test enforces it on every future PR.
       "src/app/api/admin/integrity-flags/route.ts",
       "src/app/api/admin/sources/bulk-import/route.ts",
       "scripts/connections/analyze-corpus.mjs",
-      "scripts/connections/ratify-flag-to-census.mjs"
+      "scripts/connections/ratify-flag-to-census.mjs",
+      "supabase/functions/capture-worker/index.ts"
     ],
     "census_worklist": [
       "src/lib/intake/census-writer.mjs",
@@ -196,6 +196,7 @@ other producer below.
 | `flywheel-gap:jurisdiction_span_gap` / `:surface_gap` / `:pivot_operations_gap` | `scripts/connections/analyze-corpus.mjs` | **Self-resolving** — the same script closes any of its own open flags whose gap no longer reproduces on the latest pass (lines 143-152, `guardedUpdate(..., status: "resolved", resolved_by: "analyze-corpus.mjs")`). Not an open leak. | analyze-corpus.mjs lines 118-152 |
 | (entity-link candidate/lineage-gap namespace, exact value set by `entity-resolve.mjs`) | `src/lib/entities/link-items.ts` | **TO-VERIFY** — idempotent one-open-flag-per-namespace-per-item guard exists (lines 59-64), but no resolver was located for this namespace in the time available. | link-items.ts lines 58-64 |
 | (ratified-to-census namespace) | `scripts/connections/ratify-flag-to-census.mjs` | **Pre-registered (parallel lane)** — its own name implies it is itself a *resolver* for some existing flag category, converting a flag into a `census_worklist` entry. **TO-VERIFY at merge** which `created_by` namespace(s) it consumes, and whether it closes the two OPEN leaks above. | not yet present |
+| `capture-worker` (fixed literal, `created_by: "capture-worker"`) | `supabase/functions/capture-worker/index.ts` (Edge Function — the ADR-016 storage-ceiling truncation guard, filed only after a capture lands) | **OPEN — no automated resolver found**, same posture as `intake-seek-study`/`intake-relevance` above; resolved today only via the generic manual admin endpoint. Found 2026-09-01 when the writer-registry test's scan roots were widened to include `supabase/functions/**` (this table was previously invisible to the registry on the Edge Function side). | index.ts lines 554-567, `category: "coverage_gap"` |
 
 Replace policy: append (`guardedInsertMany`/`.insert`) + namespace-scoped `guardedUpdate` to
 `status='resolved'`. A producer must never touch another namespace's open rows — enforced by convention
@@ -314,6 +315,26 @@ asked for:
 | `scripts/lib/liveness.mjs` | Imported by `scripts/lib/liveness-reconstruction.mjs` (itself KEEP) and its own selftest — both would break if this moved. | none (pure heartbeat-verdict library) |
 | `scripts/lib/urgency.mjs` | Same F25 allowlist mechanism; additionally cited by `code_location` in the assumption-register fixture `scripts/gen/fixtures/assumption-register/wo20-catalogued-assumptions-2026-08-30.json`. | none directly found (referenced by migration 271's comment, not a call site) |
 
+**Superseded 2026-09-01 (lane hyg, F25 module-liveness archival — task 6; see `scripts/_archive/README.md`'s
+own ledger section for the full evidence and `.discipline/fitness/functions/F25-module-liveness.mjs` for
+the current allowlist).** The "moving it reds F25" premise in the `block1-reaudit.mjs` /
+`funded-release-plan.mjs` / `liveness-reconstruction.mjs` / `verify-reconstruction.mjs` /
+`scripts/lib/urgency.mjs` rows above was true only while those files remained tracked at their original
+path AND named in F25's `LEGACY_ALLOWLIST` — F25's check is "does the allowlisted path still exist",
+not "must this file never move." All five were confirmed to have zero non-test importers (F25's own
+`buildImportGraph`, re-verified after each move) and are now `git mv`'d to `scripts/_archive/lib/`, with
+their `LEGACY_ALLOWLIST` entries removed rather than updated to a new path — the shared-writer-registry
+scanner already excludes `_archive/` by directory name, so this table's writer claims for those five are
+now moot (archived code runs nothing, and this doc's own guidance is "if it doesn't run, it doesn't
+write"). The `inconclusive-probe.mjs` / `exclusion-audit.mjs` / `decision-anchors.mjs` / `liveness.mjs`
+rows are **not** superseded the same way: these four modules are still in place (not archived — three
+have their `*.selftest.mjs` hard-named in `.github/workflows/discipline.yml`'s npm-deps step, which this
+lane's write set forbids editing; the fourth, `liveness.mjs`, was left alongside them for symmetry), but
+their stated importer (`inconclusive-report.mjs`, `exclusion-audit-reconstruction.mjs`/
+`block1-reaudit.mjs`/`bootstrap-test1.mjs`, `decision-log-audit.mjs`, `liveness-reconstruction.mjs`
+respectively) is now archived, so each is import-orphaned as of this pass and now carries its own
+reason-bearing `LEGACY_ALLOWLIST` entry in F25 instead — see that file for the current, accurate state.
+
 ---
 
 ## Additional current writers found by running the scanner against this tree
@@ -328,7 +349,7 @@ rather than presenting the allowlist as more manually-audited than it is.
 
 - **`intelligence_items`** — `scripts/lib/db.mjs` (the shared guarded-write library itself: `archiveRows("intelligence_items", ...)` inside `reclassifyToSource`, line 395); `src/lib/agent/canonical-pipeline.ts` and `src/workflows/generate-brief.ts` (the live mint/ground pipeline and its workflow entry point); `scripts/remediation/acquire-primaries-batch.mjs` (live remediation batch tool, operator dispatch 2026-07-16, not evaluated by this lane's task-1 seed list — **TO-VERIFY** in a future sunset pass); `src/app/api/admin/canonical-sources/{bulk-approve,decide}/route.ts` and `src/app/api/admin/integrity-flags/[id]/resolve/route.ts` and `src/app/api/admin/triage/pending-jurisdiction-review/route.ts` (live admin UI/API routes — human-approved writes).
 - **`item_cross_references`** — `scripts/entities/backfill-lineage-edges.mjs` (WO-28 Phase D lineage-edge backfill; its own header notes it feeds a capability "never connected to a producer that runs unmetered" — **TO-VERIFY**, out of this lane's task-1 seed list, flagged for a future sunset evaluation, not archived here).
-- **`integrity_flags`** — `src/lib/agent/canonical-pipeline.ts`, `src/workflows/generate-brief.ts` (live pipeline); `src/lib/d3/hooks.mjs` (the D3 investigation framework's "route a finding to the durable queue" hook) and `src/lib/d3/hooks-reconstruction.mjs` (its real-infrastructure reconstruction proof — writes and cleans up a SENTINEL-marked row); `src/lib/notifications/seed-fallback-flag.ts`; `src/lib/sources/verify-item.mjs` (the RD-24 "ONE verify-item entry" `regen-quarantined.mjs` calls); `src/lib/sources/seek-more.mjs` (a real write site, though **note**: `.discipline/fitness/functions/F25-module-liveness.mjs`'s own header names this exact module as "fully built, unit-tested, ZERO live callers, dormant" — registered because the write call is real code in the tree, not because it is known to run); `scripts/audit-skill-conformance.mjs`, `scripts/entities/backfill-lineage-edges.mjs`, `scripts/remediation/{acquire-primaries-batch,refetch-capped-worklist}.mjs`, `scripts/verify/{run-data-audit-lane,surface-visibility-audit}.mjs` (live standing audit/remediation scripts, outside this lane's task-1 seed list); `src/app/api/admin/integrity-flags/route.ts`, `src/app/api/admin/sources/bulk-import/route.ts` (live admin routes).
+- **`integrity_flags`** — `src/lib/agent/canonical-pipeline.ts`, `src/workflows/generate-brief.ts` (live pipeline); `src/lib/d3/hooks.mjs` (the D3 investigation framework's "route a finding to the durable queue" hook) — its former real-infrastructure reconstruction proof, `src/lib/d3/hooks-reconstruction.mjs`, was ARCHIVED 2026-09-01 (lane hyg, F25 module-liveness sunset: zero production importer; `git mv`'d to `src/_archive/lib/d3/hooks-reconstruction.mjs`, content untouched, see `scripts/_archive/README.md`) and removed from the allowlist above accordingly — it no longer runs, so it no longer writes anything; `src/lib/notifications/seed-fallback-flag.ts`; `src/lib/sources/verify-item.mjs` (the RD-24 "ONE verify-item entry" `regen-quarantined.mjs` calls); `src/lib/sources/seek-more.mjs` (a real write site, though **note**: `.discipline/fitness/functions/F25-module-liveness.mjs`'s own header names this exact module as "fully built, unit-tested, ZERO live callers, dormant" — registered because the write call is real code in the tree, not because it is known to run); `scripts/audit-skill-conformance.mjs`, `scripts/entities/backfill-lineage-edges.mjs`, `scripts/remediation/{acquire-primaries-batch,refetch-capped-worklist}.mjs`, `scripts/verify/{run-data-audit-lane,surface-visibility-audit}.mjs` (live standing audit/remediation scripts, outside this lane's task-1 seed list); `src/app/api/admin/integrity-flags/route.ts`, `src/app/api/admin/sources/bulk-import/route.ts` (live admin routes).
 - **`section_claim_provenance`** — `src/lib/agent/canonical-pipeline.ts`, `src/workflows/generate-brief.ts` (both call through to `ledger-apply.mjs`'s writes, and/or write directly at the workflow layer — **TO-VERIFY** the exact call shape if this is ever load-bearing to a future refactor).
 
 None of these change any KEEP/ARCHIVE verdict from the sunset pass — they are all either already-covered
@@ -354,6 +375,20 @@ real tree rather than only against the subset this document's author happened to
 5. **`scripts/holdings-audit.mjs` / `holdings_quality`** — not a shared-8 table (no harness/flywheel writer
    found), kept out of the allowlist above on that basis, but flagged here because the KEEP verdict itself
    rests on an unconfirmed completion state (see the KEEP table above).
+6. **`supabase/functions/capture-worker/index.ts` / `pending_first_fetch`, `agent_runs`,
+   `agent_run_searches`** — found 2026-09-01 reading the Edge Function directly (SCAN SCOPE widened to
+   `supabase/functions/**`, matching the same-day fix to `.discipline/governance/producer-consumer-orphan.mjs`
+   / F14). All three are single-writer (capture-worker is the only writer found for each — `.update(...)`
+   on `pending_first_fetch` at lines 290/472/572/589/603; `.insert(...)` on `agent_runs` at lines 516/597
+   and on `agent_run_searches` at line 530) and none is a harness/flywheel-shared (shared-8) table, so —
+   same basis as `holdings_quality` above — they are recorded here rather than added to the enforced JSON
+   allowlist. `pending_first_fetch`'s writer isn't only capture-worker's own code: migration 065's
+   `enqueue_pending_first_fetch()` trigger also `INSERT INTO pending_first_fetch` on `sources`
+   insert/update — a DB-level writer outside this doc's code-writer scope, noted for completeness.
+   **CORRECTION to this lane's own brief**: the brief additionally named `sources` and `intelligence_items`
+   as tables to register for capture-worker — reading the Edge Function shows both are READ there
+   (`.from("sources").select(...)` line 266-267; `.from("intelligence_items").select(...)` line 276-277),
+   never written, so neither belongs in a write-ownership register entry for this file.
 
-All five are genuine open items, not resolved by this document — they are recorded so the next lane (or
+All six are genuine open items, not resolved by this document — they are recorded so the next lane (or
 the merge) has a named list instead of a silent gap.

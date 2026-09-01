@@ -157,18 +157,22 @@ three families must complete before that family's next run. Concretely, per plan
   forward, plus `F28` to fail CI when a family's code changed without one.
 
   **Known residual, named honestly** (surfaced by meta-harness's own Wave MH-4 proposer pass — see
-  `scripts/harness-runs/meta-harness/LAST-PROPOSER-PASS.md`): "forgetting is not possible" is true for
-  `screen` (emission is CODE, inside `screen-worklist.mjs`'s own `main()`) but not yet true for `mint`
-  or `fetch-drain`, where emission is PROSE (a mandatory runbook step; a protocol doc) — a lane can
-  still run a full batch, author payloads, and report results without ever calling `writeRunArtifact`.
+  `scripts/harness-runs/meta-harness/LAST-PROPOSER-PASS.md`; updated 2026-09-01 as `mint` and
+  `forward-events` closed theirs): "forgetting is not possible" is now true for `screen` (emission is
+  CODE, inside `screen-worklist.mjs`'s own `main()`), `mint` (emission is CODE, inside
+  `scripts/mint/run-mint-batch.mjs`'s `main()`), and `forward-events` (emission is CODE, inside
+  `scripts/forward-events/run-extraction.mjs`'s `main()`) — each calls `writeRunArtifact` from its own
+  `finally` block so a thrown error partway through a run cannot silently skip it. It is not yet true
+  for `fetch-drain`, where emission is still PROSE (a mandatory protocol-doc step) — a lane can still
+  run a full drain, author payloads, and report results without ever calling `writeRunArtifact`.
   `F28` rule (c) does not catch this: it re-hashes each family's GOVERNING FILES against recorded
   `harness_version`s, which detects "the harness's CODE changed without a run," not "a BATCH happened
   without a run" — a batch that touches only payload/queue data outside the governing-file set, with
   the harness's own code untouched, is invisible to rule (c) by construction. Rule (b) (census) only
   catches a family with ZERO artifacts ever, not a family that under-reports some of its runs once it
-  already has one. Closing this for `mint` and `fetch-drain` is code-level work (giving each family a
-  canonical entry point the way `screen-worklist.mjs` is one) — out of scope for a documentation-only
-  wave; see the proposer pass's ranked hypotheses for what that would take.
+  already has one. Closing this for `fetch-drain` is code-level work (giving it a canonical entry point
+  the way `screen-worklist.mjs`, `run-mint-batch.mjs`, and `run-extraction.mjs` are one) — out of scope
+  for a documentation-only wave; see the proposer pass's ranked hypotheses for what that would take.
 - MH-3 is the first live proof this loop improves the system: a proposer pass over the mint family
   (reading `mint-run-001.json` exactly as this runbook prescribes) implementing its top proposals
   through the family's own gates, measured back into a new mint run artifact.

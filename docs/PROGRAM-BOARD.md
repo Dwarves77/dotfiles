@@ -15,7 +15,7 @@ chat, not from memory. Anything that exists only in chat is flagged **chat-only*
 finding. Master tip at reconstruction: `e3b3a74`.
 
 **Standing constraints (2026-07-13):** `$0` default — the answer to "should I spend" is **no**;
-`GROUNDING_ACQUIRE_ENABLED` **OFF**; `MONTHLY_SPEND_CEILING_USD` **$130, code-only, frozen** (operator ruling
+`GROUNDING_ACQUIRE_ENABLED` **OFF**; `MONTHLY_TOTAL_DISPLAY_USD` (spend-client.ts; informational display only, never a limit — the actual per-call cap is `SPEND_CEILING_USD`, generation-config.ts, default $85) **$130, code-only, frozen** (operator ruling
 2026-07-13, flag-system item 0 — raised from $75; the raise removes a stale-ceiling false-red, it does **not**
 unlock spend; MTD $75.25 ≈ 58% of $130); Phase 3 **CLOSED** (ADR-013 — do not run regardless of older notes);
 the loop/cadence flip is the operator's word only.

@@ -84,6 +84,9 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 // checkout and diffing against this object; update deliberately, never silently. Generated 2026-08-29 against
 // this worktree via `grep -rln "GOVERNING SKILL" fsi-app/src fsi-app/scripts` cross-checked against the same
 // scan this file performs at runtime (scanCitations below) — the two agreed exactly (29 citing files, 6 skills).
+// 2026-09-01: analysis-construction-spec's contentHash re-pinned deliberately — SKILL.md's stale
+// detect_intersections RPC references (dropped in migration 265) were corrected to point at the live
+// reader (src/lib/connections/pair-view.mjs / /api/admin/intersections). citingFiles unchanged.
 // ---------------------------------------------------------------------------------------------------------
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
@@ -135,7 +138,7 @@ export const PINNED_MANIFEST = {
   },
   'analysis-construction-spec': {
     skillPath: 'fsi-app/.claude/skills/analysis-construction-spec/SKILL.md',
-    contentHash: 'ce35511c74682ae42ab5b1207e580143218a44b4db95c0213af949f46af3c818',
+    contentHash: 'f395c5d95e9eab5788e605fbeb846837e2b91132888dbb9328e7ebb3eae8780d',
     citingFiles: [
       'fsi-app/scripts/audit-skill-conformance.mjs',
       'fsi-app/scripts/verify/format-structure.mjs',

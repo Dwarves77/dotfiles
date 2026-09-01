@@ -6,7 +6,7 @@ when_to_load:
   - "Any work on the Market Intel, Research, Operations, or Technology surfaces, their section-extractors, or their item-detail displays"
   - "Any grounding-model work (span / corroboration-count / matrix / transitive); any content-generate.mjs run or section-extractor (analog of extract-regulation-sections.ts) build for a non-regulatory format"
   - "Authoring or validating a known-good exemplar for any non-regulatory format"
-  - "Any work touching cross-surface direction / the intersection contract (operational_scenario_tags, compliance_object_tags, related_items, intersection_summary, detect_intersections)"
+  - "Any work touching cross-surface direction / the intersection contract (operational_scenario_tags, compliance_object_tags, related_items, intersection_summary, pair-view.mjs / /api/admin/intersections)"
   - "Borderline: default to load when building, grounding, or displaying any non-regulatory brief. Loads alongside environmental-policy-and-innovation (authoritative for regulatory + shared rules) and caros-ledge-platform-intent."
 ---
 
@@ -125,7 +125,10 @@ for the reader's lanes, is intelligence. Each format states its own second beat.
 Nothing happens in a vacuum. Every item's analysis draws direction from its relationships to items
 on OTHER surfaces, not only from its own source. The mechanism already exists — the four
 intersection-readiness fields (operational_scenario_tags, compliance_object_tags, related_items,
-intersection_summary) plus the detect_intersections RPC. But this is DIRECTIONAL, not metadata: a
+intersection_summary) plus the persisted connection graph (item_cross_references), scored by
+discover.mjs and read back via src/lib/connections/pair-view.mjs / /api/admin/intersections — the
+detect_intersections RPC that previously did this in SQL was dropped in migration 265 (flywheel U3
+supersession). But this is DIRECTIONAL, not metadata: a
 section MUST surface the cross-surface link wherever that link supplies the section's direction.
 
 - A MARKET signal's conversion trigger (S3) is frequently a specific REGULATION — name it, link it.
@@ -141,7 +144,9 @@ A claim that ignores its documented relationships is missing direction the same 
 comparison is. The intersection layer is not decoration on the brief; it is one of the two sources
 of the brief's direction. Every format must EMIT the intersection-readiness fields (the 13-field
 agent contract already does this) AND CONSUME them where they supply a section's direction; the
-surfaces render the relationships via the detect_intersections RPC.
+surfaces render the relationships via the persisted connection graph, read through
+src/lib/connections/pair-view.mjs and served at /api/admin/intersections
+(IntersectionDetectionView.tsx is the reading surface).
 
 ## 3c. The Forward-Intelligence Rule (proactive, every pull + every update)
 The platform is PROACTIVE, not reactive. Its value is knowing what is COMING before competitors —
@@ -387,8 +392,9 @@ Build each capability before generating the sections that declare it.
 Cross-pollination (No-Vacuum Rule): the non-regulatory formats must EMIT the four intersection-
 readiness fields (the 13-field agent contract already does this — verify content-generate.mjs keeps
 the full contract for every format) AND CONSUME them where a section's direction is supplied by a
-linked item on another surface. The surfaces render the relationships via the existing
-detect_intersections RPC. A non-reg brief that cannot point at the item it depends on is missing a
+linked item on another surface. The surfaces render the relationships via the persisted connection
+graph, read through src/lib/connections/pair-view.mjs and served at /api/admin/intersections (the
+detect_intersections RPC this replaced was dropped in migration 265). A non-reg brief that cannot point at the item it depends on is missing a
 layer of direction the regulatory items get for free.
 
 Operations runs as its own data-sourcing program with source-registry expansion and the coverage

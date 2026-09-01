@@ -16,8 +16,11 @@
 // NEW script quietly writing one of these tables — one more one-off backfill, one more "just this once"
 // campaign script — is exactly the failure mode this registry exists to catch before it repeats.
 //
-// SCAN SCOPE: scripts/** and src/** (both hold live writers — mint-item.ts and friends live in src/lib/
-// intake, the harness/flywheel scripts live in scripts/mint, scripts/forward-events, scripts/connections).
+// SCAN SCOPE: scripts/**, src/**, and supabase/functions/** (all three hold live writers — mint-item.ts
+// and friends live in src/lib/intake, the harness/flywheel scripts live in scripts/mint,
+// scripts/forward-events, scripts/connections, and capture-worker — an Edge Function, not a Next.js
+// route or a scripts/ CLI, but app code all the same — writes several shared tables from
+// supabase/functions/capture-worker/index.ts).
 // EXCLUDED: scripts/_archive/** (sunset scripts — inert by construction, already proven zero-referenced),
 // node_modules/**, and any file whose basename contains "test" (case-insensitive — covers .test.mjs,
 // .selftest.mjs, .npmtest.mjs, and this file itself) per the task's literal instruction.
@@ -68,9 +71,13 @@ export function parseAllowlist(docText) {
 }
 
 // ---------------------------------------------------------------------------------------------------
-// 2. Walk scripts/ and src/, collecting candidate source files.
+// 2. Walk scripts/, src/, and supabase/functions/, collecting candidate source files. supabase/functions
+//    (Edge Functions, e.g. capture-worker) is app code that writes shared tables exactly like a script or
+//    a Next.js route — excluding it left capture-worker's writes to pending_first_fetch / sources /
+//    intelligence_items / agent_run_searches / agent_runs / integrity_flags entirely unscanned (found
+//    2026-09-01, alongside the same gap in F14/producer-consumer-orphan.mjs).
 // ---------------------------------------------------------------------------------------------------
-const SCAN_ROOTS = ["scripts", "src"];
+const SCAN_ROOTS = ["scripts", "src", "supabase/functions"];
 const SCAN_EXTS = new Set([".mjs", ".js", ".ts", ".tsx", ".cjs"]);
 const EXCLUDED_DIR_NAMES = new Set(["_archive", "node_modules"]);
 

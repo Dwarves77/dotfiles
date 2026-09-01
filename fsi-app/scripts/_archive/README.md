@@ -45,3 +45,56 @@ Every other candidate on the seed list was evaluated and **Kept in place** —
 see `docs/inventories/shared-dataset-ownership.md` for the full KEEP
 register with per-script evidence (governance-manifest pins, golden-test
 hard-coded paths, live imports, standing-operational framing, etc.).
+
+---
+
+## Ledger — F25 module-liveness archival (2026-09-01, lane hyg, task 6)
+
+A second, separate evidence gate from the one above: these are not shared-dataset writers, they are
+`.discipline/fitness/functions/F25-module-liveness.mjs`'s `LEGACY_ALLOWLIST` "proven, never consumed"
+class — modules with **zero production importer** (proven mechanically with F25's own `buildImportGraph`,
+re-run after every move to confirm the next entry's importer set was genuinely empty, not assumed) that
+had sat in `LEGACY_ALLOWLIST` awaiting the operator's wire-or-remove call. This pass removes them:
+`git mv`'d into `scripts/_archive/lib/` (scripts/lib originals) or `src/_archive/lib/` (src/lib
+originals, mirroring their original subpath — `src/_archive/lib/d3/`, `src/_archive/lib/dashboard/`,
+`src/_archive/lib/agent/`), content untouched, colocated `*.selftest.mjs`/`*.test.mjs` proofs moved with
+their module. `src/_archive/` did not exist before this pass; `tsconfig.json`'s `exclude` and
+F25's own scope filter (`!f.includes('/_archive/')`) were updated in the same commit so a module landing
+there stops being a live typecheck/liveness surface, matching how `scripts/_archive/` already behaved.
+
+| Archived path | Why it was in LEGACY_ALLOWLIST | Verified importer count after move |
+|---|---|---|
+| `scripts/_archive/lib/block1-reaudit.mjs` | scripts/lib "proven, never consumed" — no production importer, no selftest of its own. | 0 |
+| `scripts/_archive/lib/bootstrap-test1.mjs` | Same class. | 0 |
+| `scripts/_archive/lib/decision-log-audit.mjs` | Same class. | 0 |
+| `scripts/_archive/lib/drift-check-reconstruction.mjs` | Same class. | 0 |
+| `scripts/_archive/lib/error-drop-probe.mjs` + `.selftest.mjs` | Same class; had its own selftest (moved with it). | 0 |
+| `scripts/_archive/lib/exclusion-audit-reconstruction.mjs` | Same class. | 0 |
+| `scripts/_archive/lib/fetch-quality.mjs` | Same class — distinct from the still-live `src/lib/sources/fetch-quality.ts`, confirmed by reading both. | 0 |
+| `scripts/_archive/lib/funded-release-plan.mjs` + `.test.mjs` | Same class; had its own test (moved with it). | 0 |
+| `scripts/_archive/lib/inconclusive-report.mjs` | Same class. | 0 |
+| `scripts/_archive/lib/liveness-reconstruction.mjs` | Same class. | 0 |
+| `scripts/_archive/lib/net-agent.mjs` | Same class. | 0 |
+| `scripts/_archive/lib/surface-registry-reconstruction.mjs` | Same class. | 0 |
+| `scripts/_archive/lib/type-consumer-probe.mjs` + `.selftest.mjs` | Same class; had its own selftest (moved with it). | 0 |
+| `scripts/_archive/lib/urgency.mjs` | Same class — the many string-match hits on the word "urgency" elsewhere in the repo (`urgency_tier`, `urgency_score`, …) are unrelated data-column names, not importers of this file; confirmed via the import graph, not grep. | 0 |
+| `scripts/_archive/lib/verify-reconstruction.mjs` | Same class. | 0 |
+| `src/_archive/lib/d3/hooks-reconstruction.mjs` | src/lib "no importer, no proof" — audit reconstruction of the d3 hooks behaviour, never imported by product code. | 0 |
+| `src/_archive/lib/dashboard/credibility.ts` | Same class — dashboard credibility helper with no importer. | 0 |
+| `src/_archive/lib/dashboard/critical-items.ts` | Same class. | 0 |
+| `src/_archive/lib/agent/extract-research-sections.ts` | Same class — its only importer was itself on the 2026-08-11 dead-code manifest. | 0 |
+
+**Not archived despite becoming newly import-orphaned by the moves above** (found running F25's
+`buildImportGraph` again after the move, not assumed): `scripts/lib/decision-anchors.mjs`,
+`scripts/lib/exclusion-audit.mjs`, and `scripts/lib/inconclusive-probe.mjs` lost their sole production
+importer (`decision-log-audit.mjs`, `exclusion-audit-reconstruction.mjs`/`block1-reaudit.mjs`/
+`bootstrap-test1.mjs`, and `inconclusive-report.mjs` respectively — all archived above), but each has a
+`*.selftest.mjs` hard-named by exact path in `.github/workflows/discipline.yml`'s "App unit tests
+requiring npm deps" step; moving the module would leave that CI step pointing at a path that no longer
+exists, and this lane's write set forbids editing `.github/**`. `scripts/lib/liveness.mjs` lost its sole
+importer (`liveness-reconstruction.mjs`, archived above) too and carries no such CI pin, but is left in
+place alongside its three CI-pinned siblings rather than archived alone. All four now carry their own
+reason-bearing `LEGACY_ALLOWLIST` entries in F25 instead, naming this exact chain and the CI-pin blocker
+— see that file. `scripts/lib/verify.mjs`, `drift-check.mjs`, `surface-registry.mjs`, and
+`fetch-negative-probe.mjs` (also read by this cluster) were checked the same way and are UNAFFECTED —
+each still has a real, non-archived importer.

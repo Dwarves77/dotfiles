@@ -79,16 +79,13 @@ node --test \
   fsi-app/scripts/lib/db.test.mjs \
   fsi-app/scripts/lib/deferral.selftest.mjs \
   fsi-app/scripts/lib/entity-gate.selftest.mjs \
-  fsi-app/scripts/lib/error-drop-probe.selftest.mjs \
   fsi-app/scripts/lib/fetch-now-decision.selftest.mjs \
   fsi-app/scripts/lib/flag-age.selftest.mjs \
   fsi-app/scripts/lib/free-pass.selftest.mjs \
   fsi-app/scripts/lib/funded-pass-core.test.mjs \
-  fsi-app/scripts/lib/funded-release-plan.test.mjs \
   fsi-app/scripts/lib/liveness.selftest.mjs \
   fsi-app/scripts/lib/reachability.selftest.mjs \
   fsi-app/scripts/lib/run-artifact.test.mjs \
-  fsi-app/scripts/lib/type-consumer-probe.selftest.mjs \
   fsi-app/scripts/lib/verification-decision.selftest.mjs \
   fsi-app/scripts/lib/verify.selftest.mjs \
   fsi-app/scripts/verify/*.test.mjs \
