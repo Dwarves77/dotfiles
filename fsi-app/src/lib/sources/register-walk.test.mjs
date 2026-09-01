@@ -8,7 +8,7 @@
 //     droppedPages/totalPages report what was not collected (the no-silent-truncation rule for walks).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ojDailyViewUrl, frDocumentsUrl, frDocsToLinks, dateRange, walkEurlexOj, walkFederalRegister } from "./register-walk.mjs";
+import { ojDailyViewUrl, frDocumentsUrl, frDocsToLinks, dateRange, walkEurlexOj, walkFederalRegister, looksLikeOjDailyView } from "./register-walk.mjs";
 
 test("ojDailyViewUrl: ISO date → DDMMYYYY param; bad date throws", () => {
   assert.equal(
@@ -132,10 +132,35 @@ test("walkEurlexOj: a date EUR-Lex answers with an already-walked edition is dup
 
 test("walkEurlexOj: an empty day is never a duplicate (no acts is its own honest outcome)", async () => {
   const r = await walkEurlexOj(
-    { fetchHtml: async () => "<html><body><a href='/oj/browse-oj.html'>Browse the Official Journal</a></body></html>", persist: async (l) => ({ upserted: l.length, failed: 0 }) },
+    { fetchHtml: async () => "<html><body><h1>Official Journal L series daily view</h1><a href='/oj/daily-view/C-series/default.html'>C series</a></body></html>", persist: async (l) => ({ upserted: l.length, failed: 0 }) },
     { from: "2026-08-29", to: "2026-08-30" }
   );
-  assert.deepEqual(r.days.map((d) => [d.extracted, d.duplicate_of]), [[0, null], [0, null]]);
+  assert.deepEqual(r.days.map((d) => [d.extracted, d.duplicate_of, d.error]), [[0, null, null], [0, null, null]]);
+});
+
+test("walkEurlexOj: a 200 that is NOT the daily view is an ERROR day with evidence, never a quiet empty week (run-004 defect)", async () => {
+  // run-004: seven days, HTTP 200, 0.3 s, zero links, zero errors — the server answered with a page
+  // that was not the register. The walker must say so.
+  const notTheRegister = "<html><body><h1>Please wait</h1><p>Checking your browser before accessing eur-lex.europa.eu</p></body></html>";
+  const r = await walkEurlexOj(
+    { fetchHtml: async () => notTheRegister, persist: async (l) => ({ upserted: l.length, failed: 0 }) },
+    { from: "2026-08-25", to: "2026-08-26" }
+  );
+  assert.equal(r.days.length, 2);
+  for (const d of r.days) {
+    assert.equal(d.extracted, 0);
+    assert.match(d.error, /unexpected page shape/);
+    assert.match(d.error, /Checking your browser/);
+    assert.equal(d.bytes, null);
+  }
+  assert.equal(r.upserted, 0);
+});
+
+test("looksLikeOjDailyView: needs both the daily-view sibling links and the Official Journal heading", () => {
+  assert.equal(looksLikeOjDailyView("<a href='/oj/daily-view/C-series/default.html'>x</a> Official Journal L series daily view"), true);
+  assert.equal(looksLikeOjDailyView("<a href='/oj/daily-view/C-series/default.html'>x</a>"), false);
+  assert.equal(looksLikeOjDailyView("Official Journal"), false);
+  assert.equal(looksLikeOjDailyView(""), false);
 });
 
 test("walkFederalRegister: pages until next_page_url absent; page cap reports droppedPages, never silent", async () => {

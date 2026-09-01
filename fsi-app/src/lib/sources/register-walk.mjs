@@ -86,6 +86,18 @@ export function dateRange(fromIso, toIso) {
  *  measured the cost of not filtering: 31-32 "extracted" links per day against a 2-act edition. */
 const OJ_ACT_LINK_RE = /\/(legal-content|eli)\//i;
 
+/** Does this HTML look like an EUR-Lex OJ daily view at all? Every genuine daily view — with or
+ *  without acts — links its sibling views (`/oj/daily-view/C-series/…`) and carries the "Official Journal"
+ *  heading. source-sweep-run-004 (2026-09-01, 23:34Z) received HTTP 200 for all seven days in 0.3 s with
+ *  ZERO act links and zero errors, an hour after run-003 had found seven acts on the same URLs and while a
+ *  browser still saw them: the server answered with something that was not the register (rate-limit or
+ *  interstitial page), and the walker reported it as an honest empty week. A zero-link page that fails
+ *  this check is an ERROR day, with the byte count and the page head as evidence. PURE. */
+export function looksLikeOjDailyView(html) {
+  const h = String(html ?? "");
+  return h.includes("daily-view") && /official\s+journal/i.test(h);
+}
+
 /** @param {Array<{url:string,anchorText?:string|null}>} links */
 export function ojActLinksOnly(links) {
   return links.filter((l) => OJ_ACT_LINK_RE.test(new URL(l.url).pathname));
@@ -124,20 +136,25 @@ export async function walkEurlexOj(deps, { from, to, series = "L", cap = Infinit
     const url = ojDailyViewUrl(day, series);
     try {
       const html = await deps.fetchHtml(url);
+      const bytes = String(html ?? "").length;
       const links = ojActLinksOnly(extractPortalLinks(html, url, { cap }));
+      if (links.length === 0 && !looksLikeOjDailyView(html)) {
+        const head = String(html ?? "").replace(/\s+/g, " ").slice(0, 200);
+        throw new Error(`unexpected page shape: ${bytes} bytes with no daily-view markers (not the OJ register); head: ${JSON.stringify(head)}`);
+      }
       const urls = links.map((l) => l.url);
       const signature = urls.slice().sort().join("\n");
       const duplicateOf = links.length > 0 ? seenEditions.get(signature) ?? null : null;
       if (duplicateOf) {
-        days.push({ day, url, extracted: 0, upserted: 0, urls: [], duplicate_of: duplicateOf, error: null });
+        days.push({ day, url, extracted: 0, upserted: 0, bytes, urls: [], duplicate_of: duplicateOf, error: null });
         continue;
       }
       if (links.length > 0) seenEditions.set(signature, day);
       const p = await deps.persist(links);
       upserted += p.upserted; failed += p.failed;
-      days.push({ day, url, extracted: links.length, upserted: p.upserted, urls, duplicate_of: null, error: null });
+      days.push({ day, url, extracted: links.length, upserted: p.upserted, bytes, urls, duplicate_of: null, error: null });
     } catch (e) {
-      days.push({ day, url, extracted: 0, upserted: 0, urls: [], duplicate_of: null, error: e instanceof Error ? e.message : String(e) });
+      days.push({ day, url, extracted: 0, upserted: 0, bytes: null, urls: [], duplicate_of: null, error: e instanceof Error ? e.message : String(e) });
     }
   }
   return { register: "eurlex-oj", series, from, to, days, upserted, failed };
