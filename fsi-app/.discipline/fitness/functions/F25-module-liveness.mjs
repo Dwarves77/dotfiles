@@ -78,20 +78,26 @@ const COMPONENTS = [
 // health/spend/route.ts respectively), so F25 enforces their liveness going forward instead of
 // exempting it. Leaving either entry in place after wiring would itself trip the STALE ALLOWLIST check
 // below ("now HAS a production importer; it got wired").
+// 'src/lib/sources/amendment-diff.mjs' and 'src/lib/sources/change-sweep.mjs' REMOVED (lane CD,
+// change-detection chain repair, 2026-09-01): both now have real production importers.
+// change-sweep.mjs's bridgeChangedSourceToStagedUpdates is called from src/lib/sources/reconcile.ts's
+// runReconcilePass (itself now called from src/app/api/worker/check-sources/route.ts, in-process, and
+// from the manual-redrive /api/worker/reconcile route) — no longer a selftest-only module. change-sweep.mjs
+// imports amendment-diff.mjs's diffDocuments directly for that same bridge, which is what gives
+// amendment-diff.mjs its own first production importer (previously proven only by its own test).
 const PROVEN_BUT_UNWIRED = [
   'src/lib/coverage/identity.mjs',
   'src/lib/intake/census-writer.mjs', 'src/lib/intake/intake-url-corpus.mjs',
   'src/lib/llm/metered-emit.mjs', 'src/lib/llm/program-total.mjs',
-  'src/lib/sources/amendment-diff.mjs', 'src/lib/sources/api-fetch.ts', 'src/lib/sources/change-sweep.mjs',
-  'src/lib/sources/feed-walk.mjs', 'src/lib/sources/instrument-identity.ts', 'src/lib/sources/register-walk.mjs',
+  'src/lib/sources/api-fetch.ts',
+  'src/lib/sources/instrument-identity.ts', 
 ];
 
-const SCRIPTS_LIB = [
-  'block1-reaudit.mjs', 'bootstrap-test1.mjs', 'decision-log-audit.mjs', 'drift-check-reconstruction.mjs',
-  'error-drop-probe.mjs', 'exclusion-audit-reconstruction.mjs', 'fetch-quality.mjs', 'funded-release-plan.mjs',
-  'inconclusive-report.mjs', 'liveness-reconstruction.mjs', 'net-agent.mjs', 'surface-registry-reconstruction.mjs',
-  'type-consumer-probe.mjs', 'urgency.mjs', 'verify-reconstruction.mjs',
-];
+// SCRIPTS_LIB (the 15 "proven, never consumed" scripts/lib entries) ARCHIVED 2026-09-01 (lane hyg,
+// task 6): git mv'd to scripts/_archive/lib/** (content untouched; tombstoned in
+// scripts/_archive/README.md). Archiving moves them out of this gate's scope by construction — the
+// scope filter below requires 'fsi-app/scripts/lib/', and scripts/_archive/ never matches it — so the
+// entries are removed rather than kept as now-stale allowlist rows.
 
 export const LEGACY_ALLOWLIST = [
   // ── 1 component built and never mounted (16 deleted, Wave A4 2026-08-31 — full-read-audit-2026-08-31.md §5) ──
@@ -127,38 +133,62 @@ export const LEGACY_ALLOWLIST = [
   // typo'd regime refuses to authorize paid work instead of silently falling back to build-phase rules.
   // Behaviour under build-phase is byte-identical. This gate's own staleness audit is what forced the entry
   // to be removed here in the same commit — the coupling working exactly as designed.
-  {
-    file: 'fsi-app/src/lib/d3/hooks-reconstruction.mjs',
-    reason: 'Reconstruction of the d3 hooks behaviour, written as an audit artifact and never imported by product code.',
-    reviewByPhase: 'dead-code ruling (operator: keep as audit record under docs/, or delete)',
-  },
-  {
-    file: 'fsi-app/src/lib/dashboard/credibility.ts',
-    reason: 'Dashboard credibility helper with no importer. Pre-adoption or superseded; needs a product call.',
-    reviewByPhase: 'dormant-capability ruling (operator)',
-  },
-  {
-    file: 'fsi-app/src/lib/dashboard/critical-items.ts',
-    reason: 'Dashboard critical-items helper with no importer. Pre-adoption or superseded; needs a product call.',
-    reviewByPhase: 'dormant-capability ruling (operator)',
-  },
-  {
-    file: 'fsi-app/src/lib/agent/extract-research-sections.ts',
-    reason:
-      'Imported ONLY by a script on the dead-code manifest, so it goes fully orphan the moment the sweep lands. ' +
-      'Retire this entry in the same commit as the sweep, or wire the module if the extraction is still wanted.',
-    reviewByPhase: 'dead-code-sweep (docs/audits/dead-code-manifest-2026-08-11.txt)',
-  },
+  // fsi-app/src/lib/d3/hooks-reconstruction.mjs, fsi-app/src/lib/dashboard/{credibility,critical-items}.ts,
+  // fsi-app/src/lib/agent/extract-research-sections.ts entries REMOVED 2026-09-01 (lane hyg, task 6):
+  // git mv'd to src/_archive/lib/** (content untouched; tombstoned in scripts/_archive/README.md). Same
+  // "moved out of scope" logic as the scripts/lib archival below — the scope filter's `!f.includes('/_archive/')`
+  // exclusion (added the same commit) keeps them out for good.
 
-  // ── scripts/lib: proven, never consumed ──
-  ...SCRIPTS_LIB.map((s) => ({
-    file: `fsi-app/scripts/lib/${s}`,
+  // ── scripts/lib: 4 modules ORPHANED AS A DIRECT, VERIFIED CONSEQUENCE of the 2026-09-01 scripts/lib
+  // archival above (F25's own buildImportGraph, re-run after the archival: each lost its one real
+  // importer — decision-log-audit.mjs / exclusion-audit-reconstruction.mjs / inconclusive-report.mjs /
+  // liveness-reconstruction.mjs, respectively, all now archived). NOT archived themselves: 3 of the 4
+  // (decision-anchors.mjs, exclusion-audit.mjs, inconclusive-probe.mjs) have their *.selftest.mjs
+  // hard-named in .github/workflows/discipline.yml's "App unit tests requiring npm deps" step (lines
+  // ~303-307) — moving the module out from under that pinned path breaks a live CI job this lane's write
+  // set forbids editing (.github/**). liveness.mjs carries no such CI pin (only named in
+  // .discipline/run-test-suite.sh, which this lane could freely edit) but is grouped here rather than
+  // archived alone, for symmetry with its three orphaned-the-same-way siblings — a product call on the
+  // whole small cluster together reads better than archiving one quarter of it. verify.mjs, drift-check.mjs,
+  // surface-registry.mjs, fetch-negative-probe.mjs (also read/imported by this cluster) are UNAFFECTED —
+  // each retains a real, non-archived importer among the four modules below or each other, verified the
+  // same way.
+  {
+    file: 'fsi-app/scripts/lib/decision-anchors.mjs',
     reason:
-      'Library module under scripts/lib with no production consumer — its only referrers are its own proof and/or ' +
-      'scripts on the dead-code manifest. The proofs were wired into the suite on 2026-08-11, which is why they ' +
-      'are green; being green is not being used.',
-    reviewByPhase: 'dormant-capability ruling (operator: adopt, or delete module + proof together)',
-  })),
+      'Orphaned 2026-09-01 when this lane archived its sole importer, scripts/lib/decision-log-audit.mjs ' +
+      '(scripts/_archive/lib/decision-log-audit.mjs). Not archived itself: decision-anchors.selftest.mjs is ' +
+      'hard-named in .github/workflows/discipline.yml\'s npm-deps test step — moving the module breaks that ' +
+      'CI-pinned path, and this lane\'s write set forbids editing .github/**.',
+    reviewByPhase: 'dormant-capability ruling (operator: wire into a live flow, or retire the CI pin + module + proof together — needs a lane with .github/** in its write set)',
+  },
+  {
+    file: 'fsi-app/scripts/lib/exclusion-audit.mjs',
+    reason:
+      'Orphaned 2026-09-01 when this lane archived its remaining production importers, ' +
+      'scripts/lib/block1-reaudit.mjs, bootstrap-test1.mjs, and exclusion-audit-reconstruction.mjs (all now ' +
+      'under scripts/_archive/lib/). Not archived itself: exclusion-audit.selftest.mjs is hard-named in ' +
+      '.github/workflows/discipline.yml\'s npm-deps test step — same CI-pin blocker as decision-anchors.mjs above.',
+    reviewByPhase: 'dormant-capability ruling (operator: wire into a live flow, or retire the CI pin + module + proof together — needs a lane with .github/** in its write set)',
+  },
+  {
+    file: 'fsi-app/scripts/lib/inconclusive-probe.mjs',
+    reason:
+      'Orphaned 2026-09-01 when this lane archived its sole importer, scripts/lib/inconclusive-report.mjs ' +
+      '(scripts/_archive/lib/inconclusive-report.mjs). Not archived itself: inconclusive-probe.selftest.mjs is ' +
+      'hard-named in .github/workflows/discipline.yml\'s npm-deps test step — same CI-pin blocker as ' +
+      'decision-anchors.mjs above.',
+    reviewByPhase: 'dormant-capability ruling (operator: wire into a live flow, or retire the CI pin + module + proof together — needs a lane with .github/** in its write set)',
+  },
+  {
+    file: 'fsi-app/scripts/lib/liveness.mjs',
+    reason:
+      'Orphaned 2026-09-01 when this lane archived its sole importer, scripts/lib/liveness-reconstruction.mjs ' +
+      '(scripts/_archive/lib/liveness-reconstruction.mjs). No CI pin on liveness.selftest.mjs (only named in ' +
+      'run-test-suite.sh, freely editable) — grouped with its three CI-pinned siblings above rather than ' +
+      'archived alone, so the operator rules on the whole small orphaned cluster together.',
+    reviewByPhase: 'dormant-capability ruling (operator: wire into a live flow, or delete module + proof together)',
+  },
 
   // ── The one with a live coupling to another gate ──
   {
@@ -329,7 +359,14 @@ export const fitnessFunction = {
         !/\.d\.ts$/.test(f) &&
         !isTestFile(f) &&
         !ENTRY_RE.test(f) &&
-        !manifest.has(f),
+        !manifest.has(f) &&
+        // _archive/ (scripts/_archive/**, src/_archive/**): inert-by-construction sunset storage — a
+        // module moved there is deliberately dead, not a fresh liveness question. Without this, moving a
+        // module out of src/lib/** into src/_archive/lib/** would keep it in scope (it still matches the
+        // 'fsi-app/src/' prefix) and immediately re-red the gate the archival was meant to close. scripts/lib/**
+        // archives land under scripts/_archive/lib/, which already fails the 'fsi-app/scripts/lib/' prefix
+        // test above and needs no help here — this exclusion exists for the src/ side of the same move.
+        !f.includes('/_archive/'),
     );
     const unimported = findUnimported(scope, importers, manifest);
     const problems = auditLiveness(unimported, scope, ALLOWED, (f) => existsSync(join(root, f)));

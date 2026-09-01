@@ -1,0 +1,160 @@
+name: Source sweep
+
+# INGESTION AT SCALE — the runtime `src/lib/sources/register-walk.mjs` (the date-paged EUR-Lex OJ /
+# Federal Register index walk) and `src/lib/sources/feed-walk.mjs` (the RSS/Atom feed walk) never had.
+# Both are PURE, dep-injected modules that were built, unit-tested, and left with zero live callers (F25
+# module-liveness's LEGACY_ALLOWLIST carried both by name) — the same "correct but unrunnable" gap
+# ADR-023 named for the data producers, closed here the same way: GitHub Actions, the two repository
+# secrets `producers.yml` / `data-audit-lane.yml` already inject, dispatch-only, mode dry|apply.
+#
+# THIS DRIVER: `fsi-app/scripts/turns/run-source-sweep.mjs` — a thin binding (real `fetch`, a real
+# `portal_link_candidates` ledger write, a real harness-run artifact) around the two unmodified walker
+# modules. See that script's own header for exactly why it mirrors (rather than imports)
+# `persistPortalCandidates`'s upsert contract. It ALWAYS records a `source-sweep` harness-run artifact
+# (`scripts/harness-runs/source-sweep/`, `scripts/lib/run-artifact.mjs`'s convention), in both modes, from
+# a `finally` block, so a walker that throws mid-run still leaves a record.
+#
+# DISPATCH-ONLY, DELIBERATELY. Unlike `corpus-turn.yml` (which also answers a `push` to `turn/**`), a
+# source sweep has no equivalent "empty branch" request shape — every run names a specific walker and
+# date window/feed the operator or coordinator chooses, so `workflow_dispatch` is the only trigger this
+# family needs. No schedule is armed here either, under the same build-mode ruling every other workflow
+# in this repo states for itself (operator ruling 2026-09-01):
+#   schedule:
+#     - cron: '0 8 * * 1'   # placeholder cadence only — the operator picks the real one at re-arm time
+#
+# SECRETS (repository secrets; never echoed): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY — the
+# same pair every guarded script in fsi-app/scripts/lib/db.mjs already requires.
+
+on:
+  workflow_dispatch:
+    inputs:
+      walker:
+        description: 'Which enumeration walk to run.'
+        required: true
+        type: choice
+        options: [register-eurlex, register-federal-register, feed]
+      from:
+        description: 'ISO date (register-eurlex / register-federal-register only). Required for those two walkers.'
+        required: false
+        type: string
+      to:
+        description: 'ISO date (register-eurlex / register-federal-register only). Required for those two walkers.'
+        required: false
+        type: string
+      feed_url:
+        description: 'Feed URL (feed walker only). Required when walker=feed.'
+        required: false
+        type: string
+      mode:
+        description: 'dry = fetch, parse, print the plan, write nothing. apply = write through the guarded path.'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+  # schedule:
+  #   - cron: '0 8 * * 1'   # BUILD MODE (2026-09-01) — see header above; stays commented out until the
+  #                          # operator explicitly re-arms it.
+
+concurrency:
+  group: source-sweep
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      - name: Validate walker-specific required inputs
+        run: |
+          if [ "${{ inputs.walker }}" = "feed" ]; then
+            if [ -z "${{ inputs.feed_url }}" ]; then
+              echo "::error::--feed-url (feed_url input) is required when walker=feed."
+              exit 1
+            fi
+          else
+            if [ -z "${{ inputs.from }}" ] || [ -z "${{ inputs.to }}" ]; then
+              echo "::error::from/to date inputs are required for walker=${{ inputs.walker }}."
+              exit 1
+            fi
+          fi
+
+      - name: This run's gates
+        run: |
+          echo "trigger = ${{ github.event_name }}"
+          echo "walker  = ${{ inputs.walker }}"
+          echo "mode    = ${{ inputs.mode }}"
+          echo "from/to = ${{ inputs.from }} .. ${{ inputs.to }}"
+          echo "feed    = ${{ inputs.feed_url }}"
+
+      - name: run-source-sweep.mjs
+        run: |
+          args=(--walker "${{ inputs.walker }}" --mode "${{ inputs.mode }}")
+          if [ "${{ inputs.walker }}" = "feed" ]; then
+            args+=(--feed-url "${{ inputs.feed_url }}")
+          else
+            args+=(--from "${{ inputs.from }}" --to "${{ inputs.to }}")
+          fi
+          node scripts/turns/run-source-sweep.mjs "${args[@]}"
+
+      # Commit the family's own harness-run artifact (scripts/harness-runs/source-sweep/**) so the run
+      # this dispatch produced survives past the Actions log — same posture corpus-turn.yml applies to
+      # discover-for-items/forward-events. A dispatch normally runs against master, which is typically
+      # branch-protected, so this lands on its own branch and opens a PR (corpus-turn.yml's own pattern)
+      # rather than pushing straight to whatever ref triggered the run.
+      - name: Commit the source-sweep harness-run artifact and open a PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/harness-runs/source-sweep
+          if git diff --cached --quiet; then
+            echo "No new source-sweep artifact to commit."
+            exit 0
+          fi
+          branch="source-sweep/${{ github.run_id }}"
+          git checkout -b "$branch"
+          git commit -m "source-sweep ${{ inputs.mode }}: ${{ inputs.walker }} run ${{ github.run_id }}"
+          git push origin HEAD:"$branch"
+          body=$'Automated source sweep (run ${{ github.run_id }}).\n\nWalker: ${{ inputs.walker }}\nMode: ${{ inputs.mode }}\nFrom/to: ${{ inputs.from }} .. ${{ inputs.to }}\nFeed: ${{ inputs.feed_url }}\n\nLands the harness-run artifact for this sweep under scripts/harness-runs/source-sweep/.'
+          gh pr create --base master --head "$branch" \
+            --title "Source sweep: ${{ inputs.walker }} (mode=${{ inputs.mode }}, run ${{ github.run_id }})" \
+            --body "$body"
+
+      - name: Upload scripts/_snapshots as a workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-sweep-snapshots-${{ github.run_id }}
+          path: fsi-app/scripts/_snapshots/
+          if-no-files-found: ignore
+          retention-days: 90

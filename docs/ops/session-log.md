@@ -7338,3 +7338,138 @@ still has no writer anywhere in the codebase, so it needs one as well as a value
 already discriminates on obligation text, so a span change cannot duplicate rows); then decide the
 whose-obligation semantics for the `other` bucket; then batch-003 with the holder-blocking selection
 query.
+
+## Addendum 80 — 2026-09-01 (cloud session): harness+flywheel completion train — five Sonnet lanes, four interfaces, sunset pass, writer registry
+
+**What was done (all committed on `lane/integration`, NOT yet landed on master — paused by operator).**
+The operator ruled: the harness and flywheel must communicate to improve each other, all site data flows
+through them, superseded era tools are sunsetted with zero broken references, backfill gets the R1
+snapshot retrofit, and nothing found gets deferred. Executed as five Sonnet lanes with disjoint write
+sets plus coordinator integration:
+
+- **H2 (harness):** self-emitting runners `scripts/mint/run-mint-batch.mjs` +
+  `scripts/forward-events/run-extraction.mjs` (artifact written in a finally block — a run can no longer
+  escape recording), F28 ENOENT → named failure (`safeHashGoverningFiles`), registration-trap message
+  now names rule/family/fix, run-id collision guard (`claimRunId`), the CONVENTION-promised CLI
+  (`list`/`show`), Interface-3 metrics channel (`--outcomes` enrichment: edges_discovered,
+  forward_events_extracted, isolated_items), MINT-RUNBOOK §7–9 (script-not-SQL; mandatory post-apply
+  flywheel steps), PROPOSER-RUNBOOK §7 corpus-outcomes query.
+- **FW1 (flywheel):** U5 `anticipate.mjs`, F6 `theme-delta.mjs` (prior themes preserved on the ledger
+  row), L4 `signal-candidates.mjs` (behind `--signals`, operator-review only), `flag-namespaces.mjs`
+  SoT, `discover-for-items.mjs`, R1 retrofit (write-edges/backfill snapshot prior state in db.mjs's
+  exact JSONL format before any refresh), `ratify-flag-to-census.mjs` (Interface 1: operator resolves a
+  flag with `ratify:census` token → idempotent census row `flywheel-ratified:<flag>`),
+  `generate-theme-brief.mjs` (theme_briefs' first in-repo writer), `/api/admin/forward-events` +
+  UpcomingObligationsPanel (mounted: Admin → Sources → "Upcoming obligations", `sourceStore` union
+  widened properly).
+- **FW2 (contract):** rule 16 (flywheel participation on every mint/substantive update; failures are
+  recorded defects), version bumped in all three enforced homes.
+- **SUN (sunset+registry):** 31 era scripts judged on evidence — 9 archived to `scripts/_archive/`
+  with tombstones (zero inbound refs + superseded/completed), 22 KEEP with reasons (F25 allowlist pins,
+  live importers, doctrine citations). `fsi-app/docs/inventories/shared-dataset-ownership.md`: every
+  shared dataset's partitions, one writer per partition, replace policy; fenced-JSON allowlist parsed by
+  the new suite-wired `.discipline/shared-writer-registry.test.mjs` — an unregistered shared-table
+  writer is now a red suite. It caught its first real gap minutes after merging (mint-item's new
+  forward-events write was unregistered).
+- **FIX (integration):** rule-16 wired into BOTH intake paths. mint: `recordFlywheelDefect`
+  (`flywheel-defect:` namespace), forward-event extraction at mint time, extractor MOVED to
+  `src/lib/forward-events/` (src never imports scripts; runner + F28 + CONVENTION updated,
+  forward-events PENDING-RUN.md written per rule (c)). update_item: substantive-vs-not derived as a
+  deny-list from the schema's own status/archive/bookkeeping columns (unknown column ⇒ substantive,
+  fail toward running the flywheel); idempotent re-extraction at application layer (275's dedupe key is
+  expression-based, onConflict can't target it; 23505 fallback = zero-new); stale-events flagged, never
+  auto-deleted. Migration 276 `connection_theme_runs.theme_delta` (real column, not the `args`
+  side-pocket) — **applied to live DB**. Shared modules lifted (`flywheel-defect.ts`,
+  `run-discovery.mjs`, `read-and-extract.mjs`) — zero duplication.
+
+**Operational turn — partially done, then BLOCKED.** Migration 276 applied. Discovery for the 9
+post-backfill zero-edge items ran via the pure functions over an MCP-fetched corpus: **0 edges, and
+that is the honest result** — the census-mint wave minted items with EMPTY connection-signature tags
+(scenario/compliance/topic all `[]`), so scoring has nothing to score. First real Interface-3 finding:
+the whole August census wave is unconnectable until a tagging pass exists; recorded for the next
+proposer pass, NOT hand-patched (operator's no-assumptions rule applies to tags too). AFIR (a86dcc05)
+correctly excluded (archived). Also verified: 573/1,863 discovery edges one-directional at rest — the
+designed outcome of the per-item top-12 cap, NOT a defect; do not "fix". The full recluster
+(analyze-corpus with U5/F6/L4) is BLOCKED: session egress blocks the DB host, and the permission
+classifier blocks the local-shim fallback. Operator has the decision: allow
+`kwrsbpiseruzbfwjpvsp.supabase.co` egress (recommended, permanent fix) or approve the shim.
+
+**Errors of mine, corrected on the record.** (1) I described cross-lane integration items as "parked"
+instead of scheduling them; operator ruled no-deferral, all were fixed same-session. (2) I reported "8
+items minted through coordinator apply" — it was 9 (one more landed same day), and my "8 items, 0
+edges" framing implied discovery would connect them; the real defect was upstream (no tags). (3) Two
+repo files were committed with CRLF against `.gitattributes`, making every worktree permanently dirty
+and blocking merges — root-caused and renormalized (`78066879`) rather than worked around per-lane.
+(4) The register briefly carried a never-created `load-forward-events.mjs` as a writer; resolved from
+the merged tree.
+
+**Next step for a cold session:** on `lane/integration` — get the operator's egress/shim decision, run
+`analyze-corpus.mjs --signals` (first theme_delta onto 276's column, first U5 targets, first L4
+candidates), refresh the stale mint/meta-harness F28 artifacts (meta-harness-run-005 for this wave),
+run the full suite (expect green incl. the registry test), land ONE squashed train on master per the
+Train-7 method. Then: the census-wave tagging gap goes to the next proposer pass as the first
+corpus-outcome finding.
+
+## Addendum 81 — 2026-09-01 (cloud session): the system review, nine completion lanes, four migrations live, and the train that could not push
+
+**Ordered by the operator after Addendum 80:** a thorough review of the whole system (intent vs. actual,
+tools, skills, wiring, dead code, usability, the market/utilities/research interface question, a
+competitive read) and a fix for "why is anything blocked, nothing should be blocked." Rulings taken in
+the same session: no standing schedules during build; items are processed when they arrive and
+everything already in the system gets one deliberate run; record-grade items MAY appear on customer
+surfaces, labeled; the change-detection chain is wired, not deleted; GitHub is reached ONLY through the
+browser, never a direct connector.
+
+**The review** is `docs/audits/system-review-2026-09-01.md` (indexed). Verdict: not a product yet, a
+strong substrate. Live numbers that settle the population question: 2,561 sources; 21,609 census
+documents; 3,661 `would_mint`; **322 live items**; 513 verified-but-archived of which **491 were
+archived 2026-08-21 under the WO-26 scope ruling with no `archive_reason` stamped** (Addendum 28), now
+blocking 456 queue rows. Every ingestion hop was session-only; paid grounding frozen; census-wave items
+carry empty signature tags so discovery scores nothing (verified: 0 edges for 8 items). Market Intel's
+redesign shipped visually (July, #215/#219/#223) with 1 of 48 series populated and 3 of 4 producers
+unbuilt; "utilities" appears nowhere in the repo (mapped to Operations, UNCONFIRMED). The 901 forward
+obligations rendered only on an admin tab. **Root cause of every blockage: no execution layer of its own**
+(`producers.yml`'s own header: "missing layer: a named runtime"). The scale layer competitors sell
+(register walks of EUR-Lex/Federal Register, feed walks, change sweep, provision-level diff) already
+existed in the repo, dormant, in F25's allowlist.
+
+**Nine Sonnet lanes, disjoint write sets, all merged to `lane/integration` (32 commits ahead of master):**
+RT (corpus-turn + source-sweep GitHub workflows, dispatch/push only, `scripts/turns/**`, the source-sweep
+family), HYG (dead/stale cleanup; F14 now sees guarded writers and edge functions; 19 F25-pinned modules
+archived; one of my review claims REFUTED: the community invitation routes are live), DOC (skill↔prompt
+parity now test-enforced; the skill was 14 rules and 13 fields against the prompt's 16 and 20), TAG
+(deterministic tag proposals bound to the vocab SoT, operator-ratified, 32/32 + 19/19 + 6/7 coverage),
+EV (`corpus_turn_requests` queue + trigger, admin buttons for "Run intake now" and "Request corpus
+turn"), POP (record-grade tier end to end: migration, mint path, validator profile, badge on Regulations,
+WO-26 stamp script, population plan), SURF (obligations on Regulations list + detail, ThemeStrip on
+Research, EIA petroleum producer; EEX EUA honestly unbuilt, no free licence), CD (change detection rebuilt
+hop by hop: fingerprint → queue → in-process reconcile → change-sweep → staged update; `ChangedSinceStrip`
+on the home page; intelligence_changes had NO RLS, fixed), intake-updates (run-intake now drains
+change-sweep `update_item` rows through the one chokepoint and re-verifies on the $0 path).
+
+**Coordinator integration closed every cross-lane item:** F28 rule (b) gained a hash-pinned first-run
+acknowledgment (a registered family with zero artifacts passes only with a matching PENDING-RUN.md);
+record-facts.mjs added to the mint governing set in all three homes; tag-presence wired into
+run-mint-batch; F23 and F25 to zero; the writer registry caught two real unregistered writers on merged
+trees; producers.yml gained the ecb-fx step (EIA waits on an operator-created secret, documented);
+migration 280 (theme_briefs public read, customers could not see briefs). **Migrations 277, 278, 279,
+280 applied live.** meta-harness-run-005 written (F28 demanded it, third consecutive self-catch).
+Gates on the merged tree: **suite 2,545/2,545, tsc clean, fitness 23/0, meta-gate PASS.**
+
+**Errors of mine, corrected on the record.** (1) I listed two live routes as dead; refuted by lane HYG,
+corrected in place. (2) I accepted a lane's "committed" report that was false; caught only because the
+merged fitness run lacked the violation the change should have raised; every lane brief now demands a
+`git log -1` confirmation. (3) An unquoted heredoc executed a backticked phrase and spliced git output
+into a JSON artifact; rewritten through Python. (4) My first competitive framing came from generic
+knowledge; replaced with two cited external reads before the review was written.
+
+**The train cannot push from here.** `git push --dry-run` returns the git-proxy 403 the ledger records
+(repo not in this session's sources). Operator ruling: land through the browser, never a direct
+connector. That landing is the next act; the lane worktrees are removed first (C4 noise).
+
+**Next step for a cold session:** if `origin/master` does not yet contain Addendum 81, the train is
+on `lane/integration` in the cloud worktree and must be landed via the GitHub web UI (one squashed
+train, per the Train-7 method). After landing: dispatch `corpus-turn.yml` (mode apply, since
+1970-01-01) for the first full turn, `source-sweep.yml` for the first register walk, run
+`stamp-wo26-archive-reason.mjs --execute`, `propose-tags.mjs --untagged --execute`, ratify, then
+batch-003 (`run-mint-batch --grade record`) discharges the mint marker as mint-run-007.

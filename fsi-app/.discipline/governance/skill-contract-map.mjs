@@ -84,6 +84,9 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 // checkout and diffing against this object; update deliberately, never silently. Generated 2026-08-29 against
 // this worktree via `grep -rln "GOVERNING SKILL" fsi-app/src fsi-app/scripts` cross-checked against the same
 // scan this file performs at runtime (scanCitations below) — the two agreed exactly (29 citing files, 6 skills).
+// 2026-09-01: analysis-construction-spec's contentHash re-pinned deliberately — SKILL.md's stale
+// detect_intersections RPC references (dropped in migration 265) were corrected to point at the live
+// reader (src/lib/connections/pair-view.mjs / /api/admin/intersections). citingFiles unchanged.
 // ---------------------------------------------------------------------------------------------------------
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
@@ -118,7 +121,11 @@ export const PINNED_MANIFEST = {
   },
   'environmental-policy-and-innovation': {
     skillPath: 'fsi-app/.claude/skills/environmental-policy-and-innovation/SKILL.md',
-    contentHash: '910c9f01d3516c89943eb3a48a2b5fb075a48ace7c6aea76cf23971cae233497',
+    // Re-pinned 2026-09-01 (lane DOC, governing-skill parity): SKILL.md's "Rules for All Output" was
+    // brought to parity with system-prompt.ts's 16 rules (was 14) and the Database Field Emission
+    // section's Fields: enumeration was brought to the full 20-field list (was 13) — see the SKILL.md
+    // changelog entry and invariants.mjs's EP-13-skill-prompt-parity for the full account.
+    contentHash: '2e86aed5da3ede2635df429a68f7f425f8a0b867ccc350c4b887a8dd6d136b95',
     citingFiles: [
       'fsi-app/scripts/_wave-alpha/backfill-canonical-keys.mjs',
       'fsi-app/scripts/audit-skill-conformance.mjs',
@@ -135,7 +142,7 @@ export const PINNED_MANIFEST = {
   },
   'analysis-construction-spec': {
     skillPath: 'fsi-app/.claude/skills/analysis-construction-spec/SKILL.md',
-    contentHash: 'ce35511c74682ae42ab5b1207e580143218a44b4db95c0213af949f46af3c818',
+    contentHash: 'f395c5d95e9eab5788e605fbeb846837e2b91132888dbb9328e7ebb3eae8780d',
     citingFiles: [
       'fsi-app/scripts/audit-skill-conformance.mjs',
       'fsi-app/scripts/verify/format-structure.mjs',

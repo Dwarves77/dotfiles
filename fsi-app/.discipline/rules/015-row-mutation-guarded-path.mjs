@@ -7,8 +7,9 @@
 // code, not a trailer that claims compliance. The guarded helper captures a prior-value snapshot
 // (reversibility) + records the governing-skill cite; a raw .update()/.delete() does neither.
 //
-// Trigger: a staged .mjs file under fsi-app/scripts/ (excluding _diag/ read-only convention and
-//          lib/ where the helper itself lives) whose content contains a raw Supabase write call.
+// Trigger: a staged .mjs file under fsi-app/scripts/ (excluding _diag/ read-only convention, lib/ where
+//          the helper itself lives, and *.test/.npmtest/.selftest/.golden.mjs proof files that fake a
+//          client) whose content contains a raw Supabase write call.
 // Check:   FAIL unless the file imports the guarded helper, or a documented override trailer is present.
 // Override: `Write-Guard-Override: <reason>` trailer (for legacy-script edits not introducing new writes).
 
@@ -31,6 +32,10 @@ function relevantScripts(ctx) {
     if (!p.endsWith('.mjs')) return false;
     if (p.includes('/scripts/_diag/')) return false;     // read-only diagnostic convention
     if (p.includes('/scripts/lib/')) return false;        // the helper itself + shared libs
+    // Test/proof files fake a Supabase client (`.update(`/`.upsert(`/`.delete(` are the very methods
+    // being faked) and mutate no rows; they are not row-mutating scripts. First tripped by
+    // scripts/turns/apply-extraction-output.test.mjs on PR #507 (2026-09-01).
+    if (/\.(test|npmtest|selftest|golden)\.mjs$/.test(p)) return false;
     return true;
   });
 }

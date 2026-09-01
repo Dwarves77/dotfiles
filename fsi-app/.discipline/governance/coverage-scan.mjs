@@ -48,7 +48,9 @@ const REPO = resolve(HERE, '..', '..', '..');               // dotfiles repo roo
 const ROOTS = ['fsi-app/src', 'fsi-app/scripts', 'fsi-app/supabase/migrations'];
 const CODE_RE = /\.(ts|tsx|mjs|js)$/;
 const SQL_RE = /\.sql$/;
-const SKIP_DIR = /node_modules|\.next|\/dist\/|\/\.git\//;
+// _archive trees hold sunset code + their colocated proofs (2026-09-01 sunset pass); archived proofs are
+// not wired by design, so they are excluded here exactly as F14/F25/the writer registry exclude them.
+const SKIP_DIR = /node_modules|\.next|\/dist\/|\/\.git\/|\/_archive\//;
 
 // ---- governed-surface classifiers (content-based) ----
 // `insert` is FIRST deliberately: creation is a governed write. Its absence here is what made the

@@ -177,6 +177,38 @@ export async function GET(request: NextRequest) {
     gate_a.error = e?.message ?? "gate_a_health threw";
   }
 
+  // ── Customer-visible forward obligations (lane SURF, 2026-09-01) ─────────────────────────────────
+  // migration 274/275's item_forward_events now renders on the Regulations list/detail surfaces
+  // (UpcomingObligationsStrip.tsx) via src/lib/forward-events/read-upcoming.mjs, gated the same way the
+  // table's own RLS policy is: the parent intelligence_items row must be LIVE (is_archived = false — the
+  // exact predicate migration 274's item_forward_events_read policy checks). This counts exactly that
+  // join — a real, cheap regression signal: if this count ever drops to 0 (or errors) while
+  // item_forward_events itself still holds rows, the customer-facing strip/section has silently gone
+  // dark even though the admin panel (which reads the same table, unfiltered by this join, via the
+  // service-role admin route) would still show data — the admin panel alone could never catch that
+  // class of regression, which is the whole reason "what is due, when" needs its own probe now that it
+  // has a customer render path. Reported alongside gate_a rather than folded into `ok`/`overallOk` (not
+  // in this lane's write set) — same posture gate_a itself already takes: informational, not a gate on
+  // HTTP status, but a regression a human or dashboard watching this endpoint over time will notice.
+  let forward_events_visible_on_regulations: { count: number | null; error: string | null } = {
+    count: null,
+    error: null,
+  };
+  try {
+    // `intelligence_items!inner(...)` forces an inner join (PostgREST embedded-resource filter), so a
+    // row whose parent item is archived (or missing) is excluded from the count, not merely from the
+    // returned columns — the same "never render a broken/leaked link" posture this table's own read
+    // paths already take.
+    const { count, error } = await supabase
+      .from("item_forward_events")
+      .select("id, intelligence_items!inner(is_archived)", { count: "exact", head: true })
+      .eq("intelligence_items.is_archived", false);
+    if (error) forward_events_visible_on_regulations.error = error.message;
+    else forward_events_visible_on_regulations.count = count ?? 0;
+  } catch (e: any) {
+    forward_events_visible_on_regulations.error = e?.message ?? "forward_events_visible_on_regulations count threw";
+  }
+
   const ok = overallOk(surfaces, rpcs);
   const body = {
     ok,
@@ -186,6 +218,7 @@ export async function GET(request: NextRequest) {
     surfaces,
     rpcs,
     gate_a,
+    forward_events_visible_on_regulations,
     checked_at: new Date().toISOString(),
   };
   // 200 when healthy, 503 when not, so the workflow can gate on HTTP status

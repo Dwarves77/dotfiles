@@ -13,12 +13,22 @@
 // high-false-positive), never gating. See FIELD-LEVEL below and the residual in the RD-9 invariant.
 //
 // HEURISTIC, low-false-positive by construction (a gate that cries wolf gets muted):
-//   - WRITE  = app code `.from("T").insert|update|upsert|delete`, or SQL `INSERT INTO T` / `UPDATE T`.
+//   - WRITE  = app code `.from("T").insert|update|upsert|delete`, the guarded-write helpers
+//              (`guardedInsert`/`guardedInsertMany`/`guardedUpdate`/`guardedDelete`/`archiveRows` from
+//              scripts/lib/db.mjs, plus their dependency-injected `insertFn` call sites — see
+//              GUARDED_WRITE_RE below) called with the table name as a string-literal first argument,
+//              or SQL `INSERT INTO T` / `UPDATE T`.
 //   - READ   = app code `.from("T").select`, any `.rpc("fn")` whose SQL body reads T, or SQL
 //              `FROM T` / `JOIN T` / `REFERENCES T` (an FK child, a view, a trigger, an RPC body).
 //   - A table is a WRITE-ORPHAN iff it has a CREATE TABLE, ≥1 CODE writer, and ZERO readers of ANY
 //     kind (no code select, no SQL FROM/JOIN/REFERENCES). Conservative: "referenced in SQL FROM/JOIN"
 //     counts as a reader even if that RPC/view is itself dead (transitive deadness is a named residual).
+//
+// SCAN ROOTS include `supabase/functions/**/*.ts` (Edge Functions, e.g. capture-worker) alongside
+// `src/` and `scripts/` — an edge function is app code that reads and writes tables exactly like a
+// Next.js route, and excluding it made every table it touches invisible to this checker on both
+// sides (found 2026-09-01: capture-worker's own writes/reads of pending_first_fetch, sources,
+// intelligence_items, agent_run_searches, agent_runs, integrity_flags were entirely unscanned).
 //
 // Exit 0 = no NON-ALLOWLISTED write-orphan. Exit 1 = at least one. The allowlist (below) is
 // reason-bearing and review-by-phase-tagged, and is itself audited (a stale allowlist entry whose
@@ -54,6 +64,10 @@ export const TERMINAL_SINK_ALLOWLIST = {
     reason: 'FIRST RUN 2026-07-03. Written by /api/admin/sources/bulk-import as a job record; no reader (no admin import-history surface consumes it). DISPOSITION PENDING Phase 7 (build the history reader vs ratify as write-only job audit) — grandfathered, not ratified.',
     reviewByPhase: 'Phase 7 (zero-reader verification) — admin bulk-import history.',
   },
+  disposition_ledger: {
+    reason: 'SURFACED 2026-09-01, when this checker began recognizing the guarded-write helpers (guardedInsert et al., scripts/lib/db.mjs) as writers — disposition_ledger was invisible to F14 before that fix even though it was already being written. Migration 213: designed-as write-only "permanent institutional memory" for tombstone-then-delete (operator ruling 2026-07-16) — an archived item\'s identity survives its own row being hard-deleted. scripts/lib/db.mjs also lists it in DELETE_PROTECTED_TABLES (append-only, RD-9 audit-terminal class, same posture as raw_fetches/claim_versions). Migration 213\'s own header names its intended future readers ("the holdings-gate and expansion-time dedup") — not built yet, so today it has zero readers by design, not by omission. DISPOSITION PENDING Phase 7 (build the dedup/holdings-gate reader vs ratify permanently as write-only memory) — grandfathered, not ratified.',
+    reviewByPhase: 'Phase 7 (zero-reader verification) — holdings-gate / expansion-time dedup reader for disposition_ledger.',
+  },
   // ingestion_control_log: entry RETIRED 2026-08-14 — the dead-code sweep removed
   // scripts/wave1-cold-start.mjs, this table's only code writer. With no writer it is no longer a
   // write-orphan, so a standing allowlist entry would be exactly the stale-entry defect this list
@@ -73,6 +87,24 @@ const CREATE_FUNC_RE = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?["'
 // supabase-js CRUD verb sits immediately after .from("T") (possibly across a newline). Low-false-positive.
 const CODE_OP_RE = /\.from\(\s*['"`]([a-z_][a-z0-9_]*)['"`]\s*\)\s*\.(insert|upsert|update|delete|select)\b/g;
 const RPC_CALL_RE = /\.rpc\(\s*['"`]([a-z_][a-z0-9_]*)['"`]/g;
+
+// GUARDED-WRITE HELPERS (scripts/lib/db.mjs): guardedInsert/guardedInsertMany/guardedUpdate/
+// guardedDelete/archiveRows all take the table name as a string-literal FIRST argument
+// (`guardedInsert("regional_data_facts", row, {...})`). `insertFn` is the one dependency-injected
+// name this codebase actually uses for it (emission-factors-common.mjs / assumption-register-common.mjs
+// default `insertFn = guardedInsertMany` and call `insertFn("emission_factors", rows, {...})` at the
+// write site) — low false-positive because it is a distinctive project-local name, not a generic one.
+const GUARDED_WRITE_RE = /\b(?:guardedInsert|guardedInsertMany|guardedUpdate|guardedDelete|archiveRows|insertFn)\(\s*['"`]([a-z_][a-z0-9_]*)['"`]/g;
+
+// PostgREST embedded-resource reads: `.select("id, label, child_table ( col )")` reads `child_table`
+// too, not just the `.from("T")` table — a real read the plain CODE_OP_RE above cannot see because the
+// child table name lives INSIDE the select string, not after a second `.from(`. Captured in two passes
+// (select-string, then embed-child-inside-it) so the reported line stays anchored to the actual select
+// call. Deliberately permissive on what counts as an "embed": a false match only costs a spurious
+// informational read (never gates), and it can only matter at all if the matched identifier happens to
+// equal a real schema table name.
+const SELECT_STRING_RE = /\.select\(\s*['"`]([\s\S]*?)['"`]/g;
+const EMBED_CHILD_RE = /\b([a-z_][a-z0-9_]*)\s*\(/g;
 
 // SQL table references. FROM/JOIN/REFERENCES = a consumer; INSERT INTO / UPDATE = a producer.
 const SQL_READ_RE = /\b(?:FROM|JOIN|REFERENCES)\s+(?:public\.)?["']?([a-z_][a-z0-9_]*)["']?/gi;
@@ -118,6 +150,15 @@ export function scanCode(codeFiles) {
     }
     for (const m of matchAll(RPC_CALL_RE, content)) {
       add(rpcCalls, m[1], { file, line: lineOf(content, m.index) });
+    }
+    for (const m of matchAll(GUARDED_WRITE_RE, content)) {
+      add(writers, m[1], { file, line: lineOf(content, m.index), op: 'guarded' });
+    }
+    for (const sel of matchAll(SELECT_STRING_RE, content)) {
+      const selLine = lineOf(content, sel.index);
+      for (const m of matchAll(EMBED_CHILD_RE, sel[1])) {
+        add(readers, m[1], { file, line: selLine });
+      }
     }
   }
   return { writers, readers, rpcCalls };
@@ -225,7 +266,7 @@ export function runOrphanCheck() {
   const tracked = trackedFiles() || [];
   const migRel = tracked.filter((p) => p.startsWith('fsi-app/supabase/migrations/') && p.endsWith('.sql'));
   const codeRel = tracked.filter((p) =>
-    (p.startsWith('fsi-app/src/') || p.startsWith('fsi-app/scripts/')) &&
+    (p.startsWith('fsi-app/src/') || p.startsWith('fsi-app/scripts/') || p.startsWith('fsi-app/supabase/functions/')) &&
     /\.(ts|tsx|mjs|js)$/.test(p) &&
     !/\.test\.mjs$|\.selftest\.mjs$/.test(p));
 

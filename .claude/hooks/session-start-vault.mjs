@@ -104,7 +104,7 @@ if (snap && snap.trim()) {
 out.push('### Standing traps');
 out.push('- `fsi-app/STATUS.md` is HISTORICAL (April state). `docs/PROGRAM-BOARD.md` is the resume state.');
 out.push('- The vault outranks account memory. If a memory one-liner conflicts with `docs/`, the vault wins.');
-out.push('- Run the `resume` skill (`fsi-app/.claude/skills/resume/SKILL.md`) for the full read protocol.');
+out.push('- Run the `ledger` skill (`.claude/skills/ledger/SKILL.md`) for the full read protocol.');
 
 process.stdout.write(out.join('\n') + '\n');
 process.exit(0);

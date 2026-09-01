@@ -22,7 +22,12 @@ import {
   hashHarnessVersion,
   metricHeadline,
   formatRunListing,
+  claimRunId,
+  listFamiliesSummary,
+  resolveRunIdArg,
+  loadRunArtifactJSON,
 } from "./run-artifact.mjs";
+import { mkdirSync } from "node:fs";
 
 function makeValidArtifact(overrides = {}) {
   return {
@@ -65,8 +70,8 @@ test("validateRunArtifact: per_item may be empty (a run that processed thousands
   assert.deepEqual(validateRunArtifact(artifact), []);
 });
 
-test("ALLOWED_FAMILIES is exactly mint, screen, fetch-drain, meta-harness, forward-events", () => {
-  assert.deepEqual(ALLOWED_FAMILIES, ["mint", "screen", "fetch-drain", "meta-harness", "forward-events"]);
+test("ALLOWED_FAMILIES is exactly mint, screen, fetch-drain, meta-harness, forward-events, source-sweep", () => {
+  assert.deepEqual(ALLOWED_FAMILIES, ["mint", "screen", "fetch-drain", "meta-harness", "forward-events", "source-sweep"]);
 });
 
 // ── validateRunArtifact: red cases (fail-closed) ────────────────────────────────────────────────
@@ -98,6 +103,17 @@ test("validateRunArtifact RED: harness_family not in ALLOWED_FAMILIES", () => {
   const artifact = makeValidArtifact({ harness_family: "brief" });
   const errors = validateRunArtifact(artifact);
   assert.ok(errors.some((e) => e.includes('harness_family "brief"')), errors.join("; "));
+});
+
+test("validateRunArtifact RED: unregistered harness_family names the registration-order rule, the offending family, and the exact fix (not just the bare symptom)", () => {
+  const artifact = makeValidArtifact({ harness_family: "brief" });
+  const errors = validateRunArtifact(artifact);
+  const msg = errors.find((e) => e.includes('harness_family "brief"'));
+  assert.ok(msg, errors.join("; "));
+  assert.match(msg, /not registered in ALLOWED_FAMILIES/);
+  assert.match(msg, /RULE:.*BEFORE any of its run artifacts can validate/);
+  assert.match(msg, /FIX:.*add "brief" to ALLOWED_FAMILIES in scripts\/lib\/run-artifact\.mjs/);
+  assert.match(msg, /F28's GOVERNING_FILES/);
 });
 
 test("validateRunArtifact RED: run_id family prefix mismatch (screen-run-001 under harness_family mint)", () => {
@@ -396,6 +412,176 @@ test("formatRunListing: multiple runs, one line each, in the given order", () =>
 });
 
 // ── CLI integration: the real retrofitted artifacts, end to end ────────────────────────────────
+
+// ── claimRunId: collision-safe run-id claim (Wave MH-5) ────────────────────────────────────────
+
+test("claimRunId: first claim in an empty dir returns <family>-run-001", () => {
+  const dir = tmpDir();
+  try {
+    assert.equal(claimRunId(dir, "mint"), "mint-run-001");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("claimRunId: sequential claims in the same directory never collide", () => {
+  const dir = tmpDir();
+  try {
+    const ids = [];
+    for (let i = 0; i < 5; i++) ids.push(claimRunId(dir, "mint"));
+    assert.deepEqual(ids, ["mint-run-001", "mint-run-002", "mint-run-003", "mint-run-004", "mint-run-005"]);
+    assert.equal(new Set(ids).size, 5, "every claimed id must be distinct");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("claimRunId: skips a number an already-written artifact occupies", () => {
+  const dir = tmpDir();
+  try {
+    writeRunArtifact(dir, makeValidArtifact({ run_id: "mint-run-001" }));
+    writeRunArtifact(dir, makeValidArtifact({ run_id: "mint-run-002" }));
+    assert.equal(claimRunId(dir, "mint"), "mint-run-003");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("claimRunId: a pre-existing claim marker (simulating a concurrent winner) is skipped via bounded EEXIST retry, not reused", () => {
+  const dir = tmpDir();
+  try {
+    // Simulate a concurrent process that already won the claim for -001 (and -002) before this call —
+    // exactly the mkdir-based marker claimRunId itself creates, pre-seeded by hand.
+    mkdirSync(join(dir, ".claims", "mint-run-001.json.claim"), { recursive: true });
+    mkdirSync(join(dir, ".claims", "mint-run-002.json.claim"), { recursive: true });
+    assert.equal(claimRunId(dir, "mint"), "mint-run-003");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("claimRunId: a claim marker survives even after the real artifact for that number is written, so a later concurrent caller still can't reuse the number by scanning only *.json files", () => {
+  const dir = tmpDir();
+  try {
+    const id1 = claimRunId(dir, "mint");
+    assert.equal(id1, "mint-run-001");
+    writeRunArtifact(dir, makeValidArtifact({ run_id: id1 }));
+    // A second caller who raced and lost (or simply calls after) must land on -002, not re-claim -001.
+    assert.equal(claimRunId(dir, "mint"), "mint-run-002");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("claimRunId: distinct families in the same parent directory claim independently (families don't share a number sequence)", () => {
+  const dir = tmpDir();
+  try {
+    assert.equal(claimRunId(dir, "mint"), "mint-run-001");
+    assert.equal(claimRunId(dir, "screen"), "screen-run-001");
+    assert.equal(claimRunId(dir, "mint"), "mint-run-002");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("claimRunId: a REAL EEXIST collision (forced via startAt, since the normal scan makes a single-process collision impossible) is retried and resolves to the next free number", () => {
+  const dir = tmpDir();
+  try {
+    // Pre-seed claim markers at 001 and 002 (as claimRunId itself would create them), then force the
+    // candidate scan to start at 001 anyway via startAt — this is what actually drives the mkdir ->
+    // EEXIST -> increment -> retry loop, not just the smart starting-point calculation.
+    mkdirSync(join(dir, ".claims", "mint-run-001.json.claim"), { recursive: true });
+    mkdirSync(join(dir, ".claims", "mint-run-002.json.claim"), { recursive: true });
+    assert.equal(claimRunId(dir, "mint", { startAt: 1 }), "mint-run-003");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("claimRunId RED: exhausting maxAttempts throws a named, non-generic error", () => {
+  const dir = tmpDir();
+  try {
+    // Pre-seed 3 consecutive claim markers, force the scan to start at 001 (startAt), and cap attempts
+    // at 2 — 001 and 002 both collide (real EEXIST), leaving no room to reach the free 003 within budget.
+    for (const n of ["001", "002", "003"]) {
+      mkdirSync(join(dir, ".claims", `mint-run-${n}.json.claim`), { recursive: true });
+    }
+    assert.throws(
+      () => claimRunId(dir, "mint", { maxAttempts: 2, startAt: 1 }),
+      /could not claim a run_id for family "mint"/,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ── CLI: list [family] / show <family> <run> (Wave MH-5) ───────────────────────────────────────
+
+test("listFamiliesSummary: one line per family directory, name + run count + latest run", () => {
+  const root = tmpDir();
+  try {
+    writeRunArtifact(join(root, "mint"), makeValidArtifact({ run_id: "mint-run-001", started_at: "2026-09-01T00:00:00Z" }));
+    writeRunArtifact(join(root, "mint"), makeValidArtifact({ run_id: "mint-run-002", started_at: "2026-09-02T00:00:00Z" }));
+    writeRunArtifact(join(root, "screen"), makeValidArtifact({ harness_family: "screen", run_id: "screen-run-001", started_at: "2026-09-01T00:00:00Z" }));
+    const summary = listFamiliesSummary(root);
+    const lines = summary.split("\n");
+    assert.equal(lines.length, 2);
+    assert.match(lines.find((l) => l.startsWith("mint:")), /^mint: 2 run\(s\).*latest: mint-run-002/);
+    assert.match(lines.find((l) => l.startsWith("screen:")), /^screen: 1 run\(s\).*latest: screen-run-001/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("listFamiliesSummary: an empty/non-existent root reports a visible placeholder, not a throw or blank string", () => {
+  const root = join(tmpdir(), "run-artifact-test-no-such-root-" + Date.now());
+  assert.match(listFamiliesSummary(root), /no harness-run families found/);
+});
+
+test("resolveRunIdArg: a full run_id passes through unchanged", () => {
+  assert.equal(resolveRunIdArg("mint", "mint-run-007"), "mint-run-007");
+});
+
+test("resolveRunIdArg: a bare or zero-padded number resolves to the family's run_id shape", () => {
+  assert.equal(resolveRunIdArg("mint", "7"), "mint-run-007");
+  assert.equal(resolveRunIdArg("mint", "007"), "mint-run-007");
+  assert.equal(resolveRunIdArg("screen", "12"), "screen-run-012");
+});
+
+test("resolveRunIdArg: an unrecognized shape is passed through unchanged (the caller reports 'not found', this function never guesses further)", () => {
+  assert.equal(resolveRunIdArg("mint", "bogus"), "bogus");
+});
+
+test("loadRunArtifactJSON: reads and parses a real artifact file", () => {
+  const dir = tmpDir();
+  try {
+    const artifact = makeValidArtifact();
+    writeRunArtifact(dir, artifact);
+    const loaded = loadRunArtifactJSON(join(dir, "mint-run-001.json"));
+    assert.deepEqual(loaded, artifact);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("loadRunArtifactJSON RED: a missing file throws a named 'no such run artifact' error, never a raw ENOENT", () => {
+  const dir = tmpDir();
+  try {
+    assert.throws(() => loadRunArtifactJSON(join(dir, "mint-run-999.json")), /no such run artifact/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("loadRunArtifactJSON RED: unparseable JSON throws a named error naming the path, never a raw JSON.parse throw", () => {
+  const dir = tmpDir();
+  try {
+    writeFileSync(join(dir, "mint-run-001.json"), "{ not json");
+    assert.throws(() => loadRunArtifactJSON(join(dir, "mint-run-001.json")), /is not valid JSON/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 test("CLI integration: --list against the real retrofitted screen family reads all 3 rounds, sorted, with defect counts intact", () => {
   const dir = new URL("../harness-runs/screen", import.meta.url).pathname;

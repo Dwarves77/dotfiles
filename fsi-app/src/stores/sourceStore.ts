@@ -21,7 +21,7 @@ interface SourceState {
 
   // UI
   expandedSourceId: string | null;
-  activeView: "registry" | "health" | "provisional" | "canonical" | "intersections" | "themes";
+  activeView: "registry" | "health" | "provisional" | "canonical" | "intersections" | "themes" | "obligations";
 
   // Actions — data
   setSources: (sources: Source[]) => void;

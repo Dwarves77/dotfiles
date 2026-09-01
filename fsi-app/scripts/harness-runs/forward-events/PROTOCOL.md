@@ -22,6 +22,14 @@ scripts/forward-events/load-forward-events.mjs   -- the coordinator-run loader (
                                                      file instead and update this line in the same commit
 ```
 
+**AS LANDED (differs from the plan above — this section is FE-2's original plan, kept for history; the
+list actually registered in F28's `GOVERNING_FILES.'forward-events'` and
+`run-extraction.mjs`'s `FORWARD_EVENTS_GOVERNING_FILES` is authoritative):** no `load-forward-events.mjs`
+was built as a separate file. The two real governing files are `src/lib/forward-events/
+extract-forward-events.mjs` (moved from `scripts/forward-events/` in lane FIX, 2026-09-01, so the intake
+mint chokepoint — a runtime `src/lib` module — can import it without a runtime `src/` file reaching into
+`scripts/`) and `scripts/harness-runs/forward-events/PROTOCOL.md` (this file).
+
 **One-time setup this protocol assumes but does not itself perform:** `"forward-events"` must be added
 to `ALLOWED_FAMILIES` in `scripts/lib/run-artifact.mjs` before any lane can call `writeRunArtifact` for
 this family — it is not there today (checked against both the FE-1 and FE-2 worktrees at
@@ -95,8 +103,8 @@ mint. The writer invocation:
 import { writeRunArtifact, hashHarnessVersion } from "./scripts/lib/run-artifact.mjs";
 
 const harness_version = hashHarnessVersion([
-  "scripts/forward-events/extract-forward-events.mjs",
-  "scripts/forward-events/load-forward-events.mjs",   // or the single combined file — see header above
+  "src/lib/forward-events/extract-forward-events.mjs",   // AS LANDED — see "AS LANDED" note above
+  "scripts/harness-runs/forward-events/PROTOCOL.md",
 ]); // baseDir defaults to cwd — run from fsi-app/
 
 writeRunArtifact("scripts/harness-runs/forward-events", {
@@ -200,12 +208,14 @@ the latest run's `run_id` (F28 rule (d)). Update it as part of the SAME lane tha
 ## Running the extractor's own proofs
 
 The proofs are execution-wired into the shared suite, not run by hand:
-`.discipline/run-test-suite.sh` carries `fsi-app/scripts/forward-events/*.test.mjs` alongside
-`fsi-app/scripts/mint/*.test.mjs`, so CI runs them on every push. Locally:
+`.discipline/run-test-suite.sh` carries `fsi-app/scripts/forward-events/*.test.mjs` (the runner's own
+tests) and, since the extractor's lane-FIX move, `fsi-app/src/lib/forward-events/*.test.mjs` (the
+extractor's own tests) alongside `fsi-app/scripts/mint/*.test.mjs`, so CI runs them on every push.
+Locally:
 
 ```
-sh .discipline/run-test-suite.sh                                  # the whole suite, incl. these
-node --test scripts/forward-events/extract-forward-events.test.mjs  # this family alone
+sh .discipline/run-test-suite.sh                                       # the whole suite, incl. these
+node --test src/lib/forward-events/extract-forward-events.test.mjs     # this family's extractor alone
 ```
 
 56 tests cover every supported date form, every `event_kind`, the RED-first non-extraction cases (a

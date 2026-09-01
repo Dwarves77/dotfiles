@@ -1,10 +1,20 @@
-// scripts/forward-events/extract-forward-events.mjs
+// src/lib/forward-events/extract-forward-events.mjs
 //
 // FORWARD-EVENT EXTRACTOR (FE-1)
 // ==============================
 // Pure, deterministic, $0, no-LLM module. Lifts dated forward events that are
 // ALREADY WRITTEN DOWN in grounded brief content (source-cited FACT/GAP claims
 // and rendered section markdown) into structured records a query can reach.
+//
+// MOVED HERE (lane FIX, 2026-09-01) from scripts/forward-events/extract-forward-events.mjs, where FE-1
+// originally built it as a standalone CLI-adjacent module. Contract rule 16 (system-prompt.ts, "the
+// forward-participation clause") requires the intake mint chokepoint — a RUNTIME module in src/lib/intake
+// — to call this extractor on every mint. No runtime src/ file imports from scripts/ anywhere in this
+// repo (scripts/ is CLI/batch tooling; the established direction is the reverse — scripts/*.mjs already
+// import from src/lib/, e.g. analyze-corpus.mjs importing src/lib/connections/cluster.mjs), so the pure
+// library half of this module lives here as the one source of truth; scripts/forward-events/
+// run-extraction.mjs (the CLI runner) imports it from this path. Content and behavior are unchanged by
+// the move — EXTRACTOR_VERSION does not bump for a relocation with no semantic edit.
 //
 // This module NEVER invents a date. It only locates dates that are already
 // present in the input text and binds them to an event only when the

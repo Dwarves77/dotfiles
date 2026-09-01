@@ -23,6 +23,7 @@ import { getSurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { HomeSurface } from "@/components/home/HomeSurface";
+import { ChangedSinceStrip } from "@/components/dashboard/ChangedSinceStrip";
 
 export default async function Home() {
   const [data, aggregates, surfaceCoverage] = await Promise.all([
@@ -77,6 +78,7 @@ export default async function Home() {
         watchlistPromise={watchlistPromise}
         coverageGapsPromise={coverageGapsPromise}
         surfaceCoverage={surfaceCoverage}
+        changedSinceStrip={<ChangedSinceStrip />}
       />
     </>
   );

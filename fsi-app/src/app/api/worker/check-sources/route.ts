@@ -12,6 +12,7 @@ import { extractPortalLinks } from "@/lib/sources/portal-links.mjs";
 import { persistPortalCandidates } from "@/lib/intake/portal-harvest";
 import { urlIsRoot } from "@/lib/sources/entity-gate.mjs";
 import { workerAuthGuard } from "@/lib/api/worker-auth";
+import { runReconcilePass } from "@/lib/sources/reconcile";
 
 type RenderFn = (u: string, o: { maxTextLength?: number }) => Promise<{ status: number; text?: string; html?: string }>;
 type ClassifyFn = (r: { status: number | null; errored: boolean }) => string;
@@ -208,10 +209,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Step 3: reconcile IN-PROCESS (chain repair, 2026-09-01). check-sources just wrote this batch's
+    // monitoring_queue rows with a REAL change_detected (Step 1/S1-10, above) — without this call the
+    // queue -> intelligence_changes hop was dead: /api/worker/reconcile had zero callers and no schedule
+    // fires it (source-monitoring.yml's cron is intentionally commented out, dispatch-only, per the
+    // acquisition-freeze ruling — arming it is a one-line uncomment for later, not this change). Importing
+    // the consumer function directly (not an HTTP self-call) means ONE dispatch of this route both detects
+    // AND reconciles. Never fatal to the scan response — a reconcile-pass failure is reported alongside
+    // the scan results, not thrown; the manual /api/worker/reconcile route remains available to re-drive.
+    let reconcile: Awaited<ReturnType<typeof runReconcilePass>> | { error: string };
+    try {
+      reconcile = await runReconcilePass(supabase);
+    } catch (e: any) {
+      reconcile = { error: e?.message ?? String(e) };
+    }
+
     return NextResponse.json({
       message: `Checked ${results.length} sources`,
       checked: results.length,
       results,
+      reconcile,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });

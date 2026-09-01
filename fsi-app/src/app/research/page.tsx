@@ -1,4 +1,5 @@
 import { ResearchLedger, type ResearchPipelineItem } from "@/components/research/ResearchLedger";
+import { ThemeStrip } from "@/components/research/ThemeStrip";
 import {
   getResearchItems,
   getResearchPipeline,
@@ -99,11 +100,18 @@ export default async function Research() {
   }));
 
   return (
-    <ResearchLedger
-      items={items}
-      aggregates={aggregates}
-      total={allow.size ? filteredRows.length : pipeline.total}
-      sourceCoverage={sourceCoverage}
-    />
+    <>
+      {/* Lane SURF (2026-09-01): customer-facing connection_themes strip — see ThemeStrip.tsx's own
+          header (including the live theme_briefs RLS finding). Self-contained server component;
+          soft-fails to nothing on a read error. Mounted here (page.tsx) rather than inside
+          ResearchLedger, which owns its own internal masthead and is out of this lane's write set. */}
+      <ThemeStrip />
+      <ResearchLedger
+        items={items}
+        aggregates={aggregates}
+        total={allow.size ? filteredRows.length : pipeline.total}
+        sourceCoverage={sourceCoverage}
+      />
+    </>
   );
 }

@@ -1,15 +1,14 @@
-// scripts/forward-events/extract-forward-events.test.mjs
+// src/lib/forward-events/extract-forward-events.test.mjs
 //
-// Runnable with: node --test scripts/forward-events/extract-forward-events.test.mjs
-// (or: node --test scripts/forward-events/  to run every *.test.mjs in the directory)
+// Runnable with: node --test src/lib/forward-events/extract-forward-events.test.mjs
+// (or: node --test src/lib/forward-events/  to run every *.test.mjs in the directory)
 //
-// NOTE for whoever wires CI: scripts/** is not globbed by
-// .discipline/run-test-suite.sh (confirmed by reading that script — its
-// globs are scripts/lib/**, src/**, not scripts/forward-events/**). Wiring
-// this file into that runner is out of FE-1's write set (scripts/forward-events/
-// only) — the coordinator/DB-writing lane owns that edit. Until then, run it
-// directly with the command above; it has zero dependencies beyond node:test
-// and the module under test, so it needs no `npm ci` first.
+// MOVED HERE (lane FIX, 2026-09-01) alongside extract-forward-events.mjs — see that file's header for
+// why. WIRED into .discipline/run-test-suite.sh's src/lib/forward-events/*.test.mjs glob in the same
+// commit as the move (Wave MH-5's own note about scripts/forward-events/*.test.mjs not being globbed no
+// longer applies to this file post-move — it applies to run-extraction.test.mjs, which stays put and
+// stays covered by that existing glob). Zero dependencies beyond node:test and the module under test —
+// no `npm ci` required to run it.
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';

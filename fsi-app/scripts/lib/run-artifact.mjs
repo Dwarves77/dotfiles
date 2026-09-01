@@ -20,7 +20,8 @@
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from "node:fs";
 import crypto from "node:crypto";
-import { join, resolve, relative } from "node:path";
+import { join, resolve, relative, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // "meta-harness" (Wave MH-4, build plan §3 "self-application") is the meta-harness layer's own family:
 // its runs are the waves that build/extend this substrate itself (MH-1..MH-3, and every wave after). Its
@@ -33,6 +34,7 @@ export const ALLOWED_FAMILIES = Object.freeze([
   "fetch-drain",
   "meta-harness",
   "forward-events",
+  "source-sweep",
 ]);
 
 const REQUIRED_TOP_LEVEL = Object.freeze([
@@ -99,8 +101,21 @@ export function validateRunArtifact(artifact) {
   if (errors.length) return errors;
 
   if (!ALLOWED_FAMILIES.includes(artifact.harness_family)) {
+    // REGISTRATION-ORDER RULE (see CONVENTION.md's "A new harness family ... gets a new subdirectory
+    // and one addition to ALLOWED_FAMILIES in run-artifact.mjs"): a family must be REGISTERED —
+    // present in ALLOWED_FAMILIES, this module's own export — before any of its artifacts can ever
+    // validate. The bare "is not one of [...]" message that used to stand here named the symptom but
+    // not the fix, which is exactly the kind of unhelpful violation message CONVENTION.md's own
+    // registration step exists to prevent a reader from having to reverse-engineer. Name the rule, the
+    // offending family, and the exact one-line fix, in the message itself.
     errors.push(
-      `harness_family "${artifact.harness_family}" is not one of ${JSON.stringify(ALLOWED_FAMILIES)}`,
+      `harness_family "${artifact.harness_family}" is not registered in ALLOWED_FAMILIES ` +
+        `(scripts/lib/run-artifact.mjs). RULE: a harness family must be added to ALLOWED_FAMILIES ` +
+        `BEFORE any of its run artifacts can validate — registration comes first, artifacts second, ` +
+        `never the other way round. FIX: add "${artifact.harness_family}" to ALLOWED_FAMILIES in ` +
+        `scripts/lib/run-artifact.mjs, add its governing files to CONVENTION.md's harness_version table ` +
+        `and F28's GOVERNING_FILES (.discipline/fitness/functions/F28-harness-run-integrity.mjs), then ` +
+        `retry writing this artifact. Currently registered: ${JSON.stringify(ALLOWED_FAMILIES)}.`,
     );
   } else if (!runIdPattern(artifact.harness_family).test(artifact.run_id)) {
     errors.push(
@@ -192,6 +207,104 @@ export function writeRunArtifact(dir, artifact, opts = {}) {
   mkdirSync(resolve(dir), { recursive: true });
   writeFileSync(outPath, JSON.stringify(artifact, null, 2) + "\n", "utf8");
   return outPath;
+}
+
+function runIdRegExpFor(family) {
+  return new RegExp(`^${family}-run-(\\d{3})\\.json$`);
+}
+
+/**
+ * Highest existing run number for `family` in `dir`, considering BOTH already-written
+ * `<family>-run-NNN.json` artifacts and outstanding claim markers under `<dir>/.claims/` (see
+ * claimRunId below) — a number a concurrent process has claimed but not yet written to must not be
+ * handed out again just because the .json file doesn't exist yet. Returns 0 when neither exists (so
+ * the first run_id is `<family>-run-001`, matching nextRunId's convention in screen-worklist.mjs).
+ */
+function highestClaimedOrWrittenRunNumber(dir, family) {
+  const artifactRe = runIdRegExpFor(family);
+  const claimRe = new RegExp(`^${family}-run-(\\d{3})\\.json\\.claim$`);
+  let max = 0;
+
+  let entries = [];
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    entries = [];
+  }
+  for (const name of entries) {
+    const m = artifactRe.exec(name);
+    if (m) max = Math.max(max, Number.parseInt(m[1], 10));
+  }
+
+  let claimEntries = [];
+  try {
+    claimEntries = readdirSync(join(dir, ".claims"));
+  } catch {
+    claimEntries = [];
+  }
+  for (const name of claimEntries) {
+    const m = claimRe.exec(name);
+    if (m) max = Math.max(max, Number.parseInt(m[1], 10));
+  }
+
+  return max;
+}
+
+/**
+ * Collision-safe claim of the next `<family>-run-NNN` run_id under `dir` (Wave MH-5, "run-id collision
+ * guard"). `nextRunId`-style scanning alone (screen-worklist.mjs's approach: read the highest existing
+ * file, add one) is a classic TOCTOU race — two concurrent processes can both read the same "highest
+ * existing" number and both proceed to write `<family>-run-042.json`, and whichever writes second wins
+ * silently (or, without `writeRunArtifact`'s overwrite guard, clobbers the first). The atomic primitive
+ * here is `mkdirSync(path, { recursive: false })`: POSIX `mkdir` either creates the directory or fails
+ * with `EEXIST` — there is no window where two callers can both "succeed" at creating the same path, so
+ * the directory itself IS the claim. A `<dir>/.claims/<run_id>.json.claim/` marker directory is created
+ * (never removed — its continued existence is what keeps that number retired even after the real
+ * artifact is written, so a second caller who raced and lost still can't reuse the number by scanning
+ * only *.json files) and its name is what one caller wins.
+ *
+ * Bounded retry (`maxAttempts`, default 50): on `EEXIST` the candidate number increments and the claim
+ * is retried; any other error is rethrown immediately (not a collision — a real filesystem problem).
+ * Exhausting `maxAttempts` throws a named error rather than looping forever — that many concurrent
+ * claimants (or a `.claims/` directory stuck from a prior crash) is an operational condition a caller
+ * should see, not spin against silently.
+ *
+ * @param {string} dir the family's harness-runs directory (created if it doesn't exist yet)
+ * @param {string} family e.g. "mint" — not validated against ALLOWED_FAMILIES here (the caller's own
+ *   artifact write will validate it via writeRunArtifact -> validateRunArtifact)
+ * @param {{maxAttempts?: number, startAt?: number}} [opts] `startAt` skips the highest-existing scan and
+ *   forces the first candidate number — the normal caller never sets this (the scan already picks a safe
+ *   starting point); it exists so a test can force a REAL EEXIST collision deterministically (a true
+ *   concurrent race is otherwise the only way to exercise the retry branch below, since the scan makes a
+ *   single-process collision impossible by construction).
+ * @returns {string} the claimed run_id, e.g. "mint-run-007"
+ */
+export function claimRunId(dir, family, opts = {}) {
+  const maxAttempts = opts.maxAttempts ?? 50;
+  const resolved = resolve(dir);
+  const claimsDir = join(resolved, ".claims");
+  mkdirSync(claimsDir, { recursive: true });
+
+  let n = opts.startAt ?? highestClaimedOrWrittenRunNumber(resolved, family) + 1;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const runId = `${family}-run-${String(n).padStart(3, "0")}`;
+    const claimPath = join(claimsDir, `${runId}.json.claim`);
+    try {
+      mkdirSync(claimPath, { recursive: false });
+      return runId; // won the race for this number — mkdir's atomicity is the whole guarantee
+    } catch (err) {
+      if (err.code === "EEXIST") {
+        n += 1; // someone else (or an earlier attempt this call) already holds this number — try the next
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error(
+    `claimRunId: could not claim a run_id for family "${family}" under ${resolved} after ` +
+      `${maxAttempts} attempts — either an unusually high number of concurrent claimants, or a stale ` +
+      `${claimsDir} left over from a previous run (safe to inspect and prune by hand if so).`,
+  );
 }
 
 /**
@@ -326,10 +439,147 @@ function parseArgs(argv) {
   return args;
 }
 
+// ── `list [family]` / `show <family> <run>` — Wave MH-5's bin-guard CLI ─────────────────────────
+//
+// CONVENTION.md's "Reading" section promises "a lightweight CLI ships in the same module ... so a
+// proposer lane (or a human) can survey a family's history without opening every file" — but until
+// this wave, that promise only ever had `--dir <path> --list` (kept below, unchanged, for anyone
+// already scripted against it) with no shorter, family-name-first form and no per-run `show`. These
+// two subcommands are the actual "simple navigability" CONVENTION.md describes:
+//
+//   node scripts/lib/run-artifact.mjs list                    # every family, one summary line each
+//   node scripts/lib/run-artifact.mjs list mint                # one line per mint run (formatRunListing)
+//   node scripts/lib/run-artifact.mjs show mint mint-run-003   # one run's full artifact JSON
+//   node scripts/lib/run-artifact.mjs show mint 3              # same — numeric shorthand accepted
+//
+// Both resolve family directories relative to THIS file's own location (scripts/harness-runs/<family>,
+// a sibling of scripts/lib/), not cwd — so the CLI works the same regardless of where it's invoked
+// from, matching CONVENTION.md's directory layout rather than requiring --dir every time.
+
+const HERE_DIR = (() => {
+  try {
+    return dirname(fileURLToPath(import.meta.url));
+  } catch {
+    return process.cwd(); // import.meta.url can be unavailable in some non-ESM test harnesses; harmless fallback, only used by the CLI's default-root resolution
+  }
+})();
+export const DEFAULT_HARNESS_RUNS_ROOT = resolve(HERE_DIR, "..", "harness-runs");
+
+/**
+ * `list` with no family: one summary line per family directory found under `root` — name, run count,
+ * invalid-file count, and the latest valid run's id/started_at. Pure-ish (filesystem read via
+ * readRunHistory, no writes, never throws — a missing/unreadable root just yields "no families").
+ * Exported so the subcommand's exact output shape is testable without a subprocess.
+ * @param {string} root
+ * @returns {string}
+ */
+export function listFamiliesSummary(root) {
+  let familyNames = [];
+  try {
+    familyNames = readdirSync(root, { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name)
+      .sort();
+  } catch {
+    familyNames = [];
+  }
+  if (familyNames.length === 0) return `(no harness-run families found under ${root})`;
+
+  return familyNames
+    .map((name) => {
+      const { runs, invalid } = readRunHistory(join(root, name));
+      const latest = runs.at(-1);
+      const latestDesc = latest ? `${latest.run_id} (${latest.started_at})` : "(no valid runs)";
+      const invalidNote = invalid.length ? `, ${invalid.length} invalid file(s)` : "";
+      return `${name}: ${runs.length} run(s)${invalidNote} — latest: ${latestDesc}`;
+    })
+    .join("\n");
+}
+
+/**
+ * Accepts either a full run_id ("mint-run-007") or a bare/short number ("7", "007") for `show`'s
+ * second argument, and returns the resolved run_id. Anything else is returned unchanged — `show`'s own
+ * "no such file" handling reports the problem rather than this function guessing further.
+ * @param {string} family
+ * @param {string} runArg
+ * @returns {string}
+ */
+export function resolveRunIdArg(family, runArg) {
+  if (typeof runArg !== "string") return runArg;
+  if (runIdPattern(family).test(runArg)) return runArg;
+  if (/^\d{1,3}$/.test(runArg)) return `${family}-run-${runArg.padStart(3, "0")}`;
+  return runArg;
+}
+
+/**
+ * Read and parse one run artifact file at `path`. Pure filesystem read, throws (never process.exit —
+ * that's the CLI wrapper's job) on a missing file or unparseable JSON, so `show`'s test coverage can
+ * assert on the exact error without spawning a subprocess.
+ * @param {string} path
+ * @returns {object}
+ */
+export function loadRunArtifactJSON(path) {
+  if (!existsSync(path)) {
+    throw new Error(`no such run artifact: ${path}`);
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(readFileSync(path, "utf8"));
+  } catch (err) {
+    throw new Error(`${path} is not valid JSON: ${err.message}`);
+  }
+  return parsed;
+}
+
+function cliList(family) {
+  if (!family) {
+    console.log(listFamiliesSummary(DEFAULT_HARNESS_RUNS_ROOT));
+    return;
+  }
+  const dir = join(DEFAULT_HARNESS_RUNS_ROOT, family);
+  const { runs, invalid } = readRunHistory(dir);
+  console.log(formatRunListing(runs));
+  if (invalid.length) {
+    console.error(`\n${invalid.length} invalid file(s) in ${dir}:`);
+    for (const inv of invalid) console.error(`  ${inv.file}: ${inv.reason}`);
+  }
+}
+
+function cliShow(family, runArg) {
+  if (!family || !runArg) {
+    console.error("Usage: node scripts/lib/run-artifact.mjs show <family> <run>");
+    process.exit(1);
+  }
+  const runId = resolveRunIdArg(family, runArg);
+  const path = join(DEFAULT_HARNESS_RUNS_ROOT, family, `${runId}.json`);
+  try {
+    console.log(JSON.stringify(loadRunArtifactJSON(path), null, 2));
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
+}
+
 function main() {
-  const args = parseArgs(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+
+  if (argv[0] === "list") {
+    cliList(argv[1] ?? null);
+    return;
+  }
+  if (argv[0] === "show") {
+    cliShow(argv[1], argv[2]);
+    return;
+  }
+
+  // Legacy form, kept working unchanged: --dir <path> --list.
+  const args = parseArgs(argv);
   if (!args.dir) {
-    console.error("Usage: node scripts/lib/run-artifact.mjs --dir path/to/harness-runs/<family> --list");
+    console.error(
+      "Usage: node scripts/lib/run-artifact.mjs list [family]\n" +
+        "       node scripts/lib/run-artifact.mjs show <family> <run>\n" +
+        "       node scripts/lib/run-artifact.mjs --dir path/to/harness-runs/<family> --list",
+    );
     process.exit(1);
   }
   const { runs, invalid } = readRunHistory(args.dir);

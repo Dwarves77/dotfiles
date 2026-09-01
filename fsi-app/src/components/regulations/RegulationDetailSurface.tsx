@@ -39,6 +39,7 @@ import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { OwnerTeamCard } from "@/components/regulations/OwnerTeamCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadge } from "@/components/shell/RelevanceBadge";
+import { RecordGradeBadge } from "@/components/shell/RecordGradeBadge";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import { scoreResource, matchResourceSector } from "@/lib/scoring";
 import {
@@ -116,6 +117,13 @@ interface Props {
    *  assignee, read server-side. Null = unassigned (or roster/read failure —
    *  the picker still assigns). */
   initialOwner?: { userId: string; name: string } | null;
+  /** Lane SURF (2026-09-01): the customer-facing "Upcoming" obligations section for THIS item
+   *  (item_forward_events), rendered by the async server component UpcomingObligationsStrip
+   *  (variant="detail"). Passed down as a pre-rendered node from the server-component page rather than
+   *  imported/rendered directly here — this file is "use client", and a Client Component cannot render
+   *  an async Server Component itself; the page composes it. Undefined/null when the item has no
+   *  upcoming events (honest omission). */
+  upcomingObligations?: React.ReactNode;
 }
 
 type TabKey = "summary" | "exposure" | "calculator" | "timeline" | "sources";
@@ -164,6 +172,7 @@ export function RegulationDetailSurface({
   groupLabel,
   deck,
   initialOwner = null,
+  upcomingObligations = null,
 }: Props) {
   const [tab, setTab] = useState<TabKey>("summary");
 
@@ -272,6 +281,7 @@ export function RegulationDetailSurface({
                 {typeof r.sourceTier === "number" && (
                   <TierBadge tier={r.sourceTier} />
                 )}
+                <RecordGradeBadge itemGrade={r.itemGrade} />
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 {(r.fullBrief || r.url) && (
@@ -370,6 +380,11 @@ export function RegulationDetailSurface({
           <RelevanceBadge relevance={relevance} />
           <AffectedLanesCard resource={r} />
           <OwnerTeamCard resource={r} initialOwner={initialOwner} />
+          {/* Lane SURF (2026-09-01): customer-facing "Upcoming" obligations for this item
+              (item_forward_events) — mounted near the connections card per this lane's write-set
+              instruction, never in the header. Pre-rendered server-side by the page (see
+              upcomingObligations prop doc above); renders nothing when the item has none. */}
+          {upcomingObligations}
           <ItemConnectionsCard
             connections={connections}
             supersessions={supersessions}

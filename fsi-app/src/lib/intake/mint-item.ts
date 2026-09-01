@@ -13,24 +13,19 @@
 // PRECOMPUTE the inputs (verdict, item_type, source-role, relevance).
 //
 // MOAT BOUNDARY: this writes intelligence_items (the mint — the ONE sanctioned INSERT site, enforced by
-// the single-mint-chokepoint fitness function), item_cross_references (link edges), and integrity_flags
-// (surfacing). It NEVER writes section_claim_provenance — extraction/links never ground reg facts.
+// the single-mint-chokepoint fitness function), item_cross_references (link edges), integrity_flags
+// (surfacing), and — contract rule 16 (2026-09-01, "the forward-participation clause") —
+// item_forward_events (dated obligations extracted from this item's already-grounded content, see the
+// post-insert block below). It NEVER writes section_claim_provenance — extraction/links never ground reg
+// facts; it only READS that table (and intelligence_item_sections) to feed the forward-events extractor.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { congruence, sourceRole } from "@/lib/entities/source-role.mjs";
 import { matchExistingSubject } from "@/lib/entities/entity-resolve.mjs";
 import { domainForItemType, type Domain } from "@/lib/domains";
 import { canonicalizeUrl } from "@/lib/sources/url-canonicalize";
-import { discoverConnections, computeTagFrequencies } from "@/lib/connections/discover.mjs";
-import { writeDiscoveredEdges } from "@/lib/connections/write-edges.mjs";
-import { surfaceOf } from "@/lib/surface-of.mjs";
-
-// Connection-signature column list — SAME set backfill-edges.mjs (Pillar A2) selects, so the mint-time
-// scan and the cold-start/repair scan can never diverge on what counts as "provenance." One home for
-// the column list would need a shared corpus-query module; duplicating this const (not the scoring
-// logic — that already has one home in discover.mjs) is the accepted seam until a query-layer refactor
-// gives corpus loads their own module.
-const CONNECTION_SIGNATURE_COLUMNS =
-  "id, item_type, canonical_instrument_key, source_id, operational_scenario_tags, compliance_object_tags, jurisdictions, jurisdiction_iso, topic_tags";
+import { runConnectionDiscovery } from "@/lib/connections/run-discovery.mjs";
+import { readAndExtractForwardEvents } from "@/lib/forward-events/read-and-extract.mjs";
+import { recordFlywheelDefect } from "@/lib/intake/flywheel-defect";
 
 // UNCONDITIONAL item types — their surface domain is fully determined by item_type alone
 // (domainForItemType returns the same value regardless of source.category). For these the
@@ -70,6 +65,19 @@ export interface MintPlan {
   relevance?: number | null;
   /** Where the mint originates (audit only). */
   origin: "first_fetch" | "staged_materialization";
+  /**
+   * Item tier (Lane POP, 2026-09-01; migration 278 `intelligence_items.item_grade`). Omitted or
+   * "brief" (the default) mints the historical synthesized-brief item, unchanged. "record" mints a
+   * RECORD-GRADE item — identity + dates + a short description made ONLY of verbatim FACT/GAP spans
+   * (no synthesis) — by stamping `seed.item_grade = "record"` before the single INSERT below. This is
+   * a LABEL, not a second gate: a record-grade seed must independently satisfy the exact same
+   * validate_item_provenance C1-C7 criteria a brief-grade seed does (see
+   * scripts/mint/validate-mint-payload.mjs's grade discriminator, same commit, for how a record
+   * payload is built to clear them). Rule 16 (discovery + forward-event extraction, below) runs
+   * post-insert unconditionally on every successful mint, unaffected by grade — verified by inspection:
+   * neither block below reads `seed.item_grade` or `plan.grade`.
+   */
+  grade?: "record" | "brief";
 }
 
 export type MintAction = "minted" | "retyped" | "linked" | "exists" | "duplicate" | "unsourced";
@@ -111,6 +119,10 @@ export interface MintResult {
   dryRun?: boolean;
 }
 
+// Rule 16(d)'s recordFlywheelDefect moved to src/lib/intake/flywheel-defect.ts (lane FIX, 2026-09-01,
+// imported above) — apply-staged-update.ts's substantive-update path needs the identical shape, so this
+// is now the ONE shared home rather than a second hand-copied definition living only in this file.
+
 interface SubjectMatch { id: string; how: string }
 
 /**
@@ -127,6 +139,12 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
   const seed: Record<string, unknown> = { ...plan.seed };
   const sourceUrl = String(seed.source_url ?? "");
   const itemType = (seed.item_type as string | undefined) ?? undefined;
+
+  // Lane POP (2026-09-01, migration 278): stamp the item tier. A caller-preset seed.item_grade (a
+  // record payload applied through this chokepoint would already carry `item.grade` from
+  // buildRecordPayload) is trusted as-is; plan.grade is the fallback for a caller that supplies grade
+  // out-of-band from its seed object. Default "brief" — every pre-existing caller is unaffected.
+  if (seed.item_grade == null) seed.item_grade = plan.grade ?? "brief";
 
   // ── Idempotency short-circuits: return an existing row, never an INSERT ──────────────────────────
   // FAIL-CLOSED (C4, 2026-07-11): a READ ERROR during a duplicate-probe must NEVER proceed to mint —
@@ -259,29 +277,19 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
       )
       .then(() => {}, () => {});
   }
-  // ── U4: L1 incremental connection discovery at mint (flywheel, closes the growth loop) ────────────
-  // Reuses discover.mjs's scoring (proven by the backfill, A2) and write-edges.mjs's origin-aware writer
-  // (never clobbers an entity_extraction/agent_semantic edge) — no new logic, no new write path. Runs
-  // ONCE per mint, bounded to 12 edges (discoverConnections' default limit); piggybacks this call's own
-  // clock, so it adds no resident process and no new schedule (Execution model: operator-cadence,
-  // default off). Non-fatal by construction (try/catch): a discovery failure must never fail a mint —
-  // the standalone backfill remains the cold-start/repair path if this ever misses or errors.
+  // ── U4 / rule 16(a): L1 incremental connection discovery at mint (flywheel, closes the growth loop) ──
+  // Reuses run-discovery.mjs's shared driver (discover.mjs's scoring, proven by the backfill A2, plus
+  // write-edges.mjs's origin-aware writer — never clobbers an entity_extraction/agent_semantic edge) — no
+  // new logic, no new write path, and (2026-09-01) no second hand-copied corpus-load loop: this same
+  // driver is apply-staged-update.ts's rule-16(a) call for the SUBSTANTIVE-UPDATE path too. Runs ONCE per
+  // mint, bounded to 12 edges (discoverConnections' default limit); piggybacks this call's own clock, so
+  // it adds no resident process and no new schedule (Execution model: operator-cadence, default off).
+  // Non-fatal by construction (try/catch): a discovery failure must never fail a mint — the standalone
+  // backfill remains the cold-start/repair path if this ever misses or errors. Rule 16(d): a failure here
+  // is RECORDED as an integrity_flags defect (recordFlywheelDefect above) — never a silent skip, which is
+  // the class fix for this block's pre-rule-16 posture (an empty catch).
   // MOAT BOUNDARY: writes ONLY item_cross_references, same table the dedup:linked edge above touches.
   try {
-    const corpus: Array<Record<string, unknown>> = [];
-    for (let from = 0; ; from += 1000) {
-      const { data: sigRows, error: sigErr } = await sb
-        .from("intelligence_items")
-        .select(CONNECTION_SIGNATURE_COLUMNS)
-        .eq("provenance_status", "verified")
-        .eq("is_archived", false)
-        .neq("id", itemId)
-        .order("id", { ascending: true })
-        .range(from, from + 999);
-      if (sigErr) throw new Error(sigErr.message);
-      corpus.push(...(sigRows ?? []));
-      if (!sigRows || sigRows.length < 1000) break;
-    }
     const newItemSignature = {
       id: itemId,
       item_type: seed.item_type,
@@ -293,25 +301,44 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
       jurisdiction_iso: seed.jurisdiction_iso,
       topic_tags: seed.topic_tags,
     };
-    // ADR-019: frequency map from this same already-loaded corpus — no new query, same discipline as
-    // backfill-edges.mjs (the two callers must never diverge on what "shared provenance" weighs).
-    const freqMap = computeTagFrequencies(corpus);
-    const conns = discoverConnections(newItemSignature, corpus, { surfaceOf: (t: string) => surfaceOf(t), freqMap });
-    if (conns.length) {
-      const edges = conns.map((c: { target: string; basis: unknown; score: number }) => ({
-        source_item_id: itemId,
-        target_item_id: c.target,
-        relationship: "related",
-        origin: "provenance_discovery",
-        basis: c.basis,
-        score: c.score,
-      }));
-      await writeDiscoveredEdges(sb, edges);
-      flags.push(`discovery:${edges.length}`);
-    }
-  } catch {
+    const written = await runConnectionDiscovery(sb, itemId, newItemSignature);
+    if (written > 0) flags.push(`discovery:${written}`);
+  } catch (e: unknown) {
     // non-fatal — same swallow-and-continue posture as seekStudy/lowRelevance below (their
-    // .then(() => {}, () => {})); a discovery-scan failure must never surface as a mint failure.
+    // .then(() => {}, () => {})); a discovery-scan failure must never surface as a mint failure. Rule
+    // 16(d): record it, do not just swallow it.
+    await recordFlywheelDefect(sb, itemId, "discovery", e instanceof Error ? e.message : String(e));
+    flags.push("discovery-failed");
+  }
+
+  // ── rule 16(b): forward-event extraction at mint time (flywheel, "the forward-participation clause") ─
+  // Reads back this item's already-grounded content — section_claim_provenance (FACT/GAP claims) and
+  // intelligence_item_sections (rendered section markdown) — via read-and-extract.mjs's shared driver,
+  // which runs the SAME pure extractor the forward-events harness family uses
+  // (src/lib/forward-events/extract-forward-events.mjs), so there is exactly one extraction
+  // implementation and (2026-09-01) exactly one read-and-map driver — apply-staged-update.ts's rule-16(b)
+  // call for the SUBSTANTIVE-UPDATE path reuses this same module. A brand-new mint typically has ZERO
+  // rows in either table yet (grounding/section-extraction is a later regeneration pass — this file's own
+  // header: "NEVER writes section_claim_provenance"), so extraction usually runs over empty input and
+  // emits nothing; that is a correct, honest zero, not a skip. Non-fatal by construction: an extraction
+  // failure must never fail a mint. Rule 16(d): a failure here is a RECORDED integrity_flags defect, same
+  // posture and same helper as the discovery block above.
+  // MOAT BOUNDARY: writes ONLY item_forward_events, a table nothing else in this chokepoint touches. A
+  // plain INSERT (no upsert/onConflict) is correct and safe here: itemId is a row this call itself just
+  // minted, so no item_forward_events row for it can already exist — there is nothing to conflict with
+  // (contrast apply-staged-update.ts's update_item path, which re-extracts against an item that may
+  // already carry rows and so must dedupe against the migration-275 key instead of a plain insert).
+  try {
+    const { events } = await readAndExtractForwardEvents(sb, itemId);
+    if (events.length) {
+      const rows = events.map((ev: object) => ({ intelligence_item_id: itemId, ...(ev as Record<string, unknown>) }));
+      const { error: fwdErr } = await sb.from("item_forward_events").insert(rows);
+      if (fwdErr) throw new Error(`item_forward_events insert failed: ${fwdErr.message}`);
+      flags.push(`forward-events:${events.length}`);
+    }
+  } catch (e: unknown) {
+    await recordFlywheelDefect(sb, itemId, "forward-events", e instanceof Error ? e.message : String(e));
+    flags.push("forward-events-failed");
   }
 
   if (seekStudy) {

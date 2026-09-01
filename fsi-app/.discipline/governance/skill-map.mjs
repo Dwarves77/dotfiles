@@ -31,6 +31,9 @@ export const GOVERNED = [
       'fsi-app/src/lib/intake/',
       // 4c relabel executor (claim-label domain) — live script, referenced by run-4c-relabel.mjs.
       'fsi-app/scripts/apply-4c-plan.mjs',
+      // corpus-turn / source-sweep drivers (lane RT, 2026-09-01): census ledger + forward-event applies
+      // run through the same intake domain this skill governs.
+      'fsi-app/scripts/turns/',
     ],
     // row mutations on the intelligence taxonomy (item_type / provenance / classification)
     ops: [/intelligence_items/i, /\bitem_type\b/i, /\bprovenance_status\b/i],

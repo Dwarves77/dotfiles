@@ -43,6 +43,9 @@ fsi-app/scripts/harness-runs/
   forward-events/
     forward-events-run-001.json
     ...
+  source-sweep/
+    source-sweep-run-001.json
+    ...
 ```
 
 One directory per harness family. Five exist today: `mint`, `screen`, and `fetch-drain` — matching the
@@ -51,10 +54,18 @@ three iterated harnesses in `fsi-app/scripts/mint/`, `fsi-app/scripts/mint/scree
 "self-application"): the meta-harness layer's own family, whose "runs" are the waves that build or extend
 this substrate (this file, `PROPOSER-RUNBOOK.md`, `run-artifact.mjs`, `F28`) rather than a mint batch, a
 screen round, or a fetch-drain lane — plus `forward-events`, registered over
-`scripts/forward-events/extract-forward-events.mjs`: a family whose "runs" are neither a mint batch, a
+`src/lib/forward-events/extract-forward-events.mjs` (moved there from `scripts/forward-events/` in lane
+FIX, 2026-09-01, once the intake mint chokepoint needed to import it as a runtime `src/lib` module): a
+family whose "runs" are neither a mint batch, a
 screen round, a fetch-drain lane, nor a meta-harness wave, but a fifth shape of its own — one extraction
 pass over a defined corpus slice, pulling forward-looking-obligation events (a date, a kind, a source
-span) out of source text; never a mint (nothing is minted) and never a fetch (nothing is fetched).
+span) out of source text; never a mint (nothing is minted) and never a fetch (nothing is fetched) — plus
+`source-sweep` (RT lane, 2026-09-01), registered over `scripts/turns/run-source-sweep.mjs` and the two
+dormant, pure, dep-injected enumeration modules it gives a runtime to for the first time,
+`src/lib/sources/register-walk.mjs` (the date-paged EUR-Lex OJ / Federal Register index walk) and
+`src/lib/sources/feed-walk.mjs` (the RSS/Atom feed walk): a sixth shape again, whose "runs" are
+enumeration passes over a source's index/feed for a date range, writing discovered candidate URLs to the
+`portal_link_candidates` ledger (never a mint, never an extraction, never a fetch-drain replay).
 `meta-harness-run-001` through `-003` retrofit MH-1, MH-2, and MH-3
 respectively — the same real-evidence retrofit discipline this file's own "screen-v1 loss" section
 applies to the three original families, applied one layer up, to the harness that builds harnesses. A new
@@ -86,6 +97,14 @@ as in-scope), the fraction with at least one extracted event. Precision without 
 harness that only ever finds the easy events; coverage without precision would hide one that emits noise
 to inflate its hit rate — the two are reported together for exactly that reason, the same pairing
 `screen`'s ambiguous rate and operator-overturn rate serve for that family.
+
+**source-sweep's standing metric** (build plan §2's "measurement, not assertion," per family): *candidates
+discovered per walk*, broken down by walker (`register-eurlex` days, `register-federal-register` pages,
+`feed` entries) and by disposition (`upserted` vs `failed` in the ledger write) — the enumeration-family
+counterpart to `fetch-drain`'s capture-success-rate-per-attempt-class. A dry run's plan and an apply run's
+actual ledger write are reported as the same shape (`persist`'s injected counting in dry mode vs its real
+upsert in apply mode — see `run-source-sweep.mjs`'s own header), so the two are directly comparable run
+over run.
 
 **A named risk of self-application** (surfaced by meta-harness's own first proposer pass, Wave MH-4):
 `meta-harness`'s governing files ARE this file and `PROPOSER-RUNBOOK.md` — the two documents every wave
@@ -235,11 +254,12 @@ and prefixed `sha256:`. Each family's harness files:
 
 | Family | Hashed files |
 |---|---|
-| `mint` | `scripts/mint/MINT-RUNBOOK.md`, `validate-mint-payload.mjs`, `payload-schema.json`, `item-type-required-slots.json`, `lib/gate-a-scan.mjs`, `lib/gate-a-match.mjs`, `lib/canonicalize-citation-url.mjs` |
+| `mint` | `scripts/mint/MINT-RUNBOOK.md`, `validate-mint-payload.mjs`, `payload-schema.json`, `item-type-required-slots.json`, `lib/gate-a-scan.mjs`, `lib/gate-a-match.mjs`, `lib/canonicalize-citation-url.mjs`, `../../src/lib/intake/record-facts.mjs` |
 | `screen` | `scripts/mint/screen-rules.mjs`, `screen-worklist.mjs` |
 | `fetch-drain` | `supabase/functions/capture-worker/index.ts` |
 | `meta-harness` | `scripts/harness-runs/CONVENTION.md`, `PROPOSER-RUNBOOK.md`, `../lib/run-artifact.mjs`, `../../.discipline/fitness/functions/F28-harness-run-integrity.mjs` |
-| `forward-events` | `scripts/forward-events/extract-forward-events.mjs`, `../harness-runs/forward-events/PROTOCOL.md` |
+| `forward-events` | `src/lib/forward-events/extract-forward-events.mjs`, `../../../scripts/harness-runs/forward-events/PROTOCOL.md` |
+| `source-sweep` | `scripts/turns/run-source-sweep.mjs`, `../../src/lib/sources/register-walk.mjs`, `../../src/lib/sources/feed-walk.mjs` |
 
 A harness-family README or runbook edit that doesn't touch the files above does not change
 `harness_version` — the hash tracks *behavior-bearing* files, not documentation. If a family's file list

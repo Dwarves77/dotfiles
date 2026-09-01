@@ -16,4 +16,14 @@
 // related_items may now be drawn from that block (in addition to the source pool), never invented
 // beyond either. Both homes (this constant + system-prompt.ts's two YAML stamps) advance together —
 // contract-version.test.mjs is the drift guard.
-export const CURRENT_SKILL_CONTRACT_VERSION = "2026-08-31";
+// 2026-09-01 (lane fw2-contract, forward-participation clause): added rule 16 to "The 16 Rules for
+// All Output" — on every mint or substantive update the pipeline must (a) run connection discovery
+// (discoverConnections/writeDiscoveredEdges, src/lib/connections/discover.mjs +
+// src/lib/connections/write-edges.mjs) against item_cross_references, (b) extract forward events
+// via extractForwardEvents (src/lib/forward-events/extract-forward-events.mjs — moved from
+// scripts/forward-events/ by lane FIX the same day, so the runtime mint chokepoint that now actually
+// calls it, per this clause, never has src/ importing scripts/) into item_forward_events, (c) surface
+// anticipated obligations to the operator through integrity_flags rather than acting on them
+// autonomously, and (d) record a failure of (a) or (b) as an integrity_flags defect, never a silent
+// skip. Both homes advance together — contract-version.test.mjs is the drift guard.
+export const CURRENT_SKILL_CONTRACT_VERSION = "2026-09-01";

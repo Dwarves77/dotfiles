@@ -13,6 +13,13 @@
 //       whose only file fails (a) is functionally historyless, so (b) requires a file that also passed
 //       (a). A family with zero artifacts is reported ONCE, by (b); rule (c) below deliberately does not
 //       also fire for it (see the narrowing note there) — one problem, one message.
+//       FIRST-RUN ACKNOWLEDGMENT (2026-09-01, source-sweep registration): a family registered BEFORE its
+//       first run can exist honestly only if it says so in a hash-pinned way. So (b) accepts, for a
+//       zero-artifact family, a PENDING-RUN.md whose recorded "harness_version at write time" equals the
+//       CURRENT governing hash — the same marker and the same reverse-audit rule (c) uses. A marker whose
+//       hash no longer matches (the family's code drifted before its first run) does NOT satisfy (b):
+//       the tree must either re-pin the marker or land the run. This is not an escape hatch: the moment
+//       the first artifact lands, (c)'s reverse-audit demands the marker's deletion.
 //   (c) STALENESS COUPLING — "the harness changed without a run recording why." For each family with
 //       ≥1 valid artifact, re-hash CONVENTION.md's governing-file table (GOVERNING_FILES below) against
 //       the CURRENT tree. If that hash does not match ANY of the family's valid artifacts' recorded
@@ -102,6 +109,7 @@ export const GOVERNING_FILES = Object.freeze({
     'scripts/mint/lib/gate-a-scan.mjs',
     'scripts/mint/lib/gate-a-match.mjs',
     'scripts/mint/lib/canonicalize-citation-url.mjs',
+    'src/lib/intake/record-facts.mjs', // record-grade payload builder (lane POP, 2026-09-01)
   ]),
   screen: Object.freeze(SCREEN_GOVERNING_FILES),
   'fetch-drain': Object.freeze(['supabase/functions/capture-worker/index.ts']),
@@ -121,9 +129,29 @@ export const GOVERNING_FILES = Object.freeze({
   // family with zero valid artifacts (see auditStalenessCoupling), so this family's hash is never
   // actually computed until it has ≥1 valid artifact, which the coordinator lands in the same commit as
   // these two files.
+  // Moved to src/lib/forward-events/ (lane FIX, 2026-09-01): the intake mint chokepoint (a runtime
+  // src/lib module, contract rule 16) now calls this extractor, and no runtime src/ file imports from
+  // scripts/ anywhere in this repo — see the extractor's own header for the full layering argument.
+  // Content unchanged by the move; run-extraction.mjs's FORWARD_EVENTS_GOVERNING_FILES and this entry
+  // stay identical by the cross-check in run-extraction.test.mjs.
   'forward-events': Object.freeze([
-    'scripts/forward-events/extract-forward-events.mjs',
+    'src/lib/forward-events/extract-forward-events.mjs',
     'scripts/harness-runs/forward-events/PROTOCOL.md',
+  ]),
+  // source-sweep (registered by lane RT, 2026-09-01, harness+flywheel completion train): the runtime
+  // scripts/connections/*.mjs and scripts/mint|forward-events/run-*.mjs already had for their own
+  // families, extended to src/lib/sources/register-walk.mjs and feed-walk.mjs — two dormant, pure,
+  // dep-injected enumeration modules that had no caller anywhere in the repo before
+  // scripts/turns/run-source-sweep.mjs gave them one. Governing files are the driver plus both walker
+  // modules (the driver's own header names why persistPortalCandidates is mirrored, not imported, as
+  // the walkers' persist injection). Zero valid artifacts exist yet — this lane has neither DB nor
+  // network access to run it for real — so it carries scripts/harness-runs/source-sweep/PENDING-RUN.md
+  // as its hash-pinned FIRST-RUN ACKNOWLEDGMENT (rule (b), see the header): registered, first run
+  // pending, discharged by the source-sweep workflow's first source-sweep-run-001.json.
+  'source-sweep': Object.freeze([
+    'scripts/turns/run-source-sweep.mjs',
+    'src/lib/sources/register-walk.mjs',
+    'src/lib/sources/feed-walk.mjs',
   ]),
 });
 
@@ -184,10 +212,11 @@ export function auditSchema(byFamily) {
 }
 
 /** Rule (b): every family in ALLOWED_FAMILIES has ≥1 VALID artifact. */
-export function auditFamilyPresence(families, byFamily) {
+export function auditFamilyPresence(families, byFamily, acknowledged = new Set()) {
   const problems = [];
   for (const family of families) {
     const validCount = byFamily.get(family)?.valid.length ?? 0;
+    if (validCount === 0 && acknowledged.has(family)) continue; // hash-pinned first-run acknowledgment
     if (validCount === 0) {
       problems.push(
         `NO ARTIFACTS — harness family "${family}" (${HARNESS_RUNS_REL}/${family}/) has zero VALID run ` +
@@ -274,6 +303,39 @@ function readIfExists(path) {
   return existsSync(path) ? readFileSync(path, 'utf8') : null;
 }
 
+/**
+ * Hash one family's GOVERNING_FILES, converting a missing file into a NAMED fitness failure instead of
+ * letting hashHarnessVersion's raw ENOENT (it does a plain readFileSync per listed file, by design — see
+ * its own doc comment in scripts/lib/run-artifact.mjs) escape check() as an unhandled throw. Before this,
+ * a single missing governing file (a typo'd path in GOVERNING_FILES, a file renamed without updating this
+ * table, or — per the forward-events GOVERNING_FILES comment above — a family whose governing files a
+ * DIFFERENT lane is still expected to land) would abort check() for EVERY family and EVERY other rule in
+ * the same pass with an opaque Node stack trace, not a fitness-function violation a coordinator can act
+ * on. Only ENOENT is translated here — any other hashHarnessVersion failure still propagates unchanged,
+ * since silently swallowing those would hide a genuine bug in F28 itself rather than report the
+ * legitimate "this family's governing file set doesn't match the tree yet" state this exists to name.
+ * Returns { hash: string|null, problems: string[] } — `hash` is null exactly when `problems` is non-empty.
+ * Exported so this ENOENT-to-named-failure conversion is unit-testable without a full repo-root check().
+ */
+export function safeHashGoverningFiles(family, governing, baseDir) {
+  try {
+    return { hash: hashHarnessVersion(governing, baseDir), problems: [] };
+  } catch (err) {
+    if (err && err.code === 'ENOENT') {
+      return {
+        hash: null,
+        problems: [
+          `MISSING GOVERNING FILE — harness family "${family}"'s entry in F28's GOVERNING_FILES names a ` +
+            `file that does not exist on the current tree (${err.message}). Land the missing file, or ` +
+            `if it was intentionally renamed/removed, correct GOVERNING_FILES.${family} in ` +
+            `F28-harness-run-integrity.mjs AND CONVENTION.md's harness_version table in the same commit.`,
+        ],
+      };
+    }
+    throw err;
+  }
+}
+
 export const fitnessFunction = {
   id: 'F28',
   name: 'harness-run-integrity',
@@ -319,7 +381,18 @@ export const fitnessFunction = {
       }
     }
 
-    problems.push(...auditFamilyPresence(ALLOWED_FAMILIES, byFamily));
+    // Rule (b) first-run acknowledgment: a zero-artifact family whose PENDING-RUN.md pins the CURRENT
+    // governing hash is registered-and-pending, not historyless (see header).
+    const acknowledged = new Set();
+    for (const family of ALLOWED_FAMILIES) {
+      if ((byFamily.get(family)?.valid.length ?? 0) > 0) continue;
+      const governing = GOVERNING_FILES[family];
+      if (!governing) continue;
+      const { hash } = safeHashGoverningFiles(family, governing, join(root, 'fsi-app'));
+      const pendingHash = parsePendingRunHash(readIfExists(join(root, HARNESS_RUNS_REL, family, PENDING_RUN_FILE)));
+      if (hash && pendingHash && hash === pendingHash) acknowledged.add(family);
+    }
+    problems.push(...auditFamilyPresence(ALLOWED_FAMILIES, byFamily, acknowledged));
 
     for (const family of ALLOWED_FAMILIES) {
       const validArtifacts = byFamily.get(family)?.valid ?? [];
@@ -327,7 +400,15 @@ export const fitnessFunction = {
       if (!governing) continue; // defensive; ALLOWED_FAMILIES and GOVERNING_FILES are kept 1:1 by test
       if (validArtifacts.length === 0) continue; // rule (b) already reported; see "KEEP IT HONEST" above
 
-      const currentHash = hashHarnessVersion(governing, join(root, 'fsi-app'));
+      const { hash: currentHash, problems: hashProblems } = safeHashGoverningFiles(
+        family,
+        governing,
+        join(root, 'fsi-app'),
+      );
+      if (hashProblems.length) {
+        problems.push(...hashProblems);
+        continue; // no hash to couple staleness/proposer-attestation checks against for this family this pass
+      }
       const pendingPath = join(root, HARNESS_RUNS_REL, family, PENDING_RUN_FILE);
       const pendingContent = readIfExists(pendingPath);
       const pending = { exists: pendingContent != null, hash: parsePendingRunHash(pendingContent) };

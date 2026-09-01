@@ -157,18 +157,22 @@ three families must complete before that family's next run. Concretely, per plan
   forward, plus `F28` to fail CI when a family's code changed without one.
 
   **Known residual, named honestly** (surfaced by meta-harness's own Wave MH-4 proposer pass — see
-  `scripts/harness-runs/meta-harness/LAST-PROPOSER-PASS.md`): "forgetting is not possible" is true for
-  `screen` (emission is CODE, inside `screen-worklist.mjs`'s own `main()`) but not yet true for `mint`
-  or `fetch-drain`, where emission is PROSE (a mandatory runbook step; a protocol doc) — a lane can
-  still run a full batch, author payloads, and report results without ever calling `writeRunArtifact`.
+  `scripts/harness-runs/meta-harness/LAST-PROPOSER-PASS.md`; updated 2026-09-01 as `mint` and
+  `forward-events` closed theirs): "forgetting is not possible" is now true for `screen` (emission is
+  CODE, inside `screen-worklist.mjs`'s own `main()`), `mint` (emission is CODE, inside
+  `scripts/mint/run-mint-batch.mjs`'s `main()`), and `forward-events` (emission is CODE, inside
+  `scripts/forward-events/run-extraction.mjs`'s `main()`) — each calls `writeRunArtifact` from its own
+  `finally` block so a thrown error partway through a run cannot silently skip it. It is not yet true
+  for `fetch-drain`, where emission is still PROSE (a mandatory protocol-doc step) — a lane can still
+  run a full drain, author payloads, and report results without ever calling `writeRunArtifact`.
   `F28` rule (c) does not catch this: it re-hashes each family's GOVERNING FILES against recorded
   `harness_version`s, which detects "the harness's CODE changed without a run," not "a BATCH happened
   without a run" — a batch that touches only payload/queue data outside the governing-file set, with
   the harness's own code untouched, is invisible to rule (c) by construction. Rule (b) (census) only
   catches a family with ZERO artifacts ever, not a family that under-reports some of its runs once it
-  already has one. Closing this for `mint` and `fetch-drain` is code-level work (giving each family a
-  canonical entry point the way `screen-worklist.mjs` is one) — out of scope for a documentation-only
-  wave; see the proposer pass's ranked hypotheses for what that would take.
+  already has one. Closing this for `fetch-drain` is code-level work (giving it a canonical entry point
+  the way `screen-worklist.mjs`, `run-mint-batch.mjs`, and `run-extraction.mjs` are one) — out of scope
+  for a documentation-only wave; see the proposer pass's ranked hypotheses for what that would take.
 - MH-3 is the first live proof this loop improves the system: a proposer pass over the mint family
   (reading `mint-run-001.json` exactly as this runbook prescribes) implementing its top proposals
   through the family's own gates, measured back into a new mint run artifact.
@@ -222,3 +226,83 @@ meta-layer's own three-run history as a proposer would. See `meta-harness/LAST-P
 attestation; only its documentation-level proposals are implemented this wave, per the build plan's own
 $0/no-scope-creep discipline — code-level proposals are explicitly next-cycle, through the family's own
 gates, like any other proposal in this runbook.
+
+## 7. Corpus outcomes (Interface-3 metrics, Wave MH-5)
+
+MINT-RUNBOOK.md §8-9 describes the mint family's post-apply flywheel (discovery, forward-event
+extraction, recluster) and a `run-mint-batch.mjs --outcomes` enrichment step that feeds the flywheel's
+results back into a mint run artifact's `metrics` block: `edges_discovered`, `forward_events_extracted`,
+`isolated_items`. This section is where a proposer pass (or whoever runs the coordinator's own apply
+turn) computes those numbers — the standard query, not a fresh derivation every time.
+
+**Scope note, read before running this:** neither `intelligence_items` nor `item_cross_references`
+carries a column naming which mint batch (or which `mint-run-NNN`) an item or edge came from — confirmed
+by reading `supabase/migrations/004_source_trust_framework.sql`'s `CREATE TABLE intelligence_items` /
+`CREATE TABLE item_cross_references` and every later migration that touches either table
+(`146_item_xref_origin_and_related_derive.sql` adds `origin`; `252_connection_discovery_basis_and_origin.sql`
+adds `basis`/`score` — neither adds a batch/run identifier). **TO-VERIFY**: whether a later migration this
+lane did not see adds one; if so, replace the `recent_items` CTE below with a direct filter on that
+column instead of the recency proxy. Absent that, the query below scopes "recently minted" two ways —
+pick whichever the coordinator turn actually has on hand:
+
+```sql
+-- Option A: by explicit id list (preferred whenever the coordinator's apply step still has the batch's
+-- own item ids in hand, e.g. from run-mint-batch.mjs's apply-ready.json) — no ambiguity, no time-window
+-- edge cases.
+WITH recent_items AS (
+  SELECT id FROM intelligence_items WHERE id = ANY($1::uuid[])  -- bind: this batch's minted item ids
+),
+
+-- Option B (fallback, only when the id list is not available): by recency. created_at is a real,
+-- confirmed column (migration 004); the interval below is illustrative — set it to bracket the actual
+-- apply turn, not left at a default that silently drifts wider than intended.
+-- WITH recent_items AS (
+--   SELECT id FROM intelligence_items WHERE created_at >= now() - interval '1 day'
+-- ),
+
+edge_counts AS (
+  -- item_cross_references is bidirectional (migration 004's own table comment: "Bidirectional links
+  -- between intelligence items") — an item can appear as either source_item_id or target_item_id, so
+  -- both are checked. Each row counts once per endpoint it touches, which is the correct denominator
+  -- for a per-item "how many edges does THIS item have" count; see the total_edges caveat below for the
+  -- one place that matters.
+  SELECT
+    ri.id AS item_id,
+    count(x.id) AS edge_count
+  FROM recent_items ri
+  LEFT JOIN item_cross_references x
+    ON x.source_item_id = ri.id OR x.target_item_id = ri.id
+  GROUP BY ri.id
+)
+SELECT
+  count(*)                                                       AS items_checked,
+  sum(edge_count)                                                AS total_edge_endpoints,
+  -- ^ NOT the same as "distinct edges among this batch" when two items from the SAME batch are
+  --   connected to each other — that one edge contributes to both items' edge_count and is summed
+  --   twice here. Fine for edges_per_item (each item's own count is correct); do not report
+  --   total_edge_endpoints as "edges_discovered" without deduplicating same-batch-internal edges first
+  --   if that distinction matters for a given run.
+  round(avg(edge_count), 3)                                      AS edges_per_item,
+  count(*) FILTER (WHERE edge_count = 0)                         AS isolated_items,
+  round(
+    count(*) FILTER (WHERE edge_count = 0)::numeric / NULLIF(count(*), 0),
+    4
+  )                                                               AS isolation_rate
+FROM edge_counts;
+```
+
+**Mapping onto `run-mint-batch.mjs --outcomes`'s three metric keys:**
+
+- `isolated_items` — the query's `isolated_items` column, directly. This is the metric MINT-RUNBOOK.md §9
+  names most precisely (count of items minted in this batch with zero `item_cross_references` rows after
+  discovery has run).
+- `edges_discovered` — **TO-VERIFY**: whether the coordinator wants "every edge touching a batch item"
+  (`sum(edge_count)`, with the same-batch-internal double-count caveat above) or specifically "edges
+  created BY the discovery pass this turn" (`item_cross_references.origin = 'provenance_discovery'`,
+  migration 252 — add `AND x.origin = 'provenance_discovery'` to the join's `ON` clause for that
+  narrower count). This runbook does not pick one; the coordinator's apply-turn report should state which
+  it used.
+- `forward_events_extracted` — NOT computed by this SQL query at all; it comes straight from
+  `run-extraction.mjs`'s own `metrics.events_emitted` for the corpus slice that matched this batch's
+  items (MINT-RUNBOOK.md §8 step 2) — no separate query needed, the extractor's own run artifact already
+  has the number.

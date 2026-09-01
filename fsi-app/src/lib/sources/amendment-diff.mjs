@@ -20,6 +20,7 @@ import { detectPublisherShape, extractCleanText } from "./holdings-audit.mjs";
  * The key is the alignment anchor (provision number). Conservative: a doc with no recognizable
  * provisions falls back to a single "whole" segment (still diffable by hash).
  */
+/** @type {Record<string, RegExp>} */
 const SHAPE_MARKERS = {
   "eur-lex": /\bArticle\s+(\d+[a-z]?)\b/gi,
   "legislation.gov.uk": /\b(?:Regulation|Section|Article|Paragraph)\s+(\d+[A-Z]?)\b/gi,
@@ -50,6 +51,7 @@ export function segmentByShape(text, shape) {
   if (!clean) return [];
   const re = SHAPE_MARKERS[shape] || SHAPE_MARKERS.other;
   re.lastIndex = 0;
+  /** @type {Array<{ key: string, at: number }>} */
   const marks = [];
   for (let m; (m = re.exec(clean)); ) {
     const num = m[1] || m[2] || "";
@@ -74,6 +76,7 @@ export function segmentByShape(text, shape) {
   return segs;
 }
 
+/** @param {string} shape */
 function provisionLabel(shape) {
   if (shape === "legislation.gov.uk") return "Section";
   if (shape === "federal-register") return "Sec.";
@@ -87,7 +90,7 @@ function provisionLabel(shape) {
  * @param {string} prevBody @param {string} nextBody
  */
 export function segmentTextDiff(prevBody, nextBody) {
-  const sents = (s) => String(s || "").split(/(?<=[.;:])\s+|\n+/).map((x) => x.trim()).filter((x) => x.length > 3);
+  const sents = (/** @type {string} */ s) => String(s || "").split(/(?<=[.;:])\s+|\n+/).map((x) => x.trim()).filter((x) => x.length > 3);
   const pv = new Map(sents(prevBody).map((s) => [normHash(s), s]));
   const nx = new Map(sents(nextBody).map((s) => [normHash(s), s]));
   const added = [...nx].filter(([h]) => !pv.has(h)).map(([, s]) => s);
@@ -143,6 +146,7 @@ export function diffDocuments(prevText, nextText, opts = {}) {
  */
 export function toTimelineEvents(diff, opts = {}) {
   const date = opts.milestoneDate || null;
+  /** @type {Array<{ kind:'added'|'changed'|'removed', provision:string, label:string, milestone_date: string|null }>} */
   const events = [];
   for (const a of diff.added) events.push({ kind: "added", provision: a.key, label: `${a.key} added`, milestone_date: date });
   for (const c of diff.changed) events.push({ kind: "changed", provision: c.key, label: `${c.key} amended`, milestone_date: date });

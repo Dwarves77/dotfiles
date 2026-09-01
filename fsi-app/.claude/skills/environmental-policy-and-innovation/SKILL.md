@@ -732,7 +732,9 @@ Industry and research: FreightWaves, GreenBiz, Reuters Sustainable Business, The
 
 Operator and competitive intelligence sources: Maersk, MSC, CMA CGM, Hapag-Lloyd, ONE, Evergreen, ZIM (vessel and fuel announcements); FedEx, UPS, DHL, Kuehne+Nagel, DB Schenker, DSV, Expeditors (forwarder activity); Lufthansa Cargo, Air France-KLM Cargo, Cargolux, IAG Cargo, Emirates SkyCargo, Qatar Airways Cargo (air cargo activity).
 
-## Rules for All Output
+## The 16 Rules for All Output
+
+Parity with the runtime contract in `src/lib/agent/system-prompt.ts` — same rule numbering and wording here, same 20-field enumeration in Database Field Emission below — is enforced by `src/lib/agent/skill-prompt-parity.test.mjs`.
 
 1. Ground every claim in a specific source URL. Never speculate.
 2. Distinguish binding law from guidance from announcement from opinion.
@@ -748,6 +750,8 @@ Operator and competitive intelligence sources: Maersk, MSC, CMA CGM, Hapag-Lloyd
 12. The workspace-anchored rule supersedes all stylistic conventions. Never name the workspace, the company, or any individual.
 13. Every brief serves four lenses: substantive content, competitive positioning, client-conversation enablement, action.
 14. Format selected by item_type, not by section count target. Brief length is determined by sourced content, not by aspirational length.
+15. Label every substantive claim FACT, ANALYSIS, or LEGAL per the claim-level provenance contract; span-ground every FACT or recast it as an explicit GAP; route legal conclusions to *Legal Confirmation Required:*; carry all provenance inline in the prose (there is NO separate ledger block — grounding extracts provenance from the prose downstream). An unlabeled or unsourced claim quarantines the brief.
+16. Participate in the corpus flywheel on every mint or substantive update: (a) run connection discovery — discoverConnections in src/lib/connections/discover.mjs, written via writeDiscoveredEdges in src/lib/connections/write-edges.mjs — against item_cross_references for the item; (b) extract forward events from the item's grounded content via extractForwardEvents (src/lib/forward-events/extract-forward-events.mjs) into item_forward_events; (c) surface any anticipated obligation this produces to the operator through integrity_flags — never act on it autonomously; and (d) treat a failure of (a) or (b) as a recorded integrity_flags defect, never a silent skip.
 
 ## Storage Format
 
@@ -765,23 +769,30 @@ This convention enables consistent display in the UI and enables a future schema
 
 ## Database Field Emission (YAML frontmatter contract)
 
-Every regeneration writes the **19-field contract** to `intelligence_items` (was 13; the metadata-persist work added `trajectory_points`, `what_it_changes`, `does_not_resolve`, `conversion_trigger`, `cross_references`, `signal_band`, `theme` and the `theme_candidate` capture-not-null companion). The `full_brief` column carries the markdown body produced under the format selected above; the metadata fields are emitted as a YAML frontmatter block at the very end of the markdown output, after any `New Sources Identified` section. Downstream code (`synthesiseAndWriteBrief` in `src/lib/agent/canonical-pipeline.ts`, the single write site) parses the YAML, maps each CHECK-constrained field to its live DB vocabulary (`src/lib/agent/metadata-vocab.ts`), and writes the row; an absent/malformed YAML block, or a metadata write rejected by a constraint, is a failed regeneration (fail-loud, never a silent partial write).
+Every regeneration writes the **20-field contract** to `intelligence_items`: `full_brief` plus the 19 other fields emitted as a YAML frontmatter block at the very end of the markdown output, after any `New Sources Identified` section. Downstream code (`synthesiseAndWriteBrief` in `src/lib/agent/canonical-pipeline.ts`, the single write site) parses the YAML, maps each CHECK-constrained field to its live DB vocabulary (`src/lib/agent/metadata-vocab.ts`), and writes the row; an absent/malformed YAML block, or a metadata write rejected by a constraint, is a failed regeneration (fail-loud, never a silent partial write).
 
 Fields:
 
 - `full_brief` — the markdown body of the brief, structured per the format type's section list. Already produced as the body of the agent's output.
+- `what_is_it` — plain language explanation citing the specific legal instrument (directive/regulation number, Official Journal reference, state register citation, port authority tariff number), jurisdiction, and enforcement body. 2-3 sentences minimum. For non-regulatory formats, name what the thing IS (report, disclosure, standard, dataset, programme) and who issued it, on the same evidentiary terms. Emit on EVERY brief regardless of format. This field is a COMPRESSION of the brief you just wrote, never new claims: every element must already appear in the body or its cited sources. Under the integrity rule, emit null rather than a plausible sentence when the brief itself could not establish what the instrument is.
 - `severity` — one of the 5 severity labels. Reflects the urgency of action implied by the brief's content as it actually exists, not as it would exist if all sections were filled. Briefs that honestly omit sections under the integrity rule still emit severity, scoped to what is known and sourced.
 - `priority` — the 4-tier dashboard counter value, computed from severity per the locked mapping below. The agent computes this; downstream code does not.
 - `urgency_tier` — the dashboard tier value, one of `watch`, `elevated`, `stable`, `informational`.
 - `format_type` — the format used for this brief, derived from `item_type` per the locked mapping below.
 - `topic_tags` — array of 0-3 values from the 7 Topic Categories controlled vocabulary above. Reflects what the brief actually covers, not what it nominally is named after. Emitted as a YAML inline array. Empty array allowed when the item genuinely fits none of the seven (rare). Tags outside the vocabulary fail the regeneration.
+- `signal_band` — one of `price | corporate | corridor` when format_type is `market_signal_brief`; null otherwise. Drives /market band routing column-first.
+- `theme` — one of the 7 research-theme values (`emissions_accounting | fuels_saf | packaging_circular | carbon_markets | cold_chain_art | last_mile_electrification | disclosure_regimes`) when format_type is `research_summary`; null otherwise. Drives /research theme routing column-first. The single most central theme; distinct from topic_tags which is multi-value and uses a DIFFERENT vocabulary.
 - `operational_scenario_tags` — array of 0-5 values describing operational scenarios the item touches. Prefer the core glossary in the Operational Scenario Tags section above; new values allowed when the core doesn't fit. Lower-case kebab-case. Drives intersection detection.
 - `compliance_object_tags` — array of 0-4 values from the closed Compliance Object Tags glossary above. Tags outside the glossary fail the regeneration. Drives intersection detection.
-- `related_items` — UUID array of intelligence_items the agent recognised as related during composition. UUIDs must come from the source pool input. No invented UUIDs. Empty array when no relations identified.
+- `related_items` — UUID array of intelligence_items the agent recognised as related during composition. Every UUID must satisfy the A3 assertion rule: from the source pool input, or from the CANDIDATE CONNECTIONS block when the brief's content genuinely evidences it. No invented UUIDs, no other source. Empty array when no relations identified.
 - `intersection_summary` — short markdown string (≤1500 chars) describing how this item interacts with the linked items. Sourced; cite linked items inline by title. Empty string OR null when no intersections were identified.
-- `sources_used` — UUID array of source IDs the agent referenced. Populated only with IDs that arrived in the input context. No invented UUIDs.
+- `sources_used` — UUID array of source IDs the agent referenced. Populated only with IDs that arrived in the input context. No invented UUIDs. Emit FULL 36-character UUIDs — never the 8-character prefix shorthand. Truncated UUIDs fail the regeneration.
 - `last_regenerated_at` — ISO 8601 timestamp at the moment of generation. Current UTC timestamp in ISO 8601 form (e.g., `2026-04-28T18:42:00Z`). Never `NOW()`, never a placeholder, never derived from source publication dates.
-- `regeneration_skill_version` — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is `"2026-04-29"`.
+- `regeneration_skill_version` — fixed string identifying the SKILL.md contract version. For regenerations under the current contract, the value is `"2026-09-01"` (see `src/lib/agent/contract-version.mjs`, the single source of truth `contract-version.test.mjs` binds this file's stamped value to).
+- `what_it_changes` — short editorial callout (single sentence, 80-200 chars) naming what this finding/signal changes for workspace operations: cost mechanism, contract clause, routing decision, compliance action, etc. Emit on EVERY brief regardless of format. Empty string OR null only when the brief has no operational implications (rare; integrity-rule exception). The renderer surfaces this as a per-card right-column callout on /research and /market.
+- `does_not_resolve` — short editorial callout (single sentence, 80-200 chars) naming the scope limit, open question, or unresolved aspect this brief deliberately does not address. Emit on research_summary briefs ONLY (and ideally only when an open question is genuinely surfaced); null otherwise. Format: short prose ("Does NOT resolve whether [open question] — see [pending source/event] for binding answer"). Renderer surfaces as a muted secondary callout under "What it changes".
+- `conversion_trigger` — short editorial callout (single sentence, 80-200 chars) naming the future event that flips this signal from observation to commercial pressure. Emit on market_signal_brief items in signal_band price OR corporate; null otherwise. Format: short prose ("CORSIA Phase 2 review · Q4 2026" or "First commercial pilot 2028 · charging-corridor agreement signing"). Renderer surfaces as a muted secondary callout.
+- `cross_references` — short editorial callout (single sentence, 80-200 chars) listing canonical Operations/Regulations briefs this corridor signal links to. Emit on market_signal_brief items in signal_band corridor; null otherwise. Format: short prose with "↗" arrow prefix per surface ("↗ Operations · Gulf bunkering · Cape route economics"). Renderer surfaces as a callout block beneath What it changes.
 
 Severity to priority mapping (locked):
 
@@ -808,13 +819,19 @@ priority: CRITICAL
 urgency_tier: watch
 format_type: regulatory_fact_document
 topic_tags: [emissions, reporting]
-operational_scenario_tags: [CBAM-declaration, customs-declaration-import, emissions-reporting-Scope3]
+signal_band: null
+theme: null
+operational_scenario_tags: [CBAM-declaration, carbon-border-adjustment, emissions-reporting-Scope3]
 compliance_object_tags: [importer, customs-broker, manufacturer-producer]
 related_items: [b3c4d5e6-f7a8-4901-2345-678901234567]
 intersection_summary: "Overlaps with EU ETS for shipping (linked) on emissions-reporting-Scope3; CBAM declarants importing covered goods that arrived via EU-ETS-priced ocean freight face dual reporting obligations on the same emission units."
 sources_used: [a1b2c3d4-e5f6-4789-9abc-def012345678, fedcba98-7654-4321-0fed-cba987654321]
-last_regenerated_at: 2026-04-29T18:42:00Z
-regeneration_skill_version: "2026-04-29"
+last_regenerated_at: 2026-08-31T18:42:00Z
+regeneration_skill_version: "2026-09-01"
+what_it_changes: "CBAM Q1 2026 reporting deadline tightens — early importers face €1.5M cost exposure pre-Q4 pass-through"
+does_not_resolve: null
+conversion_trigger: null
+cross_references: null
 ---
 ```
 
@@ -834,6 +851,8 @@ When the user says "update the skill," the agent:
 8. Delivers as a downloadable file for upload to /mnt/skills/user/environmental-policy-and-innovation/
 
 ## Changelog
+
+2026-09-01: Skill/prompt parity restoration (lane DOC, governing-skill parity). This file had drifted from the operative runtime contract (`src/lib/agent/system-prompt.ts`) in two places despite the header's "canonical" claim: (1) "Rules for All Output" listed only 14 rules while the prompt had advanced to 16 (rule 15, claim-level provenance labeling, and rule 16, corpus-flywheel participation, were added to the prompt without being mirrored here) — corrected by copying rules 15-16 verbatim from the prompt and renaming the section "The 16 Rules for All Output" to match; (2) the Database Field Emission section still described a "19-field contract" carried over from an earlier stage, naming 8 added fields in prose (including two, `theme_candidate` and `trajectory_points`, that are canonical-pipeline.ts-internal/derived columns the agent never emits and that do not appear anywhere in system-prompt.ts) while its own Fields: enumeration still listed only the original 13 bullets — corrected to the accurate 20-field contract (`full_brief` + the 19 YAML fields the prompt documents: adding `what_is_it`, `signal_band`, `theme`, `what_it_changes`, `does_not_resolve`, `conversion_trigger`, `cross_references` as bullets, using the prompt's own field descriptions) and the emission example was expanded to show every key. No rule text, section structure, or other doctrine changed — this is a copy correction, not a contract change, so `regeneration_skill_version` / `contract-version.mjs` are untouched. Parity between this file and the prompt is now enforced by `src/lib/agent/skill-prompt-parity.test.mjs`, registered as invariant EP-13-skill-prompt-parity.
 
 2026-07-30: Figure-expression contract (operator ruling). Added two integrity-rule bullets — unit attachment is a factual claim (never attach a unit the source does not establish for that exact value; origin case: a table ROW IDENTIFIER rendered as "31 tonnes"), and header-unit figures keep their unit and stay gated (quote the cell value verbatim + the column header verbatim; emitting the number bare to escape the grounding gate is forbidden). Mirrored into the runtime synthesis contract at `src/lib/agent/system-prompt.ts`, which is what the canonical pipeline actually reads. Records the sanctioned fallback direction (a Gate-B-style composed-claim kind), and that a matcher loosening is never permitted.
 

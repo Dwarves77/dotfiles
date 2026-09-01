@@ -49,7 +49,7 @@ function fakeClient({ corpusRows = [], existingEdges = [], sourcesRows = [{ id: 
         single: async () => ({ data: { id: "new-1" }, error: null }), // the INSERT ... .select("id").single()
         insert(row) {
           if (table === "intelligence_items") { insertedSeed = row; return q; } // chainable: .select().single()
-          writesLog.push({ table, op: "insert" });
+          writesLog.push({ table, op: "insert", rows: [row] });
           return Promise.resolve({ data: null, error: null });
         },
         upsert(rows) {
@@ -111,11 +111,32 @@ test("mint: no corpus overlap → mint succeeds, no discovery flag, no edge writ
   assert.deepEqual(sb.writesLog(), [], "no basis found → nothing written to item_cross_references");
 });
 
-test("mint: corpus-signature read fails → discovery is non-fatal, the mint still succeeds", async () => {
+test("mint: corpus-signature read fails → discovery is non-fatal, the mint still succeeds, and rule 16(d) records the defect (never a silent skip)", async () => {
   const sb = fakeClient({ corpusReadError: "connection reset (simulated)" });
   const r = await mintIntelligenceItem(sb, { seed: seed(), origin: "staged_materialization" });
   assert.equal(r.ok, true, r.error);
   assert.equal(r.itemId, "new-1");
-  assert.ok(!r.flags.some((f) => f.startsWith("discovery:")), "a scan failure must not fabricate a discovery flag");
-  assert.deepEqual(sb.writesLog(), [], "a scan failure must not attempt an edge write");
+  assert.ok(!r.flags.some((f) => f.startsWith("discovery:")), "a scan failure must not fabricate a discovery: success flag");
+  assert.ok(r.flags.includes("discovery-failed"), "the failure itself must be named in flags");
+
+  // MOAT BOUNDARY, unchanged: a scan failure must never attempt an item_cross_references edge write.
+  const edgeWrites = sb.writesLog().filter((w) => w.table === "item_cross_references");
+  assert.deepEqual(edgeWrites, [], "a scan failure must not attempt an edge write");
+
+  // RULE 16(d) (contract v2026-09-01): this is the class fix for the pre-rule-16 posture this test used
+  // to assert (a bare empty-catch swallow) — a discovery failure is now a RECORDED integrity_flags
+  // defect, not a silent skip.
+  const flagWrites = sb.writesLog().filter((w) => w.table === "integrity_flags");
+  assert.equal(flagWrites.length, 1, "exactly one integrity_flags row recording the discovery defect");
+  const [defect] = flagWrites[0].rows;
+  assert.equal(defect.created_by, "flywheel-defect:discovery");
+  assert.equal(defect.subject_type, "item");
+  assert.equal(defect.subject_ref, "new-1");
+  assert.equal(defect.status, "open");
+  assert.match(defect.description, /connection reset \(simulated\)/);
+
+  // Nothing reaches any OTHER table besides item_cross_references (still zero, correctly) and
+  // integrity_flags (the one legitimate rule-16(d) write) — no claims/provenance touch either way.
+  const otherWrites = sb.writesLog().filter((w) => w.table !== "item_cross_references" && w.table !== "integrity_flags");
+  assert.deepEqual(otherWrites, [], "a scan failure must write nowhere except the rule-16(d) defect flag");
 });
