@@ -1,0 +1,115 @@
+{
+  "harness_family": "source-sweep",
+  "harness_version": "sha256:5a6a5a4649f79eec",
+  "run_id": "source-sweep-run-005",
+  "started_at": "2026-09-01T23:53:20.259Z",
+  "finished_at": "2026-09-01T23:53:47.025Z",
+  "config": {
+    "walker": "register-eurlex",
+    "mode": "apply",
+    "from": "2026-08-25",
+    "to": "2026-08-31",
+    "feed_url": null,
+    "series": "L",
+    "types": [
+      "RULE"
+    ],
+    "term": null,
+    "max_pages": 5,
+    "per_page": 100,
+    "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+    "portal_url": "https://eur-lex.europa.eu"
+  },
+  "inputs_ref": [
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=25082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=26082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=27082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=28082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=29082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=30082026",
+    "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=31082026"
+  ],
+  "per_item": [
+    {
+      "id": "2026-08-25",
+      "outcome": "walked",
+      "verdict": "2 act link(s) extracted, 2 upserted",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=25082026"
+      ],
+      "error": null
+    },
+    {
+      "id": "2026-08-26",
+      "outcome": "walked",
+      "verdict": "1 act link(s) extracted, 1 upserted",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=26082026"
+      ],
+      "error": null
+    },
+    {
+      "id": "2026-08-27",
+      "outcome": "walked",
+      "verdict": "1 act link(s) extracted, 1 upserted",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=27082026"
+      ],
+      "error": null
+    },
+    {
+      "id": "2026-08-28",
+      "outcome": "walked",
+      "verdict": "2 act link(s) extracted, 2 upserted",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=28082026"
+      ],
+      "error": null
+    },
+    {
+      "id": "2026-08-29",
+      "outcome": "duplicate_edition",
+      "verdict": "EUR-Lex served the 2026-08-28 edition again (no publication this date) — 0 extracted, nothing re-persisted",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=29082026"
+      ],
+      "error": null
+    },
+    {
+      "id": "2026-08-30",
+      "outcome": "duplicate_edition",
+      "verdict": "EUR-Lex served the 2026-08-28 edition again (no publication this date) — 0 extracted, nothing re-persisted",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=30082026"
+      ],
+      "error": null
+    },
+    {
+      "id": "2026-08-31",
+      "outcome": "walked",
+      "verdict": "1 act link(s) extracted, 1 upserted",
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/L-series/default.html?ojDate=31082026"
+      ],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "register": "eurlex-oj",
+    "series": "L",
+    "from": "2026-08-25",
+    "to": "2026-08-31",
+    "mode": "apply",
+    "days_walked": 7,
+    "days_with_error": 0,
+    "days_duplicate_edition": 2,
+    "extracted_total": 7,
+    "upserted": 7,
+    "failed": 0
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/source-sweep/traces/source-sweep-run-005.raw-result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-source-sweep.mjs, the source-sweep family's canonical entry point (RT lane, 2026-09-01) — the runtime scripts/connections/*.mjs and scripts/mint|forward-events/run-*.mjs already had for their own families, extended to the register-walk.mjs/feed-walk.mjs enumeration modules."
+}
