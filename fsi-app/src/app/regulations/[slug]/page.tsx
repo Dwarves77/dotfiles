@@ -25,6 +25,7 @@ import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supa
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { getViewerRelevanceForItem } from "@/lib/workspace/viewer-relevance";
 import { RegulationDetailSurface } from "@/components/regulations/RegulationDetailSurface";
+import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingObligationsStrip";
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 
@@ -303,6 +304,7 @@ export default async function RegulationDetailPage({
       groupLabel={groupLabel}
       deck={deck}
       initialOwner={initialOwner}
+      upcomingObligations={<UpcomingObligationsStrip variant="detail" itemId={r.id} />}
     />
   );
 }
