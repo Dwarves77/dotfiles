@@ -8,8 +8,9 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
-import { posix } from 'node:path';
+import { readFileSync, readdirSync, mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { posix, join } from 'node:path';
 import {
   scanArtifacts,
   auditSchema,
@@ -17,6 +18,7 @@ import {
   auditStalenessCoupling,
   auditProposerAttestation,
   parsePendingRunHash,
+  safeHashGoverningFiles,
   GOVERNING_FILES,
   fitnessFunction,
 } from './F28-harness-run-integrity.mjs';
@@ -224,6 +226,67 @@ test('GREEN: LAST-PROPOSER-PASS.md names the latest run_id (order-independent �
   ];
   const problems = auditProposerAttestation('screen', artifacts, 'Artifacts read: screen-run-001, screen-run-002.');
   assert.deepEqual(problems, []);
+});
+
+// ── safeHashGoverningFiles: a missing governing file is a NAMED failure, never an unhandled throw ──
+
+test('safeHashGoverningFiles: hashes cleanly when every governing file exists (GREEN passthrough)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'f28-safehash-'));
+  try {
+    writeFileSync(join(dir, 'a.mjs'), 'export const x = 1;\n');
+    const { hash, problems } = safeHashGoverningFiles('mint', ['a.mjs'], dir);
+    assert.match(hash, /^sha256:[0-9a-f]{16}$/);
+    assert.deepEqual(problems, []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('safeHashGoverningFiles RED: a missing governing file yields a NAMED problem (not a thrown ENOENT), naming the family and the missing path', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'f28-safehash-'));
+  try {
+    writeFileSync(join(dir, 'a.mjs'), 'export const x = 1;\n');
+    // 'b.mjs' is listed but does not exist on disk — the exact shape a stale/typo'd GOVERNING_FILES entry
+    // produces. Before this fix, hashHarnessVersion's plain readFileSync would throw a raw ENOENT here and
+    // abort check() for every family in the same pass.
+    let threw = false;
+    let result;
+    try {
+      result = safeHashGoverningFiles('mint', ['a.mjs', 'b.mjs'], dir);
+    } catch {
+      threw = true;
+    }
+    assert.equal(threw, false, 'safeHashGoverningFiles must not let ENOENT escape as a raw throw');
+    assert.equal(result.hash, null);
+    assert.equal(result.problems.length, 1);
+    assert.match(result.problems[0], /MISSING GOVERNING FILE/);
+    assert.match(result.problems[0], /harness family "mint"/);
+    assert.match(result.problems[0], /b\.mjs/, 'the missing path must be named in the message');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('safeHashGoverningFiles RED: a non-ENOENT failure (e.g. a listed "file" that is actually a directory) still propagates, never silently swallowed', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'f28-safehash-'));
+  try {
+    mkdirSync(join(dir, 'not-a-file.mjs'));
+    assert.throws(() => safeHashGoverningFiles('mint', ['not-a-file.mjs'], dir), (err) => err.code !== 'ENOENT');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('check() does not throw when a family has a missing governing file — reports a named problem instead (fixture: forward-events with an unregistered/missing governing file)', () => {
+  // Regression proof for the exact scenario CONVENTION.md's forward-events comment names as "fine
+  // today only because rule (c) skips families with zero artifacts": drive scanArtifacts/auditSchema's
+  // sibling code path (safeHashGoverningFiles, the actual fix) directly against a family with ≥1 valid
+  // artifact but a governing file that does not exist — this is what check() itself calls internally, so
+  // a passing result here proves check() cannot crash on this input without re-deriving getRepoRoot().
+  const problems = safeHashGoverningFiles('forward-events', ['scripts/forward-events/does-not-exist.mjs'], '/tmp').problems;
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /MISSING GOVERNING FILE/);
+  assert.match(problems[0], /does-not-exist\.mjs/);
 });
 
 // ── shape ─────────────────────────────────────────────────────────────────

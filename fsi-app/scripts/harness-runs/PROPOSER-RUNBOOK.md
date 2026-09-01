@@ -222,3 +222,83 @@ meta-layer's own three-run history as a proposer would. See `meta-harness/LAST-P
 attestation; only its documentation-level proposals are implemented this wave, per the build plan's own
 $0/no-scope-creep discipline — code-level proposals are explicitly next-cycle, through the family's own
 gates, like any other proposal in this runbook.
+
+## 7. Corpus outcomes (Interface-3 metrics, Wave MH-5)
+
+MINT-RUNBOOK.md §8-9 describes the mint family's post-apply flywheel (discovery, forward-event
+extraction, recluster) and a `run-mint-batch.mjs --outcomes` enrichment step that feeds the flywheel's
+results back into a mint run artifact's `metrics` block: `edges_discovered`, `forward_events_extracted`,
+`isolated_items`. This section is where a proposer pass (or whoever runs the coordinator's own apply
+turn) computes those numbers — the standard query, not a fresh derivation every time.
+
+**Scope note, read before running this:** neither `intelligence_items` nor `item_cross_references`
+carries a column naming which mint batch (or which `mint-run-NNN`) an item or edge came from — confirmed
+by reading `supabase/migrations/004_source_trust_framework.sql`'s `CREATE TABLE intelligence_items` /
+`CREATE TABLE item_cross_references` and every later migration that touches either table
+(`146_item_xref_origin_and_related_derive.sql` adds `origin`; `252_connection_discovery_basis_and_origin.sql`
+adds `basis`/`score` — neither adds a batch/run identifier). **TO-VERIFY**: whether a later migration this
+lane did not see adds one; if so, replace the `recent_items` CTE below with a direct filter on that
+column instead of the recency proxy. Absent that, the query below scopes "recently minted" two ways —
+pick whichever the coordinator turn actually has on hand:
+
+```sql
+-- Option A: by explicit id list (preferred whenever the coordinator's apply step still has the batch's
+-- own item ids in hand, e.g. from run-mint-batch.mjs's apply-ready.json) — no ambiguity, no time-window
+-- edge cases.
+WITH recent_items AS (
+  SELECT id FROM intelligence_items WHERE id = ANY($1::uuid[])  -- bind: this batch's minted item ids
+),
+
+-- Option B (fallback, only when the id list is not available): by recency. created_at is a real,
+-- confirmed column (migration 004); the interval below is illustrative — set it to bracket the actual
+-- apply turn, not left at a default that silently drifts wider than intended.
+-- WITH recent_items AS (
+--   SELECT id FROM intelligence_items WHERE created_at >= now() - interval '1 day'
+-- ),
+
+edge_counts AS (
+  -- item_cross_references is bidirectional (migration 004's own table comment: "Bidirectional links
+  -- between intelligence items") — an item can appear as either source_item_id or target_item_id, so
+  -- both are checked. Each row counts once per endpoint it touches, which is the correct denominator
+  -- for a per-item "how many edges does THIS item have" count; see the total_edges caveat below for the
+  -- one place that matters.
+  SELECT
+    ri.id AS item_id,
+    count(x.id) AS edge_count
+  FROM recent_items ri
+  LEFT JOIN item_cross_references x
+    ON x.source_item_id = ri.id OR x.target_item_id = ri.id
+  GROUP BY ri.id
+)
+SELECT
+  count(*)                                                       AS items_checked,
+  sum(edge_count)                                                AS total_edge_endpoints,
+  -- ^ NOT the same as "distinct edges among this batch" when two items from the SAME batch are
+  --   connected to each other — that one edge contributes to both items' edge_count and is summed
+  --   twice here. Fine for edges_per_item (each item's own count is correct); do not report
+  --   total_edge_endpoints as "edges_discovered" without deduplicating same-batch-internal edges first
+  --   if that distinction matters for a given run.
+  round(avg(edge_count), 3)                                      AS edges_per_item,
+  count(*) FILTER (WHERE edge_count = 0)                         AS isolated_items,
+  round(
+    count(*) FILTER (WHERE edge_count = 0)::numeric / NULLIF(count(*), 0),
+    4
+  )                                                               AS isolation_rate
+FROM edge_counts;
+```
+
+**Mapping onto `run-mint-batch.mjs --outcomes`'s three metric keys:**
+
+- `isolated_items` — the query's `isolated_items` column, directly. This is the metric MINT-RUNBOOK.md §9
+  names most precisely (count of items minted in this batch with zero `item_cross_references` rows after
+  discovery has run).
+- `edges_discovered` — **TO-VERIFY**: whether the coordinator wants "every edge touching a batch item"
+  (`sum(edge_count)`, with the same-batch-internal double-count caveat above) or specifically "edges
+  created BY the discovery pass this turn" (`item_cross_references.origin = 'provenance_discovery'`,
+  migration 252 — add `AND x.origin = 'provenance_discovery'` to the join's `ON` clause for that
+  narrower count). This runbook does not pick one; the coordinator's apply-turn report should state which
+  it used.
+- `forward_events_extracted` — NOT computed by this SQL query at all; it comes straight from
+  `run-extraction.mjs`'s own `metrics.events_emitted` for the corpus slice that matched this batch's
+  items (MINT-RUNBOOK.md §8 step 2) — no separate query needed, the extractor's own run artifact already
+  has the number.

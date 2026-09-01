@@ -184,52 +184,102 @@ node --test scripts/mint/validate-mint-payload.test.mjs
   M0 report's write plan) and marks the corresponding `census_worklist` row resolved.
 - **Never** hand off a payload that fails the local validator "because the coordinator can fix it at
   apply time" — a red payload here will be red against the live RPC too; fix it before handoff.
-- **MANDATORY, batch's last step — write the run artifact.** Every mint batch ends by writing its own
-  `scripts/harness-runs/mint/mint-run-NNN.json` (per `scripts/harness-runs/CONVENTION.md`; `NNN` is the
-  next unused number after the highest `mint-run-*.json` already in that directory) — this is not a
-  step the coordinator remembers separately, it is part of THIS procedure, the same "emission is in the
-  harness, not the operator" rule `screen-worklist.mjs` and the fetch-drain protocol follow (build plan
-  §2). Since a mint batch is a manual, $0, in-session procedure with no single runner script, the writer
-  invocation is this exact shape, run once per batch after step 6's handoff is assembled:
+- **MANDATORY, batch's last step — write the run artifact via `run-mint-batch.mjs`, never raw SQL and
+  never a hand-assembled `writeRunArtifact` call.** See §7 below — as of Wave MH-5, this is a real
+  script, not manual prose. A batch that skips it is exactly the gap `F28` (harness-run-integrity,
+  Wave MH-2) fails CI for: a harness family whose governing files changed (or whose batch ran) without a
+  run artifact recording why.
 
-  ```js
-  import { writeRunArtifact, hashHarnessVersion } from "./scripts/lib/run-artifact.mjs";
+## 7. MANDATORY — run the batch through `run-mint-batch.mjs`, never raw SQL
 
-  const harness_version = hashHarnessVersion([
-    "scripts/mint/MINT-RUNBOOK.md",
-    "scripts/mint/validate-mint-payload.mjs",
-    "scripts/mint/payload-schema.json",
-    "scripts/mint/item-type-required-slots.json",
-    "scripts/mint/lib/gate-a-scan.mjs",
-    "scripts/mint/lib/gate-a-match.mjs",
-    "scripts/mint/lib/canonicalize-citation-url.mjs",
-  ]); // baseDir defaults to cwd — run from fsi-app/
+Wave MH-5 closes the gap PROPOSER-RUNBOOK.md §5's "Known residual" named: mint's artifact emission used
+to be PROSE (this section, before this wave, described a hand-assembled `writeRunArtifact` call a lane
+could simply forget to run). `scripts/mint/run-mint-batch.mjs` is now the mint family's canonical entry
+point — a thin orchestrator around the SAME `validate-mint-payload.mjs` gate steps 1-5 above already
+require, whose own execution path writes the run artifact in a `finally` block, so a thrown error
+partway through a real run still leaves a record instead of silence.
 
-  writeRunArtifact("scripts/harness-runs/mint", {
-    harness_family: "mint",
-    harness_version,
-    run_id: "mint-run-NNN",              // next unused number, zero-padded 3 digits
-    started_at: "<ISO 8601 UTC — this batch's own start time>",
-    config: { /* vault, wave, candidate_pool_definition, batch_target_size, ... — see mint-run-001.json */ },
-    inputs_ref: [ /* paths to the census/queue export this batch consumed */ ],
-    per_item: [ /* one entry per attempted item — this batch is 40-80 items, well inside CONVENTION.md's
-                    "every item" per_item-at-scale tier, so EVERY item gets an entry, not a subset */ ],
-    metrics: {
-      /* attempted, minted, source_not_registered, off_vertical_excluded_relevance_rescreen,
-         validator_first_pass_rate, validator_final_pass_rate, live_verify_first_pass_rate,
-         live_verify_final_rate — the mint family's standing metric, per PROPOSER-RUNBOOK.md §3 */
-    },
-    defects_found: [ /* anything this batch found wrong, root_cause, fix_ref (null if unfixed yet) */ ],
-    full_trace_refs: [ /* every report/payload/source file this batch produced — never summarized */ ],
-    proposer_notes: "",
-  });
-  ```
+**This script never writes to the database — that boundary is unchanged.** It validates payloads and
+produces an apply-ready file; the coordinator alone applies it through the guarded write path, exactly
+as §6 above already describes. "Never raw SQL" means: a mint batch's own INSERT statements are not
+something a mint lane hand-writes and runs — the coordinator's guarded write path is the only apply
+path, same as it always was; this script's job is validation + reporting + the run artifact, nothing
+more.
 
-  A batch that skips this write is exactly the gap `F28` (harness-run-integrity, Wave MH-2) fails CI
-  for: a harness family whose governing files changed (or whose batch ran) without a run artifact
-  recording why.
+```
+# Preview (default — validates, prints the summary, writes NOTHING to disk):
+node scripts/mint/run-mint-batch.mjs --batch-file path/to/batch.json
 
-## 7. Off-vertical disposition (relevance re-screen, task 3)
+# Real run (writes <basename>.apply-ready.json, <basename>.mint-batch-report.json, and
+# scripts/harness-runs/mint/mint-run-NNN.json — NNN claimed collision-safely, never hand-picked):
+node scripts/mint/run-mint-batch.mjs --batch-file path/to/batch.json --execute \
+     --out-dir path/to/batch-NNN-dir
+```
+
+`--batch-file` is either a bare JSON array of payloads (each shaped per `payload-schema.json`, one
+payload per attempted item) or `{ "payloads": [...] }`. On `--execute`, `<basename>.apply-ready.json`
+holds exactly the payloads that passed `validateMintPayload` clean — that file, not the batch file
+itself, is what the coordinator applies; `<basename>.mint-batch-report.json` carries every payload's
+full validation result (pass or fail) for the record.
+
+## 8. MANDATORY, post-apply — the flywheel
+
+Once the coordinator has applied a batch's `apply-ready.json` (new `intelligence_items` rows exist),
+run these steps IN ORDER before the batch is considered closed. Skipping straight from "applied" to "next
+batch" leaves newly-minted items with no graph edges and no forward-obligation events — invisible to
+every consumer that reads `item_cross_references` or `item_forward_events` rather than the raw item
+table — which is exactly the "populated, visible and wrong is worse than empty" failure mode §0 warns
+against, one layer downstream of minting itself.
+
+1. **Discovery** — run the connection-discovery pass (`src/lib/connections/discover.mjs` /
+   `scripts/connections/backfill-edges.mjs`, migration 252's `basis`/`score` columns) over the newly
+   minted items so they get real, grounded `item_cross_references` edges where a genuine connection
+   exists. A minted item with zero edges after this step is not necessarily wrong (some items are
+   genuinely novel/unconnected), but it must be COUNTED, not assumed — see `isolated_items` below.
+2. **Forward-event extraction** — run `scripts/forward-events/run-extraction.mjs --input <corpus of the
+   newly minted items' claims/sections> --execute` (Wave MH-5's canonical forward-events entry point;
+   see that family's own PROTOCOL.md) so any dated obligation language the new items carry becomes
+   queryable `item_forward_events` rows rather than dead prose in `full_brief`.
+3. **Recluster** — re-run whatever community/topic clustering pass this vault's build plan currently
+   names for `intelligence_items` (see the vault's own producer/cluster documentation — not owned by this
+   runbook) so the newly minted items are grouped with their real neighbors rather than sitting
+   unclustered until the next scheduled recluster.
+
+## 9. Corpus-outcome enrichment (`--outcomes`)
+
+Steps 1-2 above happen in a DIFFERENT turn than the mint batch itself — `run-mint-batch.mjs` has no live
+DB credentials in this environment and cannot compute edge counts or extraction counts itself. Once the
+coordinator's discovery + forward-event passes have run (§8 steps 1-2), feed their outcome BACK into the
+mint run's own artifact with a follow-up enrichment invocation, so a proposer pass reading
+`mint-run-NNN.json` later sees the full picture in one place instead of having to cross-reference a
+separate discovery/extraction report:
+
+```
+node scripts/mint/run-mint-batch.mjs --outcomes path/to/outcomes.json
+# outcomes.json: { "run_id": "mint-run-NNN", "edges_discovered": 12, "forward_events_extracted": 34,
+#                  "isolated_items": 3 }
+```
+
+This appends/updates the artifact's `metrics` block in place (`{ allowOverwrite: true }` under the
+hood — a deliberate, named enrichment, not a silent overwrite) without touching `per_item`,
+`defects_found`, or any other field. The three metrics this vocabulary names (Interface-3, "corpus
+outcomes grading tool judgment"):
+
+- `edges_discovered` — how many `item_cross_references` rows discovery (§8 step 1) created that
+  reference at least one item from this batch.
+- `forward_events_extracted` — how many `item_forward_events` rows extraction (§8 step 2) created for
+  items from this batch.
+- `isolated_items` — count of items MINTED IN THIS BATCH that have ZERO `item_cross_references` rows
+  (as either `source_item_id` or `target_item_id` — the table is bidirectional, see
+  `supabase/migrations/004_source_trust_framework.sql`'s `item_cross_references` table comment) after
+  discovery has run. See `scripts/harness-runs/PROPOSER-RUNBOOK.md`'s "Corpus outcomes" section for the
+  exact SQL a proposer pass runs to compute these three numbers.
+
+A batch with a high `isolated_items` rate is not automatically a defect — some minted items are
+genuinely novel — but an UNMEASURED isolation rate is exactly the "invisible unless you go looking"
+failure this section exists to close; record it every batch, even when the number is zero.
+
+## 10. Off-vertical disposition (relevance re-screen, task 3)
 
 If an item fails the $0 rule-based relevance re-screen (see the M0 report), do not author a payload at
 all. Report it back to the coordinator as a would_mint row that should be re-scoped or archived

@@ -274,6 +274,39 @@ function readIfExists(path) {
   return existsSync(path) ? readFileSync(path, 'utf8') : null;
 }
 
+/**
+ * Hash one family's GOVERNING_FILES, converting a missing file into a NAMED fitness failure instead of
+ * letting hashHarnessVersion's raw ENOENT (it does a plain readFileSync per listed file, by design — see
+ * its own doc comment in scripts/lib/run-artifact.mjs) escape check() as an unhandled throw. Before this,
+ * a single missing governing file (a typo'd path in GOVERNING_FILES, a file renamed without updating this
+ * table, or — per the forward-events GOVERNING_FILES comment above — a family whose governing files a
+ * DIFFERENT lane is still expected to land) would abort check() for EVERY family and EVERY other rule in
+ * the same pass with an opaque Node stack trace, not a fitness-function violation a coordinator can act
+ * on. Only ENOENT is translated here — any other hashHarnessVersion failure still propagates unchanged,
+ * since silently swallowing those would hide a genuine bug in F28 itself rather than report the
+ * legitimate "this family's governing file set doesn't match the tree yet" state this exists to name.
+ * Returns { hash: string|null, problems: string[] } — `hash` is null exactly when `problems` is non-empty.
+ * Exported so this ENOENT-to-named-failure conversion is unit-testable without a full repo-root check().
+ */
+export function safeHashGoverningFiles(family, governing, baseDir) {
+  try {
+    return { hash: hashHarnessVersion(governing, baseDir), problems: [] };
+  } catch (err) {
+    if (err && err.code === 'ENOENT') {
+      return {
+        hash: null,
+        problems: [
+          `MISSING GOVERNING FILE — harness family "${family}"'s entry in F28's GOVERNING_FILES names a ` +
+            `file that does not exist on the current tree (${err.message}). Land the missing file, or ` +
+            `if it was intentionally renamed/removed, correct GOVERNING_FILES.${family} in ` +
+            `F28-harness-run-integrity.mjs AND CONVENTION.md's harness_version table in the same commit.`,
+        ],
+      };
+    }
+    throw err;
+  }
+}
+
 export const fitnessFunction = {
   id: 'F28',
   name: 'harness-run-integrity',
@@ -327,7 +360,15 @@ export const fitnessFunction = {
       if (!governing) continue; // defensive; ALLOWED_FAMILIES and GOVERNING_FILES are kept 1:1 by test
       if (validArtifacts.length === 0) continue; // rule (b) already reported; see "KEEP IT HONEST" above
 
-      const currentHash = hashHarnessVersion(governing, join(root, 'fsi-app'));
+      const { hash: currentHash, problems: hashProblems } = safeHashGoverningFiles(
+        family,
+        governing,
+        join(root, 'fsi-app'),
+      );
+      if (hashProblems.length) {
+        problems.push(...hashProblems);
+        continue; // no hash to couple staleness/proposer-attestation checks against for this family this pass
+      }
       const pendingPath = join(root, HARNESS_RUNS_REL, family, PENDING_RUN_FILE);
       const pendingContent = readIfExists(pendingPath);
       const pending = { exists: pendingContent != null, hash: parsePendingRunHash(pendingContent) };
