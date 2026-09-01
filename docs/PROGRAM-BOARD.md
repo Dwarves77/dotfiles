@@ -1755,7 +1755,8 @@ explicit brief.
 | **OPERATOR — 1 toggle** | Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests" (both workflows fail their last step without it; PRs hand-opened from the printed compare URL until then) | Addendum 82 |
 | **RAN — source-sweep-run-002 (dry, fixed walker)** | `days_duplicate_edition=2`, 7 acts/week, 28 Aug = the live page's 2 acts; marker discharged; proposer pass written | Addendum 82 postscript |
 | **FIXED (9th defect)** | run_id collision when a run is dispatched before the prior artifact's PR merges; both workflows now hydrate unmerged sibling artifacts before claiming | Addendum 82 postscript |
-| **NEXT** | re-dispatch source-sweep apply (→ run-003; DB effect already applied once, idempotent) → WO-26 stamp → tag ratification → batch-003 records (mint-run-007) → EIA secret → FR + feed first walks (dry) → ledger consume hop | Addendum 82 postscript |
+| **RAN — source-sweep-run-003 (apply)** | numbered honestly (guard works live), 7 rows upserted once; **10th defect**: parent source resolved by host key to a 1976 opinion row (724 EUR-Lex document sources); fixed (`resolvePortalSourceId`), run-004 heals the rows | Addendum 82 postscript 2 |
+| **NEXT** | source-sweep apply → run-004 (discharges marker, re-points 7 rows) → WO-26 stamp → tag ratification → batch-003 records (mint-run-007) → EIA secret → FR + feed first walks (dry) → ledger consume hop | Addendum 82 postscript |
 
 ## Completion lanes + system review — LANDED as PR #507 (2026-09-01)
 

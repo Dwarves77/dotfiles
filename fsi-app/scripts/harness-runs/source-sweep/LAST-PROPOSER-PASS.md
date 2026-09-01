@@ -1,8 +1,8 @@
 # Last proposer pass — source-sweep
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `source-sweep` now has **two** artifacts
-(`source-sweep-run-001`, `source-sweep-run-002`); F28's rule (d) requires this file to name the latest
-verbatim: **source-sweep-run-002**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `source-sweep` now has **three** artifacts
+(`source-sweep-run-001` … `source-sweep-run-003`); F28's rule (d) requires this file to name the latest
+verbatim: **source-sweep-run-003**.
 
 **Artifacts read:** source-sweep-run-001 (2026-09-01T22:31Z, `sha256:87e06e9784e8e21b`, the driver's
 first execution, dry) and source-sweep-run-002 (2026-09-01T23:00:22Z → 23:00:26Z,
@@ -50,3 +50,31 @@ live EUR-Lex daily views for 28 and 30 August 2026 in the browser.
 **Family gates status:** this landing deletes `PENDING-RUN.md` (run-002 carries its hash — F28's
 reverse-audit) and adds this attestation. `run-source-sweep.mjs`, `register-walk.mjs`, `feed-walk.mjs`
 unchanged; the collision guard lives in the workflows, which are not governing files.
+
+
+---
+
+## Pass over source-sweep-run-003 (2026-09-01, coordinator)
+
+**Artifacts read:** all three. **Full traces read:** `traces/source-sweep-run-003.raw-result.json`;
+the live `portal_link_candidates` rows for the resolved `source_id` and that `sources` row, read back
+through the database after the run.
+
+**Hypotheses (verified, with basis):**
+1. **The apply path writes exactly what the dry path planned, once.** Run-003 (apply, 23:18Z) is
+   numbered honestly (the collision guard landed in Train 10), `upserted = 7`, and the table holds 7
+   rows for the week with `first_seen_at` 23:03Z (the discarded collided apply) and `last_seen_at`
+   23:18Z (run-003): the `UNIQUE url` upsert refreshed, never duplicated. Basis: `SELECT` on the table.
+2. **Defect (tenth this day): the candidates' parent is a 1976 Commission opinion, not the OJ.**
+   `config.source_id 000d2ee5-…` resolves to "EUR-Lex / 76/456/EEC Commission Opinion…", a
+   document-level `sources` row, because the driver used db.mjs's host-keyed lookup on a host with 724
+   such rows. Fixed in `resolvePortalSourceId` (exact portal URL; dedicated portal row on first apply);
+   `PENDING-RUN.md` names run-004 as the discharge, and run-004's upsert re-points the seven rows.
+3. **Registry observation, not fixed here (a decision, not a bug):** `registerSource`'s contract is
+   "idempotent by canonical host", yet eur-lex.europa.eu carries 724 rows — the mint path registers a
+   citation source per document by design (Addendum 80-era `registerSource` calls carry the CELEX URL).
+   Two source kinds share one table under one dedup rule that only one of them obeys. Worth an ADR
+   before any script relies on host-uniqueness again; recorded for the operator.
+
+**Proposal:** run-004 (apply) to discharge the marker and heal the seven rows; then the FR and feed
+first walks proposed above.

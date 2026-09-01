@@ -249,6 +249,50 @@ export function defaultTraceDir(harnessRunsDir) {
   return join(harnessRunsDir, "traces");
 }
 
+/** Normalise a URL for exact-portal comparison: lowercase scheme+host, no trailing slash, no hash. PURE. */
+export function portalUrlKey(url) {
+  try {
+    const u = new URL(String(url));
+    u.hash = "";
+    return `${u.protocol}//${u.host.toLowerCase()}${u.pathname.replace(/\/+$/, "")}${u.search}`;
+  } catch {
+    return String(url).replace(/\/+$/, "");
+  }
+}
+
+/**
+ * The parent `sources` row a walk's candidates attach to, resolved by EXACT portal URL.
+ *
+ * WHY NOT db.mjs's host key. `registerSource` is "idempotent by canonical host": it returns the FIRST
+ * existing row whose `institutionKey(url)` matches. On eur-lex.europa.eu that registry already holds
+ * 724 document-level rows (every EUR-Lex citation source minted since August), so the host key resolved
+ * to `000d2ee5-…`, "EUR-Lex / 76/456/EEC Commission Opinion (road vehicle type-approval Regulation)" — a
+ * 1976 opinion — and source-sweep-run-003's seven OJ candidates were attached to it (read back from the
+ * live table, 2026-09-01). The candidates' parent is the classify context downstream
+ * (`consumePortalCandidates`), so the parent must be the portal itself.
+ *
+ * CONTRACT. (1) Look for a row whose url equals the portal url exactly (portalUrlKey on both sides) —
+ * both modes, read-only. (2) Absent and mode=apply: register a dedicated portal row through
+ * `registerSource` with an `institutionKey` override that no existing row can compute to
+ * (`<hostKey>#portal`), so the host-dedup cannot swallow it into a document row; the exact-url lookup on
+ * the next run finds that row, so the override never creates a second one. (3) Absent and mode=dry: null
+ * (the first apply run registers it; the walk still runs and counts).
+ * @param {{readAll:Function, registerSource:Function, institutionKey:Function}} db
+ * @param {{url:string, name:string}} portal @param {"dry"|"apply"} mode @param {object} cite
+ * @returns {Promise<string|null>} */
+export async function resolvePortalSourceId(db, portal, mode, cite) {
+  const want = portalUrlKey(portal.url);
+  const existing = await db.readAll("sources", "id,url,status");
+  const exact = existing.find((s) => portalUrlKey(s.url) === want);
+  if (exact) return exact.id;
+  if (mode !== "apply") return null;
+  const reg = await db.registerSource(
+    { url: portal.url, name: portal.name, institutionKey: `${db.institutionKey(portal.url)}#portal` },
+    { cite }
+  );
+  return reg.source_id;
+}
+
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (IS_MAIN) await main();
 
@@ -281,24 +325,14 @@ async function main() {
 
   const portal = portalFor({ walker, feedUrl, sourceName });
 
-  // Resolve the parent source id. DRY mode is READ-ONLY end to end — it looks up an existing source by
-  // institutionKey (db.mjs's own dedup key) but never calls registerSource (a write). APPLY mode
-  // registers for real (idempotent — registerSource returns the existing row if the host is already
-  // known, per db.mjs's own contract).
-  let sourceId = null;
-  if (mode === "apply") {
-    const CITE = {
-      skill: "corpus-turn-runbook",
-      reason: `source-sweep register/feed walk: attach discovered ${walker} candidates to their parent portal source.`,
-    };
-    const reg = await registerSource(portal, { cite: CITE });
-    sourceId = reg.source_id;
-  } else {
-    const existing = await readAll("sources", "id,url,status");
-    const key = institutionKey(portal.url);
-    const match = existing.find((s) => institutionKey(s.url) === key);
-    sourceId = match ? match.id : null;
-  }
+  // Resolve the parent source id — by EXACT portal URL, never by db.mjs's host key. See
+  // resolvePortalSourceId's own doc for why (source-sweep-run-003's finding). DRY mode is READ-ONLY end
+  // to end (a lookup, never a write); APPLY mode registers the portal row only when absent.
+  const CITE = {
+    skill: "corpus-turn-runbook",
+    reason: `source-sweep register/feed walk: attach discovered ${walker} candidates to their parent portal source.`,
+  };
+  const sourceId = await resolvePortalSourceId({ readAll, registerSource, institutionKey }, portal, mode, CITE);
   console.log(
     `run-source-sweep: walker=${walker} mode=${mode} portal=${portal.url} source_id=${sourceId ?? "(none yet — first apply run will register it)"}`
   );
