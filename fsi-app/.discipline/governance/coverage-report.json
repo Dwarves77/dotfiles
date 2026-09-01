@@ -1907,7 +1907,7 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/src/lib/dashboard/changed-since.test.mjs",
+      "path": "fsi-app/src/lib/dashboard/changed-since.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -6773,11 +6773,22 @@
       ],
       "proofWired": null,
       "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/280_theme_briefs_public_read.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
     }
   ],
   "summary": {
-    "governed_files": 606,
-    "covered": 589,
+    "governed_files": 607,
+    "covered": 590,
     "exempt": 17,
     "gaps": 0,
     "orphaned_proofs": 0,

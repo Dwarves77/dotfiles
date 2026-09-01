@@ -17,6 +17,14 @@ test('015 trigger: fires on scripts/*.mjs, skips _diag + lib', () => {
   })), false);
 });
 
+test('015 trigger: skips proof files that fake a client (.test/.npmtest/.selftest/.golden.mjs)', () => {
+  for (const name of ['foo.test.mjs', 'foo.npmtest.mjs', 'foo.selftest.mjs', 'foo.golden.mjs']) {
+    assert.equal(rule.trigger(buildContextFromFixture({
+      message: 'x', files: [{ path: `fsi-app/scripts/turns/${name}`, additions: 5, deletions: 0 }],
+    })), false, name);
+  }
+});
+
 test('015 check: FAIL — raw .update() outside the guarded path', () => {
   const ctx = buildContextFromFixture({
     message: 'feat: write', files: [{ path: 'fsi-app/scripts/foo.mjs', additions: 5, deletions: 0 }],
