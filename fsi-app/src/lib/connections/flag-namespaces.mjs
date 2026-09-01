@@ -31,9 +31,18 @@ export const GAP_NAMESPACE = "flywheel-gap:";
 export const ANTICIPATE_NAMESPACE = "flywheel-anticipate:";
 export const SIGNAL_NAMESPACE = "flywheel-signal:";
 export const FLYWHEEL_DEFECT_NAMESPACE = "flywheel-defect:";
+// TAG_NAMESPACE — the fifth namespace, born with propose-tags.mjs (lane TAG, 2026-09-01): items minted
+// with EMPTY operational_scenario_tags/compliance_object_tags/topic_tags score ZERO discover.mjs edges
+// (that scorer reads exactly those fields — see discover.mjs's own header). propose-tags.mjs reflects
+// one integrity_flags row per such item, carrying derive-tags.mjs's PROPOSED tags (never auto-applied —
+// operator ratification required, same posture as ratify-flag-to-census.mjs's `ratify:census` marker)
+// for apply-tags.mjs to apply once ratified. subject_type is "item" (like FLYWHEEL_DEFECT_NAMESPACE —
+// the finding is about the item row itself, not a theme/pair/event); subject_ref is the bare item id
+// (buildSubjectRef(itemId) degrades to itemId unchanged, per that helper's own contract below).
+export const TAG_NAMESPACE = "flywheel-tag:";
 
 export const ALL_NAMESPACES = Object.freeze([
-  GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, FLYWHEEL_DEFECT_NAMESPACE,
+  GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, FLYWHEEL_DEFECT_NAMESPACE, TAG_NAMESPACE,
 ]);
 
 /**

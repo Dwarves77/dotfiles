@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, FLYWHEEL_DEFECT_NAMESPACE, ALL_NAMESPACES,
+  GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, FLYWHEEL_DEFECT_NAMESPACE, TAG_NAMESPACE, ALL_NAMESPACES,
   createdBy, buildSubjectRef, isInNamespace,
 } from "./flag-namespaces.mjs";
 
@@ -23,6 +23,15 @@ test("createdBy: matches the pre-refactor inline shape ${NAMESPACE}${type}", () 
   assert.equal(createdBy(SIGNAL_NAMESPACE, "shared_regulation_identifier"), "flywheel-signal:shared_regulation_identifier");
   assert.equal(createdBy(FLYWHEEL_DEFECT_NAMESPACE, "discovery"), "flywheel-defect:discovery");
   assert.equal(createdBy(FLYWHEEL_DEFECT_NAMESPACE, "forward-events"), "flywheel-defect:forward-events");
+  assert.equal(createdBy(TAG_NAMESPACE, "empty-signature"), "flywheel-tag:empty-signature");
+});
+
+test("TAG_NAMESPACE: registered in ALL_NAMESPACES, disjoint from the other four, subject_ref degrades to the bare item id", () => {
+  assert.equal(TAG_NAMESPACE, "flywheel-tag:");
+  assert.ok(ALL_NAMESPACES.includes(TAG_NAMESPACE));
+  assert.equal(buildSubjectRef("item-xyz"), "item-xyz");
+  assert.ok(isInNamespace(createdBy(TAG_NAMESPACE, "empty-signature"), TAG_NAMESPACE));
+  assert.ok(!isInNamespace(createdBy(TAG_NAMESPACE, "empty-signature"), FLYWHEEL_DEFECT_NAMESPACE));
 });
 
 test("createdBy: refuses a namespace not ending in ':' and an empty subtype", () => {
