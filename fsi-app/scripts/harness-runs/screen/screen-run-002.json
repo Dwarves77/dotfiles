@@ -1,0 +1,65 @@
+{
+  "harness_family": "screen",
+  "harness_version": "sha256:ee0c73faf87eb6cf",
+  "run_id": "screen-run-002",
+  "started_at": "2026-08-31T18:10:43Z",
+  "config": {
+    "rules_version": "round 2 — round-1's 12 rules + ~110 new rules (~117 total), commit 4f29b053",
+    "input": "/root/work/build/census-would-mint.json",
+    "new_rules_added": 110,
+    "null_title_handling": "deriveSearchText()/deriveUrlText() added so a null-titled row (765 of the 3,312 round-1-ambiguous rows) is classified from its document_url when the URL carries real signal (federalregister.gov slugs, EUR-Lex CELEX numbers), never fabricated",
+    "reviewed_merge": "reviewed-verdicts.json (fsi-app/scripts/mint/reviewed-verdicts.json), 1,746 entries — one per row still ambiguous after the round-2 rule pass — applied via screen-worklist.mjs --reviewed",
+    "hard_rule": "a reviewed verdict is applied ONLY to a row the rule engine left ambiguous; it never overrides an on_vertical/off_vertical rule decision (mergeReviewed(), enforced and tested)"
+  },
+  "inputs_ref": [
+    "/root/work/build/census-would-mint.json"
+  ],
+  "per_item": [],
+  "metrics": {
+    "on_vertical": 1630,
+    "off_vertical": 1775,
+    "ambiguous": 256,
+    "on_vertical_by_provenance": {
+      "rule": 970,
+      "reviewed": 660
+    },
+    "off_vertical_by_provenance": {
+      "rule": 945,
+      "reviewed": 830
+    },
+    "ambiguous_by_provenance": {
+      "rule": 0,
+      "reviewed": 256
+    },
+    "ambiguous_rate": "256/3661 = 6.99% (residual, down from round 1's 3312/3661 = 90.47%)",
+    "reviewed_merge_stats": {
+      "applied": 1746,
+      "skipped_rule_already_decided": 0,
+      "invalid_entries": 0,
+      "unmatched_ids": 0
+    },
+    "operator_overturn_rate": "measured retrospectively via round 3 (screen-run-003.json), the first pass to review round 2's decisions: of round 2's 1,490 RESOLVED reviewed-verdicts rows (660 on_vertical + 830 off_vertical), 14 were overturned by the operator's 2026-08-31 reclassification ruling = 14/1490 = 0.94%"
+  },
+  "defects_found": [
+    {
+      "description": "Round 2 classified 8 rule-families by INSTRUMENT FAMILY (surface form — e.g. 'is this an ATM bilateral?', 'is this a ship-classification-society accreditation?') rather than by MECHANISM (does the instrument price/cap/standard/verify/enable freight's carbon or environmental intensity?). 85 rows classified off_vertical under those 8 rules (ses_performance_plan_administration 25, denylist_atm_air_services_bilateral 17, ship_classification_society_accreditation 9, ses_route_charging_zone_administration 9, port_state_control_administration 8, rail_freight_corridor_governance 7, transit_ecopoints_bilateral_agreement 6, heavy_goods_vehicle_charging_administration 4) were determined by round 3's mechanism-test re-audit to actually satisfy an on-vertical mechanism prong.",
+      "root_cause": "round 2's rule set (screen-rules.mjs as of commit 4f29b053) pattern-matched on document/instrument family rather than on the freight-carbon/environmental mechanism the vertical is actually defined by; the mechanism test itself (Wave M-screen-3) did not exist yet.",
+      "fix_ref": "fsi-app/scripts/mint/screen-rules.mjs — the 8 rules' verdict fields flipped to on_vertical (6 tagged '// FLIP (operator ruling 2026-08-31)', 2 tagged '// FLIP (mechanism re-audit 2026-08-31 ...)'), landed in commit 6227e41f. See screen-run-003.json."
+    },
+    {
+      "description": "14 rows in reviewed-verdicts.json (round 2's own judgment pass on the ambiguous bucket) were reclassified by the operator's 2026-08-31 reclassification ruling — the round-2 reviewer's verdict on these 14 rows did not survive operator review.",
+      "root_cause": "not separately diagnosed in the surviving evidence beyond 'operator reclassification ruling 2026-08-31' (docs/ops/session-log.md Addendum 71); these 14 are a subset of the same instrument-family-vs-mechanism correction defects_found[0] describes, applied to reviewer judgment calls rather than to a rule definition.",
+      "fix_ref": "fsi-app/scripts/mint/reviewed-verdicts.json, current state (landed in commit 6227e41f) carries the corrected 14 values."
+    }
+  ],
+  "full_trace_refs": [
+    "/root/work/build/census-would-mint.screen-results.json",
+    "/root/work/build/census-would-mint.screen-summary.md",
+    "/root/work/build/census-final.screen-results.json",
+    "/root/work/build/census-final.screen-summary.md",
+    "fsi-app/scripts/mint/reviewed-verdicts.json",
+    "fsi-app/scripts/mint/screen-rules.mjs (git show 4f29b053:fsi-app/scripts/mint/screen-rules.mjs)",
+    "fsi-app/scripts/mint/screen-worklist.mjs (git show 4f29b053:fsi-app/scripts/mint/screen-worklist.mjs)"
+  ],
+  "proposer_notes": "Round 2 is a two-stage run: census-would-mint.screen-results.json/.screen-summary.md is the rule-engine-ONLY output (970/945/1746, self-reported 'Generated: 2026-08-31T18:10:43.663Z' — used here as started_at), then census-final.screen-results.json/.screen-summary.md is the SAME run after the --reviewed merge (1630/1775/256, 'Generated: 2026-08-31T18:40:32.385Z'). Both are one harness run in this artifact's terms (one screen-worklist.mjs invocation chain against one input), not two. per_item is deliberately empty: at 3,661-row scale, CONVENTION.md's 'per_item at scale' rule keeps row-level truth in full_trace_refs (both results JSON files hold every row) rather than inlining a lossy restatement; no report table in this round names individual rows the way BATCH-001-REPORT-v2.md does for mint. harness_version hashes commit 4f29b053's screen-rules.mjs/screen-worklist.mjs (checked out via git show into a scratch dir, not the current HEAD, which is round 3's state) — reproducible from git history alone. defects_found and metrics.operator_overturn_rate were computed this session by a row-by-row diff (by census_worklist id) of census-final.screen-results.json against census-final-v3.screen-results.json: 99 rows changed verdict, all off_vertical->on_vertical, none to/from ambiguous (256 is identical in both files) — 85 where both the before and after row carry provenance='rule' (attributed to the 8 flipped rules by their post-flip rule name), 14 where both carry provenance='reviewed'. This is real, reproducible arithmetic over the two committed results files, not a paraphrase of the task dispatch's own summary language."
+}

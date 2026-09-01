@@ -1,0 +1,91 @@
+{
+  "harness_family": "meta-harness",
+  "harness_version": "sha256:f212348085455946",
+  "run_id": "meta-harness-run-001",
+  "started_at": "2026-09-01T04:36:35Z",
+  "config": {
+    "wave": "MH-1 (build plan §3 'substrate') — build the run-artifact convention, writer/reader, and retrofit the run history that already existed as ungoverned scratch files",
+    "commit": "d5d7eb6c0ae144fffc956bb708e641747f8707c9",
+    "scope": "CONVENTION.md (schema, 11 required top-level keys, designed from the real mint/screen/fetch-drain run histories); run-artifact.mjs (writeRunArtifact/readRunHistory/hashHarnessVersion + --list CLI, fail-closed); retrofit six real run artifacts from evidence already on disk (mint batch-001; screen rounds 1-3; fetch-drain F1/F1b); PROPOSER-RUNBOOK.md wiring the read-full-traces-before-you-propose cadence into the mint/screen/fetch-drain loop; one-line pointers added to MINT-RUNBOOK.md and screen-worklist.mjs's header.",
+    "spend": "$0 — in-session Sonnet only",
+    "db_access": "none this wave — filesystem-only substrate work"
+  },
+  "inputs_ref": [
+    "/root/work/audit/deliver/META-HARNESS-BUILD-PLAN.md",
+    "/root/work/mint/batch-001/BATCH-001-REPORT.md",
+    "/root/work/mint/batch-001/BATCH-001-REPORT-v2.md",
+    "/root/work/build/census-would-mint.json",
+    "/root/work/build/census-would-mint.screen-results.json",
+    "/root/work/build/census-final.screen-results.json",
+    "/root/work/build/census-final-v3.screen-results.json",
+    "/root/work/build/fetch-error-dispositions.md",
+    "/root/work/dotfiles/docs/ops/session-log.md"
+  ],
+  "per_item": [
+    {
+      "id": "mint-run-001",
+      "outcome": "retrofitted",
+      "verdict": "six batch-001 payload verdicts + three defects_found reconstructed from BATCH-001-REPORT.md/-v2.md, cited to source",
+      "evidence_refs": ["fsi-app/scripts/harness-runs/mint/mint-run-001.json"],
+      "error": null
+    },
+    {
+      "id": "screen-run-001",
+      "outcome": "retrofitted",
+      "verdict": "round-1's own per-row output does not survive (the screen-v1 loss) — recorded honestly as an unrecoverable defect rather than backfilled from aggregate counts",
+      "evidence_refs": ["fsi-app/scripts/harness-runs/screen/screen-run-001.json"],
+      "error": null
+    },
+    {
+      "id": "screen-run-002",
+      "outcome": "retrofitted",
+      "verdict": "round-2 rule pass + --reviewed merge, defects_found[0] names the 99-row misclassification round 3 corrects",
+      "evidence_refs": ["fsi-app/scripts/harness-runs/screen/screen-run-002.json"],
+      "error": null
+    },
+    {
+      "id": "screen-run-003",
+      "outcome": "retrofitted",
+      "verdict": "mechanism-test re-audit + operator ruling, empty defects_found, 23 mechanism_question_flags left open by design",
+      "evidence_refs": ["fsi-app/scripts/harness-runs/screen/screen-run-003.json"],
+      "error": null
+    },
+    {
+      "id": "fetch-drain-run-001",
+      "outcome": "retrofitted",
+      "verdict": "F1 lane, TCP-stall/hang finding on a large-PDF host",
+      "evidence_refs": ["fsi-app/scripts/harness-runs/fetch-drain/fetch-drain-run-001.json"],
+      "error": null
+    },
+    {
+      "id": "fetch-drain-run-002",
+      "outcome": "retrofitted",
+      "verdict": "F1b lane replay, confirms the timeout defect is host-level (not PDF-specific) and names the *.gov.au HTTP/2 cluster as a separate open item",
+      "evidence_refs": ["fsi-app/scripts/harness-runs/fetch-drain/fetch-drain-run-002.json"],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "artifacts_retrofitted": 6,
+    "families_covered_by_retrofit": 3,
+    "kit_tests_added": 38,
+    "kit_test_file": "scripts/lib/run-artifact.test.mjs",
+    "files_changed": "14 files changed, 2838 insertions(+)",
+    "meta_harness_proposals_implemented_this_cycle": "not measurable — the meta-harness family did not exist yet (registered Wave MH-4); this run predates its own family's first proposer pass",
+    "meta_harness_gate_catch_rate": "not measurable this run — F28 (the meta-layer's own gate) does not exist until Wave MH-2; see meta-harness-run-003.json for the first computed figure and its method"
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "fsi-app/scripts/harness-runs/CONVENTION.md",
+    "fsi-app/scripts/harness-runs/PROPOSER-RUNBOOK.md",
+    "fsi-app/scripts/lib/run-artifact.mjs",
+    "fsi-app/scripts/lib/run-artifact.test.mjs",
+    "fsi-app/scripts/harness-runs/mint/mint-run-001.json",
+    "fsi-app/scripts/harness-runs/screen/screen-run-001.json",
+    "fsi-app/scripts/harness-runs/screen/screen-run-002.json",
+    "fsi-app/scripts/harness-runs/screen/screen-run-003.json",
+    "fsi-app/scripts/harness-runs/fetch-drain/fetch-drain-run-001.json",
+    "fsi-app/scripts/harness-runs/fetch-drain/fetch-drain-run-002.json"
+  ],
+  "proposer_notes": "Authored Wave MH-4 (this run's own family, meta-harness, did not exist until now), retrofitting MH-1's real commit d5d7eb6c0ae144fffc956bb708e641747f8707c9 exactly like mint-run-001.json retrofitted batch-001 — invented nothing, every per_item entry names a real, still-readable artifact file this wave verified against the commit's diff. started_at is the commit's own author date. harness_version is computed against the CURRENT tree (this wave's landing), same precedent mint-run-001.json set in its own proposer_notes: the meta-harness family's governing files (CONVENTION.md, PROPOSER-RUNBOOK.md, run-artifact.mjs, F28) did not all exist as a defined set until this wave (F28 itself was not created until MH-2), so there is no earlier byte-state to hash against — MH-1, MH-2, and MH-3's three artifacts share one harness_version for this reason, all reflecting this wave's landing, not three different historical hashes. defects_found is empty: nothing was WRONG with MH-1's substrate build on its own terms (23/23 fitness at the time, 38/38 new tests) — the retrofit-vs-emission asymmetry that later becomes visible (5 of 6 original families' history hand-authored, only screen ever gets code-level emission, and that not until MH-2) is a scope decision explicit in PROPOSER-RUNBOOK.md's §5 from this same wave ('Emission-in-the-harness... is Wave MH-2's scope, not this wave's'), not a defect of MH-1's own work — it is picked up as a live hypothesis in meta-harness/LAST-PROPOSER-PASS.md (Wave MH-4) instead of being retrofitted into this artifact as something MH-1 got wrong."
+}

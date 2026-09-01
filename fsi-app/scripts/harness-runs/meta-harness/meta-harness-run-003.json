@@ -1,0 +1,84 @@
+{
+  "harness_family": "meta-harness",
+  "harness_version": "sha256:f212348085455946",
+  "run_id": "meta-harness-run-003",
+  "started_at": "2026-09-01T05:26:19Z",
+  "config": {
+    "wave": "MH-3 (build plan §3 'first live loop, proof the system improved itself')",
+    "commit": "86872ff98de26befdddb96bb11981757a4d56fd4",
+    "scope": "Proposer pass over mint-run-001.json (per PROPOSER-RUNBOOK.md) implements its top three proposals through mint's own gates (capture-completeness gate, unicode-integrity check, MINT-RUNBOOK.md §1a slice-and-rebuild law codified); retrofits batch-001's six payloads with ONLY fetched_length added, proving the hardened validator now structurally rejects all six; mint-run-002.json records the cycle; mint's LAST-PROPOSER-PASS.md rewritten to name mint-run-002 (F28 rule (d), N≥2).",
+    "spend": "$0 — in-session Sonnet only",
+    "db_access": "none this wave — local validator/test runs against already-archived batch-001 evidence"
+  },
+  "inputs_ref": [
+    "fsi-app/scripts/harness-runs/mint/mint-run-001.json",
+    "fsi-app/scripts/harness-runs/mint/LAST-PROPOSER-PASS.md (Wave MH-1 state)",
+    "fsi-app/scripts/harness-runs/mint/PENDING-RUN.md (Wave MH-2 state)",
+    "fsi-app/scripts/harness-runs/meta-harness/meta-harness-run-001.json",
+    "fsi-app/scripts/harness-runs/meta-harness/meta-harness-run-002.json"
+  ],
+  "per_item": [
+    {
+      "id": "capture-completeness-gate",
+      "outcome": "implemented",
+      "verdict": "search_results[].fetched_length required + length/ratio-tolerance check in validate-mint-payload.mjs; closes mint-run-001.json's defects_found[0]",
+      "evidence_refs": ["fsi-app/scripts/mint/validate-mint-payload.mjs", "fsi-app/scripts/mint/payload-schema.json"],
+      "error": null
+    },
+    {
+      "id": "unicode-integrity-check",
+      "outcome": "implemented",
+      "verdict": "NFKC + known-substitution-class comparison against an independently archived source (archived_source_path); closes mint-run-001.json's defects_found[2]; two red tests reproduce the actual × → x and curly-quote bugs verbatim from the traces",
+      "evidence_refs": ["fsi-app/scripts/mint/validate-mint-payload.mjs", "fsi-app/scripts/mint/validate-mint-payload.test.mjs"],
+      "error": null
+    },
+    {
+      "id": "slice-and-rebuild-law",
+      "outcome": "implemented",
+      "verdict": "MINT-RUNBOOK.md §1a codifies the ≤8,000-char slice-and-rebuild procedure as law — measure fetched_length, slice, verify length + head/tail, rebuild by script, archive before authoring claims",
+      "evidence_refs": ["fsi-app/scripts/mint/MINT-RUNBOOK.md"],
+      "error": null
+    },
+    {
+      "id": "32009L0123-tolerance-nuance",
+      "outcome": "observation_not_a_defect",
+      "verdict": "98.73% capture ratio (12,082/12,237 chars) clears the 0.98 floor but still misses the 50-char tolerance, so it fails the finer-grained capture_length_mismatch reason rather than the coarse capture_incomplete one the other five hit — both reasons correctly reject it; named explicitly per PROPOSER-RUNBOOK.md's 'measurement, not assertion' rather than silently lumped in with the other five as identically-shaped",
+      "evidence_refs": ["fsi-app/scripts/harness-runs/mint/mint-run-002.json"],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "mint_family_proposals_implemented_this_cycle": 3,
+    "mint_validator_distinct_failure_reasons_before": 17,
+    "mint_validator_distinct_failure_reasons_after": 27,
+    "mint_batch001_retrofit_rejection_rate": "6/6 = 100%",
+    "mint_kit_tests": "33/33 (21 pre-existing + 12 new)",
+    "gates_at_landing": "run-test-suite.sh 2104/2104, tsc clean, fitness 23/23 (incl. F28), 0 violations",
+    "meta_harness_gate_catch_rate": "2/6 = 33.3%",
+    "meta_harness_gate_catch_rate_method": "distinct defect classes named across ALL families' defects_found history as of this run, vs. how many now have a LANDED, automated, pre-coordinator-review check (a validator gate or fitness function), not merely a fix authored or a human review that caught it once. Six classes on record: (A) mint capture-incompleteness, (B) mint unicode/transcription corruption undetected by intra-payload check, (C) screen round-1 per-row data loss, (D) screen round-2 99-row misclassification, (E) fetch-drain host-level timeout/hang, (F) fetch-drain *.gov.au HTTP/2 stream-error cluster. Gated as of this run: A and B only (validate-mint-payload.mjs's new capture-completeness and unicode-integrity checks, this wave) = 2/6. NOT counted as gated: C (structurally prevented by run-numbered filenames, a different mechanism than a pre-review CONTENT check — screen-worklist.mjs can no longer silently overwrite a prior round's output, but nothing checks a row's CLASSIFICATION before it lands); D (fixed by a one-time human mechanism-test re-audit, no automated rule change); E (fix authored, commit 0735a410, but NOT DEPLOYED as of this run); F (fix_ref: null, unresolved). This is a small-N (6), cumulative, retrospective count — not a statistically meaningful rate — recomputed fresh at each meta-harness run, not asserted once.",
+    "meta_harness_proposals_implemented_this_cycle": "not measurable — this run predates the meta-harness family's own first proposer pass (meta-harness/LAST-PROPOSER-PASS.md, this wave, MH-4); becomes computable at meta-harness-run-004 by checking how many of that pass's hypotheses land as a diff"
+  },
+  "defects_found": [
+    {
+      "description": "MH-3 makes batch-001's capture-incompleteness defect class structurally IMPOSSIBLE to pass silently (6/6 payloads now correctly rejected), but does not make any of the six payloads structurally CORRECT — re-fetching them under the new slice-and-rebuild law so they actually PASS the hardened validator is explicitly deferred ('M2 full-text rebuild + apply batch-001 UNDER the hardened validator,' build plan §4). At the meta-harness level this is worth naming precisely rather than reading 'defect fixed' as 'data fixed': a gate that reliably rejects a known-bad class is a real, measurable win, and a distinct thing from the underlying data being repaired.",
+      "root_cause": "explicit scope boundary stated plainly in mint-run-002.json's own config.retrofit and proposer_notes, not an oversight this run is newly discovering.",
+      "fix_ref": null
+    },
+    {
+      "description": "The gate-catch-rate improvement (0/6 → 2/6) is entirely concentrated in the mint family. Screen's and fetch-drain's defect classes have zero landed automated gates as of this run: screen's is a human mechanism-review item by design (screen-run-003.json's own hard rule — never silently flip a decided verdict, so a rule change needs a dedicated mechanism-test pass, not a mechanical gate); fetch-drain's timeout fix is authored but undeployed, and its HTTP/2 class is unresolved. One family's live proposer-implementation cycle is driving the entire system's gate-catch rate — worth watching as a trend, not read as system-wide progress.",
+      "root_cause": "mint had a live implementation-scoped lane this wave (MH-3); screen's and fetch-drain's most recent proposer passes (MH-2, per their own LAST-PROPOSER-PASS.md) were 'none warranted' and 'deploy pending' respectively — neither was an implementation cycle.",
+      "fix_ref": null
+    }
+  ],
+  "full_trace_refs": [
+    "fsi-app/scripts/mint/validate-mint-payload.mjs",
+    "fsi-app/scripts/mint/validate-mint-payload.test.mjs",
+    "fsi-app/scripts/mint/payload-schema.json",
+    "fsi-app/scripts/mint/MINT-RUNBOOK.md",
+    "fsi-app/scripts/harness-runs/mint/mint-run-001.json",
+    "fsi-app/scripts/harness-runs/mint/mint-run-002.json",
+    "fsi-app/scripts/harness-runs/mint/LAST-PROPOSER-PASS.md",
+    "/root/work/mint/batch-001/HARDENED-VALIDATOR-REJECTIONS-mh3.md"
+  ],
+  "proposer_notes": "Authored Wave MH-4, retrofitting MH-3's real commit 86872ff98de26befdddb96bb11981757a4d56fd4 — per_item and metrics are read directly from mint-run-002.json (itself MH-3's own real artifact, not reconstructed) plus the commit message; the two defects_found entries here are new, meta-level observations this wave adds on top of mint-run-002.json's own record (mint-run-002.json's own defects_found is read in full and not repeated verbatim here — see full_trace_refs). started_at is the commit's own author date. harness_version equals meta-harness-run-001.json's and -002.json's (sha256:f212348085455946) — computed against the CURRENT tree, i.e. AT THIS WAVE'S (MH-4's) landing, over the four governing files CONVENTION.md/PROPOSER-RUNBOOK.md/run-artifact.mjs/F28-harness-run-integrity.mjs exactly as they read once this wave's own edits (registering 'meta-harness' in ALLOWED_FAMILIES and GOVERNING_FILES, plus this documentation) are committed — this IS the artifact F28 rule (c) checks the current tree's re-hash against, and it matches by construction (this is the run that lands alongside the governing-file edits, so no PENDING-RUN.md is needed). meta_harness_gate_catch_rate's method is written out in full in metrics above specifically so a future meta-harness run can recompute it rather than trust this run's number on faith — per this family's own PROPOSER-RUNBOOK.md's full-traces-over-summaries principle applied to itself. This artifact, together with run-001 and run-002, is the required reading list meta-harness/LAST-PROPOSER-PASS.md (this same wave) is built from."
+}

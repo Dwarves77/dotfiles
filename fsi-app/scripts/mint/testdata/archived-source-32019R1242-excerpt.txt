@@ -1,0 +1,10 @@
+Article 8
+
+Compliance with the specific CO2 emissions targets
+
+1. Where a manufacturer is found, pursuant to paragraph 2, to have excess CO2 emissions in a given reporting period from 2025 onwards, the Commission shall impose an excess CO2 emissions premium, calculated in accordance with the following formula:
+
+(a)
+
+from 2025 to 2029,
+(Excess CO2 emissions premium) = (Excess CO2 emissions × 4 250 EUR/gCO2/tkm)

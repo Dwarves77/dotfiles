@@ -1,0 +1,1202 @@
+{
+  "harness_family": "fetch-drain",
+  "harness_version": "sha256:763f9e0293042adf",
+  "run_id": "fetch-drain-run-002",
+  "started_at": "2026-09-01T01:26:00Z",
+  "config": {
+    "worker_version_deployed": "v1.5 (unchanged from run-001; v1.6/commit 0735a410 authored, not yet deployed — coordinator deploys per RD-19/worktree-isolation doctrine)",
+    "replay_method": "every pending_first_fetch status='error' row (127 of them) replayed once this session via net.http_post, queue_ids batches of 8, timeout_milliseconds=120000, against the identical v1.5 code that produced the original error",
+    "rows_pre_emptively_skipped": 2,
+    "pre_emptive_skip_reason": "diputados.gob.mx (bare domain) and logistics.gov.in — proven ~120s+ TCP-connect hang under v1.5 (identical signature to the two confirmed-hang rows this session); a repeat run would only reproduce the hang at invocation cost",
+    "rows_cleared_during_replay_not_in_this_table": 5,
+    "supabase_project": "kwrsbpiseruzbfwjpvsp"
+  },
+  "inputs_ref": [
+    "live query: pending_first_fetch rows with status='error', project kwrsbpiseruzbfwjpvsp — no static input file"
+  ],
+  "per_item": [
+    {
+      "id": "https://assets.bbhub.io/company/sites/60/2021/10/final-2017-tcfd-report.pdf",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://blogs.adb.org/blog/six-strategies-drive-decarbonization-asian-transport",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://bsr.org",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://cbcny.org/research/improving-nys-cap-and-invest-design",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://classic.austlii.edu.au/au/legis/cth/consol_act/ccaa2011237",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://committees.parliament.uk/writtenevidence/38693/html/",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://commonslibrary.parliament.uk/research-briefings/cbp-10279/",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://commonslibrary.parliament.uk/research-briefings/cdp-2021-0088/",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=4"
+    },
+    {
+      "id": "https://decarbonization.unido.org",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://decarbonization.unido.org/news/first-movers-coalition-industrial-deep-decarbonization-initiative-net-zero-government-initiative-joint-call-to-action/",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://environment.qld.gov.au/management/policy-regulation/changes",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://hydrogencouncil.com",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://hydrogencouncil.com/en/global-hydrogen-compass/",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://iapps.courts.state.ny.us/",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://ifs.org.uk/articles/response-scrapping-carbon-price-support",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://lordslibrary.parliament.uk/greenhouse-gas-emissions-trading-scheme-amendment-extension-to-maritime-activities-order-2026/",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://oneplanetnetwork.org",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://questions-statements.parliament.uk/written-statements/detail/2025-03-25/hlws548",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://regjeringen.no/en/whats-new/zero-emission-requirements-for-passenger-ships-in-world-heritage-fjords/id3097475/",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=4"
+    },
+    {
+      "id": "https://regulations.justia.com/states/california/title-13/division-2/chapter-6-5/article-6/section-1233/",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://support.sitecompli.com/hc/en-us/articles/360052756473-local-law-84-benchmarking",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=4"
+    },
+    {
+      "id": "https://thebrakereport.com/cvsa-2026-international-roadcheck-underway-targeting-eld-and-cargo-securement/",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=4"
+    },
+    {
+      "id": "https://unece.org/transport/road-transport/working-party-automatedautonomous-and-connected-vehicles-introduction",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.adb.org/documents/partnership-report-2025",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=4"
+    },
+    {
+      "id": "https://www.adb.org/news/adb-celebrates-partnership-europe-highlights-private-sector-opportunities",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=4"
+    },
+    {
+      "id": "https://www.aneel.gov.br",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.annualreviews.org/content/journals/10.1146/annurev-environ-012220-024657",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.bsr.org/en/blog/improve-sustainability-with-new-air-freight-alliance",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.cbre.co.uk/insights/articles/what-can-we-expect-from-the-upcoming-changes-to-minimum-energy-efficiency-standards",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.commercialmotor.com/news/article/smes-trial-electric-hgvs-in-dp-world-and-project-jolt-partnership",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.consilium.europa.eu/en/policies/fit-for-55/",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=4"
+    },
+    {
+      "id": "https://www.constructiondive.com/news/arizona-dot-taps-jacobs-sundt-highway-project/803064/",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.devex.com/news/is-a-transcontinental-highway-the-key-to-unlocking-trade-in-latin-america-112069",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.dpi.qld.gov.au/business-priorities/biosecurity/policy-legislation-regulation/biosecurity-act-2014",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.edhat.com/california/news/california-sues-trump-administration-over-repeal-of-epa-endangerment-finding/",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.energy.vic.gov.au/households/electric-and-efficiency-standards-for-buildings",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.esgdive.com/news/advancing-sustainability-heightened-scrutiny-trellis-greenbiz26-roundup-insights-coverage/816950/",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.espo.be/news/espos-environmental-report-2025-european-ports-lead-the-way-in-sustainability-from-policy-to-practice",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.fastcompany.com/91301038/us-ports-federal-funding-pollution-clean-up-trump-administration",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=4"
+    },
+    {
+      "id": "https://www.gac.com/hot-port-news/enhancement-of-the-maritime-singapore-green-initiative-green-port-programme",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.hansonbridgett.com/publication/250226-2340-clean-air-act-waiver",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.iea.org/data-and-statistics/data-product/energy-prices",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.iea.org/reports/electricity-2026/prices",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.itf-oecd.org/decarbonising-transport",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.loc.gov/item/global-legal-monitor/2022-11-17/australia-legislation-setting-emissions-reduction-targets-enacted",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.ncsl.org/labor-and-employment/state-minimum-wages",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.nysenate.gov/newsroom/press-releases/2026/new-york-state-senate-passes-legislation-strengthen-climate-and",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.planning.qld.gov.au/planning-framework/legislation/regional-planning-interests-condamine-alluvium-and-other-legislation-amendment-bill-2026",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.planning.vic.gov.au/planning-schemes/amendments/amending-a-planning-scheme",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.regjeringen.no/en/whats-new/introducing-zero-emission-requirements-in-the-world-heritage-fjords/id3051481/",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "https://www.utilitydive.com/news/trump-tariffs-battery-energy-storage/746849/",
+      "outcome": "error_403_forbidden",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=3"
+    },
+    {
+      "id": "http://diariooficial.gob.mx/normasoficiales/9561/semarnat/semarnat.html",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=4"
+    },
+    {
+      "id": "https://afdc.energy.gov/fuels/laws/elec?state=nc",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=4"
+    },
+    {
+      "id": "https://asiantransportobservatory.org/documents/198/trends_on_green_freight_in_asia.pdf",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://britanniapandi.com/wp-content/uploads/2025/06/regulatory-overview-of-carbon-intensity-indicator-cii-and-energy-efficiency-existing-ship-index-eexi-final.pdf",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://especiales.mintransporte.gov.co/semanamovilidadco/movilidad-ambientalmente-sostenible.php",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://eur-lex.europa.eu/legal-content/en/txt/?uri=celex:32023r1804",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://law.go.kr/lsinfop.do?lsiseq=207083",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://leginfo.legislature.ca.gov/faces/billtextclient.xhtml?bill_id=202320240sb253",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://marketac.eu/wp-content/uploads/2025/03/dg-env-presentation-ppwr.pdf",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://nepis.epa.gov/exe/zypdf.cgi?dockey=p101a2vi.pdf",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=**410**; attempts=3"
+    },
+    {
+      "id": "https://odsorient.com/en/imo-co%e2%82%82-regulations-2026-that-will-change-for-exporters-2",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://theicct.org/wp-content/uploads/2023/04/afir-eu-policy-update-a4-final.pdf",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://truckdrivernews.com/cvsa-roadcheck-2026-inspections-now-underway/",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://ww2.arb.ca.gov/sites/default/files/2023-06/act-1963.pdf",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=4"
+    },
+    {
+      "id": "https://ww2.eagle.org/content/dam/eagle/regulatory-news/2025/application-of-eu-mrv-and-eu-ets-to-offshore-ships.pdf",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=4"
+    },
+    {
+      "id": "https://www.aasb.gov.au/news/sustainability-reporting/",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=4"
+    },
+    {
+      "id": "https://www.aircargonews.net/policy/environment/delta-cargo-joins-sustainable-air-freight-alliance/",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://www.bmv.de/en/topics/eu-policy/eu-transport-policy/climate-friendly-mobility/climate-friendly-mobility.html",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=4"
+    },
+    {
+      "id": "https://www.calrecycle.ca.gov/swfacilities/permits",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://www.cattwyk.com/en-news/news-on-the-amendment-of-the-f-gas-regulation",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://www.corepower.energy/news/maersk-joins-nuclear-box-ship-study",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://www.dehst.de/en/topics/nehs/eu-ets-2/reporting-phase-2024-2026/eu-ets2_node.html",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=4"
+    },
+    {
+      "id": "https://www.diputados.gob.mx/leyesbiblio/pdf/lgeepa.pdf",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://www.diputados.gob.mx/leyesbiblio/pdf/linfcal.pdf",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://www.ecfr.gov/current/title-40/chapter-i/subchapter-c/part-63/subpart-dddd",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=4"
+    },
+    {
+      "id": "https://www.ehpa.org/wp-content/uploads/2024/11/f-gas-regulation-guidelines_european-heat-pump-association_november-2024.pdf",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://www.enbridge.com/projects-and-infrastructure/public-awareness/norman-wells-line-21",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://www.gob.mx/cms/uploads/attachment/file/505745/brochure_sce-eng.pdf",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://www.ieabioenergy.com/wp-content/uploads/2024/12/countryreport2024_brazil_final.pdf",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://www.ieta.org/uploads/wp-content/2025/09/ieta_business_brief-canada-clean-fuel-regilation-cfr-september_2025finalone.pdf",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://www.law.go.kr/lsinfop.do?lsiseq=207083",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://www.queclink.com/2026/05/13/eu-mobility-package-and-tachograph-requirements-what-fleet-operators-need-to-know-in-2026/",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://www.transportforthenorth.com/decarbonisation/",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://www.undp.org/sites/g/files/zskgke326/files/publications/executive%20summary%20-%20env%20finance%20tools.pdf",
+      "outcome": "error_404_410_gone",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=404; attempts=3"
+    },
+    {
+      "id": "https://eur-lex.europa.eu/legal-content/en/txt/html/?uri=celex:32025r0035",
+      "outcome": "error_5xx",
+      "verdict": "mixed",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=500; attempts=7; note=EUR-Lex's own render endpoint erroring on this CELEX id specifically (not a general EUR-Lex outage — other CELEX ids on the same host captured cleanly this session, e.g. `32003L0087`). **retry-after-v1.6**, but a repeat 500 after that would point at EUR-Lex-side, not worker-side."
+    },
+    {
+      "id": "https://www.nautilusint.org/en/news-insight/telegraph/norway-introduces-zero-emissions-requirement-from-2026-to-world-heritage-fjords/",
+      "outcome": "error_5xx",
+      "verdict": "mixed",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "status=502; attempts=5 (MAX_ATTEMPTS exhausted); note=Persisted across 3 replay attempts this session (01:26 → 03:16, ~2h span) — a proxy/CDN in front of the article is unhealthy, not a one-off blip. **retry-after-v1.6**, low confidence."
+    },
+    {
+      "id": "https://docs.nrel.gov/docs/fy17osti/66088.pdf",
+      "outcome": "error_dns",
+      "verdict": "genuinely_gone",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://docs.nrel.gov/docs/fy18osti/70679.pdf",
+      "outcome": "error_dns",
+      "verdict": "genuinely_gone",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://morihamada.com",
+      "outcome": "error_dns",
+      "verdict": "genuinely_gone",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=8"
+    },
+    {
+      "id": "https://research-hub.nrel.gov/en/publications/impacts-of-valuing-resilience-on-cost-optimal-pv-and-storage-syst-2",
+      "outcome": "error_dns",
+      "verdict": "genuinely_gone",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://samr.gov.cn/",
+      "outcome": "error_dns",
+      "verdict": "genuinely_gone",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://biofin.org",
+      "outcome": "error_tls",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://customs-taxation.learning.europa.eu",
+      "outcome": "error_tls",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://diariooficial.gob.mx/",
+      "outcome": "error_tls",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://egazette.gov.in/writereaddata/2023/249377.pdf",
+      "outcome": "error_tls",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://now-gmbh.de",
+      "outcome": "error_tls",
+      "verdict": "genuinely_gone_mostly",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://diputados.gob.mx/leyesbiblio/pdf/linfcal.pdf",
+      "outcome": "error_timeout_tcp_connect",
+      "verdict": "retry_after_v1.6",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=6; replayed this session?=**no — pre-emptively skipped** (identical signature to gios/npc, both confirmed)"
+    },
+    {
+      "id": "https://logistics.gov.in/initiatives/freight-ghg-calculator/",
+      "outcome": "error_timeout_tcp_connect",
+      "verdict": "retry_after_v1.6",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=6; replayed this session?=**no — pre-emptively skipped**"
+    },
+    {
+      "id": "https://npc.gov.cn/",
+      "outcome": "error_timeout_tcp_connect",
+      "verdict": "retry_after_v1.6",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=6; replayed this session?=yes — reproduced the hang, confirmed 120s+"
+    },
+    {
+      "id": "https://www.gios.gov.pl/en/eea/cooperation",
+      "outcome": "error_timeout_tcp_connect",
+      "verdict": "retry_after_v1.6",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=6; replayed this session?=yes — reproduced the hang, confirmed 120s+"
+    },
+    {
+      "id": "https://fred.stlouisfed.org/series/dcoilwtico",
+      "outcome": "error_http2_stream",
+      "verdict": "retry_after_v1.6_possible_separate_defect",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://minister.infrastructure.gov.au/c-king/media-release/australias-first-national-electric-vehicle-strategy-drive-cleaner-cheaper-run-vehicles",
+      "outcome": "error_http2_stream",
+      "verdict": "retry_after_v1.6_possible_separate_defect",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://pollution-waste.canada.ca",
+      "outcome": "error_http2_stream",
+      "verdict": "retry_after_v1.6_possible_separate_defect",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://www.aer.gov.au/",
+      "outcome": "error_http2_stream",
+      "verdict": "retry_after_v1.6_possible_separate_defect",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://www.climatechangeauthority.gov.au/",
+      "outcome": "error_http2_stream",
+      "verdict": "retry_after_v1.6_possible_separate_defect",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://www.climatechangeauthority.gov.au/accu-scheme-reviews",
+      "outcome": "error_http2_stream",
+      "verdict": "retry_after_v1.6_possible_separate_defect",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://www.dcceew.gov.au/sites/default/files/documents/national-electric-vehicle-strategy-annual-update-2024-25.pdf",
+      "outcome": "error_http2_stream",
+      "verdict": "retry_after_v1.6_possible_separate_defect",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://www.defence.gov.au/",
+      "outcome": "error_http2_stream",
+      "verdict": "retry_after_v1.6_possible_separate_defect",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://www.dfat.gov.au/trade-and-investment/singapore-and-australia-green-and-digital-shipping-corridor-factsheet-2025",
+      "outcome": "error_http2_stream",
+      "verdict": "retry_after_v1.6_possible_separate_defect",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://www.energy.gov.au/electric-vehicles/government-initiatives-supporting-electric-vehicles",
+      "outcome": "error_http2_stream",
+      "verdict": "retry_after_v1.6_possible_separate_defect",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://www.infrastructure.gov.au/infrastructure-transport-vehicles/maritime/protection-marine-environment/marpol",
+      "outcome": "error_http2_stream",
+      "verdict": "retry_after_v1.6_possible_separate_defect",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=8"
+    },
+    {
+      "id": "https://www.infrastructure.gov.au/infrastructure-transport-vehicles/vehicles/electric-vehicles/national-electric-vehicle-strategy",
+      "outcome": "error_http2_stream",
+      "verdict": "retry_after_v1.6_possible_separate_defect",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts=7"
+    },
+    {
+      "id": "https://eur-lex.europa.eu/legal-content/en/txt/html/?uri=celex:02019r1242-20240701",
+      "outcome": "error_202_warmup_max_attempts_exhausted",
+      "verdict": "retry_after_v1.6",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts (MAX)=7"
+    },
+    {
+      "id": "https://eur-lex.europa.eu/legal-content/en/txt/html/?uri=celex:32020r1056",
+      "outcome": "error_202_warmup_max_attempts_exhausted",
+      "verdict": "retry_after_v1.6",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts (MAX)=7"
+    },
+    {
+      "id": "https://eur-lex.europa.eu/legal-content/en/txt/html/?uri=celex:32024r1157",
+      "outcome": "error_202_warmup_max_attempts_exhausted",
+      "verdict": "retry_after_v1.6",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts (MAX)=7"
+    },
+    {
+      "id": "https://eur-lex.europa.eu/legal-content/en/txt/html/?uri=celex:32025r2083",
+      "outcome": "error_202_warmup_max_attempts_exhausted",
+      "verdict": "retry_after_v1.6",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts (MAX)=7"
+    },
+    {
+      "id": "https://eur-lex.europa.eu/legal-content/en/txt/html/?uri=celex:32026r1030",
+      "outcome": "error_202_warmup_max_attempts_exhausted",
+      "verdict": "retry_after_v1.6",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts (MAX)=7"
+    },
+    {
+      "id": "https://eur-lex.europa.eu/legal-content/en/txt/html/?uri=celex%3a32023r1115",
+      "outcome": "error_202_warmup_max_attempts_exhausted",
+      "verdict": "retry_after_v1.6",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts (MAX)=7"
+    },
+    {
+      "id": "https://www.melbourne.vic.gov.au/amendment-c376-sustainable-building-design",
+      "outcome": "error_202_warmup_max_attempts_exhausted",
+      "verdict": "retry_after_v1.6",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts (MAX)=5"
+    },
+    {
+      "id": "https://www.melbourne.vic.gov.au/green-factor-tool",
+      "outcome": "error_202_warmup_max_attempts_exhausted",
+      "verdict": "retry_after_v1.6",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "attempts (MAX)=5"
+    },
+    {
+      "id": "https://library.ctr.utexas.edu/",
+      "outcome": "error_thin_content_200",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "chars=340; attempts=3"
+    },
+    {
+      "id": "https://www.ucr.gov",
+      "outcome": "error_thin_content_200",
+      "verdict": "acquisition_ladder_candidate",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "chars=639; attempts=3"
+    },
+    {
+      "id": "https://asean.org/joint-ministerial-statement-of-the-thirtieth-asean-transport-ministers-meeting-30th-atm/",
+      "outcome": "error_singleton",
+      "verdict": "**retry-after-v1.6**, low confidence — a bare 307 as the terminal status (not followed further) despite `redirect: \"follow\"` is odd; could be a redirect to a URL that itself errored inside the follow chain. Worth a manual curl trace before re-spending an invocation.",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "detail=non-200 status 307, body NOT stored; attempts=3; recommendation=**retry-after-v1.6**, low confidence — a bare 307 as the terminal status (not followed further) despite `redirect: \"follow\"` is odd; could be a redirect to a URL that itself errored inside the follow chain. Worth a manual curl trace before re-spending an invocation."
+    },
+    {
+      "id": "https://www.dlapiper.com/en/insights/publications/2023/03/australias-climate-change-act-potential-implications-on-the-private-sector",
+      "outcome": "error_singleton",
+      "verdict": "**acquisition-ladder candidate** — 429 across all attempts (not a one-off burst) suggests durable rate-limiting keyed on something a browser fetch wouldn't trip (request pattern, missing referrer/cookies), not a transient spike.",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "detail=non-200 status 429, body NOT stored; attempts=7 (MAX_ATTEMPTS exhausted); recommendation=**acquisition-ladder candidate** — 429 across all attempts (not a one-off burst) suggests durable rate-limiting keyed on something a browser fetch wouldn't trip (request pattern, missing referrer/cookies), not a transient spike."
+    },
+    {
+      "id": "https://www.budget.ny.gov/",
+      "outcome": "error_singleton",
+      "verdict": "**retry-after-v1.6** — a mid-connection reset, not a timeout; plausibly the same connection-layer class as 7a (different error text, same root: Deno's client vs. this server's stack) rather than a genuinely dead host.",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "detail=`connection error: Connection reset by peer (os error 104)`; attempts=7 (MAX_ATTEMPTS exhausted); recommendation=**retry-after-v1.6** — a mid-connection reset, not a timeout; plausibly the same connection-layer class as 7a (different error text, same root: Deno's client vs. this server's stack) rather than a genuinely dead host."
+    },
+    {
+      "id": "https://www.korea.net/Government/Briefing-Room/Press-Releases/view?articleId=1568510&insttCode=A260112&type=N",
+      "outcome": "error_singleton",
+      "verdict": "**genuinely gone** — a 20-hop redirect loop (Deno fetch's cap) that never resolves is not a fixable transient; almost certainly a broken redirect chain on korea.net's side (e.g., a session-param loop) rather than anything worker-side.",
+      "evidence_refs": [
+        "/root/work/build/fetch-error-dispositions.md"
+      ],
+      "error": "detail=`Maximum number of redirects (20) reached`; attempts=7 (MAX_ATTEMPTS exhausted); recommendation=**genuinely gone** — a 20-hop redirect loop (Deno fetch's cap) that never resolves is not a fixable transient; almost certainly a broken redirect chain on korea.net's side (e.g., a session-param loop) rather than anything worker-side."
+    }
+  ],
+  "metrics": {
+    "rows_analyzed": 127,
+    "rows_cleared_during_replay": 5,
+    "rows_pre_emptively_skipped": 2,
+    "capture_success_rate_this_replay": "5 cleared / 132 replayed (127 still-error + 5 cleared) = 3.79%",
+    "class_breakdown": {
+      "403_forbidden": 51,
+      "404_410_gone": 34,
+      "5xx": 2,
+      "dns": 5,
+      "tls": 5,
+      "timeout_tcp_connect": 4,
+      "http2_stream_error": 12,
+      "202_warmup_max_attempts_exhausted": 8,
+      "thin_content_200": 2,
+      "singleton": 4
+    },
+    "recommendation_breakdown": {
+      "acquisition_ladder_candidate": 53,
+      "genuinely_gone_or_mostly": 44,
+      "retry_after_v1_6": 26,
+      "singleton_mixed": 4
+    }
+  },
+  "defects_found": [
+    {
+      "description": "gios.gov.pl and npc.gov.cn (plain HTML pages, not PDFs) reproduced the identical 'Connection timed out (os error 110)' signature as run-001's diputados.gob.mx PDF-hang finding, each independently confirmed to hang a full 120s+ pg_net invocation this session.",
+      "root_cause": "confirms fetch-drain-run-001.json's timeout defect is HOST-LEVEL (any slow/unresponsive TCP peer under v1.5's no-fetch-timeout design), not PDF-specific as the F1 finding alone might have suggested.",
+      "fix_ref": "commit 0735a410 — same fix as fetch-drain-run-001.json's timeout defect (AbortSignal.timeout(45000)); authored, not yet deployed as of this run"
+    },
+    {
+      "description": "12 of 127 errors are 'client error (SendRequest): http2 error: stream error received: unexpected internal error encountered' — a connection-layer failure from Deno's fetch client, not an application-level HTTP status. 10 of 12 are *.gov.au domains (several sharing the IPv6 prefix family 2600:1406:*), plus fred.stlouisfed.org and pollution-waste.canada.ca.",
+      "root_cause": "suspected — Deno's fetch client failing to negotiate/fall back cleanly against a CDN/edge configuration common to these hosts; not confirmed. v1.6's AbortSignal.timeout does not address this (it is a connection error, not a hang), so this is explicitly NOT closed by the already-authored fix.",
+      "fix_ref": null
+    }
+  ],
+  "full_trace_refs": [
+    "/root/work/build/fetch-error-dispositions.md"
+  ],
+  "proposer_notes": "per_item's 127 entries were parsed mechanically from fetch-error-dispositions.md's own per-class markdown tables (one script pass, id/outcome/verdict/error columns mapped 1:1 from the table's own header row) rather than manually transcribed — deliberately avoiding the exact manual-transcription-error class mint-run-001.json's defects_found[1] records, and total-count-verified against the doc's own 'Total 127' class-summary table. started_at is INFERRED from the earliest clock time cited inside the document itself (the §3 5xx table's note on the nautilusint.org row: 'Persisted across 3 replay attempts this session (01:26 -> 03:16, ~2h span)') — fetch-error-dispositions.md carries no single self-reported 'Generated:' timestamp the way the screen-*.screen-summary.md files do; the file's own mtime (2026-09-01T03:38:23Z) is this run's report-COMPLETION time, not its start, and is not used as started_at for that reason. harness_version is identical to fetch-drain-run-001.json (sha256:763f9e0293042adf) because the deployed worker code did not change between F1 and F1b — v1.6 (commit 0735a410) was authored in response to F1's findings but is still not deployed as of this run; a future proposer reading both artifacts side by side should read that identical hash as 'nothing about the harness changed here, only the input (this run replays F1's own error rows)', per CONVENTION.md's harness_version design intent."
+}

@@ -31,22 +31,52 @@
 // and is instead reported in the summary's "malformed input rows" section — the same "flag it, never invent
 // or silently drop" discipline the runbook enforces on payload authoring.
 //
+// Run history belongs in scripts/harness-runs/screen/ — see scripts/harness-runs/CONVENTION.md for the
+// artifact schema and PROPOSER-RUNBOOK.md for the read-before-you-run cadence (Wave MH-1).
+//
+// ── EMISSION IS IN THE HARNESS (Wave MH-2, build plan §2) ─────────────────────────────────────────────────
+// Every invocation of main() that reaches a successful write also writes its own run artifact to
+// scripts/harness-runs/screen/ via scripts/lib/run-artifact.mjs's writeRunArtifact — this is not a step a
+// coordinator remembers to run afterward, it is the last thing this script does before exiting 0. Forgetting
+// is not possible because there is nothing separate to remember. run_id auto-increments from the highest
+// existing screen-run-NNN.json already in the target directory (nextRunId, exported for the test suite).
+// --harness-runs-dir overrides the target directory (default: scripts/harness-runs/screen next to this
+// script, resolved absolutely so it is independent of cwd) — the ONLY reason to override it is a test that
+// must not write into the repo's real run history.
+//
 // ── USAGE ───────────────────────────────────────────────────────────────────────────────────────────────
 //   node scripts/mint/screen-worklist.mjs --input path/to/census-dump.json [--out-dir path/to/dir]
+//                                          [--harness-runs-dir path/to/dir]
 //
 // Writes, into --out-dir (default: the input file's own directory):
 //   <basename>.screen-results.json   -- full machine-readable results (see shape below)
 //   <basename>.screen-summary.md     -- human-readable summary for the coordinator (SCREEN-REPORT-FORMAT.md)
+// Writes, into --harness-runs-dir (default: scripts/harness-runs/screen/):
+//   screen-run-NNN.json              -- this run's CONVENTION.md-shaped artifact (see buildRunArtifact)
 //
 // Exit code: 0 on success (even when off_vertical/ambiguous rows exist — that is the screen doing its job,
 // not a runner failure); 1 only on a usage error or an unreadable/unparseable --input file.
 
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
 import { resolve, dirname, basename, extname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { classifyRelevance } from "./screen-rules.mjs";
+import { writeRunArtifact, hashHarnessVersion } from "../lib/run-artifact.mjs";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const FSI_ROOT = resolve(HERE, "..", "..");
+const DEFAULT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "screen");
+
+// The screen family's governing files per scripts/harness-runs/CONVENTION.md's harness_version table —
+// fsi-app-relative, single source of truth this script hashes itself with. F28 (harness-run-integrity)
+// imports this same constant rather than hand-copying it, so the two can never drift apart.
+export const SCREEN_GOVERNING_FILES = [
+  "scripts/mint/screen-rules.mjs",
+  "scripts/mint/screen-worklist.mjs",
+];
 
 function parseArgs(argv) {
-  const args = { input: null, outDir: null, reviewed: null, outBasename: null };
+  const args = { input: null, outDir: null, reviewed: null, outBasename: null, harnessRunsDir: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--input") args.input = argv[++i];
@@ -57,6 +87,8 @@ function parseArgs(argv) {
     else if (a.startsWith("--reviewed=")) args.reviewed = a.slice("--reviewed=".length);
     else if (a === "--out-basename") args.outBasename = argv[++i];
     else if (a.startsWith("--out-basename=")) args.outBasename = a.slice("--out-basename=".length);
+    else if (a === "--harness-runs-dir") args.harnessRunsDir = argv[++i];
+    else if (a.startsWith("--harness-runs-dir=")) args.harnessRunsDir = a.slice("--harness-runs-dir=".length);
   }
   return args;
 }
@@ -312,6 +344,91 @@ export function buildSummary({ results, malformed, counts, reviewMeta }, { input
   return lines.join("\n");
 }
 
+/**
+ * Next run_id for the screen family: scans harnessRunsDir for existing screen-run-NNN.json files
+ * (ignoring anything that doesn't match, so a stray PENDING-RUN.md or a corrupt filename never blocks
+ * numbering) and returns "screen-run-<NNN+1>", zero-padded 3 digits, per CONVENTION.md's run_id rule.
+ * An empty/missing directory starts at screen-run-001. Exported for the test suite.
+ */
+export function nextRunId(harnessRunsDir) {
+  let entries = [];
+  try {
+    entries = readdirSync(harnessRunsDir);
+  } catch {
+    entries = [];
+  }
+  let max = 0;
+  for (const name of entries) {
+    const m = /^screen-run-(\d{3})\.json$/.exec(name);
+    if (m) max = Math.max(max, Number.parseInt(m[1], 10));
+  }
+  return `screen-run-${String(max + 1).padStart(3, "0")}`;
+}
+
+/**
+ * Build this run's CONVENTION.md-shaped artifact. Pure function (no I/O, no Date.now() default — callers
+ * supply startedAt) so the test suite can assert its shape without touching the filesystem or the real
+ * harness-runs directory. `merged`/`reviewMeta` are exactly what main() already computed; `harnessVersion`
+ * is computed by the caller (the one I/O-bearing step: hashing SCREEN_GOVERNING_FILES).
+ *
+ * per_item ships EMPTY here, matching CONVENTION.md's "per_item at scale" rule and the precedent every
+ * retrofitted screen-run-*.json artifact already set (round 1 through round 3 all shipped per_item: []):
+ * a screen run's population is hundreds to thousands of rows, so row-level truth lives ONLY in
+ * full_trace_refs (the results JSON this same run writes, which — unlike per_item — holds every row,
+ * not a curated subset) never in a second, driftable copy inside the artifact itself.
+ */
+export function buildRunArtifact({
+  runId,
+  harnessVersion,
+  startedAt,
+  inputPath,
+  reviewedPath,
+  outDir,
+  rowsIn,
+  merged,
+  reviewMeta,
+  resultsPath,
+  summaryPath,
+}) {
+  const rate = (n, d) => (d > 0 ? `${n}/${d} = ${((n / d) * 100).toFixed(2)}%` : `${n}/${d} (no rows classified)`);
+  const classified = merged.results.length;
+  const operatorOverturnRate = reviewMeta
+    ? `${reviewMeta.reviewedApplied.length} reviewed verdict(s) applied to rule-ambiguous rows; ` +
+      `${reviewMeta.reviewedSkippedNotAmbiguous.length} reviewed entr(y/ies) targeting an already-decided ` +
+      `row were REFUSED by the hard rule (never overturns a rule on/off verdict), so 0 of those were applied`
+    : "not applicable — no --reviewed merge this run";
+
+  return {
+    harness_family: "screen",
+    harness_version: harnessVersion,
+    run_id: runId,
+    started_at: startedAt,
+    config: {
+      input: inputPath,
+      reviewed: reviewedPath,
+      out_dir: outDir,
+      rows_in: rowsIn,
+    },
+    inputs_ref: reviewedPath ? [inputPath, reviewedPath] : [inputPath],
+    per_item: [],
+    metrics: {
+      on_vertical: merged.counts.byVerdict.on_vertical ?? 0,
+      off_vertical: merged.counts.byVerdict.off_vertical ?? 0,
+      ambiguous: merged.counts.byVerdict.ambiguous ?? 0,
+      rows_malformed: merged.malformed.length,
+      ambiguous_rate: rate(merged.counts.byVerdict.ambiguous ?? 0, classified),
+      operator_overturn_rate: operatorOverturnRate,
+    },
+    defects_found: [],
+    full_trace_refs: [resultsPath, summaryPath],
+    proposer_notes:
+      "Auto-emitted by screen-worklist.mjs's own execution path (Wave MH-2, build plan §2 — " +
+      "'emission is in the harness, not the operator'). A proposer pass reading this run before the " +
+      "next screen batch should still read the full resultsPath/summaryPath in full_trace_refs, not " +
+      "just this artifact's metrics — per PROPOSER-RUNBOOK.md.",
+  };
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.input) {
@@ -397,6 +514,27 @@ function main() {
   }
   console.log(`Wrote ${resultsPath}`);
   console.log(`Wrote ${summaryPath}`);
+
+  // ── EMISSION IS IN THE HARNESS (Wave MH-2) — the run artifact write, as part of THIS execution path,
+  // not a separate step a coordinator has to remember. See the header note and buildRunArtifact() above.
+  const harnessRunsDir = resolve(args.harnessRunsDir || DEFAULT_HARNESS_RUNS_DIR);
+  const runId = nextRunId(harnessRunsDir);
+  const harnessVersion = hashHarnessVersion(SCREEN_GOVERNING_FILES, FSI_ROOT);
+  const artifact = buildRunArtifact({
+    runId,
+    harnessVersion,
+    startedAt: generatedAt,
+    inputPath,
+    reviewedPath,
+    outDir,
+    rowsIn: rows.length,
+    merged,
+    reviewMeta,
+    resultsPath,
+    summaryPath,
+  });
+  const artifactPath = writeRunArtifact(harnessRunsDir, artifact);
+  console.log(`Wrote ${artifactPath}`);
 }
 
 // Only run main() when this file is executed directly (not when imported by the test suite).

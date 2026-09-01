@@ -170,7 +170,8 @@
         "type": "object",
         "required": [
           "result_url",
-          "result_content"
+          "result_content",
+          "fetched_length"
         ],
         "additionalProperties": true,
         "properties": {
@@ -182,7 +183,21 @@
             "type": "string"
           },
           "result_content": {
-            "type": "string"
+            "type": "string",
+            "description": "The captured text. Per MINT-RUNBOOK.md's slice-and-rebuild law (Wave MH-3), this must be the FULL fetched document, assembled BY SCRIPT from <=8,000-char slices -- never a hand-copied excerpt. validate-mint-payload.mjs's capture-completeness gate fails any result_content whose length diverges from fetched_length beyond the documented tolerance (batch-001's defect, made structurally impossible)."
+          },
+          "fetched_length": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "REQUIRED (Wave MH-3). The length, in characters, of the FULL document actually fetched, recorded programmatically at fetch time (e.g. `window.__docs[celex].length`) -- independent of, and never derived from, result_content.length. This is what lets the validator catch a result_content that is silently only an excerpt of what was really fetched (mint-run-001.json defects_found[0])."
+          },
+          "archived_source_path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional (Wave MH-3). Path (relative to the payload file's own directory, or to the validator's --base-dir) to an INDEPENDENTLY produced plain-text archive of this result's full fetched document -- e.g. source-<celex>.txt, written BY SCRIPT from the same slice-and-rebuild pass that produced result_content, never retyped from it. When present, validate-mint-payload.mjs's unicode-integrity check cross-references every FACT source_span citing this result against this file instead of (only) against result_content -- the independent reference mint-run-001.json's defects_found[2] named as the missing piece: a hand-transcription error typed identically into both source_span AND result_content passes an intra-payload comparison no matter how strict, because both fields agree with each other. This file must NOT be produced by copying result_content -- it is the point of independence.",
+            "default": null
           },
           "result_index": {
             "type": "integer"

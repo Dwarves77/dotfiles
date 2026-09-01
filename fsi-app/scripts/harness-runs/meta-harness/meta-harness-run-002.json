@@ -1,0 +1,117 @@
+{
+  "harness_family": "meta-harness",
+  "harness_version": "sha256:f212348085455946",
+  "run_id": "meta-harness-run-002",
+  "started_at": "2026-09-01T05:04:08Z",
+  "config": {
+    "wave": "MH-2 (build plan §3 'enforcement + emission wiring') — ship the mechanical enforcement gate and wire artifact emission into each family's own execution path",
+    "commit": "f6a769eaec11b2cf38f328da98735bf62dc876d4",
+    "scope": "F28 (harness-run-integrity) added to the fitness battery: rule (a) schema, (b) census, (c) staleness coupling, (d) proposer attestation; registered as invariant RD-55 (remediation-discipline category 31). Emission wired per family: screen-worklist.mjs writes its own run-numbered artifact automatically (nextRunId + buildRunArtifact + writeRunArtifact at the end of main()); MINT-RUNBOOK.md §6 gets a mandatory writer-invocation step (prose, not code); a new fetch-drain/PROTOCOL.md makes emission part of every drain lane's contract (prose, not code). PROPOSER-RUNBOOK.md §6 documents the machine-checkable LAST-PROPOSER-PASS.md half, with real content for all three original families.",
+    "spend": "$0 — in-session Sonnet only",
+    "db_access": "none this wave — filesystem-only fitness-function and harness-code work"
+  },
+  "inputs_ref": [
+    "fsi-app/scripts/harness-runs/mint/mint-run-001.json",
+    "fsi-app/scripts/harness-runs/screen/screen-run-001.json",
+    "fsi-app/scripts/harness-runs/screen/screen-run-002.json",
+    "fsi-app/scripts/harness-runs/screen/screen-run-003.json",
+    "fsi-app/scripts/harness-runs/fetch-drain/fetch-drain-run-001.json",
+    "fsi-app/scripts/harness-runs/fetch-drain/fetch-drain-run-002.json",
+    "fsi-app/scripts/harness-runs/CONVENTION.md",
+    "fsi-app/scripts/harness-runs/PROPOSER-RUNBOOK.md (Wave MH-1 state)"
+  ],
+  "per_item": [
+    {
+      "id": "F28-rule-a-schema",
+      "outcome": "rule_shipped",
+      "verdict": "every scripts/harness-runs/*/*.json validates against CONVENTION.md's schema — reuses validateRunArtifact (imported from run-artifact.mjs), not re-implemented",
+      "evidence_refs": ["fsi-app/.discipline/fitness/functions/F28-harness-run-integrity.mjs"],
+      "error": null
+    },
+    {
+      "id": "F28-rule-b-census",
+      "outcome": "rule_shipped",
+      "verdict": "every registered family in ALLOWED_FAMILIES has ≥1 VALID artifact",
+      "evidence_refs": ["fsi-app/.discipline/fitness/functions/F28-harness-run-integrity.mjs"],
+      "error": null
+    },
+    {
+      "id": "F28-rule-c-staleness-coupling",
+      "outcome": "rule_shipped",
+      "verdict": "governing-file drift vs every recorded harness_version is a violation unless a newer run or a reverse-audited PENDING-RUN.md marker acknowledges it",
+      "evidence_refs": ["fsi-app/.discipline/fitness/functions/F28-harness-run-integrity.mjs"],
+      "error": null
+    },
+    {
+      "id": "F28-rule-d-proposer-attestation",
+      "outcome": "rule_shipped",
+      "verdict": "a family with ≥2 valid artifacts must carry a LAST-PROPOSER-PASS.md naming the latest run_id verbatim",
+      "evidence_refs": ["fsi-app/.discipline/fitness/functions/F28-harness-run-integrity.mjs"],
+      "error": null
+    },
+    {
+      "id": "screen-emission-wiring",
+      "outcome": "wired_in_code",
+      "verdict": "screen-worklist.mjs's main() calls nextRunId + buildRunArtifact + writeRunArtifact on every invocation — forgetting is structurally not possible",
+      "evidence_refs": ["fsi-app/scripts/mint/screen-worklist.mjs", "fsi-app/scripts/mint/screen-worklist.test.mjs"],
+      "error": null
+    },
+    {
+      "id": "mint-emission-wiring",
+      "outcome": "wired_in_runbook_prose",
+      "verdict": "MINT-RUNBOOK.md §6 adds a mandatory writer-invocation step — a human/lane must remember to run it; no code calls writeRunArtifact from any mint script",
+      "evidence_refs": ["fsi-app/scripts/mint/MINT-RUNBOOK.md"],
+      "error": null
+    },
+    {
+      "id": "fetch-drain-emission-wiring",
+      "outcome": "wired_in_protocol_doc",
+      "verdict": "new scripts/harness-runs/fetch-drain/PROTOCOL.md makes emission part of every drain lane's contract — prose, not code; capture-worker/index.ts (Deno, deployed) does not call writeRunArtifact",
+      "evidence_refs": ["fsi-app/scripts/harness-runs/fetch-drain/PROTOCOL.md"],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "f28_rules_shipped": 4,
+    "f28_test_count": 27,
+    "f28_narrowings_applied": 1,
+    "f28_narrowings_considered_and_rejected": 1,
+    "fitness_battery_size_after": 23,
+    "fitness_violations": 0,
+    "pending_run_markers_created_this_wave": 2,
+    "pending_run_markers_created_for": ["mint", "screen"],
+    "families_with_code_level_emission": 1,
+    "families_with_prose_level_emission": 2,
+    "meta_harness_proposals_implemented_this_cycle": "not measurable — the meta-harness family is not yet registered as of this run (registered Wave MH-4)",
+    "meta_harness_gate_catch_rate": "unchanged from run-001 for CONTENT defects (F28 itself is a META-layer gate — schema/census/staleness/attestation — not a fix for any of run-001's six named family-level defect classes; see run-003 for the jump)"
+  },
+  "defects_found": [
+    {
+      "description": "F28 rule (c)'s harness_version staleness check is a WHOLE-FILE content hash — a comment-only or prose-only edit to a governing file trips it exactly like a real behavior change. This wave's own edits (a one-line CONVENTION.md pointer added to MINT-RUNBOOK.md's header and to screen-worklist.mjs's header, neither changing classification/validation behavior) moved mint's and screen's harness_version and required a PENDING-RUN.md marker for each — real, measurable staleness-marker churn from a non-behavioral edit.",
+      "root_cause": "deliberate design choice, not an F28 bug: CONVENTION.md's own harness_version table (Wave MH-1) states 'any edit to any hashed file changes it... lets a proposer lane tell the harness changed apart from the input changed without reading a diff.' F28's own header explicitly considered narrowing this (diffing only non-comment lines) and rejected it — see F28-harness-run-integrity.mjs's 'CONSIDERED AND NOT NARROWED' section.",
+      "fix_ref": null
+    },
+    {
+      "description": "Emission-in-the-harness (plan §2: 'the artifact write is part of each harness's own execution path... forgetting is not possible because there is nothing to remember') landed as CODE for screen only. For mint and fetch-drain it landed as PROSE (a mandatory runbook step; a protocol doc) — a human or lane can still skip the step, which is exactly the failure mode plan §2 says emission-in-the-harness is meant to make impossible.",
+      "root_cause": "mint has no single canonical script the way screen-worklist.mjs is — its batch procedure is a human/agent-run MINT-RUNBOOK.md sequence across several scripts and manual steps; fetch-drain's governing file (capture-worker/index.ts) is a deployed Deno edge function this repo does not import or execute as part of any local script, so there is no local 'end of main()' to wire a writeRunArtifact call into the way screen-worklist.mjs has one.",
+      "fix_ref": null
+    }
+  ],
+  "full_trace_refs": [
+    "fsi-app/.discipline/fitness/functions/F28-harness-run-integrity.mjs",
+    "fsi-app/.discipline/fitness/functions/F28-harness-run-integrity.test.mjs",
+    "fsi-app/.discipline/governance/invariants.mjs",
+    "fsi-app/.discipline/fitness/manifest.mjs",
+    "fsi-app/scripts/mint/screen-worklist.mjs",
+    "fsi-app/scripts/mint/screen-worklist.test.mjs",
+    "fsi-app/scripts/mint/MINT-RUNBOOK.md",
+    "fsi-app/scripts/harness-runs/fetch-drain/PROTOCOL.md",
+    "fsi-app/scripts/harness-runs/screen/PENDING-RUN.md",
+    "fsi-app/scripts/harness-runs/mint/PENDING-RUN.md (git show f6a769ea:fsi-app/scripts/harness-runs/mint/PENDING-RUN.md — deleted Wave MH-3 once superseded by mint-run-002.json)",
+    "fsi-app/scripts/harness-runs/mint/LAST-PROPOSER-PASS.md (git show f6a769ea:fsi-app/scripts/harness-runs/mint/LAST-PROPOSER-PASS.md — rewritten Wave MH-3)",
+    "fsi-app/scripts/harness-runs/screen/LAST-PROPOSER-PASS.md",
+    "fsi-app/scripts/harness-runs/fetch-drain/LAST-PROPOSER-PASS.md",
+    "fsi-app/scripts/harness-runs/PROPOSER-RUNBOOK.md"
+  ],
+  "proposer_notes": "Authored Wave MH-4, retrofitting MH-2's real commit f6a769eaec11b2cf38f328da98735bf62dc876d4 — every per_item entry and both defects_found entries are drawn directly from the commit's diff and from F28's own header comment (the 'KEEP IT HONEST' section), not inferred or invented. started_at is the commit's own author date. harness_version matches meta-harness-run-001.json and -003.json (see run-001's proposer_notes for why: the meta-harness family's own governing-file set was not complete until F28 existed, and the family itself was not registered until this wave, so all three retrofitted runs share one current-tree hash rather than three historical ones). Both defects_found entries here are read directly by meta-harness/LAST-PROPOSER-PASS.md (Wave MH-4) as its primary evidence for two of its ranked hypotheses — the staleness-marker-churn question and the retrofit-vs-emission gap — rather than re-derived from scratch."
+}

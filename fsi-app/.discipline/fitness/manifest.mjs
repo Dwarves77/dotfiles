@@ -93,6 +93,13 @@ import { fitnessFunction as F26 } from './functions/F26-storage-ceiling-parity.m
 // parser->planner seam was validated only by a live --apply, closed now by
 // market-producer-composition.test.mjs. Filesystem only: no network, no DB, no model call.
 import { fitnessFunction as F27 } from './functions/F27-producer-seam-proof.mjs';
+// Harness-run integrity (2026-09-01, Wave MH-2): F28 is the meta-harness layer's own enforcement gate
+// (build plan §2) — it fails CI when a harness family's (mint/screen/fetch-drain) code changed without a
+// run artifact recording why, when a scripts/harness-runs/*/*.json artifact fails CONVENTION.md's schema,
+// when a registered family has zero run history, or when a family with ≥2 runs has no proposer
+// attestation naming its latest run. Reuses validateRunArtifact/hashHarnessVersion from Wave MH-1's
+// scripts/lib/run-artifact.mjs rather than re-implementing the schema or the hash.
+import { fitnessFunction as F28 } from './functions/F28-harness-run-integrity.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -117,6 +124,7 @@ export const fitnessFunctions = [
   F25,
   F26,
   F27,
+  F28,
 ];
 
 export function getFunctionById(id) {

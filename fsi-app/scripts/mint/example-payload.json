@@ -50,6 +50,8 @@
       "result_title": "Commission Directive 2011/37/EU of 30 March 2011 amending Annex II to Directive 2000/53/EC on end-of-life vehicles",
       "search_query": "canonical:mint-proof",
       "result_index": 0,
+      "fetched_length": 686,
+      "_fetched_length_note": "Wave MH-3: equals result_content.length exactly here (a hand-assembled M0 proof payload predating the slice-and-rebuild procedure) -- the capture-completeness gate compares against this field, not a hardcoded assumption, so a genuine full-document fetch's result_content and fetched_length will normally both be far larger than this small proof example.",
       "result_content": "Article 1: Annex II to Directive 2000/53/EC is replaced by the text set out in the Annex to this Directive. Article 2: Member States shall bring into force the laws, regulations and administrative provisions necessary to comply with this Directive by 31 December 2011 at the latest. Article 3: This Directive shall enter into force on the 20th day following its publication in the Official Journal of the European Union. Article 4: This Directive is addressed to the Member States. Directive 2000/53/EC prohibits the use of lead, mercury, cadmium or hexavalent chromium in materials and components of vehicles put on the market after 1 July 2003, other than in cases listed in Annex II."
     }
   ],

@@ -7036,3 +7036,114 @@ also cleared F23's unmapped-write count by construction, since the file no longe
 write-shaped call. The 3 orphaned mint proofs were wired the way `scripts/gen` and `scripts/verify`
 already are — a `fsi-app/scripts/mint/*.test.mjs` directory glob added to `run-test-suite.sh` — rather
 than exempted; coverage-scan confirms 0 gaps and the fitness/CI/consistency battery reran full-green.
+
+## Addendum 72 — landing block 1: PR opened, merged, verified (2026-08-31, Cowork session)
+
+Lane L-2 closed the loop Addendum 71 left open. Branch `Dwarves77-patch-17` (112 files vs
+`origin/master`, byte-identical to local `land/build-block-1` — confirmed by an empty
+`git diff origin/Dwarves77-patch-17 HEAD --stat` before touching the browser) went through Phase 2
+of the landing runbook: opened as PR #501 ("Build block 1: full-read audit, 16 build waves, U7, mint
+machinery, screen v3"), title/body set via the native React value setter and submitted with
+`title.form.requestSubmit(<Create pull request button>)` — a bare `.click()` had failed a prior
+session and did not get retried here. The compare page's own "Files changed" tab counter (not a
+regex over free body text, which matched a stray code comment first) confirmed 112 before opening.
+
+Checks polled every ~2 minutes on the PR's rendered merge box (`document.body.innerText`, not a
+credentialed fetch to a GitHub JSON endpoint — the extension blocks those outright, "BLOCKED:
+Cookie/query string data", which is the safety rail working, not a bug to route around). Landed on
+"All checks have passed — 10 successful checks — No conflicts with base branch." Merged via Squash
+and merge → Confirm squash and merge, both button clicks driven through `javascript_tool`
+(`el.click()`) rather than the `computer` tool's simulated mouse click, which fired but never
+advanced the backgrounded tab's React state — traced by re-querying the DOM for the button that
+should have appeared and finding the old one still there, twice.
+
+Merge commit **`6227e41f3322b610c74c9a32f3d8da9c6921442e`**, "Dwarves77 merged commit 6227e41 into
+master · 10 checks passed" on the PR page. Verified from the local `dotfiles` checkout: `git fetch
+origin` then `git log --oneline -1 origin/master` names that exact commit; `git pull --ff-only`
+fast-forwarded clean (no local divergence, nothing to reconcile). Sha256 of 3 sample files spread
+across the manifest (`docs/INDEX.md`, `fsi-app/scripts/mint/lib/gate-a-match.mjs`,
+`fsi-app/supabase/migrations/273_coverage_gap_candidates_live_ddl_catchup.sql`), each recomputed
+from `git show origin/master:<path>`, matched `manifest.txt` exactly. Build block 1 is on `master`.
+
+**Open:** none on this thread. `docs/PROGRAM-BOARD.md` gets a closing row on this same commit.
+
+### Addendum 72a — post-merge applies (2026-08-31, same session)
+Coordinator applies after #501 merged: capture-worker redeployed at v7 (v1.5 headers + 403 retry).
+On the record: my first deploy call passed a placeholder literal instead of the file body — v6 was
+broken for 106 seconds; invocation-only function, zero invocations in the window, caught by
+re-reading the deployed source immediately (basis: get_edge_function). v7 verified by execution:
+Sonnet drain lane F1 ran 25 pg_net invocations — 85 new captures stored, queue 143→35 queued /
+done 1,100→1,183; errors 128→150 (mostly permanent 404/403 terminalizations). Found in the drain:
+large-PDF fetches (diputados.gob.mx) hang past 120s and one WORKER_RESOURCE_LIMIT crash — worker
+needs a size/time guard before the next drain block; error-ladder replay pass not yet run (gated on
+queued=0). Next block: finish drain + ladder, land this addendum, mint program pending operator
+ratifications (off-vertical digest, W1 register) and EUR-Lex fetch mechanics.
+
+## Addendum 73 — the meta-harness is built: the system now improves itself on use (2026-09-01, Cowork session)
+
+Operator direction: build the self-improvement layer before finishing other tasks; "this system gets
+smarter on its own." Grounding: arXiv 2603.28052 (Meta-Harness, Lee/Finn et al.) — full raw traces
+beat summaries (their ablation: 56.7% vs 38.7%), machine-readable artifacts, gates before evaluation.
+Plan written first (META-HARNESS-BUILD-PLAN.md), four Sonnet waves executed against it, all stacked
+on master 6227e41f, all green, unlanded:
+
+MH-1 (d5d7eb6c): run-artifact substrate — CONVENTION.md schema designed from the REAL runs, writer/
+reader/CLI fail-closed, SIX artifacts retrofitted from actual history (mint batch-001, screen v1-v3,
+drain F1/F1b), proposer cadence runbook. MH-2 (f6a769ea): F28 harness-run integrity, the repo's 23rd
+fitness function, red-tested (schema, census, staleness-coupling with honest narrowing, proposer
+attestation); emission wired INTO screen-worklist code and the mint/drain protocols. MH-3 (86872ff9):
+THE LOOP CLOSED — a proposer lane read the mint family's own record and hardened its own validator
+(17 → 27 failure classes: capture-completeness gate, unicode-integrity vs an independent archive,
+slice procedure as law); batch-001's six excerpt payloads now REJECTED verbatim by the machine, the
+defect class the coordinator caught by hand is structurally impossible. MH-4 (8a05c2c4): self-
+application — meta-harness registered as its own family, its three runs are artifacts, and its first
+self-proposer-pass found its own top weakness honestly: emission for mint/fetch-drain is prose-only
+and F28 cannot see a run that never wrote its artifact (ranked HIGH, next cycle). Suite 2104, fitness
+23/23, tsc clean at every wave.
+
+Resume queue (tasks #61-64): landing train 3 (W2 + F1b + MH1-4 + memory) → M2 full-text rebuild +
+batch-001 apply UNDER the hardened validator → v1.6 deploy + drain finish + ladder → mint batches
+002+ proposer-first. Parked for Jason: off-vertical archive + delete-8 ratifications.
+
+## Addendum 74 — landing train 3 consolidated: three module wires, capture-worker v1.6, the meta-harness (2026-09-01, landing lane L-3a)
+
+Worktree `/root/work/wt-land3`, branch `land/build-block-2`, based on `origin/master` (`6227e41f`,
+build block 1's merge commit — confirmed current before branching). Four merges, in order, zero
+manual conflict resolutions: git's `ort` strategy auto-merged the one file two branches both
+touched (`F25-module-liveness.mjs`, wave-w2 and wave-mh4) cleanly with no conflict markers. Nothing
+here needed a judgment call between competing intents.
+
+What this train carries:
+
+- **`build/wave-w2`** — wires three previously-built-but-dormant modules into their call sites and
+  registers them top-3: `evaluateDemotion` into the admin recompute-trust route (with a new
+  `.npmtest.mjs`), `derived-consistency` into `canonical-pipeline.ts` (new test file), and the
+  spend-gauge into `/api/health/spend` (new `.npmtest.mjs`, route rewritten from 96 to ~150+ lines
+  of real gauge logic). Closes three of the audit's "~45 built-but-unwired modules" line.
+- **`build/wave-f1b`** — capture-worker v1.6: adds a fetch timeout and a pre-buffer size guard to
+  `supabase/functions/capture-worker/index.ts` (161 lines added). Not yet deployed — deploy is
+  explicitly out of scope for this lane (no DB/edge-function writes; next in the resume queue).
+- **`build/wave-mh4`** — the meta-harness, landed as one branch that stacks MH-1 through MH-4
+  (verified by `git log origin/master..build/wave-mh4`: four commits, each the parent of the next —
+  merging mh4 alone brings all four). MH-1: run-artifact substrate (`CONVENTION.md`, writer/reader/
+  CLI, six real runs retrofitted from mint/screen/drain history, proposer-cadence runbook). MH-2:
+  F28 harness-run-integrity, fitness function #23, wired into the screen-worklist code and the mint/
+  drain protocols. MH-3: the loop actually closed — a proposer lane read the mint family's own run
+  record and hardened `validate-mint-payload.mjs` (17 → 27 failure classes); batch-001's six excerpt
+  payloads now fail the validator by construction. MH-4: the harness registered itself as a family
+  and ran its own first self-proposer pass, which found its own top gap honestly (mint/fetch-drain
+  emission is prose-only, F28 can't see a run with no artifact — ranked HIGH, next cycle, not fixed
+  here).
+- **Local master's Addenda 72/72a/73** — memory-only, merged from `/root/work/dotfiles` master
+  (three commits ahead of `origin/master`, not yet landed there): 72 records build block 1's PR
+  merge, 72a its post-merge applies, 73 the meta-harness build itself (the same work wave-mh4 ships
+  code for). Verified landed verbatim post-merge: `grep -n "Addendum 73" docs/ops/session-log.md`
+  hits at the expected new line, text matches the source commit exactly.
+
+No deletions in this train (`git diff --name-status origin/master..HEAD` shows A/M only, checked
+both before and after this addendum's own commit). Full CI-equivalent battery run after all four
+merges, before staging — see this session's report for the gate tails; battery was green top to
+bottom, nothing landed red and nothing was worked around.
+
+This train does not touch the DB, does not deploy the capture-worker, and does not run the browser
+landing — those stay with the next lane (Phase 2), per standing rule.

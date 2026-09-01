@@ -5,6 +5,25 @@
 // can fail before the budget is blown. Same server-side aggregate the /admin
 // MtdSpendTile shows, exposed on a secret-gated endpoint for external polling.
 //
+// SPEND GAUGE (Wave W2, wire #2 of the unwired-module disposition register,
+// docs/plans/unwired-disposition-2026-08-31.md §A). readSpendGauge/spend-gauge.mjs
+// had zero production callers before this wave. Mounted here ADDITIVELY as
+// `spend_gauge` in the response — NOT as a replacement of mtd_usd/pct/frozen.
+// Those three are computed TOGETHER, from one `created_at`-filtered read, inside
+// computeSpendHealth (spend-health.mjs, outside this wire's write scope) and the
+// uptime workflow (.github/workflows/uptime-probes.yml) reads pct/frozen alongside
+// mtd_usd as one internally-consistent trio; swapping mtd_usd's source out from
+// under them would desync two numbers in the same response. spend-gauge.mjs is
+// also a deliberately DIFFERENT framing by its own header ("no ceiling, no
+// denominator, informational only") — forcing its figure into the ceiling-shaped
+// mtd_usd field would misrepresent both mechanisms. The gauge instead adds what
+// this route did not otherwise have: today's spend, and paid-run traceability
+// coverage across the WHOLE month (not just the post-freeze rows mtd_usd's trio
+// already reports). Every existing response field, name, and semantic is
+// unchanged — see the consumer at .github/workflows/uptime-probes.yml (jq'd by
+// name: healthy, reason, mtd_usd, monthly_ceiling_usd, pct, frozen,
+// acquire_lock_on, paid_after_freeze, paid_after_rows[]).
+//
 // Auth: WORKER_SECRET header (workerAuthGuard), same pattern as
 // /api/health/surfaces and every worker/cron route.
 //
@@ -17,6 +36,7 @@ import { getServiceSupabase } from "@/lib/supabase-server";
 import { computeSpendHealth } from "@/lib/health/spend-health.mjs";
 import { acquireEnabled } from "@/lib/sources/acquire-lock.mjs";
 import { fetchAllRows } from "@/lib/db/paginate.mjs";
+import { readSpendGauge } from "@/lib/llm/spend-gauge.mjs";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +85,43 @@ const MONTHLY_CEILING_USD = 130;
 // Building that plumbing now, for a feature that is off, would be speculative work for a state that does not
 // exist — so it is recorded here, where whoever flips the flag will read it, rather than built on spec.
 const FREEZE_SINCE_ISO = process.env.SPEND_FREEZE_SINCE_ISO ?? "2026-08-13T17:00:00Z";
+
+// ── Response-body builder (pure, exported for testability — same route.ts-exports-a-pure-function
+// pattern src/app/api/admin/sources/bulk-import/route.ts's headReachabilityDecision and this wave's
+// own src/app/api/admin/recompute-trust/route.ts's demotionOutcomeFor already use). Proves the wire's
+// two load-bearing properties without a live DB: every pre-existing field/name/semantic survives byte-
+// for-byte (the uptime workflow's jq consumers), and `spend_gauge` is additive — present when the
+// gauge read succeeded, `null` (never a missing key, never a thrown response) when it didn't.
+export function buildSpendResponseBody(
+  v: ReturnType<typeof computeSpendHealth>,
+  spendGauge: Awaited<ReturnType<typeof readSpendGauge>> | null,
+  ctx: { monthlyCeilingUsd: number; freezeSinceIso: string; monthStartIso: string; checkedAtIso: string }
+) {
+  return {
+    ok: true,
+    healthy: v.healthy,
+    reason: v.reason,
+    mtd_usd: v.mtdUsd,
+    monthly_ceiling_usd: ctx.monthlyCeilingUsd,
+    pct: v.pct,
+    frozen: v.frozen,
+    acquire_lock_on: v.acquireEnabled,
+    freeze_since: ctx.freezeSinceIso,
+    latest_paid_at: v.latestPaidAt,
+    paid_after_freeze: v.paidAfterFreeze,
+    all_justified: v.allJustified,
+    // Enumerate the post-freeze paid rows (operational metadata only — UUIDs, $ figures, and the I2
+    // justification enum; never brief content). Empty in the frozen-and-quiet state.
+    paid_after_rows: v.paidAfterRows.map((r) => ({
+      item_id: r.itemId, source_id: r.sourceId, cost_usd: r.costUsd, started_at: r.startedAt, justification: r.justification,
+    })),
+    // ADDITIVE (wire #2, spend-gauge.mjs) — informational only, never gates the verdict above. null
+    // when the gauge read itself failed; every other field on this response is unaffected either way.
+    spend_gauge: spendGauge,
+    month_start: ctx.monthStartIso,
+    checked_at: ctx.checkedAtIso,
+  };
+}
 
 export async function GET(request: NextRequest) {
   const denied = workerAuthGuard(request);
@@ -119,25 +176,22 @@ export async function GET(request: NextRequest) {
     acquireEnabled: lockOn,
   });
 
-  return NextResponse.json({
-    ok: true,
-    healthy: v.healthy,
-    reason: v.reason,
-    mtd_usd: v.mtdUsd,
-    monthly_ceiling_usd: MONTHLY_CEILING_USD,
-    pct: v.pct,
-    frozen: v.frozen,
-    acquire_lock_on: v.acquireEnabled,
-    freeze_since: FREEZE_SINCE_ISO,
-    latest_paid_at: v.latestPaidAt,
-    paid_after_freeze: v.paidAfterFreeze,
-    all_justified: v.allJustified,
-    // Enumerate the post-freeze paid rows (operational metadata only — UUIDs, $ figures, and the I2
-    // justification enum; never brief content). Empty in the frozen-and-quiet state.
-    paid_after_rows: v.paidAfterRows.map((r) => ({
-      item_id: r.itemId, source_id: r.sourceId, cost_usd: r.costUsd, started_at: r.startedAt, justification: r.justification,
-    })),
-    month_start: monthStart.toISOString(),
-    checked_at: new Date().toISOString(),
-  });
+  // SPEND GAUGE (wire #2) — additive, best-effort. A gauge read failure narrows the response (the
+  // field is simply absent/null); it never fails the probe, because the health verdict above is
+  // already computed and is the one field the workflow actually gates on.
+  let spendGauge: Awaited<ReturnType<typeof readSpendGauge>> | null = null;
+  try {
+    spendGauge = await readSpendGauge(supabase);
+  } catch (e: any) {
+    console.warn(`[health/spend] spend-gauge read failed: ${e?.message ?? String(e)}`);
+  }
+
+  return NextResponse.json(
+    buildSpendResponseBody(v, spendGauge, {
+      monthlyCeilingUsd: MONTHLY_CEILING_USD,
+      freezeSinceIso: FREEZE_SINCE_ISO,
+      monthStartIso: monthStart.toISOString(),
+      checkedAtIso: new Date().toISOString(),
+    })
+  );
 }
