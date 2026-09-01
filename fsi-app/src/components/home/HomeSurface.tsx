@@ -60,6 +60,11 @@ interface HomeSurfaceProps {
   watchlistPromise: Promise<WatchlistItem[]>;
   coverageGapsPromise: Promise<CoverageGap[]>;
   surfaceCoverage: SurfaceCoverageSnapshot;
+  /** Server-rendered <ChangedSinceStrip/> (src/components/dashboard/ChangedSinceStrip.tsx) — source-
+   *  changed / theme-membership-changed, distinct from the item_changelog-driven WhatChanged below.
+   *  Rendered by the server parent (app/page.tsx) and passed down as an element: HomeSurface is a Client
+   *  Component and cannot import an async Server Component directly. */
+  changedSinceStrip?: ReactNode;
 }
 
 /** Section rule per the mock: Anton title + right eyebrow + 2px ink underline. */
@@ -117,6 +122,7 @@ export function HomeSurface({
   watchlistPromise,
   coverageGapsPromise,
   surfaceCoverage,
+  changedSinceStrip,
 }: HomeSurfaceProps) {
   const {
     resources: platformResources,
@@ -208,6 +214,19 @@ export function HomeSurface({
           <DashboardByOwner resources={resources} />
         </div>
       </div>
+
+      {/* CHANGED SINCE — source-changed / theme-membership-changed (distinct pipeline + cadence from the
+          item_changelog-driven WhatChanged below; kept as its own strip rather than merged into it). */}
+      {changedSinceStrip && (
+        <>
+          <SectionHeading
+            title="Changed since"
+            aside="Source & theme monitoring"
+            style={{ margin: "44px 0 16px" }}
+          />
+          {changedSinceStrip}
+        </>
+      )}
 
       {/* WHAT CHANGED */}
       <SectionHeading

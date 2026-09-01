@@ -1,7 +1,10 @@
 // src/lib/sources/reconcile.ts
 //
 // Reconcile-loop CONSUMER. Writer for intelligence_changes (recordItemChange /
-// recordSourceChangeTrigger, wired via /api/worker/reconcile). source_conflicts remains
+// recordSourceChangeTrigger, driven by runReconcilePass below — wired in-process from
+// check-sources/route.ts after every scan batch, AND via the manual-redrive /api/worker/reconcile
+// route; before 2026-09-01 (lane CD) the route had zero callers of any kind and no schedule fired
+// it, so this consumer was dead at the queue end of the chain). source_conflicts remains
 // writer-less: the openSourceConflict helper authored here was never called and was removed
 // 2026-07-11 (see note at end of file).
 //
@@ -19,6 +22,7 @@
 // must run as the reconciler, not postgres/service-role.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { bridgeChangedSourceToStagedUpdates } from "./change-sweep.mjs";
 
 // Real vocabularies (the migration-009 CHECK constraints, verified — not the "(inferred)"
 // schema comments). change_type names the field that moved; severity ranks customer impact.
@@ -109,3 +113,94 @@ export async function recordSourceChangeTrigger(
 // remains writer-less in practice (0 rows) — the header's "this module is that writer" claim held
 // only for intelligence_changes. Restore from git history if the reconcile pass gains a
 // grounded-claims comparison step. Audit CODE-1 F-11.)
+
+// ── THE RECONCILE-LOOP CORE (2026-09-01, lane CD — change-detection chain repair) ──────────────────────
+// Moved here from /api/worker/reconcile/route.ts so the SAME consumer can be called two ways: the
+// worker-secret-gated route (manual re-drive) and check-sources/route.ts (in-process, one dispatch of
+// source-monitoring.yml both detects AND reconciles — no HTTP self-call). Before this move,
+// /api/worker/reconcile had ZERO callers of any kind; check-sources never called it and no schedule fires
+// it (source-monitoring.yml's cron is intentionally commented out — dispatch-only per the operator's
+// acquisition-freeze ruling). This function is what makes the queue -> intelligence_changes hop live
+// without adding a schedule.
+export interface ReconcilePassResult {
+  processed: number;
+  changesRecorded: number;
+  /** staged_updates rows written by the change-sweep amendment-diff bridge (see bridgeChangedSourceToStagedUpdates). */
+  staged: number;
+  pending: number;
+  errors: string[];
+}
+
+const RECONCILE_BATCH = 200;
+
+/**
+ * Claim pending monitoring_queue rows (change_detected=true, reconciled_at IS NULL), record the
+ * lightweight "source changed" trigger into intelligence_changes for every LIVE item on that source
+ * (recordSourceChangeTrigger), bridge the same source's live items into the staged_updates review queue
+ * (change-sweep.mjs's amendment-diff bridge — the analysis-side hop, distinct from the log write above),
+ * then stamp each processed row reconciled_at so re-runs are idempotent. Never throws: a per-row or
+ * per-item failure is recorded in `errors` and the pass continues.
+ */
+export async function runReconcilePass(
+  supabase: SupabaseClient,
+  opts: { batch?: number } = {}
+): Promise<ReconcilePassResult> {
+  const batch = opts.batch ?? RECONCILE_BATCH;
+  const errors: string[] = [];
+
+  const { data: pending, error: qErr } = await supabase
+    .from("monitoring_queue")
+    .select("id, source_id, checked_at")
+    .eq("change_detected", true)
+    .is("reconciled_at", null)
+    .order("checked_at", { ascending: true })
+    .limit(batch);
+  if (qErr) {
+    return { processed: 0, changesRecorded: 0, staged: 0, pending: 0, errors: [`queue read failed: ${qErr.message}`] };
+  }
+  if (!pending?.length) return { processed: 0, changesRecorded: 0, staged: 0, pending: 0, errors: [] };
+
+  let processed = 0;
+  let changesRecorded = 0;
+  let staged = 0;
+
+  for (const row of pending) {
+    // The source's live items are the ones whose grounding is now suspect.
+    const { data: items, error: itemsErr } = await supabase
+      .from("intelligence_items")
+      .select("id, source_url")
+      .eq("source_id", row.source_id)
+      .eq("is_archived", false);
+    if (itemsErr) errors.push(`items read for source ${row.source_id}: ${itemsErr.message}`);
+
+    for (const item of items ?? []) {
+      const r = await recordSourceChangeTrigger(supabase, { itemId: item.id, sourceUrl: item.source_url });
+      if (r.ok) changesRecorded++;
+      else errors.push(`item ${item.id.slice(0, 8)}: ${r.error}`);
+    }
+
+    // B4 amendment bridge: stage an update_item review row per live item so the existing
+    // apply-staged-update.ts review/apply path can re-verify content and re-run rule 16 on apply. Never
+    // fatal to the pass — a bridge failure is recorded and the row is still marked reconciled below (the
+    // intelligence_changes log write above already succeeded independently).
+    if (items?.length) {
+      try {
+        const bridged = await bridgeChangedSourceToStagedUpdates(supabase, { sourceId: row.source_id, items });
+        staged += bridged.staged;
+        for (const e of bridged.errors) errors.push(`bridge source ${row.source_id}: ${e}`);
+      } catch (e: unknown) {
+        errors.push(`bridge source ${row.source_id}: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+
+    // Mark the queue row reconciled so re-runs are idempotent.
+    const { error: mErr } = await supabase
+      .from("monitoring_queue")
+      .update({ reconciled_at: new Date().toISOString() })
+      .eq("id", row.id);
+    if (mErr) errors.push(`queue ${row.id}: ${mErr.message}`);
+    else processed++;
+  }
+
+  return { processed, changesRecorded, staged, pending: pending.length, errors: errors.slice(0, 20) };
+}
