@@ -71,6 +71,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [run-structure-protocol](./runbooks/run-structure-protocol.md) — Effectful runs execute in ascending cost/irreversibility tiers; halt for operator spend-authorization at each boundary (2026-07-14)
 - [sprint4-dataops-ledger](./runbooks/sprint4-dataops-ledger.md) — Sprint 4 — Data-Operations Ledger (already-executed; do NOT re-run)
 - [live-source-anti-fabrication-audit](./runbooks/live-source-anti-fabrication-audit.md) — standing post-wave gate: live-source anti-fabrication audit
+- [CORPUS-TURN-RUNBOOK](./runbooks/CORPUS-TURN-RUNBOOK.md) — how a coordinator requests a corpus turn (dispatch or push `turn/**`), what `.github/workflows/corpus-turn.yml`/`source-sweep.yml` land where, the first full backfill (`since=1970-01-01`), and the no-schedule-during-build standing rule (2026-09-01)
 - [fleet-charters/authorship-worker](./runbooks/fleet-charters/authorship-worker.md) — fleet charter: authorship worker (consolidated, daily). Charter cost rules in [fleet-budget-control](./runbooks/fleet-budget-control.md)
 - [fleet-charters/citation-harvest](./runbooks/fleet-charters/citation-harvest.md) — fleet charter: citation harvest
 - [fleet-charters/legacy-remediation](./runbooks/fleet-charters/legacy-remediation.md) — fleet charter: legacy remediation

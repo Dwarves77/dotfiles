@@ -130,6 +130,22 @@ export const GOVERNING_FILES = Object.freeze({
     'src/lib/forward-events/extract-forward-events.mjs',
     'scripts/harness-runs/forward-events/PROTOCOL.md',
   ]),
+  // source-sweep (registered by lane RT, 2026-09-01, harness+flywheel completion train): the runtime
+  // scripts/connections/*.mjs and scripts/mint|forward-events/run-*.mjs already had for their own
+  // families, extended to src/lib/sources/register-walk.mjs and feed-walk.mjs — two dormant, pure,
+  // dep-injected enumeration modules that had no caller anywhere in the repo before
+  // scripts/turns/run-source-sweep.mjs gave them one. Governing files are the driver plus both walker
+  // modules (the driver's own header names why persistPortalCandidates is mirrored, not imported, as
+  // the walkers' persist injection). Zero valid artifacts exist yet — this lane has neither DB nor
+  // network access to run it for real (see scripts/harness-runs/source-sweep/PENDING-RUN.md) — so rule
+  // (b) below correctly reports NO ARTIFACTS for this family until a coordinator with both lands the
+  // first source-sweep-run-001.json; PENDING-RUN.md only speaks to rule (c) (staleness coupling, which
+  // itself is skipped for a family with zero valid artifacts — see auditStalenessCoupling), not to (b).
+  'source-sweep': Object.freeze([
+    'scripts/turns/run-source-sweep.mjs',
+    'src/lib/sources/register-walk.mjs',
+    'src/lib/sources/feed-walk.mjs',
+  ]),
 });
 
 const PENDING_RUN_FILE = 'PENDING-RUN.md';

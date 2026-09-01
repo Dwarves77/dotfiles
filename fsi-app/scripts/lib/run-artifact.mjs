@@ -34,6 +34,7 @@ export const ALLOWED_FAMILIES = Object.freeze([
   "fetch-drain",
   "meta-harness",
   "forward-events",
+  "source-sweep",
 ]);
 
 const REQUIRED_TOP_LEVEL = Object.freeze([
