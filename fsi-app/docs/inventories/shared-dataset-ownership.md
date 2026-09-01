@@ -52,7 +52,8 @@ who may write a shared table; the test enforces it on every future PR.
       "src/app/api/admin/canonical-sources/decide/route.ts",
       "src/app/api/admin/integrity-flags/[id]/resolve/route.ts",
       "src/app/api/admin/triage/pending-jurisdiction-review/route.ts",
-      "scripts/mint/run-mint-batch.mjs"
+      "scripts/mint/run-mint-batch.mjs",
+      "scripts/connections/apply-tags.mjs"
     ],
     "item_cross_references": [
       "src/lib/intake/mint-item.ts",
@@ -89,7 +90,8 @@ who may write a shared table; the test enforces it on every future PR.
       "src/app/api/admin/integrity-flags/route.ts",
       "src/app/api/admin/sources/bulk-import/route.ts",
       "scripts/connections/analyze-corpus.mjs",
-      "scripts/connections/ratify-flag-to-census.mjs"
+      "scripts/connections/ratify-flag-to-census.mjs",
+      "scripts/connections/propose-tags.mjs"
     ],
     "census_worklist": [
       "src/lib/intake/census-writer.mjs",
@@ -140,6 +142,7 @@ narrow-touch-for-recompute / tombstone-delete), not a data column.
 | `scripts/_reground/id-stamp.mjs` (KEEP) | UPDATE — stamps `instrument_identifier` on a verified promotion | line 64, `guardedUpdate("intelligence_items", ..., { instrument_identifier: PROPOSED_ID })` |
 | `scripts/_reground/tombstone-delete.mjs` (KEEP) | DELETE — the **one** sanctioned disposition-delete vehicle; writes `disposition_ledger` FIRST, fail-closed (`guardedDelete` only reached after the tombstone commits) | line 106, `guardedDelete("intelligence_items", [it.id], ...)`; invariant enforced at `.discipline/governance/invariants.mjs:812` |
 | `scripts/mint/run-mint-batch.mjs` | **Pre-registered (parallel lane)** — expected mint-batch runner | not yet present |
+| `scripts/connections/apply-tags.mjs` | UPDATE — merges an operator-ratified `derive-tags.mjs` tag proposal onto `operational_scenario_tags`/`compliance_object_tags`/`topic_tags` (never removes an existing tag, never overwrites a non-empty array — only appends absent tags, capped at `derive-tags.mjs`'s `FIELD_CAPS`) via `guardedUpdate`, only for a flag resolved with `resolution_note` containing `ratify:tags` (lane TAG, 2026-09-01 — closes the August-census-wave empty-tag gap so `discover.mjs` can score edges for these items) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, ...)` in `deps.updateItem` |
 
 Replace policy: guarded per-row UPDATE/INSERT (never a bulk replace); DELETE is single-purpose and
 gated behind a tombstone write (see `tombstone-delete.mjs` above) — this is a **guarded delete**, not a
@@ -196,6 +199,7 @@ other producer below.
 | `flywheel-gap:jurisdiction_span_gap` / `:surface_gap` / `:pivot_operations_gap` | `scripts/connections/analyze-corpus.mjs` | **Self-resolving** — the same script closes any of its own open flags whose gap no longer reproduces on the latest pass (lines 143-152, `guardedUpdate(..., status: "resolved", resolved_by: "analyze-corpus.mjs")`). Not an open leak. | analyze-corpus.mjs lines 118-152 |
 | (entity-link candidate/lineage-gap namespace, exact value set by `entity-resolve.mjs`) | `src/lib/entities/link-items.ts` | **TO-VERIFY** — idempotent one-open-flag-per-namespace-per-item guard exists (lines 59-64), but no resolver was located for this namespace in the time available. | link-items.ts lines 58-64 |
 | (ratified-to-census namespace) | `scripts/connections/ratify-flag-to-census.mjs` | **Pre-registered (parallel lane)** — its own name implies it is itself a *resolver* for some existing flag category, converting a flag into a `census_worklist` entry. **TO-VERIFY at merge** which `created_by` namespace(s) it consumes, and whether it closes the two OPEN leaks above. | not yet present |
+| `flywheel-tag:empty-signature` | `scripts/connections/propose-tags.mjs` (lane TAG, 2026-09-01 — reflects a `derive-tags.mjs` tag-proposal finding, one row per item whose `operational_scenario_tags`/`compliance_object_tags`/`topic_tags` are all empty, so `discover.mjs` can never score it an edge) | **Self-resolving, same convention as `flywheel-gap:*`** — a full `--untagged` run closes any of its own open flags whose item no longer reproduces (now tagged, or fell out of the corpus); a narrow `--ids`/`--since` run resolves ONLY flags inside its own selection (see `planReflect`'s `scopeSubjectRefs`, a deliberate narrowing of the `analyze-corpus.mjs` convention this file's own header names). Also consumed downstream: `scripts/connections/apply-tags.mjs` READS (never writes) this namespace's rows once an operator resolves one with `resolution_note` containing `ratify:tags`, applying the row's `PROPOSALS_JSON` to `intelligence_items` — see that table's writer entry above. | propose-tags.mjs (`planReflect`, `buildFlagRow`); apply-tags.mjs (`evaluateApplication`) |
 
 Replace policy: append (`guardedInsertMany`/`.insert`) + namespace-scoped `guardedUpdate` to
 `status='resolved'`. A producer must never touch another namespace's open rows — enforced by convention
