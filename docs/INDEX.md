@@ -53,6 +53,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [components](./inventories/components.md) — Shared Components Inventory
 - [discipline](./inventories/discipline.md) — Discipline Engine Inventory
 - [migrations](./inventories/migrations.md) — Migrations Inventory
+- [shared-dataset-ownership](../fsi-app/docs/inventories/shared-dataset-ownership.md) — Write-ownership register: shared datasets, partitions, one writer per partition, replace policies; SoT for `.discipline/shared-writer-registry.test.mjs`
 - [out-of-band-objects](./inventories/out-of-band-objects.md) — Out-of-band DB objects (live-not-in-migrations) ledger
 - [worktrees](./inventories/worktrees.md) — Git Worktrees Inventory
 

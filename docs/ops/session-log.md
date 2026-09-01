@@ -7338,3 +7338,74 @@ still has no writer anywhere in the codebase, so it needs one as well as a value
 already discriminates on obligation text, so a span change cannot duplicate rows); then decide the
 whose-obligation semantics for the `other` bucket; then batch-003 with the holder-blocking selection
 query.
+
+## Addendum 80 — 2026-09-01 (cloud session): harness+flywheel completion train — five Sonnet lanes, four interfaces, sunset pass, writer registry
+
+**What was done (all committed on `lane/integration`, NOT yet landed on master — paused by operator).**
+The operator ruled: the harness and flywheel must communicate to improve each other, all site data flows
+through them, superseded era tools are sunsetted with zero broken references, backfill gets the R1
+snapshot retrofit, and nothing found gets deferred. Executed as five Sonnet lanes with disjoint write
+sets plus coordinator integration:
+
+- **H2 (harness):** self-emitting runners `scripts/mint/run-mint-batch.mjs` +
+  `scripts/forward-events/run-extraction.mjs` (artifact written in a finally block — a run can no longer
+  escape recording), F28 ENOENT → named failure (`safeHashGoverningFiles`), registration-trap message
+  now names rule/family/fix, run-id collision guard (`claimRunId`), the CONVENTION-promised CLI
+  (`list`/`show`), Interface-3 metrics channel (`--outcomes` enrichment: edges_discovered,
+  forward_events_extracted, isolated_items), MINT-RUNBOOK §7–9 (script-not-SQL; mandatory post-apply
+  flywheel steps), PROPOSER-RUNBOOK §7 corpus-outcomes query.
+- **FW1 (flywheel):** U5 `anticipate.mjs`, F6 `theme-delta.mjs` (prior themes preserved on the ledger
+  row), L4 `signal-candidates.mjs` (behind `--signals`, operator-review only), `flag-namespaces.mjs`
+  SoT, `discover-for-items.mjs`, R1 retrofit (write-edges/backfill snapshot prior state in db.mjs's
+  exact JSONL format before any refresh), `ratify-flag-to-census.mjs` (Interface 1: operator resolves a
+  flag with `ratify:census` token → idempotent census row `flywheel-ratified:<flag>`),
+  `generate-theme-brief.mjs` (theme_briefs' first in-repo writer), `/api/admin/forward-events` +
+  UpcomingObligationsPanel (mounted: Admin → Sources → "Upcoming obligations", `sourceStore` union
+  widened properly).
+- **FW2 (contract):** rule 16 (flywheel participation on every mint/substantive update; failures are
+  recorded defects), version bumped in all three enforced homes.
+- **SUN (sunset+registry):** 31 era scripts judged on evidence — 9 archived to `scripts/_archive/`
+  with tombstones (zero inbound refs + superseded/completed), 22 KEEP with reasons (F25 allowlist pins,
+  live importers, doctrine citations). `fsi-app/docs/inventories/shared-dataset-ownership.md`: every
+  shared dataset's partitions, one writer per partition, replace policy; fenced-JSON allowlist parsed by
+  the new suite-wired `.discipline/shared-writer-registry.test.mjs` — an unregistered shared-table
+  writer is now a red suite. It caught its first real gap minutes after merging (mint-item's new
+  forward-events write was unregistered).
+- **FIX (integration):** rule-16 wired into BOTH intake paths. mint: `recordFlywheelDefect`
+  (`flywheel-defect:` namespace), forward-event extraction at mint time, extractor MOVED to
+  `src/lib/forward-events/` (src never imports scripts; runner + F28 + CONVENTION updated,
+  forward-events PENDING-RUN.md written per rule (c)). update_item: substantive-vs-not derived as a
+  deny-list from the schema's own status/archive/bookkeeping columns (unknown column ⇒ substantive,
+  fail toward running the flywheel); idempotent re-extraction at application layer (275's dedupe key is
+  expression-based, onConflict can't target it; 23505 fallback = zero-new); stale-events flagged, never
+  auto-deleted. Migration 276 `connection_theme_runs.theme_delta` (real column, not the `args`
+  side-pocket) — **applied to live DB**. Shared modules lifted (`flywheel-defect.ts`,
+  `run-discovery.mjs`, `read-and-extract.mjs`) — zero duplication.
+
+**Operational turn — partially done, then BLOCKED.** Migration 276 applied. Discovery for the 9
+post-backfill zero-edge items ran via the pure functions over an MCP-fetched corpus: **0 edges, and
+that is the honest result** — the census-mint wave minted items with EMPTY connection-signature tags
+(scenario/compliance/topic all `[]`), so scoring has nothing to score. First real Interface-3 finding:
+the whole August census wave is unconnectable until a tagging pass exists; recorded for the next
+proposer pass, NOT hand-patched (operator's no-assumptions rule applies to tags too). AFIR (a86dcc05)
+correctly excluded (archived). Also verified: 573/1,863 discovery edges one-directional at rest — the
+designed outcome of the per-item top-12 cap, NOT a defect; do not "fix". The full recluster
+(analyze-corpus with U5/F6/L4) is BLOCKED: session egress blocks the DB host, and the permission
+classifier blocks the local-shim fallback. Operator has the decision: allow
+`kwrsbpiseruzbfwjpvsp.supabase.co` egress (recommended, permanent fix) or approve the shim.
+
+**Errors of mine, corrected on the record.** (1) I described cross-lane integration items as "parked"
+instead of scheduling them; operator ruled no-deferral, all were fixed same-session. (2) I reported "8
+items minted through coordinator apply" — it was 9 (one more landed same day), and my "8 items, 0
+edges" framing implied discovery would connect them; the real defect was upstream (no tags). (3) Two
+repo files were committed with CRLF against `.gitattributes`, making every worktree permanently dirty
+and blocking merges — root-caused and renormalized (`78066879`) rather than worked around per-lane.
+(4) The register briefly carried a never-created `load-forward-events.mjs` as a writer; resolved from
+the merged tree.
+
+**Next step for a cold session:** on `lane/integration` — get the operator's egress/shim decision, run
+`analyze-corpus.mjs --signals` (first theme_delta onto 276's column, first U5 targets, first L4
+candidates), refresh the stale mint/meta-harness F28 artifacts (meta-harness-run-005 for this wave),
+run the full suite (expect green incl. the registry test), land ONE squashed train on master per the
+Train-7 method. Then: the census-wave tagging gap goes to the next proposer pass as the first
+corpus-outcome finding.
