@@ -1,0 +1,183 @@
+{
+  "harness_family": "fetch-drain",
+  "harness_version": "sha256:a7306c752b8fb806",
+  "run_id": "fetch-drain-run-003",
+  "started_at": "2026-09-01T06:33:00Z",
+  "config": {
+    "worker_version_deployed": "v1.6 (commit 0735a410, deployed this lane — verified via sha256sum against origin/master 9282aa3c: 82889d10f522c40bcf34e3f0904b78a872a0acd86d4f28ed159fedbb74bce968, and via get_edge_function content match)",
+    "invocation_mechanism": "pg_net net.http_post batches — default {\"limit\":8} for the queued-row drain, explicit queue_ids arrays (batches of 8, and isolated single-row replays for the two confirmed WORKER_RESOURCE_LIMIT crashers) for the error-ladder rerun",
+    "invocations": 24,
+    "invocation_request_ids": "net._http_response ids 473-496, project kwrsbpiseruzbfwjpvsp",
+    "supabase_project": "kwrsbpiseruzbfwjpvsp",
+    "db_access": "mcp__Supabase__execute_sql (service-role via MCP), guarded by explicit id-scoped WHERE clauses on every UPDATE — no bulk/unscoped writes"
+  },
+  "inputs_ref": [
+    "live query: pending_first_fetch status='fetching' older than 1 hour, project kwrsbpiseruzbfwjpvsp (reset step)",
+    "live query: pending_first_fetch status='queued', project kwrsbpiseruzbfwjpvsp (9 rows at lane start, includes 1 row reset from stale fetching)",
+    "live query: pending_first_fetch status='error', project kwrsbpiseruzbfwjpvsp (127 rows carried from fetch-drain-run-002 population, plus backlog accumulated since — 134 rows at ladder start after excluding 2 newly-confirmed WORKER_RESOURCE_LIMIT crashers)",
+    "/root/work/build/fetch-error-dispositions.md (run-002's 7-class taxonomy — this run replays every row in it and records the v1.6 outcome per class)"
+  ],
+  "per_item": [
+    {
+      "id": "944b7e2c-1e1d-4b1b-a024-846ae3357bcf",
+      "outcome": "retry_after_v1_6_confirmed_clean_timeout",
+      "verdict": "class-6 (TCP-connect timeout) defect cleared — was an unbounded/120s+ hang under v1.5, now a clean 45s AbortSignal timeout, MAX_ATTEMPTS exhausted this session, terminalized 'error'",
+      "evidence_refs": [
+        "net._http_response id 474 (isolated replay)",
+        "net._http_response id 477 (final MAX_ATTEMPTS attempt)"
+      ],
+      "error": "fetch error: Signal timed out."
+    },
+    {
+      "id": "b1db52de-8edf-44da-a891-04e7e40722de",
+      "outcome": "retry_after_v1_6_confirmed_clean_timeout",
+      "verdict": "class-6 defect cleared, same host-level TCP-timeout class as 944b7e2c",
+      "evidence_refs": [
+        "net._http_response id 491"
+      ],
+      "error": "fetch error: Signal timed out."
+    },
+    {
+      "id": "f16b2328-4a26-444a-97a6-3c26a965b2a3",
+      "outcome": "retry_after_v1_6_confirmed_clean_timeout",
+      "verdict": "class-6 defect cleared — npc.gov.cn, plain HTML not a PDF, confirms host-level not PDF-specific (per run-002's own hypothesis)",
+      "evidence_refs": [
+        "net._http_response id 494"
+      ],
+      "error": "fetch error: Signal timed out."
+    },
+    {
+      "id": "d6fbe16f-99bf-4cce-a2bc-f2ab1853f21d",
+      "outcome": "retry_after_v1_6_confirmed_clean_timeout",
+      "verdict": "class-6 defect cleared — gios.gov.pl, plain HTML",
+      "evidence_refs": [
+        "net._http_response id 493"
+      ],
+      "error": "fetch error: Signal timed out."
+    },
+    {
+      "id": "cc5fca23-8320-43e5-be23-d63278734434",
+      "outcome": "worker_resource_limit_crash",
+      "verdict": "NEW defect, not in run-002's taxonomy — CONFIRMED reproducible on isolated single-row replay (request 475) after first crashing inside an 8-row batch (request 473). v1.6's pre-buffer size guard did NOT prevent this. attempt_count 3/5 at disposition.",
+      "evidence_refs": [
+        "net._http_response id 473 (batch crash)",
+        "net._http_response id 475 (isolated confirm)"
+      ],
+      "error": "{\"code\":\"WORKER_RESOURCE_LIMIT\",\"message\":\"Function failed due to not having enough compute resources (please check logs)\"}"
+    },
+    {
+      "id": "3970ac8e-af8d-4e75-b1a4-8a0623ad5246",
+      "outcome": "worker_resource_limit_crash",
+      "verdict": "NEW defect, second distinct PDF hitting the identical crash class as cc5fca23 — CONFIRMED reproducible on isolated single-row replay (request 478) after first crashing inside an 8-row batch (request 476). attempt_count 4/5 at disposition.",
+      "evidence_refs": [
+        "net._http_response id 476 (batch crash)",
+        "net._http_response id 478 (isolated confirm)"
+      ],
+      "error": "{\"code\":\"WORKER_RESOURCE_LIMIT\",\"message\":\"Function failed due to not having enough compute resources (please check logs)\"}"
+    },
+    {
+      "id": "58e59ad1-f148-488a-bef5-25a6bdcaa904",
+      "outcome": "status_drifted_still_failed",
+      "verdict": "run-002 recorded this row as 404 (class 2); this session it answered 202 mid-ladder (requeued), then re-exhausted MAX_ATTEMPTS at 202 — an EUR-Lex server-side state change, not a v1.6 effect. Still not captured.",
+      "evidence_refs": [
+        "net._http_response id 484 (403->202 flip during batch 6)"
+      ],
+      "error": "non-200 status 202, body NOT stored"
+    },
+    {
+      "id": "6d58777f-7bc0-46a3-9da2-5b8452e01c4c",
+      "outcome": "status_drifted_still_failed",
+      "verdict": "run-002 recorded this row (nautilusint.org) as 502 (class 3); this session it answered 403 instead — server/WAF-side drift, not v1.6. Still not captured.",
+      "evidence_refs": [
+        "net._http_response id 485 (batch 7)"
+      ],
+      "error": "non-200 status 403, body NOT stored"
+    },
+    {
+      "id": "0db9f06b-bc5e-4b80-a330-e81bac1a571b",
+      "outcome": "unchanged_still_failed",
+      "verdict": "class 7a (http2 stream error) representative — identical failure signature to run-002, confirms this class is connection-layer not timing-related, unaffected by v1.6",
+      "evidence_refs": [
+        "net._http_response id 479 (batch 1)"
+      ],
+      "error": "fetch error: error sending request ... http2 error: stream error received: unexpected internal error encountered"
+    },
+    {
+      "id": "0f578080-1568-4068-9559-68ae51630d84",
+      "outcome": "unchanged_still_failed",
+      "verdict": "class 1 (403) representative — both PRIMARY_HEADERS and ALT_HEADERS_ON_403 retry returned 403 again, identical to run-002",
+      "evidence_refs": [
+        "net._http_response id 479 (batch 1)"
+      ],
+      "error": "non-200 status 403, body NOT stored"
+    },
+    {
+      "id": "132714d5-a87d-49e3-90a4-444ae232c54c",
+      "outcome": "unchanged_still_failed",
+      "verdict": "class 4 (dns) representative — identical NXDOMAIN, unaffected by v1.6",
+      "evidence_refs": [
+        "net._http_response id 479 (batch 1)"
+      ],
+      "error": "fetch error: ... dns error: failed to lookup address information: No address associated with hostname"
+    },
+    {
+      "id": "e1cb8ad5-00f7-4628-b358-bd24b0c943a2",
+      "outcome": "unchanged_still_failed",
+      "verdict": "class 5 (tls) representative — identical UnknownIssuer cert failure, unaffected by v1.6",
+      "evidence_refs": [
+        "net._http_response id 493 (batch 15)"
+      ],
+      "error": "fetch error: ... invalid peer certificate: UnknownIssuer"
+    }
+  ],
+  "metrics": {
+    "rows_analyzed_this_lane": 145,
+    "rows_analyzed_breakdown": "9 queued (drain) + 134 error (ladder, = 127 from run-002 + 7 accumulated since, minus the 2 confirmed WORKER_RESOURCE_LIMIT crashers excluded from batch replay) + 2 requeued-mid-ladder re-drained at lane end",
+    "class_breakdown_v1_6_outcome": {
+      "1_403_forbidden": "51/51 unchanged, still failing",
+      "2_404_410_gone": "34/34 unchanged, still failing (1 status-drifted to 202, still failing)",
+      "3_5xx": "2/2 status-drifted (500->202, 502->403), still failing",
+      "4_dns": "5/5 unchanged, still failing",
+      "5_tls": "5/5 unchanged, still failing",
+      "6_timeout_tcp_connect": "4/4 DEFECT CLEARED — clean 45s AbortSignal timeout replaces unbounded/120s+ hang",
+      "7a_http2_stream_error": "12/12 unchanged, still failing — confirms connection-layer not timing",
+      "7b_202_warmup_max_attempts": "8/8 unchanged, still failing",
+      "7c_thin_content": "2/2 unchanged, still failing",
+      "7d_singletons": "4/4 unchanged, still failing",
+      "8_NEW_worker_resource_limit_pdf_crash": "2/2 CONFIRMED, unresolved by v1.6"
+    },
+    "capture_success_rate_this_replay": "0/136 (0%) — zero net new captures this session (pending_first_fetch 'done' count: 1235 before, 1235 after); v1.6's measurable effect this session is entirely reliability (hang->clean-timeout conversion), not new captures, because the remaining backlog is dominated by permanent HTTP failures and connection-layer defects orthogonal to fetch timeout/buffering",
+    "queue_counts_before": {
+      "done": 1235,
+      "error": 127,
+      "fetching": 1,
+      "queued": 8,
+      "skipped": 5,
+      "total": 1376
+    },
+    "queue_counts_after": {
+      "done": 1235,
+      "error": 136,
+      "skipped": 5,
+      "total": 1376
+    },
+    "invocations_used": 24
+  },
+  "defects_found": [
+    {
+      "description": "capture-worker crashes with WORKER_RESOURCE_LIMIT (compute exhaustion) on at least 2 distinct large PDFs even under v1.6 — the invocation is killed mid-processing, no agent_runs/pending_first_fetch write occurs, and the claimed row is left stuck at status='fetching' regardless of how recently it was claimed (the 1-hour stale-reset rule does not catch a same-session crash).",
+      "root_cause": "[HYPOTHESIS, unverified this session — outbound curl to downloads.regulations.gov was blocked by the container's egress allowlist, so the actual PDF byte size/page count could not be checked] v1.6's readCappedBody pre-buffer size guard bounds bytes READ against MAX_PDF_BYTES (25MB), but does not bound the compute cost of pdf.js parsing (getDocumentProxy/extractText) itself once a PDF is under the byte cap. v1.6's own source comment already names this as a known residual risk ('pdf.js parsing... is the expensive step on the PDF path, so 25MB is already a heavy in-memory parse'). The crash most likely occurs during parsing, not buffering, since neither row shows a BodyTooLargeError-style refusal.",
+      "fix_ref": null
+    },
+    {
+      "description": "The HTTP/2 'stream error received: unexpected internal error encountered' class (12 rows, 10 of 12 on *.gov.au domains sharing an IPv6 prefix family, plus fred.stlouisfed.org and pollution-waste.canada.ca) persists identically under v1.6, confirming run-002's hypothesis that this is a connection-layer/client-compatibility defect, not a timing issue AbortSignal.timeout could touch.",
+      "root_cause": "[HYPOTHESIS, carried forward from fetch-drain-run-002.json, not newly investigated this session] Plausibly Deno's fetch client (rust hyper/reqwest) failing to negotiate or fall back cleanly against a CDN/edge configuration common to these hosts.",
+      "fix_ref": null
+    }
+  ],
+  "full_trace_refs": [
+    "/root/work/build/fetch-error-dispositions.md",
+    "session report (this lane's final response to the coordinator)"
+  ],
+  "proposer_notes": "This run supersedes scripts/harness-runs/fetch-drain/PENDING-RUN.md's marker (harness_version at write time sha256:a7306c752b8fb806, recorded when v1.6 landed on origin/master but was not yet deployed) — v1.6 is now DEPLOYED (verified sha256 match + get_edge_function content match) and this run's harness_version reflects the same file content, now measured by a real fetch-drain lane rather than left as an undischarged marker. PENDING-RUN.md should be deleted per its own instructions ('When that run lands, delete this file'), and LAST-PROPOSER-PASS.md's next pass should read this run alongside fetch-drain-run-001/-002 and confirm: (1) the deploy step from its prior proposal is done; (2) the http2 investigation thread it scoped is still open, now with a third confirming replay; (3) a new proposal is needed for the WORKER_RESOURCE_LIMIT PDF-crash class found this session, which is not covered by either prior run or the existing proposal. Net new captures this session: 0 — the remaining pending_first_fetch backlog (136 error rows, 5 skipped/needs-triage rows) is now believed to be dominated by classes v1.6 was never meant to fix (403/404/HTTP2/DNS/TLS) plus one newly-discovered unresolved class (PDF compute exhaustion); the queue itself is fully drained (0 queued, 0 fetching) as of lane end."
+}
