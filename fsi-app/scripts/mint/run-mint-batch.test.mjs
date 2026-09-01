@@ -25,12 +25,17 @@ import {
   enrichRunArtifactMetrics,
   loadOutcomes,
   MINT_GOVERNING_FILES,
+  loadCensusRows,
+  buildPayloadsFromCensusRows,
+  mergeCensusBuildFailures,
 } from "./run-mint-batch.mjs";
 import { validateRunArtifact } from "../lib/run-artifact.mjs";
+import { validateMintPayload } from "./validate-mint-payload.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const RUNNER_PATH = join(HERE, "run-mint-batch.mjs");
 const EXAMPLE_PAYLOAD = JSON.parse(readFileSync(join(HERE, "example-payload.json"), "utf8"));
+const REQUIRED_SLOTS_BY_TYPE = JSON.parse(readFileSync(join(HERE, "item-type-required-slots.json"), "utf8"));
 
 function tmpDir() {
   return mkdtempSync(join(tmpdir(), "run-mint-batch-test-"));
@@ -336,6 +341,184 @@ test("CLI --outcomes: enriches an existing run artifact's metrics block with edg
     assert.equal(artifact.metrics.isolated_items, 1);
     assert.equal(artifact.metrics.valid, 1, "enrichment must not clobber the original validator metrics");
     assert.deepEqual(validateRunArtifact(artifact), []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ── Lane POP (2026-09-01, migration 278): --census-rows --grade record ─────────────────────────────
+
+function censusRow(overrides = {}) {
+  return {
+    row_id: "census-1",
+    source_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32009D0320",
+    item_type: "framework",
+    title: "COUNCIL DECISION 2009/320/EC of 30 March 2009 endorsing the SESAR Master Plan",
+    instrument_identifier: "2009/320/EC",
+    canonical_instrument_key: "CELEX:32009D0320",
+    jurisdiction_iso: "EU",
+    source: {
+      id: "src-1",
+      url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32009D0320",
+      base_tier: 1,
+      tier_override: null,
+      status: "active",
+      institution_id: null,
+    },
+    captured_text:
+      "COUNCIL DECISION 2009/320/EC of 30 March 2009 endorsing the SESAR Master Plan. " +
+      "This Decision shall enter into force on the 20th day following its publication in the Official Journal. " +
+      "This Decision is addressed to the Member States. " +
+      "No later than 31 December 2011, the Commission shall submit a report. " +
+      "Member States shall lay down rules on penalties applicable to infringements.",
+    ...overrides,
+  };
+}
+
+test("loadCensusRows: accepts a bare array or { rows: [...] }, rejects anything else", () => {
+  assert.deepEqual(loadCensusRows.name, "loadCensusRows");
+  const dir = tmpDir();
+  try {
+    const p1 = join(dir, "a.json");
+    writeFileSync(p1, JSON.stringify([censusRow()]));
+    assert.equal(loadCensusRows(p1).length, 1);
+
+    const p2 = join(dir, "b.json");
+    writeFileSync(p2, JSON.stringify({ rows: [censusRow(), censusRow()] }));
+    assert.equal(loadCensusRows(p2).length, 2);
+
+    const p3 = join(dir, "c.json");
+    writeFileSync(p3, JSON.stringify({ not: "a rows array" }));
+    assert.throws(() => loadCensusRows(p3), /must be a JSON array of rows/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("buildPayloadsFromCensusRows: a well-formed row builds a record-grade payload that clears validate-mint-payload.mjs with zero failures", () => {
+  const { payloads, buildFailures } = buildPayloadsFromCensusRows([censusRow()], {
+    baseDir: HERE,
+    requiredSlotsByType: REQUIRED_SLOTS_BY_TYPE,
+  });
+  assert.equal(buildFailures.length, 0);
+  assert.equal(payloads.length, 1);
+  assert.equal(payloads[0].item.grade, "record");
+  assert.equal(payloads[0].id, "census-1");
+  const result = validateMintPayload(payloads[0], { baseDir: HERE });
+  assert.deepEqual(result.failures, [], `record payload built from a census row must clear validate-mint-payload.mjs: ${JSON.stringify(result.failures)}`);
+});
+
+test("buildPayloadsFromCensusRows: captured_text_path (relative to baseDir) is read from disk", () => {
+  const dir = tmpDir();
+  try {
+    const textPath = join(dir, "source-32009D0320.txt");
+    const row = censusRow();
+    const capturedText = row.captured_text;
+    delete row.captured_text;
+    row.captured_text_path = "source-32009D0320.txt";
+    writeFileSync(textPath, capturedText);
+    const { payloads, buildFailures } = buildPayloadsFromCensusRows([row], { baseDir: dir, requiredSlotsByType: REQUIRED_SLOTS_BY_TYPE });
+    assert.equal(buildFailures.length, 0);
+    assert.equal(payloads[0].search_results[0].result_content, capturedText);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("buildPayloadsFromCensusRows: a row with no captured_text/captured_text_path fails to BUILD (recorded, not thrown)", () => {
+  const row = censusRow();
+  delete row.captured_text;
+  const { payloads, buildFailures } = buildPayloadsFromCensusRows([row], { baseDir: HERE, requiredSlotsByType: REQUIRED_SLOTS_BY_TYPE });
+  assert.equal(payloads.length, 0);
+  assert.equal(buildFailures.length, 1);
+  assert.equal(buildFailures[0].id, "census-1");
+  assert.match(buildFailures[0].error, /nothing to extract from/);
+});
+
+test("buildPayloadsFromCensusRows: agent_run_searches_id alone names the DB-access gap explicitly rather than silently skipping", () => {
+  const row = censusRow();
+  delete row.captured_text;
+  row.agent_run_searches_id = "arow-123";
+  const { buildFailures } = buildPayloadsFromCensusRows([row], { baseDir: HERE, requiredSlotsByType: REQUIRED_SLOTS_BY_TYPE });
+  assert.equal(buildFailures.length, 1);
+  assert.match(buildFailures[0].error, /requires live DB access this DB-less script does not have/);
+});
+
+test("buildPayloadsFromCensusRows: one bad row among good ones never aborts the batch (per-row isolation)", () => {
+  const good1 = censusRow({ row_id: "good-1" });
+  const bad = censusRow({ row_id: "bad-1" });
+  delete bad.captured_text;
+  const good2 = censusRow({ row_id: "good-2", source_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32009D0321" });
+  const { payloads, buildFailures } = buildPayloadsFromCensusRows([good1, bad, good2], {
+    baseDir: HERE,
+    requiredSlotsByType: REQUIRED_SLOTS_BY_TYPE,
+  });
+  assert.equal(payloads.length, 2);
+  assert.equal(buildFailures.length, 1);
+  assert.equal(buildFailures[0].id, "bad-1");
+});
+
+test("mergeCensusBuildFailures: build failures are counted into attempted/invalid and reported as outcome 'build_failed'", () => {
+  const { payloads, buildFailures } = buildPayloadsFromCensusRows(
+    [censusRow({ row_id: "good" }), (() => { const r = censusRow({ row_id: "bad" }); delete r.captured_text; return r; })()],
+    { baseDir: HERE, requiredSlotsByType: REQUIRED_SLOTS_BY_TYPE },
+  );
+  const runResult = runBatch(payloads, { baseDir: HERE });
+  const merged = mergeCensusBuildFailures(buildFailures, runResult);
+  assert.equal(merged.metrics.attempted, 2);
+  assert.equal(merged.metrics.valid, 1);
+  assert.equal(merged.metrics.invalid, 1);
+  assert.equal(merged.metrics.build_failed, 1);
+  const failedEntry = merged.perItem.find((p) => p.id === "bad");
+  assert.equal(failedEntry.outcome, "build_failed");
+});
+
+test("CLI --census-rows --grade record --execute: writes a schema-valid run artifact whose apply-ready payloads carry item.grade='record'", () => {
+  const dir = tmpDir();
+  try {
+    const rowsPath = join(dir, "rows.json");
+    writeFileSync(rowsPath, JSON.stringify([censusRow()]));
+    const harnessRunsDir = join(dir, "harness-runs", "mint");
+    const res = run(["--census-rows", rowsPath, "--grade", "record", "--execute", "--harness-runs-dir", harnessRunsDir, "--out-dir", dir]);
+    assert.equal(res.status, 0, res.stderr);
+
+    const artifactPath = join(harnessRunsDir, "mint-run-001.json");
+    const artifact = JSON.parse(readFileSync(artifactPath, "utf8"));
+    assert.deepEqual(validateRunArtifact(artifact), []);
+    assert.equal(artifact.metrics.valid, 1);
+    assert.equal(artifact.metrics.build_failed, 0);
+
+    const applyReady = JSON.parse(readFileSync(join(dir, "rows.apply-ready.json"), "utf8"));
+    assert.equal(applyReady.length, 1);
+    assert.equal(applyReady[0].item.grade, "record");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("CLI --census-rows without --grade record is refused (this builder only produces record-grade payloads)", () => {
+  const dir = tmpDir();
+  try {
+    const rowsPath = join(dir, "rows.json");
+    writeFileSync(rowsPath, JSON.stringify([censusRow()]));
+    const res = run(["--census-rows", rowsPath]);
+    assert.notEqual(res.status, 0);
+    assert.match(res.stderr, /--census-rows requires --grade record/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("CLI: --batch-file and --census-rows together is refused as ambiguous", () => {
+  const dir = tmpDir();
+  try {
+    const batchPath = join(dir, "batch.json");
+    writeFileSync(batchPath, JSON.stringify([EXAMPLE_PAYLOAD]));
+    const rowsPath = join(dir, "rows.json");
+    writeFileSync(rowsPath, JSON.stringify([censusRow()]));
+    const res = run(["--batch-file", batchPath, "--census-rows", rowsPath, "--grade", "record"]);
+    assert.notEqual(res.status, 0);
+    assert.match(res.stderr, /mutually exclusive/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

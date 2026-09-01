@@ -618,6 +618,11 @@ async function fetchWorkspaceResources(
       // the RPC catches up" pattern already used below for severity/signalBand/theme (Phase 3C) —
       // until a migration (lane `la`) adds the column to these RPCs' output.
       jurisdictionIso: normalizeJurisdictionIsoColumn(row.jurisdiction_iso),
+      // Lane POP (2026-09-01, migration 278): same dormant-passthrough shape as jurisdictionIso just
+      // above — none of this function's RPCs project `ii.item_grade` yet, so `row.item_grade` reads
+      // undefined until a later migration widens their RETURNS TABLE. Never defaulted to "brief" here;
+      // an unprojected column must read as unknown, not as a claim about the item's grade.
+      itemGrade: row.item_grade === "record" ? "record" : row.item_grade === "brief" ? "brief" : undefined,
       sourceId: row.source_id || undefined,
       isArchived: row.effective_archived || false,
     };
@@ -1182,6 +1187,9 @@ function rpcRowToResource(row: any): Resource {
     // is not in any of their RETURNS TABLE lists, so `row.jurisdiction_iso` is undefined until a
     // migration adds it.
     jurisdictionIso: normalizeJurisdictionIsoColumn(row.jurisdiction_iso),
+    // Lane POP (2026-09-01, migration 278): dormant for the same reason as jurisdictionIso just above —
+    // none of these RPCs project `ii.item_grade` yet.
+    itemGrade: row.item_grade === "record" ? "record" : row.item_grade === "brief" ? "brief" : undefined,
     sourceId: row.source_id || undefined,
     isArchived: row.effective_archived || false,
     // Phase 3C: pass through new schema columns when RPC includes them.
@@ -2836,6 +2844,10 @@ async function fetchIntelligenceItemUncached(
       // mappers above, where it is currently always undefined (Addendum 63). Shared guard so all
       // three sites stay byte-identical rather than re-typing `Array.isArray(...) ? ... : undefined`.
       jurisdictionIso: normalizeJurisdictionIsoColumn(row.jurisdiction_iso),
+      // Lane POP (2026-09-01, migration 278): same `select("*")` situation as jurisdictionIso just
+      // above — `row.item_grade` IS present here once the migration applies (this fetcher is not
+      // RPC-projected), unlike the two dormant RPC-backed mapper sites.
+      itemGrade: row.item_grade === "record" ? "record" : row.item_grade === "brief" ? "brief" : undefined,
       sourceId: row.source_id || undefined,
       isArchived: row.is_archived || false,
       // P1-2 (DEEP-AUDIT S2): populate the provenance chip (source name + tier)

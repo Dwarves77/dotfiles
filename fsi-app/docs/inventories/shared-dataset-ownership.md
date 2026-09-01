@@ -52,7 +52,8 @@ who may write a shared table; the test enforces it on every future PR.
       "src/app/api/admin/canonical-sources/decide/route.ts",
       "src/app/api/admin/integrity-flags/[id]/resolve/route.ts",
       "src/app/api/admin/triage/pending-jurisdiction-review/route.ts",
-      "scripts/mint/run-mint-batch.mjs"
+      "scripts/mint/run-mint-batch.mjs",
+      "scripts/mint/stamp-wo26-archive-reason.mjs"
     ],
     "item_cross_references": [
       "src/lib/intake/mint-item.ts",
@@ -140,6 +141,7 @@ narrow-touch-for-recompute / tombstone-delete), not a data column.
 | `scripts/_reground/id-stamp.mjs` (KEEP) | UPDATE — stamps `instrument_identifier` on a verified promotion | line 64, `guardedUpdate("intelligence_items", ..., { instrument_identifier: PROPOSED_ID })` |
 | `scripts/_reground/tombstone-delete.mjs` (KEEP) | DELETE — the **one** sanctioned disposition-delete vehicle; writes `disposition_ledger` FIRST, fail-closed (`guardedDelete` only reached after the tombstone commits) | line 106, `guardedDelete("intelligence_items", [it.id], ...)`; invariant enforced at `.discipline/governance/invariants.mjs:812` |
 | `scripts/mint/run-mint-batch.mjs` | **Pre-registered (parallel lane)** — expected mint-batch runner | not yet present |
+| `scripts/mint/stamp-wo26-archive-reason.mjs` (Lane POP, 2026-09-01) | UPDATE — `archive_reason` only, on the 491 WO-26 rows Addendum 28 archived without stamping one | `guardedUpdate("intelligence_items", applyMatch, { archive_reason: ... }, { cite, select })`, `--dry` by default |
 
 Replace policy: guarded per-row UPDATE/INSERT (never a bulk replace); DELETE is single-purpose and
 gated behind a tombstone write (see `tombstone-delete.mjs` above) — this is a **guarded delete**, not a

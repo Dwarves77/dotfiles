@@ -202,6 +202,11 @@ export interface Resource {
   sourceUrl?: string;          // Direct URL to primary source document
   sourceName?: string;         // Name of the publishing body
   sourceTier?: number;         // Tier 1-5 from skill source hierarchy
+  // Item tier (Lane POP, 2026-09-01; migration 278 intelligence_items.item_grade). "record" = extracted
+  // FACT/GAP spans only, no synthesized brief yet — surfaces label these via RecordGradeBadge. Absent
+  // (undefined) on any mapper the owning RPC doesn't yet project this column through — dormant
+  // passthrough, same pattern as jurisdictionIso's migration-272 rollout; never defaulted client-side.
+  itemGrade?: "record" | "brief";
   legalInstrument?: string;    // e.g. "Regulation (EU) 2023/1805", "40 CFR Part 86"
   enforcementBody?: string;    // e.g. "European Commission DG CLIMA", "US EPA"
   penaltyRange?: string;       // e.g. "€2,400/tonne shortfall", "Up to 4% EU turnover"
