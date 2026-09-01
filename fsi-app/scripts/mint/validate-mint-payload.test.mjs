@@ -6,8 +6,13 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 import { validateMintPayload } from "./validate-mint-payload.mjs";
 import { canonicalizeCitationUrl } from "./lib/canonicalize-citation-url.mjs";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const TESTDATA_DIR = resolve(__dirname, "testdata");
 
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
 
@@ -31,6 +36,7 @@ function basePayload() {
       {
         result_url: "https://example.gov/reg",
         result_content: "This regulation enters into force on 1 January 2026. Compliance is required by 1 January 2027 for all operators.",
+        fetched_length: 112,
       },
     ],
     claims: [
@@ -187,6 +193,7 @@ test("C7 GREEN: adding the covering FACT span clears the Gate A orphan", () => {
   p.item.full_brief += " The fee is set at 12%.";
   p.claims.push({ section_key: "body", claim_kind: "FACT", claim_text: "[penalty_summary] The fee is set at 12%.", source_span: "12%", source_url: "https://example.gov/reg" });
   p.search_results[0].result_content += " The fee is set at 12% of the shipment value.";
+  p.search_results[0].fetched_length = p.search_results[0].result_content.length; // keep capture-complete
   const r = validateMintPayload(p);
   assert.ok(!r.failures.some((f) => f.criterion === 7));
 });
@@ -205,4 +212,203 @@ test("canonicalizeCitationUrl matches migration 150's SQL: lowercase, strip */`,
   assert.equal(canonicalizeCitationUrl("https://example.gov/reg*"), "https://example.gov/reg");
   assert.equal(canonicalizeCitationUrl("https://example.gov/reg."), "https://example.gov/reg");
   assert.equal(canonicalizeCitationUrl("https://example.gov/reg"), "https://example.gov/reg");
+});
+
+// ── Wave MH-3: capture-completeness gate ─────────────────────────────────────────────────────────
+// mint-run-001.json's defects_found[0]: batch-001's six archived source files held only 2-12KB
+// cited-excerpt windows for documents that were actually 43,813-178,953 chars -- nothing stopped a
+// payload whose result_content was silently an excerpt. These tests exercise the new gate directly.
+
+test("kit RED: search_results[] entry with no fetched_length -> missing_fetched_length", () => {
+  const p = basePayload();
+  delete p.search_results[0].fetched_length;
+  const r = validateMintPayload(p);
+  assert.ok(r.failures.some((f) => f.criterion === "kit" && f.reason === "missing_fetched_length" && f.result_index === 0));
+});
+
+test("kit RED: result_content far shorter than fetched_length (batch-001's real shape) -> capture_incomplete", () => {
+  // Real batch-001 figures (BATCH-001-REPORT-v2.md §3, mint-run-001.json metrics): 32019R1242 was
+  // fetched at 102,988 chars; its archived excerpt held only 2,621 chars -- a 2.5% capture ratio.
+  const p = basePayload();
+  p.search_results[0].fetched_length = 102988;
+  // result_content stays the base payload's short excerpt (112 chars) -- exactly batch-001's shape.
+  const r = validateMintPayload(p);
+  const f = r.failures.find((x) => x.criterion === "kit" && x.reason === "capture_incomplete");
+  assert.ok(f, "expected a capture_incomplete failure");
+  assert.equal(f.fetched_length, 102988);
+  assert.ok(f.ratio < 0.02, `expected a ~2% ratio, got ${f.ratio}`);
+});
+
+test("kit RED: result_content just over the tolerance but above the floor -> capture_length_mismatch (not capture_incomplete)", () => {
+  const p = basePayload();
+  const base = p.search_results[0].result_content; // 112 chars
+  p.search_results[0].fetched_length = base.length + 200; // ratio ~0.36 -- wait, must stay >= 0.98 floor
+  // Use a longer base so the ratio comfortably clears the 0.98 floor while the raw gap clears tolerance.
+  p.search_results[0].result_content = base.repeat(50); // 5,600 chars
+  p.search_results[0].fetched_length = 5700; // diff=100 (>50-char tolerance), ratio=5600/5700=0.982 (>=0.98 floor)
+  const r = validateMintPayload(p);
+  assert.ok(r.failures.some((f) => f.criterion === "kit" && f.reason === "capture_length_mismatch"));
+  assert.ok(!r.failures.some((f) => f.criterion === "kit" && f.reason === "capture_incomplete"));
+});
+
+test("kit RED: result_content longer than fetched_length beyond tolerance -> capture_length_exceeds_fetched", () => {
+  const p = basePayload();
+  p.search_results[0].fetched_length = 10; // far shorter than the real 112-char result_content
+  const r = validateMintPayload(p);
+  assert.ok(r.failures.some((f) => f.criterion === "kit" && f.reason === "capture_length_exceeds_fetched"));
+});
+
+test("kit GREEN: fetched_length within tolerance of result_content.length -> no capture-completeness failure", () => {
+  const p = basePayload(); // fetched_length: 112 === result_content.length exactly
+  const r = validateMintPayload(p);
+  assert.ok(!r.failures.some((f) => f.criterion === "kit" && String(f.reason).startsWith("capture_")));
+  assert.ok(!r.failures.some((f) => f.criterion === "kit" && f.reason === "missing_fetched_length"));
+});
+
+test("kit RED: batch-001's actual six fetch/capture pairs all fail capture_incomplete (the retrofit proof)", () => {
+  // The real recorded fetch table (BATCH-001-REPORT-v2.md §3 / mint-run-001.json's per-item verdicts):
+  // 43813 / 12237 / 75954 / 102988 / 174417 / 178953, against archived excerpts of a few KB each.
+  const fetchedLengths = [43813, 12237, 75954, 102988, 174417, 178953];
+  for (const fetchedLength of fetchedLengths) {
+    const p = basePayload();
+    p.search_results[0].fetched_length = fetchedLength; // result_content stays the 112-char excerpt
+    const r = validateMintPayload(p);
+    const f = r.failures.find((x) => x.criterion === "kit" && x.reason === "capture_incomplete");
+    assert.ok(f, `expected capture_incomplete for fetched_length=${fetchedLength}`);
+    assert.ok(f.ratio < CAPTURE_COMPLETENESS_FLOOR_FOR_TEST, `ratio ${f.ratio} should be well under the floor`);
+  }
+});
+const CAPTURE_COMPLETENESS_FLOOR_FOR_TEST = 0.98; // mirrors validate-mint-payload.mjs's own constant
+
+// ── Wave MH-3: unicode integrity ─────────────────────────────────────────────────────────────────
+// mint-run-001.json's defects_found[1]+[2]: an ASCII 'x' substituted for the source's real '×' in
+// 32019R1242's Article 8 formula / jurisdictional_scope span, and curly quotes substituted for the
+// source's straight quotes around 'CBAM' in 32023R0956 -- BOTH passed criterion 3 clean because the
+// SAME wrong character was typed into both source_span and result_content. These are RED cases
+// reproducing those two actual bugs, using the real archived-source strings (verbatim, copied from
+// source-32019R1242.txt / source-32023R0956.txt) as the independent archive the gate checks against.
+
+function unicodePayload({ sourceSpan, resultContent, claimText, archivedSourcePath }) {
+  const p = basePayload();
+  p.claims = [
+    {
+      section_key: "body",
+      claim_kind: "FACT",
+      claim_text: claimText,
+      source_span: sourceSpan,
+      source_url: "https://example.gov/reg",
+      slot_key: null,
+    },
+    // GAP-cover all four required "directive" slots (item-type-required-slots.json) unconditionally so
+    // criterion 5 never confounds these unicode-integrity-focused tests -- the FACT claim above already
+    // covers whichever slot its own claimText brackets, redundant coverage is harmless.
+    { section_key: "body", claim_kind: "GAP", claim_text: "[effective_date] not available from primary sources as of grounding", slot_key: "effective_date" },
+    { section_key: "body", claim_kind: "GAP", claim_text: "[jurisdictional_scope] not available from primary sources as of grounding", slot_key: "jurisdictional_scope" },
+    { section_key: "body", claim_kind: "GAP", claim_text: "[penalty_summary] not available from primary sources as of grounding", slot_key: "penalty_summary" },
+    { section_key: "body", claim_kind: "GAP", claim_text: "[primary_deadline] not available from primary sources as of grounding", slot_key: "primary_deadline" },
+  ];
+  p.sections[0].content_md = "The rule applies as described. https://example.gov/reg";
+  p.item.full_brief = "The rule applies as described.";
+  p.search_results[0].result_content = resultContent;
+  p.search_results[0].fetched_length = resultContent.length;
+  p.search_results[0].archived_source_path = archivedSourcePath;
+  return p;
+}
+
+test("kit RED: batch-001's real × -> x bug (32019R1242) -- span AND result_content share the mistranscription, C3 alone would miss it", () => {
+  // The real corrupted form: an ASCII 'x' where the source has '×' (multiplication sign) -- typed
+  // identically into both the claim's source_span and the payload's own result_content, exactly as
+  // batch-001's actual bug did before it was caught by an independent cross-check, not by C3.
+  const brokenSpan = "(Excess CO2 emissions premium) = (Excess CO2 emissions x 4 250 EUR/gCO2/tkm)";
+  const p = unicodePayload({
+    sourceSpan: brokenSpan,
+    resultContent: `Article 8 Compliance with the specific CO2 emissions targets 1. Where a manufacturer is found, pursuant to paragraph 2, to have excess CO2 emissions in a given reporting period from 2025 onwards, the Commission shall impose an excess CO2 emissions premium, calculated in accordance with the following formula: (a) from 2025 to 2029, ${brokenSpan}`,
+    claimText: "[penalty_summary] Excess CO2 emissions premium formula, Article 8.",
+    archivedSourcePath: resolve(TESTDATA_DIR, "archived-source-32019R1242-excerpt.txt"),
+  });
+
+  // Sanity: criterion 3 (payload-internal only) does NOT catch this -- confirms the historical gap.
+  const rWithoutArchive = validateMintPayload(clone({ ...p, search_results: [{ ...p.search_results[0], archived_source_path: null }] }));
+  assert.ok(!rWithoutArchive.failures.some((f) => f.criterion === 3 && f.reason === "fact_span_not_in_source"),
+    "criterion 3 alone should NOT catch a corruption shared by both payload fields -- this is the documented gap");
+
+  const r = validateMintPayload(p);
+  const f = r.failures.find((x) => x.criterion === "kit" && x.reason === "fact_span_matches_payload_only_not_archive");
+  assert.ok(f, "expected the archive cross-check to catch what C3 missed");
+  assert.equal(f.substitution.class, "multiplication_sign");
+  assert.equal(r.valid, false);
+});
+
+test("kit RED: batch-001's real curly-vs-straight-quote bug (32023R0956) -- span AND result_content share the mistranscription", () => {
+  // The real corrupted form: curly quotation marks around 'CBAM' where the source has straight quotes.
+  const brokenSpan = "This Regulation establishes a carbon border adjustment mechanism (the ‘CBAM’) to address greenhouse gas emissions embedded in the goods listed in Annex I on their importation into the customs territory of the Union";
+  const p = unicodePayload({
+    sourceSpan: brokenSpan,
+    resultContent: `Article 1 Subject matter 1. ${brokenSpan} in order to prevent the risk of carbon leakage.`,
+    claimText: "[jurisdictional_scope] CBAM subject matter and scope, Article 1.",
+    archivedSourcePath: resolve(TESTDATA_DIR, "archived-source-32023R0956-excerpt.txt"),
+  });
+
+  const r = validateMintPayload(p);
+  const f = r.failures.find((x) => x.criterion === "kit" && x.reason === "fact_span_matches_payload_only_not_archive");
+  assert.ok(f, "expected the archive cross-check to catch what C3 missed");
+  assert.equal(f.substitution.class, "curly_single_quote");
+  assert.equal(r.valid, false);
+});
+
+test("kit RED: source_span alone (not result_content) carries the substitution -> fact_span_unicode_substitution", () => {
+  // A different, narrower scenario than the two real bugs above: result_content is clean (matches the
+  // archive), but the CLAIM's source_span alone was mistyped -- criterion 3's loose match would already
+  // catch most of this (× and x differ under a case-insensitive compare too), but this test locks in
+  // that the new check names the specific substitution class rather than only the generic "not found".
+  const cleanFormula = "(Excess CO2 emissions premium) = (Excess CO2 emissions × 4 250 EUR/gCO2/tkm)";
+  const brokenSpan = cleanFormula.replace("×", "x");
+  const p = unicodePayload({
+    sourceSpan: brokenSpan,
+    resultContent: `Article 8 formula: ${cleanFormula}`,
+    claimText: "[penalty_summary] Excess CO2 emissions premium formula, Article 8.",
+    archivedSourcePath: resolve(TESTDATA_DIR, "archived-source-32019R1242-excerpt.txt"),
+  });
+  const r = validateMintPayload(p);
+  assert.ok(r.failures.some((f) => f.criterion === 3 && f.reason === "fact_span_not_in_source"),
+    "C3 should also fail here since result_content itself doesn't contain the broken span");
+  const f = r.failures.find((x) => x.criterion === "kit" && x.reason === "fact_span_unicode_substitution");
+  assert.ok(f, "expected the unicode-substitution reason naming the multiplication_sign class");
+  assert.equal(f.substitution_class, "multiplication_sign");
+});
+
+test("kit GREEN: span, result_content, and the archived source all agree character-for-character -> no unicode-integrity failure", () => {
+  const cleanSpan = "This Regulation establishes a carbon border adjustment mechanism (the 'CBAM') to address greenhouse gas emissions embedded in the goods listed in Annex I on their importation into the customs territory of the Union";
+  const p = unicodePayload({
+    sourceSpan: cleanSpan,
+    resultContent: `Article 1 Subject matter 1. ${cleanSpan} in order to prevent the risk of carbon leakage.`,
+    claimText: "[jurisdictional_scope] CBAM subject matter and scope, Article 1.",
+    archivedSourcePath: resolve(TESTDATA_DIR, "archived-source-32023R0956-excerpt.txt"),
+  });
+  const r = validateMintPayload(p);
+  assert.ok(!r.failures.some((f) => f.criterion === "kit" && String(f.reason).startsWith("fact_span_")));
+});
+
+test("kit RED: archived_source_path names a file that does not exist -> archived_source_path_unreadable", () => {
+  const p = unicodePayload({
+    sourceSpan: "some span",
+    resultContent: "some span appears in this result content",
+    claimText: "[penalty_summary] some claim",
+    archivedSourcePath: resolve(TESTDATA_DIR, "does-not-exist.txt"),
+  });
+  const r = validateMintPayload(p);
+  assert.ok(r.failures.some((f) => f.criterion === "kit" && f.reason === "archived_source_path_unreadable"));
+});
+
+test("kit RED: prose scan catches a substitution-class divergence in full_brief against the archived source", () => {
+  const p = basePayload();
+  p.search_results[0].archived_source_path = resolve(TESTDATA_DIR, "archived-source-32023R0956-excerpt.txt");
+  p.search_results[0].fetched_length = p.search_results[0].result_content.length;
+  p.item.full_brief =
+    "This Regulation establishes a carbon border adjustment mechanism (the ‘CBAM’) to address greenhouse gas emissions embedded in the goods listed in Annex I on their importation into the customs territory of the Union.";
+  const r = validateMintPayload(p);
+  const f = r.failures.find((x) => x.criterion === "kit" && x.reason === "prose_unicode_substitution");
+  assert.ok(f, "expected the prose scan to flag the curly-quote divergence in full_brief");
+  assert.equal(f.substitution_class, "curly_single_quote");
+  assert.equal(f.location, "full_brief");
 });

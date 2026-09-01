@@ -12,7 +12,15 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 
-import { screenRows, loadReviewed, mergeReviewed, buildSummary } from "./screen-worklist.mjs";
+import {
+  screenRows,
+  loadReviewed,
+  mergeReviewed,
+  buildSummary,
+  nextRunId,
+  buildRunArtifact,
+} from "./screen-worklist.mjs";
+import { validateRunArtifact, readRunHistory } from "../lib/run-artifact.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WORKLIST_SCRIPT = join(HERE, "screen-worklist.mjs");
@@ -148,9 +156,17 @@ test("CLI: --reviewed end-to-end resolves the ambiguous row and writes provenanc
     "utf8",
   );
 
+  const harnessRunsDir = join(dir, "harness-runs-screen");
   execFileSync(
     process.execPath,
-    [WORKLIST_SCRIPT, "--input", inputPath, "--reviewed", reviewedPath, "--out-dir", dir, "--out-basename", "final"],
+    [
+      WORKLIST_SCRIPT,
+      "--input", inputPath,
+      "--reviewed", reviewedPath,
+      "--out-dir", dir,
+      "--out-basename", "final",
+      "--harness-runs-dir", harnessRunsDir,
+    ],
     { encoding: "utf8" },
   );
 
@@ -165,6 +181,121 @@ test("CLI: --reviewed end-to-end resolves the ambiguous row and writes provenanc
   const summary = readFileSync(join(dir, "final.screen-summary.md"), "utf8");
   assert.ok(summary.includes("Reviewed verdicts:"));
   assert.ok(summary.includes("Counts per provenance"));
+
+  rmSync(dir, { recursive: true, force: true });
+});
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════════════
+// WAVE MH-2 (2026-09-01) — emission-in-the-harness: screen-worklist.mjs writes its own run artifact as
+// part of its own execution path (build plan §2). Every test here that runs the CLI end-to-end MUST pass
+// --harness-runs-dir pointing at a tmp dir — never the default — so a test run is never mistaken for a
+// real screen batch inside the repo's own scripts/harness-runs/screen/ history.
+// ════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+test("nextRunId: empty/missing directory starts at screen-run-001", () => {
+  const dir = mkdtempSync(join(tmpdir(), "screen-nextrunid-test-"));
+  assert.equal(nextRunId(join(dir, "does-not-exist")), "screen-run-001");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("nextRunId: increments past the highest existing screen-run-NNN.json, ignoring non-matching files", () => {
+  const dir = mkdtempSync(join(tmpdir(), "screen-nextrunid-test-"));
+  writeFileSync(join(dir, "screen-run-001.json"), "{}", "utf8");
+  writeFileSync(join(dir, "screen-run-003.json"), "{}", "utf8");
+  writeFileSync(join(dir, "PENDING-RUN.md"), "not a run file", "utf8");
+  writeFileSync(join(dir, "screen-run-not-a-number.json"), "{}", "utf8");
+  assert.equal(nextRunId(dir), "screen-run-004");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("buildRunArtifact: shape is CONVENTION.md-valid and per_item ships empty (per_item-at-scale rule)", () => {
+  const screened = screenRows([AMBIGUOUS_ROW, ON_ROW]);
+  const artifact = buildRunArtifact({
+    runId: "screen-run-099",
+    harnessVersion: "sha256:aaaaaaaaaaaaaaaa",
+    startedAt: "2026-09-01T00:00:00.000Z",
+    inputPath: "/tmp/x/census.json",
+    reviewedPath: null,
+    outDir: "/tmp/x",
+    rowsIn: 2,
+    merged: screened,
+    reviewMeta: null,
+    resultsPath: "/tmp/x/census.screen-results.json",
+    summaryPath: "/tmp/x/census.screen-summary.md",
+  });
+  assert.deepEqual(validateRunArtifact(artifact), []);
+  assert.equal(artifact.harness_family, "screen");
+  assert.deepEqual(artifact.per_item, []);
+  assert.equal(artifact.metrics.on_vertical, 1);
+  assert.equal(artifact.metrics.ambiguous, 1);
+  assert.equal(artifact.metrics.operator_overturn_rate, "not applicable — no --reviewed merge this run");
+  assert.deepEqual(artifact.full_trace_refs, ["/tmp/x/census.screen-results.json", "/tmp/x/census.screen-summary.md"]);
+});
+
+test("buildRunArtifact: a --reviewed run records the applied/skipped counts in operator_overturn_rate and inputs_ref", () => {
+  const screened = screenRows([AMBIGUOUS_ROW, ON_ROW]);
+  const merged = mergeReviewed(screened, {
+    "row-ambiguous-1": { verdict: "off_vertical", reason: "r", reviewer: "test" },
+    "row-on-1": { verdict: "off_vertical", reason: "attempted overturn", reviewer: "test" },
+  });
+  const reviewMeta = {
+    reviewedApplied: merged.reviewedApplied,
+    reviewedSkippedNotAmbiguous: merged.reviewedSkippedNotAmbiguous,
+    reviewedInvalid: merged.reviewedInvalid,
+    reviewedUnmatched: merged.reviewedUnmatched,
+  };
+  const artifact = buildRunArtifact({
+    runId: "screen-run-099",
+    harnessVersion: "sha256:aaaaaaaaaaaaaaaa",
+    startedAt: "2026-09-01T00:00:00.000Z",
+    inputPath: "/tmp/x/census.json",
+    reviewedPath: "/tmp/x/reviewed.json",
+    outDir: "/tmp/x",
+    rowsIn: 2,
+    merged,
+    reviewMeta,
+    resultsPath: "/tmp/x/census.screen-results.json",
+    summaryPath: "/tmp/x/census.screen-summary.md",
+  });
+  assert.deepEqual(validateRunArtifact(artifact), []);
+  assert.deepEqual(artifact.inputs_ref, ["/tmp/x/census.json", "/tmp/x/reviewed.json"]);
+  assert.match(artifact.metrics.operator_overturn_rate, /1 reviewed verdict\(s\) applied/);
+  assert.match(artifact.metrics.operator_overturn_rate, /1 reviewed entr\(y\/ies\).*REFUSED/);
+});
+
+test("CLI end-to-end: a run writes a VALID run artifact into --harness-runs-dir, never the repo default", () => {
+  const dir = mkdtempSync(join(tmpdir(), "screen-worklist-emission-test-"));
+  const inputPath = join(dir, "census.json");
+  const harnessRunsDir = join(dir, "harness-runs-screen");
+  writeFileSync(inputPath, JSON.stringify({ rows: [AMBIGUOUS_ROW, ON_ROW] }), "utf8");
+
+  execFileSync(
+    process.execPath,
+    [WORKLIST_SCRIPT, "--input", inputPath, "--out-dir", dir, "--out-basename", "run1", "--harness-runs-dir", harnessRunsDir],
+    { encoding: "utf8" },
+  );
+
+  const { runs, invalid } = readRunHistory(harnessRunsDir);
+  assert.deepEqual(invalid, []);
+  assert.equal(runs.length, 1);
+  const artifact = runs[0];
+  assert.equal(artifact.run_id, "screen-run-001");
+  assert.equal(artifact.harness_family, "screen");
+  assert.match(artifact.harness_version, /^sha256:[0-9a-f]{16}$/);
+  assert.ok(artifact.full_trace_refs.some((p) => p.endsWith("run1.screen-results.json")));
+  assert.deepEqual(validateRunArtifact(artifact), []);
+
+  // A SECOND run against the same --harness-runs-dir numbers itself screen-run-002, never overwrites —
+  // the exact screen-v1-loss failure mode CONVENTION.md documents; this is screen-worklist.mjs's own
+  // proof it no longer repeats it.
+  execFileSync(
+    process.execPath,
+    [WORKLIST_SCRIPT, "--input", inputPath, "--out-dir", dir, "--out-basename", "run2", "--harness-runs-dir", harnessRunsDir],
+    { encoding: "utf8" },
+  );
+  const second = readRunHistory(harnessRunsDir);
+  assert.equal(second.runs.length, 2);
+  assert.deepEqual(second.runs.map((r) => r.run_id).sort(), ["screen-run-001", "screen-run-002"]);
 
   rmSync(dir, { recursive: true, force: true });
 });

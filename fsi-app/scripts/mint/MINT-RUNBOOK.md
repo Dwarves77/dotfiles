@@ -1,5 +1,9 @@
 # Mint runbook — $0, in-session, one payload at a time (M0 kit)
 
+Every mint batch's run history belongs in `scripts/harness-runs/mint/` — see
+`scripts/harness-runs/CONVENTION.md` for the artifact schema and `PROPOSER-RUNBOOK.md` for the
+read-before-you-run cadence (Wave MH-1).
+
 Absolute rule this kit exists to serve: **zero API spend, no DB writes from a mint lane.** Every step
 below is either a read (WebFetch / a read-only Supabase query) or an in-memory authoring step. The
 coordinator alone applies the guarded write path. This runbook is the per-item procedure M1..Mn batches
@@ -42,6 +46,67 @@ follow; `validate-mint-payload.mjs` is the gate every payload must clear before 
   (`"[<slot_key>] not available from primary sources as of grounding"` — the exact string the real
   pipeline's `forceSlotCoverage` GAP path emits, `canonical-pipeline.ts` line ~1532), not an invented FACT.
 
+### 1a. When the fetch runs through `javascript_tool` (browser-cleared pages) — the ≤8,000-char slice
+    procedure, LAW as of Wave MH-3
+
+Batch-001 fetched EUR-Lex via a real browser (`claude-in-chrome`) after `pg_net` was proven WAF-blocked
+(`BATCH-001-REPORT.md`), reading the cleared page's in-memory document string
+(`window.__docs[celex]`) back out through `javascript_tool`. That batch discovered, in-session, that
+`javascript_tool`'s return-value channel silently truncates to roughly 1.0–1.5K characters regardless of
+the requested slice size — the 20,000-char return this section used to suggest does **not** work; it comes
+back cut off mid-string with a `[TRUNCATED]` marker and no error (`BATCH-001-REPORT-v2.md` §1). The
+in-session workaround that batch improvised — small offset probes plus ~600–900-char windowed returns
+around only the cited spans — was a deliberate targeted-EXCERPT strategy, and it is exactly what
+`mint-run-001.json`'s `defects_found[0]` names as the root cause of the batch's capture-completeness
+defect: the archived `source-<celex>.txt` files ended up holding 2–12KB of excerpt for documents that
+were actually 43,813–178,953 characters, because nothing forced the excerpt-vs-full-capture gap into the
+open. `validate-mint-payload.mjs`'s capture-completeness gate (Wave MH-3) now catches this mechanically —
+but the RIGHT fix is to never produce an excerpt-shaped capture in the first place. This procedure is now
+**mandatory**, not lane-report prose to rediscover each batch:
+
+1. **Measure first.** Read the full in-page document length before extracting anything (e.g.
+   `window.__docs[celex].length`, or the DOM node's `.textContent.length`). This number is
+   `fetched_length` — record it now, independent of anything you are about to extract. It goes into
+   `search_results[].fetched_length` (payload-schema.json, required as of Wave MH-3) untouched by
+   whatever happens during extraction.
+2. **Slice at ≤8,000 characters per call.** `javascript_tool`'s truncation ceiling is ~1.0–1.5K chars for
+   an ARBITRARY return value, but a slice bounded to ≤8,000 chars, read back through a call that returns
+   ONLY that slice (e.g. `text.slice(i, i + 8000)` as the entire return expression — no surrounding JSON,
+   no extra fields riding along), round-trips complete and untruncated in practice for this kit's fetches.
+   8,000 is the documented ceiling, not a target — a smaller slice is always safe if a particular call's
+   return still truncates; NEVER quietly accept a truncated slice as "close enough."
+3. **Verify every slice before moving on.** For each slice: check its length against the requested
+   window bounds; log its first ~40 and last ~40 characters (head/tail) so a truncation is visually
+   obvious (a `[TRUNCATED]` marker, or a tail that lands mid-word/mid-sentence rather than at the actual
+   slice boundary) even if the tool call itself reports success. A slice that fails this check is
+   RE-REQUESTED narrower — never patched by hand, never accepted with a note to "fix later."
+4. **Rebuild from empty, by script, never by hand.** Start from an empty string and concatenate verified
+   slices, in order, covering `[0, fetched_length)` with no gaps and no overlap double-counted. This
+   concatenation is a mechanical step (string concatenation in the same session, or a short script) —
+   NEVER retype, paraphrase, or "clean up" a slice's text while assembling it. The assembled result is
+   `search_results[].result_content`; because it was built by concatenating verified slices rather than
+   retyped from what a human read on screen, it cannot carry the kind of hand-transcription error
+   batch-001's `defects_found[1]`/`[2]` found (an ASCII `x` typed for the source's real `×`; curly quotes
+   typed for straight ones) — that class of error is now structurally confined to `claims[].source_span`,
+   where `validate-mint-payload.mjs`'s unicode-integrity check (Wave MH-3) can actually catch it by
+   comparing against this independently-assembled text.
+5. **Archive it, separately, before authoring any claim.** Save the same rebuilt full text to a companion
+   plain-text file (`source-<celex>.txt`, next to the batch's payload files) BEFORE writing any
+   `claims[].source_span` — and record its path in `search_results[].archived_source_path`
+   (payload-schema.json, optional but strongly recommended as of Wave MH-3). This is what lets the
+   validator's unicode-integrity check compare a claim's hand-copied `source_span` against a reference
+   that was NOT typed a second time from the same reading of the page — the independent check
+   `mint-run-001.json`'s `defects_found[2]` named as the missing piece (an intra-payload comparison
+   cannot catch an error typed identically into two fields by the same hand).
+6. **Only then author claims**, copying each `source_span` out of the ARCHIVED file (step 5), not by
+   re-reading the live page a second time — one independently-verified text, read once, cited many times.
+
+A batch that cannot clear step 1 (the fetch mechanism truncates below ~1.0K chars even at a ≤8,000-char
+request, or the page cannot be measured for a real `fetched_length` at all) is not mintable through this
+procedure this batch — flag it and queue a different fetch mechanism, per the existing "genuinely
+metadata-only" rule above. Do not fall back to a hand-typed excerpt as an acceptable substitute; that is
+exactly the practice this section replaces.
+
 ## 2. Resolve the registered source
 
 Read (never write) `sources` for the exact `document_url`, and copy `id`, `base_tier`, `tier_override`,
@@ -78,6 +143,17 @@ One entry per URL you actually fetched, `result_content` = the real fetched text
 WebFetch calls against the same URL into one entry, or use several `result_index`-ordered entries — either
 is fine). Never write a `result_content` you didn't actually see returned by a fetch.
 
+- **`fetched_length` is required (Wave MH-3).** The full document's length in characters, recorded
+  independently of `result_content` at fetch time (§1a step 1 for the `javascript_tool` path; for a plain
+  WebFetch return, its own reported length). `validate-mint-payload.mjs`'s capture-completeness gate fails
+  any `result_content` whose length diverges from `fetched_length` beyond a small documented tolerance —
+  `result_content` must be the FULL fetched text, never an excerpt, no matter how well-chosen.
+- **`archived_source_path` is optional but should be set whenever §1a's slice-and-rebuild procedure ran**
+  — the path to the companion `source-<celex>.txt` file (§1a step 5). Set it and the validator's
+  unicode-integrity check runs against that independent reference instead of only against
+  `result_content`; leave it unset and you get the weaker, `result_content`-only fallback (documented in
+  `validate-mint-payload.mjs`'s own comments) — set it when you have the file.
+
 ## 5. Validate locally — the gate
 
 ```
@@ -108,6 +184,50 @@ node --test scripts/mint/validate-mint-payload.test.mjs
   M0 report's write plan) and marks the corresponding `census_worklist` row resolved.
 - **Never** hand off a payload that fails the local validator "because the coordinator can fix it at
   apply time" — a red payload here will be red against the live RPC too; fix it before handoff.
+- **MANDATORY, batch's last step — write the run artifact.** Every mint batch ends by writing its own
+  `scripts/harness-runs/mint/mint-run-NNN.json` (per `scripts/harness-runs/CONVENTION.md`; `NNN` is the
+  next unused number after the highest `mint-run-*.json` already in that directory) — this is not a
+  step the coordinator remembers separately, it is part of THIS procedure, the same "emission is in the
+  harness, not the operator" rule `screen-worklist.mjs` and the fetch-drain protocol follow (build plan
+  §2). Since a mint batch is a manual, $0, in-session procedure with no single runner script, the writer
+  invocation is this exact shape, run once per batch after step 6's handoff is assembled:
+
+  ```js
+  import { writeRunArtifact, hashHarnessVersion } from "./scripts/lib/run-artifact.mjs";
+
+  const harness_version = hashHarnessVersion([
+    "scripts/mint/MINT-RUNBOOK.md",
+    "scripts/mint/validate-mint-payload.mjs",
+    "scripts/mint/payload-schema.json",
+    "scripts/mint/item-type-required-slots.json",
+    "scripts/mint/lib/gate-a-scan.mjs",
+    "scripts/mint/lib/gate-a-match.mjs",
+    "scripts/mint/lib/canonicalize-citation-url.mjs",
+  ]); // baseDir defaults to cwd — run from fsi-app/
+
+  writeRunArtifact("scripts/harness-runs/mint", {
+    harness_family: "mint",
+    harness_version,
+    run_id: "mint-run-NNN",              // next unused number, zero-padded 3 digits
+    started_at: "<ISO 8601 UTC — this batch's own start time>",
+    config: { /* vault, wave, candidate_pool_definition, batch_target_size, ... — see mint-run-001.json */ },
+    inputs_ref: [ /* paths to the census/queue export this batch consumed */ ],
+    per_item: [ /* one entry per attempted item — this batch is 40-80 items, well inside CONVENTION.md's
+                    "every item" per_item-at-scale tier, so EVERY item gets an entry, not a subset */ ],
+    metrics: {
+      /* attempted, minted, source_not_registered, off_vertical_excluded_relevance_rescreen,
+         validator_first_pass_rate, validator_final_pass_rate, live_verify_first_pass_rate,
+         live_verify_final_rate — the mint family's standing metric, per PROPOSER-RUNBOOK.md §3 */
+    },
+    defects_found: [ /* anything this batch found wrong, root_cause, fix_ref (null if unfixed yet) */ ],
+    full_trace_refs: [ /* every report/payload/source file this batch produced — never summarized */ ],
+    proposer_notes: "",
+  });
+  ```
+
+  A batch that skips this write is exactly the gap `F28` (harness-run-integrity, Wave MH-2) fails CI
+  for: a harness family whose governing files changed (or whose batch ran) without a run artifact
+  recording why.
 
 ## 7. Off-vertical disposition (relevance re-screen, task 3)
 
