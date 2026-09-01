@@ -7283,3 +7283,58 @@ Coordinator, first person. Four corrections and findings this block, all verifie
 **Corrected on the record: the corpus is NOT missing forward data.** I stated that there was "no forward data in the corpus at all." That was wrong and the operator challenged it. Measured: 179 of 322 live verified briefs name a future year, 189 carry forward-obligation language, and 1,143 grounded FACT/GAP claims name a future year (324 `primary_deadline`, 327 `effective_date`). What is missing is the EXTRACTION into queryable columns: 19 items have `compliance_deadline`, 58 have `entry_into_force`, 0 have `next_review_date`, and that last field appears in no prompt, parser or pipeline code. EU Aviation ETS has a section reading "**Deadline:** Before 1 January 2026" with a null deadline column. U5/L3 is blocked by that extraction gap, not by absent intelligence, and the fix needs no regeneration and no contract advance because the dates are already grounded in claims.
 
 **Next step for a cold session:** the `forward-events` harness family (extractor + migration + registration) is in build; land it, then batch-003 with the holder-blocking selection query.
+
+## Addendum 79 — 2026-09-01 (cloud session): the forward-events harness, built end to end and run for real
+
+Coordinator, first person. The operator said "finish building the harness" after I had to retract the
+claim that the corpus held no forward data. This block built the fifth harness family from nothing to a
+loaded, queryable result in one wave.
+
+**What was actually wrong.** Not missing intelligence: missing extraction. 179 of 322 live verified briefs
+name a future year and 1,143 grounded FACT/GAP claims do, but 19 items had `compliance_deadline`, 58 had
+`entry_into_force` and none had `next_review_date`. EU Aviation ETS carried a section reading
+"**Deadline:** Before 1 January 2026" against a null deadline column.
+
+**Built, in three disjoint Sonnet lanes plus coordinator apply.** FE-1: a pure, deterministic, $0, no-LLM
+extractor (`scripts/forward-events/extract-forward-events.mjs`, 56 execution-wired tests) that never
+invents a date and only binds one to an event when obligation language ties it to a consequence. FE-2:
+migration 274, `item_forward_events`, one row per dated event with the grounding rules as CHECK
+constraints (a claim-sourced row must carry its claim id; `high` confidence is unreachable from a
+section) and RLS mirroring migration 103. FE-3: registration of the family in `ALLOWED_FAMILIES`, F28's
+`GOVERNING_FILES` and CONVENTION.md.
+
+**The run.** 322 live verified items, 3,362 dated claims and 2,081 dated sections in, **902 events out
+from 137 items, 901 loaded**. 521 are in the future. Before this, the date columns knew of five. The
+next obligations the corpus can now name: 25 September 2026 (Net-Zero Industry Act reporting), 21
+November 2026 (waste-shipment country list), 29 November 2026 (Euro 7 applies), 31 December 2026 (PPWR
+methodology) — each with its grounded obligation quote.
+
+**Three defects, all found before they did damage.** (1) Migration 274's dedupe key was
+`(item, date, kind, source_span)`. Measured against the real run, 382 of 902 spans are a bare year
+because that is all the source says, so **489 of 902 events (54%) would have been silently discarded** by
+`ON CONFLICT DO NOTHING`, with no error. Caught by counting candidate keys against the run instead of
+trusting the schema; migration 275 replaces it with an obligation-hash plus source-object key, measured
+to keep 901 where the old kept 413. (2) The `other` kind is 43% of rows and 18 of those are corporate or
+UN-target dates, not the instrument's own obligation, so a "what is due" view must filter kind. (3)
+`source_span` is often the bare date rather than its clause: verbatim, but thin as displayed provenance.
+
+**Errors of mine, corrected on the record.** I told lane FE-3 that F28 rule (b) fires on the presence of
+a family directory; FE-3 read `auditFamilyPresence` and refuted it (it iterates `ALLOWED_FAMILIES`, so
+registration alone raises it). FE-1 reported that `scripts/**` is outside the test suite's globs, and I
+nearly wrote that into the protocol; `scripts/mint/*.test.mjs` had been in the suite all along, so the
+right fix was to wire `scripts/forward-events/*.test.mjs` in rather than document a workaround. The suite
+went 2,106 to 2,162 as a result: those 56 tests were not running until this commit.
+
+**The meta-harness policed the change to itself, again.** Registering a family edits `run-artifact.mjs`
+and F28, both of which are meta-harness's own governing files, so F28 demanded `meta-harness-run-004.json`
+and a proposer pass naming it before it would go green. Second consecutive cycle in which self-application
+produced a real finding rather than ceremony.
+
+**Deliberately NOT done.** No write-back into `intelligence_items.compliance_deadline` /
+`entry_into_force` / `next_review_date`: prove extraction quality first, then derive. `next_review_date`
+still has no writer anywhere in the codebase, so it needs one as well as a value.
+
+**Next step for a cold session:** widen `source_span` to the matched clause and re-run (the dedupe key
+already discriminates on obligation text, so a span change cannot duplicate rows); then decide the
+whose-obligation semantics for the `other` bucket; then batch-003 with the holder-blocking selection
+query.

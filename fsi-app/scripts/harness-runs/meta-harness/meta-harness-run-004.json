@@ -1,0 +1,54 @@
+{
+  "harness_family": "meta-harness",
+  "harness_version": "sha256:3f4defe3978bf78a",
+  "run_id": "meta-harness-run-004",
+  "started_at": "2026-09-01T14:00:00Z",
+  "finished_at": "2026-09-01T14:52:42Z",
+  "config": {
+    "wave": "FE — register the forward-events harness family",
+    "why": "the operator asked to finish building the harness after the corpus was shown to hold forward data that no query could reach; this wave adds the fifth family end to end (extractor, DDL, registration, first real run)",
+    "files_changed": [
+      "scripts/lib/run-artifact.mjs (ALLOWED_FAMILIES +forward-events)",
+      ".discipline/fitness/functions/F28-harness-run-integrity.mjs (GOVERNING_FILES +forward-events)",
+      "scripts/harness-runs/CONVENTION.md (family, layout, standing metric, hashed-files table)",
+      ".discipline/fitness/functions/F28-harness-run-integrity.test.mjs (CONVENTION parity 4 -> 5 families)",
+      "scripts/lib/run-artifact.test.mjs (ALLOWED_FAMILIES assertion)"
+    ]
+  },
+  "inputs_ref": [
+    "scripts/harness-runs/CONVENTION.md",
+    "scripts/harness-runs/PROPOSER-RUNBOOK.md"
+  ],
+  "per_item": [
+    {
+      "id": "MH-5-register-forward-events",
+      "outcome": "landed",
+      "evidence": "family registered, first run artifact written, both F28 violations the registration raised resolved in the same commit; ran the fitness suite to confirm"
+    }
+  ],
+  "metrics": {
+    "families_before": 4,
+    "families_after": 5,
+    "proposals_implemented_this_cycle": 1,
+    "f28_violations_raised_by_the_change": 2,
+    "f28_violations_resolved_in_same_commit": 2
+  },
+  "defects_found": [
+    {
+      "description": "My own lane brief to FE-3 asserted that F28 rule (b) fires on the presence of a family DIRECTORY, so withholding the directory would avoid a red. FE-3 read auditFamilyPresence and refuted it: rule (b) iterates ALLOWED_FAMILIES, so registering the family in run-artifact.mjs is what raises NO ARTIFACTS, directory or not. The lane reported this rather than working around it.",
+      "root_cause": "coordinator asserted a mechanism from memory of the design instead of reading the implementation",
+      "fix_ref": "recorded here; the landing commit carries the first artifact, which is what actually resolves it"
+    },
+    {
+      "description": "hashHarnessVersion throws ENOENT on an absent governing file rather than degrading. Safe today only because rule (c) skips families with zero valid artifacts, which shields the intermediate state by luck of ordering rather than by design.",
+      "root_cause": "readFileSync with no guard in hashHarnessVersion",
+      "fix_ref": null
+    }
+  ],
+  "full_trace_refs": [
+    "scripts/harness-runs/forward-events/forward-events-run-001.json",
+    "scripts/harness-runs/forward-events/PROTOCOL.md",
+    "scripts/forward-events/DRY-RUN-REPORT.md"
+  ],
+  "proposer_notes": "The meta-harness caught a change to itself again: registering a new family moved meta-harness own governing hash and F28 demanded this artifact. Second consecutive cycle where self-application produced a real finding rather than ceremony. Open: make hashHarnessVersion degrade or fail with a named error instead of a raw ENOENT."
+}

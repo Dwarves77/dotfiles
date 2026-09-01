@@ -111,6 +111,20 @@ export const GOVERNING_FILES = Object.freeze({
     'scripts/lib/run-artifact.mjs',
     '.discipline/fitness/functions/F28-harness-run-integrity.mjs',
   ]),
+  // forward-events (registered by lane FE-3): a single-pass extraction harness, not a mint/screen/
+  // fetch-drain shape — one run is one extraction pass over a defined corpus slice. Its governing files
+  // are authored by other lanes and land in the same wave that lands this family's first run artifact
+  // (this lane deliberately does not create scripts/harness-runs/forward-events/ — see CONVENTION.md);
+  // until both files below exist on disk, hashHarnessVersion (scripts/lib/run-artifact.mjs) throws
+  // ENOENT rather than degrading, same as it would for any other family missing a governing file — see
+  // that function's own doc comment. That is fine here specifically because rule (c) below SKIPS a
+  // family with zero valid artifacts (see auditStalenessCoupling), so this family's hash is never
+  // actually computed until it has ≥1 valid artifact, which the coordinator lands in the same commit as
+  // these two files.
+  'forward-events': Object.freeze([
+    'scripts/forward-events/extract-forward-events.mjs',
+    'scripts/harness-runs/forward-events/PROTOCOL.md',
+  ]),
 });
 
 const PENDING_RUN_FILE = 'PENDING-RUN.md';

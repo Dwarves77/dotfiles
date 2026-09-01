@@ -260,7 +260,7 @@ test('CONVENTION-TABLE-PARITY: F28.GOVERNING_FILES matches CONVENTION.md\'s harn
   const root = getRepoRoot();
   const md = readFileSync(`${root}/fsi-app/scripts/harness-runs/CONVENTION.md`, 'utf8');
   const parsed = parseConventionGoverningFiles(md);
-  assert.equal(parsed.size, 4, 'expected exactly 4 rows (mint, screen, fetch-drain, meta-harness) in the table');
+  assert.equal(parsed.size, 5, 'expected exactly 5 rows (mint, screen, fetch-drain, meta-harness, forward-events) in the table');
   for (const [family, files] of parsed) {
     assert.deepEqual(
       [...GOVERNING_FILES[family]].sort(),

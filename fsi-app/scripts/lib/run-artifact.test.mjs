@@ -65,8 +65,8 @@ test("validateRunArtifact: per_item may be empty (a run that processed thousands
   assert.deepEqual(validateRunArtifact(artifact), []);
 });
 
-test("ALLOWED_FAMILIES is exactly mint, screen, fetch-drain, meta-harness", () => {
-  assert.deepEqual(ALLOWED_FAMILIES, ["mint", "screen", "fetch-drain", "meta-harness"]);
+test("ALLOWED_FAMILIES is exactly mint, screen, fetch-drain, meta-harness, forward-events", () => {
+  assert.deepEqual(ALLOWED_FAMILIES, ["mint", "screen", "fetch-drain", "meta-harness", "forward-events"]);
 });
 
 // ── validateRunArtifact: red cases (fail-closed) ────────────────────────────────────────────────
