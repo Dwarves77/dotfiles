@@ -7267,6 +7267,7 @@ ratifications (#64) unchanged.
 
 **Next step for a cold session:** batch-003 dispatch with the holder-join selection query, then the
 runbook-corrections governing-file train per mint/LAST-PROPOSER-PASS.md.
+
 ## Addendum 78 — 2026-09-01 (cloud session): AFIR regression found and reversed, migration 272 registered, Vercel duplicate deleted
 
 Coordinator, first person. Four corrections and findings this block, all verified live.
