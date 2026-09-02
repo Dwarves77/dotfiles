@@ -179,6 +179,39 @@ export async function guardedUpdate(table, applyMatch, patch, { cite, select = "
   return { updated: res.data?.length ?? 0, snapshot: snapFile, rows: res.data };
 }
 
+/**
+ * Guarded UPDATE over an explicit id list, in chunks. Same contract as guardedUpdate (cite, per-chunk
+ * snapshot, read-back rows), for the case where ONE statement over every matched row would run past the
+ * API's statement timeout.
+ *
+ * WHY (population-turn run #6, 2026-09-02, the first apply): stamp-wo26-archive-reason.mjs updated 491
+ * `intelligence_items` rows in one UPDATE and PostgREST cancelled it ("canceling statement due to
+ * statement timeout"). `intelligence_items` carries `set_provenance_status_trg` (AFTER INSERT OR UPDATE,
+ * every column), which re-runs validate_item_provenance per row — criterion 3 scans each FACT span
+ * against the item's full captured source text — measured at ~72 ms/row as postgres with a warm cache
+ * (10 rows: 715 ms), i.e. ~35 s for the wave against a single-digit-second API timeout. The trigger is
+ * correct (a provenance flip must be re-derived on every write); the write shape was wrong. Chunks of
+ * DEFAULT_UPDATE_CHUNK rows keep each statement well under the limit; `applyMatch`, when given, is
+ * re-applied to every chunk on top of the id filter so a row that stopped matching between the read and
+ * the write is left alone (idempotent, safe under concurrent change).
+ */
+export const DEFAULT_UPDATE_CHUNK = 25;
+export async function guardedUpdateByIds(table, ids, patch, { cite, select = "*", stampIso, chunk = DEFAULT_UPDATE_CHUNK, applyMatch = null, idColumn = "id" } = {}) {
+  requireCite(cite);
+  const list = [...new Set(ids ?? [])];
+  const out = { updated: 0, rows: [], snapshots: [], chunks: 0 };
+  for (let i = 0; i < list.length; i += chunk) {
+    const slice = list.slice(i, i + chunk);
+    const match = (qb) => { const q = qb.in(idColumn, slice); return applyMatch ? applyMatch(q) : q; };
+    const r = await guardedUpdate(table, match, patch, { cite, select, stampIso });
+    out.updated += r.updated;
+    out.rows.push(...(r.rows ?? []));
+    out.snapshots.push(r.snapshot);
+    out.chunks += 1;
+  }
+  return out;
+}
+
 /** Guarded DELETE — snapshots the rows (reversible) + requires a cite, then deletes by id. Used for
  *  cleaning up rows a script itself wrongly created (e.g. the 27 duplicate sources from the capped-read
  *  bug). Snapshot is the reinsert record. */

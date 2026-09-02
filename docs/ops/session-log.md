@@ -7883,3 +7883,16 @@ come back from Cellar as legacy EUR-Lex HTML and the body-lead fallback made "EU
 Important legal notice | ..." their title; fixed (`extractCellarTitle` reads the first `<strong>` after
 the CELEX `<h1>` on that shape, test). Apply next.
 
+### Addendum 84, postscript 9 — run #6, the first apply, stopped at the WO-26 stamp (2026-09-02)
+
+`population-turn` run 33649521885 (apply) failed at 50 s in `stamp-wo26-archive-reason.mjs --apply`, the
+apply-only hygiene step no dry run had ever exercised: one UPDATE over the 491 unstamped WO-26 rows was
+cancelled by the API's statement timeout. Root cause [CONFIRMED, measured live]: `intelligence_items`
+carries `set_provenance_status_trg` (AFTER INSERT OR UPDATE on any column), which re-runs
+`validate_item_provenance` per row; 10 rows took 715 ms as postgres with a warm cache (~72 ms/row, ~35 s
+for the wave). The trigger is right, the write shape was wrong. Fix: `guardedUpdateByIds` in `db.mjs`
+(id chunks of 25, one snapshot per chunk, the caller's match re-applied on every chunk); the stamp uses
+it; tests on both. The other bulk `guardedUpdate` callers are on `integrity_flags` /
+`corpus_turn_requests`, which carry no such trigger (checked). Nothing was written by run #6: the stamp
+runs before export and the statement rolled back. Re-dispatching apply.
+
