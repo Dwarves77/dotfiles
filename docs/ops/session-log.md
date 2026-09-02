@@ -8051,3 +8051,17 @@ F32 exist for spec 08 only); source-type taxonomy STOPGAP N; 5-axis phases 2/3 N
 fixed, AuthProvider mis-seed open); /events R (stale finding); W2.F report N; origin_class backfill O;
 ADR-015 manual-intake surface C (admin button).
 
+**Postscript 13, correction (operator, mid-landing): "we need to see if that off vert number is false …
+that came before we refined our processes."** The reconcile step is DRY in every mode until the list is
+ruled on; nothing is archived by the runtime. The full list (122 live record items: 65 on, 47 off, 10
+ambiguous by the 2026-08-31 verdicts) is in this session's thread with the rule that fired per row. My
+own read of it: the USCG safety zones (7), FAA notices (2), type-approval exemption decisions (5),
+tachograph/social-legislation, nuclear casks, customs nomenclature, language corrections, public
+procurement, pay rules, TV service, endangered-species "harm" are off-vertical on ADR-020's own terms;
+but at least five verdicts deserve a second look under the refined scope: Regulation (EU) 2024/1679
+(TEN-T guidelines — core corridors and alternative-fuels infrastructure), 2020/349 (amending 2019/1916,
+aerodynamic devices and elongated cabs, a fuel-efficiency measure), the two CCNR Rhine positions
+(inland-waterway emission standards sit with the CCNR), CEF Annex I (275/2014), and the UK authorised-
+weight amendment (weights and dimensions carry the zero-emission-truck allowance). The export gate stays
+(it withholds, it never archives); the ruling decides the archive.
+
