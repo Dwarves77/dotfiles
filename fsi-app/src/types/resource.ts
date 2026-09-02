@@ -207,6 +207,16 @@ export interface Resource {
   // (undefined) on any mapper the owning RPC doesn't yet project this column through — dormant
   // passthrough, same pattern as jurisdictionIso's migration-272 rollout; never defaulted client-side.
   itemGrade?: "record" | "brief";
+  // Provenance-envelope origin class (Lane SURF, 2026-09-02; migration 267
+  // intelligence_items.origin_class; vocabulary: src/lib/contracts/vocabularies.mjs
+  // ORIGIN_CLASS — community | community-corroborated | modelled | derived |
+  // partner | verified | official). Feeds signal-promotion.mjs's fact/signal
+  // chip on Market Intel surfaces. Dormant (undefined) on the RPC-backed list
+  // mappers — none of get_workspace_intelligence/_slim/_dashboard/_listings/
+  // get_market_intel_items/get_research_items/get_operations_items/
+  // get_technology_items (last redefined migration 272) project this column
+  // yet — real on fetchIntelligenceItemUncached's select("*") detail mapper.
+  originClass?: string | null;
   legalInstrument?: string;    // e.g. "Regulation (EU) 2023/1805", "40 CFR Part 86"
   enforcementBody?: string;    // e.g. "European Commission DG CLIMA", "US EPA"
   penaltyRange?: string;       // e.g. "€2,400/tonne shortfall", "Up to 4% EU turnover"

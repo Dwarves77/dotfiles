@@ -756,10 +756,21 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard }:
 
           <div style={{ background: "var(--color-bg-surface)", border: cardBorder, borderRadius: 8, padding: "14px 16px" }}>
             <p style={{ ...railLbl, marginBottom: 8 }}>Methodology</p>
+            {/* DEFECT FIXED (Lane SURF, spec 02 §9): this card previously claimed "Signals are scored by
+                source convergence ... and recency" — a convergence-scoring index this surface does not
+                implement. Severity is a classified DB column (intelligence_items.severity, migration
+                102/149), matched by keyword against title+note ONLY when that column is unset (deriveSev,
+                this file) — never a computed score. Corroboration counts, where shown on a signal's
+                detail page, are real (sources.independent_citers) but play no role in severity. Stated
+                honestly here instead of removed outright, per spec 02 §6 item 10 (methodology disclosure
+                belongs on the surface, not only per-number). */}
             <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: 0 }}>
-              Signals are scored by source convergence (independent corroborating sources within 30 days)
-              and recency. The five-label severity vocabulary names the next-action shape: Action required,
-              Cost alert, Window closing, Competitive edge, Monitoring.
+              Signals are grouped by a classified severity column (Action required, Cost alert, Window
+              closing, Competitive edge, Monitoring) — sourced from the item&apos;s own classification, or
+              matched by keyword when unclassified. This is a classification, not a computed score: no
+              convergence or recency weighting feeds severity today. Where a corroboration count is shown
+              on a signal, it is a real independent-source count (sources.independent_citers), reported
+              separately from severity.
             </p>
           </div>
 
