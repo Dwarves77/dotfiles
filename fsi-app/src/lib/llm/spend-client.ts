@@ -97,6 +97,44 @@ export async function spendStream(
   return { text, stopReason, usage, cost };
 }
 
+/** Non-streaming Messages call THROUGH the chokepoint — for standing-ticket classifiers (first-fetch-
+ *  classify) whose calls are small/cheap enough that spendStream's streaming transport (idle-watchdog,
+ *  heartbeat) is unneeded overhead. Structural twin of spendSearch (both are a raw non-streaming fetch to
+ *  /v1/messages): SAME ticket/budget/priced-line guard sequence as spendStream, SAME account() +
+ *  recordSpendCall() + markCallLogged() telemetry sequence as spendSearch. A non-2xx HTTP response THROWS
+ *  a classified anthropicError BEFORE account()/recordSpendCall() run (no tokens were billed for a
+ *  pre-generation failure, so nothing is accounted — the same "throw before account" shape spendSearch
+ *  already has). opts.apiKey, when present, WINS over ANTHROPIC_API_KEY (lets a caller that already
+ *  carries its own key — first-fetch-classify's `apiKey` parameter — keep injecting it unchanged). */
+export async function spendMessage(
+  opts: { system: string; user: string; model: string; maxTokens?: number; apiKey?: string },
+  ticket: SpendTicket = currentTicket,
+): Promise<{ text: string; usage: { input_tokens: number; output_tokens: number }; cost: number }> {
+  assertTicket(ticket);
+  assertBudget(ticket, SPEND_CEILING_USD); // unlogged-telemetry invariant + optional per-ticket cap
+  guardPricedLine(ticket);                 // operator-priced-line authorization (when the ticket carries one)
+  const model = opts.model;
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": opts.apiKey || process.env.ANTHROPIC_API_KEY!,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({ model, max_tokens: opts.maxTokens ?? 4000, system: opts.system, messages: [{ role: "user", content: opts.user }] }),
+  });
+  const d = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw anthropicError(resp.status, d);
+  const usage = (d as { usage?: { input_tokens?: number; output_tokens?: number } }).usage;
+  const inputTokens = usage?.input_tokens || 0;
+  const outputTokens = usage?.output_tokens || 0;
+  const cost = costUsdForModel(model, inputTokens, outputTokens);
+  account(cost, inputTokens, outputTokens);
+  await recordSpendCall(model, inputTokens, outputTokens, cost, ticket);
+  const text = ((d.content as Array<{ type: string; text?: string }>) || []).filter((b) => b.type === "text").map((b) => b.text).join("\n");
+  return { text, usage: { input_tokens: inputTokens, output_tokens: outputTokens }, cost };
+}
+
 const WEB_SEARCH_BETA = "web-search-2025-03-05";
 const WEB_SEARCH_TOOL = "web_search_20250305";
 /** Web-search Messages call THROUGH the chokepoint (Anthropic runs the searches). Ticket-gated + budgeted. */

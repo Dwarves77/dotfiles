@@ -10,14 +10,27 @@
 // reference. The audit scans every workflow's `secrets.X` and fails on any X not in this set. It is the
 // intersection point of "referenced" and "registered" — keep it EQUAL to the real store (verified 2026-07-12
 // via `gh secret list`: APP_URL, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_DB_PASSWORD, SUPABASE_SERVICE_ROLE_KEY,
-// WORKER_SECRET — exactly these, no orphan labels).
+// WORKER_SECRET — exactly these, no orphan labels; ANTHROPIC_API_KEY registered 2026-09-02 for
+// ledger-consume.yml — see the note below. [UNCONFIRMED until the next `gh secret list` cross-check: this
+// registers the NAME as permitted; whether the GH store itself already holds a value for it is an
+// operator-side provisioning step, same class as this train's EIA_API_KEY item.]
 //
 // TOPOLOGY carries the fuller picture (all vaults, incl. Vercel runtime + local dev + Supabase) for the
 // human register docs/ops/secrets-topology.md. Only the GitHub-Actions vault is CI-enforced here (it is the
 // one this repo's workflows read); Vercel/local are documented, not diffed (no in-repo manifest to diff to).
+//
+// ANTHROPIC_API_KEY joined the GitHub-Actions vault (Lane SPEND, system-completion train, 2026-09-02): the
+// ledger-consume runtime workflow (Lane CONSUME, .github/workflows/ledger-consume.yml) is a scheduled/
+// dispatch GitHub Actions job whose `mode=apply` gate requires ANTHROPIC_API_KEY presence (the classify
+// call routes through the SAME spend-client.ts chokepoint as every other paid call — first-fetch-classify
+// no longer makes a ticketless direct fetch, see first-fetch-classify.ts's header). Before this it existed
+// only as a vercel-runtime/local-.env credential; a workflow referencing `secrets.ANTHROPIC_API_KEY`
+// without this entry is exactly the R0.2/PROBE_SECRET invented-label class this registry exists to catch.
 
-// The GitHub Actions secret names workflows are permitted to reference (== the live store, 2026-07-12).
+// The GitHub Actions secret names workflows are permitted to reference (== the live store, 2026-07-12; +
+// ANTHROPIC_API_KEY, 2026-09-02 — see the note above).
 export const WORKFLOW_SECRETS = Object.freeze(new Set([
+  'ANTHROPIC_API_KEY',
   'APP_URL',
   'NEXT_PUBLIC_SUPABASE_URL',
   'SUPABASE_DB_PASSWORD',
@@ -32,9 +45,9 @@ export const TOPOLOGY = Object.freeze([
   { name: 'NEXT_PUBLIC_SUPABASE_URL', vaults: ['github-actions', 'vercel-runtime', 'local-.env'], consumers: ['data-audit-lane.yml (GH)', 'app runtime + scripts'], writeAuthority: 'gh (repo scope) / Vercel', note: 'public project URL' },
   { name: 'SUPABASE_DB_PASSWORD', vaults: ['github-actions', 'local-.env'], consumers: ['data-audit-lane.yml (GH)', 'migration apply via node+pg (local/scripts)'], writeAuthority: 'gh (repo scope) / Supabase dashboard', note: 'postgres superuser password' },
   { name: 'SUPABASE_SERVICE_ROLE_KEY', vaults: ['github-actions', 'vercel-runtime', 'local-.env'], consumers: ['data-audit-lane.yml (GH)', 'service-role reads/writes (runtime + scripts)'], writeAuthority: 'gh (repo scope) / Vercel / Supabase', note: 'service-role JWT — bypasses RLS' },
+  { name: 'ANTHROPIC_API_KEY', vaults: ['github-actions', 'vercel-runtime', 'local-.env'], consumers: ['/api/agent/run, /api/admin/scan, /api/ask (Sonnet/Haiku)', 'ledger-consume.yml (GH — Lane CONSUME, mode=apply gate)'], writeAuthority: 'gh (repo scope) / Vercel dashboard / local', note: 'spend-bearing; gated by the spend chokepoint (spend-client.ts) — every call, incl. first-fetch-classify, leaves an agent_runs row' },
   // Vercel-runtime / local-only credentials (NOT referenced by any workflow, so NOT in WORKFLOW_SECRETS —
   // documented for completeness so the register is exhaustive on day one).
-  { name: 'ANTHROPIC_API_KEY', vaults: ['vercel-runtime', 'local-.env'], consumers: ['/api/agent/run, /api/admin/scan, /api/ask (Sonnet/Haiku)'], writeAuthority: 'Vercel dashboard / local', note: 'spend-bearing; gated by the spend chokepoint' },
   { name: 'BROWSERLESS_API_KEY', vaults: ['vercel-runtime', 'local-.env'], consumers: ['canonical-fetch.mjs / browserless.ts (fetch)'], writeAuthority: 'Vercel dashboard / local', note: 'transport; also deleted as belt-and-suspenders during paid holds' },
   { name: 'RECONCILER_DB_PASSWORD', vaults: ['local-.env'], consumers: ['reconciler-role DDL/writes (scripts)'], writeAuthority: 'Supabase dashboard / local', note: 'non-owner reconciler DB role' },
   { name: 'SUPABASE_ACCESS_TOKEN', vaults: ['local-.env'], consumers: ['Supabase CLI / Management API (local)'], writeAuthority: 'Supabase dashboard / local', note: 'management-plane token' },

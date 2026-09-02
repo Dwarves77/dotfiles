@@ -34,7 +34,10 @@ export const LEGACY_ALLOWLIST = [
   // canonical-pipeline.ts MIGRATED (2026-07-04): callSonnet/generateBriefText → spendStreamRaw,
   // callSonnetSearch → spendSearch. It routes through the chokepoint now — OFF the allowlist (12 → 11).
   { file: 'fsi-app/src/lib/llm/haiku-classify.ts', reason: 'Haiku classifier — standing-ticket class, migrates to spend-client with standingClass', reviewByPhase: 'chokepoint-classifier-migration' },
-  { file: 'fsi-app/src/lib/llm/first-fetch-classify.ts', reason: 'first-fetch classify — standing-ticket class', reviewByPhase: 'chokepoint-classifier-migration' },
+  // first-fetch-classify.ts MIGRATED (Lane SPEND, system-completion train, 2026-09-02): raw Haiku fetch →
+  // spend-client.ts's spendMessage (the non-streaming twin of spendStream/spendSearch this migration
+  // added) with a standingClass "first-fetch-classify" ticket. Routes through the chokepoint now
+  // (ticketed, budget-checked, ledgered) — OFF the allowlist.
   // recommend-source-tier.ts MIGRATED (C6, 2026-07-11): raw Haiku fetch → spendStream with a
   // standingClass "recommend-classification" ticket. Routes through the chokepoint now (ledgered) — OFF.
   // discovery.ts MIGRATED (C6, 2026-07-11): raw web_search fetch → spendSearch with a standingClass

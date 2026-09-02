@@ -290,6 +290,16 @@ and prefixed `sha256:`. Each family's harness files:
 | `meta-harness` | `scripts/harness-runs/CONVENTION.md`, `PROPOSER-RUNBOOK.md`, `../lib/run-artifact.mjs`, `../../.discipline/fitness/functions/F28-harness-run-integrity.mjs` |
 | `forward-events` | `src/lib/forward-events/extract-forward-events.mjs`, `../../../scripts/harness-runs/forward-events/PROTOCOL.md` |
 | `source-sweep` | `scripts/turns/run-source-sweep.mjs`, `../../src/lib/sources/register-walk.mjs`, `../../src/lib/sources/feed-walk.mjs` |
+| `ledger-consume` | `scripts/turns/run-ledger-consume.mjs`, `../../src/lib/intake/portal-harvest.ts`, `../../src/lib/llm/first-fetch-classify.ts` |
+| `change-detection` | `scripts/turns/run-change-detection.mjs`, `../../src/lib/sources/reconcile.ts`, `../../src/lib/intake/run-intake-cycle.ts` |
+
+**`ledger-consume` and `change-detection` are PRE-REGISTRATION rows** (Lane SPEND, system-completion
+train, 2026-09-02), staged ahead of the lanes (CONSUME, CD respectively) that add them to
+`ALLOWED_FAMILIES` and `F28-harness-run-integrity.mjs`'s `GOVERNING_FILES` — so the table already carries
+the right governing-file list the moment each lane's registration lands, instead of a second hand-edit
+here. Until a family is actually registered it has no `scripts/harness-runs/<family>/` directory and no
+run artifacts; F28's CONVENTION-TABLE-PARITY check only content-matches a row once `GOVERNING_FILES` has
+a matching entry, so a pre-registration row is never treated as a mismatch.
 
 **`ledger-consume` is deliberately NOT added as a row above yet** (Lane CONSUME, 2026-09-02): this table
 is machine-parsed by `.discipline/fitness/functions/F28-harness-run-integrity.test.mjs`'s
