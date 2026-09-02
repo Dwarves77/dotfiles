@@ -226,18 +226,26 @@ export const LEGACY_ALLOWLIST = [
   // harness"), giving it a real production importer. The entry said to remove it "the same wave those
   // callers land" — this is that wave.
 
-  // ── ADR-024 constants, published for SIBLING LANES landing the same day (2026-09-02) ──
+  // fsi-app/src/lib/entities/decisions.mjs entry REMOVED (Lane DP-ENGINE, 2026-09-02, system-completion
+  // train): the wiring it was published for landed on schedule — admissible-for.ts (below) now imports
+  // FLOOR from it directly, giving it a real production importer. The entry said to remove it once Lane
+  // DP-ENGINE or DP-SURF lands an import — this is that lane.
+
+  // ── Lane DP-ENGINE (2026-09-02, system-completion train): the pollution barrier, published for the
+  // NEXT lane in the same train ──
   {
-    file: 'fsi-app/src/lib/entities/decisions.mjs',
+    file: 'fsi-app/src/lib/propagation/admissible-for.ts',
     reason:
-      'Exports the four ADR-024 decision constants (DRAIN_MODE, ESTIMATE_DISPLAY, FLOOR, ' +
-      'CORRIDOR_ID_SCHEME) as the single source of truth for Lane DP-ENGINE\'s admissible-for.ts/drain.ts ' +
-      '(system-completion-plan-2026-09-02.md §2) and Lane DP-SURF\'s EstimatedFigure, both landing in the ' +
-      'same train after this lane. No importer exists yet because those lanes have not run — this module ' +
-      'is the published contract they build against, not a dormant capability nobody was ever going to ' +
-      'call. Same shape as any interface-first delivery in a multi-lane build; distinguishable from the ' +
-      'seek-more/category-21 class this list otherwise tracks by the concrete, named, same-day consumers.',
-    reviewByPhase: 'system-completion train (operator: remove this entry once Lane DP-ENGINE or DP-SURF lands an import — if neither has by the train\'s close, treat as a real orphan)',
+      'The pollution barrier (spec §3.3, F31\'s own sanctioned read path — F31 fails CI on a ' +
+      '.from("derived_values") read outside this directory, and admissibleFor() is the function every ' +
+      'OTHER surface is meant to call instead). No production importer exists yet because the surfaces ' +
+      'that read derived_values (Lane DP-SURF\'s render components, a future API route) have not landed ' +
+      'in this train yet — this module is the published contract they build against, the same shape as ' +
+      'decisions.mjs\'s own entry above (now removed, its own wiring having landed on schedule). ' +
+      'drain.ts deliberately does NOT import it: the drain WRITES fresh values (registerDerivedValue), it ' +
+      'does not gate reads — admissibleFor() is a READ-time barrier a future consumer calls, by design ' +
+      'orthogonal to the write path this lane built a runtime for.',
+    reviewByPhase: 'system-completion train (operator: remove this entry once a later lane in the train lands a real caller — if none has by the train\'s close, treat as a real orphan)',
   },
 ];
 

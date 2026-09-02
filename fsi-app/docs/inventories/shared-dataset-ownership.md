@@ -496,6 +496,40 @@ harness/flywheel/pipeline paths, or standing operational scripts outside the tas
 lane was not asked to evaluate. They are recorded here so the writer-registry test is accurate against the
 real tree rather than only against the subset this document's author happened to read by hand first.
 
+## Non-registry tables named for completeness
+
+These tables are outside the harness/flywheel dataset set this document scopes to (see header above), so
+they are not added to the enforced `SHARED_WRITER_ALLOWLIST` JSON block or to
+`.discipline/shared-writer-registry.test.mjs`'s coverage — named here only so the write surface is
+documented somewhere, following the same disposition already established for
+`entities`/`entity_identifiers`/`entity_refs` at the `scripts/entities/backfill-entities.mjs` row above
+(line 180) and for `pending_first_fetch`/`agent_runs`/`agent_run_searches` in the Open leaks summary's
+item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
+
+- **`propagation_events`** (migration 284) — written by migration 284's `emit_propagation_event()` trigger
+  (fires on `derived_values`/`statutory_computations`/`estimated_values` INSERT/UPDATE, the outbox
+  producer) and by `fsi-app/src/lib/propagation/drain.ts`'s own `UPDATE ... SET drained_at = now()` after a
+  drain pass processes a batch (marking events consumed; drain never deletes outbox rows).
+- **`derived_values`** and **`derivation_edges`** (migration 285) — written together, atomically, by
+  migration 285's `register_derived_value(...)` SQL RPC, called from
+  `fsi-app/src/lib/propagation/register-derivation.ts`'s `registerDerivedValue()`, called in turn from
+  `fsi-app/src/lib/propagation/drain.ts`'s recompute pass (never called directly by a route or script —
+  `drain.ts` is the one sanctioned caller today).
+- **`statutory_computations`** and **`estimated_values`** (migration 286) — reserved output tables for the
+  lifecycle × admissibility state machine; no production writer lands in this lane (methods registered via
+  `fsi-app/src/lib/propagation/methods/index.ts`'s `registerMethod` seam will write here once DP-SURF or a
+  later lane registers a concrete method — see migration 286's header for the "reserved, not yet
+  populated" note).
+- **`sensitive_field_policy`** and **`aggregate_query_log`** (migration 287) — `sensitive_field_policy` is
+  operator-maintained reference data (no application writer in this lane, seeded by the migration itself);
+  `aggregate_query_log` is written exclusively by migration 287's `publish_aggregate()` SECURITY DEFINER
+  function, the sole sanctioned path to the small-cell-suppressed aggregate view (see migration 287's
+  self-check and `docs/inventories/migrations.md`'s row 287 for the k-anonymity threshold and
+  refusal-not-raise design).
+
+Named here for completeness, not because the registry requires it — mirroring the disposition already
+established at line 180 for the migration-282/283 entity tables.
+
 ## Open leaks summary
 
 1. **`integrity_flags` / `created_by ∈ {intake-seek-study, intake-relevance}`** — producer

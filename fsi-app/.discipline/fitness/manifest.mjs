@@ -109,6 +109,18 @@ import { fitnessFunction as F28 } from './functions/F28-harness-run-integrity.mj
 // directional by design (ADR-024's progressive-re-keying decision spans many lanes with no fixed
 // completion date), unlike F23's bidirectional ratchet. F29 is reserved, unused.
 import { fitnessFunction as F30 } from './functions/F30-entity-spine.mjs';
+// Derived values gate (2026-09-02, Lane DP-ENGINE, system-completion train): spec §3.3's second
+// enforcement point, made structural. RLS (migration 285) already denies raw-table SELECT and grants only
+// derived_values_admissible; F31 backstops a service-role client (which bypasses RLS entirely) from
+// reading derived_values directly anywhere outside src/lib/propagation/ — a literal .from("derived_values")
+// call site, any quote style, never derived_values_admissible (a different string).
+import { fitnessFunction as F31 } from './functions/F31-derived-values-gate.mjs';
+// Statutory purity mirror (2026-09-02, Lane DP-ENGINE, system-completion train): migration 286's
+// assert_statutory_purity() trigger (spec §4 Layer 3) is still defined and still attached as a BEFORE
+// INSERT OR UPDATE gate on statutory_computations (structural presence, not a re-run of that migration's
+// own live self-check proof), and its pure JS mirror (assertStatutoryPurity) agrees with the SQL trigger's
+// exact refusal logic on fixtures.
+import { fitnessFunction as F32 } from './functions/F32-statutory-purity.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -135,6 +147,8 @@ export const fitnessFunctions = [
   F27,
   F28,
   F30,
+  F31,
+  F32,
 ];
 
 export function getFunctionById(id) {

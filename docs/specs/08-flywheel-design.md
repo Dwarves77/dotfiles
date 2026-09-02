@@ -653,13 +653,15 @@ anti-solicitation and an anti-collusion control.
 | Freshness derived incl. `frozen`; wired into the Operations fact path | **SHIPPED** (PR #451) |
 | `entities` + `entity_identifiers` crosswalk + `entity_scope` | **SHIPPED, schema-only** (migration 282/283, Lane DP-SPINE, 2026-09-02 — see [ADR-024](../decisions/ADR-024-decision-propagation.md)); backfilled for jurisdiction/instrument/organisation kinds (`scripts/entities/backfill-entities.mjs`); progressive re-keying FK columns (`instrument_entity_id`, `organisation_entity_id`, `entity_refs`) live beside the existing text keys, held from regressing by F30 |
 | Corridor, obligation, signpost per-kind attribute tables (§1.2) | DESIGNED, §1.2 — not built this lane; `entities` accepts `kind='corridor'`/`'obligation'`/`'signpost'` today with no attribute table yet |
-| Outbox + derivation DAG + governed drain | DESIGNED, §2 |
-| Lifecycle × admissibility state machine; computed decay; the gate | DESIGNED, §3 — `FLOOR` values ruled in [ADR-024](../decisions/ADR-024-decision-propagation.md), not yet consumed by a built `admissibleFor()` |
-| Statutory/estimate physical + type + DB + component isolation | DESIGNED, §4 |
-| Antitrust write-time gates + the four attack mitigations | DESIGNED, §5 |
+| Outbox + derivation DAG + governed drain | **SHIPPED, schema + runtime** (migrations 284/285, Lane DP-ENGINE, 2026-09-02); `src/lib/propagation/drain.ts` + `scripts/turns/run-propagation-drain.mjs` implement the two-pass (invalidate, then apply-mode-only recompute) drain over the outbox; the `methods/index.ts` `registerMethod`/`METHODS` seam exists with **zero registered methods** — no concrete derivation method lands in this lane, so an apply-mode drain recomputes nothing until DP-SURF or a later lane calls `registerMethod` |
+| Lifecycle × admissibility state machine; computed decay; the gate | **SHIPPED** (Lane DP-ENGINE, 2026-09-02): `src/lib/propagation/admissible-for.ts` implements `admissibleFor()` against ADR-024's FLOOR values; `src/lib/propagation/effective-confidence.mjs` computes decay per §3.2 (never stored); F31 fitness function pins the import boundary (only `src/lib/propagation/**` may query `derived_values`/`statutory_computations`/`estimated_values` directly). Not yet wired into a route or component — that call site is DP-SURF's task |
+| Statutory/estimate physical + type + DB + component isolation | **SHIPPED, layers 1–3** (migration 286, Lane DP-ENGINE, 2026-09-02): separate physical tables (layer 1), the `assert_statutory_purity()` trigger enforcing the derivation-graph constraint (layer 3), F32 fitness function as a static mirror of the same rule. Layer 2 (the type-level barrier) is expressed in `register-derivation.ts`'s discriminated `origin_class`, not a distinct branded type. Layer 4 (separate render components + gate) is DESIGNED only — DP-SURF's task, not built here |
+| Antitrust write-time gates + the four attack mitigations | **SHIPPED, partial** (migration 287, Lane DP-ENGINE, 2026-09-02): the k≥5 floor and §5.2(a) query-set-size/tracker-attack mitigation (audit log + symmetric-difference overlap refusal) are fully implemented in `publish_aggregate()`, proven by self-check. §5.2(b) complementary-cell suppression, §5.2(c) longitudinal-series freeze, and §5.2(d) bucket-width scaling remain **DESIGNED only** — `bucket_scheme`/`max_share_pct`/`min_lag_days` columns exist on `sensitive_field_policy` but no live sensitive field exists yet to bucket or suppress against (migration 287's own header: "NO LIVE SUBJECT TODAY") |
 
-Gate battery on the shipped work: test suite 1311/1311, 20/20 fitness functions with 0 violations,
-invariant-coverage meta-gate PASS, `tsc --noEmit` clean.
+Gate battery on the shipped work: test suite 1311/1311 pre-existing (2717/2718 with Lane DP-ENGINE's
+additions — see that lane's own report for the one anticipated F28 meta-harness re-pin), 26/26 fitness
+functions with the same single anticipated violation, invariant-coverage meta-gate PASS, `tsc --noEmit`
+clean.
 
 ## 7. The falsification test
 

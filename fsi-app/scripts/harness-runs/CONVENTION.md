@@ -48,6 +48,12 @@ fsi-app/scripts/harness-runs/
     traces/                       # the family's raw walker results (full traces) — one level BELOW the
       source-sweep-run-001.raw-result.json   # family dir, so F28's family-level *.json artifact glob
     ...                                      # never validates a trace as an artifact (2026-09-01)
+  propagation/
+    PENDING-RUN.md              -- first-run acknowledgment (rule (b)) — no propagation-run-NNN.json yet
+    propagation-run-001.json
+    traces/                       # per-run drain reports (full traces) — one level BELOW the family dir,
+      propagation-run-001.report.json        # same F28 family-level *.json glob concern as source-sweep
+    ...
 ```
 
 One directory per harness family. Five exist today: `mint`, `screen`, and `fetch-drain` — matching the
@@ -67,7 +73,15 @@ dormant, pure, dep-injected enumeration modules it gives a runtime to for the fi
 `src/lib/sources/register-walk.mjs` (the date-paged EUR-Lex OJ / Federal Register index walk) and
 `src/lib/sources/feed-walk.mjs` (the RSS/Atom feed walk): a sixth shape again, whose "runs" are
 enumeration passes over a source's index/feed for a date range, writing discovered candidate URLs to the
-`portal_link_candidates` ledger (never a mint, never an extraction, never a fetch-drain replay).
+`portal_link_candidates` ledger (never a mint, never an extraction, never a fetch-drain replay) — plus
+`propagation` (lane DP-ENGINE, 2026-09-02, system-completion train), registered over
+`scripts/turns/run-propagation-drain.mjs` and the two propagation-engine modules a drain run actually
+exercises, `src/lib/propagation/drain.ts` (the governed invalidate/recompute loop — "propagation
+invalidates, it does not compute," never a trigger) and `src/lib/propagation/admissible-for.ts` (the one
+gate function every `derived_values` consumer calls): a seventh shape, whose "runs" are batched drains of
+the `propagation_events` outbox — walking `derivation_edges` from each undrained event, marking the
+transitive closure stale, and recomputing through the registered `METHODS` seam — never a mint, an
+extraction, a fetch-drain replay, nor an enumeration sweep.
 `meta-harness-run-001` through `-003` retrofit MH-1, MH-2, and MH-3
 respectively — the same real-evidence retrofit discipline this file's own "screen-v1 loss" section
 applies to the three original families, applied one layer up, to the harness that builds harnesses. A new
@@ -107,6 +121,16 @@ counterpart to `fetch-drain`'s capture-success-rate-per-attempt-class. A dry run
 actual ledger write are reported as the same shape (`persist`'s injected counting in dry mode vs its real
 upsert in apply mode — see `run-source-sweep.mjs`'s own header), so the two are directly comparable run
 over run.
+
+**propagation's standing metric** (build plan §2's "measurement, not assertion," per family): *values
+recomputed per event drained* — of the `propagation_events` closure a drain marks stale, how many are
+actually recomputed through a registered `METHODS[method_id]` (vs left stale because no method is
+registered yet for that `method_id`, counted separately as `skipped_unknown_method` rather than silently
+folded into either bucket) — plus *queue depth before/after*, the same "measurement, not assertion" the
+`propagation_queue_depth` view (migration 284) exposes directly. A dry run's counted closure and an apply
+run's actual invalidation/recompute are reported as the same shape (`invalidate_dependents()`'s own
+dry/apply modes, migration 285), so the two are directly comparable run over run, matching source-sweep's
+own dry-vs-apply comparability above.
 
 **A named risk of self-application** (surfaced by meta-harness's own first proposer pass, Wave MH-4):
 `meta-harness`'s governing files ARE this file and `PROPOSER-RUNBOOK.md` — the two documents every wave
@@ -262,6 +286,7 @@ and prefixed `sha256:`. Each family's harness files:
 | `meta-harness` | `scripts/harness-runs/CONVENTION.md`, `PROPOSER-RUNBOOK.md`, `../lib/run-artifact.mjs`, `../../.discipline/fitness/functions/F28-harness-run-integrity.mjs` |
 | `forward-events` | `src/lib/forward-events/extract-forward-events.mjs`, `../../../scripts/harness-runs/forward-events/PROTOCOL.md` |
 | `source-sweep` | `scripts/turns/run-source-sweep.mjs`, `../../src/lib/sources/register-walk.mjs`, `../../src/lib/sources/feed-walk.mjs` |
+| `propagation` | `scripts/turns/run-propagation-drain.mjs`, `../../src/lib/propagation/drain.ts`, `../../src/lib/propagation/admissible-for.ts` |
 
 A harness-family README or runbook edit that doesn't touch the files above does not change
 `harness_version` — the hash tracks *behavior-bearing* files, not documentation. If a family's file list

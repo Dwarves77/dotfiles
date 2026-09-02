@@ -164,3 +164,50 @@ mode ends is a single reviewed diff (uncomment the block, pick the real cadence)
 green run or a passing test earns on its own. The fast-disarm lever is the same one every other workflow
 in this repo already has: disable the workflow from the Actions tab and every trigger stops immediately,
 no deploy required.
+
+## Propagation drain
+
+Added by Lane DP-ENGINE (system-completion train, 2026-09-02) — `docs/specs/08-flywheel-design.md` §2's
+"outbox + derivation DAG + governed drain," now built. This is a **separate family from `corpus-turn.yml`**
+(different dataset, different governing files, its own `PENDING-RUN.md` and `CONVENTION.md` row) — it does
+not fire as part of a corpus turn and a corpus turn does not fire it. It is documented in this runbook,
+alongside the turn it is not, because a coordinator scheduling one family needs to know it is not silently
+covering the other.
+
+**What it does.** `scripts/turns/run-propagation-drain.mjs` runs the two-pass drain over the
+`propagation_events` outbox (migration 284): pass one walks `derivation_edges` to mark every downstream
+`derived_values`/`statutory_computations`/`estimated_values` row transitively reachable from a changed
+input as invalidated; pass two, **`apply` mode only**, recomputes each invalidated row by calling the
+method registered for its `method_id` through `src/lib/propagation/methods/index.ts`'s `registerMethod`/
+`METHODS` seam, then writes the new value back through `register-derivation.ts`'s `registerDerivedValue()`
+(migration 285's `register_derived_value(...)` RPC — value row and derivation edges inserted atomically).
+`dry` mode performs pass one only and reports what pass two would touch, writing nothing. Every processed
+outbox row is marked `drained_at` at the end of a batch (default 500 rows — see `DEFAULT_BATCH` in
+`drain.ts`), never deleted, so the outbox is a durable log, not a queue.
+
+**Zero registered methods today.** This lane builds the drain runtime, the outbox, the DAG, and the
+`registerMethod` seam — it registers no concrete derivation method. An `apply`-mode drain run today
+invalidates rows correctly but recomputes nothing (`getMethod` finds no match for any `method_id`,
+`drain.ts` records the miss and moves on rather than failing the batch — see `drain.ts`'s own header for
+the "a missing method is data absent a method, not a crash" rationale). This is expected until DP-SURF or
+a later lane calls `registerMethod` for a real method. Dispatching `propagation-drain.yml` before that
+point is safe (it will report zero recomputes) but accomplishes nothing yet.
+
+**How a coordinator requests a run:** `workflow_dispatch` on `propagation-drain.yml` (Actions tab, or
+`gh workflow run propagation-drain.yml`), picking `mode` (`dry` or `apply`) and optionally `batch`
+(defaults to `run-propagation-drain.mjs`'s own default). It mirrors `source-sweep.yml`'s scaffold exactly:
+fresh branch per dispatch, commit + PR via `deliver-artifact-branch.sh`, a commented-out `schedule:` block
+under the same no-schedule-during-build ruling as every other family in this repo (see above), and the same
+hydrate-unmerged-artifacts collision guard.
+
+**What lands where:** `scripts/harness-runs/propagation/propagation-drain-run-NNN.json` — the run's own
+self-emitted artifact (dry or apply). No other file is committed by this workflow; `derived_values`,
+`derivation_edges`, and the `drained_at` marks on `propagation_events` are database writes, not local
+files, matching the same "database writes leave no local file beyond the harness-run artifact" posture
+`corpus-turn.yml`'s own "What lands where" section states above for `discover-for-items.mjs` and
+`analyze-corpus.mjs`.
+
+**First run.** `scripts/harness-runs/propagation/PENDING-RUN.md` records the pre-first-run
+harness-version hash pin (mirroring the mint/screen family's own convention) — it is replaced by the first
+real `propagation-drain-run-001.json` once a run actually lands, the same lifecycle `forward-events`'s
+`PENDING-RUN.md` went through.

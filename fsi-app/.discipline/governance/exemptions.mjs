@@ -122,6 +122,22 @@ export const EXEMPTIONS = [
       'permanent phantom gap; the file stays fully in F15 scope.',
     by: 'coverage-scan wiring 2026-08-11 (F23)',
   },
+  {
+    match: 'fsi-app/src/lib/propagation/',
+    kinds: ['writes'],
+    reason:
+      'The propagation engine (docs/specs/08-flywheel-design.md §2-§5) writes derived_values/' +
+      'propagation_events/derivation_edges — corpus infrastructure, not content this repo\'s existing ' +
+      'skills govern (environmental-policy-and-innovation/source-credibility-model/etc. all govern WHAT ' +
+      'gets said about a corridor or an obligation; this directory governs HOW A COMPUTED VALUE IS ' +
+      'INVALIDATED AND RECOMPUTED — an orthogonal concern with its own governance, already mechanised: ' +
+      'migration 285\'s assert_acyclic()/RLS, migration 286\'s assert_statutory_purity(), and F31 ' +
+      '(derived-values-gate)/F32 (statutory-purity) are live fitness functions enforcing this domain\'s ' +
+      'invariants structurally. Same disposition as the anthropic-stream.mjs entry above: governed by a ' +
+      'mechanism, not a skill — recording the real disposition here rather than mapping to an unrelated ' +
+      'skill just to close the gap, or leaving a permanent phantom gap.',
+    by: 'Lane DP-ENGINE, system-completion train, 2026-09-02',
+  },
 ];
 
 export function isExempt(path, kind) {
