@@ -1,44 +1,66 @@
 // fueleu-annex-iv.mjs — FuelEU Maritime (Regulation (EU) 2023/1805) penalty formula, pure. Lane DP-SURF,
-// system-completion train, 2026-09-02.
+// system-completion train, 2026-09-02. CONFIRMED against primary text 2026-09-02 (coordinator follow-up).
 //
-// PROVENANCE OF THE CONSTANTS AND FORMULA BELOW — READ THIS BEFORE TRUSTING A NUMBER. This lane's sandbox
-// (`WebFetch` against eur-lex.europa.eu) returned ONLY page metadata/navigation for both the OJ landing
-// page (`https://eur-lex.europa.eu/eli/reg/2023/1805/oj`) and the CELEX HTML/PDF endpoints
-// (`https://eur-lex.europa.eu/legal-content/EN/TXT/...?uri=CELEX:32023R1805`) — the PDF fetch returned real
-// regulation text (Articles up to ~23) but was truncated by the fetch tool BEFORE reaching the Annexes, so
-// Annex IV's own text was never directly read this session. The formula and constants below are therefore
-// **[UNCONFIRMED against the primary EUR-Lex text]** and are instead corroborated against FOUR independent
-// secondary/technical sources retrieved live 2026-09-02, all of which agree on both numeric constants and
-// the consecutive-year multiplier:
-//   - https://www.marineinsight.com/green-shipping/how-to-calculate-fuel-eu-compliance-balance-and-fuel-eu-penalty/
-//   - https://www.sustainable-ships.org/rules-regulations/fueleu
-//   - https://www.globalfactor.com/en/fueleunewcompliance/
-//   - https://www.intercargo.org/wp-content/uploads/2025/05/2025-May-ESSF-SAPS-WS1-FuelEU-calculation-methodologies.pdf
-//     (an industry technical workshop deck citing "Annex IV Part A" for the compliance-balance formula,
-//     "Annex IV Part B" for the penalty formula, and "Article 23(2)" for the consecutive-year multiplier —
-//     the most specific citation found, itself UNCONFIRMED against the primary text by this lane)
-// EVERY CONSTANT AND CITATION BELOW CARRIES AN EXPLICIT [UNCONFIRMED] MARKER for exactly this reason, per
-// this lane's own instruction ("If you cannot fetch EUR-Lex, mark every constant [UNCONFIRMED]... do not
-// invent"). Nothing here is invented — every number matches all four sources — but "four sources agree"
-// is corroboration, not primary-source verification, and this file says so everywhere the number appears,
-// including in the UI (StatutoryFigure renders `formulaVersion`, which carries this same caveat).
+// PROVENANCE — CONFIRMED, NOT CORROBORATED. This lane's own sandbox (`WebFetch` against eur-lex.europa.eu)
+// could reach only page metadata/navigation for the OJ landing page and CELEX HTML/TXT endpoints, and a
+// PDF fetch was truncated before reaching the Annexes — Annex IV was never directly read BY THIS LANE'S
+// OWN SESSION, and the formula/constants below were first implemented from four independent secondary/
+// technical sources (marineinsight.com, sustainable-ships.org, globalfactor.com, an Intercargo/ESSF
+// workshop PDF), marked [UNCONFIRMED] throughout. That gap is now closed: the coordinator read
+// EUR-Lex CELEX:32023R1805 (Regulation (EU) 2023/1805, OJ L 234, 22.9.2023) directly in a browser on
+// 2026-09-02 and reported Annex IV's rendered text back verbatim:
+//   - Part A(a): "Compliance balance [gCO2eq] = (GHGIE_target − GHGIE_actual) ×
+//     [ Σ_i^{n fuel} M_i × LCV_i + Σ_k^{c} E_k ]" — GHGIE_target is the Article 4(2) GHG intensity limit;
+//     GHGIE_actual is the yearly average GHG intensity of energy used on board. The bracketed term is
+//     TOTAL ENERGY USED [MJ] (fuel mass × lower calorific value, summed over fuels, plus other onboard
+//     energy sources) — `energyUsedMJ` below is that caller-supplied total, not re-decomposed here (this
+//     module has no fuel-mix/LCV table to decompose it FROM; a caller that already has M_i/LCV_i sums them
+//     before calling `computeComplianceBalance`).
+//   - Part B(a): "FuelEU Penalty = |Compliance Balance| / (GHGIE_actual × 41 000) × 2 400", with row 5/6
+//     "41 000 — Is 1 metric ton of VLSFO that is equivalent to 41 000 MJ" and row 7/8 "2 400 — Is the
+//     amount to be paid in EUR per equivalent metric ton of VLSFO"; the penalty "Is in EUR".
+//   - Article 23(2): "If a ship has a compliance deficit for two consecutive reporting periods or more,
+//     that amount shall be multiplied by 1 + (n − 1)/10, where n is the number of consecutive reporting
+//     periods for which the company is subject to a FuelEU penalty for that ship."
+// This module's formula was checked against that text after the read and requires NO CHANGE: `penaltyEur`
+// below computes exactly `|complianceBalanceGco2eq| / (ghgIntensityActualGco2ePerMJ × 41000) × 2400 ×
+// multiplier`, with `complianceBalanceGco2eq` in gCO2eq and `ghgIntensityActualGco2ePerMJ` in gCO2eq/MJ —
+// so `|CB| / GHGIE_actual` is MJ, and dividing by 41000 (MJ/t) yields tonnes VLSFOe, matching Part B(a)'s
+// own units exactly. See fueleu-annex-iv.test.mjs's worked example for a numeric proof of this unit chain.
+//
+// PART B(b) — RFNBO SUB-TARGET PENALTY — NOT IMPLEMENTED (not "unconfirmed"). Annex IV Part B(b) defines a
+// second, separate penalty for a ship's RFNBO (renewable fuel of non-biological origin) sub-target
+// deficit, using `CB_RFNBO` and `Pd` (the price difference between RFNBO and fossil fuel). Neither this
+// lane's four original secondary sources nor the coordinator's browser read (which covered Part A(a),
+// Part B(a) and Article 23(2) specifically, not Part B(b)) established `Pd`'s definition, units, or
+// reference price source with enough confidence to implement without guessing a number this module has no
+// way to verify — so it is deliberately absent rather than invented. `computeFuelEuPenaltyRfnbo` below is
+// a stub that throws, naming this gap explicitly, so a caller that tries it fails loudly instead of
+// silently getting a fossil-target-only answer mislabeled as the RFNBO one.
+//
+// CITATION, CONFIRMED: "Regulation (EU) 2023/1805, Annex IV Part A(a) and Part B(a); Article 23(2).
+// Verified against EUR-Lex CELEX:32023R1805 on 2026-09-02 (coordinator, browser read)."
 
-/** EUR per tonne VLSFO-equivalent. [UNCONFIRMED against primary EUR-Lex text; corroborated by 4 sources, see file header] */
+/** EUR per tonne VLSFO-equivalent (Annex IV Part B(a), row 7/8). CONFIRMED — see file header. */
 export const FUELEU_UNIT_PRICE_EUR_PER_T_VLSFOE = 2400;
 
-/** MJ per tonne VLSFO-equivalent (the lower calorific value convention). [UNCONFIRMED against primary EUR-Lex text; corroborated by 4 sources, see file header] */
+/** MJ per tonne VLSFO-equivalent (Annex IV Part B(a), row 5/6 — the lower calorific value convention). CONFIRMED — see file header. */
 export const FUELEU_VLSFOE_MJ_PER_TONNE = 41000;
 
-/** [UNCONFIRMED against primary EUR-Lex text — see file header] */
+/** CONFIRMED — see file header. Covers Part A(a) and Part B(a) only; Part B(b) (RFNBO) is not implemented — see computeFuelEuPenaltyRfnbo. */
 export const FUELEU_STATUTE_CITATION =
-  "Regulation (EU) 2023/1805 (FuelEU Maritime) [UNCONFIRMED], Annex IV Part A (compliance balance) & " +
-  "Part B (penalty) [UNCONFIRMED — citation as reported by an ESSF/Intercargo technical workshop deck, " +
-  "not read directly from the primary text]; Article 23(2) (consecutive-year multiplier) [UNCONFIRMED, same caveat]";
+  "Regulation (EU) 2023/1805, Annex IV Part A(a) and Part B(a); Article 23(2). Verified against EUR-Lex " +
+  "CELEX:32023R1805 on 2026-09-02 (coordinator, browser read).";
 
-/** [UNCONFIRMED — OJ date reported from general knowledge, not read live this session] */
-export const FUELEU_FORMULA_VERSION =
-  "OJ L 234I, 22.9.2023 [UNCONFIRMED against primary EUR-Lex text this session — see file header] · " +
-  "corroborated 2026-09-02 against 4 independent secondary sources";
+/** CONFIRMED — see file header. */
+export const FUELEU_FORMULA_VERSION = "OJ L 234, 22.9.2023 — verified against EUR-Lex CELEX:32023R1805 on 2026-09-02";
+
+/** Named, non-guessed gap: Annex IV Part B(b)'s RFNBO sub-target penalty is not implemented (see file header). */
+export const FUELEU_RFNBO_NOT_IMPLEMENTED_REASON =
+  "Annex IV Part B(b) (RFNBO sub-target penalty, using CB_RFNBO and Pd — the RFNBO/fossil-fuel price " +
+  "difference) is not implemented: neither this module's original secondary sources nor the 2026-09-02 " +
+  "primary-text read established Pd's definition, units or reference price with enough confidence to " +
+  "implement without guessing a number. Named as a gap, not guessed.";
 
 function requireFinite(name, v) {
   if (typeof v !== "number" || !Number.isFinite(v)) {
@@ -48,7 +70,11 @@ function requireFinite(name, v) {
 
 /**
  * Compliance balance [gCO2eq] = (GHG intensity target − GHG intensity actual) [gCO2eq/MJ] × total energy
- * used [MJ]. A positive balance is a surplus (no penalty); negative is a deficit.
+ * used [MJ] — Annex IV Part A(a), CONFIRMED (see file header). A positive balance is a surplus (no
+ * penalty); negative is a deficit. `energyUsedMJ` is Part A(a)'s bracketed term
+ * `Σ_i M_i × LCV_i + Σ_k E_k` (fuel mass × lower calorific value, summed over fuels, plus other onboard
+ * energy) — a caller-supplied total; this module does not decompose it from a fuel mix (no LCV table
+ * exists here to do so).
  * @param {object} p
  * @param {number} p.ghgIntensityTargetGco2ePerMJ
  * @param {number} p.ghgIntensityActualGco2ePerMJ
@@ -64,10 +90,15 @@ export function computeComplianceBalance({ ghgIntensityTargetGco2ePerMJ, ghgInte
 }
 
 /**
- * The FuelEU penalty [EUR], per the four-source-corroborated formula (see file header):
+ * The FuelEU penalty [EUR] — Annex IV Part B(a) + Article 23(2), CONFIRMED (see file header):
  *   penalty = |complianceBalance| / (ghgIntensityActual × 41,000) × 2,400 × multiplier
- * where multiplier = 1 for a first-year deficit, 1 + (n−1)/10 for the n-th CONSECUTIVE deficit year
- * (n >= 2). Zero when the balance is a surplus (>= 0) — no penalty applies to a surplus.
+ * Unit chain, spelled out: complianceBalance is gCO2eq, ghgIntensityActual is gCO2eq/MJ, so
+ * |complianceBalance| / ghgIntensityActual is MJ; dividing by 41,000 (MJ per tonne VLSFOe) yields
+ * `vlsfoeDeficitTonnes`; multiplying by 2,400 (EUR per tonne VLSFOe) yields EUR. multiplier = 1 for a
+ * first-year deficit, 1 + (n−1)/10 for the n-th CONSECUTIVE deficit year (n >= 2, Article 23(2), verbatim).
+ * Zero when the balance is a surplus (>= 0) — no penalty applies to a surplus. Part A(a) only (the fossil
+ * GHG-intensity target) — Part B(b)'s RFNBO sub-target penalty is a separate, NOT IMPLEMENTED calculation
+ * (see computeFuelEuPenaltyRfnbo below and the file header).
  * @param {object} p
  * @param {number} p.complianceBalanceGco2eq  From computeComplianceBalance(), or supplied directly.
  * @param {number} p.ghgIntensityActualGco2ePerMJ  Must be > 0 (it is a denominator).
@@ -94,4 +125,16 @@ export function computeFuelEuPenalty({ complianceBalanceGco2eq, ghgIntensityActu
   const penaltyEur = vlsfoeDeficitTonnes * FUELEU_UNIT_PRICE_EUR_PER_T_VLSFOE * multiplier;
 
   return { penaltyEur, isDeficit: true, vlsfoeDeficitTonnes, multiplier };
+}
+
+/**
+ * Annex IV Part B(b) — the RFNBO sub-target penalty. NOT IMPLEMENTED — see FUELEU_RFNBO_NOT_IMPLEMENTED_REASON
+ * and the file header. Always throws. Exists so a caller reaching for "the other FuelEU penalty" finds a
+ * named, explained gap instead of silently getting Part B(a)'s fossil-target answer mislabeled, and so a
+ * future implementation has one obvious place to land once Pd is confirmed.
+ * Deliberately takes no parameters — the input shape is not yet known with confidence (see reason).
+ * @returns {never}
+ */
+export function computeFuelEuPenaltyRfnbo() {
+  throw new Error(`fueleu-annex-iv: computeFuelEuPenaltyRfnbo is not implemented — ${FUELEU_RFNBO_NOT_IMPLEMENTED_REASON}`);
 }

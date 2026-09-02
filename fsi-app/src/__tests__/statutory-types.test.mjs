@@ -39,9 +39,10 @@ test("throws on an unregistered formula id", () => {
   assert.throws(() => computeStatutory("not_a_real_formula", {}), /unknown\/unregistered formula/);
 });
 
-test("FUELEU_STATUTE_CITATION and FUELEU_FORMULA_VERSION are re-exported, non-empty, and self-mark [UNCONFIRMED]", () => {
+test("FUELEU_STATUTE_CITATION and FUELEU_FORMULA_VERSION are re-exported, non-empty, and CONFIRMED (2026-09-02 coordinator EUR-Lex read — no longer [UNCONFIRMED])", () => {
   assert.ok(FUELEU_STATUTE_CITATION.length > 0);
   assert.ok(FUELEU_FORMULA_VERSION.length > 0);
-  assert.match(FUELEU_STATUTE_CITATION, /UNCONFIRMED/);
-  assert.match(FUELEU_FORMULA_VERSION, /UNCONFIRMED/);
+  assert.doesNotMatch(FUELEU_STATUTE_CITATION, /UNCONFIRMED/);
+  assert.doesNotMatch(FUELEU_FORMULA_VERSION, /UNCONFIRMED/);
+  assert.match(FUELEU_STATUTE_CITATION, /CELEX:32023R1805/);
 });
