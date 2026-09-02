@@ -7769,3 +7769,23 @@ first live run is where the join with db.mjs's default was tested. Fixed: the th
 `orderBy: "entity_id"`, with a source-shape regression test that fails if any spine read drops it. The
 run is redispatched after this lands. (Also observed: `gh workflow run` from a Codespace returns 403,
 so dispatches go through the Actions UI in the browser.)
+
+### Addendum 84, postscript 3 — the first population-turn dispatch found the exporter's read shape (2026-09-02)
+
+`population-turn` run 33631394941 (dry, limit 50) died in `export-census-rows.mjs` before selecting a row:
+Postgres cancelled `readAll("agent_run_searches", "result_url, result_content")` on statement timeout. The
+column is the grounding pool, full captured documents per ADR-016, and the script read the whole table to
+serve a 50-row batch. Lane POP's tests injected `readAll` and never saw a table size. Fixed: census rows
+are read first (would_mint only, via `match`), the selection and held-exclusion run on that set, and only
+then are captures, holder URLs and sources fetched for the selected rows by `in (...)` in chunks of 50
+(`fetchRowsIn`/`fetchColumnIn`); the limit is applied after the held-exclusion, so a batch of 50 is 50
+mintable rows, not 50 minus the holders. A source-shape test forbids any whole-table read of those three
+tables returning. Redispatched after landing, capture on.
+
+Other first dispatches the same hour, all green: change-detection #1 (dry), source-sweep #8
+(`register-federal-register` dry, 2026-08-25..31) and #9 (`feed` dry, The Loadstar), producers #15
+(`ecb-fx` dry) and #16 (`eurostat-lc-lci-lev` dry). `ledger-consume` #1 stopped at the secrets check:
+`ANTHROPIC_API_KEY` is registered by name but not provisioned as a GitHub Actions secret — operator item,
+the run cannot be made green from here. Their artifacts sit on their `<family>/<run_id>` branches, filed on
+issue #520 by the delivery step; they are read and merged in the next train together with the proposer
+passes.

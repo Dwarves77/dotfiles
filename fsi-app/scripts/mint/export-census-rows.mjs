@@ -131,7 +131,7 @@ export function selectCensusRows(censusRows, { sourceId = null, celexPrefix = nu
     .filter((r) => r?.dryrun_disposition === "would_mint")
     .filter((r) => !sourceId || r.source_id === sourceId)
     .filter((r) => !celexPrefix || String(r.instrument_identifier ?? "").startsWith(celexPrefix))
-    .slice(0, limit);
+    .slice(0, limit == null ? undefined : limit); // null = no cap (main() caps AFTER the held-exclusion)
 }
 
 /** Partition selected rows into { kept, excludedHeld } against a Set of source_urls that already have an
@@ -349,6 +349,25 @@ function heldPathFor(outPath) {
   return outPath.replace(/\.json$/i, ".held.json");
 }
 
+/** Read `columns` from `table` for rows whose `keyColumn` is in `values`, in chunks (PostgREST `in`
+ *  filters are URL-encoded; 50 keeps a chunk of long document URLs under the request-line limit). */
+export async function fetchRowsIn(sb, table, columns, keyColumn, values, { chunk = 50 } = {}) {
+  const out = [];
+  for (let i = 0; i < values.length; i += chunk) {
+    const slice = values.slice(i, i + chunk);
+    const { data, error } = await sb.from(table).select(columns).in(keyColumn, slice);
+    if (error) throw new Error(`fetchRowsIn(${table}) failed: ${error.message}`);
+    out.push(...(data ?? []));
+  }
+  return out;
+}
+
+/** Distinct values of `column` for rows whose `keyColumn` is in `values`. */
+export async function fetchColumnIn(sb, table, column, keyColumn, values, opts) {
+  const rows = await fetchRowsIn(sb, table, column, keyColumn, values, opts);
+  return [...new Set(rows.map((r) => r[column]).filter(Boolean))];
+}
+
 async function main() {
   const { values } = parseArgs({
     options: {
@@ -380,31 +399,44 @@ async function main() {
     console.error("export-census-rows: no DB creds — cannot run here (exit 2).");
     process.exit(2);
   }
-  const { readAll } = await import("../lib/db.mjs");
+  const { readAll, readClient } = await import("../lib/db.mjs");
 
-  console.log("export-census-rows: reading census_worklist (would_mint), sources, agent_run_searches, intelligence_items...");
-  const [censusRows, sources, searches, items] = await Promise.all([
-    readAll("census_worklist", "id, source_id, document_url, lane, shape_class, enumeration_status, dryrun_disposition, hold_reason, surface_tags, instrument_identifier"),
-    readAll("sources", "id, url, name, base_tier, tier_override, status, institution_id, category"),
-    readAll("agent_run_searches", "result_url, result_content"),
-    readAll("intelligence_items", "source_url"),
-  ]);
+  // READ SHAPE (population-turn run 33631394941, 2026-09-02): the first live dry run read ALL of
+  // agent_run_searches (result_url, result_content) through readAll and Postgres cancelled the statement
+  // ("canceling statement due to statement timeout"): result_content is the grounding pool, full captured
+  // documents per ADR-016, and the table is far larger than any batch this script exports. Reads are now
+  // batch-scoped: census rows first (would_mint only), the selection applied, and only THEN the captures,
+  // holder urls and sources for the selected rows, fetched by `in (...)` in chunks. Nothing here reads a
+  // table it does not need whole.
+  console.log("export-census-rows: reading census_worklist (would_mint)...");
+  const censusRows = await readAll(
+    "census_worklist",
+    "id, source_id, document_url, lane, shape_class, enumeration_status, dryrun_disposition, hold_reason, surface_tags, instrument_identifier",
+    { match: { dryrun_disposition: "would_mint" } },
+  );
+  const preselected = selectCensusRows(censusRows, {
+    sourceId: values["source-id"] || null,
+    celexPrefix: values["celex-prefix"] || null,
+    limit: null, // the held-exclusion below needs the full ordered candidate set; the limit is applied after it
+  });
+  const sb = readClient();
+  const candidateUrls = [...new Set(preselected.map((r) => r.document_url).filter(Boolean))];
+  const heldUrlSet = new Set(await fetchColumnIn(sb, "intelligence_items", "source_url", "source_url", candidateUrls));
+  const excludeHeld = !values["include-held"];
+  const { kept: keptAll, excludedHeld } = partitionExcludeHeld(preselected, heldUrlSet, excludeHeld);
+  const kept = limit ? keptAll.slice(0, limit) : keptAll;
+  const selected = preselected;
 
+  const sourceIds = [...new Set(kept.map((r) => r.source_id).filter(Boolean))];
+  const sources = await fetchRowsIn(sb, "sources", "id, url, name, base_tier, tier_override, status, institution_id, category", "id", sourceIds);
   const sourcesById = new Map(sources.map((s) => [s.id, s]));
-  const heldUrlSet = new Set(items.map((i) => i.source_url).filter(Boolean));
+  const keptUrls = [...new Set(kept.map((r) => r.document_url).filter(Boolean))];
+  const searches = await fetchRowsIn(sb, "agent_run_searches", "result_url, result_content", "result_url", keptUrls);
   const existingCaptureByUrl = new Map();
   for (const s of searches) {
     if (!s.result_url || typeof s.result_content !== "string" || s.result_content.length <= 200) continue;
     if (!existingCaptureByUrl.has(s.result_url)) existingCaptureByUrl.set(s.result_url, { text: s.result_content, html: null });
   }
-
-  const selected = selectCensusRows(censusRows, {
-    sourceId: values["source-id"] || null,
-    celexPrefix: values["celex-prefix"] || null,
-    limit,
-  });
-  const excludeHeld = !values["include-held"];
-  const { kept, excludedHeld } = partitionExcludeHeld(selected, heldUrlSet, excludeHeld);
 
   const resolveCapture = values.capture ? makePoliteCapture() : null;
   const { rows, held, captured, captureFailed } = await buildRows(kept, {
