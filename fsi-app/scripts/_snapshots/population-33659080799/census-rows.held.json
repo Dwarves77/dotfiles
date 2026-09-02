@@ -1,0 +1,107 @@
+[
+  {
+    "row_id": "00bee535-a2fd-42b7-a96a-057557e57f53",
+    "document_url": "https://www.federalregister.gov/documents/2026/06/26/2026-12912/response-to-petition-for-reconsideration-federal-motor-vehicle-safety-standards-seat-belt-assembly",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": "federal_register",
+    "host": "www.federalregister.gov",
+    "fr_type": "Proposed Rule",
+    "reason": "item_type_unmapped"
+  },
+  {
+    "row_id": "00cb7a10-b55c-4087-a88b-389cb86f69b8",
+    "document_url": "https://www.mlit.go.jp/en/maritime/maritime_fr10_000004.html",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": null,
+    "host": "www.mlit.go.jp",
+    "reason": "identity_unmapped_source"
+  },
+  {
+    "row_id": "0188921b-8385-40f2-acc5-cee68ac6acc2",
+    "document_url": "https://www.federalregister.gov/documents/2026/06/22/2026-12437/establishment-of-canadian-area-navigation-route-q-827-amendment-of-jet-route-j-7-and-revocation-of",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": "federal_register",
+    "host": "www.federalregister.gov",
+    "fr_type": "Proposed Rule",
+    "reason": "item_type_unmapped"
+  },
+  {
+    "row_id": "0221bea2-fe3b-488e-a4eb-c7f6cbf7bb09",
+    "document_url": "https://sdir.no/siteassets/engelske-forskrifter-pdf/30-may-2012-no.-488-environmental-safety-for-ships-and-mobile-offshore-units.pdf",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": null,
+    "host": "sdir.no",
+    "reason": "identity_unmapped_source"
+  },
+  {
+    "row_id": "0262aa69-b6f5-4511-9933-4a81947ac7a3",
+    "document_url": "https://www.federalregister.gov/documents/2026/06/30/2026-13191/resolution-submissions-required-for-covered-insured-depository-institutions",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": "federal_register",
+    "host": "www.federalregister.gov",
+    "fr_type": "Proposed Rule",
+    "reason": "item_type_unmapped"
+  },
+  {
+    "row_id": "0485e000-b40c-428b-b7a3-1d7bf0b2621f",
+    "document_url": "https://climate.ec.europa.eu/document/download/a564c02f-1c94-497c-8154-7e1d8e718ba5_en?filename=policy_transport_shipping_gd3_accreditation_and_verification_en.pdf",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": null,
+    "host": "climate.ec.europa.eu",
+    "reason": "identity_unmapped_source"
+  },
+  {
+    "row_id": "06970c6d-7d4a-4e61-9edd-c4bcae702757",
+    "document_url": "https://participate.melbourne.vic.gov.au/amendment-c376/amendment-overview",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": null,
+    "host": "participate.melbourne.vic.gov.au",
+    "reason": "identity_unmapped_source"
+  },
+  {
+    "row_id": "06e4d7a4-f4a0-4d3c-9d0e-ee5edb7cb1c1",
+    "document_url": "https://www.federalregister.gov/documents/2026/06/24/2026-12767/establishing-the-digital-opportunity-data-collection-modernizing-the-fcc-form-477-data-program",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": "federal_register",
+    "host": "www.federalregister.gov",
+    "fr_type": "Proposed Rule",
+    "reason": "item_type_unmapped"
+  },
+  {
+    "row_id": "072d8ef0-3f67-4181-a5a6-ff40b9628072",
+    "document_url": "https://www.federalregister.gov/documents/2026/07/01/2026-13261/list-of-approved-spent-fuel-storage-casks-nac-international-inc-magnastor-storage-system-certificate",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": "federal_register",
+    "host": "www.federalregister.gov",
+    "fr_type": "Proposed Rule",
+    "reason": "item_type_unmapped"
+  },
+  {
+    "row_id": "07d88edf-c7b5-4959-8eb8-a402c92df44c",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:42012D0708",
+    "instrument_identifier": "42012D0708",
+    "canonical_instrument_key": "42012D0708",
+    "scheme": "celex",
+    "host": "eur-lex.europa.eu",
+    "reason": "canonical_key_unresolved"
+  },
+  {
+    "row_id": "0880f4ed-5c04-4f7f-8f50-482b1f568e22",
+    "document_url": "https://www.federalregister.gov/documents/2026/06/25/2026-12808/agricultural-foreign-investment-disclosure-act-of-1978",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": "federal_register",
+    "host": "www.federalregister.gov",
+    "fr_type": "Proposed Rule",
+    "reason": "item_type_unmapped"
+  }
+]
