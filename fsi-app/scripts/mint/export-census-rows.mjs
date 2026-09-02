@@ -335,6 +335,17 @@ export function extractCellarTitle(html) {
     if (t) parts.push(t);
   }
   if (parts.length) return { title: parts.join(" "), origin: "cellar_doc_title" };
+  // Older acts (pre-Formex; run 33647357868 hit six, e.g. 32001D0573, 32008R1272) come back from Cellar
+  // as the legacy EUR-Lex HTML: <title>EUR-Lex - <CELEX> - EN</title>, an <h1> carrying the CELEX, then
+  // the act's title as the first <strong> ("2001/573/EC: Council Decision of 23 July 2001 amending ...").
+  // Without this branch the body-lead fallback produced "EUR-Lex - 32001D0573 - EN Important legal
+  // notice | 32001D0573 2001/573/EC: Council Decision ..." as the title.
+  const legacyTitle = h.match(/<title[^>]*>\s*EUR-Lex\s*-\s*[0-9A-Z()]+\s*-\s*[A-Z]{2}\s*<\/title>/i);
+  if (legacyTitle) {
+    const strong = h.match(/<strong[^>]*>([\s\S]*?)<\/strong>/i);
+    const t = strong ? stripHtmlToText(strong[1]) : "";
+    if (t.length >= 20) return { title: t, origin: "cellar_legacy_title" };
+  }
   const text = stripHtmlToText(h);
   const lead = text.slice(0, 300).trim();
   return lead ? { title: lead, origin: "captured_body_lead" } : null;

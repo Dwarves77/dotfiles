@@ -7874,3 +7874,12 @@ the superseding run, a proposer pass naming mint-run-008. Gates: suite 3,049/3,0
 fitness 26/0. Next: dispatch `population-turn` dry at the new hash, read mint-run-009 and the held file,
 then apply.
 
+### Addendum 84, postscript 8 — run #5: Cellar measured from the runner, 45/45 valid (2026-09-02)
+
+`population-turn` run 33647357868 (dry, limit 50) at the corrected gate: exported 45 (26 EU through
+Cellar, 14 GB, 5 US), held 5 (the same 3 FR types and 2 hosts, by design), mint gate 45/45 valid,
+`mint-run-009` at the hash PENDING-RUN named, marker discharged. One defect in the artifact: six older acts
+come back from Cellar as legacy EUR-Lex HTML and the body-lead fallback made "EUR-Lex - <CELEX> - EN
+Important legal notice | ..." their title; fixed (`extractCellarTitle` reads the first `<strong>` after
+the CELEX `<h1>` on that shape, test). Apply next.
+
