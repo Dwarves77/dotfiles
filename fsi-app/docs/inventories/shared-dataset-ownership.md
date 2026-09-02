@@ -525,22 +525,65 @@ item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
 - **`statutory_computations`** and **`estimated_values`** (migration 286) — **UPDATE, Lane DP-SURF,
   2026-09-02: `estimated_values` is no longer reserved/unpopulated.**
   `fsi-app/scripts/propagation/seed-derived-values.mjs` (`--apply`) is its first production writer — a
-  direct `.from("estimated_values").upsert(..., { onConflict: "entity_id" })` per region carrying both a
-  `labor_markets` and an `operational_cost` regional_data_facts fact with a resolvable entity_id (see that
-  script's own header for why a matched region without one is counted, not written — this lane's write set
-  does not include entity minting), paired with the SAME run's `automate_vs_hire` `derived_values` row
-  (NPV, the propagated headline metric) so the two never drift out of sync (`fsi-app/src/lib/propagation/
-  methods/automate-vs-hire.ts`'s own header explains the point/low/high-on-NPV-plus-`distribution`-jsonb
-  split this upsert follows). `estimated_values.entity_id` is a NOT-NULL PRIMARY KEY (migration 286), so
-  this is a per-entity upsert, never an insert-only append — a re-run of the seed for the SAME region
-  replaces that region's one row, which is the correct semantics for "the current estimate," not a
-  history log (unlike `derived_values`, which is append-only/versioned via `supersedes`).
+  direct `.from("estimated_values").upsert(...)` per region carrying both a `labor_markets` and an
+  `operational_cost` regional_data_facts fact with a resolvable entity_id, paired with the SAME run's
+  `automate_vs_hire` `derived_values` row (NPV, the propagated headline metric) so the two never drift out
+  of sync (`fsi-app/src/lib/propagation/methods/automate-vs-hire.ts`'s own header explains the
+  point/low/high-on-NPV-plus-`distribution`-jsonb split this upsert follows).
+  **SECOND UPDATE, same lane, same day, coordinator follow-up task 2:** migration 286 was itself amended
+  — `entity_id` is no longer either table's PRIMARY KEY (spec 08 §4's own literal DDL permitted at most
+  one row per entity ever, which is what left this seed writing zero rows even once a region had both
+  facts; see the migration's own header and the ADR-024 dated amendment for the full account). Each table
+  now has its own surrogate PK (`computation_id`/`estimate_id`) plus a `scenario_key` column, and the
+  upsert's conflict target moved to `onConflict: "entity_id,model_id,model_version,scenario_key"`
+  accordingly. The "resolvable entity_id" a matched region needs is ALSO no longer merely READ-if-present:
+  `seed-derived-values.mjs`'s `resolveRegionEntityId` now resolves a region's jurisdiction entity through
+  `entity_refs` (`ref_table='regions'`, `role='jurisdiction'`) and MINTS one on demand when absent (reusing
+  `scripts/entities/backfill-entities.mjs`'s own exported `planJurisdictionEntities`/`planJurisdictionRefs`
+  through the guarded write path) — so this lane's write set now DOES include a narrow, on-demand slice of
+  entity minting, where the original text above said it did not. This is a per-(entity, model, version,
+  scenario) upsert, never an insert-only append — a re-run of the seed for the SAME region/scenario
+  replaces that one row, which is the correct semantics for "the current estimate," not a history log
+  (unlike `derived_values`, which is append-only/versioned via `supersedes`).
   `statutory_computations` remains genuinely reserved: no production writer lands in this lane (this
   lane's write set built `fsi-app/src/lib/statutory/fueleu-annex-iv.mjs`'s formula and `types.ts`'s
   Layer-2 type barrier, but no page/route that calls `computeStatutory()` against a real obligation and
   persists the result — see this lane's final report for why, and
   `fsi-app/.discipline/fitness/functions/F25-module-liveness.mjs`'s `StatutoryFigure.tsx` allowlist entry
   for the matching "published, no consumer yet" disposition on the render side).
+- **`regional_data_facts`** (migration 106) — **NEW entry, Lane DP-SURF, 2026-09-02, coordinator follow-up
+  task 3.** Three writers, all through the same shared envelope orchestrator
+  (`fsi-app/scripts/producers/regional/run-envelope-producer.mjs` — `toCandidateRows` /
+  `latestPerNaturalKey` / guarded upsert keyed on `(region_code, dimension, fact_label)`), each owning a
+  disjoint `(region_code, dimension)` slice so none can collide:
+  - `fsi-app/scripts/producers/regional/bls-oews-producer.mjs` — `region_code='US'`,
+    `dimension='labor_markets'` (BLS OEWS is a US-only survey).
+  - `fsi-app/scripts/producers/regional/eurostat-nrg-pc-205-producer.mjs` — `region_code='EU'`,
+    `dimension='operational_cost'` (Eurostat electricity-price semester series, one query, one geo).
+  - `fsi-app/scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs` — `region_code='EU'`,
+    `dimension='labor_markets'`, **added this commit**. Closes the BLS/Eurostat disjointness the coordinator
+    named (US wages via BLS, EU energy via Eurostat, so no region had ever carried both a `labor_markets`
+    AND an `operational_cost` fact — `automate_vs_hire`'s propagation method and this lane's own
+    `seed-derived-values.mjs` automate-vs-hire path had zero regions to compute for by construction). Unlike
+    its two siblings, `lc_lci_lev` publishes no EU-wide aggregate for this measure (confirmed by live fetch
+    this session — see the producer's and parser's own file headers for the two independent negative
+    findings), so this producer fetches each of the `EU` region's six constituent member states
+    (`DE`/`NL`/`BE`/`FR`/`IT`/`ES`, migration 106's `regions.iso_codes` for code=`'EU'`) separately and
+    writes ONE `labor_markets` fact for `'EU'` as a documented simple mean
+    (`derivation:'calculated'`/`origin_class:'derived'`, not `'observed'`/`'official'` — this number is our
+    own computation over six of Eurostat's published figures, not one Eurostat published itself;
+    `n_observations` records how many countries actually contributed). Three gates, one more than its two
+    siblings' two-gate baseline (source-level `ENABLED`, a dedicated runtime kill switch
+    `REGIONAL_PRODUCER_EUROSTAT_LC_LCI_LEV_ENABLED` default-off, `--apply`) — see the producer's own header
+    for why a computed aggregate gets the same three-gate posture as
+    `scripts/producers/market/ecb-fx-producer.mjs`. `.github/workflows/producers.yml` is deliberately NOT
+    edited by this lane (out of this lane's write set; the coordinator adds the CI step) — until that env
+    var is set, `--apply` refuses everywhere including CI, fail-closed. NAMED, NOT FIXED: the symmetric US
+    half of the disjointness (an EU-shaped energy/operational-cost fact for the `US` region) remains open —
+    out of this task's scope. ALSO NAMED, NOT FIXED: `bls-oews-producer.mjs` stamps its `labor_markets`
+    fact's unit as `USD/year` (annual), while `automate-vs-hire.mjs`'s own header describes its wage input
+    as `wagePerHour` — a pre-existing unit-mismatch in a sibling producer this lane did not build and was
+    not asked to fix here.
 - **`sensitive_field_policy`** and **`aggregate_query_log`** (migration 287) — `sensitive_field_policy` is
   operator-maintained reference data (no application writer in this lane, seeded by the migration itself);
   `aggregate_query_log` is written exclusively by migration 287's `publish_aggregate()` SECURITY DEFINER
