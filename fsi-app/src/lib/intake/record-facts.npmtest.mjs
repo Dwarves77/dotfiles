@@ -8,6 +8,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  isProseSpan,
   RECORD_FACTS_VERSION,
   assertVerbatim,
   findSlotSpan,
@@ -40,6 +41,18 @@ test("findSlotSpan: locates a real trigger phrase verbatim, returns null when ab
   assert.ok(text.toLowerCase().includes(span.toLowerCase()));
   assert.equal(findSlotSpan("effective_date", "No relevant language here."), null);
   assert.equal(findSlotSpan("nonexistent_slot_key", text), null, "a slot with no trigger entry always falls back to null (-> GAP)");
+});
+
+test("findSlotSpan: skips page chrome and returns the first PROSE match — mint-run-008's legislation.gov.uk menu line", () => {
+  const menu = "Browse Legislation\nEuropean Union Treaties -------------------------------------\nUK Statutory Instruments\n";
+  const body = "These Regulations apply to lighting products placed on the market in Great Britain. Member States may not refuse EEC type approval for vehicles which conform.";
+  assert.equal(findSlotSpan("jurisdictional_scope", menu), null);
+  const span = findSlotSpan("jurisdictional_scope", menu + body);
+  assert.ok(span && !/-{4}/.test(span), span);
+  assert.ok(/member states may not refuse/i.test(span), span);
+  assert.equal(isProseSpan("European Union Treaties -------------"), false);
+  assert.equal(isProseSpan("European Union"), false);
+  assert.equal(isProseSpan("applies to lighting products placed on the market"), true);
 });
 
 test("extractIdentityFact: title located verbatim -> FACT with slot_key 'title'; absent -> null (never fabricated)", () => {

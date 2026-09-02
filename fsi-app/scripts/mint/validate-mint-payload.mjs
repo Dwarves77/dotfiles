@@ -12,11 +12,20 @@
 //   lib/canonicalize-citation-url.mjs            -- criterion 2's URL compare (migration 150).
 //
 // KNOWN SIMPLIFICATIONS vs the live DB function (named, not hidden):
-//   - A FACT/ANALYSIS claim's cited source is resolved by exact-canonicalized-URL match against the
-//     payload's own `source` + `registry_sources` + `search_results` (the payload's closed world), not by
-//     a search_result_id foreign key into a live agent_run_searches table. This is the natural analogue
-//     for a pre-apply payload: the coordinator's real INSERT still creates the search_result_id link this
-//     validator is standing in for.
+//   - A FACT/ANALYSIS claim's cited source is resolved against the payload's own `source` +
+//     `registry_sources` + `search_results` (the payload's closed world), not by a search_result_id /
+//     source_id foreign key into live tables. This is the natural analogue for a pre-apply payload: the
+//     coordinator's real INSERT still creates the links this validator is standing in for. The SPAN check
+//     (criterion 3's "is the span in the cited text") matches the claim's `source_url` to a search result
+//     by exact canonical URL. The AUTHORITY-TIER lookup (criterion 3's floor) resolves the claim's
+//     `source_url` to a registered source by exact canonical URL first and, failing that, by REGISTRY
+//     IDENTITY (scripts/lib/institution-key.mjs's institutionKey — the same rule registerSource dedups
+//     by): a fact citing `legislation.gov.uk/uksi/2021/1095` is a fact OF the registered institution row
+//     `legislation.gov.uk/`. That is exactly what the live gate computes, because apply-mint-batch.mjs
+//     binds every grounded fact's `source_id` to the payload's source and migration 202 derives the tier
+//     through that FK. Before 2026-09-02 this lookup was exact-URL only, stricter than the registry's own
+//     identity, and it failed all 19 record-grade payloads of mint-run-008 with `source_tier_derived:
+//     null` against a tier-1 registered source (population run #4). Never re-tighten it to exact URL.
 //   - Gate A's DERIVED-claim coverage arm (Gate B, migration 227: derivedCoveredTokens, a live DB lookup)
 //     is not modeled -- this validator always passes an empty derivedCovered set to scanBrief(). A payload
 //     that legitimately needs a DERIVED claim to clear Gate A must get a coordinator-side check; flag this
@@ -33,6 +42,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { scanBrief } from "./lib/gate-a-scan.mjs";
 import { canonicalizeCitationUrl } from "./lib/canonicalize-citation-url.mjs";
+import { institutionKey } from "../lib/institution-key.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REQUIRED_SLOTS = JSON.parse(readFileSync(resolve(__dirname, "item-type-required-slots.json"), "utf8"));
@@ -464,6 +474,19 @@ export function validateMintPayload(payload, opts = {}) {
     const sourceByCanonUrl = new Map();
     if (source.url) sourceByCanonUrl.set(canonicalizeCitationUrl(source.url), source);
     for (const rs of registrySources) if (rs.url) sourceByCanonUrl.set(canonicalizeCitationUrl(rs.url), rs);
+    // Registry identity (see the header's KNOWN SIMPLIFICATIONS): the payload's own source first, then
+    // registry_sources in order, keyed the way registerSource dedups. `source` wins on a key collision
+    // because it is the row apply-mint-batch.mjs will bind every grounded fact's source_id to.
+    const sourceByInstitution = new Map();
+    for (const rs of registrySources) { const k = rs.url ? institutionKey(rs.url) : ""; if (k && !sourceByInstitution.has(k)) sourceByInstitution.set(k, rs); }
+    if (source.url) { const k = institutionKey(source.url); if (k) sourceByInstitution.set(k, source); }
+    const resolveClaimSource = (citeUrl) => {
+      if (!citeUrl) return null;
+      const exact = sourceByCanonUrl.get(canonicalizeCitationUrl(citeUrl));
+      if (exact) return exact;
+      const k = institutionKey(citeUrl);
+      return k ? sourceByInstitution.get(k) ?? null : null;
+    };
     const resultByCanonUrl = new Map();
     for (const r of searchResults) if (r.result_url) resultByCanonUrl.set(canonicalizeCitationUrl(r.result_url), r);
 
@@ -494,7 +517,7 @@ export function validateMintPayload(payload, opts = {}) {
       }
 
       // migration 202: a STANDARD item's own-authoring-body fact grounds at tier 4, not the reg floor.
-      const resolvedSource = c.source_url ? sourceByCanonUrl.get(canonicalizeCitationUrl(c.source_url)) : null;
+      const resolvedSource = resolveClaimSource(c.source_url);
       const derivedTier = resolvedSource ? (resolvedSource.tier_override ?? resolvedSource.base_tier ?? null) : null;
       let effectiveFloor = floorMax;
       if (

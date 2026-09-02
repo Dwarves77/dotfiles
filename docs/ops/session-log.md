@@ -7837,3 +7837,40 @@ family (EUR-Lex HTML endpoint, UK `/data.htm` with page fallback, FR API `raw_te
 holds carry status/bytes/head/endpoint evidence, and `population-turn.yml` gains `rows_file` so a batch
 captured through the browser per MINT-RUNBOOK §1a lands through the same runtime (§11 documents the
 procedure). 60 tests. The next dry run on the same slice is the measurement.
+
+### Addendum 84, postscript 7 — population run #4: 19/19 walled by the mirror, not the data; Cellar replaces the bot-gated EUR-Lex fetch (2026-09-02)
+
+`population-turn` run 33643532589 (dry, limit 50) exported 19 rows (14 UK statutory instruments, 5 Federal
+Register rules) and held 31 (26 EUR-Lex `capture_blocked`, 3 FR `item_type_unmapped`, 2 unmapped hosts).
+The mint gate then failed all 19: `fact_below_authority_floor`, `source_tier_derived: null`, against
+registered tier-1 sources. Root cause [CONFIRMED]: `validate-mint-payload.mjs` derived a fact's authority
+tier only when the claim URL equalled the registered source URL exactly. The registry is keyed by
+institution (`registerSource` dedups by `institutionKey`, so `legislation.gov.uk/` is the row every UK
+instrument cites), and the live `validate_item_provenance` (migration 202) derives the tier through
+`section_claim_provenance.source_id`, which `apply-mint-batch.mjs` binds to that row. The mirror was
+stricter than the gate it mirrors. Fix: the identity rule moved to `scripts/lib/institution-key.mjs`
+(pure; `db.mjs` re-exports it) and the validator resolves by exact URL, then by registry identity; three
+tests. The 19 payloads re-validate 19/19.
+
+The same artifact showed the record-facts extractor emitting legislation.gov.uk's browse menu ("European
+Union Treaties ------") and Act names as `jurisdictional_scope` FACTs, and a `&#xD;` inside a penalty
+span: verbatim, and still not a statement. `isProseSpan` (word floor, punctuation-run and entity
+rejection), every match of every trigger walked, clause-shaped scope triggers first, the bare institution
+name only after a preposition and never before "(" or "Act"; numeric character references decoded in
+`stripHtmlToText`. Re-run over the 19 rows: 31 slot FACTs, 63 GAPs, no chrome.
+
+The 26 EUR-Lex holds were the same evidence every time: HTTP 202, 2,035 bytes, "verify that you're not
+a robot" — a bot gate on `/TXT/HTML/`. I read the Publications Office's Cellar resolver in the browser:
+`publications.europa.eu/resource/celex/32006D0507` → 303 → the act's XHTML, 96,603 chars, no gate, title
+in `p.oj-doc-ti`. The exporter now captures CELEX rows from Cellar first (plain-http redirect upgraded to
+https, `followUpgradingRedirects`) and from EUR-Lex second; a hold names both attempts. [INFERRED, not yet
+measured from the runner]: Cellar's behaviour against a plain HTTP client is taken from the browser's
+redirect chain; the next dispatch is the measurement. If it holds, the browser `rows_file` path stays the
+exception §11 describes rather than the route for 26 documents.
+
+Landed with this: `mint-run-007` (run #3, empty) and `mint-run-008` (run #4, 0/19) as the family's honest
+records, both snapshots, `PENDING-RUN.md` re-stamped to `sha256:2d498956fb8c476f` naming mint-run-009 as
+the superseding run, a proposer pass naming mint-run-008. Gates: suite 3,049/3,049; npm-deps 315/315;
+fitness 26/0. Next: dispatch `population-turn` dry at the new hash, read mint-run-009 and the held file,
+then apply.
+
