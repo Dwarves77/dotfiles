@@ -557,7 +557,18 @@ item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
   `latestPerNaturalKey` / guarded upsert keyed on `(region_code, dimension, fact_label)`), each owning a
   disjoint `(region_code, dimension)` slice so none can collide:
   - `fsi-app/scripts/producers/regional/bls-oews-producer.mjs` — `region_code='US'`,
-    `dimension='labor_markets'` (BLS OEWS is a US-only survey).
+    `dimension='labor_markets'` (BLS OEWS is a US-only survey). **UPDATE, same lane, same day, THIRD
+    coordinator follow-up ("BLS OEWS wage fact is hourly (H_MEAN), matching what automate-vs-hire
+    reads"):** now writes TWO facts per occupation, not one — the pre-existing annual median wage
+    (`unit:'USD/year'`, BLS datatype 13) AND a new hourly median wage (`unit:'USD/hour'`, BLS datatype
+    08, confirmed this session — see `bls-oews-parser.mjs`'s header for the confirmation trail). Both
+    stay, so the annual row still backs whatever already reads a `labor_markets` row without caring about
+    its unit (the `/operations` matrix coverage view, region-grid fact counts); the wage input to
+    `automate_vs_hire` (both `automate-vs-hire.ts`'s `findHourlyWageFact` and
+    `seed-derived-values.mjs`'s own independent wage selection) now REQUIRES the hourly-unit fact and
+    refuses with a named, counted reason (`skippedNoHourlyWage`) when only the annual one resolves — never
+    divides the annual figure by 2080 to manufacture one. See `src/lib/operations/automate-vs-hire.mjs`'s
+    `isHourlyWageUnit` for the shared predicate both callers use.
   - `fsi-app/scripts/producers/regional/eurostat-nrg-pc-205-producer.mjs` — `region_code='EU'`,
     `dimension='operational_cost'` (Eurostat electricity-price semester series, one query, one geo).
   - `fsi-app/scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs` — `region_code='EU'`,
@@ -580,10 +591,9 @@ item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
     edited by this lane (out of this lane's write set; the coordinator adds the CI step) — until that env
     var is set, `--apply` refuses everywhere including CI, fail-closed. NAMED, NOT FIXED: the symmetric US
     half of the disjointness (an EU-shaped energy/operational-cost fact for the `US` region) remains open —
-    out of this task's scope. ALSO NAMED, NOT FIXED: `bls-oews-producer.mjs` stamps its `labor_markets`
-    fact's unit as `USD/year` (annual), while `automate-vs-hire.mjs`'s own header describes its wage input
-    as `wagePerHour` — a pre-existing unit-mismatch in a sibling producer this lane did not build and was
-    not asked to fix here.
+    out of this task's scope. NAMED AND FIXED (same day, third coordinator follow-up): the
+    `bls-oews-producer.mjs` annual/hourly wage-unit mismatch flagged when this task-3 entry was first
+    written — see the `bls-oews-producer.mjs` bullet above for the fix.
 - **`sensitive_field_policy`** and **`aggregate_query_log`** (migration 287) — `sensitive_field_policy` is
   operator-maintained reference data (no application writer in this lane, seeded by the migration itself);
   `aggregate_query_log` is written exclusively by migration 287's `publish_aggregate()` SECURITY DEFINER

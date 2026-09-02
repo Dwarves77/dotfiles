@@ -39,3 +39,25 @@ test("refuses with a named reason when the energy input is unresolved", async ()
   assert.equal(r.ok, false);
   if (!r.ok) assert.match(r.reason, /energy/);
 });
+
+// 2026-09-02 coordinator follow-up: "BLS OEWS wage fact is hourly (H_MEAN), matching what automate-vs-hire
+// reads... Make automate-vs-hire's wage input read the hourly fact by label and refuse (named reason) when
+// only an annual one exists."
+const annualWageRef = { table: "regional_data_facts", pk: "wage-annual-1", version: null, row: { dimension: "labor_markets", value_numeric: 54320, unit: "USD/year" } };
+
+test("refuses with a named reason (never silently divides by 2080) when the only resolvable labor_markets input is annual, not hourly", async () => {
+  const ctx = { entityId: null, inputs: [annualWageRef, energyRef], priorValue: null, now: new Date() };
+  const r = await computeAutomateVsHire(ctx);
+  assert.equal(r.ok, false);
+  if (!r.ok) {
+    assert.match(r.reason, /hourly/i);
+    assert.match(r.reason, /USD\/year/);
+  }
+});
+
+test("accepts a hourly wage fact regardless of currency, so long as the unit ends in /hour (e.g. EUR/hour)", async () => {
+  const eurHourlyWageRef = { table: "regional_data_facts", pk: "wage-eur-1", version: null, row: { dimension: "labor_markets", value_numeric: 24.0, unit: "EUR/hour" } };
+  const ctx = { entityId: null, inputs: [eurHourlyWageRef, energyRef], priorValue: null, now: new Date() };
+  const r = await computeAutomateVsHire(ctx);
+  assert.equal(r.ok, true);
+});

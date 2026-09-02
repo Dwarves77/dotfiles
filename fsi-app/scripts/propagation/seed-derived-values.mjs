@@ -19,24 +19,30 @@
 //   2. automate_vs_hire@1.0.0 — one derived_values row (NPV, the propagated headline metric) PLUS one
 //      paired estimated_values row (point/low/high on NPV, distribution jsonb carrying payback/break-even
 //      — see methods/automate-vs-hire.ts's header for why the range triple is split across two tables this
-//      way) per REGION that has BOTH a labor_markets fact AND an operational_cost fact with a populated
-//      value_numeric (migration 267's envelope column — NULL means "not yet re-keyed through the
-//      envelope," not zero). `entity_id` is a required FK on both tables (migration 286, amended
-//      2026-09-02 — no longer the PK, see that migration's header) and a region has no entity spine row of
-//      its own (regions were never in DP-SPINE's progressive re-keying scope — migration 284's header,
-//      same note as above), so a matched region's jurisdiction entity is resolved through `entity_refs`
-//      (ref_table='regions', role='jurisdiction') and MINTED on demand when absent — `entityId('jurisdiction',
-//      iso)` + entities/entity_identifiers/entity_refs rows through the SAME guarded db path
-//      (scripts/lib/db.mjs guardedInsertMany) and the SAME shape scripts/entities/backfill-entities.mjs
-//      writes (its own exported planJurisdictionEntities/planJurisdictionRefs, reused directly — see
-//      resolveEntityId in main() below). --dry never mints (a read-only, deterministic PREVIEW of the id
-//      that WOULD be minted, so wouldCreate/skippedNoEntity still count honestly without writing); only
-//      --apply mints for real. A region with an empty iso_codes array still cannot resolve an entity
-//      (nothing to mint FROM) and is still counted skippedNoEntity. AS OF THIS COMMIT, BLS OEWS
-//      (labor_markets) is US-only and Eurostat nrg_pc_205 (operational_cost) is EU-country-only (see
-//      scripts/producers/regional/*-producer.mjs) — DISJOINT region sets, so the honest expected count for
-//      this path was 0 for that reason alone; task 3 of the same follow-up (eurostat-lc-lci-lev-producer.mjs)
-//      closes that disjointness — see this lane's final report for the resulting expected count by formula.
+//      way) per REGION that has BOTH an HOURLY-unit labor_markets fact AND an operational_cost fact with a
+//      populated value_numeric (migration 267's envelope column — NULL means "not yet re-keyed through the
+//      envelope," not zero; see isHourlyWageUnit's own header, 2026-09-02 coordinator follow-up, for why
+//      "hourly-unit" and not merely "present" — a region with only an ANNUAL labor_markets fact counts
+//      regionsWithBothFacts but is skippedNoHourlyWage, never created). `entity_id` is a required FK on
+//      both tables (migration 286, amended 2026-09-02 — no longer the PK, see that migration's header) and
+//      a region has no entity spine row of its own (regions were never in DP-SPINE's progressive re-keying
+//      scope — migration 284's header, same note as above), so a matched region's jurisdiction entity is
+//      resolved through `entity_refs` (ref_table='regions', role='jurisdiction') and MINTED on demand when
+//      absent — `entityId('jurisdiction', iso)` + entities/entity_identifiers/entity_refs rows through the
+//      SAME guarded db path (scripts/lib/db.mjs guardedInsertMany) and the SAME shape
+//      scripts/entities/backfill-entities.mjs writes (its own exported
+//      planJurisdictionEntities/planJurisdictionRefs, reused directly — see resolveEntityId in main()
+//      below). --dry never mints (a read-only, deterministic PREVIEW of the id that WOULD be minted, so
+//      wouldCreate/skippedNoEntity still count honestly without writing); only --apply mints for real. A
+//      region with an empty iso_codes array still cannot resolve an entity (nothing to mint FROM) and is
+//      still counted skippedNoEntity. AS OF THIS COMMIT, BLS OEWS (labor_markets, both an annual AND an
+//      hourly median-wage fact as of the SAME-DAY coordinator follow-up fixing the wage-unit mismatch) is
+//      US-only and Eurostat nrg_pc_205/lc_lci_lev (operational_cost / labor_markets) are EU-only (see
+//      scripts/producers/regional/*-producer.mjs) — DISJOINT region sets for BLS-vs-Eurostat, but the SAME
+//      follow-up's task 3 (eurostat-lc-lci-lev-producer.mjs) gives the 'EU' region BOTH an hourly
+//      labor_markets fact (Eurostat, already hourly-unit — EUR/hour) and an operational_cost fact
+//      (nrg_pc_205) once that producer's --apply lands data — see this lane's final report for the
+//      resulting expected count by formula.
 //
 // --dry counts everything this run WOULD write and writes nothing (no registerDerivedValue call, no
 // estimated_values upsert). --apply performs the writes. Exactly one of --dry/--apply is required.
@@ -56,7 +62,7 @@ import { fileURLToPath } from "node:url";
 import { registerDerivedValue } from "../../src/lib/propagation/register-derivation.ts";
 import { carbonIntensity } from "../../src/lib/market/carbon-intensity.mjs";
 import { lifecycleFromFactorOriginClass, confidenceFromPedigree } from "../../src/lib/propagation/methods/carbon-intensity.ts";
-import { automateVsHire, DEFAULT_SCENARIO } from "../../src/lib/operations/automate-vs-hire.mjs";
+import { automateVsHire, DEFAULT_SCENARIO, isHourlyWageUnit } from "../../src/lib/operations/automate-vs-hire.mjs";
 import { mayEmbedAsSeed } from "../../src/lib/contracts/source-licence.mjs";
 import { entityId } from "../../src/lib/entities/entity-id.mjs";
 import { planJurisdictionEntities, planJurisdictionRefs, distinctNormalized } from "../entities/backfill-entities.mjs";
@@ -177,9 +183,13 @@ export async function seedCarbonIntensity(sb, mode, nowIso = () => new Date().to
 
 /**
  * Seed automate_vs_hire derived_values (NPV) + estimated_values (the full range) for every region with
- * both a labor_markets and an operational_cost fact carrying a populated value_numeric. See file header
- * for SUPPORTED_BASES-shaped honesty about today's expected count (0 — disjoint US/EU coverage) and the
- * entity-id gap (skippedNoEntity).
+ * both an HOURLY-unit labor_markets fact and an operational_cost fact carrying a populated value_numeric.
+ * A region that carries a labor_markets fact but only an ANNUAL one (bls-oews-producer.mjs's own annual
+ * median wage row) still counts toward regionsWithBothFacts (any labor_markets presence, by design — that
+ * counter answers "does this region have wage AND energy data at all", not "usable for THIS calculation")
+ * but is counted skippedNoHourlyWage, not created — see the 2026-09-02 coordinator follow-up
+ * ("BLS OEWS wage fact is hourly (H_MEAN), matching what automate-vs-hire reads") and isHourlyWageUnit's
+ * own header for why. See file header for the entity-id gap (skippedNoEntity).
  * @param {object} sb
  * @param {"dry"|"apply"} mode
  * @param {(regionId: string) => Promise<string|null>} resolveEntityId — resolves a region's jurisdiction
@@ -195,7 +205,7 @@ export async function seedAutomateVsHire(sb, mode, resolveEntityId, nowIso = () 
     .select("id,region_id,dimension,value_numeric,unit,last_updated")
     .in("dimension", ["labor_markets", "operational_cost"]);
   if (error) {
-    return { regionsWithBothFacts: 0, skippedNoEntity: 0, wouldCreate: 0, created: 0, failed: 0, errors: [] };
+    return { regionsWithBothFacts: 0, skippedNoHourlyWage: 0, skippedNoEntity: 0, wouldCreate: 0, created: 0, failed: 0, errors: [] };
   }
   const rows = (Array.isArray(data) ? data : []).filter((r) => typeof r.value_numeric === "number" && Number.isFinite(r.value_numeric));
 
@@ -207,13 +217,27 @@ export async function seedAutomateVsHire(sb, mode, resolveEntityId, nowIso = () 
 
   const mostRecent = (list) => list.slice().sort((a, b) => new Date(b.last_updated) - new Date(a.last_updated))[0];
 
-  const result = { regionsWithBothFacts: 0, skippedNoEntity: 0, wouldCreate: 0, created: 0, failed: 0, errors: [] };
+  const result = { regionsWithBothFacts: 0, skippedNoHourlyWage: 0, skippedNoEntity: 0, wouldCreate: 0, created: 0, failed: 0, errors: [] };
 
   for (const [regionId, byDim] of byRegion) {
     if (byDim.labor_markets.length === 0 || byDim.operational_cost.length === 0) continue;
     result.regionsWithBothFacts += 1;
 
-    const wage = mostRecent(byDim.labor_markets);
+    // labourCostPerHour (automate-vs-hire.mjs's own doc line: "Point wage (USD/hour)") may only ever be
+    // fed from an HOURLY-unit labor_markets fact — bls-oews-producer.mjs writes an annual (USD/year) fact
+    // alongside its hourly one (2026-09-02 coordinator follow-up: "BLS OEWS wage fact is hourly (H_MEAN),
+    // matching what automate-vs-hire reads"), and a region whose ONLY labor_markets fact is annual must be
+    // skipped, named, rather than silently feeding an annual dollar figure in as if it were hourly (or
+    // dividing it by 2080 to manufacture one — see isHourlyWageUnit's own header). This mirrors the same
+    // rule src/lib/propagation/methods/automate-vs-hire.ts now enforces on the drain's recompute path — see
+    // that file's findHourlyWageFact for the identical predicate.
+    const hourlyWageRows = byDim.labor_markets.filter((r) => isHourlyWageUnit(r.unit));
+    if (hourlyWageRows.length === 0) {
+      result.skippedNoHourlyWage += 1;
+      continue;
+    }
+
+    const wage = mostRecent(hourlyWageRows);
     const energy = mostRecent(byDim.operational_cost);
 
     // NOTE: named resolvedEntityId, not entityId — this module also imports the entityId() minting

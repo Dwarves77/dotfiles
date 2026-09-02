@@ -31,14 +31,32 @@ const BLS_URL = "https://api.bls.gov/publicAPI/v2/timeseries/data/";
 
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseOewsResponse, buildOewsSeriesId, OEWS_OCCUPATIONS } from "../../../src/lib/regional/bls-oews-parser.mjs";
+import {
+  parseOewsResponse,
+  buildOewsSeriesId,
+  OEWS_OCCUPATIONS,
+  ANNUAL_MEDIAN_WAGE_DATATYPE,
+  HOURLY_MEDIAN_WAGE_DATATYPE,
+} from "../../../src/lib/regional/bls-oews-parser.mjs";
 import { runEnvelopeProducer } from "./run-envelope-producer.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
 
+// Requests BOTH the annual-median and hourly-median series per occupation (2026-09-02 coordinator
+// follow-up: "BLS OEWS wage fact is hourly (H_MEAN), matching what automate-vs-hire reads" — automate-
+// vs-hire.mjs's own `labourCostPerHour` input has always documented itself as USD/hour; this producer
+// previously supplied only the annual figure. See bls-oews-parser.mjs's header for the datatype-code
+// confirmation and why HOURLY MEDIAN (08), not hourly MEAN (03), was chosen to match the annual figure's
+// own measure family). Both are kept, not one swapped for the other — the annual fact still backs whatever
+// already reads a `dimension:'labor_markets'` row without caring about its unit (the /operations matrix
+// coverage view, region-grid fact counts); only automate-vs-hire's wage input is unit-sensitive, and it now
+// refuses rather than misreading the annual row (see automate-vs-hire.ts).
 async function fetchAndParse() {
-  const seriesid = OEWS_OCCUPATIONS.map((o) => buildOewsSeriesId(o.socCode));
+  const seriesid = OEWS_OCCUPATIONS.flatMap((o) => [
+    buildOewsSeriesId(o.socCode, ANNUAL_MEDIAN_WAGE_DATATYPE),
+    buildOewsSeriesId(o.socCode, HOURLY_MEDIAN_WAGE_DATATYPE),
+  ]);
   const res = await fetch(BLS_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

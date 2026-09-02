@@ -48,6 +48,22 @@
 
 export const UNCERTAINTY_PCT = 0.10; // ±10% on wage and energy facts, documented per file header.
 
+/** True when a `regional_data_facts.unit` value denotes an HOURLY rate ("USD/hour", "EUR/hour", ... —
+ *  case-insensitive) — the only unit shape `labourCostPerHour` (above) may ever be fed from directly.
+ *  2026-09-02 coordinator follow-up ("BLS OEWS wage fact is hourly (H_MEAN), matching what automate-vs-hire
+ *  reads"): this module's own `labourCostPerHour` doc line has always said "USD/hour", but
+ *  bls-oews-producer.mjs only ever wrote an ANNUAL (USD/year) `labor_markets` fact until this commit —
+ *  every caller that resolves a wage fact from `regional_data_facts` (this method's
+ *  src/lib/propagation/methods/automate-vs-hire.ts, and scripts/propagation/seed-derived-values.mjs's own
+ *  independent wage selection) must use this predicate rather than trusting `dimension === 'labor_markets'`
+ *  alone, and refuse with a named reason when the only labor_markets fact available is annual. NEVER divide
+ *  an annual figure by a fixed hours-per-year constant (2080) to manufacture an hourly one — see
+ *  bls-oews-parser.mjs's header for why the hourly figure is requested as ITS OWN published BLS series
+ *  instead. Exported (not duplicated) so both callers apply the identical rule. */
+export function isHourlyWageUnit(unit) {
+  return typeof unit === "string" && /\/hour$/i.test(unit.trim());
+}
+
 /** Distinct-model states, so a caller never sees a fabricated number for a degenerate configuration
  *  (hours-per-unit that does not fall under automation, or a payback that never arrives). */
 export const REFUSAL = Object.freeze({

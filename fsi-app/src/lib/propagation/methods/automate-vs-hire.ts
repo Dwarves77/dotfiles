@@ -37,7 +37,7 @@
 // run). Keeping this file registration-free avoids the cycle entirely: index.ts calls registerMethod AFTER
 // its own REGISTRY is initialized, using the plain values this file exports.
 import type { MethodFn, MethodContext, MethodResult } from "./index.ts";
-import { automateVsHire, DEFAULT_SCENARIO } from "../../operations/automate-vs-hire.mjs";
+import { automateVsHire, DEFAULT_SCENARIO, isHourlyWageUnit } from "../../operations/automate-vs-hire.mjs";
 
 export const METHOD_ID = "automate_vs_hire";
 export const METHOD_VERSION = "1.0.0";
@@ -60,11 +60,34 @@ function findFactByDimension(inputs: MethodContext["inputs"], dimension: string)
   return null;
 }
 
-export const computeAutomateVsHire: MethodFn = (ctx: MethodContext): MethodResult => {
-  const wage = findFactByDimension(ctx.inputs, "labor_markets");
-  const energy = findFactByDimension(ctx.inputs, "operational_cost");
+/** Same lookup as findFactByDimension, but ALSO requires the resolved labor_markets row's `unit` to be
+ *  hourly (isHourlyWageUnit, ../../operations/automate-vs-hire.mjs) — labourCostPerHour is documented
+ *  (that module's own header) as a USD/hour figure, and bls-oews-producer.mjs writes an annual
+ *  (USD/year) labor_markets fact alongside its hourly one (2026-09-02 coordinator follow-up: "BLS OEWS
+ *  wage fact is hourly (H_MEAN)..."). A labor_markets row that resolves but is NOT hourly-unit is
+ *  distinguished from "no labor_markets row at all" so the two refusal reasons never get confused —
+ *  the caller (seed-derived-values.mjs / drain.ts) chose the wrong fact as this derivation's input, not
+ *  that no fact exists; see that reason string for the fix. NEVER divides an annual figure by 2080 to
+ *  manufacture an hourly one — see isHourlyWageUnit's own header.
+ */
+function findHourlyWageFact(inputs: MethodContext["inputs"]): { ok: true; row: RegionalFactRow } | { ok: false; reason: string } {
+  const wage = findFactByDimension(inputs, "labor_markets");
   if (!wage) return { ok: false, reason: "no resolvable labor_markets (wage) regional_data_facts input" };
+  if (!isHourlyWageUnit(wage.unit)) {
+    return {
+      ok: false,
+      reason: `labor_markets input is not hourly (unit=${JSON.stringify(wage.unit)}) — automate_vs_hire requires an hourly wage fact and refuses rather than treating an annual figure as hourly or dividing it by 2080`,
+    };
+  }
+  return { ok: true, row: wage };
+}
+
+export const computeAutomateVsHire: MethodFn = (ctx: MethodContext): MethodResult => {
+  const wageResult = findHourlyWageFact(ctx.inputs);
+  const energy = findFactByDimension(ctx.inputs, "operational_cost");
+  if (!wageResult.ok) return { ok: false, reason: wageResult.reason };
   if (!energy) return { ok: false, reason: "no resolvable operational_cost (energy) regional_data_facts input" };
+  const wage = wageResult.row;
 
   const r = automateVsHire({
     ...DEFAULT_SCENARIO,

@@ -124,12 +124,35 @@ test("seedCarbonIntensity: a read error yields a zeroed, error-carrying result r
 const WAGE = { id: "wage-1", region_id: "r-us", dimension: "labor_markets", value_numeric: 28.5, unit: "USD/hour", last_updated: "2026-06-01T00:00:00Z" };
 const ENERGY = { id: "energy-1", region_id: "r-us", dimension: "operational_cost", value_numeric: 0.18, unit: "USD/kWh", last_updated: "2026-06-01T00:00:00Z" };
 const WAGE_ONLY_REGION = { id: "wage-2", region_id: "r-de", dimension: "labor_markets", value_numeric: 30, unit: "EUR/hour", last_updated: "2026-06-01T00:00:00Z" };
+// 2026-09-02 coordinator follow-up: "BLS OEWS wage fact is hourly (H_MEAN), matching what automate-vs-hire
+// reads" — bls-oews-producer.mjs's ANNUAL median-wage fact (unit USD/year), the shape that used to be the
+// ONLY labor_markets fact this seed could see before that fix. Used below to prove this seed now refuses
+// (named, counted skippedNoHourlyWage) rather than silently treating an annual dollar figure as hourly.
+const ANNUAL_WAGE = { id: "wage-annual-1", region_id: "r-us", dimension: "labor_markets", value_numeric: 54320, unit: "USD/year", last_updated: "2026-06-01T00:00:00Z" };
 
 test("seedAutomateVsHire: a region with only one dimension present never counts as regionsWithBothFacts", async () => {
   const sb = fakeClient({ regional_data_facts: [WAGE_ONLY_REGION] });
   const r = await seedAutomateVsHire(sb, "dry", async () => "cl:jurisdiction:0000000000000001");
   assert.equal(r.regionsWithBothFacts, 0);
   assert.equal(r.wouldCreate, 0);
+});
+
+test("seedAutomateVsHire: a region with an ANNUAL-only labor_markets fact and an operational_cost fact counts regionsWithBothFacts but is skippedNoHourlyWage, never wouldCreate — never silently treats the annual figure as hourly", async () => {
+  const sb = fakeClient({ regional_data_facts: [ANNUAL_WAGE, ENERGY] });
+  const r = await seedAutomateVsHire(sb, "dry", async () => "cl:jurisdiction:0000000000000001");
+  assert.equal(r.regionsWithBothFacts, 1, "a labor_markets fact IS present, so this still counts as 'has both dimensions'");
+  assert.equal(r.skippedNoHourlyWage, 1);
+  assert.equal(r.wouldCreate, 0);
+});
+
+test("seedAutomateVsHire: a region with BOTH an annual and an hourly labor_markets fact picks the hourly one, never the annual one, for the wage input", async () => {
+  const sb = fakeClient({ regional_data_facts: [ANNUAL_WAGE, WAGE, ENERGY] });
+  const r = await seedAutomateVsHire(sb, "apply", async () => "cl:jurisdiction:0000000000000001", () => "2026-09-02T00:00:00.000Z");
+  assert.equal(r.skippedNoHourlyWage, 0);
+  assert.equal(r.created, 1);
+  const rpcCall = sb.calls.find((c) => c.fn === "register_derived_value");
+  const wageInput = rpcCall.args.p_inputs.find((i) => i.pk === "wage-1" || i.pk === "wage-annual-1");
+  assert.equal(wageInput.pk, "wage-1", "the HOURLY wage fact (28.5 USD/hour) must be used, never the annual one (54320 USD/year)");
 });
 
 test("seedAutomateVsHire dry: a region with both dimensions and a resolvable entity counts wouldCreate, writes nothing", async () => {
