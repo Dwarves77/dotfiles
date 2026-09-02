@@ -113,7 +113,7 @@ jobs:
           git fetch --no-tags origin '+refs/heads/change-detection/*:refs/remotes/origin/change-detection/*' || true
           : > /tmp/hydrated-artifacts.txt
           for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/change-detection/*'); do
-            for f in $(git ls-tree -r --name-only "$b" -- fsi-app/scripts/harness-runs/change-detection/); do
+            for f in $(git ls-tree -r --full-tree --name-only "$b" -- fsi-app/scripts/harness-runs/change-detection/); do
               rel="${f#fsi-app/}"
               if [ ! -e "$rel" ]; then
                 mkdir -p "$(dirname "$rel")"

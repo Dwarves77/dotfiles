@@ -4,7 +4,10 @@
 // Run: node --test scripts/mint/export-census-rows.test.mjs
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
+  fetchRowsIn,
+  fetchColumnIn,
   classifyItemTypeFromCelexKey,
   stripHtmlToText,
   extractTitleFromHtml,
@@ -231,4 +234,33 @@ test("summarize: reports eligible/excluded/exported/held-by-reason/captured coun
   assert.match(text, /no_capture=2/);
   assert.match(text, /item_type_unmapped=1/);
   assert.match(text, /captured=1 capture_failed=0/);
+});
+
+// Read-shape regression lock (population-turn run 33631394941, 2026-09-02): the first live dry run read
+// the whole agent_run_searches table through readAll and Postgres cancelled the statement. Captures,
+// holder urls and sources are fetched per selected batch with `in (...)` in chunks; the whole-table read
+// of the grounding pool must never come back.
+test("main() never reads agent_run_searches, sources or intelligence_items whole", () => {
+  const src = readFileSync(new URL("./export-census-rows.mjs", import.meta.url), "utf8");
+  assert.doesNotMatch(src, /readAll\(\s*"agent_run_searches"/);
+  assert.doesNotMatch(src, /readAll\(\s*"intelligence_items"/);
+  assert.doesNotMatch(src, /readAll\(\s*"sources"/);
+  assert.match(src, /readAll\(\s*"census_worklist"[\s\S]*?match:\s*\{\s*dryrun_disposition:\s*"would_mint"\s*\}/);
+});
+
+test("fetchRowsIn chunks the key list and concatenates results", async () => {
+  const calls = [];
+  const sb = { from: (table) => ({ select: (cols) => ({ in: async (col, vals) => { calls.push({ table, cols, col, vals }); return { data: vals.map((v) => ({ [col]: v })), error: null }; } }) }) };
+  const rows = await fetchRowsIn(sb, "agent_run_searches", "result_url, result_content", "result_url", Array.from({ length: 120 }, (_, i) => `u${i}`), { chunk: 50 });
+  assert.equal(calls.length, 3);
+  assert.deepEqual(calls.map((c) => c.vals.length), [50, 50, 20]);
+  assert.equal(rows.length, 120);
+  const urls = await fetchColumnIn(sb, "intelligence_items", "source_url", "source_url", ["a", "b", "a"]);
+  assert.deepEqual(urls.sort(), ["a", "b"]);
+});
+
+test("selectCensusRows with limit null returns every eligible row", () => {
+  const rows = Array.from({ length: 70 }, (_, i) => ({ dryrun_disposition: "would_mint", source_id: "s", document_url: `u${i}`, instrument_identifier: "3" }));
+  assert.equal(selectCensusRows(rows, { limit: null }).length, 70);
+  assert.equal(selectCensusRows(rows, { limit: 10 }).length, 10);
 });
