@@ -397,6 +397,21 @@ same landing as mint-run-010:**
 | Batch aborted at item 11 with a bare `intelligence_items` row left behind (no sections, no claims) | A Federal Register raw text carried U+0000; Postgres refused the `agent_run_searches` insert ("unsupported Unicode escape sequence") after the item row existed, and the loop had no per-payload boundary. | `stripHtmlToText` drops U+0000 at capture; a failure after the item row deletes the partial item through `guardedDelete` (every child FKs `ON DELETE CASCADE`), records `apply_failed` with the error and the cleanup result, and the batch continues; the artifact's `metrics` carry `minted_verified` / `minted_unverified` / `apply_failed` and a defect per class. |
 | `stamp-wo26-archive-reason.mjs --apply` (runs #6, #7): statement timeout on one 491-row UPDATE, then on a 25-row chunk | `set_provenance_status_trg` re-derives provenance per updated row (70 ms – 3.4 s each, source-size bound) against the API's 8 s `statement_timeout`. | `guardedUpdateByIds` (db.mjs): id chunks, halved on a timeout down to single rows, the match re-applied per attempt. 491/491 stamped by run #8. |
 
+**The relevance screen is part of the export (2026-09-02, runs #9–#11 — read this before touching the
+selection).** The 2026-08-31 screen ruling (1,729 mint / 1,676 off-vertical / 256 need-fetch, Addendum
+71) lives in `screen-rules.mjs` + `reviewed-verdicts.json`; it was never stamped onto `census_worklist`,
+and the first three apply runs selected on `dryrun_disposition = 'would_mint'` alone — ~130 items minted,
+about half off-vertical by the operator's own ruling (USCG safety zones, FAA airworthiness directives,
+federal pay rules, VAT derogations, EC type-approval SIs): ADR-020's August incident, repeated by the
+runtime. Now: `export-census-rows.mjs` computes every candidate's verdict through
+`lib/screen-verdict.mjs` (rules first; a reviewed verdict overrides only a rule verdict of `ambiguous`,
+mergeReviewed's own semantics) and exports ONLY `on_vertical` rows; the limit applies to mintable rows;
+`census-rows.screened-out.json` records the counts, the off-vertical roll-up by rule, and every
+ambiguous row (those need a ruling). After apply, `screen-reconcile-records.mjs` archives any live
+record-grade item the screen rules off-vertical (reversibly, `archive_reason = 'off_vertical'`, guarded
+path) and lists ambiguous ones. A rule change or a new reviewed verdict therefore reaches both the
+export and the corpus on the next dispatch, with no hand pass.
+
 **The browser-capture escape hatch, made a first-class runtime input (operator ruling, §1a: "a site that
 refuses the runner is read through the browser, never reported as a blocker; no deferrals").** When a
 row's family still refuses the automated capture above (a new WAF shape, a host not yet in
