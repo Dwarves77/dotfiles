@@ -1,0 +1,5 @@
+{
+  "ok": false,
+  "feedUrl": "https://theloadstar.com/feed",
+  "error": "fetch failed: HTTP 403 for https://theloadstar.com/feed"
+}

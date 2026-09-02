@@ -7803,3 +7803,23 @@ PR having merged first, a coincidence I recorded as proof. Fixed in all six work
 assuming), proven against the live sibling branch from a `fsi-app` cwd, and locked by
 `.discipline/governance/workflow-hydrate-guard.test.mjs`. The colliding artifacts are renumbered when they
 are merged (the later run of each pair takes the next number, recorded in the family's proposer pass).
+
+### Addendum 84, postscript 5 — the day's run artifacts landed; the exporter's second dispatch (2026-09-02)
+
+Merged the artifact branches of propagation #2 (run-001, dry) and #3 (apply, landed as run-002),
+change-detection #1 (run-001), source-sweep #8 (run-007, Federal Register dry) and #9 (feed dry, landed as
+run-008); the two renumberings are the hydrate-guard collision (postscript 4) and are recorded in each
+artifact's `proposer_notes`. Three first-run markers discharged. Proposer passes: propagation (names
+run-002; dry and apply agree on every count; the live tables match the plan; automate-vs-hire honestly 0
+until the wage producers apply), change-detection (run-001), source-sweep (run-008).
+
+`population-turn` run 33634495502 (the redispatch after PR #521) died on the first read: I had passed
+`readAll`'s `match` as an object; it is a query function (`db.mjs` line 135). Fixed, with a test that drives
+the real contract and an end-to-end run of the exporter against a fake database (2 candidates, 1 excluded
+as held, 1 exported with its capture and derived `regulation`/`EU`/canonical key).
+
+**Operator rulings recorded.** "You are not using an API, you are using a browser": a site that refuses
+the runner is read through the browser per MINT-RUNBOOK §1a; a fetch refusal is never a blocker.
+"Your population of data is FREE": population is the record-grade path, no LLM, no key, no Browserless;
+the paid classifier (ledger-consume) is separate and optional. The Anthropic key already exists in the
+project; the ledger-consume secrets check is a naming question for later, not a gap.

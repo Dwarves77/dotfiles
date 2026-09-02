@@ -1,0 +1,42 @@
+{
+  "harness_family": "propagation",
+  "harness_version": "sha256:1bf7154b2038e959",
+  "run_id": "propagation-run-002",
+  "started_at": "2026-09-02T12:35:54.437Z",
+  "finished_at": "2026-09-02T12:35:55.945Z",
+  "config": {
+    "mode": "apply",
+    "batch": 500
+  },
+  "inputs_ref": [
+    "mode=apply",
+    "batch=500"
+  ],
+  "per_item": [
+    {
+      "id": "queue-depth-6",
+      "outcome": "drained",
+      "verdict": "6 event(s) drained, 0 value(s) invalidated, 0 recomputed, 0 skipped (unknown method), 0 skipped (method refused)",
+      "evidence_refs": [
+        "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/propagation/traces/propagation-run-002.report.json"
+      ],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "mode": "apply",
+    "queue_depth_before": 6,
+    "events_considered": 6,
+    "events_drained": 6,
+    "invalidated": 0,
+    "recomputed": 0,
+    "skipped_unknown_method": 0,
+    "skipped_method_refused": 0,
+    "errors": 0
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/propagation/traces/propagation-run-002.report.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-propagation-drain.mjs, the propagation family's canonical entry point (lane DP-ENGINE, 2026-09-02, system-completion train) \u2014 drives runPropagationDrain (src/lib/propagation/drain.ts) against the propagation_events outbox (migration 284) and the derivation DAG (migration 285). RENUMBERED AT LANDING (coordinator, 2026-09-02): this run claimed propagation-run-001 because the workflows' hydrate guard never saw the sibling branch (git ls-tree pathspec was cwd-relative; fixed in PR #521); the earlier run keeps propagation-run-001, this one is propagation-run-002."
+}

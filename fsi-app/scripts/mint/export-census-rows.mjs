@@ -368,7 +368,7 @@ export async function fetchColumnIn(sb, table, column, keyColumn, values, opts) 
   return [...new Set(rows.map((r) => r[column]).filter(Boolean))];
 }
 
-async function main() {
+export async function main() {
   const { values } = parseArgs({
     options: {
       limit: { type: "string", default: "50" },
@@ -412,7 +412,7 @@ async function main() {
   const censusRows = await readAll(
     "census_worklist",
     "id, source_id, document_url, lane, shape_class, enumeration_status, dryrun_disposition, hold_reason, surface_tags, instrument_identifier",
-    { match: { dryrun_disposition: "would_mint" } },
+    { match: (q) => q.eq("dryrun_disposition", "would_mint") }, // readAll's match is a query fn (db.mjs:135), not an object
   );
   const preselected = selectCensusRows(censusRows, {
     sourceId: values["source-id"] || null,
