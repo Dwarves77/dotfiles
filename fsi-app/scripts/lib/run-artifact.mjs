@@ -36,6 +36,7 @@ export const ALLOWED_FAMILIES = Object.freeze([
   "forward-events",
   "source-sweep",
   "ledger-consume",
+  "change-detection",
 ]);
 
 const REQUIRED_TOP_LEVEL = Object.freeze([

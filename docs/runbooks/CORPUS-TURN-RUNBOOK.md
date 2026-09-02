@@ -226,3 +226,66 @@ plan's Lane PROD anticipates for `EIA_API_KEY` — register `ANTHROPIC_API_KEY` 
 `docs/ops/secrets-topology.md` (it is already documented in that registry's `TOPOLOGY` array as a
 Vercel-runtime/local-only secret; this workflow is the first to need it in the GitHub-Actions vault too)
 before `ledger-consume.yml` can pass CI's secrets-reference-audit.
+## Change detection
+
+Written 2026-09-02, lane CD (system-completion train). Governs `.github/workflows/change-detection.yml` —
+the runtime the change-detection chain never had, the same gap this runbook's own opening paragraph
+describes for the corpus flywheel: `runReconcilePass` (`fsi-app/src/lib/sources/reconcile.ts`) was proven
+correct and reachable only as a callee inside `/api/worker/check-sources` (and its manual-redrive twin
+`/api/worker/reconcile`); `drainChangeSweepUpdates` (`fsi-app/src/lib/intake/run-intake-cycle.ts`) was
+reachable only from `runIntakeCycle`'s own apply-mode tail. Live-confirmed 2026-09-02: 0 `monitoring_queue`
+rows with `change_detected=true AND reconciled_at IS NULL`, 0 pending `staged_updates` — the chain had
+never run through anything but a live HTTP request.
+
+### What a change-detection run is
+
+One run = one pass of three steps, driven by `fsi-app/scripts/turns/run-change-detection.mjs` (see that
+file's own header for the full chain and every limitation found reading the code it drives):
+
+1. **Detect** — POST the DEPLOYED `/api/worker/check-sources` route (`x-worker-secret` auth). The route
+   renders each due source via Browserless, fingerprints the content against `sources.last_content_hash`,
+   writes `monitoring_queue` rows with a real `change_detected`, and (since 2026-09-01) already runs its
+   OWN in-process `runReconcilePass` at the end of the same request. Skipped in `--mode dry` (the route
+   WRITES — `sources`, `monitoring_queue`, `portal_link_candidates`); skipped in either mode with
+   `--skip-check`, e.g. to work down an existing backlog without a new detection pass.
+2. **Reconcile** — `runReconcilePass` again, independently of the route's own in-process call, so this
+   script's own artifact is self-contained evidence of the reconcile step regardless of whether the route
+   ran this pass. Claims pending `monitoring_queue` rows, records `intelligence_changes`, bridges live
+   items into `staged_updates` (`update_item`). `--mode dry` uses `runReconcilePass`'s own `dryRun` option
+   (added by this lane) — a read-only projection that counts what would be written without writing.
+3. **Drain** — `drainChangeSweepUpdates`, exported (this lane) so it is reachable on its own instead of
+   only as `runIntakeCycle`'s apply-mode tail. Applies + re-verifies up to `--drain-limit` (default
+   `UPDATE_DRAIN_LIMIT`) pending change-sweep-marked `update_item` rows. `--mode dry` reads the same
+   pending-row predicate without calling it.
+
+Because the route's own in-process reconcile already ran in `--mode apply` (unless `--skip-check`), this
+run's own Step 2 will usually find little or nothing left pending — expected, not a defect; the artifact's
+`proposer_notes` says so on every apply run.
+
+### Known limitations (found reading check-sources/route.ts; not in this family's write set)
+
+- The route's due-source batch is a HARDCODED `.limit(10)` — it takes no request body or query parameter
+  to change it. `--check-limit` therefore only bounds THIS SCRIPT's own dry-mode "sources due" read/report,
+  never the deployed route's actual batch in apply mode.
+- The route's JSON response does not return `changeDetected` or `portalCandidates` per source (both are
+  computed by `assessAndUpdateSource` but never pushed into the response array) — this script compensates
+  with its own read-only `monitoring_queue`/`portal_link_candidates` queries over the call window.
+- Browserless's own per-render metered price is not documented anywhere in this repo;
+  `metrics.browserless_units_est` is an ESTIMATE (~2 units/render, from
+  `docs/PHASE2-FLAGSHIP-REGROUND-RUNBOOK.md`'s own precedent), clearly labelled as such.
+
+### How a coordinator requests a run
+
+Dispatch `change-detection.yml` from the Actions tab: `mode` (`dry`/`apply`), `check_limit` (optional),
+`skip_check` (optional). Same delivery path as `corpus-turn.yml`/`source-sweep.yml` — the harness-run
+artifact (`fsi-app/scripts/harness-runs/change-detection/**`) lands on a fresh `change-detection/<run-id>`
+branch and PR via `deliver-artifact-branch.sh`; see "When the workflow cannot open its own PR" above for
+what happens when the repository refuses PR creation (the same fallback, same tracking issue).
+
+### First run
+
+Not yet dispatched as of this lane's own work (2026-09-02) — `scripts/harness-runs/change-detection/`
+carries a `PENDING-RUN.md` (F28's first-run acknowledgment) instead of a `change-detection-run-001.json`.
+The coordinator's own dispatch plan (`docs/plans/system-completion-plan-2026-09-02.md` §2, "Not a
+lane — operator-only") runs `change-detection` dry first; read the resulting artifact against the live
+`monitoring_queue`/`staged_updates` tables before dispatching apply.

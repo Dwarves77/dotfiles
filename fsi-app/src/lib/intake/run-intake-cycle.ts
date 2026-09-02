@@ -161,8 +161,17 @@ export const UPDATE_DRAIN_LIMIT = 5;
  * Idempotent: every row this drains is stamped status='approved' or 'rejected' before the next row
  * starts, so a later invocation's `status='pending'` filter never re-selects it — the same mechanism the
  * new_item loop's own staged_updates self-update already relies on.
+ *
+ * EXPORTED (lane CD, change-detection runtime, 2026-09-02): the only change this export makes — the
+ * function body, call sites within this file (the apply-mode tail of `runIntakeCycle` below), and its
+ * behavior when called from there are all untouched. Exporting it lets `run-change-detection.mjs`
+ * (`scripts/turns/`, via jiti — the `@/` aliases this file and its dependencies carry are not natively
+ * importable) drive the drain ALONE, as its own step, instead of only ever running as the tail of a
+ * new_item cycle. Same caller identity (`MANUAL_INTAKE_CALLER`, exported above), same bounded/reported/
+ * idempotent posture, same one write chokepoint (applyStagedUpdate) — nothing about what this function
+ * does changes by being reachable from a second caller.
  */
-async function drainChangeSweepUpdates(
+export async function drainChangeSweepUpdates(
   sb: SupabaseClient,
   caller: string,
   limit: number
