@@ -1,0 +1,168 @@
+name: Maintenance
+
+# THE RUNTIME FOR THE COORDINATOR-ONLY APPLIES. docs/plans/finish-plan-2026-09-02.md's MAINT paragraph:
+# seven applies that were designed, built, and (mostly) tested with no runtime to execute from — dry by
+# construction, never dispatched. This workflow is that missing runtime, modeled directly on
+# .github/workflows/producers.yml (secrets verification, mode choice, per-step gating, population
+# BEFORE/AFTER, artifact upload) and .github/workflows/population-turn.yml (dispatch-only, no schedule).
+#
+# EVERY STEP IS DRY BY DEFAULT. `mode=apply` is required to write anything, and several steps ALSO
+# refuse to write unless `arg` carries the exact ruling token their gate names (see each step below and
+# docs/runbooks/MAINTENANCE-RUNBOOK.md). Every wrapper (fsi-app/scripts/maintenance/*.mjs) writes a
+# summary.json into this run's out-dir regardless of mode; apply-mode writes, when a step makes any,
+# always go through the guarded path (fsi-app/scripts/lib/db.mjs) — rule 015.
+#
+# 'all' runs every step in ONE dispatch, DRY ONLY — never in apply mode (a single 'all' apply dispatch
+# could never carry seven different rulings' worth of `arg` tokens at once, and several steps would
+# refuse anyway; naming one step at a time for `apply` is the point, not an oversight). Applying more
+# than one step is multiple dispatches, each reviewed on its own artifact — same posture
+# population-turn.yml's own per-dispatch review takes.
+#
+# BUILD MODE (operator ruling 2026-08-30, restated on every dispatch-only workflow in this repo): no
+# standing schedule while the site is being built. workflow_dispatch only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry = read/plan, write nothing. apply = write through the guarded path (may also require --arg — see each step in docs/runbooks/MAINTENANCE-RUNBOOK.md).'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+      step:
+        description: 'Which maintenance step to run. "all" fans out every step in ONE dispatch, dry mode only — apply always names exactly one step.'
+        required: true
+        default: 'all'
+        type: choice
+        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, census-off-vertical, review-digests, tag-ratification]
+      arg:
+        description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, or a comma-separated proposal-id list — see the runbook for which steps require one and what value they need).'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: maintenance
+  cancel-in-progress: false
+
+env:
+  RUN_MODE: ${{ inputs.mode }}
+  RUN_STEP: ${{ inputs.step }}
+  RUN_ARG: ${{ inputs.arg }}
+
+jobs:
+  maintain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      - name: This run's gates
+        run: |
+          echo "trigger = ${{ github.event_name }}"
+          echo "mode    = $RUN_MODE"
+          echo "step    = $RUN_STEP"
+          echo "arg     = ${RUN_ARG:-(none)}"
+          if [ "$RUN_MODE" = "apply" ] && [ "$RUN_STEP" = "all" ]; then
+            echo "::error::apply mode requires a single named step, not 'all' — see this workflow's header."
+            exit 1
+          fi
+          echo "OUT_ROOT=$RUNNER_TEMP/maintenance-${{ github.run_id }}" >> "$GITHUB_ENV"
+
+      - name: Population BEFORE
+        run: node scripts/verify/population-report.mjs
+
+      - name: community-topics-seed
+        if: env.RUN_STEP == 'community-topics-seed' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/community-topics-seed"
+          node scripts/maintenance/community-topics-seed.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/community-topics-seed"
+
+      - name: tier-opinions
+        # NOT RUNNABLE (see the step's own header + docs/runbooks/MAINTENANCE-RUNBOOK.md): the upstream
+        # that would produce tier_estimate is the paid LLM brief-generation agent. This step reports that
+        # finding and exits 2 in apply mode by design — an expected, documented outcome, not a bug.
+        if: env.RUN_STEP == 'tier-opinions' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/tier-opinions"
+          node scripts/maintenance/tier-opinions.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/tier-opinions" || true
+
+      - name: w1-dispositions
+        # Gated on ruling R-C (finish-plan-2026-09-02.md §1). apply mode makes NO code edit — see the
+        # step's own header — it only unlocks the full wire/delete worklist report once R-C is accepted.
+        if: env.RUN_STEP == 'w1-dispositions' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/w1-dispositions"
+          node scripts/maintenance/w1-dispositions.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/w1-dispositions"
+
+      - name: origin-class-backfill
+        # Gated on ruling R-E. apply requires --arg R-E-accepted.
+        if: env.RUN_STEP == 'origin-class-backfill' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/origin-class-backfill"
+          node scripts/maintenance/origin-class-backfill.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/origin-class-backfill"
+
+      - name: census-off-vertical
+        # Gated on ruling R-A (open). apply requires --arg archive or park; 'archive' is currently
+        # NOT RUNNABLE (census_worklist has no archive columns — see the step's own header) and reports
+        # that rather than writing.
+        if: env.RUN_STEP == 'census-off-vertical' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/census-off-vertical"
+          node scripts/maintenance/census-off-vertical.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/census-off-vertical" || true
+
+      - name: review-digests
+        # scripts/review/build-review-digests.mjs is built by a sibling lane (R1) and may not exist yet
+        # in this checkout — this step fails clearly (exit 1 in apply mode) rather than a bare
+        # "command not found" when it's absent. See docs/runbooks/MAINTENANCE-RUNBOOK.md for the contract.
+        if: env.RUN_STEP == 'review-digests' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/review-digests"
+          node scripts/maintenance/review-digests.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/review-digests"
+
+      - name: tag-ratification
+        # apply requires --arg = comma-separated integrity_flags id(s) to apply (never a blanket
+        # "apply everything ratified" from one dispatch). Wraps scripts/connections/apply-tags.mjs's
+        # existing guarded apply path unmodified — see the step's own header.
+        if: env.RUN_STEP == 'tag-ratification' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/tag-ratification"
+          node scripts/maintenance/tag-ratification.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/tag-ratification"
+
+      # Runs even when a step failed, so the log always ends with the true state of the tables rather
+      # than only the exception that got there first (mirrors producers.yml's own Population AFTER).
+      - name: Population AFTER
+        if: always()
+        run: node scripts/verify/population-report.mjs
+
+      - name: Upload this run's step artifact(s)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maintenance-${{ inputs.step }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/maintenance-${{ github.run_id }}/
+          if-no-files-found: warn
+          retention-days: 90

@@ -56,7 +56,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/connections/apply-tags.mjs",
       "scripts/mint/stamp-wo26-archive-reason.mjs",
       "scripts/mint/apply-mint-batch.mjs",
-      "scripts/entities/backfill-entities.mjs"
+      "scripts/entities/backfill-entities.mjs",
+      "scripts/maintenance/tag-ratification.mjs"
     ],
     "item_cross_references": [
       "src/lib/intake/mint-item.ts",
@@ -183,6 +184,7 @@ narrow-touch-for-recompute / tombstone-delete), not a data column.
 | `scripts/mint/stamp-wo26-archive-reason.mjs` (Lane POP, 2026-09-01) | UPDATE — `archive_reason` only, on the 491 WO-26 rows Addendum 28 archived without stamping one | `guardedUpdate("intelligence_items", applyMatch, { archive_reason: ... }, { cite, select })`, `--dry` by default |
 | `scripts/mint/apply-mint-batch.mjs` (Lane POP, 2026-09-02) | INSERT at coordinator-apply time — the population-turn's write path for a `--census-rows --grade record` mint batch, `mintIntelligenceItem()`'s `MintPlan` has no field for a payload's sections/claims/search_results so this script writes directly in `canonical-pipeline.ts`'s own table order instead | `buildIntelligenceItemRow` + `ctx.db.guardedInsert("intelligence_items", ...)`, `--dry` by default |
 | `scripts/entities/backfill-entities.mjs` (Lane DP-SPINE, 2026-09-02) | UPDATE — `instrument_entity_id` only, per row whose `canonical_instrument_key` resolves to an instrument entity (migration 283's progressive-re-keying FK; ADR-024) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", u.id), { instrument_entity_id: ... }, { cite, select })` in `runInstrument()`; `--dry` by default. This script's OTHER writes (`entities`, `entity_identifiers`, `entity_refs` inserts via `guardedInsertMany`, and a parallel `sources.organisation_entity_id` update) are on tables `docs/inventories/shared-dataset-ownership.md`'s registry does not track — `entities`/`entity_identifiers`/`entity_refs` are new migration-282/283 tables outside the harness/flywheel dataset set this doc scopes to, and `sources` is explicitly named out-of-scope by `.discipline/shared-writer-registry.test.mjs`'s own header ("a write to an unrelated, non-shared table (e.g. agent_runs, **sources**, holdings_quality) is out of this registry's scope by design"). Named here for completeness, not because the registry requires it. |
+| `scripts/maintenance/tag-ratification.mjs` (Lane MAINT, 2026-09-02) | UPDATE — the MAINT dispatch runtime for `scripts/connections/apply-tags.mjs`'s existing guarded apply path (`docs/runbooks/MAINTENANCE-RUNBOOK.md` §7); its `buildDeps().updateItem` is a second call site of the SAME merge-only tag write `apply-tags.mjs`'s own `main()` makes (row above) — not a second write path, a second caller reached from a GitHub Actions dispatch instead of a CLI invocation, gated the same way (per-flag `ratify:tags` marker, `evaluateApplication`/`applyTags` imported unmodified) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: CITE })` in `buildDeps().updateItem` |
 
 Replace policy: guarded per-row UPDATE/INSERT (never a bulk replace); DELETE is single-purpose and
 gated behind a tombstone write (see `tombstone-delete.mjs` above) — this is a **guarded delete**, not a
