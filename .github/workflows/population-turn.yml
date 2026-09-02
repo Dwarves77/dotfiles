@@ -235,6 +235,16 @@ jobs:
         run: |
           if [ "${{ inputs.mode }}" = "apply" ]; then node scripts/mint/rederive-record-provenance.mjs --apply; else node scripts/mint/rederive-record-provenance.mjs; fi
 
+      # Relevance reconciliation: any LIVE record-grade item the screen (rules + the operator's reviewed
+      # verdicts) rules off-vertical is archived reversibly (archive_reason off_vertical) through the
+      # guarded path; ambiguous items are listed for a ruling. Runs #9–#11 minted from the unscreened
+      # pool (2026-09-02); the export gate stops the recurrence, this step reconciles what landed.
+      # DRY ONLY until the operator rules on the list (2026-09-02: "that came before we refined our
+      # processes" — the 2026-08-31 verdicts predate later refinements, so the runtime lists, it does not
+      # archive). When the ruling lands, this step switches to `--apply` in apply mode in one reviewed diff.
+      - name: screen-reconcile-records.mjs (LIST live record items the screen rules off-vertical — dry in every mode until ruled)
+        run: node scripts/mint/screen-reconcile-records.mjs
+
       # ALWAYS --dry — signature-tag ratification is Lane TAG's own operator-gated write path (out of
       # this workflow's scope). This step only surfaces newly-minted census items' empty connection tags
       # as integrity_flags proposals an operator can review and ratify later; it writes nothing itself in

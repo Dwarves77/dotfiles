@@ -1,7 +1,33 @@
 # Last proposer pass — mint
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **twelve** artifacts (`mint-run-001` …
-`mint-run-012`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-012**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **thirteen** artifacts (`mint-run-001` …
+`mint-run-013`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-013**.
+
+## Pass of 2026-09-02, late evening (mint-run-013 — and the defect none of the artifacts could see)
+
+**Artifact read:** mint-run-013 (population-turn run 33666187388, apply): 30/30 minted verified, 0
+failures, hash `sha256:36ee951c38941943`. Three clean runs in a row (011: 43, 012: 39, 013: 30 = 122).
+
+**The finding, from reconciling the 2026-08-31 build plan against the ledger (operator's request), not
+from any artifact:** the screen family's ruling (1,729 mint / 1,676 off-vertical / 256 need-fetch) was
+never applied by the population export, because it was never stamped on `census_worklist` and the
+exporter selected on `dryrun_disposition = 'would_mint'` alone. Screening the live record-grade items
+through `lib/screen-verdict.mjs`: roughly half are off-vertical by that ruling (USCG safety zones, FAA
+airworthiness directives, federal pay rules, VAT derogations, EC type-approval SIs). A harness that
+measures the mint gate (C1–C7 + kit) had no criterion for relevance, so 100% first-pass rates
+coexisted with ADR-020's August incident repeating. Basis: the join of live items to census rows, the
+reviewed-verdicts file, the exporter's selection code, Addenda 70–72.
+
+**Fixed in this landing:** the export gate (only `on_vertical` rows, limit applied to mintable rows,
+`census-rows.screened-out.json` evidence); `screen-reconcile-records.mjs` after apply (archives
+off-vertical live records reversibly, lists ambiguous for a ruling); runbook §11.
+
+**Proposal:** (1) the next apply dispatch performs the archive and is the first screened slice; read its
+reconcile counts against the live corpus. (2) Structural: the mint gate and the relevance screen are two
+families that never talk; a payload should carry its screen verdict and the validator should refuse to
+validate a payload that lacks one (a kit-level check, like tag presence) — then a harness artifact
+would have shown this. Scoped for the shared write-sequence refactor already on the board.
+
 
 ## Pass of 2026-09-02, late (mint-run-012 — the second slice, clean)
 

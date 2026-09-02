@@ -105,10 +105,11 @@
 // `classifyFrDocType` matches against those actual field values, case-insensitively.
 
 import { parseArgs } from "node:util";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveKey } from "../lib/canonical-key.mjs";
+import { screenVerdictFor, isMintable } from "./lib/screen-verdict.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -373,6 +374,25 @@ export function followUpgradingRedirects(fetchImpl, { maxHops = 5 } = {}) {
     }
     return res;
   };
+}
+
+/** Partition rows by the relevance screen (scripts/mint/lib/screen-verdict.mjs: the rules, then the
+ *  operator's reviewed verdicts where the rules said ambiguous). ONLY `on_vertical` rows may mint; every
+ *  other row is returned in `screenedOut` with its verdict/basis/provenance so the run's evidence names
+ *  why it was not exported. Pure. WHY (2026-09-02, population runs #9–#11): the exporter selected on
+ *  `dryrun_disposition = 'would_mint'` alone and minted ~130 items from the UNSCREENED pool, about half
+ *  of them off-vertical by the operator's own 2026-08-31 ruling — ADR-020's August incident repeated.
+ *  The ruling's verdicts were never stamped on census_worklist; this gate applies them at the export,
+ *  every run, so they cannot be skipped again. */
+export function partitionByScreen(rows, reviewed = {}) {
+  const mintable = [];
+  const screenedOut = [];
+  for (const r of rows ?? []) {
+    const v = screenVerdictFor({ id: r.id, title: r.title ?? null, document_url: r.document_url, surface_tags: r.surface_tags ?? [] }, reviewed);
+    if (isMintable(v.verdict)) mintable.push(r);
+    else screenedOut.push({ row_id: r.id, document_url: r.document_url, verdict: v.verdict, rule: v.rule, basis: v.basis, provenance: v.provenance });
+  }
+  return { mintable, screenedOut };
 }
 
 /** Select the would_mint census rows this run will consider, in order: disposition filter, then the
@@ -748,6 +768,21 @@ export function summarize({ eligibleCount, excludedHeldCount, rows, held, captur
   return lines.join("\n");
 }
 
+/** The operator-reviewed verdicts file the 2026-08-31 screen rounds produced (scripts/mint/reviewed-verdicts.json).
+ *  Absent file = no reviewed overrides (the rules alone decide); a malformed file is an error, never ignored. */
+export function loadReviewedVerdicts(path = resolve(dirname(fileURLToPath(import.meta.url)), "reviewed-verdicts.json")) {
+  if (!existsSync(path)) return {};
+  const parsed = JSON.parse(readFileSync(path, "utf8"));
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error(`reviewed-verdicts must be a JSON object keyed by census_worklist.id: ${path}`);
+  return parsed;
+}
+
+export function countBy(list, keyFn) {
+  const out = {};
+  for (const x of list ?? []) { const k = keyFn(x); out[k] = (out[k] ?? 0) + 1; }
+  return out;
+}
+
 // ── CLI ──────────────────────────────────────────────────────────────────────────────────────────────
 
 function usage() {
@@ -828,7 +863,7 @@ export async function main() {
   console.log("export-census-rows: reading census_worklist (would_mint)...");
   const censusRows = await readAll(
     "census_worklist",
-    "id, source_id, document_url, lane, shape_class, enumeration_status, dryrun_disposition, hold_reason, surface_tags, instrument_identifier",
+    "id, source_id, document_url, title, lane, shape_class, enumeration_status, dryrun_disposition, hold_reason, surface_tags, instrument_identifier",
     { match: (q) => q.eq("dryrun_disposition", "would_mint") }, // readAll's match is a query fn (db.mjs:135), not an object
   );
   const preselected = selectCensusRows(censusRows, {
@@ -840,7 +875,11 @@ export async function main() {
   const candidateUrls = [...new Set(preselected.map((r) => r.document_url).filter(Boolean))];
   const heldUrlSet = new Set(await fetchColumnIn(sb, "intelligence_items", "source_url", "source_url", candidateUrls));
   const excludeHeld = !values["include-held"];
-  const { kept: keptAll, excludedHeld } = partitionExcludeHeld(preselected, heldUrlSet, excludeHeld);
+  const { kept: keptUnscreened, excludedHeld } = partitionExcludeHeld(preselected, heldUrlSet, excludeHeld);
+  // The relevance screen, applied at the export every run (see partitionByScreen). The limit is applied
+  // to MINTABLE rows, so a limit-50 dispatch yields 50 on-vertical candidates, not 50 minus the junk.
+  const reviewed = loadReviewedVerdicts();
+  const { mintable: keptAll, screenedOut } = partitionByScreen(keptUnscreened, reviewed);
   const kept = limit ? keptAll.slice(0, limit) : keptAll;
   const selected = preselected;
 
@@ -867,6 +906,16 @@ export async function main() {
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, JSON.stringify(rows, null, 2) + "\n", "utf8");
   console.log(`Wrote ${outPath} (${rows.length} row(s))`);
+  const screenedPath = outPath.replace(/\.json$/, ".screened-out.json");
+  // Evidence sized for a reader: verdict counts, the off-vertical rows rolled up by rule, and the
+  // ambiguous rows in full (those are the ones that need a ruling); the standing off-vertical set is
+  // ~1,700 rows every run and is already recorded row-by-row in the screen family's artifacts.
+  writeFileSync(screenedPath, JSON.stringify({
+    counts: countBy(screenedOut, (x) => x.verdict),
+    off_vertical_by_rule: countBy(screenedOut.filter((x) => x.verdict === "off_vertical"), (x) => `${x.provenance}:${x.rule ?? "reviewed"}`),
+    ambiguous: screenedOut.filter((x) => x.verdict === "ambiguous"),
+  }, null, 1) + "\n", "utf8");
+  console.log(`Wrote ${screenedPath} (${screenedOut.length} row(s) not exported by the relevance screen: ${JSON.stringify(countBy(screenedOut, (x) => x.verdict))})`);
 
   const heldPath = heldPathFor(outPath);
   writeFileSync(heldPath, JSON.stringify(held, null, 2) + "\n", "utf8");

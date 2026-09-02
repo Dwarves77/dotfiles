@@ -31,6 +31,8 @@ import {
   extractCellarTitle,
   cellarEndpointForCelex,
   summarize,
+  partitionByScreen,
+  loadReviewedVerdicts,
 } from "./export-census-rows.mjs";
 
 // ── classifyItemTypeFromCelexKey ────────────────────────────────────────────────────────────────────
@@ -730,3 +732,32 @@ test("population-turn.yml: rows_file input skips the export step and drives run-
   assert.match(yml, /run-mint-batch\.mjs[\s\S]*?--census-rows\s+"\$CENSUS_ROWS_PATH"/);
   assert.match(yml, /apply-mint-batch\.mjs[\s\S]*?--census-rows\s+"\$CENSUS_ROWS_PATH"/);
 });
+
+// ── the relevance screen at the export (runs #9–#11 minted from the unscreened pool) ─────────────────
+
+test("partitionByScreen: only on_vertical rows are mintable; off_vertical and ambiguous rows are returned with verdict/basis/provenance, never exported", () => {
+  const rows = [
+    { id: "r1", title: "Safety Zone; Savannah River, Savannah, GA", document_url: "https://www.federalregister.gov/documents/2026/07/01/2026-1/safety-zone", surface_tags: [] },
+    { id: "r2", title: "Regulation (EU) 2023/1805 on the use of renewable and low-carbon fuels in maritime transport", document_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R1805", surface_tags: [] },
+  ];
+  // the rules alone leave the FuelEU row ambiguous (no on-vertical rule names it); the operator's reviewed
+  // verdict decides it, exactly as the 2026-08-31 rounds did; with NO reviewed entry it stays out
+  const none = partitionByScreen(rows, {});
+  assert.deepEqual(none.mintable, []);
+  assert.deepEqual(none.screenedOut.map((x) => x.verdict), ["off_vertical", "ambiguous"]);
+  const { mintable, screenedOut } = partitionByScreen(rows, { r2: { verdict: "on_vertical", reason: "FuelEU Maritime, core vertical", reviewer: "operator" } });
+  assert.deepEqual(mintable.map((r) => r.id), ["r2"]);
+  assert.equal(screenedOut.length, 1);
+  assert.equal(screenedOut[0].row_id, "r1");
+  assert.equal(screenedOut[0].verdict, "off_vertical");
+  assert.equal(screenedOut[0].provenance, "rule");
+  assert.ok(screenedOut[0].basis);
+});
+
+test("loadReviewedVerdicts: the repo's reviewed-verdicts.json loads as an id-keyed object; a missing file means no overrides", () => {
+  const reviewed = loadReviewedVerdicts();
+  assert.equal(typeof reviewed, "object");
+  assert.ok(Object.keys(reviewed).length > 1000, "the 2026-08-31 review covered 1,746 rows");
+  assert.deepEqual(loadReviewedVerdicts("/nonexistent/reviewed.json"), {});
+});
+

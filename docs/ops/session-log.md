@@ -7991,3 +7991,77 @@ page text, which is exact):
 - `/research`: 38 findings, 4 themes, every finding "NO KEY FIGURE YET" and dated Feb–May; no data path
   feeds it today (the census is regulatory). Not touched by the train; named on the board as such.
 
+### Addendum 84, postscript 13 — the population runtime minted the unscreened pool; the screen becomes the export gate; the two build plans reconciled (2026-09-02)
+
+**The defect, mine.** The operator asked whether the 2026-08-31 build plan and the 2026-09-01 system
+review were complete. Reconciling them exposed that the 2026-08-31 screen ruling (1,729 mint / 1,676
+off-vertical / 256 need-fetch, Addendum 71; `screen-rules.mjs` + `reviewed-verdicts.json`) was never
+stamped onto `census_worklist`, and `export-census-rows.mjs` selected on `dryrun_disposition =
+'would_mint'` alone. Runs #9, #10 and #11 (`mint-run-011..013`, 122 items, every one "verified") minted
+from the unscreened pool. Joined to their census rows and screened the one shared way, about half are
+off-vertical by the operator's own ruling: USCG safety zones, FAA airworthiness directives, federal pay
+rules, Low Power Television, VAT derogation decisions, EC type-approval SIs. ADR-020's August incident,
+repeated by the runtime, and invisible to the harness because the mint gate has no relevance criterion.
+Live counts read before the fix: topics 0, tier opinions 0, 158 open tag proposals, 927 provisional
+sources, 331 canonical candidates, 1,457 portal links, 6 market_series rows.
+
+**Fixed in the runtime, not by hand:** `lib/screen-verdict.mjs` (one verdict function: rules, then a
+reviewed verdict only where the rules said ambiguous, mergeReviewed's semantics); the exporter exports
+only `on_vertical` rows, applies the limit to mintable rows, and writes `census-rows.screened-out.json`
+(counts, off-vertical roll-up by rule, every ambiguous row); `screen-reconcile-records.mjs` runs after
+apply and archives any live record-grade item the screen rules off-vertical (reversible,
+`archive_reason = 'off_vertical'`, guarded path, chunked) and lists ambiguous ones for a ruling. Tests on
+all three; runbook §11; PENDING-RUN re-stamped (`sha256:30b7b55f5a299f92`, mint-run-014 supersedes);
+mint-run-013 landed; proposer pass proposes a kit-level "payload carries its screen verdict" check so a
+harness artifact can show this class next time. The next apply dispatch performs the archive.
+
+**Reconciliation of the two plans against the ledger and the live database** (C = complete, P = partial,
+N = not done, R = ruled out / superseded, O = awaiting an operator ruling):
+
+*System review 2026-09-01 §10:* RT C (corpus-turn + source-sweep runtimes, Train 8 #507, turns #2/#4 and
+sweeps 1–9 ran; the "intake-turn" companion became `population-turn.yml`). EV C (migration 277 queue +
+trigger; "Run intake now" / "Request corpus turn" admin buttons; the since-1970 backfill turn ran,
+Addendum 82). TAG P (proposals built and emitted; ratification of the open proposals never done, so
+census-wave items still carry empty signature tags). POP C, then the screen defect above (122 minted,
+~half to be archived; WO-26 491/491 stamped; record-grade on customer surfaces ruled yes and live). SURF
+P (obligations on Regulations list + detail, ChangedSinceStrip, EIA producer built: done; ecb-fx and
+lc_lci_lev dry-ran, applies not run; EEX EUA R, no free licence; EIA secret O). HYG C (F14/F25, dead
+routes, `worker/reconcile` wired per ruling). DOC C (parity test). CD C (rebuilt hop by hop; run-001 dry
+today; apply not yet run).
+
+*Build plan 2026-08-31:* §1 C (landed #501). M0 C. M1..Mn P (runtime built today, 122 minted, screen gate
+now in place; ~2,800 `would_mint` rows unreconciled of which the on-vertical subset remains). M-screen
+built and ruled, but N as an applied gate until today; the archive/park of the 1,676 off-vertical census
+rows O (they stay `would_mint` in the census; the export gate excludes them). S1 C (invitations live,
+bulk-import insert, notification prefs, capture-worker headers v7/v8; Addenda 70, 72a, 75). S2 P (tier-
+opinion double-count fixed; `community-topics-seed.mjs --apply` never run: 0 topics live; tier opinions
+0 because upstream never ran). F1 C (queue 0/0, ladder rerun, Addendum 75). F2 P (chain rebuilt, dry run
+only; the 215 inaccessible sources not triaged). P1 P (BLS hourly + Eurostat lc_lci_lev built and dry-
+run; no applies; oil-bulletin history backfill built, not applied; DESNZ air/sea fixture N). P2 P (ecb-fx
+built, dry-ran; EUA R; SERIES_ITEM_MAP ratification O; `refresh-published-price-statistics` producer
+exists, never applied). R1 N (no dossiers: 927 provisional sources, 331 canonical candidates, 1,457
+portal links, 91 gap dispositions untouched). U7 C. SM smoke tests N. L C. W1 P (26-row register
+delivered; wire-8/delete-8 ratification O; 19 modules archived by HYG). §6: spec 08 C (train #517,
+migrations 281–287 live); U5 anticipate built with the forward-events harness (Addendum 80). §8 Wave D:
+community core N; spec-09 tables N; obligation register N (forward events on Regulations ≠ a register
+with `binding_position`); carbon-cost-per-FEU overlay N and lead-time chart R (no data source, completion
+plan); corridor identity P (ADR-024 scheme decided, no corridor rows); surface-acceptance gates N (F30–
+F32 exist for spec 08 only); source-type taxonomy STOPGAP N; 5-axis phases 2/3 N; dashboard rebalance P
+(ChangedSinceStrip only); research credibility chips N (ThemeStrip only); /profile sectors P (read side
+fixed, AuthProvider mis-seed open); /events R (stale finding); W2.F report N; origin_class backfill O;
+ADR-015 manual-intake surface C (admin button).
+
+**Postscript 13, correction (operator, mid-landing): "we need to see if that off vert number is false …
+that came before we refined our processes."** The reconcile step is DRY in every mode until the list is
+ruled on; nothing is archived by the runtime. The full list (122 live record items: 65 on, 47 off, 10
+ambiguous by the 2026-08-31 verdicts) is in this session's thread with the rule that fired per row. My
+own read of it: the USCG safety zones (7), FAA notices (2), type-approval exemption decisions (5),
+tachograph/social-legislation, nuclear casks, customs nomenclature, language corrections, public
+procurement, pay rules, TV service, endangered-species "harm" are off-vertical on ADR-020's own terms;
+but at least five verdicts deserve a second look under the refined scope: Regulation (EU) 2024/1679
+(TEN-T guidelines — core corridors and alternative-fuels infrastructure), 2020/349 (amending 2019/1916,
+aerodynamic devices and elongated cabs, a fuel-efficiency measure), the two CCNR Rhine positions
+(inland-waterway emission standards sit with the CCNR), CEF Annex I (275/2014), and the UK authorised-
+weight amendment (weights and dimensions carry the zero-emission-truck allowance). The export gate stays
+(it withholds, it never archives); the ruling decides the archive.
+
