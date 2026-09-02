@@ -422,13 +422,62 @@ procedure is:
    substantive text in ≤8,000-char slices per §1a's own discipline — never one giant paste.
 3. Build the SAME enriched-row shape `export-census-rows.mjs` emits (`row_id`, `source_url`, `item_type`,
    `title`, `title_origin`, `instrument_identifier`, `canonical_instrument_key`, `jurisdiction_iso`,
-   `priority`, `source{}`, `captured_text`, `fetched_length`) by hand, one row per captured document.
+   `priority`, `source{}`, `captured_text`, `fetched_length`, `screen{}` — §12 below) by hand, one row per
+   captured document.
 4. Commit the resulting array under `scripts/_snapshots/population-browser/<batch>.json`.
 5. Dispatch `population-turn.yml` with `rows_file` set to that path — the `export-census-rows.mjs` step is
    skipped entirely and `run-mint-batch.mjs --census-rows <rows_file>` / `apply-mint-batch.mjs` run on it
    directly, exactly the same gate and the same guarded write path a live-exported batch goes through.
 This is $0 and no LLM throughout (a human/browser capture, then the SAME deterministic kit) — it is not a
 second, looser path into the corpus, only a different SOURCE for the identical enriched-row input.
+
+## 12. The shared write sequence + the screen-verdict kit check (Lane WSEQ, 2026-09-02)
+
+**One write sequence, two callers.** Both mint tiers write the SAME item→searches→sections→gate-A→
+claims→citations tail (§7's `apply-mint-batch.mjs` for a fresh record-grade item; `canonical-pipeline.ts`'s
+`groundBrief` for the brief tier's non-destructive re-ground) — and run #8 (see §11's own history table)
+already proved what drift between two hand-maintained copies costs: gate-A written after the claims left
+every minted item quarantined while the RPC answered `verified`. `src/lib/intake/write-item.ts` is now the
+one module both depend on. It exports:
+
+- `writeGroundingSequence(payload, itemId, sourceCtx, deps)` — the WHOLE guarded post-item-insert write, in
+  the fixed order (searches → sections → **gate-A before claims** → claims → citations). `apply-mint-batch.mjs`
+  calls this for its entire post-item-insert write; it owns the item row and its own cleanup-on-failure
+  (`writeGroundingSequence` never sees or deletes the item row).
+- `buildGateARow` / `buildCitationEdges` / `classifyMintOutcome` — the pieces that generalize even where the
+  WHOLE sequence cannot. `canonical-pipeline.ts`'s `groundBrief` is architecturally different (it re-grounds
+  an item that already exists, through the non-destructive diff/apply doctrine — a raw insert there would
+  silently destroy a stronger prior grounding) so it cannot call `writeGroundingSequence` directly, but its
+  own `item_gate_a_state` upsert (both the initial one and the phantom-coverage reconcile) and its own
+  `intelligence_item_citations` edge write now call these shared builders instead of hand-building the same
+  row shape a second time.
+
+DB access is injected everywhere in `write-item.ts` (no top-level Supabase import) so the sequence, the
+failure boundary, and every builder run — and are tested — with zero DB credentials, per this lane's DI
+requirement; see `src/lib/intake/write-item.test.mjs`.
+
+**The relevance screen is now a payload-level fact, not only an export-time filter.** §11's "relevance
+screen is part of the export" addendum fixed the SELECTION (only `on_vertical` rows are exported); this
+closes the other half — a record-grade payload's own `screen: { verdict, provenance, basis }` is now
+required and mechanically checked by `validate-mint-payload.mjs`, independent of whether the export filter
+that produced it is still correct on a future run:
+
+- `export-census-rows.mjs`'s `partitionByScreen` attaches the verdict it just computed onto every mintable
+  row (`row.screen`), not only onto the rejects it already recorded.
+- `buildExportRow` copies `censusRow.screen` onto the exported row, so `census-rows.json` carries it.
+- `run-mint-batch.mjs`'s `buildPayloadsFromCensusRows` passes `row.screen` straight into
+  `src/lib/intake/record-facts.mjs`'s `buildRecordPayload`, which sets it as `payload.screen` (top-level,
+  alongside `_proof_note` — never recomputed; that module has no I/O and cannot re-derive a verdict).
+- `validate-mint-payload.mjs` requires it for every `grade === "record"` payload: missing or malformed
+  (no usable `verdict`/`basis`/`provenance`) → `screen_verdict_missing`; present but not `on_vertical` →
+  `screen_verdict_not_on_vertical`. Brief-grade payloads are exempt — the screen gates the record tier's
+  exporter, not brief-tier generation, which has its own separate provenance path.
+
+**A hand-built browser-capture row (§11's escape hatch) must carry `screen` too** — add
+`{ "verdict": "on_vertical", "provenance": "reviewed", "basis": "<why>" }` to the enriched-row shape by hand
+(run the row's title/URL through `lib/screen-verdict.mjs`'s `screenVerdictFor` first, or record the
+operator's own reviewed reason) — a row built without it produces a payload `validate-mint-payload.mjs`
+correctly quarantines, never a silent pass.
 
 ## Keeping the kit in sync
 

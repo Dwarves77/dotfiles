@@ -254,6 +254,14 @@ test("buildExportRow: an existing plain-text capture -> row, title_origin source
   assert.match(row.title, /32024R0001/);
   assert.equal(row.fetched_length, 500);
   assert.equal(row.source.id, "src-1");
+  assert.equal(row.screen, null, "a censusRow carrying no .screen (e.g. this direct call, outside the screened export path) exports screen: null, never a fabricated verdict");
+});
+
+test("buildExportRow: a censusRow carrying .screen (partitionByScreen's own attachment) is copied onto the exported row verbatim (Lane WSEQ)", () => {
+  const censusRow = { id: "r1", document_url: "https://eur-lex.europa.eu/32024R0001", instrument_identifier: "32024R0001", screen: { verdict: "on_vertical", provenance: "rule", basis: "eur-lex regulation" } };
+  const capture = { text: "x".repeat(500), html: null };
+  const { row } = buildExportRow(censusRow, SOURCE, EURLEX_IDENTITY, capture);
+  assert.deepEqual(row.screen, { verdict: "on_vertical", provenance: "rule", basis: "eur-lex regulation" });
 });
 
 test("buildExportRow: a capture envelope with a pre-resolved title (FR API / EUR-Lex body-lead) is used as-is, never re-derived", () => {
@@ -747,6 +755,10 @@ test("partitionByScreen: only on_vertical rows are mintable; off_vertical and am
   assert.deepEqual(none.screenedOut.map((x) => x.verdict), ["off_vertical", "ambiguous"]);
   const { mintable, screenedOut } = partitionByScreen(rows, { r2: { verdict: "on_vertical", reason: "FuelEU Maritime, core vertical", reviewer: "operator" } });
   assert.deepEqual(mintable.map((r) => r.id), ["r2"]);
+  // Lane WSEQ (2026-09-02): a mintable row carries its OWN screen verdict now, not just the rejects — the
+  // downstream chain (buildExportRow -> census-rows.json -> run-mint-batch.mjs -> payload.screen) has
+  // nowhere else to read it from.
+  assert.deepEqual(mintable[0].screen, { verdict: "on_vertical", provenance: "reviewed", basis: "FuelEU Maritime, core vertical" });
   assert.equal(screenedOut.length, 1);
   assert.equal(screenedOut[0].row_id, "r1");
   assert.equal(screenedOut[0].verdict, "off_vertical");

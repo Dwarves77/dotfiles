@@ -134,6 +134,12 @@ export function loadBatch(batchPath) {
 //     "agent_run_searches_id": "…"                    // recognized but NOT resolvable by this DB-less
 //                                                      // script — a row naming only this field fails to
 //                                                      // build with a clear error, it never silently skips
+//     "screen": { "verdict": "on_vertical", "provenance": "rule", "basis": "…" } // Lane WSEQ, 2026-09-02.
+//                                                      // The relevance-screen verdict this row cleared at
+//                                                      // export (export-census-rows.mjs / lib/screen-
+//                                                      // verdict.mjs) — carried into payload.screen.
+//                                                      // Absent -> payload.screen: null, which validate-
+//                                                      // mint-payload.mjs's kit check quarantines.
 //   }
 
 /** Load and normalize a --census-rows file into a bare array of row objects. Same array-or-{key:[...]}
@@ -200,6 +206,12 @@ export function buildPayloadsFromCensusRows(rows, { baseDir, requiredSlotsByType
         capturedText,
         fetchedLength: row?.fetched_length,
         requiredSlots,
+        // Lane WSEQ (2026-09-02): the census row's own relevance-screen verdict (export-census-rows.mjs
+        // attaches it at the export), carried straight into the payload — see buildRecordPayload's own
+        // screen doc and validate-mint-payload.mjs's kit check. A row with no `.screen` (a hand-built
+        // browser-capture row predating this field, or a future exporter bug) yields screen: null, which
+        // the validator correctly quarantines rather than silently passing.
+        screen: row?.screen ?? null,
       });
       payload.id = id; // carry the row's own id through for payloadId()/traceability
       payloads.push(payload);

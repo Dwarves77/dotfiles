@@ -117,7 +117,8 @@ who may write a shared table; the test enforces it on every future PR.
       "src/workflows/generate-brief.ts",
       "scripts/_reground/free-pass-run.mjs",
       "scripts/_reground/restore-overclear.mjs",
-      "scripts/mint/apply-mint-batch.mjs"
+      "scripts/mint/apply-mint-batch.mjs",
+      "src/lib/intake/write-item.ts"
     ],
     "corpus_turn_requests": [
       "src/app/api/admin/corpus-turn-requests/route.ts",
@@ -320,7 +321,8 @@ than silently left out.
 | `src/lib/agent/ledger-apply.mjs` — the canonical claim-ledger write path (insert / update / delete + a parallel `claim_versions` append), reached through `canonical-pipeline.ts`'s `applyLedgerDiff` during every mint/ground pass | lines 120, 132, 140, 162, 164 |
 | `scripts/_reground/free-pass-run.mjs` (KEEP) | UPDATE — re-attributes a FACT claim to a floor-qualifying capture, line 102 |
 | `scripts/_reground/restore-overclear.mjs` (KEEP) | INSERT — restores a claim erroneously versioned out by the 2026-07-16 over-clear incident, line 41 |
-| `scripts/mint/apply-mint-batch.mjs` (Lane POP, 2026-09-02) | INSERT — one row per `payload.claims[]` entry, in `canonical-pipeline.ts`'s own insert order (not through `ledger-apply.mjs`, which mediates a claim *diff* against an already-minted item's existing ledger; this is the coordinator-apply step for a fresh `--census-rows --grade record` mint batch, the same raw-guarded-write shape mint-run-005/006's own coordinator-apply pass used by hand) | `buildClaimRows` + `ctx.db.guardedInsertMany("section_claim_provenance", ...)` |
+| `scripts/mint/apply-mint-batch.mjs` (Lane POP, 2026-09-02) | INSERT — one row per `payload.claims[]` entry, in `canonical-pipeline.ts`'s own insert order (not through `ledger-apply.mjs`, which mediates a claim *diff* against an already-minted item's existing ledger; this is the coordinator-apply step for a fresh `--census-rows --grade record` mint batch, the same raw-guarded-write shape mint-run-005/006's own coordinator-apply pass used by hand). Lane WSEQ (2026-09-02): the literal INSERT call site moved INTO `src/lib/intake/write-item.ts`'s `writeGroundingSequence` (the shared write sequence both mint tiers now call) — `apply-mint-batch.mjs` still owns this write (it is `writeGroundingSequence`'s only caller for a fresh item), just not the literal string anymore; see the next row. | `buildClaimRows` + `ctx.db.guardedInsertMany("section_claim_provenance", ...)`, pre-WSEQ shape |
+| `src/lib/intake/write-item.ts` (Lane WSEQ, 2026-09-02) | INSERT — the shared guarded write sequence (`writeGroundingSequence`) both mint tiers depend on for the item→searches→sections→gate-A→claims→citations tail; `apply-mint-batch.mjs`'s own claim-insert call site (row above) moved here so the record tier and the brief tier's shared row-shape builders (`buildGateARow`/`buildCitationEdges`) cannot drift apart again | `buildClaimRows` + `deps.guardedInsertMany("section_claim_provenance", ...)`, injected DI (`WriteGroundingSequenceDeps`), no top-level Supabase import |
 
 Replace policy: guarded insert/update/delete, with every change mirrored into the append-only
 `claim_versions` ledger by `ledger-apply.mjs` (lines 132, 162) — `claim_versions` itself is in

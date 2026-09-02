@@ -16,6 +16,11 @@ const TESTDATA_DIR = resolve(__dirname, "testdata");
 
 function clone(o) { return JSON.parse(JSON.stringify(o)); }
 
+// A valid screen verdict (Lane WSEQ, 2026-09-02) — every grade='record' fixture below that is not itself
+// testing the screen check gets this attached, so those tests isolate the ONE thing under test instead of
+// also incidentally tripping the new screen_verdict_missing failure.
+const VALID_SCREEN = { verdict: "on_vertical", provenance: "rule", basis: "eur-lex regulatory instrument" };
+
 // A minimal payload engineered to pass ALL seven criteria (baseline green). Every mutation test below
 // clones this and breaks exactly one thing.
 function basePayload() {
@@ -466,9 +471,10 @@ test("grade omitted (absent from item{}) behaves EXACTLY like grade='brief' -- t
   assert.deepEqual(r2.failures, [], "brief-grade behavior (this file's whole existing suite) is unchanged by the discriminator's addition");
 });
 
-test("grade='record' GREEN: a payload whose claims are already FACT/GAP-only and whose full_brief already quotes every FACT span passes with zero failures", () => {
+test("grade='record' GREEN: a payload whose claims are already FACT/GAP-only, whose full_brief already quotes every FACT span, and whose screen verdict is on_vertical passes with zero failures", () => {
   const p = basePayload();
   p.item.grade = "record";
+  p.screen = VALID_SCREEN;
   const r = validateMintPayload(p);
   assert.deepEqual(r.failures, []);
   assert.equal(r.valid, true);
@@ -478,6 +484,7 @@ test("grade='record' GREEN: a payload whose claims are already FACT/GAP-only and
 test("grade='record' RED: an ANALYSIS claim in a record-grade payload -> record_grade_forbidden_claim_kind (no synthesis)", () => {
   const p = basePayload();
   p.item.grade = "record";
+  p.screen = VALID_SCREEN;
   p.claims.push({
     section_key: "body",
     claim_kind: "ANALYSIS",
@@ -493,6 +500,7 @@ test("grade='record' RED: an ANALYSIS claim in a record-grade payload -> record_
 test("grade='record' RED: a LEGAL claim in a record-grade payload is also forbidden (same rule, different kind)", () => {
   const p = basePayload();
   p.item.grade = "record";
+  p.screen = VALID_SCREEN;
   p.claims.push({ section_key: "body", claim_kind: "LEGAL", claim_text: "*Legal confirmation required:* consult counsel.", slot_key: null });
   const r = validateMintPayload(p);
   assert.ok(r.failures.some((x) => x.criterion === "kit" && x.reason === "record_grade_forbidden_claim_kind" && x.claim_kind === "LEGAL"));
@@ -501,6 +509,7 @@ test("grade='record' RED: a LEGAL claim in a record-grade payload is also forbid
 test("grade='record' RED: a FACT claim whose source_span is NOT quoted in full_brief -> record_grade_full_brief_not_extractive", () => {
   const p = basePayload();
   p.item.grade = "record";
+  p.screen = VALID_SCREEN;
   // full_brief no longer contains this FACT's source_span verbatim -- the 'short extracted description'
   // must be built ONLY from the payload's own FACT spans; a paraphrase (even an accurate one) fails.
   p.item.full_brief = "The rule takes effect at the start of next year. Compliance is required by 1 January 2027.";
@@ -526,7 +535,66 @@ test("grade='record': the SAME ANALYSIS payload is untouched (still GREEN on tha
 test("grade='record': C1-C7 still apply in full (grade is additive, never a bypass) -- a bad source still fails criterion 1", () => {
   const p = basePayload();
   p.item.grade = "record";
+  p.screen = VALID_SCREEN;
   p.source.status = "suspended";
   const r = validateMintPayload(p);
   assert.ok(r.failures.some((f) => f.criterion === 1 && f.reason === "source_not_active"), "criterion 1 must still fire on a record-grade payload");
+});
+
+// ── Lane WSEQ (2026-09-02): the screen-verdict kit check ─────────────────────────────────────────────
+// Three population-turn apply runs minted ~half off-vertical record-grade items from an unscreened pool
+// (MINT-RUNBOOK.md's "relevance screen is part of the export"); this check makes payload.screen a
+// mechanically-enforced, not merely conventional, part of every record-grade payload.
+
+test("grade='record' RED: no screen field at all -> screen_verdict_missing (this is what a payload built before the field existed, or with a forgotten screen, looks like)", () => {
+  const p = basePayload();
+  p.item.grade = "record";
+  // Deliberately NOT setting p.screen.
+  const r = validateMintPayload(p);
+  const f = r.failures.find((x) => x.criterion === "kit" && x.reason === "screen_verdict_missing");
+  assert.ok(f, "a record-grade payload with no screen field must fail screen_verdict_missing");
+  assert.equal(f.screen, null);
+  assert.equal(r.valid, false);
+});
+
+test("grade='record' RED: a screen object missing basis (empty string) -> screen_verdict_missing, not silently accepted", () => {
+  const p = basePayload();
+  p.item.grade = "record";
+  p.screen = { verdict: "on_vertical", provenance: "rule", basis: "" };
+  const r = validateMintPayload(p);
+  assert.ok(r.failures.some((x) => x.criterion === "kit" && x.reason === "screen_verdict_missing"), "a blank basis is not a usable screen verdict");
+});
+
+test("grade='record' RED: a screen object with an unrecognized provenance -> screen_verdict_missing (malformed, not trusted)", () => {
+  const p = basePayload();
+  p.item.grade = "record";
+  p.screen = { verdict: "on_vertical", provenance: "guess", basis: "looks EU-shaped" };
+  const r = validateMintPayload(p);
+  assert.ok(r.failures.some((x) => x.criterion === "kit" && x.reason === "screen_verdict_missing"));
+});
+
+test("grade='record' RED: screen.verdict='off_vertical' -> screen_verdict_not_on_vertical (the payload's own evidence says it should never have minted)", () => {
+  const p = basePayload();
+  p.item.grade = "record";
+  p.screen = { verdict: "off_vertical", provenance: "rule", basis: "USCG safety zone — off vertical" };
+  const r = validateMintPayload(p);
+  const f = r.failures.find((x) => x.criterion === "kit" && x.reason === "screen_verdict_not_on_vertical");
+  assert.ok(f, "an off_vertical screen verdict must quarantine a record-grade payload");
+  assert.equal(f.verdict, "off_vertical");
+  assert.equal(r.valid, false);
+});
+
+test("grade='record' RED: screen.verdict='ambiguous' -> screen_verdict_not_on_vertical (only on_vertical mints, per isMintable)", () => {
+  const p = basePayload();
+  p.item.grade = "record";
+  p.screen = { verdict: "ambiguous", provenance: "rule", basis: "no rule fired either way" };
+  const r = validateMintPayload(p);
+  assert.ok(r.failures.some((x) => x.criterion === "kit" && x.reason === "screen_verdict_not_on_vertical" && x.verdict === "ambiguous"));
+});
+
+test("grade='record': the screen check never fires for grade='brief'/absent -- it is grade-gated, exactly like the record-purity checks", () => {
+  const p = basePayload();
+  // Deliberately NOT setting item.grade or p.screen.
+  const r = validateMintPayload(p);
+  assert.deepEqual(r.failures, [], "a brief-grade (default) payload with no screen field must still be GREEN — the screen gates the record tier's exporter only");
 });

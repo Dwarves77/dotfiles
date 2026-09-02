@@ -371,6 +371,10 @@ function censusRow(overrides = {}) {
       "This Decision is addressed to the Member States. " +
       "No later than 31 December 2011, the Commission shall submit a report. " +
       "Member States shall lay down rules on penalties applicable to infringements.",
+    // Lane WSEQ (2026-09-02): the relevance-screen verdict export-census-rows.mjs's partitionByScreen
+    // attaches to a real mintable row — buildRecordPayload carries this straight into payload.screen,
+    // which validate-mint-payload.mjs's kit check requires for every grade='record' payload.
+    screen: { verdict: "on_vertical", provenance: "rule", basis: "EU framework decision, core vertical" },
     ...overrides,
   };
 }
@@ -406,6 +410,38 @@ test("buildPayloadsFromCensusRows: a well-formed row builds a record-grade paylo
   assert.equal(payloads[0].id, "census-1");
   const result = validateMintPayload(payloads[0], { baseDir: HERE });
   assert.deepEqual(result.failures, [], `record payload built from a census row must clear validate-mint-payload.mjs: ${JSON.stringify(result.failures)}`);
+});
+
+// Lane WSEQ (2026-09-02) — the export -> run chain actually populates payload.screen, traced end to end:
+// a census row's .screen (export-census-rows.mjs's own output shape) survives buildPayloadsFromCensusRows
+// byte-for-byte, and a row with NO .screen produces a payload the validator correctly quarantines rather
+// than one that silently passes. Without this proof, a population run could regress the wiring (drop the
+// field somewhere in the chain) and every payload would quarantine on the next apply with no test catching
+// it first — exactly the risk this lane's brief named.
+
+test("buildPayloadsFromCensusRows: a row's own .screen (export-census-rows.mjs's shape) is carried into payload.screen verbatim", () => {
+  const row = censusRow({ screen: { verdict: "on_vertical", provenance: "reviewed", basis: "operator-reviewed FuelEU Maritime row" } });
+  const { payloads, buildFailures } = buildPayloadsFromCensusRows([row], { baseDir: HERE, requiredSlotsByType: REQUIRED_SLOTS_BY_TYPE });
+  assert.equal(buildFailures.length, 0);
+  assert.deepEqual(payloads[0].screen, { verdict: "on_vertical", provenance: "reviewed", basis: "operator-reviewed FuelEU Maritime row" });
+});
+
+test("buildPayloadsFromCensusRows: a row with NO .screen builds a payload (screen: null) that validate-mint-payload.mjs correctly quarantines — screen_verdict_missing, never a silent pass", () => {
+  const row = censusRow();
+  delete row.screen;
+  const { payloads, buildFailures } = buildPayloadsFromCensusRows([row], { baseDir: HERE, requiredSlotsByType: REQUIRED_SLOTS_BY_TYPE });
+  assert.equal(buildFailures.length, 0);
+  assert.equal(payloads[0].screen, null);
+  const result = validateMintPayload(payloads[0], { baseDir: HERE });
+  assert.ok(result.failures.some((f) => f.criterion === "kit" && f.reason === "screen_verdict_missing"), `an unscreened row must build a payload the validator quarantines: ${JSON.stringify(result.failures)}`);
+  assert.equal(result.valid, false);
+});
+
+test("buildPayloadsFromCensusRows: a row whose screen verdict is off_vertical builds a payload the validator quarantines — screen_verdict_not_on_vertical", () => {
+  const row = censusRow({ screen: { verdict: "off_vertical", provenance: "rule", basis: "USCG safety zone — off vertical" } });
+  const { payloads } = buildPayloadsFromCensusRows([row], { baseDir: HERE, requiredSlotsByType: REQUIRED_SLOTS_BY_TYPE });
+  const result = validateMintPayload(payloads[0], { baseDir: HERE });
+  assert.ok(result.failures.some((f) => f.criterion === "kit" && f.reason === "screen_verdict_not_on_vertical"), `an off_vertical row must build a payload the validator quarantines: ${JSON.stringify(result.failures)}`);
 });
 
 test("buildPayloadsFromCensusRows: captured_text_path (relative to baseDir) is read from disk", () => {

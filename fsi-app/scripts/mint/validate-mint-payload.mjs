@@ -427,6 +427,31 @@ export function validateMintPayload(payload, opts = {}) {
         });
       }
     }
+
+    // ── SCREEN VERDICT (Lane WSEQ, 2026-09-02) — grade === "record" only. Three population-turn apply
+    //    runs (mint-run-011..013) minted ~130 record-grade items straight from the UNSCREENED
+    //    would_mint pool; about half were off-vertical by the operator's own 2026-08-31 screen ruling
+    //    (ADR-020's August incident, repeated — see MINT-RUNBOOK.md's "relevance screen is part of the
+    //    export"). The fix landed as RUNTIME code (export-census-rows.mjs -> lib/screen-verdict.mjs) that
+    //    filters at the export; this is the STRUCTURAL backstop — a record-grade payload's own screen
+    //    verdict is checked here, mechanically, so a future exporter regression (or a hand-built
+    //    browser-capture row that forgot to carry `screen`, per MINT-RUNBOOK.md's escape-hatch procedure)
+    //    is caught by the gate every payload already has to clear, not only by the export filter that
+    //    already failed once. Two defect classes: no usable screen data at all
+    //    (screen_verdict_missing — this is what a payload built before this field existed, or with a
+    //    forgotten `screen`, looks like) vs. a screen verdict present but not on_vertical
+    //    (screen_verdict_not_on_vertical — the payload's OWN evidence says it should never have minted).
+    //    Brief-grade payloads are exempt: the screen gates the record tier's exporter, not brief-tier
+    //    generation, which has its own separate provenance path and is unaffected by this incident class.
+    const screen = payload?.screen;
+    const hasVerdict = !!screen && typeof screen === "object" && typeof screen.verdict === "string" && screen.verdict.length > 0;
+    const hasBasis = !!screen && typeof screen === "object" && typeof screen.basis === "string" && screen.basis.trim() !== "";
+    const hasProvenance = !!screen && typeof screen === "object" && ["rule", "reviewed"].includes(screen.provenance);
+    if (!hasVerdict || !hasBasis || !hasProvenance) {
+      failures.push({ criterion: "kit", reason: "screen_verdict_missing", screen: screen ?? null });
+    } else if (screen.verdict !== "on_vertical") {
+      failures.push({ criterion: "kit", reason: "screen_verdict_not_on_vertical", verdict: screen.verdict, basis: screen.basis });
+    }
   }
 
   // ── Wave MH-3 capture-completeness gate — runs over EVERY search_results[] entry unconditionally
