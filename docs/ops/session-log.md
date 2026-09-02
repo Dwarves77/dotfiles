@@ -7896,3 +7896,11 @@ it; tests on both. The other bulk `guardedUpdate` callers are on `integrity_flag
 `corpus_turn_requests`, which carry no such trigger (checked). Nothing was written by run #6: the stamp
 runs before export and the statement rolled back. Re-dispatching apply.
 
+**Postscript 9, correction (run #7).** Fixed chunks of 25 were a coin flip, not a fix: run 33651430289
+stamped two chunks (50 rows) and the API cancelled the third. Measured per row on a 40-row sample as
+postgres: 10.4 s total, one row 3.38 s — the cost is the item's captured-source size, not the row count,
+and the API's limit is the authenticator role's `statement_timeout = 8s`. `guardedUpdateByIds` now starts
+at 10 and halves any chunk the API cancels, down to single rows (a cancelled statement rolls back whole
+and the match is re-applied on every attempt, so nothing is half-done); a non-timeout error still
+propagates. Test locks the halving sequence. The 50 rows already stamped are idempotent under the match.
+

@@ -189,26 +189,44 @@ export async function guardedUpdate(table, applyMatch, patch, { cite, select = "
  * statement timeout"). `intelligence_items` carries `set_provenance_status_trg` (AFTER INSERT OR UPDATE,
  * every column), which re-runs validate_item_provenance per row — criterion 3 scans each FACT span
  * against the item's full captured source text — measured at ~72 ms/row as postgres with a warm cache
- * (10 rows: 715 ms), i.e. ~35 s for the wave against a single-digit-second API timeout. The trigger is
- * correct (a provenance flip must be re-derived on every write); the write shape was wrong. Chunks of
- * DEFAULT_UPDATE_CHUNK rows keep each statement well under the limit; `applyMatch`, when given, is
- * re-applied to every chunk on top of the id filter so a row that stopped matching between the read and
- * the write is left alone (idempotent, safe under concurrent change).
+ * (10 rows: 715 ms) and up to 3.4 s for a single row with a large captured source, against the API's 8 s
+ * statement_timeout (authenticator role). The trigger is correct (a provenance flip must be re-derived
+ * on every write); the write shape was wrong. Chunks of DEFAULT_UPDATE_CHUNK rows, halved on a timeout
+ * (see runChunk below); `applyMatch`, when given, is re-applied to every chunk on top of the id filter so
+ * a row that stopped matching between the read and the write is left alone (idempotent, safe under
+ * concurrent change).
  */
-export const DEFAULT_UPDATE_CHUNK = 25;
+export const DEFAULT_UPDATE_CHUNK = 10;
+export const STATEMENT_TIMEOUT_RE = /statement timeout/i;
 export async function guardedUpdateByIds(table, ids, patch, { cite, select = "*", stampIso, chunk = DEFAULT_UPDATE_CHUNK, applyMatch = null, idColumn = "id" } = {}) {
   requireCite(cite);
   const list = [...new Set(ids ?? [])];
-  const out = { updated: 0, rows: [], snapshots: [], chunks: 0 };
-  for (let i = 0; i < list.length; i += chunk) {
-    const slice = list.slice(i, i + chunk);
+  const out = { updated: 0, rows: [], snapshots: [], chunks: 0, halvings: 0 };
+  // Adaptive: a chunk that the API cancels ("canceling statement due to statement timeout" — the
+  // authenticator role's statement_timeout is 8 s, measured live 2026-09-02) is split in two and each half
+  // retried, down to single rows. Per-row cost on intelligence_items varies 70 ms – 3.4 s (40-row sample:
+  // 10.4 s total, max 3.38 s) because validate_item_provenance scans each item's full captured source, so a
+  // fixed chunk is either wasteful or a coin flip; population-turn run #7 got two 25-row chunks through and
+  // died on the third. The update is idempotent under `applyMatch` (re-applied on every attempt), so a
+  // cancelled statement — which Postgres rolls back whole — leaves nothing half-done to reconcile.
+  const runChunk = async (slice) => {
     const match = (qb) => { const q = qb.in(idColumn, slice); return applyMatch ? applyMatch(q) : q; };
-    const r = await guardedUpdate(table, match, patch, { cite, select, stampIso });
-    out.updated += r.updated;
-    out.rows.push(...(r.rows ?? []));
-    out.snapshots.push(r.snapshot);
-    out.chunks += 1;
-  }
+    try {
+      const r = await guardedUpdate(table, match, patch, { cite, select, stampIso });
+      out.updated += r.updated;
+      out.rows.push(...(r.rows ?? []));
+      out.snapshots.push(r.snapshot);
+      out.chunks += 1;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!STATEMENT_TIMEOUT_RE.test(msg) || slice.length <= 1) throw err;
+      out.halvings += 1;
+      const mid = Math.ceil(slice.length / 2);
+      await runChunk(slice.slice(0, mid));
+      await runChunk(slice.slice(mid));
+    }
+  };
+  for (let i = 0; i < list.length; i += chunk) await runChunk(list.slice(i, i + chunk));
   return out;
 }
 
