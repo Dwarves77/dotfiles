@@ -220,9 +220,9 @@
     "verdict": "ambiguous"
   },
   "0697c235-9fa5-42ec-9176-bf27b34f4fde": {
-    "reason": "Connecting Europe Facility Regulation (1316/2013) — generic infrastructure-funding administration",
-    "reviewer": "M-SCREEN-2",
-    "verdict": "off_vertical"
+    "reason": "Connecting Europe Facility Regulation (1316/2013) — generic infrastructure-funding administration — FLIPPED by operator ruling 2026-09-02: TEN-T corridors / CEF are the freight-corridor and alternative-fuels-infrastructure instruments, 100% in vertical",
+    "reviewer": "operator (2026-09-02) over M-SCREEN-2",
+    "verdict": "on_vertical"
   },
   "06e4d7a4-f4a0-4d3c-9d0e-ee5edb7cb1c1": {
     "reason": "US Federal Register document outside freight-sustainability scope — general federal administrative law (aviation certification/airspace, USCG navigation/security zone, agriculture marketing/nutrition program, Medicare/CMS, FCC broadcasting, IRS/financial regulation, federal personnel/HR administration, immigration, controlled substances, pipeline/product safety, or similar), not itself an emissions/climate/energy/ESG regulation under ADR-020",
@@ -290,9 +290,9 @@
     "verdict": "off_vertical"
   },
   "0929bca1-8cdc-4068-aee1-63120c3cde94": {
-    "reason": "US/EU transport-sector (rail/aviation/road/maritime) technical-interoperability, market-access, agency-administration, or labour/statistics/customs administrative instrument — reviewed in batch, no emissions/environment/energy/ESG/CBAM content in title — ADR-020 ruled-out transport-administration domain",
-    "reviewer": "M-SCREEN-2",
-    "verdict": "off_vertical"
+    "reason": "Regulation (EU) 2024/1679, TEN-T guidelines — FLIPPED by operator ruling 2026-09-02: core corridors and alternative-fuels infrastructure, 100% in vertical",
+    "reviewer": "operator (2026-09-02) over M-SCREEN-2",
+    "verdict": "on_vertical"
   },
   "09769f6d-1a1c-4f79-a3aa-44059d408b46": {
     "reason": "US Federal Register document outside freight-sustainability scope — general federal administrative law (aviation certification/airspace, USCG navigation/security zone, agriculture marketing/nutrition program, Medicare/CMS, FCC broadcasting, IRS/financial regulation, federal personnel/HR administration, immigration, controlled substances, pipeline/product safety, or similar), not itself an emissions/climate/energy/ESG regulation under ADR-020",
@@ -350,9 +350,9 @@
     "verdict": "ambiguous"
   },
   "0a685de2-e292-4ca6-a143-6a20b4a259e4": {
-    "reason": "US/EU transport-sector (rail/aviation/road/maritime) technical-interoperability, market-access, agency-administration, or labour/statistics/customs administrative instrument — reviewed in batch, no emissions/environment/energy/ESG/CBAM content in title — ADR-020 ruled-out transport-administration domain",
-    "reviewer": "M-SCREEN-2",
-    "verdict": "off_vertical"
+    "reason": "Implementing Regulation (EU) 2020/349 amending 2019/1916 (aerodynamic devices and elongated cabs) — FLIPPED by operator ruling 2026-09-02: a fuel-efficiency measure, 100% in vertical",
+    "reviewer": "operator (2026-09-02) over M-SCREEN-2",
+    "verdict": "on_vertical"
   },
   "0a8fcb61-4787-458e-a5dd-acdb07adc02c": {
     "reason": "EPA Clean Air Act minor-NSR air-permitting rule",
@@ -1495,9 +1495,9 @@
     "verdict": "off_vertical"
   },
   "2c837408-dd83-4563-9283-981ffc0a1783": {
-    "reason": "Connecting Europe Facility Regulation (1316/2013) — generic infrastructure-funding administration",
-    "reviewer": "M-SCREEN-2",
-    "verdict": "off_vertical"
+    "reason": "Connecting Europe Facility Regulation (1316/2013) — generic infrastructure-funding administration — FLIPPED by operator ruling 2026-09-02: TEN-T corridors / CEF are the freight-corridor and alternative-fuels-infrastructure instruments, 100% in vertical",
+    "reviewer": "operator (2026-09-02) over M-SCREEN-2",
+    "verdict": "on_vertical"
   },
   "2cd3919d-98aa-4ed4-aa87-34274e099423": {
     "reason": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
@@ -2020,9 +2020,9 @@
     "verdict": "on_vertical"
   },
   "3c2e4874-e5ff-4723-a21d-41dfac6bfcd0": {
-    "reason": "Connecting Europe Facility Regulation (1316/2013) — generic infrastructure-funding administration",
-    "reviewer": "M-SCREEN-2",
-    "verdict": "off_vertical"
+    "reason": "Connecting Europe Facility Regulation (1316/2013) — generic infrastructure-funding administration — FLIPPED by operator ruling 2026-09-02: TEN-T corridors / CEF are the freight-corridor and alternative-fuels-infrastructure instruments, 100% in vertical",
+    "reviewer": "operator (2026-09-02) over M-SCREEN-2",
+    "verdict": "on_vertical"
   },
   "3c3f5e8e-4566-43af-b403-bc881bcdf057": {
     "reason": "generic transport-sector framework statute/administration",
@@ -5395,9 +5395,9 @@
     "verdict": "off_vertical"
   },
   "a296580d-5910-4179-ab71-b1abbea43f88": {
-    "reason": "TEN-T transport-corridor coordinator designation — transport-infrastructure administration",
-    "reviewer": "M-SCREEN-2",
-    "verdict": "off_vertical"
+    "reason": "TEN-T transport-corridor coordinator designation — transport-infrastructure administration — FLIPPED by operator ruling 2026-09-02: TEN-T corridors / CEF are the freight-corridor and alternative-fuels-infrastructure instruments, 100% in vertical",
+    "reviewer": "operator (2026-09-02) over M-SCREEN-2",
+    "verdict": "on_vertical"
   },
   "a2c3a30d-fc81-45f4-bf0e-b6c2a8abb3d5": {
     "reason": "Hunter River Salinity Trading Scheme (NSW) — environmental credit-trading scheme, ETS-adjacent market mechanism",

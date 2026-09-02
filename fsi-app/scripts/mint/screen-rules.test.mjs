@@ -402,7 +402,6 @@ const OFF_ROUND2_CASES = [
   ["otif_rail_interoperability_bilateral", "Council Decision on the position at the Committee of Technical Experts of the Intergovernmental Organisation for International Carriage by Rail"],
   ["rail_technical_specification_interoperability", "Commission Regulation on the technical specification for interoperability relating to the rolling stock subsystem of the rail system"],
   ["social_legislation_road_transport", "Commission Opinion on the implementing measures for Council Regulation (EEC) No 543/69 on the harmonization of certain social legislation relating to road transport"],
-  ["rhine_navigation_administration", "Council Decision on the position within the Central Commission for the Navigation of the Rhine"],
   ["customs_trade_formalities_simplification", "Decision of the EU-CTC Joint Committee amending the Convention on a common transit procedure"],
   ["unece_vehicle_technical_regulation", "Regulation No 13 of the Economic Commission for Europe of the United Nations (UN/ECE) — Uniform provisions concerning the approval of vehicles with regard to braking"],
   ["road_transport_driver_work_administration", "Council Decision on the position within the Group of Experts on the European Agreement concerning the Work of Crews of Vehicles Engaged in International Road Transport (AETR)"],
@@ -429,7 +428,6 @@ const OFF_ROUND2_CASES = [
   ["vehicle_roadworthiness_testing", "The Motor Vehicles (Tests) (Amendment) (No. 4) Regulations 1991"],
   ["transport_statistical_returns_administration", "Directive on statistical returns in respect of carriage of goods and passengers by sea (Recast)"],
   ["single_electronic_reporting_format_taxonomy", "Commission Delegated Regulation amending Delegated Regulation (EU) 2019/815 with regard to updates of the taxonomy to be used for the single electronic reporting format"],
-  ["road_vehicle_weight_dimensions_administration", "The Road Vehicles (Authorised Weight) (Amendment) Regulations 2000"],
   ["vehicle_type_approval_market_surveillance", "Regulation on the approval and market surveillance of motor vehicles and their trailers, and of systems, components and separate technical units intended for such vehicles"],
 ];
 
@@ -661,9 +659,25 @@ test("META: every ON_VERTICAL_RULES entry carries a non-empty mechanism or mecha
   }
 });
 
-test("META: exactly 8 OFF_VERTICAL_RULES entries are flipped (verdict: on_vertical) this wave", () => {
+// Operator ruling 2026-09-02 ("these are 100% in vert"): two more round-2 OFF rules flipped on_vertical
+// after population runs #9–#11 surfaced them on live items — CCNR/CESNI positions (inland-waterway
+// emission standards sit with the CCNR) and UK authorised-weight amendments (weights and dimensions
+// carry the zero-emission-truck allowance). Match logic untouched; verdict + mechanism annotation only.
+const FLIPPED_2026_09_02 = [
+  ["rhine_navigation_administration", "Council Decision on the position within the Central Commission for the Navigation of the Rhine"],
+  ["road_vehicle_weight_dimensions_administration", "The Road Vehicles (Authorised Weight) (Amendment) Regulations 2000"],
+];
+for (const [ruleName, title] of FLIPPED_2026_09_02) {
+  test(`FLIP 2026-09-02 ON: "${title.slice(0, 60)}…" -> ${ruleName}`, () => {
+    const r = classifyRelevance({ title });
+    assert.equal(r.verdict, "on_vertical", `expected on_vertical, got ${r.verdict} via ${r.rule}`);
+    assert.equal(r.rule, ruleName);
+  });
+}
+
+test("META: exactly 10 OFF_VERTICAL_RULES entries are flipped (verdict: on_vertical) — 8 from the 2026-08-31 wave + 2 from the 2026-09-02 ruling", () => {
   const flipped = OFF_VERTICAL_RULES.filter((r) => r.verdict === "on_vertical").map((r) => r.name);
-  assert.equal(flipped.length, 8, `expected 8 flips, got ${flipped.length}: ${flipped.join(", ")}`);
+  assert.equal(flipped.length, 10, `expected 10 flips, got ${flipped.length}: ${flipped.join(", ")}`);
   const expected = [
     "denylist_atm_air_services_bilateral",
     "ses_performance_plan_administration",
@@ -673,6 +687,8 @@ test("META: exactly 8 OFF_VERTICAL_RULES entries are flipped (verdict: on_vertic
     "ses_route_charging_zone_administration",
     "heavy_goods_vehicle_charging_administration",
     "transit_ecopoints_bilateral_agreement",
+    "rhine_navigation_administration",
+    "road_vehicle_weight_dimensions_administration",
   ].sort();
   assert.deepEqual(flipped.sort(), expected);
 });

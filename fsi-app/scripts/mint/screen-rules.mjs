@@ -667,8 +667,9 @@ export const OFF_VERTICAL_RULES = [
   {
     name: "rhine_navigation_administration",
     test: /central commission for the navigation of the rhine|\bcesni\b/i,
-    label: "Denylist: Rhine inland-navigation administration (CCNR/CESNI, transport-administration)",
-    failsMechanism: "Every matched row is an EU 'position to be taken' within the CCNR/CESNI committee structure — administrative representation at an international navigation body, not the substantive technical standard itself; CESNI's own vessel-emission standards are not what these titles carry.",
+    label: "Allowlist (FLIP, operator ruling 2026-09-02): CCNR/CESNI Rhine inland-navigation positions",
+    verdict: "on_vertical", // FLIP (operator ruling 2026-09-02: "100% in vert" — inland-waterway emission standards sit with the CCNR)
+    mechanism: "The CCNR/CESNI is the body that sets inland-waterway vessel engine-emission standards (ES-TRIN, the Mannheim Declaration's zero-emission path); an EU position within it is a freight-sustainability instrument for the Rhine corridor, not mere representation.",
   },
   {
     name: "customs_trade_formalities_simplification",
@@ -871,8 +872,9 @@ export const OFF_VERTICAL_RULES = [
   {
     name: "road_vehicle_weight_dimensions_administration",
     test: /road vehicles \(authorised weight\)/i,
-    label: "Denylist: road-vehicle authorised-weight technical/administrative standards",
-    failsMechanism: "UK 'Authorised Weight' regulations set load limits for road-safety/infrastructure-protection purposes — an administrative weight ceiling, not an environmental standard, though weight/dimension limits are increasingly used elsewhere as a fuel-efficiency lever; the matched instruments here (bare 'Amendment Regulations') show no such content.",
+    label: "Allowlist (FLIP, operator ruling 2026-09-02): road-vehicle authorised-weight (weights and dimensions) instruments",
+    verdict: "on_vertical", // FLIP (operator ruling 2026-09-02: weights and dimensions carry the zero-emission-truck allowance)
+    mechanism: "Weights-and-dimensions instruments are the lever through which zero-emission and alternatively-fuelled heavy vehicles receive their additional-mass allowance and longer-cab aerodynamics; a road-vehicle authorised-weight amendment is a freight-decarbonisation instrument, not only an infrastructure-protection ceiling.",
   },
   {
     name: "vehicle_type_approval_market_surveillance",

@@ -9,7 +9,19 @@ files per `scripts/harness-runs/CONVENTION.md`'s `harness_version` table (the ot
 is untouched — byte-identical to `screen-run-003.json`'s recorded state), so this edit moved
 `harness_version` even though no screen batch ran against real census data this wave.
 
-**harness_version at write time:** `sha256:fecc9e4373cdd710`
+**Re-stamped 2026-09-02 (operator ruling, screen-rules.mjs CHANGED):** two round-2 OFF rules flipped
+`on_vertical` after population runs #9–#11 surfaced them on live record-grade items and the operator ruled
+"these are 100% in vert" — `rhine_navigation_administration` (CCNR/CESNI positions: inland-waterway
+emission standards sit with the CCNR) and `road_vehicle_weight_dimensions_administration` (weights and
+dimensions carry the zero-emission-truck allowance); `reviewed-verdicts.json` has six entries flipped
+`on_vertical` by the same ruling (TEN-T 2024/1679, the three CEF 1316/2013 rows, the TEN-T coordinator
+designation, 2020/349 aerodynamic devices). Match logic untouched; verdicts and mechanism annotations only.
+Tests updated (10 flips; reviewed counts 810 off / 680 on / 256 ambiguous). The screen now runs INSIDE
+the population export every dispatch (`export-census-rows.mjs` → `lib/screen-verdict.mjs`), so the run
+that supersedes this marker is the next `population-turn` dispatch's screened export — the screen family
+still has no round-4 `screen-worklist.mjs` batch of its own; that remains the honest gap below.
+
+**harness_version at write time:** `sha256:a6cb87abf8e61cd9`
 
 **Planned run:** the next real screen batch (round 4, whenever the census worklist next needs a
 re-screen — no round 4 is scheduled by this wave) is what supersedes this marker. Because emission is
