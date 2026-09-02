@@ -37,6 +37,13 @@ import { forceSlotCoverage, MAX_JUDGED_NOMINATIONS } from "@/lib/agent/slot-forc
 import { summarizeLedger, ledgerRegression } from "@/lib/agent/ledger-dominance.mjs";
 import { diffLedger, applyLedgerDiff } from "@/lib/agent/ledger-apply.mjs";
 import { scanBrief } from "@/lib/agent/gate-a-scan.mjs";
+// THE shared write sequence (Lane WSEQ, 2026-09-02) — src/lib/intake/write-item.ts is the ONE module both
+// mint tiers (this brief tier's groundBrief and the record tier's apply-mint-batch.mjs) depend on for the
+// item_gate_a_state row shape and the intelligence_item_citations edge shape, so those cannot drift
+// between the two tiers again (see that file's own header for the full rationale, incl. why groundBrief's
+// non-destructive diff/apply claim writes CANNOT route through the record tier's writeGroundingSequence
+// directly — only the pieces below genuinely generalize).
+import { buildGateARow, buildCitationEdges } from "@/lib/intake/write-item";
 import { derivedCoveredTokens } from "@/lib/agent/gate-a-derived.mjs";
 import { norm } from "@/lib/agent/gate-a-match.mjs";
 // Gate B (derived-consistency, operator ruling 2026-07-27; unwired-module disposition register
@@ -1781,11 +1788,10 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
         console.warn(`[gate-b] derived-consistency check failed for ${itemId}: ${(e as Error).message}`);
       }
     }
-    const ga = scanBrief(gaItem?.full_brief ?? "", gaFacts, derivedCovered);
-    const { error: gaErr } = await sb.from("item_gate_a_state").upsert({
-      intelligence_item_id: itemId, scanned_hash: ga.scanned_hash, orphan_count: ga.orphan_count,
-      orphans: ga.orphans, gate_a_version: ga.gate_a_version, scanned_at: new Date().toISOString(),
-    }, { onConflict: "intelligence_item_id" });
+    // ROW SHAPE from the shared write sequence (write-item.ts's buildGateARow) — the SAME scanBrief call,
+    // the SAME six fields, apply-mint-batch.mjs's own item_gate_a_state row shape.
+    const gateARow = buildGateARow({ itemId, fullBrief: gaItem?.full_brief, factClaims: gaFacts, derivedCovered });
+    const { error: gaErr } = await sb.from("item_gate_a_state").upsert(gateARow, { onConflict: "intelligence_item_id" });
     if (gaErr) console.warn(`[gate-a] state upsert failed for ${itemId}: ${gaErr.message}`);
   }
   const applyRes = await applyLedgerDiff(sb, itemId, diffLedger(priorClaims ?? [], incoming), { nowIso: new Date().toISOString() });
@@ -1814,11 +1820,11 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
       const realFacts = persisted
         .filter((c) => c.claim_kind === "FACT")
         .map((c) => ({ claim_text: c.claim_text ?? "", source_span: c.source_span ?? "" }));
-      const ga2 = scanBrief(gaItem2?.full_brief ?? "", realFacts, await derivedCoveredTokens(sb, itemId));
-      const { error: reErr } = await sb.from("item_gate_a_state").upsert({
-        intelligence_item_id: itemId, scanned_hash: ga2.scanned_hash, orphan_count: ga2.orphan_count,
-        orphans: ga2.orphans, gate_a_version: ga2.gate_a_version, scanned_at: new Date().toISOString(),
-      }, { onConflict: "intelligence_item_id" });
+      const gateARow2 = buildGateARow({
+        itemId, fullBrief: gaItem2?.full_brief, factClaims: realFacts,
+        derivedCovered: await derivedCoveredTokens(sb, itemId),
+      });
+      const { error: reErr } = await sb.from("item_gate_a_state").upsert(gateARow2, { onConflict: "intelligence_item_id" });
       if (reErr) {
         await sb.from("item_gate_a_state").delete().eq("intelligence_item_id", itemId);
         console.warn(`[gate-a] reconcile upsert failed for ${itemId}; state CLEARED (fail-closed)`);
@@ -1864,8 +1870,10 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   // Idempotent (UNIQUE(item,source,origin) -> ignore duplicates on re-ground). Best-effort: an edge-write
   // failure must NOT fail grounding (claims + validate are the integrity path; this is a credibility signal).
   if (citedSourceIds.size) {
+    // EDGE SHAPE from the shared write sequence (write-item.ts's buildCitationEdges) — the SAME
+    // origin='agent_extraction' shape apply-mint-batch.mjs's buildCitationRows writes.
     const iicTs = new Date().toISOString();
-    const edges = [...citedSourceIds].map((sid) => ({ intelligence_item_id: itemId, source_id: sid, detected_at: iicTs, origin: "agent_extraction" as const }));
+    const edges = buildCitationEdges(itemId, citedSourceIds, iicTs);
     const { error: iicErr } = await sb.from("intelligence_item_citations").upsert(edges, { onConflict: "intelligence_item_id,source_id,origin", ignoreDuplicates: true });
     if (iicErr) console.warn(`[canonical] intelligence_item_citations write failed for ${itemId} (${edges.length} edges): ${iicErr.message}`);
   }

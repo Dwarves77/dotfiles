@@ -36,7 +36,25 @@ interface AuthProviderProps {
   initialOrgName?: string;
   /** Server-resolved role within the org. */
   initialRole?: "owner" | "admin" | "member" | "viewer" | null;
-  /** Server-resolved per-user sector profile. */
+  /**
+   * Seeds useWorkspaceStore.sectorProfile — the ONE store every sector-aware
+   * read path in the app consumes (HomeSurface, SectorSynopsis,
+   * RegulationDetailSurface, AskAssistant, scoring.ts, and Settings'
+   * FreightSectorsCard itself). This prop's contract: it MUST be the
+   * workspace's sector_profile (workspace_settings.sector_profile — the
+   * single source of truth OnboardingWizard.tsx's persistSectors() writes,
+   * post-2026-05-18 fix), never profiles.sector_overrides.
+   *
+   * HISTORY (lane HYG-2 root cause, 2026-09-02; fixed the same day at the call site,
+   * src/app/layout.tsx): the layout passed `bootstrap.sectors` alone, which reads
+   * `profiles.sector_overrides` — a per-user override column nothing has written since
+   * Settings/Onboarding were redirected to workspace_settings.sector_profile on 2026-05-18
+   * (OnboardingWizard.tsx's own comment) — so every logged-in user was seeded `[]` and the
+   * app ran as "no sectors configured" whatever Settings had saved. The layout now composes
+   * the two layers per Section 6.8: the per-user override when non-empty, else
+   * `bootstrap.workspaceSectors` (workspace_settings.sector_profile). No migration; both
+   * columns and their schemas were correct. This component seeds whatever it is given.
+   */
   initialSectors?: string[];
 }
 

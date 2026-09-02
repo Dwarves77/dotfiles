@@ -82,11 +82,28 @@ import { parseArgs } from "node:util";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { scanBrief } from "./lib/gate-a-scan.mjs";
 import { writeRunArtifact, validateRunArtifact } from "../lib/run-artifact.mjs";
 // Relative .ts import, native Node type-stripping (same precedent as scripts/lib/db.mjs's own import of
 // classify-source-role.ts) — no bundler, no jiti. domainForItemType is pure (name+category in, int out).
 import { domainForItemType } from "../../src/lib/domains.ts";
+// THE shared write sequence (Lane WSEQ, 2026-09-02) — src/lib/intake/write-item.ts is the ONE module both
+// mint tiers (this record-tier applier and the brief tier's canonical-pipeline.ts groundBrief) depend on
+// for the item_gate_a_state / intelligence_item_citations row shapes and the row-vs-RPC outcome
+// classification, so those cannot drift between the two tiers again — see that file's own header for the
+// full write-order rationale (run #8's gate-after-claims defect). buildAgentRunSearchRows/buildSectionRows/
+// buildClaimRows/buildCitationRows are RE-EXPORTED below, verbatim, so every existing import of them from
+// this file (apply-mint-batch.test.mjs) keeps working unmodified.
+import {
+  buildGateARow,
+  buildAgentRunSearchRows,
+  buildSectionRows,
+  buildClaimRows,
+  buildCitationRows,
+  writeGroundingSequence,
+  classifyMintOutcome,
+} from "../../src/lib/intake/write-item.ts";
+
+export { buildAgentRunSearchRows, buildSectionRows, buildClaimRows, buildCitationRows };
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -180,92 +197,23 @@ export function buildIntelligenceItemRow(payload, { sourceId, domain }) {
   };
 }
 
-/** agent_run_searches INSERT rows — one per payload.search_results[] entry, `result_content` copied
- *  VERBATIM and in FULL (ADR-016: storage never caps; the column itself is TEXT with no length check). */
-export function buildAgentRunSearchRows(payload, itemId, nowIso = new Date().toISOString()) {
-  return (payload.search_results ?? []).map((r, i) => ({
-    intelligence_item_id: itemId,
-    search_query: r.search_query ?? null,
-    result_url: r.result_url,
-    result_title: r.result_title ?? null,
-    result_index: typeof r.result_index === "number" ? r.result_index : i,
-    result_content: r.result_content,
-    searched_at: nowIso,
-  }));
-}
+// buildAgentRunSearchRows / buildSectionRows / buildClaimRows / buildCitationRows moved to
+// src/lib/intake/write-item.ts (Lane WSEQ, 2026-09-02 — the shared write sequence both mint tiers
+// depend on) and are re-exported above, verbatim, so every existing call site and test import here
+// keeps working unmodified.
 
-/** intelligence_item_sections INSERT rows — one per payload.sections[] entry. */
-export function buildSectionRows(payload, itemId) {
-  return (payload.sections ?? []).map((s) => ({
-    item_id: itemId,
-    section_key: s.section_key,
-    section_order: s.section_order,
-    content_md: s.content_md,
-    is_conditional: !!s.is_conditional,
-  }));
-}
-
-/**
- * section_claim_provenance INSERT rows. `search_result_id` MUST resolve to the just-inserted
- * agent_run_searches row a FACT claim's source_url names — validate_item_provenance criterion 3
- * (migration 114) LEFT JOINs on exactly that column and treats a NULL join (missing/wrong
- * search_result_id) as `result_content_excerpt IS NULL`, i.e. an automatic `fact_span_not_in_source`
- * failure, REGARDLESS of whether the span really is in some agent_run_searches row's content. This is why
- * agent_run_searches must be inserted (and its ids known) BEFORE claims, matching both the task's
- * directed table order and canonical-pipeline.ts's own.
- * @param {{sectionIdBySectionKey: Map<string,string>, searchIdByUrl: Map<string,string>, sourceId: string, sourceTier: number|null}} ctx
- */
-export function buildClaimRows(payload, itemId, { sectionIdBySectionKey, searchIdByUrl, sourceId, sourceTier }) {
-  return (payload.claims ?? []).map((c) => {
-    const isGroundedFact = c.claim_kind === "FACT" && !!c.source_span;
-    const url = c.source_url ?? null;
-    return {
-      section_row_id: sectionIdBySectionKey.get(c.section_key) ?? null,
-      intelligence_item_id: itemId,
-      claim_text: c.claim_text,
-      claim_kind: c.claim_kind,
-      source_span: c.source_span ?? null,
-      source_id: isGroundedFact && url ? sourceId : null,
-      search_result_id: isGroundedFact && url ? (searchIdByUrl.get(url) ?? null) : null,
-      source_tier_at_grounding: isGroundedFact ? sourceTier ?? null : null,
-    };
-  });
-}
-
-/** intelligence_item_citations INSERT rows — one per DISTINCT source_id any inserted claim actually cites
- *  (origin='agent_extraction', matching canonical-pipeline.ts's own tag for grounding-time citation
- *  edges — B#2 in that file). A record-grade payload cites exactly its own source, so this is at most one
- *  row; the general form still dedupes correctly if that ever changes. */
-export function buildCitationRows(itemId, claimRows, nowIso = new Date().toISOString()) {
-  const cited = new Set();
-  for (const c of claimRows) if (c.source_id) cited.add(c.source_id);
-  return [...cited].map((sourceId) => ({
-    intelligence_item_id: itemId,
-    source_id: sourceId,
-    detected_at: nowIso,
-    origin: "agent_extraction",
-  }));
-}
-
-/** item_gate_a_state row — computed via THE live Gate-A scanner (scripts/mint/lib/gate-a-scan.mjs, a
- *  verbatim copy of src/lib/agent/gate-a-scan.mjs, both listed in run-mint-batch.mjs's own
- *  MINT_GOVERNING_FILES), exactly the same function canonical-pipeline.ts's own ground() step calls.
- *  Record-tier-population-plan-2026-09-01.md §2 asserts this passes "by construction" (full_brief is
- *  built ONLY from claims' own claim_text); this call is what actually measures that, never assumes it. */
+/** item_gate_a_state row — a thin, payload-shaped wrapper over write-item.ts's buildGateARow (the SAME
+ *  live Gate-A scanner, src/lib/agent/gate-a-scan.mjs, canonical-pipeline.ts's own ground() step also
+ *  shares via that module). Record-tier-population-plan-2026-09-01.md §2 asserts this passes "by
+ *  construction" (full_brief is built ONLY from claims' own claim_text); this call is what actually
+ *  measures that, never assumes it. Kept here (rather than inlined at the one call site) because
+ *  apply-mint-batch.test.mjs imports and unit-tests it directly by this name. */
 export function computeGateAState(payload, itemId, nowIso = new Date().toISOString()) {
   const claims = payload.claims ?? [];
   const factClaims = claims
     .filter((c) => c.claim_kind === "FACT")
     .map((c) => ({ claim_text: c.claim_text ?? "", source_span: c.source_span ?? "" }));
-  const ga = scanBrief(payload.item.full_brief ?? "", factClaims, new Set());
-  return {
-    intelligence_item_id: itemId,
-    scanned_hash: ga.scanned_hash,
-    orphan_count: ga.orphan_count,
-    orphans: ga.orphans,
-    gate_a_version: ga.gate_a_version,
-    scanned_at: nowIso,
-  };
+  return buildGateARow({ itemId, fullBrief: payload.item.full_brief ?? "", factClaims, nowIso });
 }
 
 // ── mint run artifact enrichment (pure) ─────────────────────────────────────────────────────────────
@@ -394,34 +342,18 @@ export async function applyOnePayload(payload, ctx) {
   // calls, so the compensation is explicit: delete the partial item through the guarded path (every
   // child table FKs to intelligence_items ON DELETE CASCADE — checked live 2026-09-02), record
   // `apply_failed` with the error and whether the cleanup succeeded, and let the loop continue.
-  let insSearches, insSections, insClaims, insCitations, claimRows;
+  // WHY-item→searches→sections→gate-A→claims→citations, in that exact order (Lane WSEQ, 2026-09-02): the
+  // shared write sequence, src/lib/intake/write-item.ts's writeGroundingSequence — see that file's header
+  // for the full write-order rationale (run #8's gate-after-claims defect) and why the brief tier cannot
+  // call this exact function (its claims are a non-destructive diff/apply, not a fresh insert).
+  let seq;
   try {
-    const searchRows = buildAgentRunSearchRows(payload, itemId);
-    insSearches = searchRows.length
-      ? await ctx.db.guardedInsertMany("agent_run_searches", searchRows, { cite: ctx.cite, select: "id, result_url" })
-      : { inserted: 0, rows: [] };
-    const searchIdByUrl = new Map((insSearches.rows ?? []).map((r) => [r.result_url, r.id]));
-
-    const sectionRows = buildSectionRows(payload, itemId);
-    insSections = sectionRows.length
-      ? await ctx.db.guardedInsertMany("intelligence_item_sections", sectionRows, { cite: ctx.cite, select: "id, section_key" })
-      : { inserted: 0, rows: [] };
-    const sectionIdBySectionKey = new Map((insSections.rows ?? []).map((r) => [r.section_key, r.id]));
-
-    // Gate A BEFORE the claims — see this file's header. The claim inserts are the last writes that
-    // fire set_provenance_status; criterion 7 must find the gate row when they do.
-    const gateARow = computeGateAState(payload, itemId);
-    await ctx.db.guardedInsert("item_gate_a_state", gateARow, { cite: ctx.cite, select: "intelligence_item_id" });
-
-    claimRows = buildClaimRows(payload, itemId, { sectionIdBySectionKey, searchIdByUrl, sourceId, sourceTier: sourceRow.base_tier ?? payload.source?.base_tier ?? null });
-    insClaims = claimRows.length
-      ? await ctx.db.guardedInsertMany("section_claim_provenance", claimRows, { cite: ctx.cite, select: "id" })
-      : { inserted: 0, rows: [] };
-
-    const citationRows = buildCitationRows(itemId, claimRows);
-    insCitations = citationRows.length
-      ? await ctx.db.guardedInsertMany("intelligence_item_citations", citationRows, { cite: ctx.cite, select: "id" })
-      : { inserted: 0, rows: [] };
+    seq = await writeGroundingSequence(
+      payload,
+      itemId,
+      { sourceId, sourceTier: sourceRow.base_tier ?? payload.source?.base_tier ?? null },
+      { guardedInsert: ctx.db.guardedInsert, guardedInsertMany: ctx.db.guardedInsertMany, cite: ctx.cite },
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     let cleanup = "not_attempted";
@@ -437,12 +369,14 @@ export async function applyOnePayload(payload, ctx) {
       censusStamped: false,
     };
   }
+  const { insSearches, insSections, insClaims, insCitations } = seq;
 
   // The RPC is a pure function; the row's own provenance_status is what the trigger derivation stamped,
-  // and only the row is what every reader sees. Both are recorded; the outcome follows the row.
+  // and only the row is what every reader sees. Both are recorded; the outcome follows the row
+  // (classifyMintOutcome, write-item.ts — the SAME function the brief tier's groundBrief could share).
   const verdict = await ctx.rpc(itemId);
   const rowStatus = (await ctx.db.readItemProvenance(itemId)) ?? null;
-  const outcome = rowStatus === "verified" ? "minted_verified" : "minted_unverified";
+  const outcome = classifyMintOutcome(rowStatus);
 
   // Later payloads in this SAME batch must see this item as a holder too (two payloads sharing a
   // canonical key within one batch is exactly the collision M4 exists to catch).

@@ -1,0 +1,122 @@
+{
+  "_comment": "F33 surface-acceptance register (lane GATES-1, 2026-09-02, finish plan Wave 1). Every id here MUST match one of F33-surface-acceptance.mjs's hardcoded SPEC_SURFACES ids exactly (F33 checks both directions: a spec-named surface with no entry, and an entry naming a surface not in the hardcoded list, are both violations). Each entry carries EITHER {route, data_path, rendering_spec} (all three must exist on disk; data_path must be import-graph-reachable from route, not just name-matched) OR {exemption:{reason, ruled_by, date}}. Seeded honestly from the 2026-09-02 finish plan: built surfaces get real paths, the seven named-not-built items get exemptions citing the plan.",
+  "surfaces": [
+    {
+      "id": "dashboard",
+      "name": "Dashboard (home)",
+      "route": "fsi-app/src/app/page.tsx",
+      "data_path": "fsi-app/src/lib/data.ts",
+      "rendering_spec": "fsi-app/.discipline/rendering/smoke/list-order-smoke.mjs",
+      "note": "rendering_spec is the list-order smoke spec (DashboardTopPriority is the dashboard's drag-order surface, spec-00 §5's 'my things' portfolio object)."
+    },
+    {
+      "id": "regulations",
+      "name": "Regulations",
+      "route": "fsi-app/src/app/regulations/page.tsx",
+      "data_path": "fsi-app/src/lib/data.ts",
+      "rendering_spec": "fsi-app/.discipline/rendering/fixtures.mjs"
+    },
+    {
+      "id": "market-intel",
+      "name": "Market Intel",
+      "route": "fsi-app/src/app/market/page.tsx",
+      "data_path": "fsi-app/src/lib/data.ts",
+      "rendering_spec": "fsi-app/.discipline/rendering/fixtures.mjs",
+      "note": "rendering_spec is the shared general rendering-guard fixture file (overflow/placeholder/hydration detectors, surface-agnostic). No Market-Intel-dedicated fixture exists yet — named honestly, not claimed as surface-specific coverage."
+    },
+    {
+      "id": "research",
+      "name": "Research",
+      "route": "fsi-app/src/app/research/page.tsx",
+      "data_path": "fsi-app/src/lib/data.ts",
+      "rendering_spec": "fsi-app/.discipline/rendering/fixtures.mjs",
+      "note": "rendering_spec is the shared general rendering-guard fixture file. No Research-dedicated fixture exists yet — named honestly, not claimed as surface-specific coverage."
+    },
+    {
+      "id": "operations",
+      "name": "Operations",
+      "route": "fsi-app/src/app/operations/page.tsx",
+      "data_path": "fsi-app/src/lib/data.ts",
+      "rendering_spec": "fsi-app/.discipline/rendering/fixtures.mjs",
+      "note": "rendering_spec is the shared general rendering-guard fixture file. No Operations-dedicated fixture exists yet — named honestly, not claimed as surface-specific coverage."
+    },
+    {
+      "id": "community",
+      "name": "Community",
+      "route": "fsi-app/src/app/community/page.tsx",
+      "data_path": "fsi-app/src/lib/data.ts",
+      "rendering_spec": "fsi-app/.discipline/rendering/smoke/notifications-smoke.mjs",
+      "note": "rendering_spec is the notifications smoke spec (NotificationsBell + NotificationPreferences are community-surface components, spec-05 §5 required component list)."
+    },
+    {
+      "id": "watchlist",
+      "name": "Watchlist (the portfolio)",
+      "route": "fsi-app/src/app/watchlist/page.tsx",
+      "data_path": "fsi-app/src/lib/data.ts",
+      "rendering_spec": "fsi-app/.discipline/rendering/smoke/watchlist-team-smoke.mjs"
+    },
+    {
+      "id": "obligation-register",
+      "name": "Regulations obligation register",
+      "exemption": {
+        "reason": "Not built. The obligations table (keyed to intelligence_items + item_forward_events, binding_position) and ObligationRegister*.tsx components are Wave 2 lane OBLIG's write set; forward events (901+) exist but are not yet materialized into register rows.",
+        "ruled_by": "finish plan 2026-09-02, Wave 2 lane OBLIG",
+        "date": "2026-09-02"
+      }
+    },
+    {
+      "id": "carbon-cost-per-feu-overlay",
+      "name": "Market Intel carbon-cost-per-FEU overlay",
+      "exemption": {
+        "reason": "Not built. carbon-cost-per-feu.mjs and CarbonCostOverlay.tsx are Wave 2 lane CORR's write set, sequenced after corridor identity rows (seed-corridors.mjs) land.",
+        "ruled_by": "finish plan 2026-09-02, Wave 2 lane CORR",
+        "date": "2026-09-02"
+      }
+    },
+    {
+      "id": "lead-time-chart",
+      "name": "Market Intel lead-time position chart",
+      "exemption": {
+        "reason": "Ruled out, not deferred: no free data source exists for a peer/adjacent-industry lead-time band. Named on the Market Intel surface as a stated gap per the plan's own 'what this plan does not do' section, not a build-later item.",
+        "ruled_by": "finish plan 2026-09-02 §5 (What this plan does not do)",
+        "date": "2026-09-02"
+      }
+    },
+    {
+      "id": "community-differentiators",
+      "name": "Community differentiators (peer-org context, cross-group topic discovery, peer directory, trusted-peer DM, cross-surface \"peers are discussing\", topic follow, digest)",
+      "exemption": {
+        "reason": "Not built. The seven differentiators (spec-05 §5 required components #2,#4,#5,#6,#7 plus the two the spec implies, #topic-follow and #digest) are Wave 3 program COMMUNITY, gated on operator ruling R-H (community core scope) and on MAINT's community-topics-seed step having run.",
+        "ruled_by": "finish plan 2026-09-02, Wave 3 program COMMUNITY, gated on R-H",
+        "date": "2026-09-02"
+      }
+    },
+    {
+      "id": "spec-09-domain-tables",
+      "name": "Spec-09 domain extension tables",
+      "exemption": {
+        "reason": "Not built. The ten domain tables (OEM equipment roadmap, carrier surcharge audit / FuelEU pooling arbitrage, dynamic carbon contract indexation, DQI, auxiliary energy profiles, grid connection queue, geopolitical rerouting multipliers, EUDR geo-traceability, and the two architectural resolutions spec-09 §2 leaves open) are Wave 3 program SPEC-09, sequenced after CORR (they key on corridor identity) and gated on operator ruling R-G.",
+        "ruled_by": "finish plan 2026-09-02, Wave 3 program SPEC-09, gated on R-G",
+        "date": "2026-09-02"
+      }
+    },
+    {
+      "id": "research-credibility-chips",
+      "name": "Research credibility chips",
+      "exemption": {
+        "reason": "Not built. CredibilityChip*.tsx and its placement in src/app/research/** (spec-03 §7 required component #4, 'split credibility') are Wave 2 lane DASH's write set.",
+        "ruled_by": "finish plan 2026-09-02, Wave 2 lane DASH",
+        "date": "2026-09-02"
+      }
+    },
+    {
+      "id": "dashboard-five-surface-rebalance",
+      "name": "Dashboard five-surface rebalance",
+      "exemption": {
+        "reason": "Not built. The dashboard five-surface rebalance (src/app/page.tsx, src/components/dashboard/**, spec-00 §5's 'one my things object across five surfaces') is Wave 2 lane DASH's write set.",
+        "ruled_by": "finish plan 2026-09-02, Wave 2 lane DASH",
+        "date": "2026-09-02"
+      }
+    }
+  ]
+}

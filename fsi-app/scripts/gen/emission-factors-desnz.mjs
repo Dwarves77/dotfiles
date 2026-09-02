@@ -30,9 +30,29 @@ const CITE = {
   reason: "WO-18 emission-factors seeding: UK DESNZ modal defaults (master execution plan v2, Stage 7)",
 };
 
+/**
+ * Split loaded fixture rows into (seedable, pending). A pending row is a shell awaiting a runner with
+ * direct internet access to read the primary DESNZ workbook (see the fixture header, 2026-09-02 entry:
+ * this container's egress cannot reach assets.publishing.service.gov.uk, and WebFetch returns
+ * '[binary data]' for the .xlsx). It carries `needs_runner_fetch: true` and every data field null, so it
+ * would fail validateFactor() by design — filtered out HERE rather than let seedFactors' validateAll()
+ * abort the whole run over rows nobody expects to be seedable yet.
+ */
+export function splitPending(rows) {
+  const pending = rows.filter((r) => r.needs_runner_fetch === true);
+  const seedable = rows.filter((r) => r.needs_runner_fetch !== true);
+  return { seedable, pending };
+}
+
 async function main() {
-  const rows = loadFixtureRows(FIXTURE);
-  const summary = await seedFactors({ label: "desnz-seed", rows, cite: CITE, apply: APPLY });
+  const { seedable, pending } = splitPending(loadFixtureRows(FIXTURE));
+  if (pending.length) {
+    console.warn(
+      `[desnz-seed] ${pending.length} fixture row(s) marked needs_runner_fetch — NOT seeded, awaiting a ` +
+      `runner that can read the primary xlsx: ${pending.map((r) => r.vehicle_class).join(", ")}`
+    );
+  }
+  const summary = await seedFactors({ label: "desnz-seed", rows: seedable, cite: CITE, apply: APPLY });
   if (summary.mode === "apply" && !summary.written && summary.toWrite > 0) process.exit(1);
 }
 

@@ -18,10 +18,30 @@
 // Requires playwright + chromium (installed in the dedicated CI job / locally via
 // `npm i --no-save playwright && npx playwright install chromium`). Exit 0 = pass, 1 = a real
 // overflow/placeholder finding or a RED fixture that failed to reproduce its defect.
+//
+// SM smoke specs (Lane GATES-1, 2026-09-02, finish plan Wave 1 GATES-1: watchlist team, personal
+// archive, list order, notification bell + preferences) run in the SAME chromium instance, after the
+// fixture legs below — see the "SM smoke specs" registration block near the bottom of main(). They
+// mount REAL src/components/** modules (esbuild-bundled by smoke/harness.mjs) rather than the
+// fixture legs' hand-reproduced HTML/CSS; see smoke/harness.mjs's header for the full contract.
 
-import { chromium } from "playwright";
+import { createRequire } from "node:module";
 import { buildFixtures, VIEWPORTS } from "./fixtures.mjs";
 import { detectOverflows, findPlaceholderLiterals } from "./assertions.mjs";
+import { runSmoke as runWatchlistTeamSmoke } from "./smoke/watchlist-team-smoke.mjs";
+import { runSmoke as runPersonalArchiveSmoke } from "./smoke/personal-archive-smoke.mjs";
+import { runSmoke as runListOrderSmoke } from "./smoke/list-order-smoke.mjs";
+import { runSmoke as runNotificationsSmoke } from "./smoke/notifications-smoke.mjs";
+
+// playwright is a hoisted/global install in some environments (this repo's own container included)
+// that a plain ESM `import "playwright"` cannot see — Node's ESM resolver, unlike CJS `require`,
+// never consults NODE_PATH or the legacy global-folder fallback. `createRequire` runs the SAME CJS
+// resolution algorithm `require.resolve("playwright")` already succeeds under in that case, so this
+// works everywhere a plain import would have AND in the hoisted-install case a plain import cannot
+// reach. Root-caused and reproduced while building this lane's SM specs (see this lane's REPORT):
+// `import { chromium } from "playwright"` failed here with ERR_MODULE_NOT_FOUND while
+// `require.resolve("playwright")` succeeded in the same shell.
+const { chromium } = createRequire(import.meta.url)("playwright");
 
 async function measure(page) {
   return page.evaluate(() => {
@@ -82,10 +102,34 @@ async function main() {
     }
   }
 
+  // ── SM smoke specs (Lane GATES-1, 2026-09-02): real-component registration block. Each module
+  // exports `runSmoke(browser)` and owns its own pages/state; adding a fifth spec is one import +
+  // one entry in SMOKE_SPECS, nothing else in this file changes. ──────────────────────────────────
+  const SMOKE_SPECS = [
+    { name: "watchlist-team", run: runWatchlistTeamSmoke },
+    { name: "personal-archive", run: runPersonalArchiveSmoke },
+    { name: "list-order", run: runListOrderSmoke },
+    { name: "notifications", run: runNotificationsSmoke },
+  ];
+  let smokeChecks = 0;
+  const smokeFailures = [];
+  for (const spec of SMOKE_SPECS) {
+    try {
+      const { checks: c, failures: f } = await spec.run(browser);
+      smokeChecks += c;
+      smokeFailures.push(...f);
+    } catch (err) {
+      smokeFailures.push(`${spec.name}: smoke spec threw: ${err?.stack || err}`);
+    }
+  }
+  checks += smokeChecks;
+  failures.push(...smokeFailures);
+
   await browser.close();
 
   console.log(`\n===== RENDERING GUARD (browser) =====`);
   console.log(`fixtures: ${fixtures.length}  viewports: ${VIEWPORTS.join(",")}  checks: ${checks}`);
+  console.log(`SM smoke specs: ${SMOKE_SPECS.length} (${SMOKE_SPECS.map((s) => s.name).join(", ")})  smoke checks: ${smokeChecks}`);
   if (newMobileFindings.length) {
     console.log(`\nNEW mobile/tablet overflow findings (< 480px, missed by the 1297px audit):`);
     for (const f of newMobileFindings) console.log(`  ! ${f}`);

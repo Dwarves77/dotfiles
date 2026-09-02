@@ -1,13 +1,12 @@
 /**
  * Tests for emission-factors-common.mjs (WO-18) — pure, $0, offline, no DB, no fetch, no --apply.
  *
- * WIRING NOTE for the coordinator (this lane's write set excludes fsi-app/.discipline/run-test-suite.sh,
- * so this file cannot be added to the `node --test` glob list from inside the lane). Until it is added
- * there (one line: `fsi-app/scripts/gen/*.test.mjs \` alongside the other directory globs), this file
- * is NOT execution-wired per .discipline/governance/execution-wiring.mjs, and
- * .discipline/fitness/functions/F23-governed-surface-coverage.mjs's PROOF_RE will classify it as an
- * ORPHANED-PROOF gap (current committed GAP_BASELINE.orphaned_proofs = 0, so F23 regresses to 1 until
- * the line is added). Flagged in the WO-18 lane report; not something this lane's write set can fix.
+ * WIRING (corrected 2026-09-02, lane PROD-FIX): `fsi-app/scripts/gen/*.test.mjs` is already an existing
+ * line in fsi-app/.discipline/run-test-suite.sh (checked live) — this file matches it as-is and is
+ * execution-wired today. The stale note previously here (claiming the glob line was missing and this
+ * file was an ORPHANED-PROOF gap under F23) was checked against the live script and found false; a flag
+ * that dissolves under evidence gets a same-session correction, never a quiet drop (CLAUDE.md rule 13's
+ * corollary).
  *
  * THE CHECK-REJECTION PROOF (below), and why validateFactor() is the right thing to attack: migration
  * 258's `emission_factors_scope_modal` CHECK and factor-tier.mjs's `SCOPE_KINDS.modal.forbids` are not
@@ -37,8 +36,20 @@ const EPA_FIXTURE = resolve(HERE, "fixtures/emission-factors/epa-modal-defaults-
 const MIGRATION_258 = resolve(HERE, "../../supabase/migrations/258_emission_factors_and_licence_gate.sql");
 
 // ── Positive control: every committed fixture row is well-formed ──────────────────────────────────
+//
+// LANE PROD-FIX, 2026-09-02: the DESNZ fixture grew 7 needs_runner_fetch shell rows (air/sea freighting-
+// goods, added per the finish-plan brief but the primary xlsx was unreachable from this container — see
+// the fixture header for the full account). Those rows FAIL validateFactor() BY DESIGN: they carry no
+// figure and no needs_runner_fetch-tolerant caller would ever seed them (emission-factors-desnz.mjs's
+// splitPending() filters them out before seedFactors ever sees them). This positive control is therefore
+// scoped to the seedable rows only; emission-factors-desnz.test.mjs (this lane's dedicated producer test)
+// asserts the shells themselves are well-formed AS SHELLS, and that the null tolerance is marker-gated.
+function desnzSeedableRows() {
+  return loadFixtureRows(DESNZ_FIXTURE).filter((r) => r.needs_runner_fetch !== true);
+}
+
 test("every DESNZ fixture row passes validateFactor() with zero errors", () => {
-  const rows = loadFixtureRows(DESNZ_FIXTURE);
+  const rows = desnzSeedableRows();
   assert.equal(rows.length, 4, "fixture row count changed — update this test deliberately if intended");
   for (const row of rows) {
     const errors = validateFactor(row);
@@ -124,7 +135,7 @@ test("naturalKey is stable across unrelated field changes and differs on any key
 });
 
 test("seedFactors dry-run: no writes attempted, reports the full fixture as 'to write' when nothing exists yet", async () => {
-  const rows = loadFixtureRows(DESNZ_FIXTURE);
+  const rows = desnzSeedableRows(); // excludes the needs_runner_fetch shells (fail validateAll by design)
   let insertCalled = false;
   const summary = await seedFactors({
     label: "test-desnz",
@@ -142,7 +153,7 @@ test("seedFactors dry-run: no writes attempted, reports the full fixture as 'to 
 });
 
 test("seedFactors is idempotent: a row whose natural key already exists (live, non-superseded) is skipped, not re-inserted", async () => {
-  const rows = loadFixtureRows(DESNZ_FIXTURE);
+  const rows = desnzSeedableRows(); // excludes the needs_runner_fetch shells (fail validateAll by design)
   const already = rows[0]; // pretend the first row is already live
   let insertedRows = null;
   const summary = await seedFactors({
@@ -160,7 +171,7 @@ test("seedFactors is idempotent: a row whose natural key already exists (live, n
 });
 
 test("seedFactors --apply with everything already live is a true no-op (insertFn never called)", async () => {
-  const rows = loadFixtureRows(DESNZ_FIXTURE);
+  const rows = desnzSeedableRows(); // excludes the needs_runner_fetch shells (fail validateAll by design)
   let insertCalled = false;
   const summary = await seedFactors({
     label: "test-desnz-noop",
@@ -213,7 +224,7 @@ test("buildRow merges the fixture header (source_key/as_at_date/valid_from) into
 
 test("seedFactors reads emission_factors ordered by factor_id — NOT readAll's default 'id', which does not exist on this table", async () => {
   let seenOpts = null;
-  const rows = loadFixtureRows(DESNZ_FIXTURE);
+  const rows = desnzSeedableRows(); // excludes the needs_runner_fetch shells (fail validateAll by design)
   await seedFactors({
     label: "orderby-probe",
     rows,
@@ -239,7 +250,7 @@ test("every column seedFactors reads, orderBy included, exists in the applied mi
   const ddl = create[1];
 
   let seenCols = null, seenOpts = null;
-  const rows = loadFixtureRows(DESNZ_FIXTURE);
+  const rows = desnzSeedableRows(); // excludes the needs_runner_fetch shells (fail validateAll by design)
   return seedFactors({
     label: "column-probe",
     rows,

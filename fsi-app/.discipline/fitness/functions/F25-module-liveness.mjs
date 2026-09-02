@@ -85,12 +85,55 @@ const COMPONENTS = [
 // from the manual-redrive /api/worker/reconcile route) — no longer a selftest-only module. change-sweep.mjs
 // imports amendment-diff.mjs's diffDocuments directly for that same bridge, which is what gives
 // amendment-diff.mjs its own first production importer (previously proven only by its own test).
+// Lane HYG-2 (2026-09-02) re-audited every entry below against the live import graph and the Aug-31 W1
+// disposition register (docs/plans/unwired-disposition-2026-08-31.md — finish-plan R-C "accept as
+// delivered"): every file still exists and is still exactly as unwired as the register found it (6 of
+// the register's WIRE/DELETE/HOLD/KEEP rows map onto entries here; execution of a WIRE or DELETE
+// disposition is MAINT's job, not this lane's write set, which is this file only — so the entry stays
+// until MAINT lands it, annotated with which row and recommendation it is waiting on).
+// 'src/lib/sources/feed-walk.mjs' and 'src/lib/sources/register-walk.mjs' (register #13-16, HOLD as of
+// 2026-08-31 pending an unpriced crawl orchestrator) are NOT re-added here — checked this session: both
+// now have a real production importer, scripts/turns/run-source-sweep.mjs, so the orchestrator the
+// register found missing has since landed and F25 enforces their liveness going forward.
 const PROVEN_BUT_UNWIRED = [
-  'src/lib/coverage/identity.mjs',
-  'src/lib/intake/census-writer.mjs', 'src/lib/intake/intake-url-corpus.mjs',
-  'src/lib/llm/metered-emit.mjs', 'src/lib/llm/program-total.mjs',
-  'src/lib/sources/api-fetch.ts',
-  'src/lib/sources/instrument-identity.ts', 
+  {
+    file: 'src/lib/coverage/identity.mjs',
+    disposition:
+      'W1 register #8: WIRE (call from census-writer.mjs:73), but explicitly sequenced behind #11 — "only ' +
+      'takes effect once census-writer.mjs itself has a caller." #11 is still HOLD, so this stays unwired.',
+  },
+  {
+    file: 'src/lib/intake/census-writer.mjs',
+    disposition:
+      'W1 register #11: HOLD (crawl-rebuild scope, ADR-015 §5 — "no build proceeds until the operator ' +
+      'prices wave-one sizing"). Correct, tested, waiting on an unfunded orchestrator, not a wiring gap.',
+  },
+  {
+    file: 'src/lib/intake/intake-url-corpus.mjs',
+    disposition:
+      'W1 register #17: KEEP, no action — a data-only golden-fixture file with no production call site to ' +
+      'be "wired" into; the register names this class a graph-tool false positive, same family as ' +
+      'src/proxy.ts\'s framework-entry-point exemption above.',
+  },
+  {
+    file: 'src/lib/llm/metered-emit.mjs',
+    disposition:
+      'W1 register #3: DELETE (with its test) — the batch-classification runner this exists to gate was ' +
+      'never built anywhere in the repo. Pending MAINT execution (finish-plan R-C).',
+  },
+  {
+    file: 'src/lib/llm/program-total.mjs',
+    disposition:
+      'W1 register #1: WIRE, but explicitly low-urgency — "wire it in the same change that ever gives ' +
+      'seedSpend its first real caller; don\'t invent a caller just to hang this on." Pending MAINT execution.',
+  },
+  {
+    file: 'src/lib/sources/api-fetch.ts',
+    disposition:
+      'W1 register #12: DELETE — superseded by canonical-pipeline.ts\'s own inline apiFetchForHost, not ' +
+      'waiting on an orchestrator like its scripts/lib/sources siblings. Pending MAINT execution.',
+  },
+  { file: 'src/lib/sources/instrument-identity.ts', disposition: null }, // not covered by the Aug-31 register
 ];
 
 // SCRIPTS_LIB (the 15 "proven, never consumed" scripts/lib entries) ARCHIVED 2026-09-01 (lane hyg,
@@ -110,14 +153,15 @@ export const LEGACY_ALLOWLIST = [
     reviewByPhase: 'ui-liveness ruling (operator: mount or delete, per component)',
   })),
 
-  // ── 13 src/lib modules with a proof and no caller: the seek-more shape exactly ──
+  // ── 7 src/lib modules with a proof and no caller: the seek-more shape exactly ──
   ...PROVEN_BUT_UNWIRED.map((p) => ({
-    file: `fsi-app/${p}`,
+    file: `fsi-app/${p.file}`,
     reason:
       'Has a selftest, has NO production importer. This is remediation-discipline category 21 in its literal ' +
       'form: the test proves the module works and says nothing about whether the flow that should use it ever ' +
       'calls it. Either wire it into that flow or remove it with its proof — a passing test over a dormant ' +
-      'module is indistinguishable from a passing test over a live one, which is what makes the class expensive.',
+      'module is indistinguishable from a passing test over a live one, which is what makes the class expensive.' +
+      (p.disposition ? ` DISPOSITION (docs/plans/unwired-disposition-2026-08-31.md): ${p.disposition}` : ''),
     reviewByPhase: 'dormant-capability ruling (operator: wire into the live flow, or delete module + proof together)',
   })),
 
@@ -198,7 +242,10 @@ export const LEGACY_ALLOWLIST = [
       'importers are ALL on the dead-code manifest, so the sweep leaves it with zero consumers. COUPLED: when the ' +
       'sweep deletes those three, this module and its F15 SANCTIONED entry must go in the same commit, or F15 ' +
       'silently sanctions a file that no longer exists (the SANCTIONED staleness audit added to ' +
-      'F15-spend-chokepoint.test.mjs on 2026-08-11 makes that RED rather than silent).',
+      'F15-spend-chokepoint.test.mjs on 2026-08-11 makes that RED rather than silent). DISPOSITION ' +
+      '(docs/plans/unwired-disposition-2026-08-31.md #18): DELETE, corroborating this same finding independently ' +
+      '— "canonicalGenerate never actually adopted by anything"; delete together with the rule-016 PERMITTED ' +
+      'entry and this F15 SANCTIONED entry, same commit. Pending MAINT execution (finish-plan R-C).',
     reviewByPhase: 'dead-code-sweep (delete with the manifest; retire the F15 SANCTIONED entry in the same commit)',
   },
   {

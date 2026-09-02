@@ -56,7 +56,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/connections/apply-tags.mjs",
       "scripts/mint/stamp-wo26-archive-reason.mjs",
       "scripts/mint/apply-mint-batch.mjs",
-      "scripts/entities/backfill-entities.mjs"
+      "scripts/entities/backfill-entities.mjs",
+      "scripts/maintenance/tag-ratification.mjs"
     ],
     "item_cross_references": [
       "src/lib/intake/mint-item.ts",
@@ -117,7 +118,8 @@ who may write a shared table; the test enforces it on every future PR.
       "src/workflows/generate-brief.ts",
       "scripts/_reground/free-pass-run.mjs",
       "scripts/_reground/restore-overclear.mjs",
-      "scripts/mint/apply-mint-batch.mjs"
+      "scripts/mint/apply-mint-batch.mjs",
+      "src/lib/intake/write-item.ts"
     ],
     "corpus_turn_requests": [
       "src/app/api/admin/corpus-turn-requests/route.ts",
@@ -182,6 +184,7 @@ narrow-touch-for-recompute / tombstone-delete), not a data column.
 | `scripts/mint/stamp-wo26-archive-reason.mjs` (Lane POP, 2026-09-01) | UPDATE — `archive_reason` only, on the 491 WO-26 rows Addendum 28 archived without stamping one | `guardedUpdate("intelligence_items", applyMatch, { archive_reason: ... }, { cite, select })`, `--dry` by default |
 | `scripts/mint/apply-mint-batch.mjs` (Lane POP, 2026-09-02) | INSERT at coordinator-apply time — the population-turn's write path for a `--census-rows --grade record` mint batch, `mintIntelligenceItem()`'s `MintPlan` has no field for a payload's sections/claims/search_results so this script writes directly in `canonical-pipeline.ts`'s own table order instead | `buildIntelligenceItemRow` + `ctx.db.guardedInsert("intelligence_items", ...)`, `--dry` by default |
 | `scripts/entities/backfill-entities.mjs` (Lane DP-SPINE, 2026-09-02) | UPDATE — `instrument_entity_id` only, per row whose `canonical_instrument_key` resolves to an instrument entity (migration 283's progressive-re-keying FK; ADR-024) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", u.id), { instrument_entity_id: ... }, { cite, select })` in `runInstrument()`; `--dry` by default. This script's OTHER writes (`entities`, `entity_identifiers`, `entity_refs` inserts via `guardedInsertMany`, and a parallel `sources.organisation_entity_id` update) are on tables `docs/inventories/shared-dataset-ownership.md`'s registry does not track — `entities`/`entity_identifiers`/`entity_refs` are new migration-282/283 tables outside the harness/flywheel dataset set this doc scopes to, and `sources` is explicitly named out-of-scope by `.discipline/shared-writer-registry.test.mjs`'s own header ("a write to an unrelated, non-shared table (e.g. agent_runs, **sources**, holdings_quality) is out of this registry's scope by design"). Named here for completeness, not because the registry requires it. |
+| `scripts/maintenance/tag-ratification.mjs` (Lane MAINT, 2026-09-02) | UPDATE — the MAINT dispatch runtime for `scripts/connections/apply-tags.mjs`'s existing guarded apply path (`docs/runbooks/MAINTENANCE-RUNBOOK.md` §7); its `buildDeps().updateItem` is a second call site of the SAME merge-only tag write `apply-tags.mjs`'s own `main()` makes (row above) — not a second write path, a second caller reached from a GitHub Actions dispatch instead of a CLI invocation, gated the same way (per-flag `ratify:tags` marker, `evaluateApplication`/`applyTags` imported unmodified) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: CITE })` in `buildDeps().updateItem` |
 
 Replace policy: guarded per-row UPDATE/INSERT (never a bulk replace); DELETE is single-purpose and
 gated behind a tombstone write (see `tombstone-delete.mjs` above) — this is a **guarded delete**, not a
@@ -320,7 +323,8 @@ than silently left out.
 | `src/lib/agent/ledger-apply.mjs` — the canonical claim-ledger write path (insert / update / delete + a parallel `claim_versions` append), reached through `canonical-pipeline.ts`'s `applyLedgerDiff` during every mint/ground pass | lines 120, 132, 140, 162, 164 |
 | `scripts/_reground/free-pass-run.mjs` (KEEP) | UPDATE — re-attributes a FACT claim to a floor-qualifying capture, line 102 |
 | `scripts/_reground/restore-overclear.mjs` (KEEP) | INSERT — restores a claim erroneously versioned out by the 2026-07-16 over-clear incident, line 41 |
-| `scripts/mint/apply-mint-batch.mjs` (Lane POP, 2026-09-02) | INSERT — one row per `payload.claims[]` entry, in `canonical-pipeline.ts`'s own insert order (not through `ledger-apply.mjs`, which mediates a claim *diff* against an already-minted item's existing ledger; this is the coordinator-apply step for a fresh `--census-rows --grade record` mint batch, the same raw-guarded-write shape mint-run-005/006's own coordinator-apply pass used by hand) | `buildClaimRows` + `ctx.db.guardedInsertMany("section_claim_provenance", ...)` |
+| `scripts/mint/apply-mint-batch.mjs` (Lane POP, 2026-09-02) | INSERT — one row per `payload.claims[]` entry, in `canonical-pipeline.ts`'s own insert order (not through `ledger-apply.mjs`, which mediates a claim *diff* against an already-minted item's existing ledger; this is the coordinator-apply step for a fresh `--census-rows --grade record` mint batch, the same raw-guarded-write shape mint-run-005/006's own coordinator-apply pass used by hand). Lane WSEQ (2026-09-02): the literal INSERT call site moved INTO `src/lib/intake/write-item.ts`'s `writeGroundingSequence` (the shared write sequence both mint tiers now call) — `apply-mint-batch.mjs` still owns this write (it is `writeGroundingSequence`'s only caller for a fresh item), just not the literal string anymore; see the next row. | `buildClaimRows` + `ctx.db.guardedInsertMany("section_claim_provenance", ...)`, pre-WSEQ shape |
+| `src/lib/intake/write-item.ts` (Lane WSEQ, 2026-09-02) | INSERT — the shared guarded write sequence (`writeGroundingSequence`) both mint tiers depend on for the item→searches→sections→gate-A→claims→citations tail; `apply-mint-batch.mjs`'s own claim-insert call site (row above) moved here so the record tier and the brief tier's shared row-shape builders (`buildGateARow`/`buildCitationEdges`) cannot drift apart again | `buildClaimRows` + `deps.guardedInsertMany("section_claim_provenance", ...)`, injected DI (`WriteGroundingSequenceDeps`), no top-level Supabase import |
 
 Replace policy: guarded insert/update/delete, with every change mirrored into the append-only
 `claim_versions` ledger by `ledger-apply.mjs` (lines 132, 162) — `claim_versions` itself is in

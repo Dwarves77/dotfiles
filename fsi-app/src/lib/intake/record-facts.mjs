@@ -277,6 +277,14 @@ export function buildRecordFullBrief({ sourceUrl, claims }) {
  * @param {string} input.capturedText       -- the FULL fetched document text
  * @param {number} [input.fetchedLength]    -- defaults to capturedText.length (Wave MH-3 capture-completeness)
  * @param {string[]} [input.requiredSlots]  -- item-type-required-slots.json[itemType], caller-supplied
+ * @param {{verdict: string, provenance: string, basis: string}|null} [input.screen] -- Lane WSEQ
+ *   (2026-09-02). The relevance-screen verdict (scripts/mint/lib/screen-verdict.mjs) the census row this
+ *   payload was built from cleared at export -- carried straight through, never recomputed here (this
+ *   module has no I/O and does not know the row's title/surface_tags to re-derive it). Becomes
+ *   `payload.screen` so validate-mint-payload.mjs's kit check can enforce it structurally. A caller that
+ *   omits it (or passes null) gets a payload the validator correctly quarantines
+ *   (`screen_verdict_missing`) rather than one that silently skips the screen -- see that check's own
+ *   header for the incident this closes.
  * @returns {object} a payload-schema.json-shaped mint payload
  */
 export function buildRecordPayload({
@@ -291,6 +299,7 @@ export function buildRecordPayload({
   capturedText,
   fetchedLength,
   requiredSlots = [],
+  screen = null,
 }) {
   if (!sourceUrl) throw new Error("record-facts: buildRecordPayload requires sourceUrl");
   if (!itemType) throw new Error("record-facts: buildRecordPayload requires itemType");
@@ -342,6 +351,10 @@ export function buildRecordPayload({
       grade: "record",
     },
     source,
+    // Lane WSEQ (2026-09-02): the relevance-screen verdict this row cleared at export, carried through
+    // unmodified. Top-level (not under `item`), alongside `_proof_note` -- see this function's own
+    // screen doc above and validate-mint-payload.mjs's kit check.
+    screen,
     registry_sources: [],
     sections,
     search_results: [

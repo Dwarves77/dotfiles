@@ -9,30 +9,73 @@
 // same file, line ~79). Neither file changes for this WO — this module produces rows in EXACTLY that
 // shape so a refresh is a plain guarded upsert into the existing table, no reader-side change at all.
 //
-// THE MAPPING IS DELIBERATELY EMPTY TODAY. published_price_statistics is PER-ITEM (Appendix A, master
-// execution plan v2: "4 rows … item_id→intelligence_items … Display-shaped, per-item; not a time
+// THE MAPPING IS DELIBERATELY UNRATIFIED TODAY. published_price_statistics is PER-ITEM (Appendix A,
+// master execution plan v2: "4 rows … item_id→intelligence_items … Display-shaped, per-item; not a time
 // series"); its 4 live rows attach to "Crude Oil & Jet Fuel Price Intelligence" and "LNG & Natural Gas
 // Price Intelligence" (US/SG/JP/NL benchmarks — confirmed live 2026-08-30). market_series' one built
 // producer (EU Weekly Oil Bulletin) publishes EU refined-PRODUCT prices — a different instrument family,
 // a different geography, and no existing intelligence_items row represents "EU Weekly Oil Bulletin" as a
 // market signal. Inventing an item_id here would misattribute a benchmark to an item that is not about
-// it, exactly the class of error CLAUDE.md rule "do not guess or assume" exists to prevent. SERIES_ITEM_MAP
-// therefore starts EMPTY, ratified entries added the same way WO-19's origin_class backfill mapping was
-// ratified before it ran (an operator-reviewed mapping decision, not a guess baked into code). With an
-// empty map this module — and the CLI script that calls it
-// (scripts/producers/market/refresh-published-price-statistics.mjs) — correctly produces ZERO rows: a
-// safe, honest default, never a fabricated attachment.
+// it, exactly the class of error CLAUDE.md rule "do not guess or assume" exists to prevent.
 //
-// PLAIN ESM, ZERO DEPENDENCIES. Pure — `today` (for next_release_at) is injected, never read from the
-// clock directly, same discipline envelope.mjs's own header states ("time is injected, never read").
+// LANE PROD-FIX (2026-09-02) BUILT THE MECHANISM, NOT THE RULING (R-D: "attach the six oil-bulletin
+// series to published_price_statistics via new record items"). SERIES_ITEM_MAP moved from an inline
+// `Object.freeze({})` to a committed data file, series-item-map.json, one entry per series the EU Weekly
+// Oil Bulletin parser emits (src/lib/market/parsers/eu-weekly-oil-bulletin.mjs PRODUCTS), each carrying
+// `item_id: null, status: "pending_R-D"` — UNRATIFIED, not empty. deriveDisplayRows() below treats a
+// null item_id exactly as it previously treated a key ABSENT from the map: skipped, never a fabricated
+// attachment. An operator ratifies one entry by editing series-item-map.json alone (set item_id to the
+// real intelligence_items uuid once mint-run applies the record, status to "ratified") — no code change
+// needed, the same posture WO-19's origin_class backfill mapping used (an operator-reviewed decision, not
+// a guess baked into code). With every entry still pending, this module — and the CLI script that calls
+// it (scripts/producers/market/refresh-published-price-statistics.mjs) — still correctly produces ZERO
+// display rows: a safe, honest default, never a fabricated attachment. See series-item-map.json's own
+// header for the ratification mechanics and unmappedSeriesKeys() below for how a series with NO entry at
+// all (never even proposed) is told apart from one that is proposed but not yet ratified — both are
+// reported by name in the CLI script's summary, never silently skipped, per the same rule.
+//
+// PLAIN ESM. `today` (for next_release_at) is injected, never read from the clock directly, same
+// discipline envelope.mjs's own header states ("time is injected, never read"). The one I/O this module
+// performs is reading its own committed data file at module load — the same static-registry pattern
+// src/lib/connections/derive-tags.mjs already uses for its own committed text assets.
 
+import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { producerFor } from "./series-registry.mjs";
+import buildRecordPayload from "../intake/record-facts.mjs";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const REQUIRED_SLOTS = JSON.parse(
+  readFileSync(resolve(HERE, "../../../scripts/mint/item-type-required-slots.json"), "utf8"),
+);
 
 /**
- * Ratified series_key -> published_price_statistics attachment. EMPTY TODAY — see this file's header.
- * Shape per entry: { itemId: uuid, sortOrder: number, contextLine?: string, severityTone?: string }.
+ * Loads series-item-map.json into the shape deriveDisplayRows() consumes: an ordered array of
+ * [series_key, entry] pairs (array, not a plain object, so ORDER — which fixes sort_order, see below —
+ * survives even though standard object key order is not part of the JSON grammar). `_`-prefixed keys
+ * (the file's own `_comment`) are documentation, never a series entry, and are dropped here.
+ * Exported so a test can load a fixture map through the exact same path the module itself uses.
  */
-export const SERIES_ITEM_MAP = Object.freeze({});
+export function loadSeriesItemMap(jsonPath = resolve(HERE, "series-item-map.json")) {
+  const raw = JSON.parse(readFileSync(jsonPath, "utf8"));
+  const entries = Object.entries(raw).filter(([key]) => !key.startsWith("_"));
+  return Object.freeze(entries.map(([key, entry]) => Object.freeze([key, entry])));
+}
+
+/**
+ * Ratified-or-pending series_key -> published_price_statistics attachment, loaded from
+ * series-item-map.json (see this file's header). An ORDERED array of [series_key, entry] pairs — entry
+ * shape: { item_id: uuid|null, status: string, proposed_item?: {title, source_url, item_type} }.
+ * `item_id: null` means PENDING (not yet ratified); deriveDisplayRows() skips those exactly as it would
+ * skip a series_key with no entry at all.
+ */
+export const SERIES_ITEM_MAP = loadSeriesItemMap();
+
+/** True when a series-item-map.json entry has been ratified (a real item_id assigned). */
+export function isRatified(entry) {
+  return entry != null && entry.item_id != null && entry.item_id !== "";
+}
 
 const CURRENCY_SYMBOL = Object.freeze({ EUR: "€", USD: "$", GBP: "£" });
 
@@ -80,32 +123,38 @@ export function latestPerSeries(marketSeriesRows) {
 }
 
 /**
- * Derive published_price_statistics-shaped rows from the latest market_series observation per mapped
- * series. Rows for a series_key ABSENT from `map` are skipped (never guessed) — with the default empty
- * SERIES_ITEM_MAP this returns [] until an operator ratifies a mapping entry.
+ * Derive published_price_statistics-shaped rows from the latest market_series observation per RATIFIED
+ * series. A series_key ABSENT from `map`, or present but not yet ratified (`item_id: null`, the state
+ * every series-item-map.json entry is in as of 2026-09-02 pending R-D), is skipped here — never guessed.
+ * With every entry still pending this returns [] until an operator ratifies one (see this file's header).
+ * Use unmappedSeriesKeys() alongside this to report what got skipped, by name — this function only
+ * produces rows, it never reports gaps.
  *
  * @param {Array<object>} marketSeriesRows — any market_series rows (e.g. all rows for one producer's
  *   namespace); only the latest per series_key is used.
- * @param {{ map?: Record<string, {itemId:string, sortOrder:number, contextLine?:string, severityTone?:string}> }} [opts]
+ * @param {{ map?: Array<[string, {item_id:string|null, status:string, context_line?:string,
+ *   severity_tone?:string}]> }} [opts] — an ORDERED array of [series_key, entry] pairs (SERIES_ITEM_MAP's
+ *   own shape); array position fixes sort_order, so entry order in series-item-map.json IS display order.
  * @returns {Array<{item_id, label, value_display, unit, context_line, severity_tone, source_tier,
  *   released_at, next_release_at, next_release_label, sort_order}>}
  */
 export function deriveDisplayRows(marketSeriesRows, { map = SERIES_ITEM_MAP } = {}) {
   const latest = latestPerSeries(marketSeriesRows);
   const out = [];
-  for (const [seriesKey, mapping] of Object.entries(map)) {
+  map.forEach(([seriesKey, entry], index) => {
+    if (!isRatified(entry)) return; // pending R-D (or any future unratified entry) — never a guessed attachment
     const row = latest.get(seriesKey);
-    if (!row) continue; // mapped but no observation yet — nothing to display, never a fabricated dash-row
+    if (!row) return; // ratified but no observation yet — nothing to display, never a fabricated dash-row
     const { suffix } = splitEnvelopeUnit(row.unit, row.currency);
     const producer = producerFor(seriesKey.split(":")[0]);
     const nextReleaseAt = producer?.cadenceDays != null ? addDaysIso(row.reference_period, producer.cadenceDays) : null;
     out.push({
-      item_id: mapping.itemId,
+      item_id: entry.item_id,
       label: row.label,
       value_display: formatValueDisplay(row.value_numeric, row.currency),
       unit: suffix,
-      context_line: mapping.contextLine ?? null,
-      severity_tone: mapping.severityTone ?? null,
+      context_line: entry.context_line ?? null,
+      severity_tone: entry.severity_tone ?? null,
       // NOT derived from origin_class: source_tier is the `sources` trust-tier scale (T1-T7), a
       // DIFFERENT vocabulary from origin_class (spec 00 §3.6) — see provenance-envelope.mjs's own header
       // on why the two FK targets answer different questions. Inventing a cross-vocabulary mapping here
@@ -114,8 +163,95 @@ export function deriveDisplayRows(marketSeriesRows, { map = SERIES_ITEM_MAP } = 
       released_at: row.as_at_date,
       next_release_at: nextReleaseAt,
       next_release_label: null,
-      sort_order: mapping.sortOrder,
+      // Position in `map`, not a stored field — series-item-map.json's own header explains why: reordering
+      // the six products is then a data-file edit, never a code change.
+      sort_order: index,
     });
-  }
+  });
   return out.sort((a, b) => a.sort_order - b.sort_order);
+}
+
+/**
+ * Every series_key present in `marketSeriesRows` that is NOT a ratified attachment — either because it
+ * has no series-item-map.json entry at all, or because its entry is still pending (`item_id: null`).
+ * Deduplicated, sorted for a stable summary line. Exists so a caller (the CLI script) can report a gap by
+ * NAME rather than silently produce fewer rows than observations read — "never silently skips" (Part B
+ * requirement 2). Pure: takes the map as data, reads no file itself.
+ */
+export function unmappedSeriesKeys(marketSeriesRows, map = SERIES_ITEM_MAP) {
+  const ratified = new Set(map.filter(([, entry]) => isRatified(entry)).map(([key]) => key));
+  const seen = new Set();
+  for (const r of marketSeriesRows ?? []) {
+    if (r?.series_key && !ratified.has(r.series_key)) seen.add(r.series_key);
+  }
+  return [...seen].sort();
+}
+
+// The screen field lane WSEQ (concurrent lane, same finish plan) is adding as a REQUIRED field on
+// validate-mint-payload.mjs. Stamped on every proposed payload so it validates under BOTH the version of
+// the validator this lane read (screen unchecked, additionalProperties:true so an extra field is inert)
+// and WSEQ's extended version (screen required) — whichever lands first. "on_vertical"/"reviewed" reflect
+// that this lane, a human-directed session, judged the six oil-bulletin products to be in-vertical
+// (freight fuel cost intelligence) before proposing them; "R-D ruling" names the ruling this attachment
+// still needs before any of these payloads may actually be minted.
+const PROPOSED_ITEM_SCREEN = Object.freeze({ verdict: "on_vertical", provenance: "reviewed", basis: "R-D ruling" });
+
+/**
+ * Build the record-grade mint payloads (payload-schema.json shape) the coordinator would apply for R-D —
+ * one per series-item-map.json entry that carries a `proposed_item`, via record-facts.mjs's
+ * buildRecordPayload, the SAME builder the record-grade population pipeline already uses (no duplicate
+ * payload-assembly logic). DRY / PRINT ONLY: never mints, writes, or touches a database.
+ * `--propose-items` (the CLI script) is its only caller today.
+ *
+ * `source` IS A PLACEHOLDER, clearly marked, not a fabricated fact: `sources` (the mint pipeline's
+ * citation registry, base_tier/institution_id) is a DIFFERENT table from `data_sources` (migration 258's
+ * emission-factor licence register, which DOES already carry a verified 'ec_weekly_oil_bulletin' row —
+ * see series-registry.mjs). This lane has no DB access to look up the real `sources` row MINT-RUNBOOK.md
+ * step 2 requires before authoring a payload for real, so every payload's `source.id` reads
+ * "PENDING-LIVE-SOURCES-LOOKUP" and its `_proof_note` says so in full — a coordinator must resolve the
+ * real row before minting any of these, never apply one as printed.
+ *
+ * `capturedText`/`fetchedLength` are caller-supplied (record-facts.mjs's own no-I/O, no-fetch contract —
+ * see that file's header); this function performs no fetch itself.
+ */
+export function buildProposedItemPayloads({
+  map = SERIES_ITEM_MAP,
+  capturedText,
+  fetchedLength,
+} = {}) {
+  if (typeof capturedText !== "string" || capturedText.trim() === "") {
+    throw new Error("buildProposedItemPayloads requires capturedText (the captured Weekly Oil Bulletin page text)");
+  }
+  const requiredSlots = REQUIRED_SLOTS.market_signal || [];
+  return map
+    .filter(([, entry]) => entry?.proposed_item)
+    .map(([seriesKey, entry]) => {
+      const proposed = entry.proposed_item;
+      const placeholderSource = {
+        id: "PENDING-LIVE-SOURCES-LOOKUP",
+        url: proposed.source_url,
+        status: "active",
+        base_tier: 1, // provisional: an official European Commission publication, same posture every
+        // other registered-official EU source in this repo carries — NOT read from a live `sources` row.
+        tier_override: null,
+      };
+      const payload = buildRecordPayload({
+        sourceUrl: proposed.source_url,
+        itemType: proposed.item_type,
+        title: proposed.title,
+        jurisdictionIso: "EU",
+        source: placeholderSource,
+        capturedText,
+        fetchedLength,
+        requiredSlots,
+      });
+      payload._proof_note +=
+        " PROPOSAL DRAFT for ruling R-D (unratified as of series-item-map.json's current state): " +
+        `source.id is a PLACEHOLDER ("PENDING-LIVE-SOURCES-LOOKUP") pending the coordinator's own live ` +
+        `\`sources\` lookup for ${proposed.source_url} (MINT-RUNBOOK.md step 2) — this lane has no DB ` +
+        "access to resolve the real row. Do not apply this payload to the database as printed.";
+      payload.screen = PROPOSED_ITEM_SCREEN;
+      payload._series_key = seriesKey;
+      return payload;
+    });
 }

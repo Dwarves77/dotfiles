@@ -66,6 +66,7 @@ node --test \
   fsi-app/.discipline/consistency/*.test.mjs \
   fsi-app/.discipline/governance/*.test.mjs \
   fsi-app/.discipline/rendering/*.test.mjs \
+  fsi-app/.discipline/rendering/smoke/*.test.mjs \
   fsi-app/.discipline/runner.test.mjs \
   fsi-app/.discipline/install-hooks.test.mjs \
   fsi-app/.discipline/dispatch/*.test.mjs \
@@ -91,13 +92,18 @@ node --test \
   fsi-app/scripts/verify/*.test.mjs \
   fsi-app/scripts/verify/lib/*.test.mjs \
   fsi-app/scripts/gen/*.test.mjs \
+  fsi-app/scripts/maintenance/*.test.mjs \
+  fsi-app/scripts/maintenance/lib/*.test.mjs \
   fsi-app/scripts/mint/*.test.mjs \
   fsi-app/scripts/mint/lib/*.test.mjs \
+  fsi-app/scripts/review/*.test.mjs \
+  fsi-app/scripts/review/lib/*.test.mjs \
   fsi-app/scripts/turns/*.test.mjs \
   fsi-app/scripts/forward-events/*.test.mjs \
   fsi-app/scripts/connections/*.test.mjs \
   fsi-app/scripts/producers/*/*.test.mjs \
   fsi-app/scripts/entities/*.test.mjs \
+  fsi-app/scripts/sources/*.test.mjs \
   fsi-app/src/__tests__/*.test.mjs \
   fsi-app/src/lib/credibility/*.test.mjs \
   fsi-app/src/lib/sources/*.test.mjs \
@@ -107,6 +113,7 @@ node --test \
   fsi-app/src/lib/d3/*.selftest.mjs \
   fsi-app/src/lib/tier-labels.test.mjs \
   fsi-app/src/lib/tier-badge-tone.test.mjs \
+  fsi-app/src/lib/coverage-gaps-rollup.test.mjs \
   fsi-app/src/components/community/community-sidebar-route.test.mjs \
   fsi-app/src/lib/workspace/*.test.mjs \
   fsi-app/src/lib/connections/*.test.mjs \

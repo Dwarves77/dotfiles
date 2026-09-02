@@ -164,9 +164,13 @@ test("buildRecordPayload: end-to-end payload clears the REAL validate-mint-paylo
     },
     capturedText,
     requiredSlots: ["effective_date", "jurisdictional_scope", "penalty_summary", "primary_deadline"],
+    // Lane WSEQ (2026-09-02): validate-mint-payload.mjs's kit check now requires a grade='record' payload
+    // to carry its own screen verdict (screen_verdict_missing otherwise) — see that module's own header.
+    screen: { verdict: "on_vertical", provenance: "rule", basis: "EU framework decision, core vertical" },
   });
 
   assert.equal(payload.item.grade, "record");
+  assert.deepEqual(payload.screen, { verdict: "on_vertical", provenance: "rule", basis: "EU framework decision, core vertical" });
   assert.equal(payload.claims.every((c) => ["FACT", "GAP"].includes(c.claim_kind)), true);
 
   const result = validateMintPayload(payload, { baseDir: process.cwd() });

@@ -383,13 +383,22 @@ export function followUpgradingRedirects(fetchImpl, { maxHops = 5 } = {}) {
  *  `dryrun_disposition = 'would_mint'` alone and minted ~130 items from the UNSCREENED pool, about half
  *  of them off-vertical by the operator's own 2026-08-31 ruling — ADR-020's August incident repeated.
  *  The ruling's verdicts were never stamped on census_worklist; this gate applies them at the export,
- *  every run, so they cannot be skipped again. */
+ *  every run, so they cannot be skipped again.
+ *
+ *  Lane WSEQ (2026-09-02): a `mintable` row is returned as `{ ...r, screen: { verdict, provenance, basis } }`
+ *  — the SAME verdict this function used to decide mintability, carried onto the row itself (not just
+ *  recorded for the rejects) — so buildExportRow/buildRows can copy it onto the exported row and
+ *  run-mint-batch.mjs's --census-rows path can carry it into the mint payload as `payload.screen`.
+ *  Without this, a payload built from an exported row would have NO screen evidence at all: the kit-level
+ *  check validate-mint-payload.mjs runs on every record-grade payload could never see WHY the row passed
+ *  the screen, only that a filter upstream once let it through — exactly the kind of convention (never
+ *  checked, easy to silently regress) this lane's write sequence closes for the item write itself. */
 export function partitionByScreen(rows, reviewed = {}) {
   const mintable = [];
   const screenedOut = [];
   for (const r of rows ?? []) {
     const v = screenVerdictFor({ id: r.id, title: r.title ?? null, document_url: r.document_url, surface_tags: r.surface_tags ?? [] }, reviewed);
-    if (isMintable(v.verdict)) mintable.push(r);
+    if (isMintable(v.verdict)) mintable.push({ ...r, screen: { verdict: v.verdict, provenance: v.provenance, basis: v.basis } });
     else screenedOut.push({ row_id: r.id, document_url: r.document_url, verdict: v.verdict, rule: v.rule, basis: v.basis, provenance: v.provenance });
   }
   return { mintable, screenedOut };
@@ -503,6 +512,11 @@ export function buildExportRow(censusRow, source, identity, capture) {
       },
       captured_text: capturedText,
       fetched_length: capturedText.length,
+      // Lane WSEQ (2026-09-02): the relevance-screen verdict partitionByScreen attached to this censusRow
+      // (null when buildExportRow is called directly, outside the screened export path, e.g. by a test) —
+      // carried onto the exported row so run-mint-batch.mjs's --census-rows path can pass it straight into
+      // buildRecordPayload as `screen`, and validate-mint-payload.mjs's kit check can see it.
+      screen: censusRow?.screen ?? null,
     },
   };
 }
