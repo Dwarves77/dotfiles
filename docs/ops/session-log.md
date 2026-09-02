@@ -7939,3 +7939,23 @@ table; PENDING-RUN re-stamped (`sha256:2aa3acb86dc8a0a0`, runbook prose only), p
 mint-run-010. On the word "API" in my status messages: it meant the project's own Supabase data
 connection (`db.mjs`), never the Anthropic API; nothing in the population path is paid or LLM.
 
+### Addendum 84, postscript 11 — run #9: 43 minted verified, 53 live; the FAILED status was my self-check (2026-09-02)
+
+`population-turn` run 33656779918 (apply): 44 exported, 43 through the gate, **43 `minted_verified`**
+(`mint-run-011`, outcomes read from the rows); the reconciliation step healed the 10 quarantined items of
+run #8. Live: **53 record-grade items `verified`, not archived**, the first record-grade items on the
+site. The run still reported FAILED: `rederive-record-provenance.mjs` read its result back from the
+UPDATE's returning rows, which Postgres fills before the AFTER trigger runs, so it saw 0 verified after
+healing 10 and exited 1. Fixed: a fresh SELECT after the touch (test). The one kit failure of 44 was the
+record template's straight-quote delimiter sitting against a span that opens with the source's curly
+quote (`prose_unicode_substitution`, UK SI 2018/129); spans are now delimited with guillemets, which
+belong to no substitution class (test; record-facts is a governing file, PENDING-RUN re-stamped to
+`sha256:36ee951c38941943`, mint-run-012 supersedes). Operator, mid-run: "STOP doing the same failure
+until you find the cause" — recorded; each run's cause was read from its log and the rows before any
+change, and none was a re-run of an unchanged path. Operator questions answered in the thread: Market
+Intel and the Operations calculator were rebuilt by the train; Research was not touched; the population
+runtime is intake, measured by the harness and feeding the flywheel; the post-apply flywheel pass has not
+yet run over the 53 items; `apply-mint-batch.mjs` mirrors canonical-pipeline.ts's write sequence by hand
+instead of sharing code, which is what today's gate-order bug cost — a shared write-sequence module is
+the next structural item.
+

@@ -28,14 +28,21 @@ test("main dry-run: reads record-grade non-verified rows, calls the rpc per row,
   assert.equal(calls.filter((c) => c[0] === "rpc").length, 3);
 });
 
-test("main apply: touches ONLY the stale ids through guardedUpdateByIds with the cite, patch is updated_at only (the trigger writes the status), reads back verified", async () => {
+test("main apply: touches ONLY the stale ids through guardedUpdateByIds with the cite, patch is updated_at only (the trigger writes the status), re-reads the status with a fresh SELECT (run #9: the UPDATE's returning rows predate the AFTER trigger)", async () => {
   let captured;
+  let reads = 0;
   const deps = {
-    readAll: async () => ROWS,
+    readAll: async (table, cols, opts) => {
+      reads += 1;
+      if (reads === 1) return ROWS; // the candidate scan
+      // the post-touch re-read: the derivation has flipped them by now
+      return ["a", "c"].map((id) => ({ id, provenance_status: "verified" }));
+    },
     rpc: async (id) => ({ valid: id !== "b" }),
     guardedUpdateByIds: async (table, ids, patch, opts) => {
       captured = { table, ids, patch, opts };
-      return { updated: ids.length, chunks: 1, halvings: 0, rows: ids.map((id) => ({ id, provenance_status: "verified" })) };
+      // what Postgres RETURNING hands back: the pre-trigger tuple — still the OLD status
+      return { updated: ids.length, chunks: 1, halvings: 0, rows: ids.map((id) => ({ id })) };
     },
   };
   const r = await main({ apply: true }, deps);
@@ -46,6 +53,7 @@ test("main apply: touches ONLY the stale ids through guardedUpdateByIds with the
   assert.ok(typeof captured.opts.applyMatch === "function");
   assert.equal(r.healed, 2);
   assert.equal(r.touched, 2);
+  assert.equal(reads, 2, "one candidate scan, one post-touch re-read");
   assert.notEqual(process.exitCode, 1);
 });
 

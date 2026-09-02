@@ -67,14 +67,21 @@ export async function main({ apply = false } = {}, deps) {
   if (!apply) return { mode: "dry-run", candidates: candidates.length, stale: stale.length, stillInvalid, touched: 0 };
   if (!stale.length) return { mode: "apply", candidates: candidates.length, stale: 0, stillInvalid, touched: 0 };
 
+  const ids = stale.map((s) => s.id);
   const res = await guardedUpdateByIds(
     "intelligence_items",
-    stale.map((s) => s.id),
+    ids,
     { updated_at: new Date().toISOString() },
-    { cite: CITE, select: "id, provenance_status", applyMatch: (q) => q.eq("item_grade", "record").neq("provenance_status", "verified") },
+    { cite: CITE, select: "id", applyMatch: (q) => q.eq("item_grade", "record").neq("provenance_status", "verified") },
   );
-  const healed = (res.rows ?? []).filter((r) => r.provenance_status === "verified").length;
-  console.log(`[rederive-provenance] touched ${res.updated} in ${res.chunks} chunk(s) (${res.halvings} halvings); read back verified: ${healed}`);
+  // Read the status back with a fresh SELECT, never from the UPDATE's own returning rows: Postgres fills
+  // RETURNING from the statement's NEW tuples BEFORE the AFTER trigger runs, so the touch's returned rows
+  // still say the old status even though the derivation flipped them (population-turn run #9,
+  // 2026-09-02: 10 rows healed live, "read back verified: 0", exit 1 — the data was right, the check was
+  // reading the wrong moment).
+  const after = await readAll("intelligence_items", "id, provenance_status", { match: (q) => q.in("id", ids) });
+  const healed = after.filter((r) => r.provenance_status === "verified").length;
+  console.log(`[rederive-provenance] touched ${res.updated} in ${res.chunks} chunk(s) (${res.halvings} halvings); re-read verified: ${healed}`);
   if (healed !== stale.length) {
     console.error(`[rederive-provenance] MISMATCH — ${stale.length} rows derive verified, ${healed} read back verified after the touch`);
     process.exitCode = 1;
