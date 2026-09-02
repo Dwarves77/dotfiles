@@ -348,26 +348,14 @@ and prefixed `sha256:`. Each family's harness files:
 | `source-sweep` | `scripts/turns/run-source-sweep.mjs`, `../../src/lib/sources/register-walk.mjs`, `../../src/lib/sources/feed-walk.mjs` |
 | `ledger-consume` | `scripts/turns/run-ledger-consume.mjs`, `../../src/lib/intake/portal-harvest.ts`, `../../src/lib/llm/first-fetch-classify.ts` |
 | `change-detection` | `scripts/turns/run-change-detection.mjs`, `../../src/lib/sources/reconcile.ts`, `../../src/lib/intake/run-intake-cycle.ts` |
-
-**`ledger-consume` and `change-detection` are PRE-REGISTRATION rows** (Lane SPEND, system-completion
-train, 2026-09-02), staged ahead of the lanes (CONSUME, CD respectively) that add them to
-`ALLOWED_FAMILIES` and `F28-harness-run-integrity.mjs`'s `GOVERNING_FILES` — so the table already carries
-the right governing-file list the moment each lane's registration lands, instead of a second hand-edit
-here. Until a family is actually registered it has no `scripts/harness-runs/<family>/` directory and no
-run artifacts; F28's CONVENTION-TABLE-PARITY check only content-matches a row once `GOVERNING_FILES` has
-a matching entry, so a pre-registration row is never treated as a mismatch.
-
-**`ledger-consume` is deliberately NOT added as a row above yet** (Lane CONSUME, 2026-09-02): this table
-is machine-parsed by `.discipline/fitness/functions/F28-harness-run-integrity.test.mjs`'s
-`CONVENTION-TABLE-PARITY` test, which hardcodes the row count (`assert.equal(parsed.size, 6, ...)`) —
-that test file is outside this lane's write set, so adding a 7th row here without updating that assertion
-in the same commit would land a self-inflicted CI break nobody in this lane is permitted to fix. The
-authoritative file list for `ledger-consume` lives in F28's own `GOVERNING_FILES.'ledger-consume'`
-(`.discipline/fitness/functions/F28-harness-run-integrity.mjs`) and in `run-ledger-consume.mjs`'s
-`LEDGER_CONSUME_GOVERNING_FILES` export — identical to each other, just not yet cross-checked against a
-row here. Adding that row and bumping `CONVENTION-TABLE-PARITY`'s count to 7 in the same commit is a
-follow-up any lane touching `F28-harness-run-integrity.test.mjs` next should pick up.
 | `propagation` | `scripts/turns/run-propagation-drain.mjs`, `../../src/lib/propagation/drain.ts`, `../../src/lib/propagation/admissible-for.ts` |
+
+**`ledger-consume`, `change-detection` and `propagation`** were staged in this table by Lane SPEND
+(system-completion train, 2026-09-02) ahead of the lanes that registered them, and all three are now
+registered in `ALLOWED_FAMILIES` and `F28-harness-run-integrity.mjs`'s `GOVERNING_FILES` (integrated
+2026-09-02). The CONVENTION-TABLE-PARITY test derives its expectation from `ALLOWED_FAMILIES`: every
+registered family needs a row whose files match `GOVERNING_FILES`, and a row for a family not yet
+registered is tolerated as a pre-registration placeholder, never a mismatch.
 
 A harness-family README or runbook edit that doesn't touch the files above does not change
 `harness_version` — the hash tracks *behavior-bearing* files, not documentation. If a family's file list

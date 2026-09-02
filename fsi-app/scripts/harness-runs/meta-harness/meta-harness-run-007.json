@@ -1,6 +1,6 @@
 {
   "harness_family": "meta-harness",
-  "harness_version": "sha256:134f88fd9135affc",
+  "harness_version": "sha256:79fac2e836280e6e",
   "run_id": "meta-harness-run-007",
   "started_at": "2026-09-02T01:10:00Z",
   "finished_at": "2026-09-02T09:30:00Z",
@@ -21,7 +21,8 @@
     "governing_files_changed": [
       "scripts/lib/run-artifact.mjs (ALLOWED_FAMILIES +ledger-consume, +change-detection, +propagation)",
       ".discipline/fitness/functions/F28-harness-run-integrity.mjs (GOVERNING_FILES entries for the three families)",
-      "scripts/harness-runs/CONVENTION.md (three family paragraphs, three table rows, traces/ layout entries)"
+      "scripts/harness-runs/CONVENTION.md (three family paragraphs, three table rows, traces/ layout entries)",
+      "scripts/harness-runs/CONVENTION.md again at integration: stale pre-registration paragraph removed, propagation row placed in the table (the hash recorded here is the final integrated one)"
     ]
   },
   "inputs_ref": [

@@ -46,7 +46,7 @@
 // TELEMETRY (operator ruling 2026-07-06: "every classify call must leave an agent_runs row") — CLOSED
 // AT THE SOURCE, NOT BY THIS DRIVER (integration, system-completion train, 2026-09-02). The original Lane
 // CONSUME build found `firstFetchClassify` (src/lib/llm/first-fetch-classify.ts) making its OWN raw
-// `fetch()` call straight to `https://api.anthropic.com/v1/messages` — ticketless, unlogged, outside the
+// `fetch()` call straight to Anthropic's Messages endpoint — ticketless, unlogged, outside the
 // spend chokepoint — and closed the gap from THIS side, by wrapping the `classify` injection point so the
 // wrapper itself wrote one `agent_runs` row per call. Lane SPEND (same train) then closed the SAME gap
 // from the OTHER side, properly: `firstFetchClassify` now routes every Haiku call through
