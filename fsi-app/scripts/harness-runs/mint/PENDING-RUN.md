@@ -19,7 +19,17 @@ items are invisible to discovery.
 items and every prior mint artifact (mint-run-001..006) remain accurate records of the brief-grade
 validator's behavior, which this change does not alter for grade=brief.
 
-**harness_version at write time:** `sha256:7e9b1b6cee57777b`
+**Re-stamped 2026-09-02 (Lane POP, system-completion train):** `MINT-RUNBOOK.md` (a governing file) gained
+§11, documenting the census-worklist population runtime built this pass
+(`scripts/mint/export-census-rows.mjs`, `scripts/mint/apply-mint-batch.mjs`,
+`.github/workflows/population-turn.yml` — none of which is itself a mint-family governing file; only the
+runbook prose describing them changed the hash). This is documentation of an EXTERNAL caller of the mint
+kit, not a change to the kit's own validation behavior — the same "no batch minted through a changed
+validator" posture above still holds. Hash re-stamped per F28 rule (c)'s own escape hatch so this marker
+stays acknowledged rather than stale-by-drift; the planned run below (batch-003) is unaffected and still
+supersedes this marker whenever it lands.
+
+**harness_version at write time:** `sha256:c7d5fa64ed62ec31`
 
 **The planned run that supersedes this marker:** batch-003, the first record-grade batch, produced by
 `scripts/mint/run-mint-batch.mjs --grade record` through the corpus-turn runtime

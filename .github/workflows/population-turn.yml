@@ -1,0 +1,246 @@
+name: Population turn
+
+# RECORD-GRADE POPULATION RUNTIME (Lane POP, 2026-09-02) — the runtime docs/plans/
+# record-tier-population-plan-2026-09-01.md §6 named as its own execution sequence but could not build
+# itself (§3: "not a pure, DB-less script, and therefore out of run-mint-batch.mjs's own scope"). This
+# workflow is that sequence, end to end: stamp the WO-26 archive-reason hygiene gap so the M4 holder
+# check can tell an already-ruled-on exclusion from a real collision, export an enriched census-row batch
+# (fsi-app/scripts/mint/export-census-rows.mjs), run it through the mint family's EXISTING gate
+# (run-mint-batch.mjs --census-rows --grade record --execute — unmodified, unwritten by this lane), then
+# apply the validator-green payloads through the guarded write path (apply-mint-batch.mjs) exactly the way
+# mint-run-005/006's coordinator-apply pass did by hand. No new harness family: this reuses "mint"
+# (scripts/harness-runs/mint/), per the record-tier plan's own framing — apply-mint-batch.mjs ENRICHES
+# that family's existing run artifact, it does not mint a new one.
+#
+# DISPATCH-ONLY, mode dry|apply, same posture every runtime workflow in this repo states for itself
+# (operator ruling 2026-09-01, "no standing schedules during build"):
+#   schedule:
+#     - cron: '0 9 * * 2'   # BUILD MODE placeholder cadence only — stays commented out until the
+#                            # operator explicitly re-arms it (see source-sweep.yml / corpus-turn.yml for
+#                            # the same posture on the other runtime families).
+#
+# SECRETS (repository secrets; never echoed): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY — the
+# same pair every guarded script in fsi-app/scripts/lib/db.mjs already requires (registered in
+# .discipline/governance/secrets-registry.mjs's WORKFLOW_SECRETS; no new secret name is introduced here).
+#
+# WHAT "apply" MODE ACTUALLY WRITES: stamp-wo26-archive-reason.mjs --apply (descriptive archive_reason
+# metadata only — never is_archived/provenance_status; see that script's own header) and
+# apply-mint-batch.mjs --apply (intelligence_items / agent_run_searches / intelligence_item_sections /
+# section_claim_provenance / item_gate_a_state / intelligence_item_citations / a census_worklist
+# enumeration_status stamp, all through scripts/lib/db.mjs's guarded, cited, snapshotted path).
+# propose-tags.mjs runs --dry UNCONDITIONALLY in both modes — signature-tag ratification stays
+# operator-gated (Lane TAG's own write path, out of this workflow's scope), this step only makes
+# newly-minted untagged items VISIBLE as integrity_flags proposals for an operator to review later.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry = plan every step and write only harness-run artifacts to disk. apply = also write through the guarded DB path.'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+      limit:
+        description: 'Max census_worklist rows this run considers (export-census-rows.mjs --limit).'
+        required: false
+        default: '50'
+        type: string
+      source_id:
+        description: 'Optional sources.id — narrow the export to one source.'
+        required: false
+        type: string
+      celex_prefix:
+        description: 'Optional CELEX prefix (e.g. 32024) — narrow the export to one instrument-identifier prefix.'
+        required: false
+        type: string
+      capture:
+        description: 'Politely fetch document_url for rows with no existing agent_run_searches capture ($0, 1 req/s).'
+        required: true
+        default: true
+        type: boolean
+  # schedule:
+  #   - cron: '0 9 * * 2'   # BUILD MODE (2026-09-02) — see header above; stays commented out until the
+  #                          # operator explicitly re-arms it.
+
+concurrency:
+  group: population-turn
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
+
+jobs:
+  population:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      - name: This run's gates
+        run: |
+          echo "trigger      = ${{ github.event_name }}"
+          echo "mode         = ${{ inputs.mode }}"
+          echo "limit        = ${{ inputs.limit }}"
+          echo "source_id    = ${{ inputs.source_id }}"
+          echo "celex_prefix = ${{ inputs.celex_prefix }}"
+          echo "capture      = ${{ inputs.capture }}"
+          echo "RUN_START=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+          echo "EXPORT_DIR=scripts/_snapshots/population-${{ github.run_id }}" >> "$GITHUB_ENV"
+
+      # ── hydrate UNMERGED sibling artifacts so this run's mint-run_id cannot collide ──────────────────
+      # Same problem, same fix as source-sweep.yml's own step (see that file's comment for the full
+      # rationale): claimRunId (scripts/lib/run-artifact.mjs) numbers the next mint-run-NNN from the
+      # files it can see in the checked-out tree, i.e. master. Artifacts land through a PR, so a
+      # population-turn dispatched before a PREVIOUS population-turn's (or a hand-run mint batch's) PR
+      # merged would see a stale count and claim the SAME run_id. The unmerged sibling branches are
+      # fetched and their mint artifacts placed in the working tree (untracked; removed again before the
+      # commit step, never committed by this run) so the claim counts above them.
+      - name: Hydrate unmerged mint artifacts from sibling population branches (run_id collision guard)
+        run: |
+          git fetch --no-tags origin '+refs/heads/population/*:refs/remotes/origin/population/*' || true
+          : > /tmp/hydrated-artifacts.txt
+          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/population/*'); do
+            for f in $(git ls-tree -r --name-only "$b" -- fsi-app/scripts/harness-runs/mint/); do
+              rel="${f#fsi-app/}"
+              if [ ! -e "$rel" ]; then
+                mkdir -p "$(dirname "$rel")"
+                git show "$b:$f" > "$rel"
+                echo "$rel" >> /tmp/hydrated-artifacts.txt
+              fi
+            done
+          done
+          echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged mint file(s) from sibling population branches"
+
+      - name: Snapshot existing mint-run artifacts (for this run's new run_id discovery)
+        run: |
+          ls scripts/harness-runs/mint/mint-run-*.json 2>/dev/null | sort > /tmp/mint-before.txt || true
+
+      - name: stamp-wo26-archive-reason.mjs (archive_reason hygiene — apply only in apply mode)
+        run: |
+          if [ "${{ inputs.mode }}" = "apply" ]; then
+            node scripts/mint/stamp-wo26-archive-reason.mjs --apply
+          else
+            node scripts/mint/stamp-wo26-archive-reason.mjs
+          fi
+
+      - name: export-census-rows.mjs
+        run: |
+          mkdir -p "$EXPORT_DIR"
+          args=(--limit "${{ inputs.limit }}" --out "$EXPORT_DIR/census-rows.json")
+          if [ -n "${{ inputs.source_id }}" ]; then args+=(--source-id "${{ inputs.source_id }}"); fi
+          if [ -n "${{ inputs.celex_prefix }}" ]; then args+=(--celex-prefix "${{ inputs.celex_prefix }}"); fi
+          if [ "${{ inputs.capture }}" = "true" ]; then args+=(--capture); fi
+          node scripts/mint/export-census-rows.mjs "${args[@]}"
+
+      # run-mint-batch.mjs exits 1 when any payload fails validation (metrics.invalid > 0) — an EXPECTED
+      # outcome for a batch that includes held/malformed census rows, not a fatal condition for this
+      # workflow (the apply-ready file it wrote still carries every payload that DID validate). The `||
+      # true` here is deliberate; the artifact + apply-ready file are the record of what happened, not
+      # this step's own exit code.
+      - name: run-mint-batch.mjs --census-rows --grade record --execute (the mint family's EXISTING gate, unmodified)
+        run: |
+          node scripts/mint/run-mint-batch.mjs \
+            --census-rows "$EXPORT_DIR/census-rows.json" \
+            --grade record \
+            --execute \
+            --out-dir "$EXPORT_DIR" \
+            || true
+
+      - name: Discover this run's new mint-run-NNN.json (set by run-mint-batch.mjs's collision-safe claim)
+        run: |
+          ls scripts/harness-runs/mint/mint-run-*.json 2>/dev/null | sort > /tmp/mint-after.txt || true
+          NEW_MINT_RUN="$(comm -13 /tmp/mint-before.txt /tmp/mint-after.txt | head -1)"
+          if [ -z "$NEW_MINT_RUN" ]; then
+            echo "::error::no new scripts/harness-runs/mint/mint-run-NNN.json appeared after run-mint-batch.mjs — cannot proceed to apply-mint-batch.mjs."
+            exit 1
+          fi
+          echo "NEW_MINT_RUN=$NEW_MINT_RUN" >> "$GITHUB_ENV"
+          echo "This run's mint-run artifact: $NEW_MINT_RUN"
+
+      - name: apply-mint-batch.mjs (coordinator-apply — apply only in apply mode)
+        run: |
+          args=(--apply-ready "$EXPORT_DIR/census-rows.apply-ready.json" --census-rows "$EXPORT_DIR/census-rows.json" --mint-run "$NEW_MINT_RUN")
+          if [ "${{ inputs.mode }}" = "apply" ]; then args+=(--apply); fi
+          node scripts/mint/apply-mint-batch.mjs "${args[@]}"
+
+      # ALWAYS --dry — signature-tag ratification is Lane TAG's own operator-gated write path (out of
+      # this workflow's scope). This step only surfaces newly-minted census items' empty connection tags
+      # as integrity_flags proposals an operator can review and ratify later; it writes nothing itself in
+      # --dry mode (propose-tags.mjs's own default).
+      - name: propose-tags.mjs --dry --since <this run's start> (surfaces newly-minted items' empty tags for later ratification)
+        run: node scripts/connections/propose-tags.mjs --dry --since "$RUN_START"
+
+      - name: Remove hydrated sibling artifacts (they belong to their own branches)
+        if: always()
+        run: |
+          if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
+          rm -rf scripts/harness-runs/*/.claims
+
+      # scripts/_snapshots/ is gitignored (guarded-write prior-value snapshots stay off the repo by
+      # default) — EXCEPT this run's own census-rows/apply-ready/report/held files, which are the
+      # population-turn's full trace and are force-added here deliberately. db.mjs's own per-write
+      # prior-value snapshot JSONL files land directly under scripts/_snapshots/*.jsonl (a DIFFERENT path
+      # than $EXPORT_DIR), so they are never swept up by this add and stay off the repo, unchanged.
+      - name: Commit the mint harness-run artifact and this run's snapshot dir, and open a PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/harness-runs/mint
+          git add -f "$EXPORT_DIR"
+          if git diff --cached --quiet; then
+            echo "No new population-turn artifacts to commit."
+            exit 0
+          fi
+          branch="population/${{ github.run_id }}"
+          git checkout -b "$branch"
+          git commit -m "population-turn ${{ inputs.mode }}: run ${{ github.run_id }}"
+          git push origin HEAD:"$branch"
+          {
+            echo "Automated population turn (run ${{ github.run_id }})."
+            echo
+            echo "Mode: ${{ inputs.mode }}"
+            echo "Limit: ${{ inputs.limit }}"
+            echo "Source id: ${{ inputs.source_id }}"
+            echo "CELEX prefix: ${{ inputs.celex_prefix }}"
+            echo "Capture: ${{ inputs.capture }}"
+            echo
+            echo "Lands this run's enriched mint-run artifact (${NEW_MINT_RUN:-none}) and its export/apply-ready/report files (${EXPORT_DIR}/)."
+          } > /tmp/pr-body.md
+          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Population turn: $branch (mode=${{ inputs.mode }})" /tmp/pr-body.md
+
+      - name: Upload scripts/_snapshots as a workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: population-turn-snapshots-${{ github.run_id }}
+          path: fsi-app/scripts/_snapshots/
+          if-no-files-found: ignore
+          retention-days: 90

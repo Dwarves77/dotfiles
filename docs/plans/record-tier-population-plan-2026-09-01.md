@@ -240,3 +240,44 @@ A record-grade item is a floor, not a ceiling. When grounding is armed again
   still runs (rule 16, unconditional), but cluster/theme participation waits on Lane TAG regardless of
   grade.
 - **`.github/workflows/intake-turn.yml`** itself (Lane RT's write set, not this lane's).
+
+---
+
+## Status — 2026-09-02 (Lane POP, system-completion train)
+
+§3's missing piece — the census-worklist exporter, explicitly out of the earlier lane's write set — is
+now built, along with the coordinator-apply step §5/§6 assumed a human would run by hand each batch, and
+the workflow wiring that runs the whole §6 sequence on dispatch:
+
+- **`fsi-app/scripts/mint/export-census-rows.mjs`** (+ `export-census-rows.test.mjs`) — the §3 join
+  (`census_worklist` would_mint × `sources` × `agent_run_searches.result_content` by `result_url =
+  document_url`, >200 chars), plus `--capture` (a polite $0 fetch for rows with no existing capture) and
+  the §3 point 4 item_type decision, recorded rather than silently defaulted: CELEX sector-3 letter R →
+  `regulation`, L → `directive`, D → `initiative` (not `decision` — not a legal `intelligence_items`
+  item_type; `initiative` + `source.category = 'regulatory'` routes to the Regulations domain via
+  `domains.ts`'s existing `domainForItemType`, matching what a decision instrument actually is). Both
+  `item_type` derivation and `canonical_instrument_key` import `scripts/lib/canonical-key.mjs`'s
+  `deriveKey` — the one canonical-key mirror this repo ships — never a second regex.
+- **`fsi-app/scripts/mint/apply-mint-batch.mjs`** (+ `apply-mint-batch.test.mjs`) — the §5/§6 coordinator-
+  apply step as code: the M4 canonical-key/source-url pre-check (§4's WO-26 disposition included), inline
+  source registration, the write in `canonical-pipeline.ts`'s own table order through `scripts/lib/
+  db.mjs`'s guarded path (NOT through `mintIntelligenceItem()` — `MintPlan` has no field for a payload's
+  sections/claims/search_results; see that file's header for the full citation), the `validate_item_
+  provenance` RPC verdict, and a `census_worklist.enumeration_status = 'reconciled'` stamp on a real mint
+  only (a `not_applied_*` payload's row is left UNRECONCILED, matching `mint-run-006.json`'s own
+  precedent). `--dry` (default) writes nothing; `--apply` performs the real guarded writes and enriches the
+  batch's own `mint-run-NNN.json` in place, keeping `validateRunArtifact` green.
+- **`.github/workflows/population-turn.yml`** — dispatch-only, `mode` dry/apply, `limit`/`source_id`/
+  `celex_prefix`/`capture` inputs: `stamp-wo26-archive-reason.mjs` (§4, apply only in apply mode) →
+  `export-census-rows.mjs` → `run-mint-batch.mjs --census-rows --grade record --execute` (this kit's own
+  gate, unmodified) → `apply-mint-batch.mjs` (apply only in apply mode) → `propose-tags.mjs --dry` → commit
+  + PR. Reuses the existing `mint` harness family (`scripts/harness-runs/mint/`) — no new family.
+- **`fsi-app/scripts/mint/MINT-RUNBOOK.md` §11** documents both scripts and the workflow from the kit's own
+  side, pointing back here for the plan-level "why."
+
+**Not done by this pass** (named per this plan's own §8 discipline): migration 278 (`item_grade`)
+landing and the first live dispatch of `population-turn.yml` are coordinator-side, after this lane's
+branch merges — this status block records what now EXISTS to run, not a completed run. §2's coverage
+caveat (`SLOT_TRIGGERS` covering only the regulation/directive/standard/guidance/framework family) and §8's
+three named-out-of-scope items (Lane TAG's tag derivation, `intake-turn.yml` itself, `SLOT_TRIGGERS`
+extension) are unchanged and still stand as written above.

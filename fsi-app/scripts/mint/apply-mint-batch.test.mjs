@@ -1,0 +1,440 @@
+// Tests for apply-mint-batch.mjs (Lane POP, 2026-09-02). node:test + node:assert/strict. No network, no
+// DB: every DB interaction is a fake object injected as `ctx.db` / `deps` — guardedInsert/guardedInsertMany/
+// guardedUpdate/registerSource/rpc are plain in-memory recorders, never the real scripts/lib/db.mjs client.
+// This file (and apply-mint-batch.mjs's own imports — ./lib/gate-a-scan.mjs, ../lib/run-artifact.mjs,
+// ../../src/lib/domains.ts) is portable: node: builtins + relative .mjs/.ts only, per
+// .discipline/glob-portability.test.mjs's rule that fsi-app/scripts/mint/*.test.mjs runs with no npm ci.
+// Run: node --test scripts/mint/apply-mint-batch.test.mjs
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import {
+  buildItemsIndex,
+  checkM4,
+  censusRowIdSet,
+  resolveCensusRowId,
+  buildIntelligenceItemRow,
+  buildAgentRunSearchRows,
+  buildSectionRows,
+  buildClaimRows,
+  buildCitationRows,
+  computeGateAState,
+  enrichMintRunArtifact,
+  applyOnePayload,
+  run,
+} from "./apply-mint-batch.mjs";
+import { validateRunArtifact } from "../lib/run-artifact.mjs";
+
+// ── buildItemsIndex / checkM4 ────────────────────────────────────────────────────────────────────────
+
+test("buildItemsIndex: indexes by canonical_instrument_key (list, for collisions) and by source_url (single)", () => {
+  const items = [
+    { id: "i1", source_url: "https://x/a", canonical_instrument_key: "32024R0001", archive_reason: null },
+    { id: "i2", source_url: "https://x/b", canonical_instrument_key: null, archive_reason: null },
+  ];
+  const idx = buildItemsIndex(items);
+  assert.deepEqual(idx.byCanonicalKey.get("32024R0001").map((h) => h.id), ["i1"]);
+  assert.equal(idx.bySourceUrl.get("https://x/b").id, "i2");
+  assert.equal(idx.bySourceUrl.get("https://x/a").id, "i1");
+});
+
+test("checkM4: a canonical-key holder archived out_of_scope_wo26 -> not_applied_wo26_excluded", () => {
+  const idx = buildItemsIndex([{ id: "holder-1", source_url: "https://x/held", canonical_instrument_key: "32024R0001", archive_reason: "out_of_scope_wo26" }]);
+  const payload = { item: { canonical_instrument_key: "32024R0001", source_url: "https://x/new" } };
+  assert.deepEqual(checkM4(payload, idx), { blocked: true, outcome: "not_applied_wo26_excluded", holderId: "holder-1" });
+});
+
+test("checkM4: a canonical-key holder with any OTHER archive_reason (or none) -> not_applied_holder_conflict", () => {
+  const idx = buildItemsIndex([{ id: "holder-2", source_url: "https://x/held", canonical_instrument_key: "32024R0001", archive_reason: null }]);
+  const payload = { item: { canonical_instrument_key: "32024R0001", source_url: "https://x/new" } };
+  assert.deepEqual(checkM4(payload, idx), { blocked: true, outcome: "not_applied_holder_conflict", holderId: "holder-2" });
+});
+
+test("checkM4: no canonical-key holder but the exact source_url already has an item -> not_applied_url_holder", () => {
+  const idx = buildItemsIndex([{ id: "holder-3", source_url: "https://x/same", canonical_instrument_key: "32099R9999", archive_reason: null }]);
+  const payload = { item: { canonical_instrument_key: "32024R0001", source_url: "https://x/same" } };
+  assert.deepEqual(checkM4(payload, idx), { blocked: true, outcome: "not_applied_url_holder", holderId: "holder-3" });
+});
+
+test("checkM4: no key match, no url match -> not blocked", () => {
+  const idx = buildItemsIndex([]);
+  const payload = { item: { canonical_instrument_key: "32024R0001", source_url: "https://x/fresh" } };
+  assert.deepEqual(checkM4(payload, idx), { blocked: false });
+});
+
+// ── censusRowIdSet / resolveCensusRowId ─────────────────────────────────────────────────────────────
+
+test("censusRowIdSet / resolveCensusRowId: a payload traces back to its row ONLY when its id IS a real row_id", () => {
+  const rowIdSet = censusRowIdSet([{ row_id: "cw-1" }, { row_id: "cw-2" }, {}]);
+  assert.deepEqual([...rowIdSet].sort(), ["cw-1", "cw-2"]);
+  assert.equal(resolveCensusRowId({ id: "cw-1" }, rowIdSet), "cw-1");
+  assert.equal(resolveCensusRowId({ id: "CELEX:32024R0001" }, rowIdSet), null); // fell back to a non-row_id id
+  assert.equal(resolveCensusRowId({}, rowIdSet), null);
+});
+
+// ── row builders ─────────────────────────────────────────────────────────────────────────────────────
+
+const PAYLOAD = {
+  id: "cw-1",
+  item: {
+    source_url: "https://eur-lex.europa.eu/32024R0001",
+    item_type: "regulation",
+    title: "Regulation (EU) 2024/0001",
+    full_brief: "*Catalogue record.*\n\n- [title] verbatim span here",
+    instrument_identifier: "32024R0001",
+    canonical_instrument_key: "32024R0001",
+    jurisdiction_iso: "EU",
+    priority: "MODERATE",
+    grade: "record",
+  },
+  source: { id: "src-1", url: "https://eur-lex.europa.eu", status: "active", base_tier: 1 },
+  sections: [
+    { section_key: "identity", section_order: 1, content_md: "id" },
+    { section_key: "record_facts", section_order: 2, content_md: "facts" },
+  ],
+  search_results: [
+    { result_url: "https://eur-lex.europa.eu/32024R0001", result_title: "Regulation (EU) 2024/0001", search_query: "canonical:record-grade", result_index: 0, result_content: "x".repeat(500), fetched_length: 500 },
+  ],
+  claims: [
+    { section_key: "identity", claim_kind: "FACT", claim_text: "[title] verbatim span here", source_span: "verbatim span here", source_url: "https://eur-lex.europa.eu/32024R0001", slot_key: "title" },
+    { section_key: "record_facts", claim_kind: "GAP", claim_text: "[effective_date] not stated", source_span: null, source_url: null, slot_key: "effective_date" },
+  ],
+};
+
+test("buildIntelligenceItemRow: wraps jurisdiction_iso into an array (column is TEXT[], migration 033), defaults grade to record", () => {
+  const row = buildIntelligenceItemRow(PAYLOAD, { sourceId: "src-1", domain: 1 });
+  assert.equal(row.title, "Regulation (EU) 2024/0001");
+  assert.equal(row.source_id, "src-1");
+  assert.equal(row.domain, 1);
+  assert.deepEqual(row.jurisdiction_iso, ["EU"]);
+  assert.equal(row.item_grade, "record");
+  assert.equal("provenance_status" in row, false, "provenance_status must be OMITTED — trigger-derived, never set by this script");
+});
+
+test("buildIntelligenceItemRow: absent jurisdiction_iso -> empty array, not null (column default)", () => {
+  const row = buildIntelligenceItemRow({ item: { ...PAYLOAD.item, jurisdiction_iso: null } }, { sourceId: "src-1", domain: 1 });
+  assert.deepEqual(row.jurisdiction_iso, []);
+});
+
+test("buildAgentRunSearchRows: one row per search_results[] entry, result_content copied VERBATIM and in FULL (ADR-016)", () => {
+  const rows = buildAgentRunSearchRows(PAYLOAD, "item-1", "2026-09-02T00:00:00Z");
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].intelligence_item_id, "item-1");
+  assert.equal(rows[0].result_content, PAYLOAD.search_results[0].result_content);
+  assert.equal(rows[0].result_content.length, 500);
+  assert.equal(rows[0].result_url, "https://eur-lex.europa.eu/32024R0001");
+  assert.equal(rows[0].searched_at, "2026-09-02T00:00:00Z");
+});
+
+test("buildSectionRows: one row per sections[] entry, item_id stamped", () => {
+  const rows = buildSectionRows(PAYLOAD, "item-1");
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows.map((r) => r.section_key), ["identity", "record_facts"]);
+  assert.ok(rows.every((r) => r.item_id === "item-1"));
+});
+
+test("buildClaimRows: a FACT claim resolves section_row_id + search_result_id; a GAP claim carries neither", () => {
+  const sectionIdBySectionKey = new Map([["identity", "sec-1"], ["record_facts", "sec-2"]]);
+  const searchIdByUrl = new Map([["https://eur-lex.europa.eu/32024R0001", "search-1"]]);
+  const rows = buildClaimRows(PAYLOAD, "item-1", { sectionIdBySectionKey, searchIdByUrl, sourceId: "src-1", sourceTier: 1 });
+  const fact = rows.find((r) => r.claim_text.startsWith("[title]"));
+  const gap = rows.find((r) => r.claim_text.startsWith("[effective_date]"));
+  assert.equal(fact.section_row_id, "sec-1");
+  assert.equal(fact.source_id, "src-1");
+  assert.equal(fact.search_result_id, "search-1");
+  assert.equal(fact.source_tier_at_grounding, 1);
+  assert.equal(gap.section_row_id, "sec-2");
+  assert.equal(gap.source_id, null);
+  assert.equal(gap.search_result_id, null);
+  assert.equal(gap.source_tier_at_grounding, null);
+});
+
+test("buildClaimRows RED: a FACT claim whose source_url has no matching agent_run_searches row -> search_result_id null, not a crash", () => {
+  const sectionIdBySectionKey = new Map([["identity", "sec-1"]]);
+  const searchIdByUrl = new Map(); // no match
+  const rows = buildClaimRows(PAYLOAD, "item-1", { sectionIdBySectionKey, searchIdByUrl, sourceId: "src-1", sourceTier: 1 });
+  const fact = rows.find((r) => r.claim_text.startsWith("[title]"));
+  assert.equal(fact.search_result_id, null);
+});
+
+test("buildCitationRows: one row per DISTINCT cited source_id, origin agent_extraction", () => {
+  const claimRows = [
+    { source_id: "src-1" }, { source_id: "src-1" }, { source_id: null }, { source_id: "src-2" },
+  ];
+  const rows = buildCitationRows("item-1", claimRows, "2026-09-02T00:00:00Z");
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows.map((r) => r.source_id).sort(), ["src-1", "src-2"]);
+  assert.ok(rows.every((r) => r.intelligence_item_id === "item-1" && r.origin === "agent_extraction"));
+});
+
+test("computeGateAState: scans full_brief against the payload's own FACT claims (record-tier plan §2's 'by construction' claim, measured not assumed)", () => {
+  const ga = computeGateAState(PAYLOAD, "item-1", "2026-09-02T00:00:00Z");
+  assert.equal(ga.intelligence_item_id, "item-1");
+  assert.equal(typeof ga.orphan_count, "number");
+  assert.ok(Array.isArray(ga.orphans));
+  assert.equal(ga.scanned_at, "2026-09-02T00:00:00Z");
+});
+
+// ── enrichMintRunArtifact ────────────────────────────────────────────────────────────────────────────
+
+function baseArtifact(overrides = {}) {
+  return {
+    harness_family: "mint",
+    harness_version: "sha256:abc123",
+    run_id: "mint-run-007",
+    started_at: "2026-09-02T00:00:00Z",
+    config: { phase: "census-rows" },
+    inputs_ref: ["scripts/_snapshots/population-x/census-rows.json"],
+    per_item: [{ id: "cw-1", outcome: "apply_ready" }],
+    metrics: { attempted: 1, valid: 1, db_deltas: { items: 0, sections: 0, claims: 0, searches: 0, gate_a: 0, citations: 0, sources: 0 } },
+    defects_found: [],
+    full_trace_refs: ["scripts/_snapshots/population-x/census-rows.json"],
+    proposer_notes: "",
+    ...overrides,
+  };
+}
+
+test("enrichMintRunArtifact: replaces an existing per_item id's entry, appends a new one, stays validateRunArtifact-clean", () => {
+  const artifact = baseArtifact();
+  const enriched = enrichMintRunArtifact(artifact, {
+    perItemPatches: [
+      { id: "cw-1", outcome: "minted_verified", item_id: "item-1" }, // replaces
+      { id: "cw-2", outcome: "not_applied_holder_conflict" }, // appended
+    ],
+    metricsPatch: { db_deltas: { items: 1, sections: 2, claims: 3, searches: 1, gate_a: 1, citations: 1, sources: 0 }, minted: 1 },
+  });
+  assert.equal(enriched.per_item.length, 2);
+  assert.equal(enriched.per_item.find((p) => p.id === "cw-1").outcome, "minted_verified");
+  assert.equal(enriched.per_item.find((p) => p.id === "cw-2").outcome, "not_applied_holder_conflict");
+  assert.equal(enriched.metrics.db_deltas.items, 1); // additive over the pre-existing 0
+  assert.equal(enriched.metrics.minted, 1);
+  assert.equal(enriched.metrics.attempted, 1); // untouched pre-existing key survives (additive, not wholesale replace)
+  assert.deepEqual(validateRunArtifact(enriched), []);
+});
+
+test("enrichMintRunArtifact: never mutates its input artifact", () => {
+  const artifact = baseArtifact();
+  const before = JSON.stringify(artifact);
+  enrichMintRunArtifact(artifact, { perItemPatches: [{ id: "cw-1", outcome: "minted_verified" }] });
+  assert.equal(JSON.stringify(artifact), before);
+});
+
+test("enrichMintRunArtifact: db_deltas ADDS across two enrichment calls (batch's own metrics survive an apply pass)", () => {
+  const artifact = baseArtifact({ metrics: { db_deltas: { items: 5, sections: 20 } } });
+  const enriched = enrichMintRunArtifact(artifact, { metricsPatch: { db_deltas: { items: 1, sections: 4 } } });
+  assert.equal(enriched.metrics.db_deltas.items, 6);
+  assert.equal(enriched.metrics.db_deltas.sections, 24);
+});
+
+// ── applyOnePayload ──────────────────────────────────────────────────────────────────────────────────
+
+function fakeDbThatThrows() {
+  return {
+    guardedInsert: async () => { throw new Error("guardedInsert should not be called in this test"); },
+    guardedInsertMany: async () => { throw new Error("guardedInsertMany should not be called in this test"); },
+    guardedUpdate: async () => { throw new Error("guardedUpdate should not be called in this test"); },
+    registerSource: async () => { throw new Error("registerSource should not be called in this test"); },
+  };
+}
+
+test("applyOnePayload: M4-blocked payload never touches ctx.db, in EITHER dry or apply mode", async () => {
+  const idx = buildItemsIndex([{ id: "holder-1", source_url: "https://x/other", canonical_instrument_key: "32024R0001", archive_reason: "out_of_scope_wo26" }]);
+  const payload = { id: "cw-1", item: { canonical_instrument_key: "32024R0001", source_url: "https://x/new" } };
+  for (const apply of [false, true]) {
+    const ctx = { db: fakeDbThatThrows(), rpc: async () => { throw new Error("rpc should not be called"); }, itemsIndex: idx, sourcesById: new Map(), rowIdSet: new Set(), cite: { skill: "x", reason: "y" }, apply };
+    const result = await applyOnePayload(payload, ctx);
+    assert.equal(result.perItem.outcome, "not_applied_wo26_excluded");
+    assert.equal(result.perItem.holder_item_id, "holder-1");
+    assert.deepEqual(result.dbDeltas, { items: 0, sections: 0, claims: 0, searches: 0, gate_a: 0, citations: 0, sources: 0 });
+    assert.equal(result.censusStamped, false);
+  }
+});
+
+test("applyOnePayload: DRY mode (not M4-blocked) plans and reports, never calls ctx.db", async () => {
+  const idx = buildItemsIndex([]);
+  const ctx = { db: fakeDbThatThrows(), rpc: async () => { throw new Error("rpc should not be called in dry mode"); }, itemsIndex: idx, sourcesById: new Map([["src-1", { id: "src-1", status: "active", category: "regulatory" }]]), rowIdSet: censusRowIdSet([{ row_id: "cw-1" }]), cite: { skill: "x", reason: "y" }, apply: false };
+  const result = await applyOnePayload(PAYLOAD, ctx);
+  assert.equal(result.perItem.outcome, "would_apply");
+  assert.match(result.perItem.verdict, /2 section\(s\), 2 claim\(s\), 1 search result\(s\)/);
+  assert.equal(result.censusStamped, false);
+});
+
+test("applyOnePayload: DRY mode reports would_apply_new_source when the payload's source needs inline registration", async () => {
+  const idx = buildItemsIndex([]);
+  const ctx = { db: fakeDbThatThrows(), rpc: async () => {}, itemsIndex: idx, sourcesById: new Map(), rowIdSet: new Set(), cite: { skill: "x", reason: "y" }, apply: false };
+  const result = await applyOnePayload(PAYLOAD, ctx); // src-1 not in sourcesById
+  assert.equal(result.perItem.outcome, "would_apply_new_source");
+});
+
+/** A fake guarded-db that records every call (table, row/rows/patch) and hands back deterministic ids —
+ *  the write-order + write-shape assertions below read this call log directly. No DB, no network. */
+function fakeAppliedDb() {
+  const calls = [];
+  let nextId = 1;
+  return {
+    calls,
+    guardedInsert: async (table, row, opts) => {
+      calls.push({ fn: "guardedInsert", table, row, opts });
+      const id = `${table}-${nextId++}`;
+      return { inserted: { id, ...row }, snapshot: "snap.jsonl" };
+    },
+    guardedInsertMany: async (table, rows, opts) => {
+      calls.push({ fn: "guardedInsertMany", table, rows, opts });
+      const out = rows.map((r, i) => ({ id: `${table}-${nextId++}`, ...r }));
+      return { inserted: out.length, snapshot: "snap.jsonl", rows: out };
+    },
+    guardedUpdate: async (table, applyMatch, patch, opts) => {
+      calls.push({ fn: "guardedUpdate", table, patch, opts });
+      return { updated: 1, snapshot: "snap.jsonl", rows: [{ id: "cw-1", ...patch }] };
+    },
+    registerSource: async (source, opts) => {
+      calls.push({ fn: "registerSource", source, opts });
+      return { source_id: "src-registered-1", created: true, host: "eur-lex.europa.eu" };
+    },
+  };
+}
+
+test("applyOnePayload APPLY: writes in the exact canonical-pipeline.ts order — intelligence_items, agent_run_searches, intelligence_item_sections, section_claim_provenance, item_gate_a_state, intelligence_item_citations", async () => {
+  const idx = buildItemsIndex([]);
+  const db = fakeAppliedDb();
+  const rpc = async () => ({ valid: true, recommended_status: "verified" });
+  const ctx = { db, rpc, itemsIndex: idx, sourcesById: new Map([["src-1", { id: "src-1", status: "active", category: "regulatory", base_tier: 1 }]]), rowIdSet: censusRowIdSet([{ row_id: "cw-1" }]), cite: { skill: "record-tier-population-plan", reason: "test" }, apply: true };
+  const result = await applyOnePayload(PAYLOAD, ctx);
+
+  const order = db.calls.map((c) => `${c.fn}:${c.table ?? ""}`);
+  assert.deepEqual(order, [
+    "guardedInsert:intelligence_items",
+    "guardedInsertMany:agent_run_searches",
+    "guardedInsertMany:intelligence_item_sections",
+    "guardedInsertMany:section_claim_provenance",
+    "guardedInsert:item_gate_a_state",
+    "guardedInsertMany:intelligence_item_citations",
+    "guardedUpdate:census_worklist",
+  ]);
+  // every write carries the cite (db.mjs requireCite would refuse a write with none — this proves the
+  // caller always supplies one, not that the fake enforces it).
+  assert.ok(db.calls.every((c) => c.opts?.cite?.skill && c.opts?.cite?.reason));
+
+  assert.equal(result.perItem.outcome, "minted_verified");
+  assert.equal(result.perItem.item_id, "intelligence_items-1");
+  assert.equal(result.perItem.error, null);
+  assert.deepEqual(result.dbDeltas, { items: 1, sections: 2, claims: 2, searches: 1, gate_a: 1, citations: 1, sources: 0 });
+  assert.equal(result.censusStamped, true);
+  assert.equal(result.censusRowId, "cw-1");
+});
+
+test("applyOnePayload APPLY: an INVALID rpc verdict records minted_unverified with the failures, never deletes/retries", async () => {
+  const idx = buildItemsIndex([]);
+  const db = fakeAppliedDb();
+  const rpc = async () => ({ valid: false, recommended_status: "quarantined", failures: [{ criterion: "C3", reason: "fact_span_not_in_source" }] });
+  const ctx = { db, rpc, itemsIndex: idx, sourcesById: new Map([["src-1", { id: "src-1", status: "active", category: "regulatory", base_tier: 1 }]]), rowIdSet: new Set(), cite: { skill: "x", reason: "y" }, apply: true };
+  const result = await applyOnePayload(PAYLOAD, ctx);
+  assert.equal(result.perItem.outcome, "minted_unverified");
+  assert.match(result.perItem.error, /fact_span_not_in_source/);
+  // no delete/retry call of any kind appears in the write log — only the six inserts/update above ran.
+  assert.ok(!db.calls.some((c) => c.fn.toLowerCase().includes("delete")));
+});
+
+test("applyOnePayload APPLY: source needing registration is registered inline via registerSource FIRST, and reused for the insert", async () => {
+  const idx = buildItemsIndex([]);
+  const db = fakeAppliedDb();
+  const rpc = async () => ({ valid: true });
+  const ctx = { db, rpc, itemsIndex: idx, sourcesById: new Map(), rowIdSet: new Set(), cite: { skill: "x", reason: "y" }, apply: true };
+  const result = await applyOnePayload(PAYLOAD, ctx);
+  assert.equal(db.calls[0].fn, "registerSource");
+  assert.equal(db.calls[1].fn, "guardedInsert");
+  assert.equal(db.calls[1].row.source_id, "src-registered-1");
+  assert.deepEqual(result.dbDeltas.sources, 1); // a FRESH registration counts as a sources delta
+});
+
+test("applyOnePayload APPLY: a domainForItemType miss (unresolvable item_type/category pair) -> not_applied_domain_unresolved, no writes", async () => {
+  const idx = buildItemsIndex([]);
+  const db = fakeAppliedDb();
+  const payload = { ...PAYLOAD, item: { ...PAYLOAD.item, item_type: "not-a-real-item-type" } };
+  const ctx = { db, rpc: async () => { throw new Error("rpc should not be reached"); }, itemsIndex: idx, sourcesById: new Map([["src-1", { id: "src-1", status: "active", category: "regulatory" }]]), rowIdSet: new Set(), cite: { skill: "x", reason: "y" }, apply: true };
+  const result = await applyOnePayload(payload, ctx);
+  assert.equal(result.perItem.outcome, "not_applied_domain_unresolved");
+  assert.equal(db.calls.length, 0);
+});
+
+test("applyOnePayload APPLY: a later payload in the SAME batch sees an already-minted item as an M4 holder", async () => {
+  const idx = buildItemsIndex([]);
+  const db = fakeAppliedDb();
+  const rpc = async () => ({ valid: true });
+  const ctx = { db, rpc, itemsIndex: idx, sourcesById: new Map([["src-1", { id: "src-1", status: "active", category: "regulatory", base_tier: 1 }]]), rowIdSet: new Set(), cite: { skill: "x", reason: "y" }, apply: true };
+  await applyOnePayload(PAYLOAD, ctx); // mints CELEX 32024R0001
+
+  const secondPayload = { ...PAYLOAD, id: "cw-2" }; // SAME canonical_instrument_key, a different census row
+  const second = await applyOnePayload(secondPayload, ctx);
+  assert.equal(second.perItem.outcome, "not_applied_holder_conflict");
+});
+
+// ── run() — end to end over fake files + fake deps ──────────────────────────────────────────────────
+
+async function withTmpDir(fn) {
+  const dir = mkdtempSync(join(tmpdir(), "apply-mint-batch-test-"));
+  try { return await fn(dir); } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+
+function writeJson(path, obj) { writeFileSync(path, JSON.stringify(obj, null, 2)); }
+
+test("run(): DRY mode writes NOTHING — no DB write, no census stamp, no mint-run artifact enrichment", () => withTmpDir(async (dir) => {
+  const applyReadyPath = join(dir, "batch.apply-ready.json");
+  const censusRowsPath = join(dir, "census-rows.json");
+  const mintRunPath = join(dir, "mint-run-900.json");
+  writeJson(applyReadyPath, [PAYLOAD]);
+  writeJson(censusRowsPath, [{ row_id: "cw-1" }]);
+  const artifact = baseArtifact({ run_id: "mint-run-900" });
+  writeJson(mintRunPath, artifact);
+  const before = readFileSync(mintRunPath, "utf8");
+
+  const db = fakeAppliedDb();
+  const result = await run(
+    { "apply-ready": applyReadyPath, "census-rows": censusRowsPath, "mint-run": mintRunPath, apply: false, dry: true },
+    { readAll: async (table) => (table === "sources" ? [{ id: "src-1", url: "https://eur-lex.europa.eu", status: "active", category: "regulatory", base_tier: 1 }] : []), guardedInsert: db.guardedInsert, guardedInsertMany: db.guardedInsertMany, guardedUpdate: db.guardedUpdate, registerSource: db.registerSource, rpc: async () => { throw new Error("rpc must not run in dry mode"); } },
+  );
+  assert.equal(result.applied, false);
+  assert.equal(db.calls.length, 0);
+  assert.equal(readFileSync(mintRunPath, "utf8"), before, "the mint-run artifact file must be byte-unchanged after a dry run");
+}));
+
+test("run(): APPLY mode enriches the mint-run artifact in place and keeps it validateRunArtifact-clean", () => withTmpDir(async (dir) => {
+  const applyReadyPath = join(dir, "batch.apply-ready.json");
+  const censusRowsPath = join(dir, "census-rows.json");
+  const mintRunPath = join(dir, "mint-run-901.json");
+  writeJson(applyReadyPath, [PAYLOAD]);
+  writeJson(censusRowsPath, [{ row_id: "cw-1" }]);
+  writeJson(mintRunPath, baseArtifact({ run_id: "mint-run-901" }));
+
+  const db = fakeAppliedDb();
+  const result = await run(
+    { "apply-ready": applyReadyPath, "census-rows": censusRowsPath, "mint-run": mintRunPath, apply: true },
+    { readAll: async (table) => (table === "sources" ? [{ id: "src-1", url: "https://eur-lex.europa.eu", status: "active", category: "regulatory", base_tier: 1 }] : []), guardedInsert: db.guardedInsert, guardedInsertMany: db.guardedInsertMany, guardedUpdate: db.guardedUpdate, registerSource: db.registerSource, rpc: async () => ({ valid: true, recommended_status: "verified" }) },
+  );
+  assert.equal(result.applied, true);
+  assert.equal(result.minted, 1);
+  const onDisk = JSON.parse(readFileSync(mintRunPath, "utf8"));
+  assert.deepEqual(validateRunArtifact(onDisk), []);
+  assert.equal(onDisk.per_item.find((p) => p.id === "cw-1").outcome, "minted_verified");
+  assert.equal(onDisk.metrics.minted, 1);
+  assert.equal(onDisk.metrics.census_rows_reconciled, 1);
+}));
+
+test("run(): --apply is a no-op flag without --dry cleared — `dry: true` always wins over `apply: true`", () => withTmpDir(async (dir) => {
+  const applyReadyPath = join(dir, "batch.apply-ready.json");
+  const censusRowsPath = join(dir, "census-rows.json");
+  const mintRunPath = join(dir, "mint-run-902.json");
+  writeJson(applyReadyPath, [PAYLOAD]);
+  writeJson(censusRowsPath, [{ row_id: "cw-1" }]);
+  writeJson(mintRunPath, baseArtifact({ run_id: "mint-run-902" }));
+
+  const db = fakeAppliedDb();
+  const result = await run(
+    { "apply-ready": applyReadyPath, "census-rows": censusRowsPath, "mint-run": mintRunPath, apply: true, dry: true },
+    { readAll: async () => [], guardedInsert: db.guardedInsert, guardedInsertMany: db.guardedInsertMany, guardedUpdate: db.guardedUpdate, registerSource: db.registerSource, rpc: async () => { throw new Error("rpc must not run"); } },
+  );
+  assert.equal(result.applied, false);
+  assert.equal(db.calls.length, 0);
+}));
