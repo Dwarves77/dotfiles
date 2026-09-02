@@ -1,8 +1,8 @@
 # Last proposer pass — source-sweep
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `source-sweep` now has **four** artifacts
-(`source-sweep-run-001` … `source-sweep-run-004`); F28's rule (d) requires this file to name the latest
-verbatim: **source-sweep-run-004**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `source-sweep` now has **five** artifacts
+(`source-sweep-run-001` … `source-sweep-run-005`); F28's rule (d) requires this file to name the latest
+verbatim: **source-sweep-run-005**.
 
 **Artifacts read:** source-sweep-run-001 (2026-09-01T22:31Z, `sha256:87e06e9784e8e21b`, the driver's
 first execution, dry) and source-sweep-run-002 (2026-09-01T23:00:22Z → 23:00:26Z,
@@ -101,3 +101,32 @@ the live daily view for 26 August in the browser at the same minute (renders its
 
 **Proposal:** run-005 (apply) after a pause of at least several minutes; read its `days_with_error`
 before anything else. Then FR and feed first walks (dry). No governing-file edits until run-005 lands.
+
+
+---
+
+## Pass over source-sweep-run-005 (2026-09-01, coordinator)
+
+**Artifacts read:** all five. **Full traces read:** `traces/source-sweep-run-005.raw-result.json`;
+the live `portal_link_candidates` rows grouped by parent source, read back after the run.
+
+**Hypotheses (verified, with basis):**
+1. **The register answered again and the politeness gap held:** 7 acts, `days_duplicate_edition = 2`,
+   27 s for seven days (run-004: 0.3 s), `days_with_error = 0`, no `unexpected page shape`. Basis: the
+   artifact and trace.
+2. **Correction of the run-004 pass (hypothesis 1 there) and of this family's previous marker:**
+   `260089a9-…` was NOT "a fresh row registered by resolvePortalSourceId". It is the existing
+   `sources` row "EUR-Lex" (`https://eur-lex.europa.eu/`, the portal the July `check-sources` crawl
+   registered), holding 133 OJ candidates with `first_seen_at` back to 2026-07-19, which the
+   exact-URL lookup found. "The id is new" was stated as basis without a read of the table; it was an
+   inference. The outcome is the better one (one portal row, not two), and the seven run-003 candidates
+   now carry `source_id 260089a9-…` with `last_seen_at` 23:53Z. Basis: `SELECT … GROUP BY source_id`.
+3. **The family's five runs, read together, are the runtime's first week of real behaviour:** chrome
+   and weekend echo (001), proven fix (002), honest apply (003), wrong parent (003's read-back), a
+   non-register 200 (004), and a clean apply (005). Every one of those was found by reading the
+   artifact against the live site or table, not by the run's exit code — all five runs exited 1 on the
+   PR step only.
+
+**Proposal:** no governing-file edits. Next runs are the FR and feed first walks (dry). The
+`consumePortalCandidates` hop (ledger → classify → intake) is still the gap between a sweep and a
+minted item; that is a corpus-turn design question, not a sweep fix.

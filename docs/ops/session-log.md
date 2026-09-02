@@ -7581,3 +7581,21 @@ Cause labelled [INFERRED] (rate-limit/interstitial after four full walks of one 
 run-004 kept no body, which is what the fix now records. Marker re-pinned to `sha256:5a6a5a4649f79eec`;
 run-005 (apply, after a pause) discharges it. The seven candidate rows still point at the 1976-opinion
 row until run-005 upserts. Gates: suite 2,547/2,547 · fitness 23/0 · meta-gate PASS.
+
+**Postscript 4 (closing).** Train 12 = `b7c76fc`. Run-005 (apply, 23:53Z, after a 19-minute pause):
+the register answered, 7 acts, `days_duplicate_edition = 2`, 27 s for the week (one request per
+second), no page-shape errors; marker discharged. Read-back corrected my own record: `260089a9-…` is
+NOT a row run-004 created; it is the existing "EUR-Lex" portal source (`https://eur-lex.europa.eu/`,
+registered by the July check-sources crawl, 133 OJ candidates since 2026-07-19) that the exact-URL
+lookup found. I had written "the id is new" as basis without reading the table. All seven run-003
+candidates now carry that parent. Source-sweep proposer pass names run-005 and records the correction.
+
+**Where the day ends.** Master carries Trains 8–12 (#507, #508, #510, #511, #512, #513, plus the
+run-005 landing in flight). The runtime exists and has run for real: one full corpus turn (1,931 edges,
+14 themes, 316 flags) and five register walks; eleven defects found by reading artifacts against the
+live site, table, and logs, all eleven fixed, plus two retractions of my own claims made ahead of their
+evidence (the "shape mismatch" and "the id is new"). One item remains the operator's: the Actions
+PR-creation setting. **Next step for a cold session:** WO-26 stamp (`stamp-wo26-archive-reason.mjs
+--execute`, needs a workflow step or the runtime), tag proposals + ratification, batch-003 records
+(mint-run-007), EIA secret, FR + feed first walks (dry), then the ledger-consume hop design. Gates:
+suite 2,547/2,547 · fitness 23/0 · meta-gate PASS.

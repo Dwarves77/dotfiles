@@ -1757,7 +1757,8 @@ explicit brief.
 | **FIXED (9th defect)** | run_id collision when a run is dispatched before the prior artifact's PR merges; both workflows now hydrate unmerged sibling artifacts before claiming | Addendum 82 postscript |
 | **RAN — source-sweep-run-003 (apply)** | numbered honestly (guard works live), 7 rows upserted once; **10th defect**: parent source resolved by host key to a 1976 opinion row (724 EUR-Lex document sources); fixed (`resolvePortalSourceId`), run-004 heals the rows | Addendum 82 postscript 2 |
 | **RAN — source-sweep-run-004 (apply)** | portal row registered (`260089a9`); **11th defect**: 7 × HTTP 200 in 0.3 s with 0 links reported as an empty week; fixed (page-shape check with evidence, 1 req/s politeness) | Addendum 82 postscript 3 |
-| **NEXT** | source-sweep apply → run-005 after a pause (discharges marker; re-points 7 rows if the register answers) → WO-26 stamp → tag ratification → batch-003 records (mint-run-007) → EIA secret → FR + feed first walks (dry) → ledger consume hop | Addendum 82 postscript |
+| **RAN — source-sweep-run-005 (apply)** | register answered: 7 acts, 2 duplicate-edition days, 27 s (1 req/s), marker discharged; 7 candidates re-parented to the existing "EUR-Lex" portal source `260089a9` (correction: not a new row) | Addendum 82 postscript 4 |
+| **NEXT** | WO-26 stamp → tag ratification → batch-003 records (mint-run-007) → EIA secret → FR + feed first walks (dry) → ledger consume hop | Addendum 82 postscript |
 
 ## Completion lanes + system review — LANDED as PR #507 (2026-09-01)
 
