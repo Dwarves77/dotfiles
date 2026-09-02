@@ -281,7 +281,10 @@ export function extractTitleFromHtml(html) {
   const titleM = h.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   if (titleM) {
     const t = stripHtmlToText(titleM[1]);
-    if (t) return { title: t, origin: "captured_title" };
+    // An OJ file name ("C_2023226EN.01000601.xml") is what EUR-Lex/Cellar put in <title> for Official
+    // Journal C-series notices; it is never the act's title (population run #12 exported two rows so
+    // titled, 2026-09-02). Skip it so the act-title extractor below gets its turn.
+    if (t && !isOjFileName(t)) return { title: t, origin: "captured_title" };
   }
   const h1M = h.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
   if (h1M) {
@@ -303,7 +306,39 @@ export function extractEurlexTitle(html) {
   if (heading) return heading;
   const text = stripHtmlToText(html);
   if (!text) return null;
-  const lead = text.slice(0, 300).trim();
+  return bodyLeadTitle(text);
+}
+
+// ── Official Journal file names and act titles (2026-09-02, population run #12) ────────────────────────
+// OJ C-series notices (e.g. CELEX 32023D0628(01), a Commission decision published in OJ C 226) come back
+// from both Cellar and EUR-Lex with the OJ file name as <title> and no `oj-doc-ti` paragraphs; the body
+// opens "C_2023226EN.01000601.xml 28.6.2023 EN Official Journal of the European Union C 226/6 COMMISSION
+// DECISION of 19 April 2023 on instructing ... (2023/C 226/06) THE EUROPEAN COMMISSION, ...". The act's
+// title is the span from the first act-type keyword to its OJ reference parenthetical. Both helpers are
+// pure and used by every body-lead fallback so a file name can never become a customer-facing title.
+const OJ_FILENAME_RE = /^[A-Z]_\d{7}[A-Z]{2}\.\d{6,}\.xml$/i;
+/** True for an Official Journal file name such as "L_2006209EN.01000101.xml" or "C_2023226EN.01000601.xml". */
+export function isOjFileName(s) {
+  return OJ_FILENAME_RE.test(String(s ?? "").trim());
+}
+const OJ_ACT_TITLE_RE =
+  /\b((?:COMMISSION|COUNCIL|EUROPEAN PARLIAMENT AND (?:OF THE )?COUNCIL|REGULATION|DIRECTIVE|DECISION|RECOMMENDATION)\b[\s\S]{0,400}?\((?:\d{4}\/[A-Z]?\s?\d+(?:\/\d+)?|\d{4}\/\d+\/[A-Z]+)\))/;
+/** The act title inside an OJ body lead, or null when no act-type keyword + OJ reference is found. */
+export function extractOjActTitle(text) {
+  const t = String(text ?? "").replace(/\s+/g, " ");
+  const m = t.match(OJ_ACT_TITLE_RE);
+  if (!m) return null;
+  const title = m[1].trim();
+  return title.length >= 20 ? title : null;
+}
+/** Body-lead fallback shared by the EUR-Lex and Cellar extractors: the act title when the lead carries
+ *  one (origin `captured_body_act_title`), else the first ~300 chars with any leading OJ file name
+ *  removed (origin `captured_body_lead`). */
+function bodyLeadTitle(text) {
+  const act = extractOjActTitle(text);
+  if (act) return { title: act, origin: "captured_body_act_title" };
+  const cleaned = String(text).replace(/^\S+\.xml\s+/i, "");
+  const lead = cleaned.slice(0, 300).trim();
   return lead ? { title: lead, origin: "captured_body_lead" } : null;
 }
 
@@ -353,8 +388,7 @@ export function extractCellarTitle(html) {
     if (t.length >= 20) return { title: t, origin: "cellar_legacy_title" };
   }
   const text = stripHtmlToText(h);
-  const lead = text.slice(0, 300).trim();
-  return lead ? { title: lead, origin: "captured_body_lead" } : null;
+  return text ? bodyLeadTitle(text) : null;
 }
 
 /** Wrap a fetch so redirects are followed by hand, upgrading any `http://` Location to `https://` first

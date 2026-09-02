@@ -100,6 +100,25 @@ test("C2 RED: a citation URL on an unregistered host -> ungrounded_url", () => {
   assert.ok(r.failures.some((f) => f.criterion === 2 && f.reason === "ungrounded_url"));
 });
 
+test("C2 GREEN (migration 289): a source URL with a parenthesised identifier, CELEX 32023D0628(01), extracts whole and grounds", () => {
+  const p = basePayload();
+  const u = "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023D0628(01)";
+  p.item.source_url = u;
+  p.source.url = u;
+  p.search_results[0].result_url = u;
+  p.claims.forEach((c) => { if (c.source_url) c.source_url = u; });
+  p.sections[0].content_md = `The decision applies as described. ${u}`;
+  const r = validateMintPayload(p);
+  assert.ok(!r.failures.some((f) => f.criterion === 2 && f.reason === "ungrounded_url"), JSON.stringify(r.failures));
+});
+
+test("C2 (migration 289): a grounded URL written inside prose parentheses still extracts without the closing paren", () => {
+  const p = basePayload();
+  p.sections[0].content_md = "The rule applies as described (see https://example.gov/reg).";
+  const r = validateMintPayload(p);
+  assert.ok(!r.failures.some((f) => f.criterion === 2 && f.reason === "ungrounded_url"), JSON.stringify(r.failures));
+});
+
 test("C2 GREEN: canonicalization tolerates www./trailing-slash/markdown-emphasis (migration 150)", () => {
   const p = basePayload();
   p.sections[0].content_md = "The rule applies as described. *https://www.example.gov/reg/*";

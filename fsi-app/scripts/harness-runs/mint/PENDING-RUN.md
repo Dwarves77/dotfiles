@@ -4,39 +4,28 @@ F28 rule (c) (staleness coupling, `.discipline/fitness/functions/F28-harness-run
 `mint` family's governing files re-hash to a value no landed artifact records. This marker acknowledges
 the change and names the planned run that supersedes it, per that rule's own escape hatch.
 
-**What changed (2026-09-02, after population-turn runs #9–#11 — `mint-run-011..013`, 122 minted):**
-`MINT-RUNBOOK.md` §11 now documents that the relevance screen is part of the export: those three runs
-selected on `dryrun_disposition = 'would_mint'` alone and minted about half off-vertical items against
-the operator's 2026-08-31 screen ruling. The gate (`export-census-rows.mjs` → `lib/screen-verdict.mjs`)
-and the post-apply reconciliation (`screen-reconcile-records.mjs`) are runtime code, not kit governing
-files; only the runbook prose moved the hash. The validator and record-facts were byte-for-byte unchanged
-at that point.
+**Discharged (2026-09-02, population-turn run #12 → `mint-run-014.json`, hash `sha256:9a3e4c77ec4d9342`):**
+the marker Lane WSEQ wrote (shared write sequence + screen-verdict kit check) named that run and that
+run landed it: 42 attempted, 40 `minted_verified`, 0 `apply_failed`, 2 `validation_failed`.
 
-**What changed again (2026-09-02, Lane WSEQ — the shared write sequence + the screen-verdict kit check):**
-governing files moved a second time in the same day, this time for real behavioral reasons:
-- `validate-mint-payload.mjs` gained a new kit check, grade='record'-only: a payload's own
-  `screen: { verdict, provenance, basis }` is now REQUIRED (`screen_verdict_missing` when absent/malformed,
-  `screen_verdict_not_on_vertical` when present but not `on_vertical`) — the structural backstop for the
-  exact incident the first "what changed" entry above describes, so a future exporter regression is caught
-  by the gate every payload already has to clear, not only by the export filter.
-- `payload-schema.json` documents the new top-level `screen` property.
-- `src/lib/intake/record-facts.mjs`'s `buildRecordPayload` gained a `screen` parameter, carried straight
-  into `payload.screen` (never recomputed — that module has no I/O). `export-census-rows.mjs`'s
-  `partitionByScreen` now attaches `.screen` to every mintable row and `run-mint-batch.mjs`'s
-  `buildPayloadsFromCensusRows` threads it through — the export → run → apply chain that actually
-  populates the field is traced and proven by test (`run-mint-batch.test.mjs`'s three new
-  `buildPayloadsFromCensusRows`/screen tests), per this lane's own charter: a landed check with an
-  unpopulated field would quarantine the next population run's entire batch.
-- Separately (not a governing-file change, named here for the same commit's full picture):
-  `src/lib/intake/write-item.ts` (new) is now the ONE guarded write sequence
-  (item→searches→sections→gate-A→claims→citations) `apply-mint-batch.mjs` calls for a fresh record-grade
-  mint, and the row-shape builders (`buildGateARow`, `buildCitationEdges`, `classifyMintOutcome`) the
-  brief tier's `canonical-pipeline.ts` (`groundBrief`) now also calls at its own Gate-A/citation-edge write
-  sites — closing the drift class run #8 (gate-after-claims) already had to fix once by hand.
+**What changed (2026-09-02, coordinator, from reading mint-run-014 — migration 289 parity):** the two
+failures were both `[2] ungrounded_url` on EUR-Lex "(01)" identifiers (CELEX 32023D0628(01),
+32023D0207(01)): the criterion-2 URL extractor `https?://[^\s)\]}"'<>]+` stops at the first `)`, so the
+prose URL extracted as `...(01` and matched no grounded URL. The live `validate_item_provenance` had the
+same regex, so the local rejection was correct parity, and fixing one layer alone would have produced
+`minted_unverified` rows. Migration 289 patched the live function in place (pre-md5 pinned, one
+occurrence, post-check) to `https?://(?:[^\s()\]}"'<>]|\([^\s()]*\))+` (one-level balanced parentheses;
+a URL inside prose parentheses still stops before the unmatched `)`), and `validate-mint-payload.mjs`
+`URL_RE` mirrors it with two tests (the failing CELEX case grounds; the prose-parenthesis case still
+grounds). `export-census-rows.mjs` (a runtime file, not a governing one, but named for the full picture)
+also gained `isOjFileName` / `extractOjActTitle`: the same two rows carried the OJ file name
+`C_2023226EN.01000601.xml` as `title` (`captured_title` from `<title>`); a file name is now never a
+title, and the body-lead fallback extracts the act title ("COMMISSION DECISION of 19 April 2023 …
+(2023/C 226/06)") with origin `captured_body_act_title`.
 
-**harness_version at write time:** `sha256:9a3e4c77ec4d9342`
+**harness_version at write time:** `sha256:c2e34028ebc18ab2`
 
-**The planned run that supersedes this marker:** the next `population-turn` apply dispatch, which
-archives the off-vertical items already minted and exports only screened rows; its artifact re-hashes
-to this value and lands as `mint-run-014.json`, at which point this marker is stale-by-match and must be
-deleted per F28's reverse-audit.
+**The planned run that supersedes this marker:** the next `population-turn` apply dispatch (limit 200,
+the first full slice after the screen gate and the kit check), which re-attempts the two `(01)` rows;
+its artifact re-hashes to this value and lands as `mint-run-015.json`, at which point this marker is
+stale-by-match and must be deleted per F28's reverse-audit.

@@ -129,6 +129,12 @@ import { fitnessFunction as F32 } from './functions/F32-statutory-purity.mjs';
 // route + a data_path the route is import-graph-reachable from (F25's real graph, not a name match) + an
 // existing rendering-guard fixture/smoke spec, or an exemption naming who ruled it out and when.
 import { fitnessFunction as F33 } from './functions/F33-surface-acceptance.mjs';
+// Bundle-safe module evaluation (2026-09-02, coordinator, after the production 500 that followed PR #533):
+// a module on every page's import graph read a JSON from disk at module scope; the serverless bundle does
+// not carry runtime file reads, so every route threw ENOENT until the rollback. No gate exercised the
+// bundle. F34 fails any non-test module under src/ that calls a filesystem function at module scope;
+// reads inside functions are out of scope; the one latent instance is allowlisted with its basis.
+import { fitnessFunction as F34 } from './functions/F34-bundle-safe-module-evaluation.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -158,6 +164,7 @@ export const fitnessFunctions = [
   F31,
   F32,
   F33,
+  F34,
 ];
 
 export function getFunctionById(id) {
