@@ -10,6 +10,7 @@ import {
   browserlessUnitsEstimate,
   shapeRunOutput,
   defaultTraceDir,
+  crossCheckMismatches,
   CHANGE_DETECTION_GOVERNING_FILES,
   DEFAULT_CHECK_LIMIT,
   DEFAULT_RECONCILE_BATCH,
@@ -91,6 +92,45 @@ test("browserlessUnitsEstimate: sourcesChecked * BROWSERLESS_UNITS_PER_SOURCE_ES
 
 test("browserlessUnitsEstimate: never negative for a negative/weird input", () => {
   assert.equal(browserlessUnitsEstimate(-3), 0);
+});
+
+// ── crossCheckMismatches ─────────────────────────────────────────────────────────────────────────
+
+test("crossCheckMismatches: agreement on both fields yields no mismatches", () => {
+  const reported = { changesDetected: 1, portalCandidates: 7 };
+  const verifiedByRead = { changeDetectedCount: 1, portalCandidatesTouched: 7 };
+  assert.deepEqual(crossCheckMismatches(reported, verifiedByRead), []);
+});
+
+test("crossCheckMismatches: a real disagreement on one field is reported by name, not swallowed", () => {
+  const reported = { changesDetected: 1, portalCandidates: 7 };
+  const verifiedByRead = { changeDetectedCount: 2, portalCandidatesTouched: 7 };
+  const mismatches = crossCheckMismatches(reported, verifiedByRead);
+  assert.equal(mismatches.length, 1);
+  assert.match(mismatches[0], /changesDetected/);
+  assert.match(mismatches[0], /route reported 1/);
+  assert.match(mismatches[0], /read-only cross-check counted 2/);
+});
+
+test("crossCheckMismatches: disagreement on both fields reports both, independently", () => {
+  const reported = { changesDetected: 1, portalCandidates: 7 };
+  const verifiedByRead = { changeDetectedCount: 2, portalCandidatesTouched: 9 };
+  const mismatches = crossCheckMismatches(reported, verifiedByRead);
+  assert.equal(mismatches.length, 2);
+});
+
+test("crossCheckMismatches: a null/undefined read-only count is 'unavailable', never diffed as a false mismatch", () => {
+  const reported = { changesDetected: 1, portalCandidates: 7 };
+  const verifiedByRead = { changeDetectedCount: null, portalCandidatesTouched: 7 };
+  const mismatches = crossCheckMismatches(reported, verifiedByRead);
+  assert.equal(mismatches.length, 1);
+  assert.match(mismatches[0], /cross-check unavailable/);
+});
+
+test("crossCheckMismatches: missing reported/verifiedByRead (e.g. check skipped) never throws — empty result", () => {
+  assert.deepEqual(crossCheckMismatches(null, null), []);
+  assert.deepEqual(crossCheckMismatches(undefined, { changeDetectedCount: 1, portalCandidatesTouched: 1 }), []);
+  assert.deepEqual(crossCheckMismatches({ changesDetected: 1, portalCandidates: 1 }, null), []);
 });
 
 // ── defaultTraceDir ──────────────────────────────────────────────────────────────────────────────
@@ -202,10 +242,19 @@ function applyRaw(overrides = {}) {
       skipped: false,
       httpStatus: 200,
       ok: true,
-      body: { message: "Checked 3 sources", checked: 3, results: [{ source: "EUR-Lex OJ", status: "accessible" }, { source: "Federal Register", status: "inaccessible", error: "429 (HTTP 429)" }] },
+      body: {
+        message: "Checked 3 sources",
+        sourcesChecked: 3,
+        changesDetected: 1,
+        portalCandidates: 7,
+        results: [
+          { source: "EUR-Lex OJ", status: "accessible", httpStatus: 200, outcome: "reachable", changeDetected: true, portalCandidates: 7 },
+          { source: "Federal Register", status: "inaccessible", httpStatus: 429, outcome: "inconclusive", changeDetected: false, portalCandidates: 0, error: "429 (HTTP 429)" },
+        ],
+      },
       error: null,
-      changeDetectedCount: 1,
-      portalCandidatesTouched: 7,
+      verifiedByRead: { changeDetectedCount: 1, portalCandidatesTouched: 7 },
+      mismatches: [],
     },
     reconcile: {
       result: { processed: 1, changesRecorded: 2, staged: 2, pending: 1, errors: [] },
@@ -225,16 +274,45 @@ function applyRaw(overrides = {}) {
   };
 }
 
-test("shapeRunOutput (apply): check step reports HTTP status + checked count + change/portal proxy counts", () => {
+test("shapeRunOutput (apply): check step reports HTTP status + checked count + route-reported change/portal totals", () => {
   const shaped = shapeRunOutput(applyRaw(), "/tmp/report.json");
   const checkItem = shaped.perItem.find((p) => p.id === "check-sources");
   assert.equal(checkItem.outcome, "checked");
   assert.match(checkItem.verdict, /HTTP 200/);
-  assert.match(checkItem.verdict, /1 change_detected/);
-  assert.match(checkItem.verdict, /7 portal_link_candidates/);
+  assert.match(checkItem.verdict, /1 changesDetected/);
+  assert.match(checkItem.verdict, /7 portalCandidates/);
   assert.equal(shaped.metrics.sources_checked, 3);
   assert.equal(shaped.metrics.changes_detected, 1);
   assert.equal(shaped.metrics.portal_candidates_touched, 7);
+});
+
+test("shapeRunOutput (apply): verified_by_read cross-check is surfaced in metrics, agreeing with the route", () => {
+  const shaped = shapeRunOutput(applyRaw(), "/tmp/report.json");
+  assert.deepEqual(shaped.metrics.verified_by_read, {
+    changes_detected: 1,
+    portal_candidates_touched: 7,
+    mismatches: [],
+  });
+});
+
+test("shapeRunOutput (apply): a verified_by_read mismatch is reported as its own per_item, never swallowed", () => {
+  const shaped = shapeRunOutput(
+    applyRaw({
+      check: {
+        skipped: false, httpStatus: 200, ok: true,
+        body: { sourcesChecked: 3, changesDetected: 1, portalCandidates: 7, results: [] },
+        error: null,
+        verifiedByRead: { changeDetectedCount: 2, portalCandidatesTouched: 7 },
+        mismatches: ["changesDetected: route reported 1, read-only cross-check counted 2"],
+      },
+    }),
+    "/tmp/report.json",
+  );
+  const mismatchItem = shaped.perItem.find((p) => p.id === "check-sources:verified_by_read");
+  assert.ok(mismatchItem, "a mismatch must produce its own per_item, not just a metrics field");
+  assert.equal(mismatchItem.outcome, "cross_check_mismatch");
+  assert.match(mismatchItem.verdict, /route reported 1, read-only cross-check counted 2/);
+  assert.deepEqual(shaped.metrics.verified_by_read.mismatches, ["changesDetected: route reported 1, read-only cross-check counted 2"]);
 });
 
 test("shapeRunOutput (apply): one per_item per route result row, error text preserved", () => {
@@ -249,7 +327,7 @@ test("shapeRunOutput (apply): one per_item per route result row, error text pres
 
 test("shapeRunOutput (apply): a route HTTP error is reported, never silently swallowed", () => {
   const shaped = shapeRunOutput(
-    applyRaw({ check: { skipped: false, httpStatus: 401, ok: false, body: { error: "unauthorized" }, error: "unauthorized", changeDetectedCount: 0, portalCandidatesTouched: 0 } }),
+    applyRaw({ check: { skipped: false, httpStatus: 401, ok: false, body: { error: "unauthorized" }, error: "unauthorized", verifiedByRead: { changeDetectedCount: 0, portalCandidatesTouched: 0 }, mismatches: [] } }),
     "/tmp/report.json",
   );
   const checkItem = shaped.perItem.find((p) => p.id === "check-sources");

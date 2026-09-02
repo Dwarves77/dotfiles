@@ -27,15 +27,19 @@
 // drainChangeSweepUpdates uses, without calling it. --mode apply calls the route for real (unless
 // --skip-check), runs the SAME reconcile pass for real, and calls the drain export for real.
 //
-// KNOWN LIMITATION (found reading check-sources/route.ts, NOT in this lane's write set — reported to the
-// coordinator, not fixed here): the route's due-source batch is a HARDCODED `.limit(10)` — it accepts NO
-// request body or query parameter to change the batch per-call. --check-limit therefore only bounds
-// THIS SCRIPT's own dry-mode "due sources" read query and reporting; it cannot change what the deployed
-// route actually checks in apply mode. The route's response body also does NOT include changeDetected or
-// portalCandidates per source (assessAndUpdateSource computes both but check-sources/route.ts's response-
-// building loop only pushes `{source: source.name, status}` — see that file). This script compensates by
-// reading monitoring_queue / portal_link_candidates rows stamped during the call window instead of
-// trusting the route's response for those two numbers.
+// FIXED, second commit (2026-09-02, "there is no small follow-up fix" — operator ruling): the two
+// defects found while building this driver are fixed in check-sources/route.ts itself, not merely
+// worked around here. The route now (1) accepts an optional `limit` (JSON body `{"limit": N}` or a
+// `?limit=N` query param — this script sends it as a JSON body, `validateCheckLimit`'s own contract) so
+// --check-limit genuinely bounds what the deployed route checks in apply mode, not just this script's own
+// dry-mode read; and (2) returns `sourcesChecked`/`changesDetected`/`portalCandidates` totals plus
+// `httpStatus`/`outcome`/`changeDetected`/`portalCandidates` per source in `results[]` — the fields
+// assessAndUpdateSource always computed but the response never carried. This script now reads those
+// fields as the PRIMARY source of truth; the same read-only `monitoring_queue`/`portal_link_candidates`
+// window queries this driver's first commit used as its only source now run ONLY as a cross-check,
+// recorded in the artifact as `verified_by_read` (metrics + per_item), with any mismatch reported —
+// never silently swallowed — rather than treated as an error (a concurrent writer or clock skew across
+// the call boundary can legitimately produce a one-row difference).
 //
 // BROWSERLESS COST. assessAndUpdateSource (check-sources/route.ts) makes exactly ONE browserlessRender
 // call per source checked (no retries in that code path) — one Browserless "unit" cost per source. This
@@ -83,9 +87,10 @@ export const CHANGE_DETECTION_GOVERNING_FILES = Object.freeze([
   "src/lib/intake/run-intake-cycle.ts",
 ]);
 
-// The deployed route's own hardcoded per-tick batch (check-sources/route.ts: ".limit(10); // batch size
-// per hourly tick"). Used only as THIS script's own default for --check-limit's dry-mode read/report —
-// see the KNOWN LIMITATION note above for why it cannot actually parameterise the live route.
+// The route's own DEFAULT_CHECK_LIMIT (check-sources/route.ts) — mirrored here as this script's own
+// default for BOTH --check-limit's dry-mode read/report AND (second commit) the `limit` this script sends
+// the route in apply mode, so an unset --check-limit genuinely matches the route's own unparameterised
+// default (source-monitoring.yml's own no-body POST behaviour) rather than silently diverging from it.
 export const DEFAULT_CHECK_LIMIT = 10;
 // reconcile.ts's own RECONCILE_BATCH default (not exported; mirrored here as this script's own default so
 // --reconcile-batch has a sane starting point without silently diverging if that constant ever changes —
@@ -212,8 +217,8 @@ export function shapeRunOutput(raw, reportPath) {
       id: "check-sources",
       outcome: check.ok ? "checked" : "route_error",
       verdict: check.ok
-        ? `HTTP ${check.httpStatus}: ${check.body?.message ?? ""} — ${check.body?.checked ?? "?"} source(s) checked ` +
-          `(${check.changeDetectedCount} change_detected this run, ${check.portalCandidatesTouched} portal_link_candidates touched)`
+        ? `HTTP ${check.httpStatus}: ${check.body?.message ?? ""} — ${check.body?.sourcesChecked ?? "?"} source(s) checked ` +
+          `(${check.body?.changesDetected ?? "?"} changesDetected, ${check.body?.portalCandidates ?? "?"} portalCandidates — route-reported)`
         : `HTTP ${check.httpStatus}: ${check.error}`,
       evidence_refs: [],
       error: check.ok ? null : check.error,
@@ -222,9 +227,20 @@ export function shapeRunOutput(raw, reportPath) {
       perItem.push({
         id: `check:${r.source}`,
         outcome: r.status,
-        verdict: r.error ? `error: ${r.error}` : `status=${r.status}`,
+        verdict: r.error
+          ? `error: ${r.error}`
+          : `status=${r.status} httpStatus=${r.httpStatus} outcome=${r.outcome} changeDetected=${r.changeDetected} portalCandidates=${r.portalCandidates}`,
         evidence_refs: [],
         error: r.error ?? null,
+      });
+    }
+    if (check.mismatches?.length) {
+      perItem.push({
+        id: "check-sources:verified_by_read",
+        outcome: "cross_check_mismatch",
+        verdict: check.mismatches.join("; "),
+        evidence_refs: [],
+        error: null,
       });
     }
   }
@@ -264,7 +280,7 @@ export function shapeRunOutput(raw, reportPath) {
     }
   }
 
-  const sourcesChecked = check.skipped ? 0 : (check.body?.checked ?? check.body?.results?.length ?? 0);
+  const sourcesChecked = check.skipped ? 0 : (check.body?.sourcesChecked ?? check.body?.results?.length ?? 0);
   const metrics = {
     mode,
     skip_check: skipCheck,
@@ -273,8 +289,17 @@ export function shapeRunOutput(raw, reportPath) {
     drain_limit: drainLimit,
     sources_due_for_check: check.skipped ? check.dueCount : null,
     sources_checked: sourcesChecked,
-    changes_detected: check.skipped ? null : check.changeDetectedCount,
-    portal_candidates_touched: check.skipped ? null : check.portalCandidatesTouched,
+    // Primary source: the route's own reported totals (second commit — computed from the same
+    // assessAndUpdateSource() calls, not re-derived here).
+    changes_detected: check.skipped ? null : (check.body?.changesDetected ?? null),
+    portal_candidates_touched: check.skipped ? null : (check.body?.portalCandidates ?? null),
+    // Cross-check only — READ-ONLY monitoring_queue/portal_link_candidates window counts, kept
+    // independent of the route's response. Never the primary number; see crossCheckMismatches.
+    verified_by_read: check.skipped ? null : {
+      changes_detected: check.verifiedByRead?.changeDetectedCount ?? null,
+      portal_candidates_touched: check.verifiedByRead?.portalCandidatesTouched ?? null,
+      mismatches: check.mismatches ?? [],
+    },
     pending_change_rows: rr.pending,
     pending_change_rows_total: reconcile.pendingTotal,
     changes_recorded: rr.changesRecorded,
@@ -351,10 +376,16 @@ async function main() {
       console.log(`[check] skipped (${reason}) — ${due.dueCount} source(s) due for check`);
     } else {
       const windowBefore = new Date().toISOString();
-      const posted = await postCheckSources(process.env.APP_URL, process.env.WORKER_SECRET);
-      const windowStats = posted.ok ? await countWindowChangeStats(sb, windowBefore) : { changeDetectedCount: 0, portalCandidatesTouched: 0 };
-      raw.check = { skipped: false, httpStatus: posted.status, ok: posted.ok, body: posted.body, error: posted.error, ...windowStats };
-      console.log(`[check] HTTP ${posted.status} ok=${posted.ok} checked=${posted.body?.checked ?? "?"}`);
+      const posted = await postCheckSources(process.env.APP_URL, process.env.WORKER_SECRET, checkLimit);
+      // verifiedByRead is a CROSS-CHECK only (second commit) — the route's own response body
+      // (posted.body.changesDetected / .portalCandidates / .sourcesChecked) is the primary source of
+      // truth now that it carries real per-request totals computed from the same assessAndUpdateSource()
+      // calls, at zero extra DB round trip.
+      const verifiedByRead = posted.ok ? await countWindowChangeStats(sb, windowBefore) : { changeDetectedCount: null, portalCandidatesTouched: null };
+      const mismatches = posted.ok ? crossCheckMismatches(posted.body, verifiedByRead) : [];
+      raw.check = { skipped: false, httpStatus: posted.status, ok: posted.ok, body: posted.body, error: posted.error, verifiedByRead, mismatches };
+      console.log(`[check] HTTP ${posted.status} ok=${posted.ok} sourcesChecked=${posted.body?.sourcesChecked ?? "?"} changesDetected=${posted.body?.changesDetected ?? "?"}`);
+      if (mismatches.length) console.log(`[check] verified_by_read mismatch(es): ${mismatches.join("; ")}`);
     }
 
     // ── STEP B: reconcile ───────────────────────────────────────────────────────────────────────
@@ -424,15 +455,18 @@ async function main() {
   process.exit(0);
 }
 
-/** POST the deployed check-sources route with the worker-secret header. Never throws — network/HTTP
- *  failures are reported in the returned object. */
-async function postCheckSources(appUrl, workerSecret) {
+/** POST the deployed check-sources route with the worker-secret header, bounding what it checks via a
+ *  JSON body `{"limit": N}` — the route's own `validateCheckLimit` contract (body wins over query; this
+ *  script only ever sends a body). Never throws — network/HTTP failures are reported in the returned
+ *  object. */
+async function postCheckSources(appUrl, workerSecret, limit) {
   const base = String(appUrl).replace(/\/+$/, "");
   const target = `${base}/api/worker/check-sources`;
   try {
     const res = await fetch(target, {
       method: "POST",
       headers: { "x-worker-secret": workerSecret, "content-type": "application/json" },
+      body: JSON.stringify({ limit }),
     });
     const text = await res.text();
     let body = null;
@@ -511,10 +545,14 @@ async function readPendingDrainRows(sb, limit) {
   return { rows, overflow };
 }
 
-/** How many monitoring_queue rows (any outcome) and portal_link_candidates upserts landed since
- *  `sinceIso` — a read-only proxy for the "sources checked" / "portal candidates" numbers
- *  check-sources/route.ts's own JSON response does NOT return (see the KNOWN LIMITATION note in the file
- *  header). Compensating READ, never a write. */
+/** How many monitoring_queue rows (change_detected=true) and portal_link_candidates upserts landed since
+ *  `sinceIso` — READ-ONLY. Second commit: no longer the primary source for "changes detected" / "portal
+ *  candidates" (the route's own response body now carries those, computed from the SAME
+ *  assessAndUpdateSource() calls, with zero extra DB round trip) — this read now runs ONLY as an
+ *  independent cross-check, compared against the route's reported totals by `crossCheckMismatches` and
+ *  recorded in the artifact as `verified_by_read`. A mismatch is reported, never silently swallowed, but
+ *  is not itself treated as an error: a concurrent writer or clock skew across the call boundary (this
+ *  read happens strictly after the route's response returns) can legitimately produce a small difference. */
 async function countWindowChangeStats(sb, sinceIso) {
   const { count: changeDetectedCount, error: cErr } = await sb
     .from("monitoring_queue")
@@ -529,4 +567,27 @@ async function countWindowChangeStats(sb, sinceIso) {
     changeDetectedCount: cErr ? null : (changeDetectedCount ?? 0),
     portalCandidatesTouched: pErr ? null : (portalCandidatesTouched ?? 0),
   };
+}
+
+/** Compare the route's own reported totals (primary source of truth, second commit) against the
+ *  read-only `verifiedByRead` cross-check counts. PURE. Returns a list of human-readable mismatch
+ *  descriptions (empty when everything agrees, or when the read-only side could not be computed —
+ *  `null` counts are never diffed, only reported as "cross-check unavailable"). Never throws — a mismatch
+ *  here is informational (recorded in the artifact), not fatal to the run. */
+export function crossCheckMismatches(reported, verifiedByRead) {
+  const mismatches = [];
+  if (!reported || !verifiedByRead) return mismatches;
+  for (const field of ["changesDetected", "portalCandidates"]) {
+    const readField = field === "changesDetected" ? "changeDetectedCount" : "portalCandidatesTouched";
+    const readVal = verifiedByRead[readField];
+    const reportedVal = reported[field];
+    if (readVal === null || readVal === undefined || reportedVal === null || reportedVal === undefined) {
+      mismatches.push(`${field}: cross-check unavailable (read=${readVal}, reported=${reportedVal})`);
+      continue;
+    }
+    if (readVal !== reportedVal) {
+      mismatches.push(`${field}: route reported ${reportedVal}, read-only cross-check counted ${readVal}`);
+    }
+  }
+  return mismatches;
 }
