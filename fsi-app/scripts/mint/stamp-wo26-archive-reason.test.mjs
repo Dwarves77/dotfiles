@@ -67,6 +67,7 @@ function makeClient(handler, calls) {
       update(p) { state.verb = "update"; state.ops.push(["update", p]); return b; },
       eq(c, v) { state.ops.push(["eq", c, v]); return b; },
       is(c, v) { state.ops.push(["is", c, v]); return b; },
+      in(c, v) { state.ops.push(["in", c, v]); return b; },
       order(c) { state.ops.push(["order", c]); return b; },
       range(a, z) { state.ops.push(["range", a, z]); return settle(); },
       then(res, rej) { return settle().then(res, rej); },
@@ -128,7 +129,11 @@ test("main({apply:true}): writes archive_reason via guardedUpdate with the corre
   assert.equal(result.written, 2);
 
   const updateCall = calls.find((c) => c.verb === "update");
-  assert.ok(updateCall, "expected exactly one .update() call");
+  assert.ok(updateCall, "expected an .update() call");
+  // chunked by id (run #6's statement timeout): every update carries an id list on top of the four predicates
+  const inOp = updateCall.ops.find((o) => o[0] === "in");
+  assert.ok(inOp && inOp[1] === "id", "the update must be scoped by an explicit id chunk");
+  assert.deepEqual(inOp[2], MATCHING_IDS);
   assert.deepEqual(updateCall.ops.find((o) => o[0] === "update")[1], { archive_reason: "out_of_scope_wo26" });
   const eqOps = updateCall.ops.filter((o) => o[0] === "eq");
   assert.ok(eqOps.some((o) => o[1] === "is_archived" && o[2] === true));

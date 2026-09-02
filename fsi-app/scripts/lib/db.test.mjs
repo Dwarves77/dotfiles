@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 process.env.DISCIPLINE_SNAP_DIR = join(tmpdir(), 'db-test-snapshots'); // redirect prior-value snapshots
-const { reclassifyToSource, registerSource, readAll, guardedDelete, readClient, institutionKey, archivePatch, __setWriteClientForTest } = await import('./db.mjs');
+const { reclassifyToSource, registerSource, readAll, guardedDelete, guardedUpdateByIds, readClient, institutionKey, archivePatch, __setWriteClientForTest } = await import('./db.mjs');
 
 // GOLDEN (operator ruling 2026-07-13, Part A root-cause): archiving an intelligence_item resets its
 // provenance_status off 'verified' (the stale-verified cache class — 168 archived rows read 'verified'
@@ -144,6 +144,28 @@ test('guardedDelete: snapshots then deletes by id; requires cite; sources delete
     /delete-protected/,
     'sources must never be hard-deletable via guardedDelete'
   );
+});
+
+test('guardedUpdateByIds: chunks the id list (run #6 statement timeout), snapshots per chunk, re-applies applyMatch on every chunk', async () => {
+  const calls = [];
+  const ids = Array.from({ length: 60 }, (_, i) => `id-${String(i).padStart(3, '0')}`);
+  __setWriteClientForTest(() => makeClient((s) => {
+    const inOp = s.ops.find((o) => o[0] === 'in');
+    const rows = inOp[2].map((id) => ({ id, archive_reason: s.verb === 'update' ? 'x' : null }));
+    return { data: rows, error: null };
+  }, calls));
+  const res = await guardedUpdateByIds('intelligence_items', ids, { archive_reason: 'x' }, {
+    cite, select: 'id, archive_reason', chunk: 25, applyMatch: (qb) => qb.eq('is_archived', true),
+  });
+  const updates = calls.filter((c) => c.verb === 'update');
+  assert.equal(updates.length, 3);
+  assert.deepEqual(updates.map((u) => u.ops.find((o) => o[0] === 'in')[2].length), [25, 25, 10]);
+  assert.ok(updates.every((u) => u.ops.some((o) => o[0] === 'eq' && o[1] === 'is_archived')), 'applyMatch re-applied per chunk');
+  assert.equal(res.updated, 60);
+  assert.equal(res.chunks, 3);
+  assert.equal(res.snapshots.length, 3);
+  assert.equal(calls.filter((c) => c.verb === 'select').length, 3, 'one snapshot read per chunk');
+  await assert.rejects(() => guardedUpdateByIds('intelligence_items', ids, { a: 1 }, {}), /cite/i);
 });
 
 test('institutionKey: shared-portal hosts key by path prefix; other hosts by bare host', () => {

@@ -34,7 +34,7 @@
 // stamped). Rule-012: import.meta.url-relative env load, no hardcoded absolute paths.
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readAll, guardedUpdate } from "../lib/db.mjs";
+import { readAll, guardedUpdateByIds } from "../lib/db.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* no .env.local in this environment — real calls will refuse in db.mjs instead */ }
@@ -109,14 +109,18 @@ export async function main({ apply = false } = {}) {
     return { mode: "apply", matched: 0, written: 0 };
   }
 
-  const res = await guardedUpdate(
+  // By id, in chunks (db.mjs guardedUpdateByIds): one UPDATE over the whole wave ran past the API's
+  // statement timeout on the first live apply (population-turn run #6, 2026-09-02) because
+  // set_provenance_status_trg re-derives provenance per row. The four-condition match is re-applied on
+  // every chunk so nothing outside the live measurement above is ever touched.
+  const res = await guardedUpdateByIds(
     "intelligence_items",
-    applyMatch,
+    targets.map((t) => t.id),
     { archive_reason: ARCHIVE_REASON },
-    { cite: CITE, select: "id, archive_reason" },
+    { cite: CITE, select: "id, archive_reason", applyMatch },
   );
   const written = (res.rows || []).filter((r) => r.archive_reason === ARCHIVE_REASON).length;
-  console.log(`[stamp-wo26] written+verified=${written} of matched=${targets.length} (snapshot: ${res.snapshot})`);
+  console.log(`[stamp-wo26] written+verified=${written} of matched=${targets.length} in ${res.chunks} chunk(s) (snapshots: ${res.snapshots.length})`);
   if (written !== targets.length) {
     console.error(`[stamp-wo26] MISMATCH — expected to stamp ${targets.length}, guardedUpdate read back ${written}`);
     process.exitCode = 1;
