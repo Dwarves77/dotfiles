@@ -6,8 +6,8 @@
  * with sector context), then lays out the mock's information architecture:
  *
  *   Priority tiles → Ask bar → THIS WEEK (top-priority list + rail:
- *   surfaces / watchlist / by owner) → WHAT CHANGED (date-stamped bar +
- *   REPLACED ledger) → HOUSEKEEPING (coverage gaps + awaiting review).
+ *   surfaces / watchlist / by owner) → WHAT CHANGED (source/theme strip +
+ *   date-stamped bar + REPLACED ledger; ONE section) → HOUSEKEEPING (coverage gaps + awaiting review).
  *
  * The masthead (VOL eyebrow + Anton title + counts sub-line) lives in the
  * server component (app/page.tsx). Section headers, tiles, and the Ask bar
@@ -215,25 +215,16 @@ export function HomeSurface({
         </div>
       </div>
 
-      {/* CHANGED SINCE — source-changed / theme-membership-changed (distinct pipeline + cadence from the
-          item_changelog-driven WhatChanged below; kept as its own strip rather than merged into it). */}
-      {changedSinceStrip && (
-        <>
-          <SectionHeading
-            title="Changed since"
-            aside="Source & theme monitoring"
-            style={{ margin: "44px 0 16px" }}
-          />
-          {changedSinceStrip}
-        </>
-      )}
-
-      {/* WHAT CHANGED */}
+      {/* WHAT CHANGED — one section (operator ruling 2026-09-02: "we only need one"). The source-changed /
+          theme-membership-changed strip (its own pipeline and cadence, ChangedSinceStrip.tsx) renders
+          first, under its own sub-headings, then the item_changelog-driven WhatChanged and the REPLACED
+          ledger. Two headings for one question was the defect; the data paths are unchanged. */}
       <SectionHeading
         title="What changed"
-        aside="Change log across the registry"
+        aside="Source and theme monitoring, change log across the registry"
         style={{ margin: "44px 0 16px" }}
       />
+      {changedSinceStrip && <div style={{ marginBottom: 20 }}>{changedSinceStrip}</div>}
       <WhatChanged resources={resources} recentChanges={recentChanges} changelog={changelog} auditDate={auditDate} />
       <Supersessions supersessions={supersessions} resourceMap={resourceMap} />
 
