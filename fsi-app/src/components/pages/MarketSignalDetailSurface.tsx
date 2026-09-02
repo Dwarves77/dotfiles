@@ -315,10 +315,11 @@ export function MarketSignalDetailSurface({
   // DEFECT FIXED (Lane SURF, spec 02 §9): the prior check was `isSignalType = !!r.type`, which is
   // ALWAYS true — the mapper defaults an absent item_type to the string "uncertain" (still truthy), so
   // every item rendered here got the same "Unverified" chip regardless of what it actually was. Replaced
-  // with a real promotion state (src/lib/market/signal-promotion.mjs): origin_class when the mapper
-  // projects it (not yet — see that module's header) plus the REAL, non-fabricated corroboration count
-  // already computed above. Never promotes to "fact" from corroboration alone (spec 02 §2).
-  const originClass = (r as { originClass?: string | null }).originClass ?? null;
+  // with a real promotion state (src/lib/market/signal-promotion.mjs): origin_class, now a real mapped
+  // field (Resource.originClass, src/types/resource.ts; live on this page's fetchIntelligenceItemUncached
+  // mapper, Lane SURF 2026-09-02) plus the REAL, non-fabricated corroboration count already computed
+  // above. Never promotes to "fact" from corroboration alone (spec 02 §2).
+  const originClass = r.originClass ?? null;
   const promotion = useMemo(
     () => derivePromotionState({ originClass, independentCiters }),
     [originClass, independentCiters]

@@ -44,12 +44,14 @@
  * method_version, n_observations, a source_ref link and an attribution line — sourced from the registry
  * entry (series-registry.mjs, read-only here) plus the row's own provenance-envelope columns
  * (series-board-view-model.mjs's toDisplayRow, WHICH ALREADY SELECTS THEM — no query change was needed,
- * see that module's own header). This directly replaces the Methodology card in MarketIntelLedger.tsx
- * that claimed "convergence scoring" this index does not implement (spec 02 §9) — the real methodology,
- * shown per number rather than asserted once for the whole surface.
+ * see that module's own header; MarketSeriesDisplayRow in supabase-server.ts now declares these fields
+ * directly, Lane SURF 2026-09-02, so this component reads them off `s` with no local cast). This directly
+ * replaces the Methodology card in MarketIntelLedger.tsx that claimed "convergence scoring" this index
+ * does not implement (spec 02 §9) — the real methodology, shown per number rather than asserted once for
+ * the whole surface.
  */
 
-import type { MarketSeriesBoardVM, MarketSeriesProducerGroup, MarketSeriesDisplayRow } from "@/lib/supabase-server";
+import type { MarketSeriesBoardVM, MarketSeriesProducerGroup } from "@/lib/supabase-server";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { producerFor } from "@/lib/market/series-registry.mjs";
 import { deriveSeriesFreshness, summarizeBoardFreshness } from "@/lib/market/series-freshness.mjs";
@@ -64,21 +66,6 @@ const STATE_META: Record<MarketSeriesProducerGroup["state"], { label: string; co
   registered_unpopulated: { label: "Pending — registered, not yet populated", color: "var(--brass)" },
   populated: { label: "Live", color: "var(--color-primary)" },
 };
-
-// series-board-view-model.mjs (this lane, src/lib/market/) returns derivation/origin_class/method_version/
-// n_observations/unit/currency on every display row (Lane SURF); the TS mirror of that shape in
-// supabase-server.ts (MarketSeriesDisplayRow, out of this lane's write set) has not been widened to
-// declare them yet. Declared locally rather than touching that file — see this lane's own report. The
-// runtime object genuinely carries these fields; this is a type-coverage cast, not a guess.
-interface SeriesProvenanceFields {
-  unit: string | null;
-  currency: string | null;
-  derivation: string | null;
-  originClass: string | null;
-  methodVersion: string | null;
-  nObservations: number | null;
-}
-type EnrichedSeriesRow = MarketSeriesDisplayRow & SeriesProvenanceFields;
 
 const FRESHNESS_TONE: Record<string, string> = {
   current: "var(--color-success)",
@@ -255,8 +242,7 @@ function ProducerCard({ group, nowIso }: { group: MarketSeriesProducerGroup; now
 
       {group.state === "populated" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {group.series.map((raw) => {
-            const s = raw as EnrichedSeriesRow;
+          {group.series.map((s) => {
             const freshness = deriveSeriesFreshness(
               { as_at_date: s.asAtDate, reference_period: s.referencePeriod },
               producerEntry,
