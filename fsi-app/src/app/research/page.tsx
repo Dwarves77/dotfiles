@@ -1,5 +1,7 @@
 import { ResearchLedger, type ResearchPipelineItem } from "@/components/research/ResearchLedger";
 import { ThemeStrip } from "@/components/research/ThemeStrip";
+import { CredibilityChipEvidence } from "@/components/research/CredibilityChipEvidence";
+import { CredibilityChipAuthority } from "@/components/research/CredibilityChipAuthority";
 import {
   getResearchItems,
   getResearchPipeline,
@@ -106,6 +108,30 @@ export default async function Research() {
           soft-fails to nothing on a read error. Mounted here (page.tsx) rather than inside
           ResearchLedger, which owns its own internal masthead and is out of this lane's write set. */}
       <ThemeStrip />
+      {/* Split-credibility legend (spec-03 §4 "two scores, never merged"; Lane DASH, 2026-09-02).
+          Page-level placement, once: the same two chip components each finding row below carries,
+          shown here with no item bound so a reader sees the model before hitting the per-row chips.
+          "Chip placement only" per this lane's write set — no restructuring of the surrounding page. */}
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "14px 36px 0" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 800,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "var(--color-text-muted)",
+            }}
+          >
+            Credibility model
+          </span>
+          <CredibilityChipEvidence biasTags={[]} />
+          <CredibilityChipAuthority />
+          <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
+            Two scores, never merged (spec-03 §4). Click a chip for the GRADE modifier ledger.
+          </span>
+        </div>
+      </div>
       <ResearchLedger
         items={items}
         aggregates={aggregates}

@@ -65,6 +65,14 @@ interface HomeSurfaceProps {
    *  Rendered by the server parent (app/page.tsx) and passed down as an element: HomeSurface is a Client
    *  Component and cannot import an async Server Component directly. */
   changedSinceStrip?: ReactNode;
+  /** Five-surface rebalance (Lane DASH, 2026-09-02): the four NEW first-class per-surface blocks,
+   *  each a server-rendered async component (src/components/dashboard/*Pulse.tsx) fed by its own
+   *  live read, passed down as elements for the same reason changedSinceStrip is — see
+   *  SurfacePulseCard.tsx's header for why Regulations does not get a fifth card here. */
+  marketIntelPulse?: ReactNode;
+  researchPulse?: ReactNode;
+  operationsPulse?: ReactNode;
+  communityPulse?: ReactNode;
 }
 
 /** Section rule per the mock: Anton title + right eyebrow + 2px ink underline. */
@@ -123,6 +131,10 @@ export function HomeSurface({
   coverageGapsPromise,
   surfaceCoverage,
   changedSinceStrip,
+  marketIntelPulse,
+  researchPulse,
+  operationsPulse,
+  communityPulse,
 }: HomeSurfaceProps) {
   const {
     resources: platformResources,
@@ -213,6 +225,34 @@ export function HomeSurface({
           </Suspense>
           <DashboardByOwner resources={resources} />
         </div>
+      </div>
+
+      {/* ACROSS YOUR FIVE SURFACES (Lane DASH, 2026-09-02: dashboard five-surface rebalance,
+          docs/specs/00-foundation-the-spine.md "five lenses on one spine" + docs/specs/07-page-
+          walkthrough.md "HOW THE FIVE FIT TOGETHER"). Regulations already got first-class, real-data
+          treatment above (This week's top-priority list + By owner), so this section adds the four
+          surfaces that previously had only the thin "Across the platform" count-and-link rail card:
+          Market Intel, Research, Operations, Community — each block fed by its own live read (see
+          each Pulse component's header), never a placeholder. The Watchlist rail card above is the
+          cross-cutting lens across all five (its rows already span reg/signal/research/operations/
+          source types, per DashboardWatchlist.tsx) — named here rather than duplicated. */}
+      <SectionHeading
+        title="Across your five surfaces"
+        aside="Your watchlist above is the lens that spans all five"
+        style={{ margin: "44px 0 16px" }}
+      />
+      <div
+        className="cl-dash-surfaces"
+        style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, margin: "0 0 8px" }}
+      >
+        <style>{`
+          @media (max-width: 1100px) { .cl-dash-surfaces { grid-template-columns: repeat(2, 1fr) !important; } }
+          @media (max-width: 560px) { .cl-dash-surfaces { grid-template-columns: 1fr !important; } }
+        `}</style>
+        {marketIntelPulse}
+        {researchPulse}
+        {operationsPulse}
+        {communityPulse}
       </div>
 
       {/* WHAT CHANGED — one section (operator ruling 2026-09-02: "we only need one"). The source-changed /
