@@ -287,6 +287,68 @@ all. Report it back to the coordinator as a would_mint row that should be re-sco
 never silently skip it without a record — the census row needs a disposition either way so the 3,661 queue
 count stays honest.
 
+## 11. The census-worklist population runtime (Lane POP, 2026-09-02)
+
+§3's missing piece — the census-worklist exporter `docs/plans/record-tier-population-plan-2026-09-01.md`
+named as needing live DB access it deliberately kept out of this kit's own write set — now exists as a
+runtime, outside this directory: `scripts/mint/export-census-rows.mjs` (the join + capture pass) and
+`scripts/mint/apply-mint-batch.mjs` (the coordinator-apply step), wired together by
+`.github/workflows/population-turn.yml`. This section is the pointer from the kit's own runbook to that
+runtime — the kit itself (`run-mint-batch.mjs --census-rows --grade record`, §6/§7 above) is UNCHANGED by
+this addition; the runtime only supplies the enriched-row input that mode already documented and applies
+the output it already produces.
+
+**`export-census-rows.mjs`** — the record-tier plan's §3 join, as code: `census_worklist` rows where
+`dryrun_disposition = 'would_mint'`, joined to `sources` (identity + tier) and to `agent_run_searches`
+(`result_url = document_url`, >200 chars `result_content`, the live-confirmed 680-of-3,661 capture pool).
+`item_type` and `canonical_instrument_key` both come from `scripts/lib/canonical-key.mjs`'s `deriveKey` —
+the ONE canonical-key mirror this repo ships (see that file's own header for why a second mirror is
+forbidden) — never a second regex. A row with no existing capture is held `no_capture` by default;
+`--capture` politely fetches `document_url` instead (1 req/s via `POPULATION_FETCH_GAP_MS`, 20s timeout,
+$0, no LLM) and holds `capture_too_short` when the result is ≤200 chars either way. `--exclude-held`
+(default on) drops any row whose `document_url` already has an `intelligence_items` row (archived
+included) before export — never silently, always counted in the run summary. Output is exactly the
+enriched-row shape `run-mint-batch.mjs`'s own `loadCensusRows` header documents; a row this script cannot
+build for any reason lands in a sibling `<out>.held.json` with a `hold` reason, never dropped.
+
+**`apply-mint-batch.mjs`** — takes the `<basename>.apply-ready.json` a `--census-rows --grade record
+--execute` run of `run-mint-batch.mjs` already wrote (validator-green payloads only) and applies each
+through the guarded write path, exactly the hand-off this runbook's §6/§7 already describe. Per payload:
+an M4 pre-check (any `intelligence_items` row — archived included — already holding the payload's
+`canonical_instrument_key` or sitting at its `source_url` blocks the write: `not_applied_wo26_excluded`
+when the holder's `archive_reason = 'out_of_scope_wo26'`, `not_applied_holder_conflict` for any other
+holder, `not_applied_url_holder` for a same-URL holder with no key collision); inline `registerSource`
+when the payload's own source needs it; then the write itself, in `src/lib/agent/canonical-pipeline.ts`'s
+own table order (`intelligence_items` → `agent_run_searches` → `intelligence_item_sections` →
+`section_claim_provenance` → `item_gate_a_state` → `intelligence_item_citations`), NOT through
+`mintIntelligenceItem()` — that chokepoint's `MintPlan` interface has no field for a payload's
+sections/claims/search_results (`src/lib/intake/mint-item.ts` lines 59-81; its own header states the
+`section_claim_provenance` boundary explicitly), so it cannot rehydrate a mint payload end to end. This is
+the SAME raw-guarded-write shape mint-run-005/006's own coordinator-apply pass used by hand
+(`mint-run-006.json`'s `config.write_plan`) — not a new pattern, and not an F13 violation (F13's own scope
+excludes `fsi-app/scripts/**` as "one-shot tools, out of runtime scope"). After the write, `rpc
+validate_item_provenance` runs and its verdict is recorded (`minted_verified` / `minted_unverified` — an
+unverified item is never deleted or retried, matching this runbook's own "flag it, never invent or
+silently drop" posture); a minted payload's `census_worklist` row is stamped `enumeration_status =
+'reconciled'` (a `not_applied_*` row is left UNRECONCILED, exactly `mint-run-006.json`'s own precedent for
+its three holder-conflict rows). `--dry` (default) plans and prints every payload's disposition and writes
+NOTHING — no DB write, no census stamp, no artifact enrichment; `--apply` performs the real guarded writes
+and enriches the batch's own `mint-run-NNN.json` (`metrics.db_deltas`, `metrics.minted`,
+`metrics.not_applied_*`, `metrics.census_rows_reconciled`, per-payload outcomes) in place, keeping
+`validateRunArtifact` green throughout. Rule 16 (connection discovery + forward-event extraction,
+`mint-item.ts`'s post-insert blocks) does NOT run inside this script — per §8 above, that is a SEPARATE,
+later pass over the newly-minted items, and every apply run's `proposer_notes` says so explicitly rather
+than leaving the gap implicit.
+
+**`.github/workflows/population-turn.yml`** — the dispatch-only runtime wiring: `stamp-wo26-archive-
+reason.mjs` (apply only in apply mode) → `export-census-rows.mjs` → `run-mint-batch.mjs --census-rows
+--grade record --execute` (this kit's own gate, unmodified) → `apply-mint-batch.mjs` (apply only in apply
+mode) → `propose-tags.mjs --dry` (surfaces newly-minted items' empty signature tags for later operator
+ratification — Lane TAG's own write path stays untouched) → commit `scripts/harness-runs/mint/` plus this
+run's export/apply-ready/report files on branch `population/<run_id>` → PR via
+`scripts/turns/deliver-artifact-branch.sh`. No new harness family: every run enriches the existing `mint`
+family's artifact, per this section's own framing above.
+
 ## Keeping the kit in sync
 
 `lib/gate-a-scan.mjs` and `lib/gate-a-match.mjs` are copies of `src/lib/agent/gate-a-scan.mjs` /

@@ -41,6 +41,7 @@
 
 import { MARKET_SERIES_PRODUCERS } from "./series-registry.mjs";
 import { latestPerSeries } from "./refresh-published-price-statistics.mjs";
+import { computeSeriesDeltas } from "./series-deltas.mjs";
 
 /** Recognised currency codes -> their real symbol. Absent from this map = show the raw code, never a guess. */
 const CURRENCY_SYMBOL = Object.freeze({ EUR: "€", USD: "$", GBP: "£" });
@@ -108,6 +109,23 @@ function seriesKeyPrefix(seriesKey) {
  *   whatever window/limit the caller fetched — see fetchMarketSeriesBoard's own note).
  * @property {string|null} sourceKey
  * @property {string|null} sourceRef
+ * @property {string|null} unit
+ * @property {string|null} currency
+ * @property {string|null} derivation  IOSCO/PD391 derivation class (src/lib/contracts/envelope.mjs
+ *   DERIVATION) — already selected by fetchMarketSeriesBoard's query, just not threaded through until
+ *   Lane SURF's methodology/provenance drawer (spec 02 §6 item 10) needed it.
+ * @property {string|null} originClass  spec 00 §3.6 ORIGIN_CLASS code for this observation.
+ * @property {string|null} methodVersion
+ * @property {number|null} nObservations  sample size behind this observation, when the source reports
+ *   one (governs significant-figure rounding at render — src/lib/contracts/envelope.mjs
+ *   significantFigures()). Distinct from `observationCount` below, which counts ROWS THIS BOARD SAW for
+ *   the series_key, not the source's own reported sample size.
+ * @property {object} deltas  Lane SURF (spec 02 §6 item 1, comparative ribbon): Δ1w/Δ1m/ΔYoY + sparkline
+ *   computed from EVERY row this board saw for this series_key (not just the latest-wins row above) —
+ *   computed HERE, inside buildSeriesBoard, because this is the one place that still has the full
+ *   unreduced row list in scope; the fetcher (fetchMarketSeriesBoard) discards it once buildSeriesBoard
+ *   returns. See series-deltas.mjs's computeSeriesDeltas for the return shape and the single-point / gap
+ *   / unit-mismatch honesty rules this inherits unchanged.
  */
 
 /**
@@ -142,9 +160,12 @@ export function buildSeriesBoard(rawRows, { producers = MARKET_SERIES_PRODUCERS 
   const latest = latestPerSeries(rawRows); // Map<series_key, row> — greatest reference_period wins
 
   const countBySeriesKey = new Map();
+  const rowsBySeriesKey = new Map();
   for (const r of rawRows ?? []) {
     if (!r?.series_key) continue;
     countBySeriesKey.set(r.series_key, (countBySeriesKey.get(r.series_key) ?? 0) + 1);
+    if (!rowsBySeriesKey.has(r.series_key)) rowsBySeriesKey.set(r.series_key, []);
+    rowsBySeriesKey.get(r.series_key).push(r);
   }
 
   const toDisplayRow = (seriesKey, row) => {
@@ -160,6 +181,15 @@ export function buildSeriesBoard(rawRows, { producers = MARKET_SERIES_PRODUCERS 
       observationCount: countBySeriesKey.get(seriesKey) ?? 0,
       sourceKey: row.source_key ?? null,
       sourceRef: row.source_ref ?? null,
+      unit: row.unit ?? null,
+      currency: row.currency ?? null,
+      derivation: row.derivation ?? null,
+      originClass: row.origin_class ?? null,
+      methodVersion: row.method_version ?? null,
+      nObservations: typeof row.n_observations === "number" ? row.n_observations : null,
+      // Comparative ribbon (spec 02 §6 item 1) — computed from the FULL row list for this series_key,
+      // not just the latest-wins `row` argument above. See this function's own SeriesDisplayRow typedef.
+      deltas: computeSeriesDeltas(rowsBySeriesKey.get(seriesKey) ?? [row]),
     };
   };
 

@@ -153,6 +153,61 @@ export const GOVERNING_FILES = Object.freeze({
     'src/lib/sources/register-walk.mjs',
     'src/lib/sources/feed-walk.mjs',
   ]),
+  // ledger-consume (registered by Lane CONSUME, system-completion plan 2026-09-02): the runtime
+  // scripts/turns/run-*.mjs already had for source-sweep/forward-events, extended to
+  // src/lib/intake/portal-harvest.ts's consumePortalCandidates (ledger candidate -> classify ->
+  // chokepoint -> intake) — the READER half of the portal-deep-link slice; persistPortalCandidates (the
+  // WRITER half, same file) already had a runtime via the scheduled check-sources crawl.
+  // consumePortalCandidates had zero production callers before run-ledger-consume.mjs (system-completion
+  // plan §0 item 1, confirmed by grep). Governing files are the driver plus the two library modules it
+  // gives a runtime to for the first time: portal-harvest.ts (the consume pass itself) and
+  // first-fetch-classify.ts (the LLM content gate it calls) — the second is included because this
+  // family's driver also had to close that module's missing agent_runs telemetry (see
+  // run-ledger-consume.mjs's own header for why), so a change to either module's behavior is this
+  // family's behavior changing, not an unrelated dependency. Zero valid artifacts exist yet — this lane
+  // has neither DB nor network access to run it for real — so it carries
+  // scripts/harness-runs/ledger-consume/PENDING-RUN.md as its hash-pinned FIRST-RUN ACKNOWLEDGMENT (rule
+  // (b), see this file's header), discharged by the ledger-consume workflow's first
+  // ledger-consume-run-001.json.
+  'ledger-consume': Object.freeze([
+    'scripts/turns/run-ledger-consume.mjs',
+    'src/lib/intake/portal-harvest.ts',
+    'src/lib/llm/first-fetch-classify.ts',
+  ]),
+  // change-detection (registered by lane CD, change-detection runtime, 2026-09-02): the runtime the
+  // detect -> reconcile -> drain chain never had. runReconcilePass (src/lib/sources/reconcile.ts) existed
+  // only as a callee inside check-sources/route.ts; drainChangeSweepUpdates (src/lib/intake/
+  // run-intake-cycle.ts) was reachable only from runIntakeCycle's own apply-mode tail. Governing files are
+  // the driver plus the two library modules it drives directly (reconcile.ts's dryRun projection,
+  // run-intake-cycle.ts's now-exported drain entry) — see run-change-detection.mjs's own header for the
+  // full chain and the two limitations found reading check-sources/route.ts (out of this family's write
+  // set; check-sources/route.ts itself is NOT a governing file here since this family does not modify or
+  // re-implement its logic, only calls it over HTTP). Zero valid artifacts exist yet — this lane has no
+  // live DB/network access to run it for real — so it carries
+  // scripts/harness-runs/change-detection/PENDING-RUN.md as its hash-pinned FIRST-RUN ACKNOWLEDGMENT
+  // (rule (b), see the header): registered, first run pending, discharged by the change-detection
+  // workflow's first change-detection-run-001.json.
+  'change-detection': Object.freeze([
+    'scripts/turns/run-change-detection.mjs',
+    'src/lib/sources/reconcile.ts',
+    'src/lib/intake/run-intake-cycle.ts',
+  ]),
+  // propagation (registered by lane DP-ENGINE, 2026-09-02, system-completion train): the drain driver plus
+  // the two propagation-engine modules whose behaviour a run actually exercises — drain.ts (the governed
+  // recompute/invalidate loop) and admissible-for.ts (the pollution barrier every consumer reads through).
+  // types.ts/effective-confidence.mjs/register-derivation.ts/methods/index.ts are exercised INDIRECTLY
+  // through these two (drain.ts imports register-derivation.ts and methods/index.ts; admissible-for.ts
+  // imports effective-confidence.mjs and types.ts) — same "driver + the modules it gives a runtime to"
+  // posture as source-sweep's own three-file list above, not an exhaustive listing of every file in
+  // src/lib/propagation/. Zero valid artifacts exist yet: this lane has migrations verified only against a
+  // local scratch Postgres, no live Supabase project credentials — so it carries
+  // scripts/harness-runs/propagation/PENDING-RUN.md as its hash-pinned FIRST-RUN ACKNOWLEDGMENT (rule (b)),
+  // discharged by the propagation-drain workflow's first propagation-run-001.json.
+  propagation: Object.freeze([
+    'scripts/turns/run-propagation-drain.mjs',
+    'src/lib/propagation/drain.ts',
+    'src/lib/propagation/admissible-for.ts',
+  ]),
 });
 
 const PENDING_RUN_FILE = 'PENDING-RUN.md';

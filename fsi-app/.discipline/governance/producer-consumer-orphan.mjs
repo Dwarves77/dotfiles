@@ -64,6 +64,14 @@ export const TERMINAL_SINK_ALLOWLIST = {
     reason: 'FIRST RUN 2026-07-03. Written by /api/admin/sources/bulk-import as a job record; no reader (no admin import-history surface consumes it). DISPOSITION PENDING Phase 7 (build the history reader vs ratify as write-only job audit) — grandfathered, not ratified.',
     reviewByPhase: 'Phase 7 (zero-reader verification) — admin bulk-import history.',
   },
+  // entity_identifiers: entry RETIRED 2026-09-02 (Lane DP-SURF, system-completion train, coordinator
+  // follow-up task 2) — scripts/propagation/seed-derived-values.mjs's resolveRegionEntityId now reads it
+  // directly (`.from("entity_identifiers").select("entity_id,scheme,value").in("entity_id", candidateIds)`,
+  // the "resolve this ISO3166 code to an entity_id" lookup this entry's own reason named as awaited future
+  // work) before minting a jurisdiction entity for a region, so a fresh mint never collides with an
+  // identifier row backfill-entities.mjs already wrote for the same (kind, seed). With a real code reader
+  // now live, it is no longer a write-orphan — the detector correctly flags a standing entry here as
+  // STALE, exactly the self-audit this allowlist is built to perform.
   disposition_ledger: {
     reason: 'SURFACED 2026-09-01, when this checker began recognizing the guarded-write helpers (guardedInsert et al., scripts/lib/db.mjs) as writers — disposition_ledger was invisible to F14 before that fix even though it was already being written. Migration 213: designed-as write-only "permanent institutional memory" for tombstone-then-delete (operator ruling 2026-07-16) — an archived item\'s identity survives its own row being hard-deleted. scripts/lib/db.mjs also lists it in DELETE_PROTECTED_TABLES (append-only, RD-9 audit-terminal class, same posture as raw_fetches/claim_versions). Migration 213\'s own header names its intended future readers ("the holdings-gate and expansion-time dedup") — not built yet, so today it has zero readers by design, not by omission. DISPOSITION PENDING Phase 7 (build the dedup/holdings-gate reader vs ratify permanently as write-only memory) — grandfathered, not ratified.',
     reviewByPhase: 'Phase 7 (zero-reader verification) — holdings-gate / expansion-time dedup reader for disposition_ledger.',

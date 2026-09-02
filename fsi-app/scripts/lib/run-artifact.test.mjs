@@ -70,8 +70,30 @@ test("validateRunArtifact: per_item may be empty (a run that processed thousands
   assert.deepEqual(validateRunArtifact(artifact), []);
 });
 
-test("ALLOWED_FAMILIES is exactly mint, screen, fetch-drain, meta-harness, forward-events, source-sweep", () => {
-  assert.deepEqual(ALLOWED_FAMILIES, ["mint", "screen", "fetch-drain", "meta-harness", "forward-events", "source-sweep"]);
+// ALLOWED_FAMILIES shape (Lane SPEND, system-completion train, 2026-09-02): derived assertions, not exact
+// equality against a hardcoded list. Registering a new harness family (ledger-consume, change-detection —
+// each landed by its own lane, one addition apiece) used to also require editing THIS test's hardcoded
+// array, a second place the same fact had to be kept in sync by hand. Membership of the six ORIGINAL
+// families is still asserted by name (nobody may silently drop one), plus the two invariants that make
+// "add a family" a one-line edit forever after: every family name is kebab-case (matches run_id's
+// `^<family>-run-\d{3}$` shape, F28's CONVENTION-TABLE-PARITY row-key shape, and the registration-order
+// error message's own regex) and no name repeats.
+const ORIGINAL_SIX_FAMILIES = ["mint", "screen", "fetch-drain", "meta-harness", "forward-events", "source-sweep"];
+
+test("ALLOWED_FAMILIES: the six original families are present (registration never silently drops one)", () => {
+  for (const family of ORIGINAL_SIX_FAMILIES) {
+    assert.ok(ALLOWED_FAMILIES.includes(family), `expected "${family}" in ALLOWED_FAMILIES: ${JSON.stringify(ALLOWED_FAMILIES)}`);
+  }
+});
+
+test("ALLOWED_FAMILIES: every family name is kebab-case (lowercase letters + hyphens only, matching the run_id shape)", () => {
+  for (const family of ALLOWED_FAMILIES) {
+    assert.match(family, /^[a-z]+(-[a-z]+)*$/, `"${family}" is not kebab-case`);
+  }
+});
+
+test("ALLOWED_FAMILIES: no duplicate family names", () => {
+  assert.equal(new Set(ALLOWED_FAMILIES).size, ALLOWED_FAMILIES.length, `duplicate entries in ${JSON.stringify(ALLOWED_FAMILIES)}`);
 });
 
 // ── validateRunArtifact: red cases (fail-closed) ────────────────────────────────────────────────

@@ -1,0 +1,49 @@
+{
+  "_test_fixture_note": "Illustrative Eurostat lc_lci_lev JSON-stat 2.0 SHAPE for two member states (DE, FR), each as a SEPARATE document keyed by geo — mirroring eurostat-lc-lci-lev-producer.mjs's own one-fetch-per-geo design (see that file's header). Dimension codes (id order, unit=EUR, lcstruct=D1_D4_MD5, nace_r2=B-N, time as plain 4-digit years) are CONFIRMED against a live fetch this session (see eurostat-lc-lci-lev-parser.mjs's header); the illustrative numeric values below are NOT independently re-verified digit-for-digit against that fetch (outbound network access to ec.europa.eu is blocked in the sandbox that authored this fixture — same posture as eurostat-nrg-pc-205-sample.json's own note) and are chosen to exercise this parser's two real edge cases: DE has 2022 MISSING (sparse, only 2023 populated) to prove 'skip a year with no data'; FR has BOTH 2022 and 2023 populated to prove 'pick the latest, not just any populated year'.",
+  "DE": {
+    "version": "2.0",
+    "class": "dataset",
+    "label": "Labour cost levels by NACE Rev. 2 activity",
+    "source": "ESTAT",
+    "updated": "2026-01-15T11:00:00Z",
+    "id": ["freq", "unit", "lcstruct", "nace_r2", "geo", "time"],
+    "size": [1, 1, 1, 1, 1, 2],
+    "dimension": {
+      "freq": { "category": { "index": { "A": 0 }, "label": { "A": "Annual" } } },
+      "unit": { "category": { "index": { "EUR": 0 }, "label": { "EUR": "Euro" } } },
+      "lcstruct": {
+        "category": {
+          "index": { "D1_D4_MD5": 0 },
+          "label": { "D1_D4_MD5": "Labour cost for LCI (compensation of employees plus taxes minus subsidies)" }
+        }
+      },
+      "nace_r2": { "category": { "index": { "B-N": 0 }, "label": { "B-N": "Business economy" } } },
+      "geo": { "category": { "index": { "DE": 0 }, "label": { "DE": "Germany" } } },
+      "time": { "category": { "index": { "2022": 0, "2023": 1 }, "label": { "2022": "2022", "2023": "2023" } } }
+    },
+    "value": { "1": 50.3 }
+  },
+  "FR": {
+    "version": "2.0",
+    "class": "dataset",
+    "label": "Labour cost levels by NACE Rev. 2 activity",
+    "source": "ESTAT",
+    "updated": "2026-01-15T11:00:00Z",
+    "id": ["freq", "unit", "lcstruct", "nace_r2", "geo", "time"],
+    "size": [1, 1, 1, 1, 1, 2],
+    "dimension": {
+      "freq": { "category": { "index": { "A": 0 }, "label": { "A": "Annual" } } },
+      "unit": { "category": { "index": { "EUR": 0 }, "label": { "EUR": "Euro" } } },
+      "lcstruct": {
+        "category": {
+          "index": { "D1_D4_MD5": 0 },
+          "label": { "D1_D4_MD5": "Labour cost for LCI (compensation of employees plus taxes minus subsidies)" }
+        }
+      },
+      "nace_r2": { "category": { "index": { "B-N": 0 }, "label": { "B-N": "Business economy" } } },
+      "geo": { "category": { "index": { "FR": 0 }, "label": { "FR": "France" } } },
+      "time": { "category": { "index": { "2022": 0, "2023": 1 }, "label": { "2022": "2022", "2023": "2023" } } }
+    },
+    "value": { "0": 39.5, "1": 42.1 }
+  }
+}

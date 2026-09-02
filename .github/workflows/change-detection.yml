@@ -1,0 +1,172 @@
+name: Change detection
+
+# CHANGE-DETECTION RUNTIME (lane CD, system-completion train, 2026-09-02) — the chain that has never run
+# through a runtime at all: `runReconcilePass` (src/lib/sources/reconcile.ts) exists only as a callee
+# inside the deployed `/api/worker/check-sources` route (and the manual-redrive `/api/worker/reconcile`
+# route); `drainChangeSweepUpdates` (src/lib/intake/run-intake-cycle.ts) is reached only from inside
+# `runIntakeCycle`'s apply-mode tail; `source-monitoring.yml`'s own schedule is commented out
+# (acquisition-freeze ruling, 2026-07-13) and is dispatch-only. Live-confirmed 2026-09-02: 0
+# `monitoring_queue` rows with `change_detected=true AND reconciled_at IS NULL`, 0 pending `staged_updates`.
+#
+# THIS DRIVER: `fsi-app/scripts/turns/run-change-detection.mjs` — see that file's own header for the exact
+# three-step chain (detect via the deployed route -> reconcile -> drain), the dry/apply contract, and the
+# two limitations found reading check-sources/route.ts while building this (its due-source batch is
+# HARDCODED at 10 with no request parameter to change it; its JSON response does not return
+# changeDetected/portalCandidates per source — this driver compensates with its own read-only DB queries).
+# ALWAYS records a `change-detection` harness-run artifact (`scripts/harness-runs/change-detection/`,
+# `scripts/lib/run-artifact.mjs`'s convention), in both modes, from a `finally` block.
+#
+# DISPATCH-ONLY, DELIBERATELY. Same build-mode ruling every workflow in this repo states for itself
+# (operator ruling 2026-09-01) — no schedule runs while the site is being built:
+#   schedule:
+#     - cron: '0 */6 * * *'   # placeholder cadence only — the operator picks the real one at re-arm time,
+#                              # and only once source-monitoring.yml's own schedule is re-armed too (this
+#                              # workflow's Step A calls the SAME route that one's schedule would call).
+#
+# SECRETS (repository secrets; never echoed): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (the
+# same pair every guarded script in fsi-app/scripts/lib/db.mjs requires, used here for the driver's
+# read-only counts plus the reconcile/drain writes) — and APP_URL, WORKER_SECRET (the exact pair
+# source-monitoring.yml already uses to call the SAME check-sources route), needed only when Step A is
+# not skipped. All four are registered in fsi-app/.discipline/governance/secrets-registry.mjs's
+# WORKFLOW_SECRETS.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry = read-only projection, writes nothing. apply = calls the deployed route (unless skip_check) and writes through runReconcilePass + drainChangeSweepUpdates.'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+      check_limit:
+        description: 'Bounds this run''s OWN read/report of "sources due for check" (dry mode) and the due-sample size. Does NOT change the deployed route''s own batch — see the driver''s header for why (check-sources/route.ts hardcodes .limit(10)). Leave blank for the route''s own default (10).'
+        required: false
+        type: string
+      skip_check:
+        description: 'Skip Step A (the check-sources route call) entirely — reconcile + drain only, e.g. to work down an existing backlog without a new detection pass.'
+        required: false
+        type: boolean
+        default: false
+  # schedule:
+  #   - cron: '0 */6 * * *'   # BUILD MODE (2026-09-02) — see header above; stays commented out until the
+  #                            # operator explicitly re-arms it (and re-arms source-monitoring.yml first).
+
+concurrency:
+  group: change-detection
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      APP_URL: ${{ secrets.APP_URL }}
+      WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          if [ "${{ inputs.mode }}" = "apply" ] && [ "${{ inputs.skip_check }}" != "true" ]; then
+            if [ -z "$APP_URL" ]; then echo "::error::APP_URL is not set (required for mode=apply without skip_check)."; missing=1; fi
+            if [ -z "$WORKER_SECRET" ]; then echo "::error::WORKER_SECRET is not set (required for mode=apply without skip_check)."; missing=1; fi
+          fi
+          [ "$missing" -eq 0 ]
+
+      - name: This run's gates
+        run: |
+          echo "trigger      = ${{ github.event_name }}"
+          echo "mode         = ${{ inputs.mode }}"
+          echo "check_limit  = ${{ inputs.check_limit }}"
+          echo "skip_check   = ${{ inputs.skip_check }}"
+
+      # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
+      # Same guard source-sweep.yml carries: claimRunId (scripts/lib/run-artifact.mjs) numbers the next
+      # artifact from the files it can see in the checked-out tree (master); artifacts land through a PR,
+      # so a run dispatched before a previous run's PR merged would otherwise see a stale count and claim
+      # the same run_id as an unmerged sibling branch.
+      - name: Hydrate unmerged change-detection artifacts from sibling branches (run_id collision guard)
+        run: |
+          git fetch --no-tags origin '+refs/heads/change-detection/*:refs/remotes/origin/change-detection/*' || true
+          : > /tmp/hydrated-artifacts.txt
+          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/change-detection/*'); do
+            for f in $(git ls-tree -r --name-only "$b" -- fsi-app/scripts/harness-runs/change-detection/); do
+              rel="${f#fsi-app/}"
+              if [ ! -e "$rel" ]; then
+                mkdir -p "$(dirname "$rel")"
+                git show "$b:$f" > "$rel"
+                echo "$rel" >> /tmp/hydrated-artifacts.txt
+              fi
+            done
+          done
+          echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged change-detection file(s) from sibling branches"
+
+      - name: run-change-detection.mjs
+        run: |
+          args=(--mode "${{ inputs.mode }}")
+          if [ -n "${{ inputs.check_limit }}" ]; then args+=(--check-limit "${{ inputs.check_limit }}"); fi
+          if [ "${{ inputs.skip_check }}" = "true" ]; then args+=(--skip-check); fi
+          node scripts/turns/run-change-detection.mjs "${args[@]}"
+
+      # Commit the family's own harness-run artifact (scripts/harness-runs/change-detection/**) so the run
+      # this dispatch produced survives past the Actions log — same posture corpus-turn.yml and
+      # source-sweep.yml apply to their own families. A dispatch normally runs against master, which is
+      # typically branch-protected, so this lands on its own branch and opens a PR rather than pushing
+      # straight to whatever ref triggered the run.
+      - name: Remove hydrated sibling artifacts (they belong to their own branches)
+        if: always()
+        run: |
+          if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
+          rm -rf scripts/harness-runs/*/.claims
+
+      - name: Commit the change-detection harness-run artifact and open a PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/harness-runs/change-detection
+          if git diff --cached --quiet; then
+            echo "No new change-detection artifact to commit."
+            exit 0
+          fi
+          branch="change-detection/${{ github.run_id }}"
+          git checkout -b "$branch"
+          git commit -m "change-detection ${{ inputs.mode }}: run ${{ github.run_id }}"
+          git push origin HEAD:"$branch"
+          printf 'Automated change-detection run (run %s).\n\nMode: %s\nCheck limit: %s\nSkip check: %s\n\nLands the harness-run artifact for this run under scripts/harness-runs/change-detection/.\n' \
+            "${{ github.run_id }}" "${{ inputs.mode }}" "${{ inputs.check_limit }}" "${{ inputs.skip_check }}" > /tmp/pr-body.md
+          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Change detection: $branch (mode=${{ inputs.mode }})" /tmp/pr-body.md
+
+      - name: Upload traces as a workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: change-detection-traces-${{ github.run_id }}
+          path: fsi-app/scripts/harness-runs/change-detection/traces/
+          if-no-files-found: ignore
+          retention-days: 90

@@ -121,13 +121,21 @@ test("shapeRunOutput: dry mode never says 'upserted' (source-sweep-run-001 read 
   assert.doesNotMatch(dry.perItem[0].verdict, /\bupserted\b/);
   assert.match(dry.perItem[0].verdict, /planned \(dry, nothing written\)/);
   assert.equal(dry.metrics.mode, "dry");
+  // The METRIC is honest too (source-sweep-run-006, dry, read `upserted: 7` for 0 writes): dry carries
+  // upserted 0 and the plan size under `planned`; apply carries upserted and no `planned` key.
+  assert.equal(dry.metrics.upserted, 0);
+  assert.equal(dry.metrics.planned, 2);
   const apply = shapeRunOutput("register-eurlex", result, "/tmp/report.json", "apply");
   assert.match(apply.perItem[0].verdict, /2 upserted/);
   assert.equal(apply.metrics.mode, "apply");
+  assert.equal(apply.metrics.upserted, 2);
+  assert.equal("planned" in apply.metrics, false);
   // Feed and Federal Register verdicts carry the same distinction.
   const fr = shapeRunOutput("register-federal-register", { register: "federal-register", from: "a", to: "b", types: ["RULE"], term: null, pages: [{ page: 1, url: "https://x", results: 5, upserted: 5 }], upserted: 5, failed: 0, totalCount: 5, totalPages: 1, droppedPages: 0 }, "/tmp/r.json", "dry");
   assert.doesNotMatch(fr.perItem[0].verdict, /\bupserted\b/);
+  assert.equal(fr.metrics.upserted, 0); assert.equal(fr.metrics.planned, 5);
   const feed = shapeRunOutput("feed", { feedUrl: "https://f", ok: true, entries: 3, upserted: 3, failed: 0 }, "/tmp/r.json", "dry");
+  assert.equal(feed.metrics.upserted, 0); assert.equal(feed.metrics.planned, 3);
   assert.doesNotMatch(feed.perItem[0].verdict, /\bupserted\b/);
 });
 

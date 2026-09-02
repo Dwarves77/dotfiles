@@ -7621,3 +7621,108 @@ Any other `gh pr create` failure still fails the run. Both workflows gained `iss
 locally against a fake `gh` for all four outcomes (PR opened; refused with no issue → issue created;
 refused with issue → comment; other error → exit 1). No run was dispatched until this landed; one dry
 sweep follows as the proof.
+
+## Addendum 84 — 2026-09-02 (cloud session): the system-completion train — nine lanes, spec 08 built, fourteen joins fixed
+
+**Operator rulings this session, in order.** (1) "build the remaining parts of the system now. make a build
+plan and use multiple sonnet agents." (2) When I deferred spec 08 (decision propagation) because its §8
+decisions were the operator's to make: "You need to build the surface and the engine. We're building an
+entire system here, and the more we put off, the less we get accomplished, and it'll get forgotten … if
+you decide that it needs to be done, then we do it because it makes a system better." (3) "your job is to
+point out places we can make this system better … being the most complete and robust." I took the four
+§8 decisions myself and recorded them as named constants in ADR-024 so any of them is a one-line
+override: batch drain, range-only estimates with break-even at equal billing, floors 0.50/0.75/0.90,
+corridor = UN/LOCODE pair + mode.
+
+**What I built the plan on.** Four read-only scouts plus one live read of the database before writing
+`docs/plans/system-completion-plan-2026-09-02.md`: 1,454 portal candidates never consumed; 3,661
+`would_mint` census rows, 680 with a >200-char capture at `document_url`, only 31 of those without an
+item at that URL; 549 archived items without `archive_reason`; `market_series` 6 series × 1 row; no
+`ecb` in `data_sources`; migration 278 applied; and, for spec 08, that every table and function it names
+was unbuilt, no ADR existed, and the dependents its worked example invalidates (automate-vs-hire
+results, carbon cost per FEU) did not exist either. That last fact is why DP-SURF exists as a lane: an
+invalidation engine with nothing to invalidate is plumbing.
+
+**Nine Sonnet lanes, disjoint write sets, each in its own worktree off the train branch (`822c675` +
+plan).** CONSUME (`run-ledger-consume.mjs` + `ledger-consume.yml`, jiti-loaded `consumePortalCandidates`,
+plan default, apply disarmed by a source constant). SPEND (`firstFetchClassify` through a new
+`spendMessage` in the chokepoint: ticket set and restored, one `agent_runs` row per call with
+`source_id`; `ANTHROPIC_API_KEY` registered; family-list tests derive from `ALLOWED_FAMILIES`; rule 016
+allowlist cleaned). POP (`export-census-rows.mjs` with $0 polite capture, `apply-mint-batch.mjs` with the
+M4 holder pre-check distinguishing WO-26 exclusions from conflicts, guarded writes in the pipeline's
+insert order, `validate_item_provenance`, census row reconciled; `population-turn.yml`). CD
+(`run-change-detection.mjs` + `change-detection.yml`; the check-sources route gained a bounded `limit`
+and returns `changeDetected`/`portalCandidates`; `runReconcilePass` has a dry mode; the drain is
+exported). PROD (`data_sources.ecb` migration 281, ecb-fx armed at the code gate, registry parity,
+oil-bulletin `--since` history backfill, `refresh-published-price-statistics` dispatchable; eia-v2 step
+still absent because the secrets audit rejects an unregistered name). SURF (freshness panel through the
+shipped `stalenessOf`, methodology drawer, promotion-state machine replacing `!!r.type`, comparative
+ribbon that says "one observation, no delta yet" instead of inventing one, obligations strip on
+/market, `originClass` mapped onto Resource at all three mapper sites). DP-SPINE (ADR-024; migrations
+282 `entities`/`entity_identifiers`/`entity_scope` and 283 progressive FK columns + `entity_refs` for
+the `TEXT[]` jurisdiction facts; `backfill-entities.mjs`; F30 forbids the text-keyed count regressing).
+DP-ENGINE (284 outbox + in-transaction trigger on `emission_factors`/`market_series`/
+`regional_data_facts`; 285 `derived_values` + `derivation_edges` + `assert_acyclic` +
+`invalidate_dependents` + `effective_confidence` + the `derived_values_admissible` view with the raw table
+denied; 286 `statutory_computations`/`estimated_values` + purity trigger; 287 `sensitive_field_policy`,
+`aggregate_query_log`, `publish_aggregate` with k≥5, the §5.2 (a)–(d) attacks, dominance and
+forward-looking refusals; `admissibleFor` with `FLOOR`; `runPropagationDrain` batching to a quiescent
+point; `propagation-drain.yml`; F31, F32). DP-SURF (automate-vs-hire as `estimated_values` ranges with
+edges to the wage and energy facts; carbon intensity per tonne-km as `derived_values`; FuelEU Annex IV
+as the first `statutory_computations` method behind the `Contractable` type barrier; `StatutoryFigure`,
+`EstimatedFigure`/`DerivedFigure`, `RecalculationNotice`; `GET /api/notices` over the org watchlist;
+`seed-derived-values.mjs`; a new Eurostat `lc_lci_lev` hourly-labour-cost producer).
+
+**Fourteen defects found by lane reports or by reading, all fixed in this train, none deferred.** The
+ones that matter structurally: `firstFetchClassify` had been outside the spend chokepoint since it was
+written (allowlisted, not migrated); the check-sources route hardcoded `.limit(10)` and dropped the
+change fields from its JSON; `fetch-oil-bulletin.mjs` ran a live fetch on import; spec 08 §4's DDL made
+`entity_id` the PK of `estimated_values` (one estimate per entity), which the seed exposed as 0 rows
+against a worked example that needs four per factor, so migration 286 now has surrogate PKs and a
+`scenario_key`; regions had no entity, so the seed mints the jurisdiction entity through the same path
+the backfill uses; the BLS OEWS wage fact was annual while the calculator reads hourly (now the `08`
+hourly series alongside `13`, never divided by 2080); no region had both a wage and an energy fact (BLS
+is US-only, nrg_pc_205 EU-only), hence the `lc_lci_lev` producer; `source-sweep-run-006` (dry) recorded
+`upserted: 7` for 0 writes, so dry metrics now carry `upserted: 0, planned: N`; two first-run markers
+were stale by integration time because a sibling lane edited a governing file after the pin.
+
+**FuelEU verified against primary text, not secondary.** DP-SURF shipped Annex IV constants as
+`[UNCONFIRMED]` because WebFetch truncates the regulation before the annexes. I opened CELEX:32023R1805
+in the browser: Annex IV Part A(a) "Compliance balance [gCO2eq] = (GHGIE_target − GHGIE_actual) ×
+[Σ M_i × LCV_i + Σ E_k]"; Part B(a) "FuelEU Penalty = |Compliance Balance| / (GHGIE_actual × 41 000) ×
+2 400", 41 000 = one metric ton of VLSFO in MJ, 2 400 = EUR per equivalent ton; Article 23(2): multiplied
+by 1 + (n − 1)/10 for consecutive deficit periods. The code now cites that read.
+
+**Integration.** Merge order CONSUME, SPEND, POP, CD, PROD, SURF, DP-SURF (which carries SPINE and
+ENGINE), then `origin/source-sweep/33575226376` (run-006, issue #516). Additive conflicts in the family
+registry, F28, CONVENTION.md, the runbook and the writer allowlist; two closing brackets restored; the
+merged allowlist JSON had lost its commas and failed the shared-writer registry until fixed.
+CONSUME's driver-side telemetry wrapper deleted (it would have written a second `agent_runs` row per
+classify once SPEND's chokepoint covered the call). `meta-harness-run-007` written as this train's own
+record; proposer passes for meta-harness and source-sweep (naming run-006); source-sweep re-pinned for
+the honest-metric change with `source-sweep-run-007` (the first Federal Register dry walk) as the
+discharging run. `producers.yml` gained the `lc_lci_lev` step. Migration 281 inventoried.
+
+**Gates on the integrated train (`train/system-completion`):** suite 3,001/3,001; npm-deps 357/357;
+fitness 26/26, 0 violations; meta-gate PASS (112 invariants, 63 doctrines); consistency C3 PASS, C5 PASS
+(C4 is the 85-worktree noise of this container); `tsc --noEmit` clean; discipline engine on
+`822c675..HEAD` 4 pass, 0 fail, 5 skip.
+
+**Not done, and why.** Migrations 281–287 are landed but NOT applied live until the train merges (two-track
+policy); I apply them in order after the merge. Corridor rate board, lead-time chart, peer cohort and
+capacity panel: no data source exists in the system, so nothing honest can be rendered. EIA step: needs
+`EIA_API_KEY` as a GitHub secret (operator). `publish_aggregate` has no live subject yet (no sensitive
+numeric community field exists); the policy rows are seeded for the fields the spec names. Spec 08 §5.2
+is complete; §4 Layer 2 is a type barrier, enforced by `tsc` with an `@ts-expect-error` test.
+
+**Errors of mine this session.** I deferred spec 08 on the grounds that its decisions were the
+operator's; the operator's ruling was that deferral is how things get forgotten, and he was right about
+this codebase's history. I also launched the first build lane alone instead of in parallel with the
+others, which cost wall-clock time; the rest went out as a batch.
+
+**Next step for a cold session:** land this train through the browser path (bundle → web upload →
+Codespace → PR → squash-merge), apply 281–287 live in order, run `backfill-entities.mjs --apply` then
+`seed-derived-values.mjs --apply`, then dispatch each new workflow once (ledger-consume plan;
+population-turn dry then apply limit 50; change-detection dry; propagation-drain dry; source-sweep
+register-federal-register dry and feed dry; producers ecb-fx dry then apply, eurostat-lc-lci-lev dry then
+apply) and read every artifact against the live table before the next.

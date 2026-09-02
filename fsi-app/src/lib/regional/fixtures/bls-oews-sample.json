@@ -1,5 +1,5 @@
 {
-  "_test_fixture_note": "Illustrative test data shaped as the documented BLS Public Data API v2 timeseries response (https://www.bls.gov/developers/api_signature_v2.htm) for the OEWS national annual-median-wage series this producer requests. This is NOT a live capture — outbound network access to api.bls.gov was unavailable in the sandbox this fixture was authored in (agent-proxy denies non-allowlisted hosts). The series IDs were computed by buildOewsSeriesId() (see bls-oews-parser.mjs), not hand-typed. The wage VALUES below are illustrative placeholders in a plausible range for the named occupations, not BLS-reported figures.",
+  "_test_fixture_note": "Illustrative test data shaped as the documented BLS Public Data API v2 timeseries response (https://www.bls.gov/developers/api_signature_v2.htm) for the OEWS national annual-median-wage AND hourly-median-wage series this producer requests (2026-09-02 coordinator follow-up: BLS OEWS wage fact is hourly (H_MEAN), matching what automate-vs-hire reads — the hourly series (datatype 08) were added this commit; the annual series (datatype 13) are unchanged from the original fixture). This is NOT a live capture — outbound network access to api.bls.gov was unavailable in the sandbox this fixture was authored in (agent-proxy denies non-allowlisted hosts). The series IDs were computed by buildOewsSeriesId() (see bls-oews-parser.mjs), not hand-typed. The wage VALUES below are illustrative placeholders in a plausible range for the named occupations, not BLS-reported figures, and are DELIBERATELY not an exact /2080 division of the paired annual figure (real BLS hourly/annual pairs are close but not identical, since 2080 is BLS's own full-time-equivalent assumption applied when annualizing, not this producer's) — each measure is meant to read as its own independently-published BLS series. The Supervisors occupation (53-1047) deliberately carries NO hourly (datatype 08) series in this fixture at all, to exercise the 'annual published, hourly not' case (BLS OEWS wage suppression is per-series, not per-occupation) end to end, from the parser through automate-vs-hire's refusal.",
   "status": "REQUEST_SUCCEEDED",
   "responseTime": 92,
   "message": [],
@@ -24,6 +24,20 @@
         "data": [
           { "year": "2024", "period": "A01", "periodName": "Annual", "value": "63410", "footnotes": [{ "code": "*", "text": "not shown" }] },
           { "year": "2023", "period": "A01", "periodName": "Annual", "value": "*", "footnotes": [{ "code": "*", "text": "data does not meet publication guidelines" }] }
+        ]
+      },
+      {
+        "seriesID": "OEUN000000000000053303208",
+        "data": [
+          { "year": "2024", "period": "A01", "periodName": "Annual", "value": "26.15", "footnotes": [{}] },
+          { "year": "2023", "period": "A01", "periodName": "Annual", "value": "25.35", "footnotes": [{}] }
+        ]
+      },
+      {
+        "seriesID": "OEUN000000000000053706208",
+        "data": [
+          { "year": "2024", "period": "A01", "periodName": "Annual", "value": "17.95", "footnotes": [{}] },
+          { "year": "2023", "period": "A01", "periodName": "Annual", "value": "17.25", "footnotes": [{}] }
         ]
       },
       {

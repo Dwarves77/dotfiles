@@ -17,6 +17,42 @@ import { runReconcilePass } from "@/lib/sources/reconcile";
 type RenderFn = (u: string, o: { maxTextLength?: number }) => Promise<{ status: number; text?: string; html?: string }>;
 type ClassifyFn = (r: { status: number | null; errored: boolean }) => string;
 
+// LIMIT PARAMETER (lane CD, check-sources route defect fix, 2026-09-02). Found while building the
+// change-detection runtime: this route's due-source batch was a HARDCODED `.limit(10)` — no caller could
+// change it. DEFAULT_CHECK_LIMIT keeps that exact prior value so source-monitoring.yml's own behaviour
+// (no limit sent) is byte-for-byte unchanged; MAX_CHECK_LIMIT bounds a caller-supplied override so a
+// dispatch can never accidentally scan the whole 2,561-row corpus (and its matching Browserless spend) in
+// one hourly tick.
+export const DEFAULT_CHECK_LIMIT = 10;
+export const MAX_CHECK_LIMIT = 50;
+
+/**
+ * Pure: validate a caller-supplied `limit` (arrives as a query-string value — always a string — or a
+ * JSON body value — string or number — so `raw` is typed `unknown`). Exported so the parsing/validation
+ * CONTRACT is unit-testable without constructing a full NextRequest.
+ *   - undefined / null / "" (not supplied at all) -> ok, DEFAULT_CHECK_LIMIT (the unchanged prior default).
+ *   - anything else must parse as an integer in [1, MAX_CHECK_LIMIT] -> ok, that value.
+ *   - anything else (non-numeric, fractional, <1, >MAX_CHECK_LIMIT) -> not ok, a message naming the rule
+ *     and the rejected value verbatim (never a bare "invalid limit").
+ */
+export function validateCheckLimit(raw: unknown): { ok: true; limit: number } | { ok: false; error: string } {
+  if (raw === undefined || raw === null || raw === "") return { ok: true, limit: DEFAULT_CHECK_LIMIT };
+  // Only a string (query param) or a number (JSON body) is a legitimate shape — reject anything else
+  // BEFORE Number()-coercing it: Number([10]) === 10 and Number(true) === 1 are real JS gotchas that
+  // would otherwise let a malformed body value ("limit": [10] or "limit": true) slip through as valid.
+  if (typeof raw !== "string" && typeof raw !== "number") {
+    return { ok: false, error: `limit must be an integer between 1 and ${MAX_CHECK_LIMIT} (got ${JSON.stringify(raw)})` };
+  }
+  const n = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 1 || n > MAX_CHECK_LIMIT) {
+    return {
+      ok: false,
+      error: `limit must be an integer between 1 and ${MAX_CHECK_LIMIT} (got ${JSON.stringify(raw)})`,
+    };
+  }
+  return { ok: true, limit: n };
+}
+
 // Per-source accessibility assessment + status update. Extracted so the consumer's OWN
 // stored outcome (sources.status) is testable under a forced failure — verified at the
 // consumer, not inherited from the reachability SSOT. render/classify are injectable.
@@ -127,6 +163,54 @@ export async function assessAndUpdateSource(
   return { status: isAccessible ? "accessible" : outcome, httpStatus, outcome, changeDetected, portalCandidates };
 }
 
+/** One `results[]` entry, as returned in the route's JSON response. */
+export interface CheckSourcesResultEntry {
+  source: string;
+  status: string;
+  httpStatus: number;
+  outcome: string;
+  changeDetected: boolean;
+  portalCandidates: number;
+  error?: string;
+}
+
+/**
+ * Pure: map ONE assessAndUpdateSource() outcome into this route's `results[]` entry shape (lane CD,
+ * 2026-09-02 — `httpStatus`/`outcome`/`changeDetected`/`portalCandidates` were computed by
+ * assessAndUpdateSource all along but never reached the response body; the route silently kept only
+ * `status`). Exported so the response SHAPE is unit-testable against a real assessAndUpdateSource call
+ * (with injected render/classify) without a live NextRequest.
+ */
+export function buildResultEntry(
+  sourceName: string,
+  assessed: { status: string; httpStatus: number; outcome: string; changeDetected: boolean; portalCandidates: number }
+): CheckSourcesResultEntry {
+  return {
+    source: sourceName,
+    status: assessed.status,
+    httpStatus: assessed.httpStatus,
+    outcome: assessed.outcome,
+    changeDetected: assessed.changeDetected,
+    portalCandidates: assessed.portalCandidates,
+  };
+}
+
+/** Pure: the `results[]` entry for a source whose assessment THREW (assessAndUpdateSource itself failed,
+ *  not merely returned an inaccessible/error outcome). */
+export function buildErrorEntry(sourceName: string, message: string): CheckSourcesResultEntry {
+  return { source: sourceName, status: "error", httpStatus: 0, outcome: "error", changeDetected: false, portalCandidates: 0, error: message };
+}
+
+/** Pure: the response-level totals derived from a batch of `results[]` entries — never a second DB read,
+ *  never anything beyond a fold over what was already computed per source. */
+export function summarizeResults(results: CheckSourcesResultEntry[]): { sourcesChecked: number; changesDetected: number; portalCandidates: number } {
+  return {
+    sourcesChecked: results.length,
+    changesDetected: results.filter((r) => r.changeDetected).length,
+    portalCandidates: results.reduce((sum, r) => sum + r.portalCandidates, 0),
+  };
+}
+
 /**
  * POST /api/worker/check-sources
  *
@@ -135,26 +219,53 @@ export async function assessAndUpdateSource(
  *
  * Authentication: requires WORKER_SECRET header to prevent unauthorized triggers.
  * This is NOT a user-facing API route — it's a system endpoint.
+ *
+ * Optional `limit` (lane CD, 2026-09-02): a JSON body `{"limit": N}` or a `?limit=N` query param bounds
+ * how many due sources this tick checks — an integer in [1, MAX_CHECK_LIMIT]; omitted entirely, it stays
+ * DEFAULT_CHECK_LIMIT (the prior hardcoded value, so source-monitoring.yml's own no-body POST is
+ * unaffected). A body value wins over a query value when both are given. An out-of-range or non-numeric
+ * limit is a 400 naming the rejected value, before any DB work.
  */
-
-
 export async function POST(request: NextRequest) {
   // Authenticate worker
   const denied = workerAuthGuard(request);
   if (denied) return denied;
 
+  // Parse + validate the optional limit override BEFORE any state check or DB work — a malformed request
+  // is a client error (400), not a "worker exiting" no-op. request.text() (not request.json()) tolerates
+  // the body-less POST source-monitoring.yml actually sends, without throwing on an empty stream.
+  let rawLimit: unknown;
+  const queryLimit = request.nextUrl.searchParams.get("limit");
+  if (queryLimit !== null) rawLimit = queryLimit;
+  try {
+    const bodyText = await request.text();
+    if (bodyText && bodyText.trim().length > 0) {
+      const parsedBody: unknown = JSON.parse(bodyText);
+      if (parsedBody && typeof parsedBody === "object" && "limit" in (parsedBody as Record<string, unknown>)) {
+        rawLimit = (parsedBody as Record<string, unknown>).limit;
+      }
+    }
+  } catch (e: any) {
+    return NextResponse.json({ error: `invalid JSON body: ${e.message}` }, { status: 400 });
+  }
+  const limitResult = validateCheckLimit(rawLimit);
+  if (!limitResult.ok) {
+    return NextResponse.json({ error: limitResult.error }, { status: 400 });
+  }
+  const limit = limitResult.limit;
+
   const supabase = getServiceSupabase();
 
   // OFF-gate: scraping switched off (cadence 'off' or emergency stop) — exit before any DB scan work.
   if (await isGloballyPaused(supabase)) {
-    return NextResponse.json({ message: "Scraping is off (cadence 'off' or emergency stop); worker exiting", checked: 0 });
+    return NextResponse.json({ message: "Scraping is off (cadence 'off' or emergency stop); worker exiting", checked: 0, sourcesChecked: 0, changesDetected: 0, portalCandidates: 0 });
   }
   // WINDOW-gate (decision C): the AUTOMATED worker fires ONLY on a scheduled scrape day per the global
   // cadence. The hourly cron becomes a "should I run now?" check; off-days no-op. The per-source
   // update_frequency/next_scheduled_check cadence is RETIRED — the global schedule is the only throttle.
   const schedule = await getScrapeState(supabase);
   if (!scrapeWindowOpen(schedule, new Date())) {
-    return NextResponse.json({ message: `Not a scheduled scrape day (cadence=${schedule.cadence}); worker exiting`, checked: 0 });
+    return NextResponse.json({ message: `Not a scheduled scrape day (cadence=${schedule.cadence}); worker exiting`, checked: 0, sourcesChecked: 0, changesDetected: 0, portalCandidates: 0 });
   }
 
   try {
@@ -176,17 +287,17 @@ export async function POST(request: NextRequest) {
       .eq("auto_run_enabled", true)
       .or(`last_checked.is.null,last_checked.lt.${windowStart}`)
       .order("base_tier", { ascending: true })
-      .limit(10); // batch size per hourly tick
+      .limit(limit); // batch size per hourly tick — caller-supplied via `limit`, defaulting to DEFAULT_CHECK_LIMIT
 
     if (queueError) {
       return NextResponse.json({ error: queueError.message }, { status: 500 });
     }
 
     if (!dueSources?.length) {
-      return NextResponse.json({ message: "No sources due for checking", checked: 0 });
+      return NextResponse.json({ message: "No sources due for checking", checked: 0, sourcesChecked: 0, changesDetected: 0, portalCandidates: 0 });
     }
 
-    const results: { source: string; status: string; error?: string }[] = [];
+    const results: CheckSourcesResultEntry[] = [];
 
     // Step 2: Check each source
     for (const source of dueSources) {
@@ -199,15 +310,15 @@ export async function POST(request: NextRequest) {
         // Assessment + status update is extracted (and reachability now goes through the
         // SSOT classifier) so a NON-ANSWER does not evict and the consumer outcome is testable.
         const assessed = await assessAndUpdateSource(supabase, source);
-        results.push({ source: source.name, status: assessed.status });
+        results.push(buildResultEntry(source.name, assessed));
       } catch (e: any) {
-        results.push({
-          source: source.name,
-          status: "error",
-          error: e.message,
-        });
+        results.push(buildErrorEntry(source.name, e.message));
       }
     }
+
+    // Response-only totals (lane CD, 2026-09-02) — derived from `results` above, never a second DB read;
+    // nothing about what gets WRITTEN to sources/monitoring_queue/portal_link_candidates changes here.
+    const { sourcesChecked, changesDetected, portalCandidates: portalCandidatesTotal } = summarizeResults(results);
 
     // Step 3: reconcile IN-PROCESS (chain repair, 2026-09-01). check-sources just wrote this batch's
     // monitoring_queue rows with a REAL change_detected (Step 1/S1-10, above) — without this call the
@@ -227,6 +338,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       message: `Checked ${results.length} sources`,
       checked: results.length,
+      sourcesChecked,
+      changesDetected,
+      portalCandidates: portalCandidatesTotal,
       results,
       reconcile,
     });

@@ -164,3 +164,237 @@ mode ends is a single reviewed diff (uncomment the block, pick the real cadence)
 green run or a passing test earns on its own. The fast-disarm lever is the same one every other workflow
 in this repo already has: disable the workflow from the Actions tab and every trigger stops immediately,
 no deploy required.
+
+## Ledger consume
+
+A third, related workflow, **`ledger-consume.yml`** (Lane CONSUME, system-completion plan, 2026-09-02),
+runs `run-ledger-consume.mjs` (new, `fsi-app/scripts/turns/`) — the CONSUME half of the same
+`portal_link_candidates` ledger `source-sweep.yml` discovers into. Where `source-sweep` writes candidate
+URLs, `ledger-consume` reads them: it gives a production runtime to `consumePortalCandidates`
+(`fsi-app/src/lib/intake/portal-harvest.ts`), which had ZERO callers anywhere in this repo before this
+lane (system-completion plan §0, item 1) — 1,454 `status='candidate'` rows sat with no reader. Like
+`source-sweep`, it is dispatch-only (`mode`, `limit`, `source_id` inputs), no schedule armed, and always
+self-emits its own `ledger-consume` harness-run artifact (`scripts/harness-runs/ledger-consume/`), dry or
+apply, from a `finally` block.
+
+**Modes.** `plan` runs every fetched candidate through the LIVE entity-gate classifier and the real
+chokepoint's dry pre-pass, and writes NOTHING to `portal_link_candidates` or the intake pipeline — but it
+is NOT free: the Haiku classify call (~$0.001/candidate) still runs for every candidate whose fetch
+clears the 200-char floor, so a plan dispatch is a real, metered spend even though it changes no row.
+`apply` would push the would-mint set through the full stage -> mint -> ground -> validate cycle and stamp
+the ledger disposition — but it is structurally **DISARMED**: `run-ledger-consume.mjs` carries a source
+constant, `LEDGER_CONSUME_APPLY_ENABLED = false`, the same ADR-023 reviewed-change gate the data producers
+use, applied here to a consumer. Dispatching `mode: apply` before an operator reviews and flips that
+constant in a diff does not fail and does not silently run as if nothing were requested: the run logs an
+"APPLY DISARMED" line, executes with `plan` semantics (still spends on classify, writes nothing), and
+records `config.requested_mode: "apply"` / `config.apply_disarmed: true` / `config.mode: "plan"` in its
+own artifact, so a reader of the artifact alone can tell an apply request from an apply run.
+
+**Telemetry — closed at the source, not by this driver.** Every classify call in a `ledger-consume` run
+leaves its own `agent_runs` row (operator ruling 2026-07-06: "every classify call must leave an
+agent_runs row"). Lane CONSUME originally found `firstFetchClassify`
+(`fsi-app/src/lib/llm/first-fetch-classify.ts`) calling the Anthropic API directly — no `SpendTicket`, no
+`agent_runs` write, entirely outside the spend chokepoint — despite `first-fetch-classify` being a
+registered Rule-016 standing ticket class (`STANDING_TICKET_CLASSES`) that nothing actually wired, and
+closed the gap from OUTSIDE `first-fetch-classify.ts` by wrapping the `ConsumeOpts.classify` injection
+point with its own `agent_runs` insert. **Lane SPEND (same train) then closed the same gap properly, at
+the source:** `firstFetchClassify` now routes every Haiku call through `spend-client.ts`'s `spendMessage`,
+which writes the `agent_runs` row itself (`recordSpendCall`, keyed by `source_id` from the
+`SpendTicket` `firstFetchClassify` sets internally). Keeping the driver's own insert after that change
+would write a SECOND row per call, so it was removed at integration — `run-ledger-consume.mjs`'s
+`collectClassifyTelemetry` is now a READ-ONLY collector, not a write-site: it captures
+`FirstFetchClassifyResult`'s `cost_usd_estimated`/`render_ms`/`input_tokens`/`output_tokens` per call so
+this family's own artifact (`per_item.est_usd`/`input_tokens`/`output_tokens`,
+`metrics.est_usd_total`/`input_tokens_total`/`output_tokens_total`) can report real numbers without a
+second lookup or a second ledger write. Token counts are no longer a gap either: Lane SPEND added
+`input_tokens`/`output_tokens` to `FirstFetchClassifyResult` (the chokepoint has the real Haiku `usage`
+block), so this artifact's per-call numbers are real cost AND real tokens, not cost alone.
+
+**What lands where.** `scripts/harness-runs/ledger-consume/ledger-consume-run-NNN.json` — the family's own
+self-emitted artifact, every dispatch, plan or (disarmed) apply. `scripts/harness-runs/ledger-consume/
+traces/ledger-consume-run-NNN.result.json` — the run's FULL raw `ConsumeResult` (every candidate outcome,
+not just the ones the artifact's `per_item` names), one level below the family directory so F28's
+family-level `*.json` glob never mistakes it for an artifact (the same convention `source-sweep`'s
+`traces/` directory established). The workflow commits only `scripts/harness-runs/ledger-consume/**`, via
+a fresh `ledger-consume/<run-id>` branch and PR (`deliver-artifact-branch.sh`, same fallback-to-tracking-
+issue behavior documented above for `corpus-turn`/`source-sweep`), and uploads its own
+`scripts/_snapshots/**` workflow artifact the same way.
+
+**A registration gap this lane found, could not close itself, and Lane SPEND has since resolved.**
+`ledger-consume.yml` references `secrets.ANTHROPIC_API_KEY` — required in EVERY mode, since even `plan`
+spends on classify. Lane CONSUME's `.discipline/governance/secrets-registry.mjs`/`secrets-reference-
+audit.mjs` were outside its write set, so it reported (rather than fixed) that `ANTHROPIC_API_KEY` was
+not yet in `WORKFLOW_SECRETS` — the same class of gap ADR-023/the system-completion plan anticipates for
+`EIA_API_KEY`. Lane SPEND (same train) registered `ANTHROPIC_API_KEY` in `WORKFLOW_SECRETS` +
+`docs/ops/secrets-topology.md` at integration (2026-09-02); `node
+.discipline/governance/secrets-reference-audit.mjs` now reports every workflow secret reference
+registered, `ledger-consume.yml` included.
+## Change detection
+
+Written 2026-09-02, lane CD (system-completion train). Governs `.github/workflows/change-detection.yml` —
+the runtime the change-detection chain never had, the same gap this runbook's own opening paragraph
+describes for the corpus flywheel: `runReconcilePass` (`fsi-app/src/lib/sources/reconcile.ts`) was proven
+correct and reachable only as a callee inside `/api/worker/check-sources` (and its manual-redrive twin
+`/api/worker/reconcile`); `drainChangeSweepUpdates` (`fsi-app/src/lib/intake/run-intake-cycle.ts`) was
+reachable only from `runIntakeCycle`'s own apply-mode tail. Live-confirmed 2026-09-02: 0 `monitoring_queue`
+rows with `change_detected=true AND reconciled_at IS NULL`, 0 pending `staged_updates` — the chain had
+never run through anything but a live HTTP request.
+
+### What a change-detection run is
+
+One run = one pass of three steps, driven by `fsi-app/scripts/turns/run-change-detection.mjs` (see that
+file's own header for the full chain and every limitation found reading the code it drives):
+
+1. **Detect** — POST the DEPLOYED `/api/worker/check-sources` route (`x-worker-secret` auth). The route
+   renders each due source via Browserless, fingerprints the content against `sources.last_content_hash`,
+   writes `monitoring_queue` rows with a real `change_detected`, and (since 2026-09-01) already runs its
+   OWN in-process `runReconcilePass` at the end of the same request. Skipped in `--mode dry` (the route
+   WRITES — `sources`, `monitoring_queue`, `portal_link_candidates`); skipped in either mode with
+   `--skip-check`, e.g. to work down an existing backlog without a new detection pass.
+2. **Reconcile** — `runReconcilePass` again, independently of the route's own in-process call, so this
+   script's own artifact is self-contained evidence of the reconcile step regardless of whether the route
+   ran this pass. Claims pending `monitoring_queue` rows, records `intelligence_changes`, bridges live
+   items into `staged_updates` (`update_item`). `--mode dry` uses `runReconcilePass`'s own `dryRun` option
+   (added by this lane) — a read-only projection that counts what would be written without writing.
+3. **Drain** — `drainChangeSweepUpdates`, exported (this lane) so it is reachable on its own instead of
+   only as `runIntakeCycle`'s apply-mode tail. Applies + re-verifies up to `--drain-limit` (default
+   `UPDATE_DRAIN_LIMIT`) pending change-sweep-marked `update_item` rows. `--mode dry` reads the same
+   pending-row predicate without calling it.
+
+Because the route's own in-process reconcile already ran in `--mode apply` (unless `--skip-check`), this
+run's own Step 2 will usually find little or nothing left pending — expected, not a defect; the artifact's
+`proposer_notes` says so on every apply run.
+
+### Known limitations (found reading check-sources/route.ts; not in this family's write set)
+
+- The route's due-source batch is a HARDCODED `.limit(10)` — it takes no request body or query parameter
+  to change it. `--check-limit` therefore only bounds THIS SCRIPT's own dry-mode "sources due" read/report,
+  never the deployed route's actual batch in apply mode.
+- The route's JSON response does not return `changeDetected` or `portalCandidates` per source (both are
+  computed by `assessAndUpdateSource` but never pushed into the response array) — this script compensates
+  with its own read-only `monitoring_queue`/`portal_link_candidates` queries over the call window.
+- Browserless's own per-render metered price is not documented anywhere in this repo;
+  `metrics.browserless_units_est` is an ESTIMATE (~2 units/render, from
+  `docs/PHASE2-FLAGSHIP-REGROUND-RUNBOOK.md`'s own precedent), clearly labelled as such.
+
+### How a coordinator requests a run
+
+Dispatch `change-detection.yml` from the Actions tab: `mode` (`dry`/`apply`), `check_limit` (optional),
+`skip_check` (optional). Same delivery path as `corpus-turn.yml`/`source-sweep.yml` — the harness-run
+artifact (`fsi-app/scripts/harness-runs/change-detection/**`) lands on a fresh `change-detection/<run-id>`
+branch and PR via `deliver-artifact-branch.sh`; see "When the workflow cannot open its own PR" above for
+what happens when the repository refuses PR creation (the same fallback, same tracking issue).
+
+### First run
+
+Not yet dispatched as of this lane's own work (2026-09-02) — `scripts/harness-runs/change-detection/`
+carries a `PENDING-RUN.md` (F28's first-run acknowledgment) instead of a `change-detection-run-001.json`.
+The coordinator's own dispatch plan (`docs/plans/system-completion-plan-2026-09-02.md` §2, "Not a
+lane — operator-only") runs `change-detection` dry first; read the resulting artifact against the live
+`monitoring_queue`/`staged_updates` tables before dispatching apply.
+## Propagation drain
+
+Added by Lane DP-ENGINE (system-completion train, 2026-09-02) — `docs/specs/08-flywheel-design.md` §2's
+"outbox + derivation DAG + governed drain," now built. This is a **separate family from `corpus-turn.yml`**
+(different dataset, different governing files, its own `PENDING-RUN.md` and `CONVENTION.md` row) — it does
+not fire as part of a corpus turn and a corpus turn does not fire it. It is documented in this runbook,
+alongside the turn it is not, because a coordinator scheduling one family needs to know it is not silently
+covering the other.
+
+**What it does.** `scripts/turns/run-propagation-drain.mjs` runs the two-pass drain over the
+`propagation_events` outbox (migration 284): pass one walks `derivation_edges` to mark every downstream
+`derived_values`/`statutory_computations`/`estimated_values` row transitively reachable from a changed
+input as invalidated; pass two, **`apply` mode only**, recomputes each invalidated row by calling the
+method registered for its `method_id` through `src/lib/propagation/methods/index.ts`'s `registerMethod`/
+`METHODS` seam, then writes the new value back through `register-derivation.ts`'s `registerDerivedValue()`
+(migration 285's `register_derived_value(...)` RPC — value row and derivation edges inserted atomically).
+`dry` mode performs pass one only and reports what pass two would touch, writing nothing. Every processed
+outbox row is marked `drained_at` at the end of a batch (default 500 rows — see `DEFAULT_BATCH` in
+`drain.ts`), never deleted, so the outbox is a durable log, not a queue.
+
+**Zero registered methods today.** This lane builds the drain runtime, the outbox, the DAG, and the
+`registerMethod` seam — it registers no concrete derivation method. An `apply`-mode drain run today
+invalidates rows correctly but recomputes nothing (`getMethod` finds no match for any `method_id`,
+`drain.ts` records the miss and moves on rather than failing the batch — see `drain.ts`'s own header for
+the "a missing method is data absent a method, not a crash" rationale). This is expected until DP-SURF or
+a later lane calls `registerMethod` for a real method. Dispatching `propagation-drain.yml` before that
+point is safe (it will report zero recomputes) but accomplishes nothing yet.
+
+**How a coordinator requests a run:** `workflow_dispatch` on `propagation-drain.yml` (Actions tab, or
+`gh workflow run propagation-drain.yml`), picking `mode` (`dry` or `apply`) and optionally `batch`
+(defaults to `run-propagation-drain.mjs`'s own default). It mirrors `source-sweep.yml`'s scaffold exactly:
+fresh branch per dispatch, commit + PR via `deliver-artifact-branch.sh`, a commented-out `schedule:` block
+under the same no-schedule-during-build ruling as every other family in this repo (see above), and the same
+hydrate-unmerged-artifacts collision guard.
+
+**What lands where:** `scripts/harness-runs/propagation/propagation-drain-run-NNN.json` — the run's own
+self-emitted artifact (dry or apply). No other file is committed by this workflow; `derived_values`,
+`derivation_edges`, and the `drained_at` marks on `propagation_events` are database writes, not local
+files, matching the same "database writes leave no local file beyond the harness-run artifact" posture
+`corpus-turn.yml`'s own "What lands where" section states above for `discover-for-items.mjs` and
+`analyze-corpus.mjs`.
+
+**First run.** `scripts/harness-runs/propagation/PENDING-RUN.md` records the pre-first-run
+harness-version hash pin (mirroring the mint/screen family's own convention) — it is replaced by the first
+real `propagation-drain-run-001.json` once a run actually lands, the same lifecycle `forward-events`'s
+`PENDING-RUN.md` went through.
+
+## Seeding derived values
+
+Added by Lane DP-SURF (system-completion train, 2026-09-02) — the initial-closure step the "Propagation
+drain" section above assumes but does not itself perform: the drain's recompute pass only ever
+**supersedes an existing row**, so the very first `derived_values`/`estimated_values` row for a given
+subject has to come from somewhere else. That somewhere is `scripts/propagation/seed-derived-values.mjs`.
+
+**What it does.** Two independent seed paths, one per method this lane registers in
+`src/lib/propagation/methods/index.ts` (see that file, and the "Propagation drain" section above, for the
+`registerMethod`/`METHODS` seam these two methods now populate):
+
+1. **`carbon_intensity_tkm@1.0.0`** — one `derived_values` row per `emission_factors` row that is BOTH
+   licence-embeddable (`src/lib/contracts/source-licence.mjs`'s `mayEmbedAsSeed()` gate — a row whose
+   source is not redistribution-cleared is skipped, counted `licenceBlocked`, never overridden) AND
+   computable by `src/lib/market/carbon-intensity.mjs` (today: `quantity_basis = 'tonne_km'` only — every
+   other basis refuses with a named reason, counted `refused`). Written via `registerDerivedValue()`
+   (`register-derivation.ts`) only — no paired `estimated_values` row (carbon-intensity is a plain
+   calculated conversion, neither statutory nor an estimate).
+2. **`automate_vs_hire@1.0.0`** — one `derived_values` row (NPV, the propagated headline metric) PLUS one
+   paired `estimated_values` row (the full point/low/high range, `distribution` jsonb carrying
+   payback/break-even — ADR-024's "break-even wage gets equal billing") per region carrying BOTH a
+   `labor_markets` and an `operational_cost` `regional_data_facts` fact with a populated `value_numeric`
+   AND a resolvable entity_id (`estimated_values.entity_id` is a NOT-NULL primary key — a matched region
+   with no entity spine row is counted `skippedNoEntity`, never written; this script mints no entities,
+   that is DP-SPINE's `scripts/entities/backfill-entities.mjs` territory, out of this lane's write set).
+   **Honest expected count today: 0** — BLS OEWS (`labor_markets`) is US-only and Eurostat nrg_pc_205
+   (`operational_cost`) is EU-country-only (see `scripts/producers/regional/*-producer.mjs`), so no region
+   satisfies "both dimensions present" yet regardless of the entity-id gap. The path is fully implemented
+   and unit-tested against fakes (`seed-derived-values.test.mjs`), not a stub — it activates the moment
+   either producer gains cross-coverage of the other's regions.
+
+**How to run it:**
+
+```
+node scripts/propagation/seed-derived-values.mjs --dry     # counts only, writes nothing
+node scripts/propagation/seed-derived-values.mjs --apply   # writes
+```
+
+Exit 0 done · 1 bad args (neither or both of `--dry`/`--apply`) · 2 no DB creds · 3 one or more writes
+failed in `--apply` mode (see the per-path `errors` array in the printed JSON summary; a failed write
+never aborts the rest of the batch — same "one bad row does not sink the run" posture `drain.ts` itself
+holds).
+
+**Not wired into a scheduled workflow.** Unlike `propagation-drain.yml` above, this is a one-shot,
+operator-run seed for standing up the initial closure — running it again after the first `--apply` simply
+re-evaluates the current source tables and creates any row that did not already exist (it never
+supersedes; a re-run is not how an existing value gets refreshed — that is `propagation-drain.yml`'s job,
+once a `propagation_events` row exists to invalidate it). No `propagation-drain-seed.yml` workflow was
+added in this lane; a coordinator runs it by hand (or a future lane wires a one-time dispatch) once a real
+Supabase environment is available.
+
+**Test coverage, and a documented gap.** `scripts/propagation/seed-derived-values.test.mjs` (16 tests, all
+passing) proves both seed paths' counting/refusal/write-shape logic against hand-rolled fake clients — the
+same no-real-database posture `drain.test.mjs`/`register-derivation.test.mjs` already establish for this
+family. It is **not** wired into `.discipline/run-test-suite.sh` (`scripts/propagation/` is not one of
+that file's covered globs, and that file is outside this lane's write set) — recorded as a known gap in
+`.discipline/governance/exemptions.mjs`'s `scripts/propagation/seed-derived-values` entry rather than left
+silent; run it directly with `node --test scripts/propagation/seed-derived-values.test.mjs` until a later
+lane adds the glob.

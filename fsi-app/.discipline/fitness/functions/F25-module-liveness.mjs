@@ -225,6 +225,69 @@ export const LEGACY_ALLOWLIST = [
   // hashHarnessVersion from it directly (its own execution path, per build plan §2's "emission is in the
   // harness"), giving it a real production importer. The entry said to remove it "the same wave those
   // callers land" — this is that wave.
+
+  // fsi-app/src/lib/entities/decisions.mjs entry REMOVED (Lane DP-ENGINE, 2026-09-02, system-completion
+  // train): the wiring it was published for landed on schedule — admissible-for.ts (below) now imports
+  // FLOOR from it directly, giving it a real production importer. The entry said to remove it once Lane
+  // DP-ENGINE or DP-SURF lands an import — this is that lane.
+
+  // fsi-app/src/lib/propagation/admissible-for.ts entry REMOVED (Lane DP-SURF, 2026-09-02, system-
+  // completion train): the wiring it was published for landed on schedule — StatutoryFigure.tsx,
+  // EstimatedFigure.tsx and DerivedFigure (same file) all now import admissibleFor() from it directly
+  // ("the one gate," spec §3.3), giving it real production importers. The entry said to remove it once a
+  // later lane in the train lands a real caller — this is that lane.
+
+  // ── Lane DP-SURF (2026-09-02, system-completion train): Layer 4's statutory render component, no
+  // consuming page landed in THIS lane's own scope (a FuelEU Annex IV filing surface is a future lane's
+  // build, not this one's — this lane's write set built the formula, the type barrier and the render
+  // component, not an obligations/filing page to mount it on) ──
+  {
+    file: 'fsi-app/src/components/figures/StatutoryFigure.tsx',
+    reason:
+      'Layer 4 of spec §4\'s statutory/estimate isolation (a separate render component for a filing-grade ' +
+      'figure, never sharing a visual slot with EstimatedFigure) — published for whichever lane next wires ' +
+      'a real obligation/filing page (e.g. a FuelEU Annex IV penalty computed via ' +
+      'src/lib/statutory/types.ts\'s computeStatutory(), migration 286\'s statutory_computations). This ' +
+      'lane\'s own write set (docs/specs/08-flywheel-design.md, this train) built the formula ' +
+      '(fueleu-annex-iv.mjs), the type barrier (types.ts) and this component — not a filing page to mount ' +
+      'it on, which was never in scope here. Same published-contract-ahead-of-its-caller shape as ' +
+      'admissible-for.ts\'s own (now-removed) entry above.',
+    reviewByPhase: 'system-completion train (operator: remove this entry once a later lane lands a real caller — if none has by the train\'s close, treat as a real orphan)',
+  },
+
+  // ── Lane DP-SURF (2026-09-02, system-completion train): a compile-time-only tsc proof, never meant to
+  // be imported at runtime by ANY caller, production or otherwise ──
+  {
+    file: 'fsi-app/src/lib/statutory/types.contractable-barrier.check.ts',
+    reason:
+      'This file exists ONLY to be type-checked (`npx tsc --noEmit`), never executed — its two ' +
+      'computeStatutory() calls (one clean, one carrying a deliberate `// @ts-expect-error` on a modelled ' +
+      'field) exist to PROVE Layer 2\'s compile-time barrier (spec §4: "passing a modelled value does not ' +
+      'type-check") actually rejects at the type level, not just in a runtime test. A module whose entire ' +
+      'purpose is being read by the compiler and never by Node has no production importer BY DESIGN — ' +
+      'F25\'s own "unwired = dormant" concern does not apply (a dormant capability is one nothing calls at ' +
+      'runtime when it should; this one is never meant to run). See the file\'s own header for the same ' +
+      'note from its own side.',
+    reviewByPhase: 'n/a — this file is never meant to gain a production importer; re-review only if the file itself is deleted or its proof role changes',
+  },
+
+  // ── Lane DP-ENGINE (2026-09-02, system-completion train, second commit): the JS mirror of migration
+  // 287's antitrust/anonymisation helpers, published for the next lane in the same train ──
+  {
+    file: 'fsi-app/src/lib/propagation/aggregate-safeguards.mjs',
+    reason:
+      'The CI-testable JS mirror of migration 287\'s publish_aggregate() helpers (bucket rounding/width ' +
+      'scaling, dominance share, complement-set detection, freeze-window membership, forward-looking ' +
+      'refusal) — see that migration\'s header, "second commit" section, and this file\'s own header for ' +
+      'why a mirror exists at all (the SQL function is what actually gates and logs a live request; this ' +
+      'file lets the SAME arithmetic be unit-tested and reused by a future UI preview without a database). ' +
+      'No production importer exists yet because no caller assembling a publish_aggregate() request (the ' +
+      'p_cohort_filter member_values/parent_member_ids/period fields this file computes against) has ' +
+      'landed in this train yet — same published-contract-ahead-of-its-caller shape as admissible-for.ts\'s ' +
+      'own entry above, and the same reason: no live sensitive field exists in this schema today (see ' +
+      'migration 287\'s "NO LIVE SUBJECT TODAY" header) for any surface to build a real request against.',
+    reviewByPhase: 'system-completion train (operator: remove this entry once a later lane in the train lands a real caller — if none has by the train\'s close, treat as a real orphan)',
+  },
 ];
 
 const ALLOWED = new Map(LEGACY_ALLOWLIST.map((e) => [e.file, e]));

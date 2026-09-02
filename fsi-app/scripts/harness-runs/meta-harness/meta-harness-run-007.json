@@ -1,0 +1,152 @@
+{
+  "harness_family": "meta-harness",
+  "harness_version": "sha256:79fac2e836280e6e",
+  "run_id": "meta-harness-run-007",
+  "started_at": "2026-09-02T01:10:00Z",
+  "finished_at": "2026-09-02T09:30:00Z",
+  "config": {
+    "wave": "System-completion train (docs/plans/system-completion-plan-2026-09-02.md): nine Sonnet lanes with disjoint write sets, integrated by the coordinator",
+    "why": "Operator ruling 2026-09-02: build the remaining parts of the system now, including spec 08 (decision propagation), with no deferrals. Three new harness families registered in one train (ledger-consume, change-detection, propagation) and the registration surface itself changed (family tests derive from ALLOWED_FAMILIES), so meta-harness's own governing files moved and F28 rule (c) demanded this record.",
+    "lanes": [
+      "CONSUME 4203261",
+      "SPEND 68d2f3a",
+      "POP 23de59b",
+      "CD 7ad8fa5+d9dadfd",
+      "PROD 93faad7",
+      "SURF dfdad52+573f2c5",
+      "DP-SPINE 22a104d",
+      "DP-ENGINE 9349de9+32d6bc8",
+      "DP-SURF 8a984f2+b7f513b+1954329+25a53eb+24c4aaf"
+    ],
+    "governing_files_changed": [
+      "scripts/lib/run-artifact.mjs (ALLOWED_FAMILIES +ledger-consume, +change-detection, +propagation)",
+      ".discipline/fitness/functions/F28-harness-run-integrity.mjs (GOVERNING_FILES entries for the three families)",
+      "scripts/harness-runs/CONVENTION.md (three family paragraphs, three table rows, traces/ layout entries)",
+      "scripts/harness-runs/CONVENTION.md again at integration: stale pre-registration paragraph removed, propagation row placed in the table (the hash recorded here is the final integrated one)"
+    ]
+  },
+  "inputs_ref": [
+    "docs/plans/system-completion-plan-2026-09-02.md",
+    "the nine lane reports (each ending with git log -1, test counts, suite totals, defects outside the write set)",
+    "scripts/harness-runs/source-sweep/source-sweep-run-006.json (merged from branch source-sweep/33575226376, issue #516)",
+    "live database reads 2026-09-02: would_mint 3661, captured 680, no-holder 31, archived-without-reason 549, portal candidates 1454, market_series 6x1, data_sources without ecb",
+    "EUR-Lex CELEX:32023R1805 Annex IV and Article 23(2), read in the browser (FuelEU formula verification)"
+  ],
+  "per_item": [
+    {
+      "id": "lane-CONSUME",
+      "outcome": "passed",
+      "evidence": "30 tests; found firstFetchClassify outside the spend chokepoint, secrets registry lacking ANTHROPIC_API_KEY, hardcoded family lists in two tests; all three routed to Lane SPEND and fixed in the same train"
+    },
+    {
+      "id": "lane-SPEND",
+      "outcome": "passed",
+      "evidence": "spendMessage added; one agent_runs row per classify with source_id; ticket restored; rule 016 vestigial entry removed; a rule-016 regex false-positive on prose surfaced and fixed by rewording"
+    },
+    {
+      "id": "lane-POP",
+      "outcome": "passed",
+      "evidence": "49 tests, suite 2596/2596; apply-mint-batch registered as writer of intelligence_items, section_claim_provenance, census_worklist (shared-writer registry caught it)"
+    },
+    {
+      "id": "lane-CD",
+      "outcome": "passed_with_fix",
+      "evidence": "check-sources route hardcoded limit(10) and dropped changeDetected/portalCandidates from its JSON; both fixed in-lane (bounded limit, cap 50; response fields + totals), driver cross-checks by read"
+    },
+    {
+      "id": "lane-PROD",
+      "outcome": "passed_with_fix",
+      "evidence": "fetch-oil-bulletin.mjs ran main() on import (a live fetch on every test import); fixed. --since history backfill added. eia-v2 step withheld: secrets-reference-audit rejects an unregistered secret name (EIA_API_KEY not in WORKFLOW_SECRETS)"
+    },
+    {
+      "id": "lane-SURF",
+      "outcome": "passed_with_fix",
+      "evidence": "origin_class was selected but never mapped onto Resource (3 mapper sites); MarketSeriesDisplayRow lacked the provenance fields; both fixed in a second commit. Corridor rate board, lead-time, peer cohort, capacity panel: no data source exists, not built"
+    },
+    {
+      "id": "lane-DP-SPINE",
+      "outcome": "passed",
+      "evidence": "ADR-024 (four decisions as named constants), migrations 282-283, F30 baseline (text-keyed sites: source_url_eq 2, url_host_derivation 13), 73 tests"
+    },
+    {
+      "id": "lane-DP-ENGINE",
+      "outcome": "passed_with_fix",
+      "evidence": "migrations 284-287 applied clean on a scratch Postgres 16 (not live). §5.2 (b)(c)(d), dominance and forward-looking refusals were initially left out ('no live subject'); implemented on coordinator instruction, 37 mirror tests"
+    },
+    {
+      "id": "lane-DP-SURF",
+      "outcome": "passed_with_fix",
+      "evidence": "FuelEU constants shipped [UNCONFIRMED]; coordinator read Annex IV on EUR-Lex and confirmed |CB|/(GHGIE_actual x 41000) x 2400 and the 1+(n-1)/10 multiplier. Seed produced 0 automate-vs-hire rows: estimated_values PK was entity_id (spec DDL verbatim, one estimate per entity) and regions had no entity; migration 286 amended (surrogate PK + scenario_key), seed mints the region's jurisdiction entity. BLS OEWS wage fact was annual while the calculator reads hourly: H_MEAN/08 series added, no division by 2080. No EU wage source: eurostat lc_lci_lev producer built"
+    },
+    {
+      "id": "integration",
+      "outcome": "passed_with_fix",
+      "evidence": "additive conflicts in run-artifact.mjs, F28, CONVENTION.md, runbook, shared-dataset-ownership.md (both sides kept; two closing brackets restored; a merged JSON allowlist lost its commas and failed shared-writer-registry until fixed); run-artifact.test.mjs and F28 parity kept SPEND's derived assertions over DP-ENGINE's exact-list ones"
+    }
+  ],
+  "metrics": {
+    "lanes": 9,
+    "lane_commits": 20,
+    "files_changed_vs_master": 151,
+    "new_harness_families": 3,
+    "new_fitness_functions": 3,
+    "new_migrations": 7,
+    "defects_found_by_lane_reports": 14,
+    "defects_fixed_in_same_train": 14,
+    "defects_requiring_operator": 3,
+    "proposals_implemented_this_cycle": 1,
+    "gate_catch_rate": "5 of 14 defects were caught by an existing gate (shared-writer registry x1, secrets-reference audit x2, F15 stale-allowlist x1, rule 016 x1); 9 by a lane or the coordinator reading the code or the primary source"
+  },
+  "defects_found": [
+    {
+      "description": "firstFetchClassify made a raw Anthropic call with no ticket and no agent_runs row although 'first-fetch-classify' was a registered standing ticket class.",
+      "root_cause": "the classifier predates the chokepoint and was allowlisted (F15 LEGACY_ALLOWLIST) instead of migrated",
+      "fix_ref": "Lane SPEND fd2c419"
+    },
+    {
+      "description": "check-sources route hardcoded .limit(10) and returned neither changeDetected nor portalCandidates per source.",
+      "root_cause": "route written for an hourly tick, never for a caller that needs the numbers",
+      "fix_ref": "Lane CD d9dadfd"
+    },
+    {
+      "description": "fetch-oil-bulletin.mjs executed main() at module scope: importing it in a test performed a live fetch.",
+      "root_cause": "no entrypoint guard, unlike its sibling producers",
+      "fix_ref": "Lane PROD 93faad7"
+    },
+    {
+      "description": "spec 08 §4 Layer 1 DDL makes entity_id the PK of estimated_values and statutory_computations (one estimate per entity), which the seed exposed as 0 rows.",
+      "root_cause": "spec DDL adopted verbatim without a data-shape check against the worked example (4 results per factor)",
+      "fix_ref": "Lane DP-SURF 1954329; ADR-024 amendment"
+    },
+    {
+      "description": "BLS OEWS fact was the annual median wage while automate-vs-hire reads an hourly wage.",
+      "root_cause": "producer and consumer authored by different lanes against different unit assumptions",
+      "fix_ref": "Lane DP-SURF 24c4aaf"
+    },
+    {
+      "description": "No region had both a wage and an energy fact (BLS is US-only, Eurostat nrg_pc_205 is EU-only).",
+      "root_cause": "producer coverage was never checked against a consumer's join",
+      "fix_ref": "Lane DP-SURF 25a53eb (eurostat lc_lci_lev producer)"
+    },
+    {
+      "description": "FuelEU Annex IV constants shipped as [UNCONFIRMED] because WebFetch truncates the regulation before the annexes.",
+      "root_cause": "tool limit; the browser renders the annex",
+      "fix_ref": "coordinator browser read; Lane DP-SURF b7f513b"
+    },
+    {
+      "description": "Two PENDING-RUN.md markers went stale inside the train (a sibling lane changed a governing file after the marker was pinned).",
+      "root_cause": "markers pin a hash at lane time; integration is where sibling edits meet",
+      "fix_ref": "re-pinned at integration with a note in each marker"
+    }
+  ],
+  "full_trace_refs": [
+    "docs/plans/system-completion-plan-2026-09-02.md",
+    "docs/decisions/ADR-024-decision-propagation.md",
+    "scripts/harness-runs/ledger-consume/PENDING-RUN.md",
+    "scripts/harness-runs/change-detection/PENDING-RUN.md",
+    "scripts/harness-runs/propagation/PENDING-RUN.md",
+    "scripts/harness-runs/source-sweep/LAST-PROPOSER-PASS.md",
+    "docs/ops/session-log.md (Addendum 84)"
+  ],
+  "proposer_notes": "The pattern that recurred across nine lanes: a lane ships a piece that is correct in isolation and the defect lives at the join (producer unit vs consumer unit, spec PK vs worked example, one lane's edit moving another lane's pinned hash). Proposal for the next cycle: a JOIN CHECK in every lane brief, naming the consumer or sibling the lane's output must agree with, and a coordinator step that re-hashes every PENDING-RUN.md after the last merge rather than trusting lane-time pins. Not proposed: narrowing F28's whole-file hash for meta-harness; this run is exactly the record it is meant to demand."
+}

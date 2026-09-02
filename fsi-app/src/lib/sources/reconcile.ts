@@ -129,9 +129,17 @@ export interface ReconcilePassResult {
   staged: number;
   pending: number;
   errors: string[];
+  /** True when this result is a COUNT-ONLY projection (opts.dryRun) — nothing in this pass was written. */
+  dryRun?: boolean;
 }
 
 const RECONCILE_BATCH = 200;
+
+// The bridge's own default per-source cap (bridgeChangedSourceToStagedUpdates's `limit = 50`,
+// change-sweep.mjs) — mirrored here ONLY so dryRun can project the same bound the real bridge call would
+// apply, without importing a private constant. If that default ever changes, this literal must move with
+// it (both are read together at review time; there is no third callsite to drift against).
+const BRIDGE_DEFAULT_LIMIT = 50;
 
 /**
  * Claim pending monitoring_queue rows (change_detected=true, reconciled_at IS NULL), record the
@@ -140,12 +148,26 @@ const RECONCILE_BATCH = 200;
  * (change-sweep.mjs's amendment-diff bridge — the analysis-side hop, distinct from the log write above),
  * then stamp each processed row reconciled_at so re-runs are idempotent. Never throws: a per-row or
  * per-item failure is recorded in `errors` and the pass continues.
+ *
+ * `opts.dryRun` (lane CD, change-detection runtime, 2026-09-02): read-only projection. The SAME claim
+ * query runs (still read-only — it was always a plain SELECT) and the SAME per-source live-item read
+ * runs (also always read-only), but the three writes below it — recordSourceChangeTrigger's
+ * intelligence_changes insert, the staged_updates bridge, and the reconciled_at stamp — are skipped
+ * entirely. `changesRecorded`/`staged` become COUNTS of what those writes would have produced (one
+ * intelligence_changes row per live item; one staged_updates row per live item, capped at the bridge's
+ * own default per-source limit, `BRIDGE_DEFAULT_LIMIT` — the exact bound bridgeChangedSourceToStagedUpdates
+ * applies), and `processed` counts rows that WOULD be marked reconciled, not rows actually stamped.
+ * Existing callers (check-sources/route.ts, /api/worker/reconcile) never pass `dryRun`; `dryRun` is
+ * `false` in that case and is OMITTED from the returned object entirely (not just falsey) — the result
+ * shape those callers already read (and JSON.stringify into an API response) is byte-for-byte unchanged.
  */
 export async function runReconcilePass(
   supabase: SupabaseClient,
-  opts: { batch?: number } = {}
+  opts: { batch?: number; dryRun?: boolean } = {}
 ): Promise<ReconcilePassResult> {
   const batch = opts.batch ?? RECONCILE_BATCH;
+  const dryRun = opts.dryRun ?? false;
+  const dryRunField = dryRun ? { dryRun: true as const } : {};
   const errors: string[] = [];
 
   const { data: pending, error: qErr } = await supabase
@@ -156,9 +178,9 @@ export async function runReconcilePass(
     .order("checked_at", { ascending: true })
     .limit(batch);
   if (qErr) {
-    return { processed: 0, changesRecorded: 0, staged: 0, pending: 0, errors: [`queue read failed: ${qErr.message}`] };
+    return { processed: 0, changesRecorded: 0, staged: 0, pending: 0, errors: [`queue read failed: ${qErr.message}`], ...dryRunField };
   }
-  if (!pending?.length) return { processed: 0, changesRecorded: 0, staged: 0, pending: 0, errors: [] };
+  if (!pending?.length) return { processed: 0, changesRecorded: 0, staged: 0, pending: 0, errors: [], ...dryRunField };
 
   let processed = 0;
   let changesRecorded = 0;
@@ -172,6 +194,14 @@ export async function runReconcilePass(
       .eq("source_id", row.source_id)
       .eq("is_archived", false);
     if (itemsErr) errors.push(`items read for source ${row.source_id}: ${itemsErr.message}`);
+
+    if (dryRun) {
+      // COUNT ONLY — no intelligence_changes insert, no staged_updates bridge, no reconciled_at stamp.
+      changesRecorded += (items ?? []).length;
+      if (items?.length) staged += Math.min(items.length, BRIDGE_DEFAULT_LIMIT);
+      processed++;
+      continue;
+    }
 
     for (const item of items ?? []) {
       const r = await recordSourceChangeTrigger(supabase, { itemId: item.id, sourceUrl: item.source_url });
@@ -202,5 +232,5 @@ export async function runReconcilePass(
     else processed++;
   }
 
-  return { processed, changesRecorded, staged, pending: pending.length, errors: errors.slice(0, 20) };
+  return { processed, changesRecorded, staged, pending: pending.length, errors: errors.slice(0, 20), ...dryRunField };
 }

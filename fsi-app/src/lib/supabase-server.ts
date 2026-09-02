@@ -623,6 +623,10 @@ async function fetchWorkspaceResources(
       // undefined until a later migration widens their RETURNS TABLE. Never defaulted to "brief" here;
       // an unprojected column must read as unknown, not as a claim about the item's grade.
       itemGrade: row.item_grade === "record" ? "record" : row.item_grade === "brief" ? "brief" : undefined,
+      // Lane SURF (2026-09-02): same dormant-passthrough shape — none of this function's RPCs
+      // (get_workspace_intelligence / _slim / _dashboard / _listings, last redefined in migration 272)
+      // project `ii.origin_class`, so `row.origin_class` reads undefined until a migration widens them.
+      originClass: row.origin_class ?? undefined,
       sourceId: row.source_id || undefined,
       isArchived: row.effective_archived || false,
     };
@@ -1190,6 +1194,10 @@ function rpcRowToResource(row: any): Resource {
     // Lane POP (2026-09-01, migration 278): dormant for the same reason as jurisdictionIso just above —
     // none of these RPCs project `ii.item_grade` yet.
     itemGrade: row.item_grade === "record" ? "record" : row.item_grade === "brief" ? "brief" : undefined,
+    // Lane SURF (2026-09-02): dormant for the same reason as jurisdictionIso above — none of
+    // get_market_intel_items / get_research_items / get_operations_items / get_technology_items
+    // (migration 269, last redefined in 272) project `ii.origin_class` in their RETURNS TABLE.
+    originClass: row.origin_class ?? undefined,
     sourceId: row.source_id || undefined,
     isArchived: row.effective_archived || false,
     // Phase 3C: pass through new schema columns when RPC includes them.
@@ -2533,6 +2541,16 @@ export interface MarketSeriesDisplayRow {
   observationCount: number;
   sourceKey: string | null;
   sourceRef: string | null;
+  /** Lane SURF (2026-09-02): the provenance-envelope columns fetchMarketSeriesBoard's query already
+   *  selects (unit, currency, derivation, origin_class, method_version, n_observations) and
+   *  series-board-view-model.mjs's toDisplayRow already threads through — declared here so consumers
+   *  (MarketSeriesBoard.tsx's methodology drawer) read them without a local type cast. */
+  unit: string | null;
+  currency: string | null;
+  derivation: string | null;
+  originClass: string | null;
+  methodVersion: string | null;
+  nObservations: number | null;
 }
 
 /** One registry producer's group — mirrors series-board-view-model.mjs's ProducerGroup typedef. */
@@ -2848,6 +2866,13 @@ async function fetchIntelligenceItemUncached(
       // above — `row.item_grade` IS present here once the migration applies (this fetcher is not
       // RPC-projected), unlike the two dormant RPC-backed mapper sites.
       itemGrade: row.item_grade === "record" ? "record" : row.item_grade === "brief" ? "brief" : undefined,
+      // Lane SURF (2026-09-02): REAL, not dormant — same `select("*")` situation as jurisdictionIso
+      // and itemGrade above. `row.origin_class` (migration 267) IS present on this fetcher's row, so
+      // this is a live mapping, even though migration 267's own verification block notes zero rows
+      // are backfilled yet (every value reads null/undefined today, not because the column is
+      // unprojected but because no row has been classified). signal-promotion.mjs's forward-compatible
+      // origin_class branch (src/lib/market/signal-promotion.mjs) becomes reachable from here.
+      originClass: row.origin_class ?? undefined,
       sourceId: row.source_id || undefined,
       isArchived: row.is_archived || false,
       // P1-2 (DEEP-AUDIT S2): populate the provenance chip (source name + tier)

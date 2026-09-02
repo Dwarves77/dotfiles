@@ -1,0 +1,147 @@
+name: Propagation drain
+
+# THE GOVERNED DRAIN — the runtime `src/lib/propagation/drain.ts` (invalidate-then-recompute over the
+# `propagation_events` outbox / `derivation_edges` DAG, migrations 284-285) never had before lane
+# DP-ENGINE, 2026-09-02, system-completion train. `drain.ts` and `admissible-for.ts` are PURE, dep-injected
+# modules (no npm import at module scope — Node-native TS type-stripping runs them directly, no jiti, no
+# bundler) built and unit-tested against fixtures/fake clients, left with zero live callers until this
+# workflow's driver gives them one — the SAME "correct but unrunnable" gap ADR-023 named for the data
+# producers and `source-sweep.yml` closed the same way for the register/feed walkers: GitHub Actions, the
+# same two repository secrets, dispatch-only, mode dry|apply.
+#
+# THIS DRIVER: `fsi-app/scripts/turns/run-propagation-drain.mjs` — a thin binding (a real service-role
+# Supabase client, a real harness-run artifact) around `runPropagationDrain`. See that script's own header
+# for why it constructs its own client rather than routing through `db.mjs`'s guarded write path (the
+# governed SQL functions — `invalidate_dependents`, `register_derived_value` — already ARE the
+# atomicity/reversibility mechanism for this family's writes). It ALWAYS records a `propagation`
+# harness-run artifact (`scripts/harness-runs/propagation/`, `scripts/lib/run-artifact.mjs`'s convention),
+# in both modes, from a `finally` block, so a drain that throws mid-run still leaves a record.
+#
+# DISPATCH-ONLY, DELIBERATELY, under the same build-mode ruling every other workflow in this repo states
+# for itself (operator ruling 2026-09-01) — a real recurring drain cadence is a schedule the operator arms
+# once this family has a first real run on record (see scripts/harness-runs/propagation/PENDING-RUN.md):
+#   schedule:
+#     - cron: '*/30 * * * *'   # placeholder cadence only — the operator picks the real one at re-arm time
+#
+# SECRETS (repository secrets; never echoed): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY — the
+# same pair every guarded script in fsi-app/scripts/lib/db.mjs already requires; both already registered
+# in .discipline/governance/secrets-registry.mjs (no edit needed there — source-sweep.yml already added
+# this exact pair for its own workflow).
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry = invalidate_dependents(p_apply=false), counts only, writes nothing. apply = invalidate for real, then recompute through registered METHODS.'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+      batch:
+        description: 'Max undrained propagation_events processed this run.'
+        required: false
+        default: '500'
+        type: string
+  # schedule:
+  #   - cron: '*/30 * * * *'   # BUILD MODE (2026-09-02) — see header above; stays commented out until the
+  #                              # operator explicitly re-arms it.
+
+concurrency:
+  group: propagation-drain
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      - name: This run's gates
+        run: |
+          echo "trigger = ${{ github.event_name }}"
+          echo "mode    = ${{ inputs.mode }}"
+          echo "batch   = ${{ inputs.batch }}"
+
+      # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
+      # claimRunId (scripts/lib/run-artifact.mjs) numbers the next artifact from the files it can see in
+      # the checked-out tree, i.e. master. Artifacts land through a PR, so a run dispatched before the
+      # previous run's PR merged would see a stale count and claim the SAME run_id — the exact collision
+      # source-sweep.yml documents finding for its own family (source-sweep run #3, 2026-09-01). Same fix.
+      - name: Hydrate unmerged propagation artifacts from sibling branches (run_id collision guard)
+        run: |
+          git fetch --no-tags origin '+refs/heads/propagation/*:refs/remotes/origin/propagation/*' || true
+          : > /tmp/hydrated-artifacts.txt
+          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/propagation/*'); do
+            for f in $(git ls-tree -r --name-only "$b" -- fsi-app/scripts/harness-runs/propagation/); do
+              rel="${f#fsi-app/}"
+              if [ ! -e "$rel" ]; then
+                mkdir -p "$(dirname "$rel")"
+                git show "$b:$f" > "$rel"
+                echo "$rel" >> /tmp/hydrated-artifacts.txt
+              fi
+            done
+          done
+          echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged propagation file(s) from sibling branches"
+
+      - name: run-propagation-drain.mjs
+        run: |
+          node scripts/turns/run-propagation-drain.mjs --mode "${{ inputs.mode }}" --batch "${{ inputs.batch }}"
+
+      # Commit the family's own harness-run artifact (scripts/harness-runs/propagation/**) so the run this
+      # dispatch produced survives past the Actions log — same posture source-sweep.yml applies to its own
+      # family. A dispatch normally runs against master, which is typically branch-protected, so this
+      # lands on its own branch and opens a PR (source-sweep.yml's own pattern) rather than pushing
+      # straight to whatever ref triggered the run.
+      - name: Remove hydrated sibling artifacts (they belong to their own branches)
+        if: always()
+        run: |
+          if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
+          rm -rf scripts/harness-runs/*/.claims
+
+      - name: Commit the propagation harness-run artifact and open a PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/harness-runs/propagation
+          if git diff --cached --quiet; then
+            echo "No new propagation artifact to commit."
+            exit 0
+          fi
+          branch="propagation/${{ github.run_id }}"
+          git checkout -b "$branch"
+          git commit -m "propagation drain ${{ inputs.mode }}: run ${{ github.run_id }}"
+          git push origin HEAD:"$branch"
+          printf 'Automated propagation drain (run %s).\n\nMode: %s\nBatch: %s\n\nLands the harness-run artifact for this drain under scripts/harness-runs/propagation/.\n' \
+            "${{ github.run_id }}" "${{ inputs.mode }}" "${{ inputs.batch }}" > /tmp/pr-body.md
+          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Propagation drain (mode=${{ inputs.mode }}, run ${{ github.run_id }})" /tmp/pr-body.md

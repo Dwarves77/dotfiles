@@ -185,10 +185,14 @@ export async function upsertPortalLinkCandidates(sb, sourceId, links) {
 export function shapeRunOutput(walker, result, reportPath, mode = "apply") {
   // In dry mode the injected persist() COUNTS the plan and writes nothing, so a count labelled
   // "upserted" would assert a write that never happened (source-sweep-run-001 read "221 upserted"
-  // for a run that wrote 0 rows). The metric key stays `upserted` (the per-family standing metric in
-  // CONVENTION.md reads it); `mode` is carried alongside and every verdict names what the number is.
+  // for a run that wrote 0 rows). The metric key `upserted` (the per-family standing metric in
+  // CONVENTION.md reads it) therefore carries 0 in dry mode and the plan size moves to `planned`;
+  // `mode` is carried alongside and every verdict names what the number is. (source-sweep-run-006,
+  // dry, still read `upserted: 7` under the previous shaping; fixed at the system-completion train's
+  // integration, 2026-09-02, rather than deferred.)
   const wrote = mode === "apply";
   const verb = wrote ? "upserted" : "planned (dry, nothing written)";
+  const writeMetrics = (n) => (wrote ? { upserted: n } : { upserted: 0, planned: n });
   if (walker === "register-eurlex") {
     const perItem = result.days.map((d) => ({
       id: d.day,
@@ -205,7 +209,7 @@ export function shapeRunOutput(walker, result, reportPath, mode = "apply") {
       days_with_error: result.days.filter((d) => d.error).length,
       days_duplicate_edition: result.days.filter((d) => d.duplicate_of).length,
       extracted_total: result.days.reduce((s, d) => s + d.extracted, 0),
-      upserted: result.upserted, failed: result.failed,
+      ...writeMetrics(result.upserted), failed: result.failed,
     };
     return { perItem, metrics, inputsRef: result.days.map((d) => d.url), fullTraceRefs: [reportPath] };
   }
@@ -220,7 +224,7 @@ export function shapeRunOutput(walker, result, reportPath, mode = "apply") {
     const metrics = {
       register: result.register, from: result.from, to: result.to, types: result.types, term: result.term, mode,
       pages_walked: result.pages.length,
-      upserted: result.upserted, failed: result.failed,
+      ...writeMetrics(result.upserted), failed: result.failed,
       total_count: result.totalCount, total_pages: result.totalPages, dropped_pages: result.droppedPages,
     };
     return { perItem, metrics, inputsRef: result.pages.map((p) => p.url), fullTraceRefs: [reportPath] };
@@ -236,7 +240,7 @@ export function shapeRunOutput(walker, result, reportPath, mode = "apply") {
   const metrics = {
     feed_url: result.feedUrl, ok: result.ok, mode,
     entries: result.ok ? result.entries : 0,
-    upserted: result.ok ? result.upserted : 0,
+    ...writeMetrics(result.ok ? result.upserted : 0),
     failed: result.ok ? result.failed : 0,
   };
   return { perItem, metrics, inputsRef: [result.feedUrl], fullTraceRefs: [reportPath] };
