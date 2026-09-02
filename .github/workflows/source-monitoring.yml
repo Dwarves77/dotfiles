@@ -25,6 +25,34 @@ on:
   # schedule:
   #   - cron: '0 */1 * * *'
   workflow_dispatch:
+    inputs:
+      # NO SCHEDULE (Lane F2, finish-plan-2026-09-02.md §2 Wave 1) — dispatch-only, same as
+      # check-sources above. `job` selects WHICH job below runs; it does NOT gate check-sources
+      # (unchanged — check-sources has no `if` and always runs on a manual dispatch of this
+      # workflow, exactly as it did before this input existed). Default 'check-sources' keeps a
+      # plain "Run workflow" click byte-for-byte the prior behaviour: only check-sources fires.
+      job:
+        description: 'check-sources = the existing behaviour only (default, unchanged). triage = ALSO run the inaccessible-source ladder triage job below (check-sources still runs regardless, as it always has).'
+        required: true
+        default: 'check-sources'
+        type: choice
+        options: [check-sources, triage]
+      mode:
+        description: '[triage only] dry = ladder + dossiers, write nothing. apply = also write sources.fetch_status through the guarded path.'
+        required: false
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+      limit:
+        description: '[triage only] Cap the number of suspended sources triaged this run. Empty = every suspended source.'
+        required: false
+        default: ''
+        type: string
+      time_budget_min:
+        description: '[triage only] Minutes after which no NEW source triage starts (already-started ones finish). Keep well under this job''s 30-minute timeout.'
+        required: false
+        default: '20'
+        type: string
 
 jobs:
   check-sources:
@@ -86,3 +114,65 @@ jobs:
           fi
 
           echo "✓ Worker check completed successfully."
+
+  # Lane F2 (finish-plan-2026-09-02.md §2 Wave 1) — the acquisition ladder run over the 215
+  # `sources.status = 'suspended'` rows that have never been triaged (exclusion-audit.mjs's own
+  # header: in the live schema the design's "inaccessible source" IS the suspended row). Dispatch-
+  # only, no schedule, gated on the `job` input above so a plain "Run workflow" click (job left at
+  # its 'check-sources' default) never runs this. Runs ON THE RUNNER because it needs to reach hosts
+  # the Vercel/Browserless-serving container cannot (governing script:
+  # fsi-app/scripts/sources/inaccessible-triage.mjs — read its header for the full design).
+  triage-inaccessible:
+    if: ${{ github.event.inputs.job == 'triage' }}
+    runs-on: ubuntu-latest
+    # 20-minute default time budget (input `time_budget_min`) + checkout/npm-ci/report overhead.
+    # `time_budget_min` only bounds when the script STOPS STARTING new triages — a value raised past
+    # ~20 must also raise this timeout, or the job is killed mid-run instead of finishing cleanly.
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      - name: Run the acquisition-ladder triage
+        env:
+          RUN_MODE: ${{ inputs.mode }}
+          RUN_LIMIT: ${{ inputs.limit }}
+          RUN_TIME_BUDGET_MIN: ${{ inputs.time_budget_min }}
+        run: |
+          set -eu
+          echo "mode = ${RUN_MODE:-dry}   limit = ${RUN_LIMIT:-(none — every suspended source)}   time-budget-min = ${RUN_TIME_BUDGET_MIN:-20}"
+          args="scripts/sources/inaccessible-triage.mjs --out-dir dossiers --time-budget-min ${RUN_TIME_BUDGET_MIN:-20}"
+          if [ "${RUN_MODE:-dry}" = "apply" ]; then args="$args --apply"; fi
+          if [ -n "${RUN_LIMIT:-}" ]; then args="$args --limit ${RUN_LIMIT}"; fi
+          # shellcheck disable=SC2086  # intentional word-split of the built argument list
+          node $args
+
+      - name: Upload dossiers
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: inaccessible-source-dossiers-${{ github.run_id }}
+          path: fsi-app/dossiers/
+          if-no-files-found: warn
+          retention-days: 90

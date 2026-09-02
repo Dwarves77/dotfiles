@@ -102,6 +102,7 @@ node --test \
   fsi-app/scripts/connections/*.test.mjs \
   fsi-app/scripts/producers/*/*.test.mjs \
   fsi-app/scripts/entities/*.test.mjs \
+  fsi-app/scripts/sources/*.test.mjs \
   fsi-app/src/__tests__/*.test.mjs \
   fsi-app/src/lib/credibility/*.test.mjs \
   fsi-app/src/lib/sources/*.test.mjs \
