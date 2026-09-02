@@ -379,6 +379,15 @@ access to check with `curl`. Implemented as the operator's own instruction direc
 fallback); the next live dry run's held-file evidence (`bytes`/`head` on any `capture_blocked` row) is the
 actual confirmation.
 
+**Second live dry run (33643532589, 2026-09-02) — two more root causes, both fixed in the same landing
+as mint-run-007/008:**
+
+| Finding | Root cause | Fix |
+|---|---|---|
+| All 26 EUR-Lex rows held `capture_blocked` (HTTP 202, 2,035 bytes, "verify that you're not a robot") | `legal-content/EN/TXT/HTML/` sits behind EUR-Lex's bot gate for a plain HTTP client; the runner cannot and must not pass a bot challenge. | Capture now goes to the Publications Office **Cellar** first — `https://publications.europa.eu/resource/celex/<key>` (303 → the act's XHTML, no gate; browser-verified 96,603 chars for 32006D0507) with its plain-http redirect upgraded to https — and to EUR-Lex's clean-text endpoint second; a hold names both attempts (`fallback_from`, `cellar_status`/`cellar_bytes`/`cellar_head`). Title from the `oj-doc-ti` lines (`extractCellarTitle`), never the page `<title>` (an OJ file name). |
+| All 19 exported UK/FR rows failed the mint gate: `fact_below_authority_floor`, `source_tier_derived: null`, against tier-1 registered sources | `validate-mint-payload.mjs` derived a fact's tier only on exact canonical-URL equality between the claim URL (the instrument page) and `source.url` (the institution row `registerSource` dedups to). The live `validate_item_provenance` derives it through `section_claim_provenance.source_id`, which `apply-mint-batch.mjs` binds to that row — the mirror was stricter than the gate it mirrors. | Registry-identity resolution (`scripts/lib/institution-key.mjs`, shared with `registerSource`) after the exact-URL check. The 19 payloads re-validate 19/19. |
+| `jurisdictional_scope` FACTs were legislation.gov.uk's browse menu ("European Union Treaties ------") or Act names; a `penalty_summary` span carried `&#xD;` | A keyword trigger accepts any verbatim match; verbatim says nothing about being a clause. | `record-facts.mjs`: `isProseSpan` guard, every match of every trigger walked, clause-shaped scope triggers first, bare "European Union" only as a preposition's object and never before "(" or "Act"; `stripHtmlToText` decodes numeric character references. |
+
 **The browser-capture escape hatch, made a first-class runtime input (operator ruling, §1a: "a site that
 refuses the runner is read through the browser, never reported as a blocker; no deferrals").** When a
 row's family still refuses the automated capture above (a new WAF shape, a host not yet in

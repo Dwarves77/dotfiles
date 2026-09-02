@@ -27,6 +27,10 @@
 //      because the old CELEX-letter map only had R/L/D. H and A are now mapped (see
 //      `classifyItemTypeFromCelexKey` below) — every other letter (notably C, "other acts") still holds,
 //      explicitly, not guessed.
+// ── UPDATE 2026-09-02 (population run #4, 33643532589) ───────────────────────────────────────────────
+// The `/TXT/HTML/` endpoint above is behind EUR-Lex's bot gate for a plain HTTP client (all 26 rows: HTTP
+// 202, 2,035 bytes, "verify that you're not a robot"). CELEX rows now capture from the Publications
+// Office's Cellar first (see the Cellar block near extractCellarTitle) and fall back to EUR-Lex.
 // This pass adds per-source-family identity + capture resolution (`resolveIdentity` / per-family capture
 // in `resolveRowCapture`) so EUR-Lex, legislation.gov.uk and federalregister.gov each resolve identity
 // and text the way their own corpus shape requires, instead of forcing every row through the CELEX-only
@@ -256,6 +260,10 @@ export function stripHtmlToText(html) {
     .replace(/&gt;/gi, ">")
     .replace(/&quot;/gi, '"')
     .replace(/&#39;/gi, "'")
+    // numeric character references (legislation.gov.uk's data.htm carries `&#xD;` line ends inside
+    // running text; mint-run-008 emitted one inside a penalty_summary span) — decoded, never left as markup
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -291,6 +299,64 @@ export function extractEurlexTitle(html) {
   if (!text) return null;
   const lead = text.slice(0, 300).trim();
   return lead ? { title: lead, origin: "captured_body_lead" } : null;
+}
+
+// ── EU Publications Office Cellar (2026-09-02, population run #4) ──────────────────────────────────────
+// Run 33643532589 held all 26 EUR-Lex rows `capture_blocked`: eur-lex.europa.eu answers the runner's GET
+// on `/legal-content/EN/TXT/HTML/?uri=CELEX:...` with HTTP 202 and a 2,035-byte "verify that you're not
+// a robot" interstitial (its bot gate; the same URL renders ~97k chars in a browser). The runner cannot
+// and must not pass a bot challenge. The act text is ALSO published, with no gate, by the Publications
+// Office's Cellar repository — the system EUR-Lex itself is a front end for:
+//   GET https://publications.europa.eu/resource/celex/<CELEX>   (Accept: text/html,application/xhtml+xml;
+//   Accept-Language: en) → 303 → http://publications.europa.eu/resource/cellar/<uuid>.<lang>.<fmt>/DOC_1,
+//   the act's XHTML (browser-verified 2026-09-02 for 32006D0507: 96,603 chars, `p.oj-doc-ti` title lines,
+//   Content-Type application/xhtml+xml). The redirect target is plain http; followUpgradingRedirects
+//   below upgrades it to https before following (Cellar serves both; the runner never speaks http).
+// Cellar is tried FIRST for every CELEX row; EUR-Lex's clean-text endpoint is the fallback and the held
+// evidence names both attempts. A `<title>` on the Cellar page is the OJ file name
+// ("L_2006209EN.01000101.xml"), never the act's title — extractCellarTitle reads the `oj-doc-ti`
+// paragraphs instead and joins them with single spaces, which is exactly how stripHtmlToText renders
+// them in captured_text, so the identity FACT (record-facts.mjs) finds the title verbatim.
+
+/** Cellar's CELEX resolver URL for one key. Pure. */
+export function cellarEndpointForCelex(canonicalKey) {
+  return `https://publications.europa.eu/resource/celex/${encodeURIComponent(String(canonicalKey))}`;
+}
+
+/** Title for a Cellar XHTML act: the `p.oj-doc-ti` lines joined by a space ("COUNCIL DECISION of 14
+ *  October 2004 concerning ... (2006/507/EC)"), origin `cellar_doc_title`; falls back to the body-lead
+ *  heuristic extractEurlexTitle uses (never to <title>, which is the OJ file name here). Pure. */
+export function extractCellarTitle(html) {
+  const h = String(html ?? "");
+  const parts = [];
+  const re = /<p[^>]*class="[^"]*\boj-doc-ti\b[^"]*"[^>]*>([\s\S]*?)<\/p>/gi;
+  for (const m of h.matchAll(re)) {
+    const t = stripHtmlToText(m[1]);
+    if (t) parts.push(t);
+  }
+  if (parts.length) return { title: parts.join(" "), origin: "cellar_doc_title" };
+  const text = stripHtmlToText(h);
+  const lead = text.slice(0, 300).trim();
+  return lead ? { title: lead, origin: "captured_body_lead" } : null;
+}
+
+/** Wrap a fetch so redirects are followed by hand, upgrading any `http://` Location to `https://` first
+ *  (Cellar's 303 points at plain http). Fetch-shaped, so it composes with makePoliteFetch (every hop
+ *  pays the politeness gap). Gives up after `maxHops` with the last redirect response, which the caller
+ *  then reports as a non-2xx capture. */
+export function followUpgradingRedirects(fetchImpl, { maxHops = 5 } = {}) {
+  return async function upgradingFetch(url, opts = {}) {
+    let current = String(url);
+    let res = null;
+    for (let hop = 0; hop <= maxHops; hop++) {
+      res = await fetchImpl(current, { ...opts, redirect: "manual" });
+      const status = Number(res?.status ?? 0);
+      const location = typeof res?.headers?.get === "function" ? res.headers.get("location") : null;
+      if (![301, 302, 303, 307, 308].includes(status) || !location) return res;
+      current = new URL(location, current).toString().replace(/^http:\/\//i, "https://");
+    }
+    return res;
+  };
 }
 
 /** Select the would_mint census rows this run will consider, in order: disposition filter, then the
@@ -507,9 +573,20 @@ export async function resolveRowCapture(censusRow, identity, { fetchImpl = fetch
   const documentUrl = censusRow?.document_url ?? null;
 
   if (identity.scheme === "celex" && identity.canonicalKey) {
+    // Cellar first (no bot gate; see the Cellar block above), EUR-Lex's clean-text endpoint as fallback.
+    const cellar = cellarEndpointForCelex(identity.canonicalKey);
+    const first = await captureDocument(cellar, { fetchImpl: followUpgradingRedirects(fetchImpl), timeoutMs });
+    const firstEnv = envelopeFromCaptureDocument(first, cellar, { titleFn: extractCellarTitle });
+    if (firstEnv.usable) return firstEnv;
     const endpoint = `https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:${identity.canonicalKey}`;
     const res = await captureDocument(endpoint, { fetchImpl, timeoutMs });
-    return envelopeFromCaptureDocument(res, endpoint, { titleFn: extractEurlexTitle });
+    return envelopeFromCaptureDocument(res, endpoint, {
+      titleFn: extractEurlexTitle,
+      fallbackFrom: cellar,
+      cellar_status: firstEnv.status,
+      cellar_bytes: firstEnv.bytes,
+      cellar_head: firstEnv.head,
+    });
   }
 
   if (identity.scheme === "uk_legislation") {
@@ -621,6 +698,10 @@ export async function buildRows(
           bytes: envelope?.bytes ?? null,
           head: envelope?.head ?? null,
           endpoint: envelope?.endpoint ?? null,
+          // a family that tried a first endpoint before this one records that attempt too (Cellar → EUR-Lex,
+          // data.htm → page): a hold must name EVERY endpoint that refused, not just the last
+          ...(envelope?.fallbackFrom ? { fallback_from: envelope.fallbackFrom } : {}),
+          ...(envelope?.cellar_status !== undefined ? { cellar_status: envelope.cellar_status, cellar_bytes: envelope.cellar_bytes, cellar_head: envelope.cellar_head } : {}),
         });
         continue;
       }

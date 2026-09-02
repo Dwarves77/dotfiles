@@ -124,6 +124,43 @@ test("C3 RED: FACT below the reg-family authority floor (tier 5 source, floor is
   assert.ok(r.failures.some((f) => f.criterion === 3 && f.reason === "fact_below_authority_floor"));
 });
 
+test("C3 GREEN: a FACT citing a DOCUMENT URL under the registered INSTITUTION source resolves that source's tier (registry identity, 2026-09-02)", () => {
+  // mint-run-008's shape: the registry row is the host root (registerSource dedups by institutionKey), the
+  // fact cites the instrument's own page. Exact-URL resolution derived null and walled all 19 payloads.
+  const p = basePayload();
+  p.source = { id: "src-uk", url: "https://legislation.gov.uk/", base_tier: 1, tier_override: null, status: "active", institution_id: null };
+  p.item.source_url = "https://www.legislation.gov.uk/uksi/2021/1095";
+  p.sections[0].content_md = "The rule applies as described. https://www.legislation.gov.uk/uksi/2021/1095";
+  p.search_results[0].result_url = "https://www.legislation.gov.uk/uksi/2021/1095";
+  for (const c of p.claims) if (c.claim_kind === "FACT") c.source_url = "https://www.legislation.gov.uk/uksi/2021/1095";
+  const r = validateMintPayload(p);
+  assert.deepEqual(r.failures.filter((f) => f.reason === "fact_below_authority_floor"), [], JSON.stringify(r.failures));
+  assert.equal(r.valid, true, JSON.stringify(r.failures));
+});
+
+test("C3 RED: registry identity does NOT cross institutions — a document on a different host than every registered source still derives null", () => {
+  const p = basePayload();
+  p.source = { id: "src-uk", url: "https://legislation.gov.uk/", base_tier: 1, tier_override: null, status: "active", institution_id: null };
+  p.registry_sources = [{ id: "src-other", url: "https://example.gov/", base_tier: 1, tier_override: null, status: "active", institution_id: null }];
+  p.search_results[0].result_url = "https://www.gov.uk/guidance/reg";
+  p.sections[0].content_md = "The rule applies as described. https://www.gov.uk/guidance/reg";
+  for (const c of p.claims) if (c.claim_kind === "FACT") c.source_url = "https://www.gov.uk/guidance/reg";
+  const r = validateMintPayload(p);
+  const floor = r.failures.filter((f) => f.reason === "fact_below_authority_floor");
+  assert.equal(floor.length, 2);
+  assert.equal(floor[0].source_tier_derived, null);
+});
+
+test("C3: exact canonical URL still wins over registry identity when both resolve (a per-document registry row keeps its own tier)", () => {
+  const p = basePayload();
+  p.source = { id: "src-root", url: "https://example.gov/", base_tier: 1, tier_override: null, status: "active", institution_id: null };
+  p.registry_sources = [{ id: "src-doc", url: "https://example.gov/reg", base_tier: 5, tier_override: null, status: "active", institution_id: null }];
+  const r = validateMintPayload(p);
+  const floor = r.failures.filter((f) => f.reason === "fact_below_authority_floor");
+  assert.equal(floor.length, 2);
+  assert.equal(floor[0].source_tier_derived, 5);
+});
+
 test("C3 RED: FACT carrying a non-null mint_hold_reason -> fact_mint_hold (migration 206)", () => {
   const p = basePayload();
   p.claims[0].mint_hold_reason = "S-CONFLATE";

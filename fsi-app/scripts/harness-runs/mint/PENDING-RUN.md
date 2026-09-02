@@ -38,10 +38,28 @@ population runtime (an external caller), not a change to the mint kit's own vali
 gate — no batch has been minted through a changed validator. Re-stamped, not deleted, because no
 `mint-run-007.json` has landed yet.
 
-**harness_version at write time:** `sha256:d69988ccf73e5dfd`
+**Re-stamped 2026-09-02 (population run #4 root cause, the first CHANGE to the gate's own behavior since
+this marker was written):** `mint-run-007` (run 33639133429, 0 rows) and `mint-run-008` (run 33643532589,
+19 rows, 0/19 valid) landed as honest records of the record-grade path's first two live executions, both
+produced at the previous hash. mint-run-008's 19 failures were all `fact_below_authority_floor` with
+`source_tier_derived: null` against tier-1 registered sources: `validate-mint-payload.mjs` resolved a
+fact's authority tier by exact canonical-URL equality between the claim URL (the instrument's page) and
+the registered source URL (the institution row `registerSource` dedups by), a stricter rule than the
+registry's own identity and than the live `validate_item_provenance` (migration 202, which derives the
+tier through `section_claim_provenance.source_id`). Fixed: the mirror now resolves by registry identity
+(`scripts/lib/institution-key.mjs`, the one definition `registerSource` also uses) after the exact-URL
+check. The same artifact showed `src/lib/intake/record-facts.mjs` emitting legislation.gov.uk's browse
+menu ("European Union Treaties ------") as a `jurisdictional_scope` FACT — fixed with a prose guard
+(`isProseSpan`) and clause-shaped scope triggers. Both files are mint governing files; the 19 payloads of
+mint-run-008 re-validate 19/19 at the new hash (local dry re-run, 2026-09-02). This IS a change to the
+kit's validation behavior, so the "no batch minted through a changed validator" posture above no longer
+describes the situation; the run that supersedes this marker is the next `population-turn` execution
+(dry then apply) at the hash below.
 
-**The planned run that supersedes this marker:** batch-003, the first record-grade batch, produced by
-`scripts/mint/run-mint-batch.mjs --grade record` through the corpus-turn runtime
-(`docs/plans/record-tier-population-plan-2026-09-01.md`). Its artifact re-hashes to this value and lands
-as `mint-run-007.json`, at which point this marker is stale-by-match and must be deleted per F28's
-reverse-audit.
+**harness_version at write time:** `sha256:2d498956fb8c476f`
+
+**The planned run that supersedes this marker:** the next `population-turn` dispatch (the UK/FR rows of
+run #4 re-exported, plus the EUR-Lex rows now captured through Cellar), produced by
+`scripts/mint/run-mint-batch.mjs --grade record` inside `.github/workflows/population-turn.yml`. Its
+artifact re-hashes to this value and lands as `mint-run-009.json`, at which point this marker is
+stale-by-match and must be deleted per F28's reverse-audit.

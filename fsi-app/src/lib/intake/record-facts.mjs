@@ -96,10 +96,14 @@ const SLOT_TRIGGERS = Object.freeze({
     /\bdeadline\b[^.;\n]{0,90}/i,
   ],
   jurisdictional_scope: [
-    /member states?[^.;\n]{0,90}/i,
-    /european union[^.;\n]{0,90}/i,
+    // Clause-shaped triggers first; the bare institution name last and only as the object of a
+    // preposition. On legislation.gov.uk "European Union" is the first word of Act titles ("European
+    // Union (Future Relationship) Act 2020") and subject tags ("European Union Climate Change ..."),
+    // none of which state a scope (mint-run-008, 2026-09-02).
     /\bapplies to\b[^.;\n]{0,90}/i,
     /addressed to[^.;\n]{0,90}/i,
+    /member states?[^.;\n]{0,90}/i,
+    /\b(?:in|within|throughout|across|of|into) the european union(?!\s*\()(?!\s+act\b)[^.;\n]{0,90}/i,
   ],
   penalty_summary: [
     /penalt(?:y|ies)[^.;\n]{0,110}/i,
@@ -108,13 +112,44 @@ const SLOT_TRIGGERS = Object.freeze({
   ],
 });
 
-/** Find the first triggered, verbatim span for `slotKey` in `capturedText`, or null. Pure. */
+// PROSE GUARD (2026-09-02, population run #4). A trigger is a keyword, and a captured page is not only
+// the instrument's text: legislation.gov.uk's every page carries a browse menu whose line "European
+// Union Treaties ------" is the first place "european union" occurs, and mint-run-008 emitted it as the
+// jurisdictional_scope FACT of a UK statutory instrument. The span was verbatim (criterion 3 was
+// satisfied) and still wrong, because verbatim-ness says nothing about whether the matched characters
+// are a sentence. This guard names what a slot FACT must look like before it is accepted, and
+// findSlotSpan walks EVERY match of every trigger (not the first match of the first trigger) until one
+// qualifies — the menu line is skipped, the instrument's own "applies to ..." clause further down is
+// found. A page with no qualifying match still resolves to an honest GAP claim.
+//
+// A span is prose when it carries at least MIN_SPAN_WORDS alphabetic words AND no run of RUN_LIMIT or
+// more identical punctuation characters (rules, separators, table borders — chrome, never a clause), AND
+// no HTML character reference (`&#xD;`, `&amp;`): a span carrying one is quoting markup, not the text.
+const MIN_SPAN_WORDS = 4;
+const RUN_LIMIT = 4;
+const HTML_ENTITY = /&(?:#\d+|#x[0-9a-f]+|[a-z]+);?/i;
+const PUNCT_RUN = new RegExp(`([^\\p{L}\\p{N}\\s])\\1{${RUN_LIMIT - 1},}`, "u");
+
+/** True when `span` reads as a clause of prose rather than page chrome. Pure. */
+export function isProseSpan(span) {
+  const s = String(span ?? "");
+  if (PUNCT_RUN.test(s)) return false;
+  if (HTML_ENTITY.test(s)) return false; // an unescaped entity means the capture is markup, not the text
+
+  const words = s.match(/\p{L}{2,}/gu) || [];
+  return words.length >= MIN_SPAN_WORDS;
+}
+
+/** Find the first triggered, verbatim, prose-like span for `slotKey` in `capturedText`, or null. Pure. */
 export function findSlotSpan(slotKey, capturedText) {
   const text = String(capturedText ?? "");
   const triggers = SLOT_TRIGGERS[slotKey] || [];
   for (const re of triggers) {
-    const m = text.match(re);
-    if (m && m[0] && m[0].trim()) return m[0].trim();
+    const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
+    for (const m of text.matchAll(g)) {
+      const span = (m[0] || "").trim();
+      if (span && isProseSpan(span)) return span;
+    }
   }
   return null;
 }

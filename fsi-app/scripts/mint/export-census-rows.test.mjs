@@ -27,6 +27,9 @@ import {
   makePoliteFetch,
   fetchFrDocumentMeta,
   resolveRowCapture,
+  followUpgradingRedirects,
+  extractCellarTitle,
+  cellarEndpointForCelex,
   summarize,
 } from "./export-census-rows.mjs";
 
@@ -348,27 +351,93 @@ test("makePoliteFetch: enforces the politeness gap between successive fetches, f
 
 // ── EUR-Lex capture: the endpoint rewrite (the root cause of all 24 canonical-key holds) ───────────────
 
-test("resolveRowCapture EUR-Lex: fetches the /TXT/HTML/?uri=CELEX:<key> clean-text endpoint, never /TXT/?uri=", async () => {
+const CELLAR_XHTML =
+  '<html><head><title>L_2006209EN.01000101.xml</title></head><body><p class="oj-hd-date">31.7.2006</p>' +
+  '<p class="oj-doc-ti">COUNCIL DECISION</p><p class="oj-doc-ti">of 14 October 2004</p>' +
+  '<p class="oj-doc-ti">concerning the conclusion of the Stockholm Convention</p><p class="oj-doc-ti">(2006/507/EC)</p>' +
+  '<p class="oj-normal">THE COUNCIL OF THE EUROPEAN UNION, Having regard to the Treaty establishing the European Community.</p></body></html>'.padEnd(600, " x");
+
+function fakeResponse({ status = 200, body = "", location = null } = {}) {
+  return { ok: status >= 200 && status < 300, status, headers: { get: (k) => (k.toLowerCase() === "location" ? location : null) }, text: async () => body };
+}
+
+test("resolveRowCapture EUR-Lex: Cellar FIRST (publications.europa.eu/resource/celex/<key>), following its http 303 upgraded to https; title from oj-doc-ti, never <title>", async () => {
+  const calls = [];
+  const fetchImpl = async (url, opts) => {
+    calls.push({ url, redirect: opts?.redirect });
+    if (url === "https://publications.europa.eu/resource/celex/32006D0507") {
+      return fakeResponse({ status: 303, location: "http://publications.europa.eu/resource/cellar/604cda99.0005.02/DOC_1" });
+    }
+    if (url === "https://publications.europa.eu/resource/cellar/604cda99.0005.02/DOC_1") return fakeResponse({ body: CELLAR_XHTML });
+    throw new Error(`unexpected url ${url}`);
+  };
+  const identity = { scheme: "celex", canonicalKey: "32006D0507" };
+  const env = await resolveRowCapture({ document_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32006D0507" }, identity, { fetchImpl });
+  assert.deepEqual(calls.map((c) => c.url), [
+    "https://publications.europa.eu/resource/celex/32006D0507",
+    "https://publications.europa.eu/resource/cellar/604cda99.0005.02/DOC_1",
+  ]);
+  assert.ok(calls.every((c) => c.redirect === "manual"));
+  assert.equal(env.usable, true);
+  assert.equal(env.endpoint, cellarEndpointForCelex("32006D0507"));
+  assert.equal(env.title, "COUNCIL DECISION of 14 October 2004 concerning the conclusion of the Stockholm Convention (2006/507/EC)");
+  assert.equal(env.titleOrigin, "cellar_doc_title");
+  // the title is a verbatim substring of the captured text, so record-facts' identity FACT will bind
+  assert.ok(env.text.includes(env.title));
+  assert.equal(env.fallbackFrom, undefined);
+});
+
+test("resolveRowCapture EUR-Lex: Cellar refused -> falls back to /TXT/HTML/?uri=CELEX:<key> (never /TXT/?uri=), recording the Cellar attempt", async () => {
   const calls = [];
   const fetchImpl = async (url) => {
     calls.push(url);
-    return { ok: true, status: 200, text: async () => "<html><body>COUNCIL DECISION of 14 October 2004 concerning the position.</body></html>".padEnd(300, " x") };
+    if (url.startsWith("https://publications.europa.eu/")) return fakeResponse({ status: 404, body: "None of the requests returned successfully a redirection." });
+    return fakeResponse({ body: "<html><body>COUNCIL DECISION of 14 October 2004 concerning the position.</body></html>".padEnd(300, " x") });
   };
   const identity = { scheme: "celex", canonicalKey: "32009D0320" };
   const env = await resolveRowCapture({ document_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32009D0320" }, identity, { fetchImpl });
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0], "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32009D0320");
-  assert.doesNotMatch(calls[0], /\/TXT\/\?uri=/);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1], "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32009D0320");
+  assert.doesNotMatch(calls[1], /\/TXT\/\?uri=/);
   assert.equal(env.usable, true);
   assert.match(env.title, /^COUNCIL DECISION of 14 October 2004/);
+  assert.equal(env.fallbackFrom, "https://publications.europa.eu/resource/celex/32009D0320");
+  assert.equal(env.cellar_status, 404);
 });
 
-test("resolveRowCapture EUR-Lex: a 157-byte WAF-interstitial-shaped response is NOT usable (reproduces the live hold)", async () => {
-  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => "x".repeat(157) });
-  const identity = { scheme: "celex", canonicalKey: "32009D0320" };
+test("resolveRowCapture EUR-Lex: Cellar refused AND the EUR-Lex bot gate (HTTP 202, 2,035-byte interstitial) -> NOT usable, both attempts on the envelope (reproduces run #4's hold)", async () => {
+  const fetchImpl = async (url) =>
+    url.startsWith("https://publications.europa.eu/")
+      ? fakeResponse({ status: 503, body: "" })
+      : fakeResponse({ status: 202, body: "<html><body>JavaScript is disabled In order to continue, we need to verify that you're not a robot.</body></html>".padEnd(2035, " ") });
+  const identity = { scheme: "celex", canonicalKey: "32006D0507" };
   const env = await resolveRowCapture({ document_url: "https://eur-lex.europa.eu/x" }, identity, { fetchImpl });
   assert.equal(env.usable, false);
-  assert.equal(env.bytes, 157);
+  assert.equal(env.status, 202);
+  assert.equal(env.cellar_status, 503);
+  assert.match(env.head, /not a robot/);
+});
+
+test("followUpgradingRedirects: upgrades http Location to https, resolves relative Locations, stops at maxHops", async () => {
+  const seen = [];
+  const fetchImpl = async (url) => { seen.push(url); return fakeResponse({ status: 302, location: "http://example.org/next" }); };
+  const res = await followUpgradingRedirects(fetchImpl, { maxHops: 2 })("https://example.org/start");
+  assert.equal(res.status, 302);
+  assert.deepEqual(seen, ["https://example.org/start", "https://example.org/next", "https://example.org/next"]);
+  const rel = [];
+  const relFetch = async (url) => { rel.push(url); return rel.length === 1 ? fakeResponse({ status: 303, location: "/a/b" }) : fakeResponse({ body: "ok" }); };
+  await followUpgradingRedirects(relFetch)("https://example.org/start");
+  assert.deepEqual(rel, ["https://example.org/start", "https://example.org/a/b"]);
+});
+
+test("extractCellarTitle: joins oj-doc-ti lines; ignores the OJ-file-name <title>; body-lead fallback when no doc-ti", () => {
+  assert.deepEqual(extractCellarTitle(CELLAR_XHTML), { title: "COUNCIL DECISION of 14 October 2004 concerning the conclusion of the Stockholm Convention (2006/507/EC)", origin: "cellar_doc_title" });
+  assert.equal(extractCellarTitle("<html><head><title>L_2006209EN.01000101.xml</title></head><body><p>Some act text here.</p></body></html>").origin, "captured_body_lead");
+  assert.equal(extractCellarTitle(""), null);
+});
+
+test("stripHtmlToText: decodes numeric character references (&#xD; inside legislation.gov.uk running text)", () => {
+  assert.equal(stripHtmlToText("penalty where the person fails&#xD; to comply &#8364;100"), "penalty where the person fails to comply €100");
 });
 
 // ── UK legislation capture: data.htm first, page as fallback ───────────────────────────────────────────

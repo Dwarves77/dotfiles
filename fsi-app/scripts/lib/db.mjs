@@ -28,6 +28,7 @@ import { createRequire } from "node:module";
 // CI runs Node 24, which strips TS types natively. Keeps registerSource honest to that module's
 // stated contract — a source is never created with a NULL role.
 import { classifySourceRole } from "../../src/lib/sources/classify-source-role.ts";
+import { hostOf, institutionKey } from "./institution-key.mjs";
 
 // @supabase is lazy-required (not a top-level import) so this module is importable WITHOUT node_modules
 // installed — db.test.mjs injects a fake client and never touches the real one, so the discipline test
@@ -295,32 +296,10 @@ export const SOURCEY_ARCHIVE_REASONS = Object.freeze([
   "portal_artifact",
 ]);
 
-function hostOf(u) {
-  try { return new URL(u).host.replace(/^www\./, "").toLowerCase(); } catch { return ""; }
-}
-
-// SHARED GOVERNMENT PORTALS — one host serves MANY distinct institutions, differentiated by a path
-// prefix (gob.mx/semarnat vs gob.mx/economia; gov.si/.../ministrstvo-za-okolje vs .../ministrstvo-za-finance).
-// Bare-host dedup COLLAPSES them into one row. For these hosts the institution key is host + the first
-// `keyDepth` path segments; keyDepth is per-host because the institution slug sits at different depths
-// (/mma vs /web/gios vs /drzavni-organi/ministrstva/<ministry>). Every other host keys on bare host, so
-// this is backward-compatible for the ~non-portal majority. A caller may pass source.institutionKey to
-// override. NOTE (SI!=SK): keys are host-rooted, so gov.si and *.sk are never adjacent — a different
-// jurisdiction can never collapse into another (the Slovenia/Slovakia near-miss stays distinct by design).
-export const SHARED_PORTAL_KEYDEPTH = {
-  "gob.mx": 1, "gov.br": 1, "portal.ct.gov": 1, "nj.gov": 1, "oregon.gov": 1, "maine.gov": 1,
-  "gov.pl": 2, "nyc.gov": 2, "u.ae": 2, "bundesregierung.de": 2, "gov.si": 3,
-};
-export function institutionKey(url) {
-  const host = hostOf(url);
-  if (!host) return "";
-  const depth = SHARED_PORTAL_KEYDEPTH[host];
-  if (!depth) return host;
-  let path = "";
-  try { path = new URL(url).pathname; } catch { path = ""; }
-  const segs = path.split("/").filter(Boolean).slice(0, depth);
-  return segs.length ? `${host}/${segs.join("/")}` : host;
-}
+// hostOf / SHARED_PORTAL_KEYDEPTH / institutionKey moved to scripts/lib/institution-key.mjs (pure,
+// dependency-free) on 2026-09-02 so the DB-less mint validator can resolve a claim's source by the SAME
+// identity rule registerSource dedups by. Re-exported here unchanged for every existing consumer.
+export { hostOf, SHARED_PORTAL_KEYDEPTH, institutionKey } from "./institution-key.mjs";
 
 /**
  * Register a source in the `sources` registry (idempotent by canonical host). Returns the source id.
