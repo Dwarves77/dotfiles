@@ -26,6 +26,7 @@ import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { getViewerRelevanceForItem } from "@/lib/workspace/viewer-relevance";
 import { RegulationDetailSurface } from "@/components/regulations/RegulationDetailSurface";
 import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingObligationsStrip";
+import { ObligationRegister } from "@/components/regulations/ObligationRegister";
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 
@@ -292,20 +293,28 @@ export default async function RegulationDetailPage({
   console.log(`[perf] /regulations/${id} data ${Date.now() - t0}ms`);
 
   return (
-    <RegulationDetailSurface
-      resource={r}
-      changelog={changelog}
-      dispute={dispute}
-      supersessions={supersessions}
-      connections={connections}
-      relevance={relevance}
-      resourceLookup={resourceLookup}
-      sections={sections}
-      groupLabel={groupLabel}
-      deck={deck}
-      initialOwner={initialOwner}
-      upcomingObligations={<UpcomingObligationsStrip variant="detail" itemId={r.id} />}
-    />
+    <>
+      <RegulationDetailSurface
+        resource={r}
+        changelog={changelog}
+        dispute={dispute}
+        supersessions={supersessions}
+        connections={connections}
+        relevance={relevance}
+        resourceLookup={resourceLookup}
+        sections={sections}
+        groupLabel={groupLabel}
+        deck={deck}
+        initialOwner={initialOwner}
+        upcomingObligations={<UpcomingObligationsStrip variant="detail" itemId={r.id} />}
+      />
+      {/* Lane OBLIG (2026-09-02): this item's own obligation-register rows (migration 290
+          `obligations`, denormalized jurisdiction/mode/binding_position) — write-set-scoped to this
+          page file only (RegulationDetailSurface.tsx is not in this lane's write set), so it renders as
+          its own section below the surface rather than a meta-rail card. Honest omission (renders
+          nothing) when this item has no register rows yet. */}
+      <ObligationRegister itemId={r.id} variant="detail" />
+    </>
   );
 }
 
