@@ -168,6 +168,27 @@ test('guardedUpdateByIds: chunks the id list (run #6 statement timeout), snapsho
   await assert.rejects(() => guardedUpdateByIds('intelligence_items', ids, { a: 1 }, {}), /cite/i);
 });
 
+test('guardedUpdateByIds: a chunk cancelled by the API statement timeout is halved and retried down to single rows (run #7)', async () => {
+  const calls = [];
+  const ids = Array.from({ length: 10 }, (_, i) => `id-${i}`);
+  // the API "times out" any update carrying more than 3 ids; a non-timeout error propagates unchanged
+  __setWriteClientForTest(() => makeClient((s) => {
+    const inOp = s.ops.find((o) => o[0] === 'in');
+    if (s.verb === 'update' && inOp[2].length > 3) return { data: null, error: { message: 'canceling statement due to statement timeout' } };
+    return { data: inOp[2].map((id) => ({ id })), error: null };
+  }, calls));
+  const res = await guardedUpdateByIds('intelligence_items', ids, { archive_reason: 'x' }, { cite, chunk: 10 });
+  const updates = calls.filter((c) => c.verb === 'update').map((u) => u.ops.find((o) => o[0] === 'in')[2].length);
+  assert.deepEqual(updates, [10, 5, 3, 2, 5, 3, 2]);
+  assert.equal(res.updated, 10);
+  assert.equal(res.halvings, 3);
+  assert.equal(res.chunks, 4);
+  __setWriteClientForTest(() => makeClient(() => ({ data: null, error: { message: 'permission denied for table' } }), []));
+  await assert.rejects(() => guardedUpdateByIds('intelligence_items', ids, { a: 1 }, { cite }), /permission denied/);
+  __setWriteClientForTest(() => makeClient(() => ({ data: null, error: { message: 'canceling statement due to statement timeout' } }), []));
+  await assert.rejects(() => guardedUpdateByIds('intelligence_items', ['one'], { a: 1 }, { cite }), /statement timeout/);
+});
+
 test('institutionKey: shared-portal hosts key by path prefix; other hosts by bare host', () => {
   // non-portal host -> bare host (backward-compatible for the majority)
   assert.equal(institutionKey('https://eur-lex.europa.eu/eli/reg/2024/1257/oj'), 'eur-lex.europa.eu');
