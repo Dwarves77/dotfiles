@@ -95,6 +95,8 @@ node --test \
   fsi-app/scripts/maintenance/lib/*.test.mjs \
   fsi-app/scripts/mint/*.test.mjs \
   fsi-app/scripts/mint/lib/*.test.mjs \
+  fsi-app/scripts/review/*.test.mjs \
+  fsi-app/scripts/review/lib/*.test.mjs \
   fsi-app/scripts/turns/*.test.mjs \
   fsi-app/scripts/forward-events/*.test.mjs \
   fsi-app/scripts/connections/*.test.mjs \
