@@ -31,7 +31,7 @@ one-off probe and by `run-ledger-consume.test.mjs`'s own standing jiti-load test
 network, no DB) and gets back `{discovered: 0, fetched: 0, classified: 0, outcomes: []}`. That proves the
 runtime WIRING; it is not a run over real ledger rows, so it is not `ledger-consume-run-001`.
 
-**harness_version at write time:** `sha256:e8506362c5e2c2c5`
+**harness_version at write time:** `sha256:2798bdb08c8e8552`
 
 **The planned run that supersedes this marker:** the first `ledger-consume-run-001.json` produced by
 `node scripts/turns/run-ledger-consume.mjs` (dispatched via `.github/workflows/ledger-consume.yml`, which
@@ -55,4 +55,6 @@ dispatch cannot succeed until that registration lands — see `docs/runbooks/COR
 
 **Re-pin note (coordinator, 2026-09-02, integration of the system-completion train):** the hash above was `sha256:d7f537714f9975aa` when the lane wrote this marker. Lane SPEND (same train) routed `src/lib/llm/first-fetch-classify.ts`, one of this family's three governing files, through the spend chokepoint (`spendMessage`), so the hash pinned by Lane CONSUME moved before any run landed. Re-pinned by the coordinator at integration (2026-09-02) to `sha256:db591d024e90fc22`; the planned first run is unchanged.
 
-**Re-pin note 2 (coordinator, 2026-09-02, follow-up integration):** the hash above moved again to `sha256:e8506362c5e2c2c5`, this pass over `scripts/turns/run-ledger-consume.mjs` itself — `buildLoggingClassify`, its own `agent_runs` insert, was removed (it would have written a SECOND row per classify now that `spendMessage`/`recordSpendCall` in `spend-client.ts` writes the first one) and replaced with a read-only `collectClassifyTelemetry` that reads `input_tokens`/`output_tokens` back off `FirstFetchClassifyResult` for the artifact; no library governing file changed in this pass. Re-pinned by the coordinator at integration (2026-09-02); the planned first run is unchanged.
+**Re-pin note 2 (coordinator, 2026-09-02, follow-up integration):** the hash above moved again to `sha256:2798bdb08c8e8552`, this pass over `scripts/turns/run-ledger-consume.mjs` itself — `buildLoggingClassify`, its own `agent_runs` insert, was removed (it would have written a SECOND row per classify now that `spendMessage`/`recordSpendCall` in `spend-client.ts` writes the first one) and replaced with a read-only `collectClassifyTelemetry` that reads `input_tokens`/`output_tokens` back off `FirstFetchClassifyResult` for the artifact; no library governing file changed in this pass. Re-pinned by the coordinator at integration (2026-09-02); the planned first run is unchanged.
+
+**Re-pin note 3 (coordinator, 2026-09-02):** `sha256:e8506362c5e2c2c5` → `sha256:2798bdb08c8e8552`. The rule-016 prose false-positive fix reworded one header comment in `run-ledger-consume.mjs` after the previous pin; PR #517's first CI run caught the drift (NO ARTIFACTS on this family) because the coordinator re-ran the engine and consistency gates after that edit but not F28. The planned first run is unchanged.
