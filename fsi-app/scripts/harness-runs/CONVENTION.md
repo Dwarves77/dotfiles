@@ -48,6 +48,12 @@ fsi-app/scripts/harness-runs/
     traces/                       # the family's raw walker results (full traces) — one level BELOW the
       source-sweep-run-001.raw-result.json   # family dir, so F28's family-level *.json artifact glob
     ...                                      # never validates a trace as an artifact (2026-09-01)
+  change-detection/
+    PENDING-RUN.md                # first-run acknowledgment (rule (b)) — no run has landed yet
+    change-detection-run-001.json
+    traces/                       # this family's raw step results (full traces), same one-level-below
+      change-detection-run-001.result.json   # convention as source-sweep/traces/ above
+    ...
 ```
 
 One directory per harness family. Five exist today: `mint`, `screen`, and `fetch-drain` — matching the
@@ -68,6 +74,20 @@ dormant, pure, dep-injected enumeration modules it gives a runtime to for the fi
 `src/lib/sources/feed-walk.mjs` (the RSS/Atom feed walk): a sixth shape again, whose "runs" are
 enumeration passes over a source's index/feed for a date range, writing discovered candidate URLs to the
 `portal_link_candidates` ledger (never a mint, never an extraction, never a fetch-drain replay).
+plus `change-detection` (lane CD, change-detection runtime, 2026-09-02), registered over
+`scripts/turns/run-change-detection.mjs` and the two library modules it drives directly —
+`src/lib/sources/reconcile.ts`'s `runReconcilePass` (previously reachable only as a callee inside
+`check-sources/route.ts`) and `src/lib/intake/run-intake-cycle.ts`'s `drainChangeSweepUpdates`
+(previously reachable only from `runIntakeCycle`'s own apply-mode tail): a seventh shape again, whose
+"runs" are a three-step chain — detect (POST the deployed check-sources route), reconcile (claim pending
+`monitoring_queue` change rows into `intelligence_changes` + a `staged_updates` bridge), drain (apply +
+re-verify the bridged `update_item` rows) — never a mint, an extraction, or an enumeration walk. NOT added
+as a row to the `harness_version` table below (see that section's own note on why); this family's governing
+files are named directly in F28's `GOVERNING_FILES.'change-detection'` and in this file's own module header
+instead, exactly the acknowledged exception CONVENTION-TABLE-PARITY's hardcoded row count already requires
+a coordinator pass to lift (see `run-artifact.test.mjs`'s and this test's own hardcoded family-count
+assertions — both are a named, pending coordinator item, not an oversight of this lane's).
+
 `meta-harness-run-001` through `-003` retrofit MH-1, MH-2, and MH-3
 respectively — the same real-evidence retrofit discipline this file's own "screen-v1 loss" section
 applies to the three original families, applied one layer up, to the harness that builds harnesses. A new
@@ -107,6 +127,18 @@ counterpart to `fetch-drain`'s capture-success-rate-per-attempt-class. A dry run
 actual ledger write are reported as the same shape (`persist`'s injected counting in dry mode vs its real
 upsert in apply mode — see `run-source-sweep.mjs`'s own header), so the two are directly comparable run
 over run.
+
+**change-detection's standing metric** (build plan §2's "measurement, not assertion," per family):
+*chain-completion rate* — of the `monitoring_queue` rows a run's own detect step (or an inherited backlog,
+`--skip-check`) marks `change_detected=true`, the fraction that make it all the way to a drained
+`staged_updates` disposition (`update_applied`/`update_rejected`) in the SAME run, versus the fraction left
+`pending` past `--drain-limit` (`not_drained`, always reported, never silent — the same bounded-and-reported
+posture `source-sweep`'s `notBridged`/`notSwept` and this family's own `drainChangeSweepUpdates` already
+apply) — plus *Browserless cost per detection pass*: `metrics.browserless_units_est`, an ESTIMATE (this
+repo does not document Browserless's own per-render metered price; see `run-change-detection.mjs`'s header
+for the closest live reference), reported per run so a proposer pass can see spend trend alongside
+throughput, the same pairing `mint`'s validator-pass rate and `forward-events`'s precision/coverage pair
+serve for their own families.
 
 **A named risk of self-application** (surfaced by meta-harness's own first proposer pass, Wave MH-4):
 `meta-harness`'s governing files ARE this file and `PROPOSER-RUNBOOK.md` — the two documents every wave

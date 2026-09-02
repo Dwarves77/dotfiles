@@ -351,6 +351,15 @@ Not part of the original operator-named harness/flywheel seed list, but the chai
 — `staged_updates` in particular gains its first-ever `update_item` writer — so they are registered here
 on the doc's own stated criterion (a table more than one live path writes) rather than left silently out.
 
+**Runtime, added 2026-09-02 (lane CD, change-detection runtime):** `fsi-app/scripts/turns/
+run-change-detection.mjs` is the new GitHub Actions-driven caller of `runReconcilePass` and
+`drainChangeSweepUpdates` below (via jiti — see that script's own header) — it is NOT a new writer of any
+table itself (every `.from(...)` call it makes is a plain `.select()`, verified by grep: zero
+`.insert(`/`.update(`/`.upsert(`/`.delete(` in the file), so no new allowlist entry is added for it. It is
+the first thing in the repo that runs the detect → reconcile → drain chain end to end outside of a live
+HTTP request to `check-sources`/`reconcile`; the writers of record for `monitoring_queue`,
+`intelligence_changes`, and `staged_updates` remain exactly the files listed in each table's section below.
+
 #### `monitoring_queue`
 
 No partition — one row per (source, check), written by two collaborators in the SAME chain, never in

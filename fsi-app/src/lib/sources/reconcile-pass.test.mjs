@@ -111,3 +111,60 @@ test("runReconcilePass: a source with zero live items still gets reconciled (no 
   assert.equal(r.staged, 0);
   assert.equal(r.errors.length, 0);
 });
+
+// ── dryRun (lane CD, change-detection runtime, 2026-09-02) ──────────────────────────────────────────
+
+test("runReconcilePass({dryRun:true}): counts what would be written, writes NOTHING", async () => {
+  const svc = fakeSvc({
+    pendingRows: [{ id: "q-1", source_id: "src-1", checked_at: "2026-09-01T00:00:00Z" }],
+    itemsBySource: { "src-1": [{ id: "item-a", source_url: "https://x.example/reg" }, { id: "item-b", source_url: "https://x.example/reg" }] },
+  });
+  const r = await runReconcilePass(svc, { dryRun: true });
+  assert.equal(r.processed, 1, "counts the row as WOULD-be-processed");
+  assert.equal(r.changesRecorded, 2, "one projected intelligence_changes row per live item");
+  assert.equal(r.staged, 2, "one projected staged_updates row per live item");
+  assert.equal(r.pending, 1);
+  assert.equal(r.errors.length, 0);
+  assert.equal(r.dryRun, true);
+  // The three writes never fire.
+  assert.equal(svc.calls.intelligenceChanges.length, 0, "no intelligence_changes insert in dryRun");
+  assert.equal(svc.calls.stagedUpdates.length, 0, "no staged_updates insert in dryRun");
+  assert.equal(svc.calls.monitoringQueueUpdates.length, 0, "no reconciled_at stamp in dryRun");
+});
+
+test("runReconcilePass({dryRun:true}): staged projection is capped at the bridge's own default per-source limit (50)", async () => {
+  const manyItems = Array.from({ length: 60 }, (_, i) => ({ id: `item-${i}`, source_url: "https://x.example/reg" }));
+  const svc = fakeSvc({
+    pendingRows: [{ id: "q-1", source_id: "src-1", checked_at: "2026-09-01T00:00:00Z" }],
+    itemsBySource: { "src-1": manyItems },
+  });
+  const r = await runReconcilePass(svc, { dryRun: true });
+  assert.equal(r.changesRecorded, 60, "intelligence_changes is not bridge-capped");
+  assert.equal(r.staged, 50, "staged_updates projection caps at bridgeChangedSourceToStagedUpdates's own default limit");
+});
+
+test("runReconcilePass({dryRun:true}): no pending rows — same no-op shape as the real pass, dryRun omitted when false elsewhere", async () => {
+  const svc = fakeSvc({ pendingRows: [] });
+  const r = await runReconcilePass(svc, { dryRun: true });
+  assert.equal(r.processed, 0);
+  assert.equal(r.pending, 0);
+  assert.equal(r.dryRun, true);
+});
+
+test("runReconcilePass: default (no opts) omits `dryRun` from the result — existing callers' JSON shape is unchanged", async () => {
+  const svc = fakeSvc({ pendingRows: [] });
+  const r = await runReconcilePass(svc);
+  assert.equal("dryRun" in r, false);
+  assert.deepEqual(Object.keys(r).sort(), ["changesRecorded", "errors", "pending", "processed", "staged"].sort());
+});
+
+test("runReconcilePass({dryRun:false}) explicitly: also omits `dryRun`, behaves identically to no opts", async () => {
+  const svc = fakeSvc({
+    pendingRows: [{ id: "q-1", source_id: "src-1", checked_at: "2026-09-01T00:00:00Z" }],
+    itemsBySource: { "src-1": [{ id: "item-a", source_url: "https://x.example/reg" }] },
+  });
+  const r = await runReconcilePass(svc, { dryRun: false });
+  assert.equal("dryRun" in r, false);
+  assert.equal(r.processed, 1);
+  assert.equal(svc.calls.intelligenceChanges.length, 1, "a real write happened — dryRun:false is a real pass");
+});

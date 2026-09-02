@@ -153,6 +153,24 @@ export const GOVERNING_FILES = Object.freeze({
     'src/lib/sources/register-walk.mjs',
     'src/lib/sources/feed-walk.mjs',
   ]),
+  // change-detection (registered by lane CD, change-detection runtime, 2026-09-02): the runtime the
+  // detect -> reconcile -> drain chain never had. runReconcilePass (src/lib/sources/reconcile.ts) existed
+  // only as a callee inside check-sources/route.ts; drainChangeSweepUpdates (src/lib/intake/
+  // run-intake-cycle.ts) was reachable only from runIntakeCycle's own apply-mode tail. Governing files are
+  // the driver plus the two library modules it drives directly (reconcile.ts's dryRun projection,
+  // run-intake-cycle.ts's now-exported drain entry) — see run-change-detection.mjs's own header for the
+  // full chain and the two limitations found reading check-sources/route.ts (out of this family's write
+  // set; check-sources/route.ts itself is NOT a governing file here since this family does not modify or
+  // re-implement its logic, only calls it over HTTP). Zero valid artifacts exist yet — this lane has no
+  // live DB/network access to run it for real — so it carries
+  // scripts/harness-runs/change-detection/PENDING-RUN.md as its hash-pinned FIRST-RUN ACKNOWLEDGMENT
+  // (rule (b), see the header): registered, first run pending, discharged by the change-detection
+  // workflow's first change-detection-run-001.json.
+  'change-detection': Object.freeze([
+    'scripts/turns/run-change-detection.mjs',
+    'src/lib/sources/reconcile.ts',
+    'src/lib/intake/run-intake-cycle.ts',
+  ]),
 });
 
 const PENDING_RUN_FILE = 'PENDING-RUN.md';

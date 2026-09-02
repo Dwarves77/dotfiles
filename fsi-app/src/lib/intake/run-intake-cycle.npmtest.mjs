@@ -34,7 +34,7 @@ import { createJiti } from "jiti";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
-const { runIntakeCycle, UPDATE_DRAIN_LIMIT } = await jiti.import("./run-intake-cycle.ts");
+const { runIntakeCycle, UPDATE_DRAIN_LIMIT, drainChangeSweepUpdates, MANUAL_INTAKE_CALLER } = await jiti.import("./run-intake-cycle.ts");
 const { CHANGE_SWEEP_STAGED_MARKER } = await jiti.import("../sources/change-sweep.mjs");
 
 /**
@@ -326,4 +326,72 @@ test("update_item drain: idempotent — a second invocation drains nothing once 
   // the row's terminal state is untouched by the second (no-op) invocation.
   const row = sb.stagedRows().find((r) => r.id === "su-1");
   assert.equal(row.status, "approved");
+});
+
+// ── STANDALONE EXPORT (lane CD, change-detection runtime, 2026-09-02) ──────────────────────────────
+//
+// drainChangeSweepUpdates is now exported so run-change-detection.mjs can drive the drain ALONE, as its
+// own step, instead of only ever running as runIntakeCycle's apply-mode tail. These prove the exported
+// entry reaches the EXACT SAME pending rows a runIntakeCycle([], {mode:"apply"}) invocation would (same
+// query, same predicate, same bound), with zero new behavior — runIntakeCycle's own new_item candidate
+// loop is not exercised at all here (candidates=[] above already proves runIntakeCycle's own call site
+// is unaffected; these prove the export is independently usable).
+
+test("drainChangeSweepUpdates (standalone export): drains the same pending change-sweep row runIntakeCycle's tail would", async () => {
+  const sb = fakeClient({
+    stagedRows: [
+      { id: "su-1", update_type: "update_item", status: "pending", item_id: "item-1", source_id: "src-1", proposed_changes: {}, reason: marker("amendment diff: 1 provision(s) added"), source_url: "https://x.example/reg", created_at: "2026-08-30T00:00:00Z" },
+    ],
+    itemsById: { "item-1": { title: "Item One", source_id: "src-1", source_url: null, provenance_status: "verified" } },
+  });
+
+  const result = await drainChangeSweepUpdates(sb, MANUAL_INTAKE_CALLER, UPDATE_DRAIN_LIMIT);
+
+  assert.equal(result.drained, 1);
+  assert.equal(result.approved, 1);
+  assert.equal(result.rejected, 0);
+  assert.equal(result.notDrained, 0);
+  assert.equal(result.items[0].kind, "update_item");
+  assert.equal(result.items[0].disposition, "update_applied");
+
+  const row = sb.stagedRows().find((r) => r.id === "su-1");
+  assert.equal(row.status, "approved");
+  assert.equal(row.reviewed_by, MANUAL_INTAKE_CALLER);
+});
+
+test("drainChangeSweepUpdates (standalone export): respects an explicit limit narrower than UPDATE_DRAIN_LIMIT", async () => {
+  const stagedRows = [];
+  const itemsById = {};
+  for (let i = 0; i < 3; i++) {
+    stagedRows.push({ id: `su-${i}`, update_type: "update_item", status: "pending", item_id: `item-${i}`, source_id: `src-${i}`, proposed_changes: {}, reason: marker("source content fingerprint changed"), source_url: `https://x.example/${i}`, created_at: `2026-08-30T00:00:0${i}Z` });
+    itemsById[`item-${i}`] = { title: `Item ${i}`, source_id: `src-${i}`, source_url: null, provenance_status: "verified" };
+  }
+  const sb = fakeClient({ stagedRows, itemsById });
+
+  const result = await drainChangeSweepUpdates(sb, MANUAL_INTAKE_CALLER, 1);
+
+  assert.equal(result.drained, 1, "the caller's own limit (1) is respected, not UPDATE_DRAIN_LIMIT");
+  // Same "fetch one extra to detect there's more" idiom as UPDATE_DRAIN_LIMIT's own test above:
+  // notDrained is capped at 1 (a there-is-more signal), not the true remaining count (2).
+  assert.equal(result.notDrained, 1);
+  assert.equal(sb.stagedRows().filter((r) => r.status === "pending").length, 2);
+});
+
+test("drainChangeSweepUpdates (standalone export) vs. runIntakeCycle's own tail: byte-identical result on the same fixture", async () => {
+  const fixture = () => ({
+    stagedRows: [
+      { id: "su-1", update_type: "update_item", status: "pending", item_id: "item-1", source_id: "src-1", proposed_changes: {}, reason: marker("amendment diff: 1 provision(s) added"), source_url: "https://x.example/reg", created_at: "2026-08-30T00:00:00Z" },
+    ],
+    itemsById: { "item-1": { title: "Item One", source_id: "src-1", source_url: null, provenance_status: "verified" } },
+  });
+
+  const viaCycle = await runIntakeCycle(fakeClient(fixture()), [], { mode: "apply" });
+  const viaExport = await drainChangeSweepUpdates(fakeClient(fixture()), MANUAL_INTAKE_CALLER, UPDATE_DRAIN_LIMIT);
+
+  assert.equal(viaCycle.updatesDrained, viaExport.drained);
+  assert.equal(viaCycle.updatesApproved, viaExport.approved);
+  assert.equal(viaCycle.updatesRejected, viaExport.rejected);
+  assert.equal(viaCycle.updatesNotDrained, viaExport.notDrained);
+  const cycleDrainItem = viaCycle.items.find((i) => i.kind === "update_item");
+  assert.deepEqual(cycleDrainItem, viaExport.items[0]);
 });
