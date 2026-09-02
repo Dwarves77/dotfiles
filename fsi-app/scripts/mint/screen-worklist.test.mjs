@@ -337,11 +337,11 @@ test("WAVE M-SCREEN-3: the operator's worked example 0278fa64 (HGV infrastructur
   assert.equal(entry.verdict, "on_vertical");
 });
 
-test("WAVE M-SCREEN-3: reviewed-verdicts.json off_vertical count dropped by exactly 14 (1 named + 13 sweep) from the pre-wave 830", () => {
+test("WAVE M-SCREEN-3 + ruling 2026-09-02: reviewed-verdicts.json off_vertical count is 830 - 14 (M-SCREEN-3) - 6 (TEN-T 2024/1679, CEF entries, TEN-T coordinator, 2020/349 aerodynamic devices flipped on_vertical by the operator, 2026-09-02)", () => {
   const reviewed = loadReviewed(REVIEWED_VERDICTS_PATH);
   const counts = { on_vertical: 0, off_vertical: 0, ambiguous: 0 };
   for (const v of Object.values(reviewed)) counts[v.verdict] = (counts[v.verdict] ?? 0) + 1;
-  assert.equal(counts.off_vertical, 830 - 14);
-  assert.equal(counts.on_vertical, 660 + 14);
+  assert.equal(counts.off_vertical, 830 - 14 - 6);
+  assert.equal(counts.on_vertical, 660 + 14 + 6);
   assert.equal(counts.ambiguous, 256, "ambiguous count must be untouched by this wave's reviewed-file edits");
 });

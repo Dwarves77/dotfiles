@@ -8065,3 +8065,29 @@ aerodynamic devices and elongated cabs, a fuel-efficiency measure), the two CCNR
 weight amendment (weights and dimensions carry the zero-emission-truck allowance). The export gate stays
 (it withholds, it never archives); the ruling decides the archive.
 
+### Addendum 84, postscript 14 — the off-vertical ruling applied to the screen; the finish plan (2026-09-02, evening)
+
+**Operator ruling (verbatim):** "these are 100% in vert, Regulation (EU) 2024/1679 (TEN-T guidelines,
+corridors and alternative-fuels infrastructure), 2020/349 (aerodynamic devices and elongated cabs, a
+fuel-efficiency measure), the two CCNR Rhine positions (inland-waterway emission standards sit with the
+CCNR), and the UK authorised-weight amendment (weights and dimensions carry the zero-emission-truck
+allowance)". Applied to the screen, not to the rows: `screen-rules.mjs` rules
+`rhine_navigation_administration` and `road_vehicle_weight_dimensions_administration` flipped to
+`on_vertical` with the mechanism in their text (10 flipped rules now; META test updated), and six reviewed
+verdicts flipped in `reviewed-verdicts.json` (now 810 off / 680 on / 256 ambiguous; screen-worklist test
+updated). **Correction, caught before landing:** my first pass flipped only the three CEF 1316/2013 rows and
+the TEN-T coordinator designation; re-running the dry classification over the live 122 showed
+2024/1679 and 2020/349 still `off_vertical` under their own reviewed entries (keyed by census id, batch-
+reviewed under a generic "transport-administration" reason). Both flipped; the reclassification now reads
+71 on / 41 off / 10 ambiguous [CONFIRMED on the /tmp/live-records.json snapshot of the 122]. Screen
+PENDING-RUN re-stamped (`sha256:a6cb87abf8e61cd9`, rules and worklist are the governing files; the
+reviewed file is data); F28 green; screen suites 174/174. The reconcile step in `population-turn.yml`
+goes back to `--apply` in apply mode: the next apply dispatch archives the 41 (reversible,
+`archive_reason = 'off_vertical'`) and lists the 10 for a ruling (R-B).
+
+**The finish plan** is `docs/plans/finish-plan-2026-09-02.md`: rulings taken (§0), the eight open rulings
+R-A…R-H with a recommendation each (§1), Sonnet lanes in three waves with disjoint write sets (§2:
+Wave 1 WSEQ / MAINT / R1 / F2 / PROD-FIX / GATES-1 / HYG-2; Wave 2 OBLIG / CORR / DASH / RSRCH / AXIS;
+Wave 3 COMMUNITY / SPEC-09), the coordinator dispatch sequence that runs every item in the system
+through the newest harness and flywheel once (§3), and the gates (§4). Next step for a cold session:
+land this branch, dispatch `population-turn` apply (limit 50), launch Wave 1.
