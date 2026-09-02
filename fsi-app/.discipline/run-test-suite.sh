@@ -113,6 +113,7 @@ node --test \
   fsi-app/src/lib/d3/*.selftest.mjs \
   fsi-app/src/lib/tier-labels.test.mjs \
   fsi-app/src/lib/tier-badge-tone.test.mjs \
+  fsi-app/src/lib/coverage-gaps-rollup.test.mjs \
   fsi-app/src/components/community/community-sidebar-route.test.mjs \
   fsi-app/src/lib/workspace/*.test.mjs \
   fsi-app/src/lib/connections/*.test.mjs \
