@@ -62,6 +62,7 @@ concurrency:
 permissions:
   contents: write
   pull-requests: write
+  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
 
 jobs:
   sweep:
@@ -175,16 +176,9 @@ jobs:
           git checkout -b "$branch"
           git commit -m "source-sweep ${{ inputs.mode }}: ${{ inputs.walker }} run ${{ github.run_id }}"
           git push origin HEAD:"$branch"
-          body=$'Automated source sweep (run ${{ github.run_id }}).\n\nWalker: ${{ inputs.walker }}\nMode: ${{ inputs.mode }}\nFrom/to: ${{ inputs.from }} .. ${{ inputs.to }}\nFeed: ${{ inputs.feed_url }}\n\nLands the harness-run artifact for this sweep under scripts/harness-runs/source-sweep/.'
-          if ! gh pr create --base master --head "$branch" \
-            --title "Source sweep: ${{ inputs.walker }} (mode=${{ inputs.mode }}, run ${{ github.run_id }})" \
-            --body "$body"; then
-            # Same failure corpus-turn.yml documents at its own PR step (repo setting "Allow GitHub Actions
-            # to create and approve pull requests" off, seen on source-sweep run #1, 2026-09-01). The
-            # artifact branch IS pushed; only the PR is missing.
-            echo "::error::PR creation failed. The artifact branch IS pushed. Open the PR by hand: https://github.com/${{ github.repository }}/compare/master...${branch}?expand=1 — or enable 'Allow GitHub Actions to create and approve pull requests' under Settings → Actions → General."
-            exit 1
-          fi
+          printf 'Automated source sweep (run %s).\n\nWalker: %s\nMode: %s\nFrom/to: %s .. %s\nFeed: %s\n\nLands the harness-run artifact for this sweep under scripts/harness-runs/source-sweep/.\n' \
+            "${{ github.run_id }}" "${{ inputs.walker }}" "${{ inputs.mode }}" "${{ inputs.from }}" "${{ inputs.to }}" "${{ inputs.feed_url }}" > /tmp/pr-body.md
+          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Source sweep: ${{ inputs.walker }} (mode=${{ inputs.mode }}, run ${{ github.run_id }})" /tmp/pr-body.md
 
       - name: Upload scripts/_snapshots as a workflow artifact
         if: always()

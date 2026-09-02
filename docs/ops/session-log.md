@@ -7599,3 +7599,25 @@ PR-creation setting. **Next step for a cold session:** WO-26 stamp (`stamp-wo26-
 --execute`, needs a workflow step or the runtime), tag proposals + ratification, batch-003 records
 (mint-run-007), EIA secret, FR + feed first walks (dry), then the ledger-consume hop design. Gates:
 suite 2,547/2,547 · fitness 23/0 · meta-gate PASS.
+
+## Addendum 83 — 2026-09-02 (cloud session): the runs stop crying wolf
+
+**Operator:** "runs keep failing. do not continue to do something that doesn't work. find out why it
+doesn't and correct it before you try again." **Diagnosis from the step logs of every failed run
+(corpus-turn #1, #3; source-sweep #1–#5):** one cause. Each run completed its real work (DB writes
+through the guarded path, artifact committed and pushed) and then failed on its last step only,
+`gh pr create` → "GitHub Actions is not permitted to create or approve pull requests", the repository
+setting that is off and that this session cannot change (classifier blocks Settings). Corpus-turn #1
+was the one different failure (dry-mode commit step), fixed by #508 and not seen again. I had been
+treating the refused PR as an acceptable red and opening the PRs by hand; the operator received a
+failure email per run and could not tell a broken walk from a refused delivery. That is a gate that
+cries wolf, and it was mine.
+
+**Correction (Train 14):** `scripts/turns/deliver-artifact-branch.sh`, the one delivery step both
+workflows now end with. `gh pr create` succeeds → PR. Refused by the setting → the branch and its
+compare URL are appended as a comment to ONE open issue ("Runtime artifact branches awaiting a
+hand-opened PR", created on first use), a `::warning::` annotation and step summary say so, exit 0.
+Any other `gh pr create` failure still fails the run. Both workflows gained `issues: write`. Verified
+locally against a fake `gh` for all four outcomes (PR opened; refused with no issue → issue created;
+refused with issue → comment; other error → exit 1). No run was dispatched until this landed; one dry
+sweep follows as the proof.

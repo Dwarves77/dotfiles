@@ -102,6 +102,17 @@ workflow artifact the same way.
 
 ## When the workflow cannot open its own PR (seen on the first runs, 2026-09-01)
 
+**Since Train 14 the run no longer fails on this.** Both workflows end in
+`scripts/turns/deliver-artifact-branch.sh`: it tries `gh pr create`; when the repository refuses with
+"GitHub Actions is not permitted to create or approve pull requests" it records the pushed branch and
+its compare URL as a comment on ONE open issue titled **"Runtime artifact branches awaiting a
+hand-opened PR"**, emits a warning annotation and a step summary, and exits green. Any OTHER
+`gh pr create` failure still fails the run. So: a green run with a warning = the work is done and the
+branch is waiting on that issue; open its PR from there. Enabling the setting makes the PR open itself
+and the issue stop growing.
+
+(Original notes, kept for the record:)
+
 Both workflows end by pushing their branch and running `gh pr create`. On this repository that last
 step failed with `GitHub Actions is not permitted to create or approve pull requests` — the repository
 setting **Settings → Actions → General → Workflow permissions → "Allow GitHub Actions to create and
