@@ -103,6 +103,39 @@
 // `type` field is a human-readable string: "Rule", "Proposed Rule", "Notice", "Presidential Document"
 // (WebFetch-verified against a live document and a live RULE-filtered search, 2026-09-02). This script's
 // `classifyFrDocType` matches against those actual field values, case-insensitively.
+//
+// ── UPDATE 2026-09-02 (Lane HELD) — the three classes every population run holds ~16-20% of its slice
+// to, closed at the root, per docs/plans/wave2-lanes-2026-09-02.md ────────────────────────────────────
+// Evidence: `scripts/_snapshots/population-{33659080799,33666187388,33678399902}/census-rows.held.json`
+// (mint-run-012..014's own held rows) — 8/50 in the run named `PENDING-RUN.md` discharges. All three
+// classes were root-caused to real, fixable gaps, not to genuinely off-vertical or genuinely unresolvable
+// documents:
+//   1. `canonical_key_unresolved` (3/8): `classifyItemTypeFromCelexKey` demanded CELEX sector "3" before
+//      ever reading the letter, so a key `deriveKey` HAD resolved (sector 2 international agreements,
+//      sector 4 EEA/EFTA complementary legislation) came back mislabeled as "never resolved." Fixed:
+//      `CELEX_SECTOR_LETTER_MAP` (below) separates "shape never matched" (still `canonical_key_unresolved`)
+//      from "shape matched, sector/letter has no item_type home" (now correctly `item_type_unmapped`), and
+//      adds sectors 2 and 4 on the four evidenced keys (22004A0806(01), 21998A0912(01), 22023D2729,
+//      42012D0708) — see that constant's own header for the semantic argument.
+//   2. `item_type_unmapped` (1/8, but the single largest class across every run read for this fix — 8+ of
+//      ~20 held rows per run): federalregister.gov "Proposed Rule" had no item_type. Fixed: `Proposed
+//      Rule` -> `initiative` (`classifyFrDocType`), the same not-yet-binding posture a CELEX 'D' decision
+//      already gets. `Notice`/`Presidential Document` have zero evidence in this repo's held history and
+//      stay held, explicitly (see `held-classes.mjs` for the dossier and the ruling recommendation).
+//   3. `identity_unmapped_source` (4/8): every held host (sdir.no, climate.ec.europa.eu,
+//      rules.cityofnewyork.us, and others across the three snapshots) already had a REGISTERED `sources`
+//      row — census_worklist.source_id already joined to it — `resolveIdentity`'s three-family
+//      allowlist just had no fourth branch for "a document from a registered institution this repo
+//      already trusts, classified by the registry's own `category` column." Fixed: `institutionKey`
+//      equality (scripts/lib/institution-key.mjs, the SAME identity rule the registry's own tier
+//      derivation uses) confirms the document belongs to its own row's registered source; a `'regulatory'`
+//      category institution's document defaults to `item_type: 'regulation'` (no canonical scheme
+//      invented, matching the legislation.gov.uk precedent); any other/unset category holds the new,
+//      more precise `institution_category_unmapped` (never silently guessed); a genuine non-match still
+//      holds `identity_unmapped_source`, exactly as before.
+//   Also: federalregister.gov rows now carry a real `canonical_instrument_key` — the FR's own document
+//      number (e.g. "2026-13667"), extracted verbatim, never fabricated — instead of always `null`.
+// See `held-classes.mjs` for the dossier this fix's own evidence was read from, and MINT-RUNBOOK.md §13.
 
 import { parseArgs } from "node:util";
 import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
@@ -110,31 +143,66 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveKey } from "../lib/canonical-key.mjs";
 import { screenVerdictFor, isMintable } from "./lib/screen-verdict.mjs";
+import { sameInstitution } from "../lib/institution-key.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
 
 // ── pure helpers (unit-tested directly, no I/O) ─────────────────────────────────────────────────────
 
+/** The CELEX shape deriveKey() itself matches ("[1-9]YYYY<letter>NNNN", the OJ '(NN)' suffix optional).
+ *  Shared with classifyItemTypeFromCelexKey below so "the key never derived" (this fails) and "the key
+ *  derived but this sector has no item_type home" (this passes, the sector map below misses) are two
+ *  DIFFERENT, correctly-named holds — see that function's own header for why this split exists. */
+const CELEX_SHAPE_RE = /^[1-9]\d{4}[A-Z]\d{4}/;
+
+/** CELEX sector digit (position 0) -> the letter->item_type map valid FOR THAT SECTOR. Sector 3
+ *  (secondary legislation: regulations/directives/decisions/recommendations/opinions) is the original
+ *  mapping. Sectors 2 (international agreements) and 4 (complementary legislation -- chiefly EEA/EFTA
+ *  Joint Committee acts) are added 2026-09-02 (Lane HELD) on live evidence: population runs #9-#14 held
+ *  four rows -- 22004A0806(01), 21998A0912(01) (sector 2, letter A = "international agreement"),
+ *  22023D2729 (sector 2, letter D = "decision of a body set up by an agreement"), 42012D0708 (sector 4,
+ *  letter D = "EEA Joint Committee decision") -- as `canonical_key_unresolved`, mislabeled: `deriveKey`
+ *  HAD resolved every one of these keys; only the item_type mapping was missing, because the old
+ *  single-sector regex rejected the key outright before the letter was ever read (see
+ *  classifyItemTypeFromCelexKey's header). Sector 2's own letter vocabulary differs from sector 3's in the
+ *  official EUR-Lex sector-number scheme (A = agreement, not "opinion"; D = decision of an agreement body,
+ *  not a Commission/Council decision) -- but this repo's existing MAP already names each mapped LETTER by
+ *  its role (agreement/decision/opinion all -> framework/initiative), not by sector, and every one of the
+ *  four evidenced sector-2/4 keys lands on a semantically sound item_type under the SAME map (an
+ *  international agreement -> "framework", exactly the fit "framework" already serves for sector 3's own
+ *  A-letter opinions; a decision of a treaty body or an EEA Joint Committee -> "initiative", the same fit
+ *  sector 3's own D-letter Commission/Council decisions already get). Sectors 1 (treaties), 5 (preparatory
+ *  acts), 6 (case-law), 7+ have NO evidence in this repo's held-row history and are deliberately NOT added
+ *  here -- guessing their letter semantics without a single observed row would be exactly the false-
+ *  precision mistake this file's own doctrine forbids. See held-classes.mjs's dossier for the recommendation
+ *  on those sectors if evidence ever appears. */
+const CELEX_SECTOR_LETTER_MAP = {
+  2: { A: "framework", D: "initiative" },
+  3: { R: "regulation", L: "directive", D: "initiative", H: "guidance", A: "framework" },
+  4: { D: "initiative" },
+};
+
 /**
- * item_type from a CELEX-shaped canonical_instrument_key ("3YYYY<letter>NNNN[(NN)]"). Pure. R/L/D are
- * the original recorded lane decision (D -> "initiative", not "decision" -- not a legal item_type; see
- * this file's header). H (recommendation) -> "guidance" and A (international agreement) -> "framework"
- * are added 2026-09-02 (Lane POP2) once the first live dry run showed both letters holding
- * `item_type_unmapped` with no home — "guidance" and "framework" are both legal `intelligence_items.
- * item_type` values (migration 004's CHECK constraint) and both already route through `domainForItemType`
- * without a new domain branch. C ("other acts") and every other sector-3 letter this repo's item_type
- * enum has no legitimate home for still hold `item_type_unmapped`, explicitly, never guessed.
+ * item_type from a CELEX-shaped canonical_instrument_key ("[1-9]YYYY<letter>NNNN[(NN)]"). Pure. Two
+ * DISTINCT holds, never conflated (Lane HELD, 2026-09-02 -- see CELEX_SECTOR_LETTER_MAP's header for the
+ * bug this replaced, where a key that HAD derived still came back `canonical_key_unresolved` because this
+ * function re-tested the key's shape and sector together in one regex):
+ *   - `canonical_key_unresolved`: canonicalKey is not a string, or is not CELEX-shaped at all (deriveKey
+ *     itself returned null, or the value never had a CELEX pattern to begin with) -- the key was never
+ *     resolved, full stop.
+ *   - `item_type_unmapped`: canonicalKey IS CELEX-shaped (a real key WAS resolved) but its sector or its
+ *     sector's letter has no item_type home in CELEX_SECTOR_LETTER_MAP above -- named, never guessed.
  * @param {string|null} canonicalKey
  * @returns {{itemType: string|null, hold: string|null}}
  */
 export function classifyItemTypeFromCelexKey(canonicalKey) {
-  if (typeof canonicalKey !== "string" || !/^3\d{4}[A-Z]\d{4}/.test(canonicalKey)) {
+  if (typeof canonicalKey !== "string" || !CELEX_SHAPE_RE.test(canonicalKey)) {
     return { itemType: null, hold: "canonical_key_unresolved" };
   }
+  const sector = canonicalKey.charAt(0);
   const letter = canonicalKey.charAt(5);
-  const MAP = { R: "regulation", L: "directive", D: "initiative", H: "guidance", A: "framework" };
-  const itemType = MAP[letter] ?? null;
+  const itemType = CELEX_SECTOR_LETTER_MAP[sector]?.[letter] ?? null;
   return itemType ? { itemType, hold: null } : { itemType: null, hold: "item_type_unmapped" };
 }
 
@@ -162,16 +230,26 @@ export function extractFrDocumentNumber(documentUrl) {
   return m ? m[1] : null;
 }
 
-/** item_type from the federalregister.gov API document JSON's own `type` field (the ACTUAL field value,
- *  e.g. "Rule" — see this file's header for the RULE/PRORULE/NOTICE/PRESDOCU correction: those are the
- *  search-API's *filter* codes, not what a per-document JSON's `type` field carries). Only "Rule" has a
- *  legal `intelligence_items.item_type` home ("regulation" — an enacted rule is the FR analogue of an EU
- *  regulation). "Proposed Rule" (not yet enacted), "Notice", and "Presidential Document" hold
- *  `item_type_unmapped`, naming the FR type verbatim in the hold record (never forced into "regulation").
- *  Pure. Case-insensitive (API responses have been observed capitalized; this stays robust to either). */
+/** federalregister.gov API `type` field value -> `intelligence_items.item_type`. "Rule" (enacted) ->
+ *  "regulation", the FR analogue of an EU regulation -- the original mapping. "Proposed Rule" ->
+ *  "initiative" is added 2026-09-02 (Lane HELD): it was the single largest held class this repo's own
+ *  population runs ever produced (8+ of the ~20 held rows in every one of runs #9-#14's held-row
+ *  snapshots, `scripts/_snapshots/population-{33659080799,33666187388,33678399902}/census-rows.held.json`)
+ *  and it IS legitimately in vertical -- a proposed rule is a real regulatory action already published and
+ *  open for comment, exactly the "not yet binding, still worth tracking" shape `item_type = "initiative"`
+ *  already serves for a CELEX sector-3 'D' decision (see CELEX_SECTOR_LETTER_MAP above) and for a sector-2
+ *  agreement-body decision -- the same not-yet-in-force posture, the same item_type, same required slots
+ *  (`action_now`/`conversion_trigger`/`driving_parties`/`signal_event`; see
+ *  `item-type-required-slots.json`'s `_federal_register_type_map` entry). "Notice" and "Presidential
+ *  Document" have ZERO occurrences in this repo's held-row history across every run read for this fix --
+ *  guessing an item_type for a class with no observed row would be exactly the false-precision mistake
+ *  this file's doctrine forbids, so both still hold `item_type_unmapped`, naming the FR type verbatim; see
+ *  `held-classes.mjs`'s dossier for the recommendation if either ever shows up with evidence. Pure.
+ *  Case-insensitive (API responses have been observed capitalized; this stays robust to either). */
 export function classifyFrDocType(frType) {
   const t = String(frType ?? "").trim().toLowerCase();
   if (t === "rule") return { itemType: "regulation", hold: null };
+  if (t === "proposed rule") return { itemType: "initiative", hold: null };
   return { itemType: null, hold: "item_type_unmapped" };
 }
 
@@ -231,15 +309,52 @@ export function resolveIdentity(censusRow, source, { frDocType } = {}) {
   }
 
   if (family === "federal_register") {
+    // Lane HELD (2026-09-02): canonicalKey is now the FR's OWN document number ("2026-13667", extracted
+    // verbatim by extractFrDocumentNumber -- never fabricated), not always null. This is a real,
+    // stable, citation-shaped identifier the Federal Register itself assigns and publishes per document
+    // (its own cross-reference key, the FR analogue of a CELEX id for the EU corpus) -- unlike inventing
+    // a CELEX-shaped key for a non-EU host (the false precision this file's header still forbids), a
+    // document's OWN registry-assigned number is exactly the kind of key deriveKey resolves for EUR-Lex.
+    // Set as soon as the number itself is known, before frType is even looked up, so a row held
+    // `no_capture`/`fr_type_pending_capture` upstream (buildRows, before this returns) still carries it.
     const frDocumentNumber = extractFrDocumentNumber(documentUrl);
     if (!frDocumentNumber) {
       return { scheme: "federal_register", canonicalKey: null, itemType: null, jurisdictionIso: "US", hold: "fr_document_number_unresolved", host };
     }
     if (frDocType === undefined) {
-      return { scheme: "federal_register", canonicalKey: null, itemType: null, jurisdictionIso: "US", hold: null, host, needsFrLookup: true, frDocumentNumber };
+      return { scheme: "federal_register", canonicalKey: frDocumentNumber, itemType: null, jurisdictionIso: "US", hold: null, host, needsFrLookup: true, frDocumentNumber };
     }
     const { itemType, hold } = classifyFrDocType(frDocType);
-    return { scheme: "federal_register", canonicalKey: null, itemType, jurisdictionIso: "US", hold, host, frType: frDocType, frDocumentNumber };
+    return { scheme: "federal_register", canonicalKey: frDocumentNumber, itemType, jurisdictionIso: "US", hold, host, frType: frDocType, frDocumentNumber };
+  }
+
+  // Lane HELD (2026-09-02): a host none of the three coded families above claim is NOT automatically
+  // `identity_unmapped_source` any more. `census_worklist.source_id` already ties this row to a
+  // REGISTERED `sources` row (buildRows only calls resolveIdentity once that lookup has succeeded --
+  // `source` here is never null in production; see buildRows's own `source_not_found` check, which runs
+  // FIRST). When this document_url genuinely belongs to that same registered institution -- confirmed by
+  // `institutionKey` equality with the source's own registered url, the SAME identity rule
+  // `registerSource`/the live provenance gate already use for tier derivation (institution-key.mjs's own
+  // header) -- the row is not "unmapped," it is a document from an institution this registry ALREADY
+  // knows, that just isn't one of the three hand-coded schemes (`sameInstitution`, institution-key.mjs).
+  // `source.category` (migration 084's
+  // four-value canonical routing taxonomy, already loaded for every kept row) is the one classification
+  // this registry already carries for that institution without inventing anything: `'regulatory'` sources
+  // are, by that migration's own definition, "portals where legislation lives" -- the same claim
+  // `item_type`'s schema default ('regulation') already encodes -- so a regulatory-category institution's
+  // own document defaults to `item_type: 'regulation'`, `canonicalKey: null` (no scheme exists for a
+  // generic host, never invented, same doctrine as legislation.gov.uk above). A matched institution whose
+  // category is NOT `'regulatory'` (research/market_news/operational_data/unset) is held
+  // `institution_category_unmapped`, naming the category -- a more precise, and more honest, hold than
+  // "identity_unmapped_source" for a source this registry can already name (see held-classes.mjs's
+  // dossier for the ruling this needs: extend this map, or leave those categories held). A document_url
+  // whose host does NOT even institution-match its own row's source (a redirect off-institution, a
+  // mis-joined census row) still holds `identity_unmapped_source`, host recorded, exactly as before.
+  if (sameInstitution(documentUrl, source?.url)) {
+    if (source.category === "regulatory") {
+      return { scheme: "registered_institution", canonicalKey: null, itemType: "regulation", jurisdictionIso: null, hold: null, host, category: source.category };
+    }
+    return { scheme: null, canonicalKey: null, itemType: null, jurisdictionIso: null, hold: "institution_category_unmapped", host, category: source.category ?? null };
   }
 
   return { scheme: null, canonicalKey: null, itemType: null, jurisdictionIso: null, hold: "identity_unmapped_source", host };
@@ -493,6 +608,7 @@ export function buildExportRow(censusRow, source, identity, capture) {
         scheme: identity.scheme ?? null,
         host: identity.host ?? null,
         ...(identity.frType ? { fr_type: identity.frType } : {}),
+        ...(identity.category !== undefined ? { category: identity.category } : {}),
         reason: identity.hold,
       },
     };
@@ -760,6 +876,7 @@ export async function buildRows(
         scheme: identity.scheme ?? null,
         host: identity.host ?? null,
         ...(identity.frType ? { fr_type: identity.frType } : {}),
+        ...(identity.category !== undefined ? { category: identity.category } : {}),
         reason: identity.hold,
       });
       continue;
