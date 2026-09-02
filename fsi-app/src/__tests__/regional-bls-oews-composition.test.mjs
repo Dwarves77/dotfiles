@@ -61,16 +61,20 @@ const FIXTURE = JSON.parse(
 
 test("the full composition: real BLS fixture -> parser -> toCandidateRows -> latestPerNaturalKey", () => {
   const observations = parseOewsResponse(FIXTURE);
-  assert.equal(observations.length, OEWS_OCCUPATIONS.length, "one observation per catalogued occupation");
+  // 2 of the 3 catalogued occupations carry BOTH annual + hourly median-wage rows this session's fix added
+  // (2026-09-02 coordinator follow-up: BLS OEWS wage fact is hourly, matching what automate-vs-hire reads);
+  // the third (Supervisors) carries annual only in this fixture (its own honest per-measure gap — see
+  // bls-oews-parser.npmtest.mjs's matching test).
+  assert.equal(observations.length, OEWS_OCCUPATIONS.length + 2, "annual row per occupation, plus an hourly row for the 2 occupations that have one");
 
   const candidates = toCandidateRows(observations);
   assert.equal(candidates.length, observations.length, "toCandidateRows must not drop or add rows");
 
   const reduced = latestPerNaturalKey(candidates);
-  // The fixture's 3 occupations have 3 distinct fact_labels within the same (region_code, dimension) —
+  // Every row's fact_label is distinct (measure suffix included) within the same (region_code, dimension) —
   // no natural-key collision, so the reduction is a no-op here. The collision case (same key, multiple
   // periods) is exercised directly below with a constructed payload shaped like a real one.
-  assert.equal(reduced.length, 3, "no natural-key collisions in this fixture — reduction must not drop a distinct fact_label");
+  assert.equal(reduced.length, 5, "no natural-key collisions in this fixture — reduction must not drop a distinct fact_label");
 });
 
 test("every reduced candidate row satisfies the LIVE regional_data_facts constraints", () => {

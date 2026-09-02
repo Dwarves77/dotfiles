@@ -289,3 +289,109 @@ carries a `PENDING-RUN.md` (F28's first-run acknowledgment) instead of a `change
 The coordinator's own dispatch plan (`docs/plans/system-completion-plan-2026-09-02.md` §2, "Not a
 lane — operator-only") runs `change-detection` dry first; read the resulting artifact against the live
 `monitoring_queue`/`staged_updates` tables before dispatching apply.
+## Propagation drain
+
+Added by Lane DP-ENGINE (system-completion train, 2026-09-02) — `docs/specs/08-flywheel-design.md` §2's
+"outbox + derivation DAG + governed drain," now built. This is a **separate family from `corpus-turn.yml`**
+(different dataset, different governing files, its own `PENDING-RUN.md` and `CONVENTION.md` row) — it does
+not fire as part of a corpus turn and a corpus turn does not fire it. It is documented in this runbook,
+alongside the turn it is not, because a coordinator scheduling one family needs to know it is not silently
+covering the other.
+
+**What it does.** `scripts/turns/run-propagation-drain.mjs` runs the two-pass drain over the
+`propagation_events` outbox (migration 284): pass one walks `derivation_edges` to mark every downstream
+`derived_values`/`statutory_computations`/`estimated_values` row transitively reachable from a changed
+input as invalidated; pass two, **`apply` mode only**, recomputes each invalidated row by calling the
+method registered for its `method_id` through `src/lib/propagation/methods/index.ts`'s `registerMethod`/
+`METHODS` seam, then writes the new value back through `register-derivation.ts`'s `registerDerivedValue()`
+(migration 285's `register_derived_value(...)` RPC — value row and derivation edges inserted atomically).
+`dry` mode performs pass one only and reports what pass two would touch, writing nothing. Every processed
+outbox row is marked `drained_at` at the end of a batch (default 500 rows — see `DEFAULT_BATCH` in
+`drain.ts`), never deleted, so the outbox is a durable log, not a queue.
+
+**Zero registered methods today.** This lane builds the drain runtime, the outbox, the DAG, and the
+`registerMethod` seam — it registers no concrete derivation method. An `apply`-mode drain run today
+invalidates rows correctly but recomputes nothing (`getMethod` finds no match for any `method_id`,
+`drain.ts` records the miss and moves on rather than failing the batch — see `drain.ts`'s own header for
+the "a missing method is data absent a method, not a crash" rationale). This is expected until DP-SURF or
+a later lane calls `registerMethod` for a real method. Dispatching `propagation-drain.yml` before that
+point is safe (it will report zero recomputes) but accomplishes nothing yet.
+
+**How a coordinator requests a run:** `workflow_dispatch` on `propagation-drain.yml` (Actions tab, or
+`gh workflow run propagation-drain.yml`), picking `mode` (`dry` or `apply`) and optionally `batch`
+(defaults to `run-propagation-drain.mjs`'s own default). It mirrors `source-sweep.yml`'s scaffold exactly:
+fresh branch per dispatch, commit + PR via `deliver-artifact-branch.sh`, a commented-out `schedule:` block
+under the same no-schedule-during-build ruling as every other family in this repo (see above), and the same
+hydrate-unmerged-artifacts collision guard.
+
+**What lands where:** `scripts/harness-runs/propagation/propagation-drain-run-NNN.json` — the run's own
+self-emitted artifact (dry or apply). No other file is committed by this workflow; `derived_values`,
+`derivation_edges`, and the `drained_at` marks on `propagation_events` are database writes, not local
+files, matching the same "database writes leave no local file beyond the harness-run artifact" posture
+`corpus-turn.yml`'s own "What lands where" section states above for `discover-for-items.mjs` and
+`analyze-corpus.mjs`.
+
+**First run.** `scripts/harness-runs/propagation/PENDING-RUN.md` records the pre-first-run
+harness-version hash pin (mirroring the mint/screen family's own convention) — it is replaced by the first
+real `propagation-drain-run-001.json` once a run actually lands, the same lifecycle `forward-events`'s
+`PENDING-RUN.md` went through.
+
+## Seeding derived values
+
+Added by Lane DP-SURF (system-completion train, 2026-09-02) — the initial-closure step the "Propagation
+drain" section above assumes but does not itself perform: the drain's recompute pass only ever
+**supersedes an existing row**, so the very first `derived_values`/`estimated_values` row for a given
+subject has to come from somewhere else. That somewhere is `scripts/propagation/seed-derived-values.mjs`.
+
+**What it does.** Two independent seed paths, one per method this lane registers in
+`src/lib/propagation/methods/index.ts` (see that file, and the "Propagation drain" section above, for the
+`registerMethod`/`METHODS` seam these two methods now populate):
+
+1. **`carbon_intensity_tkm@1.0.0`** — one `derived_values` row per `emission_factors` row that is BOTH
+   licence-embeddable (`src/lib/contracts/source-licence.mjs`'s `mayEmbedAsSeed()` gate — a row whose
+   source is not redistribution-cleared is skipped, counted `licenceBlocked`, never overridden) AND
+   computable by `src/lib/market/carbon-intensity.mjs` (today: `quantity_basis = 'tonne_km'` only — every
+   other basis refuses with a named reason, counted `refused`). Written via `registerDerivedValue()`
+   (`register-derivation.ts`) only — no paired `estimated_values` row (carbon-intensity is a plain
+   calculated conversion, neither statutory nor an estimate).
+2. **`automate_vs_hire@1.0.0`** — one `derived_values` row (NPV, the propagated headline metric) PLUS one
+   paired `estimated_values` row (the full point/low/high range, `distribution` jsonb carrying
+   payback/break-even — ADR-024's "break-even wage gets equal billing") per region carrying BOTH a
+   `labor_markets` and an `operational_cost` `regional_data_facts` fact with a populated `value_numeric`
+   AND a resolvable entity_id (`estimated_values.entity_id` is a NOT-NULL primary key — a matched region
+   with no entity spine row is counted `skippedNoEntity`, never written; this script mints no entities,
+   that is DP-SPINE's `scripts/entities/backfill-entities.mjs` territory, out of this lane's write set).
+   **Honest expected count today: 0** — BLS OEWS (`labor_markets`) is US-only and Eurostat nrg_pc_205
+   (`operational_cost`) is EU-country-only (see `scripts/producers/regional/*-producer.mjs`), so no region
+   satisfies "both dimensions present" yet regardless of the entity-id gap. The path is fully implemented
+   and unit-tested against fakes (`seed-derived-values.test.mjs`), not a stub — it activates the moment
+   either producer gains cross-coverage of the other's regions.
+
+**How to run it:**
+
+```
+node scripts/propagation/seed-derived-values.mjs --dry     # counts only, writes nothing
+node scripts/propagation/seed-derived-values.mjs --apply   # writes
+```
+
+Exit 0 done · 1 bad args (neither or both of `--dry`/`--apply`) · 2 no DB creds · 3 one or more writes
+failed in `--apply` mode (see the per-path `errors` array in the printed JSON summary; a failed write
+never aborts the rest of the batch — same "one bad row does not sink the run" posture `drain.ts` itself
+holds).
+
+**Not wired into a scheduled workflow.** Unlike `propagation-drain.yml` above, this is a one-shot,
+operator-run seed for standing up the initial closure — running it again after the first `--apply` simply
+re-evaluates the current source tables and creates any row that did not already exist (it never
+supersedes; a re-run is not how an existing value gets refreshed — that is `propagation-drain.yml`'s job,
+once a `propagation_events` row exists to invalidate it). No `propagation-drain-seed.yml` workflow was
+added in this lane; a coordinator runs it by hand (or a future lane wires a one-time dispatch) once a real
+Supabase environment is available.
+
+**Test coverage, and a documented gap.** `scripts/propagation/seed-derived-values.test.mjs` (16 tests, all
+passing) proves both seed paths' counting/refusal/write-shape logic against hand-rolled fake clients — the
+same no-real-database posture `drain.test.mjs`/`register-derivation.test.mjs` already establish for this
+family. It is **not** wired into `.discipline/run-test-suite.sh` (`scripts/propagation/` is not one of
+that file's covered globs, and that file is outside this lane's write set) — recorded as a known gap in
+`.discipline/governance/exemptions.mjs`'s `scripts/propagation/seed-derived-values` entry rather than left
+silent; run it directly with `node --test scripts/propagation/seed-derived-values.test.mjs` until a later
+lane adds the glob.

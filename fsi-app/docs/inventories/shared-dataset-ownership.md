@@ -56,6 +56,7 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/connections/apply-tags.mjs",
       "scripts/mint/stamp-wo26-archive-reason.mjs",
       "scripts/mint/apply-mint-batch.mjs"
+      "scripts/entities/backfill-entities.mjs"
     ],
     "item_cross_references": [
       "src/lib/intake/mint-item.ts",
@@ -180,6 +181,7 @@ narrow-touch-for-recompute / tombstone-delete), not a data column.
 | `scripts/connections/apply-tags.mjs` | UPDATE — merges an operator-ratified `derive-tags.mjs` tag proposal onto `operational_scenario_tags`/`compliance_object_tags`/`topic_tags` (never removes an existing tag, never overwrites a non-empty array — only appends absent tags, capped at `derive-tags.mjs`'s `FIELD_CAPS`) via `guardedUpdate`, only for a flag resolved with `resolution_note` containing `ratify:tags` (lane TAG, 2026-09-01 — closes the August-census-wave empty-tag gap so `discover.mjs` can score edges for these items) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, ...)` in `deps.updateItem` |
 | `scripts/mint/stamp-wo26-archive-reason.mjs` (Lane POP, 2026-09-01) | UPDATE — `archive_reason` only, on the 491 WO-26 rows Addendum 28 archived without stamping one | `guardedUpdate("intelligence_items", applyMatch, { archive_reason: ... }, { cite, select })`, `--dry` by default |
 | `scripts/mint/apply-mint-batch.mjs` (Lane POP, 2026-09-02) | INSERT at coordinator-apply time — the population-turn's write path for a `--census-rows --grade record` mint batch, `mintIntelligenceItem()`'s `MintPlan` has no field for a payload's sections/claims/search_results so this script writes directly in `canonical-pipeline.ts`'s own table order instead | `buildIntelligenceItemRow` + `ctx.db.guardedInsert("intelligence_items", ...)`, `--dry` by default |
+| `scripts/entities/backfill-entities.mjs` (Lane DP-SPINE, 2026-09-02) | UPDATE — `instrument_entity_id` only, per row whose `canonical_instrument_key` resolves to an instrument entity (migration 283's progressive-re-keying FK; ADR-024) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", u.id), { instrument_entity_id: ... }, { cite, select })` in `runInstrument()`; `--dry` by default. This script's OTHER writes (`entities`, `entity_identifiers`, `entity_refs` inserts via `guardedInsertMany`, and a parallel `sources.organisation_entity_id` update) are on tables `docs/inventories/shared-dataset-ownership.md`'s registry does not track — `entities`/`entity_identifiers`/`entity_refs` are new migration-282/283 tables outside the harness/flywheel dataset set this doc scopes to, and `sources` is explicitly named out-of-scope by `.discipline/shared-writer-registry.test.mjs`'s own header ("a write to an unrelated, non-shared table (e.g. agent_runs, **sources**, holdings_quality) is out of this registry's scope by design"). Named here for completeness, not because the registry requires it. |
 
 Replace policy: guarded per-row UPDATE/INSERT (never a bulk replace); DELETE is single-purpose and
 gated behind a tombstone write (see `tombstone-delete.mjs` above) — this is a **guarded delete**, not a
@@ -508,6 +510,114 @@ None of these change any KEEP/ARCHIVE verdict from the sunset pass — they are 
 harness/flywheel/pipeline paths, or standing operational scripts outside the task-1 seed list that this
 lane was not asked to evaluate. They are recorded here so the writer-registry test is accurate against the
 real tree rather than only against the subset this document's author happened to read by hand first.
+
+## Non-registry tables named for completeness
+
+These tables are outside the harness/flywheel dataset set this document scopes to (see header above), so
+they are not added to the enforced `SHARED_WRITER_ALLOWLIST` JSON block or to
+`.discipline/shared-writer-registry.test.mjs`'s coverage — named here only so the write surface is
+documented somewhere, following the same disposition already established for
+`entities`/`entity_identifiers`/`entity_refs` at the `scripts/entities/backfill-entities.mjs` row above
+(line 180) and for `pending_first_fetch`/`agent_runs`/`agent_run_searches` in the Open leaks summary's
+item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
+
+- **`propagation_events`** (migration 284) — written by migration 284's `emit_propagation_event()` trigger
+  (fires on `derived_values`/`statutory_computations`/`estimated_values` INSERT/UPDATE, the outbox
+  producer) and by `fsi-app/src/lib/propagation/drain.ts`'s own `UPDATE ... SET drained_at = now()` after a
+  drain pass processes a batch (marking events consumed; drain never deletes outbox rows).
+- **`derived_values`** and **`derivation_edges`** (migration 285) — written together, atomically, by
+  migration 285's `register_derived_value(...)` SQL RPC, called from
+  `fsi-app/src/lib/propagation/register-derivation.ts`'s `registerDerivedValue()`. **UPDATE, Lane DP-SURF,
+  2026-09-02: `drain.ts`'s recompute pass is no longer the only caller.**
+  `fsi-app/scripts/propagation/seed-derived-values.mjs` (`--apply`) is a SECOND sanctioned caller — the
+  initial-closure seed for the two methods this lane registers
+  (`fsi-app/src/lib/propagation/methods/{carbon-intensity,automate-vs-hire}.ts`, method ids
+  `carbon_intensity_tkm@1.0.0` / `automate_vs_hire@1.0.0`): a value has to exist once, from SOME caller,
+  before `drain.ts`'s recompute pass (which only ever supersedes an EXISTING row) has anything to work
+  from. Both callers go through the SAME `registerDerivedValue()` → `register_derived_value(...)` RPC, so
+  the atomicity/acyclic-by-construction guarantees migration 285's own header states are identical either
+  way — this is a second caller of the one write path, not a second write path.
+- **`statutory_computations`** and **`estimated_values`** (migration 286) — **UPDATE, Lane DP-SURF,
+  2026-09-02: `estimated_values` is no longer reserved/unpopulated.**
+  `fsi-app/scripts/propagation/seed-derived-values.mjs` (`--apply`) is its first production writer — a
+  direct `.from("estimated_values").upsert(...)` per region carrying both a `labor_markets` and an
+  `operational_cost` regional_data_facts fact with a resolvable entity_id, paired with the SAME run's
+  `automate_vs_hire` `derived_values` row (NPV, the propagated headline metric) so the two never drift out
+  of sync (`fsi-app/src/lib/propagation/methods/automate-vs-hire.ts`'s own header explains the
+  point/low/high-on-NPV-plus-`distribution`-jsonb split this upsert follows).
+  **SECOND UPDATE, same lane, same day, coordinator follow-up task 2:** migration 286 was itself amended
+  — `entity_id` is no longer either table's PRIMARY KEY (spec 08 §4's own literal DDL permitted at most
+  one row per entity ever, which is what left this seed writing zero rows even once a region had both
+  facts; see the migration's own header and the ADR-024 dated amendment for the full account). Each table
+  now has its own surrogate PK (`computation_id`/`estimate_id`) plus a `scenario_key` column, and the
+  upsert's conflict target moved to `onConflict: "entity_id,model_id,model_version,scenario_key"`
+  accordingly. The "resolvable entity_id" a matched region needs is ALSO no longer merely READ-if-present:
+  `seed-derived-values.mjs`'s `resolveRegionEntityId` now resolves a region's jurisdiction entity through
+  `entity_refs` (`ref_table='regions'`, `role='jurisdiction'`) and MINTS one on demand when absent (reusing
+  `scripts/entities/backfill-entities.mjs`'s own exported `planJurisdictionEntities`/`planJurisdictionRefs`
+  through the guarded write path) — so this lane's write set now DOES include a narrow, on-demand slice of
+  entity minting, where the original text above said it did not. This is a per-(entity, model, version,
+  scenario) upsert, never an insert-only append — a re-run of the seed for the SAME region/scenario
+  replaces that one row, which is the correct semantics for "the current estimate," not a history log
+  (unlike `derived_values`, which is append-only/versioned via `supersedes`).
+  `statutory_computations` remains genuinely reserved: no production writer lands in this lane (this
+  lane's write set built `fsi-app/src/lib/statutory/fueleu-annex-iv.mjs`'s formula and `types.ts`'s
+  Layer-2 type barrier, but no page/route that calls `computeStatutory()` against a real obligation and
+  persists the result — see this lane's final report for why, and
+  `fsi-app/.discipline/fitness/functions/F25-module-liveness.mjs`'s `StatutoryFigure.tsx` allowlist entry
+  for the matching "published, no consumer yet" disposition on the render side).
+- **`regional_data_facts`** (migration 106) — **NEW entry, Lane DP-SURF, 2026-09-02, coordinator follow-up
+  task 3.** Three writers, all through the same shared envelope orchestrator
+  (`fsi-app/scripts/producers/regional/run-envelope-producer.mjs` — `toCandidateRows` /
+  `latestPerNaturalKey` / guarded upsert keyed on `(region_code, dimension, fact_label)`), each owning a
+  disjoint `(region_code, dimension)` slice so none can collide:
+  - `fsi-app/scripts/producers/regional/bls-oews-producer.mjs` — `region_code='US'`,
+    `dimension='labor_markets'` (BLS OEWS is a US-only survey). **UPDATE, same lane, same day, THIRD
+    coordinator follow-up ("BLS OEWS wage fact is hourly (H_MEAN), matching what automate-vs-hire
+    reads"):** now writes TWO facts per occupation, not one — the pre-existing annual median wage
+    (`unit:'USD/year'`, BLS datatype 13) AND a new hourly median wage (`unit:'USD/hour'`, BLS datatype
+    08, confirmed this session — see `bls-oews-parser.mjs`'s header for the confirmation trail). Both
+    stay, so the annual row still backs whatever already reads a `labor_markets` row without caring about
+    its unit (the `/operations` matrix coverage view, region-grid fact counts); the wage input to
+    `automate_vs_hire` (both `automate-vs-hire.ts`'s `findHourlyWageFact` and
+    `seed-derived-values.mjs`'s own independent wage selection) now REQUIRES the hourly-unit fact and
+    refuses with a named, counted reason (`skippedNoHourlyWage`) when only the annual one resolves — never
+    divides the annual figure by 2080 to manufacture one. See `src/lib/operations/automate-vs-hire.mjs`'s
+    `isHourlyWageUnit` for the shared predicate both callers use.
+  - `fsi-app/scripts/producers/regional/eurostat-nrg-pc-205-producer.mjs` — `region_code='EU'`,
+    `dimension='operational_cost'` (Eurostat electricity-price semester series, one query, one geo).
+  - `fsi-app/scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs` — `region_code='EU'`,
+    `dimension='labor_markets'`, **added this commit**. Closes the BLS/Eurostat disjointness the coordinator
+    named (US wages via BLS, EU energy via Eurostat, so no region had ever carried both a `labor_markets`
+    AND an `operational_cost` fact — `automate_vs_hire`'s propagation method and this lane's own
+    `seed-derived-values.mjs` automate-vs-hire path had zero regions to compute for by construction). Unlike
+    its two siblings, `lc_lci_lev` publishes no EU-wide aggregate for this measure (confirmed by live fetch
+    this session — see the producer's and parser's own file headers for the two independent negative
+    findings), so this producer fetches each of the `EU` region's six constituent member states
+    (`DE`/`NL`/`BE`/`FR`/`IT`/`ES`, migration 106's `regions.iso_codes` for code=`'EU'`) separately and
+    writes ONE `labor_markets` fact for `'EU'` as a documented simple mean
+    (`derivation:'calculated'`/`origin_class:'derived'`, not `'observed'`/`'official'` — this number is our
+    own computation over six of Eurostat's published figures, not one Eurostat published itself;
+    `n_observations` records how many countries actually contributed). Three gates, one more than its two
+    siblings' two-gate baseline (source-level `ENABLED`, a dedicated runtime kill switch
+    `REGIONAL_PRODUCER_EUROSTAT_LC_LCI_LEV_ENABLED` default-off, `--apply`) — see the producer's own header
+    for why a computed aggregate gets the same three-gate posture as
+    `scripts/producers/market/ecb-fx-producer.mjs`. `.github/workflows/producers.yml` is deliberately NOT
+    edited by this lane (out of this lane's write set; the coordinator adds the CI step) — until that env
+    var is set, `--apply` refuses everywhere including CI, fail-closed. NAMED, NOT FIXED: the symmetric US
+    half of the disjointness (an EU-shaped energy/operational-cost fact for the `US` region) remains open —
+    out of this task's scope. NAMED AND FIXED (same day, third coordinator follow-up): the
+    `bls-oews-producer.mjs` annual/hourly wage-unit mismatch flagged when this task-3 entry was first
+    written — see the `bls-oews-producer.mjs` bullet above for the fix.
+- **`sensitive_field_policy`** and **`aggregate_query_log`** (migration 287) — `sensitive_field_policy` is
+  operator-maintained reference data (no application writer in this lane, seeded by the migration itself);
+  `aggregate_query_log` is written exclusively by migration 287's `publish_aggregate()` SECURITY DEFINER
+  function, the sole sanctioned path to the small-cell-suppressed aggregate view (see migration 287's
+  self-check and `docs/inventories/migrations.md`'s row 287 for the k-anonymity threshold and
+  refusal-not-raise design).
+
+Named here for completeness, not because the registry requires it — mirroring the disposition already
+established at line 180 for the migration-282/283 entity tables.
 
 ## Open leaks summary
 

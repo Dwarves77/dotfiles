@@ -87,11 +87,16 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 // 2026-09-01: analysis-construction-spec's contentHash re-pinned deliberately — SKILL.md's stale
 // detect_intersections RPC references (dropped in migration 265) were corrected to point at the live
 // reader (src/lib/connections/pair-view.mjs / /api/admin/intersections). citingFiles unchanged.
+// 2026-09-02 (Lane DP-ENGINE, system-completion train): remediation-discipline's contentHash re-pinned
+// deliberately — added "Section 4 — category 32: Propagation engine gates" (two new bullets: the
+// derived_values pollution barrier / invariant RD-56, and statutory purity / invariant RD-57 — see
+// invariants.mjs). No citingFiles change: none of the files below cite this new section specifically, they
+// cite the skill as a whole (its content hash moving is what this re-pin acknowledges).
 // ---------------------------------------------------------------------------------------------------------
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
     skillPath: 'fsi-app/.claude/skills/remediation-discipline/SKILL.md',
-    contentHash: 'a6975cde1b7b8c01c3a0077d5a03608d827b6decb3b8f73ffcff2ec663d5d07e',
+    contentHash: '22fda53b9decafd20fea2f519a4253e4764bc4f0ab053819cbf16690b0e8f14a',
     citingFiles: [
       'fsi-app/scripts/_wave-alpha/backfill-canonical-keys.mjs',
       'fsi-app/scripts/lib/deferral.mjs',

@@ -57,6 +57,11 @@ fsi-app/scripts/harness-runs/
     change-detection-run-001.json
     traces/                       # this family's raw step results (full traces), same one-level-below
       change-detection-run-001.result.json   # convention as source-sweep/traces/ above
+  propagation/
+    PENDING-RUN.md              -- first-run acknowledgment (rule (b)) — no propagation-run-NNN.json yet
+    propagation-run-001.json
+    traces/                       # per-run drain reports (full traces) — one level BELOW the family dir,
+      propagation-run-001.report.json        # same F28 family-level *.json glob concern as source-sweep
     ...
 ```
 
@@ -106,6 +111,14 @@ instead, exactly the acknowledged exception CONVENTION-TABLE-PARITY's hardcoded 
 a coordinator pass to lift (see `run-artifact.test.mjs`'s and this test's own hardcoded family-count
 assertions — both are a named, pending coordinator item, not an oversight of this lane's).
 
+`propagation` (lane DP-ENGINE, 2026-09-02, system-completion train), registered over
+`scripts/turns/run-propagation-drain.mjs` and the two propagation-engine modules a drain run actually
+exercises, `src/lib/propagation/drain.ts` (the governed invalidate/recompute loop — "propagation
+invalidates, it does not compute," never a trigger) and `src/lib/propagation/admissible-for.ts` (the one
+gate function every `derived_values` consumer calls): a seventh shape, whose "runs" are batched drains of
+the `propagation_events` outbox — walking `derivation_edges` from each undrained event, marking the
+transitive closure stale, and recomputing through the registered `METHODS` seam — never a mint, an
+extraction, a fetch-drain replay, nor an enumeration sweep.
 `meta-harness-run-001` through `-003` retrofit MH-1, MH-2, and MH-3
 respectively — the same real-evidence retrofit discipline this file's own "screen-v1 loss" section
 applies to the three original families, applied one layer up, to the harness that builds harnesses. A new
@@ -166,6 +179,15 @@ repo does not document Browserless's own per-render metered price; see `run-chan
 for the closest live reference), reported per run so a proposer pass can see spend trend alongside
 throughput, the same pairing `mint`'s validator-pass rate and `forward-events`'s precision/coverage pair
 serve for their own families.
+**propagation's standing metric** (build plan §2's "measurement, not assertion," per family): *values
+recomputed per event drained* — of the `propagation_events` closure a drain marks stale, how many are
+actually recomputed through a registered `METHODS[method_id]` (vs left stale because no method is
+registered yet for that `method_id`, counted separately as `skipped_unknown_method` rather than silently
+folded into either bucket) — plus *queue depth before/after*, the same "measurement, not assertion" the
+`propagation_queue_depth` view (migration 284) exposes directly. A dry run's counted closure and an apply
+run's actual invalidation/recompute are reported as the same shape (`invalidate_dependents()`'s own
+dry/apply modes, migration 285), so the two are directly comparable run over run, matching source-sweep's
+own dry-vs-apply comparability above.
 
 **A named risk of self-application** (surfaced by meta-harness's own first proposer pass, Wave MH-4):
 `meta-harness`'s governing files ARE this file and `PROPOSER-RUNBOOK.md` — the two documents every wave
@@ -342,6 +364,7 @@ authoritative file list for `ledger-consume` lives in F28's own `GOVERNING_FILES
 `LEDGER_CONSUME_GOVERNING_FILES` export — identical to each other, just not yet cross-checked against a
 row here. Adding that row and bumping `CONVENTION-TABLE-PARITY`'s count to 7 in the same commit is a
 follow-up any lane touching `F28-harness-run-integrity.test.mjs` next should pick up.
+| `propagation` | `scripts/turns/run-propagation-drain.mjs`, `../../src/lib/propagation/drain.ts`, `../../src/lib/propagation/admissible-for.ts` |
 
 A harness-family README or runbook edit that doesn't touch the files above does not change
 `harness_version` — the hash tracks *behavior-bearing* files, not documentation. If a family's file list

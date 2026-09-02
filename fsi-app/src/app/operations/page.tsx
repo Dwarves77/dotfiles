@@ -4,6 +4,7 @@ import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { OperationsLedger } from "@/components/operations/OperationsLedger";
 import { isRegulationItem } from "@/lib/regulation-item-types";
 import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
+import { AutomateVsHireCalculator } from "./AutomateVsHireCalculator";
 
 // Sprint 3 (2026-05-27): force-dynamic per /community precedent. Static
 // generation at build time has no cookies; resolveOrgIdFromCookies
@@ -85,6 +86,11 @@ export default async function Operations() {
         operationsCoverage={operationsCoverage}
         stateCosts={stateCosts}
       />
+      {/* Lane DP-SURF, system-completion train, 2026-09-02: the automate-vs-hire calculator (docs/specs/
+          08-flywheel-design.md §2.3 worked example). Pure client-side compute — see the component's own
+          header for why no server round-trip/API route backs it. Existing OperationsLedger content above
+          is untouched. */}
+      <AutomateVsHireCalculator />
     </>
   );
 }

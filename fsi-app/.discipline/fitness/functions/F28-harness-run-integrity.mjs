@@ -192,6 +192,22 @@ export const GOVERNING_FILES = Object.freeze({
     'src/lib/sources/reconcile.ts',
     'src/lib/intake/run-intake-cycle.ts',
   ]),
+  // propagation (registered by lane DP-ENGINE, 2026-09-02, system-completion train): the drain driver plus
+  // the two propagation-engine modules whose behaviour a run actually exercises — drain.ts (the governed
+  // recompute/invalidate loop) and admissible-for.ts (the pollution barrier every consumer reads through).
+  // types.ts/effective-confidence.mjs/register-derivation.ts/methods/index.ts are exercised INDIRECTLY
+  // through these two (drain.ts imports register-derivation.ts and methods/index.ts; admissible-for.ts
+  // imports effective-confidence.mjs and types.ts) — same "driver + the modules it gives a runtime to"
+  // posture as source-sweep's own three-file list above, not an exhaustive listing of every file in
+  // src/lib/propagation/. Zero valid artifacts exist yet: this lane has migrations verified only against a
+  // local scratch Postgres, no live Supabase project credentials — so it carries
+  // scripts/harness-runs/propagation/PENDING-RUN.md as its hash-pinned FIRST-RUN ACKNOWLEDGMENT (rule (b)),
+  // discharged by the propagation-drain workflow's first propagation-run-001.json.
+  propagation: Object.freeze([
+    'scripts/turns/run-propagation-drain.mjs',
+    'src/lib/propagation/drain.ts',
+    'src/lib/propagation/admissible-for.ts',
+  ]),
 });
 
 const PENDING_RUN_FILE = 'PENDING-RUN.md';

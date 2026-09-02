@@ -100,6 +100,27 @@ import { fitnessFunction as F27 } from './functions/F27-producer-seam-proof.mjs'
 // attestation naming its latest run. Reuses validateRunArtifact/hashHarnessVersion from Wave MH-1's
 // scripts/lib/run-artifact.mjs rather than re-implementing the schema or the hash.
 import { fitnessFunction as F28 } from './functions/F28-harness-run-integrity.mjs';
+// Entity spine ratchet (2026-09-02, Lane DP-SPINE, system-completion train): F30 protects migration
+// 282/283's FK-backed replacements (entities/entity_identifiers/entity_refs, instrument_entity_id,
+// organisation_entity_id) from silent regression — the count of remaining text-keyed reference sites
+// (.eq/.contains on jurisdiction_iso, .eq on canonical_instrument_key, .eq on source_url, ad-hoc
+// new URL(...).host/.hostname outside entity-id.mjs's hostFromUrl()) holds to a committed baseline and
+// fails only when a NEW site appears; a migrated-away site passes and is reported as a delta. One-
+// directional by design (ADR-024's progressive-re-keying decision spans many lanes with no fixed
+// completion date), unlike F23's bidirectional ratchet. F29 is reserved, unused.
+import { fitnessFunction as F30 } from './functions/F30-entity-spine.mjs';
+// Derived values gate (2026-09-02, Lane DP-ENGINE, system-completion train): spec §3.3's second
+// enforcement point, made structural. RLS (migration 285) already denies raw-table SELECT and grants only
+// derived_values_admissible; F31 backstops a service-role client (which bypasses RLS entirely) from
+// reading derived_values directly anywhere outside src/lib/propagation/ — a literal .from("derived_values")
+// call site, any quote style, never derived_values_admissible (a different string).
+import { fitnessFunction as F31 } from './functions/F31-derived-values-gate.mjs';
+// Statutory purity mirror (2026-09-02, Lane DP-ENGINE, system-completion train): migration 286's
+// assert_statutory_purity() trigger (spec §4 Layer 3) is still defined and still attached as a BEFORE
+// INSERT OR UPDATE gate on statutory_computations (structural presence, not a re-run of that migration's
+// own live self-check proof), and its pure JS mirror (assertStatutoryPurity) agrees with the SQL trigger's
+// exact refusal logic on fixtures.
+import { fitnessFunction as F32 } from './functions/F32-statutory-purity.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -125,6 +146,9 @@ export const fitnessFunctions = [
   F26,
   F27,
   F28,
+  F30,
+  F31,
+  F32,
 ];
 
 export function getFunctionById(id) {

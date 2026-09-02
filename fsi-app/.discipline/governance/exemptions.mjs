@@ -41,6 +41,17 @@ export const EXEMPTIONS = [
     by: 'corridor-identity unit 2026-08-12',
   },
   {
+    match: 'fsi-app/src/lib/entities/entity-id.mjs',
+    kinds: ['writes'],
+    reason:
+      'SAME FALSE POSITIVE as corridor-id.mjs above, same file shape: WRITE_RE matches `.update(` and ' +
+      'entityId() calls createHash("sha256").update(payload) — a crypto digest update, not a Supabase ' +
+      'mutation. The file imports only node:crypto and ../contracts/vocabularies.mjs; it has no DB client ' +
+      'and cannot reach the database. Recorded here rather than left as a phantom gap, per the corridor-' +
+      'id.mjs entry\'s own follow-up note that this class would recur.',
+    by: 'Lane DP-SPINE, system-completion train, 2026-09-02',
+  },
+  {
     match: 'fsi-app/scripts/_diag/',
     reason: 'Read-only diagnostic convention — investigation scripts, no production writes. (A _diag that actually mutates data is itself a smell; rule 015 still scans content.)',
     by: 'operating-mechanism build 2026-06-06',
@@ -110,6 +121,37 @@ export const EXEMPTIONS = [
       'not a skill. Exempting for the model kind records the real disposition instead of leaving a ' +
       'permanent phantom gap; the file stays fully in F15 scope.',
     by: 'coverage-scan wiring 2026-08-11 (F23)',
+  },
+  {
+    match: 'fsi-app/src/lib/propagation/',
+    kinds: ['writes'],
+    reason:
+      'The propagation engine (docs/specs/08-flywheel-design.md §2-§5) writes derived_values/' +
+      'propagation_events/derivation_edges — corpus infrastructure, not content this repo\'s existing ' +
+      'skills govern (environmental-policy-and-innovation/source-credibility-model/etc. all govern WHAT ' +
+      'gets said about a corridor or an obligation; this directory governs HOW A COMPUTED VALUE IS ' +
+      'INVALIDATED AND RECOMPUTED — an orthogonal concern with its own governance, already mechanised: ' +
+      'migration 285\'s assert_acyclic()/RLS, migration 286\'s assert_statutory_purity(), and F31 ' +
+      '(derived-values-gate)/F32 (statutory-purity) are live fitness functions enforcing this domain\'s ' +
+      'invariants structurally. Same disposition as the anthropic-stream.mjs entry above: governed by a ' +
+      'mechanism, not a skill — recording the real disposition here rather than mapping to an unrelated ' +
+      'skill just to close the gap, or leaving a permanent phantom gap.',
+    by: 'Lane DP-ENGINE, system-completion train, 2026-09-02',
+  },
+  {
+    match: 'fsi-app/scripts/propagation/seed-derived-values',
+    reason:
+      'seed-derived-values.mjs performs the SAME class of write as the src/lib/propagation/ entry above ' +
+      '(derived_values via registerDerivedValue\'s RPC, plus a direct estimated_values upsert — both ' +
+      'corpus infrastructure the propagation engine owns, not skill-governed content) — this entry exists ' +
+      'separately because the file lives under scripts/propagation/, one root up from src/lib/propagation/, ' +
+      'so the existing match prefix does not reach it. No `kinds` restriction (unlike the entry above): ' +
+      'this also covers seed-derived-values.test.mjs\'s ORPHANED-PROOF finding — that test is real and ' +
+      'passing (`node --test scripts/propagation/seed-derived-values.test.mjs`) but is NOT wired into ' +
+      '.discipline/run-test-suite.sh (scripts/propagation/ is not one of its covered globs, and that file ' +
+      'is outside this lane\'s write set) — a documented, known gap, not an oversight; see the test file\'s ' +
+      'own header and the lane\'s final report.',
+    by: 'Lane DP-SURF, system-completion train, 2026-09-02',
   },
 ];
 
