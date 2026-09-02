@@ -7959,3 +7959,35 @@ yet run over the 53 items; `apply-mint-batch.mjs` mirrors canonical-pipeline.ts'
 instead of sharing code, which is what today's gate-order bug cost — a shared write-sequence module is
 the next structural item.
 
+### Addendum 84, postscript 12 — run #10 clean (39/39, 92 live); the flywheel ran; the three pages read in the browser (2026-09-02)
+
+`population-turn` run 33659080799 (apply, second slice): 39 exported, 39 `minted_verified`, 0 failures,
+`mint-run-012` at the hash the marker named (discharged). Live: **92 record-grade items verified**. Held
+11 (6 `item_type_unmapped`, 4 `identity_unmapped_source`, 1 `canonical_key_unresolved`), by design.
+Corpus turn #4 (apply, the existing flywheel runtime, dispatched after the first landing): 375 live items,
+2,610 edges, 17 themes persisted, 2 new forward events, `forward-events-run-003`.
+
+Browser pass over the customer pages against the live data (screenshots were unreliable this session —
+the capture clipped to a fraction of a 1873×927 viewport — so the readings below are from the rendered
+page text, which is exact):
+- `/regulations`: 264 active regulations; the record-grade items are in the ledger (e.g. "2001/573/EC:
+  Council Decision…", "78/72/EEC: Commission Recommendation…" in the Monitor band, no next date).
+- `/market`: the train's surfaces render — comparative ribbon (6 oil-bulletin headline series, each
+  "one observation, no delta yet (history backfill pending)", as of 2026-08-24), bands, methodology
+  drawer, sources tracked with cadence, EIA "pending". Every one of the 48 signals is "UNVERIFIED" and
+  "NO PRICE DIMENSION": the signal corpus is the legacy LLM-era set; the price series are the only
+  measured data on the page, and they are one observation deep until the producers apply (ecb-fx,
+  lc_lci_lev, oil-bulletin history backfill — all on the board, none applied yet).
+- `/operations`: regional ledger (5 jurisdictions, 17 of 25 region×dimension cells populated, 24
+  items) plus the train's calculator. Two defects read off the page and fixed here: (1) "Payback period
+  USD 2.08 – USD 1.83 – USD 1.64" — `EstimatedFigure` applied the primary figure's currency to every
+  companion and dropped the companion's unit, and printed sensitivity bands in band order (descending
+  for a payback); `formatRange` is now a pure module (`src/lib/figures/format-range.mjs`, tests), each
+  card carries its own currency/unit, triples print ascending. (2) Operator ruling: "automate or
+  employee is a harsh term and won't sit well with employees" — the section is now "Capacity investment
+  estimate", inputs read "current process" / "with the investment", "Loaded labour rate", "Break-even
+  labour rate"; the persisted method id `automate_vs_hire@1.0.0` and module names are unchanged (registry
+  keys), only what a reader sees.
+- `/research`: 38 findings, 4 themes, every finding "NO KEY FIGURE YET" and dated Feb–May; no data path
+  feeds it today (the census is regulatory). Not touched by the train; named on the board as such.
+
