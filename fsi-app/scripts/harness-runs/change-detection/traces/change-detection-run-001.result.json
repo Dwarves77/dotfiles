@@ -1,0 +1,80 @@
+{
+  "mode": "dry",
+  "skipCheck": false,
+  "checkLimit": 10,
+  "reconcileBatch": 200,
+  "drainLimit": 5,
+  "check": {
+    "skipped": true,
+    "reason": "dry mode never calls a route that writes (sources, monitoring_queue, portal_link_candidates)",
+    "dueCount": 959,
+    "dueSample": [
+      {
+        "id": "cd871c1f-4340-43f2-8c82-3887f37891f1",
+        "name": "EUR-Lex — Regulation (EU) 2023/1804 (Alternative Fuels Infrastructure Regulation, AFIR)",
+        "base_tier": 1
+      },
+      {
+        "id": "236e3109-27b6-40dd-869e-56c0ef50b970",
+        "name": "EUR-Lex / Commission Implementing Regulation (EU) 2016/1245 of 28 July 2016 setting out a preliminary correlation table between codes of the Combined Nomenclature provided for in Council Regulation (EEC) No 2658/87 and entries of waste listed in Annexes III, IV and V to Regulation (EC) No 1013/2006 of the Eur",
+        "base_tier": 1
+      },
+      {
+        "id": "24a2777d-bee4-4e29-8e44-d3d19dd8a463",
+        "name": "EUR-Lex CELEX:31996D0127",
+        "base_tier": 1
+      },
+      {
+        "id": "7a1a3c29-1412-4c04-bb2e-0785898b9a51",
+        "name": "EUR-Lex CELEX:32024R2027",
+        "base_tier": 1
+      },
+      {
+        "id": "aa7f712e-1ae1-4ef6-a558-94ead9cee947",
+        "name": "EUR-Lex / CELEX:31991Y0208(01) (Council Resolution of 17 December 1990 on the development of a European high-speed rail network)",
+        "base_tier": 1
+      },
+      {
+        "id": "55cf4495-4bc5-4126-85e9-c2825dcedca8",
+        "name": "EUR-Lex / CELEX:32004R0411 (Council Regulation (EC) No 411/2004 — EU/third-country air transport competition rules)",
+        "base_tier": 1
+      },
+      {
+        "id": "cefd6dbb-0903-4bf1-a1c6-90ea7c604222",
+        "name": "EUR-Lex CELEX:32012R0611",
+        "base_tier": 1
+      },
+      {
+        "id": "24368170-9892-4818-8ac0-d657210e3f40",
+        "name": "EUR-Lex / CELEX:32013D0807 (Commission Implementing Decision of 17 December 2013 — CO2 emissions targets for light commercial vehicles, 2012)",
+        "base_tier": 1
+      },
+      {
+        "id": "547067cc-6a7c-4d3e-9735-4d2151f1576b",
+        "name": "EUR-Lex CELEX:32021R1061",
+        "base_tier": 1
+      },
+      {
+        "id": "781ed1bd-5e5f-479a-8203-d4be70ff1cdd",
+        "name": "EUR-Lex / CELEX:42011X0507(01) (UN/ECE Regulation No 110 — CNG/LNG vehicle component and installation approval)",
+        "base_tier": 1
+      }
+    ]
+  },
+  "reconcile": {
+    "result": {
+      "processed": 0,
+      "changesRecorded": 0,
+      "staged": 0,
+      "pending": 0,
+      "errors": [],
+      "dryRun": true
+    },
+    "queueRows": [],
+    "pendingTotal": 0
+  },
+  "drain": {
+    "dryRows": [],
+    "overflow": 0
+  }
+}
