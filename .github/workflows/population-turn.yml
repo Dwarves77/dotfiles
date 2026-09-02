@@ -31,6 +31,16 @@ name: Population turn
 # propose-tags.mjs runs --dry UNCONDITIONALLY in both modes — signature-tag ratification stays
 # operator-gated (Lane TAG's own write path, out of this workflow's scope), this step only makes
 # newly-minted untagged items VISIBLE as integrity_flags proposals for an operator to review later.
+#
+# rows_file (Lane POP2, 2026-09-02, first live dry run): the browser-capture escape hatch made a
+# first-class runtime input. MINT-RUNBOOK.md §1a's operator ruling is "a site that refuses the runner is
+# read through the browser, never reported as a blocker" — this input is how a coordinator lands rows
+# captured that way without hand-running run-mint-batch.mjs/apply-mint-batch.mjs locally: build the
+# enriched-row JSON (MINT-RUNBOOK.md §11's browser-capture procedure), commit it under
+# scripts/_snapshots/population-browser/, then dispatch this workflow with rows_file pointing at it. When
+# set, the export-census-rows.mjs step is skipped entirely and run-mint-batch.mjs/apply-mint-batch.mjs run
+# against that file directly — export-census-rows.mjs's own automated capture is simply not on the path
+# for those rows.
 
 on:
   workflow_dispatch:
@@ -59,6 +69,10 @@ on:
         required: true
         default: true
         type: boolean
+      rows_file:
+        description: 'Optional repo path to a pre-built enriched-row JSON (e.g. scripts/_snapshots/population-browser/<batch>.json) captured through the browser per MINT-RUNBOOK.md §11''s browser-capture procedure. When set, the export-census-rows.mjs step is SKIPPED and this file drives run-mint-batch.mjs/apply-mint-batch.mjs directly.'
+        required: false
+        type: string
   # schedule:
   #   - cron: '0 9 * * 2'   # BUILD MODE (2026-09-02) — see header above; stays commented out until the
   #                          # operator explicitly re-arms it.
@@ -109,8 +123,22 @@ jobs:
           echo "source_id    = ${{ inputs.source_id }}"
           echo "celex_prefix = ${{ inputs.celex_prefix }}"
           echo "capture      = ${{ inputs.capture }}"
+          echo "rows_file    = ${{ inputs.rows_file }}"
           echo "RUN_START=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
           echo "EXPORT_DIR=scripts/_snapshots/population-${{ github.run_id }}" >> "$GITHUB_ENV"
+          if [ -n "${{ inputs.rows_file }}" ]; then
+            CENSUS_ROWS_PATH="${{ inputs.rows_file }}"
+            echo "using rows_file — export-census-rows.mjs will be skipped: $CENSUS_ROWS_PATH"
+          else
+            CENSUS_ROWS_PATH="scripts/_snapshots/population-${{ github.run_id }}/census-rows.json"
+          fi
+          echo "CENSUS_ROWS_PATH=$CENSUS_ROWS_PATH" >> "$GITHUB_ENV"
+          # run-mint-batch.mjs's own basename convention (base = basename(inputPath, extname(inputPath)))
+          # names its apply-ready/report files — reproduced here so apply-mint-batch.mjs's --apply-ready
+          # path matches EXACTLY regardless of whether the input came from the live export (basename
+          # "census-rows") or an arbitrary rows_file (e.g. basename "batch-001").
+          BASE="$(basename "$CENSUS_ROWS_PATH")"
+          echo "CENSUS_ROWS_BASENAME=${BASE%.json}" >> "$GITHUB_ENV"
 
       # ── hydrate UNMERGED sibling artifacts so this run's mint-run_id cannot collide ──────────────────
       # Same problem, same fix as source-sweep.yml's own step (see that file's comment for the full
@@ -149,13 +177,24 @@ jobs:
           fi
 
       - name: export-census-rows.mjs
+        if: ${{ inputs.rows_file == '' }}
         run: |
           mkdir -p "$EXPORT_DIR"
-          args=(--limit "${{ inputs.limit }}" --out "$EXPORT_DIR/census-rows.json")
+          args=(--limit "${{ inputs.limit }}" --out "$CENSUS_ROWS_PATH")
           if [ -n "${{ inputs.source_id }}" ]; then args+=(--source-id "${{ inputs.source_id }}"); fi
           if [ -n "${{ inputs.celex_prefix }}" ]; then args+=(--celex-prefix "${{ inputs.celex_prefix }}"); fi
           if [ "${{ inputs.capture }}" = "true" ]; then args+=(--capture); fi
           node scripts/mint/export-census-rows.mjs "${args[@]}"
+
+      - name: Skip export-census-rows.mjs (rows_file supplied)
+        if: ${{ inputs.rows_file != '' }}
+        run: |
+          mkdir -p "$EXPORT_DIR"
+          if [ ! -f "$CENSUS_ROWS_PATH" ]; then
+            echo "::error::rows_file '$CENSUS_ROWS_PATH' does not exist in the checked-out tree — commit it (e.g. under scripts/_snapshots/population-browser/) before dispatching with rows_file set."
+            exit 1
+          fi
+          echo "export-census-rows.mjs skipped — using rows_file: $CENSUS_ROWS_PATH"
 
       # run-mint-batch.mjs exits 1 when any payload fails validation (metrics.invalid > 0) — an EXPECTED
       # outcome for a batch that includes held/malformed census rows, not a fatal condition for this
@@ -165,7 +204,7 @@ jobs:
       - name: run-mint-batch.mjs --census-rows --grade record --execute (the mint family's EXISTING gate, unmodified)
         run: |
           node scripts/mint/run-mint-batch.mjs \
-            --census-rows "$EXPORT_DIR/census-rows.json" \
+            --census-rows "$CENSUS_ROWS_PATH" \
             --grade record \
             --execute \
             --out-dir "$EXPORT_DIR" \
@@ -184,7 +223,7 @@ jobs:
 
       - name: apply-mint-batch.mjs (coordinator-apply — apply only in apply mode)
         run: |
-          args=(--apply-ready "$EXPORT_DIR/census-rows.apply-ready.json" --census-rows "$EXPORT_DIR/census-rows.json" --mint-run "$NEW_MINT_RUN")
+          args=(--apply-ready "$EXPORT_DIR/${CENSUS_ROWS_BASENAME}.apply-ready.json" --census-rows "$CENSUS_ROWS_PATH" --mint-run "$NEW_MINT_RUN")
           if [ "${{ inputs.mode }}" = "apply" ]; then args+=(--apply); fi
           node scripts/mint/apply-mint-batch.mjs "${args[@]}"
 
@@ -231,6 +270,7 @@ jobs:
             echo "Source id: ${{ inputs.source_id }}"
             echo "CELEX prefix: ${{ inputs.celex_prefix }}"
             echo "Capture: ${{ inputs.capture }}"
+            echo "Rows file: ${{ inputs.rows_file || '(none — live export)' }}"
             echo
             echo "Lands this run's enriched mint-run artifact (${NEW_MINT_RUN:-none}) and its export/apply-ready/report files (${EXPORT_DIR}/)."
           } > /tmp/pr-body.md

@@ -29,7 +29,16 @@ validator" posture above still holds. Hash re-stamped per F28 rule (c)'s own esc
 stays acknowledged rather than stale-by-drift; the planned run below (batch-003) is unaffected and still
 supersedes this marker whenever it lands.
 
-**harness_version at write time:** `sha256:c7d5fa64ed62ec31`
+**Re-stamped again 2026-09-02 (Lane POP2, first live dry run follow-up):** the first live `population-turn`
+dispatch (run `33639133429`) exported zero rows — `MINT-RUNBOOK.md` §11 gained an addendum documenting the
+per-family identity/capture root cause and fix (EUR-Lex capture-endpoint rewrite, legislation.gov.uk +
+federalregister.gov identity resolution, the `capture_blocked` evidence shape, the `rows_file`
+browser-capture escape hatch). Same posture as the entry above: this is still documentation of the
+population runtime (an external caller), not a change to the mint kit's own validate-mint-payload.mjs
+gate — no batch has been minted through a changed validator. Re-stamped, not deleted, because no
+`mint-run-007.json` has landed yet.
+
+**harness_version at write time:** `sha256:d69988ccf73e5dfd`
 
 **The planned run that supersedes this marker:** batch-003, the first record-grade batch, produced by
 `scripts/mint/run-mint-batch.mjs --grade record` through the corpus-turn runtime
