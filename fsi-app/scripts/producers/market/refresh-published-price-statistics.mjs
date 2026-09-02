@@ -11,7 +11,7 @@
 // pure) -> guarded upsert into published_price_statistics (scripts/lib/db.mjs — readAll/guardedInsert/
 // guardedUpdate). DRY-BY-DEFAULT (WO-16 executor brief step 4): --apply required to write. No kill-switch
 // env var of its own — SERIES_ITEM_MAP (the series -> item attachment, src/lib/market/
-// series-item-map.json) carries every oil-bulletin series but every entry is UNRATIFIED (`item_id: null`,
+// series-item-map.mjs) carries every oil-bulletin series but every entry is UNRATIFIED (`item_id: null`,
 // pending ruling R-D — see that JSON file's own header), so this script currently plans and writes ZERO
 // rows regardless of --apply; the unratified map IS the switch until an operator ratifies an entry.
 //
@@ -23,8 +23,9 @@
 
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildProposedItemPayloads } from "./propose-series-items.mjs";
 import {
-  deriveDisplayRows, unmappedSeriesKeys, buildProposedItemPayloads, isRatified, SERIES_ITEM_MAP,
+  deriveDisplayRows, unmappedSeriesKeys, isRatified, SERIES_ITEM_MAP,
 } from "../../../src/lib/market/refresh-published-price-statistics.mjs";
 import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
 
