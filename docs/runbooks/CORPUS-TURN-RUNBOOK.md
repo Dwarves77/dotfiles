@@ -164,3 +164,65 @@ mode ends is a single reviewed diff (uncomment the block, pick the real cadence)
 green run or a passing test earns on its own. The fast-disarm lever is the same one every other workflow
 in this repo already has: disable the workflow from the Actions tab and every trigger stops immediately,
 no deploy required.
+
+## Ledger consume
+
+A third, related workflow, **`ledger-consume.yml`** (Lane CONSUME, system-completion plan, 2026-09-02),
+runs `run-ledger-consume.mjs` (new, `fsi-app/scripts/turns/`) — the CONSUME half of the same
+`portal_link_candidates` ledger `source-sweep.yml` discovers into. Where `source-sweep` writes candidate
+URLs, `ledger-consume` reads them: it gives a production runtime to `consumePortalCandidates`
+(`fsi-app/src/lib/intake/portal-harvest.ts`), which had ZERO callers anywhere in this repo before this
+lane (system-completion plan §0, item 1) — 1,454 `status='candidate'` rows sat with no reader. Like
+`source-sweep`, it is dispatch-only (`mode`, `limit`, `source_id` inputs), no schedule armed, and always
+self-emits its own `ledger-consume` harness-run artifact (`scripts/harness-runs/ledger-consume/`), dry or
+apply, from a `finally` block.
+
+**Modes.** `plan` runs every fetched candidate through the LIVE entity-gate classifier and the real
+chokepoint's dry pre-pass, and writes NOTHING to `portal_link_candidates` or the intake pipeline — but it
+is NOT free: the Haiku classify call (~$0.001/candidate) still runs for every candidate whose fetch
+clears the 200-char floor, so a plan dispatch is a real, metered spend even though it changes no row.
+`apply` would push the would-mint set through the full stage -> mint -> ground -> validate cycle and stamp
+the ledger disposition — but it is structurally **DISARMED**: `run-ledger-consume.mjs` carries a source
+constant, `LEDGER_CONSUME_APPLY_ENABLED = false`, the same ADR-023 reviewed-change gate the data producers
+use, applied here to a consumer. Dispatching `mode: apply` before an operator reviews and flips that
+constant in a diff does not fail and does not silently run as if nothing were requested: the run logs an
+"APPLY DISARMED" line, executes with `plan` semantics (still spends on classify, writes nothing), and
+records `config.requested_mode: "apply"` / `config.apply_disarmed: true` / `config.mode: "plan"` in its
+own artifact, so a reader of the artifact alone can tell an apply request from an apply run.
+
+**Telemetry — the gap this lane closed.** Every classify call in a `ledger-consume` run leaves its own
+`agent_runs` row (operator ruling 2026-07-06: "every classify call must leave an agent_runs row").
+Before this lane, `firstFetchClassify` (`fsi-app/src/lib/llm/first-fetch-classify.ts`) called the
+Anthropic API directly — no `SpendTicket`, no `agent_runs` write, entirely outside the spend chokepoint
+(`src/lib/llm/spend-client.ts` / `spend-guard.mjs`) despite `first-fetch-classify` being a registered
+Rule-016 standing ticket class (`STANDING_TICKET_CLASSES`) that nothing actually wired. `logSpendRun`
+(the name that looks like the sanctioned write-site) was retired 2026-07-06 to a no-op. This lane closes
+the gap from OUTSIDE `first-fetch-classify.ts` (out of this lane's write set) by wrapping the
+`ConsumeOpts.classify` injection point: `run-ledger-consume.mjs`'s `buildLoggingClassify` writes one
+`agent_runs` row per call, mirroring the column shape the spend client's own (module-private)
+`recordSpendCall` uses. **Known limit, not fixed here:** `FirstFetchClassifyResult` does not expose
+per-call input/output token counts (only `cost_usd_estimated` and `render_ms`), so these rows carry real
+per-call cost but not token counts — see `run-ledger-consume.mjs`'s header for the full account.
+
+**What lands where.** `scripts/harness-runs/ledger-consume/ledger-consume-run-NNN.json` — the family's own
+self-emitted artifact, every dispatch, plan or (disarmed) apply. `scripts/harness-runs/ledger-consume/
+traces/ledger-consume-run-NNN.result.json` — the run's FULL raw `ConsumeResult` (every candidate outcome,
+not just the ones the artifact's `per_item` names), one level below the family directory so F28's
+family-level `*.json` glob never mistakes it for an artifact (the same convention `source-sweep`'s
+`traces/` directory established). The workflow commits only `scripts/harness-runs/ledger-consume/**`, via
+a fresh `ledger-consume/<run-id>` branch and PR (`deliver-artifact-branch.sh`, same fallback-to-tracking-
+issue behavior documented above for `corpus-turn`/`source-sweep`), and uploads its own
+`scripts/_snapshots/**` workflow artifact the same way.
+
+**A registration gap this lane found and could not close (write-set boundary, reported, not fixed):**
+`ledger-consume.yml` references `secrets.ANTHROPIC_API_KEY` — required in EVERY mode, since even `plan`
+spends on classify. `.discipline/governance/secrets-reference-audit.mjs` fails any workflow secret
+reference not present in `WORKFLOW_SECRETS` (`.discipline/governance/secrets-registry.mjs`), and
+`ANTHROPIC_API_KEY` is not yet in that set (confirmed by running the audit directly: `node
+.discipline/governance/secrets-reference-audit.mjs` — 1 problem, `ledger-consume.yml` referencing an
+unregistered `secrets.ANTHROPIC_API_KEY`). Neither `secrets-registry.mjs` nor `docs/ops/secrets-
+topology.md` is in Lane CONSUME's write set. This is the same class of gap ADR-023/the system-completion
+plan's Lane PROD anticipates for `EIA_API_KEY` — register `ANTHROPIC_API_KEY` in `WORKFLOW_SECRETS` +
+`docs/ops/secrets-topology.md` (it is already documented in that registry's `TOPOLOGY` array as a
+Vercel-runtime/local-only secret; this workflow is the first to need it in the GitHub-Actions vault too)
+before `ledger-consume.yml` can pass CI's secrets-reference-audit.

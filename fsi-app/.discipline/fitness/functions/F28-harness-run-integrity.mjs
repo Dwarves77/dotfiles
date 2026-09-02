@@ -153,6 +153,27 @@ export const GOVERNING_FILES = Object.freeze({
     'src/lib/sources/register-walk.mjs',
     'src/lib/sources/feed-walk.mjs',
   ]),
+  // ledger-consume (registered by Lane CONSUME, system-completion plan 2026-09-02): the runtime
+  // scripts/turns/run-*.mjs already had for source-sweep/forward-events, extended to
+  // src/lib/intake/portal-harvest.ts's consumePortalCandidates (ledger candidate -> classify ->
+  // chokepoint -> intake) — the READER half of the portal-deep-link slice; persistPortalCandidates (the
+  // WRITER half, same file) already had a runtime via the scheduled check-sources crawl.
+  // consumePortalCandidates had zero production callers before run-ledger-consume.mjs (system-completion
+  // plan §0 item 1, confirmed by grep). Governing files are the driver plus the two library modules it
+  // gives a runtime to for the first time: portal-harvest.ts (the consume pass itself) and
+  // first-fetch-classify.ts (the LLM content gate it calls) — the second is included because this
+  // family's driver also had to close that module's missing agent_runs telemetry (see
+  // run-ledger-consume.mjs's own header for why), so a change to either module's behavior is this
+  // family's behavior changing, not an unrelated dependency. Zero valid artifacts exist yet — this lane
+  // has neither DB nor network access to run it for real — so it carries
+  // scripts/harness-runs/ledger-consume/PENDING-RUN.md as its hash-pinned FIRST-RUN ACKNOWLEDGMENT (rule
+  // (b), see this file's header), discharged by the ledger-consume workflow's first
+  // ledger-consume-run-001.json.
+  'ledger-consume': Object.freeze([
+    'scripts/turns/run-ledger-consume.mjs',
+    'src/lib/intake/portal-harvest.ts',
+    'src/lib/llm/first-fetch-classify.ts',
+  ]),
 });
 
 const PENDING_RUN_FILE = 'PENDING-RUN.md';

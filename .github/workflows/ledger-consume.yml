@@ -1,0 +1,172 @@
+name: Ledger consume
+
+# THE CONSUME HALF of the portal deep-link slice, given a runtime for the first time (system-completion
+# plan 2026-09-02, Lane CONSUME). `src/lib/intake/portal-harvest.ts`'s `consumePortalCandidates` (ledger
+# row -> classify -> chokepoint -> intake) had ZERO production callers before this — the WRITE half of
+# the same file, `persistPortalCandidates`, already runs via the scheduled check-sources crawl and,
+# separately, `source-sweep.yml`. `portal_link_candidates.status='candidate'` sat at 1,454 rows with no
+# reader (system-completion plan §0, item 1).
+#
+# THIS DRIVER: `fsi-app/scripts/turns/run-ledger-consume.mjs` — a thin binding (jiti-loaded
+# `consumePortalCandidates`, a real polite `fetch`, a real `agent_runs` telemetry write per classify call,
+# a real harness-run artifact) around that unmodified module. See that script's own header for exactly
+# why jiti is required (the `@/lib/...` alias chain a plain `node` import cannot follow) and why the
+# classify telemetry is wired here rather than left silent (operator ruling 2026-07-06: every classify
+# call must leave an `agent_runs` row). It ALWAYS records a `ledger-consume` harness-run artifact
+# (`scripts/harness-runs/ledger-consume/`, `scripts/lib/run-artifact.mjs`'s convention), in both modes,
+# from a `finally` block, so a run that throws mid-way still leaves a record.
+#
+# MODES. `plan` is READ-ONLY — no ledger write, no mint — but STILL calls Haiku classify for every
+# candidate that clears the fetch step (~$0.001/candidate; plan is read-only, not free). `apply` is
+# structurally DISARMED by a source constant (`LEDGER_CONSUME_APPLY_ENABLED = false` in
+# `run-ledger-consume.mjs`, the ADR-023 reviewed-change gate applied to a consumer) until an operator
+# reviews and flips it in a diff; dispatching `mode: apply` before that lands the run with PLAN semantics
+# and an honest "apply DISARMED" line in both the log and the artifact — never a silent downgrade.
+#
+# DISPATCH-ONLY, DELIBERATELY, no schedule armed — the same build-mode ruling every other workflow in
+# this repo states for itself (operator ruling 2026-09-01):
+#   schedule:
+#     - cron: '0 9 * * 1'   # placeholder cadence only — the operator picks the real one at re-arm time
+#
+# SECRETS (repository secrets; never echoed): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (the
+# same pair every guarded script in fsi-app/scripts/lib/db.mjs already requires) plus ANTHROPIC_API_KEY —
+# plan mode still spends on classify (see above), so it is required in EVERY mode this workflow runs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'plan = read-only (still calls Haiku classify + spends). apply = writes through the guarded intake cycle — DISARMED by a source constant until an operator flips it; see run-ledger-consume.mjs.'
+        required: true
+        default: 'plan'
+        type: choice
+        options: [plan, apply]
+      limit:
+        description: 'Max ledger candidates this run consumes (bounded runs, no unbounded sweeps).'
+        required: false
+        default: '50'
+        type: string
+      source_id:
+        description: 'Restrict to one portal source (uuid). Leave blank to consume across all sources.'
+        required: false
+        type: string
+  # schedule:
+  #   - cron: '0 9 * * 1'   # BUILD MODE (2026-09-01 ruling, same as corpus-turn.yml / source-sweep.yml /
+  #                          # producers.yml) — stays commented out until the operator explicitly re-arms it.
+
+concurrency:
+  group: ledger-consume
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
+
+jobs:
+  consume:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: fsi-app
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Verify required secrets
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          if [ -z "$ANTHROPIC_API_KEY" ]; then echo "::error::ANTHROPIC_API_KEY is not set — plan mode still calls Haiku classify and cannot run without it."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      - name: This run's gates
+        run: |
+          echo "trigger    = ${{ github.event_name }}"
+          echo "mode       = ${{ inputs.mode }}"
+          echo "limit      = ${{ inputs.limit }}"
+          echo "source_id  = ${{ inputs.source_id }}"
+          echo "NOTE: apply is structurally DISARMED by run-ledger-consume.mjs's LEDGER_CONSUME_APPLY_ENABLED const until an operator flips it in a reviewed diff (ADR-023)."
+
+      # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
+      # Same run_id collision guard source-sweep.yml carries (see its own comment for the incident this
+      # closes): claimRunId numbers the next artifact from what it can see in the checked-out tree, i.e.
+      # master, but artifacts land through a PR — a run dispatched before a prior run's PR merged would
+      # otherwise claim the same run_id as that unmerged sibling.
+      - name: Hydrate unmerged ledger-consume artifacts from sibling branches (run_id collision guard)
+        run: |
+          git fetch --no-tags origin '+refs/heads/ledger-consume/*:refs/remotes/origin/ledger-consume/*' || true
+          : > /tmp/hydrated-artifacts.txt
+          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/ledger-consume/*'); do
+            for f in $(git ls-tree -r --name-only "$b" -- fsi-app/scripts/harness-runs/ledger-consume/); do
+              rel="${f#fsi-app/}"
+              if [ ! -e "$rel" ]; then
+                mkdir -p "$(dirname "$rel")"
+                git show "$b:$f" > "$rel"
+                echo "$rel" >> /tmp/hydrated-artifacts.txt
+              fi
+            done
+          done
+          echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged ledger-consume file(s) from sibling branches"
+
+      - name: run-ledger-consume.mjs
+        run: |
+          args=(--mode "${{ inputs.mode }}" --limit "${{ inputs.limit }}")
+          if [ -n "${{ inputs.source_id }}" ]; then
+            args+=(--source-id "${{ inputs.source_id }}")
+          fi
+          node scripts/turns/run-ledger-consume.mjs "${args[@]}"
+
+      # Commit the family's own harness-run artifact (scripts/harness-runs/ledger-consume/**) so the run
+      # this dispatch produced survives past the Actions log — same posture corpus-turn.yml / source-
+      # sweep.yml apply to their own families. A dispatch normally runs against master, which is typically
+      # branch-protected, so this lands on its own branch and opens a PR rather than pushing straight to
+      # whatever ref triggered the run.
+      - name: Remove hydrated sibling artifacts (they belong to their own branches)
+        if: always()
+        run: |
+          if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
+          rm -rf scripts/harness-runs/*/.claims
+
+      - name: Commit the ledger-consume harness-run artifact and open a PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/harness-runs/ledger-consume
+          if git diff --cached --quiet; then
+            echo "No new ledger-consume artifact to commit."
+            exit 0
+          fi
+          branch="ledger-consume/${{ github.run_id }}"
+          git checkout -b "$branch"
+          git commit -m "ledger-consume ${{ inputs.mode }}: run ${{ github.run_id }}"
+          git push origin HEAD:"$branch"
+          printf 'Automated ledger consume (run %s).\n\nRequested mode: %s\nLimit: %s\nSource id: %s\n\nLands the harness-run artifact for this run under scripts/harness-runs/ledger-consume/. If mode=apply was requested, note that apply is structurally disarmed (LEDGER_CONSUME_APPLY_ENABLED=false in run-ledger-consume.mjs, ADR-023) until an operator flips it in a reviewed diff — this run executed with plan semantics; check config.apply_disarmed in the artifact.\n' \
+            "${{ github.run_id }}" "${{ inputs.mode }}" "${{ inputs.limit }}" "${{ inputs.source_id }}" > /tmp/pr-body.md
+          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Ledger consume: mode=${{ inputs.mode }} (run ${{ github.run_id }})" /tmp/pr-body.md
+
+      - name: Upload scripts/_snapshots as a workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ledger-consume-snapshots-${{ github.run_id }}
+          path: fsi-app/scripts/_snapshots/
+          if-no-files-found: ignore
+          retention-days: 90

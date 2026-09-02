@@ -48,6 +48,11 @@ fsi-app/scripts/harness-runs/
     traces/                       # the family's raw walker results (full traces) — one level BELOW the
       source-sweep-run-001.raw-result.json   # family dir, so F28's family-level *.json artifact glob
     ...                                      # never validates a trace as an artifact (2026-09-01)
+  ledger-consume/
+    ledger-consume-run-001.json
+    traces/                       # the family's raw ConsumeResult (full traces) — one level BELOW the
+      ledger-consume-run-001.result.json     # family dir, same reason source-sweep's traces/ exists
+    ...
 ```
 
 One directory per harness family. Five exist today: `mint`, `screen`, and `fetch-drain` — matching the
@@ -67,7 +72,20 @@ dormant, pure, dep-injected enumeration modules it gives a runtime to for the fi
 `src/lib/sources/register-walk.mjs` (the date-paged EUR-Lex OJ / Federal Register index walk) and
 `src/lib/sources/feed-walk.mjs` (the RSS/Atom feed walk): a sixth shape again, whose "runs" are
 enumeration passes over a source's index/feed for a date range, writing discovered candidate URLs to the
-`portal_link_candidates` ledger (never a mint, never an extraction, never a fetch-drain replay).
+`portal_link_candidates` ledger (never a mint, never an extraction, never a fetch-drain replay) — plus
+`ledger-consume` (Lane CONSUME, system-completion plan, 2026-09-02), registered over
+`scripts/turns/run-ledger-consume.mjs` and the two library modules it gives a production runtime to for
+the first time: `src/lib/intake/portal-harvest.ts`'s `consumePortalCandidates` (the READER half of the
+portal-deep-link slice — `persistPortalCandidates`, the WRITER half of the same file, already had a
+runtime via the scheduled check-sources crawl and, separately, `source-sweep` above) and
+`src/lib/llm/first-fetch-classify.ts` (the Haiku content-gate classifier it calls, included because this
+family's driver also had to close that module's missing per-call spend telemetry — see
+`run-ledger-consume.mjs`'s own header): a seventh shape, whose "runs" CONSUME candidate rows the
+`portal_link_candidates` ledger already holds (never discover new ones — that is `source-sweep`'s job),
+classify each through the live entity gate, and precompute a chokepoint disposition per candidate
+(`would_mint`/`would_reject` in plan mode — READ-ONLY but NOT free, since classify still spends;
+`promoted`/`rejected` in apply mode, which stays structurally disarmed by a source constant — see that
+file's header — until an operator reviews and flips it).
 `meta-harness-run-001` through `-003` retrofit MH-1, MH-2, and MH-3
 respectively — the same real-evidence retrofit discipline this file's own "screen-v1 loss" section
 applies to the three original families, applied one layer up, to the harness that builds harnesses. A new
@@ -107,6 +125,16 @@ counterpart to `fetch-drain`'s capture-success-rate-per-attempt-class. A dry run
 actual ledger write are reported as the same shape (`persist`'s injected counting in dry mode vs its real
 upsert in apply mode — see `run-source-sweep.mjs`'s own header), so the two are directly comparable run
 over run.
+
+**ledger-consume's standing metric**: *disposition mix per run* — of the candidates a run consumed
+(`discovered`), how many were `fetched`, how many reached `classified`, and of those how many resolved to
+a promoted-like disposition (`would_mint`/`promoted`/`exists`) versus a rejected-like one
+(`would_reject`/`rejected`/`not_an_item`) versus `skipped` (an inconclusive fetch or classify — never
+counted as a rejection; see `portal-harvest.ts`'s own `fetchOk` discipline) — the consume-family
+counterpart to `source-sweep`'s candidates-discovered-per-walk. Paired with `est_usd_total` (every
+classify call's real cost, summed from this run's own `agent_runs` telemetry — see
+`run-ledger-consume.mjs`'s header for why that telemetry did not previously exist), so a proposer reading
+this family's history sees yield and spend together, never one without the other.
 
 **A named risk of self-application** (surfaced by meta-harness's own first proposer pass, Wave MH-4):
 `meta-harness`'s governing files ARE this file and `PROPOSER-RUNBOOK.md` — the two documents every wave
@@ -262,6 +290,17 @@ and prefixed `sha256:`. Each family's harness files:
 | `meta-harness` | `scripts/harness-runs/CONVENTION.md`, `PROPOSER-RUNBOOK.md`, `../lib/run-artifact.mjs`, `../../.discipline/fitness/functions/F28-harness-run-integrity.mjs` |
 | `forward-events` | `src/lib/forward-events/extract-forward-events.mjs`, `../../../scripts/harness-runs/forward-events/PROTOCOL.md` |
 | `source-sweep` | `scripts/turns/run-source-sweep.mjs`, `../../src/lib/sources/register-walk.mjs`, `../../src/lib/sources/feed-walk.mjs` |
+
+**`ledger-consume` is deliberately NOT added as a row above yet** (Lane CONSUME, 2026-09-02): this table
+is machine-parsed by `.discipline/fitness/functions/F28-harness-run-integrity.test.mjs`'s
+`CONVENTION-TABLE-PARITY` test, which hardcodes the row count (`assert.equal(parsed.size, 6, ...)`) —
+that test file is outside this lane's write set, so adding a 7th row here without updating that assertion
+in the same commit would land a self-inflicted CI break nobody in this lane is permitted to fix. The
+authoritative file list for `ledger-consume` lives in F28's own `GOVERNING_FILES.'ledger-consume'`
+(`.discipline/fitness/functions/F28-harness-run-integrity.mjs`) and in `run-ledger-consume.mjs`'s
+`LEDGER_CONSUME_GOVERNING_FILES` export — identical to each other, just not yet cross-checked against a
+row here. Adding that row and bumping `CONVENTION-TABLE-PARITY`'s count to 7 in the same commit is a
+follow-up any lane touching `F28-harness-run-integrity.test.mjs` next should pick up.
 
 A harness-family README or runbook edit that doesn't touch the files above does not change
 `harness_version` — the hash tracks *behavior-bearing* files, not documentation. If a family's file list
