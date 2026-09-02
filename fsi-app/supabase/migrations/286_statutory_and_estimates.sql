@@ -177,7 +177,13 @@ BEGIN
   SELECT EXISTS (
     SELECT 1 FROM jsonb_array_elements(NEW.inputs) AS ref
     WHERE (ref->>'table') = 'estimated_values'
-      AND EXISTS (SELECT 1 FROM public.estimated_values ev WHERE ev.entity_id = (ref->>'pk'))
+      -- An estimated_values input may be addressed by estimate_id (the surrogate PK since the ADR-024
+      -- amendment) or by entity_id (the pre-amendment shape). Both are refused. Found at live apply
+      -- (coordinator, 2026-09-02): the amendment moved the PK but this predicate still matched entity_id only.
+      AND EXISTS (
+        SELECT 1 FROM public.estimated_values ev
+        WHERE ev.entity_id = (ref->>'pk') OR ev.estimate_id::text = (ref->>'pk')
+      )
   ) INTO bad_estimate;
 
   SELECT EXISTS (
@@ -297,6 +303,21 @@ BEGIN
   IF NOT rejected THEN
     RAISE EXCEPTION 'ABORT: assert_statutory_purity() failed to reject a statutory row whose inputs cite a live estimated_values row';
   END IF;
+  -- Same refusal when the estimate is addressed by its surrogate PK (the shape register/seed code writes).
+  DECLARE v_estimate uuid; rejected2 boolean;
+  BEGIN
+    SELECT estimate_id INTO v_estimate FROM public.estimated_values WHERE entity_id = ok_entity2 LIMIT 1;
+    BEGIN
+      INSERT INTO public.statutory_computations (entity_id, obligation_id, formula_id, formula_version, statute_citation, inputs, result, result_unit)
+        VALUES (ok_entity, ok_obligation, 'selftest_formula', '1', 'Art. 1', jsonb_build_array(jsonb_build_object('table', 'estimated_values', 'pk', v_estimate::text, 'version', '1')), 1.0, 'EUR');
+      rejected2 := false;
+    EXCEPTION WHEN OTHERS THEN
+      rejected2 := true;
+    END;
+    IF NOT rejected2 THEN
+      RAISE EXCEPTION 'ABORT: assert_statutory_purity() failed to reject an estimate input addressed by estimate_id';
+    END IF;
+  END;
 
   -- Clean up: this migration must land with zero rows (schema-only), same posture as 258/282/283/284/285.
   -- ORDER MATTERS, AND GOT IT WRONG ON FIRST TRY (found live by this very self-check, kept as a comment so
