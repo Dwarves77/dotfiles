@@ -160,6 +160,14 @@ function humanizeSlotKey(slotKey) {
 
 // ---------------------------------------------------------------------------
 // Claim builders — each returns one claim object (payload-schema.json's `claims[]` shape) or null.
+//
+// SPAN DELIMITERS ARE GUILLEMETS («…»), NOT STRAIGHT QUOTES. The validator's unicode-integrity scan
+// (validate-mint-payload.mjs, Wave MH-3) flags any substitution-class character in prose whose local
+// context fuzzy-matches the source but does not strictly match it — straight vs curly quotes being one
+// class. A template that wraps a verbatim span in `"…"` puts a straight quote directly against a span
+// that itself opens with a curly one («“Member States”, in each place…», UK SI 2018/129, population-turn
+// run #9), and the scan read the template's delimiter as a transcription slip. Guillemets belong to no
+// substitution class, so the delimiter can never collide with the source's own punctuation.
 // ---------------------------------------------------------------------------
 
 /**
@@ -181,7 +189,7 @@ export function extractIdentityFact({ title, capturedText, sourceUrl }) {
   return {
     section_key: "identity",
     claim_kind: "FACT",
-    claim_text: `[title] The captured source's own text carries this item's title verbatim: "${span}"`,
+    claim_text: `[title] The captured source's own text carries this item's title verbatim: «${span}»`,
     source_span: span,
     source_url: sourceUrl ?? null,
     slot_key: "title",
@@ -200,7 +208,7 @@ export function extractSlotFact({ slotKey, capturedText, sourceUrl }) {
     return {
       section_key: "record_facts",
       claim_kind: "FACT",
-      claim_text: `[${slotKey}] The captured source states, verbatim: "${span}"`,
+      claim_text: `[${slotKey}] The captured source states, verbatim: «${span}»`,
       source_span: span,
       source_url: sourceUrl ?? null,
       slot_key: slotKey,

@@ -1,7 +1,31 @@
 # Last proposer pass — mint
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **ten** artifacts (`mint-run-001` …
-`mint-run-010`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-010**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **eleven** artifacts (`mint-run-001` …
+`mint-run-011`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-011**.
+
+## Pass of 2026-09-02, night (mint-run-011 — the first apply that landed verified items)
+
+**Artifact read:** mint-run-011 (population-turn run 33656779918, apply, limit 50): 43 attempted, 43
+`minted_verified`, 0 `minted_unverified`, 0 `apply_failed`, 43 census rows reconciled; harness_version
+`sha256:2aa3acb86dc8a0a0`, the hash PENDING-RUN named, so that marker is discharged (deleted here).
+
+**Live read:** 53 record-grade `intelligence_items` with `provenance_status = 'verified'`, not archived:
+the 43 of this run plus the 10 of run #8 healed by `rederive-record-provenance.mjs` (its log: "record-grade
+rows not verified: 10; derivation says verified now: 10; touched 10").
+
+**Hypotheses (verified, with basis):**
+1. The gate-before-claims order is what made the difference: same 45-row slice, same validator hash as
+   run #8's 0/10 verified; 43/43 verified rows this time. Basis: per_item outcomes now come from the row's
+   own status (read back), not the RPC.
+2. The run's FAILED status was the reconciliation script's self-check, not the data: it read the
+   status from the UPDATE's returning rows, which Postgres fills before the AFTER trigger runs, so it
+   saw 0 verified after healing 10. Fixed (fresh SELECT after the touch; test). No row was wrong.
+3. Two of the 45 exported rows did not mint (45 → 43): named in the artifact's `not_applied_*` counts,
+   to be read against M4's holder rules on the next pass, not assumed.
+
+**Proposal:** run the post-apply flywheel pass (corpus-turn: discovery + forward-event extraction) over the
+53 items; then the next population slice (limit 50) at this hash.
+
 
 ## Pass of 2026-09-02, evening (mint-run-010 — the first live apply)
 

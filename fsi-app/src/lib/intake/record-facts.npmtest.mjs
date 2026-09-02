@@ -55,6 +55,21 @@ test("findSlotSpan: skips page chrome and returns the first PROSE match — mint
   assert.equal(isProseSpan("applies to lighting products placed on the market"), true);
 });
 
+test("record payload whose span opens with a curly quote clears the validator's unicode-integrity scan (run #9: straight-quote delimiters collided with the source's own “ ”)", () => {
+  const capturedText = "In regulation 3, for “Member States”, in each place where the words occur, there is substituted “the Secretary of State”. These Regulations apply to England.";
+  const payload = buildRecordPayload({
+    rowId: "r1", title: "The National Emission Ceilings Regulations 2018", sourceUrl: "https://www.legislation.gov.uk/uksi/2018/129",
+    itemType: "regulation", jurisdictionIso: "GB", priority: "MODERATE", capturedText: "The National Emission Ceilings Regulations 2018. " + capturedText,
+    source: { id: "s", url: "https://legislation.gov.uk/", base_tier: 1, tier_override: null, status: "active", institution_id: null },
+    requiredSlots: ["jurisdictional_scope", "effective_date", "penalty_summary", "primary_deadline"],
+  });
+  const scope = payload.claims.find((c) => c.slot_key === "jurisdictional_scope");
+  assert.equal(scope.claim_kind, "FACT");
+  assert.match(scope.claim_text, /«/);
+  const r = validateMintPayload(payload);
+  assert.deepEqual(r.failures.filter((f) => f.reason === "prose_unicode_substitution"), [], JSON.stringify(r.failures));
+});
+
 test("extractIdentityFact: title located verbatim -> FACT with slot_key 'title'; absent -> null (never fabricated)", () => {
   const capturedText = "COUNCIL DECISION of 30 March 2009 endorsing the SESAR Master Plan. Full text follows.";
   const fact = extractIdentityFact({
