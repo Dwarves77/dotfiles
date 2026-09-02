@@ -59,7 +59,12 @@ export default async function RootLayout({
           initialOrgId={bootstrap.orgId}
           initialOrgName={bootstrap.orgName}
           initialRole={bootstrap.role}
-          initialSectors={bootstrap.sectors}
+          /* Section 6.8 composition: a per-user override (profiles.sector_overrides) wins when
+              present; otherwise the workspace's sector_profile. Until 2026-09-02 this passed
+              `bootstrap.sectors` alone, which is empty for every user because nothing has written
+              sector_overrides since the 2026-05-18 onboarding fix, so the whole app ran as
+              "no sectors configured" (lane HYG-2 root cause, Addendum 84 postscript 15). */
+          initialSectors={bootstrap.sectors.length ? bootstrap.sectors : bootstrap.workspaceSectors}
         >
           <ThemeInitializer />
           {/* R0.2 first-party error tracking: window.onerror + unhandled-

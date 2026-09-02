@@ -8091,3 +8091,62 @@ Wave 1 WSEQ / MAINT / R1 / F2 / PROD-FIX / GATES-1 / HYG-2; Wave 2 OBLIG / CORR 
 Wave 3 COMMUNITY / SPEC-09), the coordinator dispatch sequence that runs every item in the system
 through the newest harness and flywheel once (§3), and the gates (§4). Next step for a cold session:
 land this branch, dispatch `population-turn` apply (limit 50), launch Wave 1.
+
+### Addendum 84, postscript 15 — Wave 1 of the finish plan: seven Sonnet lanes, one train (2026-09-02, night)
+
+Seven lanes ran concurrently in worktrees with disjoint write sets and were integrated by cherry-pick
+onto `train/wave1-2026-09-02` with zero conflicts (the only shared touches were test-suite globs and the
+shared-writer registry, which merged cleanly). Gates on the integrated train [CONFIRMED]: suite
+3,354 / 3,353 pass / 0 fail (one `LIVE_PROBE` skip), fitness 27/27 (F33 new), meta-gate 113 invariants
++ 63 doctrines wired, rendering guard PASS (7 fixtures, 4 SM smoke specs, 51 smoke checks), goldens
+green, npm-dependent proofs 339/339, tsc clean, engine 0 fail, consistency only the container's C4
+worktree findings.
+
+What landed, and what I checked myself rather than took from a report:
+
+- **WSEQ.** `src/lib/intake/write-item.ts` is the one guarded write sequence (searches → sections →
+  gate A → claims → citations) that `apply-mint-batch.mjs` calls whole and `canonical-pipeline.ts`
+  calls for its gate-A and citation rows (its `groundBrief` is a diff/apply over an existing ledger,
+  not a fresh insert, so it cannot call the whole sequence; the lane said why in the module header).
+  The kit check: a record payload must carry `screen: { verdict: "on_vertical", provenance, basis }`;
+  I read the chain that populates it (`partitionByScreen` → `buildExportRow` → `buildPayloadsFromCensusRows`
+  → `buildRecordPayload`) so the next population run does not quarantine everything. Mint marker
+  re-stamped to `sha256:9a3e4c77ec4d9342`, mint-run-014 still the planned run.
+- **MAINT.** `.github/workflows/maintenance.yml`, dispatch-only, `mode` / `step` / `arg`; `all` refused in
+  apply. Findings I accept: tier opinions have NO non-LLM upstream (`tier_estimate` comes from the paid
+  brief agent), so the step reports NOT RUNNABLE; `census_worklist` has no archive columns, so R-A's
+  "archive" would need a migration and the step is dry-only; `w1-dispositions` apply is a worklist
+  report, the deletions are a code lane.
+- **R1.** Two corrections to the plan's own table names, both verified against the migrations: the 927
+  provisional sources are `sources.status = 'provisional'` (not `provisional_sources`), the 91 gap
+  dispositions are `coverage_gap_candidates.disposition IS NULL` (not `coverage_gaps`, a 2-row widget).
+  The lane also caught a defect in its own first draft: "link" on a portal candidate wrote
+  `status = 'promoted'`, which `run-ledger-consume.mjs` treats as already minted; now a no-op, "drop" is
+  the one mutation. The digests themselves are not built yet (no creds in a lane); MAINT's
+  `review-digests` step builds them.
+- **F2.** `scripts/sources/inaccessible-triage.mjs` reuses `fetchPrimaryWithFallback` / `detectRoadblock`
+  / `generateCandidates` / `classTierForHost` / `officialnessOf`; apply writes only
+  `sources.fetch_status` (migration 147) with the same 4-case vocabulary as the canonical pipeline.
+  Dispatch: `source-monitoring.yml` input `job = triage`.
+- **PROD-FIX.** gov.uk assets are proxy-blocked from the container (403 CONNECT, [CONFIRMED] by the lane's
+  proxy status read), so the seven DESNZ air/sea rows are shells (`needs_runner_fetch`, null values,
+  filtered out of the seed batch by `splitPending`); no figure was invented. Six oil-bulletin series
+  keys sit in `series-item-map.json` as `pending_R-D`; `--propose-items` emits six record payloads that
+  validate. One report claim is wrong and harmless: "no producers.yml exists" (it does, at
+  `.github/workflows/producers.yml`; the lane grepped `fsi-app/` only and did not touch it).
+- **GATES-1.** F33 checks a 14-surface register (7 built, 7 exempt with the finish plan as the ruling);
+  four SM smoke specs mount the real components in Playwright inside the rendering guard;
+  `verification-audit-report.mjs` for W2.F. The lane deleted and restored `fsi-app/scripts/tmp` during
+  debugging; I confirmed a zero diff against master.
+- **HYG-2.** Migration 288 (`sources.source_type TEXT[]`, nullable, 11-value CHECK, GIN), taxonomy module
+  and dry-by-default backfill, `coverage-gaps.ts` split into a thin wrapper and a pure rollup. Part B's
+  root cause I re-read myself [CONFIRMED]: `layout.tsx:62` passed `bootstrap.sectors`
+  (`profiles.sector_overrides`, unwritten since 2026-05-18) so every user was seeded `[]` and the
+  whole app ran as "no sectors configured"; `bootstrap.workspaceSectors` was computed and never
+  passed. `layout.tsx` was outside every write set, so I applied the fix as coordinator with the
+  Section 6.8 composition the bootstrap header documents: per-user override when non-empty, else the
+  workspace profile. F25 allowlist 18/18 all still legitimately unwired, now cited to the W1 register.
+
+**Coordinator applies now owed (dispatch sequence §3 of the plan continues):** migration 288 apply;
+`backfill-source-type` dry then apply; DESNZ air/sea figures fetched by a runner (producers.yml can
+reach gov.uk); `maintenance` `review-digests` dispatch; `population-turn` apply (limit 50).

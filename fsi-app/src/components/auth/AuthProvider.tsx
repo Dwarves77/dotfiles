@@ -45,32 +45,15 @@ interface AuthProviderProps {
    * single source of truth OnboardingWizard.tsx's persistSectors() writes,
    * post-2026-05-18 fix), never profiles.sector_overrides.
    *
-   * KNOWN DEFECT (root-caused by lane HYG-2, 2026-09-02, Part B — the one
-   * remaining item behind the 2026-08-31 register's "/profile Sectors panel
-   * writes to a dead-end column"; the read side, UserProfilePage.tsx's
-   * SectorProfileTab, was fixed separately and is not affected). This
-   * component's own seeding call below (setSectorProfile(initialSectors))
-   * is correct — it faithfully seeds the store with whatever this prop is
-   * given. The bug is upstream, at this prop's ONLY call site,
-   * src/app/layout.tsx:62 (`initialSectors={bootstrap.sectors}`):
-   * `ServerBootstrap.sectors` (src/lib/api/server-bootstrap.ts:85-86) reads
-   * `profiles.sector_overrides` — a per-user override column nothing has
-   * written to since Settings/Onboarding were redirected to
-   * workspace_settings.sector_profile (OnboardingWizard.tsx:217-225's own
-   * comment documents that 2026-05-18 fix) — so it is always `[]`.
-   * `ServerBootstrap.workspaceSectors` (server-bootstrap.ts:88-99) already
-   * computes the CORRECT value from workspace_settings.sector_profile; it
-   * is simply never passed to this component. Net effect: every logged-in
-   * user's app-wide sector filtering/scoring silently behaves as "no
-   * sectors configured" regardless of what Settings actually has saved.
-   * The fix is one line at the call site —
-   * `initialSectors={bootstrap.workspaceSectors}` — but src/app/layout.tsx
-   * is outside this lane's write set (fsi-app/src/components/auth/**,
-   * fsi-app/src/lib/auth/provision-personal-workspace.ts,
-   * fsi-app/src/components/profile/**); reported as
-   * NEEDS WRITE-SET EXPANSION rather than fixed here. No migration is
-   * needed — both columns and their schemas are correct; this is purely an
-   * app-level wiring bug.
+   * HISTORY (lane HYG-2 root cause, 2026-09-02; fixed the same day at the call site,
+   * src/app/layout.tsx): the layout passed `bootstrap.sectors` alone, which reads
+   * `profiles.sector_overrides` — a per-user override column nothing has written since
+   * Settings/Onboarding were redirected to workspace_settings.sector_profile on 2026-05-18
+   * (OnboardingWizard.tsx's own comment) — so every logged-in user was seeded `[]` and the
+   * app ran as "no sectors configured" whatever Settings had saved. The layout now composes
+   * the two layers per Section 6.8: the per-user override when non-empty, else
+   * `bootstrap.workspaceSectors` (workspace_settings.sector_profile). No migration; both
+   * columns and their schemas were correct. This component seeds whatever it is given.
    */
   initialSectors?: string[];
 }
