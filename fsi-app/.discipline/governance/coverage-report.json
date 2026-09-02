@@ -2443,6 +2443,15 @@
       "status": "EXEMPT"
     },
     {
+      "path": "fsi-app/src/lib/propagation/aggregate-safeguards.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "EXEMPT"
+    },
+    {
       "path": "fsi-app/src/lib/propagation/drain.test.mjs",
       "kinds": [
         "PROOF"
@@ -6971,9 +6980,9 @@
     }
   ],
   "summary": {
-    "governed_files": 625,
+    "governed_files": 626,
     "covered": 600,
-    "exempt": 25,
+    "exempt": 26,
     "gaps": 0,
     "orphaned_proofs": 0,
     "unmapped_writes": 0,
