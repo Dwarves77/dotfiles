@@ -8150,3 +8150,20 @@ What landed, and what I checked myself rather than took from a report:
 **Coordinator applies now owed (dispatch sequence §3 of the plan continues):** migration 288 apply;
 `backfill-source-type` dry then apply; DESNZ air/sea figures fetched by a runner (producers.yml can
 reach gov.uk); `maintenance` `review-digests` dispatch; `population-turn` apply (limit 50).
+
+### Addendum 84, postscript 16 — production 500 after the Wave 1 train; hotfix (2026-09-02, ~20:30 UTC)
+
+Operator: "i'm getting a 500 Internal Server Error when loading carosledge.com." Vercel runtime errors
+[CONFIRMED]: `ENOENT /var/task/fsi-app/scripts/mint/item-type-required-slots.json` at module evaluation of
+`src/lib/market/refresh-published-price-statistics.mjs`, route `/`, 9 occurrences from 20:26:59, deployment
+of #533. Cause: lane PROD-FIX's version of that module read `scripts/mint/item-type-required-slots.json`
+and `series-item-map.json` with `readFileSync` at import; the module sits on every page's import graph
+(`series-board-view-model.mjs` → `data.ts`), and the serverless bundle carries imports, not runtime file
+reads (under Turbopack `import.meta.url` resolves to the chunk, so the relative path is wrong as well).
+My gate miss: the suite, tsc, fitness and the rendering guard all run under Node where the file exists;
+nothing exercised the bundle. Fix: `series-item-map.json` → `series-item-map.mjs` (a data module, bundled);
+`buildProposedItemPayloads` (needs the JSON + record-facts) → `scripts/producers/market/propose-series-items.mjs`
+with its six tests; the app module has no `node:fs` import. Rule, to be encoded as a fitness function next:
+nothing under `src/lib` reads the filesystem at module evaluation (`derive-tags.mjs` does, and is not on
+any page's graph today; it is a latent instance of the same class). Landed as a hotfix PR ahead of the
+rest of the in-progress work (migration 289, OJ title extraction, source-type-backfill step).
