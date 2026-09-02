@@ -29,10 +29,10 @@ on:
   workflow_dispatch:
     inputs:
       walker:
-        description: 'Which enumeration walk to run.'
+        description: 'Which enumeration walk to run. "research" is a distinct subject (research-sweep.mjs, lane RSRCH 2026-09-02): a source-sweep over the research-source registry (sources.category = research), not a register/feed walk — it needs no from/to/feed_url.'
         required: true
         type: choice
-        options: [register-eurlex, register-federal-register, feed]
+        options: [register-eurlex, register-federal-register, feed, research]
       from:
         description: 'ISO date (register-eurlex / register-federal-register only). Required for those two walkers.'
         required: false
@@ -100,6 +100,9 @@ jobs:
               echo "::error::--feed-url (feed_url input) is required when walker=feed."
               exit 1
             fi
+          elif [ "${{ inputs.walker }}" = "research" ]; then
+            : # research-sweep.mjs selects its own sources from the registry (sources.category='research')
+            # and needs no from/to/feed_url -- nothing to validate here.
           else
             if [ -z "${{ inputs.from }}" ] || [ -z "${{ inputs.to }}" ]; then
               echo "::error::from/to date inputs are required for walker=${{ inputs.walker }}."
@@ -140,6 +143,7 @@ jobs:
           echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged source-sweep file(s) from sibling branches"
 
       - name: run-source-sweep.mjs
+        if: ${{ inputs.walker != 'research' }}
         run: |
           args=(--walker "${{ inputs.walker }}" --mode "${{ inputs.mode }}")
           if [ "${{ inputs.walker }}" = "feed" ]; then
@@ -148,6 +152,15 @@ jobs:
             args+=(--from "${{ inputs.from }}" --to "${{ inputs.to }}")
           fi
           node scripts/turns/run-source-sweep.mjs "${args[@]}"
+
+      # research-sweep.mjs (lane RSRCH, 2026-09-02): a SUBJECT of this same source-sweep family, not
+      # another walker -- it selects its own sources from the registry (sources.category='research') and
+      # takes no --from/--to/--feed-url. Writes its harness-run artifact into the SAME
+      # scripts/harness-runs/source-sweep/ directory the step above does (see that script's own header),
+      # so the commit-and-PR step below needs no change to pick it up.
+      - name: research-sweep.mjs
+        if: ${{ inputs.walker == 'research' }}
+        run: node scripts/turns/research-sweep.mjs --mode "${{ inputs.mode }}"
 
       # Commit the family's own harness-run artifact (scripts/harness-runs/source-sweep/**) so the run
       # this dispatch produced survives past the Actions log — same posture corpus-turn.yml applies to
