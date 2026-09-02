@@ -1,7 +1,35 @@
 # Last proposer pass — mint
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **eight** artifacts (`mint-run-001` …
-`mint-run-008`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-008**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **nine** artifacts (`mint-run-001` …
+`mint-run-009`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-009**.
+
+## Pass of 2026-09-02, later (mint-run-009 — the first record-grade run at the corrected gate)
+
+**Artifact read:** mint-run-009 (population-turn run 33647357868, dry, limit 50, capture on):
+attempted 45, valid 45, invalid 0, `validator_first_pass_rate 45/45`, harness_version
+`sha256:2d498956fb8c476f` — the hash `PENDING-RUN.md` named, so that marker is discharged (deleted in
+this landing per F28's reverse-audit). Held 5: 3 FR `item_type_unmapped`, 2 `identity_unmapped_source`.
+
+**Full traces read:** `census-rows.json` (45: 26 EU, 14 GB, 5 US), `census-rows.held.json`,
+`census-rows.mint-batch-report.json`, the apply-ready file (dry apply: 45 `would_apply`).
+
+**Hypotheses (verified, with basis):**
+1. **Cellar is measured, not inferred, from the runner now:** all 26 EUR-Lex rows captured through
+   `publications.europa.eu/resource/celex/<key>` (0 `capture_blocked`, texts 1.6k–2.59M chars; the
+   2.59M one is 32008R1272, CLP, annexes included — ADR-016: the grounding pool is never capped). The
+   `[INFERRED]` label on the previous pass's hypothesis 3 is retired.
+2. **One title defect, six rows:** older acts come back from Cellar as legacy EUR-Lex HTML (no
+   `oj-doc-ti`), and the body-lead fallback produced "EUR-Lex - 32001D0573 - EN Important legal notice |
+   ..." as the title. Basis: read the six `captured_body_lead` rows; opened 32001D0573 in the browser
+   (`<title>EUR-Lex - <CELEX> - EN</title>`, `<h1>` = CELEX, first `<strong>` = the act's title). Fixed in
+   this landing (`extractCellarTitle` legacy branch, test). The apply run re-exports, so no dry row is
+   reused with the wrong title.
+3. 20 OJ titles run 250–555 chars; the live corpus already carries titles to 719 chars (measured), so
+   this is the established shape, not a defect.
+
+**Proposal:** dispatch apply (limit 50) at this hash; read `mint-run-010` and the live
+`intelligence_items` rows (`item_grade = 'record'`, `provenance_status = 'verified'`) against the plan.
+
 
 ## Pass of 2026-09-02 (mint-run-007, mint-run-008 — the record-grade path's first two live executions)
 

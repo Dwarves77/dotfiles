@@ -430,6 +430,16 @@ test("followUpgradingRedirects: upgrades http Location to https, resolves relati
   assert.deepEqual(rel, ["https://example.org/start", "https://example.org/a/b"]);
 });
 
+test("extractCellarTitle: legacy EUR-Lex HTML from Cellar (older acts) -> the first <strong> after the CELEX <h1>, never the 'Important legal notice' body lead", () => {
+  const legacy =
+    '<html><head><title>EUR-Lex - 32001D0573 - EN</title></head><body><div id="banner"><p class="bglang"><a><b>Important legal notice</b></a></p></div>' +
+    '<h1>32001D0573</h1><p><strong>2001/573/EC: Council Decision of 23 July 2001 amending Commission Decision 2000/532/EC as regards the list of wastes</strong> Official Journal L 203 , 28/07/2001 P. 0018 - 0019</p>' +
+    '<p>Council Decision</p><p>of 23 July 2001</p></body></html>';
+  assert.deepEqual(extractCellarTitle(legacy), { title: "2001/573/EC: Council Decision of 23 July 2001 amending Commission Decision 2000/532/EC as regards the list of wastes", origin: "cellar_legacy_title" });
+  // the title is verbatim in the stripped capture, so the identity FACT binds
+  assert.ok(stripHtmlToText(legacy).includes(extractCellarTitle(legacy).title));
+});
+
 test("extractCellarTitle: joins oj-doc-ti lines; ignores the OJ-file-name <title>; body-lead fallback when no doc-ti", () => {
   assert.deepEqual(extractCellarTitle(CELLAR_XHTML), { title: "COUNCIL DECISION of 14 October 2004 concerning the conclusion of the Stockholm Convention (2006/507/EC)", origin: "cellar_doc_title" });
   assert.equal(extractCellarTitle("<html><head><title>L_2006209EN.01000101.xml</title></head><body><p>Some act text here.</p></body></html>").origin, "captured_body_lead");
