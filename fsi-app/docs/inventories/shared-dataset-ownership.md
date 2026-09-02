@@ -54,7 +54,8 @@ who may write a shared table; the test enforces it on every future PR.
       "src/app/api/admin/triage/pending-jurisdiction-review/route.ts",
       "scripts/mint/run-mint-batch.mjs",
       "scripts/connections/apply-tags.mjs",
-      "scripts/mint/stamp-wo26-archive-reason.mjs"
+      "scripts/mint/stamp-wo26-archive-reason.mjs",
+      "scripts/mint/apply-mint-batch.mjs"
     ],
     "item_cross_references": [
       "src/lib/intake/mint-item.ts",
@@ -96,7 +97,8 @@ who may write a shared table; the test enforces it on every future PR.
     ],
     "census_worklist": [
       "src/lib/intake/census-writer.mjs",
-      "scripts/connections/ratify-flag-to-census.mjs"
+      "scripts/connections/ratify-flag-to-census.mjs",
+      "scripts/mint/apply-mint-batch.mjs"
     ],
     "item_forward_events": [
       "scripts/forward-events/run-extraction.mjs",
@@ -113,7 +115,8 @@ who may write a shared table; the test enforces it on every future PR.
       "src/lib/agent/canonical-pipeline.ts",
       "src/workflows/generate-brief.ts",
       "scripts/_reground/free-pass-run.mjs",
-      "scripts/_reground/restore-overclear.mjs"
+      "scripts/_reground/restore-overclear.mjs",
+      "scripts/mint/apply-mint-batch.mjs"
     ],
     "corpus_turn_requests": [
       "src/app/api/admin/corpus-turn-requests/route.ts",
@@ -176,6 +179,7 @@ narrow-touch-for-recompute / tombstone-delete), not a data column.
 | `scripts/mint/run-mint-batch.mjs` | **Pre-registered (parallel lane)** — expected mint-batch runner | not yet present |
 | `scripts/connections/apply-tags.mjs` | UPDATE — merges an operator-ratified `derive-tags.mjs` tag proposal onto `operational_scenario_tags`/`compliance_object_tags`/`topic_tags` (never removes an existing tag, never overwrites a non-empty array — only appends absent tags, capped at `derive-tags.mjs`'s `FIELD_CAPS`) via `guardedUpdate`, only for a flag resolved with `resolution_note` containing `ratify:tags` (lane TAG, 2026-09-01 — closes the August-census-wave empty-tag gap so `discover.mjs` can score edges for these items) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, ...)` in `deps.updateItem` |
 | `scripts/mint/stamp-wo26-archive-reason.mjs` (Lane POP, 2026-09-01) | UPDATE — `archive_reason` only, on the 491 WO-26 rows Addendum 28 archived without stamping one | `guardedUpdate("intelligence_items", applyMatch, { archive_reason: ... }, { cite, select })`, `--dry` by default |
+| `scripts/mint/apply-mint-batch.mjs` (Lane POP, 2026-09-02) | INSERT at coordinator-apply time — the population-turn's write path for a `--census-rows --grade record` mint batch, `mintIntelligenceItem()`'s `MintPlan` has no field for a payload's sections/claims/search_results so this script writes directly in `canonical-pipeline.ts`'s own table order instead | `buildIntelligenceItemRow` + `ctx.db.guardedInsert("intelligence_items", ...)`, `--dry` by default |
 
 Replace policy: guarded per-row UPDATE/INSERT (never a bulk replace); DELETE is single-purpose and
 gated behind a tombstone write (see `tombstone-delete.mjs` above) — this is a **guarded delete**, not a
@@ -251,6 +255,7 @@ raises. Documented and implemented in `src/lib/intake/census-writer.mjs:98-165`.
 |---|---|
 | `src/lib/intake/census-writer.mjs` (`writeCensusRows`) | lines 136-165, upsert under a per-source `withLease` mutation lease |
 | `scripts/connections/ratify-flag-to-census.mjs` | **Pre-registered (parallel lane)** — not yet present; **TO-VERIFY** how it satisfies the identity-preservation rule above (does it look up existing `(lane, created_by)` the way `writeCensusRows` does, or does it mint a fresh worklist identity for a ratified flag?) |
+| `scripts/mint/apply-mint-batch.mjs` (Lane POP, 2026-09-02) | UPDATE — `enumeration_status = 'reconciled'` only, on the one row a successfully-minted payload traces back to via its `row_id` (a `not_applied_*` payload's row is left untouched — see `mint-run-006.json`'s own precedent) | `ctx.db.guardedUpdate("census_worklist", (qb) => qb.eq("id", rowId), { enumeration_status: "reconciled" }, ...)` |
 
 ### `item_forward_events`
 
@@ -313,6 +318,7 @@ than silently left out.
 | `src/lib/agent/ledger-apply.mjs` — the canonical claim-ledger write path (insert / update / delete + a parallel `claim_versions` append), reached through `canonical-pipeline.ts`'s `applyLedgerDiff` during every mint/ground pass | lines 120, 132, 140, 162, 164 |
 | `scripts/_reground/free-pass-run.mjs` (KEEP) | UPDATE — re-attributes a FACT claim to a floor-qualifying capture, line 102 |
 | `scripts/_reground/restore-overclear.mjs` (KEEP) | INSERT — restores a claim erroneously versioned out by the 2026-07-16 over-clear incident, line 41 |
+| `scripts/mint/apply-mint-batch.mjs` (Lane POP, 2026-09-02) | INSERT — one row per `payload.claims[]` entry, in `canonical-pipeline.ts`'s own insert order (not through `ledger-apply.mjs`, which mediates a claim *diff* against an already-minted item's existing ledger; this is the coordinator-apply step for a fresh `--census-rows --grade record` mint batch, the same raw-guarded-write shape mint-run-005/006's own coordinator-apply pass used by hand) | `buildClaimRows` + `ctx.db.guardedInsertMany("section_claim_provenance", ...)` |
 
 Replace policy: guarded insert/update/delete, with every change mirrored into the append-only
 `claim_versions` ledger by `ledger-apply.mjs` (lines 132, 162) — `claim_versions` itself is in
