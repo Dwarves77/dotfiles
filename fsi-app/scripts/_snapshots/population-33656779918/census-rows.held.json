@@ -1,0 +1,59 @@
+[
+  {
+    "row_id": "00bee535-a2fd-42b7-a96a-057557e57f53",
+    "document_url": "https://www.federalregister.gov/documents/2026/06/26/2026-12912/response-to-petition-for-reconsideration-federal-motor-vehicle-safety-standards-seat-belt-assembly",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": "federal_register",
+    "host": "www.federalregister.gov",
+    "fr_type": "Proposed Rule",
+    "reason": "item_type_unmapped"
+  },
+  {
+    "row_id": "00cb7a10-b55c-4087-a88b-389cb86f69b8",
+    "document_url": "https://www.mlit.go.jp/en/maritime/maritime_fr10_000004.html",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": null,
+    "host": "www.mlit.go.jp",
+    "reason": "identity_unmapped_source"
+  },
+  {
+    "row_id": "0188921b-8385-40f2-acc5-cee68ac6acc2",
+    "document_url": "https://www.federalregister.gov/documents/2026/06/22/2026-12437/establishment-of-canadian-area-navigation-route-q-827-amendment-of-jet-route-j-7-and-revocation-of",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": "federal_register",
+    "host": "www.federalregister.gov",
+    "fr_type": "Proposed Rule",
+    "reason": "item_type_unmapped"
+  },
+  {
+    "row_id": "0221bea2-fe3b-488e-a4eb-c7f6cbf7bb09",
+    "document_url": "https://sdir.no/siteassets/engelske-forskrifter-pdf/30-may-2012-no.-488-environmental-safety-for-ships-and-mobile-offshore-units.pdf",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": null,
+    "host": "sdir.no",
+    "reason": "identity_unmapped_source"
+  },
+  {
+    "row_id": "0262aa69-b6f5-4511-9933-4a81947ac7a3",
+    "document_url": "https://www.federalregister.gov/documents/2026/06/30/2026-13191/resolution-submissions-required-for-covered-insured-depository-institutions",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": "federal_register",
+    "host": "www.federalregister.gov",
+    "fr_type": "Proposed Rule",
+    "reason": "item_type_unmapped"
+  },
+  {
+    "row_id": "0485e000-b40c-428b-b7a3-1d7bf0b2621f",
+    "document_url": "https://climate.ec.europa.eu/document/download/a564c02f-1c94-497c-8154-7e1d8e718ba5_en?filename=policy_transport_shipping_gd3_accreditation_and_verification_en.pdf",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": null,
+    "host": "climate.ec.europa.eu",
+    "reason": "identity_unmapped_source"
+  }
+]
