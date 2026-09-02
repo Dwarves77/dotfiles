@@ -128,7 +128,7 @@ jobs:
           git fetch --no-tags origin '+refs/heads/source-sweep/*:refs/remotes/origin/source-sweep/*' || true
           : > /tmp/hydrated-artifacts.txt
           for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/source-sweep/*'); do
-            for f in $(git ls-tree -r --name-only "$b" -- fsi-app/scripts/harness-runs/source-sweep/); do
+            for f in $(git ls-tree -r --full-tree --name-only "$b" -- fsi-app/scripts/harness-runs/source-sweep/); do
               rel="${f#fsi-app/}"
               if [ ! -e "$rel" ]; then
                 mkdir -p "$(dirname "$rel")"

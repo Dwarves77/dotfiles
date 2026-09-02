@@ -7789,3 +7789,17 @@ Other first dispatches the same hour, all green: change-detection #1 (dry), sour
 the run cannot be made green from here. Their artifacts sit on their `<family>/<run_id>` branches, filed on
 issue #520 by the delivery step; they are read and merged in the next train together with the proposer
 passes.
+
+### Addendum 84, postscript 4 — the run_id collision guard had never fired (2026-09-02)
+
+Reading the artifact branches of the day's dispatches: propagation runs #2 and #3 both wrote
+`propagation-run-001.json`; source-sweep #8 and #9 both wrote `source-sweep-run-007.json`. The hydrate step
+every runtime workflow carries runs `git ls-tree -r --name-only "$b" -- fsi-app/scripts/harness-runs/<family>/`
+from `working-directory: fsi-app`; `git ls-tree` resolves that pathspec relative to the current directory,
+so `fsi-app/…` matched nothing, the loop never ran, and every run has printed "hydrated 0". The guard has
+been inert since it was written on 2026-09-01; source-sweep-run-003's "numbered honestly" was the prior
+PR having merged first, a coincidence I recorded as proof. Fixed in all six workflows with `--full-tree`
+(repository-rooted pathspec and output, which the `${f#fsi-app/}` strip and `git show "$b:$f"` were already
+assuming), proven against the live sibling branch from a `fsi-app` cwd, and locked by
+`.discipline/governance/workflow-hydrate-guard.test.mjs`. The colliding artifacts are renumbered when they
+are merged (the later run of each pair takes the next number, recorded in the family's proposer pass).
