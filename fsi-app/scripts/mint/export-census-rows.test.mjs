@@ -245,7 +245,9 @@ test("main() never reads agent_run_searches, sources or intelligence_items whole
   assert.doesNotMatch(src, /readAll\(\s*"agent_run_searches"/);
   assert.doesNotMatch(src, /readAll\(\s*"intelligence_items"/);
   assert.doesNotMatch(src, /readAll\(\s*"sources"/);
-  assert.match(src, /readAll\(\s*"census_worklist"[\s\S]*?match:\s*\{\s*dryrun_disposition:\s*"would_mint"\s*\}/);
+  // readAll's `match` is a FUNCTION over the query builder (db.mjs readAll: `if (match) q = match(q)`); an
+  // object here is what population-turn run 33634495502 died on ("match is not a function").
+  assert.match(src, /readAll\(\s*"census_worklist"[\s\S]*?match:\s*\(q\)\s*=>\s*q\.eq\("dryrun_disposition",\s*"would_mint"\)/);
 });
 
 test("fetchRowsIn chunks the key list and concatenates results", async () => {
@@ -263,4 +265,16 @@ test("selectCensusRows with limit null returns every eligible row", () => {
   const rows = Array.from({ length: 70 }, (_, i) => ({ dryrun_disposition: "would_mint", source_id: "s", document_url: `u${i}`, instrument_identifier: "3" }));
   assert.equal(selectCensusRows(rows, { limit: null }).length, 70);
   assert.equal(selectCensusRows(rows, { limit: 10 }).length, 10);
+});
+
+test("the census read's match is applied to the query builder as a function", async () => {
+  // Drive readAll's real contract with a fake builder: match(q) must return the builder with .eq applied.
+  const src = readFileSync(new URL("./export-census-rows.mjs", import.meta.url), "utf8");
+  const m = /match:\s*(\(q\)\s*=>\s*q\.eq\("dryrun_disposition",\s*"would_mint"\))/.exec(src);
+  assert.ok(m, "match function not found");
+  const fn = new Function(`return (${m[1]});`)();
+  const calls = [];
+  const q = { eq: (c, v) => { calls.push([c, v]); return q; } };
+  assert.equal(fn(q), q);
+  assert.deepEqual(calls, [["dryrun_disposition", "would_mint"]]);
 });

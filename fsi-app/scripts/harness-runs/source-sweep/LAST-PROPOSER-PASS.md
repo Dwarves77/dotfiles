@@ -1,8 +1,8 @@
 # Last proposer pass — source-sweep
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `source-sweep` now has **six** artifacts
-(`source-sweep-run-001` … `source-sweep-run-006`); F28's rule (d) requires this file to name the latest
-verbatim: **source-sweep-run-006**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `source-sweep` now has **eight** artifacts
+(`source-sweep-run-001` … `source-sweep-run-008`); F28's rule (d) requires this file to name the latest
+verbatim: **source-sweep-run-008**.
 
 **Artifacts read:** source-sweep-run-001 (2026-09-01T22:31Z, `sha256:87e06e9784e8e21b`, the driver's
 first execution, dry) and source-sweep-run-002 (2026-09-01T23:00:22Z → 23:00:26Z,
@@ -150,3 +150,23 @@ its artifact reaches master through the issue path when PR creation is refused.
 surfacing under a write-shaped key; the per-day verdict wording is honest ("planned, nothing written").
 Renaming the metric key is a run-source-sweep.mjs change and moves this family's hash; deferred to the
 next sweep change rather than re-pinning for a label.
+
+---
+
+## Pass over source-sweep-run-007 and -008 (coordinator, 2026-09-02)
+
+**Artifacts read:** run-007 (`register-federal-register`, dry, 2026-08-25..31, RULE, GitHub Actions run
+33631502867, `sha256:3c67d9b11afab375`, the hash the marker written at integration was waiting for; marker
+deleted) and run-008 (`feed`, dry, `https://theloadstar.com/feed`, run 33631565002; claimed run-007 because
+the hydrate guard never saw the sibling branch, Addendum 84 postscript 4, renumbered at landing).
+
+**Run-007:** one API page, 85 results, `upserted: 0, planned: 85` (the honest dry metric this family
+adopted after run-006), the Federal Register query URL recorded as evidence. The first walk of the second
+register works end to end; the apply that persists 85 candidates under a Federal Register portal source is
+the next dispatch for this walker (the portal-source resolution the EUR-Lex walker needed in run-003/004
+applies here too and must be read on that apply).
+
+**Run-008:** `ok: false`, HTTP 403 from The Loadstar, 0 entries. The walker reported the refusal as an
+error row rather than an empty feed; correct behaviour. The Loadstar is a trade-news feed registered as a
+source, not a regulatory feed, so the feed walker's first real subject is still open: a regulator's RSS
+(EUR-Lex OJ RSS, EPA news releases, IMO) registered as a source and walked dry.

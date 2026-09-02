@@ -1,0 +1,51 @@
+{
+  "harness_family": "source-sweep",
+  "harness_version": "sha256:3c67d9b11afab375",
+  "run_id": "source-sweep-run-008",
+  "started_at": "2026-09-02T12:44:30.078Z",
+  "finished_at": "2026-09-02T12:44:30.187Z",
+  "config": {
+    "walker": "feed",
+    "mode": "dry",
+    "from": null,
+    "to": null,
+    "feed_url": "https://theloadstar.com/feed",
+    "series": "L",
+    "types": [
+      "RULE"
+    ],
+    "term": null,
+    "max_pages": 5,
+    "per_page": 100,
+    "source_id": "0b049c06-e6aa-483a-ae65-048d1afb0068",
+    "portal_url": "https://theloadstar.com/feed"
+  },
+  "inputs_ref": [
+    "https://theloadstar.com/feed"
+  ],
+  "per_item": [
+    {
+      "id": "https://theloadstar.com/feed",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://theloadstar.com/feed"
+      ],
+      "error": "fetch failed: HTTP 403 for https://theloadstar.com/feed"
+    }
+  ],
+  "metrics": {
+    "feed_url": "https://theloadstar.com/feed",
+    "ok": false,
+    "mode": "dry",
+    "entries": 0,
+    "upserted": 0,
+    "planned": 0,
+    "failed": 0
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/source-sweep/traces/source-sweep-run-008.raw-result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-source-sweep.mjs, the source-sweep family's canonical entry point (RT lane, 2026-09-01) \u2014 the runtime scripts/connections/*.mjs and scripts/mint|forward-events/run-*.mjs already had for their own families, extended to the register-walk.mjs/feed-walk.mjs enumeration modules. RENUMBERED AT LANDING (coordinator, 2026-09-02): this run claimed source-sweep-run-007 because the workflows' hydrate guard never saw the sibling branch (git ls-tree pathspec was cwd-relative; fixed in PR #521); the earlier run keeps source-sweep-run-007, this one is source-sweep-run-008."
+}

@@ -1,0 +1,22 @@
+{
+  "register": "federal-register",
+  "from": "2026-08-25",
+  "to": "2026-08-31",
+  "types": [
+    "RULE"
+  ],
+  "term": null,
+  "pages": [
+    {
+      "page": 1,
+      "url": "https://www.federalregister.gov/api/v1/documents.json?conditions%5Bpublication_date%5D%5Bgte%5D=2026-08-25&conditions%5Bpublication_date%5D%5Blte%5D=2026-08-31&conditions%5Btype%5D%5B%5D=RULE&per_page=100&page=1&order=oldest&fields%5B%5D=html_url&fields%5B%5D=title&fields%5B%5D=type&fields%5B%5D=publication_date&fields%5B%5D=document_number",
+      "results": 85,
+      "upserted": 85
+    }
+  ],
+  "upserted": 85,
+  "failed": 0,
+  "totalCount": 85,
+  "totalPages": 1,
+  "droppedPages": 0
+}
