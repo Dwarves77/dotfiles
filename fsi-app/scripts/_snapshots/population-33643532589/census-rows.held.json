@@ -1,0 +1,284 @@
+[
+  {
+    "row_id": "005059fc-c456-46b5-90b1-213069683063",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32006D0507",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32006D0507"
+  },
+  {
+    "row_id": "00562d45-e809-4cc8-b552-d02f98798cc4",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32009R0663",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32009R0663"
+  },
+  {
+    "row_id": "007e06b8-0bb2-4382-88af-54770b48267b",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R1045",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32025R1045"
+  },
+  {
+    "row_id": "00bee535-a2fd-42b7-a96a-057557e57f53",
+    "document_url": "https://www.federalregister.gov/documents/2026/06/26/2026-12912/response-to-petition-for-reconsideration-federal-motor-vehicle-safety-standards-seat-belt-assembly",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": "federal_register",
+    "host": "www.federalregister.gov",
+    "fr_type": "Proposed Rule",
+    "reason": "item_type_unmapped"
+  },
+  {
+    "row_id": "00cb7a10-b55c-4087-a88b-389cb86f69b8",
+    "document_url": "https://www.mlit.go.jp/en/maritime/maritime_fr10_000004.html",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": null,
+    "host": "www.mlit.go.jp",
+    "reason": "identity_unmapped_source"
+  },
+  {
+    "row_id": "00d455d1-a5cd-4bc8-b420-9e833a1c709c",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019D1741",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32019D1741"
+  },
+  {
+    "row_id": "01087deb-ebba-42b6-90c5-9341e985d7af",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32026D0406",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32026D0406"
+  },
+  {
+    "row_id": "01241df0-a0c6-4ced-bf8e-6c589ecb7ca3",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32008R1272",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32008R1272"
+  },
+  {
+    "row_id": "017b96da-8d4f-4b47-b5f6-c1f79060b16c",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32017R2185",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32017R2185"
+  },
+  {
+    "row_id": "0188921b-8385-40f2-acc5-cee68ac6acc2",
+    "document_url": "https://www.federalregister.gov/documents/2026/06/22/2026-12437/establishment-of-canadian-area-navigation-route-q-827-amendment-of-jet-route-j-7-and-revocation-of",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": "federal_register",
+    "host": "www.federalregister.gov",
+    "fr_type": "Proposed Rule",
+    "reason": "item_type_unmapped"
+  },
+  {
+    "row_id": "0199557b-01c9-4623-b2de-f7aafb7218e5",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R3005",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32024R3005"
+  },
+  {
+    "row_id": "01c9e803-eb50-4704-95f6-09286862dd3b",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D1912",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022D1912"
+  },
+  {
+    "row_id": "01cf2e97-e54b-4cc6-a522-7b26f8ad032c",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32009D1008",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32009D1008"
+  },
+  {
+    "row_id": "0221bea2-fe3b-488e-a4eb-c7f6cbf7bb09",
+    "document_url": "https://sdir.no/siteassets/engelske-forskrifter-pdf/30-may-2012-no.-488-environmental-safety-for-ships-and-mobile-offshore-units.pdf",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": null,
+    "host": "sdir.no",
+    "reason": "identity_unmapped_source"
+  },
+  {
+    "row_id": "0262aa69-b6f5-4511-9933-4a81947ac7a3",
+    "document_url": "https://www.federalregister.gov/documents/2026/06/30/2026-13191/resolution-submissions-required-for-covered-insured-depository-institutions",
+    "instrument_identifier": null,
+    "canonical_instrument_key": null,
+    "scheme": "federal_register",
+    "host": "www.federalregister.gov",
+    "fr_type": "Proposed Rule",
+    "reason": "item_type_unmapped"
+  },
+  {
+    "row_id": "026f2c37-9d8c-4bfa-b737-0ba3a7c921bf",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001D0573",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32001D0573"
+  },
+  {
+    "row_id": "02a230be-c535-4cad-ba1d-553065215d29",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022R2291",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R2291"
+  },
+  {
+    "row_id": "02a8c2d9-8e40-4d47-81c9-a7cf0dd49fe3",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R2473",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32024R2473"
+  },
+  {
+    "row_id": "02b63f35-b219-41c5-8d20-31d9c17ef692",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32009R0729",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32009R0729"
+  },
+  {
+    "row_id": "030370bb-5765-43e4-9346-b3038509bb76",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023D0576",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32023D0576"
+  },
+  {
+    "row_id": "030ee166-20fd-470e-9e37-482d213198b0",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022R0695",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32022R0695"
+  },
+  {
+    "row_id": "033526bc-763e-4120-9e07-a60206d366a2",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015D2428",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32015D2428"
+  },
+  {
+    "row_id": "0336f712-cbdd-451c-abbb-6e696fff752a",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32026D1369",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32026D1369"
+  },
+  {
+    "row_id": "0344e24c-af0e-4cca-9b92-f32ea846e386",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31978H0072",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:31978H0072"
+  },
+  {
+    "row_id": "038d4a2a-5c32-4764-9c8a-1e91aebe1937",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31997D0680",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:31997D0680"
+  },
+  {
+    "row_id": "03921f4f-2944-42f6-b14a-7017ed81964b",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003L0004",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32003L0004"
+  },
+  {
+    "row_id": "0394b736-5157-4807-94e6-650b46b22c55",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31978A0311",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:31978A0311"
+  },
+  {
+    "row_id": "03ab2c6d-1c65-43cb-9830-14b82ece9454",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32021D0921",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32021D0921"
+  },
+  {
+    "row_id": "03d24cad-3d3a-4b61-9e0a-5f0be4a11375",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32012R0100",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32012R0100"
+  },
+  {
+    "row_id": "03f1dc05-0796-404e-9782-690af76817a4",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016D0775",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32016D0775"
+  },
+  {
+    "row_id": "04503fca-afcf-4340-8ebf-9e6e53d06dfc",
+    "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R2904",
+    "reason": "capture_blocked",
+    "http_status": 202,
+    "bytes": 2035,
+    "head": "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript. Enable JavaScript and then reload the page.",
+    "endpoint": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32023R2904"
+  }
+]

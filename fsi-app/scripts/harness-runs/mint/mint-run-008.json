@@ -1,0 +1,165 @@
+{
+  "harness_family": "mint",
+  "harness_version": "sha256:d69988ccf73e5dfd",
+  "run_id": "mint-run-008",
+  "started_at": "2026-09-02T14:41:43.812Z",
+  "finished_at": "2026-09-02T14:41:52.632Z",
+  "config": {
+    "batch_file": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33643532589/census-rows.json",
+    "out_dir": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33643532589",
+    "execute": true,
+    "mode": "execute"
+  },
+  "inputs_ref": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33643532589/census-rows.json"
+  ],
+  "per_item": [
+    {
+      "id": "00250bfb-641b-49c4-89d6-4c70500a4e6b",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 2 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor; [3] fact_below_authority_floor"
+    },
+    {
+      "id": "00352663-b0d8-4d76-b491-ddbc7f21ddd9",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 2 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor; [3] fact_below_authority_floor"
+    },
+    {
+      "id": "003547a0-b766-43ba-8e14-93f04c4306ca",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 2 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor; [3] fact_below_authority_floor"
+    },
+    {
+      "id": "013b9076-9c7a-45f5-b05e-34dae1cf4cf4",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 2 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor; [3] fact_below_authority_floor"
+    },
+    {
+      "id": "01754065-f814-45fc-9c41-c002ef1df21f",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor"
+    },
+    {
+      "id": "01be97b4-b4a1-4750-a692-748ef0190266",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor"
+    },
+    {
+      "id": "0233793f-f2dd-451e-8e3f-9745946f7418",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 2 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor; [3] fact_below_authority_floor"
+    },
+    {
+      "id": "0278fa64-a0b7-4529-a1ea-5c448efab8af",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 2 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor; [3] fact_below_authority_floor"
+    },
+    {
+      "id": "02b485ac-b59c-4119-95d3-d144fcfa2550",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 3 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor; [3] fact_below_authority_floor; [3] fact_below_authority_floor"
+    },
+    {
+      "id": "02da82ff-b1dd-493c-bd99-696e71f62d2e",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 2 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor; [3] fact_below_authority_floor"
+    },
+    {
+      "id": "02f23c29-8e90-43d1-8e02-23dcaece490b",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor"
+    },
+    {
+      "id": "030c00c8-d0d2-4a5a-9537-6eff102259c4",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 2 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor; [3] fact_below_authority_floor"
+    },
+    {
+      "id": "031caee9-1155-4b5e-804a-98be2955b8ff",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 2 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor; [3] fact_below_authority_floor"
+    },
+    {
+      "id": "031fe152-73d8-4cd3-98c8-9a41f22a7130",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 2 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor; [3] fact_below_authority_floor"
+    },
+    {
+      "id": "0330d653-fc0e-4374-9e1a-68138b2250f2",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 2 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor; [3] fact_below_authority_floor"
+    },
+    {
+      "id": "03448261-c9e7-4cf1-b594-2e79cd960167",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor"
+    },
+    {
+      "id": "036b02ff-b763-4790-b2f6-95c6922adc73",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 3 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor; [3] fact_below_authority_floor; [3] fact_below_authority_floor"
+    },
+    {
+      "id": "037f27f8-b80f-40c6-95e3-6bde748eefa6",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 2 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor; [3] fact_below_authority_floor"
+    },
+    {
+      "id": "0476add9-3736-4fc8-8208-0263d6cd062a",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 4 failure(s) — criteria: 3",
+      "evidence_refs": [],
+      "error": "[3] fact_below_authority_floor; [3] fact_below_authority_floor; [3] fact_below_authority_floor; [3] fact_below_authority_floor"
+    }
+  ],
+  "metrics": {
+    "attempted": 19,
+    "valid": 0,
+    "invalid": 19,
+    "build_failed": 0,
+    "validator_first_pass_rate": "0/19 = 0.00%"
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33643532589/census-rows.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33643532589/census-rows.apply-ready.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33643532589/census-rows.mint-batch-report.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-mint-batch.mjs's own execution path (Wave MH-5 — 'emission is in the harness, not the operator,' extended to mint per PROPOSER-RUNBOOK.md §5's named residual). Corpus-outcome metrics (edges_discovered, forward_events_extracted, isolated_items) are not computed by this DB-less runner — see MINT-RUNBOOK.md's post-apply flywheel steps and run this same script again with --outcomes once the coordinator's apply + discovery pass has run."
+}

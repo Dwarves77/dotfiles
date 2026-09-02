@@ -1,0 +1,918 @@
+{
+  "generated_at": "2026-09-02T14:41:52.631Z",
+  "attempted": 19,
+  "results": [
+    {
+      "id": "00250bfb-641b-49c4-89d6-4c70500a4e6b",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"The Ecodesign for Energy-Related Products and Energy Information (Lighting Products) Regulations 2021\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[jurisdictional_scope] The captured source states, verbatim: \"European Union Treaties -------------------------------------------- All Draft Legislation UK Draft Stat\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "00352663-b0d8-4d76-b491-ddbc7f21ddd9",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"The Motor Vehicles (EC Type Approval) (Amendment) Regulations 1997\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[jurisdictional_scope] The captured source states, verbatim: \"Member States may not refuse EEC type approval or national type approval for vehicles which have compli\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "003547a0-b766-43ba-8e14-93f04c4306ca",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"The Hydrocarbon Oil Duties (Reliefs for Electricity Generation) (Amendments for Carbon Price Support) Regulations 2015\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[jurisdictional_scope] The captured source states, verbatim: \"European Union Treaties -------------------------------------------- All Draft Legislation UK Draft Stat\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "013b9076-9c7a-45f5-b05e-34dae1cf4cf4",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"The Electricity (Fuel Mix Disclosure) Regulations 2005\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[jurisdictional_scope] The captured source states, verbatim: \"Member States to ensure that electricity suppliers specify in or with bills and in promotional material\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "01754065-f814-45fc-9c41-c002ef1df21f",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[jurisdictional_scope] The captured source states, verbatim: \"applies to actions that result in actual injury or death to listed species\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "01be97b4-b4a1-4750-a692-748ef0190266",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"Safety Zone; Savannah River, Savannah, GA\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0233793f-f2dd-451e-8e3f-9745946f7418",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"Advancement of the Low Power Television, TV Translator and Class A Television Service\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[penalty_summary] The captured source states, verbatim: \"penalty for failing to comply with a collection of information subject to the Paperwork Reduction Act that does not d\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0278fa64-a0b7-4529-a1ea-5c448efab8af",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"The Heavy Goods Vehicles (Charging for the Use of Certain Infrastructure on the Trans-European Road Network) (Amendment) Regulations 2014\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[jurisdictional_scope] The captured source states, verbatim: \"European Union Treaties -------------------------------------------- All Draft Legislation UK Draft Stat\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "02b485ac-b59c-4119-95d3-d144fcfa2550",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"The Greenhouse Gas Emissions Trading Scheme (Withdrawal Agreement) (EU Exit) Regulations 2020\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[jurisdictional_scope] The captured source states, verbatim: \"European Union Treaties -------------------------------------------- All Draft Legislation UK Draft Stat\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[penalty_summary] The captured source states, verbatim: \"Penalty notices 16\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "02da82ff-b1dd-493c-bd99-696e71f62d2e",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"The Aviation Greenhouse Gas Emissions Trading Scheme (Amendment) Regulations 2011 (revoked)\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[jurisdictional_scope] The captured source states, verbatim: \"Member State should regulate the operator as its “administering Member State”\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "02f23c29-8e90-43d1-8e02-23dcaece490b",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"Safety Zone; Isthmus Cove, Santa Catalina Island, CA\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "030c00c8-d0d2-4a5a-9537-6eff102259c4",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"The Climate Change (Carbon Budget) (Wales) Regulations 2025\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[jurisdictional_scope] The captured source states, verbatim: \"European Union Treaties -------------------------------------------- All Draft Legislation UK Draft Stat\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "031caee9-1155-4b5e-804a-98be2955b8ff",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"The Air Quality (Legislative Functions) (Amendment) Regulations 2021\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[jurisdictional_scope] The captured source states, verbatim: \"European Union Treaties -------------------------------------------- All Draft Legislation UK Draft Stat\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "031fe152-73d8-4cd3-98c8-9a41f22a7130",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"The Climate Change Levy (Solid Fuel) (Revocation) Regulations 2009\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[jurisdictional_scope] The captured source states, verbatim: \"European Union Treaties -------------------------------------------- All Draft Legislation UK Draft Stat\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0330d653-fc0e-4374-9e1a-68138b2250f2",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"The Motor Fuel (Composition and Content) (Amendment) Regulations 2015\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[jurisdictional_scope] The captured source states, verbatim: \"member States\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "03448261-c9e7-4cf1-b594-2e79cd960167",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"Modification of Class E Airspace; Ralph Wien Memorial Airport, Kotzebue, AK\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "036b02ff-b763-4790-b2f6-95c6922adc73",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"The Greenhouse Gas Emissions Trading Scheme and National Emissions Inventory (Amendment) Regulations 2013\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[jurisdictional_scope] The captured source states, verbatim: \"member States\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[penalty_summary] The captured source states, verbatim: \"Penalty for carrying out an unauthorised activity 3\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "037f27f8-b80f-40c6-95e3-6bde748eefa6",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"The Emissions Performance Standard (Amendment) Regulations 2022\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[jurisdictional_scope] The captured source states, verbatim: \"European Union Treaties -------------------------------------------- All Draft Legislation UK Draft Stat\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0476add9-3736-4fc8-8208-0263d6cd062a",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[title] The captured source's own text carries this item's title verbatim: \"The Producer Responsibility Obligations (Packaging Waste) Regulations 1997\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[jurisdictional_scope] The captured source states, verbatim: \"Member States set out in article 6(1) of Directive 94/62/EC and those targets are set out in Schedule 1\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[penalty_summary] The captured source states, verbatim: \"penalties 34\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        },
+        {
+          "criterion": 3,
+          "reason": "fact_below_authority_floor",
+          "claim": "[primary_deadline] The captured source states, verbatim: \"no later than the year 2001 between 50 per cent as a minimum and 65 per cent as a maximum by weight of\"",
+          "source_tier_derived": null,
+          "floor_max": 2
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    }
+  ]
+}
