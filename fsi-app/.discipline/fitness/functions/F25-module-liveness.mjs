@@ -225,6 +225,20 @@ export const LEGACY_ALLOWLIST = [
   // hashHarnessVersion from it directly (its own execution path, per build plan §2's "emission is in the
   // harness"), giving it a real production importer. The entry said to remove it "the same wave those
   // callers land" — this is that wave.
+
+  // ── ADR-024 constants, published for SIBLING LANES landing the same day (2026-09-02) ──
+  {
+    file: 'fsi-app/src/lib/entities/decisions.mjs',
+    reason:
+      'Exports the four ADR-024 decision constants (DRAIN_MODE, ESTIMATE_DISPLAY, FLOOR, ' +
+      'CORRIDOR_ID_SCHEME) as the single source of truth for Lane DP-ENGINE\'s admissible-for.ts/drain.ts ' +
+      '(system-completion-plan-2026-09-02.md §2) and Lane DP-SURF\'s EstimatedFigure, both landing in the ' +
+      'same train after this lane. No importer exists yet because those lanes have not run — this module ' +
+      'is the published contract they build against, not a dormant capability nobody was ever going to ' +
+      'call. Same shape as any interface-first delivery in a multi-lane build; distinguishable from the ' +
+      'seek-more/category-21 class this list otherwise tracks by the concrete, named, same-day consumers.',
+    reviewByPhase: 'system-completion train (operator: remove this entry once Lane DP-ENGINE or DP-SURF lands an import — if neither has by the train\'s close, treat as a real orphan)',
+  },
 ];
 
 const ALLOWED = new Map(LEGACY_ALLOWLIST.map((e) => [e.file, e]));

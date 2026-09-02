@@ -54,7 +54,8 @@ who may write a shared table; the test enforces it on every future PR.
       "src/app/api/admin/triage/pending-jurisdiction-review/route.ts",
       "scripts/mint/run-mint-batch.mjs",
       "scripts/connections/apply-tags.mjs",
-      "scripts/mint/stamp-wo26-archive-reason.mjs"
+      "scripts/mint/stamp-wo26-archive-reason.mjs",
+      "scripts/entities/backfill-entities.mjs"
     ],
     "item_cross_references": [
       "src/lib/intake/mint-item.ts",
@@ -176,6 +177,7 @@ narrow-touch-for-recompute / tombstone-delete), not a data column.
 | `scripts/mint/run-mint-batch.mjs` | **Pre-registered (parallel lane)** — expected mint-batch runner | not yet present |
 | `scripts/connections/apply-tags.mjs` | UPDATE — merges an operator-ratified `derive-tags.mjs` tag proposal onto `operational_scenario_tags`/`compliance_object_tags`/`topic_tags` (never removes an existing tag, never overwrites a non-empty array — only appends absent tags, capped at `derive-tags.mjs`'s `FIELD_CAPS`) via `guardedUpdate`, only for a flag resolved with `resolution_note` containing `ratify:tags` (lane TAG, 2026-09-01 — closes the August-census-wave empty-tag gap so `discover.mjs` can score edges for these items) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, ...)` in `deps.updateItem` |
 | `scripts/mint/stamp-wo26-archive-reason.mjs` (Lane POP, 2026-09-01) | UPDATE — `archive_reason` only, on the 491 WO-26 rows Addendum 28 archived without stamping one | `guardedUpdate("intelligence_items", applyMatch, { archive_reason: ... }, { cite, select })`, `--dry` by default |
+| `scripts/entities/backfill-entities.mjs` (Lane DP-SPINE, 2026-09-02) | UPDATE — `instrument_entity_id` only, per row whose `canonical_instrument_key` resolves to an instrument entity (migration 283's progressive-re-keying FK; ADR-024) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", u.id), { instrument_entity_id: ... }, { cite, select })` in `runInstrument()`; `--dry` by default. This script's OTHER writes (`entities`, `entity_identifiers`, `entity_refs` inserts via `guardedInsertMany`, and a parallel `sources.organisation_entity_id` update) are on tables `docs/inventories/shared-dataset-ownership.md`'s registry does not track — `entities`/`entity_identifiers`/`entity_refs` are new migration-282/283 tables outside the harness/flywheel dataset set this doc scopes to, and `sources` is explicitly named out-of-scope by `.discipline/shared-writer-registry.test.mjs`'s own header ("a write to an unrelated, non-shared table (e.g. agent_runs, **sources**, holdings_quality) is out of this registry's scope by design"). Named here for completeness, not because the registry requires it. |
 
 Replace policy: guarded per-row UPDATE/INSERT (never a bulk replace); DELETE is single-purpose and
 gated behind a tombstone write (see `tombstone-delete.mjs` above) — this is a **guarded delete**, not a

@@ -309,6 +309,16 @@ export const INVARIANTS = [
     residual: 'The selftest extracts the numbered-rules block (anchored on the "Rules for All Output" heading through the first non-numbered line) and the Fields: bullet block (anchored between "Fields:" and "Severity to priority mapping") from both files via regex, normalizes whitespace, and asserts equal rule count/text and equal field-name sets. It proves STRUCTURAL parity of these two specific contract surfaces (rule text, field names) — it does NOT parse or compare the rest of each file (section lists, vocabularies, changelog, etc.), and a rewrite that keeps rule/field text identical while changing surrounding prose elsewhere in either file is not caught by this invariant. contract-version.test.mjs remains the separate, narrower guard for the regeneration_skill_version literal alone.',
   },
 
+  {
+    id: 'EP-14-entity-spine-text-key-ratchet',
+    skill: 'environmental-policy-and-innovation',
+    section: 'Output Formats / Canonical instrument key (dedup-before-grounding identity)',
+    text: 'The "dedup before grounding — entity identity, not title" doctrine EP-11 names for canonical_instrument_key generalises to the whole entity spine (migration 282/283, ADR-024): jurisdiction, instrument, and organisation identity are FK-backed facts (entities/entity_identifiers/entity_refs, instrument_entity_id, organisation_entity_id), not ad-hoc text-key lookups re-derived at each call site. The count of remaining text-keyed reference sites (.eq/.contains on jurisdiction_iso, .eq on canonical_instrument_key, .eq on source_url, ad-hoc new URL(...).host/.hostname host derivation outside the one sanctioned normalizer) must never silently grow — a new text-keyed site next to an FK-backed replacement that already exists for exactly that purpose is the same identity-by-title regression EP-11 exists to prevent, one layer over.',
+    anchor: 'entity identity, not title',
+    enforcedBy: ['fitness:F30', 'selftest:fsi-app/.discipline/fitness/functions/F30-entity-spine.test.mjs'],
+    residual: 'F30 is a ONE-DIRECTIONAL ratchet (regression only fails; improvement passes and is reported as a delta) over a committed per-pattern baseline, filesystem-only against fsi-app/src. It measures CALL-SITE SHAPE (the five named regex patterns), not migration-time identity quality — canonical_instrument_key\'s own uniqueness-among-verified-items guarantee remains EP-11\'s (migration 200 + canonical-key-uniqueness.mjs), unchanged and un-duplicated here. Two of the five baseline counts are non-zero today (source_url_eq: 2, url_host_derivation: 13) — pre-existing sites this lane (DP-SPINE) found but whose owning files are outside its write set (F30-entity-spine.mjs\'s header names each site); the ratchet holds them from growing rather than requiring an immediate rewrite, consistent with ADR-024\'s progressive-re-keying decision (no big-bang rewrite).',
+  },
+
   // ───────────────────────────── source-credibility-model ─────────────────────────────
   {
     id: 'SC-1-syndication-math',

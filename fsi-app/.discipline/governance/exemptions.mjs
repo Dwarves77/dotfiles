@@ -41,6 +41,17 @@ export const EXEMPTIONS = [
     by: 'corridor-identity unit 2026-08-12',
   },
   {
+    match: 'fsi-app/src/lib/entities/entity-id.mjs',
+    kinds: ['writes'],
+    reason:
+      'SAME FALSE POSITIVE as corridor-id.mjs above, same file shape: WRITE_RE matches `.update(` and ' +
+      'entityId() calls createHash("sha256").update(payload) — a crypto digest update, not a Supabase ' +
+      'mutation. The file imports only node:crypto and ../contracts/vocabularies.mjs; it has no DB client ' +
+      'and cannot reach the database. Recorded here rather than left as a phantom gap, per the corridor-' +
+      'id.mjs entry\'s own follow-up note that this class would recur.',
+    by: 'Lane DP-SPINE, system-completion train, 2026-09-02',
+  },
+  {
     match: 'fsi-app/scripts/_diag/',
     reason: 'Read-only diagnostic convention — investigation scripts, no production writes. (A _diag that actually mutates data is itself a smell; rule 015 still scans content.)',
     by: 'operating-mechanism build 2026-06-06',

@@ -651,9 +651,10 @@ anti-solicitation and an anti-collusion control.
 | Six shared vocabularies as frozen enums, 35 tests | **SHIPPED** (PR #451) |
 | Number envelope: `derivation`, as-of triple, zero-fill guard, pp-vs-%, propagate-to-weakest, 30 tests | **SHIPPED** (PR #451) |
 | Freshness derived incl. `frozen`; wired into the Operations fact path | **SHIPPED** (PR #451) |
-| `entities` + crosswalk + corridor + obligation + signpost | DESIGNED, §1 |
+| `entities` + `entity_identifiers` crosswalk + `entity_scope` | **SHIPPED, schema-only** (migration 282/283, Lane DP-SPINE, 2026-09-02 — see [ADR-024](../decisions/ADR-024-decision-propagation.md)); backfilled for jurisdiction/instrument/organisation kinds (`scripts/entities/backfill-entities.mjs`); progressive re-keying FK columns (`instrument_entity_id`, `organisation_entity_id`, `entity_refs`) live beside the existing text keys, held from regressing by F30 |
+| Corridor, obligation, signpost per-kind attribute tables (§1.2) | DESIGNED, §1.2 — not built this lane; `entities` accepts `kind='corridor'`/`'obligation'`/`'signpost'` today with no attribute table yet |
 | Outbox + derivation DAG + governed drain | DESIGNED, §2 |
-| Lifecycle × admissibility state machine; computed decay; the gate | DESIGNED, §3 |
+| Lifecycle × admissibility state machine; computed decay; the gate | DESIGNED, §3 — `FLOOR` values ruled in [ADR-024](../decisions/ADR-024-decision-propagation.md), not yet consumed by a built `admissibleFor()` |
 | Statutory/estimate physical + type + DB + component isolation | DESIGNED, §4 |
 | Antitrust write-time gates + the four attack mitigations | DESIGNED, §5 |
 
