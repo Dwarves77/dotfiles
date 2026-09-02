@@ -160,6 +160,69 @@ test("buildSeriesBoard renders `id: null` (never throws) for a row missing `id`,
   assert.equal(group.series[0].id, null);
 });
 
+// ── buildSeriesBoard: provenance envelope passthrough (Lane SURF, methodology drawer) ──────────────────
+// fetchMarketSeriesBoard's query already selects derivation/origin_class/method_version/n_observations
+// (src/lib/supabase-server.ts:2595) — this only threads them through the display row so the methodology
+// drawer (spec 02 §6 item 10) can render them without a query change.
+
+test("buildSeriesBoard threads derivation/origin_class/method_version/n_observations/unit/currency through to the display row", () => {
+  const rows = [
+    {
+      series_key: "eu-oil-bulletin:automotive-diesel", label: "Diesel", value_numeric: 1543.21,
+      unit: "EUR/1000L", currency: "EUR", reference_period: "2026-08-24", as_at_date: "2026-08-24",
+      derivation: "observed", origin_class: "official", method_version: "v1", n_observations: 27,
+      source_key: "ec_weekly_oil_bulletin", source_ref: "table-3",
+    },
+  ];
+  const board = buildSeriesBoard(rows);
+  const s = board.groups.find((g) => g.keyPrefix === "eu-oil-bulletin").series[0];
+  assert.equal(s.derivation, "observed");
+  assert.equal(s.originClass, "official");
+  assert.equal(s.methodVersion, "v1");
+  assert.equal(s.nObservations, 27);
+  assert.equal(s.unit, "EUR/1000L");
+  assert.equal(s.currency, "EUR");
+  assert.equal(s.sourceKey, "ec_weekly_oil_bulletin");
+  assert.equal(s.sourceRef, "table-3");
+});
+
+test("buildSeriesBoard renders null (never fabricates) provenance fields the row does not carry", () => {
+  const rows = [
+    { series_key: "eu-oil-bulletin:automotive-diesel", label: "Diesel", value_numeric: 1500, unit: "EUR/1000L", currency: "EUR", reference_period: "2026-08-10", as_at_date: "2026-08-10" },
+  ];
+  const board = buildSeriesBoard(rows);
+  const s = board.groups.find((g) => g.keyPrefix === "eu-oil-bulletin").series[0];
+  assert.equal(s.derivation, null);
+  assert.equal(s.originClass, null);
+  assert.equal(s.methodVersion, null);
+  assert.equal(s.nObservations, null);
+});
+
+// ── buildSeriesBoard: comparative-ribbon deltas (Lane SURF, spec 02 §6 item 1) ──────────────────────────
+
+test("buildSeriesBoard attaches deltas computed from the FULL row history for a series_key, not just the latest row", () => {
+  const rows = [
+    { series_key: "eu-oil-bulletin:automotive-diesel", label: "Diesel", value_numeric: 1487.10, unit: "EUR/1000L", currency: "EUR", reference_period: "2026-08-17", as_at_date: "2026-08-17" },
+    { series_key: "eu-oil-bulletin:automotive-diesel", label: "Diesel", value_numeric: 1493.60, unit: "EUR/1000L", currency: "EUR", reference_period: "2026-08-24", as_at_date: "2026-08-24" },
+  ];
+  const board = buildSeriesBoard(rows);
+  const s = board.groups.find((g) => g.keyPrefix === "eu-oil-bulletin").series[0];
+  assert.equal(s.deltas.count, 2);
+  assert.ok(s.deltas.delta1w && !s.deltas.delta1w.insufficientHistory);
+  assert.ok(Math.abs(s.deltas.delta1w.value - 6.5) < 1e-9);
+});
+
+test("buildSeriesBoard on a single observation reports 'one observation, no delta yet' via deltas, never a fabricated delta", () => {
+  const rows = [
+    { series_key: "eu-oil-bulletin:automotive-diesel", label: "Diesel", value_numeric: 1500, unit: "EUR/1000L", currency: "EUR", reference_period: "2026-08-24", as_at_date: "2026-08-24" },
+  ];
+  const board = buildSeriesBoard(rows);
+  const s = board.groups.find((g) => g.keyPrefix === "eu-oil-bulletin").series[0];
+  assert.equal(s.deltas.count, 1);
+  assert.equal(s.deltas.message, "one observation, no delta yet (history backfill pending)");
+  assert.equal(s.deltas.delta1w, null);
+});
+
 test("a producer with rows for ONE of its series still shows state 'populated' for the group as a whole", () => {
   const rows = [
     { series_key: "eu-oil-bulletin:eurosuper-95", label: "Petrol", value_numeric: 1600, unit: "EUR/1000L", currency: "EUR", reference_period: "2026-08-24", as_at_date: "2026-08-24" },

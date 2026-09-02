@@ -37,6 +37,9 @@ import { WatchButton } from "@/components/ui/WatchButton";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { TrajectoryBars } from "@/components/market/TrajectoryBars";
 import { buildCarbonOverlayView } from "@/lib/market/carbon-overlay-view.mjs";
+import { derivePromotionState } from "@/lib/market/signal-promotion.mjs";
+import { stalenessOf } from "@/lib/contracts/envelope.mjs";
+import { FRESHNESS } from "@/lib/contracts/vocabularies.mjs";
 import {
   extractRegulationSections,
   type SourceEntry,
@@ -161,6 +164,45 @@ const SEVERITY_TONE: Record<Severity, { fg: string; bg: string; bd: string }> = 
   monitor: { fg: C.ink2, bg: C.page, bd: C.hairStrong },
 };
 
+// ── Promotion state chip (Lane SURF, spec 02 §2/§9) ──────────────────────
+// Replaces the prior always-true `isSignalType` check. Tone: unclassified/unconfirmed read as the same
+// dashed amber the old unconditional chip used (this surface's own signals ARE early by default); a
+// corroborated signal reads slightly warmer; a promoted FACT is solid, never dashed, and never says
+// "Unverified" — the exact inversion spec 02 §9 names.
+const PROMOTION_TONE: Record<string, string> = {
+  unclassified: C.muted,
+  signal_unconfirmed: C.signal,
+  signal_corroborated: C.quiet,
+  fact: "#15803D",
+};
+
+function PromotionChip({ state }: { state: { code: string; chip: string } }) {
+  const dashed = state.code !== "fact";
+  const tone = PROMOTION_TONE[state.code] ?? C.signal;
+  return (
+    <span
+      style={{
+        fontSize: 10,
+        fontWeight: 800,
+        letterSpacing: "0.09em",
+        textTransform: "uppercase",
+        color: dashed ? tone : "#FFFFFF",
+        background: dashed ? "transparent" : tone,
+        border: dashed ? `1px dashed ${tone}` : `1px solid ${tone}`,
+        borderRadius: 4,
+        padding: "5px 11px",
+      }}
+      title={
+        state.code === "fact"
+          ? "Confirmed by a primary-source origin_class — citable as fact"
+          : "Not yet confirmed by a primary source — dashed, not yet load-bearing"
+      }
+    >
+      {state.chip}
+    </span>
+  );
+}
+
 const SEVERITY_COLUMN_TO_KEY: Record<string, Severity> = {
   action_required: "action",
   cost_alert: "cost",
@@ -270,9 +312,17 @@ export function MarketSignalDetailSurface({
   const independentCiters =
     convergence && convergence.independent_citers > 0 ? convergence.independent_citers : null;
 
-  // A market signal is a SIGNAL by design → dashed "Unverified" epistemic chip.
-  // Bound to the real item_type (routes to Market Intel); never fabricated.
-  const isSignalType = !!r.type;
+  // DEFECT FIXED (Lane SURF, spec 02 §9): the prior check was `isSignalType = !!r.type`, which is
+  // ALWAYS true — the mapper defaults an absent item_type to the string "uncertain" (still truthy), so
+  // every item rendered here got the same "Unverified" chip regardless of what it actually was. Replaced
+  // with a real promotion state (src/lib/market/signal-promotion.mjs): origin_class when the mapper
+  // projects it (not yet — see that module's header) plus the REAL, non-fabricated corroboration count
+  // already computed above. Never promotes to "fact" from corroboration alone (spec 02 §2).
+  const originClass = (r as { originClass?: string | null }).originClass ?? null;
+  const promotion = useMemo(
+    () => derivePromotionState({ originClass, independentCiters }),
+    [originClass, independentCiters]
+  );
 
   const jurisdictionLabels =
     r.jurisdictionIso && r.jurisdictionIso.length > 0
@@ -363,23 +413,7 @@ export function MarketSignalDetailSurface({
             <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end" }}>
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <SeverityChip severity={severity} />
-                {isSignalType && (
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 800,
-                      letterSpacing: "0.09em",
-                      textTransform: "uppercase",
-                      color: C.signal,
-                      border: `1px dashed rgba(180,83,9,0.45)`,
-                      borderRadius: 4,
-                      padding: "5px 11px",
-                    }}
-                    title="Market signals are unverified early reports by design — dashed, not yet load-bearing"
-                  >
-                    Unverified · early report
-                  </span>
-                )}
+                <PromotionChip state={promotion} />
                 <span
                   style={{
                     fontSize: 10,
@@ -562,7 +596,7 @@ export function MarketSignalDetailSurface({
           <SideCard label="Signal">
             <KV k="Band" v={`B${BAND_NUM[band]} · ${BAND_LABEL[band]}`} />
             <KV k="Severity" v={<span style={{ fontWeight: 800, color: SEVERITY_TONE[severity].fg }}>{SEVERITY_LABEL[severity]}</span>} />
-            <KV k="Status" v={<span style={{ fontWeight: 700, color: C.signal }}>Unverified</span>} />
+            <KV k="Status" v={<span style={{ fontWeight: 700, color: PROMOTION_TONE[promotion.code] }}>{promotion.label}</span>} />
             {independentCiters !== null && <KV k="Corroboration" v={`${independentCiters} source${independentCiters === 1 ? "" : "s"}`} />}
             <KV k="Jurisdiction" v={jurisLabel || "Global"} />
             {r.topic && <KV k="Topic" v={r.topic} />}
@@ -572,6 +606,12 @@ export function MarketSignalDetailSurface({
           <SideCard label="Next data drops">
             {nextDrops.length > 0 ? (
               <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", gap: 8 }}>
+                {/* Lane SURF (spec 02 §9): the dates below are a cadence estimate stored on the row,
+                    not a scheduler confirmation — no scheduler runs published_price_statistics (see
+                    PriceBoard's own note). Stated plainly rather than presented as confirmed. */}
+                <p style={{ fontSize: 9.5, color: C.muted, margin: "0 0 2px", lineHeight: 1.4 }}>
+                  Cadence estimates, not scheduler-confirmed dates.
+                </p>
                 {nextDrops.map((d, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: C.ink }}>{d.label}</span>
@@ -661,14 +701,37 @@ function PriceBoard({ stats }: { stats: PriceStat[] }) {
           );
         })}
       </div>
+      {/* DEFECT FIXED (Lane SURF, spec 02 §9): this line used to print "Next release: <date>" — a
+          claim spec 02 §9 calls dishonest because no scheduler runs published_price_statistics (it is
+          populated by a hand-run script; see that table's own producer). A predicted date is a promise
+          this product cannot keep. Replaced with the SHIPPED freshness-derived function
+          (src/lib/contracts/envelope.mjs stalenessOf) — with no registered cadence for this table, it
+          honestly resolves to "unknown" rather than asserting a next-release date this surface has no
+          scheduler to back. */}
       <p style={{ fontSize: 10.5, color: C.muted, margin: "8px 0 0" }}>
         Figures are published statistics{stats.some((s) => s.releasedAt) ? ` (release ${shortDate(stats.find((s) => s.releasedAt)!.releasedAt!)})` : ""} — not live ticks.
-        {stats.some((s) => s.nextReleaseAt) && (
-          <> Next release: {shortDate(stats.find((s) => s.nextReleaseAt)!.nextReleaseAt!)}.</>
-        )}
+        {" "}
+        {FRESHNESS[priceBoardFreshness(stats)]?.label ?? "Refresh cadence unknown"} — no scheduler runs this
+        feed, so no next-release date is asserted.
       </p>
     </div>
   );
+}
+
+/**
+ * Freshness across a PriceBoard's stats, via the shipped freshness-derived function. No registry entry
+ * backs published_price_statistics (a hand-maintained table, distinct from market_series's registry
+ * producers — series-freshness.mjs's own header), so `expected_refresh` is always absent here and this
+ * always resolves to "unknown" today; written as a real call (not a hard-coded string) so the day this
+ * table gains a registered cadence, this line starts telling the truth about degradation automatically.
+ */
+function priceBoardFreshness(stats: PriceStat[]): keyof typeof FRESHNESS {
+  const withRelease = stats.find((s) => s.releasedAt);
+  if (!withRelease?.releasedAt) return "unknown";
+  return stalenessOf(
+    { expected_refresh: null, as_of: { event_date: withRelease.releasedAt, source_published_at: withRelease.releasedAt } },
+    new Date().toISOString().slice(0, 10)
+  ) as keyof typeof FRESHNESS;
 }
 
 // ── Drivers & trajectory tab ────────────────────────────────────────────
