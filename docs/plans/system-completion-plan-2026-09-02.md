@@ -17,7 +17,7 @@ runs the corpus and the EUR-Lex register. Everything that still runs only by han
 | 4 | Market producers | `ecb-fx` fully implemented, `ENABLED=false`, `data_sources` has no `ecb` row (FK gate); `eia-v2` implemented, no workflow step, needs `EIA_API_KEY` secret; `series-registry.mjs` says eia-v2 `implemented:false` (stale) [CONFIRMED] | `market_series`: 6 series keys, 1 row each (oil bulletin) [CONFIRMED live] |
 | 5 | Market Intel surface | spec §6 lists 12 components; freshness panel, methodology drawer, comparative read absent; "Unverified" chip unconditional (`isSignalType = !!r.type`) [CONFIRMED, `docs/specs/02-market-intel.md` §9] | — |
 | 6 | FR / feed first walks | walkers built, never dispatched [CONFIRMED, harness records] | — |
-| 7 | Decision propagation (spec 08) | every table/function unbuilt; no ADR; three §8 product decisions unset (`FLOOR[use]`, drain granularity, estimate-in-decisions) [CONFIRMED, scout over 694 lines] | no `entities` table |
+| 7 | Decision propagation (spec 08) | every table/function unbuilt; no ADR; §8 decisions unset [CONFIRMED, scout over 694 lines]. Operator ruling 2026-09-02: build it in this train; coordinator sets the §8 decisions in ADR-024 | no `entities` table |
 
 ## 1. Rulings this plan is built under
 
@@ -132,22 +132,100 @@ promotion state the spec names, not `!!r.type`; (d) comparative ribbon Δ1w/Δ1m
 ≥2 points exist per series and rendered as "one observation, no delta yet" otherwise (the live table has 1 row per
 series [CONFIRMED]). No new tables, no RPC changes. `tsc` clean, `next build` not required in-lane.
 
-### Not a lane — operator decisions and dispatches
+### Lane SPEND — the classify path joins the spend chokepoint
 
-- Decision propagation (spec 08): NOT built in this train. Reasons, all confirmed by the scout: no `entities`
-  table and no ADR; the spec's own §8 says the confidence floors "should not be picked by whoever writes the
-  code"; §1.3 requires re-keying every text reference to `entity_id` (repo-wide). The build-ready next step is a
-  design spike that the operator commissions: answer §8 items 1–3, write the ADR, prototype `entities` +
-  `entity_identifiers` DDL. Deliverable when commissioned: `docs/decisions/ADR-024-decision-propagation.md`.
-- Operator-only: enable "Allow GitHub Actions to create and approve pull requests"; create `EIA_API_KEY`
-  secret; confirm `APP_URL`/`WORKER_SECRET` still valid.
+Write set: `fsi-app/src/lib/llm/first-fetch-classify.ts`, `fsi-app/src/lib/llm/spend-client.ts`,
+`fsi-app/.discipline/governance/secrets-registry.mjs`, `docs/ops/secrets-topology.md`,
+`fsi-app/scripts/lib/run-artifact.test.mjs`, `fsi-app/.discipline/fitness/functions/F28-harness-run-integrity.test.mjs`
+(the CONVENTION-parity assertion only), tests under `fsi-app/src/lib/llm/`.
+
+Build: `firstFetchClassify` makes a raw `fetch` to Anthropic with no ticket and no `agent_runs` row, although
+"first-fetch-classify" is a registered standing ticket class [CONFIRMED, Lane CONSUME report]. Route it through
+the spend client's Haiku call path so every classify leaves the same telemetry row every other paid call does,
+keep the function signature stable for its callers, and delete the driver-side logging wrapper Lane CONSUME had to
+add once the chokepoint covers it (coordinator does that deletion at integration). Register `ANTHROPIC_API_KEY` in
+the workflow-secrets registry and topology doc. Make `run-artifact.test.mjs`'s family assertion and F28's
+CONVENTION-parity assertion derive from `ALLOWED_FAMILIES` instead of hardcoding the list, so adding a family
+is one edit.
+
+### Lane DP-SPINE — the entity spine (spec 08 §1)
+
+Write set: `docs/decisions/ADR-024-decision-propagation.md`, `fsi-app/supabase/migrations/282_entities.sql`,
+`283_entity_fk_columns.sql`, `fsi-app/scripts/entities/backfill-entities.mjs` (+ test),
+`fsi-app/src/lib/entities/` (id builder, kind vocabulary, crosswalk helpers, tests),
+`fsi-app/.discipline/fitness/functions/F30-entity-spine.mjs` (+ test), `docs/specs/08-flywheel-design.md` §6 status
+lines only.
+
+Decisions recorded in ADR-024 (operator ruling 2026-09-02: "if you decide that it needs to be done, we do it";
+coordinator-set, each overridable by editing the named constant): (1) drain granularity: batch to a quiescent point;
+(2) estimates back customer-visible ranges only, break-even given equal billing to the point; (3) floors
+`FLOOR = { analysis: 0.50, calculation: 0.75, filing: 0.90 }`; (4) corridor identity: UN/LOCODE port-pair + mode,
+`cl:corridor:<sha256-16 of "ORIGIN-DEST:mode">`.
+
+Build: `entity_kind` enum, `entities`, `entity_identifiers` exactly as §1.1 (constraints included). Progressive
+re-keying, not a big-bang rewrite: nullable `entity_id` FK columns added beside the existing text keys on
+`intelligence_items` (`instrument_entity_id`, `jurisdiction_entity_id`), `sources` (`organisation_entity_id`),
+`regions` (`jurisdiction_entity_id`), `emission_factors` (`corridor_entity_id` stays text per migration 258; do not
+touch). Backfill script (dry default, `--apply` through `scripts/lib/db.mjs`): jurisdictions from ISO codes
+present in items/regions, instruments from `canonical_instrument_key` (CELEX/ELI crosswalk rows), organisations
+from `sources` hosts (scheme `HOST`, and `LEI` where `data_sources`/GLEIF rows already carry one). F30 = the
+falsification test §7.1 in measurable form: counts text-keyed rows whose FK column is still null per table and
+fails only on regression (the count may not rise between two commits; baseline file in the fitness dir).
+
+### Lane DP-ENGINE — propagation engine, state machine, isolation, antitrust (spec 08 §2–§5)
+
+Depends on DP-SPINE. Write set: `fsi-app/supabase/migrations/284_propagation_outbox.sql`,
+`285_derivation_dag_and_derived_values.sql`, `286_statutory_and_estimates.sql`, `287_sensitive_aggregates.sql`,
+`fsi-app/src/lib/propagation/` (types, `admissible-for.ts` with `FLOOR`, `effective-confidence.mjs`,
+`drain.ts` = `runPropagationDrain(caller, {mode, batch})`, `register-derivation.ts`, tests),
+`fsi-app/scripts/turns/run-propagation-drain.mjs` (+ test), `.github/workflows/propagation-drain.yml`,
+`fsi-app/scripts/harness-runs/propagation/PENDING-RUN.md`, family registration lines, F31 (no read of
+`derived_values` outside `src/lib/propagation/`), F32 (statutory purity: a fixture insert whose input graph touches an
+estimate must fail).
+
+Build, per the spec text: outbox table + `emit_propagation_event()` trigger attached to `emission_factors`,
+`market_series`, `regional_data_facts`, `derived_values`; `derivation_edges` + `assert_acyclic()`;
+`derived_values` with `lifecycle`, `admissibility`, `origin_class`, `derivation`, `method_id/version`,
+`base_confidence`, `asserted_at`, `half_life_days`, retained history (new row per recompute, `supersedes`);
+`effective_confidence()` SQL as §3.2; `statutory_computations` and `estimated_values` as §4 Layer 1 with the
+`assert_statutory_purity()` trigger (Layer 3); `sensitive_field_policy`, `publish_aggregate()` SECURITY DEFINER with
+k ≥ 5 and the overlapping-cohort refusal via `aggregate_query_log` (§5). RLS: application role reads
+`derived_values_admissible` view only. Drain: batch to quiescent point, topological order over the DAG, recompute
+via registered method functions (`src/lib/propagation/methods/`), `dry` reports the closure without writing.
+Workflow dispatch-only, same scaffold as `source-sweep.yml`.
+
+### Lane DP-SURF — the surfaces the engine feeds
+
+Depends on DP-ENGINE. Write set: `fsi-app/src/lib/operations/automate-vs-hire.mjs` (+ test),
+`fsi-app/src/lib/market/carbon-intensity.mjs` (+ test), `fsi-app/src/lib/propagation/methods/*.mjs`,
+`fsi-app/src/components/figures/StatutoryFigure.tsx`, `EstimatedFigure.tsx`, `RecalculationNotice.tsx`,
+`fsi-app/src/app/operations/**` (calculator section only), `fsi-app/src/app/market/[slug]/**` (carbon-intensity
+block only), `fsi-app/src/app/api/notices/route.ts`, `fsi-app/scripts/propagation/seed-derived-values.mjs` (+ test).
+
+Build: (a) Operations automate-vs-hire: inputs from `regional_data_facts` (BLS OEWS wages, Eurostat energy prices,
+both producers armed) plus reader-entered capex/throughput; outputs npv, payback, break-even wage as
+`estimated_values` rows with `derivation_edges` to their input facts; rendered with `EstimatedFigure` as a range,
+break-even with equal billing (ADR-024 §2). (b) Carbon intensity per tonne-km by mode and jurisdiction from
+`emission_factors` (`wtw_co2e`, `quantity_basis`) as `derived_values` (`derivation: calculated`,
+`origin_class: derived`), on the market signal detail. (c) FuelEU Maritime Annex IV penalty as the first
+`statutory_computations` method (formula and constants cited to the regulation; reader supplies compliance balance
+and energy) rendered with `StatutoryFigure`; the lane must verify the current Annex IV formula and unit price
+against EUR-Lex and label anything unconfirmed. (d) Recalculation notices: `GET /api/notices` returns derived values
+superseded since the reader's last visit for entities on the org's `org_watchlist`, rendered by
+`RecalculationNotice` with both versions, the spec's step 4. (e) `seed-derived-values.mjs` computes the initial
+closure so the first drain has real dependents.
+
+### Not a lane — operator-only
+
+- Enable "Allow GitHub Actions to create and approve pull requests"; create `EIA_API_KEY` secret; confirm
+  `APP_URL`/`WORKER_SECRET` still valid.
 - Dispatches after landing (coordinator, browser): `ledger-consume` plan, `population-turn` dry then apply
   (limit 50, `--capture`), `change-detection` dry, `source-sweep` `register-federal-register` dry and `feed`
   dry, `producers` `ecb-fx` dry then apply. Each artifact read against the live table before the next.
 
 ## 3. Integration and gates
 
-1. Merge lanes onto `train/system-completion` in order CONSUME, POP, CD, PROD, SURF; resolve the family-registry
+1. Merge lanes onto `train/system-completion` in order CONSUME, SPEND, POP, CD, PROD, SURF, DP-SPINE, DP-ENGINE, DP-SURF; resolve the family-registry
    touch points; add `meta-harness-run-007` + proposer pass (run-artifact.mjs and F28 are meta-harness governing
    files); source-sweep `LAST-PROPOSER-PASS.md` updated to name run-006 (branch `source-sweep/33575226376`, issue
    #516, merged into this train).
@@ -163,4 +241,5 @@ series [CONFIRMED]). No new tables, no RPC changes. `tsc` clean, `next build` no
   and the 31-row no-holder set is the only immediately captured, unminted slice; the rest needs `--capture` runs.
 - It does not arm anything: every workflow is dispatch-only; `ecb-fx` needs the operator's PR merge as its
   reviewed-change gate and a dry run on the runner before its first apply.
-- It does not build spec 08.
+- Spec 08 is built as three chained lanes (SPINE → ENGINE → SURF); the entity re-keying is progressive (FK columns
+  beside text keys, F30 forbids regression), not a one-commit rewrite of every reference.
