@@ -225,15 +225,15 @@ function capRows(rows, limit) {
 }
 
 export async function existingEntityIdSet() {
-  const rows = await readAll("entities", "entity_id");
+  const rows = await readAll("entities", "entity_id", { orderBy: "entity_id" }); // PK is entity_id, not id (found by propagation-drain run 33627113501)
   return new Set(rows.map((r) => r.entity_id));
 }
 export async function existingIdentifierKeySet() {
-  const rows = await readAll("entity_identifiers", "entity_id,scheme,value");
+  const rows = await readAll("entity_identifiers", "entity_id,scheme,value", { orderBy: "entity_id" });
   return new Set(rows.map((r) => `${r.entity_id}|${r.scheme}|${r.value}`));
 }
 export async function existingRefKeySet() {
-  const rows = await readAll("entity_refs", "ref_table,ref_id,entity_id,role");
+  const rows = await readAll("entity_refs", "ref_table,ref_id,entity_id,role", { orderBy: "entity_id" });
   return new Set(rows.map((r) => `${r.ref_table}|${r.ref_id}|${r.entity_id}|${r.role}`));
 }
 
