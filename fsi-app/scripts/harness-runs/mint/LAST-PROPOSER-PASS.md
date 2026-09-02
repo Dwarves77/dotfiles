@@ -1,7 +1,17 @@
 # Last proposer pass — mint
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **eleven** artifacts (`mint-run-001` …
-`mint-run-011`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-011**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **twelve** artifacts (`mint-run-001` …
+`mint-run-012`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-012**.
+
+## Pass of 2026-09-02, late (mint-run-012 — the second slice, clean)
+
+**Artifact read:** mint-run-012 (population-turn run 33659080799, apply, limit 50): attempted 39, valid
+39, `minted_verified` 39, `apply_failed` 0, census rows reconciled 39; harness_version
+`sha256:36ee951c38941943` — the hash PENDING-RUN named, so that marker is discharged (deleted here).
+**Live read:** 92 record-grade items `verified`, not archived (53 + 39). Nothing to propose from this
+artifact; the guillemet delimiter removed the one kit failure class of run #9 (0/39 this time). The
+sizing observation stands: 39 of 50 selected rows exported (11 held, the same three FR types and unmapped
+hosts as before), so a limit-50 dispatch lands ~40 items; the census has ~3,500 `would_mint` rows left.
 
 ## Pass of 2026-09-02, night (mint-run-011 — the first apply that landed verified items)
 

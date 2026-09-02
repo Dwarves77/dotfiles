@@ -27,6 +27,7 @@
 
 import type { Value, Use } from "@/lib/propagation/types.ts";
 import { admissibleFor } from "@/lib/propagation/admissible-for.ts";
+import { formatRange } from "@/lib/figures/format-range.mjs";
 
 export interface EstimatedFigureCompanion {
   label: string;
@@ -34,6 +35,9 @@ export interface EstimatedFigureCompanion {
   point: number | null;
   high: number | null;
   unit: string | null;
+  /** The companion's OWN currency, when it is a money figure. A companion never inherits the primary
+   *  figure's currency (a payback period is years even when the NPV is USD — /operations, 2026-09-02). */
+  currency?: string | null;
   /** Named refusal reason when this companion metric has no value at this input point (e.g.
    *  automate-vs-hire.mjs's REFUSAL.NO_HOUR_SAVINGS / REFUSAL.NEVER_PAYS_BACK) — rendered instead of a
    *  blank or a fabricated zero. */
@@ -52,14 +56,6 @@ export interface EstimatedFigureProps {
   now?: Date;
 }
 
-function formatRange(low: number | null, point: number | null, high: number | null, unit: string | null, currency: string | null): string {
-  const fmt = (n: number | null) => (n === null || !Number.isFinite(n) ? "—" : n.toLocaleString(undefined, { maximumFractionDigits: Math.abs(n) >= 1000 ? 0 : 2 }));
-  const suffix = currency ? "" : unit ? ` ${unit}` : "";
-  const prefix = currency ? `${currency} ` : "";
-  if (low === null && high === null) return `${prefix}${fmt(point)}${suffix}`;
-  return `${prefix}${fmt(low)}${suffix} – ${prefix}${fmt(point)}${suffix} – ${prefix}${fmt(high)}${suffix}`;
-}
-
 function badge(text: string, bg: string, fg: string) {
   return (
     <span className="cl-badge" style={{ background: bg, color: fg, borderColor: bg }}>
@@ -71,8 +67,8 @@ function badge(text: string, bg: string, fg: string) {
 export function EstimatedFigure({ figure, label, companions = [], pedigreeNote, use = "analysis", now = new Date() }: EstimatedFigureProps) {
   const verdict = admissibleFor(figure, use, now);
   const cards = [
-    { label, low: figure.valueLow, point: figure.value, high: figure.valueHigh, unit: figure.unit, refusal: null as string | null },
-    ...companions,
+    { label, low: figure.valueLow, point: figure.value, high: figure.valueHigh, unit: figure.unit, currency: figure.currency, refusal: null as string | null },
+    ...companions.map((c) => ({ ...c, currency: c.currency ?? null })),
   ];
 
   return (
@@ -100,7 +96,7 @@ export function EstimatedFigure({ figure, label, companions = [], pedigreeNote, 
                 <div className="cl-card-body" style={{ color: "var(--color-text-muted)", fontStyle: "italic" }}>{c.refusal}</div>
               ) : (
                 <div className="cl-stat-number" style={{ fontSize: 20 }}>
-                  {formatRange(c.low, c.point, c.high, c.unit, figure.currency)}
+                  {formatRange(c.low, c.point, c.high, c.unit, c.currency)}
                 </div>
               )}
             </div>

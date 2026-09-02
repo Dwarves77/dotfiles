@@ -53,11 +53,11 @@ const INITIAL_STATE: FormState = {
 const FIELDS: Array<{ key: keyof FormState; label: string; step?: number; suffix?: string }> = [
   { key: "capexUsd", label: "Capex (USD)", step: 1000, suffix: "USD" },
   { key: "annualThroughputUnits", label: "Annual throughput (units)", step: 100 },
-  { key: "labourCostPerHour", label: "Wage (USD/hour)", step: 0.5, suffix: "USD/hr" },
-  { key: "hoursPerUnitManual", label: "Hours per unit — manual", step: 0.01 },
-  { key: "hoursPerUnitAutomated", label: "Hours per unit — automated", step: 0.01 },
+  { key: "labourCostPerHour", label: "Loaded labour rate (USD/hour)", step: 0.5, suffix: "USD/hr" },
+  { key: "hoursPerUnitManual", label: "Hours per unit — current process", step: 0.01 },
+  { key: "hoursPerUnitAutomated", label: "Hours per unit — with the investment", step: 0.01 },
   { key: "energyPricePerKwh", label: "Energy price (USD/kWh)", step: 0.01, suffix: "USD/kWh" },
-  { key: "kwhPerUnitAutomated", label: "kWh per unit — automated", step: 0.01 },
+  { key: "kwhPerUnitAutomated", label: "kWh per unit — with the investment", step: 0.01 },
   { key: "maintenancePctOfCapex", label: "Maintenance (% of capex/yr)", step: 0.01 },
   { key: "discountRate", label: "Discount rate", step: 0.01 },
   { key: "horizonYears", label: "Horizon (years)", step: 1 },
@@ -125,13 +125,18 @@ export function AutomateVsHireCalculator() {
   }
 
   return (
-    <section className="cl-card" style={{ padding: "20px 22px", marginTop: 24 }} aria-labelledby="automate-vs-hire-heading">
-      <h2 id="automate-vs-hire-heading" className="cl-page-title" style={{ fontSize: 17, marginBottom: 4 }}>
-        Automate vs. hire
+    <section className="cl-card" style={{ padding: "20px 22px", marginTop: 24 }} aria-labelledby="capacity-investment-heading">
+      {/* Customer-facing wording (operator ruling 2026-09-02): this is a capacity-investment estimate, not
+          "automate vs. hire" — that phrasing frames equipment against people and reads badly to the
+          workforce the reader manages. The method id and module keep their registry names
+          (automate_vs_hire@1.0.0 is a persisted key); only what a reader sees changed. */}
+      <h2 id="capacity-investment-heading" className="cl-page-title" style={{ fontSize: 17, marginBottom: 4 }}>
+        Capacity investment estimate
       </h2>
       <p className="cl-card-body" style={{ marginBottom: 16 }}>
-        A live estimate — NPV, payback and break-even wage, all three with equal billing (ADR-024: never a
-        bare point). Adjust any input; every field recomputes instantly, entirely in your browser.
+        What an equipment investment returns against your current handling cost — NPV, payback and the
+        labour-rate break-even, all three with equal billing (ADR-024: never a bare point). Adjust any
+        input; every field recomputes instantly, entirely in your browser.
       </p>
 
       <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", marginBottom: 20 }}>
@@ -171,7 +176,7 @@ export function AutomateVsHireCalculator() {
             refusal: scenario.paybackYears.point === null && !scenario.refusal ? "Never pays back at this input point." : null,
           },
           {
-            label: "Break-even wage",
+            label: "Break-even labour rate",
             low: scenario.breakEvenWagePerHour.low,
             point: scenario.breakEvenWagePerHour.point,
             high: scenario.breakEvenWagePerHour.high,
