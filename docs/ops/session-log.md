@@ -7904,3 +7904,38 @@ at 10 and halves any chunk the API cancels, down to single rows (a cancelled sta
 and the match is re-applied on every attempt, so nothing is half-done); a non-timeout error still
 propagates. Test locks the halving sequence. The 50 rows already stamped are idempotent under the match.
 
+### Addendum 84, postscript 10 — run #8, the first apply that wrote: 10 items, all quarantined; one bare row; the write order was wrong (2026-09-02)
+
+Operator, mid-run: "this is happening over and over, do not repeat the same steps, find a solution by
+not guessing and look at exactly why it's failing." Every failure was read from the log and the live
+database before anything changed; none was a retry. Run 33653378846 (apply): the WO-26 stamp finished
+(491/491 live), the gate passed 45/45 (`mint-run-010`), and the apply wrote 11 items then died.
+
+Read from the rows: all 10 complete items carried `provenance_status = 'quarantined'` while
+`validate_item_provenance(id)` returned `(t,[],verified)` for them. Read from the trigger inventory:
+`set_provenance_status` fires on inserts to `intelligence_item_sections` and `section_claim_provenance`
+and on nothing after them; canonical-pipeline.ts (~line 1733) writes `item_gate_a_state` BEFORE the
+claims for exactly that reason; `apply-mint-batch.mjs` wrote it after, so the last derivation saw no gate
+row and its stamp stuck. Its artifact said `minted_verified` because the outcome came from the RPC, a pure
+function. The 11th item died on `agent_run_searches`: Postgres refused a U+0000 in the Federal Register
+raw text ("unsupported Unicode escape sequence"; the stored search rows cannot even be searched for it,
+"null character not permitted"), and the loop had no per-payload boundary, so the batch aborted with a
+bare item behind it (zero children, counted).
+
+Fixed, with tests: gate A before the claims; the outcome follows the ROW's `provenance_status` (the RPC
+verdict is recorded beside it); a failure after the item row deletes the partial item through
+`guardedDelete` (every child FK cascades, inventoried live), records `apply_failed` with the cleanup
+result, and the batch continues; the artifact's metrics carry `minted_verified` / `minted_unverified` /
+`apply_failed` with a defect per class; `stripHtmlToText` drops U+0000 at capture;
+`rederive-record-provenance.mjs` (new, runs after apply in `population-turn.yml`) re-fires the derivation
+on record-grade rows whose stamp is stale against the function, through the guarded path, never writing
+the status itself. A touch on one of the 10 re-derived to `verified` in 31 ms in a rolled-back
+transaction, so the step's mechanism is measured, not assumed. The one bare row (`fb465e8f`) was deleted
+by the coordinator as postgres with the prior row recorded in
+`scripts/_snapshots/coordinator/2026-09-02_partial-item-fb465e8f.json` (the same reversal shape
+`guardedDelete` writes; the container holds no service credentials); its census row was never
+reconciled, so the next apply re-exports it through the fixed path. MINT-RUNBOOK §11 carries the findings
+table; PENDING-RUN re-stamped (`sha256:2aa3acb86dc8a0a0`, runbook prose only), proposer pass names
+mint-run-010. On the word "API" in my status messages: it meant the project's own Supabase data
+connection (`db.mjs`), never the Anthropic API; nothing in the population path is paid or LLM.
+

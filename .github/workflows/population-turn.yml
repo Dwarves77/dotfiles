@@ -227,6 +227,14 @@ jobs:
           if [ "${{ inputs.mode }}" = "apply" ]; then args+=(--apply); fi
           node scripts/mint/apply-mint-batch.mjs "${args[@]}"
 
+      # Post-apply reconciliation: a record-grade row whose provenance_status is stale against what
+      # validate_item_provenance derives now is touched through the guarded path so the trigger re-derives
+      # it (run #8, 2026-09-02: ten items stamped quarantined before their gate row existed). Dry in dry
+      # mode (lists), apply in apply mode. Never sets the status itself.
+      - name: rederive-record-provenance.mjs (heal stale provenance stamps — apply only in apply mode)
+        run: |
+          if [ "${{ inputs.mode }}" = "apply" ]; then node scripts/mint/rederive-record-provenance.mjs --apply; else node scripts/mint/rederive-record-provenance.mjs; fi
+
       # ALWAYS --dry — signature-tag ratification is Lane TAG's own operator-gated write path (out of
       # this workflow's scope). This step only surfaces newly-minted census items' empty connection tags
       # as integrity_flags proposals an operator can review and ratify later; it writes nothing itself in

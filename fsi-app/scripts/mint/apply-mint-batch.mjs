@@ -22,9 +22,19 @@
 //     facts; it only READS that table."
 // So mintIntelligenceItem() cannot rehydrate a mint payload end to end — calling it would insert a bare
 // intelligence_items shell and leave every claim, section, and search result behind. This script instead
-// writes in the canonical-pipeline.ts insert order (grep `.from("` in that file: intelligence_items ->
-// agent_run_searches -> intelligence_item_sections -> section_claim_provenance -> item_gate_a_state ->
-// intelligence_item_citations, then `rpc("validate_item_provenance", ...)` around line 1873) through
+// writes in the canonical-pipeline.ts insert order: intelligence_items -> agent_run_searches ->
+// intelligence_item_sections -> item_gate_a_state -> section_claim_provenance -> intelligence_item_citations,
+// then `rpc("validate_item_provenance", ...)` (around line 1873). GATE A BEFORE THE CLAIMS is the part
+// that matters and the part this script first got wrong (population-turn run #8, 2026-09-02, the first
+// live apply: 10 items minted, every one `quarantined`): canonical-pipeline.ts ~line 1733 upserts
+// item_gate_a_state "BEFORE applyLedgerDiff's claim writes fire the set_provenance_status trigger, so
+// criterion 7 (missing/stale state ...) sees" it. The trigger fires on section and claim INSERTs (live:
+// set_provenance_status_sections_trg / set_provenance_status_claims_trg) and on nothing after them —
+// item_gate_a_state and intelligence_item_citations carry no trigger — so the LAST claim insert is the
+// derivation that sticks. With the gate written after the claims, that derivation saw no gate row,
+// stamped `quarantined`, and nothing ever re-derived; `rpc("validate_item_provenance")` afterwards
+// reported `verified` (it is a pure function) and the artifact recorded `minted_verified` against a
+// quarantined row. The outcome now reads the ROW's provenance_status back, never the RPC alone. Through
 // scripts/lib/db.mjs's guarded functions (cite + snapshot + read-back, same as every other guarded
 // script in this repo) — the SAME thing mint-run-005/006's own coordinator-apply pass did (raw guarded
 // writes, "write_plan": "batch-001 write order + two additions", never through mint-item.ts). This is
@@ -309,7 +319,7 @@ const DB_DELTA_ZERO = Object.freeze({ items: 0, sections: 0, claims: 0, searches
 
 /**
  * Apply (or, in dry mode, plan) ONE payload. Returns { perItem, dbDeltas, censusStamped }.
- * `ctx`: { db: {guardedInsert, guardedInsertMany, guardedUpdate, registerSource}, rpc, itemsIndex
+ * `ctx`: { db: {guardedInsert, guardedInsertMany, guardedUpdate, guardedDelete, registerSource, readItemProvenance}, rpc, itemsIndex
  * (mutated in place on a successful apply so later payloads in the SAME batch see this one as a holder),
  * sourcesById (Map, mutated on inline registration), rowIdSet, cite, apply (bool) }.
  */
@@ -377,33 +387,62 @@ export async function applyOnePayload(payload, ctx) {
   const insItem = await ctx.db.guardedInsert("intelligence_items", itemRow, { cite: ctx.cite, select: "id, source_url, canonical_instrument_key, archive_reason" });
   const itemId = insItem.inserted.id;
 
-  const searchRows = buildAgentRunSearchRows(payload, itemId);
-  const insSearches = searchRows.length
-    ? await ctx.db.guardedInsertMany("agent_run_searches", searchRows, { cite: ctx.cite, select: "id, result_url" })
-    : { inserted: 0, rows: [] };
-  const searchIdByUrl = new Map((insSearches.rows ?? []).map((r) => [r.result_url, r.id]));
+  // Everything after the item row is one unit: a failure part-way (run #8: an agent_run_searches insert
+  // refused by Postgres — "unsupported Unicode escape sequence", a U+0000 in a Federal Register raw text)
+  // must not abort the batch AND must not leave a bare item behind (that run left one: no sections, no
+  // claims, `quarantined`, sitting in the corpus as a real row). There is no transaction across REST
+  // calls, so the compensation is explicit: delete the partial item through the guarded path (every
+  // child table FKs to intelligence_items ON DELETE CASCADE — checked live 2026-09-02), record
+  // `apply_failed` with the error and whether the cleanup succeeded, and let the loop continue.
+  let insSearches, insSections, insClaims, insCitations, claimRows;
+  try {
+    const searchRows = buildAgentRunSearchRows(payload, itemId);
+    insSearches = searchRows.length
+      ? await ctx.db.guardedInsertMany("agent_run_searches", searchRows, { cite: ctx.cite, select: "id, result_url" })
+      : { inserted: 0, rows: [] };
+    const searchIdByUrl = new Map((insSearches.rows ?? []).map((r) => [r.result_url, r.id]));
 
-  const sectionRows = buildSectionRows(payload, itemId);
-  const insSections = sectionRows.length
-    ? await ctx.db.guardedInsertMany("intelligence_item_sections", sectionRows, { cite: ctx.cite, select: "id, section_key" })
-    : { inserted: 0, rows: [] };
-  const sectionIdBySectionKey = new Map((insSections.rows ?? []).map((r) => [r.section_key, r.id]));
+    const sectionRows = buildSectionRows(payload, itemId);
+    insSections = sectionRows.length
+      ? await ctx.db.guardedInsertMany("intelligence_item_sections", sectionRows, { cite: ctx.cite, select: "id, section_key" })
+      : { inserted: 0, rows: [] };
+    const sectionIdBySectionKey = new Map((insSections.rows ?? []).map((r) => [r.section_key, r.id]));
 
-  const claimRows = buildClaimRows(payload, itemId, { sectionIdBySectionKey, searchIdByUrl, sourceId, sourceTier: sourceRow.base_tier ?? payload.source?.base_tier ?? null });
-  const insClaims = claimRows.length
-    ? await ctx.db.guardedInsertMany("section_claim_provenance", claimRows, { cite: ctx.cite, select: "id" })
-    : { inserted: 0, rows: [] };
+    // Gate A BEFORE the claims — see this file's header. The claim inserts are the last writes that
+    // fire set_provenance_status; criterion 7 must find the gate row when they do.
+    const gateARow = computeGateAState(payload, itemId);
+    await ctx.db.guardedInsert("item_gate_a_state", gateARow, { cite: ctx.cite, select: "intelligence_item_id" });
 
-  const gateARow = computeGateAState(payload, itemId);
-  await ctx.db.guardedInsert("item_gate_a_state", gateARow, { cite: ctx.cite, select: "intelligence_item_id" });
+    claimRows = buildClaimRows(payload, itemId, { sectionIdBySectionKey, searchIdByUrl, sourceId, sourceTier: sourceRow.base_tier ?? payload.source?.base_tier ?? null });
+    insClaims = claimRows.length
+      ? await ctx.db.guardedInsertMany("section_claim_provenance", claimRows, { cite: ctx.cite, select: "id" })
+      : { inserted: 0, rows: [] };
 
-  const citationRows = buildCitationRows(itemId, claimRows);
-  const insCitations = citationRows.length
-    ? await ctx.db.guardedInsertMany("intelligence_item_citations", citationRows, { cite: ctx.cite, select: "id" })
-    : { inserted: 0, rows: [] };
+    const citationRows = buildCitationRows(itemId, claimRows);
+    insCitations = citationRows.length
+      ? await ctx.db.guardedInsertMany("intelligence_item_citations", citationRows, { cite: ctx.cite, select: "id" })
+      : { inserted: 0, rows: [] };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    let cleanup = "not_attempted";
+    try {
+      const del = await ctx.db.guardedDelete("intelligence_items", [itemId], { cite: ctx.cite });
+      cleanup = del?.deleted === 1 ? "partial_item_deleted" : `partial_item_delete_returned_${del?.deleted ?? "nothing"}`;
+    } catch (delErr) {
+      cleanup = `partial_item_delete_failed: ${delErr instanceof Error ? delErr.message : String(delErr)}`;
+    }
+    return {
+      perItem: { id, outcome: "apply_failed", item_id: itemId, evidence_refs: [], error: message, cleanup },
+      dbDeltas: DB_DELTA_ZERO,
+      censusStamped: false,
+    };
+  }
 
+  // The RPC is a pure function; the row's own provenance_status is what the trigger derivation stamped,
+  // and only the row is what every reader sees. Both are recorded; the outcome follows the row.
   const verdict = await ctx.rpc(itemId);
-  const outcome = verdict?.valid ? "minted_verified" : "minted_unverified";
+  const rowStatus = (await ctx.db.readItemProvenance(itemId)) ?? null;
+  const outcome = rowStatus === "verified" ? "minted_verified" : "minted_unverified";
 
   // Later payloads in this SAME batch must see this item as a holder too (two payloads sharing a
   // canonical key within one batch is exactly the collision M4 exists to catch).
@@ -435,17 +474,19 @@ export async function applyOnePayload(payload, ctx) {
       id,
       outcome,
       item_id: itemId,
-      verdict: verdict?.recommended_status ? `rpc recommended_status=${verdict.recommended_status}` : null,
+      verdict: `row provenance_status=${rowStatus ?? "unknown"}; rpc recommended_status=${verdict?.recommended_status ?? "none"}`,
       evidence_refs: [],
-      error: verdict?.valid ? null : JSON.stringify(verdict?.failures ?? []),
+      error: outcome === "minted_verified"
+        ? null
+        : JSON.stringify({ row_provenance_status: rowStatus, rpc_valid: verdict?.valid ?? null, failures: verdict?.failures ?? [] }),
     },
     dbDeltas: {
       items: 1,
-      sections: sectionRows.length,
-      claims: claimRows.length,
-      searches: searchRows.length,
+      sections: insSections.inserted,
+      claims: insClaims.inserted,
+      searches: insSearches.inserted,
       gate_a: 1,
-      citations: citationRows.length,
+      citations: insCitations.inserted,
       sources: sourcesDelta,
     },
     censusStamped,
@@ -482,7 +523,7 @@ export async function run(values, deps) {
   const sourcesById = new Map(liveSources.map((s) => [s.id, s]));
 
   const ctx = {
-    db: { guardedInsert: deps.guardedInsert, guardedInsertMany: deps.guardedInsertMany, guardedUpdate: deps.guardedUpdate, registerSource: deps.registerSource },
+    db: { guardedInsert: deps.guardedInsert, guardedInsertMany: deps.guardedInsertMany, guardedUpdate: deps.guardedUpdate, guardedDelete: deps.guardedDelete, registerSource: deps.registerSource, readItemProvenance: deps.readItemProvenance },
     rpc: deps.rpc,
     itemsIndex,
     sourcesById,
@@ -503,7 +544,18 @@ export async function run(values, deps) {
   console.log(`apply-mint-batch: mode=${apply ? "APPLY" : "DRY"} payloads=${payloads.length}`);
   for (let i = 0; i < payloads.length; i++) {
     const payload = payloads[i];
-    const result = await applyOnePayload(payload, ctx);
+    let result;
+    try {
+      result = await applyOnePayload(payload, ctx);
+    } catch (err) {
+      // a failure BEFORE the item row exists (M4 index, source registration, the item insert itself): no
+      // partial row to clean, but the batch goes on and the artifact records it.
+      result = {
+        perItem: { id: payload?.id ?? "(no id)", outcome: "apply_failed", evidence_refs: [], error: err instanceof Error ? err.message : String(err), cleanup: "no_item_row" },
+        dbDeltas: DB_DELTA_ZERO,
+        censusStamped: false,
+      };
+    }
     perItemPatches.push(result.perItem);
     console.log(`  [${i + 1}/${payloads.length}] ${result.perItem.id}: ${result.perItem.outcome}`);
     if (apply) {
@@ -521,28 +573,49 @@ export async function run(values, deps) {
     return { applied: false, perItemPatches };
   }
 
-  const minted = perItemPatches.filter((p) => p.outcome === "minted_verified" || p.outcome === "minted_unverified").length;
+  const mintedVerified = perItemPatches.filter((p) => p.outcome === "minted_verified").length;
+  const mintedUnverified = perItemPatches.filter((p) => p.outcome === "minted_unverified").length;
+  const minted = mintedVerified + mintedUnverified;
+  const applyFailed = perItemPatches.filter((p) => p.outcome === "apply_failed");
   const metricsPatch = {
     db_deltas: dbDeltas,
     minted,
+    minted_verified: mintedVerified,
+    minted_unverified: mintedUnverified,
+    apply_failed: applyFailed.length,
     census_rows_reconciled: censusReconciled,
     ...Object.fromEntries(Object.entries(notAppliedCounts)),
   };
-  const defectsToAppend = censusStampFailures.length
-    ? [{
-        description: `${censusStampFailures.length} minted payload(s) could not have their census_worklist row stamped reconciled: ${censusStampFailures.map((f) => f.id).join(", ")}`,
-        root_cause: censusStampFailures.map((f) => `${f.id}: ${f.error}`).join(" | "),
-        fix_ref: null,
-      }]
-    : [];
+  const defectsToAppend = [];
+  if (censusStampFailures.length) {
+    defectsToAppend.push({
+      description: `${censusStampFailures.length} minted payload(s) could not have their census_worklist row stamped reconciled: ${censusStampFailures.map((f) => f.id).join(", ")}`,
+      root_cause: censusStampFailures.map((f) => `${f.id}: ${f.error}`).join(" | "),
+      fix_ref: null,
+    });
+  }
+  if (applyFailed.length) {
+    defectsToAppend.push({
+      description: `${applyFailed.length} payload(s) failed part-way through the guarded write sequence (outcome apply_failed; cleanup per item): ${applyFailed.map((f) => `${f.id} [${f.cleanup}]`).join(", ")}`,
+      root_cause: applyFailed.map((f) => `${f.id}: ${f.error}`).join(" | "),
+      fix_ref: null,
+    });
+  }
+  if (mintedUnverified) {
+    defectsToAppend.push({
+      description: `${mintedUnverified} minted item(s) carry a provenance_status other than verified after the full write sequence (the row is what readers see; see each per_item error for the row status and the rpc failures)`,
+      root_cause: perItemPatches.filter((p) => p.outcome === "minted_unverified").map((p) => `${p.id}: ${p.error}`).join(" | "),
+      fix_ref: null,
+    });
+  }
 
   const enriched = enrichMintRunArtifact(mintRunArtifact, {
     perItemPatches,
     metricsPatch,
     defectsToAppend,
     proposerNoteAppend:
-      `apply-mint-batch.mjs enrichment (${new Date().toISOString()}): ${minted} minted, ` +
-      `${Object.values(notAppliedCounts).reduce((a, b) => a + b, 0)} not_applied. Discovery + forward-event ` +
+      `apply-mint-batch.mjs enrichment (${new Date().toISOString()}): ${minted} minted (${mintedVerified} verified, ${mintedUnverified} not), ` +
+      `${applyFailed.length} apply_failed, ${Object.values(notAppliedCounts).reduce((a, b) => a + b, 0)} not_applied. Discovery + forward-event ` +
       "extraction (MINT-RUNBOOK.md §8) did NOT run as part of this apply — that is a separate post-apply " +
       "pass over the newly-minted items, per that runbook's own hand-off model, not skipped in error.",
   });
@@ -589,7 +662,12 @@ async function main() {
     console.error("apply-mint-batch: no DB creds — cannot run here (exit 2).");
     process.exit(2);
   }
-  const { readAll, guardedInsert, guardedInsertMany, guardedUpdate, registerSource } = await import("../lib/db.mjs");
+  const { readAll, guardedInsert, guardedInsertMany, guardedUpdate, guardedDelete, registerSource, readClient } = await import("../lib/db.mjs");
+  const readItemProvenance = async (itemId) => {
+    const { data, error } = await readClient().from("intelligence_items").select("provenance_status").eq("id", itemId).single();
+    if (error) throw new Error(`readItemProvenance failed: ${error.message}`);
+    return data?.provenance_status ?? null;
+  };
   const { createClient } = await import("@supabase/supabase-js");
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
   const rpc = async (itemId) => {
@@ -598,7 +676,7 @@ async function main() {
     return Array.isArray(data) ? data[0] : data;
   };
 
-  await run(values, { readAll, guardedInsert, guardedInsertMany, guardedUpdate, registerSource, rpc });
+  await run(values, { readAll, guardedInsert, guardedInsertMany, guardedUpdate, guardedDelete, registerSource, readItemProvenance, rpc });
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

@@ -1,7 +1,42 @@
 # Last proposer pass — mint
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **nine** artifacts (`mint-run-001` …
-`mint-run-009`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-009**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **ten** artifacts (`mint-run-001` …
+`mint-run-010`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-010**.
+
+## Pass of 2026-09-02, evening (mint-run-010 — the first live apply)
+
+**Artifact read:** mint-run-010 (population-turn run 33653378846, apply, limit 50): the gate 45/45 as in
+run #5; the apply pass reached 11 of 45 and died. The artifact's per_item block still reads `apply_ready`
+for every id because apply-mint-batch.mjs never got to its enrichment step — the record of what the
+apply did is the live database plus the run log, read directly.
+
+**Full traces read:** the run log (`gh run view --log`), the 11 live `intelligence_items` rows
+(`item_grade = 'record'`), `validate_item_provenance(id)` for three of them, the trigger inventory on
+`intelligence_items` / `intelligence_item_sections` / `section_claim_provenance`, `guard_provenance_flip`'s
+body, the FK inventory referencing `intelligence_items`, canonical-pipeline.ts ~line 1733.
+
+**Hypotheses (verified, with basis):**
+1. **Every minted item was `quarantined` although the function derives `verified` for it.** Basis:
+   ran `validate_item_provenance` on the rows (`(t,[],verified)`); the trigger fires on section and
+   claim inserts only; apply-mint-batch.mjs wrote `item_gate_a_state` after the claims, so the last
+   derivation saw no gate row (criterion 7) and its stamp stuck. The artifact's `minted_verified`
+   outcome came from the RPC (a pure function), not the row. Fixed: gate before claims; the outcome
+   follows the row's own status; `rederive-record-provenance.mjs` heals stale stamps after every apply.
+2. **The abort at item 11 was a U+0000 in a Federal Register raw text**, refused by Postgres on the
+   `agent_run_searches` insert after the item row existed; the loop had no per-payload boundary, so the
+   batch died and a bare row stayed. Fixed: U+0000 dropped at capture; per-payload failure deletes the
+   partial item through the guarded path (cascades), records `apply_failed` + cleanup, continues.
+3. **The WO-26 stamp finished (491/491)** on this run with the halving chunker — runs #6/#7's timeouts
+   were the per-row provenance re-derivation (70 ms – 3.4 s) against the API's 8 s limit, not the row
+   count.
+4. The 10 live quarantined items and the one bare item are healed by the next apply dispatch: the
+   reconciliation step touches the 10 (the function already says verified), and the bare row —
+   `fb465e8f` — is a partial write with no sections; it is deleted by the coordinator through
+   `guardedDelete` before that dispatch so the census row re-exports cleanly (recorded in Addendum 84).
+
+**Proposal:** dispatch apply again at the new hash; read `mint-run-011`'s `minted_verified` /
+`apply_failed` metrics and the rederive step's counts against the live rows.
+
 
 ## Pass of 2026-09-02, later (mint-run-009 — the first record-grade run at the corrected gate)
 
