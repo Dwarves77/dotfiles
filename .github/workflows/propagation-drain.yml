@@ -42,6 +42,16 @@ on:
         required: false
         default: '500'
         type: string
+      backfill_entities:
+        description: 'Run scripts/entities/backfill-entities.mjs before the drain (jurisdiction/instrument/organisation entities + refs). Honours mode: dry reports, apply writes through the guarded path.'
+        required: false
+        default: false
+        type: boolean
+      seed_derived_values:
+        description: 'Run scripts/propagation/seed-derived-values.mjs before the drain (carbon intensity per embeddable factor, automate-vs-hire per region with both facts). Honours mode.'
+        required: false
+        default: false
+        type: boolean
   # schedule:
   #   - cron: '*/30 * * * *'   # BUILD MODE (2026-09-02) — see header above; stays commented out until the
   #                              # operator explicitly re-arms it.
@@ -110,6 +120,29 @@ jobs:
             done
           done
           echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged propagation file(s) from sibling branches"
+
+      # The two population passes the engine needs before its first real drain (system-completion train,
+      # 2026-09-02): the entity spine backfill (ADR-024 progressive re-keying) and the initial derived-value
+      # closure. Both are their own scripts with their own --dry/--apply gates; this workflow only gives them
+      # a runtime with the service-role credentials the sandbox never has. Opt-in per dispatch, never on by
+      # default, and they follow the SAME mode input as the drain so a dry dispatch is dry end to end.
+      - name: backfill-entities.mjs (opt-in)
+        if: inputs.backfill_entities
+        run: |
+          if [ "${{ inputs.mode }}" = "apply" ]; then
+            node scripts/entities/backfill-entities.mjs --apply
+          else
+            node scripts/entities/backfill-entities.mjs --dry
+          fi
+
+      - name: seed-derived-values.mjs (opt-in)
+        if: inputs.seed_derived_values
+        run: |
+          if [ "${{ inputs.mode }}" = "apply" ]; then
+            node scripts/propagation/seed-derived-values.mjs --apply
+          else
+            node scripts/propagation/seed-derived-values.mjs --dry
+          fi
 
       - name: run-propagation-drain.mjs
         run: |

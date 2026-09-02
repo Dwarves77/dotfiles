@@ -7726,3 +7726,35 @@ Codespace → PR → squash-merge), apply 281–287 live in order, run `backfill
 population-turn dry then apply limit 50; change-detection dry; propagation-drain dry; source-sweep
 register-federal-register dry and feed dry; producers ecb-fx dry then apply, eurostat-lc-lci-lev dry then
 apply) and read every artifact against the live table before the next.
+
+### Addendum 84, postscript 1 — landed, applied live, and what the live apply found (2026-09-02)
+
+PR #517 merged as `2e1afc76` (squash). Its first CI run went red on F28: the rule-016 prose reword had
+moved `run-ledger-consume.mjs` after the ledger-consume marker was pinned, and I had re-run the engine and
+consistency gates after that edit but not F28. Re-pinned (`22b3e507`), second run green on all eight
+checks. Branches `Dwarves77-patch-18` and `source-sweep/33575226376` deleted, issue #516 closed, the
+Codespace deleted.
+
+Migrations 281–287 applied live through the Supabase MCP in order, each self-check green, every new table
+at 0 rows afterwards and `propagation_events` empty. Two deviations from the files as merged, both now
+written back into the files:
+
+1. 285's self-check inserts and deletes probe `derived_values` rows, which fire the outbox trigger 285
+   itself attaches; as merged it would have left its own events in the queue for the first real drain to
+   find. The applied migration deletes them (`computed_by = 'migration-285-selfcheck'`).
+2. 286's `assert_statutory_purity()` matched an `estimated_values` input by `entity_id` only, the
+   pre-amendment PK; after the ADR-024 amendment the PK is `estimate_id`, which is what the register and
+   seed code writes into `inputs`, so an estimate addressed the new way would have passed the purity
+   trigger. The applied function refuses both addressings; the self-check proves both.
+
+`backfill-entities.mjs` and `seed-derived-values.mjs` have no runtime: this container has no egress to
+the database and no workflow ran them. Fixed in this postscript's train rather than by hand:
+`propagation-drain.yml` gains two opt-in boolean inputs (`backfill_entities`, `seed_derived_values`)
+that run the scripts before the drain under the same `mode`, so the first population of the spine and
+the first derived-value closure are runtime-run, credentialed by the workflow, and recorded.
+
+Next: land this train, then dispatch in this order and read each artifact against the live table:
+propagation-drain (mode dry, backfill+seed on) → propagation-drain (apply, backfill+seed on) →
+ledger-consume (plan) → population-turn (dry, then apply, limit 50) → change-detection (dry) →
+source-sweep register-federal-register (dry) and feed (dry) → producers ecb-fx (dry, then apply) and
+eurostat-lc-lci-lev (dry, then apply).

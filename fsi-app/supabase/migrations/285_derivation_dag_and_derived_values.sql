@@ -492,6 +492,10 @@ BEGIN
   IF (SELECT count(*) FROM public.derived_values) <> 0 OR (SELECT count(*) FROM public.derivation_edges) <> 0 THEN
     RAISE EXCEPTION 'ABORT: self-check rows were not fully cleaned up';
   END IF;
+  -- The probe inserts/deletes above fired the outbox trigger (285 attaches it to derived_values); a
+  -- self-check must not leave its own events in the queue for the first real drain to find. Added at
+  -- live apply (coordinator, 2026-09-02); the applied migration carries this line.
+  DELETE FROM public.propagation_events WHERE table_name = 'derived_values' AND coalesce(new_row->>'computed_by', old_row->>'computed_by') = 'migration-285-selfcheck';
 
   RAISE NOTICE 'migration 285 OK: derived_values (% cols) + derivation_edges (% cols), assert_acyclic/invalidate_dependents/effective_confidence proven live, derived_values_admissible hides stale, 0 rows', n_dv_cols, n_edge_cols;
 END $$;
