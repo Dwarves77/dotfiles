@@ -251,26 +251,27 @@ test("--apply only writes when EVERY gate is satisfied", () => {
   assert.equal(d.canWrite, true);
 });
 
-test("today's ACTUAL shipped state: running the real CLI with --apply refuses, exit 1 — not a simulated gate", () => {
-  // Pins the literal shipped constant, not just decideApply's logic: spawns the real file as a
-  // subprocess, --input'd against the fixture so it never attempts a live fetch, with the runtime kill
-  // switch and (fake) DB creds BOTH set — if ENABLED ever silently flips true, this is the test that
-  // catches it, because the runtime gates alone would then let the write proceed.
+// UPDATED 2026-09-02 (Lane PROD, system-completion train): ENABLED flipped false -> true in
+// ecb-fx-producer.mjs (see its own header's REVIEWED-CHANGE LOG), in the same commit as migration 281
+// (registers source_key 'ecb'). This test used to pin "ENABLED is false at authorship" by spawning the
+// real file and asserting the ENABLED-constant refusal message. It now pins the OPPOSITE fact — that
+// ENABLED really did flip to true, not just that decideApply's logic can accept true — by spawning the
+// real file with the runtime kill switch left OFF (the actual shipped default) and asserting the refusal
+// is the KILL-SWITCH message, not the ENABLED-constant one. If ENABLED were ever silently reverted to
+// false, this test would fail (the CLI would print the ENABLED-constant message instead). No network
+// call is made (no DB creds are set; the kill-switch gate refuses before any DB read is attempted).
+test("today's ACTUAL shipped state: ENABLED is true — the real CLI's default-state refusal is now the kill switch, never the ENABLED-constant message", () => {
   const fixturePath = join(tmpdir(), `ecb-fx-fixture-${process.pid}.xml`);
   writeFileSync(fixturePath, ECB_FIXTURE_XML);
   try {
     const producerPath = fileURLToPath(new URL("../../scripts/producers/market/ecb-fx-producer.mjs", import.meta.url));
     const res = spawnSync(process.execPath, [producerPath, "--input", fixturePath, "--apply"], {
       encoding: "utf8",
-      env: {
-        ...process.env,
-        MARKET_PRODUCER_ECB_FX_ENABLED: "1",
-        NEXT_PUBLIC_SUPABASE_URL: "https://example.invalid",
-        SUPABASE_SERVICE_ROLE_KEY: "fake-key-for-gate-test-only",
-      },
+      env: process.env, // no kill switch, no DB creds — the real, shipped, out-of-the-box environment
     });
     assert.equal(res.status, 1, `expected exit 1 (refused), got ${res.status}. stderr: ${res.stderr}`);
-    assert.match(res.stderr, /ENABLED constant.*false/, `expected the ENABLED-constant refusal message, got: ${res.stderr}`);
+    assert.match(res.stderr, /kill switch.*OFF/, `expected the kill-switch refusal message (proving ENABLED is true), got: ${res.stderr}`);
+    assert.doesNotMatch(res.stderr, /ENABLED constant.*false/, `ENABLED must be true today — an "ENABLED constant... false" message here would mean it was reverted`);
   } finally {
     rmSync(fixturePath, { force: true });
   }

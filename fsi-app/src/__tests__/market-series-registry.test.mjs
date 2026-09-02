@@ -34,27 +34,35 @@ test("the implemented producer's cadenceDays is a positive integer; every stub's
   }
 });
 
-// Updated 2026-08-31 (lane P2, build/wave-p2): ecb-fx-producer.mjs shipped, flipping series-registry.mjs's
-// ecb-fx entry to implemented:true (kill-switched off by default — see that producer's own header). This
-// is a mechanically necessary update to this exact assertion, coupled 1:1 to the registry edit the lane
-// was instructed to make; nothing else in this file changed. eex-eua and eia-v2 remain undocumented stubs
-// (no evidence gathered this lane to flip either — see the registry entry's own notes).
-test("exactly TWO producers are implemented in this lane: EU Weekly Oil Bulletin, ECB FX", () => {
+// Updated 2026-09-02 (Lane PROD, system-completion train): series-registry.mjs's eia-v2 entry flipped
+// implemented:true, correcting the stale flag docs/plans/system-completion-plan-2026-09-02.md §0 row 4
+// named live ("series-registry.mjs says eia-v2 implemented:false (stale)") — the producer script itself
+// (eia-v2-petroleum-spot-producer.mjs) already shipped 2026-09-01 with its own fixture proof
+// (src/__tests__/market-eia-v2-petroleum-spot-parser.test.mjs); only the registry flag was wrong. Updated
+// 2026-08-31 before that (lane P2, build/wave-p2): ecb-fx-producer.mjs shipped, flipping ecb-fx to
+// implemented:true. eex-eua remains the one true stub (no licence, no producer).
+test("exactly THREE producers are implemented: EU Weekly Oil Bulletin, ECB FX, EIA v2", () => {
   const impl = implementedProducers();
-  assert.deepEqual(impl.map((p) => p.keyPrefix), ["eu-oil-bulletin", "ecb-fx"]);
+  assert.deepEqual(impl.map((p) => p.keyPrefix), ["eu-oil-bulletin", "ecb-fx", "eia-v2"]);
 });
 
-test("the three stubs carry NO producerScript/parserModule — documented, not half-built", () => {
+test("the one remaining stub (eex-eua) carries NO producerScript/parserModule — documented, not half-built", () => {
   for (const p of MARKET_SERIES_PRODUCERS.filter((p) => !p.implemented)) {
     assert.equal(p.producerScript, null, `${p.name}: a stub must not name a producer script`);
     assert.equal(p.parserModule, null, `${p.name}: a stub must not name a parser module`);
   }
 });
 
-test("the implemented producer names its real producer script and parser module paths", () => {
+test("every implemented producer names its real producer script and parser module paths", () => {
   const eu = producerFor("eu-oil-bulletin");
   assert.equal(eu.producerScript, "scripts/producers/market/eu-weekly-oil-bulletin.mjs");
   assert.equal(eu.parserModule, "src/lib/market/parsers/eu-weekly-oil-bulletin.mjs");
+
+  const ecbFx = producerFor("ecb-fx");
+  assert.equal(ecbFx.producerScript, "scripts/producers/market/ecb-fx-producer.mjs");
+
+  const eiaV2 = producerFor("eia-v2");
+  assert.equal(eiaV2.producerScript, "scripts/producers/market/eia-v2-petroleum-spot-producer.mjs");
 });
 
 test("isImplementedSeriesKey is true only for a full key under the implemented prefix", () => {

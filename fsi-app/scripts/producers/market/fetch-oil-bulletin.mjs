@@ -56,18 +56,50 @@
 // carries `unzip` (Debian's info-zip build) preinstalled, so no extra install step is needed in
 // producers.yml.
 //
+// ── HISTORY BACKFILL (--since), ADDED 2026-09-02 (Lane PROD, system-completion train) ──────────────────
+// WHY THIS IS A FLAG HERE, NOT A NEW MODULE OR A GUESS. The workbook this script already downloads is NOT
+// "this week's bulletin" — the page-scrape target and the FALLBACK_XLSX_URL above both name it explicitly:
+// filename "Weekly_Oil_Bulletin_Prices_History_maticni_4web.xlsx", scraped by matching "Prices_History" in
+// its link, and the bulletin page's own link text (read live, 2026-08-30, cited above) is "Price
+// developments 2005 onwards". src/lib/market/oil-bulletin-workbook.mjs's own header, from the SAME live
+// inspection passes, documents (not guesses) that the "Prices wo taxes" sheet holds MANY data rows, one per
+// published week, "newest-first" in raw document order — extractEuSeries there already walks EVERY row,
+// classifies each as data-or-footer by whether its date cell parses, sorts explicitly by week_ending
+// (never trusting document order), and returns `dataRows.slice(0, weeks)`. So the full multi-year history
+// is already parsed on every run; only the SLICE at the end throws it away down to `weeks` rows. --since
+// asks for the SAME parse, filtered by date instead of sliced by count — no change to
+// oil-bulletin-workbook.mjs (out of this lane's write set) is needed or made: this script passes a weeks
+// value large enough to retrieve every parsed row (SINCE_ALL_WEEKS below; extractEuSeries's own tests pin
+// that `weeks` larger than the available row count returns all of them, never throws), then filters that
+// full list to `week_ending >= since` itself, in filterSince() below.
+//
+// WHAT THIS DOES NOT CHANGE. eu-weekly-oil-bulletin.mjs (the downstream --input consumer) needs NO code
+// change: its parser (parseEuWeeklyOilBulletinCsv) already accepts any number of week_ending rows in one
+// CSV (one row per product per week, the same shape this script has always emitted, just more of them),
+// and planMarketSeriesUpsert already upserts each (series_key, reference_period) pair idempotently — a
+// re-run of the SAME --since range plans 0 new creates, exactly like a re-run of the single-week path
+// (market-producer-composition.test.mjs's own idempotency proof). The kill switch
+// (MARKET_PRODUCER_EU_OIL_BULLETIN_ENABLED) and --apply gate are unchanged and unaffected: a --since fetch
+// piped into eu-weekly-oil-bulletin.mjs --dry still writes nothing, exactly as today.
+//
 // Usage:
-//   node scripts/producers/market/fetch-oil-bulletin.mjs                # CSV on stdout, report on stderr
-//   node scripts/producers/market/fetch-oil-bulletin.mjs --out path.csv # CSV written to path.csv instead
-//   node scripts/producers/market/fetch-oil-bulletin.mjs --weeks 4      # latest 4 weeks instead of 1
-// Exit 0 ok (including "0 rows written" if every week's prices came back empty — that is reported, not
-// hidden) · 2 structural failure (workbook shape did not match what was verified — the report names the
-// specific missing/unexpected piece) · 3 network failure (page or workbook download failed).
+//   node scripts/producers/market/fetch-oil-bulletin.mjs                       # CSV on stdout, report on stderr
+//   node scripts/producers/market/fetch-oil-bulletin.mjs --out path.csv        # CSV written to path.csv instead
+//   node scripts/producers/market/fetch-oil-bulletin.mjs --weeks 4             # latest 4 weeks instead of 1
+//   node scripts/producers/market/fetch-oil-bulletin.mjs --since 2025-01-01    # every published week on/after
+//                                                                              # this date through the latest
+//                                                                              # (--weeks is ignored when
+//                                                                              # --since is given)
+// Exit 0 ok (including "0 rows written" if every week's prices came back empty, or --since matched no
+// weeks — both are reported, not hidden) · 2 structural failure (workbook shape did not match what was
+// verified, OR --since was not a well-formed YYYY-MM-DD date — the report names the specific problem) ·
+// 3 network failure (page or workbook download failed).
 
 import { writeFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import {
   parseSheetNames,
   parseSharedStrings,
@@ -88,15 +120,39 @@ const FALLBACK_XLSX_URL =
 const PRICE_SHEET_NAME = "Prices wo taxes"; // this producer's parser reports pre-tax EU-average prices
 const UNZIP_MAX_BUFFER = 200 * 1024 * 1024; // xl/sharedStrings.xml + the price sheet can run several MB
 
-function parseArgs(argv) {
+const SINCE_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// Large enough to retrieve every data row the "Prices wo taxes" sheet holds (weekly since 2005 is on the
+// order of ~1,100 rows at 2026 — see the header note above) without hand-maintaining a count that has to
+// grow every year. extractEuSeries's own slice(0, weeks) is safe against a `weeks` larger than the
+// available row count: it simply returns everything (pinned by
+// src/__tests__/oil-bulletin-workbook.test.mjs's own "weeks: 10" tests against a 3-row fixture).
+export const SINCE_ALL_WEEKS = 100000;
+
+/** @param {string[]} argv (process.argv shape: [node, script, ...args]) */
+export function parseArgs(argv) {
   const args = argv.slice(2);
   const weeksIdx = args.indexOf("--weeks");
   const outIdx = args.indexOf("--out");
+  const sinceIdx = args.indexOf("--since");
   const weeks = weeksIdx >= 0 ? Number(args[weeksIdx + 1]) : 1;
+  const since = sinceIdx >= 0 ? args[sinceIdx + 1] : null;
   return {
     weeks: Number.isInteger(weeks) && weeks > 0 ? weeks : 1,
     outPath: outIdx >= 0 ? args[outIdx + 1] : null,
+    since: since ?? null,
   };
+}
+
+/**
+ * Every EuWeekRow whose week_ending is on or after `since` (inclusive), from a list already sorted
+ * most-recent-first (extractEuSeries's own contract). Pure — no fs, no fetch, no clock read: "now" is
+ * whatever the workbook's own latest row says, never `new Date()`.
+ * @param {Array<{week_ending: string}>} series @param {string|null} since ISO YYYY-MM-DD, or null (no filter)
+ */
+export function filterSince(series, since) {
+  if (!since) return series;
+  return series.filter((w) => w.week_ending >= since);
 }
 
 /** Scrapes BULLETIN_PAGE_URL's HTML for an <a href="..."> whose filename query param contains
@@ -192,7 +248,12 @@ function toCsv(series) {
 }
 
 async function main() {
-  const { weeks, outPath } = parseArgs(process.argv);
+  const { weeks, outPath, since } = parseArgs(process.argv);
+
+  if (since !== null && !SINCE_DATE_RE.test(since)) {
+    console.error(`fetch-oil-bulletin: BAD ARGUMENT — --since "${since}" is not a well-formed YYYY-MM-DD date (exit 2).`);
+    process.exit(2);
+  }
 
   const xlsxUrl = await resolveXlsxUrl();
   console.error(`fetch-oil-bulletin: xlsx URL = ${xlsxUrl}`);
@@ -232,7 +293,11 @@ async function main() {
     const cellsFor = (n) => rows.find((r) => r.rowIndex === n)?.cells ?? [];
     const headerResolution = resolveHeaderBlocks(cellsFor(1), cellsFor(2), cellsFor(3), sharedStrings);
 
-    const series = extractEuSeries(sheetXml, sharedStrings, headerResolution, { weeks });
+    const rawSeries = extractEuSeries(sheetXml, sharedStrings, headerResolution, { weeks: since ? SINCE_ALL_WEEKS : weeks });
+    const series = filterSince(rawSeries, since);
+    if (since) {
+      console.error(`fetch-oil-bulletin: --since ${since} — ${rawSeries.length} week(s) parsed from the workbook, ${series.length} on/after ${since}`);
+    }
     report(headerResolution, series);
 
     const csv = toCsv(series);
@@ -254,7 +319,18 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Only run main() when this file is the actual CLI entrypoint. FIXED 2026-09-02 (Lane PROD,
+// system-completion train): this file previously called main() unconditionally at module scope — unlike
+// ecb-fx-producer.mjs and eia-v2-petroleum-spot-producer.mjs, which already guard this exact way — so
+// merely IMPORTING it (e.g. to test parseArgs/filterSince/SINCE_ALL_WEEKS as pure functions, added this
+// same commit) triggered a real live network fetch as a side effect, which fails in any sandboxed
+// environment (confirmed: fetch-oil-bulletin.test.mjs's own first run here exited 3, NETWORK FAILURE,
+// before a single test() body ran). No behavioural change for the CLI path: `node
+// scripts/producers/market/fetch-oil-bulletin.mjs ...` still sets process.argv[1] to this file, so main()
+// still runs exactly as before for every real invocation (producers.yml's own step included).
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

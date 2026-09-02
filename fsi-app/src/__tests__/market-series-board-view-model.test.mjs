@@ -110,12 +110,19 @@ test("buildSeriesBoard on an EMPTY table renders a clearly-labelled registered-n
 
   // Updated 2026-08-31 (lane P2, build/wave-p2): ecb-fx-producer.mjs shipped, flipping series-registry.mjs's
   // ecb-fx entry to implemented:true (kill-switched off by default) — it now behaves the same as
-  // eu-oil-bulletin here, registered but zero rows observed. eex-eua and eia-v2 remain undocumented stubs.
+  // eu-oil-bulletin here, registered but zero rows observed. Updated again 2026-09-02 (Lane PROD,
+  // system-completion train): eia-v2's registry flag was corrected to implemented:true (the producer
+  // script itself shipped 2026-09-01; only the registry flag was stale — see market-series-registry.test.mjs
+  // for the full note). eex-eua remains the one true documented stub.
   const ecbFx = board.groups.find((g) => g.keyPrefix === "ecb-fx");
   assert.equal(ecbFx.implemented, true);
   assert.equal(ecbFx.state, "registered_unpopulated", "an implemented producer with zero rows must say so explicitly, not render blank");
 
-  for (const g of board.groups.filter((g) => g.keyPrefix !== "eu-oil-bulletin" && g.keyPrefix !== "ecb-fx")) {
+  const eiaV2 = board.groups.find((g) => g.keyPrefix === "eia-v2");
+  assert.equal(eiaV2.implemented, true);
+  assert.equal(eiaV2.state, "registered_unpopulated", "an implemented producer with zero rows must say so explicitly, not render blank");
+
+  for (const g of board.groups.filter((g) => !["eu-oil-bulletin", "ecb-fx", "eia-v2"].includes(g.keyPrefix))) {
     assert.equal(g.implemented, false);
     assert.equal(g.state, "not_built", "an un-implemented registry entry is a documented stub — not the same state as registered-but-unpopulated");
   }
@@ -126,8 +133,12 @@ test("buildSeriesBoard names every implemented producer even when nothing has be
   assert.equal(board.implementedProducerCount, MARKET_SERIES_PRODUCERS.filter((p) => p.implemented).length);
   assert.equal(board.totalProducers, MARKET_SERIES_PRODUCERS.length);
   const implementedNames = board.groups.filter((g) => g.implemented).map((g) => g.name);
-  // Updated 2026-08-31 (lane P2): ecb-fx joins eu-oil-bulletin as implemented — see note above.
-  assert.deepEqual(implementedNames, ["EU Weekly Oil Bulletin", "ECB euro foreign exchange reference rates"]);
+  // Updated 2026-09-02 (Lane PROD): eia-v2 joins eu-oil-bulletin and ecb-fx as implemented — see note above.
+  assert.deepEqual(implementedNames, [
+    "EU Weekly Oil Bulletin",
+    "ECB euro foreign exchange reference rates",
+    "US EIA v2 API (fuel/energy price series)",
+  ]);
 });
 
 // ── buildSeriesBoard: id passthrough (L6, watch mount identity) ────────
