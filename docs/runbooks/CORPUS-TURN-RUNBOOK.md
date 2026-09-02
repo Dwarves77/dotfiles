@@ -190,19 +190,25 @@ constant in a diff does not fail and does not silently run as if nothing were re
 records `config.requested_mode: "apply"` / `config.apply_disarmed: true` / `config.mode: "plan"` in its
 own artifact, so a reader of the artifact alone can tell an apply request from an apply run.
 
-**Telemetry — the gap this lane closed.** Every classify call in a `ledger-consume` run leaves its own
-`agent_runs` row (operator ruling 2026-07-06: "every classify call must leave an agent_runs row").
-Before this lane, `firstFetchClassify` (`fsi-app/src/lib/llm/first-fetch-classify.ts`) called the
-Anthropic API directly — no `SpendTicket`, no `agent_runs` write, entirely outside the spend chokepoint
-(`src/lib/llm/spend-client.ts` / `spend-guard.mjs`) despite `first-fetch-classify` being a registered
-Rule-016 standing ticket class (`STANDING_TICKET_CLASSES`) that nothing actually wired. `logSpendRun`
-(the name that looks like the sanctioned write-site) was retired 2026-07-06 to a no-op. This lane closes
-the gap from OUTSIDE `first-fetch-classify.ts` (out of this lane's write set) by wrapping the
-`ConsumeOpts.classify` injection point: `run-ledger-consume.mjs`'s `buildLoggingClassify` writes one
-`agent_runs` row per call, mirroring the column shape the spend client's own (module-private)
-`recordSpendCall` uses. **Known limit, not fixed here:** `FirstFetchClassifyResult` does not expose
-per-call input/output token counts (only `cost_usd_estimated` and `render_ms`), so these rows carry real
-per-call cost but not token counts — see `run-ledger-consume.mjs`'s header for the full account.
+**Telemetry — closed at the source, not by this driver.** Every classify call in a `ledger-consume` run
+leaves its own `agent_runs` row (operator ruling 2026-07-06: "every classify call must leave an
+agent_runs row"). Lane CONSUME originally found `firstFetchClassify`
+(`fsi-app/src/lib/llm/first-fetch-classify.ts`) calling the Anthropic API directly — no `SpendTicket`, no
+`agent_runs` write, entirely outside the spend chokepoint — despite `first-fetch-classify` being a
+registered Rule-016 standing ticket class (`STANDING_TICKET_CLASSES`) that nothing actually wired, and
+closed the gap from OUTSIDE `first-fetch-classify.ts` by wrapping the `ConsumeOpts.classify` injection
+point with its own `agent_runs` insert. **Lane SPEND (same train) then closed the same gap properly, at
+the source:** `firstFetchClassify` now routes every Haiku call through `spend-client.ts`'s `spendMessage`,
+which writes the `agent_runs` row itself (`recordSpendCall`, keyed by `source_id` from the
+`SpendTicket` `firstFetchClassify` sets internally). Keeping the driver's own insert after that change
+would write a SECOND row per call, so it was removed at integration — `run-ledger-consume.mjs`'s
+`collectClassifyTelemetry` is now a READ-ONLY collector, not a write-site: it captures
+`FirstFetchClassifyResult`'s `cost_usd_estimated`/`render_ms`/`input_tokens`/`output_tokens` per call so
+this family's own artifact (`per_item.est_usd`/`input_tokens`/`output_tokens`,
+`metrics.est_usd_total`/`input_tokens_total`/`output_tokens_total`) can report real numbers without a
+second lookup or a second ledger write. Token counts are no longer a gap either: Lane SPEND added
+`input_tokens`/`output_tokens` to `FirstFetchClassifyResult` (the chokepoint has the real Haiku `usage`
+block), so this artifact's per-call numbers are real cost AND real tokens, not cost alone.
 
 **What lands where.** `scripts/harness-runs/ledger-consume/ledger-consume-run-NNN.json` — the family's own
 self-emitted artifact, every dispatch, plan or (disarmed) apply. `scripts/harness-runs/ledger-consume/
@@ -214,18 +220,15 @@ a fresh `ledger-consume/<run-id>` branch and PR (`deliver-artifact-branch.sh`, s
 issue behavior documented above for `corpus-turn`/`source-sweep`), and uploads its own
 `scripts/_snapshots/**` workflow artifact the same way.
 
-**A registration gap this lane found and could not close (write-set boundary, reported, not fixed):**
+**A registration gap this lane found, could not close itself, and Lane SPEND has since resolved.**
 `ledger-consume.yml` references `secrets.ANTHROPIC_API_KEY` — required in EVERY mode, since even `plan`
-spends on classify. `.discipline/governance/secrets-reference-audit.mjs` fails any workflow secret
-reference not present in `WORKFLOW_SECRETS` (`.discipline/governance/secrets-registry.mjs`), and
-`ANTHROPIC_API_KEY` is not yet in that set (confirmed by running the audit directly: `node
-.discipline/governance/secrets-reference-audit.mjs` — 1 problem, `ledger-consume.yml` referencing an
-unregistered `secrets.ANTHROPIC_API_KEY`). Neither `secrets-registry.mjs` nor `docs/ops/secrets-
-topology.md` is in Lane CONSUME's write set. This is the same class of gap ADR-023/the system-completion
-plan's Lane PROD anticipates for `EIA_API_KEY` — register `ANTHROPIC_API_KEY` in `WORKFLOW_SECRETS` +
-`docs/ops/secrets-topology.md` (it is already documented in that registry's `TOPOLOGY` array as a
-Vercel-runtime/local-only secret; this workflow is the first to need it in the GitHub-Actions vault too)
-before `ledger-consume.yml` can pass CI's secrets-reference-audit.
+spends on classify. Lane CONSUME's `.discipline/governance/secrets-registry.mjs`/`secrets-reference-
+audit.mjs` were outside its write set, so it reported (rather than fixed) that `ANTHROPIC_API_KEY` was
+not yet in `WORKFLOW_SECRETS` — the same class of gap ADR-023/the system-completion plan anticipates for
+`EIA_API_KEY`. Lane SPEND (same train) registered `ANTHROPIC_API_KEY` in `WORKFLOW_SECRETS` +
+`docs/ops/secrets-topology.md` at integration (2026-09-02); `node
+.discipline/governance/secrets-reference-audit.mjs` now reports every workflow secret reference
+registered, `ledger-consume.yml` included.
 ## Change detection
 
 Written 2026-09-02, lane CD (system-completion train). Governs `.github/workflows/change-detection.yml` —

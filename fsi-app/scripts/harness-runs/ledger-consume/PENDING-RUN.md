@@ -13,8 +13,9 @@ not historyless — see F28's own header. It is written in the exact format `par
 system-completion plan, 2026-09-02) and the two library modules it gives a production runtime to for the
 first time — `src/lib/intake/portal-harvest.ts`'s `consumePortalCandidates` (the ledger candidate ->
 classify -> chokepoint -> intake consume pass) and `src/lib/llm/first-fetch-classify.ts` (the Haiku
-content-gate classifier it calls, and whose missing per-call `agent_runs` telemetry this driver also
-closes — see `run-ledger-consume.mjs`'s own header) — were authored and registered
+content-gate classifier it calls, routed through the spend chokepoint's `spendMessage` — see
+`spend-client.ts` — which is what leaves this family's per-call `agent_runs` row, not this driver) — were
+authored and registered
 (`ALLOWED_FAMILIES`, `GOVERNING_FILES`, `CONVENTION.md`'s prose) in an environment with **neither live
 network access** to `api.anthropic.com` or an arbitrary candidate URL, **nor Supabase credentials**
 (`.env.local` does not exist in this environment) — the same ADR-023-class gap `source-sweep/PENDING-
@@ -30,7 +31,7 @@ one-off probe and by `run-ledger-consume.test.mjs`'s own standing jiti-load test
 network, no DB) and gets back `{discovered: 0, fetched: 0, classified: 0, outcomes: []}`. That proves the
 runtime WIRING; it is not a run over real ledger rows, so it is not `ledger-consume-run-001`.
 
-**harness_version at write time:** `sha256:db591d024e90fc22`
+**harness_version at write time:** `sha256:e8506362c5e2c2c5`
 
 **The planned run that supersedes this marker:** the first `ledger-consume-run-001.json` produced by
 `node scripts/turns/run-ledger-consume.mjs` (dispatched via `.github/workflows/ledger-consume.yml`, which
@@ -52,4 +53,6 @@ audit.mjs` currently fails that reference because `ANTHROPIC_API_KEY` is not yet
 dispatch cannot succeed until that registration lands — see `docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s
 "Ledger consume" section for the full account.
 
-**Re-pin note (coordinator, 2026-09-02, integration of the system-completion train):** the hash above was `sha256:d7f537714f9975aa` when the lane wrote this marker. Lane SPEND (same train) routed `src/lib/llm/first-fetch-classify.ts`, one of this family's three governing files, through the spend chokepoint (`spendMessage`), so the hash pinned by Lane CONSUME moved before any run landed. Re-pinned by the coordinator at integration (2026-09-02); the planned first run is unchanged.
+**Re-pin note (coordinator, 2026-09-02, integration of the system-completion train):** the hash above was `sha256:d7f537714f9975aa` when the lane wrote this marker. Lane SPEND (same train) routed `src/lib/llm/first-fetch-classify.ts`, one of this family's three governing files, through the spend chokepoint (`spendMessage`), so the hash pinned by Lane CONSUME moved before any run landed. Re-pinned by the coordinator at integration (2026-09-02) to `sha256:db591d024e90fc22`; the planned first run is unchanged.
+
+**Re-pin note 2 (coordinator, 2026-09-02, follow-up integration):** the hash above moved again to `sha256:e8506362c5e2c2c5`, this pass over `scripts/turns/run-ledger-consume.mjs` itself — `buildLoggingClassify`, its own `agent_runs` insert, was removed (it would have written a SECOND row per classify now that `spendMessage`/`recordSpendCall` in `spend-client.ts` writes the first one) and replaced with a read-only `collectClassifyTelemetry` that reads `input_tokens`/`output_tokens` back off `FirstFetchClassifyResult` for the artifact; no library governing file changed in this pass. Re-pinned by the coordinator at integration (2026-09-02); the planned first run is unchanged.

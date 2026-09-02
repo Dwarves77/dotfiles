@@ -88,9 +88,10 @@ enumeration passes over a source's index/feed for a date range, writing discover
 the first time: `src/lib/intake/portal-harvest.ts`'s `consumePortalCandidates` (the READER half of the
 portal-deep-link slice — `persistPortalCandidates`, the WRITER half of the same file, already had a
 runtime via the scheduled check-sources crawl and, separately, `source-sweep` above) and
-`src/lib/llm/first-fetch-classify.ts` (the Haiku content-gate classifier it calls, included because this
-family's driver also had to close that module's missing per-call spend telemetry — see
-`run-ledger-consume.mjs`'s own header): a seventh shape, whose "runs" CONSUME candidate rows the
+`src/lib/llm/first-fetch-classify.ts` (the Haiku content-gate classifier it calls, included because it is
+this family's only spend-bearing call — routed through the spend chokepoint's `spendMessage`, see
+`spend-client.ts`, which is what leaves the `agent_runs` row per call now, not this family's driver): a
+seventh shape, whose "runs" CONSUME candidate rows the
 `portal_link_candidates` ledger already holds (never discover new ones — that is `source-sweep`'s job),
 classify each through the live entity gate, and precompute a chokepoint disposition per candidate
 (`would_mint`/`would_reject` in plan mode — READ-ONLY but NOT free, since classify still spends;
@@ -165,9 +166,11 @@ a promoted-like disposition (`would_mint`/`promoted`/`exists`) versus a rejected
 (`would_reject`/`rejected`/`not_an_item`) versus `skipped` (an inconclusive fetch or classify — never
 counted as a rejection; see `portal-harvest.ts`'s own `fetchOk` discipline) — the consume-family
 counterpart to `source-sweep`'s candidates-discovered-per-walk. Paired with `est_usd_total` (every
-classify call's real cost, summed from this run's own `agent_runs` telemetry — see
-`run-ledger-consume.mjs`'s header for why that telemetry did not previously exist), so a proposer reading
-this family's history sees yield and spend together, never one without the other.
+classify call's real cost — and `input_tokens_total`/`output_tokens_total`, every call's real token
+counts — read back from `FirstFetchClassifyResult`, which the spend chokepoint populates per call; the
+`agent_runs` row itself is written once, by `spendMessage`/`recordSpendCall` in `spend-client.ts`, not by
+this driver — see `run-ledger-consume.mjs`'s header), so a proposer reading this family's history sees
+yield and spend together, never one without the other.
 **change-detection's standing metric** (build plan §2's "measurement, not assertion," per family):
 *chain-completion rate* — of the `monitoring_queue` rows a run's own detect step (or an inherited backlog,
 `--skip-check`) marks `change_detected=true`, the fraction that make it all the way to a drained

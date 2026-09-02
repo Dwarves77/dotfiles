@@ -19,9 +19,10 @@
 // the same reason, on a different module. jiti (`createJiti(import.meta.url, {interopDefault:true,
 // alias:{"@":resolve(ROOT,"src")}})`, the `scripts/canonical-pipeline-proof.mjs` pattern) transpiles TS
 // on the fly and resolves the alias itself — CONFIRMED by actually running `jiti.import` against both
-// `portal-harvest.ts` and `first-fetch-classify.ts` in this lane (no network, no DB) and by
-// `run-ledger-consume.test.mjs`'s own jiti-load test, which proves the same thing as a standing red/green
-// assertion rather than a one-off probe.
+// `portal-harvest.ts` and `first-fetch-classify.ts` in this lane (no network, no DB). This is a one-time
+// verified confirmation, not a standing test — `run-ledger-consume.test.mjs`'s own header explains why a
+// jiti-load test cannot live in that file (the repo's `glob-portability` discipline forbids a bare npm
+// import in a file matched by `run-test-suite.sh`'s no-`npm-ci` glob).
 //
 // MODES (portal-harvest.ts's own contract, verbatim): 'plan' is READ-ONLY and free of grounding — every
 // candidate runs the real chokepoint gates via a dry pre-pass and NOTHING is written (no ledger update,
@@ -42,36 +43,27 @@
 // actually RUNS as plan (still spends on classify, still writes an honest artifact) rather than either
 // pretending apply ran or refusing to do anything useful with the dispatch.
 //
-// TELEMETRY (operator ruling 2026-07-06: "every classify call must leave an agent_runs row"). VERIFIED,
-// this lane, 2026-09-02: `firstFetchClassify` (src/lib/llm/first-fetch-classify.ts) makes its OWN raw
-// `fetch()` call straight to `https://api.anthropic.com/v1/messages` — it imports neither
-// `src/lib/llm/spend-client.ts` nor `spend-guard.mjs` (grep confirms: no `SpendTicket`, no
-// `spendStream`/`spendSearch`, no `agent_runs` write anywhere in that file). `consumePortalCandidates`
-// itself (`src/lib/intake/portal-harvest.ts`) does not write `agent_runs` either — grepped, confirmed
-// absent. `first-fetch-classify` IS a Rule-016 sanctioned standing ticket class
-// (`STANDING_TICKET_CLASSES` in spend-guard.mjs names it), but nothing in the current call graph ever
-// constructs a ticket for it — the class is registered, not wired. `logSpendRun` (spend-client.ts) looks
-// like the sanctioned write-site by name, but its own header says it was RETIRED 2026-07-06 to a no-op
-// that only drains the per-item ledger — the real per-call write moved into `recordSpendCall` (module-
-// private, not exported) inside the SAME file. So THIS driver wires the `classify` injection point
-// `ConsumeOpts` already provides (`buildLoggingClassify` below): every classify call is wrapped, and the
-// wrapper writes ONE `agent_runs` row per call directly through the guarded Supabase client, in the SAME
-// column shape `recordSpendCall` uses (`intelligence_item_id`, `source_id`, `source_url`, `fetch_method`,
-// `model`, `started_at`, `ended_at`, `status`, `cost_usd_estimated`, `errors[].telemetry`) — mirrored, not
-// imported, because `recordSpendCall` is not exported (the same "mirror an internal contract rather than
-// reach into it" call `run-source-sweep.mjs`'s header makes for `persistPortalCandidates`). This closes
-// the ledger for THIS classify path; it does NOT retrofit `firstFetchClassify` itself onto the spend
-// chokepoint (`spend-client.ts` is out of this lane's write set) — see this file's own defect note in the
-// lane's final report.
+// TELEMETRY (operator ruling 2026-07-06: "every classify call must leave an agent_runs row") — CLOSED
+// AT THE SOURCE, NOT BY THIS DRIVER (integration, system-completion train, 2026-09-02). The original Lane
+// CONSUME build found `firstFetchClassify` (src/lib/llm/first-fetch-classify.ts) making its OWN raw
+// `fetch()` call straight to `https://api.anthropic.com/v1/messages` — ticketless, unlogged, outside the
+// spend chokepoint — and closed the gap from THIS side, by wrapping the `classify` injection point so the
+// wrapper itself wrote one `agent_runs` row per call. Lane SPEND (same train) then closed the SAME gap
+// from the OTHER side, properly: `firstFetchClassify` now routes every Haiku call through
+// `spend-client.ts`'s `spendMessage` (ticket-gated, budget-checked), which writes the `agent_runs` row
+// itself via `recordSpendCall` — keyed by `source_id` from the `SpendTicket` `firstFetchClassify` sets
+// internally (`standingClass: "first-fetch-classify"`, the Rule-016 sanctioned class). So the telemetry
+// row for a classify call now exists BEFORE this driver's `classify` wrapper ever runs. Keeping the old
+// wrapper's own `agent_runs` insert would write a SECOND row per call — a double-count, not a fix — so it
+// is REMOVED here. What remains is `collectClassifyTelemetry` (below): a READ-ONLY collector, not a
+// write-site, that captures `FirstFetchClassifyResult`'s cost/token fields per URL purely so THIS run's
+// own `ledger-consume` artifact (per_item `est_usd`/token counts, `metrics.est_usd_total`) can report real
+// numbers without a second lookup and without re-deriving anything the chokepoint already owns.
 //
-// TOKEN COUNTS — A NAMED LIMIT, NOT A GAP THIS DRIVER CAN CLOSE. `FirstFetchClassifyOutput`
-// (first-fetch-classify.ts) exposes `cost_usd_estimated` and `render_ms` but NOT `input_tokens` /
-// `output_tokens` — the function computes them internally (`estimateCostUsd`) and never returns them.
-// `recordSpendCall`'s own row shape records raw token counts because IT has access to the Anthropic
-// response's `usage` block directly; this driver only ever sees `FirstFetchClassifyResult`, which does
-// not carry that block. So the `agent_runs` rows this driver writes carry `cost_usd_estimated` (real,
-// per-call) and `render_ms`, but NOT `inputTokens`/`outputTokens` — honestly absent, not defaulted to 0
-// or omitted silently (the telemetry object's shape makes this explicit; see `buildLoggingClassify`).
+// TOKEN COUNTS — NO LONGER A GAP. `FirstFetchClassifyOutput` now exposes `input_tokens`/`output_tokens`
+// alongside `cost_usd_estimated`/`render_ms` (Lane SPEND, 2026-09-02 — the chokepoint has the real Haiku
+// `usage` block and `firstFetchClassify` now returns it instead of discarding it). `collectClassifyTelemetry`
+// reads all four fields; this run's artifact carries real per-call cost AND real per-call token counts.
 //
 // Usage:
 //   node scripts/turns/run-ledger-consume.mjs --mode plan [--limit 50] [--source-id <uuid>]
@@ -223,86 +215,54 @@ export function buildFetchDoc({
   };
 }
 
-// ── classify telemetry wrapper — the agent_runs write-site this family needed and didn't have ─────────
+// ── classify telemetry collector — READ-ONLY, not an agent_runs write-site ─────────────────────────────
 //
-// The Haiku model id first-fetch-classify.ts's HAIKU_MODEL constant. NOT exported publicly by that
-// module (only through its `__test` surface) — duplicated here rather than reaching into a test-only
-// export, the same "mirror an internal contract, don't reach into internals" call run-source-sweep.mjs's
-// header makes for persistPortalCandidates. If first-fetch-classify.ts's model changes, this constant
-// and CONTENT does NOT drive the actual call (the real call is inside firstFetchClassify itself); this
-// is a TELEMETRY LABEL only — a drift here mislabels the agent_runs row's `model` column, it never
-// changes what model is actually billed.
-const HAIKU_MODEL_FOR_TELEMETRY = "claude-haiku-4-5-20251001";
+// See this file's header ("TELEMETRY ... CLOSED AT THE SOURCE, NOT BY THIS DRIVER") for why this is a
+// collector and not a writer: firstFetchClassify now leaves its own agent_runs row via the spend
+// chokepoint (spend-client.ts's spendMessage -> recordSpendCall), so a second write here would double the
+// row count per call. This function exists ONLY to give this family's own artifact real cost/token
+// numbers without a second lookup.
 
 /**
  * Wrap `baseClassify` (first-fetch-classify.ts's `firstFetchClassify`, or a test double of the same
- * shape) so every call leaves ONE `agent_runs` row — the missing telemetry this family's classify calls
- * had (see this file's header). Returns `{ classify, telemetry }`:
+ * shape) to CAPTURE per-call telemetry into a `Map`, without writing anything anywhere. Returns
+ * `{ classify, telemetry }`:
  *   - `classify` has the exact `ConsumeOpts.classify` shape ((input, apiKey) => FirstFetchClassifyResult)
- *     and is what the driver passes into `consumePortalCandidates`.
- *   - `telemetry` is a `Map<sourceUrl, {sourceId, costUsd, renderMs, ok, error}>` accumulated as calls
- *     happen — read back AFTER the run to shape the artifact's per_item `est_usd` (portal-harvest.ts's
- *     `CandidateOutcome` does not itself carry a cost, so this is the side-channel that supplies it; see
- *     `shapeConsumeResult`'s own doc for the source_id-availability caveat this implies).
- *
- * NEVER throws on a telemetry-write failure (mirrors `recordSpendCall`'s own non-fatal posture: a paid
- * call already happened by the time the write is attempted, so a DB hiccup writing the ledger must not
- * also fail the classify call itself) — it warns instead, same as `recordSpendCall`.
- * @param {import("@supabase/supabase-js").SupabaseClient} sb
+ *     and is what the driver passes into `consumePortalCandidates`. It NEVER changes `baseClassify`'s
+ *     return value or behavior — a pure pass-through with a side-effect-free recording step.
+ *   - `telemetry` is a `Map<sourceUrl, {sourceId, costUsd, renderMs, inputTokens, outputTokens, ok, error}>`
+ *     accumulated as calls happen — read back AFTER the run to shape the artifact's per_item `est_usd`/
+ *     token counts (portal-harvest.ts's `CandidateOutcome` does not itself carry a cost or token count,
+ *     so this is the side-channel that supplies them; see `shapeConsumeResult`'s own doc for the
+ *     source_id-availability caveat this implies).
  * @param {Function} baseClassify
- * @param {{now?: () => string, warn?: (msg: string) => void}} [deps]
  */
-export function buildLoggingClassify(sb, baseClassify, deps = {}) {
-  const now = deps.now ?? (() => new Date().toISOString());
-  const warn = deps.warn ?? console.warn;
+export function collectClassifyTelemetry(baseClassify) {
   const telemetry = new Map();
 
-  async function loggingFirstFetchClassify(input, apiKey) {
-    const startedAt = now();
+  async function classifyWithTelemetry(input, apiKey) {
     const res = await baseClassify(input, apiKey);
-    const finishedAt = now();
     const ok = res != null && res.ok === true;
     const costUsd = ok && typeof res.result.cost_usd_estimated === "number" ? res.result.cost_usd_estimated : 0;
     const renderMs = ok && typeof res.result.render_ms === "number" ? res.result.render_ms : null;
+    const inputTokens = ok && typeof res.result.input_tokens === "number" ? res.result.input_tokens : 0;
+    const outputTokens = ok && typeof res.result.output_tokens === "number" ? res.result.output_tokens : 0;
     const error = ok ? null : res?.error ?? "classify returned no result";
 
-    telemetry.set(input.source_url, { sourceId: input.source_id ?? null, costUsd, renderMs, ok, error });
-
-    try {
-      const { error: dbError } = await sb.from("agent_runs").insert({
-        intelligence_item_id: null,
-        source_id: input.source_id ?? null,
-        source_url: input.source_url ?? null,
-        fetch_method: "ledger-consume-classify",
-        model: HAIKU_MODEL_FOR_TELEMETRY,
-        started_at: startedAt,
-        ended_at: finishedAt,
-        status: ok ? "success" : "error",
-        cost_usd_estimated: Number(costUsd.toFixed(6)),
-        errors: [
-          {
-            telemetry: {
-              model: HAIKU_MODEL_FOR_TELEMETRY,
-              purpose: "first-fetch-classify",
-              render_ms: renderMs,
-              error,
-              // NOTE: no inputTokens/outputTokens — FirstFetchClassifyResult does not expose them; see
-              // this file's header ("TOKEN COUNTS — A NAMED LIMIT").
-            },
-          },
-        ],
-      });
-      if (dbError) {
-        warn(`[ledger-consume] agent_runs telemetry write FAILED for ${input.source_url}: ${dbError.message}`);
-      }
-    } catch (e) {
-      warn(`[ledger-consume] agent_runs telemetry write THREW for ${input.source_url}: ${e instanceof Error ? e.message : String(e)}`);
-    }
+    telemetry.set(input.source_url, {
+      sourceId: input.source_id ?? null,
+      costUsd,
+      renderMs,
+      inputTokens,
+      outputTokens,
+      ok,
+      error,
+    });
 
     return res;
   }
 
-  return { classify: loggingFirstFetchClassify, telemetry };
+  return { classify: classifyWithTelemetry, telemetry };
 }
 
 // ── shaping — ConsumeResult -> CONVENTION.md's per_item / metrics ──────────────────────────────────────
@@ -329,7 +289,7 @@ export const REJECTED_LIKE_DISPOSITIONS = Object.freeze(["rejected", "would_reje
  * risk reading a different row set than the one it actually processed (REUSE-ONLY discipline — see
  * run-source-sweep.mjs's header on why a walker's own query is mirrored, never independently re-derived).
  * @param {object} result ConsumeResult
- * @param {Map<string, {sourceId: string|null, costUsd: number, renderMs: number|null, ok: boolean, error: string|null}>} telemetryByUrl
+ * @param {Map<string, {sourceId: string|null, costUsd: number, renderMs: number|null, inputTokens: number, outputTokens: number, ok: boolean, error: string|null}>} telemetryByUrl
  * @param {{sourceIdFilter?: string|null}} [opts]
  */
 export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
@@ -345,13 +305,21 @@ export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
       outcome: o.disposition,
       reason: o.reason,
       est_usd: t ? Number(t.costUsd.toFixed(6)) : 0,
+      input_tokens: t?.inputTokens ?? 0,
+      output_tokens: t?.outputTokens ?? 0,
       evidence_refs: [o.url],
       error: t && !t.ok ? t.error : null,
     };
   });
 
   let estUsdTotal = 0;
-  for (const t of telemetryByUrl.values()) estUsdTotal += t.costUsd;
+  let inputTokensTotal = 0;
+  let outputTokensTotal = 0;
+  for (const t of telemetryByUrl.values()) {
+    estUsdTotal += t.costUsd;
+    inputTokensTotal += t.inputTokens ?? 0;
+    outputTokensTotal += t.outputTokens ?? 0;
+  }
 
   const metrics = {
     mode: result.mode,
@@ -362,6 +330,8 @@ export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
     rejected: result.outcomes.filter((o) => REJECTED_LIKE_DISPOSITIONS.includes(o.disposition)).length,
     skipped: result.outcomes.filter((o) => o.disposition === "skipped").length,
     est_usd_total: Number(estUsdTotal.toFixed(6)),
+    input_tokens_total: inputTokensTotal,
+    output_tokens_total: outputTokensTotal,
     next_cursor: result.nextCursor ?? null,
   };
 
@@ -401,14 +371,19 @@ export function buildRunArtifact({
       ? "APPLY DISARMED (see config.requested_mode/apply_enabled_const): LEDGER_CONSUME_APPLY_ENABLED is " +
         "false in run-ledger-consume.mjs (ADR-023 reviewed-change gate) — this run executed with plan " +
         "semantics regardless of the --mode apply request. Nothing was written to portal_link_candidates " +
-        "or the intake chokepoint; the classify calls it made ARE real spend, each with its own " +
-        "agent_runs telemetry row (see per_item est_usd / metrics.est_usd_total)."
+        "or the intake chokepoint; the classify calls it made ARE real spend, each metered by the spend " +
+        "chokepoint itself (src/lib/llm/spend-client.ts's spendMessage/recordSpendCall — one agent_runs " +
+        "row per call, written from inside first-fetch-classify.ts, not by this driver); this artifact's " +
+        "per_item est_usd/input_tokens/output_tokens and metrics.est_usd_total are read back from " +
+        "FirstFetchClassifyResult, not a second ledger write (see per_item est_usd / metrics.est_usd_total)."
       : "Auto-emitted by run-ledger-consume.mjs, the ledger-consume family's canonical entry point " +
         "(Lane CONSUME, 2026-09-02) — the runtime consumePortalCandidates (src/lib/intake/portal-harvest.ts) " +
-        "never had. Every classify call in this run left its own agent_runs row (buildLoggingClassify) — " +
-        "the sanctioned write-site (recordSpendCall, spend-client.ts) is module-private, so this driver " +
-        "mirrors its column shape rather than importing it; see this file's header for the full account, " +
-        "including the known limit that FirstFetchClassifyResult does not expose per-call token counts.";
+        "never had. Every classify call's agent_runs telemetry is written by the spend chokepoint itself " +
+        "(src/lib/llm/spend-client.ts's spendMessage/recordSpendCall, wired into first-fetch-classify.ts by " +
+        "Lane SPEND) — this driver only READS BACK FirstFetchClassifyResult's cost_usd_estimated/" +
+        "input_tokens/output_tokens (collectClassifyTelemetry) to shape this artifact's per_item/metrics; " +
+        "it does not write agent_runs itself, so a classify call leaves exactly one telemetry row, not two. " +
+        "See this file's header for the full account.";
 
   return {
     harness_family: "ledger-consume",
@@ -497,7 +472,7 @@ async function main() {
   const traceDir = resolve(parsed.traceDir || defaultTraceDir(harnessRunsDir));
 
   const fetchDoc = buildFetchDoc();
-  const { classify, telemetry } = buildLoggingClassify(sb, firstFetchClassify);
+  const { classify, telemetry } = collectClassifyTelemetry(firstFetchClassify);
 
   const config = {
     requested_mode: requestedMode,

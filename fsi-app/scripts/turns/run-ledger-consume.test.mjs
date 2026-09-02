@@ -1,5 +1,8 @@
 // run-ledger-consume.test.mjs — proves arg parsing, the apply-disarm gate, the classify telemetry
-// wrapper (agent_runs write-site), and artifact shaping from a fake ConsumeResult.
+// COLLECTOR (read-only — see run-ledger-consume.mjs's header for why this is no longer an agent_runs
+// write-site: Lane SPEND routed firstFetchClassify through the spend chokepoint, which now writes that
+// row itself, so this driver only reads back FirstFetchClassifyResult's cost/token fields), and artifact
+// shaping from a fake ConsumeResult.
 //
 // THE JITI-LOAD PROOF IS DELIBERATELY NOT A TEST IN THIS FILE. This file is in
 // `.discipline/run-test-suite.sh`'s no-`npm-ci` glob (`fsi-app/scripts/turns/*.test.mjs`), and
@@ -27,7 +30,7 @@ import {
   parseArgs,
   resolveApplyGate,
   buildFetchDoc,
-  buildLoggingClassify,
+  collectClassifyTelemetry,
   shapeConsumeResult,
   buildRunArtifact,
   defaultTraceDir,
@@ -196,93 +199,77 @@ test("buildFetchDoc: throws on a non-ok HTTP response (caller treats as skip)", 
   await assert.rejects(() => fetchDoc("https://a.example/missing"), /HTTP 404/);
 });
 
-// ── buildLoggingClassify — the missing agent_runs write-site ────────────────────────────────────────
+// ── collectClassifyTelemetry — a READ-ONLY collector, no DB, no double-counted agent_runs rows ────────
 
-function fakeSupabase(insertedRows, { failInsert = false } = {}) {
-  return {
-    from(table) {
-      assert.equal(table, "agent_runs");
-      return {
-        async insert(row) {
-          if (failInsert) return { error: { message: "simulated write failure" } };
-          insertedRows.push(row);
-          return { error: null };
-        },
-      };
-    },
+test("collectClassifyTelemetry: never touches a database — the wrapped fn's return value passes through unchanged", async () => {
+  const baseClassify = async (input, apiKey) => {
+    assert.equal(apiKey, "key");
+    return {
+      ok: true,
+      result: {
+        entity_verdict: "specific_document",
+        item_type: "regulation",
+        cost_usd_estimated: 0.0012,
+        render_ms: 450,
+        input_tokens: 900,
+        output_tokens: 120,
+        title_candidate: "t",
+        summary: "s",
+      },
+    };
   };
-}
-
-test("buildLoggingClassify: one agent_runs row per classify call, ok=true carries cost", async () => {
-  const inserted = [];
-  const sb = fakeSupabase(inserted);
-  const baseClassify = async (input) => ({
-    ok: true,
-    result: {
-      entity_verdict: "specific_document",
-      item_type: "regulation",
-      cost_usd_estimated: 0.0012,
-      render_ms: 450,
-      title_candidate: "t",
-      summary: "s",
-    },
-  });
-  const { classify, telemetry } = buildLoggingClassify(sb, baseClassify);
+  const { classify, telemetry } = collectClassifyTelemetry(baseClassify);
 
   const res = await classify({ source_id: "src-1", source_url: "https://x/a", text: "..." }, "key");
+  // Pass-through: the exact object baseClassify returned, untouched.
   assert.equal(res.ok, true);
-  assert.equal(inserted.length, 1);
-  assert.equal(inserted[0].source_id, "src-1");
-  assert.equal(inserted[0].source_url, "https://x/a");
-  assert.equal(inserted[0].status, "success");
-  assert.equal(inserted[0].cost_usd_estimated, 0.0012);
-  assert.equal(inserted[0].fetch_method, "ledger-consume-classify");
-  assert.equal(inserted[0].errors[0].telemetry.purpose, "first-fetch-classify");
-  // No token counts — see this file's header ("TOKEN COUNTS — A NAMED LIMIT").
-  assert.equal("inputTokens" in inserted[0].errors[0].telemetry, false);
+  assert.equal(res.result.title_candidate, "t");
 
-  assert.equal(telemetry.get("https://x/a").costUsd, 0.0012);
-  assert.equal(telemetry.get("https://x/a").sourceId, "src-1");
-  assert.equal(telemetry.get("https://x/a").ok, true);
+  const t = telemetry.get("https://x/a");
+  assert.equal(t.costUsd, 0.0012);
+  assert.equal(t.renderMs, 450);
+  assert.equal(t.inputTokens, 900);
+  assert.equal(t.outputTokens, 120);
+  assert.equal(t.sourceId, "src-1");
+  assert.equal(t.ok, true);
+  assert.equal(t.error, null);
 });
 
-test("buildLoggingClassify: ok=false still writes a $0 row (every call is metered, not just successes)", async () => {
-  const inserted = [];
-  const sb = fakeSupabase(inserted);
+test("collectClassifyTelemetry: ok=false is recorded with $0 cost, 0 tokens, and the error string — never thrown", async () => {
   const baseClassify = async () => ({ ok: false, error: "Haiku 429: rate limited" });
-  const { classify, telemetry } = buildLoggingClassify(sb, baseClassify);
+  const { classify, telemetry } = collectClassifyTelemetry(baseClassify);
 
   const res = await classify({ source_id: "src-2", source_url: "https://x/b", text: "..." }, "key");
   assert.equal(res.ok, false);
-  assert.equal(inserted.length, 1);
-  assert.equal(inserted[0].status, "error");
-  assert.equal(inserted[0].cost_usd_estimated, 0);
-  assert.equal(inserted[0].errors[0].telemetry.error, "Haiku 429: rate limited");
-  assert.equal(telemetry.get("https://x/b").ok, false);
+  const t = telemetry.get("https://x/b");
+  assert.equal(t.costUsd, 0);
+  assert.equal(t.inputTokens, 0);
+  assert.equal(t.outputTokens, 0);
+  assert.equal(t.ok, false);
+  assert.equal(t.error, "Haiku 429: rate limited");
 });
 
-test("buildLoggingClassify: a DB write failure never throws — the classify result still returns", async () => {
-  const inserted = [];
-  const sb = fakeSupabase(inserted, { failInsert: true });
-  const baseClassify = async () => ({ ok: true, result: { cost_usd_estimated: 0.001, render_ms: 10 } });
-  let warned = false;
-  const { classify } = buildLoggingClassify(sb, baseClassify, { warn: () => { warned = true; } });
-
-  const res = await classify({ source_id: "s", source_url: "https://x/c" }, "key");
-  assert.equal(res.ok, true);
-  assert.equal(warned, true);
-});
-
-test("buildLoggingClassify: N calls leave N rows (one row per call, not one aggregate)", async () => {
-  const inserted = [];
-  const sb = fakeSupabase(inserted);
-  const baseClassify = async () => ({ ok: true, result: { cost_usd_estimated: 0.001, render_ms: 5 } });
-  const { classify } = buildLoggingClassify(sb, baseClassify);
+test("collectClassifyTelemetry: N calls record N telemetry entries, keyed by source_url", async () => {
+  const baseClassify = async () => ({
+    ok: true,
+    result: { cost_usd_estimated: 0.001, render_ms: 5, input_tokens: 100, output_tokens: 20 },
+  });
+  const { classify, telemetry } = collectClassifyTelemetry(baseClassify);
 
   for (let i = 0; i < 5; i++) {
     await classify({ source_id: `s${i}`, source_url: `https://x/${i}` }, "key");
   }
-  assert.equal(inserted.length, 5);
+  assert.equal(telemetry.size, 5);
+  assert.equal(telemetry.get("https://x/3").sourceId, "s3");
+});
+
+test("collectClassifyTelemetry: a result missing input_tokens/output_tokens (older classify double) records 0, not undefined/NaN", async () => {
+  const baseClassify = async () => ({ ok: true, result: { cost_usd_estimated: 0.001, render_ms: 5 } });
+  const { classify, telemetry } = collectClassifyTelemetry(baseClassify);
+  await classify({ source_id: "s", source_url: "https://x/legacy" }, "key");
+  const t = telemetry.get("https://x/legacy");
+  assert.equal(t.inputTokens, 0);
+  assert.equal(t.outputTokens, 0);
 });
 
 // ── shapeConsumeResult ───────────────────────────────────────────────────────────────────────────────
@@ -304,13 +291,13 @@ function fakeConsumeResult(overrides = {}) {
   };
 }
 
-test("shapeConsumeResult: one per_item entry per outcome, est_usd from telemetry when present", () => {
+test("shapeConsumeResult: one per_item entry per outcome, est_usd + tokens from telemetry when present", () => {
   const telemetry = new Map([
-    ["https://x/1", { sourceId: "src-1", costUsd: 0.0011, renderMs: 400, ok: true, error: null }],
-    ["https://x/2", { sourceId: "src-1", costUsd: 0.0009, renderMs: 380, ok: true, error: null }],
+    ["https://x/1", { sourceId: "src-1", costUsd: 0.0011, renderMs: 400, inputTokens: 800, outputTokens: 100, ok: true, error: null }],
+    ["https://x/2", { sourceId: "src-1", costUsd: 0.0009, renderMs: 380, inputTokens: 700, outputTokens: 90, ok: true, error: null }],
     // row-3 never reached classify (fetch failed) — no telemetry entry.
     // row-4 (exists) reached classify too, in this fixture:
-    ["https://x/4", { sourceId: "src-2", costUsd: 0.0013, renderMs: 420, ok: true, error: null }],
+    ["https://x/4", { sourceId: "src-2", costUsd: 0.0013, renderMs: 420, inputTokens: 850, outputTokens: 110, ok: true, error: null }],
   ]);
   const { perItem, metrics } = shapeConsumeResult(fakeConsumeResult(), telemetry, { sourceIdFilter: null });
 
@@ -319,7 +306,11 @@ test("shapeConsumeResult: one per_item entry per outcome, est_usd from telemetry
   assert.equal(byId["row-1"].outcome, "would_mint");
   assert.equal(byId["row-1"].est_usd, 0.0011);
   assert.equal(byId["row-1"].source_id, "src-1");
+  assert.equal(byId["row-1"].input_tokens, 800);
+  assert.equal(byId["row-1"].output_tokens, 100);
   assert.equal(byId["row-3"].est_usd, 0); // no telemetry -> 0, not invented
+  assert.equal(byId["row-3"].input_tokens, 0);
+  assert.equal(byId["row-3"].output_tokens, 0);
   assert.equal(byId["row-3"].source_id, null); // no telemetry, no --source-id filter -> honest null
   assert.equal(byId["row-3"].url, "https://x/3");
 
@@ -333,7 +324,15 @@ test("shapeConsumeResult: one per_item entry per outcome, est_usd from telemetry
   assert.equal(metrics.rejected, 1);
   assert.equal(metrics.skipped, 1);
   assert.equal(metrics.est_usd_total, Number((0.0011 + 0.0009 + 0.0013).toFixed(6)));
+  assert.equal(metrics.input_tokens_total, 800 + 700 + 850);
+  assert.equal(metrics.output_tokens_total, 100 + 90 + 110);
   assert.deepEqual(metrics.next_cursor, { firstSeenAt: "2026-09-01T00:00:00Z", id: "row-4" });
+});
+
+test("shapeConsumeResult: an empty telemetry map yields 0 token totals, not undefined/NaN", () => {
+  const { metrics } = shapeConsumeResult(fakeConsumeResult(), new Map());
+  assert.equal(metrics.input_tokens_total, 0);
+  assert.equal(metrics.output_tokens_total, 0);
 });
 
 test("shapeConsumeResult: source_id falls back to --source-id filter when telemetry has none", () => {
