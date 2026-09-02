@@ -138,6 +138,21 @@ export const EXEMPTIONS = [
       'skill just to close the gap, or leaving a permanent phantom gap.',
     by: 'Lane DP-ENGINE, system-completion train, 2026-09-02',
   },
+  {
+    match: 'fsi-app/scripts/propagation/seed-derived-values',
+    reason:
+      'seed-derived-values.mjs performs the SAME class of write as the src/lib/propagation/ entry above ' +
+      '(derived_values via registerDerivedValue\'s RPC, plus a direct estimated_values upsert — both ' +
+      'corpus infrastructure the propagation engine owns, not skill-governed content) — this entry exists ' +
+      'separately because the file lives under scripts/propagation/, one root up from src/lib/propagation/, ' +
+      'so the existing match prefix does not reach it. No `kinds` restriction (unlike the entry above): ' +
+      'this also covers seed-derived-values.test.mjs\'s ORPHANED-PROOF finding — that test is real and ' +
+      'passing (`node --test scripts/propagation/seed-derived-values.test.mjs`) but is NOT wired into ' +
+      '.discipline/run-test-suite.sh (scripts/propagation/ is not one of its covered globs, and that file ' +
+      'is outside this lane\'s write set) — a documented, known gap, not an oversight; see the test file\'s ' +
+      'own header and the lane\'s final report.',
+    by: 'Lane DP-SURF, system-completion train, 2026-09-02',
+  },
 ];
 
 export function isExempt(path, kind) {

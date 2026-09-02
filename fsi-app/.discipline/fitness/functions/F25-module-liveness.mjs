@@ -231,21 +231,44 @@ export const LEGACY_ALLOWLIST = [
   // FLOOR from it directly, giving it a real production importer. The entry said to remove it once Lane
   // DP-ENGINE or DP-SURF lands an import — this is that lane.
 
-  // ── Lane DP-ENGINE (2026-09-02, system-completion train): the pollution barrier, published for the
-  // NEXT lane in the same train ──
+  // fsi-app/src/lib/propagation/admissible-for.ts entry REMOVED (Lane DP-SURF, 2026-09-02, system-
+  // completion train): the wiring it was published for landed on schedule — StatutoryFigure.tsx,
+  // EstimatedFigure.tsx and DerivedFigure (same file) all now import admissibleFor() from it directly
+  // ("the one gate," spec §3.3), giving it real production importers. The entry said to remove it once a
+  // later lane in the train lands a real caller — this is that lane.
+
+  // ── Lane DP-SURF (2026-09-02, system-completion train): Layer 4's statutory render component, no
+  // consuming page landed in THIS lane's own scope (a FuelEU Annex IV filing surface is a future lane's
+  // build, not this one's — this lane's write set built the formula, the type barrier and the render
+  // component, not an obligations/filing page to mount it on) ──
   {
-    file: 'fsi-app/src/lib/propagation/admissible-for.ts',
+    file: 'fsi-app/src/components/figures/StatutoryFigure.tsx',
     reason:
-      'The pollution barrier (spec §3.3, F31\'s own sanctioned read path — F31 fails CI on a ' +
-      '.from("derived_values") read outside this directory, and admissibleFor() is the function every ' +
-      'OTHER surface is meant to call instead). No production importer exists yet because the surfaces ' +
-      'that read derived_values (Lane DP-SURF\'s render components, a future API route) have not landed ' +
-      'in this train yet — this module is the published contract they build against, the same shape as ' +
-      'decisions.mjs\'s own entry above (now removed, its own wiring having landed on schedule). ' +
-      'drain.ts deliberately does NOT import it: the drain WRITES fresh values (registerDerivedValue), it ' +
-      'does not gate reads — admissibleFor() is a READ-time barrier a future consumer calls, by design ' +
-      'orthogonal to the write path this lane built a runtime for.',
-    reviewByPhase: 'system-completion train (operator: remove this entry once a later lane in the train lands a real caller — if none has by the train\'s close, treat as a real orphan)',
+      'Layer 4 of spec §4\'s statutory/estimate isolation (a separate render component for a filing-grade ' +
+      'figure, never sharing a visual slot with EstimatedFigure) — published for whichever lane next wires ' +
+      'a real obligation/filing page (e.g. a FuelEU Annex IV penalty computed via ' +
+      'src/lib/statutory/types.ts\'s computeStatutory(), migration 286\'s statutory_computations). This ' +
+      'lane\'s own write set (docs/specs/08-flywheel-design.md, this train) built the formula ' +
+      '(fueleu-annex-iv.mjs), the type barrier (types.ts) and this component — not a filing page to mount ' +
+      'it on, which was never in scope here. Same published-contract-ahead-of-its-caller shape as ' +
+      'admissible-for.ts\'s own (now-removed) entry above.',
+    reviewByPhase: 'system-completion train (operator: remove this entry once a later lane lands a real caller — if none has by the train\'s close, treat as a real orphan)',
+  },
+
+  // ── Lane DP-SURF (2026-09-02, system-completion train): a compile-time-only tsc proof, never meant to
+  // be imported at runtime by ANY caller, production or otherwise ──
+  {
+    file: 'fsi-app/src/lib/statutory/types.contractable-barrier.check.ts',
+    reason:
+      'This file exists ONLY to be type-checked (`npx tsc --noEmit`), never executed — its two ' +
+      'computeStatutory() calls (one clean, one carrying a deliberate `// @ts-expect-error` on a modelled ' +
+      'field) exist to PROVE Layer 2\'s compile-time barrier (spec §4: "passing a modelled value does not ' +
+      'type-check") actually rejects at the type level, not just in a runtime test. A module whose entire ' +
+      'purpose is being read by the compiler and never by Node has no production importer BY DESIGN — ' +
+      'F25\'s own "unwired = dormant" concern does not apply (a dormant capability is one nothing calls at ' +
+      'runtime when it should; this one is never meant to run). See the file\'s own header for the same ' +
+      'note from its own side.',
+    reviewByPhase: 'n/a — this file is never meant to gain a production importer; re-review only if the file itself is deleted or its proof role changes',
   },
 
   // ── Lane DP-ENGINE (2026-09-02, system-completion train, second commit): the JS mirror of migration

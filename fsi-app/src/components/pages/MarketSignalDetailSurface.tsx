@@ -37,6 +37,16 @@ import { WatchButton } from "@/components/ui/WatchButton";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { TrajectoryBars } from "@/components/market/TrajectoryBars";
 import { buildCarbonOverlayView } from "@/lib/market/carbon-overlay-view.mjs";
+// Lane DP-SURF, system-completion train, 2026-09-02: a SEPARATE, plain derived-value carbon-intensity
+// figure (gCO2e/tonne-km), distinct from the "Carbon cost overlay" block above (WO-24, another lane's
+// existing work — untouched). Reuses selectModalFactor (the SAME resolution rule the overlay already
+// applies) so both blocks agree on WHICH factor row is in scope, but each renders it through its own pure
+// conversion — carbonIntensity() here, buildCarbonOverlayView() there — never sharing one computed value.
+import { selectModalFactor } from "@/lib/market/select-modal-factor.mjs";
+import { carbonIntensity } from "@/lib/market/carbon-intensity.mjs";
+import { lifecycleFromFactorOriginClass, confidenceFromPedigree } from "@/lib/propagation/methods/carbon-intensity.ts";
+import { DerivedFigure } from "@/components/figures/EstimatedFigure";
+import type { Value } from "@/lib/propagation/types.ts";
 import {
   extractRegulationSections,
   type SourceEntry,
@@ -692,6 +702,43 @@ function DriversTab({
   const carbonOverlay = hasCarbonOverlay
     ? buildCarbonOverlayView({ jurisdictionIso: r.jurisdictionIso ?? [], factors: carbonFactors })
     : null;
+
+  // Lane DP-SURF, 2026-09-02: the SAME resolution rule (selectModalFactor) the overlay above already
+  // applies, so this block only ever shows for the identical factor row the overlay names — no second,
+  // disagreeing selection. carbonIntensity() refuses honestly (no card at all, not a blank one) for any
+  // quantity_basis it has no confirmed per-unit convention for (today: everything but tonne_km).
+  const modalFactor = hasCarbonOverlay ? selectModalFactor({ jurisdictionIso: r.jurisdictionIso ?? [], factors: carbonFactors }) : null;
+  const intensity = modalFactor && modalFactor.state === "resolved" ? carbonIntensity(modalFactor.factor) : null;
+  const intensityFigure: Value | null =
+    intensity && intensity.ok
+      ? {
+          valueId: `preview:${intensity.factorId ?? "unknown"}`,
+          entityId: null,
+          methodId: "carbon_intensity_tkm",
+          methodVersion: "1.0.0",
+          value: intensity.valueGPerUnit,
+          valueLow: null,
+          valueHigh: null,
+          unit: intensity.unit,
+          currency: null,
+          derivation: "calculated",
+          originClass: "derived",
+          // This surface's EmissionFactorRow (WO-24) carries no origin_class/pedigree column — a real
+          // seeded derived_values row (scripts/propagation/seed-derived-values.mjs) carries both and
+          // renders a sharper lifecycle/confidence; this live client-side read of the SAME factor row
+          // degrades honestly to the documented defaults rather than guessing a stronger provenance.
+          lifecycle: lifecycleFromFactorOriginClass(undefined),
+          admissibility: "calculation_ok",
+          baseConfidence: confidenceFromPedigree(undefined),
+          assertedAt: new Date().toISOString(),
+          halfLifeDays: null,
+          inputs: [{ table: "emission_factors", pk: intensity.factorId ?? "" }],
+          supersedes: null,
+          computedAt: new Date().toISOString(),
+          computedBy: "client-preview",
+        }
+      : null;
+
   const anySection = sectionMap["2"] || sectionMap["3"] || sectionMap["5"];
 
   return (
@@ -754,6 +801,11 @@ function DriversTab({
           ) : (
             <PendingFrame header={carbonOverlay.header}>{carbonOverlay.body}</PendingFrame>
           )}
+        </SectionCard>
+      )}
+      {hasCarbonOverlay && intensityFigure && (
+        <SectionCard title="Per-unit carbon intensity" rightMeta="calculated · gCO2e/tonne-km">
+          <DerivedFigure figure={intensityFigure} label="Carbon intensity" sourceNote="Same factor row as the carbon cost overlay above, converted per unit rather than per shipment." use="display" />
         </SectionCard>
       )}
       {sectionMap["5"] && (

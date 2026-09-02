@@ -512,14 +512,35 @@ item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
   drain pass processes a batch (marking events consumed; drain never deletes outbox rows).
 - **`derived_values`** and **`derivation_edges`** (migration 285) — written together, atomically, by
   migration 285's `register_derived_value(...)` SQL RPC, called from
-  `fsi-app/src/lib/propagation/register-derivation.ts`'s `registerDerivedValue()`, called in turn from
-  `fsi-app/src/lib/propagation/drain.ts`'s recompute pass (never called directly by a route or script —
-  `drain.ts` is the one sanctioned caller today).
-- **`statutory_computations`** and **`estimated_values`** (migration 286) — reserved output tables for the
-  lifecycle × admissibility state machine; no production writer lands in this lane (methods registered via
-  `fsi-app/src/lib/propagation/methods/index.ts`'s `registerMethod` seam will write here once DP-SURF or a
-  later lane registers a concrete method — see migration 286's header for the "reserved, not yet
-  populated" note).
+  `fsi-app/src/lib/propagation/register-derivation.ts`'s `registerDerivedValue()`. **UPDATE, Lane DP-SURF,
+  2026-09-02: `drain.ts`'s recompute pass is no longer the only caller.**
+  `fsi-app/scripts/propagation/seed-derived-values.mjs` (`--apply`) is a SECOND sanctioned caller — the
+  initial-closure seed for the two methods this lane registers
+  (`fsi-app/src/lib/propagation/methods/{carbon-intensity,automate-vs-hire}.ts`, method ids
+  `carbon_intensity_tkm@1.0.0` / `automate_vs_hire@1.0.0`): a value has to exist once, from SOME caller,
+  before `drain.ts`'s recompute pass (which only ever supersedes an EXISTING row) has anything to work
+  from. Both callers go through the SAME `registerDerivedValue()` → `register_derived_value(...)` RPC, so
+  the atomicity/acyclic-by-construction guarantees migration 285's own header states are identical either
+  way — this is a second caller of the one write path, not a second write path.
+- **`statutory_computations`** and **`estimated_values`** (migration 286) — **UPDATE, Lane DP-SURF,
+  2026-09-02: `estimated_values` is no longer reserved/unpopulated.**
+  `fsi-app/scripts/propagation/seed-derived-values.mjs` (`--apply`) is its first production writer — a
+  direct `.from("estimated_values").upsert(..., { onConflict: "entity_id" })` per region carrying both a
+  `labor_markets` and an `operational_cost` regional_data_facts fact with a resolvable entity_id (see that
+  script's own header for why a matched region without one is counted, not written — this lane's write set
+  does not include entity minting), paired with the SAME run's `automate_vs_hire` `derived_values` row
+  (NPV, the propagated headline metric) so the two never drift out of sync (`fsi-app/src/lib/propagation/
+  methods/automate-vs-hire.ts`'s own header explains the point/low/high-on-NPV-plus-`distribution`-jsonb
+  split this upsert follows). `estimated_values.entity_id` is a NOT-NULL PRIMARY KEY (migration 286), so
+  this is a per-entity upsert, never an insert-only append — a re-run of the seed for the SAME region
+  replaces that region's one row, which is the correct semantics for "the current estimate," not a
+  history log (unlike `derived_values`, which is append-only/versioned via `supersedes`).
+  `statutory_computations` remains genuinely reserved: no production writer lands in this lane (this
+  lane's write set built `fsi-app/src/lib/statutory/fueleu-annex-iv.mjs`'s formula and `types.ts`'s
+  Layer-2 type barrier, but no page/route that calls `computeStatutory()` against a real obligation and
+  persists the result — see this lane's final report for why, and
+  `fsi-app/.discipline/fitness/functions/F25-module-liveness.mjs`'s `StatutoryFigure.tsx` allowlist entry
+  for the matching "published, no consumer yet" disposition on the render side).
 - **`sensitive_field_policy`** and **`aggregate_query_log`** (migration 287) — `sensitive_field_policy` is
   operator-maintained reference data (no application writer in this lane, seeded by the migration itself);
   `aggregate_query_log` is written exclusively by migration 287's `publish_aggregate()` SECURITY DEFINER

@@ -2,14 +2,21 @@
 // Part 3: "the drain recomputes each stale value through its own registered method"). Lane DP-ENGINE,
 // system-completion train, 2026-09-02.
 //
-// THIS FILE OWNS THE SEAM, NOT ANY METHOD BODY. Zero methods are registered here — DP-SURF (and every
-// later lane that ships a computable figure) calls `registerMethod(methodId, methodVersion, fn)` from ITS
-// OWN module, at import time, the same "register yourself with a shared table, never edit the table's
-// owner" shape `src/lib/entities/decisions.mjs`'s header names for shared constants. `drain.ts` imports
-// ONLY `getMethod`/`METHODS` from here — never a concrete method — so this file (and drain.ts) never grows
-// a per-method import list, and F25 (module liveness) never needs a per-method exemption here either: this
-// module's own liveness is drain.ts calling `getMethod`, which is real, present-day traffic regardless of
-// how many methods are registered.
+// THIS FILE OWNS THE SEAM, NOT ANY METHOD BODY. `drain.ts` imports ONLY `getMethod`/`METHODS` from here —
+// never a concrete method — so drain.ts itself never grows a per-method import list.
+//
+// UPDATE (Lane DP-SURF, same train, same day): the side-effect imports at the bottom of this file ARE the
+// governing plan's own explicit instruction to this lane ("register them in methods/index.ts via the seam
+// — you may edit index.ts only to import/register"), and the reason is mechanical, not a change of mind
+// about the seam's design: a `registerMethod()` call only RUNS when its module is imported by something,
+// and nothing else in this train imports a concrete method module (DP-ENGINE's own drain.ts deliberately
+// does not, per the paragraph above, and no route/script/component in this lane's write set is a natural
+// "boot" file that every method file could register itself into). This file is the one already-live
+// import target every method needs regardless (drain.ts calling `getMethod`/`METHODS` gives IT a real
+// production importer), so making it the aggregation point too costs no new liveness risk and needs no new
+// file. A method module's OWN header still states its method id/version/registration; this file's job is
+// still confined to importing (never re-implementing) — "own the seam, not the body" still holds, the body
+// still lives one file over.
 //
 // PLAIN RELATIVE IMPORTS, NO `@/` ALIAS, NO NPM PACKAGE AT MODULE SCOPE — see types.ts's header for why.
 //
@@ -119,3 +126,28 @@ export const METHODS = Object.freeze({
 export function __clearRegistryForTests(): void {
   REGISTRY.clear();
 }
+
+// ── Registered methods (Lane DP-SURF, 2026-09-02) ─────────────────────────────────────────────────────
+// Import each method file's plain exports and call registerMethod() HERE, after REGISTRY (above) is
+// already initialized — NOT a self-registering side-effect import from the method file itself. That
+// shape was tried first and broke on a real TDZ error ("Cannot access 'REGISTRY' before initialization"):
+// ES module linking evaluates an imported module's body BEFORE the importing module's own top-level code,
+// so a method file that both imports registerMethod from here AND calls it at its own top level would run
+// that call before this file's `const REGISTRY = new Map()` (above) has executed — see automate-vs-hire.ts
+// and carbon-intensity.ts's own headers for the same note from the method-file side. Importing here
+// (rather than nowhere) is what makes drain.ts's apply-mode recompute pass actually find a method for a
+// stale automate-vs-hire or carbon-intensity value instead of leaving it stale forever with
+// skippedUnknownMethod incrementing.
+import {
+  computeAutomateVsHire,
+  METHOD_ID as AUTOMATE_VS_HIRE_METHOD_ID,
+  METHOD_VERSION as AUTOMATE_VS_HIRE_METHOD_VERSION,
+} from "./automate-vs-hire.ts";
+import {
+  computeCarbonIntensity,
+  METHOD_ID as CARBON_INTENSITY_METHOD_ID,
+  METHOD_VERSION as CARBON_INTENSITY_METHOD_VERSION,
+} from "./carbon-intensity.ts";
+
+registerMethod(AUTOMATE_VS_HIRE_METHOD_ID, AUTOMATE_VS_HIRE_METHOD_VERSION, computeAutomateVsHire);
+registerMethod(CARBON_INTENSITY_METHOD_ID, CARBON_INTENSITY_METHOD_VERSION, computeCarbonIntensity);
