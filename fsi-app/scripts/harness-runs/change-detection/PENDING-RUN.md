@@ -17,7 +17,7 @@ file's own header, and `docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s new "Change dete
 full three-step chain and the limitations found reading `check-sources/route.ts` while building this
 (hardcoded batch size, response body missing `changeDetected`/`portalCandidates` per source).
 
-**harness_version at write time:** `sha256:7e32e681746e2a7b`
+**harness_version at write time:** `sha256:331700b02e68fe83`
 
 **The planned run that supersedes this marker:** `change-detection-run-001.json`, dispatched by the
 coordinator (`docs/plans/system-completion-plan-2026-09-02.md` §2, "Not a lane — operator-only") via
@@ -25,3 +25,5 @@ coordinator (`docs/plans/system-completion-plan-2026-09-02.md` §2, "Not a lane 
 `sources`/`monitoring_queue`/`staged_updates` tables — see the driver's own dry-mode contract), read
 against the live tables, then `mode: apply` once the dry artifact confirms the chain behaves as designed.
 Per F28's reverse-audit, this file is deleted the moment an artifact carrying the hash above lands.
+
+**Re-pin note (coordinator, 2026-09-02, integration of the system-completion train):** the hash above was `sha256:7e32e681746e2a7b` when the lane wrote this marker. Lane CD's second commit (check-sources route accepts a bounded `limit`; the driver consumes the route's new response fields and cross-checks them by read) changed `scripts/turns/run-change-detection.mjs` after the marker was written. Re-pinned by the coordinator at integration (2026-09-02); the planned first run is unchanged.

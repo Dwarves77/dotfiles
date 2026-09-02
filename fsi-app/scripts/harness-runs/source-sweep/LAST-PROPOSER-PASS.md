@@ -1,8 +1,8 @@
 # Last proposer pass — source-sweep
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `source-sweep` now has **five** artifacts
-(`source-sweep-run-001` … `source-sweep-run-005`); F28's rule (d) requires this file to name the latest
-verbatim: **source-sweep-run-005**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `source-sweep` now has **six** artifacts
+(`source-sweep-run-001` … `source-sweep-run-006`); F28's rule (d) requires this file to name the latest
+verbatim: **source-sweep-run-006**.
 
 **Artifacts read:** source-sweep-run-001 (2026-09-01T22:31Z, `sha256:87e06e9784e8e21b`, the driver's
 first execution, dry) and source-sweep-run-002 (2026-09-01T23:00:22Z → 23:00:26Z,
@@ -130,3 +130,23 @@ the live `portal_link_candidates` rows grouped by parent source, read back after
 **Proposal:** no governing-file edits. Next runs are the FR and feed first walks (dry). The
 `consumePortalCandidates` hop (ledger → classify → intake) is still the gap between a sweep and a
 minted item; that is a corpus-turn design question, not a sweep fix.
+
+---
+
+## Pass over source-sweep-run-006 (coordinator, 2026-09-02)
+
+**Artifact read:** `source-sweep-run-006.json` and `traces/source-sweep-run-006.raw-result.json`, landed
+by GitHub Actions run 33575226376 on branch `source-sweep/33575226376` (filed on issue #516 by the Train
+14 delivery step, merged into the system-completion train).
+
+**What it shows:** `register-eurlex`, OJ L, 2026-08-25..31, dry, 7.4 s, `harness_version
+sha256:5a6a5a4649f79eec` (the hash run-005's marker was waiting for; the marker was already deleted in
+Train 13/14 on run-005's evidence). 7 days walked, 0 errors, 2 duplicate-edition days, 7 acts extracted,
+verdict per day "planned (dry, nothing written)". Same act set as run-005, from the same URLs, so the
+proof is the one Train 14 wanted: a dispatched run after the delivery-step fix goes green end to end and
+its artifact reaches master through the issue path when PR creation is refused.
+
+**Defect check:** none new. The `upserted: 7` metric under `mode: dry` is the walker's "planned" count
+surfacing under a write-shaped key; the per-day verdict wording is honest ("planned, nothing written").
+Renaming the metric key is a run-source-sweep.mjs change and moves this family's hash; deferred to the
+next sweep change rather than re-pinning for a label.

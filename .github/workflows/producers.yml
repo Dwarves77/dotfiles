@@ -92,7 +92,7 @@ on:
         # the credential as a GitHub Actions secret and adding its name to WORKFLOW_SECRETS (both outside
         # this lane's write set) is the prerequisite; once done, a run step mirroring the EU Weekly Oil
         # Bulletin step's dry/apply shape is the remaining wiring.
-        options: [all, eurostat-nrg-pc-205, bls-oews, eu-weekly-oil-bulletin, ecb-fx, desnz-emission-factors, epa-emission-factors, eia-v2-petroleum-spot, refresh-published-price-statistics]
+        options: [all, eurostat-nrg-pc-205, eurostat-lc-lci-lev, bls-oews, eu-weekly-oil-bulletin, ecb-fx, desnz-emission-factors, epa-emission-factors, eia-v2-petroleum-spot, refresh-published-price-statistics]
       since:
         description: 'Optional backfill start date (YYYY-MM-DD) for the EU Weekly Oil Bulletin history file. Leave empty for the normal latest-week fetch. Ignored by every other producer.'
         required: false
@@ -166,6 +166,22 @@ jobs:
             node scripts/producers/regional/eurostat-nrg-pc-205-producer.mjs --apply
           else
             node scripts/producers/regional/eurostat-nrg-pc-205-producer.mjs
+          fi
+
+      # eurostat-lc-lci-lev (lane DP-SURF, system-completion train, 2026-09-02): hourly labour cost levels
+      # (EUR/hour, lc_lci_lev) so an EU region carries the wage fact automate-vs-hire reads alongside the
+      # nrg_pc_205 energy fact. Same two gates as its siblings (ENABLED const + this workflow's mode); the
+      # runtime kill switch is set here exactly as the oil-bulletin and ecb-fx steps set theirs, so the
+      # Actions tab remains the fast disarm.
+      - name: Eurostat lc_lci_lev -> regional_data_facts
+        if: env.RUN_PRODUCER == 'all' || env.RUN_PRODUCER == 'regional' || env.RUN_PRODUCER == 'eurostat-lc-lci-lev'
+        env:
+          REGIONAL_PRODUCER_EUROSTAT_LC_LCI_LEV_ENABLED: '1'
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then
+            node scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs --apply
+          else
+            node scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs
           fi
 
       - name: BLS OEWS -> regional_data_facts

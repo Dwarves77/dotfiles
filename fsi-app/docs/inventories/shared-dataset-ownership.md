@@ -55,7 +55,7 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/mint/run-mint-batch.mjs",
       "scripts/connections/apply-tags.mjs",
       "scripts/mint/stamp-wo26-archive-reason.mjs",
-      "scripts/mint/apply-mint-batch.mjs"
+      "scripts/mint/apply-mint-batch.mjs",
       "scripts/entities/backfill-entities.mjs"
     ],
     "item_cross_references": [

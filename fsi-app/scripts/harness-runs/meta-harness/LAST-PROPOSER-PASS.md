@@ -1,8 +1,8 @@
 # Last proposer pass — meta-harness
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `meta-harness` now has **six** artifacts
-(`meta-harness-run-001` … `meta-harness-run-006`); F28's rule (d) requires this file to name the latest
-verbatim: **meta-harness-run-006**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `meta-harness` now has **seven** artifacts
+(`meta-harness-run-001` … `meta-harness-run-007`); F28's rule (d) requires this file to name the latest
+verbatim: **meta-harness-run-007**.
 
 **Artifacts read:** meta-harness-run-001, -002, -003, -004, -005.
 
@@ -115,3 +115,29 @@ browser, and `forward-events-run-001.json`'s metrics.
 
 **Family gates status:** this landing edits `CONVENTION.md` (a meta-harness governing file), which is why
 run-006 exists; with it, F28 is green on the merged tree (checked by the landing train's fitness run).
+
+---
+
+## Pass over meta-harness-run-007 (coordinator, 2026-09-02, system-completion train)
+
+**Artifact read:** meta-harness-run-007 in full, plus the nine lane reports it summarises and the two
+re-pinned first-run markers it names.
+
+**Hypotheses (verified, with basis):**
+
+1. **The registry's gates caught 5 of 14 defects; reading caught 9.** Basis: run-007's `per_item`
+   evidence, each entry naming which mechanism surfaced the defect. The shared-writer registry, the
+   secrets-reference audit, F15's stale-allowlist check and rule 016 all fired on real problems; the
+   join-class defects (units, PK shape, coverage, stale pins) had no gate and were found by a lane or the
+   coordinator reading the consumer or the primary source.
+2. **Self-application fired for the third consecutive cycle and was answered with a record, not a
+   narrowed hash.** Basis: F28 rule (c) on the meta-harness family after `run-artifact.mjs`, F28 and
+   CONVENTION.md changed; run-007 carries the current hash; the marker Lane SPEND wrote is deleted.
+3. **Lane-time hash pins do not survive integration when siblings share governing files.** Basis: two of
+   three new markers were stale by the time the train assembled (first-fetch-classify.ts edited by SPEND
+   after CONSUME pinned it; run-change-detection.mjs edited by CD's own second commit).
+
+**Proposal carried into the next cycle:** a JOIN CHECK line in every lane brief and a coordinator re-hash
+of every `PENDING-RUN.md` after the final merge (run-007 `proposer_notes`). Implemented this cycle: the
+family-list tests now derive from `ALLOWED_FAMILIES` (Lane SPEND), the one proposal from the run-006 pass
+that was actionable inside this train.
