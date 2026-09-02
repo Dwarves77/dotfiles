@@ -281,3 +281,60 @@ branch merges — this status block records what now EXISTS to run, not a comple
 caveat (`SLOT_TRIGGERS` covering only the regulation/directive/standard/guidance/framework family) and §8's
 three named-out-of-scope items (Lane TAG's tag derivation, `intake-turn.yml` itself, `SLOT_TRIGGERS`
 extension) are unchanged and still stand as written above.
+
+---
+
+## Status — 2026-09-02 (Lane POP2, first live dry run follow-up)
+
+The first live `population-turn` dispatch (run `33639133429`, `limit=50`, `capture=true`) landed: eligible
+3,661; excluded_held 650; **exported 0**; held 50 (`canonical_key_unresolved` 24, `capture_too_short` 24,
+`item_type_unmapped` 2); captured 50, capture_failed 0. Root-caused against that run's own
+`census-rows.held.json` and a browser read of the live pages to three census-wide source families the
+original CELEX-only identity/capture path did not fit — see `MINT-RUNBOOK.md` §11's addendum for the full
+per-family table. Fixed, all within `export-census-rows.mjs`'s existing write set (no change to
+`apply-mint-batch.mjs`, `run-mint-batch.mjs`, or the mint kit's own validator):
+
+- **EUR-Lex (24 of 50 held rows)** — the capture target was `legal-content/EN/TXT/?uri=CELEX:...`, which a
+  plain fetch gets a 157-byte WAF/interstitial page for (the SAME url renders ~100k chars in a browser;
+  browser-verified 2026-09-02). Capture now targets `legal-content/EN/TXT/HTML/?uri=CELEX:<key>` (the
+  clean-text endpoint), browser-confirmed to render 96,777 chars of real act text. The CELEX key itself
+  was never the problem — `deriveKey` already resolved it from the URL in every held row.
+- **legislation.gov.uk (~15) and federalregister.gov (8)** — both held `canonical_key_unresolved` only
+  because the sole identity path demanded a CELEX-shaped key. Neither host has a canonical-key scheme in
+  this system, and this repo's own live `intelligence_items` corpus already carries
+  `canonical_instrument_key = null` for every non-EU host — inventing one would be false precision. A new
+  `resolveIdentity(censusRow, source)` (pure, per source family) now routes these two hosts to
+  `canonicalKey: null` + item_type derived from the host's own shape (UK: the legislation-type path
+  segment; FR: the Federal Register API's own `type` field, `RULE`/`PRORULE`/`NOTICE`/`PRESDOCU` corrected
+  from the search-API's filter codes to the actual per-document field values "Rule"/"Proposed
+  Rule"/"Notice"/"Presidential Document", WebFetch-verified 2026-09-02) — dedup for both stays the
+  URL-holder check, which never needed a key.
+- **`31978H0072` / `31978A0311` (2 of 50)** — held `item_type_unmapped` because the CELEX-letter map only
+  had R/L/D. H (recommendation) → `guidance` and A (agreement) → `framework` added; every other letter
+  (notably C, "other acts") still holds, explicitly.
+- **`capture_blocked`** replaces a bare `capture_too_short` for any FRESH live fetch that comes back
+  non-2xx or ≤200 chars: the hold now carries `http_status`, `bytes`, `head` (first 300 chars of whatever
+  text came back), and the `endpoint` actually tried — never an unexplained hold.
+- **`.github/workflows/population-turn.yml`** gains a `rows_file` input: when set, the
+  `export-census-rows.mjs` step is skipped and `run-mint-batch.mjs`/`apply-mint-batch.mjs` run directly
+  against that file — the first-class runtime path for MINT-RUNBOOK.md §1a's browser-capture escape hatch
+  (a site whose automated capture is refused is read through the browser, never reported as a blocker; see
+  §11's addendum for the full procedure).
+
+**Expected outcome of the next dry run on the same first-50 slice**: the 24 EUR-Lex rows and the 2
+H/A-letter rows should now EXPORT (assuming the clean-text endpoint is not itself rate-limited or
+WAF-gated at population-turn's request volume — [UNCONFIRMED] until the next live run's own evidence). The
+~15 legislation.gov.uk and 8 federalregister.gov rows should also export, contingent on two
+[UNCONFIRMED] items this pass could not verify from this sandbox (this sandbox's own outbound network
+policy blocks a direct byte-level check, so verification leaned on WebFetch's HTML→markdown→LLM-summary
+pipeline instead): (1) legislation.gov.uk's `/data.htm` endpoint returns 200 with real text present
+(WebFetch-confirmed) but was not confirmed to be meaningfully cleaner than the ordinary page; (2) the
+federalregister.gov API's exact JSON shape was WebFetch-verified against one live document and one live
+search, not against this specific 50-row slice's own documents. A `capture_blocked` hold's
+`http_status`/`bytes`/`head` on the next live run is the actual confirmation either way — nothing here is
+asserted beyond what this pass could verify.
+
+**Not done by this pass**: the fix's live effect on the real corpus (the numbers above are the expected
+outcome from the code + browser-verified endpoint shapes, not a re-run's own measurement — this lane has
+no DB/network access to dispatch `population-turn.yml` itself). A second live dry run on the same
+`limit=50` slice is the coordinator-side confirmation step.

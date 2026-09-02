@@ -349,6 +349,54 @@ run's export/apply-ready/report files on branch `population/<run_id>` → PR via
 `scripts/turns/deliver-artifact-branch.sh`. No new harness family: every run enriches the existing `mint`
 family's artifact, per this section's own framing above.
 
+### §11 addendum (Lane POP2, 2026-09-02) — the first live dry run's per-family identity/capture rewrite
+
+The first live `population-turn` dispatch (run `33639133429`, `limit=50`, `capture=true`) exported
+**zero** rows out of 3,661 eligible: eligible 3,661, excluded_held 650, exported 0, held 50
+(`canonical_key_unresolved` 24, `capture_too_short` 24, `item_type_unmapped` 2), captured 50,
+capture_failed 0. All 50 held rows were confirmed against that run's own `census-rows.held.json` plus a
+browser read of the live pages, root-caused to three census-wide families the exporter's original
+CELEX-only identity/capture path did not fit, and fixed:
+
+| Family (host) | Held reason (old) | Root cause | Fix |
+|---|---|---|---|
+| `eur-lex.europa.eu` (24 rows) | `capture_too_short` | Capture target was `legal-content/EN/TXT/?uri=CELEX:...` — a plain HTTP GET gets a **157-byte** WAF/interstitial page for it (the same URL renders ~100k chars in a browser). The CELEX key itself was never the problem. | Capture now targets `legal-content/EN/TXT/HTML/?uri=CELEX:<key>` (the clean-text endpoint) — browser-verified 2026-09-02 to render 96,777 chars of real act text for `CELEX:32004D0320`. Title from the act's own opening line (`extractEurlexTitle`), not the endpoint's unreliable `<title>`. |
+| `legislation.gov.uk` (~15 rows) | `canonical_key_unresolved` | The only identity path (`classifyItemTypeFromCelexKey`) demanded a CELEX-shaped key; UK legislation has none. | `resolveIdentity` routes this host to `canonicalKey: null` (this system has NO canonical-key scheme for UK legislation — never invented one; the URL-holder check, which never needed a key, is this family's whole dedup story) and `item_type` from the path's instrument-type segment (`uksi`/`ukpga`/`wsi`/`ssi`/`nisr` → `regulation`). Capture tries `<url>/data.htm` first, falling back to the page itself. |
+| `federalregister.gov` (8 rows) | `canonical_key_unresolved` | Same CELEX-only limitation. | `resolveIdentity` also returns `canonicalKey: null` here (this repo's own live corpus already carries `canonical_instrument_key = null` for every non-EU host); `item_type` comes from the document's own Federal Register API JSON `type` field (`RULE`/`PRORULE`/`NOTICE`/`PRESDOCU` are the search API's *filter* codes, not this field — a per-document JSON's `type` is the human-readable "Rule"/"Proposed Rule"/"Notice"/"Presidential Document", WebFetch-verified 2026-09-02; only "Rule" → `regulation`, everything else holds `item_type_unmapped` naming the FR type verbatim). Capture fetches the API JSON, then its `raw_text_url` for the full text; title comes from the JSON's own `title` field. |
+| `31978H0072` (H = recommendation), `31978A0311` (A = agreement) | `item_type_unmapped` | The CELEX-letter map only had R/L/D. | H → `guidance`, A → `framework` added (both legal `intelligence_items.item_type` values). Every other sector-3 letter (notably C, "other acts") still holds `item_type_unmapped`, explicitly. |
+
+`export-census-rows.mjs`'s identity resolution (`resolveIdentity`) and per-family capture
+(`resolveRowCapture`/`fetchFrDocumentMeta`) implement this table; see that file's own header for the full
+per-field reasoning. A capture that comes back non-2xx or ≤200 chars now holds `capture_blocked` **with
+evidence** (`http_status`, `bytes`, `head` — the first 300 chars of whatever text came back — and the
+`endpoint` actually tried), never a bare unexplained hold.
+
+**[UNCONFIRMED]** legislation.gov.uk's `/data.htm` endpoint: confirmed to return HTTP 200 with the
+instrument's real text present (WebFetch, 2026-09-02), but not confirmed at the byte level to be
+meaningfully smaller/cleaner than the ordinary page — this sandbox's WebFetch renders through an HTML→
+markdown→LLM-summary pipeline, not a raw byte inspection, and its Bash has no general outbound network
+access to check with `curl`. Implemented as the operator's own instruction directed (tried first, page as
+fallback); the next live dry run's held-file evidence (`bytes`/`head` on any `capture_blocked` row) is the
+actual confirmation.
+
+**The browser-capture escape hatch, made a first-class runtime input (operator ruling, §1a: "a site that
+refuses the runner is read through the browser, never reported as a blocker; no deferrals").** When a
+row's family still refuses the automated capture above (a new WAF shape, a host not yet in
+`resolveIdentity`'s table, a `capture_blocked` hold whose `head`/`bytes` show an interstitial), the
+procedure is:
+1. Read the `census-rows.held.json` a run produced; pick the rows worth a hand capture.
+2. Open each `document_url` in a browser, measure the real page first (character count), then capture the
+   substantive text in ≤8,000-char slices per §1a's own discipline — never one giant paste.
+3. Build the SAME enriched-row shape `export-census-rows.mjs` emits (`row_id`, `source_url`, `item_type`,
+   `title`, `title_origin`, `instrument_identifier`, `canonical_instrument_key`, `jurisdiction_iso`,
+   `priority`, `source{}`, `captured_text`, `fetched_length`) by hand, one row per captured document.
+4. Commit the resulting array under `scripts/_snapshots/population-browser/<batch>.json`.
+5. Dispatch `population-turn.yml` with `rows_file` set to that path — the `export-census-rows.mjs` step is
+   skipped entirely and `run-mint-batch.mjs --census-rows <rows_file>` / `apply-mint-batch.mjs` run on it
+   directly, exactly the same gate and the same guarded write path a live-exported batch goes through.
+This is $0 and no LLM throughout (a human/browser capture, then the SAME deterministic kit) — it is not a
+second, looser path into the corpus, only a different SOURCE for the identical enriched-row input.
+
 ## Keeping the kit in sync
 
 `lib/gate-a-scan.mjs` and `lib/gate-a-match.mjs` are copies of `src/lib/agent/gate-a-scan.mjs` /

@@ -7823,3 +7823,17 @@ the runner is read through the browser per MINT-RUNBOOK §1a; a fetch refusal is
 "Your population of data is FREE": population is the record-grade path, no LLM, no key, no Browserless;
 the paid classifier (ledger-consume) is separate and optional. The Anthropic key already exists in the
 project; the ledger-consume secrets check is a naming question for later, not a gap.
+
+### Addendum 84, postscript 6 — the first real population dry run and what it taught the exporter (2026-09-02)
+
+`population-turn` run 33639133429 (dry, limit 50, capture on) ran green and exported **0** of its 50 rows:
+24 EUR-Lex rows got a 157-byte page from the runner (the `/TXT/?uri=` page is WAF-gated for a plain
+fetch; the `/TXT/HTML/?uri=` endpoint renders 96,777 chars of act text in the browser), ~15 UK statutory
+instruments and 8 Federal Register documents were held because the identity step demanded a CELEX-shaped
+key (live non-EU items carry `canonical_instrument_key = null`; the URL-holder check is their dedup), and a
+recommendation and an agreement had no type mapping. Exporter rewritten per source family
+(`resolveIdentity`: CELEX / legislation.gov.uk / federalregister.gov, hold for any other host), captures per
+family (EUR-Lex HTML endpoint, UK `/data.htm` with page fallback, FR API `raw_text_url`), `capture_blocked`
+holds carry status/bytes/head/endpoint evidence, and `population-turn.yml` gains `rows_file` so a batch
+captured through the browser per MINT-RUNBOOK §1a lands through the same runtime (§11 documents the
+procedure). 60 tests. The next dry run on the same slice is the measurement.
