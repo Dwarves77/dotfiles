@@ -264,6 +264,11 @@ export function stripHtmlToText(html) {
     // running text; mint-run-008 emitted one inside a penalty_summary span) — decoded, never left as markup
     .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
     .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+    // U+0000 cannot be stored in a Postgres text column at all ("unsupported Unicode escape sequence" on
+    // the insert): a Federal Register raw_text carried one and aborted population-turn run #8's apply
+    // mid-batch (2026-09-02). Dropped here, at the capture, so every downstream span is taken from the
+    // same text the store will hold. Other C0 controls are whitespace-collapsed below.
+    .replace(/\u0000/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }

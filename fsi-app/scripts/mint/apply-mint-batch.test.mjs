@@ -293,10 +293,16 @@ function fakeAppliedDb() {
       calls.push({ fn: "registerSource", source, opts });
       return { source_id: "src-registered-1", created: true, host: "eur-lex.europa.eu" };
     },
+    guardedDelete: async (table, ids, opts) => {
+      calls.push({ fn: "guardedDelete", table, ids, opts });
+      return { deleted: ids.length, snapshot: "snap.jsonl", rows: ids.map((id) => ({ id })) };
+    },
+    // the row's own provenance_status after the write sequence (what the trigger derivation stamped)
+    readItemProvenance: async (itemId) => { calls.push({ fn: "readItemProvenance", itemId }); return "verified"; },
   };
 }
 
-test("applyOnePayload APPLY: writes in the exact canonical-pipeline.ts order — intelligence_items, agent_run_searches, intelligence_item_sections, section_claim_provenance, item_gate_a_state, intelligence_item_citations", async () => {
+test("applyOnePayload APPLY: writes in the canonical-pipeline.ts order — intelligence_items, agent_run_searches, intelligence_item_sections, item_gate_a_state BEFORE section_claim_provenance, intelligence_item_citations (run #8: gate after claims left every item quarantined)", async () => {
   const idx = buildItemsIndex([]);
   const db = fakeAppliedDb();
   const rpc = async () => ({ valid: true, recommended_status: "verified" });
@@ -308,14 +314,15 @@ test("applyOnePayload APPLY: writes in the exact canonical-pipeline.ts order —
     "guardedInsert:intelligence_items",
     "guardedInsertMany:agent_run_searches",
     "guardedInsertMany:intelligence_item_sections",
-    "guardedInsertMany:section_claim_provenance",
     "guardedInsert:item_gate_a_state",
+    "guardedInsertMany:section_claim_provenance",
     "guardedInsertMany:intelligence_item_citations",
+    "readItemProvenance:",
     "guardedUpdate:census_worklist",
   ]);
   // every write carries the cite (db.mjs requireCite would refuse a write with none — this proves the
   // caller always supplies one, not that the fake enforces it).
-  assert.ok(db.calls.every((c) => c.opts?.cite?.skill && c.opts?.cite?.reason));
+  assert.ok(db.calls.filter((c) => c.fn !== "readItemProvenance").every((c) => c.opts?.cite?.skill && c.opts?.cite?.reason));
 
   assert.equal(result.perItem.outcome, "minted_verified");
   assert.equal(result.perItem.item_id, "intelligence_items-1");
@@ -325,16 +332,63 @@ test("applyOnePayload APPLY: writes in the exact canonical-pipeline.ts order —
   assert.equal(result.censusRowId, "cw-1");
 });
 
-test("applyOnePayload APPLY: an INVALID rpc verdict records minted_unverified with the failures, never deletes/retries", async () => {
+test("applyOnePayload APPLY: a row left non-verified by the trigger derivation records minted_unverified with the row status AND the rpc failures, never deletes/retries", async () => {
   const idx = buildItemsIndex([]);
   const db = fakeAppliedDb();
+  db.readItemProvenance = async () => "quarantined";
   const rpc = async () => ({ valid: false, recommended_status: "quarantined", failures: [{ criterion: "C3", reason: "fact_span_not_in_source" }] });
   const ctx = { db, rpc, itemsIndex: idx, sourcesById: new Map([["src-1", { id: "src-1", status: "active", category: "regulatory", base_tier: 1 }]]), rowIdSet: new Set(), cite: { skill: "x", reason: "y" }, apply: true };
   const result = await applyOnePayload(PAYLOAD, ctx);
   assert.equal(result.perItem.outcome, "minted_unverified");
   assert.match(result.perItem.error, /fact_span_not_in_source/);
-  // no delete/retry call of any kind appears in the write log — only the six inserts/update above ran.
+  assert.match(result.perItem.error, /"row_provenance_status":"quarantined"/);
+  // no delete/retry call of any kind appears in the write log — only the inserts/update above ran.
   assert.ok(!db.calls.some((c) => c.fn.toLowerCase().includes("delete")));
+});
+
+test("applyOnePayload APPLY: run #8's shape — the rpc says valid but the ROW is quarantined -> minted_unverified (the row wins; the artifact never reports verified against a quarantined row)", async () => {
+  const idx = buildItemsIndex([]);
+  const db = fakeAppliedDb();
+  db.readItemProvenance = async () => "quarantined";
+  const rpc = async () => ({ valid: true, recommended_status: "verified" });
+  const ctx = { db, rpc, itemsIndex: idx, sourcesById: new Map([["src-1", { id: "src-1", status: "active", category: "regulatory", base_tier: 1 }]]), rowIdSet: new Set(), cite: { skill: "x", reason: "y" }, apply: true };
+  const result = await applyOnePayload(PAYLOAD, ctx);
+  assert.equal(result.perItem.outcome, "minted_unverified");
+  assert.match(result.perItem.verdict, /row provenance_status=quarantined; rpc recommended_status=verified/);
+});
+
+test("applyOnePayload APPLY: a write failure after the item row (run #8: U+0000 in a search result) -> apply_failed, the partial item is deleted through the guarded path, the batch is not aborted", async () => {
+  const idx = buildItemsIndex([]);
+  const db = fakeAppliedDb();
+  const realMany = db.guardedInsertMany;
+  db.guardedInsertMany = async (table, rows, opts) => {
+    if (table === "agent_run_searches") throw new Error("guardedInsertMany failed (chunk 0): unsupported Unicode escape sequence");
+    return realMany(table, rows, opts);
+  };
+  const rpc = async () => { throw new Error("rpc must not run after a failed write sequence"); };
+  const ctx = { db, rpc, itemsIndex: idx, sourcesById: new Map([["src-1", { id: "src-1", status: "active", category: "regulatory", base_tier: 1 }]]), rowIdSet: censusRowIdSet([{ row_id: "cw-1" }]), cite: { skill: "x", reason: "y" }, apply: true };
+  const result = await applyOnePayload(PAYLOAD, ctx);
+  assert.equal(result.perItem.outcome, "apply_failed");
+  assert.equal(result.perItem.item_id, "intelligence_items-1");
+  assert.match(result.perItem.error, /unsupported Unicode escape sequence/);
+  assert.equal(result.perItem.cleanup, "partial_item_deleted");
+  const del = db.calls.find((c) => c.fn === "guardedDelete");
+  assert.deepEqual(del.ids, ["intelligence_items-1"]);
+  assert.ok(del.opts?.cite?.skill);
+  assert.equal(result.censusStamped, false, "a failed apply never reconciles the census row");
+  assert.ok(!db.calls.some((c) => c.table === "census_worklist"));
+  assert.deepEqual(result.dbDeltas, { items: 0, sections: 0, claims: 0, searches: 0, gate_a: 0, citations: 0, sources: 0 });
+});
+
+test("applyOnePayload APPLY: when the compensating delete itself fails, the outcome still says so honestly", async () => {
+  const idx = buildItemsIndex([]);
+  const db = fakeAppliedDb();
+  db.guardedInsertMany = async () => { throw new Error("boom"); };
+  db.guardedDelete = async () => { throw new Error("delete refused"); };
+  const ctx = { db, rpc: async () => ({}), itemsIndex: idx, sourcesById: new Map([["src-1", { id: "src-1", status: "active", category: "regulatory", base_tier: 1 }]]), rowIdSet: new Set(), cite: { skill: "x", reason: "y" }, apply: true };
+  const result = await applyOnePayload(PAYLOAD, ctx);
+  assert.equal(result.perItem.outcome, "apply_failed");
+  assert.match(result.perItem.cleanup, /partial_item_delete_failed: delete refused/);
 });
 
 test("applyOnePayload APPLY: source needing registration is registered inline via registerSource FIRST, and reused for the insert", async () => {
@@ -411,7 +465,7 @@ test("run(): APPLY mode enriches the mint-run artifact in place and keeps it val
   const db = fakeAppliedDb();
   const result = await run(
     { "apply-ready": applyReadyPath, "census-rows": censusRowsPath, "mint-run": mintRunPath, apply: true },
-    { readAll: async (table) => (table === "sources" ? [{ id: "src-1", url: "https://eur-lex.europa.eu", status: "active", category: "regulatory", base_tier: 1 }] : []), guardedInsert: db.guardedInsert, guardedInsertMany: db.guardedInsertMany, guardedUpdate: db.guardedUpdate, registerSource: db.registerSource, rpc: async () => ({ valid: true, recommended_status: "verified" }) },
+    { readAll: async (table) => (table === "sources" ? [{ id: "src-1", url: "https://eur-lex.europa.eu", status: "active", category: "regulatory", base_tier: 1 }] : []), guardedInsert: db.guardedInsert, guardedInsertMany: db.guardedInsertMany, guardedUpdate: db.guardedUpdate, guardedDelete: db.guardedDelete, registerSource: db.registerSource, readItemProvenance: db.readItemProvenance, rpc: async () => ({ valid: true, recommended_status: "verified" }) },
   );
   assert.equal(result.applied, true);
   assert.equal(result.minted, 1);
@@ -419,7 +473,38 @@ test("run(): APPLY mode enriches the mint-run artifact in place and keeps it val
   assert.deepEqual(validateRunArtifact(onDisk), []);
   assert.equal(onDisk.per_item.find((p) => p.id === "cw-1").outcome, "minted_verified");
   assert.equal(onDisk.metrics.minted, 1);
+  assert.equal(onDisk.metrics.minted_verified, 1);
+  assert.equal(onDisk.metrics.apply_failed, 0);
   assert.equal(onDisk.metrics.census_rows_reconciled, 1);
+}));
+
+test("run(): APPLY mode — a payload that fails part-way is recorded apply_failed with its cleanup, the batch continues, and the artifact carries the defect", () => withTmpDir(async (dir) => {
+  const applyReadyPath = join(dir, "batch.apply-ready.json");
+  const censusRowsPath = join(dir, "batch.json");
+  const mintRunPath = join(dir, "mint-run-902.json");
+  const p2 = { ...JSON.parse(JSON.stringify(PAYLOAD)), id: "cw-2" };
+  p2.item = { ...p2.item, source_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011L0038", canonical_instrument_key: "32011L0038" };
+  writeJson(applyReadyPath, [PAYLOAD, p2]);
+  writeJson(censusRowsPath, [{ row_id: "cw-1" }, { row_id: "cw-2" }]);
+  writeJson(mintRunPath, baseArtifact({ run_id: "mint-run-902" }));
+  const db = fakeAppliedDb();
+  const realMany = db.guardedInsertMany;
+  let searchCalls = 0;
+  db.guardedInsertMany = async (table, rows, opts) => {
+    if (table === "agent_run_searches" && ++searchCalls === 1) throw new Error("guardedInsertMany failed (chunk 0): unsupported Unicode escape sequence");
+    return realMany(table, rows, opts);
+  };
+  const result = await run(
+    { "apply-ready": applyReadyPath, "census-rows": censusRowsPath, "mint-run": mintRunPath, apply: true },
+    { readAll: async (table) => (table === "sources" ? [{ id: "src-1", url: "https://eur-lex.europa.eu", status: "active", category: "regulatory", base_tier: 1 }] : []), guardedInsert: db.guardedInsert, guardedInsertMany: db.guardedInsertMany, guardedUpdate: db.guardedUpdate, guardedDelete: db.guardedDelete, registerSource: db.registerSource, readItemProvenance: db.readItemProvenance, rpc: async () => ({ valid: true, recommended_status: "verified" }) },
+  );
+  assert.equal(result.minted, 1);
+  const onDisk = JSON.parse(readFileSync(mintRunPath, "utf8"));
+  assert.deepEqual(validateRunArtifact(onDisk), []);
+  assert.equal(onDisk.per_item.find((p) => p.id === "cw-1").outcome, "apply_failed");
+  assert.equal(onDisk.per_item.find((p) => p.id === "cw-2").outcome, "minted_verified");
+  assert.equal(onDisk.metrics.apply_failed, 1);
+  assert.ok(onDisk.defects_found.some((d) => /apply_failed/.test(d.description) && /partial_item_deleted/.test(d.description)));
 }));
 
 test("run(): --apply is a no-op flag without --dry cleared — `dry: true` always wins over `apply: true`", () => withTmpDir(async (dir) => {

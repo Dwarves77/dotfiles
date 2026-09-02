@@ -446,6 +446,10 @@ test("extractCellarTitle: joins oj-doc-ti lines; ignores the OJ-file-name <title
   assert.equal(extractCellarTitle(""), null);
 });
 
+test("stripHtmlToText: drops U+0000 (Postgres refuses it; run #8's Federal Register raw text)", () => {
+  assert.equal(stripHtmlToText("Rescinding the\u0000 Definition of Harm &#0;x"), "Rescinding the Definition of Harm x");
+});
+
 test("stripHtmlToText: decodes numeric character references (&#xD; inside legislation.gov.uk running text)", () => {
   assert.equal(stripHtmlToText("penalty where the person fails&#xD; to comply &#8364;100"), "penalty where the person fails to comply €100");
 });
