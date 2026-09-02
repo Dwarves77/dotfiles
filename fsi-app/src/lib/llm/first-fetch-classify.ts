@@ -21,8 +21,8 @@
 // per the wave1b stub-quality investigation, 2026-05-11.
 //
 // SPEND CHOKEPOINT (system-completion train, Lane SPEND, 2026-09-02). This module used to fetch
-// api.anthropic.com directly — a ticketless, unlogged spend call outside spend-client.ts, despite
-// "first-fetch-classify" already being a registered Rule 016 standing ticket class (STANDING_TICKET_CLASSES,
+// Anthropic's Messages endpoint directly — a ticketless, unlogged spend call outside spend-client.ts,
+// despite "first-fetch-classify" already being a registered Rule 016 standing ticket class (STANDING_TICKET_CLASSES,
 // spend-guard.mjs) that nothing wired up. Every Haiku call now routes through spend-client.ts's
 // spendMessage (the non-streaming twin of spendStream/spendSearch): ticket-gated, budget-checked, and
 // telemetered with the SAME account()/recordSpendCall()/markCallLogged() sequence every other paid call in

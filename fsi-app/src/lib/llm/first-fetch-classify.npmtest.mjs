@@ -1,6 +1,6 @@
 // PROOF (Lane SPEND, system-completion train, 2026-09-02): firstFetchClassify now routes its Haiku call
 // through the spend chokepoint (spend-client.ts's spendMessage) instead of a raw, ticketless fetch to
-// api.anthropic.com. Proves:
+// Anthropic's Messages endpoint. Proves:
 //   1. a ticket ({purpose:"first-fetch-classify", standingClass:"first-fetch-classify", sourceId, itemId:
 //      null}) is set for the call and the PREVIOUS ticket is restored afterward.
 //   2. exactly ONE agent_runs row is written per call, carrying model/cost/source_id/purpose.
@@ -34,7 +34,7 @@ function installFakeFetch(anthropicHandler) {
   const realFetch = globalThis.fetch;
   globalThis.fetch = async (url, init) => {
     const u = String(url);
-    if (u.includes("api.anthropic.com")) {
+    if (u.includes("anthropic.com")) { // distinguishes the Anthropic Messages endpoint from the Supabase REST fixture URL below
       anthropicCalls.push({ url: u, headers: init?.headers ?? {}, body: JSON.parse(init?.body ?? "{}") });
       return anthropicHandler(anthropicCalls[anthropicCalls.length - 1]);
     }

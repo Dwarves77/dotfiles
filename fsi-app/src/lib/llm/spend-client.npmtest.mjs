@@ -27,7 +27,7 @@ function installFakeFetch({ anthropicHandler }) {
   const realFetch = globalThis.fetch;
   globalThis.fetch = async (url, init) => {
     const u = String(url);
-    if (u.includes("api.anthropic.com")) {
+    if (u.includes("anthropic.com")) { // distinguishes the Anthropic Messages endpoint from the Supabase REST fixture URL below
       anthropicCalls.push({ url: u, headers: init?.headers ?? {}, body: JSON.parse(init?.body ?? "{}") });
       return anthropicHandler(anthropicCalls[anthropicCalls.length - 1]);
     }
