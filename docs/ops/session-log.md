@@ -8167,3 +8167,36 @@ with its six tests; the app module has no `node:fs` import. Rule, to be encoded 
 nothing under `src/lib` reads the filesystem at module evaluation (`derive-tags.mjs` does, and is not on
 any page's graph today; it is a latent instance of the same class). Landed as a hotfix PR ahead of the
 rest of the in-progress work (migration 289, OJ title extraction, source-type-backfill step).
+
+### Addendum 84, postscript 17 — recovery landed; run #12 read; migration 289; F34; the maintenance step MAINT could not know about (2026-09-02, night)
+
+**Production:** instant rollback to `2db94d3` at 20:43 UTC (site up), hotfix PR #534 (`4946df80`) merged
+and PROMOTED at 20:56 UTC (the rollback pins domains, so a merge alone does not deploy), zero errors on
+the new deployment [CONFIRMED, Vercel runtime logs]. #534 also carried the operator's home-page ruling:
+ONE "What changed" section (the source/theme strip renders inside it; both data paths intact).
+
+**Run #12 (`mint-run-014`, the first screened slice):** 50 exported → 8 held (the same FR-type and
+unmapped-host classes as runs 012–013) → 42 attempted → 40 `minted_verified`, 2 `validation_failed`,
+0 `apply_failed`; reconcile archived 42 off-vertical live records. Live: 120 record items, all verified
+[CONFIRMED]. The two failures were one cross-layer defect: criterion-2 URL extraction stops at `)`, so
+EUR-Lex "(01)" identifiers extracted truncated in BOTH the kit and the live `validate_item_provenance`
+(same regex; parity confirmed by reading the live body). **Migration 289** patches the live function in
+place with a pinned pre-md5 (`7cb3d38f…` → post `82f7032e…`) and the kit mirrors it; tests on both
+cases. The same two rows carried the OJ file name as title: `isOjFileName` / `extractOjActTitle` in the
+exporter; a file name is never a title. Mint marker re-stamped `sha256:c2e34028ebc18ab2` naming
+mint-run-015; proposer pass attests mint-run-014 and proposes mapping the held classes.
+
+**F34 `bundle-safe-module-evaluation`** (+ invariant RD-59): fails any non-test module under `src/`
+calling a filesystem function at module scope. Red on the exact module that broke production (line 50
+of the #533 version), green on the fixed tree. Named residual: a module-scope read hidden behind a
+helper call is not lexically detectable; the durable closure is a build-graph proof, and until then the
+lane contract requires `next build` on any page-graph change.
+
+**`maintenance` → `source-type-backfill`:** HYG-2 built the backfill and MAINT built the runtime in
+disjoint lanes, so the runtime had no step for it; added (wrapper, test, workflow option, runbook §4a).
+Migration 288 marked APPLIED in the inventory (20:10 UTC).
+
+**Overlap rule for the next wave (operator: "make sure they do not overlap"):** every lane's write set
+is listed in the plan file and checked pairwise before launch; shared files (`run-test-suite.sh` globs,
+`shared-dataset-ownership.md`, `invariants.mjs`, workflow YAMLs) are coordinator-only in Wave 2, lanes
+report the line they need and the coordinator adds it at integration.

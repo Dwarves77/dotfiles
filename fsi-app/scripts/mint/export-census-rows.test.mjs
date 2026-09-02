@@ -7,6 +7,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
+  isOjFileName,
+  extractOjActTitle,
   fetchRowsIn,
   fetchColumnIn,
   classifyItemTypeFromCelexKey,
@@ -773,3 +775,45 @@ test("loadReviewedVerdicts: the repo's reviewed-verdicts.json loads as an id-key
   assert.deepEqual(loadReviewedVerdicts("/nonexistent/reviewed.json"), {});
 });
 
+
+// ── OJ file names are never titles (2026-09-02, population run #12: two C-series rows exported with
+//    "C_2023226EN.01000601.xml" as title) ─────────────────────────────────────────────────────────────
+const OJ_C_BODY =
+  "C_2023226EN.01000601.xml 28.6.2023 EN Official Journal of the European Union C 226/6 COMMISSION DECISION " +
+  "of 19 April 2023 on instructing the Central Administrator of the European Union Transaction Log to enter " +
+  "changes to the national aviation allocation table of Italy for 2022 and 2023 into the European Union " +
+  "Transaction Log (2023/C 226/06) THE EUROPEAN COMMISSION, Having regard to the Treaty";
+
+test("isOjFileName: recognises L- and C-series OJ file names, nothing else", () => {
+  assert.equal(isOjFileName("C_2023226EN.01000601.xml"), true);
+  assert.equal(isOjFileName("L_2006209EN.01000101.xml"), true);
+  assert.equal(isOjFileName("Energy Act 2023"), false);
+  assert.equal(isOjFileName("EUR-Lex - 32001D0573 - EN"), false);
+});
+
+test("extractOjActTitle: the act title from an OJ body lead, ending at its OJ reference", () => {
+  assert.equal(
+    extractOjActTitle(OJ_C_BODY),
+    "COMMISSION DECISION of 19 April 2023 on instructing the Central Administrator of the European Union Transaction Log to enter changes to the national aviation allocation table of Italy for 2022 and 2023 into the European Union Transaction Log (2023/C 226/06)",
+  );
+  assert.equal(
+    extractOjActTitle("L_2006209EN.01000101.xml 29.7.2006 EN Official Journal L 209/1 COUNCIL DECISION of 14 October 2004 concerning the conclusion of the Stockholm Convention (2006/507/EC) THE COUNCIL"),
+    "COUNCIL DECISION of 14 October 2004 concerning the conclusion of the Stockholm Convention (2006/507/EC)",
+  );
+  assert.equal(extractOjActTitle("no act here at all"), null);
+});
+
+test("extractEurlexTitle / extractCellarTitle: an OJ file name in <title> is skipped and the act title is taken from the body", () => {
+  const html = `<html><head><title>C_2023226EN.01000601.xml</title></head><body><p>${OJ_C_BODY}</p></body></html>`;
+  for (const fn of [extractEurlexTitle, extractCellarTitle]) {
+    const r = fn(html);
+    assert.equal(r.origin, "captured_body_act_title");
+    assert.match(r.title, /^COMMISSION DECISION of 19 April 2023/);
+    assert.doesNotMatch(r.title, /\.xml/);
+  }
+});
+
+test("extractTitleFromHtml: a real <title> is still preferred; only OJ file names are skipped", () => {
+  assert.deepEqual(extractTitleFromHtml("<title>Energy Act 2023</title>"), { title: "Energy Act 2023", origin: "captured_title" });
+  assert.equal(extractTitleFromHtml("<title>C_2023226EN.01000601.xml</title>"), null);
+});

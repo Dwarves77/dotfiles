@@ -1,0 +1,380 @@
+{
+  "harness_family": "mint",
+  "harness_version": "sha256:9a3e4c77ec4d9342",
+  "run_id": "mint-run-014",
+  "started_at": "2026-09-02T20:19:46.133Z",
+  "finished_at": "2026-09-02T20:20:20.758Z",
+  "config": {
+    "batch_file": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33678399902/census-rows.json",
+    "out_dir": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33678399902",
+    "execute": true,
+    "mode": "execute"
+  },
+  "inputs_ref": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33678399902/census-rows.json"
+  ],
+  "per_item": [
+    {
+      "id": "0cf08419-3f64-4a2c-8f11-05791d1c7efe",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "f4119483-9543-4121-b9c1-b4af4da50345"
+    },
+    {
+      "id": "0d17f560-9adc-42e6-ab6b-32308f6054e4",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "c7b1d66b-6e2e-4f85-a348-74640d8f0daa"
+    },
+    {
+      "id": "0d4c7f01-9373-4cc0-af7d-4ecee2809f05",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "e1475cb2-beba-4e2e-8a2a-d84faf161aab"
+    },
+    {
+      "id": "0d712ba6-3e78-4b94-9b58-09c4985d93b8",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "427b7ccf-4297-4ed1-918e-0cc747579444"
+    },
+    {
+      "id": "0dc51934-4956-4822-aff7-daadefb0d0db",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "3ba3d3b9-f68e-491f-97b1-c0d74ef9b613"
+    },
+    {
+      "id": "0dee4b61-8fbc-4ef3-80be-ee0efb3cf955",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "eab33bdd-ceca-4cee-a3b6-a2dcb2c83738"
+    },
+    {
+      "id": "0e4e13f2-5c6a-44c6-a044-034f5fc21a32",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "eee590d9-607f-414b-8e7f-dc81b5e8495d"
+    },
+    {
+      "id": "0e75f655-1555-4d22-a241-5268212e76f9",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "44a93074-ae2b-437d-b2d0-c33f778d1e8e"
+    },
+    {
+      "id": "0ef51b75-b12d-41e3-acf8-60cd674c0140",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "c5830655-4527-4eee-8673-11625ea2cd9a"
+    },
+    {
+      "id": "0f08f36e-1c63-410d-b7fe-b57727b4602f",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "a9178a52-62c0-4142-a87d-daa38f316451"
+    },
+    {
+      "id": "0f0f2902-e1e9-4276-9862-d084d1069777",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "999bbb0e-2a7a-45bc-8dcc-f65780848555"
+    },
+    {
+      "id": "0f32a604-63c7-40e3-b2c7-edd99aaad82b",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "824d3540-1262-4752-adb9-53ce692e51f4"
+    },
+    {
+      "id": "0f42353d-58f4-477f-bce7-113ba5584e87",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 2",
+      "evidence_refs": [],
+      "error": "[2] ungrounded_url"
+    },
+    {
+      "id": "0f42be49-6039-432d-ba79-acebe40132dd",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "3cb51302-8140-4bdd-9856-f89429188562"
+    },
+    {
+      "id": "0f49a48a-e7e1-49c9-bf98-41ae5200b04c",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "2af138f9-a230-4885-817f-89f424dfca19"
+    },
+    {
+      "id": "0f679dee-15c1-44cc-9d04-fcf0a0f86f32",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "767482b8-5065-4c27-8d07-cbe660cc9f62"
+    },
+    {
+      "id": "0f7744a7-201d-46e7-95de-13212322f95e",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "9d73cd31-6403-4cc8-970d-82406829101d"
+    },
+    {
+      "id": "0f77b6a6-496e-4a6a-b64f-00a5b2eb5aed",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 2",
+      "evidence_refs": [],
+      "error": "[2] ungrounded_url"
+    },
+    {
+      "id": "0f7c38c9-da99-48bb-bccb-df9b97b035b2",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "3ce64c59-72b2-4842-8049-b529ed9d0c9f"
+    },
+    {
+      "id": "0faf95a3-25e6-4812-b2a1-5c071e53143c",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "897efe5a-1c18-4d54-b177-8386cee10a73"
+    },
+    {
+      "id": "0fb60efc-4ff6-4be7-8fbc-a06f6197876b",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "1aee8bd5-88cd-4ef4-b94f-c2e043e7cf8c"
+    },
+    {
+      "id": "0fb663ac-12dc-4aa1-879a-5ba8cff1e852",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "42f06359-3a77-43d3-b964-6a6f47040f4b"
+    },
+    {
+      "id": "1052b218-a57a-487e-868a-35023b14d549",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "2ab50349-0f47-4cc4-9e68-b556ba8d61bf"
+    },
+    {
+      "id": "105c7e77-ef98-486b-9aa7-42fe1ee7b8f9",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "96f3b52f-82d6-45ad-a9db-fdbf701765fb"
+    },
+    {
+      "id": "10b08126-48ee-4913-b982-53f377f75499",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "e70ad66e-1d40-405c-a20f-54027b844827"
+    },
+    {
+      "id": "10dbda5c-0128-447f-9a90-79aadc14016b",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "9144251b-6bc7-459f-90d5-75c2729dea26"
+    },
+    {
+      "id": "113df345-fb4a-460a-8d90-b60ebb46acf8",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "27c2e2f9-5aca-4abd-bbe6-0161bafba74d"
+    },
+    {
+      "id": "11655a68-3a96-4b9a-b695-b6e1d45ab954",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "b0b883a3-3468-4912-a4b8-4bb65544aaf8"
+    },
+    {
+      "id": "1199ecb8-b836-455e-896c-821a374a492b",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "ff04678f-bc8d-4218-91d4-044f4c5f3910"
+    },
+    {
+      "id": "11d30ba5-cf10-434f-bc63-bf528795fb6f",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "56dd3dac-d519-46ed-a612-084e1f74ff66"
+    },
+    {
+      "id": "11d3fcb5-45f2-4302-8fd9-ee1a65eb630b",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "da1bf380-18e4-4d4b-9b27-61703ddaa1fa"
+    },
+    {
+      "id": "121f9b29-8163-4091-a753-c0971d2d624d",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "5d80eb13-4b76-4f6b-9a72-49226afe6e52"
+    },
+    {
+      "id": "12653aca-617e-455c-b9a5-df9abb056915",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "7c88ef12-f997-4a87-9e32-22155db57c73"
+    },
+    {
+      "id": "1274e264-fa09-4e90-8214-1c83e8f354f9",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "8c228e9f-05a2-4336-8b8f-f88ec2fbf029"
+    },
+    {
+      "id": "129b59b0-0465-4cd1-b6fc-3cc5faba41bb",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "4eac8617-44ce-40bd-a450-13b3dff53e4e"
+    },
+    {
+      "id": "12b64585-c1d3-4042-a0a2-34490c521059",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "620e7208-2994-43a1-8881-3271780b5e05"
+    },
+    {
+      "id": "12ceff31-4e0e-4306-8401-ad4a5cf0f966",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "fb24fab6-2ea8-4c3c-86f9-f5d01dbfaa9f"
+    },
+    {
+      "id": "12d0611e-21b1-4a41-a36c-23b92f54dbfe",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "4974d8c5-dad3-4e58-a585-97555bb596de"
+    },
+    {
+      "id": "12f579c3-ff8e-40de-9108-39dfe04aee8b",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "07957130-bb3c-4e16-8e0e-a6bcb63235fa"
+    },
+    {
+      "id": "130cf246-b0f5-4376-b1fa-22600a3e4cff",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "f8268063-0e07-4562-82da-a1373d6dd797"
+    },
+    {
+      "id": "135e87e8-864f-4674-b591-591acf00dd42",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "643b6bb6-235f-4765-8142-c2e94b1cebd4"
+    },
+    {
+      "id": "1381506e-4a99-4b2e-a0f7-ec81ac31f773",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "f8bff1ae-11a7-4d41-b78f-77998327369d"
+    }
+  ],
+  "metrics": {
+    "attempted": 42,
+    "valid": 40,
+    "invalid": 2,
+    "build_failed": 0,
+    "validator_first_pass_rate": "40/42 = 95.24%",
+    "db_deltas": {
+      "items": 40,
+      "sections": 106,
+      "claims": 186,
+      "searches": 40,
+      "gate_a": 40,
+      "citations": 33,
+      "sources": 0
+    },
+    "minted": 40,
+    "minted_verified": 40,
+    "minted_unverified": 0,
+    "apply_failed": 0,
+    "census_rows_reconciled": 40
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33678399902/census-rows.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33678399902/census-rows.apply-ready.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33678399902/census-rows.mint-batch-report.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-mint-batch.mjs's own execution path (Wave MH-5 — 'emission is in the harness, not the operator,' extended to mint per PROPOSER-RUNBOOK.md §5's named residual). Corpus-outcome metrics (edges_discovered, forward_events_extracted, isolated_items) are not computed by this DB-less runner — see MINT-RUNBOOK.md's post-apply flywheel steps and run this same script again with --outcomes once the coordinator's apply + discovery pass has run.\n\napply-mint-batch.mjs enrichment (2026-09-02T20:20:59.782Z): 40 minted (40 verified, 0 not), 0 apply_failed, 0 not_applied. Discovery + forward-event extraction (MINT-RUNBOOK.md §8) did NOT run as part of this apply — that is a separate post-apply pass over the newly-minted items, per that runbook's own hand-off model, not skipped in error."
+}

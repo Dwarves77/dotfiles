@@ -1,0 +1,1404 @@
+{
+  "generated_at": "2026-09-02T20:20:20.736Z",
+  "attempted": 42,
+  "results": [
+    {
+      "id": "0cf08419-3f64-4a2c-8f11-05791d1c7efe",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0d17f560-9adc-42e6-ab6b-32308f6054e4",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0d4c7f01-9373-4cc0-af7d-4ecee2809f05",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0d712ba6-3e78-4b94-9b58-09c4985d93b8",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0dc51934-4956-4822-aff7-daadefb0d0db",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0dee4b61-8fbc-4ef3-80be-ee0efb3cf955",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0e4e13f2-5c6a-44c6-a044-034f5fc21a32",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0e75f655-1555-4d22-a241-5268212e76f9",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0ef51b75-b12d-41e3-acf8-60cd674c0140",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0f08f36e-1c63-410d-b7fe-b57727b4602f",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0f0f2902-e1e9-4276-9862-d084d1069777",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0f32a604-63c7-40e3-b2c7-edd99aaad82b",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0f42353d-58f4-477f-bce7-113ba5584e87",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 2,
+          "reason": "ungrounded_url",
+          "url": "https://eur-lex.europa.eu/legal-content/en/txt/?uri=celex:32023d0628(01"
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0f42be49-6039-432d-ba79-acebe40132dd",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0f49a48a-e7e1-49c9-bf98-41ae5200b04c",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0f679dee-15c1-44cc-9d04-fcf0a0f86f32",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0f7744a7-201d-46e7-95de-13212322f95e",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0f77b6a6-496e-4a6a-b64f-00a5b2eb5aed",
+      "valid": false,
+      "recommended_status": "quarantined",
+      "failures": [
+        {
+          "criterion": 2,
+          "reason": "ungrounded_url",
+          "url": "https://eur-lex.europa.eu/legal-content/en/txt/?uri=celex:32023d0207(01"
+        }
+      ],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0f7c38c9-da99-48bb-bccb-df9b97b035b2",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0faf95a3-25e6-4812-b2a1-5c071e53143c",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0fb60efc-4ff6-4be7-8fbc-a06f6197876b",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "0fb663ac-12dc-4aa1-879a-5ba8cff1e852",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "1052b218-a57a-487e-868a-35023b14d549",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "105c7e77-ef98-486b-9aa7-42fe1ee7b8f9",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "10b08126-48ee-4913-b982-53f377f75499",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "10dbda5c-0128-447f-9a90-79aadc14016b",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "113df345-fb4a-460a-8d90-b60ebb46acf8",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "11655a68-3a96-4b9a-b695-b6e1d45ab954",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "1199ecb8-b836-455e-896c-821a374a492b",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "11d30ba5-cf10-434f-bc63-bf528795fb6f",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "11d3fcb5-45f2-4302-8fd9-ee1a65eb630b",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "121f9b29-8163-4091-a753-c0971d2d624d",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "12653aca-617e-455c-b9a5-df9abb056915",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "1274e264-fa09-4e90-8214-1c83e8f354f9",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "129b59b0-0465-4cd1-b6fc-3cc5faba41bb",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "12b64585-c1d3-4042-a0a2-34490c521059",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "12ceff31-4e0e-4306-8401-ad4a5cf0f966",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "12d0611e-21b1-4a41-a36c-23b92f54dbfe",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "12f579c3-ff8e-40de-9108-39dfe04aee8b",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "130cf246-b0f5-4376-b1fa-22600a3e4cff",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "135e87e8-864f-4674-b591-591acf00dd42",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    },
+    {
+      "id": "1381506e-4a99-4b2e-a0f7-ec81ac31f773",
+      "valid": true,
+      "recommended_status": "verified",
+      "failures": [],
+      "tag_presence": {
+        "allEmpty": true,
+        "emptyFields": [
+          "operational_scenario_tags",
+          "compliance_object_tags",
+          "topic_tags"
+        ],
+        "presentFields": [],
+        "warnings": [
+          {
+            "field": "operational_scenario_tags",
+            "reason": "payload.item.operational_scenario_tags is empty or absent — this item will mint with no operational_scenario_tags value, so discover.mjs cannot ever score it a shared_scenario basis against another item."
+          },
+          {
+            "field": "compliance_object_tags",
+            "reason": "payload.item.compliance_object_tags is empty or absent — this item will mint with no compliance_object_tags value, so discover.mjs cannot ever score it a shared_compliance_object basis against another item."
+          },
+          {
+            "field": "topic_tags",
+            "reason": "payload.item.topic_tags is empty or absent — this item will mint with no topic_tags value, so discover.mjs cannot ever score it a shared_jurisdiction_topic (also needs a shared jurisdiction) basis against another item."
+          },
+          {
+            "field": "*",
+            "reason": "ALL THREE connection-signature tag fields are empty or absent — this item will score ZERO discover.mjs edges at mint (the exact August-census-wave defect scripts/connections/derive-tags.mjs / propose-tags.mjs / apply-tags.mjs exist to remediate after the fact). Prefer authoring real tags into this payload before minting; if that is not possible, plan a follow-up: node scripts/connections/propose-tags.mjs --ids <item-id> --execute once the item has an id."
+          }
+        ]
+      }
+    }
+  ]
+}

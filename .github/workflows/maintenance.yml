@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, census-off-vertical, review-digests, tag-ratification]
+        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, census-off-vertical, review-digests, tag-ratification]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, or a comma-separated proposal-id list — see the runbook for which steps require one and what value they need).'
         required: false
@@ -124,6 +124,13 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/origin-class-backfill"
           node scripts/maintenance/origin-class-backfill.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/origin-class-backfill"
+
+      - name: source-type-backfill
+        # Not ruling-gated: migration 288 applied 2026-09-02; writes only where source_type IS NULL.
+        if: env.RUN_STEP == 'source-type-backfill' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/source-type-backfill"
+          node scripts/maintenance/source-type-backfill.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/source-type-backfill"
 
       - name: census-off-vertical
         # Gated on ruling R-A (open). apply requires --arg archive or park; 'archive' is currently

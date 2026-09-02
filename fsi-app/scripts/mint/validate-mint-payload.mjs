@@ -336,7 +336,11 @@ const LEGAL_REQ_RE =
 const FORWARD_RE =
   /(propos|would|will|expected|forthcoming|consultation|draft|anticipat|pending|set\s+to|once\s+(adopted|enacted)|if\s+adopted|(by|from|effective|until)\s+20[0-9][0-9])/i;
 const UNLABELED_MODAL_RE = /\b(requires|must|mandates|obligates|prohibits|applies to)\b/i;
-const URL_RE = /https?:\/\/[^\s)\]}"'<>]+/g;
+// Migration 289 (2026-09-02): one-level balanced parentheses, mirrored from the live
+// validate_item_provenance. A '(' is consumed only with its matching ')', so EUR-Lex "(01)" identifiers
+// (CELEX 32023D0628(01)) extract whole, while a URL written inside prose parentheses "(see https://x/a)"
+// still stops before the unmatched ')'. Population run #12 lost 2/42 payloads to the old regex.
+const URL_RE = /https?:\/\/(?:[^\s()\]}"'<>]|\([^\s()]*\))+/g;
 
 // ── C3 authority floor — item-type floor table (migration 145/171), unconditional for the reg family
 //    (migration 158). ──

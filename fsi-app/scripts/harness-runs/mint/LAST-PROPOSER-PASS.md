@@ -1,7 +1,28 @@
 # Last proposer pass — mint
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **thirteen** artifacts (`mint-run-001` …
-`mint-run-013`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-013**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **fourteen** artifacts (`mint-run-001` …
+`mint-run-014`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-014**.
+
+## Pass of 2026-09-02, night (mint-run-014 — the first screened slice; two failures, one cross-layer defect)
+
+**Artifact read:** mint-run-014 (population-turn run 33678399902, apply, limit 50): 50 exported → 8 held
+(`identity_unmapped_source` 4, `canonical_key_unresolved` 3, `item_type_unmapped` 1) → 42 attempted,
+40 valid, 2 `validation_failed`, 40 `minted_verified`, 0 `apply_failed`, hash `sha256:9a3e4c77ec4d9342`
+(the marker's value: discharged). Screened-out evidence: 1,118 off-vertical, 244 ambiguous in the
+selected window. Reconcile step archived 42 live off-vertical record items (reversible). **Live read
+[CONFIRMED]:** 120 record-grade items live, all `verified`; 42 archived `off_vertical`.
+
+**Defect 1 (kit + live, same regex):** both failures `[2] ungrounded_url` on `…celex:32023d0628(01` /
+`…32023d0207(01`: the URL extractor stops at `)`. Parity confirmed against the live function body
+(`pg_get_functiondef`, md5 `7cb3d38f…`). Fixed both layers: migration 289 (applied live, post md5
+`82f7032e…`) and `URL_RE` in the validator, with tests. **Defect 2 (title):** the same two rows carried
+the OJ file name as `title`; exporter now rejects file names and extracts the act title from the body.
+
+**Proposal:** (1) the held classes are stable across runs 012–014 (FR types + unmapped hosts, ~16–20% of
+each slice); a lane should map `identity_unmapped_source` hosts to institutions and add the three FR
+item types, or those rows will be held forever. (2) The kit's URL regex and the live function's should
+be ONE literal read from one place; today parity is a test, not a structure.
+
 
 ## Pass of 2026-09-02, late evening (mint-run-013 — and the defect none of the artifacts could see)
 
