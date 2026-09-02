@@ -75,6 +75,7 @@ concurrency:
 permissions:
   contents: write
   pull-requests: write
+  issues: write # deliver-artifact-branch.sh's fallback when PR creation is refused (see that script)
 
 jobs:
   turn:
@@ -265,25 +266,12 @@ jobs:
           if-no-files-found: ignore
           retention-days: 90
 
-      - name: Open PR to master (skip if one is already open for this branch)
+      - name: Deliver the turn branch (PR, or the tracking issue when the repository refuses PRs)
         if: steps.commit.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           branch="${{ steps.turn.outputs.branch }}"
-          existing="$(gh pr list --base master --head "$branch" --json number --jq '.[0].number' || true)"
-          if [ -n "$existing" ]; then
-            echo "PR #$existing already open for $branch — skipping create."
-            exit 0
-          fi
-          body=$'Automated corpus turn (run ${{ github.run_id }}, trigger ${{ github.event_name }}).\n\nMode: ${{ steps.turn.outputs.mode }}\nSince: ${{ steps.since.outputs.value }}\nSignals flag: "${{ steps.signals.outputs.flag }}"\n\nLands the harness-run artifacts for this turn under scripts/harness-runs/** and the updated turn marker at scripts/turns/LAST-TURN.json. See docs/runbooks/CORPUS-TURN-RUNBOOK.md.'
-          if ! gh pr create --base master --head "$branch" \
-            --title "Corpus turn: $branch (mode=${{ steps.turn.outputs.mode }})" \
-            --body "$body"; then
-            # Seen on runs #3 (2026-09-01): "GitHub Actions is not permitted to create or approve pull
-            # requests" — the repository setting Settings → Actions → General → Workflow permissions →
-            # "Allow GitHub Actions to create and approve pull requests" is off. The turn's DB effects and
-            # the pushed branch are both real; only the PR is missing. Open it by hand at the URL below.
-            echo "::error::PR creation failed. The turn branch IS pushed. Open the PR by hand: https://github.com/${{ github.repository }}/compare/master...${branch}?expand=1 — or enable 'Allow GitHub Actions to create and approve pull requests' under Settings → Actions → General so future turns open their own."
-            exit 1
-          fi
+          printf 'Automated corpus turn (run %s, trigger %s).\n\nMode: %s\nSince: %s\nSignals flag: "%s"\n\nLands the harness-run artifacts for this turn under scripts/harness-runs/** and the updated turn marker at scripts/turns/LAST-TURN.json. See docs/runbooks/CORPUS-TURN-RUNBOOK.md.\n' \
+            "${{ github.run_id }}" "${{ github.event_name }}" "${{ steps.turn.outputs.mode }}" "${{ steps.since.outputs.value }}" "${{ steps.signals.outputs.flag }}" > /tmp/pr-body.md
+          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Corpus turn: $branch (mode=${{ steps.turn.outputs.mode }})" /tmp/pr-body.md
