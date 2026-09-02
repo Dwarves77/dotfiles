@@ -6,6 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 process.env.DISCIPLINE_SNAP_DIR = join(tmpdir(), "backfill-entities-test-snapshots"); // redirect prior-value snapshots
@@ -294,3 +295,16 @@ test("existingEntityIdSet / existingIdentifierKeySet / existingRefKeySet: read t
 });
 
 test.after(() => __setWriteClientForTest(null)); // restore real client factory
+
+// Regression lock (propagation-drain run 33627113501, 2026-09-02): db.mjs's readAll orders by `id` by
+// default, and none of the three spine tables has an `id` column (PK entity_id / composite). The first
+// live dry run died on "column entities.id does not exist" before reading a single row. Every readAll on
+// a spine table must name its order column.
+test("readAll on entities/entity_identifiers/entity_refs always passes an explicit orderBy", () => {
+  const src = readFileSync(new URL("./backfill-entities.mjs", import.meta.url), "utf8");
+  const calls = [...src.matchAll(/readAll\(\s*"(entities|entity_identifiers|entity_refs)"[^)]*\)/g)];
+  assert.ok(calls.length >= 3, `expected the three spine-table reads, found ${calls.length}`);
+  for (const m of calls) {
+    assert.match(m[0], /orderBy:\s*"entity_id"/, `readAll("${m[1]}") must pass orderBy: "entity_id": ${m[0]}`);
+  }
+});

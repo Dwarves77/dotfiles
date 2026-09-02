@@ -7758,3 +7758,14 @@ propagation-drain (mode dry, backfill+seed on) → propagation-drain (apply, bac
 ledger-consume (plan) → population-turn (dry, then apply, limit 50) → change-detection (dry) →
 source-sweep register-federal-register (dry) and feed (dry) → producers ecb-fx (dry, then apply) and
 eurostat-lc-lci-lev (dry, then apply).
+
+### Addendum 84, postscript 2 — first drain dispatch found the spine's own read defect (2026-09-02)
+
+`propagation-drain` run 33627113501 (dry, backfill + seed on) failed in `backfill-entities.mjs` before
+reading a row: `readAll(entities)` → "column entities.id does not exist". `scripts/lib/db.mjs`'s
+`readAll` orders by `id` by default and none of the three spine tables has an `id` column (PK
+`entity_id`, composite keys). Lane DP-SPINE's fake client never ordered, so its 15 tests passed; the
+first live run is where the join with db.mjs's default was tested. Fixed: the three spine reads pass
+`orderBy: "entity_id"`, with a source-shape regression test that fails if any spine read drops it. The
+run is redispatched after this lands. (Also observed: `gh workflow run` from a Codespace returns 403,
+so dispatches go through the Actions UI in the browser.)
