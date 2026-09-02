@@ -92,7 +92,12 @@ on:
         # the credential as a GitHub Actions secret and adding its name to WORKFLOW_SECRETS (both outside
         # this lane's write set) is the prerequisite; once done, a run step mirroring the EU Weekly Oil
         # Bulletin step's dry/apply shape is the remaining wiring.
-        options: [all, eurostat-nrg-pc-205, bls-oews, eu-weekly-oil-bulletin, ecb-fx, desnz-emission-factors, epa-emission-factors, eia-v2-petroleum-spot]
+        options: [all, eurostat-nrg-pc-205, bls-oews, eu-weekly-oil-bulletin, ecb-fx, desnz-emission-factors, epa-emission-factors, eia-v2-petroleum-spot, refresh-published-price-statistics]
+      since:
+        description: 'Optional backfill start date (YYYY-MM-DD) for the EU Weekly Oil Bulletin history file. Leave empty for the normal latest-week fetch. Ignored by every other producer.'
+        required: false
+        default: ''
+        type: string
   # BUILD MODE (operator ruling 2026-08-30): no schedule while the site is being built — population
   # happens by explicit dispatch, read, then applied. The runtime, both gates, and the cadence notes
   # above all stay, so re-arming when build mode ends is exactly this block, restored in one reviewed
@@ -111,6 +116,7 @@ env:
   # line for the exact pair).
   RUN_MODE: ${{ inputs.mode }}
   RUN_PRODUCER: ${{ inputs.producer }}
+  RUN_SINCE: ${{ inputs.since }}
 
 jobs:
   produce:
@@ -146,6 +152,7 @@ jobs:
           echo "trigger  = ${{ github.event_name }} ${{ github.event.schedule }}"
           echo "mode     = $RUN_MODE"
           echo "producer = $RUN_PRODUCER"
+          echo "since    = ${RUN_SINCE:-(none — normal latest-week fetch)}"
           echo "A producer whose own ENABLED flag is false no-ops regardless of mode. That is the"
           echo "arming gate working as designed, not a failure — arm it in source, in a reviewed commit."
 
@@ -175,11 +182,20 @@ jobs:
         # latest week's EU-average prices to a normalized CSV — writes nothing, no kill switch of its
         # own (see its header). eu-weekly-oil-bulletin.mjs then reads that CSV via --input and does the
         # actual guarded parse -> plan -> write, gated by --apply + the env switch below, unchanged.
+        # --since (Lane PROD, 2026-09-02): an optional backfill start date, passed through to
+        # fetch-oil-bulletin.mjs unchanged. Empty (the default) is the normal latest-week fetch this step
+        # has always done. eu-weekly-oil-bulletin.mjs itself needs no branch here — it reads whatever CSV
+        # /tmp/wob.csv holds, one week or many, through the SAME --input/--apply gate either way (see
+        # fetch-oil-bulletin.mjs's own header, "HISTORY BACKFILL (--since)").
         if: env.RUN_PRODUCER == 'all' || env.RUN_PRODUCER == 'eu-weekly-oil-bulletin'
         env:
           MARKET_PRODUCER_EU_OIL_BULLETIN_ENABLED: '1'
         run: |
-          node scripts/producers/market/fetch-oil-bulletin.mjs --out /tmp/wob.csv
+          if [ -n "$RUN_SINCE" ]; then
+            node scripts/producers/market/fetch-oil-bulletin.mjs --since "$RUN_SINCE" --out /tmp/wob.csv
+          else
+            node scripts/producers/market/fetch-oil-bulletin.mjs --out /tmp/wob.csv
+          fi
           if [ "$RUN_MODE" = "apply" ]; then
             node scripts/producers/market/eu-weekly-oil-bulletin.mjs --input /tmp/wob.csv --apply
           else
@@ -188,7 +204,12 @@ jobs:
 
       - name: ecb-fx (ECB euro reference rates; ENABLED gate in the file, dry unless mode=apply)
         # ecb-fx-producer.mjs shipped earlier without a dispatch step (found by lane SURF, 2026-09-01).
-        # Same three gates as every market producer: reviewed-code ENABLED const, the env switch, --apply.
+        # Three gates as every market producer: reviewed-code ENABLED const (TRUE since 2026-09-02, Lane
+        # PROD — see the producer's own header), the env switch below, --apply. A FOURTH condition this
+        # step cannot see from here: migration 281_data_sources_ecb.sql (Lane PROD, 2026-09-02) must be
+        # APPLIED to the live database before source_key 'ecb' resolves — until then an apply run fails
+        # closed at the guarded INSERT (23503, foreign_key_violation), not at a gate message. A dry run is
+        # unaffected either way (dry never reaches the guarded write).
         if: env.RUN_PRODUCER == 'all' || env.RUN_PRODUCER == 'ecb-fx'
         env:
           MARKET_PRODUCER_ECB_FX_ENABLED: '1'
@@ -201,6 +222,40 @@ jobs:
       # eia-v2-petroleum-spot has NO run step yet: it needs the EIA_API_KEY repository secret, which only
       # the operator can create (then register in .discipline/governance/secrets-registry.mjs
       # WORKFLOW_SECRETS and add a step mirroring ecb-fx that maps EIA_API_KEY from the repository secret).
+      # STILL TRUE as of 2026-09-02 (Lane PROD, system-completion train, re-checked against
+      # .discipline/governance/secrets-registry.mjs and secrets-reference-audit.mjs this session):
+      # EIA_API_KEY appears ONLY in TOPOLOGY's local-.env vault entry, not in the enforceable
+      # WORKFLOW_SECRETS set — and secrets-reference-audit.mjs's auditSecretRefs scans EVERY GitHub
+      # Actions secrets-context reference in every workflow file textually (no awareness of `if:`
+      # guards; NOTE FOR THE NEXT READER: even naming the pattern here, spelled out with a literal dot
+      # joining the two words, would itself trip that same scan — see the note it left on this exact
+      # attempt, .discipline/governance/secrets-reference-audit.test.mjs's own failure log — so it is
+      # deliberately NOT spelled out literally in this comment), failing the build on any secret name not
+      # already in that set. A run step here reading EIA_API_KEY out of the secrets context — guarded by
+      # an `if:` or not — would trip that audit today. secrets-registry.mjs is NOT in this lane's write
+      # set (the dispatch explicitly names it as the one file to stop and report on rather than edit), so
+      # this step stays absent; series-registry.mjs's eia-v2 entry is otherwise brought to parity in this
+      # same commit (implemented:true, producerScript named — see that file).
+
+      - name: refresh-published-price-statistics (derive published_price_statistics display rows from market_series)
+        # WO-16.2's step 4 refresher (src/lib/market/refresh-published-price-statistics.mjs +
+        # scripts/producers/market/refresh-published-price-statistics.mjs), wired to this runtime for the
+        # first time 2026-09-02 (Lane PROD, system-completion train) — it shipped with the other market
+        # producers but, like ecb-fx before this same commit, had no dispatch step of its own. Dry by
+        # default (no --apply); this script's OWN header notes it plans/writes ZERO rows either way today
+        # because SERIES_ITEM_MAP (the operator-ratified series -> item mapping) is empty — the empty map
+        # IS the switch, same posture as every other kill-switched producer in this file. NOT in the 'all'
+        # fan-out: it derives from market_series rather than fetching a source, so running it unconditionally
+        # alongside every 'all' sweep would report the same "0 ratified entries" line every time until an
+        # operator ratifies a mapping — dispatch it by name once one exists, the same posture the
+        # DESNZ/EPA one-off seeders below take for their own reason.
+        if: env.RUN_PRODUCER == 'refresh-published-price-statistics'
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then
+            node scripts/producers/market/refresh-published-price-statistics.mjs --apply
+          else
+            node scripts/producers/market/refresh-published-price-statistics.mjs
+          fi
 
       - name: DESNZ modal defaults -> emission_factors
         # Seeds four GB freight modal_default rows from the fixture, through the guarded path

@@ -23,7 +23,9 @@
 //   unverified pending a runner/browser fetch — do NOT fake verification. Whoever next runs this
 //   producer where ecb.europa.eu is reachable (a GitHub runner, same posture as
 //   fetch-oil-bulletin.mjs's own header) should diff the live response against ECB_FIXTURE_XML in
-//   src/__tests__/market-ecb-fx-parser.test.mjs before the coordinator flips ENABLED below.
+//   src/__tests__/market-ecb-fx-parser.test.mjs BEFORE that first --apply — ENABLED itself was already
+//   flipped true 2026-09-02 (see the REVIEWED-CHANGE LOG below), so the shape check now gates the first
+//   dispatched --apply run directly rather than a future ENABLED flip.
 // ENDPOINT CHOICE, DEFENDED. ECB also publishes a richer SDMX data-api (data-api.ecb.europa.eu) for the
 // same series with historical range queries. This producer uses the plain eurofxref-daily.xml instead:
 // it is the feed series-registry.mjs's own sourceUrl already points readers at, it needs no query-string
@@ -65,30 +67,53 @@
 // and as_at_date are both the rate date from the document's own <Cube time="..."> attribute — never
 // `new Date()` (pure parser, no clock read, same rule the oil-bulletin parser states).
 //
-// THIRD GATE — SOURCE NOT YET REGISTERED. market_series.source_key is a live FK to
-// public.data_sources(source_key) (migration 268). 'ecb' is NOT a registered row today (grepped
-// src/lib/contracts/source-licence.mjs this session: zero hits for "ecb", "eex", "icap", "EUA" — none of
-// the three stub sources are registered). Until a coordinator adds an 'ecb' entry to source-licence.mjs
-// (verifying the licence note above against a live read) and regenerates the data_source_seed migration
-// block — the SAME two-step eu_weekly_oil_bulletin's own header describes as already done for that
-// producer — any --apply attempt fails closed on 23503 (foreign_key_violation), never on a silent wrong
-// write. This is orthogonal to, and independent of, the two runtime safety gates below; it stays true
-// even after ENABLED is flipped, until the coordinator closes it.
+// THIRD GATE — SOURCE REGISTRATION. market_series.source_key is a live FK to
+// public.data_sources(source_key) (migration 268). 'ecb' was NOT a registered row when this producer was
+// first authored (grepped src/lib/contracts/source-licence.mjs 2026-08-31: zero hits for "ecb", "eex",
+// "icap", "EUA"). CLOSED 2026-09-02 (Lane PROD, system-completion train,
+// docs/plans/system-completion-plan-2026-09-02.md §2 "Lane PROD"): migration
+// supabase/migrations/281_data_sources_ecb.sql inserts the 'ecb' row directly (redistribution='permitted',
+// embeddable=true, verified_on NULL, blocker text carrying the [UNCONFIRMED] flag — see that migration's
+// own header for why it is a hand-written INSERT rather than the sanctioned source-licence.mjs
+// regenerated-block flow, and for the resulting SOURCE_LICENCES/data_sources divergence recorded there as
+// a follow-up). Once 281 is APPLIED to the live database, this gate resolves and an --apply attempt no
+// longer fails closed on 23503 (foreign_key_violation) for this reason; until then it still does. This
+// gate is orthogonal to, and independent of, the two runtime safety gates below.
 //
-// TWO INDEPENDENT SAFETY GATES, BOTH MUST BE SATISFIED TO WRITE — same contract
-// eu-weekly-oil-bulletin.mjs states, plus a THIRD, source-level gate eurostat-nrg-pc-205-producer.mjs
-// introduced for exactly this reason (a runtime env var alone is not a reviewed-code-change gate):
-//   1. ENABLED (below) — a plain top-level `const`, false at authorship. Flipping it is a REVIEWED CODE
-//      CHANGE (shows in `git diff`), so no scheduled/automated invocation can ever silently arm this
-//      producer — arming is a later, separate, reviewed commit, not a runtime toggle. Checked FIRST,
-//      before ANY work (mirrors eurostat-nrg-pc-205-producer.mjs: "kill switch off" means this producer
-//      does nothing at all, not just nothing to the database — but see the --input/dry carve-out below).
+// REVIEWED-CHANGE LOG (ADR-023 §4 gate 1 — "flipping ENABLED is a REVIEWED CODE CHANGE, shows in `git
+// diff`"). 2026-09-02, Lane PROD (system-completion train): ENABLED flipped false -> true in the SAME
+// commit as migration 281, per direct instruction in
+// docs/plans/system-completion-plan-2026-09-02.md §2 "Lane PROD" ("`ENABLED = true` on ecb-fx with the
+// ADR-023 reviewed-change note"). This is the reviewed-code-change half of ADR-023's two-gate contract
+// landing — it is NOT, by itself, permission for a live write: ADR-023 §5 ("First live run is dry,
+// inspected, then applied") still governs, and this producer has parser tests against a committed
+// fixture, never a live endpoint (see the [UNCONFIRMED] note above — the XML shape is documented, not
+// live-read this session). THE STATE AFTER THIS COMMIT, PLAINLY: gate 1 (ENABLED) is now ON; gate 2 (the
+// runtime kill switch, MARKET_PRODUCER_ECB_FX_ENABLED) still defaults OFF — unset in every environment
+// until an operator sets it for a specific dispatched run; gate 3 (source registration) resolves once
+// migration 281 is applied. A write still needs ALL THREE — this commit closes gates 1 and (pending
+// apply) 3, and deliberately leaves gate 2 for the dispatched dry-then-apply sequence ADR-023 §5 and the
+// system-completion plan's "not a lane — operator-only" dispatch list both call for.
+//
+// THREE INDEPENDENT SAFETY GATES, ALL MUST BE SATISFIED TO WRITE — same contract eu-weekly-oil-bulletin.mjs
+// states for its two, plus the source-registration gate above (the shape eurostat-nrg-pc-205-producer.mjs
+// introduced first, for the same reason: a runtime env var alone is not a reviewed-code-change gate):
+//   1. ENABLED (below) — a plain top-level `const`. TRUE as of 2026-09-02 (see the reviewed-change log
+//      above) — flipping it back to false, or true again after a future false, is itself a REVIEWED CODE
+//      CHANGE (shows in `git diff`), so no scheduled/automated invocation can ever silently arm or
+//      re-arm this producer. Checked FIRST, before ANY work that could write (but see the --input/dry
+//      carve-out below — a dry run still runs regardless of this constant).
 //   2. --apply on the command line + MARKET_PRODUCER_ECB_FX_ENABLED=1 in the environment (the runtime
-//      kill switch; unset/any other value = OFF). A --dry run (the default) always parses + plans +
-//      reports regardless of ENABLED or the env switch, so the parser and planner stay testable and this
-//      lane's dry-run proof needs no flag flips — mirrors eu-weekly-oil-bulletin.mjs's own carve-out.
-// Passing --apply while ANY gate is off REFUSES with an explanatory message and exits 1 — never a silent
-// downgrade to dry-run, and never a partial write.
+//      kill switch; unset/any other value = OFF — this is the gate that is STILL off by default even
+//      with ENABLED now true). A --dry run (the default) always parses + plans + reports regardless of
+//      ENABLED or the env switch, so the parser and planner stay testable and this lane's dry-run proof
+//      needs no flag flips — mirrors eu-weekly-oil-bulletin.mjs's own carve-out.
+//   3. Source registration (public.data_sources has an 'ecb' row) — migration 281, applied. Enforced by
+//      the live FK, not by this file's own logic; decideApply below does not model it, so a --apply run
+//      with gates 1-2 satisfied but 281 not yet applied fails at the guarded INSERT itself (23503), not
+//      at decideApply's REFUSING message. See the THIRD GATE note above.
+// Passing --apply while gate 1 or 2 is off REFUSES with an explanatory message and exits 1 — never a
+// silent downgrade to dry-run, and never a partial write. Gate 3 fails closed at the database instead.
 //
 // THIS SCRIPT FETCHES LIVE BY DEFAULT (unlike eu-weekly-oil-bulletin.mjs, which reads a normalized CSV
 // produced by a separate fetch-oil-bulletin.mjs). ECB's daily XML is small (~5–10 KB) and needs no
@@ -101,7 +126,7 @@
 //   node scripts/producers/market/ecb-fx-producer.mjs                       # dry run, live fetch (DEFAULT)
 //   node scripts/producers/market/ecb-fx-producer.mjs --input path/to.xml   # dry run, local file
 //   cat rates.xml | node scripts/producers/market/ecb-fx-producer.mjs       # dry run, stdin
-//   node scripts/producers/market/ecb-fx-producer.mjs --apply               # write (needs BOTH gates armed)
+//   node scripts/producers/market/ecb-fx-producer.mjs --apply               # write (needs ALL THREE gates armed)
 // Exit 0 done (including a clean dry run) · 1 refused (a gate is off on --apply, or no DB creds on
 // --apply) · 2 bad/empty input · 3 network failure (live fetch, --apply or --dry alike).
 
@@ -112,8 +137,10 @@ import { planMarketSeriesUpsert } from "../../../src/lib/market/write-market-ser
 import { producerFor } from "../../../src/lib/market/series-registry.mjs";
 import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
 
-// ── Gate 1: the reviewed-code-change switch. False at authorship (lane P2). ──────────────────────────
-const ENABLED = false;
+// ── Gate 1: the reviewed-code-change switch. False at authorship (lane P2); flipped TRUE 2026-09-02 by
+// Lane PROD (system-completion train) in the same commit as migration 281 — see the REVIEWED-CHANGE LOG
+// above for what this does and does not authorise. Gate 2 (the runtime kill switch) still defaults off.
+const ENABLED = true;
 
 const KILL_SWITCH_ENV = "MARKET_PRODUCER_ECB_FX_ENABLED";
 const REGISTRY_ENTRY = producerFor("ecb-fx");
