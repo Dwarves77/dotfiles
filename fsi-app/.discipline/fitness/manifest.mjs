@@ -121,6 +121,14 @@ import { fitnessFunction as F31 } from './functions/F31-derived-values-gate.mjs'
 // own live self-check proof), and its pure JS mirror (assertStatutoryPurity) agrees with the SQL trigger's
 // exact refusal logic on fixtures.
 import { fitnessFunction as F32 } from './functions/F32-statutory-purity.mjs';
+// Surface acceptance (2026-09-02, Lane GATES-1, finish plan Wave 1 — "the acceptance gates that make
+// gaps self-report"): every gap in the 2026-08-31 register (an unbuilt customer surface, a route with no
+// data wiring, a surface with no rendering-guard coverage) was found by a manual full-read of the specs
+// against the live app, mechanized by nothing. F33 hardcodes the spec-named surfaces (with the exact spec
+// section that names each one) and checks surface-acceptance-register.json: a surface either carries a
+// route + a data_path the route is import-graph-reachable from (F25's real graph, not a name match) + an
+// existing rendering-guard fixture/smoke spec, or an exemption naming who ruled it out and when.
+import { fitnessFunction as F33 } from './functions/F33-surface-acceptance.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -149,6 +157,7 @@ export const fitnessFunctions = [
   F30,
   F31,
   F32,
+  F33,
 ];
 
 export function getFunctionById(id) {
