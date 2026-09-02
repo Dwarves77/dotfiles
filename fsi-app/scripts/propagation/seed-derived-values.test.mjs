@@ -6,7 +6,8 @@
 // directly: `node --test scripts/propagation/seed-derived-values.test.mjs`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseArgs, seedCarbonIntensity, seedAutomateVsHire } from "./seed-derived-values.mjs";
+import { parseArgs, seedCarbonIntensity, seedAutomateVsHire, resolveRegionEntityId } from "./seed-derived-values.mjs";
+import { entityId } from "../../src/lib/entities/entity-id.mjs";
 
 function fakeClient(tables, { rpcHandler, upsertHandler } = {}) {
   return {
@@ -18,12 +19,14 @@ function fakeClient(tables, { rpcHandler, upsertHandler } = {}) {
         select() { return this; },
         eq(col, value) { this._filters.push((r) => r[col] === value); return this; },
         in(col, values) { this._filters.push((r) => values.includes(r[col])); return this; },
+        order() { return this; },
+        limit() { return this; },
         maybeSingle: async () => {
           const matched = rows.filter((r) => builder._filters.every((f) => f(r)));
           return { data: matched[0] ?? null, error: null };
         },
-        upsert: async (payload) => {
-          this.calls.push({ table, payload });
+        upsert: async (payload, opts) => {
+          this.calls.push({ table, payload, opts });
           return upsertHandler ? upsertHandler(table, payload) : { data: payload, error: null };
         },
         then(onfulfilled) {
@@ -166,6 +169,15 @@ test("seedAutomateVsHire apply: writes a derived_values RPC row AND an estimated
   assert.ok("breakEvenWagePerHour" in upsertCall.payload.distribution);
 });
 
+test("seedAutomateVsHire apply: the estimated_values upsert carries scenario_key='default' and conflicts on the entity/model/scenario unique constraint (migration 286's 2026-09-02 amendment — entity_id alone is no longer unique)", async () => {
+  const sb = fakeClient({ regional_data_facts: [WAGE, ENERGY] });
+  await seedAutomateVsHire(sb, "apply", async () => "cl:jurisdiction:0000000000000001", () => "2026-09-02T00:00:00.000Z");
+  const upsertCall = sb.calls.find((c) => c.table === "estimated_values");
+  assert.ok(upsertCall);
+  assert.equal(upsertCall.payload.scenario_key, "default");
+  assert.equal(upsertCall.opts.onConflict, "entity_id,model_id,model_version,scenario_key");
+});
+
 test("seedAutomateVsHire apply: an estimated_values upsert failure is counted as failed, not thrown", async () => {
   const sb = fakeClient({ regional_data_facts: [WAGE, ENERGY] }, { upsertHandler: () => ({ data: null, error: { message: "conflict" } }) });
   const r = await seedAutomateVsHire(sb, "apply", async () => "cl:jurisdiction:0000000000000001");
@@ -180,4 +192,84 @@ test("seedAutomateVsHire: picks the most recently updated fact per dimension whe
   const rpcCall = sb.calls.find((c) => c.fn === "register_derived_value");
   const wageInput = rpcCall.args.p_inputs.find((i) => i.pk === "wage-1" || i.pk === "wage-old");
   assert.equal(wageInput.pk, "wage-1", "the more recently updated wage fact (28.5) should be used, not the older one (10)");
+});
+
+// ── resolveRegionEntityId (2026-09-02 coordinator follow-up task 2: region -> entity_refs resolve/mint) ──
+
+const REGION_US = { id: "r-us", code: "us-northeast", iso_codes: ["US"] };
+const REGION_EU = { id: "r-eu", code: "eu-west", iso_codes: ["DE", "FR"] }; // multi-code region
+const REGION_NO_ISO = { id: "r-none", code: "unmapped", iso_codes: [] };
+
+function fakeEntityDb(tables) {
+  return fakeClient({ entity_refs: [], entities: [], entity_identifiers: [], regions: [], ...tables });
+}
+
+test("resolveRegionEntityId: an existing entity_refs row is returned directly, no mint attempted", async () => {
+  const existingRef = { ref_table: "regions", ref_id: "r-us", entity_id: "cl:jurisdiction:existingexisting", role: "jurisdiction" };
+  const sb = fakeEntityDb({ entity_refs: [existingRef], regions: [REGION_US] });
+  const insertCalls = [];
+  const id = await resolveRegionEntityId(sb, "r-us", "apply", { insertMany: async (table, rows) => { insertCalls.push({ table, rows }); return { inserted: rows.length }; } });
+  assert.equal(id, "cl:jurisdiction:existingexisting");
+  assert.equal(insertCalls.length, 0, "an already-resolved region never triggers a mint");
+});
+
+test("resolveRegionEntityId dry: no entity_refs row yet -> returns the deterministic preview id, writes nothing", async () => {
+  const sb = fakeEntityDb({ regions: [REGION_US] });
+  const insertCalls = [];
+  const id = await resolveRegionEntityId(sb, "r-us", "dry", { insertMany: async (table, rows) => { insertCalls.push({ table, rows }); return { inserted: rows.length }; } });
+  assert.equal(id, entityId("jurisdiction", "US"));
+  assert.equal(insertCalls.length, 0, "dry mode never mints, even when nothing resolves yet");
+});
+
+test("resolveRegionEntityId apply: no entity_refs row yet -> mints entities/entity_identifiers/entity_refs and returns the same id dry mode previewed", async () => {
+  const sb = fakeEntityDb({ regions: [REGION_US] });
+  const insertCalls = [];
+  const id = await resolveRegionEntityId(sb, "r-us", "apply", { insertMany: async (table, rows) => { insertCalls.push({ table, rows }); return { inserted: rows.length }; } });
+  assert.equal(id, entityId("jurisdiction", "US"));
+
+  const entitiesCall = insertCalls.find((c) => c.table === "entities");
+  assert.ok(entitiesCall, "mints an entities row");
+  assert.equal(entitiesCall.rows[0].entity_id, entityId("jurisdiction", "US"));
+  assert.equal(entitiesCall.rows[0].kind, "jurisdiction");
+
+  const refsCall = insertCalls.find((c) => c.table === "entity_refs");
+  assert.ok(refsCall, "mints an entity_refs row");
+  assert.equal(refsCall.rows[0].ref_table, "regions");
+  assert.equal(refsCall.rows[0].ref_id, "r-us");
+  assert.equal(refsCall.rows[0].entity_id, entityId("jurisdiction", "US"));
+  assert.equal(refsCall.rows[0].role, "jurisdiction");
+});
+
+test("resolveRegionEntityId apply: a multi-iso-code region mints one entity_refs row per code, resolves to the alphabetically-first code's entity", async () => {
+  const sb = fakeEntityDb({ regions: [REGION_EU] });
+  const insertCalls = [];
+  const id = await resolveRegionEntityId(sb, "r-eu", "apply", { insertMany: async (table, rows) => { insertCalls.push({ table, rows }); return { inserted: rows.length }; } });
+  // "DE" sorts before "FR" alphabetically -> the resolved id is DE's jurisdiction entity.
+  assert.equal(id, entityId("jurisdiction", "DE"));
+
+  const refsCall = insertCalls.find((c) => c.table === "entity_refs");
+  assert.ok(refsCall);
+  assert.equal(refsCall.rows.length, 2, "one entity_refs row per iso code, same shape backfill-entities.mjs writes");
+  const refEntityIds = refsCall.rows.map((r) => r.entity_id).sort();
+  assert.deepEqual(refEntityIds, [entityId("jurisdiction", "DE"), entityId("jurisdiction", "FR")].sort());
+});
+
+test("resolveRegionEntityId: a region with no iso_codes resolves to null (nothing to mint from), never mints", async () => {
+  const sb = fakeEntityDb({ regions: [REGION_NO_ISO] });
+  const insertCalls = [];
+  const idDry = await resolveRegionEntityId(sb, "r-none", "dry", { insertMany: async (table, rows) => { insertCalls.push({ table, rows }); return { inserted: rows.length }; } });
+  const idApply = await resolveRegionEntityId(sb, "r-none", "apply", { insertMany: async (table, rows) => { insertCalls.push({ table, rows }); return { inserted: rows.length }; } });
+  assert.equal(idDry, null);
+  assert.equal(idApply, null);
+  assert.equal(insertCalls.length, 0);
+});
+
+test("resolveRegionEntityId apply: an already-existing entity (minted elsewhere, e.g. by backfill-entities.mjs) is not re-inserted, only the missing entity_refs row is written", async () => {
+  const preExistingEntity = { entity_id: entityId("jurisdiction", "US"), kind: "jurisdiction" };
+  const sb = fakeEntityDb({ regions: [REGION_US], entities: [preExistingEntity] });
+  const insertCalls = [];
+  const id = await resolveRegionEntityId(sb, "r-us", "apply", { insertMany: async (table, rows) => { insertCalls.push({ table, rows }); return { inserted: rows.length }; } });
+  assert.equal(id, entityId("jurisdiction", "US"));
+  assert.equal(insertCalls.find((c) => c.table === "entities"), undefined, "the entity already exists — planJurisdictionEntities must not re-mint it");
+  assert.ok(insertCalls.find((c) => c.table === "entity_refs"), "the entity_refs row is still missing and gets written");
 });

@@ -60,14 +60,22 @@ export interface DrainQueryBuilder {
  *  triggers are attached to, plus `derived_values`/`statutory_computations`/`estimated_values`
  *  (derivation_edges' own `from_table` allowlist, migration 285). Kept here rather than re-derived from
  *  the DB at runtime: this IS the allowlist a resolvable input can come from; a table absent from this map
- *  resolves to `row: null` (the method sees an unresolved input, not a crash — see resolveInputs below). */
+ *  resolves to `row: null` (the method sees an unresolved input, not a crash — see resolveInputs below).
+ *  2026-09-02: `statutory_computations`/`estimated_values` corrected from `"entity_id"` to their own
+ *  surrogate PKs (`computation_id`/`estimate_id`) — migration 286's dated amendment demoted `entity_id` to
+ *  a plain required FK (many rows per entity: formula/model version x scenario_key), so `.eq("entity_id",
+ *  pk).maybeSingle()` would now throw on any entity with more than one row instead of resolving THE row an
+ *  InputRef names. No live InputRef cites either table today (both are terminal outputs, never a
+ *  derivation input in this lane's own writers), so this is a latent-correctness fix, not a behavior
+ *  change to any code path currently exercised — kept so the map stays true to its own doc comment ("the
+ *  primary-key COLUMN NAME map") rather than silently going stale next to migration 286. */
 const PK_COLUMN: Readonly<Record<string, string>> = Object.freeze({
   emission_factors: "factor_id",
   market_series: "id",
   regional_data_facts: "id",
   derived_values: "value_id",
-  statutory_computations: "entity_id",
-  estimated_values: "entity_id",
+  statutory_computations: "computation_id",
+  estimated_values: "estimate_id",
 });
 
 /** Resolve a `derived_values.inputs` array (InputRef[]) into real rows for a method to read. Never throws

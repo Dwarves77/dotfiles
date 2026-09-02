@@ -21,16 +21,22 @@
 //      — see methods/automate-vs-hire.ts's header for why the range triple is split across two tables this
 //      way) per REGION that has BOTH a labor_markets fact AND an operational_cost fact with a populated
 //      value_numeric (migration 267's envelope column — NULL means "not yet re-keyed through the
-//      envelope," not zero). `estimated_values.entity_id` is a NOT-NULL PRIMARY KEY (migration 286) — a
-//      region has no entity spine row today (regions were never in DP-SPINE's progressive re-keying scope
-//      — migration 284's header, same note as above), so a matched region is counted
-//      (`skippedNoEntity`) rather than written when no entity_id resolves; this lane's write set does not
-//      include entity minting/backfill (that is DP-SPINE's scripts/entities/backfill-entities.mjs), so
-//      seeding this path further is deliberately left to whichever lane wires a region into the entity
-//      spine. AS OF THIS COMMIT, BLS OEWS (labor_markets) is US-only and Eurostat nrg_pc_205
-//      (operational_cost) is EU-country-only (see scripts/producers/regional/*-producer.mjs) — DISJOINT
-//      region sets, so the honest expected count for this path today is 0 regardless of the entity gap;
-//      the code path is exercised end-to-end by seed-derived-values.test.mjs's fakes, not left dead.
+//      envelope," not zero). `entity_id` is a required FK on both tables (migration 286, amended
+//      2026-09-02 — no longer the PK, see that migration's header) and a region has no entity spine row of
+//      its own (regions were never in DP-SPINE's progressive re-keying scope — migration 284's header,
+//      same note as above), so a matched region's jurisdiction entity is resolved through `entity_refs`
+//      (ref_table='regions', role='jurisdiction') and MINTED on demand when absent — `entityId('jurisdiction',
+//      iso)` + entities/entity_identifiers/entity_refs rows through the SAME guarded db path
+//      (scripts/lib/db.mjs guardedInsertMany) and the SAME shape scripts/entities/backfill-entities.mjs
+//      writes (its own exported planJurisdictionEntities/planJurisdictionRefs, reused directly — see
+//      resolveEntityId in main() below). --dry never mints (a read-only, deterministic PREVIEW of the id
+//      that WOULD be minted, so wouldCreate/skippedNoEntity still count honestly without writing); only
+//      --apply mints for real. A region with an empty iso_codes array still cannot resolve an entity
+//      (nothing to mint FROM) and is still counted skippedNoEntity. AS OF THIS COMMIT, BLS OEWS
+//      (labor_markets) is US-only and Eurostat nrg_pc_205 (operational_cost) is EU-country-only (see
+//      scripts/producers/regional/*-producer.mjs) — DISJOINT region sets, so the honest expected count for
+//      this path was 0 for that reason alone; task 3 of the same follow-up (eurostat-lc-lci-lev-producer.mjs)
+//      closes that disjointness — see this lane's final report for the resulting expected count by formula.
 //
 // --dry counts everything this run WOULD write and writes nothing (no registerDerivedValue call, no
 // estimated_values upsert). --apply performs the writes. Exactly one of --dry/--apply is required.
@@ -52,6 +58,9 @@ import { carbonIntensity } from "../../src/lib/market/carbon-intensity.mjs";
 import { lifecycleFromFactorOriginClass, confidenceFromPedigree } from "../../src/lib/propagation/methods/carbon-intensity.ts";
 import { automateVsHire, DEFAULT_SCENARIO } from "../../src/lib/operations/automate-vs-hire.mjs";
 import { mayEmbedAsSeed } from "../../src/lib/contracts/source-licence.mjs";
+import { entityId } from "../../src/lib/entities/entity-id.mjs";
+import { planJurisdictionEntities, planJurisdictionRefs, distinctNormalized } from "../entities/backfill-entities.mjs";
+import { guardedInsertMany } from "../lib/db.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -60,6 +69,22 @@ const CARBON_METHOD_ID = "carbon_intensity_tkm";
 const CARBON_METHOD_VERSION = "1.0.0";
 const AUTOMATE_METHOD_ID = "automate_vs_hire";
 const AUTOMATE_METHOD_VERSION = "1.0.0";
+// migration 286's 2026-09-02 amendment: estimated_values is unique on (entity_id, model_id, model_version,
+// scenario_key), not on entity_id alone. This seed always writes the single ordinary scenario.
+const SCENARIO_KEY = "default";
+
+// Cite for entity-minting writes this script performs when a region has no jurisdiction entity yet
+// (guardedInsertMany, scripts/lib/db.mjs rule-015 guarded path) — see resolveEntityId in main() below.
+const SEED_ENTITY_CITE = {
+  skill: "remediation-discipline",
+  reason:
+    "Lane DP-SURF (system-completion train, 2026-09-02, coordinator follow-up task 2): mint a jurisdiction " +
+    "entity + entity_refs row for a region encountered by seed-derived-values.mjs's automate_vs_hire seed " +
+    "path, the SAME shape scripts/entities/backfill-entities.mjs writes (entityId('jurisdiction', iso) + " +
+    "entity_refs role='jurisdiction', via its own exported planJurisdictionEntities/planJurisdictionRefs) — " +
+    "regions were never in DP-SPINE's original progressive-re-keying scope, so estimated_values.entity_id / " +
+    "derived_values.entity_id had no FK target for any region until this on-demand mint.",
+};
 
 function usage() {
   return "Usage: node scripts/propagation/seed-derived-values.mjs --dry | --apply";
@@ -157,11 +182,11 @@ export async function seedCarbonIntensity(sb, mode, nowIso = () => new Date().to
  * entity-id gap (skippedNoEntity).
  * @param {object} sb
  * @param {"dry"|"apply"} mode
- * @param {(regionId: string) => Promise<string|null>} resolveEntityId — looks up an existing entity_id
- *   for a region, or null if none exists. Injected so this function stays testable without a real entity
- *   spine query; the production caller below wires it to a real `.from("entity_identifiers")`-shaped read
- *   (a region's entity, if one has been minted elsewhere, is found by scheme/value crosswalk — this
- *   script MINTS NOTHING, per the file header's write-set boundary).
+ * @param {(regionId: string) => Promise<string|null>} resolveEntityId — resolves a region's jurisdiction
+ *   entity_id, or null if none can be resolved (e.g. the region has no iso_codes to mint from). Injected
+ *   so this function stays testable without a real entity spine query; the production caller below (see
+ *   main()) resolves through `entity_refs` (ref_table='regions', role='jurisdiction') and MINTS on demand
+ *   when absent (apply mode only — dry mode previews the id without writing; see file header).
  * @param {() => string} nowIso
  */
 export async function seedAutomateVsHire(sb, mode, resolveEntityId, nowIso = () => new Date().toISOString()) {
@@ -191,8 +216,12 @@ export async function seedAutomateVsHire(sb, mode, resolveEntityId, nowIso = () 
     const wage = mostRecent(byDim.labor_markets);
     const energy = mostRecent(byDim.operational_cost);
 
-    const entityId = await resolveEntityId(regionId);
-    if (!entityId) {
+    // NOTE: named resolvedEntityId, not entityId — this module also imports the entityId() minting
+    // function from entity-id.mjs (used inside main()'s resolveEntityId below); a same-named local would
+    // merely shadow it here (no bug — this function never calls entityId() itself), but the distinct name
+    // keeps the two unambiguous at a glance.
+    const resolvedEntityId = await resolveEntityId(regionId);
+    if (!resolvedEntityId) {
       result.skippedNoEntity += 1;
       continue;
     }
@@ -207,7 +236,7 @@ export async function seedAutomateVsHire(sb, mode, resolveEntityId, nowIso = () 
     ];
     try {
       await registerDerivedValue(sb, {
-        entityId,
+        entityId: resolvedEntityId,
         methodId: AUTOMATE_METHOD_ID,
         methodVersion: AUTOMATE_METHOD_VERSION,
         value: scenario.npv.point,
@@ -233,7 +262,8 @@ export async function seedAutomateVsHire(sb, mode, resolveEntityId, nowIso = () 
       // jsonb column this lane's write set commits to (methods/automate-vs-hire.ts's header).
       const { error: upsertErr } = await sb.from("estimated_values").upsert(
         {
-          entity_id: entityId,
+          entity_id: resolvedEntityId,
+          scenario_key: SCENARIO_KEY,
           model_id: AUTOMATE_METHOD_ID,
           model_version: AUTOMATE_METHOD_VERSION,
           point: scenario.npv.point,
@@ -247,7 +277,10 @@ export async function seedAutomateVsHire(sb, mode, resolveEntityId, nowIso = () 
           },
           pedigree: { reliability: 2, completeness: 3, temporal_correlation: 2, geographical_correlation: 2, technological_correlation: 3 },
         },
-        { onConflict: "entity_id" }
+        // migration 286's 2026-09-02 amendment: entity_id is no longer estimated_values' PK — the
+        // unique constraint (and therefore the upsert conflict target) is
+        // estimated_values_entity_model_scenario_uniq (entity_id, model_id, model_version, scenario_key).
+        { onConflict: "entity_id,model_id,model_version,scenario_key" }
       );
       if (upsertErr) throw new Error(`estimated_values upsert failed: ${upsertErr.message}`);
 
@@ -258,6 +291,75 @@ export async function seedAutomateVsHire(sb, mode, resolveEntityId, nowIso = () 
     }
   }
   return result;
+}
+
+/**
+ * Resolve a region's jurisdiction entity_id (2026-09-02 coordinator follow-up task 2), through
+ * `entity_refs` (ref_table='regions', role='jurisdiction' — migration 283's already-legal ref_table
+ * value), MINTING ON DEMAND when absent — regions were never in DP-SPINE's original progressive-re-keying
+ * scope, so no row here has ever had an entity. Mint uses the SAME shape scripts/entities/
+ * backfill-entities.mjs writes: its own exported `planJurisdictionEntities`/`planJurisdictionRefs`, reused
+ * directly (both are exported; see that file), never a hand-rolled reimplementation — writes go through
+ * `insertMany` (defaults to scripts/lib/db.mjs's real `guardedInsertMany`, the rule-015 guarded path;
+ * injectable so a test can capture calls against a fake instead of needing real DB creds).
+ *
+ * A region can carry MULTIPLE iso_codes (a multi-country grouping) — planJurisdictionRefs mints one
+ * entity_refs row per code (parity with what backfill-entities.mjs would eventually write for the same
+ * region, so the two producers can never disagree about which entities a region's iso_codes resolve to);
+ * this resolver picks the alphabetically-first code's entity as THE region's entity_id for the
+ * single-valued estimated_values/derived_values entity_id column — deterministic, and stable across runs
+ * (entityId() is itself deterministic, so re-resolving the same region always returns the same pick).
+ *
+ * DRY MODE NEVER WRITES: when no entity_refs row exists yet, `mode !== "apply"` returns the candidate id
+ * `entityId('jurisdiction', firstSortedCode)` would mint (a pure preview — the same value apply mode would
+ * end up minting) WITHOUT inserting anything, so seedAutomateVsHire's wouldCreate/skippedNoEntity counts
+ * stay honest under --dry without violating "dry writes nothing" (file header).
+ * @param {object} sb
+ * @param {string} regionId
+ * @param {"dry"|"apply"} mode
+ * @param {{insertMany?: typeof guardedInsertMany, cite?: {skill:string,reason:string}}} [deps]
+ * @returns {Promise<string|null>}
+ */
+export async function resolveRegionEntityId(sb, regionId, mode, deps = {}) {
+  const insertMany = deps.insertMany ?? guardedInsertMany;
+  const cite = deps.cite ?? SEED_ENTITY_CITE;
+
+  const { data: existingRefs, error: refErr } = await sb
+    .from("entity_refs")
+    .select("entity_id")
+    .eq("ref_table", "regions")
+    .eq("ref_id", regionId)
+    .eq("role", "jurisdiction")
+    .order("entity_id", { ascending: true })
+    .limit(1);
+  if (refErr) return null;
+  if (Array.isArray(existingRefs) && existingRefs.length > 0) return existingRefs[0].entity_id;
+
+  const { data: region } = await sb.from("regions").select("iso_codes").eq("id", regionId).maybeSingle();
+  const codes = distinctNormalized(Array.isArray(region?.iso_codes) ? region.iso_codes : []);
+  if (codes.length === 0) return null; // nothing to mint a jurisdiction entity FROM
+
+  const sortedCodes = codes.slice().sort();
+  const previewEntityId = entityId("jurisdiction", sortedCodes[0]);
+  if (mode !== "apply") return previewEntityId; // dry: preview only, no writes (see doc comment)
+
+  const candidateIds = codes.map((c) => entityId("jurisdiction", c));
+  const { data: alreadyEntities } = await sb.from("entities").select("entity_id").in("entity_id", candidateIds);
+  const existingEntityIds = new Set((alreadyEntities || []).map((r) => r.entity_id));
+  const { data: existingIdentRows } = await sb
+    .from("entity_identifiers")
+    .select("entity_id,scheme,value")
+    .in("entity_id", candidateIds);
+  const existingIdentifierKeys = new Set((existingIdentRows || []).map((r) => `${r.entity_id}|${r.scheme}|${r.value}`));
+
+  const { entities, identifiers, byCode } = planJurisdictionEntities(codes, existingEntityIds, existingIdentifierKeys);
+  const refs = planJurisdictionRefs("regions", [{ id: regionId, iso_codes: codes }], byCode);
+
+  if (entities.length) await insertMany("entities", entities, { cite });
+  if (identifiers.length) await insertMany("entity_identifiers", identifiers, { cite });
+  if (refs.length) await insertMany("entity_refs", refs, { cite });
+
+  return byCode.get(sortedCodes[0]) ?? previewEntityId;
 }
 
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -280,24 +382,8 @@ async function main() {
   const { createClient } = await import("@supabase/supabase-js");
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-  // Production entity resolver: a region's entity_id, IF one already exists in the spine, found via
-  // entity_identifiers' UNLOCODE/ISO3166 crosswalk against regions.code — never minted here (see file
-  // header). Falls back to null (skippedNoEntity) on any read failure, same fail-soft posture the rest of
-  // this script uses for a query that cannot complete.
-  async function resolveEntityId(regionId) {
-    const { data: region } = await sb.from("regions").select("code").eq("id", regionId).maybeSingle();
-    if (!region?.code) return null;
-    const { data: idRow } = await sb
-      .from("entity_identifiers")
-      .select("entity_id")
-      .in("scheme", ["ISO3166_1", "ISO3166_2", "UNLOCODE"])
-      .eq("value", region.code)
-      .maybeSingle();
-    return idRow?.entity_id ?? null;
-  }
-
   const carbon = await seedCarbonIntensity(sb, parsed.mode);
-  const automate = await seedAutomateVsHire(sb, parsed.mode, resolveEntityId);
+  const automate = await seedAutomateVsHire(sb, parsed.mode, (regionId) => resolveRegionEntityId(sb, regionId, parsed.mode));
 
   const summary = { mode: parsed.mode, carbonIntensity: carbon, automateVsHire: automate };
   console.log(JSON.stringify(summary, null, 2));

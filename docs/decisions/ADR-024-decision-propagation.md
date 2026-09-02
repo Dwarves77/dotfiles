@@ -211,3 +211,64 @@ permanent neglect of the migration rather than a managed, in-progress one.
   standalone corridor table) — inventing one would duplicate `entities`' own class-table-inheritance
   design (spec §1.1) for exactly the kind it already models, and would need its own crosswalk, RLS, and
   merge/retire lifecycle that `entity_identifiers`/`entities.status` already provide for every kind.
+
+## 2026-09-02 AMENDMENT — `statutory_computations`/`estimated_values` PK shape corrected; regions minted into the spine (Lane DP-SURF, coordinator follow-up)
+
+**Context.** Migration 286 (Lane DP-ENGINE, same day) transcribed spec §4's `CREATE TABLE` blocks for
+`statutory_computations`/`estimated_values` byte-faithfully, including making `entity_id` the PRIMARY KEY
+of each table — spec §4's own literal DDL. Running `scripts/propagation/seed-derived-values.mjs` (Lane
+DP-SURF's build, same commit as this amendment) against that shape surfaced a real defect the spec text
+did not anticipate: **an `entity_id` PRIMARY KEY permits at most ONE row per entity, ever, across every
+formula/model and every scenario** — a single jurisdiction entity that is the subject of a FuelEU
+statutory computation would collide with itself on a second formula version, and a single entity seeded
+under more than one named what-if scenario would collide with itself outright. The seed's own
+automate-vs-hire path produced zero writable rows for this reason alone, independent of the BLS/Eurostat
+region-disjointness gap named in this ADR's own §5 area and closed by this same follow-up's task 3
+(`fsi-app/scripts/producers/regional/eurostat-lc-lci-lev-producer.mjs`).
+
+**Ruling: `entity_id` is corrected to what it always semantically was — the SUBJECT of a computation/
+estimate (a required FK), not a uniqueness key — and each table gets its own surrogate PK.** Migration 286
+is amended IN PLACE (unapplied at the time of this ruling, so no live-row migration was needed):
+`statutory_computations.computation_id uuid PRIMARY KEY DEFAULT gen_random_uuid()` and
+`estimated_values.estimate_id uuid PRIMARY KEY DEFAULT gen_random_uuid()` replace `entity_id` as each
+table's PK; `entity_id` stays `NOT NULL REFERENCES entities(entity_id)` on both, now a plain FK. A new
+`scenario_key text NOT NULL DEFAULT 'default'` column plus `UNIQUE (entity_id, formula_id, formula_version,
+scenario_key)` / `UNIQUE (entity_id, model_id, model_version, scenario_key)` constraints replace the old
+PK's uniqueness guarantee at the granularity that actually matters — one row per entity per formula/model
+version per named scenario, `'default'` for the ordinary case. Every `CHECK` constraint from spec §4's
+byte-faithful transcription is UNCHANGED; `assert_statutory_purity()`'s logic is unchanged (it never read
+`entity_id` as a uniqueness key); the outbox trigger's PK-column argument
+(`emit_propagation_event(...)`, migration 284) moves from `'entity_id'` to `'computation_id'`/
+`'estimate_id'` since that argument names the triggering table's ACTUAL primary key column. `drain.ts`'s
+`PK_COLUMN` map (`src/lib/propagation/drain.ts`, used by `resolveInputs()` to look up an `InputRef`-named
+row) is corrected the same way, for the same reason, as a latent-correctness fix (no live `InputRef` cites
+either table today — both are terminal outputs by spec §4's own design, never a derivation input). See
+migration 286's own header for the full technical rationale and `scripts/propagation/
+seed-derived-values.mjs`'s header/tests for the seed-side consequences.
+
+**This is a correction of a spec transcription error surfaced by first real use, not a re-litigation of
+spec §4's isolation design** — the four-layer isolation (physical tables, TS type barrier, DB trigger,
+render-component gate) this ADR's decision 2 and spec §4 both describe is entirely unaffected: an
+estimate still cannot reach a statutory computation as an input, a statutory computation is still
+terminal, and `ESTIMATE_DISPLAY="range"` still governs the presentation layer. Only the PK/uniqueness
+shape — a schema detail the isolation design does not depend on — changes.
+
+**Regions minted into the entity spine, on demand, from the seed's own write path.** Migration 283
+already legalized `entity_refs.ref_table = 'regions'` (Lane DP-SPINE, same day) but no code ever wrote a
+region's `entity_refs` row — regions were named as multi-valued-jurisdiction-capable in that migration's
+own header but were never in DP-SPINE's progressive-re-keying backfill scope (`scripts/entities/
+backfill-entities.mjs` walks `intelligence_items`/`sources`, not `regions`). `seed-derived-values.mjs`'s
+`resolveRegionEntityId` (Lane DP-SURF, this amendment) closes that gap the same way DP-SPINE's backfill
+would: resolve a region's jurisdiction entity through `entity_refs` (`ref_table='regions'`,
+`role='jurisdiction'`), and when absent, MINT it — `entityId('jurisdiction', iso)` for each of the
+region's `iso_codes`, writing `entities`/`entity_identifiers`/`entity_refs` rows through
+`scripts/lib/db.mjs`'s guarded write path (rule 015: cite required, prior-state snapshotted) — by
+importing and reusing `backfill-entities.mjs`'s own exported `planJurisdictionEntities`/
+`planJurisdictionRefs` pure planning functions directly, never a second hand-rolled implementation of the
+same mint. This keeps the two producers (a future whole-corpus DP-SPINE backfill run, and this seed's
+on-demand per-region mint) structurally unable to disagree about which entity a region's iso code
+resolves to — `entityId()` is deterministic, and both call the same planning functions. `--dry` mode never
+writes (a pure preview of the id that would be minted); only `--apply` mints for real. Consequence: this
+ADR's §5 consequences list is extended — `seed-derived-values.mjs` is now also a (narrow, on-demand,
+single-role) writer into the entity spine, alongside `backfill-entities.mjs`'s whole-corpus sweep,
+resolving through the identical `entity_refs`/`entityId()` mechanism rather than a parallel one.

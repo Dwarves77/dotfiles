@@ -34,6 +34,31 @@
 -- check would not catch it — the fix, if that shape is ever built, is to ALSO register `statutory_
 -- computations` as a legal `derivation_edges.to_value_id`-shaped target (a schema widening) and add the
 -- transitive walk spec §4 illustrates. Named here so the next lane does not have to re-discover it.
+--
+-- 2026-09-02 AMENDMENT (Lane DP-SURF, coordinator-directed, ADR-024 dated amendment recorded in
+-- docs/decisions/ADR-024-decision-propagation.md) — `entity_id` DEMOTED FROM PRIMARY KEY ON BOTH TABLES,
+-- STILL BELOW. Unapplied at the time of this edit, so amended in place rather than layered in a follow-on
+-- migration (no live rows depend on the old shape). WHY: spec §4's own DDL, taken byte-faithful above, made
+-- `entity_id` the primary key of both tables — AT MOST ONE statutory_computations row and AT MOST ONE
+-- estimated_values row per entity, ever. Running the seed (scripts/propagation/seed-derived-values.mjs)
+-- against this shape produces ZERO usable rows for any entity with more than one (formula_id,
+-- formula_version) or (model_id, model_version) pair — e.g. a jurisdiction entity that is the subject of
+-- BOTH a FuelEU statutory computation and an automate-vs-hire estimate collides on the same PK, and a
+-- single entity scoped to more than one seed scenario collides with itself. `entity_id` is corrected here
+-- to what it always semantically was — the SUBJECT (a required FK, not a uniqueness key) — and each table
+-- gets its own surrogate PK (`computation_id`/`estimate_id`, uuid, `gen_random_uuid()` default, matching
+-- this codebase's other surrogate-PK tables e.g. `derived_values.value_id` in migration 285). A new
+-- `scenario_key text NOT NULL DEFAULT 'default'` column and a `UNIQUE (entity_id, formula_id,
+-- formula_version, scenario_key)` / `UNIQUE (entity_id, model_id, model_version, scenario_key)` constraint
+-- replace the old PK's uniqueness guarantee at the granularity that actually matters (one row per entity
+-- per formula/model version per named scenario — 'default' for the common case, a caller-chosen key for a
+-- named what-if scenario), rather than removing uniqueness altogether. Every CHECK constraint from the
+-- byte-faithful block above is UNCHANGED. assert_statutory_purity() is unchanged in its logic (it never
+-- read entity_id as a uniqueness key, only as the row identifier in its RAISE EXCEPTION message, updated
+-- below to name the row by its new PK). The outbox trigger's PK-column argument
+-- (`emit_propagation_event(...)`, migration 284) is updated from `'entity_id'` to `'computation_id'` /
+-- `'estimate_id'` respectively, since that argument names the triggering table's ACTUAL primary key column
+-- and entity_id no longer is one.
 
 -- ── Preconditions ────────────────────────────────────────────────────────────────────────────────────
 DO $$
@@ -46,9 +71,12 @@ BEGIN
   END IF;
 END $$;
 
--- ── statutory_computations (spec §4 Layer 1, verbatim) ──────────────────────────────────────────────────
+-- ── statutory_computations (spec §4 Layer 1, verbatim CHECKs; PK/uniqueness shape amended 2026-09-02 — ──
+-- ── see the migration header's dated amendment note) ────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.statutory_computations (
-  entity_id        text PRIMARY KEY REFERENCES public.entities(entity_id),
+  computation_id   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  entity_id        text NOT NULL REFERENCES public.entities(entity_id),
+  scenario_key     text NOT NULL DEFAULT 'default',
   obligation_id    text NOT NULL REFERENCES public.entities(entity_id),
   formula_id       text NOT NULL,
   formula_version  text NOT NULL,
@@ -60,15 +88,28 @@ CREATE TABLE IF NOT EXISTS public.statutory_computations (
   result_unit      text NOT NULL,
   computed_at      timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT statutory_needs_citation CHECK (length(statute_citation) > 0),
-  CONSTRAINT statutory_never_null_result CHECK (result IS NOT NULL)
+  CONSTRAINT statutory_never_null_result CHECK (result IS NOT NULL),
+  CONSTRAINT statutory_computations_entity_formula_scenario_uniq
+    UNIQUE (entity_id, formula_id, formula_version, scenario_key)
 );
 
 COMMENT ON TABLE public.statutory_computations IS
-  'Spec 08 §4 Layer 1, byte-faithful: a published formula, published constants, an auditable input set. '
-  'ISOLATED from estimated_values by four independent layers — physical table (this one), a TypeScript '
-  'type barrier (types.ts StatutoryInput/computeStatutory), this table''s own INSERT/UPDATE trigger '
-  '(assert_statutory_purity, below — a single mistake at any ONE layer is caught by another), and separate '
-  'render components (DP-SURF''s StatutoryFigure, never sharing a visual slot with EstimatedFigure).';
+  'Spec 08 §4 Layer 1, byte-faithful in every CHECK: a published formula, published constants, an auditable '
+  'input set. ISOLATED from estimated_values by four independent layers — physical table (this one), a '
+  'TypeScript type barrier (types.ts StatutoryInput/computeStatutory), this table''s own INSERT/UPDATE '
+  'trigger (assert_statutory_purity, below — a single mistake at any ONE layer is caught by another), and '
+  'separate render components (DP-SURF''s StatutoryFigure, never sharing a visual slot with EstimatedFigure). '
+  'PK is computation_id (surrogate uuid), NOT entity_id — see the migration header''s 2026-09-02 amendment: '
+  'entity_id is the subject (required FK, many rows per entity), uniqueness is entity_id + formula_id + '
+  'formula_version + scenario_key.';
+COMMENT ON COLUMN public.statutory_computations.entity_id IS
+  'The SUBJECT of this computation (a required FK into entities) — NOT a uniqueness key on its own since '
+  '2026-09-02 (one entity can be the subject of many computations: different formulas, different formula '
+  'versions, or different named scenarios). See statutory_computations_entity_formula_scenario_uniq.';
+COMMENT ON COLUMN public.statutory_computations.scenario_key IS
+  '''default'' for the ordinary single-computation-per-(entity,formula,version) case; a caller-chosen key '
+  'to seed more than one named what-if scenario for the same entity/formula/version without colliding on '
+  'the unique constraint. Added 2026-09-02 alongside computation_id (see migration header).';
 COMMENT ON COLUMN public.statutory_computations.inputs IS
   'jsonb array of InputRef {"table","pk","version"} (types.ts) — the SAME shape derived_values.inputs '
   'uses (migration 285). assert_statutory_purity() (below) inspects this array directly: any element '
@@ -78,9 +119,14 @@ COMMENT ON COLUMN public.statutory_computations.unit_price IS
   'e.g. 2400.00 (spec §4''s own FuelEU Maritime example, EUR 2,400/t VLSFOe). Nullable: not every statutory '
   'formula carries a single scalar unit price (formula_id/formula_version disambiguate the shape).';
 
--- ── estimated_values (spec §4 Layer 1, verbatim) ────────────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS statutory_computations_entity_idx ON public.statutory_computations (entity_id);
+
+-- ── estimated_values (spec §4 Layer 1, verbatim CHECKs; PK/uniqueness shape amended 2026-09-02 — see ────
+-- ── the migration header's dated amendment note) ────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.estimated_values (
-  entity_id     text PRIMARY KEY REFERENCES public.entities(entity_id),
+  estimate_id   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  entity_id     text NOT NULL REFERENCES public.entities(entity_id),
+  scenario_key  text NOT NULL DEFAULT 'default',
   model_id      text NOT NULL,
   model_version text NOT NULL,
   point         numeric,
@@ -91,21 +137,35 @@ CREATE TABLE IF NOT EXISTS public.estimated_values (
   CONSTRAINT estimate_has_uncertainty CHECK (low IS NOT NULL OR distribution IS NOT NULL),
   CONSTRAINT estimate_range_ordered   CHECK (low IS NULL OR high IS NULL OR low <= high),
   CONSTRAINT estimate_brackets_point
-    CHECK (point IS NULL OR low IS NULL OR (point BETWEEN low AND high))
+    CHECK (point IS NULL OR low IS NULL OR (point BETWEEN low AND high)),
+  CONSTRAINT estimated_values_entity_model_scenario_uniq
+    UNIQUE (entity_id, model_id, model_version, scenario_key)
 );
 
 COMMENT ON TABLE public.estimated_values IS
-  'Spec 08 §4 Layer 1, byte-faithful: model output, scenario bands, projections. Range-native — a point '
-  'estimate is the EXCEPTION, not the default (estimate_has_uncertainty forbids a point with no low/'
-  'distribution). ADR-024 decision 2: NEVER backs a customer-visible decision, only a customer-visible '
-  'RANGE (ESTIMATE_DISPLAY="range", src/lib/entities/decisions.mjs) — DP-SURF''s EstimatedFigure always '
-  'renders low/high, never a point-only mode.';
+  'Spec 08 §4 Layer 1, byte-faithful in every CHECK: model output, scenario bands, projections. '
+  'Range-native — a point estimate is the EXCEPTION, not the default (estimate_has_uncertainty forbids a '
+  'point with no low/distribution). ADR-024 decision 2: NEVER backs a customer-visible decision, only a '
+  'customer-visible RANGE (ESTIMATE_DISPLAY="range", src/lib/entities/decisions.mjs) — DP-SURF''s '
+  'EstimatedFigure always renders low/high, never a point-only mode. PK is estimate_id (surrogate uuid), '
+  'NOT entity_id — see the migration header''s 2026-09-02 amendment: entity_id is the subject (required '
+  'FK, many rows per entity), uniqueness is entity_id + model_id + model_version + scenario_key.';
+COMMENT ON COLUMN public.estimated_values.entity_id IS
+  'The SUBJECT of this estimate (a required FK into entities) — NOT a uniqueness key on its own since '
+  '2026-09-02 (one entity can be the subject of many estimates: different models, different model '
+  'versions, or different named scenarios). See estimated_values_entity_model_scenario_uniq.';
+COMMENT ON COLUMN public.estimated_values.scenario_key IS
+  '''default'' for the ordinary single-estimate-per-(entity,model,version) case; a caller-chosen key to '
+  'seed more than one named what-if scenario for the same entity/model/version without colliding on the '
+  'unique constraint. Added 2026-09-02 alongside estimate_id (see migration header).';
 COMMENT ON COLUMN public.estimated_values.pedigree IS
   'ecoinvent 5-axis pedigree score (reliability/completeness/temporal/geographical/technological '
   'correlation, 1..5 each) — validatePedigree() in src/lib/contracts/vocabularies.mjs is the shared '
   'validator; NOT re-validated at the DB layer here (jsonb shape, no per-key CHECK), matching this '
   'schema''s "DB shape, application validates content" posture for other jsonb columns (e.g. '
   'derived_values.inputs).';
+
+CREATE INDEX IF NOT EXISTS estimated_values_entity_idx ON public.estimated_values (entity_id);
 
 -- ── assert_statutory_purity() — Layer 3 (see header for the deliberate deviation from spec's own body) ──
 CREATE OR REPLACE FUNCTION public.assert_statutory_purity() RETURNS trigger
@@ -129,9 +189,9 @@ BEGIN
 
   IF bad_estimate OR bad_derived THEN
     RAISE EXCEPTION
-      'statutory computation % depends on a non-contractable input (an estimated_values row, or a '
-      'derived_values row whose derivation is modelled/estimated/interpolated) — spec 08 §4 Layer 3',
-      NEW.entity_id;
+      'statutory computation % (entity %) depends on a non-contractable input (an estimated_values row, '
+      'or a derived_values row whose derivation is modelled/estimated/interpolated) — spec 08 §4 Layer 3',
+      NEW.computation_id, NEW.entity_id;
   END IF;
   RETURN NEW;
 END $$;
@@ -149,15 +209,18 @@ CREATE TRIGGER statutory_purity_trg
   FOR EACH ROW EXECUTE FUNCTION public.assert_statutory_purity();
 
 -- ── Attach the outbox trigger (function defined in migration 284) ──────────────────────────────────────
+-- 2026-09-02: the PK-column argument names the triggering table's ACTUAL primary key column
+-- (emit_propagation_event()'s own contract, migration 284) — 'entity_id' → 'computation_id'/'estimate_id'
+-- now that entity_id is no longer the PK of either table (see migration header amendment).
 DROP TRIGGER IF EXISTS propagation_outbox_trg ON public.statutory_computations;
 CREATE TRIGGER propagation_outbox_trg
   AFTER INSERT OR UPDATE OR DELETE ON public.statutory_computations
-  FOR EACH ROW EXECUTE FUNCTION public.emit_propagation_event('entity_id');
+  FOR EACH ROW EXECUTE FUNCTION public.emit_propagation_event('computation_id');
 
 DROP TRIGGER IF EXISTS propagation_outbox_trg ON public.estimated_values;
 CREATE TRIGGER propagation_outbox_trg
   AFTER INSERT OR UPDATE OR DELETE ON public.estimated_values
-  FOR EACH ROW EXECUTE FUNCTION public.emit_propagation_event('entity_id');
+  FOR EACH ROW EXECUTE FUNCTION public.emit_propagation_event('estimate_id');
 
 -- ── Indexes ──────────────────────────────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS statutory_computations_obligation_idx ON public.statutory_computations (obligation_id);
@@ -193,16 +256,18 @@ DECLARE
   ok_obligation text := 'cl:obligation:0000000000000003';
   rejected boolean;
 BEGIN
+  -- 13/10, not 11/8: 2026-09-02 amendment adds computation_id/estimate_id (surrogate PK) and
+  -- scenario_key to each table (see migration header) — 11+2=13, 8+2=10.
   SELECT count(*) INTO n_sc_cols FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = 'statutory_computations';
-  IF n_sc_cols <> 11 THEN
-    RAISE EXCEPTION 'ABORT: statutory_computations has % columns, expected 11', n_sc_cols;
+  IF n_sc_cols <> 13 THEN
+    RAISE EXCEPTION 'ABORT: statutory_computations has % columns, expected 13', n_sc_cols;
   END IF;
 
   SELECT count(*) INTO n_ev_cols FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = 'estimated_values';
-  IF n_ev_cols <> 8 THEN
-    RAISE EXCEPTION 'ABORT: estimated_values has % columns, expected 8', n_ev_cols;
+  IF n_ev_cols <> 10 THEN
+    RAISE EXCEPTION 'ABORT: estimated_values has % columns, expected 10', n_ev_cols;
   END IF;
 
   SELECT count(*) INTO n_trg FROM pg_trigger
