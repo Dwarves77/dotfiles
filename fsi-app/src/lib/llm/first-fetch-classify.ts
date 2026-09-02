@@ -19,13 +19,27 @@
 //
 // Cost: ~$0.001 per call at 6KB excerpts (Haiku 4.5 pricing). Acceptable
 // per the wave1b stub-quality investigation, 2026-05-11.
+//
+// SPEND CHOKEPOINT (system-completion train, Lane SPEND, 2026-09-02). This module used to fetch
+// api.anthropic.com directly — a ticketless, unlogged spend call outside spend-client.ts, despite
+// "first-fetch-classify" already being a registered Rule 016 standing ticket class (STANDING_TICKET_CLASSES,
+// spend-guard.mjs) that nothing wired up. Every Haiku call now routes through spend-client.ts's
+// spendMessage (the non-streaming twin of spendStream/spendSearch): ticket-gated, budget-checked, and
+// telemetered with the SAME account()/recordSpendCall()/markCallLogged() sequence every other paid call in
+// the pipeline uses — so a classify call leaves exactly one agent_runs row, same as any other spend. The
+// ticket carries sourceId from the caller's input (never itemId — a first-fetch classify precedes any
+// mint, so there is no item yet), satisfying invariant I1 (never item- AND source-anonymous). The apiKey
+// parameter still wins over ANTHROPIC_API_KEY when present (spendMessage takes an explicit apiKey and
+// prefers it) — callers that inject their own key (portal-harvest.ts's consumePortalCandidates) are
+// unaffected. FirstFetchClassifyResult's shape is unchanged for callers; cost_usd_estimated is now the
+// REAL chokepoint-computed cost (costUsdForModel, the same number the agent_runs row records) rather than
+// a locally-duplicated Haiku-rate constant that could silently drift from the ledger's own rates.
 
 import { asDomain, domainForItemType, type Domain, type SourceCategory } from "@/lib/domains";
 import { isErrorBody } from "@/lib/sources/entity-gate.mjs";
+import { spendMessage, setSpendTicket, currentSpendTicket } from "@/lib/llm/spend-client";
 
 const HAIKU_MODEL = "claude-haiku-4-5-20251001";
-const HAIKU_INPUT_PER_MTOK_USD = 1.0;
-const HAIKU_OUTPUT_PER_MTOK_USD = 5.0;
 const CONTENT_MAX_CHARS = 6_000;
 
 // The routing rule below is the canonical mapping from item_type +
@@ -116,6 +130,11 @@ export interface FirstFetchClassifyOutput {
   rationale: string;
   cost_usd_estimated: number;
   render_ms: number;
+  /** Additive (2026-09-02, spend-chokepoint routing): the raw usage the chokepoint accounted for this
+   *  call, so a caller that wants the real token counts (not just the derived cost) has them without a
+   *  second lookup. 0/0 on the entity-gate error-body short-circuit (no API call made). */
+  input_tokens: number;
+  output_tokens: number;
 }
 
 export type FirstFetchClassifyResult =
@@ -125,12 +144,6 @@ export type FirstFetchClassifyResult =
 function extractJsonObject(text: string): string | null {
   const m = text.match(/\{[\s\S]*\}/);
   return m ? m[0] : null;
-}
-
-function estimateCostUsd(inputTokens: number, outputTokens: number): number {
-  const inputCost = (inputTokens / 1_000_000) * HAIKU_INPUT_PER_MTOK_USD;
-  const outputCost = (outputTokens / 1_000_000) * HAIKU_OUTPUT_PER_MTOK_USD;
-  return Number((inputCost + outputCost).toFixed(6));
 }
 
 /**
@@ -170,6 +183,8 @@ export async function firstFetchClassify(
         rationale: "entity-gate: error / bot-block response body detected — not content; not minted",
         cost_usd_estimated: 0,
         render_ms: 0,
+        input_tokens: 0,
+        output_tokens: 0,
       },
     };
   }
@@ -190,47 +205,46 @@ ${text}
 Output the JSON object only.`;
 
   const start = Date.now();
-  let resp: Response;
+  // SPEND CHOKEPOINT: set the standing-ticket-class ticket for JUST this call, restoring whatever ticket
+  // was active before (a caller mid-way through an already-ticketed pipeline is unaffected). sourceId
+  // (never itemId — no item exists yet at first-fetch) satisfies invariant I1 (never item- AND
+  // source-anonymous). precondition records the deterministic gate this call already passed (the
+  // error-body pre-gate above), per the no-execution-from-stale-state amendment.
+  const previousTicket = currentSpendTicket();
+  setSpendTicket({
+    purpose: "first-fetch-classify",
+    standingClass: "first-fetch-classify",
+    sourceId: input.source_id,
+    itemId: null,
+    precondition: { check: "error-body-pre-gate", result: "content-passed-gate", snapshotBytes: text.length },
+  });
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let cost = 0;
+  let rawText = "";
   try {
-    resp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: HAIKU_MODEL,
-        max_tokens: 800,
-        system: FIRST_FETCH_HAIKU_SYSTEM_PROMPT,
-        messages: [{ role: "user", content: userMessage }],
-      }),
+    const r = await spendMessage({
+      system: FIRST_FETCH_HAIKU_SYSTEM_PROMPT,
+      user: userMessage,
+      model: HAIKU_MODEL,
+      maxTokens: 800,
+      apiKey,
     });
+    inputTokens = r.usage.input_tokens;
+    outputTokens = r.usage.output_tokens;
+    cost = r.cost;
+    rawText = r.text;
   } catch (e: unknown) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    const ms = Date.now() - start;
+    const status = e instanceof Error ? (e as Error & { status?: number }).status : undefined;
+    const msg = e instanceof Error
+      ? (typeof status === "number" ? `Haiku ${status}: ${e.message} (${ms}ms)` : e.message)
+      : String(e);
+    return { ok: false, error: msg };
+  } finally {
+    setSpendTicket(previousTicket);
   }
   const ms = Date.now() - start;
-  if (!resp.ok) {
-    const body = await resp.text();
-    return { ok: false, error: `Haiku ${resp.status}: ${body.slice(0, 200)} (${ms}ms)` };
-  }
-  let data: {
-    usage?: { input_tokens?: number; output_tokens?: number };
-    content?: Array<{ type: string; text?: string }>;
-  };
-  try {
-    data = await resp.json();
-  } catch (e: unknown) {
-    return { ok: false, error: `Haiku response JSON parse: ${e instanceof Error ? e.message : String(e)}` };
-  }
-  const inputTokens = data?.usage?.input_tokens ?? 0;
-  const outputTokens = data?.usage?.output_tokens ?? 0;
-  const cost = estimateCostUsd(inputTokens, outputTokens);
-  const blocks = data.content ?? [];
-  const rawText = blocks
-    .filter((b) => b.type === "text")
-    .map((b) => b.text ?? "")
-    .join("");
   const jsonStr = extractJsonObject(rawText);
   if (!jsonStr) {
     return { ok: false, error: "Haiku output did not contain a JSON object" };
@@ -308,6 +322,8 @@ Output the JSON object only.`;
       rationale,
       cost_usd_estimated: cost,
       render_ms: ms,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
     },
   };
 }
@@ -317,5 +333,4 @@ export const __test = {
   HAIKU_MODEL,
   CONTENT_MAX_CHARS,
   extractJsonObject,
-  estimateCostUsd,
 };

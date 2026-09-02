@@ -23,7 +23,8 @@ secret reference can never silently ship again.
 - **supabase** — the DB itself; access granted by `SUPABASE_DB_PASSWORD` (superuser),
   `SUPABASE_SERVICE_ROLE_KEY` (RLS-bypass JWT), `RECONCILER_DB_PASSWORD` (non-owner reconciler role).
 
-## GitHub-Actions vault (CI-ENFORCED — registry == live store, verified 2026-07-12 via `gh secret list`)
+## GitHub-Actions vault (CI-ENFORCED — registry == live store, verified 2026-07-12 via `gh secret list`;
+## ANTHROPIC_API_KEY added 2026-09-02, see the row below)
 
 | Secret | Consumers (workflows) | Write authority |
 |---|---|---|
@@ -32,16 +33,21 @@ secret reference can never silently ship again.
 | `NEXT_PUBLIC_SUPABASE_URL` | data-audit-lane | gh / Vercel |
 | `SUPABASE_DB_PASSWORD` | data-audit-lane | gh / Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | data-audit-lane | gh / Vercel / Supabase |
+| `ANTHROPIC_API_KEY` | ledger-consume (`mode=apply` gate — first-fetch-classify's Haiku call, routed through the spend chokepoint) | gh (repo scope) / Vercel dashboard / local |
 
-**No orphan labels.** Every `secrets.X` in `.github/workflows/*` (5 distinct) is one of these 5, and
-every one of these 5 exists in the store. (Retired 2026-07-12: the invented `PROBE_SECRET` reference —
-never a real entry — replaced by the existing `WORKER_SECRET`.)
+**No orphan labels.** Every `secrets.X` in `.github/workflows/*` is one of the 6 rows above, and every
+one of the 6 is registered. (Retired 2026-07-12: the invented `PROBE_SECRET` reference — never a real
+entry — replaced by the existing `WORKER_SECRET`. Added 2026-09-02: `ANTHROPIC_API_KEY`, for
+`ledger-consume.yml` — see [system-completion plan](../plans/system-completion-plan-2026-09-02.md) Lane
+CONSUME / Lane SPEND. [UNCONFIRMED until the next `gh secret list` cross-check: the NAME is registered
+here; whether the store itself already holds a value is an operator-provisioning step, same class as this
+train's `EIA_API_KEY` item.])
 
 ## vercel-runtime + local-.env (DOCUMENTED, not CI-diffed)
 
 | Secret | Vaults | Consumers | Write authority |
 |---|---|---|---|
-| `ANTHROPIC_API_KEY` | vercel, local | `/api/agent/run`, `/api/admin/scan`, `/api/ask` (spend-bearing, gated by the chokepoint) | Vercel / local |
+| `ANTHROPIC_API_KEY` | github-actions, vercel, local | `/api/agent/run`, `/api/admin/scan`, `/api/ask`, `ledger-consume.yml` (spend-bearing, gated by the chokepoint — see the GitHub-Actions table above; listed here too since it is also a Vercel-runtime/local credential, not github-actions-only) | gh (repo scope) / Vercel / local |
 | `BROWSERLESS_API_KEY` | vercel, local | `canonical-fetch.mjs` / `browserless.ts` (also deleted during paid holds, belt-and-suspenders) | Vercel / local |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | vercel, local | browser client (RLS-scoped reads) | Vercel / local |
 | `RECONCILER_DB_PASSWORD` | local | reconciler-role DDL/writes (scripts) | Supabase / local |

@@ -334,12 +334,30 @@ function parseConventionGoverningFiles(md) {
   return table;
 }
 
-test('CONVENTION-TABLE-PARITY: F28.GOVERNING_FILES matches CONVENTION.md\'s harness_version table for every family', () => {
+// ROW-COUNT DERIVED FROM ALLOWED_FAMILIES (Lane SPEND, system-completion train, 2026-09-02). This used to
+// hardcode "expected exactly 6 rows" — a THIRD place (alongside run-artifact.mjs's ALLOWED_FAMILIES and
+// this file's own GOVERNING_FILES) that had to be hand-edited every time a family registered, on top of
+// the count already living in run-artifact.test.mjs's own ALLOWED_FAMILIES assertion (see that file's
+// header for the same fix applied there). Now: every family CURRENTLY in ALLOWED_FAMILIES must have a
+// row in CONVENTION.md's table (a registered family with no doc row is a real gap — caught below), but
+// the table MAY carry ADDITIONAL rows for families a sibling lane's ALLOWED_FAMILIES/GOVERNING_FILES
+// entry has not landed yet (a pre-registration placeholder row, e.g. `ledger-consume` / `change-detection`
+// staged ahead of the lanes that register them) — those extra rows are content-checked against
+// GOVERNING_FILES only when GOVERNING_FILES itself already has a matching entry, so this test passes
+// BOTH before and after a sibling lane's ALLOWED_FAMILIES/GOVERNING_FILES addition lands, which is the
+// entire point of deriving instead of hardcoding a count.
+test('CONVENTION-TABLE-PARITY: every ALLOWED_FAMILIES member has a matching row in CONVENTION.md\'s table; every table row F28 already governs matches GOVERNING_FILES', () => {
   const root = getRepoRoot();
   const md = readFileSync(`${root}/fsi-app/scripts/harness-runs/CONVENTION.md`, 'utf8');
   const parsed = parseConventionGoverningFiles(md);
-  assert.equal(parsed.size, 6, 'expected exactly 6 rows (mint, screen, fetch-drain, meta-harness, forward-events, source-sweep) in the table');
+  const missing = ALLOWED_FAMILIES.filter((family) => !parsed.has(family));
+  assert.deepEqual(
+    missing,
+    [],
+    `CONVENTION.md's harness_version table is missing a row for registered famil${missing.length === 1 ? 'y' : 'ies'}: ${missing.join(', ')}`,
+  );
   for (const [family, files] of parsed) {
+    if (!GOVERNING_FILES[family]) continue; // not yet registered in F28.GOVERNING_FILES — a placeholder row, not a mismatch
     assert.deepEqual(
       [...GOVERNING_FILES[family]].sort(),
       [...files].sort(),
