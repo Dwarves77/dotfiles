@@ -136,6 +136,46 @@
 //   Also: federalregister.gov rows now carry a real `canonical_instrument_key` — the FR's own document
 //      number (e.g. "2026-13667"), extracted verbatim, never fabricated — instead of always `null`.
 // See `held-classes.mjs` for the dossier this fix's own evidence was read from, and MINT-RUNBOOK.md §13.
+//
+// ── UPDATE 2026-09-03 (Lane EXPORT-HOLD, population-turn runs #13 dry / #14 apply) — two defects ──────
+// (1) HOLDER REFUSAL REACHES THE MINT: row 26bf4a98-9dc4-472e-9c6a-8883c3bffea1 (a EUR-Lex CELEX
+//     32019R1242 row, document_url `.../TXT/?uri=CELEX:32019R1242`) passed this file's --exclude-held
+//     check (a `source_url` exact-string match against `intelligence_items`) because the row that already
+//     holds the same instrument (item ab922a18-c9a8-4b1b-9ac6-b7f20606c5d7, minted 2026-04-05) stores it
+//     under a DIFFERENT url shape — same instrument, different URL, so the string comparison missed it.
+//     The payload was built, validated, and only THEN refused by apply-mint-batch.mjs's M4 pre-check
+//     (`checkM4`/`buildItemsIndex`: `not_applied_holder_conflict`, mint-run.json's own per_item evidence).
+//     This file already derives `canonical_instrument_key` per row (`resolveIdentity`) — M4's OWN holder
+//     rule is: does any `intelligence_items` row (archived included) already carry this EXACT
+//     `canonical_instrument_key` string. `partitionExcludeHeldByKey`/`buildHeldKeyIndex` below apply that
+//     SAME rule (same column, same exact-string equality, archived rows included) at export time, so a
+//     key-collision row is excluded here, before a payload is ever built for it — never a second opinion.
+//     Reported in `<out>.held.json` with reason `already_held_by_key` and the holder's item id as
+//     evidence (`holder_archived: true` added when the holder itself is archived) so the row stops
+//     re-appearing as build work every run, without changing anything about what happens to an archived
+//     holder itself (the 459/529-row archived-holder disposition is a separate, already-executed operator
+//     ruling — docs/plans/population-pass-2026-09-03.md — this fix only stops EXPORTING a row that
+//     collides with one, archived or not).
+// (2) THE EUR-LEX ROBOT PAGE, RE-FETCHED EVERY RUN: 19 of run #14's 22 holds were `capture_blocked`; ten
+//     were EUR-Lex CELEX keys with an OJ-sequence `(NN)` suffix (e.g. `22004A0806(01)`, `32023D0628(01)`,
+//     `32020D1124(01)`). Root cause, confirmed live (WebFetch against publications.europa.eu, 2026-09-03):
+//     `cellarEndpointForCelex` builds the Cellar URL with `encodeURIComponent`, which does NOT escape `(`
+//     or `)` (they are in JS's own unreserved set) — so a suffixed key's Cellar request carries LITERAL
+//     parens and Cellar 404s it ("Resource [system 'celex' - id '22004A0806(01)'] not found."), exactly
+//     the held evidence's `cellar_status: 404`. The SAME key with `(`/`)` percent-encoded to `%28`/`%29`
+//     resolves: confirmed live for three of the ten (`22004A0806(01)`, `32023D0628(01)`, `32020D1124(01)`)
+//     — each a `302` to a real `cellar/<uuid>/rdf/object/full` resource — and for a control key with no
+//     suffix (`32006D0507`, unaffected either way, `302` as documented above). `cellarEndpointForCelex`
+//     now encodes the parens explicitly; this converts those ten rows from a permanent EUR-Lex-bot-gate
+//     hold into a real Cellar capture, not merely a differently-labelled hold.
+//     A genuinely non-existent key (the eleventh row this run held, a malformed `32025D05242` census
+//     identifier that `deriveKey` correctly truncates to `32025D0524`) still 404s from Cellar under EITHER
+//     encoding (confirmed live) — for that case, and any other CELEX row where Cellar fails and the
+//     EUR-Lex fallback answers with its OWN known bot-gate interstitial (HTTP 202 + the "verify that
+//     you're not a robot" marker text — never inferred from byte count alone), the hold is now
+//     `no_capture_path` (same evidence shape as `capture_blocked`) so a permanently-refused fetch is never
+//     retried every population-turn run for no reason; a `capture_blocked` transient failure (a timeout, a
+//     5xx, a differently-shaped refusal) still reads `capture_blocked` and is worth retrying.
 
 import { parseArgs } from "node:util";
 import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
@@ -474,9 +514,27 @@ function bodyLeadTitle(text) {
 // paragraphs instead and joins them with single spaces, which is exactly how stripHtmlToText renders
 // them in captured_text, so the identity FACT (record-facts.mjs) finds the title verbatim.
 
-/** Cellar's CELEX resolver URL for one key. Pure. */
+/** Cellar's CELEX resolver URL for one key. Pure. `encodeURIComponent` leaves `(` and `)` LITERAL (they
+ *  are in its own unreserved set — confirmed: `encodeURIComponent("22004A0806(01)")` === the input,
+ *  unchanged) — Cellar's own resolver 404s a literal-paren OJ-sequence-suffixed key (confirmed live,
+ *  2026-09-03: `.../celex/22004A0806(01)` → 404 "Resource ... not found"; the SAME key with `(`/`)`
+ *  percent-encoded → 302 to a real cellar resource). Encoded explicitly here, after encodeURIComponent, so
+ *  every OJ-sequence-suffixed CELEX key (the ten held `capture_blocked` in population-turn run #14) gets a
+ *  request Cellar actually resolves, not the request its own JS encoder would build unmodified. */
 export function cellarEndpointForCelex(canonicalKey) {
-  return `https://publications.europa.eu/resource/celex/${encodeURIComponent(String(canonicalKey))}`;
+  const encoded = encodeURIComponent(String(canonicalKey)).replace(/\(/g, "%28").replace(/\)/g, "%29");
+  return `https://publications.europa.eu/resource/celex/${encoded}`;
+}
+
+/** EUR-Lex's own JS bot-gate interstitial: HTTP 202 with the "verify that you're not a robot" marker text
+ *  (population-turn run #14's own held evidence, byte-for-byte). Detected by status + marker text, never
+ *  by byte count alone (a real short act could coincidentally be near 2,035 bytes). Pure. Used by
+ *  `resolveRowCapture`'s celex branch to tell "EUR-Lex permanently refuses this exact request" (worth
+ *  holding `no_capture_path`, never retried) apart from any other capture failure (worth retrying,
+ *  `capture_blocked`). */
+const EURLEX_ROBOT_GATE_RE = /verify that you.?re not a robot/i;
+export function isEurlexRobotGate(status, head) {
+  return Number(status) === 202 && EURLEX_ROBOT_GATE_RE.test(String(head ?? ""));
 }
 
 /** Title for a Cellar XHTML act: the `p.oj-doc-ti` lines joined by a space ("COUNCIL DECISION of 14
@@ -574,6 +632,57 @@ export function partitionExcludeHeld(rows, heldUrlSet, excludeHeld = true) {
     else kept.push(r);
   }
   return { kept, excludedHeld };
+}
+
+/** Map `canonical_instrument_key` -> `{ id, archived }` from a live `intelligence_items` read (id,
+ *  canonical_instrument_key, archive_reason -- archived rows INCLUDED). Pure. This is the SAME rule
+ *  apply-mint-batch.mjs's M4 pre-check uses (`checkM4`/`buildItemsIndex` there: any row, archived or not,
+ *  holding this exact key blocks the mint) -- same column, same exact-string equality, so this file's
+ *  export-time exclusion can never disagree with the M4 refusal it is meant to pre-empt (Lane EXPORT-HOLD,
+ *  2026-09-03, row 26bf4a98-9dc4-472e-9c6a-8883c3bffea1 / holder ab922a18-c9a8-4b1b-9ac6-b7f20606c5d7, this
+ *  file's own header). First holder wins on the rare case more than one live row shares a key (should not
+ *  happen in a healthy corpus; recorded, never silently overwritten). */
+export function buildHeldKeyIndex(items) {
+  const byKey = new Map();
+  for (const it of items ?? []) {
+    const key = it?.canonical_instrument_key;
+    if (!key) continue;
+    if (!byKey.has(key)) byKey.set(key, { id: it.id, archived: it.archive_reason != null });
+  }
+  return byKey;
+}
+
+/** Partition rows into { kept, excludedHeldByKey } against `buildHeldKeyIndex`'s map, using the SAME
+ *  `canonical_instrument_key` this file's own `resolveIdentity` derives for every row (never a second
+ *  key-derivation) -- `source` is not needed for the key itself (only resolveIdentity's registered-
+ *  institution fallback branch reads it, and that branch's canonicalKey is always null), so this can run
+ *  before sources are even fetched. Pure. A row whose derived key is null (no scheme, e.g.
+ *  legislation.gov.uk) passes through untouched -- nothing to collide on.
+ *  Excluded rows carry a hold-shaped record (row_id, document_url, canonical_instrument_key, reason
+ *  "already_held_by_key", holder_item_id, and holder_archived: true when the holder's own archive_reason
+ *  is set) -- unlike partitionExcludeHeld's URL exclusion (correctly silent past a count: a row this run
+ *  declines to touch because the corpus already holds it AT THIS URL), a key collision on a DIFFERENT url
+ *  is new information worth keeping legible in <out>.held.json until the URL-shape mismatch this closes
+ *  stops recurring (Lane EXPORT-HOLD, 2026-09-03). */
+export function partitionExcludeHeldByKey(rows, heldKeyIndex) {
+  const kept = [], excludedHeldByKey = [];
+  for (const r of rows) {
+    const canonicalKey = resolveIdentity(r, null).canonicalKey;
+    const holder = canonicalKey ? heldKeyIndex.get(canonicalKey) : null;
+    if (holder) {
+      excludedHeldByKey.push({
+        row_id: r.id,
+        document_url: r.document_url,
+        canonical_instrument_key: canonicalKey,
+        reason: "already_held_by_key",
+        holder_item_id: holder.id,
+        ...(holder.archived ? { holder_archived: true } : {}),
+      });
+    } else {
+      kept.push(r);
+    }
+  }
+  return { kept, excludedHeldByKey };
 }
 
 /**
@@ -780,13 +889,19 @@ export async function resolveRowCapture(censusRow, identity, { fetchImpl = fetch
     if (firstEnv.usable) return firstEnv;
     const endpoint = `https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:${identity.canonicalKey}`;
     const res = await captureDocument(endpoint, { fetchImpl, timeoutMs });
-    return envelopeFromCaptureDocument(res, endpoint, {
+    const env = envelopeFromCaptureDocument(res, endpoint, {
       titleFn: extractEurlexTitle,
       fallbackFrom: cellar,
       cellar_status: firstEnv.status,
       cellar_bytes: firstEnv.bytes,
       cellar_head: firstEnv.head,
     });
+    // Cellar already refused (firstEnv not usable, above) AND EUR-Lex's own fallback is its known bot-gate
+    // interstitial: no capture path exists for this exact request, and re-fetching it every run gains
+    // nothing (see isEurlexRobotGate's header). Tagged on the envelope, not decided here, so buildRows'
+    // hold classification stays the one place a hold reason is chosen.
+    if (!env.usable && isEurlexRobotGate(env.status, env.head)) env.noCapturePath = true;
+    return env;
   }
 
   if (identity.scheme === "uk_legislation") {
@@ -894,7 +1009,11 @@ export async function buildRows(
         held.push({
           row_id: censusRow.id,
           document_url: censusRow.document_url,
-          reason: "capture_blocked",
+          // Lane EXPORT-HOLD (2026-09-03): Cellar refused AND EUR-Lex's own fallback matched its known
+          // bot-gate interstitial (isEurlexRobotGate, tagged on the envelope by resolveRowCapture) -> no
+          // capture path exists for this exact request; held distinctly so it is never mistaken for a
+          // transient failure worth retrying every run (see this file's header, run #14).
+          reason: envelope?.noCapturePath ? "no_capture_path" : "capture_blocked",
           http_status: envelope?.status ?? null,
           bytes: envelope?.bytes ?? null,
           head: envelope?.head ?? null,
@@ -920,12 +1039,13 @@ export async function buildRows(
 
 // ── summary formatting (pure) ───────────────────────────────────────────────────────────────────────
 
-export function summarize({ eligibleCount, excludedHeldCount, rows, held, captured, captureFailed }) {
+export function summarize({ eligibleCount, excludedHeldCount, excludedHeldByKeyCount = 0, rows, held, captured, captureFailed }) {
   const heldByReason = {};
   for (const h of held) heldByReason[h.reason] = (heldByReason[h.reason] ?? 0) + 1;
   const lines = [
     `export-census-rows: eligible (post filters/limit)=${eligibleCount}`,
     `  excluded_held (already have an intelligence_items row at this URL)=${excludedHeldCount}`,
+    `  excluded_held_by_key (already have an intelligence_items row at this canonical_instrument_key)=${excludedHeldByKeyCount}`,
     `  exported=${rows.length}`,
     `  held=${held.length}${held.length ? " -> " + Object.entries(heldByReason).map(([k, v]) => `${k}=${v}`).join(", ") : ""}`,
     `  captured=${captured} capture_failed=${captureFailed}`,
@@ -1038,9 +1158,23 @@ export async function main() {
   });
   const sb = readClient();
   const candidateUrls = [...new Set(preselected.map((r) => r.document_url).filter(Boolean))];
-  const heldUrlSet = new Set(await fetchColumnIn(sb, "intelligence_items", "source_url", "source_url", candidateUrls));
+  // Defect 1 (Lane EXPORT-HOLD, 2026-09-03, this file's own header): a row can share its instrument with
+  // an existing intelligence_items row under a DIFFERENT url shape, so the url-only check above misses it
+  // and the payload only gets refused later, by apply-mint-batch.mjs's M4 pre-check. canonical_instrument_key
+  // is read alongside source_url, batch-scoped exactly like it (an `in (...)` chunked read, never the whole
+  // table -- see the READ SHAPE note above), and the SAME M4 rule (buildHeldKeyIndex's own header) is
+  // applied here, before a payload is ever built.
+  const candidateKeys = [...new Set(preselected.map((r) => resolveIdentity(r, null).canonicalKey).filter(Boolean))];
+  const [heldUrlSet, heldItemsByKey] = await Promise.all([
+    fetchColumnIn(sb, "intelligence_items", "source_url", "source_url", candidateUrls).then((urls) => new Set(urls)),
+    fetchRowsIn(sb, "intelligence_items", "id, canonical_instrument_key, archive_reason", "canonical_instrument_key", candidateKeys),
+  ]);
+  const heldKeyIndex = buildHeldKeyIndex(heldItemsByKey);
   const excludeHeld = !values["include-held"];
-  const { kept: keptUnscreened, excludedHeld } = partitionExcludeHeld(preselected, heldUrlSet, excludeHeld);
+  const { kept: keptUnscreened0, excludedHeld } = partitionExcludeHeld(preselected, heldUrlSet, excludeHeld);
+  const { kept: keptUnscreened, excludedHeldByKey } = excludeHeld
+    ? partitionExcludeHeldByKey(keptUnscreened0, heldKeyIndex)
+    : { kept: keptUnscreened0, excludedHeldByKey: [] };
   // The relevance screen, applied at the export every run (see partitionByScreen). The limit is applied
   // to MINTABLE rows, so a limit-50 dispatch yields 50 on-vertical candidates, not 50 minus the junk.
   const reviewed = loadReviewedVerdicts();
@@ -1082,11 +1216,24 @@ export async function main() {
   }, null, 1) + "\n", "utf8");
   console.log(`Wrote ${screenedPath} (${screenedOut.length} row(s) not exported by the relevance screen: ${JSON.stringify(countBy(screenedOut, (x) => x.verdict))})`);
 
+  // excludedHeldByKey rows never reach buildRows (excluded before capture/sources are even fetched) but
+  // are still written into the held file, distinctly labelled, per this file's header: unlike a plain
+  // url-holder exclusion (silently correct, counted only), a key collision on a different url is new
+  // information worth keeping legible until defect 1 stops recurring.
   const heldPath = heldPathFor(outPath);
-  writeFileSync(heldPath, JSON.stringify(held, null, 2) + "\n", "utf8");
-  console.log(`Wrote ${heldPath} (${held.length} held row(s))`);
+  const heldAll = [...excludedHeldByKey, ...held];
+  writeFileSync(heldPath, JSON.stringify(heldAll, null, 2) + "\n", "utf8");
+  console.log(`Wrote ${heldPath} (${heldAll.length} held row(s))`);
 
-  console.log(summarize({ eligibleCount: selected.length, excludedHeldCount: excludedHeld.length, rows, held, captured, captureFailed }));
+  console.log(summarize({
+    eligibleCount: selected.length,
+    excludedHeldCount: excludedHeld.length,
+    excludedHeldByKeyCount: excludedHeldByKey.length,
+    rows,
+    held, // build-failure holds only; excludedHeldByKey is reported on its own line above, not folded in
+    captured,
+    captureFailed,
+  }));
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
