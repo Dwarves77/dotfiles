@@ -192,6 +192,26 @@ jobs:
           else
             echo "memory gate OK"
           fi
+          # ── UX compliance gate (2026-09-03, RD-60 / DP-2) ─────────────────────
+          # A change that touches a customer surface (.tsx or .css under fsi-app/src) must carry a
+          # "UX compliance" block in the session-log addendum of the same range: per screen, the
+          # reader's primary goal, the path to it, the one primary action, and the feedback state for
+          # every asynchronous action (docs/design/ux-laws.md; DP-2). The measurement half (F35 +
+          # the rendering guard's UX smoke slot) proves the layout; this half proves the lane named
+          # the goal. Blocking on pull_request, warn on push, for the memory gate's reasons above.
+          SURFACE=$(printf '%s\n' "$CHANGED" | grep -E '^fsi-app/src/.*\.(tsx|css)$' || true)
+          if [ -n "$SURFACE" ]; then
+            if git diff "$RANGE" -- docs/ops/session-log.md | grep -qE '^\+.*UX compliance'; then
+              echo "UX compliance gate OK"
+            else
+              MSG="UX compliance gate: this range ($RANGE) touches a customer surface ($(printf '%s\n' "$SURFACE" | head -3 | tr '\n' ' ')…) but the session-log addendum added in the same range has no 'UX compliance' block (docs/design/ux-laws.md, DP-2). Add it: per screen, the primary goal, the path, the one primary action, the feedback state per async action."
+              if [ "$EVENT_NAME" = "pull_request" ]; then
+                echo "::error::$MSG"; exit 1
+              else
+                echo "::warning::$MSG (warn-only on push)"
+              fi
+            fi
+          fi
 
   test-discipline-engine:
     name: Discipline engine unit tests

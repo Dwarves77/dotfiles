@@ -1,6 +1,6 @@
 ---
 name: sprint-followups-discipline
-description: Sprint followup loop-closure discipline plus binding design-principle enforcement for Caro's Ledge phase and sprint work. Every design dispatch and implementation dispatch on any Caro's Ledge sprint sequence (Sprint 1, Sprint 2, future sprints) and any phase (5, 6, 7, 8, 9, 10, 11, future phases) MUST read TWO inputs: (1) the current sprint's followups doc (enumerate every open OBS entry, cover or defer with reasoning), and (2) `docs/design-principles.md` (verify the dispatch's design complies with every DP entry, binary yes/no). The dispatch report carries an OBS coverage table AND a DP compliance section. Without this discipline OBS entries become write-only and DP violations ship unnoticed; either way operator-experience friction compounds. Loads alongside domain-relevant skills (e.g. environmental-policy-and-innovation for intelligence_items work, frontend-design for UI work).
+description: Sprint followup loop-closure discipline plus binding design-principle enforcement for Caro's Ledge phase and sprint work. Every design dispatch and implementation dispatch on any Caro's Ledge sprint sequence (Sprint 1, Sprint 2, future sprints) and any phase (5, 6, 7, 8, 9, 10, 11, future phases) MUST read TWO inputs: (1) the current sprint's followups doc (enumerate every open OBS entry, cover or defer with reasoning), and (2) `docs/design/design-principles.md` (and `docs/design/ux-laws.md`, DP-2) (verify the dispatch's design complies with every DP entry, binary yes/no). The dispatch report carries an OBS coverage table AND a DP compliance section. Without this discipline OBS entries become write-only and DP violations ship unnoticed; either way operator-experience friction compounds. Loads alongside domain-relevant skills (e.g. environmental-policy-and-innovation for intelligence_items work, frontend-design for UI work).
 when_to_load:
   - "Every Caro's Ledge design dispatch (any sprint, any phase)"
   - "Every Caro's Ledge implementation dispatch (any sprint, any phase)"
@@ -21,7 +21,7 @@ when_to_skip:
 Every design dispatch and every implementation dispatch on a Caro's Ledge sprint phase MUST close the loop on two inputs:
 
 1. **The current sprint's followups doc** (e.g. `docs/sprint-1/followups.md`). The agent reads it in full, enumerates every open OBS entry, and for each one either incorporates the fix into the dispatch scope or explicitly defers with reasoning. The dispatch report carries an OBS coverage table.
-2. **`docs/design-principles.md`** (the cross-sprint binding design principles registry). The agent reads every DP-N entry, applies each entry's compliance test to the dispatch's design, and reports binary compliance status. The dispatch report carries a DP compliance section.
+2. **`docs/design/design-principles.md` (and `docs/design/ux-laws.md`, DP-2)** (the cross-sprint binding design principles registry). The agent reads every DP-N entry, applies each entry's compliance test to the dispatch's design, and reports binary compliance status. The dispatch report carries a DP compliance section.
 
 No exceptions on either input. The followups doc covers what is in-flight; the design principles registry covers what is binding across sprints. A dispatch that closes the loop on OBS entries but ships a DP violation has failed half the discipline, and vice versa.
 
@@ -66,13 +66,13 @@ The skill imposes a six-step protocol on the in-scope dispatch:
 
 The followups doc lives at `docs/sprint-N/followups.md` where N is the active sprint number. The agent derives N from dispatch context (sprint number in the brief, branch name like `feat/sprint-N-...`, or the most recent sprint directory under `docs/`). If multiple sprints have followup docs, read the one matching the dispatch's sprint. If a sprint number cannot be derived, HALT and ask the operator before proceeding.
 
-The design principles registry lives at `docs/design-principles.md` (cross-sprint, not per-sprint). Path is fixed.
+The design principles registry lives at `docs/design/design-principles.md` (and `docs/design/ux-laws.md`, DP-2) (cross-sprint, not per-sprint). Path is fixed.
 
 ### Step 2: Read both inputs in full
 
 Read the entire followups doc, not just the entries the agent expects to be relevant. OBS entries cross-reference each other, and the agent's expectation of relevance is often wrong (OBS-14 in Sprint 1 is named "triage UI" but cross-references OBS-4 source-column tracking, OBS-13 jurisdictions gate, and OBS-9 classifier feedback loop, none of which sound like triage-UI scope at first reading).
 
-Read every DP-N entry in `docs/design-principles.md`. DP entries are short and binding; there is no "if it sounds relevant" filter. A DP that does not apply to the dispatch's surface still gets a row in the DP compliance section ("Not applicable, reason: ...") so the reviewer can verify the agent read it.
+Read every DP-N entry in `docs/design/design-principles.md` (and `docs/design/ux-laws.md`, DP-2). DP entries are short and binding; there is no "if it sounds relevant" filter. A DP that does not apply to the dispatch's surface still gets a row in the DP compliance section ("Not applicable, reason: ...") so the reviewer can verify the agent read it.
 
 ### Step 3: Enumerate every open OBS and classify it
 
@@ -100,7 +100,7 @@ For each DP-N entry in the registry, apply the entry's compliance test (a binary
 - **Fail.** The dispatch's design violates the DP. STOP and redesign. A DP failure is not a deferral candidate; DP entries are binding cross-sprint axioms and cannot be punted to a later dispatch. If the dispatch cannot be reshaped to comply, HALT and surface the conflict to the operator.
 - **Not applicable.** The dispatch surface does not engage the DP (e.g. a Phase 6 ingest-wiring dispatch has no operator-surface scope, so DP-1 "Single-Pane Operator Review" is not applicable). State the reason. "Not applicable" without reasoning is treated as Fail.
 
-"Partial compliance" is treated as Fail. DP entries are binary by construction (see `docs/design-principles.md` opening rules).
+"Partial compliance" is treated as Fail. DP entries are binary by construction (see `docs/design/design-principles.md` (and `docs/design/ux-laws.md`, DP-2) opening rules).
 
 ### Step 6: Emit the OBS coverage table AND the DP compliance section
 
@@ -236,7 +236,7 @@ These behaviors mean the skill was loaded but not followed:
 - **Deferring a DP failure.** DP entries are binding cross-sprint axioms and cannot be deferred. A DP failure means redesign or HALT, never defer.
 - **Accepting "partial DP compliance".** DP compliance is binary by construction. "Mostly compliant" or "compliant in the common path" are failures.
 - **Adding new OBS entries without cross-references.** New entries that don't link to related existing OBS or relevant DP entries break the cross-reference graph. The next dispatch reading the doc loses the connectivity context.
-- **Authoring new DP entries without operator authorization.** The agent may surface candidate principles in followups OBS entries or in dispatch reports, but does not add a new DP-N to `docs/design-principles.md` without operator authorization (see the authorship rule in the registry).
+- **Authoring new DP entries without operator authorization.** The agent may surface candidate principles in followups OBS entries or in dispatch reports, but does not add a new DP-N to `docs/design/design-principles.md` (and `docs/design/ux-laws.md`, DP-2) without operator authorization (see the authorship rule in the registry).
 - **Skipping the skill on "small" dispatches.** A small dispatch that touches a phase surface still owes loop closure. The skill applies by dispatch type (design or implementation on a phase), not by perceived scope size.
 
 ## Worktree path convention
@@ -313,7 +313,7 @@ When this skill loads on a dispatch, the agent's pre-work report states:
 
 - That this skill loaded
 - The followups doc path the agent will read (e.g. `docs/sprint-1/followups.md`)
-- That the agent will read `docs/design-principles.md` as the cross-sprint DP registry
+- That the agent will read `docs/design/design-principles.md` (and `docs/design/ux-laws.md`, DP-2) as the cross-sprint DP registry
 - The dispatch type (design, implementation, or sprint planning) and how the skill applies
 
 If any of these cannot be stated cleanly, HALT and surface the ambiguity to the operator before proceeding.

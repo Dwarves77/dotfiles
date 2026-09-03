@@ -176,7 +176,7 @@ export const SKILL_MARKER_BASELINE = {
   // (enforcedBy fitness:F32 + its selftest) — migration 285's RLS/F31 enforce the first in code and the DB;
   // migration 286's assert_statutory_purity() trigger (proven live by that migration's own self-check) plus
   // F32's structural-presence check + tested JS mirror enforce the second.
-  'remediation-discipline': 43,
+  'remediation-discipline': 44,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -1333,5 +1333,14 @@ export const INVARIANTS = [
     anchor: '## Section 4: Remediation Strategy by Category',
     enforcedBy: ['fitness:F34', 'selftest:fsi-app/.discipline/fitness/functions/F34-bundle-safe-module-evaluation.test.mjs'],
     residual: 'Anchor is the stable skill-section marker (RD-58\'s precedent). F34 is a lexical scanner (strings/comments stripped, scope braces vs object-literal braces distinguished), not a parser: a module-scope read reached through an immediately-invoked function expression, or through a helper called at module scope (`const X = load()` where load() reads), is NOT detected — the second form is the named residual and the reason the rule\'s prose says "must not depend on files the bundle does not carry", broader than what F34 proves. The durable closure is a build-graph proof (next build of the page graph in CI, or Vercel\'s own output-file trace read back), tracked in Addendum 84 postscript 16; until then a lane touching a page module must prove its graph under next build, not only under Node (lane contract, 2026-09-02). ALLOWLIST: src/lib/connections/derive-tags.mjs (module-scope vocab read, reachable from no page today) is listed with its basis in F34 itself.',
+  },
+  {
+    id: 'RD-60-row-ux-measured-on-real-component',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 35: Row UX is measured on a real component at a phone width (no gate reads a layout; a gate renders it)',
+    text: 'Every customer-facing row/ledger component and section header named in F35\'s ROW_COMPONENTS is mounted by a registered UX smoke spec and measured at 375 × 812 and 1280 × 800 (no horizontal overflow; no title wrapping at under 60 % of its card width, the one-word-per-line class; every interactive target at or above the law-2 floor of 44 px, or 24 px with 8 px clearance), and carries data-guard-title on its title element. On 2026-09-03 every ledger page wrapped titles one word per line on the operator\'s phone and the regional matrix ran off the viewport; every gate was green because none mounted a real row at a phone width.',
+    anchor: '### Section 4 — category 35: Row UX is measured on a real component at a phone width',
+    enforcedBy: ['fitness:F35', 'selftest:fsi-app/.discipline/fitness/functions/F35-row-ux-coverage.test.mjs', 'selftest:fsi-app/.discipline/rendering/ux-assert.test.mjs'],
+    residual: 'F35 proves COVERAGE (a spec mounts the component; the component marks a title); the MEASUREMENT runs in run-rendering-guard.mjs\'s UX smoke slot in the rendering-guard CI job. That job was NON-BLOCKING (continue-on-error) from 2026-07-11 pending 3 consecutive green master runs; the coordinator flips it to blocking in the train that lands this invariant once the history shows the run is stable (recorded in the session log with the run ids). ROW_COMPONENTS is a hardcoded, basis-annotated list (F33\'s posture): a new row component is covered only when it is added there; the squeezed-title detector measures only elements marked data-guard-title; law-2 measures rendered boxes, not touch-slop the browser may add. Fixture data only, no auth, no network, the guard\'s $0 posture.',
   },
 ];

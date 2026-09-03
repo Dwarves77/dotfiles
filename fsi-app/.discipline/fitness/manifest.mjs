@@ -135,6 +135,12 @@ import { fitnessFunction as F33 } from './functions/F33-surface-acceptance.mjs';
 // bundle. F34 fails any non-test module under src/ that calls a filesystem function at module scope;
 // reads inside functions are out of scope; the one latent instance is allowlisted with its basis.
 import { fitnessFunction as F34 } from './functions/F34-bundle-safe-module-evaluation.mjs';
+// Row UX coverage (2026-09-03, coordinator, after the operator's phone screenshots: every ledger page
+// wrapped titles one word per line and the Operations regional matrix ran off the viewport; no gate
+// measured a real row component at a phone width). F35 requires every ROW_COMPONENTS entry to be mounted
+// by a registered UX smoke spec (ux-smoke-specs.mjs; measured at 375 × 812 and 1280 × 800 with
+// ux-assert.mjs) and to carry a data-guard-title attribute for the squeezed-title detector.
+import { fitnessFunction as F35 } from './functions/F35-row-ux-coverage.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -165,6 +171,7 @@ export const fitnessFunctions = [
   F32,
   F33,
   F34,
+  F35,
 ];
 
 export function getFunctionById(id) {

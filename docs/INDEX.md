@@ -258,12 +258,14 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 
 - [decision-package-2026-07-06](./design/decision-package-2026-07-06.md) — Decision Package — 52 live non-verified items (read-only)
 - [design-principles](./design/design-principles.md) — Caro's Ledge Design Principles
+- [ux-laws](./design/ux-laws.md) — BINDING 2026-09-03 (DP-2, RD-60): the twenty interface laws every surface lane applies; enforced by F35 + the rendering guard's UX smoke slot (real rows measured at 375 px) and the discipline CI "UX compliance" gate
 - [redesign/README](./design/redesign/README.md) — UI redesign DESIGN SOURCE OF TRUTH. The mockup binds (see feedback: design-reference-protocol — read the mockup before surface code)
 - [redesign/DESIGN-DEVIATIONS](./design/redesign/DESIGN-DEVIATIONS.md) — running log of where the build deviates from the redesign source of truth
 - [redesign/HANDOFF - Claude Code Prompt](./design/redesign/HANDOFF%20-%20Claude%20Code%20Prompt.md) — UI implementation handoff prompt
 
 ## dispatches
 
+- [lane-common-contract](./dispatches/lane-common-contract.md) — BINDING for every executor lane (2026-09-03): where you work, read-before-write, write sets, gates, commit and report format, the UX contract (data-guard-title + UX smoke spec + UX compliance section)
 - [free-chrome-acquisition-brief-2026-07-16](./dispatches/free-chrome-acquisition-brief-2026-07-16.md) — brief for a Chrome/browser-access agent: free primary-source acquisition + $0 re-attribution over the held-item drain. Scripts run from `fsi-app/` and load `.env.local`; writes hit PRODUCTION Supabase (dev/prod shared) — use the guarded path. Contains no credential values, only env-var names
 
 ## sprint-1
