@@ -8711,3 +8711,31 @@ caller of the same `planReflect` plan), which is the one-writer registry's own t
 Suite 4063/0, fitness 29/0, discipline ci 4/0. Not dispatched: proposal writes follow the
 population drain (one `tag-proposals` apply over `untagged` covers all 339 and any later slices), and
 the ratification itself is the operator's.
+
+### Addendum 85, postscript 10 — the flywheel turn ran: 5,455 edges, 70 forward events, 930 signals for review (2026-09-03)
+
+`corpus-turn` dry (#5, `33756173018`, 50 s) then apply (#6, `33756943043`, 1m 1s), since `1970-01-01`,
+signals on, on master `117e89f` [CONFIRMED from the run logs and the live tables]. Discovery: 619
+verified items, 5,460 edges scored across 506 of 619 targets (threshold 0.3, 12 per item), 5,455 rows
+written (3,449 new, 2,006 refreshed, 5 skipped as entity/semantic-owned, 0 chunk failures);
+`item_cross_references` now 6,059 rows, 5,993 discovery-origin; every one of the day's 177 mints has
+at least one edge (4,222 rows touch them). Forward events: 481 items exported (those with no event
+row), 21 with events, 70 events written (52 compliance_deadline, 14 entry_into_force, 4
+review_or_report, all day-precise), `item_forward_events` 903 → 973. Analyze: 18 themes (506 nodes,
+4,651 edges), 19 gaps (3 opened, 2 resolved), 7 anticipate targets (unchanged), 930 signal candidates
+(694 flags opened, 147 resolved, 236 unchanged; operator review only, never auto-adopted).
+`integrity_flags` open total 2,416.
+
+The turn's artifacts (`forward-events-run-004`, `LAST-TURN.json`) and the previous, never-landed
+turn's (`forward-events-run-003`, run 33658489880 of 2026-09-02, found sitting on its `turn/` branch)
+land in this train; the forward-events proposer pass names run-004 and records two findings worth the
+operator's eye: record-grade items yield forward events at one tenth the rate of brief-grade items
+(17 of 177 today, 9.6%, against 43% on the brief corpus) because their claims are 63% GAP; and the 48
+payloads that already carry a grounded `due_date` slot are invisible to the extractor, which reads
+claim text and sections only (grep-proven across the three files). Proposal recorded in the pass:
+offer the slot FACT's span to the extractor and let its classifier decide the kind, since the slot is
+deliberately untyped.
+
+Operator-facing after this turn: 930 open signal flags and 19 gap flags to review (the L4 pass never
+auto-adopts); the 339 untagged items await one `tag-proposals` apply; the population drain (about
+1,300 mintable rows) awaits the choice put to the operator in postscript 7.
