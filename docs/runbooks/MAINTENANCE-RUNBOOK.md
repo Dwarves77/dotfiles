@@ -1,7 +1,9 @@
 # Maintenance runtime runbook
 
 The dispatch-only runtime for the coordinator-only applies `docs/plans/finish-plan-2026-09-02.md`'s
-MAINT paragraph names — seven applies that were built dry-by-default with no runtime to run them from.
+MAINT paragraph names, one section per step below, in dispatch order, added as each was built
+dry-by-default with no runtime to run it from. The section list grows as new MAINT steps land; do not
+assume a fixed count, read the numbered headings below for the current set.
 Workflow: `.github/workflows/maintenance.yml`. Modeled on `.github/workflows/producers.yml` (secrets
 verification, `mode` choice, per-step gating, population BEFORE/AFTER, artifact upload) and
 `.github/workflows/population-turn.yml` (dispatch-only, no schedule). Every wrapper lives under
@@ -13,9 +15,10 @@ Actions tab → **Maintenance** → Run workflow. Three inputs:
 
 - **mode** — `dry` (default; reads/plans, writes nothing) or `apply` (writes through the guarded path
   in `fsi-app/scripts/lib/db.mjs`, when the step makes any write at all).
-- **step** — one of the seven names below, or `all` (fans out every step in one dispatch, **dry only**
-  — the workflow refuses `all` with `apply`; a single dispatch cannot carry seven rulings' worth of
-  `arg` tokens, and naming one step per apply is the point).
+- **step** — one of the names below (see the numbered section headings for the current list), or `all`
+  (fans out every step in one dispatch, **dry only** — the workflow refuses `all` with `apply`; a single
+  dispatch cannot carry every step's own ruling's worth of `arg` tokens, and naming one step per apply
+  is the point).
 - **arg** — optional per-step argument; several steps *require* an exact value in `apply` mode (a
   ruling-acceptance token, an archive/park choice, or a comma-separated id list). Named per step below.
 

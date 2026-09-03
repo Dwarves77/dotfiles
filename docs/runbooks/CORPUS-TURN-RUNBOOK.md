@@ -66,11 +66,13 @@ matter, only the branch name and the push event. This ALWAYS runs in `apply` mod
 is, by definition, asking for the real thing) and lands the run's commit directly on that same branch —
 no second branch is created.
 
-Either way, the workflow ends by opening a PR from the turn branch to `master` (skipped if one is
-already open for that branch, and skipped entirely if the run produced no new harness-run-artifact
-content to commit — a run that discovered/extracted/analyzed nothing genuinely new leaves nothing to
-land). Review and merge that PR the same way any other PR is reviewed; nothing about `corpus-turn.yml`
-auto-merges.
+Either way, the workflow ATTEMPTS to end by opening a PR from the turn branch to `master` (skipped if
+one is already open for that branch, and skipped entirely if the run produced no new
+harness-run-artifact content to commit — a run that discovered/extracted/analyzed nothing genuinely new
+leaves nothing to land). On this repository that PR attempt is refused by a repository setting (see
+"When the workflow cannot open its own PR" below for the actual landing path a coordinator follows
+instead, and for the setting that would restore auto-PR). When a PR does open, review and merge it the
+same way any other PR is reviewed; nothing about `corpus-turn.yml` auto-merges.
 
 ## What lands where
 
@@ -130,6 +132,29 @@ artifact commit, and the pushed `turn/<run-id>` / `source-sweep/<run-id>` branch
 The first runtime turn (corpus-turn run 33566259450, apply, since 1970-01-01) and the first sweep
 (source-sweep run 33566698207, dry) both landed by path 2, inside the train that also fixed what
 reading their artifacts found (session-log Addendum 82, meta-harness-run-006).
+
+**A pushed branch is not itself a landed run: it sits orphaned until a coordinator lands it.** A run
+that pushes `turn/<run-id>` (or `source-sweep/<run-id>`) is not done the moment the workflow goes
+green — that branch carries the run's own commit and nothing else, and stays off `master` until
+someone lands it. Case in point: `forward-events-run-003` (corpus-turn run 33658489880, 2026-09-02)
+pushed and sat unlanded on its `turn/` branch for a full day before the next train picked it up
+alongside `forward-events-run-004` (session-log Addendum 85 ps10). The actual landing path a
+coordinator follows, once the PR-attempt is refused per the setting above:
+1. `git fetch origin <turn-or-sweep-branch>` and read the run's artifact off it (not off `master` —
+   it was never merged there).
+2. Cherry-pick that run's own commit onto the coordinator's current integration train alongside
+   whatever else is landing in the same pass (the same multi-branch cherry-pick pattern used to land
+   concurrent lanes — see session-log's "Nine lanes, zero cherry-pick conflicts" entries for the
+   general shape of a train landing).
+3. Run the family's own proposer pass over the newly-landed artifact (F28's per-family check; the
+   proposer pass records its own session-log addendum, same as the discipline memory gate requires
+   for the train's other content — the run-record commit itself is exempt, the proposer pass is not).
+4. Open the train's own PR by hand (per path 2 above) since Actions cannot open it; merge once
+   discipline checks pass. This retires the run's branch as a side effect of the train landing —
+   there is no separate PR for the turn/sweep branch itself once it has been cherry-picked in.
+Until the operator flips the setting named above, EVERY turn/sweep/ledger-consume/change-detection/
+propagation-drain branch needs this same hand-landing — an unlanded branch is not a failure, but it is
+also not progress until someone runs these steps.
 
 ## The first full backfill over ALL existing items
 
