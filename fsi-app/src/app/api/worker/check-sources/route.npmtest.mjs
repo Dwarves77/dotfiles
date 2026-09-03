@@ -1,13 +1,13 @@
-// Unit test for check-sources/route.ts's limit parameter and response-shape defects, found and fixed
+// Unit test for check-sources/logic.ts's limit parameter and response-shape defects, found and fixed
 // while building the change-detection runtime (lane CD, 2026-09-02 — "there is no small follow-up fix").
-// Exercises the REAL exported functions this route calls (not a reimplementation) — same
-// route.ts-exports-a-pure-function-for-testability pattern src/app/api/health/spend/route.npmtest.mjs and
-// src/app/api/watchlist/route.npmtest.mjs already use: validateCheckLimit (the limit parse/validate
-// contract), and buildResultEntry/buildErrorEntry/summarizeResults (the response-shape builders), the
-// latter fed a REAL assessAndUpdateSource() call with injected render/classify + a fake supabase client
-// (mirroring src/lib/sources/reconcile-pass.test.mjs's fakeSvc pattern) — proving the actual per-source
-// fields (httpStatus, outcome, changeDetected, portalCandidates) that were computed all along but never
-// reached the response body now do.
+// Exercises the REAL exported functions the route calls, imported from their sibling logic.ts
+// (BUILDGATE, 2026-09-02: route.ts may export only route handlers, so these pure/injectable functions
+// were moved out of it — see logic.ts's header) — not a reimplementation: validateCheckLimit (the limit
+// parse/validate contract), and buildResultEntry/buildErrorEntry/summarizeResults (the response-shape
+// builders), the latter fed a REAL assessAndUpdateSource() call with injected render/classify + a fake
+// supabase client (mirroring src/lib/sources/reconcile-pass.test.mjs's fakeSvc pattern) — proving the
+// actual per-source fields (httpStatus, outcome, changeDetected, portalCandidates) that were computed
+// all along but never reached the response body now do.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createJiti } from "jiti";
@@ -24,7 +24,7 @@ const {
   buildResultEntry,
   buildErrorEntry,
   summarizeResults,
-} = await jiti.import("./route.ts");
+} = await jiti.import("./logic.ts");
 const { BrowserlessError } = await jiti.import("@/lib/sources/browserless");
 
 // ── validateCheckLimit ───────────────────────────────────────────────────────────────────────────

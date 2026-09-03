@@ -8,9 +8,13 @@
 // the un-widened user_watchlist CHECK and surface as a raw Postgres 500.
 //
 // Exercises the REAL exported decision function and error builder (not a
-// reimplementation) — same route.ts-exports-a-pure-function-for-testability
-// pattern src/app/api/admin/sources/bulk-import/route.ts's
-// headReachabilityDecision already uses.
+// reimplementation), imported from their sibling modules (BUILDGATE,
+// 2026-09-02: route.ts may export only route handlers, so ITEM_TYPES and
+// teamOnlyError moved out of it into logic.ts — see logic.ts's header;
+// TEAM_ONLY_TYPES/isTeamOnlyScopeViolation already lived in
+// src/lib/watchlist-scope.ts) — same sibling-logic-module pattern
+// src/app/api/admin/sources/bulk-import/logic.ts's headReachabilityDecision
+// already uses.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createJiti } from "jiti";
@@ -22,8 +26,10 @@ const jiti = createJiti(import.meta.url, {
   interopDefault: true,
   alias: { "@": resolve(ROOT, "src") },
 });
-const { ITEM_TYPES, TEAM_ONLY_TYPES, isTeamOnlyScopeViolation, teamOnlyError } =
-  await jiti.import("./route.ts");
+const { ITEM_TYPES, teamOnlyError } = await jiti.import("./logic.ts");
+const { TEAM_ONLY_TYPES, isTeamOnlyScopeViolation } = await jiti.import(
+  resolve(ROOT, "src", "lib", "watchlist-scope.ts")
+);
 
 test("ITEM_TYPES admits market_series (the structural gate is widened)", () => {
   assert.equal(ITEM_TYPES.has("market_series"), true);

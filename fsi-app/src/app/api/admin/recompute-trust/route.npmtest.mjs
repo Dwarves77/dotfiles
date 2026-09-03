@@ -1,9 +1,11 @@
 // Unit test for the Wave W2 demotion wire (unwired-module disposition register #25,
 // docs/plans/unwired-disposition-2026-08-31.md §J): evaluateDemotion had zero production
-// callers before this wave. Exercises the REAL exported decision function this route calls
-// per source (not a reimplementation) — same route.ts-exports-a-pure-function-for-testability
-// pattern src/app/api/admin/sources/bulk-import/route.ts's headReachabilityDecision and
-// src/app/api/watchlist/route.ts's isTeamOnlyScopeViolation already use.
+// callers before this wave. Exercises the REAL exported decision function the route calls
+// per source (not a reimplementation), imported from its sibling logic.ts (BUILDGATE,
+// 2026-09-02: route.ts may export only route handlers, so the pure function was moved out
+// of it — see logic.ts's header) — same sibling-logic-module pattern src/app/api/admin/
+// sources/bulk-import/logic.ts's headReachabilityDecision and src/app/api/watchlist/
+// logic.ts's teamOnlyError already use.
 //
 // What this proves: (1) a non-triggered evaluation records nothing, (2) a triggered
 // evaluation is recorded as a source_trust_events-shaped insert payload, and (3) —
@@ -23,7 +25,7 @@ const jiti = createJiti(import.meta.url, {
   interopDefault: true,
   alias: { "@": resolve(ROOT, "src") },
 });
-const { demotionOutcomeFor } = await jiti.import("./route.ts");
+const { demotionOutcomeFor } = await jiti.import("./logic.ts");
 
 test("no fired trigger -> not proposed, nothing to record", () => {
   const evalResult = { triggered: false, triggers_fired: [], recommended_tier: 4 };

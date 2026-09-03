@@ -54,16 +54,25 @@ test('F2: PASS for .test.ts files (test fixtures)', () => {
   assert.deepEqual(violations, []);
 });
 
-test('F2: enumerate returns admin route paths', () => {
+test('F2: enumerate returns admin route paths, route.ts only', () => {
   const files = fitnessFunction.enumerate();
   assert.ok(Array.isArray(files));
   // Should include known admin routes if scanning real codebase
   if (files.length > 0) {
     for (const f of files) {
       assert.match(f, /fsi-app\/src\/app\/api\/admin\//);
-      assert.ok(f.endsWith('.ts'));
+      assert.ok(f.endsWith('/route.ts'));
     }
   }
+});
+
+// BUILDGATE, 2026-09-02 (F34's named residual): a route's pure functions now live in a sibling
+// logic.ts, not in route.ts itself. logic.ts is not a route (no request, nothing to gate) and is
+// correctly OUT OF SCOPE here — enumerate() must not pick it up, so it never false-positives on
+// every route this pattern is applied to.
+test('F2: enumerate does not pick up a sibling logic.ts (not a route)', () => {
+  const files = fitnessFunction.enumerate();
+  assert.ok(!files.some((f) => f.endsWith('/logic.ts')));
 });
 
 test('F2: has required metadata fields', () => {

@@ -3,7 +3,13 @@
 // commit 4c7b546; the canonical sweep that enumerated all 28 admin routes and
 // verified per-route gating). Codifies that gating mechanically.
 //
-// Scope: every file matching fsi-app/src/app/api/admin/**/*.ts
+// Scope: every fsi-app/src/app/api/admin/**/route.ts (BUILDGATE, 2026-09-02, F34's named
+// residual: route.ts may export only route handlers/config, so a route's pure functions now live
+// in a sibling `logic.ts`/`.mjs` — see F34's own header. Narrowed from `**/*.ts` to `**/route.ts`
+// for exactly this reason: a sibling logic module is not itself a route, has no request to gate,
+// and correctly does not reference isPlatformAdmin or x-worker-secret — the auth gate still lives
+// in route.ts, which still calls the moved decision function. Scanning logic.ts here would be a
+// false positive on every admin route BUILDGATE (or a future lane) splits this way.)
 // Check: each route file must contain isPlatformAdmin reference (call or import).
 //
 // Known exceptions: worker-secret-gated routes use x-worker-secret header instead.
@@ -30,7 +36,7 @@ export const fitnessFunction = {
   source: 'sprint-followups-discipline § Sweep-discipline rule (OBS-17 precedent)',
 
   enumerate() {
-    return globFiles(['fsi-app/src/app/api/admin/**/*.ts']);
+    return globFiles(['fsi-app/src/app/api/admin/**/route.ts']);
   },
 
   check(filepath, content) {
