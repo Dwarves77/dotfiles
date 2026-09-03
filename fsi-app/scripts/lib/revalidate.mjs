@@ -35,6 +35,10 @@
 // Needs APP_URL + WORKER_SECRET in the environment for --apply (same two env vars every other worker-route
 // caller in this tree already uses — run-change-detection.mjs's postCheckSources is the precedent).
 
+/** The index-ledger cache tag — mirrors src/lib/data.ts's APP_DATA_TAG (every override/watchlist/list-order
+ *  mutation route flushes it; a mint apply must too, or a minted item waits 60 s to reach the ledger). */
+export const APP_DATA_TAG = "app-data";
+
 /** Precise per-item tag — mirrors src/lib/cache/revalidate-item.ts's itemTag(). */
 export function itemTag(id) {
   return `item:${id}`;

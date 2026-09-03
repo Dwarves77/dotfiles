@@ -324,23 +324,7 @@ export const LEGACY_ALLOWLIST = [
   // production importer (src/app/api/community/posts/route.ts). See antitrust.mjs's own header for why
   // this reuse happens rather than a second reimplementation.
 
-  // ── Lane PERF (2026-09-03, perf-load-times audit): a new module built one commit ahead of its intended
-  // production callers, which are outside this lane's write set ──
-  {
-    file: 'fsi-app/scripts/lib/revalidate.mjs',
-    reason:
-      'The bridge from the mint/maintenance population runtimes (scripts/mint/**, scripts/maintenance/**, ' +
-      'plain node processes with no Next request scope) to src/app/api/revalidate/route.ts, which flushes the ' +
-      'new src/lib/detail/load-detail.ts item-scoped detail cache by tag. Built, unit-tested (8 cases, ' +
-      'scripts/lib/revalidate.test.mjs, run-test-suite.sh-wired), and functionally complete — but this lane\'s ' +
-      'write set is scoped to scripts/lib/revalidate.mjs itself, not the population runtime scripts that ' +
-      'should call it after an apply (scripts/mint/apply-mint-batch.mjs and similar; reading and editing those ' +
-      'in full is a separate lane\'s work). Until one of them imports it, the 300s unstable_cache revalidate ' +
-      'backstop on every detail cache entry is the only thing bounding staleness after a mint/apply run — ' +
-      'correct, just slower than a prompt tag flush would be. Reported as an open item in the PERF lane\'s ' +
-      'own handoff, not a silent gap.',
-    reviewByPhase: 'perf-lane follow-up (wire scripts/mint/apply-mint-batch.mjs — and any other apply path that changes item-scoped detail data — to call revalidateTags after --apply)',
-  },
+
 ];
 
 const ALLOWED = new Map(LEGACY_ALLOWLIST.map((e) => [e.file, e]));

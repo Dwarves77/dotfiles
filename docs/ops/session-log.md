@@ -8400,3 +8400,36 @@ entity bindings). The alternative inside the state machine is a logged `retired`
 `producers` → `desnz-emission-factors` dry then apply; `maintenance` → `seed-benchmark-instruments` dry
 then apply; the failed "Data producers" run on master at ec6b1b8 read and explained; then, per the
 build-before-populate ruling, the one population pass.
+
+### Addendum 85, postscript 1 — PERF train: the click pays one cached parallel load (2026-09-03)
+
+Lane PERF, from the measurement in `docs/audits/perf-load-times-2026-09-03.md`, on the landed Wave 3
+master. Root cause held [CONFIRMED by reading]: the four detail pages ran 6–9 sequential awaits, each
+opening its own client, and regulations carried a byte-for-byte inline copy of the shared resource
+lookup that had never been migrated. Structure now: `src/lib/detail/load-detail-core.ts` (pure, no
+runtime `next/*` import, so it runs under `node --test`) splits a detail load into an item-scoped
+bundle behind `unstable_cache` (key `["detail-item-scoped", surface, id]`, tags `item:<id>` +
+`<surface>-detail`, 300 s) and a viewer-scoped bundle that stays uncached and runs in parallel; the four
+pages call one loader with a surface config. Structural proof (8 cases): every item-scoped query starts
+before any resolves; a second viewer on the same slug re-issues nothing cached; no viewer ever receives
+another's relevance, note, or watchlist state (the cached function's input carries no user or org key,
+asserted). Deliberately uncached: the regulations owner lookup, the market note lookup, and
+`getMarketIntelItems()` (it reads cookies internally, which `unstable_cache` forbids). Index ledgers:
+`getResourcesOnly`/`getListingsOnly` cached per `(orgId, page)` under the existing `APP_DATA_TAG`; the
+brief's "org-independent list" framing was wrong, the base RPC LEFT JOINs `workspace_item_overrides`
+so the list is per-org at the data layer, and the lane said so rather than caching across orgs.
+`loading.tsx` on the four detail routes and the four index routes (law 6, the skeleton within one frame).
+`prefetch={false}` removed from `RegulationsLedger` now that a prefetch hits the cache instead of a
+6–9-query render; market/research prefetch decisions made explicit. `POST /api/revalidate`
+(`WORKER_SECRET`, the existing worker-route guard) plus `scripts/lib/revalidate.mjs`; coordinator wired
+the call into `apply-mint-batch.mjs` after a real apply (flushes `app-data` + the four surface tags;
+best-effort without `APP_URL`/`WORKER_SECRET`, the backstops bound staleness) and added the secret pair
+to `population-turn.yml` and `maintenance.yml` (same pair `change-detection.yml` already carries); the
+F25 allowlist entry the lane had to add is removed because the caller now exists. Gates: suite
+3967/3967, fitness 0, meta-gate PASS, tsc clean, rendering guard PASS (unchanged specs), build green.
+Real production timing after deploy is the next measurement, not a claim made here.
+
+UX compliance (PERF): route `/{surface}/[slug]`, goal open the item, path one tap from a row, primary
+action none on the page, feedback skeleton within one frame then content on settle; the four index
+routes, goal scan the ledger, path direct, primary action a row, feedback the route skeleton then the
+per-org cached list.

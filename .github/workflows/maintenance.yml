@@ -61,6 +61,11 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # Cache flush after a real apply (PERF train, 2026-09-03): scripts/lib/revalidate.mjs POSTs the
+      # ledger/detail cache tags to /api/revalidate. Same secret pair change-detection.yml already uses;
+      # absent, the helper skips and the 60 s / 300 s cache backstops bound staleness.
+      APP_URL: ${{ secrets.APP_URL }}
+      WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
     steps:
       - uses: actions/checkout@v4
 
