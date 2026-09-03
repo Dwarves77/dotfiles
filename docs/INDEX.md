@@ -81,6 +81,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 
 ## plans
 
+- [population-pass-2026-09-03](./plans/population-pass-2026-09-03.md) — the one population pass under the build-before-populate ruling: dry pipeline proof, dispatch table (population-turn, corpus-turn, change-detection, propagation-drain, source-sweep), migration 299 and its live self-check (N = 149), open rulings with live numbers
 - [wave3-lanes-2026-09-03](./plans/wave3-lanes-2026-09-03.md) — Wave 3 lane plan: COMMUNITY-A / COMMUNITY-B / SPEC-09 write sets, the A↔B interface contract; `mobile-evidence/` holds the operator's 2026-09-03 phone screenshots with per-screenshot cause and fix
 - [C5-feed-spec](./plans/C5-feed-spec.md) — C5 — Group Post Feed Specification
 - [C6-promote-spec](./plans/C6-promote-spec.md) — C6 — Promote Community Post to Intelligence

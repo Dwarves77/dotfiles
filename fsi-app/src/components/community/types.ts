@@ -111,3 +111,6 @@ export { type EntityThread as CommunityEntityThread } from "./api-client";
 export { type ThreadCorroboration as CommunityThreadCorroboration } from "./api-client";
 export { type Benchmark as CommunityBenchmark } from "./api-client";
 export { type GuardAggregateRoute as CommunityGuardAggregateRoute } from "./api-client";
+
+// ── lane COMMUNITY-C additions (2026-09-03): self-service profile + benchmark response write path ──
+export { type CommunityProfile } from "./api-client";

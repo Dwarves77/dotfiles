@@ -10,6 +10,12 @@
 //   corroborationCount(thread) -> { organisations, posts }
 //   promotionState(thread) -> { state, transitions[] }
 //   evidenceAge(evidence, now) -> { ageDays, weight, chip }
+//
+// Wave 3 addition (lane COMMUNITY-C, 2026-09-03): the write path for community_benchmark_responses /
+// organisation_key derivation named as the gap in COMMUNITY-A's report.
+//   deriveOrganisationKey({domain, verified, salt}) -> { organisationKey, refused, reason }
+//   sanitizeMemberWrite(body) -> { ok, data } | { ok: false, error } — strips verification columns
+//   evaluateResponseSubmission({...}) -> { accepted } | { accepted: false, reason }
 
 export { evaluateAntitrustGuard, kAnonymity, dominanceCap, threeMonthLag, SENSITIVE_FIELDS } from "./antitrust.mjs";
 export { projectAuthorIdentity, ORG_TYPES } from "./identity.mjs";
@@ -18,3 +24,17 @@ export { promotionState, buildTransition, originClassFor, PROMOTION_STATES } fro
 export { evidenceAge } from "./decay.mjs";
 export { isAdmissibleInCalculation, isCitableAsFact, filterOperationsAdmissible, recordsNotCitableAsFact } from "./lineage-guard.mjs";
 export { aggregateBenchmarkResponses, scopeBenchmarksForReader, isOpenForResponses } from "./benchmark.mjs";
+export {
+  deriveOrganisationKey,
+  domainFromEmail,
+  isCorporateDomain,
+  isFreeMailDomain,
+  FREE_MAIL_DOMAINS,
+} from "./organisation-key.mjs";
+export {
+  sanitizeMemberWrite,
+  projectOwnProfile,
+  REGIONS,
+  MEMBER_WRITE_FORBIDDEN_COLUMNS,
+} from "./profile-policy.mjs";
+export { validateResponseValue, evaluateResponseSubmission, FIELD_BOUNDS } from "./respond.mjs";

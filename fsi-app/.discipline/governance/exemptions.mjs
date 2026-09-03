@@ -52,6 +52,17 @@ export const EXEMPTIONS = [
     by: 'Lane DP-SPINE, system-completion train, 2026-09-02',
   },
   {
+    match: 'fsi-app/src/lib/community/organisation-key.mjs',
+    kinds: ['writes'],
+    reason:
+      'SAME FALSE POSITIVE as corridor-id.mjs / entity-id.mjs above, same file shape: WRITE_RE matches ' +
+      '`.update(` and deriveOrganisationKey() calls createHmac("sha256", salt).update(domain) — a crypto ' +
+      'HMAC digest update, not a Supabase mutation. The file imports only node:crypto; it has no DB ' +
+      'client and cannot reach the database (the module is deliberately PURE — see its own header). ' +
+      'Recorded here per the corridor-id.mjs entry\'s own follow-up note that this class would recur.',
+    by: 'Lane COMMUNITY-C, Wave 3, 2026-09-03',
+  },
+  {
     match: 'fsi-app/scripts/_diag/',
     reason: 'Read-only diagnostic convention — investigation scripts, no production writes. (A _diag that actually mutates data is itself a smell; rule 015 still scans content.)',
     by: 'operating-mechanism build 2026-06-06',
