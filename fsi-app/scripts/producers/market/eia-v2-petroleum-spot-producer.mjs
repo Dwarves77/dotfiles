@@ -103,7 +103,12 @@ import { producerFor } from "../../../src/lib/market/series-registry.mjs";
 import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
 
 // ── Gate 1: the reviewed-code-change switch. False at authorship (lane SURF). ────────────────────────
-const ENABLED = false;
+// REVIEWED-CHANGE LOG (ADR-023 §4 gate 1 — "flipping ENABLED is a REVIEWED CODE CHANGE, shows in `git
+// diff`"). 2026-09-03, coordinator, operator rulings "get it all done, leave nothing for later" and "key is
+// set in git": ENABLED flipped false -> true in the same train that registers EIA_API_KEY in
+// WORKFLOW_SECRETS and adds producers.yml's eia-v2-petroleum-spot dispatch step. The first --apply is a
+// dispatched run whose artifact is read back against market_series before any second dispatch.
+const ENABLED = true;
 
 const KILL_SWITCH_ENV = "MARKET_PRODUCER_EIA_V2_ENABLED";
 const REGISTRY_ENTRY = producerFor("eia-v2");

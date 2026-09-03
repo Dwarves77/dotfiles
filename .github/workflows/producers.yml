@@ -235,23 +235,23 @@ jobs:
           else
             node scripts/producers/market/ecb-fx-producer.mjs
           fi
-      # eia-v2-petroleum-spot has NO run step yet: it needs the EIA_API_KEY repository secret, which only
-      # the operator can create (then register in .discipline/governance/secrets-registry.mjs
-      # WORKFLOW_SECRETS and add a step mirroring ecb-fx that maps EIA_API_KEY from the repository secret).
-      # STILL TRUE as of 2026-09-02 (Lane PROD, system-completion train, re-checked against
-      # .discipline/governance/secrets-registry.mjs and secrets-reference-audit.mjs this session):
-      # EIA_API_KEY appears ONLY in TOPOLOGY's local-.env vault entry, not in the enforceable
-      # WORKFLOW_SECRETS set — and secrets-reference-audit.mjs's auditSecretRefs scans EVERY GitHub
-      # Actions secrets-context reference in every workflow file textually (no awareness of `if:`
-      # guards; NOTE FOR THE NEXT READER: even naming the pattern here, spelled out with a literal dot
-      # joining the two words, would itself trip that same scan — see the note it left on this exact
-      # attempt, .discipline/governance/secrets-reference-audit.test.mjs's own failure log — so it is
-      # deliberately NOT spelled out literally in this comment), failing the build on any secret name not
-      # already in that set. A run step here reading EIA_API_KEY out of the secrets context — guarded by
-      # an `if:` or not — would trip that audit today. secrets-registry.mjs is NOT in this lane's write
-      # set (the dispatch explicitly names it as the one file to stop and report on rather than edit), so
-      # this step stays absent; series-registry.mjs's eia-v2 entry is otherwise brought to parity in this
-      # same commit (implemented:true, producerScript named — see that file).
+      - name: eia-v2-petroleum-spot (EIA v2 petroleum spot prices; ENABLED gate in the file, dry unless mode=apply)
+        # 2026-09-03 (operator: "key is set in git"): the EIA_API_KEY repository secret now exists and is
+        # registered in .discipline/governance/secrets-registry.mjs WORKFLOW_SECRETS, so the
+        # secrets-reference-audit admits the reference below; the producer's reviewed-code ENABLED const
+        # was flipped in the same train (see the producer's own REVIEWED-CHANGE LOG). Same three gates as
+        # ecb-fx: ENABLED const, the env switch below, --apply. A dry run parses + plans + reports; with no
+        # key it exits 3 (NetworkError) rather than fabricating a fetch, per the producer's header.
+        if: env.RUN_PRODUCER == 'all' || env.RUN_PRODUCER == 'eia-v2-petroleum-spot'
+        env:
+          MARKET_PRODUCER_EIA_V2_ENABLED: '1'
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then
+            node scripts/producers/market/eia-v2-petroleum-spot-producer.mjs --apply
+          else
+            node scripts/producers/market/eia-v2-petroleum-spot-producer.mjs
+          fi
 
       - name: refresh-published-price-statistics (derive published_price_statistics display rows from market_series)
         # WO-16.2's step 4 refresher (src/lib/market/refresh-published-price-statistics.mjs +

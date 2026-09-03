@@ -21,8 +21,9 @@
 // verified=true demands verified_at, verification_method AND organisation_key all non-null at once, so
 // a partially verified row is impossible by construction; this route either sets all four or none.
 // organisation_key itself is derived by src/lib/community/organisation-key.mjs deriveOrganisationKey()
-// from the account email's DOMAIN ONLY (never the full address) plus a server-side salt
-// (process.env.COMMUNITY_ORG_SALT) — the derived key is written to the database and NEVER included in
+// from the account email's DOMAIN ONLY (never the full address) plus a server-side salt resolved by
+// src/lib/community/organisation-salt.ts (COMMUNITY_ORG_SALT when set, else derived from WORKER_SECRET via
+// HKDF, 2026-09-03) — the derived key is written to the database and NEVER included in
 // this route's own JSON response (see the response shape below: no organisationKey field at all).
 //
 // Always via the SERVICE-ROLE client, never the caller's own RLS-scoped client — this is the ONE route
@@ -44,6 +45,7 @@ import {
 } from "@/lib/api/community-auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { getServiceSupabase } from "@/lib/supabase-service";
+import { resolveOrganisationSalt } from "@/lib/community/organisation-salt";
 import {
   domainFromEmail,
   isCorporateDomain,
@@ -80,8 +82,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const salt = process.env.COMMUNITY_ORG_SALT;
-  const keyResult = deriveOrganisationKey({ domain, verified: true, salt });
+  const { salt } = resolveOrganisationSalt();
+  const keyResult = deriveOrganisationKey({ domain, verified: true, salt: salt ?? undefined });
   if (keyResult.refused || !keyResult.organisationKey) {
     return NextResponse.json(
       { error: `Could not verify: ${keyResult.reason}` },

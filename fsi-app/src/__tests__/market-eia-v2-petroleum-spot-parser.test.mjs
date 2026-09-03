@@ -244,26 +244,26 @@ test("--apply only writes when EVERY gate is satisfied", () => {
   assert.equal(d.canWrite, true);
 });
 
-test("today's ACTUAL shipped state: running the real CLI with --apply refuses, exit 1 — not a simulated gate", () => {
-  // Pins the literal shipped constant, not just decideApply's logic: spawns the real file as a
-  // subprocess, --input'd against the fixture so it never attempts a live fetch, with the runtime kill
-  // switch and (fake) DB creds BOTH set — if ENABLED ever silently flips true, this is the test that
-  // catches it.
+// UPDATED 2026-09-03 (coordinator, operator "key is set in git"): ENABLED flipped false -> true in
+// eia-v2-petroleum-spot-producer.mjs (its own REVIEWED-CHANGE LOG), in the same train that registers
+// EIA_API_KEY in WORKFLOW_SECRETS and adds the producers.yml step. Mirrors market-ecb-fx-parser.test.mjs's
+// own post-flip test: spawn the real file with the runtime kill switch left OFF (the shipped default) and
+// assert the refusal is the KILL-SWITCH message, never the ENABLED-constant one. If ENABLED were silently
+// reverted, this fails. No network, no DB read (the kill-switch gate refuses first).
+test("today's ACTUAL shipped state: ENABLED is true — the real CLI's default-state refusal is now the kill switch, never the ENABLED-constant message", () => {
   const fixturePath = join(tmpdir(), `eia-v2-fixture-${process.pid}.json`);
   writeFileSync(fixturePath, JSON.stringify(EIA_FIXTURE_JSON));
   try {
     const producerPath = fileURLToPath(new URL("../../scripts/producers/market/eia-v2-petroleum-spot-producer.mjs", import.meta.url));
+    const env = { ...process.env };
+    delete env.MARKET_PRODUCER_EIA_V2_ENABLED;
     const res = spawnSync(process.execPath, [producerPath, "--input", fixturePath, "--apply"], {
       encoding: "utf8",
-      env: {
-        ...process.env,
-        MARKET_PRODUCER_EIA_V2_ENABLED: "1",
-        NEXT_PUBLIC_SUPABASE_URL: "https://example.invalid",
-        SUPABASE_SERVICE_ROLE_KEY: "fake-key-for-gate-test-only",
-      },
+      env, // no kill switch — the real, shipped, out-of-the-box environment
     });
     assert.equal(res.status, 1, `expected exit 1 (refused), got ${res.status}. stderr: ${res.stderr}`);
-    assert.match(res.stderr, /ENABLED constant.*false/, `expected the ENABLED-constant refusal message, got: ${res.stderr}`);
+    assert.match(res.stderr, /kill switch/, `expected the kill-switch refusal message (proving ENABLED is true), got: ${res.stderr}`);
+    assert.doesNotMatch(res.stderr, /ENABLED constant.*false/, `ENABLED must be true today — an "ENABLED constant... false" message here would mean it was reverted`);
   } finally {
     rmSync(fixturePath, { force: true });
   }

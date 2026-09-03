@@ -8862,3 +8862,19 @@ UX compliance (PERF-3, BUGS): top-nav navigation, goal reach the surface, path o
 `loading.tsx` skeleton now paints on click; WatchButton, goal toggle a watch, one click, optimistic
 flip with a retry title on failure, real state on first paint; regulations band empty state, honest
 loading/error/empty wording with `role="status"`; community "Live in this region" links open the item.
+
+### Addendum 85, postscript 13 — EIA key wired; the community salt no longer needs provisioning (2026-09-03)
+
+Operator: "key is set in git." `EIA_API_KEY` registered in `WORKFLOW_SECRETS` and TOPOLOGY
+(`github-actions` + `local-.env`, mirrored per the operator's own rule that local and GitHub hold the
+same secrets), the `eia-v2-petroleum-spot` dispatch step added to `producers.yml` mirroring ecb-fx, the
+producer's reviewed-code `ENABLED` flipped false → true with the ADR-023 change log, and its
+shipped-state test moved to the ecb-fx post-flip shape (kill-switch refusal, never the ENABLED
+message). Secrets-reference audit 4/4.
+
+Operator: "this seems overly complicated" (the salt). It was: a second secret nobody had provisioned
+gated the whole benchmark-response path. `src/lib/community/organisation-salt.ts` resolves the salt
+from `COMMUNITY_ORG_SALT` when set, else derives it from `WORKER_SECRET` (already on Vercel and local)
+with HKDF-SHA256 and a versioned info string; the verify route uses it; `organisation-key.mjs` stays
+pure. One fewer secret; the stated cost is that rotating `WORKER_SECRET` re-keys every organisation
+unless a dedicated salt is set first. Registered in TOPOLOGY as optional.
