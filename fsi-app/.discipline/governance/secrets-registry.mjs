@@ -28,10 +28,12 @@
 // without this entry is exactly the R0.2/PROBE_SECRET invented-label class this registry exists to catch.
 
 // The GitHub Actions secret names workflows are permitted to reference (== the live store, 2026-07-12; +
-// ANTHROPIC_API_KEY, 2026-09-02 — see the note above).
+// ANTHROPIC_API_KEY, 2026-09-02 — see the note above; + EIA_API_KEY, 2026-09-03 — operator created it
+// from the GitHub UI, producers.yml's eia-v2-petroleum-spot step reads it).
 export const WORKFLOW_SECRETS = Object.freeze(new Set([
   'ANTHROPIC_API_KEY',
   'APP_URL',
+  'EIA_API_KEY',
   'NEXT_PUBLIC_SUPABASE_URL',
   'SUPABASE_DB_PASSWORD',
   'SUPABASE_SERVICE_ROLE_KEY',
@@ -53,7 +55,11 @@ export const TOPOLOGY = Object.freeze([
   { name: 'SUPABASE_ACCESS_TOKEN', vaults: ['local-.env'], consumers: ['Supabase CLI / Management API (local)'], writeAuthority: 'Supabase dashboard / local', note: 'management-plane token' },
   { name: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', vaults: ['vercel-runtime', 'local-.env'], consumers: ['browser client (RLS-limited reads)'], writeAuthority: 'Vercel / local', note: 'anon JWT — RLS-scoped' },
   { name: 'DATA_GOV_API_KEY', vaults: ['local-.env'], consumers: ['data.gov API fetches (scripts)'], writeAuthority: 'local', note: 'external data source key' },
-  { name: 'EIA_API_KEY', vaults: ['local-.env'], consumers: ['EIA energy-data fetches (scripts)'], writeAuthority: 'local', note: 'external data source key' },
+  { name: 'EIA_API_KEY', vaults: ['github-actions', 'local-.env'], consumers: ['producers.yml eia-v2-petroleum-spot (GH)', 'EIA energy-data fetches (scripts)'], writeAuthority: 'gh (repo scope; operator created it from the GitHub UI 2026-09-03) / local', note: 'external data source key (free eia.gov/opendata registration); mirrored local <-> GitHub 2026-09-03' },
+  // Vercel-runtime only, OPTIONAL (2026-09-03): when unset, the organisation key for community benchmark
+  // responses is derived from WORKER_SECRET via HKDF (src/lib/community/organisation-salt.ts), so one
+  // fewer secret to provision; setting it decouples organisation keys from WORKER_SECRET rotation.
+  { name: 'COMMUNITY_ORG_SALT', vaults: ['vercel-runtime'], consumers: ['/api/community/profile/verify (organisation_key HMAC salt; optional, see organisation-salt.ts)'], writeAuthority: 'Vercel dashboard', note: 'optional; absent = derived from WORKER_SECRET (rotating WORKER_SECRET then re-keys every organisation)' },
   { name: 'NREL_API_KEY', vaults: ['local-.env'], consumers: ['NLR/NREL fetches (scripts)'], writeAuthority: 'local', note: 'external data source key' },
   { name: 'REGULATIONS_GOV_API_KEY', vaults: ['local-.env'], consumers: ['regulations.gov fetches (scripts)'], writeAuthority: 'local', note: 'external data source key' },
   { name: 'IMODOCS_USERNAME', vaults: ['local-.env'], consumers: ['IMODOCS portal auth (scripts)'], writeAuthority: 'local', note: 'portal credential (username)' },
