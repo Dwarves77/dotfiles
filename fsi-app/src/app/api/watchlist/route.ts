@@ -110,6 +110,50 @@ const noOrgError = () =>
     { status: 403 }
   );
 
+// GET /api/watchlist?item_type=reg                          (LIST mode — no item_id)
+// → { watchedIds, teamWatchedIds, teamAvailable }
+//
+// Added by PERF-3 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md item 2: "/market fires
+// GET /api/watchlist six times within 3ms on every visit ... WatchButton.tsx fetches membership on
+// mount per instance"). This is the client-side fallback path WatchButton.tsx now uses (via
+// src/lib/watchlist/membership.ts's getClientWatchMembership) for any surface that cannot be given
+// server-resolved initial state — one list-mode GET serves EVERY mounted WatchButton of one
+// item_type, instead of the old one-fetch-per-instance shape. Every id the caller has watched of
+// this item_type, personal and team, both scopes in one round trip — same shape as the single-item
+// GET below, just unfiltered by item_id.
+async function handleGETList(request: NextRequest, itemType: string) {
+  const auth = await requireAuth(request);
+  if (isAuthError(auth)) return auth;
+  const limited = checkRateLimit(auth.userId);
+  if (limited) return limited;
+
+  const supabase = getServiceSupabase();
+  const orgId = await resolveOrgIdFromUserId(supabase, auth.userId).catch(() => null);
+
+  const [personalRes, teamRes] = await Promise.all([
+    supabase.from("user_watchlist").select("item_id").eq("user_id", auth.userId).eq("item_type", itemType),
+    orgId
+      ? supabase.from("org_watchlist").select("item_id").eq("org_id", orgId).eq("item_type", itemType)
+      : Promise.resolve({ data: [] as { item_id: string }[], error: null }),
+  ]);
+
+  if (personalRes.error) {
+    return NextResponse.json({ error: personalRes.error.message }, { status: 500 });
+  }
+  if (teamRes.error) {
+    return NextResponse.json({ error: teamRes.error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(
+    {
+      watchedIds: (personalRes.data ?? []).map((r) => r.item_id as string),
+      teamWatchedIds: (teamRes.data ?? []).map((r) => r.item_id as string),
+      teamAvailable: !!orgId,
+    },
+    { headers: rateLimitHeaders(auth.userId) }
+  );
+}
+
 // GET /api/watchlist?item_type=reg&item_id=<id>
 // → { watched, personal, team, teamAvailable }
 //
@@ -121,6 +165,17 @@ const noOrgError = () =>
 // is ambiguous — it could mean "the org has not watched this" or "this user has
 // no org" — and the client would render a team affordance that can only 403.
 async function handleGET(request: NextRequest) {
+  // LIST mode: item_type given, item_id omitted. Checked before requireAuth's twin below runs a
+  // second time inside handleGETList — cheap (a Set.has + a string check), and keeps this
+  // function's own single-item contract (readParams requires item_id) completely unchanged for
+  // every existing caller.
+  const itemTypeOnly = request.nextUrl.searchParams.get("item_type") ?? "";
+  const noItemId = !request.nextUrl.searchParams.get("item_id");
+  if (itemTypeOnly && noItemId) {
+    if (!ITEM_TYPES.has(itemTypeOnly)) return paramError();
+    return handleGETList(request, itemTypeOnly);
+  }
+
   const auth = await requireAuth(request);
   if (isAuthError(auth)) return auth;
   const limited = checkRateLimit(auth.userId);
