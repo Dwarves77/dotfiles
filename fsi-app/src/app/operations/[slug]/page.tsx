@@ -31,6 +31,8 @@ import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import { getServiceSupabase } from "@/lib/supabase-service";
+import { resolveServerBootstrap } from "@/lib/api/server-bootstrap";
+import { fetchWatchMembership, lookupWatchMembership } from "@/lib/watchlist/membership";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { OperationsDetailSurface } from "@/components/operations/OperationsDetailSurface";
 import { checkMatrixEligibility } from "@/lib/agent/formats/operations-matrix";
@@ -107,122 +109,142 @@ export default async function OperationsDetailPage({
   }
   if (redirectTo) redirect(redirectTo);
 
-  const result = await loadDetail<ItemScoped>({
-    surface: "operations",
-    id,
-    // Item-scoped, org-independent: connections lookup, matrix eligibility,
-    // jurisdiction/source-matched related items, and the source's fetch
-    // status. Cached — shared across every org that views this item.
-    loadItemScoped: async ({ supabase, resource, connections, supersessions }) => {
-      const relatedIds = Array.from(
-        new Set<string>([
-          ...connections.map((c) => c.id),
-          ...supersessions.flatMap((s) => [s.old, s.new]),
-        ])
-      ).filter(Boolean);
+  // PERF-4 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md dispatch item (2)): the viewer's
+  // watch membership for THIS item shares no data dependency with loadDetail — id (already resolved
+  // above, and provably equal to the eventual result.resource.id — see the same note in
+  // regulations/[slug]/page.tsx) is all it needs, plus the viewer's userId/orgId.
+  // resolveServerBootstrap() is React.cache()-scoped, reusing the root layout's own request-scoped
+  // result (no second Supabase round trip).
+  const watchMembershipPromise = (async () => {
+    const bootstrap = await resolveServerBootstrap();
+    const membership = await fetchWatchMembership(getServiceSupabase(), {
+      userId: bootstrap.user?.id ?? null,
+      orgId: bootstrap.orgId,
+      itemType: "operations",
+      itemIds: [id],
+    });
+    return lookupWatchMembership(membership, id);
+  })();
 
-      const matrixPromise: Promise<MatrixEligibility | undefined> = checkMatrixEligibility(supabase, {
-        jurisdictions: resource.jurisdiction ? [resource.jurisdiction] : [],
-        jurisdiction: resource.jurisdiction ?? null,
-      }).catch(() => undefined);
+  const [result, watchEntry] = await Promise.all([
+    loadDetail<ItemScoped>({
+      surface: "operations",
+      id,
+      // Item-scoped, org-independent: connections lookup, matrix eligibility,
+      // jurisdiction/source-matched related items, and the source's fetch
+      // status. Cached — shared across every org that views this item.
+      loadItemScoped: async ({ supabase, resource, connections, supersessions }) => {
+        const relatedIds = Array.from(
+          new Set<string>([
+            ...connections.map((c) => c.id),
+            ...supersessions.flatMap((s) => [s.old, s.new]),
+          ])
+        ).filter(Boolean);
 
-      // Related items — strategy:
-      //   1. jurisdiction match on other active regional_data rows (cap 5).
-      //   2. same-source fallback when (1) yields nothing.
-      //   3. [] when neither yields anything.
-      const relatedPromise: Promise<{
-        related: ReturnType<typeof pickRelated>[];
-        relatedReason: ItemScoped["relatedReason"];
-        sourceFetchStatus: string | null;
-      }> = (async () => {
-        let related: ReturnType<typeof pickRelated>[] = [];
-        let relatedReason: ItemScoped["relatedReason"] = "none";
-        let sourceFetchStatus: string | null = null;
-        try {
-          const isUuid = UUID_RE.test(id);
-          const orExpr = isUuid ? `legacy_id.eq.${id},id.eq.${id}` : `legacy_id.eq.${id}`;
-          const { data: self } = await supabase
-            .from("intelligence_items")
-            .select("id, jurisdictions, source_id")
-            .or(orExpr)
-            .maybeSingle();
+        const matrixPromise: Promise<MatrixEligibility | undefined> = checkMatrixEligibility(supabase, {
+          jurisdictions: resource.jurisdiction ? [resource.jurisdiction] : [],
+          jurisdiction: resource.jurisdiction ?? null,
+        }).catch(() => undefined);
 
-          if (self) {
-            if (self.source_id) {
-              const { data: srcMeta } = await supabase
-                .from("sources")
-                .select("fetch_status")
-                .eq("id", self.source_id)
-                .maybeSingle();
-              sourceFetchStatus =
-                (srcMeta as { fetch_status?: string | null } | null)?.fetch_status ?? null;
-            }
+        // Related items — strategy:
+        //   1. jurisdiction match on other active regional_data rows (cap 5).
+        //   2. same-source fallback when (1) yields nothing.
+        //   3. [] when neither yields anything.
+        const relatedPromise: Promise<{
+          related: ReturnType<typeof pickRelated>[];
+          relatedReason: ItemScoped["relatedReason"];
+          sourceFetchStatus: string | null;
+        }> = (async () => {
+          let related: ReturnType<typeof pickRelated>[] = [];
+          let relatedReason: ItemScoped["relatedReason"] = "none";
+          let sourceFetchStatus: string | null = null;
+          try {
+            const isUuid = UUID_RE.test(id);
+            const orExpr = isUuid ? `legacy_id.eq.${id},id.eq.${id}` : `legacy_id.eq.${id}`;
+            const { data: self } = await supabase
+              .from("intelligence_items")
+              .select("id, jurisdictions, source_id")
+              .or(orExpr)
+              .maybeSingle();
 
-            const selfJurisdictions: string[] = Array.isArray(self.jurisdictions)
-              ? self.jurisdictions
-              : resource.jurisdiction
-              ? [resource.jurisdiction]
-              : [];
+            if (self) {
+              if (self.source_id) {
+                const { data: srcMeta } = await supabase
+                  .from("sources")
+                  .select("fetch_status")
+                  .eq("id", self.source_id)
+                  .maybeSingle();
+                sourceFetchStatus =
+                  (srcMeta as { fetch_status?: string | null } | null)?.fetch_status ?? null;
+              }
 
-            if (selfJurisdictions.length > 0) {
-              const { data: jurRows } = await supabase
-                .from("intelligence_items")
-                .select(
-                  "id, legacy_id, title, summary, added_date, jurisdictions, source_id, source:sources(id, name)"
-                )
-                .contains("jurisdictions", selfJurisdictions)
-                .eq("item_type", "regional_data")
-                .eq("is_archived", false)
-                .eq("provenance_status", "verified")
-                .neq("id", self.id)
-                .order("added_date", { ascending: false })
-                .limit(RELATED_LIMIT);
-              if (jurRows && jurRows.length > 0) {
-                related = (jurRows as unknown as RelatedRow[]).map(pickRelated);
-                relatedReason = "jurisdiction";
+              const selfJurisdictions: string[] = Array.isArray(self.jurisdictions)
+                ? self.jurisdictions
+                : resource.jurisdiction
+                ? [resource.jurisdiction]
+                : [];
+
+              if (selfJurisdictions.length > 0) {
+                const { data: jurRows } = await supabase
+                  .from("intelligence_items")
+                  .select(
+                    "id, legacy_id, title, summary, added_date, jurisdictions, source_id, source:sources(id, name)"
+                  )
+                  .contains("jurisdictions", selfJurisdictions)
+                  .eq("item_type", "regional_data")
+                  .eq("is_archived", false)
+                  .eq("provenance_status", "verified")
+                  .neq("id", self.id)
+                  .order("added_date", { ascending: false })
+                  .limit(RELATED_LIMIT);
+                if (jurRows && jurRows.length > 0) {
+                  related = (jurRows as unknown as RelatedRow[]).map(pickRelated);
+                  relatedReason = "jurisdiction";
+                }
+              }
+
+              if (related.length === 0 && self.source_id) {
+                const { data: srcRows } = await supabase
+                  .from("intelligence_items")
+                  .select(
+                    "id, legacy_id, title, summary, added_date, jurisdictions, source_id, source:sources(id, name)"
+                  )
+                  .eq("source_id", self.source_id)
+                  .eq("item_type", "regional_data")
+                  .eq("is_archived", false)
+                  .eq("provenance_status", "verified")
+                  .neq("id", self.id)
+                  .order("added_date", { ascending: false })
+                  .limit(RELATED_LIMIT);
+                if (srcRows && srcRows.length > 0) {
+                  related = (srcRows as unknown as RelatedRow[]).map(pickRelated);
+                  relatedReason = "source";
+                }
               }
             }
-
-            if (related.length === 0 && self.source_id) {
-              const { data: srcRows } = await supabase
-                .from("intelligence_items")
-                .select(
-                  "id, legacy_id, title, summary, added_date, jurisdictions, source_id, source:sources(id, name)"
-                )
-                .eq("source_id", self.source_id)
-                .eq("item_type", "regional_data")
-                .eq("is_archived", false)
-                .eq("provenance_status", "verified")
-                .neq("id", self.id)
-                .order("added_date", { ascending: false })
-                .limit(RELATED_LIMIT);
-              if (srcRows && srcRows.length > 0) {
-                related = (srcRows as unknown as RelatedRow[]).map(pickRelated);
-                relatedReason = "source";
-              }
-            }
+          } catch {
+            // Soft-fail — surface renders empty state.
           }
-        } catch {
-          // Soft-fail — surface renders empty state.
-        }
-        return { related, relatedReason, sourceFetchStatus };
-      })();
+          return { related, relatedReason, sourceFetchStatus };
+        })();
 
-      const [resourceLookup, matrixEligibility, relatedResult] = await Promise.all([
-        buildResourceLookup(supabase, relatedIds),
-        matrixPromise,
-        relatedPromise,
-      ]);
+        const [resourceLookup, matrixEligibility, relatedResult] = await Promise.all([
+          buildResourceLookup(supabase, relatedIds),
+          matrixPromise,
+          relatedPromise,
+        ]);
 
-      return {
-        resourceLookup,
-        matrixEligibility,
-        related: relatedResult.related,
-        relatedReason: relatedResult.relatedReason,
-        sourceFetchStatus: relatedResult.sourceFetchStatus,
-      };
-    },
-  });
+        return {
+          resourceLookup,
+          matrixEligibility,
+          related: relatedResult.related,
+          relatedReason: relatedResult.relatedReason,
+          sourceFetchStatus: relatedResult.sourceFetchStatus,
+        };
+      },
+    }),
+    watchMembershipPromise,
+  ]);
 
   // SURFACE ADMISSION GUARD (Phase 0.1, 2026-08-11) — see regulations/[slug]
   // for the full rationale; checked inside loadDetail via canonicalSurface.
@@ -285,6 +307,9 @@ export default async function OperationsDetailPage({
         connections={connections}
         relevance={relevance}
         resourceLookup={resourceLookup}
+        initialWatched={watchEntry.watched}
+        initialTeamWatched={watchEntry.teamWatched}
+        initialTeamAvailable={watchEntry.teamAvailable}
       />
     </>
   );

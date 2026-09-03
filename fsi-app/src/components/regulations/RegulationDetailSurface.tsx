@@ -124,6 +124,17 @@ interface Props {
    *  an async Server Component itself; the page composes it. Undefined/null when the item has no
    *  upcoming events (honest omission). */
   upcomingObligations?: React.ReactNode;
+  /**
+   * PERF-4 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md dispatch item (2)): the viewer's
+   * server-resolved watch state for THIS item (src/lib/watchlist/membership.ts's fetchWatchMembership,
+   * read in parallel with loadDetail by the page). Threaded straight to <WatchButton> below —
+   * `initialWatched` is the signal WatchButton itself checks: passing this means it renders its real
+   * state on first paint and fires zero client fetch on mount, instead of the shared per-item_type
+   * client-side fallback (membership.ts's case 2).
+   */
+  initialWatched?: boolean;
+  initialTeamWatched?: boolean;
+  initialTeamAvailable?: boolean;
 }
 
 type TabKey = "summary" | "exposure" | "calculator" | "timeline" | "sources";
@@ -173,6 +184,9 @@ export function RegulationDetailSurface({
   deck,
   initialOwner = null,
   upcomingObligations = null,
+  initialWatched,
+  initialTeamWatched,
+  initialTeamAvailable,
 }: Props) {
   const [tab, setTab] = useState<TabKey>("summary");
 
@@ -313,7 +327,14 @@ export function RegulationDetailSurface({
                   </ActionButton>
                 )}
                 <ActionButton onClick={() => shareCurrentRegulation(r)}>Share</ActionButton>
-                <WatchButton itemType="reg" itemId={String(r.id)} palette={{ accent: C.accent, hairStrong: C.hairStrong, tint: C.tint, card: C.card, ink: C.ink }} />
+                <WatchButton
+                  itemType="reg"
+                  itemId={String(r.id)}
+                  palette={{ accent: C.accent, hairStrong: C.hairStrong, tint: C.tint, card: C.card, ink: C.ink }}
+                  initialWatched={initialWatched}
+                  initialTeamWatched={initialTeamWatched}
+                  initialTeamAvailable={initialTeamAvailable}
+                />
               </div>
             </div>
           </div>

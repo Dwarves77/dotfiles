@@ -36,6 +36,8 @@ import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import { getServiceSupabase } from "@/lib/supabase-service";
+import { resolveServerBootstrap } from "@/lib/api/server-bootstrap";
+import { fetchWatchMembership, lookupWatchMembership } from "@/lib/watchlist/membership";
 import { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { ResearchFindingDetailSurface } from "@/components/research/ResearchFindingDetailSurface";
@@ -112,126 +114,146 @@ export default async function ResearchFindingDetailPage({
   }
   if (redirectTo) redirect(redirectTo);
 
-  const result = await loadDetail<ItemScoped>({
-    surface: "research",
-    id,
-    // Item-scoped, org-independent: connections lookup, theme/source-matched
-    // related findings, the theme-brief card, and the peers-strip entity.
-    // Cached — shared across every org that views this item.
-    loadItemScoped: async ({ supabase, resource, connections, supersessions }) => {
-      const relatedIds = Array.from(
-        new Set<string>([
-          ...connections.map((c) => c.id),
-          ...supersessions.flatMap((s) => [s.old, s.new]),
-        ])
-      ).filter(Boolean);
+  // PERF-4 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md dispatch item (2)): the viewer's
+  // watch membership for THIS item shares no data dependency with loadDetail — id (already resolved
+  // above, and provably equal to the eventual result.resource.id — see the same note in
+  // regulations/[slug]/page.tsx) is all it needs, plus the viewer's userId/orgId.
+  // resolveServerBootstrap() is React.cache()-scoped, reusing the root layout's own request-scoped
+  // result (no second Supabase round trip).
+  const watchMembershipPromise = (async () => {
+    const bootstrap = await resolveServerBootstrap();
+    const membership = await fetchWatchMembership(getServiceSupabase(), {
+      userId: bootstrap.user?.id ?? null,
+      orgId: bootstrap.orgId,
+      itemType: "research",
+      itemIds: [id],
+    });
+    return lookupWatchMembership(membership, id);
+  })();
 
-      // Related findings + theme brief — strategy:
-      //   1. theme match (STEP 1 IS DEAD IN PRACTICE today, WO-25, 2026-08-30 —
-      //      0 of 38 live rows populate `theme`; kept for when it's backfilled).
-      //   2. same-source fallback when (1) yields nothing.
-      //   3. [] when neither yields anything.
-      const relatedAndBriefPromise: Promise<{
-        related: ReturnType<typeof pickRelated>[];
-        relatedReason: ItemScoped["relatedReason"];
-        themeBrief: ItemScoped["themeBrief"];
-        peersEntityId: string | null;
-      }> = (async () => {
-        let related: ReturnType<typeof pickRelated>[] = [];
-        let relatedReason: ItemScoped["relatedReason"] = "none";
-        let themeBrief: ItemScoped["themeBrief"] = null;
-        let peersEntityId: string | null = null;
-        try {
-          const isUuid = UUID_RE.test(id);
-          const orExpr = isUuid ? `legacy_id.eq.${id},id.eq.${id}` : `legacy_id.eq.${id}`;
-          const { data: self } = await supabase
-            .from("intelligence_items")
-            .select("id, theme, source_id, instrument_entity_id")
-            .or(orExpr)
-            .maybeSingle();
+  const [result, watchEntry] = await Promise.all([
+    loadDetail<ItemScoped>({
+      surface: "research",
+      id,
+      // Item-scoped, org-independent: connections lookup, theme/source-matched
+      // related findings, the theme-brief card, and the peers-strip entity.
+      // Cached — shared across every org that views this item.
+      loadItemScoped: async ({ supabase, resource, connections, supersessions }) => {
+        const relatedIds = Array.from(
+          new Set<string>([
+            ...connections.map((c) => c.id),
+            ...supersessions.flatMap((s) => [s.old, s.new]),
+          ])
+        ).filter(Boolean);
 
-          if (self) {
-            peersEntityId = self.instrument_entity_id ?? null;
+        // Related findings + theme brief — strategy:
+        //   1. theme match (STEP 1 IS DEAD IN PRACTICE today, WO-25, 2026-08-30 —
+        //      0 of 38 live rows populate `theme`; kept for when it's backfilled).
+        //   2. same-source fallback when (1) yields nothing.
+        //   3. [] when neither yields anything.
+        const relatedAndBriefPromise: Promise<{
+          related: ReturnType<typeof pickRelated>[];
+          relatedReason: ItemScoped["relatedReason"];
+          themeBrief: ItemScoped["themeBrief"];
+          peersEntityId: string | null;
+        }> = (async () => {
+          let related: ReturnType<typeof pickRelated>[] = [];
+          let relatedReason: ItemScoped["relatedReason"] = "none";
+          let themeBrief: ItemScoped["themeBrief"] = null;
+          let peersEntityId: string | null = null;
+          try {
+            const isUuid = UUID_RE.test(id);
+            const orExpr = isUuid ? `legacy_id.eq.${id},id.eq.${id}` : `legacy_id.eq.${id}`;
+            const { data: self } = await supabase
+              .from("intelligence_items")
+              .select("id, theme, source_id, instrument_entity_id")
+              .or(orExpr)
+              .maybeSingle();
 
-            if (self.theme) {
-              const { data: themeRows } = await supabase
-                .from("intelligence_items")
-                .select(
-                  "id, legacy_id, title, summary, added_date, theme, source_id, source:sources(id, name)"
-                )
-                .eq("theme", self.theme)
-                .eq("is_archived", false)
-                .eq("provenance_status", "verified")
-                .neq("id", self.id)
-                .order("added_date", { ascending: false })
-                .limit(RELATED_LIMIT);
-              if (themeRows && themeRows.length > 0) {
-                related = (themeRows as unknown as RelatedRow[]).map(pickRelated);
-                relatedReason = "theme";
-              }
-            }
+            if (self) {
+              peersEntityId = self.instrument_entity_id ?? null;
 
-            if (related.length === 0 && self.source_id) {
-              const { data: srcRows } = await supabase
-                .from("intelligence_items")
-                .select(
-                  "id, legacy_id, title, summary, added_date, theme, source_id, source:sources(id, name)"
-                )
-                .eq("source_id", self.source_id)
-                .eq("is_archived", false)
-                .eq("provenance_status", "verified")
-                .neq("id", self.id)
-                .order("added_date", { ascending: false })
-                .limit(RELATED_LIMIT);
-              if (srcRows && srcRows.length > 0) {
-                related = (srcRows as unknown as RelatedRow[]).map(pickRelated);
-                relatedReason = "source";
-              }
-            }
-
-            // Theme brief (WO-25, flywheel U6): connection_themes is small
-            // (9 rows live) and public-read — read it all and match
-            // in-process (same shape api/admin/themes/route.ts uses). A
-            // second query for the theme_briefs row only runs when self.id
-            // is actually a member of a live theme.
-            const { data: themeRows } = await supabase
-              .from("connection_themes")
-              .select("id, member_ids");
-            const matchedTheme =
-              themeRows && themeRows.length > 0
-                ? (themeRows as { id: string; member_ids: string[] }[]).find(
-                    (t) => Array.isArray(t.member_ids) && t.member_ids.includes(self.id)
+              if (self.theme) {
+                const { data: themeRows } = await supabase
+                  .from("intelligence_items")
+                  .select(
+                    "id, legacy_id, title, summary, added_date, theme, source_id, source:sources(id, name)"
                   )
-                : null;
-            if (matchedTheme) {
-              const { data: briefRows } = await supabase
-                .from("theme_briefs")
-                .select("theme_id, title, brief_md, member_hash, generated_at")
-                .eq("theme_id", matchedTheme.id)
-                .limit(1);
-              themeBrief = selectThemeBriefForItem(self.id, [matchedTheme], briefRows || []);
+                  .eq("theme", self.theme)
+                  .eq("is_archived", false)
+                  .eq("provenance_status", "verified")
+                  .neq("id", self.id)
+                  .order("added_date", { ascending: false })
+                  .limit(RELATED_LIMIT);
+                if (themeRows && themeRows.length > 0) {
+                  related = (themeRows as unknown as RelatedRow[]).map(pickRelated);
+                  relatedReason = "theme";
+                }
+              }
+
+              if (related.length === 0 && self.source_id) {
+                const { data: srcRows } = await supabase
+                  .from("intelligence_items")
+                  .select(
+                    "id, legacy_id, title, summary, added_date, theme, source_id, source:sources(id, name)"
+                  )
+                  .eq("source_id", self.source_id)
+                  .eq("is_archived", false)
+                  .eq("provenance_status", "verified")
+                  .neq("id", self.id)
+                  .order("added_date", { ascending: false })
+                  .limit(RELATED_LIMIT);
+                if (srcRows && srcRows.length > 0) {
+                  related = (srcRows as unknown as RelatedRow[]).map(pickRelated);
+                  relatedReason = "source";
+                }
+              }
+
+              // Theme brief (WO-25, flywheel U6): connection_themes is small
+              // (9 rows live) and public-read — read it all and match
+              // in-process (same shape api/admin/themes/route.ts uses). A
+              // second query for the theme_briefs row only runs when self.id
+              // is actually a member of a live theme.
+              const { data: themeRows } = await supabase
+                .from("connection_themes")
+                .select("id, member_ids");
+              const matchedTheme =
+                themeRows && themeRows.length > 0
+                  ? (themeRows as { id: string; member_ids: string[] }[]).find(
+                      (t) => Array.isArray(t.member_ids) && t.member_ids.includes(self.id)
+                    )
+                  : null;
+              if (matchedTheme) {
+                const { data: briefRows } = await supabase
+                  .from("theme_briefs")
+                  .select("theme_id, title, brief_md, member_hash, generated_at")
+                  .eq("theme_id", matchedTheme.id)
+                  .limit(1);
+                themeBrief = selectThemeBriefForItem(self.id, [matchedTheme], briefRows || []);
+              }
             }
+          } catch {
+            // Soft-fail — surface renders the empty state (no related findings, no theme-brief card).
           }
-        } catch {
-          // Soft-fail — surface renders the empty state (no related findings, no theme-brief card).
-        }
-        return { related, relatedReason, themeBrief, peersEntityId };
-      })();
+          return { related, relatedReason, themeBrief, peersEntityId };
+        })();
 
-      const [resourceLookup, relatedAndBrief] = await Promise.all([
-        buildResourceLookup(supabase, relatedIds),
-        relatedAndBriefPromise,
-      ]);
+        const [resourceLookup, relatedAndBrief] = await Promise.all([
+          buildResourceLookup(supabase, relatedIds),
+          relatedAndBriefPromise,
+        ]);
 
-      return {
-        resourceLookup,
-        peersEntityId: relatedAndBrief.peersEntityId,
-        related: relatedAndBrief.related,
-        relatedReason: relatedAndBrief.relatedReason,
-        themeBrief: relatedAndBrief.themeBrief,
-      };
-    },
-  });
+        return {
+          resourceLookup,
+          peersEntityId: relatedAndBrief.peersEntityId,
+          related: relatedAndBrief.related,
+          relatedReason: relatedAndBrief.relatedReason,
+          themeBrief: relatedAndBrief.themeBrief,
+        };
+      },
+    }),
+    watchMembershipPromise,
+  ]);
 
   // SURFACE ADMISSION GUARD (Phase 0.1, 2026-08-11) — see regulations/[slug]
   // for the full rationale; checked inside loadDetail via canonicalSurface.
@@ -296,6 +318,9 @@ export default async function ResearchFindingDetailPage({
         relevance={relevance}
         resourceLookup={resourceLookup}
         themeBrief={themeBrief}
+        initialWatched={watchEntry.watched}
+        initialTeamWatched={watchEntry.teamWatched}
+        initialTeamAvailable={watchEntry.teamAvailable}
       />
       <PeersDiscussingStrip entityId={peersEntityId} />
     </>

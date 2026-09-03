@@ -41,22 +41,46 @@ const COMMUNITY_NAV: NavItem[] = [
   { href: "/community", label: "Community" },
 ];
 
-// Routes whose server components run Supabase queries on render. Auto-
-// prefetch on a hover-sweep across the sidebar can fan out 6-8 parallel
-// RSC renders, each firing 3-15 PostgREST round-trips. We disable
-// prefetch on these data-heavy targets to keep nav-hover from prewarming
-// every workspace surface at once. Click latency is preserved by Next's
-// in-flight RSC dedupe and by the pages' own server-render speed.
-const NO_PREFETCH_HREFS = new Set<string>([
-  "/",
-  "/regulations",
-  "/market",
-  "/research",
-  "/operations",
-  "/map",
-  "/community",
-  "/admin",
-]);
+// PERF-4 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md dispatch item (3)): this Set used to
+// disable prefetch on every top-nav item, per the "prefetch OFF" comment RegulationsLedger.tsx
+// carries (perf round 3, 2026-07-13): "App Router prefetches every visible row → N concurrent
+// uncached detail SSR renders ... the Supabase-saturation spike." That diagnosis was written against
+// Next's OLD prefetch behavior (pre-Segment Cache): a viewport/hover prefetch on a dynamic route with
+// no `loading.tsx` fetched the FULL page — data included.
+//
+// Verified against the INSTALLED Next version (16.1.6) that this claim no longer applies to a route
+// with a `loading.tsx` — five of these seven hrefs now have one (src/app/{,regulations,market,
+// research,operations}/loading.tsx, all added by earlier lanes this same day). Read directly from
+// node_modules (not the public docs, which describe the same mechanism less precisely for this exact
+// version):
+//
+//   - node_modules/next/dist/client/app-dir/link.js `getFetchStrategyFromPrefetchProp()`: `prefetch`
+//     UNSET (this app's default — none of these Links ever set the prop) maps to
+//     `FetchStrategy.PPR`, NOT `FetchStrategy.Full`. `prefetch={true}` explicitly is what maps to
+//     `FetchStrategy.Full` — the OLD, dangerous "fetch everything, static and dynamic" behavior this
+//     comment used to guard against. Passing `prefetch={true}` here would REINTRODUCE the exact
+//     fan-out this Set exists to prevent; the correct fix is to stop DISABLING prefetch, not to force
+//     it on.
+//   - node_modules/next/dist/client/components/segment-cache/scheduler.js:416: a `PPR`-strategy task
+//     falls back to `FetchStrategy.LoadingBoundary` when `route.isPPREnabled` is false (this app has
+//     no `experimental.ppr` in next.config.ts — confirmed by grep).
+//   - scheduler.js:624-637 (`pingPPRDisabledRouteTreeUpToLoadingBoundary`, its own comment): "the
+//     server is only going to return a minimal loading state — it will stop rendering at the first
+//     loading boundary." For a route WITH a `loading.tsx` (5 of these 7 hrefs), the default prefetch
+//     now fetches ONLY the static shell up to that boundary — never the Supabase-backed page data, so
+//     no fan-out risk. For a route WITHOUT one (`/map`, `/community`; `/admin`'s own Link already sets
+//     `prefetch={false}` directly, unaffected by this Set either way) the SAME function's comment
+//     states: "If there's no loading boundary anywhere in the tree, the server will never return any
+//     data, so we can skip the request" — i.e. the default prefetch is a no-op there, identical in
+//     effect to the `prefetch={false}` this Set used to force.
+//
+// Net effect of removing this Set: the 5 loading.tsx-covered routes go from "no prefetch, full
+// 0.7-1.9s wait on click" to "loading-boundary-only prefetch, skeleton likely already warm" with ZERO
+// added Supabase load; the other 2 are unaffected (still fetch nothing on hover). Click latency for
+// the actual data was already collapsed by the parallel loadDetail() fix (PERF/PERF-2); this closes
+// the remaining "unmasked wait" gap §5 root cause #3 of the audit named, safely, per the evidence
+// above rather than per the brief's literal `prefetch={true}` phrasing (which this evidence shows
+// would be the WRONG, regressive choice).
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -75,7 +99,9 @@ export function Sidebar() {
       <Link
         key={href}
         href={href}
-        prefetch={NO_PREFETCH_HREFS.has(href) ? false : undefined}
+        // PERF-4: no explicit `prefetch` prop — the framework default (undefined/"auto") is now the
+        // correct, safe choice for every one of these hrefs; see this file's PERF-4 comment above
+        // renderNavItem's definition for the evidence.
         onClick={() => setMobileOpen(false)}
         aria-current={active ? "page" : undefined}
         className="flex items-center px-3 py-2.5 rounded-md text-[13px] transition-colors"
@@ -105,13 +131,12 @@ export function Sidebar() {
     <>
       {/* Logo */}
       <div className="px-4 py-5 border-b" style={{ borderColor: "var(--color-border)" }}>
-        {/* perf round 3 (2026-05-09): logo Link sat next to the NAV_ITEMS
-            Dashboard entry, both pointing at "/". The nav entry already
-            opts out via NO_PREFETCH_HREFS, but this logo Link defaulted
-            to auto-prefetch and re-fired the dashboard RSC fetch on every
-            authenticated route mount, landing ~1.2s post-FCP. Same data
-            surface, prefetched twice. prefetch={false} matches the nav
-            entry and eliminates the duplicate. */}
+        {/* perf round 3 (2026-05-09): logo Link sits next to the PRIMARY_NAV Dashboard entry, both
+            pointing at "/" — this explicit prefetch={false} avoids firing the same href's prefetch
+            twice from two separate Link instances on every mount. PERF-4 (2026-09-03): the
+            Dashboard nav entry's own prefetch is no longer force-disabled (see the comment above
+            renderNavItem), but that only changed it from "no prefetch" to "loading-boundary-only
+            auto prefetch" — still safe, still worth not duplicating from this second Link. */}
         <Link href="/" prefetch={false} className="block">
           <h1
             className="text-xl uppercase"
