@@ -81,6 +81,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 
 ## plans
 
+- [wave3-lanes-2026-09-03](./plans/wave3-lanes-2026-09-03.md) — Wave 3 lane plan: COMMUNITY-A / COMMUNITY-B / SPEC-09 write sets, the A↔B interface contract; `mobile-evidence/` holds the operator's 2026-09-03 phone screenshots with per-screenshot cause and fix
 - [C5-feed-spec](./plans/C5-feed-spec.md) — C5 — Group Post Feed Specification
 - [C6-promote-spec](./plans/C6-promote-spec.md) — C6 — Promote Community Post to Intelligence
 - [C7-notifications-spec](./plans/C7-notifications-spec.md) — C7 — Community Notifications Surface
@@ -151,6 +152,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 
 ## audits
 
+- [perf-load-times-2026-09-03](./audits/perf-load-times-2026-09-03.md) — PERF-MEASURE: production timing study (TTFB 20–30 ms; 0.9–2.1 s server render per index page; 1.3–1.9 s per item click; cache MISS everywhere; sequential awaits, no per-route loading.tsx, prefetch disabled after the 503 fan-out) with the ranked causes and the structural fix set
 - [spend-authority-disarm-case-file-2026-07-30](./audits/spend-authority-disarm-case-file-2026-07-30.md) — Root-cause case file for every spend-authorization disarm this campaign (metered gate off-path, inert SPEND_CEILING, unwired markers, ticket clobber, jiti dual-instance, the untraced $0.0438 and the unpriced $0.6442). Common cause: authorization carried in AMBIENT STATE (env, module-locals, call-site convention), whose default is "unchecked" so any new path escapes it silently. Specifies the single-choke-point fix (authorization as a required argument, ledger in the same call, fitness guard banning SDK use elsewhere) and proposes the standing rule "authorization is an argument, never an ambience". Written BEFORE the code, per operator order.
 - [ground-truth-verification-2026-07-15](./audits/ground-truth-verification-2026-07-15.md) — Ground-truth verification of 27 sampled items (~738 facts) gating the coverage-floor spend. Accuracy-defect rate ~3% (ISO 14083 lone systematic-falsehood outlier), dominant defect is PROVENANCE, namely S1 dead-citation (927 T1 facts across 26 items, one 404 EUR-Lex row) plus S2 null-source (455 across 45), both fixable free by re-point and registration. Ruling: HOLD the spend, fund the sweeps. Defines the wave-acceptance QA institution.
 - [remediation-close-2026-07-15](./audits/remediation-close-2026-07-15.md) — Close report for the audit-ruled corpus repair (Tasks 1-11): ISO conflation corrected, 727 dead-cites re-pointed, 671 null-source facts dispositioned, ReFuelEU twin deduped, Q1-Q4 quality cleanup (132 dup facts, tier-machinery stripped from 63 briefs), hold #11 URL fixed. Three-state per defect class; 8 recurrence items routed to hardening (incl. tier-machinery-in-customer-prose, archive-provenance-flip-guard-collision, standard-own-body-exemption-unwired, chrome-capture-adapter); priced re-ground queue enumerated; residual frame ~169 items. $0 unit.

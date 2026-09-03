@@ -8292,3 +8292,111 @@ selection with a data table holding one real entry, "With RF"; every refusal pri
 and the raw header rows); 34 tests on a constructed workbook of the real shape; the domestic air
 figure read from the sheet (4.60397 kg CO2e/tonne.km, With RF) reproduced exactly by the CLI. Next
 dispatch: dry, then apply, then the seed step fills the seven shells.
+
+## Addendum 85 — 2026-09-03 (cloud session): Wave 3 — the UX laws wired as gates, four lanes, fifteen tables live, and the load-time measurement
+
+**Operator inputs, in order.** Twenty interface laws pasted in ("these instructions feel relevant to our
+build"); then "do those look like they would help the system"; then "now that these are in memory they
+are wired and will be used… what mechanisms are in place"; then, when I started writing prose, "there is
+no purpose writing these if they are not wired. they just sit in a file never used. that is dead code
+and bloat." Seven phone screenshots: every ledger card wrapping its title one word per line, the
+Operations regional matrix running off the right edge, home section headers stacked with their subtitle
+off page. Then: "the loading of pages is extremely slow… clicking on an item needs instant loading."
+
+**What I got wrong first, recorded.** My first answer to "what mechanisms" was honest about the state
+(nothing wired: the docs sat uncommitted in a worktree, the lane contract was a container file) but my
+first build step was still a document. The operator's rule 15 objection was correct and I cut to the
+executing parts. Also found while checking: the repo skill `sprint-followups-discipline` pointed at
+`docs/design-principles.md`, a path that does not exist (the registry is `docs/design/design-principles.md`),
+so DP-1's one loading hook had been broken since the file moved. Corrected in this train.
+
+**Mechanisms that execute (each proven, none prose alone) [CONFIRMED by runs in this session].**
+1. `fsi-app/.discipline/rendering/ux-assert.mjs`: pure detectors (law-2 target floor 44 px, or 24 px
+   with 8 px clearance; squeezed-title wrap under 60 % of card width with ≥2 lines; overflow) with a
+   red-then-green `ux-assert.test.mjs` in the required no-npm suite. Wired into `run-rendering-guard.mjs`
+   (fixture legs opt in with `ux: true`) and a new UX smoke slot (`smoke/ux-harness.mjs` `runUxSpec`,
+   registry `smoke/ux-smoke-specs.mjs`) that mounts the REAL `.tsx` at 375 × 812 and 1280 × 800.
+2. F35 `row-ux-coverage` + invariant RD-60 (remediation-discipline category 35; marker baseline 43→44;
+   skill-contract-map re-pinned for both edited skills): every `ROW_COMPONENTS` entry (18 now: 11
+   ledger rows/headers + 7 spec-09 panel Views) must be mounted by an active registered spec and carry
+   `data-guard-title`. Red on master by design (22 violations); green after the lanes (0).
+3. `discipline.yml` memory-gate step: a PR touching `fsi-app/src/**/*.tsx|css` fails without a
+   "UX compliance" block in the session-log addendum of the same range (this addendum carries it).
+4. Loading: CLAUDE.md Loading priority item 6, the SessionStart hook line, `sprint-followups-discipline`
+   (path fixed), and `docs/dispatches/lane-common-contract.md` (the executor-lane contract, previously a
+   container file, now versioned; §UX contract). `docs/design/ux-laws.md` survives only as the text
+   these point at; DP-2 in `design-principles.md` names the mechanisms.
+
+**Lanes (Sonnet, worktrees, pairwise-disjoint write sets per `docs/plans/wave3-lanes-2026-09-03.md`).**
+- COMMUNITY-A (earlier today): migrations 293–295, `src/lib/community/**` (antitrust write-time guard
+  with refusal + aggregate route, k-anonymity / 25 % dominance / three-month lag as pure functions,
+  identity projection, corroboration counter, promotion state machine, evidence decay, lineage guard),
+  routes (`POST /api/community/posts` guard-enforced, corroboration, entity threads, benchmarks/current),
+  `scripts/community/seed-benchmark-instruments.mjs`. Its F25 allowlist removal (aggregate-safeguards
+  now has a real importer) was correct.
+- COMMUNITY-B: entity-bound composer (≥1 spine entity; 403 refusal renders the reason, preserves the
+  draft, offers the benchmark route), pseudonymous identity chips, corroboration / promotion / evidence-age
+  chips, `/community/{discover,directory,benchmarks}`, no-DM notice, `PeersDiscussingStrip` on the three
+  detail pages; `community.css` for its media queries; `community-smoke.mjs` (real components).
+- SPEC-09: migrations 296–298 (ten tables, adversarial CHECKs self-checked on a local Postgres),
+  `src/lib/spec09/**` calculators (statutory / estimate / M labels), seven producers dry by default with
+  `SOURCES.md` naming the $0 gap per table (all ship empty; `reroute` monitors the corridor count), seven
+  panels split fetch/View, one block on each index page; §5 defaults labelled on the surface.
+- MOBILE: root cause confirmed per screenshot (inline flex rows with a non-shrinking aside beside a
+  `flex:1` title; `whiteSpace: nowrap` on free text; fixed `1fr 220px` grids; `cl-ops-*` breakpoints
+  stopping at 900 px); one row system in `globals.css` (`cl-row*`, `cl-row-grid*`, `cl-section-head*`,
+  `cl-ops-item-card`, stacking at ≤640 px); `UpcomingObligationsStrip` split into fetch + View; law-2
+  floor fixes the specs found (timeline year buttons, credibility chips, rail-card links, drag handle
+  clearance); five real-component specs. Evidence: `docs/plans/mobile-evidence/` (README + before/after).
+- PERF-MEASURE (measurement only): `docs/audits/perf-load-times-2026-09-03.md`. TTFB 20–30 ms; server
+  render 0.9–2.1 s per index page; click-through 1.26–1.91 s server-side per Vercel `[perf]` logs plus a
+  watchlist call and a chunk fetch (2.4–3.2 s to settle); every request `cache=MISS|BYPASS`; one live 503.
+  Code: detail pages run 6–9 Supabase queries as sequential awaits; one `loading.tsx` in the app; prefetch
+  deliberately disabled in `RegulationsLedger.tsx` L1367 because prefetching every row fanned out into the
+  503s. Fix lane (next): parallelise, cache org-independent stages with tag invalidation, per-route
+  `loading.tsx`, re-enable prefetch after the fan-out is gone.
+
+**Integration.** Four branches merged clean (one auto-merge in `run-test-suite.sh`). Coordinator wiring:
+seven specs registered; F35 list (Strip→View rename, seven spec-09 Views); `Post` mounted standalone in
+`community-smoke.mjs` so F35's direct-import coverage is exact; community suite globs; maintenance steps
+`seed-benchmark-instruments` and `spec09-reroute` (dispatch-only, no schedule); inventory rows 293–298.
+Gates at `HEAD`: suite 3953/3953; meta-gate PASS (115 invariants, 63 doctrines); fitness 0 violations;
+tsc clean; ci runner 0 fail; override-check C4 only (container worktrees); rendering guard PASS
+(fixtures 291 checks, SM 51, **UX smoke 7 specs / 108 checks**); `next build --webpack` 70/70 routes.
+
+**Live DB [CONFIRMED].** Migrations 293–298 applied via Supabase MCP, DDL-first before this train
+deploys, each self-check passing: 15 new tables, RLS on all, 0 rows; `community_posts` gained
+`origin_class` (backfilled 'community'), `promotion_state`, `stance`; `sensitive_field_policy` registered
+for `community_benchmark_responses.value_numeric` and `publish_aggregate()` proven live against it.
+
+**Decision-ready, not done.** One `community_posts` row is the 2026-07-07 audit test post
+(`813caa0c-53cc-42fe-9342-bcc13015bf5d`, "TEST POST (audit) - please ignore"), visible on the home
+pulse. Deleting a row is the operator's call; the statement is
+`DELETE FROM community_posts WHERE id = '813caa0c-53cc-42fe-9342-bcc13015bf5d';` (no replies, no
+entity bindings). The alternative inside the state machine is a logged `retired` transition.
+
+**UX compliance** (per screen or block; goal / path / primary action / feedback per async action):
+- Ledger rows (market, operations, research, regulations): goal, read the item's lead line and open it;
+  path, scan the row, one tap; primary action, "Full analysis →" (44 px); the expand toggle is secondary,
+  44 × 44; no async action on the row itself.
+- Operations regional matrix and item cards: goal, read a region's six dimensions; path, expand a region;
+  primary action, Expand/Collapse (labelled, 44 px); no async.
+- Regulations upcoming strip: goal, see what is due next; path, scroll the strip; primary action, the
+  item link; "···" control labelled, 44 px; no async.
+- Home section headers and pulse cards: goal, see what changed and pick a surface; path, one tap per
+  card; primary action, the card's link (44 px); no async.
+- Community composer: goal, post an entity-bound update; path, title, body, bind ≥1 entity, Post;
+  primary action, Post (disabled until valid); async: "Posting…" immediately, success clears and
+  prepends, 403 refusal shows the reason and the aggregate route with the draft preserved.
+- Community discover / directory / benchmarks: goal, follow an entity, read aggregate composition, read
+  open house benchmarks; primary action, Follow (discover) or none (read-only pages); async: per-section
+  "Loading…" then content or a named empty state; benchmarks never show a value when not publishable.
+- Peers-discussing strip (three detail pages): goal, see whether peers discuss this item; no primary
+  action beyond the thread link; renders nothing until settled and nothing when empty.
+- Spec-09 panels (seven): goal, read the table's rows or the named gap; no primary action; server
+  rendered, no async state; the "no rows yet; source: <gap>" line is the empty state.
+
+**Next.** Land this train (browser); Vercel deploy; PERF lane on the landed build; dispatch
+`producers` → `desnz-emission-factors` dry then apply; `maintenance` → `seed-benchmark-instruments` dry
+then apply; the failed "Data producers" run on master at ec6b1b8 read and explained; then, per the
+build-before-populate ruling, the one population pass.
