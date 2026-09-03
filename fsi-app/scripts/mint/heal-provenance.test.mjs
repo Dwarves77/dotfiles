@@ -1046,7 +1046,11 @@ test("captureCitedUrl: .pdf URL, fetch fails -> held capture_blocked, no pdf par
 // unit suite without runtime deps installed (pdf-extract.mjs's own header: "unit-tested in the depless
 // discipline CI"), so this proof runs only where the codec is importable and reports itself skipped
 // elsewhere, never a false red (CI run 33801582259, 2026-09-03: held !== captured for exactly this reason).
-const UNPDF_AVAILABLE = await import("unpdf").then(() => true, () => false);
+// Probed through the relative codec module (the discipline glob-portability gate forbids bare-package
+// imports in test files; pdf-extract.mjs owns the dynamic unpdf import).
+const UNPDF_AVAILABLE = await import("../../src/lib/sources/pdf-extract.mjs")
+  .then((m) => m.pdfToText(new Uint8Array(Buffer.from("%PDF-1.4\n%%EOF", "latin1"))).then(() => true, (e) => !/Cannot find (package|module)/i.test(String(e && e.message))))
+  .catch(() => false);
 test("captureCitedUrl: .pdf URL, real PDF bytes -> captured, text extracted via the existing pdf-extract.mjs codec", { skip: UNPDF_AVAILABLE ? false : "unpdf not installed in this environment (depless discipline CI)" }, async () => {
   // Minimal xref-correct PDF, same builder as scripts/_diag/_pdf-probe.mjs's own proof.
   function minimalPdf(text) {
