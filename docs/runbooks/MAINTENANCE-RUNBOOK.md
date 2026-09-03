@@ -313,3 +313,63 @@ resolving a flag IS the ratification), not a single planwide ruling token.
 **Artifact / read back**: `summary.json`'s `read_back` — the touched items'
 `operational_scenario_tags` / `compliance_object_tags` / `topic_tags` after the merge. Confirm against
 `intelligence_items` for those ids.
+
+---
+
+## 8. `provenance-heal`
+
+**Purpose**: attach the grounding a quarantined or archived-unreasoned item was missing, per the
+operator's ruling (verbatim, 2026-09-03): "if items are being flagged as not credible for the site
+because of not having sources that is an issue with finding the source not that item. you need to attach
+a source. the item isn't [bad] because you didn't do that." Live population this closes against
+(coordinator-confirmed, Supabase, 2026-09-03): 97 live `quarantined` items (83 × criterion 7
+`gate_a_unproven_or_stale`, ~36 × criterion 5 `missing_required_slot`, ~30 × criterion 3 ungrounded
+claims — an item can fail more than one), 135 live items with no grounding capture at all, 58 archived
+items with `archive_reason IS NULL` (51 `unverified` + 7 `quarantined`), and 149 verified
+market_signal/initiative/research_finding items predating the wave-3 required slots (migration 299,
+written and not yet applied — see §4 header note below).
+
+**Upstream**: `scripts/mint/heal-provenance.mjs`'s own guarded `main()` — five steps, each reading what
+the previous wrote (capture, ground, slots, Gate A, re-derive), importing every governing file unmodified:
+`export-census-rows.mjs` (per-family capture resolution — Cellar-first for CELEX, the Federal Register
+API for federalregister.gov, a plain polite GET otherwise), `record-facts.mjs` /
+`record-facts-research.mjs` (slot extraction — the SAME extractors a fresh mint uses), `write-item.ts`'s
+`buildGateARow` (the live Gate-A scanner), and `item-type-required-slots.json` (the slot vocabulary, read
+only). This wrapper (`scripts/maintenance/provenance-heal.mjs`) re-exports that core's `main`/
+`parseSelection` unmodified and wires the real `db.mjs` guarded writes + a 1 req/s polite fetch
+(`export-census-rows.mjs`'s own `makePoliteFetch`) — see the core file's own header for the exact
+per-step contract.
+
+**Ruling**: the operator's ruling above is the gate — there is no separate R-token. `--arg` selects the
+population:
+- (blank) or `quarantined-live` — every live (`is_archived=false`), `quarantined` item (the default).
+- `archived-unreasoned` — archived items with `archive_reason IS NULL` (the same ruling, archive side).
+- `ids:<uuid,uuid,...>` — exactly these items, any current status.
+- `slots-backfill` — every verified, live `market_signal`/`initiative`/`research_finding` item ACTUALLY
+  missing a slot the kit's `item-type-required-slots.json` now requires (narrowed live, not just by
+  item_type — an item already carrying the new slot's FACT-or-GAP claim is skipped). **Sequencing note**:
+  migration 299 (the matching LIVE `item_type_required_slots` rows for `corridor_identity` /
+  `evidence_agreement_signal` / `source_authority_signal`) is written but **not applied** — the kit
+  (`item-type-required-slots.json`) is deliberately stricter than the live table until this selection has
+  run once (see that migration's own header). Dispatch `slots-backfill --apply` BEFORE the migration
+  lands, so criterion 5 never actually sees a gap on a live read once the migration applies.
+
+**Dispatch**: `mode=dry` reads every selected item's REAL current captures/claims/sections live and plans
+all five steps (which claims would ground, which slots would fill FACT vs GAP, what Gate A would say, what
+`validate_item_provenance` says right now) with **no network fetch and no write** — it lists the fetches
+it would make. `mode=apply` performs the plan through the guarded path (rule 015): `agent_run_searches`
+inserts (full text, never truncated — ADR-016), `section_claim_provenance` span rewrites/inserts,
+`intelligence_item_sections` inserts/updates, `item_gate_a_state` upserts, and the `intelligence_items`
+touch that fires `set_provenance_status` (the same touch `rederive-record-provenance.mjs` uses; ADR-017
+gates the `-> verified` escalation to `pg_trigger_depth() >= 2`, which this touch satisfies by
+construction — never a direct status write). An item still failing after all five steps is left exactly
+as it is, reported with the remaining criterion; nothing here forces a status or invents a fact. No
+`--arg` beyond a valid selection is required for `apply` (unlike `tag-ratification`'s per-id gate): every
+write this step makes is additive/reversible — grounding a span, filling an honest GAP, or un-archiving a
+row `ADR-017`'s trigger-depth binding independently allows — never a downgrade or a deletion.
+
+**Artifact / read back**: `summary.json`'s `counts` (`healed_verified`, `capture_held`,
+`ungrounded_after_capture`, `slots_written_fact`/`slots_written_gap`, `gate_a_written`, `unarchived`,
+`still_failing`) and `per_item` (every step's outcome + evidence, per item). Confirm against
+`SELECT provenance_status, count(*) FROM intelligence_items WHERE is_archived=false GROUP BY 1` and
+`SELECT count(*) FROM intelligence_items WHERE is_archived AND archive_reason IS NULL` before/after.

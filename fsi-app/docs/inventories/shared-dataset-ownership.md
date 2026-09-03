@@ -57,7 +57,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/mint/stamp-wo26-archive-reason.mjs",
       "scripts/mint/apply-mint-batch.mjs",
       "scripts/entities/backfill-entities.mjs",
-      "scripts/maintenance/tag-ratification.mjs"
+      "scripts/maintenance/tag-ratification.mjs",
+      "scripts/maintenance/provenance-heal.mjs"
     ],
     "item_cross_references": [
       "src/lib/intake/mint-item.ts",
@@ -121,7 +122,27 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/_reground/free-pass-run.mjs",
       "scripts/_reground/restore-overclear.mjs",
       "scripts/mint/apply-mint-batch.mjs",
-      "src/lib/intake/write-item.ts"
+      "src/lib/intake/write-item.ts",
+      "scripts/maintenance/provenance-heal.mjs"
+    ],
+    "agent_run_searches": [
+      "src/lib/agent/canonical-pipeline.ts",
+      "src/lib/intake/write-item.ts",
+      "supabase/functions/capture-worker/index.ts",
+      "scripts/remediation/refetch-capped-worklist.mjs",
+      "scripts/maintenance/provenance-heal.mjs"
+    ],
+    "intelligence_item_sections": [
+      "src/lib/agent/canonical-pipeline.ts",
+      "src/lib/intake/write-item.ts",
+      "src/workflows/generate-brief.ts",
+      "scripts/apply-4c-plan.mjs",
+      "scripts/maintenance/provenance-heal.mjs"
+    ],
+    "item_gate_a_state": [
+      "src/lib/agent/canonical-pipeline.ts",
+      "src/lib/intake/write-item.ts",
+      "scripts/maintenance/provenance-heal.mjs"
     ],
     "corpus_turn_requests": [
       "src/app/api/admin/corpus-turn-requests/route.ts",
@@ -143,6 +164,18 @@ who may write a shared table; the test enforces it on every future PR.
   }
 }
 ```
+
+Note (added by lane HEAL, 2026-09-03): `scripts/maintenance/provenance-heal.mjs` (the guarded-write MAINT
+wrapper for `scripts/mint/heal-provenance.mjs`'s healing runtime) added to `intelligence_items` and
+`section_claim_provenance` above, and THREE new shared-table entries — `agent_run_searches`,
+`intelligence_item_sections`, `item_gate_a_state` — registered for the first time here (each with its full
+pre-existing writer set, read from the live scanner logic itself with `walkScanFiles`/`extractWriteHits`
+before this lane's own file existed, so no PRE-EXISTING writer is newly flagged now that these three keys
+exist). The scanner test (`.discipline/shared-writer-registry.test.mjs`) only enforces a table once it is a
+KEY in this JSON block (`if (!Object.prototype.hasOwnProperty.call(sharedTables, table)) continue;`) — these
+three tables' real writers (`canonical-pipeline.ts`, `write-item.ts`, `capture-worker/index.ts`,
+`refetch-capped-worklist.mjs`, `apply-4c-plan.mjs`) were previously unenforced; this lane's own dispatch
+named all five tables it writes, so registering them here closes that gap rather than leaving it silent.
 
 Note (added by lane EV, 2026-09-01): `corpus_turn_requests` (migration 277) is a NEW shared dataset — a
 10th, alongside `section_claim_provenance` above. Its actual FIRST writer is the migration's own
