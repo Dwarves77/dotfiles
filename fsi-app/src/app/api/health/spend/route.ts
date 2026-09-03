@@ -37,6 +37,10 @@ import { computeSpendHealth } from "@/lib/health/spend-health.mjs";
 import { acquireEnabled } from "@/lib/sources/acquire-lock.mjs";
 import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { readSpendGauge } from "@/lib/llm/spend-gauge.mjs";
+// buildSpendResponseBody lives in a sibling module, not here: a route.ts may
+// export only route handlers/config (F34's named residual — `next build
+// --webpack` rejects any other export field). See logic.ts's header.
+import { buildSpendResponseBody } from "./logic";
 
 export const dynamic = "force-dynamic";
 
@@ -85,43 +89,6 @@ const MONTHLY_CEILING_USD = 130;
 // Building that plumbing now, for a feature that is off, would be speculative work for a state that does not
 // exist — so it is recorded here, where whoever flips the flag will read it, rather than built on spec.
 const FREEZE_SINCE_ISO = process.env.SPEND_FREEZE_SINCE_ISO ?? "2026-08-13T17:00:00Z";
-
-// ── Response-body builder (pure, exported for testability — same route.ts-exports-a-pure-function
-// pattern src/app/api/admin/sources/bulk-import/route.ts's headReachabilityDecision and this wave's
-// own src/app/api/admin/recompute-trust/route.ts's demotionOutcomeFor already use). Proves the wire's
-// two load-bearing properties without a live DB: every pre-existing field/name/semantic survives byte-
-// for-byte (the uptime workflow's jq consumers), and `spend_gauge` is additive — present when the
-// gauge read succeeded, `null` (never a missing key, never a thrown response) when it didn't.
-export function buildSpendResponseBody(
-  v: ReturnType<typeof computeSpendHealth>,
-  spendGauge: Awaited<ReturnType<typeof readSpendGauge>> | null,
-  ctx: { monthlyCeilingUsd: number; freezeSinceIso: string; monthStartIso: string; checkedAtIso: string }
-) {
-  return {
-    ok: true,
-    healthy: v.healthy,
-    reason: v.reason,
-    mtd_usd: v.mtdUsd,
-    monthly_ceiling_usd: ctx.monthlyCeilingUsd,
-    pct: v.pct,
-    frozen: v.frozen,
-    acquire_lock_on: v.acquireEnabled,
-    freeze_since: ctx.freezeSinceIso,
-    latest_paid_at: v.latestPaidAt,
-    paid_after_freeze: v.paidAfterFreeze,
-    all_justified: v.allJustified,
-    // Enumerate the post-freeze paid rows (operational metadata only — UUIDs, $ figures, and the I2
-    // justification enum; never brief content). Empty in the frozen-and-quiet state.
-    paid_after_rows: v.paidAfterRows.map((r) => ({
-      item_id: r.itemId, source_id: r.sourceId, cost_usd: r.costUsd, started_at: r.startedAt, justification: r.justification,
-    })),
-    // ADDITIVE (wire #2, spend-gauge.mjs) — informational only, never gates the verdict above. null
-    // when the gauge read itself failed; every other field on this response is unaffected either way.
-    spend_gauge: spendGauge,
-    month_start: ctx.monthStartIso,
-    checked_at: ctx.checkedAtIso,
-  };
-}
 
 export async function GET(request: NextRequest) {
   const denied = workerAuthGuard(request);

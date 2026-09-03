@@ -6,6 +6,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   isOjFileName,
   extractOjActTitle,
@@ -76,10 +78,11 @@ test("extractFrDocumentNumber: pulls the docnum out of a /documents/YYYY/MM/DD/<
   assert.equal(extractFrDocumentNumber("https://www.federalregister.gov/d/2024-00001"), null); // short-link shape, held not guessed
 });
 
-test("classifyFrDocType: the API's ACTUAL field value ('Rule', case-insensitive) -> regulation; every other FR type holds, naming itself", () => {
+test("classifyFrDocType: the API's ACTUAL field value ('Rule', case-insensitive) -> regulation; 'Proposed Rule' -> initiative (Lane HELD, 2026-09-02: the single largest held class, in-vertical); Notice/Presidential Document still hold, naming themselves (no evidence yet)", () => {
   assert.deepEqual(classifyFrDocType("Rule"), { itemType: "regulation", hold: null });
   assert.deepEqual(classifyFrDocType("rule"), { itemType: "regulation", hold: null });
-  assert.deepEqual(classifyFrDocType("Proposed Rule"), { itemType: null, hold: "item_type_unmapped" });
+  assert.deepEqual(classifyFrDocType("Proposed Rule"), { itemType: "initiative", hold: null });
+  assert.deepEqual(classifyFrDocType("proposed rule"), { itemType: "initiative", hold: null });
   assert.deepEqual(classifyFrDocType("Notice"), { itemType: null, hold: "item_type_unmapped" });
   assert.deepEqual(classifyFrDocType("Presidential Document"), { itemType: null, hold: "item_type_unmapped" });
   assert.deepEqual(classifyFrDocType(null), { itemType: null, hold: "item_type_unmapped" });
@@ -129,11 +132,11 @@ test("resolveIdentity: legislation.gov.uk path with no mapped instrument-type se
   assert.equal(id.canonicalKey, null);
 });
 
-test("resolveIdentity: federalregister.gov with NO frDocType supplied yet -> needsFrLookup, not a guess", () => {
+test("resolveIdentity: federalregister.gov with NO frDocType supplied yet -> needsFrLookup, not a guess; canonicalKey is already the FR's own document number (Lane HELD, 2026-09-02: a real, citation-shaped key, never fabricated)", () => {
   const row = { document_url: "https://www.federalregister.gov/documents/2024/01/05/2024-00001/title-slug", instrument_identifier: null };
   const id = resolveIdentity(row, SOURCE_FR);
   assert.equal(id.scheme, "federal_register");
-  assert.equal(id.canonicalKey, null);
+  assert.equal(id.canonicalKey, "2024-00001");
   assert.equal(id.itemType, null);
   assert.equal(id.jurisdictionIso, "US");
   assert.equal(id.hold, null);
@@ -141,12 +144,21 @@ test("resolveIdentity: federalregister.gov with NO frDocType supplied yet -> nee
   assert.equal(id.frDocumentNumber, "2024-00001");
 });
 
-test("resolveIdentity: federalregister.gov WITH frDocType 'Rule' supplied -> regulation, no hold", () => {
+test("resolveIdentity: federalregister.gov WITH frDocType 'Rule' supplied -> regulation, no hold, canonicalKey the FR document number", () => {
   const row = { document_url: "https://www.federalregister.gov/documents/2024/01/05/2024-00001/title-slug" };
   const id = resolveIdentity(row, SOURCE_FR, { frDocType: "Rule" });
   assert.deepEqual(id, {
-    scheme: "federal_register", canonicalKey: null, itemType: "regulation", jurisdictionIso: "US",
+    scheme: "federal_register", canonicalKey: "2024-00001", itemType: "regulation", jurisdictionIso: "US",
     hold: null, host: "www.federalregister.gov", frType: "Rule", frDocumentNumber: "2024-00001",
+  });
+});
+
+test("resolveIdentity: federalregister.gov WITH frDocType 'Proposed Rule' supplied -> initiative, no hold (Lane HELD)", () => {
+  const row = { document_url: "https://www.federalregister.gov/documents/2024/01/05/2024-00001/title-slug" };
+  const id = resolveIdentity(row, SOURCE_FR, { frDocType: "Proposed Rule" });
+  assert.deepEqual(id, {
+    scheme: "federal_register", canonicalKey: "2024-00001", itemType: "initiative", jurisdictionIso: "US",
+    hold: null, host: "www.federalregister.gov", frType: "Proposed Rule", frDocumentNumber: "2024-00001",
   });
 });
 
@@ -164,11 +176,119 @@ test("resolveIdentity: federalregister.gov URL with no /documents/YYYY/MM/DD/<do
   });
 });
 
-test("resolveIdentity: an unmapped host holds identity_unmapped_source, host recorded, never guessed", () => {
+test("resolveIdentity: a host outside the three coded families whose document_url does NOT institution-match its own row's registered source still holds identity_unmapped_source, host recorded, never guessed", () => {
+  // The document is on mlit.go.jp but this row's OWN registered source is a different institution
+  // (e.g. a mis-joined census row, or a redirect off-institution) -- sameInstitution() is false, so this
+  // must stay held exactly as before Lane HELD's fix.
   const row = { document_url: "https://mlit.go.jp/some/page" };
-  assert.deepEqual(resolveIdentity(row, { url: "https://mlit.go.jp" }), {
+  assert.deepEqual(resolveIdentity(row, { url: "https://transport.gov.example", category: "regulatory" }), {
     scheme: null, canonicalKey: null, itemType: null, jurisdictionIso: null, hold: "identity_unmapped_source", host: "mlit.go.jp",
   });
+});
+
+// ── resolveIdentity: the registered-institution fallback (Lane HELD, 2026-09-02) ───────────────────────
+// A host outside the three coded families (eurlex/uk_legislation/federal_register) is no longer
+// automatically identity_unmapped_source: census_worklist.source_id already ties the row to a REGISTERED
+// `sources` row, and when the document_url institution-matches that row's own registered url
+// (institutionKey equality, scripts/lib/institution-key.mjs's sameInstitution), the row is a document FROM
+// an institution this registry already trusts -- not "unmapped."
+
+test("resolveIdentity: a host outside the three coded families, institution-matching its own row's REGULATORY-category registered source -> item_type regulation, no hold, scheme registered_institution, canonicalKey null (no scheme invented)", () => {
+  const row = { document_url: "https://sdir.no/siteassets/engelske-forskrifter-pdf/30-may-2012-no.-488-environmental-safety-for-ships-and-mobile-offshore-units.pdf" };
+  assert.deepEqual(resolveIdentity(row, { url: "https://sdir.no/", category: "regulatory" }), {
+    scheme: "registered_institution", canonicalKey: null, itemType: "regulation", jurisdictionIso: null,
+    hold: null, host: "sdir.no", category: "regulatory",
+  });
+});
+
+test("resolveIdentity: institution-matched but a NON-regulatory category -> institution_category_unmapped, naming the category, never forced to regulation", () => {
+  const row = { document_url: "https://think-tank.example/reports/x.pdf" };
+  assert.deepEqual(resolveIdentity(row, { url: "https://think-tank.example", category: "research" }), {
+    scheme: null, canonicalKey: null, itemType: null, jurisdictionIso: null,
+    hold: "institution_category_unmapped", host: "think-tank.example", category: "research",
+  });
+});
+
+test("resolveIdentity: institution-matched but source.category is unset -> institution_category_unmapped with category null, never guessed regulatory", () => {
+  const row = { document_url: "https://agency.example/x.pdf" };
+  assert.deepEqual(resolveIdentity(row, { url: "https://agency.example" }), {
+    scheme: null, canonicalKey: null, itemType: null, jurisdictionIso: null,
+    hold: "institution_category_unmapped", host: "agency.example", category: null,
+  });
+});
+
+test("resolveIdentity: a shared-government-portal host institution-matches only within its own path prefix (SHARED_PORTAL_KEYDEPTH, institution-key.mjs) -- a different agency on the SAME host still holds identity_unmapped_source", () => {
+  const row = { document_url: "https://gob.mx/economia/algo" };
+  assert.deepEqual(resolveIdentity(row, { url: "https://gob.mx/semarnat", category: "regulatory" }), {
+    scheme: null, canonicalKey: null, itemType: null, jurisdictionIso: null, hold: "identity_unmapped_source", host: "gob.mx",
+  });
+});
+
+// ── the exact mint-run-012 held fixture (Lane HELD, 2026-09-02) ────────────────────────────────────────
+// scripts/_snapshots/population-33678399902/census-rows.held.json IS the 8-row held file this fix was
+// root-caused against (docs/plans/wave2-lanes-2026-09-02.md's own evidence). This block runs resolveIdentity
+// on every one of those 8 rows verbatim -- never a re-typed copy -- so a future edit to the fixture file or
+// to resolveIdentity is caught here, not just in the synthetic unit tests above. The `sources` registry
+// row for each identity_unmapped_source host is not in this repo (census-rows.json holds only the KEPT/
+// exported rows, not the 8 that were held -- see export-census-rows.mjs's own file-shape note above
+// buildRows), so a same-institution, category:"regulatory" source is supplied here, matching
+// institution-key.mjs's own documented evidence that every one of these seven hosts (this fixture's four)
+// is a single-institution host with no SHARED_PORTAL_KEYDEPTH collision.
+const HELD_RUN_012_FIXTURE = JSON.parse(
+  readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "..", "_snapshots", "population-33678399902", "census-rows.held.json"), "utf8"),
+);
+
+test("mint-run-012 fixture: exactly 8 held rows, the three classes this lane closed", () => {
+  assert.equal(HELD_RUN_012_FIXTURE.length, 8);
+  const byReason = {};
+  for (const r of HELD_RUN_012_FIXTURE) byReason[r.reason] = (byReason[r.reason] ?? 0) + 1;
+  assert.deepEqual(byReason, { identity_unmapped_source: 4, item_type_unmapped: 1, canonical_key_unresolved: 3 });
+});
+
+test("mint-run-012 fixture: the 4 identity_unmapped_source rows (sdir.no, climate.ec.europa.eu x2, rules.cityofnewyork.us) now resolve to item_type regulation via their own registered (regulatory-category) institution, no hold", () => {
+  const rows = HELD_RUN_012_FIXTURE.filter((r) => r.reason === "identity_unmapped_source");
+  assert.equal(rows.length, 4);
+  for (const r of rows) {
+    const censusRow = { document_url: r.document_url, instrument_identifier: r.instrument_identifier };
+    const source = { url: `https://${r.host}/`, category: "regulatory" };
+    const identity = resolveIdentity(censusRow, source);
+    assert.equal(identity.hold, null, `${r.row_id} (${r.host}) should no longer hold`);
+    assert.equal(identity.scheme, "registered_institution");
+    assert.equal(identity.itemType, "regulation");
+  }
+});
+
+test("mint-run-012 fixture: the FR item_type_unmapped row (Proposed Rule, 2026-13667) resolves to initiative with its own FR document number as canonicalKey, no hold", () => {
+  const r = HELD_RUN_012_FIXTURE.find((x) => x.reason === "item_type_unmapped");
+  assert.equal(r.fr_type, "Proposed Rule");
+  const censusRow = { document_url: r.document_url, instrument_identifier: r.instrument_identifier };
+  const source = { url: "https://www.federalregister.gov", category: "regulatory" };
+  const identity = resolveIdentity(censusRow, source, { frDocType: r.fr_type });
+  assert.equal(identity.hold, null);
+  assert.equal(identity.itemType, "initiative");
+  assert.equal(identity.canonicalKey, "2026-13667");
+});
+
+test("mint-run-012 fixture: 2 of the 3 canonical_key_unresolved CELEX rows (sector-2 agreements 22004A0806(01), 21998A0912(01)) now resolve to framework, no hold; the EFTA E-prefixed row (E2012C0522, a shape deriveKey does not parse) stays held", () => {
+  const rows = HELD_RUN_012_FIXTURE.filter((r) => r.reason === "canonical_key_unresolved");
+  assert.equal(rows.length, 3);
+  const efta = rows.find((r) => r.instrument_identifier === "E2012C0522");
+  const sector2a = rows.filter((r) => r.instrument_identifier !== "E2012C0522");
+  assert.equal(sector2a.length, 2);
+  const source = { url: "https://eur-lex.europa.eu/", category: "regulatory" };
+  for (const r of sector2a) {
+    const censusRow = { document_url: r.document_url, instrument_identifier: r.instrument_identifier };
+    const identity = resolveIdentity(censusRow, source);
+    assert.equal(identity.hold, null, `${r.instrument_identifier} should now resolve`);
+    assert.equal(identity.itemType, "framework");
+    assert.equal(identity.canonicalKey, r.instrument_identifier);
+  }
+  // The EFTA "E"-prefixed key is a genuinely different numbering scheme deriveKey() does not parse at all
+  // (out of this lane's write set -- canonical-key.mjs). It stays held, explicitly, not guessed.
+  const eftaCensusRow = { document_url: efta.document_url, instrument_identifier: efta.instrument_identifier };
+  const eftaIdentity = resolveIdentity(eftaCensusRow, source);
+  assert.equal(eftaIdentity.hold, "canonical_key_unresolved");
+  assert.equal(eftaIdentity.canonicalKey, null);
 });
 
 // ── stripHtmlToText / extractTitleFromHtml / extractEurlexTitle ────────────────────────────────────────
@@ -577,8 +697,10 @@ test("buildRows: a non-2xx live fetch also holds capture_blocked with the status
 // ── buildRows: identity holds short-circuit BEFORE any network call ────────────────────────────────────
 
 test("buildRows: an identity hold (item_type_unmapped etc.) is reported WITHOUT any capture attempt", async () => {
+  // document_url's host does not institution-match its own row's registered source (mismatched, not the
+  // same institution) -- stays identity_unmapped_source, never captured.
   const kept = [{ id: "r1", source_id: "s1", document_url: "https://mlit.go.jp/x", instrument_identifier: null }];
-  const sourcesById = new Map([["s1", { ...SOURCE, url: "https://mlit.go.jp" }]]);
+  const sourcesById = new Map([["s1", { ...SOURCE, url: "https://transport.gov.example" }]]);
   let fetchCalls = 0;
   const fetchImpl = async () => { fetchCalls += 1; throw new Error("must not fetch"); };
   const { held } = await buildRows(kept, { sourcesById, existingCaptureByUrl: new Map(), capture: true, fetchImpl });
@@ -646,7 +768,8 @@ test("buildRows: federalregister.gov end to end under --capture — API lookup t
   assert.equal(rows[0].item_type, "regulation");
   assert.equal(rows[0].title, "Privacy Act of 1974; System of Records");
   assert.equal(rows[0].title_origin, "fr_api_title");
-  assert.equal(rows[0].canonical_instrument_key, null);
+  // Lane HELD (2026-09-02): canonical_instrument_key is now the FR's own document number, never null.
+  assert.equal(rows[0].canonical_instrument_key, "2024-00001");
   assert.equal(rows[0].jurisdiction_iso, "US");
   assert.equal(captured, 1);
 });

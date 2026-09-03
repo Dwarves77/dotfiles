@@ -24,6 +24,10 @@ import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { HomeSurface } from "@/components/home/HomeSurface";
 import { ChangedSinceStrip } from "@/components/dashboard/ChangedSinceStrip";
+import { MarketIntelPulse } from "@/components/dashboard/MarketIntelPulse";
+import { ResearchPulse } from "@/components/dashboard/ResearchPulse";
+import { OperationsPulse } from "@/components/dashboard/OperationsPulse";
+import { CommunityPulse } from "@/components/dashboard/CommunityPulse";
 
 export default async function Home() {
   const [data, aggregates, surfaceCoverage] = await Promise.all([
@@ -79,6 +83,10 @@ export default async function Home() {
         coverageGapsPromise={coverageGapsPromise}
         surfaceCoverage={surfaceCoverage}
         changedSinceStrip={<ChangedSinceStrip />}
+        marketIntelPulse={<MarketIntelPulse />}
+        researchPulse={<ResearchPulse />}
+        operationsPulse={<OperationsPulse />}
+        communityPulse={<CommunityPulse />}
       />
     </>
   );

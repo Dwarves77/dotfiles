@@ -5,7 +5,11 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { fetchSupersededNotices } from "@/lib/propagation/methods/superseded-notices.ts";
-import type { SupersededNotice, NoticesClient } from "@/lib/propagation/methods/superseded-notices.ts";
+import type { NoticesClient } from "@/lib/propagation/methods/superseded-notices.ts";
+// resolveSinceParam and attachEntityLabels live in a sibling module, not here: a
+// route.ts may export only route handlers/config (F34's named residual — `next
+// build --webpack` rejects any other export field). See logic.ts's header.
+import { resolveSinceParam, attachEntityLabels } from "./logic";
 
 // GET /api/notices — org-scoped RecalculationNotice feed (docs/specs/08-flywheel-design.md §2.2 Part 3 /
 // §4 Layer 4). "Superseded derived_values (both versions) for entities on org's org_watchlist since
@@ -28,39 +32,6 @@ import type { SupersededNotice, NoticesClient } from "@/lib/propagation/methods/
 // schema-level grant) — resolving a label is a second, ordinary `.from("entities")` read, outside the
 // derived_values gate entirely, so it stays in this route rather than needing its own propagation-tree
 // detour.
-
-const DEFAULT_WINDOW_DAYS = 30;
-
-/**
- * Resolve the `?since=` query param to an ISO timestamp, defaulting to `DEFAULT_WINDOW_DAYS` days before
- * `now` when absent, empty, or unparseable — a malformed `since` degrades to the default window rather
- * than 400ing the caller (this is a notices feed, not a strict filter API; a wrong window is recoverable
- * by the caller simply re-requesting with a fixed value, whereas a hard 400 would break a naive integration
- * that forwards whatever it was last given). PURE — `now` is always injected.
- */
-export function resolveSinceParam(sinceRaw: string | null, now: Date): string {
-  if (!sinceRaw) return defaultSince(now);
-  const parsed = new Date(sinceRaw);
-  if (Number.isNaN(parsed.getTime())) return defaultSince(now);
-  return parsed.toISOString();
-}
-
-function defaultSince(now: Date): string {
-  return new Date(now.getTime() - DEFAULT_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
-}
-
-/** One SupersededNotice + its resolved entity label/href — the exact shape RecalculationNotice.tsx's
- *  `RecalculationNoticeItem` expects. PURE — takes the label map as a plain object, no I/O. */
-export function attachEntityLabels(
-  notices: SupersededNotice[],
-  labelsByEntityId: Record<string, string>
-): Array<SupersededNotice & { entityLabel: string | null; href: string | null }> {
-  return notices.map((n) => ({
-    ...n,
-    entityLabel: (n.entityId && labelsByEntityId[n.entityId]) || n.entityId || null,
-    href: n.entityId ? `/entities/${encodeURIComponent(n.entityId)}` : null,
-  }));
-}
 
 async function handleGET(request: NextRequest) {
   const auth = await requireAuth(request);

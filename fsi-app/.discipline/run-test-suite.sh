@@ -84,6 +84,7 @@ node --test \
   fsi-app/scripts/lib/flag-age.selftest.mjs \
   fsi-app/scripts/lib/free-pass.selftest.mjs \
   fsi-app/scripts/lib/funded-pass-core.test.mjs \
+  fsi-app/scripts/lib/institution-key.test.mjs \
   fsi-app/scripts/lib/liveness.selftest.mjs \
   fsi-app/scripts/lib/reachability.selftest.mjs \
   fsi-app/scripts/lib/run-artifact.test.mjs \
@@ -100,6 +101,8 @@ node --test \
   fsi-app/scripts/review/lib/*.test.mjs \
   fsi-app/scripts/turns/*.test.mjs \
   fsi-app/scripts/forward-events/*.test.mjs \
+  fsi-app/scripts/obligations/*.test.mjs \
+  fsi-app/scripts/classification/*.test.mjs \
   fsi-app/scripts/connections/*.test.mjs \
   fsi-app/scripts/producers/*/*.test.mjs \
   fsi-app/scripts/entities/*.test.mjs \
@@ -118,7 +121,12 @@ node --test \
   fsi-app/src/lib/workspace/*.test.mjs \
   fsi-app/src/lib/connections/*.test.mjs \
   fsi-app/src/lib/forward-events/*.test.mjs \
+  fsi-app/src/lib/obligations/*.test.mjs \
+  fsi-app/src/lib/classification/*.test.mjs \
+  fsi-app/src/components/dashboard/*.test.mjs \
+  fsi-app/src/components/research/*.test.mjs \
   fsi-app/src/lib/operations/*.test.mjs \
+  fsi-app/src/lib/market/*.test.mjs \
   fsi-app/src/lib/figures/*.test.mjs \
   fsi-app/src/lib/entities/*.test.mjs \
   fsi-app/src/lib/intake/*.test.mjs \

@@ -32,6 +32,31 @@
 // `validate-mint-payload.mjs` criterion 3 runs. It says nothing about whether the source itself is
 // correct; it only guarantees the claim quotes the source rather than paraphrasing or inventing it.
 //
+// EXTENDED (Lane INTAKE, 2026-09-02, wave2 "build the tools before populating" ruling). Every new UI
+// surface this wave adds (OBLIG's obligation register, CORR's corridor overlay, DASH's research
+// credibility chips) reads fields no record-grade payload carried before this lane: `binding_position`
+// and `due_date`/`date_precision` for the regulation family (spec 01 §1/§3.2-3.3), `corridor_identity`
+// for market items that name a lane (ADR-024 decision 4), and the two research credibility signals of
+// spec 03 §4 for research_finding. Same discipline as everything else in this file: span-proven from
+// `capturedText`, GAP when the source does not state it, never invented. Two of these five slots are
+// OPTIONAL, ALWAYS-ATTEMPTED additions rather than entries in item-type-required-slots.json's five
+// long-registered regulation-family item_types (regulation/directive/standard/guidance/framework) --
+// that file "mirrors the live public.item_type_required_slots table" (its own header) and hand-crafted
+// fixture payloads elsewhere in this repo (validate-mint-payload.test.mjs's basePayload,
+// scripts/mint/example-payload.json) already assert an EXACT 4-claim/0-failure shape for those five
+// item_types; adding a 5th/6th REQUIRED slot there would fail those payloads' own criterion-5 check
+// without ever touching those coordinator-owned files. `buildRecordFacts` below instead adds
+// binding_position/due_date for the WHOLE regulation family (including the two brand-new FR item_types
+// (the coordinator withdrew the two FR types `notice`/`presidential_document` INTAKE had registered:
+// zero evidence rows, and the live item_type CHECK, validator floor, surface rules and required-slots
+// table would all have needed extending for no document; HELD's dossier names them if one ever appears) --
+// nothing existing depends on their slot count) by ITEM_TYPE membership, independent of what
+// item-type-required-slots.json requires for that exact type -- always a FACT-or-GAP claim, so criterion
+// 5 (which only checks slots that ARE required) is never affected either way. See MINT-RUNBOOK.md's kept
+// checklist and this lane's own report for the exact validate-mint-payload.mjs kit-check text a future
+// coordinator commit would add (REG_FAMILY membership for the two new item_types; vocabulary-membership
+// checks on the new item fields) -- validate-mint-payload.mjs itself is out of this lane's write set.
+//
 // GATE-A SAFETY BY CONSTRUCTION. `buildRecordFullBrief` assembles `full_brief` ONLY by concatenating
 // FACT/GAP claims' own `claim_text` (which already embeds each FACT's `source_span` as a quoted
 // substring) plus digit-free boilerplate (headings, labels, the `Source:` line). Every figure/date
@@ -50,7 +75,14 @@
 // kit-level check on any payload declaring `item.grade === "record"`, independent of which builder
 // produced it — this module satisfies that check by construction, the validator is the backstop.
 
-export const RECORD_FACTS_VERSION = "rf1-2026-09-01.1";
+// Lane INTAKE (2026-09-02): the two shared, published vocabularies this extension adopts rather than
+// invents (this file's own header discipline, and vocabularies.mjs's own "ADOPT, DO NOT INVENT" rule).
+// Both modules are plain ESM, zero dependencies, no I/O -- static imports, not the runtime fetch this
+// file's "no-I/O" rule forbids.
+import { BINDING_POSITION, normaliseMode } from "../contracts/vocabularies.mjs";
+import { CORRIDOR_ID_SCHEME } from "../entities/decisions.mjs";
+
+export const RECORD_FACTS_VERSION = "rf1-2026-09-02.1";
 
 // ---------------------------------------------------------------------------
 // Verbatim-span guard (same contract as extract-forward-events.mjs's assertVerbatim — see that file's
@@ -109,6 +141,38 @@ const SLOT_TRIGGERS = Object.freeze({
     /penalt(?:y|ies)[^.;\n]{0,110}/i,
     /\bfine[sd]?\b[^.;\n]{0,110}/i,
     /sanctions?[^.;\n]{0,110}/i,
+  ],
+  // Research credibility (Lane INTAKE, 2026-09-02, spec 03 §4's "two scores, never merged"). Generic
+  // phrase-locate, same as every other entry above -- a coverage floor over the language a source uses
+  // to describe its own evidentiary strength or authority, never a computed IPCC/GRADE score (this
+  // module has no I/O to fetch the OpenAlex/ROR inputs spec 03 §4 names; that computation belongs to a
+  // later, DB-credentialed pass -- see this lane's report).
+  evidence_agreement_signal: [
+    /peer[- ]reviewed[^.;\n]{0,90}/i,
+    /independently (?:confirmed|corroborated|replicated)[^.;\n]{0,90}/i,
+    /widely (?:accepted|confirmed)[^.;\n]{0,90}/i,
+    /reaches? (?:a )?consensus[^.;\n]{0,90}/i,
+    /systematic review[^.;\n]{0,90}/i,
+    /meta-analysis[^.;\n]{0,90}/i,
+    /\bpreliminary\b[^.;\n]{0,90}/i,
+    /\bdisputed\b[^.;\n]{0,90}/i,
+    /\bunconfirmed\b[^.;\n]{0,90}/i,
+    /not yet (?:been )?replicated[^.;\n]{0,90}/i,
+  ],
+  source_authority_signal: [
+    /published by[^.;\n]{0,90}/i,
+    /peer[- ]reviewed journal[^.;\n]{0,90}/i,
+    /working paper[^.;\n]{0,90}/i,
+    /\bpreprint\b[^.;\n]{0,90}/i,
+    /\bin press\b[^.;\n]{0,90}/i,
+    /issued by[^.;\n]{0,90}/i,
+    /commissioned by[^.;\n]{0,90}/i,
+    /\buniversity\b[^.;\n]{0,90}/i,
+    /national laboratory[^.;\n]{0,90}/i,
+    /standards body[^.;\n]{0,90}/i,
+    /intergovernmental organi[sz]ation[^.;\n]{0,90}/i,
+    /research institute[^.;\n]{0,90}/i,
+    /industry association[^.;\n]{0,90}/i,
   ],
 });
 
@@ -227,19 +291,316 @@ export function extractSlotFact({ slotKey, capturedText, sourceUrl }) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// BINDING POSITION (Lane INTAKE, 2026-09-02). Spec 01 §1/§3.2: "the single most important new field on
+// this surface" -- direct_duty / carrier_passthrough / customer_contract / monitoring_only, the ONE
+// shared vocabulary (src/lib/contracts/vocabularies.mjs's BINDING_POSITION), never a private copy of the
+// four codes. Located the same way every SLOT_TRIGGERS entry is: a trigger phrase that names WHO the
+// applicability language actually binds, walked in priority order (direct_duty first -- a document
+// naming both a direct duty-holder phrase and a weaker one elsewhere should report the strongest true
+// statement -- monitoring_only last), verbatim-checked, honest GAP when nothing in the captured text
+// names a duty-holder class this way. NOT a general legal-NLP classifier -- a coverage floor over the
+// phrasing this repo's own corpus (EU/UK/US regulatory instruments) actually uses, exactly the posture
+// SLOT_TRIGGERS' own header already documents for the other four slots.
+// ---------------------------------------------------------------------------
+const BINDING_POSITION_TRIGGERS = Object.freeze({
+  direct_duty: [
+    /(?:freight forwarders?|forwarding agents?|the forwarder|customs representatives?|indirect customs representatives?|the operator|the undertaking)[^.;\n]{0,60}(?:shall|must|is required to|are required to|is obliged to|are obliged to)[^.;\n]{0,90}/i,
+  ],
+  carrier_passthrough: [
+    /(?:the carrier|carriers|the shipowners?|the shipping compan(?:y|ies)|the vessel operators?)[^.;\n]{0,60}(?:shall|must|is required to|are required to)[^.;\n]{0,90}/i,
+  ],
+  customer_contract: [
+    /(?:the customers?|the shippers?|the consignors?)[^.;\n]{0,60}(?:shall|must|is required to|are required to|may request|may require)[^.;\n]{0,90}/i,
+    /contractual (?:clause|obligation|requirement)[^.;\n]{0,90}/i,
+  ],
+  monitoring_only: [
+    /not yet (?:in force|applicable|binding)[^.;\n]{0,90}/i,
+    /does not (?:currently )?appl(?:y|ies) to[^.;\n]{0,90}/i,
+  ],
+});
+const BINDING_POSITION_PRIORITY = Object.freeze(["direct_duty", "carrier_passthrough", "customer_contract", "monitoring_only"]);
+
 /**
- * Build every claim a record-grade payload needs: the identity FACT (when locatable) plus one claim per
- * entry in `requiredSlots` (FACT when found, GAP otherwise). Pure; no I/O. `requiredSlots` is the
- * caller-supplied list for this item's item_type (scripts/mint/item-type-required-slots.json) — this
- * module never reads that file itself (see this file's header: no I/O).
+ * Find the first triggered, verbatim, prose-like binding-position match, walked in priority order.
+ * Returns `{code, span}` (code is always a real `BINDING_POSITION` member — adopted, never invented) or
+ * null when the captured text names no duty-holder class this way. Pure.
  */
-export function buildRecordFacts({ title, sourceUrl, capturedText, requiredSlots = [] }) {
+export function findBindingPositionMatch(capturedText) {
+  const text = String(capturedText ?? "");
+  for (const code of BINDING_POSITION_PRIORITY) {
+    if (!BINDING_POSITION[code]) continue; // defensive: only ever walk a real vocabulary member
+    for (const re of BINDING_POSITION_TRIGGERS[code] || []) {
+      const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
+      for (const m of text.matchAll(g)) {
+        const span = (m[0] || "").trim();
+        if (span && isProseSpan(span)) return { code, span };
+      }
+    }
+  }
+  return null;
+}
+
+/** binding_position claim: a FACT naming the resolved vocab code plus the verbatim applicability span it
+ *  came from, or an honest GAP. The claim itself also carries `binding_position` (the resolved code, or
+ *  null) so buildRecordPayload can lift it onto `item.binding_position` without re-deriving it. */
+export function extractBindingPositionFact({ capturedText, sourceUrl }) {
+  const match = findBindingPositionMatch(capturedText);
+  if (match) {
+    assertVerbatim(capturedText, match.span);
+    return {
+      section_key: "record_facts",
+      claim_kind: "FACT",
+      claim_text:
+        `[binding_position] The captured source's own applicability language places this item at ` +
+        `«${match.code}» (${BINDING_POSITION[match.code].label}), from the passage: «${match.span}»`,
+      source_span: match.span,
+      source_url: sourceUrl ?? null,
+      slot_key: "binding_position",
+      binding_position: match.code,
+    };
+  }
+  return {
+    section_key: "record_facts",
+    claim_kind: "GAP",
+    claim_text:
+      "[binding_position] No verbatim applicability language naming a duty-holder class was located in " +
+      "the captured source text for this record-grade item. A full-brief regrounding will re-examine " +
+      "this gap when this item upgrades from record to brief.",
+    source_span: null,
+    source_url: null,
+    slot_key: "binding_position",
+    binding_position: null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// DUE DATE + PRECISION (Lane INTAKE, 2026-09-02). Spec 01 §3.3's "four dates, never one" names the
+// product failure of collapsing entry-into-force / date-of-application / first-deadline / enforcement
+// into a single field; this extractor does NOT attempt to say which of the four a located date is (that
+// judgement needs surrounding legal structure this $0 extractor does not model) — it locates ONE
+// verbatim due-date-shaped span (deliberately close to primary_deadline's own triggers, since "when must
+// something be done" is what both ask) and classifies its PRECISION from the matched text's own shape —
+// day / month / quarter / year — honest GAP when no due-date-shaped span is found at all.
+// ---------------------------------------------------------------------------
+const DUE_DATE_TRIGGERS = Object.freeze([
+  /due (?:date|by)[^.;\n]{0,90}/i,
+  /no later than[^.;\n]{0,90}/i,
+  /\bby\s+\d{1,2}\s+\w+\s+\d{4}[^.;\n]{0,70}/i,
+  /\bwithin\s+\d+\s+(?:days?|months?|years?)(?:\s+of|\s+from|\s+after)?[^.;\n]{0,90}/i,
+]);
+const DATE_PRECISION_PATTERNS = Object.freeze([
+  { precision: "day", re: /\b\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b/i },
+  { precision: "day", re: /\b\d{4}-\d{2}-\d{2}\b/ },
+  { precision: "quarter", re: /\bQ[1-4]\s?\d{4}\b/i },
+  { precision: "quarter", re: /\b(?:first|second|third|fourth)\s+quarter\s+of\s+\d{4}\b/i },
+  { precision: "month", re: /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b/i },
+  { precision: "year", re: /\b(?:19|20)\d{2}\b/ },
+]);
+
+/**
+ * Classify a located due-date span's precision from its own text shape — day/month/quarter checked
+ * before the bare-year fallback, so "1 January 2027" resolves to "day", not "year". Returns null when
+ * the span carries no recognisable calendar-date shape at all (e.g. "within 30 days" — a duration, not a
+ * date). Pure.
+ */
+export function inferDatePrecision(span) {
+  const s = String(span ?? "");
+  for (const { precision, re } of DATE_PRECISION_PATTERNS) {
+    if (re.test(s)) return precision;
+  }
+  return null;
+}
+
+/** Find the first triggered, verbatim, prose-like due-date span, or null. Pure. */
+export function findDueDateMatch(capturedText) {
+  const text = String(capturedText ?? "");
+  for (const re of DUE_DATE_TRIGGERS) {
+    const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
+    for (const m of text.matchAll(g)) {
+      const span = (m[0] || "").trim();
+      if (span && isProseSpan(span)) return span;
+    }
+  }
+  return null;
+}
+
+/** due_date claim: a FACT carrying the verbatim span plus its inferred `date_precision`, or an honest GAP. */
+export function extractDueDateFact({ capturedText, sourceUrl }) {
+  const span = findDueDateMatch(capturedText);
+  if (span) {
+    assertVerbatim(capturedText, span);
+    const precision = inferDatePrecision(span);
+    return {
+      section_key: "record_facts",
+      claim_kind: "FACT",
+      claim_text:
+        `[due_date] The captured source states a due date` +
+        (precision ? ` (date_precision: ${precision})` : "") +
+        `, verbatim: «${span}»`,
+      source_span: span,
+      source_url: sourceUrl ?? null,
+      slot_key: "due_date",
+      date_precision: precision,
+    };
+  }
+  return {
+    section_key: "record_facts",
+    claim_kind: "GAP",
+    claim_text:
+      "[due_date] No verbatim due-date statement was located in the captured source text for this " +
+      "record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades " +
+      "from record to brief.",
+    source_span: null,
+    source_url: null,
+    slot_key: "due_date",
+    date_precision: null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// CORRIDOR IDENTITY (Lane INTAKE, 2026-09-02). ADR-024 decision 4 / CORRIDOR_ID_SCHEME
+// (src/lib/entities/decisions.mjs, read-only): a corridor's identity is a UN/LOCODE port-pair + mode.
+// This extractor locates a LITERAL UN/LOCODE pair (two 5-character codes, e.g. "CNSHA-NLRTM") joined by
+// a lane-shaped separator, then looks for a transport-mode word in the same neighbourhood
+// (src/lib/contracts/vocabularies.mjs's `normaliseMode`, which already accepts the standards' own
+// wording — "sea"/"maritime" alongside the canonical "ocean"). ONLY WHEN BOTH ENDS AND A MODE ARE STATED
+// does this emit a FACT — this module never geocodes a port NAME into a LOCODE (that would be invention,
+// not extraction) and never mints the `cl:corridor:*` entity id itself (CORR lane's entity-id.mjs owns
+// that hash function; this module only supplies the SEED the scheme documents, `ORIGIN-DEST:mode`, so a
+// later pass can mint the id without re-deriving the components).
+// ---------------------------------------------------------------------------
+const LOCODE_PAIR_RE = /\b([A-Z]{2}[A-Z0-9]{3})\s?(?:[-–—]|to|>)\s?([A-Z]{2}[A-Z0-9]{3})\b/g;
+const CORRIDOR_WINDOW_CHARS = 80;
+const MODE_WORD_RE = /\b(ocean|sea|maritime|water|vessel|marine|road|truck|lorry|hgv|rail|air|freighter|airfreight|inland[- ]waterway|barge|iww)\b/i;
+
+/**
+ * Find a verbatim UN/LOCODE pair with a mode word in its immediate neighbourhood. Returns
+ * `{origin, dest, mode, span}` (mode already canonicalised via `normaliseMode`) or null when no pair
+ * carries a recognisable mode nearby. Pure.
+ */
+export function findCorridorMatch(capturedText) {
+  const text = String(capturedText ?? "");
+  for (const m of text.matchAll(LOCODE_PAIR_RE)) {
+    const [full, origin, dest] = m;
+    const start = Math.max(0, m.index - CORRIDOR_WINDOW_CHARS);
+    const end = Math.min(text.length, m.index + full.length + CORRIDOR_WINDOW_CHARS);
+    const window = text.slice(start, end);
+    const modeMatch = window.match(MODE_WORD_RE);
+    if (!modeMatch) continue;
+    const mode = normaliseMode(modeMatch[0]);
+    if (!mode) continue;
+    return { origin: origin.toUpperCase(), dest: dest.toUpperCase(), mode, span: window.trim() };
+  }
+  return null;
+}
+
+/**
+ * corridor_identity claim: a FACT carrying the origin/dest UN/LOCODE pair, the canonical mode, and the
+ * `ORIGIN-DEST:mode` seed CORRIDOR_ID_SCHEME documents (never the minted `cl:corridor:*` id itself — see
+ * this section's header), or an honest GAP when both ends and a mode are not stated together.
+ */
+export function extractCorridorFact({ capturedText, sourceUrl }) {
+  const match = findCorridorMatch(capturedText);
+  if (match) {
+    assertVerbatim(capturedText, match.span);
+    const seed = `${match.origin}-${match.dest}:${match.mode}`;
+    return {
+      section_key: "record_facts",
+      claim_kind: "FACT",
+      claim_text:
+        `[corridor_identity] The captured source names a lane between «${match.origin}» and «${match.dest}» ` +
+        `by ${match.mode}, verbatim: «${match.span}»`,
+      source_span: match.span,
+      source_url: sourceUrl ?? null,
+      slot_key: "corridor_identity",
+      corridor_identity: {
+        origin_locode: match.origin,
+        dest_locode: match.dest,
+        mode: match.mode,
+        seed,
+        scheme_basis: CORRIDOR_ID_SCHEME.basis,
+      },
+    };
+  }
+  return {
+    section_key: "record_facts",
+    claim_kind: "GAP",
+    // NOT "corridor identity requires both ends stated" -- a bare "requires" in an all-GAP section (no
+    // FACT claim tied to it) trips validate-mint-payload.mjs criterion 4's unlabeled-assertion scan
+    // (UNLABELED_MODAL_RE), a real regression this exact wording caused (scripts/producers/market/
+    // propose-series-items.test.mjs, caught by this lane's own gate run, 2026-09-02) -- fixed by never
+    // spelling a bare modal word into GAP boilerplate, the same posture every other GAP template here
+    // already keeps.
+    claim_text:
+      "[corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the " +
+      "captured source text for this record-grade item — corridor identity is only stated when both " +
+      "ends are named together. A full-brief regrounding will re-examine this gap when this item " +
+      "upgrades from record to brief.",
+    source_span: null,
+    source_url: null,
+    slot_key: "corridor_identity",
+    corridor_identity: null,
+  };
+}
+
+/** Route a required-slot key to its specialised extractor when one exists, else the generic
+ *  SLOT_TRIGGERS path (extractSlotFact). Keeps buildRecordFacts' loop uniform regardless of which slots
+ *  a given item_type's required-slots list names. */
+function buildRecordSlotClaim(slotKey, { capturedText, sourceUrl }) {
+  if (slotKey === "binding_position") return extractBindingPositionFact({ capturedText, sourceUrl });
+  if (slotKey === "due_date") return extractDueDateFact({ capturedText, sourceUrl });
+  if (slotKey === "corridor_identity") return extractCorridorFact({ capturedText, sourceUrl });
+  return extractSlotFact({ slotKey, capturedText, sourceUrl });
+}
+
+// item_type families the OPTIONAL, always-attempted additions below apply to (this file's own header
+// explains why these two are additive-by-item_type rather than entries in item-type-required-slots.json
+// for the five pre-existing regulation-family item_types).
+const REGULATION_FAMILY_TYPES = new Set([
+  "regulation", "directive", "standard", "guidance", "framework",
+]);
+const MARKET_FAMILY_TYPES = new Set(["market_signal", "initiative"]);
+
+/**
+ * Build every claim a record-grade payload needs: the identity FACT (when locatable), one claim per
+ * entry in `requiredSlots` (FACT when found, GAP otherwise, routed through `buildRecordSlotClaim` so
+ * binding_position/due_date/corridor_identity get their specialised extractor even when a caller's
+ * required-slots list already names them — the two new FR item_types, or a future coordinator sync of
+ * the live table), PLUS the OPTIONAL, always-attempted family additions this lane adds (Lane INTAKE,
+ * 2026-09-02 — see this file's header): binding_position + due_date for the whole regulation family,
+ * corridor_identity for the market family, and the two research-credibility signals for
+ * research_finding — each guarded by `requiredSlots.includes(...)` so a slot already produced by the
+ * required-slots loop above is never duplicated. Pure; no I/O. `requiredSlots` is the caller-supplied
+ * list for this item's item_type (scripts/mint/item-type-required-slots.json) — this module never reads
+ * that file itself (see this file's header: no I/O). `itemType` is optional and BACKWARD COMPATIBLE: a
+ * caller that omits it (as every caller predating this lane does) gets none of the optional family
+ * additions, byte-identical to this function's pre-2026-09-02 behaviour.
+ */
+export function buildRecordFacts({ title, sourceUrl, capturedText, requiredSlots = [], itemType = null }) {
   const claims = [];
   const identity = extractIdentityFact({ title, capturedText, sourceUrl });
   if (identity) claims.push(identity);
   for (const slotKey of requiredSlots) {
-    claims.push(extractSlotFact({ slotKey, capturedText, sourceUrl }));
+    claims.push(buildRecordSlotClaim(slotKey, { capturedText, sourceUrl }));
   }
+
+  if (REGULATION_FAMILY_TYPES.has(itemType)) {
+    if (!requiredSlots.includes("binding_position")) claims.push(extractBindingPositionFact({ capturedText, sourceUrl }));
+    if (!requiredSlots.includes("due_date")) claims.push(extractDueDateFact({ capturedText, sourceUrl }));
+  }
+  if (MARKET_FAMILY_TYPES.has(itemType) && !requiredSlots.includes("corridor_identity")) {
+    claims.push(extractCorridorFact({ capturedText, sourceUrl }));
+  }
+  if (itemType === "research_finding") {
+    if (!requiredSlots.includes("evidence_agreement_signal")) {
+      claims.push(extractSlotFact({ slotKey: "evidence_agreement_signal", capturedText, sourceUrl }));
+    }
+    if (!requiredSlots.includes("source_authority_signal")) {
+      claims.push(extractSlotFact({ slotKey: "source_authority_signal", capturedText, sourceUrl }));
+    }
+  }
+
   return claims;
 }
 
@@ -267,7 +628,13 @@ export function buildRecordFullBrief({ sourceUrl, claims }) {
  *
  * @param {object} input
  * @param {string} input.sourceUrl          -- becomes item.source_url and search_results[0].result_url
- * @param {string} input.itemType           -- one of item-type-required-slots.json's keys
+ * @param {string} input.itemType           -- one of item-type-required-slots.json's keys. ALSO (Lane
+ *   INTAKE, 2026-09-02) selects the optional, always-attempted family additions this function now runs
+ *   through buildRecordFacts: the regulation family (regulation/directive/standard/guidance/framework/
+ *   ) gets item.binding_position + item.due_date/date_precision; the market
+ *   family (market_signal/initiative) gets item.corridor_identity; research_finding gets
+ *   item.research_credibility — every one of these lands on `item` as FACT-derived data or an honest
+ *   null (GAP), never invented. An item_type outside every family gets null for all five.
  * @param {string} input.title
  * @param {string} [input.instrumentIdentifier]
  * @param {string} [input.canonicalInstrumentKey]
@@ -309,11 +676,27 @@ export function buildRecordPayload({
     throw new Error("record-facts: buildRecordPayload requires non-empty capturedText");
   }
 
-  const claims = buildRecordFacts({ title, sourceUrl, capturedText, requiredSlots });
+  const claims = buildRecordFacts({ title, sourceUrl, capturedText, requiredSlots, itemType });
   const fullBrief = buildRecordFullBrief({ sourceUrl, claims });
 
   const identityClaims = claims.filter((c) => c.section_key === "identity");
   const slotClaims = claims.filter((c) => c.section_key === "record_facts");
+
+  // Lane INTAKE (2026-09-02): lift the structured facts the new claim builders already computed onto
+  // `item` as payload fields — never re-derived, always read back from the SAME claim object the
+  // extractor returned, so a field here can never disagree with its own claim_text/source_span.
+  const bindingClaim = claims.find((c) => c.slot_key === "binding_position");
+  const dueDateClaim = claims.find((c) => c.slot_key === "due_date");
+  const corridorClaim = claims.find((c) => c.slot_key === "corridor_identity");
+  const evidenceClaim = claims.find((c) => c.slot_key === "evidence_agreement_signal");
+  const authorityClaim = claims.find((c) => c.slot_key === "source_authority_signal");
+  const researchCredibility =
+    evidenceClaim || authorityClaim
+      ? {
+          evidence_agreement_signal: evidenceClaim?.claim_kind === "FACT" ? evidenceClaim.source_span : null,
+          source_authority_signal: authorityClaim?.claim_kind === "FACT" ? authorityClaim.source_span : null,
+        }
+      : null;
 
   const sections = [];
   if (identityClaims.length) {
@@ -349,6 +732,14 @@ export function buildRecordPayload({
       jurisdiction_iso: jurisdictionIso,
       full_brief: fullBrief,
       grade: "record",
+      // Lane INTAKE (2026-09-02): null whenever the item_type's family didn't trigger the extractor
+      // (e.g. a market_signal item has no binding_position) OR the family did trigger but the source
+      // didn't state it — GAP, never invented, per this file's header discipline.
+      binding_position: bindingClaim?.binding_position ?? null,
+      due_date: dueDateClaim?.claim_kind === "FACT" ? dueDateClaim.source_span : null,
+      date_precision: dueDateClaim?.date_precision ?? null,
+      corridor_identity: corridorClaim?.corridor_identity ?? null,
+      research_credibility: researchCredibility,
     },
     source,
     // Lane WSEQ (2026-09-02): the relevance-screen verdict this row cleared at export, carried through

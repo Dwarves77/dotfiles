@@ -6,8 +6,11 @@ import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { APP_DATA_TAG } from "@/lib/data";
-import { WATCHLIST_LIST_KEY } from "@/lib/watchlist-order";
 import { LIST_ORDER_ITEM_ID_MAX, LIST_ORDER_SEED_MAX } from "@/lib/list-order";
+// The list_key allowlist lives in a sibling module, not here: a route.ts may
+// export only route handlers/config (F34's named residual — `next build
+// --webpack` rejects any other export field). See logic.ts's header.
+import { LIST_KEYS } from "./logic";
 
 // /api/user/list-order — personal drag ordering (migrations 237 + 238).
 //
@@ -22,21 +25,6 @@ import { LIST_ORDER_ITEM_ID_MAX, LIST_ORDER_SEED_MAX } from "@/lib/list-order";
 // rewrite anyone else's order straight through the RLS policies on
 // user_list_order.
 
-// list_key is an ALLOWLIST, not free text. The column takes any string up to 64
-// chars, so without this a client could mint unbounded distinct keys and grow
-// the table without limit — one row per key per item, none of them ever read by
-// a surface. Adding a new orderable surface is a deliberate edit here.
-export const LIST_KEYS = [
-  // Imported rather than re-typed: the server reader and the drag client both
-  // key off this exact string, and a literal copy here could drift from it
-  // silently — the route would accept a key nothing reads.
-  WATCHLIST_LIST_KEY,
-  "regulations",
-  "market",
-  "research",
-  "operations",
-] as const;
-export type ListKey = (typeof LIST_KEYS)[number];
 const LIST_KEY_SET: ReadonlySet<string> = new Set(LIST_KEYS);
 const KEYS_HINT = LIST_KEYS.join("|");
 

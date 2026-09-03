@@ -23,9 +23,41 @@ also gained `isOjFileName` / `extractOjActTitle`: the same two rows carried the 
 title, and the body-lead fallback extracts the act title ("COMMISSION DECISION of 19 April 2023 …
 (2023/C 226/06)") with origin `captured_body_act_title`.
 
-**harness_version at write time:** `sha256:c2e34028ebc18ab2`
+That marker's own recorded hash was `sha256:c2e34028ebc18ab2` (superseded below — kept here, out of F28's
+exact "harness_version at write time:" phrasing, purely as history; F28's parser reads only the single
+current-hash line further down).
 
-**The planned run that supersedes this marker:** the next `population-turn` apply dispatch (limit 200,
-the first full slice after the screen gate and the kit check), which re-attempts the two `(01)` rows;
-its artifact re-hashes to this value and lands as `mint-run-015.json`, at which point this marker is
-stale-by-match and must be deleted per F28's reverse-audit.
+**Superseded before that run landed (2026-09-02, Lane INTAKE, wave2 "build the tools before populating"
+ruling):** no `population-turn` dispatch ran between the marker above and this re-stamp — the mint family
+still has no run past `mint-run-014.json` — but Lane INTAKE's write set (`src/lib/intake/record-facts.mjs`,
+`item-type-required-slots.json`, `payload-schema.json`, this runbook's own new §13) are FOUR of this
+family's eight governing files, so the hash the marker names is stale again regardless. What changed:
+`record-facts.mjs` gained five new extraction fields (`binding_position`, `due_date`/`date_precision`,
+`corridor_identity`, `research_credibility` — MINT-RUNBOOK.md §13 has the full account) that every future
+record-grade payload now carries; `item-type-required-slots.json` registered two new item_types
+(`notice`, `presidential_document`) and added slots to `market_signal`/`initiative`/`research_finding`
+(the five long-registered regulation-family item_types are UNCHANGED, by design — see §13); `payload-schema.json`
+documents the five new `item.*` fields (`additionalProperties` unchanged at every level). No mint batch
+ran against these files — this is a tools-before-population change, per the operator's own wave2 ruling,
+not a population run this marker's own escape hatch would otherwise require. `hashHarnessVersion(MINT_GOVERNING_FILES)`
+(from `scripts/lib/run-artifact.mjs` / `run-mint-batch.mjs`, computed the same way the CI/pre-push gate
+computes it) now reads:
+
+**Re-stamped by the coordinator at Wave 2 integration (2026-09-03):** `validate-mint-payload.mjs` gained
+`"registry"` in the screen-provenance allowlist (Lane RSRCH's research-sweep subject stamps it with the
+source's registry role as basis); `item-type-required-slots.json` lost the two FR types INTAKE had
+registered (`notice`, `presidential_document`: zero evidence rows, and the live item_type CHECK, the
+validator's floor lists, the surface rules and the live required-slots table would all have needed
+extending for no document). The slot additions to `market_signal`/`initiative`/`research_finding` stay
+in the kit and are deliberately NOT yet in the live `item_type_required_slots` table (adding them live
+would flip existing verified items to quarantined on their next trigger touch); they go live in the
+population train together with the re-mint. INTAKE's own stamp was `sha256:0091d3bcf17e7edf`.
+
+**harness_version at write time:** `sha256:c933647da54908a1`
+
+**The planned run that supersedes this marker:** the next `population-turn` apply dispatch (still limit
+200, still the first full slice after the screen gate and the kit check — Lane INTAKE changed nothing
+about that plan, only what a record-grade payload additionally carries) — this is still `mint-run-015.json`
+(no run has landed between `mint-run-014.json` and this re-stamp), and its artifact re-hashes to
+`sha256:0091d3bcf17e7edf`, at which point this marker is stale-by-match and must be deleted per F28's
+reverse-audit.

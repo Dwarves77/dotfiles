@@ -7,13 +7,11 @@ import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
 import { APP_DATA_TAG } from "@/lib/data";
-import {
-  TEAM_ONLY_TYPES,
-  isTeamOnlyScopeViolation,
-} from "@/lib/watchlist-scope";
-// Re-exported under their original names — see the comment further down for
-// why they now live in a shared module rather than being defined here.
-export { TEAM_ONLY_TYPES, isTeamOnlyScopeViolation };
+import { isTeamOnlyScopeViolation } from "@/lib/watchlist-scope";
+// ITEM_TYPES and teamOnlyError live in a sibling module, not here: a route.ts
+// may export only route handlers/config (F34's named residual — `next build
+// --webpack` rejects any other export field). See logic.ts's header.
+import { ITEM_TYPES, teamOnlyError } from "./logic";
 
 // /api/watchlist — the watchlist WRITER + READER, both scopes.
 //
@@ -40,19 +38,6 @@ export { TEAM_ONLY_TYPES, isTeamOnlyScopeViolation };
 // for both), which is why every value that reaches PostgREST goes through an
 // encoded builder method and never through string interpolation into a filter.
 
-// ITEM_TYPES and TEAM_ONLY_TYPES are exported (alongside isTeamOnlyScopeViolation
-// below) purely for direct unit test of the real validation, the same
-// route.ts-exports-a-pure-decision-function pattern
-// src/app/api/admin/sources/bulk-import/route.ts's headReachabilityDecision
-// already uses — it changes nothing about the route's HTTP contract.
-export const ITEM_TYPES = new Set([
-  "source",
-  "reg",
-  "signal",
-  "research",
-  "operations",
-  "market_series",
-]);
 const SCOPES = new Set(["personal", "team"]);
 
 // market_series is a TEAM-scope-only watchable type (WO-23). Migration 270
@@ -75,9 +60,10 @@ const SCOPES = new Set(["personal", "team"]);
 // otherwise have for any other item_type.
 //
 // TEAM_ONLY_TYPES and isTeamOnlyScopeViolation itself now live in
-// src/lib/watchlist-scope.ts (L6, WO-23 follow-up), imported and re-exported
-// here under their original names so this file's own tests
-// (route.npmtest.mjs) keep passing unchanged. They moved because
+// src/lib/watchlist-scope.ts (L6, WO-23 follow-up), imported here (not
+// re-exported: a route.ts may export only route handlers/config — F34's named
+// residual). route.npmtest.mjs imports them straight from watchlist-scope.ts.
+// They moved out of this file originally because
 // WatchButton.tsx — a "use client" component — needs the SAME decision to
 // avoid rendering a personal watch control this route will reject, and this
 // file is not safe for a client component to import (getServiceSupabase,
@@ -122,18 +108,6 @@ const noOrgError = () =>
   NextResponse.json(
     { error: "No organization membership resolved for this user; team scope unavailable" },
     { status: 403 }
-  );
-
-// The scope-conditional rejection for a TEAM_ONLY_TYPES item requested at
-// scope=personal. Names the actual reason (team-scope only), not a generic
-// "invalid type" — the caller did name a real item_type, just at a scope that
-// does not support it yet.
-export const teamOnlyError = (itemType: string) =>
-  NextResponse.json(
-    {
-      error: `item_type "${itemType}" is only watchable at scope=team; personal watching of ${itemType} is not supported`,
-    },
-    { status: 400 }
   );
 
 // GET /api/watchlist?item_type=reg&item_id=<id>

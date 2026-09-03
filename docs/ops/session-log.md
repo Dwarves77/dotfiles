@@ -8200,3 +8200,53 @@ Migration 288 marked APPLIED in the inventory (20:10 UTC).
 is listed in the plan file and checked pairwise before launch; shared files (`run-test-suite.sh` globs,
 `shared-dataset-ownership.md`, `invariants.mjs`, workflow YAMLs) are coordinator-only in Wave 2, lanes
 report the line they need and the coordinator adds it at integration.
+
+### Addendum 84, postscript 18 — build before populate; Wave 2 landed as one train (2026-09-03, early)
+
+**Operator ruling (2026-09-02, late):** "do you not think we should complete the tools and UI the site is
+using before we populate it?" Yes. Population was on the wrong side of the build: the mint pipeline
+changed five times in one day and every item minted before those changes needed re-screening or
+archiving, and the surfaces still to be built need fields the intake profile did not emit. Sequence now:
+Waves 2 and 3, then one population pass through the finished pipeline, then one flywheel turn. The plan
+file `docs/plans/wave2-lanes-2026-09-02.md` carries the ruling and the pairwise-disjoint write sets
+(operator: "make sure they do not overlap"); INTAKE was added so minted items carry what OBLIG, CORR and
+DASH read.
+
+**Nine lanes, zero cherry-pick conflicts.** What I checked myself before landing, and what I changed:
+- Every lane reported the coordinator-only lines it needed rather than writing them (suite globs ×7,
+  the DASH fixture splice, the shared-writer registry for AXIS and the BUILDGATE rename, the
+  surface-acceptance entries for the two surfaces that stopped being exempt). All added; F23, F33 and the
+  shared-writer test green. CORR wrote one suite glob itself (`src/lib/market/*.test.mjs`); harmless,
+  noted.
+- **INTAKE's two new FR item types withdrawn [CONFIRMED against the live DB]:** `intelligence_items`
+  carries `CHECK (item_type IN (...12 types))` and neither `notice` nor `presidential_document` is in it;
+  the live `validate_item_provenance` floor lists, `surface-of.mjs` (which code-generates a SQL function),
+  `domains.ts`, `mint-item.ts` and the live `item_type_required_slots` table would all have needed
+  extending, for zero evidence rows (HELD's own finding). Removed from the kit JSON, `record-facts.mjs`,
+  the schema and the tests; the runbook §13 records the disposition.
+- **INTAKE's new REQUIRED slots on `market_signal`/`initiative`/`research_finding` stay kit-only for now:**
+  the live `item_type_required_slots` table drives criterion 5 in the trigger; adding rows there would
+  flip every existing verified item of those types to `quarantined` on its next touch. They go live in the
+  population train with the re-mint. Kit stricter than database is the safe direction; recorded in the
+  runbook and the marker.
+- RSRCH's `"registry"` screen provenance admitted in the validator (one-line allowlist); the two tests
+  RSRCH had pinned to the old rejection flipped to the accepted behaviour, and its prose rewritten.
+- Mint marker re-stamped `sha256:c933647da54908a1` (INTAKE's `0091d3bc…` superseded by my validator and
+  slot-file edits), still naming mint-run-015.
+- **Gates on the integrated train [CONFIRMED]:** suite 3,717 / 3,716 / 0 fail; fitness 28/28; meta-gate
+  pass; tsc clean; rendering guard PASS (DASH's fixtures now in the set); **`next build` (Turbopack, the
+  bundler Vercel uses) exit 0, 69 routes** in this worktree, which BUILDGATE's `next.config.ts` change
+  made possible and `build-proof.yml` now runs in CI on every PR touching `src/`.
+
+**Findings from the lanes worth keeping:** AXIS: `sources.jurisdictions` (migration 004) is live with a
+Haiku region-bucket vocabulary, so migration 063's `ADD COLUMN IF NOT EXISTS` was a no-op and the
+Axis-3 ISO values collide; jurisdiction proposals are review-only. DASH: an `.mjs` and a `.tsx` sharing a
+basename shadow each other under webpack's extension-less resolution (fixed by renaming). BUILDGATE: F2
+enumerated `admin/**/*.ts`, so the split `logic.ts` files tripped it; narrowed to `route.ts`. CORR: the
+overlay is real but every axis is a GAP today (no distance dataset, licence-blocked payload convention, no
+free EUA series); the surface says so.
+
+**Coordinator applies next (in order):** migration 290; `derive-obligations` dry → apply;
+`seed-corridors` dry → apply; `producers` apply for `desnz-emission-factors` on the runner (the fetch
+runs there); `maintenance` → `source-type-backfill` dry → apply. Then Wave 3 (COMMUNITY, SPEC-09) with
+the operator's R-H and R-G rulings asked one at a time. No population dispatch.

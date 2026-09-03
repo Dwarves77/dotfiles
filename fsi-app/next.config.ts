@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import path from "path";
+import fs from "fs";
 import withBundleAnalyzer from "@next/bundle-analyzer";
 import { withWorkflow } from "workflow/next";
 
@@ -11,7 +12,46 @@ import { withWorkflow } from "workflow/next";
 // matching Vercel's auto-detected value rather than the file's own directory.
 // This is also correct semantically: file tracing should span the entire
 // repository so any cross-package dependencies are included.
-const APP_ROOT = path.resolve(__dirname, "..");
+//
+// WORKTREE CASE (BUILDGATE, 2026-09-02, F34's named residual / build-graph proof).
+// Parallel-lane worktrees under /root/work/lanes/<lane>/ symlink fsi-app/node_modules
+// to the single shared install in the primary checkout (see CLAUDE.md "no npm install
+// in a worktree"), e.g. /root/work/dotfiles/fsi-app/node_modules. That target sits
+// OUTSIDE the worktree's own directory tree, and Turbopack refuses a project root
+// whose node_modules symlink resolves outside the configured root ("Symlink
+// fsi-app/node_modules is invalid, it points out of the filesystem root") — `next
+// build` (Turbopack, default) cannot run at all in a worktree until this is widened.
+// `next build --webpack` does not hit this (webpack's resolver dereferences the
+// symlink instead of sandboxing to a project root), so it already works unmodified
+// and remains the worktree build proof either way; this widening additionally
+// restores parity with `next build`'s Turbopack default there.
+//
+// The widening is COMPUTED, never hardcoded to a container path: resolve the real
+// (symlink-following) target of fsi-app/node_modules and, only when that target
+// falls outside the normal REPO_ROOT (the worktree case), raise APP_ROOT to the
+// nearest common ancestor of REPO_ROOT and the target. On Vercel and on a normal
+// clone, node_modules is a real directory inside the repo (`npm ci`), the target
+// resolves inside REPO_ROOT, and this is a no-op — APP_ROOT stays REPO_ROOT exactly
+// as before. A missing node_modules (not yet installed) also no-ops to REPO_ROOT.
+function computeAppRoot(): string {
+  const repoRoot = path.resolve(__dirname, "..");
+  let target: string;
+  try {
+    target = fs.realpathSync(path.join(__dirname, "node_modules"));
+  } catch {
+    return repoRoot; // node_modules absent (not yet installed): normal repo root
+  }
+  const rel = path.relative(repoRoot, target);
+  if (!rel.startsWith("..")) return repoRoot; // target is inside repoRoot: no-op
+  let common = repoRoot;
+  while (common !== path.dirname(common)) {
+    common = path.dirname(common);
+    if (!path.relative(common, target).startsWith("..")) return common;
+  }
+  return repoRoot; // no common ancestor short of "/": fall back rather than widen to "/"
+}
+
+const APP_ROOT = computeAppRoot();
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: APP_ROOT,

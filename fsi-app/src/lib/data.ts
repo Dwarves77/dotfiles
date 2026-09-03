@@ -21,6 +21,8 @@ import {
   fetchSourceCitationStatsByIds,
   fetchPriceStatsByItemIds,
   fetchResearchSourceCoverage,
+  getServiceSupabase,
+  isSupabaseConfigured,
   SEED_FALLBACK_ERROR,
   type ScopeFilter,
   type CategoryRoutedResult,
@@ -30,6 +32,7 @@ import {
   type ResourcePage,
 } from "@/lib/supabase-server";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
+import { mapCommunityPulseThreads as mapCommunityPulseThreadsShared } from "@/components/dashboard/pulse-shared.mjs";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { scopeFilterForSurface } from "@/lib/surface-of.mjs";
 import {
@@ -952,5 +955,147 @@ export async function getSourceCitationStats(
   } catch (e) {
     console.error("getSourceCitationStats failed, returning empty:", e);
     return {};
+  }
+}
+
+// ── Community pulse (Dashboard five-surface rebalance, Lane DASH 2026-09-02) ────────────────
+//
+// Community has no category-routed intelligence_items fetcher — it is not an intelligence_items
+// query at all (groups/threads, per source-credibility-model Section 8; same distinction
+// src/lib/dashboard/surface-coverage.ts's own header documents for the "activeGroups" count). This
+// is a NEW, DASH-owned read, added here because it is the Dashboard's Community block's data path:
+// the org's most recently active top-level community threads, scoped to the groups the org's OWN
+// members belong to (mirrors fetchCommunityCounts in surface-coverage.ts's org_memberships ->
+// community_group_members join — group membership, never a raw `privacy='public'` scan, which
+// would leak another workspace's group content through the service-role client).
+
+export interface CommunityPulseThread {
+  id: string;
+  groupId: string;
+  groupName: string;
+  groupSlug: string | null;
+  title: string;
+  replyCount: number;
+  lastActivityAt: string | null;
+}
+
+export interface CommunityPulseResult {
+  /** Distinct groups this workspace's own members belong to. Independently computed (not
+   *  re-exported) because getSurfaceCoverageSnapshot's fetchCommunityCounts is module-private —
+   *  same org_memberships -> community_group_members join, so the two numbers agree by construction
+   *  rather than by import. */
+  activeGroups: number;
+  threads: CommunityPulseThread[];
+}
+
+const EMPTY_COMMUNITY_PULSE: CommunityPulseResult = { activeGroups: 0, threads: [] };
+
+/**
+ * Pure mapper: raw community_posts rows + a group-id -> {name, slug} lookup -> CommunityPulseThread[].
+ * The row-shaping logic itself — title fallback to the body when a thread has no title,
+ * last-activity precedence — lives in src/components/dashboard/pulse-shared.mjs (plain ESM, zero
+ * deps) so it gets a portable, DB-free `node --test` proof: this module imports `next/cache` and
+ * `@supabase/supabase-js` at module scope and cannot join the no-npm-ci discipline suite itself.
+ * Re-exported here (same name, same signature) so `@/lib/data` stays the public entry point.
+ */
+export const mapCommunityPulseThreads: (
+  rows: Array<{
+    id: string;
+    group_id: string;
+    title: string | null;
+    body: string;
+    reply_count: number | null;
+    last_reply_at: string | null;
+    created_at: string;
+  }>,
+  groupsById: Map<string, { name: string; slug: string | null }>
+) => CommunityPulseThread[] = mapCommunityPulseThreadsShared;
+
+const COMMUNITY_PULSE_THREAD_LIMIT = 3;
+
+const cachedCommunityPulse = unstable_cache(
+  async (orgId: string | null): Promise<CommunityPulseResult> => {
+    if (!orgId || !isSupabaseConfigured()) return EMPTY_COMMUNITY_PULSE;
+    try {
+      const supabase = getServiceSupabase();
+
+      // Same org-membership scoping as fetchCommunityCounts (surface-coverage.ts): the workspace's
+      // OWN members' group memberships, never a raw cross-org scan.
+      const { data: memberRows, error: memberErr } = await supabase
+        .from("org_memberships")
+        .select("user_id")
+        .eq("org_id", orgId);
+      if (memberErr) {
+        console.error("[dashboard] community pulse org_memberships error:", memberErr.message);
+        return EMPTY_COMMUNITY_PULSE;
+      }
+      const userIds = ((memberRows ?? []) as Array<{ user_id: string }>).map((r) => r.user_id);
+      if (userIds.length === 0) return EMPTY_COMMUNITY_PULSE;
+
+      const { data: cgmRows, error: cgmErr } = await supabase
+        .from("community_group_members")
+        .select("group_id")
+        .in("user_id", userIds);
+      if (cgmErr) {
+        console.error("[dashboard] community pulse group_members error:", cgmErr.message);
+        return EMPTY_COMMUNITY_PULSE;
+      }
+      const groupIds = Array.from(
+        new Set(((cgmRows ?? []) as Array<{ group_id: string }>).map((r) => r.group_id).filter(Boolean))
+      );
+      if (groupIds.length === 0) return { activeGroups: 0, threads: [] };
+
+      const [groupsRes, postsRes] = await Promise.all([
+        supabase.from("community_groups").select("id, name, slug").in("id", groupIds),
+        supabase
+          .from("community_posts")
+          .select("id, group_id, title, body, reply_count, last_reply_at, created_at")
+          .in("group_id", groupIds)
+          .is("parent_post_id", null)
+          .order("last_reply_at", { ascending: false, nullsFirst: false })
+          .limit(COMMUNITY_PULSE_THREAD_LIMIT),
+      ]);
+
+      if (groupsRes.error) {
+        console.error("[dashboard] community pulse groups error:", groupsRes.error.message);
+      }
+      if (postsRes.error) {
+        console.error("[dashboard] community pulse posts error:", postsRes.error.message);
+      }
+
+      const groupsById = new Map<string, { name: string; slug: string | null }>();
+      for (const g of (groupsRes.data ?? []) as Array<{ id: string; name: string; slug: string | null }>) {
+        groupsById.set(g.id, { name: g.name, slug: g.slug });
+      }
+
+      const threads = mapCommunityPulseThreads(
+        (postsRes.data ?? []) as Parameters<typeof mapCommunityPulseThreads>[0],
+        groupsById
+      );
+
+      return { activeGroups: groupIds.length, threads };
+    } catch (e) {
+      console.error("[dashboard] community pulse fetch failed:", e);
+      return EMPTY_COMMUNITY_PULSE;
+    }
+  },
+  ["dashboard-community-pulse-v1"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
+/**
+ * Fetch the Dashboard's Community block: the count of groups this workspace's own members belong
+ * to, plus the up-to-3 most recently active top-level threads in those groups. A NEW, DASH-owned
+ * read (dashboard five-surface rebalance, 2026-09-02) — Community has no category-routed
+ * intelligence_items fetcher (see header). Fails soft to the empty shape so the Community pulse
+ * card renders its honest empty state rather than throwing.
+ */
+export async function getCommunityPulse(): Promise<CommunityPulseResult> {
+  try {
+    const orgId = await resolveOrgIdFromCookies();
+    return await cachedCommunityPulse(orgId);
+  } catch (e) {
+    console.error("getCommunityPulse failed, returning empty:", e);
+    return EMPTY_COMMUNITY_PULSE;
   }
 }

@@ -21,6 +21,7 @@ import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { RegulationsLedger } from "@/components/regulations/RegulationsLedger";
 import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingObligationsStrip";
+import { ObligationRegister } from "@/components/regulations/ObligationRegister";
 import { toDate } from "@/lib/relative-time";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
@@ -111,6 +112,12 @@ export default async function RegulationsPage({
         initialRegionFilter={regionParam ?? null}
         initialOwnerFilter={ownerParam ?? null}
       />
+      {/* Lane OBLIG (2026-09-02): the obligation register section — spec-01 §2's atomic unit ("the
+          obligation, not the document"), migration 290's `obligations` table (item_forward_events
+          denormalized with jurisdiction / mode / binding_position). Self-contained server component:
+          reads its own data via the request-scoped client, so it needs no props from this page's own
+          fetches, and soft-fails to nothing (never breaks the page) on a read error. */}
+      <ObligationRegister variant="list" />
     </>
   );
 }

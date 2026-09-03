@@ -32,6 +32,22 @@ import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { MarketIntelLedger } from "@/components/market/MarketIntelLedger";
 import { MarketSeriesBoard } from "@/components/market/MarketSeriesBoard";
 import { MarketComparativeRibbon } from "@/components/market/MarketComparativeRibbon";
+// Carbon cost per FEU overlay (spec 02 §6 item 3, lane CORR, 2026-09-02): "the single most defensible
+// 'only we do this' component available to us." No fetch lives in CarbonCostOverlay itself (CORR write
+// set) — this page assembles the per-corridor result via the pure carbonCostPerFeu() computation
+// (src/lib/market/carbon-cost-per-feu.mjs) from data already checked into the repo: the DESNZ emission-
+// factor fixture (scripts/gen/fixtures/emission-factors/desnz-modal-defaults-2025.json, an F34-compliant
+// static import, never a runtime fs read) and CARBON_COST_CORRIDORS below — the same ADR-024 §4 worked
+// example (CNSHA-NLRTM, ocean) scripts/entities/seed-corridors.mjs seeds into the entity spine, restated
+// here rather than imported from that scripts/ module (this page stays inside src/, matching every other
+// import on this file). Distance, payload and an EU ETS/FuelEU carbon price are the three inputs no
+// licence-clear live source in this product carries yet (see carbon-cost-per-feu.mjs's own header for why
+// each is a named GAP, not fabricated) — the overlay therefore renders today's honest state, and lights
+// up with a real range the moment any lane adds a distance producer, a licence-clear payload convention,
+// or the eex-eua market_series producer, with zero further code change here.
+import { carbonCostPerFeu } from "@/lib/market/carbon-cost-per-feu.mjs";
+import { CarbonCostOverlay, type CarbonCostOverlayEntry } from "@/components/market/CarbonCostOverlay";
+import desnzEmissionFactors from "../../../scripts/gen/fixtures/emission-factors/desnz-modal-defaults-2025.json";
 // Policy timeline (spec 02 §6 item 9): reuses the ALREADY-BUILT, RLS-scoped item_forward_events reader
 // (src/lib/forward-events/read-upcoming.mjs, mounted here unmodified — see that component's own header
 // for the read-layer contract). Genuinely dated and forward-looking ("days until" via formatEventDate),
@@ -49,6 +65,54 @@ import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingOblig
 export const dynamic = "force-dynamic";
 
 const BAND_VOCAB_SIZE = 3; // price / corporate / corridor (fixed taxonomy)
+
+// The corridor(s) this overlay renders. ADR-024 §4's own worked example ("Shanghai–Rotterdam, ocean" —
+// CNSHA/NLRTM) — the same pair seed-corridors.mjs's ADR_EXAMPLE_CORRIDORS falls back to when no live
+// market_series/regional_data_facts row names a corridor (true for every run against today's live data;
+// see that script's own header). Not invented for this page: it is the ADR's own illustration, restated
+// here so this page never has to reach into scripts/ to render it.
+const CARBON_COST_CORRIDORS: ReadonlyArray<{ label: string; origin: string; dest: string; mode: string }> = [
+  { label: "Shanghai – Rotterdam, ocean", origin: "CNSHA", dest: "NLRTM", mode: "ocean" },
+];
+
+interface DesnzFixtureRow {
+  mode: string;
+  vehicle_class: string;
+  quantity_basis: string;
+  ttw_co2e: number | null;
+  wtw_co2e?: number | null;
+  wtt_co2e?: number | null;
+  derivation: string | null;
+  source_key?: string;
+  factor_id?: string;
+  [key: string]: unknown;
+}
+
+/** The DESNZ modal-default row matching a corridor's mode, or null when none exists (today: every ocean
+ *  row in this fixture is a `needs_runner_fetch` shell with `ttw_co2e: null` — carbonCostPerFeu() itself
+ *  turns that into the honest NO_FACTOR gap; this helper only narrows by mode, it never fabricates a row). */
+function findFactorForMode(mode: string): DesnzFixtureRow | null {
+  const rows = (desnzEmissionFactors as { source_key: string; rows: DesnzFixtureRow[] }).rows;
+  return rows.find((r) => r.mode === mode) ?? null;
+}
+
+/** Builds the overlay entries for CARBON_COST_CORRIDORS. Pure composition of already-fetched/imported
+ *  data through carbonCostPerFeu() — no I/O here, matching that module's own zero-dependency contract.
+ *  distanceKm/payloadTonnesPerFeu/carbonPrice are null across the board today: no licence-clear distance
+ *  dataset, no licence-clear tonnes-per-FEU convention, and market_series carries no eex-eua row yet (see
+ *  carbon-cost-per-feu.mjs's header) — each renders as its own named GAP, never a fabricated number. */
+function buildCarbonCostOverlays(): CarbonCostOverlayEntry[] {
+  return CARBON_COST_CORRIDORS.map(({ label, origin, dest, mode }) => ({
+    label,
+    result: carbonCostPerFeu({
+      corridor: { origin, dest, mode },
+      factor: findFactorForMode(mode),
+      distanceKm: null,
+      payloadTonnesPerFeu: null,
+      carbonPrice: null,
+    }),
+  }));
+}
 
 export default async function Market() {
   // Category-routed verified market rows (fail CLOSED) + the single-SoT
@@ -85,6 +149,11 @@ export default async function Market() {
           the signal ledger and the full series board. Renders nothing when no series is populated yet
           (MarketComparativeRibbon's own null-return), never an empty shell. */}
       <MarketComparativeRibbon board={seriesBoard} />
+      {/* Carbon cost per FEU overlay (spec 02 §6 item 3): built from a static fixture + the ADR-024
+          example corridor, never a fetch inside the component itself (CORR write set). Renders today's
+          honest gap state until a distance producer, a licence-clear payload convention, or the eex-eua
+          market_series producer lands. */}
+      <CarbonCostOverlay overlays={buildCarbonCostOverlays()} />
       <MarketIntelLedger initialResources={marketIntel.resources} aggregates={aggregates} seriesBoard={seriesBoard} />
       <MarketSeriesBoard board={seriesBoard} />
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 36px 0" }}>

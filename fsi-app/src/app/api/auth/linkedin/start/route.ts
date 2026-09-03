@@ -23,9 +23,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
+// The cookie constants live in a sibling module, not here: a route.ts may
+// export only route handlers/config (F34's named residual — `next build
+// --webpack` rejects any other export field). See logic.ts's header.
+import { STATE_COOKIE, STATE_COOKIE_MAX_AGE_SECONDS } from "./logic";
 
-export const STATE_COOKIE = "li_oauth_state";
-export const STATE_COOKIE_MAX_AGE_SECONDS = 600; // 10 minutes
 const AUTHORIZATION_ENDPOINT = "https://www.linkedin.com/oauth/v2/authorization";
 const REQUIRED_SCOPES = "r_liteprofile r_emailaddress";
 

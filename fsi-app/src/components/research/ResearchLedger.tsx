@@ -42,6 +42,8 @@ import {
   type ReactNode,
 } from "react";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
+import { CredibilityChipEvidence } from "@/components/research/CredibilityChipEvidence";
+import { CredibilityChipAuthority } from "@/components/research/CredibilityChipAuthority";
 import type { WorkspaceAggregates } from "@/lib/data";
 import {
   THEME_KEYS,
@@ -942,6 +944,16 @@ function FindingRow({
             {open ? "–" : "+"}
           </button>
         </div>
+      </div>
+      {/* Split credibility (spec-03 §4 "two scores, never merged"; Lane DASH, 2026-09-02). Rendered
+          as a sibling row BELOW the row's own toggle button, never nested inside it — the toggle
+          button above wraps the whole meta/title/summary block, and these chips are themselves
+          interactive buttons (nested <button>s are invalid HTML and unpredictable to hydrate). See
+          CredibilityChipShared.tsx for what data backs each chip today (biasTags only; both chips
+          otherwise render "Not scored" honestly). */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "0 18px 12px" }}>
+        <CredibilityChipEvidence biasTags={item.biasTags} />
+        <CredibilityChipAuthority sourceTier={tier} citationCount={item.citationCount} />
       </div>
       {open && (
         <div style={{ borderTop: "1px solid var(--color-border-subtle)", padding: "14px 18px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>

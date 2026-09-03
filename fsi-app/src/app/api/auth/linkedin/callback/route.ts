@@ -24,7 +24,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
-import { STATE_COOKIE } from "../start/route";
+import { STATE_COOKIE } from "../start/logic";
 
 const TOKEN_ENDPOINT = "https://www.linkedin.com/oauth/v2/accessToken";
 const PROFILE_ENDPOINT = "https://api.linkedin.com/v2/me";

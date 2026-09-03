@@ -1,9 +1,11 @@
 // Unit test for the Wave W2 spend-gauge wire (unwired-module disposition register #2,
 // docs/plans/unwired-disposition-2026-08-31.md §A): readSpendGauge/spend-gauge.mjs had zero
 // production callers before this wave. Exercises the REAL exported response-body builder this
-// route's GET handler calls (not a reimplementation) — same route.ts-exports-a-pure-function-for-
-// testability pattern src/app/api/admin/sources/bulk-import/route.ts's headReachabilityDecision and
-// this wave's own src/app/api/admin/recompute-trust/route.ts's demotionOutcomeFor already use.
+// route's GET handler calls (not a reimplementation), imported from its sibling logic.ts
+// (BUILDGATE, 2026-09-02: route.ts may export only route handlers, so the builder was moved out
+// of it — see logic.ts's header) — same sibling-logic-module pattern
+// src/app/api/admin/sources/bulk-import/logic.ts's headReachabilityDecision and
+// src/app/api/admin/recompute-trust/logic.ts's demotionOutcomeFor already use.
 //
 // What this proves: (1) every pre-existing field the uptime workflow's jq consumers read by name
 // (healthy, reason, mtd_usd, monthly_ceiling_usd, pct, frozen, acquire_lock_on, freeze_since,
@@ -23,7 +25,7 @@ const jiti = createJiti(import.meta.url, {
   interopDefault: true,
   alias: { "@": resolve(ROOT, "src") },
 });
-const { buildSpendResponseBody } = await jiti.import("./route.ts");
+const { buildSpendResponseBody } = await jiti.import("./logic.ts");
 
 // A minimal, representative computeSpendHealth() verdict (spend-health.mjs's own real return shape).
 const HEALTHY_V = {

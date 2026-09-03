@@ -58,20 +58,18 @@
     {
       "id": "obligation-register",
       "name": "Regulations obligation register",
-      "exemption": {
-        "reason": "Not built. The obligations table (keyed to intelligence_items + item_forward_events, binding_position) and ObligationRegister*.tsx components are Wave 2 lane OBLIG's write set; forward events (901+) exist but are not yet materialized into register rows.",
-        "ruled_by": "finish plan 2026-09-02, Wave 2 lane OBLIG",
-        "date": "2026-09-02"
-      }
+      "route": "fsi-app/src/app/regulations/page.tsx",
+      "data_path": "fsi-app/src/lib/obligations/read-register.mjs",
+      "rendering_spec": "fsi-app/.discipline/rendering/fixtures.mjs",
+      "note": "Built by Wave 2 lane OBLIG (2026-09-02): obligations table (migration 290, derived from item_forward_events by scripts/obligations/derive-obligations.mjs) read by read-register.mjs into ObligationRegister/ObligationRegisterFilterBar on /regulations and /regulations/[slug]. rendering_spec is the shared rendering-guard fixture file; no register-specific fixture yet, named honestly."
     },
     {
       "id": "carbon-cost-per-feu-overlay",
       "name": "Market Intel carbon-cost-per-FEU overlay",
-      "exemption": {
-        "reason": "Not built. carbon-cost-per-feu.mjs and CarbonCostOverlay.tsx are Wave 2 lane CORR's write set, sequenced after corridor identity rows (seed-corridors.mjs) land.",
-        "ruled_by": "finish plan 2026-09-02, Wave 2 lane CORR",
-        "date": "2026-09-02"
-      }
+      "route": "fsi-app/src/app/market/page.tsx",
+      "data_path": "fsi-app/src/lib/market/carbon-cost-per-feu.mjs",
+      "rendering_spec": "fsi-app/.discipline/rendering/fixtures.mjs",
+      "note": "Built by Wave 2 lane CORR (2026-09-02): pure estimate module + CarbonCostOverlay on /market. Renders GAP on every axis today (no distance dataset, licence-blocked payload convention, no free EUA series); the surface says so. rendering_spec is the shared fixture file."
     },
     {
       "id": "lead-time-chart",

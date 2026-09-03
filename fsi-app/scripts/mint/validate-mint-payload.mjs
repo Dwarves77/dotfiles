@@ -450,7 +450,7 @@ export function validateMintPayload(payload, opts = {}) {
     const screen = payload?.screen;
     const hasVerdict = !!screen && typeof screen === "object" && typeof screen.verdict === "string" && screen.verdict.length > 0;
     const hasBasis = !!screen && typeof screen === "object" && typeof screen.basis === "string" && screen.basis.trim() !== "";
-    const hasProvenance = !!screen && typeof screen === "object" && ["rule", "reviewed"].includes(screen.provenance);
+    const hasProvenance = !!screen && typeof screen === "object" && ["rule", "reviewed", "registry"].includes(screen.provenance) // "registry": research-sweep subjects (Lane RSRCH, 2026-09-02), basis = the source's registry role;
     if (!hasVerdict || !hasBasis || !hasProvenance) {
       failures.push({ criterion: "kit", reason: "screen_verdict_missing", screen: screen ?? null });
     } else if (screen.verdict !== "on_vertical") {

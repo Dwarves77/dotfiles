@@ -1,7 +1,9 @@
-// Unit test for GET /api/notices's pure helpers — same route.ts-exports-a-pure-function-for-testability
-// pattern src/app/api/watchlist/route.ts's isTeamOnlyScopeViolation and
-// src/app/api/admin/recompute-trust/route.ts's demotionOutcomeFor already use. Exercises the REAL exported
-// functions this route calls (resolveSinceParam, attachEntityLabels), not a reimplementation.
+// Unit test for GET /api/notices's pure helpers, imported from their sibling logic.ts (BUILDGATE,
+// 2026-09-02: route.ts may export only route handlers, so these were moved out of it — see
+// logic.ts's header) — same sibling-logic-module pattern src/app/api/watchlist/logic.ts's
+// teamOnlyError and src/app/api/admin/recompute-trust/logic.ts's demotionOutcomeFor already use.
+// Exercises the REAL exported functions this route calls (resolveSinceParam, attachEntityLabels),
+// not a reimplementation.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createJiti } from "jiti";
@@ -13,7 +15,7 @@ const jiti = createJiti(import.meta.url, {
   interopDefault: true,
   alias: { "@": resolve(ROOT, "src") },
 });
-const { resolveSinceParam, attachEntityLabels } = await jiti.import("./route.ts");
+const { resolveSinceParam, attachEntityLabels } = await jiti.import("./logic.ts");
 
 const NOW = new Date("2026-09-02T00:00:00Z");
 

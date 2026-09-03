@@ -479,6 +479,70 @@ that produced it is still correct on a future run:
 operator's own reviewed reason) — a row built without it produces a payload `validate-mint-payload.mjs`
 correctly quarantines, never a silent pass.
 
+## 13. The record profile every new surface needs (Lane INTAKE, 2026-09-02)
+
+Wave 2's operator ruling: **build the tools and the UI before populating.** OBLIG's obligation register,
+CORR's corridor overlay, and DASH's research-credibility chips all read fields off `intelligence_items`
+that no record-grade item carried before this lane. `src/lib/intake/record-facts.mjs` now extracts five
+additional fields — still no-I/O, still span-proven from `capturedText`, still GAP (never invented) when
+the source does not state something — so every record-grade item minted after this wave carries them by
+construction, with no separate backfill pass needed once population resumes.
+
+- **`item.binding_position`** (regulation family: regulation/directive/standard/guidance/framework, plus
+  the two new FR item_types below) — one of `src/lib/contracts/vocabularies.mjs`'s four `BINDING_POSITION`
+  codes (`direct_duty`/`carrier_passthrough`/`customer_contract`/`monitoring_only`, spec 01 §1/§3.2),
+  located from the source's own applicability language (`extractBindingPositionFact`), never inferred from
+  who the item is ABOUT.
+- **`item.due_date` / `item.date_precision`** (same family) — a verbatim due-date-shaped span plus its
+  precision (`day`/`month`/`quarter`/`year`), inferred from the span's own text shape
+  (`inferDatePrecision`). Spec 01 §3.3's "four dates, never one" is a still-open question this extractor
+  does not resolve — it locates A date, not which of the four it is.
+- **`item.corridor_identity`** (market family: market_signal/initiative) — populated ONLY when the source
+  states a verbatim UN/LOCODE port-pair AND a transport mode together (ADR-024 decision 4 /
+  `CORRIDOR_ID_SCHEME`, `src/lib/entities/decisions.mjs`, read-only). Carries the `ORIGIN-DEST:mode` SEED
+  the scheme documents, never the minted `cl:corridor:*` entity id itself — CORR lane's `entity-id.mjs`
+  owns that hash; this module only supplies its input.
+- **`item.research_credibility`** (research_finding) — the two verbatim credibility SIGNALS this $0
+  extractor can locate (spec 03 §4's "two scores, never merged": an evidence/agreement sentence, a
+  source-authority sentence), never the computed IPCC/GRADE score or the OpenAlex/ROR authority
+  distribution spec 03 §4 itself describes — those need live, credentialed data a later pass supplies.
+
+**Where these live in `item-type-required-slots.json`.** Two new item_types this lane registers —
+`notice` and `presidential_document` (the two Federal Register document types HELD's `export-census-rows.mjs`
+holds `item_type_unmapped` today; `Proposed Rule` already maps onto the pre-existing `initiative`
+item_type, no change needed there) — carry `binding_position`/`due_date` as REQUIRED slots, since nothing
+existing depends on their slot count. The five long-registered regulation-family item_types keep their
+original four required slots UNCHANGED (`item-type-required-slots.json`'s own header explains why: this
+file feeds criterion 5 directly, and hand-crafted fixture payloads outside this lane's write set —
+`validate-mint-payload.test.mjs`'s `basePayload`, `example-payload.json` — assert an exact 4-claim/0-failure
+shape for `directive`). `record-facts.mjs` instead attaches `binding_position`/`due_date` to every
+regulation-family record payload (the five original types plus the two new ones) as an OPTIONAL,
+always-attempted addition keyed on `item_type` membership, independent of what this file requires for
+that exact type. `market_signal`/`initiative` gained `corridor_identity` and `research_finding` gained
+`evidence_agreement_signal`/`source_authority_signal` as REQUIRED slots (safe: no fixture in this repo
+hand-crafts a fixed claim list for those three item_types).
+
+**Coordinator disposition (2026-09-03):** `notice`/`presidential_document` withdrawn (zero evidence rows;
+the live `intelligence_items_item_type_check`, the validator's floor lists, `surface-of.mjs`, `domains.ts`
+and the live `item_type_required_slots` table would all have needed extending for no document). The slot
+additions to `market_signal`/`initiative`/`research_finding` stay in this kit file and are DELIBERATELY
+NOT in the live `item_type_required_slots` table yet: adding them live would flip every existing verified
+item of those types to quarantined on its next trigger touch (criterion 5). They are added live in the
+population train, together with the re-mint of the existing corpus through this profile. Until then the
+kit is stricter than the database, which is the safe direction.
+
+**What `validate-mint-payload.mjs` would have needed for the two withdrawn types** (kept for the record):
+1. Add `"notice"` and `"presidential_document"` to `REG_FAMILY` (currently
+   `new Set(["regulation", "directive", "standard", "guidance", "framework"])`) so the two new item_types
+   get the same unconditional authority-floor treatment the rest of the regulation family has.
+2. Optionally, a kit check validating `item.binding_position` (when non-null) is a member of
+   `BINDING_POSITION`, `item.date_precision` (when non-null) is one of `day`/`month`/`quarter`/`year`, and
+   `item.corridor_identity.mode` (when the field is non-null) is a member of
+   `vocabularies.mjs`'s `LEG_MODE_CODES` — these five fields are already vocabulary-validated at the point
+   `record-facts.mjs` builds them, so this would be a redundant backstop (the same relationship the grade
+   discriminator and record-purity checks already have to `record-facts.mjs`'s own construction), not a
+   gap this lane found live.
+
 ## Keeping the kit in sync
 
 `lib/gate-a-scan.mjs` and `lib/gate-a-match.mjs` are copies of `src/lib/agent/gate-a-scan.mjs` /

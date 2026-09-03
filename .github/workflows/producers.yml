@@ -273,10 +273,52 @@ jobs:
             node scripts/producers/market/refresh-published-price-statistics.mjs
           fi
 
+      - name: DESNZ fetch-desnz -> fixture (air/sea freighting-goods rows)
+        # Lane DESNZ, 2026-09-02: fills the fixture's seven needs_runner_fetch air/sea shells (see the
+        # fixture's own 2026-09-02 header entry — this authoring sandbox cannot reach
+        # assets.publishing.service.gov.uk, WebFetch on the .xlsx returns "[binary data]", a direct curl
+        # gets 403 from the org egress proxy) from the primary DESNZ "Greenhouse gas reporting: conversion
+        # factors 2025" full-set workbook. This runner CAN reach gov.uk, so it does the real fetch:
+        # scripts/gen/fetch-desnz-factors.mjs resolves the "full set" .xlsx link off the gov.uk publication
+        # page (falling back to the known 2026-08-30-verified asset URL if the page scrape finds nothing,
+        # with a stderr warning), reads it as a zip of XML (node:zlib inflateRawSync, no new dependency —
+        # `npm ls` here shows no xlsx/exceljs/zip package), and extracts the sheet 'Freighting goods'
+        # air/sea rows by Activity+Type+Unit text, never by row number or a hardcoded column letter (see
+        # the script's own header for the exact column-drift trap that made the road/rail rows wrong once
+        # already). It throws (exit 2) rather than guess if the sheet layout has changed since this
+        # extractor was written — a failure here means a human needs to look at the extractor, not that
+        # the run should retry.
+        #
+        # dry (default): fetch + extract + a diff report, uploaded as a workflow artifact; the fixture on
+        # disk is NOT modified, so the seed step below still sees the checked-in fixture (dry rows stay
+        # needs_runner_fetch:true and are skipped by splitPending(), same as every other dry run this
+        # workflow does).
+        # apply: writes the resolved rows into the fixture file in place (git-ignored on a runner; the
+        # coordinator reviews and lands the fixture diff exactly like any other producer's output — this
+        # step does not commit), so the seed step immediately below in the SAME job run sees the filled
+        # fixture and seeds all eleven (or more, if an RF split was found) rows through the guarded path
+        # instead of four.
+        if: env.RUN_PRODUCER == 'desnz-emission-factors'
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then
+            node scripts/gen/fetch-desnz-factors.mjs --apply --report /tmp/desnz-fetch-report.txt
+          else
+            node scripts/gen/fetch-desnz-factors.mjs --report /tmp/desnz-fetch-report.txt
+          fi
+
+      - name: Upload DESNZ fetch-desnz diff report
+        if: env.RUN_PRODUCER == 'desnz-emission-factors' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desnz-fetch-report
+          path: /tmp/desnz-fetch-report.txt
+          if-no-files-found: warn
+
       - name: DESNZ modal defaults -> emission_factors
-        # Seeds four GB freight modal_default rows from the fixture, through the guarded path
-        # (scripts/lib/db.mjs guardedInsertMany), idempotent on the natural key — a re-run with the
-        # rows already live writes nothing.
+        # Seeds four GB freight modal_default rows from the fixture (eleven-plus once fetch-desnz above
+        # has filled the air/sea shells), through the guarded path (scripts/lib/db.mjs
+        # guardedInsertMany), idempotent on the natural key — a re-run with the rows already live writes
+        # nothing.
         #
         # THAT IDEMPOTENCY CLAIM WAS FALSE WHEN FIRST WRITTEN HERE (2026-08-30) and is recorded rather
         # than quietly corrected. The natural-key skip depends on reading the live rows first, and that

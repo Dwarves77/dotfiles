@@ -1,0 +1,102 @@
+name: Build proof (deployed-bundle gate)
+
+# CLOSES F34's NAMED RESIDUAL (fsi-app/.discipline/fitness/functions/F34-bundle-safe-module-
+# evaluation.mjs). The 2026-09-02 production incident: PR #533 shipped a module-scope
+# `readFileSync` reachable from every page's import graph. Every gate that ran before that
+# incident — the discipline engine, tsc --noEmit, the fitness suite, the rendering guard, the
+# behavioral goldens — executes under plain Node, where the source file still exists on disk, so
+# none of them build the actual serverless bundle Vercel ships. F34 is the mechanical, static gate
+# for the module-scope-fs-call CLASS; this workflow is the dynamic gate that actually builds the
+# page graph the way Vercel does, so a defect F34's static scan cannot see (a bad import anywhere
+# in the graph, a route exporting a non-route symbol Next's route-type validator rejects, a broken
+# dynamic import, ...) fails CI instead of production.
+#
+# BUNDLER: `next build` (no --webpack flag) — Turbopack is the Next 16 default and is what a real
+# Vercel deploy runs, so this job uses the SAME bundler production uses. On a normal `npm ci`
+# checkout (this job, and Vercel) node_modules is a real directory, not a symlink, so Turbopack's
+# project-root sandboxing never triggers. The `--webpack` flag is a WORKTREE-ONLY fallback: parallel
+# lane worktrees under /root/work/lanes/<lane>/ symlink fsi-app/node_modules to a shared install
+# outside the worktree's own tree, which Turbopack refuses ("Symlink ... points out of the
+# filesystem root"); webpack's resolver dereferences the symlink instead of sandboxing to a project
+# root, so it is unaffected. fsi-app/next.config.ts's computeAppRoot() widens outputFileTracingRoot
+# to cover that case too (see its header), so Turbopack itself now also builds in a worktree; both
+# bundlers are exercised locally via fsi-app/.discipline/build/run-build-proof.sh, which runs
+# Turbopack first and falls back to --webpack only if that fails.
+#
+# ENV AT BUILD TIME. `next build` collects page data and prerenders every static/partially-static
+# route, which imports src/lib/supabase-*.ts. Those construct a Supabase client with
+# `NEXT_PUBLIC_SUPABASE_URL!` / `NEXT_PUBLIC_SUPABASE_ANON_KEY!` (non-null assertions — grep:
+# supabase-browser.ts, supabase-server-client.ts, supabase-server.ts, supabase-service.ts) — an
+# undefined URL throws inside @supabase/supabase-js's own URL constructor before a single query
+# runs, which would fail the build on every page that touches data.ts. Real query results are NOT
+# needed: every data-reading path in this app is fail-soft server-side (verified in this build's own
+# output — `fetchCoverageGaps failed, returning empty`, `[changed-since] ... read failed`, both
+# caught and logged, not thrown), and every route observed here renders dynamic (`ƒ`), so nothing is
+# actually executed against these values at request time in production either. PLACEHOLDERS are
+# therefore sufficient and deliberately NOT real secrets: a syntactically valid https:// URL and a
+# non-empty string satisfy the client constructor, and using placeholders here (rather than pulling
+# repository secrets into a job that runs on every external PR) keeps a fork's PR run from ever
+# seeing a real credential. SUPABASE_SERVICE_ROLE_KEY is asserted nowhere at build time (only inside
+# request-time server functions), so it is not set here at all — its absence is itself proven
+# harmless by this same build log (the one `SUPABASE_SERVICE_ROLE_KEY is not configured` line is a
+# caught, logged fallback, not a build failure).
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'fsi-app/src/**'
+      - 'fsi-app/package.json'
+      - 'fsi-app/package-lock.json'
+      - 'fsi-app/next.config.*'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'fsi-app/src/**'
+      - 'fsi-app/package.json'
+      - 'fsi-app/package-lock.json'
+      - 'fsi-app/next.config.*'
+
+# Same posture as discipline.yml (see that file's cost-control header): a superseded pull_request
+# run is wasted spend since a newer commit on the branch will be validated instead; a push to
+# master is validated unconditionally so no merged commit's build proof is silently skipped.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build-proof:
+    name: next build (Turbopack, real bundler, real page graph)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      # Placeholders — see the header above for why a real credential is neither needed nor safe here.
+      NEXT_PUBLIC_SUPABASE_URL: 'https://build-proof-placeholder.supabase.co'
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'build-proof-placeholder-anon-key'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        # Build-time only; no git history needed.
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install fsi-app deps (real node_modules — Turbopack's normal, unsandboxed case)
+        working-directory: fsi-app
+        run: npm ci --prefer-offline --no-audit
+
+      - name: next build — the actual bundler, the actual page graph
+        # Fails on ANY build error: a route.ts exporting a non-route symbol (Next's route-type
+        # validator), a module-scope throw anywhere in the import graph (F34's incident class), a
+        # broken import, a real TypeScript error (`next build` type-checks by default). No
+        # grep-for-known-strings step here — an exit-code failure from `next build` itself IS the
+        # gate; a broadened failure surface next release adds is caught for free.
+        working-directory: fsi-app
+        run: npx next build
