@@ -41,6 +41,15 @@
 //     --dry      compute + report, write nothing (DEFAULT)
 //     --execute  actually write/resolve integrity_flags rows (explicit opt-in)
 // Exit 0 done · 1 bad args · 2 no DB creds (cannot run here).
+//
+// THE ACTUAL WRITE PATH: this file's CLI is one caller of this module's own exported, DB-injected
+// proposeTags() core (below) — the same "logic here, deps injected, CLI is a thin wrapper" shape
+// apply-tags.mjs's applyTags() already established. The `tag-proposals` MAINT dispatch step
+// (fsi-app/scripts/maintenance/tag-proposals.mjs, .github/workflows/maintenance.yml,
+// docs/runbooks/MAINTENANCE-RUNBOOK.md §7a — Lane TAG-PROPOSALS, 2026-09-03) is the SECOND caller,
+// giving the write half of this script an operator-gated dispatch surface it did not have before
+// (population-turn.yml only ever ran this CLI with --dry). Neither caller reimplements the plan/write
+// logic; both import proposeTags() unmodified.
 
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -192,6 +201,100 @@ export function planReflect(existingOpen, fresh, { scopeSubjectRefs = null } = {
   return { newRows, staleIds, unchanged: freshList.length - newRows.length };
 }
 
+/**
+ * The whole read-plan-write core, DB access injected (mirrors apply-tags.mjs's applyTags() — directly
+ * testable with a fake client, no real Supabase creds, no process.exit). Extracted from this file's own
+ * former inline main() body (Lane TAG-PROPOSALS, 2026-09-03) so a second caller — the `tag-proposals`
+ * MAINT dispatch step — can run the SAME plan-and-write logic through its own deps, without
+ * reimplementing it or shelling out to this file as a child process. The CLI below is now a thin
+ * wrapper: parse args, build real deps from scripts/lib/db.mjs, call this, exit. Every console.log line
+ * here is unchanged from the pre-refactor main() (same wording, same order) — the CLI's stdout is
+ * byte-for-byte the same as before this refactor.
+ * @param {{
+ *   readCorpus: () => Promise<Array<object>>,
+ *   readExistingOpen: () => Promise<Array<{id:string, subject_ref:string, created_by:string}>>,
+ *   insertMany: (rows:object[]) => Promise<{inserted:number, snapshot:string|null}>,
+ *   updateStale: (ids:string[]) => Promise<{updated:number, snapshot:string|null}>,
+ * }} deps
+ * @param {{mode:"ids"|"since"|"untagged", ids?:string[]|null, since?:string|null, execute?:boolean}} opts
+ * @returns {Promise<{
+ *   corpusCount:number, targetsCount:number, missingIds:string[], flagCandidatesCount:number,
+ *   fresh:Array<{subjectRef:string, row:object, proposalCount:number, itemId:string, proposals:Array}>,
+ *   withProposalsCount:number, existingOpenCount:number,
+ *   plan:{newRows:object[], staleIds:string[], unchanged:number},
+ *   executed:boolean, wrote:{inserted:number, snapshot:string|null}|null,
+ *   resolved:{updated:number, snapshot:string|null}|null,
+ * }>}
+ */
+export async function proposeTags(deps, { mode, ids = null, since = null, execute = false } = {}) {
+  const corpus = await deps.readCorpus();
+
+  const { targets, missingIds } = selectTargets(corpus, { mode, ids, since });
+  if (missingIds.length) {
+    console.warn(`propose-tags: ${missingIds.length} requested id(s) not found in the verified/live corpus (ignored): ${missingIds.join(", ")}`);
+  }
+
+  const flagCandidates = targets.filter(isEmptySignature);
+  console.log(
+    `propose-tags: ${corpus.length} verified items loaded; ${targets.length} selected (mode=${mode}); ` +
+    `${flagCandidates.length} carry empty signature tags (flag-worthy)${execute ? "" : " (DRY RUN)"}.`,
+  );
+
+  const fresh = flagCandidates.map((item) => {
+    const derived = deriveTags(item);
+    return {
+      subjectRef: buildSubjectRef(item.id),
+      row: buildFlagRow(item, derived),
+      proposalCount: derived.proposals.length,
+      itemId: item.id,
+      proposals: derived.proposals,
+    };
+  });
+  const withProposals = fresh.filter((f) => f.proposalCount > 0).length;
+  console.log(`propose-tags: ${withProposals}/${fresh.length} flag-worthy item(s) have at least one derive-tags.mjs candidate.`);
+
+  const existingOpen = await deps.readExistingOpen();
+
+  // Only the full default (--untagged, i.e. no --ids/--since narrowing) resolves globally — see file
+  // header. A narrow run scopes stale-resolution to exactly the subject_refs it selected this run.
+  const scopeSubjectRefs = mode === "untagged" ? null : new Set(targets.map((it) => buildSubjectRef(it.id)));
+  const plan = planReflect(existingOpen, fresh, { scopeSubjectRefs });
+
+  console.log(`propose-tags: plan = ${plan.newRows.length} new flag(s), ${plan.staleIds.length} stale flag(s) to resolve, ${plan.unchanged} unchanged.`);
+
+  const result = {
+    corpusCount: corpus.length,
+    targetsCount: targets.length,
+    missingIds,
+    flagCandidatesCount: flagCandidates.length,
+    fresh,
+    withProposalsCount: withProposals,
+    existingOpenCount: existingOpen.length,
+    plan,
+    executed: false,
+    wrote: null,
+    resolved: null,
+  };
+
+  if (!execute) {
+    console.log("DRY RUN — nothing written. Re-run with --execute to apply.");
+    return result;
+  }
+
+  if (plan.newRows.length) {
+    const ins = await deps.insertMany(plan.newRows);
+    console.log(`WROTE: ${ins.inserted} new integrity_flags row(s) (snapshot: ${ins.snapshot}).`);
+    result.wrote = ins;
+  }
+  if (plan.staleIds.length) {
+    const res = await deps.updateStale(plan.staleIds);
+    console.log(`RESOLVED: ${res.updated} stale flag(s) (snapshot: ${res.snapshot}).`);
+    result.resolved = res;
+  }
+  result.executed = true;
+  return result;
+}
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
@@ -224,52 +327,17 @@ const CITE = {
 const SIG = "id, title, canonical_instrument_key, jurisdiction_iso, jurisdictions, full_brief, " +
   "operational_scenario_tags, compliance_object_tags, topic_tags, created_at";
 
-const corpus = await readAll("intelligence_items", SIG, {
-  match: (q) => q.eq("provenance_status", "verified").eq("is_archived", false),
-});
-
-const { targets, missingIds } = selectTargets(corpus, { mode, ids, since });
-if (missingIds.length) {
-  console.warn(`propose-tags: ${missingIds.length} requested id(s) not found in the verified/live corpus (ignored): ${missingIds.join(", ")}`);
-}
-
-const flagCandidates = targets.filter(isEmptySignature);
-console.log(
-  `propose-tags: ${corpus.length} verified items loaded; ${targets.length} selected (mode=${mode}); ` +
-  `${flagCandidates.length} carry empty signature tags (flag-worthy)${EXECUTE ? "" : " (DRY RUN)"}.`,
-);
-
-const fresh = flagCandidates.map((item) => {
-  const derived = deriveTags(item);
-  return { subjectRef: buildSubjectRef(item.id), row: buildFlagRow(item, derived), proposalCount: derived.proposals.length };
-});
-const withProposals = fresh.filter((f) => f.proposalCount > 0).length;
-console.log(`propose-tags: ${withProposals}/${fresh.length} flag-worthy item(s) have at least one derive-tags.mjs candidate.`);
-
-const existingOpen = await readAll("integrity_flags", "id, subject_ref, created_by", {
-  match: (q) => q.eq("status", "open").like("created_by", `${TAG_NAMESPACE}%`),
-});
-
-// Only the full default (--untagged, i.e. no --ids/--since narrowing) resolves globally — see file
-// header. A narrow run scopes stale-resolution to exactly the subject_refs it selected this run.
-const scopeSubjectRefs = mode === "untagged" ? null : new Set(targets.map((it) => buildSubjectRef(it.id)));
-const plan = planReflect(existingOpen, fresh, { scopeSubjectRefs });
-
-console.log(`propose-tags: plan = ${plan.newRows.length} new flag(s), ${plan.staleIds.length} stale flag(s) to resolve, ${plan.unchanged} unchanged.`);
-
-if (!EXECUTE) {
-  console.log("DRY RUN — nothing written. Re-run with --execute to apply.");
-  process.exit(0);
-}
-
-if (plan.newRows.length) {
-  const ins = await guardedInsertMany("integrity_flags", plan.newRows, { cite: CITE, select: "id" });
-  console.log(`WROTE: ${ins.inserted} new integrity_flags row(s) (snapshot: ${ins.snapshot}).`);
-}
-if (plan.staleIds.length) {
-  const res = await guardedUpdate(
+const deps = {
+  readCorpus: () => readAll("intelligence_items", SIG, {
+    match: (q) => q.eq("provenance_status", "verified").eq("is_archived", false),
+  }),
+  readExistingOpen: () => readAll("integrity_flags", "id, subject_ref, created_by", {
+    match: (q) => q.eq("status", "open").like("created_by", `${TAG_NAMESPACE}%`),
+  }),
+  insertMany: (rows) => guardedInsertMany("integrity_flags", rows, { cite: CITE, select: "id" }),
+  updateStale: (ids) => guardedUpdate(
     "integrity_flags",
-    (qb) => qb.in("id", plan.staleIds),
+    (qb) => qb.in("id", ids),
     {
       status: "resolved",
       resolved_at: new Date().toISOString(),
@@ -277,8 +345,9 @@ if (plan.staleIds.length) {
       resolution_note: `${TAG_NAMESPACE} finding no longer applicable (item now carries connection-signature tags, or fell outside this run's selection scope).`,
     },
     { cite: CITE },
-  );
-  console.log(`RESOLVED: ${res.updated} stale flag(s) (snapshot: ${res.snapshot}).`);
-}
+  ),
+};
+
+await proposeTags(deps, { mode, ids, since, execute: EXECUTE });
 process.exit(0);
 }
