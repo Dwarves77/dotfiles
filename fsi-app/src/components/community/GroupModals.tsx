@@ -31,6 +31,7 @@ import {
   type ReactNode,
 } from "react";
 import { X, Users, Settings, UserPlus, AlertCircle } from "lucide-react";
+import { NoDirectMessagingNotice } from "./NoDirectMessagingNotice";
 
 // ════════════════════════════════════════════════════════════════
 // Shared modal shell
@@ -277,6 +278,11 @@ export function MembersModal({
         <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
           No members visible to your role.
         </p>
+      )}
+      {members && (
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--color-border)" }}>
+          <NoDirectMessagingNotice />
+        </div>
       )}
       {callerRole && (
         <footer

@@ -186,6 +186,12 @@ export function PromotePostDialog({
               Add this community finding to the staged-updates queue. A platform
               admin reviews and grounds it before it goes live.
             </p>
+            <p className="mt-1 text-[11px] text-[var(--color-text-muted,var(--color-text-secondary))]">
+              Editorial pickup (spec 05 §4 gate 4): once grounded, the published record carries its
+              own primary source and cites this thread as the lead — it never renders as
+              machine-grounded or verified. The origin label stays visible wherever this content
+              appears inside platform intelligence.
+            </p>
           </div>
           <button
             type="button"

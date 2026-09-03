@@ -26,6 +26,7 @@
 
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { Lock } from "lucide-react";
+import { NoDirectMessagingNotice } from "./NoDirectMessagingNotice";
 
 interface CouncilMembersRailProps {
   groupId: string;
@@ -176,6 +177,9 @@ export async function CouncilMembersRail({
           </li>
         )}
       </ul>
+      <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid var(--color-border)" }}>
+        <NoDirectMessagingNotice />
+      </div>
     </RailFrame>
   );
 }
