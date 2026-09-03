@@ -270,3 +270,183 @@ only.
   relevance/notes/ownership are, and may be cacheable the same way
   `fetchIntelligenceItem` already is). Files: `src/lib/supabase-server.ts`,
   `src/app/market/[slug]/page.tsx`.
+
+## 8. PERF-2 diagnosis (2026-09-03)
+
+Scope: root-cause diagnosis + structural fix for the two facts PERF-2's brief
+named CONFIRMED-in-production after the PERF lane's own fix (#540,
+`9ebe0bb1`) landed: (A) `/regulations/[slug]` stayed slower than
+market/operations/research on the same shared loader, and (B) a 503 on an
+RSC request that never appears in Vercel's function logs. Base commit
+`6776934d` (post-#540; the PERF lane's `loadDetail`/`loadDetailCore` shared
+shape, §1–§6 above, is already live). All claims below are labelled by
+evidence status per the lane contract.
+
+### (A) why regulations stayed slower — evidence
+
+[CONFIRMED, by reading] `loadDetail()` (`src/lib/detail/load-detail-core.ts`)
+already parallelizes its own item-scoped/viewer-scoped/sections bundle via
+one `Promise.all` (§4/§6 above; unchanged by this lane). But
+`/regulations/[slug]/page.tsx` is the ONLY one of the four detail pages that
+also renders two MORE async Server Components — `<ObligationRegister
+itemId variant="detail">` (its own section below the surface) and
+`<UpcomingObligationsStrip variant="detail" itemId>` (passed as
+`RegulationDetailSurface`'s `upcomingObligations` prop) — confirmed absent
+from `src/app/{market,operations,research}/[slug]/page.tsx` by grep (neither
+import appears in any of the three).
+
+[CONFIRMED, by reading] The page's own function body is `async`, and does
+`const result = await loadDetail(...)` BEFORE it reaches the `return
+(<>...</>)` statement that instantiates `<ObligationRegister>` /
+`<UpcomingObligationsStrip>`. This is a plain JS execution-order fact, not a
+React-scheduling nuance: the function cannot even construct those elements
+until the `await` above it resolves. Each of the two components then opens
+its OWN `createSupabaseServerClient()` (a *different*, request-scoped client
+from `loadDetail`'s service-role one) and does its own legacy_id→uuid
+resolution query before its main read — none of it overlapped with
+`loadDetail`'s own work, all of it paid strictly afterward, on every single
+render, uncached.
+
+[CONFIRMED, `node --test`] `src/lib/detail/regulation-obligations-core.test.mjs`
+mounts this exact composition shape with a stubbed call log and prints the
+ordered timeline for both the pre-lane shape and the fix:
+
+```
+BEFORE — await loadDetail(), then await obligations (STAGE_MS=30 each):
+  start:loadDetail → end:loadDetail → start:obligations → end:obligations
+  wall time: ~61ms   (obligations does not start until loadDetail ends)
+
+AFTER  — Promise.all([loadDetail(), obligations]):
+  start:loadDetail, start:obligations (both before either ends) → end, end
+  wall time: ~31ms   (~= the slower of the two stages, not the sum)
+```
+
+(The same file's other 4 tests prove `loadRegulationObligations`'s own
+control flow: id resolved once then register+upcoming fetched in parallel;
+an unresolved id returns empty arrays without calling either fetch;
+resolution/fetch errors soft-fail to empty arrays rather than throwing.)
+
+Estimated share of the regulations-vs-others gap this fix collapses: the two
+extra components' own Supabase round trips (resolution + main read, ×2,
+previously serial-after-loadDetail) — consistent with the audit's own §2
+server `[perf]` figures (regulations' logged `data` timing already only
+covers `loadDetail`'s cost, meaning the ADDITIONAL render-tree cost these two
+components paid was invisible to that log line entirely; this lane's fix
+makes them run inside the same `Promise.all` window `loadDetail` occupies,
+so they add zero to wall time in the common case where they are not the
+slowest branch).
+
+### (B) the 503 with no Vercel log — evidence
+
+[CONFIRMED, live reproduction, this session, `carosledge.com`,
+`dpl_TU9Y9tK7HsBedATesoERMtX31rso`] Clicking "Mexico SEMARNAT" from
+`/regulations` into `/regulations/g14` reproduced the exact symptom: the
+browser's network log showed, in order, `GET /regulations/g14?_rsc=1kmdx
+503`, `GET /regulations/g14?_rsc=1v4qf 200`, `GET /regulations/g14?_rsc=jsprb
+503` — 2 of 3 requests for the SAME navigation failed. Following synthetic
+probes (single fetches, a 20-request concurrent burst, a 15-request
+multi-item concurrent burst, all issued from the same authenticated tab) did
+NOT reproduce a 503 — consistent with the condition being timing-sensitive
+around a cold/first-hit window rather than reproducible by raw concurrency
+alone, so the exact response headers on the two failing requests themselves
+were not captured (the browser network-request tool used does not expose
+response headers, and headers could only be captured on synthetic
+requests that all happened to return 200). This is reported honestly as a
+gap, not filled in.
+
+[CONFIRMED, live query, `mcp__Vercel__get_runtime_logs`, same project,
+90-minute window spanning the exact reproduction above] Grouping by
+`statusCode` over the last 3 hours returns exactly `{200: 328, 307: 9,
+204: 2}` — **zero 503s**, despite the two live 503s above having occurred
+inside that same window. Filtering explicitly by path (`query: "g14"`)
+across `serverless` and `serverless-middleware` sources for the exact
+07:39–07:41 UTC window in which the 503s were captured shows every single
+logged hit to `/regulations/g14` as `200`, including several with the
+`[perf] /regulations/g14 data …ms` line the app's own `console.log` emits —
+i.e. the underlying Next.js function DID run, successfully, many times in
+that exact window, and none of those runs is the request the browser saw
+fail. A `query: "proxy"` search of `source: ["edge-middleware"]` for the
+`[proxy] auth.getUser() failed` (now `getClaims()`) warning also returned no
+matches in the last 60 minutes.
+
+**Conclusion: the 503 is produced at a layer Vercel's own runtime-log tool
+cannot see — before or outside the deployed middleware/function execution
+this project's logs are scoped to** [INFERRED from the above: a request that
+reaches and executes the middleware or the function leaves a log line here
+every time in this sample (100% of `g14` hits in the reproduction window did);
+the two 503s left none]. This is the platform-vs-app distinction the brief
+asked to determine, and the evidence points at the platform / edge routing
+layer, not at `proxy.ts`'s own logic — consistent with `proxy.ts`'s existing
+try/catch around the auth check already converting an in-process rejection
+into a graceful redirect rather than a throw (§ "FIX" below preserves that
+same fail-closed shape while removing the network round trip that guard was
+originally written to protect against).
+
+**What was NOT fixed as a result:** nothing in this lane's write set can
+change platform-layer routing/edge behavior — there is no code fix available
+for evidence that points outside the app. The fix applied (part 1 below,
+`auth.getClaims()`) removes the specific network round trip the original
+`[proxy] auth.getUser() failed` guard comment names as the trigger condition
+for the failure mode it was written against, which should reduce how often
+the underlying saturation condition is reached at all, but this lane cannot
+CONFIRM that removes 100% of the platform-layer 503s without a longer
+post-deploy observation window than this session had.
+
+### Fix applied
+
+1. **`src/proxy.ts`**: `supabase.auth.getUser()` (one Supabase Auth network
+   round trip per request, including every RSC prefetch) replaced with
+   `supabase.auth.getClaims()` (local JWT verification against the cached
+   project JWKS — [CONFIRMED by reading
+   `node_modules/@supabase/auth-js/dist/module/GoTrueClient.d.ts`]: "Prefer
+   this method over `getUser()` which always sends a request to the Auth
+   server for each JWT"). Session-refresh-on-near-expiry is preserved
+   (`getClaims()`'s own JSDoc: "the user's session will first be refreshed
+   before validating the JWT" — same `setAll`/cookie flow). Worst case (a
+   project signing JWTs with a symmetric secret rather than asymmetric keys)
+   is a wash, not a regression: `getClaims()`'s JSDoc states it then "always
+   sends a request similar to `getUser()`" — [HYPOTHESIS: which signing mode
+   this project's Supabase instance uses was not checked (no DB/dashboard
+   credentials in this worktree per the lane contract); the change is safe
+   either way]. The fail-closed catch (an unguarded rejection → platform 503,
+   per the pre-existing guard comment) is preserved exactly, now around
+   `getClaims()` instead of `getUser()`.
+
+   The routing DECISION itself (public route / static-api passthrough /
+   scanner-probe 404 / protected-route redirect, including the
+   logged-in-hits-`/login` bounce) was extracted, unchanged, into
+   `src/lib/auth/route-policy.ts`'s pure `decideRoute()` — `proxy.ts`
+   value-imports `@supabase/ssr` and `next/server`, neither resolvable by
+   plain `node --test` outside Next's bundler (same constraint
+   `load-detail-core.ts` documents for `next/cache`), so this split is what
+   makes the public/static/api/protected × claim-present/absent/expired
+   matrix testable at all. `route-policy.test.mjs` (12 tests) covers it,
+   including the "expired claim" and "absent claim" cases (both collapse to
+   `authenticated: false` from `decideRoute`'s point of view — `proxy.ts`'s
+   own `getClaims()` wiring is what tells them apart before calling in).
+
+   The matcher already excludes `_next/static`, `_next/image`, `favicon.ico`,
+   `robots.txt`, and common image extensions [CONFIRMED, `proxy.ts`'s
+   `config.matcher`, unchanged]. `?_rsc=` prefetches ARE authenticated in
+   middleware only, not doubly — the four detail `page.tsx` files call
+   `resolveOrgIdFromCookies()`/relevance lookups for viewer-scoping, not a
+   second auth gate; middleware remains the only auth CHECK on the request
+   path [CONFIRMED, no second `auth.getUser()`/`getClaims()` call found by
+   grep in `src/app/regulations/[slug]/page.tsx` or `src/lib/detail/*`].
+
+2. **Regulations detail fan-out (A)**: `src/lib/detail/regulation-obligations-core.ts`
+   (pure, deps-injected, `node --test`-able) + `src/lib/detail/regulation-obligations.ts`
+   (real Supabase/Next wiring) replace the two Server-Component calls in
+   `src/app/regulations/[slug]/page.tsx` with a single `loadRegulationDetailObligations(id)`
+   call run via `Promise.all` alongside `loadDetail(...)`. The fetched rows
+   feed the two components' existing PURE presentational halves
+   (`ObligationRegisterFilterBar`, `UpcomingObligationsStripView`) directly —
+   identical rendered output, identical soft-fail/honest-omission behavior,
+   identical request-scoped (RLS) Supabase client (per `read-register.mjs`'s
+   and `read-upcoming.mjs`'s own "MUST always be called with the
+   REQUEST-SCOPED client... never a service-role client" header rule — kept,
+   not swapped for the cacheable service-role client `loadItemScoped` uses,
+   since `unstable_cache` also forbids reading `cookies()` inside its wrapped
+   function). `ObligationRegister.tsx` / `UpcomingObligationsStrip.tsx`
+   themselves are UNCHANGED and still serve the regulations LIST page's
+   `variant="list"` shape (out of this lane's write set).
