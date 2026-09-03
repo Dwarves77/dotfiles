@@ -1,0 +1,58 @@
+{
+  "harness_family": "change-detection",
+  "harness_version": "sha256:331700b02e68fe83",
+  "run_id": "change-detection-run-004",
+  "started_at": "2026-09-03T20:48:15.066Z",
+  "finished_at": "2026-09-03T20:48:17.466Z",
+  "config": {
+    "mode": "apply",
+    "skip_check": false,
+    "check_limit": 10,
+    "reconcile_batch": 200,
+    "drain_limit": 5
+  },
+  "inputs_ref": [
+    "route=POST /api/worker/check-sources (skipped=false)",
+    "monitoring_queue: change_detected=true AND reconciled_at IS NULL LIMIT 200",
+    "staged_updates: update_type=update_item AND status=pending AND reason LIKE '[change-sweep]%' LIMIT 5"
+  ],
+  "per_item": [
+    {
+      "id": "check-sources",
+      "outcome": "checked",
+      "verdict": "HTTP 200: Scraping is off (cadence 'off' or emergency stop); worker exiting — 0 source(s) checked (0 changesDetected, 0 portalCandidates — route-reported)",
+      "evidence_refs": [],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "mode": "apply",
+    "skip_check": false,
+    "check_limit": 10,
+    "reconcile_batch": 200,
+    "drain_limit": 5,
+    "sources_due_for_check": null,
+    "sources_checked": 0,
+    "changes_detected": 0,
+    "portal_candidates_touched": 0,
+    "verified_by_read": {
+      "changes_detected": 0,
+      "portal_candidates_touched": 0,
+      "mismatches": []
+    },
+    "pending_change_rows": 0,
+    "pending_change_rows_total": 0,
+    "changes_recorded": 0,
+    "staged": 0,
+    "drained": 0,
+    "approved": 0,
+    "rejected": 0,
+    "not_drained": 0,
+    "browserless_units_est": 0
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/change-detection/traces/change-detection-run-004.result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-change-detection.mjs, the change-detection family's canonical entry point (lane CD, 2026-09-02). In apply mode with --skip-check unset, check-sources/route.ts already runs its OWN in-process reconcile pass — this run's own Step B reconcile call is a SECOND, independent pass, so a low or zero changesRecorded/staged here on an apply run is expected (the route's own call already claimed the same rows) and not itself a defect."
+}
