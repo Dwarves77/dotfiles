@@ -11,6 +11,9 @@ import {
   shapeRunOutput,
   defaultTraceDir,
   crossCheckMismatches,
+  evaluateScrapeGate,
+  routeExitedAtGate,
+  SCRAPE_GATE_REASONS,
   CHANGE_DETECTION_GOVERNING_FILES,
   DEFAULT_CHECK_LIMIT,
   DEFAULT_RECONCILE_BATCH,
@@ -366,4 +369,122 @@ test("shapeRunOutput: dry never says 'written' or 'reconciled' anywhere in a ver
     assert.doesNotMatch(item.verdict ?? "", /\bwritten\b/i);
     assert.doesNotMatch(item.verdict ?? "", /\breconciled\b/i);
   }
+});
+
+// ── the scrape gate (2026-09-03, run-004: apply reported ok=true with 0 sources checked) ──────────
+
+const OPEN = () => true;
+const CLOSED = () => false;
+
+test("evaluateScrapeGate: emergency stop closes the gate first, whatever the cadence", () => {
+  const g = evaluateScrapeGate({ cadence: "weekly", startDate: "2026-09-01", emergencyPaused: true }, new Date("2026-09-08T12:00:00Z"), OPEN);
+  assert.equal(g.open, false);
+  assert.equal(g.reason, "emergency_stop");
+  assert.equal(g.detail, SCRAPE_GATE_REASONS.emergency_stop);
+  assert.equal(g.emergency_paused, true);
+});
+
+test("evaluateScrapeGate: cadence 'off' closes the gate before the window is even consulted", () => {
+  let consulted = false;
+  const g = evaluateScrapeGate({ cadence: "off", startDate: null, emergencyPaused: false }, new Date(), () => { consulted = true; return true; });
+  assert.equal(g.open, false);
+  assert.equal(g.reason, "cadence_off");
+  assert.equal(consulted, false, "route.ts's isGloballyPaused() exits before scrapeWindowOpen(); mirror that order");
+  assert.match(g.detail, /operator's word only/);
+  assert.equal(g.cadence, "off");
+  assert.equal(g.start_date, null);
+});
+
+test("evaluateScrapeGate: a saved cadence on a non-scrape day is closed with its own reason", () => {
+  const g = evaluateScrapeGate({ cadence: "weekly", startDate: "2026-09-01", emergencyPaused: false }, new Date("2026-09-03T12:00:00Z"), CLOSED);
+  assert.equal(g.open, false);
+  assert.equal(g.reason, "not_a_scrape_day");
+  assert.equal(g.start_date, "2026-09-01");
+});
+
+test("evaluateScrapeGate: open when the cadence is set, not stopped, and today is a scrape day", () => {
+  const seen = [];
+  const g = evaluateScrapeGate({ cadence: "weekly", startDate: "2026-09-01", emergencyPaused: false }, new Date("2026-09-08T12:00:00Z"), (s, now) => { seen.push([s, now.toISOString()]); return true; });
+  assert.equal(g.open, true);
+  assert.equal(g.reason, null);
+  assert.deepEqual(seen, [[{ cadence: "weekly", startDate: "2026-09-01" }, "2026-09-08T12:00:00.000Z"]]);
+  assert.match(g.detail, /scrape window open today/);
+});
+
+test("routeExitedAtGate: both of route.ts's gate exits are recognised; an empty due set and a real batch are not", () => {
+  assert.equal(routeExitedAtGate({ message: "Scraping is off (cadence 'off' or emergency stop); worker exiting", sourcesChecked: 0 }), true);
+  assert.equal(routeExitedAtGate({ message: "Not a scheduled scrape day (cadence=weekly); worker exiting", sourcesChecked: 0 }), true);
+  assert.equal(routeExitedAtGate({ message: "No sources due for checking", sourcesChecked: 0 }), false);
+  assert.equal(routeExitedAtGate({ message: "Checked 3 sources", sourcesChecked: 3 }), false);
+  assert.equal(routeExitedAtGate(null), false);
+  assert.equal(routeExitedAtGate({ raw: "<html>" }), false);
+});
+
+const GATE_CLOSED = { open: false, reason: "cadence_off", detail: SCRAPE_GATE_REASONS.cadence_off, cadence: "off", start_date: null, emergency_paused: false };
+const GATE_OPEN = { open: true, reason: null, detail: "cadence=weekly start_date=2026-09-01 — scrape window open today", cadence: "weekly", start_date: "2026-09-01", emergency_paused: false };
+
+test("shapeRunOutput (dry, gate closed): due count is reported but sources_checkable is 0 and the gate is its own per_item", () => {
+  const shaped = shapeRunOutput(dryRaw({ check: { ...dryRaw().check, gate: GATE_CLOSED } }), "/tmp/report.json");
+  const gateItem = shaped.perItem.find((p) => p.id === "scrape-gate");
+  assert.equal(gateItem.outcome, "gate_closed");
+  assert.match(gateItem.verdict, /cadence_off/);
+  const checkItem = shaped.perItem.find((p) => p.id === "check-sources");
+  assert.match(checkItem.verdict, /42 source\(s\) due by the due-predicate but 0 checkable/);
+  assert.equal(shaped.metrics.sources_due_for_check, 42);
+  assert.equal(shaped.metrics.sources_checkable, 0);
+  assert.deepEqual(shaped.metrics.scrape_gate, { open: false, reason: "cadence_off", cadence: "off", start_date: null, emergency_paused: false });
+});
+
+test("shapeRunOutput (dry, gate open): sources_checkable equals the due count", () => {
+  const shaped = shapeRunOutput(dryRaw({ check: { ...dryRaw().check, gate: GATE_OPEN } }), "/tmp/report.json");
+  assert.equal(shaped.perItem.find((p) => p.id === "scrape-gate").outcome, "gate_open");
+  assert.equal(shaped.metrics.sources_checkable, 42);
+  assert.equal(shaped.metrics.scrape_gate.open, true);
+});
+
+test("shapeRunOutput (dry, gate not read): sources_checkable and scrape_gate are null, never fabricated", () => {
+  const shaped = shapeRunOutput(dryRaw(), "/tmp/report.json");
+  assert.equal(shaped.perItem.find((p) => p.id === "scrape-gate"), undefined);
+  assert.equal(shaped.metrics.sources_checkable, null);
+  assert.equal(shaped.metrics.scrape_gate, null);
+});
+
+test("shapeRunOutput (apply, route exited at gate): classified gate_closed_at_route, never 'checked'", () => {
+  const raw = applyRaw({
+    check: {
+      skipped: false, gate: GATE_CLOSED, httpStatus: 200, ok: true,
+      body: { message: "Scraping is off (cadence 'off' or emergency stop); worker exiting", checked: 0, sourcesChecked: 0, changesDetected: 0, portalCandidates: 0 },
+      error: null, verifiedByRead: { changeDetectedCount: 0, portalCandidatesTouched: 0 }, mismatches: [],
+    },
+  });
+  const shaped = shapeRunOutput(raw, "/tmp/report.json");
+  const checkItem = shaped.perItem.find((p) => p.id === "check-sources");
+  assert.equal(checkItem.outcome, "gate_closed_at_route");
+  assert.match(checkItem.verdict, /refused at its own gate/);
+  assert.match(checkItem.verdict, /closed\/cadence_off/);
+  assert.equal(shaped.metrics.route_exited_at_gate, true);
+  assert.equal(shaped.metrics.sources_checked, 0);
+  assert.equal(shaped.metrics.browserless_units_est, 0);
+  assert.equal(shaped.perItem.find((p) => p.id === "scrape-gate:cross-check"), undefined, "local read and route agree — no mismatch item");
+});
+
+test("shapeRunOutput (apply): a real checked batch stays 'checked' and route_exited_at_gate is false", () => {
+  const shaped = shapeRunOutput(applyRaw({ check: { ...applyRaw().check, gate: GATE_OPEN } }), "/tmp/report.json");
+  assert.equal(shaped.perItem.find((p) => p.id === "check-sources").outcome, "checked");
+  assert.equal(shaped.metrics.route_exited_at_gate, false);
+  assert.equal(shaped.perItem.find((p) => p.id === "scrape-gate:cross-check"), undefined);
+});
+
+test("shapeRunOutput (apply): local gate read disagreeing with the deployed route is reported, never swallowed", () => {
+  const raw = applyRaw({
+    check: {
+      skipped: false, gate: GATE_OPEN, httpStatus: 200, ok: true,
+      body: { message: "Scraping is off (cadence 'off' or emergency stop); worker exiting", sourcesChecked: 0, changesDetected: 0, portalCandidates: 0 },
+      error: null, verifiedByRead: { changeDetectedCount: 0, portalCandidatesTouched: 0 }, mismatches: [],
+    },
+  });
+  const shaped = shapeRunOutput(raw, "/tmp/report.json");
+  const mismatch = shaped.perItem.find((p) => p.id === "scrape-gate:cross-check");
+  assert.equal(mismatch.outcome, "gate_cross_check_mismatch");
+  assert.match(mismatch.verdict, /local system_state read says gate open but the deployed route exited at its gate/);
 });

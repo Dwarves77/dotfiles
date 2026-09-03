@@ -8920,3 +8920,32 @@ fetches every URL the item's sections and claims cite (25 per item per run, PDFs
 `pdf-extract.mjs`) before RESOURCE/ORPHANS so the orphan search has the sources the brief itself
 named. The residue after that run is the honest decision point: a brief that asserts facts no cited
 source states either keeps them and stays quarantined, or is rewritten to what its sources support.
+
+### Addendum 85, postscript 16 — change detection ran against a closed gate and called it a check (2026-09-03)
+
+Change detection #4 apply (`33804312977`) [CONFIRMED, log]: `[check] HTTP 200 ok=true sourcesChecked=0`,
+reconcile 0, drain 0, artifact outcome `checked`. Live [CONFIRMED, SQL]: 959 sources satisfy the route's
+due-predicate (active, not paused, auto_run_enabled, `last_checked` null or before today; the newest
+`last_checked` in the table is 2026-06-28), 0 pending `monitoring_queue` rows, and
+`system_state.scrape_cadence = 'off'`, `scrape_start_date = null`, `global_processing_paused = false`.
+Root cause, read from `check-sources/route.ts`: the route exits at `isGloballyPaused()` before its
+due-sources SELECT and answers HTTP 200 "Scraping is off … worker exiting". The driver's dry mode
+mirrored only the due-predicate, so every dry run reported the 959 as checkable and every apply checked
+nothing, and the artifact could not tell a closed gate from an empty batch. I had read the route for its
+`limit` contract on 2026-09-02 and not for its gate; that is the same failure the ledger skill's B-rules
+name, reasoning from the predicate I had mirrored instead of the file that settles it.
+
+Lane CD-GATE (this session, 46 tests): the driver reads the gate in both modes through the route's own
+readers (`pause.ts readScrapeState`, a new throwing form of the fail-closed `getScrapeState`, and
+`scrape-schedule.ts scrapeWindowOpen`, both via jiti), reports `scrape_gate`, `sources_checkable` and
+`route_exited_at_gate` in metrics, classifies an apply that hits the closed gate `gate_closed_at_route`,
+and reports a local-versus-route disagreement as its own per_item. The first local dry run in the cloud
+container caught the fabrication path this fix exists for: the container cannot reach Supabase, the
+fail-closed reader returned `off`, and the report said `cadence_off` as if it had read it; `readScrapeState`
+now throws instead. The gate is not bypassed. Cadence OFF is a standing spend constraint (ADR-015 §3,
+Browserless renders per source, ~2 units each, [UNCONFIRMED] against metered billing) and "the loop/cadence
+flip is the operator's word only" (PROGRAM-BOARD standing constraints). Until Jason sets
+`scrape_cadence`/`scrape_start_date` (`POST /api/admin/sources/pause-global`), change detection
+reconciles and drains whatever backlog exists and detects nothing; a dispatch cannot open it.
+`change-detection.yml`'s header still described the two route limitations the driver's second commit had
+already fixed; corrected. F28 PENDING-RUN written for the family (`sha256:fcb23ec75e03c512`).

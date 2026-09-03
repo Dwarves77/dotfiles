@@ -9,10 +9,17 @@ name: Change detection
 # `monitoring_queue` rows with `change_detected=true AND reconciled_at IS NULL`, 0 pending `staged_updates`.
 #
 # THIS DRIVER: `fsi-app/scripts/turns/run-change-detection.mjs` — see that file's own header for the exact
-# three-step chain (detect via the deployed route -> reconcile -> drain), the dry/apply contract, and the
-# two limitations found reading check-sources/route.ts while building this (its due-source batch is
-# HARDCODED at 10 with no request parameter to change it; its JSON response does not return
-# changeDetected/portalCandidates per source — this driver compensates with its own read-only DB queries).
+# three-step chain (detect via the deployed route -> reconcile -> drain) and the dry/apply contract. The
+# route accepts this driver's `{"limit": N}` body and returns sourcesChecked/changesDetected/portalCandidates
+# (both added to check-sources/route.ts by the driver's second commit, 2026-09-02).
+#
+# THE SCRAPE GATE (2026-09-03, run-004): check-sources/route.ts exits BEFORE selecting any source while
+# `system_state.scrape_cadence` is 'off' (or the emergency stop is set, or today is not a scrape day) —
+# HTTP 200, sourcesChecked 0, "...; worker exiting". Dispatching this workflow does NOT bypass that gate:
+# the cadence flip is the operator's word only (docs/PROGRAM-BOARD.md standing constraints; ADR-015 §3).
+# Both modes now read that gate and report it (`[gate] OPEN|CLOSED`, metrics.scrape_gate,
+# metrics.sources_checkable); an apply that hits the closed gate is recorded as gate_closed_at_route,
+# never as a checked batch. Reconcile + drain still run on whatever backlog exists.
 # ALWAYS records a `change-detection` harness-run artifact (`scripts/harness-runs/change-detection/`,
 # `scripts/lib/run-artifact.mjs`'s convention), in both modes, from a `finally` block.
 #
@@ -40,7 +47,7 @@ on:
         type: choice
         options: [dry, apply]
       check_limit:
-        description: 'Bounds this run''s OWN read/report of "sources due for check" (dry mode) and the due-sample size. Does NOT change the deployed route''s own batch — see the driver''s header for why (check-sources/route.ts hardcodes .limit(10)). Leave blank for the route''s own default (10).'
+        description: 'Bounds how many due sources the deployed route checks this run (apply; sent as the route''s own `limit` body) and the due-sample size reported in dry mode. Leave blank for the route''s own default (10). No effect while the scrape gate is closed (scrape_cadence off).'
         required: false
         type: string
       skip_check:

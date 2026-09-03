@@ -20,24 +20,35 @@ export interface ScrapeState extends ScrapeSchedule {
   emergencyPaused: boolean;
 }
 
+const FAIL_CLOSED_SCRAPE_STATE: ScrapeState = { cadence: "off", startDate: null, emergencyPaused: false };
+
+/** Read the global scrape schedule + emergency-stop from the system_state singleton, THROWING on a read
+ *  error. The one reader that must tell "cadence is off" apart from "I could not read the cadence" is a
+ *  reporting driver (scripts/turns/run-change-detection.mjs, 2026-09-03: a fail-closed read in an
+ *  unreachable-DB environment reported `cadence_off` as if it had been read). Gates keep using
+ *  getScrapeState() below, which wraps this and fails closed. */
+export async function readScrapeState(supabase: SupabaseClient): Promise<ScrapeState> {
+  const { data, error } = await supabase
+    .from("system_state")
+    .select("scrape_cadence, scrape_start_date, global_processing_paused")
+    .eq("id", true)
+    .maybeSingle();
+  if (error) throw new Error(`system_state read failed: ${error.message}`);
+  return {
+    cadence: ((data?.scrape_cadence as ScrapeCadence) ?? "off"),
+    startDate: (data?.scrape_start_date as string | null) ?? null,
+    emergencyPaused: !!data?.global_processing_paused,
+  };
+}
+
 /** Read the global scrape schedule + emergency-stop from the system_state singleton. On any read error
  *  this fails CLOSED to {off, unset, not-emergency} → isGloballyPaused() returns true (the safe default
  *  for a scrape gate: better to NOT scrape than to scrape uncontrolled). */
 export async function getScrapeState(supabase: SupabaseClient): Promise<ScrapeState> {
   try {
-    const { data, error } = await supabase
-      .from("system_state")
-      .select("scrape_cadence, scrape_start_date, global_processing_paused")
-      .eq("id", true)
-      .maybeSingle();
-    if (error) return { cadence: "off", startDate: null, emergencyPaused: false };
-    return {
-      cadence: ((data?.scrape_cadence as ScrapeCadence) ?? "off"),
-      startDate: (data?.scrape_start_date as string | null) ?? null,
-      emergencyPaused: !!data?.global_processing_paused,
-    };
+    return await readScrapeState(supabase);
   } catch {
-    return { cadence: "off", startDate: null, emergencyPaused: false };
+    return FAIL_CLOSED_SCRAPE_STATE;
   }
 }
 

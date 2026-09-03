@@ -98,6 +98,50 @@ export const DEFAULT_CHECK_LIMIT = 10;
 export const DEFAULT_RECONCILE_BATCH = 200;
 // The estimate cited in the file header above — [UNCONFIRMED] against Browserless's real metered price.
 export const BROWSERLESS_UNITS_PER_SOURCE_EST = 2;
+
+// ── The scrape gate (2026-09-03, change-detection run-004 apply: `HTTP 200 ok=true sourcesChecked=0`
+// while 959 sources were due). check-sources/route.ts exits BEFORE its due-sources SELECT when
+// `pause.ts isGloballyPaused()` (system_state.scrape_cadence='off' OR global_processing_paused) or
+// `scrape-schedule.ts scrapeWindowOpen()` (not a scheduled scrape day) says no — and it returns HTTP 200
+// with `sourcesChecked: 0` and a "...; worker exiting" message. This driver's dry mode mirrored only the
+// due-sources predicate, so dry said "959 would be checked" and apply checked 0, with the artifact
+// classifying the apply as `checked`. Two fixes, both here: (1) BOTH modes now read the same gate state
+// the route reads (pause.ts readScrapeState — the throwing form of the route's own fail-closed
+// getScrapeState — + scrape-schedule.ts scrapeWindowOpen, imported via jiti, not re-implemented) and report `scrape_gate` in metrics, with `sources_checkable` = due count only when the
+// gate is open; (2) an apply run whose route response carries the worker-exiting message is classified
+// `gate_closed_at_route`, never `checked`. The gate itself is NOT bypassed: "the loop/cadence flip is the
+// operator's word only" (PROGRAM-BOARD standing constraints, 2026-07-13; ADR-015 §3 — cadence OFF is a
+// standing spend constraint, and setting system_state.scrape_cadence/scrape_start_date is the operator's
+// config action). Pure given its inputs so it is unit-tested with a stub windowOpen.
+export const SCRAPE_GATE_REASONS = Object.freeze({
+  emergency_stop: "system_state.global_processing_paused=true (operator emergency stop) — check-sources exits before selecting any source",
+  cadence_off: "system_state.scrape_cadence='off' — check-sources exits before selecting any source; the cadence flip is the operator's word only (ADR-015 §3)",
+  not_a_scrape_day: "today is not a scheduled scrape day for the saved cadence — the automated worker fires only on scrape days (decision C)",
+});
+
+/** The route's own gate order (route.ts: isGloballyPaused → scrapeWindowOpen), evaluated from the same
+ *  ScrapeState `getScrapeState()` returns. `windowOpen` is scrape-schedule.ts's `scrapeWindowOpen`,
+ *  injected so this stays a pure function.
+ *  @param {{cadence:string,startDate:string|null,emergencyPaused:boolean}} state
+ *  @param {Date} now
+ *  @param {(s:{cadence:string,startDate:string|null}, now:Date)=>boolean} windowOpen
+ *  @returns {{open:boolean, reason:string|null, detail:string, cadence:string, start_date:string|null, emergency_paused:boolean}} */
+export function evaluateScrapeGate(state, now, windowOpen) {
+  const base = { cadence: state.cadence, start_date: state.startDate ?? null, emergency_paused: !!state.emergencyPaused };
+  if (state.emergencyPaused) return { ...base, open: false, reason: "emergency_stop", detail: SCRAPE_GATE_REASONS.emergency_stop };
+  if (state.cadence === "off") return { ...base, open: false, reason: "cadence_off", detail: SCRAPE_GATE_REASONS.cadence_off };
+  if (!windowOpen({ cadence: state.cadence, startDate: state.startDate ?? null }, now)) {
+    return { ...base, open: false, reason: "not_a_scrape_day", detail: SCRAPE_GATE_REASONS.not_a_scrape_day };
+  }
+  return { ...base, open: true, reason: null, detail: `cadence=${state.cadence} start_date=${state.startDate} — scrape window open today` };
+}
+
+/** Did the deployed route refuse at its own gate? Both of route.ts's gate exits return HTTP 200 with a
+ *  message ending "; worker exiting" and every total at 0 — distinguishable from "No sources due for
+ *  checking" (a real, empty check) and from a real checked batch. @param {any} body @returns {boolean} */
+export function routeExitedAtGate(body) {
+  return typeof body?.message === "string" && /worker exiting/i.test(body.message);
+}
 // Bound on the informational "how many rows are pending right now" reads this script does ahead of the
 // real (bounded) reconcile/drain calls — generous enough to see the true backlog depth without an
 // unbounded scan; NOT the batch/drain limit itself (those stay --reconcile-batch / --drain-limit).
@@ -198,13 +242,31 @@ export function shapeRunOutput(raw, reportPath) {
   const { mode, skipCheck, checkLimit, reconcileBatch, drainLimit, check, reconcile, drain } = raw;
   const perItem = [];
 
+  // ── scrape gate (both modes) ────────────────────────────────────────────────────────────────────
+  // `gate` is absent only on artifacts shaped from a run that threw before reading system_state.
+  const gate = check.gate ?? null;
+  if (gate) {
+    perItem.push({
+      id: "scrape-gate",
+      outcome: gate.open ? "gate_open" : "gate_closed",
+      verdict: gate.open
+        ? `scrape gate OPEN — ${gate.detail}`
+        : `scrape gate CLOSED (${gate.reason}) — ${gate.detail}; check-sources would check 0 source(s) regardless of how many are due`,
+      evidence_refs: [],
+      error: null,
+    });
+  }
+
   // ── check (Step A) ──────────────────────────────────────────────────────────────────────────────
   if (check.skipped) {
+    const dueClause = gate && !gate.open
+      ? `${check.dueCount} source(s) due by the due-predicate but 0 checkable while the gate is closed (${gate.reason})`
+      : `${check.dueCount} source(s) due for check`;
     perItem.push({
       id: "check-sources",
       outcome: "skipped",
       verdict:
-        `check skipped (${check.reason}); ${check.dueCount} source(s) due for check ` +
+        `check skipped (${check.reason}); ${dueClause} ` +
         `(sample of ${check.dueSample.length}, capped at --check-limit=${checkLimit})`,
       evidence_refs: [],
       error: null,
@@ -213,16 +275,31 @@ export function shapeRunOutput(raw, reportPath) {
       perItem.push({ id: `due:${s.id}`, outcome: "due_not_checked", verdict: `${s.name} — base_tier ${s.base_tier}`, evidence_refs: [], error: null });
     }
   } else {
+    const exitedAtGate = check.ok && routeExitedAtGate(check.body);
     perItem.push({
       id: "check-sources",
-      outcome: check.ok ? "checked" : "route_error",
-      verdict: check.ok
-        ? `HTTP ${check.httpStatus}: ${check.body?.message ?? ""} — ${check.body?.sourcesChecked ?? "?"} source(s) checked ` +
-          `(${check.body?.changesDetected ?? "?"} changesDetected, ${check.body?.portalCandidates ?? "?"} portalCandidates — route-reported)`
-        : `HTTP ${check.httpStatus}: ${check.error}`,
+      outcome: !check.ok ? "route_error" : exitedAtGate ? "gate_closed_at_route" : "checked",
+      verdict: !check.ok
+        ? `HTTP ${check.httpStatus}: ${check.error}`
+        : exitedAtGate
+          ? `HTTP ${check.httpStatus}: the deployed route refused at its own gate ("${check.body?.message}") — 0 source(s) checked; ` +
+            `nothing was detected, reconciled or drained from this step (local gate read: ${gate ? (gate.open ? "open" : `closed/${gate.reason}`) : "not read"})`
+          : `HTTP ${check.httpStatus}: ${check.body?.message ?? ""} — ${check.body?.sourcesChecked ?? "?"} source(s) checked ` +
+            `(${check.body?.changesDetected ?? "?"} changesDetected, ${check.body?.portalCandidates ?? "?"} portalCandidates — route-reported)`,
       evidence_refs: [],
       error: check.ok ? null : check.error,
     });
+    if (gate && exitedAtGate === gate.open) {
+      // The local gate read and the deployed route disagree — a deploy lag or a system_state write between
+      // the two reads. Reported, never swallowed (same posture as verified_by_read mismatches).
+      perItem.push({
+        id: "scrape-gate:cross-check",
+        outcome: "gate_cross_check_mismatch",
+        verdict: `local system_state read says gate ${gate.open ? "open" : `closed (${gate.reason})`} but the deployed route ${exitedAtGate ? "exited at its gate" : "ran its check"}`,
+        evidence_refs: [],
+        error: null,
+      });
+    }
     for (const r of check.body?.results ?? []) {
       perItem.push({
         id: `check:${r.source}`,
@@ -288,6 +365,11 @@ export function shapeRunOutput(raw, reportPath) {
     reconcile_batch: reconcileBatch,
     drain_limit: drainLimit,
     sources_due_for_check: check.skipped ? check.dueCount : null,
+    // What the route's gate would let through: the due count when the gate is open, 0 when closed, null
+    // when the gate was not read (a run that threw first) or the route was actually called.
+    sources_checkable: check.skipped ? (gate ? (gate.open ? check.dueCount : 0) : null) : null,
+    scrape_gate: gate ? { open: gate.open, reason: gate.reason, cadence: gate.cadence, start_date: gate.start_date, emergency_paused: gate.emergency_paused } : null,
+    route_exited_at_gate: check.skipped ? null : (check.ok ? routeExitedAtGate(check.body) : null),
     sources_checked: sourcesChecked,
     // Primary source: the route's own reported totals (second commit — computed from the same
     // assessAndUpdateSource() calls, not re-derived here).
@@ -349,6 +431,9 @@ async function main() {
   const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
   const { runReconcilePass } = await jiti.import("../../src/lib/sources/reconcile.ts");
   const { drainChangeSweepUpdates, UPDATE_DRAIN_LIMIT, MANUAL_INTAKE_CALLER } = await jiti.import("../../src/lib/intake/run-intake-cycle.ts");
+  // The route's OWN gate readers (not mirrored): pause.ts getScrapeState + scrape-schedule.ts scrapeWindowOpen.
+  const { readScrapeState } = await jiti.import("../../src/lib/api/pause.ts");
+  const { scrapeWindowOpen } = await jiti.import("../../src/lib/sources/scrape-schedule.ts");
 
   const mode = parsed.mode;
   const skipCheck = parsed.skipCheck;
@@ -368,12 +453,23 @@ async function main() {
   try {
     runId = claimRunId(harnessRunsDir, "change-detection");
 
+    // ── STEP A0: the scrape gate, read the way the route reads it (both modes) ──────────────────
+    // readScrapeState THROWS on a failed read (pause.ts) — the route's getScrapeState fails closed to
+    // 'off', which is right for a gate but would let this report say "cadence_off" when it really means
+    // "could not read system_state". A failed read here is a run error, not a gate verdict.
+    const gate = evaluateScrapeGate(await readScrapeState(sb), new Date(), scrapeWindowOpen);
+    console.log(gate.open
+      ? `[gate] OPEN — ${gate.detail}`
+      : `[gate] CLOSED (${gate.reason}) — ${gate.detail}`);
+
     // ── STEP A: detect ──────────────────────────────────────────────────────────────────────────
     if (!willCallRoute) {
       const reason = skipCheck ? "--skip-check" : "dry mode never calls a route that writes (sources, monitoring_queue, portal_link_candidates)";
       const due = await countDueSources(sb, checkLimit);
-      raw.check = { skipped: true, reason, ...due };
-      console.log(`[check] skipped (${reason}) — ${due.dueCount} source(s) due for check`);
+      raw.check = { skipped: true, reason, gate, ...due };
+      console.log(gate.open
+        ? `[check] skipped (${reason}) — ${due.dueCount} source(s) due for check`
+        : `[check] skipped (${reason}) — ${due.dueCount} source(s) due by predicate, 0 checkable: the route exits at its gate (${gate.reason})`);
     } else {
       const windowBefore = new Date().toISOString();
       const posted = await postCheckSources(process.env.APP_URL, process.env.WORKER_SECRET, checkLimit);
@@ -383,8 +479,12 @@ async function main() {
       // calls, at zero extra DB round trip.
       const verifiedByRead = posted.ok ? await countWindowChangeStats(sb, windowBefore) : { changeDetectedCount: null, portalCandidatesTouched: null };
       const mismatches = posted.ok ? crossCheckMismatches(posted.body, verifiedByRead) : [];
-      raw.check = { skipped: false, httpStatus: posted.status, ok: posted.ok, body: posted.body, error: posted.error, verifiedByRead, mismatches };
-      console.log(`[check] HTTP ${posted.status} ok=${posted.ok} sourcesChecked=${posted.body?.sourcesChecked ?? "?"} changesDetected=${posted.body?.changesDetected ?? "?"}`);
+      raw.check = { skipped: false, gate, httpStatus: posted.status, ok: posted.ok, body: posted.body, error: posted.error, verifiedByRead, mismatches };
+      if (posted.ok && routeExitedAtGate(posted.body)) {
+        console.log(`[check] HTTP ${posted.status} GATE CLOSED AT ROUTE — "${posted.body?.message}" — 0 source(s) checked; this apply detected nothing`);
+      } else {
+        console.log(`[check] HTTP ${posted.status} ok=${posted.ok} sourcesChecked=${posted.body?.sourcesChecked ?? "?"} changesDetected=${posted.body?.changesDetected ?? "?"}`);
+      }
       if (mismatches.length) console.log(`[check] verified_by_read mismatch(es): ${mismatches.join("; ")}`);
     }
 
