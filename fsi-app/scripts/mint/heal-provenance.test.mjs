@@ -55,12 +55,19 @@ import {
   planRelabelModalParagraph,
   sectionNeedsRelabel,
   reclassifyReason,
+  // third pass (HEAL-3)
+  extractSlotKeyFromMarker,
+  isRequiredSlotMarkerClaim,
+  CAPTURE_CITED_MAX_PER_ITEM,
+  collectCitedUrls,
+  unfetchedCitedUrls,
+  captureCitedUrl,
 } from "./heal-provenance.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 test("HEAL_VERSION is a stamped string", () => {
-  assert.match(HEAL_VERSION, /^hp2-/);
+  assert.match(HEAL_VERSION, /^hp3-/);
 });
 
 // ── loadRequiredSlots / claimCoversSlot / missingRequiredSlots ──────────────────────────────────────
@@ -923,4 +930,328 @@ test("main: builds the sources index once from readAllSources and threads it int
   const r = await main({ mode: "apply", arg: "ids:item-r2" }, deps);
   assert.equal(r.per_item[0].steps.resource[0].outcome, "resourced");
   assert.equal(r.counts.resourced, 1);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// THIRD PASS (HEAL-3, 2026-09-03) — SLOT MARKER, RELABEL normalization fix, CAPTURE-CITED.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+// ── SLOT MARKER ──────────────────────────────────────────────────────────────────────────────────────
+
+test("extractSlotKeyFromMarker: parses the leading '[<slot_key>] ' marker; null when absent", () => {
+  assert.equal(extractSlotKeyFromMarker("[primary_deadline] The captured source states, verbatim: «x»"), "primary_deadline");
+  assert.equal(extractSlotKeyFromMarker("[TITLE] some identity text"), "TITLE", "case-insensitive MATCH, original case preserved in the captured group");
+  assert.equal(extractSlotKeyFromMarker("no marker here at all"), null);
+  assert.equal(extractSlotKeyFromMarker("the levy applies [not_a_prefix]"), null, "marker must be LEADING");
+  assert.equal(extractSlotKeyFromMarker(null), null);
+});
+
+test("isRequiredSlotMarkerClaim: true only when the marker's slot_key is a member of that item_type's required-slots list", () => {
+  const map = { regulation: ["primary_deadline", "effective_date"] };
+  assert.equal(isRequiredSlotMarkerClaim("[primary_deadline] x", "regulation", map), true);
+  assert.equal(isRequiredSlotMarkerClaim("[title] x", "regulation", map), false, "title is never a required slot");
+  assert.equal(isRequiredSlotMarkerClaim("[primary_deadline] x", "market_signal", map), false, "wrong item_type");
+  assert.equal(isRequiredSlotMarkerClaim("no marker", "regulation", map), false);
+});
+
+// ── CAPTURE-CITED: pure helpers ─────────────────────────────────────────────────────────────────────
+
+test("collectCitedUrls: URLs literally in section content_md, plus each claim's resolved source url via sourcesIndex; deduplicated", () => {
+  const sections = [{ content_md: "See https://example.com/a and also (https://example.com/b)." }];
+  const claims = [
+    { source_id: "s1" }, // resolves via sourcesIndex
+    { source_id: null }, // no source_id -> contributes nothing
+    { source_id: "s1" }, // duplicate source -> deduped
+  ];
+  const sourcesIndex = { byId: new Map([["s1", { id: "s1", url: "https://example.com/c" }]]) };
+  const urls = collectCitedUrls({ sections, claims, sourcesIndex });
+  assert.deepEqual(urls.sort(), ["https://example.com/a", "https://example.com/b", "https://example.com/c"].sort());
+  assert.equal(new Set(urls).size, urls.length, "no duplicates despite the repeated source_id");
+});
+
+test("collectCitedUrls: intelligence_items.source_urls is never read (no such column exists, 2026-09-03 grep-confirmed) -- only sections + claim sources contribute", () => {
+  const sections = [];
+  const claims = [];
+  const urls = collectCitedUrls({ sections, claims, sourcesIndex: { byId: new Map() } });
+  assert.deepEqual(urls, []);
+});
+
+test("unfetchedCitedUrls: drops URLs already represented (canonicalized) among captures' own result_url", () => {
+  const captures = [{ result_url: "https://Example.com/Doc/" }];
+  const out = unfetchedCitedUrls(["https://example.com/doc", "https://example.com/other"], captures);
+  assert.deepEqual(out, ["https://example.com/other"]);
+});
+
+test("unfetchedCitedUrls: dedupes candidates by canonical form too (trailing-slash equal; scheme is NOT normalized by canonicalizeCitationUrl)", () => {
+  const out = unfetchedCitedUrls(["https://x.example/a", "https://x.example/a/", "http://x.example/a"], []);
+  assert.equal(out.length, 2, "https://x.example/a and its trailing-slash form collapse; http:// is a distinct canonical form");
+});
+
+// ── CAPTURE-CITED: captureCitedUrl ──────────────────────────────────────────────────────────────────
+
+test("captureCitedUrl: no url -> held no_source_url, no fetch attempted", async () => {
+  let fetched = false;
+  const r = await captureCitedUrl(null, { fetchImpl: async () => { fetched = true; } });
+  assert.equal(r.status, "held");
+  assert.equal(r.reason, "no_source_url");
+  assert.equal(fetched, false);
+});
+
+test("captureCitedUrl: eurlex host, canonical key derived from the URL ITSELF (never an item's own instrument_identifier) -- unresolvable -> held, no fetch", async () => {
+  let fetched = false;
+  const r = await captureCitedUrl("https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=NOTACELEX", { fetchImpl: async () => { fetched = true; } });
+  assert.equal(r.status, "held");
+  assert.equal(r.reason, "canonical_key_unresolved");
+  assert.equal(fetched, false);
+});
+
+test("captureCitedUrl: federal_register host with no resolvable document number -> held, no fetch", async () => {
+  let fetched = false;
+  const r = await captureCitedUrl("https://www.federalregister.gov/d/2026-00000", { fetchImpl: async () => { fetched = true; } });
+  assert.equal(r.status, "held");
+  assert.equal(r.reason, "fr_document_number_unresolved");
+  assert.equal(fetched, false);
+});
+
+test("captureCitedUrl: plain-GET family captures on a usable response", async () => {
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => "<html><title>Cited</title><body>" + "cited content ".repeat(40) + "</body></html>" });
+  const r = await captureCitedUrl("https://example-regulator.gov/other-notice", { fetchImpl });
+  assert.equal(r.status, "captured");
+  assert.ok(r.text.length > 200);
+});
+
+test("captureCitedUrl: plain-GET family holds capture_blocked with evidence on a failed response", async () => {
+  const fetchImpl = async () => ({ ok: false, status: 404, text: async () => "not found" });
+  const r = await captureCitedUrl("https://example-regulator.gov/gone-cited", { fetchImpl });
+  assert.equal(r.status, "held");
+  assert.equal(r.reason, "capture_blocked");
+  assert.equal(r.evidence.status, 404);
+});
+
+test("captureCitedUrl: .pdf URL, non-PDF body -> held pdf_unsupported (never mistaken for HTML)", async () => {
+  const fetchImpl = async () => ({ ok: true, status: 200, arrayBuffer: async () => new TextEncoder().encode("<html>not a pdf</html>").buffer });
+  const r = await captureCitedUrl("https://example.com/report.pdf", { fetchImpl });
+  assert.equal(r.status, "held");
+  assert.equal(r.reason, "pdf_unsupported");
+});
+
+test("captureCitedUrl: .pdf URL, fetch fails -> held capture_blocked, no pdf parse attempted", async () => {
+  const fetchImpl = async () => ({ ok: false, status: 503 });
+  const r = await captureCitedUrl("https://example.com/report.pdf", { fetchImpl });
+  assert.equal(r.status, "held");
+  assert.equal(r.reason, "capture_blocked");
+});
+
+test("captureCitedUrl: .pdf URL, real PDF bytes -> captured, text extracted via the existing pdf-extract.mjs codec", async () => {
+  // Minimal xref-correct PDF, same builder as scripts/_diag/_pdf-probe.mjs's own proof.
+  function minimalPdf(text) {
+    const objs = [
+      "<< /Type /Catalog /Pages 2 0 R >>",
+      "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+      "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+      null,
+      "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ];
+    const stream = `BT /F1 24 Tf 72 700 Td (${text}) Tj ET`;
+    objs[3] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
+    let body = "%PDF-1.4\n";
+    const offsets = [];
+    objs.forEach((o, i) => { offsets.push(body.length); body += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+    const xrefStart = body.length;
+    body += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+    offsets.forEach((off) => { body += `${String(off).padStart(10, "0")} 00000 n \n`; });
+    body += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+    return new Uint8Array(Buffer.from(body, "latin1"));
+  }
+  const bytes = minimalPdf("Hello cited PDF marker");
+  const fetchImpl = async () => ({ ok: true, status: 200, arrayBuffer: async () => bytes.buffer });
+  const r = await captureCitedUrl("https://example.com/cited.pdf", { fetchImpl });
+  assert.equal(r.status, "captured");
+  assert.match(r.text, /Hello cited PDF marker/);
+  assert.equal(r.evidence.pdf, true);
+});
+
+// ── healOneItem — SLOT-REPAIR, RECLASSIFY GAP branch, RELABEL normalization, CAPTURE-CITED wiring ────
+
+test("healOneItem SLOT-REPAIR: a required-slot claim previously mis-kinded to ANALYSIS is converted back to the kit's own honest GAP (never left ANALYSIS)", async () => {
+  const item = { id: "item-sr1", item_type: "regulation", full_brief: "", source_url: null };
+  const claims = [{ id: "claim-sr1", claim_kind: "ANALYSIS", claim_text: "[primary_deadline] the deadline was not clearly stated", source_span: null, source_id: null, section_row_id: "sec-sr1" }];
+  const requiredSlotsMap = { regulation: ["primary_deadline"] };
+  const deps = baseDeps({
+    readClaims: async () => claims,
+    readSections: async (id) => (id === "item-sr1" ? [{ id: "sec-sr1", item_id: "item-sr1", section_key: "record_facts", section_order: 2, content_md: "[primary_deadline] the deadline was not clearly stated" }] : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap });
+  assert.equal(r.steps.slot_repair.length, 1);
+  assert.equal(r.steps.slot_repair[0].outcome, "repaired_to_gap");
+  assert.equal(r.steps.slot_repair[0].slot_key, "primary_deadline");
+  const call = deps.calls.find((c) => c[0] === "updateClaimKind" && c[1] === "claim-sr1");
+  assert.ok(call, "the guarded path was used");
+  assert.equal(call[2].claim_kind, "GAP");
+  assert.match(call[2].claim_text, /^\[primary_deadline\]/);
+  assert.equal(call[2].source_span, null);
+  // never appears in RELABEL's ANALYSIS loop once repaired
+  assert.ok(!r.steps.relabel.some((x) => x.claim_id === "claim-sr1"));
+});
+
+test("healOneItem SLOT-REPAIR: dry mode reports would_repair_to_gap, writes nothing", async () => {
+  const item = { id: "item-sr2", item_type: "regulation", full_brief: "", source_url: null };
+  const claims = [{ id: "claim-sr2", claim_kind: "ANALYSIS", claim_text: "[primary_deadline] x", source_span: null, source_id: null }];
+  const requiredSlotsMap = { regulation: ["primary_deadline"] };
+  const deps = baseDeps({ readClaims: async () => claims });
+  const r = await healOneItem(item, { deps, apply: false, selectionMode: "quarantined-live", requiredSlotsMap });
+  assert.equal(r.steps.slot_repair[0].outcome, "would_repair_to_gap");
+  assert.deepEqual(deps.calls, []);
+});
+
+test("healOneItem SLOT-REPAIR: an ANALYSIS claim's marker that is NOT a required slot for this item_type is left alone", async () => {
+  const item = { id: "item-sr3", item_type: "regulation", full_brief: "", source_url: null };
+  const claims = [{ id: "claim-sr3", claim_kind: "ANALYSIS", claim_text: "[title] the levy applies broadly", source_span: null }];
+  const deps = baseDeps({ readClaims: async () => claims });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: { regulation: ["primary_deadline"] } });
+  assert.deepEqual(r.steps.slot_repair, []);
+});
+
+test("healOneItem STEP E (RECLASSIFY): a required-slot FACT claim's unrecoverable residue becomes GAP, never ANALYSIS", async () => {
+  const item = { id: "item-e2", item_type: "regulation", full_brief: "", source_url: null };
+  const claims = [{ id: "claim-e2", claim_kind: "FACT", claim_text: "[primary_deadline] a deadline nowhere stated in any capture", source_span: "a span nowhere in any capture", source_id: "src-e2", section_row_id: "sec-e2" }];
+  const requiredSlotsMap = { regulation: ["primary_deadline"] };
+  const deps = baseDeps({ readClaims: async () => claims });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap });
+  assert.equal(r.steps.reclassify.length, 1);
+  assert.equal(r.steps.reclassify[0].outcome, "reclassified_to_gap");
+  assert.equal(r.steps.reclassify[0].slot_key, "primary_deadline");
+  const call = deps.calls.find((c) => c[0] === "updateClaimKind" && c[1] === "claim-e2");
+  assert.equal(call[2].claim_kind, "GAP");
+  assert.notEqual(call[2].claim_kind, "ANALYSIS");
+  // a GAP claim is never fed into RELABEL's ANALYSIS loop
+  assert.ok(!r.steps.relabel.some((x) => x.claim_id === "claim-e2"));
+});
+
+test("healOneItem RELABEL: normalized matching finds the owning paragraph even when claim_text differs from the paragraph by whitespace/curly-quote drift", async () => {
+  const item = { id: "item-rl1", item_type: "initiative", full_brief: "", source_url: null };
+  const claims = [{ id: "claim-rl1", claim_kind: "ANALYSIS", claim_text: 'the levy "applies broadly" across the sector', source_span: null, section_row_id: "sec-rl1" }];
+  const deps = baseDeps({
+    readClaims: async () => claims,
+    readSections: async (id) => (id === "item-rl1"
+      ? [{ id: "sec-rl1", item_id: "item-rl1", section_key: "body", section_order: 1, content_md: 'Background.\n\nAccording to this reading, the levy   “applies\nbroadly” across the sector, per industry chatter.' }]
+      : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  const entry = r.steps.relabel.find((x) => x.claim_id === "claim-rl1");
+  assert.ok(entry, "found the owning paragraph under normalization");
+  assert.equal(entry.outcome, "relabeled");
+});
+
+test("healOneItem RELABEL: a claim with no owning section/paragraph anywhere is reported no_owning_section_found, never silently dropped", async () => {
+  const item = { id: "item-rl2", item_type: "initiative", full_brief: "", source_url: null };
+  const claims = [{ id: "claim-rl2", claim_kind: "ANALYSIS", claim_text: "this text appears nowhere in any section", source_span: null, section_row_id: null }];
+  const deps = baseDeps({
+    readClaims: async () => claims,
+    readSections: async (id) => (id === "item-rl2" ? [{ id: "sec-rl2", item_id: "item-rl2", section_key: "body", section_order: 1, content_md: "Completely unrelated prose." }] : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  const entry = r.steps.relabel.find((x) => x.claim_id === "claim-rl2");
+  assert.ok(entry);
+  assert.equal(entry.outcome, "no_owning_section_found");
+});
+
+test("healOneItem CAPTURE-CITED: fetches a URL cited in a section's own content_md, before RESOURCE/ORPHANS run, writing a distinguishable search_query", async () => {
+  const item = { id: "item-cc1", item_type: "market_signal", source_id: "src-cc1", source_url: "https://example.com/primary", full_brief: "" };
+  const sourcesIndex = buildSourcesIndex([{ id: "src-cc1", url: "https://example.com/primary", base_tier: 3 }]);
+  const captures = [{ id: "cap-cc1", result_url: "https://example.com/primary", result_content: "the primary capture, thin." }];
+  const sections = [{ id: "sec-cc1", item_id: "item-cc1", section_key: "body", section_order: 1, content_md: "See the cited notice at https://example.com/cited for details." }];
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => "<html><title>Cited</title><body>" + "cited detail ".repeat(40) + "</body></html>" });
+  const deps = baseDeps({
+    fetchImpl,
+    readCaptures: async () => captures,
+    readClaims: async () => [],
+    readSections: async (id) => (id === "item-cc1" ? sections : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {}, sourcesIndex });
+  assert.equal(r.steps.capture_cited.fetched, 1);
+  assert.equal(r.steps.capture_cited.results[0].outcome, "captured");
+  const call = deps.calls.find((c) => c[0] === "insertSearch" && c[1].result_url === "https://example.com/cited");
+  assert.ok(call, "the cited URL was captured and written");
+  assert.equal(call[1].search_query, "heal-provenance:capture-cited");
+});
+
+test("healOneItem CAPTURE-CITED: a cited URL already represented among the item's captures is skipped, never re-fetched", async () => {
+  const item = { id: "item-cc2", item_type: "market_signal", source_url: "https://example.com/primary", full_brief: "" };
+  // >200 chars so STEP 1's own needsCapture check is already satisfied and does not itself fetch --
+  // isolating this test to CAPTURE-CITED's own skip-already-captured logic.
+  const captures = [{ id: "cap-cc2", result_url: "https://example.com/cited", result_content: "already captured and present. ".repeat(10) }];
+  const sections = [{ id: "sec-cc2", item_id: "item-cc2", section_key: "body", section_order: 1, content_md: "See https://example.com/cited for detail." }];
+  let fetched = 0;
+  const deps = baseDeps({
+    fetchImpl: async () => { fetched += 1; return { ok: true, status: 200, text: async () => "x".repeat(300) }; },
+    readCaptures: async () => captures,
+    readClaims: async () => [],
+    readSections: async (id) => (id === "item-cc2" ? sections : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  assert.equal(r.steps.capture_cited.to_fetch, 0);
+  assert.equal(fetched, 0, "no network call for an already-captured URL");
+});
+
+test("healOneItem CAPTURE-CITED: bounded to CAPTURE_CITED_MAX_PER_ITEM fetches/item/run, overflow reported", async () => {
+  const many = Array.from({ length: CAPTURE_CITED_MAX_PER_ITEM + 5 }, (_, i) => `https://example.com/doc-${i}`);
+  const item = { id: "item-cc3", item_type: "market_signal", source_url: null, full_brief: "" };
+  const sections = [{ id: "sec-cc3", item_id: "item-cc3", section_key: "body", section_order: 1, content_md: many.join(" ") }];
+  let fetchCount = 0;
+  const deps = baseDeps({
+    fetchImpl: async () => { fetchCount += 1; return { ok: true, status: 200, text: async () => "x".repeat(300) }; },
+    readClaims: async () => [],
+    readSections: async (id) => (id === "item-cc3" ? sections : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  assert.equal(r.steps.capture_cited.to_fetch, many.length);
+  assert.equal(r.steps.capture_cited.fetched, CAPTURE_CITED_MAX_PER_ITEM);
+  assert.equal(r.steps.capture_cited.bound_hit, true);
+  assert.equal(r.steps.capture_cited.overflow, 5);
+  assert.equal(fetchCount, CAPTURE_CITED_MAX_PER_ITEM, "never fetches past the bound");
+});
+
+test("healOneItem CAPTURE-CITED: dry mode reports would_fetch for every candidate, makes no fetch/write", async () => {
+  const item = { id: "item-cc4", item_type: "market_signal", source_url: null, full_brief: "" };
+  const sections = [{ id: "sec-cc4", item_id: "item-cc4", section_key: "body", section_order: 1, content_md: "See https://example.com/cited-dry for detail." }];
+  const deps = baseDeps({ readClaims: async () => [], readSections: async (id) => (id === "item-cc4" ? sections : []) });
+  const r = await healOneItem(item, { deps, apply: false, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  assert.equal(r.steps.capture_cited.results[0].outcome, "would_fetch");
+  assert.deepEqual(deps.calls, []);
+});
+
+test("summarizeReports: tallies the third-pass counters (slot_repaired_to_gap, reclassified_to_gap, cited_captured/held, relabel_no_owning_section)", () => {
+  const perItem = [
+    {
+      steps: {
+        slot_repair: [{ outcome: "repaired_to_gap" }],
+        reclassify: [{ outcome: "reclassified_to_gap" }, { outcome: "reclassified" }],
+        relabel: [{ outcome: "no_owning_section_found" }, { outcome: "relabeled" }],
+        capture_cited: { bound_hit: true, results: [{ outcome: "captured" }, { outcome: "held" }] },
+        gate_a: {}, rederive: { outcome: "still_failing", failures: [] },
+      },
+    },
+  ];
+  const s = summarizeReports(perItem);
+  assert.equal(s.slot_repaired_to_gap, 1);
+  assert.equal(s.reclassified_to_gap, 1);
+  assert.equal(s.refactored_to_analysis, 1);
+  assert.equal(s.relabel_no_owning_section, 1);
+  assert.equal(s.relabeled_paragraphs, 1);
+  assert.equal(s.cited_captured, 1);
+  assert.equal(s.cited_held, 1);
+  assert.equal(s.cited_bound_hit_items, 1);
+});
+
+test("main: final_failures_by_item carries each item's own remaining failures, so the coordinator can read residue without re-querying", async () => {
+  const item = { id: "item-ff1", item_type: "regulation", full_brief: "", source_url: null };
+  const deps = baseDeps({
+    readByIds: async () => [item],
+    validateProvenance: async () => ({ valid: false, recommended_status: "quarantined", failures: [{ criterion: 7, reason: "gate_a_unproven_or_stale" }] }),
+  });
+  const r = await main({ mode: "apply", arg: "ids:item-ff1" }, deps);
+  assert.equal(r.final_failures_by_item.length, 1);
+  assert.equal(r.final_failures_by_item[0].id, "item-ff1");
+  assert.deepEqual(r.final_failures_by_item[0].failures, [{ criterion: 7, reason: "gate_a_unproven_or_stale" }]);
 });

@@ -443,3 +443,71 @@ New `counts`: `own_body_resolved`, `resourced`/`unresourced`, `orphans_grounded`
 JSON allowlist, the SAME basis that document already applies to `sources` itself (not a harness/flywheel
 shared-8 table). Per-step expected effect on the 95 survivors is `[INFERRED]` from the coordinator's own
 failure-count breakdown above until the coordinator's own apply dispatch measures it.
+
+**Third pass (lane HEAL-3, 2026-09-03)**: the second pass's own `provenance-heal --arg quarantined-live
+apply` run (coordinator-confirmed against the run artifact and the live table, run 33797952379) landed on
+the 95 quarantined-live survivors — `resourced 57, unresourced 616, own_body_resolved 6, orphans_grounded
+130, orphans_unprovable 862, relabeled_paragraphs 228, refactored_to_analysis 638, gate_a_written 95,
+healed_verified 0, still_failing 95` — and RE-DERIVED to a WORSE label/slot shape than the run started
+with: `analysis_missing_label_syntax` 594 (up from 190), `gate_a_unproven_or_stale` 88,
+`fact_below_authority_floor` 81, `missing_required_slot` 28 (up from 4), `ungrounded_url` 5,
+`missing_full_brief` 1. Live verified count unchanged at 621. Three defects fixed, one broadening, all in
+`scripts/mint/heal-provenance.mjs` (HEAL_VERSION `hp3-2026-09-03.1`):
+
+1. **RELABEL never applying, mis-attributed to step order.** The dispatch attributed the tripled
+   `analysis_missing_label_syntax` count to RELABEL (D) running before RECLASSIFY (E) — re-reading the
+   file's own step sequence (STEP B → STEP A → STEP E → STEP C → STEP D, unchanged since the second pass)
+   shows E already runs before D; that premise is **[REFUTED]**, corrected in place per rule 14. The real
+   mechanism: RELABEL's owning-section/paragraph lookup used a raw case-folded `.includes()`, never the
+   normalizer GROUND itself uses (whitespace runs, curly/straight quotes, HTML entities) — a re-kinded
+   claim whose `claim_text` differed from its own paragraph by that drift matched neither lookup, and the
+   miss was silently swallowed with no report entry at all. Fixed: both lookups now go through
+   `locateSpanInText` (the same three-tier exact/normalized/normalized_ci matcher GROUND already uses),
+   and every miss — no owning section, or an owning section whose paragraph never matches even under
+   normalization — reports `no_owning_section_found` with the claim id.
+2. **Slot FACT residue re-kinded to ANALYSIS, dropping criterion-5 coverage.** RECLASSIFY had no awareness
+   of the `"[<slot_key>] "` marker (migrations 114/119/121, migration 299's own self-check) and re-kinded
+   slot-claim residue the same as any other claim, which is how `missing_required_slot` went from 4 to 28.
+   Fixed two ways: a new **SLOT-REPAIR** step (before RELABEL) retroactively converts every already
+   mis-kinded ANALYSIS claim carrying a required-slot marker back to the kit's own honest GAP for that
+   slot; RECLASSIFY itself now branches the same way prospectively — a required-slot FACT claim's
+   unrecoverable residue becomes GAP, never ANALYSIS. Both paths call `buildSlotClaim` (with
+   `capturedText=""`) for the GAP text, so it is byte-identical to a fresh honest-absence write, never
+   hand-duplicated.
+3. **Gate A vs. labels — a finding, not a fix** (`gate-a-scan.mjs` is a mint governing file, out of this
+   lane's write set). Code path: `scanBrief` (`fsi-app/scripts/mint/lib/gate-a-scan.mjs`) takes only
+   `fullBrief` + `factClaims`; it has no reference anywhere to `ANALYSIS_LABEL_RE` or any label form, and
+   its only coverage test is a literal-substring check against the FACT-claim corpus (`isBacked`). A
+   figure/date token inside an already-labeled `*Analytical inference:*` paragraph is therefore still
+   counted as a Gate-A orphan — the label satisfies criterion 4 only, never criterion 7. Compounding this:
+   `item.full_brief` (what `scanBrief` scans, per `validate-mint-payload.mjs` criterion 7 and this file's
+   own `planGateA`) and a section's `content_md` (what RELABEL edits, and what criterion 4 itself scans)
+   are two SEPARATE stored fields — RELABEL's own prose edits never touch `full_brief`, so even a
+   successfully labeled paragraph has zero effect on the Gate-A orphan count. Measurement the dispatch
+   asked for (862 unprovable orphans, full_brief prose vs. section prose): **100% full_brief, 0% section
+   prose**, established analytically from the scanner's own signature (`scanBrief(fullBrief, factClaims,
+   ...)` never receives section content at all) rather than from the run artifact, which this lane's
+   worktree has neither DB nor artifact access to.
+4. **CAPTURE-CITED (broadening).** STEP 1's CAPTURE only ever fetched when an item had NO usable capture
+   at all. A new step, CAPTURE-CITED, runs before RESOURCE/ORPHANS and fetches every URL an item's
+   sections/claims already cite that is not yet captured for that item: URLs literally present in section
+   `content_md` (criterion 2's own parenthesis-balanced `URL_RE`, mirrored verbatim) plus each claim's
+   registered source URL (resolved via `source_id` → the `sources` registry, since a claim carries no
+   `source_url` column of its own). `intelligence_items.source_urls`, named in the brief as a third URL
+   source, does **not exist** as a column or array anywhere in `supabase/migrations` (grepped in full,
+   2026-09-03) and is never read. Bounded to 25 fetches/item/run (`CAPTURE_CITED_MAX_PER_ITEM`), reported
+   with the overflow count. Adds a PDF branch (`src/lib/sources/pdf-extract.mjs`'s `pdfToText`, imported
+   unmodified) the "plain GET otherwise" family never had; a mislabeled/corrupt PDF is held
+   `pdf_unsupported`, never retried blind. New capture rows land in the same shared `captures` array
+   RESOURCE/ORPHANS's own bucket builders already iterate, so no further wiring broadens their pool; this
+   also directly targets criterion 2's `ungrounded_url` failure (a cited URL becomes a captured
+   `agent_run_searches` row).
+
+New `counts`: `slot_repaired_to_gap`, `reclassified_to_gap` (was folded into `refactored_to_analysis`
+before this pass), `relabel_no_owning_section`, `cited_captured`/`cited_held`/`cited_bound_hit_items`. New
+top-level summary field: `final_failures_by_item` (`{id, item_type, outcome, failures}` per item) — the
+per-item residue the dispatch asked for, so the coordinator can read exactly which criterion each
+still-failing item is stuck on without re-querying. No new table written (CAPTURE-CITED reuses the
+existing `agent_run_searches`/`insertSearch` writer surface, distinguished only by `search_query =
+"heal-provenance:capture-cited"`), so `shared-dataset-ownership.md` is unchanged by this pass. No mint
+governing file touched (`gate-a-scan.mjs` read only, for the criterion-3 finding above).
