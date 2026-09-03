@@ -4,8 +4,12 @@
 // ZERO edges in discover.mjs (that module reads exactly those three fields — see its own header — plus
 // source_id and jurisdiction; a shared_scenario/shared_compliance_object/shared_jurisdiction_topic basis
 // can never fire against an empty array). This module NEVER writes a DB row and NEVER decides a tag is
-// true — it only PROPOSES candidates, each carrying the evidence span that justified it, for operator
-// ratification (propose-tags.mjs / apply-tags.mjs carry the write path; see those files).
+// true — it only PROPOSES candidates, each carrying the evidence span that justified it AND the
+// confidence tier that evidence supports (propose-tags.mjs / apply-tags.mjs carry the write path; see
+// those files). As of 2026-09-03 (operator ruling; see apply-tags.mjs's header) the write path no longer
+// routes every proposal through operator ratification: a DETERMINISTIC, high-confidence proposal (see
+// "CONFIDENCE, EXPOSED" below) auto-adopts with recorded provenance; only the residue this module itself
+// marks lower-confidence, or the zero-proposal case, still surfaces as a flag for a human to review.
 //
 // NO ASSUMPTIONS, NEVER SILENT AUTO-TAGGING (operator rule, restated structurally here): every proposal
 // is traceable to (a) a real matched substring of the item's own title/instrument-key/brief text and
@@ -70,6 +74,18 @@
 // <= 5, compliance_object_tags <= 4, topic_tags <= 3 per item. Proposals beyond a field's cap are
 // dropped, highest-confidence-first (ties broken by tag name, ascending, for determinism) — this module
 // never proposes a set the live vocabulary rules would themselves reject at emission time.
+//
+// CONFIDENCE, EXPOSED (operator ruling, 2026-09-03 — see apply-tags.mjs's header for the auto-adoption
+// path this feeds). Every proposal already carries `confidence: "high"|"medium"` (see "CONFIDENCE TIERS"
+// above) — an ordinal signal grounded directly in this module's own evidence: WHERE the matched text
+// lives (title/instrument-key identity text vs. full_brief body text), not a fabricated score. That is
+// the only independent confidence dimension this module's evidence supports today: a KEYWORD_MAP tag can
+// match via several of its own `keywords` phrases at once (see deriveTags' `best` map), but those are
+// synonyms for the SAME fact, not independent corroboration, so counting them would inflate confidence
+// on the noun-phrase-count of a single keyword list entry rather than on genuinely separate evidence —
+// this module deliberately does not do that. CONFIDENCE_RANK/meetsConfidence below make the existing two
+// tiers mechanically comparable for a threshold decision, WITHOUT changing deriveTags()'s own output
+// shape or values (every existing test in this file's sibling `.test.mjs` still holds byte-for-byte).
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -86,6 +102,24 @@ export const FIELD_CAPS = Object.freeze({
   compliance_object_tags: 4,
   topic_tags: 3,
 });
+
+// CONFIDENCE_RANK / meetsConfidence — see the "CONFIDENCE, EXPOSED" header note above. Ordinal, not a
+// probability: "high" (title/instrument-key match) always outranks "medium" (body-only match). An
+// unrecognized confidence value ranks 0 (below every real tier) so a caller can filter externally-sourced
+// proposals (e.g. a stored PROPOSALS_JSON blob) without a defensive type check at every call site.
+export const CONFIDENCE_RANK = Object.freeze({ high: 2, medium: 1 });
+
+/**
+ * True when `confidence` is at least as strong as `threshold` on this module's own two-tier ordinal
+ * scale (high > medium > anything else). PURE.
+ * @param {string} confidence
+ * @param {"high"|"medium"} threshold
+ * @returns {boolean}
+ */
+export function meetsConfidence(confidence, threshold) {
+  const rank = (c) => CONFIDENCE_RANK[c] ?? 0;
+  return rank(confidence) >= rank(threshold);
+}
 
 /**
  * Extract a `const NAME = [ "a", "b", ... ] as const;` quoted-string array from TypeScript source text.
