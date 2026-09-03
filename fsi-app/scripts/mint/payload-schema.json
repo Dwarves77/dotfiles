@@ -62,6 +62,44 @@
           "enum": ["brief", "record"],
           "default": "brief",
           "description": "Lane POP (2026-09-01, migration 278). 'brief' (default, omit for the historical behavior) = a synthesized, grounded brief. 'record' = a catalogue record: identity + a short description made ONLY of verbatim FACT/GAP spans, no synthesis, $0. Grade does NOT change which of criteria 1-7 apply -- validate-mint-payload.mjs's grade discriminator adds two ADDITIONAL record-purity kit checks (claim_kind restricted to FACT/GAP; every FACT source_span present in full_brief) on top of the unchanged C1-C7 path. See item-type-required-slots.json's header for why required slots are identical across both grades."
+        },
+        "binding_position": {
+          "type": ["string", "null"],
+          "enum": ["direct_duty", "carrier_passthrough", "customer_contract", "monitoring_only", null],
+          "default": null,
+          "description": "Lane INTAKE (2026-09-02). Spec 01 §1/§3.2: which of the four src/lib/contracts/vocabularies.mjs BINDING_POSITION codes the source's own applicability language places this item at -- read by OBLIG's obligation register. Populated only for the regulation family (regulation/directive/standard/guidance/framework/notice/presidential_document); null for every other item_type, or when the family applies but the source does not state it (GAP, never invented -- see src/lib/intake/record-facts.mjs's extractBindingPositionFact)."
+        },
+        "due_date": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Lane INTAKE (2026-09-02). The verbatim due-date-shaped span the regulation family's binding_position sibling extractor located (src/lib/intake/record-facts.mjs's extractDueDateFact) -- spec 01 §3.3's 'four dates, never one' names WHICH of the four this is as an open question this $0 extractor does not resolve; it locates a date, not a classification of it. Null when not stated, same posture as binding_position."
+        },
+        "date_precision": {
+          "type": ["string", "null"],
+          "enum": ["day", "month", "quarter", "year", null],
+          "default": null,
+          "description": "Lane INTAKE (2026-09-02). The calendar precision of `due_date`'s own text shape (inferDatePrecision) -- 'day' for a full date, 'month' for a month+year, 'quarter' for a stated quarter, 'year' for a bare year. Null when due_date is null, or when a due-date span was located but its shape does not fit any of the four (e.g. a duration like 'within 30 days')."
+        },
+        "corridor_identity": {
+          "type": ["object", "null"],
+          "default": null,
+          "description": "Lane INTAKE (2026-09-02). ADR-024 decision 4 / CORRIDOR_ID_SCHEME (src/lib/entities/decisions.mjs, read-only): populated ONLY when the source states a verbatim UN/LOCODE port-pair AND a transport mode together (market_signal/initiative item_types only) -- never geocoded from a port name, never invented. Carries the SEED the scheme documents (`ORIGIN-DEST:mode`), never the minted `cl:corridor:*` entity id itself (CORR lane's entity-id.mjs owns that hash).",
+          "properties": {
+            "origin_locode": { "type": "string", "description": "5-character UN/LOCODE, uppercased, verbatim from the source." },
+            "dest_locode": { "type": "string", "description": "5-character UN/LOCODE, uppercased, verbatim from the source." },
+            "mode": { "type": "string", "description": "Canonical transport mode token (src/lib/contracts/vocabularies.mjs's normaliseMode) -- 'ocean', never 'sea'/'maritime'." },
+            "seed": { "type": "string", "description": "CORRIDOR_ID_SCHEME.seedFormat rendered: 'ORIGIN-DEST:mode' -- the input entityId('corridor', seed) would hash, not the hash itself." },
+            "scheme_basis": { "type": "string", "description": "CORRIDOR_ID_SCHEME.basis, copied through for a reader with no access to decisions.mjs." }
+          }
+        },
+        "research_credibility": {
+          "type": ["object", "null"],
+          "default": null,
+          "description": "Lane INTAKE (2026-09-02). Spec 03 §4's 'two scores, never merged' -- the two verbatim credibility SIGNALS this $0 extractor can locate (a sentence describing evidentiary strength or agreement; a sentence naming the publishing body's role/authority), never the computed IPCC/GRADE evidence-agreement score or the OpenAlex/ROR source-authority distribution spec 03 §4 itself describes (those need live, credentialed data this module has no I/O to fetch -- a later pass's job). research_finding item_type only; null for every other type.",
+          "properties": {
+            "evidence_agreement_signal": { "type": ["string", "null"], "description": "Verbatim span describing the finding's evidentiary strength or agreement level, or null (GAP)." },
+            "source_authority_signal": { "type": ["string", "null"], "description": "Verbatim span naming the publishing body's role/authority, or null (GAP)." }
+          }
         }
       }
     },

@@ -17,6 +17,13 @@ import {
   buildRecordFacts,
   buildRecordFullBrief,
   buildRecordPayload,
+  findBindingPositionMatch,
+  extractBindingPositionFact,
+  inferDatePrecision,
+  findDueDateMatch,
+  extractDueDateFact,
+  findCorridorMatch,
+  extractCorridorFact,
 } from "./record-facts.mjs";
 import { validateMintPayload } from "../../../scripts/mint/validate-mint-payload.mjs";
 import { extractFactualTokens } from "../../../scripts/mint/lib/gate-a-scan.mjs";
@@ -177,6 +184,262 @@ test("buildRecordPayload: end-to-end payload clears the REAL validate-mint-paylo
   assert.deepEqual(result.failures, [], `record payload must clear validate-mint-payload.mjs with zero failures: ${JSON.stringify(result.failures, null, 2)}`);
   assert.equal(result.valid, true);
   assert.equal(result.recommended_status, "verified");
+});
+
+// ── Lane INTAKE (2026-09-02): binding_position, due_date/date_precision, corridor_identity, research
+//    credibility signals — the five fields OBLIG/CORR/DASH read on every record-grade item minted after
+//    this wave. ──
+
+test("findBindingPositionMatch: locates a direct_duty phrase verbatim, real vocab code, returns null when absent", () => {
+  const text = "The freight forwarder shall register with the competent authority within 30 days of this Regulation entering into force.";
+  const m = findBindingPositionMatch(text);
+  assert.ok(m, "must find a match");
+  assert.equal(m.code, "direct_duty");
+  assert.ok(text.toLowerCase().includes(m.span.toLowerCase()));
+  assert.equal(findBindingPositionMatch("No relevant applicability language here at all."), null);
+});
+
+test("findBindingPositionMatch: priority order — direct_duty wins over a later monitoring_only phrase in the same text", () => {
+  const text =
+    "The freight forwarder shall submit an annual report to the competent authority. " +
+    "This provision does not currently apply to non-EU operators.";
+  const m = findBindingPositionMatch(text);
+  assert.equal(m.code, "direct_duty");
+});
+
+test("extractBindingPositionFact: FACT carries the resolved code and a verbatim span; GAP when nothing matches", () => {
+  const withMatch = extractBindingPositionFact({
+    capturedText: "The carrier shall ensure the vessel meets the emission intensity target for the reporting period.",
+    sourceUrl: "https://example.eu/x",
+  });
+  assert.equal(withMatch.claim_kind, "FACT");
+  assert.equal(withMatch.binding_position, "carrier_passthrough");
+  assert.match(withMatch.claim_text, /\[binding_position\]/);
+  assert.match(withMatch.claim_text, /carrier_passthrough/);
+
+  const noMatch = extractBindingPositionFact({ capturedText: "Nothing relevant here.", sourceUrl: "x" });
+  assert.equal(noMatch.claim_kind, "GAP");
+  assert.equal(noMatch.binding_position, null);
+  assert.equal(noMatch.source_span, null);
+});
+
+test("inferDatePrecision: classifies day/month/quarter/year from the span's own shape; day wins over the bare-year fallback", () => {
+  assert.equal(inferDatePrecision("no later than 1 January 2027"), "day");
+  assert.equal(inferDatePrecision("no later than 2027-01-01"), "day");
+  assert.equal(inferDatePrecision("by the end of the first quarter of 2027"), "quarter");
+  assert.equal(inferDatePrecision("due by Q1 2027"), "quarter");
+  assert.equal(inferDatePrecision("due by January 2027"), "month");
+  assert.equal(inferDatePrecision("due by 2027"), "year");
+  assert.equal(inferDatePrecision("within 30 days of publication"), null, "a duration carries no calendar-date shape");
+});
+
+test("findDueDateMatch / extractDueDateFact: locates a verbatim due-date span with its precision; honest GAP otherwise", () => {
+  const text = "Operators shall comply no later than 1 January 2027 with the reporting obligation.";
+  const span = findDueDateMatch(text);
+  assert.ok(span && text.toLowerCase().includes(span.toLowerCase()));
+
+  const fact = extractDueDateFact({ capturedText: text, sourceUrl: "https://example.eu/x" });
+  assert.equal(fact.claim_kind, "FACT");
+  assert.equal(fact.date_precision, "day");
+  assert.match(fact.claim_text, /\[due_date\]/);
+  assert.match(fact.claim_text, /date_precision: day/);
+
+  const gap = extractDueDateFact({ capturedText: "No date language here.", sourceUrl: "x" });
+  assert.equal(gap.claim_kind, "GAP");
+  assert.equal(gap.date_precision, null);
+});
+
+test("findCorridorMatch / extractCorridorFact: both ends + mode stated -> FACT with the ORIGIN-DEST:mode seed; one end missing -> honest GAP", () => {
+  const text = "Ocean freight rates on the CNSHA-NLRTM lane rose 12% this quarter amid Red Sea diversions.";
+  const match = findCorridorMatch(text);
+  assert.ok(match, "must find a corridor match");
+  assert.equal(match.origin, "CNSHA");
+  assert.equal(match.dest, "NLRTM");
+  assert.equal(match.mode, "ocean");
+
+  const fact = extractCorridorFact({ capturedText: text, sourceUrl: "https://example.com/x" });
+  assert.equal(fact.claim_kind, "FACT");
+  assert.equal(fact.corridor_identity.origin_locode, "CNSHA");
+  assert.equal(fact.corridor_identity.dest_locode, "NLRTM");
+  assert.equal(fact.corridor_identity.mode, "ocean");
+  assert.equal(fact.corridor_identity.seed, "CNSHA-NLRTM:ocean");
+  assert.match(fact.claim_text, /\[corridor_identity\]/);
+
+  // "sea" is an input alias for the canonical "ocean" token (vocabularies.mjs MODE_ALIASES) -- proves
+  // normaliseMode is actually wired through, not a private re-implementation.
+  const aliasFact = extractCorridorFact({
+    capturedText: "The CNSHA-NLRTM sea lane is the busiest route this quarter.",
+    sourceUrl: "x",
+  });
+  assert.equal(aliasFact.corridor_identity.mode, "ocean");
+
+  const gap = extractCorridorFact({ capturedText: "The CNSHA port saw record volumes this quarter.", sourceUrl: "x" });
+  assert.equal(gap.claim_kind, "GAP");
+  assert.equal(gap.corridor_identity, null);
+});
+
+test("buildRecordFacts: itemType threading is backward compatible -- omitting it adds none of the optional family claims", () => {
+  const text = "The freight forwarder shall register no later than 1 January 2027. This Regulation applies to Member States.";
+  const withoutItemType = buildRecordFacts({ title: "T", sourceUrl: "https://x", capturedText: text, requiredSlots: ["effective_date"] });
+  assert.equal(withoutItemType.some((c) => c.slot_key === "binding_position"), false);
+  assert.equal(withoutItemType.some((c) => c.slot_key === "due_date"), false);
+
+  const withRegulationType = buildRecordFacts({ title: "T", sourceUrl: "https://x", capturedText: text, requiredSlots: ["effective_date"], itemType: "regulation" });
+  const binding = withRegulationType.find((c) => c.slot_key === "binding_position");
+  const due = withRegulationType.find((c) => c.slot_key === "due_date");
+  assert.ok(binding, "regulation-family itemType adds an optional binding_position claim even though it is not in requiredSlots");
+  assert.equal(binding.claim_kind, "FACT");
+  assert.ok(due, "regulation-family itemType adds an optional due_date claim even though it is not in requiredSlots");
+
+  // Outside every family (e.g. technology): neither optional addition fires.
+  const withTechnologyType = buildRecordFacts({ title: "T", sourceUrl: "https://x", capturedText: text, requiredSlots: [], itemType: "technology" });
+  assert.equal(withTechnologyType.some((c) => c.slot_key === "binding_position"), false);
+  assert.equal(withTechnologyType.some((c) => c.slot_key === "corridor_identity"), false);
+});
+
+test("buildRecordFacts: a slot already in requiredSlots is never duplicated by the optional-family addition (notice/presidential_document)", () => {
+  const claims = buildRecordFacts({
+    title: "T",
+    sourceUrl: "https://x",
+    capturedText: "The freight forwarder shall register no later than 1 January 2027.",
+    requiredSlots: ["binding_position", "due_date"],
+    itemType: "notice",
+  });
+  assert.equal(claims.filter((c) => c.slot_key === "binding_position").length, 1);
+  assert.equal(claims.filter((c) => c.slot_key === "due_date").length, 1);
+});
+
+test("buildRecordPayload: regulation family lifts binding_position/due_date/date_precision onto item, clears the REAL validator, and does not disturb the existing 4-slot required coverage", () => {
+  const capturedText =
+    "COMMISSION REGULATION 2026/1234 of 1 April 2026. " +
+    "This Regulation shall enter into force on the 20th day following its publication. " +
+    "This Regulation applies to Member States. " +
+    "The freight forwarder shall register with the competent authority no later than 1 January 2027. " +
+    "Member States shall lay down rules on penalties applicable to infringements.";
+  const payload = buildRecordPayload({
+    sourceUrl: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32026R1234",
+    itemType: "regulation",
+    title: "COMMISSION REGULATION 2026/1234 of 1 April 2026",
+    source: {
+      id: "src-1",
+      url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32026R1234",
+      base_tier: 1,
+      tier_override: null,
+      status: "active",
+      institution_id: null,
+    },
+    capturedText,
+    requiredSlots: ["effective_date", "jurisdictional_scope", "penalty_summary", "primary_deadline"],
+    screen: { verdict: "on_vertical", provenance: "rule", basis: "EU regulation, core vertical" },
+  });
+
+  assert.equal(payload.item.binding_position, "direct_duty");
+  assert.equal(payload.item.date_precision, "day");
+  assert.ok(payload.item.due_date && payload.item.due_date.toLowerCase().includes("1 january 2027"));
+  assert.equal(payload.item.corridor_identity, null, "not a market item -- no corridor extraction attempted");
+  assert.equal(payload.item.research_credibility, null, "not a research item -- no credibility extraction attempted");
+
+  const result = validateMintPayload(payload, { baseDir: process.cwd() });
+  assert.deepEqual(result.failures, [], `regulation-family record payload with the optional additions must still clear validate-mint-payload.mjs: ${JSON.stringify(result.failures, null, 2)}`);
+  assert.equal(result.valid, true);
+});
+
+test("buildRecordPayload: notice item_type (a brand-new FR item_type) carries binding_position/due_date as REQUIRED slots and clears the real validator", () => {
+  const capturedText =
+    "FEDERAL REGISTER NOTICE of 1 April 2026. " +
+    "This notice shall enter into force upon publication. " +
+    "This notice applies to Member States and all regulated carriers. " +
+    "The freight forwarder shall submit comments no later than 1 June 2026. " +
+    "Violators are subject to penalties under applicable law.";
+  const payload = buildRecordPayload({
+    sourceUrl: "https://www.federalregister.gov/documents/2026/04/01/example-notice",
+    itemType: "notice",
+    title: "FEDERAL REGISTER NOTICE of 1 April 2026",
+    source: {
+      id: "src-fr",
+      url: "https://www.federalregister.gov/",
+      base_tier: 1,
+      tier_override: null,
+      status: "active",
+      institution_id: null,
+    },
+    capturedText,
+    requiredSlots: ["effective_date", "jurisdictional_scope", "penalty_summary", "primary_deadline", "binding_position", "due_date"],
+    screen: { verdict: "on_vertical", provenance: "rule", basis: "US federal register notice, core vertical" },
+  });
+
+  assert.equal(payload.item.item_type, "notice");
+  assert.equal(payload.item.binding_position, "direct_duty");
+  const bindingClaims = payload.claims.filter((c) => c.slot_key === "binding_position");
+  assert.equal(bindingClaims.length, 1, "requiredSlots-driven and optional-family paths must not double the claim");
+
+  const result = validateMintPayload(payload, { baseDir: process.cwd() });
+  assert.deepEqual(result.failures, [], `notice record payload must clear validate-mint-payload.mjs: ${JSON.stringify(result.failures, null, 2)}`);
+});
+
+test("buildRecordPayload: market_signal item_type lifts corridor_identity onto item and clears the real validator", () => {
+  const capturedText =
+    "MARKET UPDATE: ocean freight rates on the CNSHA-NLRTM lane rose sharply this quarter. " +
+    "Shippers should book capacity now to avoid the surcharge. " +
+    "Carriers are adding blank sailings in response to demand. " +
+    "This shift was triggered by Red Sea diversions announced last week.";
+  const payload = buildRecordPayload({
+    sourceUrl: "https://example.com/market-update",
+    itemType: "market_signal",
+    title: "MARKET UPDATE: ocean freight rates on the CNSHA-NLRTM lane rose sharply this quarter",
+    source: {
+      id: "src-market",
+      url: "https://example.com/market-update",
+      base_tier: 3,
+      tier_override: null,
+      status: "active",
+      institution_id: null,
+    },
+    capturedText,
+    requiredSlots: ["action_now", "conversion_trigger", "driving_parties", "signal_event", "corridor_identity"],
+    screen: { verdict: "on_vertical", provenance: "rule", basis: "freight market signal, core vertical" },
+  });
+
+  assert.deepEqual(payload.item.corridor_identity, {
+    origin_locode: "CNSHA",
+    dest_locode: "NLRTM",
+    mode: "ocean",
+    seed: "CNSHA-NLRTM:ocean",
+    scheme_basis: "UN/LOCODE port-pair + mode",
+  });
+
+  const result = validateMintPayload(payload, { baseDir: process.cwd() });
+  assert.deepEqual(result.failures, [], `market_signal record payload must clear validate-mint-payload.mjs: ${JSON.stringify(result.failures, null, 2)}`);
+});
+
+test("buildRecordPayload: research_finding item_type lifts research_credibility onto item and clears the real validator", () => {
+  const capturedText =
+    "This finding was published by a national laboratory and has been independently confirmed by two follow-up studies. " +
+    "The methodology does not resolve the geographic scope question. " +
+    "Practitioners should treat this as decision-relevant for near-term planning. " +
+    "The finding itself concerns battery cell cost trajectories through 2030.";
+  const payload = buildRecordPayload({
+    sourceUrl: "https://example.org/paper",
+    itemType: "research_finding",
+    title: "This finding was published by a national laboratory",
+    source: {
+      id: "src-research",
+      url: "https://example.org/",
+      base_tier: 2,
+      tier_override: null,
+      status: "active",
+      institution_id: null,
+    },
+    capturedText,
+    requiredSlots: ["decision_relevance", "does_not_resolve", "finding", "methodology_limits", "evidence_agreement_signal", "source_authority_signal"],
+    screen: { verdict: "on_vertical", provenance: "rule", basis: "research finding, core vertical" },
+  });
+
+  assert.ok(payload.item.research_credibility.evidence_agreement_signal);
+  assert.ok(payload.item.research_credibility.source_authority_signal);
+
+  const result = validateMintPayload(payload, { baseDir: process.cwd() });
+  assert.deepEqual(result.failures, [], `research_finding record payload must clear validate-mint-payload.mjs: ${JSON.stringify(result.failures, null, 2)}`);
 });
 
 test("buildRecordPayload: throws on missing required inputs rather than minting a hollow payload", () => {
