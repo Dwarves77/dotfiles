@@ -8949,3 +8949,52 @@ flip is the operator's word only" (PROGRAM-BOARD standing constraints). Until Ja
 reconciles and drains whatever backlog exists and detects nothing; a dispatch cannot open it.
 `change-detection.yml`'s header still described the two route limitations the driver's second commit had
 already fixed; corrected. F28 PENDING-RUN written for the family (`sha256:fcb23ec75e03c512`).
+
+### Addendum 85, postscript 17 — the cadence ask was wrong; HEAL-3 measured; two lanes (2026-09-03)
+
+The operator, on my cadence message: "we are setting no cadence at this time because we are building the
+site. change detection not detecting anything is because you're populating the site with all of the
+information. Just hold what's changed as stale for now and keep items in it. That will be refreshed when
+we do set a time to scrape. This is in the entire build plan. You have been told this tens and 20 times."
+He is right and the plan says so (`finish-plan-2026-09-02.md`: no standing schedules during build; ADR-023
+build mode). The diagnosis in ps 16 stands; the ask did not. Recorded three ways so no session repeats it:
+CLAUDE.md standing rule 16, the board's standing constraints, and a `ledger` skill card (Section C
+correction + failure-log entry) proposed to the operator for saving. Stale items are held and kept.
+
+HEAL-3 #14 apply [CONFIRMED, artifact + live SQL]: 0 of 95 healed; 81 resourced, 36 orphans grounded,
+141 cited URLs captured (67 held), 232 slot claims back to GAP, 3 re-kinded, 0 relabelled with 713
+`no_owning_section_found`. Live residue: `analysis_missing_label_syntax` 365 across 45 items,
+`gate_a_unproven_or_stale` 88, `fact_below_authority_floor` 81 on 3 items, slot 4, brief 1, url 1.
+Two root causes read from the data, each its own Sonnet lane:
+
+HEAL-4 (worktree heal4, `0e437977`, 143 tests): every one of the 365 is a FACT claim RECLASSIFY re-kinded
+to ANALYSIS with its `claim_text` untouched; criterion 4 needs that text as an ILIKE substring of a
+labelled paragraph, and FACT claim text was never required to be verbatim in the section (4 of 365 are,
+105 after normalisation, 260 are paraphrases). So the heal had produced a state no validator could
+accept. RECLASSIFY now finds the owning paragraph by Jaccard token overlap (threshold 0.15, stop-words
+excluded, documented), rewrites `claim_text` to the best verbatim sentence with leading markers stripped,
+or refuses with `reclassify_refused_no_owning_paragraph` and the best score; a RETROFIT step applies the
+same to the already-re-kinded claims; RELABEL replaces a leading `**FACT:**` marker instead of stacking a
+reading label after it (marked [HYPOTHESIS] on the marker convention; inert when absent).
+`section_claim_provenance` has no original-text column (migration 112 re-read), so the artifact's
+before/after is the preservation.
+
+SRC-TIER (worktree srctier, `a60819a0`, 25 tests): the 81 floor failures are three items, and two are a
+registry defect the credibility model itself names ("the duplicate-row defect"): `institutions` holds
+"Smart Freight Centre" twice, smartfreightcentre.org at T4 and amazonaws.com at T5, the second keyed by
+`institutionKey()` from the GLEC v3 PDF's S3 host, so the standard's own text fails its own-body floor
+(4 vs 5). New MAINT step `institution-canonicalize`: Part A merges a generic-host institution into the
+one real-domain institution with the exact same name (explicit 12-domain list; refuses on two candidates);
+Part B sets every row of an institution to the tier its own-domain rows carry (never a tier no row
+carries; own-domain disagreement reported, `tier_override` rows untouched); Part C reports
+`standards_body` rows worse than T4 (ifrs.org, cdp.net, sciencebasedtargets.org) as `ruling_needed`,
+never applied, because ADR-002 makes base_tier an operator override and `classTierForHost` only fires
+at register-at-grounding for new hosts. The third item (UAE Net Zero transport roadmap, typed
+`regulation`, sourced from the UNFCCC registry at T3) is a type question, left for the classification
+runtime.
+
+Runs: population #15 177 minted verified (798 live), #16 168 (966 live, 1,755 total), #17 dispatched;
+origin-class-backfill apply with R-E accepted: nulls 1,160 → 211. Change detection #4 apply reconciled 0
+and drained 0, as build mode predicts. Lane discipline: I ran the two lanes one after the other instead of
+in one dispatch; the operator noticed the queue looked single-threaded. Gates on the train: 282 lane
+tests, fitness 29/0, discipline 141/0.
