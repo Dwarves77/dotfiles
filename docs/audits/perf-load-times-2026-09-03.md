@@ -271,6 +271,163 @@ only.
   `fetchIntelligenceItem` already is). Files: `src/lib/supabase-server.ts`,
   `src/app/market/[slug]/page.tsx`.
 
+## 7. After PERF (measured 2026-09-03 07:15-07:24 UTC, deployment `dpl_Cx7hhuqXA3Ja34z6YwieuTBe19wS`)
+
+[CONFIRMED] Production alias `carosledge.com` resolves to deployment
+`dpl_Cx7hhuqXA3Ja34z6YwieuTBe19wS`, `target: production`, `readyState:
+READY`, `githubCommitSha: 9ebe0bb176f4e2a8052f56f18c6ceaa363d17a4f` — exactly
+the PERF commit, verified via `get_deployment` before measuring. Same
+method as §1-§3: `performance.getEntriesByType('navigation'/'resource')`
+read from inside the page (immune to MCP round-trip latency), signed in as
+the operator, region `iad1`.
+
+### 7.1 Full-navigation loads — before → after
+
+server-render = DCL − TTFB. Requests count includes the document itself.
+
+| Page | server-render before→after | transfer before→after | requests before→after |
+|---|---|---|---|
+| `/` cold | 3398→3130ms | 46.7→45.8KB | —→26 |
+| `/` warm | 1321→1599ms | 45.9→46.1KB | 25→26 |
+| `/regulations` cold | 1736→2092ms | 64.0→64.3KB | 25→28 |
+| `/regulations` warm | 1515→1094ms | 63.8→64.3KB | 26→28 |
+| `/market` cold | 1481→1420ms | 49.9→50.4KB | 28→30 |
+| `/market` warm | 744→1224ms | 49.9→50.8KB | 28→30 |
+| `/research` cold | 1886→1736ms | 21.7→22.0KB | 22→23 |
+| `/research` warm | 655→863ms | 21.9→22.2KB | 22→23 |
+| `/operations` cold | 1077→1166ms | 48.5→49.5KB | 25→27 |
+| `/operations` warm | 829→950ms | 48.5→49.2KB | 25→27 |
+| `/community` cold | 2094→2867ms | 13.0→13.1KB | 22→23 |
+| `/community` warm | 2999→1431ms | 13.0→13.0KB | 22→23 |
+
+[CONFIRMED] No consistent full-navigation win or loss — some routes faster,
+some slower, request counts up by 1-3 everywhere (new `loading.tsx` per
+route adds its own chunk). This PERF change targeted the *click-through*
+path, not full navigations, and §1's own note that identical requests vary
+run-to-run (`/community` warm was slower than cold in the baseline too)
+applies again here — treat full-nav deltas as noise, not signal.
+
+### 7.2 Click-through (list → detail) — before → after
+
+All durations are in-page `performance.now()`/resource-timing deltas
+(§2's authoritative method), not cross-call wall clock.
+
+| Surface → item | server `[perf]` before→after | client fetch duration before→after | settle before→after | skeleton before→after | cache |
+|---|---|---|---|---|---|
+| Regulations → EU Net-Zero (cold) | n/a→**1182ms** | 2054→2025ms | ~2.4s→2436ms | **no→yes** (~1ms) | MISS→MISS |
+| Regulations → g14 Mexico SEMARNAT (warm) | 1279→**1257ms** | 1804→1634ms | ~2.7s→1699ms | no→yes (~1ms) | MISS→MISS, **HTTP 503 reproduced** |
+| Market → f3510df3 Loadstar (cold) | 1905→**825ms** (−57%) | 2115→1183ms | ~3.2s→1939ms | no→yes (~0.5ms) | MISS→MISS |
+| Market → South Korea K-Taxonomy (warm) | n/a→**751ms** | n/a→941ms | n/a→999ms | no→yes (~2ms) | MISS→MISS |
+| Operations → India (cold) | 1262→**733ms** (−42%) | 1456→953ms | ~2.4s→1210ms | no→yes (~1ms) | MISS→MISS |
+| Operations → Singapore (warm) | n/a→**727ms** | n/a→933ms | n/a→993ms | no→yes (~2ms) | MISS→MISS |
+| Research → Mission Innovation (cold) | 1597→**715ms** (−55%) | 1939→1135ms | ~3.0s→1314ms | no→yes (~1ms) | MISS→MISS |
+| Research → Tyndall Centre (warm) | n/a→**1052ms** | n/a→1399ms | n/a→1997ms | no→yes (~2ms) | MISS→MISS |
+
+[CONFIRMED] Every single click now paints a skeleton within 0.5-2ms —
+`loading.tsx` per route is live and working exactly as designed; this is
+the clearest, unambiguous win in this change (§5 root cause #3 from the
+baseline is fixed).
+
+[CONFIRMED] Market, Operations and Research detail server render time
+(the `[perf] … data` line) dropped 42-57% vs. the matching baseline item —
+consistent with the commit's claim of collapsing 6-9 sequential Supabase
+round trips into one parallel load.
+
+[CONFIRMED] **Regulations detail server render time did not improve**:
+1182-1257ms after vs. 1279ms baseline (same `g14` item, ±2%, within normal
+run-to-run noise) — statistically indistinguishable from before, while the
+other three surfaces improved by roughly half. Regulations is also the one
+surface where an **HTTP 503 on the RSC request reproduced live** during
+this run (`GET /regulations/g14?_rsc=1fiot` → 503, per
+`read_network_requests`) — the same failure mode §2/§4 documented from the
+baseline. [INFERRED] The resource-timing entry for that same URL shows a
+single 200 response with the full 1634ms duration and the page did land on
+`/regulations/g14` correctly, so the framework silently retried and the
+user never saw a broken page — but the retry is not free, and a 503 on the
+very click this PERF change targeted suggests the regulations fan-out
+collapse either didn't fully land or is still hitting the same
+saturation-adjacent path under concurrent load that §4's code comment
+warned about. **This 503 did not appear in Vercel's function-level runtime
+logs** for this window (`get_runtime_logs` with `statusCode: 5xx` returned
+zero rows, and `group_by: statusCode` showed only `200`) — [INFERRED] it
+was rejected before reaching the Lambda (edge/proxy layer), which is
+consistent with a Supabase-connection-exhaustion-style 503 rather than an
+application error, but this measurement pass cannot confirm the exact
+layer.
+
+[CONFIRMED] Warm (second-click, prefetch-eligible) server times are **not**
+meaningfully lower than cold on any surface (Operations 733→727ms,
+Regulations 1182→1257ms i.e. slightly *higher*, Market 825→751ms only
+~9% lower) — a prefetched RSC payload should look close to instant, and
+none do. [CONFIRMED, Vercel logs] Every detail request, cold or warm, still
+shows `cache=MISS`; `next.config.ts`'s `Cache-Control: private` is
+unchanged, so §5 root cause #2 from the baseline still holds in full:
+prefetch can warm the static shell but not a per-org, uncacheable RSC data
+payload, so "prefetch restored" does not make a second click materially
+faster — it only lets the fetch start marginally earlier (client:
+click→fetch-start is 0.3-2.2ms across the board here, vs. ~320-350ms in
+the baseline, itself a real, separate win worth noting: the click-to-fetch
+dispatch got much faster, just not the fetch itself).
+
+### 7.3 Vercel runtime logs (last 30 min, `dpl_Cx7hhuqXA3Ja34z6YwieuTBe19wS`, `iad1`)
+
+Slowest 10 `[perf]` lines in the window (this run's own traffic — no other
+production traffic observed):
+
+| Rank | Line | Duration |
+|---|---|---|
+| 1 | `getListingsOnly` (`/api/listings/rest`, regulations backfill) | 1787ms |
+| 2 | `getAppData` (`/` cold) | 1515ms |
+| 3 | `getListingsOnly` (`/community` client backfill) | 1481ms |
+| 4 | `/regulations/g14 data` | 1257ms |
+| 5 | `/regulations/eu-net-zero-industry-act-2024-1735 data` | 1182ms |
+| 6 | `getResourcesOnly` (`/api/listings/rest`, operations backfill) | 1075ms |
+| 7 | `/research/tyndall-centre-… data` | 1052ms |
+| 8 | `/regulations data` (index page primary load) | 872ms |
+| 9 | `/research data` (index page primary load) | 830ms |
+| 10 | `/market/f3510df3-… data` | 825ms |
+
+[CONFIRMED] 5xx count in Vercel function-level runtime logs for this
+window: **0** (`statusCode: 5xx` query returned no rows; `group_by:
+statusCode` showed only `200`, "2 distinct values" reported but the second
+never surfaced under any statusCode filter tried — see 7.2's 503 note).
+
+[CONFIRMED] The client-triggered index-page backfill fetches
+(`getListingsOnly`/`getResourcesOnly` via `/api/listings/rest`, baseline
+root cause #4) are **unchanged by this PERF pass** — still 0.18-1.79s,
+same shape and same magnitude as the baseline's 1.4-1.79s figures. This
+was never in scope for this commit and remains exactly as documented.
+
+### 7.4 Summary
+
+**What improved**: the click-to-skeleton gap, which was the baseline's
+starkest usability problem (§5 root cause #3 — no `loading.tsx` anywhere
+but the root, so every click looked frozen for 1-2+ seconds) is fixed
+outright — every click across all four surfaces now paints a skeleton in
+under 2ms [CONFIRMED]. Server render time for Market, Operations and
+Research detail pages also genuinely dropped 42-57%
+[CONFIRMED, matches the commit's "collapse fan-out into one cached
+parallel load" claim]. **What did not improve**: (a) Regulations detail
+server time is unchanged from baseline and its click reproduced the same
+HTTP 503 the baseline first surfaced [CONFIRMED]; (b) no surface's warm
+(prefetched) click is materially faster than its cold click, because every
+RSC request — cold or warm — is still `cache=MISS` under the unchanged
+`Cache-Control: private` policy, so "prefetch restored" cannot mask a
+per-org uncacheable payload the way it would a cacheable one [CONFIRMED];
+(c) the index-page client backfill fetch (up to 1.8s) is untouched
+[CONFIRMED]. **Single most likely remaining cause clicks still aren't
+instant**: every detail click still pays a full, live, uncached
+Supabase-backed server render (0.7-1.3s) on every single click regardless
+of prior visits or prefetch, because the RSC payload is per-org and
+therefore `Cache-Control: private` by design — skeletons now hide this
+wait but do not remove it. [HYPOTHESIS] The regulations route specifically
+looks like it did not receive the same fan-out collapse the other three
+did (unchanged latency, reproduced 503), which points first at
+`src/app/regulations/[slug]/page.tsx` — worth checking whether it was
+actually migrated onto the commit's new
+`src/lib/detail/load-detail-core.ts` control flow the way market,
+operations and research evidently were.
+
 ## 8. PERF-2 diagnosis (2026-09-03)
 
 Scope: root-cause diagnosis + structural fix for the two facts PERF-2's brief

@@ -8447,3 +8447,23 @@ Type labels for rows the earlier dump never captured (its keyword filter kept on
 row). Fixed the two labels in `TARGETS`, the constructed test workbook, and the fixture's `source_ref`
 text; row 101 is a distinct DESNZ class and stays out of the seven shells. 34/34 tests. Lesson recorded
 against myself: a dump that filters by keyword proves the rows it kept, not the rows beside them.
+
+### Addendum 85, postscript 3 — PERF measured after deploy; PERF-2 on the regulations path and the middleware (2026-09-03)
+
+PERF-VERIFY on production at `9ebe0bb1` [CONFIRMED, audit §7]: every click paints the route skeleton
+in under 2 ms; server render into an item fell 42–57 % on market (1,905→825 ms), operations
+(1,262→733 ms) and research (1,597→715 ms); regulations stayed at 1,257 ms and reproduced a 503 on its
+RSC request that appears in no function log (3 h of Vercel logs: 200/307/204 only); warm clicks are no
+faster than cold because every response is `Cache-Control: private` per org.
+
+PERF-2 (audit §8): (A) the regulations page alone rendered two server components AFTER `loadDetail`
+resolved (obligation register, upcoming strip), a second serial stage the other three surfaces do not
+have; now one `loadRegulationDetailObligations(id)` runs in `Promise.all` with the loader (pure core +
+timeline test: sum of stages → max of stages). (B) the 503 reproduced live (2 of 3 RSC requests on one
+navigation) with zero function-log lines in the same minute, so it is produced before the function;
+the exact `x-vercel-error` header was not captured (the browser tool exposes no response headers and
+twenty concurrent synthetic requests all returned 200), recorded as a gap. The middleware's per-request
+`auth.getUser()` network round trip is replaced by `auth.getClaims()` (local JWT verification), the
+routing decision extracted to `src/lib/auth/route-policy.ts` with 12 tests; fail-closed redirect and
+session refresh preserved. Gates: suite 3985/3985, fitness 0, meta-gate PASS, tsc clean, rendering
+guard PASS, build green.
