@@ -8467,3 +8467,11 @@ twenty concurrent synthetic requests all returned 200), recorded as a gap. The m
 routing decision extracted to `src/lib/auth/route-policy.ts` with 12 tests; fail-closed redirect and
 session refresh preserved. Gates: suite 3985/3985, fitness 0, meta-gate PASS, tsc clean, rendering
 guard PASS, build green.
+
+UX compliance (PERF-2): route `/regulations/[slug]`, goal read one regulation's analysis and its
+obligations, path one tap from a ledger row, primary action none on the page (the obligation register
+rows keep their own row links), feedback the route skeleton within one frame then the item and the
+obligation register together on settle (both now arrive from one parallel load, so no second
+late-arriving block); middleware change has no screen. The CI "UX compliance" gate refused the first
+push of this train because this block was missing: the gate did its job on its author, recorded here
+rather than worked around.
