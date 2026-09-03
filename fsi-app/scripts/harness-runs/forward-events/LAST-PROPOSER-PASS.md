@@ -1,8 +1,67 @@
 # Last proposer pass — forward-events
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `forward-events` now has **four** artifacts
-(`forward-events-run-001` … `forward-events-run-004`); F28's rule (d) requires this file to name the latest
-verbatim: **forward-events-run-004**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `forward-events` now has **five** artifacts
+(`forward-events-run-001` … `forward-events-run-005`); F28's rule (d) requires this file to name the latest
+verbatim: **forward-events-run-005**.
+
+## Pass of 2026-09-03, evening (lane ARTIFACTS — forward-events-run-005: a governing-file change, a genuinely empty run)
+
+**Artifact read:** forward-events-run-005 (corpus-turn run `33802504364`, apply, 2026-09-03T20:29:28Z,
+since `2026-09-03T12:44:57Z`). Pushed to its own `turn/33802504364` branch (Actions PR-creation refused)
+and landed here by cherry-pick; not previously on master. A sibling branch, `turn/33756943043`
+(`forward-events-run-004`, since `1970-01-01`), was checked and found **already landed** — it is
+`forward-events-run-004.json` in commit `f59b9a41` ("Flywheel turn: forward-events runs 003/004
+landed…", already on `origin/master`); this pass does not re-land it.
+
+**Governing-file change, confirmed, no `PENDING-RUN.md` needed:** run-005's `harness_version` is
+`sha256:d47a10728a3cc799`, DIFFERENT from run-004's `sha256:0a36113e8e96ade5`. Re-hashing the family's
+current governing files (`src/lib/forward-events/extract-forward-events.mjs`,
+`scripts/harness-runs/forward-events/PROTOCOL.md`) against the live tree gives
+`sha256:d47a10728a3cc799` — matches run-005 exactly, so F28 rule (c) is satisfied by the landed artifact
+itself; no marker required. The change is `git log`-traceable to commit `82f70e2f` ("FE-SLOT: due_date
+slot claims classified without kind assumption, slot_date_unclassified skip, by_skip_reason metrics"),
+already on master before this lane started — this is the previous proposer pass's **proposal 1**
+("Offer the slot FACT's span to the extractor") and part of **proposal 2** (`by_skip_reason` in metrics)
+landing, read back here as the metric this pass exists to check moved.
+
+**What the artifact shows [CONFIRMED, read from the JSON]:** `items_processed: 0, items_with_events: 0,
+events_emitted: 0, skips: 0` — every count in `metrics` is zero, `per_item` is empty (0 entries),
+`by_skip_reason: {}`. This is a genuinely empty run, not a truncated or lossy one: `full_trace_refs`
+names three files under `scripts/_snapshots/turn-33802504364/` and all three exist in this landing
+(`turn-corpus.json`, `.events.json`, `.skipped.json`). **Basis for "genuinely empty, not a defect":**
+this turn's `since` marker is `2026-09-03T12:44:57Z` (the previous turn's own recorded timestamp) and
+its own `started_at` is `20:29:28Z` — a roughly 7.75-hour window. The day's two population applies that
+minted new record-grade items (`population-33804773824`, `population-33806554326`) both landed AFTER
+this turn ran (21:02Z and 21:21Z respectively, per their own artifacts' `started_at`), so the corpus-turn
+exporter's "verified items with no forward-event row, created since the marker" selection legitimately
+found nothing: no new items existed in that window yet. Skip-reason histogram is `{}` for the same
+reason — there was nothing to skip, not a broken histogram.
+
+**Hypotheses (verified, with basis):**
+1. **A zero-item run is the honest result of dispatch ordering, not a family defect.** See above; this
+   pass does not treat `by_skip_reason: {}` as evidence proposal 2 failed to land — it landed (the key is
+   present in the schema and would populate on the next non-empty run), it simply has nothing to report
+   this run.
+2. **`extractor_version` bumped to `fe1-2026-09-03.1`** (from `fe1-2026-09-01.1` in prior artifacts),
+   confirming the extractor's code changed in a way the family's own versioning convention tracks, ahead
+   of `harness_version` reflecting the same change — the two signals agree.
+3. **The next corpus-turn dispatch (after the day's two population slices) is the actual measurement of
+   whether FE-SLOT's due_date-span change moved the family's standing metric** (extraction precision /
+   coverage, `CONVENTION.md`'s "forward-events's standing metric"). This run cannot show that — it had no
+   items to extract from — so this pass records the metric as **not yet measurable at the new hash**,
+   rather than defaulting it to zero or silently carrying forward run-004's pre-change numbers as if they
+   still applied.
+
+**Proposal:** none warranted from this pass alone — the FE-SLOT proposal from the prior pass is already
+landed and this run's zero counts are explained, not concerning. The real next step is procedural, not
+code: **dispatch corpus-turn again after (not interleaved with) the day's population applies**, so the
+next `forward-events-run-006` actually exercises the FE-SLOT change against real record-grade items and
+this family's standing metric becomes measurable at `sha256:d47a10728a3cc799`. That dispatch is outside
+this lane's access (no live Actions dispatch here).
+
+**Family gates status:** this landing adds one run artifact and this attestation only; the
+governing-file change it records (`82f70e2f`, FE-SLOT) was already landed on master before this lane
+started — this pass reads and attests to it, it does not author it.
 
 ## Pass of 2026-09-03, midday (forward-events-run-003 and -004 — the turn after the first limit-200 population slice)
 
