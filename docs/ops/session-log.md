@@ -8739,3 +8739,28 @@ deliberately untyped.
 Operator-facing after this turn: 930 open signal flags and 19 gap flags to review (the L4 pass never
 auto-adopts); the 339 untagged items await one `tag-proposals` apply; the population drain (about
 1,300 mintable rows) awaits the choice put to the operator in postscript 7.
+
+### Addendum 85, postscript 11 — FE-SLOT: the due_date span does reach the extractor; my framing was wrong (2026-09-03)
+
+I briefed Lane FE-SLOT on the assumption that the mint stores the `due_date` slot as a claim with a
+`slot_key` column that the forward-events reader never selects. The lane refuted that before writing
+code [CONFIRMED by reading migration 112 and `write-item.ts`]: `section_claim_provenance` has no
+`slot_key` column; `buildClaimRows` drops the payload's `slot_key`; the only surviving marker is the
+`[due_date] ` prefix on `claim_text`, the convention migrations 114/119/121 already rely on. Both
+readers (`read-and-extract.mjs` and the corpus exporter) select that claim unmodified, field-for-field.
+So the gap is in classification, not filtering, and my proposer-pass hypothesis 2 ("invisible to the
+extractor") is corrected on the record: visible, mostly unclassifiable. Against the 48 real slot spans
+of the day's batch: 14 already produced events through the generic deontic rule; 34 produced nothing,
+31 of them silently, because the located span is a duration ("within 15 days of …") this grammar
+cannot parse as a calendar date, or the deontic verb sits outside the ~90-char window
+`record-facts.mjs` captures.
+
+Built [CONFIRMED by gates]: slot-claim awareness in the pure extractor with no kind assumption (the
+existing rules decide the kind; spec 01 §3.3's four dates); `date_precision` takes the finer of the
+extractor's and the slot's; an unclassifiable slot claim is counted under a new `slot_date_unclassified`
+skip so it is never silent again; `by_skip_reason` histogram in the run artifact's metrics (asked for
+by two proposer passes); PROTOCOL §5a/§5b; `EXTRACTOR_VERSION` bumped to `fe1-2026-09-03.1`;
+`PENDING-RUN.md` written at `sha256:d47a10728a3cc799` naming the next `corpus-turn` apply. Suite
+4076/0, fitness 29/0. What this does NOT fix, named honestly: the 31 duration-shaped spans need the
+mint's own extractor (`record-facts.mjs`, a mint governing file) to widen its window or to store the
+anchor the duration counts from; that is a separate decision, recorded here rather than patched.

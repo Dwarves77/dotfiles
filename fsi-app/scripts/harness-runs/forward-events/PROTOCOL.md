@@ -199,6 +199,32 @@ metric computed only from the extractor's own claims about itself. A run that ha
 events reports `precision_events_checked: 0` honestly rather than omitting the field or defaulting it to
 a number that looks like 100%.
 
+## 5a. Record-grade `due_date` slot claims (lane FE-SLOT, 2026-09-03)
+
+The record-grade mint (`src/lib/intake/record-facts.mjs`, `MINT-RUNBOOK.md` §13) grounds one verbatim
+due-date-shaped span per item as a FACT claim whose `claim_text` carries a `[due_date] ` prefix and,
+when resolved, a `(date_precision: day|month|quarter|year)` marker. `section_claim_provenance` has no
+`slot_key` column (confirmed 2026-09-03 against every migration through 299) — that `claim_text` prefix
+is the only marker that survives the DB round-trip, and `extractForwardEvents()` reads it directly (no
+reader/exporter change was needed: `read-and-extract.mjs` and `export-corpus-for-extraction.mjs` already
+select `claim_text` field-for-field identically). The extractor does **not** assume a due_date slot claim
+is a `compliance_deadline` — spec 01 §3.3's "four dates, never one" is exactly why record-facts.mjs's own
+header says the mint "locates A date, not which of the four it is." An event is emitted only when this
+family's own `RULES` classifier, run unchanged over that same span, finds an obligation-binding trigger.
+Two narrow additions on top of that unchanged classification: (1) when a due_date claim's own precision
+marker is finer than what the extractor's date grammar resolved, the finer of the two is used — bounded
+to this module's `{day,month,year}` vocabulary, never `quarter`, which this grammar cannot honestly
+attach a real day/month to; (2) when a due_date claim's span produces no hit at all, a `slot_date_unclassified`
+skip is recorded (in addition to any generic skip reason already produced), visible in the run artifact's
+`metrics.by_skip_reason`. See `extract-forward-events.mjs`'s own header for the full mechanism.
+
+## 5b. `metrics.by_skip_reason` (proposed `LAST-PROPOSER-PASS.md` 2026-09-01 §1; landed 2026-09-03)
+
+Every run's `metrics` now carries `by_skip_reason`: a histogram of every skip's `reason` string across
+the corpus slice, the counterpart to `by_kind` for skips. `run-extraction.mjs`'s `runExtraction()` builds
+it from the exact `skipped[]` entries the extractor already returns — no new extraction logic, a
+runner-metrics addition only; it bumps no `EXTRACTOR_VERSION`.
+
 ## 6. After ≥2 runs exist — proposer attestation
 
 Once `scripts/harness-runs/forward-events/` holds ≥2 valid artifacts, `LAST-PROPOSER-PASS.md` must name

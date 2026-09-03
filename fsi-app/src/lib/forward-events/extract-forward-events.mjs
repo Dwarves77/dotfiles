@@ -63,9 +63,42 @@
 //   re-checks this before every event is emitted; a violation throws, it is
 //   never silently dropped.
 //
+// RECORD-GRADE due_date SLOT CLAIMS (lane FE-SLOT, 2026-09-03):
+//   The record-grade mint (src/lib/intake/record-facts.mjs, MINT-RUNBOOK.md
+//   §13) locates one verbatim due-date-shaped span per item and grounds it as
+//   a FACT claim whose `claim_text` carries a fixed `[due_date] ` prefix and,
+//   when a precision was inferred, a `(date_precision: day|month|quarter|
+//   year)` marker — see extractDueDateFact()'s templates. That claim reaches
+//   this extractor through the SAME per-claim loop as every other FACT/GAP
+//   claim (section_claim_provenance has no `slot_key` column — confirmed
+//   2026-09-03 against migration 112 and every later migration; the `[due_date]`
+//   prefix embedded in claim_text, verbatim in the DB, is the only surviving
+//   marker, the same convention migrations 114/119/121 already rely on via
+//   `claim_text ILIKE '%slot_key%'`). This module deliberately does NOT treat
+//   a due_date slot claim as automatically a `compliance_deadline` — spec 01
+//   §3.3's "four dates, never one" is exactly why record-facts.mjs's own
+//   header says the mint "locates A date, not which of the four it is." A
+//   due_date claim earns an event ONLY when this module's OWN RULES/kind
+//   classifier, run over that same span exactly like any other claim, finds
+//   an obligation-binding trigger — never a kind assumed from the slot alone.
+//   Two narrow, additive behaviours on top of that unchanged classification:
+//     1. When a due_date claim DOES produce a hit, and record-facts.mjs's own
+//        (separately computed) `date_precision` for the identical span is
+//        FINER than what this module's own date grammar resolved, the finer
+//        label is used — see finerDuePrecision(). Bounded to this module's
+//        own {day,month,year} vocabulary (never 'quarter': this grammar has
+//        no month/day to honestly attach to a quarter-precision date, so a
+//        slot-supplied 'quarter' is never promoted onto an emitted event).
+//     2. When a due_date claim produces NO hit at all (no rule's trigger
+//        phrase matches its span, or a matched date fails the deontic/aim
+//        check), a `slot_date_unclassified` skip is recorded IN ADDITION to
+//        whatever generic skip reason (if any) the standard scan already
+//        produced — surfacing, in metrics.by_skip_reason, how many of the
+//        mint's own confirmed due dates this extractor still cannot type.
+//
 // EXTRACTOR_VERSION bump this whenever a rule changes semantics (not for
 // comment-only edits), so downstream consumers can tell events apart.
-export const EXTRACTOR_VERSION = 'fe1-2026-09-01.1';
+export const EXTRACTOR_VERSION = 'fe1-2026-09-03.1';
 
 // ---------------------------------------------------------------------------
 // Date grammar
@@ -628,6 +661,63 @@ function scanText(text) {
 }
 
 // ---------------------------------------------------------------------------
+// Record-grade due_date slot claims (see this file's header note)
+// ---------------------------------------------------------------------------
+
+// The exact template prefix extractDueDateFact()'s FACT branch writes
+// (src/lib/intake/record-facts.mjs) — verbatim in claim_text once a claim
+// round-trips through section_claim_provenance (no slot_key column exists
+// there to check instead; see the header note above).
+const DUE_DATE_SLOT_PREFIX = '[due_date] ';
+
+// The same function's optional "(date_precision: X)" marker, present only
+// when record-facts.mjs's own inferDatePrecision() resolved one.
+const SLOT_PRECISION_RE = /\(date_precision:\s*(day|month|quarter|year)\)/;
+
+// 'quarter' is deliberately absent: this module's own date grammar
+// (DATE_TRY_ORDER) never resolves a quarter-precision ISO date (no month/day
+// digit it can honestly attach to one), so a slot-supplied 'quarter' is
+// informative for the unclassified-skip path but is never chosen by
+// finerDuePrecision below — doing so would misrepresent the emitted
+// event_date's real precision, the same "never invent" discipline this
+// module already applies to event_kind.
+const PRECISION_RANK = Object.freeze({ year: 1, month: 2, day: 3 });
+
+/**
+ * True when `claim` is a record-grade due_date slot FACT claim (identified by
+ * its claim_text's own template prefix — see DUE_DATE_SLOT_PREFIX above).
+ * Pure. Exported for testing.
+ */
+export function isDueDateSlotClaim(claim) {
+  return claim?.kind === 'FACT' && typeof claim.text === 'string' && claim.text.startsWith(DUE_DATE_SLOT_PREFIX);
+}
+
+/**
+ * The precision record-facts.mjs's own classifier resolved for a due_date
+ * slot claim's span, read back from claim_text's "(date_precision: X)"
+ * marker — or null when that claim carries no marker (record-facts.mjs found
+ * a due-date-shaped span but could not classify its precision, e.g. "within
+ * 15 days of ..."). Pure. Exported for testing.
+ */
+export function slotDatePrecision(claim) {
+  if (!isDueDateSlotClaim(claim)) return null;
+  const m = SLOT_PRECISION_RE.exec(claim.text);
+  return m ? m[1] : null;
+}
+
+/**
+ * The finer of two precisions this module's own {day,month,year} vocabulary
+ * can represent (day finest). `slotPrecision` outside that vocabulary (null,
+ * or 'quarter' — see PRECISION_RANK's comment) leaves `extractorPrecision`
+ * unchanged. Pure. Exported for testing.
+ */
+export function finerDuePrecision(extractorPrecision, slotPrecision) {
+  if (!Object.hasOwn(PRECISION_RANK, slotPrecision)) return extractorPrecision;
+  if (!Object.hasOwn(PRECISION_RANK, extractorPrecision)) return extractorPrecision;
+  return PRECISION_RANK[slotPrecision] > PRECISION_RANK[extractorPrecision] ? slotPrecision : extractorPrecision;
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -656,6 +746,7 @@ export function extractForwardEvents(input) {
     }
     const text = claim.span;
     const { hits, skips } = scanText(text);
+    const isDueDateSlot = isDueDateSlotClaim(claim);
 
     for (const s of skips) {
       skipped.push({
@@ -669,9 +760,10 @@ export function extractForwardEvents(input) {
 
     for (const h of hits) {
       assertVerbatim(text, h.dateSpan);
+      const datePrecision = isDueDateSlot ? finerDuePrecision(h.precision, slotDatePrecision(claim)) : h.precision;
       events.push({
         event_date: h.iso,
-        date_precision: h.precision,
+        date_precision: datePrecision,
         event_kind: h.kind,
         obligation_text: h.obligationText,
         source_kind: 'claim',
@@ -680,6 +772,22 @@ export function extractForwardEvents(input) {
         source_span: h.dateSpan,
         confidence: 'high',
         extractor_version: EXTRACTOR_VERSION,
+      });
+    }
+
+    // The record-grade mint already grounded a confirmed due-date-shaped span here
+    // (src/lib/intake/record-facts.mjs, MINT-RUNBOOK.md §13) but this module's own kind
+    // classifier could not turn it into a typed event -- never invent a kind (this file's
+    // header); surface the gap instead of leaving it indistinguishable from an ordinary claim
+    // that genuinely carries no forward-obligation language, IN ADDITION to any generic skip
+    // reason `scanText` already logged above for this same span.
+    if (isDueDateSlot && hits.length === 0) {
+      skipped.push({
+        source_kind: 'claim',
+        source_claim_id: claim.claim_id,
+        source_section_id: null,
+        reason: 'slot_date_unclassified',
+        text,
       });
     }
   }

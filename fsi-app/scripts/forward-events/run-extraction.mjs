@@ -90,7 +90,12 @@ export function itemId(item, index) {
  * this wrapper adds none. Returns:
  *   perItem    -- CONVENTION.md-shaped per_item entries, one per item
  *   metrics    -- items_processed / items_with_events / events_emitted / skips / by_kind / by_confidence
- *                 / by_precision — the shape forward-events-run-001.json already established
+ *                 / by_precision / by_skip_reason — the shape forward-events-run-001.json already
+ *                 established, plus by_skip_reason (proposed by LAST-PROPOSER-PASS.md's proposal 1,
+ *                 2026-09-01: "the extractor already returns a `reason` per skip ... a histogram in
+ *                 `metrics` makes the next proposer pass readable from the artifact alone, even if a
+ *                 trace file is lost again" — landed lane FE-SLOT, 2026-09-03; a runner-metrics addition,
+ *                 bumps no EXTRACTOR_VERSION, exactly as that proposal scoped it).
  *   allEvents  -- every emitted event, each tagged with its source item's id (for the events output file)
  *   allSkips   -- every skip, each tagged with its source item's id (for the skipped output file)
  */
@@ -101,6 +106,7 @@ export function runExtraction(items) {
   const byKind = {};
   const byConfidence = {};
   const byPrecision = {};
+  const bySkipReason = {};
   let itemsWithEvents = 0;
 
   items.forEach((item, index) => {
@@ -116,7 +122,10 @@ export function runExtraction(items) {
       byConfidence[e.confidence] = (byConfidence[e.confidence] ?? 0) + 1;
       byPrecision[e.date_precision] = (byPrecision[e.date_precision] ?? 0) + 1;
     }
-    for (const s of skipped) allSkips.push({ item_id: id, ...s });
+    for (const s of skipped) {
+      allSkips.push({ item_id: id, ...s });
+      bySkipReason[s.reason] = (bySkipReason[s.reason] ?? 0) + 1;
+    }
 
     perItem.push({
       id,
@@ -137,6 +146,7 @@ export function runExtraction(items) {
       by_kind: byKind,
       by_confidence: byConfidence,
       by_precision: byPrecision,
+      by_skip_reason: bySkipReason,
       extractor_version: EXTRACTOR_VERSION,
     },
     allEvents,
@@ -209,6 +219,7 @@ function printSummary(result, { dryRun }) {
   console.log(`  events_emitted:    ${result.metrics.events_emitted}`);
   console.log(`  skips:             ${result.metrics.skips}`);
   console.log(`  by_kind: ${JSON.stringify(result.metrics.by_kind)}`);
+  console.log(`  by_skip_reason: ${JSON.stringify(result.metrics.by_skip_reason)}`);
   if (dryRun) {
     console.log("Preview only — nothing written; pass --execute to write output files + the run artifact.");
   }
