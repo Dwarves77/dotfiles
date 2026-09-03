@@ -197,6 +197,37 @@ export async function getAppData() {
  * /api/listings/rest route passes a page to fetch the remainder of whatever
  * offset the caller already rendered.
  */
+// PERF lane (2026-09-03, docs/audits/perf-load-times-2026-09-03.md §4/§6 "index pages"): unlike
+// getAppData (cachedAppData above), getResourcesOnly/getListingsOnly were NEVER wrapped in
+// unstable_cache — every /regulations, /market, /operations render re-ran the full RPC, which is why
+// the audit's Vercel logs showed cache=MISS/BYPASS on every one of these requests, repeat navigations
+// included. fetchResourcesOnly/fetchListingsOnly (supabase-server.ts) call
+// get_workspace_intelligence[_slim|_listings](p_org_id) — an RPC that LEFT JOINs workspace_item_overrides
+// and bakes each org's archived/priority overrides directly into the returned rows (fetchWorkspaceResources's
+// own comment: "Workspace items via the RPC that LEFT JOINs workspace_item_overrides"). That means the
+// per-org "base list" is NOT actually org-independent at the data layer — a true item-scoped/viewer-scoped
+// split (like load-detail.ts's) would need a second RPC variant that omits the override join, which is a
+// migration-level change outside this lane's write set (no migrations). The honest, in-scope fix applied
+// here instead is the SAME pattern cachedAppData already uses successfully for the home page: cache the
+// resolved PER-ORG page, keyed by (orgId, page), tagged APP_DATA_TAG — the exact tag every existing
+// override/watchlist/list-order mutation route already revalidates (grep: api/workspace/overrides,
+// api/watchlist, api/user/list-order, api/workspace/personal-state all call
+// revalidateTag(APP_DATA_TAG, "max")), so this cache is invalidated by every write that could make it
+// stale with ZERO new wiring. Repeat navigations to the same surface within the 60s window now hit the
+// cache instead of re-running the RPC; a first hit per org per surface still pays the full query, same as
+// before.
+const cachedResourcesOnly = unstable_cache(
+  (orgId: string | null, page?: ResourcePage) => fetchResourcesOnly(orgId, page),
+  ["resources-only-4f1a9b3d"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
+const cachedListingsOnly = unstable_cache(
+  (orgId: string | null, page?: ResourcePage) => fetchListingsOnly(orgId, page),
+  ["listings-only-4f1a9b3d"],
+  { revalidate: 60, tags: [APP_DATA_TAG] }
+);
+
 export async function getResourcesOnly(page?: ResourcePage): Promise<{
   resources: Resource[];
   archived: Resource[];
@@ -210,7 +241,7 @@ export async function getResourcesOnly(page?: ResourcePage): Promise<{
       setTimeout(() => reject(new Error("getResourcesOnly timeout")), 10000)
     );
     const orgId = await resolveOrgIdFromCookies();
-    const dataPromise = fetchResourcesOnly(orgId, page);
+    const dataPromise = cachedResourcesOnly(orgId, page);
     const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
     console.log(`[perf] getResourcesOnly ${Date.now() - t0}ms`);
     // SF-2 Phase 1: route-agnostic since this fetcher serves multiple
@@ -257,7 +288,7 @@ export async function getListingsOnly(page?: ResourcePage): Promise<{
       setTimeout(() => reject(new Error("getListingsOnly timeout")), 10000)
     );
     const orgId = await resolveOrgIdFromCookies();
-    const dataPromise = fetchListingsOnly(orgId, page);
+    const dataPromise = cachedListingsOnly(orgId, page);
     const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
     console.log(`[perf] getListingsOnly ${Date.now() - t0}ms`);
     alertIfFallback(result, "/regulations");

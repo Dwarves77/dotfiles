@@ -1,0 +1,243 @@
+// Structural proof for src/lib/detail/load-detail-core.ts (perf lane,
+// 2026-09-03) — the shared "load a detail page" shape all four
+// (/regulations|market|operations|research)/[slug]/page.tsx files call
+// through load-detail.ts.
+//
+// Tests load-detail-CORE, not load-detail.ts: load-detail.ts value-imports
+// next/cache (unstable_cache), which `node --test` cannot resolve outside
+// Next's own bundler (the `next` package ships no package.json "exports" map
+// for the bare specifier `next/cache`, confirmed empirically) — so nothing
+// that imports it can run under plain node, npm deps installed or not.
+// load-detail-core.ts is the split specifically to make this file possible:
+// it imports next/*'s TYPES only (`import type`, fully erased by Node's
+// built-in type-stripping — never resolved at runtime) and takes every
+// Next/Supabase-bound VALUE through the required `deps` parameter. This file
+// is therefore a plain, portable *.test.mjs (no *.npmtest.mjs / npm-ci CI
+// step needed) — it joins run-test-suite.sh's directory glob for
+// fsi-app/src/lib/detail/*.test.mjs like any other module test.
+//
+// No real Supabase, no real Next request scope: every Next-bound dependency
+// is a stub passed through `deps` — this is a proof about loadDetailCore's
+// OWN control flow (concurrency, cache reuse, viewer isolation), not an
+// integration test against a database.
+import test from "node:test";
+import assert from "node:assert/strict";
+import { loadDetailCore } from "./load-detail-core.ts";
+
+/** Thin call-shape helper: fills in cacheKeyParts/cacheTags from
+ *  surface+id the same way load-detail.ts's real wrapper does
+ *  (itemTag(id) + surfaceDetailTag(surface)), so each test only states
+ *  what it's actually varying. */
+function call(surface, id, rest) {
+  return {
+    surface,
+    id,
+    cacheKeyParts: ["detail-item-scoped", surface, id],
+    cacheTags: [`item:${id}`, `${surface}-detail`],
+    ...rest,
+  };
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** In-memory stand-in for unstable_cache, matching loadDetail's real call shape:
+ *  cacheWrap(keyParts, tags, fn) -> () => Promise<T>, memoized by keyParts. */
+function makeMemoCache() {
+  const store = new Map();
+  let calls = 0;
+  const wrap = (keyParts, _tags, fn) => {
+    const key = keyParts.join("::");
+    return async () => {
+      if (store.has(key)) return store.get(key);
+      calls++;
+      const result = await fn();
+      store.set(key, result);
+      return result;
+    };
+  };
+  wrap.callCount = () => calls;
+  return wrap;
+}
+
+const baseDetail = {
+  resource: { id: "item-a", title: "Item A" },
+  connections: [],
+  supersessions: [],
+  relevanceInput: { title: "Item A" },
+  changelog: [],
+  dispute: null,
+  canonicalSurface: "regulations",
+};
+
+test("loadDetailCore returns notFound when canonicalSurface does not match the route surface", async () => {
+  const result = await loadDetailCore(
+    call("market", "item-a", {
+      loadItemScoped: async () => ({}),
+      deps: {
+        fetchItem: async () => baseDetail, // canonicalSurface: "regulations"
+        fetchSections: async () => [],
+        getRelevance: async () => null,
+        createServiceClient: () => ({}),
+        resolveOrgId: async () => null,
+        cacheWrap: makeMemoCache(),
+      },
+    })
+  );
+  assert.deepEqual(result, { notFound: true });
+});
+
+test("loadDetailCore returns notFound when the item does not exist", async () => {
+  const result = await loadDetailCore(
+    call("regulations", "missing", {
+      loadItemScoped: async () => ({}),
+      deps: {
+        fetchItem: async () => null,
+        fetchSections: async () => [],
+        getRelevance: async () => null,
+        createServiceClient: () => ({}),
+        resolveOrgId: async () => null,
+        cacheWrap: makeMemoCache(),
+      },
+    })
+  );
+  assert.deepEqual(result, { notFound: true });
+});
+
+test("(a) sections, item-scoped, and viewer-scoped all start before any one resolves (Promise.all, not sequential awaits)", async () => {
+  const events = [];
+
+  const result = await loadDetailCore(
+    call("regulations", "item-a", {
+      loadItemScoped: async () => {
+        events.push("start:itemScoped");
+        await sleep(15);
+        events.push("end:itemScoped");
+        return { related: ["r1"] };
+      },
+      loadViewerScoped: async () => {
+        events.push("start:viewerScoped");
+        await sleep(15);
+        events.push("end:viewerScoped");
+        return { ownerName: "Alice" };
+      },
+      deps: {
+        fetchItem: async () => baseDetail,
+        fetchSections: async () => {
+          events.push("start:sections");
+          await sleep(15);
+          events.push("end:sections");
+          return [];
+        },
+        getRelevance: async () => null,
+        createServiceClient: () => ({}),
+        resolveOrgId: async () => "org-a",
+        cacheWrap: makeMemoCache(),
+      },
+    })
+  );
+
+  assert.equal(result.notFound, false);
+  const starts = events.filter((e) => e.startsWith("start:"));
+  const firstEnd = events.findIndex((e) => e.startsWith("end:"));
+  // All three "start:" events must appear before the FIRST "end:" event —
+  // if load-detail sequentially awaited them, the second stage could not
+  // have logged its start until the first stage's end had already run.
+  const startsBeforeFirstEnd = events.slice(0, firstEnd).filter((e) => e.startsWith("start:"));
+  assert.equal(starts.length, 3, `expected 3 starts, saw: ${events.join(",")}`);
+  assert.equal(
+    startsBeforeFirstEnd.length,
+    3,
+    `expected all 3 stages started before the first one ended, saw: ${events.join(",")}`
+  );
+});
+
+test("(no org/user key) the item-scoped ctx carries no viewer identity", async () => {
+  let capturedCtxKeys = null;
+  await loadDetailCore(
+    call("regulations", "item-a", {
+      loadItemScoped: async (ctx) => {
+        capturedCtxKeys = Object.keys(ctx).sort();
+        return {};
+      },
+      deps: {
+        fetchItem: async () => baseDetail,
+        fetchSections: async () => [],
+        getRelevance: async () => null,
+        createServiceClient: () => ({}),
+        resolveOrgId: async () => "org-a",
+        cacheWrap: makeMemoCache(),
+      },
+    })
+  );
+  assert.deepEqual(capturedCtxKeys, ["connections", "resource", "supabase", "supersessions"]);
+  assert.ok(
+    !capturedCtxKeys.some((k) => /org|user|viewer/i.test(k)),
+    "item-scoped ctx must not carry an org/user/viewer-shaped key"
+  );
+});
+
+test("(b)+(c) a second call for the same slug under a different viewer does not re-run the item-scoped set, and never receives the first viewer's org-scoped fields", async () => {
+  let itemScopedCalls = 0;
+  const cacheWrap = makeMemoCache();
+
+  async function callAs(viewerOrgId, ownerName) {
+    return loadDetailCore(
+      call("regulations", "item-a", {
+        loadItemScoped: async () => {
+          itemScopedCalls++;
+          return { relatedTitles: ["Cross-referenced Reg"] };
+        },
+        loadViewerScoped: async ({ orgId }) => {
+          assert.equal(orgId, viewerOrgId, "loadViewerScoped must receive THIS call's orgId, not a cached one");
+          return { ownerName };
+        },
+        deps: {
+          fetchItem: async () => baseDetail,
+          fetchSections: async () => [],
+          getRelevance: async () => (viewerOrgId ? { band: `relevant-to-${viewerOrgId}` } : null),
+          createServiceClient: () => ({}),
+          resolveOrgId: async () => viewerOrgId,
+          cacheWrap,
+        },
+      })
+    );
+  }
+
+  const viewerA = await callAs("org-a", "Alice");
+  const viewerB = await callAs("org-b", "Bob");
+
+  assert.equal(itemScopedCalls, 1, "the item-scoped (org-independent) set must run once, not once per viewer");
+  assert.deepEqual(viewerA.itemScoped, viewerB.itemScoped, "both viewers see the identical cached item-scoped payload");
+
+  // (c): viewer B must never see viewer A's org-scoped fields, and vice versa.
+  assert.equal(viewerA.viewerScoped.ownerName, "Alice");
+  assert.equal(viewerB.viewerScoped.ownerName, "Bob");
+  assert.notEqual(viewerA.viewerScoped.ownerName, viewerB.viewerScoped.ownerName);
+  assert.equal(viewerA.relevance.band, "relevant-to-org-a");
+  assert.equal(viewerB.relevance.band, "relevant-to-org-b");
+});
+
+test("loadItemScoped never runs when the service client is unavailable (soft-fail, matching prior page.tsx try/catch posture)", async () => {
+  let called = false;
+  const result = await loadDetailCore(
+    call("regulations", "item-a", {
+      loadItemScoped: async () => {
+        called = true;
+        return { related: [] };
+      },
+      deps: {
+        fetchItem: async () => baseDetail,
+        fetchSections: async () => [],
+        getRelevance: async () => null,
+        createServiceClient: () => null, // unconfigured
+        resolveOrgId: async () => null,
+        cacheWrap: makeMemoCache(),
+      },
+    })
+  );
+  assert.equal(result.notFound, false);
+  assert.equal(called, false);
+  assert.equal(result.itemScoped, null);
+});
