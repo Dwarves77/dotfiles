@@ -18,7 +18,7 @@ finding. Master tip at reconstruction: `e3b3a74`.
 `GROUNDING_ACQUIRE_ENABLED` **OFF**; `MONTHLY_TOTAL_DISPLAY_USD` (spend-client.ts; informational display only, never a limit — the actual per-call cap is `SPEND_CEILING_USD`, generation-config.ts, default $85) **$130, code-only, frozen** (operator ruling
 2026-07-13, flag-system item 0 — raised from $75; the raise removes a stale-ceiling false-red, it does **not**
 unlock spend; MTD $75.25 ≈ 58% of $130); Phase 3 **CLOSED** (ADR-013 — do not run regardless of older notes);
-the loop/cadence flip is the operator's word only.
+the loop/cadence flip is the operator's word only. **Build mode (restated 2026-09-03): `scrape_cadence` stays `off` for the whole build; never propose flipping it; check-sources exiting with 0 checked and change detection detecting nothing are the expected state; stale items are held and kept, refreshed when the operator sets a scrape time after build (CLAUDE.md standing rule 16).**
 
 ---
 
