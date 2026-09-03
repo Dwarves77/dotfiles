@@ -211,12 +211,11 @@ test("buildResearchRecordPayload: missing/off-vertical screen is rejected by the
 // documented behavior — a "registry"-provenance payload is quarantined by screen_verdict_missing until
 // the coordinator adds "registry" to that allowlist — so a future validator fix flips this test loudly
 // rather than the gap going unnoticed.
-test('buildResearchRecordPayload: provenance "registry" (research-sweep.mjs\'s own screen contract) is NOT YET accepted by validate-mint-payload.mjs\'s kit check', () => {
+test('buildResearchRecordPayload: provenance "registry" (research-sweep.mjs\'s own screen contract) is accepted by validate-mint-payload.mjs (coordinator allowlist change, 2026-09-03)', () => {
   const payload = buildResearchRecordPayload({
     sourceUrl: SOURCE.url, title: "T", source: SOURCE, capturedText: RICH_TEXT,
     screen: { verdict: "on_vertical", provenance: "registry", basis: "academic_research" },
   });
   const result = validateMintPayload(payload);
-  assert.equal(result.valid, false);
-  assert.ok(result.failures.some((f) => f.reason === "screen_verdict_missing"));
+  assert.ok(!result.failures.some((f) => f.reason === "screen_verdict_missing"), JSON.stringify(result.failures));
 });

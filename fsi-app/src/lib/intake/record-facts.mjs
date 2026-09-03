@@ -47,7 +47,9 @@
 // item_types; adding a 5th/6th REQUIRED slot there would fail those payloads' own criterion-5 check
 // without ever touching those coordinator-owned files. `buildRecordFacts` below instead adds
 // binding_position/due_date for the WHOLE regulation family (including the two brand-new FR item_types
-// this lane also registers, `notice`/`presidential_document`, which DO carry both as required slots --
+// (the coordinator withdrew the two FR types `notice`/`presidential_document` INTAKE had registered:
+// zero evidence rows, and the live item_type CHECK, validator floor, surface rules and required-slots
+// table would all have needed extending for no document; HELD's dossier names them if one ever appears) --
 // nothing existing depends on their slot count) by ITEM_TYPE membership, independent of what
 // item-type-required-slots.json requires for that exact type -- always a FACT-or-GAP claim, so criterion
 // 5 (which only checks slots that ARE required) is never affected either way. See MINT-RUNBOOK.md's kept
@@ -556,7 +558,7 @@ function buildRecordSlotClaim(slotKey, { capturedText, sourceUrl }) {
 // explains why these two are additive-by-item_type rather than entries in item-type-required-slots.json
 // for the five pre-existing regulation-family item_types).
 const REGULATION_FAMILY_TYPES = new Set([
-  "regulation", "directive", "standard", "guidance", "framework", "notice", "presidential_document",
+  "regulation", "directive", "standard", "guidance", "framework",
 ]);
 const MARKET_FAMILY_TYPES = new Set(["market_signal", "initiative"]);
 
@@ -629,7 +631,7 @@ export function buildRecordFullBrief({ sourceUrl, claims }) {
  * @param {string} input.itemType           -- one of item-type-required-slots.json's keys. ALSO (Lane
  *   INTAKE, 2026-09-02) selects the optional, always-attempted family additions this function now runs
  *   through buildRecordFacts: the regulation family (regulation/directive/standard/guidance/framework/
- *   notice/presidential_document) gets item.binding_position + item.due_date/date_precision; the market
+ *   ) gets item.binding_position + item.due_date/date_precision; the market
  *   family (market_signal/initiative) gets item.corridor_identity; research_finding gets
  *   item.research_credibility — every one of these lands on `item` as FACT-derived data or an honest
  *   null (GAP), never invented. An item_type outside every family gets null for all five.

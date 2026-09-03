@@ -297,13 +297,13 @@ test("buildRecordFacts: itemType threading is backward compatible -- omitting it
   assert.equal(withTechnologyType.some((c) => c.slot_key === "corridor_identity"), false);
 });
 
-test("buildRecordFacts: a slot already in requiredSlots is never duplicated by the optional-family addition (notice/presidential_document)", () => {
+test("buildRecordFacts: a slot already in requiredSlots is never duplicated by the optional-family addition", () => {
   const claims = buildRecordFacts({
     title: "T",
     sourceUrl: "https://x",
     capturedText: "The freight forwarder shall register no later than 1 January 2027.",
     requiredSlots: ["binding_position", "due_date"],
-    itemType: "notice",
+    itemType: "guidance",
   });
   assert.equal(claims.filter((c) => c.slot_key === "binding_position").length, 1);
   assert.equal(claims.filter((c) => c.slot_key === "due_date").length, 1);
@@ -344,38 +344,6 @@ test("buildRecordPayload: regulation family lifts binding_position/due_date/date
   assert.equal(result.valid, true);
 });
 
-test("buildRecordPayload: notice item_type (a brand-new FR item_type) carries binding_position/due_date as REQUIRED slots and clears the real validator", () => {
-  const capturedText =
-    "FEDERAL REGISTER NOTICE of 1 April 2026. " +
-    "This notice shall enter into force upon publication. " +
-    "This notice applies to Member States and all regulated carriers. " +
-    "The freight forwarder shall submit comments no later than 1 June 2026. " +
-    "Violators are subject to penalties under applicable law.";
-  const payload = buildRecordPayload({
-    sourceUrl: "https://www.federalregister.gov/documents/2026/04/01/example-notice",
-    itemType: "notice",
-    title: "FEDERAL REGISTER NOTICE of 1 April 2026",
-    source: {
-      id: "src-fr",
-      url: "https://www.federalregister.gov/",
-      base_tier: 1,
-      tier_override: null,
-      status: "active",
-      institution_id: null,
-    },
-    capturedText,
-    requiredSlots: ["effective_date", "jurisdictional_scope", "penalty_summary", "primary_deadline", "binding_position", "due_date"],
-    screen: { verdict: "on_vertical", provenance: "rule", basis: "US federal register notice, core vertical" },
-  });
-
-  assert.equal(payload.item.item_type, "notice");
-  assert.equal(payload.item.binding_position, "direct_duty");
-  const bindingClaims = payload.claims.filter((c) => c.slot_key === "binding_position");
-  assert.equal(bindingClaims.length, 1, "requiredSlots-driven and optional-family paths must not double the claim");
-
-  const result = validateMintPayload(payload, { baseDir: process.cwd() });
-  assert.deepEqual(result.failures, [], `notice record payload must clear validate-mint-payload.mjs: ${JSON.stringify(result.failures, null, 2)}`);
-});
 
 test("buildRecordPayload: market_signal item_type lifts corridor_identity onto item and clears the real validator", () => {
   const capturedText =

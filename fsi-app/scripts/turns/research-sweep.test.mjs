@@ -287,11 +287,10 @@ test("sweepOneSource: a congruent, fetchable document is built, screened (proven
   assert.ok(payload);
   assert.equal(payload.screen.provenance, "registry");
   assert.equal(payload.screen.basis, "academic_research");
-  // KNOWN KIT-CHECK GAP (see this file's header and RESEARCH-SWEEP.md): validate-mint-payload.mjs does
-  // not yet accept provenance "registry", so today every research-sweep payload validates as invalid on
-  // that one kit check — pinned here so a future validator fix is visible, not silently masked.
-  assert.equal(built.outcome, "built_invalid");
-  assert.match(built.verdict, /screen_verdict_missing/);
+  // validate-mint-payload.mjs accepts provenance "registry" since the coordinator's allowlist change
+  // (2026-09-03); a congruent research document now builds VALID end to end.
+  assert.equal(built.outcome, "built_valid", built.verdict);
+  assert.doesNotMatch(String(built.verdict), /screen_verdict_missing/);
 });
 
 test("sweepOneSource: maxDocsPerSource bounds how many NEW candidates are processed", async () => {

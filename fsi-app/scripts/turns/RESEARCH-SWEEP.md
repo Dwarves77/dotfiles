@@ -98,26 +98,10 @@ run's harness-run artifact `config.source_selection_query`.
 
 ### Known kit-check gap (report to the coordinator)
 
-`validate-mint-payload.mjs`'s screen kit check (`hasProvenance`) currently accepts only `provenance`
-`"rule"` or `"reviewed"`:
-
-```js
-const hasProvenance = !!screen && typeof screen === "object" && ["rule", "reviewed"].includes(screen.provenance);
-```
-
-Because this sweep's own contract stamps `provenance: "registry"`, **every research-sweep payload is
-currently quarantined by `screen_verdict_missing`** until this allowlist is widened. The fix is one line
-in that coordinator-only file:
-
-```diff
-- const hasProvenance = !!screen && typeof screen === "object" && ["rule", "reviewed"].includes(screen.provenance);
-+ const hasProvenance = !!screen && typeof screen === "object" && ["rule", "reviewed", "registry"].includes(screen.provenance);
-```
-
-This is pinned as a passing test (`record-facts-research.test.mjs` and `research-sweep.test.mjs`, both
-asserting the CURRENT quarantined behavior) so the gap stays visible rather than silently worked around,
-and so the fix's effect is verifiable the moment it lands: both tests should be revisited (they currently
-assert `valid: false` / `built_invalid`) once the allowlist widens.
+`validate-mint-payload.mjs`'s screen kit check (`hasProvenance`) accepts `provenance` `"rule"`,
+`"reviewed"` and `"registry"` (the third added by the coordinator on 2026-09-03 for this subject). This
+sweep stamps `provenance: "registry"` with the source's registry role as `basis`; `research-sweep.test.mjs`
+proves a congruent document builds `built_valid` end to end.
 
 ## Two output shapes, and why both
 

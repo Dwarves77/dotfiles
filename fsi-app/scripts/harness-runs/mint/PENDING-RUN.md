@@ -43,7 +43,17 @@ not a population run this marker's own escape hatch would otherwise require. `ha
 (from `scripts/lib/run-artifact.mjs` / `run-mint-batch.mjs`, computed the same way the CI/pre-push gate
 computes it) now reads:
 
-**harness_version at write time:** `sha256:0091d3bcf17e7edf`
+**Re-stamped by the coordinator at Wave 2 integration (2026-09-03):** `validate-mint-payload.mjs` gained
+`"registry"` in the screen-provenance allowlist (Lane RSRCH's research-sweep subject stamps it with the
+source's registry role as basis); `item-type-required-slots.json` lost the two FR types INTAKE had
+registered (`notice`, `presidential_document`: zero evidence rows, and the live item_type CHECK, the
+validator's floor lists, the surface rules and the live required-slots table would all have needed
+extending for no document). The slot additions to `market_signal`/`initiative`/`research_finding` stay
+in the kit and are deliberately NOT yet in the live `item_type_required_slots` table (adding them live
+would flip existing verified items to quarantined on their next trigger touch); they go live in the
+population train together with the re-mint. INTAKE's own stamp was `sha256:0091d3bcf17e7edf`.
+
+**harness_version at write time:** `sha256:c933647da54908a1`
 
 **The planned run that supersedes this marker:** the next `population-turn` apply dispatch (still limit
 200, still the first full slice after the screen gate and the kit check — Lane INTAKE changed nothing

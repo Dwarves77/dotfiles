@@ -10,6 +10,7 @@
 // .tsx file. The F-1 and V-07 legs reuse the REAL app modules directly (no reproduction).
 
 import { stripSourcesSection } from "../../src/lib/agent/brief-section-strip.mjs";
+import { buildDashFixtures } from "./fixtures-dash/fixtures.mjs";
 
 // ── The app's real breakpoint tiers (confirmed against src/app/globals.css 2026-07-11) plus the
 //    device-emulated common widths. THIS is the first mobile/tablet verification — the source audit
@@ -173,6 +174,8 @@ function briefDoc(md) {
 // ── The fixture set. Each: { id, cls, html, containers, expectOverflow, expectPlaceholder }. ────
 export function buildFixtures() {
   return [
+    // Lane DASH (2026-09-02): dashboard pulse cards + research GRADE-ledger row, GREEN/RED pairs.
+    ...buildDashFixtures(),
     // L-1 timeline overflow
     {
       id: "timeline-capped", cls: "L-1", expectOverflow: false, expectPlaceholder: false,

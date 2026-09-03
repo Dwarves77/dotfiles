@@ -522,8 +522,16 @@ that exact type. `market_signal`/`initiative` gained `corridor_identity` and `re
 `evidence_agreement_signal`/`source_authority_signal` as REQUIRED slots (safe: no fixture in this repo
 hand-crafts a fixed claim list for those three item_types).
 
-**What `validate-mint-payload.mjs` would need, when the coordinator picks this up** (that file is
-out of this lane's write set — see this lane's own report for the same text):
+**Coordinator disposition (2026-09-03):** `notice`/`presidential_document` withdrawn (zero evidence rows;
+the live `intelligence_items_item_type_check`, the validator's floor lists, `surface-of.mjs`, `domains.ts`
+and the live `item_type_required_slots` table would all have needed extending for no document). The slot
+additions to `market_signal`/`initiative`/`research_finding` stay in this kit file and are DELIBERATELY
+NOT in the live `item_type_required_slots` table yet: adding them live would flip every existing verified
+item of those types to quarantined on its next trigger touch (criterion 5). They are added live in the
+population train, together with the re-mint of the existing corpus through this profile. Until then the
+kit is stricter than the database, which is the safe direction.
+
+**What `validate-mint-payload.mjs` would have needed for the two withdrawn types** (kept for the record):
 1. Add `"notice"` and `"presidential_document"` to `REG_FAMILY` (currently
    `new Set(["regulation", "directive", "standard", "guidance", "framework"])`) so the two new item_types
    get the same unconditional authority-floor treatment the rest of the regulation family has.

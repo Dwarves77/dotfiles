@@ -95,7 +95,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/connections/analyze-corpus.mjs",
       "scripts/connections/ratify-flag-to-census.mjs",
       "supabase/functions/capture-worker/index.ts",
-      "scripts/connections/propose-tags.mjs"
+      "scripts/connections/propose-tags.mjs",
+      "scripts/classification/propose-classifications.mjs"
     ],
     "census_worklist": [
       "src/lib/intake/census-writer.mjs",
@@ -126,7 +127,7 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/turns/consume-turn-requests.mjs"
     ],
     "monitoring_queue": [
-      "src/app/api/worker/check-sources/route.ts",
+      "src/app/api/worker/check-sources/logic.ts",
       "src/lib/sources/reconcile.ts"
     ],
     "intelligence_changes": [
@@ -243,6 +244,7 @@ other producer below.
 | (ratified-to-census namespace) | `scripts/connections/ratify-flag-to-census.mjs` | **Pre-registered (parallel lane)** — its own name implies it is itself a *resolver* for some existing flag category, converting a flag into a `census_worklist` entry. **TO-VERIFY at merge** which `created_by` namespace(s) it consumes, and whether it closes the two OPEN leaks above. | not yet present |
 | `capture-worker` (fixed literal, `created_by: "capture-worker"`) | `supabase/functions/capture-worker/index.ts` (Edge Function — the ADR-016 storage-ceiling truncation guard, filed only after a capture lands) | **OPEN — no automated resolver found**, same posture as `intake-seek-study`/`intake-relevance` above; resolved today only via the generic manual admin endpoint. Found 2026-09-01 when the writer-registry test's scan roots were widened to include `supabase/functions/**` (this table was previously invisible to the registry on the Edge Function side). | index.ts lines 554-567, `category: "coverage_gap"` |
 | `flywheel-tag:empty-signature` | `scripts/connections/propose-tags.mjs` (lane TAG, 2026-09-01 — reflects a `derive-tags.mjs` tag-proposal finding, one row per item whose `operational_scenario_tags`/`compliance_object_tags`/`topic_tags` are all empty, so `discover.mjs` can never score it an edge) | **Self-resolving, same convention as `flywheel-gap:*`** — a full `--untagged` run closes any of its own open flags whose item no longer reproduces (now tagged, or fell out of the corpus); a narrow `--ids`/`--since` run resolves ONLY flags inside its own selection (see `planReflect`'s `scopeSubjectRefs`, a deliberate narrowing of the `analyze-corpus.mjs` convention this file's own header names). Also consumed downstream: `scripts/connections/apply-tags.mjs` READS (never writes) this namespace's rows once an operator resolves one with `resolution_note` containing `ratify:tags`, applying the row's `PROPOSALS_JSON` to `intelligence_items` — see that table's writer entry above. | propose-tags.mjs (`planReflect`, `buildFlagRow`); apply-tags.mjs (`evaluateApplication`) |
+| `classification:*` (Axis 3/4/5 source classification, drift, anomaly) | `scripts/classification/propose-classifications.mjs` (lane AXIS, 2026-09-02): writes `integrity_flags` rows proposing Axis 3/4/5 source classification / drift / anomaly findings for operator ratification (TAG pattern; never a silent write to `sources` or `intelligence_items`). `scripts/classification/apply-classifications.mjs` READS ratified rows (`resolution_note` containing `ratify:classification`) and writes `sources.scope_*`/`expected_output` only; `jurisdictions` proposals are review-only. | propose-classifications.mjs (`planReflect` imported from propose-tags.mjs); apply-classifications.mjs |
 
 Replace policy: append (`guardedInsertMany`/`.insert`) + namespace-scoped `guardedUpdate` to
 `status='resolved'`. A producer must never touch another namespace's open rows — enforced by convention
@@ -379,7 +381,7 @@ conflict because each owns a disjoint column set.
 
 | Writer | Operation | Evidence |
 |---|---|---|
-| `src/app/api/worker/check-sources/route.ts` | INSERT — one row per source checked, `change_detected` computed from `content-change.mjs`'s fingerprint compare (migration 161's `sources.last_content_hash`) | `assessAndUpdateSource`, `.from("monitoring_queue").insert({...})` |
+| `src/app/api/worker/check-sources/logic.ts` (the pure logic behind `check-sources/route.ts`, split by BUILDGATE 2026-09-02) | INSERT — one row per source checked, `change_detected` computed from `content-change.mjs`'s fingerprint compare (migration 161's `sources.last_content_hash`) | `assessAndUpdateSource`, `.from("monitoring_queue").insert({...})` |
 | `src/lib/sources/reconcile.ts` | UPDATE — stamps `reconciled_at` on the SAME row once its change has been recorded, so re-runs are idempotent (migration 124) | `runReconcilePass`, `.from("monitoring_queue").update({ reconciled_at: ... })` |
 
 Replace policy: append-only INSERT + one idempotency-stamp UPDATE per row (`reconciled_at`, migration

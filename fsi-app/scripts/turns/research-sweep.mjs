@@ -285,12 +285,9 @@ export function titleFromUrl(url) {
  *  the query itself is auditable once per run via this run's harness-run artifact `config`, not repeated
  *  on every payload). PURE.
  *
- *  KNOWN KIT-CHECK GAP (see RESEARCH-SWEEP.md and this lane's report): validate-mint-payload.mjs's screen
- *  check currently accepts only `provenance` "rule" or "reviewed" (that file's `hasProvenance`) — a
- *  "registry"-provenance payload is quarantined (`screen_verdict_missing`) until the coordinator adds
- *  "registry" to that allowlist. This is the CORRECT contract per the lane brief regardless; the gap is
- *  in the coordinator-only validator, not here (record-facts-research.test.mjs pins this current behavior
- *  so the gap is visible, not silently worked around). */
+ *  validate-mint-payload.mjs's screen check accepts `provenance` "rule", "reviewed" and (since the
+ *  coordinator's allowlist change of 2026-09-03) "registry"; a research-sweep payload validates end to
+ *  end (research-sweep.test.mjs "built_valid"). */
 export function screenForSource(source) {
   return {
     verdict: "on_vertical",

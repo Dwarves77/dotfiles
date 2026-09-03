@@ -87,6 +87,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [C8-moderation-spec](./plans/C8-moderation-spec.md) — C8 — Community moderation workflow
 - [C9-realtime-spec](./plans/C9-realtime-spec.md) — C9 — Community Realtime Infrastructure
 - [ratifications/2026-09/README](./ratifications/2026-09/README.md) — Ratification digests for the four review queues (927 provisional sources, 331 canonical candidates, 1,457 portal links, 91 gap dispositions): what a digest is, how to rule in the JSON, which apply script consumes it
+- [wave2-lanes-2026-09-02](./plans/wave2-lanes-2026-09-02.md) — Wave 2 lane contract: nine lanes (OBLIG, CORR, DASH, RSRCH, AXIS, HELD, INTAKE, DESNZ, BUILDGATE) with pairwise-disjoint write sets, the coordinator-only file list, and the build-before-populate ruling
 - [finish-plan-2026-09-02](./plans/finish-plan-2026-09-02.md) — Finish plan: the site and the data to done; open rulings R-A…R-H, Sonnet lanes in three waves with disjoint write sets, the coordinator dispatch sequence
 - [SOURCE-TYPE-TAXONOMY-PROPOSAL](./plans/SOURCE-TYPE-TAXONOMY-PROPOSAL.md) — `source_type` Taxonomy Column — Design Proposal
 - [unit4-critical-high-disposition-2026-07-26](./plans/unit4-critical-high-disposition-2026-07-26.md) — Unit 4: session-labor disposition of 36 CRITICAL/HIGH coverage-gap rows (repair/mint/register); + durable-record meta-rule
