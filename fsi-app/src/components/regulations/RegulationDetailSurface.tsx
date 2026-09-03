@@ -947,6 +947,9 @@ function InteractiveTimeline({ items }: { items: TimelineEntry[] }) {
         {shown.map((m, i) => {
           const left = n > 1 ? `${(i / (n - 1)) * 100}%` : "0%";
           const sel = i === pick;
+          // Law-2 floor: the visible dot (12-16px) stays that size — the button's own box (its real
+          // tap target) grows to 24px with the dot centered inside via a nested span, clearing the
+          // "≥24px with 8px clearance" branch without changing what the strip looks like.
           return (
             <button
               key={i}
@@ -959,15 +962,30 @@ function InteractiveTimeline({ items }: { items: TimelineEntry[] }) {
                 left,
                 top: "50%",
                 transform: "translate(-50%,-50%)",
-                width: sel ? 16 : 12,
-                height: sel ? 16 : 12,
+                width: 24,
+                height: 24,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 borderRadius: "50%",
                 cursor: "pointer",
                 padding: 0,
-                background: m.done ? C.sevLow : "#fff",
-                border: sel ? `3px solid ${m.hue}` : `2px solid ${m.done ? C.sevLow : "rgba(0,0,0,0.3)"}`,
+                background: "transparent",
+                border: "none",
               }}
-            />
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  display: "block",
+                  width: sel ? 16 : 12,
+                  height: sel ? 16 : 12,
+                  borderRadius: "50%",
+                  background: m.done ? C.sevLow : "#fff",
+                  border: sel ? `3px solid ${m.hue}` : `2px solid ${m.done ? C.sevLow : "rgba(0,0,0,0.3)"}`,
+                }}
+              />
+            </button>
           );
         })}
       </div>
@@ -977,12 +995,27 @@ function InteractiveTimeline({ items }: { items: TimelineEntry[] }) {
           // rendered one so capped strips never show a "202520252025" run.
           const yr = shortDate(m.date);
           const label = i > 0 && shortDate(shown[i - 1].date) === yr ? "" : yr;
+          // Law-2 floor (screenshot-adjacent defect, brief-confirmed): these labels rendered ~11px
+          // tall (padding: 0, an 11px font's own line box). `minHeight: 44` with the row centered
+          // reaches the floor without changing the visible label's size or position.
           return (
             <button
               key={i}
               onClick={() => setPick(i)}
               aria-label={shortDate(m.date)}
-              style={{ fontFamily: "var(--font-sans)", background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 11, fontWeight: i === pick ? 800 : 600, color: i === pick ? C.ink : C.muted }}
+              style={{
+                fontFamily: "var(--font-sans)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "0 4px",
+                minHeight: 44,
+                display: "inline-flex",
+                alignItems: "center",
+                fontSize: 11,
+                fontWeight: i === pick ? 800 : 600,
+                color: i === pick ? C.ink : C.muted,
+              }}
             >
               {label}
             </button>

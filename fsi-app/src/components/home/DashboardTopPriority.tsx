@@ -466,6 +466,11 @@ function SortablePriorityRow({ r, band }: { r: Resource; band: Band }) {
       style={{
         display: "grid",
         gridTemplateColumns: "26px 1fr",
+        // Law-2 floor (docs/design/ux-laws.md #2): the grip button (26px, deliberately narrow —
+        // see this function's own comment) sat flush against the row Link with 0px clearance,
+        // failing the "24px + 8px clearance" alternative to a 44px target on both sides. `columnGap:
+        // 8` is the minimal fix: it does not touch either target's own size.
+        columnGap: 8,
         alignItems: "stretch",
         transform: CSS.Transform.toString(transform),
         transition,

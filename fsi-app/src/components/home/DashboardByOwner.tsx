@@ -117,11 +117,15 @@ export function DashboardByOwner({ resources }: DashboardByOwnerProps) {
       <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
         {topThree.map((g) => (
           <li key={g.key}>
+            {/* Law-2 floor: the owner-name link was ~15px tall with only 2px to the title link
+                below — under the 24px+8px-clearance floor on both axes. `minHeight: 24` on the
+                link and `marginTop: 8` on the title link below reach it without changing the
+                visible type scale. */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
               <Link
                 href={`/regulations?owner=${encodeURIComponent(g.displayName)}`}
                 prefetch={false}
-                style={{ fontSize: 12.5, fontWeight: 700, color: "var(--color-text-primary)", textDecoration: "none" }}
+                style={{ display: "inline-flex", alignItems: "center", minHeight: 24, fontSize: 12.5, fontWeight: 700, color: "var(--color-text-primary)", textDecoration: "none" }}
               >
                 {g.displayName}
               </Link>
@@ -132,7 +136,7 @@ export function DashboardByOwner({ resources }: DashboardByOwnerProps) {
             <Link
               href={g.top.href}
               prefetch={false}
-              style={{ display: "block", fontSize: 11.5, color: "var(--color-text-secondary)", textDecoration: "none", marginTop: 2, lineHeight: 1.4 }}
+              style={{ display: "block", fontSize: 11.5, color: "var(--color-text-secondary)", textDecoration: "none", marginTop: 8, lineHeight: 1.4 }}
             >
               {g.top.title}
             </Link>

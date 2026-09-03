@@ -769,6 +769,11 @@ export function RegulationsLedger({
               color: "var(--color-text-primary)",
             }}
           />
+          {/* Law-2 floor (docs/design/ux-laws.md #2): a 0px-clearance segmented control at ~30px
+              tall (mobile measured 38x58, the group's own flex-wrap making one segment taller
+              than wide) — under both the 44px target size and the 24px+8px-clearance alternative.
+              Same fix as ResearchLedger's window control: minHeight 44 per segment, kept the
+              segmented-pill shape. */}
           <div
             role="group"
             aria-label="Sort order"
@@ -793,6 +798,11 @@ export function RegulationsLedger({
                   aria-pressed={on}
                   onClick={() => setSort(key)}
                   style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 44,
+                    whiteSpace: "nowrap",
                     fontFamily: "inherit",
                     fontSize: 11.5,
                     fontWeight: on ? 800 : 600,
@@ -1183,6 +1193,7 @@ export function RegulationsLedger({
                   }
                   style={{
                     width: "100%",
+                    minHeight: 44,
                     textAlign: "left",
                     fontFamily: "inherit",
                     padding: "11px 18px",
@@ -1368,7 +1379,8 @@ function RegRow({
       // concurrent uncached detail SSR renders (~8-11 Supabase round-trips each) → the
       // Supabase-saturation spike behind the /regulations/[slug] 503s. Kill the fan-out at source.
       prefetch={false}
-      className="cl-reg-row"
+      className="cl-reg-row cl-row-grid"
+      data-guard-container="regulation-row"
       style={{
         display: "grid",
         gridTemplateColumns: "96px 1fr auto",
@@ -1381,6 +1393,7 @@ function RegRow({
       }}
     >
       <span
+        className="cl-row-grid__label"
         style={{
           fontSize: 10,
           fontWeight: 800,
@@ -1390,10 +1403,11 @@ function RegRow({
       >
         {jurTag(r)}
       </span>
-      <p style={{ fontSize: 13.5, fontWeight: 700, margin: 0, lineHeight: 1.4 }}>
+      <p data-guard-title className="cl-row-grid__title cl-row-grid__title--clamp3" style={{ fontSize: 13.5, fontWeight: 700, margin: 0, lineHeight: 1.4, overflowWrap: "anywhere" }}>
         {r.title}
       </p>
       <span
+        className="cl-row-grid__meta"
         style={{
           display: "flex",
           alignItems: "center",

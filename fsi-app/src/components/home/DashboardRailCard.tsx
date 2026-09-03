@@ -59,10 +59,14 @@ export function DashboardRailCard({
         }}
       >
         {titleHref ? (
+          // Law-2 floor (docs/design/ux-laws.md #2): a 10px-font, zero-padding title link renders
+          // ~11px tall — well under both the 44px target size and the 24px+8px-clearance
+          // alternative. `minHeight: 24` + inline-flex reaches the small-target floor without
+          // changing the visible type scale.
           <Link
             href={titleHref}
             prefetch={false}
-            style={{ ...titleStyle, textDecoration: "none" }}
+            style={{ ...titleStyle, textDecoration: "none", display: "inline-flex", alignItems: "center", minHeight: 24 }}
           >
             {title} →
           </Link>
@@ -97,10 +101,11 @@ export function RailEmptyFrame({
       <p style={{ fontSize: 12, color: "var(--color-text-secondary)", lineHeight: 1.55, margin: "0 0 8px" }}>
         {body}
       </p>
+      {/* Law-2 floor: same fix as the title link above — `minHeight: 24` + inline-flex. */}
       <Link
         href={cta.href}
         prefetch={false}
-        style={{ fontSize: 11.5, fontWeight: 800, color: "var(--color-primary)", textDecoration: "none" }}
+        style={{ display: "inline-flex", alignItems: "center", minHeight: 24, fontSize: 11.5, fontWeight: 800, color: "var(--color-primary)", textDecoration: "none" }}
       >
         {cta.label}
       </Link>

@@ -181,6 +181,13 @@ export function RegionDimensionMatrix({
             key={r.key}
             onClick={() => setBaseRegion(baseRegion === r.key ? null : r.key)}
             style={{
+              // Law-2 floor (docs/design/ux-laws.md #2): was `padding: "2px 8px"` at 12px text,
+              // ~21px tall — under the 24px+8px-clearance alternative to 44px even though the
+              // row's `gap: 8` already supplies the clearance. `minHeight: 24` + inline-flex/
+              // center closes the gap without changing type scale or colour.
+              display: "inline-flex",
+              alignItems: "center",
+              minHeight: 24,
               padding: "2px 8px",
               borderRadius: 4,
               border: "1px solid",
@@ -232,8 +239,16 @@ export function RegionDimensionMatrix({
                     onClick={() => setOpenDimension(open ? null : d.db)}
                     style={{ cursor: "pointer", backgroundColor: open ? "var(--color-surface-raised)" : undefined }}
                   >
+                    {/* `data-guard-title` sits on the inner span, not the `<td>`: the squeezed-title
+                        detector (ux-assert.mjs, read-only to this lane) estimates "one line" as
+                        fontSize x 1.3 and has no notion of a title element's own padding — measured
+                        against the padded `<td>` (the shared `cell` style's 6px vertical padding,
+                        `line-height: normal`), a single-line dimension name reads as height >= 2
+                        estimated lines and false-positives as "squeezed", confirmed by a raw
+                        Range.getClientRects() count of 1 on the same markup. The inner span carries
+                        no padding, so its measured height matches its actual (single) line. */}
                     <td style={{ ...cell, textAlign: "left", fontWeight: 500, color: "var(--color-text-primary)" }}>
-                      {d.name}
+                      <span data-guard-title style={{ display: "block", overflowWrap: "anywhere" }}>{d.name}</span>
                     </td>
                     {orderedRegions.map((r) => {
                       const c = grid.byCell[`${r.key}|${d.db}`];

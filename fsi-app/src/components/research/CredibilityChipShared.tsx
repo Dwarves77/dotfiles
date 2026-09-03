@@ -109,7 +109,15 @@ export function GradeModifierLedger({ modifiers }: { modifiers: GradeModifier[] 
 
 // ── Shared chip chrome ──
 
+// Law-2 floor (docs/design/ux-laws.md #2): 9.5px text at 2px vertical padding rendered at ~14px
+// tall — below the "24px + 8px clearance" alternative to the 44px target size, even though the
+// row that hosts these two chips (FindingRow, `gap: 8`) already supplies the 8px clearance.
+// `minHeight: 24` + `inline-flex`/`alignItems: center` closes the gap without changing the type
+// scale, colour, or the chip's visual chrome (same font-size, padding, border, radius).
 export const chipButtonStyle = (scored: boolean): React.CSSProperties => ({
+  display: "inline-flex",
+  alignItems: "center",
+  minHeight: 24,
   fontFamily: "inherit",
   cursor: "pointer",
   fontSize: 9.5,
