@@ -41,6 +41,24 @@
 //      (meaning this extractor's "air/sea are not split by fuel" assumption was wrong) — it throws
 //      DesnzStructureError and writes NOTHING. A partially filled run never happens: applyToFixture()
 //      requires every target resolved before it will return a rows array to write.
+//   5. THE REAL LAYOUT, found by a runner dry run against the actual workbook (lane DESNZ-2, 2026-09-03,
+//      workflow run 33704367826): the "Freighting goods" sheet's header block at row 25 does not carry
+//      one "Total kg CO2e" column, it carries SEVEN — the sub-column row repeats a 4-column group (total /
+//      "kg CO2e of CO2 per unit" / CH4 / N2O) seven times (columns D,H,L,P,T,X,AB), the same 7-column
+//      spacing this file's fixture already documented for the Vans section's fuel-type split. WHICH group
+//      is the row's real headline figure is decided by a group-TITLE row merged in immediately above the
+//      sub-column row (row 24 for row 25's block) — one title per group, in the group's first column, with
+//      the remaining 3 columns of that group left blank (a real Excel merge, or simply not restated).
+//      resolveBlockGroups() below reads that title row, and picks the one group whose (normalized) title
+//      matches an entry in GROUP_TITLE_SELECTION_TABLE — data-driven, not hardcoded to a column letter, so
+//      the same mechanism works for any block with more than one total-column group, not just this one.
+//      GROUP_TITLE_SELECTION_TABLE ships EMPTY: this authoring sandbox cannot reach gov.uk (see above), so
+//      it cannot read row 24's real title text without guessing — and guessing here is exactly the kind of
+//      silent error this file exists to prevent (the -18%/+18% road-column trap in the fixture's own
+//      header). An empty table means resolveBlockGroups() throws on every real run until a human populates
+//      it — but the thrown error prints every group's title text verbatim, plus rows headerRow-3..headerRow
+//      dumped cell-by-cell, so the FAILURE is what tells the next reader what to put in the table. That is
+//      the intended path: dry run -> read the failure's title list -> add one entry -> re-run.
 //
 // energy_carrier, A DESCRIPTIVE DEFAULT, NOT A MEASURED VALUE. Modal scope (migration 258
 // emission_factors_scope_modal) REQUIRES energy_carrier NOT NULL, but the "Freighting goods" sheet's
@@ -305,14 +323,136 @@ function findColumnByLabel(block, matchFn, label) {
   return matches[0][0];
 }
 
-function resolveBlockColumns(block) {
-  return {
-    activityCol: findColumnByLabel(block, (t) => t === "activity", "Activity"),
-    typeCol: findColumnByLabel(block, (t) => t === "type", "Type"),
-    unitCol: findColumnByLabel(block, (t) => t === "unit", "Unit"),
-    totalCol: findColumnByLabel(block, (t) => t === "kgco2e" || t === "totalkgco2e", "Total kg CO2e"),
-    fuelCol: [...block.columns.entries()].find(([, t]) => /fuel|energycarrier/.test(normalizeLabel(t)))?.[0] ?? null,
+/** "A"->1, "Z"->26, "AA"->27, "AB"->28, ... — base-26, letters only, matches Excel's own column numbering. */
+function colToIndex(letters) {
+  let n = 0;
+  for (const ch of letters) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n;
+}
+
+/** Every group-title row this file has ever needed to disambiguate, keyed by its NORMALIZED text
+ *  (normalizeLabel(): case/space/punctuation-insensitive). Deliberately EMPTY as of 2026-09-03 (lane
+ *  DESNZ-2) — see this file's header, point 5, for why guessing an entry here would be exactly the trap
+ *  this file exists to prevent. Each entry: { match: RegExp (tested against the normalized title),
+ *  label: string (why, for anyone reading a passing run's citation) }. Consumed by resolveBlockGroups()
+ *  below; a caller (only fetch-desnz-factors.test.mjs today) may pass a different table via
+ *  extractFreightingGoodsRows(zip, { selectionTable }) to prove the mechanism without editing this
+ *  shipped default.
+ */
+export const GROUP_TITLE_SELECTION_TABLE = [];
+
+/** Forward-filled group titles from the row immediately above a header block's sub-column row (e.g. row
+ *  24 above a row-25 Activity/Type/Unit header) — the convention this sheet already uses for the Vans
+ *  section's fuel-type groups (see this file's header): a merged title cell carries text only in the
+ *  group's first (leftmost) column, and the remaining columns of that group are blank in the underlying
+ *  XML. Returns a function colLetter -> nearest non-blank title at or before that column, or null if the
+ *  title row is entirely absent or blank (this never invents a title from an unrelated row). */
+function buildTitleLookup(rowsByNum, sharedStrings, titleRowNum) {
+  const titleRow = rowsByNum.get(titleRowNum);
+  if (!titleRow) return null;
+  const entries = [...titleRow.cells.entries()]
+    .map(([col, cell]) => [colToIndex(col), cellText(cell, sharedStrings).trim()])
+    .filter(([, text]) => text)
+    .sort((a, b) => a[0] - b[0]);
+  if (!entries.length) return null;
+  return (colLetter) => {
+    const idx = colToIndex(colLetter);
+    let current = null;
+    for (const [ci, text] of entries) {
+      if (ci > idx) break;
+      current = text;
+    }
+    return current;
   };
+}
+
+/** Renders rows [fromRow, toRow] of the sheet verbatim, one line per row, "COL=text" per non-blank cell —
+ *  printed into every structural failure that has a headerRow to anchor on, so the failure output itself
+ *  is enough for a human to see the real title/header text without opening the workbook by hand. */
+function dumpRowsVerbatim(rowsByNum, sharedStrings, fromRow, toRow) {
+  const lines = [];
+  for (let r = fromRow; r <= toRow; r++) {
+    const row = rowsByNum.get(r);
+    if (!row) { lines.push(`  row ${r}: (no cells)`); continue; }
+    const cells = [...row.cells.entries()]
+      .sort((a, b) => colToIndex(a[0]) - colToIndex(b[0]))
+      .map(([col, cell]) => `${col}=${JSON.stringify(cellText(cell, sharedStrings))}`);
+    lines.push(`  row ${r}: ${cells.join(" ")}`);
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Resolves one header block's Activity/Type/Unit/total columns. A block with exactly one "Total kg CO2e"
+ * (or "Total kg CO2e") column resolves it directly, as before. A block with MORE THAN ONE such column (the
+ * real "Freighting goods" sheet's repeated-group layout — see this file's header, point 5) resolves the
+ * group-title row immediately above the header row and picks the one group whose title matches
+ * `selectionTable`, throwing — with every group's title text and a verbatim row dump — if zero or more
+ * than one group matches, rather than ever guessing.
+ */
+function resolveBlockGroups(block, rowsByNum, sharedStrings, selectionTable) {
+  const activityCol = findColumnByLabel(block, (t) => t === "activity", "Activity");
+  const typeCol = findColumnByLabel(block, (t) => t === "type", "Type");
+  const unitCol = findColumnByLabel(block, (t) => t === "unit", "Unit");
+  const fuelCol = [...block.columns.entries()].find(([, t]) => /fuel|energycarrier/.test(normalizeLabel(t)))?.[0] ?? null;
+
+  const totalCandidates = [...block.columns.entries()]
+    .filter(([, text]) => normalizeLabel(text) === "kgco2e" || normalizeLabel(text) === "totalkgco2e")
+    .map(([col, text]) => ({ col, label: text }))
+    .sort((a, b) => colToIndex(a.col) - colToIndex(b.col));
+
+  if (totalCandidates.length === 0) {
+    throw new DesnzStructureError(
+      `header block at row ${block.startRow}: expected at least one "Total kg CO2e" column, found 0 ` +
+      `(columns: ${[...block.columns.entries()].map(([c, t]) => `${c}="${t}"`).join(", ")})`,
+    );
+  }
+
+  if (totalCandidates.length === 1) {
+    return { activityCol, typeCol, unitCol, fuelCol, totalCol: totalCandidates[0].col, groupTitle: null };
+  }
+
+  const titleRowNum = block.startRow - 1;
+  const titleAt = buildTitleLookup(rowsByNum, sharedStrings, titleRowNum);
+  const dump = dumpRowsVerbatim(rowsByNum, sharedStrings, block.startRow - 3, block.startRow);
+
+  if (!titleAt) {
+    throw new DesnzStructureError(
+      `header block at row ${block.startRow}: ${totalCandidates.length} "Total kg CO2e" columns found ` +
+      `(${totalCandidates.map((c) => c.col).join(", ")}) and no group-title row was found at row ${titleRowNum} ` +
+      `to disambiguate them — refusing to guess which one is the row's real figure.\n${dump}`,
+    );
+  }
+
+  const candidates = totalCandidates.map((c) => ({ ...c, title: titleAt(c.col) }));
+  const unresolved = candidates.filter((c) => !c.title);
+  if (unresolved.length) {
+    throw new DesnzStructureError(
+      `header block at row ${block.startRow}: group(s) at column(s) ${unresolved.map((c) => c.col).join(", ")} ` +
+      `have no title in row ${titleRowNum} to identify them — refusing to guess.\n${dump}`,
+    );
+  }
+
+  const matched = candidates.filter((c) => selectionTable.some((rule) => rule.match.test(normalizeLabel(c.title))));
+
+  if (matched.length === 0) {
+    throw new DesnzStructureError(
+      `header block at row ${block.startRow}: ${candidates.length} group titles found in row ${titleRowNum} but ` +
+      `none matches GROUP_TITLE_SELECTION_TABLE (${selectionTable.length === 0 ? "currently empty — see this " +
+      "file's header, point 5" : "no rule fired"}). Group titles found: ` +
+      `${candidates.map((c) => `${c.col}="${c.title}"`).join(", ")}. Populate GROUP_TITLE_SELECTION_TABLE with ` +
+      `the correct rule once a human has read this list, then re-run.\n${dump}`,
+    );
+  }
+  if (matched.length > 1) {
+    throw new DesnzStructureError(
+      `header block at row ${block.startRow}: ${matched.length} group titles matched more than one ` +
+      `GROUP_TITLE_SELECTION_TABLE rule — refusing to guess which is correct: ` +
+      `${matched.map((c) => `${c.col}="${c.title}"`).join(", ")}.\n${dump}`,
+    );
+  }
+
+  return { activityCol, typeCol, unitCol, fuelCol, totalCol: matched[0].col, groupTitle: matched[0].title };
 }
 
 // ── The seven targets, named the way the brief and the fixture shells name them ─────────────────────────
@@ -337,8 +477,14 @@ export const TARGETS = [
  * Returns a Map<baseVehicleClass, Array<extractedItem>> — one entry per TARGETS row, each holding one or
  * two extracted items (two only for an air target whose matched rows split cleanly into with-RF/without-RF
  * by text). Throws DesnzStructureError, naming exactly what did not resolve, rather than ever guessing.
+ *
+ * `opts.selectionTable` overrides GROUP_TITLE_SELECTION_TABLE for a block with more than one "Total kg
+ * CO2e" column (see resolveBlockGroups) — the real CLI run below never passes this, so it always uses the
+ * shipped (empty) default; fetch-desnz-factors.test.mjs passes a synthetic table to prove the mechanism
+ * without ever needing the shipped default to contain a guess.
  */
-export function extractFreightingGoodsRows(zip) {
+export function extractFreightingGoodsRows(zip, opts = {}) {
+  const selectionTable = opts.selectionTable ?? GROUP_TITLE_SELECTION_TABLE;
   const workbookXml = readEntryText(zip, "xl/workbook.xml");
   const relsXml = readEntryText(zip, "xl/_rels/workbook.xml.rels");
   const sharedStringsXml = zip.has("xl/sharedStrings.xml") ? readEntryText(zip, "xl/sharedStrings.xml") : "";
@@ -353,11 +499,12 @@ export function extractFreightingGoodsRows(zip) {
   }
   const sheetXml = readEntryText(zip, sheetInfo.path);
   const rows = parseSheetRows(sheetXml);
+  const rowsByNum = new Map(rows.map((r) => [r.rowNum, r]));
   const blocks = findHeaderBlocks(rows, sharedStrings);
 
   const colsCache = new Map();
   function colsFor(block) {
-    if (!colsCache.has(block)) colsCache.set(block, resolveBlockColumns(block));
+    if (!colsCache.has(block)) colsCache.set(block, resolveBlockGroups(block, rowsByNum, sharedStrings, selectionTable));
     return colsCache.get(block);
   }
 
@@ -434,6 +581,7 @@ function buildExtractedItem(target, match, sharedStrings, sheetInfo, rfSuffix) {
     typeText,
     unitText,
     totalColLabel: block.columns.get(cols.totalCol),
+    groupTitle: cols.groupTitle,
     sheetPath: sheetInfo.path,
     rId: sheetInfo.rId,
   };
@@ -464,8 +612,9 @@ function buildFixtureRow(item, { retrievedAt }) {
     method_version: "desnz-2025-freighting-goods-v2",
     source_ref:
       `GHG Conversion Factors 2025 (DESNZ/Defra), full set, sheet '${SHEET_NAME}' (${item.rId}), row ${item.row}, ` +
-      `column ${item.column} — '${item.activityText}' / '${item.typeText}' / ${item.unitText}, ` +
-      `${item.totalColLabel} = ${item.ttwCo2e}. energy_carrier ("${energyCarrier}") is a documented default, not ` +
+      `column ${item.column}${item.groupTitle ? ` (group '${item.groupTitle}', selected by GROUP_TITLE_SELECTION_TABLE)` : ""} — ` +
+      `'${item.activityText}' / '${item.typeText}' / ${item.unitText}, ${item.totalColLabel} = ${item.ttwCo2e}. ` +
+      `energy_carrier ("${energyCarrier}") is a documented default, not ` +
       `a DESNZ-published split: no fuel/energy-carrier column was present in this row's header block (same ` +
       `convention as this fixture's rail row). Extracted by fetch-desnz-factors.mjs on ${retrievedAt}.`,
   };
