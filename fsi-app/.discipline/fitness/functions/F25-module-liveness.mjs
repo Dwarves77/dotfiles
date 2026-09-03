@@ -323,6 +323,8 @@ export const LEGACY_ALLOWLIST = [
   // antitrust.mjs (dominanceCap()) now imports computeDominanceShare from it, and antitrust.mjs is a real
   // production importer (src/app/api/community/posts/route.ts). See antitrust.mjs's own header for why
   // this reuse happens rather than a second reimplementation.
+
+
 ];
 
 const ALLOWED = new Map(LEGACY_ALLOWLIST.map((e) => [e.file, e]));

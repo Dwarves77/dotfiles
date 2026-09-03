@@ -722,6 +722,8 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard }:
               </p>
             ) : (
               indicators.map((e) => (
+                // prefetch: deliberate default — see the comment on this component's other
+                // /market/[slug] Link (below, "Full analysis") for the full rationale.
                 <Link
                   key={e.item.id}
                   href={`/market/${encodeURIComponent(e.item.id)}`}
@@ -976,6 +978,14 @@ function SignalRow({ e, open, onToggle }: { e: Enriched; open: boolean; onToggle
             </p>
           </div>
           <div className="cl-row__actions">
+            {/* prefetch: deliberate default (perf lane, 2026-09-03 — see the equivalent comment on
+                RegulationsLedger.tsx's row Link, which carried the explicit prefetch={false} this
+                surface never had). The default is now the right choice, not an oversight: for this
+                fully-dynamic route, the framework default prefetches only the static shell +
+                loading.tsx boundary on viewport entry, and the item-scoped detail data a real click
+                fetches is cached (load-detail.ts) — a burst of visible "Full analysis" links entering
+                the viewport no longer risks the Supabase-saturation fan-out RegulationsLedger's row
+                Link was built to avoid. */}
             <Link
               href={`/market/${encodeURIComponent(item.id)}`}
               style={{

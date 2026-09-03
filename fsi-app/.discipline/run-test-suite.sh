@@ -87,6 +87,7 @@ node --test \
   fsi-app/scripts/lib/institution-key.test.mjs \
   fsi-app/scripts/lib/liveness.selftest.mjs \
   fsi-app/scripts/lib/reachability.selftest.mjs \
+  fsi-app/scripts/lib/revalidate.test.mjs \
   fsi-app/scripts/lib/run-artifact.test.mjs \
   fsi-app/scripts/lib/verification-decision.selftest.mjs \
   fsi-app/scripts/lib/verify.selftest.mjs \
@@ -117,6 +118,7 @@ node --test \
   fsi-app/src/lib/tier-labels.test.mjs \
   fsi-app/src/lib/tier-badge-tone.test.mjs \
   fsi-app/src/lib/coverage-gaps-rollup.test.mjs \
+  fsi-app/src/lib/detail/*.test.mjs \
   fsi-app/src/components/community/*.test.mjs \
   fsi-app/src/lib/workspace/*.test.mjs \
   fsi-app/src/lib/connections/*.test.mjs \

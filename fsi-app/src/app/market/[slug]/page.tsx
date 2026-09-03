@@ -1,10 +1,26 @@
 /**
  * Market signal detail (`/market/[slug]`) — server component.
  *
- * Mirrors `/regulations/[slug]/page.tsx` adapted for Market Intel signals.
- * Loads the intelligence_items row via fetchIntelligenceItem (resolves by
- * legacy_id or UUID), handles UUID→slug redirect, and renders
- * MarketSignalDetailSurface.
+ * Mirrors `/regulations/[slug]/page.tsx`: loads the intelligence_items row
+ * via loadDetail (src/lib/detail/load-detail.ts), handles UUID→slug
+ * redirect, and renders MarketSignalDetailSurface.
+ *
+ * PERF lane (2026-09-03, docs/audits/perf-load-times-2026-09-03.md): this
+ * page used to run 8 sequential Supabase-touching stages per render, most
+ * opening their own createClient(). It now runs one cached, item-scoped
+ * bundle (resourceLookup, convergence, price board, carbon factors, peers
+ * entity — none of it org-dependent) in parallel with the viewer-scoped
+ * bundle (the workspace note, and the related-signals pool — see below for
+ * why the related pool is viewer-scoped even though it reads no per-org
+ * override field a human would call "personal").
+ *
+ * getMarketIntelItems() (src/lib/data.ts) resolves the viewer's orgId from
+ * cookies INTERNALLY (its own resolveOrgIdFromCookies() call) before
+ * querying — the same shape getViewerRelevanceForItem uses. Next forbids
+ * calling cookies() inside unstable_cache, so it cannot run inside the
+ * item-scoped cached bundle regardless of whether its RPC output happens to
+ * be org-invariant in practice; it runs in loadViewerScoped instead,
+ * uncached, alongside the note lookup.
  *
  * Related signals (same signal-band) are sourced from the workspace-wide
  * Market Intel set via getMarketIntelItems, with the current item excluded.
@@ -15,14 +31,16 @@
  * reads and the regex fallback retires.
  */
 
-import { createClient } from "@supabase/supabase-js";
 import { formatDate } from "@/lib/format";
 import { notFound, redirect } from "next/navigation";
-import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supabase-server";
+import { loadDetail } from "@/lib/detail/load-detail";
 import { getMarketIntelItems } from "@/lib/data";
-import { resolveOrgIdFromCookies } from "@/lib/api/org";
-import { getViewerRelevanceForItem } from "@/lib/workspace/viewer-relevance";
-import { buildResourceLookup } from "@/lib/connections/resource-lookup";
+import {
+  buildResourceLookup,
+  resolveItemUuid,
+  fetchInstrumentEntityId,
+} from "@/lib/connections/resource-lookup";
+import { getServiceSupabase } from "@/lib/supabase-service";
 import {
   MarketSignalDetailSurface,
   type PriceStat,
@@ -33,31 +51,34 @@ import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+interface ItemScoped {
+  resourceLookup: Awaited<ReturnType<typeof buildResourceLookup>>;
+  peersEntityId: string | null;
+  convergence: { independent_citers: number; confirmation_count: number } | null;
+  priceBoard: PriceStat[];
+  carbonFactors: EmissionFactorRow[];
+}
+
+interface ViewerScoped {
+  initialNote: string;
+  relatedPool: Awaited<ReturnType<typeof getMarketIntelItems>>["resources"];
+}
+
 export default async function MarketSignalDetailPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const t0 = Date.now();
   const { slug } = await params;
   const id = decodeURIComponent(slug);
 
-  // UUID → slug redirect (mirrors /regulations/[slug] pattern). When the
-  // URL is a raw UUID AND the matching row has a legacy_id, redirect (307)
-  // to the human-readable slug URL. RLS doesn't grant anon access to base
-  // intelligence_items SELECTs, so this uses the service-role key.
+  // UUID → slug redirect (mirrors /regulations/[slug] pattern). Must resolve
+  // (or fall through) BEFORE fetchIntelligenceItem — cannot join loadDetail's
+  // parallel bundle.
   let redirectTo: string | null = null;
-  if (
-    UUID_RE.test(id) &&
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    (process.env.SUPABASE_SERVICE_ROLE_KEY)
-  ) {
+  if (UUID_RE.test(id)) {
     try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        { auth: { persistSession: false } }
-      );
+      const supabase = getServiceSupabase();
       const { data: byId } = await supabase
         .from("intelligence_items")
         .select("legacy_id")
@@ -72,230 +93,148 @@ export default async function MarketSignalDetailPage({
   }
   if (redirectTo) redirect(redirectTo);
 
-  const detail = await fetchIntelligenceItem(id);
-  // SURFACE ADMISSION GUARD (Phase 0.1, 2026-08-11). Until now the ONLY gate on
-  // this route was fetchIntelligenceItem's `provenance_status='verified'` check,
-  // so ANY verified item rendered here under the market chrome — and this
-  // surface's heading map RELABELLED whatever section rows it found, silently
-  // dropping keys outside its own range. `canonicalSurface` is computed from the
-  // RAW (item_type, domain) by the same `surfaceOf` classifier that decides where
-  // this item's links point (src/lib/item-links.ts), so a link emitted to this
-  // surface always renders and an item belonging elsewhere always 404s.
-  if (!detail || detail.canonicalSurface !== "market") {
+  const result = await loadDetail<ItemScoped, ViewerScoped>({
+    surface: "market",
+    id,
+    // Item-scoped, org-independent: connections/supersessions titles, the
+    // source-growth convergence stats, the published price board, the
+    // carbon-overlay modal-default factors, and the peers-strip entity.
+    // Cached — shared across every org that views this item.
+    loadItemScoped: async ({ supabase, resource, connections, supersessions }) => {
+      const itemUuid = await resolveItemUuid(supabase, resource.id);
+
+      const convergencePromise: Promise<ItemScoped["convergence"]> = resource.sourceId
+        ? Promise.resolve(
+            supabase
+              .from("sources")
+              .select("independent_citers, confirmation_count")
+              .eq("id", resource.sourceId)
+              .maybeSingle()
+          )
+            .then(({ data: srcRow }) => {
+              if (
+                srcRow &&
+                typeof srcRow.independent_citers === "number" &&
+                srcRow.independent_citers > 0
+              ) {
+                return {
+                  independent_citers: srcRow.independent_citers,
+                  confirmation_count: srcRow.confirmation_count ?? srcRow.independent_citers,
+                };
+              }
+              return null;
+            })
+            .catch(() => null)
+        : Promise.resolve(null);
+
+      // DEFECT FIXED 2026-08-30 (found by the WO-13 lane, verified against live
+      // data): published_price_statistics.item_id is a uuid FK; resource.id may
+      // be a legacy_id. Resolve to uuid FIRST (itemUuid above) or the lookup
+      // silently 22P02s.
+      const priceBoardPromise: Promise<PriceStat[]> = Promise.resolve(
+        itemUuid
+          ? supabase
+              .from("published_price_statistics")
+              .select(
+                "label, value_display, unit, context_line, severity_tone, source_tier, released_at, next_release_at, next_release_label, sort_order"
+              )
+              .eq("item_id", itemUuid)
+              .order("sort_order", { ascending: true })
+          : { data: null, error: null }
+      )
+        .then(({ data: priceRows, error: priceErr }) => {
+          if (priceErr) console.error("[market/[slug]] price-board fetch failed", priceErr);
+          return Array.isArray(priceRows)
+            ? priceRows.map((p) => ({
+                label: p.label,
+                valueDisplay: p.value_display,
+                unit: p.unit,
+                contextLine: p.context_line,
+                severityTone: p.severity_tone,
+                sourceTier: p.source_tier,
+                releasedAt: p.released_at,
+                nextReleaseAt: p.next_release_at,
+                nextReleaseLabel: p.next_release_label,
+              }))
+            : [];
+        })
+        .catch(() => [] as PriceStat[]);
+
+      // WO-24: carbon overlay — the whole modal_default tier (small, 2 rows
+      // today). Selection (which row applies to THIS signal's jurisdiction)
+      // happens client-side via selectModalFactor/buildCarbonOverlayView.
+      const carbonFactorsPromise: Promise<EmissionFactorRow[]> = Promise.resolve(
+        supabase
+          .from("emission_factors")
+          .select(
+            "factor_id, mode, vehicle_class, jurisdiction, quantity_basis, ttw_co2e, wtt_co2e, wtw_co2e, source_key, tier, scope_kind"
+          )
+          .eq("tier", "modal_default")
+          .is("superseded_by", null)
+      )
+        .then(({ data: factorRows, error: factorErr }) => {
+          if (factorErr) console.error("[market/[slug]] carbon-overlay factor fetch failed", factorErr);
+          return Array.isArray(factorRows) ? factorRows : [];
+        })
+        .catch(() => [] as EmissionFactorRow[]);
+
+      const relatedIds = Array.from(
+        new Set<string>([
+          ...connections.map((c) => c.id),
+          ...supersessions.flatMap((s) => [s.old, s.new]),
+        ])
+      ).filter(Boolean);
+
+      const [resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors] = await Promise.all([
+        buildResourceLookup(supabase, relatedIds),
+        itemUuid ? fetchInstrumentEntityId(supabase, itemUuid) : Promise.resolve(null),
+        convergencePromise,
+        priceBoardPromise,
+        carbonFactorsPromise,
+      ]);
+
+      return { resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors };
+    },
+    // Viewer-scoped, per-org: the workspace note (workspace_item_overrides),
+    // and the related-signals pool (getMarketIntelItems resolves orgId from
+    // cookies internally — see module header for why it lives here, not in
+    // loadItemScoped). Uncached — every request.
+    loadViewerScoped: async ({ supabase, orgId, resource }) => {
+      let initialNote = "";
+      if (orgId) {
+        const itemUuid = await resolveItemUuid(supabase, resource.id);
+        if (itemUuid) {
+          const { data: noteRow, error: noteErr } = await supabase
+            .from("workspace_item_overrides")
+            .select("notes")
+            .eq("org_id", orgId)
+            .eq("item_id", itemUuid)
+            .maybeSingle();
+          if (noteErr) console.warn(`[market/${resource.id}] note read failed: ${noteErr.message}`);
+          initialNote = noteRow?.notes ?? "";
+        }
+      }
+      const marketIntel = await getMarketIntelItems().catch(() => ({ resources: [], total: 0 }));
+      return { initialNote, relatedPool: marketIntel.resources };
+    },
+  });
+
+  // SURFACE ADMISSION GUARD (Phase 0.1, 2026-08-11) — see regulations/[slug]
+  // for the full rationale; checked inside loadDetail via canonicalSurface.
+  if (result.notFound) {
     notFound();
   }
 
-  const { resource: r, supersessions, connections, relevanceInput } = detail;
+  const { resource: r, supersessions, connections, sections, relevance } = result;
+  const resourceLookup = result.itemScoped?.resourceLookup ?? {};
+  const peersEntityId = result.itemScoped?.peersEntityId ?? null;
+  const convergence = result.itemScoped?.convergence ?? null;
+  const priceBoard = result.itemScoped?.priceBoard ?? [];
+  const carbonFactors = result.itemScoped?.carbonFactors ?? [];
+  const initialNote = result.viewerScoped?.initialNote ?? "";
+  const relatedPool = result.viewerScoped?.relatedPool ?? [];
 
-  // Flywheel U9 (D1): the viewer's relevance-to-your-operation lens (per-request, per-org — never
-  // baked into the cached fetchIntelligenceItem result) and the connections card's gated title lookup
-  // (covers both cross-references and any supersessions involving this item).
-  const [relevance, resourceLookup] = await Promise.all([
-    getViewerRelevanceForItem(relevanceInput),
-    buildResourceLookup([
-      ...connections.map((c) => c.id),
-      ...supersessions.flatMap((s) => [s.old, s.new]),
-    ]),
-  ]);
-
-  // Sprint 4: fetch section rows for section-aware display. Mirrors the
-  // pattern in research/[slug]/page.tsx. fetchIntelligenceItemSections
-  // handles UUID resolution and provenance gating internally. Returns []
-  // on any error or when no sections have been generated yet.
-  const sections = await fetchIntelligenceItemSections(id);
-
-  // Sprint 4: fetch real source-growth convergence fields (independent_citers,
-  // confirmation_count) from the item's source row. These are migration 054
-  // columns written by aggregateConvergence / compoundSourceCredibility.
-  // Fetched here so the surface receives real values and never proxies from
-  // sources_used.length or any other derived count.
-  // Soft-fail: convergence is null when the source row is absent or has no
-  // convergence data, in which case the surface omits the corroboration note.
-  let convergence: { independent_citers: number; confirmation_count: number } | null = null;
-  if (
-    r.sourceId &&
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    (process.env.SUPABASE_SERVICE_ROLE_KEY)
-  ) {
-    try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        { auth: { persistSession: false } }
-      );
-      const { data: srcRow } = await supabase
-        .from("sources")
-        .select("independent_citers, confirmation_count")
-        .eq("id", r.sourceId)
-        .maybeSingle();
-      if (
-        srcRow &&
-        typeof srcRow.independent_citers === "number" &&
-        srcRow.independent_citers > 0
-      ) {
-        convergence = {
-          independent_citers: srcRow.independent_citers,
-          confirmation_count: srcRow.confirmation_count ?? srcRow.independent_citers,
-        };
-      }
-    } catch {
-      // Soft-fail — surface omits corroboration note.
-    }
-  }
-
-  // Redesign T05: hero price board. Published price statistics (migration 151)
-  // for this signal — the KNOWN NEW BACKEND live-feed store (HANDOFF §7). Fetched
-  // fail-soft: the table is empty until the feed writer populates it, in which
-  // case the surface renders the honest §4 published-statistics pending frame
-  // (never faked ticks). Service-role read, mirroring the convergence fetch.
-  let priceBoard: PriceStat[] = [];
-  if (
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    (process.env.SUPABASE_SERVICE_ROLE_KEY)
-  ) {
-    try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        { auth: { persistSession: false } }
-      );
-      // DEFECT FIXED 2026-08-30 (found by the WO-13 lane while verifying its own
-      // re-point, reproduced against live data before being touched). `r.id` is
-      // `legacy_id || uuid` (rpcRowToResource), but published_price_statistics.item_id
-      // is a uuid FK. Passing a legacy_id into a uuid-typed .eq() makes Postgres raise
-      // 22P02 (invalid input syntax for type uuid) — and because this call destructured
-      // only `data` and never `error`, the failure was SILENT. Live evidence: BOTH rows
-      // in published_price_statistics belong to items that carry a legacy_id
-      // (`lng-natural-gas-price-intelligence`, `crude-oil-jet-fuel-price-intelligence`),
-      // so the slug route — the only route a reader reaches this page by — could never
-      // render a price board for either of the only two items that have one. The board
-      // was not "empty pending the feed writer"; it was erroring and swallowing it.
-      // Fix: resolve to the uuid first when `r.id` is not already one, and CAPTURE the
-      // error so a future failure of this class is loud in logs instead of invisible.
-      let priceItemId: string | null = UUID_RE.test(r.id) ? r.id : null;
-      if (!priceItemId) {
-        const { data: idRow } = await supabase
-          .from("intelligence_items")
-          .select("id")
-          .eq("legacy_id", r.id)
-          .maybeSingle();
-        priceItemId = idRow?.id ?? null;
-      }
-      const { data: priceRows, error: priceErr } = priceItemId
-        ? await supabase
-            .from("published_price_statistics")
-            .select(
-              "label, value_display, unit, context_line, severity_tone, source_tier, released_at, next_release_at, next_release_label, sort_order"
-            )
-            .eq("item_id", priceItemId)
-            .order("sort_order", { ascending: true })
-        : { data: null, error: null };
-      if (priceErr) {
-        console.error("[market/[slug]] price-board fetch failed", priceErr);
-      }
-      if (Array.isArray(priceRows)) {
-        priceBoard = priceRows.map((p) => ({
-          label: p.label,
-          valueDisplay: p.value_display,
-          unit: p.unit,
-          contextLine: p.context_line,
-          severityTone: p.severity_tone,
-          sourceTier: p.source_tier,
-          releasedAt: p.released_at,
-          nextReleaseAt: p.next_release_at,
-          nextReleaseLabel: p.next_release_label,
-        }));
-      }
-    } catch {
-      // Soft-fail (table not yet applied, or no rows) — honest pending frame.
-    }
-  }
-
-  // WO-24 (re-scoped 2026-08-30): carbon overlay. emission_factors has no corridor join (no column on
-  // intelligence_items matches %corridor%, and emission_factors.corridor_id has nothing to join
-  // against — Gate 2, deferred to a future WO per docs/plans/unblocking-the-five-2026-08-30.md §2), so
-  // this fetches the WHOLE modal_default tier — 2 rows today, road+rail, both jurisdiction US — and
-  // hands the raw rows to MarketSignalDetailSurface. Selection (which row, if any, applies to THIS
-  // signal's jurisdiction_iso) happens client-side via the pure selectModalFactor/buildCarbonOverlayView
-  // pair (src/lib/market/select-modal-factor.mjs) — never pre-picked here, so the three-state honesty
-  // rule (resolved / ambiguous / no_factor) is enforced in one place, not duplicated into this fetch.
-  // Fail-soft to []: DriversTab's carbon-overlay slot renders every corridor-band signal as the honest
-  // no_factor pending frame when this table is empty or unreachable, never a blank hole.
-  let carbonFactors: EmissionFactorRow[] = [];
-  if (
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    (process.env.SUPABASE_SERVICE_ROLE_KEY)
-  ) {
-    try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        { auth: { persistSession: false } }
-      );
-      const { data: factorRows, error: factorErr } = await supabase
-        .from("emission_factors")
-        .select("factor_id, mode, vehicle_class, jurisdiction, quantity_basis, ttw_co2e, wtt_co2e, wtw_co2e, source_key, tier, scope_kind")
-        .eq("tier", "modal_default")
-        .is("superseded_by", null);
-      if (factorErr) {
-        console.error("[market/[slug]] carbon-overlay factor fetch failed", factorErr);
-      }
-      if (Array.isArray(factorRows)) {
-        carbonFactors = factorRows;
-      }
-    } catch {
-      // Soft-fail (table empty, unreachable, or not yet applied) — honest no_factor pending frame.
-    }
-  }
-
-  // Item d (notes → workspace_item_overrides.notes): read the workspace note
-  // server-side so NotesField initializes from the SHARED store, not
-  // localStorage. r.id may be a legacy slug — resolve the UUID first. Fail-soft
-  // to "" (no note / no org / read error): the field still saves via POST.
-  let initialNote = "";
-  try {
-    const orgId = await resolveOrgIdFromCookies();
-    if (
-      orgId &&
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    ) {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
-        { auth: { persistSession: false } }
-      );
-      const itemUuid = UUID_RE.test(r.id)
-        ? r.id
-        : (
-            await supabase
-              .from("intelligence_items")
-              .select("id")
-              .eq("legacy_id", r.id)
-              .maybeSingle()
-          ).data?.id ?? null;
-      if (itemUuid) {
-        const { data: noteRow, error: noteErr } = await supabase
-          .from("workspace_item_overrides")
-          .select("notes")
-          .eq("org_id", orgId)
-          .eq("item_id", itemUuid)
-          .maybeSingle();
-        if (noteErr) console.warn(`[market/${id}] note read failed: ${noteErr.message}`);
-        initialNote = noteRow?.notes ?? "";
-      }
-    }
-  } catch {
-    // Soft-fail — field starts empty and still saves.
-  }
-
-  // Related signals: pull the Market Intel set, find items in the same
-  // band as this one, exclude self, cap at 5. Failures degrade to an
-  // empty list (the surface renders "no related signals" cleanly).
-  const marketIntel = await getMarketIntelItems().catch(() => ({
-    resources: [],
-    total: 0,
-  }));
+  console.log(`[perf] /market/${id} data ${result.elapsedMs}ms`);
 
   // Redesign T05: the hero (breadcrumb + title + deck + actions + tabs) now
   // lives inside MarketSignalDetailSurface per the approved mock (Pages - 05
@@ -307,46 +246,11 @@ export default async function MarketSignalDetailPage({
   const published = r.added ? `published ${formatDate(r.added)}` : null;
   const deck = [publisher, published].filter(Boolean).join(" · ") || undefined;
 
-  // Lane COMMUNITY-B (wave3, 2026-09-03): the "peers are discussing this" strip's bound entity —
-  // same service-role lookup pattern already used above (initialNote, priceBoard). Fails soft to
-  // null: PeersDiscussingStrip renders nothing for a null entityId.
-  let peersEntityId: string | null = null;
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY,
-        { auth: { persistSession: false } }
-      );
-      const itemUuid = UUID_RE.test(r.id)
-        ? r.id
-        : (
-            await supabase
-              .from("intelligence_items")
-              .select("id")
-              .eq("legacy_id", r.id)
-              .maybeSingle()
-          ).data?.id ?? null;
-      if (itemUuid) {
-        const { data: itemRow } = await supabase
-          .from("intelligence_items")
-          .select("instrument_entity_id")
-          .eq("id", itemUuid)
-          .maybeSingle();
-        peersEntityId = itemRow?.instrument_entity_id ?? null;
-      }
-    } catch {
-      // Soft-fail — the strip just doesn't render.
-    }
-  }
-
-  console.log(`[perf] /market/${id} data ${Date.now() - t0}ms`);
-
   return (
     <>
       <MarketSignalDetailSurface
         resource={r}
-        relatedPool={marketIntel.resources}
+        relatedPool={relatedPool}
         sections={sections}
         convergence={convergence}
         priceBoard={priceBoard}
@@ -362,4 +266,3 @@ export default async function MarketSignalDetailPage({
     </>
   );
 }
-

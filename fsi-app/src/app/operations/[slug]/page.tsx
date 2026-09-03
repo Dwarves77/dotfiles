@@ -17,14 +17,20 @@
  * Section data: fetched via fetchIntelligenceItemSections (reused, not
  * reimplemented). Passed to OperationsDetailSurface which renders the 8
  * Operations sections, gating S3/S4 on the matrix result.
+ *
+ * PERF lane (2026-09-03, docs/audits/perf-load-times-2026-09-03.md): every
+ * read this page issues (matrix eligibility, related-items, source fetch
+ * status, connections lookup) is item-scoped and org-independent, so the
+ * whole bundle runs inside ONE cached, parallel load via loadDetail
+ * (src/lib/detail/load-detail.ts) — no loadViewerScoped: operations has
+ * nothing org-scoped beyond the always-on relevance lens.
  */
 
 import Link from "next/link";
-import { createClient } from "@supabase/supabase-js";
 import { notFound, redirect } from "next/navigation";
-import { fetchIntelligenceItem, fetchIntelligenceItemSections } from "@/lib/supabase-server";
-import { getViewerRelevanceForItem } from "@/lib/workspace/viewer-relevance";
+import { loadDetail } from "@/lib/detail/load-detail";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
+import { getServiceSupabase } from "@/lib/supabase-service";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { OperationsDetailSurface } from "@/components/operations/OperationsDetailSurface";
 import { checkMatrixEligibility } from "@/lib/agent/formats/operations-matrix";
@@ -64,28 +70,29 @@ function pickRelated(row: RelatedRow): {
   };
 }
 
+interface ItemScoped {
+  resourceLookup: Awaited<ReturnType<typeof buildResourceLookup>>;
+  matrixEligibility: MatrixEligibility | undefined;
+  related: ReturnType<typeof pickRelated>[];
+  relatedReason: "jurisdiction" | "source" | "none";
+  sourceFetchStatus: string | null;
+}
+
 export default async function OperationsDetailPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const t0 = Date.now();
   const { slug } = await params;
   const id = decodeURIComponent(slug);
 
-  // UUID → slug redirect (same as /research/[slug]).
+  // UUID → slug redirect (same as /research/[slug]). Must resolve (or fall
+  // through) BEFORE fetchIntelligenceItem — cannot join loadDetail's
+  // parallel bundle.
   let redirectTo: string | null = null;
-  if (
-    UUID_RE.test(id) &&
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    (process.env.SUPABASE_SERVICE_ROLE_KEY)
-  ) {
+  if (UUID_RE.test(id)) {
     try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        { auth: { persistSession: false } }
-      );
+      const supabase = getServiceSupabase();
       const { data: byId } = await supabase
         .from("intelligence_items")
         .select("legacy_id")
@@ -100,169 +107,137 @@ export default async function OperationsDetailPage({
   }
   if (redirectTo) redirect(redirectTo);
 
-  const detail = await fetchIntelligenceItem(id);
-  // SURFACE ADMISSION GUARD (Phase 0.1, 2026-08-11). Until now the ONLY gate on
-  // this route was fetchIntelligenceItem's `provenance_status='verified'` check,
-  // so ANY verified item rendered here under the operations chrome — and this
-  // surface's heading map RELABELLED whatever section rows it found, silently
-  // dropping keys outside its own range. `canonicalSurface` is computed from the
-  // RAW (item_type, domain) by the same `surfaceOf` classifier that decides where
-  // this item's links point (src/lib/item-links.ts), so a link emitted to this
-  // surface always renders and an item belonging elsewhere always 404s.
-  if (!detail || detail.canonicalSurface !== "operations") {
+  const result = await loadDetail<ItemScoped>({
+    surface: "operations",
+    id,
+    // Item-scoped, org-independent: connections lookup, matrix eligibility,
+    // jurisdiction/source-matched related items, and the source's fetch
+    // status. Cached — shared across every org that views this item.
+    loadItemScoped: async ({ supabase, resource, connections, supersessions }) => {
+      const relatedIds = Array.from(
+        new Set<string>([
+          ...connections.map((c) => c.id),
+          ...supersessions.flatMap((s) => [s.old, s.new]),
+        ])
+      ).filter(Boolean);
+
+      const matrixPromise: Promise<MatrixEligibility | undefined> = checkMatrixEligibility(supabase, {
+        jurisdictions: resource.jurisdiction ? [resource.jurisdiction] : [],
+        jurisdiction: resource.jurisdiction ?? null,
+      }).catch(() => undefined);
+
+      // Related items — strategy:
+      //   1. jurisdiction match on other active regional_data rows (cap 5).
+      //   2. same-source fallback when (1) yields nothing.
+      //   3. [] when neither yields anything.
+      const relatedPromise: Promise<{
+        related: ReturnType<typeof pickRelated>[];
+        relatedReason: ItemScoped["relatedReason"];
+        sourceFetchStatus: string | null;
+      }> = (async () => {
+        let related: ReturnType<typeof pickRelated>[] = [];
+        let relatedReason: ItemScoped["relatedReason"] = "none";
+        let sourceFetchStatus: string | null = null;
+        try {
+          const isUuid = UUID_RE.test(id);
+          const orExpr = isUuid ? `legacy_id.eq.${id},id.eq.${id}` : `legacy_id.eq.${id}`;
+          const { data: self } = await supabase
+            .from("intelligence_items")
+            .select("id, jurisdictions, source_id")
+            .or(orExpr)
+            .maybeSingle();
+
+          if (self) {
+            if (self.source_id) {
+              const { data: srcMeta } = await supabase
+                .from("sources")
+                .select("fetch_status")
+                .eq("id", self.source_id)
+                .maybeSingle();
+              sourceFetchStatus =
+                (srcMeta as { fetch_status?: string | null } | null)?.fetch_status ?? null;
+            }
+
+            const selfJurisdictions: string[] = Array.isArray(self.jurisdictions)
+              ? self.jurisdictions
+              : resource.jurisdiction
+              ? [resource.jurisdiction]
+              : [];
+
+            if (selfJurisdictions.length > 0) {
+              const { data: jurRows } = await supabase
+                .from("intelligence_items")
+                .select(
+                  "id, legacy_id, title, summary, added_date, jurisdictions, source_id, source:sources(id, name)"
+                )
+                .contains("jurisdictions", selfJurisdictions)
+                .eq("item_type", "regional_data")
+                .eq("is_archived", false)
+                .eq("provenance_status", "verified")
+                .neq("id", self.id)
+                .order("added_date", { ascending: false })
+                .limit(RELATED_LIMIT);
+              if (jurRows && jurRows.length > 0) {
+                related = (jurRows as unknown as RelatedRow[]).map(pickRelated);
+                relatedReason = "jurisdiction";
+              }
+            }
+
+            if (related.length === 0 && self.source_id) {
+              const { data: srcRows } = await supabase
+                .from("intelligence_items")
+                .select(
+                  "id, legacy_id, title, summary, added_date, jurisdictions, source_id, source:sources(id, name)"
+                )
+                .eq("source_id", self.source_id)
+                .eq("item_type", "regional_data")
+                .eq("is_archived", false)
+                .eq("provenance_status", "verified")
+                .neq("id", self.id)
+                .order("added_date", { ascending: false })
+                .limit(RELATED_LIMIT);
+              if (srcRows && srcRows.length > 0) {
+                related = (srcRows as unknown as RelatedRow[]).map(pickRelated);
+                relatedReason = "source";
+              }
+            }
+          }
+        } catch {
+          // Soft-fail — surface renders empty state.
+        }
+        return { related, relatedReason, sourceFetchStatus };
+      })();
+
+      const [resourceLookup, matrixEligibility, relatedResult] = await Promise.all([
+        buildResourceLookup(supabase, relatedIds),
+        matrixPromise,
+        relatedPromise,
+      ]);
+
+      return {
+        resourceLookup,
+        matrixEligibility,
+        related: relatedResult.related,
+        relatedReason: relatedResult.relatedReason,
+        sourceFetchStatus: relatedResult.sourceFetchStatus,
+      };
+    },
+  });
+
+  // SURFACE ADMISSION GUARD (Phase 0.1, 2026-08-11) — see regulations/[slug]
+  // for the full rationale; checked inside loadDetail via canonicalSurface.
+  if (result.notFound) {
     notFound();
   }
 
-  const { resource: r, supersessions, connections, relevanceInput } = detail;
+  const { resource: r, supersessions, connections, sections, relevance } = result;
+  const resourceLookup = result.itemScoped?.resourceLookup ?? {};
+  const matrixEligibility = result.itemScoped?.matrixEligibility;
+  const related = result.itemScoped?.related ?? [];
+  const relatedReason = result.itemScoped?.relatedReason ?? "none";
+  const sourceFetchStatus = result.itemScoped?.sourceFetchStatus ?? null;
 
-  // Flywheel U9 (D1): the viewer's relevance-to-your-operation lens (per-request, per-org — never
-  // baked into the cached fetchIntelligenceItem result) and the connections card's gated title lookup.
-  const [relevance, resourceLookup] = await Promise.all([
-    getViewerRelevanceForItem(relevanceInput),
-    buildResourceLookup([
-      ...connections.map((c) => c.id),
-      ...supersessions.flatMap((s) => [s.old, s.new]),
-    ]),
-  ]);
-
-  // Fetch section rows (reuses fetchIntelligenceItemSections — not reimplemented).
-  // Returns [] when no sections have been generated yet; surface renders the
-  // legacy brief fallback in that case.
-  const sections = await fetchIntelligenceItemSections(id);
-
-  // Matrix eligibility check (server-side, read-only).
-  // Soft-fails to undefined if Supabase is not configured; the surface
-  // treats undefined as ineligible (fail-closed).
-  let matrixEligibility: MatrixEligibility | undefined;
-  if (
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    (process.env.SUPABASE_SERVICE_ROLE_KEY)
-  ) {
-    try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        { auth: { persistSession: false } }
-      );
-      // Build the item gate input from the resource.
-      // resource.jurisdiction is the legacy single-string; the full array
-      // is on intelligence_items.jurisdictions but not mapped to Resource.
-      // We pass both so the resolver gets the best available signal.
-      matrixEligibility = await checkMatrixEligibility(supabase, {
-        jurisdictions: r.jurisdiction ? [r.jurisdiction] : [],
-        jurisdiction: r.jurisdiction ?? null,
-      });
-    } catch {
-      // Soft-fail — surface renders S3/S4 as ineligible (correct posture).
-    }
-  }
-
-  // Related items — server-side selection.
-  //
-  // Strategy:
-  //   1. If the row has jurisdiction(s), query intelligence_items for other
-  //      active regional_data rows in the same jurisdiction (cap = 5).
-  //   2. If no jurisdiction match OR step 1 returned nothing, fall back to
-  //      same source (cap = 5).
-  //   3. If neither yields anything, pass [] (empty state rendered by surface).
-  let related: ReturnType<typeof pickRelated>[] = [];
-  let relatedReason: "jurisdiction" | "source" | "none" = "none";
-  // item 5b: source-level readability. Behind migration 147 and fails SOFT — a missing column or a null
-  // value leaves this null, and the surface renders exactly as today (the query is in the soft-fail try).
-  let sourceFetchStatus: string | null = null;
-
-  if (
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    (process.env.SUPABASE_SERVICE_ROLE_KEY)
-  ) {
-    try {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        { auth: { persistSession: false } }
-      );
-
-      // Resolve the row's uuid + jurisdictions + source_id.
-      const isUuid = UUID_RE.test(id);
-      const orExpr = isUuid
-        ? `legacy_id.eq.${id},id.eq.${id}`
-        : `legacy_id.eq.${id}`;
-      const { data: self } = await supabase
-        .from("intelligence_items")
-        .select("id, jurisdictions, source_id")
-        .or(orExpr)
-        .maybeSingle();
-
-      if (self) {
-        // item 5b: read the source's fetch_status so the surface can gate an unreadable source link.
-        // Inside the soft-fail try — if the column doesn't exist yet (pre-migration-147) this throws and
-        // sourceFetchStatus stays null (renders as today).
-        if (self.source_id) {
-          const { data: srcMeta } = await supabase
-            .from("sources")
-            .select("fetch_status")
-            .eq("id", self.source_id)
-            .maybeSingle();
-          sourceFetchStatus =
-            (srcMeta as { fetch_status?: string | null } | null)?.fetch_status ?? null;
-        }
-
-        // Step 1: jurisdiction match on other regional_data items.
-        const selfJurisdictions: string[] = Array.isArray(self.jurisdictions)
-          ? self.jurisdictions
-          : r.jurisdiction
-          ? [r.jurisdiction]
-          : [];
-
-        if (selfJurisdictions.length > 0) {
-          // Use contains overlap: any item whose jurisdictions array overlaps
-          // with selfJurisdictions qualifies. PostgREST: cs.{codes...} or
-          // cd.{codes...}. Use overlap (&&) via a raw query isn't directly
-          // available in the client; we use contains as a reasonable proxy.
-          // For multi-jurisdiction items this may under-match; acceptable for
-          // related-items which are a convenience affordance, not a critical path.
-          const { data: jurRows } = await supabase
-            .from("intelligence_items")
-            .select(
-              "id, legacy_id, title, summary, added_date, jurisdictions, source_id, source:sources(id, name)"
-            )
-            .contains("jurisdictions", selfJurisdictions)
-            .eq("item_type", "regional_data")
-            .eq("is_archived", false)
-            .eq("provenance_status", "verified") // customer read gate — related rail must not leak quarantined items
-            .neq("id", self.id)
-            .order("added_date", { ascending: false })
-            .limit(RELATED_LIMIT);
-          if (jurRows && jurRows.length > 0) {
-            related = (jurRows as unknown as RelatedRow[]).map(pickRelated);
-            relatedReason = "jurisdiction";
-          }
-        }
-
-        // Step 2: same-source fallback.
-        if (related.length === 0 && self.source_id) {
-          const { data: srcRows } = await supabase
-            .from("intelligence_items")
-            .select(
-              "id, legacy_id, title, summary, added_date, jurisdictions, source_id, source:sources(id, name)"
-            )
-            .eq("source_id", self.source_id)
-            .eq("item_type", "regional_data")
-            .eq("is_archived", false)
-            .eq("provenance_status", "verified") // customer read gate — related rail must not leak quarantined items
-            .neq("id", self.id)
-            .order("added_date", { ascending: false })
-            .limit(RELATED_LIMIT);
-          if (srcRows && srcRows.length > 0) {
-            related = (srcRows as unknown as RelatedRow[]).map(pickRelated);
-            relatedReason = "source";
-          }
-        }
-      }
-    } catch {
-      // Soft-fail — surface renders empty state.
-    }
-  }
+  console.log(`[perf] /operations/${id} data ${result.elapsedMs}ms`);
 
   // Masthead meta: source name + published date.
   const metaParts = [
@@ -275,8 +250,6 @@ export default async function OperationsDetailPage({
         })}`
       : null,
   ].filter(Boolean) as string[];
-
-  console.log(`[perf] /operations/${id} data ${Date.now() - t0}ms`);
 
   return (
     <>

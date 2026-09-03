@@ -950,6 +950,10 @@ function FindingRow({
             </p>
           </div>
           <div className="cl-row__actions">
+            {/* prefetch: deliberate default (perf lane, 2026-09-03 — see the equivalent comment on
+                RegulationsLedger.tsx's row Link). The framework default now hits an item-scoped cache
+                on the real click (load-detail.ts), so a burst of visible "Full analysis" links entering
+                the viewport no longer risks the Supabase-saturation fan-out that comment describes. */}
             <Link
               href={`/research/${encodeURIComponent(item.id)}`}
               style={{ fontSize: 11.5, fontWeight: 800, padding: "7px 14px", borderRadius: 6, border: "1px solid var(--color-primary)", background: "var(--color-primary)", color: "var(--color-text-inverse, #fff)", textDecoration: "none", whiteSpace: "nowrap" }}

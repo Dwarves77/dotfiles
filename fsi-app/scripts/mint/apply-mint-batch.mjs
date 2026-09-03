@@ -83,6 +83,13 @@ import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeRunArtifact, validateRunArtifact } from "../lib/run-artifact.mjs";
+// Cache flush after a real apply (coordinator, 2026-09-03, PERF train): the deployed app now serves the
+// four index ledgers from a tagged unstable_cache (src/lib/data.ts, APP_DATA_TAG) and every detail page
+// from an item-scoped cache (src/lib/detail/load-detail.ts, surface tags). A minted item must reach the
+// ledger without waiting for the 60 s / 300 s backstops, so a successful --apply flushes APP_DATA_TAG
+// and the surface-detail tags through /api/revalidate. Best-effort: with no APP_URL/WORKER_SECRET in
+// the environment the helper says so and the backstops still bound staleness (see revalidate.mjs).
+import { revalidateTags, surfaceDetailTag, APP_DATA_TAG } from "../lib/revalidate.mjs";
 // Relative .ts import, native Node type-stripping (same precedent as scripts/lib/db.mjs's own import of
 // classify-source-role.ts) — no bundler, no jiti. domainForItemType is pure (name+category in, int out).
 import { domainForItemType } from "../../src/lib/domains.ts";
@@ -563,6 +570,12 @@ export async function run(values, deps) {
   console.log(`apply-mint-batch: enriched ${written} — minted=${minted} db_deltas=${JSON.stringify(dbDeltas)}`);
   if (censusStampFailures.length) {
     console.warn(`apply-mint-batch: ${censusStampFailures.length} census_worklist stamp failure(s) — see defects_found in the enriched artifact.`);
+  }
+
+  if (minted > 0) {
+    const tags = [APP_DATA_TAG, ...["regulations", "market", "operations", "research"].map(surfaceDetailTag)];
+    const flush = await (deps.revalidateTags ?? revalidateTags)(tags, { apply: true });
+    console.log(`apply-mint-batch: cache flush ${flush.applied ? "sent" : "skipped"} (${flush.reason ?? flush.status ?? "ok"}): ${tags.join(", ")}`);
   }
 
   return { applied: true, perItemPatches, dbDeltas, minted, censusReconciled };

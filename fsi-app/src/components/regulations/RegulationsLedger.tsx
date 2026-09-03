@@ -1375,10 +1375,19 @@ function RegRow({
   return (
     <Link
       href={`/regulations/${encodeURIComponent(r.id)}`}
-      // prefetch OFF (diagnosis 2026-07-13): App Router prefetches every visible row → N
-      // concurrent uncached detail SSR renders (~8-11 Supabase round-trips each) → the
-      // Supabase-saturation spike behind the /regulations/[slug] 503s. Kill the fan-out at source.
-      prefetch={false}
+      // prefetch RE-ENABLED (perf lane, 2026-09-03, superseding the 2026-07-13 diagnosis's
+      // prefetch={false}). That flag was correct for what existed then: every detail render did
+      // 8-11 SEQUENTIAL, UNCACHED Supabase round trips, so N visible rows prefetching at once meant N
+      // concurrent uncached SSR renders — the Supabase-saturation spike behind the 503s. The fan-out
+      // itself is fixed now (src/lib/detail/load-detail.ts + src/app/regulations/[slug]/page.tsx): the
+      // item-scoped bundle a prefetch would trigger is ONE cached unstable_cache entry per item, shared
+      // across every viewer and every concurrent prefetch of the same row — a burst of visible rows no
+      // longer means a burst of fresh Supabase reads, it means one cache population plus N cache hits.
+      // Left at the framework default (prop omitted, not `prefetch={true}`): for a fully-dynamic route
+      // this only prefetches the static shell + loading.tsx boundary on viewport entry, not the dynamic
+      // RSC payload — cheap, and it's what actually makes the click feel instant (the loading.tsx
+      // skeleton is already resident by the time the click lands; the real data fetch still runs per
+      // click, but now hits the item-scoped cache instead of re-running the full fan-out).
       className="cl-reg-row cl-row-grid"
       data-guard-container="regulation-row"
       style={{
