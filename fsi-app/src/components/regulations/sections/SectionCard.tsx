@@ -24,6 +24,7 @@ export function SectionCard({ sectionKey, heading, tag, id, children }: SectionC
   return (
     <section
       id={id ?? `section-${sectionKey}`}
+      data-guard-container="regulation-section-card"
       style={{
         background: "var(--color-surface)",
         border: "1px solid var(--color-border)",
@@ -41,6 +42,7 @@ export function SectionCard({ sectionKey, heading, tag, id, children }: SectionC
           padding: "14px 22px",
           background: "var(--color-bg-raised)",
           borderBottom: "1px solid var(--color-border-subtle)",
+          flexWrap: "wrap",
         }}
       >
         <span
@@ -60,11 +62,11 @@ export function SectionCard({ sectionKey, heading, tag, id, children }: SectionC
         >
           §{sectionKey}
         </span>
-        <span style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-primary)" }}>
+        <span data-guard-title style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--color-text-primary)", overflowWrap: "anywhere", minWidth: 0 }}>
           {heading}
         </span>
         {tag && (
-          <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--color-text-muted)", fontWeight: 600 }}>
+          <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--color-text-muted)", fontWeight: 600, whiteSpace: "nowrap" }}>
             {tag}
           </span>
         )}

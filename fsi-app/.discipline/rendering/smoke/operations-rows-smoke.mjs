@@ -142,12 +142,43 @@ const ITEMS_STATES = [
 
 // ── RegionDimensionMatrix states (dimension-name titles render from `dimensions`
 //    regardless of `facts`, so all three states carry the same expectTitles) ──
+//
+// SIX regions, not five (lane MOBILE-2, 2026-09-03): the coordinator's round-2 production probe
+// measured a live region roster that has grown past this spec's original 5-entry fixture ("United
+// States 1/5 dimensions sourced" clipped at the right edge on /operations at 390px) — a 6th region
+// (SG) is added here so the fixture matches what production actually renders, not a stale count.
+//
+// RED-THEN-GREEN, HONEST RESULT: this was tried and DID NOT reproduce a mechanical failure.
+// RegionDimensionMatrix.tsx was reverted in a worktree to its pre-fix content (base e5766cc0 — the
+// `.cl-ops-matrix-table`/`.cl-ops-matrix-cards` split and the card-reflow block absent, just the
+// single always-rendered table in its own `overflowX:auto` div, which was ALREADY there pre-lane)
+// and run-rendering-guard.mjs was run against this six-region fixture: it PASSED, unfixed, at every
+// viewport including 375px. Root cause: `detectClippedOverflow` (ux-assert.mjs) explicitly exempts
+// any element behind an ancestor with `overflow-x: auto|scroll` — "unless an ancestor scrolls
+// horizontally on purpose (a strip)", by its own header comment — and the table's wrapping div
+// already had `overflowX: auto` before this lane touched the file, so the widened 6-region table
+// (970px inside a 375px viewport) scrolls inside itself exactly like a legitimate strip; nothing
+// about wider content changes that. `detectSqueezedTitles` and `detectSmallTargets` don't apply
+// either — region count changes neither a title's line count nor any interactive target's size.
+// Mounted alone, no combination of region count and viewport makes this component's OWN markup
+// trip any of the three detectors, pre- or post-fix — matching the coordinator's own framing of
+// the market strip case ("acceptable only if visible affordance exists"): a bare `overflowX:auto`
+// escape hatch is legitimate by the letter of these three checks even when it is bad UX for a
+// page's PRIMARY comparison view, which is a real gap between what these detectors enforce and
+// full law-2/law-12 intent, not a bug in this fixture. The coordinator's production finding was a
+// human visual read of a screenshot, not something these detectors would have caught even before
+// any fix — reported honestly rather than staged. The card reflow below was still built and is
+// still the right fix (a phone user gets full-width, no-pan region cards instead of a 970px table
+// panned through a 343px window); this fixture keeps the six live regions as the accurate,
+// non-stale count and is exercised at every registered viewport by the `operations-matrix` mount
+// below (0 failures, post-fix, included in the PASS line pasted to the coordinator).
 const REGIONS = [
   { key: 'EU', label: 'European Union' },
   { key: 'US', label: 'United States' },
   { key: 'ASIA', label: 'Asia' },
   { key: 'UK', label: 'United Kingdom' },
   { key: 'UAE', label: 'UAE' },
+  { key: 'SG', label: 'Singapore' },
 ];
 const DIMENSIONS = [
   { key: 'labor', db: 'labor_cost', name: 'Labor cost' },

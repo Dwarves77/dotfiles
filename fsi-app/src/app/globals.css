@@ -512,3 +512,34 @@ body {
   }
 }
 
+/* ═══════════════════════════════════════════════════
+   DETAIL SURFACE HEADER PADDING (lane MOBILE-2, 2026-09-03) — coordinator's round-2 probe
+   (same-origin iframe, production, 2026-09-03): /regulations/g14's header used a hardcoded
+   `padding: "18px 36px 0"` with no responsive escape (36px side padding at a 390px phone), unlike
+   the cl-page-pad convention (16px at <=767px) every other page follows. One CSS variable so every
+   detail-surface header — Regulations (RegulationDetailSurface.tsx, inline paddingLeft/Right),
+   Operations/Research (OperationsDetailSurface.tsx / ResearchFindingDetailSurface.tsx, Tailwind
+   arbitrary-value `px-[var(--cl-detail-pad-x)]`) — shares the same breakpoint without each file
+   re-declaring its own @media block. MarketSignalDetailSurface.tsx (src/components/pages/, outside
+   this lane's write set) is NOT wired to this variable — see this lane's REPORT, "NEEDS WRITE-SET
+   EXPANSION". */
+:root { --cl-detail-pad-x: 36px; }
+@media (max-width: 767px) {
+  :root { --cl-detail-pad-x: 16px; }
+}
+
+/* ═══════════════════════════════════════════════════
+   REGION-DIMENSION MATRIX MOBILE REFLOW (lane MOBILE-2, 2026-09-03) — coordinator's round-2 probe:
+   RegionDimensionMatrix.tsx's region x dimension table (5-7 region columns x minmax 130px) scrolls
+   inside its own overflowX:auto wrapper (pre-existing, still holds — confirmed by this lane's
+   detector proof), but a wide table requiring horizontal panning for the PRIMARY comparison view on
+   a phone is poor UX regardless (Fitts/Prägnanz), and got worse as the live region roster grew past
+   the 5-region fixture the first MOBILE lane tested with. At <=640px the table is replaced by one
+   card per region (own div, own class below); the table itself is hidden, not removed, so desktop
+   is byte-for-byte unchanged. */
+.cl-ops-matrix-cards { display: none; }
+@media (max-width: 640px) {
+  .cl-ops-matrix-table { display: none !important; }
+  .cl-ops-matrix-cards { display: block !important; }
+}
+

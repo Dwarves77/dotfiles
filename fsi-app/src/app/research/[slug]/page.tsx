@@ -265,7 +265,10 @@ export default async function ResearchFindingDetailPage({
 
   return (
     <>
-      <div style={{ padding: "10px 32px 0" }}>
+      {/* Back-link — lane MOBILE-2, 2026-09-03 sweep: 32px side padding had no responsive step-down
+          (same shape as the header padding fix item 1 addresses on Regulations) —
+          --cl-detail-pad-x (globals.css) steps to 16px at <=767px. */}
+      <div style={{ paddingTop: 10, paddingLeft: "var(--cl-detail-pad-x)", paddingRight: "var(--cl-detail-pad-x)" }}>
         <Link
           href="/research"
           prefetch={false}

@@ -253,8 +253,10 @@ export default async function OperationsDetailPage({
 
   return (
     <>
-      {/* Back-link — points to /operations, not /research */}
-      <div style={{ padding: "10px 32px 0" }}>
+      {/* Back-link — points to /operations, not /research. Lane MOBILE-2, 2026-09-03 sweep: 32px
+          side padding had no responsive step-down (same shape as the header padding fix item 1
+          addresses on Regulations) — --cl-detail-pad-x (globals.css) steps to 16px at <=767px. */}
+      <div style={{ paddingTop: 10, paddingLeft: "var(--cl-detail-pad-x)", paddingRight: "var(--cl-detail-pad-x)" }}>
         <Link
           href="/operations"
           prefetch={false}
