@@ -62,12 +62,21 @@ import {
   collectCitedUrls,
   unfetchedCitedUrls,
   captureCitedUrl,
+  // fourth pass (HEAL-4)
+  overlapTokens,
+  jaccardTokenOverlap,
+  OWNING_PARAGRAPH_MIN_SCORE,
+  findOwningParagraphByOverlap,
+  splitSentences,
+  pickBestSentence,
+  stripLeadingMarker,
+  planOwningParagraphRewrite,
 } from "./heal-provenance.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 test("HEAL_VERSION is a stamped string", () => {
-  assert.match(HEAL_VERSION, /^hp3-/);
+  assert.match(HEAL_VERSION, /^hp4-/);
 });
 
 // ── loadRequiredSlots / claimCoversSlot / missingRequiredSlots ──────────────────────────────────────
@@ -1263,4 +1272,373 @@ test("main: final_failures_by_item carries each item's own remaining failures, s
   assert.equal(r.final_failures_by_item.length, 1);
   assert.equal(r.final_failures_by_item[0].id, "item-ff1");
   assert.deepEqual(r.final_failures_by_item[0].failures, [{ criterion: 7, reason: "gate_a_unproven_or_stale" }]);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// FOURTH PASS (HEAL-4, 2026-09-03) — OWNING-PARAGRAPH REWRITE: the scorer, the sentence picker, marker
+// stripping, the refusal path, RELABEL's marker-replacement, and the end-to-end STEP E / RETROFIT fixes
+// for the measured defect (365 analysis_missing_label_syntax failures, 45 items, run 33804206617).
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+// ── the scorer ───────────────────────────────────────────────────────────────────────────────────────
+
+test("overlapTokens: lowercase, alphanumeric, length >= 3, stopwords excluded", () => {
+  assert.deepEqual(overlapTokens("The Levy Is 4% and it applies to All operators"), new Set(["levy", "applies", "operators"]));
+  assert.deepEqual(overlapTokens(""), new Set());
+  assert.deepEqual(overlapTokens(null), new Set());
+});
+
+test("jaccardTokenOverlap: identical text scores 1, wholly unrelated text scores 0", () => {
+  assert.equal(jaccardTokenOverlap("the levy applies broadly across operators", "the levy applies broadly across operators"), 1);
+  assert.equal(jaccardTokenOverlap("shipping corridor pricing update", "container weighing port inspection schedule"), 0);
+});
+
+test("jaccardTokenOverlap: an all-stopword or empty side scores 0 (never a spurious match)", () => {
+  assert.equal(jaccardTokenOverlap("the and for", "some real content about corridors"), 0);
+  assert.equal(jaccardTokenOverlap("", "some real content"), 0);
+  assert.equal(jaccardTokenOverlap(null, undefined), 0);
+});
+
+test("jaccardTokenOverlap: a realistic paraphrase clears OWNING_PARAGRAPH_MIN_SCORE; an unrelated paragraph in the same section does not", () => {
+  const claim = "Base freight rates on this corridor are expected to rise about eight percent due to fuel surcharges";
+  const paraphraseSource = "According to the notice, shippers moving cargo through the corridor will see a base rate increase of approximately eight percent effective the first of next month, driven by fuel surcharge adjustments.";
+  const unrelated = "Regulators also confirmed a separate review of container weighing procedures at three major ports, unrelated to pricing.";
+  assert.ok(jaccardTokenOverlap(claim, paraphraseSource) >= OWNING_PARAGRAPH_MIN_SCORE, "paraphrase clears the threshold");
+  assert.equal(jaccardTokenOverlap(claim, unrelated), 0, "topically unrelated paragraph scores zero");
+});
+
+// ── findOwningParagraphByOverlap ────────────────────────────────────────────────────────────────────
+
+test("findOwningParagraphByOverlap: picks the highest-scoring paragraph among several, ignoring unrelated ones", () => {
+  const claim = "Base freight rates on this corridor are expected to rise about eight percent due to fuel surcharges";
+  const contentMd = [
+    "Background context about the sector overall, with no figures at all.",
+    "Regulators also confirmed a separate review of container weighing procedures at three major ports, unrelated to pricing.",
+    "According to the notice, shippers moving cargo through the corridor will see a base rate increase of approximately eight percent effective the first of next month, driven by fuel surcharge adjustments.",
+  ].join("\n\n");
+  const r = findOwningParagraphByOverlap(claim, contentMd);
+  assert.equal(r.found, true);
+  assert.match(r.paragraph, /base rate increase/);
+});
+
+test("findOwningParagraphByOverlap: refuses when nothing in the text clears the threshold, reporting the best score", () => {
+  const claim = "Base freight rates on this corridor are expected to rise about eight percent due to fuel surcharges";
+  const contentMd = "Regulators also confirmed a separate review of container weighing procedures at three major ports, unrelated to pricing.";
+  const r = findOwningParagraphByOverlap(claim, contentMd);
+  assert.equal(r.found, false);
+  assert.equal(r.bestScore, 0);
+});
+
+test("findOwningParagraphByOverlap: empty content_md refuses with bestScore 0, never throws", () => {
+  assert.deepEqual(findOwningParagraphByOverlap("anything", ""), { found: false, bestScore: 0 });
+  assert.deepEqual(findOwningParagraphByOverlap("anything", "\n\n"), { found: false, bestScore: 0 });
+});
+
+// ── splitSentences / pickBestSentence (the sentence picker) ────────────────────────────────────────
+
+test("splitSentences: splits on sentence-ending punctuation, trims, drops empties", () => {
+  assert.deepEqual(
+    splitSentences("First sentence. Second sentence! Third sentence?"),
+    ["First sentence.", "Second sentence!", "Third sentence?"],
+  );
+  assert.deepEqual(splitSentences("No terminal punctuation here"), ["No terminal punctuation here"]);
+  assert.deepEqual(splitSentences(""), []);
+  assert.deepEqual(splitSentences("   "), []);
+});
+
+test("pickBestSentence: deterministically picks the single sentence with the highest overlap against claim_text", () => {
+  const para = "Background context about the sector overall. The notice states rates will increase by roughly eight percent for the CNSHA corridor beginning next quarter, citing fuel costs. Analysts have offered mixed views on the outlook.";
+  const claim = "Base freight rates on this corridor are expected to rise about eight percent due to fuel surcharges";
+  const picked = pickBestSentence(para, claim);
+  assert.match(picked.sentence, /CNSHA corridor beginning next quarter/);
+  assert.ok(picked.score > 0);
+});
+
+test("pickBestSentence: ties keep the first (earliest) sentence at that score", () => {
+  // both sentences share zero scoreable tokens with the claim -> tie at score 0, first wins
+  const para = "Alpha sentence about nothing relevant. Beta sentence about nothing relevant either.";
+  const picked = pickBestSentence(para, "wholly disjoint claim text");
+  assert.match(picked.sentence, /^Alpha sentence/);
+});
+
+test("pickBestSentence: null for a blank paragraph", () => {
+  assert.equal(pickBestSentence("", "claim"), null);
+  assert.equal(pickBestSentence("   ", "claim"), null);
+});
+
+// ── stripLeadingMarker (the marker stripper) ────────────────────────────────────────────────────────
+
+test("stripLeadingMarker: strips **FACT:**, *FACT:*, and FACT: (case-insensitive)", () => {
+  assert.equal(stripLeadingMarker("**FACT:** The levy is four percent."), "The levy is four percent.");
+  assert.equal(stripLeadingMarker("*FACT:* The levy is four percent."), "The levy is four percent.");
+  assert.equal(stripLeadingMarker("FACT: The levy is four percent."), "The levy is four percent.");
+  assert.equal(stripLeadingMarker("fact: The levy is four percent."), "The levy is four percent.");
+});
+
+test("stripLeadingMarker: strips a leading analysis label of any of the four forms", () => {
+  assert.equal(stripLeadingMarker("*Per the workspace's reading:* The levy applies broadly."), "The levy applies broadly.");
+  assert.equal(stripLeadingMarker("*Analytical inference:* The levy applies broadly."), "The levy applies broadly.");
+  assert.equal(stripLeadingMarker("Industry interpretation: The levy applies broadly."), "The levy applies broadly.");
+});
+
+test("stripLeadingMarker: a no-op when neither marker is present", () => {
+  assert.equal(stripLeadingMarker("Ordinary sentence with no marker."), "Ordinary sentence with no marker.");
+  assert.equal(stripLeadingMarker(""), "");
+  assert.equal(stripLeadingMarker(null), "");
+});
+
+// ── planOwningParagraphRewrite (paragraph + sentence + marker-strip, combined) ─────────────────────
+
+test("planOwningParagraphRewrite: found -> newClaimText is a verbatim substring of the winning paragraph", () => {
+  const claim = "Base freight rates on this corridor are expected to rise about eight percent due to fuel surcharges";
+  const contentMd = "Background context about the sector overall. The notice states rates will increase by roughly eight percent for the CNSHA corridor beginning next quarter, citing fuel costs. Analysts have offered mixed views on the outlook.";
+  const r = planOwningParagraphRewrite(claim, contentMd);
+  assert.equal(r.outcome, "found");
+  assert.ok(contentMd.includes(r.newClaimText), "the new claim_text is a VERBATIM substring of the paragraph");
+  assert.match(r.newClaimText, /CNSHA corridor/);
+});
+
+test("planOwningParagraphRewrite: the refusal path — nothing in the text clears the threshold", () => {
+  const claim = "Base freight rates on this corridor are expected to rise about eight percent due to fuel surcharges";
+  const r = planOwningParagraphRewrite(claim, "Regulators also confirmed a separate review of container weighing procedures at three major ports, unrelated to pricing.");
+  assert.equal(r.outcome, "no_owning_paragraph");
+  assert.equal(r.bestScore, 0);
+});
+
+test("planOwningParagraphRewrite: a leading marker on the winning paragraph's chosen sentence is stripped from newClaimText", () => {
+  const claim = "The levy applies broadly across the sector this quarter";
+  const contentMd = "**FACT:** The levy applies broadly across the sector this quarter, per the filing.";
+  const r = planOwningParagraphRewrite(claim, contentMd);
+  assert.equal(r.outcome, "found");
+  assert.doesNotMatch(r.newClaimText, /FACT:/i);
+  assert.match(r.newClaimText, /^The levy applies broadly/);
+});
+
+// ── planRelabelParagraph: marker REPLACEMENT, not stacking (2026-09-03 FOURTH PASS) ────────────────
+
+test("planRelabelParagraph: a leading **FACT:**/*FACT:*/FACT: marker on the winning paragraph is REPLACED by the label, never stacked in front of it", () => {
+  const claimText = "The levy applies broadly across the sector this quarter.";
+  for (const marker of ["**FACT:**", "*FACT:*", "FACT:"]) {
+    const md = `${marker} ${claimText}`;
+    const plan = planRelabelParagraph(md, claimText);
+    assert.equal(plan.content_md, `*Analytical inference:* ${claimText}`, `marker form ${marker} is replaced, not stacked`);
+    assert.doesNotMatch(plan.after, /FACT:/i);
+  }
+});
+
+test("planRelabelParagraph: a paragraph with no leading marker keeps prior (prepend-only) behavior — no regression", () => {
+  const md = "Intro paragraph, unrelated.\n\nThe regulation requires strict reporting by operators.";
+  const plan = planRelabelParagraph(md, "requires strict reporting by operators");
+  assert.match(plan.content_md, /^Intro paragraph, unrelated\.\n\n\*Analytical inference:\* The regulation requires/);
+});
+
+// ── healOneItem STEP E — the paraphrase-defect end-to-end fix ──────────────────────────────────────
+
+test("healOneItem STEP E (FOURTH PASS): a FACT claim whose claim_text is a PARAPHRASE of its own section's paragraph is reclassified with claim_text REWRITTEN to a verbatim sentence, then relabeled in the SAME run", async () => {
+  const item = { id: "item-e3", item_type: "regulation", full_brief: "", source_url: null };
+  // claim_text is a paraphrase: not literally (nor normalized-literally) present in the section at all,
+  // reproducing the measured defect exactly (a FACT claim_text was never required to be verbatim; only
+  // source_span was).
+  const claims = [{
+    id: "claim-e3", claim_kind: "FACT",
+    claim_text: "Base freight rates on this corridor are expected to rise about eight percent due to fuel surcharges",
+    source_span: "a span nowhere in any capture", source_id: "src-e3", section_row_id: "sec-e3",
+  }];
+  const deps = baseDeps({
+    readClaims: async () => claims,
+    readSections: async (id) => (id === "item-e3" ? [{
+      id: "sec-e3", item_id: "item-e3", section_key: "body", section_order: 1,
+      content_md: "Background context about the sector overall. The notice states rates will increase by roughly eight percent for the CNSHA corridor beginning next quarter, citing fuel costs. Analysts have offered mixed views on the outlook.",
+    }] : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+
+  assert.equal(r.steps.reclassify.length, 1);
+  const rc = r.steps.reclassify[0];
+  assert.equal(rc.outcome, "reclassified");
+  assert.equal(rc.rewritten, true);
+  assert.notEqual(rc.claim_text_after, rc.claim_text_before);
+  const kindCall = deps.calls.find((c) => c[0] === "updateClaimKind" && c[1] === "claim-e3");
+  assert.equal(kindCall[2].claim_kind, "ANALYSIS");
+  assert.equal(kindCall[2].claim_text, rc.claim_text_after);
+
+  // the SAME run's STEP D finds the (now-rewritten) claim_text in its section and labels it
+  const relabelEntry = r.steps.relabel.find((x) => x.claim_id === "claim-e3");
+  assert.ok(relabelEntry, "the rewritten claim was relabeled in the same run");
+  assert.equal(relabelEntry.outcome, "relabeled");
+
+  // criterion 4's OWN test, mirrored: the FINAL section content (post-relabel) must both carry a label AND
+  // ILIKE-contain the FINAL claim_text — end-to-end proof this closes the measured defect.
+  const sectionWrite = deps.calls.find((c) => c[0] === "updateSectionContent" && c[1] === "sec-e3");
+  assert.ok(sectionWrite, "STEP D wrote the relabeled section");
+  const finalContentMd = sectionWrite[2];
+  assert.match(finalContentMd, /\*Analytical inference:\*/);
+  assert.ok(finalContentMd.toLowerCase().includes(rc.claim_text_after.toLowerCase()), "criterion 4's ILIKE would find the final claim_text in the final section content");
+});
+
+test("healOneItem STEP E (FOURTH PASS): a FACT claim with NO plausible owning paragraph anywhere in its own section is REFUSED — left as FACT, unchanged, never forced into ANALYSIS", async () => {
+  const item = { id: "item-e4", item_type: "regulation", full_brief: "", source_url: null };
+  const claims = [{
+    id: "claim-e4", claim_kind: "FACT",
+    claim_text: "Base freight rates on this corridor are expected to rise about eight percent due to fuel surcharges",
+    source_span: "a span nowhere in any capture", source_id: "src-e4", section_row_id: "sec-e4",
+  }];
+  const deps = baseDeps({
+    readClaims: async () => claims,
+    readSections: async (id) => (id === "item-e4" ? [{
+      id: "sec-e4", item_id: "item-e4", section_key: "body", section_order: 1,
+      content_md: "Regulators also confirmed a separate review of container weighing procedures at three major ports, unrelated to pricing.",
+    }] : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+
+  assert.equal(r.steps.reclassify.length, 1);
+  const rc = r.steps.reclassify[0];
+  assert.equal(rc.outcome, "reclassify_refused_no_owning_paragraph");
+  assert.equal(rc.best_score, 0);
+  assert.equal(claims[0].claim_kind, "FACT", "left as FACT, never forced");
+  assert.equal(claims[0].claim_text, "Base freight rates on this corridor are expected to rise about eight percent due to fuel surcharges", "claim_text untouched");
+  assert.ok(!deps.calls.some((c) => c[0] === "updateClaimKind" && c[1] === "claim-e4"), "no write for a refused claim");
+  // never fed into RELABEL's ANALYSIS loop — it is still FACT
+  assert.ok(!r.steps.relabel.some((x) => x.claim_id === "claim-e4"));
+});
+
+test("healOneItem STEP E (FOURTH PASS): a claim with no section_row_id is refused (nothing to search), never crashes", async () => {
+  const item = { id: "item-e5", item_type: "regulation", full_brief: "", source_url: null };
+  const claims = [{ id: "claim-e5", claim_kind: "FACT", claim_text: "some paraphrased fact text", source_span: "nowhere", source_id: "src-e5", section_row_id: null }];
+  const deps = baseDeps({ readClaims: async () => claims });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  assert.equal(r.steps.reclassify[0].outcome, "reclassify_refused_no_owning_paragraph");
+  assert.equal(r.steps.reclassify[0].section_id, null);
+});
+
+// ── healOneItem RETROFIT — the 365 already-re-kinded claims from prior HEAL-2/HEAL-3 runs ──────────
+
+test("healOneItem RETROFIT: an ANALYSIS claim already sitting in the DB (source_span non-null, claim_text a paraphrase) is retrofitted — claim_text rewritten verbatim, then relabeled", async () => {
+  const item = { id: "item-rt1", item_type: "regulation", full_brief: "", source_url: null };
+  const claims = [{
+    id: "claim-rt1", claim_kind: "ANALYSIS",
+    claim_text: "Base freight rates on this corridor are expected to rise about eight percent due to fuel surcharges",
+    source_span: "a stale span from when this was still a FACT claim", source_id: "src-rt1", section_row_id: "sec-rt1",
+  }];
+  const deps = baseDeps({
+    readClaims: async () => claims,
+    readSections: async (id) => (id === "item-rt1" ? [{
+      id: "sec-rt1", item_id: "item-rt1", section_key: "body", section_order: 1,
+      content_md: "Background context about the sector overall. The notice states rates will increase by roughly eight percent for the CNSHA corridor beginning next quarter, citing fuel costs. Analysts have offered mixed views on the outlook.",
+    }] : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+
+  assert.equal(r.steps.retrofit.length, 1);
+  assert.equal(r.steps.retrofit[0].outcome, "retrofitted");
+  assert.notEqual(r.steps.retrofit[0].claim_text_after, r.steps.retrofit[0].claim_text_before);
+  assert.equal(claims[0].claim_kind, "ANALYSIS", "kind is never touched by retrofit");
+  const call = deps.calls.find((c) => c[0] === "updateClaimKind" && c[1] === "claim-rt1");
+  assert.ok(call, "the guarded path was used");
+  assert.equal(call[2].claim_text, r.steps.retrofit[0].claim_text_after);
+  assert.ok(!("claim_kind" in call[2]), "retrofit patches claim_text only, never claim_kind");
+
+  const relabelEntry = r.steps.relabel.find((x) => x.claim_id === "claim-rt1");
+  assert.ok(relabelEntry, "retrofitted claim gets labeled in the same run");
+  assert.equal(relabelEntry.outcome, "relabeled");
+});
+
+test("healOneItem RETROFIT: an ANALYSIS claim already findable verbatim in its own section is left untouched (correct no-op on a legitimate mint-time GROUNDED ANALYSIS claim)", async () => {
+  const item = { id: "item-rt2", item_type: "regulation", full_brief: "", source_url: null };
+  const claims = [{
+    id: "claim-rt2", claim_kind: "ANALYSIS",
+    claim_text: "the levy applies broadly across the sector",
+    source_span: "an intergovernmental commentary span, legitimately grounded", source_id: "src-rt2", section_row_id: "sec-rt2",
+  }];
+  const deps = baseDeps({
+    readClaims: async () => claims,
+    readSections: async (id) => (id === "item-rt2" ? [{
+      id: "sec-rt2", item_id: "item-rt2", section_key: "body", section_order: 1,
+      content_md: "*Analytical inference:* the levy applies broadly across the sector, per commentary.",
+    }] : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  assert.deepEqual(r.steps.retrofit, [], "already-findable ANALYSIS claim is a no-op, not even reported");
+  assert.ok(!deps.calls.some((c) => c[0] === "updateClaimKind" && c[1] === "claim-rt2"), "no write");
+  assert.equal(claims[0].claim_text, "the levy applies broadly across the sector", "untouched");
+});
+
+test("healOneItem RETROFIT: an ANALYSIS claim with source_span NULL (never was FACT) is never a retrofit candidate, even when its claim_text is not found anywhere", async () => {
+  const item = { id: "item-rt3", item_type: "regulation", full_brief: "", source_url: null };
+  const claims = [{
+    id: "claim-rt3", claim_kind: "ANALYSIS",
+    claim_text: "the workspace infers this trend will likely continue given broader patterns",
+    source_span: null, section_row_id: "sec-rt3",
+  }];
+  const deps = baseDeps({
+    readClaims: async () => claims,
+    readSections: async (id) => (id === "item-rt3" ? [{ id: "sec-rt3", item_id: "item-rt3", section_key: "body", section_order: 1, content_md: "Completely unrelated prose about something else entirely." }] : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  assert.deepEqual(r.steps.retrofit, [], "a genuinely-authored PURE INFERENCE ANALYSIS claim (source_span null) is never touched by retrofit");
+});
+
+test("healOneItem RETROFIT: a claim with no plausible owning paragraph anywhere is refused, claim_text left untouched", async () => {
+  const item = { id: "item-rt4", item_type: "regulation", full_brief: "", source_url: null };
+  const claims = [{
+    id: "claim-rt4", claim_kind: "ANALYSIS",
+    claim_text: "Base freight rates on this corridor are expected to rise about eight percent due to fuel surcharges",
+    source_span: "a stale span", source_id: "src-rt4", section_row_id: "sec-rt4",
+  }];
+  const deps = baseDeps({
+    readClaims: async () => claims,
+    readSections: async (id) => (id === "item-rt4" ? [{ id: "sec-rt4", item_id: "item-rt4", section_key: "body", section_order: 1, content_md: "Regulators also confirmed a separate review of container weighing procedures at three major ports, unrelated to pricing." }] : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  assert.equal(r.steps.retrofit.length, 1);
+  assert.equal(r.steps.retrofit[0].outcome, "retrofit_refused_no_owning_paragraph");
+  assert.equal(claims[0].claim_text, "Base freight rates on this corridor are expected to rise about eight percent due to fuel surcharges");
+  assert.ok(!deps.calls.some((c) => c[0] === "updateClaimKind" && c[1] === "claim-rt4"));
+});
+
+test("healOneItem RETROFIT: dry mode reports would_retrofit, writes nothing", async () => {
+  const item = { id: "item-rt5", item_type: "regulation", full_brief: "", source_url: null };
+  const claims = [{
+    id: "claim-rt5", claim_kind: "ANALYSIS",
+    claim_text: "Base freight rates on this corridor are expected to rise about eight percent due to fuel surcharges",
+    source_span: "a stale span", source_id: "src-rt5", section_row_id: "sec-rt5",
+  }];
+  const deps = baseDeps({
+    readClaims: async () => claims,
+    readSections: async (id) => (id === "item-rt5" ? [{
+      id: "sec-rt5", item_id: "item-rt5", section_key: "body", section_order: 1,
+      content_md: "Background context about the sector overall. The notice states rates will increase by roughly eight percent for the CNSHA corridor beginning next quarter, citing fuel costs. Analysts have offered mixed views on the outlook.",
+    }] : []),
+  });
+  const r = await healOneItem(item, { deps, apply: false, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  assert.equal(r.steps.retrofit[0].outcome, "would_retrofit");
+  assert.deepEqual(deps.calls, []);
+});
+
+// ── summarizeReports: fourth-pass counters ──────────────────────────────────────────────────────────
+
+test("summarizeReports: tallies the fourth-pass counters (reclassified_rewritten, reclassify_refused_no_owning_paragraph, retrofitted, retrofit_refused_no_owning_paragraph)", () => {
+  const perItem = [
+    {
+      steps: {
+        reclassify: [
+          { outcome: "reclassified", rewritten: true },
+          { outcome: "reclassified" }, // not rewritten (already findable) — counts toward refactored_to_analysis only
+          { outcome: "reclassify_refused_no_owning_paragraph" },
+        ],
+        retrofit: [
+          { outcome: "retrofitted" },
+          { outcome: "retrofit_refused_no_owning_paragraph" },
+        ],
+        gate_a: {}, rederive: { outcome: "still_failing", failures: [] },
+      },
+    },
+  ];
+  const s = summarizeReports(perItem);
+  assert.equal(s.refactored_to_analysis, 2);
+  assert.equal(s.reclassified_rewritten, 1);
+  assert.equal(s.reclassify_refused_no_owning_paragraph, 1);
+  assert.equal(s.retrofitted, 1);
+  assert.equal(s.retrofit_refused_no_owning_paragraph, 1);
 });

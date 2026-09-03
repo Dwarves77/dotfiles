@@ -118,6 +118,85 @@
 //      unmodified) the plain-GET family never had; `intelligence_items.source_urls`, named in the brief as
 //      a third URL source, does not exist as a column or array anywhere in supabase/migrations (grepped in
 //      full) and is never read. See the CAPTURE-CITED section below for the complete mechanism.
+//
+// FOURTH PASS (2026-09-03, lane HEAL-4), fixing the defect HEAL-3's own apply run measured live (95
+// quarantined items, 0 healed, run 33804206617): 365 `analysis_missing_label_syntax` failures across 45
+// items, every one a FACT claim RECLASSIFY (STEP E) re-kinded to ANALYSIS with `claim_text` UNCHANGED.
+// Criterion 4 (migration 202, read verbatim in the live migration — "latest definition wins", confirmed
+// the highest-numbered full CREATE OR REPLACE of validate_item_provenance and unpatched by any later
+// migration) requires, for an ANALYSIS claim: a blank-line-delimited paragraph in one of the item's
+// `intelligence_item_sections.content_md` that BOTH matches the label regex AND satisfies
+// `para ILIKE '%' || claim_text || '%'` — an exact case-insensitive substring. Measured (per the dispatch):
+// of 365 re-kinded claim_texts, only 4 occur verbatim in any section, 105 after normalizing to lowercase
+// alphanumerics/single-spaces, 260 not at all. The claim_text is the ORIGINAL extraction-time FACT wording
+// — a paraphrase of the section prose, never required to be verbatim (FACT only requires `source_span` to
+// be verbatim; `claim_text` was always free prose). RECLASSIFY moving `claim_kind` FACT->ANALYSIS without
+// ever touching `claim_text` therefore produces a claim criterion 4 can never validate — "healed" was a
+// dead end by construction, not a delay.
+//
+// THE FIX. STEP E (RECLASSIFY) now branches on whether the claim's OWN wording is already discoverable in
+// its OWN section (`section_row_id`) before deciding what to write:
+//   - If `claim_text` already locates (locateSpanInText, the same three-tier exact/normalized/
+//     normalized_ci matcher every other step in this file uses) inside the claim's own section, the
+//     re-kind is a no-op on the text — UNCHANGED from HEAL-2/HEAL-3's own behavior, and the SAME code path
+//     the "STEP E + D together" test (HEAL-2) already covers. Nothing here regresses that case.
+//   - Otherwise (the 365-claim defect: a paraphrase, findable nowhere in the section under any of this
+//     file's own normalization tiers) this pass computes the OWNING PARAGRAPH by TOKEN-OVERLAP SCORE
+//     (`jaccardTokenOverlap` — Jaccard over lowercase alphanumeric tokens, length >= 3, with a small
+//     stopword list excluded — see that function's own header for why the stopword exclusion is this
+//     lane's one deliberate deviation from the dispatch's literal "e.g." recipe: un-filtered, common
+//     3-letter connectors like "the"/"and"/"per" inflate the score of an UNRELATED paragraph purely from
+//     shared function words, which a section with 2-3 topically distinct paragraphs makes a live risk).
+//     `OWNING_PARAGRAPH_MIN_SCORE = 0.15` is deliberately permissive: a false REFUSAL only leaves an
+//     already-failing item exactly as failing as it already was (rule 2 — no claims ahead of evidence; a
+//     refusal is never a regression), while a false ACCEPT risks writing a WRONG paragraph's sentence into
+//     `claim_text` — bounded by scoring only within the claim's OWN section (already narrowed to the 1-4
+//     paragraphs the extractor originally read when it minted this FACT), never the whole item.
+//     - Score >= threshold: the SINGLE SENTENCE (`splitSentences`/`pickBestSentence`, same overlap scorer)
+//       of the winning paragraph with the highest overlap with the ORIGINAL claim_text becomes the new
+//       `claim_text` VERBATIM (after `stripLeadingMarker` removes a leading `**FACT:**`/`*FACT:*`/`FACT:`
+//       marker or an already-present analysis label — see below for why). The re-kind proceeds. Both the
+//       before and after text are recorded on the report entry (`claim_text_before`/`claim_text_after`) —
+//       `section_claim_provenance` (migration 112, re-read in full for this lane; 227/206 add
+//       `basis_claim_id`/`mint_hold_reason`, neither a text-history column) carries NO original-text column,
+//       so the artifact record IS the preservation, not a DB column — stated here per the dispatch's own
+//       instruction to say so if none exists.
+//     - Score < threshold on EVERY paragraph in the claim's own section: REFUSED. The claim_text and
+//       claim_kind are left EXACTLY as they were (still FACT, still failing its original criterion-3
+//       reason) — outcome `reclassify_refused_no_owning_paragraph`, carrying the best score found, so the
+//       artifact tells the truth about a claim this pass could not honestly relabel rather than silently
+//       forcing it into another unvalidatable state.
+//
+// RETROFIT (the 365 claims HEAL-2/HEAL-3 ALREADY re-kinded, sitting in the DB right now). A new loop,
+// after STEP E, scans every claim that is ALREADY `claim_kind = 'ANALYSIS'` with a NON-NULL `source_span`
+// — the fingerprint of exactly this residue. Read canonical-pipeline.ts's own mint-time ledger contract
+// (line ~1491, re-read for this lane) BEFORE relying on that fingerprint: a mint-time "GROUNDED ANALYSIS"
+// claim ALSO carries a non-null `source_span` by design, so the raw filter is NOT unique to the defect.
+// It stays safe because the retrofit's own first move (same as STEP E) is the `locateSpanInText` "already
+// findable" check — mint-time GROUNDED ANALYSIS claim_text is REQUIRED verbatim-in-a-labeled-section at
+// mint time (canonical-pipeline.ts's own `analysisGrounded` kept-filter, confirmed by reading that file for
+// this lane), so it is ALWAYS already findable and this retrofit is a correct no-op on it. Only a claim the
+// pre-check cannot find (the actual RECLASSIFY residue, which was NEVER re-validated against its section)
+// proceeds to the SAME paragraph/sentence rewrite STEP E uses, or the SAME honest refusal.
+//
+// STEP D (RELABEL) is extended to match: `planRelabelParagraph` now REPLACES a leading `**FACT:**`/
+// `*FACT:*`/`FACT:` marker on the winning paragraph with the analysis label, rather than stacking the label
+// in front of it (a paragraph reading "FACT: ... Per the workspace's reading: ..." asserts both at once,
+// which is dishonest either way this lane could resolve it — replacing is the one that leaves exactly one
+// claim standing). NOTE ON EVIDENCE: this repo's own live prose has not been read for this lane (no DB
+// access) — grepped confirmed the "**FACT:**"/"*FACT:*" convention does NOT appear in
+// src/lib/agent/canonical-pipeline.ts's own ledger prompt (it prefixes nothing onto section prose; only the
+// LEDGER schema's field NAME is "FACT"). This branch is defensive per the dispatch's explicit instruction,
+// documented as [HYPOTHESIS] rather than [CONFIRMED] (rule 14): it is a no-op whenever the marker is absent
+// (every test and, so far as this lane could determine, every live paragraph), and costs nothing when idle.
+//
+// WHAT REMAINS IMPOSSIBLE DETERMINISTICALLY. A paragraph that asserts NOTHING any capture, claim, or
+// extraction ever stated — the residue `reclassify_refused_no_owning_paragraph` /
+// `retrofit_refused_no_owning_paragraph` name — stays labeled FACT (refused) or ANALYSIS-but-unlabeled
+// (retrofit refusal leaves claim_text untouched too) and the item stays quarantined on that criterion. That
+// is the HONEST end state this pass can reach, not a defect this pass failed to close: this file's own
+// $0/no-LLM/deterministic mandate has no mechanism to invent a paragraph that was never written, and
+// forcing a label onto unrelated prose would be the fabrication rule 2 forbids, not a fix.
 
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -164,7 +243,7 @@ import { institutionKey, hostOf } from "../lib/institution-key.mjs";
 // re-deriving.
 import { pdfToText, looksLikePdfUrl, isPdfBytes } from "../../src/lib/sources/pdf-extract.mjs";
 
-export const HEAL_VERSION = "hp3-2026-09-03.1";
+export const HEAL_VERSION = "hp4-2026-09-03.1";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_SLOTS_PATH = resolve(HERE, "item-type-required-slots.json");
@@ -1046,7 +1125,18 @@ function rejoinParagraphs(parts, seps) {
  *  (healOneItem's own lookup, fixed alongside this one) nor this function's own literal `.includes()`, so
  *  the label was silently never applied and RELABEL reported nothing at all — the mechanism this file's
  *  own header originally, incorrectly, attributed to STEP ORDER (RECLASSIFY already runs before RELABEL
- *  in this file's actual step sequence; see this lane's report for the correction). */
+ *  in this file's actual step sequence; see this lane's report for the correction).
+ *
+ *  MARKER REPLACEMENT, NOT STACKING (2026-09-03 FOURTH PASS): when the winning paragraph itself starts with
+ *  a leading `**FACT:**` / `*FACT:*` / `FACT:` marker (FACT_MARKER_RE, defined below this function — see
+ *  the OWNING-PARAGRAPH REWRITE section's own note on why live evidence of this marker was NOT found for
+ *  this lane, and why the branch is kept anyway, [HYPOTHESIS] and inert when absent), the analysis label
+ *  REPLACES that marker rather than prepending in front of it. A paragraph reading "FACT: X. Per the
+ *  workspace's reading: X." asserts both a fact and an inference about the SAME text at once — dishonest
+ *  either way this function could resolve it; replacing is the one that leaves exactly one claim standing,
+ *  and it is what stripLeadingMarker's own matching removal from `claim_text` (STEP E / RETROFIT) assumes
+ *  is happening here, so the two stay in lockstep: `claim_text` never carries the marker, and neither does
+ *  the label ever land on TOP of one. */
 export function planRelabelParagraph(contentMd, claimText) {
   const { parts, seps } = splitParagraphsPreserving(contentMd);
   const needle = String(claimText ?? "").trim();
@@ -1054,8 +1144,10 @@ export function planRelabelParagraph(contentMd, claimText) {
   const idx = parts.findIndex((p) => !ANALYSIS_LABEL_RE.test(p) && locateSpanInText(needle, p) != null);
   if (idx === -1) return null;
   const before = parts[idx];
+  const withoutFactMarker = before.replace(FACT_MARKER_RE, "");
+  const body = withoutFactMarker === before ? before : withoutFactMarker.replace(/^\s+/, "");
   const newParts = [...parts];
-  newParts[idx] = DEFAULT_ANALYSIS_LABEL + before;
+  newParts[idx] = DEFAULT_ANALYSIS_LABEL + body;
   return { content_md: rejoinParagraphs(newParts, seps), before: before.trim(), after: newParts[idx].trim() };
 }
 
@@ -1088,12 +1180,161 @@ export function sectionNeedsRelabel(section, claims) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// OWNING-PARAGRAPH REWRITE (2026-09-03, FOURTH PASS). See this file's own header FOURTH PASS section for
+// the full defect this closes (analysis_missing_label_syntax, 365/45 items, run 33804206617) and the
+// design. Every function here is PURE. Used by both STEP E (RECLASSIFY, below) and RETROFIT (after it).
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+// A small stopword list, EXCLUDED from the overlap scorer — the one deliberate deviation from the
+// dispatch's own literal "e.g. Jaccard over lowercase alphanumeric tokens of length >= 3" recipe (see the
+// header for why: un-filtered, a handful of common 3-letter connectors shared by ANY two paragraphs in
+// English prose can put an UNRELATED paragraph over a low threshold purely on function-word noise, and a
+// section commonly holds 2-4 topically distinct paragraphs — a live risk this list closes at near-zero
+// cost, since every excluded word is non-distinguishing by construction). Not a stemmer, not a synonym
+// table — deliberately dumb and deterministic, matching this file's own $0/no-LLM mandate.
+const OVERLAP_STOPWORDS = new Set([
+  "the", "and", "for", "are", "was", "were", "that", "this", "with", "from", "into", "per", "not", "has",
+  "have", "had", "its", "his", "her", "she", "him", "they", "them", "but", "you", "your", "our", "their",
+  "who", "what", "when", "where", "which", "how", "can", "will", "would", "could", "should", "may",
+  "might", "must", "shall", "also", "than", "then", "now", "been", "being", "only", "more", "most",
+  "some", "such", "any", "all", "one", "two", "each", "every", "other", "own", "same", "out", "off",
+  "over", "under", "again", "further", "once", "here", "there", "new", "use", "used", "non", "does",
+  "did", "doing", "about", "above", "after", "before", "between", "during", "these", "those", "still",
+]);
+const OVERLAP_TOKEN_RE = /[a-z0-9]+/g;
+
+/** Lowercase alphanumeric tokens (length >= 3, stopwords excluded — see OVERLAP_STOPWORDS above) of
+ *  `text`, as a Set (so repeats never inflate a score). Pure. */
+export function overlapTokens(text) {
+  const raw = String(text ?? "").toLowerCase().match(OVERLAP_TOKEN_RE) ?? [];
+  return new Set(raw.filter((t) => t.length >= 3 && !OVERLAP_STOPWORDS.has(t)));
+}
+
+/** Jaccard coefficient (0..1) between `a`'s and `b`'s overlapTokens sets — the score used to pick a
+ *  claim's OWNING PARAGRAPH (paragraph-level) and its owning SENTENCE (sentence-level, same function,
+ *  smaller inputs). Pure. 0 when either side has zero scoreable tokens (an all-stopword/short string can
+ *  never "match" anything by this measure, which is the intended conservative failure). */
+export function jaccardTokenOverlap(a, b) {
+  const A = overlapTokens(a);
+  const B = overlapTokens(b);
+  if (!A.size || !B.size) return 0;
+  let overlap = 0;
+  for (const t of A) if (B.has(t)) overlap += 1;
+  const union = A.size + B.size - overlap;
+  return union === 0 ? 0 : overlap / union;
+}
+
+// Chosen so a paragraph sharing only the ambient handful of substantive tokens two paragraphs in the same
+// item ABOUT THE SAME REGULATORY TOPIC inevitably share (a shared instrument name, a recurring noun) stays
+// BELOW threshold, while a paragraph that is the actual paraphrase source — sharing several of its
+// distinctive nouns/figures with the claim, even after real rewording — clears it. Deliberately permissive
+// per this file's own header: a false refusal costs nothing (the claim was already failing); a false
+// accept is bounded to a WRONG SENTENCE inside the RIGHT (highest-scoring) paragraph of the claim's OWN
+// section, never a paragraph on an unrelated subject and never another item's content.
+export const OWNING_PARAGRAPH_MIN_SCORE = 0.15;
+
+/** Every blank-line paragraph of `contentMd`, scored against `claimText` by jaccardTokenOverlap — returns
+ *  the winner. Pure. `{ found:false, bestScore }` when the winner's own score is below `threshold` (or
+ *  there is no non-blank paragraph at all — bestScore 0). */
+export function findOwningParagraphByOverlap(claimText, contentMd, threshold = OWNING_PARAGRAPH_MIN_SCORE) {
+  const { parts } = splitParagraphsPreserving(contentMd);
+  let best = null;
+  parts.forEach((p, index) => {
+    if (!p.trim()) return;
+    const score = jaccardTokenOverlap(claimText, p);
+    if (!best || score > best.score) best = { score, index, paragraph: p };
+  });
+  if (!best || best.score < threshold) return { found: false, bestScore: best ? best.score : 0 };
+  return { found: true, score: best.score, index: best.index, paragraph: best.paragraph };
+}
+
+/** Split `text` into sentences on `.`/`!`/`?` followed by whitespace — deterministic, no abbreviation
+ *  awareness (matches this file's own no-NLP-library posture). Pure. A string with no sentence-ending
+ *  punctuation is returned whole, as its own single "sentence" (never dropped). Empty/blank -> []. */
+export function splitSentences(text) {
+  const s = String(text ?? "").trim();
+  if (!s) return [];
+  const parts = s.split(/(?<=[.!?])\s+/).map((p) => p.trim()).filter(Boolean);
+  return parts.length ? parts : [s];
+}
+
+/** The single sentence of `paragraphText` with the highest jaccardTokenOverlap against `claimText` — the
+ *  DETERMINISTIC choice the dispatch calls for ("pick the single sentence with the highest overlap").
+ *  Pure. Ties keep the FIRST (earliest) sentence at that score. Null only when `paragraphText` carries no
+ *  sentence at all (empty/blank). */
+export function pickBestSentence(paragraphText, claimText) {
+  const sentences = splitSentences(paragraphText);
+  if (!sentences.length) return null;
+  let best = { sentence: sentences[0], score: jaccardTokenOverlap(claimText, sentences[0]) };
+  for (let i = 1; i < sentences.length; i++) {
+    const score = jaccardTokenOverlap(claimText, sentences[i]);
+    if (score > best.score) best = { sentence: sentences[i], score };
+  }
+  return best;
+}
+
+// The three FACT-marker forms the dispatch names, mirrored the same way this file mirrors every other
+// governing regex (ANALYSIS_LABEL_RE above): "**FACT:**" / "*FACT:*" / "FACT:". NOTE ON EVIDENCE (rule 14):
+// grepped for this lane (2026-09-03) — src/lib/agent/canonical-pipeline.ts's own mint-time ledger prompt
+// never prefixes section PROSE with a "FACT:" marker (only the ledger JSON schema's field is named
+// "claim_kind":"FACT"), so live evidence of this marker prefixing actual paragraph prose was NOT found.
+// This branch is [HYPOTHESIS] defensive handling per the dispatch's explicit instruction, not a confirmed
+// live pattern — it is a no-op (stripLeadingMarker returns its input unchanged) whenever the marker is
+// absent, which is every case this lane could verify.
+const FACT_MARKER_RE = /^\*{0,2}FACT:\*{0,2}\s*/i;
+const LEADING_ANALYSIS_LABEL_RE = new RegExp(`^\\s*${ANALYSIS_LABEL_RE.source}\\s*`, "i");
+
+/** Strip a leading `**FACT:**` / `*FACT:*` / `FACT:` marker, or an already-present analysis label, from
+ *  `text` — so a chosen sentence that happened to be a paragraph's OWN opening (marker-prefixed) sentence
+ *  yields a `claim_text` that is still a literal substring of that paragraph once STEP D's own
+ *  planRelabelParagraph replaces that SAME marker with the analysis label (see that function's own header
+ *  for the matching write-side half of this). Pure. A no-op when neither marker is present (the common
+ *  case; see the note above). */
+export function stripLeadingMarker(text) {
+  let s = String(text ?? "").trim();
+  s = s.replace(FACT_MARKER_RE, "").trim();
+  s = s.replace(LEADING_ANALYSIS_LABEL_RE, "").trim();
+  return s;
+}
+
+/**
+ * The FOURTH PASS core: given a claim's ORIGINAL `claimText` and its OWN section's `contentMd`, find the
+ * owning paragraph by token-overlap score, pick its highest-overlap sentence, and strip any leading
+ * marker — the exact verbatim substring to store as the claim's NEW `claim_text`. Pure. Two outcomes:
+ *   `{ outcome: "found", newClaimText, paragraph, paragraphScore, sentence, sentenceScore }` — the caller
+ *     writes `newClaimText` and may re-kind the claim.
+ *   `{ outcome: "no_owning_paragraph", bestScore }` — nothing in this section scores at or above
+ *     OWNING_PARAGRAPH_MIN_SCORE (or the winning paragraph's chosen sentence strips to empty, e.g. a
+ *     paragraph that is ONLY a marker). The caller must NOT re-kind or rewrite — see STEP E below.
+ */
+export function planOwningParagraphRewrite(claimText, contentMd, threshold = OWNING_PARAGRAPH_MIN_SCORE) {
+  const owning = findOwningParagraphByOverlap(claimText, contentMd, threshold);
+  if (!owning.found) return { outcome: "no_owning_paragraph", bestScore: owning.bestScore };
+  const picked = pickBestSentence(owning.paragraph, claimText);
+  const rewritten = picked ? stripLeadingMarker(picked.sentence) : "";
+  if (!rewritten) return { outcome: "no_owning_paragraph", bestScore: owning.score };
+  return {
+    outcome: "found",
+    paragraphScore: owning.score,
+    paragraph: owning.paragraph,
+    sentence: picked.sentence,
+    sentenceScore: picked.score,
+    newClaimText: rewritten,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // STEP E — RECLASSIFY. The residue: a FACT claim STEP A could not resource (its span is nowhere in any
 // of the three ranked buckets, including the corpus pool) and GROUND could not ground anywhere among the
 // item's own captures either. Re-kinding FACT -> ANALYSIS is the honest disposition the labeling
 // discipline exists for — the item stops asserting as fact something no source states, and the
-// re-kinded claim is left for STEP D to label like any other ANALYSIS claim. `claim_text` is unchanged;
-// only `claim_kind` moves.
+// re-kinded claim is left for STEP D to label like any other ANALYSIS claim.
+//
+// `claim_text` (FOURTH PASS, 2026-09-03): unchanged when it is ALREADY discoverable (locateSpanInText) in
+// the claim's own section — byte-identical to HEAL-2/HEAL-3's own behavior, the case the "STEP E + D
+// together" test already covers. Otherwise (the measured defect: a paraphrase findable nowhere in the
+// section) `planOwningParagraphRewrite` above supplies a VERBATIM replacement, or this step REFUSES to
+// re-kind at all — see this file's header FOURTH PASS section for the full design and the threshold.
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 
 /** Which of GROUND's / RESOURCE's per-claim outcomes name a FACT claim as unrecoverable (nowhere any
@@ -1424,10 +1665,75 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
       reclassifyResults.push({ claim_id: c.id, claim_text: c.claim_text, slot_key: slotKey, reason, outcome: apply ? "reclassified_to_gap" : "would_reclassify_to_gap" });
       continue;
     }
-    if (apply) { await deps.updateClaimKind(c.id, { claim_kind: "ANALYSIS" }); c.claim_kind = "ANALYSIS"; }
-    reclassifyResults.push({ claim_id: c.id, claim_text: c.claim_text, reason, outcome: apply ? "reclassified" : "would_reclassify" });
+    // FOURTH PASS (2026-09-03): claim_text is rewritten to a verbatim substring of the claim's own section
+    // ONLY when it is not already discoverable there — see this file's header FOURTH PASS section and the
+    // OWNING-PARAGRAPH REWRITE section above for the full mechanism/threshold. `ownSection` is looked up by
+    // `section_row_id` (never a whole-item scan) — the dispatch's own scoping.
+    const ownSection = c.section_row_id ? sectionsList.find((s) => s.id === c.section_row_id) ?? null : null;
+    const alreadyFindable = ownSection ? locateSpanInText(c.claim_text, ownSection.content_md) : null;
+    if (alreadyFindable) {
+      if (apply) { await deps.updateClaimKind(c.id, { claim_kind: "ANALYSIS" }); c.claim_kind = "ANALYSIS"; }
+      reclassifyResults.push({ claim_id: c.id, claim_text: c.claim_text, reason, outcome: apply ? "reclassified" : "would_reclassify" });
+      continue;
+    }
+    const rewrite = ownSection ? planOwningParagraphRewrite(c.claim_text, ownSection.content_md) : { outcome: "no_owning_paragraph", bestScore: 0 };
+    if (rewrite.outcome !== "found") {
+      // REFUSE — leave the claim exactly as it is (still FACT, still failing its original criterion-3
+      // reason). Never force an unvalidatable ANALYSIS claim into existence (rule 2: no claims ahead of
+      // evidence). The best score is reported so the artifact tells the truth about how close it came.
+      reclassifyResults.push({
+        claim_id: c.id, claim_text: c.claim_text, reason, outcome: "reclassify_refused_no_owning_paragraph",
+        best_score: rewrite.bestScore, section_id: ownSection ? ownSection.id : null,
+      });
+      continue;
+    }
+    const claimTextBefore = c.claim_text;
+    if (apply) {
+      await deps.updateClaimKind(c.id, { claim_kind: "ANALYSIS", claim_text: rewrite.newClaimText });
+      c.claim_kind = "ANALYSIS"; c.claim_text = rewrite.newClaimText;
+    }
+    reclassifyResults.push({
+      claim_id: c.id, reason, outcome: apply ? "reclassified" : "would_reclassify", rewritten: true,
+      claim_text_before: claimTextBefore, claim_text_after: rewrite.newClaimText,
+      paragraph_score: rewrite.paragraphScore, sentence_score: rewrite.sentenceScore, section_id: ownSection.id,
+    });
   }
   report.steps.reclassify = reclassifyResults;
+
+  // ── RETROFIT (2026-09-03, FOURTH PASS) — the 365 claims HEAL-2/HEAL-3's OWN RECLASSIFY already
+  //    re-kinded FACT -> ANALYSIS in a PRIOR apply run, sitting in the DB right now with claim_text still
+  //    the original (unverifiable-paraphrase) wording. Candidate set: claim_kind='ANALYSIS' with a
+  //    NON-NULL source_span — the residue's own fingerprint (a genuinely mint-time ANALYSIS claim's
+  //    source_span is null UNLESS it is mint-time "GROUNDED ANALYSIS", which is ALREADY verbatim-in-a-
+  //    labeled-section by construction — see this file's header FOURTH PASS section for why that overlap
+  //    is safe: the "already findable" pre-check below makes a legitimate GROUNDED ANALYSIS claim a
+  //    correct no-op here, never touched). Same paragraph/sentence rewrite as STEP E above, or the same
+  //    honest refusal — never a second implementation of either. ──────────────────────────────────────
+  const retrofitResults = [];
+  for (const c of claims) {
+    if (c.claim_kind !== "ANALYSIS" || c.source_span == null) continue;
+    const ownSection = c.section_row_id ? sectionsList.find((s) => s.id === c.section_row_id) ?? null : null;
+    if (ownSection && locateSpanInText(c.claim_text, ownSection.content_md)) continue; // already validatable, nothing to do
+    const rewrite = ownSection ? planOwningParagraphRewrite(c.claim_text, ownSection.content_md) : { outcome: "no_owning_paragraph", bestScore: 0 };
+    if (rewrite.outcome !== "found") {
+      retrofitResults.push({
+        claim_id: c.id, claim_text: c.claim_text, outcome: "retrofit_refused_no_owning_paragraph",
+        best_score: rewrite.bestScore, section_id: ownSection ? ownSection.id : null,
+      });
+      continue;
+    }
+    const claimTextBefore = c.claim_text;
+    if (apply) {
+      await deps.updateClaimKind(c.id, { claim_text: rewrite.newClaimText });
+      c.claim_text = rewrite.newClaimText;
+    }
+    retrofitResults.push({
+      claim_id: c.id, outcome: apply ? "retrofitted" : "would_retrofit",
+      claim_text_before: claimTextBefore, claim_text_after: rewrite.newClaimText,
+      paragraph_score: rewrite.paragraphScore, sentence_score: rewrite.sentenceScore, section_id: ownSection.id,
+    });
+  }
+  report.steps.retrofit = retrofitResults;
 
   // ── STEP C — ORPHANS (criterion 7) — a FRESH scan against claims post-RECLASSIFY (E may have exposed
   //    a token whose only "coverage" was a claim just demoted to ANALYSIS), before this step's own
@@ -1532,6 +1838,12 @@ export function summarizeReports(perItem) {
     // THIRD PASS (2026-09-03) additions — see this file's SLOT MARKER / CAPTURE-CITED sections.
     slot_repaired_to_gap: 0, reclassified_to_gap: 0,
     cited_captured: 0, cited_held: 0, cited_bound_hit_items: 0,
+    // FOURTH PASS (2026-09-03) additions — see this file's header FOURTH PASS section / OWNING-PARAGRAPH
+    // REWRITE section. reclassified_rewritten is a SUBSET of refactored_to_analysis (claim_text was NOT
+    // already discoverable and had to be rewritten) — kept separate so a report can show how much of the
+    // 365-claim defect this run actually closed vs. how much stayed refused.
+    reclassified_rewritten: 0, reclassify_refused_no_owning_paragraph: 0,
+    retrofitted: 0, retrofit_refused_no_owning_paragraph: 0,
   };
   for (const r of perItem) {
     if (r.steps.capture?.outcome === "held") s.capture_held += 1;
@@ -1554,8 +1866,16 @@ export function summarizeReports(perItem) {
       if (rs.outcome === "unresourced") s.unresourced += 1;
     }
     for (const rc of r.steps.reclassify ?? []) {
-      if (rc.outcome === "reclassified") s.refactored_to_analysis += 1;
+      if (rc.outcome === "reclassified") {
+        s.refactored_to_analysis += 1;
+        if (rc.rewritten) s.reclassified_rewritten += 1;
+      }
       if (rc.outcome === "reclassified_to_gap") s.reclassified_to_gap += 1;
+      if (rc.outcome === "reclassify_refused_no_owning_paragraph") s.reclassify_refused_no_owning_paragraph += 1;
+    }
+    for (const rt of r.steps.retrofit ?? []) {
+      if (rt.outcome === "retrofitted") s.retrofitted += 1;
+      if (rt.outcome === "retrofit_refused_no_owning_paragraph") s.retrofit_refused_no_owning_paragraph += 1;
     }
     for (const or of r.steps.orphans ?? []) {
       if (or.outcome === "grounded") s.orphans_grounded += 1;
@@ -1624,7 +1944,9 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
       `${counts.resourced} resourced/${counts.unresourced} unresourced; ${counts.own_body_resolved} own_body_resolved; ` +
       `${counts.orphans_grounded} orphans_grounded/${counts.orphans_unprovable} orphans_unprovable; ` +
       `${counts.relabeled_paragraphs} relabeled_paragraphs (${counts.relabel_no_owning_section} no_owning_section_found); ` +
-      `${counts.refactored_to_analysis} refactored_to_analysis; ${counts.reclassified_to_gap} reclassified_to_gap; ` +
+      `${counts.refactored_to_analysis} refactored_to_analysis (${counts.reclassified_rewritten} claim_text-rewritten, ` +
+      `${counts.reclassify_refused_no_owning_paragraph} refused_no_owning_paragraph); ${counts.reclassified_to_gap} reclassified_to_gap; ` +
+      `${counts.retrofitted} retrofitted/${counts.retrofit_refused_no_owning_paragraph} retrofit_refused_no_owning_paragraph; ` +
       `${counts.slot_repaired_to_gap} slot_repaired_to_gap; ` +
       `${counts.cited_captured} cited-captured/${counts.cited_held} cited-held (bound hit on ${counts.cited_bound_hit_items} items); ` +
       `${counts.capture_held} capture-held; ${counts.ungrounded_after_capture} ungrounded_after_capture; ` +
