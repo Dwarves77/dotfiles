@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, census-off-vertical, review-digests, tag-ratification]
+        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, tag-ratification]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, or a comma-separated proposal-id list — see the runbook for which steps require one and what value they need).'
         required: false
@@ -131,6 +131,20 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/source-type-backfill"
           node scripts/maintenance/source-type-backfill.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/source-type-backfill"
+
+      - name: derive-obligations
+        # Wave 2 lane OBLIG: migration 290 (applied 2026-09-03) is populated from item_forward_events here.
+        if: env.RUN_STEP == 'derive-obligations' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/derive-obligations"
+          node scripts/maintenance/derive-obligations.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/derive-obligations"
+
+      - name: seed-corridors
+        # Wave 2 lane CORR: corridor identity rows on the entity spine (ADR-024 §4).
+        if: env.RUN_STEP == 'seed-corridors' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/seed-corridors"
+          node scripts/maintenance/seed-corridors.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/seed-corridors"
 
       - name: census-off-vertical
         # Gated on ruling R-A (open). apply requires --arg archive or park; 'archive' is currently

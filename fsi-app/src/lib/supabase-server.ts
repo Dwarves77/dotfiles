@@ -509,6 +509,12 @@ async function fetchWorkspaceResources(
     ? serviceClient
         .rpc(rpcName, { p_org_id: orgId })
         .order("added_date", { ascending: false, nullsFirst: false })
+        // Tiebreaker (2026-09-03): a mint batch stamps one added_date on every item it inserts, so
+        // ordering by added_date alone leaves ties in undefined order and the server's first page
+        // and the client's remainder page (two separate queries) can overlap at the boundary. The
+        // /regulations ledger rendered the same record item twice because of this. A total order
+        // needs a unique second key.
+        .order("id", { ascending: true })
         .range(options.page.offset, options.page.offset + options.page.limit - 1)
     : serviceClient.rpc(rpcName, { p_org_id: orgId });
   const { data: items, error } = await itemsQuery;

@@ -8250,3 +8250,22 @@ free EUA series); the surface says so.
 `seed-corridors` dry → apply; `producers` apply for `desnz-emission-factors` on the runner (the fetch
 runs there); `maintenance` → `source-type-backfill` dry → apply. Then Wave 3 (COMMUNITY, SPEC-09) with
 the operator's R-H and R-G rulings asked one at a time. No population dispatch.
+
+### Addendum 84, postscript 19 — Wave 2 live; the ledger duplicate; the two maintenance steps the applies need (2026-09-03)
+
+Wave 2 (#536, `d60124b9`) deployed to production with no runtime errors; `/regulations` renders the
+obligation register's honest empty state ("0 obligations … derived from 903 dated forward events").
+Reading the page found a defect: the same record item rendered twice in the Monitor band (2003/288/EC,
+94/741/EC). Live DB has one row each [CONFIRMED]. Root cause: the first-paint page (server) and the
+remainder page (`/api/listings/rest`) are two separate queries ordered by `added_date DESC` only; a mint
+batch stamps one `added_date` on every item it inserts, so ties are in undefined order and the two pages
+overlap at the boundary. Fix at the root: `.order("id")` tiebreaker in `fetchWorkspaceResources`
+(`supabase-server.ts`), plus `dedupeById` at the concat seam in both ledgers so a stale client never
+renders one item twice. The population train will make this class common (whole batches share a
+timestamp), so it had to be structural.
+
+The two coordinator applies Wave 2 created had no runtime step (OBLIG and CORR could not write
+`maintenance.yml`): `derive-obligations` and `seed-corridors` added as MAINT wrappers (tests, workflow
+options, runbook §4b/§4c). Dispatch order after this lands: `maintenance` → `source-type-backfill`,
+`derive-obligations`, `seed-corridors` (dry, then apply, reading each artifact against its table);
+`producers` → `desnz-emission-factors` apply (the runner fetches the workbook).

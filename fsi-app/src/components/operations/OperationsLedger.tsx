@@ -207,6 +207,18 @@ const DEFAULT_REGIONS: Region[] = [
 
 /** A sourced sub-national cost fact (state_cost_facts) — each carries its own
  *  statute citation + source, never a national average (migration 152). */
+/** Keep the first occurrence of each id (pure). */
+function dedupeById<T extends { id: string }>(rows: T[]): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const r of rows) {
+    if (seen.has(r.id)) continue;
+    seen.add(r.id);
+    out.push(r);
+  }
+  return out;
+}
+
 export interface StateCostFactVM {
   stateCode: string;
   factLabel: string;
@@ -306,7 +318,8 @@ export function OperationsLedger({
   }, []);
 
   const allRegulationsByRegion = useMemo(
-    () => regulationsByRegion.concat(restRegulations),
+    // Dedupe at the two-page seam (2026-09-03; see RegulationsLedger for the same fix and why).
+    () => dedupeById(regulationsByRegion.concat(restRegulations)),
     [regulationsByRegion, restRegulations]
   );
 
