@@ -1,0 +1,2003 @@
+{
+ "counts": {
+  "off_vertical": 1118,
+  "ambiguous": 244
+ },
+ "off_vertical_by_rule": {
+  "rule:vehicle_safety_standard_us": 5,
+  "rule:faa_airspace_administration": 22,
+  "rule:financial_services_administration_us": 6,
+  "reviewed:reviewed": 510,
+  "rule:nuclear_regulatory_administration": 5,
+  "rule:air_transport_bilateral_agreements": 38,
+  "rule:denylist_vehicle_type_approval_correction": 115,
+  "rule:unece_vehicle_technical_regulation": 27,
+  "rule:inland_transport_committee_bilateral": 26,
+  "rule:faa_airworthiness_directive": 49,
+  "rule:fda_medical_device_classification": 13,
+  "rule:wildlife_species_listing": 9,
+  "rule:dangerous_goods_carriage": 23,
+  "rule:uscg_safety_security_zone": 75,
+  "rule:vehicle_construction_and_use": 49,
+  "rule:fisheries_management": 15,
+  "rule:air_carrier_operating_ban_list": 8,
+  "rule:goods_vehicle_operator_licensing": 4,
+  "rule:rail_technical_specification_interoperability": 13,
+  "rule:denylist_language_correction_broad": 9,
+  "rule:road_transport_market_access_administration": 5,
+  "rule:federal_acquisition_regulation": 7,
+  "rule:social_legislation_road_transport": 4,
+  "rule:road_transport_driver_work_administration": 6,
+  "rule:immigration_administration": 6,
+  "rule:inland_waterway_transport_administration": 10,
+  "rule:otif_rail_interoperability_bilateral": 9,
+  "rule:civil_rights_nondiscrimination_program": 8,
+  "rule:single_electronic_reporting_format_taxonomy": 6,
+  "rule:vehicle_type_approval_market_surveillance": 2,
+  "rule:vehicle_roadworthiness_testing": 6,
+  "rule:denylist_customs_tariff_nomenclature": 1,
+  "rule:road_transport_occupation_access_administration": 3,
+  "rule:tachograph_driver_recording": 5,
+  "rule:controlled_substances_scheduling": 5,
+  "rule:pesticide_tolerances": 6,
+  "rule:transport_statistical_returns_administration": 2,
+  "rule:customs_trade_formalities_simplification": 2,
+  "rule:denylist_seafarer_certification_recognition": 2,
+  "rule:coal_mine_safety_administration": 1,
+  "rule:celex_root_union_customs_code": 1
+ },
+ "ambiguous": [
+  {
+   "row_id": "00cb7a10-b55c-4087-a88b-389cb86f69b8",
+   "document_url": "https://www.mlit.go.jp/en/maritime/maritime_fr10_000004.html",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (Japan MLIT maritime bureau document, bare numeric/ISO-incorporation slug gives no reliable subject signal)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "06970c6d-7d4a-4e61-9edd-c4bcae702757",
+   "document_url": "https://participate.melbourne.vic.gov.au/amendment-c376/amendment-overview",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (Melbourne planning-scheme amendment C376, subject not determinable from slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "09804928-2f25-4749-bd88-d62ed96a268b",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601703",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "09c79f4b-37c7-4037-b9fd-627895c2da18",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202690513",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "0d169f90-6fab-4ba0-a8f2-70a7f1cf51cc",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32020D2253",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "0df40e04-9f9a-468b-9e0f-e976d1724e74",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31973H0157",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "0e53f607-3f2b-4df0-be1c-53226a066a56",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31976D0545",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "0f0535f2-8162-4ff0-9fc7-55a06c4676a9",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601378",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "0f1b77bd-d165-44f8-b101-90b6f6048673",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:22003D0009",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (EEA Joint Committee decision amending a technical-regulations annex whose specific subject is not named in the title)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "0fa20318-ab8c-4913-b589-8dddb516e0ad",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601550",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "11e50ca4-15b5-4c73-851c-ee4179060325",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32008D0275",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "122a94f7-289e-44be-a5bb-ad65671ba85e",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601541",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "125107e8-fb24-4c26-b04f-543b5737472e",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011R0390",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "1573f4e0-b664-43f6-84bc-d06f8c5e8521",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601733",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "1825be73-bc9a-43ec-b659-904c7e1062a0",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601553",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "1b85f80d-3f12-4810-8845-1f1977d83eb8",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601451",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "1c655c99-e440-47e6-9118-712abcae5255",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601698",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "1cafb0c6-886b-41aa-9d9b-9faf12ad8f72",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601422",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "1cf2c0fa-464f-409d-aece-e87df59ea9e1",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601440",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "1cf5c8ab-cdd7-4801-a87c-355bfadea6f2",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32012D0218",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "1d0a155d-7987-4305-ae16-c23a8ae9aef4",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601384",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "1ed7dbbf-9e93-48cc-a954-3c81ae708896",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601391",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "217a9c24-3f96-4c7c-8c56-bf6ff3a54d73",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32012R0749",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "226c8740-f552-4d48-a871-f1fbade788ad",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601692",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "237cfe69-089a-4f5e-b542-d7326eac5f07",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32017D2170",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "24035b16-fab0-4619-b9d6-1248c2745595",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32018R0407",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "24987a2a-c12b-4be7-b3db-759df1fad2fa",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31995R1359",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "24b091da-1cdb-4f83-802f-e0f689c488c4",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601453",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "2515eebf-ec36-4427-862e-0ed5d26696e5",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32020R0005",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "258182c2-297d-4f3b-94e6-b28dd2325423",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601446",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "267e4f57-02d0-4ba4-9f72-ef1dbb107c90",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32020D1262",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "2760cd7e-2c12-46c6-8fcb-c2cba3743f56",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024D0767",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "294ef69d-9e48-456d-82ed-775d58615ad6",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:22003D0013",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "2b441621-4a06-409e-af8c-ef25eef62c23",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601388",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "2cd3919d-98aa-4ed4-aa87-34274e099423",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601022",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "2d009595-7919-4045-9b7d-e3beb444db49",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32010R1233",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "2d646965-22e5-4081-921c-9799e565cdb6",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31998D0637",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "2f8ae07d-8f9e-41bc-b63a-32758f336682",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601556",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "31d440ad-3c5d-4067-9ad1-7362479abbaf",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32013R0268",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "3386929e-dfeb-4f1b-80c0-cdba6664f62b",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202600908",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "3391bce6-24d2-4d90-9dfc-8a02cab47945",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32006R2038",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "3395888c-c551-49a6-9c82-81e62b6956fa",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202600788",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "358e18ca-b505-4a80-a273-ce110209ed12",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31976H0492",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "36016d43-90e8-46aa-a311-ef86c8ad92e4",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601724",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "365365be-9e54-4a83-b267-724432feef89",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32020R1279",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "36d40ee7-9d76-44be-baab-2ac3e6ecc774",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32021R0842",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "3a237c53-3d04-4966-a39b-df2f9306f649",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202690583",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "3b48014d-5991-4704-9a2c-da4ad30fe64d",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601382",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "3b55d18d-22bd-43af-b93f-d11b07a28c41",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31983D0563",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "3b741efc-ab69-4282-a4b1-40c0ed04a890",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32009D0158",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "3baa9f88-35f2-4f58-a3dd-fbe25eea8272",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601710",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "3c70d0bb-ecae-4156-a754-94e51a2f556a",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601406",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "3d57ec9c-36b5-48ad-bb9b-9fcc3cf38795",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601376",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "3dfea4c2-9c61-425b-8b4e-02e7e541817d",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601265",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "3f2ef9b3-195c-4e4f-b8dc-999dd20755df",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601260",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "4004b7ec-edad-4af2-b4c7-d884ee4455d4",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31975Y0425(01)",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "40fa315f-af2b-4a7d-bd68-89b8f6c7eefc",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32021D1359",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "4320ac00-7e5e-4737-a385-a82d062d38c6",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601554",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "436b4f74-4ec4-4986-a2c2-586bf30b4d0c",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31971Y0119(01)",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "44826b18-f455-454a-b925-7a0edb33f4f8",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601284",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "4690552d-2415-4420-81fa-3728170fae3f",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601551",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "4789b472-6c3f-4a17-97e4-fb5f5b82b991",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019R0942",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "47c56484-1890-4597-a24d-df6f0358bc3e",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023D0179",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "48421ab4-d579-4b65-9e67-7d13e470b7fb",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32006R0242",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "4a519181-59c5-4b57-b097-d1baccd1a96d",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601778",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "4ddca6e8-4a3e-4d5d-8616-9db3b1d42689",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011R1178",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "4e32eb05-8b98-4a18-9041-01252186f94a",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31970L0157",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "4f1cd012-df8b-4726-837f-7f4b75772697",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:22006D0919",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "4f4ff25c-544c-4569-ade5-95783f82f0a5",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601559",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "521c3e04-9162-4321-9bc5-559faa2b1740",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601463",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "5404a3c6-efd6-47e1-9a64-4b06415f0218",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32009D0602",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "55a4bd34-bd73-45b1-9176-400a5ecd8bc0",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202690491",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "55e086b2-9e54-44f7-87d7-396ab9404b12",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601264",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "57a09565-3594-4423-8727-252ab030e658",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31989A0082",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "595dbdb4-9d69-4499-ae47-36f0c02e4ee4",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32008D0099",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "5a50b116-7683-4e15-a25d-d6f2c3902b4c",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32021D1780",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "5e205892-a254-4038-a236-22a4364c8643",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024D1677",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "5f274a99-be27-4962-8fad-4ab3cb383ccd",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601696",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "5f6a038d-b66a-4344-92f5-f6149856ddc2",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21982D0621(03)",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "613b7197-8488-499c-b76c-0163c3cf2b23",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0352",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "624ac09d-3fa2-4968-8fca-afa9676e1675",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32008R0360",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "6353d5d3-94d5-4753-8067-dc66fc324681",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31982D0063",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "6381e731-3c18-40fb-ac5d-a402fe277d04",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31993D0109",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "642d9466-8232-4554-bbf1-9d06ca17cff7",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601412",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "644427e6-bea8-46ff-bd69-31666c4a8227",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R1184",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "651bec0c-a605-4f4f-a23a-4bb2836af004",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21978A0408(01)",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "6696b94c-7e1f-4676-b462-ce35f3cc41de",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601507",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "67099b5c-e733-445b-af39-c5fb1c945a68",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32021R1767",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "67693826-5c50-44c8-a5f9-c303f0746388",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601728",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "69a12224-7566-4a92-b33c-41893bf013c1",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601410",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "6fb3e95e-75b5-49c6-9f13-da2d4e8fb15d",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32006D0207",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "702dd412-4c93-4efa-ad65-afdcf02dadcc",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32014D0035",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "70437d50-8a53-4320-b3c9-e25776a66b20",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32014R1213",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "7056c30c-305a-44ed-9992-f240c64a1c91",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022R2468",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "716fea70-5520-47bb-838e-2450625b5357",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022R1645",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "71f3f5cc-76a9-4857-9347-76482d408117",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601417",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "729cf37d-12eb-422c-9ce2-2be9720fe157",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32002R2375",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "759f76d5-9109-49c4-97c1-ab6ccddb8ec8",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31980D1043",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "75b905ba-73a0-4c5d-8a15-ca3123183a1f",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31958D1127(01)",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "7742c472-73b9-4a40-a8fc-b7b6282abae5",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601433",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "77b75e87-98d3-40e3-8e72-7c910e7fb1fd",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601394",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "78c5145a-0b12-414b-b486-af86544ea154",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:22004A1204(01)",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "78ccc081-2bd1-4136-b5a2-7a88b5b5efb6",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601398",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "7a31e1d0-1eba-4910-b026-96c190af2ead",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0539",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "7a6e3b6a-25f6-4e44-8dba-d7deff7955f0",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32010R1023",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "7afd1360-aaf5-4b0b-be00-4fe5a5a19c3d",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31960D0511",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "7ce1d848-3a01-406f-9f10-ed49d343e824",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601546",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "7e5df719-5a11-4faf-b3e0-04889528f53c",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31998D0732",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "7e83c4f8-024f-4ddd-b156-43639e9458aa",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202690591",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "7f5f1720-77c4-4efe-854e-b7ef6a8fdd25",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32017D0727",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "7f8cb73c-0caa-482f-90e1-233ec61c23f5",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32017R0378",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "801ec6bc-f3ba-4e2d-8ec3-4c981055ce19",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32020D1804",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "80b8ac88-e242-47a2-8813-39303946e2e9",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601511",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "8100ed80-c227-4ca1-8824-019434413863",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202600450",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "822db354-b915-44ae-9722-5b6582e4e455",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D2521",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "823a7a29-906f-48d6-872d-3eaf1a73fd93",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601565",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "8250235b-a724-4a31-9ec8-29f608860c9f",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31953D0030",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "82aeb296-5541-4493-9525-b57f628bec98",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601383",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "8396193f-d725-4d0d-9af2-52bd8f027adf",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32020D0414",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "83d2e467-0798-4b13-b84a-48dd5e990c01",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601737",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "8468d98a-9a01-470b-bda9-94e54e6a2f10",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011R0282",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "85c9a167-093c-483e-a92f-8f3dcc09fa0c",
+   "document_url": "https://www.mlit.go.jp/common/001021328.pdf",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (Japan MLIT maritime bureau document, bare numeric/ISO-incorporation slug gives no reliable subject signal)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "85cb566e-7cc2-40c4-9c1e-cf2eea504515",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202600789",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "85f2e796-18fe-4464-a9b7-2dddb988cf95",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32020L0285",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "86920321-985a-4430-b43a-8418e76ce6fc",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21994A1231(53)",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "871f149b-926c-4b81-86db-01a294f3a7ad",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31982D0515",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "87c6bb7b-a121-47da-b9a5-8867030ced55",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32013R1317",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "87f2ddf9-5672-4c25-b358-4bae29d01212",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32013D0237",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "8837ac45-9087-4547-a22a-cbdb49bd767a",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601700",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "89b63cb5-1540-4f6c-ac0d-2835175f21d2",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31981R0348",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "8bac4991-dbf4-4160-b03e-b103772f34ce",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31986S2526",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "8bcfc33c-a35a-40d1-beba-49f67b2b739b",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32003A1022(03)",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "8bd60840-a9fc-435b-bbb6-7a815575e7eb",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011D0665",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "8c5e1cf7-4468-4776-89a8-8fa6154eb409",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R0003",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "8d0595dd-35e0-4d9d-8ca1-b4ecfe2f1afa",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32006D0389",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "8d855edd-1e14-4c51-b28d-fcd6b0bcaf25",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601392",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "8efc2b2b-1a05-4d2a-8a2c-bf513782c4ff",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R1354",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "910ec075-293e-4629-8bed-083caaddaa8a",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601261",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "911a746b-33f0-4bb6-bce4-02829a97d682",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601393",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "93bbab19-7ebf-403e-b792-3f34fb745081",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601130",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "962eddd5-9085-4b16-8490-a51fb0795b31",
+   "document_url": "https://participate.melbourne.vic.gov.au/amendment-c376",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (Melbourne planning-scheme amendment C376, subject not determinable from slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "9803596f-d1bf-4249-a04a-984fccf056a1",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601454",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "985837ad-a5af-403b-a5f5-7efb27bc6bd5",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601471",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "99d9c6e3-be17-4179-b8aa-e38a0ac5a6da",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011R0234",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "9c44681f-2b91-461f-a859-5d14ec59aa13",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601549",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "9d1b2254-9514-4046-8595-ac027e5c0cae",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31975D0437",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "a57e9e7b-cd0b-44f1-b7fd-d51823fed69e",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601421",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "a6937d89-548b-45b8-9b13-e1ad228c6c8f",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31998D0710",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "a7bd9159-720b-404e-b19c-77cc7412b78c",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32016R0145",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "a9838c6d-9851-489b-a131-9f1f2e6d707c",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202690506",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "a9eec3eb-02d0-46f1-a120-1c686c39c419",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31974H0390",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ab7e6c12-80ce-4da3-ad26-bb9733ba0396",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601409",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "abaf0342-dc17-4db5-bdf7-bfda7f496087",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32014D0848",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "abcd969a-79a9-4d7b-a3b3-13af2b20ad0e",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601457",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ac276e38-49c3-4f70-b435-2feebf40e755",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31968L0221",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ac394822-4a98-4c7c-973a-3190420e60fe",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601734",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ac9f17d4-ebbc-4e47-bf43-f97f973b1877",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022R1637",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ad8d0636-eb28-4416-ae6d-40c3e97b89d3",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011D0225",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ae9629ba-e0d9-4dfb-af92-193792e679e9",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D1286",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ae9fcdee-8b02-4869-88bd-1d1093d800bf",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31986Y0924(01)",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "aeab5641-aa64-44e8-85bf-2dbf7d9d3189",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32018R1975",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "af34abe8-ecd6-408b-9523-483044e718eb",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601386",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "af81da12-d5c1-410c-97c5-0d960a5f50dd",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R1131",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "afc00051-8576-4663-8d95-5423c33c21c9",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601472",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "b035a43a-c7c5-430e-8e3a-a7d0a0fd2f3a",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601373",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "b0874704-d21b-4c0d-88c1-1afe3c97951c",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31998R2518",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "b0f4f603-6a8d-4a19-857f-8775067f5ce3",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011R0626",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "b1090dc5-f155-4294-8d0d-279e3551a70e",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31984D0517",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "b3555a49-dd5b-4e21-8ca7-f00ae0ef7393",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015R1185",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "b3cf161a-368f-4e53-a3b2-02bf35a5ce39",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32006R0341",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "b3feacb4-3dbb-4d6a-afdc-9876dfcb1d40",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:22015A1219(02)",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "b4336ed8-4175-4a11-99bf-f65e36137749",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31964D0732",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "b4c2eaea-c00a-481d-99cb-a44a0857c216",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31993R3199",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "b5b2a5b2-2835-4eff-ad99-405d91b26af9",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019R0532",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "b7019a56-fe35-488d-a4b4-33c5e451a696",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31971D0275",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "b71e4dd2-a7de-4c77-be21-a087e6721e46",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601367",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "b842e33b-4667-4f8f-91e3-89973b1c5fc8",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601793",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "b8936ca2-4a68-4d66-8eb7-85269c76747b",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601375",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "b8ce70e5-5a3d-4c99-8bd2-578048238f45",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601455",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "b97e00af-beaa-4f99-a241-90cbd6b571d1",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31990L0653",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ba9560d3-834d-4527-8a4a-5a1fa003cb8e",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601720",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "bcb47de7-6efb-46a1-8366-2f83fbfc4992",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601460",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "bd4e5c5e-91d3-41e5-9817-748a7367ff2d",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025D1058",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "bd78fb9d-836d-477c-abf6-5b08be0967c5",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32010L0061",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "bda1c653-3b99-42c6-9848-ee54de5cf375",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32020D0491",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "bdf63e54-c4e2-497b-83b9-fd89b6bec8ee",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31987R3985",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "beaedaab-d31c-42ad-9ad2-352361fcf92c",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32006L0079",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "c0fdfa40-9419-46e3-8fd2-311e5f121ac6",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32014R0352",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "c15219ec-d426-4d9a-8729-308b3e3fdf2d",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601427",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "c328f878-43fc-4fc2-9d7b-51970f3edbe9",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32013D0363",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "c41801c8-3a60-4cca-a174-9b1b4f04d9b4",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601404",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "c56b2917-9103-4d20-b440-bb637551cce6",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601547",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "c881685e-693e-41f3-a0be-91dff63c7d31",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601465",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ca6db5e6-d9d5-4a89-94cf-6611737aec11",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601736",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "cb6e2681-ebbb-4164-bca5-c48fe8eeeb65",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601535",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "cc47e8f5-2de6-40bb-b14a-fd3920cbf174",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601781",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ccd8f45c-849f-45e4-b6ba-224f83d971c4",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601702",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ce02a9b8-6e43-4065-bbe4-bcf8d7176685",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31960R0011",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "cfe567c0-9a07-445f-af99-26ff8f391085",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601263",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "d0a14dd8-a567-488f-a75c-d4d72d42ce70",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601418",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "d2f1fc5a-6b52-4efa-afba-84e77b92e8ec",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:22000D0215(01)",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "d39f1657-213e-4a75-8670-3bdf8f8a469b",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31983D0011",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "d3a2cc73-b01c-424f-8541-a89328b645b7",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32015R1011",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "d50f7f87-f454-42bd-884a-46132bce8ad3",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D2277",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "da48a684-b95e-4201-b8ac-cb2afcb7753d",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011R0343",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "da72282f-b536-4264-a87c-a205f51afc25",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601461",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "da7f7d7e-359b-47fb-b2e3-2d6dc6fba0fa",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601262",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "dbbd5998-aabc-4301-8057-bfdf16ff1d02",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32010L0045",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "dc1bcb13-f517-4608-abc5-f5e9287270c1",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601402",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "dc825b45-f4f0-466f-9adb-8669e6d17f65",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601805",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "dd9f4c56-a854-4c76-8154-d477419d83fb",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601395",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "de2d1b40-ad48-482e-b380-08a27800dbb9",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31981D0137",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "de427d59-ff2c-4925-8278-a3447e66f82f",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202690507",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "dec464ea-a582-4fea-9198-004c75502735",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31991R1796",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "df66a806-bf20-4954-856e-3e0d70e7ed99",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024D3205",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "df897521-24ee-4ea1-ad4a-ba29e955bc16",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R2163",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "dff0e44d-f569-4484-bfbd-b591e87188de",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601359",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "e3941583-25d5-456a-9002-d182b61953aa",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022D2087",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "e3cd9080-7568-43ba-97dc-63de9b9a5ae3",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32012L0050",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "e40b8c2f-dc74-45a4-87a8-8ae4e3b556a1",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32014R1113",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "e5fb9bc1-b254-46e3-892d-273dbc2c9db5",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31958R0003(01)",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "e6575446-2353-462c-9a8f-9bcdd7b19f38",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601432",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "e7135513-b544-47f9-8185-c0df6e5ed53e",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011R0113",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "e7a0bcba-c3f8-4338-af1d-1be8be5655ef",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601708",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "e7f9d455-24f3-4656-b73c-5b7cc4f6aa78",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601540",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "e9fe30e1-9c36-4c46-8b3f-992221f88abc",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:22010A0521(01)",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ea1229be-2b19-45da-9a00-d10a85182a8d",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31972D0436",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ea1c94c0-5e22-4711-b75b-5bcee1eb367b",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601285",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "eaf07400-2d57-4e1d-a515-e09926b6e908",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31971G0055",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "eb23cb73-cd61-42f6-ae42-e2b0707b3e00",
+   "document_url": "http://www.mlit.go.jp/english/2006/j_maritime_bureau/incorporation_of_ISO_pdf.pdf",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (Japan MLIT maritime bureau document, bare numeric/ISO-incorporation slug gives no reliable subject signal)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "eb4af8a7-bf34-4978-80c3-8095a95dd9ca",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601259",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ecc6e5bc-e0d1-44d4-a066-dfa05b672d0d",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601566",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ee50275e-3b41-4c68-84b4-03d3342ea72f",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025R0772",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ee846ef3-2f3e-4127-98fd-d3fbca656124",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32013R0305",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "ef478f03-71ba-4381-8376-57fce3ad6c16",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31968L0297",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "f07a9875-3347-4b13-b2bc-d36151f2e34a",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601380",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "f198f2c6-6c3d-470b-8832-716b4a3d6324",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31970R1523",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "f214da2d-c586-41bb-a96e-e292ecdc7c91",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202600807",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "f62a3e77-1fd0-440a-af1c-9b14ae7b6a28",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601371",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "faacbf42-a189-4df7-83d2-1ee623bc62b8",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601444",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "fd1e926d-994d-4f7c-a0ca-6d3f871d0a9b",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21959A1006(01)",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "fd420f5e-4af2-474e-9a22-3477ef1f5a2d",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601508",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "fde6e395-0ee8-4686-97cf-bcbb9f1bef9d",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001A1005(01)",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  },
+  {
+   "row_id": "fe7b527b-8009-4de9-ba9b-6611513c69ad",
+   "document_url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019D0659",
+   "verdict": "ambiguous",
+   "rule": null,
+   "basis": "title insufficient — needs document fetch (bare EUR-Lex CELEX link, no title text and no informative URL slug)",
+   "provenance": "reviewed"
+  }
+ ]
+}
