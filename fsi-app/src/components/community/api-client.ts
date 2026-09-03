@@ -8,7 +8,8 @@
  * call at module scope under src/**), safe to import from a client OR server component. Each accepts
  * an optional `fetchImpl` so tests can inject a stub instead of touching the network — the `fixtures`
  * export below is the canned data those stubs return, and it doubles as the shape reference for the
- * rendering-guard fixtures under `.discipline/rendering/fixtures-community/`.
+ * REAL-component UX smoke spec `.discipline/rendering/smoke/community-smoke.mjs` (mounts PostList,
+ * Post, and PeersDiscussingStrip against fixture data shaped from this same contract).
  *
  * A's routes did not exist in this worktree at write time (sibling lane, separate worktree) — these
  * wrappers are built strictly from the contract text in the wave3 plan, never from reading A's code.

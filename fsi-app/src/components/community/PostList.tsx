@@ -17,6 +17,11 @@ import { useCallback, useEffect, useState } from "react";
 import { PostComposer, type CommunityPost } from "./PostComposer";
 import { Post } from "./Post";
 import type { CommunityEntityRef } from "./types";
+// `@/` form (not relative) — see Post.tsx's own import comment for why: the rendering-guard smoke
+// harness aliases this specifier to a no-op stub; the real Next.js app bundles it natively. Imported
+// here too (not only transitively via Post.tsx) so the `cl-comm-row`/`cl-comm-row-aside` mobile
+// stacking rule below applies even if this module is ever bundled without Post.tsx in the chunk.
+import "@/components/community/community.css";
 
 interface PostListProps {
   groupId: string;
@@ -117,6 +122,7 @@ export function PostList({
   return (
     <section aria-label="Group posts" style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       <div
+        className="cl-comm-row"
         style={{
           display: "flex",
           alignItems: "baseline",
@@ -145,7 +151,10 @@ export function PostList({
           Discussion
         </h2>
         {!loading && !error && (
-          <span style={{ fontSize: 11, color: "var(--color-text-muted)", flexShrink: 0 }}>
+          <span
+            className="cl-comm-row-aside"
+            style={{ fontSize: 11, color: "var(--color-text-muted)", flexShrink: 0 }}
+          >
             {posts.length} post{posts.length === 1 ? "" : "s"}
             {nextCursor ? "+" : ""}
           </span>

@@ -4,7 +4,8 @@
  * component 6). No JSX, no fetch, no DOM — kept separate from the .tsx components that use them so
  * `node --test` can prove the logic directly (Node's built-in type-stripping loader handles a plain
  * relative .ts import; it cannot transform JSX, which is why the components themselves are proven
- * through the rendering guard instead — see .discipline/rendering/fixtures-community/).
+ * through the rendering guard instead — see .discipline/rendering/smoke/community-smoke.mjs, which
+ * mounts the real PostList/Post/PeersDiscussingStrip components).
  */
 
 import type { AuthorIdentityProjection } from "./api-client";
