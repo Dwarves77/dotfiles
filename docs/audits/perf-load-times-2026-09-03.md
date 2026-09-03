@@ -270,3 +270,340 @@ only.
   relevance/notes/ownership are, and may be cacheable the same way
   `fetchIntelligenceItem` already is). Files: `src/lib/supabase-server.ts`,
   `src/app/market/[slug]/page.tsx`.
+
+## 7. After PERF (measured 2026-09-03 07:15-07:24 UTC, deployment `dpl_Cx7hhuqXA3Ja34z6YwieuTBe19wS`)
+
+[CONFIRMED] Production alias `carosledge.com` resolves to deployment
+`dpl_Cx7hhuqXA3Ja34z6YwieuTBe19wS`, `target: production`, `readyState:
+READY`, `githubCommitSha: 9ebe0bb176f4e2a8052f56f18c6ceaa363d17a4f` — exactly
+the PERF commit, verified via `get_deployment` before measuring. Same
+method as §1-§3: `performance.getEntriesByType('navigation'/'resource')`
+read from inside the page (immune to MCP round-trip latency), signed in as
+the operator, region `iad1`.
+
+### 7.1 Full-navigation loads — before → after
+
+server-render = DCL − TTFB. Requests count includes the document itself.
+
+| Page | server-render before→after | transfer before→after | requests before→after |
+|---|---|---|---|
+| `/` cold | 3398→3130ms | 46.7→45.8KB | —→26 |
+| `/` warm | 1321→1599ms | 45.9→46.1KB | 25→26 |
+| `/regulations` cold | 1736→2092ms | 64.0→64.3KB | 25→28 |
+| `/regulations` warm | 1515→1094ms | 63.8→64.3KB | 26→28 |
+| `/market` cold | 1481→1420ms | 49.9→50.4KB | 28→30 |
+| `/market` warm | 744→1224ms | 49.9→50.8KB | 28→30 |
+| `/research` cold | 1886→1736ms | 21.7→22.0KB | 22→23 |
+| `/research` warm | 655→863ms | 21.9→22.2KB | 22→23 |
+| `/operations` cold | 1077→1166ms | 48.5→49.5KB | 25→27 |
+| `/operations` warm | 829→950ms | 48.5→49.2KB | 25→27 |
+| `/community` cold | 2094→2867ms | 13.0→13.1KB | 22→23 |
+| `/community` warm | 2999→1431ms | 13.0→13.0KB | 22→23 |
+
+[CONFIRMED] No consistent full-navigation win or loss — some routes faster,
+some slower, request counts up by 1-3 everywhere (new `loading.tsx` per
+route adds its own chunk). This PERF change targeted the *click-through*
+path, not full navigations, and §1's own note that identical requests vary
+run-to-run (`/community` warm was slower than cold in the baseline too)
+applies again here — treat full-nav deltas as noise, not signal.
+
+### 7.2 Click-through (list → detail) — before → after
+
+All durations are in-page `performance.now()`/resource-timing deltas
+(§2's authoritative method), not cross-call wall clock.
+
+| Surface → item | server `[perf]` before→after | client fetch duration before→after | settle before→after | skeleton before→after | cache |
+|---|---|---|---|---|---|
+| Regulations → EU Net-Zero (cold) | n/a→**1182ms** | 2054→2025ms | ~2.4s→2436ms | **no→yes** (~1ms) | MISS→MISS |
+| Regulations → g14 Mexico SEMARNAT (warm) | 1279→**1257ms** | 1804→1634ms | ~2.7s→1699ms | no→yes (~1ms) | MISS→MISS, **HTTP 503 reproduced** |
+| Market → f3510df3 Loadstar (cold) | 1905→**825ms** (−57%) | 2115→1183ms | ~3.2s→1939ms | no→yes (~0.5ms) | MISS→MISS |
+| Market → South Korea K-Taxonomy (warm) | n/a→**751ms** | n/a→941ms | n/a→999ms | no→yes (~2ms) | MISS→MISS |
+| Operations → India (cold) | 1262→**733ms** (−42%) | 1456→953ms | ~2.4s→1210ms | no→yes (~1ms) | MISS→MISS |
+| Operations → Singapore (warm) | n/a→**727ms** | n/a→933ms | n/a→993ms | no→yes (~2ms) | MISS→MISS |
+| Research → Mission Innovation (cold) | 1597→**715ms** (−55%) | 1939→1135ms | ~3.0s→1314ms | no→yes (~1ms) | MISS→MISS |
+| Research → Tyndall Centre (warm) | n/a→**1052ms** | n/a→1399ms | n/a→1997ms | no→yes (~2ms) | MISS→MISS |
+
+[CONFIRMED] Every single click now paints a skeleton within 0.5-2ms —
+`loading.tsx` per route is live and working exactly as designed; this is
+the clearest, unambiguous win in this change (§5 root cause #3 from the
+baseline is fixed).
+
+[CONFIRMED] Market, Operations and Research detail server render time
+(the `[perf] … data` line) dropped 42-57% vs. the matching baseline item —
+consistent with the commit's claim of collapsing 6-9 sequential Supabase
+round trips into one parallel load.
+
+[CONFIRMED] **Regulations detail server render time did not improve**:
+1182-1257ms after vs. 1279ms baseline (same `g14` item, ±2%, within normal
+run-to-run noise) — statistically indistinguishable from before, while the
+other three surfaces improved by roughly half. Regulations is also the one
+surface where an **HTTP 503 on the RSC request reproduced live** during
+this run (`GET /regulations/g14?_rsc=1fiot` → 503, per
+`read_network_requests`) — the same failure mode §2/§4 documented from the
+baseline. [INFERRED] The resource-timing entry for that same URL shows a
+single 200 response with the full 1634ms duration and the page did land on
+`/regulations/g14` correctly, so the framework silently retried and the
+user never saw a broken page — but the retry is not free, and a 503 on the
+very click this PERF change targeted suggests the regulations fan-out
+collapse either didn't fully land or is still hitting the same
+saturation-adjacent path under concurrent load that §4's code comment
+warned about. **This 503 did not appear in Vercel's function-level runtime
+logs** for this window (`get_runtime_logs` with `statusCode: 5xx` returned
+zero rows, and `group_by: statusCode` showed only `200`) — [INFERRED] it
+was rejected before reaching the Lambda (edge/proxy layer), which is
+consistent with a Supabase-connection-exhaustion-style 503 rather than an
+application error, but this measurement pass cannot confirm the exact
+layer.
+
+[CONFIRMED] Warm (second-click, prefetch-eligible) server times are **not**
+meaningfully lower than cold on any surface (Operations 733→727ms,
+Regulations 1182→1257ms i.e. slightly *higher*, Market 825→751ms only
+~9% lower) — a prefetched RSC payload should look close to instant, and
+none do. [CONFIRMED, Vercel logs] Every detail request, cold or warm, still
+shows `cache=MISS`; `next.config.ts`'s `Cache-Control: private` is
+unchanged, so §5 root cause #2 from the baseline still holds in full:
+prefetch can warm the static shell but not a per-org, uncacheable RSC data
+payload, so "prefetch restored" does not make a second click materially
+faster — it only lets the fetch start marginally earlier (client:
+click→fetch-start is 0.3-2.2ms across the board here, vs. ~320-350ms in
+the baseline, itself a real, separate win worth noting: the click-to-fetch
+dispatch got much faster, just not the fetch itself).
+
+### 7.3 Vercel runtime logs (last 30 min, `dpl_Cx7hhuqXA3Ja34z6YwieuTBe19wS`, `iad1`)
+
+Slowest 10 `[perf]` lines in the window (this run's own traffic — no other
+production traffic observed):
+
+| Rank | Line | Duration |
+|---|---|---|
+| 1 | `getListingsOnly` (`/api/listings/rest`, regulations backfill) | 1787ms |
+| 2 | `getAppData` (`/` cold) | 1515ms |
+| 3 | `getListingsOnly` (`/community` client backfill) | 1481ms |
+| 4 | `/regulations/g14 data` | 1257ms |
+| 5 | `/regulations/eu-net-zero-industry-act-2024-1735 data` | 1182ms |
+| 6 | `getResourcesOnly` (`/api/listings/rest`, operations backfill) | 1075ms |
+| 7 | `/research/tyndall-centre-… data` | 1052ms |
+| 8 | `/regulations data` (index page primary load) | 872ms |
+| 9 | `/research data` (index page primary load) | 830ms |
+| 10 | `/market/f3510df3-… data` | 825ms |
+
+[CONFIRMED] 5xx count in Vercel function-level runtime logs for this
+window: **0** (`statusCode: 5xx` query returned no rows; `group_by:
+statusCode` showed only `200`, "2 distinct values" reported but the second
+never surfaced under any statusCode filter tried — see 7.2's 503 note).
+
+[CONFIRMED] The client-triggered index-page backfill fetches
+(`getListingsOnly`/`getResourcesOnly` via `/api/listings/rest`, baseline
+root cause #4) are **unchanged by this PERF pass** — still 0.18-1.79s,
+same shape and same magnitude as the baseline's 1.4-1.79s figures. This
+was never in scope for this commit and remains exactly as documented.
+
+### 7.4 Summary
+
+**What improved**: the click-to-skeleton gap, which was the baseline's
+starkest usability problem (§5 root cause #3 — no `loading.tsx` anywhere
+but the root, so every click looked frozen for 1-2+ seconds) is fixed
+outright — every click across all four surfaces now paints a skeleton in
+under 2ms [CONFIRMED]. Server render time for Market, Operations and
+Research detail pages also genuinely dropped 42-57%
+[CONFIRMED, matches the commit's "collapse fan-out into one cached
+parallel load" claim]. **What did not improve**: (a) Regulations detail
+server time is unchanged from baseline and its click reproduced the same
+HTTP 503 the baseline first surfaced [CONFIRMED]; (b) no surface's warm
+(prefetched) click is materially faster than its cold click, because every
+RSC request — cold or warm — is still `cache=MISS` under the unchanged
+`Cache-Control: private` policy, so "prefetch restored" cannot mask a
+per-org uncacheable payload the way it would a cacheable one [CONFIRMED];
+(c) the index-page client backfill fetch (up to 1.8s) is untouched
+[CONFIRMED]. **Single most likely remaining cause clicks still aren't
+instant**: every detail click still pays a full, live, uncached
+Supabase-backed server render (0.7-1.3s) on every single click regardless
+of prior visits or prefetch, because the RSC payload is per-org and
+therefore `Cache-Control: private` by design — skeletons now hide this
+wait but do not remove it. [HYPOTHESIS] The regulations route specifically
+looks like it did not receive the same fan-out collapse the other three
+did (unchanged latency, reproduced 503), which points first at
+`src/app/regulations/[slug]/page.tsx` — worth checking whether it was
+actually migrated onto the commit's new
+`src/lib/detail/load-detail-core.ts` control flow the way market,
+operations and research evidently were.
+
+## 8. PERF-2 diagnosis (2026-09-03)
+
+Scope: root-cause diagnosis + structural fix for the two facts PERF-2's brief
+named CONFIRMED-in-production after the PERF lane's own fix (#540,
+`9ebe0bb1`) landed: (A) `/regulations/[slug]` stayed slower than
+market/operations/research on the same shared loader, and (B) a 503 on an
+RSC request that never appears in Vercel's function logs. Base commit
+`6776934d` (post-#540; the PERF lane's `loadDetail`/`loadDetailCore` shared
+shape, §1–§6 above, is already live). All claims below are labelled by
+evidence status per the lane contract.
+
+### (A) why regulations stayed slower — evidence
+
+[CONFIRMED, by reading] `loadDetail()` (`src/lib/detail/load-detail-core.ts`)
+already parallelizes its own item-scoped/viewer-scoped/sections bundle via
+one `Promise.all` (§4/§6 above; unchanged by this lane). But
+`/regulations/[slug]/page.tsx` is the ONLY one of the four detail pages that
+also renders two MORE async Server Components — `<ObligationRegister
+itemId variant="detail">` (its own section below the surface) and
+`<UpcomingObligationsStrip variant="detail" itemId>` (passed as
+`RegulationDetailSurface`'s `upcomingObligations` prop) — confirmed absent
+from `src/app/{market,operations,research}/[slug]/page.tsx` by grep (neither
+import appears in any of the three).
+
+[CONFIRMED, by reading] The page's own function body is `async`, and does
+`const result = await loadDetail(...)` BEFORE it reaches the `return
+(<>...</>)` statement that instantiates `<ObligationRegister>` /
+`<UpcomingObligationsStrip>`. This is a plain JS execution-order fact, not a
+React-scheduling nuance: the function cannot even construct those elements
+until the `await` above it resolves. Each of the two components then opens
+its OWN `createSupabaseServerClient()` (a *different*, request-scoped client
+from `loadDetail`'s service-role one) and does its own legacy_id→uuid
+resolution query before its main read — none of it overlapped with
+`loadDetail`'s own work, all of it paid strictly afterward, on every single
+render, uncached.
+
+[CONFIRMED, `node --test`] `src/lib/detail/regulation-obligations-core.test.mjs`
+mounts this exact composition shape with a stubbed call log and prints the
+ordered timeline for both the pre-lane shape and the fix:
+
+```
+BEFORE — await loadDetail(), then await obligations (STAGE_MS=30 each):
+  start:loadDetail → end:loadDetail → start:obligations → end:obligations
+  wall time: ~61ms   (obligations does not start until loadDetail ends)
+
+AFTER  — Promise.all([loadDetail(), obligations]):
+  start:loadDetail, start:obligations (both before either ends) → end, end
+  wall time: ~31ms   (~= the slower of the two stages, not the sum)
+```
+
+(The same file's other 4 tests prove `loadRegulationObligations`'s own
+control flow: id resolved once then register+upcoming fetched in parallel;
+an unresolved id returns empty arrays without calling either fetch;
+resolution/fetch errors soft-fail to empty arrays rather than throwing.)
+
+Estimated share of the regulations-vs-others gap this fix collapses: the two
+extra components' own Supabase round trips (resolution + main read, ×2,
+previously serial-after-loadDetail) — consistent with the audit's own §2
+server `[perf]` figures (regulations' logged `data` timing already only
+covers `loadDetail`'s cost, meaning the ADDITIONAL render-tree cost these two
+components paid was invisible to that log line entirely; this lane's fix
+makes them run inside the same `Promise.all` window `loadDetail` occupies,
+so they add zero to wall time in the common case where they are not the
+slowest branch).
+
+### (B) the 503 with no Vercel log — evidence
+
+[CONFIRMED, live reproduction, this session, `carosledge.com`,
+`dpl_TU9Y9tK7HsBedATesoERMtX31rso`] Clicking "Mexico SEMARNAT" from
+`/regulations` into `/regulations/g14` reproduced the exact symptom: the
+browser's network log showed, in order, `GET /regulations/g14?_rsc=1kmdx
+503`, `GET /regulations/g14?_rsc=1v4qf 200`, `GET /regulations/g14?_rsc=jsprb
+503` — 2 of 3 requests for the SAME navigation failed. Following synthetic
+probes (single fetches, a 20-request concurrent burst, a 15-request
+multi-item concurrent burst, all issued from the same authenticated tab) did
+NOT reproduce a 503 — consistent with the condition being timing-sensitive
+around a cold/first-hit window rather than reproducible by raw concurrency
+alone, so the exact response headers on the two failing requests themselves
+were not captured (the browser network-request tool used does not expose
+response headers, and headers could only be captured on synthetic
+requests that all happened to return 200). This is reported honestly as a
+gap, not filled in.
+
+[CONFIRMED, live query, `mcp__Vercel__get_runtime_logs`, same project,
+90-minute window spanning the exact reproduction above] Grouping by
+`statusCode` over the last 3 hours returns exactly `{200: 328, 307: 9,
+204: 2}` — **zero 503s**, despite the two live 503s above having occurred
+inside that same window. Filtering explicitly by path (`query: "g14"`)
+across `serverless` and `serverless-middleware` sources for the exact
+07:39–07:41 UTC window in which the 503s were captured shows every single
+logged hit to `/regulations/g14` as `200`, including several with the
+`[perf] /regulations/g14 data …ms` line the app's own `console.log` emits —
+i.e. the underlying Next.js function DID run, successfully, many times in
+that exact window, and none of those runs is the request the browser saw
+fail. A `query: "proxy"` search of `source: ["edge-middleware"]` for the
+`[proxy] auth.getUser() failed` (now `getClaims()`) warning also returned no
+matches in the last 60 minutes.
+
+**Conclusion: the 503 is produced at a layer Vercel's own runtime-log tool
+cannot see — before or outside the deployed middleware/function execution
+this project's logs are scoped to** [INFERRED from the above: a request that
+reaches and executes the middleware or the function leaves a log line here
+every time in this sample (100% of `g14` hits in the reproduction window did);
+the two 503s left none]. This is the platform-vs-app distinction the brief
+asked to determine, and the evidence points at the platform / edge routing
+layer, not at `proxy.ts`'s own logic — consistent with `proxy.ts`'s existing
+try/catch around the auth check already converting an in-process rejection
+into a graceful redirect rather than a throw (§ "FIX" below preserves that
+same fail-closed shape while removing the network round trip that guard was
+originally written to protect against).
+
+**What was NOT fixed as a result:** nothing in this lane's write set can
+change platform-layer routing/edge behavior — there is no code fix available
+for evidence that points outside the app. The fix applied (part 1 below,
+`auth.getClaims()`) removes the specific network round trip the original
+`[proxy] auth.getUser() failed` guard comment names as the trigger condition
+for the failure mode it was written against, which should reduce how often
+the underlying saturation condition is reached at all, but this lane cannot
+CONFIRM that removes 100% of the platform-layer 503s without a longer
+post-deploy observation window than this session had.
+
+### Fix applied
+
+1. **`src/proxy.ts`**: `supabase.auth.getUser()` (one Supabase Auth network
+   round trip per request, including every RSC prefetch) replaced with
+   `supabase.auth.getClaims()` (local JWT verification against the cached
+   project JWKS — [CONFIRMED by reading
+   `node_modules/@supabase/auth-js/dist/module/GoTrueClient.d.ts`]: "Prefer
+   this method over `getUser()` which always sends a request to the Auth
+   server for each JWT"). Session-refresh-on-near-expiry is preserved
+   (`getClaims()`'s own JSDoc: "the user's session will first be refreshed
+   before validating the JWT" — same `setAll`/cookie flow). Worst case (a
+   project signing JWTs with a symmetric secret rather than asymmetric keys)
+   is a wash, not a regression: `getClaims()`'s JSDoc states it then "always
+   sends a request similar to `getUser()`" — [HYPOTHESIS: which signing mode
+   this project's Supabase instance uses was not checked (no DB/dashboard
+   credentials in this worktree per the lane contract); the change is safe
+   either way]. The fail-closed catch (an unguarded rejection → platform 503,
+   per the pre-existing guard comment) is preserved exactly, now around
+   `getClaims()` instead of `getUser()`.
+
+   The routing DECISION itself (public route / static-api passthrough /
+   scanner-probe 404 / protected-route redirect, including the
+   logged-in-hits-`/login` bounce) was extracted, unchanged, into
+   `src/lib/auth/route-policy.ts`'s pure `decideRoute()` — `proxy.ts`
+   value-imports `@supabase/ssr` and `next/server`, neither resolvable by
+   plain `node --test` outside Next's bundler (same constraint
+   `load-detail-core.ts` documents for `next/cache`), so this split is what
+   makes the public/static/api/protected × claim-present/absent/expired
+   matrix testable at all. `route-policy.test.mjs` (12 tests) covers it,
+   including the "expired claim" and "absent claim" cases (both collapse to
+   `authenticated: false` from `decideRoute`'s point of view — `proxy.ts`'s
+   own `getClaims()` wiring is what tells them apart before calling in).
+
+   The matcher already excludes `_next/static`, `_next/image`, `favicon.ico`,
+   `robots.txt`, and common image extensions [CONFIRMED, `proxy.ts`'s
+   `config.matcher`, unchanged]. `?_rsc=` prefetches ARE authenticated in
+   middleware only, not doubly — the four detail `page.tsx` files call
+   `resolveOrgIdFromCookies()`/relevance lookups for viewer-scoping, not a
+   second auth gate; middleware remains the only auth CHECK on the request
+   path [CONFIRMED, no second `auth.getUser()`/`getClaims()` call found by
+   grep in `src/app/regulations/[slug]/page.tsx` or `src/lib/detail/*`].
+
+2. **Regulations detail fan-out (A)**: `src/lib/detail/regulation-obligations-core.ts`
+   (pure, deps-injected, `node --test`-able) + `src/lib/detail/regulation-obligations.ts`
+   (real Supabase/Next wiring) replace the two Server-Component calls in
+   `src/app/regulations/[slug]/page.tsx` with a single `loadRegulationDetailObligations(id)`
+   call run via `Promise.all` alongside `loadDetail(...)`. The fetched rows
+   feed the two components' existing PURE presentational halves
+   (`ObligationRegisterFilterBar`, `UpcomingObligationsStripView`) directly —
+   identical rendered output, identical soft-fail/honest-omission behavior,
+   identical request-scoped (RLS) Supabase client (per `read-register.mjs`'s
+   and `read-upcoming.mjs`'s own "MUST always be called with the
+   REQUEST-SCOPED client... never a service-role client" header rule — kept,
+   not swapped for the cacheable service-role client `loadItemScoped` uses,
+   since `unstable_cache` also forbids reading `cookies()` inside its wrapped
+   function). `ObligationRegister.tsx` / `UpcomingObligationsStrip.tsx`
+   themselves are UNCHANGED and still serve the regulations LIST page's
+   `variant="list"` shape (out of this lane's write set).

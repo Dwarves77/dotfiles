@@ -29,11 +29,31 @@
  * loadDetail. related-items lookup now calls the shared buildResourceLookup
  * (src/lib/connections/resource-lookup.ts) instead of a hand-mirrored inline
  * copy — see that file's PERF-lane header note.
+ *
+ * PERF-2 lane (2026-09-03, docs/audits/perf-load-times-2026-09-03.md §8
+ * "(A)"): even after the PERF lane's fix above, this page stayed slower
+ * than /market, /operations, /research because it alone rendered TWO MORE
+ * async Server Components (<ObligationRegister>, <UpcomingObligationsStrip
+ * variant="detail">) that ran strictly AFTER `await loadDetail(...)`
+ * resolved — a hard JS-execution-order fact, not a scheduling nuance: this
+ * function's body cannot construct the JSX tree containing them until the
+ * await above it returns. loadRegulationDetailObligations
+ * (src/lib/detail/regulation-obligations.ts) replaces those two component
+ * calls with their underlying reads, run via Promise.all ALONGSIDE
+ * loadDetail below, and the fetched rows are handed straight to the two
+ * components' pure presentational halves (ObligationRegisterFilterBar,
+ * UpcomingObligationsStripView) — same rendered output, same soft-fail/
+ * honest-omission behavior, same request-scoped (RLS) client, collapsed
+ * from "loadDetail + obligations" to "max(loadDetail, obligations)".
+ * ObligationRegister.tsx / UpcomingObligationsStrip.tsx are UNCHANGED —
+ * still used by /regulations' list page (`variant="list"`, out of this
+ * lane's write set).
  */
 
 import { formatDate } from "@/lib/format";
 import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
+import { loadRegulationDetailObligations } from "@/lib/detail/regulation-obligations";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import {
   buildResourceLookup,
@@ -41,8 +61,8 @@ import {
   fetchInstrumentEntityId,
 } from "@/lib/connections/resource-lookup";
 import { RegulationDetailSurface } from "@/components/regulations/RegulationDetailSurface";
-import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingObligationsStrip";
-import { ObligationRegister } from "@/components/regulations/ObligationRegister";
+import { UpcomingObligationsStripView } from "@/components/regulations/UpcomingObligationsStripView";
+import { ObligationRegisterFilterBar } from "@/components/regulations/ObligationRegisterFilterBar";
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
@@ -105,62 +125,69 @@ export default async function RegulationDetailPage({
   }
   if (redirectTo) redirect(redirectTo);
 
-  const result = await loadDetail<ItemScoped, ViewerScoped>({
-    surface: "regulations",
-    id,
-    // Item-scoped, org-independent: related-item titles for the connections/
-    // supersessions rail, and the peers-discussing strip's bound entity.
-    // Cached — shared across every org that views this item.
-    loadItemScoped: async ({ supabase, resource, connections, supersessions }) => {
-      const relatedIds = Array.from(
-        new Set<string>([
-          ...connections.map((c) => c.id),
-          ...supersessions.flatMap((s) => [s.old, s.new]),
-        ])
-      ).filter(Boolean);
-      const itemUuid = await resolveItemUuid(supabase, resource.id);
-      const [resourceLookup, peersEntityId] = await Promise.all([
-        buildResourceLookup(supabase, relatedIds),
-        itemUuid ? fetchInstrumentEntityId(supabase, itemUuid) : Promise.resolve(null),
-      ]);
-      return { resourceLookup, peersEntityId };
-    },
-    // Viewer-scoped, per-org: this item's assignee (migration 234). Uncached —
-    // one org's assignment must never render for another org.
-    loadViewerScoped: async ({ supabase, orgId, resource }) => {
-      let owner: ViewerScoped["owner"] = null;
-      if (orgId) {
+  // PERF-2: loadDetail's own bundle and the two extra obligations reads (register + upcoming) share no
+  // data dependency — id is all either needs — so they run via Promise.all instead of loadDetail
+  // resolving first and the obligations reads starting only afterward. See this file's header and
+  // src/lib/detail/regulation-obligations-core.ts's header for the full mechanism.
+  const [result, obligations] = await Promise.all([
+    loadDetail<ItemScoped, ViewerScoped>({
+      surface: "regulations",
+      id,
+      // Item-scoped, org-independent: related-item titles for the connections/
+      // supersessions rail, and the peers-discussing strip's bound entity.
+      // Cached — shared across every org that views this item.
+      loadItemScoped: async ({ supabase, resource, connections, supersessions }) => {
+        const relatedIds = Array.from(
+          new Set<string>([
+            ...connections.map((c) => c.id),
+            ...supersessions.flatMap((s) => [s.old, s.new]),
+          ])
+        ).filter(Boolean);
         const itemUuid = await resolveItemUuid(supabase, resource.id);
-        if (itemUuid) {
-          const { data: ovr } = await supabase
-            .from("workspace_item_overrides")
-            .select("owner_user_id")
-            .eq("org_id", orgId)
-            .eq("item_id", itemUuid)
-            .maybeSingle();
-          const ownerId = ovr?.owner_user_id ?? null;
-          if (ownerId) {
-            const { data: member } = await supabase
-              .from("org_memberships")
-              .select("user_id, user:profiles!user_id(full_name, display_name, email)")
+        const [resourceLookup, peersEntityId] = await Promise.all([
+          buildResourceLookup(supabase, relatedIds),
+          itemUuid ? fetchInstrumentEntityId(supabase, itemUuid) : Promise.resolve(null),
+        ]);
+        return { resourceLookup, peersEntityId };
+      },
+      // Viewer-scoped, per-org: this item's assignee (migration 234). Uncached —
+      // one org's assignment must never render for another org.
+      loadViewerScoped: async ({ supabase, orgId, resource }) => {
+        let owner: ViewerScoped["owner"] = null;
+        if (orgId) {
+          const itemUuid = await resolveItemUuid(supabase, resource.id);
+          if (itemUuid) {
+            const { data: ovr } = await supabase
+              .from("workspace_item_overrides")
+              .select("owner_user_id")
               .eq("org_id", orgId)
-              .eq("user_id", ownerId)
+              .eq("item_id", itemUuid)
               .maybeSingle();
-            const u = (member as {
-              user?: { full_name?: string | null; display_name?: string | null; email?: string | null } | null;
-            } | null)?.user;
-            if (member) {
-              owner = {
-                userId: ownerId,
-                name: u?.full_name ?? u?.display_name ?? u?.email ?? `${ownerId.slice(0, 8)}...`,
-              };
+            const ownerId = ovr?.owner_user_id ?? null;
+            if (ownerId) {
+              const { data: member } = await supabase
+                .from("org_memberships")
+                .select("user_id, user:profiles!user_id(full_name, display_name, email)")
+                .eq("org_id", orgId)
+                .eq("user_id", ownerId)
+                .maybeSingle();
+              const u = (member as {
+                user?: { full_name?: string | null; display_name?: string | null; email?: string | null } | null;
+              } | null)?.user;
+              if (member) {
+                owner = {
+                  userId: ownerId,
+                  name: u?.full_name ?? u?.display_name ?? u?.email ?? `${ownerId.slice(0, 8)}...`,
+                };
+              }
             }
           }
         }
-      }
-      return { owner };
-    },
-  });
+        return { owner };
+      },
+    }),
+    loadRegulationDetailObligations(id),
+  ]);
 
   // SURFACE ADMISSION GUARD (Phase 0.1, 2026-08-11). Until now the ONLY gate on
   // this route was fetchIntelligenceItem's `provenance_status='verified'` check,
@@ -234,14 +261,23 @@ export default async function RegulationDetailPage({
         groupLabel={groupLabel}
         deck={deck}
         initialOwner={initialOwner}
-        upcomingObligations={<UpcomingObligationsStrip variant="detail" itemId={r.id} />}
+        upcomingObligations={
+          obligations.upcomingEvents.length > 0 ? (
+            <UpcomingObligationsStripView variant="detail" events={obligations.upcomingEvents} />
+          ) : null
+        }
       />
       {/* Lane OBLIG (2026-09-02): this item's own obligation-register rows (migration 290
           `obligations`, denormalized jurisdiction/mode/binding_position) — write-set-scoped to this
           page file only (RegulationDetailSurface.tsx is not in this lane's write set), so it renders as
           its own section below the surface rather than a meta-rail card. Honest omission (renders
-          nothing) when this item has no register rows yet. */}
-      <ObligationRegister itemId={r.id} variant="detail" />
+          nothing) when this item has no register rows yet. PERF-2: rows are now fetched in parallel
+          with loadDetail (see this file's header) and handed straight to the presentational
+          ObligationRegisterFilterBar — ObligationRegister.tsx itself is unchanged and still serves the
+          list page. */}
+      {obligations.registerRows.length > 0 && (
+        <ObligationRegisterFilterBar rows={obligations.registerRows} variant="detail" />
+      )}
       <PeersDiscussingStrip entityId={peersEntityId} />
     </>
   );
