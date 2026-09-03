@@ -8687,3 +8687,27 @@ red test. Consumers checked: only `census-off-vertical.mjs` imports from the fil
 `export-census-rows.mjs` is not a mint governing file, so no re-stamp. Gates: suite 4045/0 (18 new
 tests), fitness 29/0, discipline ci 4/0. The override-check's C4 findings for `/root/work/wt-*` and
 `/tmp/cichk` are container clutter from earlier sessions, same class as the exempted lanes paths.
+
+### Addendum 85, postscript 9 — TAG-PROPOSALS: the ratification pipeline had never received input (2026-09-03)
+
+Reading the 177 new rows' empty tag arrays against the live corpus [CONFIRMED, Supabase]: 339 of 619
+verified live items are untagged (all three connection-signature arrays empty), and the
+`integrity_flags` table holds zero tag-proposal rows, open or resolved, ever. The designed remedy
+(propose → operator ratifies with `ratify:tags` → MAINT `tag-ratification` applies) had no first
+step reachable from a dispatch: `population-turn.yml` runs `propose-tags.mjs --dry --since`, whose
+`--dry` writes nothing, while the workflow header claimed the step "makes newly-minted untagged items
+VISIBLE as integrity_flags proposals". The operator's rule ("NO assumptions, NEVER silent
+auto-tagging; tag PROPOSALS go to operator ratification") requires proposals to exist; writing one
+is the visibility, not the tagging.
+
+Lane TAG-PROPOSALS (Sonnet, worktree `tagprop`) [CONFIRMED by gates]: `propose-tags.mjs`'s inline
+main refactored into an exported, deps-injected `proposeTags()` core (CLI byte-for-byte, five new
+tests); new MAINT step `tag-proposals` (`scripts/maintenance/tag-proposals.mjs`, 14 tests; `--arg`
+`untagged` | `since:<ISO>` | `ids:<uuid,…>`; dry reports counts, per-item preview and the apply
+command; apply writes proposal flags only, never `intelligence_items`); `maintenance.yml` option and
+step block; MAINTENANCE-RUNBOOK §6a with §7 cross-reference; the false population-turn header
+corrected. I registered the new writer in `shared-dataset-ownership.md` (`integrity_flags`, second
+caller of the same `planReflect` plan), which is the one-writer registry's own test asking for it.
+Suite 4063/0, fitness 29/0, discipline ci 4/0. Not dispatched: proposal writes follow the
+population drain (one `tag-proposals` apply over `untagged` covers all 339 and any later slices), and
+the ratification itself is the operator's.
