@@ -25,6 +25,9 @@ import {
   extractEurlexTitle,
   selectCensusRows,
   partitionExcludeHeld,
+  buildHeldKeyIndex,
+  partitionExcludeHeldByKey,
+  isEurlexRobotGate,
   buildExportRow,
   buildRows,
   captureDocument,
@@ -359,6 +362,67 @@ test("partitionExcludeHeld: excludeHeld=false keeps everything, excludes nothing
   assert.equal(excludedHeld.length, 0);
 });
 
+// ── buildHeldKeyIndex / partitionExcludeHeldByKey (Lane EXPORT-HOLD, 2026-09-03, defect 1) ──────────────
+
+test("buildHeldKeyIndex: keys a live intelligence_items read by canonical_instrument_key, archive_reason -> archived flag, first holder wins on a duplicate key", () => {
+  const idx = buildHeldKeyIndex([
+    { id: "item-1", canonical_instrument_key: "32019R1242", archive_reason: null },
+    { id: "item-2", canonical_instrument_key: "32020D1124(01)", archive_reason: "out_of_scope_wo26" },
+    { id: "item-3", canonical_instrument_key: null, archive_reason: null }, // no key -> never indexed
+    { id: "item-4", canonical_instrument_key: "32019R1242", archive_reason: null }, // duplicate key, first wins
+  ]);
+  assert.deepEqual(idx.get("32019R1242"), { id: "item-1", archived: false });
+  assert.deepEqual(idx.get("32020D1124(01)"), { id: "item-2", archived: true });
+  assert.equal(idx.has("does-not-exist"), false);
+  assert.equal(idx.size, 2);
+});
+
+test("buildHeldKeyIndex: absent items array -> empty index, never throws", () => {
+  assert.equal(buildHeldKeyIndex(undefined).size, 0);
+  assert.equal(buildHeldKeyIndex([]).size, 0);
+});
+
+test("partitionExcludeHeldByKey RED (defect 1 repro): a row whose canonical_instrument_key matches a holder at a DIFFERENT source_url is excluded with the holder's id as evidence, mirroring apply-mint-batch.mjs's M4 not_applied_holder_conflict for row 26bf4a98-9dc4-472e-9c6a-8883c3bffea1 / holder ab922a18-c9a8-4b1b-9ac6-b7f20606c5d7", () => {
+  const row = {
+    id: "26bf4a98-9dc4-472e-9c6a-8883c3bffea1",
+    document_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019R1242",
+    instrument_identifier: "32019R1242",
+  };
+  const heldKeyIndex = buildHeldKeyIndex([{ id: "ab922a18-c9a8-4b1b-9ac6-b7f20606c5d7", canonical_instrument_key: "32019R1242", archive_reason: null }]);
+  const { kept, excludedHeldByKey } = partitionExcludeHeldByKey([row], heldKeyIndex);
+  assert.equal(kept.length, 0);
+  assert.deepEqual(excludedHeldByKey, [{
+    row_id: "26bf4a98-9dc4-472e-9c6a-8883c3bffea1",
+    document_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32019R1242",
+    canonical_instrument_key: "32019R1242",
+    reason: "already_held_by_key",
+    holder_item_id: "ab922a18-c9a8-4b1b-9ac6-b7f20606c5d7",
+  }]);
+});
+
+test("partitionExcludeHeldByKey: an archived holder still excludes the row, but is named holder_archived: true (the 459/529-row archived-holder disposition itself is untouched by this)", () => {
+  const row = { id: "r1", document_url: "https://eur-lex.europa.eu/x", instrument_identifier: "32020D1124(01)" };
+  const heldKeyIndex = buildHeldKeyIndex([{ id: "item-archived", canonical_instrument_key: "32020D1124(01)", archive_reason: "out_of_scope_wo26" }]);
+  const { excludedHeldByKey } = partitionExcludeHeldByKey([row], heldKeyIndex);
+  assert.equal(excludedHeldByKey[0].holder_archived, true);
+});
+
+test("partitionExcludeHeldByKey: a row whose derived key does not match any holder passes through as kept, untouched", () => {
+  const row = { id: "r1", document_url: "https://eur-lex.europa.eu/x", instrument_identifier: "32099R9999" };
+  const heldKeyIndex = buildHeldKeyIndex([{ id: "item-1", canonical_instrument_key: "32019R1242", archive_reason: null }]);
+  const { kept, excludedHeldByKey } = partitionExcludeHeldByKey([row], heldKeyIndex);
+  assert.deepEqual(kept, [row]);
+  assert.equal(excludedHeldByKey.length, 0);
+});
+
+test("partitionExcludeHeldByKey: a row with no derivable canonical_instrument_key (e.g. legislation.gov.uk) never collides, passes through as kept", () => {
+  const row = { id: "r1", document_url: "https://www.legislation.gov.uk/uksi/2021/1095/made", instrument_identifier: null };
+  const heldKeyIndex = buildHeldKeyIndex([{ id: "item-1", canonical_instrument_key: "32019R1242", archive_reason: null }]);
+  const { kept, excludedHeldByKey } = partitionExcludeHeldByKey([row], heldKeyIndex);
+  assert.deepEqual(kept, [row]);
+  assert.equal(excludedHeldByKey.length, 0);
+});
+
 // ── buildExportRow ───────────────────────────────────────────────────────────────────────────────────
 
 const SOURCE = { id: "src-1", url: "https://eur-lex.europa.eu", name: "EUR-Lex Official Journal", base_tier: 1, tier_override: null, status: "active", institution_id: null, category: "regulatory" };
@@ -548,6 +612,67 @@ test("resolveRowCapture EUR-Lex: Cellar refused AND the EUR-Lex bot gate (HTTP 2
   assert.equal(env.status, 202);
   assert.equal(env.cellar_status, 503);
   assert.match(env.head, /not a robot/);
+  // Lane EXPORT-HOLD (2026-09-03, defect 2): the EUR-Lex answer matches its own known bot-gate
+  // interstitial -> tagged so buildRows holds this no_capture_path, not capture_blocked (never retried
+  // every population-turn run for a request that can never succeed).
+  assert.equal(env.noCapturePath, true);
+});
+
+test("resolveRowCapture EUR-Lex: Cellar refused, EUR-Lex fallback ALSO fails but is NOT the robot-gate shape -> noCapturePath is never set (a transient failure stays capture_blocked, worth retrying)", async () => {
+  const fetchImpl = async (url) =>
+    url.startsWith("https://publications.europa.eu/")
+      ? fakeResponse({ status: 404, body: "Resource not found." })
+      : fakeResponse({ status: 500, body: "Internal Server Error" });
+  const identity = { scheme: "celex", canonicalKey: "32006D0507" };
+  const env = await resolveRowCapture({ document_url: "https://eur-lex.europa.eu/x" }, identity, { fetchImpl });
+  assert.equal(env.usable, false);
+  assert.equal(env.status, 500);
+  assert.equal(env.noCapturePath, undefined);
+});
+
+// ── isEurlexRobotGate / cellarEndpointForCelex parens fix (Lane EXPORT-HOLD, 2026-09-03, defect 2) ──────
+
+test("isEurlexRobotGate: status 202 + the marker text -> true; detected by status+text, never byte count alone", () => {
+  assert.equal(isEurlexRobotGate(202, "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript."), true);
+});
+
+test("isEurlexRobotGate RED: right status, wrong text -> false (a genuine 202 that is not the bot gate is never misclassified)", () => {
+  assert.equal(isEurlexRobotGate(202, "Accepted for processing"), false);
+});
+
+test("isEurlexRobotGate RED: right text, wrong status -> false (status is checked, never inferred from text alone)", () => {
+  assert.equal(isEurlexRobotGate(200, "verify that you're not a robot"), false);
+});
+
+test("isEurlexRobotGate RED: no head text at all -> false, never throws", () => {
+  assert.equal(isEurlexRobotGate(202, null), false);
+  assert.equal(isEurlexRobotGate(202, undefined), false);
+});
+
+test("cellarEndpointForCelex: percent-encodes ( and ) — encodeURIComponent leaves them literal, and Cellar 404s a literal-paren request (live-confirmed, 2026-09-03)", () => {
+  assert.equal(cellarEndpointForCelex("22004A0806(01)"), "https://publications.europa.eu/resource/celex/22004A0806%2801%29");
+  assert.equal(encodeURIComponent("22004A0806(01)"), "22004A0806(01)", "documents WHY the fix is needed: JS's own encoder does not escape parens");
+});
+
+test("cellarEndpointForCelex: a key with no parens is unaffected by the fix", () => {
+  assert.equal(cellarEndpointForCelex("32006D0507"), "https://publications.europa.eu/resource/celex/32006D0507");
+});
+
+test("resolveRowCapture EUR-Lex: an OJ-sequence-suffixed key now resolves through Cellar (defect 2's root fix) — Cellar receives the percent-encoded parens, not the literal ones", async () => {
+  const calls = [];
+  const fetchImpl = async (url, opts) => {
+    calls.push({ url, redirect: opts?.redirect });
+    if (url === "https://publications.europa.eu/resource/celex/22004A0806%2801%29") {
+      return fakeResponse({ status: 302, location: "http://publications.europa.eu/resource/cellar/ce485962-eefe-4b78-921a-6f6b6d2d01bd/rdf/object/full" });
+    }
+    if (url === "https://publications.europa.eu/resource/cellar/ce485962-eefe-4b78-921a-6f6b6d2d01bd/rdf/object/full") return fakeResponse({ body: CELLAR_XHTML });
+    throw new Error(`unexpected url ${url}`);
+  };
+  const identity = { scheme: "celex", canonicalKey: "22004A0806(01)" };
+  const env = await resolveRowCapture({ document_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:22004A0806(01)" }, identity, { fetchImpl });
+  assert.equal(calls[0].url, "https://publications.europa.eu/resource/celex/22004A0806%2801%29");
+  assert.doesNotMatch(calls[0].url, /\(01\)/, "the literal-paren form is exactly what 404s live; never sent");
+  assert.equal(env.usable, true);
 });
 
 test("followUpgradingRedirects: upgrades http Location to https, resolves relative Locations, stops at maxHops", async () => {
@@ -694,6 +819,23 @@ test("buildRows: a non-2xx live fetch also holds capture_blocked with the status
   assert.equal(held[0].http_status, 403);
 });
 
+test("buildRows: Cellar 404 + EUR-Lex's own robot-gate interstitial (run #14's live shape, e.g. the malformed 32025D05242 row) holds no_capture_path, not capture_blocked, with the SAME evidence fields", async () => {
+  const kept = [{ id: "r1", source_id: "s1", document_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32025D0524", instrument_identifier: "32025D0524" }];
+  const sourcesById = new Map([["s1", SOURCE]]);
+  const fetchImpl = async (url) =>
+    url.startsWith("https://publications.europa.eu/")
+      ? { ok: false, status: 404, text: async () => "Resource [system 'celex' - id '32025D0524'] not found." }
+      : { ok: false, status: 202, text: async () => "JavaScript is disabled In order to continue, we need to verify that you're not a robot. This requires JavaScript.".padEnd(2035, " ") };
+  const { rows, held, captureFailed } = await buildRows(kept, { sourcesById, existingCaptureByUrl: new Map(), capture: true, fetchImpl });
+  assert.equal(rows.length, 0);
+  assert.equal(held.length, 1);
+  assert.equal(held[0].reason, "no_capture_path");
+  assert.equal(held[0].http_status, 202);
+  assert.equal(held[0].endpoint, "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32025D0524");
+  assert.equal(held[0].cellar_status, 404);
+  assert.equal(captureFailed, 1, "still counted as a capture failure -- the summary's captured/capture_failed totals are unaffected by the new reason name");
+});
+
 // ── buildRows: identity holds short-circuit BEFORE any network call ────────────────────────────────────
 
 test("buildRows: an identity hold (item_type_unmapped etc.) is reported WITHOUT any capture attempt", async () => {
@@ -823,6 +965,31 @@ test("summarize: reports eligible/excluded/exported/held-by-reason/captured coun
   assert.match(text, /captured=1 capture_failed=0/);
 });
 
+test("summarize: excludedHeldByKeyCount defaults to 0 and its own line never collides with excluded_held's =2 match (defect 1 evidence line)", () => {
+  const text = summarize({
+    eligibleCount: 10,
+    excludedHeldCount: 2,
+    rows: [{}, {}],
+    held: [{ reason: "no_capture" }],
+    captured: 1,
+    captureFailed: 0,
+  });
+  assert.match(text, /excluded_held_by_key.*=0/);
+});
+
+test("summarize: a non-zero excludedHeldByKeyCount is reported on its own line", () => {
+  const text = summarize({
+    eligibleCount: 10,
+    excludedHeldCount: 2,
+    excludedHeldByKeyCount: 3,
+    rows: [{}, {}],
+    held: [],
+    captured: 1,
+    captureFailed: 0,
+  });
+  assert.match(text, /excluded_held_by_key.*=3/);
+});
+
 // ── read-shape / query-fn regression locks (unchanged from Lane POP's own fix) ─────────────────────────
 
 test("main() never reads agent_run_searches, sources or intelligence_items whole", () => {
@@ -831,6 +998,13 @@ test("main() never reads agent_run_searches, sources or intelligence_items whole
   assert.doesNotMatch(src, /readAll\(\s*"intelligence_items"/);
   assert.doesNotMatch(src, /readAll\(\s*"sources"/);
   assert.match(src, /readAll\(\s*"census_worklist"[\s\S]*?match:\s*\(q\)\s*=>\s*q\.eq\("dryrun_disposition",\s*"would_mint"\)/);
+});
+
+test("main() reads intelligence_items.canonical_instrument_key alongside source_url, batch-scoped via fetchRowsIn/fetchColumnIn (defect 1), never a second whole-table read", () => {
+  const src = readFileSync(new URL("./export-census-rows.mjs", import.meta.url), "utf8");
+  assert.match(src, /fetchRowsIn\(sb,\s*"intelligence_items",\s*"id, canonical_instrument_key, archive_reason",\s*"canonical_instrument_key"/);
+  assert.match(src, /buildHeldKeyIndex\(/);
+  assert.match(src, /partitionExcludeHeldByKey\(/);
 });
 
 test("fetchRowsIn chunks the key list and concatenates results", async () => {

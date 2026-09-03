@@ -8663,3 +8663,27 @@ Next step for a cold session: land `population/33747655857` and `population/3374
 through the bundle → Codespace path; then, per the operator's choice, either more `population-turn`
 applies at 200 or `corpus-turn` dry (since `1970-01-01`, signals true) → apply → change-detection →
 propagation-drain → source-sweep; then `propose-tags` on the 177 new ids.
+
+### Addendum 85, postscript 8 — EXPORT-HOLD: the ten "robot page" holds were a URL-encoding defect (2026-09-03)
+
+Lane EXPORT-HOLD (Sonnet, worktree `exphold`) took the two proposals from the mint-run-016 proposer
+pass. The measurement changed the second one. **Root cause [CONFIRMED, lane by WebFetch and me
+independently]:** `cellarEndpointForCelex` built the Cellar resolver URL with `encodeURIComponent`,
+which leaves `(` and `)` literal; Cellar 404s `.../celex/32023D0628(01)` and 302s
+`.../celex/32023D0628%2801%29` to a real `cellar/<uuid>` resource. So the ten OJ-sequence-suffixed
+CELEX rows held `capture_blocked` on every run were never uncapturable; the request was malformed and
+the EUR-Lex fallback then met the robot gate. Fixed at the encoder (parens percent-encoded after
+`encodeURIComponent`), so those rows capture from Cellar on the next dispatch. The residual class (a
+malformed census identifier such as `32025D0524` that Cellar 404s under either encoding, then the
+robot gate) now holds `no_capture_path` via a pure `isEurlexRobotGate(status, head)` (202 + marker
+text, never byte count), so it is not re-fetched at 1 req/s every run as if it might succeed.
+
+**Holder pre-emption [CONFIRMED]:** the exporter now excludes rows whose `canonical_instrument_key`
+is already held, using the same rule as apply-mint-batch's M4 (`checkM4`/`buildItemsIndex`: exact
+key equality, archived rows included), reported in `census-rows.held.json` as `already_held_by_key`
+with `holder_item_id` (and `holder_archived: true` where applicable), and on its own summary line
+rather than folded into the build-failure `held=` count. Row `26bf4a98` / holder `ab922a18` is the
+red test. Consumers checked: only `census-off-vertical.mjs` imports from the file, untouched.
+`export-census-rows.mjs` is not a mint governing file, so no re-stamp. Gates: suite 4045/0 (18 new
+tests), fitness 29/0, discipline ci 4/0. The override-check's C4 findings for `/root/work/wt-*` and
+`/tmp/cichk` are container clutter from earlier sessions, same class as the exempted lanes paths.
