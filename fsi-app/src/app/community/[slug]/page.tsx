@@ -10,6 +10,7 @@ import type {
   CommunityMembership,
   CommunityInvitation,
   CommunityTopicSummary,
+  CommunityEntityRef,
 } from "@/components/community/types";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +45,7 @@ export default async function GroupDetailPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ region?: string }>;
+  searchParams: Promise<{ region?: string; entityQuery?: string }>;
 }) {
   const t0 = Date.now();
   const { slug } = await params;
@@ -248,6 +249,27 @@ export default async function GroupDetailPage({
   const sp = await searchParams;
   const initialRegion = sp?.region?.toUpperCase() || group.region;
 
+  // ── Entity-bound posting UI candidate list (wave3 2026-09-03, spec 05 §5 component 2) ──
+  // No entity search/list API exists in this lane's contract (grep across src/app/api found none
+  // under an "entities" path), so the composer's EntityPicker is fed a server-fetched candidate set
+  // directly, the same way every other /community/* page already reads its own data server-side.
+  // `entities` is world-readable (migration 282 RLS, same posture as `sources`/`regions`), so the
+  // existing cookie-session client suffices — no service-role key needed here. `?entityQuery=`
+  // narrows the set by canonical_name (ILIKE); EntityPicker's onSearchSubmit round-trips through it.
+  const entityQuery = sp?.entityQuery?.trim();
+  let entityQueryBuilder = supabase
+    .from("entities")
+    .select("entity_id, kind, canonical_name")
+    .eq("status", "active")
+    .order("canonical_name", { ascending: true })
+    .limit(60);
+  if (entityQuery) {
+    entityQueryBuilder = entityQueryBuilder.ilike("canonical_name", `%${entityQuery}%`);
+  }
+  const { data: entityRows, error: entityErr } = await entityQueryBuilder;
+  if (entityErr) console.warn("community: entity candidate read failed", entityErr.message);
+  const candidateEntities: CommunityEntityRef[] = (entityRows ?? []) as CommunityEntityRef[];
+
   console.log(`[perf] /community/${slug} data ${Date.now() - t0}ms`);
 
   const membershipForHeader = myMembership
@@ -319,6 +341,7 @@ export default async function GroupDetailPage({
               myMembership?.role === "admin" ||
               myMembership?.role === "moderator"
             }
+            candidateEntities={candidateEntities}
           />
         </div>
         <div

@@ -15,7 +15,7 @@
  * border, 6px radius, 8pt grid spacing.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatRelativeCompact } from "@/lib/relative-time";
 import { MessageSquare, Trash2 } from "lucide-react";
 import type { CommunityPost } from "./PostComposer";
@@ -24,6 +24,23 @@ import { PromotePostButton } from "./PromotePostButton";
 import { ReportPostMenu } from "./ReportPostMenu";
 import { VerifierBadge } from "./VerifierBadge";
 import { RoleBadge } from "./RoleBadge";
+import { AuthorIdentityChip } from "./AuthorIdentityChip";
+import { PromotionStateBadge } from "./PromotionStateBadge";
+import { CorroborationChip } from "./CorroborationChip";
+import { EvidenceAgeChip } from "./EvidenceAgeChip";
+import { getThreadCorroboration } from "./api-client";
+// `@/` form (not relative) so the rendering-guard smoke harness can alias it to a no-op stub —
+// esbuild's `alias` option only accepts bare/`@/`-style specifiers, not relative `./...` paths (a
+// plain `.css` import into an esbuild `write:false` bundle with no `outdir` configured is a build
+// error: "Cannot import ... without an output path configured" — harness.mjs, coordinator-owned, is
+// not in this lane's write set to fix at the source). Resolves identically in the real Next.js app
+// (tsconfig `@/*` -> `src/*`, the same mapping every other `@/components/...` import in this app uses).
+import "@/components/community/community.css";
+import type {
+  CommunityAuthorIdentity,
+  CommunityPromotionState,
+  CommunityThreadCorroboration,
+} from "./types";
 
 interface PostProps {
   post: CommunityPost;
@@ -35,6 +52,23 @@ interface PostProps {
    * widened to thread the platform-admin flag through (e.g. C5's PostList)
    * still type-check; group admins/moderators see the button regardless. */
   isPlatformAdmin?: boolean;
+  /** Wave 3 (2026-09-03) additions — all optional so every existing caller (the legacy
+   * community_posts feed, which does not carry these fields) still type-checks and renders exactly
+   * as before. Supplied once a post flows through the entity-bound, guard-enforced posting path
+   * (spec 05 §5 components 1, 5, 6, 7, 11): when `authorIdentity` is present it REPLACES the legacy
+   * name/headshot header (pseudonymity, spec 05 §2 — never both). */
+  authorIdentity?: CommunityAuthorIdentity | null;
+  promotionState?: CommunityPromotionState | null;
+  originClass?: string | null;
+  /** Corroboration counter (spec 05 §5 component 5). Omit entirely to let this component fetch its
+   * own thread's corroboration on mount (GET /api/community/threads/[id]/corroboration) — the
+   * feed's normal path, since the legacy `GET /api/community/posts` list route this feed reads has
+   * no reason to embed a per-thread corroboration read inline. Pass an explicit value (or `null`) to
+   * override that self-fetch, e.g. from a caller that already has the corroboration data (see
+   * EntityDiscoveryPanel.tsx / PeersDiscussingStrip.tsx, which render their own row markup instead
+   * of this component and pass corroboration data directly where they have it). */
+  corroboration?: CommunityThreadCorroboration | null;
+  evidenceChip?: string | null;
   onDeleted?: (postId: string) => void;
   onError?: (message: string) => void;
 }
@@ -45,6 +79,11 @@ export function Post({
   isGroupAdmin,
   isGroupMember,
   isPlatformAdmin = false,
+  authorIdentity = null,
+  promotionState = null,
+  originClass = null,
+  corroboration,
+  evidenceChip = null,
   onDeleted,
   onError,
 }: PostProps) {
@@ -56,12 +95,33 @@ export function Post({
   const [replyCount, setReplyCount] = useState(post.reply_count ?? 0);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [selfCorroboration, setSelfCorroboration] =
+    useState<CommunityThreadCorroboration | null>(null);
 
   const isAuthor =
     !!currentUserId && post.author_user_id === currentUserId;
   const canDelete = isAuthor || isGroupAdmin;
   const authorName = post.author?.name ?? "Member";
   const initials = makeInitials(authorName);
+
+  // Corroboration counter (spec 05 §5 component 5, acceptance 7: "corroboration counts distinct
+  // organisations, not posts"). Self-fetched once per top-level post when the caller did not supply
+  // an explicit value — see the `corroboration` prop's own doc comment above.
+  useEffect(() => {
+    if (corroboration !== undefined) return;
+    if (post.parent_post_id) return; // replies are not their own thread
+    let cancelled = false;
+    (async () => {
+      const result = await getThreadCorroboration(post.id);
+      if (!cancelled) setSelfCorroboration(result);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [post.id, post.parent_post_id, corroboration]);
+
+  const effectiveCorroboration =
+    corroboration !== undefined ? corroboration : selfCorroboration;
 
   const loadReplies = async () => {
     setRepliesLoading(true);
@@ -147,12 +207,20 @@ export function Post({
         gap: 10,
       }}
     >
-      <header style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-        <Avatar
-          headshotUrl={post.author?.headshot_url ?? null}
-          initials={initials}
-          alt={authorName}
-        />
+      <header className="cl-comm-row" style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+        {/* Pseudonymity (spec 05 §2): when this post carries an author-identity projection (the
+            entity-bound, guard-enforced posting path), render ONLY that — never the legacy
+            name/headshot alongside it. A post without a projection keeps the legacy display
+            unchanged, so every existing group post renders exactly as before. */}
+        {authorIdentity ? (
+          <NeutralAvatar />
+        ) : (
+          <Avatar
+            headshotUrl={post.author?.headshot_url ?? null}
+            initials={initials}
+            alt={authorName}
+          />
+        )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
@@ -162,42 +230,48 @@ export function Post({
               flexWrap: "wrap",
             }}
           >
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: "var(--color-text-primary)",
-              }}
-            >
-              {authorName}
-            </span>
-            {/* VerifierBadge + RoleBadge — Phase D additive.
-                Renders only when the API surfaces verifier_status /
-                author role. Until that wiring lands, both badges
-                silently render null. */}
-            <VerifierBadge
-              verifierStatus={
-                (
-                  post.author as unknown as {
-                    verifier_status?:
-                      | "none"
-                      | "pending"
-                      | "active"
-                      | "revoked"
-                      | null;
+            {authorIdentity ? (
+              <AuthorIdentityChip identity={authorIdentity} />
+            ) : (
+              <>
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "var(--color-text-primary)",
+                  }}
+                >
+                  {authorName}
+                </span>
+                {/* VerifierBadge + RoleBadge — Phase D additive.
+                    Renders only when the API surfaces verifier_status /
+                    author role. Until that wiring lands, both badges
+                    silently render null. */}
+                <VerifierBadge
+                  verifierStatus={
+                    (
+                      post.author as unknown as {
+                        verifier_status?:
+                          | "none"
+                          | "pending"
+                          | "active"
+                          | "revoked"
+                          | null;
+                      }
+                    )?.verifier_status
                   }
-                )?.verifier_status
-              }
-            />
-            <RoleBadge
-              role={
-                (
-                  post.author as unknown as {
-                    role?: "admin" | "moderator" | "member" | null;
+                />
+                <RoleBadge
+                  role={
+                    (
+                      post.author as unknown as {
+                        role?: "admin" | "moderator" | "member" | null;
+                      }
+                    )?.role
                   }
-                )?.role
-              }
-            />
+                />
+              </>
+            )}
             <time
               dateTime={post.created_at}
               title={new Date(post.created_at).toLocaleString()}
@@ -209,14 +283,34 @@ export function Post({
               {formatRelativeCompact(post.created_at)}
             </time>
           </div>
+          {(promotionState || effectiveCorroboration || evidenceChip) && (
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                alignItems: "center",
+                flexWrap: "wrap",
+                marginTop: 4,
+              }}
+            >
+              {promotionState && (
+                <PromotionStateBadge state={promotionState} originClass={originClass} />
+              )}
+              <CorroborationChip corroboration={effectiveCorroboration} />
+              <EvidenceAgeChip chip={evidenceChip} />
+            </div>
+          )}
           {post.title && (
             <h3
+              data-guard-title
               style={{
                 margin: "6px 0 0",
                 fontSize: 16,
                 fontWeight: 600,
                 color: "var(--color-text-primary)",
                 lineHeight: 1.3,
+                minWidth: 0,
+                overflowWrap: "anywhere",
               }}
             >
               {post.title}
@@ -230,16 +324,20 @@ export function Post({
             disabled={deleting}
             aria-label="Delete post"
             title="Delete post"
+            className="cl-comm-row-aside"
             style={{
               background: "transparent",
               border: "1px solid var(--color-border)",
               borderRadius: 4,
               padding: "6px 8px",
+              minWidth: 44,
+              minHeight: 44,
               color: "var(--color-text-secondary)",
               cursor: deleting ? "wait" : "pointer",
               opacity: deleting ? 0.5 : 1,
               display: "inline-flex",
               alignItems: "center",
+              justifyContent: "center",
               gap: 4,
               flexShrink: 0,
             }}
@@ -295,6 +393,9 @@ export function Post({
             border: "1px solid var(--color-border)",
             borderRadius: 4,
             padding: "5px 9px",
+            /* UX law 2's small-target floor (>=24px + 8px clearance): this row's `gap:12` between
+               footer buttons already clears 8px, so 24px+ height alone is sufficient here. */
+            minHeight: 26,
             color: "var(--color-text-secondary)",
             cursor: "pointer",
             display: "inline-flex",
@@ -317,6 +418,9 @@ export function Post({
               border: "1px solid var(--color-border)",
               borderRadius: 4,
               padding: "5px 9px",
+              minHeight: 26,
+              display: "inline-flex",
+              alignItems: "center",
               color: "var(--color-text-secondary)",
               cursor: "pointer",
               fontSize: 11,
@@ -429,6 +533,7 @@ function ReplyRow({ reply }: { reply: CommunityPost }) {
   const initials = makeInitials(name);
   return (
     <div
+      className="cl-comm-row"
       style={{
         display: "flex",
         gap: 10,
@@ -484,6 +589,31 @@ function ReplyRow({ reply }: { reply: CommunityPost }) {
         </p>
       </div>
     </div>
+  );
+}
+
+/** Pseudonymous stand-in for a headshot (spec 05 §2). Never derived from a name or photo — a plain
+ * silhouette glyph, so an identity-projected post never leaks anything through its avatar either. */
+function NeutralAvatar({ size = 36 }: { size?: number }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: "var(--color-bg-base)",
+        border: "1px solid var(--color-border)",
+        color: "var(--color-text-muted)",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: size <= 28 ? 14 : 16,
+        flexShrink: 0,
+      }}
+    >
+      ●
+    </span>
   );
 }
 

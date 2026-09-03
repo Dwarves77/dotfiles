@@ -28,6 +28,8 @@ import {
   Hash,
   ListFilter,
   Settings as SettingsIcon,
+  Users,
+  BarChart3,
 } from "lucide-react";
 import type {
   CommunityMembership,
@@ -308,6 +310,23 @@ export function CommunitySidebar({
             href="/community/browse"
             icon={<ListFilter size={14} />}
             label="All groups"
+          />
+          {/* Wave 3 (2026-09-03): entity-bound cross-group discovery, the peer-org directory, and
+              house-seeded benchmarks — spec 05 §5 components 3, 4, 6. */}
+          <SidebarRow
+            href="/community/discover"
+            icon={<Hash size={14} />}
+            label="Discover by entity"
+          />
+          <SidebarRow
+            href="/community/directory"
+            icon={<Users size={14} />}
+            label="Peer-org directory"
+          />
+          <SidebarRow
+            href="/community/benchmarks"
+            icon={<BarChart3 size={14} />}
+            label="Benchmarks"
           />
         </SidebarSection>
       </div>

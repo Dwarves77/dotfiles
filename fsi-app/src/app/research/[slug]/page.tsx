@@ -33,6 +33,7 @@ import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { ResearchFindingDetailSurface } from "@/components/research/ResearchFindingDetailSurface";
+import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -166,6 +167,10 @@ export default async function ResearchFindingDetailPage({
   // once `self.id` (the row's raw uuid) is resolved — read-only, $0, no generation. See
   // src/lib/research/theme-brief.mjs for the join contract and the U7-boundary note.
   let themeBrief: ReturnType<typeof selectThemeBriefForItem> = null;
+  // Lane COMMUNITY-B (wave3, 2026-09-03): the "peers are discussing this" strip's bound entity.
+  // Resolved alongside `self` below (same service-role read, no extra round-trip) — fails soft to
+  // null: PeersDiscussingStrip renders nothing for a null entityId.
+  let peersEntityId: string | null = null;
 
   if (
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -187,11 +192,12 @@ export default async function ResearchFindingDetailPage({
       const orExpr = isUuid ? `legacy_id.eq.${id},id.eq.${id}` : `legacy_id.eq.${id}`;
       const { data: self } = await supabase
         .from("intelligence_items")
-        .select("id, theme, source_id")
+        .select("id, theme, source_id, instrument_entity_id")
         .or(orExpr)
         .maybeSingle();
 
       if (self) {
+        peersEntityId = self.instrument_entity_id ?? null;
         // Step 1: theme match.
         if (self.theme) {
           const { data: themeRows } = await supabase
@@ -309,6 +315,7 @@ export default async function ResearchFindingDetailPage({
         resourceLookup={resourceLookup}
         themeBrief={themeBrief}
       />
+      <PeersDiscussingStrip entityId={peersEntityId} />
     </>
   );
 }

@@ -28,6 +28,7 @@ import {
   type PriceStat,
   type EmissionFactorRow,
 } from "@/components/pages/MarketSignalDetailSurface";
+import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -306,23 +307,59 @@ export default async function MarketSignalDetailPage({
   const published = r.added ? `published ${formatDate(r.added)}` : null;
   const deck = [publisher, published].filter(Boolean).join(" · ") || undefined;
 
+  // Lane COMMUNITY-B (wave3, 2026-09-03): the "peers are discussing this" strip's bound entity —
+  // same service-role lookup pattern already used above (initialNote, priceBoard). Fails soft to
+  // null: PeersDiscussingStrip renders nothing for a null entityId.
+  let peersEntityId: string | null = null;
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { auth: { persistSession: false } }
+      );
+      const itemUuid = UUID_RE.test(r.id)
+        ? r.id
+        : (
+            await supabase
+              .from("intelligence_items")
+              .select("id")
+              .eq("legacy_id", r.id)
+              .maybeSingle()
+          ).data?.id ?? null;
+      if (itemUuid) {
+        const { data: itemRow } = await supabase
+          .from("intelligence_items")
+          .select("instrument_entity_id")
+          .eq("id", itemUuid)
+          .maybeSingle();
+        peersEntityId = itemRow?.instrument_entity_id ?? null;
+      }
+    } catch {
+      // Soft-fail — the strip just doesn't render.
+    }
+  }
+
   console.log(`[perf] /market/${id} data ${Date.now() - t0}ms`);
 
   return (
-    <MarketSignalDetailSurface
-      resource={r}
-      relatedPool={marketIntel.resources}
-      sections={sections}
-      convergence={convergence}
-      priceBoard={priceBoard}
-      carbonFactors={carbonFactors}
-      deck={deck}
-      initialNote={initialNote}
-      supersessions={supersessions}
-      connections={connections}
-      relevance={relevance}
-      resourceLookup={resourceLookup}
-    />
+    <>
+      <MarketSignalDetailSurface
+        resource={r}
+        relatedPool={marketIntel.resources}
+        sections={sections}
+        convergence={convergence}
+        priceBoard={priceBoard}
+        carbonFactors={carbonFactors}
+        deck={deck}
+        initialNote={initialNote}
+        supersessions={supersessions}
+        connections={connections}
+        relevance={relevance}
+        resourceLookup={resourceLookup}
+      />
+      <PeersDiscussingStrip entityId={peersEntityId} />
+    </>
   );
 }
 
