@@ -607,3 +607,109 @@ post-deploy observation window than this session had.
    function). `ObligationRegister.tsx` / `UpcomingObligationsStrip.tsx`
    themselves are UNCHANGED and still serve the regulations LIST page's
    `variant="list"` shape (out of this lane's write set).
+
+## 9. After PERF-2 (measured 2026-09-03 ~08:00-08:18 UTC, deployment `dpl_HA3LTPhA5CnBk4P113CtBE3ryHDg`)
+
+[CONFIRMED] Production alias `carosledge.com` → `dpl_HA3LTPhA5CnBk4P113CtBE3ryHDg`,
+`target: production`, `readyState: READY`,
+`githubCommitSha: 41d9644e40238481a2507f288c694808076181d9` (the PERF-2
+commit, "regulations detail obligations fan-out into Promise.all;
+middleware getClaims()"), region `iad1` — verified via `get_deployment`
+before measuring. Method: `performance.getEntriesByType` read in-page
+(immune to MCP round-trip latency) plus Chrome `read_network_requests` for
+status codes, signed in as the operator, cross-checked against Vercel
+`[perf]` log lines for the same URLs/timestamps.
+
+### 9.1 Regulations click-through — §7 vs now
+
+| Item | §7 server `[perf]` | now server `[perf]` | §7 client fetch | now client fetch | 503? |
+|---|---|---|---|---|---|
+| g14 Mexico SEMARNAT (cold/warm) | 1257ms | 647-679ms (−47-49%) | 1634ms | 876-937ms | no (both) |
+| EU Net-Zero (cold) | 1182ms | 609ms (−48%) | 2025ms | 1109ms | no |
+| g2 EU PPWR (cold/warm, new item) | n/a | 611-668ms | n/a | 816-858ms | **yes, both** |
+| 68af8b45 shipments-of-waste (cold/warm, new item) | n/a | 516-553ms | n/a | 808-1020ms | yes (cold only) |
+
+**Server render time genuinely improved** on every regulations item
+measured, ~46-58% below §7's 1182-1257ms — direct confirmation the PERF-2
+commit's Promise.all fix for the obligations fan-out landed and worked;
+this was §7/§8's one open item (regulations was the surface that did
+*not* improve after the first PERF pass) and it is now closed.
+
+**503 count: 3 of 7 click-throughs (43%)** returned HTTP 503 on the RSC
+request at the browser network layer — `/regulations/g2` (both cold and
+warm attempts) and `/regulations/68af8b45-fbbf-4ba1-add8-2c1761d2d120`
+(cold only). Every one of these still landed on the correct, fully
+rendered detail page in a single request/response — no retry request was
+observed in either Resource Timing or the network log, yet Vercel's
+function-level logs for this window show **zero** 5xx (`statusCode: 5xx`
+→ no rows; `group_by: statusCode` → 200×92, 204×2, one further distinct
+value no filter tried could surface — same tool gap §7.2 hit). This is a
+**higher and more persistent** 503 rate than §7's single reproduced
+instance (`/regulations/g2` 503'd on *both* of its two clicks, not just
+one), still generated upstream of the Lambda.
+
+### 9.2 Market / Operations / Research — regression check
+
+| Surface → item | §7 server | now server | §7 client fetch | now client fetch | 503? |
+|---|---|---|---|---|---|
+| Market → Loadstar (f3510df3, cold) | 825ms | 432ms (−48%) | 1183ms | 774ms | **yes** (new) |
+| Operations → India (cold) | 733ms | 329ms (−55%) | 953ms | 547ms | **yes** (new) |
+| Research → 9118aab6 (cold, different item than §7's Tyndall/Mission) | n/a | 427ms | n/a | 759ms | no |
+
+Server render time improved further on Market and Operations too (already
+improved once in §7, now roughly halved again) — consistent with
+[HYPOTHESIS] the middleware `getClaims()` change removing a blocking
+Supabase auth round-trip from *every* request's middleware invocation,
+though this is a single-sample read per item and cannot rule out ordinary
+run-to-run noise (§1/§7's own caveat). **Not confirmed as regression-free**:
+this was meant to be a "confirm no regression" check, but Market and
+Operations single click-throughs both hit the same silent-503-yet-renders-
+fine pattern that was previously regulations-only — the 503 surface has
+widened, not shrunk, even as server latency improved.
+
+### 9.3 Full-navigation loads — §7 vs now
+
+server-render = DCL − TTFB.
+
+| Page | §7 server-render | now server-render | transfer §7→now | requests §7→now |
+|---|---|---|---|---|
+| `/` cold | 3130ms | 1072ms | 45.8→45.1KB | 26→28 |
+| `/` warm | 1599ms | 1067ms | 46.1→45.0KB | 26→27 |
+| `/regulations` cold | 2092ms | 1877ms | 64.3→63.1KB | 28→~29 |
+| `/regulations` warm | 1094ms | 1268ms (noise, per §1/§7) | 64.3→62.9KB | 28→30 |
+
+### 9.4 Vercel runtime logs (last 30 min, `dpl_HA3LTPhA5CnBk4P113CtBE3ryHDg`, `iad1`)
+
+[CONFIRMED] 5xx count: **0**. `[proxy]`-tagged lines: **0** found. No
+discrete middleware-duration line is exposed by this log format (same gap
+§3 baseline noted) — most routes log under source `serverless-middleware`,
+implying middleware ran as part of the combined invocation, but its own
+timing isn't broken out. Slowest `[perf] … data` lines this window were
+all regulations/market/operations detail requests in the 329-679ms range —
+no request in the 30-minute window exceeded ~700ms server-side, a marked
+drop from §7.3's 825-1905ms top-10.
+
+### 9.5 Summary
+
+**What changed**: regulations detail server render time — §7/§8's one
+unresolved finding — is fixed, down ~46-58% to 516-679ms, matching the
+improvement market/operations already showed in §7 [CONFIRMED]. Market and
+Operations improved *again* on top of §7's gains (−48%, −55%)
+[CONFIRMED], plausibly middleware-driven [HYPOTHESIS]. **What did not
+change**: the HTTP 503 on the RSC fetch is still present, still invisible
+to Vercel's function logs (generated upstream of the Lambda, §7.2's
+inference holds), and still self-heals with no visible retry — but it is
+now *more frequent* (43% of regulations attempts vs §7's one instance) and
+**newly observed on Market and Operations**, surfaces that were clean in
+§7. **Most likely remaining cause**: the 503 arrives as a single
+request/response that nonetheless carries a valid RSC payload — consistent
+with an edge/proxy or Supabase-connection-exhaustion layer stamping a 503
+status on some fraction of in-flight streaming responses while still
+passing the body through, per the mechanism `RegulationsLedger.tsx:1367-1369`
+already documents. That comment's fix (`prefetch={false}`) only shields
+regulations rows; `src/components/market/MarketIntelLedger.tsx` (§4's
+"Full analysis" link, ~line 973) still has no explicit prefetch decision,
+and this pass's data is the first direct evidence that gap is now being
+paid for in production. File it points at:
+`src/components/market/MarketIntelLedger.tsx` and, by the same shape,
+whatever operations-detail-link component was not read this pass.
