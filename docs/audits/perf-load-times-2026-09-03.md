@@ -713,3 +713,106 @@ and this pass's data is the first direct evidence that gap is now being
 paid for in production. File it points at:
 `src/components/market/MarketIntelLedger.tsx` and, by the same shape,
 whatever operations-detail-link component was not read this pass.
+
+## 10. Quiet-window 503 test (measured 2026-09-03 10:23-10:31 UTC, deployment `dpl_AJUmcghxM6ohtjjaaPJ4tGQ47rK8`, minutes since deploy 31-39)
+
+[CONFIRMED] `carosledge.com` → `dpl_AJUmcghxM6ohtjjaaPJ4tGQ47rK8`, `githubCommitSha
+910ee54d`, `readyState: READY`, `ready: 2026-09-03T09:52:51Z`. Verified via
+`list_deployments`/`get_deployment` that no newer production deploy landed
+between READY and the first click (checked at +8.5min and again at +30.5min,
+identical single-row result both times). First click fired at 10:23:39 UTC —
+**31 minutes** after READY, comfortably past the addendum-85-postscript-4
+30-minute quiet-window bar; last click completed 10:31:08 UTC (39 min post-deploy).
+
+**Method note**: the `window.fetch` tap (STEP 2) was installed and verified
+wrapped (`window.fetch !== window.__origFetch`), but captured **zero** of the
+18 `_rsc=` requests observed via `read_network_requests` across the 8 clicks
+— confirmed by `performance.getEntriesByType('resource')`, which shows every
+one of those requests as `initiatorType: "fetch"` (no service worker
+registered) yet still invisible to the page-level wrapper. [INFERRED] Next's
+bundled router chunk holds its own reference to native `fetch`, captured
+during hydration — before this post-load script ran — so a post-hydration
+`window.fetch` monkey-patch cannot intercept it in this app's build. This
+reproduces, and adds a mechanism to, §8's own admission that "the browser
+network-request tool used does not expose response headers": **no `x-vercel-error`,
+`x-vercel-id`, or `x-matched-path` could be captured for any 503 this pass** —
+status codes below are from Chrome's network monitor, not response headers.
+
+**8 click-throughs** (status = the clicked URL's own real-payload response;
+duration = that fetch's `performance` duration):
+
+| # | Route → item | RSC status | duration | cold/warm |
+|---|---|---|---|---|
+| 1 | Regulations → g14 Mexico SEMARNAT | 503→200 (self-healed, 2nd of 3 own-URL attempts 503'd) | 1189ms | cold |
+| 2 | Regulations → 68af8b45 shipments-of-waste | 200 | 1573ms | warm |
+| 3 | Market → f3510df3 Loadstar | **503** (single request, self-healed, full 39,006B payload) | 1527ms | cold |
+| 4 | Market → South Korea K-Taxonomy | 200 | 621ms | warm |
+| 5 | Operations → India | **503** (single request, self-healed, full 12,392B payload) | 625ms | cold |
+| 6 | Operations → Singapore | 200 | 810ms | warm |
+| 7 | Research → 9118aab6 Mission Innovation | **503** (final/largest of 3 own-URL fetches, self-healed, full 16,614B payload) | 1462ms | cold |
+| 8 | Research → Tyndall Centre | **503** (single request, self-healed, full 14,398B payload) | 1281ms | warm |
+
+**503 count**: 5 of 8 click-throughs (62.5%) hit an HTTP 503 on the clicked
+route's own RSC fetch — 4 as the sole/final response, 1 as a self-healed
+mid-navigation retry — plus 2 further 503s on *background* viewport-prefetch
+requests for other, un-clicked rows during clicks 1 and 7 (7 distinct 503
+responses total across the session). Every 503 self-healed with no visible
+broken page: either a same-request full payload (clicks 3/5/7/8) or a
+follow-up request that returned 200 (click 1). Header values (`x-vercel-error`
+etc.) were **not** capturable this pass (see Method note above) — this is a
+gap, not a zero.
+
+**Vercel runtime logs, same deployment, 10:22-10:32 UTC window** (spans all 8
+clicks): `statusCode: 5xx` → **no logs found**. `group_by: statusCode` → `200`
+×70 ("2 distinct values" reported, second value never surfaced under any
+filter — same tool gap §7.2/§8 hit). The `[perf] … data` line for all 8
+clicked routes is present and matches this test's client-side timings
+(332-1573ms range), every one logged at `200` — including the 5 routes whose
+*browser*-observed status was 503. One anomaly: Operations→India shows two
+separate `[perf]` invocations 55s apart (774ms, 332ms) against one browser
+click; [INFERRED, not confirmed] most likely an unrelated viewport-prefetch
+re-fire when scrolling back through `/operations` for the next click, not a
+retry of the same request.
+
+**Verdict: hypothesis REFUTED.** The standing hypothesis (503s only within
+minutes of a fresh deploy, a build-id-skew transition effect) predicted zero
+503s in a confirmed 31-39-minute quiet window with no intervening deploy.
+Instead 5 of 8 real router click-throughs hit one, at a rate (62.5%) higher
+than §9's already-elevated 43%. Vercel's function-level logs show 100% clean
+200s for the exact same requests in the exact same window — reproducing
+§7.2/§9.4's finding that a request reaching the Lambda always leaves a
+matching, successful log line, and every 503 leaves none. This confirms the
+503 is generated at a layer upstream of or outside the Lambda (edge/proxy/
+streaming-response layer) on an ordinary, low-concurrency, quiet-window
+click path — not a deploy-transition artifact and not a Supabase-saturation
+symptom of concurrent load, since this session issued one click at a time.
+**Next probe**: capture response headers at the wire, not via page JS — this
+pass shows a page-injected `window.fetch` patch cannot see Next's own RSC
+requests in this build. Use Chrome DevTools Protocol `Network.responseReceived`
+(CDP-level interception, installed before navigation, independent of page JS)
+or a Vercel edge-middleware header-echo on the request path, to capture
+`x-vercel-error`/`x-vercel-id`/`x-matched-path` from an in-flight 503 and
+name the exact layer stamping it.
+
+## 11. The 503 was the measuring instrument (coordinator, 2026-09-03 10:5x UTC, deployment 910ee54d)
+
+Same router navigation, two readings of the same request (`GET /regulations?_rsc=12o37`, 48,932 bytes
+transferred, 1,130 ms) [CONFIRMED]:
+
+| reader | status |
+|---|---|
+| the page's own `PerformanceResourceTiming.responseStatus` (browser-native, in-page) | 200 |
+| the Chrome extension's `read_network_requests` (the tool §2, §7, §9 and §10 used) | 503 |
+
+Repeated on a second navigation: identical split (200 in-page, 503 from the extension reader). Vercel's
+own request log (dashboard, edge level, not just function logs) for the §10 window shows every request
+200. Three independent sources agree there is no 503; the only source that ever reported one is the
+extension's network reader, on RSC responses specifically (it reports the document and API requests
+correctly). The "self-healing 503 with a full payload" of §10 is exactly that shape: a completed 200
+response mislabelled.
+
+Closed: there is no production 503 on item navigation. §2's, §7's, §9's and §10's 503 lines are
+instrument artefacts and are retained here as the record of how a measurement can lie for four rounds
+when every reading comes from one tool. Rule for the next perf study: any status the extension reader
+reports on an RSC request is cross-checked against `performance.getEntriesByType('resource')` in-page
+before it enters a report.

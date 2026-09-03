@@ -8560,3 +8560,53 @@ tile link.
 Still not measured: the operator's own phone. Every number above is from a 390 px iframe of production
 in the coordinator's browser; a stale client session (screenshot 08) survives until a hard reload, and
 that reload is the first thing to ask for when a phone screenshot disagrees with the probe.
+
+### Addendum 85, postscript 6 — the 503 was the instrument; benchmark responses have a write path; the population pass is decision-ready (2026-09-03)
+
+**The 503, closed.** PERF-VERIFY-3 ran the quiet-window test properly (31–39 minutes after the last
+deploy, no deploy in between): the extension's network reader still reported 503 on 5 of 8 clicks,
+each "self-healing" with a full payload, and Vercel's function logs showed 200 for every one. That
+combination made me read the same request two ways [CONFIRMED, audit §11]: the page's own
+`PerformanceResourceTiming.responseStatus` says 200 for `/regulations?_rsc=12o37` (48,932 bytes) while
+the extension's `read_network_requests` says 503 for the identical request; Vercel's edge-level request
+log for the window shows only 200s. There is no production 503. Four rounds of reports (§2, §7, §9,
+§10) carried a number that came from one tool, and the tool was wrong on RSC responses specifically.
+Corrected on the record; rule added to the audit: an extension-reported status on an RSC request is
+cross-checked in-page before it enters a report. My deploy-skew hypothesis (ps 4) is retired with it.
+
+**COMMUNITY-C** [CONFIRMED by gates]: `organisation_key` derived server-side only (HMAC of the verified
+corporate email DOMAIN, salt `COMMUNITY_ORG_SALT`, thirty free-mail domains refused, never in a response
+body, grep-proven); `GET/PUT /api/community/profile` (member write allowlisted to the four pseudonymous
+fields); `POST /api/community/profile/verify` (corporate domain on the account is the verification,
+`verification_method='corporate-email'`); `POST /api/community/benchmarks/[key]/respond` (verified +
+open + in-bounds, upsert per organisation through the service role, returns only the k-anonymous
+aggregate); response form on the benchmarks panel and a `/community/profile` page, both at the UX
+contract; suite 4027, rendering guard PASS (UX smoke 148 checks). One env var to provision:
+`COMMUNITY_ORG_SALT` on Vercel (operator; value never in the repo).
+
+**POP-PREP** [CONFIRMED]: the dry pipeline (export → run → validate → apply --dry) passes on three
+constructed rows; the census exporter mints the regulation family only (market/research come from their
+own builders, by design); migration 299 written and NOT applied. I ran its self-check live: N = 149
+(initiative 70, market_signal 46, research_finding 33: every verified item of those three types) would
+fail criterion 5 the moment the three slot rows land, and the normal re-mint path refuses already-verified
+holders (M4). So 299 waits on a ruling (below). Dispatch table and ruling table in
+`docs/plans/population-pass-2026-09-03.md`.
+
+**Decision-ready for the operator (each one sentence, numbers live):**
+1. Migration 299: (a) do not apply; the kit already requires the three slots on every NEW mint, so
+   nothing new ships without them, and the 149 older items keep rendering (recommended now); or (b) a
+   backfill lane writes honest GAP claims ("not yet derived") for the missing slots on the 149 items
+   through the guarded path, then 299 applies with zero quarantine.
+2. R-A 1,655 off-vertical census rows: archive or park. 3. R-B 10 ambiguous record items: archive as
+   off-vertical (recommendation on file). 4. R-C/W1 the register's own split disagrees with its table
+   (8/8/6/3 written vs 8/10/6/2 read): repair the document first. 5. R-D six oil-bulletin series → six
+   validating payloads: apply or not. 6. R-E origin_class backfill 940 of 983: apply the mapping.
+   7. R-F `EIA_API_KEY` secret. 8. The audit test post (unchanged). 9. `COMMUNITY_ORG_SALT`.
+None of these blocks the population pass itself: `population-turn` (limit 200, dry then apply) and
+`corpus-turn` (since 1970) can dispatch on the current master.
+
+UX compliance (COMMUNITY-C): `/community/benchmarks`, goal contribute a figure, path read the question,
+enter the value, Submit (one primary action per instrument), feedback pending before the network call,
+success as an organisation count never a value, refusal keeps the value and links the fix;
+`/community/profile`, goal declare the four pseudonymous fields and verify, two sections one primary
+action each, pending/success/error states, pseudonymity stated in one line, 44 px targets.
