@@ -319,7 +319,7 @@ export function RegulationDetailSurface({
           </div>
 
           {/* Tab strip */}
-          <div style={{ display: "flex", gap: 2, margin: "18px 0 0", overflowX: "auto" }} role="tablist" aria-label="Regulation views">
+          <div data-guard-strip style={{ display: "flex", gap: 2, margin: "18px 0 0", overflowX: "auto" }} role="tablist" aria-label="Regulation views">
             {TABS.map((t) => {
               const active = tab === t.key;
               return (

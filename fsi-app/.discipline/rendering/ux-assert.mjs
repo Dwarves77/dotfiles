@@ -84,8 +84,8 @@ export function detectSqueezedTitles(titles, ratio = TITLE_MIN_RATIO) {
  * (2026-09-03, second phone report: the regional matrix table and a detail-page breadcrumb were CLIPPED
  * at the right edge; scrollWidth never moved because an `overflow: hidden` ancestor swallowed the
  * overflow, so the existing detector stayed green while words ran off the page). Input:
- * [{ name, right, viewportWidth, scrollable }] where `scrollable` is true when some ancestor has
- * overflow-x auto/scroll (a deliberate horizontal strip). Pure.
+ * [{ name, right, viewportWidth, scrollable }] where `scrollable` is true only when a DECLARED strip
+ * ancestor (`data-guard-strip` + overflow-x auto/scroll) carries the element. Pure.
  */
 export function detectClippedOverflow(boxes, tolerance = 2) {
   if (!Array.isArray(boxes)) return [];
@@ -157,10 +157,17 @@ export async function measureUx(page) {
         if (r.width <= 0 || r.right <= vw + 2) continue;
         const cs = getComputedStyle(el);
         if (cs.position === 'fixed' || cs.visibility === 'hidden') continue;
+        // Only a DECLARED strip (data-guard-strip on the scrolling ancestor: tab bars, chip rows, the
+        // upcoming-obligations tile strip) may carry content past the edge. A data table or a matrix
+        // that merely sets overflow-x: auto is NOT exempt: on a phone that is sideways panning to read
+        // the page, the operator's "words going off page" (2026-09-03, second round; the region matrix
+        // passed the first detector because its wrapper scrolled). Reflow it instead.
         let scrollable = false;
         for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
-          const ox = getComputedStyle(p).overflowX;
-          if (ox === 'auto' || ox === 'scroll') { scrollable = true; break; }
+          if (p.hasAttribute('data-guard-strip')) {
+            const ox = getComputedStyle(p).overflowX;
+            if (ox === 'auto' || ox === 'scroll') { scrollable = true; break; }
+          }
         }
         clipped.push({ name: nameOf(el), right: r.right, viewportWidth: vw, scrollable });
         if (clipped.length >= 40) break;

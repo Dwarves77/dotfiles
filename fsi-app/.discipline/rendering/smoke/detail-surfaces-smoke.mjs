@@ -350,18 +350,10 @@ async function runDetailSpec(browser, { name, entry, states, knownSafePlaceholde
   return { checks, failures };
 }
 
-// AiPromptBar (@/components/ui/AiPromptBar, mounted by RegulationDetailSurface.tsx but itself
-// OUTSIDE this lane's write set — `src/components/ui/**` is not in the lane brief's write set) renders
-// a chip row + input + "Ask" button below the header on every state; its own small-target sizing is a
-// pre-existing, disclosed finding, not fixed by this lane. NEEDS WRITE-SET EXPANSION if the coordinator
-// wants it sized to the law-2 floor.
-const AI_PROMPT_BAR_TARGETS = [
-  'input[flex-1 min-w-0 border-0 outline-none',
-  'button[Ask]',
-  'button[What does this mean for ]',
-  'button[When does this hit force]',
-  "button[Who's affected in my sup]",
-];
+// AiPromptBar (@/components/ui/AiPromptBar) was excluded by the lane (outside its write set; its
+// controls were 17-21px tall). The coordinator sized it to the floor at integration (input and Ask
+// 44px, chips 36px with an 8px gap), so it is measured like everything else now.
+const AI_PROMPT_BAR_TARGETS = [];
 
 export async function runSmoke(browser) {
   const results = await Promise.all([
@@ -384,15 +376,14 @@ export async function runSmoke(browser) {
       states: RESEARCH_STATES,
       knownSafePlaceholders: ['Source'],
     }),
-    // Market: MarketSignalDetailSurface.tsx (src/components/pages/) is entirely outside this lane's
-    // write set (see this file's header) — mounted for coverage/regression visibility only, every
-    // assertion skipped so a pre-existing or future defect there is neither silently hidden as green
-    // nor wrongly attributed to this lane's fix. `checks` still counts the mount as real coverage.
+    // Market: MarketSignalDetailSurface.tsx was outside the lane's write set; the coordinator brought its
+    // header to the same fix (crumb wrap, last crumb omitted at <=640, pad token, data-guard-title on the
+    // H1, 44px tabs) at integration, so it is asserted like the other three.
     runDetailSpec(browser, {
       name: 'detail-market',
       entry: MARKET_ENTRY,
       states: MARKET_STATES,
-      skipAllAssertions: true,
+      knownSafePlaceholders: ['Severity', 'Status'], // column headers of the signal's own table, not data
     }),
   ]);
   return {

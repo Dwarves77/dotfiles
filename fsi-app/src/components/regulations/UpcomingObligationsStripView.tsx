@@ -70,7 +70,7 @@ export function UpcomingObligationsStripView({ variant, events, hasJurisdictionF
   return (
     <section style={stripWrapStyle}>
       <Header count={events.length} />
-      <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+      <div data-guard-strip style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
         {events.map((ev) => (
           <EventCard key={ev.id} ev={ev} />
         ))}

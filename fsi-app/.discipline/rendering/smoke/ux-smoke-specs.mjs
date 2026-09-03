@@ -13,6 +13,7 @@ import { runSmoke as runRegulationsRowsSmoke } from './regulations-rows-smoke.mj
 import { runSmoke as runHomeSectionsSmoke } from './home-sections-smoke.mjs';
 import { runSmoke as runCommunitySmoke } from './community-smoke.mjs';
 import { runSmoke as runSpec09Smoke } from './spec09-smoke.mjs';
+import { runSmoke as runDetailSurfacesSmoke } from './detail-surfaces-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -22,4 +23,5 @@ export const UX_SMOKE_SPECS = [
   { name: "home-sections", run: runHomeSectionsSmoke }, // lane MOBILE
   { name: "community-surface", run: runCommunitySmoke }, // lane COMMUNITY-B
   { name: "spec09-panels", run: runSpec09Smoke }, // lane SPEC-09
+  { name: "detail-surfaces", run: runDetailSurfacesSmoke }, // lane MOBILE-2 (the four detail surfaces)
 ];

@@ -372,29 +372,38 @@ export function MarketSignalDetailSurface({
     <div style={{ padding: "0 0 90px", fontFamily: "var(--font-sans)", color: C.ink }}>
       {/* ── Hero header ── */}
       <header style={{ background: C.card, borderBottom: `1px solid ${C.hair}` }}>
-        <div style={{ padding: "18px 36px 0" }}>
-          {/* Breadcrumb */}
+        <div data-guard-container="market-detail-header" style={{ paddingTop: 18, paddingLeft: "var(--cl-detail-pad-x)", paddingRight: "var(--cl-detail-pad-x)" }}>
+          {/* Breadcrumb. Coordinator, 2026-09-03 (round 2, mirrors RegulationDetailSurface's MOBILE-2 fix):
+              no nowrap on any crumb; the last crumb (the title, redundant with the H1 one line below)
+              is omitted at <=640px. Side padding follows the --cl-detail-pad-x token (36px -> 16px). */}
           <nav
             aria-label="Breadcrumb"
-            style={{ fontSize: 12, margin: "0 0 12px", display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}
+            style={{ fontSize: 12, margin: "0 0 12px", display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap", minWidth: 0 }}
           >
-            <Link href="/market" prefetch={false} style={{ color: C.ink2, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
+            <Link href="/market" prefetch={false} style={{ color: C.ink2, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", minHeight: 24 }}>
               Market Intel
             </Link>
             <span style={{ color: C.muted }}>/</span>
-            <span style={{ color: C.ink2, fontWeight: 600, whiteSpace: "nowrap" }}>{crumbGroup}</span>
-            <span style={{ color: C.muted }}>/</span>
+            <span style={{ color: C.ink2, fontWeight: 600, overflowWrap: "anywhere", minWidth: 0 }}>{crumbGroup}</span>
+            <span style={{ color: C.muted }} className="cl-sig-crumb-last-sep">/</span>
             <span
-              style={{ color: C.ink, fontWeight: 800, whiteSpace: "nowrap", maxWidth: "44ch", overflow: "hidden", textOverflow: "ellipsis" }}
+              className="cl-sig-crumb-last"
+              style={{ color: C.ink, fontWeight: 800, maxWidth: "44ch", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
               title={r.title}
             >
               {r.title}
             </span>
           </nav>
+          <style>{`
+            @media (max-width: 640px) {
+              .cl-sig-crumb-last, .cl-sig-crumb-last-sep { display: none !important; }
+            }
+          `}</style>
 
           <div style={{ display: "flex", justifyContent: "space-between", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
-            <div style={{ maxWidth: "86ch" }}>
+            <div style={{ maxWidth: "86ch", minWidth: 0 }}>
               <h1
+                data-guard-title
                 style={{
                   fontFamily: "var(--font-display)",
                   fontWeight: 400,
@@ -456,7 +465,7 @@ export function MarketSignalDetailSurface({
           <PriceBoard stats={priceBoard} />
 
           {/* Tab strip */}
-          <div style={{ display: "flex", gap: 2, margin: "14px 0 0", overflowX: "auto" }} role="tablist" aria-label="Signal views">
+          <div data-guard-strip style={{ display: "flex", gap: 2, margin: "14px 0 0", overflowX: "auto" }} role="tablist" aria-label="Signal views">
             {TABS.map((t) => {
               const active = tab === t.key;
               return (
@@ -470,6 +479,7 @@ export function MarketSignalDetailSurface({
                     fontSize: 12.5,
                     fontWeight: active ? 800 : 600,
                     padding: "10px 16px",
+                    minHeight: 44, // law-2 floor (coordinator, round 2)
                     whiteSpace: "nowrap",
                     border: 0,
                     borderBottom: `3px solid ${active ? C.accent : "transparent"}`,
@@ -487,7 +497,7 @@ export function MarketSignalDetailSurface({
       </header>
 
       {/* Ask bar — page-scoped */}
-      <div style={{ padding: "22px 36px 0" }}>
+      <div style={{ paddingTop: 22, paddingLeft: "var(--cl-detail-pad-x)", paddingRight: "var(--cl-detail-pad-x)" }}>
         <AiPromptBar
           placeholder={`Ask anything about ${r.title} — e.g. how does this hit my Q3 lane costs?`}
           chips={["What does this mean for me?", "How does this affect my margins?", "Which lanes are most exposed?"]}
@@ -497,7 +507,7 @@ export function MarketSignalDetailSurface({
       {/* ── Body: main + meta rail ── */}
       <div
         id="cl-sig-grid"
-        style={{ padding: "22px 36px 0", display: "grid", gridTemplateColumns: "minmax(0,1fr) 264px", gap: 24, alignItems: "start" }}
+        style={{ paddingTop: 22, paddingLeft: "var(--cl-detail-pad-x)", paddingRight: "var(--cl-detail-pad-x)", display: "grid", gridTemplateColumns: "minmax(0,1fr) 264px", gap: 24, alignItems: "start" }}
       >
         <style>{`
           @media (max-width: 1100px) {

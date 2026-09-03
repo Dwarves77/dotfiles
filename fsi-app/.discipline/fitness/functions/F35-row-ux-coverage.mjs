@@ -55,6 +55,11 @@ export const ROW_COMPONENTS = Object.freeze({
   'src/components/operations/AuxiliaryEnergyPanelView.tsx': 'spec09 §1.5 auxiliary-load row',
   'src/components/operations/GridQueuePanelView.tsx': 'spec09 §1.6 grid-queue gate row',
   'src/components/regulations/EudrCustodyPanelView.tsx': 'spec09 §1.8 EUDR/custody blocking-alert row',
+  // Detail surfaces (lane MOBILE-2, second phone round): screenshot 09, breadcrumb off page and doubling the H1.
+  'src/components/regulations/RegulationDetailSurface.tsx': 'screenshot 09-regulation-detail-breadcrumb (crumb clipped, title doubled)',
+  'src/components/operations/OperationsDetailSurface.tsx': 'same header shape as the regulation detail (read)',
+  'src/components/research/ResearchFindingDetailSurface.tsx': 'same header shape as the regulation detail (read)',
+  'src/components/pages/MarketSignalDetailSurface.tsx': 'the market detail surface; same header shape (read)',
 });
 
 /** Strip line and block comments (keeping newlines). Pure. */

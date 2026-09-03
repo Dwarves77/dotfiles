@@ -92,7 +92,7 @@ export function AiPromptBar({
           onChange={(e) => setValue(e.target.value)}
           placeholder={placeholder}
           className="flex-1 min-w-0 border-0 outline-none bg-transparent text-sm py-2"
-          style={{ color: "var(--color-text-primary)" }}
+          style={{ color: "var(--color-text-primary)", minHeight: 44 }}
         />
         <button
           type="submit"
@@ -101,13 +101,15 @@ export function AiPromptBar({
             backgroundColor: "var(--color-primary)",
             color: "var(--color-text-inverse, #fff)",
             border: 0,
+            minHeight: 44, // law-2 floor (coordinator, round 2): the bar's controls were 17-21px tall
+            minWidth: 44,
           }}
         >
           Ask
         </button>
       </form>
       {chips && chips.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-2.5 pl-1">
+        <div className="flex flex-wrap gap-2 mt-2.5 pl-1">
           {chips.map((chip) => (
             <button
               key={chip}
@@ -118,6 +120,7 @@ export function AiPromptBar({
                 background: "var(--color-bg-surface)",
                 border: "1px solid var(--color-border-ai, var(--color-border))",
                 color: "var(--color-primary)",
+                minHeight: 44, // law-2 floor (the 36px + 8px-clearance alternative fails once chips wrap flush)
               }}
             >
               {chip}

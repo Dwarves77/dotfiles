@@ -8509,3 +8509,54 @@ window 2026-07-01 → 2026-10-01; `community_benchmark_instruments` read back 3 
 Runtime state after this postscript: master `41d9644e` deployed; migrations 293–298 live; F35 green;
 open: the audit test post (operator), the 503 quiet-window measurement, and the population pass under
 the build-before-populate ruling (Waves 2 and 3 have landed; the one population pass is next).
+
+### Addendum 85, postscript 5 — mobile round 2: the detector was exempting the defect (2026-09-03)
+
+Operator, second phone round: "you haven't fixed the UI on mobile… words doubling what's below them and
+going off page. all of the pages are having text spacing issues." Two screenshots: the regulations
+ledger still in the pre-Wave-3 layout, and a regulation detail whose breadcrumb ran off page and
+repeated the title directly above it.
+
+Measured the DEPLOYED build at 390 px from the signed-in browser (same-origin iframe probe, six pages)
+[CONFIRMED]: the regulations ledger rows ARE fixed on production (2 columns, meta stacked, one-line
+title), so screenshot 08 was a stale client session; the regulation detail had three elements clipped
+past the right edge (breadcrumb group with `nowrap`, Timeline and Sources buttons) and zero measured
+titles; the operations regional matrix table was clipped past the edge (region columns wider than the
+phone, hidden by its own scrolling wrapper); the market upcoming-strip tiles truncated mid-word; home,
+research, community clean.
+
+Why the first round's gate did not catch the matrix: `ux-assert`'s overflow measure was scrollWidth,
+which an `overflow-x: auto` wrapper resets. Added `detectClippedOverflow` (every element whose box
+passes the viewport edge; exempt ONLY under a declared `data-guard-strip` ancestor, so a data table
+that merely scrolls sideways is a failure, not an exemption). With the strict rule the guard turned RED
+on the obligation register at 375 (a six-column table, 764 px) before any surface change: the
+red-then-green the lane could not get with the lenient rule. Red lines recorded in the guard run; green
+after the fixes below.
+
+MOBILE-2 lane (worktree, reported per contract): detail surfaces (regulations, operations, research)
+on the `--cl-detail-pad-x` token (36→16 px at ≤767), crumbs wrap and the last crumb is omitted at
+≤640 (the H1 is the next element), tabs and action rows at the law-2 floor, `data-guard-title` on H1s
+and section heads; `RegionDimensionMatrix` reflows to one card per region at ≤640 (six-region fixture);
+market upcoming tiles clamp to two wrapped lines; `RegulationTimeline` `120px 1fr` → `minmax(0,120px)
+1fr`; `ChangedSinceStrip` one column at ≤640; dead `headers()` Cache-Control block removed from
+`next.config.ts` (production serves `private, no-store` on every page route, probed). Coordinator at
+integration: `MarketSignalDetailSurface` (outside every lane's set) brought to the same header fix;
+`AiPromptBar` input/Ask/chips to 44 px; a reusable `.cl-table-cards` pattern (table → stacked
+label:value cards at ≤640, `data-label` per cell) applied to the obligation register and the detail
+obligations table; `data-guard-strip` declared on the five intentional strips (tab bars, theme strip,
+upcoming strip, community region tabs); `detail-surfaces` spec registered with all four surfaces
+asserted; F35 covers the four detail surfaces. Gates: suite 3986/3986, fitness 0, meta-gate PASS, tsc
+clean, rendering guard PASS (8 specs, 116 UX checks, strict overflow), build green.
+
+UX compliance (round 2): detail pages `/{regulations,market,operations,research}/[slug]`, goal read
+one item and act, path one tap from a row, primary action Export brief (regulations) or the surface's
+CTA, tabs and actions ≥44 px, feedback unchanged (no new async); operations matrix at phone width, goal
+compare a region's six dimensions, path scroll to the region card and tap a dimension (44 px), primary
+action expand, feedback `aria-expanded` immediate; obligation register at phone width, goal find what
+is due, path read the stacked cards, primary action the regulation link (≥24 px with clearance), no
+async; market upcoming strip, goal scan near-term dates, path swipe (declared strip), primary action the
+tile link.
+
+Still not measured: the operator's own phone. Every number above is from a 390 px iframe of production
+in the coordinator's browser; a stale client session (screenshot 08) survives until a hard reload, and
+that reload is the first thing to ask for when a phone screenshot disagrees with the probe.
