@@ -136,4 +136,6 @@ node --test \
   fsi-app/src/lib/telemetry/*.test.mjs \
   fsi-app/src/lib/health/*.test.mjs \
   fsi-app/src/lib/propagation/*.test.mjs \
-  fsi-app/src/lib/propagation/methods/*.test.mjs
+  fsi-app/src/lib/propagation/methods/*.test.mjs \
+  fsi-app/src/lib/spec09/*.test.mjs \
+  fsi-app/scripts/spec09/*.test.mjs
