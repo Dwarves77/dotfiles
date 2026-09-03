@@ -1,7 +1,59 @@
 # Last proposer pass — mint
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **fourteen** artifacts (`mint-run-001` …
-`mint-run-014`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-014**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **sixteen** artifacts (`mint-run-001` …
+`mint-run-016`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-016**.
+
+## Pass of 2026-09-03, midday (mint-run-015 dry, mint-run-016 apply — the first limit-200 slice on post-Wave-3 master)
+
+**Artifacts read:** mint-run-015 (population-turn run 33747655857, dry, limit 200, capture on) and
+mint-run-016 (run 33749140151, apply, same inputs), both at `harness_version sha256:c933647da54908a1`,
+the hash `PENDING-RUN.md` named as the run that would supersede it — so that marker is discharged and
+deleted in this landing per F28's reverse-audit. Both artifacts were read from the pushed
+`population/<run>` branches (the repository's Actions setting refuses PR creation, so no PR opened).
+
+**Full traces read:** both runs' `census-rows.json` (178 rows), `census-rows.held.json` (22),
+`census-rows.screened-out.json`, `census-rows.mint-batch-report.json` (178 results, every one
+`recommended_status: verified`, every one carrying the tag-presence warning), the apply-ready file
+(178 payloads, 5–6 claims and 3 sections each); the live `intelligence_items`, `census_worklist`
+and `item_gate_a_state` tables (Supabase, read-only).
+
+**Metrics:** dry 178/178 valid, 0 defects. Apply `attempted 178, valid 178, minted 177,
+minted_verified 177, minted_unverified 0, apply_failed 0, census_rows_reconciled 177,
+not_applied_holder_conflict 1`; db_deltas items 177 / sections 464 / claims 1,122 / searches 177 /
+gate_a 177 / citations 157 / sources 0. **Live read [CONFIRMED]:** `intelligence_items` 1,233 →
+1,410; record-grade live 297 (120 before + 177), all `provenance_status = verified`; 42 archived
+`off_vertical` unchanged (the reconcile step archived nothing new: the screen now gates the export, so
+no off-vertical row reached the mint); `census_worklist` rows `reconciled` today 177. The selection
+was identical between dry and apply (same 178, same 22 held, same 1,118 / 244 screen counts), which is
+the property the dry-then-apply protocol depends on and had not been measured at limit 200 before.
+
+**Hypotheses (verified, with basis):**
+1. **The one refusal is correct.** Row `26bf4a98` (CELEX 32019R1242) is held by item `ab922a18`
+   minted 2026-04-05 (read the holder row). The exporter's held-URL exclusion compares `document_url`
+   to `source_url` and this pair differs in URL shape while sharing the canonical key, so the row
+   reached the mint and M4's holder check refused it. Two layers, as designed; but the exporter could
+   have excluded it by canonical key and saved the payload build — proposal 2.
+2. **The held classes shifted from FR-type/unmapped-host (runs 012–014) to `capture_blocked` (19 of
+   22).** Ten are EUR-Lex `(01)` corrigenda/agreement CELEX numbers, which have no Cellar resolver entry
+   and fall back to the robot-gated legal-content HTML (202, 2,035 bytes, evidence on every hold); six
+   are PDFs/document downloads answering 0 bytes to a plain client (climate.ec.europa.eu ×3, sdir.no,
+   rules.cityofnewyork.us, ww2.arb.ca.gov). Basis: read the 22 holds' endpoint/status/bytes. These will
+   be held on every run until a capture path exists for them; they are not a data defect.
+3. **Every minted item has empty connection-signature tags** (177/177 live, three arrays empty). The
+   validator warned on all 178 and minted anyway, by design; discover.mjs scores them zero edges until
+   `propose-tags`/`apply-tags` run. `origin_class` is also null on all 177 (R-E's population is now
+   940 of 1,160). Neither is new; both scale with every slice.
+4. **Pool remaining:** `would_mint` 3,661, not yet held 2,672, of which the screen removes 1,362,
+   leaving roughly 1,300 mintable rows, about seven more runs at 200 (each ~12 minutes, $0).
+
+**Proposal:** (1) keep draining at 200 with apply only — the dry/apply selection identity is now
+measured, so a per-slice dry adds twelve minutes and no information; read each artifact's
+`minted_verified`/`apply_failed`/holder counts against the live table before the next dispatch, as
+here. (2) Exporter: exclude by canonical key as well as by URL (hypothesis 1), and hold `(01)` CELEX
+shapes as `no_capture_path` rather than re-fetching the robot page on every run (hypothesis 2). (3)
+After the drain, one `propose-tags --execute` over the new ids and the R-E `origin_class` backfill,
+before the corpus turn, so discovery sees tagged, classed items.
+
 
 ## Pass of 2026-09-02, night (mint-run-014 — the first screened slice; two failures, one cross-layer defect)
 
