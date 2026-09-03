@@ -123,7 +123,7 @@ const SHARED_STRINGS = [
   "AMBIG-TITLE-A", "AMBIG-TITLE-B", "Ambiguous Activity", "Ambiguous Type",      // 11-14: test-only ambiguous block
   "With RF", "Without RF", "Freight flights",                                    // 15-17
   "Domestic, to/from UK", "tonne",                                               // 18-19
-  "Short-haul international, to/from UK", "Long-haul international, to/from UK", // 20-21
+  "Short-haul, to/from UK", "Long-haul, to/from UK",                             // 20-21 (real 2025 labels, rows 99/100)
   "Something else", "Whatever",                                                  // 22-23: intervening single-group block
   "Sea tanker", "Crude tanker", "200,000+ dwt",                                  // 24-26: decoy sea-tanker block
   "Cargo ship", "Bulk carrier", "Average", "Container ship", "8000+ TEU",        // 27-31
@@ -201,8 +201,8 @@ function flightsBlockRows({ withRfTitles = true } = {}) {
   );
   rows.push(`<row r="98">${cs("A98", "Freight flights")}${cs("B98", "Domestic, to/from UK")}${cs("C98", "tonne")}${cn("D98", 9999)}</row>`); // decoy: wrong unit
   rows.push(`<row r="99">${cs("B99", "Domestic, to/from UK")}${cs("C99", "tonne.km")}${cn("D99", 1.5)}${cn("H99", 0.9)}</row>`); // A blank: forward-fill
-  rows.push(`<row r="100">${cs("B100", "Short-haul international, to/from UK")}${cs("C100", "tonne.km")}${cn("D100", 0.8)}${cn("H100", 0.5)}</row>`);
-  rows.push(`<row r="101">${cs("B101", "Long-haul international, to/from UK")}${cs("C101", "tonne.km")}${cn("D101", 0.6)}${cn("H101", 0.4)}</row>`);
+  rows.push(`<row r="100">${cs("B100", "Short-haul, to/from UK")}${cs("C100", "tonne.km")}${cn("D100", 0.8)}${cn("H100", 0.5)}</row>`);
+  rows.push(`<row r="101">${cs("B101", "Long-haul, to/from UK")}${cs("C101", "tonne.km")}${cn("D101", 0.6)}${cn("H101", 0.4)}</row>`);
   return rows;
 }
 

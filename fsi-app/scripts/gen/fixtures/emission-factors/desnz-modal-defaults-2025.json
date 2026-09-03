@@ -263,7 +263,7 @@
       "pedigree": null,
       "method_version": null,
       "needs_runner_fetch": true,
-      "source_ref": "NEEDS RUNNER FETCH: GHG Conversion Factors 2025 (DESNZ/Defra), full set, sheet 'Freighting goods' — Air freight / Short-haul international, to/from UK / tonne.km. Row number, column, figure and unit not yet read from the primary xlsx (unreachable from this container 2026-09-02; see fixture header). Whether the sheet also splits this row 'with RF'/'without RF' is unconfirmed."
+      "source_ref": "NEEDS RUNNER FETCH: GHG Conversion Factors 2025 (DESNZ/Defra), full set, sheet 'Freighting goods' — Air freight / Short-haul, to/from UK / tonne.km. Row number, column, figure and unit not yet read from the primary xlsx (unreachable from this container 2026-09-02; see fixture header). Whether the sheet also splits this row 'with RF'/'without RF' is unconfirmed."
     },
     {
       "tier": "modal_default",
@@ -285,7 +285,7 @@
       "pedigree": null,
       "method_version": null,
       "needs_runner_fetch": true,
-      "source_ref": "NEEDS RUNNER FETCH: GHG Conversion Factors 2025 (DESNZ/Defra), full set, sheet 'Freighting goods' — Air freight / Long-haul international, to/from UK / tonne.km. Row number, column, figure and unit not yet read from the primary xlsx (unreachable from this container 2026-09-02; see fixture header). Whether the sheet also splits this row 'with RF'/'without RF' is unconfirmed."
+      "source_ref": "NEEDS RUNNER FETCH: GHG Conversion Factors 2025 (DESNZ/Defra), full set, sheet 'Freighting goods' — Air freight / Long-haul, to/from UK / tonne.km. Row number, column, figure and unit not yet read from the primary xlsx (unreachable from this container 2026-09-02; see fixture header). Whether the sheet also splits this row 'with RF'/'without RF' is unconfirmed."
     },
     {
       "tier": "modal_default",
