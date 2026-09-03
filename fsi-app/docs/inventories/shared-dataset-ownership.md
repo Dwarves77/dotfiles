@@ -726,3 +726,23 @@ Items 1-5 remain genuinely open, not resolved by this document — they are reco
 lane (or the merge) has a named list instead of a silent gap. Item 6's original gap is closed as of the
 note in that item. Item 7 is not a gap — it is a first-writer disclosure, recorded on the same
 not-shared-8 basis as items 5 and 6.
+
+8. **`scripts/maintenance/institution-canonicalize.mjs` / `institutions` + `sources.institution_id` +
+   `sources.base_tier`/`effective_tier`** — added by Lane SRC-TIER (2026-09-03), the MAINT dispatch step
+   for source-credibility-model SKILL.md §3's "Canonical institutional tier (one tier per institution)"
+   rule. Part A re-points `sources.institution_id` off a mis-keyed `institutions` row (one keyed to a
+   generic hosting domain — S3/CDN/blob-storage — instead of the institution's real domain) onto its
+   real-domain same-name sibling, via `guardedUpdate("sources", ...)`, then `guardedDelete("institutions",
+   [duplicateId], ...)` once no `sources` row references the duplicate any more — this is `institutions`'
+   SECOND writer (after `provenance-heal.mjs`'s find-or-create, item 7 above) and its FIRST deleter. Part B
+   writes `sources.base_tier` (and, narrowly, `effective_tier`) via `guardedUpdateByIds("sources", ...)` to
+   canonicalize an institution's inconsistent per-row tier onto the tier its own-registrable-domain rows
+   already carry. Confirmed by reading every migration for an inbound FK to `institutions`
+   (`grep -rn "institutions(id)\|institution_id" supabase/migrations`): only migration 122's own
+   `sources.institution_id` column references it (migrations 202/288 only SELECT the column, no second FK)
+   — so the Part A repoint-then-delete is sufficient without a second table to touch. Neither `sources` nor
+   `institutions` is added to the enforced JSON allowlist above, on the SAME basis item 7 already states
+   (and the shared-writer-registry test's own header: "a write to an unrelated, non-shared table... is out
+   of this registry's scope by design") — neither is a harness/flywheel shared-8 table. Recorded here,
+   narratively, for the same first-writer-disclosure reason as item 7, not because the write needs
+   allowlisting.
