@@ -8269,3 +8269,26 @@ The two coordinator applies Wave 2 created had no runtime step (OBLIG and CORR c
 options, runbook §4b/§4c). Dispatch order after this lands: `maintenance` → `source-type-backfill`,
 `derive-obligations`, `seed-corridors` (dry, then apply, reading each artifact against its table);
 `producers` → `desnz-emission-factors` apply (the runner fetches the workbook).
+
+### Addendum 84, postscript 20 — coordinator applies landed live; DESNZ extractor against the real workbook (2026-09-03)
+
+Applied through the maintenance runtime, each dry first and read back against its table [CONFIRMED]:
+`source-type-backfill` 357 classified (1,255 stay NULL: only the two STOPGAP rules exist, honestly
+unclassifiable); `derive-obligations` 903 register rows from 903 forward events across 138 items
+(774 unclassified, 119 direct_duty, 10 carrier_passthrough); `seed-corridors` 1 entity
+(`CNSHA-NLRTM:ocean`, ADR-024's worked example, the only corridor the corpus can name). The dry `all`
+run also gave the numbers behind three open rulings: origin_class 983 NULL / 940 classifiable (R-E),
+census off-vertical 1,655 (R-A), W1 register's own stated split disagrees with its table (R-C needs
+the document repaired before it can be ratified); tier opinions NOT RUNNABLE (paid upstream).
+
+`producers` → `desnz-emission-factors` dry: the runner fetched the real 2025 workbook (1,796,009
+bytes) and the extractor refused, correctly, because the "Freighting goods" sheet is not the shape the
+fixture assumed. Read the sheet cell by cell through the Codespace (gov.uk is proxy-blocked from the
+container): the Vans block has seven fuel-type groups (row 24 titles), HGV blocks four laden-% groups
+with empty cells where a group does not apply, Freight flights two groups (With RF / Without RF), and
+the sea blocks carry a fourth label column (Size) with Activity/Type forward-filled down merged cells.
+DESNZ lane rebuilt the extractor on that layout (two-row header, forward-fill, title-driven group
+selection with a data table holding one real entry, "With RF"; every refusal prints the group titles
+and the raw header rows); 34 tests on a constructed workbook of the real shape; the domestic air
+figure read from the sheet (4.60397 kg CO2e/tonne.km, With RF) reproduced exactly by the CLI. Next
+dispatch: dry, then apply, then the seed step fills the seven shells.
