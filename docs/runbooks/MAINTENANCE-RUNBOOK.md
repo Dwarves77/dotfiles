@@ -399,6 +399,47 @@ row `ADR-017`'s trigger-depth binding independently allows — never a downgrade
 
 **Artifact / read back**: `summary.json`'s `counts` (`healed_verified`, `capture_held`,
 `ungrounded_after_capture`, `slots_written_fact`/`slots_written_gap`, `gate_a_written`, `unarchived`,
-`still_failing`) and `per_item` (every step's outcome + evidence, per item). Confirm against
+`still_failing`, plus the second-pass counters below) and `per_item` (every step's outcome + evidence,
+per item). Confirm against
 `SELECT provenance_status, count(*) FROM intelligence_items WHERE is_archived=false GROUP BY 1` and
 `SELECT count(*) FROM intelligence_items WHERE is_archived AND archive_reason IS NULL` before/after.
+
+**Second pass (lane HEAL-2, 2026-09-03)**: the first pass's own `provenance-heal --arg quarantined-live
+apply` run (coordinator-confirmed, live, 2026-09-03) landed gate-A state and slot claims on the 97
+quarantined-live items (gate A written for 97, 79 slot claims, 4 spans re-grounded) but only 2 items came
+back `verified` — the survivors were, in order of volume: criterion 3 `fact_below_authority_floor` (the
+FACT's own `source_id` resolves to a tier ABOVE the item's floor, or `source_id` is NULL) — 596 claims on
+tiers 3-7 plus 218 with a NULL `source_id`, floor = tier 2 unconditional for the reg family (migration
+158); criterion 7 `gate_a_unproven_or_stale` (a prose fact with no span-proven claim) — 82 items;
+criterion 4 `analysis_missing_label_syntax` (190) + `unlabeled_assertion` (29); a residue of criterion 3
+`fact_span_not_in_source` (24), criterion 2 `ungrounded_url` (5), and criteria 5/6 (4+1). Operator ruling
+this second pass builds (verbatim, same day): "if items are being flagged as not credible for the site
+because of not having sources that is an issue with finding the source not that item. you need to attach
+a source." Five new steps, run inside the SAME `healOneItem` pass, after CAPTURE/GROUND/SLOTS and before
+the (now single, final) GATE A + RE-DERIVE:
+- **B, OWN-BODY** — when the item's own registered source carries no `institution_id` (migration 122; a
+  brand-new writer surface — nothing else in the codebase has ever written it), resolve one by the SAME
+  identity rule `institution-key.mjs`/`registerSource` already dedup the `sources` registry by, and write
+  it through the guarded path. Targets the 7 items whose own-body standard-floor scoping (migration 202)
+  was defeated by a NULL institution.
+- **A, RESOURCE** — a FACT claim failing the authority floor or carrying a NULL `source_id` gets
+  `source_id`/`search_result_id` re-pointed to a floor-qualifying capture, found across three ranked
+  buckets: the item's own canonical capture, another of the item's captures from a floor-qualifying
+  source, then the corpus pool (OTHER items' captures of the SAME canonical URL — a batch-scoped
+  `.in("result_url", ...)` read, never a whole-table `agent_run_searches` scan). `source_span` is
+  rewritten to the verbatim match; `claim_text` is never touched.
+- **E, RECLASSIFY** — the residue A and GROUND could verify nowhere: re-kind FACT -> ANALYSIS (the
+  labeling discipline's own honest escape hatch), `claim_text` unchanged.
+- **C, ORPHANS** — a Gate-A orphan (criterion 7) searched across STEP A's same capture pool; found ->
+  a new FACT claim (verbatim span = the token); found nowhere -> reported `unprovable`, never invented —
+  the brief is NEVER edited by this step.
+- **D, RELABEL** — the ONLY step that edits prose, and only by PREPENDING one of the four label forms to
+  a paragraph an ANALYSIS claim or an unlabeled-assertion section's modal sentence already lives in.
+  Nothing reworded, deleted, or moved.
+New `counts`: `own_body_resolved`, `resourced`/`unresourced`, `orphans_grounded`/`orphans_unprovable`,
+`relabeled_paragraphs`, `refactored_to_analysis`. New writes: `sources.institution_id` (UPDATE) and
+`institutions` (INSERT, find-or-create) — both recorded narratively in
+`fsi-app/docs/inventories/shared-dataset-ownership.md`'s "Open leaks summary" rather than the enforced
+JSON allowlist, the SAME basis that document already applies to `sources` itself (not a harness/flywheel
+shared-8 table). Per-step expected effect on the 95 survivors is `[INFERRED]` from the coordinator's own
+failure-count breakdown above until the coordinator's own apply dispatch measures it.

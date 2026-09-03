@@ -703,6 +703,26 @@ established at line 180 for the migration-282/283 entity tables.
    writer/consumer detail and the narrower gap that remains (a marker-less `update_item` row still has no
    consumer).
 
-The five items above remain genuinely open, not resolved by this document — they are recorded so the next
+7. **`scripts/maintenance/provenance-heal.mjs` / `sources.institution_id` + `institutions`** — added by
+   Lane HEAL-2 (2026-09-03), the second-pass STEP B ("OWN-BODY"): when the item's own registered source
+   carries no `institution_id` (migration 122), this file resolves one by the SAME identity rule
+   `scripts/lib/institution-key.mjs`/db.mjs's `registerSource` already dedup the `sources` registry by
+   (`institutionKey(url)` — bare host, or host + a path prefix on the shared-government-portal list),
+   find-or-creates the matching `institutions` row (keyed on `registrable_domain`), and writes
+   `sources.institution_id` through the guarded path. Confirmed by reading every `.from("sources")` /
+   `guardedUpdate("sources"...)` / `guardedInsert("sources"...)` call site in `scripts/` and `src/` (this
+   document's own registerSource entry above, plus a dozen admin routes) that NONE writes
+   `institution_id` — this lane is the column's first production writer, and `institutions` itself (table
+   landed migration 122, 2026-06-03) has had ZERO writers until now. Neither `sources` nor `institutions`
+   is added to the enforced JSON allowlist — the SAME basis this document already states for `sources` in
+   the shared-writer-registry test's own header ("a write to an unrelated, non-shared table (e.g.
+   agent_runs, sources, holdings_quality) is out of this registry's scope by design"): neither is a
+   harness/flywheel shared-8 table. Recorded here, narratively, on that basis — not because the write is
+   unauthorized, but because padding a non-shared-8 table into the enforced allowlist would force
+   enumerating every one of `sources`' many existing writers (a change out of this lane's write set) for
+   no enforcement benefit the doc's own stated design already declines to provide.
+
+Items 1-5 remain genuinely open, not resolved by this document — they are recorded so the next
 lane (or the merge) has a named list instead of a silent gap. Item 6's original gap is closed as of the
-note in that item.
+note in that item. Item 7 is not a gap — it is a first-writer disclosure, recorded on the same
+not-shared-8 basis as items 5 and 6.

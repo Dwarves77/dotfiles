@@ -33,12 +33,34 @@ import {
   healOneItem,
   summarizeReports,
   main,
+  // second pass (HEAL-2)
+  REG_FAMILY,
+  floorMaxFor,
+  isFloorArmed,
+  deriveSourceTier,
+  effectiveFloorForClaim,
+  buildSourcesIndex,
+  claimNeedsResource,
+  buildUrlVariants,
+  buildOwnCanonicalBucket,
+  buildTierQualifyingBucket,
+  buildCorpusPoolBucket,
+  planResourceForClaim,
+  resolveInstitutionKeyForSource,
+  findOwningSection,
+  buildOrphanClaimText,
+  planOrphanGrounding,
+  splitParagraphsPreserving,
+  planRelabelParagraph,
+  planRelabelModalParagraph,
+  sectionNeedsRelabel,
+  reclassifyReason,
 } from "./heal-provenance.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 test("HEAL_VERSION is a stamped string", () => {
-  assert.match(HEAL_VERSION, /^hp1-/);
+  assert.match(HEAL_VERSION, /^hp2-/);
 });
 
 // ── loadRequiredSlots / claimCoversSlot / missingRequiredSlots ──────────────────────────────────────
@@ -406,10 +428,16 @@ function baseDeps(overrides = {}) {
     readSections: async (id) => sections.get(id) ?? [],
     readGateAState: async (id) => gateA.get(id) ?? null,
     readSourceUrl: async () => null,
+    readCapturesByUrls: async () => [],
+    readAllSources: async () => [],
+    readInstitutionByDomain: async () => null,
+    insertInstitution: async (row) => { calls.push(["insertInstitution", row]); return { id: "inst-new" }; },
+    updateSourceInstitution: async (sourceId, institutionId) => { calls.push(["updateSourceInstitution", sourceId, institutionId]); return { updated: 1 }; },
     validateProvenance: async () => ({ valid: true, recommended_status: "verified", failures: [] }),
     insertSearch: async (row) => { calls.push(["insertSearch", row]); return { id: "search-new", result_url: row.result_url }; },
     insertClaim: async (row) => { calls.push(["insertClaim", row]); return { id: `claim-${calls.length}` }; },
     updateClaimSpan: async (id, patch) => { calls.push(["updateClaimSpan", id, patch]); return { updated: 1 }; },
+    updateClaimKind: async (id, patch) => { calls.push(["updateClaimKind", id, patch]); return { updated: 1 }; },
     insertSection: async (row) => {
       calls.push(["insertSection", row]);
       const id = "section-new";
@@ -565,4 +593,334 @@ test("main: bad --arg refuses before any read, exitCode 1", async () => {
   assert.equal(r.exitCode, 1);
   assert.match(r.note, /REFUSED/);
   assert.deepEqual(deps.calls, []);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// SECOND PASS (HEAL-2) — authority-floor mirror, STEP A/B/C/D/E pure functions.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+test("floorMaxFor / REG_FAMILY: reg family floor 2, research_finding 4, tech family 5, else null", () => {
+  assert.ok(REG_FAMILY.has("regulation") && REG_FAMILY.has("standard"));
+  assert.equal(floorMaxFor("regulation"), 2);
+  assert.equal(floorMaxFor("research_finding"), 4);
+  assert.equal(floorMaxFor("technology"), 5);
+  assert.equal(floorMaxFor("market_signal"), null);
+});
+
+test("isFloorArmed: reg family unconditional; other types only on CRITICAL/HIGH priority", () => {
+  assert.equal(isFloorArmed({ item_type: "regulation", priority: "LOW" }), true);
+  assert.equal(isFloorArmed({ item_type: "market_signal", priority: "HIGH" }), true);
+  assert.equal(isFloorArmed({ item_type: "market_signal", priority: "LOW" }), false);
+});
+
+test("deriveSourceTier: tier_override wins over base_tier; null for a missing source", () => {
+  assert.equal(deriveSourceTier({ base_tier: 3, tier_override: 1 }), 1);
+  assert.equal(deriveSourceTier({ base_tier: 3, tier_override: null }), 3);
+  assert.equal(deriveSourceTier(null), null);
+});
+
+test("effectiveFloorForClaim: migration 202 standard own-body loosens to tier 4", () => {
+  const item = { item_type: "standard" };
+  const itemSource = { institution_id: "inst-1" };
+  const sameBody = { institution_id: "inst-1" };
+  const otherBody = { institution_id: "inst-2" };
+  assert.equal(effectiveFloorForClaim(item, sameBody, itemSource), 4);
+  assert.equal(effectiveFloorForClaim(item, otherBody, itemSource), 2);
+  assert.equal(effectiveFloorForClaim({ item_type: "regulation" }, sameBody, itemSource), 2, "own-body loosening is standard-only");
+});
+
+test("buildSourcesIndex: byId and byCanonUrl lookups", () => {
+  const idx = buildSourcesIndex([
+    { id: "s1", url: "https://Example.com/Doc/" },
+    { id: "s2", url: null },
+  ]);
+  assert.equal(idx.byId.get("s1").id, "s1");
+  assert.equal(idx.byCanonUrl.get("https://example.com/doc").id, "s1");
+  assert.equal(idx.byId.size, 2);
+});
+
+test("claimNeedsResource: NULL source_id always needs resource; floor-armed tier-above-floor needs it; floor-satisfied does not", () => {
+  const item = { item_type: "regulation" };
+  const idx = buildSourcesIndex([
+    { id: "hi-tier", url: "https://blog.example/", base_tier: 6 },
+    { id: "lo-tier", url: "https://eur-lex.europa.eu/", base_tier: 2 },
+  ]);
+  assert.equal(claimNeedsResource({ claim_kind: "FACT", source_id: null }, item, idx), true);
+  assert.equal(claimNeedsResource({ claim_kind: "FACT", source_id: "hi-tier" }, item, idx), true);
+  assert.equal(claimNeedsResource({ claim_kind: "FACT", source_id: "lo-tier" }, item, idx), false);
+  assert.equal(claimNeedsResource({ claim_kind: "GAP", source_id: null }, item, idx), false, "non-FACT never needs it");
+  assert.equal(claimNeedsResource({ claim_kind: "FACT", source_id: "hi-tier" }, { item_type: "market_signal" }, idx), false, "floor not armed for this type");
+});
+
+test("buildUrlVariants: http/https swap plus trailing-slash toggle, no dupes", () => {
+  const vs = buildUrlVariants("https://example.com/doc");
+  assert.ok(vs.includes("https://example.com/doc"));
+  assert.ok(vs.includes("http://example.com/doc"));
+  assert.ok(vs.includes("https://example.com/doc/"));
+  assert.deepEqual(buildUrlVariants(""), []);
+});
+
+test("buildOwnCanonicalBucket: only captures whose result_url canonicalizes to item.source_url", () => {
+  const item = { source_id: "src-1", source_url: "https://eur-lex.europa.eu/doc/1" };
+  const captures = [
+    { id: "c1", result_url: "https://eur-lex.europa.eu/doc/1", result_content: "primary text" },
+    { id: "c2", result_url: "https://other.example/", result_content: "unrelated" },
+  ];
+  const bucket = buildOwnCanonicalBucket(item, captures);
+  assert.deepEqual(bucket.map((b) => b.id), ["c1"]);
+  assert.equal(bucket[0].source_id, "src-1");
+  assert.equal(bucket[0].bucket, "own_canonical");
+});
+
+test("buildTierQualifyingBucket: only OTHER captures whose registered source tier <= floor", () => {
+  const item = { source_url: "https://eur-lex.europa.eu/doc/1" };
+  const idx = buildSourcesIndex([{ id: "src-good", url: "https://legislation.gov.uk/x", base_tier: 2 }, { id: "src-bad", url: "https://blog.example/", base_tier: 6 }]);
+  const captures = [
+    { id: "c1", result_url: "https://eur-lex.europa.eu/doc/1", result_content: "own canonical" },
+    { id: "c2", result_url: "https://legislation.gov.uk/x", result_content: "qualifying text" },
+    { id: "c3", result_url: "https://blog.example/", result_content: "unqualifying text" },
+  ];
+  const bucket = buildTierQualifyingBucket(item, captures, idx, 2, ["c1"]);
+  assert.deepEqual(bucket.map((b) => b.id), ["c2"]);
+  assert.equal(buildTierQualifyingBucket(item, captures, idx, null, []).length, 0, "no floor -> empty");
+});
+
+test("buildCorpusPoolBucket: gated on the item's OWN source already qualifying the floor; excludes the item's own rows", () => {
+  const item = { id: "item-x", source_id: "src-1" };
+  const corpus = [
+    { id: "c1", intelligence_item_id: "item-y", result_content: "another item's full capture" },
+    { id: "c2", intelligence_item_id: "item-x", result_content: "should be excluded, same item" },
+  ];
+  assert.deepEqual(buildCorpusPoolBucket(item, corpus, 2, 2, "item-x").map((b) => b.id), ["c1"]);
+  assert.deepEqual(buildCorpusPoolBucket(item, corpus, 6, 2, "item-x"), [], "item's own tier too low to qualify -> nothing");
+});
+
+test("planResourceForClaim: first bucket with a verbatim match wins; unresourced reports the closest fuzzy match", () => {
+  const claim = { claim_text: "penalties up to €500,000 apply", source_span: "€500,000" };
+  const buckets = [
+    { id: "b1", result_content: "no figures here at all", source_id: "s1", bucket: "own_canonical" },
+    { id: "b2", result_content: "the regulation sets a maximum of €500,000 for breaches", source_id: "s2", bucket: "tier_qualifying" },
+  ];
+  const r = planResourceForClaim(claim, buckets);
+  assert.equal(r.outcome, "resourced");
+  assert.equal(r.sourceId, "s2");
+  assert.equal(r.searchId, "b2");
+  const none = planResourceForClaim({ claim_text: "wholly unrelated statement", source_span: "wholly unrelated statement" }, buckets);
+  assert.equal(none.outcome, "unresourced");
+  assert.ok("fuzzy" in none);
+});
+
+test("resolveInstitutionKeyForSource: institutionKey(url), unmodified; null for an unparseable URL", () => {
+  assert.equal(resolveInstitutionKeyForSource({ url: "https://legislation.gov.uk/uksi/2021/1" }), "legislation.gov.uk");
+  assert.equal(resolveInstitutionKeyForSource({ url: "not a url" }), null);
+  assert.equal(resolveInstitutionKeyForSource(null), null);
+});
+
+test("findOwningSection: first section whose content_md already contains the token", () => {
+  const sections = [{ id: "s1", content_md: "no figures" }, { id: "s2", content_md: "fines of up to €500,000 apply" }];
+  assert.equal(findOwningSection("€500,000", sections).id, "s2");
+  assert.equal(findOwningSection("€999", sections), null);
+});
+
+test("buildOrphanClaimText: names the token verbatim, truthfully minimal", () => {
+  assert.match(buildOrphanClaimText({ token: "€500,000", class: "figure" }), /€500,000/);
+  assert.match(buildOrphanClaimText({ token: "1 June 2027", class: "deadline" }), /1 June 2027/);
+});
+
+test("planOrphanGrounding: found across ranked buckets; unprovable reports fuzzy evidence, never a span", () => {
+  const buckets = [{ id: "b1", result_content: "the notice states a fine of €500,000 will apply", source_id: "s1", bucket: "own_canonical" }];
+  const found = planOrphanGrounding({ token: "€500,000", class: "figure" }, buckets);
+  assert.equal(found.outcome, "found");
+  assert.equal(found.sourceId, "s1");
+  const missing = planOrphanGrounding({ token: "€999,999", class: "figure" }, buckets);
+  assert.equal(missing.outcome, "unprovable");
+});
+
+test("splitParagraphsPreserving: blank-line-delimited, separators preserved for exact reconstruction", () => {
+  const text = "First para.\n\nSecond para.\n \nThird para.";
+  const { parts, seps } = splitParagraphsPreserving(text);
+  assert.equal(parts.length, 3);
+  assert.equal(parts[1], "Second para.");
+  let rebuilt = parts[0];
+  for (let i = 0; i < seps.length; i++) rebuilt += seps[i] + parts[i + 1];
+  assert.equal(rebuilt, text);
+});
+
+test("planRelabelParagraph: prepends the default label to the paragraph containing claimText only", () => {
+  const md = "Intro paragraph, unrelated.\n\nThe regulation requires strict reporting by operators.";
+  const plan = planRelabelParagraph(md, "requires strict reporting by operators");
+  assert.match(plan.content_md, /^Intro paragraph, unrelated\.\n\n\*Analytical inference:\* The regulation requires/);
+  assert.equal(planRelabelParagraph(md, "nothing matches this"), null);
+});
+
+test("planRelabelParagraph: already-labeled paragraph is left alone (null, nothing safe to do)", () => {
+  const md = "*Industry interpretation:* Operators generally read this as binding.";
+  assert.equal(planRelabelParagraph(md, "Operators generally read this as binding"), null);
+});
+
+test("planRelabelModalParagraph: prepends to the paragraph carrying the unlabeled modal verb", () => {
+  const md = "Background text.\n\nThe scheme requires operators to comply with new limits.";
+  const plan = planRelabelModalParagraph(md);
+  assert.match(plan.after, /^\*Analytical inference:\* The scheme requires/);
+  assert.equal(planRelabelModalParagraph("Nothing modal here."), null);
+});
+
+test("sectionNeedsRelabel: modal verb, no label, no legal callout, no bound FACT claim", () => {
+  const section = { id: "sec-1", content_md: "The scheme requires operators to comply." };
+  assert.equal(sectionNeedsRelabel(section, []), true);
+  assert.equal(sectionNeedsRelabel(section, [{ claim_kind: "FACT", section_row_id: "sec-1" }]), false, "a bound FACT clears it");
+  assert.equal(sectionNeedsRelabel({ id: "sec-2", content_md: "*Analytical inference:* requires compliance." }, []), false, "already labeled");
+  assert.equal(sectionNeedsRelabel({ id: "sec-3", content_md: "No modal verb here." }, []), false);
+});
+
+test("reclassifyReason: GROUND's ungrounded takes precedence, else RESOURCE's unresourced, else null", () => {
+  assert.equal(reclassifyReason("ungrounded_after_capture", "resourced"), "span_not_found_anywhere");
+  assert.equal(reclassifyReason(undefined, "unresourced"), "floor_unresourceable");
+  assert.equal(reclassifyReason("healed", "resourced"), null);
+  assert.equal(reclassifyReason(undefined, undefined), null);
+});
+
+// ── healOneItem — second-pass integration ──────────────────────────────────────────────────────────
+
+test("healOneItem STEP A: re-points a claim's wrong low-tier source to the item's own floor-qualifying capture", async () => {
+  const item = {
+    id: "item-r1", item_type: "regulation", source_id: "src-primary",
+    source_url: "https://eur-lex.europa.eu/doc/32021R0001", full_brief: "",
+  };
+  const sourcesIndex = buildSourcesIndex([
+    { id: "src-primary", url: "https://eur-lex.europa.eu/doc/32021R0001", base_tier: 2 },
+    { id: "src-secondary", url: "https://blog.example.com/summary", base_tier: 6 },
+  ]);
+  const captures = [
+    { id: "cap-primary", result_url: "https://eur-lex.europa.eu/doc/32021R0001", result_content: "Article 3 sets the threshold at 500 tonnes per year." },
+    { id: "cap-secondary", result_url: "https://blog.example.com/summary", result_content: "A blog restates the 500 tonnes per year threshold too." },
+  ];
+  const claims = [{ id: "claim-1", claim_kind: "FACT", claim_text: "[threshold] 500 tonnes per year", source_span: "500 tonnes per year", source_id: "src-secondary", section_row_id: "sec-1" }];
+  const deps = baseDeps({ readCaptures: async () => captures, readClaims: async () => claims });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {}, sourcesIndex });
+  assert.equal(r.steps.resource.length, 1);
+  assert.equal(r.steps.resource[0].outcome, "resourced");
+  assert.equal(r.steps.resource[0].source_id, "src-primary");
+  assert.equal(r.steps.resource[0].bucket, "own_canonical");
+  const call = deps.calls.find((c) => c[0] === "updateClaimSpan" && c[1] === "claim-1");
+  assert.equal(call[2].source_id, "src-primary");
+});
+
+test("healOneItem STEP B: resolves and writes institution_id for the item's own source when it is NULL", async () => {
+  const item = { id: "item-b1", item_type: "standard", source_id: "src-std", source_url: "https://legislation.gov.uk/x", full_brief: "" };
+  const sourcesIndex = buildSourcesIndex([{ id: "src-std", url: "https://legislation.gov.uk/x", base_tier: 4, institution_id: null }]);
+  const deps = baseDeps();
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {}, sourcesIndex });
+  assert.equal(r.steps.own_body.outcome, "resolved");
+  assert.equal(r.steps.own_body.key, "legislation.gov.uk");
+  assert.ok(deps.calls.some((c) => c[0] === "insertInstitution" && c[1].registrable_domain === "legislation.gov.uk"));
+  assert.ok(deps.calls.some((c) => c[0] === "updateSourceInstitution" && c[1] === "src-std" && c[2] === "inst-new"));
+});
+
+test("healOneItem STEP B: a source that already carries institution_id is left alone", async () => {
+  const item = { id: "item-b2", item_type: "standard", source_id: "src-std2", source_url: "https://legislation.gov.uk/x", full_brief: "" };
+  const sourcesIndex = buildSourcesIndex([{ id: "src-std2", url: "https://legislation.gov.uk/x", base_tier: 4, institution_id: "inst-existing" }]);
+  const deps = baseDeps();
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {}, sourcesIndex });
+  assert.equal(r.steps.own_body.outcome, "not_applicable");
+  assert.ok(!deps.calls.some((c) => c[0] === "insertInstitution" || c[0] === "updateSourceInstitution"));
+});
+
+test("healOneItem STEP C: grounds a Gate-A orphan into a NEW FACT claim, clearing the final Gate-A scan", async () => {
+  const item = {
+    id: "item-c1", item_type: "market_signal", source_id: "src-c", source_url: "https://example.com/notice",
+    full_brief: "The notice states rates increased by up to €500,000 this quarter.",
+  };
+  const sourcesIndex = buildSourcesIndex([{ id: "src-c", url: "https://example.com/notice", base_tier: 3 }]);
+  const captures = [{ id: "cap-c", result_url: "https://example.com/notice", result_content: "The notice states rates increased by up to €500,000 this quarter across the board." }];
+  const deps = baseDeps({ readCaptures: async () => captures, readClaims: async () => [] });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {}, sourcesIndex });
+  assert.equal(r.steps.orphans.length, 1);
+  assert.equal(r.steps.orphans[0].outcome, "grounded");
+  assert.ok(deps.calls.some((c) => c[0] === "insertClaim" && c[1].claim_kind === "FACT" && c[1].source_span.includes("500,000")));
+  assert.equal(r.steps.gate_a.orphan_count, 0, "the newly grounded claim clears the final Gate-A scan");
+});
+
+test("healOneItem STEP C: an orphan found nowhere is reported unprovable, never invented, brief untouched", async () => {
+  const item = { id: "item-c2", item_type: "market_signal", source_url: null, full_brief: "Rates increased by up to €500,000 this quarter." };
+  const deps = baseDeps({ readClaims: async () => [] });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  assert.equal(r.steps.orphans.length, 1);
+  assert.equal(r.steps.orphans[0].outcome, "unprovable");
+  assert.ok(!deps.calls.some((c) => c[0] === "insertClaim"));
+});
+
+test("healOneItem STEP D: prepends the label to an unlabeled-assertion section with no bound FACT claim", async () => {
+  const item = { id: "item-d1", item_type: "initiative", full_brief: "", source_url: null };
+  const deps = baseDeps({
+    readSections: async (id) => (id === "item-d1" ? [{ id: "sec-d1", item_id: "item-d1", section_key: "body", section_order: 1, content_md: "The scheme requires operators to comply with new limits." }] : []),
+    readClaims: async () => [],
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  const entry = r.steps.relabel.find((x) => x.section_id === "sec-d1");
+  assert.ok(entry, "unlabeled_assertion section relabeled");
+  assert.equal(entry.reason, "unlabeled_assertion");
+  const call = deps.calls.find((c) => c[0] === "updateSectionContent" && c[1] === "sec-d1");
+  assert.match(call[2], /^\*Analytical inference:\* The scheme requires/);
+});
+
+test("healOneItem STEP E + D together: an unresourceable FACT is re-kinded to ANALYSIS and then labeled", async () => {
+  const item = { id: "item-e1", item_type: "regulation", full_brief: "", source_url: null };
+  const claims = [{ id: "claim-e1", claim_kind: "FACT", claim_text: "the levy applies at a rate nowhere stated in any capture", source_span: "a span nowhere in any capture", source_id: "src-e", section_row_id: "sec-e1" }];
+  const deps = baseDeps({
+    readClaims: async () => claims,
+    readSections: async (id) => (id === "item-e1" ? [{ id: "sec-e1", item_id: "item-e1", section_key: "body", section_order: 1, content_md: "According to this analysis, the levy applies at a rate nowhere stated in any capture, which merits review." }] : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  assert.equal(r.steps.reclassify.length, 1);
+  assert.equal(r.steps.reclassify[0].outcome, "reclassified");
+  assert.equal(r.steps.reclassify[0].reason, "span_not_found_anywhere");
+  assert.ok(deps.calls.some((c) => c[0] === "updateClaimKind" && c[1] === "claim-e1" && c[2].claim_kind === "ANALYSIS"));
+  const relabelEntry = r.steps.relabel.find((x) => x.claim_id === "claim-e1");
+  assert.ok(relabelEntry, "the re-kinded claim gets labeled in the SAME run");
+  assert.equal(relabelEntry.outcome, "relabeled");
+});
+
+test("summarizeReports: tallies the second-pass counters too", () => {
+  const perItem = [
+    {
+      steps: {
+        own_body: { outcome: "resolved" },
+        resource: [{ outcome: "resourced" }, { outcome: "unresourced" }],
+        reclassify: [{ outcome: "reclassified" }],
+        orphans: [{ outcome: "grounded" }, { outcome: "unprovable" }],
+        relabel: [{ outcome: "relabeled" }],
+        gate_a: {}, rederive: { outcome: "still_failing", failures: [] },
+      },
+    },
+  ];
+  const s = summarizeReports(perItem);
+  assert.equal(s.own_body_resolved, 1);
+  assert.equal(s.resourced, 1);
+  assert.equal(s.unresourced, 1);
+  assert.equal(s.refactored_to_analysis, 1);
+  assert.equal(s.orphans_grounded, 1);
+  assert.equal(s.orphans_unprovable, 1);
+  assert.equal(s.relabeled_paragraphs, 1);
+});
+
+test("main: builds the sources index once from readAllSources and threads it into every item", async () => {
+  const item = {
+    id: "item-r2", item_type: "regulation", source_id: "src-primary",
+    source_url: "https://eur-lex.europa.eu/doc/1", full_brief: "",
+  };
+  const claims = [{ id: "claim-1", claim_kind: "FACT", claim_text: "[threshold] 9 tonnes", source_span: "9 tonnes", source_id: "src-secondary", section_row_id: "sec-1" }];
+  const captures = [{ id: "cap-primary", result_url: "https://eur-lex.europa.eu/doc/1", result_content: "the annual limit is 9 tonnes for this class." }];
+  const deps = baseDeps({
+    readByIds: async () => [item],
+    readCaptures: async () => captures,
+    readClaims: async () => claims,
+    readAllSources: async () => [
+      { id: "src-primary", url: "https://eur-lex.europa.eu/doc/1", base_tier: 2 },
+      { id: "src-secondary", url: "https://blog.example/", base_tier: 6 },
+    ],
+  });
+  const r = await main({ mode: "apply", arg: "ids:item-r2" }, deps);
+  assert.equal(r.per_item[0].steps.resource[0].outcome, "resourced");
+  assert.equal(r.counts.resourced, 1);
 });
