@@ -8475,3 +8475,37 @@ obligation register together on settle (both now arrive from one parallel load, 
 late-arriving block); middleware change has no screen. The CI "UX compliance" gate refused the first
 push of this train because this block was missing: the gate did its job on its author, recorded here
 rather than worked around.
+
+### Addendum 85, postscript 4 — PERF-2 measured; the 503 probed; DESNZ applied; benchmark instruments seeded (2026-09-03)
+
+PERF-VERIFY-2 on production at `41d9644e` [CONFIRMED, audit §9]: regulations detail server render
+1,257→647 ms (−48 %), and market/operations fell again on top of §7 (825→432 ms, 733→329 ms), the
+middleware `getClaims()` change being the plausible cause [HYPOTHESIS, single sample]. The 503 on RSC
+navigations did NOT go away: 3 of 7 regulations click-throughs and, newly, market and operations,
+always self-healing (content renders), never in a function log. My own probe from the signed-in
+browser [CONFIRMED]: 8 prefetch-style RSC fetches (`RSC: 1`, `Next-Router-Prefetch: 1`) all 200 in
+218–273 ms; 12 concurrent full RSC fetches (`RSC: 1`) all 200 in 600–1,600 ms, every one
+`x-matched-path: /regulations/[slug].rsc`, `x-vercel-cache: MISS`, `cache-control: private, no-store`,
+no `x-vercel-error`. So the 503 does not reproduce from `fetch()` with the RSC headers; it appears only
+during the router's own navigations, and every observation so far was made within minutes of a fresh
+production deploy (three deploys in the hour). Standing hypothesis, labelled: a deploy-transition
+effect on in-flight client sessions (build-id skew between the loaded page and the new deployment),
+not a capacity ceiling. Test that settles it: the same click-through study 30+ minutes after the last
+deploy with no deploy in between; if the 503 persists in a quiet window, the next probe captures
+`x-vercel-error` from inside the router by patching `window.fetch` in the tab before navigating.
+
+DESNZ [CONFIRMED]: `producers` → `desnz-emission-factors` dry (run #19, `6776934d`) resolved all seven
+targets with row/column provenance (rows 98/99/100 air, 159/145/152/165 sea); apply (run #20,
+`41d9644e`) wrote the fixture on the runner and seeded 7 rows (4 idempotent skips); `emission_factors`
+read back 13 rows: air 4.60397 / 1.27835 / 0.89939, ocean container 0.01612, bulk 0.00353, general
+cargo 0.01321, RoRo 0.05158 kg CO2e per tonne-km. The seven shells the extractor was built for are
+filled.
+
+Benchmark instruments [CONFIRMED]: `maintenance` → `seed-benchmark-instruments` dry (run #5) then apply
+(run #6): 3 house instruments created for 2026-Q3 (`saf-premium-air-2026-q3` global,
+`cold-chain-rate-per-feu-2026-q3` cold-chain, `eu-capacity-outlook-2026-q3` EU), status `open`,
+window 2026-07-01 → 2026-10-01; `community_benchmark_instruments` read back 3 rows. No posts written.
+
+Runtime state after this postscript: master `41d9644e` deployed; migrations 293–298 live; F35 green;
+open: the audit test post (operator), the 503 quiet-window measurement, and the population pass under
+the build-before-populate ruling (Waves 2 and 3 have landed; the one population pass is next).
