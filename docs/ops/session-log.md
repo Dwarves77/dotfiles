@@ -8843,6 +8843,21 @@ setting that would restore it is named).
 
 Gates on the merged train: suite 4253/0, fitness 29/0, tsc clean, rendering guard PASS (UX smoke 148).
 
+**Late additions to the same train.** RD: the six oil-bulletin series items as a `rows_file` batch
+(`scripts/_snapshots/population-browser/oil-bulletin-2026-09-03/census-rows.json`, six rows validating
+6/6 through `run-mint-batch` dry; `canonical_instrument_key` null because no kit scheme fits a
+statistical series, `instrument_identifier` carries the series key), `ratify-series-items.mjs` to map
+series → minted item ids into `src/lib/market/series-item-map.mjs` only on `minted_verified`, and a
+latent bug fixed on the way: `refresh-published-price-statistics.mjs` had no entrypoint guard, so
+importing it ran the CLI and `process.exit(0)`'d the importer. PERF-4: document loads stream too, the
+layout returns the shell synchronously and a `BootstrapBoundary` (`use()` on the bootstrap promise
+inside its own Suspense) seeds `AuthProvider` once; the four detail pages read the viewer's watch state
+in the same `Promise.all` as `loadDetail` and thread it to `WatchButton` (zero client fetch on mount);
+Sidebar prefetch re-enabled at Next 16.1.6's default (loading-boundary only, read from the installed
+router's own scheduler; `prefetch={true}` would have been the dangerous Full strategy, so the brief's
+wording was wrong and the lane said so). Train after both: suite 4287/0, fitness 29/0, tsc clean,
+`next build --webpack` succeeds, rendering guard PASS.
+
 UX compliance (PERF-3, BUGS): top-nav navigation, goal reach the surface, path one click, the route's
 `loading.tsx` skeleton now paints on click; WatchButton, goal toggle a watch, one click, optimistic
 flip with a retry title on failure, real state on first paint; regulations band empty state, honest
