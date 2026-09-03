@@ -56,9 +56,20 @@ import { WatchButton } from "@/components/ui/WatchButton";
 import { producerFor } from "@/lib/market/series-registry.mjs";
 import { deriveSeriesFreshness, summarizeBoardFreshness } from "@/lib/market/series-freshness.mjs";
 import { FRESHNESS } from "@/lib/contracts/vocabularies.mjs";
+import { lookupWatchMembership, type WatchMembershipEntry } from "@/lib/watchlist/membership";
 
 interface MarketSeriesBoardProps {
   board: MarketSeriesBoardVM;
+  /**
+   * PERF-3 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md item 2): one server-side batch
+   * read (market/page.tsx, via src/lib/watchlist/membership.ts) covering every populated series
+   * row's market_series.id on this page, keyed by id. Each row's <WatchButton> reads its own entry
+   * out of this map and renders it as initial state — this component stays a server component
+   * (see this file's own header), so passing the resolved map down costs nothing extra to
+   * serialize; only the per-row booleans cross into WatchButton's client boundary. Replaces the
+   * six independent per-instance GET /api/watchlist calls this page used to fire on mount.
+   */
+  watchMembership: Map<string, WatchMembershipEntry>;
 }
 
 const STATE_META: Record<MarketSeriesProducerGroup["state"], { label: string; color: string }> = {
@@ -83,7 +94,7 @@ const FRESHNESS_PANEL_COPY: Record<string, string> = {
   unknown: "No populated series carries a decided cadence — degradation cannot be judged.",
 };
 
-export function MarketSeriesBoard({ board }: MarketSeriesBoardProps) {
+export function MarketSeriesBoard({ board, watchMembership }: MarketSeriesBoardProps) {
   // Injected "now" for every freshness derivation below — the component's render instant, computed
   // once here rather than read inside the pure lib functions (envelope.mjs's own "time is injected,
   // never read" discipline; deriveSeriesFreshness/summarizeBoardFreshness both take nowIso as an arg).
@@ -186,7 +197,7 @@ export function MarketSeriesBoard({ board }: MarketSeriesBoardProps) {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
         {board.groups.map((group) => (
-          <ProducerCard key={group.keyPrefix} group={group} nowIso={nowIso} />
+          <ProducerCard key={group.keyPrefix} group={group} nowIso={nowIso} watchMembership={watchMembership} />
         ))}
       </div>
 
@@ -204,7 +215,15 @@ export function MarketSeriesBoard({ board }: MarketSeriesBoardProps) {
   );
 }
 
-function ProducerCard({ group, nowIso }: { group: MarketSeriesProducerGroup; nowIso: string }) {
+function ProducerCard({
+  group,
+  nowIso,
+  watchMembership,
+}: {
+  group: MarketSeriesProducerGroup;
+  nowIso: string;
+  watchMembership: Map<string, WatchMembershipEntry>;
+}) {
   const meta = STATE_META[group.state];
   const isDashed = group.state !== "populated";
   const producerEntry = producerFor(group.keyPrefix) ?? null;
@@ -278,7 +297,18 @@ function ProducerCard({ group, nowIso }: { group: MarketSeriesProducerGroup; now
                       file's header for why. `id` can be null only if a raw row omitted it
                       (defensive); no id means nothing to watch, so the control is simply absent
                       rather than mounted against a lookup that can never resolve. */}
-                  {s.id && <WatchButton itemType="market_series" itemId={s.id} />}
+                  {s.id && (() => {
+                    const entry = lookupWatchMembership(watchMembership, s.id);
+                    return (
+                      <WatchButton
+                        itemType="market_series"
+                        itemId={s.id}
+                        initialWatched={entry.watched}
+                        initialTeamWatched={entry.teamWatched}
+                        initialTeamAvailable={entry.teamAvailable}
+                      />
+                    );
+                  })()}
                 </div>
 
                 {/* Freshness badge (spec 02 §6 item 11): derived, never asserted. Replaces any

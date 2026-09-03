@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import type { WatchlistItemType } from "@/lib/data";
 import { isTeamOnlyWatchType } from "@/lib/watchlist-scope";
+import { getClientWatchMembership, lookupWatchMembership } from "@/lib/watchlist/membership";
 
 /** WatchButton — the WIRED watch toggle (chrome-audit S2-04, browser wave).
  *
@@ -67,15 +68,30 @@ export function WatchButton({
   itemType,
   itemId,
   palette = DEFAULT_PALETTE,
+  initialWatched,
+  initialTeamWatched,
+  initialTeamAvailable,
 }: {
   itemType: WatchlistItemType;
   itemId: string;
   palette?: { accent: string; hairStrong: string; tint: string; card: string; ink: string };
+  /**
+   * Server-resolved initial state (PERF-3, 2026-09-03, docs/audits/perf-load-times-2026-09-03.md
+   * item 2). When the caller can supply this (one server-side batch read for the whole page — see
+   * src/lib/watchlist/membership.ts), WatchButton renders it immediately and fetches NOTHING on
+   * mount — the GET this component used to fire unconditionally, once per instance, is skipped
+   * entirely. `initialWatched` is the signal: pass all three together or none: a caller that knows
+   * one of them knows all three (they come from the same server read).
+   */
+  initialWatched?: boolean;
+  initialTeamWatched?: boolean;
+  initialTeamAvailable?: boolean;
 }) {
-  const [watched, setWatched] = useState(false);
-  const [teamWatched, setTeamWatched] = useState(false);
-  const [teamAvailable, setTeamAvailable] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const hasServerState = initialWatched !== undefined;
+  const [watched, setWatched] = useState(initialWatched ?? false);
+  const [teamWatched, setTeamWatched] = useState(initialTeamWatched ?? false);
+  const [teamAvailable, setTeamAvailable] = useState(initialTeamAvailable ?? false);
+  const [loaded, setLoaded] = useState(hasServerState);
   const [failed, setFailed] = useState(false);
   const [teamFailed, setTeamFailed] = useState(false);
   // One in-flight guard per scope: toggling the team pill must not block the
@@ -83,30 +99,34 @@ export function WatchButton({
   const busy = useRef<Record<WatchScope, boolean>>({ personal: false, team: false });
 
   useEffect(() => {
+    // Server already supplied this instance's state (see initialWatched's own doc comment) —
+    // nothing to fetch. This is the common case once a surface threads props from a server read;
+    // every WatchButton call site that cannot (today: the four detail-page surfaces, fed by
+    // [slug]/page.tsx files outside this lane's write set — see membership.ts's header) falls
+    // through to the shared client-side cache below instead of firing its own request.
+    if (hasServerState) return;
     let cancelled = false;
     (async () => {
       try {
         const supabase = createSupabaseBrowserClient();
         const { data: { session } } = await supabase.auth.getSession();
-        const resp = await fetch(
-          `/api/watchlist?item_type=${itemType}&item_id=${encodeURIComponent(itemId)}`,
-          { headers: { Authorization: `Bearer ${session?.access_token || ""}` } }
-        );
-        if (!cancelled && resp.ok) {
-          const j = (await resp.json()) as {
-            watched?: boolean;
-            team?: boolean;
-            teamAvailable?: boolean;
-          };
-          setWatched(!!j.watched);
-          setTeamWatched(!!j.team);
-          setTeamAvailable(!!j.teamAvailable);
+        const authHeader = { Authorization: `Bearer ${session?.access_token || ""}` };
+        // PERF-3: routed through the shared per-item_type membership cache instead of an ad hoc
+        // fetch — N WatchButton instances of the same itemType on one page now share ONE network
+        // request between them (see membership.ts's header for the "six fetches" defect this
+        // replaces).
+        const map = await getClientWatchMembership(itemType, { fetchImpl: fetch, authHeader });
+        if (!cancelled) {
+          const entry = lookupWatchMembership(map, itemId);
+          setWatched(entry.watched);
+          setTeamWatched(entry.teamWatched);
+          setTeamAvailable(entry.teamAvailable);
         }
       } catch { /* stay unwatched; toggle still attempts the write */ }
       if (!cancelled) setLoaded(true);
     })();
     return () => { cancelled = true; };
-  }, [itemType, itemId]);
+  }, [hasServerState, itemType, itemId]);
 
   const toggle = useCallback(
     async (scope: WatchScope) => {

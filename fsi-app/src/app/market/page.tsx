@@ -28,6 +28,9 @@
 
 import { getMarketIntelItems, getSurfaceCounts } from "@/lib/data";
 import { fetchMarketSeriesBoard } from "@/lib/supabase-server";
+import { getServiceSupabase } from "@/lib/supabase-service";
+import { resolveServerBootstrap } from "@/lib/api/server-bootstrap";
+import { fetchWatchMembership, type WatchMembershipEntry } from "@/lib/watchlist/membership";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { MarketIntelLedger } from "@/components/market/MarketIntelLedger";
 import { MarketSeriesBoard } from "@/components/market/MarketSeriesBoard";
@@ -129,11 +132,32 @@ export default async function Market() {
   // WO-16 layer 3: the market_series board runs alongside the category-routed rows above — a
   // separate table, separate fetcher (fetchMarketSeriesBoard fails soft to the empty/unpopulated
   // registry state, never throws), so its absence or emptiness never blocks the signal ledger.
-  const [marketIntel, aggregates, seriesBoard] = await Promise.all([
+  const [marketIntel, aggregates, seriesBoard, bootstrap] = await Promise.all([
     getMarketIntelItems(),
     getSurfaceCounts("market"),
     fetchMarketSeriesBoard(),
+    // React.cache()-scoped (src/lib/api/server-bootstrap.ts) — the root layout already resolved
+    // this once for the current request (or will, for a full document load); this call reuses that
+    // same result rather than paying a second Supabase round trip.
+    resolveServerBootstrap(),
   ]);
+
+  // PERF-3 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md item 2): one batched watchlist
+  // read for every populated market_series row on this page, instead of each row's <WatchButton>
+  // firing its own GET /api/watchlist on mount (six near-simultaneous requests, measured). See
+  // src/lib/watchlist/membership.ts's header.
+  const marketSeriesIds = seriesBoard.groups
+    .filter((g) => g.state === "populated")
+    .flatMap((g) => g.series.map((s) => s.id))
+    .filter((id): id is string => !!id);
+  const marketSeriesWatchMembership: Map<string, WatchMembershipEntry> = marketSeriesIds.length
+    ? await fetchWatchMembership(getServiceSupabase(), {
+        userId: bootstrap.user?.id ?? null,
+        orgId: bootstrap.orgId,
+        itemType: "market_series",
+        itemIds: marketSeriesIds,
+      })
+    : new Map();
 
   const totalSignals = aggregates.totalItems || marketIntel.resources.length;
   const today = new Date().toLocaleDateString("en-US", {
@@ -164,7 +188,7 @@ export default async function Market() {
           market_series producer lands. */}
       <CarbonCostOverlay overlays={buildCarbonCostOverlays()} />
       <MarketIntelLedger initialResources={marketIntel.resources} aggregates={aggregates} seriesBoard={seriesBoard} />
-      <MarketSeriesBoard board={seriesBoard} />
+      <MarketSeriesBoard board={seriesBoard} watchMembership={marketSeriesWatchMembership} />
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 36px 0" }}>
         <p
           style={{

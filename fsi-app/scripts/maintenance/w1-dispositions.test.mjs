@@ -95,12 +95,12 @@ test("main apply: R-C-accepted unlocks the report, still applies nothing (code c
   assert.equal(r.hold.length, 2);
 });
 
-test("integration: the real register document parses to WIRE 8 / DELETE 10 / HOLD 6 / KEEP-NO-ACTION 2 = 26, and the mismatch against its own stated split is flagged", () => {
+test("integration: the real register document (repaired 2026-09-03, ruling R-C) parses to WIRE 8 / DELETE 10 / HOLD 6 / KEEP-NO-ACTION 2 = 26, stated split now agrees with the rows, no mismatch", () => {
   const markdown = readFileSync(resolve(ROOT, REGISTER_DOC_PATH), "utf8");
   const report = buildRegisterReport(markdown);
   assert.deepEqual(report.computed, { wire: 8, delete: 10, hold: 6, keep_no_action: 2, unknown: 0, total: 26 });
-  assert.deepEqual(report.stated, { wire: 8, delete: 8, hold: 6, keep_no_action: 3 });
-  assert.equal(report.mismatch, true);
+  assert.deepEqual(report.stated, { wire: 8, delete: 10, hold: 6, keep_no_action: 2 });
+  assert.equal(report.mismatch, false);
   assert.deepEqual(report.grouped.WIRE.map((r) => r.num), [1, 2, 5, 8, 23, 24, 25, 26]);
   assert.deepEqual(report.grouped.DELETE.map((r) => r.num), [3, 6, 7, 9, 10, 12, 18, 19, 20, 21]);
   assert.deepEqual(report.grouped.HOLD.map((r) => r.num), [11, 13, 14, 15, 16, 22]);

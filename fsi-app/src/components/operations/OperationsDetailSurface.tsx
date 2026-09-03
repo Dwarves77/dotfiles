@@ -87,6 +87,16 @@ interface Props {
   connections?: ItemConnection[];
   relevance?: ItemRelevance | null;
   resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
+  /**
+   * PERF-4 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md dispatch item (2)): the viewer's
+   * server-resolved watch state for THIS item (src/lib/watchlist/membership.ts's
+   * fetchWatchMembership, read in parallel with loadDetail by the page). Threaded straight to
+   * <WatchButton> below — passing `initialWatched` means it renders its real state on first paint
+   * and fires zero client fetch on mount.
+   */
+  initialWatched?: boolean;
+  initialTeamWatched?: boolean;
+  initialTeamAvailable?: boolean;
 }
 
 // ── Operations section headings ─────────────────────────────────────────────
@@ -706,6 +716,9 @@ export function OperationsDetailSurface({
   connections = [],
   relevance = null,
   resourceLookup = {},
+  initialWatched,
+  initialTeamWatched,
+  initialTeamAvailable,
 }: Props) {
   const severity = useMemo(() => deriveSeverity(r), [r]);
   const [briefMode, setBriefMode] = useState<"short" | "full">("short");
@@ -790,7 +803,13 @@ export function OperationsDetailSurface({
           {/* Landing B (2026-08-01): watchlist reaches the Operations surface
               (migration 233 expanded the item_type CHECK). */}
           <span style={r.added ? undefined : { marginLeft: "auto" }}>
-            <WatchButton itemType="operations" itemId={String(r.id)} />
+            <WatchButton
+              itemType="operations"
+              itemId={String(r.id)}
+              initialWatched={initialWatched}
+              initialTeamWatched={initialTeamWatched}
+              initialTeamAvailable={initialTeamAvailable}
+            />
           </span>
         </div>
 

@@ -53,7 +53,10 @@ const cite = {
 // own header ("Other item_types' required slots ... have no entry below and always resolve to an honest
 // GAP claim"); what this text supports is the identity/citation half (search_results[0], a genuine
 // capture of the real page), not slot coverage.
-const CAPTURED_BULLETIN_PAGE_TEXT = `Weekly Oil Bulletin
+// Exported (Lane RD, 2026-09-03) so build-oil-bulletin-rows.mjs can IMPORT this exact captured text
+// rather than copy it — same "one home, many consumers" discipline the rest of this lane's write set
+// follows (see that script's own header). No other change to this constant or this file's behaviour.
+export const CAPTURED_BULLETIN_PAGE_TEXT = `Weekly Oil Bulletin
 
 Information and maps showing weekly updates on prices of petroleum products in all EU countries
 
@@ -145,7 +148,17 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Only run main() when this file is executed directly (not when imported for CAPTURED_BULLETIN_PAGE_TEXT
+// by build-oil-bulletin-rows.mjs, Lane RD, 2026-09-03) — same entrypoint guard run-mint-batch.mjs /
+// apply-mint-batch.mjs already use. WITHOUT this guard (confirmed live: `node -e "import(...)"` never
+// returns past the import — main() runs unconditionally at module evaluation and calls process.exit(0)/
+// (1) itself) any module, including a test file, that imports this file for a named export gets the
+// WHOLE CLI run and the process killed as a side effect of the import — this file had no prior import-
+// only consumer to expose that. Behaviour when run directly (`node scripts/producers/market/
+// refresh-published-price-statistics.mjs ...`) is unchanged.
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

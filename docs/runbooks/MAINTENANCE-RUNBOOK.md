@@ -1,7 +1,9 @@
 # Maintenance runtime runbook
 
 The dispatch-only runtime for the coordinator-only applies `docs/plans/finish-plan-2026-09-02.md`'s
-MAINT paragraph names — seven applies that were built dry-by-default with no runtime to run them from.
+MAINT paragraph names, one section per step below, in dispatch order, added as each was built
+dry-by-default with no runtime to run it from. The section list grows as new MAINT steps land; do not
+assume a fixed count, read the numbered headings below for the current set.
 Workflow: `.github/workflows/maintenance.yml`. Modeled on `.github/workflows/producers.yml` (secrets
 verification, `mode` choice, per-step gating, population BEFORE/AFTER, artifact upload) and
 `.github/workflows/population-turn.yml` (dispatch-only, no schedule). Every wrapper lives under
@@ -13,9 +15,10 @@ Actions tab → **Maintenance** → Run workflow. Three inputs:
 
 - **mode** — `dry` (default; reads/plans, writes nothing) or `apply` (writes through the guarded path
   in `fsi-app/scripts/lib/db.mjs`, when the step makes any write at all).
-- **step** — one of the seven names below, or `all` (fans out every step in one dispatch, **dry only**
-  — the workflow refuses `all` with `apply`; a single dispatch cannot carry seven rulings' worth of
-  `arg` tokens, and naming one step per apply is the point).
+- **step** — one of the names below (see the numbered section headings for the current list), or `all`
+  (fans out every step in one dispatch, **dry only** — the workflow refuses `all` with `apply`; a single
+  dispatch cannot carry every step's own ruling's worth of `arg` tokens, and naming one step per apply
+  is the point).
 - **arg** — optional per-step argument; several steps *require* an exact value in `apply` mode (a
   ruling-acceptance token, an archive/park choice, or a comma-separated id list). Named per step below.
 
@@ -285,20 +288,31 @@ step changes no `intelligence_items` row, only `integrity_flags`; confirm agains
 
 ## 7. `tag-ratification`
 
-**Purpose**: apply operator-ratified TAG proposals — `integrity_flags` rows `propose-tags.mjs` opened
-(§6a, above writes them; before this lane, `population-turn.yml`'s `--dry` run only ever previewed them
-in a log — see §6a), resolved by an operator with `ratify:tags` in `resolution_note`.
+**Purpose**: apply TAG proposals — `integrity_flags` rows `propose-tags.mjs` opened (§6a, above writes
+them; before this lane, `population-turn.yml`'s `--dry` run only ever previewed them in a log — see
+§6a) — either (a) resolved by an operator with `ratify:tags` in `resolution_note` (the `arg`-id path,
+unchanged since 2026-09-02), or (b) auto-adopted at/above `apply-tags.mjs`'s `AUTO_ADOPT_THRESHOLD`
+without waiting for ratification (the `arg="auto"` path, added 2026-09-03).
 
-**Upstream, both halves already exist**: `fsi-app/scripts/connections/propose-tags.mjs` (proposes; §6a
+**Upstream, everything already exists**: `fsi-app/scripts/connections/propose-tags.mjs` (proposes; §6a
 is now its write dispatch, `population-turn.yml`'s own dispatch stays `--dry`-only, a log preview) and
-`fsi-app/scripts/connections/apply-tags.mjs` (the apply half — `evaluateApplication` / `applyTags`,
-imported unmodified). This wrapper is orchestration only; no logic was reimplemented (the existing code
-already has an apply half).
+`fsi-app/scripts/connections/apply-tags.mjs` (both apply halves — `evaluateApplication`/`applyTags` for
+the ratify path, `evaluateAutoAdoption`/`partitionByConfidence`/`autoAdoptTags` for the auto-adoption
+path, all imported unmodified). This wrapper is orchestration only; no logic is reimplemented here.
 
-**Ruling**: none named directly — gated by the per-flag `ratify:tags` marker itself (an operator
-resolving a flag IS the ratification), not a single planwide ruling token.
+**Ruling (id path)**: none named directly — gated by the per-flag `ratify:tags` marker itself (an
+operator resolving a flag IS the ratification), not a single planwide ruling token.
 
-**Dispatch**:
+**Ruling (auto path, 2026-09-03, CONFIRMED in session)**: the flywheel's own design spec closes its
+second loop "without a human in the path" (`docs/specs/08-flywheel-design.md:128`), and 339 of 619
+verified live items sat untagged with zero tag flags ever ratified — the ratify-only gate was a dead
+end in practice. New rule: a DETERMINISTIC derivation (derive-tags.mjs's `confidence: "high"` tier — a
+keyword matched in the item's own title/instrument-key, not just its body text) auto-adopts with
+provenance recorded on the flag row (`resolution_note = auto-adopted:tags:<threshold>`,
+`resolved_by='apply-tags.mjs'`); lower-confidence (`medium`) proposals stay on an open flag for review
+exactly as before. Full reasoning + the measured threshold justification: `apply-tags.mjs`'s own header.
+
+**Dispatch, id path (unchanged)**:
 - `mode=dry` — lists every `status='resolved'` flag in the TAG namespace, split into `ratifiable`
   (carries the `ratify:tags` marker + a parseable non-empty proposal list) and
   `not_ratifiable_reasons` (resolved for some other reason).
@@ -306,10 +320,85 @@ resolving a flag IS the ratification), not a single planwide ruling token.
   (never "apply everything ratified" from one dispatch — the coordinator names exactly which proposals
   land). Each id runs through `apply-tags.mjs`'s own `applyTags({execute:true})` (merge-only tag write,
   cited, snapshotted).
-- Discovery re-run (`apply-tags.mjs`'s own optional step 6) is **not** repeated by this step — the
-  summary's `note` carries the documented fallback:
-  `node scripts/connections/discover-for-items.mjs --ids <item id(s)> --execute`.
+
+**Dispatch, auto path (new)**:
+- `arg=auto` (case-insensitive) with `mode=dry` — lists every OPEN TAG_NAMESPACE flag, split into
+  `eligible` (>=1 proposal at/above threshold, with its `eligible_count`/`residue_count`) and
+  `below_threshold_count`/`not_adoptable_count`. Writes nothing.
+- `arg=auto` with `mode=apply` — runs every eligible flag through `autoAdoptTags({execute:true})`: this
+  is the one dispatch shape where "apply everything eligible" is intentional (eligibility is
+  derive-tags.mjs's own deterministic evidence, not a per-flag operator judgment call). Writes ONLY the
+  eligible (>= threshold) tags per flag (merge-only, never removes an existing tag); a flag whose every
+  proposal cleared the threshold is resolved (`auto-adopted:tags:<threshold>`); a flag with some
+  below-threshold residue is left OPEN, untouched, with the eligible tags already written — a human can
+  still ratify the residue later via the ordinary `ratify:tags` id path (a harmless no-op merge for the
+  part already applied). Idempotent — safe to re-dispatch; an already-resolved flag is skipped, and a
+  still-open partial flag recomputes the same split and writes a no-op the second time.
+
+**Discovery re-run**: not repeated by either path (`apply-tags.mjs`'s own optional step 6) — each
+summary's `note` carries the documented fallback:
+`node scripts/connections/discover-for-items.mjs --ids <item id(s)> --execute`.
 
 **Artifact / read back**: `summary.json`'s `read_back` — the touched items'
 `operational_scenario_tags` / `compliance_object_tags` / `topic_tags` after the merge. Confirm against
 `intelligence_items` for those ids.
+
+---
+
+## 8. `provenance-heal`
+
+**Purpose**: attach the grounding a quarantined or archived-unreasoned item was missing, per the
+operator's ruling (verbatim, 2026-09-03): "if items are being flagged as not credible for the site
+because of not having sources that is an issue with finding the source not that item. you need to attach
+a source. the item isn't [bad] because you didn't do that." Live population this closes against
+(coordinator-confirmed, Supabase, 2026-09-03): 97 live `quarantined` items (83 × criterion 7
+`gate_a_unproven_or_stale`, ~36 × criterion 5 `missing_required_slot`, ~30 × criterion 3 ungrounded
+claims — an item can fail more than one), 135 live items with no grounding capture at all, 58 archived
+items with `archive_reason IS NULL` (51 `unverified` + 7 `quarantined`), and 149 verified
+market_signal/initiative/research_finding items predating the wave-3 required slots (migration 299,
+written and not yet applied — see §4 header note below).
+
+**Upstream**: `scripts/mint/heal-provenance.mjs`'s own guarded `main()` — five steps, each reading what
+the previous wrote (capture, ground, slots, Gate A, re-derive), importing every governing file unmodified:
+`export-census-rows.mjs` (per-family capture resolution — Cellar-first for CELEX, the Federal Register
+API for federalregister.gov, a plain polite GET otherwise), `record-facts.mjs` /
+`record-facts-research.mjs` (slot extraction — the SAME extractors a fresh mint uses), `write-item.ts`'s
+`buildGateARow` (the live Gate-A scanner), and `item-type-required-slots.json` (the slot vocabulary, read
+only). This wrapper (`scripts/maintenance/provenance-heal.mjs`) re-exports that core's `main`/
+`parseSelection` unmodified and wires the real `db.mjs` guarded writes + a 1 req/s polite fetch
+(`export-census-rows.mjs`'s own `makePoliteFetch`) — see the core file's own header for the exact
+per-step contract.
+
+**Ruling**: the operator's ruling above is the gate — there is no separate R-token. `--arg` selects the
+population:
+- (blank) or `quarantined-live` — every live (`is_archived=false`), `quarantined` item (the default).
+- `archived-unreasoned` — archived items with `archive_reason IS NULL` (the same ruling, archive side).
+- `ids:<uuid,uuid,...>` — exactly these items, any current status.
+- `slots-backfill` — every verified, live `market_signal`/`initiative`/`research_finding` item ACTUALLY
+  missing a slot the kit's `item-type-required-slots.json` now requires (narrowed live, not just by
+  item_type — an item already carrying the new slot's FACT-or-GAP claim is skipped). **Sequencing note**:
+  migration 299 (the matching LIVE `item_type_required_slots` rows for `corridor_identity` /
+  `evidence_agreement_signal` / `source_authority_signal`) is written but **not applied** — the kit
+  (`item-type-required-slots.json`) is deliberately stricter than the live table until this selection has
+  run once (see that migration's own header). Dispatch `slots-backfill --apply` BEFORE the migration
+  lands, so criterion 5 never actually sees a gap on a live read once the migration applies.
+
+**Dispatch**: `mode=dry` reads every selected item's REAL current captures/claims/sections live and plans
+all five steps (which claims would ground, which slots would fill FACT vs GAP, what Gate A would say, what
+`validate_item_provenance` says right now) with **no network fetch and no write** — it lists the fetches
+it would make. `mode=apply` performs the plan through the guarded path (rule 015): `agent_run_searches`
+inserts (full text, never truncated — ADR-016), `section_claim_provenance` span rewrites/inserts,
+`intelligence_item_sections` inserts/updates, `item_gate_a_state` upserts, and the `intelligence_items`
+touch that fires `set_provenance_status` (the same touch `rederive-record-provenance.mjs` uses; ADR-017
+gates the `-> verified` escalation to `pg_trigger_depth() >= 2`, which this touch satisfies by
+construction — never a direct status write). An item still failing after all five steps is left exactly
+as it is, reported with the remaining criterion; nothing here forces a status or invents a fact. No
+`--arg` beyond a valid selection is required for `apply` (unlike `tag-ratification`'s per-id gate): every
+write this step makes is additive/reversible — grounding a span, filling an honest GAP, or un-archiving a
+row `ADR-017`'s trigger-depth binding independently allows — never a downgrade or a deletion.
+
+**Artifact / read back**: `summary.json`'s `counts` (`healed_verified`, `capture_held`,
+`ungrounded_after_capture`, `slots_written_fact`/`slots_written_gap`, `gate_a_written`, `unarchived`,
+`still_failing`) and `per_item` (every step's outcome + evidence, per item). Confirm against
+`SELECT provenance_status, count(*) FROM intelligence_items WHERE is_archived=false GROUP BY 1` and
+`SELECT count(*) FROM intelligence_items WHERE is_archived AND archive_reason IS NULL` before/after.

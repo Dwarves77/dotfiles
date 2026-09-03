@@ -1,6 +1,7 @@
+import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getResourcesOnly, getListingsOnly } from "@/lib/data";
-import { LIST_REMAINDER_LIMIT } from "@/lib/list-pagination";
+import { LIST_REMAINDER_LIMIT, toLedgerRowPayload } from "@/lib/list-pagination";
 
 /**
  * GET /api/listings/rest?surface=regulations|operations&offset=60
@@ -19,10 +20,34 @@ import { LIST_REMAINDER_LIMIT } from "@/lib/list-pagination";
  *
  * Response shape is `{ resources, archived }`, the SAME Resource[] shape
  * the ledgers already consume from the initial SSR payload — no client-side
- * mapping required.
+ * mapping required, aside from each resource now being the TRIMMED ledger-row
+ * shape (see toLedgerRowPayload's own header) rather than the full row.
  *
  * force-dynamic: reads cookies (via resolveOrgIdFromCookies inside the
  * reused fetchers), so this can never be statically generated.
+ *
+ * PERF-3 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md item (3)):
+ *   - SERVER-SIDE caching for this exact (org, surface, offset) triple already exists —
+ *     src/lib/data.ts's `cachedResourcesOnly`/`cachedListingsOnly` wrap getResourcesOnly/
+ *     getListingsOnly (the two functions this route calls, unchanged) in `unstable_cache`, keyed
+ *     by `(orgId, page)` where `page` is `{limit, offset}`, tagged APP_DATA_TAG, 60s revalidate —
+ *     landed same-day by an earlier PERF-train pass (see that file's own header). This route was
+ *     already inheriting that cache before this lane touched it; re-wrapping it here would
+ *     duplicate an existing module, which the lane contract forbids. What was MISSING, added here:
+ *     (a) HTTP-level Cache-Control + ETag on the RESPONSE, so a repeat client-side fetch to the
+ *     SAME (surface, offset) within the browser's cache window skips the network round trip
+ *     entirely instead of merely hitting a warm server-side cache; (b) trimming each row to the
+ *     fields the ledgers actually render (toLedgerRowPayload).
+ *   - `private`: this payload is per-org (resolveOrgIdFromCookies-scoped), matching next.config.ts's
+ *     existing precedent for every dynamic route in this app — never cacheable by a shared/CDN
+ *     cache. `max-age=300, stale-while-revalidate=600`: the browser can reuse the SAME (surface,
+ *     offset) response for up to 5 minutes without asking the network, and up to 10 minutes while
+ *     revalidating in the background. TRADE-OFF, stated honestly: unlike the server-side
+ *     unstable_cache above, a browser HTTP cache is NOT reachable by revalidateTag — a mint event
+ *     that changes these rows will not evict an already-cached browser response early, so a viewer
+ *     mid-session could see remainder rows up to 5 minutes stale after a mint. Accepted because
+ *     this endpoint only ever supplies rows PAST the first-paint page (the first 60, freshest-first,
+ *     are always server-rendered live); the remainder is lower-stakes, append-only content.
  */
 export const dynamic = "force-dynamic";
 
@@ -61,9 +86,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({
-      resources: result.resources,
-      archived: result.archived,
+    const body = JSON.stringify({
+      resources: result.resources.map(toLedgerRowPayload),
+      archived: result.archived.map(toLedgerRowPayload),
+    });
+    // Weak ETag over the trimmed body: two identical (org, surface, offset) responses (the common
+    // case within the cache window, since the server-side cache above returns the same object) hash
+    // identically, so a conditional revalidation request costs one hash compare, not a re-fetch.
+    const etag = `W/"${createHash("sha1").update(body).digest("hex")}"`;
+    const ifNoneMatch = request.headers.get("if-none-match");
+    if (ifNoneMatch === etag) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: { ETag: etag, "Cache-Control": "private, max-age=300, stale-while-revalidate=600" },
+      });
+    }
+
+    return new NextResponse(body, {
+      headers: {
+        "Content-Type": "application/json",
+        ETag: etag,
+        "Cache-Control": "private, max-age=300, stale-while-revalidate=600",
+      },
     });
   } catch (e) {
     console.error(`[api/listings/rest] surface=${surface} offset=${offset} threw:`, e);

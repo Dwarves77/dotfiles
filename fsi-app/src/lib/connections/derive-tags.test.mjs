@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import {
   deriveTags, extractQuotedArray, extractScenarioGlossary,
   TOPIC_TAG_VALUES, COMPLIANCE_OBJECT_VALUES, SCENARIO_TAG_VALUES, KEYWORD_MAP,
+  CONFIDENCE_RANK, meetsConfidence,
 } from "./derive-tags.mjs";
 
 // ── SoT binding ──────────────────────────────────────────────────────────────────────────────────
@@ -196,4 +197,40 @@ test("deriveTags is pure: identical input produces byte-identical output, input 
 test("deriveTags: absent/null fields degrade to an empty proposal set, never throws", () => {
   assert.deepEqual(deriveTags({ id: "item-empty-1" }), { itemId: "item-empty-1", proposals: [] });
   assert.deepEqual(deriveTags({ id: "item-empty-2", title: null, canonical_instrument_key: null, full_brief: null }).proposals, []);
+});
+
+// ── CONFIDENCE_RANK / meetsConfidence (2026-09-03 auto-adoption ruling) ─────────────────────────────
+
+test("CONFIDENCE_RANK: high outranks medium", () => {
+  assert.ok(CONFIDENCE_RANK.high > CONFIDENCE_RANK.medium);
+});
+
+test("meetsConfidence: high meets a high threshold; medium does not", () => {
+  assert.equal(meetsConfidence("high", "high"), true);
+  assert.equal(meetsConfidence("medium", "high"), false);
+});
+
+test("meetsConfidence: both tiers meet a medium threshold (high is stronger than the bar, not weaker)", () => {
+  assert.equal(meetsConfidence("high", "medium"), true);
+  assert.equal(meetsConfidence("medium", "medium"), true);
+});
+
+test("meetsConfidence: an unrecognized/missing confidence value ranks below every real tier, never throws", () => {
+  assert.equal(meetsConfidence("low", "medium"), false);
+  assert.equal(meetsConfidence(undefined, "medium"), false);
+  assert.equal(meetsConfidence(null, "high"), false);
+});
+
+test("meetsConfidence over a real deriveTags() output: partitions maritime fixture proposals by tier exactly as expected", () => {
+  const item = {
+    id: "item-maritime-1",
+    title: "EU MRV Regulation covering CO2 emissions from ocean bunkering",
+    canonical_instrument_key: "CELEX:32015R0757",
+    full_brief: "Vessel operators calling at EU ports must comply with shore power requirements from 2030.",
+  };
+  const { proposals } = deriveTags(item);
+  const eligible = proposals.filter((p) => meetsConfidence(p.confidence, "high"));
+  const residue = proposals.filter((p) => !meetsConfidence(p.confidence, "high"));
+  assert.equal(eligible.length, 2, "ocean-bunkering + ocean-emissions-MRV are title-level HIGH");
+  assert.equal(residue.length, 2, "vessel-shore-power + vessel-operator are body-only MEDIUM");
 });

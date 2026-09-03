@@ -13,11 +13,25 @@
 //
 // THIS SCRIPT NEVER WRITES intelligence_items. It reads the live corpus, runs the PURE
 // src/lib/connections/derive-tags.mjs over each untagged item's title/instrument-key/jurisdiction/brief
-// text, and reflects ONE integrity_flags row per targeted item — the proposals for an operator to
-// review, never an applied tag. apply-tags.mjs (this lane's sibling script) is the ONLY place a
-// proposal becomes a written tag, and only after the operator resolves the flag with the `ratify:tags`
-// marker in resolution_note (mirrors ratify-flag-to-census.mjs's `ratify:census` marker — same
-// resolution-note-as-ratification-vehicle design, see that file's header for the full rationale).
+// text, and reflects ONE integrity_flags row per targeted item — the proposals for a downstream consumer
+// to act on, never an applied tag ITSELF. That remains true unchanged by the note below: this script's
+// own behavior — read corpus, derive, reflect one open flag per item — has not changed at all.
+//
+// DOWNSTREAM RULE UPDATED 2026-09-03 (operator ruling, CONFIRMED in session; recorded in full in
+// apply-tags.mjs's header — read that file, not a restatement here, for the reasoning and the measured
+// threshold justification). Originally (2026-09-01, described below, KEPT for file history): every
+// proposal this script wrote went through an operator resolving the flag with the `ratify:tags` marker
+// in resolution_note (mirrors ratify-flag-to-census.mjs's `ratify:census` marker — same
+// resolution-note-as-ratification-vehicle design, see that file's header for the full rationale) before
+// apply-tags.mjs would write it. In practice, zero of the flags this script opened were ever ratified —
+// 339 of 619 verified live items sat untagged with no dispatch path that could move them (see
+// docs/PROGRAM-BOARD.md's "TAG-PROPOSALS (2026-09-03)" entry). As of 2026-09-03, apply-tags.mjs also
+// offers an AUTO-ADOPTION path (autoAdoptTags / tag-ratification.mjs's `--arg auto`) that applies a
+// proposal's `confidence: "high"` (derive-tags.mjs's title/instrument-key tier) subset WITHOUT the
+// ratify:tags marker, leaving lower-confidence proposals on the SAME open flag this script wrote, for a
+// human to still ratify via the unchanged `ratify:tags` path. This script's own write (one open
+// integrity_flags row per targeted item, carrying every proposal regardless of confidence) is exactly
+// what it was before this date — it is apply-tags.mjs's read of that row that now branches two ways.
 //
 // DEDUP-BEFORE-INSERT / RESOLVE-IF-STALE, mirroring analyze-corpus.mjs's reflectFlags() convention
 // (read that function before touching this one): existing OPEN rows in this namespace
@@ -55,6 +69,8 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveTags } from "../../src/lib/connections/derive-tags.mjs";
 import { TAG_NAMESPACE, createdBy, buildSubjectRef } from "../../src/lib/connections/flag-namespaces.mjs";
+import { assembleTagInput } from "../../src/lib/connections/tag-input.mjs";
+import { deriveAliasTags, mergeTagProposals } from "../../src/lib/connections/tag-aliases.mjs";
 
 // @supabase/supabase-js reaches this file only THROUGH scripts/lib/db.mjs's own lazy-require (see that
 // file's top-of-file note) — nothing here imports it directly, so this module stays importable without
@@ -240,8 +256,17 @@ export async function proposeTags(deps, { mode, ids = null, since = null, execut
     `${flagCandidates.length} carry empty signature tags (flag-worthy)${execute ? "" : " (DRY RUN)"}.`,
   );
 
-  const fresh = flagCandidates.map((item) => {
-    const derived = deriveTags(item);
+  // Coordinator wiring (2026-09-03, Lane TAGDERIVE's measured cause): the flat SIG row (title, key,
+  // jurisdiction, brief) yielded tags for 16 of 178 record-grade items; the same matcher over the item's
+  // grounded material (sections, FACT claims, a bounded window of the captured source) plus the legal-text
+  // alias table yields 72. deps.enrichTargets (optional; batch-scoped, only the flag-worthy items) attaches
+  // sections/claims/searchResults; assembleTagInput folds them into the derive-tags input shape.
+  const enriched = deps.enrichTargets ? await deps.enrichTargets(flagCandidates) : flagCandidates;
+  const fresh = enriched.map((item) => {
+    const wide = assembleTagInput(item);
+    const base = deriveTags(wide);
+    const alias = deriveAliasTags(wide);
+    const derived = { itemId: item.id, proposals: mergeTagProposals(base.proposals, alias.proposals) };
     return {
       subjectRef: buildSubjectRef(item.id),
       row: buildFlagRow(item, derived),
@@ -315,7 +340,8 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_
   process.exit(2);
 }
 
-const { readAll, guardedInsertMany, guardedUpdate } = await import("../lib/db.mjs");
+const { readAll, readClient, guardedInsertMany, guardedUpdate } = await import("../lib/db.mjs");
+const { fetchRowsIn } = await import("../mint/export-census-rows.mjs");
 
 const CITE = {
   skill: "flywheel-build-plan-2026-08-10",
@@ -331,6 +357,30 @@ const deps = {
   readCorpus: () => readAll("intelligence_items", SIG, {
     match: (q) => q.eq("provenance_status", "verified").eq("is_archived", false),
   }),
+  // Batch-scoped enrichment (never a whole-table read of agent_run_searches: ADR-016's grounding pool is
+  // full documents; run 33631394941 timed out reading it whole). Chunked `in (...)` reads per item id.
+  enrichTargets: async (targets) => {
+    if (!targets.length) return targets;
+    const sb = readClient();
+    const ids = targets.map((t) => t.id);
+    const [sections, claims, searches] = await Promise.all([
+      fetchRowsIn(sb, "intelligence_item_sections", "item_id, content_md", "item_id", ids),
+      fetchRowsIn(sb, "section_claim_provenance", "intelligence_item_id, claim_kind, claim_text", "intelligence_item_id", ids),
+      fetchRowsIn(sb, "agent_run_searches", "intelligence_item_id, result_content", "intelligence_item_id", ids),
+    ]);
+    const group = (rows, key) => {
+      const m = new Map();
+      for (const r of rows) { const k = r[key]; if (!m.has(k)) m.set(k, []); m.get(k).push(r); }
+      return m;
+    };
+    const bySec = group(sections, "item_id"), byClaim = group(claims, "intelligence_item_id"), bySearch = group(searches, "intelligence_item_id");
+    return targets.map((t) => ({
+      ...t,
+      sections: bySec.get(t.id) ?? [],
+      claims: byClaim.get(t.id) ?? [],
+      searchResults: bySearch.get(t.id) ?? [],
+    }));
+  },
   readExistingOpen: () => readAll("integrity_flags", "id, subject_ref, created_by", {
     match: (q) => q.eq("status", "open").like("created_by", `${TAG_NAMESPACE}%`),
   }),

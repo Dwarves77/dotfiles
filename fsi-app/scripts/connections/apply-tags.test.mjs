@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import {
   RATIFY_TAGS_TOKEN, hasRatifyTagsToken, extractProposalsFromDescription, evaluateApplication,
   buildMergePatch, planDiscoveryForItem, applyTags,
+  AUTO_ADOPT_THRESHOLD, evaluateAutoAdoption, partitionByConfidence, buildAutoAdoptionNote, autoAdoptTags,
 } from "./apply-tags.mjs";
 import { buildFlagRow } from "./propose-tags.mjs";
 import { TAG_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
@@ -293,4 +294,186 @@ test("applyTags: read error propagates as status read_error, not thrown", async 
   const r = await applyTags(d, "flag-1", { execute: true });
   assert.equal(r.status, "read_error");
   assert.match(r.error, /boom/);
+});
+
+// ── AUTO-ADOPTION path (2026-09-03 ruling) ───────────────────────────────────────────────────────
+
+function openFlag(overrides = {}) {
+  const row = buildFlagRow({ id: "item-1" }, { itemId: "item-1", proposals: PROPOSALS });
+  return {
+    id: "flag-1",
+    created_by: createdBy(TAG_NAMESPACE, "empty-signature"),
+    status: "open",
+    resolved_by: null,
+    resolution_note: null,
+    description: row.description,
+    subject_ref: row.subject_ref,
+    ...overrides,
+  };
+}
+
+test("AUTO_ADOPT_THRESHOLD is 'high' — the conservative, identity-level tier", () => {
+  assert.equal(AUTO_ADOPT_THRESHOLD, "high");
+});
+
+// ── evaluateAutoAdoption ─────────────────────────────────────────────────────────────────────────
+
+test("evaluateAutoAdoption: missing flag -> refused", () => {
+  assert.equal(evaluateAutoAdoption(null).ok, false);
+});
+
+test("evaluateAutoAdoption: wrong namespace -> refused", () => {
+  const r = evaluateAutoAdoption(openFlag({ created_by: "flywheel-gap:jurisdiction_span_gap" }));
+  assert.equal(r.ok, false);
+  assert.match(r.error, /not in the .*namespace/);
+});
+
+test("evaluateAutoAdoption: status resolved (by any path) -> refused, never re-decides a resolved flag", () => {
+  const r = evaluateAutoAdoption(openFlag({ status: "resolved" }));
+  assert.equal(r.ok, false);
+  assert.match(r.error, /not 'open'/);
+});
+
+test("evaluateAutoAdoption: open flag with proposals -> ok, no ratify:tags marker required", () => {
+  const r = evaluateAutoAdoption(openFlag());
+  assert.equal(r.ok, true);
+  assert.equal(r.itemId, "item-1");
+  assert.deepEqual(r.proposals, PROPOSALS);
+});
+
+test("evaluateAutoAdoption: zero-proposal open flag -> refused", () => {
+  const row = buildFlagRow({ id: "item-2" }, { itemId: "item-2", proposals: [] });
+  const r = evaluateAutoAdoption(openFlag({ description: row.description, subject_ref: row.subject_ref }));
+  assert.equal(r.ok, false);
+  assert.match(r.error, /zero proposals/);
+});
+
+// ── partitionByConfidence / buildAutoAdoptionNote ───────────────────────────────────────────────────
+
+test("partitionByConfidence: default threshold splits high vs medium", () => {
+  const { eligible, residue } = partitionByConfidence(PROPOSALS);
+  assert.deepEqual(eligible.map((p) => p.tag), ["ocean-bunkering"]);
+  assert.deepEqual(residue.map((p) => p.tag), ["emissions"]);
+});
+
+test("partitionByConfidence: a lower threshold ('medium') makes everything eligible", () => {
+  const { eligible, residue } = partitionByConfidence(PROPOSALS, "medium");
+  assert.equal(eligible.length, 2);
+  assert.equal(residue.length, 0);
+});
+
+test("buildAutoAdoptionNote: default threshold produces the documented token", () => {
+  assert.equal(buildAutoAdoptionNote(), "auto-adopted:tags:high");
+  assert.equal(buildAutoAdoptionNote("medium"), "auto-adopted:tags:medium");
+});
+
+// ── autoAdoptTags (injected-dependency core, mocked DB) ─────────────────────────────────────────────
+
+function autoDeps({ flag, item, updateResult, resolveResult } = {}) {
+  const calls = [];
+  return {
+    calls,
+    readFlag: async () => ({ data: flag ?? null, error: null }),
+    readItem: async () => ({ data: item ?? null, error: null }),
+    updateItem: async (id, patch) => { calls.push(["updateItem", id, patch]); return updateResult ?? { updated: 1, snapshot: "/tmp/snap.jsonl" }; },
+    resolveFlag: async (id, note) => { calls.push(["resolveFlag", id, note]); return resolveResult ?? { updated: 1, snapshot: "/tmp/flag-snap.jsonl" }; },
+  };
+}
+
+test("autoAdoptTags: flag not found -> status not_found", async () => {
+  const r = await autoAdoptTags(autoDeps({ flag: null }), "missing-flag", { execute: true });
+  assert.equal(r.status, "not_found");
+});
+
+test("autoAdoptTags: already-resolved flag -> not_adoptable, item never read (idempotent guard)", async () => {
+  const d = autoDeps({ flag: openFlag({ status: "resolved" }) });
+  const r = await autoAdoptTags(d, "flag-1", { execute: true });
+  assert.equal(r.status, "not_adoptable");
+  assert.ok(!d.calls.length);
+});
+
+test("autoAdoptTags: all-medium proposals -> below_threshold, item never read, nothing written", async () => {
+  const row = buildFlagRow({ id: "item-1" }, { itemId: "item-1", proposals: [PROPOSALS[1]] }); // just the medium one
+  const d = autoDeps({ flag: openFlag({ description: row.description }) });
+  const r = await autoAdoptTags(d, "flag-1", { execute: true });
+  assert.equal(r.status, "below_threshold");
+  assert.equal(r.residueCount, 1);
+  assert.ok(!d.calls.length);
+});
+
+test("autoAdoptTags: mixed high+medium on an empty item -> writes ONLY the high tag, flag stays OPEN (auto_adopted_partial)", async () => {
+  const item = { id: "item-1", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] };
+  const d = autoDeps({ flag: openFlag(), item });
+  const r = await autoAdoptTags(d, "flag-1", { execute: true });
+  assert.equal(r.status, "auto_adopted_partial");
+  assert.equal(r.residueCount, 1);
+  assert.deepEqual(r.merge.patch, { operational_scenario_tags: ["ocean-bunkering"] });
+  assert.ok(!("topic_tags" in r.merge.patch), "the medium (emissions) proposal must not be written");
+  assert.ok(d.calls.some((c) => c[0] === "updateItem"));
+  assert.ok(!d.calls.some((c) => c[0] === "resolveFlag"), "a flag with residue must not be resolved");
+});
+
+test("autoAdoptTags: all-high proposals on an empty item -> writes tags AND resolves the flag (auto_adopted)", async () => {
+  const allHigh = [PROPOSALS[0]]; // just the high one
+  const row = buildFlagRow({ id: "item-1" }, { itemId: "item-1", proposals: allHigh });
+  const item = { id: "item-1", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] };
+  const d = autoDeps({ flag: openFlag({ description: row.description }), item });
+  const r = await autoAdoptTags(d, "flag-1", { execute: true });
+  assert.equal(r.status, "auto_adopted");
+  assert.deepEqual(r.merge.patch, { operational_scenario_tags: ["ocean-bunkering"] });
+  assert.equal(r.resolvedNote, "auto-adopted:tags:high");
+  assert.ok(d.calls.some((c) => c[0] === "updateItem" && c[1] === "item-1"));
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag" && c[1] === "flag-1" && c[2] === "auto-adopted:tags:high"));
+});
+
+test("autoAdoptTags: dry run (execute=false) computes the patch, calls neither updateItem nor resolveFlag", async () => {
+  const allHigh = [PROPOSALS[0]];
+  const row = buildFlagRow({ id: "item-1" }, { itemId: "item-1", proposals: allHigh });
+  const item = { id: "item-1", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] };
+  const d = autoDeps({ flag: openFlag({ description: row.description }), item });
+  const r = await autoAdoptTags(d, "flag-1", { execute: false });
+  assert.equal(r.status, "dry_run");
+  assert.equal(r.hasResidue, false);
+  assert.ok(!d.calls.length);
+});
+
+test("autoAdoptTags: mixed proposal set where the eligible tag is ALREADY present -> no_change_residue_open, nothing written", async () => {
+  const item = { id: "item-1", operational_scenario_tags: ["ocean-bunkering"], compliance_object_tags: [], topic_tags: [] };
+  const d = autoDeps({ flag: openFlag(), item });
+  const r = await autoAdoptTags(d, "flag-1", { execute: true });
+  assert.equal(r.status, "no_change_residue_open");
+  assert.equal(r.residueCount, 1);
+  assert.ok(!d.calls.length);
+});
+
+test("autoAdoptTags: all-high proposal already present, no residue -> resolves with no item write (resolved_no_change)", async () => {
+  const allHigh = [PROPOSALS[0]];
+  const row = buildFlagRow({ id: "item-1" }, { itemId: "item-1", proposals: allHigh });
+  const item = { id: "item-1", operational_scenario_tags: ["ocean-bunkering"], compliance_object_tags: [], topic_tags: [] };
+  const d = autoDeps({ flag: openFlag({ description: row.description }), item });
+  const r = await autoAdoptTags(d, "flag-1", { execute: true });
+  assert.equal(r.status, "resolved_no_change");
+  assert.ok(!d.calls.some((c) => c[0] === "updateItem"));
+  assert.ok(d.calls.some((c) => c[0] === "resolveFlag"));
+});
+
+test("autoAdoptTags: item not found -> item_not_found", async () => {
+  const d = autoDeps({ flag: openFlag(), item: null });
+  const r = await autoAdoptTags(d, "flag-1", { execute: true });
+  assert.equal(r.status, "item_not_found");
+});
+
+test("autoAdoptTags: idempotent — a second run against the now-resolved flag refuses cleanly", async () => {
+  const allHigh = [PROPOSALS[0]];
+  const row = buildFlagRow({ id: "item-1" }, { itemId: "item-1", proposals: allHigh });
+  const item = { id: "item-1", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] };
+  const flag = openFlag({ description: row.description });
+  const d1 = autoDeps({ flag, item });
+  const r1 = await autoAdoptTags(d1, "flag-1", { execute: true });
+  assert.equal(r1.status, "auto_adopted");
+  // Simulate the resolved flag a second dispatch would read back.
+  const d2 = autoDeps({ flag: { ...flag, status: "resolved", resolved_by: "apply-tags.mjs", resolution_note: r1.resolvedNote } });
+  const r2 = await autoAdoptTags(d2, "flag-1", { execute: true });
+  assert.equal(r2.status, "not_adoptable");
+  assert.ok(!d2.calls.length);
 });

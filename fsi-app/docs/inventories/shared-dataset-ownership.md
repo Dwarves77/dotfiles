@@ -57,7 +57,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/mint/stamp-wo26-archive-reason.mjs",
       "scripts/mint/apply-mint-batch.mjs",
       "scripts/entities/backfill-entities.mjs",
-      "scripts/maintenance/tag-ratification.mjs"
+      "scripts/maintenance/tag-ratification.mjs",
+      "scripts/maintenance/provenance-heal.mjs"
     ],
     "item_cross_references": [
       "src/lib/intake/mint-item.ts",
@@ -97,7 +98,10 @@ who may write a shared table; the test enforces it on every future PR.
       "supabase/functions/capture-worker/index.ts",
       "scripts/connections/propose-tags.mjs",
       "scripts/maintenance/tag-proposals.mjs",
-      "scripts/classification/propose-classifications.mjs"
+      "scripts/classification/propose-classifications.mjs",
+      "scripts/connections/apply-tags.mjs",
+      "scripts/maintenance/tag-ratification.mjs",
+      "scripts/classification/apply-classifications.mjs"
     ],
     "census_worklist": [
       "src/lib/intake/census-writer.mjs",
@@ -121,7 +125,27 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/_reground/free-pass-run.mjs",
       "scripts/_reground/restore-overclear.mjs",
       "scripts/mint/apply-mint-batch.mjs",
-      "src/lib/intake/write-item.ts"
+      "src/lib/intake/write-item.ts",
+      "scripts/maintenance/provenance-heal.mjs"
+    ],
+    "agent_run_searches": [
+      "src/lib/agent/canonical-pipeline.ts",
+      "src/lib/intake/write-item.ts",
+      "supabase/functions/capture-worker/index.ts",
+      "scripts/remediation/refetch-capped-worklist.mjs",
+      "scripts/maintenance/provenance-heal.mjs"
+    ],
+    "intelligence_item_sections": [
+      "src/lib/agent/canonical-pipeline.ts",
+      "src/lib/intake/write-item.ts",
+      "src/workflows/generate-brief.ts",
+      "scripts/apply-4c-plan.mjs",
+      "scripts/maintenance/provenance-heal.mjs"
+    ],
+    "item_gate_a_state": [
+      "src/lib/agent/canonical-pipeline.ts",
+      "src/lib/intake/write-item.ts",
+      "scripts/maintenance/provenance-heal.mjs"
     ],
     "corpus_turn_requests": [
       "src/app/api/admin/corpus-turn-requests/route.ts",
@@ -143,6 +167,18 @@ who may write a shared table; the test enforces it on every future PR.
   }
 }
 ```
+
+Note (added by lane HEAL, 2026-09-03): `scripts/maintenance/provenance-heal.mjs` (the guarded-write MAINT
+wrapper for `scripts/mint/heal-provenance.mjs`'s healing runtime) added to `intelligence_items` and
+`section_claim_provenance` above, and THREE new shared-table entries — `agent_run_searches`,
+`intelligence_item_sections`, `item_gate_a_state` — registered for the first time here (each with its full
+pre-existing writer set, read from the live scanner logic itself with `walkScanFiles`/`extractWriteHits`
+before this lane's own file existed, so no PRE-EXISTING writer is newly flagged now that these three keys
+exist). The scanner test (`.discipline/shared-writer-registry.test.mjs`) only enforces a table once it is a
+KEY in this JSON block (`if (!Object.prototype.hasOwnProperty.call(sharedTables, table)) continue;`) — these
+three tables' real writers (`canonical-pipeline.ts`, `write-item.ts`, `capture-worker/index.ts`,
+`refetch-capped-worklist.mjs`, `apply-4c-plan.mjs`) were previously unenforced; this lane's own dispatch
+named all five tables it writes, so registering them here closes that gap rather than leaving it silent.
 
 Note (added by lane EV, 2026-09-01): `corpus_turn_requests` (migration 277) is a NEW shared dataset — a
 10th, alongside `section_claim_provenance` above. Its actual FIRST writer is the migration's own
@@ -182,11 +218,11 @@ narrow-touch-for-recompute / tombstone-delete), not a data column.
 | `scripts/_reground/id-stamp.mjs` (KEEP) | UPDATE — stamps `instrument_identifier` on a verified promotion | line 64, `guardedUpdate("intelligence_items", ..., { instrument_identifier: PROPOSED_ID })` |
 | `scripts/_reground/tombstone-delete.mjs` (KEEP) | DELETE — the **one** sanctioned disposition-delete vehicle; writes `disposition_ledger` FIRST, fail-closed (`guardedDelete` only reached after the tombstone commits) | line 106, `guardedDelete("intelligence_items", [it.id], ...)`; invariant enforced at `.discipline/governance/invariants.mjs:812` |
 | `scripts/mint/run-mint-batch.mjs` | **Pre-registered (parallel lane)** — expected mint-batch runner | not yet present |
-| `scripts/connections/apply-tags.mjs` | UPDATE — merges an operator-ratified `derive-tags.mjs` tag proposal onto `operational_scenario_tags`/`compliance_object_tags`/`topic_tags` (never removes an existing tag, never overwrites a non-empty array — only appends absent tags, capped at `derive-tags.mjs`'s `FIELD_CAPS`) via `guardedUpdate`, only for a flag resolved with `resolution_note` containing `ratify:tags` (lane TAG, 2026-09-01 — closes the August-census-wave empty-tag gap so `discover.mjs` can score edges for these items) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, ...)` in `deps.updateItem` |
+| `scripts/connections/apply-tags.mjs` | UPDATE (`intelligence_items`) — merges a `derive-tags.mjs` tag proposal onto `operational_scenario_tags`/`compliance_object_tags`/`topic_tags` (never removes an existing tag, never overwrites a non-empty array — only appends absent tags, capped at `derive-tags.mjs`'s `FIELD_CAPS`) via `guardedUpdate`, either for a flag resolved with `resolution_note` containing `ratify:tags` (lane TAG, 2026-09-01 — closes the August-census-wave empty-tag gap so `discover.mjs` can score edges for these items) OR, added 2026-09-03 per operator ruling (docs/specs/08-flywheel-design.md:128, "no human in the path"), auto-adopted at/above `AUTO_ADOPT_THRESHOLD` (derive-tags.mjs's `confidence:"high"` tier) with no ratify marker required. UPDATE (`integrity_flags`, new 2026-09-03) — the auto-adoption path RESOLVES the flag it read (`resolved_by:'apply-tags.mjs'`, `resolution_note:'auto-adopted:tags:<threshold>'`) ONLY when every one of its proposals cleared the threshold (no residue); a flag with some below-threshold residue is left untouched, open, exactly as before this ruling — this flag-resolve write is the provenance record itself (no per-tag column exists on `intelligence_items`) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, ...)` in `deps.updateItem`; `guardedUpdate("integrity_flags", (qb) => qb.eq("id", id), {status:'resolved', resolved_by:'apply-tags.mjs', resolution_note, ...}, ...)` in `deps.resolveFlag` |
 | `scripts/mint/stamp-wo26-archive-reason.mjs` (Lane POP, 2026-09-01) | UPDATE — `archive_reason` only, on the 491 WO-26 rows Addendum 28 archived without stamping one | `guardedUpdate("intelligence_items", applyMatch, { archive_reason: ... }, { cite, select })`, `--dry` by default |
 | `scripts/mint/apply-mint-batch.mjs` (Lane POP, 2026-09-02) | INSERT at coordinator-apply time — the population-turn's write path for a `--census-rows --grade record` mint batch, `mintIntelligenceItem()`'s `MintPlan` has no field for a payload's sections/claims/search_results so this script writes directly in `canonical-pipeline.ts`'s own table order instead | `buildIntelligenceItemRow` + `ctx.db.guardedInsert("intelligence_items", ...)`, `--dry` by default |
 | `scripts/entities/backfill-entities.mjs` (Lane DP-SPINE, 2026-09-02) | UPDATE — `instrument_entity_id` only, per row whose `canonical_instrument_key` resolves to an instrument entity (migration 283's progressive-re-keying FK; ADR-024) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", u.id), { instrument_entity_id: ... }, { cite, select })` in `runInstrument()`; `--dry` by default. This script's OTHER writes (`entities`, `entity_identifiers`, `entity_refs` inserts via `guardedInsertMany`, and a parallel `sources.organisation_entity_id` update) are on tables `docs/inventories/shared-dataset-ownership.md`'s registry does not track — `entities`/`entity_identifiers`/`entity_refs` are new migration-282/283 tables outside the harness/flywheel dataset set this doc scopes to, and `sources` is explicitly named out-of-scope by `.discipline/shared-writer-registry.test.mjs`'s own header ("a write to an unrelated, non-shared table (e.g. agent_runs, **sources**, holdings_quality) is out of this registry's scope by design"). Named here for completeness, not because the registry requires it. |
-| `scripts/maintenance/tag-ratification.mjs` (Lane MAINT, 2026-09-02) | UPDATE — the MAINT dispatch runtime for `scripts/connections/apply-tags.mjs`'s existing guarded apply path (`docs/runbooks/MAINTENANCE-RUNBOOK.md` §7); its `buildDeps().updateItem` is a second call site of the SAME merge-only tag write `apply-tags.mjs`'s own `main()` makes (row above) — not a second write path, a second caller reached from a GitHub Actions dispatch instead of a CLI invocation, gated the same way (per-flag `ratify:tags` marker, `evaluateApplication`/`applyTags` imported unmodified) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: CITE })` in `buildDeps().updateItem` |
+| `scripts/maintenance/tag-ratification.mjs` (Lane MAINT, 2026-09-02; auto-adoption arm 2026-09-03) | UPDATE (`intelligence_items`, `integrity_flags`) — the MAINT dispatch runtime for `scripts/connections/apply-tags.mjs`'s existing guarded apply paths (`docs/runbooks/MAINTENANCE-RUNBOOK.md` §7); its `buildDeps().updateItem`/`resolveFlag` are second call sites of the SAME merge-only tag write and SAME flag-resolve `apply-tags.mjs`'s own `main()` makes (row above) — not a second write path, a second caller reached from a GitHub Actions dispatch instead of a CLI invocation, gated the same way (`arg`=id list → per-flag `ratify:tags` marker, `evaluateApplication`/`applyTags` imported unmodified; `arg="auto"` → `evaluateAutoAdoption`/`autoAdoptTags` imported unmodified) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: CITE })` in `buildDeps().updateItem`; `guardedUpdate("integrity_flags", (qb) => qb.eq("id", id), {...}, { cite: CITE })` in `buildDeps().resolveFlag` |
 
 Replace policy: guarded per-row UPDATE/INSERT (never a bulk replace); DELETE is single-purpose and
 gated behind a tombstone write (see `tombstone-delete.mjs` above) — this is a **guarded delete**, not a
@@ -244,9 +280,9 @@ other producer below.
 | (entity-link candidate/lineage-gap namespace, exact value set by `entity-resolve.mjs`) | `src/lib/entities/link-items.ts` | **TO-VERIFY** — idempotent one-open-flag-per-namespace-per-item guard exists (lines 59-64), but no resolver was located for this namespace in the time available. | link-items.ts lines 58-64 |
 | (ratified-to-census namespace) | `scripts/connections/ratify-flag-to-census.mjs` | **Pre-registered (parallel lane)** — its own name implies it is itself a *resolver* for some existing flag category, converting a flag into a `census_worklist` entry. **TO-VERIFY at merge** which `created_by` namespace(s) it consumes, and whether it closes the two OPEN leaks above. | not yet present |
 | `capture-worker` (fixed literal, `created_by: "capture-worker"`) | `supabase/functions/capture-worker/index.ts` (Edge Function — the ADR-016 storage-ceiling truncation guard, filed only after a capture lands) | **OPEN — no automated resolver found**, same posture as `intake-seek-study`/`intake-relevance` above; resolved today only via the generic manual admin endpoint. Found 2026-09-01 when the writer-registry test's scan roots were widened to include `supabase/functions/**` (this table was previously invisible to the registry on the Edge Function side). | index.ts lines 554-567, `category: "coverage_gap"` |
-| `flywheel-tag:empty-signature` | `scripts/connections/propose-tags.mjs` (lane TAG, 2026-09-01 — reflects a `derive-tags.mjs` tag-proposal finding, one row per item whose `operational_scenario_tags`/`compliance_object_tags`/`topic_tags` are all empty, so `discover.mjs` can never score it an edge) | **Self-resolving, same convention as `flywheel-gap:*`** — a full `--untagged` run closes any of its own open flags whose item no longer reproduces (now tagged, or fell out of the corpus); a narrow `--ids`/`--since` run resolves ONLY flags inside its own selection (see `planReflect`'s `scopeSubjectRefs`, a deliberate narrowing of the `analyze-corpus.mjs` convention this file's own header names). Also consumed downstream: `scripts/connections/apply-tags.mjs` READS (never writes) this namespace's rows once an operator resolves one with `resolution_note` containing `ratify:tags`, applying the row's `PROPOSALS_JSON` to `intelligence_items` — see that table's writer entry above. | propose-tags.mjs (`planReflect`, `buildFlagRow`); apply-tags.mjs (`evaluateApplication`) |
+| `flywheel-tag:empty-signature` | `scripts/connections/propose-tags.mjs` (lane TAG, 2026-09-01 — reflects a `derive-tags.mjs` tag-proposal finding, one row per item whose `operational_scenario_tags`/`compliance_object_tags`/`topic_tags` are all empty, so `discover.mjs` can never score it an edge) | **Self-resolving, same convention as `flywheel-gap:*`** — a full `--untagged` run closes any of its own open flags whose item no longer reproduces (now tagged, or fell out of the corpus); a narrow `--ids`/`--since` run resolves ONLY flags inside its own selection (see `planReflect`'s `scopeSubjectRefs`, a deliberate narrowing of the `analyze-corpus.mjs` convention this file's own header names). Also consumed downstream: `scripts/connections/apply-tags.mjs` READS this namespace's rows, applying a row's `PROPOSALS_JSON` to `intelligence_items` either once an operator resolves it with `resolution_note` containing `ratify:tags`, or (2026-09-03 ruling) automatically once its `confidence:"high"` proposals are written — in the latter case it also WRITES this same namespace, resolving the flag it just read (`resolution_note:'auto-adopted:tags:<threshold>'`) when no lower-confidence residue remains; see `intelligence_items`' writer entry above for the full rule. | propose-tags.mjs (`planReflect`, `buildFlagRow`); apply-tags.mjs (`evaluateApplication`, `evaluateAutoAdoption`) |
 | `flywheel-tag:empty-signature` (same namespace, second caller) | `scripts/maintenance/tag-proposals.mjs` (Lane TAG-PROPOSALS, 2026-09-03) | The MAINT dispatch runtime for `propose-tags.mjs`'s `--execute` path (`docs/runbooks/MAINTENANCE-RUNBOOK.md` §6a): calls the exported `proposeTags()` core unmodified with deps built from `db.mjs`, so it is a second CALLER of the same insert/resolve plan (`planReflect`), not a second write path; same self-resolving convention, same narrow-run scoping. Writes proposals only, never `intelligence_items`. | tag-proposals.mjs (`proposeTags` imported from propose-tags.mjs) |
-| `classification:*` (Axis 3/4/5 source classification, drift, anomaly) | `scripts/classification/propose-classifications.mjs` (lane AXIS, 2026-09-02): writes `integrity_flags` rows proposing Axis 3/4/5 source classification / drift / anomaly findings for operator ratification (TAG pattern; never a silent write to `sources` or `intelligence_items`). `scripts/classification/apply-classifications.mjs` READS ratified rows (`resolution_note` containing `ratify:classification`) and writes `sources.scope_*`/`expected_output` only; `jurisdictions` proposals are review-only. | propose-classifications.mjs (`planReflect` imported from propose-tags.mjs); apply-classifications.mjs |
+| `classification:*` (Axis 3/4/5 source classification, drift, anomaly) | `scripts/classification/propose-classifications.mjs` (lane AXIS, 2026-09-02): writes `integrity_flags` rows proposing Axis 3/4/5 source classification / drift / anomaly findings for operator ratification (TAG pattern; never a silent write to `sources` or `intelligence_items`). `scripts/classification/apply-classifications.mjs` writes `sources.scope_*`/`expected_output` (never `jurisdictions`, review-only) two ways: reads a RATIFIED row (`resolution_note` containing `ratify:classification`), or — lane GSIG, 2026-09-03, operator ruling retiring the human gate — evaluates an OPEN row directly via `--auto-adopt` and, once every APPLICABLE proposal is covered, writes `integrity_flags.status='resolved'` itself (`resolution_note='auto-adopted:classification:<fields>'`, `resolved_by='apply-classifications.mjs'`) — the new `integrity_flags` write the shared-writer-registry scan (`guardedUpdate("integrity_flags", ...)` via the `resolveFlag` dep) now requires listing here. | propose-classifications.mjs (`planReflect` imported from propose-tags.mjs); apply-classifications.mjs |
 
 Replace policy: append (`guardedInsertMany`/`.insert`) + namespace-scoped `guardedUpdate` to
 `status='resolved'`. A producer must never touch another namespace's open rows — enforced by convention

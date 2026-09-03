@@ -118,8 +118,12 @@ node --test \
   fsi-app/src/lib/tier-labels.test.mjs \
   fsi-app/src/lib/tier-badge-tone.test.mjs \
   fsi-app/src/lib/coverage-gaps-rollup.test.mjs \
+  fsi-app/src/lib/list-pagination.test.mjs \
+  fsi-app/src/lib/bootstrap/*.test.mjs \
+  fsi-app/src/lib/watchlist/*.test.mjs \
   fsi-app/src/lib/detail/*.test.mjs \
   fsi-app/src/components/community/*.test.mjs \
+  fsi-app/src/components/shell/*.test.mjs \
   fsi-app/src/lib/workspace/*.test.mjs \
   fsi-app/src/lib/connections/*.test.mjs \
   fsi-app/src/lib/forward-events/*.test.mjs \

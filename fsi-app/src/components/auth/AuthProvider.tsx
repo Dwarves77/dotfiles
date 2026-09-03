@@ -1,20 +1,31 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import type { User } from "@supabase/supabase-js";
+import { resolveAuthSeed, shouldApplySeed, type AuthSeed, type BootstrapLike } from "@/components/shell/bootstrap-seed";
 
 interface AuthContext {
   user: User | null;
   /**
-   * Server-resolved org id, hydrated synchronously from initial props.
+   * Server-resolved org id, hydrated (asynchronously, PERF-4) from BootstrapBoundary's seed.
    * Use this — not useWorkspaceStore.orgId — for first-render gates
    * (e.g. AppShell's no-workspace banner), since useWorkspaceStore is
    * hydrated in an effect and is null on server render. See SF-WS-1
    * (Sprint 3, 2026-05-27).
    */
   orgId: string | null;
+  /**
+   * True until the bootstrap seed has been applied (PERF-4, 2026-09-03). NOT the same thing as
+   * "signed out" — a `loading: true, user: null` pair means "we don't know yet," while
+   * `loading: false, user: null` means "confirmed anonymous." Consumers gating a fetch on
+   * knowing the real auth state (useAdminAttention) already read this field; every other
+   * consumer (UserMenu, AppShell's no-workspace banner) already renders nothing for
+   * `user === null` regardless of `loading`, so the pending window shows blank chrome, never a
+   * WRONG (anonymous) state for a signed-in viewer — see BootstrapBoundary.tsx's header for the
+   * full mechanism this supports.
+   */
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -26,115 +37,108 @@ const AuthContext = createContext<AuthContext>({
   signOut: async () => {},
 });
 
-interface AuthProviderProps {
-  children: React.ReactNode;
-  /** Server-resolved user (from resolveServerBootstrap in root layout). */
-  initialUser?: User | null;
-  /** Server-resolved org id; empty workspace if null. */
-  initialOrgId?: string | null;
-  /** Server-resolved org name. */
-  initialOrgName?: string;
-  /** Server-resolved role within the org. */
-  initialRole?: "owner" | "admin" | "member" | "viewer" | null;
-  /**
-   * Seeds useWorkspaceStore.sectorProfile — the ONE store every sector-aware
-   * read path in the app consumes (HomeSurface, SectorSynopsis,
-   * RegulationDetailSurface, AskAssistant, scoring.ts, and Settings'
-   * FreightSectorsCard itself). This prop's contract: it MUST be the
-   * workspace's sector_profile (workspace_settings.sector_profile — the
-   * single source of truth OnboardingWizard.tsx's persistSectors() writes,
-   * post-2026-05-18 fix), never profiles.sector_overrides.
-   *
-   * HISTORY (lane HYG-2 root cause, 2026-09-02; fixed the same day at the call site,
-   * src/app/layout.tsx): the layout passed `bootstrap.sectors` alone, which reads
-   * `profiles.sector_overrides` — a per-user override column nothing has written since
-   * Settings/Onboarding were redirected to workspace_settings.sector_profile on 2026-05-18
-   * (OnboardingWizard.tsx's own comment) — so every logged-in user was seeded `[]` and the
-   * app ran as "no sectors configured" whatever Settings had saved. The layout now composes
-   * the two layers per Section 6.8: the per-user override when non-empty, else
-   * `bootstrap.workspaceSectors` (workspace_settings.sector_profile). No migration; both
-   * columns and their schemas were correct. This component seeds whatever it is given.
-   */
-  initialSectors?: string[];
+/**
+ * Side-channel context BootstrapBoundary.tsx uses to push the resolved server bootstrap into this
+ * provider's state (PERF-4, 2026-09-03). Not part of useAuth()'s public surface — deliberately a
+ * SEPARATE context from AuthContext so a component can call `use(bootstrapPromise)` and feed the
+ * result in here WITHOUT itself becoming an ancestor AuthProvider suspends on (see
+ * BootstrapBoundary.tsx's header for why that split is what lets the app shell + route content
+ * render before the bootstrap promise resolves, instead of blocking behind it).
+ */
+const AuthSeedContext = createContext<((bootstrap: BootstrapLike | null) => void) | null>(null);
+
+/** Used only by BootstrapBoundary.tsx. */
+export function useAuthSeed() {
+  return useContext(AuthSeedContext);
 }
 
 /**
- * Client-side auth context. Hydrates from server-rendered initial props —
- * no mount-time fetches against Supabase Auth or org_memberships or
- * user_profiles. The previous version fired 3 client round-trips on
- * every page render; this version fires zero.
+ * Client-side auth context.
+ *
+ * PERF-4 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md dispatch item (1)): this provider
+ * used to receive `initialUser`/`initialOrgId`/... as PROPS, already resolved, because
+ * src/app/layout.tsx awaited `resolveServerBootstrap()` before returning any JSX — every mount of
+ * this component already had the real values in hand. That await is gone (layout.tsx now returns
+ * the shell synchronously and creates the bootstrap promise without awaiting it). This provider now
+ * mounts with the anonymous/pending default (`loading: true`, `user: null`, `orgId: null`) and is
+ * SEEDED asynchronously, exactly once, by BootstrapBoundary.tsx — a sibling of `<AppShell>` inside
+ * this provider, mounted in its own `<Suspense>` so the seed's own pending state never blocks
+ * `<AppShell>`/`{children}` from rendering (see BootstrapBoundary.tsx's header for the full
+ * mechanism; see bootstrap-seed.ts for the pure composition + once-only-apply logic `seed()` below
+ * delegates to).
+ *
+ * No mount-time fetches against Supabase Auth / org_memberships / profiles fire from HERE either
+ * way — this is unchanged from the pre-PERF-4 shape, just fed later instead of synchronously.
  *
  * The auth-state subscription is retained so cross-tab sign-in / sign-out
- * events still propagate. SIGNED_OUT triggers a hard reload so the
- * server-rendered initial props don't lie about a user who just signed
- * out in another tab. SIGNED_IN inside this tab routes via /login →
- * redirect, which already does a full reload.
+ * events still propagate. SIGNED_OUT triggers a hard reload so a stale
+ * seeded snapshot doesn't render protected UI for an unauthenticated session.
+ * SIGNED_IN inside this tab routes via /login → redirect, which already does
+ * a full reload.
  */
-export function AuthProvider({
-  children,
-  initialUser = null,
-  initialOrgId = null,
-  initialOrgName = "",
-  initialRole = null,
-  initialSectors = [],
-}: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(initialUser);
-  // Sprint 3 SF-WS-1 (2026-05-27): orgId hydrates synchronously from
-  // server props so first-render gates (e.g. AppShell's no-workspace
-  // banner) see the populated value instead of the workspaceStore's
-  // module-default null. Without this, banner rendered against a
-  // server-side null for ~one paint between RSC stream and the
-  // workspaceStore's useEffect hydration.
-  const [orgId] = useState<string | null>(initialOrgId);
-  // Already hydrated from server props — never enter a loading state on
-  // first render. Components reading useAuth().loading get false from
-  // the start, so role-gated UI doesn't flash between "loading" and
-  // "admin-visible".
-  const [loading] = useState(false);
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [orgId, setOrgId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  // Mirrors `user` for the cross-tab SIGNED_IN check below (needs the LATEST known value inside a
+  // callback registered once — see that effect's own comment for why a plain closure over `user`
+  // would be stale). Also doubles as the seed-once guard's "have we applied a seed yet" flag
+  // (bootstrap-seed.ts's shouldApplySeed): both a real seed and the RSC-nav skip's `null`
+  // placeholder mark this true, since either one means "we now know this tab's answer."
+  const seededRef = useRef(false);
+  const knownUserRef = useRef<User | null>(null);
 
-  // Hydrate the workspace store from server props once on mount. The
-  // store is module-scoped, not React state, so this is safe to do in
-  // an effect — no double-render concern.
-  useEffect(() => {
-    if (initialOrgId) {
-      useWorkspaceStore
-        .getState()
-        .setWorkspace(initialOrgId, initialOrgName);
+  const seed = useCallback((bootstrap: BootstrapLike | null) => {
+    if (!shouldApplySeed(seededRef.current)) return;
+    seededRef.current = true;
+    const applied: AuthSeed = resolveAuthSeed(bootstrap);
+    knownUserRef.current = applied.user as User | null;
+    setUser(applied.user as User | null);
+    setOrgId(applied.orgId);
+    setLoading(false);
+    // Hydrate the workspace store. The store is module-scoped, not React
+    // state, so this is safe to do outside a render.
+    if (applied.orgId) {
+      useWorkspaceStore.getState().setWorkspace(applied.orgId, applied.orgName);
     }
-    if (initialRole) {
-      useWorkspaceStore.getState().setUserRole(initialRole);
+    if (applied.role) {
+      useWorkspaceStore.getState().setUserRole(applied.role);
     }
-    useWorkspaceStore.getState().setSectorProfile(initialSectors);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useWorkspaceStore.getState().setSectorProfile(applied.sectors);
   }, []);
 
   // Listen for cross-tab auth changes. Don't refetch user data — the
-  // server-rendered initial props are the source of truth for the
-  // current request. On sign-out we reload so a stale props snapshot
-  // can't render protected UI for an unauthenticated session.
+  // seeded bootstrap is the source of truth for the current request. On
+  // sign-out we reload so a stale seeded snapshot can't render protected UI
+  // for an unauthenticated session.
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      knownUserRef.current = session?.user ?? null;
       if (event === "SIGNED_OUT") {
-        // Server props were captured for a different (signed-in) request —
+        // Seeded state was captured for a different (signed-in) request —
         // hard reload re-renders against the now-anonymous server state.
         if (typeof window !== "undefined") {
           window.location.href = "/login";
         }
       }
-      if (event === "SIGNED_IN" && !initialUser) {
-        // Tab-sync: another tab signed in. Reload to pick up the new
-        // server-rendered orgId / role / sectors.
+      if (event === "SIGNED_IN" && !knownUserRef.current) {
+        // Tab-sync: another tab signed in and this tab had no known user yet
+        // (either genuinely anonymous, or the bootstrap seed hasn't landed —
+        // either way reloading is safe: it re-renders against a fresh
+        // server-resolved orgId / role / sectors). Matches the pre-PERF-4
+        // `!initialUser` check exactly for the common case (seed already
+        // applied by the time a real cross-tab event fires in practice).
         if (typeof window !== "undefined") {
           window.location.reload();
         }
       }
     });
     return () => subscription.unsubscribe();
-  }, [initialUser]);
+  }, []);
 
   const signOut = async () => {
     const supabase = createSupabaseBrowserClient();
@@ -144,7 +148,7 @@ export function AuthProvider({
 
   return (
     <AuthContext.Provider value={{ user, orgId, loading, signOut }}>
-      {children}
+      <AuthSeedContext.Provider value={seed}>{children}</AuthSeedContext.Provider>
     </AuthContext.Provider>
   );
 }

@@ -1,0 +1,146 @@
+[
+  {
+    "source_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+    "item_type": "market_signal",
+    "title": "EU Weekly Oil Bulletin — Euro-Super 95 (EU average, before taxes)",
+    "title_origin": "operator_authored",
+    "instrument_identifier": "eu-oil-bulletin:eurosuper-95",
+    "canonical_instrument_key": null,
+    "jurisdiction_iso": "EU",
+    "priority": "MODERATE",
+    "source": {
+      "id": "PENDING-LIVE-SOURCES-LOOKUP",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "status": "active",
+      "base_tier": 1,
+      "tier_override": null
+    },
+    "captured_text": "Weekly Oil Bulletin\n\nInformation and maps showing weekly updates on prices of petroleum products in all EU countries\n\nTo improve the transparency of oil prices and to strengthen the internal market, the European Commission's Oil Bulletin presents weekly consumer prices for petroleum products in EU countries. The national data and prices are submitted to the Commission on Wednesdays and our subscribers receive the bulletin per mail every Thursday.\n\nUsers can subscribe to receive the bulletin via email.\n\nAvailable downloads (all dated 27 August 2026): Prices with taxes (XLSX), Prices without taxes (XLSX), Eurosuper 95 map (PDF), Diesel map (PDF).\n\nTaxes on Petroleum Products: documentation covering value added taxes, excise duties, and other indirect taxes applicable to petroleum products across EU member states, provided in spreadsheet format.\n\nPrice Developments: historical pricing information spanning from 2005 onward, including data on taxes, duties, and consumption patterns across EU nations.\n\nMethodological Documentation: the page provides country-specific methodology notes for all 27 EU member states explaining their individual price reporting approaches.\n\nAdditional Resources: historical regulatory documents from 1999-2013 addressing crude oil supply costs and petroleum product pricing procedures are included.",
+    "fetched_length": 1337,
+    "screen": {
+      "verdict": "on_vertical",
+      "provenance": "reviewed",
+      "basis": "R-D ruling"
+    }
+  },
+  {
+    "source_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+    "item_type": "market_signal",
+    "title": "EU Weekly Oil Bulletin — Automotive gas oil / diesel (EU average, before taxes)",
+    "title_origin": "operator_authored",
+    "instrument_identifier": "eu-oil-bulletin:automotive-diesel",
+    "canonical_instrument_key": null,
+    "jurisdiction_iso": "EU",
+    "priority": "MODERATE",
+    "source": {
+      "id": "PENDING-LIVE-SOURCES-LOOKUP",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "status": "active",
+      "base_tier": 1,
+      "tier_override": null
+    },
+    "captured_text": "Weekly Oil Bulletin\n\nInformation and maps showing weekly updates on prices of petroleum products in all EU countries\n\nTo improve the transparency of oil prices and to strengthen the internal market, the European Commission's Oil Bulletin presents weekly consumer prices for petroleum products in EU countries. The national data and prices are submitted to the Commission on Wednesdays and our subscribers receive the bulletin per mail every Thursday.\n\nUsers can subscribe to receive the bulletin via email.\n\nAvailable downloads (all dated 27 August 2026): Prices with taxes (XLSX), Prices without taxes (XLSX), Eurosuper 95 map (PDF), Diesel map (PDF).\n\nTaxes on Petroleum Products: documentation covering value added taxes, excise duties, and other indirect taxes applicable to petroleum products across EU member states, provided in spreadsheet format.\n\nPrice Developments: historical pricing information spanning from 2005 onward, including data on taxes, duties, and consumption patterns across EU nations.\n\nMethodological Documentation: the page provides country-specific methodology notes for all 27 EU member states explaining their individual price reporting approaches.\n\nAdditional Resources: historical regulatory documents from 1999-2013 addressing crude oil supply costs and petroleum product pricing procedures are included.",
+    "fetched_length": 1337,
+    "screen": {
+      "verdict": "on_vertical",
+      "provenance": "reviewed",
+      "basis": "R-D ruling"
+    }
+  },
+  {
+    "source_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+    "item_type": "market_signal",
+    "title": "EU Weekly Oil Bulletin — Heating gas oil (EU average, before taxes)",
+    "title_origin": "operator_authored",
+    "instrument_identifier": "eu-oil-bulletin:heating-gas-oil",
+    "canonical_instrument_key": null,
+    "jurisdiction_iso": "EU",
+    "priority": "MODERATE",
+    "source": {
+      "id": "PENDING-LIVE-SOURCES-LOOKUP",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "status": "active",
+      "base_tier": 1,
+      "tier_override": null
+    },
+    "captured_text": "Weekly Oil Bulletin\n\nInformation and maps showing weekly updates on prices of petroleum products in all EU countries\n\nTo improve the transparency of oil prices and to strengthen the internal market, the European Commission's Oil Bulletin presents weekly consumer prices for petroleum products in EU countries. The national data and prices are submitted to the Commission on Wednesdays and our subscribers receive the bulletin per mail every Thursday.\n\nUsers can subscribe to receive the bulletin via email.\n\nAvailable downloads (all dated 27 August 2026): Prices with taxes (XLSX), Prices without taxes (XLSX), Eurosuper 95 map (PDF), Diesel map (PDF).\n\nTaxes on Petroleum Products: documentation covering value added taxes, excise duties, and other indirect taxes applicable to petroleum products across EU member states, provided in spreadsheet format.\n\nPrice Developments: historical pricing information spanning from 2005 onward, including data on taxes, duties, and consumption patterns across EU nations.\n\nMethodological Documentation: the page provides country-specific methodology notes for all 27 EU member states explaining their individual price reporting approaches.\n\nAdditional Resources: historical regulatory documents from 1999-2013 addressing crude oil supply costs and petroleum product pricing procedures are included.",
+    "fetched_length": 1337,
+    "screen": {
+      "verdict": "on_vertical",
+      "provenance": "reviewed",
+      "basis": "R-D ruling"
+    }
+  },
+  {
+    "source_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+    "item_type": "market_signal",
+    "title": "EU Weekly Oil Bulletin — LPG motor fuel (EU average, before taxes)",
+    "title_origin": "operator_authored",
+    "instrument_identifier": "eu-oil-bulletin:lpg-motor-fuel",
+    "canonical_instrument_key": null,
+    "jurisdiction_iso": "EU",
+    "priority": "MODERATE",
+    "source": {
+      "id": "PENDING-LIVE-SOURCES-LOOKUP",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "status": "active",
+      "base_tier": 1,
+      "tier_override": null
+    },
+    "captured_text": "Weekly Oil Bulletin\n\nInformation and maps showing weekly updates on prices of petroleum products in all EU countries\n\nTo improve the transparency of oil prices and to strengthen the internal market, the European Commission's Oil Bulletin presents weekly consumer prices for petroleum products in EU countries. The national data and prices are submitted to the Commission on Wednesdays and our subscribers receive the bulletin per mail every Thursday.\n\nUsers can subscribe to receive the bulletin via email.\n\nAvailable downloads (all dated 27 August 2026): Prices with taxes (XLSX), Prices without taxes (XLSX), Eurosuper 95 map (PDF), Diesel map (PDF).\n\nTaxes on Petroleum Products: documentation covering value added taxes, excise duties, and other indirect taxes applicable to petroleum products across EU member states, provided in spreadsheet format.\n\nPrice Developments: historical pricing information spanning from 2005 onward, including data on taxes, duties, and consumption patterns across EU nations.\n\nMethodological Documentation: the page provides country-specific methodology notes for all 27 EU member states explaining their individual price reporting approaches.\n\nAdditional Resources: historical regulatory documents from 1999-2013 addressing crude oil supply costs and petroleum product pricing procedures are included.",
+    "fetched_length": 1337,
+    "screen": {
+      "verdict": "on_vertical",
+      "provenance": "reviewed",
+      "basis": "R-D ruling"
+    }
+  },
+  {
+    "source_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+    "item_type": "market_signal",
+    "title": "EU Weekly Oil Bulletin — Residual fuel oil 1%S (EU average, before taxes)",
+    "title_origin": "operator_authored",
+    "instrument_identifier": "eu-oil-bulletin:residual-fuel-oil-1pct",
+    "canonical_instrument_key": null,
+    "jurisdiction_iso": "EU",
+    "priority": "MODERATE",
+    "source": {
+      "id": "PENDING-LIVE-SOURCES-LOOKUP",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "status": "active",
+      "base_tier": 1,
+      "tier_override": null
+    },
+    "captured_text": "Weekly Oil Bulletin\n\nInformation and maps showing weekly updates on prices of petroleum products in all EU countries\n\nTo improve the transparency of oil prices and to strengthen the internal market, the European Commission's Oil Bulletin presents weekly consumer prices for petroleum products in EU countries. The national data and prices are submitted to the Commission on Wednesdays and our subscribers receive the bulletin per mail every Thursday.\n\nUsers can subscribe to receive the bulletin via email.\n\nAvailable downloads (all dated 27 August 2026): Prices with taxes (XLSX), Prices without taxes (XLSX), Eurosuper 95 map (PDF), Diesel map (PDF).\n\nTaxes on Petroleum Products: documentation covering value added taxes, excise duties, and other indirect taxes applicable to petroleum products across EU member states, provided in spreadsheet format.\n\nPrice Developments: historical pricing information spanning from 2005 onward, including data on taxes, duties, and consumption patterns across EU nations.\n\nMethodological Documentation: the page provides country-specific methodology notes for all 27 EU member states explaining their individual price reporting approaches.\n\nAdditional Resources: historical regulatory documents from 1999-2013 addressing crude oil supply costs and petroleum product pricing procedures are included.",
+    "fetched_length": 1337,
+    "screen": {
+      "verdict": "on_vertical",
+      "provenance": "reviewed",
+      "basis": "R-D ruling"
+    }
+  },
+  {
+    "source_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+    "item_type": "market_signal",
+    "title": "EU Weekly Oil Bulletin — Heavy fuel oil 3.5%S (EU average, before taxes)",
+    "title_origin": "operator_authored",
+    "instrument_identifier": "eu-oil-bulletin:heavy-fuel-oil-3-5pct",
+    "canonical_instrument_key": null,
+    "jurisdiction_iso": "EU",
+    "priority": "MODERATE",
+    "source": {
+      "id": "PENDING-LIVE-SOURCES-LOOKUP",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "status": "active",
+      "base_tier": 1,
+      "tier_override": null
+    },
+    "captured_text": "Weekly Oil Bulletin\n\nInformation and maps showing weekly updates on prices of petroleum products in all EU countries\n\nTo improve the transparency of oil prices and to strengthen the internal market, the European Commission's Oil Bulletin presents weekly consumer prices for petroleum products in EU countries. The national data and prices are submitted to the Commission on Wednesdays and our subscribers receive the bulletin per mail every Thursday.\n\nUsers can subscribe to receive the bulletin via email.\n\nAvailable downloads (all dated 27 August 2026): Prices with taxes (XLSX), Prices without taxes (XLSX), Eurosuper 95 map (PDF), Diesel map (PDF).\n\nTaxes on Petroleum Products: documentation covering value added taxes, excise duties, and other indirect taxes applicable to petroleum products across EU member states, provided in spreadsheet format.\n\nPrice Developments: historical pricing information spanning from 2005 onward, including data on taxes, duties, and consumption patterns across EU nations.\n\nMethodological Documentation: the page provides country-specific methodology notes for all 27 EU member states explaining their individual price reporting approaches.\n\nAdditional Resources: historical regulatory documents from 1999-2013 addressing crude oil supply costs and petroleum product pricing procedures are included.",
+    "fetched_length": 1337,
+    "screen": {
+      "verdict": "on_vertical",
+      "provenance": "reviewed",
+      "basis": "R-D ruling"
+    }
+  }
+]
