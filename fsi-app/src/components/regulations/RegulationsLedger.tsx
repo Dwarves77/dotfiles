@@ -209,6 +209,18 @@ function jurTag(r: Resource): string {
   return "GLOBAL";
 }
 
+/** Keep the first occurrence of each id (pure). */
+function dedupeById<T extends { id: string }>(rows: T[]): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const r of rows) {
+    if (seen.has(r.id)) continue;
+    seen.add(r.id);
+    out.push(r);
+  }
+  return out;
+}
+
 export function RegulationsLedger({
   initialResources,
   initialArchived,
@@ -298,8 +310,11 @@ export function RegulationsLedger({
 
   // ── Hydrate the shared resource store (applies workspace overrides) ──
   useEffect(() => {
-    setResources(initialResources.concat(restResources));
-    setArchived(initialArchived.concat(restArchived));
+    // Dedupe by id at the seam (2026-09-03): the two pages are separate queries; the server-side
+    // tiebreaker makes overlap impossible in principle, this keeps a stale client from ever
+    // rendering one item twice if the pages were fetched across a deploy that changed the order.
+    setResources(dedupeById(initialResources.concat(restResources)));
+    setArchived(dedupeById(initialArchived.concat(restArchived)));
     if (initialOverrides.length > 0) setOverrides(initialOverrides);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialResources, restResources, restArchived]);

@@ -150,6 +150,45 @@ else stays `NULL`, which means "not yet classified", never "zero types"). `mode=
 
 ---
 
+## 4b. `derive-obligations`
+
+**Purpose**: populate `obligations` (migration 290, applied 2026-09-03) from `item_forward_events`: one
+register row per dated forward event, carrying the parent item's jurisdiction, canonical modes and a
+deterministically classified `binding_position` (NULL when the spec-01 §1 table does not name the
+instrument). Read by `/regulations` (ObligationRegister).
+
+**Upstream**: `fsi-app/scripts/obligations/derive-obligations.mjs` (Lane OBLIG); classifier
+`src/lib/obligations/classify-binding-position.mjs`. Idempotent on `forward_event_id`.
+
+**Ruling**: none.
+
+**Dispatch**: `mode=dry` prints forward events, derived, already registered, to insert, and the
+binding-position breakdown. `mode=apply` inserts through `guardedInsertMany` and reads back the register.
+
+**Artifact / read back**: `summary.json`'s `read_back.obligations_total` / `by_binding_position` against
+`SELECT binding_position, count(*) FROM obligations GROUP BY 1`.
+
+---
+
+## 4c. `seed-corridors`
+
+**Purpose**: corridor identity rows on the entity spine (`entities.kind = 'corridor'`, id
+`cl:corridor:<ORIGIN>-<DEST>:<mode>` per ADR-024 §4). Read by the Market Intel carbon-cost overlay.
+
+**Upstream**: `fsi-app/scripts/entities/seed-corridors.mjs` (Lane CORR). Candidates come from what the
+corpus names (`market_series.series_key`, `regional_data_facts.fact_label` under the `corridor:` convention);
+when nothing does, the ADR-024 worked example (CNSHA–NLRTM, ocean) is planned and `using_fallback` is true.
+
+**Ruling**: none.
+
+**Dispatch**: `mode=dry` lists candidates and which would be created; `mode=apply` inserts the missing
+ones through the guarded path and reads back every `kind='corridor'` entity id.
+
+**Artifact / read back**: `summary.json`'s `read_back.entity_ids` against
+`SELECT entity_id FROM entities WHERE kind = 'corridor'`.
+
+---
+
 ## 5. `census-off-vertical`
 
 **Purpose**: what to do with the 1,676 `census_worklist` rows the relevance screen
