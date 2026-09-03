@@ -451,6 +451,351 @@ async function stripRendersNothingProof(browser, bundleJs) {
   return { checks, failures };
 }
 
+// ── Lane COMMUNITY-C additions (2026-09-03): the benchmark response form (BenchmarksPanel.tsx) and
+// the self-service profile page (ProfileForm.tsx) — the write path this dispatch names as the gap
+// ("no write path for community_benchmark_responses / organisation_key derivation"). Neither
+// component imports community.css or next/navigation, so ALIAS above is unused by these two entries;
+// neither imports @/lib/supabase-browser either (both talk to the API only through api-client.ts's
+// fetch wrappers), so no extra alias is needed beyond harness.mjs's own DEFAULT_ALIAS.
+
+const ENTRY_BENCHMARKS = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { BenchmarksPanel } from '@/components/community/BenchmarksPanel';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(React.createElement(BenchmarksPanel));
+};
+`;
+
+const ENTRY_PROFILE = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { ProfileForm } from '@/components/community/ProfileForm';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(React.createElement(ProfileForm));
+};
+`;
+
+function openBenchmark(overrides = {}) {
+  return {
+    key: "saf-premium-air-2026-q3",
+    title: "SAF premium on air lanes — 2026-q3",
+    question: "What sustainable-aviation-fuel premium are you seeing on your air freight lanes this quarter?",
+    field_key: "saf_premium_pct",
+    unit: "%",
+    sector_profile: null,
+    region: "GLOBAL",
+    calendar_cycle: "quarterly",
+    opens_at: "2026-07-01T00:00:00.000Z",
+    closes_at: "2026-09-30T00:00:00.000Z",
+    period_end: "2026-06-30",
+    status: "open",
+    aggregate: {
+      publishable: false,
+      value: null,
+      distinct_organisations: 3,
+      min_contributors: 5,
+      response_count: 4,
+      reason: "not yet publishable: k-anonymity (3/5 organisations)",
+    },
+    ...overrides,
+  };
+}
+
+function benchmarksApiRoutes({ benchmarks = [openBenchmark()], onRespond } = {}) {
+  return [
+    {
+      urlGlob: "**/api/community/benchmarks/current",
+      handler: (route) => route.fulfill({ json: { benchmarks } }),
+    },
+    {
+      urlGlob: "**/api/community/benchmarks/*/respond",
+      handler: (route) => (onRespond ? onRespond(route) : route.fulfill({ json: { accepted: false, error: "no handler" } })),
+    },
+  ];
+}
+
+/** BenchmarksPanel, settled (its GET fetches on mount — same async-first-paint reasoning as PostList
+ * above): guard + UX clean at both viewports, with the response form's [data-guard-title] present. */
+async function benchmarksSettledProof(browser, bundleJs) {
+  const failures = [];
+  let checks = 0;
+  for (const vp of [MOBILE_VIEWPORT, DESKTOP_VIEWPORT]) {
+    const page = await newSmokePage(browser, { apiRoutes: benchmarksApiRoutes() });
+    try {
+      await page.setViewportSize(vp);
+      await mountBundle(page, bundleJs, "__mount");
+      await page.waitForTimeout(300);
+      checks++;
+      failures.push(...assertGuardClean(`community-benchmarks[open]@${vp.width}`, await measureGuard(page)));
+      checks++;
+      failures.push(...assertUxClean(`community-benchmarks[open]@${vp.width}`, await measureUx(page)));
+      const titles = await page.$$("[data-guard-title]");
+      checks++;
+      if (titles.length < 1) {
+        failures.push(`community-benchmarks[open]@${vp.width}: expected >=1 [data-guard-title], found ${titles.length}`);
+      }
+      const form = await page.$('form[aria-label^="Submit your value for"]');
+      checks++;
+      if (!form) {
+        failures.push(`community-benchmarks[open]@${vp.width}: response form did not render for an open instrument`);
+      }
+    } finally {
+      await page.close();
+    }
+  }
+  return { checks, failures };
+}
+
+/** Response form refusal (unverified) — law 15: the entered value is preserved, the refusal names the
+ * fix, and a link to /community/profile is offered. */
+async function benchmarkResponseRefusalProof(browser, bundleJs) {
+  const failures = [];
+  let checks = 0;
+  const page = await newSmokePage(browser, {
+    apiRoutes: benchmarksApiRoutes({
+      onRespond: (route) =>
+        route.fulfill({
+          status: 403,
+          json: { error: "unverified: verify a corporate email first", verify_url: "/community/profile" },
+        }),
+    }),
+  });
+  try {
+    await mountBundle(page, bundleJs, "__mount");
+    await page.waitForTimeout(300);
+
+    const input = await page.$("#benchmark-response-saf-premium-air-2026-q3");
+    checks++;
+    if (!input) {
+      failures.push("refusal-proof: response input did not render.");
+      return { checks, failures };
+    }
+    await input.fill("4.5");
+    const submit = await page.$('form[aria-label^="Submit your value for"] button[type="submit"]');
+    checks++;
+    if (!submit) {
+      failures.push("refusal-proof: submit button is missing.");
+      return { checks, failures };
+    }
+    await submit.click();
+    await page.waitForTimeout(300);
+
+    const alertText = await page.textContent('[role="alert"]');
+    checks++;
+    if (!alertText || !alertText.includes("verify a corporate email first")) {
+      failures.push(`refusal-proof: refusal message did not render (got ${JSON.stringify(alertText)}).`);
+    }
+    const verifyLink = await page.$('a[href="/community/profile"]');
+    checks++;
+    if (!verifyLink) {
+      failures.push("refusal-proof: the verify-profile link was not offered on refusal.");
+    }
+    const preserved = await input.inputValue();
+    checks++;
+    if (preserved !== "4.5") {
+      failures.push(`refusal-proof: entered value was not preserved after refusal (got ${JSON.stringify(preserved)}).`);
+    }
+  } finally {
+    await page.close();
+  }
+  return { checks, failures };
+}
+
+/** Response form acceptance — success shows the organisation count, NEVER a value (spec 05 §1). */
+async function benchmarkResponseAcceptedProof(browser, bundleJs) {
+  const failures = [];
+  let checks = 0;
+  const page = await newSmokePage(browser, {
+    apiRoutes: benchmarksApiRoutes({
+      onRespond: (route) =>
+        route.fulfill({
+          status: 201,
+          json: {
+            accepted: true,
+            aggregate: {
+              publishable: false,
+              value: null,
+              distinct_organisations: 4,
+              min_contributors: 5,
+              response_count: 5,
+              reason: "not yet publishable: k-anonymity (4/5 organisations)",
+            },
+          },
+        }),
+    }),
+  });
+  try {
+    await mountBundle(page, bundleJs, "__mount");
+    await page.waitForTimeout(300);
+    const input = await page.$("#benchmark-response-saf-premium-air-2026-q3");
+    checks++;
+    if (!input) {
+      failures.push("accepted-proof: response input did not render.");
+      return { checks, failures };
+    }
+    await input.fill("4.5");
+    await page.click('form[aria-label^="Submit your value for"] button[type="submit"]');
+    await page.waitForTimeout(300);
+
+    const status = await page.textContent('[role="status"]');
+    checks++;
+    if (!status || !status.includes("counted") || !status.includes("4 of 5")) {
+      failures.push(`accepted-proof: success message did not render the organisation count (got ${JSON.stringify(status)}).`);
+    }
+    checks++;
+    if (status && status.includes("4.5")) {
+      failures.push("accepted-proof: success message must never echo the submitted value (spec 05 §1).");
+    }
+  } finally {
+    await page.close();
+  }
+  return { checks, failures };
+}
+
+// ── ProfileForm ────────────────────────────────────────────────────────────────────────────────
+
+function profileApiRoutes({ profile, onVerify, onSave } = {}) {
+  return [
+    {
+      urlGlob: "**/api/community/profile",
+      handler: (route) => {
+        const req = route.request();
+        if (req.method() === "GET") {
+          return route.fulfill({ json: { profile: profile ?? unverifiedProfile() } });
+        }
+        if (req.method() === "PUT") {
+          return onSave ? onSave(route) : route.fulfill({ json: { profile: profile ?? unverifiedProfile() } });
+        }
+        return route.fulfill({ json: {} });
+      },
+    },
+    {
+      urlGlob: "**/api/community/profile/verify",
+      handler: (route) => (onVerify ? onVerify(route) : route.fulfill({ status: 500, json: { error: "no handler" } })),
+    },
+  ];
+}
+
+function unverifiedProfile(overrides = {}) {
+  return {
+    orgType: null, role: null, sector: null, region: null,
+    verified: false, verifiedAt: null, verificationMethod: null,
+    ...overrides,
+  };
+}
+
+function verifiedProfile(overrides = {}) {
+  return {
+    orgType: "forwarder", role: "Trade lane manager", sector: "cold-chain", region: "EU",
+    verified: true, verifiedAt: "2026-08-01T00:00:00.000Z", verificationMethod: "corporate-email",
+    ...overrides,
+  };
+}
+
+/** ProfileForm, settled, both the unverified and verified states, both viewports — guard + UX clean,
+ * with the two section headings' [data-guard-title] present. */
+async function profileSettledProof(browser, bundleJs) {
+  const failures = [];
+  let checks = 0;
+  for (const [label, profile] of [["unverified", unverifiedProfile()], ["verified", verifiedProfile()]]) {
+    for (const vp of [MOBILE_VIEWPORT, DESKTOP_VIEWPORT]) {
+      const page = await newSmokePage(browser, { apiRoutes: profileApiRoutes({ profile }) });
+      try {
+        await page.setViewportSize(vp);
+        await mountBundle(page, bundleJs, "__mount");
+        await page.waitForTimeout(300);
+        checks++;
+        failures.push(...assertGuardClean(`community-profile[${label}]@${vp.width}`, await measureGuard(page)));
+        checks++;
+        failures.push(...assertUxClean(`community-profile[${label}]@${vp.width}`, await measureUx(page)));
+        const titles = await page.$$("[data-guard-title]");
+        checks++;
+        if (titles.length < 2) {
+          failures.push(`community-profile[${label}]@${vp.width}: expected >=2 [data-guard-title] (declare + verify sections), found ${titles.length}`);
+        }
+      } finally {
+        await page.close();
+      }
+    }
+  }
+  return { checks, failures };
+}
+
+/** Verify action success — the pending state (law 6) then a visible verified confirmation. */
+async function profileVerifySuccessProof(browser, bundleJs) {
+  const failures = [];
+  let checks = 0;
+  const page = await newSmokePage(browser, {
+    apiRoutes: profileApiRoutes({
+      profile: unverifiedProfile({ orgType: "forwarder" }),
+      onVerify: (route) => route.fulfill({ json: { profile: verifiedProfile() } }),
+    }),
+  });
+  try {
+    await mountBundle(page, bundleJs, "__mount");
+    await page.waitForTimeout(300);
+    const verifyBtn = await page.$('button:has-text("Verify")');
+    checks++;
+    if (!verifyBtn) {
+      failures.push("verify-proof: Verify button did not render for an unverified profile.");
+      return { checks, failures };
+    }
+    await verifyBtn.click();
+    await page.waitForTimeout(300);
+    const bodyText = (await page.textContent("body")) ?? "";
+    checks++;
+    if (!bodyText.includes("Verified via corporate email")) {
+      failures.push("verify-proof: verified confirmation did not render after a successful verify.");
+    }
+  } finally {
+    await page.close();
+  }
+  return { checks, failures };
+}
+
+/** Save-profile error — law 15: form values are preserved, the error names what to fix. */
+async function profileSaveErrorProof(browser, bundleJs) {
+  const failures = [];
+  let checks = 0;
+  const page = await newSmokePage(browser, {
+    apiRoutes: profileApiRoutes({
+      profile: unverifiedProfile(),
+      onSave: (route) => route.fulfill({ status: 400, json: { error: "region must be one of: EU, UK, US, LATAM, APAC, HK, MEA, GLOBAL" } }),
+    }),
+  });
+  try {
+    await mountBundle(page, bundleJs, "__mount");
+    await page.waitForTimeout(300);
+    await page.selectOption("#profile-org-type", "forwarder");
+    await page.fill("#profile-role", "Trade lane manager");
+    await page.click('form[aria-label="Community profile"] button[type="submit"]');
+    await page.waitForTimeout(300);
+
+    const alertText = await page.textContent('[role="alert"]');
+    checks++;
+    if (!alertText || !alertText.includes("region must be one of")) {
+      failures.push(`save-error-proof: error message did not render (got ${JSON.stringify(alertText)}).`);
+    }
+    const roleVal = await page.inputValue("#profile-role");
+    checks++;
+    if (roleVal !== "Trade lane manager") {
+      failures.push(`save-error-proof: role input was not preserved after a save error (got ${JSON.stringify(roleVal)}).`);
+    }
+  } finally {
+    await page.close();
+  }
+  return { checks, failures };
+}
+
 export async function runSmoke(browser) {
   const failures = [];
   let checks = 0;
@@ -546,6 +891,34 @@ export async function runSmoke(browser) {
   const stripEmpty = await stripRendersNothingProof(browser, peersBundle);
   checks += stripEmpty.checks;
   failures.push(...stripEmpty.failures);
+
+  // ── lane COMMUNITY-C additions: BenchmarksPanel's response form + the profile page (ProfileForm) ──
+  const benchmarksBundle = await bundleEntry(ENTRY_BENCHMARKS, { alias: ALIAS });
+  const profileBundle = await bundleEntry(ENTRY_PROFILE, { alias: ALIAS });
+
+  const benchmarksSettled = await benchmarksSettledProof(browser, benchmarksBundle);
+  checks += benchmarksSettled.checks;
+  failures.push(...benchmarksSettled.failures);
+
+  const responseRefusal = await benchmarkResponseRefusalProof(browser, benchmarksBundle);
+  checks += responseRefusal.checks;
+  failures.push(...responseRefusal.failures);
+
+  const responseAccepted = await benchmarkResponseAcceptedProof(browser, benchmarksBundle);
+  checks += responseAccepted.checks;
+  failures.push(...responseAccepted.failures);
+
+  const profileSettled = await profileSettledProof(browser, profileBundle);
+  checks += profileSettled.checks;
+  failures.push(...profileSettled.failures);
+
+  const profileVerify = await profileVerifySuccessProof(browser, profileBundle);
+  checks += profileVerify.checks;
+  failures.push(...profileVerify.failures);
+
+  const profileSaveError = await profileSaveErrorProof(browser, profileBundle);
+  checks += profileSaveError.checks;
+  failures.push(...profileSaveError.failures);
 
   return { checks, failures };
 }

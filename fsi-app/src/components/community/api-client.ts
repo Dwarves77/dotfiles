@@ -232,6 +232,144 @@ export async function getCurrentBenchmarks(
   }
 }
 
+// ── POST /api/community/benchmarks/[key]/respond ─────────────────────────────────────────────
+// The write path for the house-seeded benchmark (lane COMMUNITY-C, 2026-09-03): submits (or replaces)
+// the caller's own response and returns the SAME aggregate shape as getCurrentBenchmarks — never an
+// individual value, including the caller's own.
+
+export interface SubmitBenchmarkResponseSuccess {
+  ok: true;
+  aggregate: BenchmarkAggregate;
+}
+
+export interface SubmitBenchmarkResponseFailure {
+  ok: false;
+  /** 0 when the request never reached the network. */
+  status: number;
+  error: string;
+  /** Present on a 403 refusal — where to go to fix it (verification today). */
+  verifyUrl?: string;
+}
+
+export type SubmitBenchmarkResponseResult =
+  | SubmitBenchmarkResponseSuccess
+  | SubmitBenchmarkResponseFailure;
+
+export async function submitBenchmarkResponse(
+  instrumentKey: string,
+  valueNumeric: number,
+  fetchImpl: typeof fetch = fetch
+): Promise<SubmitBenchmarkResponseResult> {
+  let res: Response;
+  try {
+    res = await fetchImpl(`/api/community/benchmarks/${encodeURIComponent(instrumentKey)}/respond`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ value_numeric: valueNumeric }),
+    });
+  } catch (err) {
+    return { ok: false, status: 0, error: err instanceof Error ? err.message : "Network error" };
+  }
+
+  const json = await safeJson<{
+    accepted?: boolean;
+    aggregate?: BenchmarkAggregate;
+    error?: string;
+    verify_url?: string;
+  }>(res);
+
+  if (!res.ok || !json?.accepted) {
+    return {
+      ok: false,
+      status: res.status,
+      error: json?.error || `Could not submit (${res.status})`,
+      verifyUrl: res.status === 403 ? json?.verify_url : undefined,
+    };
+  }
+
+  return { ok: true, aggregate: json.aggregate as BenchmarkAggregate };
+}
+
+// ── GET/PUT /api/community/profile, POST /api/community/profile/verify ──────────────────────────
+// Self-service verified-pseudonymous identity (spec 05 §2, §5 component 1; lane COMMUNITY-C).
+
+export interface CommunityProfile {
+  orgType: string | null;
+  role: string | null;
+  sector: string | null;
+  region: string | null;
+  verified: boolean;
+  verifiedAt: string | null;
+  verificationMethod: string | null;
+}
+
+export interface ProfileFetchResult {
+  ok: true;
+  profile: CommunityProfile;
+}
+export interface ProfileFetchFailure {
+  ok: false;
+  status: number;
+  error: string;
+}
+export type ProfileResult = ProfileFetchResult | ProfileFetchFailure;
+
+export async function getOwnProfile(fetchImpl: typeof fetch = fetch): Promise<ProfileResult> {
+  let res: Response;
+  try {
+    res = await fetchImpl("/api/community/profile");
+  } catch (err) {
+    return { ok: false, status: 0, error: err instanceof Error ? err.message : "Network error" };
+  }
+  const json = await safeJson<{ profile?: CommunityProfile; error?: string }>(res);
+  if (!res.ok || !json?.profile) {
+    return { ok: false, status: res.status, error: json?.error || `Could not load profile (${res.status})` };
+  }
+  return { ok: true, profile: json.profile };
+}
+
+export interface UpdateProfileInput {
+  org_type: string;
+  role?: string | null;
+  sector?: string | null;
+  region?: string | null;
+}
+
+export async function updateOwnProfile(
+  input: UpdateProfileInput,
+  fetchImpl: typeof fetch = fetch
+): Promise<ProfileResult> {
+  let res: Response;
+  try {
+    res = await fetchImpl("/api/community/profile", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  } catch (err) {
+    return { ok: false, status: 0, error: err instanceof Error ? err.message : "Network error" };
+  }
+  const json = await safeJson<{ profile?: CommunityProfile; error?: string }>(res);
+  if (!res.ok || !json?.profile) {
+    return { ok: false, status: res.status, error: json?.error || `Could not save profile (${res.status})` };
+  }
+  return { ok: true, profile: json.profile };
+}
+
+export async function verifyOwnProfile(fetchImpl: typeof fetch = fetch): Promise<ProfileResult> {
+  let res: Response;
+  try {
+    res = await fetchImpl("/api/community/profile/verify", { method: "POST" });
+  } catch (err) {
+    return { ok: false, status: 0, error: err instanceof Error ? err.message : "Network error" };
+  }
+  const json = await safeJson<{ profile?: CommunityProfile; error?: string }>(res);
+  if (!res.ok || !json?.profile) {
+    return { ok: false, status: res.status, error: json?.error || `Could not verify (${res.status})` };
+  }
+  return { ok: true, profile: json.profile };
+}
+
 // ── shared ─────────────────────────────────────────────────────────────────────────────────────
 
 async function safeJson<T>(res: Response): Promise<T | null> {
@@ -307,4 +445,20 @@ export const fixtures = {
       },
     },
   ] as Benchmark[],
+
+  // ── lane COMMUNITY-C additions (2026-09-03): profile + response fixtures ────────────────────
+  ownProfileUnverified: {
+    orgType: null, role: null, sector: null, region: null,
+    verified: false, verifiedAt: null, verificationMethod: null,
+  } satisfies CommunityProfile,
+
+  ownProfileVerified: {
+    orgType: "forwarder", role: "Trade lane manager", sector: "cold-chain", region: "EU",
+    verified: true, verifiedAt: "2026-08-01T00:00:00.000Z", verificationMethod: "corporate-email",
+  } satisfies CommunityProfile,
+
+  benchmarkRespondRefusalUnverified: {
+    error: "unverified: verify a corporate email first",
+    verify_url: "/community/profile",
+  },
 };
