@@ -1,0 +1,71 @@
+/* spec09.css — shared header/mobile rules for every spec 09 panel (SurchargeAuditPanel, OemRoadmapPanel,
+ * ReroutingPanel, DqiPanel, AuxiliaryEnergyPanel, GridQueuePanel, EudrCustodyPanel). Lane SPEC-09, wave 3,
+ * 2026-09-03 (docs/dispatches/lane-common-contract.md UX contract; docs/design/ux-laws.md law 2/4/12).
+ *
+ * Lives in market/ per the lane brief's write set ("a new fsi-app/src/components/market/spec09.css
+ * (yours)"); imported by relative path from operations/ and regulations/ panels too — one file, one set of
+ * rules, no duplication (law 16, pattern consistency). Global stylesheet (App Router permits importing a
+ * global CSS file from any component, not only layouts/pages); class names are prefixed `spec09-` so they
+ * never collide with globals.css or another lane's classes — this file does not touch globals.css or any
+ * existing row component (both out of this lane's write set).
+ *
+ * WHY A STACKING RULE, NOT JUST WRAPPING. Every panel's header row is a title (h2) beside a short
+ * all-caps subtitle badge, `justify-content: space-between`. Neither child sets `flex-shrink: 0`, so in
+ * principle both can shrink — but at 375px with no minimum-content escape hatch the title still wrapped a
+ * long subtitle onto the title's line, squeezing the title's own box (the exact "one-word-per-line" defect
+ * class F35/ux-assert.mjs's detectSqueezedTitles measures: a title on 2+ lines narrower than 60% of its
+ * container). `.spec09-panel-header` stacks to a column at <=640px (the house breakpoint globals.css
+ * already uses for card-level stacking, e.g. `@media (max-width: 640px)` at globals.css:324) so the title
+ * gets the FULL container width — ratio 1.0, never squeezed — before the subtitle badge even renders.
+ */
+
+.spec09-panel-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-bottom: 2px solid var(--color-text-primary);
+  padding: 0 0 8px;
+  margin: 0 0 12px;
+}
+
+/* The row title every spec09 panel marks data-guard-title (RD-60/F35). min-width:0 lets it participate in
+ * the flex row's own shrink math instead of enforcing its intrinsic min-content width; overflow-wrap:
+ * anywhere is the mobile-rule floor for any text container that could still receive a long value (a long
+ * corridor id, tech_category, DSO name) even though today's copy is short. */
+.spec09-panel-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 26px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.spec09-panel-subtitle {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Row cards: text containers get the same min-width:0 + overflow-wrap floor so a long value (a corridor
+ * entity id, an invoice line) never forces the card wider than its grid track. */
+.spec09-row-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .spec09-panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}

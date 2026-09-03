@@ -5,6 +5,12 @@ import { OperationsLedger } from "@/components/operations/OperationsLedger";
 import { isRegulationItem } from "@/lib/regulation-item-types";
 import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 import { AutomateVsHireCalculator } from "./AutomateVsHireCalculator";
+// Spec 09 §1.4/§1.5/§1.6 (lane SPEC-09, wave 3, 2026-09-03): three self-contained server components, each
+// reading its own table via the request-scoped service client. See each component's own header for the
+// fetch/soft-fail contract (shared with market/SurchargeAuditPanel.tsx's pattern).
+import { DqiPanel } from "@/components/operations/DqiPanel";
+import { AuxiliaryEnergyPanel } from "@/components/operations/AuxiliaryEnergyPanel";
+import { GridQueuePanel } from "@/components/operations/GridQueuePanel";
 
 // Sprint 3 (2026-05-27): force-dynamic per /community precedent. Static
 // generation at build time has no cookies; resolveOrgIdFromCookies
@@ -91,6 +97,12 @@ export default async function Operations() {
           header for why no server round-trip/API route backs it. Existing OperationsLedger content above
           is untouched. */}
       <AutomateVsHireCalculator />
+      {/* Spec 09 §1.4/§1.5/§1.6 (lane SPEC-09, wave 3, 2026-09-03): DQI, auxiliary energy, grid queue.
+          Each renders a single short "no rows yet" line when its table is empty (today's live state for
+          all three — see scripts/spec09/SOURCES.md) rather than an empty card. */}
+      <DqiPanel />
+      <AuxiliaryEnergyPanel />
+      <GridQueuePanel />
     </>
   );
 }

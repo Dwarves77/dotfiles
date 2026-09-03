@@ -22,6 +22,10 @@ import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { RegulationsLedger } from "@/components/regulations/RegulationsLedger";
 import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingObligationsStrip";
 import { ObligationRegister } from "@/components/regulations/ObligationRegister";
+// Spec 09 §1.8 (lane SPEC-09, wave 3, 2026-09-03): EUDR geo-traceability + book-and-claim custody, one
+// self-contained server component covering both tables — see its own header for the shared blocking-
+// severity classification and why they render as one block, not two.
+import { EudrCustodyPanel } from "@/components/regulations/EudrCustodyPanel";
 import { toDate } from "@/lib/relative-time";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
@@ -118,6 +122,10 @@ export default async function RegulationsPage({
           reads its own data via the request-scoped client, so it needs no props from this page's own
           fetches, and soft-fails to nothing (never breaks the page) on a read error. */}
       <ObligationRegister variant="list" />
+      {/* Lane SPEC-09 (wave 3, 2026-09-03): EUDR geo-traceability + book-and-claim custody (spec 09 §1.8).
+          Renders a single short "no rows yet" line per sub-table when empty (today's live state — see
+          scripts/spec09/SOURCES.md) rather than an empty card. */}
+      <EudrCustodyPanel />
     </>
   );
 }
