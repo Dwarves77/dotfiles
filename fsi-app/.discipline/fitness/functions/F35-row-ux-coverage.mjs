@@ -42,11 +42,19 @@ export const ROW_COMPONENTS = Object.freeze({
   'src/components/operations/RegionDimensionMatrix.tsx': 'screenshot 01-operations-regions (text off the right edge)',
   'src/components/research/ResearchLedger.tsx': 'screenshot 03-research-findings (one word per line, label overlap)',
   'src/components/regulations/RegulationsLedger.tsx': 'same row shape as MarketIntelLedger (read)',
-  'src/components/regulations/UpcomingObligationsStrip.tsx': 'screenshot 05-regulations-upcoming (narrow title column, icon-only control)',
+  'src/components/regulations/UpcomingObligationsStripView.tsx': 'screenshot 05-regulations-upcoming (narrow title column, icon-only control); the View half of the async server component (lane MOBILE split)',
   'src/components/regulations/ObligationRegister.tsx': 'table rows; must scroll inside its own container',
   'src/components/home/HomeSurface.tsx': 'screenshots 06/07-home (section header title beside a subtitle that runs off page)',
   'src/components/community/PostList.tsx': 'community rows (COMMUNITY-B surface)',
   'src/components/community/Post.tsx': 'community post row (COMMUNITY-B surface)',
+  // Spec 09 panels (lane SPEC-09, Wave 3): the *View halves carry the markup; the Panel halves fetch.
+  'src/components/market/SurchargeAuditPanelView.tsx': 'spec09 §1.2 surcharge audit row',
+  'src/components/market/OemRoadmapPanelView.tsx': 'spec09 §1.1 OEM roadmap row',
+  'src/components/market/ReroutingPanelView.tsx': 'spec09 §1.7 rerouting-multiplier row',
+  'src/components/operations/DqiPanelView.tsx': 'spec09 §1.4 DQI-per-element row',
+  'src/components/operations/AuxiliaryEnergyPanelView.tsx': 'spec09 §1.5 auxiliary-load row',
+  'src/components/operations/GridQueuePanelView.tsx': 'spec09 §1.6 grid-queue gate row',
+  'src/components/regulations/EudrCustodyPanelView.tsx': 'spec09 §1.8 EUDR/custody blocking-alert row',
 });
 
 /** Strip line and block comments (keeping newlines). Pure. */

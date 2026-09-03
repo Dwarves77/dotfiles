@@ -187,6 +187,36 @@ function postListProps(overrides = {}) {
   };
 }
 
+// ── Post entry (coordinator, integration 2026-09-03): F35's coverage check is a DIRECT import match
+//    (a spec that imports PostList covers PostList; Post is rendered by it but not named), so Post is
+//    mounted standalone here with an explicit corroboration prop (no self-fetch) in one, extreme states. ──
+const ENTRY_POST = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { Post } from '@/components/community/Post';
+
+let root = null;
+window.__mount = (props) => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(React.createElement('div', { 'data-guard-container': 'post-standalone', style: { maxWidth: '100%' } }, React.createElement(Post, props)));
+};
+`;
+
+function postProps(overrides = {}) {
+  return {
+    post: post(),
+    currentUserId: "user-1",
+    isGroupAdmin: false,
+    isGroupMember: true,
+    authorIdentity: author(),
+    promotionState: "community-corroborated",
+    originClass: "community-corroborated",
+    corroboration: { thread_id: "post-1", organisations: 3, posts: 4, consistent: true },
+    ...overrides,
+  };
+}
+
 // ── PeersDiscussingStrip entry ─────────────────────────────────────────────────────────────────
 const ENTRY_PEERS = `
 import React from 'react';
@@ -470,6 +500,20 @@ export async function runSmoke(browser) {
   });
   checks += extreme.checks;
   failures.push(...extreme.failures);
+
+  // ── Post, standalone (prop-driven, no fetch: runUxSpec's one-rAF window is exact here) ────────
+  const postStandalone = await runUxSpec(browser, {
+    name: "community-post",
+    entry: ENTRY_POST,
+    alias: ALIAS,
+    apiRoutes: postsApiRoutes({ posts: [] }),
+    states: [
+      { label: "one", props: postProps(), expectTitles: 1 },
+      { label: "extreme", props: postProps({ post: extremePosts(1)[0] }), expectTitles: 1 },
+    ],
+  });
+  checks += postStandalone.checks;
+  failures.push(...postStandalone.failures);
 
   // ── PeersDiscussingStrip — same async-first-paint reasoning as PostList above ─────────────────
   const peers = await settledContentProof(browser, peersBundle, {
