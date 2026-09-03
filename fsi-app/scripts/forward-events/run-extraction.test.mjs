@@ -137,6 +137,43 @@ test("runExtraction: a malformed item (missing claims/sections entirely) is tole
   assert.equal(result.perItem[0].outcome, "no_events");
 });
 
+// ── by_skip_reason (LAST-PROPOSER-PASS.md proposal 1, 2026-09-01; landed lane FE-SLOT, 2026-09-03) ─
+
+test("runExtraction: metrics.by_skip_reason histograms every skip's reason across the corpus", () => {
+  const ambiguousText = "By 2030 nothing else is said.";
+  const dueDateText = "within 15 days of the effective date of disapproval";
+  const items = [
+    {
+      id: "ambiguous",
+      claims: [{ claim_id: "c1", kind: "FACT", text: ambiguousText, span: ambiguousText }],
+      sections: [],
+    },
+    {
+      id: "slot-due-date",
+      claims: [
+        {
+          claim_id: "c2",
+          kind: "FACT",
+          text: `[due_date] The captured source states a due date, verbatim: «${dueDateText}»`,
+          span: dueDateText,
+        },
+      ],
+      sections: [],
+    },
+    itemWithNoEvent("plain-no-event"),
+  ];
+  const result = runExtraction(items);
+  assert.equal(
+    result.metrics.by_skip_reason["date after 'by' with no deontic ('shall'/'must') or aim/target language nearby — ambiguous whether this is a bound obligation"],
+    1,
+  );
+  assert.equal(result.metrics.by_skip_reason.slot_date_unclassified, 1);
+  // plain-no-event's "no dates here" claim never trips a trigger, so it contributes zero skips —
+  // by_skip_reason's total must equal metrics.skips exactly, not over- or under-count.
+  const totalBySkipReason = Object.values(result.metrics.by_skip_reason).reduce((a, b) => a + b, 0);
+  assert.equal(totalBySkipReason, result.metrics.skips);
+});
+
 // ── buildRunArtifact: shape + schema ────────────────────────────────────────────────────────────
 
 test("buildRunArtifact: a successful run's artifact validates against CONVENTION.md's schema (validateRunArtifact — what F28 checks)", () => {

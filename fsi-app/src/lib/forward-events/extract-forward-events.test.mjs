@@ -12,7 +12,13 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractForwardEvents, EXTRACTOR_VERSION } from './extract-forward-events.mjs';
+import {
+  extractForwardEvents,
+  EXTRACTOR_VERSION,
+  isDueDateSlotClaim,
+  slotDatePrecision,
+  finerDuePrecision,
+} from './extract-forward-events.mjs';
 
 const KIND_VOCAB = new Set([
   'entry_into_force',
@@ -591,5 +597,129 @@ describe('multi-claim item shape', () => {
       const src = e.source_kind === 'claim' ? input.claims.find((c) => c.claim_id === e.source_claim_id).span : input.sections[0].md;
       assertWellFormedEvent(e, src);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Record-grade due_date slot claims (lane FE-SLOT, 2026-09-03)
+// ---------------------------------------------------------------------------
+// The record-grade mint (src/lib/intake/record-facts.mjs) grounds its due_date slot as a FACT claim
+// whose claim_text carries a fixed "[due_date] " prefix and, when resolved, a "(date_precision: X)"
+// marker — section_claim_provenance has no slot_key column, so this prefix is the only surviving marker
+// once the claim round-trips through the DB (see write-item.ts's buildClaimRows, which drops slot_key).
+
+function dueDateClaim({ span, precision = null, claimId = 'due1', kind = 'FACT' }) {
+  const precisionPart = precision ? ` (date_precision: ${precision})` : '';
+  return {
+    claim_id: claimId,
+    kind,
+    text: `[due_date] The captured source states a due date${precisionPart}, verbatim: «${span}»`,
+    span,
+  };
+}
+
+describe('isDueDateSlotClaim / slotDatePrecision (pure helpers)', () => {
+  test('true only for a FACT claim whose text carries the [due_date] template prefix', () => {
+    assert.equal(isDueDateSlotClaim(dueDateClaim({ span: 'By 1 January 2027, X shall notify.' })), true);
+    assert.equal(isDueDateSlotClaim({ kind: 'FACT', text: 'no marker here', span: 'x' }), false);
+    assert.equal(isDueDateSlotClaim(dueDateClaim({ span: 'x', kind: 'GAP' })), false);
+    assert.equal(isDueDateSlotClaim({ kind: 'FACT', text: undefined, span: 'x' }), false);
+  });
+
+  test('slotDatePrecision reads the marker back, or null when absent / not a due_date slot claim', () => {
+    assert.equal(slotDatePrecision(dueDateClaim({ span: 'x', precision: 'month' })), 'month');
+    assert.equal(slotDatePrecision(dueDateClaim({ span: 'x', precision: null })), null);
+    assert.equal(slotDatePrecision({ kind: 'FACT', text: 'ordinary claim', span: 'x' }), null);
+  });
+});
+
+describe('finerDuePrecision (pure helper)', () => {
+  test('day beats month beats year', () => {
+    assert.equal(finerDuePrecision('month', 'day'), 'day');
+    assert.equal(finerDuePrecision('year', 'month'), 'month');
+    assert.equal(finerDuePrecision('day', 'year'), 'day');
+  });
+
+  test('never returns the coarser of the two, and a tie is stable', () => {
+    assert.equal(finerDuePrecision('day', 'month'), 'day');
+    assert.equal(finerDuePrecision('month', 'month'), 'month');
+  });
+
+  test('a slot precision this module cannot represent (quarter, null, unrecognised) never overrides', () => {
+    assert.equal(finerDuePrecision('year', 'quarter'), 'year');
+    assert.equal(finerDuePrecision('day', 'quarter'), 'day');
+    assert.equal(finerDuePrecision('month', null), 'month');
+    assert.equal(finerDuePrecision('month', 'nonsense'), 'month');
+  });
+
+  test('an unrecognised extractor precision is returned unchanged rather than promoted', () => {
+    assert.equal(finerDuePrecision('quarter', 'day'), 'quarter');
+  });
+});
+
+describe('extractForwardEvents: due_date slot claim integration', () => {
+  test('a slot claim whose span already classifies keeps its own (finer) precision unchanged', () => {
+    // Real corpus example (population-33749140151, item 32008L0098): the extractor's own day-precision
+    // match is already finer than what a coarser slot marker would supply.
+    const span = 'By 31 December 2014 at the latest, the Commission shall examine the measures and the targ';
+    const claim = dueDateClaim({ span, precision: 'month' }); // deliberately coarser than the real 'day'
+    const { events, skipped } = extractForwardEvents({ claims: [claim], sections: [] });
+    assert.equal(events.length, 1);
+    assert.equal(events[0].event_kind, 'compliance_deadline');
+    assert.equal(events[0].date_precision, 'day'); // extractor's own finer precision wins
+    assert.deepEqual(skipped, []); // classified — no slot_date_unclassified skip
+  });
+
+  test('a slot claim whose own match is coarser than the slot marker is upgraded to the finer precision', () => {
+    const span = 'shall comply by 2027';
+    const claim = dueDateClaim({ span, precision: 'month' }); // synthetic: isolates the blend mechanism
+    const { events } = extractForwardEvents({ claims: [claim], sections: [] });
+    assert.equal(events.length, 1);
+    assert.equal(events[0].event_kind, 'compliance_deadline');
+    assert.equal(events[0].date_precision, 'month'); // slot's finer precision replaces the bare-year match
+    assert.equal(events[0].event_date, '2027-01-01'); // ISO itself is never invented past what was parsed
+  });
+
+  test('a slot claim with no parseable calendar date is skipped as slot_date_unclassified, never silently dropped', () => {
+    const span = 'within 15 days of the effective date of disapproval';
+    const claim = dueDateClaim({ span, precision: null }); // record-facts.mjs found the span but no precision
+    const { events, skipped } = extractForwardEvents({ claims: [claim], sections: [] });
+    assert.equal(events.length, 0);
+    assert.equal(skipped.length, 1);
+    assert.equal(skipped[0].reason, 'slot_date_unclassified');
+    assert.equal(skipped[0].source_claim_id, claim.claim_id);
+    assert.equal(skipped[0].source_kind, 'claim');
+    assert.equal(skipped[0].text, span);
+  });
+
+  test('a slot claim with a date but no classifiable kind gets BOTH the generic skip and slot_date_unclassified', () => {
+    const span = 'by 1 May 2021, notify the Commission of those rules'; // deontic verb truncated away upstream
+    const claim = dueDateClaim({ span, precision: 'day' });
+    const { events, skipped } = extractForwardEvents({ claims: [claim], sections: [] });
+    assert.equal(events.length, 0);
+    assert.equal(skipped.length, 2);
+    const reasons = skipped.map((s) => s.reason).sort();
+    assert.deepEqual(reasons, [
+      "date after 'by' with no deontic ('shall'/'must') or aim/target language nearby — ambiguous whether this is a bound obligation",
+      'slot_date_unclassified',
+    ]);
+  });
+
+  test('never invents a kind: a due_date slot claim never gets an event the RULES table itself would not have produced for an ordinary claim with the same span', () => {
+    const span = 'within 15 days of the effective date of disapproval';
+    const plain = { claim_id: 'c1', kind: 'FACT', text: 'an ordinary claim, no slot marker', span };
+    const slot = dueDateClaim({ span, claimId: 'c2' });
+    const plainResult = extractForwardEvents({ claims: [plain], sections: [] });
+    const slotResult = extractForwardEvents({ claims: [slot], sections: [] });
+    assert.deepEqual(plainResult.events, []);
+    assert.deepEqual(slotResult.events, []); // same: no event invented just because this is a slot claim
+  });
+
+  test('an ordinary (non-slot) claim with no hit is completely unaffected: no slot_date_unclassified noise', () => {
+    const span = 'no dates or triggers in this text at all';
+    const claim = { claim_id: 'c1', kind: 'FACT', text: 'plain claim', span };
+    const { events, skipped } = extractForwardEvents({ claims: [claim], sections: [] });
+    assert.equal(events.length, 0);
+    assert.deepEqual(skipped, []);
   });
 });
