@@ -1,0 +1,45 @@
+{
+  "mode": "apply",
+  "skipCheck": false,
+  "checkLimit": 10,
+  "reconcileBatch": 200,
+  "drainLimit": 5,
+  "check": {
+    "skipped": false,
+    "httpStatus": 200,
+    "ok": true,
+    "body": {
+      "message": "Scraping is off (cadence 'off' or emergency stop); worker exiting",
+      "checked": 0,
+      "sourcesChecked": 0,
+      "changesDetected": 0,
+      "portalCandidates": 0
+    },
+    "error": null,
+    "verifiedByRead": {
+      "changeDetectedCount": 0,
+      "portalCandidatesTouched": 0
+    },
+    "mismatches": []
+  },
+  "reconcile": {
+    "result": {
+      "processed": 0,
+      "changesRecorded": 0,
+      "staged": 0,
+      "pending": 0,
+      "errors": []
+    },
+    "queueRows": [],
+    "pendingTotal": 0
+  },
+  "drain": {
+    "result": {
+      "items": [],
+      "drained": 0,
+      "approved": 0,
+      "rejected": 0,
+      "notDrained": 0
+    }
+  }
+}
