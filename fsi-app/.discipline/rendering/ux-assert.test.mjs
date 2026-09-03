@@ -6,6 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  detectClippedOverflow,
   detectSmallTargets,
   detectSqueezedTitles,
   assertUxClean,
@@ -67,4 +68,14 @@ test('assertUxClean: labelled human-readable lines, empty when clean, tolerant o
   assert.equal(f.length, 2);
   assert.match(f[0], /^market@375: 2 interactive target\(s\) below the law-2 floor/);
   assert.match(f[1], /^market@375: 1 title\(s\) squeezed/);
+});
+
+test('RED: an element past the right edge with no scrolling ancestor is clipped; inside a strip it is not', () => {
+  const hits = detectClippedOverflow([
+    { name: 'table[Dimension]', right: 612, viewportWidth: 390, scrollable: false },
+    { name: 'a[Compliance deadline]', right: 700, viewportWidth: 390, scrollable: true },
+    { name: 'span[EU]', right: 391, viewportWidth: 390, scrollable: false },
+  ]);
+  assert.deepEqual(hits.map((h) => h.name), ['table[Dimension]']);
+  assert.match(assertUxClean('ops@390', { clipped: hits })[0], /clipped past the viewport/);
 });

@@ -80,11 +80,29 @@ export function detectSqueezedTitles(titles, ratio = TITLE_MIN_RATIO) {
 }
 
 /**
- * Human-readable failure strings for one measured page (empty = clean). `targets` and `titles` are the
- * two collector outputs; `label` prefixes each line for the caller's summary. Pure.
+ * Elements whose box runs past the viewport's right edge with no scrolling ancestor to carry them
+ * (2026-09-03, second phone report: the regional matrix table and a detail-page breadcrumb were CLIPPED
+ * at the right edge; scrollWidth never moved because an `overflow: hidden` ancestor swallowed the
+ * overflow, so the existing detector stayed green while words ran off the page). Input:
+ * [{ name, right, viewportWidth, scrollable }] where `scrollable` is true when some ancestor has
+ * overflow-x auto/scroll (a deliberate horizontal strip). Pure.
  */
-export function assertUxClean(label, { targets = [], titles = [] } = {}) {
+export function detectClippedOverflow(boxes, tolerance = 2) {
+  if (!Array.isArray(boxes)) return [];
+  return boxes.filter((b) => b && !b.scrollable && Number(b.right) > Number(b.viewportWidth) + tolerance);
+}
+
+/**
+ * Human-readable failure strings for one measured page (empty = clean). `targets`, `titles` and
+ * `clipped` are the collector outputs; `label` prefixes each line for the caller's summary. Pure.
+ */
+export function assertUxClean(label, { targets = [], titles = [], clipped = [] } = {}) {
   const failures = [];
+  const off = detectClippedOverflow(clipped);
+  if (off.length > 0) {
+    const detail = off.slice(0, 6).map((b) => `${b.name} right=${Math.round(b.right)}px > ${Math.round(b.viewportWidth)}px`).join(', ');
+    failures.push(`${label}: ${off.length} element(s) clipped past the viewport's right edge with no scrolling ancestor — ${detail}`);
+  }
   const small = detectSmallTargets(targets);
   if (small.length > 0) {
     const detail = small
@@ -130,6 +148,23 @@ export async function measureUx(page) {
         const r = el.getBoundingClientRect();
         targets.push({ name: nameOf(el), x: r.x, y: r.y, width: r.width, height: r.height });
       }
+      // Clipped overflow: every element whose right edge passes the viewport, unless an ancestor scrolls
+      // horizontally on purpose (a strip). Fixed-position chrome is excluded.
+      const clipped = [];
+      const vw = window.innerWidth;
+      for (const el of document.querySelectorAll('body *')) {
+        const r = el.getBoundingClientRect();
+        if (r.width <= 0 || r.right <= vw + 2) continue;
+        const cs = getComputedStyle(el);
+        if (cs.position === 'fixed' || cs.visibility === 'hidden') continue;
+        let scrollable = false;
+        for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+          const ox = getComputedStyle(p).overflowX;
+          if (ox === 'auto' || ox === 'scroll') { scrollable = true; break; }
+        }
+        clipped.push({ name: nameOf(el), right: r.right, viewportWidth: vw, scrollable });
+        if (clipped.length >= 40) break;
+      }
       const titles = [];
       for (const el of document.querySelectorAll('[data-guard-title]')) {
         if (!visible(el)) continue;
@@ -144,7 +179,7 @@ export async function measureUx(page) {
           lines: Math.max(1, Math.round(r.height / lh)),
         });
       }
-      return { targets, titles };
+      return { targets, titles, clipped };
     },
     { selector: TARGET_SELECTOR },
   );
