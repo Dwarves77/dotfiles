@@ -37,8 +37,18 @@ One turn = one pass of the corpus flywheel:
    is skipped, never re-inserted (idempotent re-runs).
 5. **`analyze-corpus.mjs`** (`fsi-app/scripts/connections/`) — clusters the connection graph U0/U1
    already built into themes, detects coverage gaps, reads U5's anticipated-coverage targets off
-   `item_forward_events` (the table step 4 just populated), and — behind `--signals` — proposes L4
-   signal candidates.
+   `item_forward_events` (the table step 4 just populated), and — behind `--signals` — detects L4 signal
+   candidates and (2026-09-03 auto-adoption rule, superseding the original "operator review only, never
+   auto-adopted" posture — see `fsi-app/src/lib/connections/signal-confidence.mjs`'s header for the full
+   evidence-based reasoning) **splits them**: a DECISIVE candidate (a structured shared regulation
+   identifier, or a shared title entity with >=2 independent tokens or a registered one) is written as a
+   real `item_cross_references` edge (`origin='provenance_discovery'`, through `write-edges.mjs`) and any
+   existing open flag for it is auto-resolved (`resolution_note='auto-adopted:signal:<kind>:<weight>'`);
+   an UNDECIDED candidate keeps the pre-existing behavior — an `integrity_flags` row for operator review.
+   The 5-axis classification proposer/applier (`scripts/classification/{propose,apply}-classifications.mjs`,
+   not run as part of a turn today) got the same treatment: `apply-classifications.mjs --auto-adopt`
+   writes high-confidence `scope_modes`/`scope_verticals` and the always-deterministic `expected_output`
+   proposal without an operator ratify marker; `scope_topics` and `jurisdictions` stay review-only.
 
 A separate, related workflow, **`source-sweep.yml`**, runs `run-source-sweep.mjs` (new,
 `fsi-app/scripts/turns/`) — ingestion at scale, not part of a turn's own five steps. It gives a runtime
@@ -177,6 +187,14 @@ forward-events-run-001's no-event set, 322 − 137); analyze persisted 14 themes
 8 persisted, 1 split, 4 appeared), opened 12 coverage-gap, 7 anticipate and 297 signal-candidate flags,
 and its own VERIFY passed. `scripts/turns/LAST-TURN.json` now carries that run's start time, so the next
 dispatch with a blank `since` is incremental.
+
+A LATER apply (run 33756943043, 2026-09-03) grew the open signal-candidate count to 930
+(`shared_regulation_identifier` 154, `shared_title_entity` 776) under the original "operator review
+only" posture — with nobody positioned to review 930 flags one at a time, the signals could never become
+edges. That is the run the 2026-09-03 auto-adoption rule (step 5 above) directly answers: the NEXT
+`--signals` apply after this lane's change re-classifies that same open set through
+`signal-confidence.mjs` and reports/writes the would_adopt / would_flag / would_resolve split — read that
+run's own log line for the actual post-rule numbers rather than assuming a re-derivation here.
 
 ## Standing rule: no schedule during build
 

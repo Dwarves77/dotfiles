@@ -29,6 +29,20 @@
 // No mode flag = run all three (the documented default, same "no selector" convention propose-tags.mjs
 // uses for --untagged). --execute opts into writing; the default is compute + report only.
 //
+// AUTO-ADOPTION (operator ruling 2026-09-03, GSIG lane — see apply-classifications.mjs's header for the
+// full reasoning): this script's own output is UNCHANGED — it still only ever writes an OPEN
+// integrity_flags row per source, never sources itself, and every proposal it computes already carries
+// the `confidence` field (classify-source.mjs's own shape) that decision needs. What changed is what
+// happens to that flag AFTER this script writes it: apply-classifications.mjs's `--auto-adopt` mode now
+// evaluates OPEN `--classify` flags directly (no `ratify:classification` marker required) and writes the
+// scope_modes/scope_verticals proposals whose confidence is "high", and the expected_output proposal
+// always (a closed role->default lookup, not a judgment call) — resolving the flag once nothing
+// APPLICABLE remains unresolved. scope_topics proposals (always "medium" by this script's own design —
+// see classifyScopeTopics's "regular and material coverage needs operator confirmation" comment) and
+// jurisdiction proposals (never applicable — no safe write target, see classify-source.mjs) stay
+// review-only exactly as before, so a flag carrying only those never auto-adopts and keeps needing the
+// ratify marker this script's `recommended_actions` already point to.
+//
 // EXACT-MATCH DEDUP, NOT A PREFIX SCAN (deliberate deviation from propose-tags.mjs's TAG_NAMESPACE
 // `.like(ns + '%')` scan, named here because it is the one place this script's design differs from its
 // template). All three subtypes share AXIS_NAMESPACE. A subject_ref (a source or item id) can carry

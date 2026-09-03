@@ -26,9 +26,21 @@
 //
 // U5 (anticipate) reads item_forward_events (migration 274/275) + this same run's already-loaded
 // items for topic/instrument context — no new corpus query, per anticipate.mjs's own "no fabrication"
-// contract. L4 (signals) is BEHIND --signals (opt-in): it widens the items read to include `title` and
-// proposes operator-review-only candidates; a default run (no --signals) is byte-identical to before
-// this pass existed.
+// contract. L4 (signals) is BEHIND --signals (opt-in): it widens the items read to include `title`; a
+// default run (no --signals) is byte-identical to before this pass existed.
+//
+// L4 AUTO-ADOPTION (operator ruling 2026-09-03, supersedes the original "operator review only, never
+// auto-adopted" posture — spec 08 §Loop B forbids a human gate in the flywheel path, and 930 open L4
+// flags with nobody reviewing them meant the signals could never become edges). signal-confidence.mjs
+// (pure, tested there) draws the line from each candidate's own evidence: a DECISIVE candidate is
+// written as a real item_cross_references edge through write-edges.mjs (origin='provenance_discovery' —
+// the closest CHECK-legal value; the CHECK on item_cross_references.origin, migration 252, admits only
+// 'manual'|'agent_semantic'|'entity_extraction'|'provenance_discovery' — a bare 'signal' value is not
+// legal and this lane does not add one; write-edges.mjs is already THE writer this origin belongs to).
+// An UNDECIDED candidate keeps the pre-existing behavior exactly: an integrity_flags candidate for
+// operator review, never auto-adopted. Any EXISTING open flag for a candidate that now classifies
+// decisive is resolved in this same pass (resolution_note='auto-adopted:signal:<kind>:<weight>',
+// resolved_by='analyze-corpus.mjs') — the audit trail a silent promotion would otherwise lose.
 //
 // F6 (theme-delta) captures the PRIOR theme set (id + member_ids) before the guardedDelete-all this
 // file has always performed, diffs it against the freshly clustered set, and attaches the digest onto
@@ -39,20 +51,24 @@
 // to args.theme_delta for old rows.)
 //
 // Usage: node scripts/connections/analyze-corpus.mjs [--dry] [--signals]
-//   --dry      compute + report (themes, gaps, anticipated targets, signal candidates), write nothing
-//              (default is to write)
+//   --dry      compute + report (themes, gaps, anticipated targets, signal candidates — including the
+//              would_adopt/would_flag/would_resolve split), write nothing (default is to write)
 //   --signals  ALSO run the L4 signal-candidate pass (opt-in; omitted by default so a normal run is
-//              unchanged by this pass's existence)
+//              unchanged by this pass's existence). Decisive candidates are written as edges and their
+//              stale flags resolved; undecided candidates are reflected as integrity_flags as before.
 // Exit 0 done · 1 a write failed verification · 2 no DB creds (cannot run here).
 
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createClient } from "@supabase/supabase-js";
 import { readAll, guardedDelete, guardedInsertMany, guardedInsert, guardedUpdate } from "../lib/db.mjs";
 import { clusterGraph } from "../../src/lib/connections/cluster.mjs";
 import { detectGaps } from "../../src/lib/connections/gaps.mjs";
 import { computeAnticipatedTargets } from "../../src/lib/connections/anticipate.mjs";
 import { diffThemes } from "../../src/lib/connections/theme-delta.mjs";
 import { detectSignalCandidates } from "../../src/lib/connections/signal-candidates.mjs";
+import { planSignalAdoption, groupStaleFlagsForResolution } from "../../src/lib/connections/signal-confidence.mjs";
+import { writeDiscoveredEdges } from "../../src/lib/connections/write-edges.mjs";
 import { GAP_NAMESPACE, ANTICIPATE_NAMESPACE, SIGNAL_NAMESPACE, createdBy } from "../../src/lib/connections/flag-namespaces.mjs";
 import { surfaceOf } from "../../src/lib/surface-of.mjs";
 
@@ -69,6 +85,15 @@ const CITE = {
   skill: "flywheel-build-plan-2026-08-10",
   reason: "U2/U5/F6/L4 analyze-corpus: persist the U1 cluster pass, capture the theme delta, and reflect coverage_gap / anticipated-coverage / signal-candidate findings (guarded path, rule 015).",
 };
+
+// write-edges.mjs deliberately RECEIVES its client rather than constructing one (own header: "stays
+// import-light and pure of secrets") — same posture backfill-edges.mjs uses for the identical reason.
+// Built lazily (only when a --signals --apply run actually has a decisive edge to write) so a --dry or
+// no-signals run never constructs a write-capable client it does not use.
+const SNAP_DIR = process.env.DISCIPLINE_SNAP_DIR ? resolve(process.env.DISCIPLINE_SNAP_DIR) : resolve(ROOT, "scripts", "_snapshots");
+function writeClient() {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+}
 
 /**
  * Dedup-before-insert / resolve-if-stale integrity_flags reflection for ONE producer's namespace.
@@ -165,14 +190,26 @@ console.log(
   `thin_coverage=${anticipated.filter((t) => t.reason === "thin_coverage").length}).`,
 );
 
-// ---- 3c. L4 — signal candidates, BEHIND --signals (opt-in; a default run never computes or reflects
-// these). Reads the SAME already-loaded `items` (title) + `edgeRows` — no new query either way. ----
+// ---- 3c. L4 — signal candidates, BEHIND --signals (opt-in; a default run never computes, writes, or
+// reflects these). Reads the SAME already-loaded `items` (title) + `edgeRows` — no new query either
+// way. signalPlan (signal-confidence.mjs, pure) splits candidates decisive/undecided and builds the
+// edges the decisive set implies — see this file's header and that module's own for the evidence rule. ----
 const signalCandidates = RUN_SIGNALS ? detectSignalCandidates(items, edgeRows) : [];
+const signalPlan = RUN_SIGNALS ? planSignalAdoption(signalCandidates) : { classified: [], decisive: [], undecided: [], edges: [] };
+// would_resolve: existing OPEN L4 flags whose (subject_ref, created_by) now classifies decisive — read
+// unconditionally under --signals (both --dry, to report the split, and apply, to actually resolve them).
+const existingOpenSignalFlags = RUN_SIGNALS
+  ? await readAll("integrity_flags", "id, subject_ref, created_by", { match: (q) => q.eq("status", "open").like("created_by", `${SIGNAL_NAMESPACE}%`) })
+  : [];
+const decisiveFlagKeys = new Set(signalPlan.decisive.map((c) => `${c.subject_ref}|${createdBy(SIGNAL_NAMESPACE, c.signalKind)}`));
+const flagsToAutoResolve = existingOpenSignalFlags.filter((r) => decisiveFlagKeys.has(`${r.subject_ref}|${r.created_by}`));
 if (RUN_SIGNALS) {
   console.log(
     `SIGNALS: ${signalCandidates.length} candidate(s) ` +
     `(shared_regulation_identifier=${signalCandidates.filter((c) => c.signalKind === "shared_regulation_identifier").length}, ` +
-    `shared_title_entity=${signalCandidates.filter((c) => c.signalKind === "shared_title_entity").length}) — operator review only, never auto-adopted.`,
+    `shared_title_entity=${signalCandidates.filter((c) => c.signalKind === "shared_title_entity").length}) — ` +
+    `would_adopt=${signalPlan.decisive.length} (${signalPlan.edges.length} edge row(s)) would_flag=${signalPlan.undecided.length} ` +
+    `would_resolve=${flagsToAutoResolve.length} stale open flag(s) (2026-09-03 auto-adoption rule; see signal-confidence.mjs).`,
   );
 }
 
@@ -249,18 +286,46 @@ try {
   const anticipateResult = await reflectFlags(ANTICIPATE_NAMESPACE, anticipateFindings);
   console.log(`ANTICIPATE REFLECTED: ${anticipateResult.inserted} opened, ${anticipateResult.resolved} resolved (${anticipateResult.unchanged} already open, unchanged).`);
 
-  // Signal-candidate reflection (L4) — only when --signals was passed; otherwise this namespace is
-  // left untouched (no reflect call at all — a default run cannot resolve or insert into it).
+  // Signal-candidate handling (L4) — only when --signals was passed; otherwise this namespace is left
+  // untouched (no write call at all — a default run cannot resolve, insert into, or write edges from it).
+  // 2026-09-03 auto-adoption rule (this file's header + signal-confidence.mjs): DECISIVE candidates
+  // become real item_cross_references edges (write-edges.mjs, the single writer for that origin) and
+  // any of their stale open flags are resolved with an auto-adopted audit trail; UNDECIDED candidates
+  // keep the pre-existing reflect-as-flag behavior exactly.
   let signalResult = { inserted: 0, resolved: 0, unchanged: 0 };
+  let signalEdgesWritten = { written: 0, inserted: 0, refreshed: 0, skippedForeignOrigin: 0, failedChunks: 0, snapshot: null };
+  let signalAutoResolved = 0;
   if (RUN_SIGNALS) {
-    const signalFindings = signalCandidates.map((c) => ({
+    if (signalPlan.edges.length) {
+      signalEdgesWritten = await writeDiscoveredEdges(writeClient(), signalPlan.edges, { snapshot: { dir: SNAP_DIR, cite: CITE } });
+      console.log(
+        `SIGNAL EDGES WRITTEN: ${signalEdgesWritten.written} row(s) (${signalEdgesWritten.inserted} new, ${signalEdgesWritten.refreshed} refreshed); ` +
+        `${signalEdgesWritten.skippedForeignOrigin} skipped (owned by another origin); ${signalEdgesWritten.failedChunks} chunk failure(s).`,
+      );
+    }
+    if (flagsToAutoResolve.length) {
+      const groups = groupStaleFlagsForResolution(flagsToAutoResolve, SIGNAL_NAMESPACE);
+      for (const g of groups) {
+        const res = await guardedUpdate(
+          "integrity_flags",
+          (qb) => qb.in("id", g.ids),
+          { status: "resolved", resolved_at: new Date().toISOString(), resolved_by: "analyze-corpus.mjs", resolution_note: g.resolutionNote },
+          { cite: CITE },
+        );
+        signalAutoResolved += res.updated;
+      }
+      console.log(`SIGNALS AUTO-RESOLVED: ${signalAutoResolved} stale open flag(s) (candidate now writes as a decisive edge).`);
+    }
+
+    const signalFindings = signalPlan.undecided.map((c) => ({
       subjectRef: c.subject_ref,
       row: {
         // 'data_quality' — closest existing legal category (metadata/text the platform holds but
-        // discovery's basis set does not use); never auto-adopted into item_cross_references.
+        // discovery's basis set does not use); operator review only — the decisive residue above is
+        // what auto-adopts, this is the undecidable remainder (see signal-confidence.mjs).
         category: "data_quality", subject_type: "system", subject_ref: c.subject_ref,
         description: c.description,
-        recommended_actions: ["Operator review only — this is a candidate discovery signal, never auto-adopted."],
+        recommended_actions: ["Operator review only — this candidate did not reach auto-adoption confidence (signal-confidence.mjs)."],
         status: "open", created_by: createdBy(SIGNAL_NAMESPACE, c.signalKind),
       },
     }));

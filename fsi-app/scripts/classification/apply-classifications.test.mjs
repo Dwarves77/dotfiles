@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import {
   RATIFY_CLASSIFICATION_TOKEN, hasRatifyClassificationToken, extractProposalsFromDescription,
   evaluateApplication, buildMergePatch, applyClassification,
+  AUTO_ADOPT_FIELDS, isAutoAdoptableProposal, partitionProposals, evaluateAutoAdoption, autoAdoptClassification,
 } from "./apply-classifications.mjs";
 import { APPLICABLE_FIELDS } from "../../src/lib/classification/classify-source.mjs";
 import { AXIS_NAMESPACE, SOURCE_CLASSIFICATION_SUBTYPE, SOURCE_DRIFT_SUBTYPE } from "../../src/lib/classification/flags.mjs";
@@ -231,4 +232,190 @@ test("applyClassification: no_change when every applicable proposal is already p
   const r = await applyClassification(deps, "flag-1", { execute: true });
   assert.equal(r.status, "no_change");
   assert.equal(deps.calls.length, 0);
+});
+
+// ── isAutoAdoptableProposal / partitionProposals (operator ruling 2026-09-03) ─────────────────────
+
+test("isAutoAdoptableProposal: scope_modes/scope_verticals auto-adopt only at 'high' confidence", () => {
+  assert.equal(isAutoAdoptableProposal({ field: "scope_modes", confidence: "high" }), true);
+  assert.equal(isAutoAdoptableProposal({ field: "scope_modes", confidence: "medium" }), false);
+  assert.equal(isAutoAdoptableProposal({ field: "scope_verticals", confidence: "high" }), true);
+  assert.equal(isAutoAdoptableProposal({ field: "scope_verticals", confidence: "medium" }), false);
+});
+
+test("isAutoAdoptableProposal: expected_output always auto-adopts (deterministic role->default lookup, confidence label irrelevant)", () => {
+  assert.equal(isAutoAdoptableProposal({ field: "expected_output", confidence: "medium" }), true);
+  assert.equal(isAutoAdoptableProposal({ field: "expected_output" }), true);
+});
+
+test("isAutoAdoptableProposal: scope_topics NEVER auto-adopts, at any confidence (undecidable residue — see file header)", () => {
+  assert.equal(isAutoAdoptableProposal({ field: "scope_topics", confidence: "high" }), false);
+  assert.equal(isAutoAdoptableProposal({ field: "scope_topics", confidence: "medium" }), false);
+});
+
+test("isAutoAdoptableProposal: jurisdictions never auto-adopts (not in AUTO_ADOPT_FIELDS)", () => {
+  assert.equal(isAutoAdoptableProposal({ field: "jurisdictions", confidence: "high" }), false);
+  assert.ok(!AUTO_ADOPT_FIELDS.includes("jurisdictions"));
+});
+
+test("isAutoAdoptableProposal: malformed input never throws", () => {
+  assert.equal(isAutoAdoptableProposal(null), false);
+  assert.equal(isAutoAdoptableProposal({}), false);
+});
+
+test("partitionProposals: splits auto-adoptable from remaining, preserves order within each bucket", () => {
+  const proposals = [
+    { field: "scope_modes", confidence: "high" },
+    { field: "scope_topics", confidence: "medium" },
+    { field: "expected_output" },
+    { field: "jurisdictions", confidence: "high" },
+  ];
+  const { autoAdoptable, remaining } = partitionProposals(proposals);
+  assert.deepEqual(autoAdoptable.map((p) => p.field), ["scope_modes", "expected_output"]);
+  assert.deepEqual(remaining.map((p) => p.field), ["scope_topics", "jurisdictions"]);
+});
+
+// ── evaluateAutoAdoption ─────────────────────────────────────────────────────────────────────────
+
+function openFlag(overrides = {}) {
+  const proposals = [{ field: "scope_modes", value: ["ocean"], confidence: "high", basis: "x", applicable: true }];
+  return {
+    id: "flag-1",
+    created_by: CLASSIFY_CREATED_BY,
+    status: "open",
+    description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}`,
+    subject_ref: "source-1",
+    ...overrides,
+  };
+}
+
+test("evaluateAutoAdoption: an open flag with a high-confidence scope_modes proposal is fully covered", () => {
+  const r = evaluateAutoAdoption(openFlag());
+  assert.equal(r.ok, true);
+  assert.equal(r.sourceId, "source-1");
+  assert.equal(r.autoAdoptable.length, 1);
+  assert.equal(r.fullyCovered, true);
+});
+
+test("evaluateAutoAdoption: rejects a non-open flag (already resolved -- ratified or a prior auto-adopt pass)", () => {
+  const r = evaluateAutoAdoption(openFlag({ status: "resolved" }));
+  assert.equal(r.ok, false);
+  assert.match(r.error, /not 'open'/);
+});
+
+test("evaluateAutoAdoption: rejects a source-drift flag even though it's open", () => {
+  const r = evaluateAutoAdoption(openFlag({ created_by: DRIFT_CREATED_BY }));
+  assert.equal(r.ok, false);
+  assert.match(r.error, /source-drift|item-anomaly/);
+});
+
+test("evaluateAutoAdoption: no auto-adoptable proposal (only scope_topics, medium) -> not ok, stays open", () => {
+  const proposals = [{ field: "scope_topics", value: ["environmental"], confidence: "medium", basis: "x", applicable: true }];
+  const r = evaluateAutoAdoption(openFlag({ description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}` }));
+  assert.equal(r.ok, false);
+  assert.match(r.error, /zero auto-adoptable/);
+});
+
+test("evaluateAutoAdoption: partial coverage (decisive scope_modes + medium scope_topics) -> fullyCovered=false", () => {
+  const proposals = [
+    { field: "scope_modes", value: ["ocean"], confidence: "high", basis: "x", applicable: true },
+    { field: "scope_topics", value: ["environmental"], confidence: "medium", basis: "y", applicable: true },
+  ];
+  const r = evaluateAutoAdoption(openFlag({ description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}` }));
+  assert.equal(r.ok, true);
+  assert.equal(r.autoAdoptable.length, 1);
+  assert.equal(r.fullyCovered, false);
+});
+
+test("evaluateAutoAdoption: a jurisdiction proposal riding along never blocks fullyCovered", () => {
+  const proposals = [
+    { field: "scope_modes", value: ["ocean"], confidence: "high", basis: "x", applicable: true },
+    { field: "jurisdictions", value: ["GB"], confidence: "high", basis: "y", applicable: false },
+  ];
+  const r = evaluateAutoAdoption(openFlag({ description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}` }));
+  assert.equal(r.ok, true);
+  assert.equal(r.fullyCovered, true);
+});
+
+// ── autoAdoptClassification (fake deps) ─────────────────────────────────────────────────────────
+
+function fakeAutoDeps({ flag, source, updateResult = { updated: 1, snapshot: "snap.jsonl" }, resolveResult = { updated: 1, snapshot: "snap2.jsonl" } } = {}) {
+  const updateCalls = [], resolveCalls = [];
+  return {
+    updateCalls, resolveCalls,
+    readFlag: async (id) => (flag && flag.id === id ? { data: flag, error: null } : { data: null, error: null }),
+    readSource: async (id) => (source && source.id === id ? { data: source, error: null } : { data: null, error: null }),
+    updateSource: async (id, patch) => { updateCalls.push({ id, patch }); return updateResult; },
+    resolveFlag: async (id, note) => { resolveCalls.push({ id, note }); return resolveResult; },
+  };
+}
+
+test("autoAdoptClassification: not_found when the flag id does not resolve", async () => {
+  const deps = fakeAutoDeps({});
+  const r = await autoAdoptClassification(deps, "missing-flag", { execute: true });
+  assert.equal(r.status, "not_found");
+});
+
+test("autoAdoptClassification: not_auto_adoptable surfaces evaluateAutoAdoption's error verbatim", async () => {
+  const deps = fakeAutoDeps({ flag: openFlag({ status: "resolved" }) });
+  const r = await autoAdoptClassification(deps, "flag-1", { execute: true });
+  assert.equal(r.status, "not_auto_adoptable");
+});
+
+test("autoAdoptClassification: dry_run computes the patch and willResolve, writes nothing", async () => {
+  const deps = fakeAutoDeps({ flag: openFlag(), source: { id: "source-1", scope_modes: [] } });
+  const r = await autoAdoptClassification(deps, "flag-1", { execute: false });
+  assert.equal(r.status, "dry_run");
+  assert.deepEqual(r.merge.patch.scope_modes, ["ocean"]);
+  assert.equal(r.willResolve, true);
+  assert.equal(deps.updateCalls.length, 0);
+  assert.equal(deps.resolveCalls.length, 0);
+});
+
+test("autoAdoptClassification: fully-covered flag writes the patch AND resolves the flag", async () => {
+  const deps = fakeAutoDeps({ flag: openFlag(), source: { id: "source-1", scope_modes: [] } });
+  const r = await autoAdoptClassification(deps, "flag-1", { execute: true });
+  assert.equal(r.status, "applied");
+  assert.equal(r.written, true);
+  assert.equal(r.resolved, true);
+  assert.equal(deps.updateCalls.length, 1);
+  assert.deepEqual(deps.updateCalls[0].patch.scope_modes, ["ocean"]);
+  assert.equal(deps.resolveCalls.length, 1);
+  assert.equal(deps.resolveCalls[0].id, "flag-1");
+  assert.match(deps.resolveCalls[0].note, /^auto-adopted:classification:scope_modes$/);
+});
+
+test("autoAdoptClassification: partially-covered flag writes the eligible field but leaves the flag open", async () => {
+  const proposals = [
+    { field: "scope_modes", value: ["ocean"], confidence: "high", basis: "x", applicable: true },
+    { field: "scope_topics", value: ["environmental"], confidence: "medium", basis: "y", applicable: true },
+  ];
+  const flag = openFlag({ description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}` });
+  const deps = fakeAutoDeps({ flag, source: { id: "source-1", scope_modes: [] } });
+  const r = await autoAdoptClassification(deps, "flag-1", { execute: true });
+  assert.equal(r.status, "applied");
+  assert.equal(r.written, true);
+  assert.equal(r.resolved, false);
+  assert.equal(deps.updateCalls.length, 1);
+  assert.equal(deps.resolveCalls.length, 0, "flag stays open for the operator to ratify scope_topics");
+});
+
+test("autoAdoptClassification: value already present + fully covered -> no patch write, but still resolves (nothing left to do)", async () => {
+  const deps = fakeAutoDeps({ flag: openFlag(), source: { id: "source-1", scope_modes: ["ocean"] } });
+  const r = await autoAdoptClassification(deps, "flag-1", { execute: true });
+  assert.equal(r.status, "applied");
+  assert.equal(r.written, false);
+  assert.equal(r.resolved, true);
+  assert.equal(deps.updateCalls.length, 0, "already-present value never triggers a write");
+  assert.equal(deps.resolveCalls.length, 1, "fully covered with nothing left to write still closes the flag");
+});
+
+test("autoAdoptClassification: no auto-adoptable proposal at all -> not_auto_adoptable, no write, no resolve", async () => {
+  const proposals = [{ field: "scope_topics", value: ["environmental"], confidence: "medium", basis: "x", applicable: true }];
+  const flag = openFlag({ description: `summary\n\nPROPOSALS_JSON: ${JSON.stringify(proposals)}` });
+  const deps = fakeAutoDeps({ flag, source: { id: "source-1" } });
+  const r = await autoAdoptClassification(deps, "flag-1", { execute: true });
+  assert.equal(r.status, "not_auto_adoptable");
+  assert.equal(deps.updateCalls.length, 0);
+  assert.equal(deps.resolveCalls.length, 0);
 });
