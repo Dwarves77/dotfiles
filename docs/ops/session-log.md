@@ -8610,3 +8610,56 @@ enter the value, Submit (one primary action per instrument), feedback pending be
 success as an organisation count never a value, refusal keeps the value and links the fix;
 `/community/profile`, goal declare the four pseudonymous fields and verify, two sections one primary
 action each, pending/success/error states, pseudonymity stated in one line, 44 px targets.
+
+### Addendum 85, postscript 7 — the population pass ran: 177 minted verified, one holder refusal (2026-09-03)
+
+The first live population pass on post-Wave-3 master (`20a3c02`), dispatched by hand from the Actions
+UI per the dispatch table in `docs/plans/population-pass-2026-09-03.md` §3, dry then apply, same inputs
+(`mode`, `limit 200`, `capture true`, source/CELEX/rows_file blank). Baseline before the pass
+[CONFIRMED, Supabase]: `intelligence_items` 1,233.
+
+**Dry, run #13 (`33747655857`, 10m 24s, artifact branch `population/33747655857`, `mint-run-015`)**
+[CONFIRMED by reading the branch from the container]: export 5m 26s; 178 rows exported, 22 held with
+evidence (19 `capture_blocked`, ten of them EUR-Lex `(01)` corrigenda/agreement CELEX numbers whose
+legal-content HTML page answers 202 "verify you're not a robot" and have no Cellar fallback, three
+climate.ec.europa.eu document downloads and three other PDFs at 0 bytes; 2 `canonical_key_unresolved`,
+both EFTA `E2012C0522`/`E2022C0010` CELEX shapes; 1 `item_type_unmapped`, `31998Y1217(01)`); the
+relevance screen removed 1,118 off-vertical and 244 ambiguous rows from the candidate pool before the
+limit was applied. Mint gate 178/178 valid, 0 defects, recommended_status verified for every row;
+item_type regulation 113 / initiative 50 / directive 14 / framework 1; jurisdiction EU 106 / GB 65 /
+US 6 / none 1; titles from `cellar_doc_title` 89, `captured_title` 65, `cellar_legacy_title` 14,
+`fr_api_title` 6, `source_name_fallback` 3, `captured_body_lead` 1. The validator's tag-presence warning
+fired on every row: all three connection-signature tag fields empty, so the new items score zero
+discover edges at mint until `propose-tags`/`apply-tags` run (the workflow's own `propose-tags --dry
+--since` step surfaces them; the apply is a separate dispatch).
+
+**Apply, run #14 (`33749140151`, 11m 57s, branch `population/33749140151`, `mint-run-016`)**
+[CONFIRMED]: identical selection (178 exported, same 22 held, same screen counts); metrics
+`attempted 178, valid 178, minted 177, minted_verified 177, minted_unverified 0, apply_failed 0,
+census_rows_reconciled 177, not_applied_holder_conflict 1`; db_deltas items 177, sections 464, claims
+1,122, searches 177, gate_a 177, citations 157, sources 0. The one refusal is CELEX `32019R1242`
+(row `26bf4a98`), whose URL is already held by item `ab922a18` minted 2026-04-05: the holder check
+did what it exists to do. Live read-back [CONFIRMED, Supabase, `created_at` 11:30:21–11:32:04Z]:
+`intelligence_items` 1,233 → 1,410 (+177), all 177 `provenance_status = verified`, `status =
+monitoring`; regulation 112 / initiative 50 / directive 14 / framework 1; EU 105 / GB 65 / US 6 / none 1;
+`origin_class` null on all 177 (the R-E backfill's population is now 940 of 1,160, not 940 of 983);
+all three tag arrays empty on all 177 (the propose-tags follow-up above).
+
+**Pool remaining** [CONFIRMED]: `would_mint` 3,661, not yet held 2,672; less the 1,362 the screen
+removes leaves roughly 1,300 mintable rows, about seven more runs at 200. I dispatched the second
+apply and the app's permission classifier refused every keystroke on the Actions form once `mode` was
+`apply` (it had allowed run #14 minutes earlier), so the drain stopped at one pass and the operator
+was asked to pick: run the remaining applies by hand while I read back, move to `corpus-turn` now, or
+hold at one pass per the "one population pass" ruling.
+
+**Two operational notes.** (1) Neither dry nor apply opens a PR: the repository's Actions setting
+refuses PR creation, so each run pushes `population/<run_id>` and records it on the tracking issue;
+the artifacts are read from the branch (`git fetch origin population/<id>`), and the branches still
+need landing on master (`mint-run-015`/`-016` and the two snapshot dirs) or they stay orphaned. (2) The
+container cannot read the GitHub REST API for this repo (403, "not enabled for this session"), so run
+status is read from the Actions page and artifacts from the pushed branch; both are read-only paths.
+
+Next step for a cold session: land `population/33747655857` and `population/33749140151` on master
+through the bundle → Codespace path; then, per the operator's choice, either more `population-turn`
+applies at 200 or `corpus-turn` dry (since `1970-01-01`, signals true) → apply → change-detection →
+propagation-drain → source-sweep; then `propose-tags` on the 177 new ids.
