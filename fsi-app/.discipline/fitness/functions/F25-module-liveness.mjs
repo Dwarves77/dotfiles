@@ -318,23 +318,11 @@ export const LEGACY_ALLOWLIST = [
     reviewByPhase: 'n/a — this file is never meant to gain a production importer; re-review only if the file itself is deleted or its proof role changes',
   },
 
-  // ── Lane DP-ENGINE (2026-09-02, system-completion train, second commit): the JS mirror of migration
-  // 287's antitrust/anonymisation helpers, published for the next lane in the same train ──
-  {
-    file: 'fsi-app/src/lib/propagation/aggregate-safeguards.mjs',
-    reason:
-      'The CI-testable JS mirror of migration 287\'s publish_aggregate() helpers (bucket rounding/width ' +
-      'scaling, dominance share, complement-set detection, freeze-window membership, forward-looking ' +
-      'refusal) — see that migration\'s header, "second commit" section, and this file\'s own header for ' +
-      'why a mirror exists at all (the SQL function is what actually gates and logs a live request; this ' +
-      'file lets the SAME arithmetic be unit-tested and reused by a future UI preview without a database). ' +
-      'No production importer exists yet because no caller assembling a publish_aggregate() request (the ' +
-      'p_cohort_filter member_values/parent_member_ids/period fields this file computes against) has ' +
-      'landed in this train yet — same published-contract-ahead-of-its-caller shape as admissible-for.ts\'s ' +
-      'own entry above, and the same reason: no live sensitive field exists in this schema today (see ' +
-      'migration 287\'s "NO LIVE SUBJECT TODAY" header) for any surface to build a real request against.',
-    reviewByPhase: 'system-completion train (operator: remove this entry once a later lane in the train lands a real caller — if none has by the train\'s close, treat as a real orphan)',
-  },
+  // Lane DP-ENGINE's aggregate-safeguards.mjs allowlist entry (system-completion train, 2026-09-02) was
+  // REMOVED here (Lane COMMUNITY-A, Wave 3, 2026-09-03) — F25 itself flagged it STALE: src/lib/community/
+  // antitrust.mjs (dominanceCap()) now imports computeDominanceShare from it, and antitrust.mjs is a real
+  // production importer (src/app/api/community/posts/route.ts). See antitrust.mjs's own header for why
+  // this reuse happens rather than a second reimplementation.
 ];
 
 const ALLOWED = new Map(LEGACY_ALLOWLIST.map((e) => [e.file, e]));
