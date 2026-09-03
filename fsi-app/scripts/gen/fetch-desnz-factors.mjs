@@ -519,10 +519,15 @@ const UNIT_RE = /tonnes?[\s.\-]*km/i;
 export const TARGETS = [
   { vehicleClass: "air_freight_domestic", mode: "air",
     blockActivity: "Freight flights", type: "Domestic, to/from UK", groupTitle: "With RF" },
+  // Type labels are the REAL 2025 sheet's rows 99/100 (read cell by cell through the Codespace on
+  // 2026-09-03 after producers run #18 refused with "no row found for air_freight_short_haul_international"):
+  // "Short-haul, to/from UK" and "Long-haul, to/from UK". The first rebuild (#538) guessed
+  // "Short-haul international, to/from UK", a label the sheet does not carry; the block's fourth row,
+  // "International, to/from non-UK" (row 101), is a distinct DESNZ class and is deliberately not a shell.
   { vehicleClass: "air_freight_short_haul_international", mode: "air",
-    blockActivity: "Freight flights", type: "Short-haul international, to/from UK", groupTitle: "With RF" },
+    blockActivity: "Freight flights", type: "Short-haul, to/from UK", groupTitle: "With RF" },
   { vehicleClass: "air_freight_long_haul_international", mode: "air",
-    blockActivity: "Freight flights", type: "Long-haul international, to/from UK", groupTitle: "With RF" },
+    blockActivity: "Freight flights", type: "Long-haul, to/from UK", groupTitle: "With RF" },
   { vehicleClass: "ocean_container_ship_average", mode: "ocean",
     blockActivity: "Cargo ship", type: "Container ship", size: "Average" },
   { vehicleClass: "ocean_bulk_carrier_average", mode: "ocean",

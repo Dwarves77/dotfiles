@@ -8433,3 +8433,17 @@ UX compliance (PERF): route `/{surface}/[slug]`, goal open the item, path one ta
 action none on the page, feedback skeleton within one frame then content on settle; the four index
 routes, goal scan the ledger, path direct, primary action a row, feedback the route skeleton then the
 per-org cached list.
+
+### Addendum 85, postscript 2 — DESNZ extractor: the two air labels the first rebuild guessed (2026-09-03)
+
+`producers` → `desnz-emission-factors` dry on `9ebe0bb` (run #18): the runner fetched the real workbook
+(1,796,009 bytes) and the extractor refused, correctly, "no row found for
+air_freight_short_haul_international: looked for Activity=Freight flights, Type=Short-haul
+international, to/from UK". Read rows 94–108 of the real sheet cell by cell through the Codespace
+[CONFIRMED]: row 98 "Domestic, to/from UK" 4.60397; row 99 "Short-haul, to/from UK" 1.27835; row 100
+"Long-haul, to/from UK" 0.89939; row 101 "International, to/from non-UK" 0.89939 (all With RF, tonne.km).
+The #538 rebuild had the block structure right (that is why Domestic reproduced) and guessed the two
+Type labels for rows the earlier dump never captured (its keyword filter kept only the block's first
+row). Fixed the two labels in `TARGETS`, the constructed test workbook, and the fixture's `source_ref`
+text; row 101 is a distinct DESNZ class and stays out of the seven shells. 34/34 tests. Lesson recorded
+against myself: a dump that filters by keyword proves the rows it kept, not the rows beside them.
