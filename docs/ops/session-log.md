@@ -8764,3 +8764,86 @@ by two proposer passes); PROTOCOL §5a/§5b; `EXTRACTOR_VERSION` bumped to `fe1-
 4076/0, fitness 29/0. What this does NOT fix, named honestly: the 31 duration-shaped spans need the
 mint's own extractor (`record-facts.mjs`, a mint governing file) to widen its window or to store the
 anchor the duration counts from; that is a separate decision, recorded here rather than patched.
+
+### Addendum 85, postscript 12 — Wave 5: the human gate removed, sources attached instead of items blamed, the layout block found (2026-09-03)
+
+Operator rulings this hour, verbatim: "get it all done, leave nothing for later. if something needs fixed
+do it now"; "if items are being flagged as not credible for the site because of not having sources that
+is an issue with finding the source not that item. you need to attach a source"; and, on the flywheel,
+"why is a human gate involved in the flywheel? that is a sticking point". Seven lanes in parallel, one
+train.
+
+**The human gate (ADR-025).** Three side channels had a ratification gate no one could work: tag
+proposals (never one ratified; 339 of 619 verified live items untagged), L4 signal candidates (930 open
+flags "operator review only"), classifications. The gates were lanes' over-application of "no
+assumptions" (2026-09-01), not the spec, which closes Loop B without a human. GTAGS: `derive-tags.mjs`
+already carried `high`/`medium`; `apply-tags.mjs` adopts `high` without the marker, merge-only, flag
+resolved with `auto-adopted:tags:high` as the audit trail, residue stays open; `tag-ratification --arg
+auto`. GSIG: `signal-confidence.mjs` (one structured shared citation decisive; title entities need ≥2
+independent tokens or a vocabulary entity, that vocabulary shipping empty rather than invented);
+`analyze-corpus.mjs` writes decisive candidates as `item_cross_references` through `writeDiscoveredEdges`
+(`relationship 'related'`, the CHECK admits no signal-kind value) and resolves their flags;
+`apply-classifications.mjs --auto-adopt` for `scope_modes`/`scope_verticals` at `high` and
+`expected_output` always, `scope_topics`/`jurisdictions` review-only by their own modules' word.
+
+**Sources attached, not items blamed (HEAL).** Live population read first [CONFIRMED]: 97 quarantined live
+items (83 × criterion 7 gate A unproven, ~36 × criterion 5 missing slot, ~30 × criterion 3 span not
+verbatim), 135 live items with no capture over 200 chars, 51 archived `unverified` with no reason, 7
+archived quarantined with none. `scripts/mint/heal-provenance.mjs` + MAINT step `provenance-heal`
+(`quarantined-live` | `archived-unreasoned` | `ids:` | `slots-backfill`): CAPTURE through the exporter's
+own per-family resolution (Cellar, FR API, plain GET; full text, ADR-016), GROUND by relocating the
+span under normalisation (whitespace, quotes, entities, soft hyphens) and rewriting `source_span` to the
+verbatim slice, never `claim_text`, GAP-shaped honesty (`ungrounded_after_capture` with the closest Dice
+match reported, not written), SLOTS via the kit's own extractors (FACT with span, else the kit's GAP),
+GATE A via `write-item.ts`'s `buildGateARow`, RE-DERIVE by touch + fresh SELECT (ADR-017: status only
+ever set by the trigger), un-archive when an unreasoned archived item comes back verified. 66 tests.
+`slots-backfill` is the precondition for migration 299 (the 149).
+
+**Tag yield (TAGDERIVE).** Measured cause: the flat SIG row (title, key, jurisdiction, brief) yields
+tags for 16 of 178 record-grade items; the same matcher over sections + FACT claims + an 8 kB window of
+the captured source yields 51; with six legal-text alias sets (each traceable to an existing tag; two
+suggested aliases refuted against the real text and recorded) 72. I wired `tag-input.mjs`/`tag-aliases.mjs`
+into `propose-tags.mjs` (batch-scoped enrichment of the flag-worthy items only; the F25 liveness
+violations the lane reported cleared with the wiring).
+
+**Load times (PERF-3).** Diagnosis [CONFIRMED by reading]: `src/app/layout.tsx`, the only layout, awaits
+`resolveServerBootstrap()` (cookies → Supabase) before returning any JSX, so on every RSC navigation the
+stream cannot start, the route's `loading.tsx` cannot paint, and the previous page sits frozen until
+the whole payload resolves; the result of that await is discarded after first mount (`AuthProvider`
+seeds state once). Fix: skip the bootstrap when Next's own `rsc` request header marks a client
+navigation (`src/lib/bootstrap/rsc-navigation.ts`); document loads unchanged. Watchlist: one server read
+per page threaded as props (`MarketSeriesBoard` → `WatchButton` `initial*`), a module-level shared
+membership cache for the remaining client mounts, list-mode `GET /api/watchlist?item_type=` (six
+fetches → zero on /market). `/api/listings/rest`: payload trimmed to what the ledger row renders (63%
+smaller on a 60-row fixture), `Cache-Control: private, max-age=300, stale-while-revalidate=600`, ETag/304;
+the server cache already existed under `APP_DATA_TAG`. `useAdminAttention` was already independent of
+page data; its late start was the same layout block. Sidebar `NO_PREFETCH_HREFS` kept (a documented
+Supabase-saturation mitigation). **Correction on the record:** the operator's browser agent reported
+"55% of RSC requests 503"; Vercel's runtime log for the last 24 h shows 200 × 1,171, 307 × 34, 204 × 6,
+500 × 4 (one deploy last evening, `dpl_BDpoHgT9…`, ENOENT on the slots JSON at module load, since
+fixed) and no 503 at all, consistent with audit §11: the extension mislabels completed RSC responses.
+The slowness was real and had a code cause; the 503 was not it.
+
+**BUGS.** Regulations bands "Immediate (11) / Action (12), 0 shown, no matching": the count is the
+authoritative RPC total, the rows are the first-paint 60 plus the background fill, and the empty state
+never consulted `restStatus`, so a band whose members were not in the first 60 claimed "no matching"
+for the whole load. Now states "Loading this band's N regulations…" / a retry message on error, "no
+matching" only when the total is 0. Community "Global EV Outlook 2024" → `/research` index: the
+community page had a hand-rolled `itemHref` returning the bare index for market/operations/research
+(only regulations appended the id) while ten other call sites use `itemDetailHref`; replaced with the
+shared helper. The lane refuted my hypothesis that the `[slug]` routes redirect to a null slug: all four
+render a raw uuid correctly.
+
+**DOCS2.** W1 register: the rows say WIRE 8 / DELETE 10 / HOLD 6 / KEEP 2; the prose said 8/8/6/3 and
+was wrong (row 4 miscounted as a "+1 linked" exception); `w1-dispositions.mjs` now reads
+`split_mismatch: false`, so R-C is repaired rather than ruled. MAINTENANCE-RUNBOOK intro no longer
+hardcodes a step count; CORPUS-TURN-RUNBOOK and a new POPULATION-TURN-RUNBOOK document the real landing
+path for `turn/` and `population/` branches (Actions may not create PRs in this repository; the
+setting that would restore it is named).
+
+Gates on the merged train: suite 4253/0, fitness 29/0, tsc clean, rendering guard PASS (UX smoke 148).
+
+UX compliance (PERF-3, BUGS): top-nav navigation, goal reach the surface, path one click, the route's
+`loading.tsx` skeleton now paints on click; WatchButton, goal toggle a watch, one click, optimistic
+flip with a retry title on failure, real state on first paint; regulations band empty state, honest
+loading/error/empty wording with `role="status"`; community "Live in this region" links open the item.
