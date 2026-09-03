@@ -3,7 +3,28 @@
 // GET  ?group_id=&limit=20&before=<ISO>  — list top-level posts in a group,
 //                                          newest first, paginated by
 //                                          created_at descending.
-// POST { group_id, title, body }         — create a top-level post.
+// POST { group_id, title, body, entity_ids, sensitivity_field? }
+//                                         — create a top-level post. GUARD-ENFORCED
+//                                          (Wave 3, COMMUNITY-A interface contract):
+//                                          two refusals happen at write time, before
+//                                          any row is inserted.
+//
+//   (a) Antitrust guard (spec 05 §1, §6 acceptance criterion 3): a caller-declared
+//       `sensitivity_field` (one of src/lib/community/antitrust.mjs SENSITIVE_FIELDS)
+//       is ALWAYS refused on this route — evaluateAntitrustGuard() with
+//       isAggregate:false always refuses an individual point disclosure of a
+//       commercially sensitive field, regardless of k-anonymity/dominance/lag,
+//       because a single free-text post can never itself satisfy those (they are
+//       properties of a POOL). The refusal names the aggregate-only route
+//       (POST .../benchmarks, once open) the author should use instead. A post
+//       with no sensitivity_field is unaffected — this is the common case.
+//   (b) Entity binding (spec 05 §5 component 2, §6 acceptance criterion 6): every
+//       top-level thread must bind to at least one spine entity
+//       (src/lib/entities/entity-id.mjs id shape, `cl:<kind>:<16 hex>`).
+//       `entity_ids` is required and validated before the post is written; on
+//       success each id is linked via community_thread_entities in the SAME
+//       request, as the author (RLS: community_thread_entities_insert_author,
+//       migration 293).
 //
 // Auth: cookie session (community-auth helper).
 // Rate limit: standard 60/min/user.
@@ -28,6 +49,8 @@ import {
   isCommunityAuthError,
 } from "@/lib/api/community-auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { evaluateAntitrustGuard, SENSITIVE_FIELDS } from "@/lib/community/index.mjs";
+import { entityKindOf } from "@/lib/entities/entity-id.mjs";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -36,6 +59,7 @@ const MAX_TITLE_LEN = 200;
 const MAX_BODY_LEN = 8000;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 50;
+const MAX_ENTITY_IDS = 10;
 
 interface PostRow {
   id: string;
@@ -179,7 +203,13 @@ export async function POST(request: NextRequest) {
   const limited = checkRateLimit(auth.userId);
   if (limited) return limited;
 
-  let body: { group_id?: string; title?: string; body?: string };
+  let body: {
+    group_id?: string;
+    title?: string;
+    body?: string;
+    entity_ids?: unknown;
+    sensitivity_field?: string | null;
+  };
   try {
     body = await request.json();
   } catch {
@@ -189,6 +219,10 @@ export async function POST(request: NextRequest) {
   const groupId = body?.group_id;
   const title = (body?.title ?? "").trim();
   const postBody = (body?.body ?? "").trim();
+  const sensitivityField =
+    typeof body?.sensitivity_field === "string" && body.sensitivity_field.trim()
+      ? body.sensitivity_field.trim()
+      : null;
 
   if (!groupId || !UUID_RE.test(groupId)) {
     return NextResponse.json(
@@ -215,6 +249,59 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: `body must be ${MAX_BODY_LEN} characters or fewer` },
       { status: 400 }
+    );
+  }
+  if (
+    sensitivityField !== null &&
+    !SENSITIVE_FIELDS.includes(sensitivityField as (typeof SENSITIVE_FIELDS)[number])
+  ) {
+    return NextResponse.json(
+      { error: `sensitivity_field must be one of: ${SENSITIVE_FIELDS.join(", ")}` },
+      { status: 400 }
+    );
+  }
+
+  // ── Entity binding (spec 05 §5 component 2, §6 acceptance criterion 6) ──────────────────
+  // Every top-level thread binds to at least one spine entity. Validated BEFORE any write.
+  const entityIdsRaw = Array.isArray(body?.entity_ids) ? body.entity_ids : [];
+  const entityIds = entityIdsRaw.filter(
+    (id): id is string => typeof id === "string" && id.trim().length > 0
+  );
+  if (entityIds.length === 0) {
+    return NextResponse.json(
+      {
+        error:
+          "entity_ids is required — every community thread must bind to at least one spine entity " +
+          "(corridor, jurisdiction, instrument, technology, or organisation).",
+      },
+      { status: 400 }
+    );
+  }
+  if (entityIds.length > MAX_ENTITY_IDS) {
+    return NextResponse.json(
+      { error: `entity_ids must name ${MAX_ENTITY_IDS} or fewer entities` },
+      { status: 400 }
+    );
+  }
+  const malformedEntityIds = entityIds.filter((id) => !entityKindOf(id));
+  if (malformedEntityIds.length > 0) {
+    return NextResponse.json(
+      {
+        error: `entity_ids contains malformed id(s), expected cl:<kind>:<16 hex>: ${malformedEntityIds.join(", ")}`,
+      },
+      { status: 400 }
+    );
+  }
+
+  // ── Antitrust write-time guard (spec 05 §1, §6 acceptance criterion 3) ──────────────────
+  // A caller-declared sensitivity_field is ALWAYS refused here: an individual free-text post can
+  // never itself satisfy k-anonymity (a property of a pool of >= 5 organisations), so this route
+  // never allows one through — see evaluateAntitrustGuard()'s own doc comment for the full reasoning.
+  const guard = evaluateAntitrustGuard({ sensitivityField, isAggregate: false });
+  if (!guard.allowed) {
+    return NextResponse.json(
+      { error: guard.reason, aggregate_route: guard.aggregateRoute },
+      { status: 403, headers: rateLimitHeaders(auth.userId) }
     );
   }
 
@@ -254,6 +341,26 @@ export async function POST(request: NextRequest) {
   }
 
   const row = inserted as PostRow;
+
+  // Link the thread to its declared spine entities (migration 293 community_thread_entities;
+  // RLS: only the post's own author may insert these, checked immediately below via the same
+  // authenticated request that just created the post). Not a single DB transaction with the post
+  // insert above (PostgREST has no cross-table transaction from this client) — on failure we
+  // compensate by deleting the just-created post rather than leaving an unbound thread live,
+  // which acceptance criterion 6 forbids.
+  const { error: entityLinkErr } = await auth.supabase
+    .from("community_thread_entities")
+    .insert(entityIds.map((entity_id) => ({ thread_id: row.id, entity_id })));
+
+  if (entityLinkErr) {
+    await auth.supabase.from("community_posts").delete().eq("id", row.id);
+    return NextResponse.json(
+      {
+        error: `Could not bind thread to entity_ids (post was not created): ${entityLinkErr.message}`,
+      },
+      { status: 400, headers: rateLimitHeaders(auth.userId) }
+    );
+  }
   const profilesById = new Map<string, AuthorProfile>();
   if (row.author_user_id) {
     const { data: profile } = await auth.supabase
@@ -265,7 +372,7 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json(
-    { post: shapePost(row, profilesById) },
+    { post: { ...shapePost(row, profilesById), entity_ids: entityIds } },
     { status: 201, headers: rateLimitHeaders(auth.userId) }
   );
 }
