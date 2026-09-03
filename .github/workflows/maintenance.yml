@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, tag-ratification, seed-benchmark-instruments, spec09-reroute]
+        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, tag-proposals, tag-ratification, seed-benchmark-instruments, spec09-reroute]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, or a comma-separated proposal-id list — see the runbook for which steps require one and what value they need).'
         required: false
@@ -168,6 +168,18 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/review-digests"
           node scripts/maintenance/review-digests.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/review-digests"
+
+      - name: tag-proposals
+        # Operator rule (propose-tags.mjs's own header): NO assumptions, NEVER silent auto-tagging — a
+        # tag PROPOSAL going to integrity_flags is the visibility that rule requires, not an item tag.
+        # apply writes integrity_flags PROPOSAL rows ONLY (flag-namespaces.mjs's TAG_NAMESPACE) — it
+        # NEVER writes intelligence_items.*_tags; only the sibling tag-ratification step, gated on an
+        # operator's own `ratify:tags` resolution, ever does that. Wraps scripts/connections/
+        # propose-tags.mjs's own guarded proposeTags() core unmodified — see the step's own header.
+        if: env.RUN_STEP == 'tag-proposals' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/tag-proposals"
+          node scripts/maintenance/tag-proposals.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/tag-proposals"
 
       - name: tag-ratification
         # apply requires --arg = comma-separated integrity_flags id(s) to apply (never a blanket

@@ -29,8 +29,12 @@ name: Population turn
 # section_claim_provenance / item_gate_a_state / intelligence_item_citations / a census_worklist
 # enumeration_status stamp, all through scripts/lib/db.mjs's guarded, cited, snapshotted path).
 # propose-tags.mjs runs --dry UNCONDITIONALLY in both modes — signature-tag ratification stays
-# operator-gated (Lane TAG's own write path, out of this workflow's scope), this step only makes
-# newly-minted untagged items VISIBLE as integrity_flags proposals for an operator to review later.
+# operator-gated (Lane TAG's own write path, out of this workflow's scope). CORRECTED (Lane
+# TAG-PROPOSALS, 2026-09-03): --dry WRITES NOTHING (propose-tags.mjs's own default; see that script's
+# header and its DRY RUN branch) — this step only logs a console PREVIEW of what would become
+# integrity_flags proposals for newly-minted untagged items. Actually WRITING those proposal rows is a
+# separate, explicit dispatch of the `tag-proposals` MAINT step (.github/workflows/maintenance.yml,
+# docs/runbooks/MAINTENANCE-RUNBOOK.md §6a), run by the coordinator once this run's items are live.
 #
 # rows_file (Lane POP2, 2026-09-02, first live dry run): the browser-capture escape hatch made a
 # first-class runtime input. MINT-RUNBOOK.md §1a's operator ruling is "a site that refuses the runner is

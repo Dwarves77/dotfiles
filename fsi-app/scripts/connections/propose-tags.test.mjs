@@ -7,7 +7,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  parseArgs, isEmptySignature, selectTargets, buildFlagRow, planReflect,
+  parseArgs, isEmptySignature, selectTargets, buildFlagRow, planReflect, proposeTags,
 } from "./propose-tags.mjs";
 import { TAG_NAMESPACE, createdBy, buildSubjectRef } from "../../src/lib/connections/flag-namespaces.mjs";
 
@@ -198,4 +198,66 @@ test("planReflect: namespace isolation is the CALLER's responsibility (readAll's
   const plan = planReflect(existing, [freshFor("item-1")]);
   assert.deepEqual(plan.newRows.map((r) => r.created_by), [createdBy(TAG_NAMESPACE, "empty-signature")]);
   assert.deepEqual(plan.staleIds, ["flag-other"], "documents planReflect's actual (shared, reflectFlags-identical) contract — see main()'s .like() pre-filter, which is what real isolation relies on");
+});
+
+// ── proposeTags (deps-injected core, Lane TAG-PROPOSALS 2026-09-03) ────────────────────────────────
+// No DB: readCorpus/readExistingOpen/insertMany/updateStale are all fakes. Proves this is the SAME
+// plan (fresh/plan.newRows/plan.staleIds) the CLI's pre-refactor inline main() body produced, now
+// callable by a second caller (the tag-proposals MAINT step) without a DB.
+
+function fakeDeps({ corpus = [], existingOpen = [] } = {}) {
+  const calls = [];
+  return {
+    calls,
+    readCorpus: async () => corpus,
+    readExistingOpen: async () => existingOpen,
+    insertMany: async (rows) => { calls.push(["insertMany", rows]); return { inserted: rows.length, snapshot: "snap-ins" }; },
+    updateStale: async (ids) => { calls.push(["updateStale", ids]); return { updated: ids.length, snapshot: "snap-upd" }; },
+  };
+}
+
+const UNTAGGED_ITEM = { id: "item-untagged", title: "plain item", operational_scenario_tags: [], compliance_object_tags: [], topic_tags: [] };
+const TAGGED_ITEM = { id: "item-tagged", title: "already tagged", operational_scenario_tags: ["ocean-bunkering"], compliance_object_tags: [], topic_tags: [] };
+
+test("proposeTags: dry — computes fresh/plan over the untagged population, writes nothing", async () => {
+  const deps = fakeDeps({ corpus: [UNTAGGED_ITEM, TAGGED_ITEM] });
+  const r = await proposeTags(deps, { mode: "untagged", execute: false });
+  assert.equal(r.corpusCount, 2);
+  assert.equal(r.targetsCount, 1);
+  assert.equal(r.flagCandidatesCount, 1);
+  assert.equal(r.fresh.length, 1);
+  assert.equal(r.fresh[0].itemId, "item-untagged");
+  assert.equal(r.plan.newRows.length, 1);
+  assert.equal(r.executed, false);
+  assert.equal(r.wrote, null);
+  assert.equal(r.resolved, null);
+  assert.deepEqual(deps.calls, []);
+});
+
+test("proposeTags: apply — writes the new rows via insertMany, returns wrote", async () => {
+  const deps = fakeDeps({ corpus: [UNTAGGED_ITEM] });
+  const r = await proposeTags(deps, { mode: "untagged", execute: true });
+  assert.equal(r.executed, true);
+  assert.equal(r.wrote.inserted, 1);
+  assert.equal(deps.calls.length, 1);
+  assert.equal(deps.calls[0][0], "insertMany");
+  assert.equal(deps.calls[0][1].length, 1);
+  assert.equal(r.resolved, null, "no stale flags to resolve when existingOpen is empty");
+});
+
+test("proposeTags: apply — resolves stale existing-open flags no longer reproduced, via updateStale", async () => {
+  const staleFlag = { id: "flag-stale", subject_ref: buildSubjectRef("item-gone"), created_by: createdBy(TAG_NAMESPACE, "empty-signature") };
+  const deps = fakeDeps({ corpus: [UNTAGGED_ITEM], existingOpen: [staleFlag] });
+  const r = await proposeTags(deps, { mode: "untagged", execute: true });
+  assert.equal(r.plan.staleIds.length, 1);
+  assert.equal(r.resolved.updated, 1);
+  assert.ok(deps.calls.some((c) => c[0] === "updateStale" && c[1].includes("flag-stale")));
+});
+
+test("proposeTags: mode 'ids' selects regardless of tag state, narrows to isEmptySignature for flagging, reports missing", async () => {
+  const deps = fakeDeps({ corpus: [UNTAGGED_ITEM, TAGGED_ITEM] });
+  const r = await proposeTags(deps, { mode: "ids", ids: ["item-untagged", "item-tagged", "does-not-exist"], execute: false });
+  assert.equal(r.targetsCount, 2);
+  assert.equal(r.flagCandidatesCount, 1, "TAGGED_ITEM is selected but not flag-worthy");
+  assert.deepEqual(r.missingIds, ["does-not-exist"]);
 });

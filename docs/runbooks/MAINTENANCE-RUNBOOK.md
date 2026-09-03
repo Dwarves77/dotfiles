@@ -235,15 +235,65 @@ whole. `read_back` is always empty by design — this step changes no live table
 
 ---
 
+## 6a. `tag-proposals`
+
+**Purpose**: write the TAG proposal flags that make untagged items VISIBLE to an operator — the write
+half `tag-ratification` (§7, below) has always had a caller for, but that `propose-tags.mjs` itself
+never had until this step. **The defect this closes** (coordinator-confirmed, 2026-09-03): 339 of 619
+verified, live `intelligence_items` carry all three connection-signature tag arrays empty
+(`topic_tags`, `compliance_object_tags`, `operational_scenario_tags`), so `discover.mjs` scores them 0
+edges — see `propose-tags.mjs`'s own header for the exact mechanism. `population-turn.yml` has always
+run `propose-tags.mjs --dry --since <run start>` unconditionally, which computes the same plan but
+writes nothing (`--dry` is that script's own default and its DRY RUN branch writes nothing, by
+construction); no maintenance step ever called its `--execute` path. Live, before this step: 0 open and
+0 resolved `flywheel-tag:` `integrity_flags` rows have ever existed.
+
+**Upstream**: `fsi-app/scripts/connections/propose-tags.mjs`'s own `proposeTags()` core — extracted from
+that file's former inline `main()` body (Lane TAG-PROPOSALS, 2026-09-03) into a DB-injected, exported
+function so this step could import and call it unmodified, the same "logic lives once, deps injected"
+shape `apply-tags.mjs`'s `applyTags()` already established for §7. Nothing is reimplemented; the CLI's
+own stdout is byte-for-byte unchanged by that extraction.
+
+**Ruling**: none — gated by the operator's own standing rule (`propose-tags.mjs`'s header): "NO
+assumptions, NEVER silent auto-tagging; tag PROPOSALS go to operator ratification." Writing a proposal
+flag IS the visibility that rule requires; it is **not** tagging. This step **never writes
+`intelligence_items`** — only `integrity_flags` proposal rows. A proposal becomes a written tag only
+once an operator resolves its flag with the `ratify:tags` marker and §7 (`tag-ratification`) applies it.
+
+**Dispatch**: `arg` selects the population, exactly as `propose-tags.mjs`'s own CLI selectors do:
+- (blank) or `untagged` — every verified, live item with all three signature tag arrays empty (the
+  default, matching `propose-tags.mjs`'s own default).
+- `since:<ISO-date>` — items `created_at >=` that timestamp (narrow scope; stale-resolution is scoped to
+  this run's own selection, never global).
+- `ids:<uuid,uuid,...>` — exactly these items (selected regardless of tag state; narrowed to
+  empty-signature items before any flag is built).
+
+`mode=dry` reports counts per selection, a per-item proposal preview (item id + the proposals
+`derive-tags.mjs` found), and the exact apply command for this selection; writes nothing. `mode=apply`
+does **not** require `arg` — an unqualified apply runs the same `untagged` default `propose-tags.mjs`'s
+own `--execute` (no selector) runs; this mirrors that script's own CLI rather than `tag-ratification`'s
+per-id-required gate, because writing a PROPOSAL is not the higher-blast-radius action a blanket
+apply-and-ratify would be. Writes new proposal rows via the guarded insert path and auto-resolves stale
+ones no longer reproduced by the fresh computation (rule 015).
+
+**Artifact / read back**: `summary.json`'s `counts.preview` (per-item proposals this run would/did
+write) and `counts.plan` (`new_count` / `stale_count` / `unchanged`). `read_back` is always empty — this
+step changes no `intelligence_items` row, only `integrity_flags`; confirm against
+`SELECT count(*) FROM integrity_flags WHERE status = 'open' AND created_by LIKE 'flywheel-tag:%'`.
+
+---
+
 ## 7. `tag-ratification`
 
-**Purpose**: apply operator-ratified TAG proposals — `integrity_flags` rows `propose-tags.mjs` opened,
-resolved by an operator with `ratify:tags` in `resolution_note`.
+**Purpose**: apply operator-ratified TAG proposals — `integrity_flags` rows `propose-tags.mjs` opened
+(§6a, above writes them; before this lane, `population-turn.yml`'s `--dry` run only ever previewed them
+in a log — see §6a), resolved by an operator with `ratify:tags` in `resolution_note`.
 
-**Upstream, both halves already exist**: `fsi-app/scripts/connections/propose-tags.mjs` (proposes,
-already dispatched read-only from `population-turn.yml`) and `fsi-app/scripts/connections/apply-tags.mjs`
-(the apply half — `evaluateApplication` / `applyTags`, imported unmodified). This wrapper is
-orchestration only; no logic was reimplemented (the existing code already has an apply half).
+**Upstream, both halves already exist**: `fsi-app/scripts/connections/propose-tags.mjs` (proposes; §6a
+is now its write dispatch, `population-turn.yml`'s own dispatch stays `--dry`-only, a log preview) and
+`fsi-app/scripts/connections/apply-tags.mjs` (the apply half — `evaluateApplication` / `applyTags`,
+imported unmodified). This wrapper is orchestration only; no logic was reimplemented (the existing code
+already has an apply half).
 
 **Ruling**: none named directly — gated by the per-flag `ratify:tags` marker itself (an operator
 resolving a flag IS the ratification), not a single planwide ruling token.
