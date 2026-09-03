@@ -55,6 +55,8 @@ import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
 import { loadRegulationDetailObligations } from "@/lib/detail/regulation-obligations";
 import { getServiceSupabase } from "@/lib/supabase-service";
+import { resolveServerBootstrap } from "@/lib/api/server-bootstrap";
+import { fetchWatchMembership, lookupWatchMembership } from "@/lib/watchlist/membership";
 import {
   buildResourceLookup,
   resolveItemUuid,
@@ -125,11 +127,29 @@ export default async function RegulationDetailPage({
   }
   if (redirectTo) redirect(redirectTo);
 
-  // PERF-2: loadDetail's own bundle and the two extra obligations reads (register + upcoming) share no
-  // data dependency — id is all either needs — so they run via Promise.all instead of loadDetail
-  // resolving first and the obligations reads starting only afterward. See this file's header and
-  // src/lib/detail/regulation-obligations-core.ts's header for the full mechanism.
-  const [result, obligations] = await Promise.all([
+  // PERF-4 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md dispatch item (2)): the viewer's
+  // watch membership for THIS item shares no data dependency with loadDetail/obligations either — id
+  // (already resolved above, and provably equal to the eventual result.resource.id: see
+  // fetchIntelligenceItemUncached's `resourceId = row.legacy_id || row.id`, and the redirect above
+  // already sent a mismatched uuid→legacy_id URL elsewhere before this point) is all it needs, plus
+  // the viewer's userId/orgId — resolveServerBootstrap() is React.cache()-scoped, so this reuses the
+  // SAME request-scoped result the root layout's own BootstrapBoundary already triggered (no second
+  // Supabase round trip for auth/org — see src/app/market/page.tsx's identical precedent). Threading
+  // this through RegulationDetailSurface → WatchButton as initialWatched/initialTeamWatched/
+  // initialTeamAvailable means WatchButton renders its real state on first paint and fires ZERO client
+  // fetch on mount (membership.ts's header, case 1).
+  const watchMembershipPromise = (async () => {
+    const bootstrap = await resolveServerBootstrap();
+    const membership = await fetchWatchMembership(getServiceSupabase(), {
+      userId: bootstrap.user?.id ?? null,
+      orgId: bootstrap.orgId,
+      itemType: "reg",
+      itemIds: [id],
+    });
+    return lookupWatchMembership(membership, id);
+  })();
+
+  const [result, obligations, watchEntry] = await Promise.all([
     loadDetail<ItemScoped, ViewerScoped>({
       surface: "regulations",
       id,
@@ -187,6 +207,7 @@ export default async function RegulationDetailPage({
       },
     }),
     loadRegulationDetailObligations(id),
+    watchMembershipPromise,
   ]);
 
   // SURFACE ADMISSION GUARD (Phase 0.1, 2026-08-11). Until now the ONLY gate on
@@ -261,6 +282,9 @@ export default async function RegulationDetailPage({
         groupLabel={groupLabel}
         deck={deck}
         initialOwner={initialOwner}
+        initialWatched={watchEntry.watched}
+        initialTeamWatched={watchEntry.teamWatched}
+        initialTeamAvailable={watchEntry.teamAvailable}
         upcomingObligations={
           obligations.upcomingEvents.length > 0 ? (
             <UpcomingObligationsStripView variant="detail" events={obligations.upcomingEvents} />

@@ -16,11 +16,13 @@ import "@fontsource/plus-jakarta-sans/600.css";
 import "@fontsource/plus-jakarta-sans/700.css";
 import "@fontsource/plus-jakarta-sans/800.css";
 import "@fontsource/anton/400.css";
+import { Suspense } from "react";
 import { ThemeInitializer } from "@/components/ThemeInitializer";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { BootstrapBoundary } from "@/components/shell/BootstrapBoundary";
 import { AppShell } from "@/components/AppShell";
 import { GlobalErrorReporter } from "@/components/telemetry/GlobalErrorReporter";
-import { resolveServerBootstrap } from "@/lib/api/server-bootstrap";
+import { resolveServerBootstrap, type ServerBootstrap } from "@/lib/api/server-bootstrap";
 import { isRscNavigation } from "@/lib/bootstrap/rsc-navigation";
 import "./theme.css";
 import "./globals.css";
@@ -36,23 +38,28 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Resolve auth + workspace + sectors server-side (cached per-request via
-  // React.cache). AuthProvider seeds its initial state from these props
-  // and skips the mount-time refetch that previously fired on every page.
-  // Eliminates 2 client round-trips per render.
+  // PERF-4 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md dispatch item (1)): PERF-3
+  // already stopped AWAITING resolveServerBootstrap() (auth.getUser + org_memberships + profiles +
+  // workspace_settings — a real Supabase round trip) on client-side (RSC) navigations. It still
+  // awaited it on a DOCUMENT load (hard reload, first visit, /profile's hard navigation), which sat
+  // above every route's own loading.tsx Suspense boundary and blocked the whole RSC stream ~1.5s
+  // cold. This lane stops awaiting it there too: the promise is created here (kicked off eagerly,
+  // in parallel with everything else) and handed DOWN, UNRESOLVED, to <BootstrapBoundary> — the only
+  // thing that actually blocks on it (via React `use()`), and it sits inside its own <Suspense>,
+  // as a SIBLING of <AppShell>{children}</AppShell> — not an ancestor of it. Suspense only replaces
+  // its own subtree, never a sibling's, so the shell (nav rail, masthead) and the target route's own
+  // loading.tsx-wrapped content render and stream immediately, unblocked by this promise. See
+  // BootstrapBoundary.tsx's header for the full mechanism and AuthProvider.tsx's header for how the
+  // resolved value reaches it afterward without a remount.
   //
-  // PERF-3 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md, dispatch item (1) +
-  // src/lib/bootstrap/rsc-navigation.ts's own header for the full mechanism): this `await` sits
-  // above every route's own loading.tsx Suspense boundary, so on a fully-dynamic route (this one
-  // is, transitively, via cookies() inside resolveServerBootstrap) it re-runs and blocks streaming
-  // on EVERY client-side navigation between sibling top-nav routes, not just the first load — and
-  // AuthProvider structurally discards the result on every render past its own first mount
-  // (useState(initialUser)/useEffect(...,[]) — see rsc-navigation.ts). Skip it on a client-side
-  // (RSC) navigation, where it is pure waste that was also the entire "no skeleton, page frozen"
-  // symptom; still run it on a real document load, where AuthProvider's first-mount seeding needs
-  // it (unchanged behavior, no anonymous-flash regression).
+  // `headers()` itself stays a real await — it's a cheap, non-network Dynamic API read (not a
+  // Supabase round trip), so it adds no meaningful blocking time; only resolveServerBootstrap()'s
+  // network cost is the thing being deferred here.
   const rscNav = isRscNavigation(await headers());
-  const bootstrap = rscNav ? null : await resolveServerBootstrap();
+  const bootstrapPromise: Promise<ServerBootstrap | null> = rscNav
+    ? Promise.resolve(null)
+    : resolveServerBootstrap();
+
   return (
     <html
       lang="en"
@@ -68,24 +75,18 @@ export default async function RootLayout({
         />
       </head>
       <body className="antialiased">
-        {/* bootstrap is null on a client-side (RSC) navigation — see the rscNav comment above.
-            AuthProvider's initial* props are seed-once (useState/useEffect with an empty dep
-            array), consumed only on its FIRST mount; on every navigation past that first mount
-            AuthProvider already ignores these props, so passing `undefined` here (its own default
-            props apply) is exactly as inert as passing bootstrap's real values would have been —
-            it is never a real first mount when bootstrap is null. */}
-        <AuthProvider
-          initialUser={bootstrap?.user}
-          initialOrgId={bootstrap?.orgId}
-          initialOrgName={bootstrap?.orgName}
-          initialRole={bootstrap?.role}
-          /* Section 6.8 composition: a per-user override (profiles.sector_overrides) wins when
-              present; otherwise the workspace's sector_profile. Until 2026-09-02 this passed
-              `bootstrap.sectors` alone, which is empty for every user because nothing has written
-              sector_overrides since the 2026-05-18 onboarding fix, so the whole app ran as
-              "no sectors configured" (lane HYG-2 root cause, Addendum 84 postscript 15). */
-          initialSectors={bootstrap ? (bootstrap.sectors.length ? bootstrap.sectors : bootstrap.workspaceSectors) : undefined}
-        >
+        <AuthProvider>
+          {/* The ONLY thing gated behind this Suspense is the tiny, render-nothing boundary that
+              feeds AuthProvider's context once the bootstrap resolves. <AppShell>{children}</AppShell>
+              below is a SIBLING, outside it — see the comment above and BootstrapBoundary.tsx's
+              header. fallback={null}: there is nothing to show here specifically, because the
+              consumers of the seeded state (UserMenu, the no-workspace banner, AskAssistant's gate)
+              already render nothing for their own pending default (user: null) — the "pending shell"
+              the UX contract asks for IS the shell already rendering below, unblocked, with those
+              slots simply not yet populated. */}
+          <Suspense fallback={null}>
+            <BootstrapBoundary bootstrapPromise={bootstrapPromise} />
+          </Suspense>
           <ThemeInitializer />
           {/* R0.2 first-party error tracking: window.onerror + unhandled-
               rejection reporter (renders nothing; per-session rate-limited). */}

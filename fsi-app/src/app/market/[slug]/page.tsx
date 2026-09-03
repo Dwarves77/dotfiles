@@ -35,6 +35,8 @@ import { formatDate } from "@/lib/format";
 import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
 import { getMarketIntelItems } from "@/lib/data";
+import { resolveServerBootstrap } from "@/lib/api/server-bootstrap";
+import { fetchWatchMembership, lookupWatchMembership } from "@/lib/watchlist/membership";
 import {
   buildResourceLookup,
   resolveItemUuid,
@@ -93,131 +95,152 @@ export default async function MarketSignalDetailPage({
   }
   if (redirectTo) redirect(redirectTo);
 
-  const result = await loadDetail<ItemScoped, ViewerScoped>({
-    surface: "market",
-    id,
-    // Item-scoped, org-independent: connections/supersessions titles, the
-    // source-growth convergence stats, the published price board, the
-    // carbon-overlay modal-default factors, and the peers-strip entity.
-    // Cached — shared across every org that views this item.
-    loadItemScoped: async ({ supabase, resource, connections, supersessions }) => {
-      const itemUuid = await resolveItemUuid(supabase, resource.id);
+  // PERF-4 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md dispatch item (2)): the viewer's
+  // watch membership for THIS item shares no data dependency with loadDetail — id (already resolved
+  // above, and provably equal to the eventual result.resource.id — see the same note in
+  // regulations/[slug]/page.tsx) is all it needs, plus the viewer's userId/orgId.
+  // resolveServerBootstrap() is React.cache()-scoped, reusing the root layout's own request-scoped
+  // result (no second Supabase round trip) — same precedent as src/app/market/page.tsx (the index
+  // page)'s existing MarketSeriesBoard watch-membership read.
+  const watchMembershipPromise = (async () => {
+    const bootstrap = await resolveServerBootstrap();
+    const membership = await fetchWatchMembership(getServiceSupabase(), {
+      userId: bootstrap.user?.id ?? null,
+      orgId: bootstrap.orgId,
+      itemType: "signal",
+      itemIds: [id],
+    });
+    return lookupWatchMembership(membership, id);
+  })();
 
-      const convergencePromise: Promise<ItemScoped["convergence"]> = resource.sourceId
-        ? Promise.resolve(
-            supabase
-              .from("sources")
-              .select("independent_citers, confirmation_count")
-              .eq("id", resource.sourceId)
-              .maybeSingle()
-          )
-            .then(({ data: srcRow }) => {
-              if (
-                srcRow &&
-                typeof srcRow.independent_citers === "number" &&
-                srcRow.independent_citers > 0
-              ) {
-                return {
-                  independent_citers: srcRow.independent_citers,
-                  confirmation_count: srcRow.confirmation_count ?? srcRow.independent_citers,
-                };
-              }
-              return null;
-            })
-            .catch(() => null)
-        : Promise.resolve(null);
-
-      // DEFECT FIXED 2026-08-30 (found by the WO-13 lane, verified against live
-      // data): published_price_statistics.item_id is a uuid FK; resource.id may
-      // be a legacy_id. Resolve to uuid FIRST (itemUuid above) or the lookup
-      // silently 22P02s.
-      const priceBoardPromise: Promise<PriceStat[]> = Promise.resolve(
-        itemUuid
-          ? supabase
-              .from("published_price_statistics")
-              .select(
-                "label, value_display, unit, context_line, severity_tone, source_tier, released_at, next_release_at, next_release_label, sort_order"
-              )
-              .eq("item_id", itemUuid)
-              .order("sort_order", { ascending: true })
-          : { data: null, error: null }
-      )
-        .then(({ data: priceRows, error: priceErr }) => {
-          if (priceErr) console.error("[market/[slug]] price-board fetch failed", priceErr);
-          return Array.isArray(priceRows)
-            ? priceRows.map((p) => ({
-                label: p.label,
-                valueDisplay: p.value_display,
-                unit: p.unit,
-                contextLine: p.context_line,
-                severityTone: p.severity_tone,
-                sourceTier: p.source_tier,
-                releasedAt: p.released_at,
-                nextReleaseAt: p.next_release_at,
-                nextReleaseLabel: p.next_release_label,
-              }))
-            : [];
-        })
-        .catch(() => [] as PriceStat[]);
-
-      // WO-24: carbon overlay — the whole modal_default tier (small, 2 rows
-      // today). Selection (which row applies to THIS signal's jurisdiction)
-      // happens client-side via selectModalFactor/buildCarbonOverlayView.
-      const carbonFactorsPromise: Promise<EmissionFactorRow[]> = Promise.resolve(
-        supabase
-          .from("emission_factors")
-          .select(
-            "factor_id, mode, vehicle_class, jurisdiction, quantity_basis, ttw_co2e, wtt_co2e, wtw_co2e, source_key, tier, scope_kind"
-          )
-          .eq("tier", "modal_default")
-          .is("superseded_by", null)
-      )
-        .then(({ data: factorRows, error: factorErr }) => {
-          if (factorErr) console.error("[market/[slug]] carbon-overlay factor fetch failed", factorErr);
-          return Array.isArray(factorRows) ? factorRows : [];
-        })
-        .catch(() => [] as EmissionFactorRow[]);
-
-      const relatedIds = Array.from(
-        new Set<string>([
-          ...connections.map((c) => c.id),
-          ...supersessions.flatMap((s) => [s.old, s.new]),
-        ])
-      ).filter(Boolean);
-
-      const [resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors] = await Promise.all([
-        buildResourceLookup(supabase, relatedIds),
-        itemUuid ? fetchInstrumentEntityId(supabase, itemUuid) : Promise.resolve(null),
-        convergencePromise,
-        priceBoardPromise,
-        carbonFactorsPromise,
-      ]);
-
-      return { resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors };
-    },
-    // Viewer-scoped, per-org: the workspace note (workspace_item_overrides),
-    // and the related-signals pool (getMarketIntelItems resolves orgId from
-    // cookies internally — see module header for why it lives here, not in
-    // loadItemScoped). Uncached — every request.
-    loadViewerScoped: async ({ supabase, orgId, resource }) => {
-      let initialNote = "";
-      if (orgId) {
+  const [result, watchEntry] = await Promise.all([
+    loadDetail<ItemScoped, ViewerScoped>({
+      surface: "market",
+      id,
+      // Item-scoped, org-independent: connections/supersessions titles, the
+      // source-growth convergence stats, the published price board, the
+      // carbon-overlay modal-default factors, and the peers-strip entity.
+      // Cached — shared across every org that views this item.
+      loadItemScoped: async ({ supabase, resource, connections, supersessions }) => {
         const itemUuid = await resolveItemUuid(supabase, resource.id);
-        if (itemUuid) {
-          const { data: noteRow, error: noteErr } = await supabase
-            .from("workspace_item_overrides")
-            .select("notes")
-            .eq("org_id", orgId)
-            .eq("item_id", itemUuid)
-            .maybeSingle();
-          if (noteErr) console.warn(`[market/${resource.id}] note read failed: ${noteErr.message}`);
-          initialNote = noteRow?.notes ?? "";
+
+        const convergencePromise: Promise<ItemScoped["convergence"]> = resource.sourceId
+          ? Promise.resolve(
+              supabase
+                .from("sources")
+                .select("independent_citers, confirmation_count")
+                .eq("id", resource.sourceId)
+                .maybeSingle()
+            )
+              .then(({ data: srcRow }) => {
+                if (
+                  srcRow &&
+                  typeof srcRow.independent_citers === "number" &&
+                  srcRow.independent_citers > 0
+                ) {
+                  return {
+                    independent_citers: srcRow.independent_citers,
+                    confirmation_count: srcRow.confirmation_count ?? srcRow.independent_citers,
+                  };
+                }
+                return null;
+              })
+              .catch(() => null)
+          : Promise.resolve(null);
+
+        // DEFECT FIXED 2026-08-30 (found by the WO-13 lane, verified against live
+        // data): published_price_statistics.item_id is a uuid FK; resource.id may
+        // be a legacy_id. Resolve to uuid FIRST (itemUuid above) or the lookup
+        // silently 22P02s.
+        const priceBoardPromise: Promise<PriceStat[]> = Promise.resolve(
+          itemUuid
+            ? supabase
+                .from("published_price_statistics")
+                .select(
+                  "label, value_display, unit, context_line, severity_tone, source_tier, released_at, next_release_at, next_release_label, sort_order"
+                )
+                .eq("item_id", itemUuid)
+                .order("sort_order", { ascending: true })
+            : { data: null, error: null }
+        )
+          .then(({ data: priceRows, error: priceErr }) => {
+            if (priceErr) console.error("[market/[slug]] price-board fetch failed", priceErr);
+            return Array.isArray(priceRows)
+              ? priceRows.map((p) => ({
+                  label: p.label,
+                  valueDisplay: p.value_display,
+                  unit: p.unit,
+                  contextLine: p.context_line,
+                  severityTone: p.severity_tone,
+                  sourceTier: p.source_tier,
+                  releasedAt: p.released_at,
+                  nextReleaseAt: p.next_release_at,
+                  nextReleaseLabel: p.next_release_label,
+                }))
+              : [];
+          })
+          .catch(() => [] as PriceStat[]);
+
+        // WO-24: carbon overlay — the whole modal_default tier (small, 2 rows
+        // today). Selection (which row applies to THIS signal's jurisdiction)
+        // happens client-side via selectModalFactor/buildCarbonOverlayView.
+        const carbonFactorsPromise: Promise<EmissionFactorRow[]> = Promise.resolve(
+          supabase
+            .from("emission_factors")
+            .select(
+              "factor_id, mode, vehicle_class, jurisdiction, quantity_basis, ttw_co2e, wtt_co2e, wtw_co2e, source_key, tier, scope_kind"
+            )
+            .eq("tier", "modal_default")
+            .is("superseded_by", null)
+        )
+          .then(({ data: factorRows, error: factorErr }) => {
+            if (factorErr) console.error("[market/[slug]] carbon-overlay factor fetch failed", factorErr);
+            return Array.isArray(factorRows) ? factorRows : [];
+          })
+          .catch(() => [] as EmissionFactorRow[]);
+
+        const relatedIds = Array.from(
+          new Set<string>([
+            ...connections.map((c) => c.id),
+            ...supersessions.flatMap((s) => [s.old, s.new]),
+          ])
+        ).filter(Boolean);
+
+        const [resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors] = await Promise.all([
+          buildResourceLookup(supabase, relatedIds),
+          itemUuid ? fetchInstrumentEntityId(supabase, itemUuid) : Promise.resolve(null),
+          convergencePromise,
+          priceBoardPromise,
+          carbonFactorsPromise,
+        ]);
+
+        return { resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors };
+      },
+      // Viewer-scoped, per-org: the workspace note (workspace_item_overrides),
+      // and the related-signals pool (getMarketIntelItems resolves orgId from
+      // cookies internally — see module header for why it lives here, not in
+      // loadItemScoped). Uncached — every request.
+      loadViewerScoped: async ({ supabase, orgId, resource }) => {
+        let initialNote = "";
+        if (orgId) {
+          const itemUuid = await resolveItemUuid(supabase, resource.id);
+          if (itemUuid) {
+            const { data: noteRow, error: noteErr } = await supabase
+              .from("workspace_item_overrides")
+              .select("notes")
+              .eq("org_id", orgId)
+              .eq("item_id", itemUuid)
+              .maybeSingle();
+            if (noteErr) console.warn(`[market/${resource.id}] note read failed: ${noteErr.message}`);
+            initialNote = noteRow?.notes ?? "";
+          }
         }
-      }
-      const marketIntel = await getMarketIntelItems().catch(() => ({ resources: [], total: 0 }));
-      return { initialNote, relatedPool: marketIntel.resources };
-    },
-  });
+        const marketIntel = await getMarketIntelItems().catch(() => ({ resources: [], total: 0 }));
+        return { initialNote, relatedPool: marketIntel.resources };
+      },
+    }),
+    watchMembershipPromise,
+  ]);
 
   // SURFACE ADMISSION GUARD (Phase 0.1, 2026-08-11) — see regulations/[slug]
   // for the full rationale; checked inside loadDetail via canonicalSurface.
@@ -261,6 +284,9 @@ export default async function MarketSignalDetailPage({
         connections={connections}
         relevance={relevance}
         resourceLookup={resourceLookup}
+        initialWatched={watchEntry.watched}
+        initialTeamWatched={watchEntry.teamWatched}
+        initialTeamAvailable={watchEntry.teamAvailable}
       />
       <PeersDiscussingStrip entityId={peersEntityId} />
     </>

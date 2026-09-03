@@ -153,6 +153,16 @@ interface Props {
   connections?: ItemConnection[];
   relevance?: ItemRelevance | null;
   resourceLookup?: Record<string, { id: string; title: string; priority: string }>;
+  /**
+   * PERF-4 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md dispatch item (2)): the viewer's
+   * server-resolved watch state for THIS item (src/lib/watchlist/membership.ts's
+   * fetchWatchMembership, read in parallel with loadDetail by the page). Threaded straight to
+   * <WatchButton> below — passing `initialWatched` means it renders its real state on first paint
+   * and fires zero client fetch on mount.
+   */
+  initialWatched?: boolean;
+  initialTeamWatched?: boolean;
+  initialTeamAvailable?: boolean;
 }
 
 // ── Severity vocabulary (5-label, mirrors MarketPage / MarketSignalDetail) ─
@@ -302,6 +312,9 @@ export function MarketSignalDetailSurface({
   connections = [],
   relevance = null,
   resourceLookup = {},
+  initialWatched,
+  initialTeamWatched,
+  initialTeamAvailable,
 }: Props) {
   const [tab, setTab] = useState<TabKey>("moving");
 
@@ -456,7 +469,14 @@ export function MarketSignalDetailSurface({
                   </ActionButton>
                 )}
                 <ActionButton onClick={() => shareCurrent(r)}>Share</ActionButton>
-                <WatchButton itemType="signal" itemId={String(r.id)} palette={{ accent: C.accent, hairStrong: C.hairStrong, tint: C.tint, card: C.card, ink: C.ink }} />
+                <WatchButton
+                  itemType="signal"
+                  itemId={String(r.id)}
+                  palette={{ accent: C.accent, hairStrong: C.hairStrong, tint: C.tint, card: C.card, ink: C.ink }}
+                  initialWatched={initialWatched}
+                  initialTeamWatched={initialTeamWatched}
+                  initialTeamAvailable={initialTeamAvailable}
+                />
               </div>
             </div>
           </div>

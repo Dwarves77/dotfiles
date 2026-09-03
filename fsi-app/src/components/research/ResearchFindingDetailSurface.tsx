@@ -97,6 +97,16 @@ interface Props {
    *  yet) — honest omission, matching this surface's other "no X on file" empty states. Never
    *  fetched or generated client-side; always supplied by the server component. */
   themeBrief?: ThemeBriefView;
+  /**
+   * PERF-4 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md dispatch item (2)): the viewer's
+   * server-resolved watch state for THIS item (src/lib/watchlist/membership.ts's
+   * fetchWatchMembership, read in parallel with loadDetail by the page). Threaded straight to
+   * <WatchButton> below — passing `initialWatched` means it renders its real state on first paint
+   * and fires zero client fetch on mount.
+   */
+  initialWatched?: boolean;
+  initialTeamWatched?: boolean;
+  initialTeamAvailable?: boolean;
 }
 
 // ── Research section-aware renderer (analogous to RegulationSections) ──
@@ -654,6 +664,9 @@ export function ResearchFindingDetailSurface({
   relevance = null,
   resourceLookup = {},
   themeBrief = null,
+  initialWatched,
+  initialTeamWatched,
+  initialTeamAvailable,
 }: Props) {
   const severity = useMemo(() => deriveSeverity(r), [r]);
   const themeKey = useMemo(() => assignTheme(r), [r]);
@@ -740,7 +753,13 @@ export function ResearchFindingDetailSurface({
           {/* Landing B (2026-08-01): watchlist reaches the Research surface
               (migration 233 expanded the item_type CHECK). */}
           <span style={r.added ? undefined : { marginLeft: "auto" }}>
-            <WatchButton itemType="research" itemId={String(r.id)} />
+            <WatchButton
+              itemType="research"
+              itemId={String(r.id)}
+              initialWatched={initialWatched}
+              initialTeamWatched={initialTeamWatched}
+              initialTeamAvailable={initialTeamAvailable}
+            />
           </span>
         </div>
 
