@@ -1,0 +1,1278 @@
+{
+  "harness_family": "mint",
+  "harness_version": "sha256:c933647da54908a1",
+  "run_id": "mint-run-015",
+  "started_at": "2026-09-03T11:10:10.236Z",
+  "finished_at": "2026-09-03T11:14:10.714Z",
+  "config": {
+    "batch_file": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33747655857/census-rows.json",
+    "out_dir": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33747655857",
+    "execute": true,
+    "mode": "execute"
+  },
+  "inputs_ref": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33747655857/census-rows.json"
+  ],
+  "per_item": [
+    {
+      "id": "0a8fcb61-4787-458e-a5dd-acdb07adc02c",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "13936189-2fa2-4b9e-93d3-5bf6d6004fb6",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "13b18a64-c78b-40c1-b8aa-ef317f61097e",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "13d3aef6-712b-47a6-b3a9-efe918dae227",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "140f94d0-820f-4b40-a967-2db86687a9dd",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "142c4b59-d354-4120-955c-fc38c425eee0",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "149f9c20-7350-414f-9104-9dc7254ad5f8",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "14a9bfd3-6bb8-4b94-8436-d7729d34de7e",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "14c69cbe-c4f1-44f2-83d3-4d9228643ce6",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "150f6bff-6db5-4f9b-bd44-510dfc89c239",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1567484a-39f0-47bb-b770-16bfcdcdde48",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "157576d9-2162-49aa-8bf0-b41578e7cbf1",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "157bc623-bc9f-4d4c-9f42-c5852a6cbce8",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "157ec3b5-1896-4fa2-ba8c-9bcd44eefbc6",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "158d980c-d294-4284-8a67-3ae5f0158329",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "15a45bc6-8195-4ae2-8f3d-2a3700ba3b38",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "15b189ba-d200-4038-893a-65c55c5a67d3",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "15c9dd13-d3a9-42c5-91a1-50add3497561",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "15d581c1-bed7-408a-91e3-640afb2e5466",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "15e275ab-fdc0-441e-b466-aa01bd03b349",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "160d726c-87af-4c4d-82bb-6bd917ab1f27",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "16c9b0f2-80eb-45e5-a640-a1809978312f",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "16dcc29f-7c52-4171-9485-749837e41f91",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "17211855-2a55-4f2e-a80c-c31fd6318cf1",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "173cc162-e315-4706-ae84-d2b45397a6f1",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "173d6eb0-0ff2-46c9-ab37-34d11cbe1e83",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "17b050dd-226e-4d35-bf79-7d1913ee9774",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "17bb1e03-eb48-4417-8537-5073cb8b6cd1",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "17ff73ae-7977-4fab-a37b-3c4d2607bfab",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "18304a91-ce04-4729-998e-568317485dcd",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1889cc5f-e722-43fb-8965-d96cc43abb93",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1893b538-89a8-49b9-af11-679ffb001685",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "18bf4a9a-cba8-4a15-aa8b-1f4941abea40",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "18c65ed7-b21e-4caa-8ecc-ca616b9b85df",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "18e1135b-75c9-47a6-9427-09f666ab2923",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "192776f8-08f3-4c1e-a7db-38f849ca75bf",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "19445ed3-22e1-4295-9fdc-635b66728a91",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1a1a7050-cb22-43a3-be90-fe67dd6b9759",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1a618546-7676-49aa-8917-2c90173cc3e7",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1aa880f8-f650-420b-b00c-f5435874be3d",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1aed3f1b-3759-4c55-bf57-ca3491a8b75c",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1b06d1ff-bdda-41ba-8a71-fce05bc17713",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1b21b8a0-64d1-4a07-846e-a2f4e338fe09",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1b2cfe74-9f71-4ec3-ab69-ee39a4b41dc7",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1b43d8be-8598-4503-b4c3-1afb09007a85",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1b4e5ed5-9efc-4a5a-b14d-272ef244b5de",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1bff5ad1-4b3b-4393-b889-c5e07c083561",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1c37adfa-0546-40ad-b55c-662fd0799923",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1caf2486-2294-4da4-8a5b-dad69551c3a1",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1cde95d8-6b5f-41ea-8f74-b8f9a1c8ee3e",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1ce1aab8-f37a-40f3-a1e0-4b470a6d1b00",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1d3eb2a8-b600-4dd0-a242-fc5f8e4ec7c5",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1d4d2ad3-85cd-4fe8-98e5-aa9fdd78e781",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1d549327-86a7-47e2-9dbe-dcff731597e3",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1d7f7f05-6192-4bff-ad97-f2e801c3f3e5",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1dc7f281-014a-46b9-8365-56bfd0c7f5c4",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1deb05e0-436c-4bb0-aa53-98f57b773ee2",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1df988ea-d7d8-4d9f-ba93-bf153bfc3baa",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1e2c48b1-f5a4-4cfc-afee-927dd1377ee7",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1e467fbc-56b5-482a-8103-e8b4ca9a4e17",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1e63a6d6-bfd7-4077-8546-cf9a467f17d3",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1ea23301-fdfc-49d6-9987-547745716f49",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1eb72500-5c19-44db-a62f-40d5acc28061",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1ed55852-944f-4710-9f6f-f0e71474c904",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1f2abb48-bea2-4aa9-a642-d622eeeeffad",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1f7bed2a-212a-4a4d-aa8e-fdcaac351ff4",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1f918316-5592-40f9-a37e-77a2e3bae41f",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1fd6283c-4128-4d50-9c74-3f408cc68b22",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2032d95b-3c5f-45c2-bf46-ab385cec2d97",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "204e994e-6f17-452f-bb99-059ed7389522",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "20542854-5595-4bbc-86fe-3471d0f2517b",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "20578207-0758-467b-b7c3-5e23b7a5abda",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "205c50ee-bf91-4171-b33d-1c41ad2fa444",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2069bf85-e4f7-483a-ad92-3728921f0a2e",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "20ad43ec-1462-48d4-b582-5abf296a1749",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "210baf20-8a55-4514-9e87-75129f7678da",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2115938f-028e-4d30-82da-773a0e1d8518",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2173e762-c21e-4f02-9c3c-98c57380999e",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2179aa28-041d-4a0e-96d0-21691c5c424e",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2223b188-1267-4fb0-8c0e-9704473e5840",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "229951fa-b390-4e5a-989b-d7030408e524",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "22bc1c4e-a933-425d-9bfc-4fee287d7f7d",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "22d194da-a70d-4bd0-b409-a3eae09c9dd3",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "23248c3b-2044-44bb-aa28-5d9751a1c69a",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "233186a2-24ac-4a3e-818b-c8e4001d8a0b",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "234d3ba8-16e6-4117-9d5e-22ef43f21eed",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2369aa0e-4d5a-44a3-a645-3dc4924f1b6c",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "23ab4ff2-fa05-4d87-87ea-43b47e738185",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "23b81ea5-bc5e-43ca-8d5e-e5ca3ccca530",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2430c2b0-fc1c-4c76-8f8d-a276f55c164e",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2463b960-8d30-42ee-b07c-82ee714e2a1e",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "246760b3-3ca5-425d-a124-1edf73449ead",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "24726e80-996a-4b03-a27b-018041bf2cc7",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "24923186-d817-44d0-969d-587fc59b9abe",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "24b51ff5-6949-4bce-88e2-7da6288c9149",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "24bfe915-0168-4e81-9c8e-8c7c77563f41",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "24d34847-bda0-4413-a489-77e2d1166133",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "257e64fc-732a-4043-96d6-5349f15c197a",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "258613f8-5e59-46dc-b88f-132ab28bd7e8",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "25912d29-4236-42bd-ab74-85f501ef3c57",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "259a07c3-919a-4f01-aa79-3ba9fa3bf01c",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "26264b03-3033-4286-8732-48a6f7a3d03a",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2677e2e6-0eb7-4acc-abcf-1f6cbe850122",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "26ad22ee-6657-4dca-b11f-72228e3c657f",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "26bf4a98-9dc4-472e-9c6a-8883c3bffea1",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "26da9dd4-8685-4dd0-b874-8d905fe1c76d",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "26f33e23-8496-4378-b7b2-c5b184700b7b",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "26fc701b-1a17-482c-917b-a78ab585ce13",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "274ce3ff-ceb0-4bde-9b92-67097c176db1",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "27639bd1-3160-4b20-ae0c-ccf7d6b2f83a",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "27754e1f-7d5f-45f7-a892-68ca9d2bb775",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "277ad60d-ba66-402e-a07b-f19f8b56af00",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "27a3a2ed-d90a-4a89-8faa-5e640558a001",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "27a6e664-60b9-4ad0-874b-99e488d48b3d",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "27d6f2b8-5d8c-40e8-a0ec-8f184349deb2",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "27f3bbe2-eb49-4e13-9d39-d78603996a54",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "284423e0-dbf7-4676-90c2-251dda087c4e",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2849030d-b767-42f5-bb54-6f9dc515cc7a",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "28d5da5c-6cb3-4c37-bef6-04f3cd2743fc",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "28de33b2-62fe-447c-9539-d96e2c9edcc7",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "296cb8cc-fd7c-4ec0-895b-49b0177498e0",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "29b91357-dc89-4957-b985-c504e5c5761b",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "29d08cb4-5d1f-46b4-b245-3d9a8ab4b2dd",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2a1fd5ec-fdd2-487f-b296-b9c6e60f8cd9",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2a7d8130-05f9-4854-9ad6-708aa7f20255",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2a86d416-5757-4976-a033-e11a7a96b577",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2aa9b3a8-8753-4e38-9300-4c2b6294704d",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2aadc726-dd8f-47aa-89d7-0cee1e45ebfc",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2ad9a335-52c2-4f39-b582-1c05c6f49517",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2b106383-6c97-42b2-bcce-d7d46425077e",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2b281327-9389-4721-aef1-f4ca71b1ce32",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2b39b345-9999-480d-b281-0b35bbb1e8ee",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2b3e62eb-e528-4c7b-b8cc-51978d56d254",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2bb91fc4-a9e9-4222-83d8-fcb7b30e17db",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2bbaf781-9be3-4bec-ba52-6b36ee77b01d",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2bbc343e-7f1e-4df5-879d-6aded6e0d69c",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2bdc80b8-150d-4fef-82e7-82c857fe7a5e",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2c045204-e6c5-4788-8bbb-e798a5db8180",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2c56285f-98c2-4714-a548-4d72e711fae8",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2c6c081a-13f3-4ad4-a058-0615c17e6800",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2c6c6f84-a867-4101-9d30-630461ff94f6",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2c837408-dd83-4563-9283-981ffc0a1783",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2c9dbc13-7d2f-49e2-9d0d-8d141eabf40c",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2cd1e089-5b76-43c1-84a8-767d862af330",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2ce3950b-d53c-406e-9ff4-a234df940620",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2cede54f-e9f7-4031-bd18-3a90c84f4273",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2d1bcc6f-4ac1-4cf7-a30e-9265a6031b23",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2d66c394-7844-4fdf-8dc4-24e01e55ab9b",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2d91eff6-6be0-43d4-9db8-afd53f227d96",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2d9a16e5-012d-4e40-8455-f8be36ec4145",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2daf9069-e099-4dbb-986e-ce854a08b8f9",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2db08954-f408-4120-b544-a288ac9ea5a4",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2ddcf64a-2f49-41f0-a7ca-ebdbcc073cd6",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2e0ddbfe-8ba0-4930-b125-e9efc23bf9d6",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2e137356-8ce9-4ec0-a1e0-90a34ebfbb23",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2e547751-1dfc-4c79-b743-08a93be2b785",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2e8ceb64-494c-4d8e-957b-5b310e24dbb3",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2e916af1-e85b-4dec-86cf-1cef95047909",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2eab48e4-9fbf-4a2e-a4af-fc374d266cc9",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2ecdda81-0c54-47e0-99ca-2fd576ffab8c",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2f58ea0b-3961-43ad-a9f5-37f832e02099",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2f816ef5-96ed-4dc6-9386-9cb8aca97329",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2f82aedb-efca-403a-88fe-020ad986f3fa",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2fdd4561-c53a-41d3-a3a2-729e35c88b3e",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2fe73ea8-488a-4e8a-9e2d-9bffb5d0cff5",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "30288896-4beb-479c-b0e1-5c0c3415fabd",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "30885ba8-c90c-453a-b3ec-8c8bf85bdddb",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "30b29f4b-de05-466a-99fe-9d7d1315bd01",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "30c8ff2e-4a1e-46fa-8021-95276d6186ce",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "30d338a0-11ba-4e0b-8bf3-7d1afeb4ac71",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "30e6b98d-eca4-468c-b160-ac81d8baa6d3",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "3102a680-4a07-4a36-92fa-b10374fd0018",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "313a2922-0ff1-477d-aac5-80c6183aff1e",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "3144b9c3-449f-45bd-b2bb-3161eb7d5580",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "314a936d-6e77-4bb3-86a2-1f2101086193",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "3156bdbf-4b8c-4d65-b497-f115f4a5f873",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "322d1d68-e523-44ee-96f8-d872c52af647",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "322ef437-7518-4d90-a173-8c8b4755734c",
+      "outcome": "apply_ready",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "attempted": 178,
+    "valid": 178,
+    "invalid": 0,
+    "build_failed": 0,
+    "validator_first_pass_rate": "178/178 = 100.00%"
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33747655857/census-rows.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33747655857/census-rows.apply-ready.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33747655857/census-rows.mint-batch-report.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-mint-batch.mjs's own execution path (Wave MH-5 — 'emission is in the harness, not the operator,' extended to mint per PROPOSER-RUNBOOK.md §5's named residual). Corpus-outcome metrics (edges_discovered, forward_events_extracted, isolated_items) are not computed by this DB-less runner — see MINT-RUNBOOK.md's post-apply flywheel steps and run this same script again with --outcomes once the coordinator's apply + discovery pass has run."
+}
