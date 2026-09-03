@@ -64,8 +64,15 @@ none were casualties of a wave not in this tree.
 | 25 | `src/lib/trust.ts` — `evaluateDemotion` (whole function) | **WIRE** — call from `recompute-trust`'s per-source loop | Zero production callers of the function itself, not just the two dead trigger cases A3 already removed; `evaluatePromotion` is called from that same loop today, `evaluateDemotion` is not |
 | 26 | `scripts/gen/assumption-register-seed.mjs` (WO-20) | **WIRE** — run `--apply` after migration 271 lands | Migration + seeder + 21 tests exist; only a `--apply` invocation is missing; two of this register's own DELETE rows (#20 urgency, and the idf/pedigree constants) are on the seeder's own catalogued list |
 
-**Recommendation split: WIRE 8 · DELETE 8 · HOLD 6 · KEEP-NO-ACTION 3** (25 dispositioned rows + 1
-linked no-action row = 26 total).
+**Recommendation split: WIRE 8 · DELETE 10 · HOLD 6 · KEEP-NO-ACTION 2** (26 rows total). *Corrected
+2026-09-03 (ruling R-C): this line previously read "WIRE 8 · DELETE 8 · HOLD 6 · KEEP-NO-ACTION 3 (25
+dispositioned rows + 1 linked no-action row = 26 total)". That was wrong — a row-by-row recount of each
+row's own body-section "**Recommendation: ...**" sentence (the authoritative per-row verdict; see
+`w1-dispositions.mjs`) gives DELETE 10, not 8 (rows 3, 6, 7, 9, 10, 12, 18, 19, 20, 21), and
+KEEP-NO-ACTION 2, not 3 (rows 4 and 17 only — there is no third KEEP row). Row 4 (`metered-gate.mjs`)
+is an ordinary KEEP-NO-ACTION row like row 17, not a separate "linked" exception carried outside the
+count; treating it that way is what made the old line total only 25 before the "+1 linked" patch. WIRE
+(8, rows 1, 2, 5, 8, 23, 24, 25, 26) and HOLD (6, rows 11, 13-16, 22) were already correct.*
 
 ---
 
