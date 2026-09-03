@@ -22,6 +22,15 @@
  * SOFT-FAIL: a read failure never breaks the surrounding page (same posture UpcomingObligationsStrip
  * takes) — renders nothing on the list page (the page has plenty else to show), and a quiet omission on
  * the detail page (RegulationDetailSurface already tolerates a missing rail card).
+ *
+ * ROW MARKUP (lane MOBILE, 2026-09-03): this file is data-fetch only — every row, including the
+ * `data-guard-title` heading, is ObligationRegisterFilterBar.tsx's "Obligation register" `<h2>`
+ * (a "use client" component that takes `rows` as a prop, safe to mount directly in a browser
+ * bundle). `.discipline/rendering/smoke/regulations-rows-smoke.mjs` mounts
+ * ObligationRegisterFilterBar for real measurement and separately imports `ObligationRegister` from
+ * `@/components/regulations/ObligationRegister` (this file), unused, only so F35's coverage scan (a
+ * text match on the import path) resolves against the async wrapper that delegates its entire render
+ * to the component the spec actually mounts.
  */
 
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";

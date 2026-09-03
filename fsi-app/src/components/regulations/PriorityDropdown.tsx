@@ -5,7 +5,8 @@
  *
  * Sprint 3 followup Part 2.
  *
- * Renders a round 24-26px button rendered as "⋯". On click, opens a
+ * Renders a round button (44px "card" variant — law-2 floor, 2026-09-03; the pill "hero" variant is
+ * sized by its label) rendered as "⋯". On click, opens a
  * popover anchored to its right edge with five menu items:
  *
  *   - Mark Critical    (red dot)     → priority=CRITICAL, dismissed=null
@@ -21,8 +22,8 @@
  *
  * Two layout variants:
  *
- *   - "card"  — small ⋯ glyph button, ~22px round, 200px wide popover.
- *               Used on each regulation card in the Kanban grid.
+ *   - "card"  — small ⋯ glyph, 44px round tap target (law-2 floor), 200px
+ *               wide popover. Used on each regulation card in the Kanban grid.
  *   - "hero"  — pill-shaped button that reads "● <currentLabel> ▾",
  *               220px wide popover. Used in the hero actions row on
  *               /regulations/[slug].
@@ -177,6 +178,11 @@ export function PriorityDropdown({
       onClick={(e) => e.stopPropagation()}
     >
       {variant === "card" ? (
+        // Law-2 floor (44 CSS px, or 24px with 8px clearance): this button sits inside the row's
+        // own <Link> (the whole regulation row is a navigation target), so the button's box always
+        // overlaps its containing anchor — the clearance branch can never pass. ROOT CAUSE (screenshot
+        // 05-regulations-upcoming, confirmed): a 24x24 button here, labelled but under the floor.
+        // The tap target grows to 44x44; the visible "..." glyph stays the same small size, centered.
         <button
           type="button"
           aria-label="Regulation actions"
@@ -184,8 +190,8 @@ export function PriorityDropdown({
           aria-expanded={open}
           onClick={handleToggle}
           style={{
-            width: 24,
-            height: 24,
+            width: 44,
+            height: 44,
             borderRadius: 999,
             border: "1px solid var(--color-border)",
             background: "var(--color-surface)",

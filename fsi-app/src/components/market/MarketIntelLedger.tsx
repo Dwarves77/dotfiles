@@ -900,12 +900,17 @@ function SignalRow({ e, open, onToggle }: { e: Enriched; open: boolean; onToggle
 
   return (
     <div style={{ background: "var(--color-bg-surface)", borderLeft: `3px solid ${def.hueVar}`, borderBottom: "1px solid var(--color-border-subtle)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "flex-start", padding: "14px 18px" }}>
+      <div
+        className="cl-row"
+        data-guard-container="signal-row"
+        style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "flex-start", padding: "14px 18px" }}
+      >
         <button
           type="button"
           onClick={onToggle}
           aria-expanded={open}
           aria-controls={bodyId}
+          className="cl-row__main"
           style={{
             flex: 1,
             minWidth: 0,
@@ -938,7 +943,7 @@ function SignalRow({ e, open, onToggle }: { e: Enriched; open: boolean; onToggle
               {bandDef ? ` · ${bandDef.code}` : ""}
             </span>
           </div>
-          <p style={{ fontSize: 15, fontWeight: 800, margin: 0, lineHeight: 1.35, color: "var(--color-text-primary)" }}>
+          <p data-guard-title style={{ fontSize: 15, fontWeight: 800, margin: 0, lineHeight: 1.35, color: "var(--color-text-primary)" }}>
             {item.title}
           </p>
           {summary && (
@@ -948,8 +953,8 @@ function SignalRow({ e, open, onToggle }: { e: Enriched; open: boolean; onToggle
           )}
         </button>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
-          <div style={{ textAlign: "right", minWidth: 120 }}>
+        <div className="cl-row__aside" style={{ display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
+          <div className="cl-row__figure" style={{ textAlign: "right", minWidth: 120 }}>
             <p style={{ fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1, color: figHue, margin: 0, whiteSpace: "nowrap" }}>
               {priceFigure ?? "—"}
             </p>
@@ -970,42 +975,44 @@ function SignalRow({ e, open, onToggle }: { e: Enriched; open: boolean; onToggle
               {figLabel}
             </p>
           </div>
-          <Link
-            href={`/market/${encodeURIComponent(item.id)}`}
-            style={{
-              fontSize: 11.5,
-              fontWeight: 800,
-              padding: "7px 14px",
-              borderRadius: 6,
-              border: "1px solid var(--color-primary)",
-              background: "var(--color-primary)",
-              color: "var(--color-text-inverse, #fff)",
-              textDecoration: "none",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Full analysis →
-          </Link>
-          <button
-            type="button"
-            onClick={onToggle}
-            aria-expanded={open}
-            aria-controls={bodyId}
-            aria-label={open ? "Collapse signal" : "Expand signal"}
-            style={{
-              fontFamily: "inherit",
-              cursor: "pointer",
-              fontSize: 18,
-              fontWeight: 700,
-              lineHeight: 1,
-              padding: "6px 8px",
-              border: "none",
-              background: "transparent",
-              color: "var(--color-primary)",
-            }}
-          >
-            {open ? "–" : "+"}
-          </button>
+          <div className="cl-row__actions">
+            <Link
+              href={`/market/${encodeURIComponent(item.id)}`}
+              style={{
+                fontSize: 11.5,
+                fontWeight: 800,
+                padding: "7px 14px",
+                borderRadius: 6,
+                border: "1px solid var(--color-primary)",
+                background: "var(--color-primary)",
+                color: "var(--color-text-inverse, #fff)",
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Full analysis →
+            </Link>
+            <button
+              type="button"
+              onClick={onToggle}
+              aria-expanded={open}
+              aria-controls={bodyId}
+              aria-label={open ? "Collapse signal" : "Expand signal"}
+              style={{
+                fontFamily: "inherit",
+                cursor: "pointer",
+                fontSize: 18,
+                fontWeight: 700,
+                lineHeight: 1,
+                padding: "6px 8px",
+                border: "none",
+                background: "transparent",
+                color: "var(--color-primary)",
+              }}
+            >
+              {open ? "–" : "+"}
+            </button>
+          </div>
         </div>
       </div>
 

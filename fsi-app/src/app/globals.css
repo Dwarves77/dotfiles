@@ -354,6 +354,18 @@ body {
 @media (max-width: 560px) {
   .cl-ops-state { grid-template-columns: 1fr auto !important; row-gap: 2px !important; }
 }
+/* Lane MOBILE, 2026-09-03 — confirmed (operations-rows-smoke.mjs): `.cl-ops-tiles` /
+   `.cl-ops-dims`' breakpoints stopped at 900px (2/3 columns) with no further step down to a phone
+   width. At 375px, 3 columns of dimension chips ("D3 Labor markets" etc.) computed wider than their
+   1/3 share of the (fixed 36px-padded) page, overflowing the body horizontally — the same defect
+   class as the rest of this lane's write set, just on the page's OWN grids rather than a row. */
+@media (max-width: 640px) {
+  .cl-ops-tiles { grid-template-columns: repeat(2, 1fr) !important; }
+  .cl-ops-dims { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 420px) {
+  .cl-ops-dims { grid-template-columns: 1fr !important; }
+}
 
 .cl-page-pad { padding: 26px 40px 60px; }
 .cl-page-pad-tight { padding: 0 40px 60px; }
@@ -375,5 +387,128 @@ body {
 }
 @media (max-width: 480px) {
   .cl-map-frame { min-height: 360px; }
+}
+
+/* ═══════════════════════════════════════════════════
+   ROW SYSTEM (lane MOBILE, 2026-09-03) — docs/design/ux-laws.md laws 2, 4,
+   12; invariant RD-60; F35 row-ux-coverage.
+
+   ROOT CAUSE (confirmed across MarketIntelLedger, ResearchLedger,
+   OperationsLedger/OperationsItemsView, RegulationsLedger, HomeSurface): an
+   inline-styled flex/grid row put a non-shrinking aside (flexShrink:0, a
+   fixed px column, or a nowrap figure with no max-width) beside a
+   flex:1/1fr, minWidth:0 title. Inline `style` objects carry no media
+   queries, so at 375px the title got the leftover ~40px and every word
+   wrapped onto its own line, or the nowrap aside ran off the right edge.
+   These classes are the one responsive layer for every row/card/header in
+   the write set: markup keeps its desktop shape as inline styles; these
+   classes override it at ≤640px (the operator's phone class) with
+   `!important`, same posture as cl-stat-grid / cl-two-col / cl-ops-* above.
+
+   .cl-row            — a flex head row: main content + a trailing aside
+                         (figure, "Full analysis" link, expand toggle).
+   .cl-row__main       — the flexible title/summary column.
+   .cl-row__aside      — the non-shrinking aside; stacks BELOW __main at
+                         ≤640px, full width, its own children back on one
+                         row (figure + actions together).
+   .cl-row__figure     — a headline figure/value; bounded + ellipsis at
+                         narrow widths instead of running off the edge.
+   .cl-row__actions    — action controls (link/button) that stay one line.
+   .cl-row-grid        — a grid head row: label / title / meta columns
+                         (jurisdiction tag · title · date+badges+menu, or a
+                         fixed-width label · text · figure · count row).
+                         Collapses to "label title" / "meta meta" (2 rows)
+                         at ≤640px instead of squeezing the title column.
+   .cl-section-head    — a section header: Anton title + an eyebrow aside
+                         (e.g. "WHAT CHANGED" + a long subtitle). Stacks at
+                         ≤640px instead of wrapping the title one word per
+                         line while the aside overflows.
+
+   Every text-bearing child gets min-width:0; every title/summary gets
+   overflow-wrap:anywhere; white-space:nowrap is never used for text that
+   can exceed the viewport — only for short chips and figures that also
+   carry max-width + text-overflow:ellipsis.
+   ═══════════════════════════════════════════════════ */
+
+.cl-row { min-width: 0; }
+.cl-row__main { min-width: 0; }
+.cl-row__main [data-guard-title] { overflow-wrap: anywhere; }
+.cl-row__aside { flex-shrink: 0; min-width: 0; }
+.cl-row__figure { min-width: 0; }
+.cl-row__actions { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+@media (max-width: 640px) {
+  .cl-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  .cl-row__aside {
+    width: 100% !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 8px 12px !important;
+  }
+  /* figure + actions each stay on their OWN single line (no per-word wrap); when the two together
+     don't fit the row's width, the pair wraps as whole units (actions drops to its own line) rather
+     than overflowing the viewport — confirmed via market-rows-smoke.mjs's extreme-data state, whose
+     price figure + "Full analysis" link + toggle no longer fit on one line together at 375px. */
+  .cl-row__figure {
+    text-align: left !important;
+    max-width: 100% !important;
+    flex: 1 1 auto !important;
+  }
+  .cl-row__figure > * {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+  }
+}
+
+.cl-row-grid { display: grid; align-items: center; column-gap: 14px; row-gap: 4px; min-width: 0; }
+.cl-row-grid__title { min-width: 0; }
+.cl-row-grid__title [data-guard-title] { overflow-wrap: anywhere; }
+.cl-row-grid__meta { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+@media (max-width: 640px) {
+  .cl-row-grid {
+    grid-template-columns: auto 1fr !important;
+  }
+  .cl-row-grid__label { grid-column: 1; grid-row: 1; }
+  .cl-row-grid__title { grid-column: 2; grid-row: 1; }
+  .cl-row-grid__meta {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+  .cl-row-grid__title--clamp3 {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 3 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+}
+
+/* OperationsItemsView's item card — ROOT CAUSE (screenshot 02-operations-items, confirmed): a fixed
+   `1fr 220px` grid left the title column ~1fr of a 375px card (minus padding/gap/220px), so every
+   word wrapped onto its own line. At ≤640px the right column drops below the title, full width. */
+.cl-ops-item-card { min-width: 0; }
+@media (max-width: 640px) {
+  .cl-ops-item-card { grid-template-columns: 1fr !important; }
+}
+
+.cl-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; }
+.cl-section-head__title { min-width: 0; overflow-wrap: anywhere; }
+.cl-section-head__aside { min-width: 0; }
+
+@media (max-width: 640px) {
+  .cl-section-head {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+  }
 }
 

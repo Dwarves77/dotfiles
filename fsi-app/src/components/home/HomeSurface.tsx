@@ -75,10 +75,20 @@ interface HomeSurfaceProps {
   communityPulse?: ReactNode;
 }
 
-/** Section rule per the mock: Anton title + right eyebrow + 2px ink underline. */
+/** Section rule per the mock: Anton title + right eyebrow + 2px ink underline.
+ *
+ * ROOT CAUSE (screenshots 06-home-what-changed / 07-home-five-surfaces, confirmed): the aside
+ * carried `whiteSpace: nowrap` with no max-width and no minWidth:0 on either flex child. At 375px
+ * the aside's forced-nowrap subtitle ("Source and theme monitoring, change log across the
+ * registry") claimed its own full text width as its flex minimum, leaving the title only its
+ * longest single word — "WHAT" / "CHANGED" stacked — while the subtitle itself ran off the right
+ * edge (visible overflow, no wrap, no ellipsis). The subtitle is prose, not a chip or a bounded
+ * figure, so nowrap is wrong for it outright: it now wraps like any other text, and `.cl-section-
+ * head` (globals.css) stacks the two lines at ≤640px instead of squeezing them onto one row. */
 function SectionHeading({ title, aside, style }: { title: string; aside: ReactNode; style?: React.CSSProperties }) {
   return (
     <div
+      className="cl-section-head"
       style={{
         display: "flex",
         alignItems: "baseline",
@@ -90,6 +100,8 @@ function SectionHeading({ title, aside, style }: { title: string; aside: ReactNo
       }}
     >
       <h2
+        data-guard-title
+        className="cl-section-head__title"
         style={{
           fontFamily: "var(--font-display)",
           fontWeight: 400,
@@ -97,18 +109,20 @@ function SectionHeading({ title, aside, style }: { title: string; aside: ReactNo
           letterSpacing: "0.02em",
           textTransform: "uppercase",
           margin: 0,
+          minWidth: 0,
         }}
       >
         {title}
       </h2>
       <span
+        className="cl-section-head__aside"
         style={{
           fontSize: 10.5,
           fontWeight: 800,
           letterSpacing: "0.12em",
           textTransform: "uppercase",
           color: "var(--color-text-muted)",
-          whiteSpace: "nowrap",
+          minWidth: 0,
         }}
       >
         {aside}

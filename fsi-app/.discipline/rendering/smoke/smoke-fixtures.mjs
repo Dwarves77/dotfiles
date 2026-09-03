@@ -5,8 +5,127 @@
 // Each builder returns the THREE states every smoke spec renders (empty / one-row / extreme-data),
 // named to match the brief: "the component in its empty, one-row, extreme-data states."
 
+import { readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
 const LONG = (n, word = "extremely-long-token") =>
   Array.from({ length: n }, (_, i) => `${word}-${i}`).join(" ");
+
+// ── Full app CSS (globals.css + theme.css), read live from disk ────────────────────────────────
+// Supersedes hand-copying a CSS subset (see ROW_SYSTEM_CSS below, kept for the two specs already
+// built on it). Found the hard way building operations-rows-smoke.mjs: OperationsLedger's
+// top-level layout depends on a PRE-EXISTING responsive class (`.cl-ops-grid`, `@media (max-width:
+// 1200px)`, globals.css — not part of this lane's row-system addition) to collapse its
+// content+rail grid on a phone; injecting only ROW_SYSTEM_CSS left `.cl-ops-grid`'s
+// `grid-template-columns: 1fr 300px` un-collapsed at 375px, so the smoke page measured a FALSE
+// horizontal-overflow / squeezed-title failure that does not reproduce in the real app (confirmed:
+// re-running the same fixture with the real globals.css file gives a clean, non-overflowing
+// layout — see this lane's REPORT for the before/after DOM trace). Reading the real files removes
+// the drift risk entirely and is what regulations-rows-smoke.mjs and home-sections-smoke.mjs use.
+// theme.css supplies the `--color-*` / `--reg-band-*` custom properties every component's inline
+// `style` reads; it cannot affect layout WIDTH (colour/shadow tokens only) but is included for
+// full production fidelity rather than asserting that boundary holds for every future style.
+const HERE = fileURLToPath(new URL(".", import.meta.url));
+const APP_DIR = join(HERE, "../../../src/app");
+
+export function fullAppCss() {
+  const globals = readFileSync(join(APP_DIR, "globals.css"), "utf8");
+  const theme = readFileSync(join(APP_DIR, "theme.css"), "utf8");
+  return `${theme}\n${globals}`;
+}
+
+// ── Row-system CSS (Lane MOBILE, 2026-09-03) ────────────────────────────────────────────────────
+// `runUxSpec`'s harness (ux-harness.mjs / mountBundle) bundles and mounts ONLY the target component's
+// own JS/TSX via esbuild + page.addScriptTag — it never loads the app's globals.css (that only
+// happens through the real Next.js root layout). This lane's primary fix is a set of CSS classes
+// (.cl-row / .cl-row__main / .cl-row__aside / .cl-row__figure / .cl-row__actions / .cl-row-grid* /
+// .cl-section-head*) added to src/app/globals.css, so a mounted-component-only smoke test would
+// measure the UNSTYLED, pre-fix layout and fail to verify the fix at all.
+//
+// ROW_SYSTEM_CSS is a disclosed, intentional verbatim duplicate of that globals.css block, injected
+// by each row/section smoke spec via a <style> tag appended to document.head at ENTRY module-eval
+// time (before window.__mount runs) — see market-rows-smoke.mjs et al. This is a workaround for a
+// real gap in ux-harness.mjs (it has no general external-stylesheet loading mechanism), not a
+// long-term substitute for one; a future lane should teach the harness to load globals.css directly
+// so specs never need to hand-copy CSS. If this block and globals.css's row-system section ever
+// diverge, globals.css is the source of truth — update this constant to match.
+export const ROW_SYSTEM_CSS = `
+.cl-row { min-width: 0; }
+.cl-row__main { min-width: 0; }
+.cl-row__main [data-guard-title] { overflow-wrap: anywhere; }
+.cl-row__aside { flex-shrink: 0; min-width: 0; }
+.cl-row__figure { min-width: 0; }
+.cl-row__actions { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+@media (max-width: 640px) {
+  .cl-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+  .cl-row__aside {
+    width: 100% !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 8px 12px !important;
+  }
+  .cl-row__figure {
+    text-align: left !important;
+    max-width: 100% !important;
+    flex: 1 1 auto !important;
+  }
+  .cl-row__figure > * {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+  }
+}
+
+.cl-row-grid { display: grid; align-items: center; column-gap: 14px; row-gap: 4px; min-width: 0; }
+.cl-row-grid__title { min-width: 0; }
+.cl-row-grid__title [data-guard-title] { overflow-wrap: anywhere; }
+.cl-row-grid__meta { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+@media (max-width: 640px) {
+  .cl-row-grid {
+    grid-template-columns: auto 1fr !important;
+  }
+  .cl-row-grid__label { grid-column: 1; grid-row: 1; }
+  .cl-row-grid__title { grid-column: 2; grid-row: 1; }
+  .cl-row-grid__meta {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+  .cl-row-grid__title--clamp3 {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 3 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+}
+
+.cl-ops-item-card { min-width: 0; }
+@media (max-width: 640px) {
+  .cl-ops-item-card { grid-template-columns: 1fr !important; }
+}
+
+.cl-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-width: 0; }
+.cl-section-head__title { min-width: 0; overflow-wrap: anywhere; }
+.cl-section-head__aside { min-width: 0; }
+
+@media (max-width: 640px) {
+  .cl-section-head {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+  }
+}
+`;
 
 // ── Watchlist (team) — WatchlistSurface({ items, limit }) ──────────────────────────────────────
 export function watchlistFixtures() {

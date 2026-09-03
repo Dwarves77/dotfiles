@@ -667,22 +667,26 @@ function RegionCard({
   const hasSubs = region.key === "US";
 
   return (
-    <div style={{ background: "var(--color-bg-surface)", border: "1px solid var(--color-border)", borderLeft: `3px solid ${meta.hue}`, borderRadius: 8, overflow: "hidden" }}>
-      {/* Whole header row is the toggle button */}
+    <div data-guard-container="region-card" style={{ background: "var(--color-bg-surface)", border: "1px solid var(--color-border)", borderLeft: `3px solid ${meta.hue}`, borderRadius: 8, overflow: "hidden" }}>
+      {/* Whole header row is the toggle button. `.cl-row` (globals.css, lane MOBILE 2026-09-03):
+          neither side carried `minWidth: 0`, so at 375px the title's flex-wrap group and the
+          "N of 6 dimensions populated" aside fought each other for the same row instead of the
+          aside dropping below — same shared fix as every other row in this write set. */}
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
+        className="cl-row"
         style={{ width: "100%", textAlign: "left", fontFamily: "inherit", background: "transparent", border: "none", cursor: "pointer", padding: "14px 18px", display: "flex", justifyContent: "space-between", gap: 14, alignItems: "center" }}
       >
-        <span style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 17, letterSpacing: "0.03em", textTransform: "uppercase" }}>{region.label}</span>
+        <span className="cl-row__main" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span data-guard-title style={{ fontFamily: "var(--font-display)", fontSize: 17, letterSpacing: "0.03em", textTransform: "uppercase" }}>{region.label}</span>
           <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: meta.hue, border: `1px solid ${meta.bd}`, background: meta.bg, borderRadius: 4, padding: "2px 8px" }}>{meta.label}</span>
           <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--color-text-secondary)" }}>
             <b style={{ color: "var(--color-text-primary)", fontWeight: 700 }}>{regs.length}</b> regulations
           </span>
         </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <span className="cl-row__aside" style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--color-text-muted)" }}>{populated} of 6 dimensions populated</span>
           <span style={{ fontSize: 12, fontWeight: 800, color: "var(--color-primary)", whiteSpace: "nowrap" }}>{open ? "Collapse ▴" : "Expand ▾"}</span>
         </span>
@@ -761,12 +765,19 @@ function DimensionCell({
 
   return (
     <div style={base}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, margin: "0 0 5px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "baseline", gap: 10, margin: "0 0 5px" }}>
         <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--brass)" }}>
           D{dim.num} · {dim.name}
         </span>
+        {/* `figure` is the first sourced fact's free-text VALUE (facts[0].value), not a bounded
+            headline number — it can be a full sentence ("Tight specialist pool: fine art logistics
+            ..."). ROOT CAUSE (screenshot 01-operations-regions, confirmed): this span carried
+            `whiteSpace: nowrap` with no max-width, so a long value ran off the right edge instead of
+            wrapping. `minWidth: 0` + normal wrapping (no nowrap) lets it wrap within the row instead;
+            `flexWrap: wrap` on the parent gives it room to drop to its own line when the label leaves
+            none. */}
         {figure && (
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 19, color: "var(--color-text-primary)", whiteSpace: "nowrap" }}>{figure}</span>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 19, color: "var(--color-text-primary)", minWidth: 0, overflowWrap: "anywhere" }}>{figure}</span>
         )}
       </div>
 

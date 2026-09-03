@@ -111,6 +111,8 @@ function OperationsItemCard({ item }: { item: Resource }) {
       style={{ textDecoration: "none", color: "inherit", display: "block" }}
     >
       <article
+        className="cl-ops-item-card"
+        data-guard-container="operations-item-card"
         style={{
           background: "var(--color-surface)",
           border: "1px solid var(--color-border)",
@@ -162,12 +164,14 @@ function OperationsItemCard({ item }: { item: Resource }) {
             )}
           </div>
           <h4
+            data-guard-title
             style={{
               fontSize: 17,
               fontWeight: 700,
               lineHeight: 1.35,
               margin: "4px 0 6px",
               color: "var(--color-text-primary)",
+              overflowWrap: "anywhere",
             }}
           >
             {item.title}
