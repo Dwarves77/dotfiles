@@ -16,12 +16,21 @@
 import { useCallback, useEffect, useState } from "react";
 import { PostComposer, type CommunityPost } from "./PostComposer";
 import { Post } from "./Post";
+import type { CommunityEntityRef } from "./types";
+// `@/` form (not relative) — see Post.tsx's own import comment for why: the rendering-guard smoke
+// harness aliases this specifier to a no-op stub; the real Next.js app bundles it natively. Imported
+// here too (not only transitively via Post.tsx) so the `cl-comm-row`/`cl-comm-row-aside` mobile
+// stacking rule below applies even if this module is ever bundled without Post.tsx in the chunk.
+import "@/components/community/community.css";
 
 interface PostListProps {
   groupId: string;
   currentUserId: string | null;
   isGroupMember: boolean;
   isGroupAdmin: boolean;
+  /** Candidate spine entities for the composer's EntityPicker — fetched server-side by
+   * community/[slug]/page.tsx and threaded down. See EntityPicker.tsx's header. */
+  candidateEntities?: CommunityEntityRef[];
 }
 
 const PAGE_SIZE = 20;
@@ -31,6 +40,7 @@ export function PostList({
   currentUserId,
   isGroupMember,
   isGroupAdmin,
+  candidateEntities = [],
 }: PostListProps) {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,11 +121,52 @@ export function PostList({
 
   return (
     <section aria-label="Group posts" style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+      <div
+        className="cl-comm-row"
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 10,
+          marginBottom: 12,
+        }}
+      >
+        {/* Section title (RD-60 / F35 row-ux-coverage): the list's own title, distinct from each
+            post's own title inside Post.tsx — both files carry `data-guard-title` per F35's
+            requirement that the coverage check and the squeezed-title detector have something real
+            to measure in each. */}
+        <h2
+          data-guard-title
+          style={{
+            margin: 0,
+            fontSize: 13,
+            fontWeight: 700,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "var(--color-text-secondary)",
+            minWidth: 0,
+            overflowWrap: "anywhere",
+          }}
+        >
+          Discussion
+        </h2>
+        {!loading && !error && (
+          <span
+            className="cl-comm-row-aside"
+            style={{ fontSize: 11, color: "var(--color-text-muted)", flexShrink: 0 }}
+          >
+            {posts.length} post{posts.length === 1 ? "" : "s"}
+            {nextCursor ? "+" : ""}
+          </span>
+        )}
+      </div>
+
       {isGroupMember ? (
         <PostComposer
           groupId={groupId}
           onPosted={handlePosted}
           onError={handleError}
+          candidateEntities={candidateEntities}
         />
       ) : (
         <div
@@ -218,6 +269,12 @@ export function PostList({
               currentUserId={currentUserId}
               isGroupAdmin={isGroupAdmin}
               isGroupMember={isGroupMember}
+              // Wave 3 (2026-09-03) pass-through — see CommunityPost's own doc comment
+              // (PostComposer.tsx) for why these are optional/[INFERRED] on this feed's route.
+              promotionState={p.promotion_state}
+              originClass={p.origin_class}
+              authorIdentity={p.author_identity}
+              evidenceChip={p.evidence_chip}
               onDeleted={handleDeleted}
               onError={handleError}
             />

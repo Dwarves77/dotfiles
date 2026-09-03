@@ -117,7 +117,7 @@ node --test \
   fsi-app/src/lib/tier-labels.test.mjs \
   fsi-app/src/lib/tier-badge-tone.test.mjs \
   fsi-app/src/lib/coverage-gaps-rollup.test.mjs \
-  fsi-app/src/components/community/community-sidebar-route.test.mjs \
+  fsi-app/src/components/community/*.test.mjs \
   fsi-app/src/lib/workspace/*.test.mjs \
   fsi-app/src/lib/connections/*.test.mjs \
   fsi-app/src/lib/forward-events/*.test.mjs \
@@ -136,4 +136,8 @@ node --test \
   fsi-app/src/lib/telemetry/*.test.mjs \
   fsi-app/src/lib/health/*.test.mjs \
   fsi-app/src/lib/propagation/*.test.mjs \
-  fsi-app/src/lib/propagation/methods/*.test.mjs
+  fsi-app/src/lib/propagation/methods/*.test.mjs \
+  fsi-app/src/lib/spec09/*.test.mjs \
+  fsi-app/scripts/spec09/*.test.mjs \
+  fsi-app/src/lib/community/*.test.mjs \
+  fsi-app/scripts/community/*.test.mjs

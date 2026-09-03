@@ -105,6 +105,7 @@ out.push('### Standing traps');
 out.push('- `fsi-app/STATUS.md` is HISTORICAL (April state). `docs/PROGRAM-BOARD.md` is the resume state.');
 out.push('- The vault outranks account memory. If a memory one-liner conflicts with `docs/`, the vault wins.');
 out.push('- Run the `ledger` skill (`.claude/skills/ledger/SKILL.md`) for the full read protocol.');
+out.push('- Writing a `.tsx`/`.css` under fsi-app/src: read `docs/design/ux-laws.md` first. F35 + the rendering guard measure rows at 375px (RD-60); CI fails a surface PR with no "UX compliance" block in the session-log addendum.');
 
 process.stdout.write(out.join('\n') + '\n');
 process.exit(0);

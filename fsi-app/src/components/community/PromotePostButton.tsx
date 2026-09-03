@@ -68,9 +68,18 @@ export function PromotePostButton({ post, currentUser }: PromotePostButtonProps)
       <span
         className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-surface-alt)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)]"
         aria-label="This post has been promoted to platform intelligence"
+        title="Editorial pickup (spec 05 §4 gate 3): staged for an editor's verification task. Once an editor traces the claim to a primary source and attaches a PROV chain (gate 4), the published record cites that source and credits this thread as the lead — it never renders as machine-grounded or verified on its own."
       >
         <Check className="h-3.5 w-3.5" aria-hidden="true" />
         Promoted
+        {/* [INFERRED]: this button has no live promotion_state/origin_class field to read (the
+            legacy `promoted_at` flag it renders from predates COMMUNITY-A's 5-gate machine) — staging
+            via this flow is, by spec 05 §4's own definition, gate 3 "an editor has opened a
+            verification task", so that is the canonical origin_class token shown, not gate 4
+            "verified" (which requires the primary-source PROV chain this button does not attach). */}
+        <span className="text-[var(--color-text-muted,var(--color-text-secondary))]">
+          · origin: under-review
+        </span>
       </span>
     );
   }

@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, tag-ratification]
+        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, tag-ratification, seed-benchmark-instruments, spec09-reroute]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, or a comma-separated proposal-id list — see the runbook for which steps require one and what value they need).'
         required: false
@@ -172,6 +172,26 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/tag-ratification"
           node scripts/maintenance/tag-ratification.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/tag-ratification"
+
+      - name: seed-benchmark-instruments
+        # Wave 3 lane COMMUNITY-A (spec 05 §3, component 4): the house-seeded recurring benchmark.
+        # Instantiates this period's community_benchmark_instruments rows (migration 294) from the
+        # script's fixed calendar; idempotent per period; never writes community_posts. Dispatch-only
+        # (no schedule during the build, operator ruling); bare --apply is the script's own flag.
+        if: env.RUN_STEP == 'seed-benchmark-instruments' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then node scripts/community/seed-benchmark-instruments.mjs --apply; else node scripts/community/seed-benchmark-instruments.mjs; fi
+
+      - name: spec09-reroute
+        # Wave 3 lane SPEC-09 (spec 09 §1.7): reroute_events readiness monitor. Reads the live corridor
+        # entity count; reports the named gap (needs two distinct corridor entities; one exists) until
+        # a second corridor is minted, then proposes rows. Dry by default; the other six spec09
+        # producers ship their tables empty with the gap named in scripts/spec09/SOURCES.md and have
+        # no dispatch step until a $0 source exists.
+        if: env.RUN_STEP == 'spec09-reroute' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/spec09-reroute"
+          node scripts/spec09/reroute-producer.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/spec09-reroute"
 
       # Runs even when a step failed, so the log always ends with the true state of the tables rather
       # than only the exception that got there first (mirrors producers.yml's own Population AFTER).

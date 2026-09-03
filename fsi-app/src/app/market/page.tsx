@@ -57,6 +57,15 @@ import desnzEmissionFactors from "../../../scripts/gen/fixtures/emission-factors
 // parameter on read-upcoming.mjs (outside this lane's write set); stated honestly in the section's own
 // copy below rather than presented as market-specific.
 import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingObligationsStrip";
+// Spec 09 §1.1/§1.2/§1.7 (lane SPEC-09, wave 3, 2026-09-03): three self-contained server components, each
+// reading its own table via the request-scoped service client (no props from this page's own fetches, no
+// client fetch, no polling — see each component's own header). Order follows spec 09 §4's sequencing:
+// surcharge audit first ("the only [Market Intel component] with an immediate cash payback"), then OEM
+// roadmap, then rerouting. Indexation (§1.3) has no dedicated index-page component in this lane's write
+// set — mechanics/arithmetic only, no customer-facing clause surface yet.
+import { SurchargeAuditPanel } from "@/components/market/SurchargeAuditPanel";
+import { OemRoadmapPanel } from "@/components/market/OemRoadmapPanel";
+import { ReroutingPanel } from "@/components/market/ReroutingPanel";
 
 // Sprint 3 (2026-05-27): force-dynamic per /community precedent. Static
 // generation at build time has no cookies; resolveOrgIdFromCookies returns
@@ -175,6 +184,13 @@ export default async function Market() {
         </p>
       </div>
       <UpcomingObligationsStrip variant="list" />
+      {/* Spec 09 §1.2/§1.1/§1.7 (lane SPEC-09, wave 3, 2026-09-03): surcharge audit first per spec §4's
+          own sequencing, then OEM roadmap, then rerouting. Each renders a single short "no rows yet"
+          line when its table is empty (today's live state for all three — see scripts/spec09/SOURCES.md)
+          rather than an empty card. */}
+      <SurchargeAuditPanel />
+      <OemRoadmapPanel />
+      <ReroutingPanel />
     </>
   );
 }

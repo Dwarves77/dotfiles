@@ -222,8 +222,12 @@ function ProducerCard({ group, nowIso }: { group: MarketSeriesProducerGroup; now
       }}
     >
       <div>
+        {/* Law 4/12 consistency pass (lane MOBILE, 2026-09-03): the title had no `minWidth: 0` /
+            `overflowWrap` beside a `whiteSpace: nowrap` status label — the same shape as every
+            other row title in this write set, just not one of F35's ROW_COMPONENTS (a card grid,
+            not a ledger row). Same fix, applied for consistency rather than a caught defect. */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-          <p style={{ fontSize: 13.5, fontWeight: 800, color: "var(--color-text-primary)", margin: 0 }}>{group.name}</p>
+          <p style={{ fontSize: 13.5, fontWeight: 800, color: "var(--color-text-primary)", margin: 0, minWidth: 0, overflowWrap: "anywhere" }}>{group.name}</p>
           <span
             style={{
               fontSize: 9.5,
@@ -232,6 +236,7 @@ function ProducerCard({ group, nowIso }: { group: MarketSeriesProducerGroup; now
               textTransform: "uppercase",
               color: meta.color,
               whiteSpace: "nowrap",
+              flexShrink: 0,
             }}
           >
             {meta.label}

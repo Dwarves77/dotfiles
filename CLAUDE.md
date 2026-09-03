@@ -36,7 +36,8 @@ This repo is the source of truth for the Caro's Ledge product (Freight Sustainab
 3. `docs/PROGRAM-BOARD.md` — **the resume state**: the thread table with state, evidence, and deferrals.
 4. `docs/ops/` followups + tail of `docs/ops/session-log.md`.
 5. Task-relevant ADRs and runbooks.
-6. Code.
+6. **Before writing any `.tsx` or `.css` under `fsi-app/src`:** `docs/design/ux-laws.md` and `docs/design/design-principles.md` (DP-1, DP-2). Enforced, not advisory: F35 + the rendering guard's UX smoke slot measure every row component at 375 px (RD-60), and the discipline CI fails a PR touching a surface without a "UX compliance" block in its session-log addendum. Executor lanes read `docs/dispatches/lane-common-contract.md`.
+7. Code.
 
 `fsi-app/STATUS.md` is **NOT** in this list (operator ruling 2026-08-14). It describes April
 state — branch `redesign/full-migration`, PR #5 draft — and fed stale lane state to sessions that

@@ -29,6 +29,7 @@ import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingOblig
 import { ObligationRegister } from "@/components/regulations/ObligationRegister";
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
+import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -290,6 +291,43 @@ export default async function RegulationDetailPage({
     .filter(Boolean)
     .join(" · ");
 
+  // Lane COMMUNITY-B (wave3, 2026-09-03): the "peers are discussing this" strip's bound entity
+  // (spec 05 §5 component 2 makes this reachable — a thread bound to this item's instrument entity
+  // surfaces here regardless of which Community group it was posted in). Same service-role lookup
+  // pattern already used above for the UUID redirect / related-items / initialOwner reads — RLS does
+  // not grant anon SELECT on intelligence_items base columns. Fails soft to null: an item with no
+  // resolved entity, or no service-role key configured, renders no strip at all (PeersDiscussingStrip
+  // itself also renders nothing for a null entityId).
+  let peersEntityId: string | null = null;
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { auth: { persistSession: false } }
+      );
+      const itemUuid = UUID_RE.test(r.id)
+        ? r.id
+        : (
+            await supabase
+              .from("intelligence_items")
+              .select("id")
+              .eq("legacy_id", r.id)
+              .maybeSingle()
+          ).data?.id ?? null;
+      if (itemUuid) {
+        const { data: itemRow } = await supabase
+          .from("intelligence_items")
+          .select("instrument_entity_id")
+          .eq("id", itemUuid)
+          .maybeSingle();
+        peersEntityId = itemRow?.instrument_entity_id ?? null;
+      }
+    } catch {
+      // Soft-fail — the strip just doesn't render.
+    }
+  }
+
   console.log(`[perf] /regulations/${id} data ${Date.now() - t0}ms`);
 
   return (
@@ -314,6 +352,7 @@ export default async function RegulationDetailPage({
           its own section below the surface rather than a meta-rail card. Honest omission (renders
           nothing) when this item has no register rows yet. */}
       <ObligationRegister itemId={r.id} variant="detail" />
+      <PeersDiscussingStrip entityId={peersEntityId} />
     </>
   );
 }

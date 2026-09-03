@@ -221,7 +221,11 @@ function Row({ row }: { row: ObligationRow }) {
       </td>
       <td style={tdStyle}>{EVENT_KIND_LABELS[row.event_kind] ?? row.event_kind}</td>
       <td style={tdStyle}>
-        <Link href={href} style={{ color: "var(--accent, #E8610A)", fontWeight: 700, textDecoration: "none" }}>
+        {/* Law-2 floor: the anchor's own box was just its text line (~15px) — `inline-flex` +
+            `minHeight: 24` reaches the 24px-with-clearance alternative to 44px without changing
+            the cell's padding or the table's row height visually (the cell's own 9px vertical
+            padding already keeps rows apart). */}
+        <Link href={href} style={{ display: "inline-flex", alignItems: "center", minHeight: 24, color: "var(--accent, #E8610A)", fontWeight: 700, textDecoration: "none" }}>
           {row.item.title}
         </Link>
       </td>
@@ -254,7 +258,7 @@ function bindingChipStyle(code: string): React.CSSProperties {
 function Header({ total, shown }: { total: number; shown?: number }) {
   return (
     <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-      <h2 style={headingStyle}>Obligation register</h2>
+      <h2 data-guard-title style={headingStyle}>Obligation register</h2>
       <span style={{ fontSize: 11.5, color: "var(--color-text-muted, #7A6E6C)" }}>
         {typeof shown === "number" && shown !== total ? `${shown} of ${total}` : `${total}`}{" "}
         {total === 1 ? "obligation" : "obligations"}

@@ -28,10 +28,15 @@
 import { createRequire } from "node:module";
 import { buildFixtures, VIEWPORTS } from "./fixtures.mjs";
 import { detectOverflows, findPlaceholderLiterals } from "./assertions.mjs";
+import { measureUx, assertUxClean } from "./ux-assert.mjs";
 import { runSmoke as runWatchlistTeamSmoke } from "./smoke/watchlist-team-smoke.mjs";
 import { runSmoke as runPersonalArchiveSmoke } from "./smoke/personal-archive-smoke.mjs";
 import { runSmoke as runListOrderSmoke } from "./smoke/list-order-smoke.mjs";
 import { runSmoke as runNotificationsSmoke } from "./smoke/notifications-smoke.mjs";
+// UX smoke specs (2026-09-03, RD-60): real ledger/row components mounted at MOBILE_VIEWPORT and measured
+// with ux-assert.mjs (law-2 target floor, squeezed-title wrap class, overflow). A lane that adds or fixes
+// a row component ships its spec here; the slot is the mechanical proof the row survives a phone.
+import { UX_SMOKE_SPECS } from "./smoke/ux-smoke-specs.mjs";
 
 // playwright is a hoisted/global install in some environments (this repo's own container included)
 // that a plain ESM `import "playwright"` cannot see — Node's ESM resolver, unlike CJS `require`,
@@ -60,6 +65,14 @@ async function measure(page) {
   });
 }
 
+async function measureUxOn(browser, html, width) {
+  const page = await browser.newPage({ viewport: { width, height: 900 } });
+  await page.setContent(html, { waitUntil: "load" });
+  const ux = await measureUx(page);
+  await page.close();
+  return ux;
+}
+
 async function main() {
   const fixtures = buildFixtures();
   const browser = await chromium.launch();
@@ -78,6 +91,13 @@ async function main() {
       const overflows = detectOverflows(measurements);
       const placeholders = findPlaceholderLiterals(texts);
       const isNarrow = width <= 480;
+      // UX detectors on fixture legs that opt in (`ux: true`): hand-reproduced fixtures only prove a
+      // layout contract, so the law-2 / squeezed-title measurement is meaningful only where the fixture
+      // carries real control sizes. Real components are measured unconditionally in the UX smoke slot.
+      if (!fx.red && fx.ux) {
+        const ux = await measureUxOn(browser, fx.html, width);
+        failures.push(...assertUxClean(`${fx.id}@${width} [${fx.cls}]`, ux));
+      }
 
       if (fx.red) {
         // RED fixtures must reproduce their defect (in-browser detector proof). Require the defect
@@ -125,11 +145,29 @@ async function main() {
   checks += smokeChecks;
   failures.push(...smokeFailures);
 
+  // ── UX smoke slot (2026-09-03): each entry mounts REAL row components at MOBILE_VIEWPORT and at a
+  // desktop width and returns { checks, failures } exactly like the SM specs; the harness measures
+  // overflow + placeholder (measureGuard) AND ux (measureUx) on every mounted state. ────────────────
+  let uxChecks = 0;
+  const uxFailures = [];
+  for (const spec of UX_SMOKE_SPECS) {
+    try {
+      const { checks: c, failures: f } = await spec.run(browser);
+      uxChecks += c;
+      uxFailures.push(...f);
+    } catch (err) {
+      uxFailures.push(`${spec.name}: ux smoke spec threw: ${err?.stack || err}`);
+    }
+  }
+  checks += uxChecks;
+  failures.push(...uxFailures);
+
   await browser.close();
 
   console.log(`\n===== RENDERING GUARD (browser) =====`);
   console.log(`fixtures: ${fixtures.length}  viewports: ${VIEWPORTS.join(",")}  checks: ${checks}`);
   console.log(`SM smoke specs: ${SMOKE_SPECS.length} (${SMOKE_SPECS.map((s) => s.name).join(", ")})  smoke checks: ${smokeChecks}`);
+  console.log(`UX smoke specs: ${UX_SMOKE_SPECS.length} (${UX_SMOKE_SPECS.map((s) => s.name).join(", ") || "none registered"})  ux checks: ${uxChecks}`);
   if (newMobileFindings.length) {
     console.log(`\nNEW mobile/tablet overflow findings (< 480px, missed by the 1297px audit):`);
     for (const f of newMobileFindings) console.log(`  ! ${f}`);

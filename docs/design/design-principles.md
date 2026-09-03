@@ -98,3 +98,34 @@ DP-1 owners by phase:
 - **Any future sprint adding operator surfaces**: DP-1 applies. The new surface's design dispatch MUST cite DP-1 and demonstrate compliance.
 
 ---
+
+## DP-2: UX Laws on Every Surface
+
+**Statement.** Every customer or operator screen built or revised from 2026-09-03 applies the twenty
+interface laws in [`ux-laws.md`](./ux-laws.md) (Hick, Fitts, Jakob, Proximity, Miller, Doherty, Von
+Restorff, Serial Position, Peak-End, Zeigarnik, Prägnanz, Postel, Similarity, Uniform Connectedness,
+Parkinson, Tesler, Goal-Gradient) and their eight implementation requirements. Authorised by the
+operator on 2026-09-03 (instructions supplied verbatim into the build session; recorded in
+`ux-laws.md`).
+
+### Compliance test
+
+For any screen: **"Can the lane name the reader's primary goal, the shortest path to it, the single
+primary action, and the feedback state for every asynchronous action, and does every interactive
+target meet the law-2 size floor?"**
+
+- Yes to all: DP-2 compliant.
+- Any no: DP-2 violation. The lane report's "UX compliance" section is where the answer is written;
+  a missing section is a violation.
+
+### Relationship to DP-1
+
+DP-1 is the stricter rule on operator review surfaces; DP-2 applies underneath it everywhere.
+
+### Owners
+
+Every surface lane (Wave 3 COMMUNITY-B, SPEC-09 and MOBILE onward). Mechanisms: F35 `row-ux-coverage` +
+RD-60, the rendering guard's UX smoke slot (`ux-assert.mjs`), and the discipline CI "UX compliance" gate;
+see `ux-laws.md` §How this is enforced.
+
+---

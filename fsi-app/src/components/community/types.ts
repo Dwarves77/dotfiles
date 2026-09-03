@@ -73,3 +73,41 @@ export interface CommunityCurrentUser {
    * that haven't been updated still type-check. */
   isPlatformAdmin?: boolean;
 }
+
+// ── Wave 3 (2026-09-03) additions — entity binding, pseudonymous identity, promotion, benchmarks ──
+// Consumed alongside COMMUNITY-A's guard-enforced contract (see api-client.ts for the fetch
+// wrappers). Additive only: nothing above this line changed shape.
+
+/** A spine entity a thread binds to (corridor / jurisdiction / instrument / technology /
+ * organisation — src/lib/entities/entity-id.mjs KINDS, read-only from this lane). */
+export interface CommunityEntityRef {
+  entity_id: string;
+  kind: string;
+  canonical_name: string;
+}
+
+/** Verified-backing, pseudonymous-display identity (spec 05 §2): org type + role + sector + region,
+ * plus a verification mark. Never a name or company — that is the whole point of the projection. */
+export interface CommunityAuthorIdentity {
+  orgType?: string | null;
+  role?: string | null;
+  sector?: string | null;
+  region?: string | null;
+  verified?: boolean;
+}
+
+/** The five promotion-machine states (spec 05 §4), kept as a plain string union rather than an enum
+ * so a state this lane doesn't yet know about still type-checks and renders verbatim (see
+ * identity-format.ts's promotionStateLabel). */
+export type CommunityPromotionState =
+  | "community"
+  | "community-corroborated"
+  | "under-review"
+  | "verified"
+  | "retired"
+  | (string & {});
+
+export { type EntityThread as CommunityEntityThread } from "./api-client";
+export { type ThreadCorroboration as CommunityThreadCorroboration } from "./api-client";
+export { type Benchmark as CommunityBenchmark } from "./api-client";
+export { type GuardAggregateRoute as CommunityGuardAggregateRoute } from "./api-client";

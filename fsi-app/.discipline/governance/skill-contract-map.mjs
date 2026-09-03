@@ -92,11 +92,16 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 // derived_values pollution barrier / invariant RD-56, and statutory purity / invariant RD-57 — see
 // invariants.mjs). No citingFiles change: none of the files below cite this new section specifically, they
 // cite the skill as a whole (its content hash moving is what this re-pin acknowledges).
+// 2026-09-03 (coordinator, Wave 3 train): remediation-discipline re-pinned — added "Section 4 — category 35: Row UX
+// is measured on a real component at a phone width" (invariant RD-60, F35, the rendering guard's UX smoke slot).
+// sprint-followups-discipline re-pinned — its design-principles path was `docs/design-principles.md`, a file that
+// does not exist (the registry lives at docs/design/design-principles.md); corrected, and ux-laws.md / DP-2 added.
+// No citingFiles change for either.
 // ---------------------------------------------------------------------------------------------------------
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
     skillPath: 'fsi-app/.claude/skills/remediation-discipline/SKILL.md',
-    contentHash: '22fda53b9decafd20fea2f519a4253e4764bc4f0ab053819cbf16690b0e8f14a',
+    contentHash: '9d3dd665c7ba5e1be6d164ee94cf9b7b513d380bea5b0d438872dfdc9bd87bf2',
     citingFiles: [
       'fsi-app/scripts/_wave-alpha/backfill-canonical-keys.mjs',
       'fsi-app/scripts/lib/deferral.mjs',
@@ -169,7 +174,7 @@ export const PINNED_MANIFEST = {
   },
   'sprint-followups-discipline': {
     skillPath: 'fsi-app/.claude/skills/sprint-followups-discipline/SKILL.md',
-    contentHash: '9bbfb8105eb1f387464456857075faf619c9cc70145a37d1b780d06869b012fa',
+    contentHash: 'd892269885b516cd8b141f3d1a19cdafd562e336f7ff9040df8e7ba5670b007b',
     citingFiles: [
       'fsi-app/scripts/verify/column-existence-parity.mjs',
     ],
