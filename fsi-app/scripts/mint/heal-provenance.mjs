@@ -73,6 +73,51 @@
 // this module runs, and is tested, with ZERO DB credentials and ZERO network access. The MAINT wrapper
 // (scripts/maintenance/provenance-heal.mjs) is the only place real db.mjs / fetch wiring happens.
 // `main()` never writes or fetches unless `mode === "apply"`.
+//
+// THIRD PASS (2026-09-03, lane HEAL-3), fixing three measured defects in HEAL-2's own apply run (95
+// quarantined items, run 33797952379) plus one broadening, per docs/dispatches:
+//   1. STEP ORDER — INVESTIGATED, CORRECTED IN PLACE (rule 14): the dispatch attributed the tripled
+//      `analysis_missing_label_syntax` count to RELABEL (D) running before RECLASSIFY (E). Re-reading this
+//      file's own step sequence (STEP B -> STEP A -> STEP E -> STEP C -> STEP D, unchanged since HEAL-2)
+//      shows E already runs before D — that premise does not hold. The REAL mechanism: RELABEL's own
+//      owning-section/paragraph lookup used a raw case-folded `.includes()`, never the normalizer GROUND
+//      itself uses, so a re-kinded claim whose claim_text differed from its paragraph by whitespace/curly
+//      quotes/entities matched neither the owning-section lookup nor planRelabelParagraph's own literal
+//      match, and the miss was silently swallowed (`if (!plan) continue`) with NO report entry at all —
+//      undercounting the true miss rate on top of the label failures actually happening. Fixed: both
+//      lookups now go through locateSpanInText (the same three-tier exact/normalized/normalized_ci
+//      matcher), and every miss — no owning section, OR an owning section whose paragraph-level match
+//      still fails — reports `no_owning_section_found` with the claim id, per the brief.
+//   2. SLOT CLAIMS — RECLASSIFY had no awareness of the "[<slot_key>] " marker (migrations 114/119/121,
+//      migration 299's own self-check) and re-kinded slot FACT-claim residue to ANALYSIS same as any other
+//      claim, silently dropping 28 items' worth of required-slot coverage (criterion 5). Fixed two ways:
+//      SLOT-REPAIR (a new step, before RELABEL) retroactively converts every already-mis-kinded ANALYSIS
+//      claim carrying a required-slot marker back to the kit's own honest GAP for that slot; RECLASSIFY
+//      itself now branches the SAME way going forward — a required-slot FACT claim's unrecoverable residue
+//      becomes GAP, never ANALYSIS. Both paths call buildSlotClaim (capturedText="") for the GAP text, so
+//      it is always byte-identical to what a fresh honest-absence write would produce, never hand-typed.
+//   3. GATE A vs LABELS — FINDING, not a fix (gate-a-scan.mjs is a mint governing file, out of this lane's
+//      write set): `scanBrief` (scripts/mint/lib/gate-a-scan.mjs) takes ONLY `fullBrief` + `factClaims`; it
+//      has no reference anywhere to ANALYSIS_LABEL_RE or any label form, and its only coverage test is
+//      whether a token is a literal substring of the FACT-claim corpus. A figure/date token inside an
+//      already-labeled `*Analytical inference:*` paragraph is therefore STILL counted as a Gate-A orphan —
+//      the label satisfies criterion 4 only, never criterion 7. Compounding this: `item.full_brief` (what
+//      Gate A scans, per validate-mint-payload.mjs criterion 7 and this file's own planGateA) and a
+//      section's `content_md` (what RELABEL edits, and what criterion 4 itself scans) are TWO SEPARATE
+//      stored fields — RELABEL's own prose edits never touch full_brief, so even a successfully labeled
+//      paragraph has zero effect on Gate A's orphan count. See this lane's report for the full code path
+//      and the measurement this finding settles analytically (no live/artifact access needed): 100% of
+//      Gate-A orphans are, by construction, full_brief-prose orphans — scanBrief never reads section
+//      content at all, so a "section prose" orphan is not a category this scanner can produce.
+//   4. CAPTURE-CITED (broadening) — STEP 1's CAPTURE only ever fetched when an item had NO usable capture
+//      at all. A new step, CAPTURE-CITED, runs before RESOURCE/ORPHANS and fetches every URL the item's
+//      sections/claims already cite that is not yet captured (bounded to CAPTURE_CITED_MAX_PER_ITEM=25
+//      fetches/item/run, reported) — broadening the SAME ranked capture pool RESOURCE/ORPHANS already
+//      search, and closing criterion 2's `ungrounded_url` failure directly (a cited URL becomes a captured
+//      agent_run_searches row). Adds a PDF branch (src/lib/sources/pdf-extract.mjs's pdfToText, imported
+//      unmodified) the plain-GET family never had; `intelligence_items.source_urls`, named in the brief as
+//      a third URL source, does not exist as a column or array anywhere in supabase/migrations (grepped in
+//      full) and is never read. See the CAPTURE-CITED section below for the complete mechanism.
 
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -110,8 +155,16 @@ import { canonicalizeCitationUrl } from "./lib/canonicalize-citation-url.mjs";
 // institutionKey/hostOf -- the source registry's OWN identity rule (registerSource's dedup key), imported
 // unmodified. Second-pass STEP B (OWN-BODY) resolves an institution by this SAME rule, never a second one.
 import { institutionKey, hostOf } from "../lib/institution-key.mjs";
+// pdfToText/looksLikePdfUrl/isPdfBytes -- THE existing PDF text codec (src/lib/sources/pdf-extract.mjs,
+// unpdf/pdf.js, dynamic-imported internally so this module stays dependency-clean until a PDF is actually
+// fetched), imported unmodified. THIRD PASS's CAPTURE-CITED step is the only caller (see that section's
+// header): neither export-census-rows.mjs's captureDocument nor this file's own original STEP 1 CAPTURE
+// have ever had a PDF branch (grep-confirmed, 2026-09-03 -- see this lane's report), so this is filling a
+// gap, never re-deriving the per-family HTML/Cellar/FR-API resolution this file's header already forbids
+// re-deriving.
+import { pdfToText, looksLikePdfUrl, isPdfBytes } from "../../src/lib/sources/pdf-extract.mjs";
 
-export const HEAL_VERSION = "hp2-2026-09-03.1";
+export const HEAL_VERSION = "hp3-2026-09-03.1";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_SLOTS_PATH = resolve(HERE, "item-type-required-slots.json");
@@ -148,6 +201,35 @@ export function claimCoversSlot(claim, slotKey) {
 export function missingRequiredSlots(itemType, claims, requiredSlotsMap) {
   const required = requiredSlotsMap?.[itemType] ?? [];
   return required.filter((slotKey) => !(claims ?? []).some((c) => claimCoversSlot(c, slotKey)));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// SLOT MARKER (2026-09-03, THIRD PASS). Every slot claim record-facts.mjs / record-facts-research.mjs
+// emit — and every one STEP 3/SLOTS below writes for an existing item — opens `claim_text` with
+// "[<slot_key>] ", the marker migrations 114/119/121 and migration 299's own self-check (criterion 5,
+// mirrored above by claimCoversSlot) rely on to find slot coverage by literal substring. HEAL-2's
+// RECLASSIFY (STEP E) re-kinded EVERY residue FACT claim to ANALYSIS with no awareness of this marker,
+// which silently removed 28 slot claims from criterion 5's FACT/GAP coverage (missing_required_slot,
+// measured on the HEAL-2 apply run, run 33797952379). See SLOT-REPAIR / STEP E below for the fix.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+const SLOT_MARKER_RE = /^\[([a-z0-9_]+)\]\s/i;
+
+/** The slot_key a claim's own "[<slot_key>] " marker prefix names, or null when claim_text carries none.
+ *  Pure. Matches the marker record-facts.mjs / record-facts-research.mjs / STEP 3 below all write. */
+export function extractSlotKeyFromMarker(claimText) {
+  const m = SLOT_MARKER_RE.exec(String(claimText ?? ""));
+  return m ? m[1] : null;
+}
+
+/** True when `claimText` carries a "[<slot_key>] " marker AND that slot_key is a member of `itemType`'s
+ *  OWN required-slots list (item-type-required-slots.json) — i.e. a claim criterion 5 actually depends
+ *  on, as opposed to the identity claim's own "[title]" marker (never a required slot) or an unrelated
+ *  bracketed prefix. Pure. */
+export function isRequiredSlotMarkerClaim(claimText, itemType, requiredSlotsMap) {
+  const slotKey = extractSlotKeyFromMarker(claimText);
+  if (!slotKey) return false;
+  return (requiredSlotsMap?.[itemType] ?? []).includes(slotKey);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -404,17 +486,170 @@ function envelopeToOutcome(env, url) {
 }
 
 /** agent_run_searches INSERT row for a fresh HEAL capture (migration 112 / write-item.ts's own shape).
- *  `result_content` is the FULL captured text, never truncated (ADR-016). Pure. */
-export function buildCaptureSearchRow(itemId, captureResult, nowIso = new Date().toISOString()) {
+ *  `result_content` is the FULL captured text, never truncated (ADR-016). Pure. `searchQuery` defaults to
+ *  STEP 1's own label; CAPTURE-CITED (third pass) passes "heal-provenance:capture-cited" so the two
+ *  capture origins stay distinguishable in agent_run_searches without a schema change. */
+export function buildCaptureSearchRow(itemId, captureResult, nowIso = new Date().toISOString(), searchQuery = "heal-provenance:capture") {
   return {
     intelligence_item_id: itemId,
-    search_query: "heal-provenance:capture",
+    search_query: searchQuery,
     result_url: captureResult.url,
     result_title: captureResult.title ?? null,
     result_index: 0,
     result_content: captureResult.text,
     searched_at: nowIso,
   };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// CAPTURE-CITED (2026-09-03, THIRD PASS). STEP 1's CAPTURE only fetches when an item has NO usable
+// capture at all (`needsCapture`) — an item with one thin/incomplete capture never gets its OTHER cited
+// sources fetched, so a claim or Gate-A orphan citing a second URL the item's own prose or claims already
+// name has nothing to ground against, and criterion 2's own `ungrounded_url` failure (a URL literally
+// present in a section's content_md with no matching agent_run_searches/source/registry row) never
+// closes. This step runs BEFORE RESOURCE/ORPHANS (broadening their own capture pool — see healOneItem)
+// and fetches every URL the item ALREADY CITES that this item has not yet captured:
+//   - URLs literally present in the item's own sections' content_md — the SAME parenthesis-balanced
+//     URL_RE validate-mint-payload.mjs's criterion 2 uses, mirrored verbatim (see this file's header
+//     precedent for governing regex constants: claimCoversSlot/ANALYSIS_LABEL_RE/etc.).
+//   - `intelligence_items.source_urls` — NAMED in the brief as a third source, but grep-confirmed ABSENT:
+//     no such column or array exists anywhere in supabase/migrations (2026-09-03). Never read here; see
+//     this lane's report for the correction.
+//   - each claim's own registered source URL. A claim carries no `source_url` column of its own
+//     (migration 112's section_claim_provenance only has `source_id`) — resolved through `sourcesIndex`
+//     (the SAME registry read STEP A/B already build once per run), never a second lookup.
+// Already-captured URLs (canonicalized against the item's CURRENT `captures` pool, including whatever
+// STEP 1 just added this same run) are skipped. Bounded to CAPTURE_CITED_MAX_PER_ITEM fetches per item
+// per run — a run with more candidates than the bound fetches the first N and reports the overflow,
+// never fetches unboundedly. Per-family resolution is the SAME captureItem/resolveRowCapture chain STEP 1
+// uses (Cellar-first/FR-API/plain-GET, imported unmodified), generalized to an ARBITRARY cited url (the
+// eurlex branch derives its canonical key from the URL ITSELF via `deriveKey(null, url)`, never from
+// `item.instrument_identifier` — a citation may name a wholly different instrument than the item's own,
+// and keying off the item's identifier would resolve the WRONG document), plus a PDF branch the "plain
+// GET otherwise" family has never had (see this file's pdf-extract.mjs import note above). $0, politeness
+// enforced by the ONE shared `deps.fetchImpl` every capture call in this module already goes through (the
+// MAINT wrapper wires a single `makePoliteFetch` instance for the whole run — see provenance-heal.mjs).
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+export const CAPTURE_CITED_MAX_PER_ITEM = 25;
+// criterion 2's own URL_RE (validate-mint-payload.mjs), mirrored verbatim -- one-level balanced
+// parentheses so an OJ identifier "(01)" extracts whole while a URL in prose parentheses stops correctly.
+const CITED_URL_RE = /https?:\/\/(?:[^\s()\]}"'<>]|\([^\s()]*\))+/g;
+// ADR-016's own STORAGE_MAX_CHARS default -- a pathological-page SANITY ceiling, never an operating cap
+// (the pdf-extract.mjs `max` parameter is mandatory; this is the same "uncapped in practice" value ADR-016
+// names, not a re-introduction of a capture-time cap).
+const PDF_TEXT_MAX_CHARS = 10_000_000;
+
+/** Every URL the item's sections/claims already cite: literal URLs in each section's content_md, plus
+ *  each claim's registered source URL (resolved via source_id -> sourcesIndex, since a claim carries no
+ *  source_url column of its own). Deduplicated, order-preserving. Pure. */
+export function collectCitedUrls({ sections, claims, sourcesIndex }) {
+  const urls = [];
+  const seen = new Set();
+  const push = (u) => {
+    const trimmed = String(u ?? "").trim();
+    if (!trimmed || seen.has(trimmed)) return;
+    seen.add(trimmed);
+    urls.push(trimmed);
+  };
+  for (const s of sections ?? []) {
+    for (const m of String(s?.content_md ?? "").matchAll(CITED_URL_RE)) push(m[0]);
+  }
+  for (const c of claims ?? []) {
+    if (!c?.source_id) continue;
+    const src = sourcesIndex?.byId?.get(c.source_id);
+    if (src?.url) push(src.url);
+  }
+  return urls;
+}
+
+/** Which of `candidateUrls` are NOT already represented (canonicalized) among `captures`' own result_url.
+ *  Deduplicated by canonical form. Pure. */
+export function unfetchedCitedUrls(candidateUrls, captures) {
+  const already = new Set(
+    (captures ?? []).map((c) => (c.result_url ? canonicalizeCitationUrl(c.result_url) : null)).filter(Boolean),
+  );
+  const seen = new Set();
+  const out = [];
+  for (const u of candidateUrls ?? []) {
+    const canon = canonicalizeCitationUrl(u);
+    if (!canon || already.has(canon) || seen.has(canon)) continue;
+    seen.add(canon);
+    out.push(u);
+  }
+  return out;
+}
+
+/** Fetch `url`'s raw bytes (never `.text()`, which mangles binary PDF content) for the PDF codec branch.
+ *  Same timeout/user-agent posture as export-census-rows.mjs's own captureDocument. Never throws. */
+async function fetchBytesForPdf(url, fetchImpl, timeoutMs = 20000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetchImpl(url, {
+      headers: { "user-agent": "FSI-population-turn/1.0 (+population-turn)", accept: "application/pdf,*/*;q=0.8" },
+      signal: controller.signal,
+    });
+    if (!res.ok) return { ok: false, status: res.status, bytes: null, error: `HTTP ${res.status}` };
+    if (typeof res.arrayBuffer !== "function") return { ok: false, status: res.status, bytes: null, error: "fetch response has no arrayBuffer()" };
+    const buf = await res.arrayBuffer();
+    return { ok: true, status: res.status, bytes: new Uint8Array(buf), error: null };
+  } catch (err) {
+    return { ok: false, status: null, bytes: null, error: err instanceof Error ? err.message : String(err) };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Capture ONE cited URL, live — the SAME per-family resolution captureItem uses (Cellar-first for eurlex,
+ * FR-API for federal_register, imported unmodified), generalized to an arbitrary url (see this section's
+ * header for why the eurlex branch derives its key from the url alone), plus a PDF branch via
+ * pdf-extract.mjs's pdfToText for the "plain GET otherwise" family. Same two-outcome shape as captureItem
+ * (`{status:"captured",...}` or `{status:"held", reason, ...}`) — a refusal is ALWAYS returned with
+ * evidence, never thrown past this function. @param {{fetchImpl: Function}} deps
+ */
+export async function captureCitedUrl(url, deps) {
+  if (!url) return { status: "held", reason: "no_source_url" };
+  const host = classifyHost(url);
+
+  if (host === "eurlex") {
+    const canonicalKey = deriveKey(null, url);
+    if (!canonicalKey) return { status: "held", reason: "canonical_key_unresolved", url };
+    const env = await resolveRowCapture({ document_url: url }, { scheme: "celex", canonicalKey }, { fetchImpl: deps.fetchImpl });
+    return envelopeToOutcome(env, url);
+  }
+  if (host === "federal_register") {
+    const frDocumentNumber = extractFrDocumentNumber(url);
+    if (!frDocumentNumber) return { status: "held", reason: "fr_document_number_unresolved", url };
+    const env = await resolveRowCapture({ document_url: url }, { scheme: "federal_register", frDocumentNumber }, { fetchImpl: deps.fetchImpl });
+    return envelopeToOutcome(env, url);
+  }
+  if (looksLikePdfUrl(url)) {
+    const fetched = await fetchBytesForPdf(url, deps.fetchImpl);
+    if (!fetched.ok || !fetched.bytes) {
+      return { status: "held", reason: "capture_blocked", url, evidence: { status: fetched.status ?? null, error: fetched.error ?? null } };
+    }
+    if (!isPdfBytes(fetched.bytes)) {
+      return {
+        status: "held", reason: "pdf_unsupported", url,
+        evidence: { status: fetched.status, note: "url looked like a PDF but the body is not PDF-magic-byte-prefixed" },
+      };
+    }
+    try {
+      const { text, fullLength } = await pdfToText(fetched.bytes, PDF_TEXT_MAX_CHARS);
+      return {
+        status: "captured", url, text, title: null,
+        evidence: { status: fetched.status, bytes: fetched.bytes.length, endpoint: url, pdf: true, full_length: fullLength },
+      };
+    } catch (err) {
+      return { status: "held", reason: "pdf_unsupported", url, evidence: { error: err instanceof Error ? err.message : String(err) } };
+    }
+  }
+
+  const res = await captureDocument(url, { fetchImpl: deps.fetchImpl });
+  const env = envelopeFromPlainGet(res, url);
+  return envelopeToOutcome(env, url);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -801,12 +1036,22 @@ function rejoinParagraphs(parts, seps) {
 /** Plan prepending the default label to the paragraph containing `claimText` — only when that paragraph
  *  does NOT already carry one of the four label forms (the defensive check the brief calls for: "unless
  *  the claim's paragraph already starts with another of the four forms"). Pure. Null when no paragraph
- *  contains claimText, or the one that does is already labeled (nothing safe to do). */
+ *  contains claimText, or the one that does is already labeled (nothing safe to do).
+ *
+ *  MATCHES UNDER THE SAME NORMALIZATION locateSpanInText/GROUND already use (whitespace runs, curly vs
+ *  straight quotes, HTML entities, case-insensitive fallback) — not a raw `.toLowerCase().includes()`
+ *  (2026-09-03 THIRD PASS fix). A claim's own `claim_text` and the paragraph it lives in are independently
+ *  authored strings (one from an extractor's own template, one from mint-time prose); a claim whose text
+ *  differed from its paragraph only by whitespace/quote/entity drift previously matched NEITHER `owning`
+ *  (healOneItem's own lookup, fixed alongside this one) nor this function's own literal `.includes()`, so
+ *  the label was silently never applied and RELABEL reported nothing at all — the mechanism this file's
+ *  own header originally, incorrectly, attributed to STEP ORDER (RECLASSIFY already runs before RELABEL
+ *  in this file's actual step sequence; see this lane's report for the correction). */
 export function planRelabelParagraph(contentMd, claimText) {
   const { parts, seps } = splitParagraphsPreserving(contentMd);
-  const needle = String(claimText ?? "").toLowerCase();
+  const needle = String(claimText ?? "").trim();
   if (!needle) return null;
-  const idx = parts.findIndex((p) => p.toLowerCase().includes(needle) && !ANALYSIS_LABEL_RE.test(p));
+  const idx = parts.findIndex((p) => !ANALYSIS_LABEL_RE.test(p) && locateSpanInText(needle, p) != null);
   if (idx === -1) return null;
   const before = parts[idx];
   const newParts = [...parts];
@@ -990,6 +1235,32 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
   }
   report.steps.ground = groundResults;
 
+  // ── SLOT-REPAIR (2026-09-03, THIRD PASS) — retroactive fix for HEAL-2's RECLASSIFY defect (see the
+  //    SLOT MARKER section above): every ANALYSIS claim still carrying a required-slot marker is the
+  //    residue of the PREVIOUS apply run's own mistake (RECLASSIFY had no marker awareness and re-kinded
+  //    it there), never something this run itself just did (RECLASSIFY, below, no longer does this — see
+  //    STEP E). Converted through the guarded path to the kit's own honest GAP for that slot (via
+  //    buildSlotClaim with capturedText="" — the SAME extractor SLOTS/STEP 3 already calls, so the GAP
+  //    wording this repair writes is byte-identical to what a fresh honest-absence write would produce,
+  //    never a hand-duplicated string). Runs BEFORE RELABEL so a repaired claim (now GAP, not ANALYSIS)
+  //    is correctly excluded from RELABEL's own ANALYSIS loop. ──────────────────────────────────────
+  const slotRepairResults = [];
+  for (const c of claims) {
+    if (c.claim_kind !== "ANALYSIS") continue;
+    const slotKey = extractSlotKeyFromMarker(c.claim_text);
+    if (!slotKey || !(requiredSlotsMap[item.item_type] ?? []).includes(slotKey)) continue;
+    const gapClaim = buildSlotClaim({ slotKey, itemType: item.item_type, capturedText: "", sourceUrl: item.source_url });
+    if (apply) {
+      await deps.updateClaimKind(c.id, {
+        claim_kind: "GAP", claim_text: gapClaim.claim_text,
+        source_span: null, source_id: null, search_result_id: null, source_tier_at_grounding: null,
+      });
+      c.claim_kind = "GAP"; c.claim_text = gapClaim.claim_text; c.source_span = null; c.source_id = null;
+    }
+    slotRepairResults.push({ claim_id: c.id, slot_key: slotKey, outcome: apply ? "repaired_to_gap" : "would_repair_to_gap" });
+  }
+  report.steps.slot_repair = slotRepairResults;
+
   // ── sections, read ONCE, reused (and kept in sync) by SLOTS / STEP C / STEP D below ────────────────
   const sectionsList = await deps.readSections(item.id);
   const findOrCreateRecordFactsSection = async () => {
@@ -1063,6 +1334,36 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
   }
   report.steps.own_body = ownBodyResult;
 
+  // ── CAPTURE-CITED (2026-09-03, THIRD PASS) — broaden the capture pool over every URL the item's
+  //    sections/claims already cite, BEFORE RESOURCE/ORPHANS run (see this file's CAPTURE-CITED header
+  //    above). New capture rows land in the shared `captures` array so STEP A/RESOURCE's own bucket
+  //    builders (which iterate the full `captures` array) pick them up with no further wiring. ────────
+  const citedCandidates = collectCitedUrls({ sections: sectionsList, claims, sourcesIndex: sIdx });
+  const citedToFetch = unfetchedCitedUrls(citedCandidates, captures);
+  const citedBound = citedToFetch.slice(0, CAPTURE_CITED_MAX_PER_ITEM);
+  const citedOverflow = citedToFetch.length - citedBound.length;
+  const captureCitedResults = [];
+  for (const url of citedBound) {
+    if (!apply) { captureCitedResults.push({ url, outcome: "would_fetch" }); continue; }
+    const res = await captureCitedUrl(url, deps);
+    if (res.status === "captured") {
+      const row = buildCaptureSearchRow(item.id, res, new Date().toISOString(), "heal-provenance:capture-cited");
+      const ins = await deps.insertSearch(row);
+      captures.push({ id: ins.id, result_url: row.result_url, result_content: row.result_content });
+      captureCitedResults.push({ url, outcome: "captured", length: res.text.length, search_id: ins.id, evidence: res.evidence });
+    } else {
+      captureCitedResults.push({ url, outcome: "held", reason: res.reason, evidence: res.evidence ?? null });
+    }
+  }
+  report.steps.capture_cited = {
+    candidates: citedCandidates.length,
+    to_fetch: citedToFetch.length,
+    fetched: citedBound.length,
+    bound_hit: citedOverflow > 0,
+    overflow: Math.max(citedOverflow, 0),
+    results: captureCitedResults,
+  };
+
   // ── STEP A — RESOURCE (buckets also serve STEP C/ORPHANS below) ────────────────────────────────────
   const ownBucket = buildOwnCanonicalBucket(item, captures);
   const floor = floorMaxFor(item.item_type);
@@ -1095,12 +1396,34 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
   }
   report.steps.resource = resourceResults;
 
-  // ── STEP E — RECLASSIFY (the residue GROUND + RESOURCE could not verify anywhere) ────────────────
+  // ── STEP E — RECLASSIFY (the residue GROUND + RESOURCE could not verify anywhere). A required-slot
+  //    FACT claim (the "[<slot_key>] " marker, member of item.item_type's own required-slots list) is
+  //    NEVER re-kinded to ANALYSIS here (2026-09-03 THIRD PASS fix — see the SLOT MARKER section above):
+  //    ANALYSIS is how a SYNTHESIZED interpretation enters a payload; a required-slot marker is never
+  //    that, and re-kinding it to ANALYSIS silently drops it from criterion 5's FACT/GAP coverage (the
+  //    missing_required_slot regression this fixes). Its honest disposition is the kit's own GAP for that
+  //    slot instead — via buildSlotClaim, the same extractor SLOTS/STEP 3 and SLOT-REPAIR above already
+  //    call, so this never hand-duplicates GAP wording. Every other FACT claim keeps the original
+  //    ANALYSIS disposition, unchanged. ──────────────────────────────────────────────────────────────
   const reclassifyResults = [];
   for (const c of claims) {
     if (c.claim_kind !== "FACT") continue;
     const reason = reclassifyReason(groundOutcomeByClaimId.get(c.id), resourceOutcomeByClaimId.get(c.id));
     if (!reason) continue;
+    const slotKey = extractSlotKeyFromMarker(c.claim_text);
+    const isRequiredSlot = !!slotKey && (requiredSlotsMap[item.item_type] ?? []).includes(slotKey);
+    if (isRequiredSlot) {
+      const gapClaim = buildSlotClaim({ slotKey, itemType: item.item_type, capturedText: "", sourceUrl: item.source_url });
+      if (apply) {
+        await deps.updateClaimKind(c.id, {
+          claim_kind: "GAP", claim_text: gapClaim.claim_text,
+          source_span: null, source_id: null, search_result_id: null, source_tier_at_grounding: null,
+        });
+        c.claim_kind = "GAP"; c.claim_text = gapClaim.claim_text; c.source_span = null; c.source_id = null;
+      }
+      reclassifyResults.push({ claim_id: c.id, claim_text: c.claim_text, slot_key: slotKey, reason, outcome: apply ? "reclassified_to_gap" : "would_reclassify_to_gap" });
+      continue;
+    }
     if (apply) { await deps.updateClaimKind(c.id, { claim_kind: "ANALYSIS" }); c.claim_kind = "ANALYSIS"; }
     reclassifyResults.push({ claim_id: c.id, claim_text: c.claim_text, reason, outcome: apply ? "reclassified" : "would_reclassify" });
   }
@@ -1141,14 +1464,20 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
   }
   report.steps.orphans = orphanResults;
 
-  // ── STEP D — RELABEL (criterion 4; the only prose this lane edits, and only by prepending a label) ──
+  // ── STEP D — RELABEL (criterion 4; the only prose this lane edits, and only by prepending a label).
+  //    Owning-section/paragraph lookup is NORMALIZED (locateSpanInText — the SAME normaliser GROUND uses:
+  //    whitespace runs, curly/straight quotes, HTML entities, case-insensitive fallback), not a raw
+  //    literal `.includes()` (2026-09-03 THIRD PASS fix — see planRelabelParagraph's own header for why).
+  //    Every claim that finds no owning section, OR whose owning section's own text no longer matches its
+  //    claim_text under normalization (already-labeled, or genuinely absent), is reported
+  //    `no_owning_section_found` with the claim id — never silently skipped. ─────────────────────────
   const relabelResults = [];
   for (const claim of claims) {
     if (claim.claim_kind !== "ANALYSIS") continue;
-    const owning = sectionsList.find((s) => s.id === claim.section_row_id) ?? sectionsList.find((s) => containsCaseInsensitive(s.content_md, claim.claim_text));
+    const owning = sectionsList.find((s) => s.id === claim.section_row_id) ?? sectionsList.find((s) => locateSpanInText(claim.claim_text, s.content_md) != null);
     if (!owning) { relabelResults.push({ claim_id: claim.id, outcome: "no_owning_section_found" }); continue; }
     const plan = planRelabelParagraph(owning.content_md, claim.claim_text);
-    if (!plan) continue;
+    if (!plan) { relabelResults.push({ claim_id: claim.id, section_id: owning.id, outcome: "no_owning_section_found" }); continue; }
     if (apply) { await deps.updateSectionContent(owning.id, plan.content_md); owning.content_md = plan.content_md; }
     relabelResults.push({ claim_id: claim.id, section_id: owning.id, outcome: apply ? "relabeled" : "would_relabel", before: plan.before, after: plan.after });
   }
@@ -1198,8 +1527,11 @@ export function summarizeReports(perItem) {
     resourced: 0, unresourced: 0,
     own_body_resolved: 0,
     orphans_grounded: 0, orphans_unprovable: 0,
-    relabeled_paragraphs: 0,
+    relabeled_paragraphs: 0, relabel_no_owning_section: 0,
     refactored_to_analysis: 0,
+    // THIRD PASS (2026-09-03) additions — see this file's SLOT MARKER / CAPTURE-CITED sections.
+    slot_repaired_to_gap: 0, reclassified_to_gap: 0,
+    cited_captured: 0, cited_held: 0, cited_bound_hit_items: 0,
   };
   for (const r of perItem) {
     if (r.steps.capture?.outcome === "held") s.capture_held += 1;
@@ -1208,17 +1540,31 @@ export function summarizeReports(perItem) {
       if (sl.outcome === "written" && sl.claim_kind === "FACT") s.slots_written_fact += 1;
       if (sl.outcome === "written" && sl.claim_kind === "GAP") s.slots_written_gap += 1;
     }
+    for (const sr of r.steps.slot_repair ?? []) if (sr.outcome === "repaired_to_gap") s.slot_repaired_to_gap += 1;
     if (r.steps.own_body?.outcome === "resolved") s.own_body_resolved += 1;
+    if (r.steps.capture_cited) {
+      for (const cc of r.steps.capture_cited.results ?? []) {
+        if (cc.outcome === "captured") s.cited_captured += 1;
+        if (cc.outcome === "held") s.cited_held += 1;
+      }
+      if (r.steps.capture_cited.bound_hit) s.cited_bound_hit_items += 1;
+    }
     for (const rs of r.steps.resource ?? []) {
       if (rs.outcome === "resourced") s.resourced += 1;
       if (rs.outcome === "unresourced") s.unresourced += 1;
     }
-    for (const rc of r.steps.reclassify ?? []) if (rc.outcome === "reclassified") s.refactored_to_analysis += 1;
+    for (const rc of r.steps.reclassify ?? []) {
+      if (rc.outcome === "reclassified") s.refactored_to_analysis += 1;
+      if (rc.outcome === "reclassified_to_gap") s.reclassified_to_gap += 1;
+    }
     for (const or of r.steps.orphans ?? []) {
       if (or.outcome === "grounded") s.orphans_grounded += 1;
       if (or.outcome === "unprovable") s.orphans_unprovable += 1;
     }
-    for (const rl of r.steps.relabel ?? []) if (rl.outcome === "relabeled") s.relabeled_paragraphs += 1;
+    for (const rl of r.steps.relabel ?? []) {
+      if (rl.outcome === "relabeled") s.relabeled_paragraphs += 1;
+      if (rl.outcome === "no_owning_section_found") s.relabel_no_owning_section += 1;
+    }
     if (r.steps.gate_a?.outcome === "written") s.gate_a_written += 1;
     if (r.steps.rederive?.outcome === "healed_verified") s.healed_verified += 1;
     if (r.steps.rederive?.outcome === "would_heal_verified") s.would_heal_verified += 1;
@@ -1266,11 +1612,21 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
   summary.counts = { selection: { mode: selection.mode, ids: selection.ids }, candidates: items.length, ...counts };
   summary.applied = counts.healed_verified;
   summary.per_item = perItem;
+  // Per-item residue, so the coordinator can read exactly which criterion each still-failing item is
+  // stuck on without re-querying (this lane's own report requirement, 2026-09-03 THIRD PASS).
+  summary.final_failures_by_item = perItem.map((r) => ({
+    id: r.id, item_type: r.item_type,
+    outcome: r.steps.rederive?.outcome ?? null,
+    failures: r.steps.rederive?.failures ?? [],
+  }));
   summary.note = apply
     ? `Healed ${counts.healed_verified}/${items.length} to verified; ${counts.still_failing} still failing; ` +
       `${counts.resourced} resourced/${counts.unresourced} unresourced; ${counts.own_body_resolved} own_body_resolved; ` +
       `${counts.orphans_grounded} orphans_grounded/${counts.orphans_unprovable} orphans_unprovable; ` +
-      `${counts.relabeled_paragraphs} relabeled_paragraphs; ${counts.refactored_to_analysis} refactored_to_analysis; ` +
+      `${counts.relabeled_paragraphs} relabeled_paragraphs (${counts.relabel_no_owning_section} no_owning_section_found); ` +
+      `${counts.refactored_to_analysis} refactored_to_analysis; ${counts.reclassified_to_gap} reclassified_to_gap; ` +
+      `${counts.slot_repaired_to_gap} slot_repaired_to_gap; ` +
+      `${counts.cited_captured} cited-captured/${counts.cited_held} cited-held (bound hit on ${counts.cited_bound_hit_items} items); ` +
       `${counts.capture_held} capture-held; ${counts.ungrounded_after_capture} ungrounded_after_capture; ` +
       `${counts.unarchived} un-archived.`
     : `DRY — plan only, nothing written or fetched. ${counts.would_heal_verified}/${items.length} would ` +

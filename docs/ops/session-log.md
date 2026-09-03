@@ -8901,3 +8901,22 @@ grounds gate-A orphans into FACT claims when a capture states them, never invent
 validator's own label to unlabelled analysis paragraphs (the one prose edit, recorded before/after);
 RECLASSIFY re-kinds a fact no source states to labelled ANALYSIS, the honest disposition the labeling
 discipline exists for. Gate A runs once, after all writes. Suite 4321/0, fitness 29/0.
+
+### Addendum 85, postscript 15 — HEAL-2 measured: zero healed; the orphans live in the brief prose (2026-09-03)
+
+`provenance-heal quarantined-live` apply with HEAL-2 (#12, 6m 15s) [CONFIRMED, artifact]: 57 facts
+re-sourced to a primary capture, 6 institutions resolved, 130 orphans grounded, 228 paragraphs
+labelled, 638 unprovable facts re-kinded to analysis; still 95 failing, 0 healed. What the numbers
+said: `analysis_missing_label_syntax` rose 190 → 594 because the relabel step's raw substring match
+missed paragraphs that differ from the claim by whitespace or quotes (not step order, which HEAL-3
+refuted by reading the code); `missing_required_slot` rose 4 → 28 because re-kinding a slot FACT to
+ANALYSIS removed it from criterion 5's FACT/GAP count (a slot that cannot be grounded is the kit's
+GAP, never ANALYSIS); and gate A's 862 unprovable orphans are, by the scanner's own signature, 100% in
+`full_brief` prose, the LLM-written brief, which no label and no section edit can clear: the scanner
+accepts only a span-proven FACT claim. HEAL-3 (Sonnet, 26 new tests, 115 total): normalised
+containment for the relabel lookup with `no_owning_section_found` reported per miss; SLOT-REPAIR
+converts the mis-kinded slot claims back to GAP and RECLASSIFY refuses slot claims; CAPTURE-CITED
+fetches every URL the item's sections and claims cite (25 per item per run, PDFs through
+`pdf-extract.mjs`) before RESOURCE/ORPHANS so the orphan search has the sources the brief itself
+named. The residue after that run is the honest decision point: a brief that asserts facts no cited
+source states either keeps them and stays quarantined, or is rewritten to what its sources support.
