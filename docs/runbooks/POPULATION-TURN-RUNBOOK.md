@@ -93,3 +93,52 @@ this run's enrichment of the existing `mint-run-NNN.json` family artifact (no ne
 `population-turn-snapshots-<run_id>` (dry or apply, success or failure). Database writes (the mint
 itself, the `census_worklist` reconcile stamp) go through the guarded path in `apply-mint-batch.mjs`
 and leave no local file beyond the harness artifact.
+
+## Dispatching the oil-bulletin batch (ruling R-D, 2026-09-03)
+
+`scripts/_snapshots/population-browser/oil-bulletin-2026-09-03/census-rows.json` (built by
+`fsi-app/scripts/producers/market/build-oil-bulletin-rows.mjs`, committed under this repo-relative
+path even though `scripts/_snapshots/` is otherwise `.gitignore`d — see the existing
+`scripts/_snapshots/population-33749140151/census-rows.json` precedent this batch follows) is the six
+EU Weekly Oil Bulletin `market_signal` rows ruling R-D calls for, built through
+`MINT-RUNBOOK.md` §11's browser-capture escape hatch (these are not `census_worklist` rows — no
+`export-census-rows.mjs` join produced them, and no `row_id` is set — see that script's own header for
+why). Dispatch **Population turn** with:
+
+- `mode`: `dry` first, then `apply` once the dry artifact's `per_item` reads as expected.
+- `rows_file`: `scripts/_snapshots/population-browser/oil-bulletin-2026-09-03/census-rows.json` — this
+  skips `export-census-rows.mjs` entirely, exactly as the escape hatch describes.
+- `capture`: irrelevant for a `rows_file` dispatch (every row already carries `captured_text`) — leave
+  at its default.
+- `limit` / `source_id` / `celex_prefix`: not applicable to this six-row batch; leave at defaults.
+
+Every row's `source.id` is the placeholder `"PENDING-LIVE-SOURCES-LOOKUP"` (`propose-series-items.mjs`'s
+own precedent) — **before dispatching `apply`**, the coordinator must resolve the real `sources` row for
+`https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en` (MINT-RUNBOOK.md step 2:
+`SELECT id, url, base_tier, tier_override, status, institution_id FROM sources WHERE url = '...'`,
+registering it first via `registerSource` if it does not yet exist) and substitute that real `id` into
+the batch file (re-run `build-oil-bulletin-rows.mjs`, or hand-edit the six `source.id` fields — this
+batch file is not a governing file). A `dry` dispatch does not need this (no DB read happens in dry
+mode), but an `apply` dispatch against the placeholder id will fail `apply-mint-batch.mjs`'s own
+source-registration path.
+
+**Post-mint, before `refresh-published-price-statistics.mjs --apply` will do anything:**
+
+```
+node scripts/producers/market/ratify-series-items.mjs --mint-run scripts/harness-runs/mint/mint-run-NNN.json --apply
+```
+
+(`mint-run-NNN.json` = the artifact `apply-mint-batch.mjs --apply` enriched for this batch.) This reads
+that artifact's `per_item` outcomes and, for every series that reached `minted_verified` (never
+`minted_unverified` or any `not_applied_*`/failure outcome — see that script's own header for why only a
+verified row may ratify), rewrites `src/lib/market/series-item-map.mjs` in place: `item_id` set, `status:
+"ratified"`. Run it `--dry` (the default) first to see the per-series disposition before writing. Only
+then does `node scripts/producers/market/refresh-published-price-statistics.mjs --apply` start upserting
+that series' `published_price_statistics` display row — see that script's own header for why an
+unratified `SERIES_ITEM_MAP` entry is the deliberate kill-switch, not a separate flag.
+
+Note the write-set correction this batch's build surfaced: `src/lib/market/series-item-map.mjs` is a
+`.mjs` DATA MODULE (that file's own header explains the production-incident reason — a `.json` file read
+via `fs` from an `src/lib` module bundled into every page's import graph 500'd every route the first time
+it was tried), not the `scripts/producers/market/series-item-map.json` path an earlier plan named. Only
+`ratify-series-items.mjs`'s own `--apply` run may write it — never a hand edit.
