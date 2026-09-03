@@ -59,9 +59,16 @@ next `forward-events-run-006` actually exercises the FE-SLOT change against real
 this family's standing metric becomes measurable at `sha256:d47a10728a3cc799`. That dispatch is outside
 this lane's access (no live Actions dispatch here).
 
-**Family gates status:** this landing adds one run artifact and this attestation only; the
-governing-file change it records (`82f70e2f`, FE-SLOT) was already landed on master before this lane
-started — this pass reads and attests to it, it does not author it.
+**`PENDING-RUN.md` discharged, per F28 rule (c):** lane FE-SLOT's own marker recorded
+`harness_version at write time: sha256:d47a10728a3cc799`, naming "the next corpus-turn apply" as the
+run that would supersede it. run-005 IS that run and its `harness_version` matches exactly — F28's
+reverse-audit rule says the marker is deleted the moment a landed artifact's hash matches what it
+anticipated, so `forward-events/PENDING-RUN.md` is deleted in this landing (confirmed by re-running
+`node .discipline/fitness/runner.mjs`: F28 flagged it stale before the deletion, clean after).
+
+**Family gates status:** this landing adds one run artifact, deletes the now-stale `PENDING-RUN.md`, and
+adds this attestation; the governing-file change it records (`82f70e2f`, FE-SLOT) was already landed on
+master before this lane started — this pass reads and attests to it, it does not author it.
 
 ## Pass of 2026-09-03, midday (forward-events-run-003 and -004 — the turn after the first limit-200 population slice)
 
