@@ -155,6 +155,181 @@ subset (rather than the real `globals.css` + `theme.css`) left `OperationsLedger
 `.cl-ops-grid` collapse rule un-applied in the test, producing a second false "horizontal overflow"
 failure that does not reproduce in the real app.
 
+## Round 2 — lane MOBILE-2, 2026-09-03
+
+Second operator report, phone: "too much space between squished words and words doubling what's
+below them and going off page." The coordinator's own 390px production probe (same-origin iframe
+against the deployed build) measured four findings across `/regulations/g14`, `/operations`, and
+`/market`; `/`, `/research`, `/community` were clean, and `/regulations`'s ledger rows (screenshot
+`08-regulations-ledger-stale-or-broken.jpg`) were already fixed on the deployed build — that
+screenshot was a stale client session, not a live defect, and is not re-fixed here (see the
+next.config.ts finding below, which turned out to be the actual reason a stale session looked
+plausible).
+
+### Regulation detail — breadcrumb clipped + "doubling" (`09-regulation-detail-breadcrumb.jpg` →
+`after-09-regulation-detail-breadcrumb.png`)
+
+**Confirmed cause.** `RegulationDetailSurface.tsx`'s breadcrumb `<nav>` used `whiteSpace: nowrap`
+on the crumb group and the last crumb (the resource's own title) with no wrap escape — at 390px it
+ran off the right edge with no scrolling ancestor. The same last crumb, rendered a second time as
+the full title, sat directly above the real `<h1>` — the "doubling" read. Header padding was a flat
+36px with no responsive step. Zero `data-guard-title` anywhere on the page, so nothing had ever
+been measured here.
+
+**Fix.** Breadcrumb: `nowrap` removed from the group and the last crumb (`overflowWrap: anywhere`,
+`minWidth: 0` instead); the last crumb and its separator are hidden at ≤640px (`.cl-reg-crumb-last`,
+inline `<style>` in the file) rather than truncated, since the full title already renders once,
+correctly, as the `<h1>` right below — hiding the duplicate is the fix, not shrinking it further.
+Header/integrity-banner/ask-bar/`#cl-detail-grid` padding: flat `36px` → `var(--cl-detail-pad-x)`
+(new token, `globals.css`: `36px` desktop, `16px` at ≤767px — the same convention item 1 asked
+for). `data-guard-title` added to the `<h1>` and every `SectionCard`/`Accordion` heading;
+`data-guard-container` added to the header and each section card so the squeezed-title detector has
+a real container to measure against (the same false-positive class Round 1's README documents).
+Tab strip buttons, `ActionButton`, the "All N milestones →" link, and the Short/Full summary
+toggle were all under the law-2 floor (13–32px tall, several with 0–6px clearance) — fixed with
+`minHeight: 44` + inline-flex/center on each.
+
+**Also found and fixed while building the smoke spec (not in the two screenshots, but the same
+"row/card squeeze" class item 4 asked to sweep for).** `RegulationTimeline.tsx`'s date/label row
+used a fixed `gridTemplateColumns: "120px 1fr"` with `whiteSpace: nowrap` on the date — same shape
+as Round 1's `OperationsItemsView` fixed-column bug; fixed with `minmax(0, 120px) 1fr` +
+`overflowWrap: anywhere`. A blank timeline label (two milestones sharing a year) collapsed to an
+8px-wide hit target — fixed with `minWidth: 44` on the label buttons. The "All N milestones →"
+button, once grown to a real 44px hit-box for its own law-2 fix, left only ~2px of clearance to the
+first timeline dot below it (traced with a Playwright debug script calling the real
+`detectSmallTargets`/`boxGap` directly, not by inspection — the analytical gap estimate was wrong
+by 16px because of how the row's baseline alignment placed the taller box) — fixed by growing that
+row's bottom margin 6px → 18px.
+
+**Proof.** `detail-surfaces-smoke.mjs` (new), mounting all four real detail surfaces at 375×812 and
+1280×800 with an 80+ char title, a long breadcrumb, and six sections. Registered temporarily to
+verify locally, reverted before commit per the lane contract (registry line below). With the fixes
+above: `UX smoke specs: 8 (…, detail-surfaces) ux checks: 116` — 0 failures, both viewports.
+
+### Operations region matrix — clipped past the right edge (`01-operations-regions.png`'s
+successor; new production finding, not in the original seven) → `after-10-operations-matrix-mobile.png`
+
+**Confirmed cause.** `RegionDimensionMatrix.tsx`'s region×dimension table (`overflowX: auto` on its
+own wrapper, pre-existing since before this lane) requires horizontal panning to read at a phone
+width once the live region roster grows past what fits — the coordinator's probe read this off a
+screenshot as "United States 1/5 dimensions sourced" clipped at the edge. The table's own
+`overflowX: auto` makes this **not** a bug the guard's `detectClippedOverflow` detector can catch —
+that detector explicitly exempts anything behind a scrolling ancestor "on purpose (a strip)"; a
+correctly-scrolling comparison table and a deliberate horizontal strip look identical to it. Fixing
+this is a UX judgment call (a phone user should not have to pan sideways to read the page's primary
+region comparison), not a mechanically-provable regression — see the honest red-then-green writeup
+in `operations-rows-smoke.mjs`'s own comment.
+
+**Fix.** `.cl-ops-matrix-cards`/`.cl-ops-matrix-table` (`globals.css`): the table is unchanged at
+>640px; at ≤640px it is replaced with one full-width card per region (region name, "n/N
+dimensions" chip, the sourced dimensions stacked, each a real 44px expand/collapse button, wrapping
+facts). Both views share `openDimension`/`baseRegion` state so they never disagree mid-session.
+
+**Proof.** `operations-rows-smoke.mjs`'s `REGIONS` fixture grown from 5 to 6 (EU/US/ASIA/UK/UAE/SG
+— matching the coordinator's "growing live region roster" note, not a stale 5-region count). Tried
+honestly for red-then-green: reverted the component to its pre-fix (base `e5766cc0`) content in a
+worktree and ran the guard against the six-region fixture — it PASSED, unfixed, at every viewport,
+for the reason above (the detector's scrollable-ancestor exemption applies regardless of region
+count). Reported as a genuine detector-coverage gap rather than staged as a false failure. The fix
+was still built and is exercised, post-fix, by the same six-region fixture (0 failures) — see the
+`UX smoke specs: 8 (…) ux checks: 116` line above, which includes `operations-rows` unchanged in
+spec count but now measuring 6 regions instead of 5 within it.
+
+### Market upcoming-obligations strip tiles — verified, one genuine fix
+(`04-market-signals.png`'s neighbour; new finding) → `after-11-market-upcoming-strip.png`
+
+**Checked against the coordinator's two-part test.** (1) Visible affordance: the strip has no
+scroll-snap and fixed 240px cards, so whenever the strip's total content width isn't an exact
+multiple of the viewport, the next tile is genuinely, visibly partially shown — confirmed true by
+reading the markup (unchanged) and by the after-screenshot above. (2) Tile text wraps within the
+tile: **false** — the title used `whiteSpace: nowrap` + `overflow: hidden` + `textOverflow:
+ellipsis`, cutting it mid-word inside the 240px card ("Compliance deadline September 2…").
+
+**Fix.** `UpcomingObligationsStripView.tsx`'s `EventCard` title: `nowrap`/ellipsis replaced with a
+genuine 2-line wrap (`overflowWrap: anywhere`, `WebkitLineClamp: 2`) — same idiom the card already
+used one paragraph down for the obligation-text preview. `data-guard-container` added to the card
+(without it the squeezed-title detector falls back to the full page width for a 240px tile — same
+false-positive class as Round 1's cross-cutting finding). Flat `36px` strip padding also converted
+to `var(--cl-detail-pad-x)` (widens the strip and shows slightly more of the next tile on a phone).
+
+**Proof.** Exercised inside `detail-surfaces-smoke.mjs`'s Regulations mount (the strip renders on
+the same page) and directly in the after-screenshot above, which shows the title genuinely wrapped
+to two lines with a partial next tile visible at the right edge.
+
+### `next.config.ts` — dead Cache-Control config removed
+
+**Confirmed cause.** The coordinator's same-origin iframe probe against the deployed build found
+every route in the `headers()` block actually serving `Cache-Control: private, no-cache, no-store`
+in production, not the configured PERF-1 values — Next.js overrides a config-level Cache-Control on
+any dynamic route (every route here reads `cookies()`/auth, so all seven-plus are dynamic), so this
+entire block never reached a client. This is also the likely reason screenshot
+`08-regulations-ledger-stale-or-broken.jpg` showed pre-fix layout on the operator's phone after the
+fix had shipped — something in the client's own caching, never this config (it was never live), was
+serving a stale session.
+
+**Fix.** The `headers()` function and its ~38-line PERF-1 explanatory comment removed; one comment
+left naming this probe as the reason, so a future reader isn't left wondering why PERF-1's design
+doc describes headers that no longer exist in code. `redirects()` untouched.
+
+**deploymentId / skew protection — report only, not enabled.** `next.config.ts` does not set
+`deploymentId` and the app has no `vercel.json` skew-protection config; nothing to remove or
+report beyond "not configured, unchanged by this lane."
+
+### Sweep (item 4) — every file changed, every file judged fine, and why
+
+**Changed** (beyond the four findings above): `SectionCard.tsx` (heading `flexWrap`, `data-guard-
+title`, `overflowWrap`); `OperationsDetailSurface.tsx` and `ResearchFindingDetailSurface.tsx`
+(`px-9` → `var(--cl-detail-pad-x)`, `data-guard-container`/`data-guard-title` on the container/
+`BriefSection`/section-card headings, header-row `flexWrap`, **two** source-attribution `<a>` tags
+each — a hero one and a second, separately-rendered legacy "Sources" `BriefSection` one, both
+20-ish px tall, both fixed to `minHeight: 24`); `operations/[slug]/page.tsx` and
+`research/[slug]/page.tsx` (back-link padding → the same token); `ChangedSinceStrip.tsx`
+(`.cl-changed-since-grid` collapses to one column at ≤640px — a fixed multi-column grid with no
+mobile step, same defect class as Round 1's `.cl-ops-item-card`).
+
+**Judged fine, not changed** (grepped for `gridTemplateColumns`, `whiteSpace: "nowrap"`,
+`flexShrink: 0` across the four index pages, the four detail surfaces, and every directory in the
+write set): every other fixed-column grid found already had a responsive override or a legitimate
+reason to stay fixed (e.g. a two-character status badge, a small icon slot with `flexShrink: 0`
+correctly paired with a `minWidth: 0`/`flex: 1` sibling doing the actual wrapping) — read
+individually, not assumed safe by pattern match alone. None of these carried a proving smoke test
+this lane's time budget extended to write, so they are asserted by reading, not measured; flagged
+here rather than silently claimed equivalent to the measured findings above.
+
+### F35 `ROW_COMPONENTS` — lines to add (coordinator, F35-row-ux-coverage.mjs is out of this lane's
+write set)
+
+```
+'src/components/regulations/RegulationDetailSurface.tsx',
+'src/components/operations/OperationsDetailSurface.tsx',
+'src/components/research/ResearchFindingDetailSurface.tsx',
+'src/components/pages/MarketSignalDetailSurface.tsx', // coverage only — outside every lane's write set today per the brief; flag if that should change
+```
+
+Registry line to re-add if the coordinator wants `detail-surfaces-smoke.mjs` live permanently
+(`ux-smoke-specs.mjs`, reverted by this lane before commit per instruction):
+
+```js
+import { runSmoke as runDetailSurfacesSmoke } from './detail-surfaces-smoke.mjs';
+// ...
+{ name: "detail-surfaces", run: runDetailSurfacesSmoke },
+```
+
+### NEEDS WRITE-SET EXPANSION (found, not fixed — out of this lane's write set)
+
+- `src/components/pages/MarketSignalDetailSurface.tsx` — the Market detail surface's own header/
+  breadcrumb/tabs were never audited or fixed by this lane (`src/components/pages/**` not in the
+  write set); mounted read-only in `detail-surfaces-smoke.mjs` for coverage, all assertions skipped.
+- `src/components/shell/PageMasthead.tsx` (and its wrapper `src/components/ui/EditorialMasthead.tsx`)
+  — already well-built (title clamp, 640px breakpoint, flexWrap — confirmed by reading), but carries
+  no `data-guard-title`, so Operations/Research's page-level `<h1>` (rendered by `page.tsx` through
+  this component, not the detail surfaces) is unmeasured by any smoke spec. `src/components/shell/**`
+  and `src/components/ui/**` are both outside the write set.
+- `@/components/ui/AiPromptBar` — the chip row + input + "Ask" button below `RegulationDetailSurface`'s
+  header fails law-2 (5 targets, 17–21px). Pre-existing, not introduced by this lane;
+  `src/components/ui/**` is outside the write set. Excluded from `detail-surfaces-smoke.mjs`'s
+  assertions by name, not silently passed.
+
 ## Not reproduced / not independently confirmed
 
 Screenshots 01–07 above were each read against the named file and the described defect confirmed in

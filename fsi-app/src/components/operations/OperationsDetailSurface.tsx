@@ -262,6 +262,7 @@ function MatrixOmitNote({
           padding: "14px 22px",
           background: "var(--color-bg-raised)",
           borderBottom: "1px solid var(--color-border-subtle, var(--color-border))",
+          flexWrap: "wrap",
         }}
       >
         <span
@@ -283,12 +284,15 @@ function MatrixOmitNote({
           S{sectionKey}
         </span>
         <span
+          data-guard-title
           style={{
             fontSize: 13.5,
             fontWeight: 700,
             letterSpacing: "0.06em",
             textTransform: "uppercase",
             color: "var(--color-text-muted)",
+            overflowWrap: "anywhere",
+            minWidth: 0,
           }}
         >
           {heading}
@@ -344,6 +348,7 @@ function OperationsSectionCard({
           padding: "14px 22px",
           background: "var(--color-bg-raised)",
           borderBottom: "1px solid var(--color-border-subtle, var(--color-border))",
+          flexWrap: "wrap",
         }}
       >
         <span
@@ -364,12 +369,15 @@ function OperationsSectionCard({
           S{sectionKey}
         </span>
         <span
+          data-guard-title
           style={{
             fontSize: 13.5,
             fontWeight: 700,
             letterSpacing: "0.06em",
             textTransform: "uppercase",
             color: "var(--color-text-primary)",
+            overflowWrap: "anywhere",
+            minWidth: 0,
           }}
         >
           {heading}
@@ -581,6 +589,7 @@ function BriefSection({ title, children }: { title: string; children: React.Reac
       style={{ padding: "22px 26px", marginBottom: 14 }}
     >
       <h3
+        data-guard-title
         style={{
           fontFamily: "var(--font-display)",
           fontSize: 22,
@@ -591,6 +600,7 @@ function BriefSection({ title, children }: { title: string; children: React.Reac
           paddingBottom: 12,
           borderBottom: "1px solid var(--color-border-subtle, var(--color-border))",
           color: "var(--color-text-primary)",
+          overflowWrap: "anywhere",
         }}
       >
         {title}
@@ -722,7 +732,11 @@ export function OperationsDetailSurface({
   const jurisdiction = r.jurisdiction || null;
 
   return (
-    <div className="px-9 pt-8 pb-16 max-w-[1280px] mx-auto">
+    // Lane MOBILE-2, 2026-09-03 sweep: `px-9` (36px, Tailwind) had no responsive step-down, unlike
+    // the cl-page-pad convention (16px at <=767px) — the same shape item 1's detail-header padding
+    // fix addresses on Regulations. `px-[var(--cl-detail-pad-x)]` (globals.css) shares that one
+    // breakpoint via Tailwind's arbitrary-value syntax instead of a second hardcoded media query.
+    <div className="px-[var(--cl-detail-pad-x)] pt-8 pb-16 max-w-[1280px] mx-auto" data-guard-container="operations-detail">
       {/* Hero card */}
       <div
         className="cl-card"
@@ -818,7 +832,10 @@ export function OperationsDetailSurface({
                 href={sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ color: "var(--color-primary)", fontWeight: 600 }}
+                // Law-2 floor: a plain text link with no padding — surfaced for the first time by
+                // this lane's own detail-surfaces-smoke.mjs. minHeight + inline-flex/center reaches
+                // the 24px+8px-clearance alternative without changing the visible link.
+                style={{ color: "var(--color-primary)", fontWeight: 600, display: "inline-flex", alignItems: "center", minHeight: 24 }}
               >
                 {sourceName || sourceUrl}
               </a>
@@ -987,7 +1004,9 @@ export function OperationsDetailSurface({
                       href={sourceUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ color: "var(--color-primary)" }}
+                      // Law-2 floor: same fix as the hero source-attribution link above — surfaced
+                      // for the first time by this lane's own detail-surfaces-smoke.mjs.
+                      style={{ color: "var(--color-primary)", display: "inline-flex", alignItems: "center", minHeight: 24 }}
                     >
                       {sourceName || sourceUrl}
                     </a>

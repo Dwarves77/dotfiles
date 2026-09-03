@@ -207,7 +207,15 @@ export function RegionDimensionMatrix({
         </span>
       </div>
 
-      <div style={{ overflowX: "auto" }}>
+      {/* Lane MOBILE-2, 2026-09-03 (coordinator's round-2 probe, /operations, "United States 1/5
+          dimensions sourced" clipped at the right edge on a growing live region roster): the wide
+          table already scrolled inside this div's own overflowX:auto (pre-existing), but requiring
+          horizontal panning for the PAGE'S PRIMARY comparison view on a phone is poor UX regardless
+          of whether the guard's clipped-overflow detector technically passes. `.cl-ops-matrix-table`
+          hides this table at <=640px (globals.css); `.cl-ops-matrix-cards` below replaces it with one
+          card per region at that width. Desktop is unchanged — same table, same class list plus the
+          new one. */}
+      <div className="cl-ops-matrix-table" style={{ overflowX: "auto" }}>
         <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
           <thead style={{ backgroundColor: "var(--color-surface-raised)" }}>
             <tr>
@@ -303,6 +311,117 @@ export function RegionDimensionMatrix({
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile card reflow (<=640px, see the table's own comment above): one card per region —
+          region name, "n/total dimensions" chip, the sourced dimensions stacked, each with a
+          real >=44px expand/collapse control and wrapping facts. Shares `openDimension` /
+          `baseRegion` state with the table so the two never disagree when a viewport crosses the
+          breakpoint mid-session. */}
+      <div className="cl-ops-matrix-cards" data-guard-container="ops-region-card">
+        {orderedRegions.map((r) => {
+          const cov = coverageByRegion[r.key];
+          return (
+            <div
+              key={r.key}
+              style={{
+                border: "1px solid var(--color-border)",
+                borderRadius: 8,
+                padding: "14px 16px",
+                marginBottom: 12,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: cov?.crossReferenceCount > 0 ? 4 : 8 }}>
+                <span data-guard-title style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text-primary)", overflowWrap: "anywhere", minWidth: 0 }}>
+                  {r.label}
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "3px 9px",
+                    borderRadius: 12,
+                    whiteSpace: "nowrap",
+                    background: "var(--color-surface-raised)",
+                    color: cov?.filled ? "var(--color-text-secondary)" : "var(--color-error)",
+                  }}
+                >
+                  {cov?.filled ?? 0}/{cov?.total ?? 0} dimensions
+                </span>
+              </div>
+              {cov?.crossReferenceCount > 0 && (
+                <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 8 }}>
+                  {cov.crossReferenceCount} linked regulations
+                </div>
+              )}
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {dimensions.map((d) => {
+                  const c = grid.byCell[`${r.key}|${d.db}`];
+                  const open = openDimension === d.db;
+                  const hasData = !!c && c.factCount > 0;
+                  const fresh = c?.facts[0]?.freshness ?? "unknown";
+                  return (
+                    <div key={d.db} style={{ borderTop: "1px solid var(--color-border-subtle)" }}>
+                      <button
+                        type="button"
+                        onClick={() => setOpenDimension(open ? null : d.db)}
+                        aria-expanded={open}
+                        style={{
+                          width: "100%",
+                          minHeight: 44,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 10,
+                          background: "none",
+                          border: "none",
+                          padding: "6px 0",
+                          cursor: "pointer",
+                          textAlign: "left",
+                        }}
+                      >
+                        <span style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-primary)", overflowWrap: "anywhere", minWidth: 0 }}>
+                          {d.name}
+                        </span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                          {hasData ? (
+                            <span style={{ fontSize: 11, color: "var(--color-text-secondary)", whiteSpace: "nowrap" }}>
+                              {c!.factCount} · <span style={{ color: FRESHNESS_COLOR[fresh] }}>{FRESHNESS_LABEL[fresh]}</span>
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 11, color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>no data</span>
+                          )}
+                          <span aria-hidden style={{ fontSize: 16, fontWeight: 700, lineHeight: 1, color: "var(--color-primary)" }}>
+                            {open ? "−" : "+"}
+                          </span>
+                        </span>
+                      </button>
+                      {open && (
+                        <div style={{ padding: "0 0 12px" }}>
+                          {!hasData ? (
+                            <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
+                              No sourced fact for {r.key} on this dimension.
+                            </span>
+                          ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                              {c!.facts.map((f: any, i: number) =>
+                                isEnvelopedFact(f) ? (
+                                  <EnvelopedFactRow key={i} fact={f} baseFact={baseFactFor(d.db, f)} isBaseColumn={r.key === baseRegion} />
+                                ) : (
+                                  <LegacyFactRow key={i} fact={f} />
+                                )
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {grid.emptyRegions.length > 0 && (

@@ -197,34 +197,57 @@ export function RegulationDetailSurface({
   return (
     <div style={{ padding: "0 0 90px", fontFamily: "var(--font-sans)", color: C.ink }}>
       {/* ── Hero header ── */}
-      <header style={{ background: C.card, borderBottom: `1px solid ${C.hair}` }}>
-        <div style={{ padding: "18px 36px 0" }}>
-          {/* Breadcrumb (replaces the VOL eyebrow on detail pages) */}
+      <header
+        data-guard-container="regulation-detail-header"
+        style={{ background: C.card, borderBottom: `1px solid ${C.hair}` }}
+      >
+        <div style={{ paddingTop: 18, paddingLeft: "var(--cl-detail-pad-x)", paddingRight: "var(--cl-detail-pad-x)" }}>
+          {/* Breadcrumb (replaces the VOL eyebrow on detail pages). Lane MOBILE-2, 2026-09-03
+              (coordinator's round-2 probe, screenshot 09-regulation-detail-breadcrumb.jpg): the
+              group crumb ran `whiteSpace: nowrap` with no wrap escape, so at 390px it clipped past
+              the right edge, AND the last crumb (the full title, truncated) sat directly above the
+              real H1 — reading as the title rendering twice ("words doubling what's below them").
+              Fix: no nowrap on any crumb (wrap allowed); the last crumb (the title, redundant with
+              the H1 one line below it) is omitted entirely at <=640px via `.cl-reg-crumb-last`. */}
           <nav
             aria-label="Breadcrumb"
-            style={{ fontSize: 12, margin: "0 0 12px", display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}
+            style={{ fontSize: 12, margin: "0 0 12px", display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap", minWidth: 0 }}
           >
-            <Link href="/regulations" prefetch={false} style={{ color: C.ink2, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}>
+            <Link
+              href="/regulations"
+              prefetch={false}
+              // Law-2 floor: a plain text link, no padding — surfaced for the first time by this
+              // lane's own detail-surfaces-smoke.mjs (no prior spec mounted this breadcrumb). Reaches
+              // the 24px+8px-clearance alternative without changing the visible link's size.
+              style={{ color: C.ink2, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", minHeight: 24 }}
+            >
               Regulations
             </Link>
             <span style={{ color: C.muted }}>/</span>
-            <span style={{ color: C.ink2, fontWeight: 600, whiteSpace: "nowrap" }}>{crumbGroup}</span>
-            <span style={{ color: C.muted }}>/</span>
+            <span style={{ color: C.ink2, fontWeight: 600, overflowWrap: "anywhere", minWidth: 0 }}>{crumbGroup}</span>
+            <span style={{ color: C.muted }} className="cl-reg-crumb-last-sep">/</span>
             <span
-              style={{ color: C.ink, fontWeight: 800, whiteSpace: "nowrap", maxWidth: "48ch", overflow: "hidden", textOverflow: "ellipsis" }}
+              className="cl-reg-crumb-last"
+              style={{ color: C.ink, fontWeight: 800, maxWidth: "48ch", overflowWrap: "anywhere", minWidth: 0 }}
               title={crumbItem}
             >
               {crumbItem}
             </span>
           </nav>
+          <style>{`
+            @media (max-width: 640px) {
+              .cl-reg-crumb-last, .cl-reg-crumb-last-sep { display: none !important; }
+            }
+          `}</style>
 
           <div style={{ display: "flex", justifyContent: "space-between", gap: 24, alignItems: "flex-start", flexWrap: "wrap" }}>
-            <div style={{ maxWidth: "86ch" }}>
+            <div style={{ maxWidth: "86ch", minWidth: 0 }}>
               {/* Mobile-fix 2026-08-01: the Anton/uppercase poster treatment is
                   reserved for short display titles. Long official instrument
                   titles (200+ chars) render in the body face, mixed case, with
                   a viewport-clamped size. */}
               <h1
+                data-guard-title
                 style={
                   r.title.length > 80
                     ? {
@@ -254,7 +277,7 @@ export function RegulationDetailSurface({
                 {r.title}
               </h1>
               {deck && (
-                <p style={{ fontSize: 13, color: C.ink2, margin: "10px 0 0", lineHeight: 1.6 }}>{deck}</p>
+                <p style={{ fontSize: 13, color: C.ink2, margin: "10px 0 0", lineHeight: 1.6, overflowWrap: "anywhere", minWidth: 0 }}>{deck}</p>
               )}
             </div>
 
@@ -296,7 +319,7 @@ export function RegulationDetailSurface({
           </div>
 
           {/* Tab strip */}
-          <div style={{ display: "flex", gap: 2, margin: "18px 0 0", overflowX: "auto" }} role="tablist" aria-label="Regulation views">
+          <div data-guard-strip style={{ display: "flex", gap: 2, margin: "18px 0 0", overflowX: "auto" }} role="tablist" aria-label="Regulation views">
             {TABS.map((t) => {
               const active = tab === t.key;
               return (
@@ -310,6 +333,12 @@ export function RegulationDetailSurface({
                     fontSize: 12.5,
                     fontWeight: active ? 800 : 600,
                     padding: "10px 18px",
+                    // Law-2 floor: was ~36px tall with 2px gap between tabs (below both the 44px
+                    // floor and the 24px+8px-clearance alternative). minHeight + inline-flex/center
+                    // reaches the floor without changing the tab's visible padding/type.
+                    minHeight: 44,
+                    display: "inline-flex",
+                    alignItems: "center",
                     whiteSpace: "nowrap",
                     border: 0,
                     borderBottom: `3px solid ${active ? C.accent : "transparent"}`,
@@ -328,13 +357,13 @@ export function RegulationDetailSurface({
 
       {/* Admin integrity banner (admins only) */}
       {showIntegrityBanner && (
-        <div style={{ padding: "16px 36px 0" }}>
+        <div style={{ paddingTop: 16, paddingLeft: "var(--cl-detail-pad-x)", paddingRight: "var(--cl-detail-pad-x)" }}>
           <IntegrityBanner phrase={r.agentIntegrityPhrase!} />
         </div>
       )}
 
       {/* Ask bar — page-scoped */}
-      <div style={{ padding: "22px 36px 0" }}>
+      <div style={{ paddingTop: 22, paddingLeft: "var(--cl-detail-pad-x)", paddingRight: "var(--cl-detail-pad-x)" }}>
         <AiPromptBar
           placeholder={`Ask anything about ${r.title} — e.g. what does this mean for my workspace?`}
           chips={[
@@ -349,7 +378,9 @@ export function RegulationDetailSurface({
       <div
         id="cl-detail-grid"
         style={{
-          padding: "22px 36px 0",
+          paddingTop: 22,
+          paddingLeft: "var(--cl-detail-pad-x)",
+          paddingRight: "var(--cl-detail-pad-x)",
           display: "grid",
           gridTemplateColumns: "minmax(0,1fr) 264px",
           gap: 24,
@@ -420,6 +451,14 @@ function ActionButton({
         fontSize: 11.5,
         fontWeight: primary ? 800 : 700,
         padding: "8px 16px",
+        // Law-2 floor: was ~31px tall (padding: "8px 16px" at 11.5px text) — under the 44px floor
+        // and, with only the row's own 8px gap between buttons, borderline on the 24px+8px-clearance
+        // alternative too. minHeight + inline-flex/center reaches the floor without changing the
+        // button's visible padding/type.
+        minHeight: 44,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
         borderRadius: 6,
         border: `1px solid ${primary ? (hover ? C.accentHover : C.accent) : hover ? C.accent : C.hairStrong}`,
         background: primary ? (hover ? C.accentHover : C.accent) : C.card,
@@ -490,9 +529,15 @@ function IntegrityBanner({ phrase }: { phrase: string }) {
 
 // ── Reusable card + accordion ──────────────────────────────────────────
 
-function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+function Card({
+  children,
+  style,
+  ...rest
+}: { children: React.ReactNode; style?: React.CSSProperties } & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div style={{ background: C.card, border: `1px solid ${C.hair}`, borderRadius: 8, ...style }}>{children}</div>
+    <div style={{ background: C.card, border: `1px solid ${C.hair}`, borderRadius: 8, ...style }} {...rest}>
+      {children}
+    </div>
   );
 }
 
@@ -522,7 +567,7 @@ function Accordion({
 }) {
   const [open, setOpen] = useState(true);
   return (
-    <Card style={{ overflow: "hidden", marginBottom: 14 }}>
+    <Card data-guard-container="regulation-accordion" style={{ overflow: "hidden", marginBottom: 14 }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -543,7 +588,7 @@ function Accordion({
         }}
       >
         <span style={{ minWidth: 0 }}>
-          <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase", color: C.ink }}>
+          <span data-guard-title style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase", color: C.ink, overflowWrap: "anywhere" }}>
             {title}
             {count && (
               <span style={{ fontWeight: 700, color: C.muted, letterSpacing: "0.02em", textTransform: "none" }}> · {count}</span>
@@ -664,13 +709,22 @@ function SummaryTab({
       <Card style={{ padding: "16px 20px", marginBottom: 14 }}>
         {/* Mobile-fix 2026-08-01: flexWrap + nowrap so the milestones link
             wraps below the eyebrow on narrow viewports instead of clipping. */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "0 0 6px", flexWrap: "wrap", gap: 6 }}>
+        {/* Lane MOBILE-2, 2026-09-03: bumped bottom margin 6px -> 18px. Root cause traced via a
+            Playwright debug script calling the real detectSmallTargets/boxGap: once the "All N
+            milestones" button below was grown to a 44px hit-box for its own law-2 fix, that taller
+            box's bottom edge sat only ~2px above the first timeline dot's 24px hit-box (the nominal
+            6px row margin + 12px track top-margin no longer accounted for the extra ~28px the box
+            grew by). +12px here restores >=8px clearance without touching the track's own rhythm. */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "0 0 18px", flexWrap: "wrap", gap: 6 }}>
           <PlateEyebrow>Timeline</PlateEyebrow>
           {r.timeline && r.timeline.length > 0 && (
             <button
               type="button"
               onClick={onOpenTimeline}
-              style={{ fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 800, color: C.accent, background: "none", border: "none", cursor: "pointer", padding: 0, whiteSpace: "nowrap" }}
+              // Law-2 floor: was 0 padding at 11px text (~13px tall) — surfaced for the first time
+              // by this lane's own detail-surfaces-smoke.mjs. minHeight + inline-flex/center reaches
+              // the 24px+8px-clearance alternative without changing the visible link's type/padding.
+              style={{ fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 800, color: C.accent, background: "none", border: "none", cursor: "pointer", padding: 0, minHeight: 44, display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}
             >
               All {r.timeline.length} milestones →
             </button>
@@ -800,6 +854,12 @@ function Segment({
         fontSize: 11.5,
         fontWeight: active ? 800 : 600,
         padding: "8px 16px",
+        // Law-2 floor: was ~32px tall with 1px between the two segments — surfaced for the first
+        // time by this lane's own detail-surfaces-smoke.mjs. minHeight + inline-flex/center reaches
+        // the floor without changing the segment's visible padding/type.
+        minHeight: 44,
+        display: "inline-flex",
+        alignItems: "center",
         border: active ? `1px solid ${C.ink}` : `1px solid ${C.hairStrong}`,
         background: active ? C.ink : C.card,
         color: active ? "#fff" : disabled ? "rgba(0,0,0,0.3)" : C.ink2,
@@ -989,7 +1049,13 @@ function InteractiveTimeline({ items }: { items: TimelineEntry[] }) {
           );
         })}
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", margin: "10px clamp(16px, 8vw, 40px) 0" }}>
+      {/* Law-2 floor: the dot buttons above are absolutely centered on the 4px track (their 24px hit
+          box extends 12px below the track's own bottom edge); this row's PRIOR 10px top margin left
+          its label buttons' hit boxes touching the dots' hit boxes (0px clearance) — surfaced for the
+          first time by this lane's own detail-surfaces-smoke.mjs, which is the first spec to measure
+          real timeline data here for law-2. 18px (was 10px) reaches the 8px-clearance floor without
+          moving the visible dots or changing the label row's own look. */}
+      <div style={{ display: "flex", justifyContent: "space-between", margin: "24px clamp(16px, 8vw, 40px) 0" }}>
         {shown.map((m, i) => {
           // Year-only labels repeat within a year; blank a label that equals the previous
           // rendered one so capped strips never show a "202520252025" run.
@@ -997,7 +1063,11 @@ function InteractiveTimeline({ items }: { items: TimelineEntry[] }) {
           const label = i > 0 && shortDate(shown[i - 1].date) === yr ? "" : yr;
           // Law-2 floor (screenshot-adjacent defect, brief-confirmed): these labels rendered ~11px
           // tall (padding: 0, an 11px font's own line box). `minHeight: 44` with the row centered
-          // reaches the floor without changing the visible label's size or position.
+          // reaches the floor without changing the visible label's size or position. `minWidth: 44`
+          // added lane MOBILE-2, 2026-09-03 (surfaced by this lane's own detail-surfaces-smoke.mjs,
+          // a fixture with two milestones in the same year): a BLANK label (the dedup rule two lines
+          // up) collapses the button to just its own "0 4px" padding — an 8px-wide target, still a
+          // real (aria-labelled) tap target for that milestone, just visually blank.
           return (
             <button
               key={i}
@@ -1010,8 +1080,10 @@ function InteractiveTimeline({ items }: { items: TimelineEntry[] }) {
                 cursor: "pointer",
                 padding: "0 4px",
                 minHeight: 44,
+                minWidth: 44,
                 display: "inline-flex",
                 alignItems: "center",
+                justifyContent: "center",
                 fontSize: 11,
                 fontWeight: i === pick ? 800 : 600,
                 color: i === pick ? C.ink : C.muted,

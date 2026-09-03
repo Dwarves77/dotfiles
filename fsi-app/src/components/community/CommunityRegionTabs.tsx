@@ -60,6 +60,7 @@ export function CommunityRegionTabs({
         overflowX: "auto",
       }}
       className="scrollbar-none"
+      data-guard-strip
     >
       {regions.map((r) => {
         const on = r.code === active;

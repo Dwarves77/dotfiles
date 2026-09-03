@@ -58,44 +58,16 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: APP_ROOT,
   },
-  // Cache-Control: see docs/sprint-1/perf-1-design.md for the full design.
-  //
-  // PERF-1 (2026-05-18) supersedes the prior perf/cache-headers-swr-expansion
-  // pilot (2026-05-10) for the 7 PERF-1 routes specifically. The pilot used
-  // a content-blind universal `private, max-age=30, swr=300` across the
-  // protected HTML routes. PERF-1 replaces that with content-aware TTLs
-  // anchored on the observed payload-stability windows for each route:
-  //
-  //   /regulations          max-age=300, swr=60   (index, refreshes with ingest)
-  //   /regulations/:slug    max-age=900, swr=120  (detail, stable per item)
-  //   /market               max-age=3600, swr=300 (weekly-aggregation payload)
-  //   /research             max-age=300, swr=60   (index, refreshes with ingest)
-  //   /operations           max-age=300, swr=60   (index, refreshes with ingest)
-  //   /map                  max-age=900, swr=120  (slim geo payload, stable)
-  //   /                     max-age=120, swr=30   (dashboard, lightest cache)
-  //
-  // All entries use `private` to keep responses out of any shared CDN cache;
-  // edge / shared-cache work is captured as PERF-2 in the design doc and
-  // requires middleware-driven cache keys (deferred).
-  //
-  // OUT OF PERF-1 SCOPE (left untouched):
-  //   /community(/.*)?      retains the pilot's 30s/300s pattern; PERF-1 has
-  //                         no scope to modify this surface and the prior
-  //                         pilot's posture is a working baseline. Community
-  //                         is mutate-on-action; longer cache windows need a
-  //                         mutation-invalidation hook design that PERF-1
-  //                         intentionally skips.
-  //   /admin, /login, /settings  not cached. Triage / auth / settings
-  //                         surfaces need fresh data; design doc lists them
-  //                         as OUT.
-  //
-  // Risk (unchanged from pilot): browser caches are independent of
-  // `revalidateTag(APP_DATA_TAG)`. In-page mutations that must be immediately
-  // visible should call `router.refresh()` to bypass the browser cache for
-  // the RSC payload.
-  //
-  // Q1-Q6 resolved in docs/sprint-1/perf-1-design.md; no operator decisions
-  // required at PR review.
+  // PERF-1's `headers()` Cache-Control block (docs/sprint-1/perf-1-design.md) removed, lane
+  // MOBILE-2, 2026-09-03: the coordinator's same-origin iframe probe against the deployed build
+  // (2026-09-03) found every one of these page routes actually serving `Cache-Control: private,
+  // no-cache, no-store` in production — Next overrides a config-level Cache-Control header on a
+  // dynamic route (every route here reads cookies()/auth, so all are dynamic) — making this entire
+  // block dead configuration; it never reached a client. It was also the reason screenshot
+  // 08-regulations-ledger-stale-or-broken.jpg showed the pre-fix layout on the operator's phone
+  // AFTER the fix had shipped: something in the client's caching (long since not this config, since
+  // it was never live) was serving a stale session. See this lane's REPORT for what next.config.ts
+  // does and does not configure around deployment/skew.
   // Config-level redirects. /events is not one of the five customer surfaces — community
   // events live under /community. The prior src/app/events/page.tsx stub redirected to a
   // nonexistent /community/events (404); it is removed and this config redirect is the
@@ -106,86 +78,6 @@ const nextConfig: NextConfig = {
       // V-09 (2026-07-11): /account has no page (latent 404, zero inbound links). Account
       // settings live at /profile; a permanent redirect closes the 404 for any bookmark/crawler.
       { source: "/account", destination: "/profile", permanent: true },
-    ];
-  },
-  async headers() {
-    return [
-      // ── PERF-1 (2026-05-18): content-aware TTLs per design doc ──
-      // /regulations/:slug listed BEFORE /regulations so the more specific
-      // pattern matches first (Next.js evaluates headers entries in order).
-      {
-        source: "/regulations/:slug",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "private, max-age=900, stale-while-revalidate=120",
-          },
-        ],
-      },
-      {
-        source: "/regulations",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "private, max-age=300, stale-while-revalidate=60",
-          },
-        ],
-      },
-      {
-        source: "/market",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "private, max-age=3600, stale-while-revalidate=300",
-          },
-        ],
-      },
-      {
-        source: "/research",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "private, max-age=300, stale-while-revalidate=60",
-          },
-        ],
-      },
-      {
-        source: "/operations",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "private, max-age=300, stale-while-revalidate=60",
-          },
-        ],
-      },
-      {
-        source: "/map",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "private, max-age=900, stale-while-revalidate=120",
-          },
-        ],
-      },
-      {
-        source: "/",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "private, max-age=120, stale-while-revalidate=30",
-          },
-        ],
-      },
-      // ── OUT OF PERF-1 scope: pilot baseline preserved ──
-      {
-        source: "/community(/.*)?",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "private, max-age=30, stale-while-revalidate=300",
-          },
-        ],
-      },
     ];
   },
 };

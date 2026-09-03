@@ -20,7 +20,12 @@ export function RegulationTimeline({ entries }: { entries: TimelineEntry[] }) {
           key={i}
           style={{
             display: "grid",
-            gridTemplateColumns: "120px 1fr",
+            // Lane MOBILE-2, 2026-09-03 sweep: was a FIXED 120px date column with `whiteSpace:
+            // nowrap` beside a wrapping label — the exact squeeze/overflow shape docs/design/
+            // ux-laws.md's row system targets (a nowrap sibling that can outgrow its fixed track).
+            // minmax(0, 120px) lets the date column shrink instead of overflowing its track when a
+            // localized date string (e.g. "16 October 2024") runs wider than 120px at small sizes.
+            gridTemplateColumns: "minmax(0, 120px) 1fr",
             gap: 16,
             paddingBottom: 10,
             borderBottom: i < shown.length - 1 ? "1px solid var(--color-border-subtle)" : "none",
@@ -32,13 +37,14 @@ export function RegulationTimeline({ entries }: { entries: TimelineEntry[] }) {
               fontSize: 13,
               letterSpacing: "0.06em",
               color: "var(--color-primary)",
-              whiteSpace: "nowrap",
+              overflowWrap: "anywhere",
+              minWidth: 0,
             }}
           >
             {e.date}
           </span>
-          <div>
-            <p style={{ fontSize: 14, lineHeight: 1.55, color: "var(--color-text-primary)", margin: 0 }}>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: 14, lineHeight: 1.55, color: "var(--color-text-primary)", margin: 0, overflowWrap: "anywhere" }}>
               {e.label}
             </p>
             {e.source && (

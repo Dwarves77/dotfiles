@@ -15,7 +15,7 @@ export function ObligationsTable({ rows }: { rows: ObligationRow[] }) {
   if (shown.length === 0) return null;
   return (
     <div style={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
+      <table className="cl-table-cards" style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
         <thead>
           <tr style={{ background: "var(--color-bg-raised)" }}>
             <th style={th}>Obligation</th>
@@ -27,10 +27,10 @@ export function ObligationsTable({ rows }: { rows: ObligationRow[] }) {
         <tbody>
           {shown.map((r, i) => (
             <tr key={i} style={{ borderTop: "1px solid var(--color-border-subtle)" }}>
-              <td style={td}>{r.obligation}</td>
-              <td style={td}>{r.deadline}</td>
-              <td style={td}>{r.status}</td>
-              <td style={td}>{r.nextAction}</td>
+              <td data-label="Obligation" style={td}>{r.obligation}</td>
+              <td data-label="Deadline" style={td}>{r.deadline}</td>
+              <td data-label="Status" style={td}>{r.status}</td>
+              <td data-label="Next action" style={td}>{r.nextAction}</td>
             </tr>
           ))}
         </tbody>

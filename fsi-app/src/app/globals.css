@@ -512,3 +512,51 @@ body {
   }
 }
 
+/* ═══════════════════════════════════════════════════
+   DETAIL SURFACE HEADER PADDING (lane MOBILE-2, 2026-09-03) — coordinator's round-2 probe
+   (same-origin iframe, production, 2026-09-03): /regulations/g14's header used a hardcoded
+   `padding: "18px 36px 0"` with no responsive escape (36px side padding at a 390px phone), unlike
+   the cl-page-pad convention (16px at <=767px) every other page follows. One CSS variable so every
+   detail-surface header — Regulations (RegulationDetailSurface.tsx, inline paddingLeft/Right),
+   Operations/Research (OperationsDetailSurface.tsx / ResearchFindingDetailSurface.tsx, Tailwind
+   arbitrary-value `px-[var(--cl-detail-pad-x)]`) — shares the same breakpoint without each file
+   re-declaring its own @media block. MarketSignalDetailSurface.tsx (src/components/pages/, outside
+   this lane's write set) is NOT wired to this variable — see this lane's REPORT, "NEEDS WRITE-SET
+   EXPANSION". */
+:root { --cl-detail-pad-x: 36px; }
+@media (max-width: 767px) {
+  :root { --cl-detail-pad-x: 16px; }
+}
+
+/* ═══════════════════════════════════════════════════
+   REGION-DIMENSION MATRIX MOBILE REFLOW (lane MOBILE-2, 2026-09-03) — coordinator's round-2 probe:
+   RegionDimensionMatrix.tsx's region x dimension table (5-7 region columns x minmax 130px) scrolls
+   inside its own overflowX:auto wrapper (pre-existing, still holds — confirmed by this lane's
+   detector proof), but a wide table requiring horizontal panning for the PRIMARY comparison view on
+   a phone is poor UX regardless (Fitts/Prägnanz), and got worse as the live region roster grew past
+   the 5-region fixture the first MOBILE lane tested with. At <=640px the table is replaced by one
+   card per region (own div, own class below); the table itself is hidden, not removed, so desktop
+   is byte-for-byte unchanged. */
+.cl-ops-matrix-cards { display: none; }
+@media (max-width: 640px) {
+  .cl-ops-matrix-table { display: none !important; }
+  .cl-ops-matrix-cards { display: block !important; }
+}
+
+
+/* Responsive data table → stacked cards (coordinator, 2026-09-03, round 2). ROOT CAUSE (regulations
+   obligation register, peer-org directory, detail obligations table): a five-or-six column <table> is
+   700+px wide and its `overflow-x: auto` wrapper turned a phone into a sideways-panning surface; the
+   clipped-overflow detector now refuses that (only a declared `data-guard-strip` may carry content past
+   the edge). At ≤640px every row becomes a card and every cell a "label: value" line, the label taken
+   from the cell's own `data-label`. Desktop unchanged. Usage: <table className="cl-table-cards">,
+   <td data-label="Due">. */
+@media (max-width: 640px) {
+  .cl-table-cards, .cl-table-cards tbody, .cl-table-cards tr, .cl-table-cards td { display: block !important; width: 100% !important; min-width: 0 !important; }
+  .cl-table-cards thead { display: none !important; }
+  .cl-table-cards tr { border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.08)) !important; border-radius: 8px; padding: 10px 12px; margin: 0 0 10px; background: var(--color-bg-surface, #fff); }
+  .cl-table-cards td { padding: 4px 0 !important; border: 0 !important; white-space: normal !important; overflow-wrap: anywhere; display: grid !important; grid-template-columns: 7.5em minmax(0, 1fr); column-gap: 10px; align-items: baseline; }
+  .cl-table-cards td::before { content: attr(data-label); font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted, #6b6b6b); }
+  .cl-table-cards td[data-label=""]::before { content: none; }
+  .cl-table-cards td * { white-space: normal !important; }
+}

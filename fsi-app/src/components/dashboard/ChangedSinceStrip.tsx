@@ -93,7 +93,19 @@ export async function ChangedSinceStrip() {
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: sourceChanged.length && themeChanged.length ? "1fr 1fr" : "1fr", gap: 24 }}>
+    // Lane MOBILE-2, 2026-09-03 sweep: when BOTH signals are present the strip rendered a fixed
+    // "1fr 1fr" side-by-side grid with no responsive step-down — at 375px each column got ~half the
+    // viewport, squeezing item titles. `.cl-changed-since-grid` collapses to one column (source
+    // changes above theme changes, order unchanged) at <=640px; desktop is unaffected.
+    <div
+      className="cl-changed-since-grid"
+      style={{ display: "grid", gridTemplateColumns: sourceChanged.length && themeChanged.length ? "1fr 1fr" : "1fr", gap: 24 }}
+    >
+      <style>{`
+        @media (max-width: 640px) {
+          .cl-changed-since-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
       {sourceChanged.length > 0 && (
         <div>
           <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--color-text-secondary, #666)", marginBottom: 4 }}>

@@ -184,7 +184,7 @@ export function ObligationRegisterFilterBar({ rows, variant = "list", sourceEven
         <p style={emptyTextStyle}>No obligations match these filters.</p>
       ) : (
         <div style={{ overflowX: "auto" }}>
-          <table style={tableStyle}>
+          <table className="cl-table-cards" style={tableStyle}>
             <thead>
               <tr>
                 <Th>Due</Th>
@@ -212,15 +212,15 @@ function Row({ row }: { row: ObligationRow }) {
   const bp = row.binding_position ? BINDING_POSITION[row.binding_position] : null;
   return (
     <tr style={{ borderTop: "1px solid var(--border-sub, rgba(0,0,0,0.08))" }}>
-      <td style={tdStyle}>
+      <td data-label="Due" style={tdStyle}>
         {row.due_date ? (
           <span style={{ fontWeight: 700 }}>{formatEventDate(row.due_date, row.date_precision ?? "day")}</span>
         ) : (
           <span style={{ color: "var(--muted, #7A6E6C)", fontStyle: "italic" }}>No date on file</span>
         )}
       </td>
-      <td style={tdStyle}>{EVENT_KIND_LABELS[row.event_kind] ?? row.event_kind}</td>
-      <td style={tdStyle}>
+      <td data-label="Kind" style={tdStyle}>{EVENT_KIND_LABELS[row.event_kind] ?? row.event_kind}</td>
+      <td data-label="Regulation" style={tdStyle}>
         {/* Law-2 floor: the anchor's own box was just its text line (~15px) — `inline-flex` +
             `minHeight: 24` reaches the 24px-with-clearance alternative to 44px without changing
             the cell's padding or the table's row height visually (the cell's own 9px vertical
@@ -229,7 +229,7 @@ function Row({ row }: { row: ObligationRow }) {
           {row.item.title}
         </Link>
       </td>
-      <td style={tdStyle}>
+      <td data-label="Binding" style={tdStyle}>
         {bp ? (
           <span title={bp.note} style={bindingChipStyle(row.binding_position!)}>
             {bp.label}
@@ -238,8 +238,8 @@ function Row({ row }: { row: ObligationRow }) {
           <span style={{ color: "var(--muted, #7A6E6C)", fontStyle: "italic" }}>Not classified</span>
         )}
       </td>
-      <td style={tdStyle}>{(row.jurisdiction ?? []).map(isoToDisplayLabel).join(", ") || "—"}</td>
-      <td style={tdStyle}>{(row.modes ?? []).map((m) => MODE_META[m]?.label ?? m).join(", ") || "—"}</td>
+      <td data-label="Jurisdiction" style={tdStyle}>{(row.jurisdiction ?? []).map(isoToDisplayLabel).join(", ") || "—"}</td>
+      <td data-label="Mode" style={tdStyle}>{(row.modes ?? []).map((m) => MODE_META[m]?.label ?? m).join(", ") || "—"}</td>
     </tr>
   );
 }

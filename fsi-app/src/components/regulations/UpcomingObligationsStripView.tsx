@@ -70,7 +70,7 @@ export function UpcomingObligationsStripView({ variant, events, hasJurisdictionF
   return (
     <section style={stripWrapStyle}>
       <Header count={events.length} />
-      <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+      <div data-guard-strip style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
         {events.map((ev) => (
           <EventCard key={ev.id} ev={ev} />
         ))}
@@ -165,11 +165,20 @@ function Header({ count }: { count?: number }) {
   );
 }
 
-/** List-strip card — a fixed-width tile in the horizontal-scroll top strip. Its title is nowrap +
- *  ellipsis deliberately: the card is a self-contained 240px tile inside a horizontally-SCROLLING
- *  strip (overflowX: auto on the parent, never the page), the allowed exception to "no nowrap on
- *  text that can exceed the viewport" — the aside/figure carve-out in globals.css's row-system
- *  comment. */
+/** List-strip card — a fixed-width tile in the horizontal-scroll top strip.
+ *
+ *  Lane MOBILE-2, 2026-09-03 (coordinator's round-2 probe, /market): the title's PRIOR nowrap +
+ *  ellipsis single-line treatment cut it mid-word inside the 240px tile, reading (with the kind/date
+ *  row right above it) like "Compliance deadline September 2…" — a truncation, not a real overflow
+ *  (the strip's own `overflowX: auto` parent is a legitimate scrollable ancestor, so the guard's
+ *  clipped-overflow detector never flagged it), but the coordinator's round-2 instruction requires
+ *  the tile TEXT itself to wrap within the tile rather than being cut off. Fixed: the title now wraps
+ *  (overflowWrap: anywhere), clamped to 2 lines so the tile's height stays bounded — the SAME
+ *  2-line-clamp idiom this file already uses one paragraph down for the obligation-text preview,
+ *  just applied to the title too. The tile's own partial-next-tile affordance (no scroll-snap, fixed
+ *  240px cards, checked by reading — a strip whose total content width isn't an exact multiple of
+ *  the viewport always leaves the next tile partially visible) is unchanged and was confirmed still
+ *  present; no edge-fade was added on top of it. */
 function EventCard({ ev }: { ev: UpcomingEvent }) {
   const href = itemDetailHref({ id: ev.item.legacy_id || ev.item.id });
   const jurisdiction = ev.item.jurisdiction_iso?.[0] ?? null;
@@ -177,6 +186,12 @@ function EventCard({ ev }: { ev: UpcomingEvent }) {
   return (
     <Link
       href={href}
+      // The squeezed-title detector falls back to document.body's width for a title's "container"
+      // when no [data-guard-container] ancestor is present (documented false positive, see
+      // docs/plans/mobile-evidence/README.md's "Cross-cutting finding") — without this, the 2-line
+      // title above (now genuinely, deliberately narrower than the FULL PAGE width, since it's a
+      // fixed 240px tile) reads as squeezed relative to the page rather than to its own tile.
+      data-guard-container="upcoming-event-card"
       style={{
         display: "block",
         flex: "0 0 240px",
@@ -187,7 +202,7 @@ function EventCard({ ev }: { ev: UpcomingEvent }) {
         background: "var(--color-surface)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
         <span
           style={{
             fontSize: 10,
@@ -195,11 +210,12 @@ function EventCard({ ev }: { ev: UpcomingEvent }) {
             textTransform: "uppercase",
             letterSpacing: "0.03em",
             color: "var(--color-primary)",
+            minWidth: 0,
           }}
         >
           {KIND_LABELS[ev.event_kind] ?? ev.event_kind}
         </span>
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--color-text-primary)" }}>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--color-text-primary)", whiteSpace: "nowrap", flexShrink: 0 }}>
           {formatEventDate(ev.event_date, ev.date_precision)}
         </span>
       </div>
@@ -210,9 +226,12 @@ function EventCard({ ev }: { ev: UpcomingEvent }) {
           fontWeight: 600,
           color: "var(--color-text-primary)",
           margin: "4px 0 2px",
-          whiteSpace: "nowrap",
+          overflowWrap: "anywhere",
+          minWidth: 0,
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
           overflow: "hidden",
-          textOverflow: "ellipsis",
         }}
       >
         {ev.item.title}
@@ -239,8 +258,14 @@ function EventCard({ ev }: { ev: UpcomingEvent }) {
   );
 }
 
+// Lane MOBILE-2, 2026-09-03: hardcoded 36px side padding had no responsive escape (the same shape
+// item 1's detail-surface header padding fix addresses) — --cl-detail-pad-x (globals.css) steps to
+// 16px at <=767px, both widening the strip on a phone and letting a bit more of the next tile show
+// (the strip's partial-tile affordance).
 const stripWrapStyle: React.CSSProperties = {
   maxWidth: 1180,
   margin: "0 auto",
-  padding: "18px 36px 0",
+  paddingTop: 18,
+  paddingLeft: "var(--cl-detail-pad-x)",
+  paddingRight: "var(--cl-detail-pad-x)",
 };

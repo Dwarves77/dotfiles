@@ -178,7 +178,7 @@ export async function ThemeStrip() {
           {cards.length} active
         </span>
       </div>
-      <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+      <div data-guard-strip style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
         {cards.map((c) => (
           <ThemeCard key={c.id} card={c} />
         ))}
