@@ -8878,3 +8878,26 @@ from `COMMUNITY_ORG_SALT` when set, else derives it from `WORKER_SECRET` (alread
 with HKDF-SHA256 and a versioned info string; the verify route uses it; `organisation-key.mjs` stays
 pure. One fewer secret; the stated cost is that rotating `WORKER_SECRET` re-keys every organisation
 unless a dedicated salt is set first. Registered in TOPOLOGY as optional.
+
+### Addendum 85, postscript 14 — the first heal pass measured; HEAL-2 attaches the primary source (2026-09-03)
+
+`provenance-heal --arg quarantined-live` dry (#8) then apply (#9) on the 97 quarantined live items
+[CONFIRMED, artifact + Supabase]: gate A written for 97 (hash = `md5(full_brief)` on 94), 10 FACT + 69
+GAP slot claims written, 4 spans re-grounded, 34 `ungrounded_after_capture`; live `verified` 619 → 621,
+`quarantined` 97 → 95. Two healed. What still fails, read from the live function body and the
+artifact's per-item re-derivation: criterion 3 `fact_below_authority_floor` × 596 claims (the
+regulation family's floor is tier 2, unconditional; the claim's OWN source is tier 3–7 for 926 FACT
+claims and NULL for 218), criterion 7 × 82 (gate A `orphan_count > 0`: prose facts in the brief with no
+span-proven claim), criterion 4 × 219 (ANALYSIS paragraphs lacking the label; unlabeled modal
+assertions), the rest single digits. Gate A and slots were never the bulk of it; the source attached to
+each fact was.
+
+HEAL-2 (Sonnet, worktree `heal2`, 96 tests) extends `heal-provenance.mjs` with five steps in the
+operator's own words ("attach a source"): RESOURCE re-points a fact to the item's canonical capture, a
+tier-qualifying capture, or the corpus pool for the same document when its span is found there (span
+rewritten verbatim, `claim_text` untouched); OWN-BODY resolves the 7 missing `sources.institution_id`
+through `institution-key.mjs` so the own-body floor (standard/framework/initiative) can apply; ORPHANS
+grounds gate-A orphans into FACT claims when a capture states them, never invents; RELABEL prepends the
+validator's own label to unlabelled analysis paragraphs (the one prose edit, recorded before/after);
+RECLASSIFY re-kinds a fact no source states to labelled ANALYSIS, the honest disposition the labeling
+discipline exists for. Gate A runs once, after all writes. Suite 4321/0, fitness 29/0.

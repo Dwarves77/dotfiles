@@ -103,7 +103,7 @@ if (IS_MAIN) {
 
         // ── per-item reads ───────────────────────────────────────────────────────────────────────
         readCaptures: (itemId) => readAll("agent_run_searches", "id, result_url, result_content", { match: (q) => q.eq("intelligence_item_id", itemId) }),
-        readClaims: (itemId) => readAll("section_claim_provenance", "id, claim_kind, claim_text, source_span, search_result_id", { match: (q) => q.eq("intelligence_item_id", itemId) }),
+        readClaims: (itemId) => readAll("section_claim_provenance", "id, claim_kind, claim_text, source_span, source_id, search_result_id, section_row_id", { match: (q) => q.eq("intelligence_item_id", itemId) }),
         readSections: (itemId) => readAll("intelligence_item_sections", "id, item_id, section_key, section_order, content_md", { match: (q) => q.eq("item_id", itemId) }),
         readGateAState: async (itemId) => {
           const { data, error } = await rc.from("item_gate_a_state").select("intelligence_item_id").eq("intelligence_item_id", itemId).maybeSingle();
@@ -115,6 +115,23 @@ if (IS_MAIN) {
           const { data, error } = await rc.from("sources").select("url").eq("id", sourceId).maybeSingle();
           if (error) throw new Error(`provenance-heal: readSourceUrl failed: ${error.message}`);
           return data?.url ?? null;
+        },
+        // STEP A/C bucket 3 (corpus pool) — a batch-scoped `.in("result_url", urls)` read, NEVER a
+        // whole-table `agent_run_searches` scan (the brief's own explicit line). `urls` is the small
+        // http/https + trailing-slash variant set buildUrlVariants produces for one item's canonical URL.
+        readCapturesByUrls: (urls) => (urls?.length
+          ? readAll("agent_run_searches", "id, intelligence_item_id, result_url, result_content", { match: (q) => q.in("result_url", urls) })
+          : Promise.resolve([])),
+        // `sources` read ONCE per RUN (main() calls this, not per item) — the SAME bounded whole-table
+        // read shape db.mjs's own registerSource dedup already performs (`readAll("sources", "id,url,status")`);
+        // `sources` is explicitly NOT the `agent_run_searches` table the brief's batch-scoping rule targets.
+        readAllSources: () => readAll("sources", "id, url, base_tier, tier_override, institution_id, status"),
+        // STEP B (OWN-BODY) — `institutions` (migration 122) has had zero writers until this lane; find by
+        // its own registrable_domain key, or let insertInstitution below create the row.
+        readInstitutionByDomain: async (domain) => {
+          const { data, error } = await rc.from("institutions").select("id").eq("registrable_domain", domain).maybeSingle();
+          if (error) throw new Error(`provenance-heal: readInstitutionByDomain failed: ${error.message}`);
+          return data ?? null;
         },
         validateProvenance: rpc,
         readProvenanceStatus: async (itemId) => {
@@ -133,6 +150,15 @@ if (IS_MAIN) {
           return r.inserted;
         },
         updateClaimSpan: (id, patch) => guardedUpdate("section_claim_provenance", (q) => q.eq("id", id), patch, { cite: CITE }),
+        updateClaimKind: (id, patch) => guardedUpdate("section_claim_provenance", (q) => q.eq("id", id), patch, { cite: CITE }),
+        // STEP B — `institutions` (migration 122) find-or-create, and the sources.institution_id write
+        // itself (NEW writer surface for this file; see the report for the confirmed-nowhere-else-writes basis).
+        insertInstitution: async (row) => {
+          const r = await guardedInsert("institutions", row, { cite: CITE, select: "id" });
+          return r.inserted;
+        },
+        updateSourceInstitution: (sourceId, institutionId) =>
+          guardedUpdate("sources", (q) => q.eq("id", sourceId), { institution_id: institutionId }, { cite: CITE }),
         insertSection: async (row) => {
           const r = await guardedInsert("intelligence_item_sections", row, { cite: CITE, select: "id, section_key" });
           return r.inserted;
