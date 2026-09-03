@@ -285,20 +285,31 @@ step changes no `intelligence_items` row, only `integrity_flags`; confirm agains
 
 ## 7. `tag-ratification`
 
-**Purpose**: apply operator-ratified TAG proposals — `integrity_flags` rows `propose-tags.mjs` opened
-(§6a, above writes them; before this lane, `population-turn.yml`'s `--dry` run only ever previewed them
-in a log — see §6a), resolved by an operator with `ratify:tags` in `resolution_note`.
+**Purpose**: apply TAG proposals — `integrity_flags` rows `propose-tags.mjs` opened (§6a, above writes
+them; before this lane, `population-turn.yml`'s `--dry` run only ever previewed them in a log — see
+§6a) — either (a) resolved by an operator with `ratify:tags` in `resolution_note` (the `arg`-id path,
+unchanged since 2026-09-02), or (b) auto-adopted at/above `apply-tags.mjs`'s `AUTO_ADOPT_THRESHOLD`
+without waiting for ratification (the `arg="auto"` path, added 2026-09-03).
 
-**Upstream, both halves already exist**: `fsi-app/scripts/connections/propose-tags.mjs` (proposes; §6a
+**Upstream, everything already exists**: `fsi-app/scripts/connections/propose-tags.mjs` (proposes; §6a
 is now its write dispatch, `population-turn.yml`'s own dispatch stays `--dry`-only, a log preview) and
-`fsi-app/scripts/connections/apply-tags.mjs` (the apply half — `evaluateApplication` / `applyTags`,
-imported unmodified). This wrapper is orchestration only; no logic was reimplemented (the existing code
-already has an apply half).
+`fsi-app/scripts/connections/apply-tags.mjs` (both apply halves — `evaluateApplication`/`applyTags` for
+the ratify path, `evaluateAutoAdoption`/`partitionByConfidence`/`autoAdoptTags` for the auto-adoption
+path, all imported unmodified). This wrapper is orchestration only; no logic is reimplemented here.
 
-**Ruling**: none named directly — gated by the per-flag `ratify:tags` marker itself (an operator
-resolving a flag IS the ratification), not a single planwide ruling token.
+**Ruling (id path)**: none named directly — gated by the per-flag `ratify:tags` marker itself (an
+operator resolving a flag IS the ratification), not a single planwide ruling token.
 
-**Dispatch**:
+**Ruling (auto path, 2026-09-03, CONFIRMED in session)**: the flywheel's own design spec closes its
+second loop "without a human in the path" (`docs/specs/08-flywheel-design.md:128`), and 339 of 619
+verified live items sat untagged with zero tag flags ever ratified — the ratify-only gate was a dead
+end in practice. New rule: a DETERMINISTIC derivation (derive-tags.mjs's `confidence: "high"` tier — a
+keyword matched in the item's own title/instrument-key, not just its body text) auto-adopts with
+provenance recorded on the flag row (`resolution_note = auto-adopted:tags:<threshold>`,
+`resolved_by='apply-tags.mjs'`); lower-confidence (`medium`) proposals stay on an open flag for review
+exactly as before. Full reasoning + the measured threshold justification: `apply-tags.mjs`'s own header.
+
+**Dispatch, id path (unchanged)**:
 - `mode=dry` — lists every `status='resolved'` flag in the TAG namespace, split into `ratifiable`
   (carries the `ratify:tags` marker + a parseable non-empty proposal list) and
   `not_ratifiable_reasons` (resolved for some other reason).
@@ -306,9 +317,24 @@ resolving a flag IS the ratification), not a single planwide ruling token.
   (never "apply everything ratified" from one dispatch — the coordinator names exactly which proposals
   land). Each id runs through `apply-tags.mjs`'s own `applyTags({execute:true})` (merge-only tag write,
   cited, snapshotted).
-- Discovery re-run (`apply-tags.mjs`'s own optional step 6) is **not** repeated by this step — the
-  summary's `note` carries the documented fallback:
-  `node scripts/connections/discover-for-items.mjs --ids <item id(s)> --execute`.
+
+**Dispatch, auto path (new)**:
+- `arg=auto` (case-insensitive) with `mode=dry` — lists every OPEN TAG_NAMESPACE flag, split into
+  `eligible` (>=1 proposal at/above threshold, with its `eligible_count`/`residue_count`) and
+  `below_threshold_count`/`not_adoptable_count`. Writes nothing.
+- `arg=auto` with `mode=apply` — runs every eligible flag through `autoAdoptTags({execute:true})`: this
+  is the one dispatch shape where "apply everything eligible" is intentional (eligibility is
+  derive-tags.mjs's own deterministic evidence, not a per-flag operator judgment call). Writes ONLY the
+  eligible (>= threshold) tags per flag (merge-only, never removes an existing tag); a flag whose every
+  proposal cleared the threshold is resolved (`auto-adopted:tags:<threshold>`); a flag with some
+  below-threshold residue is left OPEN, untouched, with the eligible tags already written — a human can
+  still ratify the residue later via the ordinary `ratify:tags` id path (a harmless no-op merge for the
+  part already applied). Idempotent — safe to re-dispatch; an already-resolved flag is skipped, and a
+  still-open partial flag recomputes the same split and writes a no-op the second time.
+
+**Discovery re-run**: not repeated by either path (`apply-tags.mjs`'s own optional step 6) — each
+summary's `note` carries the documented fallback:
+`node scripts/connections/discover-for-items.mjs --ids <item id(s)> --execute`.
 
 **Artifact / read back**: `summary.json`'s `read_back` — the touched items'
 `operational_scenario_tags` / `compliance_object_tags` / `topic_tags` after the merge. Confirm against

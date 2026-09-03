@@ -13,11 +13,25 @@
 //
 // THIS SCRIPT NEVER WRITES intelligence_items. It reads the live corpus, runs the PURE
 // src/lib/connections/derive-tags.mjs over each untagged item's title/instrument-key/jurisdiction/brief
-// text, and reflects ONE integrity_flags row per targeted item — the proposals for an operator to
-// review, never an applied tag. apply-tags.mjs (this lane's sibling script) is the ONLY place a
-// proposal becomes a written tag, and only after the operator resolves the flag with the `ratify:tags`
-// marker in resolution_note (mirrors ratify-flag-to-census.mjs's `ratify:census` marker — same
-// resolution-note-as-ratification-vehicle design, see that file's header for the full rationale).
+// text, and reflects ONE integrity_flags row per targeted item — the proposals for a downstream consumer
+// to act on, never an applied tag ITSELF. That remains true unchanged by the note below: this script's
+// own behavior — read corpus, derive, reflect one open flag per item — has not changed at all.
+//
+// DOWNSTREAM RULE UPDATED 2026-09-03 (operator ruling, CONFIRMED in session; recorded in full in
+// apply-tags.mjs's header — read that file, not a restatement here, for the reasoning and the measured
+// threshold justification). Originally (2026-09-01, described below, KEPT for file history): every
+// proposal this script wrote went through an operator resolving the flag with the `ratify:tags` marker
+// in resolution_note (mirrors ratify-flag-to-census.mjs's `ratify:census` marker — same
+// resolution-note-as-ratification-vehicle design, see that file's header for the full rationale) before
+// apply-tags.mjs would write it. In practice, zero of the flags this script opened were ever ratified —
+// 339 of 619 verified live items sat untagged with no dispatch path that could move them (see
+// docs/PROGRAM-BOARD.md's "TAG-PROPOSALS (2026-09-03)" entry). As of 2026-09-03, apply-tags.mjs also
+// offers an AUTO-ADOPTION path (autoAdoptTags / tag-ratification.mjs's `--arg auto`) that applies a
+// proposal's `confidence: "high"` (derive-tags.mjs's title/instrument-key tier) subset WITHOUT the
+// ratify:tags marker, leaving lower-confidence proposals on the SAME open flag this script wrote, for a
+// human to still ratify via the unchanged `ratify:tags` path. This script's own write (one open
+// integrity_flags row per targeted item, carrying every proposal regardless of confidence) is exactly
+// what it was before this date — it is apply-tags.mjs's read of that row that now branches two ways.
 //
 // DEDUP-BEFORE-INSERT / RESOLVE-IF-STALE, mirroring analyze-corpus.mjs's reflectFlags() convention
 // (read that function before touching this one): existing OPEN rows in this namespace
