@@ -254,17 +254,21 @@ jobs:
       # the full rationale. Filesystem-only (readRunHistory over whatever mint-run-NNN.json files are on
       # this checkout, hydrated siblings included), so it runs before "Verify required secrets" would even
       # matter and before this run spends any budget on export-census-rows.mjs.
+      # (coordinator, 2026-09-04, first backlog dispatch, Population turn #22 FAILED at the discover step): a
+      # `type: boolean` input is a BOOLEAN in expressions; comparing it to the STRING 'true' coerces both to
+      # numbers (true -> 1, 'true' -> NaN), so `!= 'true'` was always true and every skipped step ran. Compare
+      # to the bare boolean `true`; inside `run:` blocks the interpolated text "true" is still correct.
       - name: 'Gate: refuse a new slice while a prior one is left unconnected (apply mode only, not on a backlog dispatch)'
-        if: ${{ inputs.mode == 'apply' && inputs.flywheel_backlog != 'true' }}
+        if: ${{ inputs.mode == 'apply' && inputs.flywheel_backlog != true }}
         run: node scripts/turns/run-population-flywheel.mjs --check-gate --harness-runs-dir scripts/harness-runs/mint
 
       - name: Snapshot existing mint-run artifacts (for this run's new run_id discovery)
-        if: ${{ inputs.flywheel_backlog != 'true' }}
+        if: ${{ inputs.flywheel_backlog != true }}
         run: |
           ls scripts/harness-runs/mint/mint-run-*.json 2>/dev/null | sort > /tmp/mint-before.txt || true
 
       - name: stamp-wo26-archive-reason.mjs (archive_reason hygiene — apply only in apply mode)
-        if: ${{ inputs.flywheel_backlog != 'true' }}
+        if: ${{ inputs.flywheel_backlog != true }}
         run: |
           if [ "${{ inputs.mode }}" = "apply" ]; then
             node scripts/mint/stamp-wo26-archive-reason.mjs --apply
@@ -287,7 +291,7 @@ jobs:
           node scripts/mint/export-census-rows.mjs "${args[@]}"
 
       - name: Skip export-census-rows.mjs (rows_file supplied)
-        if: ${{ inputs.rows_file != '' && inputs.flywheel_backlog != 'true' }}
+        if: ${{ inputs.rows_file != '' && inputs.flywheel_backlog != true }}
         run: |
           mkdir -p "$EXPORT_DIR"
           if [ ! -f "$CENSUS_ROWS_PATH" ]; then
@@ -302,7 +306,7 @@ jobs:
       # true` here is deliberate; the artifact + apply-ready file are the record of what happened, not
       # this step's own exit code.
       - name: run-mint-batch.mjs --census-rows --grade record --execute (the mint family's EXISTING gate, unmodified)
-        if: ${{ inputs.flywheel_backlog != 'true' }}
+        if: ${{ inputs.flywheel_backlog != true }}
         run: |
           node scripts/mint/run-mint-batch.mjs \
             --census-rows "$CENSUS_ROWS_PATH" \
@@ -312,7 +316,7 @@ jobs:
             || true
 
       - name: Discover this run's new mint-run-NNN.json (set by run-mint-batch.mjs's collision-safe claim)
-        if: ${{ inputs.flywheel_backlog != 'true' }}
+        if: ${{ inputs.flywheel_backlog != true }}
         run: |
           ls scripts/harness-runs/mint/mint-run-*.json 2>/dev/null | sort > /tmp/mint-after.txt || true
           NEW_MINT_RUN="$(comm -13 /tmp/mint-before.txt /tmp/mint-after.txt | head -1)"
@@ -324,7 +328,7 @@ jobs:
           echo "This run's mint-run artifact: $NEW_MINT_RUN"
 
       - name: apply-mint-batch.mjs (coordinator-apply — apply only in apply mode)
-        if: ${{ inputs.flywheel_backlog != 'true' }}
+        if: ${{ inputs.flywheel_backlog != true }}
         run: |
           # --report is technically optional (apply-mint-batch.mjs derives the same path from
           # --apply-ready's own basename, defaultReportPathFor) — named explicitly here anyway, so the
@@ -339,7 +343,7 @@ jobs:
       # it (run #8, 2026-09-02: ten items stamped quarantined before their gate row existed). Dry in dry
       # mode (lists), apply in apply mode. Never sets the status itself.
       - name: rederive-record-provenance.mjs (heal stale provenance stamps — apply only in apply mode)
-        if: ${{ inputs.flywheel_backlog != 'true' }}
+        if: ${{ inputs.flywheel_backlog != true }}
         run: |
           if [ "${{ inputs.mode }}" = "apply" ]; then node scripts/mint/rederive-record-provenance.mjs --apply; else node scripts/mint/rederive-record-provenance.mjs; fi
 
@@ -352,7 +356,7 @@ jobs:
       # list stands. Apply mode archives them reversibly (archive_reason off_vertical, snapshot per chunk);
       # ambiguous items are listed, never archived.
       - name: screen-reconcile-records.mjs (archive off-vertical record items reversibly — apply only in apply mode)
-        if: ${{ inputs.flywheel_backlog != 'true' }}
+        if: ${{ inputs.flywheel_backlog != true }}
         run: |
           if [ "${{ inputs.mode }}" = "apply" ]; then node scripts/mint/screen-reconcile-records.mjs --apply; else node scripts/mint/screen-reconcile-records.mjs; fi
 
@@ -373,7 +377,7 @@ jobs:
       # the high-confidence subset — no separate, later MAINT dispatch is needed for a population-turn
       # batch's own newly-minted items.
       - name: run-population-flywheel.mjs (discovery + forward-events + recluster + tags + §9 outcomes — MANDATORY, MINT-RUNBOOK.md §8/§9)
-        if: ${{ inputs.flywheel_backlog != 'true' }}
+        if: ${{ inputs.flywheel_backlog != true }}
         run: node scripts/turns/run-population-flywheel.mjs --mint-run "$NEW_MINT_RUN" --mode ${{ inputs.mode }}
 
       # BACKLOG MODE (lane TANDEM-2, 2026-09-04) — see the header comment above ("BACKLOG MODE") and
@@ -382,7 +386,7 @@ jobs:
       # on this dispatch) — this mode mints nothing; it only connects what earlier runs already minted.
       # NO `|| true` here either: the same "a green run means connected, never merely attempted" posture.
       - name: run-population-flywheel.mjs --backlog (MINT-RUNBOOK.md §8/§9 over the EXISTING gate backlog, oldest first)
-        if: ${{ inputs.flywheel_backlog == 'true' }}
+        if: ${{ inputs.flywheel_backlog == true }}
         run: |
           args=(--backlog --mode "${{ inputs.mode }}" --harness-runs-dir scripts/harness-runs/mint)
           if [ -n "${{ inputs.backlog_max_artifacts }}" ]; then args+=(--max-artifacts "${{ inputs.backlog_max_artifacts }}"); fi
