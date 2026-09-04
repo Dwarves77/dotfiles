@@ -10115,3 +10115,43 @@ Source sweep #15 (apply, 40 hosts) wrote 1,360 candidates, 11 feed URLs and the 
 #16 (70 hosts) is running. Six artifacts and three proposer passes are folded here; three discharged
 markers deleted; the closure gate's own ratchet caught its stale ledger-consume allowlist entry now that
 the family has run evidence. Gates: fitness 30/0, discipline 186/0, closure 4/4, full suite 5,261/0.
+
+### Addendum 85, postscript 54 — where the 886 KB came from, and the architecture on record (2026-09-04)
+
+Train 42 landed as #589 (`7588847d`). Two lanes on the speed problem finished; both name causes the
+PERF trains had not seen. PERF-11: the obligations register on /regulations fetched the whole table
+(`limit: 500` against 1,141 live rows, 297 KB of props, rendered as up to 300 `<tr>` with no pagination)
+on every load, and the ledger's domain filter was computed for the counts but the unfiltered rows were
+passed to the ledger, so only 39 of the 60 first-page rows were regulations. Fixed: the register ships a
+60-row first page (32.6 KB, 89 % less) with an honest "N of M" and a Load more button, filters re-fetch
+page one through a new `/api/obligations/register` route; the ledger gets the filtered rows, and
+migration 305 (written, applied after this lands) gives the listing RPC a domain parameter with a
+fail-soft fallback so nothing renders empty in between. PERF-8's earlier trim was a no-op on this RPC
+path because the slim listing never carried the blanked fields; the weight was the register. Market got
+the row trim; Operations (25 items) and Research (39) have nothing to paginate and were left alone with
+the counts as the reason; Home's data path was read end to end and carries no full-table fetch.
+
+PERF-ARCH read the whole request path and put it on record (`docs/audits/perf-waterfall-2026-09-04.md`):
+the listing's "remainder fetch" is a single request for up to 5,000 rows (`LIST_REMAINDER_LIMIT`), every
+row rendered as real DOM, no virtualization anywhere under the regulations components; that is the
+operator's "you don't load every item at once" in one line. The sequential hop that is fixable is
+`resolveOrgIdFromCookies()` before every listing read (data.ts:290); the detail route and the bootstrap
+route already have the standard shape. ADR-027 names the standard architecture with its documentation:
+Cache Components for the shell (PERF-10), PostgREST range + TanStack Query infinite queries + TanStack
+Virtual for the rows (the two packages named, not installed), RPC projection kept, the bootstrap route
+kept, the org id as a JWT claim so a render is one round trip, `optimizePackageImports` for the cold
+start, and F37, a perf budget fitness function with a dated ratchet, now in CI (31 functions). Server-
+Timing instrumentation is in, first on the bootstrap route. The closure gate tripped on its own
+allowlists this train because six trains landed in one day: I re-granted the expired entries to T46 with
+the reason written into each, closed the three board rows whose migrations are long applied, and
+allowlisted the four review-apply steps to T44's ruled dispatches. Gates: fitness 31/0, discipline
+186/0, closure 4/4, full suite 5,318/0.
+
+UX compliance (PERF-11: /regulations obligations register). Primary goal: see the soonest-due
+obligations, filterable by jurisdiction, mode, binding position and due window. Path: unchanged. One
+primary action: rows are read-only; the one new control is a "Load more" button under the table (44 px,
+disabled while loading), the visible mechanism for "the rest arrives on request". Feedback state: a
+filter change shows a `role="status"` loading banner and "N of M" from the true total; the table never
+goes blank or shows a false empty state mid-request; failure shows an explicit message. Fitts's-law
+surface: the new button meets the minimum; nothing else moved. Market's trim and the domain fix change
+data, not markup.

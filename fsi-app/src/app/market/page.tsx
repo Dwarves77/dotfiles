@@ -27,6 +27,7 @@
  */
 
 import { getMarketIntelItems, getSurfaceCounts } from "@/lib/data";
+import { toLedgerRowPayload } from "@/lib/list-pagination";
 import { fetchMarketSeriesBoard } from "@/lib/supabase-server";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { resolveViewerIdentityFromCookies } from "@/lib/api/org";
@@ -192,7 +193,13 @@ export default async function Market() {
           honest gap state until a distance producer, a licence-clear payload convention, or the eex-eua
           market_series producer lands. */}
       <CarbonCostOverlay overlays={buildCarbonCostOverlays()} />
-      <MarketIntelLedger initialResources={marketIntel.resources} aggregates={aggregates} seriesBoard={seriesBoard} />
+      {/* PERF-11 (2026-09-04): trimmed the same way /regulations' first-paint and remainder rows are —
+          see toLedgerRowPayload's own header for the field accounting (confirmed by grep against
+          MarketIntelLedger.tsx: it reads none of the fields the trim blanks). NOT a pagination change:
+          live count, 2026-09-04, `surface_of()` grouped — market carries 55 verified items, under the
+          60-row first-page convention this app uses elsewhere, so there is no "rest" to fetch on demand
+          here the way there is on /regulations (1,316 verified items). */}
+      <MarketIntelLedger initialResources={marketIntel.resources.map(toLedgerRowPayload)} aggregates={aggregates} seriesBoard={seriesBoard} />
       <MarketSeriesBoard board={seriesBoard} watchMembership={marketSeriesWatchMembership} />
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 36px 0" }}>
         <p

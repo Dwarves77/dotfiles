@@ -119,6 +119,8 @@ node --test \
   fsi-app/src/lib/tier-badge-tone.test.mjs \
   fsi-app/src/lib/coverage-gaps-rollup.test.mjs \
   fsi-app/src/lib/list-pagination.test.mjs \
+  fsi-app/src/lib/supabase-server-domain-scope.test.mjs \
+  fsi-app/src/lib/perf/*.test.mjs \
   fsi-app/src/lib/bootstrap/*.test.mjs \
   fsi-app/src/lib/watchlist/*.test.mjs \
   fsi-app/src/lib/detail/*.test.mjs \

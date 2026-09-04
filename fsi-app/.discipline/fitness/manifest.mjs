@@ -151,6 +151,13 @@ import { fitnessFunction as F35 } from './functions/F35-row-ux-coverage.mjs';
 // header), so this gate stops NEW instances of the class everywhere and stops any recurrence in the
 // regulations/operations surfaces this lane actually verified.
 import { fitnessFunction as F36 } from './functions/F36-date-format-timezone-pin.mjs';
+// Perf budget ratchet (2026-09-04, Lane PERF-ARCH, docs/decisions/ADR-027-*.md): the CI-budget half
+// of the dispatch's Part 2 item — the perf-budget registry (src/lib/perf/perf-budget.mjs) must
+// track every required route (regulations-list, regulations-detail, workspace-bootstrap) with at
+// least one well-formed, dated, [CONFIRMED]/[HYPOTHESIS]-labeled metric, ratcheted against the
+// numbers docs/audits/perf-waterfall-2026-09-04.md measured. Same registry-of-classified-constants
+// shape F17 (size-cap-doctrine) already established.
+import { fitnessFunction as F37 } from './functions/F37-perf-budget.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -183,6 +190,7 @@ export const fitnessFunctions = [
   F34,
   F35,
   F36,
+  F37,
 ];
 
 export function getFunctionById(id) {

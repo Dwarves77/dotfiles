@@ -5,7 +5,10 @@ import {
   matchesDueWindow,
   selectRegisterRows,
   filterJoinedRows,
+  filterJoinedRowsPage,
   fetchObligationRegister,
+  fetchObligationRegisterPage,
+  fetchRegisterFacetOptions,
   fetchForwardEventCount,
   UNCLASSIFIED,
 } from "./read-register.mjs";
@@ -233,4 +236,133 @@ test("fetchForwardEventCount: an error degrades to null, never throws", async ()
     from: () => ({ select: () => Promise.resolve({ count: null, error: { message: "boom" } }) }),
   };
   assert.equal(await fetchForwardEventCount(supabase), null);
+});
+
+// ── PERF-11 (2026-09-04): offset paging, honest totals, and the decoupled overfetch cap ──
+
+test("buildRegisterQuerySpec: offset defaults to 0 and never throws on a bad value", () => {
+  assert.equal(buildRegisterQuerySpec().offset, 0);
+  assert.equal(buildRegisterQuerySpec({ offset: 60 }).offset, 60);
+  assert.equal(buildRegisterQuerySpec({ offset: -5 }).offset, 0);
+  assert.equal(buildRegisterQuerySpec({ offset: "not a number" }).offset, 0);
+});
+
+test("filterJoinedRowsPage: total is the filtered count BEFORE the page slice, not the page length", () => {
+  const joined = [
+    { intelligence_item_id: "item-a", due_date: "2026-01-01", binding_position: null, jurisdiction: [], modes: [], item: ITEM_A },
+    { intelligence_item_id: "item-a", due_date: "2026-02-01", binding_position: null, jurisdiction: [], modes: [], item: ITEM_A },
+    { intelligence_item_id: "item-a", due_date: "2026-03-01", binding_position: null, jurisdiction: [], modes: [], item: ITEM_A },
+  ];
+  const page1 = filterJoinedRowsPage(joined, buildRegisterQuerySpec({ limit: 2, offset: 0 }));
+  assert.equal(page1.total, 3);
+  assert.deepEqual(page1.rows.map((r) => r.due_date), ["2026-01-01", "2026-02-01"]);
+
+  const page2 = filterJoinedRowsPage(joined, buildRegisterQuerySpec({ limit: 2, offset: 2 }));
+  assert.equal(page2.total, 3);
+  assert.deepEqual(page2.rows.map((r) => r.due_date), ["2026-03-01"]);
+});
+
+test("filterJoinedRowsPage: total reflects the ACTIVE filter, so 'N of M' is always honest for that filter", () => {
+  const joined = [
+    { intelligence_item_id: "item-a", due_date: "2026-01-01", binding_position: null, jurisdiction: ["EU"], modes: [], item: ITEM_A },
+    { intelligence_item_id: "item-b", due_date: "2026-02-01", binding_position: null, jurisdiction: ["US-CA"], modes: [], item: ITEM_B },
+  ];
+  const page = filterJoinedRowsPage(joined, buildRegisterQuerySpec({ jurisdiction: "eu", limit: 60, offset: 0 }));
+  assert.equal(page.total, 1);
+  assert.equal(page.rows.length, 1);
+});
+
+test("filterJoinedRows and filterJoinedRowsPage agree on the same first page (offset 0)", () => {
+  const joined = [
+    { intelligence_item_id: "item-a", due_date: "2026-05-01", binding_position: null, jurisdiction: [], modes: [], item: ITEM_A },
+    { intelligence_item_id: "item-b", due_date: "2026-01-01", binding_position: null, jurisdiction: [], modes: [], item: ITEM_B },
+  ];
+  const spec = buildRegisterQuerySpec({ limit: 1, offset: 0 });
+  const viaOld = filterJoinedRows(joined, spec);
+  const viaNew = filterJoinedRowsPage(joined, spec).rows;
+  assert.deepEqual(viaOld, viaNew);
+});
+
+test("fetchObligationRegisterPage: end-to-end against a fake client, returns { rows, total }", async () => {
+  const supabase = fakeSupabase({
+    obligationsRows: [
+      { id: "o1", intelligence_item_id: "item-b", forward_event_id: "e1", due_date: "2026-06-01", date_precision: "day", event_kind: "compliance_deadline", binding_position: null, jurisdiction: ["EU"], modes: ["ocean"], status: "active" },
+      { id: "o2", intelligence_item_id: "item-a", forward_event_id: "e2", due_date: "2026-03-01", date_precision: "day", event_kind: "entry_into_force", binding_position: "direct_duty", jurisdiction: ["EU"], modes: [], status: "active" },
+    ],
+    itemsRows: [ITEM_A, ITEM_B],
+  });
+  const page = await fetchObligationRegisterPage(supabase, { limit: 60, offset: 0 });
+  assert.equal(page.total, 2);
+  assert.equal(page.rows.length, 2);
+  assert.equal(page.rows[0].id, "o2"); // soonest first
+});
+
+test("fetchObligationRegisterPage: the DB fetch cap is a fixed constant, not tied to the requested page size — a small page still sees the whole (capped) corpus for filter/window correctness", async () => {
+  let capturedLimit = null;
+  const supabase = {
+    from(table) {
+      if (table === "obligations") {
+        const chain = {
+          select: () => chain,
+          eq: () => chain,
+          limit: async (n) => {
+            capturedLimit = n;
+            return { data: [], error: null };
+          },
+        };
+        return chain;
+      }
+      return { select: () => ({ eq: () => ({ eq: () => ({ in: async () => ({ data: [], error: null }) }) }) }) };
+    },
+  };
+  await fetchObligationRegisterPage(supabase, { limit: 60, offset: 0 }); // a small page
+  const smallPageLimit = capturedLimit;
+  await fetchObligationRegisterPage(supabase, { limit: 500, offset: 0 }); // the largest allowed page
+  assert.equal(capturedLimit, smallPageLimit, "the DB overfetch cap must not shrink for a smaller requested page");
+  assert.ok(smallPageLimit >= 1141, "the cap must stay comfortably above the live obligations count (1,141, measured 2026-09-04)");
+});
+
+test("fetchObligationRegisterPage: an error or empty read returns { rows: [], total: 0 } rather than throwing", async () => {
+  const withError = {
+    from(table) {
+      if (table === "obligations") {
+        return { select: () => withError.from("obligations"), eq: () => withError.from("obligations"), limit: async () => ({ data: null, error: { message: "boom" } }) };
+      }
+      return { select: () => ({ eq: () => ({ eq: () => ({ in: async () => ({ data: [], error: null }) }) }) }) };
+    },
+  };
+  assert.deepEqual(await fetchObligationRegisterPage(withError, {}), { rows: [], total: 0 });
+});
+
+test("fetchRegisterFacetOptions: dedupes and sorts jurisdiction/mode values across rows", async () => {
+  const supabase = {
+    from(table) {
+      assert.equal(table, "obligations");
+      return {
+        select: () => ({
+          eq: () => ({
+            limit: async () => ({
+              data: [
+                { jurisdiction: ["EU", "US-CA"], modes: ["ocean"] },
+                { jurisdiction: ["EU"], modes: ["air", "ocean"] },
+                { jurisdiction: null, modes: null },
+              ],
+              error: null,
+            }),
+          }),
+        }),
+      };
+    },
+  };
+  const facets = await fetchRegisterFacetOptions(supabase);
+  assert.deepEqual(facets.jurisdictions, ["EU", "US-CA"]);
+  assert.deepEqual(facets.modes, ["air", "ocean"]);
+});
+
+test("fetchRegisterFacetOptions: an error or throw degrades to empty arrays, never breaks the page", async () => {
+  const supabase = { from: () => ({ select: () => ({ eq: () => ({ limit: async () => ({ data: null, error: { message: "boom" } }) }) }) }) };
+  assert.deepEqual(await fetchRegisterFacetOptions(supabase), { jurisdictions: [], modes: [] });
+
+  const throwing = { from: () => { throw new Error("boom"); } };
+  assert.deepEqual(await fetchRegisterFacetOptions(throwing), { jurisdictions: [], modes: [] });
 });

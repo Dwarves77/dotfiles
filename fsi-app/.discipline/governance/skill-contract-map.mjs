@@ -102,11 +102,16 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 // /regulations (RegulationsLedger.tsx's RegRow, no timeZone on toLocaleDateString — commit 27f6a358). No
 // citingFiles change: none of the files below cite this new section specifically, they cite the skill as a
 // whole (its content hash moving is what this re-pin acknowledges), same posture as the category 32/35 re-pins.
+// 2026-09-04 (Lane PERF-ARCH): remediation-discipline re-pinned — added "Section 4 — category 37: A perf
+// number in CI carries a ratchet, a target, and dated evidence" (invariant RD-62, F37), the CI-budget half
+// of docs/decisions/ADR-027-*.md — the operator's own "clicking into any item ... takes WAY too long"
+// diagnosis (docs/audits/perf-waterfall-2026-09-04.md). No citingFiles change, same posture as the
+// category 36 re-pin above (the files below cite the skill as a whole, not this section specifically).
 // ---------------------------------------------------------------------------------------------------------
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
     skillPath: 'fsi-app/.claude/skills/remediation-discipline/SKILL.md',
-    contentHash: '79b0eaa881106dcd900d64761d8d4d2ed7cd5b9827bb0a9b5a138ab645085b07',
+    contentHash: '98510eec7fe56dca907028dadb264614fa66b762f2250f11456a5866e783b148',
     citingFiles: [
       'fsi-app/scripts/_wave-alpha/backfill-canonical-keys.mjs',
       'fsi-app/scripts/lib/deferral.mjs',

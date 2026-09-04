@@ -180,7 +180,13 @@ export const SKILL_MARKER_BASELINE = {
   // toLocaleDateString/toLocaleTimeString/Intl.DateTimeFormat without an explicit `timeZone`" to Section 4
   // category 36 (date-format timezone pin), diagnosing React #418 on /regulations. TRIAGE: new invariant
   // RD-61-date-format-timezone-pin (enforcedBy fitness:F36 + its selftest).
-  'remediation-discipline': 45,
+  // 45→46 (2026-09-04, lane PERF-ARCH): added "A route tracked in ... PERF_BUDGET_REGISTRY MUST carry,
+  // for every metric, a finite `ratchet`, a `target` no worse than the ratchet, a real `measuredAt` date,
+  // and an `evidence` string labeled `[CONFIRMED]` or `[HYPOTHESIS]`" to Section 4 category 37 (perf-budget
+  // ratchet), closing the gap that every prior PERF lane's measurement lived only in a dated prose audit
+  // with nothing re-checking it on the next change. TRIAGE: new invariant RD-62-perf-budget-ratchet
+  // (enforcedBy fitness:F37 + its selftest).
+  'remediation-discipline': 46,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -1355,5 +1361,14 @@ export const INVARIANTS = [
     anchor: '### Section 4 — category 36: Date formatting pins its timezone in a hydrated component',
     enforcedBy: ['fitness:F36', 'selftest:fsi-app/.discipline/fitness/functions/F36-date-format-timezone-pin.test.mjs'],
     residual: 'F36 is a lexical scanner (strings/comments stripped, balanced-paren call span checked for a timeZone key), not a type-aware parser: it cannot tell a Date-only value from one where a local zone is deliberately correct (e.g. "your local time is X" copy), so a rare intentional local-zone render would need a per-call justification rather than a blanket allowlist entry if one is ever added. toLocaleString() bare is deliberately EXCLUDED — it is also Number.prototype.toLocaleString, and a static scan cannot disambiguate a date call from a number call by name alone; the two Date-specific method names carry no such ambiguity, and Intl.DateTimeFormat is unambiguous by construction. A Server Component\'s own unpinned call (regulations/page.tsx\'s today/lastSyncLabel, pinned in the same commit) carries no hydration risk — it renders once, server-side only — and is out of THIS invariant\'s scope; it is a timezone-correctness concern, not a #418 risk, not gated here. PRE_EXISTING_ALLOWLIST (F36\'s own file) names 15 further "use client" files found missing timeZone on a first codebase-wide run (2026-09-04) that this lane did not audit for actual SSR/hydration exposure — named debt, not a safety claim; F36 enforces every file NOT on that list, and any new file, from this commit forward.',
+  },
+  {
+    id: 'RD-62-perf-budget-ratchet',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 37: A perf number in CI carries a ratchet, a target, and dated evidence (a number with no citation is a guess wearing a measurement\'s clothes)',
+    text: 'A route tracked in src/lib/perf/perf-budget.mjs\'s PERF_BUDGET_REGISTRY must carry, for every metric, a finite ratchet, a target no worse than the ratchet, a real measuredAt date, and an evidence string labeled [CONFIRMED] or [HYPOTHESIS] (CLAUDE.md rule 14) — an unlabeled number is not a measurement. On 2026-09-04 the operator\'s own diagnosis (docs/audits/perf-load-times-2026-09-03.md) found /regulations shipping an 886 KB decoded document driven by an uncached, sequential per-detail-page Supabase fan-out; PERF through PERF-9 measured and fixed pieces of it, but every number lived only in a dated prose audit — nothing machine-checked held it to a floor once fixed, so a future PR could reintroduce a sequential await or a payload regression with nothing catching it before the operator did, again.',
+    anchor: '### Section 4 — category 37: A perf number in CI carries a ratchet, a target, and dated evidence (a number with no citation is a guess wearing a measurement\'s clothes)',
+    enforcedBy: ['fitness:F37', 'selftest:fsi-app/.discipline/fitness/functions/F37-perf-budget.test.mjs'],
+    residual: 'F37 checks the CURRENT registry file\'s shape (route present, metric well-formed, evidence labeled) — it cannot itself diff two commits to catch a silent regression, the same constraint F17\'s own size-cap-doctrine header states for its own registry. A lane that quietly raises a ratchet number without updating its measuredAt/evidence to a new, real measurement would still pass F37\'s shape check; the durable close is a live re-measurement lane re-running the numbers, not a mechanical git-history diff (out of a fitness function\'s reach, per this registry\'s own established posture on that class of gap). REQUIRED_ROUTES is a hardcoded floor (regulations-list, regulations-detail, workspace-bootstrap) — a route this lane\'s write set did not reach (market/operations/research detail, the four listing pages\' remainder fetch) is not yet tracked; named as follow-up in docs/decisions/ADR-027-*.md, not silently claimed as covered.',
   },
 ];

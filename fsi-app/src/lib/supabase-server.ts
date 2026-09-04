@@ -470,6 +470,19 @@ export async function fetchSourceData(includeAdminOnly = false): Promise<SourceD
 export interface ResourcePage {
   limit: number;
   offset: number;
+  /**
+   * Optional domain filter (intelligence_items.domain, INT 1-7 — src/lib/domains.ts). PERF-11
+   * (2026-09-04): /regulations was fetching the workspace's global top-N rows across ALL domains via
+   * get_workspace_intelligence_listings, then filtering to REGULATIONS_DOMAIN client-side — a measured
+   * 35% of the first-paint rows (live SQL, 2026-09-04: 39/60) were never Regulations content, over-fetched
+   * and over-serialised for a page that only ever shows one domain. When set, `fetchWorkspaceResources`
+   * tries a domain-scoped RPC call (migration 305's `p_domain` parameter on
+   * `get_workspace_intelligence_listings`) and fails soft to the unscoped call (today's behavior) if that
+   * migration is not yet live — see `fetchWorkspaceResources`'s own comment. Only honored for RPC names in
+   * `DOMAIN_SCOPED_RPCS` below; ignored (no-op) for every other RPC name, so passing it for a caller that
+   * doesn't need it is always safe.
+   */
+  domain?: number;
 }
 
 type WorkspaceItemsServiceClient = ReturnType<typeof getServiceSupabase>;
@@ -496,6 +509,18 @@ const LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER = new Set<string>([
   "get_workspace_intelligence_listings",
   "get_workspace_intelligence_slim", // migration 303 (applied live 2026-09-04)
 ]);
+
+/**
+ * RPC names whose signature CAN carry an optional `p_domain` argument once their migration is live —
+ * PERF-11 (2026-09-04). Only `get_workspace_intelligence_listings` today (migration 305, WRITTEN NOT
+ * APPLIED as of this lane — see that file's own header). `fetchWorkspaceResources` uses this set only to
+ * decide whether it is worth ATTEMPTING the domain-scoped call at all; it never trusts the attempt to
+ * succeed — see the fail-soft retry there, which activates automatically the moment 305 goes live with no
+ * further edit to this set required (unlike `LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER` above, which records a
+ * fact about a migration already confirmed live and is safe to trust unconditionally; this set records a
+ * migration NOT yet confirmed live, so the caller must still handle failure).
+ */
+const DOMAIN_SCOPED_RPCS = new Set<string>(["get_workspace_intelligence_listings"]);
 
 /**
  * Builds the (possibly ranged) query for one page of workspace-intelligence RPC rows.
@@ -551,9 +576,18 @@ export function buildWorkspaceItemsQuery(
   serviceClient: WorkspaceItemsServiceClient,
   rpcName: string,
   orgId: string,
-  page?: ResourcePage
+  page?: ResourcePage,
+  // PERF-11 (2026-09-04): when true AND page.domain is a number AND rpcName is in DOMAIN_SCOPED_RPCS,
+  // adds `p_domain` to the RPC call args (migration 305). The caller (fetchWorkspaceResources) controls
+  // this explicitly, never inferred here, so the fail-soft retry there can call this function TWICE with
+  // the same rpcName/page and get a different query the second time — see that function's own comment.
+  includeDomainArg?: boolean
 ) {
-  const call = serviceClient.rpc(rpcName, { p_org_id: orgId });
+  const rpcArgs: Record<string, unknown> = { p_org_id: orgId };
+  if (includeDomainArg && DOMAIN_SCOPED_RPCS.has(rpcName) && typeof page?.domain === "number") {
+    rpcArgs.p_domain = page.domain;
+  }
+  const call = serviceClient.rpc(rpcName, rpcArgs);
   if (!page) return call;
   if (LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER.has(rpcName)) {
     return call.range(page.offset, page.offset + page.limit - 1);
@@ -598,8 +632,35 @@ async function fetchWorkspaceResources(
   // meaningful "first N" slice instead of shipping the entire corpus on
   // every request. See buildWorkspaceItemsQuery's own header for why this
   // is `.range()` only, with no `.order()` chained on top of it.
-  const itemsQuery = buildWorkspaceItemsQuery(serviceClient, rpcName, orgId, options.page);
-  const { data: items, error } = await itemsQuery;
+  // PERF-11 (2026-09-04): when the caller asked for a domain-scoped page, try the domain-scoped call
+  // first (migration 305's `p_domain` on get_workspace_intelligence_listings) and fail soft to the
+  // unscoped call on ANY error — including "function ...(uuid, integer) does not exist", the exact shape
+  // a call against the pre-305 signature returns. This activates automatically the moment 305 is applied
+  // live: no manual gate to flip, no second deploy. See ResourcePage.domain's own header for the
+  // measured bug this closes and DOMAIN_SCOPED_RPCS's header for why this is a real retry, not a trusted
+  // fact the way LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER is.
+  const wantsDomainScope =
+    typeof options.page?.domain === "number" && DOMAIN_SCOPED_RPCS.has(rpcName);
+  let items: any[] | null = null;
+  let error: unknown = null;
+  if (wantsDomainScope) {
+    const scopedQuery = buildWorkspaceItemsQuery(serviceClient, rpcName, orgId, options.page, true);
+    const scoped = await scopedQuery;
+    if (!scoped.error) {
+      items = scoped.data;
+      error = null;
+    } else {
+      console.warn(
+        `[perf] domain-scoped ${rpcName} call failed (migration 305 likely not yet applied) — falling back to unscoped: ${describeSupabaseError(scoped.error)}`
+      );
+    }
+  }
+  if (items === null) {
+    const itemsQuery = buildWorkspaceItemsQuery(serviceClient, rpcName, orgId, options.page, false);
+    const unscoped = await itemsQuery;
+    items = unscoped.data;
+    error = unscoped.error;
+  }
 
   if (error || !items?.length) {
     return { active: [], archived: [], uuidToUiId: new Map() };
