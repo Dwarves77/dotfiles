@@ -41,6 +41,7 @@ import {
   partitionByScreen,
   loadReviewedVerdicts,
   detectNotInForce,
+  detectCellarGarbledMetadata,
 } from "./export-census-rows.mjs";
 
 // ── classifyItemTypeFromCelexKey ────────────────────────────────────────────────────────────────────
@@ -600,6 +601,91 @@ test("buildExportRow: an ordinary capture with no force-indicator markup at all 
   const { row, hold } = buildExportRow(censusRow, SOURCE, EURLEX_IDENTITY, capture);
   assert.equal(hold, undefined);
   assert.ok(row);
+});
+
+// ── detectCellarGarbledMetadata / buildExportRow capture_garbled_metadata screen (Lane BOILER-2, ────────
+// 2026-09-04, defect 3 — HOLLOW-GATE's "Cellar garbled metadata captures"). Both fixtures below are the
+// REAL captured_text of two live rows (Supabase, `agent_run_searches.result_content`, 2026-09-04):
+// CELEX 21976A0216(03) (a 1976 Mediterranean-Sea pollution protocol, sector-2 'A' agreement, 368 chars
+// total) and CELEX 32006R1907 (REACH — an ordinarily huge Regulation, 1,114 chars in this garbled
+// capture). Both `search_query = 'canonical:record-grade'`, `agent_run_id` null -- this pipeline's OWN
+// signature, confirming this is a capture-path defect in THIS file's Cellar handling, not an older
+// agent-driven capture. See detectCellarGarbledMetadata's own header in export-census-rows.mjs for what
+// "garbled" concretely means (Cellar's own conversion-provenance fingerprint, never the act's own text).
+
+test("detectCellarGarbledMetadata: the REAL CELEX 21976A0216(03) capture (368 chars, Cellar's own conversion fingerprint, no substantive act text at all)", () => {
+  const text =
+    "CELEX1 Protocol for the prevention of pollution of the Mediterranean Sea by dumping from ships " +
+    "and aircraft CELEX1 Protocol for the prevention of pollution of the Mediterranean Sea by dumping " +
+    "from ships and aircraft CELEX1 cdm:CDM_2.1.7 tdm:1523 xslt:3945 saxon:9.0.0.1J JVM:1.6.0_29 " +
+    "metaconvJar:1.1.9 builddate:21/01/2014 17:28:36 eng en 2025-01-13T16:35:16.890+01:00";
+  const m = detectCellarGarbledMetadata(text);
+  assert.ok(m, "must detect the fingerprint");
+  assert.match(m.span, /cdm:CDM_2\.1\.7/);
+  assert.match(m.span, /metaconvJar:1\.1\.9/);
+  assert.match(m.span, /builddate:21\/01\/2014/);
+  assert.ok(text.includes(m.span), "span must be verbatim-by-construction");
+});
+
+test("detectCellarGarbledMetadata: the REAL CELEX 32006R1907 (REACH) capture — a real, ordinarily huge regulation, garbled to 1,114 chars of the same Cellar fingerprint", () => {
+  const text =
+    "eng en 2025-06-16T09:47:44.681+02:00 REACH REACH REACH Regulation (EC) No 1907/2006 of the European " +
+    "Parliament and of the Council of 18 December 2006 concerning the Registration, Evaluation, " +
+    "Authorisation and Restriction of Chemicals (REACH) CELEX1 Regulation (EC) No 1907/2006 of the " +
+    "European Parliament and of the Council of 18 December 2006 concerning the Registration, Evaluation, " +
+    "Authorisation and Restriction of Chemicals (REACH) CELEX1 cdm:CDM_2.1.7 tdm:1523 xslt:3945 " +
+    "saxon:9.0.0.1J JVM:1.6.0_29 metaconvJar:1.2.0 builddate:10/03/2015 17:49:14 CELEX1";
+  const m = detectCellarGarbledMetadata(text);
+  assert.ok(m, "a real, famous regulation's title repeated around this fingerprint must still be caught -- the fingerprint, not the title, is what disqualifies it");
+});
+
+test("detectCellarGarbledMetadata: a genuine, real act capture (no Cellar fingerprint tokens at all) is never falsely flagged", () => {
+  assert.equal(
+    detectCellarGarbledMetadata(
+      "COUNCIL RECOMMENDATION of 4 May 1976 on the rational use of energy in urban passenger transport " +
+        "HEREBY RECOMMENDS TO THE MEMBER STATES: 1. that they encourage the authorities responsible to " +
+        "promote frequent, convenient, regular, fast, reliable, comfortable urban public passenger " +
+        "transport services.",
+    ),
+    null,
+  );
+  assert.equal(detectCellarGarbledMetadata(""), null);
+  assert.equal(detectCellarGarbledMetadata(null), null);
+});
+
+test("buildExportRow RED: a Cellar-garbled capture (real CELEX 21976A0216(03) shape) is held capture_garbled_metadata with the evidence span, never minted as a hollow record", () => {
+  const censusRow = { id: "r1", document_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21976A0216(03)", instrument_identifier: "21976A0216(03)" };
+  const garbledText =
+    "CELEX1 Protocol for the prevention of pollution of the Mediterranean Sea by dumping from ships " +
+    "and aircraft CELEX1 Protocol for the prevention of pollution of the Mediterranean Sea by dumping " +
+    "from ships and aircraft CELEX1 cdm:CDM_2.1.7 tdm:1523 xslt:3945 saxon:9.0.0.1J JVM:1.6.0_29 " +
+    "metaconvJar:1.1.9 builddate:21/01/2014 17:28:36 eng en 2025-01-13T16:35:16.890+01:00";
+  const { row, hold } = buildExportRow(censusRow, SOURCE, EURLEX_IDENTITY, { text: garbledText, html: null });
+  assert.equal(row, undefined);
+  assert.equal(hold.reason, "capture_garbled_metadata");
+  assert.match(hold.evidence_span, /metaconvJar/);
+  assert.equal(hold.fetched_length, garbledText.length);
+});
+
+test("resolveRowCapture EUR-Lex: Cellar returns its own garbled conversion-metadata (real shape, >200 chars) -> treated as unusable, falls through to the EUR-Lex clean-text fallback exactly like a too-short or blocked Cellar response", async () => {
+  const calls = [];
+  const garbledCellarBody =
+    '<html><body>CELEX1 Protocol for the prevention of pollution of the Mediterranean Sea by dumping ' +
+    'from ships and aircraft CELEX1 Protocol for the prevention of pollution of the Mediterranean Sea ' +
+    'by dumping from ships and aircraft CELEX1 cdm:CDM_2.1.7 tdm:1523 xslt:3945 saxon:9.0.0.1J JVM:1.6.0_29 ' +
+    'metaconvJar:1.1.9 builddate:21/01/2014 17:28:36 eng en 2025-01-13T16:35:16.890+01:00</body></html>';
+  const fetchImpl = async (url) => {
+    calls.push(url);
+    if (url.startsWith("https://publications.europa.eu/")) return fakeResponse({ body: garbledCellarBody });
+    return fakeResponse({ body: "<html><body>Protocol for the prevention of pollution of the Mediterranean Sea by dumping from ships and aircraft, THE CONTRACTING PARTIES, HAVING REGARD to the relevant provisions.</body></html>".padEnd(300, " x") });
+  };
+  const identity = { scheme: "celex", canonicalKey: "21976A0216(03)" };
+  const env = await resolveRowCapture({ document_url: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:21976A0216(03)" }, identity, { fetchImpl });
+  assert.equal(calls.length, 2, "Cellar's garbled response must not be accepted as final -- the EUR-Lex fallback must be tried");
+  assert.equal(calls[1], "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:21976A0216(03)");
+  assert.equal(env.usable, true, "the EUR-Lex fallback's real text must be accepted");
+  assert.equal(env.cellar_status, 200, "the Cellar attempt is recorded even though its content was refused");
+  assert.ok(!detectCellarGarbledMetadata(env.text), "the accepted text must not itself be the garbled fingerprint");
 });
 
 // ── captureDocument / makePoliteFetch (network fully stubbed) ──────────────────────────────────────────

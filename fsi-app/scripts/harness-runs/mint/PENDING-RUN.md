@@ -147,13 +147,64 @@ draft) and the research record builder's all-GAP case. `validate-mint-payload.mj
 `propose-series-items.mjs` now sets `instrumentIdentifier` to the series key like the batch builder
 does. The research all-GAP case is now asserted REFUSED (operator ruling 2026-09-04).
 
-**harness_version at write time:** `sha256:f50d5fd4ee2f925f` (train/wave16 final: the exemption above on top of
+**harness_version at train/wave16's landed write time (superseded below — see "What changed (5)"):** `sha256:f50d5fd4ee2f925f` (train/wave16 final: the exemption above on top of
 TANDEM's §8/§9 runbook text and HOLLOW-GATE's kit/extractor edits; each lane's own hash above is history)
 
+## Lane BOILER-2 (2026-09-04) — the three defects HOLLOW-GATE named and did not fix, closed
+
+**What changed (5):** lane BOILER-2 (2026-09-04), closing all three defects HOLLOW-GATE's own report named
+and explicitly left unfixed (its "Named residual" and "Two adjacent defects reported" — see this marker's
+"What changed (3)" entry above and MINT-RUNBOOK.md §13's new subsection, which carries the full narrative;
+this entry only enumerates what changed and why each is a real behavior change).
+
+[CONFIRMED, Supabase, 2026-09-04] all three evidenced against real captured text, never invented shapes:
+
+1. **The bare-domain-URL guard (`hasOnlyBareDomainUrls`, wired into `isProseSpan`) was global, not
+   slot-scoped**, so it wrongly disqualified item `20feed6b`'s real CELEX `32012D0706(01)`
+   `operative_provision` FACT ("HAS DECIDED AS FOLLOWS: Sole Article The link http://www.pvt-tec.de under
+   the sub-heading ... shall be deleted") merely because that clause happens to mention a bare domain.
+   `isProseSpan(span, { slotKey })` now runs the guard only for a slot in the new `URL_BEARING_SLOTS`
+   (currently `{jurisdictional_scope}` — the one slot whose whole point is "where does the source point the
+   reader", so a bare pointer really is disqualifying there); every pre-existing call to
+   `isProseSpan(span)` with no `slotKey` keeps the original always-on behavior, so nothing regresses. Proven
+   both ways against real captures: `32012D0706(01)`'s `operative_provision` now resolves FACT (was GAP);
+   rows `429c85d2`/`a980a0b9`'s `jurisdictional_scope` still refuse to GAP (unchanged).
+2. **`jurisdictional_scope`'s continuation window stopped at a numbered-list item's own "N." marker**,
+   reading its period as a sentence end. Real capture, CELEX `31976H0495`: "HEREBY RECOMMENDS TO THE MEMBER
+   STATES: 1. that, with a view to..." truncated to the 2-word, `MIN_SPAN_WORDS`-rejected span "MEMBER
+   STATES: 1", falling to GAP. Fixed with the SAME URL-safe-continuation technique URL-GUIL introduced for a
+   URL's own domain dots: a 1-2 digit list-item marker is now consumed as one atomic alternative in
+   `jurisdictional_scope`'s four trigger continuations, applied ONLY to that slot (the one HOLLOW-GATE
+   evidenced).
+3. **"Cellar garbled metadata captures"** — two live rows (CELEX `21976A0216(03)`, `32006R1907`/REACH),
+   both minted by THIS pipeline's own exporter, carry ONLY Cellar's own RDF/document-conversion-provenance
+   fingerprint (`cdm:CDM_2.1.7 tdm:1523 xslt:3945 saxon:... metaconvJar:... builddate:...`) as their entire
+   `captured_text` — never the act's own body. A capture-path defect (`export-census-rows.mjs`'s Cellar
+   handling), not an extractor defect. Fixed with a new structurally-anchored detector,
+   `detectCellarGarbledMetadata` (same convention as `detectNotInForce`): wired into
+   `envelopeFromCaptureDocument`'s `usable` gate (a fresh garbled Cellar response now falls through to the
+   pre-existing EUR-Lex fallback, the same retry path a too-short/bot-gated response already triggers) AND
+   into `buildExportRow` right after the pre-existing `capture_too_short` check (catches an
+   `existingCaptureByUrl` DB-cached garbled row too, which bypasses the `usable` gate entirely), holding
+   `capture_garbled_metadata` with the evidence span rather than letting it mint hollow with wrong evidence.
+
+Two governing files moved: `src/lib/intake/record-facts.mjs` (defects 1/2 — `RECORD_FACTS_VERSION`
+`rf1-2026-09-04.2` → `rf1-2026-09-04.3`) and `scripts/mint/MINT-RUNBOOK.md` (this marker's own narrative,
+§13's new subsection documenting all three). `scripts/mint/export-census-rows.mjs` (defect 3's fix) is NOT
+a mint-family `GOVERNING_FILES` entry, so it does not move this hash. `scripts/mint/validate-mint-payload.mjs`
+was investigated and found to carry NO duplicate of the bare-domain-URL guard or either other defect's
+logic — UNCHANGED by this lane, per this lane's own task instruction to touch it only if the same guard
+were duplicated there. `item-type-required-slots.json` and the three `scripts/mint/lib/*.mjs` files are
+likewise UNCHANGED.
+
+**harness_version at write time:** `sha256:45f466a329448e44`
+
 **The planned run that supersedes THIS marker:** the next `population-turn` dispatch (dry, then apply)
-under this landed code — its `mint-batch-report.json` should show a material drop in `record_hollow` holds
-against the 379 EUR-Lex-hosted rows in the 551-hollow population (MINT-RUNBOOK.md §13's ≈92% estimate),
-plus continued clean handling of the URL-BOILER-era rows (`429c85d2`/`a980a0b9`) already covered above. Per
-F28's reverse-audit, this marker is deleted the moment that artifact lands and its `harness_version`
-matches the hash above (or re-pinned to a new hash, per rule (c), if a governing file changes again before
-that run lands).
+under this landed code — its `mint-batch-report.json` should show CELEX `32012D0706(01)`-shaped rows
+(a genuine operative-provision clause mentioning a bare domain) now minting a substantive `operative_provision`
+FACT instead of GAP; CELEX 'H'-recommendation rows (like `31976H0495`'s shape) now minting a substantive
+`jurisdictional_scope` FACT where the source states one via a numbered clause; and any row whose Cellar
+capture is this RDF-fingerprint shape now held `capture_garbled_metadata` (or re-minted with real EUR-Lex
+fallback text) rather than shipping hollow. Per F28's reverse-audit, this marker is deleted the moment that
+artifact lands and its `harness_version` matches the hash above (or re-pinned to a new hash, per rule (c),
+if a governing file changes again before that run lands).
