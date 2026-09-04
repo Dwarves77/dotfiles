@@ -481,9 +481,14 @@ type WorkspaceItemsServiceClient = ReturnType<typeof getServiceSupabase>;
  * `get_workspace_intelligence_listings`'s body ends `..., ii.added_date DESC, ii.id ASC;`. Only a
  * name in this set is safe to paginate with `.range()` alone (see buildWorkspaceItemsQuery's header
  * for why an outer `.order()` is otherwise required). `get_workspace_intelligence_slim` — the other
- * RPC this module ever paginates (fetchResourcesOnly, /operations + /market) — was ALSO read live
- * this session and its own ORDER BY ends `..., ii.added_date DESC;` with NO `id` tiebreak, so it is
- * deliberately NOT in this set; see the fallback branch below.
+ * RPC this module ever paginates (fetchResourcesOnly, /operations + /market) — carries the SAME
+ * priority-band-ranking defect this lane fixes for /regulations (live-confirmed SQL, 2026-09-04:
+ * under the pre-existing outer order, first 60 rows are 100% MODERATE; under the RPC's own order,
+ * 14 CRITICAL, 30 HIGH, 16 MODERATE). The exact fix: migration 303 adds `, ii.id ASC` to slim's
+ * ORDER BY, then this set gains `"get_workspace_intelligence_slim"` — a one-line addition (gated on
+ * 303 applying live) that restores the priority-band rank for /operations and /market (identical to
+ * the /regulations fix). This lane's write set covers the migration + the comment update below; the
+ * allowlist addition is deferred to the coordinator-apply phase.
  */
 const LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER = new Set<string>(["get_workspace_intelligence_listings"]);
 

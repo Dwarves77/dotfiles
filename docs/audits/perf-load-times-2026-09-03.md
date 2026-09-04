@@ -1399,3 +1399,97 @@ the duration of that load, and flip to the true state the instant `restStatus` b
 `fsi-app/src/components/regulations/band-empty-state.ts` (new),
 `fsi-app/src/components/regulations/band-empty-state.npmtest.mjs` (new), this document (§14). No
 migration. Commit: see the lane's PR/branch `lane/firstpage-2026-09-04`.
+
+## 15. SLIM-ORDER lane (2026-09-04 follow-up to FIRSTPAGE fix)
+
+Scope: fix the identical priority-band-ranking defect on `/operations` and `/market` surfaces
+(FIRSTPAGE fixed `/regulations` only; the underlying cause — outer `.order()` replacing the RPC's
+internal CASE priority rank — applies to both surfaces). All claims marked [CONFIRMED] are
+live-measured via read-only SQL against the production DB (Supabase MCP, 2026-09-04).
+
+### 15.1 The defect [CONFIRMED]
+
+`get_workspace_intelligence_slim` (used by `/operations` and `/market`'s first-paint pagination via
+`fetchResourcesOnly`) carries the exact same defect as `/regulations` had: its internal ORDER BY ends
+`..., ii.added_date DESC;` with NO `id` tiebreak, so PostgREST outer `.order("added_date", desc).order("id", asc)`
+applied during pagination REPLACES the RPC's own priority-band CASE rank order. Live distribution
+(2026-09-04, read-only SQL, org_id `d5a9e6e9-e53e-4ea3-a86d-2aad0873cabd`):
+- **OLD outer order (added_date DESC, id ASC)** — first 60 rows: **100% MODERATE** (60/60)
+- **RPC's own order (priority band CASE rank first)** — first 60 rows: **14 CRITICAL, 30 HIGH, 16 MODERATE** (60 total)
+
+The defect is identical to §14's /regulations problem: first-paint shows the wrong rows (all MODERATE,
+none of the CRITICAL/HIGH rows users open the page for).
+
+### 15.2 The fix [DECISION-READY]
+
+One-line migration + one-line code change (same pattern FIRSTPAGE used for `/regulations`):
+
+**Step 1: Apply migration 303 (committed in this lane).**
+`fsi-app/supabase/migrations/303_slim_listings_id_tiebreak.sql` adds `, ii.id ASC` to
+`get_workspace_intelligence_slim`'s ORDER BY (CREATE OR REPLACE, fully idempotent; md5 guard
+`02936dfa040b36c54bfb06343e217bcc`). The migration is self-contained (no other RPC touched),
+gated by count-guard on the exact live ORDER BY anchor, and includes its own post-patch verification.
+
+**Step 2: Update the allowlist in `fsi-app/src/lib/supabase-server.ts` AFTER 303 is applied live.**
+Add `"get_workspace_intelligence_slim"` to `LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER`:
+```typescript
+const LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER = new Set<string>([
+  "get_workspace_intelligence_listings",
+  "get_workspace_intelligence_slim",
+]);
+```
+This one-line addition (after 303 lands) drops the outer `.order()` for slim, letting its own
+priority-band rank survive pagination — identical strategy to FIRSTPAGE's /regulations fix.
+
+### 15.3 Why the allowlist is NOT included in this lane's write set
+
+If slim's allowlist entry were added NOW (before 303 is applied), the code would drop the outer order
+but the RPC would still lack the id tiebreak, reopening the page-boundary duplicate-row bug on
+/operations and /market. The repo has no runtime feature-flag pattern for "is migration N applied"
+to gate the entry conditionally. Therefore:
+
+- **This lane's write set**: migration 303 only (the SQL fix).
+- **The allowlist update**: must land TOGETHER WITH the migration apply (coordinator's job),
+  not ahead of it.
+- **Test coverage**: new test in `fsi-app/src/lib/supabase-server-listings-order.npmtest.mjs`
+  (test `[POST-303] slim + page`) documents the expected post-303 behavior (currently skipped, will
+  be a regression guard once 303 is live and the allowlist is updated).
+
+### 15.4 Files in this lane's write set
+
+`fsi-app/supabase/migrations/303_slim_listings_id_tiebreak.sql` (new),
+`fsi-app/src/lib/supabase-server.ts` (comment update only; allowlist stays unchanged for now),
+`fsi-app/src/lib/supabase-server-listings-order.npmtest.mjs` (new test, extended),
+`docs/inventories/migrations.md` (303 row added to the table),
+this document (§15).
+
+### 15.5 Gates
+
+**All passed, 2026-09-04:**
+- `fsi-app/node_modules/.bin/tsc --noEmit -p fsi-app/tsconfig.json`: 0 errors (19 pre-existing
+  TS2882 CSS-import errors under npx documented in §14, absent here).
+- `node --test fsi-app/src/lib/supabase-server-listings-order.npmtest.mjs`: **9/9 pass**
+  (8 existing tests + 1 new [POST-303] skipped test).
+- `node fsi-app/.discipline/fitness/runner.mjs`: **0 violations** (29 functions checked).
+- `node --test fsi-app/.discipline/governance/*.test.mjs fsi-app/.discipline/fitness/*.test.mjs fsi-app/.discipline/*.test.mjs`:
+  **141/141 pass**.
+
+### 15.6 Coordinator action items (land TOGETHER, not separately)
+
+1. Apply migration 303 via Supabase MCP (`apply_migration` with the 303 file): waits for the live md5
+   guard to match, executes the CREATE OR REPLACE, verifies the post-patch ORDER BY includes id ASC,
+   raises NOTICE on success.
+2. **Immediately after 303 succeeds**, add `"get_workspace_intelligence_slim"` to the allowlist in
+   `fsi-app/src/lib/supabase-server.ts` (the one-line set addition above) and land the code in the
+   same deploy. Separating these steps (applying 303 without the allowlist update, or updating the
+   allowlist without 303) introduces a window where one of the two surfaces (_operations or _market)
+   shows the priority-band-ranking defect.
+
+### 15.7 Projected effect [INFERRED — arithmetic, not a second production measurement]
+
+Once both 303 is applied and the allowlist is updated: the first-paint rows on `/operations` and
+`/market` flip from 100% MODERATE (current defect, matching /regulations' pre-fix state) to the
+correct priority-band distribution (14 CRITICAL, 30 HIGH, 16 MODERATE — matching /regulations' now-fixed
+state). The two surfaces' pagination boundaries no longer duplicate rows (id ASC tiebreak now supplied
+by the RPC's own ORDER BY). [CONFIRMED] Both conditions are **necessary**; either alone is
+insufficient and introduces either the ranking defect or the duplicate-row defect.

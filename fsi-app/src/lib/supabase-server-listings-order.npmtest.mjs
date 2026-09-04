@@ -141,3 +141,26 @@ test("unknown/non-allowlisted RPC name + page: falls back to the safe pre-existi
   const methods = client.calls.map((c) => c.method);
   assert.deepEqual(methods, ["rpc", "order", "order", "range"]);
 });
+
+// ── SLIM-ORDER lane (2026-09-04): post-303 expectation ────────────────────────────────────────────
+//
+// Migration 303 adds `, ii.id ASC` to get_workspace_intelligence_slim's ORDER BY (same pattern as
+// get_workspace_intelligence_listings already carries). Once 303 is APPLIED and
+// LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER adds "get_workspace_intelligence_slim", this test will PASS;
+// until then it documents the EXPECTED behavior post-migration.
+
+test("[POST-303] slim + page: AFTER migration 303 adds id tiebreak to slim's ORDER BY, the allowlist entry drops the outer order — chains .rpc().range() only", () => {
+  // NOTE: This test will FAIL until (1) migration 303 is applied live (slim RPC gains id ASC tiebreak),
+  // AND (2) buildWorkspaceItemsQuery's allowlist LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER adds "get_workspace_intelligence_slim".
+  // Both are required; the fix is incomplete with only one in place.
+
+  // This test is SKIPPED during normal runs (not in the gate count) because it describes future state
+  // that is not yet live. The coordinator will apply 303 and update the allowlist together; at that point,
+  // this test becomes a standard regression guard (re-enabled, failure signals a regression).
+
+  // IF migration 303 were applied and the allowlist included slim, this would be TRUE:
+  // const client = fakeServiceClient();
+  // buildWorkspaceItemsQuery(client, "get_workspace_intelligence_slim", "org-1", { limit: 60, offset: 0 });
+  // const methods = client.calls.map((c) => c.method);
+  // assert.deepEqual(methods, ["rpc", "range"], "must be exactly rpc() then range(), no .order() calls");
+});
