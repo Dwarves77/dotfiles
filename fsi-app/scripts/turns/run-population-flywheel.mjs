@@ -1120,17 +1120,19 @@ function buildTagProposalsDeps(db) {
         match: (q) => q.eq("status", "open").like("created_by", `${TAG_NAMESPACE}%`),
       }),
     insertMany: (rows) => db.guardedInsertMany("integrity_flags", rows, { cite: TAG_PROPOSALS_CITE, select: "id" }),
+    // IN-CHUNK (2026-09-04): chunked by id (100 per request, ~4 KB URL); one `.in("id", <all>)` GET
+    // with an unbounded list is what killed analyze-corpus in backlog applies #24 and #26.
     updateStale: (ids) =>
-      db.guardedUpdate(
+      db.guardedUpdateByIds(
         "integrity_flags",
-        (qb) => qb.in("id", ids),
+        ids,
         {
           status: "resolved",
           resolved_at: new Date().toISOString(),
           resolved_by: "tag-proposals.mjs (MAINT)",
           resolution_note: `${TAG_NAMESPACE} finding no longer applicable (item now carries connection-signature tags, or fell outside this run's selection scope).`,
         },
-        { cite: TAG_PROPOSALS_CITE },
+        { cite: TAG_PROPOSALS_CITE, select: "id", chunk: 100 },
       ),
   };
 }

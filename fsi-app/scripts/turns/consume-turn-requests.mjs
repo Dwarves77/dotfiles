@@ -30,7 +30,7 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeFileSync } from "node:fs";
-import { readAll, guardedUpdate } from "../lib/db.mjs";
+import { readAll, guardedUpdateByIds } from "../lib/db.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -179,11 +179,12 @@ async function main() {
     const nowIso = new Date().toISOString();
     const requestIds = rows.map((r) => r.id);
     try {
-      const res = await guardedUpdate(
+      // IN-CHUNK (2026-09-04): chunked by id (100 per request); see analyze-corpus.mjs IN_CHUNK.
+      const res = await guardedUpdateByIds(
         "corpus_turn_requests",
-        (q) => q.in("id", requestIds),
+        requestIds,
         { consumed_at: nowIso, consumed_by: by },
-        { cite }
+        { cite, select: "id", chunk: 100 }
       );
       console.error(`consume-turn-requests: marked ${res.updated} request(s) consumed_by=${by}.`);
     } catch (e) {

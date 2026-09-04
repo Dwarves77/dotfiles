@@ -409,3 +409,22 @@ test('withTransientRetry: does NOT retry on non-transient status codes', async (
 });
 
 test.after(() => __setWriteClientForTest(null)); // restore real client factory
+
+test('guardedUpdateByIds: IN-CHUNK (2026-09-04) — a 1,317-id integrity_flags list (the live open flywheel-signal count that broke backlog applies #24/#26 as one .in() GET) goes out as 14 requests of ≤100 ids, each URL-sized well under the gateway header limit', async () => {
+  const calls = [];
+  const ids = Array.from({ length: 1317 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`);
+  __setWriteClientForTest(() => makeClient((s) => {
+    const inOp = s.ops.find((o) => o[0] === 'in');
+    return { data: inOp[2].map((id) => ({ id })), error: null };
+  }, calls));
+  const res = await guardedUpdateByIds('integrity_flags', ids, { status: 'resolved' }, { cite, select: 'id', chunk: 100 });
+  const updates = calls.filter((c) => c.verb === 'update');
+  assert.equal(updates.length, 14);
+  const sizes = updates.map((u) => u.ops.find((o) => o[0] === 'in')[2].length);
+  assert.ok(sizes.every((n) => n <= 100), 'no request carries more than 100 ids');
+  assert.equal(sizes.reduce((a, b) => a + b, 0), 1317);
+  // ~40 bytes per uuid in an `in=(...)` filter: 100 ids ≈ 4 KB, the whole list ≈ 53 KB.
+  const worstUrlBytes = Math.max(...sizes) * 40;
+  assert.ok(worstUrlBytes < 8192, `chunk URL ~${worstUrlBytes} B must stay under an 8 KB header limit`);
+  assert.equal(res.updated, 1317);
+});

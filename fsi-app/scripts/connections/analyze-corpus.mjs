@@ -61,7 +61,7 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
-import { readAll, guardedDelete, guardedInsertMany, guardedInsert, guardedUpdate } from "../lib/db.mjs";
+import { readAll, guardedDelete, guardedInsertMany, guardedInsert, guardedUpdate, guardedUpdateByIds } from "../lib/db.mjs";
 import { clusterGraph } from "../../src/lib/connections/cluster.mjs";
 import { detectGaps } from "../../src/lib/connections/gaps.mjs";
 import { computeAnticipatedTargets } from "../../src/lib/connections/anticipate.mjs";
@@ -81,6 +81,10 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_
 
 const DRY = process.argv.includes("--dry");
 const RUN_SIGNALS = process.argv.includes("--signals");
+// Max ids per PostgREST `in=(...)` filter on a write path (IN-CHUNK, 2026-09-04): ~40 bytes per uuid
+// keeps the request URL near 4 KB, under the gateway header limit that turned a 1,317-id list into
+// `TypeError: fetch failed`.
+export const IN_CHUNK = 100;
 const CITE = {
   skill: "flywheel-build-plan-2026-08-10",
   reason: "U2/U5/F6/L4 analyze-corpus: persist the U1 cluster pass, capture the theme delta, and reflect coverage_gap / anticipated-coverage / signal-candidate findings (guarded path, rule 015).",
@@ -120,11 +124,17 @@ async function reflectFlags(namespace, fresh) {
     inserted = res.inserted;
   }
   if (staleIds.length) {
-    const res = await guardedUpdate(
+    // IN-CHUNK (2026-09-04): chunked by id, never one `.in("id", <every id>)` GET. Backlog applies #24
+    // and #26 died here with `db.mjs snapshot read failed: TypeError: fetch failed` after the retry
+    // ladder: 1,317 open flywheel-signal flags live, and one unbounded id list puts every uuid in the
+    // request URL, past the gateway's header limit — not transient, so no retry can cure it. 100 ids
+    // is ~4 KB of URL; integrity_flags carries no per-row trigger cost, so the 10-row default tuned
+    // for intelligence_items is not needed here.
+    const res = await guardedUpdateByIds(
       "integrity_flags",
-      (qb) => qb.in("id", staleIds),
+      staleIds,
       { status: "resolved", resolved_at: new Date().toISOString(), resolved_by: "analyze-corpus.mjs", resolution_note: `${namespace} finding no longer detected in the latest analyze-corpus pass` },
-      { cite: CITE },
+      { cite: CITE, select: "id", chunk: IN_CHUNK },
     );
     resolved = res.updated;
   }
@@ -306,11 +316,13 @@ try {
     if (flagsToAutoResolve.length) {
       const groups = groupStaleFlagsForResolution(flagsToAutoResolve, SIGNAL_NAMESPACE);
       for (const g of groups) {
-        const res = await guardedUpdate(
+        // IN-CHUNK (2026-09-04): see resolveStaleFlags above — a group here can be every open
+        // shared_title_entity flag at once (1,317 live), the exact list that broke #24 and #26.
+        const res = await guardedUpdateByIds(
           "integrity_flags",
-          (qb) => qb.in("id", g.ids),
+          g.ids,
           { status: "resolved", resolved_at: new Date().toISOString(), resolved_by: "analyze-corpus.mjs", resolution_note: g.resolutionNote },
-          { cite: CITE },
+          { cite: CITE, select: "id", chunk: IN_CHUNK },
         );
         signalAutoResolved += res.updated;
       }
