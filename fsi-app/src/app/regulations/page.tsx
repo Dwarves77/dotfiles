@@ -14,9 +14,24 @@
  * row-derived counts because migrations 148/149 are not applied yet. Counts
  * are never recomputed from the visible rows and the mock snapshot numbers
  * are never hard-coded.
+ *
+ * PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): this page no longer accepts a
+ * `searchParams` prop. Reading it is itself a Dynamic API under classical (non-PPR) rendering — using
+ * it forces the WHOLE route dynamic at build time, independent of every other fix, exactly like
+ * cookies()/headers(). The `?priority=`/`?region=`/`?owner=` deep-link filters it used to read are now
+ * resolved CLIENT-SIDE, inside RegulationsLedger itself, via useSearchParams() wrapped in its own
+ * small Suspense boundary (see RegulationsLedger.tsx's SearchParamsFilterBridge for the full
+ * mechanism and why only that tiny piece suspends, not the whole ledger).
+ *
+ * getListingsOnly()/getSurfaceCounts() are also replaced: their org-scoped resolveOrgIdFromCookies()
+ * internals were a SECOND, independent Dynamic API dependency on this route (get_workspace_
+ * intelligence_slim rejects a NULL org_id via _assert_org_membership — confirmed this lane via
+ * Supabase MCP). getPublicListingsOnly()/getPublicSurfaceCounts() (migration 306's `_public` RPC
+ * siblings, unstable_cache-wrapped, no cookies) replace them — same platform-wide-not-per-org-override
+ * trade-off already accepted for /market, /operations, /research's own list pages this lane.
  */
 
-import { getListingsOnly, getSurfaceCounts } from "@/lib/data";
+import { getPublicListingsOnly, getPublicSurfaceCounts } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { RegulationsLedger } from "@/components/regulations/RegulationsLedger";
@@ -31,13 +46,7 @@ import { toDate } from "@/lib/relative-time";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 
-export default async function RegulationsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ priority?: string; region?: string; owner?: string }>;
-}) {
-  const { priority: priorityParam, region: regionParam, owner: ownerParam } = await searchParams;
-
+export default async function RegulationsPage() {
   // Listings (verified-gated server-side) for the ledger rows + the
   // single-SoT verified count bundle for the masthead / tiles / bands.
   // First-paint page only (60 rows, newest added_date first) — RegulationsLedger
@@ -48,15 +57,21 @@ export default async function RegulationsPage({
   // both real RPCs, independent of how many rows are loaded — so the header
   // count stays honest at 60, at 754, and everywhere in between.
   const [data, aggregates] = await Promise.all([
-    // PERF-11 (2026-09-04): domain-scoped when migration 305 is live (fail-soft to the unscoped call
-    // otherwise — see ResourcePage.domain's own header in supabase-server.ts). Live measurement,
-    // 2026-09-04: without this, the unscoped top-60 was only 39/60 (65%) actual Regulations rows — the
-    // other 21 were Tech/Regional/Market/Research items this page fetched and serialised, then threw
-    // away. The `.filter` below stays regardless of migration status: it is what makes the RENDER
-    // correct even on the pre-305 fallback path, and is a no-op once 305 is live (every row already
-    // matches).
-    getListingsOnly({ limit: LIST_FIRST_PAGE_SIZE, offset: 0, domain: REGULATIONS_DOMAIN }),
-    getSurfaceCounts("regulations"),
+    // PERF-MERGE convergence (2026-09-04) of PERF-10 (org-independent, cacheable, cookie-free —
+    // keeps this route static) and PERF-11 (domain-scoped — /regulations should only ever fetch its
+    // own domain). getPublicListingsOnly() is PERF-10's architecture: no resolveOrgIdFromCookies()
+    // Dynamic API, so this page builds `○` instead of `ƒ`. `domain: REGULATIONS_DOMAIN` is PERF-11's
+    // fix, folded into migration 306's `get_workspace_intelligence_listings_public` (its own header —
+    // the org-independent sibling of migration 305's org-scoped `p_domain` patch) and failing soft to
+    // the unscoped call while 306 is not yet applied (see getPublicListingsOnly's/
+    // fetchPublicWorkspaceResources's own headers in data.ts/supabase-server.ts). Live measurement,
+    // 2026-09-04: without domain-scoping, the unscoped top-60 across all seven
+    // intelligence_items.domain values was only 39/60 (65%) actual Regulations rows — the other 21
+    // were Tech/Regional/Market/Research items this page fetched and serialised, then threw away. The
+    // `.filter` below stays regardless of migration status: it is what makes the RENDER correct even
+    // on the pre-306 fallback path, and is a no-op once 306 is live (every row already matches).
+    getPublicListingsOnly({ limit: LIST_FIRST_PAGE_SIZE, offset: 0, domain: REGULATIONS_DOMAIN }),
+    getPublicSurfaceCounts("regulations"),
   ]);
 
   const regulationResources = data.resources.filter((r) => r.domain === REGULATIONS_DOMAIN);
@@ -132,15 +147,21 @@ export default async function RegulationsPage({
           else on this page for counts) — every non-Regulations row the unscoped RPC call returned was
           being shipped to and rendered by a component whose own bands/cards assume every row is a
           regulation. Fixed to the filtered set; see the fetch comment above for the matching data-layer
-          fix (migration 305) that makes the fetch itself narrow, not just this render. */}
+          fix (migration 306, PERF-MERGE fold-in) that makes the fetch itself narrow, not just this
+          render. */}
+      {/* PERF-10 (2026-09-04): initialOverrides is no longer passed — getPublicListingsOnly() (the
+          org-independent, cookie-free listing this page now uses) carries no per-org override rows to
+          seed. Overrides now arrive exclusively client-side via useWorkspaceOverridesHydration
+          (mounted globally in AppShell.tsx), the same source RegulationsLedger's own override-hydration
+          effect already merges from — one extra client round trip before overrides are visible,
+          instead of arriving pre-seeded in the SSR payload, the same trade-off this lane accepts
+          everywhere a per-org read left a route's server render. initialPriorityFilter/
+          initialRegionFilter/initialOwnerFilter are also no longer passed — see this file's header and
+          RegulationsLedger.tsx's SearchParamsFilterBridge for why those are now resolved client-side. */}
       <RegulationsLedger
         initialResources={regulationResources.map(toLedgerRowPayload)}
         initialArchived={data.archived}
-        initialOverrides={data.overrides}
         aggregates={aggregates}
-        initialPriorityFilter={priorityParam ?? null}
-        initialRegionFilter={regionParam ?? null}
-        initialOwnerFilter={ownerParam ?? null}
       />
       {/* Lane OBLIG (2026-09-02): the obligation register section — spec-01 §2's atomic unit ("the
           obligation, not the document"), migration 290's `obligations` table (item_forward_events

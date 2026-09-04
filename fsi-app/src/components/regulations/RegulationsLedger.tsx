@@ -29,7 +29,10 @@
  */
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
+  Suspense,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -98,14 +101,53 @@ interface RegulationsLedgerProps {
    *  totalItems === 0 signals the fail-soft path (RPC absent / empty), in
    *  which case the ledger derives counts from the loaded verified rows. */
   aggregates: WorkspaceAggregates;
-  /** Deep-link priority filter from ?priority=CRITICAL etc. */
+  /** Deep-link priority filter from ?priority=CRITICAL etc.
+   *  PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): regulations/page.tsx no longer reads
+   *  `searchParams` at all — that read was itself a Dynamic API, forcing `ƒ` (Dynamic) independent of
+   *  every other fix in this lane. This prop now defaults to null in production (kept for any other
+   *  caller / test harness that wants to seed it directly); the real deep-link value is read
+   *  CLIENT-SIDE via useSearchParams() inside this component (see the SearchParamsFilterBridge sub-
+   *  component below and its Suspense wrapper in the render tree) — the officially-recommended Next.js
+   *  pattern for keeping a page statically generated while a small piece of it still needs the URL's
+   *  query string: only the tiny bridge component suspends, never the whole ledger. */
   initialPriorityFilter?: string | null;
-  /** Deep-link Tier-1 ISO region filter from ?region=us-ca etc. */
+  /** Deep-link Tier-1 ISO region filter from ?region=us-ca etc. See initialPriorityFilter's doc above
+   *  for why this is now resolved client-side via the search-params bridge, not a server prop. */
   initialRegionFilter?: string | null;
   /** Deep-link owner filter from ?owner=<display name> (DashboardByOwner
    *  links; Phase 1 ownership). Matched case-insensitively against the
-   *  merged actionOwner. */
+   *  merged actionOwner. See initialPriorityFilter's doc above for why this is now resolved
+   *  client-side via the search-params bridge, not a server prop. */
   initialOwnerFilter?: string | null;
+}
+
+/** PERF-10 (2026-09-04): reads the URL's ?priority=/?region=/?owner= deep-link params CLIENT-SIDE and
+ *  reports them once, on mount, to the parent's filter state. Isolated into its own component (rather
+ *  than calling useSearchParams() directly inside RegulationsLedger) so ONLY this tiny, render-nothing
+ *  piece needs the <Suspense> boundary Next.js requires around useSearchParams() during static
+ *  generation — the ledger's actual content (rows, tiles, bands) renders immediately, unblocked, using
+ *  its own default (no-filter) state until this bridge's effect fires. Mirrors the same "apply once,
+ *  never clobber a real user action" discipline as NotesField's override-hydration effect
+ *  (MarketSignalDetailSurface.tsx) — appliedRef guards a StrictMode double-invoke and a HMR remount
+ *  from re-applying the deep link after the viewer has already changed a filter by hand. */
+function SearchParamsFilterBridge({
+  onParams,
+}: {
+  onParams: (params: { priority: string | null; region: string | null; owner: string | null }) => void;
+}) {
+  const searchParams = useSearchParams();
+  const appliedRef = useRef(false);
+  useEffect(() => {
+    if (appliedRef.current) return;
+    appliedRef.current = true;
+    onParams({
+      priority: searchParams.get("priority"),
+      region: searchParams.get("region"),
+      owner: searchParams.get("owner"),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+  return null;
 }
 
 type BandKey = PriorityKey;
@@ -265,6 +307,28 @@ export function RegulationsLedger({
   // Held here rather than per-row because the dialog must render outside the
   // row <Link> (see CardPriorityDropdown).
   const [archiveTarget, setArchiveTarget] = useState<{ id: string; title: string } | null>(null);
+
+  // PERF-10 (2026-09-04): applies the client-resolved ?priority=/?region=/?owner= deep-link params
+  // (see SearchParamsFilterBridge's own header above) exactly once, the same validation each value
+  // already got when it arrived as a server prop — an invalid/unrecognized value is silently ignored
+  // rather than clearing an already-active filter.
+  const handleFilterParams = useCallback(
+    (params: { priority: string | null; region: string | null; owner: string | null }) => {
+      const upperPriority = (params.priority || "").toUpperCase();
+      if (PRIORITIES.includes(upperPriority as PriorityKey)) {
+        setActivePriorities(new Set([upperPriority]));
+      }
+      const upperRegion = (params.region || "").trim().toUpperCase();
+      if (upperRegion && TIER1_PRIORITY_ISOS.has(upperRegion)) {
+        setActiveRegionIsos(new Set([upperRegion]));
+      }
+      const trimmedOwner = (params.owner || "").trim();
+      if (trimmedOwner) {
+        setOwnerFilter(trimmedOwner);
+      }
+    },
+    []
+  );
 
   // ── Load-the-rest (cost-constrained first paint) ──────────────────────
   // The server renders only the first LIST_FIRST_PAGE_SIZE rows (newest
@@ -598,6 +662,15 @@ export function RegulationsLedger({
       ref={rootRef}
       style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 36px 80px" }}
     >
+      {/* PERF-10 (2026-09-04): the ONLY piece of this component that reads the URL's search params —
+          see SearchParamsFilterBridge's own header above for why it is isolated here, wrapped in its
+          own Suspense boundary, rather than calling useSearchParams() directly in this component
+          (which would require Suspense-wrapping — and therefore deferring the first paint of — the
+          entire ledger). Renders nothing; fallback={null} is never visibly different from its resolved
+          state. */}
+      <Suspense fallback={null}>
+        <SearchParamsFilterBridge onParams={handleFilterParams} />
+      </Suspense>
       {/* ── Priority tiles — clickable band filters ── */}
       <div
         role="group"

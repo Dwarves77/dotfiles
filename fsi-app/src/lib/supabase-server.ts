@@ -512,13 +512,12 @@ const LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER = new Set<string>([
 
 /**
  * RPC names whose signature CAN carry an optional `p_domain` argument once their migration is live —
- * PERF-11 (2026-09-04). Only `get_workspace_intelligence_listings` today (migration 305, WRITTEN NOT
- * APPLIED as of this lane — see that file's own header). `fetchWorkspaceResources` uses this set only to
- * decide whether it is worth ATTEMPTING the domain-scoped call at all; it never trusts the attempt to
- * succeed — see the fail-soft retry there, which activates automatically the moment 305 goes live with no
- * further edit to this set required (unlike `LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER` above, which records a
- * fact about a migration already confirmed live and is safe to trust unconditionally; this set records a
- * migration NOT yet confirmed live, so the caller must still handle failure).
+ * PERF-11 (2026-09-04). Only `get_workspace_intelligence_listings` today. Migration 305 was WRITTEN
+ * NOT APPLIED as of PERF-11's own lane; PERF-MERGE records it **APPLIED LIVE 2026-09-04 19:55 UTC**
+ * (one 2-arg overload, PERF-MERGE's own correction of the stale-overload risk — see 305's file header
+ * and docs/inventories/migrations.md's row for both). The fail-soft retry in `fetchWorkspaceResources`
+ * stays regardless — a cheap, self-healing guard against a future rollback of 305, not a sign this set
+ * is still "unconfirmed live" the way `LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER` above is graded.
  */
 const DOMAIN_SCOPED_RPCS = new Set<string>(["get_workspace_intelligence_listings"]);
 
@@ -606,8 +605,6 @@ async function fetchWorkspaceResources(
   archived: Resource[];
   uuidToUiId: Map<string, string>;
 }> {
-  const supabase = getSupabase();
-
   // Workspace items via the RPC that LEFT JOINs workspace_item_overrides.
   // No legacy `resources` fallback after A.5.b — if the RPC returns empty,
   // fetchDashboardData's seed fallback covers the misconfiguration case.
@@ -665,6 +662,108 @@ async function fetchWorkspaceResources(
   if (error || !items?.length) {
     return { active: [], archived: [], uuidToUiId: new Map() };
   }
+
+  return mapWorkspaceItemRows(items);
+}
+
+/**
+ * PERF-10 (2026-09-04, migration 306, ADR-026 Follow-up): org-independent counterpart to
+ * fetchWorkspaceResources — calls `get_workspace_intelligence_slim_public()` /
+ * `get_workspace_intelligence_listings_public()` (no `p_org_id`, no `workspace_item_overrides`
+ * join — see migration 306's own header for the full rationale and the measured
+ * globally-archived-plus-org-override edge case it deliberately does not carry). The RETURNED rows
+ * are IDENTICAL in every column except `effective_priority`/`effective_archived`, which collapse to
+ * the item's own `priority`/`is_archived` (no org to merge an override from) — so this reuses
+ * mapWorkspaceItemRows UNCHANGED, same as the org-scoped path above. The per-org override merge
+ * (priority_override, is_archived, owner_user_id, notes) happens client-side —
+ * src/stores/resourceStore.ts's existing mergeWithOverrides, fed by the caller's own
+ * overrides fetch (src/lib/data.ts's getPublicResourcesOnly/getPublicListingsOnly callers).
+ *
+ * Cacheable: unlike fetchWorkspaceResources, this issues NO per-request Dynamic API read (no
+ * orgId, no cookies) — src/lib/data.ts wraps this in one shared unstable_cache entry for the whole
+ * app, tagged PUBLIC_ITEMS_TAG.
+ */
+// PERF-MERGE (2026-09-04): the public/org-independent sibling of DOMAIN_SCOPED_RPCS above.
+// `get_workspace_intelligence_listings_public` gained its own optional `p_domain` in migration 306
+// (folded in at merge time to match 305's org-scoped patch — see 306's file header, "P_DOMAIN") so
+// the STATIC /regulations page (getPublicListingsOnly, PERF-10's whole point) narrows its fetch to
+// domain=1 exactly the way the org-scoped path narrows to it once an org resolves. Same posture as
+// DOMAIN_SCOPED_RPCS: names a migration the caller must still handle failing against (306 is
+// WRITTEN, NOT APPLIED as of this merge — see that file's header), so `fetchPublicWorkspaceResources`
+// below ATTEMPTS the domain-scoped call only for a name in this set and fails soft to the unscoped
+// call on ANY error, activating automatically the moment 306 goes live with no further edit here.
+const PUBLIC_DOMAIN_SCOPED_RPCS = new Set<string>(["get_workspace_intelligence_listings_public"]);
+
+async function fetchPublicWorkspaceResources(
+  options: { slim?: boolean; listings?: boolean; page?: ResourcePage } = {}
+): Promise<{
+  active: Resource[];
+  archived: Resource[];
+  uuidToUiId: Map<string, string>;
+}> {
+  const rpcName = options.listings
+    ? "get_workspace_intelligence_listings_public"
+    : "get_workspace_intelligence_slim_public";
+  const serviceClient = getServiceSupabase();
+  // Same range()-only pagination contract as the org-scoped path: both public RPCs carry their own
+  // `..., ii.id ASC` tiebreak (migration 306, mirroring 303's fix for the org-scoped slim RPC), so
+  // `.range()` alone preserves the RPC's own priority-band order exactly like
+  // LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER's entries do above.
+  //
+  // PERF-MERGE: when the caller asked for a domain-scoped page AND rpcName is in
+  // PUBLIC_DOMAIN_SCOPED_RPCS, try the domain-scoped call (`{ p_domain }`) first and fail soft to the
+  // zero-argument call on ANY error — mirrors fetchWorkspaceResources's own domain-scope retry above,
+  // one level down (org-independent instead of org-scoped). Without this, a domain-filtered page
+  // request (e.g. /regulations' `domain: REGULATIONS_DOMAIN`) would silently ignore the filter on the
+  // org-independent path even after 306 applies.
+  const wantsDomainScope =
+    typeof options.page?.domain === "number" && PUBLIC_DOMAIN_SCOPED_RPCS.has(rpcName);
+  let items: any[] | null = null;
+  let error: unknown = null;
+  if (wantsDomainScope) {
+    const scopedCall = serviceClient.rpc(rpcName, { p_domain: options.page!.domain });
+    const scopedQuery = options.page
+      ? scopedCall.range(options.page.offset, options.page.offset + options.page.limit - 1)
+      : scopedCall;
+    const scoped = await scopedQuery;
+    if (!scoped.error) {
+      items = scoped.data;
+    } else {
+      console.warn(
+        `[perf] domain-scoped ${rpcName} call failed (migration 306 likely not yet applied) — falling back to unscoped: ${describeSupabaseError(scoped.error)}`
+      );
+    }
+  }
+  if (items === null) {
+    const call = serviceClient.rpc(rpcName, {});
+    const itemsQuery = options.page ? call.range(options.page.offset, options.page.offset + options.page.limit - 1) : call;
+    const unscoped = await itemsQuery;
+    items = unscoped.data;
+    error = unscoped.error;
+  }
+
+  if (error || !items?.length) {
+    return { active: [], archived: [], uuidToUiId: new Map() };
+  }
+
+  return mapWorkspaceItemRows(items);
+}
+
+/**
+ * Shared row→Resource mapping for both fetchWorkspaceResources (org-scoped) and
+ * fetchPublicWorkspaceResources (PERF-10, org-independent) — extracted, not duplicated, so the two
+ * paths can never silently drift on how a raw RPC row becomes a Resource. Fetches item_timelines
+ * itself (timelines are never org-scoped, so this is identical work either caller would otherwise
+ * have inlined). `items` must already carry the RPC's `effective_priority`/`effective_archived`
+ * columns (both RPC families project them — the public variant simply sets them equal to the item's
+ * own priority/is_archived, see migration 306).
+ */
+async function mapWorkspaceItemRows(items: any[]): Promise<{
+  active: Resource[];
+  archived: Resource[];
+  uuidToUiId: Map<string, string>;
+}> {
+  const supabase = getSupabase();
 
   // Build UUID → UI-id translation map from the RPC payload (each row has
   // both id and legacy_id). The UI keys resources by UI id (legacy_id || uuid).
@@ -983,6 +1082,29 @@ export async function fetchSurfaceCounts(
   surface: string
 ): Promise<WorkspaceAggregates | null> {
   if (!isSupabaseConfigured() || !orgId) return null;
+  return runSurfaceCountsRpc(orgId, surface);
+}
+
+// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306): org-independent
+// counterpart to fetchSurfaceCounts above, for getPublicSurfaceCounts (src/lib/data.ts).
+//
+// BUG FOUND AND FIXED, this lane, proving the build: fetchSurfaceCounts' OWN `!orgId → return null`
+// guard above (line ~985) means calling `fetchSurfaceCounts(null, surface)` — which is exactly what
+// this lane's FIRST cut of getPublicSurfaceCounts did — short-circuits to `null` BEFORE ever calling
+// the RPC, regardless of get_surface_counts itself being null-safe (confirmed via Supabase MCP). That
+// made getPublicSurfaceCounts silently and permanently fall through to its all-zero fallback object —
+// every masthead/tile count on /market, /operations, /research, /regulations would have rendered "0
+// active items" honestly-formatted but factually wrong the moment this shipped, caught only by
+// actually running the build end to end rather than by tsc or the unit suite (neither exercises the
+// RPC response shape). This function is the real fix: it skips straight to the shared RPC call with
+// `p_org_id: null`, never through the org-required guard, since a public caller passing null here is
+// the INTENDED case, not a caller that forgot to resolve one.
+export async function fetchPublicSurfaceCounts(surface: string): Promise<WorkspaceAggregates | null> {
+  if (!isSupabaseConfigured()) return null;
+  return runSurfaceCountsRpc(null, surface);
+}
+
+async function runSurfaceCountsRpc(orgId: string | null, surface: string): Promise<WorkspaceAggregates | null> {
   try {
     const supabase = getServiceSupabase();
     const { data, error } = await supabase.rpc("get_surface_counts", {
@@ -1231,6 +1353,23 @@ export async function fetchResearchPipelineRows(
   }
 }
 
+// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306): org-independent
+// counterpart to fetchResearchPipelineRows above. [CONFIRMED, this lane, reading the function body
+// above] `orgId` is threaded through fetchResearchPipelineRows but never actually used in its
+// query — `void orgId; // reserved for the override join when pipeline_overrides land` — and its
+// I/O runs through `getSupabase()` (a plain static anon-key client, not cookie-bound, not
+// service-role) already. The ONLY reason getResearchPipeline() (src/lib/data.ts) could not be
+// called anonymously before this lane was its OWN `resolveOrgIdFromCookies()` guard, not anything
+// in this function — "research-pipeline visibility is workspace-agnostic for now" is this
+// function's own pre-existing comment, not a new claim. This wrapper makes that already-true fact
+// reachable without a cookies() read: same query, same anon client, orgId argument replaced with
+// the empty string this function already treats as inert.
+export async function fetchPublicResearchPipelineRows(
+  cap: number
+): Promise<{ rows: ResearchPipelineRow[]; total: number; cap: number }> {
+  return fetchResearchPipelineRows("", cap);
+}
+
 // ── Research source coverage matrix (Build 8.5) ──────────────────────
 //
 // Pivots Research-bound sources (sources.category='research',
@@ -1397,6 +1536,88 @@ export interface CategoryRoutedResult {
   total: number;
 }
 
+// Shared enrichment pass (source-name/tier chip + optional per-source citation stats), split out of
+// runCategoryRpc (PERF-10, 2026-09-04, ADR-026 Follow-up / migration 306) so the new org-independent
+// runCategoryRpcPublic below can reuse it byte-for-byte instead of duplicating ~70 lines. Pure
+// mutation-in-place over `resources` (Resource[] already projected via rpcRowToResource) — no
+// behavior change from the pre-split inline version, verified by keeping every query/field identical.
+async function enrichCategoryRows(
+  serviceClient: ReturnType<typeof getServiceSupabase>,
+  resources: Resource[],
+  rpcLabel: string,
+  opts: { enrichCitations?: boolean } = {}
+): Promise<void> {
+  // P1-2 (DEEP-AUDIT S2): enrich the provenance chip (source name + tier). The
+  // category RPCs return source_id but not the publisher name/tier, so the tier
+  // chips + source lines rendered nothing across market/research/operations. One
+  // lookup by the page's distinct source_ids, mapped back by sourceId. Customer
+  // surfaces show effective_tier (dynamic), falling back to base_tier. Non-fatal.
+  const chipSourceIds = Array.from(
+    new Set(resources.map((r) => r.sourceId).filter((id): id is string => !!id))
+  );
+  if (chipSourceIds.length > 0) {
+    const { data: srcRows, error: srcErr } = await serviceClient
+      .from("sources")
+      .select("id, name, base_tier, effective_tier")
+      .in("id", chipSourceIds);
+    if (srcErr) {
+      console.error(`[category-routing] source chip enrichment for ${rpcLabel} error:`, describeSupabaseError(srcErr));
+    } else if (Array.isArray(srcRows)) {
+      const byId = new Map<string, { name: string | null; base_tier: number | null; effective_tier: number | null }>();
+      for (const s of srcRows as any[]) if (s?.id) byId.set(s.id, s);
+      for (const r of resources) {
+        const s = r.sourceId ? byId.get(r.sourceId) : undefined;
+        if (s) {
+          r.sourceName = s.name ?? undefined;
+          r.sourceTier = (s.effective_tier ?? s.base_tier) ?? undefined;
+        }
+      }
+    }
+  }
+
+  // Build 9: per-source citation stats for Operations cards. Mirrors the
+  // Build 8.1 ResearchView enrichment in fetchResearchPipelineRows above.
+  // One RPC call for the page's distinct source_ids, then a join back by
+  // sourceId. Failure is non-fatal: rows render with citationCount=null
+  // and the chips suppress themselves.
+  if (opts.enrichCitations) {
+    const distinctSourceIds = Array.from(
+      new Set(
+        resources
+          .map((r) => r.sourceId)
+          .filter((id): id is string => !!id)
+      )
+    );
+    if (distinctSourceIds.length > 0) {
+      const { data: statsRows, error: statsErr } = await serviceClient.rpc(
+        "get_source_citation_stats",
+        { source_ids: distinctSourceIds }
+      );
+      if (statsErr) {
+        console.error(
+          `[category-routing] get_source_citation_stats for ${rpcLabel} error:`,
+          describeSupabaseError(statsErr)
+        );
+      } else if (Array.isArray(statsRows)) {
+        const statsBySourceId = new Map<string, { count: number; recency: string | null }>();
+        for (const s of statsRows as any[]) {
+          if (s && typeof s.source_id === "string") {
+            statsBySourceId.set(s.source_id, {
+              count: typeof s.citation_count === "number" ? s.citation_count : 0,
+              recency: s.recency ?? null,
+            });
+          }
+        }
+        for (const r of resources) {
+          const s = r.sourceId ? statsBySourceId.get(r.sourceId) : undefined;
+          r.citationCount = s ? s.count : null;
+          r.lastCitedAt = s ? s.recency : null;
+        }
+      }
+    }
+  }
+}
+
 // Internal helper. Calls the category-routing RPC; projects rows to
 // Resource[]. The RPC body itself enforces routing via sources.category
 // (migration 084); no src-side filtering needed.
@@ -1422,77 +1643,39 @@ async function runCategoryRpc(
       return { resources: [], total: 0 };
     }
     const resources = (rows as any[]).map(rpcRowToResource);
+    await enrichCategoryRows(serviceClient, resources, rpcName, opts);
+    return { resources, total: resources.length };
+  } catch (e) {
+    console.error(`[category-routing] ${rpcName} failed:`, e);
+    return { resources: [], total: 0 };
+  }
+}
 
-    // P1-2 (DEEP-AUDIT S2): enrich the provenance chip (source name + tier). The
-    // category RPCs return source_id but not the publisher name/tier, so the tier
-    // chips + source lines rendered nothing across market/research/operations. One
-    // lookup by the page's distinct source_ids, mapped back by sourceId. Customer
-    // surfaces show effective_tier (dynamic), falling back to base_tier. Non-fatal.
-    const chipSourceIds = Array.from(
-      new Set(resources.map((r) => r.sourceId).filter((id): id is string => !!id))
-    );
-    if (chipSourceIds.length > 0) {
-      const { data: srcRows, error: srcErr } = await serviceClient
-        .from("sources")
-        .select("id, name, base_tier, effective_tier")
-        .in("id", chipSourceIds);
-      if (srcErr) {
-        console.error(`[category-routing] source chip enrichment for ${rpcName} error:`, describeSupabaseError(srcErr));
-      } else if (Array.isArray(srcRows)) {
-        const byId = new Map<string, { name: string | null; base_tier: number | null; effective_tier: number | null }>();
-        for (const s of srcRows as any[]) if (s?.id) byId.set(s.id, s);
-        for (const r of resources) {
-          const s = r.sourceId ? byId.get(r.sourceId) : undefined;
-          if (s) {
-            r.sourceName = s.name ?? undefined;
-            r.sourceTier = (s.effective_tier ?? s.base_tier) ?? undefined;
-          }
-        }
-      }
+// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306): org-independent
+// counterpart to runCategoryRpc — calls the zero-argument `_public` sibling RPC (migration 306:
+// get_market_intel_items_public / get_operations_items_public / get_research_items_public), which
+// carries no `_assert_org_membership` call and no workspace_item_overrides join. This is what lets
+// /market, /operations, /research read their category-routed row set with NO cookies() dependency
+// (the org resolution — resolveOrgIdFromCookies — that runCategoryRpc's `orgId` parameter required
+// is simply not needed here). Same enrichment pass (enrichCategoryRows), same Resource[] projection,
+// same fail-soft-to-empty contract — the ONLY difference from runCategoryRpc is which RPC is called
+// and that it takes no org-derived argument at all.
+async function runCategoryRpcPublic(
+  rpcName: "get_market_intel_items_public" | "get_operations_items_public" | "get_research_items_public",
+  opts: { enrichCitations?: boolean } = {}
+): Promise<CategoryRoutedResult> {
+  if (!isSupabaseConfigured()) {
+    return { resources: [], total: 0 };
+  }
+  try {
+    const serviceClient = getServiceSupabase();
+    const { data: rows, error } = await serviceClient.rpc(rpcName);
+    if (error || !rows) {
+      console.error(`[category-routing] ${rpcName} error:`, error);
+      return { resources: [], total: 0 };
     }
-
-    // Build 9: per-source citation stats for Operations cards. Mirrors the
-    // Build 8.1 ResearchView enrichment in fetchResearchPipelineRows above.
-    // One RPC call for the page's distinct source_ids, then a join back by
-    // sourceId. Failure is non-fatal: rows render with citationCount=null
-    // and the chips suppress themselves.
-    if (opts.enrichCitations) {
-      const distinctSourceIds = Array.from(
-        new Set(
-          resources
-            .map((r) => r.sourceId)
-            .filter((id): id is string => !!id)
-        )
-      );
-      if (distinctSourceIds.length > 0) {
-        const { data: statsRows, error: statsErr } = await serviceClient.rpc(
-          "get_source_citation_stats",
-          { source_ids: distinctSourceIds }
-        );
-        if (statsErr) {
-          console.error(
-            `[category-routing] get_source_citation_stats for ${rpcName} error:`,
-            describeSupabaseError(statsErr)
-          );
-        } else if (Array.isArray(statsRows)) {
-          const statsBySourceId = new Map<string, { count: number; recency: string | null }>();
-          for (const s of statsRows as any[]) {
-            if (s && typeof s.source_id === "string") {
-              statsBySourceId.set(s.source_id, {
-                count: typeof s.citation_count === "number" ? s.citation_count : 0,
-                recency: s.recency ?? null,
-              });
-            }
-          }
-          for (const r of resources) {
-            const s = r.sourceId ? statsBySourceId.get(r.sourceId) : undefined;
-            r.citationCount = s ? s.count : null;
-            r.lastCitedAt = s ? s.recency : null;
-          }
-        }
-      }
-    }
-
+    const resources = (rows as any[]).map(rpcRowToResource);
+    await enrichCategoryRows(serviceClient, resources, rpcName, opts);
     return { resources, total: resources.length };
   } catch (e) {
     console.error(`[category-routing] ${rpcName} failed:`, e);
@@ -1533,6 +1716,23 @@ export async function fetchTechnologyItems(
   orgId: string | null
 ): Promise<CategoryRoutedResult> {
   return runCategoryRpc(orgId, "get_technology_items");
+}
+
+// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306): org-independent
+// counterparts to fetchMarketIntelItems/fetchOperationsItems/fetchResearchItems above. No orgId
+// parameter, no per-org override merge — the caller (src/lib/data.ts) wraps these in unstable_cache
+// with no orgId in the cache key and merges the per-org override layer client-side, same split as
+// fetchPublicResourcesOnly/fetchPublicListingsOnly.
+export async function fetchPublicMarketIntelItems(): Promise<CategoryRoutedResult> {
+  return runCategoryRpcPublic("get_market_intel_items_public");
+}
+
+export async function fetchPublicResearchItems(): Promise<CategoryRoutedResult> {
+  return runCategoryRpcPublic("get_research_items_public");
+}
+
+export async function fetchPublicOperationsItems(): Promise<CategoryRoutedResult> {
+  return runCategoryRpcPublic("get_operations_items_public", { enrichCitations: true });
 }
 
 // ── Per-source citation stats (Build 7, Q9 chip mounts) ───────
@@ -1762,12 +1962,12 @@ interface OverrideDbRow {
 // in the SAME Promise.all as fetchWorkspaceResources and defer only the free, synchronous
 // translation step until both have resolved. Output is unchanged — same rows, same shape, same
 // fields — this only moves WHEN the DB reads are issued, not what they return.
-interface OverrideRowsRaw {
+export interface OverrideRowsRaw {
   rows: OverrideDbRow[];
   ownerNames: Map<string, string>;
 }
 
-async function fetchWorkspaceOverrideRowsRaw(orgId: string): Promise<OverrideRowsRaw> {
+export async function fetchWorkspaceOverrideRowsRaw(orgId: string): Promise<OverrideRowsRaw> {
   const svc = getServiceSupabase();
   const { data, error } = await svc
     .from("workspace_item_overrides")
@@ -1810,7 +2010,7 @@ async function fetchWorkspaceOverrideRowsRaw(orgId: string): Promise<OverrideRow
   return { rows, ownerNames };
 }
 
-function mapOverrideRows(
+export function mapOverrideRows(
   raw: OverrideRowsRaw,
   uuidToUiId: Map<string, string>
 ): WorkspaceOverrideRow[] {
@@ -2195,6 +2395,37 @@ export async function fetchResourcesOnly(
 }
 
 /**
+ * PERF-10 (2026-09-04, migration 306, ADR-026 Follow-up): org-independent counterpart to
+ * fetchResourcesOnly. No `orgId` parameter, no `overrides` in the return shape — the per-org
+ * override merge moves to the CALLER (src/lib/data.ts's getPublicResourcesOnly wraps this in
+ * unstable_cache with no orgId in the key; the client applies overrides fetched separately via
+ * mergeWithOverrides, resourceStore.ts). Same slim RPC family, same page-range contract.
+ */
+export async function fetchPublicResourcesOnly(page?: ResourcePage): Promise<{
+  resources: Resource[];
+  archived: Resource[];
+  _error?: string;
+  _fallbackTrigger?: SeedFallbackTrigger;
+}> {
+  const emptyFallback = { resources: [] as Resource[], archived: [] as Resource[] };
+
+  if (!isSupabaseConfigured()) {
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "supabase_not_configured" };
+  }
+
+  try {
+    const { active, archived } = await fetchPublicWorkspaceResources({ slim: true, page });
+    if (!active.length) {
+      return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
+    }
+    return { resources: active, archived };
+  } catch (e) {
+    console.error("fetchPublicResourcesOnly failed, using empty + error sentinel:", e);
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
+  }
+}
+
+/**
  * Slim variant for the /map surface: resources + relationship payload
  * the map view consumes (changelog, disputes, supersessions).
  * Drops sources/provisional/conflicts/synopses/intelligenceChanges/
@@ -2328,6 +2559,35 @@ export async function fetchListingsOnly(
     return { resources: active, archived, overrides };
   } catch (e) {
     console.error("fetchListingsOnly failed, using empty + error sentinel:", e);
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
+  }
+}
+
+/**
+ * PERF-10 (2026-09-04, migration 306, ADR-026 Follow-up): org-independent counterpart to
+ * fetchListingsOnly. See fetchPublicResourcesOnly's comment — same shape, listings RPC family
+ * (drops `summary`; used by /regulations).
+ */
+export async function fetchPublicListingsOnly(page?: ResourcePage): Promise<{
+  resources: Resource[];
+  archived: Resource[];
+  _error?: string;
+  _fallbackTrigger?: SeedFallbackTrigger;
+}> {
+  const emptyFallback = { resources: [] as Resource[], archived: [] as Resource[] };
+
+  if (!isSupabaseConfigured()) {
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "supabase_not_configured" };
+  }
+
+  try {
+    const { active, archived } = await fetchPublicWorkspaceResources({ listings: true, page });
+    if (!active.length) {
+      return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
+    }
+    return { resources: active, archived };
+  } catch (e) {
+    console.error("fetchPublicListingsOnly failed, using empty + error sentinel:", e);
     return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
   }
 }

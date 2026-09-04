@@ -38,7 +38,7 @@ import { WatchButton } from "@/components/ui/WatchButton";
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { OwnerTeamCard } from "@/components/regulations/OwnerTeamCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
-import { RelevanceBadge } from "@/components/shell/RelevanceBadge";
+import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import { RecordGradeBadge } from "@/components/shell/RecordGradeBadge";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import { scoreResource, matchResourceSector } from "@/lib/scoring";
@@ -453,7 +453,7 @@ export function RegulationDetailSurface({
         {/* Meta rail */}
         <div id="cl-meta-rail" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <AtAGlanceCard r={r} jurisLabel={jurisLabel} modes={modes} tone={tone} />
-          <RelevanceBadge relevance={relevance} />
+          <RelevanceBadgeClient itemId={r.id} />
           <AffectedLanesCard resource={r} />
           <OwnerTeamCard resource={r} initialOwner={initialOwner} />
           {/* Lane SURF (2026-09-01): customer-facing "Upcoming" obligations for this item

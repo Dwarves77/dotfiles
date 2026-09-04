@@ -3,26 +3,28 @@ import { ThemeStrip } from "@/components/research/ThemeStrip";
 import { CredibilityChipEvidence } from "@/components/research/CredibilityChipEvidence";
 import { CredibilityChipAuthority } from "@/components/research/CredibilityChipAuthority";
 import {
-  getResearchItems,
-  getResearchPipeline,
+  getPublicResearchItems,
+  getPublicResearchPipeline,
   getResearchSourceCoverage,
-  getSurfaceCounts,
+  getPublicSurfaceCounts,
 } from "@/lib/data";
 
-// Sprint 3 (2026-05-27): force-dynamic per /community precedent. Static
-// generation at build time has no cookies; resolveOrgIdFromCookies
-// returns null; runCategoryRpc early-returns empty (supabase-server.ts
-// :1018-1020); static HTML bakes in pipeline=0 and category-routed=0.
-// Force-dynamic skips static generation so the page renders on request
-// with the user's cookie-auth context.
+// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306): `force-dynamic` REMOVED.
+// It existed because getResearchItems()/getResearchPipeline() both called resolveOrgIdFromCookies()
+// — a Dynamic API read in this page's own server render (independent of the shared-layout cause
+// this lane's layout.tsx commit removes) — and would degrade to an empty payload without it (the
+// comment this replaces named exactly that failure mode). This page now renders from
+// getPublicResearchItems/getPublicResearchPipeline (org-independent, unstable_cache-backed, migration
+// 305 + the fetchPublicResearchPipelineRows finding that orgId was already unused by the pipeline
+// query) — no cookies() read, so there is nothing left for force-dynamic to route around. Per-org
+// personalization (pipeline_stage user overrides, when they land) stays a client-side concern via
+// useWorkspaceOverridesHydration, same split as /regulations.
 //
-// Note: previous `export const revalidate = 60` removed.
-// Per docs/ISR-WRITE-INVESTIGATION.md, /research was the *only* page with
-// a working ISR declaration (no cookie reads in its data path), and it
-// generated ~200K ISR writes over the prior 30 days. Going dynamic is
-// correct here — the new fetcher reads cookies via the authed Supabase
-// server client.
-export const dynamic = "force-dynamic";
+// Historical note preserved from the removed comment: /research was once the only page with a
+// working ISR declaration (no cookie reads in its data path) before getResearchPipeline() started
+// reading cookies, and generated ~200K ISR writes over 30 days (docs/ISR-WRITE-INVESTIGATION.md).
+// This lane's fix returns /research to that no-cookie-reads state by a different route (public RPC +
+// client-merged overrides, not the pre-cookie anon-key fetcher ISR-WRITE-INVESTIGATION.md describes).
 
 export default async function Research() {
   const t0 = Date.now();
@@ -47,13 +49,12 @@ export default async function Research() {
   // The pipeline_stage UI control still functions; it filters within the
   // category-routed slice.
   const [pipeline, research, aggregates, sourceCoverage] = await Promise.all([
-    getResearchPipeline(),
-    getResearchItems(),
+    getPublicResearchPipeline(),
+    getPublicResearchItems(),
     // Count-integrity: research-scoped counts from the single SoT (migration 148), gated verified.
-    // DELETES the RESEARCH_SCOPE={} degrade that made the masthead show workspace-wide totals (the 259
-    // leak). Fails soft to scoped aggregates (069) over the SURFACE_RULES-derived research scope when
-    // the RPC is absent (pre-apply) — a correct research scope, not the old empty degrade.
-    getSurfaceCounts("research"),
+    // PERF-10: getPublicSurfaceCounts (no cookies) — see its header in data.ts for the platform-wide
+    // vs per-org-override-adjusted count trade-off this lane accepts.
+    getPublicSurfaceCounts("research"),
     // Build 8.5: source coverage matrix from get_research_source_coverage()
     // (migration 100). Pivots active Research-bound sources by
     // (transport_mode x jurisdiction_iso) so the coverage tab renders a

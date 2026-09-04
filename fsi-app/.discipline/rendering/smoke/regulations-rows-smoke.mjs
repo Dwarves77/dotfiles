@@ -30,6 +30,7 @@
 // this lane; this lane's contribution is coverage (the spec that measures it) and the shared
 // `data-guard-title` convention, not a layout change.
 
+import { fileURLToPath } from 'node:url';
 import { runUxSpec, MOBILE_VIEWPORT, DESKTOP_VIEWPORT } from './ux-harness.mjs';
 import { measureUx, assertUxClean } from '../ux-assert.mjs';
 import {
@@ -41,6 +42,16 @@ import {
   findPlaceholderLiterals,
 } from './harness.mjs';
 import { fullAppCss } from './smoke-fixtures.mjs';
+
+// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): RegulationsLedger.tsx now calls
+// useSearchParams() (next/navigation) inside its own SearchParamsFilterBridge sub-component — reading
+// the ?priority=/?region=/?owner= deep-link filters CLIENT-SIDE now that regulations/page.tsx no
+// longer reads the `searchParams` prop server-side (a Dynamic API that alone forced the route `ƒ`).
+// Outside a real Next App Router tree this throws ("invariant expected app router to be mounted"),
+// same failure community-smoke.mjs's own ALIAS note documents for PostComposer.tsx/
+// PromotePostDialog.tsx — reusing that spec's stub-next-navigation.mjs here rather than duplicating it.
+const HERE = fileURLToPath(new URL('.', import.meta.url));
+const ALIAS = { 'next/navigation': `${HERE}stub-next-navigation.mjs` };
 
 // F35's coverage scan (row-ux-coverage.mjs's `specMounts`) is a plain regex match against this
 // spec FILE's raw text — comments included, since only the REGISTRY (ux-smoke-specs.mjs) gets
@@ -255,7 +266,7 @@ function assertGuardCleanExceptBandLabel(label, { measurements, texts }) {
 async function runLedgerSpec(browser) {
   const failures = [];
   let checks = 0;
-  const bundleJs = await bundleEntry(LEDGER_ENTRY);
+  const bundleJs = await bundleEntry(LEDGER_ENTRY, { alias: ALIAS });
   for (const vp of [MOBILE_VIEWPORT, DESKTOP_VIEWPORT]) {
     for (const state of LEDGER_STATES) {
       const label = `regulations-ledger:${state.label}@${vp.width}`;

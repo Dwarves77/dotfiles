@@ -68,8 +68,19 @@ interface MarketSeriesBoardProps {
    * (see this file's own header), so passing the resolved map down costs nothing extra to
    * serialize; only the per-row booleans cross into WatchButton's client boundary. Replaces the
    * six independent per-instance GET /api/watchlist calls this page used to fire on mount.
+   *
+   * PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): market/page.tsx no longer performs this
+   * batch read at all — it required resolveViewerIdentityFromCookies(), a Dynamic API call that alone
+   * forced `ƒ` (Dynamic) at build time regardless of every other fix. `null` here means "not fetched
+   * server-side" — each row's WatchButton then receives no initialWatched/initialTeamWatched/
+   * initialTeamAvailable at all (omitted, not `false`), which is WatchButton's own pre-existing
+   * contract for "resolve this client-side" (getClientWatchMembership on mount) rather than "server
+   * knows this is unwatched." Passing `false` here instead would be a UX-law violation: a returning
+   * viewer who HAS watched a row would see it rendered as unwatched, permanently, since a concrete
+   * `initialWatched=false` tells WatchButton the server already knows and never fires the client
+   * fallback.
    */
-  watchMembership: Map<string, WatchMembershipEntry>;
+  watchMembership: Map<string, WatchMembershipEntry> | null;
 }
 
 const STATE_META: Record<MarketSeriesProducerGroup["state"], { label: string; color: string }> = {
@@ -222,7 +233,7 @@ function ProducerCard({
 }: {
   group: MarketSeriesProducerGroup;
   nowIso: string;
-  watchMembership: Map<string, WatchMembershipEntry>;
+  watchMembership: Map<string, WatchMembershipEntry> | null;
 }) {
   const meta = STATE_META[group.state];
   const isDashed = group.state !== "populated";
@@ -298,14 +309,17 @@ function ProducerCard({
                       (defensive); no id means nothing to watch, so the control is simply absent
                       rather than mounted against a lookup that can never resolve. */}
                   {s.id && (() => {
-                    const entry = lookupWatchMembership(watchMembership, s.id);
+                    // See this file's own header (watchMembership prop doc) — `null` means the page
+                    // made no server-side read at all; omit the initial* props entirely (not `false`)
+                    // so WatchButton resolves this row's real state client-side instead.
+                    const entry = watchMembership ? lookupWatchMembership(watchMembership, s.id) : null;
                     return (
                       <WatchButton
                         itemType="market_series"
                         itemId={s.id}
-                        initialWatched={entry.watched}
-                        initialTeamWatched={entry.teamWatched}
-                        initialTeamAvailable={entry.teamAvailable}
+                        initialWatched={entry?.watched}
+                        initialTeamWatched={entry?.teamWatched}
+                        initialTeamAvailable={entry?.teamAvailable}
                       />
                     );
                   })()}

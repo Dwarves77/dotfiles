@@ -4,6 +4,8 @@ import {
   fetchDashboardData,
   fetchResourcesOnly,
   fetchListingsOnly,
+  fetchPublicResourcesOnly,
+  fetchPublicListingsOnly,
   fetchMapData,
   fetchListingsMapData,
   fetchSettingsData,
@@ -14,10 +16,15 @@ import {
   fetchWorkspaceAggregates,
   fetchWorkspaceAggregatesScoped,
   fetchSurfaceCounts,
+  fetchPublicSurfaceCounts,
   fetchMarketIntelItems,
   fetchResearchItems,
   fetchOperationsItems,
   fetchTechnologyItems,
+  fetchPublicMarketIntelItems,
+  fetchPublicResearchItems,
+  fetchPublicOperationsItems,
+  fetchPublicResearchPipelineRows,
   fetchSourceCitationStatsByIds,
   fetchPriceStatsByItemIds,
   fetchResearchSourceCoverage,
@@ -86,6 +93,24 @@ export type {
  * instead of waiting up to 60s for the cache to refresh.
  */
 export const APP_DATA_TAG = "app-data";
+
+/**
+ * PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306). Cache invalidation
+ * tag for the ORG-INDEPENDENT public intelligence read (getPublicResourcesOnly/
+ * getPublicListingsOnly below) — deliberately SEPARATE from APP_DATA_TAG, not folded into it.
+ *
+ * Why separate: APP_DATA_TAG is flushed by every per-org write (override, watchlist, list-order,
+ * personal-state — see cachedResourcesOnly's header) because those caches are keyed by orgId and
+ * a single org's mutation only needs to invalidate that org's own cache entries; revalidateTag
+ * doesn't distinguish which KEY it flushes, so folding this tag in would mean every user's
+ * override edit anywhere also flushes the org-independent public cache platform-wide — wasteful,
+ * and it invites exactly the kind of over-broad invalidation ADR-023 warns against. This tag is
+ * flushed ONLY by the population/maintenance/corpus-turn completion point (the platform content
+ * itself changing — new items minted, priority/archive changed by an admin at the PLATFORM
+ * level, provenance status flipping to 'verified') — see scripts/lib/revalidate.mjs's PERF-10
+ * addition for the wiring and this lane's REPORT for the single completion point identified.
+ */
+export const PUBLIC_ITEMS_TAG = "public-items";
 
 /**
  * Cached inner getAppData. The cookies-read happens OUTSIDE this
@@ -300,6 +325,101 @@ export async function getListingsOnly(page?: ResourcePage): Promise<{
       resources: [],
       archived: [],
       overrides: [],
+      _error: SEED_FALLBACK_ERROR,
+      _fallbackTrigger: "exception",
+    };
+  }
+}
+
+/**
+ * PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306): org-independent
+ * counterparts to getResourcesOnly/getListingsOnly above.
+ *
+ * WHY THESE EXIST (root cause): getResourcesOnly/getListingsOnly both call
+ * resolveOrgIdFromCookies() — a cookies() read — BEFORE their unstable_cache-wrapped inner call,
+ * so every route that rendered from them (/regulations, /market, /operations pre-this-lane)
+ * carried a Dynamic API dependency in its own server render and built `ƒ` even after this lane's
+ * layout.tsx fix removed the OTHER, shared-tree cause. These two functions read NO cookie and
+ * resolve NO orgId — they call the new zero-argument public RPCs (migration 306:
+ * get_workspace_intelligence_slim_public/_listings_public), which omit the
+ * workspace_item_overrides join entirely (platform priority/archive state only). Result: a page
+ * built from ONLY these two functions (plus no other Dynamic API in its tree) can be static.
+ *
+ * WHAT IS DELIBERATELY NOT CACHED HERE: the per-org override layer (priority overrides, archive
+ * state, owner, notes) — that per-viewer data now arrives exclusively via
+ * useWorkspaceOverridesHydration() (client-side, off the useWorkspaceBootstrap() singleton) and
+ * is merged into these cached public rows in the BROWSER via mergeWithOverrides
+ * (resourceStore.ts), never baked into a server-cached response keyed only by page. Caching a
+ * per-viewer read here — even briefly — would violate UX-laws' "never render wrong for a logged-
+ * in viewer" the moment two different orgs' overrides collided in one shared cache entry; this
+ * split makes that structurally impossible rather than merely untested.
+ *
+ * Cache key carries ONLY `page` (no orgId) — every viewer, org, and anonymous visitor shares the
+ * SAME cache entries for the same page, which is the whole point (server render no longer forks
+ * per org). Tagged PUBLIC_ITEMS_TAG, not APP_DATA_TAG — see that constant's header.
+ */
+const cachedPublicResourcesOnly = unstable_cache(
+  (page?: ResourcePage) => fetchPublicResourcesOnly(page),
+  ["public-resources-only-perf10"],
+  { revalidate: 60, tags: [PUBLIC_ITEMS_TAG] }
+);
+
+const cachedPublicListingsOnly = unstable_cache(
+  (page?: ResourcePage) => fetchPublicListingsOnly(page),
+  ["public-listings-only-perf10"],
+  { revalidate: 60, tags: [PUBLIC_ITEMS_TAG] }
+);
+
+export async function getPublicResourcesOnly(page?: ResourcePage): Promise<{
+  resources: Resource[];
+  archived: Resource[];
+  _error?: string;
+  _fallbackTrigger?: SeedFallbackTrigger;
+}> {
+  const t0 = Date.now();
+  try {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("getPublicResourcesOnly timeout")), 10000)
+    );
+    const dataPromise = cachedPublicResourcesOnly(page);
+    const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
+    console.log(`[perf] getPublicResourcesOnly ${Date.now() - t0}ms`);
+    alertIfFallback(result, "/operations|/market");
+    return result;
+  } catch (e) {
+    console.error("getPublicResourcesOnly failed, using fallback:", e);
+    void recordSeedFallbackFlag("exception", "/operations|/market");
+    return {
+      resources: [],
+      archived: [],
+      _error: SEED_FALLBACK_ERROR,
+      _fallbackTrigger: "exception",
+    };
+  }
+}
+
+export async function getPublicListingsOnly(page?: ResourcePage): Promise<{
+  resources: Resource[];
+  archived: Resource[];
+  _error?: string;
+  _fallbackTrigger?: SeedFallbackTrigger;
+}> {
+  const t0 = Date.now();
+  try {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("getPublicListingsOnly timeout")), 10000)
+    );
+    const dataPromise = cachedPublicListingsOnly(page);
+    const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
+    console.log(`[perf] getPublicListingsOnly ${Date.now() - t0}ms`);
+    alertIfFallback(result, "/regulations");
+    return result;
+  } catch (e) {
+    console.error("getPublicListingsOnly failed, using fallback:", e);
+    void recordSeedFallbackFlag("exception", "/regulations");
+    return {
+      resources: [],
+      archived: [],
       _error: SEED_FALLBACK_ERROR,
       _fallbackTrigger: "exception",
     };
@@ -664,6 +784,56 @@ export async function getSurfaceCounts(surface: string): Promise<WorkspaceAggreg
   return getScopedWorkspaceAggregates(scopeFilterForSurface(surface));
 }
 
+// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): org-independent counterpart to
+// getSurfaceCounts above. [CONFIRMED, this lane, via Supabase MCP pg_get_functiondef]
+// get_surface_counts(p_org_id, p_surface) carries NO `_assert_org_membership` call (a plain LANGUAGE
+// sql function) and its LEFT JOIN workspace_item_overrides ON wo.org_id = p_org_id simply matches
+// nothing when p_org_id IS NULL — the by_priority/by_severity/etc tallies collapse to the item's own
+// priority/is_archived (the platform "no override" default), the same degenerate case
+// get_workspace_intelligence_slim_public (migration 306) already returns. So this call is genuinely
+// safe with a NULL org_id at the DB level; only fetchSurfaceCounts' OWN `!orgId → null` guard (a
+// caller-side choice, not a DB requirement) and this function's own resolveOrgIdFromCookies() call
+// stood in the way of a cookie-free read.
+//
+// TRADE-OFF, STATED HONESTLY: the returned counts are PLATFORM-wide (no per-org priority/archive
+// override folded into the tally), same as the item rows themselves after this lane's change — a
+// workspace that has overridden an item's priority or archived it via the workspace layer will see
+// that reflected in the RENDERED rows (client-merged via mergeWithOverrides + this lane's
+// useWorkspaceOverridesHydration) but not yet in this masthead/tile COUNT, which stays platform-only
+// until a future lane recomputes the tally client-side from the same merged row set. This is a
+// narrower version of the same simplification ADR-026/migration 306 already accepts for the row
+// listing itself (see migration 306's "ARCHIVED-ROW BOUNDARY" note) — not a new category of
+// inaccuracy, and every existing consumer already treats these counts as a fail-soft estimate
+// (`aggregates.totalItems || rows.length` fallback pattern throughout the four index pages).
+// NOTE (PERF-10, root-cause fix, same day): this must call fetchPublicSurfaceCounts, NOT
+// fetchSurfaceCounts(null, surface) — fetchSurfaceCounts has its own `!orgId → return null` guard
+// (supabase-server.ts) that would silently short-circuit every call here to null before the RPC ever
+// ran, permanently collapsing every public masthead/tile count to the zero-filled fallback below. A
+// real defect this lane found and fixed while proving the build — see fetchPublicSurfaceCounts' own
+// header in supabase-server.ts for the full story.
+const cachedPublicSurfaceCounts = unstable_cache(
+  async (surface: string): Promise<WorkspaceAggregates | null> => fetchPublicSurfaceCounts(surface),
+  ["public-surface-counts-perf10"],
+  { revalidate: 60, tags: [PUBLIC_ITEMS_TAG] }
+);
+
+export async function getPublicSurfaceCounts(surface: string): Promise<WorkspaceAggregates> {
+  try {
+    const primary = await cachedPublicSurfaceCounts(surface);
+    if (primary) return primary;
+  } catch (e) {
+    console.warn(`getPublicSurfaceCounts(${surface}) failed:`, e);
+  }
+  return {
+    totalItems: 0,
+    byPriority: { CRITICAL: 0, HIGH: 0, MODERATE: 0, LOW: 0 },
+    byStatus: {},
+    byJurisdiction: {},
+    totalJurisdictions: 0,
+    lastUpdatedAt: null,
+  };
+}
+
 // ── Research pipeline fetcher (auth-aware, NOT inline anon-key) ──────
 //
 // Replaces the prior inline-anon `createClient(NEXT_PUBLIC_SUPABASE_URL,
@@ -724,6 +894,26 @@ export async function getResearchPipeline(): Promise<ResearchPipelineResult> {
     return await cachedResearchPipeline(orgId);
   } catch (e) {
     console.error("getResearchPipeline failed, returning empty:", e);
+    return { rows: [], total: 0, cap: RESEARCH_PAGE_CAP };
+  }
+}
+
+// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): org-independent counterpart to
+// getResearchPipeline above. See fetchPublicResearchPipelineRows's header (supabase-server.ts) for
+// why this is safe — orgId was already unused by the underlying query; only this function's own
+// cookies() read + the cached wrapper's `!orgId → empty` gate stood in the way. No orgId in the
+// cache key (one shared entry for the whole app). Tagged PUBLIC_ITEMS_TAG, not APP_DATA_TAG.
+const cachedPublicResearchPipeline = unstable_cache(
+  async (): Promise<ResearchPipelineResult> => fetchPublicResearchPipelineRows(RESEARCH_PAGE_CAP),
+  ["public-research-pipeline-perf10"],
+  { revalidate: 60, tags: [PUBLIC_ITEMS_TAG] }
+);
+
+export async function getPublicResearchPipeline(): Promise<ResearchPipelineResult> {
+  try {
+    return await cachedPublicResearchPipeline();
+  } catch (e) {
+    console.error("getPublicResearchPipeline failed, returning empty:", e);
     return { rows: [], total: 0, cap: RESEARCH_PAGE_CAP };
   }
 }
@@ -944,6 +1134,76 @@ export async function getTechnologyItems(): Promise<CategoryRoutedResult> {
     return await cachedTechnology(orgId);
   } catch (e) {
     console.error("getTechnologyItems failed, returning empty:", e);
+    return { resources: [], total: 0 };
+  }
+}
+
+// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306): org-independent
+// counterparts to getMarketIntelItems/getOperationsItems/getResearchItems above, backing
+// /market's, /operations', and /research's category-routed ledgers. Same root cause as
+// getPublicResourcesOnly/getPublicListingsOnly's header: get_market_intel_items(p_org_id) /
+// get_operations_items(p_org_id) / get_research_items(p_org_id) each `PERFORM
+// public._assert_org_membership(p_org_id)` (verified live, this lane, via Supabase MCP
+// pg_get_functiondef — see migration 306's header), so each requires resolveOrgIdFromCookies()
+// BEFORE the cached inner call — a cookies() read in these three pages' own server render,
+// independent of the shared-layout cause. These call the new zero-argument `_public` RPC siblings
+// (migration 306) instead — no cookies, no per-org override join. Cache key carries no orgId (one
+// shared entry, matching getPublicResourcesOnly). Tagged PUBLIC_ITEMS_TAG, not APP_DATA_TAG — see
+// that constant's header.
+//
+// WHAT IS DELIBERATELY NOT CACHED HERE: same posture as getPublicResourcesOnly/getPublicListingsOnly
+// — the per-org override layer merges client-side via useWorkspaceOverridesHydration +
+// mergeWithOverrides, never baked into this shared cache entry.
+const cachedPublicMarketIntel = unstable_cache(
+  fetchPublicMarketIntelItems,
+  ["public-market-intel-items-perf10"],
+  { revalidate: 60, tags: [PUBLIC_ITEMS_TAG] }
+);
+
+const cachedPublicResearch = unstable_cache(
+  fetchPublicResearchItems,
+  ["public-research-items-perf10"],
+  { revalidate: 60, tags: [PUBLIC_ITEMS_TAG] }
+);
+
+const cachedPublicOperations = unstable_cache(
+  fetchPublicOperationsItems,
+  ["public-operations-items-perf10"],
+  { revalidate: 60, tags: [PUBLIC_ITEMS_TAG] }
+);
+
+export async function getPublicMarketIntelItems(): Promise<CategoryRoutedResult> {
+  try {
+    const result = await cachedPublicMarketIntel();
+    const ids = Array.from(new Set(result.resources.map((r) => r.id).filter(Boolean))).sort();
+    if (ids.length === 0) return result;
+    const statsByItemId = await cachedMarketPriceStats(ids.join(","));
+    return {
+      ...result,
+      resources: result.resources.map((r) =>
+        statsByItemId[r.id] ? { ...r, priceStat: statsByItemId[r.id] } : r
+      ),
+    };
+  } catch (e) {
+    console.error("getPublicMarketIntelItems failed, returning empty:", e);
+    return { resources: [], total: 0 };
+  }
+}
+
+export async function getPublicResearchItems(): Promise<CategoryRoutedResult> {
+  try {
+    return await cachedPublicResearch();
+  } catch (e) {
+    console.error("getPublicResearchItems failed, returning empty:", e);
+    return { resources: [], total: 0 };
+  }
+}
+
+export async function getPublicOperationsItems(): Promise<CategoryRoutedResult> {
+  try {
+    return await cachedPublicOperations();
+  } catch (e) {
+    console.error("getPublicOperationsItems failed, returning empty:", e);
     return { resources: [], total: 0 };
   }
 }

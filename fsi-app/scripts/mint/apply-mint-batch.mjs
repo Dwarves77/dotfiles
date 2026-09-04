@@ -129,7 +129,17 @@ import { writeRunArtifact, validateRunArtifact } from "../lib/run-artifact.mjs";
 // ledger without waiting for the 60 s / 300 s backstops, so a successful --apply flushes APP_DATA_TAG
 // and the surface-detail tags through /api/revalidate. Best-effort: with no APP_URL/WORKER_SECRET in
 // the environment the helper says so and the backstops still bound staleness (see revalidate.mjs).
-import { revalidateTags, surfaceDetailTag, APP_DATA_TAG } from "../lib/revalidate.mjs";
+//
+// PERF-10 (2026-09-04, ADR-026 Follow-up / migration 306): also flush PUBLIC_ITEMS_TAG — a mint now
+// changes rows the org-independent public RPCs (getPublicResourcesOnly/getPublicListingsOnly,
+// src/lib/data.ts) read, and that cache is keyed WITHOUT orgId, so it is invalidated by NOTHING
+// APP_DATA_TAG-tagged (see PUBLIC_ITEMS_TAG's header in both revalidate.mjs and data.ts for why the
+// two tags are deliberately separate, not merged). This is THE single completion point for the
+// population-turn apply path (identified via `grep -rl revalidateTags scripts/` — apply-mint-batch.mjs
+// is the ONLY caller; scripts/maintenance/** and scripts/turns/corpus-turn tooling do not call
+// revalidateTags at all today — a PRE-EXISTING gap this lane did not introduce and, per its write-set,
+// is not chartered to close; see this lane's REPORT).
+import { revalidateTags, surfaceDetailTag, APP_DATA_TAG, PUBLIC_ITEMS_TAG } from "../lib/revalidate.mjs";
 // Relative .ts import, native Node type-stripping (same precedent as scripts/lib/db.mjs's own import of
 // classify-source-role.ts) — no bundler, no jiti. domainForItemType is pure (name+category in, int out).
 import { domainForItemType } from "../../src/lib/domains.ts";
@@ -764,7 +774,11 @@ export async function run(values, deps) {
   }
 
   if (minted > 0) {
-    const tags = [APP_DATA_TAG, ...["regulations", "market", "operations", "research"].map(surfaceDetailTag)];
+    const tags = [
+      APP_DATA_TAG,
+      PUBLIC_ITEMS_TAG,
+      ...["regulations", "market", "operations", "research"].map(surfaceDetailTag),
+    ];
     const flush = await (deps.revalidateTags ?? revalidateTags)(tags, { apply: true });
     console.log(`apply-mint-batch: cache flush ${flush.applied ? "sent" : "skipped"} (${flush.reason ?? flush.status ?? "ok"}): ${tags.join(", ")}`);
   }

@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { AskAssistant } from "@/components/AskAssistant";
 import { BackToTop } from "@/components/BackToTop";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useWorkspaceOverridesHydration } from "@/lib/hooks/useWorkspaceOverridesHydration";
 
 const NO_SIDEBAR_ROUTES = ["/login", "/auth"];
 // Routes where the no-workspace banner is suppressed (the user is already
@@ -27,6 +28,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // a flash even for users with populated workspaces.
   const { user, orgId } = useAuth();
   const hideSidebar = NO_SIDEBAR_ROUTES.some((r) => pathname.startsWith(r));
+
+  // PERF-10 (2026-09-04, ADR-026 Follow-up / migration 306): mounted ONCE here rather than
+  // per-surface (unlike usePersonalStateHydration, which each of RegulationsLedger/HomeSurface/
+  // SettingsPage calls individually) because the four index pages AND the four detail pages
+  // (OwnerTeamCard, NotesField) all now read the same resourceStore.overrides map that used to
+  // arrive as a per-page SSR prop. One mount point here — always rendered except the two
+  // no-sidebar auth routes, neither of which reads workspace overrides — replaces N per-page
+  // mounts and guarantees no surface forgets to wire it. Fail-soft/no-op when signed out (see
+  // the hook's own header).
+  useWorkspaceOverridesHydration();
 
   // Workstream B: render a banner for authenticated-no-workspace state.
   // Three-state machine: signed-out -> regular chrome (data is anonymous);

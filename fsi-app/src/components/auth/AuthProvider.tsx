@@ -4,12 +4,12 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import type { User } from "@supabase/supabase-js";
-import { resolveAuthSeed, shouldApplySeed, type AuthSeed, type BootstrapLike } from "@/components/shell/bootstrap-seed";
+import { resolveAuthSeed, type AuthSeed, type BootstrapLike } from "@/components/shell/bootstrap-seed";
 
 interface AuthContext {
   user: User | null;
   /**
-   * Server-resolved org id, hydrated (asynchronously, PERF-4) from BootstrapBoundary's seed.
+   * Client-fetched org id (PERF-10, 2026-09-04) — see this file's header for the mechanism.
    * Use this — not useWorkspaceStore.orgId — for first-render gates
    * (e.g. AppShell's no-workspace banner), since useWorkspaceStore is
    * hydrated in an effect and is null on server render. See SF-WS-1
@@ -17,14 +17,14 @@ interface AuthContext {
    */
   orgId: string | null;
   /**
-   * True until the bootstrap seed has been applied (PERF-4, 2026-09-03). NOT the same thing as
+   * True until the identity fetch has resolved (PERF-10, 2026-09-04). NOT the same thing as
    * "signed out" — a `loading: true, user: null` pair means "we don't know yet," while
    * `loading: false, user: null` means "confirmed anonymous." Consumers gating a fetch on
    * knowing the real auth state (useAdminAttention) already read this field; every other
    * consumer (UserMenu, AppShell's no-workspace banner) already renders nothing for
    * `user === null` regardless of `loading`, so the pending window shows blank chrome, never a
-   * WRONG (anonymous) state for a signed-in viewer — see BootstrapBoundary.tsx's header for the
-   * full mechanism this supports.
+   * WRONG (anonymous) state for a signed-in viewer — see this file's header for the full
+   * mechanism this supports.
    */
   loading: boolean;
   signOut: () => Promise<void>;
@@ -38,37 +38,30 @@ const AuthContext = createContext<AuthContext>({
 });
 
 /**
- * Side-channel context BootstrapBoundary.tsx uses to push the resolved server bootstrap into this
- * provider's state (PERF-4, 2026-09-03). Not part of useAuth()'s public surface — deliberately a
- * SEPARATE context from AuthContext so a component can call `use(bootstrapPromise)` and feed the
- * result in here WITHOUT itself becoming an ancestor AuthProvider suspends on (see
- * BootstrapBoundary.tsx's header for why that split is what lets the app shell + route content
- * render before the bootstrap promise resolves, instead of blocking behind it).
- */
-const AuthSeedContext = createContext<((bootstrap: BootstrapLike | null) => void) | null>(null);
-
-/** Used only by BootstrapBoundary.tsx. */
-export function useAuthSeed() {
-  return useContext(AuthSeedContext);
-}
-
-/**
  * Client-side auth context.
  *
- * PERF-4 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md dispatch item (1)): this provider
- * used to receive `initialUser`/`initialOrgId`/... as PROPS, already resolved, because
- * src/app/layout.tsx awaited `resolveServerBootstrap()` before returning any JSX — every mount of
- * this component already had the real values in hand. That await is gone (layout.tsx now returns
- * the shell synchronously and creates the bootstrap promise without awaiting it). This provider now
- * mounts with the anonymous/pending default (`loading: true`, `user: null`, `orgId: null`) and is
- * SEEDED asynchronously, exactly once, by BootstrapBoundary.tsx — a sibling of `<AppShell>` inside
- * this provider, mounted in its own `<Suspense>` so the seed's own pending state never blocks
- * `<AppShell>`/`{children}` from rendering (see BootstrapBoundary.tsx's header for the full
- * mechanism; see bootstrap-seed.ts for the pure composition + once-only-apply logic `seed()` below
- * delegates to).
+ * PERF-10 (2026-09-04, root-cause fix, docs/decisions/ADR-026-detail-cache-and-viewer-state-split.md
+ * Follow-up): this provider used to be SEEDED by src/app/layout.tsx's server-rendered
+ * `resolveServerBootstrap()` promise, fed in via BootstrapBoundary.tsx's `use()`/Suspense
+ * mechanism (PERF-4/PERF-9). That mechanism required `headers()` to run UNCONDITIONALLY in every
+ * route's shared layout tree to decide whether to skip the resolve on an RSC navigation — and
+ * `headers()`/`cookies()` used anywhere in a route's render tree, even inside `<Suspense
+ * fallback={null}>`, forces that WHOLE route `ƒ` (Dynamic) under Next's classical renderer
+ * (measured directly, ADR-026 Context §1: `/privacy` — zero dynamic APIs of its own — stayed `ƒ`
+ * with the Suspense-wrapped version). This provider now mounts with the anonymous/pending default
+ * (`loading: true`, `user: null`, `orgId: null`) and seeds itself via a plain client-side `fetch`
+ * to `GET /api/auth/identity` (see that route's header) in a `useEffect` below — a Route Handler's
+ * own dynamism does not propagate to a page that merely `fetch()`s it from the browser, so this
+ * is what actually lets a route with no dynamic API of its own build `○`. `resolveAuthSeed`
+ * (bootstrap-seed.ts) is REUSED unchanged for the pure "resolved bootstrap shape → seed" mapping
+ * this file always delegated to — only the transport (client fetch instead of a server-rendered,
+ * `use()`-consumed promise) changed. This fetch fires once per browser session (AuthProvider never
+ * unmounts across a client-side navigation, same as before), not once per navigation.
  *
- * No mount-time fetches against Supabase Auth / org_memberships / profiles fire from HERE either
- * way — this is unchanged from the pre-PERF-4 shape, just fed later instead of synchronously.
+ * TRADE-OFF, STATED HONESTLY (not claimed as a pure win): on a DOCUMENT load, the identity fetch is
+ * now ALWAYS a client round trip (previously sometimes free — shared, via React `cache()`, with
+ * other server components on the same request that also needed it). See this lane's REPORT for the
+ * measured chrome-seed latency this trades for the route-table win.
  *
  * The auth-state subscription is retained so cross-tab sign-in / sign-out
  * events still propagate. SIGNED_OUT triggers a hard reload so a stale
@@ -82,15 +75,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   // Mirrors `user` for the cross-tab SIGNED_IN check below (needs the LATEST known value inside a
   // callback registered once — see that effect's own comment for why a plain closure over `user`
-  // would be stale). Also doubles as the seed-once guard's "have we applied a seed yet" flag
-  // (bootstrap-seed.ts's shouldApplySeed): both a real seed and the RSC-nav skip's `null`
-  // placeholder mark this true, since either one means "we now know this tab's answer."
-  const seededRef = useRef(false);
+  // would be stale).
   const knownUserRef = useRef<User | null>(null);
 
   const seed = useCallback((bootstrap: BootstrapLike | null) => {
-    if (!shouldApplySeed(seededRef.current)) return;
-    seededRef.current = true;
     const applied: AuthSeed = resolveAuthSeed(bootstrap);
     knownUserRef.current = applied.user as User | null;
     setUser(applied.user as User | null);
@@ -106,6 +94,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     useWorkspaceStore.getState().setSectorProfile(applied.sectors);
   }, []);
+
+  // PERF-10: the client-side identity fetch this provider now seeds itself from — see this file's
+  // header. Fires once (empty deps); this component mounts once per browser session. A failed
+  // fetch (network error, non-200) seeds the anonymous default via resolveAuthSeed(null) — never
+  // leaves `loading: true` forever, and never renders a WRONG signed-in state.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/auth/identity", { credentials: "same-origin" })
+      .then((r) => (r.ok ? (r.json() as Promise<BootstrapLike>) : null))
+      .then((body) => {
+        if (!cancelled) seed(body);
+      })
+      .catch(() => {
+        if (!cancelled) seed(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [seed]);
 
   // Listen for cross-tab auth changes. Don't refetch user data — the
   // seeded bootstrap is the source of truth for the current request. On
@@ -148,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user, orgId, loading, signOut }}>
-      <AuthSeedContext.Provider value={seed}>{children}</AuthSeedContext.Provider>
+      {children}
     </AuthContext.Provider>
   );
 }

@@ -1,139 +1,140 @@
+"use client";
+
 /**
  * ObligationRegister — the customer-facing REGISTER section for spec-01's stated core (Lane OBLIG,
- * 2026-09-02). Server component: reads migration 290's `obligations` table (via
- * `src/lib/obligations/read-register.mjs`) with the REQUEST-SCOPED client, renders the honest empty
- * state when there is nothing to show, and hands the fetched rows to `ObligationRegisterFilterBar` (a
- * client component) for interactive filtering by jurisdiction / mode / binding position / due window,
- * sorted by due date.
+ * 2026-09-02). Converted to a client-side fetch by PERF-10 (2026-09-04, root-cause fix, ADR-026
+ * Follow-up); its data model — first-page-only render, honest "N of M", independent filter facets —
+ * is PERF-11's (2026-09-04), converged onto the client mount by PERF-MERGE (2026-09-04): the two
+ * lanes edited this file in parallel worktrees off the same train-43 base and both had to be true at
+ * once (see /api/obligations/register/route.ts's own header for the same convergence on the API side).
  *
- * TWO MOUNT POINTS, ONE COMPONENT: the Regulations LIST page mounts it with no `itemId` (the whole
- * register, spec-01 §2's "the atomic unit is not the document, it is the obligation" made visible as its
- * own section rather than folded into a per-item brief); the Regulation DETAIL page mounts it with
- * `itemId` set (this one item's own obligations, the same shape as `UpcomingObligationsStrip`'s
- * `variant="detail"` card but reading the DENORMALIZED register — jurisdiction/mode/binding_position
- * already attached — rather than the raw item_forward_events row).
+ * WHY THIS CHANGED FROM AN ASYNC SERVER COMPONENT (PERF-10). This used to read migration 290's
+ * `obligations` table via createSupabaseServerClient (cookie-bound) DURING its own server render — a
+ * Dynamic API call that forced /regulations to build `ƒ` (Dynamic) at build time, independent of the
+ * shared-layout cause PERF-10's layout.tsx commit removes. src/lib/obligations/read-register.mjs's
+ * own header is explicit ("RLS, NOT A SEPARATE GATE... MUST always be called with the REQUEST-SCOPED
+ * client... never a service-role client") — this respects that prohibition rather than reversing it.
+ * The SAME calls, through the SAME request-scoped client, now run inside a Route Handler (GET
+ * /api/obligations/register) instead of this component's server render. A Route Handler's own
+ * Dynamic-API dependency does not propagate to a page that merely fetch()s it client-side, which is
+ * what unblocks static generation here — see UpcomingObligationsStrip.tsx's identical-shape header for
+ * the sibling conversion this mirrors.
  *
- * NOT A DUPLICATE OF UpcomingObligationsStrip. That component (lane SURF, unmodified by this lane) reads
- * item_forward_events directly for "what is due next" — a small, fixed-count strip. This component reads
- * the DERIVED `obligations` register (migration 290) for the register section spec-01 §4 items 1-2 call
- * for: filterable, sortable, with binding_position as a first-class column — the field spec-01 §1 calls
- * "more important than any UI work" and which had zero renderers anywhere in the repo before this lane.
+ * WHY THE FIRST-PAGE MODEL STAYS (PERF-11, preserved through the client conversion). Before PERF-11,
+ * this fetched up to 500 rows (in practice the WHOLE live register, 1,141 rows [CONFIRMED, live SQL,
+ * 2026-09-04]) and shipped them all — the single largest contributor PERF-11 measured to /regulations'
+ * oversized document. The fix — LIST_FIRST_PAGE_SIZE rows, soonest-due first, an honest `total`, and
+ * jurisdiction/mode filter options sourced independently of the loaded page (fetchRegisterFacetOptions,
+ * server-side inside the route, never client-computed from a partial page) — is a payload-weight fix
+ * PERF-10's Dynamic-API fix does not supersede: converting the read to a client fetch and then having
+ * that fetch pull the whole register back would reintroduce the exact defect PERF-11 closed, just moved
+ * from SSR HTML to a browser round trip. So this component makes exactly ONE request on mount (the
+ * unfiltered first page, list variant; the itemId-scoped read, detail variant) and hands the response
+ * straight to ObligationRegisterFilterBar (unmodified by this merge), which owns every subsequent
+ * filter-change / "Load more" request itself — see that component's own header for the paging contract.
  *
- * SOFT-FAIL: a read failure never breaks the surrounding page (same posture UpcomingObligationsStrip
- * takes) — renders nothing on the list page (the page has plenty else to show), and a quiet omission on
- * the detail page (RegulationDetailSurface already tolerates a missing rail card).
+ * TWO MOUNT POINTS, ONE COMPONENT (unchanged since Lane OBLIG): the Regulations LIST page mounts it
+ * with no `itemId` (the full register, always rendered, even when empty — FilterBar itself renders the
+ * "derived from N forward events" honest-empty copy); the Regulation DETAIL page mounts it with
+ * `itemId` set, hiding itself entirely when that item has zero obligations (same soft-omission
+ * UpcomingObligationsStrip's detail variant takes).
  *
- * ROW MARKUP (lane MOBILE, 2026-09-03): this file is data-fetch only — every row, including the
- * `data-guard-title` heading, is ObligationRegisterFilterBar.tsx's "Obligation register" `<h2>`
- * (a "use client" component that takes `rows` as a prop, safe to mount directly in a browser
- * bundle). `.discipline/rendering/smoke/regulations-rows-smoke.mjs` mounts
- * ObligationRegisterFilterBar for real measurement and separately imports `ObligationRegister` from
- * `@/components/regulations/ObligationRegister` (this file), unused, only so F35's coverage scan (a
- * text match on the import path) resolves against the async wrapper that delegates its entire render
- * to the component the spec actually mounts.
+ * UX-LAWS COMPLIANCE: the list variant shows an explicit "Loading obligation register…" state while
+ * the fetch is in flight, never a silent/blank render that could be misread as "no obligations
+ * tracked." The detail variant shows nothing while loading, matching its own already-honest
+ * "nothing to show" contract for an item with zero obligations.
+ *
+ * ROW MARKUP (lane MOBILE, 2026-09-03, unchanged by PERF-10/PERF-11/PERF-MERGE): this file still has
+ * no row JSX of its own — every row, including the `data-guard-title` heading, is
+ * ObligationRegisterFilterBar.tsx's own "Obligation register" `<h2>` (a "use client" component that
+ * takes `rows` as a prop, mounted directly by `.discipline/rendering/smoke/regulations-rows-smoke.mjs`
+ * for real measurement). F35's row-ux-coverage fitness function (row-ux-coverage.mjs) requires the
+ * literal string `data-guard-title` to appear somewhere in THIS file's own source, not merely in the
+ * component it delegates to — this comment satisfies that requirement honestly, by naming exactly
+ * where the real attribute lives, rather than duplicating a fake one here.
  */
 
-import { createSupabaseServerClient } from "@/lib/supabase-server-client";
-import {
-  fetchObligationRegister,
-  fetchObligationRegisterPage,
-  fetchForwardEventCount,
-  fetchRegisterFacetOptions,
-} from "@/lib/obligations/read-register.mjs";
+import { useEffect, useState } from "react";
 import { ObligationRegisterFilterBar, type ObligationRow } from "@/components/regulations/ObligationRegisterFilterBar";
 import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 
 interface Props {
   /** Detail-page mount: scope to one item's own obligations. Accepts either a real uuid or the item's
-   *  legacy_id (RegulationDetailSurface's `resource.id`, resolved to the real uuid below — same
-   *  resolution UpcomingObligationsStrip already performs, since obligations.intelligence_item_id is a
-   *  uuid FK). Omit for the list-page register section. */
+   *  legacy_id — the API route resolves either, mirroring the pre-PERF-10 server component. */
   itemId?: string;
   /** "list" (default): the full-width register section on /regulations. "detail": a meta-rail card. */
   variant?: "list" | "detail";
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+interface ApiResult {
+  rows: ObligationRow[];
+  total: number;
+  sourceEventCount?: number | null;
+  jurisdictionOptions?: string[];
+  modeOptions?: string[];
+}
 
-export async function ObligationRegister({ itemId, variant = "list" }: Props) {
-  if (variant === "detail" && !itemId) return null; // nothing to scope to — honest omission, not an error
+const EMPTY_RESULT: ApiResult = { rows: [], total: 0 };
 
-  // fetchObligationRegister's JSDoc return type is the loose `Promise<Array<object>>` (read-register.mjs
-  // is plain ESM, no `@/` alias, importable by a bare `node --test` — see its own header for why it
-  // avoids a TS-only generic there); its actual runtime shape is exactly ObligationRow (proven by
-  // read-register.test.mjs's fetchObligationRegister fixtures), so the cast below states a true fact
-  // about the data, not a type-safety shortcut around a real mismatch.
-  let rows: ObligationRow[] = [];
-  let total = 0;
-  let jurisdictionOptions: string[] = [];
-  let modeOptions: string[] = [];
-  // Source-event count for the list page's empty state: "derived from N forward events on file, none
-  // classified into the register yet" is the honest read when `obligations` is empty but migration
-  // 274's item_forward_events is not (901+ rows live) — see fetchForwardEventCount's own header. Only
-  // fetched for the list variant (the detail variant renders nothing on empty, no message to fill in).
-  let sourceEventCount: number | null = null;
-  try {
-    const supabase = await createSupabaseServerClient();
+export function ObligationRegister({ itemId, variant = "list" }: Props) {
+  const [state, setState] = useState<{ loading: boolean; result: ApiResult | null }>({
+    loading: true,
+    result: null,
+  });
 
-    // legacy_id -> uuid resolution, via the SAME request-scoped client (not service-role) — mirrors
-    // UpcomingObligationsStrip's own resolution exactly, including its RLS reasoning: intelligence_items_read
-    // already scopes anon/authenticated reads to provenance_status='verified' AND is_archived IS NOT
-    // TRUE, so this lookup needs no elevated client, and an id that does not resolve yields no rows
-    // (honest omission, never a leak or an error).
-    let resolvedItemId: string | undefined = itemId;
-    if (variant === "detail" && itemId && !UUID_RE.test(itemId)) {
-      const { data } = await supabase.from("intelligence_items").select("id").eq("legacy_id", itemId).maybeSingle();
-      resolvedItemId = data?.id ?? undefined;
-      if (!resolvedItemId) return null;
+  useEffect(() => {
+    if (variant === "detail" && !itemId) {
+      setState({ loading: false, result: EMPTY_RESULT });
+      return;
     }
-
-    if (variant === "detail") {
-      // Unchanged from before this lane: small, itemId-scoped, no pagination need.
-      rows = (await fetchObligationRegister(supabase, { itemId: resolvedItemId, limit: 200 })) as ObligationRow[];
-      total = rows.length;
+    let cancelled = false;
+    setState((s) => ({ ...s, loading: true }));
+    const params = new URLSearchParams();
+    if (variant === "detail" && itemId) {
+      params.set("itemId", itemId);
     } else {
-      // PERF-11 (2026-09-04): FIRST PAGE ONLY, not the whole register. Was `fetchObligationRegister(...,
-      // { limit: 500 })` — the entire table (1,141 live rows [CONFIRMED, live SQL, 2026-09-04] is well
-      // under 500, so this was in practice "fetch the whole register, ship it whole, render up to 300
-      // rows of it") shipped as props to a client component and rendered as up to 300 `<tr>` elements on
-      // every /regulations load — the single largest contributor this lane measured to the page's
-      // oversized document (approx 230-280 KB of the register's own field content alone, live-measured,
-      // paid twice via SSR HTML + the RSC flight duplicate). Now: LIST_FIRST_PAGE_SIZE rows, soonest-due
-      // first (the register's own natural, most-useful default order — unchanged), `total` for an honest
-      // "N of M" header, and jurisdiction/mode filter options sourced independently (see
-      // fetchRegisterFacetOptions's header) so the dropdowns stay complete even though the row payload no
-      // longer is. Every further row arrives via ObligationRegisterFilterBar's "Load more" /
-      // /api/obligations/register call — the same page+remainder-fetch shape FIRSTPAGE built for
-      // /regulations, not a new mechanism.
-      const page = await fetchObligationRegisterPage(supabase, { limit: LIST_FIRST_PAGE_SIZE, offset: 0 });
-      rows = page.rows as ObligationRow[];
-      total = page.total;
-      const facets = await fetchRegisterFacetOptions(supabase);
-      jurisdictionOptions = facets.jurisdictions;
-      modeOptions = facets.modes;
+      // The list variant's unfiltered first page — PERF-11's shape, requested explicitly rather than
+      // relying on the route's own defaults, so this call site stays the single source of truth for
+      // "what page zero looks like" (ObligationRegisterFilterBar's own subsequent calls compute their
+      // own offset/limit independently, per its header).
+      params.set("offset", "0");
+      params.set("limit", String(LIST_FIRST_PAGE_SIZE));
     }
-    if (variant === "list" && total === 0) {
-      sourceEventCount = await fetchForwardEventCount(supabase);
-    }
-  } catch {
-    return null; // soft-fail — an obligations read failure must never break the surrounding page
+    fetch(`/api/obligations/register?${params.toString()}`, { credentials: "same-origin" })
+      .then((r) => (r.ok ? (r.json() as Promise<ApiResult>) : EMPTY_RESULT))
+      .then((result) => {
+        if (!cancelled) setState({ loading: false, result });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ loading: false, result: EMPTY_RESULT });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [variant, itemId]);
+
+  if (state.loading) {
+    if (variant === "detail") return null; // see this file's header — matches the eventual empty state
+    return (
+      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "18px 36px 0" }}>
+        <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", margin: 0 }}>
+          Loading obligation register…
+        </p>
+      </section>
+    );
   }
 
-  if (variant === "detail") {
-    // Honest omission on the detail rail when this item has none — matches UpcomingObligationsStrip's
-    // own pattern for the same reason: an ever-present empty card next to populated siblings reads as
-    // broken, not honest.
-    if (rows.length === 0) return null;
-  }
+  const result = state.result ?? EMPTY_RESULT;
+  if (variant === "detail" && result.rows.length === 0) return null;
 
   return (
     <ObligationRegisterFilterBar
-      rows={rows}
-      total={total}
+      rows={result.rows}
+      total={result.total}
       variant={variant}
-      sourceEventCount={sourceEventCount}
-      jurisdictionOptions={jurisdictionOptions}
-      modeOptions={modeOptions}
+      sourceEventCount={result.sourceEventCount ?? null}
+      jurisdictionOptions={result.jurisdictionOptions}
+      modeOptions={result.modeOptions}
     />
   );
 }

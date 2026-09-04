@@ -160,3 +160,61 @@ independent post-render fetches, §4) and on the shared-layout dynamic-API call 
 - A dedicated Cache Components lane: enumerate every `unstable_cache`/`fetch` call site (this ADR's §4
   and the pre-existing `data.ts` wrapping are the starting inventory), add `"use cache"` directives
   incrementally behind a staging rollout, verify no per-viewer read silently gets cached.
+
+### Addendum — PERF-10 (2026-09-04): first follow-up item done; measured, Consequences section above superseded
+
+Operator ruling verbatim, this lane's dispatch: "clicking into any item or any page takes WAY too
+long. multiple seconds. every click should show items on a page instantly." The coordinator chose,
+by measurement not preference, **Option B (RPC split)** — this ADR's first Follow-up bullet above —
+deferring Cache Components (second bullet) per this ADR's own prior evaluation.
+
+**What PERF-10 did**, closing the exact gap this ADR named:
+
+1. **Migration 306** (`fsi-app/supabase/migrations/306_public_workspace_intelligence_listings.sql`,
+   renumbered from 305 by the PERF-MERGE lane, 2026-09-04 — PERF-11 authored a distinct migration 305
+   in a parallel worktree off the same train-43 base and applied it live first; written not applied —
+   Supabase MCP is read-only for this lane): five org-independent counterpart
+   RPCs (`get_workspace_intelligence_slim_public`, `_listings_public`, `get_market_intel_items_public`,
+   `get_operations_items_public`, `get_research_items_public`), byte-identical to the org-parameterized
+   originals minus `_assert_org_membership`/the `workspace_item_overrides` join. `src/lib/data.ts`'s
+   `getPublicResourcesOnly`/`getPublicListingsOnly`/`getPublicMarketIntelItems`/
+   `getPublicOperationsItems`/`getPublicResearchItems` call them through one shared `unstable_cache`
+   entry each (no `org_id` in the cache key), tagged `PUBLIC_ITEMS_TAG` — a NEW tag, kept separate from
+   `APP_DATA_TAG`, revalidated at the same population/maintenance apply completion point ADR-023 names.
+2. **The four detail pages' remaining per-viewer server reads were removed, not trimmed further** —
+   this ADR's item 4 (§ above) had already trimmed `watchMembershipPromise` to a two-stage cookie read;
+   this lane found that read (plus a still-cookie-bound owner lookup and, on `/regulations/[slug]`
+   only, `loadRegulationDetailObligations`'s `createSupabaseServerClient()` call) was the remaining
+   Dynamic-API dependency once the RPC split closed the listing-RPC cause. All three now resolve
+   CLIENT-SIDE post-paint (`WatchButton`, `OwnerTeamCard`, and two Route-Handler-backed components —
+   `ObligationRegister`, `UpcomingObligationsStrip` — reusing this ADR's own "a Route Handler's own
+   Dynamic-API dependency does not propagate to a page that merely `fetch()`s it" mechanism), each with
+   an explicit honest loading state per this ADR's UX-laws framing — never a silent empty-as-final
+   render. `/regulations`'s index page also had a second, independent Dynamic API: `useSearchParams()`
+   reading `?priority=/&region=/&owner=` directly in `RegulationsLedger.tsx` — isolated into a
+   `<Suspense fallback={null}>`-wrapped leaf component per Next's own documented pattern, so the filter
+   values now apply client-side after mount instead of forcing the whole route dynamic.
+3. **`generateStaticParams` added to all four `/[slug]` pages, returning `[]`** — found by actually
+   running `next build --webpack` (the dispatch's own "route table before/after IS the evidence" bar)
+   after (1) and (2): a dynamic-segment page with no `generateStaticParams` is unconditionally
+   server-rendered per request under classical (non-PPR) rendering, INDEPENDENT of whether it calls any
+   Dynamic API. This was never named in this ADR's own analysis (§"Why this and not route-segment ISR"
+   above reasons about ISR at the route-CONTENT level, not about this build-time enumeration
+   requirement) — a genuine gap in this ADR's own Consequences prediction, closed empirically rather
+   than predicted. `[]` (not a full slug enumeration) is deliberate: the corpus is unbounded and
+   continuously grown by the population pipeline, so `dynamicParams` at its Next.js default (`true`)
+   renders each slug on first request and serves it from the Full Route Cache thereafter — exactly the
+   "first click populates the cache, every click after is instant, for every viewer" behavior the
+   operator's law asks for, with no migration-scale corpus enumeration at build time.
+
+**Measured result, replacing the "Consequences" section's `129/129 ƒ, unchanged` line above** (that
+line was correct for the lane that wrote it — the RPC split had not yet landed — and is left frozen
+rather than rewritten; this addendum supersedes it going forward): `next build --webpack`, this lane,
+2026-09-04 — `/regulations`, `/market`, `/operations`, `/research`, `/privacy` build `○` (Static);
+`/regulations/[slug]`, `/market/[slug]`, `/operations/[slug]`, `/research/[slug]` build `●` (SSG —
+Next's own build-output legend: "prerendered as static HTML (uses generateStaticParams)"); `/community`
+and `/community/[slug]` remain `ƒ`, deliberately and out of this lane's scope (each performs a
+`redirect()` and reads genuinely per-viewer data — see this lane's FINAL REPORT for the full
+route-table diff and the two `getServiceSupabase()` production defects this lane found and fixed while
+proving the build). Cache Components (this ADR's second Follow-up bullet) remains untouched, still
+deferred, still available to a future lane exactly as this ADR left it.

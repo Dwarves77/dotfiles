@@ -43,7 +43,7 @@ import { GfmSection } from "@/components/shared/GfmSection";
 import { TIER_LABELS } from "@/lib/tier-labels";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
-import { RelevanceBadge } from "@/components/shell/RelevanceBadge";
+import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 
 // ── Related item shape ──────────────────────────────────────────────────────
 
@@ -1138,7 +1138,7 @@ export function OperationsDetailSurface({
 
         {/* Right rail */}
         <aside style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <RelevanceBadge relevance={relevance} />
+          <RelevanceBadgeClient itemId={r.id} />
           <SideCard label="Identification">
             <KV k="ID" v={r.id} />
             <KV k="Type" v={r.type} />
