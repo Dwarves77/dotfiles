@@ -1196,6 +1196,96 @@ reached via `forward_event_id`. A register row's own denormalized columns are un
 `obligation_text` edit, so `scripts/obligations/derive-obligations.mjs` is out of this step's scope and
 out of this lane's write set.
 
+**Lane FWD-TEXT-3 (2026-09-04) — record-facts template unwrap** [CONFIRMED, live read-only SQL this lane,
+project `kwrsbpiseruzbfwjpvsp`, 2026-09-04]: FWD-TEXT-2's rebuild (above) itself left behind a NEW residue
+class, surfaced by a coordinator's evidence snapshot at 58 rows / 41 items; by the time this lane's own
+measurement query ran — the backlog flywheel had minted more record-grade items in the interim
+(`item_forward_events` grew 926/173 → 1071/228 over that window, measured) — the same class had grown to
+**122 rows / 90 items**, all `source_section_id`-sourced, `extractor_version` `fe1-2026-09-04.2`, every one
+drawn from an `intelligence_item_sections` row with `section_key = 'record_facts'`. Three verbatim examples
+(re-identified live this lane):
+
+- item `128b6a2e-cf78-4c9f-b03d-9256a3df5222` (2026-06-30, compliance_deadline): `"…source's own
+  applicability language places this item at «direct_duty» (Your duty), from the passage: «the operator
+  shall provide to the competent authority data on the biomass fraction of the carbon content of» [due_date]
+  The captured source states a due date (date_precision: day), verbatim: «by 30 June 2026 on the practical
+  application and levels of uncertainty of the method»"` — a *binding_position* FACT template swept forward
+  into the *next* slot's `[due_date]` marker.
+- item `025e6570-584f-4124-8b69-b69cc534e050` (2022-04-30, compliance_deadline): `"A full-brief regrounding
+  will re-examine this gap when this item upgrades from record to brief. [primary_deadline] The captured
+  source states, verbatim: «By 30 April 2022 and in each subsequent year, the Secretary of State must
+  publish a li» [binding_position] No verbatim applicability language naming a duty-holder class was
+  loc…"` — a generic-slot FACT template that swept the *preceding* slot's GAP sentence in on its leading
+  edge, and ran past its own closing guillemet into the *next* slot's GAP marker on its trailing edge.
+- item `10cf4da4-9363-4365-90df-a1dceace1b66` (2004-02-14, compliance_deadline, legacy straight-quote
+  wrapper — one of 26/1333 `record_facts` sections still on the pre-guillemet-migration `"…"` delimiter,
+  measured live): `"A full-brief regrounding will re-examine this gap when this item upgrades from record to
+  brief. [primary_deadline] The captured source states, verbatim: \"No later than 14 February 2004, the
+  Commission shall forward to the Member States a guidance document s\""`.
+
+Root cause [CONFIRMED, read `src/lib/intake/record-facts.mjs` and `src/lib/forward-events/
+extract-forward-events.mjs` in full]: `record-facts.mjs` (a consumer INPUT to this extractor, not a member
+of this family — see below) grounds a record-grade item's required slots as claims whose `claim_text` is
+one of four FIXED TEMPLATES — a generic slot FACT (`` `[${slotKey}] The captured source states, verbatim:
+«${span}»` ``), a `due_date` FACT adding `(date_precision: X)`, a `binding_position` FACT (`` `[binding_position]
+The captured source's own applicability language places this item at «code» (Label), from the passage:
+«span»` ``), and a GAP variant per slot ending "A full-brief regrounding will re-examine this gap when this
+item upgrades from record to brief." — and renders them VERBATIM, one `\n`-joined claim per line with no
+blank-line separator, into the item's `record_facts` section `content_md`. FWD-TEXT-2's own `clauseStart`/
+`clauseAround` never recognised a `[slot_key] ` marker as a sentence/clause boundary — it is not
+uppercase/quote/digit (`SENTENCE_OPEN_RE`), and the templates end mid-guillemet with no trailing period —
+so the leading-edge scan either swept the PRECEDING claim's own trailing GAP sentence in, or (via the
+last-resort whitespace fallback) landed arbitrarily inside the marker/wrapper prose; the trailing-edge scan
+had no reason to stop before the START of the next `[slot_key] ` marker either.
+
+**The fix** — the one governing file this family names, `src/lib/forward-events/extract-forward-events.mjs`:
+`EXTRACTOR_VERSION` bumped `fe1-2026-09-04.2` → `fe1-2026-09-04.3`. `clauseStart`'s backward boundary scan
+now recognises a `[slot_key] ` marker start as a deliberate boundary — never a fallback, the same tier as a
+genuine terminator/paragraph/list break — and `clauseAround`'s trailing search now also stops before the
+START of the next marker, never sweeping into it. New exported `unwrapRecordFactsTemplate(windowed,
+relDateStart, relDateEnd)`: when a marker-bounded window opens with a recognised record-facts FACT wrapper
+(generic slot / due_date / binding_position), `obligation_text` becomes the passage inside the «…» pair (or,
+for the legacy straight-quote sections, the `"…"` pair) that actually CONTAINS the event's own date — the
+INNERMOST pair when the source text nests guillemets, and for `binding_position` always the "from the
+passage" quote, never the leading «code» quote. FWD-TEXT-2's existing honest-fragment rules then run on THAT
+passage via the same `normalizeObligationText` every other window already goes through — including, in item
+`128b6a2e`'s case above, the lowercase-starting-passage leading-"…" rule, which fires here exactly as it
+would for a non-template window (`…by 30 June 2026 on the practical application…`), because the due_date
+quote's own captured text genuinely starts mid-sentence. A window that opens with a record-facts GAP wrapper
+is skipped with a recorded reason (`record_facts_gap_boilerplate_no_quoted_date`) — never emitted as an
+`obligation_text` or treated as a source window on its own; a FACT-shaped wrapper whose own date is somehow
+not inside any quote is skipped too (`record_facts_template_date_not_in_quote`, defensive). `clauseAround`
+now returns `{text}`/`{skip}` (was a bare string) — every call site in `scanText` routes a `skip` to
+`skipped`, never `hits`. `source_span`/`assertVerbatim` are unaffected — the matched date substring
+`tryParseDateAt` returns is unchanged, still checked against the ORIGINAL unmodified source text.
+
+**Explicitly NOT this family's governing file, and why**: `src/lib/intake/record-facts.mjs` (the
+record-grade mint's TEMPLATE PRODUCER) is a consumer input to this extractor, not a member of this family —
+its template is a customer-visible section-format decision governed by the record-grade mint's own
+lane/owner, and this fix is entirely on the CONSUMER side (the extractor learning to understand a shape it
+already receives), never a change to what record-facts.mjs writes. `scripts/maintenance/
+forward-events-retext.mjs` gained a new dry-report residue class (`classifyAfterResidue`'s
+`contains_record_facts_wrapper`, parallel to and independent of the FWD-TEXT-2 classes above) — it is a
+CONSUMER of the fixed extractor (imports `extractForwardEvents` itself, never reimplements its clause logic),
+so this REWRITE step needed zero code change beyond that one reporting class to inherit the fix; a dry run
+under the new extractor version should show `contains_record_facts_wrapper` at zero for every retext target.
+
+**Idempotence + property test**: enforced against all 122 live residue rows (fetched via read-only SQL,
+project `kwrsbpiseruzbfwjpvsp`, 2026-09-04 — see `src/lib/forward-events/extract-forward-events.test.mjs`'s
+"RECORD-FACTS TEMPLATE UNWRAP" describe block header for the exact query) saved to
+`scripts/_snapshots/fwdtext3-live-58.json` (gitignored scratch, named after the coordinator's earlier
+41-item/58-row dispatch-evidence snapshot — a subset of, not a different defect from, the 90-item/122-row
+population this lane actually measured and fixed): 0/122 fresh outputs still carry any record-facts wrapper
+token (`captured source`, `verbatim:`, `date_precision`, `from the passage`, `full-brief regrounding`, or a
+`[slot_key]` marker); 106/122 exactly match a pre-existing claim-sourced twin's `obligation_text` at the same
+`(item, event_date, event_kind)` (the remaining 16 either have no claim twin, or a claim twin whose OWN
+verbatim span genuinely differs — a different record-facts slot's own quote of overlapping source text, not
+a bug in this fix); idempotent (`normalizeObligationText(text) === text` for every one of the 122 fresh
+outputs). F28's marker for this lane: `fsi-app/scripts/harness-runs/forward-events/PENDING-RUN.md`
+(`harness_version at write time: sha256:4187cd5f5f26d005`), discharged the moment the next
+`forward-events-retext` APPLY (or `run-extraction.mjs` dispatch) under this code records that hash as its
+own artifact's `harness_version`.
+
 **Dispatch**: `mode=dry` reports `counts` (`items_scanned`, `retext_target_total`, `by_defect_class`,
 `by_after_defect_class`, `duplicate_group_total`, `collision_group_total`, `collision_delete_total`),
 `retext_targets` (before/after/defect classes per row, each row's `after` also classified by the new

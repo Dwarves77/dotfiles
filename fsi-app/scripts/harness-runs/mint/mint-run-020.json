@@ -1258,7 +1258,11 @@
     "minted_unverified": 0,
     "apply_failed": 0,
     "census_rows_reconciled": 152,
-    "validation_failed_held": 1
+    "validation_failed_held": 1,
+    "edges_discovered": 1298,
+    "forward_events_extracted": 39,
+    "isolated_items": 78,
+    "ids_resolved_by_key": 0
   },
   "defects_found": [],
   "full_trace_refs": [

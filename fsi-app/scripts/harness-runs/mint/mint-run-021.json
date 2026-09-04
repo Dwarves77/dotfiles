@@ -1170,7 +1170,11 @@
     "minted_unverified": 0,
     "apply_failed": 0,
     "census_rows_reconciled": 141,
-    "validation_failed_held": 1
+    "validation_failed_held": 1,
+    "edges_discovered": 2347,
+    "forward_events_extracted": 44,
+    "isolated_items": 57,
+    "ids_resolved_by_key": 0
   },
   "defects_found": [],
   "full_trace_refs": [

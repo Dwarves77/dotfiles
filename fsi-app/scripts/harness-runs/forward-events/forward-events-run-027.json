@@ -1,0 +1,1036 @@
+{
+  "harness_family": "forward-events",
+  "harness_version": "sha256:cb4898d073a80ab9",
+  "run_id": "forward-events-run-027",
+  "started_at": "2026-09-04T12:15:12.633Z",
+  "finished_at": "2026-09-04T12:15:12.658Z",
+  "config": {
+    "input": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-021/corpus.json",
+    "out_dir": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-021",
+    "execute": true,
+    "mode": "execute"
+  },
+  "inputs_ref": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-021/corpus.json"
+  ],
+  "per_item": [
+    {
+      "id": "6c0d9b5c-33b4-4939-b4b2-851c2ec61e65",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "ed66ce1d-ccff-4dde-b281-45fcc4dbbc19",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "5af61b24-d009-4994-9809-52142c100236",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "025e6570-584f-4124-8b69-b69cc534e050",
+      "outcome": "extracted",
+      "verdict": "2 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "d6a8d078-4343-48a3-b402-18d6fbd01d95",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1b9446df-c973-4689-bd4c-ed39730f37f0",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "e1cf879d-e65c-48df-a5b6-5b78383adb60",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "0e9de612-8b0f-4d75-954e-eb5b42e29d7a",
+      "outcome": "extracted",
+      "verdict": "2 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b969037c-30d3-48b8-8ba0-9caf47809b4f",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "44ca3381-53f9-4009-bd0d-5a7d2e16ec62",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "ec410b60-dca2-42bf-a099-029082891c39",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "8b834a0a-0cc0-4b42-ab81-ae36f3cf1817",
+      "outcome": "extracted",
+      "verdict": "2 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "0a75e9c1-33d4-41a6-94ae-8b6fb0a0b8b6",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "57c90a4c-b2f4-40d2-a74f-6aa337802b57",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "06e73a6b-3e1a-4506-b5ef-16958b8ee8dd",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "7a61c18f-a6fb-4c3f-99cc-2eb43a6d268f",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2c285cbe-dd8f-43fb-a261-c9022080fbfc",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "4d1dcc11-c115-46ff-ada2-6ca1758bfd4e",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "8670d8bf-9847-4da6-8724-0d52308b008e",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "d9b0996d-6fe8-4ad7-92cc-3e8fbed62669",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "99e2b81c-0bb0-4f6d-a24b-938f865b1930",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b30b014d-14fe-4a1c-ae6f-dc9dc931698d",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "61724619-5aa7-44dc-a43b-2f54b17de6f3",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "cc334c36-8412-490e-9d75-82aa6165627a",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "f1f64d83-747f-46b4-82e0-a5d12fcf10da",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "c8259b5c-e8b9-4161-9ca3-4039a6e20718",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b5d420d4-ada5-4db6-b58d-91c454c84399",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b7135a5b-6a9c-487d-8ab7-a3f4e22e358c",
+      "outcome": "extracted",
+      "verdict": "4 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "7f7f090f-29a2-414e-8b27-d2936fac19c4",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 7 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "22fbec12-f565-4c35-8867-9190039ec21a",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "48505076-fb4a-4ec5-bcba-f8bb6b03bf30",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "5f4c6f4c-8670-4d7a-aea9-c14401cc2bd4",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "e43da945-52d5-44ca-bc8d-19e735645cf9",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 5 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b681e24d-c340-4d45-acfd-3a9e55564d30",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "bacadaf0-b2c6-48bd-9083-b61c6ef04bbb",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "940e95fb-3a9a-4ade-8e98-873d8898becd",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "82ac6383-6d63-40b5-a0cf-c4794871decc",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "d2f5be75-fc25-4fbb-8be0-cba276fd6c2c",
+      "outcome": "extracted",
+      "verdict": "2 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "9843be4e-cdff-49ea-b9a2-94edadce4ebf",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "14cfdaa9-aca7-4714-8456-1891d29c82e2",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "68f8c9cc-e299-4a80-8512-8c20573d64bf",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "7e9a2df6-665a-43ac-9c4a-38d0e6dea99e",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "c4cae1cb-3d36-4be9-ba8c-aa5c3671f763",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "e795acd7-40b6-4fea-aef5-b6917d036c42",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "21b499aa-8aea-491c-9a08-dfb3574c1db1",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 5 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b6aabcb0-feb7-49bf-99d2-f9dbd6e68d80",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "a1daa621-84d2-4053-95d6-21648f6547bf",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "fc898431-49c9-456c-a4cf-2ba32104c30f",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "10605225-088d-451a-a3a4-84108ad2d6f6",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2d54f7aa-b7c7-4472-a130-45cfe7db6260",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "10d5842f-02ea-48f1-9e28-289641179aff",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "bcc3cc62-12d3-45b7-9205-a4640b83397b",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b965d198-dbb0-42ea-ab4a-b2620f1282ce",
+      "outcome": "extracted",
+      "verdict": "4 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "23753c1c-e1dc-4cc7-b5cc-a889a351c66a",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2c9112dd-14e7-41ff-8537-ab06937f4cae",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "0f838d3e-74df-41bc-b3dd-8c8988f5cffe",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "4d8f860e-41e6-4dac-add0-063f72749aac",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "440f17cd-13a9-4d7b-abf4-b0a9eafaef3a",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "8e65c3d7-925e-4f45-acd0-d1c95b2251a3",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "0c2f19be-e9ba-4948-8861-6b589754b011",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "5d9f662d-d38d-40fd-8682-5d3740498eca",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "00e5b5ce-c1cc-40aa-be96-c159a6dfb728",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "db181710-d828-4169-83dd-a283d11effe0",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "53637597-ed37-4ea0-be58-8fa47e8525f6",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "205b7628-93cd-4544-926e-da5d38298d7a",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "0cc2da7a-b012-489f-a209-b9802ad1e151",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "6e657ea8-8b80-420c-8de1-61b0faab1771",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "683de26f-80f8-4e45-ad62-0c3a4ca0faa7",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "f46583b1-f358-4d63-ba7e-351bbd2c9a18",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b1ee0688-07fe-40ff-9054-8e13db4a4d0c",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "f22dcdb1-43b3-4691-b9db-466f28ecbfb0",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b7c10f50-9410-46a1-8fd0-7b5a913890f0",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "4881aa57-eb05-43fb-94d8-beccf12a89e6",
+      "outcome": "extracted",
+      "verdict": "3 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "7d147c58-e753-4567-a50a-ac6f7f50a98f",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "8df59729-0a28-45b7-a4b6-3055b92344f7",
+      "outcome": "extracted",
+      "verdict": "2 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "e6156167-1449-40a5-9200-0f854748d1ff",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "62bb04c2-ee80-4c9b-905b-173aca86779d",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "19be8d34-b175-47c6-9eac-b9ca2ed5f8a6",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "93b773c3-05ed-426d-aee8-0a79becee81e",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "21988d55-80a4-4090-9c79-c4a840c6cc60",
+      "outcome": "extracted",
+      "verdict": "3 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "a8021c21-7afe-41c4-a4bc-1dc6ba9a2af8",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "08582f98-3b72-4ffc-8c59-ee0831ae4bd6",
+      "outcome": "extracted",
+      "verdict": "2 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "f7bd59e8-9708-4395-aeda-7d4eaec010bd",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "3cac4e13-5e87-40da-b4be-18373566d725",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "0fac8356-f3b4-40d9-adc8-da98a6f16c97",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "323d0e8b-9f53-4178-a2a5-9efda80f072e",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "9c69866d-d2c7-41f4-9ee5-5212c901e510",
+      "outcome": "extracted",
+      "verdict": "4 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "0e6f5938-3c1c-4220-95b1-4275d2c44815",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "fbea3635-2372-4b4d-a446-7b23e7c1d540",
+      "outcome": "extracted",
+      "verdict": "4 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "87f28c80-b22d-4755-bf7a-b7033a703e14",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "6049f6b3-1940-4df6-8e95-b4c7285025e9",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 5 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "20a1205a-7939-40fe-b60c-23daba68074b",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "3880fb17-ddce-4e27-8cd8-6aba58521969",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "ffba5757-30c0-45ac-ada6-1d7933c8e4e2",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b6ea0e57-228a-4296-9a12-21b3d619bd44",
+      "outcome": "extracted",
+      "verdict": "4 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "6c4340af-ea84-487c-88e0-a3f91cd63a6d",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "86701ff1-a804-42d2-bc69-615ad1f9bf50",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "4a9f54b9-ad2e-4a07-b939-ba1d4b886cee",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 5 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "9b2d10a6-28a0-4a56-ab87-e1c084bdd47e",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "71be2166-4b4c-455d-92d7-6e1362984866",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b4d4ce03-05c9-4574-9d3e-7384d53c3574",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "4123c79a-0b0a-49ef-9c06-48c0db2789a6",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "66d573b7-cc64-4597-8b29-7049e4789f30",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "4f427e69-bae6-42b4-9a26-6f48a0e2ec03",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "3aa8cdf5-294e-4931-ae50-d546e7b0f1fb",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b0ef89f1-eb8d-49d9-844e-4066a4fa7d37",
+      "outcome": "extracted",
+      "verdict": "3 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "f6a91113-3f2f-44e5-9865-4363b55a4b44",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "f613b191-f904-45f5-9330-f82c76facfe7",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "61626a56-4799-4a33-9b44-15b41116538c",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "84d8338f-34d2-4fbd-a23b-444ce3943ee3",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "eff2cd7b-6b72-4fc9-a930-da5cbbeb6c87",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "ef44374d-a6ea-4399-a8f4-a87a97405790",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "dda52dfd-f85a-42ca-a8b1-0b222ead5658",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "9f2230f6-06b9-4390-abe4-562f4ee5b78b",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "567a5c38-83e9-442e-82f8-51bd755c67e0",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "509773eb-5606-4356-bbaf-f518854e18a1",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "30894c51-91a1-4ff1-8d02-9b388d97ba8e",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "ed72ffda-1df8-4fd1-b98d-1de640438c06",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "ed1ae6aa-bd06-4f4d-9b32-3fc05ba41a92",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "f92c95a5-a5bd-4586-b712-b39eaea7147a",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "a13cda3a-7f44-4e9c-b0e4-9c5822e2e5e1",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "0e572311-af05-4bb5-88bf-468c8f7d78ad",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "78095c37-4c50-43bc-8c9b-d2ac9a6833f6",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "7836a3e5-947d-4b65-aac9-3bda02422654",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "cb699fde-d9fb-40fc-832d-253e45055d64",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "f74303a7-aac3-4bc4-882b-18e16d008fae",
+      "outcome": "extracted",
+      "verdict": "3 event(s), 4 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "20feed6b-8440-418a-8678-af301daadeda",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b2becf29-d29e-4d25-bdd9-8cb1372a7825",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "830ae335-f095-44e6-bd3e-a855cbdcc504",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "4fba8d77-f6fd-4434-92ba-cf5e99996b07",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "3c1277fc-8ae5-4690-a3cd-d8066b323c7d",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "381d6117-7e8c-4053-b46d-87db5426c200",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "77e84eac-b4b7-415c-9ea7-6f53390945a4",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "098a1e80-5ed0-47e6-b3e4-b611e6778440",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "ed3e7107-beb6-4846-b4b8-262c8dc72c3f",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "e9b6bde3-3c70-4291-b41d-e16bb2d88818",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "fdbb6a02-b3f7-4eba-a8cc-92dc7cec95df",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 5 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b0eea2eb-44f6-430b-8b53-672939359d61",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "e365b252-9080-4571-b895-f503dc901851",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2f69e385-f223-4d53-8499-3b63b81bcd50",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "3f720fcf-fc21-475b-a1ec-7595a0f6fc5d",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "items_processed": 141,
+    "items_with_events": 15,
+    "events_emitted": 44,
+    "skips": 64,
+    "by_kind": {
+      "compliance_deadline": 32,
+      "review_or_report": 2,
+      "entry_into_force": 10
+    },
+    "by_confidence": {
+      "high": 22,
+      "medium": 22
+    },
+    "by_precision": {
+      "day": 44
+    },
+    "by_skip_reason": {
+      "slot_date_unclassified": 35,
+      "date after 'by' with no deontic ('shall'/'must') or aim/target language nearby — ambiguous whether this is a bound obligation": 29
+    },
+    "dedupe_dropped": 11,
+    "extractor_version": "fe1-2026-09-04.2"
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-021/corpus.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-021/corpus.events.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-021/corpus.skipped.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-extraction.mjs's own execution path (Wave MH-5) — the family's first versioned, in-repo runner; forward-events-run-001.json was produced by an external scratch script (see its own inputs_ref/full_trace_refs paths under /root/work/forward-events/), which this script replaces going forward."
+}

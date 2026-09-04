@@ -1,8 +1,8 @@
 # Last proposer pass — meta-harness
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `meta-harness` now has **seven** artifacts
-(`meta-harness-run-001` … `meta-harness-run-007`); F28's rule (d) requires this file to name the latest
-verbatim: **meta-harness-run-007**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `meta-harness` now has **eight** artifacts
+(`meta-harness-run-001` … `meta-harness-run-008`); F28's rule (d) requires this file to name the latest
+verbatim: **meta-harness-run-008**.
 
 **Artifacts read:** meta-harness-run-001, -002, -003, -004, -005.
 
@@ -141,3 +141,51 @@ re-pinned first-run markers it names.
 of every `PENDING-RUN.md` after the final merge (run-007 `proposer_notes`). Implemented this cycle: the
 family-list tests now derive from `ALLOWED_FAMILIES` (Lane SPEND), the one proposal from the run-006 pass
 that was actionable inside this train.
+
+---
+
+## Pass over meta-harness-run-008 (coordinator, 2026-09-04, trains 23-34 / PRs #570-#581)
+
+**Artifacts read:** meta-harness-run-001 through -007 (per §1's "read every artifact in full"; -001
+through -005 previously summarized in this file's own prior passes, re-read here alongside -006 and -007
+in full). **Full traces read:** `docs/ops/session-log.md` Addendum 85 postscripts 30-45 in full (lines
+9372-9781), `git log --oneline 697be18e^..f13bc362`, `git show f13bc362 --stat` and `git show 443b70fd
+--stat`, `fsi-app/scripts/harness-runs/meta-harness/PENDING-RUN.md` (read before deletion),
+`.discipline/fitness/functions/F28-harness-run-integrity.mjs` in full, `CONVENTION.md` and
+`PROPOSER-RUNBOOK.md` in full, `docs/PROGRAM-BOARD.md` line 1796.
+
+**Hypotheses (verified, with basis):**
+
+1. **A fix landing in a copy instead of the source recurred, one wave after the same class was already
+   on record.** Basis: GATE-A-TOKENS' harvest fix landed in `scripts/mint/lib/gate-a-scan.mjs` (the
+   hand-mirrored kit copy), not `src/lib/agent/gate-a-scan.mjs` (what `write-item.ts`, the heal and the
+   pipeline actually import) — the lane's own honest scope note caught it before landing, and the
+   coordinator's single-source collapse (kit files become `export *` re-exports) is what moved
+   `meta-harness`'s own governing-file hash and produced this run. This is the same drift class an
+   earlier train's harvest fix had already committed to the copy only, silently, per this file's own
+   `LAST-PROPOSER-PASS.md` history — reading the full trace, not the summary, is what surfaced it again.
+2. **Hand-built namespaces and resolvers drift from the module or corpus they wrap, and tests do not
+   catch it.** Basis: `defects_found[7]` (IN-CHUNK-2, the coordinator's own miss — a chunked writer
+   switched in but never added to the flywheel driver's hand-built `db` namespace, caught only by a live
+   run, not by the 73 tests that inject a fake `db`); `defects_found[0]` and `[8]` (LEGACY-3 then
+   LEGACY-4, a legacy-artifact resolver measured against one of three real id shapes, twice).
+3. **Every defect this wave surfaced through a live run failing or a lane/coordinator reading real data,
+   never through a pre-existing gate — with one exception.** Basis: `metrics.gate_catch_rate` — of 17
+   code defects, only RETEXT-COLLIDE's was caught by an existing automated check (the DB's own
+   `uq_item_forward_events_dedupe` unique index refusing a duplicate write); the rest were found live.
+4. **Run-007's second proposal (coordinator re-hash of every `PENDING-RUN.md` after the last merge) was
+   followed through this wave; its first (a JOIN CHECK line in every lane brief) cannot be confirmed
+   implemented from the postscripts alone**, and the join-class defects above suggest that if it was
+   added, it is not yet catching them before they surface live. Basis: `metrics.run_007_proposal_status`.
+
+**Proposal for the next cycle:** require a lane whose diff touches a hand-maintained copy, a hardcoded
+namespace object, or a resolver's input-shape assumption to grep the actual call sites or live data for
+every OTHER shape that assumption excludes before landing — the same discipline BACKLOG-LEGACY's
+"11/11" measurement, IN-CHUNK-2's `db` namespace, and the Gate-A kit copy all lacked, made mechanical
+rather than left to a lane's own honesty (run-008 `proposer_notes`).
+
+**Family gates status:** green. `node .discipline/fitness/runner.mjs` reports 0 violations both before
+this change (`PENDING-RUN.md` present, F28 passing on the acknowledged marker) and after
+(`PENDING-RUN.md` deleted, `meta-harness-run-008.json` present, F28 rule (c) satisfied by the matching
+`harness_version`, rule (d) satisfied by this file naming `meta-harness-run-008`); `node --test
+.discipline/governance/*.test.mjs .discipline/fitness/*.test.mjs .discipline/*.test.mjs` green.

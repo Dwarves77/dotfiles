@@ -226,9 +226,79 @@
 //   and the full property set above are enforced by this file's own test suite over every one of
 //   retext32.json's 654 `before` texts (see that file's "OBLIGATION-TEXT REBUILD" describe block).
 //
+// RECORD-FACTS TEMPLATE UNWRAP (lane FWD-TEXT-3, 2026-09-04):
+//   [CONFIRMED, live SQL this lane, project kwrsbpiseruzbfwjpvsp, 2026-09-04] the coordinator's dispatch
+//   evidence snapshot (after Maintenance #38's forward-events-retext APPLY) named 58 residue rows / 41
+//   items; by the time this lane measured (the backlog flywheel kept minting record-grade items in
+//   between -- item_forward_events grew from 926/173 to 1071/228 over that window), the SAME residue class
+//   was 122 rows / 90 items, all `source_section_id`-sourced, `extractor_version` fe1-2026-09-04.2,
+//   `intelligence_item_sections.section_key = 'record_facts'`. Root cause: `src/lib/intake/record-facts.mjs`
+//   grounds each record-grade item's required slots as claims whose `claim_text` is one of a handful of
+//   fixed TEMPLATES (line ~457: `[${slotKey}] The captured source states, verbatim: «${span}»`; line ~622:
+//   the due_date variant, adding `(date_precision: X)`; line ~540: the binding_position variant, `[binding_
+//   position] The captured source's own applicability language places this item at «code» (Label), from
+//   the passage: «span»`; lines ~466-469/550-553/634-637: an honest GAP variant per slot, ending "A
+//   full-brief regrounding will re-examine this gap when this item upgrades from record to brief.") and
+//   those claims are rendered VERBATIM, one per line (`\n`-joined, no blank line, no markdown heading --
+//   measured live), into the item's `record_facts` section `content_md` (mint-forward-participation's own
+//   quoting, unchanged by this lane). This module then extracts forward events from that SECTION MARKDOWN
+//   like any other section: `scanText`'s RULES find the deadline language a date-shaped template's own
+//   quoted span carries, and `clauseAround` windows around it -- but neither `clauseStart`'s leading-edge
+//   boundary scan nor the trailing-edge terminator search (both from lane FWD-TEXT-2) ever recognised a
+//   `[slot_key] ` marker as a boundary: it is not uppercase/quote/digit (SENTENCE_OPEN_RE), and a marker is
+//   never preceded by a real sentence terminator either (the templates end mid-guillemet, `«span»`, with no
+//   trailing period, and successive claims are `\n`-joined with no blank line to trip the paragraph-break
+//   check). Two measured failure shapes, both from this one root cause: 54/122 rows literally open with the
+//   PRECEDING claim's own trailing GAP sentence ("A full-brief regrounding will re-examine this gap... [due_
+//   date] The captured source states..."), because the nearest boundary the OLD scan could recognise was
+//   the terminator two sentences further back; 68/122 land via the last-resort "nearest whitespace within
+//   `maxBefore`" fallback, landing arbitrarily inside the marker itself or the wrapper prose (e.g.
+//   "…effective_date] The captured source states..." -- the leading "[" stripped again by normalizeObligation
+//   Text's own leading-debris cleanup, which does not treat "[" as OK-to-keep either). [CONFIRMED, live SQL]
+//   107/122 already have a claim-sourced twin (same item/event_date/event_kind, confidence 'high') carrying
+//   the CORRECT text -- e.g. item 025e6570's claim twin for (2022-04-30, compliance_deadline) already reads
+//   "By 30 April 2022 and in each subsequent year, the Secretary of State must publish a li…", the exact
+//   text this fix produces from the SECTION side too, once unwrapped.
+//
+//   THE FIX, in `clauseStart`/`clauseAround`/the new `unwrapRecordFactsTemplate` below:
+//   (1) A "[slot_key] " marker (mirrors, never imports -- src/lib/ must never import scripts/, see this
+//       file's header above -- scripts/mint/heal-provenance.mjs's `extractSlotKeyFromMarker`/`SLOT_MARKER_
+//       RE`, narrowed here to require the bracket content START with a letter so a legal citation bracket
+//       like "[2019]" is never mistaken for a slot marker) is now a boundary for BOTH edges: `clauseStart`'s
+//       backward scan recognises a marker start exactly like a genuine terminator/paragraph/list break
+//       (`fragment: false` -- a deliberate wrapper boundary, never a fallback), so it can never sweep the
+//       PRECEDING claim's sentence in; `clauseAround`'s trailing search now also stops at (and excludes) the
+//       START of the NEXT marker, so a window can never run past it either.
+//   (2) When the resulting marker-bounded window opens with a recognised record-facts FACT wrapper (generic
+//       slot / due_date / binding_position), `unwrapRecordFactsTemplate` replaces `obligation_text` with the
+//       passage inside the «…» that actually CONTAINS the event's own date -- ordinarily the template's only
+//       quote (for binding_position, always the "from the passage" quote, never the leading «code» quote,
+//       since the code quote never carries a date); if that quote itself carries a NESTED «…» (the source's
+//       own text already used guillemets), the INNERMOST pair still containing the date is kept. The
+//       existing FWD-TEXT-2 honest-fragment rules (leading "…" on a lowercase/debris start, trailing "…" on
+//       no terminal punctuation) then run on THAT passage via the SAME `normalizeObligationText` every other
+//       window already goes through -- never a second cleanup path. The wrapper's own "(date_precision: X)"
+//       marker sits OUTSIDE the «…» pair by construction, so it can never reach display text this way.
+//       `clauseAround`'s trailing search also now accepts a closing "»" as a stop-and-include terminator
+//       (TRAILING_OK_RE already accepted one at the end of a result; the search now stops there too) so a
+//       template's own closing guillemet is reliably captured within the window before unwrap runs.
+//   (3) A window that opens with a record-facts GAP wrapper instead (never a date-bearing quote by
+//       construction -- see the GAP template quoted above) is skipped with a recorded reason
+//       (`record_facts_gap_boilerplate_no_quoted_date`) rather than ever becoming an obligation_text or a
+//       source window on its own; a FACT-shaped wrapper whose own date somehow is not inside any «…» pair
+//       (should not occur, defensive only) is skipped too (`record_facts_template_date_not_in_quote`).
+//       `clauseAround` returns `{text}` or `{skip}` now (was a bare string) -- every call site in `scanText`
+//       routes a `skip` to `skipped`, never `hits`, and still claims the matched range either way so no
+//       other rule re-processes the same span.
+//   `source_span`/`assertVerbatim` are unaffected by any of this -- the matched date substring returned by
+//   `tryParseDateAt` is unchanged, still checked against the ORIGINAL unmodified source text, never against
+//   the unwrapped display text. Idempotence and the "never contains a record-facts wrapper token" property
+//   are enforced by this file's own test suite against every one of the live rows captured in
+//   `scripts/_snapshots/fwdtext3-live-58.json` (gitignored scratch, SQL cited in that test's own header).
+//
 // EXTRACTOR_VERSION bump this whenever a rule changes semantics (not for
 // comment-only edits), so downstream consumers can tell events apart.
-export const EXTRACTOR_VERSION = 'fe1-2026-09-04.2';
+export const EXTRACTOR_VERSION = 'fe1-2026-09-04.3';
 
 // ---------------------------------------------------------------------------
 // Date grammar
@@ -420,6 +490,23 @@ function isListOrHeadingBreakAt(text, i) {
   return /^(?:[-*#]|\d+\.)\s/.test(text.slice(i + 1, i + 8));
 }
 
+// A record-facts.mjs "[slot_key] " marker (see this file's "RECORD-FACTS TEMPLATE UNWRAP" header note).
+// Mirrors, never imports, scripts/mint/heal-provenance.mjs's `SLOT_MARKER_RE` (`/^\[([a-z0-9_]+)\]\s/i`) --
+// src/lib/ must never import scripts/ (see this file's header above) -- narrowed to require the bracket
+// content START with a letter, so a legal citation bracket like "[2019]" (digits only) or a footnote
+// "[1]" is never mistaken for a slot marker; record-facts.mjs's own slot keys (item-type-required-slots.json)
+// are always a lowercase word, optionally underscore-joined, never digit-led.
+const SLOT_MARKER_AT_RE = /^\[[a-z][a-z0-9_]*\]\s+/i;
+// The same pattern, unanchored, for finding the NEXT marker's start anywhere within a forward-searched
+// substring (`.search()`/`.match()` need `^` absent to look past position 0).
+const SLOT_MARKER_ANYWHERE_RE = /\[[a-z][a-z0-9_]*\]\s+/i;
+
+/** True when a slot marker starts exactly at `text[i]`. Bounded slice for cheap repeated calls -- no real
+ *  slot key or its trailing whitespace run is anywhere near 64 chars. */
+function isSlotMarkerStartAt(text, i) {
+  return SLOT_MARKER_AT_RE.test(text.slice(i, i + 64));
+}
+
 // Raised from the pre-fix 60 (lane FWD-TEXT-2, 2026-09-04) — see this file's own header for the
 // measurement: a 30-row live-SQL sample of this corpus's own claim/section text found the real paragraph/
 // label boundary sitting 40-110 bytes back from the trigger match in the common case; 300 gives that
@@ -451,6 +538,11 @@ function clauseStart(text, idx, maxBefore) {
     }
     if (isParagraphBreakAt(text, i)) return { pos: i + 1, fragment: false };
     if (isListOrHeadingBreakAt(text, i)) return { pos: i + 1, fragment: false };
+    // A record-facts "[slot_key] " marker (see this file's "RECORD-FACTS TEMPLATE UNWRAP" header note) is a
+    // deliberate wrapper boundary -- INCLUDE it (pos: i, not i+1) so the window starts with the marker
+    // itself, which `unwrapRecordFactsTemplate` needs to recognise the wrapper shape. Never a fallback:
+    // `fragment: false`, same as a paragraph/list break.
+    if (isSlotMarkerStartAt(text, i)) return { pos: i, fragment: false };
   }
 
   // hardFloor <= 0 means `floor` IS the true start of `text` — idx is within maxBefore chars of index 0,
@@ -649,21 +741,138 @@ export function normalizeObligationText(raw, opts = {}) {
   return t;
 }
 
+// ---------------------------------------------------------------------------
+// RECORD-FACTS TEMPLATE UNWRAP (lane FWD-TEXT-3, 2026-09-04) — see this file's header for the measurement.
+// ---------------------------------------------------------------------------
+
+// The three FACT-shaped record-facts.mjs wrappers (generic slot / due_date / binding_position — see
+// record-facts.mjs lines ~457/622/540) and the GAP wrapper shared by every slot (lines ~466-469/634-637/
+// 550-553; binding_position's own GAP text differs only in its middle clause, matched by the shared tail
+// sentence below). Matched only against the START of an already marker-bounded window (`clauseStart` above
+// lands exactly on a "[slot_key] " marker when one exists) — never against arbitrary text.
+const RECORD_FACTS_GENERIC_RE = /^\[[a-z][a-z0-9_]*\]\s+The captured source states, verbatim: /i;
+const RECORD_FACTS_DUE_DATE_RE =
+  /^\[due_date\]\s+The captured source states a due date(?:\s*\(date_precision:\s*(?:day|month|quarter|year)\))?,\s*verbatim: /i;
+const RECORD_FACTS_BINDING_POSITION_RE =
+  /^\[binding_position\]\s+The captured source's own applicability language places this item at /i;
+// A GAP claim's text NEVER carries a «…» quote or a date (see this file's header) — matched here purely so
+// a window that somehow opens on one is skipped (rule 3) rather than emitted or misread as a FACT wrapper.
+const RECORD_FACTS_GAP_RE =
+  /^\[[a-z][a-z0-9_]*\]\s+(?:No verbatim [\s\S]*?\.|[\s\S]*?applicability language[\s\S]*?\.)\s*A full-brief regrounding will re-examine this gap when this item upgrades from record to brief\.?/i;
+
+/**
+ * Finds every «…» pair in `text` via a stack, so a NESTED pair (the source's own text already used
+ * guillemets) is found alongside the wrapper's own outer pair — rule: "if the passage itself carries a
+ * nested «…» keep the innermost that contains the event's date". `start`/`end` are the indices of the
+ * opening/closing guillemet characters themselves (content is `text.slice(start+1, end)`). An unmatched
+ * '«' with no closing '»' is dropped — never a fabricated close. Pure.
+ */
+function findGuillemetPairs(text) {
+  const stack = [];
+  const pairs = [];
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '«') stack.push(i);
+    else if (text[i] === '»' && stack.length) pairs.push({ start: stack.pop(), end: i });
+  }
+  return pairs;
+}
+
+// A LEGACY delimiter: record-facts.mjs used straight double quotes for its span delimiter before switching
+// to guillemets (this file's copy of that module's own header: the switch was made because a span that
+// itself opens with a curly quote defeats a straight-quote delimiter under the validator's unicode-
+// integrity scan) — [CONFIRMED, live SQL this lane, 2026-09-04] 26 of 1333 live `record_facts` sections
+// still carry that pre-migration straight-quote rendering (content is immutable once captured; the switch
+// was forward-only, never a backfill). Same shape as `findGuillemetPairs` (never nested — straight quotes
+// give no way to tell an outer pair from an inner one, and this corpus's legacy rows never needed one).
+const STRAIGHT_QUOTE_PAIR_RE = /"([^"]*)"/g;
+function findStraightQuotePairs(text) {
+  const pairs = [];
+  let m;
+  STRAIGHT_QUOTE_PAIR_RE.lastIndex = 0;
+  while ((m = STRAIGHT_QUOTE_PAIR_RE.exec(text)) !== null) {
+    pairs.push({ start: m.index, end: m.index + m[0].length - 1 });
+  }
+  return pairs;
+}
+
+/**
+ * When `windowed` (an already marker/clause-bounded window from `clauseStart`/`clauseAround`) opens with a
+ * record-facts.mjs FACT wrapper, returns `{ passage }`: the text inside the «…» that actually CONTAINS
+ * `[relDateStart, relDateEnd)` (window-relative offsets of the event's own matched date) — the INNERMOST
+ * such pair when nested, ordinarily the wrapper's only date-bearing quote (for binding_position, always the
+ * "from the passage" quote — the leading «code» quote never contains a date, so it is never chosen by this
+ * containment check). Returns `{ skip: reason }` when `windowed` opens with a GAP wrapper instead (rule 3 —
+ * a GAP sentence is never an obligation_text or a source window on its own) or when a FACT wrapper's own
+ * date is not inside any «…» pair (defensive; should not occur — the date this module matched came from
+ * somewhere inside `windowed`, and every FACT template's date-bearing content is inside its own quote).
+ * Returns `null` when `windowed` does not open with a recognised record-facts marker/wrapper at all — the
+ * caller falls back to ordinary (non-template) window handling, unchanged. Pure. Exported for testing.
+ */
+export function unwrapRecordFactsTemplate(windowed, relDateStart, relDateEnd) {
+  const t = typeof windowed === 'string' ? windowed : '';
+  if (!SLOT_MARKER_AT_RE.test(t)) return null;
+  if (RECORD_FACTS_GAP_RE.test(t)) {
+    return { skip: 'record_facts_gap_boilerplate_no_quoted_date' };
+  }
+  const isFactShape =
+    RECORD_FACTS_GENERIC_RE.test(t) || RECORD_FACTS_DUE_DATE_RE.test(t) || RECORD_FACTS_BINDING_POSITION_RE.test(t);
+  if (!isFactShape) return null;
+
+  // Guillemets are the current delimiter (record-facts.mjs's own header); the legacy straight-quote
+  // delimiter (see findStraightQuotePairs' own doc) is tried only when no guillemet pair exists at all.
+  const guillemetPairs = findGuillemetPairs(t);
+  const pairs = guillemetPairs.length ? guillemetPairs : findStraightQuotePairs(t);
+  let best = null;
+  for (const p of pairs) {
+    if (p.start < relDateStart && relDateEnd <= p.end) {
+      if (!best || p.end - p.start < best.end - best.start) best = p;
+    }
+  }
+  if (!best) return { skip: 'record_facts_template_date_not_in_quote' };
+  return { passage: t.slice(best.start + 1, best.end) };
+}
+
+/**
+ * @returns {{text: string} | {skip: string}} `text` is the ready-to-store obligation_text (already run
+ *   through `normalizeObligationText`); `skip` is a reason this date should never become an event (rule 3 —
+ *   a record-facts GAP wrapper carries no genuine obligation). Every call site in `scanText` below routes a
+ *   `skip` result to `skipped`, never `hits`.
+ */
 function clauseAround(text, start, end, maxBefore = DEFAULT_MAX_BEFORE, maxAfter = DEFAULT_MAX_AFTER, dateSpan) {
   const { pos: from, fragment } = clauseStart(text, start, maxBefore);
-  // stop the trailing window at the next SENTENCE terminator ('.'/'!'/'?' — ';' is a clause separator, not
-  // a sentence end, and is never accepted here), or maxAfter, whichever comes first, so obligation_text
-  // reads as one sentence.
+  // Stop the trailing window at the next SENTENCE terminator ('.'/'!'/'?' — ';' is a clause separator, not
+  // a sentence end, and is never accepted here) OR a closing record-facts guillemet '»' (TRAILING_OK_RE
+  // already treats one as a valid sentence end; the search now stops there too, INCLUDING it, so a
+  // template's own closing quote is reliably captured) — OR right before the START of the NEXT "[slot_key]"
+  // marker, EXCLUDING it, so a window can never run past it (lane FWD-TEXT-3, rule 1) — whichever comes
+  // first, or maxAfter, so obligation_text reads as one sentence.
   let to = Math.min(text.length, end + maxAfter);
   const tail = text.slice(end, to);
-  const stop = tail.search(/[.!?](?!\d)/);
-  if (stop !== -1) to = end + stop + 1;
-  let windowed = text.slice(from, to).replace(/\s+/g, ' ').trim();
-  // The leading edge was NOT a genuine sentence/paragraph/list start (`clauseStart`'s fallback) — mark the
-  // window as an honest fragment rather than silently presenting a clause snippet as a full sentence.
-  // Capitalises nothing, invents nothing.
+  const termMatch = tail.match(/[.!?»](?!\d)/);
+  const termIdx = termMatch ? termMatch.index + 1 : Infinity;
+  const markerMatch = tail.match(SLOT_MARKER_ANYWHERE_RE);
+  const markerIdx = markerMatch ? markerMatch.index : Infinity;
+  const cut = Math.min(termIdx, markerIdx);
+  if (cut !== Infinity) to = end + cut;
+
+  // Offsets below are relative to this RAW (not yet whitespace-collapsed) slice, so they stay valid against
+  // `dateSpan`'s own length — collapsing whitespace first would shift them out from under the date position.
+  const raw = text.slice(from, to);
+  const relDateEnd = end - from;
+  const relDateStart = relDateEnd - (typeof dateSpan === 'string' ? dateSpan.length : 0);
+  const unwrap = unwrapRecordFactsTemplate(raw, relDateStart, relDateEnd);
+  if (unwrap?.skip) return { skip: unwrap.skip };
+  if (unwrap?.passage) {
+    const passage = unwrap.passage.replace(/\s+/g, ' ').trim();
+    return { text: normalizeObligationText(passage, { dateSpan }) };
+  }
+
+  let windowed = raw.replace(/\s+/g, ' ').trim();
+  // The leading edge was NOT a genuine sentence/paragraph/list/marker start (`clauseStart`'s fallback) —
+  // mark the window as an honest fragment rather than silently presenting a clause snippet as a full
+  // sentence. Capitalises nothing, invents nothing.
   if (fragment && windowed) windowed = '…' + windowed;
-  return normalizeObligationText(windowed, { dateSpan });
+  return { text: normalizeObligationText(windowed, { dateSpan }) };
 }
 
 // Finds the start of the sentence/clause containing `idx` (the char right
@@ -965,19 +1174,23 @@ function scanText(text) {
       }
 
       const dateSpan = text.slice(spanStart, spanEnd);
-      const obligationText = clauseAround(text, m.index, spanEnd, undefined, undefined, dateSpan);
-
-      hits.push({
-        ruleName: rule.name,
-        kind,
-        iso: parsed.iso,
-        precision: parsed.precision,
-        spanStart,
-        spanEnd,
-        dateSpan,
-        obligationText,
-      });
+      const around = clauseAround(text, m.index, spanEnd, undefined, undefined, dateSpan);
       claimedRanges.push([m.index, spanEnd]);
+
+      if (around.skip) {
+        skips.push({ reason: around.skip, span: dateSpan });
+      } else {
+        hits.push({
+          ruleName: rule.name,
+          kind,
+          iso: parsed.iso,
+          precision: parsed.precision,
+          spanStart,
+          spanEnd,
+          dateSpan,
+          obligationText: around.text,
+        });
+      }
 
       // "shall apply from X to Y" — also emit the window-end date as 'other'.
       if (rule.windowEnd) {
@@ -985,17 +1198,23 @@ function scanText(text) {
         if (w && !overlaps(spanEnd, w.matchStart + w.parsed.length)) {
           const wSpanStart = w.matchStart;
           const wSpanEnd = w.matchStart + w.parsed.length;
-          hits.push({
-            ruleName: rule.name + '-window-end',
-            kind: 'other',
-            iso: w.parsed.iso,
-            precision: w.parsed.precision,
-            spanStart: wSpanStart,
-            spanEnd: wSpanEnd,
-            dateSpan: text.slice(wSpanStart, wSpanEnd),
-            obligationText: clauseAround(text, m.index, wSpanEnd, undefined, undefined, text.slice(wSpanStart, wSpanEnd)),
-          });
+          const wDateSpan = text.slice(wSpanStart, wSpanEnd);
+          const wAround = clauseAround(text, m.index, wSpanEnd, undefined, undefined, wDateSpan);
           claimedRanges.push([spanEnd, wSpanEnd]);
+          if (wAround.skip) {
+            skips.push({ reason: wAround.skip, span: wDateSpan });
+          } else {
+            hits.push({
+              ruleName: rule.name + '-window-end',
+              kind: 'other',
+              iso: w.parsed.iso,
+              precision: w.parsed.precision,
+              spanStart: wSpanStart,
+              spanEnd: wSpanEnd,
+              dateSpan: wDateSpan,
+              obligationText: wAround.text,
+            });
+          }
         }
       }
     }
@@ -1039,18 +1258,22 @@ function scanText(text) {
       }
 
       const candidateDateSpan = text.slice(spanStart, spanEnd);
-      const obligationText = clauseAround(text, m.index, spanEnd, undefined, undefined, candidateDateSpan);
-      hits.push({
-        ruleName: rule.name,
-        kind: 'other',
-        iso: parsed.iso,
-        precision: parsed.precision,
-        spanStart,
-        spanEnd,
-        dateSpan: candidateDateSpan,
-        obligationText,
-      });
+      const around = clauseAround(text, m.index, spanEnd, undefined, undefined, candidateDateSpan);
       claimedRanges.push([m.index, spanEnd]);
+      if (around.skip) {
+        skips.push({ reason: around.skip, span: candidateDateSpan });
+      } else {
+        hits.push({
+          ruleName: rule.name,
+          kind: 'other',
+          iso: parsed.iso,
+          precision: parsed.precision,
+          spanStart,
+          spanEnd,
+          dateSpan: candidateDateSpan,
+          obligationText: around.text,
+        });
+      }
     }
   }
 

@@ -1,0 +1,290 @@
+{
+  "harness_family": "meta-harness",
+  "harness_version": "sha256:ef2b956784ce02e1",
+  "run_id": "meta-harness-run-008",
+  "started_at": "2026-09-04T05:49:00Z",
+  "finished_at": "2026-09-04T12:25:00Z",
+  "config": {
+    "wave": "2026-09-04, coordinator cloud session, trains 23 through 34 (PRs #570 697be18e through #581 f13bc362), one wave of Sonnet/Haiku lanes with disjoint write sets, integrated by the coordinator. One directly-preceding lane (LEGACY-3) is included below because postscript 34 — inside this run's instructed reading range (Addendum 85, postscripts 30-45) — records it as the immediate cause of this wave's DEDUP/LEGACY-4 work; its own landing PR is #569 (train/wave22), one train before #570, named here rather than folded silently into the 570-581 range.",
+    "why": "F28 rule (c): meta-harness's own governing files re-hash to a value no landed artifact records. F28-harness-run-integrity.mjs (one of meta-harness's four governing files) gained two entries in the mint family's GOVERNING_FILES this wave — src/lib/agent/gate-a-scan.mjs and gate-a-match.mjs, the single Gate-A implementation that scripts/mint/lib/gate-a-scan.mjs and gate-a-match.mjs now re-export instead of hand-mirroring, closing the two-bodies-for-one-rule drift GATE-A-TOKENS found (defect below). CONVENTION.md's governing-file table row for mint was updated to match, same commit (PR #580). This run discharges scripts/harness-runs/meta-harness/PENDING-RUN.md, which pinned harness_version at write time: sha256:ef2b956784ce02e1 — verified by re-running hashHarnessVersion(GOVERNING_FILES.meta-harness) against the current tree before writing this artifact; it matches exactly.",
+    "lanes": [
+      "LEGACY-3 (Sonnet, 21aff2d7, PR #569 train/wave22, 73 tests)",
+      "DEDUP (Haiku; coordinator correction 96ade298, PR #570 train/wave23)",
+      "HEAL-9 (this train, PR #571 train/wave24, 2 tests)",
+      "FIRSTPAGE (Sonnet, PR #571 train/wave24)",
+      "SLIM-ORDER (Haiku, migration 303, PR #571 train/wave24)",
+      "FWD-TEXT (Sonnet, PR #571 train/wave24)",
+      "IN-CHUNK (this train, PR #572 train/wave25)",
+      "IN-CHUNK-2 (coordinator's own fix, PR #573 train/wave26)",
+      "LEGACY-4 (this train, PR #574 train/wave27)",
+      "PROPOSER-5 (Haiku, PR #574 train/wave27)",
+      "DEDUPE-PLUMB (this train, PR #574 train/wave27)",
+      "FWD-TEXT-2 (Sonnet, extractor fe1-2026-09-04.2, PR #574 train/wave27)",
+      "HEAL-10 (Sonnet, PR #575 train/wave28)",
+      "BRANCH-BASE (this train, PR #576 train/wave29)",
+      "BRANCH-BASE-2 (--autostash, this train, PR #577 train/wave30)",
+      "RETEXT-COLLIDE (Sonnet, bf31de44, PR #578 train/wave31, 26 tests)",
+      "GATE-A-TOKENS (Sonnet + coordinator single-source collapse, PR #580 train/wave33, 30 tests + 767 mint + 257 src + 141 discipline)",
+      "PROPOSER-6 (Haiku, 6a89ff78, PR #581 train/wave34)"
+    ],
+    "prs": [
+      "#570 697be18e (train/wave23)",
+      "#571 f9f6824a (train/wave24)",
+      "#572 2f110fea (train/wave25)",
+      "#573 51815a5b (train/wave26)",
+      "#574 72c8dc44 (train/wave27)",
+      "#575 92c2c83c (train/wave28)",
+      "#576 e1a02872 (train/wave29)",
+      "#577 3650f663 (train/wave30)",
+      "#578 03e6a8a8 (train/wave31)",
+      "#579 0229ac02 (train/wave32)",
+      "#580 443b70fd (train/wave33)",
+      "#581 f13bc362 (train/wave34)"
+    ],
+    "governing_files_changed": [
+      "F28-harness-run-integrity.mjs's mint GOVERNING_FILES entry (+src/lib/agent/gate-a-scan.mjs, +src/lib/agent/gate-a-match.mjs), train/wave33 PR #580 — this is what moved meta-harness's own hash",
+      "scripts/harness-runs/CONVENTION.md's mint harness_version table row, same commit",
+      "scripts/harness-runs/forward-events/PENDING-RUN.md written (FWD-TEXT, PR #571) then discharged (FWD-TEXT-2's runs 010-022 all carrying sha256:cb4898d073a80ab9, PR #581)"
+    ]
+  },
+  "inputs_ref": [
+    "docs/ops/session-log.md — Addendum 85, postscripts 30 through 45 (lines 9372-9781), read in full",
+    "git log --oneline 697be18e^..f13bc362 (12 commits, PRs #570-#581)",
+    "git show f13bc362 --stat, git show 443b70fd --stat (PR-level diff inspection for wave33/34)",
+    "fsi-app/scripts/harness-runs/meta-harness/PENDING-RUN.md (read before deletion; hash re-verified live)",
+    "fsi-app/.discipline/fitness/functions/F28-harness-run-integrity.mjs (read in full)",
+    "fsi-app/scripts/harness-runs/meta-harness/meta-harness-run-007.json",
+    "fsi-app/scripts/harness-runs/CONVENTION.md, fsi-app/scripts/harness-runs/PROPOSER-RUNBOOK.md",
+    "docs/PROGRAM-BOARD.md line 1796 (SRC-TIER standards-body ruling_needed, standing operator item)"
+  ],
+  "per_item": [
+    {
+      "id": "lane-LEGACY-3",
+      "outcome": "passed",
+      "evidence": "ps34: disambiguateByArtifactTime drops archived rows, keeps the row created within a day of the artifact's started_at, then the single verified survivor; fixed backlog apply #25's refusal on four CELEX keys each matching two live intelligence_items rows [CONFIRMED live]. 73 tests."
+    },
+    {
+      "id": "lane-DEDUP",
+      "outcome": "passed-with-coordinator-correction",
+      "evidence": "ps35: canonical-key-dedup.mjs built correctly in shape (keep the verified row, archive the rest duplicate_of_verified, refuse on ambiguous groups, restore_sql, shared-writer registered) but the keeper patch's archive_reason-clear was inverted (a no-op on the real stamp); coordinator caught it in review and corrected (96ade298). 18/18 tests. Later confirmed live: maintenance #29/#30 archived exactly the two measured groups, read-back 2/2 [CONFIRMED] (ps36)."
+    },
+    {
+      "id": "lane-HEAL-9",
+      "outcome": "passed",
+      "evidence": "ps36: found the provenance-heal time budget armed under `apply &&` only, so dry mode (given real SOURCE-lookup work by HEAL-7) ran unbounded and was cancelled by the 30-minute CI backstop at 29m36s on heal dry #28. Fix binds the budget to both modes. 2 tests."
+    },
+    {
+      "id": "lane-FIRSTPAGE",
+      "outcome": "passed",
+      "evidence": "ps36: root-caused live via SQL that fetchWorkspaceResources' outer PostgREST .order() replaced the RPC's own CASE-priority order, so /regulations' first paint was 100% MODERATE with no dated rows; buildWorkspaceItemsQuery now paginates with .range() alone. Named its own residual (slim RPC has no id tiebreak) rather than silently leaving it, routed to SLIM-ORDER."
+    },
+    {
+      "id": "lane-SLIM-ORDER",
+      "outcome": "passed",
+      "evidence": "ps36: wrote migration 303 (', ii.id ASC', md5-guarded) for the residual FIRSTPAGE named; coordinator applied it live (pre 02936dfa…, post 3ca10db08f84c019c9fa0e16bfe3b49b, schema_migrations 20260904084952) and added the slim name to the allowlist same train."
+    },
+    {
+      "id": "lane-FWD-TEXT",
+      "outcome": "passed-with-fix",
+      "evidence": "ps36: root-caused garbled Upcoming Obligations text (clauseAround's fixed 60-byte cut, inherited markdown/labels) with 667/979 rows matching a garble regex; clauseStart snapping + normalizeObligationText + content-similarity-gated dedupeEvents landed, new forward-events-retext maintenance step, F28 marker pinned. Retext dry #32/#33 later found the normaliser still incomplete on ~30% of rows (see defects_found) — closed by FWD-TEXT-2, not this lane."
+    },
+    {
+      "id": "lane-IN-CHUNK",
+      "outcome": "passed",
+      "evidence": "ps37: root-caused backlog applies #24 and #26 both dying with `TypeError: fetch failed` to an unbounded id list (1,317 open flags) in a single PostgREST GET (~53KB URL) past the gateway header limit; routed the four writers of this class through the existing guardedUpdateByIds at 100 ids/request, regression test against the live 1,317 count."
+    },
+    {
+      "id": "lane-IN-CHUNK-2",
+      "outcome": "failed-then-fixed",
+      "evidence": "ps38: coordinator's own miss — IN-CHUNK switched the flywheel driver's updateStale to the chunked writer but did not add it to the driver's hand-built `const db = {…}` namespace object (two literals), which backlog apply #27 hit live as `db.guardedUpdateByIds is not a function`; the existing 73 tests never caught it because they inject a fake db. Fixed with a new test that reads the driver's own source and pins every `db.<fn>(` call to a real db.mjs export."
+    },
+    {
+      "id": "lane-LEGACY-4",
+      "outcome": "passed",
+      "evidence": "ps39: backlog apply #28 connected mint-run-001/004 for the first time then refused mint-run-005 on a `CELEX:`-prefixed key; reading every mint-run artifact found three legacy id shapes (bare CELEX 001-003, CELEX:-prefixed 005, bare intelligence_items uuid 008/009/010/015 — 287 entries); legacyKeyOf + direct uuid resolution added, a missing row reported, never guessed."
+    },
+    {
+      "id": "lane-PROPOSER-5",
+      "outcome": "passed",
+      "evidence": "ps39: attested forward-events runs 006-009 (proposer pass over that family's history) and found run-extraction.mjs destructured only {events, skipped}, so counts.dedupe_dropped never reached an artifact even though the extractor computed it. Routed to DEDUPE-PLUMB."
+    },
+    {
+      "id": "lane-DEDUPE-PLUMB",
+      "outcome": "passed",
+      "evidence": "ps39: closed PROPOSER-5's finding — dedupe_dropped folded into metrics.dedupe_dropped and result.dedupeDropped[], PROTOCOL §5c documents it. Confirmed present in all 13 forward-events runs 010-022 by PROPOSER-6 (ps45): 2,2,0,0,0,0 for the six twin corpora, 15 on the largest slice."
+    },
+    {
+      "id": "lane-FWD-TEXT-2",
+      "outcome": "passed",
+      "evidence": "ps39: closed retext dry #32/#33's residual (316 rows begin at `;`, 149 quote/paren, 65 `**`, 11 bare FACT:, 11 table cell, 161 no terminal punctuation, one non-idempotent row). New extractor fe1-2026-09-04.2 requires a real sentence start with 300-byte look-back, runs as a bounded fixed point, property-swept idempotent over all 654 rows; retext dry #37 (RETEXT-COLLIDE code) then measured 921 rows to rewrite under this extractor cleanly."
+    },
+    {
+      "id": "lane-HEAL-10",
+      "outcome": "passed",
+      "evidence": "ps40: attributed heal's ~100s/item cost [INFERRED, no per-step clock in the summaries it read] to locateSpanInText rebuilding its normalised index from scratch on every call (~1,280 full-text passes for one large item); built a per-run capture-index cache, a fetch/lookup budget split, a per-item wall-clock backstop, job timeout 30->35 min. Also built the brief-honest strip step (265 tests), held for operator approval. Confirmed working: heal dry #34 processed all 87 candidates in 14 minutes with no cancellation (ps42)."
+    },
+    {
+      "id": "lane-BRANCH-BASE",
+      "outcome": "passed-with-residual",
+      "evidence": "ps41: root-caused backlog apply #29 losing all four connection stamps to a GitHub-App workflow-permission refusal (a sibling train's maintenance.yml edit landing mid-run stranded the artifact branch's base); added a fetch-and-rebase-onto-master step before push to the six artifact-branch-pushing workflows. Left its own gap: the rebase itself refused on backlog apply #30 with unstaged changes present (closed by BRANCH-BASE-2, not this lane)."
+    },
+    {
+      "id": "lane-BRANCH-BASE-2",
+      "outcome": "passed",
+      "evidence": "ps42/ps43: added --autostash to BRANCH-BASE's rebase after it refused on backlog apply #30 ('cannot rebase: You have unstaged changes'); confirmed working when backlog apply #31 SUCCEEDED under it — mint-run-005/006/011/012/013/014 connected and the artifact branch pushed [CONFIRMED] (ps44)."
+    },
+    {
+      "id": "lane-RETEXT-COLLIDE",
+      "outcome": "passed",
+      "evidence": "ps42/ps43: root-caused retext apply #35 failing on uq_item_forward_events_dedupe at its first row (two honestly-normalised sentences sharing one date collide); computes every row's post-rewrite key over the whole table first, keeps one survivor per group (normalised-first, then earliest created_at, then lowest id), deletes the rest via guardedDelete before any rewrite, --arg restore: reinserts from the delete snapshot. 26 tests. Live baseline [CONFIRMED read-only SQL]: 1,017 rows / 160 items, 541 already normalised, upper bound 111 groups / 235 rows colliding."
+    },
+    {
+      "id": "lane-GATE-A-TOKENS",
+      "outcome": "passed-with-coordinator-correction",
+      "evidence": "ps44: classified all 627 orphan tokens from heal dry #34 by syntactic context, refuted two candidate skip classes with live counter-examples, landed five narrow evidenced harvest-skip rules (live replay 594->504 orphan tokens, 41 items improved, 0 regressed, 2 reach zero); GATE_A_VERSION bumped, 30 new tests, 767 mint / 257 src / 141 discipline all green. The lane's own honest scope note then flagged it had fixed the mint/lib COPY, not the src/lib/agent file the live path actually imports — the coordinator did the single-source collapse (kit files become `export *` re-exports of src/, both files added to F28's mint GOVERNING_FILES and CONVENTION.md's table, mint marker re-pinned sha256:28c98ae2309a416a, meta-harness marker re-pinned sha256:ef2b956784ce02e1 — the hash this very run discharges)."
+    },
+    {
+      "id": "lane-PROPOSER-6",
+      "outcome": "passed",
+      "evidence": "ps45: attested forward-events runs 010-022 (13 artifacts, folded from backlog applies #31/#32); compared six twin pairs (same six mint corpora re-run once each) and found zero variance in items_processed, events_emitted, skips and dedupe_dropped — the extractor is deterministic over the same claims/sections. No proposals warranted; marker discharged per F28 rule (c). 6a89ff78."
+    }
+  ],
+  "metrics": {
+    "lanes": 18,
+    "lane_commits": "not fully enumerable from the squash-merged master history alone. 12 PR merge commits landed this wave (git log --oneline 697be18e^..f13bc362); each PR body's bullet list names 1-3 originally-separate lane commits, squashed on merge, but only 4 of this wave's 18 lanes have an individual commit hash named directly in the postscripts: LEGACY-3 21aff2d7, RETEXT-COLLIDE bf31de44, PROPOSER-6 6a89ff78, and the coordinator's DEDUP keeper-rule correction 96ade298. The rest land only as unhashed bullets inside their train's single merge commit.",
+    "prs": 12,
+    "defects_found": 20,
+    "defects_fixed_in_same_wave": 17,
+    "defects_requiring_operator": 3,
+    "defects_requiring_operator_detail": [
+      "brief-honest strip (HEAL-10): built and tested, dry run read, apply withheld pending the operator's yes, put to him at 09:25 (ps40)",
+      "ledger-consume apply flip: ~1,838 portal_link_candidates classified and waiting; apply mode stays structurally disarmed by LEDGER_CONSUME_APPLY_ENABLED=false (ADR-023) until the operator flips it (ps30)",
+      "standards-body tier ruling_needed: SRC-TIER's institution-canonicalize Part C reports standards-body rows below the class table's T4 floor (e.g. ifrs.org at T5); ADR-002 reserves base_tier changes for the operator (docs/PROGRAM-BOARD.md line 1796) — a standing open item, not new to this wave"
+    ],
+    "gate_catch_rate": "1 of 17 code defects this wave was caught by an existing automated gate at the point of write: RETEXT-COLLIDE's collision (the DB's own uq_item_forward_events_dedupe unique index refused the duplicate INSERT rather than let a bad write land). The other 16 were found by a lane or the coordinator reading code, reading a live page, or a live run/job failing at runtime — backlog/population/maintenance dispatch failures (LEGACY-3, IN-CHUNK, IN-CHUNK-2, LEGACY-4), GitHub Actions push refusals (BRANCH-BASE, BRANCH-BASE-2), a job-timeout backstop (HEAL-9), a coordinator page read (FIRSTPAGE, FWD-TEXT), and a lane's own honest scope note (GATE-A-TOKENS). Separately, F28 rule (c) is the mechanism that produced this very run: it is what caught the meta-harness and forward-events governing-file staleness that FWD-TEXT/FWD-TEXT-2 and GATE-A-TOKENS's single-source collapse discharge — the harness-run-integrity gate working as designed, counted separately from the 1-of-17 functional-defect figure above, not folded into it.",
+    "runtime_runs": {
+      "dispatched_actions_or_maintenance_runs_identified": 23,
+      "failed_or_cancelled_outright": 7,
+      "succeeded_compute_but_lost_stamps_on_push": 2,
+      "detail": "23 distinct dispatches named in ps30-45: Maintenance #26 (heal dry, ok), heal apply #27/Actions 33844146038 (ok), population turn #22 dry (FAILED, boolean-vs-string bug, fixed before this wave), backlog dry #23 (ok), backlog apply #24 (FAILED, fetch failed), backlog apply #25 (completed, resolver honestly refused 4 artifacts), heal dry #28 (FAILED, 30-min backstop cancellation), maintenance #29/#30 dedup dry+apply (ok), backlog apply #26/run 33856071669 (FAILED twice: fetch failed, then workflow-permission push refusal), heal apply #31 first attempt (FAILED, cancelled 8s before its own budget), backlog apply #27/run 33857733835 (FAILED, missing db method), retext dry #32 (ok), backlog apply #28/run 33859302019 (completed, refused mint-run-005 on legacy id shape), backlog apply #29/run 33863479459 (compute ok, stamps lost on push), backlog apply #30/run 33866263053 (compute ok, stamps lost on rebase), heal dry #34/run 33863814186 (ok), heal apply #36 (ok, clean stop at 84/87), retext apply #35 (FAILED, uq collision), backlog apply #31/run 33867673887 (ok, SUCCEEDED under BRANCH-BASE-2), backlog apply #32/run 33868568869 (ok, folded), retext dry #37 (ok, 921 rows measured), retext apply #38 (ok — coordinator-confirmed, read-only SQL 12:25 UTC, after ps45: 921 targets, 173 deleted, 748 rewritten, read-back 748/748)."
+    },
+    "run_007_proposal_status": {
+      "join_check_in_lane_briefs": "CANNOT CONFIRM from session-log postscripts alone — lane dispatch briefs are not committed artifacts this run has read, only their outcomes. What is observable is that this wave's defects still cluster at exactly the join class run-007 named: LEGACY-3/LEGACY-4's resolver measured against only one of three live id shapes, PROPOSER-5's extractor-vs-artifact-schema gap, GATE-A-TOKENS' kit-copy-vs-src-import gap, IN-CHUNK-2's driver-namespace-vs-chunked-writer gap. If a JOIN CHECK line was added to briefs, it is not yet catching these before they surface live. [HYPOTHESIS]",
+      "coordinator_rehash_of_pending_run_after_merge": "CONFIRMED implemented and followed through this wave: FWD-TEXT pinned a forward-events PENDING-RUN.md marker at landing (ps36), discharged once FWD-TEXT-2's runs 010-022 all carried sha256:cb4898d073a80ab9 (ps39, PR #581); GATE-A-TOKENS' single-source collapse re-pinned BOTH the mint marker (sha256:28c98ae2309a416a) and the meta-harness marker (sha256:ef2b956784ce02e1) live at landing (ps44) — the latter is the exact marker this run-008 discharges, re-verified by re-running hashHarnessVersion against the current tree before writing this artifact."
+    }
+  },
+  "defects_found": [
+    {
+      "description": "Backlog apply's canonical-key resolver (BACKLOG-LEGACY, an earlier train) claimed '11/11 resolve to exactly one' but had only measured non-archived rows; live backlog apply #25 found four CELEX keys (32015R0757, 32019R1242, 32023R0956, 32023R1804) each matching two intelligence_items rows once archived duplicates are included, and refused rather than guess.",
+      "root_cause": "BACKLOG-LEGACY's resolver measurement excluded archived rows, so its '11/11 unique' claim did not cover the two-live-row case.",
+      "fix_ref": "LEGACY-3, commit 21aff2d7, PR #569 (train/wave22); ps34"
+    },
+    {
+      "description": "canonical-key-dedup.mjs's keeper patch cleared a live row's archive_reason only when it was already null (a no-op write) and left the real stamp (duplicate_instrument) on a live, verified keeper row (ff95b385).",
+      "root_cause": "DEDUP's (Haiku) write condition was inverted — it should clear a non-null stamp, not skip clearing when one already exists.",
+      "fix_ref": "coordinator correction, commit 96ade298, PR #570 (train/wave23); ps35"
+    },
+    {
+      "description": "The provenance-heal dry-run mode had no time budget: HEAL-7 gave dry mode real SOURCE-lookup work but the 1,500s budget was armed only under `apply &&`, so heal dry #28 was cancelled by the job's 30-minute CI backstop at 29m36s with its plan incomplete.",
+      "root_cause": "budget arithmetic assumed only apply mode does real work; dry mode grew real (unbounded) work without a matching budget.",
+      "fix_ref": "HEAL-9, PR #571 (train/wave24); ps36"
+    },
+    {
+      "description": "/regulations' first page rendered 100% MODERATE, undated rows for several seconds while the 13 IMMEDIATE and 12 ACTION rows only arrived with the background load, each empty priority band showing a false 'No matching regulations.'",
+      "root_cause": "fetchWorkspaceResources chained an outer PostgREST .order(added_date desc, id asc) onto an RPC call, which REPLACES (not appends to) the RPC's own CASE priority ..., added_date DESC, id ASC order.",
+      "fix_ref": "FIRSTPAGE, PR #571 (train/wave24); ps36"
+    },
+    {
+      "description": "The same order-clobbering pattern FIRSTPAGE fixed was live on the slim RPC behind /operations and /market too, which additionally has no id tiebreak (a page-boundary duplication risk) — named as a residual by FIRSTPAGE rather than silently left.",
+      "root_cause": "same RPC/PostgREST order-clobbering pattern, unaddressed on the slim RPC path.",
+      "fix_ref": "SLIM-ORDER, migration 303 (', ii.id ASC', md5-guarded), applied live by the coordinator (pre 02936dfa…, post 3ca10db08f84c019c9fa0e16bfe3b49b, schema_migrations 20260904084952), PR #571 (train/wave24); ps36"
+    },
+    {
+      "description": "The Upcoming Obligations strip and detail pages rendered garbled forward-event text (e.g. 'venues generated from fines. By 25 September 2026…') and leaked markdown/link tails; 667 of 979 item_forward_events rows matched a crude garble regex.",
+      "root_cause": "clauseAround cut the leading edge at a fixed 60-byte offset and never snapped to a real sentence start; section-derived events also inherited content_md's labels, table pipes and link tails verbatim.",
+      "fix_ref": "FWD-TEXT, PR #571 (train/wave24); ps36 — partial fix, see the retext-normaliser-incomplete defect below for the residual FWD-TEXT-2 closed"
+    },
+    {
+      "description": "analyze-corpus.mjs's stale-flag resolution passed an unbounded id list (1,317 open flywheel-signal:shared_title_entity flags) to a single PostgREST GET (guardedUpdate(qb.in('id', ids))) whose URL (~53KB) exceeded the gateway's header limit; undici surfaced this as an opaque TypeError: fetch failed, which backlog applies #24 and #26 both hit.",
+      "root_cause": "groupStaleFlagsForResolution grouped by created_by with no bound on group size, and the chunked writer (guardedUpdateByIds) already existed but was not used at this call site.",
+      "fix_ref": "IN-CHUNK, PR #572 (train/wave25); ps37"
+    },
+    {
+      "description": "Backlog apply #27 got past analyze-corpus for the first time and then died on `tag-proposals: db.guardedUpdateByIds is not a function` — the flywheel driver's hand-built `const db = {…}` namespace (two literals, lines 1428 and 1484) was never given the chunked writer IN-CHUNK had just switched updateStale to use.",
+      "root_cause": "coordinator's own miss: IN-CHUNK's landing did not add guardedUpdateByIds to the driver's db namespace object, and the 73 tests injected a fake db that never exercised the real one.",
+      "fix_ref": "IN-CHUNK-2 (coordinator), PR #573 (train/wave26); ps38 — fixed with a new test that reads the driver's own source and pins every db.<fn>( call to a real db.mjs export present in every namespace literal"
+    },
+    {
+      "description": "Backlog apply #28 connected mint-run-001 and mint-run-004 for the first time, then refused mint-run-005 on 'CELEX:32014R0788 via no fields (0 matches)': the legacy-artifact resolver only ever tried a bare canonical key, but the corpus's 15 legacy mint-run artifacts actually carry three different id shapes (bare CELEX 001-003, CELEX:-prefixed 005, bare intelligence_items uuid 008/009/010/015 — 287 entries).",
+      "root_cause": "LEGACY-3's resolver was built and measured against only the bare-CELEX shape.",
+      "fix_ref": "LEGACY-4, PR #574 (train/wave27); ps39"
+    },
+    {
+      "description": "run-extraction.mjs destructured only { events, skipped } from the extractor's result, so counts.dedupe_dropped never reached a forward-events run artifact even though the extractor computed it.",
+      "root_cause": "an incomplete destructure at the artifact-assembly call site, found by a proposer pass reading the traces, not by any schema check (the field is optional in metrics).",
+      "fix_ref": "PROPOSER-5 (found) -> DEDUPE-PLUMB (fixed), PR #574 (train/wave27); ps39"
+    },
+    {
+      "description": "Retext dry #32/#33 over the existing 654 forward events showed FWD-TEXT's normaliser was incomplete: 316 outputs still began at a ';' clause boundary, 149 at a quote/parenthesis, 65 kept '**', 11 a bare 'FACT:' label, 11 a table cell, 161 had no terminal punctuation, and a live 30-row sample found the normaliser non-idempotent on one row.",
+      "root_cause": "FWD-TEXT's clauseStart/normalizeObligationText snapped to a sentence boundary but not reliably to a real one, and did not run to a fixed point.",
+      "fix_ref": "FWD-TEXT-2 (extractor fe1-2026-09-04.2), PR #574 (train/wave27); ps39"
+    },
+    {
+      "description": "Backlog apply #29 and #30 each ran their artifacts through every step successfully and then lost all connection stamps on push: 'refusing to allow a GitHub App to create or update workflow .github/workflows/maintenance.yml without workflows permission' — the run's branch, checked out before a later train touched maintenance.yml, carried an older workflow file than the (now-moved) default branch.",
+      "root_cause": "the six artifact-branch-pushing workflows never rebased onto master before pushing, so any sibling train landing mid-run stranded the artifact branch's stamps.",
+      "fix_ref": "BRANCH-BASE, PR #576 (train/wave29); ps41"
+    },
+    {
+      "description": "BRANCH-BASE's own rebase then refused on backlog apply #30: 'cannot rebase: You have unstaged changes' — the run's working tree carries modified tracked files it never stages, which BRANCH-BASE had not accounted for; six artifacts' stamps were lost a second time.",
+      "root_cause": "BRANCH-BASE's rebase step did not stash the run's own uncommitted working-tree changes.",
+      "fix_ref": "BRANCH-BASE-2 (--autostash), PR #577 (train/wave30); ps42 — confirmed working when backlog apply #31 SUCCEEDED under it, ps44"
+    },
+    {
+      "description": "Retext apply #35 failed on its first row against the uq_item_forward_events_dedupe unique index (item, date, kind, md5(text), source): once text is honestly normalised, a sentence carrying the same date twice yields two byte-identical rows from one source.",
+      "root_cause": "the retext rewrite computed each row's new key per-row, in isolation, so it never detected that two DIFFERENT existing rows would rewrite to the SAME key.",
+      "fix_ref": "RETEXT-COLLIDE, commit bf31de44, PR #578 (train/wave31); ps42/ps43 — computes every row's post-rewrite key over the whole table first, keeps one survivor per group, deletes the rest via guardedDelete before any rewrite (retext dry #37: 921 rows, 139 collision groups, 173 to delete)"
+    },
+    {
+      "description": "GATE-A-TOKENS' Gate-A orphan-token fix (five harvest-skip rules cutting 594->504 orphan tokens on 87 live quarantined items) landed only in the hand-mirrored kit copy (scripts/mint/lib/gate-a-scan.mjs), which is NOT the file write-item.ts's buildGateARow, the heal, or the pipeline actually import (src/lib/agent/gate-a-scan.mjs) — the lane's own honest scope note caught this before landing.",
+      "root_cause": "two bodies existed for one governing rule (a hand-maintained kit copy alongside the real src/lib/agent implementation) — the same drift class an earlier train's harvest fix had already silently landed in the copy only, never reaching the live scanner.",
+      "fix_ref": "coordinator single-source collapse, PR #580 (train/wave33); ps44 — src/lib/agent/gate-a-scan.mjs and gate-a-match.mjs become the sole implementation, the kit's two files become `export *` re-exports, both added to F28's mint GOVERNING_FILES and CONVENTION.md's table (mint marker re-pinned sha256:28c98ae2309a416a, meta-harness marker re-pinned sha256:ef2b956784ce02e1 — the hash this very run discharges)"
+    },
+    {
+      "description": "Gate A's orphan-token scanner was itself over-harvesting: of 627 orphan tokens across 87 quarantined-live items, the largest classes were structural, not asserted facts — heading/list ordinals (1,188), instrument-citation numbers (2,211, e.g. 'Law 12,305/2010'), GAP-boilerplate templates (483), position-nested sub-spans (1,179), metadata stamps (22), URL-encoded fragments (9).",
+      "root_cause": "the scanner counted any bare numeral-like span as a figure needing a source, with no syntactic-context filter distinguishing structure from assertion.",
+      "fix_ref": "GATE-A-TOKENS, PR #580 (train/wave33); ps44 — five narrow, evidenced harvest-skip rules, each incrementing its own named counts field; live replay 594->504 orphan tokens, 41 items improved, 0 regressed, 2 reach zero"
+    },
+    {
+      "description": "Provenance-heal's per-item cost (~100s/item, including runs with zero real fetches) came almost entirely from the heal's own accounting: locateSpanInText rebuilt its normalised full-text index from scratch on every call (~1,280 full-text passes for one 2.8M-char, 32-capture item alone), and 'already captured' lookups were charged against the same per-item fetch bound as real network fetches, so high-orphan items hit bound_hit before trying most of their tokens.",
+      "root_cause": "no per-run cache for the normalised capture index, and no separate budget for free (already-captured) lookups vs paid fetches.",
+      "fix_ref": "HEAL-10, PR #575 (train/wave28); ps40 — per-run buildCaptureIndex/getCaptureIndex cache, the fetch/lookup budget split, a per-item wall-clock backstop, job timeout raised 30->35 min with measured headroom; heal dry #34 then processed all 87 candidates in 14 minutes with no cancellation (ps42)"
+    },
+    {
+      "description": "The brief-honest strip (HEAL-10) is authored, tested (265 tests), and its dry run's plans are readable, but not yet dispatched with +strip-unprovable — sentence-level removal of an unprovable figure from a live customer-facing brief.",
+      "root_cause": "n/a — a policy gate, not a code defect: an automated content deletion from a live brief is out of scope for the coordinator to authorize alone.",
+      "fix_ref": null
+    },
+    {
+      "description": "~1,838 portal_link_candidates are classified (Haiku, ~$0.001/candidate) and waiting: ledger-consume's apply mode stays structurally disarmed by LEDGER_CONSUME_APPLY_ENABLED=false (ADR-023) until the operator flips it.",
+      "root_cause": "n/a — deliberate policy gate (ADR-023), not a defect.",
+      "fix_ref": null
+    },
+    {
+      "description": "SRC-TIER's institution-canonicalize Part C reports standards-body rows sitting below the class table's T4 floor (e.g. ifrs.org at T5) as ruling_needed, because ADR-002 reserves base_tier changes for the operator.",
+      "root_cause": "n/a — ADR-002 policy gate, not a code defect (the registry duplicate-institution defects behind this were already fixed by SRC-TIER Parts A/B in an earlier train).",
+      "fix_ref": null
+    }
+  ],
+  "full_trace_refs": [
+    "docs/ops/session-log.md (Addendum 85, postscripts 30-45, lines 9372-9781)",
+    "docs/PROGRAM-BOARD.md (line 1796, SRC-TIER standards-body ruling_needed)",
+    "git log --oneline 697be18e^..f13bc362",
+    "git show f13bc362 --stat",
+    "git show 443b70fd --stat",
+    "fsi-app/scripts/harness-runs/meta-harness/meta-harness-run-007.json",
+    "fsi-app/scripts/harness-runs/CONVENTION.md",
+    "fsi-app/scripts/harness-runs/PROPOSER-RUNBOOK.md",
+    "fsi-app/.discipline/fitness/functions/F28-harness-run-integrity.mjs"
+  ],
+  "proposer_notes": "The pattern that recurred across trains 22-34: a fix that is correct in isolation lands in the wrong copy of the truth (GATE-A-TOKENS' kit-only patch, echoing an earlier train's identical miss one wave prior), a hand-built namespace or resolver drifts from the module or corpus it wraps (IN-CHUNK-2's missing db.guardedUpdateByIds entry, LEGACY-3/LEGACY-4's resolver measured against only one of three live id shapes), and every one of these was found by a live run failing or a lane's own honest re-reading, never by the test suite (IN-CHUNK-2's 73 tests injected a fake db and never exercised the real namespace; FIRSTPAGE and FWD-TEXT's defects were found by the coordinator reading the live page, not a snapshot test). Proposal for the next cycle: require a lane whose diff touches a hand-maintained copy, a hardcoded namespace object, or a resolver's input-shape assumption to grep the actual call sites or live data for every OTHER shape that assumption excludes before landing — the same discipline BACKLOG-LEGACY's '11/11' measurement, IN-CHUNK-2's db namespace, and the Gate-A kit copy all lacked, made mechanical rather than left to a lane's own honesty. Run-007's own proposal (a JOIN CHECK line in every lane brief) targets exactly this class; whether it was added to briefs this cycle could not be confirmed from the postscripts (see metrics.run_007_proposal_status) — its companion proposal (coordinator re-hash of every PENDING-RUN.md after the last merge) was implemented and is what this very run discharges."
+}
