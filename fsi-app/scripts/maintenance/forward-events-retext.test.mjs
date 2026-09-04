@@ -5,6 +5,7 @@ import {
   mapSectionRows,
   forwardEventIdentityKey,
   classifyDefects,
+  classifyAfterResidue,
   planItemRetext,
   buildRestoreSql,
   pgMd5,
@@ -592,4 +593,87 @@ test("main restore: apply replays the matched snapshot's prior obligation_text",
   const s = await main({ mode: "apply", arg: "restore:row-1" }, deps);
   assert.equal(s.exitCode, 0);
   assert.deepEqual(restored, [{ id: "row-1", text: "old text" }]);
+});
+
+// ---------------------------------------------------------------------------
+// classifyAfterResidue: contains_record_facts_wrapper — lane FWD-TEXT-3, 2026-09-04. Extends the dry
+// report's existing "prove the fix against itself on every future run" role (the honest_fragment_marked/
+// contains_star/etc. classes above, from FWD-TEXT-2) to the record-facts template-leak defect this lane
+// fixes in extract-forward-events.mjs's own clauseStart/clauseAround/unwrapRecordFactsTemplate. Checked
+// independently of that module -- a future regression there still shows up here even if this file's own
+// planItemRetext-level test below is skipped (no live fixture in this checkout).
+// ---------------------------------------------------------------------------
+
+test("classifyAfterResidue: a fresh text still carrying a record-facts wrapper token is flagged, never silently 'clean'", () => {
+  const examples = [
+    '[due_date] The captured source states a due date (date_precision: day), verbatim: «by 31 December 2020»',
+    "A full-brief regrounding will re-examine this gap when this item upgrades from record to brief. [primary_deadline] The captured source states, verbatim: «By 30 April 2022»",
+    "…source's own applicability language places this item at «direct_duty» (Your duty), from the passage: «the operator shall submit»",
+  ];
+  for (const text of examples) {
+    assert.ok(
+      classifyAfterResidue(text).includes("contains_record_facts_wrapper"),
+      `expected contains_record_facts_wrapper for: ${JSON.stringify(text)}`
+    );
+  }
+});
+
+test("classifyAfterResidue: a genuinely clean, already-unwrapped passage is NOT flagged", () => {
+  // Ends in the honest-fragment ellipsis (the source span itself was truncated by record-facts.mjs's own
+  // capture window) -- classified "honest_fragment_marked", never "contains_record_facts_wrapper" or any
+  // other defect class.
+  const clean = "By 30 April 2022 and in each subsequent year, the Secretary of State must publish a li…";
+  assert.deepEqual(classifyAfterResidue(clean), ["honest_fragment_marked"]);
+});
+
+test("classifyAfterResidue: a normal (non-record-facts) obligation_text mentioning 'source' in ordinary prose is not flagged (no false positive on the word alone)", () => {
+  const ordinary = "The competent authority shall confirm receipt of the notification by 1 January 2028.";
+  assert.deepEqual(classifyAfterResidue(ordinary), ["clean"]);
+});
+
+// ---------------------------------------------------------------------------
+// planItemRetext: end-to-end over a real record-facts section (lane FWD-TEXT-3) — proves the retext step's
+// own dry-run wiring picks up the extractor fix with NO change to this file's rewrite logic: planItemRetext
+// calls the imported (unmodified-by-this-lane) extractForwardEvents, whose internals now unwrap the
+// template; classifyAfterResidue (this file's own function, extended above) then reports the after text as
+// clean. Verbatim content_md from the same live row extract-forward-events.test.mjs's "example 2" uses (see
+// that file's own header for the SQL) — one item, one retext target.
+// ---------------------------------------------------------------------------
+
+test("planItemRetext: a record-facts-template residue row is retexted to the unwrapped passage, and after_defect_classes reports it clean", () => {
+  const sectionMd =
+    "[effective_date] No verbatim effective date statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n" +
+    "[jurisdictional_scope] The captured source states, verbatim: «Member States” substitute “the United Kingdom”»\n" +
+    "[penalty_summary] No verbatim penalty summary statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n" +
+    "[primary_deadline] The captured source states, verbatim: «By 30 April 2022 and in each subsequent year, the Secretary of State must publish a li»\n" +
+    "[binding_position] No verbatim applicability language naming a duty-holder class was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n" +
+    "[due_date] The captured source states a due date (date_precision: day), verbatim: «By 30 April 2022 and in each subsequent year, the Secretary of State must publish a li»";
+
+  const existingRows = [
+    {
+      id: "row-residue-1",
+      event_date: "2022-04-30",
+      event_kind: "compliance_deadline",
+      source_kind: "section",
+      source_claim_id: null,
+      source_section_id: "sec-1",
+      obligation_text:
+        "A full-brief regrounding will re-examine this gap when this item upgrades from record to brief. [primary_deadline] The captured source states, verbatim: «By 30 April 2022 and in each subsequent year, the Secretary of State must publish a li» [binding_position] No verbatim applicability language naming a duty-holder class was loc…",
+    },
+  ];
+
+  const { retextTargets } = planItemRetext({
+    itemId: "item-record-facts-1",
+    existingRows,
+    claims: [],
+    sections: [{ section_id: "sec-1", key: "record_facts", md: sectionMd }],
+  });
+
+  assert.equal(retextTargets.length, 1);
+  const target = retextTargets[0];
+  assert.equal(target.after, "By 30 April 2022 and in each subsequent year, the Secretary of State must publish a li…");
+  assert.ok(!target.after.includes("A full-brief regrounding"));
+  // Trailing "…" only (record-facts.mjs's own capture window truncated the source span) -- honest_fragment_
+  // marked, never contains_record_facts_wrapper/bad_leading_char/anything else.
+  assert.deepEqual(target.after_defect_classes, ["honest_fragment_marked"]);
 });

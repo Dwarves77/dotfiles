@@ -25,6 +25,7 @@ import {
   selectDateCell,
   sameObligationContent,
   dedupeEvents,
+  unwrapRecordFactsTemplate,
 } from './extract-forward-events.mjs';
 
 const KIND_VOCAB = new Set([
@@ -1147,5 +1148,265 @@ describe('OBLIGATION-TEXT REBUILD: embedded real-corpus fixtures (always run, no
   test('the clean control case keeps its own sentence intact (no false-positive stripping), only gaining the honest "…" suffix it lacked', () => {
     const clean = 'This Decision shall apply from 1 July 2026 until 30 November 2026.';
     assert.equal(normalizeObligationText(clean), clean); // already ends in '.', nothing added
+  });
+});
+
+// ---------------------------------------------------------------------------
+// RECORD-FACTS TEMPLATE UNWRAP — lane FWD-TEXT-3, 2026-09-04. See this module's own header ("RECORD-FACTS
+// TEMPLATE UNWRAP") for the full root cause and measurement. Three real rows, verbatim from the coordinator's
+// dispatch evidence (item ids below are this lane's own live-SQL re-identification of the same rows,
+// 2026-09-04, project kwrsbpiseruzbfwjpvsp — see `unwrapRecordFactsTemplate`'s own describe block below for
+// the corpus-wide property test's SQL).
+// ---------------------------------------------------------------------------
+
+describe('unwrapRecordFactsTemplate: the three template shapes, direct', () => {
+  test('generic slot FACT: passage is the text inside the ONE «…» pair', () => {
+    const windowed = '[primary_deadline] The captured source states, verbatim: «By 30 April 2022 and in each subsequent year, the Secretary of State must publish a li»';
+    const dateSpan = '30 April 2022';
+    const relStart = windowed.indexOf(dateSpan);
+    const result = unwrapRecordFactsTemplate(windowed, relStart, relStart + dateSpan.length);
+    assert.equal(result.passage, 'By 30 April 2022 and in each subsequent year, the Secretary of State must publish a li');
+  });
+
+  test('due_date FACT with a "(date_precision: X)" label: the label never reaches the passage (it sits outside the «…» pair)', () => {
+    const windowed =
+      '[due_date] The captured source states a due date (date_precision: day), verbatim: «by 31 December 2020" substitute " under Article 8 »';
+    const dateSpan = '31 December 2020';
+    const relStart = windowed.indexOf(dateSpan);
+    const result = unwrapRecordFactsTemplate(windowed, relStart, relStart + dateSpan.length);
+    assert.ok(!result.skip, `expected a passage, got skip: ${result.skip}`);
+    assert.ok(!result.passage.includes('date_precision'), 'the wrapper label leaked into the passage');
+    assert.ok(!result.passage.includes('captured source'));
+    assert.equal(result.passage, 'by 31 December 2020" substitute " under Article 8 ');
+  });
+
+  test('binding_position FACT: passage is the "from the passage" quote, never the leading «code» quote', () => {
+    const windowed =
+      "[binding_position] The captured source's own applicability language places this item at «monitoring_only» (Monitor), from the passage: «does not apply to: (a) food as defined in Article 2 of Regulation (EC) No 178/2002»";
+    // the event's date lives in a SEPARATE, later claim in the real corpus (binding_position's own quote
+    // rarely carries a date) — model that here by putting relDateStart/relDateEnd inside the SECOND quote.
+    const secondQuoteStart = windowed.indexOf('does not apply');
+    const result = unwrapRecordFactsTemplate(windowed, secondQuoteStart, secondQuoteStart + 10);
+    assert.equal(result.passage, 'does not apply to: (a) food as defined in Article 2 of Regulation (EC) No 178/2002');
+    assert.ok(!result.passage.startsWith('monitoring_only'), 'must never pick the leading «code» quote');
+  });
+
+  test('a nested «…»: keeps the INNERMOST pair that contains the event date, not the outer wrapper', () => {
+    const windowed = '[primary_deadline] The captured source states, verbatim: «the notice reads «by 1 January 2030» in the annex»';
+    const dateSpan = '1 January 2030';
+    const relStart = windowed.indexOf(dateSpan);
+    const result = unwrapRecordFactsTemplate(windowed, relStart, relStart + dateSpan.length);
+    assert.equal(result.passage, 'by 1 January 2030');
+  });
+
+  test('a legacy straight-quote wrapper (pre-guillemet-migration content, still live — 26/1333 record_facts sections, measured live) is unwrapped the same way', () => {
+    const windowed =
+      '[primary_deadline] The captured source states, verbatim: "No later than 14 February 2004, the Commission shall forward to the Member States a guidance document s"';
+    const dateSpan = '14 February 2004';
+    const relStart = windowed.indexOf(dateSpan);
+    const result = unwrapRecordFactsTemplate(windowed, relStart, relStart + dateSpan.length);
+    assert.equal(result.passage, 'No later than 14 February 2004, the Commission shall forward to the Member States a guidance document s');
+  });
+
+  test('a GAP wrapper is never unwrapped into a passage — skip with a recorded reason (rule 3)', () => {
+    const windowed =
+      '[due_date] No verbatim due-date statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.';
+    // Defensive-only: a GAP sentence carries no date in real corpus text, so this call is synthetic (there
+    // is no genuine relDateStart/relDateEnd for a GAP window) — any offset still routes to skip.
+    const result = unwrapRecordFactsTemplate(windowed, 0, 5);
+    assert.equal(result.skip, 'record_facts_gap_boilerplate_no_quoted_date');
+  });
+
+  test('a binding_position GAP wrapper (different middle clause) is also recognised as GAP, never a FACT shape', () => {
+    const windowed =
+      '[binding_position] No verbatim applicability language naming a duty-holder class was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.';
+    const result = unwrapRecordFactsTemplate(windowed, 0, 5);
+    assert.equal(result.skip, 'record_facts_gap_boilerplate_no_quoted_date');
+  });
+
+  test('a FACT-shaped wrapper whose own date is not inside any quote at all is a defensive skip, never emitted raw', () => {
+    const windowed = '[primary_deadline] The captured source states, verbatim: «no date in here»';
+    // relDateStart/relDateEnd point OUTSIDE the quote entirely -- should not occur in real extraction (the
+    // date this module matched always comes from inside `windowed`), but must never crash or emit prose.
+    const result = unwrapRecordFactsTemplate(windowed, 0, 3);
+    assert.equal(result.skip, 'record_facts_template_date_not_in_quote');
+  });
+
+  test('text with no slot marker at all returns null -- ordinary window handling, unchanged', () => {
+    assert.equal(unwrapRecordFactsTemplate('The Regulation shall apply from 1 July 2026.', 30, 42), null);
+  });
+
+  test('a bracketed citation year like "[2019]" is never mistaken for a slot marker', () => {
+    assert.equal(unwrapRecordFactsTemplate('[2019] OJ L 123, entered into force on 1 January 2019.', 0, 5), null);
+  });
+});
+
+describe('extractForwardEvents: end-to-end over real record-facts section content_md (verbatim from the coordinator\'s dispatch evidence)', () => {
+  test('example 1 (due_date after a binding_position quote, item 128b6a2e-cf78-4c9f-b03d-9256a3df5222): section-derived text now matches the due_date quote, never the wrapper', () => {
+    const md =
+      "[effective_date] The captured source states, verbatim: «shall enter into force on the twentieth day following that of its publication in the Official Journal of the Eur»\n" +
+      "[jurisdictional_scope] The captured source states, verbatim: «Member States, and subsequently to the ICAO Secretariat, it is appropriate to establish a preliminary e»\n" +
+      "[penalty_summary] The captured source states, verbatim: «penalties to be imposed in the event of fraud which are commensurate with their purpose and which have an adequate dete»\n" +
+      "[primary_deadline] The captured source states, verbatim: «by 30 June 2026 on the practical application and levels of uncertainty of the method»\n" +
+      "[binding_position] The captured source's own applicability language places this item at «direct_duty» (Your duty), from the passage: «the operator shall provide to the competent authority data on the biomass fraction of the carbon content of»\n" +
+      "[due_date] The captured source states a due date (date_precision: day), verbatim: «by 30 June 2026 on the practical application and levels of uncertainty of the method»";
+    const { events } = extractForwardEvents(oneSection(md));
+    const event = events.find((e) => e.event_date === '2026-06-30' && e.event_kind === 'compliance_deadline');
+    assert.ok(event, 'expected a compliance_deadline event on 2026-06-30');
+    // the due_date quote's own text starts lowercase ("by 30 June 2026...") -- the honest-fragment leading
+    // "…" this module already applies to any lowercase-starting passage (FWD-TEXT-2) fires here too, exactly
+    // as it does for a non-template window; this is not a defect, it is the SAME rule applied one level in.
+    assert.equal(event.obligation_text, '…by 30 June 2026 on the practical application and levels of uncertainty of the method…');
+    for (const forbidden of ['captured source', 'verbatim:', 'date_precision', 'from the passage', 'full-brief regrounding', "[due_date]", "[binding_position]"]) {
+      assert.ok(!event.obligation_text.includes(forbidden), `still contains "${forbidden}": ${event.obligation_text}`);
+    }
+    assertWellFormedEvent(event, md);
+  });
+
+  test('example 2 (due_date immediately after a swept-in GAP sentence, item 025e6570-584f-4124-8b69-b69cc534e050): the prior GAP sentence is never swept in', () => {
+    const md =
+      "[effective_date] No verbatim effective date statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n" +
+      "[jurisdictional_scope] The captured source states, verbatim: «Member States” substitute “the United Kingdom”»\n" +
+      "[penalty_summary] No verbatim penalty summary statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n" +
+      "[primary_deadline] The captured source states, verbatim: «By 30 April 2022 and in each subsequent year, the Secretary of State must publish a li»\n" +
+      "[binding_position] No verbatim applicability language naming a duty-holder class was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n" +
+      "[due_date] The captured source states a due date (date_precision: day), verbatim: «By 30 April 2022 and in each subsequent year, the Secretary of State must publish a li»";
+    const { events } = extractForwardEvents(oneSection(md));
+    const event = events.find((e) => e.event_date === '2022-04-30' && e.event_kind === 'compliance_deadline');
+    assert.ok(event, 'expected a compliance_deadline event on 2022-04-30');
+    assert.equal(event.obligation_text, 'By 30 April 2022 and in each subsequent year, the Secretary of State must publish a li…');
+    assert.ok(!event.obligation_text.startsWith('A full-brief regrounding'), 'swept the previous GAP sentence in');
+    assertWellFormedEvent(event, md);
+  });
+
+  test('example 3 (legacy straight-quote wrapper, item 10cf4da4-9363-4365-90df-a1dceace1b66): unwrapped the same way as a guillemet wrapper', () => {
+    const md =
+      '[effective_date] The captured source states, verbatim: "shall enter into force on the day of its publication in the Official Journal of the European Union"\n' +
+      '[jurisdictional_scope] The captured source states, verbatim: "addressed to the Member States"\n' +
+      '[penalty_summary] No verbatim penalty summary statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n' +
+      '[primary_deadline] The captured source states, verbatim: "No later than 14 February 2004, the Commission shall forward to the Member States a guidance document s"';
+    const { events } = extractForwardEvents(oneSection(md));
+    const event = events.find((e) => e.event_date === '2004-02-14' && e.event_kind === 'compliance_deadline');
+    assert.ok(event, 'expected a compliance_deadline event on 2004-02-14');
+    assert.equal(event.obligation_text, 'No later than 14 February 2004, the Commission shall forward to the Member States a guidance document s…');
+    assertWellFormedEvent(event, md);
+  });
+
+  test('a GAP-only section (no FACT quote at all) produces no event and no crash', () => {
+    const md =
+      '[due_date] No verbatim due-date statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.';
+    const { events, skipped } = extractForwardEvents(oneSection(md));
+    assert.equal(events.length, 0);
+    assert.equal(skipped.length, 0); // no date was ever matched inside GAP boilerplate -- nothing to skip either
+  });
+});
+
+// ---------------------------------------------------------------------------
+// RECORD-FACTS TEMPLATE UNWRAP — corpus-wide property test, lane FWD-TEXT-3, 2026-09-04.
+//
+// Fixture: `scripts/_snapshots/fwdtext3-live-58.json` — read via read-only SQL, project kwrsbpiseruzbfwjpvsp,
+// this lane, 2026-09-04:
+//   select json_agg(row_to_json(t)) from (
+//     select s.item_id as intelligence_item_id, s.id as section_id, s.section_key, s.content_md,
+//       (select json_agg(json_build_object('id',e.id,'event_date',e.event_date,'event_kind',e.event_kind,
+//          'obligation_text',e.obligation_text,'confidence',e.confidence,'source_span',e.source_span))
+//        from item_forward_events e where e.source_section_id = s.id
+//          and e.extractor_version = 'fe1-2026-09-04.2'
+//          and e.obligation_text ~ '\[[a-z0-9_]+\]') as residue_rows,
+//       (select json_agg(json_build_object('id',e.id,'event_date',e.event_date,'event_kind',e.event_kind,
+//          'obligation_text',e.obligation_text,'confidence',e.confidence))
+//        from item_forward_events e where e.intelligence_item_id = s.item_id
+//          and e.source_kind = 'claim') as claim_rows
+//     from intelligence_item_sections s
+//     where s.section_key = 'record_facts' and s.id in (
+//       select distinct source_section_id from item_forward_events
+//       where source_section_id is not null and extractor_version = 'fe1-2026-09-04.2'
+//         and obligation_text ~ '\[[a-z0-9_]+\]') ) t;
+//
+// NAMED "-live-58" after the coordinator's dispatch evidence snapshot (58 rows / 41 items, taken right
+// after Maintenance #38's forward-events-retext APPLY); by the time this lane ran the query above, the
+// backlog flywheel had minted more record-grade items in between (item_forward_events grew 926/173 ->
+// 1071/228 over that window, live-measured) and the SAME residue class was 122 rows / 90 items -- a
+// superset, not a different defect, and the larger number this test actually asserts over. `_snapshots/`
+// is gitignored scratch (CLAUDE.md standing rule 5), so this test self-skips (never fails) when the file is
+// absent, same convention as the OBLIGATION-TEXT REBUILD block above.
+// ---------------------------------------------------------------------------
+
+const LIVE58_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'scripts', '_snapshots', 'fwdtext3-live-58.json');
+const RECORD_FACTS_FORBIDDEN = ['captured source', 'verbatim:', 'date_precision', 'from the passage', 'full-brief regrounding'];
+
+function loadLive58() {
+  let raw;
+  try {
+    raw = readFileSync(LIVE58_PATH, 'utf8');
+  } catch {
+    return null;
+  }
+  const parsed = JSON.parse(raw);
+  return Array.isArray(parsed) && parsed.length ? parsed : null;
+}
+
+describe('RECORD-FACTS TEMPLATE UNWRAP: corpus-wide property test (fwdtext3-live-58.json)', () => {
+  const fixture = loadLive58();
+  const residueCount = fixture ? fixture.reduce((n, r) => n + (r.residue_rows?.length ?? 0), 0) : 0;
+
+  test('every live residue row, re-extracted from its item\'s current record_facts section, no longer carries any record-facts wrapper token (skips if fwdtext3-live-58.json is not present in this checkout)', (t) => {
+    if (!fixture) {
+      t.skip('scripts/_snapshots/fwdtext3-live-58.json not present in this checkout (gitignored scratch) — see this describe block\'s header');
+      return;
+    }
+
+    let tested = 0;
+    let clean = 0;
+    let matchedTwin = 0;
+    let byVariant = {};
+    const failures = [];
+    const noFresh = [];
+
+    for (const row of fixture) {
+      const { events } = extractForwardEvents({
+        claims: [],
+        sections: [{ section_id: row.section_id, key: row.section_key, md: row.content_md }],
+      });
+      for (const residue of row.residue_rows ?? []) {
+        tested++;
+        const fresh = events.find((e) => e.event_date === residue.event_date && e.event_kind === residue.event_kind);
+        if (!fresh) {
+          noFresh.push({ item: row.intelligence_item_id, id: residue.id });
+          continue;
+        }
+        const text = fresh.obligation_text;
+        const hasForbidden =
+          RECORD_FACTS_FORBIDDEN.some((f) => text.toLowerCase().includes(f.toLowerCase())) || /\[[a-z][a-z0-9_]*\]/i.test(text);
+        if (hasForbidden) {
+          failures.push({ item: row.intelligence_item_id, id: residue.id, text });
+        } else {
+          clean++;
+        }
+        // idempotence over the fresh output itself -- see the OBLIGATION-TEXT REBUILD block above for the
+        // same property tested over the pre-existing (non-record-facts) defect classes.
+        assert.equal(normalizeObligationText(text), text, `not idempotent: ${JSON.stringify(text)}`);
+
+        const twin = (row.claim_rows ?? []).find((c) => c.event_date === residue.event_date && c.event_kind === residue.event_kind);
+        if (twin && twin.obligation_text === text) matchedTwin++;
+
+        // per-variant counts, reported per the dispatch's own request
+        if (/\[due_date\][^]*date_precision/i.test(residue.obligation_text)) byVariant.due_date_with_precision = (byVariant.due_date_with_precision ?? 0) + 1;
+        else if (/applicability language places this item at/i.test(residue.obligation_text)) byVariant.binding_position = (byVariant.binding_position ?? 0) + 1;
+        else byVariant.plain_slot = (byVariant.plain_slot ?? 0) + 1;
+      }
+    }
+
+    console.log(
+      `fwdtext3-live-58.json property test: ${tested} residue rows, ${clean} clean, ${failures.length} still bad, ` +
+        `${noFresh.length} with no fresh match, ${matchedTwin} exact-matched a claim-sourced twin.`,
+      JSON.stringify(byVariant)
+    );
+    if (failures.length) console.log('still-bad examples:', JSON.stringify(failures.slice(0, 5), null, 2));
+    if (noFresh.length) console.log('no-fresh-match examples:', JSON.stringify(noFresh.slice(0, 5), null, 2));
+
+    assert.equal(tested, residueCount);
+    assert.equal(noFresh.length, 0, 'every residue row must still produce a fresh event at its own (date, kind)');
+    assert.equal(failures.length, 0, `${failures.length}/${tested} rows still carry a record-facts wrapper token after re-extraction`);
   });
 });

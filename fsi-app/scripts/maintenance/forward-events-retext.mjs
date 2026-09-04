@@ -282,6 +282,18 @@ export function classifyDefects(text) {
  *  `classifyDefects` above, which targets OLD pre-fix garbled text and flags a bare digit/URL-tail start
  *  as a defect ON PURPOSE (that is exactly what makes a `before` row a retext target); the same rule
  *  cannot honestly describe fresh, already-normalized text. Pure. */
+// A record-facts.mjs template wrapper token leaking into DISPLAY text (lane FWD-TEXT-3, 2026-09-04 --
+// extract-forward-events.mjs's own "RECORD-FACTS TEMPLATE UNWRAP" header note has the full defect and fix;
+// `unwrapRecordFactsTemplate` there is what makes this class go to zero on a healthy run). Checked here,
+// independently of that module's own internals, so a FUTURE regression in the unwrap logic still shows up
+// in this dry report even if nobody re-reads that file's own tests -- the same "prove the fix against
+// itself on every future run" role `honest_fragment_marked`/etc. already play for the FWD-TEXT-2 defect
+// classes above. Six literal signals, matching the property test extract-forward-events.test.mjs runs over
+// this same corpus: the "[slot_key] " marker itself, the two FACT-quote lead-ins ("The captured source
+// states"/"verbatim:"), the due_date precision label, binding_position's "from the passage" lead-in, and
+// the GAP tail sentence.
+const RECORD_FACTS_WRAPPER_RE = /\[[a-z][a-z0-9_]*\]\s|captured source|verbatim:|date_precision|from the passage|full-brief regrounding/i;
+
 export function classifyAfterResidue(text) {
   const t = typeof text === "string" ? text : "";
   if (!t) return ["empty"];
@@ -292,6 +304,7 @@ export function classifyAfterResidue(text) {
   if (/\s\|\s|^\S*\|/.test(t)) classes.push("contains_pipe_cell");
   if (/https?:\/\//i.test(t)) classes.push("contains_bare_url");
   if (!/[.!?"”»…]$/.test(t)) classes.push("bad_trailing_punctuation");
+  if (RECORD_FACTS_WRAPPER_RE.test(t)) classes.push("contains_record_facts_wrapper");
   if (classes.length === 0) classes.push("clean");
   return classes;
 }
