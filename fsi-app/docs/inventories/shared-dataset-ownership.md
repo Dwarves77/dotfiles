@@ -159,7 +159,8 @@ who may write a shared table; the test enforces it on every future PR.
     ],
     "monitoring_queue": [
       "src/app/api/worker/check-sources/logic.ts",
-      "src/lib/sources/reconcile.ts"
+      "src/lib/sources/reconcile.ts",
+      "scripts/turns/run-source-sweep.mjs"
     ],
     "intelligence_changes": [
       "src/lib/sources/reconcile.ts"
@@ -420,22 +421,26 @@ run-change-detection.mjs` is the new GitHub Actions-driven caller of `runReconci
 table itself (every `.from(...)` call it makes is a plain `.select()`, verified by grep: zero
 `.insert(`/`.update(`/`.upsert(`/`.delete(` in the file), so no new allowlist entry is added for it. It is
 the first thing in the repo that runs the detect → reconcile → drain chain end to end outside of a live
-HTTP request to `check-sources`/`reconcile`; the writers of record for `monitoring_queue`,
-`intelligence_changes`, and `staged_updates` remain exactly the files listed in each table's section below.
+HTTP request to `check-sources`/`reconcile`; the writers of record for `intelligence_changes` and
+`staged_updates` remain exactly the files listed in each table's section below. `monitoring_queue` gained
+one further INSERT-only producer on 2026-09-04 (lane SITEMAP) — see that table's own section for the
+precision gate that keeps it from flooding the reconcile queue.
 
 #### `monitoring_queue`
 
-No partition — one row per (source, check), written by two collaborators in the SAME chain, never in
+No partition — one row per (source, check), written by collaborators in the SAME chain, never in
 conflict because each owns a disjoint column set.
 
 | Writer | Operation | Evidence |
 |---|---|---|
 | `src/app/api/worker/check-sources/logic.ts` (the pure logic behind `check-sources/route.ts`, split by BUILDGATE 2026-09-02) | INSERT — one row per source checked, `change_detected` computed from `content-change.mjs`'s fingerprint compare (migration 161's `sources.last_content_hash`) | `assessAndUpdateSource`, `.from("monitoring_queue").insert({...})` |
 | `src/lib/sources/reconcile.ts` | UPDATE — stamps `reconciled_at` on the SAME row once its change has been recorded, so re-runs are idempotent (migration 124) | `runReconcilePass`, `.from("monitoring_queue").update({ reconciled_at: ... })` |
+| `scripts/turns/run-source-sweep.mjs` (`recordSitemapChange`, lane SITEMAP, 2026-09-04) | INSERT ONLY — same row shape `assessAndUpdateSource` writes (`change_detected:true, last_result:"change_detected"`, `reconciled_at` left null), mirrored rather than imported for the same `@/`-path-alias-under-plain-node reason `upsertPortalLinkCandidates` already mirrors `persistPortalCandidates` in this file. Fires only for the new `sitemap` walker, apply mode, and only when a sitemap `lastmod` change matches a LIVE `intelligence_items.source_url` on that exact `source_id` (the operator's "matching an existing item's canonical URL" gate) — a changed loc with no live item is real evidence for the next population sweep via `portal_link_candidates`, not a re-verification signal. Also skips when a pending (`change_detected=true AND reconciled_at IS NULL`) row already exists for the source, so re-runs never pile up duplicate signals ahead of `reconcile.ts` draining the first one. Never touches `reconciled_at` — that stays `reconcile.ts`'s column alone. | `recordSitemapChange`, `.from("monitoring_queue").insert({...})` |
 
-Replace policy: append-only INSERT + one idempotency-stamp UPDATE per row (`reconciled_at`, migration
-124's own claim query: `change_detected = true AND reconciled_at IS NULL`) — never a delete, never a
-second UPDATE of an already-reconciled row.
+Replace policy: append-only INSERT (two independent producers, `check-sources` and now `run-source-sweep.mjs`'s
+sitemap walker, both writing disjoint rows) + one idempotency-stamp UPDATE per row (`reconciled_at`, migration
+124's own claim query: `change_detected = true AND reconciled_at IS NULL`), owned exclusively by
+`reconcile.ts` — never a delete, never a second UPDATE of an already-reconciled row.
 
 #### `intelligence_changes`
 

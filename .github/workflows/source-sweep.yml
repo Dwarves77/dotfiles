@@ -14,6 +14,13 @@ name: Source sweep
 # (`scripts/harness-runs/source-sweep/`, `scripts/lib/run-artifact.mjs`'s convention), in both modes, from
 # a `finally` block, so a walker that throws mid-run still leaves a record.
 #
+# "sitemap" walker (lane SITEMAP, 2026-09-04): the operator's "RSS where a site has it, otherwise the
+# sitemap" pattern, over `src/lib/sources/sitemap-walk.mjs` (feed discovery first, sitemap fallback —
+# ported in part from mreflow/control-center, MIT; see fsi-app/THIRD-PARTY-NOTICES.md). Unlike the other
+# three walkers (which each attach to one FIXED or caller-named endpoint), "sitemap" sweeps EXISTING
+# `sources` rows directly — `source_id` for one row, or `host` for every active row on that host — so it
+# takes those in place of `from`/`to`/`feed_url`.
+#
 # DISPATCH-ONLY, DELIBERATELY. Unlike `corpus-turn.yml` (which also answers a `push` to `turn/**`), a
 # source sweep has no equivalent "empty branch" request shape — every run names a specific walker and
 # date window/feed the operator or coordinator chooses, so `workflow_dispatch` is the only trigger this
@@ -29,10 +36,10 @@ on:
   workflow_dispatch:
     inputs:
       walker:
-        description: 'Which enumeration walk to run. "research" is a distinct subject (research-sweep.mjs, lane RSRCH 2026-09-02): a source-sweep over the research-source registry (sources.category = research), not a register/feed walk — it needs no from/to/feed_url.'
+        description: 'Which enumeration walk to run. "research" is a distinct subject (research-sweep.mjs, lane RSRCH 2026-09-02): a source-sweep over the research-source registry (sources.category = research), not a register/feed walk — it needs no from/to/feed_url. "sitemap" (lane SITEMAP 2026-09-04): feed discovery first, sitemap.xml fallback, over EXISTING sources rows named by source_id or host.'
         required: true
         type: choice
-        options: [register-eurlex, register-federal-register, feed, research]
+        options: [register-eurlex, register-federal-register, feed, research, sitemap]
       from:
         description: 'ISO date (register-eurlex / register-federal-register only). Required for those two walkers.'
         required: false
@@ -43,6 +50,18 @@ on:
         type: string
       feed_url:
         description: 'Feed URL (feed walker only). Required when walker=feed.'
+        required: false
+        type: string
+      source_id:
+        description: 'sources.id (sitemap walker only). Exactly one of source_id/host is required when walker=sitemap.'
+        required: false
+        type: string
+      host:
+        description: 'Hostname (sitemap walker only) — sweeps every ACTIVE sources row on this host. Exactly one of source_id/host is required when walker=sitemap.'
+        required: false
+        type: string
+      limit:
+        description: 'Sitemap walker only: max scoped url entries diffed/persisted PER SOURCE this run (sitemap-walk.mjs default 5000 when left blank).'
         required: false
         type: string
       mode:
@@ -103,6 +122,15 @@ jobs:
           elif [ "${{ inputs.walker }}" = "research" ]; then
             : # research-sweep.mjs selects its own sources from the registry (sources.category='research')
             # and needs no from/to/feed_url -- nothing to validate here.
+          elif [ "${{ inputs.walker }}" = "sitemap" ]; then
+            if [ -z "${{ inputs.source_id }}" ] && [ -z "${{ inputs.host }}" ]; then
+              echo "::error::source_id or host is required when walker=sitemap (exactly one)."
+              exit 1
+            fi
+            if [ -n "${{ inputs.source_id }}" ] && [ -n "${{ inputs.host }}" ]; then
+              echo "::error::source_id and host are mutually exclusive when walker=sitemap."
+              exit 1
+            fi
           else
             if [ -z "${{ inputs.from }}" ] || [ -z "${{ inputs.to }}" ]; then
               echo "::error::from/to date inputs are required for walker=${{ inputs.walker }}."
@@ -148,6 +176,10 @@ jobs:
           args=(--walker "${{ inputs.walker }}" --mode "${{ inputs.mode }}")
           if [ "${{ inputs.walker }}" = "feed" ]; then
             args+=(--feed-url "${{ inputs.feed_url }}")
+          elif [ "${{ inputs.walker }}" = "sitemap" ]; then
+            if [ -n "${{ inputs.source_id }}" ]; then args+=(--source-id "${{ inputs.source_id }}"); fi
+            if [ -n "${{ inputs.host }}" ]; then args+=(--host "${{ inputs.host }}"); fi
+            if [ -n "${{ inputs.limit }}" ]; then args+=(--limit "${{ inputs.limit }}"); fi
           else
             args+=(--from "${{ inputs.from }}" --to "${{ inputs.to }}")
           fi
@@ -189,8 +221,8 @@ jobs:
           git checkout -b "$branch"
           git commit -m "source-sweep ${{ inputs.mode }}: ${{ inputs.walker }} run ${{ github.run_id }}"
           git push origin HEAD:"$branch"
-          printf 'Automated source sweep (run %s).\n\nWalker: %s\nMode: %s\nFrom/to: %s .. %s\nFeed: %s\n\nLands the harness-run artifact for this sweep under scripts/harness-runs/source-sweep/.\n' \
-            "${{ github.run_id }}" "${{ inputs.walker }}" "${{ inputs.mode }}" "${{ inputs.from }}" "${{ inputs.to }}" "${{ inputs.feed_url }}" > /tmp/pr-body.md
+          printf 'Automated source sweep (run %s).\n\nWalker: %s\nMode: %s\nFrom/to: %s .. %s\nFeed: %s\nSource id/host: %s / %s\nLimit: %s\n\nLands the harness-run artifact for this sweep under scripts/harness-runs/source-sweep/.\n' \
+            "${{ github.run_id }}" "${{ inputs.walker }}" "${{ inputs.mode }}" "${{ inputs.from }}" "${{ inputs.to }}" "${{ inputs.feed_url }}" "${{ inputs.source_id }}" "${{ inputs.host }}" "${{ inputs.limit }}" > /tmp/pr-body.md
           bash scripts/turns/deliver-artifact-branch.sh "$branch" "Source sweep: ${{ inputs.walker }} (mode=${{ inputs.mode }}, run ${{ github.run_id }})" /tmp/pr-body.md
 
       - name: Upload scripts/_snapshots as a workflow artifact

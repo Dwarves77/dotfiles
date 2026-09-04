@@ -55,6 +55,12 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { walkEurlexOj, walkFederalRegister } from "../../src/lib/sources/register-walk.mjs";
 import { walkFeed } from "../../src/lib/sources/feed-walk.mjs";
+// walkSource (lane SITEMAP, 2026-09-04): the third walker, added by CALLING an unmodified module —
+// same "driver calls, never edits, the walker modules" posture register-walk.mjs/feed-walk.mjs already
+// have (see SOURCE_SWEEP_GOVERNING_FILES's own note below on why this new pair is NOT added to that
+// array/F28's hash yet). DEFAULT_MAX_SITEMAP_FETCHES/DEFAULT_MAX_SITEMAP_ENTRIES are this driver's own
+// --max-sitemap-fetches/--max-sitemap-entries defaults, mirroring the module's own.
+import { walkSource, DEFAULT_MAX_SITEMAP_FETCHES, DEFAULT_MAX_SITEMAP_ENTRIES } from "../../src/lib/sources/sitemap-walk.mjs";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -65,19 +71,44 @@ const ROOT = FSI_ROOT;
 // This family's governing files — the driver plus the two dormant walker modules it gives a runtime to.
 // Mirrors CONVENTION.md's harness_version table + F28's GOVERNING_FILES.'source-sweep' (kept in sync by
 // the CONVENTION-TABLE-PARITY test, the same discipline every other family's list already carries).
+//
+// DELIBERATELY NOT EXTENDED to src/lib/sources/sitemap-walk.mjs / feed-discovery.mjs (lane SITEMAP,
+// 2026-09-04, added the "sitemap" walker below that CALLS both — same "driver calls, never edits, the
+// walker modules" relationship this array already documents for the other two). Adding them here would
+// move this family's `harness_version` hash, which F28's rule (c) (staleness coupling,
+// `.discipline/fitness/functions/F28-harness-run-integrity.mjs`) requires EITHER a fresh valid artifact
+// carrying the new hash, OR a `scripts/harness-runs/source-sweep/PENDING-RUN.md` acknowledging it — and
+// BOTH mechanisms are pinned in a SECOND place this lane's write set does not include:
+// `run-source-sweep.test.mjs`'s `SOURCE_SWEEP_GOVERNING_FILES names the driver plus both walker modules`
+// test asserts this exact 3-entry array, and `F28-harness-run-integrity.mjs`'s own `GOVERNING_FILES.
+// 'source-sweep'` (and `scripts/harness-runs/CONVENTION.md`'s governing-file table row) carry the
+// identical 3-file list independently. Extending the array here without updating all three would either
+// break the pinned test or leave two of the three copies drifted from the third (F28's own
+// CONVENTION-TABLE-PARITY discipline exists to catch exactly that). See PROTOCOL.md's "sitemap" section
+// and the lane's report for the follow-up this leaves: a lane with `run-source-sweep.test.mjs` and
+// `scripts/harness-runs/CONVENTION.md` in its write set should extend all three together, in one commit,
+// once this walker has run for real.
 export const SOURCE_SWEEP_GOVERNING_FILES = Object.freeze([
   "scripts/turns/run-source-sweep.mjs",
   "src/lib/sources/register-walk.mjs",
   "src/lib/sources/feed-walk.mjs",
 ]);
 
-const WALKERS = Object.freeze(["register-eurlex", "register-federal-register", "feed"]);
+const WALKERS = Object.freeze(["register-eurlex", "register-federal-register", "feed", "sitemap"]);
+
+// --limit's default for --walker sitemap: how many SCOPED, CURRENT sitemap url entries one dispatch will
+// diff/persist per source (sitemap-walk.mjs's own `limit` opt) — a safety valve distinct from the walk-
+// time --max-sitemap-fetches/--max-sitemap-entries budgets. 5,000 is generous for one regulator source's
+// sitemap while still bounding a single dispatch against a source whose sitemap lists far more.
+export const DEFAULT_SITEMAP_LIMIT = 5000;
 
 function usage() {
   return (
-    "Usage: node scripts/turns/run-source-sweep.mjs --walker <register-eurlex|register-federal-register|feed>\n" +
+    "Usage: node scripts/turns/run-source-sweep.mjs\n" +
+    "         --walker <register-eurlex|register-federal-register|feed|sitemap>\n" +
     "         --mode <dry|apply> [--from ISO-date] [--to ISO-date] [--feed-url url] [--series L|C]\n" +
     "         [--types RULE,PRORULE] [--term text] [--max-pages N] [--per-page N] [--source-name name]\n" +
+    "         [--source-id uuid] [--host hostname] [--limit N] [--max-sitemap-fetches N] [--max-sitemap-entries N]\n" +
     "         [--harness-runs-dir dir] [--out-dir dir]"
   );
 }
@@ -100,6 +131,11 @@ export function parseArgs(argv) {
         "max-pages": { type: "string", default: "5" },
         "per-page": { type: "string", default: "100" },
         "source-name": { type: "string" },
+        "source-id": { type: "string" },
+        host: { type: "string" },
+        limit: { type: "string" },
+        "max-sitemap-fetches": { type: "string", default: String(DEFAULT_MAX_SITEMAP_FETCHES) },
+        "max-sitemap-entries": { type: "string", default: String(DEFAULT_MAX_SITEMAP_ENTRIES) },
         "harness-runs-dir": { type: "string" },
         "out-dir": { type: "string" },
       },
@@ -118,6 +154,13 @@ export function parseArgs(argv) {
   }
   if (values.walker === "feed") {
     if (!values["feed-url"]) return { ok: false, error: "--feed-url is required for --walker feed." };
+  } else if (values.walker === "sitemap") {
+    if (!values["source-id"] && !values.host) {
+      return { ok: false, error: "--source-id or --host is required for --walker sitemap (exactly one)." };
+    }
+    if (values["source-id"] && values.host) {
+      return { ok: false, error: "--source-id and --host are mutually exclusive for --walker sitemap." };
+    }
   } else {
     if (!values.from || Number.isNaN(Date.parse(values.from))) {
       return { ok: false, error: `--from must be a parseable ISO date for a register walker (got ${JSON.stringify(values.from)}).` };
@@ -130,6 +173,21 @@ export function parseArgs(argv) {
   const perPage = Number(values["per-page"]);
   if (!Number.isFinite(maxPages) || maxPages <= 0) return { ok: false, error: "--max-pages must be a positive number." };
   if (!Number.isFinite(perPage) || perPage <= 0) return { ok: false, error: "--per-page must be a positive number." };
+
+  let limit = DEFAULT_SITEMAP_LIMIT;
+  if (values.limit !== undefined) {
+    const n = Number(values.limit);
+    if (!Number.isFinite(n) || n <= 0) return { ok: false, error: `--limit must be a positive number (got ${JSON.stringify(values.limit)}).` };
+    limit = n;
+  }
+  const maxSitemapFetches = Number(values["max-sitemap-fetches"]);
+  const maxSitemapEntries = Number(values["max-sitemap-entries"]);
+  if (!Number.isFinite(maxSitemapFetches) || maxSitemapFetches <= 0) {
+    return { ok: false, error: "--max-sitemap-fetches must be a positive number." };
+  }
+  if (!Number.isFinite(maxSitemapEntries) || maxSitemapEntries <= 0) {
+    return { ok: false, error: "--max-sitemap-entries must be a positive number." };
+  }
 
   return {
     ok: true,
@@ -144,6 +202,11 @@ export function parseArgs(argv) {
     maxPages,
     perPage,
     sourceName: values["source-name"] || null,
+    sourceId: values["source-id"] || null,
+    host: values.host || null,
+    limit,
+    maxSitemapFetches,
+    maxSitemapEntries,
     harnessRunsDir: values["harness-runs-dir"] || null,
     outDir: values["out-dir"] || null,
   };
@@ -177,6 +240,27 @@ export async function upsertPortalLinkCandidates(sb, sourceId, links) {
     upserted++;
   }
   return { upserted, failed };
+}
+
+/** Select which `sources` rows a --walker sitemap run targets (lane SITEMAP, 2026-09-04): exactly the
+ *  one row named by `sourceId`, or every ACTIVE row whose host matches `host` (case-insensitive,
+ *  www-stripped) — unlike register-eurlex/register-federal-register/feed, which each attach to ONE fixed
+ *  or caller-named endpoint, `sitemap` sweeps a slice of the existing `sources` table directly (the
+ *  regulator-website rows neither register-walk.mjs nor feed-walk.mjs can reach), so its scope flags name
+ *  ROWS, not a portal to newly register. `--source-id` intentionally does NOT filter by status (an
+ *  explicit single target may be a probe against a currently-inaccessible row); `--host` does, so a bulk
+ *  sweep never spends a fetch on a source already marked dead. PURE.
+ *  @param {Array<{id:string,url:string,name?:string,status?:string}>} rows
+ *  @param {{sourceId:string|null, host:string|null}} opts @returns {Array<object>} */
+export function selectSitemapSources(rows, { sourceId, host }) {
+  if (sourceId) return rows.filter((r) => r.id === sourceId);
+  const wantHost = String(host || "").toLowerCase().replace(/^www\./, "");
+  return rows.filter((r) => {
+    if (r.status !== "active") return false;
+    let h = "";
+    try { h = new URL(r.url).hostname.toLowerCase().replace(/^www\./, ""); } catch { return false; }
+    return h === wantHost;
+  });
 }
 
 /** Build this run's per_item / metrics / inputs_ref / full_trace_refs from one walker's raw result.
@@ -228,6 +312,67 @@ export function shapeRunOutput(walker, result, reportPath, mode = "apply") {
       total_count: result.totalCount, total_pages: result.totalPages, dropped_pages: result.droppedPages,
     };
     return { perItem, metrics, inputsRef: result.pages.map((p) => p.url), fullTraceRefs: [reportPath] };
+  }
+  if (walker === "sitemap") {
+    // result.sources: one entry per targeted `sources` row (lane SITEMAP, 2026-09-04) — discovery order
+    // per source (feed first, sitemap only when none found), so a run's per_item carries a MIX of feed-
+    // outcome rows and sitemap-outcome rows, distinguished by `s.kind`.
+    const sources = result.sources ?? [];
+    const perItem = sources.map((s) => {
+      if (s.kind === "error") {
+        return { id: s.sourceId, outcome: "error", verdict: null, evidence_refs: [s.sourceUrl], error: s.error };
+      }
+      if (s.kind === "feed") {
+        const fr = s.feedResult;
+        const feedUpserted = fr?.ok ? fr.upserted : 0;
+        const verdict = fr?.ok
+          ? `feed found (${s.discoverySource}): ${fr.entries} entries, ${wrote ? feedUpserted : fr.entries} ${verb}` +
+            (s.rssFeedUrlWritten ? "; rss_feed_url recorded on the source row" : "")
+          : `feed found (${s.discoverySource}) at ${s.feedUrl} but the feed walk failed: ${fr?.error ?? "unknown error"}`;
+        return {
+          id: s.sourceId, outcome: fr?.ok ? "walked" : "error", verdict,
+          evidence_refs: [s.feedUrl], error: fr?.ok ? null : (fr?.error ?? "feed walk did not run"),
+        };
+      }
+      // kind === "sitemap"
+      if (!s.ok) return { id: s.sourceId, outcome: "error", verdict: null, evidence_refs: [s.sourceUrl], error: s.error };
+      const coverageNote = s.coverageComplete ? "" : "; PARTIAL COVERAGE (removed-count suppressed)";
+      const baselineNote = s.baselineDeferred ? "; baseline deferred to a future complete walk" : "";
+      const verdict =
+        `sitemap (${s.discoverySource}): ${s.urlCount} url(s) scoped, ` +
+        `${s.diff.addedCount} new (${wrote ? s.upserted : s.diff.addedCount} ${verb}), ` +
+        `${s.diff.changedCount} changed, ${s.diff.removedCount} removed${coverageNote}${baselineNote}`;
+      return {
+        id: s.sourceId, outcome: "walked", verdict,
+        evidence_refs: (s.sitemapsFetched ?? []).map((f) => f.url).slice(0, 20).concat(s.sitemapsFetched?.length > 20 ? [`… +${s.sitemapsFetched.length - 20} more`] : []),
+        error: null,
+      };
+    });
+    const feedSources = sources.filter((s) => s.kind === "feed");
+    const sitemapSources = sources.filter((s) => s.kind === "sitemap");
+    const errorSources = sources.filter((s) => s.kind === "error" || (s.kind === "sitemap" && !s.ok));
+    const okSitemapSources = sitemapSources.filter((s) => s.ok);
+    const sitemapUpsertedTotal = okSitemapSources.reduce((a, s) => a + (s.upserted ?? 0), 0);
+    const feedUpsertedTotal = feedSources.reduce((a, s) => a + (s.feedResult?.ok ? s.feedResult.upserted : 0), 0);
+    const metrics = {
+      mode,
+      sources_targeted: sources.length,
+      feed_found: feedSources.length,
+      sitemap_only: sitemapSources.length,
+      errors: errorSources.length,
+      urls_scoped_total: okSitemapSources.reduce((a, s) => a + (s.urlCount ?? 0), 0),
+      new_total: okSitemapSources.reduce((a, s) => a + s.diff.addedCount, 0) + feedSources.reduce((a, s) => a + (s.feedResult?.ok ? s.feedResult.entries : 0), 0),
+      changed_total: okSitemapSources.reduce((a, s) => a + s.diff.changedCount, 0),
+      removed_total: okSitemapSources.reduce((a, s) => a + s.diff.removedCount, 0),
+      partial_coverage_sources: okSitemapSources.filter((s) => !s.coverageComplete).length,
+      baseline_deferred_sources: okSitemapSources.filter((s) => s.baselineDeferred).length,
+      rss_feed_url_written: feedSources.filter((s) => s.rssFeedUrlWritten).length,
+      change_signals_recorded: okSitemapSources.filter((s) => s.changeRecorded).length,
+      ...writeMetrics(sitemapUpsertedTotal + feedUpsertedTotal),
+      failed: okSitemapSources.reduce((a, s) => a + (s.failed ?? 0), 0) + feedSources.reduce((a, s) => a + (s.feedResult?.ok ? s.feedResult.failed : 0), 0),
+      no_targets_reason: result.note ?? null,
+    };
+    return { perItem, metrics, inputsRef: sources.map((s) => s.sourceUrl), fullTraceRefs: [reportPath] };
   }
   // feed
   const perItem = [{
@@ -314,11 +459,14 @@ async function main() {
     process.exit(2);
   }
 
-  const { readAll, registerSource, institutionKey } = await import("../lib/db.mjs");
+  const { readAll, registerSource, institutionKey, guardedUpdate } = await import("../lib/db.mjs");
   const { createClient } = await import("@supabase/supabase-js");
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-  const { walker, mode, from, to, feedUrl, series, types, term, maxPages, perPage, sourceName } = parsed;
+  const {
+    walker, mode, from, to, feedUrl, series, types, term, maxPages, perPage, sourceName,
+    sourceId: cliSourceId, host, limit, maxSitemapFetches, maxSitemapEntries,
+  } = parsed;
   const harnessRunsDir = resolve(parsed.harnessRunsDir || DEFAULT_HARNESS_RUNS_DIR);
   // The raw walker result (the run's FULL TRACE — per-day act URLs in the EUR-Lex case) is kept in the
   // repo, one level BELOW the family directory. F28 treats every family-level *.json under
@@ -327,7 +475,11 @@ async function main() {
   // ARTIFACT (2026-09-01). traces/ is where full_trace_refs point from now on.
   const outDir = resolve(parsed.outDir || defaultTraceDir(harnessRunsDir));
 
-  const portal = portalFor({ walker, feedUrl, sourceName });
+  // `sitemap` sweeps EXISTING `sources` rows directly (selectSitemapSources, by --source-id/--host) —
+  // it never registers a NEW portal row the way register-eurlex/register-federal-register/feed do, so
+  // portal resolution is skipped entirely for it (portal/sourceId stay null; per-source ids are resolved
+  // inside the sitemap branch below, one per targeted row).
+  const portal = walker === "sitemap" ? null : portalFor({ walker, feedUrl, sourceName });
 
   // Resolve the parent source id — by EXACT portal URL, never by db.mjs's host key. See
   // resolvePortalSourceId's own doc for why (source-sweep-run-003's finding). DRY mode is READ-ONLY end
@@ -336,10 +488,16 @@ async function main() {
     skill: "corpus-turn-runbook",
     reason: `source-sweep register/feed walk: attach discovered ${walker} candidates to their parent portal source.`,
   };
-  const sourceId = await resolvePortalSourceId({ readAll, registerSource, institutionKey }, portal, mode, CITE);
-  console.log(
-    `run-source-sweep: walker=${walker} mode=${mode} portal=${portal.url} source_id=${sourceId ?? "(none yet — first apply run will register it)"}`
-  );
+  const sourceId = walker === "sitemap"
+    ? null
+    : await resolvePortalSourceId({ readAll, registerSource, institutionKey }, portal, mode, CITE);
+  if (walker !== "sitemap") {
+    console.log(
+      `run-source-sweep: walker=${walker} mode=${mode} portal=${portal.url} source_id=${sourceId ?? "(none yet — first apply run will register it)"}`
+    );
+  } else {
+    console.log(`run-source-sweep: walker=sitemap mode=${mode} source-id=${cliSourceId ?? "(n/a)"} host=${host ?? "(n/a)"}`);
+  }
 
   const fetchOpts = {
     headers: {
@@ -375,12 +533,109 @@ async function main() {
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
     return res.text();
   }
+  // sitemap-walk.mjs's deps.fetchBytes contract (gzip .xml.gz decode needs the raw bytes, not text).
+  async function fetchBytesImpl(url) {
+    const res = await politeFetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+    return Buffer.from(await res.arrayBuffer());
+  }
 
   const persist = async (links) => {
     if (mode !== "apply") return { upserted: links.length, failed: 0 }; // dry: count the plan, write nothing
     if (!sourceId) throw new Error("run-source-sweep: apply mode reached persist() with no source_id — registerSource must have failed silently; refusing to write orphaned candidates.");
     return upsertPortalLinkCandidates(sb, sourceId, links);
   };
+
+  // ── sitemap-only plumbing (lane SITEMAP, 2026-09-04) ──────────────────────────────────────────────
+  // Per-source persist — `sitemap` sweeps MULTIPLE existing `sources` rows in one dispatch, so it cannot
+  // reuse the single `persist` closure above (bound to ONE portal-resolved `sourceId`); this binds to
+  // whichever row a given walk targets, through the SAME mirrored writer (upsertPortalLinkCandidates —
+  // the ONE ledger write-site every walker in this family shares).
+  async function persistFor(targetSourceId, links) {
+    if (mode !== "apply") return { upserted: links.length, failed: 0 };
+    return upsertPortalLinkCandidates(sb, targetSourceId, links);
+  }
+
+  // Sitemap URL-SET snapshot storage. Deliberately NOT the `raw_fetches` DB TABLE (`snapshot-store.mjs`'s
+  // own `getSnapshot`/`writeSnapshot`) — that table is the paid-acquire path's HTML capture record, and
+  // change-sweep.mjs's `bridgeChangedSourceToStagedUpdates` reads a source's two most recent `raw_fetches`
+  // rows and diffs them AS HTML (`diffDocuments`); a JSON url-set row landing in that same table for the
+  // same source_id would corrupt that diff (rule B1 — read the consumer before writing to a shared
+  // resource). Reuses `raw_fetches`'s STORAGE BUCKET only (never its DB row), under a path prefix
+  // (`sitemap-snapshots/`) no other reader queries, applying `snapshot-store.mjs`'s own CONVENTION
+  // (gzip via `promisify(node:zlib)`, house style) to a JSON payload instead of an HTML one. A fixed
+  // filename per source (not content-hash-keyed) — this IS the "previous snapshot," there is exactly one.
+  function sitemapSnapshotPath(targetSourceId) {
+    return `sitemap-snapshots/${targetSourceId}/current.json.gz`;
+  }
+  async function getSitemapSnapshot(targetSourceId) {
+    const { data, error } = await sb.storage.from("raw_fetches").download(sitemapSnapshotPath(targetSourceId));
+    if (error || !data) return null; // no snapshot yet (or a transient read error) — reads as "first walk"
+    try {
+      const { gunzip } = await import("node:zlib");
+      const { promisify } = await import("node:util");
+      const buf = Buffer.from(await data.arrayBuffer());
+      const out = await promisify(gunzip)(buf);
+      return JSON.parse(out.toString("utf8"));
+    } catch {
+      return null; // an unreadable stored snapshot is treated as "no snapshot" — never fatal to the walk
+    }
+  }
+  async function saveSitemapSnapshot(targetSourceId, entries) {
+    if (mode !== "apply") return; // dry: sitemap-walk.mjs's own contract — counts, writes nothing
+    const { gzip } = await import("node:zlib");
+    const { promisify } = await import("node:util");
+    const gz = await promisify(gzip)(Buffer.from(JSON.stringify(entries), "utf8"));
+    const up = await sb.storage.from("raw_fetches").upload(sitemapSnapshotPath(targetSourceId), gz, {
+      contentType: "application/gzip", upsert: true,
+    });
+    if (up.error) throw new Error(`sitemap snapshot upload failed for ${targetSourceId}: ${up.error.message}`);
+  }
+
+  // A changed lastmod becomes a `monitoring_queue` row through the SAME insert shape
+  // `assessAndUpdateSource` (`src/app/api/worker/check-sources/logic.ts`) already writes — MIRRORED, not
+  // imported, for the identical reason `upsertPortalLinkCandidates` above mirrors `persistPortalCandidates`
+  // (that file transitively imports the `@/`-path-alias module graph, unresolvable under plain `node`; see
+  // this file's own header). PRECISION GATE (operator brief: "a loc matching an existing item's canonical
+  // URL"): only queues a signal when at least one changed loc matches a LIVE `intelligence_items.source_url`
+  // on this exact source_id — a lastmod change on a URL nothing has ever minted is real evidence for the
+  // NEXT population sweep (it already reached the census ledger via `persist`) but is not evidence that
+  // any EXISTING item needs re-verification, which is the only thing a monitoring_queue row triggers
+  // (reconcile.ts's runReconcilePass reads every LIVE item on the row's source_id). Also skips when a
+  // pending (change_detected=true, reconciled_at IS NULL) row already exists for this source — reconcile
+  // has not drained it yet, so a second row would only pile up redundant work, not new signal.
+  async function recordSitemapChange(targetSourceId, changed) {
+    if (mode !== "apply") return; // dry: sitemap-walk.mjs already counted this via changeRecorded
+    const locs = changed.map((c) => c.loc);
+    const { data: matched, error: matchErr } = await sb
+      .from("intelligence_items")
+      .select("id")
+      .eq("source_id", targetSourceId)
+      .eq("is_archived", false)
+      .in("source_url", locs);
+    if (matchErr) throw new Error(`sitemap change: intelligence_items lookup failed for ${targetSourceId}: ${matchErr.message}`);
+    if (!matched || !matched.length) return; // no live item's canonical URL matches a changed loc — no signal
+    const { data: pending, error: pendErr } = await sb
+      .from("monitoring_queue")
+      .select("id")
+      .eq("source_id", targetSourceId)
+      .eq("change_detected", true)
+      .is("reconciled_at", null)
+      .limit(1);
+    if (pendErr) throw new Error(`sitemap change: monitoring_queue pending-check failed for ${targetSourceId}: ${pendErr.message}`);
+    if (pending && pending.length) return; // already queued, not yet reconciled — avoid piling up duplicates
+    const nowIso = new Date().toISOString();
+    const { error: insErr } = await sb.from("monitoring_queue").insert({
+      source_id: targetSourceId,
+      scheduled_check: nowIso,
+      priority: "normal",
+      last_result: "change_detected",
+      change_detected: true,
+      checked_at: nowIso,
+      error_message: null,
+    });
+    if (insErr) throw new Error(`sitemap change: monitoring_queue insert failed for ${targetSourceId}: ${insErr.message}`);
+  }
 
   let runId = null;
   let result = null;
@@ -397,6 +652,61 @@ async function main() {
       result = await walkEurlexOj({ fetchHtml: fetchHtmlImpl, persist }, { from, to, series });
     } else if (walker === "register-federal-register") {
       result = await walkFederalRegister({ fetchJson: fetchJsonImpl, persist }, { from, to, types, term, perPage, maxPages });
+    } else if (walker === "sitemap") {
+      const rows = await readAll("sources", "id,url,name,status,access_method,rss_feed_url");
+      const targets = selectSitemapSources(rows, { sourceId: cliSourceId, host });
+      if (!targets.length) {
+        result = {
+          sources: [],
+          note: cliSourceId
+            ? `no source row found for --source-id ${cliSourceId}`
+            : `no active source rows found for --host ${host}`,
+        };
+      } else {
+        const sourceResults = [];
+        for (const src of targets) {
+          const walkDeps = {
+            fetchBytes: fetchBytesImpl,
+            getPreviousSnapshot: () => getSitemapSnapshot(src.id),
+            saveSnapshot: (entries) => saveSitemapSnapshot(src.id, entries),
+            persist: (links) => persistFor(src.id, links),
+            recordChange: (changed) => recordSitemapChange(src.id, changed),
+          };
+          let outcome;
+          try {
+            const r = await walkSource(walkDeps, { sourceUrl: src.url, maxSitemapFetches, maxSitemapEntries, limit });
+            outcome = { sourceId: src.id, sourceName: src.name, sourceUrl: src.url, ...r };
+            if (r.kind === "feed") {
+              const feedResult = await walkFeed(
+                { fetchText: fetchTextImpl, persist: (links) => persistFor(src.id, links) },
+                { feedUrl: r.feedUrl }
+              );
+              outcome.feedResult = feedResult;
+              // Record the discovered feed_url through the SAME guarded writer every script-side mutation
+              // in this repo goes through (db.mjs's rule-015 path — cite + prior-value snapshot), never a
+              // new one. Only when it actually changed (idempotent re-walks write nothing).
+              if (mode === "apply" && src.rss_feed_url !== r.feedUrl) {
+                const upd = await guardedUpdate(
+                  "sources",
+                  (qb) => qb.eq("id", src.id),
+                  { rss_feed_url: r.feedUrl },
+                  { cite: { skill: "corpus-turn-runbook", reason: `source-sweep sitemap walk: recorded discovered feed_url for ${src.url} (${r.discoverySource}).` } }
+                );
+                outcome.rssFeedUrlWritten = (upd.updated ?? 0) > 0;
+              } else {
+                outcome.rssFeedUrlWritten = false;
+              }
+            }
+          } catch (e) {
+            outcome = {
+              sourceId: src.id, sourceName: src.name, sourceUrl: src.url,
+              kind: "error", error: e instanceof Error ? e.message : String(e),
+            };
+          }
+          sourceResults.push(outcome);
+        }
+        result = { sources: sourceResults };
+      }
     } else {
       result = await walkFeed({ fetchText: fetchTextImpl, persist }, { feedUrl });
     }
@@ -428,7 +738,8 @@ async function main() {
         finished_at: new Date().toISOString(),
         config: {
           walker, mode, from, to, feed_url: feedUrl, series, types, term: term ?? null,
-          max_pages: maxPages, per_page: perPage, source_id: sourceId, portal_url: portal.url,
+          max_pages: maxPages, per_page: perPage, source_id: sourceId, portal_url: portal?.url ?? null,
+          cli_source_id: cliSourceId, host, limit, max_sitemap_fetches: maxSitemapFetches, max_sitemap_entries: maxSitemapEntries,
         },
         inputs_ref: shaped?.inputsRef ?? [`walker=${walker}`, `from=${from ?? "n/a"}`, `to=${to ?? "n/a"}`],
         per_item: shaped?.perItem ?? [],
