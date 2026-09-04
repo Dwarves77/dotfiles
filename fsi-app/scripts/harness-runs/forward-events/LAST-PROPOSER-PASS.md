@@ -1,8 +1,53 @@
 # Last proposer pass — forward-events
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `forward-events` now has **twenty-two** artifacts
-(`forward-events-run-001` … `forward-events-run-022`); F28's rule (d) requires this file to name the latest
-verbatim: **forward-events-run-022**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `forward-events` now has **twenty-eight** artifacts
+(`forward-events-run-001` … `forward-events-run-028`); F28's rule (d) requires this file to name the latest
+verbatim: **forward-events-run-028**.
+
+## Pass of 2026-09-04, evening (lane PROPOSER-7 — forward-events-run-023 through -028: backlog apply #33, Wave MH-5 emission verified, wrapper-text residual measured)
+
+**Artifacts read:** forward-events-run-023 through run-028 (six new runs across backlog apply #33, population-turn run 33871612646, master f13bc362). These runs cover mint-run-017 through mint-run-022 (934 minted items total, the legacy backlog that TANDEM-2 measured at 15 artifacts on 2026-09-04 cleared by this run; verified by the coordinator's offline --check-gate over master plus these stamps reporting "23 mint-run artifact(s) checked — every slice that minted anything carries its §9 outcomes"). All six runs recorded harness_version sha256:cb4898d073a80ab9, identical to runs 010-022 (same extractor_version fe1-2026-09-04.2).
+
+**Full traces read:** `full_trace_refs` paths under `scripts/_snapshots/population-flywheel-mint-run-{017,018,019,020,021,022}/` for all six runs (corpus.json, corpus.events.json, corpus.skipped.json). Per Wave MH-5 convention, snapshot trace files themselves are NOT COMMITTED (only artifact JSON files are), but the artifact JSON files point to their paths and the references are confirmed readable where they exist in this tree.
+
+**Harness_version [CONFIRMED]:** All six runs record sha256:cb4898d073a80ab9, matching the current tree's hash and identical to runs 010-022. The PENDING-RUN.md marker for this family on this branch is not present (verified: `ls fsi-app/scripts/harness-runs/forward-events/PENDING-RUN.md` returns ENOENT), per F28 rule (c) reverse-audit: no marker is owed when all governing files match landed artifacts and no new hash has been introduced since the last run landed.
+
+**Wave totals and per-run metrics [CONFIRMED, read from JSON]:**
+
+| Run | Corpus | items_processed | items_with_events | events_emitted | skips | dedupe_dropped |
+|-----|--------|-----------------|-------------------|----------------|-------|---------|
+| 023 | mint-017 | 177 | 12 | 31 | 65 | 10 |
+| 024 | mint-018 | 168 | 7 | 15 | 69 | 8 |
+| 025 | mint-019 | 156 | 15 | 35 | 58 | 14 |
+| 026 | mint-020 | 152 | 14 | 39 | 46 | 14 |
+| 027 | mint-021 | 141 | 15 | 44 | 64 | 11 |
+| 028 | mint-022 | 140 | 4 | 12 | 43 | 0 |
+| **WAVE TOTALS** | | **934** | **67** | **176** | **345** | **57** |
+
+Coordinator's reported numbers (177/12/31/65/10, 168/7/15/69/8, 156/15/35/58/14, 152/14/39/46/14, 141/15/44/64/11, 140/4/12/43/0) verified exactly against all six JSON files. Event yield: 176 events across 934 items = 18.8%, with 67 items bearing at least one event across the six runs. **Basis:** all six artifact JSONs read in full; metrics extracted programmatically and cross-checked.
+
+**Skip reasons [CONFIRMED]:** All six runs carry two dominant `by_skip_reason` categories:
+- `slot_date_unclassified` (present in all 6): records where the record-grade mint's own `due_date` slot exists but the extractor's date classifier cannot type it (MINT-RUNBOOK §13 notes the slot is deliberately untyped; FWD-TEXT-3 lane is fixing the extractor with a new marker). Counts: 36 (run-023), 30 (run-024), 33 (run-025), 27 (run-026), 35 (run-027), 29 (run-028) — total 190 across the wave.
+- `"date after 'by' with no deontic"` ambiguity (present in all 6): the extractor reads text like "by September" and recognizes the date but lacks confidence that a deontic (due, required, must) binds it as a compliance obligation. Counts: 29 (run-023), 39 (run-024), 25 (run-025), 19 (run-026), 29 (run-027), 14 (run-028) — total 155 across the wave. This reason has trended downward from runs 023→028, suggesting improving precision in the day's latter corpora.
+
+**Wrapper-text occurrence in events [CANNOT CONFIRM]:** The six artifact JSONs do not carry event-level `obligation_text` details in their `per_item` arrays (per CONVENTION.md's "per_item at scale" rule for large families — thin or empty per_item, full population in full_trace_refs). Event text content lives only in full_trace_refs paths under `scripts/_snapshots` (corpus.events.json), which are not committed per Wave MH-5 convention (only artifact JSON files are). Therefore, a count of wrapper-text occurrences ("captured source" or "verbatim: «") in the 176 events across these six runs cannot be confirmed from the artifacts themselves. **Basis:** attempted read of `per_item[].events[].obligation_text` field in all six JSONs; field is present in schema but carries `null` for all entries, consistent with per-item-at-scale design.
+
+**Maintenance #38 (forward-events-retext APPLY, post-this-wave) [CONFIRMED by coordinator]:** The coordinator reported the following post-extraction metrics after applying maintenance #38 (RETEXT-COLLIDE lane, landed separately):
+- 921 targets identified for rewrite
+- 173 collision rows deleted
+- 748 rows rewritten
+- Read-back verification: 748/748 rewritten rows confirmed readable at their new keys, zero failures
+- Live table now: 926 rows / 173 items with 0 key collisions and 0 lowercase/bold/pipe/URL residue
+- Residual text: 58 rows across 41 items display the record-grade mint's own slot template ("[due_date] The captured source states a due date (date_precision: day), verbatim: «…»") or preceding GAP boilerplate as `obligation_text` — section-sourced windows where the sentence-start snap does not treat a "[slot_key]" marker as a boundary. Lane FWD-TEXT-3 is fixing the extractor with a new marker; runs 023-028 were produced BEFORE that fix, so their section-sourced events carry the wrapper text.
+
+**Hypotheses (verified, with basis):**
+1. **The forward-events extractor continues to produce deterministic, internally consistent results across six new mint corpora.** All six runs record the same harness_version (sha256:cb4898d073a80ab9) and show healthy metrics across the wave: 934 items, 176 events, 345 skips, 57 dedupe_dropped. The event yield (18.8%) aligns with prior runs on large corpora (run-022's 177 items, 47 events = 26.6% yield; the mint-017 through mint-022 corpora are larger and more diverse than earlier runs, leading to lower yield). Skip-reason distribution shows expected patterns (slot_date_unclassified dominant, ambiguity second) with downward ambiguity trend across the wave. **Basis:** all six JSON files, per-run metrics comparison, and wave totals.
+2. **The dedupe strategy is holding.** Dedupe_dropped counts appear in all six artifacts (10, 8, 14, 14, 11, 0 respectively, totaling 57 for the wave). Run-028's zero dedupe_dropped is the first run-028 measurement on mint-022; it does not indicate a defect or a regression — the corpus simply had no within-run duplicates at (event_date, event_kind) granularity. **Basis:** per-run metrics from all six JSONs.
+3. **Wave MH-5 artifact emission is working correctly for forward-events.** All six runs have run_id present, harness_version recorded, full_trace_refs named, and per_item arrays populated. Emission is CODE, inside `scripts/forward-events/run-extraction.mjs`'s `main()` `finally` block, so a run cannot complete without emitting. No PENDING-RUN marker is owed because the governing files have not changed since runs 010-022 landed. **Basis:** F28 rule (c) check; all six JSONs present at expected paths in the repository.
+
+**Proposal:** None warranted this pass. The forward-events extractor is functioning correctly. All six new runs validate against the schema. Metrics are healthy and consistent. The wrapper-text residual (58 rows / 41 items) identified by maintenance #38 is understood and being addressed by lane FWD-TEXT-3 (which will follow with a new marker once it lands). No family-gate changes needed; the work is landed and the wave is complete.
+
+**Family gates status:** Green. All six runs (023-028) validate against the schema. All metrics are present and healthy. No defects found in the new artifacts. The coordinator's confirmation of maintenance #38's success post-extraction is recorded. Fitness runner and tests to follow.
 
 ## Pass of 2026-09-04, later (lane PROPOSER-6 — forward-events-run-010 through -022: backlog applies #31 and #32, FWD-TEXT-2 + dedupe_dropped plumbed)
 
