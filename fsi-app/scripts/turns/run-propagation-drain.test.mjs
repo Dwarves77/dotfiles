@@ -44,6 +44,37 @@ test("parseArgs: --harness-runs-dir and --out-dir pass through when given", () =
   assert.equal(r.outDir, "/tmp/out");
 });
 
+// ── parseArgs: --trigger-context (lane CHAIN, 2026-09-04) ───────────────────────────────────────────
+
+test("parseArgs: --trigger-context is null by default", () => {
+  const r = parseArgs(["--mode", "dry"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.triggerContext, null);
+});
+
+test("parseArgs: --trigger-context parses a valid JSON object", () => {
+  const r = parseArgs([
+    "--mode",
+    "apply",
+    "--trigger-context",
+    JSON.stringify({ name: "Data producers", run_id: 987, conclusion: "success" }),
+  ]);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.triggerContext, { name: "Data producers", run_id: 987, conclusion: "success" });
+});
+
+test("parseArgs: --trigger-context rejects malformed JSON", () => {
+  const r = parseArgs(["--mode", "dry", "--trigger-context", "{not json"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--trigger-context must be valid JSON/);
+});
+
+test("parseArgs: --trigger-context rejects a non-object JSON value", () => {
+  const r = parseArgs(["--mode", "dry", "--trigger-context", "[1,2]"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--trigger-context must be a JSON object/);
+});
+
 // ── shapeRunOutput ───────────────────────────────────────────────────────────────────────────────
 
 function baseResult(overrides = {}) {

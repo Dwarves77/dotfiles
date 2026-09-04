@@ -140,6 +140,92 @@ gate's own refusal names every auto-connectable stale artifact and the exact fix
 mint-run-001/mint-run-005 if either is still unresolved (no `--backlog` dispatch, however many, clears
 those two — see above).
 
+## Chaining: dispatched automatically after Ledger consume (lane CHAIN, 2026-09-04)
+
+`population-turn.yml` now also fires on `workflow_run: {workflows: ["Ledger consume"], types:
+[completed]}` — every time `ledger-consume.yml` finishes, not only on a hand `workflow_dispatch`. This
+closes W1.4 of `docs/plans/complete-system-build-plan-2026-09-04.md` ("Event chaining without
+schedules") and the A2→A3 gap `docs/audits/wiring-audit-2026-09-04/C1-loop-map.md` names ("needs a
+coordinator dispatch... every cross-workflow boundary is a coordinator dispatch"). **This is event-driven
+off a completed run, not a cron cadence** — rule 16 forbids arming a `schedule:`/cron block, not firing
+off another workflow's completion; no `schedule:` block in this file is touched or uncommented by this
+change.
+
+**What a chained run actually does.** The workflow's first step ("Resolve run parameters, trigger
+context, and the chaining/pause gate") reads the triggering event and decides, before `npm ci` even
+runs, whether this dispatch does anything:
+
+1. **`POPULATION_PAUSED` first** (see "Population stop" below) — if the repository variable is `"true"`,
+   this run is a named no-op regardless of anything else, exactly the same as a paused hand dispatch.
+2. **The upstream run's own `conclusion` must be `"success"`.** A failed or cancelled `ledger-consume`
+   run never chains into a mint.
+3. **The upstream run's own harness-run artifact must show a real, non-disarmed apply that promoted
+   something.** `ledger-consume.yml` does not upload its harness-run JSON as a workflow artifact (only
+   `scripts/_snapshots/`, the raw fetch/classify trace) — the one place that artifact reliably lands is
+   the `ledger-consume/<run_id>` branch `deliver-artifact-branch.sh` always pushes before it even
+   attempts a PR (see `MAINTENANCE-RUNBOOK.md`/this file's own "Landing a run" section for that fallback
+   behaviour). This run fetches exactly that branch and reads whichever `ledger-consume-run-NNN.json` on
+   it this checkout doesn't already have, then checks:
+   - `config.mode == "apply"` **and** `config.apply_disarmed == false` — a plan run, or an apply request
+     `LEDGER_CONSUME_APPLY_ENABLED=false` (ADR-023) silently downgraded to plan semantics, never chains a
+     mint. `metrics.promoted` alone is NOT sufficient to gate on — `PROMOTED_LIKE_DISPOSITIONS` in
+     `run-ledger-consume.mjs` counts a plan run's `would_mint` outcomes under the same key, so checking
+     promoted without also checking mode/apply_disarmed would fire a real mint off a run that wrote
+     nothing.
+   - `metrics.promoted > 0` — at least one candidate actually reached `census_worklist`.
+
+   Any failure at step 3 is a named no-op (`::notice::` in the run's own log naming exactly which check
+   failed and the numbers it read), never a red run.
+
+**When it proceeds**, the chained run behaves exactly like a hand dispatch with `mode: apply`, `limit: 50`
+(the same default the `limit` input already uses), `capture: true`, no `source_id`/`celex_prefix`/
+`rows_file`, `flywheel_backlog: false` — never wider or narrower than a person clicking "Run workflow"
+with the defaults would get. THE GATE (above) still applies exactly the same way on a chained dispatch as
+a hand one — chaining changes WHO fires the workflow, never what it is allowed to do once it runs. The
+run's own `mint-run-NNN.json` gains a `metrics.trigger_context` field — `{name: "Ledger consume", run_id,
+conclusion}` for a chained dispatch, `null` for a hand dispatch — written by
+`run-population-flywheel.mjs`'s `--trigger-context` flag (population-turn.yml passes it straight through)
+in the §9 outcomes write, so the artifact alone always answers "was this batch hand-dispatched or
+chained, and if chained, off which upstream run."
+
+**Manual dispatch is unaffected and still works exactly as before** — `workflow_dispatch` remains, with
+every input unchanged; chaining is additive, not a replacement.
+
+## Population stop: `POPULATION_PAUSED`
+
+A GitHub Actions **repository variable** (`Settings → Secrets and variables → Actions → Variables →
+POPULATION_PAUSED`, read in the workflow as `${{ vars.POPULATION_PAUSED }}`) — deliberately **not** the
+DB-side `system_state.global_processing_paused`/`scrape_cadence` pair RD-23 governs (this workflow writes
+no DB row to arm or disarm it, so RD-23's "exactly one writer" doctrine, which is about who may WRITE
+those specific DB columns, does not apply). Setting or clearing it is a repository-configuration change
+through the GitHub UI/API — never a code change, never a migration.
+
+**When to set it.** `docs/plans/complete-system-build-plan-2026-09-04.md` §3's own sequence: "Population
+slices are stopped until T46 passes (operator, 2026-09-04)." The coordinator sets
+`POPULATION_PAUSED=true` before/alongside landing this chaining lane, and flips it back to `false` once
+T46 (full-system validation) passes.
+
+**What it does while `true`.** EVERY dispatch of `population-turn.yml` — hand `workflow_dispatch` or
+chained `workflow_run` — is a named no-op: the resolve step logs
+`::notice::population-turn NO-OP — POPULATION_PAUSED=true ...` and every real step (export, mint, apply,
+the flywheel, `flywheel_backlog`) is skipped. **The job still exits 0 (green)** — a paused dispatch is
+never a failure, it is the pause working as designed. `flywheel_backlog: true` dispatches are paused too
+(population-turn is population-turn, regardless of which mode a hand dispatch requests).
+
+**Proving the chain (first end-to-end proof, coordinator, after landing):**
+1. Set `POPULATION_PAUSED=true` (if not already set for the T46 window).
+2. Hand-dispatch `ledger-consume.yml` with `mode: apply` (real writes stay disarmed by
+   `LEDGER_CONSUME_APPLY_ENABLED=false` regardless — see this run's own artifact `apply_disarmed: true`).
+3. Watch `population-turn.yml`'s **Actions** tab: a NEW run appears automatically, triggered by
+   `workflow_run`, with no coordinator dispatch. Open its log — the "Resolve run parameters..." step
+   names the trigger (`Ledger consume`, the upstream run id, its conclusion), and then, because
+   `POPULATION_PAUSED=true`, logs the pause no-op and the run finishes green having done nothing.
+4. This proves the chain fires on completion (not a schedule) AND that the pause is honoured on a
+   chained dispatch, in one pass — the un-paused "promotes → mints" path is the same code path, just
+   with step 3's `RUN_SKIP_REASON` never triggering, and is proven the same way once `POPULATION_PAUSED`
+   is cleared and `LEDGER_CONSUME_APPLY_ENABLED` is flipped (both separate operator rulings, not covered
+   by this lane).
+
 ## Landing a run: what the workflow tries, and what actually happens on this repository
 
 The workflow ends by committing `scripts/harness-runs/mint/` plus the run's own export/apply-ready/

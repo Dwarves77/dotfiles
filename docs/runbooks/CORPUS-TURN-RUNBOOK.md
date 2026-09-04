@@ -512,7 +512,53 @@ fresh branch per dispatch, commit + PR via `deliver-artifact-branch.sh`, a comme
 under the same no-schedule-during-build ruling as every other family in this repo (see above), and the same
 hydrate-unmerged-artifacts collision guard.
 
-**What lands where:** `scripts/harness-runs/propagation/propagation-drain-run-NNN.json` — the run's own
+### Chaining: dispatched automatically after Data producers (lane CHAIN, 2026-09-04)
+
+`propagation-drain.yml` also fires on `on.workflow_run: {workflows: ["Data producers"], types:
+[completed]}` — every time `producers.yml` finishes, in addition to `workflow_dispatch`. This closes W1.4
+of `docs/plans/complete-system-build-plan-2026-09-04.md` and the B4→B5 gap
+`docs/audits/wiring-audit-2026-09-04/C1-loop-map.md` §3 names: "the propagation outbox trigger (B4) —
+genuinely zero-touch; it just has nothing pointed at it downstream," and its own §5 reading (b), step 4:
+"Chain B4 (already automatic) → B5 (drain) ... with the same `workflow_run` mechanism." **Event-driven off
+a completed run, not a cron cadence** — the same rule-16 reading `population-turn.yml`'s own chaining
+uses; no `schedule:` block here is armed or uncommented by this change.
+
+**What decides whether a chained run drains.** The workflow's first step ("Resolve run parameters and the
+chaining gate") checks only the upstream run's own `conclusion`
+(`github.event.workflow_run.conclusion`) — `"success"` drains, anything else is a named no-op
+(`::notice::`, job still exits 0 green). Unlike `population-turn.yml`'s chain off `ledger-consume.yml`,
+there is **no per-run artifact to read a promoted-style count from**: `producers.yml` writes straight
+through the guarded Supabase path with no branch/PR step of its own (a producer run leaves no
+`producers/<run_id>` branch to fetch — this family "has no landing backlog by construction," per the
+wiring audit's A1 §6), and the propagation outbox trigger `emit_propagation_event()` (B4) already fires
+unconditionally, in the same transaction, on every producer write regardless of how many rows a given run
+touched. "Upstream concluded success" is therefore the complete, correct gate for this family — a
+producer run that succeeded but wrote nothing new (an idempotent no-op upsert; `producers.yml`'s own
+header: low-cadence sources are "almost always a no-op upsert") simply drains a batch that finds nothing
+new to invalidate, which is the honest, correct outcome, not a false positive the way an ungated
+`ledger-consume` plan run's `would_mint` count would be for `population-turn.yml`.
+
+**What a chained run actually drains with.** `mode: apply`, `batch: 500` (the same default the `batch`
+input already uses). **The two opt-in checkboxes stay hand-only** (build plan W4.3, verbatim): a chained
+dispatch never ticks `backfill_entities` or `seed_derived_values`, regardless of what a prior hand
+dispatch chose — a coordinator who wants an entity-spine backfill or a derived-value seed pass still
+dispatches this workflow by hand for it. The run's own `propagation-run-NNN.json` gains a
+`config.trigger_context` field — `{name: "Data producers", run_id, conclusion}` for a chained dispatch,
+`null` for a hand dispatch — written by `run-propagation-drain.mjs`'s `--trigger-context` flag
+(`propagation-drain.yml` passes it straight through), so the artifact alone always answers whether a
+given drain was hand-dispatched or chained and, if chained, off which upstream producers run.
+
+**This chain does not honour `POPULATION_PAUSED`** (`population-turn.yml`'s own pause variable — see
+`POPULATION-TURN-RUNBOOK.md`'s "Population stop" section). `POPULATION_PAUSED` stops NEW record-grade
+minting during the T46 validation window; it says nothing about decision propagation, which is Loop B
+(spec 08) draining events already queued from producer writes that already happened. The two stops are
+independent by design — pausing the drain during the population pause would let `propagation_events` grow
+unboundedly for a reason unrelated to why population itself is paused.
+
+**Manual dispatch is unaffected** — `workflow_dispatch` remains, every input unchanged; chaining is
+additive.
+
+**What lands where:** `scripts/harness-runs/propagation/propagation-run-NNN.json` — the run's own
 self-emitted artifact (dry or apply). No other file is committed by this workflow; `derived_values`,
 `derivation_edges`, and the `drained_at` marks on `propagation_events` are database writes, not local
 files, matching the same "database writes leave no local file beyond the harness-run artifact" posture
@@ -521,7 +567,7 @@ files, matching the same "database writes leave no local file beyond the harness
 
 **First run.** `scripts/harness-runs/propagation/PENDING-RUN.md` records the pre-first-run
 harness-version hash pin (mirroring the mint/screen family's own convention) — it is replaced by the first
-real `propagation-drain-run-001.json` once a run actually lands, the same lifecycle `forward-events`'s
+real `propagation-run-001.json` once a run actually lands, the same lifecycle `forward-events`'s
 `PENDING-RUN.md` went through.
 
 ## Seeding derived values

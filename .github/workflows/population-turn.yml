@@ -19,6 +19,14 @@ name: Population turn
 #                            # operator explicitly re-arms it (see source-sweep.yml / corpus-turn.yml for
 #                            # the same posture on the other runtime families).
 #
+# EVENT-DRIVEN CHAINING (lane CHAIN, 2026-09-04, build plan W1.4 / audit wiring-audit-2026-09-04 §5
+# reading (a)) — a `workflow_run` trigger on "Ledger consume" completed, NOT a schedule. Rule 16 forbids a
+# standing cadence (`schedule:`/cron); it does not forbid firing off the COMPLETION of another workflow's
+# run, which is what this is — the audit's own §5.2 names this exact mechanism as rule-16-compliant ("does
+# not touch the `schedule:` blocks rule 16 forbids arming"). See "CHAINING — HOW THIS RUN DECIDES WHAT TO
+# DO" below for the full contract, and docs/runbooks/POPULATION-TURN-RUNBOOK.md's "Chaining" section for
+# the coordinator-facing summary.
+#
 # SECRETS (repository secrets; never echoed): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY — the
 # same pair every guarded script in fsi-app/scripts/lib/db.mjs already requires (registered in
 # .discipline/governance/secrets-registry.mjs's WORKFLOW_SECRETS; no new secret name is introduced here).
@@ -66,7 +74,9 @@ name: Population turn
 # filesystem-only, no-DB-creds-needed check, so a defect in a PRIOR run (or a hand-run predecessor from
 # before this lane) is caught before this run spends any fetch/mint budget on a slice this repo cannot yet
 # connect either. THE GATE'S OWN REFUSAL NAMES THE FIX: dispatch this workflow again with
-# `flywheel_backlog: true` (see below) — never a hand-run coordinator pass.
+# `flywheel_backlog: true` (see below) — never a hand-run coordinator pass. THE GATE still applies exactly
+# the same way on a chained (`workflow_run`) dispatch as on a hand dispatch — chaining changes WHO fires
+# this workflow, never what it is allowed to do once it runs.
 #
 # BACKLOG MODE (lane TANDEM-2, 2026-09-04) — `flywheel_backlog: true`. Clears exactly what THE GATE
 # refuses, without minting anything new: when set, this job SKIPS `stamp-wo26-archive-reason.mjs`,
@@ -84,7 +94,8 @@ name: Population turn
 # dispatch (see below) — gating the one dispatch whose entire purpose is clearing the gate would be
 # circular. `timeout-minutes` is raised 30 → 60 in this lane specifically to give a default-sized backlog
 # apply (2 artifacts) real headroom — see the cost projection this raise is based on in
-# `run-population-flywheel.mjs`'s own header.
+# `run-population-flywheel.mjs`'s own header. Backlog mode is `workflow_dispatch`-only — a `workflow_run`
+# chained dispatch never sets `flywheel_backlog` (see below).
 #
 # rows_file (Lane POP2, 2026-09-02, first live dry run): the browser-capture escape hatch made a
 # first-class runtime input. MINT-RUNBOOK.md §1a's operator ruling is "a site that refuses the runner is
@@ -94,7 +105,73 @@ name: Population turn
 # scripts/_snapshots/population-browser/, then dispatch this workflow with rows_file pointing at it. When
 # set, the export-census-rows.mjs step is skipped entirely and run-mint-batch.mjs/apply-mint-batch.mjs run
 # against that file directly — export-census-rows.mjs's own automated capture is simply not on the path
-# for those rows.
+# for those rows. `rows_file` is `workflow_dispatch`-only — a chained dispatch always uses the live export.
+#
+# ── CHAINING — HOW THIS RUN DECIDES WHAT TO DO (lane CHAIN, 2026-09-04) ─────────────────────────────────
+#
+# `on.workflow_run: workflows: ["Ledger consume"], types: [completed]` fires this workflow every time a
+# `ledger-consume.yml` run finishes, in ADDITION to `workflow_dispatch`. The FIRST step below ("Resolve
+# run parameters, trigger context, and the chaining/pause gate") is the ONE place that decides, for BOTH
+# trigger shapes, what this run actually does — every other step downstream reads its RUN_* outputs
+# (RUN_MODE/RUN_LIMIT/RUN_SOURCE_ID/RUN_CELEX_PREFIX/RUN_CAPTURE/RUN_ROWS_FILE/RUN_FLYWHEEL_BACKLOG/
+# RUN_BACKLOG_MAX_ARTIFACTS/RUN_SKIP/RUN_SKIP_REASON/RUN_TRIGGER_CONTEXT) instead of `inputs.*` directly,
+# so a `workflow_run` dispatch (whose `inputs` context is always empty — a `type: boolean` input compared
+# to a bare `${{ inputs.x }}` on that trigger is exactly the class of silent-wrong-default bug "Gate:
+# refuse a new slice..." below already scarred on once, see its own comment) can never fall through to a
+# stale/default reading of a hand-dispatch-only input.
+#
+# ON A workflow_dispatch: RUN_* mirrors `inputs.*` exactly — unchanged behavior, byte for byte, from
+# before this lane.
+#
+# ON A workflow_run (fired by "Ledger consume" completing): RUN_MODE=apply, RUN_LIMIT=50 (the SAME
+# default a hand dispatch's `limit` input already uses), every other input at its hand-dispatch default
+# (RUN_CAPTURE=true, RUN_FLYWHEEL_BACKLOG=false, RUN_SOURCE_ID/RUN_CELEX_PREFIX/RUN_ROWS_FILE empty) —
+# ONLY IF ALL of the following hold, checked in this order (any failure sets RUN_SKIP=true with a named
+# reason logged via `::notice::` and every real step below skips, so the JOB ITSELF STILL EXITS 0 GREEN —
+# a refused chain is never a red run, exactly A9/§5's "never a coordinator failure" posture):
+#   1. `vars.POPULATION_PAUSED` (a repository VARIABLE, not a DB flag — see "THE POPULATION STOP" below)
+#      is not `"true"`. Checked FIRST and identically for a hand dispatch too — the pause is universal.
+#   2. The upstream run's own `conclusion` (`github.event.workflow_run.conclusion`) is `"success"`.
+#   3. The upstream run's own harness-run artifact — read from `ledger-consume/<upstream run_id>`, THE
+#      MECHANISM below — reports `config.mode == "apply"` AND `config.apply_disarmed == false` (i.e. a
+#      REAL, non-disarmed apply — not a plan run, and not an apply request that
+#      LEDGER_CONSUME_APPLY_ENABLED=false silently downgraded to plan semantics, see run-ledger-consume
+#      .mjs's own ADR-023 gate) AND `metrics.promoted > 0` (candidates actually reached census_worklist).
+#      `metrics.promoted` alone is NOT sufficient — PROMOTED_LIKE_DISPOSITIONS
+#      (run-ledger-consume.mjs) counts a PLAN run's `would_mint` outcomes under the same key, so checking
+#      promoted without also checking mode/apply_disarmed would chain a real population-turn apply off a
+#      run that wrote nothing to the database — an honest-looking number describing a no-op.
+#
+# THE MECHANISM (reading the upstream run's own artifact). `ledger-consume.yml` does NOT upload its
+# harness-run JSON via `actions/upload-artifact` (only `scripts/_snapshots/` — the raw fetch/classify
+# trace, not this run's own metrics/config). The one place that artifact reliably lands is the
+# `ledger-consume/<run_id>` branch `deliver-artifact-branch.sh` ALWAYS pushes before it even attempts to
+# open a PR (see that script's own header) — regardless of whether the PR opens or falls back to the
+# tracking issue (this repository currently refuses Actions-created PRs, per A1 §6/§7 of the wiring
+# audit), so the branch is the one delivery guarantee this family makes. This run fetches exactly that one
+# branch (`git fetch ... refs/heads/ledger-consume/<upstream run_id>`) and reads whichever
+# `scripts/harness-runs/ledger-consume/*.json` file on it this checkout doesn't already have — the SAME
+# sibling-branch hydration idiom this workflow already uses below for unmerged mint/forward-events
+# artifacts (see "Hydrate unmerged mint + forward-events artifacts..."), applied here to find
+# ledger-consume's own new file instead of copying it in. A missing branch (nothing new to commit) or a
+# missing new artifact on it is a named no-op, never an error — `git fetch` failures and absent refs are
+# handled the same way (`|| true` / `git rev-parse --verify --quiet`).
+#
+# THE POPULATION STOP — `POPULATION_PAUSED` (lane CHAIN, 2026-09-04; a GitHub Actions repository VARIABLE,
+# `Settings → Secrets and variables → Actions → Variables`, read here as `${{ vars.POPULATION_PAUSED }}`).
+# This is DELIBERATELY NOT the DB-side `system_state.global_processing_paused`/`scrape_cadence` pair RD-23
+# governs (doctrine-register.mjs) — this workflow writes no DB row to arm or disarm it, so RD-23's
+# "exactly one writer, enforced structurally" doctrine (which is about who may WRITE those specific DB
+# columns) does not apply here; POPULATION_PAUSED is a repository-configuration toggle at the Actions
+# layer, set by the coordinator through the GitHub UI/API, the same mechanism as any other repository
+# variable — never a code change, never a migration. The build plan's own §3 sequence states it plainly:
+# "Population slices are stopped until T46 passes (operator, 2026-09-04)" — the coordinator sets
+# `POPULATION_PAUSED=true` NOW (before this chaining lands) and flips it back to `false` once T46's
+# full-system validation passes. While `true`: EVERY dispatch of this workflow — hand OR chained — is a
+# named no-op (RUN_SKIP=true, reason logged, job exits 0 green); `flywheel_backlog: true` dispatches are
+# ALSO paused (population-turn is population-turn regardless of which mode a hand dispatch requests). See
+# `docs/runbooks/POPULATION-TURN-RUNBOOK.md`'s "Population stop" section for the coordinator-facing
+# summary of exactly when to flip this.
 
 on:
   workflow_dispatch:
@@ -136,6 +213,13 @@ on:
         description: 'Only used when flywheel_backlog=true. Max stale mint-run artifacts to enrich in ONE dispatch. Leave blank to use run-population-flywheel.mjs''s own documented default (see that script''s header for the cost reasoning).'
         required: false
         type: string
+  # workflow_run (lane CHAIN, 2026-09-04): event-driven off a completed run, NOT a schedule (rule 16 is
+  # about `schedule:`/cron blocks — see this file's own header "EVENT-DRIVEN CHAINING" section and audit
+  # wiring-audit-2026-09-04 §5's own rule-16 check). Fires once per "Ledger consume" run, any conclusion;
+  # the first job step decides whether that run's outcome actually earns a chained dispatch.
+  workflow_run:
+    workflows: ["Ledger consume"]
+    types: [completed]
   # schedule:
   #   - cron: '0 9 * * 2'   # BUILD MODE (2026-09-02) — see header above; stays commented out until the
   #                          # operator explicitly re-arms it.
@@ -171,67 +255,194 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ── THE ONE PLACE that resolves inputs.* (workflow_dispatch) vs. the chained defaults +
+      # promoted/pause gate (workflow_run) into a single RUN_* vocabulary every step below reads —
+      # see this file's own header "CHAINING" section for the full contract. Runs BEFORE setup-node/
+      # npm ci (cheap: git fetch of one small branch, no Node needed) so a no-op chained dispatch never
+      # pays the install cost. ALWAYS runs and ALWAYS logs its decision (trigger, gate readings, RUN_SKIP
+      # + reason) — a skipped run is still a run that says why in its own log, never a silent no-op.
+      - name: Resolve run parameters, trigger context, and the chaining/pause gate
+        run: |
+          set -u
+          EVENT="${{ github.event_name }}"
+          echo "event = $EVENT"
+
+          # THE POPULATION STOP — see this file's header. A repository VARIABLE, never a DB write; honoured
+          # identically for a hand dispatch and a chained one (checked first, before anything else).
+          PAUSED="${{ vars.POPULATION_PAUSED }}"
+
+          RUN_SKIP=false
+          RUN_SKIP_REASON=""
+          RUN_TRIGGER_CONTEXT=""
+
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            RUN_MODE="${{ inputs.mode }}"
+            RUN_LIMIT="${{ inputs.limit }}"
+            RUN_SOURCE_ID="${{ inputs.source_id }}"
+            RUN_CELEX_PREFIX="${{ inputs.celex_prefix }}"
+            RUN_CAPTURE="${{ inputs.capture }}"
+            RUN_ROWS_FILE="${{ inputs.rows_file }}"
+            RUN_FLYWHEEL_BACKLOG="${{ inputs.flywheel_backlog }}"
+            RUN_BACKLOG_MAX_ARTIFACTS="${{ inputs.backlog_max_artifacts }}"
+            if [ "$PAUSED" = "true" ]; then
+              RUN_SKIP=true
+              RUN_SKIP_REASON="POPULATION_PAUSED=true (repository variable) — hand dispatch honours the pause too; the coordinator flips it at T46 (docs/plans/complete-system-build-plan-2026-09-04.md §3)."
+            fi
+
+          elif [ "$EVENT" = "workflow_run" ]; then
+            UPSTREAM_NAME="${{ github.event.workflow_run.name }}"
+            UPSTREAM_RUN_ID="${{ github.event.workflow_run.id }}"
+            UPSTREAM_CONCLUSION="${{ github.event.workflow_run.conclusion }}"
+            echo "upstream = $UPSTREAM_NAME (run $UPSTREAM_RUN_ID), conclusion=$UPSTREAM_CONCLUSION"
+
+            # Chained defaults: mode=apply, everything else at the SAME default a hand dispatch of this
+            # workflow already uses — a chained run is never wider or narrower than a person would pick.
+            RUN_MODE="apply"
+            RUN_LIMIT="50"
+            RUN_SOURCE_ID=""
+            RUN_CELEX_PREFIX=""
+            RUN_CAPTURE="true"
+            RUN_ROWS_FILE=""
+            RUN_FLYWHEEL_BACKLOG="false"
+            RUN_BACKLOG_MAX_ARTIFACTS=""
+            RUN_TRIGGER_CONTEXT="$(jq -nc --arg name "$UPSTREAM_NAME" --argjson run_id "$UPSTREAM_RUN_ID" --arg conclusion "$UPSTREAM_CONCLUSION" '{name:$name, run_id:$run_id, conclusion:$conclusion}' 2>/dev/null || true)"
+            echo "trigger_context = $RUN_TRIGGER_CONTEXT"
+
+            if [ "$PAUSED" = "true" ]; then
+              RUN_SKIP=true
+              RUN_SKIP_REASON="POPULATION_PAUSED=true — chained dispatch from workflow_run($UPSTREAM_NAME, run $UPSTREAM_RUN_ID, conclusion=$UPSTREAM_CONCLUSION) is a no-op; the coordinator flips the pause at T46 (docs/plans/complete-system-build-plan-2026-09-04.md §3)."
+            elif [ "$UPSTREAM_CONCLUSION" != "success" ]; then
+              RUN_SKIP=true
+              RUN_SKIP_REASON="upstream run $UPSTREAM_RUN_ID ($UPSTREAM_NAME) concluded '$UPSTREAM_CONCLUSION', not success — no-op, nothing to chain from."
+            else
+              # THE MECHANISM — see this file's header. ledger-consume.yml never uploads its harness-run
+              # JSON as a workflow artifact (only scripts/_snapshots/); the ledger-consume/<run_id> branch
+              # deliver-artifact-branch.sh ALWAYS pushes (PR or not) is the one reliable source.
+              BRANCH="ledger-consume/$UPSTREAM_RUN_ID"
+              git fetch --no-tags --depth=1 origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" 2>/dev/null || true
+              if ! git rev-parse --verify --quiet "refs/remotes/origin/$BRANCH" >/dev/null; then
+                RUN_SKIP=true
+                RUN_SKIP_REASON="no $BRANCH artifact branch found on origin (ledger-consume's own commit step found nothing new to push) — no-op, nothing to chain from."
+              else
+                NEW_ARTIFACT=""
+                for f in $(git ls-tree -r --full-tree --name-only "refs/remotes/origin/$BRANCH" -- fsi-app/scripts/harness-runs/ledger-consume/); do
+                  rel="${f#fsi-app/}"
+                  if [ ! -e "$rel" ]; then
+                    NEW_ARTIFACT="$rel"
+                    break
+                  fi
+                done
+                if [ -z "$NEW_ARTIFACT" ]; then
+                  RUN_SKIP=true
+                  RUN_SKIP_REASON="$BRANCH carries no ledger-consume harness-run artifact this checkout doesn't already have — no-op, nothing to chain from."
+                elif ! git show "refs/remotes/origin/$BRANCH:fsi-app/$NEW_ARTIFACT" > /tmp/ledger-consume-artifact.json 2>/dev/null; then
+                  RUN_SKIP=true
+                  RUN_SKIP_REASON="could not read fsi-app/$NEW_ARTIFACT from $BRANCH (transient git error) — no-op."
+                else
+                  # jq extractions each fall back rather than fail the step under -e (this repo's own
+                  # convention — see uptime-probes.yml's identical `2>/dev/null || echo ...` idiom): a
+                  # malformed/unreadable field degrades to a safe default and this gate still decides
+                  # correctly (an unreadable "apply_disarmed" reads as disarmed=true, i.e. still refuses).
+                  PROMOTED="$(jq -r '.metrics.promoted // 0' /tmp/ledger-consume-artifact.json 2>/dev/null || echo 0)"
+                  EFFECTIVE_MODE="$(jq -r '.config.mode // "plan"' /tmp/ledger-consume-artifact.json 2>/dev/null || echo plan)"
+                  APPLY_DISARMED="$(jq -r '.config.apply_disarmed // true' /tmp/ledger-consume-artifact.json 2>/dev/null || echo true)"
+                  case "$PROMOTED" in ''|*[!0-9]*) PROMOTED=0 ;; esac
+                  echo "ledger-consume artifact = $NEW_ARTIFACT promoted=$PROMOTED effective_mode=$EFFECTIVE_MODE apply_disarmed=$APPLY_DISARMED"
+                  if [ "$EFFECTIVE_MODE" != "apply" ] || [ "$APPLY_DISARMED" != "false" ]; then
+                    RUN_SKIP=true
+                    RUN_SKIP_REASON="ledger-consume run $UPSTREAM_RUN_ID ran with effective mode=$EFFECTIVE_MODE (apply_disarmed=$APPLY_DISARMED) — no real writes happened (LEDGER_CONSUME_APPLY_ENABLED is false per ADR-023 until an operator flips it in a reviewed diff), so nothing new reached census_worklist — no-op."
+                  elif [ "$PROMOTED" -le 0 ]; then
+                    RUN_SKIP=true
+                    RUN_SKIP_REASON="ledger-consume run $UPSTREAM_RUN_ID applied for real but metrics.promoted=$PROMOTED — nothing new reached census_worklist — no-op."
+                  fi
+                fi
+              fi
+            fi
+
+          else
+            RUN_SKIP=true
+            RUN_SKIP_REASON="unrecognized trigger event '$EVENT' — no-op."
+            RUN_MODE="dry"; RUN_LIMIT="50"; RUN_SOURCE_ID=""; RUN_CELEX_PREFIX=""; RUN_CAPTURE="true"
+            RUN_ROWS_FILE=""; RUN_FLYWHEEL_BACKLOG="false"; RUN_BACKLOG_MAX_ARTIFACTS=""
+          fi
+
+          # EXPORT_DIR/CENSUS_ROWS_PATH/CENSUS_ROWS_BASENAME — same derivation the pre-chaining "This
+          # run's gates" step always did, now keyed off RUN_* rather than inputs.* so it reads correctly
+          # for BOTH trigger shapes. Skipped (left empty) when this dispatch is a no-op — nothing downstream
+          # reads them in that case, but every later step still gets a real (empty) value, never unset.
+          EXPORT_DIR=""
+          CENSUS_ROWS_PATH=""
+          CENSUS_ROWS_BASENAME=""
+          if [ "$RUN_SKIP" != "true" ]; then
+            EXPORT_DIR="scripts/_snapshots/population-${{ github.run_id }}"
+            if [ "$RUN_FLYWHEEL_BACKLOG" = "true" ]; then
+              echo "flywheel_backlog=true — export/mint steps below are skipped; CENSUS_ROWS_PATH/CENSUS_ROWS_BASENAME are unused this dispatch."
+            elif [ -n "$RUN_ROWS_FILE" ]; then
+              CENSUS_ROWS_PATH="$RUN_ROWS_FILE"
+              echo "using rows_file — export-census-rows.mjs will be skipped: $CENSUS_ROWS_PATH"
+            else
+              CENSUS_ROWS_PATH="scripts/_snapshots/population-${{ github.run_id }}/census-rows.json"
+            fi
+            if [ -n "$CENSUS_ROWS_PATH" ]; then
+              BASE="$(basename "$CENSUS_ROWS_PATH")"
+              CENSUS_ROWS_BASENAME="${BASE%.json}"
+            fi
+          fi
+
+          {
+            echo "RUN_MODE=$RUN_MODE"
+            echo "RUN_LIMIT=$RUN_LIMIT"
+            echo "RUN_SOURCE_ID=$RUN_SOURCE_ID"
+            echo "RUN_CELEX_PREFIX=$RUN_CELEX_PREFIX"
+            echo "RUN_CAPTURE=$RUN_CAPTURE"
+            echo "RUN_ROWS_FILE=$RUN_ROWS_FILE"
+            echo "RUN_FLYWHEEL_BACKLOG=$RUN_FLYWHEEL_BACKLOG"
+            echo "RUN_BACKLOG_MAX_ARTIFACTS=$RUN_BACKLOG_MAX_ARTIFACTS"
+            echo "RUN_SKIP=$RUN_SKIP"
+            echo "EXPORT_DIR=$EXPORT_DIR"
+            echo "CENSUS_ROWS_PATH=$CENSUS_ROWS_PATH"
+            echo "CENSUS_ROWS_BASENAME=$CENSUS_ROWS_BASENAME"
+          } >> "$GITHUB_ENV"
+          {
+            echo "RUN_TRIGGER_CONTEXT<<__RUN_TRIGGER_CONTEXT_EOF__"
+            echo "$RUN_TRIGGER_CONTEXT"
+            echo "__RUN_TRIGGER_CONTEXT_EOF__"
+            echo "RUN_SKIP_REASON<<__RUN_SKIP_REASON_EOF__"
+            echo "$RUN_SKIP_REASON"
+            echo "__RUN_SKIP_REASON_EOF__"
+          } >> "$GITHUB_ENV"
+
+          if [ "$RUN_SKIP" = "true" ]; then
+            echo "::notice::population-turn NO-OP — $RUN_SKIP_REASON"
+          else
+            echo "population-turn proceeding: mode=$RUN_MODE limit=$RUN_LIMIT flywheel_backlog=$RUN_FLYWHEEL_BACKLOG trigger_context=${RUN_TRIGGER_CONTEXT:-(none - workflow_dispatch)}"
+          fi
+
       - uses: actions/setup-node@v4
+        if: ${{ env.RUN_SKIP != 'true' }}
         with:
           node-version: '24'
           cache: npm
           cache-dependency-path: fsi-app/package-lock.json
 
       - name: Install
+        if: ${{ env.RUN_SKIP != 'true' }}
         run: npm ci
 
       - name: Verify required secrets
+        if: ${{ env.RUN_SKIP != 'true' }}
         run: |
           missing=0
           if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
           [ "$missing" -eq 0 ]
 
-      - name: This run's gates
-        run: |
-          echo "trigger      = ${{ github.event_name }}"
-          echo "mode         = ${{ inputs.mode }}"
-          echo "limit        = ${{ inputs.limit }}"
-          echo "source_id    = ${{ inputs.source_id }}"
-          echo "celex_prefix = ${{ inputs.celex_prefix }}"
-          echo "capture      = ${{ inputs.capture }}"
-          echo "rows_file    = ${{ inputs.rows_file }}"
-          echo "flywheel_backlog     = ${{ inputs.flywheel_backlog }}"
-          echo "backlog_max_artifacts = ${{ inputs.backlog_max_artifacts }}"
-          echo "EXPORT_DIR=scripts/_snapshots/population-${{ github.run_id }}" >> "$GITHUB_ENV"
-          if [ "${{ inputs.flywheel_backlog }}" = "true" ]; then
-            echo "flywheel_backlog=true — export/mint steps below are skipped; CENSUS_ROWS_PATH/CENSUS_ROWS_BASENAME are unused this dispatch."
-            echo "CENSUS_ROWS_PATH=" >> "$GITHUB_ENV"
-            echo "CENSUS_ROWS_BASENAME=" >> "$GITHUB_ENV"
-            exit 0
-          fi
-          if [ -n "${{ inputs.rows_file }}" ]; then
-            CENSUS_ROWS_PATH="${{ inputs.rows_file }}"
-            echo "using rows_file — export-census-rows.mjs will be skipped: $CENSUS_ROWS_PATH"
-          else
-            CENSUS_ROWS_PATH="scripts/_snapshots/population-${{ github.run_id }}/census-rows.json"
-          fi
-          echo "CENSUS_ROWS_PATH=$CENSUS_ROWS_PATH" >> "$GITHUB_ENV"
-          # run-mint-batch.mjs's own basename convention (base = basename(inputPath, extname(inputPath)))
-          # names its apply-ready/report files — reproduced here so apply-mint-batch.mjs's --apply-ready
-          # path matches EXACTLY regardless of whether the input came from the live export (basename
-          # "census-rows") or an arbitrary rows_file (e.g. basename "batch-001").
-          BASE="$(basename "$CENSUS_ROWS_PATH")"
-          echo "CENSUS_ROWS_BASENAME=${BASE%.json}" >> "$GITHUB_ENV"
-
       # ── hydrate UNMERGED sibling artifacts so this run's mint-run_id (and, now, forward-events-run_id)
       # cannot collide ────────────────────────────────────────────────────────────────────────────────
       # Same problem, same fix as source-sweep.yml's own step (see that file's comment for the full
-      # rationale): claimRunId (scripts/lib/run-artifact.mjs) numbers the next <family>-run-NNN from the
-      # files it can see in the checked-out tree, i.e. master. Artifacts land through a PR, so a
-      # population-turn dispatched before a PREVIOUS population-turn's (or a hand-run mint batch's) PR
-      # merged would see a stale count and claim the SAME run_id. Extended (lane TANDEM, 2026-09-04) to
-      # also hydrate scripts/harness-runs/forward-events/: run-population-flywheel.mjs's own
-      # forward-event-extraction step self-emits a NEW forward-events-run-NNN.json every apply run, the
-      # exact same collision risk mint-run-NNN.json already had. The unmerged sibling branches are
-      # fetched and both families' artifacts placed in the working tree (untracked; removed again before
-      # the commit step, never committed by this run) so each family's claim counts above them.
+      # rationale). Extended (lane TANDEM, 2026-09-04) to also hydrate scripts/harness-runs/forward-events/.
       - name: Hydrate unmerged mint + forward-events artifacts from sibling population branches (run_id collision guard)
+        if: ${{ env.RUN_SKIP != 'true' }}
         run: |
           git fetch --no-tags origin '+refs/heads/population/*:refs/remotes/origin/population/*' || true
           : > /tmp/hydrated-artifacts.txt
@@ -258,40 +469,44 @@ jobs:
       # `type: boolean` input is a BOOLEAN in expressions; comparing it to the STRING 'true' coerces both to
       # numbers (true -> 1, 'true' -> NaN), so `!= 'true'` was always true and every skipped step ran. Compare
       # to the bare boolean `true`; inside `run:` blocks the interpolated text "true" is still correct.
+      # (lane CHAIN, 2026-09-04): now reads env.RUN_MODE/env.RUN_FLYWHEEL_BACKLOG (plain strings written by
+      # the resolve step above via GITHUB_ENV, never `inputs.*` directly) — the exact class of bug this
+      # comment already warns about would otherwise resurface on a workflow_run dispatch, whose `inputs`
+      # context is always empty.
       - name: 'Gate: refuse a new slice while a prior one is left unconnected (apply mode only, not on a backlog dispatch)'
-        if: ${{ inputs.mode == 'apply' && inputs.flywheel_backlog != true }}
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_MODE == 'apply' && env.RUN_FLYWHEEL_BACKLOG != 'true' }}
         run: node scripts/turns/run-population-flywheel.mjs --check-gate --harness-runs-dir scripts/harness-runs/mint
 
       - name: Snapshot existing mint-run artifacts (for this run's new run_id discovery)
-        if: ${{ inputs.flywheel_backlog != true }}
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_FLYWHEEL_BACKLOG != 'true' }}
         run: |
           ls scripts/harness-runs/mint/mint-run-*.json 2>/dev/null | sort > /tmp/mint-before.txt || true
 
       - name: stamp-wo26-archive-reason.mjs (archive_reason hygiene — apply only in apply mode)
-        if: ${{ inputs.flywheel_backlog != true }}
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_FLYWHEEL_BACKLOG != 'true' }}
         run: |
-          if [ "${{ inputs.mode }}" = "apply" ]; then
+          if [ "$RUN_MODE" = "apply" ]; then
             node scripts/mint/stamp-wo26-archive-reason.mjs --apply
           else
             node scripts/mint/stamp-wo26-archive-reason.mjs
           fi
 
       - name: export-census-rows.mjs
-        if: ${{ inputs.rows_file == '' }}
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_ROWS_FILE == '' }}
         run: |
-          if [ "${{ inputs.flywheel_backlog }}" = "true" ]; then
+          if [ "$RUN_FLYWHEEL_BACKLOG" = "true" ]; then
             echo "flywheel_backlog=true — export-census-rows.mjs skipped (backlog mode mints nothing)."
             exit 0
           fi
           mkdir -p "$EXPORT_DIR"
-          args=(--limit "${{ inputs.limit }}" --out "$CENSUS_ROWS_PATH")
-          if [ -n "${{ inputs.source_id }}" ]; then args+=(--source-id "${{ inputs.source_id }}"); fi
-          if [ -n "${{ inputs.celex_prefix }}" ]; then args+=(--celex-prefix "${{ inputs.celex_prefix }}"); fi
-          if [ "${{ inputs.capture }}" = "true" ]; then args+=(--capture); fi
+          args=(--limit "$RUN_LIMIT" --out "$CENSUS_ROWS_PATH")
+          if [ -n "$RUN_SOURCE_ID" ]; then args+=(--source-id "$RUN_SOURCE_ID"); fi
+          if [ -n "$RUN_CELEX_PREFIX" ]; then args+=(--celex-prefix "$RUN_CELEX_PREFIX"); fi
+          if [ "$RUN_CAPTURE" = "true" ]; then args+=(--capture); fi
           node scripts/mint/export-census-rows.mjs "${args[@]}"
 
       - name: Skip export-census-rows.mjs (rows_file supplied)
-        if: ${{ inputs.rows_file != '' && inputs.flywheel_backlog != true }}
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_ROWS_FILE != '' && env.RUN_FLYWHEEL_BACKLOG != 'true' }}
         run: |
           mkdir -p "$EXPORT_DIR"
           if [ ! -f "$CENSUS_ROWS_PATH" ]; then
@@ -306,7 +521,7 @@ jobs:
       # true` here is deliberate; the artifact + apply-ready file are the record of what happened, not
       # this step's own exit code.
       - name: run-mint-batch.mjs --census-rows --grade record --execute (the mint family's EXISTING gate, unmodified)
-        if: ${{ inputs.flywheel_backlog != true }}
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_FLYWHEEL_BACKLOG != 'true' }}
         run: |
           node scripts/mint/run-mint-batch.mjs \
             --census-rows "$CENSUS_ROWS_PATH" \
@@ -316,7 +531,7 @@ jobs:
             || true
 
       - name: Discover this run's new mint-run-NNN.json (set by run-mint-batch.mjs's collision-safe claim)
-        if: ${{ inputs.flywheel_backlog != true }}
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_FLYWHEEL_BACKLOG != 'true' }}
         run: |
           ls scripts/harness-runs/mint/mint-run-*.json 2>/dev/null | sort > /tmp/mint-after.txt || true
           NEW_MINT_RUN="$(comm -13 /tmp/mint-before.txt /tmp/mint-after.txt | head -1)"
@@ -328,14 +543,14 @@ jobs:
           echo "This run's mint-run artifact: $NEW_MINT_RUN"
 
       - name: apply-mint-batch.mjs (coordinator-apply — apply only in apply mode)
-        if: ${{ inputs.flywheel_backlog != true }}
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_FLYWHEEL_BACKLOG != 'true' }}
         run: |
           # --report is technically optional (apply-mint-batch.mjs derives the same path from
           # --apply-ready's own basename, defaultReportPathFor) — named explicitly here anyway, so the
           # validation_failed hold-back (lane URL-GUIL, 2026-09-03) has an unambiguous input regardless of
           # any future change to that derivation.
           args=(--apply-ready "$EXPORT_DIR/${CENSUS_ROWS_BASENAME}.apply-ready.json" --report "$EXPORT_DIR/${CENSUS_ROWS_BASENAME}.mint-batch-report.json" --census-rows "$CENSUS_ROWS_PATH" --mint-run "$NEW_MINT_RUN")
-          if [ "${{ inputs.mode }}" = "apply" ]; then args+=(--apply); fi
+          if [ "$RUN_MODE" = "apply" ]; then args+=(--apply); fi
           node scripts/mint/apply-mint-batch.mjs "${args[@]}"
 
       # Post-apply reconciliation: a record-grade row whose provenance_status is stale against what
@@ -343,9 +558,9 @@ jobs:
       # it (run #8, 2026-09-02: ten items stamped quarantined before their gate row existed). Dry in dry
       # mode (lists), apply in apply mode. Never sets the status itself.
       - name: rederive-record-provenance.mjs (heal stale provenance stamps — apply only in apply mode)
-        if: ${{ inputs.flywheel_backlog != true }}
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_FLYWHEEL_BACKLOG != 'true' }}
         run: |
-          if [ "${{ inputs.mode }}" = "apply" ]; then node scripts/mint/rederive-record-provenance.mjs --apply; else node scripts/mint/rederive-record-provenance.mjs; fi
+          if [ "$RUN_MODE" = "apply" ]; then node scripts/mint/rederive-record-provenance.mjs --apply; else node scripts/mint/rederive-record-provenance.mjs; fi
 
       # Relevance reconciliation: any LIVE record-grade item the screen (rules + the operator's reviewed
       # verdicts) rules off-vertical is archived reversibly (archive_reason off_vertical) through the
@@ -356,9 +571,9 @@ jobs:
       # list stands. Apply mode archives them reversibly (archive_reason off_vertical, snapshot per chunk);
       # ambiguous items are listed, never archived.
       - name: screen-reconcile-records.mjs (archive off-vertical record items reversibly — apply only in apply mode)
-        if: ${{ inputs.flywheel_backlog != true }}
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_FLYWHEEL_BACKLOG != 'true' }}
         run: |
-          if [ "${{ inputs.mode }}" = "apply" ]; then node scripts/mint/screen-reconcile-records.mjs --apply; else node scripts/mint/screen-reconcile-records.mjs; fi
+          if [ "$RUN_MODE" = "apply" ]; then node scripts/mint/screen-reconcile-records.mjs --apply; else node scripts/mint/screen-reconcile-records.mjs; fi
 
       # THE FLYWHEEL (lane TANDEM, 2026-09-04) — MANDATORY, MINT-RUNBOOK.md §8/§9, run by the workflow
       # itself; the coordinator's job is to read the outcomes. Runs after screen-reconcile-records.mjs so
@@ -370,26 +585,31 @@ jobs:
       # tag-ratification + the §9 outcomes write, in order — see that script's own header for the full
       # per-step contract and the dry-mode preview it runs instead when mode=dry. NO `|| true`: a failed
       # flywheel step fails this job — a green run means minted AND connected AND recorded, never merely
-      # minted. Supersedes the old unconditional `propose-tags.mjs --dry` preview step (Lane
-      # TAG-PROPOSALS, 2026-09-03) — that step only ever logged what tag-proposals.mjs WOULD write; this
-      # step's own tag-proposals stage actually writes it, scoped to this batch's own minted ids
-      # (`--arg ids:<...>`), then tag-ratification's auto-adoption sweep (`--arg auto`) actually applies
-      # the high-confidence subset — no separate, later MAINT dispatch is needed for a population-turn
-      # batch's own newly-minted items.
+      # minted. `--trigger-context` (lane CHAIN, 2026-09-04) passes this dispatch's own RUN_TRIGGER_CONTEXT
+      # through unchanged — {name, run_id, conclusion} of the upstream run for a chained dispatch, or
+      # nothing (null) for a hand dispatch — so it lands in metrics.trigger_context on this batch's own
+      # mint-run-NNN.json (run-population-flywheel.mjs's write-outcomes step, §9) and the coordinator can
+      # always tell, from the artifact alone, whether a batch was hand-dispatched or chained and, if
+      # chained, exactly which upstream run fired it.
       - name: run-population-flywheel.mjs (discovery + forward-events + recluster + tags + §9 outcomes — MANDATORY, MINT-RUNBOOK.md §8/§9)
-        if: ${{ inputs.flywheel_backlog != true }}
-        run: node scripts/turns/run-population-flywheel.mjs --mint-run "$NEW_MINT_RUN" --mode ${{ inputs.mode }}
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_FLYWHEEL_BACKLOG != 'true' }}
+        run: |
+          args=(--mint-run "$NEW_MINT_RUN" --mode "$RUN_MODE")
+          if [ -n "$RUN_TRIGGER_CONTEXT" ]; then args+=(--trigger-context "$RUN_TRIGGER_CONTEXT"); fi
+          node scripts/turns/run-population-flywheel.mjs "${args[@]}"
 
       # BACKLOG MODE (lane TANDEM-2, 2026-09-04) — see the header comment above ("BACKLOG MODE") and
       # run-population-flywheel.mjs --backlog's own header for the full contract. Runs INSTEAD of every
-      # export/mint/apply/reconcile/normal-flywheel step above (all skipped via flywheel_backlog != 'true'
-      # on this dispatch) — this mode mints nothing; it only connects what earlier runs already minted.
-      # NO `|| true` here either: the same "a green run means connected, never merely attempted" posture.
+      # export/mint/apply/reconcile/normal-flywheel step above (all skipped via RUN_FLYWHEEL_BACKLOG !=
+      # 'true' on this dispatch) — this mode mints nothing; it only connects what earlier runs already
+      # minted. NO `|| true` here either: the same "a green run means connected, never merely attempted"
+      # posture. `flywheel_backlog` is workflow_dispatch-only (RUN_FLYWHEEL_BACKLOG is always "false" on a
+      # workflow_run dispatch — see the resolve step above), so this step never fires on a chained run.
       - name: run-population-flywheel.mjs --backlog (MINT-RUNBOOK.md §8/§9 over the EXISTING gate backlog, oldest first)
-        if: ${{ inputs.flywheel_backlog == true }}
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_FLYWHEEL_BACKLOG == 'true' }}
         run: |
-          args=(--backlog --mode "${{ inputs.mode }}" --harness-runs-dir scripts/harness-runs/mint)
-          if [ -n "${{ inputs.backlog_max_artifacts }}" ]; then args+=(--max-artifacts "${{ inputs.backlog_max_artifacts }}"); fi
+          args=(--backlog --mode "$RUN_MODE" --harness-runs-dir scripts/harness-runs/mint)
+          if [ -n "$RUN_BACKLOG_MAX_ARTIFACTS" ]; then args+=(--max-artifacts "$RUN_BACKLOG_MAX_ARTIFACTS"); fi
           node scripts/turns/run-population-flywheel.mjs "${args[@]}"
 
       - name: Remove hydrated sibling artifacts (they belong to their own branches)
@@ -408,7 +628,8 @@ jobs:
       # outcomes) AND scripts/harness-runs/forward-events (the flywheel step's own forward-events-run-NNN.json,
       # emitted by run-extraction.mjs/apply-extraction-output.mjs as part of MINT-RUNBOOK.md §8) must be
       # staged here — a green run means minted AND connected AND recorded, and "recorded" covers both
-      # families' artifacts, not just mint's.
+      # families' artifacts, not just mint's. On a RUN_SKIP=true (no-op) dispatch nothing was ever written,
+      # so `git diff --cached --quiet` is true below and this step is a harmless no-op too.
       - name: Commit the mint + forward-events harness-run artifacts and this run's snapshot dir, and open a PR
         if: always()
         env:
@@ -418,8 +639,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add scripts/harness-runs/mint
           git add scripts/harness-runs/forward-events
-          # EXPORT_DIR is empty on a flywheel_backlog dispatch (export/mint are skipped entirely, so
-          # nothing was ever written there) — guard the add so it never fails a step git runs with -e.
+          # EXPORT_DIR is empty on a flywheel_backlog dispatch or a RUN_SKIP=true no-op (export/mint never
+          # ran, so nothing was ever written there) — guard the add so it never fails a step git runs with -e.
           if [ -n "$EXPORT_DIR" ] && [ -d "$EXPORT_DIR" ]; then git add -f "$EXPORT_DIR"; fi
           if git diff --cached --quiet; then
             echo "No new population-turn artifacts to commit."
@@ -427,7 +648,7 @@ jobs:
           fi
           branch="population/${{ github.run_id }}"
           git checkout -b "$branch"
-          git commit -m "population-turn ${{ inputs.mode }}: run ${{ github.run_id }}"
+          git commit -m "population-turn $RUN_MODE: run ${{ github.run_id }}"
           # BRANCH-BASE (2026-09-04): GitHub refuses a GITHUB_TOKEN push that creates a branch whose
           # workflow files differ from the default branch ("refusing to allow a GitHub App to create or
           # update workflow ... without `workflows` permission"). Backlog applies #26 and #29 lost their
@@ -443,12 +664,17 @@ jobs:
           git fetch --no-tags --depth=50 origin master
           git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
           git push origin HEAD:"$branch"
-          if [ "${{ inputs.flywheel_backlog }}" = "true" ]; then
+          trigger_line="Trigger: workflow_dispatch (hand)"
+          if [ -n "$RUN_TRIGGER_CONTEXT" ]; then
+            trigger_line="Trigger: workflow_run — $(printf '%s' "$RUN_TRIGGER_CONTEXT" | jq -r '"\(.name) run \(.run_id), conclusion=\(.conclusion)"')"
+          fi
+          if [ "$RUN_FLYWHEEL_BACKLOG" = "true" ]; then
             {
               echo "Automated population turn — BACKLOG (run ${{ github.run_id }})."
               echo
-              echo "Mode: ${{ inputs.mode }}"
-              echo "backlog_max_artifacts: ${{ inputs.backlog_max_artifacts || '(script default)' }}"
+              echo "$trigger_line"
+              echo "Mode: $RUN_MODE"
+              echo "backlog_max_artifacts: ${RUN_BACKLOG_MAX_ARTIFACTS:-(script default)}"
               echo
               echo "Minted NOTHING new — export/mint were skipped entirely. Ran run-population-flywheel.mjs --backlog over the mint-run artifacts THE GATE currently refuses (oldest first), enriching each in place with its own §9 outcomes (edges_discovered/forward_events_extracted/isolated_items). See that step's own log for exactly which artifacts this dispatch processed and how many remain."
             } > /tmp/pr-body.md
@@ -456,17 +682,18 @@ jobs:
             {
               echo "Automated population turn (run ${{ github.run_id }})."
               echo
-              echo "Mode: ${{ inputs.mode }}"
-              echo "Limit: ${{ inputs.limit }}"
-              echo "Source id: ${{ inputs.source_id }}"
-              echo "CELEX prefix: ${{ inputs.celex_prefix }}"
-              echo "Capture: ${{ inputs.capture }}"
-              echo "Rows file: ${{ inputs.rows_file || '(none — live export)' }}"
+              echo "$trigger_line"
+              echo "Mode: $RUN_MODE"
+              echo "Limit: $RUN_LIMIT"
+              echo "Source id: $RUN_SOURCE_ID"
+              echo "CELEX prefix: $RUN_CELEX_PREFIX"
+              echo "Capture: $RUN_CAPTURE"
+              echo "Rows file: ${RUN_ROWS_FILE:-(none — live export)}"
               echo
-              echo "Lands this run's enriched mint-run artifact (${NEW_MINT_RUN:-none}, now carrying §9 outcomes: edges_discovered/forward_events_extracted/isolated_items), its export/apply-ready/report files (${EXPORT_DIR}/), and the flywheel's own forward-events harness-run artifact (scripts/harness-runs/forward-events/)."
+              echo "Lands this run's enriched mint-run artifact (${NEW_MINT_RUN:-none}, now carrying §9 outcomes: edges_discovered/forward_events_extracted/isolated_items/trigger_context), its export/apply-ready/report files (${EXPORT_DIR}/), and the flywheel's own forward-events harness-run artifact (scripts/harness-runs/forward-events/)."
             } > /tmp/pr-body.md
           fi
-          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Population turn: $branch (mode=${{ inputs.mode }})" /tmp/pr-body.md
+          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Population turn: $branch (mode=${RUN_MODE})" /tmp/pr-body.md
 
       - name: Upload scripts/_snapshots as a workflow artifact
         if: always()

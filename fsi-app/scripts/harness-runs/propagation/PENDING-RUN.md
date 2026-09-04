@@ -18,11 +18,22 @@ second hand-maintained copy). The FILE LIST this family's `harness_version` hash
 its own three governing files — changed BYTES (the import line and the declaration), which is what
 moved the hash. Neither `drain.ts` nor `admissible-for.ts` changed.
 
-**harness_version at write time:** `sha256:737b461bd2fbf527`
+**Re-pinned (lane CHAIN, 2026-09-04, event-driven workflow chaining, W1.4):** `run-propagation-drain.mjs`
+— one of this family's own three governing files — changed BYTES again: `parseArgs` gained a
+`--trigger-context` option and `main()`'s artifact-building `finally` block now records
+`config.trigger_context` (the upstream `{name, run_id, conclusion}` when this run was fired by
+`propagation-drain.yml`'s own new `workflow_run` chaining off "Data producers" completing, else `null`
+for a plain hand dispatch — see that file's own header note on `--trigger-context` and
+`propagation-drain.yml`'s "Resolve run parameters and the chaining gate" step). Neither `drain.ts` nor
+`admissible-for.ts` changed. This is the SECOND re-hash this marker has tracked without a landed run in
+between; the drift is honestly re-acknowledged here per rule (c) rather than landing a synthetic run to
+clear it.
+
+**harness_version at write time:** `sha256:45d4f97e9c543737`
 
 **The planned run that supersedes this marker:** the next `propagation-drain` dispatch (this environment
 has migrations verified only against a local scratch Postgres, no live Supabase project credentials,
 same limitation this family's own header already states) — its `propagation-run-003.json` will record
-`harness_version: sha256:737b461bd2fbf527`, discharging this marker per F28's reverse-audit (or the
+`harness_version: sha256:45d4f97e9c543737`, discharging this marker per F28's reverse-audit (or the
 marker is re-pinned to a new hash, per rule (c), if a governing file changes again before that run
 lands).

@@ -235,10 +235,18 @@ function usage() {
   return [
     "Usage:",
     "  node scripts/turns/run-population-flywheel.mjs --mint-run path/to/mint-run-NNN.json --mode dry|apply",
-    "                                                   [--harness-runs-dir dir]",
+    "                                                   [--harness-runs-dir dir] [--trigger-context '<json>']",
     "  node scripts/turns/run-population-flywheel.mjs --check-gate [--harness-runs-dir dir]",
     "  node scripts/turns/run-population-flywheel.mjs --backlog --mode dry|apply",
     `                                                   [--harness-runs-dir dir] [--max-artifacts N (default ${DEFAULT_BACKLOG_MAX_ARTIFACTS})]`,
+    "",
+    "  --trigger-context '<json>' (lane CHAIN, 2026-09-04): only meaningful with --mint-run. A JSON object",
+    "  naming the upstream run that fired THIS dispatch via a workflow_run event — {name, run_id,",
+    "  conclusion} is population-turn.yml's own shape (see that workflow's 'Resolve trigger context and",
+    "  gate' step). Recorded verbatim as metrics.trigger_context on this batch's mint-run-NNN.json via the",
+    "  write-outcomes step (§9) — null for a plain workflow_dispatch (no upstream run to name). Malformed",
+    "  JSON is a hard CLI error (--trigger-context must describe the run truthfully or not be passed at all,",
+    "  never silently dropped).",
   ].join("\n");
 }
 
@@ -247,7 +255,7 @@ function usage() {
  * @returns {{ok:true, help?:true} |
  *   {ok:true, checkGate:true, backlog:false, harnessRunsDir:string|null} |
  *   {ok:true, checkGate:false, backlog:true, mode:"dry"|"apply", maxArtifacts:number, harnessRunsDir:string|null} |
- *   {ok:true, checkGate:false, backlog:false, mintRun:string, mode:"dry"|"apply", harnessRunsDir:string|null} |
+ *   {ok:true, checkGate:false, backlog:false, mintRun:string, mode:"dry"|"apply", harnessRunsDir:string|null, triggerContext:object|null} |
  *   {ok:false, error:string}}
  */
 export function parseArgs(argv) {
@@ -262,6 +270,7 @@ export function parseArgs(argv) {
         "check-gate": { type: "boolean", default: false },
         backlog: { type: "boolean", default: false },
         "max-artifacts": { type: "string" },
+        "trigger-context": { type: "string" },
         help: { type: "boolean", default: false },
       },
       allowPositionals: false,
@@ -273,6 +282,9 @@ export function parseArgs(argv) {
   if (values.help) return { ok: true, help: true };
   if (values["check-gate"] && values.backlog) {
     return { ok: false, error: "--check-gate and --backlog are mutually exclusive." };
+  }
+  if (values["trigger-context"] !== undefined && (values["check-gate"] || values.backlog)) {
+    return { ok: false, error: "--trigger-context is only meaningful with --mint-run (not --check-gate/--backlog)." };
   }
   if (values["check-gate"]) {
     return { ok: true, checkGate: true, backlog: false, harnessRunsDir: values["harness-runs-dir"] || null };
@@ -310,6 +322,18 @@ export function parseArgs(argv) {
   if (values.mode !== "dry" && values.mode !== "apply") {
     return { ok: false, error: `--mode must be "dry" or "apply" (got ${JSON.stringify(values.mode)}).` };
   }
+  let triggerContext = null;
+  if (values["trigger-context"] !== undefined) {
+    try {
+      const parsed = JSON.parse(values["trigger-context"]);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return { ok: false, error: `--trigger-context must be a JSON object (got ${JSON.stringify(parsed)}).` };
+      }
+      triggerContext = parsed;
+    } catch (err) {
+      return { ok: false, error: `--trigger-context must be valid JSON: ${err.message}` };
+    }
+  }
   return {
     ok: true,
     checkGate: false,
@@ -317,6 +341,7 @@ export function parseArgs(argv) {
     mintRun: values["mint-run"],
     mode: values.mode,
     harnessRunsDir: values["harness-runs-dir"] || null,
+    triggerContext,
   };
 }
 
@@ -1284,6 +1309,12 @@ async function stepWriteOutcomes(ctx) {
     forward_events_extracted: ctx.state.forwardEventsExtracted ?? 0,
     isolated_items: ctx.state.isolatedItems ?? 0,
     ids_resolved_by_key: ctx.state.idsResolvedByKey ?? 0,
+    // trigger_context (lane CHAIN, 2026-09-04): who fired THIS dispatch — {name, run_id, conclusion} of
+    // the upstream workflow_run, or null for a plain workflow_dispatch. loadOutcomes' flat shape
+    // (run-mint-batch.mjs) merges every key but run_id straight into metrics, so this lands as
+    // metrics.trigger_context on the mint-run-NNN.json artifact, recorded even when it's null (§9's own
+    // "record it every batch" posture, applied to the new field the same way as the others here).
+    trigger_context: ctx.triggerContext ?? null,
   };
   mkdirSync(ctx.workDir, { recursive: true });
   const outcomesPath = join(ctx.workDir, "outcomes.json");
@@ -1342,10 +1373,21 @@ const STEP_HANDLERS = Object.freeze({
  * runs, is the same "a runtime that ends without triggering its downstream is a defect in the runtime"
  * posture this driver already applies everywhere else — never a silent, wrong "ok".
  * @param {{mintRunPath:string, artifact:object, mode:"dry"|"apply", harnessRunsDir:string, db:object,
- *   startedAt:string}} args
+ *   startedAt:string, triggerContext?:object|null}} args triggerContext (lane CHAIN, 2026-09-04): the
+ *   upstream workflow_run this dispatch was fired by ({name, run_id, conclusion}), or null/omitted for a
+ *   plain workflow_dispatch or a --backlog artifact (backlog dispatches never correspond 1:1 with a
+ *   single upstream run, so they never carry one).
  * @returns {Promise<{mintRunId:string|null, batchIds:string[], ok:boolean, results:object[]}>}
  */
-export async function runFlywheelForOneArtifact({ mintRunPath, artifact, mode, harnessRunsDir, db, startedAt }) {
+export async function runFlywheelForOneArtifact({
+  mintRunPath,
+  artifact,
+  mode,
+  harnessRunsDir,
+  db,
+  startedAt,
+  triggerContext = null,
+}) {
   const apply = mode === "apply";
   const runIdForMessage = artifact?.run_id ?? mintRunPath ?? "(unknown)";
 
@@ -1381,7 +1423,7 @@ export async function runFlywheelForOneArtifact({ mintRunPath, artifact, mode, h
     `run-population-flywheel: mode=${mode} mint_run=${mintRunId ?? "(no run_id)"} minted_item_ids=${batchIds.length} ids_resolved_by_key=${resolution.idsResolvedByKey}`,
   );
 
-  const ctx = { mode, apply, batchIds, mintRunPath, mintRunDir, mintRunId, workDir, db, state: { idsResolvedByKey: resolution.idsResolvedByKey }, startedAt };
+  const ctx = { mode, apply, batchIds, mintRunPath, mintRunDir, mintRunId, workDir, db, state: { idsResolvedByKey: resolution.idsResolvedByKey }, startedAt, triggerContext };
 
   const results = [];
   let failed = false;
@@ -1534,6 +1576,7 @@ async function main() {
       harnessRunsDir: parsed.harnessRunsDir,
       db,
       startedAt,
+      triggerContext: parsed.triggerContext,
     });
   } catch (err) {
     // runFlywheelForOneArtifact's own hasRecoverableMintedIds guard lands here directly (thrown before
