@@ -426,6 +426,45 @@ export function hasRecoverableMintedIds(artifact) {
  * @param {object} db — { readAll } function from scripts/lib/db.mjs
  * @returns {Promise<{ids:string[], idsResolvedByKey:number, unresolved:Array<{entry:object, attemptedKey:string, matchCount:number}>}>}
  */
+/**
+ * LEGACY-3 (coordinator, 2026-09-04, backlog apply #25): the live table carries more than one row per
+ * canonical key for several of mint-run-001's items (32015R0757: two live rows; 32023R1804: two live +
+ * one archived duplicate), so a bare key match answered "2 matches" and the run refused. The artifact
+ * minted ONE of them, at its own started_at. Disambiguation, in order, each step applied only while more
+ * than one candidate remains: (1) drop archived rows; (2) keep the rows created within a day of the
+ * artifact's started_at (the row this very run minted); (3) keep the single verified row when the run's own
+ * row was archived as a duplicate of it. Anything still ambiguous stays ambiguous and the caller refuses,
+ * never guesses. PURE. Returns ids.
+ * @param {Array<{id:string, is_archived?:boolean, created_at?:string}>} rows
+ * @param {string|undefined} startedAt
+ * @returns {string[]}
+ */
+export function disambiguateByArtifactTime(rows, startedAt) {
+  let cands = rows.filter((r) => r && typeof r.id === "string");
+  if (cands.length > 1) {
+    const live = cands.filter((r) => r.is_archived !== true);
+    if (live.length >= 1) cands = live;
+  }
+  if (cands.length > 1 && startedAt) {
+    const t0 = Date.parse(startedAt);
+    if (Number.isFinite(t0)) {
+      const near = cands.filter((r) => {
+        const t = Date.parse(r.created_at ?? "");
+        return Number.isFinite(t) && Math.abs(t - t0) <= 24 * 3600 * 1000;
+      });
+      if (near.length >= 1) cands = near;
+    }
+  }
+  // (3) the run's own row was later archived as a duplicate of an older verified item (32023R1804: the
+  // 2026-09-01 row is archived `duplicate_of_verified`, two older live rows remain): the item the
+  // flywheel must connect is the surviving VERIFIED one, when exactly one is verified.
+  if (cands.length > 1) {
+    const verified = cands.filter((r) => r.provenance_status === "verified");
+    if (verified.length === 1) cands = verified;
+  }
+  return cands.map((r) => r.id);
+}
+
 export async function resolveMintedItemIds(artifact, db) {
   const perItem = Array.isArray(artifact?.per_item) ? artifact.per_item : [];
   const resolvedIds = [];
@@ -450,13 +489,13 @@ export async function resolveMintedItemIds(artifact, db) {
     const celexArray = Array.from(celexKeysToResolve);
     for (const chunk of chunkArray(celexArray, 100)) {
       if (!chunk.length) continue;
-      const rows = await db.readAll("intelligence_items", "id, canonical_instrument_key", {
+      const rows = await db.readAll("intelligence_items", "id, canonical_instrument_key, is_archived, created_at, provenance_status", {
         match: (q) => q.in("canonical_instrument_key", chunk),
       });
       for (const row of rows) {
         const key = row.canonical_instrument_key;
         if (!celexMap.has(key)) celexMap.set(key, []);
-        celexMap.get(key).push(row.id);
+        celexMap.get(key).push(row);
       }
     }
   }
@@ -480,7 +519,7 @@ export async function resolveMintedItemIds(artifact, db) {
 
     // Resolver 1: per_item.id as canonical_instrument_key (CELEX for mint-run-001/005)
     if (typeof entry?.id === "string" && entry.id.length > 0) {
-      const matches = celexMap.get(entry.id) ?? [];
+      const matches = disambiguateByArtifactTime(celexMap.get(entry.id) ?? [], artifact?.started_at);
       if (matches.length === 1) {
         const id = matches[0];
         if (!seen.has(id)) {
