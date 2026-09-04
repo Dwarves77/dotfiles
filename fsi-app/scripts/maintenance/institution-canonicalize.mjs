@@ -50,39 +50,57 @@
 //      read off an existing own-domain row, never computed or defaulted (the same no-invention posture
 //      SC-13 requires at registration, applied here to an existing institution's internal consistency).
 //
-//   C. CLASS-TIER GAP REPORT (dry-only, NEVER applies — computed and included in every summary.json
-//      regardless of --mode, exactly like origin-class-backfill's own `counts` block, but never behind the
-//      `apply` write gate). Lists every active/provisional `source_role='standards_body'` source whose
-//      `base_tier` is worse than the class-table floor (T4 — SKILL.md §3's "Industry body / classification
-//      society" row, which professional standards bodies share; ifrs.org / cdp.net / sciencebasedtargets.org
-//      are the live T5 examples), grouped by host. This is NEVER auto-applied: ADR-002 states `base_tier`
-//      "never changes except via explicit operator override", and raising an ALREADY-registered source's
-//      tier is a credibility ruling, not a defect repair (unlike Part B, which only ever restores a tier a
-//      row of the SAME institution already carries). SANCTIONED-MECHANISM CHECK (per this lane's own
-//      dispatch): `src/lib/sources/host-authority.ts`'s `classTierForHost`/`decidePoolHostRegistration` DO
-//      assign a class tier deterministically — but only at REGISTER-AT-GROUNDING time for a NEW,
-//      not-yet-registered pool host (SC-13); they are never invoked to correct an EXISTING registered
-//      source's `base_tier`, and re-purposing them to do so would silently promote every T5 standards_body
-//      row without an operator ever seeing the change. No such existing mechanism corrects a live row, so
-//      this stays a report (the `ruling_needed` list below), per the dispatch's own instruction.
+//   C. CLASS-TIER GAP REPORT + OVERRIDE (report always computed; the override applies ONLY for a host the
+//      class table now classifies — see below). `planRulingNeeded` lists every active/provisional
+//      `source_role='standards_body'` source whose `base_tier` is worse than the class-table floor (T4 —
+//      SKILL.md §3's "Industry body / classification society" row, which professional standards bodies
+//      share), grouped by host — computed and included in every summary.json regardless of --mode, exactly
+//      like origin-class-backfill's own `counts` block. Historically NEVER applied, because ADR-002 states
+//      `base_tier` "never changes except via explicit operator override", and raising an ALREADY-registered
+//      source's tier is a credibility ruling, not a mechanical defect repair (unlike Part B, which only
+//      ever restores a tier a row of the SAME institution already carries) — and, until 2026-09-04, no
+//      mechanism carried that ruling: `src/lib/sources/host-authority.ts`'s `classTierForHost` assigned a
+//      class tier only at REGISTER-AT-GROUNDING time for a NEW, not-yet-registered pool host (SC-13); it
+//      never classified ifrs.org / cdp.net / sciencebasedtargets.org at all (no rule matched them, so they
+//      worklisted at STEP SOURCE — audit C1 §6, C2 — instead of grounding at their own T4).
+//
+//      OPERATOR RULING (2026-09-04, verbatim, on exactly this gap): "you know how to classify, fix it …
+//      T4". host-authority.ts now carries a `standards_body` class (STANDARDS_BODY_ALLOW, same posture as
+//      its existing ASSOCIATION_ALLOW: curated, never a fuzzy .org rule) covering the three named hosts
+//      plus GHG Protocol / ISO / GRI / TNFD (same rule, live in `sources` today). That IS the "explicit
+//      operator override" ADR-002 requires — a named, reviewed ruling, not a guess — so `planClassTierOverride`
+//      below applies it: for a `standards_body` row worse than T4 whose host `classTierForHost` NOW resolves
+//      to EXACTLY the class tier (4), the row's `base_tier` (and `effective_tier` where it still equals the
+//      old `base_tier`, same convention as Part B) is written to 4 through the guarded path. A host the
+//      class table does NOT classify stays in `planRulingNeeded` only — genuinely awaiting the operator,
+//      never guessed. `dry` mode lists the override plan without writing (`part_c_class_override.plan`).
 //
 // Tiers T2/T3 already ruled DOWN from the T4 class default (ghgprotocol.org, sciencebasedtargetsnetwork.org,
-// tnfd.global at T3; efrag.org at T2) are deliberate rulings, higher authority than the class default — the
-// Part C filter (`base_tier > STANDARDS_BODY_CLASS_TIER`) naturally excludes them; no special-casing needed.
+// tnfd.global at T3; efrag.org at T2) are deliberate rulings, higher authority than the class default — both
+// the `planRulingNeeded` filter (`base_tier > STANDARDS_BODY_CLASS_TIER`) and `planClassTierOverride`'s same
+// filter naturally exclude them (their `base_tier` is already BETTER than 4); listing them in
+// STANDARDS_BODY_ALLOW never regresses them, since `decidePoolHostRegistration`'s `inherit` branch (an
+// already-resolving institution) always wins over `classTierForHost` for a host with existing rows.
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { hostOf } from "../lib/institution-key.mjs";
+import { classTierForHost } from "../../src/lib/sources/host-authority.ts";
 import { runCli } from "./lib/cli.mjs";
 
 export const CITE = Object.freeze({
   skill: "source-credibility-model",
   reason:
-    "MAINT institution-canonicalize dispatch (Lane SRC-TIER, 2026-09-03): Part A merges an institutions " +
+    "MAINT institution-canonicalize dispatch (Lane SRC-TIER, 2026-09-03; Part C class-tier override added " +
+    "2026-09-04 per operator ruling 'you know how to classify, fix it … T4'): Part A merges an institutions " +
     "row mis-keyed to a generic hosting domain into its real-domain sibling of the same name, re-pointing " +
     "sources.institution_id; Part B sets an institution's inconsistent per-row base_tier (and, where it " +
     "still matches the old base_tier, effective_tier) to the tier its OWN registrable-domain rows already " +
     "carry, per SKILL.md §3 'Canonical institutional tier (one tier per institution)' — never inventing a " +
-    "tier no row of the institution already has, never touching a tier_override row. Part C is report-only.",
+    "tier no row of the institution already has, never touching a tier_override row. Part C's ruling_needed " +
+    "report is unconditional; its class-tier override writes base_tier=4 (and effective_tier where it still " +
+    "matches the old base_tier) ONLY for a standards_body row whose host host-authority.ts's classTierForHost " +
+    "now classifies to the standards-body class tier (STANDARDS_BODY_ALLOW, the operator ruling itself), " +
+    "never for a host the class table leaves ambiguous.",
 });
 
 // ── Part A: generic hosting domains ─────────────────────────────────────────────────────────────────
@@ -258,16 +276,18 @@ export function planTierCanonicalization(sources, institutionsById) {
   return plans;
 }
 
-// ── Part C: class-tier gap report (dry-only, never applied) ────────────────────────────────────────
+// ── Part C: class-tier gap report + override ────────────────────────────────────────────────────────
 // SKILL.md §3's class table: "Industry body / classification society" (T4) is the tier professional
 // standards bodies share. A standards_body source registered worse than T4 is a class-tier gap.
 export const STANDARDS_BODY_CLASS_TIER = 4;
 const REPORT_STATUSES = new Set(["active", "provisional"]);
 
 /**
- * PURE Part C planner. `sources`: [{ id, url, base_tier, status, source_role }]. Returns one entry per
- * host carrying at least one active/provisional standards_body source at base_tier > 4, sorted by count
- * descending. Never applied — this function's output only ever reaches `summary.counts`, never a write.
+ * PURE Part C REPORT planner. `sources`: [{ id, url, base_tier, status, source_role }]. Returns one entry
+ * per host carrying at least one active/provisional standards_body source at base_tier > 4, sorted by
+ * count descending. This function's output only ever reaches `summary.counts`, never a write — it names
+ * the full gap (including hosts the class table still leaves ambiguous); `planClassTierOverride` below is
+ * the (smaller) subset that actually writes.
  */
 export function planRulingNeeded(sources) {
   const candidates = sources.filter(
@@ -291,6 +311,48 @@ export function planRulingNeeded(sources) {
         "override, so raising this host is a ruling for the operator, never an auto-apply.",
     }))
     .sort((a, b) => b.count - a.count);
+}
+
+/**
+ * PURE Part C class-tier OVERRIDE planner (operator ruling 2026-09-04: "you know how to classify, fix it
+ * … T4"). `sources`: [{ id, url, base_tier, effective_tier, tier_override, status, source_role }]. A
+ * SUBSET of what `planRulingNeeded` reports: same active/provisional + standards_body + worse-than-T4
+ * filter, PLUS the host must now classify to EXACTLY the standards-body class tier under
+ * `classTierForHost` (STANDARDS_BODY_ALLOW in host-authority.ts — the operator ruling itself, applied via
+ * the SAME deterministic mechanism SC-13 already uses at registration, never a fresh guess here). A row
+ * carrying `tier_override` is excluded (the sanctioned per-row exception, SKILL.md §3 — never touched, same
+ * convention as Part B). A host the class table does NOT classify (still null) is left OUT — it stays in
+ * `planRulingNeeded` only, genuinely awaiting the operator. Returns one entry per qualifying host, sorted
+ * by row count descending:
+ *   { host, rows: [{ source_id, old_base_tier, new_base_tier: 4, also_effective_tier }] }
+ */
+export function planClassTierOverride(sources) {
+  const candidates = sources.filter(
+    (s) =>
+      REPORT_STATUSES.has(s.status) &&
+      s.source_role === "standards_body" &&
+      s.tier_override == null &&
+      s.base_tier != null &&
+      s.base_tier > STANDARDS_BODY_CLASS_TIER &&
+      classTierForHost(hostOf(s.url)) === STANDARDS_BODY_CLASS_TIER,
+  );
+  const byHost = new Map();
+  for (const s of candidates) {
+    const host = hostOf(s.url);
+    if (!byHost.has(host)) byHost.set(host, []);
+    byHost.get(host).push(s);
+  }
+  return [...byHost.entries()]
+    .map(([host, rows]) => ({
+      host,
+      rows: rows.map((r) => ({
+        source_id: r.id,
+        old_base_tier: r.base_tier,
+        new_base_tier: STANDARDS_BODY_CLASS_TIER,
+        also_effective_tier: r.effective_tier === r.base_tier,
+      })),
+    }))
+    .sort((a, b) => b.rows.length - a.rows.length);
 }
 
 /**
@@ -324,8 +386,10 @@ export async function main({ mode = "dry" } = {}, deps) {
   const conflicts = tierPlans.filter((p) => p.status === "tier_conflict_unresolved");
   const noOwnDomain = tierPlans.filter((p) => p.status === "no_own_domain_rows");
 
-  // Part C — always computed, never behind the apply gate.
+  // Part C — the report is always computed, never behind the apply gate; the class-tier override PLAN is
+  // also always computed (dry lists it), but only WRITES in apply mode (below).
   const rulingNeeded = planRulingNeeded(sources);
+  const classOverride = planClassTierOverride(sources);
 
   summary.counts = {
     part_a_merge: {
@@ -341,6 +405,11 @@ export async function main({ mode = "dry" } = {}, deps) {
       plan: tierPlans,
     },
     part_c_ruling_needed: rulingNeeded,
+    part_c_class_override: {
+      hosts: classOverride.length,
+      rows: classOverride.reduce((n, p) => n + p.rows.length, 0),
+      plan: classOverride,
+    },
   };
 
   if (!apply) return summary;
@@ -404,9 +473,53 @@ export async function main({ mode = "dry" } = {}, deps) {
   summary.counts.part_b_tier.applied = tierWrites;
   summary.applied += tierRowsUpdated;
 
+  // ── Part C apply — class-tier override (operator ruling 2026-09-04) ────────────────────────────────
+  // Same grouping/guard convention as Part B: one guarded write per (old_base_tier, also_effective_tier)
+  // group, applyMatch re-checks the row is still at the tier this plan read (a row someone else changed
+  // between read and write is left alone). Every write target is host-classified to EXACTLY the
+  // standards-body class tier (planClassTierOverride's own filter) — never a host the class table leaves
+  // ambiguous, never a tier_override row.
+  let classOverrideRowsUpdated = 0;
+  const classOverrideWrites = [];
+  for (const plan of classOverride) {
+    const groups = new Map();
+    for (const r of plan.rows) {
+      const key = `${r.old_base_tier}|${r.also_effective_tier}`;
+      if (!groups.has(key)) groups.set(key, { old: r.old_base_tier, alsoEffective: r.also_effective_tier, ids: [] });
+      groups.get(key).ids.push(r.source_id);
+    }
+    for (const g of groups.values()) {
+      const patch = g.alsoEffective
+        ? { base_tier: STANDARDS_BODY_CLASS_TIER, effective_tier: STANDARDS_BODY_CLASS_TIER }
+        : { base_tier: STANDARDS_BODY_CLASS_TIER };
+      const res = await deps.guardedUpdateSourcesByIds(g.ids, patch, {
+        applyMatch: (q) => {
+          const withBase = q.eq("base_tier", g.old);
+          return g.alsoEffective ? withBase.eq("effective_tier", g.old) : withBase;
+        },
+      });
+      classOverrideRowsUpdated += res.updated ?? 0;
+      classOverrideWrites.push({
+        host: plan.host,
+        old_base_tier: g.old,
+        new_base_tier: STANDARDS_BODY_CLASS_TIER,
+        also_effective_tier: g.alsoEffective,
+        attempted: g.ids.length,
+        updated: res.updated ?? 0,
+      });
+    }
+  }
+  summary.counts.part_c_class_override.applied = classOverrideWrites;
+  summary.applied += classOverrideRowsUpdated;
+
   // ── read_back ─────────────────────────────────────────────────────────────────────────────────────
   const institutionsAfter = await deps.readInstitutions();
-  const affectedSourceIds = [...new Set(canonicalizations.flatMap((p) => p.rows.map((r) => r.source_id)))];
+  const affectedSourceIds = [
+    ...new Set([
+      ...canonicalizations.flatMap((p) => p.rows.map((r) => r.source_id)),
+      ...classOverride.flatMap((p) => p.rows.map((r) => r.source_id)),
+    ]),
+  ];
   const sourcesAfter = affectedSourceIds.length ? await deps.readSourcesByIds(affectedSourceIds) : [];
   summary.read_back = {
     institutions_total: institutionsAfter.length,

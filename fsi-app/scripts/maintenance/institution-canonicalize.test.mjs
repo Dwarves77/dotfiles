@@ -5,7 +5,7 @@ import {
   main, CITE,
   GENERIC_HOSTING_DOMAINS, isGenericHostingDomain, normalizeName,
   planMerges, applyMergeSimulation, hostEndsWithDomain, planTierCanonicalization,
-  STANDARDS_BODY_CLASS_TIER, planRulingNeeded,
+  STANDARDS_BODY_CLASS_TIER, planRulingNeeded, planClassTierOverride,
 } from "./institution-canonicalize.mjs";
 
 // ── isGenericHostingDomain / normalizeName ──────────────────────────────────────────────────────────
@@ -249,6 +249,87 @@ test("planRulingNeeded: empty when nothing qualifies", () => {
   assert.deepEqual(planRulingNeeded([]), []);
 });
 
+// ── Part C: planClassTierOverride (operator ruling 2026-09-04, "you know how to classify, fix it … T4") ──
+
+test("planClassTierOverride: the three named hosts qualify — classTierForHost now resolves them to T4", () => {
+  const sources = [
+    { id: "i1", url: "https://ifrs.org/a", base_tier: 5, effective_tier: 5, tier_override: null, status: "active", source_role: "standards_body" },
+    { id: "i2", url: "https://www.ifrs.org/b", base_tier: 6, effective_tier: 6, tier_override: null, status: "provisional", source_role: "standards_body" },
+    { id: "c1", url: "https://cdp.net/a", base_tier: 5, effective_tier: 5, tier_override: null, status: "active", source_role: "standards_body" },
+    { id: "s1", url: "https://sciencebasedtargets.org/a", base_tier: 5, effective_tier: 3.2, tier_override: null, status: "active", source_role: "standards_body" },
+  ];
+  const plan = planClassTierOverride(sources);
+  assert.equal(plan.length, 3);
+  const byHost = Object.fromEntries(plan.map((p) => [p.host, p]));
+  assert.equal(byHost["ifrs.org"].rows.length, 2);
+  assert.deepEqual(
+    byHost["ifrs.org"].rows.find((r) => r.source_id === "i1"),
+    { source_id: "i1", old_base_tier: 5, new_base_tier: 4, also_effective_tier: true },
+  );
+  assert.deepEqual(
+    byHost["ifrs.org"].rows.find((r) => r.source_id === "i2"),
+    { source_id: "i2", old_base_tier: 6, new_base_tier: 4, also_effective_tier: true },
+  );
+  assert.equal(byHost["cdp.net"].rows.length, 1);
+  assert.deepEqual(byHost["sciencebasedtargets.org"].rows[0],
+    { source_id: "s1", old_base_tier: 5, new_base_tier: 4, also_effective_tier: false }); // effective_tier already diverged
+});
+
+test("planClassTierOverride: GHG Protocol / ISO / GRI / TNFD qualify by the same rule when worse than T4", () => {
+  const sources = [
+    { id: "g1", url: "https://ghgprotocol.org/a", base_tier: 6, effective_tier: 6, tier_override: null, status: "active", source_role: "standards_body" },
+    { id: "o1", url: "https://iso.org/a", base_tier: 5, effective_tier: 5, tier_override: null, status: "active", source_role: "standards_body" },
+    { id: "r1", url: "https://globalreporting.org/a", base_tier: 5, effective_tier: 5, tier_override: null, status: "provisional", source_role: "standards_body" },
+    { id: "t1", url: "https://tnfd.global/a", base_tier: 5, effective_tier: 5, tier_override: null, status: "active", source_role: "standards_body" },
+  ];
+  const plan = planClassTierOverride(sources);
+  const hosts = plan.map((p) => p.host).sort();
+  assert.deepEqual(hosts, ["ghgprotocol.org", "globalreporting.org", "iso.org", "tnfd.global"]);
+});
+
+test("planClassTierOverride: a host the class table does NOT classify never appears (stays ruling_needed only)", () => {
+  const sources = [
+    { id: "x1", url: "https://some-unclassed-standards-org.org/a", base_tier: 5, effective_tier: 5, tier_override: null, status: "active", source_role: "standards_body" },
+  ];
+  assert.deepEqual(planClassTierOverride(sources), []);
+  // still shows up in the report — an operator ruling still owed for THIS host:
+  assert.equal(planRulingNeeded(sources).length, 1);
+});
+
+test("planClassTierOverride: already-ruled-down hosts (ghgprotocol.org-class at T3, efrag.org at T2) never regress — excluded by the base_tier>4 filter, not by omission from the class table", () => {
+  const sources = [
+    { id: "g1", url: "https://ghgprotocol.org/a", base_tier: 3, effective_tier: 3, tier_override: null, status: "active", source_role: "standards_body" },
+    { id: "e1", url: "https://efrag.org/a", base_tier: 2, effective_tier: 2, tier_override: null, status: "provisional", source_role: "standards_body" },
+  ];
+  assert.deepEqual(planClassTierOverride(sources), []);
+});
+
+test("planClassTierOverride: a tier_override row is excluded, same sanctioned exception as Part B", () => {
+  const sources = [
+    { id: "i1", url: "https://ifrs.org/a", base_tier: 5, effective_tier: 5, tier_override: 5, status: "active", source_role: "standards_body" },
+  ];
+  assert.deepEqual(planClassTierOverride(sources), []);
+});
+
+test("planClassTierOverride: non-standards_body role and suspended status are excluded, same filter as planRulingNeeded", () => {
+  const sources = [
+    { id: "i1", url: "https://ifrs.org/a", base_tier: 5, effective_tier: 5, tier_override: null, status: "active", source_role: "regulator" },
+    { id: "i2", url: "https://ifrs.org/b", base_tier: 5, effective_tier: 5, tier_override: null, status: "suspended", source_role: "standards_body" },
+  ];
+  assert.deepEqual(planClassTierOverride(sources), []);
+});
+
+test("planClassTierOverride: already at/below T4 never appears — nothing to override", () => {
+  const sources = [
+    { id: "i1", url: "https://ifrs.org/a", base_tier: 4, effective_tier: 4, tier_override: null, status: "active", source_role: "standards_body" },
+  ];
+  assert.deepEqual(planClassTierOverride(sources), []);
+});
+
+test("planClassTierOverride: empty when nothing qualifies", () => {
+  assert.deepEqual(planClassTierOverride([]), []);
+});
+
 // ── main() orchestration ────────────────────────────────────────────────────────────────────────────
 
 function deps(overrides = {}) {
@@ -280,7 +361,7 @@ function deps(overrides = {}) {
   };
 }
 
-test("dry: plans everything (merge + tier + ruling_needed), writes nothing", async () => {
+test("dry: plans everything (merge + tier + ruling_needed + class_override), writes nothing", async () => {
   const d = deps();
   const r = await main({ mode: "dry" }, d);
   assert.equal(r.step, "institution-canonicalize");
@@ -290,20 +371,34 @@ test("dry: plans everything (merge + tier + ruling_needed), writes nothing", asy
   assert.equal(r.counts.part_b_tier.canonicalize, 1); // the S3 row, evaluated post-merge under canon-1
   assert.equal(r.counts.part_b_tier.plan[0].canonical_tier, 4);
   assert.ok(r.counts.part_c_ruling_needed.some((x) => x.host === "ifrs.org"));
+  // the class table now classifies ifrs.org — the override plan lists it (dry lists what apply WOULD do):
+  assert.equal(r.counts.part_c_class_override.hosts, 1);
+  assert.equal(r.counts.part_c_class_override.rows, 1);
+  assert.equal(r.counts.part_c_class_override.plan[0].host, "ifrs.org");
+  assert.deepEqual(r.counts.part_c_class_override.plan[0].rows[0],
+    { source_id: "ifrs-1", old_base_tier: 5, new_base_tier: 4, also_effective_tier: true });
   assert.equal(r.exitCode, 0);
 });
 
-test("apply: merges the duplicate, deletes it, canonicalizes the tier, read_back populated", async () => {
+test("apply: merges the duplicate, deletes it, canonicalizes the tier, applies the class override, read_back populated", async () => {
   const d = deps();
   const r = await main({ mode: "apply" }, d);
   assert.equal(d.calls.some((c) => c[0] === "reassignSourcesInstitution" && c[1] === "dup-1" && c[2] === "canon-1"), true);
   assert.equal(d.calls.some((c) => c[0] === "deleteInstitution" && c[1] === "dup-1"), true);
-  assert.equal(d.calls.some((c) => c[0] === "guardedUpdateSourcesByIds"), true);
-  assert.equal(r.applied, 2); // 1 source moved (Part A) + 1 tier row updated (Part B)
+  // TWO guardedUpdateSourcesByIds calls: one Part B tier group, one Part C class-override group.
+  const updateCalls = d.calls.filter((c) => c[0] === "guardedUpdateSourcesByIds");
+  assert.equal(updateCalls.length, 2);
+  const classOverrideCall = updateCalls.find((c) => c[1].includes("ifrs-1"));
+  assert.ok(classOverrideCall, "ifrs-1 must be written by the class-override group");
+  assert.deepEqual(classOverrideCall[2], { base_tier: 4, effective_tier: 4 });
+  assert.equal(r.applied, 3); // 1 source moved (Part A) + 1 tier row (Part B) + 1 class-override row (Part C)
   assert.equal(r.read_back.institutions_total, 2); // dup-1 deleted post-merge
   assert.deepEqual(r.read_back.merged_duplicate_ids_still_present, []);
-  assert.equal(r.read_back.tier_rows_after.length, 1);
+  assert.equal(r.read_back.tier_rows_after.length, 2); // s3-row (Part B) + ifrs-1 (Part C)
   assert.equal(r.counts.part_c_ruling_needed.length > 0, true); // report present even in apply mode
+  assert.equal(r.counts.part_c_class_override.applied.length, 1);
+  assert.equal(r.counts.part_c_class_override.applied[0].host, "ifrs.org");
+  assert.equal(r.counts.part_c_class_override.applied[0].updated, 1);
 });
 
 test("apply: a still-referenced duplicate after repoint is refused, never deleted", async () => {
