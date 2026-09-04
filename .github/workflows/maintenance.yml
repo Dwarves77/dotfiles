@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, tag-proposals, tag-ratification, seed-benchmark-instruments, spec09-reroute, provenance-heal, institution-canonicalize]
+        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, tag-proposals, tag-ratification, seed-benchmark-instruments, spec09-reroute, provenance-heal, institution-canonicalize, reopen-validation-holds]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, or a comma-separated proposal-id list — see the runbook for which steps require one and what value they need).'
         required: false
@@ -236,6 +236,20 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/institution-canonicalize"
           node scripts/maintenance/institution-canonicalize.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/institution-canonicalize"
+
+      - name: reopen-validation-holds
+        # Lane REOPEN-STEP (2026-09-04) dispatch runtime for scripts/mint/reopen-validation-holds.mjs
+        # (lane URL-GUIL, 2026-09-03) — see that file's own header for the full mechanism. `arg` IS the
+        # required --reason-contains scope, gated in BOTH modes (unlike every other arg-gated step above,
+        # which gates apply only) — that tool's own header forbids a blanket reopen, so this step refuses
+        # cleanly (exit 1, `|| true` so an 'all' dry fan-out with no arg does not fail the job) rather
+        # than silently listing or reopening every held row. Dispatch it NAMED, with an explicit
+        # --arg <substring> naming the failure class a just-landed fix plausibly resolves — never from
+        # 'all'.
+        if: env.RUN_STEP == 'reopen-validation-holds' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/reopen-validation-holds"
+          node scripts/maintenance/reopen-validation-holds.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/reopen-validation-holds" || true
 
       # Runs even when a step failed, so the log always ends with the true state of the tables rather
       # than only the exception that got there first (mirrors producers.yml's own Population AFTER).

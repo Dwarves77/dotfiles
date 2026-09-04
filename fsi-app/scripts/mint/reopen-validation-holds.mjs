@@ -101,15 +101,20 @@ export async function main({ reasonContains, apply = false } = {}) {
 
   if (!apply) {
     console.log("[reopen-validation-holds] DRY-RUN — pass --apply to write.");
-    return { mode: "dry-run", matched: targets.length };
+    // `targets` (added for the MAINT dispatch wrapper, scripts/maintenance/reopen-validation-holds.mjs —
+    // it renders these as the per-row plan rather than re-deriving the selection itself) carries the
+    // full matched rows; the CLI's own console output above stays the truncated human-facing view.
+    return { mode: "dry-run", matched: targets.length, targets };
   }
   if (!targets.length) {
     console.log("[reopen-validation-holds] nothing to write.");
-    return { mode: "apply", matched: 0, written: 0 };
+    return { mode: "apply", matched: 0, written: 0, writtenIds: [] };
   }
 
   const nowIso = new Date().toISOString();
   let written = 0;
+  const writtenIds = []; // ids that actually wrote — lets a caller (e.g. the MAINT wrapper) read back
+                          // exactly the rows this run touched, without re-deriving the match itself.
   const failures = [];
   for (const t of targets) {
     try {
@@ -120,13 +125,14 @@ export async function main({ reasonContains, apply = false } = {}) {
         { cite: CITE, select: "id, dryrun_disposition, hold_reason" },
       );
       written += 1;
+      writtenIds.push(t.id);
     } catch (e) {
       failures.push({ id: t.id, error: e instanceof Error ? e.message : String(e) });
     }
   }
   console.log(`[reopen-validation-holds] written=${written} of matched=${targets.length}${failures.length ? `; FAILED: ${JSON.stringify(failures)}` : ""}`);
   if (failures.length) process.exitCode = 1;
-  return { mode: "apply", matched: targets.length, written, failures };
+  return { mode: "apply", matched: targets.length, written, writtenIds, failures };
 }
 
 function usage() {
