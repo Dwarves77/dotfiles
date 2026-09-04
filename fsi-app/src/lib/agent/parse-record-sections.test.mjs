@@ -9,6 +9,11 @@
 //     carrying six FACT lines (five generic slots + binding_position's two-guillemet template), zero GAPs.
 // A third, synthetic fixture exercises the "facts absent" (null-return) and "no sections at all" cases,
 // and a fourth exercises "identity present, record_facts absent".
+//
+// TIER-CHIP additions (2026-09-04): claimTiers matching. `FACT_BEARING_RECORD_FACTS_MD`'s lines are
+// reused verbatim as the map keys below — per this module's own MATCH RULE (parse-record-sections.ts
+// header), the map key is the exact trimmed claim line, byte-identical to
+// section_claim_provenance.claim_text for the same claim.
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -173,4 +178,118 @@ test("parseRecordSections: no identity/record_facts rows at all -> null (honest 
     parseRecordSections([{ section_key: "3", content_md: "Issues requiring immediate action prose." }]),
     null
   );
+});
+
+// ── TIER-CHIP: claimTiers matching (parseRecordClaimLine / parseRecordSections) ───────────────────
+// The six lines of FACT_BEARING_RECORD_FACTS_MD, split out so individual lines can be used as exact
+// claimTiers map keys (the match rule: full trimmed line, byte-identical to
+// section_claim_provenance.claim_text for the same claim — see the module header).
+const EFFECTIVE_DATE_LINE =
+  "[effective_date] The captured source states, verbatim: «shall enter into force only if no objection has been expressed either by the European Parliament or by the Counc»";
+const JURISDICTIONAL_SCOPE_LINE =
+  "[jurisdictional_scope] The captured source states, verbatim: «Member States and other stakeholders, has developed an information system for the submission of due dil»";
+
+test("parseRecordClaimLine: no claimTiers arg — tier/sourceName/sourceUrl all null (backward compatible)", () => {
+  const row = parseRecordClaimLine(EFFECTIVE_DATE_LINE);
+  assert.ok(row);
+  assert.equal(row.tier, null);
+  assert.equal(row.sourceName, null);
+  assert.equal(row.sourceUrl, null);
+  assert.equal(row.rawLine, EFFECTIVE_DATE_LINE);
+});
+
+test("parseRecordClaimLine: claimTiers has an exact-line entry — rated FACT carries tier/sourceName/sourceUrl", () => {
+  const claimTiers = {
+    [EFFECTIVE_DATE_LINE]: { tier: 2, sourceName: "EUR-Lex", sourceUrl: "https://eur-lex.europa.eu/x" },
+  };
+  const row = parseRecordClaimLine(EFFECTIVE_DATE_LINE, claimTiers);
+  assert.ok(row);
+  assert.equal(row.kind, "FACT");
+  assert.equal(row.tier, 2);
+  assert.equal(row.sourceName, "EUR-Lex");
+  assert.equal(row.sourceUrl, "https://eur-lex.europa.eu/x");
+});
+
+test("parseRecordClaimLine: below-floor rating (e.g. T6) still renders — this parser never gates on the floor, only relays the derived tier", () => {
+  const claimTiers = {
+    [EFFECTIVE_DATE_LINE]: { tier: 6, sourceName: "Trade Press Weekly", sourceUrl: "https://example.com/p" },
+  };
+  const row = parseRecordClaimLine(EFFECTIVE_DATE_LINE, claimTiers);
+  assert.ok(row);
+  assert.equal(row.tier, 6);
+  assert.equal(row.sourceName, "Trade Press Weekly");
+});
+
+test("parseRecordClaimLine: claimTiers supplied but this exact line has NO entry — unmatched FACT renders unrated, never a wrong chip", () => {
+  const claimTiers = {
+    [JURISDICTIONAL_SCOPE_LINE]: { tier: 3, sourceName: "Some Other Claim's Source", sourceUrl: null },
+  };
+  const row = parseRecordClaimLine(EFFECTIVE_DATE_LINE, claimTiers);
+  assert.ok(row);
+  assert.equal(row.kind, "FACT");
+  assert.equal(row.tier, null);
+  assert.equal(row.sourceName, null);
+  assert.equal(row.sourceUrl, null);
+});
+
+test("parseRecordClaimLine: a GAP line never looks itself up, even when a map entry happens to exist under that exact key", () => {
+  const gapLine =
+    "[due_date] No verbatim due-date statement was located in the captured source text for this " +
+    "record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades " +
+    "from record to brief.";
+  const claimTiers = { [gapLine]: { tier: 1, sourceName: "Should never surface", sourceUrl: null } };
+  const row = parseRecordClaimLine(gapLine, claimTiers);
+  assert.ok(row);
+  assert.equal(row.kind, "GAP");
+  assert.equal(row.tier, null);
+  assert.equal(row.sourceName, null);
+});
+
+test("parseRecordClaimLine: a claimTiers entry may itself carry tier:null (source resolved but carries no base_tier/tier_override) — distinct from unmatched only in intent, identical in render", () => {
+  const claimTiers = { [EFFECTIVE_DATE_LINE]: { tier: null, sourceName: "Untiered Registry Row", sourceUrl: "https://example.com/y" } };
+  const row = parseRecordClaimLine(EFFECTIVE_DATE_LINE, claimTiers);
+  assert.ok(row);
+  assert.equal(row.tier, null);
+  assert.equal(row.sourceName, "Untiered Registry Row");
+});
+
+test("parseRecordSections: claimTiers threads through both identity and record_facts sections, matched per-row", () => {
+  const claimTiers = {
+    "[title] The captured source's own text carries this item's title verbatim: «1999/823/EC: Commission Decision of 22 November 1999»":
+      { tier: 2, sourceName: "EUR-Lex", sourceUrl: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0823" },
+    [EFFECTIVE_DATE_LINE]: { tier: 4, sourceName: "EUR-Lex", sourceUrl: "https://eur-lex.europa.eu/x" },
+    // JURISDICTIONAL_SCOPE_LINE deliberately omitted — proves a partially-covered map still resolves
+    // per-row (rated where present, unrated where absent) rather than all-or-nothing.
+  };
+
+  const parsed = parseRecordSections(ALL_GAP_ROWS, claimTiers);
+  assert.ok(parsed);
+  assert.equal(parsed.facts.length, 1);
+  assert.equal(parsed.facts[0].slotKey, "title");
+  assert.equal(parsed.facts[0].tier, 2);
+  assert.equal(parsed.facts[0].sourceName, "EUR-Lex");
+  // Every GAP in this fixture stays unrated regardless of the map (GAP rows never look themselves up).
+  for (const g of parsed.gaps) assert.equal(g.tier, null);
+
+  const parsedFactBearing = parseRecordSections(
+    [{ section_key: "record_facts", content_md: FACT_BEARING_RECORD_FACTS_MD }],
+    claimTiers
+  );
+  assert.ok(parsedFactBearing);
+  const bySlot = Object.fromEntries(parsedFactBearing.facts.map((f) => [f.slotKey, f]));
+  assert.equal(bySlot.effective_date.tier, 4);
+  assert.equal(bySlot.jurisdictional_scope.tier, null); // unmatched — honest, not a wrong chip
+  assert.equal(bySlot.penalty_summary.tier, null); // never in the map at all
+});
+
+test("parseRecordSections: no claimTiers arg at all — every fact.tier is null (pre-TIER-CHIP behaviour preserved)", () => {
+  const parsed = parseRecordSections([
+    { section_key: "record_facts", content_md: FACT_BEARING_RECORD_FACTS_MD },
+  ]);
+  assert.ok(parsed);
+  for (const f of parsed.facts) {
+    assert.equal(f.tier, null);
+    assert.equal(f.sourceName, null);
+    assert.equal(f.sourceUrl, null);
+  }
 });

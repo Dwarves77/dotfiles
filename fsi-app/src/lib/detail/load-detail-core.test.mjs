@@ -22,7 +22,7 @@
 // integration test against a database.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { loadDetailCore } from "./load-detail-core.ts";
+import { loadDetailCore, buildClaimTierMap, fetchClaimTierMap } from "./load-detail-core.ts";
 
 /** Thin call-shape helper: fills in cacheKeyParts/cacheTags from
  *  surface+id the same way load-detail.ts's real wrapper does
@@ -240,4 +240,112 @@ test("loadItemScoped never runs when the service client is unavailable (soft-fai
   assert.equal(result.notFound, false);
   assert.equal(called, false);
   assert.equal(result.itemScoped, null);
+});
+
+// ── TIER-CHIP lane (2026-09-04): buildClaimTierMap / fetchClaimTierMap ─────────────────────────────
+
+test("buildClaimTierMap: COALESCE(tier_override, base_tier) — tier_override wins when both are set", () => {
+  const map = buildClaimTierMap([
+    { claim_text: "[effective_date] ... «a»", sources: { name: "EUR-Lex", url: "https://x", base_tier: 4, tier_override: 2 } },
+  ]);
+  assert.equal(map["[effective_date] ... «a»"].tier, 2);
+  assert.equal(map["[effective_date] ... «a»"].sourceName, "EUR-Lex");
+});
+
+test("buildClaimTierMap: base_tier used when tier_override is null", () => {
+  const map = buildClaimTierMap([
+    { claim_text: "[due_date] ... «b»", sources: { name: "Trade Press", url: null, base_tier: 5, tier_override: null } },
+  ]);
+  assert.equal(map["[due_date] ... «b»"].tier, 5);
+});
+
+test("buildClaimTierMap: sources null (no resolved source_id — a GAP row, or a FACT the query still returned with a null join) — tier null, never a guess", () => {
+  const map = buildClaimTierMap([{ claim_text: "[penalty_summary] ... «c»", sources: null }]);
+  assert.equal(map["[penalty_summary] ... «c»"].tier, null);
+  assert.equal(map["[penalty_summary] ... «c»"].sourceName, null);
+});
+
+test("buildClaimTierMap: source resolved but carries neither base_tier nor tier_override — tier null (matches migration 141's source_tier_null case)", () => {
+  const map = buildClaimTierMap([
+    { claim_text: "[jurisdictional_scope] ... «d»", sources: { name: "Unrated Registry Row", url: null, base_tier: null, tier_override: null } },
+  ]);
+  assert.equal(map["[jurisdictional_scope] ... «d»"].tier, null);
+  assert.equal(map["[jurisdictional_scope] ... «d»"].sourceName, "Unrated Registry Row");
+});
+
+test("buildClaimTierMap: PostgREST array-shaped embed (defensive, same idiom as supabase-server.ts's fetchResearchPipelineRows) resolves the same as an object", () => {
+  const map = buildClaimTierMap([
+    { claim_text: "[title] ... «e»", sources: [{ name: "EUR-Lex", url: "https://x", base_tier: 2, tier_override: null }] },
+  ]);
+  assert.equal(map["[title] ... «e»"].tier, 2);
+});
+
+test("buildClaimTierMap: null/undefined/empty rows — empty map, never throws", () => {
+  assert.deepEqual(buildClaimTierMap(null), {});
+  assert.deepEqual(buildClaimTierMap(undefined), {});
+  assert.deepEqual(buildClaimTierMap([]), {});
+});
+
+test("buildClaimTierMap: multiple distinct claims coexist in one map, keyed independently", () => {
+  const map = buildClaimTierMap([
+    { claim_text: "[a] one", sources: { name: "S1", url: null, base_tier: 1, tier_override: null } },
+    { claim_text: "[b] two", sources: { name: "S2", url: null, base_tier: 6, tier_override: null } },
+  ]);
+  assert.equal(map["[a] one"].tier, 1);
+  assert.equal(map["[b] two"].tier, 6);
+});
+
+test("fetchClaimTierMap: a Supabase error resolves to {} (soft-fail, never throws) — matches every other item-scoped read's soft-fail posture", async () => {
+  const supabaseStub = {
+    from() {
+      return {
+        select() {
+          return this;
+        },
+        eq() {
+          return this;
+        },
+        then(resolve) {
+          resolve({ data: null, error: { message: "boom" } });
+        },
+      };
+    },
+  };
+  const map = await fetchClaimTierMap(supabaseStub, "item-uuid");
+  assert.deepEqual(map, {});
+});
+
+test("fetchClaimTierMap: a thrown query (network failure) resolves to {} rather than propagating", async () => {
+  const supabaseStub = {
+    from() {
+      throw new Error("network down");
+    },
+  };
+  const map = await fetchClaimTierMap(supabaseStub, "item-uuid");
+  assert.deepEqual(map, {});
+});
+
+test("fetchClaimTierMap: a successful query builds the map from the joined rows", async () => {
+  const supabaseStub = {
+    from(table) {
+      assert.equal(table, "section_claim_provenance");
+      return {
+        select() {
+          return this;
+        },
+        eq() {
+          return this;
+        },
+        then(resolve) {
+          resolve({
+            data: [{ claim_text: "[effective_date] ... «a»", sources: { name: "EUR-Lex", url: "https://x", base_tier: 2, tier_override: null } }],
+            error: null,
+          });
+        },
+      };
+    },
+  };
+  const map = await fetchClaimTierMap(supabaseStub, "item-uuid");
+  assert.equal(map["[effective_date] ... «a»"].tier, 2);
+  assert.equal(map["[effective_date] ... «a»"].sourceName, "EUR-Lex");
 });

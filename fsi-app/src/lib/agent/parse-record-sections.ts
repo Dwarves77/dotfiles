@@ -44,9 +44,52 @@
  * became, not the extractor that produced it — a renderer, not a re-implementation of the mint pipeline.
  * Plain, dependency-free TS (types erased by Node's built-in stripping) so it runs under plain
  * `node --test`, same posture as load-detail-core.ts / regulation-obligations-core.ts.
+ *
+ * TIER-CHIP lane (2026-09-04) — OPTIONAL per-claim rating. THE GAP this closes: a record-grade FACT
+ * carries a real, resolvable source tier (`section_claim_provenance.source_id` -> the joined `sources`
+ * row), but this parser previously discarded it entirely — RecordFactLine had no tier field to render at
+ * all, while the SAME item's Sources tab (TierBadge) showed the item-level tier only. Migration 145
+ * settled which field is "the rating": criterion 3 of `validate_item_provenance` DERIVES a FACT's tier
+ * live as `COALESCE(sources.tier_override, sources.base_tier)` via `scp.source_id` — NEVER
+ * `sources.effective_tier` ("moat-pure": reputation can never confer reg-fact eligibility, migration 145's
+ * own words) and NEVER the stored `scp.source_tier_at_grounding` cache (a pre-145 field the validator no
+ * longer reads, drift-prone by construction). This parser follows that exact derivation: the caller (the
+ * page's server load) runs ONE query joining `section_claim_provenance` to `sources` the same way, and
+ * hands the result in as `claimTiers` — this module only MATCHES, never re-derives or re-queries.
+ *
+ * MATCH RULE, STATED (do not assume a different one). `buildRecordPayload` (record-facts.mjs) writes
+ * `content_md = slotClaims.map(c => c.claim_text).join("\n")` — i.e. every line this parser reads back is
+ * BYTE-IDENTICAL to a `section_claim_provenance.claim_text` value for the same item (confirmed by reading
+ * `write-item.ts`'s `buildClaimRows`: `claim_text: c.claim_text`, no transform). So the match key is the
+ * FULL trimmed claim line itself (`rawLine` below, e.g. `"[effective_date] The captured source states,
+ * verbatim: «...»"`) — not slot_key alone (section_claim_provenance carries no slot_key column at all;
+ * grepped, confirmed) and not the bare span (a span can theoretically repeat across claims; the full line
+ * cannot, since slot_key is unique per section per item by construction). FAILURE MODE, STATED: when a
+ * FACT row's exact line has no entry in `claimTiers` (a stale/differently-written content_md, a claim the
+ * caller's query didn't return, or — genuinely — a claim whose `source_id` is null), the row's tier fields
+ * are simply `null` — an honest "unrated" state. This module NEVER falls back to a partial match (slot_key
+ * alone, or a substring), because a partial match on the wrong claim would render a WRONG chip, which is
+ * strictly worse than an absent one — the exact failure mode this lane's dispatch calls out by name.
  */
 
 export type RecordClaimKind = "FACT" | "GAP";
+
+/** One claim's rating, resolved by the caller (server-side, one query — see this file's TIER-CHIP
+ *  header) and attached here purely by exact-line lookup. `tier` is the SAME derivation
+ *  `validate_item_provenance` criterion 3 uses as of migration 145: `COALESCE(sources.tier_override,
+ *  sources.base_tier)` for the claim's `source_id` — never `effective_tier`. `null` is an honest,
+ *  distinct state from "chip omitted": a caller MAY pass an entry with `tier: null` for a claim whose
+ *  `source_id` resolved to a source carrying neither `base_tier` nor `tier_override` (migration 141
+ *  criterion-1's own `source_tier_null` case) — rendered the same as "unmatched", never invented. */
+export interface ClaimTierInfo {
+  tier: number | null;
+  sourceName: string | null;
+  sourceUrl: string | null;
+}
+
+/** Keyed by the FULL trimmed claim line (this file's `rawLine` — byte-identical to
+ *  `section_claim_provenance.claim_text` for the same claim; see the TIER-CHIP header's MATCH RULE). */
+export type ClaimTierMap = Record<string, ClaimTierInfo>;
 
 export interface RecordFactRow {
   /** The slot_key from the claim's own `[slot_key]` prefix, e.g. "effective_date", "title". */
@@ -60,6 +103,15 @@ export interface RecordFactRow {
    *  null for a GAP row or a FACT row whose line carries no guillemet pair (should not occur in
    *  practice — record-facts.mjs's own assertVerbatim guard requires one — but never assumed). */
   span: string | null;
+  /** The full trimmed line exactly as read from content_md, INCLUDING the `[slot_key]` prefix — the
+   *  `claimTiers` lookup key (see this file's TIER-CHIP header). Not meant for display. */
+  rawLine: string;
+  /** This claim's rating (TIER-CHIP lane), or null when no `claimTiers` map was supplied, this row is a
+   *  GAP (a GAP claim has no source to rate), or the line has no entry in the map (unmatched — honest
+   *  "unrated", never a guess). */
+  tier: number | null;
+  sourceName: string | null;
+  sourceUrl: string | null;
 }
 
 export interface ParsedRecordSections {
@@ -99,33 +151,47 @@ export function lastQuotedSpan(text: string): string | null {
 }
 
 /** Parse one claim line (as record-facts.mjs wrote it) into a RecordFactRow, or null when the line does
- *  not carry a recognisable `[slot_key]` prefix (defensive — every real row does). Pure. */
-export function parseRecordClaimLine(line: string): RecordFactRow | null {
+ *  not carry a recognisable `[slot_key]` prefix (defensive — every real row does). `claimTiers`
+ *  (optional) attaches this row's rating by exact-line lookup — see this file's TIER-CHIP header for the
+ *  match rule; omitted entirely, every tier field is null (backward compatible with every pre-existing
+ *  caller). A GAP row NEVER looks itself up (a GAP claim has no source to rate — attempting the lookup
+ *  would risk a coincidental map entry rendering a rating on a claim that states the opposite). Pure. */
+export function parseRecordClaimLine(line: string, claimTiers?: ClaimTierMap): RecordFactRow | null {
   const trimmed = String(line ?? "").trim();
   if (!trimmed) return null;
   const m = CLAIM_LINE_RE.exec(trimmed);
   if (!m) return null;
   const [, slotKey, rest] = m;
   const isGap = rest.includes(GAP_MARKER);
+  const info = !isGap && claimTiers ? claimTiers[trimmed] ?? null : null;
   return {
     slotKey,
     label: humanizeSlotLabel(slotKey),
     kind: isGap ? "GAP" : "FACT",
     text: rest.trim(),
     span: isGap ? null : lastQuotedSpan(rest),
+    rawLine: trimmed,
+    tier: info?.tier ?? null,
+    sourceName: info?.sourceName ?? null,
+    sourceUrl: info?.sourceUrl ?? null,
   };
 }
 
 /** Parse `content_md` into its claim-line rows, skipping blank lines and tolerating an optional leading
  *  "- " (record_facts/identity content_md is bare `\n`-joined claim_text with no leading dash;
  *  full_brief's own "## Verbatim facts" bullet list does prefix "- " — tolerating either input shape
- *  costs nothing and means a caller can hand this either source without a second code path). Pure. */
-function parseClaimLines(contentMd: string): RecordFactRow[] {
+ *  costs nothing and means a caller can hand this either source without a second code path). NOTE: the
+ *  "- " strip happens BEFORE the claimTiers lookup key is captured (`rawLine` is the stripped line), so a
+ *  full_brief-sourced "- [slot] ..." line still matches the same `claim_text`-shaped key a
+ *  content_md-sourced caller would produce — the one real call path (RecordGradeSummary et al. always
+ *  hand this section rows, never full_brief) never exercises the "- " strip at all, but a hypothetical
+ *  caller that did would still match correctly. Pure. */
+function parseClaimLines(contentMd: string, claimTiers?: ClaimTierMap): RecordFactRow[] {
   const lines = String(contentMd ?? "").split(/\r?\n/);
   const rows: RecordFactRow[] = [];
   for (const raw of lines) {
     const stripped = raw.replace(/^-\s+/, "");
-    const row = parseRecordClaimLine(stripped);
+    const row = parseRecordClaimLine(stripped, claimTiers);
     if (row) rows.push(row);
   }
   return rows;
@@ -147,9 +213,16 @@ export interface RecordSectionRowLike {
  * when neither an "identity" nor a "record_facts" row is present — the honest fallback signal for the
  * caller (a record-grade item with no extracted-facts sections written yet); callers must render an
  * honest empty state rather than inventing content on a null result.
+ *
+ * `claimTiers` (optional, TIER-CHIP lane): the item's FACT claims' ratings, keyed by exact claim line —
+ * see this file's TIER-CHIP header for how the caller builds this (one query joining
+ * `section_claim_provenance` to `sources`) and the match rule / failure mode. Omitted entirely, every
+ * `RecordFactRow.tier` is null — byte-identical to this function's pre-TIER-CHIP behaviour, so every
+ * pre-existing caller (and this file's own pre-TIER-CHIP tests) is unaffected.
  */
 export function parseRecordSections(
-  rows: RecordSectionRowLike[] | null | undefined
+  rows: RecordSectionRowLike[] | null | undefined,
+  claimTiers?: ClaimTierMap
 ): ParsedRecordSections | null {
   const list = Array.isArray(rows) ? rows : [];
   const identityRow = list.find((r) => r.section_key === "identity");
@@ -157,8 +230,8 @@ export function parseRecordSections(
   const sourcesRow = list.find((r) => r.section_key === "sources_and_citations");
   if (!identityRow && !factsRow) return null;
 
-  const identityRows = identityRow ? parseClaimLines(identityRow.content_md) : [];
-  const slotRows = factsRow ? parseClaimLines(factsRow.content_md) : [];
+  const identityRows = identityRow ? parseClaimLines(identityRow.content_md, claimTiers) : [];
+  const slotRows = factsRow ? parseClaimLines(factsRow.content_md, claimTiers) : [];
 
   const facts = [...identityRows, ...slotRows].filter((r) => r.kind === "FACT");
   const gaps = slotRows.filter((r) => r.kind === "GAP");

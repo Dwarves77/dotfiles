@@ -38,6 +38,7 @@ import type {
   ChangeLogEntry,
   Dispute,
 } from "@/types/resource";
+import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 
 /** Time backstop on the item-scoped cache entry — matches the 300s window
  *  already used by fetchIntelligenceItem / fetchIntelligenceItemSections
@@ -118,6 +119,93 @@ export interface LoadDetailCoreConfig<ItemScoped, ViewerScoped> {
    *  from @/lib either. */
   cacheKeyParts: string[];
   cacheTags: string[];
+}
+
+// ── TIER-CHIP lane (2026-09-04): the record-grade claim-tier read ──────────────────────────────────
+//
+// THE GAP this closes (see parse-record-sections.ts's own TIER-CHIP header for the full derivation
+// rationale): a record-grade item's FACT claims (section_claim_provenance) each resolve to a real source
+// tier, but no page ever read it — RecordFactLine had nothing to render. This is that read, factored out
+// ONCE here because THREE surfaces (regulations, market, research — never operations, which has no
+// record-grade renderer) need the identical query/shape; each surface's own loadItemScoped calls
+// `fetchClaimTierMap` inside its own Promise.all (see e.g. regulations/[slug]/page.tsx), so it runs
+// alongside that surface's other item-scoped reads, inside the SAME cache entry loadDetailCore already
+// wraps — one extra query per cache miss, never per-claim (no N+1), and free on every cache hit exactly
+// like the rest of that bundle.
+//
+// ONE QUERY, NOT A JOIN-PER-CLAIM: PostgREST resource embedding (`sources(...)` — section_claim_provenance
+// carries a real FK, section_claim_provenance_source_id_fkey -> sources.id, confirmed via Supabase MCP
+// read-only, 2026-09-04) resolves the claim ↔ source join server-side in ONE HTTP round trip, the same
+// embedding idiom already used throughout this codebase (supabase-server.ts's `source:sources(...)`,
+// operations/[slug]/page.tsx, research/[slug]/page.tsx — grepped for precedent before writing this).
+//
+// THE RATING FIELD, STATED (do not read effective_tier here — see parse-record-sections.ts's header for
+// the full citation): `COALESCE(sources.tier_override, sources.base_tier)` is the SAME derivation
+// `validate_item_provenance` criterion 3 uses as of migration 145 ("moat-pure": reputation, i.e.
+// effective_tier, can never confer reg-fact eligibility) — never the stored, pre-145
+// `section_claim_provenance.source_tier_at_grounding` cache the validator no longer consumes either.
+export interface ClaimTierSourceRowLike {
+  name: string | null;
+  url: string | null;
+  base_tier: number | null;
+  tier_override: number | null;
+}
+
+export interface ClaimTierRowLike {
+  claim_text: string;
+  // PostgREST returns a single embedded resource as an object when the FK is unambiguous (confirmed:
+  // section_claim_provenance carries exactly one FK to sources), but this repo's own established
+  // defensive idiom (supabase-server.ts's fetchResearchPipelineRows: `Array.isArray(row.source) ?
+  // row.source[0] : row.source`) treats it as possibly-array anyway — followed here rather than assumed
+  // away, since a null source_id also legitimately yields null here (a GAP claim, or a FACT whose
+  // source_id never resolved).
+  sources: ClaimTierSourceRowLike | ClaimTierSourceRowLike[] | null;
+}
+
+/** Build a ClaimTierMap from the raw joined rows a `section_claim_provenance` + embedded `sources` query
+ *  returns. Pure — no I/O; the caller (fetchClaimTierMap below, or a test) supplies the rows. Keys the map
+ *  by each row's own `claim_text` — BYTE-IDENTICAL to the `rawLine` parse-record-sections.ts derives from
+ *  the same claim's content_md line (see that file's MATCH RULE), so no transform happens here beyond the
+ *  tier derivation itself. A row whose `claim_text` repeats (should not happen — claim_text is effectively
+ *  unique per item, one claim per slot per section) keeps the LAST row's rating, matching plain object
+ *  key-assignment semantics; never silently drops one arbitrarily different from the other. */
+export function buildClaimTierMap(rows: ClaimTierRowLike[] | null | undefined): ClaimTierMap {
+  const map: ClaimTierMap = {};
+  for (const row of rows ?? []) {
+    if (!row || typeof row.claim_text !== "string") continue;
+    const src = Array.isArray(row.sources) ? row.sources[0] ?? null : row.sources;
+    map[row.claim_text] = {
+      tier: src ? src.tier_override ?? src.base_tier ?? null : null,
+      sourceName: src?.name ?? null,
+      sourceUrl: src?.url ?? null,
+    };
+  }
+  return map;
+}
+
+/**
+ * Read a record-grade item's FACT claims' ratings in ONE query (see this section's header) and return
+ * them as a ClaimTierMap ready for parseRecordSections. Never throws — a query error or a null/empty
+ * `data` (including "this item has no section_claim_provenance rows at all", the honest common case for
+ * every brief-grade item, since this is called unconditionally by each surface's loadItemScoped rather
+ * than gated on item_grade) resolves to `{}`, the same "every fact renders unrated" state
+ * parseRecordSections already treats as the correct default with no map at all.
+ */
+export async function fetchClaimTierMap(
+  supabase: SupabaseClient,
+  itemUuid: string
+): Promise<ClaimTierMap> {
+  try {
+    const { data, error } = await supabase
+      .from("section_claim_provenance")
+      .select("claim_text, sources(name, url, base_tier, tier_override)")
+      .eq("intelligence_item_id", itemUuid)
+      .eq("claim_kind", "FACT");
+    if (error || !data) return {};
+    return buildClaimTierMap(data as unknown as ClaimTierRowLike[]);
+  } catch {
+    return {};
+  }
 }
 
 export type DetailCoreResult<ItemScoped, ViewerScoped> =

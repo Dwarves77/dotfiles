@@ -186,6 +186,37 @@ function recordSections() {
   ];
 }
 
+// TIER-CHIP lane (2026-09-04) — a ClaimTierMap exercising all three render states RecordFactLine (and
+// its Market/Research equivalents) can show: RATED (at/within the item-type authority floor — a T2
+// EUR-Lex source), BELOW-FLOOR RATED (migration 302: criterion 3's floor is a warning, never a refusal
+// — the figure is published WITH its rating, exactly as the operator's ruling requires; a T6 commercial
+// source here), and UNRATED (the jurisdictional_scope line is DELIBERATELY left out of this map — the
+// parser's own honest "no entry for this exact line" fallback, never a wrong chip). Keys are derived
+// FROM `recordSections()`'s own content_md lines (not retyped) so a fixture edit there can never
+// silently desync this map from what's actually rendered.
+function recordClaimTiers() {
+  const identityLine = recordSections().find((s) => s.section_key === 'identity').content_md;
+  const [effectiveDateLine /* jurisdictionalScopeLine, bindingPositionLine, penaltyGapLine */] =
+    recordSections().find((s) => s.section_key === 'record_facts').content_md.split('\n');
+  return {
+    [identityLine]: {
+      tier: 2,
+      sourceName: 'EUR-Lex',
+      sourceUrl: 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32026R1030',
+    },
+    // BELOW-FLOOR, still published+rated per migration 302 (ruling: "get the source. then rate the
+    // source... find the source and then publish the data on the site").
+    [effectiveDateLine]: {
+      tier: 6,
+      sourceName: 'Trade Press Weekly',
+      sourceUrl: 'https://example.com/trade-press-weekly',
+    },
+    // jurisdictional_scope's line is deliberately ABSENT from this map — exercises the UNRATED dashed
+    // "—" chip (this parser's match-rule failure mode: no entry for the exact line -> null, never a
+    // guessed/wrong chip). binding_position's line is likewise absent (same case, second row).
+  };
+}
+
 // ── Regulations ─────────────────────────────────────────────────────────────────────────────────
 const REGULATION_ENTRY = `
 ${STYLE_INJECT}
@@ -249,6 +280,7 @@ const REGULATION_STATES = [
       relevance: null,
       resourceLookup: { 'rec-2': { id: 'rec-2', title: 'Related instrument, also long enough to wrap at a phone width', priority: 'HIGH' } },
       sections: recordSections(),
+      claimTiers: recordClaimTiers(),
       groupLabel: LONG_GROUP,
       deck: 'EUR-Lex · catalogue record',
       initialOwner: null,
@@ -342,6 +374,7 @@ const RESEARCH_STATES = [
       related: [],
       relatedReason: 'none',
       sections: recordSections(),
+      claimTiers: recordClaimTiers(),
       supersessions: [],
       connections: [],
       relevance: null,
@@ -403,6 +436,7 @@ const MARKET_STATES = [
       }),
       relatedPool: [],
       sections: recordSections(),
+      claimTiers: recordClaimTiers(),
       convergence: null,
       priceBoard: [],
       carbonFactors: [],
@@ -427,6 +461,17 @@ const MARKET_STATES = [
 //     class regulations-rows-smoke.mjs's own KNOWN_SAFE_PLACEHOLDER_LITERALS documents for "Action") —
 //     confirmed by reading: real, working-as-designed navigational/label copy, never a row's own
 //     fabricated or omitted data.
+//     TIER-CHIP lane (2026-09-04) adds two more, on the same basis, to the three record-grade
+//     surfaces (regulations/research/market): "Title" is RecordFactLine's own slot label for the
+//     identity FACT (humanizeSlotLabel('title'), pre-existing since the RECORD-SURFACE lane — this
+//     spec's own recordSections() 'identity' section always carried it; it is a HEADER_LITERALS
+//     collision purely because "title" is also a §15 table-header word, never fabricated content),
+//     and "—" is the new honest UNRATED chip RecordFactLine/its Market/Research equivalents render
+//     for a FACT claim with no entry in the claim-tier map (recordClaimTiers()'s own header comment:
+//     the jurisdictional_scope and binding_position lines are DELIBERATELY left out of that map to
+//     exercise this exact fallback) — the dashed "—" is the parser's honest "unrated", never a wrong
+//     or fabricated tier, and NO_DATA_TOKENS (source-entry-filter.mjs) happens to also list "—" as a
+//     placeholder-name token, the same coincidental collision as "Title" above.
 //   - `skipSmallTargetSubstrings` — interactive targets belonging to a component OUTSIDE this lane's
 //     write set (`@/components/ui/AiPromptBar`, mounted by RegulationDetailSurface but not editable
 //     here) or to MarketSignalDetailSurface.tsx itself (src/components/pages/, outside the write set
@@ -484,7 +529,7 @@ export async function runSmoke(browser) {
       name: 'detail-regulations',
       entry: REGULATION_ENTRY,
       states: REGULATION_STATES,
-      knownSafePlaceholders: ['Type'],
+      knownSafePlaceholders: ['Type', 'Title', '—'],
       skipSmallTargetSubstrings: AI_PROMPT_BAR_TARGETS,
     }),
     runDetailSpec(browser, {
@@ -497,7 +542,7 @@ export async function runSmoke(browser) {
       name: 'detail-research',
       entry: RESEARCH_ENTRY,
       states: RESEARCH_STATES,
-      knownSafePlaceholders: ['Source'],
+      knownSafePlaceholders: ['Source', 'Title', '—'],
     }),
     // Market: MarketSignalDetailSurface.tsx was outside the lane's write set; the coordinator brought its
     // header to the same fix (crumb wrap, last crumb omitted at <=640, pad token, data-guard-title on the
@@ -506,7 +551,10 @@ export async function runSmoke(browser) {
       name: 'detail-market',
       entry: MARKET_ENTRY,
       states: MARKET_STATES,
-      knownSafePlaceholders: ['Severity', 'Status'], // column headers of the signal's own table, not data
+      // 'Severity'/'Status': column headers of the signal's own table, not data. 'Title'/'—': the
+      // same TIER-CHIP-lane record-fact false positives documented in this function's own header
+      // comment above (RecordFactLine's identity slot label, and the honest unrated dashed chip).
+      knownSafePlaceholders: ['Severity', 'Status', 'Title', '—'],
     }),
   ]);
   return {

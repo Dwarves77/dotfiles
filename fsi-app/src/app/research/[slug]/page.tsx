@@ -34,6 +34,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
+import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
+import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { resolveServerBootstrap } from "@/lib/api/server-bootstrap";
@@ -83,6 +85,11 @@ interface ItemScoped {
   related: ReturnType<typeof pickRelated>[];
   relatedReason: "theme" | "source" | "none";
   themeBrief: ReturnType<typeof selectThemeBriefForItem>;
+  /** TIER-CHIP lane (2026-09-04): a record-grade item's FACT claims' ratings — see
+   *  load-detail-core.ts's fetchClaimTierMap header. Item-scoped, read unconditionally (a brief-grade
+   *  finding's query legitimately returns no rows, resolving to {} at zero extra cost). Reuses `self.id`
+   *  (already resolved below, inside relatedAndBriefPromise) as the item uuid — no second uuid lookup. */
+  claimTiers: ClaimTierMap;
 }
 
 export default async function ResearchFindingDetailPage({
@@ -156,11 +163,13 @@ export default async function ResearchFindingDetailPage({
           relatedReason: ItemScoped["relatedReason"];
           themeBrief: ItemScoped["themeBrief"];
           peersEntityId: string | null;
+          claimTiers: ClaimTierMap;
         }> = (async () => {
           let related: ReturnType<typeof pickRelated>[] = [];
           let relatedReason: ItemScoped["relatedReason"] = "none";
           let themeBrief: ItemScoped["themeBrief"] = null;
           let peersEntityId: string | null = null;
+          let claimTiers: ClaimTierMap = {};
           try {
             const isUuid = UUID_RE.test(id);
             const orExpr = isUuid ? `legacy_id.eq.${id},id.eq.${id}` : `legacy_id.eq.${id}`;
@@ -172,6 +181,12 @@ export default async function ResearchFindingDetailPage({
 
             if (self) {
               peersEntityId = self.instrument_entity_id ?? null;
+
+              // TIER-CHIP lane (2026-09-04): kicked off here (self.id is the item uuid — no separate
+              // resolveItemUuid call needed) and awaited just before the return below, so it runs
+              // alongside the theme/source-fallback queries below rather than adding a fully serial
+              // extra round trip.
+              const claimTiersPromise = fetchClaimTierMap(supabase, self.id);
 
               if (self.theme) {
                 const { data: themeRows } = await supabase
@@ -231,11 +246,15 @@ export default async function ResearchFindingDetailPage({
                   .limit(1);
                 themeBrief = selectThemeBriefForItem(self.id, [matchedTheme], briefRows || []);
               }
+
+              // fetchClaimTierMap never throws (soft-fails internally to {} — see its own header), so
+              // awaiting it here cannot trip this block's own catch below.
+              claimTiers = await claimTiersPromise;
             }
           } catch {
             // Soft-fail — surface renders the empty state (no related findings, no theme-brief card).
           }
-          return { related, relatedReason, themeBrief, peersEntityId };
+          return { related, relatedReason, themeBrief, peersEntityId, claimTiers };
         })();
 
         const [resourceLookup, relatedAndBrief] = await Promise.all([
@@ -249,6 +268,7 @@ export default async function ResearchFindingDetailPage({
           related: relatedAndBrief.related,
           relatedReason: relatedAndBrief.relatedReason,
           themeBrief: relatedAndBrief.themeBrief,
+          claimTiers: relatedAndBrief.claimTiers,
         };
       },
     }),
@@ -267,6 +287,7 @@ export default async function ResearchFindingDetailPage({
   const related = result.itemScoped?.related ?? [];
   const relatedReason = result.itemScoped?.relatedReason ?? "none";
   const themeBrief = result.itemScoped?.themeBrief ?? null;
+  const claimTiers = result.itemScoped?.claimTiers ?? {};
 
   console.log(`[perf] /research/${id} data ${result.elapsedMs}ms`);
 
@@ -313,6 +334,7 @@ export default async function ResearchFindingDetailPage({
         related={related}
         relatedReason={relatedReason}
         sections={sections}
+        claimTiers={claimTiers}
         supersessions={supersessions}
         connections={connections}
         relevance={relevance}

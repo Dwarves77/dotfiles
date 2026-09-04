@@ -56,6 +56,7 @@ import {
   parseRecordSections,
   splitKeyDateFacts,
   type RecordFactRow,
+  type ClaimTierMap,
 } from "@/lib/agent/parse-record-sections";
 import type { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
 import {
@@ -92,6 +93,10 @@ interface Props {
    * Empty array falls back to the raw full_brief markdown toggle (legacy).
    */
   sections?: IntelligenceItemSectionRow[];
+  /** TIER-CHIP lane (2026-09-04): a record-grade item's FACT claims' ratings, keyed by exact claim line
+   *  — see parse-record-sections.ts's TIER-CHIP header for the match rule. Read server-side, one query
+   *  (the page's loadItemScoped); consumed only by ResearchRecordFacts (record-grade findings). */
+  claimTiers?: ClaimTierMap;
   /** Flywheel U9 (D1) — item_cross_references connections + any supersessions involving this item, the
    *  viewer's relevance-to-your-operation lens, and the gated title lookup for both. */
   supersessions?: Supersession[];
@@ -167,11 +172,29 @@ function ResearchSections({ rows }: { rows: IntelligenceItemSectionRow[] }) {
 // Connected items are already rendered unconditionally below (this file's own <ItemConnectionsCard>
 // call) so this block does not duplicate them — only the facts/dates/tags a record-grade research
 // finding's `sections` actually carry, which ResearchSections' numbered-key parser cannot reach.
+// TIER-CHIP lane (2026-09-04): fact.tier is this FACT claim's own rating (see parse-record-sections.ts's
+// TIER-CHIP header) rendered with the SAME <SourceTierBadge> the Sources panel below already uses (same
+// component, same TIER_LABELS vocabulary — never a second one) plus, when the map resolved one, a linked
+// source name. `fact.tier === null` shows an honest dashed "—" — never omitted silently, never guessed.
 function ResearchRecordFactLine({ fact }: { fact: RecordFactRow }) {
   return (
     <div>
-      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: 3 }}>
-        {fact.label}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-muted)" }}>
+          {fact.label}
+        </span>
+        {fact.kind === "FACT" &&
+          (typeof fact.tier === "number" ? (
+            <SourceTierBadge tier={fact.tier} />
+          ) : (
+            <span
+              aria-hidden
+              title="No source rating on file for this claim"
+              style={{ fontSize: 9, fontWeight: 800, padding: "2px 7px", borderRadius: 3, border: "1px dashed var(--color-border)", color: "var(--color-text-muted)" }}
+            >
+              —
+            </span>
+          ))}
       </div>
       {fact.span ? (
         <p style={{ fontSize: 14, lineHeight: 1.65, margin: 0, color: "var(--color-text-primary)", borderLeft: "2px solid var(--color-border)", paddingLeft: 10, overflowWrap: "anywhere" }}>
@@ -180,12 +203,30 @@ function ResearchRecordFactLine({ fact }: { fact: RecordFactRow }) {
       ) : (
         <p style={{ fontSize: 14, lineHeight: 1.65, margin: 0, color: "var(--color-text-secondary)", overflowWrap: "anywhere" }}>{fact.text}</p>
       )}
+      {fact.kind === "FACT" && fact.sourceName && (
+        <p style={{ fontSize: 11, margin: "4px 0 0", color: "var(--color-text-muted)" }}>
+          {fact.sourceUrl ? (
+            // Law-2 floor (24px + 8px-clearance alternative): minHeight + inline-flex/center reaches the
+            // floor without changing the visible link's font size or padding.
+            <a
+              href={fact.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", minHeight: 24 }}
+            >
+              {fact.sourceName}
+            </a>
+          ) : (
+            fact.sourceName
+          )}
+        </p>
+      )}
     </div>
   );
 }
 
-function ResearchRecordFacts({ sections, tags }: { sections: IntelligenceItemSectionRow[]; tags: string[] }) {
-  const parsed = useMemo(() => parseRecordSections(sections), [sections]);
+function ResearchRecordFacts({ sections, tags, claimTiers }: { sections: IntelligenceItemSectionRow[]; tags: string[]; claimTiers?: ClaimTierMap }) {
+  const parsed = useMemo(() => parseRecordSections(sections, claimTiers), [sections, claimTiers]);
   const { dateFacts, otherFacts } = useMemo(
     () => (parsed ? splitKeyDateFacts(parsed.facts) : { dateFacts: [] as RecordFactRow[], otherFacts: [] as RecordFactRow[] }),
     [parsed]
@@ -760,6 +801,7 @@ export function ResearchFindingDetailSurface({
   related,
   relatedReason,
   sections = [],
+  claimTiers,
   supersessions = [],
   connections = [],
   relevance = null,
@@ -983,7 +1025,7 @@ export function ResearchFindingDetailSurface({
             // parse-record-sections.ts's own header for the mechanism. No live research_finding item
             // routes here today (all 1,273 live record-grade rows carry domain=1 -> /regulations,
             // RECORD-SURFACE lane report) — this is forward cover for when one does.
-            <ResearchRecordFacts sections={sections} tags={r.tags} />
+            <ResearchRecordFacts sections={sections} tags={r.tags} claimTiers={claimTiers} />
           ) : hasSections ? (
             <>
               <ResearchSections rows={sections} />
