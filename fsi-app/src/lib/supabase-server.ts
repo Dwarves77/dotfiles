@@ -542,28 +542,51 @@ async function fetchWorkspaceResources(
   // and concatenate — then re-sort the merged result so we don't depend on
   // per-batch ordering (Postgres only guarantees `sort_order` within each
   // batch's own result set, not across batches).
+  // PERF-5 (2026-09-04, docs/audits/perf-load-times-2026-09-03.md follow-up): this loop used to
+  // `await` each chunk in series inside the `for`. EXPLAIN ANALYZE against the live DB shows the
+  // underlying query costs ~7ms regardless of chunk count (item_timelines is a few thousand rows,
+  // indexed on item_id) — the entire 10-chunk sequential cost on a ~1,500-row remainder page was
+  // network round-trip latency multiplied by chunk count, not query time. Chunking itself is still
+  // needed (a single unchunked `.in()` over the full corpus serialises into a PostgREST GET query
+  // string long enough to be rejected before it reaches the planner, per the comment above), but
+  // the chunks don't depend on each other, so firing them together turns N sequential round trips
+  // into one round-trip's wall time. `Promise.allSettled` (not `Promise.all`) so one failed chunk
+  // doesn't discard rows already fetched by its siblings — matches the original "warn and keep
+  // what we have" behavior, just no longer order-dependent on which chunk failed.
   const ITEM_TIMELINE_CHUNK_SIZE = 150;
   const itemUuids = items.map((i: any) => i.id);
-  const timelineRows: any[] = [];
-  let timelineErr: { message?: string; details?: string | null; hint?: string | null; code?: string | null } | null = null;
+  const timelineChunks: string[][] = [];
   for (let i = 0; i < itemUuids.length; i += ITEM_TIMELINE_CHUNK_SIZE) {
-    const chunk = itemUuids.slice(i, i + ITEM_TIMELINE_CHUNK_SIZE);
-    const { data: chunkRows, error: chunkErr } = await supabase
-      .from("item_timelines")
-      .select("item_id, milestone_date, label, is_completed, sort_order")
-      .in("item_id", chunk);
-    if (chunkErr) {
-      timelineErr = chunkErr;
+    timelineChunks.push(itemUuids.slice(i, i + ITEM_TIMELINE_CHUNK_SIZE));
+  }
+  const timelineChunkResults = await Promise.allSettled(
+    timelineChunks.map((chunk) =>
+      supabase
+        .from("item_timelines")
+        .select("item_id, milestone_date, label, is_completed, sort_order")
+        .in("item_id", chunk)
+    )
+  );
+  const timelineRows: any[] = [];
+  for (const result of timelineChunkResults) {
+    if (result.status === "rejected") {
       console.warn(
-        `[supabase-server] item_timelines read failed (org timelines render empty): ${describeSupabaseError(chunkErr)}`
+        `[supabase-server] item_timelines chunk read threw (that chunk's timelines render empty): ${String(result.reason)}`
       );
-      break;
+      continue;
+    }
+    const { data: chunkRows, error: chunkErr } = result.value;
+    if (chunkErr) {
+      console.warn(
+        `[supabase-server] item_timelines read failed (that chunk's timelines render empty): ${describeSupabaseError(chunkErr)}`
+      );
+      continue;
     }
     if (chunkRows) timelineRows.push(...chunkRows);
   }
   // Sort the merged result — do NOT rely on per-batch ordering from the
   // `.order("sort_order")` PostgREST would otherwise apply per-request.
-  if (!timelineErr) timelineRows.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  timelineRows.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
   const timelineMap = new Map<string, any[]>();
   (timelineRows || []).forEach((t: any) => {
@@ -1587,10 +1610,21 @@ interface OverrideDbRow {
   owner_user_id: string | null;
 }
 
-async function fetchWorkspaceOverrideRows(
-  orgId: string,
-  uuidToUiId: Map<string, string>
-): Promise<WorkspaceOverrideRow[]> {
+// PERF-5 (2026-09-04): split into a DB-only stage (fetchWorkspaceOverrideRowsRaw, needs only
+// orgId) and a pure in-memory mapping stage (mapOverrideRows, needs uuidToUiId). Every call site
+// used to `await fetchWorkspaceResources(...)` FIRST purely to obtain uuidToUiId, THEN `await`
+// this function — even though this function's own two DB reads (overrides, owner roster) never
+// touch uuidToUiId; only the final `.map()` does. That serialised two independent network round
+// trips that could run concurrently. Splitting lets every call site run the raw override read
+// in the SAME Promise.all as fetchWorkspaceResources and defer only the free, synchronous
+// translation step until both have resolved. Output is unchanged — same rows, same shape, same
+// fields — this only moves WHEN the DB reads are issued, not what they return.
+interface OverrideRowsRaw {
+  rows: OverrideDbRow[];
+  ownerNames: Map<string, string>;
+}
+
+async function fetchWorkspaceOverrideRowsRaw(orgId: string): Promise<OverrideRowsRaw> {
   const svc = getServiceSupabase();
   const { data, error } = await svc
     .from("workspace_item_overrides")
@@ -1600,7 +1634,7 @@ async function fetchWorkspaceOverrideRows(
     .eq("org_id", orgId);
   if (error) {
     console.warn("[overrides] service read failed:", describeSupabaseError(error));
-    return [];
+    return { rows: [], ownerNames: new Map() };
   }
   const rows = (data || []) as OverrideDbRow[];
 
@@ -1630,7 +1664,14 @@ async function fetchWorkspaceOverrideRows(
     }
   }
 
-  return rows.map((o) => ({
+  return { rows, ownerNames };
+}
+
+function mapOverrideRows(
+  raw: OverrideRowsRaw,
+  uuidToUiId: Map<string, string>
+): WorkspaceOverrideRow[] {
+  return raw.rows.map((o) => ({
     itemId: uuidToUiId.get(o.item_id) || o.item_id,
     priorityOverride: o.priority_override ?? null,
     isArchived: !!o.is_archived,
@@ -1639,7 +1680,7 @@ async function fetchWorkspaceOverrideRows(
     notes: o.notes ?? "",
     dismissedAt: o.dismissed_at ?? null,
     ownerUserId: o.owner_user_id ?? null,
-    ownerName: o.owner_user_id ? ownerNames.get(o.owner_user_id) ?? null : null,
+    ownerName: o.owner_user_id ? raw.ownerNames.get(o.owner_user_id) ?? null : null,
   }));
 }
 
@@ -1772,11 +1813,18 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
     // Workspace-scoped intelligence read. orgId is the caller's auth-resolved
     // membership; the RPC merges intelligence_items with this workspace's
     // overrides only.
+    // PERF-5 (2026-09-04): overridesRaw + changesResult/sectorsResult/recentResult used to run in
+    // a SECOND Promise.all stage, sequenced after this one, purely because fetchWorkspaceOverrideRows
+    // took uuidToUiId as an argument — even though none of those five reads actually depend on the
+    // RPC's row content, only on orgId (recentResult) or nothing at all (changesResult, sectorsResult).
+    // Now that override-row fetching is split into a DB stage (no uuidToUiId needed) and a pure
+    // mapping stage (below), every DB read this function issues fires in ONE Promise.all.
     const [
       { active: resources, archived, uuidToUiId },
       changelog,
       disputes,
       supersessions,
+      overridesRaw,
     ] = await withTimeout(
       Promise.all([
         // Dashboard projection (migration 064): drops full_brief,
@@ -1788,6 +1836,11 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
         fetchChangelog(),
         fetchDisputes(),
         fetchSupersessions(),
+        // Shared org-overrides read (owner-aware, migration 234) — see
+        // fetchWorkspaceOverrideRowsRaw for the service-client rationale (P1-1). Needs only
+        // orgId, not the RPC result, so it runs alongside fetchWorkspaceResources rather than
+        // after it (PERF-5).
+        fetchWorkspaceOverrideRowsRaw(orgId),
       ]),
       8000, // 8 second timeout
       // Wave-α A2 (2026-07-11): the timeout fallback previously served the
@@ -1801,6 +1854,7 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
         {} as Record<string, ChangeLogEntry[]>,
         {} as Record<string, Dispute>,
         [] as Supersession[],
+        { rows: [], ownerNames: new Map<string, string>() } as OverrideRowsRaw,
       ]
     );
 
@@ -1827,7 +1881,9 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       urgency_score: number | null;
     }> = [];
 
-    const [changesResult, sectorsResult, overrides, recentResult] = await Promise.all([
+    // PERF-5: overridesRaw was already fetched above, alongside fetchWorkspaceResources — only
+    // the translation to UI ids (mapOverrideRows, pure/synchronous) happens here.
+    const [changesResult, sectorsResult, recentResult] = await Promise.all([
       supabase
         .from("intelligence_changes")
         .select("item_id, change_type, change_severity, change_summary")
@@ -1836,13 +1892,11 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       supabase
         .from("sector_contexts")
         .select("sector, display_name"),
-      // Shared org-overrides read (owner-aware, migration 234) — see
-      // fetchWorkspaceOverrideRows for the service-client rationale (P1-1).
-      fetchWorkspaceOverrideRows(orgId, uuidToUiId),
       // Window-scoped What-changed feed (see RecentChangeRow). Service client:
       // orgId authenticated upstream, same idiom as the dashboard RPC call.
       getServiceSupabase().rpc("get_workspace_recent_changes", { p_org_id: orgId, p_days: 7 }),
     ]);
+    const overrides = mapOverrideRows(overridesRaw, uuidToUiId);
 
     // UUID→UI-id map already built by fetchWorkspaceResources from the
     // get_workspace_intelligence RPC payload — synopses + changes +
@@ -1971,16 +2025,24 @@ export async function fetchResourcesOnly(
   }
 
   try {
+    // PERF-5 (2026-09-04): fetchWorkspaceResources and the override-rows DB read used to run
+    // sequentially (the override read only needed orgId, but had to wait for uuidToUiId to exist
+    // as an argument). Now that the override read is split into a DB stage (orgId only) and a
+    // pure mapping stage, both DB reads fire together.
+    //
     // Slim RPC — drops full_brief/operational_impact/open_questions/reasoning
     // from the wire. None are rendered by /regulations, /operations, /market.
-    const { active, archived, uuidToUiId } = await fetchWorkspaceResources(orgId, { slim: true, page });
+    const [{ active, archived, uuidToUiId }, overridesRaw] = await Promise.all([
+      fetchWorkspaceResources(orgId, { slim: true, page }),
+      // Shared org-overrides read (owner-aware, migration 234) — see
+      // fetchWorkspaceOverrideRowsRaw for the service-client rationale (P1-1).
+      fetchWorkspaceOverrideRowsRaw(orgId),
+    ]);
     if (!active.length) {
       return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
     }
 
-    // Shared org-overrides read (owner-aware, migration 234) — see
-    // fetchWorkspaceOverrideRows for the service-client rationale (P1-1).
-    const overrides = await fetchWorkspaceOverrideRows(orgId, uuidToUiId);
+    const overrides = mapOverrideRows(overridesRaw, uuidToUiId);
 
     return { resources: active, archived, overrides };
   } catch (e) {
@@ -2106,14 +2168,19 @@ export async function fetchListingsOnly(
   }
 
   try {
-    const { active, archived, uuidToUiId } = await fetchWorkspaceResources(orgId, { listings: true, page });
+    // PERF-5 (2026-09-04): see fetchResourcesOnly's identical comment — the override-rows DB read
+    // only needs orgId, so it now runs alongside fetchWorkspaceResources instead of after it.
+    const [{ active, archived, uuidToUiId }, overridesRaw] = await Promise.all([
+      fetchWorkspaceResources(orgId, { listings: true, page }),
+      // Shared org-overrides read (owner-aware, migration 234) — see
+      // fetchWorkspaceOverrideRowsRaw for the service-client rationale (P1-1).
+      fetchWorkspaceOverrideRowsRaw(orgId),
+    ]);
     if (!active.length) {
       return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
     }
 
-    // Shared org-overrides read (owner-aware, migration 234) — see
-    // fetchWorkspaceOverrideRows for the service-client rationale (P1-1).
-    const overrides = await fetchWorkspaceOverrideRows(orgId, uuidToUiId);
+    const overrides = mapOverrideRows(overridesRaw, uuidToUiId);
 
     return { resources: active, archived, overrides };
   } catch (e) {
