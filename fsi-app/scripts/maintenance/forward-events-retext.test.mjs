@@ -7,6 +7,10 @@ import {
   classifyDefects,
   planItemRetext,
   buildRestoreSql,
+  pgMd5,
+  postRewriteKey,
+  compareForSurvivor,
+  planCollisions,
   main,
 } from "./forward-events-retext.mjs";
 
@@ -164,24 +168,180 @@ test("buildRestoreSql: restores the prior obligation_text verbatim, quotes escap
   assert.equal(sql, "UPDATE item_forward_events SET obligation_text = 'It''s a test' WHERE id = 'row-1';");
 });
 
+// ── collision resolution (lane RETEXT-COLLIDE, 2026-09-04) ─────────────────────────────────────────────
+
+test("pgMd5: matches Postgres' md5(text) -- UTF-8 bytes, lowercase hex", () => {
+  // Cross-checked against Postgres' own md5('') = 'd41d8cd98f00b204e9800998ecf8427e' and md5('abc') =
+  // '900150983cd24fb0d6963f7d28e17f72' (both well-known, stable md5 test vectors).
+  assert.equal(pgMd5(""), "d41d8cd98f00b204e9800998ecf8427e");
+  assert.equal(pgMd5("abc"), "900150983cd24fb0d6963f7d28e17f72");
+  // Unicode: hashed as UTF-8 bytes (5 bytes for "café", not 4 chars), same as Postgres text storage.
+  assert.equal(pgMd5("café"), "07117fe4a1ebd544965dc19573183da2");
+});
+
+test("postRewriteKey: mirrors uq_item_forward_events_dedupe's own column order and coalesce", () => {
+  const claimSourced = postRewriteKey({
+    intelligence_item_id: "item-1", event_date: "2026-11-29", event_kind: "phase_step",
+    after_text: "text A", source_claim_id: "claim-1", source_section_id: null,
+  });
+  assert.equal(claimSourced, `item-1|2026-11-29|phase_step|${pgMd5("text A")}|claim-1`);
+  const sectionSourced = postRewriteKey({
+    intelligence_item_id: "item-1", event_date: "2026-11-29", event_kind: "phase_step",
+    after_text: "text A", source_claim_id: null, source_section_id: "section-1",
+  });
+  assert.equal(sectionSourced, `item-1|2026-11-29|phase_step|${pgMd5("text A")}|section-1`);
+  // Different after_text -> different key even with everything else identical (the whole point: two rows
+  // sharing a source object only collide once their TEXT also converges).
+  assert.notEqual(
+    postRewriteKey({ intelligence_item_id: "i", event_date: "d", event_kind: "k", after_text: "x", source_claim_id: "c" }),
+    postRewriteKey({ intelligence_item_id: "i", event_date: "d", event_kind: "k", after_text: "y", source_claim_id: "c" }),
+  );
+});
+
+test("compareForSurvivor: already-normalized row wins regardless of created_at/id; otherwise earliest created_at, then lowest id", () => {
+  const normalized = { id: "z", obligation_text: "clean", after_text: "clean", created_at: "2026-09-04T09:00:00Z" };
+  const stale = { id: "a", obligation_text: "garbled", after_text: "clean", created_at: "2026-01-01T00:00:00Z" };
+  assert.equal(compareForSurvivor(normalized, stale), -1, "normalized-but-later/higher-id still wins");
+  assert.equal(compareForSurvivor(stale, normalized), 1);
+
+  const earlier = { id: "b", obligation_text: "g1", after_text: "clean", created_at: "2026-01-01T00:00:00Z" };
+  const later = { id: "a", obligation_text: "g2", after_text: "clean", created_at: "2026-02-01T00:00:00Z" };
+  assert.ok(compareForSurvivor(earlier, later) < 0, "earliest created_at wins when neither is normalized");
+
+  const lowId = { id: "a", obligation_text: "g1", after_text: "clean", created_at: "same" };
+  const highId = { id: "b", obligation_text: "g2", after_text: "clean", created_at: "same" };
+  assert.ok(compareForSurvivor(lowId, highId) < 0, "lowest id wins on a full tie");
+});
+
+test("planCollisions: two retext-target rows sharing one source converge to the SAME after text (the year-appears-twice case) -- one survivor, one collide_delete", () => {
+  const rows = [
+    {
+      id: "row-a", intelligence_item_id: "item-1", event_date: "2025-01-01", event_kind: "other",
+      obligation_text: "garbled fragment one", after_text: "Targets will ensure that the greenhouse gas intensity of fuels used in the sector will gradually decrease.",
+      source_kind: "section", source_claim_id: null, source_section_id: "section-9", created_at: "2026-09-01T00:00:00Z",
+    },
+    {
+      id: "row-b", intelligence_item_id: "item-1", event_date: "2025-01-01", event_kind: "other",
+      obligation_text: "garbled fragment two", after_text: "Targets will ensure that the greenhouse gas intensity of fuels used in the sector will gradually decrease.",
+      source_kind: "section", source_claim_id: null, source_section_id: "section-9", created_at: "2026-09-01T00:00:01Z",
+    },
+  ];
+  const { groups, survivorIds, deletions } = planCollisions(rows);
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].survivor_id, "row-a", "earlier created_at wins -- neither row is already normalized");
+  assert.deepEqual(groups[0].deleted_ids, ["row-b"]);
+  assert.deepEqual(survivorIds, ["row-a"]);
+  assert.equal(deletions.length, 1);
+  assert.equal(deletions[0].id, "row-b");
+  assert.equal(deletions[0].collides_with_survivor_id, "row-a");
+  assert.equal(deletions[0].obligation_text, "garbled fragment two", "full row JSON, not just the id");
+});
+
+test("planCollisions: a retext target colliding with an UNTOUCHED row sharing the same source -- the already-normalized row survives even though it is not the earliest/lowest-id", () => {
+  const rows = [
+    {
+      // Untouched: no fresh event matched it (or it already equals fresh), so after_text === obligation_text.
+      id: "row-clean", intelligence_item_id: "item-1", event_date: "2026-11-29", event_kind: "phase_step",
+      obligation_text: "It shall apply from 29 November 2026.", after_text: "It shall apply from 29 November 2026.",
+      source_kind: "section", source_claim_id: null, source_section_id: "section-9", created_at: "2026-09-04T00:00:00Z",
+    },
+    {
+      // Retext target: still garbled today, but the fresh text is the SAME sentence as row-clean above
+      // (same shared source, same date/kind -- exactly the shape migration 275 allows pre-fix).
+      id: "row-garbled", intelligence_item_id: "item-1", event_date: "2026-11-29", event_kind: "phase_step",
+      obligation_text: "7/oj/eng **...** It shall apply from 29 November 2026.", after_text: "It shall apply from 29 November 2026.",
+      source_kind: "section", source_claim_id: null, source_section_id: "section-9", created_at: "2026-01-01T00:00:00Z",
+    },
+  ];
+  const { groups, deletions } = planCollisions(rows);
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].survivor_id, "row-clean", "already-normalized row wins despite the later created_at");
+  assert.deepEqual(groups[0].deleted_ids, ["row-garbled"]);
+  assert.equal(deletions[0].id, "row-garbled");
+});
+
+test("planCollisions: a HALF-APPLIED table -- one row already rewritten to the target text by a prior run, its collision partner still garbled -- resolves the same way as a fresh run", () => {
+  const rows = [
+    {
+      // Already rewritten (by a prior, partially-failed apply): its own obligation_text now EQUALS the
+      // fresh after_text, so it reads as "untouched" (not a retext target) even though it started garbled.
+      id: "row-already-fixed", intelligence_item_id: "item-1", event_date: "2026-11-29", event_kind: "phase_step",
+      obligation_text: "It shall apply from 29 November 2026.", after_text: "It shall apply from 29 November 2026.",
+      source_kind: "section", source_claim_id: null, source_section_id: "section-9", created_at: "2026-01-01T00:00:00Z",
+    },
+    {
+      // Never reached before the run died -- still garbled, still needs the rewrite.
+      id: "row-still-garbled", intelligence_item_id: "item-1", event_date: "2026-11-29", event_kind: "phase_step",
+      obligation_text: "hicles | It shall apply from 29 November 2026.", after_text: "It shall apply from 29 November 2026.",
+      source_kind: "section", source_claim_id: null, source_section_id: "section-9", created_at: "2026-01-01T00:00:01Z",
+    },
+  ];
+  const { groups, deletions, survivorIds } = planCollisions(rows);
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].survivor_id, "row-already-fixed");
+  assert.deepEqual(survivorIds, ["row-already-fixed"]);
+  assert.deepEqual(deletions.map((d) => d.id), ["row-still-garbled"]);
+});
+
+test("planCollisions: no collision reported when only one row exists per key, or when converged text differs", () => {
+  assert.deepEqual(planCollisions([]), { groups: [], survivorIds: [], deletions: [] });
+  const singleRow = [{ id: "a", intelligence_item_id: "i", event_date: "d", event_kind: "k", obligation_text: "x", after_text: "x", source_claim_id: "c" }];
+  assert.equal(planCollisions(singleRow).groups.length, 0);
+  const distinctAfter = [
+    { id: "a", intelligence_item_id: "i", event_date: "d", event_kind: "k", obligation_text: "x", after_text: "one obligation", source_claim_id: "c" },
+    { id: "b", intelligence_item_id: "i", event_date: "d", event_kind: "k", obligation_text: "y", after_text: "a totally different obligation", source_claim_id: "c" },
+  ];
+  assert.equal(planCollisions(distinctAfter).groups.length, 0, "same source/date/kind but genuinely distinct obligations (the NZIA case migration 275 preserves) never collide");
+});
+
 // ── main() end-to-end over fake deps ────────────────────────────────────────────────────────────────────
 
+// A fake live table (id -> row), seeded from itemsById's existingRows, mutated by update/delete/restore
+// exactly the way the real guarded db.mjs helpers would -- so readRowsByIds / a no-longer-existing id /
+// a restored row all behave the same as a real dry-then-apply-then-restore sequence against Supabase would.
 function fakeDeps({ itemsById = {} } = {}) {
+  const table = new Map();
+  for (const [itemId, def] of Object.entries(itemsById)) {
+    for (const row of def.existingRows ?? []) table.set(row.id, { ...row, intelligence_item_id: itemId });
+  }
   const updates = [];
+  const deletes = [];
+  const inserts = [];
   return {
     itemIds: Object.keys(itemsById),
     updates,
+    deletes,
+    inserts,
+    table,
     readItemIdsWithForwardEvents: async () => Object.keys(itemsById),
     readForwardEventsForItem: async (id) => itemsById[id].existingRows,
     readClaimsForItem: async (id) => itemsById[id].claimRows ?? [],
     readSectionsForItem: async (id) => itemsById[id].sectionRows ?? [],
     updateObligationText: async (id, text) => {
+      if (!table.has(id)) return { updated: 0, rows: [] }; // tolerant: row no longer exists (deleted/already applied)
+      table.get(id).obligation_text = text;
       updates.push({ id, text });
       return { updated: 1, rows: [{ id, obligation_text: text }] };
     },
-    readRowsByIds: async (ids) => ids.map((id) => ({ id, obligation_text: updates.find((u) => u.id === id)?.text })),
+    deleteForwardEvents: async (ids) => {
+      const removed = [];
+      for (const id of ids) {
+        if (table.has(id)) {
+          removed.push(table.get(id));
+          table.delete(id);
+        }
+      }
+      deletes.push(...ids);
+      return { deleted: removed.length, snapshot: "fake-snapshot_item_forward_events.jsonl", rows: removed.map((r) => ({ id: r.id })) };
+    },
+    readRowsByIds: async (ids) => ids.filter((id) => table.has(id)).map((id) => ({ id, obligation_text: table.get(id).obligation_text })),
     readSnapshotEntries: async () => [],
     restoreOne: async () => ({ updated: 1 }),
+    restoreDeletedRow: async (row) => {
+      inserts.push(row);
+      table.set(row.id, { ...row });
+      return { inserted: row, snapshot: "fake-snapshot_item_forward_events.jsonl" };
+    },
   };
 }
 
@@ -266,6 +426,137 @@ test("main apply: 0 targets writes nothing and says so", async () => {
   assert.equal(s.counts.retext_target_total, 0);
   assert.equal(deps.updates.length, 0);
   assert.match(s.note2, /nothing to rewrite/);
+});
+
+// ── main() collision resolution end-to-end (lane RETEXT-COLLIDE, 2026-09-04) ───────────────────────────
+// The Maintenance #35 shape: two EXISTING rows sharing one source_section_id, same event_date/event_kind
+// (legitimately coexisting pre-fix because their obligation_text differs), both matching the SAME single
+// fresh event under forwardEventIdentityKey -- so both become retext targets with the IDENTICAL `after`
+// text, which is exactly what the live uq_item_forward_events_dedupe index would then reject.
+
+function collidingItemFixture() {
+  return {
+    "item-1": {
+      existingRows: [
+        {
+          id: "row-early", event_date: "2026-11-29", event_kind: "phase_step",
+          obligation_text: "7/oj/eng **Primary headline compliance deadline — FACT:** \"It shall apply from 29 November 2026 for new types of vehicles of categories M₁ and N₁ and components, systems and separate technical units intended for vehicles of categories M₁ or N₁ type-approv",
+          source_kind: "section", source_claim_id: null, source_section_id: "s1",
+          created_at: "2026-09-04T09:00:00.000Z",
+        },
+        {
+          id: "row-late", event_date: "2026-11-29", event_kind: "phase_step",
+          obligation_text: "hicles (M₂, M₃, N₂, N₃) | MONITORING **FACT — deadline:** \"It shall apply from 29 November 2026 for new types of vehicles of categories M₁ and N₁ and components, systems and separate technical units intended for vehicles of categories M₁ or N₁ type-approv",
+          source_kind: "section", source_claim_id: null, source_section_id: "s1",
+          created_at: "2026-09-04T09:00:01.000Z",
+        },
+      ],
+      sectionRows: [{ id: "s1", section_key: "2", content_md: EURO7_PHASE_SECTION_MD }],
+    },
+  };
+}
+
+test("main dry: collision -- two rows sharing one source that would converge to the same after-text are reported, deleted nothing yet", async () => {
+  const deps = fakeDeps({ itemsById: collidingItemFixture() });
+  const s = await main({ mode: "dry" }, deps);
+  assert.equal(s.counts.retext_target_total, 2, "both rows are independently retext targets");
+  assert.equal(s.counts.collision_group_total, 1);
+  assert.equal(s.counts.collision_delete_total, 1);
+  assert.equal(s.collisions.groups.length, 1);
+  assert.equal(s.collisions.groups[0].survivor_id, "row-early", "earliest created_at wins -- neither row is pre-normalized");
+  assert.deepEqual(s.collisions.deletions.map((d) => d.id), ["row-late"]);
+  assert.equal(s.collisions.deletions[0].intelligence_item_id, "item-1", "full row JSON, not just an id");
+  assert.equal(deps.deletes.length, 0, "dry mode deletes nothing");
+  assert.equal(deps.updates.length, 0, "dry mode writes nothing");
+});
+
+test("main apply: collision resolution deletes the loser BEFORE rewriting the survivor, and the rewrite loop skips the deleted id entirely", async () => {
+  const deps = fakeDeps({ itemsById: collidingItemFixture() });
+  const s = await main({ mode: "apply" }, deps);
+  assert.equal(s.exitCode, 0);
+
+  // The delete happened (guardedDelete, chunked) -- confirmed both by deps.deletes and by the table itself.
+  assert.deepEqual(deps.deletes, ["row-late"]);
+  assert.equal(deps.table.has("row-late"), false);
+  assert.equal(s.collisions.deleted.deleted, 1);
+  assert.equal(s.collisions.read_back.deleted_total, 1);
+  assert.deepEqual(s.collisions.read_back.still_present_ids, []);
+
+  // The rewrite pass never even attempted the deleted row -- it was filtered out of targetsToApply, not
+  // sent to updateObligationText and silently no-op'd.
+  assert.deepEqual(deps.updates.map((u) => u.id), ["row-early"]);
+  assert.equal(s.applied, 1);
+  assert.equal(s.per_item.length, 1);
+  assert.equal(s.per_item[0].id, "row-early");
+  assert.equal(s.counts.no_op_total, 0);
+
+  // Final state: exactly one row left, carrying the honest text, and it no longer collides with anything.
+  assert.equal(deps.table.size, 1);
+  const survivor = deps.table.get("row-early");
+  assert.ok(!survivor.obligation_text.startsWith("7/oj/eng"));
+  assert.equal(s.read_back.retexted_total, 1);
+  assert.deepEqual(s.read_back.not_confirmed_ids, []);
+});
+
+test("main apply: HALF-APPLIED table -- one collision side already carries the target text from a prior partial run; this run deletes the still-garbled loser and rewrites nothing (no_op-free, since the survivor was never a target)", async () => {
+  const fixture = collidingItemFixture();
+  // Simulate a prior run that already rewrote row-early to the fresh text before dying. It now reads back
+  // as "untouched" (fresh.obligation_text === row.obligation_text), so it is NOT a retext target this run --
+  // exactly the half-applied shape the live 6-second failure left behind.
+  // Exact literal output of extractForwardEvents({claims:[], sections:[{...EURO7_PHASE_SECTION_MD}]}) --
+  // computed once and pinned here, not re-derived, so this fixture fails loudly if the extractor's output
+  // shape ever changes (a leading quote character is fine, per classifyAfterResidue; the trailing "…" is
+  // the honest-fragment marker for a window truncated by DEFAULT_MAX_BEFORE).
+  const alreadyFixedText =
+    "\"It shall apply from 29 November 2026 for new types of vehicles of categories M₁ and N₁ and " +
+    "components, systems and separate technical units intended for vehicles of categories M₁ or N₁ " +
+    "type-approv…";
+  fixture["item-1"].existingRows[0].obligation_text = alreadyFixedText;
+
+  const deps = fakeDeps({ itemsById: fixture });
+  const s = await main({ mode: "apply" }, deps);
+  assert.equal(s.exitCode, 0);
+  assert.equal(s.counts.retext_target_total, 1, "only row-late is still stale");
+  assert.equal(s.counts.collision_group_total, 1, "row-early (untouched, already normalized) still collides with row-late's planned after-text");
+  assert.deepEqual(deps.deletes, ["row-late"]);
+  assert.equal(deps.updates.length, 0, "row-early needed no rewrite; row-late was deleted, never rewritten");
+  assert.equal(deps.table.size, 1);
+  assert.ok(deps.table.has("row-early"));
+});
+
+test("main restore: apply reinserts a collide_delete'd row VERBATIM (same id) from guardedDelete's full-row snapshot", async () => {
+  const citeMarker = "MAINT forward-events-retext dispatch (Lane FWD-TEXT, 2026-09-04)";
+  const fullRow = {
+    id: "row-late", intelligence_item_id: "item-1", event_date: "2026-11-29", date_precision: "day",
+    event_kind: "phase_step", obligation_text: "hicles (M₂, M₃) | MONITORING **FACT — deadline:** ...",
+    source_kind: "section", source_claim_id: null, source_section_id: "s1",
+    source_span: "It shall apply from 29 November 2026", confidence: "medium",
+    extractor_version: "fe1-2026-09-04.2", created_at: "2026-09-04T09:00:01.000Z",
+  };
+  const deps = fakeDeps({ itemsById: {} });
+  deps.readSnapshotEntries = async () => [
+    { table: "item_forward_events", prior: fullRow, _cite: { reason: `${citeMarker}, collision resolution (lane RETEXT-COLLIDE)` } },
+  ];
+  const s = await main({ mode: "apply", arg: "restore:row-late" }, deps);
+  assert.equal(s.exitCode, 0);
+  assert.equal(deps.inserts.length, 1);
+  assert.deepEqual(deps.inserts[0], fullRow, "reinserted verbatim, same id, every column");
+  assert.deepEqual(s.read_back.restored_ids, ["row-late"]);
+});
+
+test("main restore: dry plan distinguishes a reinsert (full row) from a text-only update, without applying either", async () => {
+  const citeMarker = "MAINT forward-events-retext dispatch (Lane FWD-TEXT, 2026-09-04)";
+  const deps = fakeDeps({ itemsById: {} });
+  deps.readSnapshotEntries = async () => [
+    { table: "item_forward_events", prior: { id: "row-updated", obligation_text: "old text" }, _cite: { reason: citeMarker } },
+    { table: "item_forward_events", prior: { id: "row-deleted", intelligence_item_id: "item-1", event_date: "2026-11-29", obligation_text: "old text 2" }, _cite: { reason: citeMarker } },
+  ];
+  const s = await main({ mode: "dry", arg: "restore:row-updated,row-deleted" }, deps);
+  assert.equal(s.exitCode, 0);
+  const byId = Object.fromEntries(s.plan.map((p) => [p.id, p]));
+  assert.equal(byId["row-updated"].action, "update_text");
+  assert.equal(byId["row-deleted"].action, "reinsert");
+  assert.equal(deps.inserts.length, 0, "dry restore applies nothing");
 });
 
 test("main --arg ids: scopes the sweep to named items only", async () => {

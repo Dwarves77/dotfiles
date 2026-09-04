@@ -344,17 +344,29 @@ neither hand-copies the read. Three write paths exist:
    records a harness run artifact; the coordinator applies the rows via the guarded path against the
    275 dedupe key. `load-forward-events.mjs` (named in PROTOCOL.md) was never created; the runner
    supersedes that name and PROTOCOL.md's reference is historical.
-4. `scripts/maintenance/forward-events-retext.mjs` (added lane FWD-TEXT, 2026-09-04) — a UPDATE-only
-   maintenance step, never an insert/delete path. It re-runs the (unmodified-identity, text-fixed)
-   extractor against each item's live claims/sections, and for any EXISTING row whose `id` still matches
-   a fresh event under the (source object, event_date, event_kind) identity but whose `obligation_text`
-   has changed, rewrites `obligation_text` in place through the guarded `db.mjs` path (cite + snapshot +
-   read-back), with a per-row `restore_sql` for reversal. It never touches `event_date`, `event_kind`, or
-   the source ids, so it cannot violate the 275 dedupe key or create a new row under it. It also reports
-   (never deletes) duplicate groups the extractor's own within-run content-dedupe would now collapse —
-   `item_forward_events` has no `is_archived`/`superseded` column, so any deletion decision is left to the
-   coordinator/operator, cited by `would_drop_id`/`would_keep_id` from the run's own summary. See
-   `docs/runbooks/MAINTENANCE-RUNBOOK.md` §12.
+4. `scripts/maintenance/forward-events-retext.mjs` (added lane FWD-TEXT, 2026-09-04; DELETE path added
+   lane RETEXT-COLLIDE, 2026-09-04) — an UPDATE path plus one narrow, guarded DELETE path, never an
+   insert. It re-runs the (unmodified-identity, text-fixed) extractor against each item's live
+   claims/sections, and for any EXISTING row whose `id` still matches a fresh event under the (source
+   object, event_date, event_kind) identity but whose `obligation_text` has changed, rewrites
+   `obligation_text` in place through the guarded `db.mjs` path (cite + snapshot + read-back), with a
+   per-row `restore_sql` for reversal. It never touches `event_date`, `event_kind`, or the source ids on a
+   row it keeps, so a rewrite alone cannot violate the 275 dedupe key or create a new row under it. It
+   also reports (never deletes) duplicate groups the extractor's own within-run content-dedupe would now
+   collapse — `item_forward_events` has no `is_archived`/`superseded` column, so THAT deletion decision is
+   left to the coordinator/operator, cited by `would_drop_id`/`would_keep_id` from the run's own summary.
+   SEPARATELY (Maintenance #35, run 33864089323, APPLY died on `duplicate key value violates unique
+   constraint uq_item_forward_events_dedupe`): two EXISTING rows can already share `(intelligence_item_id,
+   event_date, event_kind, coalesce(source_claim_id, source_section_id))` pre-fix (legitimately, since
+   their `obligation_text` differs) and converge to the IDENTICAL text once both are honestly retexted —
+   the live `uq_item_forward_events_dedupe` index (migration 275) would then reject the second write. For
+   every row of the table this step computes that post-rewrite key exactly as Postgres would
+   (`md5(after_text)` via `node:crypto`, not the extractor); a group of more than one row under that key
+   keeps one deterministic survivor and `guardedDelete`s the rest — chunked, cited (`DELETE_CITE`),
+   snapshotted (the row is derived/regenerable from claims/sections, never a primary record) — before any
+   rewrite runs in the same apply pass, so no rewrite can recreate the very key its own delete just
+   cleared. `--arg restore:<id,...>` reinserts a collide-deleted row verbatim (same id) from
+   `guardedDelete`'s own full-row snapshot. See `docs/runbooks/MAINTENANCE-RUNBOOK.md` §12.
 The recorded 901-event first run (`forward-events-run-001.json`) predates the runner and was applied by
 the coordinator directly; all future loads go through path 1, 2, 3, or the retext maintenance step (4).
 
