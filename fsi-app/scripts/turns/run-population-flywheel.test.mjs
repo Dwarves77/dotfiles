@@ -13,6 +13,8 @@ import {
   extractMintedItemIds,
   hasRecoverableMintedIds,
   resolveMintedItemIds,
+  legacyKeyOf,
+  isUuidShaped,
   disambiguateByArtifactTime,
   buildFlywheelPlan,
   computeCorpusOutcomes,
@@ -868,4 +870,68 @@ test("db namespace: every db.<fn> the driver calls is exported by db.mjs and pre
     const names = new Set(ns.split(",").map((s) => s.trim()).filter(Boolean));
     for (const fn of called) assert.ok(names.has(fn), `namespace literal is missing ${fn}: { ${ns.trim()} }`);
   }
+});
+
+// ── LEGACY-4 (2026-09-04): the two id shapes backlog apply #28 could not resolve ─────────────────────
+
+test("legacyKeyOf / isUuidShaped: the three legacy per_item.id shapes read from the real artifacts", () => {
+  assert.equal(legacyKeyOf("CELEX:32014R0788"), "32014R0788"); // mint-run-005
+  assert.equal(legacyKeyOf("celex:32014R0788"), "32014R0788");
+  assert.equal(legacyKeyOf("32015R0757"), "32015R0757"); // mint-run-001
+  assert.equal(isUuidShaped("3af75490-8356-4a13-a9ba-7a6318daff70"), true); // mint-run-008/009/010/015
+  assert.equal(isUuidShaped("32015R0757"), false);
+  assert.equal(isUuidShaped("CELEX:32014R0788"), false);
+  assert.equal(isUuidShaped("eu-oil-bulletin:eurosuper-95"), false); // mint-run-023 series id, never a uuid
+});
+
+test("resolveMintedItemIds: mint-run-005 shape — 'CELEX:'-prefixed keys resolve through the canonical key (backlog #28 refused these as 'via no fields')", async () => {
+  const artifact = {
+    started_at: "2026-06-02T10:00:00Z",
+    per_item: [
+      { id: "CELEX:32014R0788", outcome: "minted_validator_pass" },
+      { id: "CELEX:32008R0536", outcome: "minted_validator_pass" },
+      { id: "CELEX:32004R0549", outcome: "holder_conflict" }, // not minted, must be ignored
+    ],
+  };
+  const queries = [];
+  const db = {
+    readAll: async (table, columns, options) => {
+      queries.push(columns);
+      return [
+        { id: "u-0788", canonical_instrument_key: "32014R0788", is_archived: false, created_at: "2026-06-02T10:05:00Z", provenance_status: "verified" },
+        { id: "u-0536", canonical_instrument_key: "32008R0536", is_archived: false, created_at: "2026-06-02T10:06:00Z", provenance_status: "verified" },
+      ];
+    },
+  };
+  const result = await resolveMintedItemIds(artifact, db);
+  assert.deepEqual(result.ids, ["u-0788", "u-0536"]);
+  assert.equal(result.idsResolvedByKey, 2);
+  assert.deepEqual(result.unresolved, []);
+});
+
+test("resolveMintedItemIds: mint-run-008 shape — per_item.id is the intelligence_items uuid, resolved directly; a missing row is reported, never guessed", async () => {
+  const artifact = {
+    per_item: [
+      { id: "3af75490-8356-4a13-a9ba-7a6318daff70", outcome: "minted_verified" },
+      { id: "9a22c296-728e-4aaa-a1dc-e7cb9ff7930e", outcome: "minted_verified" },
+      { id: "00000000-0000-4000-8000-000000000000", outcome: "minted_verified" }, // deleted row
+    ],
+  };
+  const tables = [];
+  const db = {
+    readAll: async (table, columns) => {
+      tables.push(`${table}:${columns}`);
+      return [
+        { id: "3af75490-8356-4a13-a9ba-7a6318daff70" },
+        { id: "9a22c296-728e-4aaa-a1dc-e7cb9ff7930e" },
+      ];
+    },
+  };
+  const result = await resolveMintedItemIds(artifact, db);
+  assert.deepEqual(result.ids, ["3af75490-8356-4a13-a9ba-7a6318daff70", "9a22c296-728e-4aaa-a1dc-e7cb9ff7930e"]);
+  assert.equal(result.idsResolvedByKey, 2);
+  assert.equal(result.unresolved.length, 1);
+  assert.equal(result.unresolved[0].attemptedKey, "id");
+  assert.equal(result.unresolved[0].matchCount, 0);
+  assert.ok(tables.every((t) => t.startsWith("intelligence_items:id")), "uuid ids are read by id only, never as a canonical key");
 });
