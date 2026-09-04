@@ -12,6 +12,7 @@ import {
   parseArgs,
   extractMintedItemIds,
   hasRecoverableMintedIds,
+  resolveMintedItemIds,
   buildFlywheelPlan,
   computeCorpusOutcomes,
   checkPriorSliceConnected,
@@ -208,6 +209,106 @@ test("hasRecoverableMintedIds: minted > 0, outcome carries no recognized 'minted
     per_item: [{ outcome: "minted_validator_pass" }, { outcome: "holder_conflict" }],
   };
   assert.equal(hasRecoverableMintedIds(artifact), false);
+});
+
+// ── resolveMintedItemIds: pre-item_id artifacts with canonical_instrument_key (CELEX) ────────────────
+
+test("resolveMintedItemIds: modern path — per_item.item_id present, no DB query needed", async () => {
+  const artifact = {
+    per_item: [
+      { outcome: "minted_verified", item_id: "uuid-1" },
+      { outcome: "minted_unverified", item_id: "uuid-2" },
+    ],
+  };
+  const db = { readAll: () => { throw new Error("should not query DB for modern path"); } };
+  const result = await resolveMintedItemIds(artifact, db);
+  assert.deepEqual(result.ids, ["uuid-1", "uuid-2"]);
+  assert.equal(result.idsResolvedByKey, 0);
+  assert.deepEqual(result.unresolved, []);
+});
+
+test("resolveMintedItemIds: pre-item_id path via per_item.id as canonical_instrument_key (mint-run-001 shape)", async () => {
+  // Fixture from mint-run-001: per_item.id carries CELEX, no item_id field
+  const artifact = {
+    per_item: [
+      { id: "32006R1692", outcome: "minted", verdict: "valid" },
+      { id: "32009L0123", outcome: "minted", verdict: "valid" },
+    ],
+  };
+
+  // Mock DB: pre-fetch returns the canonical_instrument_key batch
+  // When .in("canonical_instrument_key", ["32006R1692", "32009L0123"]) is called,
+  // we return both matches
+  let calledWithKeys = [];
+  const db = {
+    readAll: async (table, columns, options) => {
+      if (table !== "intelligence_items") throw new Error("unexpected table");
+      // The resolver batches all CELEX keys and calls readAll with .in()
+      // We can't easily inspect the match function, so we just return all our test data
+      calledWithKeys.push(columns);
+      // Return both items that correspond to the CELEX keys in the artifact
+      return [
+        { id: "uuid-36c92d72", canonical_instrument_key: "32006R1692" },
+        { id: "uuid-bfae9c86", canonical_instrument_key: "32009L0123" },
+      ];
+    },
+  };
+
+  const result = await resolveMintedItemIds(artifact, db);
+  assert.equal(result.ids.length, 2, `Expected 2 resolved ids, got ${result.ids.length}`);
+  assert.equal(result.idsResolvedByKey, 2, `Expected idsResolvedByKey=2, got ${result.idsResolvedByKey}`);
+  assert.deepEqual(result.unresolved, [], `Expected no unresolved, got ${JSON.stringify(result.unresolved)}`);
+});
+
+test("resolveMintedItemIds: ambiguous resolution (2+ items match) — reported unresolved", async () => {
+  const artifact = {
+    per_item: [
+      { id: "ambig-key", outcome: "minted", verdict: "valid" },
+    ],
+  };
+
+  const db = {
+    readAll: async (table, columns, options) => {
+      if (table === "intelligence_items") {
+        // The .in("canonical_instrument_key", ["ambig-key"]) returns 2 matches
+        return [
+          { id: "uuid-a", canonical_instrument_key: "ambig-key" },
+          { id: "uuid-b", canonical_instrument_key: "ambig-key" },
+        ];
+      }
+      return [];
+    },
+  };
+
+  const result = await resolveMintedItemIds(artifact, db);
+  assert.equal(result.ids.length, 0, `Expected 0 resolved ids, got ${result.ids.length}`);
+  assert.equal(result.unresolved.length, 1, `Expected 1 unresolved, got ${result.unresolved.length}`);
+  assert.equal(result.unresolved[0].attemptedKey, "canonical_instrument_key");
+  assert.equal(result.unresolved[0].matchCount, 2);
+});
+
+test("resolveMintedItemIds: zero resolution (no items match) — reported unresolved", async () => {
+  const artifact = {
+    per_item: [
+      { id: "nomatch", outcome: "minted", verdict: "valid" },
+    ],
+  };
+
+  const db = {
+    readAll: async (table, columns, options) => {
+      if (table === "intelligence_items") {
+        // The .in("canonical_instrument_key", ["nomatch"]) returns 0 matches
+        return [];
+      }
+      return [];
+    },
+  };
+
+  const result = await resolveMintedItemIds(artifact, db);
+  assert.equal(result.ids.length, 0, `Expected 0 resolved ids, got ${result.ids.length}`);
+  assert.equal(result.unresolved.length, 1, `Expected 1 unresolved, got ${result.unresolved.length}`);
+  assert.equal(result.unresolved[0].attemptedKey, null, `Expected attemptedKey=null, got ${result.unresolved[0].attemptedKey}`);
+  assert.equal(result.unresolved[0].matchCount, 0);
 });
 
 // ── buildFlywheelPlan: step ordering ─────────────────────────────────────────────────────────────────

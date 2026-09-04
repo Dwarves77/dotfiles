@@ -53,6 +53,7 @@
 import { formatDate } from "@/lib/format";
 import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
+import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
 import { loadRegulationDetailObligations } from "@/lib/detail/regulation-obligations";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { resolveServerBootstrap } from "@/lib/api/server-bootstrap";
@@ -63,6 +64,7 @@ import {
   fetchInstrumentEntityId,
 } from "@/lib/connections/resource-lookup";
 import { RegulationDetailSurface } from "@/components/regulations/RegulationDetailSurface";
+import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { UpcomingObligationsStripView } from "@/components/regulations/UpcomingObligationsStripView";
 import { ObligationRegisterFilterBar } from "@/components/regulations/ObligationRegisterFilterBar";
 import { JURISDICTIONS } from "@/lib/constants";
@@ -81,6 +83,12 @@ const UUID_RE =
 interface ItemScoped {
   resourceLookup: Awaited<ReturnType<typeof buildResourceLookup>>;
   peersEntityId: string | null;
+  /** TIER-CHIP lane (2026-09-04): a record-grade item's FACT claims' ratings — see
+   *  load-detail-core.ts's fetchClaimTierMap header for the query/derivation. Item-scoped (no
+   *  org/viewer dependency, so it belongs in the SAME cached bundle as resourceLookup/peersEntityId
+   *  above), read unconditionally (never gated on item_grade — a brief-grade item's query legitimately
+   *  returns no rows, resolving to {} at zero extra cost since fetchClaimTierMap never throws). */
+  claimTiers: ClaimTierMap;
 }
 
 interface ViewerScoped {
@@ -164,11 +172,12 @@ export default async function RegulationDetailPage({
           ])
         ).filter(Boolean);
         const itemUuid = await resolveItemUuid(supabase, resource.id);
-        const [resourceLookup, peersEntityId] = await Promise.all([
+        const [resourceLookup, peersEntityId, claimTiers] = await Promise.all([
           buildResourceLookup(supabase, relatedIds),
           itemUuid ? fetchInstrumentEntityId(supabase, itemUuid) : Promise.resolve(null),
+          itemUuid ? fetchClaimTierMap(supabase, itemUuid) : Promise.resolve({}),
         ]);
-        return { resourceLookup, peersEntityId };
+        return { resourceLookup, peersEntityId, claimTiers };
       },
       // Viewer-scoped, per-org: this item's assignee (migration 234). Uncached —
       // one org's assignment must never render for another org.
@@ -226,6 +235,7 @@ export default async function RegulationDetailPage({
   const { resource: r, changelog, dispute, supersessions, connections, sections, relevance } = result;
   const resourceLookup = result.itemScoped?.resourceLookup ?? {};
   const peersEntityId = result.itemScoped?.peersEntityId ?? null;
+  const claimTiers = result.itemScoped?.claimTiers ?? {};
   const initialOwner = result.viewerScoped?.owner ?? null;
 
   console.log(`[perf] /regulations/${id} data ${result.elapsedMs}ms`);
@@ -279,6 +289,7 @@ export default async function RegulationDetailPage({
         relevance={relevance}
         resourceLookup={resourceLookup}
         sections={sections}
+        claimTiers={claimTiers}
         groupLabel={groupLabel}
         deck={deck}
         initialOwner={initialOwner}

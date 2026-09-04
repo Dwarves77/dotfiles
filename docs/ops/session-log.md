@@ -9406,3 +9406,42 @@ predate `per_item.item_id`; those are reported, never "connected" with zero outc
 keeps refusing new applies until they are resolved, which a Haiku lane does next by matching their
 CELEX ids to `canonical_instrument_key`. Marker chain merged: HEAL-7 (6), TANDEM-2 (7) and (8),
 combined hash `sha256:79589ef978593250`. Full suite 4,693/0.
+
+### Addendum 85, postscript 31 — the rating chip, the legacy artifacts, the drift file, and two first dispatches (2026-09-04)
+
+Train/wave19 landed as #566 (`3831e3e2`). TIER-CHIP (Sonnet, `feee2e40`, 52 tests): the rating shown
+per record-grade FACT is `COALESCE(sources.tier_override, sources.base_tier)`, the derivation
+migration 145 mandates for criterion 3 (never `effective_tier`, the moat-pure rule), read in one
+PostgREST query per detail page (`fetchClaimTierMap`) and matched to the parsed claim line verbatim
+(`claim_text` is joined into `content_md` unchanged by the kit); an unmatched or untiered fact renders
+the dashed "unrated" chip, a GAP never looks up. Regulations, Market and Research fact lines carry the
+chip; rendering guard 337 + 51 + 154 checks green at 375 px after two real label collisions were
+added to the known-safe list. BACKLOG-LEGACY (Haiku, `b59f79e7`, 66 tests): mint-run-001 and 005
+carry CELEX ids in `per_item.id`; `resolveMintedItemIds` maps them through
+`canonical_instrument_key` (11/11 resolve live, each to exactly one item), an entry with 0 or 2+
+matches leaves the artifact unrecoverable with the list, and the outcomes record
+`ids_resolved_by_key`. MIGRATION-DRIFT (Haiku, `0e22c1d8`): the live own-body extension is
+`schema_migrations` 20260801004400 `extend_own_body_floor_to_voluntary_instruments_v203`, applied
+2026-08-01; recorded as file 207 (the free number in chronological order) in the idempotent
+guarded-replace style, never re-applied.
+
+First dispatches under the new code [CONFIRMED]: Maintenance #26, `provenance-heal` dry
+`quarantined-live` under rule 18: STEP SOURCE would ground 1,730 orphan tokens (1,543 on existing
+sources, 187 after registering the cited host, 369 held by the per-item cap, 76 ambiguous-host); the
+apply is dispatched as #27. Population turn #22, the first `flywheel_backlog: true` dry, FAILED at
+"Discover this run's new mint-run-NNN.json": a `type: boolean` input compared to the string `'true'`
+coerces both to numbers (true → 1, 'true' → NaN), so every `!= 'true'` skip condition was always true
+and the skipped steps ran. Fixed in this train (`!= true`), the shell-side `"true"` comparisons were
+already correct. Re-dispatched after landing.
+
+UX compliance (TIER-CHIP, three detail screens: Regulations, Market, Research record-grade Summary).
+Primary goal: a reader judges a record-grade fact's trustworthiness without leaving the Summary tab.
+Path: the tier chip sits inline beside the fact's slot label, the same position and T1..T5 vocabulary
+as the item-level TierBadge in the Sources tab, so there is no new navigation and no mode switch. One
+primary action: the source-name link (only when a URL exists) is the single new interactive element
+per fact row, `inline-flex`, min-height 24 px with 8 px clearance (ux-laws law 2, F35, RD-60), and
+the rendering guard's small-target detector passed at 375×812 and 1280×800. Feedback state per async
+action: none is async; the three states are visually distinct and honest, a numeric chip for a rated
+source (including a below-floor one, per migration 302), a dashed "—" chip with a tooltip for an
+unrated fact, and no chip on a GAP line, which has no source to rate. Nothing is guessed: an unmatched
+claim line renders unrated, never a wrong tier.

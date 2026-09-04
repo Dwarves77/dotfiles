@@ -63,6 +63,7 @@ import {
   parseRecordSections,
   splitKeyDateFacts,
   type RecordFactRow,
+  type ClaimTierMap,
 } from "@/lib/agent/parse-record-sections";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import type { Resource, ItemConnection, Supersession } from "@/types/resource";
@@ -133,6 +134,10 @@ interface Props {
   relatedPool: Resource[];
   /** Parsed Market Signal Brief sections (intelligence_item_sections rows). */
   sections?: IntelligenceItemSectionRow[];
+  /** TIER-CHIP lane (2026-09-04): a record-grade item's FACT claims' ratings, keyed by exact claim line
+   *  — see parse-record-sections.ts's TIER-CHIP header for the match rule. Read server-side, one query
+   *  (the page's loadItemScoped); consumed only by RecordFactsCard (record-grade items). */
+  claimTiers?: ClaimTierMap;
   /** Real source-growth convergence (sources.independent_citers /
    *  confirmation_count). independent_citers > 0 → corroboration line. */
   convergence?: { independent_citers: number; confirmation_count: number } | null;
@@ -308,6 +313,7 @@ export function MarketSignalDetailSurface({
   resource: r,
   relatedPool,
   sections = [],
+  claimTiers,
   convergence = null,
   priceBoard = [],
   carbonFactors = [],
@@ -557,7 +563,7 @@ export function MarketSignalDetailSurface({
             // parser. No live market_signal/initiative item routes to /market today (all 1,273 live
             // record-grade rows carry domain=1 -> /regulations, RECORD-SURFACE lane report) — this is
             // forward cover for when domain classification sends one here.
-            <RecordFactsCard sections={sections} tags={r.tags} />
+            <RecordFactsCard sections={sections} tags={r.tags} claimTiers={claimTiers} />
           )}
           {tab === "moving" && r.itemGrade !== "record" && (
             <SectionCard title="What's moving and what triggered it">
@@ -1263,11 +1269,30 @@ function PendingFrame({ header, children }: { header: string; children: React.Re
 // tab on this page (<ItemConnectionsCard> at this file's own "every tab" block) so this card does not
 // duplicate them — only the facts/dates/tags a record-grade item's `sections` actually carry, which
 // nothing on this page could reach before this lane (sectionMap only recognises numbered "1".."6" keys).
+// TIER-CHIP lane (2026-09-04): fact.tier is this FACT claim's own rating (see parse-record-sections.ts's
+// TIER-CHIP header) rendered with the SAME <TierBadge> below the Sources tab already uses (same
+// component, same T1-T7 vocabulary/clamp — never a second one) plus, when the map resolved one, a
+// linked source name. `fact.tier === null` shows the same honest dashed "—" other unrated rows on this
+// page render — never omitted silently, never guessed.
 function RecordFactLine({ fact }: { fact: RecordFactRow }) {
   return (
     <div>
-      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.muted, marginBottom: 3 }}>
-        {fact.label}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.muted }}>
+          {fact.label}
+        </span>
+        {fact.kind === "FACT" &&
+          (typeof fact.tier === "number" ? (
+            <TierBadge tier={fact.tier} />
+          ) : (
+            <span
+              aria-hidden
+              title="No source rating on file for this claim"
+              style={{ fontSize: 9, fontWeight: 800, padding: "3px 7px", borderRadius: 4, border: "1px dashed rgba(0,0,0,0.3)", color: C.muted }}
+            >
+              —
+            </span>
+          ))}
       </div>
       {fact.span ? (
         <p style={{ fontSize: 13, lineHeight: 1.6, margin: 0, color: C.ink, borderLeft: `2px solid ${C.hairStrong}`, paddingLeft: 10, overflowWrap: "anywhere" }}>
@@ -1276,12 +1301,30 @@ function RecordFactLine({ fact }: { fact: RecordFactRow }) {
       ) : (
         <p style={{ fontSize: 13, lineHeight: 1.6, margin: 0, color: C.ink2, overflowWrap: "anywhere" }}>{fact.text}</p>
       )}
+      {fact.kind === "FACT" && fact.sourceName && (
+        <p style={{ fontSize: 11, margin: "4px 0 0", color: C.muted }}>
+          {fact.sourceUrl ? (
+            // Law-2 floor (24px + 8px-clearance alternative): minHeight + inline-flex/center reaches the
+            // floor without changing the visible link's font size or padding.
+            <a
+              href={fact.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: C.blue, fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", minHeight: 24 }}
+            >
+              {fact.sourceName}
+            </a>
+          ) : (
+            fact.sourceName
+          )}
+        </p>
+      )}
     </div>
   );
 }
 
-function RecordFactsCard({ sections, tags }: { sections: IntelligenceItemSectionRow[]; tags: string[] }) {
-  const parsed = useMemo(() => parseRecordSections(sections), [sections]);
+function RecordFactsCard({ sections, tags, claimTiers }: { sections: IntelligenceItemSectionRow[]; tags: string[]; claimTiers?: ClaimTierMap }) {
+  const parsed = useMemo(() => parseRecordSections(sections, claimTiers), [sections, claimTiers]);
   const { dateFacts, otherFacts } = useMemo(
     () => (parsed ? splitKeyDateFacts(parsed.facts) : { dateFacts: [] as RecordFactRow[], otherFacts: [] as RecordFactRow[] }),
     [parsed]

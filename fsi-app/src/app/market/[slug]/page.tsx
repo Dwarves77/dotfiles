@@ -34,6 +34,8 @@
 import { formatDate } from "@/lib/format";
 import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
+import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
+import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { getMarketIntelItems } from "@/lib/data";
 import { resolveServerBootstrap } from "@/lib/api/server-bootstrap";
 import { fetchWatchMembership, lookupWatchMembership } from "@/lib/watchlist/membership";
@@ -59,6 +61,10 @@ interface ItemScoped {
   convergence: { independent_citers: number; confirmation_count: number } | null;
   priceBoard: PriceStat[];
   carbonFactors: EmissionFactorRow[];
+  /** TIER-CHIP lane (2026-09-04): a record-grade item's FACT claims' ratings — see
+   *  load-detail-core.ts's fetchClaimTierMap header. Item-scoped, read unconditionally (a brief-grade
+   *  item's query legitimately returns no rows, resolving to {} at zero extra cost). */
+  claimTiers: ClaimTierMap;
 }
 
 interface ViewerScoped {
@@ -206,15 +212,16 @@ export default async function MarketSignalDetailPage({
           ])
         ).filter(Boolean);
 
-        const [resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors] = await Promise.all([
+        const [resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors, claimTiers] = await Promise.all([
           buildResourceLookup(supabase, relatedIds),
           itemUuid ? fetchInstrumentEntityId(supabase, itemUuid) : Promise.resolve(null),
           convergencePromise,
           priceBoardPromise,
           carbonFactorsPromise,
+          itemUuid ? fetchClaimTierMap(supabase, itemUuid) : Promise.resolve({}),
         ]);
 
-        return { resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors };
+        return { resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors, claimTiers };
       },
       // Viewer-scoped, per-org: the workspace note (workspace_item_overrides),
       // and the related-signals pool (getMarketIntelItems resolves orgId from
@@ -254,6 +261,7 @@ export default async function MarketSignalDetailPage({
   const convergence = result.itemScoped?.convergence ?? null;
   const priceBoard = result.itemScoped?.priceBoard ?? [];
   const carbonFactors = result.itemScoped?.carbonFactors ?? [];
+  const claimTiers = result.itemScoped?.claimTiers ?? {};
   const initialNote = result.viewerScoped?.initialNote ?? "";
   const relatedPool = result.viewerScoped?.relatedPool ?? [];
 
@@ -275,6 +283,7 @@ export default async function MarketSignalDetailPage({
         resource={r}
         relatedPool={relatedPool}
         sections={sections}
+        claimTiers={claimTiers}
         convergence={convergence}
         priceBoard={priceBoard}
         carbonFactors={carbonFactors}

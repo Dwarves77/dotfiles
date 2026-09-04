@@ -56,6 +56,7 @@ import {
   parseRecordSections,
   splitKeyDateFacts,
   type RecordFactRow,
+  type ClaimTierMap,
 } from "@/lib/agent/parse-record-sections";
 import {
   JURISDICTIONS,
@@ -113,6 +114,12 @@ interface Props {
   relevance: ItemRelevance | null;
   resourceLookup: Record<string, { id: string; title: string; priority: string }>;
   sections?: IntelligenceItemSectionRow[];
+  /** TIER-CHIP lane (2026-09-04): a record-grade item's FACT claims' ratings, keyed by exact claim line
+   *  — see parse-record-sections.ts's TIER-CHIP header for the match rule. Read server-side, one query
+   *  (the page's loadItemScoped), joining section_claim_provenance to sources; undefined/empty for a
+   *  brief-grade item (this map is consumed only by RecordGradeSummary) or when the item has no FACT
+   *  claims with a resolved source_id yet. */
+  claimTiers?: ClaimTierMap;
   /** Breadcrumb middle segment, e.g. "Global · IMO". Computed on the server
    *  from jurisdiction + publisher. Falls back to the jurisdiction label. */
   groupLabel?: string;
@@ -185,6 +192,7 @@ export function RegulationDetailSurface({
   relevance,
   resourceLookup,
   sections = [],
+  claimTiers,
   groupLabel,
   deck,
   initialOwner = null,
@@ -428,6 +436,7 @@ export function RegulationDetailSurface({
               changelog={changelog}
               dispute={dispute}
               sections={sections}
+              claimTiers={claimTiers}
               connections={connections}
               supersessions={supersessions}
               resourceLookup={resourceLookup}
@@ -661,6 +670,7 @@ function SummaryTab({
   changelog,
   dispute,
   sections,
+  claimTiers,
   connections,
   supersessions,
   resourceLookup,
@@ -671,6 +681,7 @@ function SummaryTab({
   changelog: ChangeLogEntry[];
   dispute: Dispute | null;
   sections: IntelligenceItemSectionRow[];
+  claimTiers?: ClaimTierMap;
   connections: ItemConnection[];
   supersessions: Supersession[];
   resourceLookup: Record<string, { id: string; title: string; priority: string }>;
@@ -690,6 +701,7 @@ function SummaryTab({
       <RecordGradeSummary
         r={r}
         sections={sections}
+        claimTiers={claimTiers}
         connections={connections}
         supersessions={supersessions}
         resourceLookup={resourceLookup}
@@ -944,6 +956,7 @@ function SummaryTabBrief({
 function RecordGradeSummary({
   r,
   sections,
+  claimTiers,
   connections,
   supersessions,
   resourceLookup,
@@ -955,6 +968,7 @@ function RecordGradeSummary({
 }: {
   r: Resource;
   sections: IntelligenceItemSectionRow[];
+  claimTiers?: ClaimTierMap;
   connections: ItemConnection[];
   supersessions: Supersession[];
   resourceLookup: Record<string, { id: string; title: string; priority: string }>;
@@ -964,7 +978,7 @@ function RecordGradeSummary({
   changelog: ChangeLogEntry[];
   dispute: Dispute | null;
 }) {
-  const parsed = useMemo(() => parseRecordSections(sections), [sections]);
+  const parsed = useMemo(() => parseRecordSections(sections, claimTiers), [sections, claimTiers]);
   const { dateFacts, otherFacts } = useMemo(
     () => (parsed ? splitKeyDateFacts(parsed.facts) : { dateFacts: [] as RecordFactRow[], otherFacts: [] as RecordFactRow[] }),
     [parsed]
@@ -1152,12 +1166,33 @@ function RecordGradeSummary({
 
 /** One extracted-fact row: humanized slot label + the verbatim source span (FACT) or the honest GAP
  *  sentence (should not normally reach this component — GAP rows are counted, not listed, in the
- *  "Verbatim facts" card above — kept for defensive completeness if a caller ever passes one through). */
+ *  "Verbatim facts" card above — kept for defensive completeness if a caller ever passes one through).
+ *
+ *  TIER-CHIP lane (2026-09-04): a FACT row now carries its own rating (fact.tier — see
+ *  parse-record-sections.ts's TIER-CHIP header for how it's derived/matched), rendered with the SAME
+ *  <TierBadge> the Sources tab already uses (same component, same T1-T7 vocabulary, same clamp) —
+ *  never a second tier vocabulary. `fact.tier === null` (no map supplied, this line unmatched, or the
+ *  claim's source itself carries no tier) renders the SAME honest dashed "—" the Sources tab already
+ *  shows for an unrated row (line ~1661) — never omitted silently, never guessed. */
 function RecordFactLine({ fact }: { fact: RecordFactRow }) {
   return (
     <div>
-      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.muted, marginBottom: 3 }}>
-        {fact.label}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.muted }}>
+          {fact.label}
+        </span>
+        {fact.kind === "FACT" &&
+          (typeof fact.tier === "number" ? (
+            <TierBadge tier={fact.tier} />
+          ) : (
+            <span
+              aria-hidden
+              title="No source rating on file for this claim"
+              style={{ fontSize: 9, fontWeight: 800, padding: "3px 7px", borderRadius: 4, border: `1px dashed rgba(0,0,0,0.3)`, color: C.muted }}
+            >
+              —
+            </span>
+          ))}
       </div>
       {fact.span ? (
         <p style={{ fontSize: 13, lineHeight: 1.6, margin: 0, color: C.ink, borderLeft: `2px solid ${C.hairStrong}`, paddingLeft: 10, overflowWrap: "anywhere" }}>
@@ -1165,6 +1200,25 @@ function RecordFactLine({ fact }: { fact: RecordFactRow }) {
         </p>
       ) : (
         <p style={{ fontSize: 13, lineHeight: 1.6, margin: 0, color: C.ink2, overflowWrap: "anywhere" }}>{fact.text}</p>
+      )}
+      {fact.kind === "FACT" && fact.sourceName && (
+        <p style={{ fontSize: 11, margin: "4px 0 0", color: C.muted }}>
+          {fact.sourceUrl ? (
+            // Law-2 floor (24px + 8px-clearance alternative, same convention as the breadcrumb link
+            // above): minHeight + inline-flex/center reaches the floor without changing the visible
+            // link's font size or padding.
+            <a
+              href={fact.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: C.blue, fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", minHeight: 24 }}
+            >
+              {fact.sourceName}
+            </a>
+          ) : (
+            fact.sourceName
+          )}
+        </p>
       )}
     </div>
   );
