@@ -346,7 +346,11 @@
     "minted_verified": 39,
     "minted_unverified": 0,
     "apply_failed": 0,
-    "census_rows_reconciled": 39
+    "census_rows_reconciled": 39,
+    "edges_discovered": 868,
+    "forward_events_extracted": 6,
+    "isolated_items": 15,
+    "ids_resolved_by_key": 0
   },
   "defects_found": [],
   "full_trace_refs": [
