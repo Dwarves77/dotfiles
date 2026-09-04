@@ -365,4 +365,4 @@ outcome keys once this lane's own normal (non-backlog) flywheel step runs over i
 at that point, per F28's reverse-audit (or re-pinned to a new hash, per rule (c), if a governing file
 changes again before either run lands).
 
-**harness_version at write time:** `sha256:PENDING`
+**harness_version at write time:** `sha256:79589ef978593250` (train/wave19: HEAL-7 kit mirror and TANDEM-2 runbook text on one tree)

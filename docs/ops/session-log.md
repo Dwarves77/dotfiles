@@ -9395,3 +9395,14 @@ Runtimes: source-sweep `sitemap` apply on smartfreightcentre.org wrote 383 candi
 only consumer of `portal_link_candidates` is ledger-consume (Haiku classify at ~$0.001/candidate,
 apply disarmed by `LEDGER_CONSUME_APPLY_ENABLED=false`, ADR-023); ~1,838 candidates wait on the
 operator's flip, put to him with the cost.
+
+TANDEM-2 (Sonnet, `adf61304`, 62 tests, killed twice by turn interrupts and resumed on its own diff)
+[CONFIRMED]: the gate now scans every mint artifact (`checkAllSlicesConnected`), so a dry artifact
+never masks a stale apply; `--backlog --mode dry|apply [--max-artifacts N]` is a dispatch input
+(`flywheel_backlog`, `backlog_max_artifacts`, job timeout 30 → 60 min) that skips export/mint and
+connects the oldest unconnected artifacts first. The wider scan measured 15 of 23 artifacts stale,
+not six: 13 auto-connectable (1,272 items) and two (mint-run-001, mint-run-005, 11 items) that
+predate `per_item.item_id`; those are reported, never "connected" with zero outcomes, and the gate
+keeps refusing new applies until they are resolved, which a Haiku lane does next by matching their
+CELEX ids to `canonical_instrument_key`. Marker chain merged: HEAL-7 (6), TANDEM-2 (7) and (8),
+combined hash `sha256:79589ef978593250`. Full suite 4,693/0.
