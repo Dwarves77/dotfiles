@@ -58,6 +58,14 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: APP_ROOT,
   },
+  // PERF-9 (2026-09-04, item 3, ADR-026 §2): `experimental.ppr` (classic Partial Prerendering) was
+  // tested here and found REMOVED in this Next version — the build itself refuses to start:
+  // "`experimental.ppr` has been merged into `cacheComponents`... enabled via `cacheComponents`."
+  // Next 16's replacement, top-level `cacheComponents: true`, is a materially bigger flag than
+  // classic PPR: it changes fetch/data caching semantics for every component in the app (opt-IN
+  // caching via "use cache" directives, not opt-out), not a per-route toggle — flipping it needs
+  // its own dedicated, adversarially-tested lane, not a one-line addition inside this one. See
+  // ADR-026 §2 for the full account of what was tried and why it stops here, decision-ready.
   // PERF-1's `headers()` Cache-Control block (docs/sprint-1/perf-1-design.md) removed, lane
   // MOBILE-2, 2026-09-03: the coordinator's same-origin iframe probe against the deployed build
   // (2026-09-03) found every one of these page routes actually serving `Cache-Control: private,

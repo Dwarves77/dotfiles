@@ -1,0 +1,162 @@
+---
+id: ADR-026
+title: PUBLIC intelligence content stays on the existing unstable_cache+revalidateTag model; PER-USER state moves to one post-paint batched fetch; classic PPR/Cache Components deferred
+status: accepted
+date: 2026-09-04
+scope: fsi-app rendering path for the four customer detail surfaces (regulations|market|operations|research `[slug]`) and their index pages, plus the per-user state fetched by RegulationsLedger/HomeSurface/OwnerTeamCard; next.config.ts's cacheComponents evaluation
+supersedes: nothing — this FORMALIZES and EXTENDS the caching pattern PERF postscript 1 already established (unstable_cache + tags + revalidateTag fired by population/maintenance runtimes); no prior ADR named this split explicitly
+related: PERF postscript 1 (docs/ops/session-log.md, the revalidateTag mechanism), ADR-023 (producers are scheduled workers with a named runtime — the revalidateTag call this ADR relies on already lives at that runtime's single completion point), ADR-025 (deterministic derivations auto-adopt — same philosophy of not adding a manual gate where an existing mechanism already covers the case), PERF-2/PERF-6 (getClaims() migration, cache() request-scoped memoization), PERF-8 (React #418 fix), src/lib/detail/load-detail.ts / load-detail-core.ts (the item-scoped/viewer-scoped split this ADR extends to the shell layer)
+---
+
+# ADR-026 — Detail-page cache model and viewer-state split
+
+## Context
+
+The PERF-9 dispatch asked for a designed split between PUBLIC intelligence content (listings, item
+pages, bands, forward-events strip, series board) served from a cached data layer, and PER-USER state
+(personal-state, list-order, members, admin attention) fetched client-side after first paint in ONE
+batched call instead of four — with a choice between `unstable_cache` + `revalidateTag` (the pattern
+PERF postscript 1 already put in place, fired by population/maintenance runtimes on write) or
+route-segment ISR, justified against ADR-023 and ADR-025 and prior PERF trains' decisions.
+
+**[CONFIRMED]** Every one of the app's 129 routes builds as `ƒ (Dynamic)` today — `next build --webpack`
+was run clean (`rm -rf .next`) both before and after this lane's changes and reports 129/129 routes `ƒ`,
+0 `○`, 0 `◐` in both runs (`/tmp/.../scratchpad/build-before-full.log`,
+`/tmp/.../scratchpad/build-final.log`). Route-segment ISR (a route.tsx opting into static generation
+with a `revalidate` interval) is therefore not available to any of these routes as they stand, for two
+independent, confirmed reasons:
+
+1. **[CONFIRMED]** `src/app/layout.tsx` — the shared root layout every route renders under — called
+   `await headers()` unconditionally in its own body to build `resolveServerBootstrap()`'s
+   RSC-navigation check. Next's classical (non-PPR) rendering model treats a Dynamic API call ANYWHERE
+   in a route's render tree, even wrapped in `<Suspense>`, as forcing that whole route to `ƒ`; Suspense
+   only reorders streaming for an already-dynamic render, it does not restore static eligibility. This
+   was verified empirically, not assumed: after restructuring the layout so the `headers()` call moves
+   into a small async `BootstrapResolver()` Server Component rendered only inside the layout's existing
+   `<Suspense fallback={null}>` boundary (the same eager-promise-then-`use()` streaming shape
+   `BootstrapBoundary.tsx` already established), a clean rebuild of three genuinely static leaf pages
+   with zero of their own dynamic-API reads (`/privacy`, `/login`, `/signup`) still showed `ƒ`. The
+   hypothesis that Suspense alone would recover static generation is [REFUTED] by this measurement — the
+   layout fix (kept in this lane, it is still correct hygiene: RootLayout is no longer async and does no
+   I/O in its own body) does not, by itself, move any route off `ƒ`.
+
+2. **[CONFIRMED]** All four detail pages and their index pages carry a SECOND, independent,
+   deliberate dynamic dependency: `src/lib/detail/load-detail-core.ts`'s `runViewerScoped()`
+   unconditionally calls `getViewerRelevanceForItem` → `resolveOrgIdFromCookies()`
+   (`src/lib/api/org.ts`), which reads the request's auth cookies to resolve the caller's org for
+   workspace-override merging. This is not a bug to fix — it is the existing, correct item-scoped vs
+   viewer-scoped split PERF/PERF-2 already built (`load-detail.ts`/`load-detail-core.ts`): the item
+   content is item-scoped and cacheable, the override/relevance layer is genuinely per-viewer and must
+   read the request. At the SQL level, the listing RPCs backing the index pages are also
+   org-parameterized (`p_org_id`), which is the same shape one level up. Removing this dependency for
+   any of the four surfaces would require either a schema migration splitting the org-parameterized RPC
+   into an org-independent public read plus a client-side override merge (out of this lane's write-set —
+   no migrations), or a deep Suspense/streaming restructure of the detail-surface components (each
+   1900+ lines) to move the override read below a boundary the page shell doesn't wait on. Both are
+   correctly-sized follow-up work, not a same-lane fix (§5).
+
+Given both, route-segment ISR is not reachable for these routes without also either accepting stale
+per-viewer overrides at the edge (wrong — an org's live override must appear on next render, not after
+an ISR window) or doing the migration/restructure work in (2). That leaves the two real options the
+dispatch named: extend the existing `unstable_cache` + `revalidateTag` model, or adopt Next 16's Cache
+Components.
+
+**[CONFIRMED]** Cache Components was evaluated directly, not assumed out of reach: `next.config.ts` was
+edited to add `experimental: { ppr: "incremental" }` (classic Partial Prerendering, the mechanism this
+dispatch's item 3 wording names) and rebuilt. The build refuses to start:
+`experimental.ppr has been merged into cacheComponents. The Partial Prerendering feature is still
+available, but is now enabled via cacheComponents.` (`/tmp/.../scratchpad/build-ppr-test.log`). Next
+16 removed the classic per-route `experimental_ppr` flag entirely; its replacement is a single
+top-level `cacheComponents: true` config that changes fetch/data-caching semantics for every component
+in the app at once — opt-IN caching via `"use cache"` directives, not the classic opt-out-per-route
+model. This is confirmed materially bigger than the flag item 3's wording anticipated: it cannot be
+piloted on one route and is not reversible by touching one file if something regresses; every existing
+fetch/data-read call site's caching behavior is in scope the moment the flag flips.
+
+## Decision
+
+1. **PUBLIC intelligence content stays on the existing `unstable_cache` + tags + `revalidateTag`
+   model** (PERF postscript 1), formalized here rather than replaced. This is the model ADR-023
+   already assumes for how a producer's write becomes visible: ADR-023 establishes producers as
+   scheduled workers with a named runtime, and that runtime's completion is the single point that
+   fires cache invalidation — `revalidateTag(APP_DATA_TAG)` / the item/surface-detail tags already
+   called from population/maintenance apply and from every workspace mutation route (`overrides`,
+   `personal-state`, `list-order`). This lane introduces **no new cache entries** and therefore makes
+   **no change to that single invalidation point** — `admin/attention`'s existing
+   `unstable_cache(["admin-attention-counts-v1"], { tags: [APP_DATA_TAG] })` entry is reused as-is
+   (§4), not duplicated.
+2. **Cache Components (Next 16's PPR successor) is evaluated and explicitly deferred, not adopted this
+   lane.** Per CLAUDE.md rule 13 ("a flag is a commitment, not a comment... fix it now or deliver a
+   decision-ready recommendation") and rule 15 ("a proof that does not execute is not a proof"): a
+   flag this size — changing caching semantics for every fetch in the app in one commit, with no
+   partial/reversible rollout — is not a "fix it now" candidate inside a lane scoped to three specific
+   items; it is model-changing infrastructure that needs its own dedicated, adversarially-tested lane
+   (every existing `unstable_cache`/`fetch` call site re-verified under the new default, a real
+   staging rollout, explicit rollback plan). Recommending it as a same-lane addition here, having
+   confirmed it cannot even be tried incrementally, would be exactly the "small follow-up" rule 13
+   forbids presenting as done. This is delivered decision-ready: the next lane that picks it up starts
+   from a build-verified list of every call site Cache Components would touch (§4 below is the
+   PER-USER-state half of that list already isolated by this lane's own work) rather than from zero.
+3. **PER-USER state is fetched client-side, after first paint, in ONE batched call** —
+   `GET /api/workspace/bootstrap` (§4) — never blocking the shell. Where auth/workspace identity
+   must stay in the request path for access control, it already does, cheaply: PERF-2 migrated
+   `proxy.ts`/`middleware.ts`'s per-request auth check from `getUser()` (a network round trip) to
+   `getClaims()` (local JWT verification, no DB read) before this lane started, and this lane did not
+   need to touch middleware to satisfy "cheap, no DB, page reads independent of it" — that separation
+   already existed; this ADR records it as the standing shape the bootstrap design relies on rather
+   than re-deriving it.
+4. **The four detail pages' own remaining per-viewer read is trimmed, not removed** (item 4, §3
+   below): `resolveServerBootstrap()`'s three-stage read is replaced with a two-stage
+   `resolveViewerIdentityFromCookies()` for the one thing `watchMembershipPromise` actually needs
+   (`userId`, `orgId`) — this does not change which routes are `ƒ` (the `getClaims()` call itself is
+   still a dynamic-API dependency, correctly so — this is real per-viewer data), it removes one wasted
+   sequential round trip per detail-page render, which is the dominant cost on an RSC navigation
+   specifically (§3).
+
+## Why this and not route-segment ISR
+
+Route-segment ISR would statically generate a detail/index route and revalidate it on an interval or
+tag, serving the SAME html to every viewer until invalidated. That is a correct model for the item
+CONTENT (already effectively what `unstable_cache` gives the item-scoped half of `load-detail-core.ts`),
+but the org-override / relevance layer described in Context (2) is genuinely per-viewer within that
+same route — two different orgs viewing the same item can see different override state on the same
+render. ISR has no per-viewer axis; putting a per-viewer read inside an ISR page either (a) forces the
+whole page dynamic anyway (the exact problem today) or (b) requires exactly the migration/restructure
+work in §5, which this lane's write-set (no migrations, `fsi-app/src/app/**` and friends only) cannot
+do in three commits without exceeding rule 13's "fix it now, not a stub" bar for a change this size.
+`unstable_cache` + `revalidateTag`, by contrast, already coexists cleanly with a per-viewer read inside
+the same Server Component tree (the item-scoped call is cached, the viewer-scoped call is not, in the
+same `Promise.all` — this is exactly what `load-detail-core.ts` already does), so it needed no new
+mechanism, only the trim in §4.
+
+## What this lane did NOT need to build
+
+`data.ts`'s existing `unstable_cache` wrapping of `getAppData`/`getResourcesOnly`/`getListingsOnly`
+(cited in `resolveOrgIdFromCookies`'s own header comment) already implements "PUBLIC intelligence
+content served from a cached data layer" for the listing/band/forward-events reads named in the
+dispatch. This lane found no gap there to close — the gap was entirely on the PER-USER side (four
+independent post-render fetches, §4) and on the shared-layout dynamic-API call (§3 below, layout.tsx).
+
+## Consequences
+
+- The `next build` route table is **unchanged**: 129/129 `ƒ`, before and after (measured, §"Context"
+  point 1 above) — this is the expected, correctly-labelled result of this decision, not a shortfall
+  against it. The dispatch's request for "the before/after route table... IS the evidence for item 3"
+  is satisfied by that table proving the two confirmed causes and proving the layout fix alone does not
+  (and was never claimed to) flip a symbol — the evidence is in what did NOT change and why, not a
+  flipped symbol.
+- What DOES change and is measurable: the four detail pages' server-render cost drops by one sequential
+  workspace_settings round trip per render (§4), and the shell's post-paint network cost drops from up
+  to three independent per-user fetches (personal-state, list-order, members — admin/attention already
+  had its own singleton and polling, left untouched) to one (§4 of the item-5 write-up).
+- Cache Components stays a named, evaluated, deferred option — the next lane that wants it does not
+  re-run the `experimental.ppr` dead end this lane already ran into.
+
+## Follow-up (decision-ready, not started this lane)
+
+- Splitting the org-parameterized listing RPCs into an org-independent public read + client-merged
+  override layer (a migration) would let the four index pages go static/ISR under the classic model
+  without Cache Components. Needs a migration-authoring lane.
+- A dedicated Cache Components lane: enumerate every `unstable_cache`/`fetch` call site (this ADR's §4
+  and the pre-existing `data.ts` wrapping are the starting inventory), add `"use cache"` directives
+  incrementally behind a staging rollout, verify no per-viewer read silently gets cached.
