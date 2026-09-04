@@ -9508,3 +9508,19 @@ single verified survivor when the run's own row was archived as its duplicate; a
 ambiguous stays refused. The duplicates themselves violate EP-11; lane DEDUP (Haiku) is measuring
 them corpus-wide and building the maintenance step that archives the non-keeper reversibly.
 Heal dry #28 under HEAL-8 dispatched.
+
+### Addendum 85, postscript 35 — dedup, with the keeper rule corrected (2026-09-04)
+
+Train/wave23 landed as #570 (`697be18e`). Lane DEDUP (Haiku) came back with
+`scripts/maintenance/canonical-key-dedup.mjs` and its maintenance.yml step: selection is every
+canonical key with more than one live row (live count measured at 2: 32015R0757 and 32023R1804, each
+one verified plus one quarantined [CONFIRMED read-only SQL by the lane]); keep the single verified row,
+archive the rest `duplicate_of_verified` with the identity fields released the way record-hollow-sweep
+does, refuse to decide when a group has zero or several verified rows, restore by `per_item[].restore_sql`
+or `--arg restore:<ids>`, registered in the shared-writer inventory. My review caught one inverted rule:
+the keeper patch cleared `archive_reason` only when it was already null (a no-op write) and kept the real
+stamp, `ff95b385` live and verified but marked `duplicate_instrument`. A live row must not carry an
+archive reason; corrected (`96ade298`) to clear a non-null stamp, record the prior value with a
+per-keeper `restore_sql` under `summary.keepers[]`, and write nothing when already null. 18/18 tests.
+Dispatch next: maintenance `canonical-key-dedup` dry, then apply; then backlog apply again, which
+LEGACY-3 already unblocks for the artifact-time cases.
