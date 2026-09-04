@@ -197,7 +197,9 @@ logic — UNCHANGED by this lane, per this lane's own task instruction to touch 
 were duplicated there. `item-type-required-slots.json` and the three `scripts/mint/lib/*.mjs` files are
 likewise UNCHANGED.
 
-**harness_version at write time:** `sha256:45f466a329448e44`
+**harness_version at BOILER-2's own write time (its worktree predates the series-backed exemption):** `sha256:45f466a329448e44`
+
+**harness_version at write time:** `sha256:2885d372e53e4769` (train/wave17: BOILER-2 on top of the landed wave16 kit)
 
 **The planned run that supersedes THIS marker:** the next `population-turn` dispatch (dry, then apply)
 under this landed code — its `mint-batch-report.json` should show CELEX `32012D0706(01)`-shaped rows
