@@ -76,7 +76,7 @@ describing the same 8-file mint list, not a behavior change). See
 `scripts/harness-runs/mint/PENDING-RUN.md`'s own "What changed (13)" entry, same commit, for the mint-side
 half of this same edit.
 
-**harness_version at write time:** `sha256:0e0fb1d1753e53ee`
+**harness_version at write time:** `sha256:bd09a974ebf49c17` (train 38 assembly: TURNREQ's `corpus-turn` registration and DEAD-EXEC's shim removal land in the same train, so the pinned hash is the hash of `governing-files.mjs`/`CONVENTION.md` carrying BOTH edits; DEAD-EXEC's own lane measured `sha256:0e0fb1d1753e53ee` against a tree without the corpus-turn entry)
 
 **The planned run that supersedes this marker:** the next `meta-harness-run-NNN.json`, the coordinator's
 next self-application review pass over this wave. Per F28's reverse-audit, this file is deleted the moment
