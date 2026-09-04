@@ -838,24 +838,15 @@ evidenced by HOLLOW-GATE's own report (above) and taken up next, in order.
 
 ## Keeping the kit in sync
 
-`lib/gate-a-scan.mjs` and `lib/gate-a-match.mjs` are copies of `src/lib/agent/gate-a-scan.mjs` /
-`gate-a-match.mjs`. If those change (a new `GATE_A_VERSION`, a matching-rule change), re-copy them here —
-a stale copy would silently under- or over-gate criterion 7. `lib/canonicalize-citation-url.mjs` mirrors
+`lib/gate-a-scan.mjs` and `lib/gate-a-match.mjs` are RE-EXPORTS of `src/lib/agent/gate-a-scan.mjs` /
+`gate-a-match.mjs` (since 2026-09-04): there is one Gate-A implementation and the kit imports it. They
+used to be hand-mirrored copies, and lane GATE-A-TOKENS' harvest fix landed in the copy only, leaving the
+live path (`write-item.ts`'s `buildGateARow`, the heal, the pipeline) unchanged; that drift is why copies
+are gone. F28 governs both the kit paths and the `src/` files, so a change to the real scanner moves the
+mint family's harness hash. `GATE_A_VERSION` `"2026-09-04.1"` (five narrow non-assertion harvest skips:
+metadata stamps, GAP-boilerplate templates, heading/list ordinals, instrument-citation numbers,
+position-nested sub-spans; measured live 594 → 504 orphan tokens over the 87 quarantined-live items,
+0 regressed) is therefore live for every consumer at once. `lib/canonicalize-citation-url.mjs` mirrors
 migration 150's SQL function; if a later migration revises `canonicalize_citation_url`, update the port.
 `item-type-required-slots.json` mirrors the live `item_type_required_slots` table; if the coordinator adds
 a new item_type or changes a slot set, re-dump and update this file.
-
-**KNOWN DIVERGENCE, `lib/gate-a-scan.mjs` (lane GATE-A-TOKENS, 2026-09-04, `GATE_A_VERSION`
-`"2026-09-04.1"`).** This copy is NOT currently verbatim — see its own file-header note. It harvests five
-narrow non-assertion syntactic-context skips (metadata stamps, GAP-boilerplate templates, heading/list-item
-ordinal numerals, instrument-citation numbers, position-nested date/figure sub-spans) that
-`src/lib/agent/gate-a-scan.mjs` does not yet have; `lib/gate-a-match.mjs` is untouched and stays verbatim.
-Effect measured live (read-only SQL, same 87 quarantined-live items' current `full_brief`+FACT claims,
-apples-to-apples against the unmodified `src/` scanner on identical data): total orphan tokens 594 → 504
-(0 items regressed, 41 improved, 2 reached zero). This fix is therefore live for
-`scripts/mint/validate-mint-payload.mjs`'s pre-flight scoring of NEW payloads only — it is NOT yet live for
-`item_gate_a_state` / criterion 7 on already-minted items, because that path runs through
-`src/lib/agent/gate-a-scan.mjs` (imported by `write-item.ts`'s `buildGateARow`), which is outside this
-lane's write set. **Resolve by porting the same five helpers + the harvest-loop line-splitting into
-`src/lib/agent/gate-a-scan.mjs` (bumping its own `GATE_A_VERSION` to invalidate stale scans), then this file
-goes back to being a true verbatim copy of it — do not re-diverge the rule in two places.**

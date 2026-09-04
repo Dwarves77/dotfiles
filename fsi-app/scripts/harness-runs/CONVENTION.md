@@ -340,7 +340,7 @@ and prefixed `sha256:`. Each family's harness files:
 
 | Family | Hashed files |
 |---|---|
-| `mint` | `scripts/mint/MINT-RUNBOOK.md`, `validate-mint-payload.mjs`, `payload-schema.json`, `item-type-required-slots.json`, `lib/gate-a-scan.mjs`, `lib/gate-a-match.mjs`, `lib/canonicalize-citation-url.mjs`, `../../src/lib/intake/record-facts.mjs` |
+| `mint` | `scripts/mint/MINT-RUNBOOK.md`, `validate-mint-payload.mjs`, `payload-schema.json`, `item-type-required-slots.json`, `lib/gate-a-scan.mjs` and `lib/gate-a-match.mjs` (re-exports since 2026-09-04), `../../src/lib/agent/gate-a-scan.mjs` and `../../src/lib/agent/gate-a-match.mjs` (the single Gate-A implementation), `lib/canonicalize-citation-url.mjs`, `../../src/lib/intake/record-facts.mjs` |
 | `screen` | `scripts/mint/screen-rules.mjs`, `screen-worklist.mjs` |
 | `fetch-drain` | `supabase/functions/capture-worker/index.ts` |
 | `meta-harness` | `scripts/harness-runs/CONVENTION.md`, `PROPOSER-RUNBOOK.md`, `../lib/run-artifact.mjs`, `../../.discipline/fitness/functions/F28-harness-run-integrity.mjs` |

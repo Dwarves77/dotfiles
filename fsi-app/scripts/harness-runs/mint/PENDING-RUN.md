@@ -432,7 +432,19 @@ entry and naming the exact resolution — port the same fix into `src/` and re-v
 `scripts/mint/lib/gate-a-match.mjs`, `scripts/mint/lib/canonicalize-citation-url.mjs`, and
 `src/lib/intake/record-facts.mjs` are all UNCHANGED by this lane.
 
-**harness_version at write time:** `sha256:fc79c635306857a1`
+**harness_version at write time (superseded below — see "What changed (10)"):** `sha256:fc79c635306857a1`
+
+**What changed (10) — SINGLE SOURCE for Gate A (coordinator, 2026-09-04, same train as lane
+GATE-A-TOKENS):** the lane's harvest fix had landed in `scripts/mint/lib/gate-a-scan.mjs`, a hand-mirrored
+COPY of `src/lib/agent/gate-a-scan.mjs`, and the live path (`write-item.ts`'s `buildGateARow`, the heal,
+the pipeline) imports the `src/` file, so the fix was not live for any minted item. The copy is the defect:
+`src/lib/agent/gate-a-scan.mjs` now carries the fixed body (`GATE_A_VERSION` `"2026-09-04.1"`, createHash
+md5 form), `scripts/mint/lib/gate-a-scan.mjs` and `scripts/mint/lib/gate-a-match.mjs` are `export *`
+re-exports of the `src/` files, F28's mint `GOVERNING_FILES` (and CONVENTION.md's table) name the two
+`src/` files alongside the kit paths, and MINT-RUNBOOK.md's "Keeping the kit in sync" section describes
+the re-export instead of the copy. The 30 lane tests run through the re-export unchanged.
+
+**harness_version at write time:** `sha256:28c98ae2309a416a`
 
 **The planned run that supersedes THIS marker:** the next `population-turn` dispatch (or a direct
 `validate-mint-payload.mjs` run) under this landed code — any NEW payload's criterion-7 scoring should now
