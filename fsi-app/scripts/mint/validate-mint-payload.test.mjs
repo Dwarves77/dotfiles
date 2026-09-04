@@ -126,6 +126,61 @@ test("C2 GREEN: canonicalization tolerates www./trailing-slash/markdown-emphasis
   assert.ok(!r.failures.some((f) => f.criterion === 2));
 });
 
+// migration 300 (lane URL-GUIL, 2026-09-03) -- typographic delimiters excluded from the URL class. The
+// mint kit delimits every verbatim span with guillemets (record-facts.mjs's "SPAN DELIMITERS ARE
+// GUILLEMETS"), so a URL sitting directly against a closing « » ‹ › or a curly quote must not
+// swallow it. Population run #16 (mint-run-018, row 429c85d2, UK SI 2013/816) is the measured case.
+test("C2 GREEN (migration 300): a URL glued to a closing guillemet extracts without it and grounds", () => {
+  const p = basePayload();
+  p.sections[0].content_md = "The rule applies as described, verbatim: «see https://example.gov/reg»";
+  const r = validateMintPayload(p);
+  assert.ok(!r.failures.some((f) => f.criterion === 2 && f.reason === "ungrounded_url"), JSON.stringify(r.failures));
+});
+
+test("C2 (migration 300): the reported fixture, before and after record-facts.mjs's companion fix", () => {
+  // BEFORE record-facts.mjs's fix (this file's own fix under test still applies): the section prose
+  // carries a URL truncated one character short of its own domain, glued to the guillemet -- the exact
+  // shape run #16 minted with the OLD `[^.;\n]{0,90}` continuation. With migration 300's URL_RE, the
+  // guillemet is no longer swallowed into the match (url is now the clean but genuinely incomplete
+  // "http://eur-lex", never "http://eur-lex»") -- it still correctly fails criterion 2, because
+  // "http://eur-lex" grounds nowhere either; the DEFECT this proves fixed is the delimiter-swallowing,
+  // not the truncation itself (that is record-facts.mjs's own, separately-tested fix, below).
+  const truncated = basePayload();
+  truncated.sections[0].content_md =
+    "[jurisdictional_scope] The captured source states, verbatim: «of the European Union via the EUR-lex website at http://eur-lex»";
+  const rTruncated = validateMintPayload(truncated);
+  const truncatedFailure = rTruncated.failures.find((f) => f.criterion === 2 && f.reason === "ungrounded_url");
+  assert.ok(truncatedFailure, JSON.stringify(rTruncated.failures));
+  assert.equal(truncatedFailure.url, "http://eur-lex", "the extracted url must never carry the trailing » (migration 300's own fix)");
+
+  // AFTER BOTH fixes (record-facts.mjs's URL-safe continuation supplies the full span; this file's URL_RE
+  // no longer swallows the guillemet): the same sentence with the FULL url grounds clean.
+  const p = basePayload();
+  const u = "http://eur-lex.europa.eu";
+  p.item.source_url = u;
+  p.source.url = u;
+  p.search_results[0].result_url = u;
+  p.claims.forEach((c) => { if (c.source_url) c.source_url = u; });
+  p.sections[0].content_md =
+    `[jurisdictional_scope] The captured source states, verbatim: «of the European Union via the EUR-lex website at ${u}»`;
+  const r = validateMintPayload(p);
+  assert.ok(!r.failures.some((f) => f.criterion === 2 && f.reason === "ungrounded_url"), JSON.stringify(r.failures));
+});
+
+test("C2 GREEN (migration 300): curly quotes and single guillemets are excluded the same way", () => {
+  const cases = [
+    "verbatim: “see https://example.gov/reg”",
+    "verbatim: ‘see https://example.gov/reg’",
+    "verbatim: ‹see https://example.gov/reg›",
+  ];
+  for (const content_md of cases) {
+    const p = basePayload();
+    p.sections[0].content_md = content_md;
+    const r = validateMintPayload(p);
+    assert.ok(!r.failures.some((f) => f.criterion === 2 && f.reason === "ungrounded_url"), `${content_md} -> ${JSON.stringify(r.failures)}`);
+  }
+});
+
 // ── C3 ──────────────────────────────────────────────────────────────────
 test("C3 RED: FACT with empty source_span -> fact_missing_source_span", () => {
   const p = basePayload();

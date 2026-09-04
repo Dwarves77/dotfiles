@@ -106,7 +106,8 @@ who may write a shared table; the test enforces it on every future PR.
     "census_worklist": [
       "src/lib/intake/census-writer.mjs",
       "scripts/connections/ratify-flag-to-census.mjs",
-      "scripts/mint/apply-mint-batch.mjs"
+      "scripts/mint/apply-mint-batch.mjs",
+      "scripts/mint/reopen-validation-holds.mjs"
     ],
     "item_forward_events": [
       "scripts/forward-events/run-extraction.mjs",
@@ -300,7 +301,8 @@ raises. Documented and implemented in `src/lib/intake/census-writer.mjs:98-165`.
 |---|---|
 | `src/lib/intake/census-writer.mjs` (`writeCensusRows`) | lines 136-165, upsert under a per-source `withLease` mutation lease |
 | `scripts/connections/ratify-flag-to-census.mjs` | **Pre-registered (parallel lane)** — not yet present; **TO-VERIFY** how it satisfies the identity-preservation rule above (does it look up existing `(lane, created_by)` the way `writeCensusRows` does, or does it mint a fresh worklist identity for a ratified flag?) |
-| `scripts/mint/apply-mint-batch.mjs` (Lane POP, 2026-09-02) | UPDATE — `enumeration_status = 'reconciled'` only, on the one row a successfully-minted payload traces back to via its `row_id` (a `not_applied_*` payload's row is left untouched — see `mint-run-006.json`'s own precedent) | `ctx.db.guardedUpdate("census_worklist", (qb) => qb.eq("id", rowId), { enumeration_status: "reconciled" }, ...)` |
+| `scripts/mint/apply-mint-batch.mjs` (Lane POP, 2026-09-02; hold-back added lane URL-GUIL, 2026-09-03) | UPDATE — `enumeration_status = 'reconciled'` only, on the one row a successfully-minted payload traces back to via its `row_id` (a `not_applied_*` payload's row is left untouched — see `mint-run-006.json`'s own precedent). SEPARATELY, `dryrun_disposition = 'hold'` + `hold_reason` (`validation_failed:<criterion>:<reason>`) + `notes` (the failure JSON), on every row the sibling `mint-batch-report.json` reports `valid:false` for — see `resolveValidationFailedHolds`; excludes the row from every future `selectCensusRows` filter (`dryrun_disposition === 'would_mint'`) with no new filter code | `ctx.db.guardedUpdate("census_worklist", (qb) => qb.eq("id", rowId), { enumeration_status: "reconciled" }, ...)`; `ctx.db.guardedUpdate("census_worklist", (qb) => qb.eq("id", hold.rowId), { dryrun_disposition: "hold", hold_reason, notes }, ...)` |
+| `scripts/mint/reopen-validation-holds.mjs` (Lane URL-GUIL, 2026-09-03) | UPDATE — the symmetric reversal, coordinator-invoked and `--reason-contains`-scoped only (never a blanket sweep): `dryrun_disposition = 'would_mint'`, `hold_reason = null`, `notes` appended (not overwritten) with a reopen marker, on every row currently held with a `validation_failed:` reason matching the caller's substring | `guardedUpdate("census_worklist", (qb) => qb.eq("id", t.id), { dryrun_disposition: "would_mint", hold_reason: null, notes }, ...)` |
 
 ### `item_forward_events`
 

@@ -62,6 +62,45 @@ test("findSlotSpan: skips page chrome and returns the first PROSE match — mint
   assert.equal(isProseSpan("applies to lighting products placed on the market"), true);
 });
 
+// lane URL-GUIL (2026-09-03, population run #16, mint-run-018, row 429c85d2). Fixture built from the
+// real row's captured_text shape (census-rows.mint-batch-report.json, run 33806554326): "The Renewable
+// Transport Fuel Obligations (Amendment) Order 2013" explanatory note names the EUR-Lex website by its
+// bare domain URL mid-sentence, three words before the sentence's own full stop. Before this lane's fix,
+// jurisdictional_scope's "...the european union..." trigger's plain `[^.;\n]{0,90}` continuation stopped
+// at the URL's OWN domain dot (indistinguishable from a sentence-ending period to that class), truncating
+// the located span to "...at http://eur-lex" — one character short of ".europa.eu" — which the mint
+// kit's guillemet template then glued directly to a closing "»" with no space, producing the exact
+// `ungrounded_url` failure the run reported (`"url":"http://eur-lex»"`, criterion 2's URL extraction
+// regex swallowing the delimiter too — the companion fix, migration 300 / validate-mint-payload.mjs).
+test("findSlotSpan: a URL inside the matched window is never truncated at its own domain dot (population run #16, row 429c85d2)", () => {
+  const text =
+    "A copy of the Directives referred to in this Explanatory Note may be viewed in the Official " +
+    "Journal of the European Union via the EUR-lex website at http://eur-lex.europa.eu . Merchant " +
+    "Shipping Notices are published by the Maritime and Coastguard Agency.";
+  const span = findSlotSpan("jurisdictional_scope", text);
+  assert.ok(span, "must find a span");
+  assert.ok(
+    span.includes("http://eur-lex.europa.eu"),
+    `span must carry the FULL url, not a domain-dot truncation: ${JSON.stringify(span)}`,
+  );
+  assert.ok(!span.endsWith("http://eur-lex"), `span must not stop mid-domain: ${JSON.stringify(span)}`);
+  assert.ok(text.toLowerCase().includes(span.toLowerCase()), "still verbatim-by-construction");
+});
+
+test("findDueDateMatch / findBindingPositionMatch: the same URL-safe continuation applies to every SLOT_TRIGGERS-style trigger family", () => {
+  const dueDateText =
+    "Compliance is due by 1 January 2027 as confirmed at http://example.gov/notice.pdf . Further guidance follows.";
+  const dueSpan = findDueDateMatch(dueDateText);
+  assert.ok(dueSpan && dueSpan.includes("http://example.gov/notice.pdf"), JSON.stringify(dueSpan));
+  assert.ok(!dueSpan.endsWith("http://example.gov/notice"), `must not truncate mid-domain: ${JSON.stringify(dueSpan)}`);
+
+  const bindingText =
+    "The operator shall comply as set out at http://example.gov/rule.pdf . Nothing further applies.";
+  const bindingMatch = findBindingPositionMatch(bindingText);
+  assert.ok(bindingMatch && bindingMatch.span.includes("http://example.gov/rule.pdf"), JSON.stringify(bindingMatch));
+});
+
+
 test("record payload whose span opens with a curly quote clears the validator's unicode-integrity scan (run #9: straight-quote delimiters collided with the source's own “ ”)", () => {
   const capturedText = "In regulation 3, for “Member States”, in each place where the words occur, there is substituted “the Secretary of State”. These Regulations apply to England.";
   const payload = buildRecordPayload({

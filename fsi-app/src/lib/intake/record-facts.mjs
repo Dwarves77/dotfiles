@@ -82,7 +82,7 @@
 import { BINDING_POSITION, normaliseMode } from "../contracts/vocabularies.mjs";
 import { CORRIDOR_ID_SCHEME } from "../entities/decisions.mjs";
 
-export const RECORD_FACTS_VERSION = "rf1-2026-09-02.1";
+export const RECORD_FACTS_VERSION = "rf1-2026-09-03.1"; // lane URL-GUIL: URL-safe trigger continuations
 
 // ---------------------------------------------------------------------------
 // Verbatim-span guard (same contract as extract-forward-events.mjs's assertVerbatim — see that file's
@@ -115,32 +115,49 @@ export function assertVerbatim(sourceText, span) {
 // Other item_types' required slots (market_signal/technology/research_finding/regional_data/...) have no
 // entry below and always resolve to an honest GAP claim — extending this map is additive and safe; it
 // never needs to become exhaustive for the extractor to be correct.
+//
+// CONTINUATION IS URL-SAFE (lane URL-GUIL, 2026-09-03, population runs #15/#16, mint-run-017/018).
+// Every trigger's continuation window below reads `(?:https?:\/\/\S+|[^.;\n]){0,N}`, never the plain
+// `[^.;\n]{0,N}` this file used before. `[^.;\n]` excludes a literal '.' so the window stops at a
+// sentence's real full stop — but a URL's own domain dots (`eur-lex.europa.eu`) look IDENTICAL to that
+// regex, so a trigger whose match window happened to reach a URL truncated it at the URL's FIRST internal
+// period. Row `429c85d2` (CELEX-free UK SI 2013/816, "The Renewable Transport Fuel Obligations
+// (Amendment) Order 2013") is the measured case: jurisdictional_scope's `...the european union...`
+// trigger matched "of the European Union via the EUR-lex website at http://eur-lex" and stopped there —
+// one character short of the '.' in "eur-lex.europa.eu" — even though the captured source's own sentence
+// continues past the URL to a real ' . ' three words later. The alternation tries to consume a whole
+// non-whitespace URL run FIRST at each position (so the URL's internal dots are swallowed atomically,
+// never seen as a stopping point) and only falls back to matching one non-terminator character when the
+// text at that position is not a URL — a real sentence-ending '.' (not preceded by an in-progress URL
+// match) still stops the window exactly as before. See docs/ops/session-log.md Addendum 85 for the
+// full write-up and migration 300 for the companion fix (the truncated span's own guillemet delimiter
+// then swallowed by criterion 2's URL-extraction regex, `ungrounded_url`).
 const SLOT_TRIGGERS = Object.freeze({
   effective_date: [
-    /entered? into force[^.;\n]{0,90}/i,
-    /shall enter into force[^.;\n]{0,90}/i,
-    /shall apply from[^.;\n]{0,90}/i,
-    /applicable since[^.;\n]{0,90}/i,
+    /entered? into force(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /shall enter into force(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /shall apply from(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /applicable since(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
   ],
   primary_deadline: [
-    /no later than[^.;\n]{0,90}/i,
-    /\bby\s+\d{1,2}\s+\w+\s+\d{4}[^.;\n]{0,70}/i,
-    /\bdeadline\b[^.;\n]{0,90}/i,
+    /no later than(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /\bby\s+\d{1,2}\s+\w+\s+\d{4}(?:https?:\/\/\S+|[^.;\n]){0,70}/i,
+    /\bdeadline\b(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
   ],
   jurisdictional_scope: [
     // Clause-shaped triggers first; the bare institution name last and only as the object of a
     // preposition. On legislation.gov.uk "European Union" is the first word of Act titles ("European
     // Union (Future Relationship) Act 2020") and subject tags ("European Union Climate Change ..."),
     // none of which state a scope (mint-run-008, 2026-09-02).
-    /\bapplies to\b[^.;\n]{0,90}/i,
-    /addressed to[^.;\n]{0,90}/i,
-    /member states?[^.;\n]{0,90}/i,
-    /\b(?:in|within|throughout|across|of|into) the european union(?!\s*\()(?!\s+act\b)[^.;\n]{0,90}/i,
+    /\bapplies to\b(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /addressed to(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /member states?(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /\b(?:in|within|throughout|across|of|into) the european union(?!\s*\()(?!\s+act\b)(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
   ],
   penalty_summary: [
-    /penalt(?:y|ies)[^.;\n]{0,110}/i,
-    /\bfine[sd]?\b[^.;\n]{0,110}/i,
-    /sanctions?[^.;\n]{0,110}/i,
+    /penalt(?:y|ies)(?:https?:\/\/\S+|[^.;\n]){0,110}/i,
+    /\bfine[sd]?\b(?:https?:\/\/\S+|[^.;\n]){0,110}/i,
+    /sanctions?(?:https?:\/\/\S+|[^.;\n]){0,110}/i,
   ],
   // Research credibility (Lane INTAKE, 2026-09-02, spec 03 §4's "two scores, never merged"). Generic
   // phrase-locate, same as every other entry above -- a coverage floor over the language a source uses
@@ -148,31 +165,31 @@ const SLOT_TRIGGERS = Object.freeze({
   // module has no I/O to fetch the OpenAlex/ROR inputs spec 03 §4 names; that computation belongs to a
   // later, DB-credentialed pass -- see this lane's report).
   evidence_agreement_signal: [
-    /peer[- ]reviewed[^.;\n]{0,90}/i,
-    /independently (?:confirmed|corroborated|replicated)[^.;\n]{0,90}/i,
-    /widely (?:accepted|confirmed)[^.;\n]{0,90}/i,
-    /reaches? (?:a )?consensus[^.;\n]{0,90}/i,
-    /systematic review[^.;\n]{0,90}/i,
-    /meta-analysis[^.;\n]{0,90}/i,
-    /\bpreliminary\b[^.;\n]{0,90}/i,
-    /\bdisputed\b[^.;\n]{0,90}/i,
-    /\bunconfirmed\b[^.;\n]{0,90}/i,
-    /not yet (?:been )?replicated[^.;\n]{0,90}/i,
+    /peer[- ]reviewed(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /independently (?:confirmed|corroborated|replicated)(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /widely (?:accepted|confirmed)(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /reaches? (?:a )?consensus(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /systematic review(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /meta-analysis(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /\bpreliminary\b(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /\bdisputed\b(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /\bunconfirmed\b(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /not yet (?:been )?replicated(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
   ],
   source_authority_signal: [
-    /published by[^.;\n]{0,90}/i,
-    /peer[- ]reviewed journal[^.;\n]{0,90}/i,
-    /working paper[^.;\n]{0,90}/i,
-    /\bpreprint\b[^.;\n]{0,90}/i,
-    /\bin press\b[^.;\n]{0,90}/i,
-    /issued by[^.;\n]{0,90}/i,
-    /commissioned by[^.;\n]{0,90}/i,
-    /\buniversity\b[^.;\n]{0,90}/i,
-    /national laboratory[^.;\n]{0,90}/i,
-    /standards body[^.;\n]{0,90}/i,
-    /intergovernmental organi[sz]ation[^.;\n]{0,90}/i,
-    /research institute[^.;\n]{0,90}/i,
-    /industry association[^.;\n]{0,90}/i,
+    /published by(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /peer[- ]reviewed journal(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /working paper(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /\bpreprint\b(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /\bin press\b(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /issued by(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /commissioned by(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /\buniversity\b(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /national laboratory(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /standards body(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /intergovernmental organi[sz]ation(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /research institute(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /industry association(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
   ],
 });
 
@@ -305,18 +322,18 @@ export function extractSlotFact({ slotKey, capturedText, sourceUrl }) {
 // ---------------------------------------------------------------------------
 const BINDING_POSITION_TRIGGERS = Object.freeze({
   direct_duty: [
-    /(?:freight forwarders?|forwarding agents?|the forwarder|customs representatives?|indirect customs representatives?|the operator|the undertaking)[^.;\n]{0,60}(?:shall|must|is required to|are required to|is obliged to|are obliged to)[^.;\n]{0,90}/i,
+    /(?:freight forwarders?|forwarding agents?|the forwarder|customs representatives?|indirect customs representatives?|the operator|the undertaking)(?:https?:\/\/\S+|[^.;\n]){0,60}(?:shall|must|is required to|are required to|is obliged to|are obliged to)(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
   ],
   carrier_passthrough: [
-    /(?:the carrier|carriers|the shipowners?|the shipping compan(?:y|ies)|the vessel operators?)[^.;\n]{0,60}(?:shall|must|is required to|are required to)[^.;\n]{0,90}/i,
+    /(?:the carrier|carriers|the shipowners?|the shipping compan(?:y|ies)|the vessel operators?)(?:https?:\/\/\S+|[^.;\n]){0,60}(?:shall|must|is required to|are required to)(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
   ],
   customer_contract: [
-    /(?:the customers?|the shippers?|the consignors?)[^.;\n]{0,60}(?:shall|must|is required to|are required to|may request|may require)[^.;\n]{0,90}/i,
-    /contractual (?:clause|obligation|requirement)[^.;\n]{0,90}/i,
+    /(?:the customers?|the shippers?|the consignors?)(?:https?:\/\/\S+|[^.;\n]){0,60}(?:shall|must|is required to|are required to|may request|may require)(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /contractual (?:clause|obligation|requirement)(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
   ],
   monitoring_only: [
-    /not yet (?:in force|applicable|binding)[^.;\n]{0,90}/i,
-    /does not (?:currently )?appl(?:y|ies) to[^.;\n]{0,90}/i,
+    /not yet (?:in force|applicable|binding)(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /does not (?:currently )?appl(?:y|ies) to(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
   ],
 });
 const BINDING_POSITION_PRIORITY = Object.freeze(["direct_duty", "carrier_passthrough", "customer_contract", "monitoring_only"]);
@@ -384,10 +401,10 @@ export function extractBindingPositionFact({ capturedText, sourceUrl }) {
 // day / month / quarter / year — honest GAP when no due-date-shaped span is found at all.
 // ---------------------------------------------------------------------------
 const DUE_DATE_TRIGGERS = Object.freeze([
-  /due (?:date|by)[^.;\n]{0,90}/i,
-  /no later than[^.;\n]{0,90}/i,
-  /\bby\s+\d{1,2}\s+\w+\s+\d{4}[^.;\n]{0,70}/i,
-  /\bwithin\s+\d+\s+(?:days?|months?|years?)(?:\s+of|\s+from|\s+after)?[^.;\n]{0,90}/i,
+  /due (?:date|by)(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+  /no later than(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+  /\bby\s+\d{1,2}\s+\w+\s+\d{4}(?:https?:\/\/\S+|[^.;\n]){0,70}/i,
+  /\bwithin\s+\d+\s+(?:days?|months?|years?)(?:\s+of|\s+from|\s+after)?(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
 ]);
 const DATE_PRECISION_PATTERNS = Object.freeze([
   { precision: "day", re: /\b\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b/i },

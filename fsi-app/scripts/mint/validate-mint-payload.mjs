@@ -340,7 +340,16 @@ const UNLABELED_MODAL_RE = /\b(requires|must|mandates|obligates|prohibits|applie
 // validate_item_provenance. A '(' is consumed only with its matching ')', so EUR-Lex "(01)" identifiers
 // (CELEX 32023D0628(01)) extract whole, while a URL written inside prose parentheses "(see https://x/a)"
 // still stops before the unmatched ')'. Population run #12 lost 2/42 payloads to the old regex.
-const URL_RE = /https?:\/\/(?:[^\s()\]}"'<>]|\([^\s()]*\))+/g;
+// Migration 300 (2026-09-03, lane URL-GUIL): typographic delimiters excluded. The mint kit delimits a
+// verbatim span with guillemets « » (record-facts.mjs), and when a span or a section paragraph ends with
+// a URL and no space before the closing delimiter, the old class swallowed it whole — a URL of
+// "http://eur-lex.europa.eu»" extracted as literally that, canonicalize_citation_url's trailing-punct
+// strip (`[/.,;:]+$`) does not touch '»', and the URL grounds nowhere (`ungrounded_url`). Population run
+// #16 (mint-run-018, row 429c85d2, "The Renewable Transport Fuel Obligations (Amendment) Order 2013")
+// is the measured case. Fixed by excluding « » ‹ › and curly quotes “ ” ‘ ’ from the class, the same
+// technique already used for the straight `"'<>` — a URL match simply stops one character earlier, it is
+// never trimmed after the fact. Mirrors the live SQL function patched the same way (migration 300).
+const URL_RE = /https?:\/\/(?:[^\s()\]}"'<>«»‹›“”‘’]|\([^\s()]*\))+/g;
 
 // ── C3 authority floor — item-type floor table (migration 145/171), unconditional for the reg family
 //    (migration 158). ──
