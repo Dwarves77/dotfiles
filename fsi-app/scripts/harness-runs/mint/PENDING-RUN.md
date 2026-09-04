@@ -137,8 +137,18 @@ does not move this hash; it is documented in MINT-RUNBOOK.md §13 alongside the 
 
 **harness_version at HOLLOW-GATE's own write time (its worktree lacked TANDEM's §8/§9 text):** `sha256:51d3ea4aca96c186`
 
-**harness_version at write time:** `sha256:aa69a655c0264d6a` (train/wave16: TANDEM's §8/§9 runbook text and
-HOLLOW-GATE's kit/extractor edits combined on one tree; each lane's own worktree hash above is history)
+**harness_version at the first train/wave16 assembly (superseded below):** `sha256:aa69a655c0264d6a`
+
+**What changed (4):** the gate's first CI run (PR #563) failed three existing consumer tests of the kit:
+the six oil-bulletin `market_signal` payloads (both the R-D batch builder and the `--propose-items`
+draft) and the research record builder's all-GAP case. `validate-mint-payload.mjs` now exempts a
+`market_signal` payload whose `instrument_identifier` is a registered implemented series key
+(`src/lib/market/series-registry.mjs`): its substance is the `market_series` rows, not FACT claims.
+`propose-series-items.mjs` now sets `instrumentIdentifier` to the series key like the batch builder
+does. The research all-GAP case is now asserted REFUSED (operator ruling 2026-09-04).
+
+**harness_version at write time:** `sha256:f50d5fd4ee2f925f` (train/wave16 final: the exemption above on top of
+TANDEM's §8/§9 runbook text and HOLLOW-GATE's kit/extractor edits; each lane's own hash above is history)
 
 **The planned run that supersedes THIS marker:** the next `population-turn` dispatch (dry, then apply)
 under this landed code — its `mint-batch-report.json` should show a material drop in `record_hollow` holds

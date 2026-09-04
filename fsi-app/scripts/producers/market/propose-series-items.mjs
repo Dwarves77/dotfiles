@@ -68,6 +68,10 @@ export function buildProposedItemPayloads({
         sourceUrl: proposed.source_url,
         itemType: proposed.item_type,
         title: proposed.title,
+        // The series key IS the item's identifier, exactly as build-oil-bulletin-rows.mjs sets it for the
+        // R-D batch: one identity for the series item on both paths, and the kit's series-backed
+        // record_hollow exemption (validate-mint-payload.mjs) keys on it via the series registry.
+        instrumentIdentifier: seriesKey,
         jurisdictionIso: "EU",
         source: placeholderSource,
         capturedText,

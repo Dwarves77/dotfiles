@@ -685,6 +685,23 @@ function hollowPayload({ requiredSlotKeys = ["action_now", "conversion_trigger",
   return p;
 }
 
+test("grade='record' series-backed exemption: a market_signal payload whose instrument_identifier is a registered implemented series key is NOT record_hollow (its substance is the market_series rows); an unregistered key still is", () => {
+  const p = hollowPayload();
+  p.item.grade = "record";
+  p.screen = VALID_SCREEN;
+  p.item.item_type = "market_signal";
+  p.item.instrument_identifier = "eu-oil-bulletin:eurosuper-95";
+  const r = validateMintPayload(p);
+  assert.equal(r.failures.some((x) => x.reason === "record_hollow"), false, JSON.stringify(r.failures));
+  const q = hollowPayload();
+  q.item.grade = "record";
+  q.screen = VALID_SCREEN;
+  q.item.item_type = "market_signal";
+  q.item.instrument_identifier = "made-up-producer:series";
+  const r2 = validateMintPayload(q);
+  assert.ok(r2.failures.some((x) => x.criterion === 5 && x.reason === "record_hollow"), JSON.stringify(r2.failures));
+});
+
 test("grade='record' RED: only the [title] FACT, every other slot a GAP -> record_hollow (criterion 5), independent of criterion 5's own missing_required_slot check", () => {
   const p = hollowPayload();
   p.item.grade = "record";

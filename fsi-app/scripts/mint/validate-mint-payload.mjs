@@ -43,6 +43,7 @@ import { dirname, resolve } from "node:path";
 import { scanBrief } from "./lib/gate-a-scan.mjs";
 import { canonicalizeCitationUrl } from "./lib/canonicalize-citation-url.mjs";
 import { institutionKey } from "../lib/institution-key.mjs";
+import { isImplementedSeriesKey } from "../../src/lib/market/series-registry.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REQUIRED_SLOTS = JSON.parse(readFileSync(resolve(__dirname, "item-type-required-slots.json"), "utf8"));
@@ -473,7 +474,17 @@ export function validateMintPayload(payload, opts = {}) {
     const substantiveFactCount = claims.filter(
       (c) => c.claim_kind === "FACT" && !String(c.claim_text ?? "").trim().toLowerCase().startsWith("[title]")
     ).length;
-    if (substantiveFactCount === 0) {
+    //    SERIES-BACKED EXEMPTION (train/wave16, 2026-09-04, the gate's first CI run): a `market_signal`
+    //    payload whose `instrument_identifier` is a registered, implemented market-series key
+    //    (`src/lib/market/series-registry.mjs`, the six oil-bulletin products and the EIA/BLS/ECB series)
+    //    is not hollow — its substance is the `market_series` rows the producer writes and
+    //    `ratify-series-items.mjs` binds to the item (series-item-map.mjs), not FACT claims extracted
+    //    from the bulletin's landing page; the surface renders the series. The exemption is mechanical
+    //    (registry lookup), never a free-text flag, so a hand-built market row with an unregistered key
+    //    is still refused. Research records get NO exemption: an all-GAP research record is exactly the
+    //    "item with no details" the operator refused on 2026-09-04, and is held for re-extraction.
+    const seriesBacked = item.item_type === "market_signal" && isImplementedSeriesKey(item.instrument_identifier);
+    if (substantiveFactCount === 0 && !seriesBacked) {
       failures.push({
         criterion: 5,
         reason: "record_hollow",
