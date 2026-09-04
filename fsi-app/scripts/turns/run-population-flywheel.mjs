@@ -1424,8 +1424,8 @@ async function main() {
       return;
     }
 
-    const { readAll, guardedInsertMany, guardedUpdate, readClient } = await import("../lib/db.mjs");
-    const db = { readAll, guardedInsertMany, guardedUpdate, readClient };
+    const { readAll, guardedInsertMany, guardedUpdate, guardedUpdateByIds, readClient } = await import("../lib/db.mjs");
+    const db = { readAll, guardedInsertMany, guardedUpdate, guardedUpdateByIds, readClient };
 
     const artifactResults = [];
     let failed = false;
@@ -1480,8 +1480,8 @@ async function main() {
     return;
   }
 
-  const { readAll, guardedInsertMany, guardedUpdate, readClient } = await import("../lib/db.mjs");
-  const db = { readAll, guardedInsertMany, guardedUpdate, readClient };
+  const { readAll, guardedInsertMany, guardedUpdate, guardedUpdateByIds, readClient } = await import("../lib/db.mjs");
+  const db = { readAll, guardedInsertMany, guardedUpdate, guardedUpdateByIds, readClient };
   const startedAt = new Date().toISOString();
 
   let outcome;
