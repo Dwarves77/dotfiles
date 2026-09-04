@@ -25,6 +25,9 @@ import {
   extractDueDateFact,
   findCorridorMatch,
   extractCorridorFact,
+  isEurlexHost,
+  findInForceStatusMatch,
+  extractInForceStatusFact,
 } from "./record-facts.mjs";
 import { validateMintPayload } from "../../../scripts/mint/validate-mint-payload.mjs";
 import { extractFactualTokens } from "../../../scripts/mint/lib/gate-a-scan.mjs";
@@ -495,7 +498,14 @@ test("buildRecordPayload: row 429c85d2 (UK SI 2013/816) — the boilerplate sent
     "A copy of the Directives referred to in this Explanatory Note may be viewed in the Official " +
     "Journal of the European Union via the EUR-lex website at http://eur-lex.europa.eu . Merchant " +
     "Shipping Notices are published by the Maritime and Coastguard Agency and can be viewed on the " +
-    "agency's website at http://www.dft.gov.uk/mca which also has details of any amendments or replacements.";
+    "agency's website at http://www.dft.gov.uk/mca which also has details of any amendments or replacements. " +
+    // Lane HOLLOW-GATE (2026-09-04): the original fixture isolated ONLY the boilerplate sentence this
+    // test is about and, once record_hollow exists, that made it an accidentally-hollow payload (title
+    // FACT plus four GAPs, nothing else) -- a fixture artefact, not evidence the real item is hollow (the
+    // real Explanatory Note continues with the instrument's own substantive commencement text). One
+    // genuine primary_deadline-shaped sentence restores the fixture to "real item, narrow slice" without
+    // touching the jurisdictional_scope assertion this test exists to prove.
+    "Compliance with the transitional arrangements is required no later than 1 January 2015.";
   const payload = buildRecordPayload({
     sourceUrl: "https://www.legislation.gov.uk/uksi/2013/816",
     itemType: "regulation",
@@ -526,7 +536,10 @@ test("buildRecordPayload: row a980a0b9 (UK SI 2012/2567) — same boilerplate cl
     "Public Sector Information or viewed in the Official Journal of the European Union via the EUR-Lex " +
     "website at http://eur-lex.europa.eu/ . Merchant Shipping Notices are published by the Maritime and " +
     "Coastguard Agency and can be viewed on the Agency's website at http://www.dft.gov.uk/mca/ which also " +
-    "has details of any amendments or replacements.";
+    "has details of any amendments or replacements. " +
+    // Lane HOLLOW-GATE (2026-09-04): see the sibling 429c85d2 test's own comment -- same fixture-artefact
+    // fix, same reason.
+    "Compliance with the transitional arrangements is required no later than 1 January 2015.";
   const payload = buildRecordPayload({
     sourceUrl: "https://www.legislation.gov.uk/uksi/2012/2567",
     itemType: "regulation",
@@ -545,6 +558,244 @@ test("buildRecordPayload: row a980a0b9 (UK SI 2012/2567) — same boilerplate cl
 
   const result = validateMintPayload(payload, { baseDir: process.cwd() });
   assert.deepEqual(result.failures, [], `row a980a0b9's shape must clear validate-mint-payload.mjs with zero failures: ${JSON.stringify(result.failures, null, 2)}`);
+  assert.equal(result.valid, true);
+  assert.equal(result.recommended_status, "verified");
+});
+
+// ── Lane HOLLOW-GATE (2026-09-04): EU-act self-description extractors ──────────────────────────────
+// operative_provision / addressee / confirmed_measure / in_force_status. Fixtures below reproduce REAL
+// captured text read live via Supabase (`agent_run_searches.result_content`), not invented shapes:
+//   - 31999D0823 (item 8670d8bf-9847-4da6-8724-0d52308b008e, the traced hollow example, item_type
+//     "initiative" -- CELEX sector-3 'D'): "HAS ADOPTED THIS DECISION: Article 1 The measures notified by
+//     the Netherlands which exceed the maximum recycling target laid down in Article 6(1)(b) of Directive
+//     94/62/EC are hereby confirmed. Article 2 This Decision is addressed to the Kingdom of the
+//     Netherlands." -- verbatim.
+//   - 32020R0893 (a live, currently-in-force EUR-Lex regulation): the force-indicator's own markup,
+//     `<p class="forceIndicator"><span><img class="forceIndicatorBullet" src="./../../../images/
+//     green-on.png" alt="Legal status of the document"/></span>In force</p>`, plus (same page) a body
+//     sentence using the phrase "no longer in force" about a DIFFERENT, unrelated regulation -- the exact
+//     false-positive this extractor's structural anchor exists to reject (see findInForceStatusMatch's
+//     own header).
+//   - a synthetic red/not-in-force markup variant is used ONLY where noted -- [HYPOTHESIS, not confirmed
+//     against a real row]: zero rows in this corpus carry an off-state indicator (measured live,
+//     2026-09-04), so this shape is inferred from EUR-Lex's own on/off asset-naming convention
+//     (green-on.png), never asserted as observed.
+
+test("isEurlexHost: true for eur-lex.europa.eu and its subdomains, false for anything else", () => {
+  assert.equal(isEurlexHost("https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0823"), true);
+  assert.equal(isEurlexHost("https://new.eur-lex.europa.eu/x"), true);
+  assert.equal(isEurlexHost("https://www.legislation.gov.uk/uksi/2013/816"), false);
+  assert.equal(isEurlexHost("https://publications.europa.eu/resource/celex/31999D0823"), false, "Cellar is a different host -- captures via Cellar still carry item.source_url = the eur-lex.europa.eu URL, so this narrower check is deliberate, not a gap");
+  assert.equal(isEurlexHost("not a url"), false);
+  assert.equal(isEurlexHost(null), false);
+});
+
+test("findSlotSpan('operative_provision'/'addressee'/'confirmed_measure'): locates the REAL 31999D0823 enacting clauses verbatim (the traced hollow example's own text)", () => {
+  const text =
+    "HAS ADOPTED THIS DECISION: Article 1 The measures notified by the Netherlands which exceed the " +
+    "maximum recycling target laid down in Article 6(1)(b) of Directive 94/62/EC are hereby confirmed. " +
+    "Article 2 This Decision is addressed to the Kingdom of the Netherlands.";
+
+  const operative = findSlotSpan("operative_provision", text);
+  assert.ok(operative, "must find the enacting formula + Article 1");
+  assert.match(operative, /HAS ADOPTED THIS DECISION:/i);
+  assert.match(operative, /Article 1 The measures notified by the Netherlands/i);
+  assert.ok(text.toLowerCase().includes(operative.toLowerCase()));
+
+  const addressee = findSlotSpan("addressee", text);
+  assert.ok(addressee, "must find the addressee clause");
+  assert.match(addressee, /This Decision is addressed to the Kingdom of the Netherlands/i);
+
+  const measure = findSlotSpan("confirmed_measure", text);
+  assert.ok(measure, "must find the confirmed-measure clause");
+  assert.match(measure, /measures notified by the Netherlands/i);
+
+  // A recommendation's own enacting formula ("HEREBY RECOMMENDS TO THE MEMBER STATES:") is deliberately
+  // NOT matched by operative_provision -- confirmed against the real 31976H0495 shape (Supabase); an
+  // honest GAP, never a stretched pattern.
+  assert.equal(findSlotSpan("operative_provision", "HEREBY RECOMMENDS TO THE MEMBER STATES: 1. that authorities encourage frequent transport services."), null);
+});
+
+// Lane HOLLOW-GATE, second real-capture sample (2026-09-04): 12 fresh title-only-hollow "initiative" rows
+// pulled at random via Supabase found "HAS DECIDED AS FOLLOWS:" in 6/12 real captures -- the SAME
+// enacting-formula role as "HAS ADOPTED THIS DECISION:" above, not a rare variant. Text below is CELEX
+// 32004D0575's own real captured body (Council Decision, Barcelona Convention protocol), verbatim.
+test("findSlotSpan('operative_provision'): the REAL 32004D0575 'HAS DECIDED AS FOLLOWS:' formula (a Decision's OTHER real enacting-formula shape, 6/12 in the second real-capture sample) locates verbatim, item_type-independent", () => {
+  const text =
+    "(7) The Protocol, not affecting the right of Parties to adopt relevant stricter measures in conformity " +
+    "with international law, contains the measures needed to avoid there being any incoherence with " +
+    "Community legislation already in force in the areas covered by the Protocol. (8) The Community should " +
+    "therefore approve the Protocol, HAS DECIDED AS FOLLOWS: Article 1 The Protocol to the Barcelona " +
+    "Convention for the Protection of the Mediterranean Sea against Pollution concerning cooperation in " +
+    "preventing pollution from ships, hereinafter referred to as «the Protocol», is hereby approved on behalf of the Community.";
+  const operative = findSlotSpan("operative_provision", text);
+  assert.ok(operative, "'HAS DECIDED AS FOLLOWS:' must locate the operative provision just as 'HAS ADOPTED THIS DECISION:' does");
+  assert.match(operative, /HAS DECIDED AS FOLLOWS:/);
+  assert.match(operative, /Article 1 The Protocol to the Barcelona Convention/);
+});
+
+// CELEX 32021D0136's own real captured text (Commission Implementing Decision correcting an earlier one).
+test("findSlotSpan('effective_date'): a REAL EU-act 'shall enter into force' sentence locates verbatim -- this slot key is now attempted for item_type='initiative' too via EU_ACT_SLOT_KEYS (build requirement 2's 'entry-into-force/application dates')", () => {
+  const text =
+    "Article 3 Entry into force This Decision shall enter into force on the twentieth day following that of " +
+    "its publication in the Official Journal of the European Union.";
+  const effectiveDate = findSlotSpan("effective_date", text);
+  assert.ok(effectiveDate);
+  assert.match(effectiveDate, /shall enter into force on the twentieth day/i);
+});
+
+test("findSlotSpan('operative_provision'): a raw-HTML capture (the enacting formula split across <p> tags, real 32011L0015 shape) never yields a tag-polluted span -- honest GAP instead", () => {
+  // Real captured shape (Supabase, agent_run_searches, eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011L0015):
+  // the Article 1 text sits in a SEPARATE <p> from "HAS ADOPTED THIS DIRECTIVE:", so a window-based
+  // trigger applied to un-stripped HTML would otherwise swallow the intervening tag markup verbatim.
+  const rawHtml =
+    '<p class="oj-normal">HAS ADOPTED THIS DIRECTIVE:</p>\n' +
+    '<div class="eli-subdivision" id="enc_1">\n' +
+    '<div class="eli-subdivision" id="art_1">\n' +
+    '<p id="d1e104-33-1" class="oj-ti-art">Article 1</p>\n' +
+    '<div class="eli-title">Scope</div>';
+  assert.equal(findSlotSpan("operative_provision", rawHtml), null, "a tag-polluted match must be rejected, not returned as a 'verbatim' span");
+  assert.equal(isProseSpan('HAS ADOPTED THIS DIRECTIVE:</p>\n<div class="eli-subdivision"'), false, "the HTML-tag-fragment guard rejects it directly");
+});
+
+test("findInForceStatusMatch: the REAL 32020R0893 force-indicator markup -> notInForce=false ('In force', green)", () => {
+  const html =
+    '<p xmlns="http://www.w3.org/1999/xhtml" class="forceIndicator">\n' +
+    '         <span>\n' +
+    '            <img class="forceIndicatorBullet" src="./../../../images/green-on.png"\n' +
+    '                 alt="Legal status of the document"/>\n' +
+    '         </span>In force</p>\n' +
+    '      <p>ELI: <a class="underlineLink" href="http://data.europa.eu/eli/reg_impl/2020/893/oj">http://data.europa.eu/eli/reg_impl/2020/893/oj</a></p>';
+  const m = findInForceStatusMatch(html);
+  assert.ok(m, "must find the indicator");
+  assert.equal(m.statusText, "In force");
+  assert.equal(m.notInForce, false);
+  assert.ok(html.includes(m.span), "span must be verbatim-by-construction");
+});
+
+test("findInForceStatusMatch: the SAME real 32020R0893 page ALSO carries the literal phrase 'no longer in force' elsewhere (its own recital text, about a DIFFERENT regulation) -- proves a bare substring scan would misfire and this extractor does not", () => {
+  const bodyText =
+    "It was therefore invalid. Regulations (EEC) No 2913/92 and (EEC) No 2454/93 are no longer in force, " +
+    "but point (c) of Article 132 of Implementing Regulation (EU) 2015/2447 also establishes a one-year " +
+    "limitation for adjusting the customs value of defective goods.";
+  const forceIndicatorHtml =
+    '<p class="forceIndicator"><span><img class="forceIndicatorBullet" src="green-on.png" alt="x"/></span>In force</p>';
+  const wholePage = forceIndicatorHtml + " " + bodyText;
+  const m = findInForceStatusMatch(wholePage);
+  assert.equal(m.notInForce, false, "the indicator itself says In force; the unrelated body-text phrase must never override it");
+  assert.equal(findSlotSpan("operative_provision", wholePage), null, "and this body text must never be mistaken for this document's own operative provision either");
+});
+
+test("findInForceStatusMatch: a red/off-state variant reads notInForce=true [HYPOTHESIS: EUR-Lex's own on/off asset-naming convention inferred, not observed live -- zero rows in this corpus carry it]", () => {
+  const html =
+    '<p class="forceIndicator"><span><img class="forceIndicatorBullet" src="./../../../images/red-off.png" ' +
+    'alt="Legal status of the document"/></span>No longer in force</p>';
+  const m = findInForceStatusMatch(html);
+  assert.ok(m);
+  assert.equal(m.statusText, "No longer in force");
+  assert.equal(m.notInForce, true);
+});
+
+test("findInForceStatusMatch: no force-indicator markup at all (the common case -- the deterministic capture pipeline's own Cellar/clean-text endpoints never carry this widget) -> null", () => {
+  assert.equal(findInForceStatusMatch("Plain stripped act text with no indicator markup at all."), null);
+  assert.equal(findInForceStatusMatch(""), null);
+  assert.equal(findInForceStatusMatch(null), null);
+});
+
+test("extractInForceStatusFact: FACT when the indicator is present, honest GAP otherwise", () => {
+  const html = '<p class="forceIndicator"><span><img class="forceIndicatorBullet" src="green-on.png" alt="x"/></span>In force</p>';
+  const fact = extractInForceStatusFact({ capturedText: html, sourceUrl: "https://eur-lex.europa.eu/x" });
+  assert.equal(fact.claim_kind, "FACT");
+  assert.equal(fact.slot_key, "in_force_status");
+  assert.equal(fact.in_force_status, "In force");
+  assert.equal(fact.not_in_force, false);
+  assert.match(fact.claim_text, /\[in_force_status\]/);
+
+  const gap = extractInForceStatusFact({ capturedText: "No indicator here.", sourceUrl: "https://eur-lex.europa.eu/x" });
+  assert.equal(gap.claim_kind, "GAP");
+  assert.equal(gap.in_force_status, null);
+  assert.equal(gap.not_in_force, null);
+});
+
+test("buildRecordFacts: the five EU-act slots attach ONLY for a eur-lex.europa.eu sourceUrl, item_type-independent (fixes the 390 'initiative'-typed hollow items, whose required-slots list has no matching triggers at all)", () => {
+  const text =
+    "HAS ADOPTED THIS DECISION: Article 1 The measures notified by the Netherlands which exceed the " +
+    "maximum recycling target laid down in Article 6(1)(b) of Directive 94/62/EC are hereby confirmed. " +
+    "Article 2 This Decision is addressed to the Kingdom of the Netherlands. Article 3 This Decision shall " +
+    "enter into force on the day of its notification.";
+
+  const eurlexInitiative = buildRecordFacts({
+    title: "T", sourceUrl: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0823",
+    capturedText: text, requiredSlots: ["action_now", "conversion_trigger", "driving_parties", "signal_event"],
+    itemType: "initiative", // the actual mis-bucketed, market-signal-shaped item_type this population carries
+  });
+  const operative = eurlexInitiative.find((c) => c.slot_key === "operative_provision");
+  const addressee = eurlexInitiative.find((c) => c.slot_key === "addressee");
+  const measure = eurlexInitiative.find((c) => c.slot_key === "confirmed_measure");
+  const status = eurlexInitiative.find((c) => c.slot_key === "in_force_status");
+  const effectiveDate = eurlexInitiative.find((c) => c.slot_key === "effective_date");
+  assert.ok(operative && operative.claim_kind === "FACT", "operative_provision must attach and resolve to a FACT even though item_type='initiative' never requests it");
+  assert.ok(addressee && addressee.claim_kind === "FACT");
+  assert.ok(measure && measure.claim_kind === "FACT");
+  assert.ok(status && status.claim_kind === "GAP", "no indicator markup in this plain-text fixture -- honest GAP, not a fabricated status");
+  assert.ok(effectiveDate && effectiveDate.claim_kind === "FACT", "effective_date must attach for an EU-act item_type='initiative' too, even though 'initiative' never requires it (Lane HOLLOW-GATE, second real-capture sample: 4/12 real decisions carried this exact 'shall enter into force' shape)");
+
+  const nonEurlex = buildRecordFacts({
+    title: "T", sourceUrl: "https://www.federalregister.gov/documents/x", capturedText: text,
+    requiredSlots: [], itemType: "initiative",
+  });
+  assert.equal(nonEurlex.some((c) => c.slot_key === "operative_provision"), false, "a non-EUR-Lex source never gets the EU-act additions");
+});
+
+test("buildRecordFacts: a slot already in requiredSlots is never duplicated by the EU-act addition", () => {
+  const text = "HAS ADOPTED THIS DECISION: Article 1 Something happens. Article 2 This Decision is addressed to Germany.";
+  const claims = buildRecordFacts({
+    title: "T", sourceUrl: "https://eur-lex.europa.eu/x", capturedText: text,
+    requiredSlots: ["operative_provision", "addressee"], itemType: "initiative",
+  });
+  assert.equal(claims.filter((c) => c.slot_key === "operative_provision").length, 1);
+  assert.equal(claims.filter((c) => c.slot_key === "addressee").length, 1);
+});
+
+test("buildRecordPayload: item 8670d8bf's REAL 31999D0823 shape — the traced hollow example — now clears record_hollow AND the full validator (before this lane: title FACT + four GAPs only, exactly the reported defect)", () => {
+  const capturedText =
+    "1999/823/EC: Commission Decision of 22 November 1999 confirming the measures notified by the " +
+    "Netherlands pursuant to Article 6(6) of Directive 94/62/EC of the European Parliament and of the " +
+    "Council on packaging and packaging waste (notified under document number C(1999) 3818). " +
+    "HAS ADOPTED THIS DECISION: Article 1 The measures notified by the Netherlands which exceed the " +
+    "maximum recycling target laid down in Article 6(1)(b) of Directive 94/62/EC are hereby confirmed. " +
+    "Article 2 This Decision is addressed to the Kingdom of the Netherlands.";
+  const title =
+    "1999/823/EC: Commission Decision of 22 November 1999 confirming the measures notified by the " +
+    "Netherlands pursuant to Article 6(6) of Directive 94/62/EC of the European Parliament and of the " +
+    "Council on packaging and packaging waste (notified under document number C(1999) 3818)";
+
+  const payload = buildRecordPayload({
+    sourceUrl: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:31999D0823",
+    itemType: "initiative", // the LIVE item_type this row actually carries (classifyItemTypeFromCelexKey, sector 3 'D')
+    title,
+    canonicalInstrumentKey: "31999D0823",
+    jurisdictionIso: "EU",
+    source: {
+      id: "src-eurlex", url: "https://eur-lex.europa.eu/", base_tier: 1, tier_override: null,
+      status: "active", institution_id: null,
+    },
+    capturedText,
+    // the LIVE required-slots list for item_type "initiative" (item-type-required-slots.json) -- the
+    // market-signal shape that never matched this document's own text.
+    requiredSlots: ["action_now", "conversion_trigger", "driving_parties", "signal_event", "corridor_identity"],
+    screen: { verdict: "on_vertical", provenance: "rule", basis: "EU packaging-waste derogation decision, core vertical" },
+  });
+
+  const substantiveFacts = payload.claims.filter((c) => c.claim_kind === "FACT" && c.slot_key !== "title");
+  assert.ok(substantiveFacts.length >= 3, `expected operative_provision/addressee/confirmed_measure at minimum: ${JSON.stringify(payload.claims.map((c) => [c.slot_key, c.claim_kind]))}`);
+  assert.ok(substantiveFacts.some((c) => c.slot_key === "operative_provision"));
+  assert.ok(substantiveFacts.some((c) => c.slot_key === "addressee"));
+  assert.ok(substantiveFacts.some((c) => c.slot_key === "confirmed_measure"));
+
+  const result = validateMintPayload(payload, { baseDir: process.cwd() });
+  assert.ok(!result.failures.some((f) => f.reason === "record_hollow"), `must not be hollow any more: ${JSON.stringify(result.failures, null, 2)}`);
+  assert.deepEqual(result.failures, [], `the real 31999D0823 shape must clear validate-mint-payload.mjs with zero failures: ${JSON.stringify(result.failures, null, 2)}`);
   assert.equal(result.valid, true);
   assert.equal(result.recommended_status, "verified");
 });

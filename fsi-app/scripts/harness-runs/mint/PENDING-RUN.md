@@ -88,12 +88,59 @@ connections, forward-events, and maintenance families' own existing scripts and 
 dry/preview mode (it always writes), so the new driver simply never calls it in dry mode; no new flag was
 needed.
 
-**harness_version at write time:** `sha256:bff28600696d162f`
+**harness_version at that write time (superseded below — see "What changed (3)"):** `sha256:bff28600696d162f`
 
-**The planned run that supersedes this marker:** the next `population-turn` dispatch (dry, then apply)
+**The planned run that superseded THAT marker:** the next `population-turn` dispatch (dry, then apply)
 under this landed code — a `dry` dispatch exercises the full flywheel plan without writing (see
 `run-population-flywheel.mjs --mode dry`'s own step list), and the following `apply` dispatch's
 `mint-run-NNN.json` will carry a populated `metrics` block with all three §9 keys, closing THE DEFECT for
 that batch. Per F28's reverse-audit, this marker is deleted the moment that artifact lands and its
 `harness_version` matches the hash above (or re-pinned to a new hash, per rule (c), if a governing file
 changes again before that run lands).
+
+---
+
+## Lane HOLLOW-GATE (2026-09-04) — three more governing files moved
+
+**What changed (3):** lane HOLLOW-GATE (2026-09-04). The operator reported record-grade items shipping with no details ("this is
+unacceptable"). [CONFIRMED, Supabase] Of 1,230 live verified record-grade items, 551 carried ONLY the
+`[title]` FACT (350 with a real title FACT, 201 with none) and 115 carried exactly one substantive fact
+beyond the title — traced example CELEX `31999D0823` (`8670d8bf-9847-4da6-8724-0d52308b008e`), 17,022 chars
+of real EUR-Lex text, zero extracted facts. Root cause: 375 of the 551 EUR-Lex-sourced hollow items are
+`item_type = "initiative"` (CELEX 'D'-letter decisions mapped to the market-signal required-slots shape),
+for which `record-facts.mjs` had no `SLOT_TRIGGERS` at all — every required slot was always a templated GAP,
+and criterion 5 never noticed because a GAP claim satisfies "required slot present" exactly as well as a
+FACT. Full root-cause detail, the fix, and the measured yield are in MINT-RUNBOOK.md §13's new
+"The hollow-record fix and the EU-act self-description slots" subsection (that edit is itself one of the
+governing-file changes below).
+
+Governing files moved (see MINT-RUNBOOK.md §13/§5 for the full narrative; this section only enumerates
+what changed and why it is a real behavior change, not prose-only):
+
+- **`src/lib/intake/record-facts.mjs`** — five new ADDITIVE, always-attempted EU-act self-description
+  claims (`operative_provision`, `addressee`, `confirmed_measure`, `in_force_status`, `effective_date` —
+  `EU_ACT_SLOT_KEYS`), gated on `isEurlexHost(sourceUrl)`, never on `item_type`; a new `HTML_TAG_FRAGMENT`
+  guard in `isProseSpan` (protects the new triggers, and every existing one, from a raw-HTML capture
+  embedding tag soup in a "verbatim" span — confirmed live shape, CELEX `32011L0015`); `RECORD_FACTS_VERSION`
+  bumped `rf1-2026-09-04.1` → `rf1-2026-09-04.2`.
+- **`scripts/mint/validate-mint-payload.mjs`** — new `criterion: 5, reason: "record_hollow"` kit-only check
+  (a grade='record' payload whose only FACT is `[title]` now fails, independent of and additive to the
+  pre-existing `missing_required_slot` check); new `VALIDATE_MINT_PAYLOAD_KIT_VERSION = "vmp-2026-09-04.1"`.
+- **`scripts/mint/MINT-RUNBOOK.md`** — §5 documents `record_hollow` and `not_in_force`; §13 documents the
+  EU-act extraction, the in-force screen, and the measured yield (11/12 = 92% of a fresh real-capture
+  sample now clear the hollow gate; see §13 for the full number and the one known miss, a pre-existing
+  `hasOnlyBareDomainUrls` false-negative, left unfixed and reported rather than risked).
+
+(`scripts/mint/export-census-rows.mjs`'s new `detectNotInForce`/`buildExportRow` wiring — build
+requirement 3, the in-force screen — is NOT a mint-family governing file per `GOVERNING_FILES` above, so it
+does not move this hash; it is documented in MINT-RUNBOOK.md §13 alongside the rest of this lane's work.)
+
+**harness_version at write time:** `sha256:51d3ea4aca96c186`
+
+**The planned run that supersedes THIS marker:** the next `population-turn` dispatch (dry, then apply)
+under this landed code — its `mint-batch-report.json` should show a material drop in `record_hollow` holds
+against the 379 EUR-Lex-hosted rows in the 551-hollow population (MINT-RUNBOOK.md §13's ≈92% estimate),
+plus continued clean handling of the URL-BOILER-era rows (`429c85d2`/`a980a0b9`) already covered above. Per
+F28's reverse-audit, this marker is deleted the moment that artifact lands and its `harness_version`
+matches the hash above (or re-pinned to a new hash, per rule (c), if a governing file changes again before
+that run lands).

@@ -40,6 +40,7 @@ import {
   summarize,
   partitionByScreen,
   loadReviewedVerdicts,
+  detectNotInForce,
 } from "./export-census-rows.mjs";
 
 // ── classifyItemTypeFromCelexKey ────────────────────────────────────────────────────────────────────
@@ -515,6 +516,90 @@ test("buildExportRow: a UK/FR row's null canonical_instrument_key is exported as
   assert.equal(row.canonical_instrument_key, null);
   assert.equal(row.jurisdiction_iso, "GB");
   assert.equal(row.item_type, "regulation");
+});
+
+// ── detectNotInForce / buildExportRow in-force screen (Lane HOLLOW-GATE, 2026-09-04) ───────────────────
+// Build requirement 3. Structurally anchored on the `forceIndicator` widget markup, never a bare substring
+// scan -- see this function's own header comment in export-census-rows.mjs for the false-positive trap
+// (32020R0893, [CONFIRMED] via Supabase) a bare scan would fall into.
+
+test("detectNotInForce: the REAL 32020R0893 force-indicator markup (green/on) -> notInForce false", () => {
+  const html =
+    '<p xmlns="http://www.w3.org/1999/xhtml" class="forceIndicator">\n' +
+    '         <span>\n' +
+    '            <img class="forceIndicatorBullet" src="./../../../images/green-on.png"\n' +
+    '                 alt="Legal status of the document"/>\n' +
+    '         </span>In force</p>\n' +
+    '      <p>ELI: <a class="underlineLink" href="http://data.europa.eu/eli/reg_impl/2020/893/oj">http://data.europa.eu/eli/reg_impl/2020/893/oj</a></p>';
+  const m = detectNotInForce(html);
+  assert.ok(m);
+  assert.equal(m.notInForce, false);
+  assert.equal(m.statusText, "In force");
+});
+
+test("detectNotInForce: the SAME 32020R0893 page's own body prose ALSO carries the literal phrase 'no longer in force' (about a DIFFERENT, unrelated regulation) -- the indicator, not the prose, wins", () => {
+  const forceIndicatorHtml =
+    '<p class="forceIndicator"><span><img class="forceIndicatorBullet" src="green-on.png" alt="x"/></span>In force</p>';
+  const bodyText =
+    " It was therefore invalid. Regulations (EEC) No 2913/92 and (EEC) No 2454/93 are no longer in force, " +
+    "but point (c) of Article 132 of Implementing Regulation (EU) 2015/2447 also establishes a one-year " +
+    "limitation for adjusting the customs value of defective goods.";
+  const m = detectNotInForce(forceIndicatorHtml + bodyText);
+  assert.equal(m.notInForce, false, "the indicator itself says In force; the unrelated body-text phrase must never override it");
+});
+
+test("detectNotInForce RED [HYPOTHESIS: EUR-Lex's own on/off asset-naming convention inferred, not observed live -- zero rows in this corpus carry it]: a red/off-state variant reads notInForce true, with the evidence span carrying the whole widget", () => {
+  const html =
+    '<p class="forceIndicator"><span><img class="forceIndicatorBullet" src="./../../../images/red-off.png" ' +
+    'alt="Legal status of the document"/></span>No longer in force</p>';
+  const m = detectNotInForce(html);
+  assert.ok(m);
+  assert.equal(m.notInForce, true);
+  assert.equal(m.statusText, "No longer in force");
+  assert.match(m.span, /forceIndicator/);
+});
+
+test("detectNotInForce: no force-indicator markup at all (the common case -- neither the Cellar nor EUR-Lex clean-text capture endpoints carry this interactive-page-only widget) -> null", () => {
+  assert.equal(detectNotInForce("Article 1. This Regulation shall enter into force on 1 January 2026."), null);
+  assert.equal(detectNotInForce(""), null);
+  assert.equal(detectNotInForce(null), null);
+});
+
+test("buildExportRow RED: a not-in-force capture (real red/off widget shape) is held not_in_force with the evidence span, never minted", () => {
+  const censusRow = { id: "r1", document_url: "https://eur-lex.europa.eu/32024R0001", instrument_identifier: "32024R0001" };
+  const notInForceHtml =
+    '<p class="forceIndicator"><span><img class="forceIndicatorBullet" src="./../../../images/red-off.png" ' +
+    'alt="Legal status of the document"/></span>No longer in force</p>' +
+    " ".repeat(0) +
+    "Article 1 of this Regulation, now repealed, previously governed the labelling of packaging waste.".repeat(3);
+  const capture = { text: notInForceHtml, html: null };
+  const { row, hold } = buildExportRow(censusRow, SOURCE, EURLEX_IDENTITY, capture);
+  assert.equal(row, undefined);
+  assert.equal(hold.reason, "not_in_force");
+  assert.match(hold.evidence_span, /forceIndicator/);
+  assert.equal(hold.status_text, "No longer in force");
+});
+
+test("buildExportRow: a genuinely in-force capture carrying the false-positive-trap body prose still exports a normal row (the indicator markup, when present, correctly says In force; not_in_force never fires)", () => {
+  const censusRow = { id: "r1", document_url: "https://eur-lex.europa.eu/32024R0001", instrument_identifier: "32024R0001" };
+  const forceIndicatorHtml =
+    '<p class="forceIndicator"><span><img class="forceIndicatorBullet" src="green-on.png" alt="x"/></span>In force</p>';
+  const bodyText =
+    " It was therefore invalid. Regulations (EEC) No 2913/92 and (EEC) No 2454/93 are no longer in force, " +
+    "but point (c) of Article 132 of Implementing Regulation (EU) 2015/2447 also establishes a one-year limitation.".repeat(3);
+  const capture = { text: forceIndicatorHtml + bodyText, html: null };
+  const { row, hold } = buildExportRow(censusRow, SOURCE, EURLEX_IDENTITY, capture);
+  assert.equal(hold, undefined);
+  assert.ok(row);
+  assert.equal(row.item_type, "regulation");
+});
+
+test("buildExportRow: an ordinary capture with no force-indicator markup at all is unaffected by the screen (the overwhelming common case)", () => {
+  const censusRow = { id: "r1", document_url: "https://eur-lex.europa.eu/32024R0001", instrument_identifier: "32024R0001" };
+  const capture = { text: "x".repeat(500), html: null };
+  const { row, hold } = buildExportRow(censusRow, SOURCE, EURLEX_IDENTITY, capture);
+  assert.equal(hold, undefined);
+  assert.ok(row);
 });
 
 // ── captureDocument / makePoliteFetch (network fully stubbed) ──────────────────────────────────────────

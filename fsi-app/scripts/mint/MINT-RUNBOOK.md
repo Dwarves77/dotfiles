@@ -167,6 +167,28 @@ is a payload the live `validate_item_provenance` RPC would also pass, modulo the
 in `validate-mint-payload.mjs`'s header comment (search_result_id resolved by URL match rather than a live
 FK; Gate B DERIVED-claim coverage not modeled).
 
+**`criterion: 5, reason: "record_hollow"` (Lane HOLLOW-GATE, 2026-09-04, KIT-ONLY — the live RPC does not
+have this check; the kit is stricter here on purpose).** A grade='record' payload whose only FACT claim is
+`[title]` (every required slot GAP) fails this even though criterion 5's own `missing_required_slot` check
+is fully satisfied — a GAP claim genuinely covers a required slot as well as a FACT does, but "every slot
+honestly says nothing" is a different, additional failure this kit refuses to mint. **Live measurement
+that motivated this** [CONFIRMED, Supabase, 2026-09-04]: of 1,230 live verified record-grade items, 551
+carried ONLY the `[title]` FACT (350 with a real title FACT, 201 with none at all), and 115 carried exactly
+one substantive fact beyond the title — one traced example, CELEX `31999D0823`
+(`8670d8bf-9847-4da6-8724-0d52308b008e`), had 17,022 chars of real EUR-Lex text and zero extracted facts,
+shipped to the customer site with an effectively empty Summary. `apply-mint-batch.mjs`'s existing hold-back
+records this exactly like any other kit failure — `dryrun_disposition = 'hold'`,
+`hold_reason = 'validation_failed:5:record_hollow'` — and `reopen-validation-holds.mjs` can re-admit the
+row once a payload with a real fact is re-minted (see §11/§13 below for the extractor fix that reduces how
+often this fires).
+
+**`reason: "not_in_force"` (Lane HOLLOW-GATE, 2026-09-04, `export-census-rows.mjs`'s `buildExportRow`, held
+BEFORE a payload is ever built — not a `validateMintPayload` failure at all).** A row whose capture carries
+EUR-Lex's own structurally-anchored `forceIndicator` widget markup stating the act is no longer in force
+is held with the evidence span and never reaches the extractor or the validator. See §13 below for the
+detector and why it is currently inert against the live corpus but real protection against a future
+browser-captured row.
+
 **Running the kit's own tests** (not wired into `.discipline/run-test-suite.sh` — `scripts/mint/**` is
 this lane's own write set, out of scope for editing that shared file):
 ```
@@ -579,6 +601,98 @@ kit is stricter than the database, which is the safe direction.
    `record-facts.mjs` builds them, so this would be a redundant backstop (the same relationship the grade
    discriminator and record-purity checks already have to `record-facts.mjs`'s own construction), not a
    gap this lane found live.
+
+**The hollow-record fix and the EU-act self-description slots (Lane HOLLOW-GATE, 2026-09-04).** The
+operator reported items shipping with no details ("this is unacceptable"). [CONFIRMED, Supabase] Of 1,230
+live verified record-grade items, 551 carried ONLY the `[title]` FACT (350 with a genuine title FACT, 201
+with none at all — exactly matching the operator's own count) and 115 carried exactly one substantive fact
+beyond the title. **Root cause**: 375 of the 551 EUR-Lex-sourced hollow items are `item_type = "initiative"`
+(CELEX sector-2/3 'D'-letter decisions, `classifyItemTypeFromCelexKey`) — mapped to the MARKET-SIGNAL
+required-slots shape (`action_now`/`conversion_trigger`/`driving_parties`/`signal_event`/`corridor_identity`,
+`item-type-required-slots.json`), for which `record-facts.mjs` had NO `SLOT_TRIGGERS` entries at all. Every
+one of those five slots was always a templated GAP regardless of what the captured EUR-Lex text actually
+said, and criterion 5 (`missing_required_slot`) never noticed, because a GAP claim satisfies "required slot
+present" exactly as well as a FACT does. Traced example: item `8670d8bf-9847-4da6-8724-0d52308b008e`, CELEX
+`31999D0823` (a Commission Decision confirming a Dutch packaging-waste derogation) — 17,022 chars of real
+EUR-Lex text, zero extracted facts, shipped with an effectively empty Summary.
+
+**The fix has two independent parts, `record-facts.mjs` and `export-census-rows.mjs`:**
+
+1. **THE GATE** — `validate-mint-payload.mjs` now refuses (`criterion: 5, reason: "record_hollow"`, MINT-RUNBOOK
+   §5 above) any grade='record' payload whose only FACT is `[title]`, closing the exact hole criterion 5's
+   own `missing_required_slot` check could not see.
+2. **THE EXTRACTOR** — `record-facts.mjs`'s `EU_ACT_SLOT_KEYS` (`operative_provision`, `addressee`,
+   `confirmed_measure`, `in_force_status`, `effective_date`) are five ADDITIVE, always-attempted claims
+   gated on `isEurlexHost(sourceUrl)` — never on `itemType` — so a mis-bucketed item_type never starves an
+   item of real extraction just because its required-slots list is the wrong shape for what the EUR-Lex
+   source text actually is (same additive-by-gate pattern `binding_position`/`due_date`/`corridor_identity`
+   already use, keyed on host instead of item_type). Each is a verbatim `source_span`-proven FACT (or an
+   honest GAP) mapped to the existing slot vocabulary; no new slot key needed registering anywhere outside
+   this file (there is no slot-key registry — see `vocabularies.mjs`'s own header, confirmed by reading it):
+   - `operative_provision` — the act's own subject/object sentence (Article 1, or the enacting formula
+     through it). [CONFIRMED, two independent real-capture samples, 2026-09-04] EU acts use ONE of TWO
+     enacting formulas essentially interchangeably: `"HAS ADOPTED THIS DECISION/REGULATION/DIRECTIVE/
+     RECOMMENDATION:"` (8/8 in the first sample) and `"HAS DECIDED AS FOLLOWS:"` (6/12 in a SECOND, fresh,
+     randomly-pulled sample of title-only-hollow "initiative" rows — not a rare variant, the other half of
+     the population). Both are matched. A recommendation's `"HEREBY RECOMMENDS TO THE MEMBER STATES:"`
+     shape (CELEX `31976H0495`) is deliberately NOT matched — an honest GAP, not a stretched pattern.
+   - `addressee` — `"This Decision/Regulation/... is addressed to..."`.
+   - `confirmed_measure` — the notified/confirmed national measure a Decision under a Directive confirms
+     (`"measures notified by..."`), narrower than and overlapping with `operative_provision` by design.
+   - `in_force_status` — EUR-Lex's own `<p class="forceIndicator">...</p>` widget text ("In force" /
+     "No longer in force"), structurally anchored, never a bare substring scan (see THE IN-FORCE SCREEN
+     below for the false-positive trap this avoids). This widget only survives in a raw-HTML capture (the
+     deterministic pipeline's own Cellar/clean-text endpoints strip it) — GAP is the common, honest outcome
+     today.
+   - `effective_date` — reuses the PRE-EXISTING `effective_date` `SLOT_TRIGGERS` entry
+     (`"shall enter into force"` / `"shall apply from"` / etc.), simply added to `EU_ACT_SLOT_KEYS` so it is
+     attempted for `item_type = "initiative"` too (the five regulation-family item_types already require
+     it; `"initiative"` never did). [CONFIRMED] 4/12 real captures in the second sample carried this exact
+     shape ("This Decision shall enter into force on/the day of/the twentieth day following...").
+   - A pre-existing `isProseSpan` guard (`HTML_TAG_FRAGMENT`, added this lane) prevents a raw-HTML capture
+     (confirmed live shape: CELEX `32011L0015`) from embedding tag soup in a "verbatim" span.
+
+   **Measured yield** [CONFIRMED, `record-facts.mjs`'s `buildRecordFacts` run directly against 12 real,
+   fresh (not the tuning sample), randomly-pulled title-only-hollow `initiative` captures, 2026-09-04]:
+   before this lane, 0/12 carried any substantive fact (by construction — these are exactly the confirmed-
+   hollow rows). After: **11/12 (92%) now carry at least one substantive FACT**, 18 substantive facts total
+   across the 12 (avg 1.5/item; every hit was `operative_provision` and/or `effective_date` — `addressee`
+   and `confirmed_measure` are narrower clauses this particular sample of short administrative decisions
+   happened not to carry, unlike the original 31999D0823 traced example, which has both). **Known miss**
+   [CONFIRMED, item `20feed6b`/CELEX `32012D0706(01)`]: a genuine operative-provision span
+   ("HAS DECIDED AS FOLLOWS: Sole Article The link http://www.pvt-tec.de under the sub-heading... shall be
+   deleted") is wrongly rejected by the PRE-EXISTING `hasOnlyBareDomainUrls` guard (lane URL-BOILER,
+   2026-09-04, this same day, an earlier lane), because that guard disqualifies ANY span containing a
+   bare-domain URL match, not only a span that is NOTHING BUT a URL pointer. A word-count-after-URL-removal
+   fix was tried and rejected: it un-fixes the exact two rows (`429c85d2`/`a980a0b9`) that guard exists to
+   fix, because their disqualified span ALSO has >4 words of prose around the bare URL — the two cases are
+   not distinguishable by a word-count heuristic. Left unfixed and reported, not patched, given the risk of
+   silently reopening a previously-fixed defect in a guard shared by every other slot in this file.
+   **Estimate for the live 551** [HYPOTHESIS, extrapolated from the 92% measured rate on a fresh, randomly-
+   pulled real sample, not independently re-run against the full 551]: 379 of the 551 hollow items are
+   EUR-Lex-hosted (375 `initiative`, 2 `framework`, 1 `guidance`, 1 `regulation` — the gate is host-based,
+   not item_type-based, so all 379 benefit, not only the 375 `initiative` rows); at the measured ≈92% rate,
+   roughly 345-350 of those 379 should re-mint with at least one substantive fact once this population is
+   re-processed through the fixed extractor. The remaining 172 of the 551 (legislation.gov.uk,
+   federalregister.gov, and any other non-eur-lex.europa.eu host) are genuinely unaffected — this lane's
+   gate is deliberately scoped to "EU acts on EUR-Lex" per the task's own framing, and those hosts' captures
+   carry none of the enacting-formula/addressee/force-indicator markup this extractor looks for.
+3. **THE IN-FORCE SCREEN** — `export-census-rows.mjs`'s `detectNotInForce(capturedText)` (an independent,
+   from-scratch implementation of the same structurally-anchored `forceIndicator`-widget approach, per this
+   file's own convention of small, zero-dependency detectors) is wired into `buildExportRow` right after the
+   existing `capture_too_short` check: a row whose capture states the act is no longer in force is held
+   `not_in_force` with the evidence span (`hold.evidence_span`, `hold.status_text`) and never reaches the
+   extractor. [CONFIRMED] A bare substring scan for "no longer in force" would misfire: that exact phrase
+   appears in the BODY PROSE of CELEX `32020R0893`, a document that is itself currently in force (a recital
+   describing a different, repealed regulation) — the same false-positive trap `in_force_status` above
+   avoids, and the reason this screen is anchored on the widget markup, never free text. [CONFIRMED] Zero
+   rows in the live `agent_run_searches` corpus carry a genuine RED/"No longer in force" widget today
+   (`n_red = 0`, verified with a properly-`FILTER`ed count after an earlier mis-aggregated query overcounted
+   it at 327) — this screen is therefore currently INERT against the live corpus (holds nothing today), but
+   is real protection the moment a WAF-blocked EUR-Lex row's raw interactive-page HTML is captured (e.g. via
+   the §1a browser-capture escape hatch).
+4. **VERSION BUMPS** — `RECORD_FACTS_VERSION` (`record-facts.mjs`) `rf1-2026-09-04.1` → `rf1-2026-09-04.2`;
+   `VALIDATE_MINT_PAYLOAD_KIT_VERSION` (new constant, `validate-mint-payload.mjs`) `vmp-2026-09-04.1`.
 
 ## Keeping the kit in sync
 
