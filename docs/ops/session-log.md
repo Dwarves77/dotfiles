@@ -9646,3 +9646,28 @@ fixed point (idempotent over all 654 rows), and the property sweep over every `b
 zero non-letter starts, zero `*`, zero pipes, zero bare URLs, zero unterminated windows. The retext
 dry report now classifies its own AFTER residue (`by_after_defect_class`) so the next dry run proves
 itself. Dispatch next: backlog apply (mint-run-005 onward), `forward-events-retext` dry then apply.
+
+### Addendum 85, postscript 40 — the heal's cost, and the brief-honest step, built and held (2026-09-04)
+
+Train/wave28 landed as #575 (`92c2c83c`). Lane HEAL-10 (Sonnet) read the #28 and #31 summaries and
+attributed the ~100 s per item [INFERRED from counts, no per-step clock in the summaries]: a dry run
+with zero fetches still cost 63 s/item, so pacing was not the driver; one item (`15f63ea9`, 32
+captures, 2.8 M chars, 10 orphan tokens) had `locateSpanInText` rebuild its normalised index from
+scratch on every call, about 1,280 full-text passes for that item alone. Fix: a per-run capture index
+cache (`buildCaptureIndex`/`getCaptureIndex`, keyed by capture id, threaded like `citedUrlCache`), a
+per-item wall-clock backstop, and the job timeout raised 30→35 min with the measured arithmetic
+(321 s setup + 1,500 s budget + 6 s tail = 273 s headroom) so the step's own budget always stops the
+run first. The brief-honest step HEAL-6 named is now built: after STEP C and STEP SOURCE have tried
+every capture and cited page, the sentence carrying an unprovable figure is planned for removal
+(sentence span by the extractors' own boundary rule; a middle clause only when it sits between
+separators; first/last clause refused), accepted only when the live Gate A scanner reports
+orphan_count 0 on the rewrite, reported under `summary.brief_honest` with before/after and a
+restore statement, and WRITTEN only when the dispatch arg carries `+strip-unprovable` (the default
+dispatch never writes a brief; tested). item_grade stays unchanged (migration 278 / record-tier plan:
+record-grade items have no full_brief-driven orphans). Criterion 4 re-measured live: 148 of the 159
+"no owning section" claims already pass today (an earlier pass had labelled them), 3 live only in
+full_brief (a labelled paragraph quoting the claim is appended to the section, same gate), 8 exist
+nowhere and are reported. Tests 265 in the mint and wrapper suites. The strip apply waits for the
+operator's yes (put to him at 09:25); the dry run goes out first so he can read the excerpts.
+Dispatch next: provenance-heal dry `quarantined-live` under this code; backlog apply from
+mint-run-005; forward-events-retext dry under FWD-TEXT-2.
