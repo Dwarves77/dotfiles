@@ -40,7 +40,7 @@ import { writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseEcbFxXml, decideApply, CURRENCIES } from "../../scripts/producers/market/ecb-fx-producer.mjs";
+import { parseEcbFxXml, decideApply, CURRENCIES, formatSourceEvidence } from "../../scripts/producers/market/ecb-fx-producer.mjs";
 import { planMarketSeriesUpsert } from "../lib/market/write-market-series.mjs";
 import { producerFor } from "../lib/market/series-registry.mjs";
 import { DERIVATION_VALUES, ORIGIN_CLASS_VALUES } from "../lib/contracts/provenance-envelope.mjs";
@@ -74,9 +74,14 @@ export const ECB_FIXTURE_XML = `<?xml version="1.0" encoding="UTF-8"?>
 `;
 
 // Error/edge paths in one document: a bad (non-numeric-looking after strip) rate, a duplicate currency,
-// and a currency-less structure is exercised separately below (ECB_FIXTURE_XML_NO_TIME).
+// and a currency-less structure is exercised separately below (ECB_FIXTURE_XML_NO_TIME). Carries the full
+// gesmes:Sender block (envelope-authenticity validation now checks for it — see parseEcbFxXml) so this
+// fixture keeps testing ONLY the currency/rate error paths it was built for, not envelope validation.
 export const ECB_FIXTURE_XML_WITH_ERRORS = `<?xml version="1.0" encoding="UTF-8"?>
 <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+	<gesmes:Sender>
+		<gesmes:name>European Central Bank</gesmes:name>
+	</gesmes:Sender>
 	<Cube>
 		<Cube time="2026-08-28">
 			<Cube currency="USD" rate="1.1801"/>
@@ -89,9 +94,107 @@ export const ECB_FIXTURE_XML_WITH_ERRORS = `<?xml version="1.0" encoding="UTF-8"
 </gesmes:Envelope>
 `;
 
+// A full, valid envelope (namespace + Sender, same as every other fixture here) whose Cube tree simply
+// carries no time="..." attribute anywhere — isolates the "no dated Cube" refusal path from envelope
+// validation (which has its own dedicated refusal tests below).
 const ECB_FIXTURE_XML_NO_TIME = `<?xml version="1.0" encoding="UTF-8"?>
 <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+	<gesmes:Sender>
+		<gesmes:name>European Central Bank</gesmes:name>
+	</gesmes:Sender>
 	<Cube><Cube><Cube currency="USD" rate="1.1801"/></Cube></Cube>
+</gesmes:Envelope>
+`;
+
+// ── THE LIVE SHAPE (root-cause fixture) ─────────────────────────────────────────────────────────────
+// Built from the coordinator's own live re-fetch (GitHub Codespace, 2026-09-04 00:58 UTC, plain curl, no
+// special headers: HTTP 200, text/xml, 1547 bytes, https://www.ecb.europa.eu/stats/eurofxref/
+// eurofxref-daily.xml) — SINGLE-quoted attributes, TAB indentation, the eurofxref default namespace, this
+// is the exact shape (through P...) run #22 failed to parse. The leading currencies (USD, JPY, CZK, DKK,
+// GBP, HUF) are copied verbatim from that fetch; the remainder of the ~30-currency set is filled out with
+// plausible ECB-vocabulary codes to exercise the closed-vocabulary warning path the same way ECB_FIXTURE_XML
+// does — ILLUSTRATIVE TEST DATA for the trailing entries, NOT asserted live figures (CLAUDE.md rule 2),
+// same posture the double-quoted fixture above already states for its own numbers. Every rate VALUE here
+// (including the four tracked ones) is illustrative; only the leading shape/order is a verbatim copy.
+export const ECB_FIXTURE_XML_SINGLE_QUOTED = `<?xml version="1.0" encoding="UTF-8"?>
+<gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+	<gesmes:subject>Reference rates</gesmes:subject>
+	<gesmes:Sender>
+		<gesmes:name>European Central Bank</gesmes:name>
+	</gesmes:Sender>
+	<Cube>
+		<Cube time='2026-09-03'>
+			<Cube currency='USD' rate='1.1615'/>
+			<Cube currency='JPY' rate='181.21'/>
+			<Cube currency='CZK' rate='24.221'/>
+			<Cube currency='DKK' rate='7.4746'/>
+			<Cube currency='GBP' rate='0.86055'/>
+			<Cube currency='HUF' rate='367.43'/>
+			<Cube currency='PLN' rate='4.2519'/>
+			<Cube currency='RON' rate='4.9741'/>
+			<Cube currency='SEK' rate='11.0421'/>
+			<Cube currency='CHF' rate='1.0678'/>
+			<Cube currency='CNY' rate='8.2891'/>
+		</Cube>
+	</Cube>
+</gesmes:Envelope>
+`;
+
+// SAME shape as ECB_FIXTURE_XML_SINGLE_QUOTED, but with the currency/rate attribute order SWAPPED
+// (rate before currency) and a THIRD-quote-style mix (some Cube tags single-quoted, one double-quoted) to
+// prove attribute order and quote-per-attribute are both truly independent of one another, not just
+// "the whole document picked one alternate style".
+export const ECB_FIXTURE_XML_MIXED_QUOTES_AND_ORDER = `<?xml version="1.0" encoding="UTF-8"?>
+<gesmes:Envelope xmlns:gesmes='http://www.gesmes.org/xml/2002-08-01' xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+	<gesmes:Sender><gesmes:name>European Central Bank</gesmes:name></gesmes:Sender>
+	<Cube>
+		<Cube time="2026-09-03">
+			<Cube rate='1.1615' currency='USD'/>
+			<Cube currency="GBP" rate="0.86055"/>
+			<Cube
+				rate='8.2891'
+				currency='CNY'
+			/>
+		</Cube>
+	</Cube>
+</gesmes:Envelope>
+`;
+
+// ── malformed documents that must still refuse (never accepted just because a Cube tag is present) ─────
+
+// Same Cube/time/currency shape as a real document, but with NO gesmes namespace declaration at all —
+// proves envelope-authenticity validation is not bypassed by the quote-agnostic rewrite.
+const ECB_FIXTURE_XML_NO_GESMES_NAMESPACE = `<?xml version="1.0" encoding="UTF-8"?>
+<Envelope xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+	<Cube>
+		<Cube time='2026-09-03'>
+			<Cube currency='USD' rate='1.1615'/>
+		</Cube>
+	</Cube>
+</Envelope>
+`;
+
+// Correct namespace, but no gesmes:Sender/name element — a document that merely LOOKS like ECB's envelope
+// (same tag/namespace shape) must not be accepted without the sender identity actually being present.
+const ECB_FIXTURE_XML_NO_SENDER = `<?xml version="1.0" encoding="UTF-8"?>
+<gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+	<Cube>
+		<Cube time='2026-09-03'>
+			<Cube currency='USD' rate='1.1615'/>
+		</Cube>
+	</Cube>
+</gesmes:Envelope>
+`;
+
+// A full valid envelope carrying TWO dated Cube blocks (the shape ECB's separate multi-day history file
+// has) — must refuse rather than silently pick the first or merge both.
+const ECB_FIXTURE_XML_TWO_DATED_CUBES = `<?xml version="1.0" encoding="UTF-8"?>
+<gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+	<gesmes:Sender><gesmes:name>European Central Bank</gesmes:name></gesmes:Sender>
+	<Cube>
+		<Cube time='2026-09-03'><Cube currency='USD' rate='1.1615'/></Cube>
+		<Cube time='2026-09-02'><Cube currency='USD' rate='1.1620'/></Cube>
+	</Cube>
 </gesmes:Envelope>
 `;
 
@@ -156,6 +259,88 @@ test("a document with no dated Cube produces zero rows and one explanatory warni
   assert.equal(rows.length, 0);
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /no <Cube time=/);
+});
+
+// ── THE ROOT-CAUSE PROOF: single-quoted, tab-indented attributes (run #22's actual live shape) ─────────
+
+test("REGRESSION (producers run #22): the live single-quoted, tab-indented shape parses exactly like the double-quoted shape", () => {
+  const { rows, warnings } = parseEcbFxXml(ECB_FIXTURE_XML_SINGLE_QUOTED);
+  assert.equal(rows.length, 4, `expected 4 tracked-currency rows, got ${rows.length}: ${JSON.stringify(rows.map((r) => r.series_key))}`);
+
+  const byKey = new Map(rows.map((r) => [r.series_key, r]));
+  const usd = byKey.get("ecb-fx:eur-usd");
+  assert.ok(usd, "USD row missing — single-quoted attributes were not parsed");
+  assert.equal(usd.value_numeric, 1.1615);
+  assert.equal(usd.currency, "USD");
+  assert.equal(usd.reference_period, "2026-09-03");
+  assert.equal(usd.as_at_date, "2026-09-03");
+
+  const jpy = byKey.get("ecb-fx:eur-jpy");
+  assert.equal(jpy.value_numeric, 181.21);
+
+  const gbp = byKey.get("ecb-fx:eur-gbp");
+  assert.equal(gbp.value_numeric, 0.86055);
+
+  const cny = byKey.get("ecb-fx:eur-cny");
+  assert.equal(cny.value_numeric, 8.2891);
+
+  // CZK/DKK/HUF/PLN/RON/SEK/CHF are outside the closed vocabulary — 7 unrecognised-currency warnings.
+  const unrecognised = warnings.filter((w) => /not in this lane's closed vocabulary/.test(w));
+  assert.equal(unrecognised.length, 7, `expected 7 unrecognised-currency warnings, got: ${JSON.stringify(warnings)}`);
+});
+
+test("attribute order and per-attribute quote style are independent: rate-before-currency and a single-vs-double mix within one document both parse", () => {
+  const { rows, warnings } = parseEcbFxXml(ECB_FIXTURE_XML_MIXED_QUOTES_AND_ORDER);
+  assert.equal(rows.length, 3, `expected 3 rows (USD, GBP, CNY), got ${rows.length}, warnings: ${JSON.stringify(warnings)}`);
+  const byKey = new Map(rows.map((r) => [r.series_key, r]));
+  assert.equal(byKey.get("ecb-fx:eur-usd").value_numeric, 1.1615, "rate-before-currency attribute order must parse");
+  assert.equal(byKey.get("ecb-fx:eur-gbp").value_numeric, 0.86055, "double-quoted Cube in a mostly-single-quoted document must still parse");
+  assert.equal(byKey.get("ecb-fx:eur-cny").value_numeric, 8.2891, "attributes split across multiple lines (newlines/tabs between them) must still parse");
+});
+
+// ── envelope-authenticity validation: kept, not weakened, by the quote-agnostic rewrite ─────────────────
+
+test("a document with no gesmes namespace declaration refuses, even with a well-formed dated Cube", () => {
+  const { rows, warnings } = parseEcbFxXml(ECB_FIXTURE_XML_NO_GESMES_NAMESPACE);
+  assert.equal(rows.length, 0);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /gesmes/i);
+  assert.match(warnings[0], /namespace/i);
+});
+
+test("a document with the right namespace but no gesmes:Sender/name refuses — looking similar is not being ECB", () => {
+  const { rows, warnings } = parseEcbFxXml(ECB_FIXTURE_XML_NO_SENDER);
+  assert.equal(rows.length, 0);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /European Central Bank/);
+  assert.match(warnings[0], /sender/i);
+});
+
+test("a document with TWO dated Cube blocks (the multi-day-history shape) refuses rather than picking one silently", () => {
+  const { rows, warnings } = parseEcbFxXml(ECB_FIXTURE_XML_TWO_DATED_CUBES);
+  assert.equal(rows.length, 0);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /2 dated/);
+  assert.match(warnings[0], /2026-09-03/);
+  assert.match(warnings[0], /2026-09-02/);
+});
+
+// ── formatSourceEvidence: refusal evidence (HTTP status, content-type, byte count, first 200 chars) ─────
+
+test("formatSourceEvidence carries HTTP status + content-type + byte count + a body snippet for a live fetch", () => {
+  const line = formatSourceEvidence(ECB_FIXTURE_XML_NO_GESMES_NAMESPACE, { status: 200, contentType: "text/xml" });
+  assert.match(line, /HTTP 200/);
+  assert.match(line, /content-type "text\/xml"/);
+  assert.match(line, new RegExp(`${Buffer.byteLength(ECB_FIXTURE_XML_NO_GESMES_NAMESPACE, "utf8")} byte\\(s\\)`));
+  assert.match(line, /first 200 chars:/);
+  assert.match(line, /<\?xml version/);
+});
+
+test("formatSourceEvidence omits HTTP fields (never fabricates them) when no source metadata is available (--input/stdin)", () => {
+  const line = formatSourceEvidence("<a/>", null);
+  assert.doesNotMatch(line, /HTTP/);
+  assert.doesNotMatch(line, /content-type/);
+  assert.match(line, /4 byte\(s\)/);
 });
 
 // ── envelope shape: every planned CREATE would satisfy the LIVE table's constraints ────────────────────

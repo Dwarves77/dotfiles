@@ -156,12 +156,18 @@ export function filterSince(series, since) {
 }
 
 /** Scrapes BULLETIN_PAGE_URL's HTML for an <a href="..."> whose filename query param contains
- *  "Prices_History". Returns an absolute URL, or null if none is found. */
-function findPricesHistoryLink(html) {
-  const hrefRe = /href="([^"]+)"/g;
+ *  "Prices_History". Returns an absolute URL, or null if none is found.
+ *  QUOTE-AGNOSTIC (accepts href="..." OR href='...'), same fix and same root cause class as
+ *  ecb-fx-producer.mjs's parseEcbFxXml (see that file's own header REGRESSION note): this scrapes a live
+ *  third-party HTML page (energy.ec.europa.eu), and HTML — unlike this codebase's own OOXML-parsing code
+ *  in oil-bulletin-workbook.mjs, which reads exclusively Excel-generated XML that every known OOXML writer
+ *  emits double-quoted — has no such generator guarantee: a double-quote-only href regex is exactly the
+ *  same unverified-quoting assumption that broke on ECB's feed, just not yet observed breaking here. */
+export function findPricesHistoryLink(html) {
+  const hrefRe = /href\s*=\s*(?:"([^"]+)"|'([^']+)')/g;
   let m;
   while ((m = hrefRe.exec(html))) {
-    const href = m[1];
+    const href = m[1] !== undefined ? m[1] : m[2];
     if (/Prices_History/i.test(href)) {
       if (/^https?:\/\//i.test(href)) return href;
       if (href.startsWith("/")) return PAGE_ORIGIN + href;

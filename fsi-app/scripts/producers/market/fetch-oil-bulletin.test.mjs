@@ -18,7 +18,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseArgs, filterSince, SINCE_ALL_WEEKS } from "./fetch-oil-bulletin.mjs";
+import { parseArgs, filterSince, SINCE_ALL_WEEKS, findPricesHistoryLink } from "./fetch-oil-bulletin.mjs";
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────────
 
@@ -90,6 +90,37 @@ test("filterSince: preserves the input's own order (most-recent-first) — never
 
 test("filterSince: an empty series filters to an empty series", () => {
   assert.deepEqual(filterSince([], "2020-01-01"), []);
+});
+
+// ── findPricesHistoryLink ────────────────────────────────────────────────────────────────────────────
+// QUOTE-AGNOSTIC, same fix/root-cause class as ecb-fx-producer.mjs's parseEcbFxXml (see that file's own
+// header REGRESSION note): a double-quote-only href regex is the identical unverified-quoting assumption
+// that broke on ECB's live feed, applied here defensively before it is observed breaking on a live page.
+
+test("findPricesHistoryLink finds a double-quoted href (the previously-only-supported style)", () => {
+  const html = `<a href="/document/download/abc_en?filename=Weekly_Oil_Bulletin_Prices_History_x.xlsx">link</a>`;
+  assert.equal(findPricesHistoryLink(html), "https://energy.ec.europa.eu/document/download/abc_en?filename=Weekly_Oil_Bulletin_Prices_History_x.xlsx");
+});
+
+test("findPricesHistoryLink finds a SINGLE-quoted href just as well", () => {
+  const html = `<a href='/document/download/abc_en?filename=Weekly_Oil_Bulletin_Prices_History_x.xlsx'>link</a>`;
+  assert.equal(findPricesHistoryLink(html), "https://energy.ec.europa.eu/document/download/abc_en?filename=Weekly_Oil_Bulletin_Prices_History_x.xlsx");
+});
+
+test("findPricesHistoryLink returns null when no link contains Prices_History, regardless of quote style", () => {
+  const html = `<a href="/document/download/other_en?filename=Something_Else.xlsx">x</a> <a href='/other'>y</a>`;
+  assert.equal(findPricesHistoryLink(html), null);
+});
+
+test("findPricesHistoryLink resolves an absolute URL verbatim and a site-relative path against PAGE_ORIGIN, for either quote style", () => {
+  assert.equal(
+    findPricesHistoryLink(`<a href='https://other.example/Weekly_Oil_Bulletin_Prices_History.xlsx'>x</a>`),
+    "https://other.example/Weekly_Oil_Bulletin_Prices_History.xlsx",
+  );
+  assert.equal(
+    findPricesHistoryLink(`<a href="download/Weekly_Oil_Bulletin_Prices_History.xlsx">x</a>`),
+    "https://energy.ec.europa.eu/download/Weekly_Oil_Bulletin_Prices_History.xlsx",
+  );
 });
 
 // ── SINCE_ALL_WEEKS ──────────────────────────────────────────────────────────────────────────────────

@@ -71,6 +71,18 @@ test("parseSheetNames throws a named error when a sheet's r:id has no matching R
   assert.throws(() => parseSheetNames(badWorkbook, WORKBOOK_RELS_XML), /rIdMissing/);
 });
 
+// DEFENSIVE HARDENING (not a live-observed defect in THIS file — every real inspection pass of the actual
+// workbook read double-quoted OOXML; see this module's own header note on attrValue). Proves the same
+// quote-agnostic fix applied to ecb-fx-producer.mjs's parseEcbFxXml (root cause: producers run #22,
+// 2026-09-04) also holds here, so a future OOXML writer that happens to single-quote is not a fresh defect.
+test("parseSheetNames resolves single-quoted attributes exactly like double-quoted ones", () => {
+  const singleQuoted = WORKBOOK_XML.replace(/"/g, "'");
+  const relsSingleQuoted = WORKBOOK_RELS_XML.replace(/"/g, "'");
+  const sheets = parseSheetNames(singleQuoted, relsSingleQuoted);
+  assert.equal(sheets["Prices wo taxes"], "xl/worksheets/sheet2.xml");
+  assert.equal(sheets["VAT"], "xl/worksheets/sheet4.xml");
+});
+
 // ── parseSharedStrings ───────────────────────────────────────────────────────────────────────────────
 
 test("parseSharedStrings returns the verbatim table in index order, decoding entities and the CR escape", () => {
@@ -106,6 +118,18 @@ test("a fully empty row (no cells) yields an empty cells array, not an exception
   const rows = [...iterateRows(SHEET_NO_DATE_COLUMN_XML)];
   const row3 = rows.find((r) => r.rowIndex === 3);
   assert.deepEqual(row3.cells, []);
+});
+
+// Same defensive-hardening posture as the parseSheetNames test above — not a live-observed defect here.
+test("iterateRows resolves single-quoted row/cell attributes (r=, t=) exactly like double-quoted ones", () => {
+  const singleQuoted = SHEET_WO_TAXES_XML.replace(/"/g, "'");
+  const rows = [...iterateRows(singleQuoted)];
+  assert.equal(rows.length, 10);
+  assert.equal(rows[0].rowIndex, 1);
+  const a1 = rows[0].cells.find((c) => c.ref === "A1");
+  assert.equal(a1.col, "A");
+  assert.equal(a1.type, "s");
+  assert.equal(a1.value, String(SI.SHEET_TITLE));
 });
 
 // ── resolveHeaderBlocks ──────────────────────────────────────────────────────────────────────────────
