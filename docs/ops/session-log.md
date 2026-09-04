@@ -9598,3 +9598,20 @@ checked out `f9f6824` while #572 moved master and that file, so the new branch's
 differed from the default branch [INFERRED from GitHub's rule]. Timing, not code; the DB writes
 mint-run-001 made are idempotent and the re-run regenerates the artifact. Heal apply #31 and retext
 dry #32 are queued on maintenance. Dispatch next: backlog apply again on this master.
+
+### Addendum 85, postscript 38 — my own miss, and the backlog moves one step further (2026-09-04)
+
+Train/wave26 landed as #573 (`51815a5b`). Backlog apply #27 (run 33857733835) got past analyze-corpus
+for the first time (1,009 live items, 7,479 edge rows; the IN-CHUNK fix held) and died on the next
+step: `tag-proposals: db.guardedUpdateByIds is not a function`. Mine: IN-CHUNK switched the driver's
+`updateStale` to the chunked writer and I did not add it to the hand-built `const db = {…}`
+namespace the driver passes around (two literals, lines 1428 and 1484); the 73 tests inject a fake db
+and never exercised it. Fixed, with a test that reads the driver's own source and pins every
+`db.<fn>(` it calls to a real db.mjs export present in every namespace literal. Retext dry #32
+succeeded (read next). Heal apply #31 was cancelled by the job backstop 8 s before its own budget;
+15 of 87 items processed at ~100 s each, 0 verified, 13 of the 15 failing only on orphan figures in
+no capture and on no cited page; lane HEAL-10 is building the flag-gated brief-honest step, the cost
+cut and the timeout arithmetic, and the strip apply waits for the operator's yes (put to him at 09:25).
+Live check after #572: /regulations first paint leads with the 13 IMMEDIATE rows [CONFIRMED]; the
+first capture after the deploy still showed the old order because the data cache serves stale while
+it revalidates. Dispatch next: backlog apply again after this lands.

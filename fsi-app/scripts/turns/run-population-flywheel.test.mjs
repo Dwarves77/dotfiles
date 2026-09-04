@@ -847,3 +847,25 @@ test("disambiguateByArtifactTime: the run's own row archived as duplicate_of_ver
   ];
   assert.deepEqual(disambiguateByArtifactTime(rows, "2026-09-01T00:49:22Z"), ["ff95b385"]);
 });
+
+// DB-NAMESPACE (2026-09-04): backlog apply #27 died in tag-proposals with
+// "db.guardedUpdateByIds is not a function" — IN-CHUNK had switched updateStale to the chunked
+// writer without adding it to the hand-built `db` namespace the driver passes around. This test reads
+// the driver's own source and pins the contract: every `db.<fn>(` the driver calls is (a) a real export
+// of scripts/lib/db.mjs and (b) present in every `const db = { ... }` namespace literal the driver builds.
+test("db namespace: every db.<fn> the driver calls is exported by db.mjs and present in each namespace it builds", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const src = await readFile(new URL("./run-population-flywheel.mjs", import.meta.url), "utf8");
+  const called = new Set([...src.matchAll(/\bdb\.([A-Za-z_]\w*)\s*\(/g)].map((m) => m[1]));
+  assert.ok(called.size >= 4, `expected the driver to call several db functions, saw ${[...called].join(", ")}`);
+  const dbModule = await import("../lib/db.mjs");
+  for (const fn of called) {
+    assert.equal(typeof dbModule[fn], "function", `db.mjs must export ${fn}`);
+  }
+  const namespaces = [...src.matchAll(/const db = \{([^}]*)\}/g)].map((m) => m[1]);
+  assert.ok(namespaces.length >= 2, "the driver builds its db namespace in at least two places");
+  for (const ns of namespaces) {
+    const names = new Set(ns.split(",").map((s) => s.trim()).filter(Boolean));
+    for (const fn of called) assert.ok(names.has(fn), `namespace literal is missing ${fn}: { ${ns.trim()} }`);
+  }
+});
