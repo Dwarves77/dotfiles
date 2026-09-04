@@ -392,7 +392,16 @@ export function extractMintedItemIds(artifact) {
 export function hasRecoverableMintedIds(artifact) {
   const minted = Number(artifact?.metrics?.minted ?? 0);
   if (!(minted > 0)) return true;
-  return extractMintedItemIds(artifact).length > 0;
+  if (extractMintedItemIds(artifact).length > 0) return true;
+  // LEGACY-2 (coordinator, 2026-09-04, first backlog dry after BACKLOG-LEGACY landed): this sync guard ran
+  // BEFORE resolveMintedItemIds and still answered false for mint-run-001/005, so the resolver written for
+  // exactly those artifacts never ran and the backlog dry kept listing them as "CANNOT be auto-connected".
+  // A minted entry that carries a resolvable key (per_item.id, the CELEX/canonical key those artifacts
+  // record) IS recoverable; whether every entry resolves to exactly one item is the resolver's verdict at
+  // run time (it throws with the unresolved list rather than proceeding on a partial batch).
+  return (Array.isArray(artifact?.per_item) ? artifact.per_item : []).some(
+    (e) => MINTED_OUTCOME_VALUES.includes(e?.outcome) && typeof e?.id === "string" && e.id.length > 0,
+  );
 }
 
 /**

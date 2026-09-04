@@ -192,7 +192,7 @@ test("hasRecoverableMintedIds: minted > 0 with real item ids in per_item — tru
   assert.equal(hasRecoverableMintedIds(artifact), true);
 });
 
-test("hasRecoverableMintedIds: minted > 0 but per_item has NO item_id anywhere (mint-run-001's own shape) — false", () => {
+test("hasRecoverableMintedIds: minted > 0, no item_id, but per_item carries a resolvable key (mint-run-001's own shape) — true (LEGACY-2: the resolver decides at run time)", () => {
   const artifact = {
     metrics: { minted: 6 },
     per_item: [
@@ -200,6 +200,11 @@ test("hasRecoverableMintedIds: minted > 0 but per_item has NO item_id anywhere (
       { id: "32009L0123", outcome: "minted", verdict: "..." },
     ],
   };
+  assert.equal(hasRecoverableMintedIds(artifact), true);
+});
+
+test("hasRecoverableMintedIds: minted > 0 with neither item_id nor any per_item key — false", () => {
+  const artifact = { metrics: { minted: 2 }, per_item: [{ outcome: "minted" }, { outcome: "minted", id: "" }] };
   assert.equal(hasRecoverableMintedIds(artifact), false);
 });
 
@@ -536,10 +541,27 @@ const STALE = (runId, minted = 3) => ({
 const DRY = (runId) => ({ run_id: runId, metrics: { attempted: 3, valid: 0, invalid: 3 } }); // minted absent
 // mint-run-001/mint-run-005's own shape: metrics.minted > 0 but no per_item entry carries an item_id at
 // all (pre-item_id-field schema) — hasRecoverableMintedIds is false for these, unlike DRY (minted absent).
+// LEGACY-2 (2026-09-04): "unrecoverable" now means NO key of any kind — an entry carrying per_item.id (the
+// CELEX/canonical key mint-run-001/005 record) is resolvable by resolveMintedItemIds at run time and IS
+// selected by --backlog; see KEYED_LEGACY below.
 const UNRECOVERABLE = (runId, minted = 6) => ({
   run_id: runId,
   metrics: { minted },
-  per_item: Array.from({ length: minted }, (_, i) => ({ id: `celex-${i}`, outcome: "minted" })),
+  per_item: Array.from({ length: minted }, () => ({ outcome: "minted", verdict: "..." })),
+});
+const KEYED_LEGACY = (runId, minted = 6) => ({
+  run_id: runId,
+  metrics: { minted },
+  per_item: Array.from({ length: minted }, (_, i) => ({ id: `3200${i}R0001`, outcome: "minted" })),
+});
+
+test("selectBacklogArtifacts: a keyed legacy artifact (per_item.id, no item_id) IS selectable — the resolver decides at run time (LEGACY-2)", () => {
+  const r = selectBacklogArtifacts(
+    [withStartedAt(KEYED_LEGACY("mint-run-001", 6), "2026-09-01T00:00:00Z"), withStartedAt(STALE("mint-run-017", 5), "2026-09-03T00:00:00Z")],
+    { maxArtifacts: 2 },
+  );
+  assert.deepEqual(r.selected.map((s) => s.runId), ["mint-run-001", "mint-run-017"]);
+  assert.equal(r.unrecoverable.length, 0);
 });
 
 test("checkAllSlicesConnected: no artifacts at all — never blocks", () => {
