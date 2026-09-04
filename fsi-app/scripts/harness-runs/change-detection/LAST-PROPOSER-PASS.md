@@ -1,8 +1,77 @@
 # Last proposer pass — change-detection
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `change-detection` now has **four** artifacts
-(`change-detection-run-001` … `change-detection-run-004`); F28's rule (d) requires this file to name the
-latest verbatim: **change-detection-run-004**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `change-detection` now has **five** artifacts
+(`change-detection-run-001` … `change-detection-run-005`); F28's rule (d) requires this file to name the
+latest verbatim: **change-detection-run-005**.
+
+## Pass of 2026-09-04 (lane PROPOSER-3 — change-detection-run-005: the first dispatch under CD-GATE's landed gate-reading code, discharging its own `PENDING-RUN.md`)
+
+**Artifact read:** change-detection-run-005 (dry, Actions run `33825967861` per this branch's own commit
+message `f79c6d36`, 2026-09-04T01:30:59.590Z, `harness_version sha256:fcb23ec75e03c512`, `check_limit 10`,
+`reconcile_batch 200`, `drain_limit 5`).
+
+**Full traces read:** `traces/change-detection-run-005.result.json`, byte-diffed directly against
+`traces/change-detection-run-004.result.json` (the prior pass's own baseline, itself byte-identical to
+run-003's).
+
+**What the diff shows [CONFIRMED, read from both trace files directly, `diff` run byte-for-byte]:** the
+two traces are NOT identical, unlike run-003 vs run-004. run-004 (apply, old pre-CD-GATE hash) carries
+`"mode": "apply"`, `check.skipped: false`, an HTTP-200 route response body
+(`"Scraping is off (cadence 'off' or emergency stop); worker exiting"`, `checked: 0` etc.) and a
+`verifiedByRead` block. run-005 (dry, new hash) carries `"mode": "dry"`, `check.skipped: true`, a
+`reason` string ("dry mode never calls a route that writes..."), and — new fields not present in run-004
+at all — a `gate` object (`cadence: "off"`, `open: false`, `reason: "cadence_off"`, a `detail` string
+naming ADR-015 §3), `dueCount: 959`, and a 10-row `dueSample`; the reconcile block gained `dryRun: true`
+and the drain block's shape changed from `result.items/drained/approved/rejected/notDrained` to
+`dryRows: []` / `overflow: 0`. This is expected mode difference (dry vs apply), not itself a defect.
+
+**Whether the new per_item gate rows and metrics appear as designed [CONFIRMED against
+`scripts/turns/run-change-detection.mjs`'s own `shapeRunOutput`, read directly, lines ~241-330]:** yes,
+for the parts a DRY run exercises. The artifact's `per_item[0]` is `{id: "scrape-gate", outcome:
+"gate_closed", verdict: "scrape gate CLOSED (cadence_off) ..."}` and `per_item[1]` is `{id:
+"check-sources", outcome: "skipped", verdict: "check skipped (dry mode never calls a route...); 959
+source(s) due... but 0 checkable while the gate is closed (cadence_off) (sample of 10, capped at
+--check-limit=10)"}`, followed by 10 `due:<id>` rows — exactly the shape `shapeRunOutput`'s `gate`/`check`
+branches build when `check.skipped` is true. `metrics.scrape_gate` = `{open: false, reason: "cadence_off",
+cadence: "off", start_date: null, emergency_paused: false}` and `metrics.sources_checkable: 0` — matching
+the source's own formula (`check.skipped ? (gate ? (gate.open ? check.dueCount : 0) : null) : null`,
+line ~370) exactly, and matching CD-GATE's own prediction (`scrape_gate cadence_off, sources_checkable
+0`) verbatim. **One precise qualifier, from reading the source, not inferred:** the `"gate_closed_at_route"`
+classification — the label CD-GATE's fix exists specifically to correct run-003/004's mis-classified
+`"checked"` outcome — is assigned only in the `else` branch of `shapeRunOutput` (`check.skipped === false`,
+i.e. an APPLY run that actually calls the route; source line 281: `outcome: !check.ok ? "route_error" :
+exitedAtGate ? "gate_closed_at_route" : "checked"`). Because run-005 is DRY, `check.skipped` is `true`,
+so that branch — and the `"gate_closed_at_route"` label itself — is never reached by this run. run-005
+therefore confirms the new gate-read fields/metrics exist and read correctly, but does NOT itself test
+whether the mis-classification CD-GATE's `PENDING-RUN.md` names as its motivating defect is actually fixed
+— that requires an APPLY run under this same hash, which has not yet been dispatched.
+
+**`PENDING-RUN.md` status — discharged, per F28 rule (c)'s reverse-audit.** **[CONFIRMED]**
+`change-detection-run-005.json`'s `harness_version` is `sha256:fcb23ec75e03c512`; this pass independently
+re-hashed the CURRENT tree's change-detection `GOVERNING_FILES`
+(`scripts/turns/run-change-detection.mjs`, `src/lib/sources/reconcile.ts`,
+`src/lib/intake/run-intake-cycle.ts`, via `hashHarnessVersion` run directly) and got the identical
+`sha256:fcb23ec75e03c512` — an exact match. `scripts/harness-runs/change-detection/PENDING-RUN.md` no
+longer exists on disk (directory listed directly — confirmed absent), consistent with the prior pass's own
+statement that the marker "is discharged only by a future `change-detection-run-005` (or later) whose own
+`harness_version` reads `sha256:fcb23ec75e03c512`" — that is exactly what happened; the deletion is the
+correct discharge, not an omission.
+
+**Proposal:** none warranted beyond what CD-GATE's own (now-discharged) `PENDING-RUN.md` already named as
+the pending work. The next dispatch this family needs is an APPLY run under `sha256:fcb23ec75e03c512` —
+the run that will actually exercise the `"gate_closed_at_route"` branch and prove (or disprove) that the
+fix corrects what run-003/004 mis-reported as `"checked"`. That is not this lane's call to dispatch (no
+Actions dispatch access from this lane), and `scrape_cadence` staying `'off'` (ADR-015 §3, the operator's
+word only) is a standing spend constraint, not a defect — an apply run under the new hash while cadence
+stays off would show `sources_checked: 0` exactly as run-005 does, still without exercising
+`gate_closed_at_route` (that branch fires on the ROUTE's own gate exit, which an apply call does trigger
+even with cadence off — see `check.ok && routeExitedAtGate(check.body)`, unlike dry mode which never calls
+the route at all). So an apply dispatch, not a cadence flip, is what closes this open verification, and it
+does not require spend beyond what run-003/004 already spent on the pre-fix code.
+
+**Family gates status:** this landing adds one run artifact (change-detection-run-005) and this
+attestation only; no governing-file change from this lane (CD-GATE already landed the hash this run
+carries, before this lane's dispatch).
 
 ## Pass of 2026-09-03 (lane ARTIFACTS, landing runs 002–004 from three unlanded Actions branches)
 
