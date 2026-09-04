@@ -37,7 +37,14 @@ const CODE_EXTENSIONS = ['.mjs', '.ts', '.tsx', '.js', '.json', '.yml', '.yaml',
 //                          they cannot be runtime-resolved. Exempted 2026-07-11 (Wave-α Track E) so
 //                          editing the file — e.g. removing dead grants — doesn't trip on pre-existing
 //                          legitimate grants. settings.json (shared, checked-in) is NOT exempt.
-const SKIP_PATH_FRAGMENTS = ['node_modules/', '.git/', 'fsi-app/scripts/tmp/', '.claude/settings.local.json'];
+// - fsi-app/scripts/_snapshots/  Rule-015 reversibility evidence and population-turn traces: verbatim
+//                          CAPTURED THIRD-PARTY CONTENT (census-rows*.json carry `captured_text` /
+//                          `result_content`), never code. The first false positive was PR #562
+//                          (2026-09-04): the EU Publications Office's own OJ fmx.xml metadata for
+//                          L 2023/2463 carries a Windows path of ITS author's machine, and the grounding
+//                          pool must stay byte-exact (ADR-016; `validate_item_provenance` matches spans
+//                          verbatim), so the content cannot be rewritten to satisfy a code rule.
+const SKIP_PATH_FRAGMENTS = ['node_modules/', '.git/', 'fsi-app/scripts/tmp/', '.claude/settings.local.json', 'fsi-app/scripts/_snapshots/'];
 
 function isCodeFile(path) {
   const lower = path.toLowerCase();

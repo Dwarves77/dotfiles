@@ -224,35 +224,48 @@ full validation result (pass or fail) for the record.
 
 ## 8. MANDATORY, post-apply — the flywheel
 
-Once the coordinator has applied a batch's `apply-ready.json` (new `intelligence_items` rows exist),
-run these steps IN ORDER before the batch is considered closed. Skipping straight from "applied" to "next
-batch" leaves newly-minted items with no graph edges and no forward-obligation events — invisible to
-every consumer that reads `item_cross_references` or `item_forward_events` rather than the raw item
-table — which is exactly the "populated, visible and wrong is worse than empty" failure mode §0 warns
-against, one layer downstream of minting itself.
+`scripts/turns/run-population-flywheel.mjs` runs this section for you, automatically, every time
+`.github/workflows/population-turn.yml` applies a batch — it is a step in that job, not a follow-up a
+person schedules. THE DEFECT this closes (lane TANDEM, 2026-09-04, [CONFIRMED]): this runbook used to
+describe steps 1-3 below as a coordinator's own hand-run pass, and nothing in the runtime ever actually
+triggered them — population runs #15-#20 (2026-09-03/04, ~650 items, mint-run-017..022) were applied with
+every one of these steps skipped, leaving every minted item with zero `item_cross_references`, zero
+`item_forward_events`, no obligations, no tags, no signals. Per the operator's own ruling that day,
+"there is no thing within this entire build that works on its own ever" — a runtime that ends without
+triggering its downstream is a defect in the runtime, not a note for a coordinator. The coordinator's job
+now is to read the outcomes §9 records, not to run these steps by hand:
 
-1. **Discovery** — run the connection-discovery pass (`src/lib/connections/discover.mjs` /
-   `scripts/connections/backfill-edges.mjs`, migration 252's `basis`/`score` columns) over the newly
-   minted items so they get real, grounded `item_cross_references` edges where a genuine connection
-   exists. A minted item with zero edges after this step is not necessarily wrong (some items are
-   genuinely novel/unconnected), but it must be COUNTED, not assumed — see `isolated_items` below.
-2. **Forward-event extraction** — run `scripts/forward-events/run-extraction.mjs --input <corpus of the
-   newly minted items' claims/sections> --execute` (Wave MH-5's canonical forward-events entry point;
-   see that family's own PROTOCOL.md) so any dated obligation language the new items carry becomes
-   queryable `item_forward_events` rows rather than dead prose in `full_brief`.
-3. **Recluster** — re-run whatever community/topic clustering pass this vault's build plan currently
-   names for `intelligence_items` (see the vault's own producer/cluster documentation — not owned by this
-   runbook) so the newly minted items are grouped with their real neighbors rather than sitting
-   unclustered until the next scheduled recluster.
+1. **Discovery** — `scripts/connections/discover-for-items.mjs`, scoped to exactly this batch's minted
+   item ids (extracted from the just-applied `mint-run-NNN.json`'s `per_item`), writes real, grounded
+   `item_cross_references` edges (guarded `write-edges.mjs`, `origin='provenance_discovery'`) where a
+   genuine connection exists. A minted item with zero edges after this step is not necessarily wrong
+   (some items are genuinely novel/unconnected), but it must be COUNTED, not assumed — see
+   `isolated_items` below.
+2. **Forward-event extraction** — `scripts/turns/export-corpus-for-extraction.mjs` +
+   `scripts/forward-events/run-extraction.mjs --execute` + `scripts/turns/apply-extraction-output.mjs
+   --execute`, scoped to the same batch, turn any dated obligation language the new items carry into
+   queryable `item_forward_events` rows rather than dead prose in `full_brief`, and derive obligations
+   (`scripts/maintenance/derive-obligations.mjs`) and tag proposals + ratification
+   (`scripts/maintenance/tag-proposals.mjs` / `tag-ratification.mjs --arg auto`) from what discovery and
+   extraction just found.
+3. **Recluster** — `scripts/connections/analyze-corpus.mjs --signals` (whole-corpus, the same scope
+   `corpus-turn.yml` uses) so the newly minted items are grouped with their real neighbors rather than
+   sitting unclustered until the next scheduled turn.
+
+See `scripts/turns/run-population-flywheel.mjs`'s own header for the exact step order, dry/apply
+behavior, and how it reuses each of the scripts named above (child process or exported `main()` — it
+never re-implements their logic) instead of hand-running this section.
 
 ## 9. Corpus-outcome enrichment (`--outcomes`)
 
-Steps 1-2 above happen in a DIFFERENT turn than the mint batch itself — `run-mint-batch.mjs` has no live
-DB credentials in this environment and cannot compute edge counts or extraction counts itself. Once the
-coordinator's discovery + forward-event passes have run (§8 steps 1-2), feed their outcome BACK into the
-mint run's own artifact with a follow-up enrichment invocation, so a proposer pass reading
-`mint-run-NNN.json` later sees the full picture in one place instead of having to cross-reference a
-separate discovery/extraction report:
+`run-population-flywheel.mjs` computes these three metrics itself, from the live tables, once §8's steps
+have run for this batch, and writes them back into the mint run's own artifact with
+`run-mint-batch.mjs --outcomes` as its own last step — this is not a separate, hand-run enrichment pass
+either. `.github/workflows/population-turn.yml` refuses to start a NEW batch (THE GATE,
+`run-population-flywheel.mjs --check-gate`) while a PRIOR batch's `mint-run-NNN.json` is missing these
+keys, so an unrecorded batch blocks the next one rather than silently accumulating. A coordinator reading
+`mint-run-NNN.json` after a population-turn run sees the full picture in one place — minted, connected,
+and recorded — without cross-referencing a separate discovery/extraction report:
 
 ```
 node scripts/mint/run-mint-batch.mjs --outcomes path/to/outcomes.json

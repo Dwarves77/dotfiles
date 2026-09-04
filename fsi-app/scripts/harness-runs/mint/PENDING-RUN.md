@@ -48,14 +48,52 @@ logic is unmodified — the investigation confirmed it is already correct per it
 only its test file gained coverage pinning the http/https non-normalization finding, which is not a
 governing-file change.
 
-**harness_version at write time:** `sha256:8712c28763b44ff2`
+**harness_version at write time (superseded below — see "What changed (2)"):** `sha256:8712c28763b44ff2`
 
-**The planned run that supersedes this marker:** the next `population-turn` dispatch (dry, then apply)
-under this landed code — its `mint-batch-report.json` will show rows `429c85d2` and `a980a0b9` (and any
+**The planned run that superseded THAT marker:** the next `population-turn` dispatch (dry, then apply)
+under that landed code — its `mint-batch-report.json` would show rows `429c85d2` and `a980a0b9` (and any
 sibling UK-SI row carrying the identical EUR-Lex-website boilerplate) clearing criterion 2, with
 `jurisdictional_scope` recorded as GAP rather than a bare-domain-cited FACT. The coordinator's
 `scripts/mint/reopen-validation-holds.mjs --reason-contains ungrounded_url` is the re-admission path for
 the two rows already held from runs #17/#18, per MINT-RUNBOOK.md §11's "Validation-failed hold-back"
-section — this lane does not run it (no DB writes from a mint lane). Per F28's reverse-audit, this marker
-is deleted the moment that artifact lands and its `harness_version` matches the hash above (or re-pinned
-to a new hash, per rule (c), if a governing file changes again before that run lands).
+section. That run has not yet landed, so this marker is superseded (rule (c): a new governing-file edit
+below moved the hash again) rather than deleted — the next `population-turn` run under the CURRENT hash
+covers both this entry and the one below.
+
+---
+
+**What changed (2):** lane TANDEM (2026-09-04), closing THE DEFECT [CONFIRMED]:
+`.github/workflows/population-turn.yml` used to end after `apply-mint-batch.mjs` plus an unconditional
+`propose-tags.mjs --dry` preview — `MINT-RUNBOOK.md` §8 ("MANDATORY, post-apply — the flywheel":
+discovery, forward-event extraction, recluster, IN ORDER before a batch is closed) and §9 (`--outcomes`
+enrichment: `edges_discovered`, `forward_events_extracted`, `isolated_items` written back into
+`mint-run-NNN.json`) were documented as a separate, hand-run coordinator pass that nothing in the runtime
+ever triggered. Population runs #15-#20 (2026-09-03/04, ~650 items, mint-run-017..022) were applied with
+no flywheel pass and no outcomes: every one of those items carries zero `item_cross_references`, zero
+`item_forward_events`, no obligations, no tags, no signals. Operator ruling (2026-09-04), verbatim:
+"there is no thing within this entire build that works on its own ever... Everything works together,
+that's the purpose of the flywheel and the harness." A runtime that ends without triggering its
+downstream is a defect in the runtime, not a note for a coordinator.
+
+Only `scripts/mint/MINT-RUNBOOK.md` moved among this family's `GOVERNING_FILES` (§8/§9 rewritten to state
+the flywheel is run by `.github/workflows/population-turn.yml` itself via the new
+`scripts/turns/run-population-flywheel.mjs`, and that the coordinator's job on §8/§9 is now to read the
+outcomes rather than hand-run discovery/extraction/tagging). `scripts/mint/validate-mint-payload.mjs`,
+`payload-schema.json`, `item-type-required-slots.json`, and the three `scripts/mint/lib/*.mjs` files are
+UNCHANGED by this lane — this lane's write set explicitly excluded touching any of them.
+`run-population-flywheel.mjs` itself is a NEW file under `scripts/turns/`, not a mint `GOVERNING_FILES`
+entry, so it does not affect this hash; it reuses (imports/invokes, never re-implements) the mint,
+connections, forward-events, and maintenance families' own existing scripts and exported functions.
+`run-mint-batch.mjs` was not modified either — its existing `--outcomes` path (§9) already had no
+dry/preview mode (it always writes), so the new driver simply never calls it in dry mode; no new flag was
+needed.
+
+**harness_version at write time:** `sha256:bff28600696d162f`
+
+**The planned run that supersedes this marker:** the next `population-turn` dispatch (dry, then apply)
+under this landed code — a `dry` dispatch exercises the full flywheel plan without writing (see
+`run-population-flywheel.mjs --mode dry`'s own step list), and the following `apply` dispatch's
+`mint-run-NNN.json` will carry a populated `metrics` block with all three §9 keys, closing THE DEFECT for
+that batch. Per F28's reverse-audit, this marker is deleted the moment that artifact lands and its
+`harness_version` matches the hash above (or re-pinned to a new hash, per rule (c), if a governing file
+changes again before that run lands).
