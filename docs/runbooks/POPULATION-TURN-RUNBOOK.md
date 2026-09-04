@@ -121,6 +121,8 @@ artifacts, oldest first):**
   auto-connectable artifacts remain, and separately names mint-run-001/005 as needing manual resolution
   regardless of how many `--backlog` dispatches have run.
 
+**Transient network failure resilience (lane DB-RETRY, 2026-09-04):** Every guarded write operation in `fsi-app/scripts/lib/db.mjs` now automatically retries transient network failures (fetch timeouts, connection resets, temporary service unavailability — 502/503/504 status) up to three times with exponential backoff. Prior-state snapshots and the writes themselves are both retried where idempotent; only the read side of inserts is retried. PostgREST errors and statement timeouts (handled by the existing chunk-halving logic) are never retried. This eliminates silent backlog failures from ephemeral network hiccups, such as the 2026-09-04 failure where `analyze-corpus` lost its prior-state read mid-flywheel and cascaded the artifact write. Retry logs emit to stderr so any future network-related failure leaves a clear trace of retry attempts.
+
 ## How to dispatch a normal batch
 
 Actions tab → **Population turn** → Run workflow. Inputs: `mode` (`dry`/`apply`), `limit` (payloads per
