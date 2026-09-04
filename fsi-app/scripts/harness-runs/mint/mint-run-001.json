@@ -200,7 +200,11 @@
     "validator_final_pass_rate": "6/6 = 100%",
     "live_verify_first_pass_rate": "4/6 = 66.7% — independent verbatim (case-insensitive, whitespace-normalized) cross-check of every FACT source_span against the archived source-<celex>.txt file; 32019R1242 (× vs x) and 32023R0956 (curly vs straight quotes) failed this check on first pass",
     "live_verify_final_rate": "6/6 = 100% after the two transcription bugs were fixed",
-    "candidate_pool_bottleneck": "only 8 of the 989-row candidate pool were registered-but-unminted system-wide (66 of 719 active EUR-Lex sources rows lack a minted item; only 8 of those fall inside this pool) — source registration, not fetch transport, is this batch's real throughput constraint (BATCH-001-REPORT-v2.md §7)"
+    "candidate_pool_bottleneck": "only 8 of the 989-row candidate pool were registered-but-unminted system-wide (66 of 719 active EUR-Lex sources rows lack a minted item; only 8 of those fall inside this pool) — source registration, not fetch transport, is this batch's real throughput constraint (BATCH-001-REPORT-v2.md §7)",
+    "edges_discovered": 80,
+    "forward_events_extracted": 40,
+    "isolated_items": 0,
+    "ids_resolved_by_key": 6
   },
   "defects_found": [
     {

@@ -73,7 +73,11 @@
       "citations": 4,
       "open_dq_flags_delta": 0
     },
-    "census_rows_reconciled": 6
+    "census_rows_reconciled": 6,
+    "edges_discovered": 28,
+    "forward_events_extracted": 11,
+    "isolated_items": 1,
+    "ids_resolved_by_key": 0
   },
   "defects_found": [
     {

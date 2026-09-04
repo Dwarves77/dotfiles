@@ -86,7 +86,10 @@ test("planItemRetext: an existing row whose fresh text differs is a retext targe
 });
 
 test("planItemRetext: a row whose fresh text is UNCHANGED is never a retext target", () => {
-  const clean = "By 1 September 2030, Member States shall inform the Commission of the application of this Regulation";
+  // Terminal period required (lane FWD-TEXT-2): normalizeObligationText now honestly
+  // appends '…' to any window with no terminal punctuation, so an unterminated fixture
+  // here would no longer round-trip unchanged -- give it a real sentence end instead.
+  const clean = "By 1 September 2030, Member States shall inform the Commission of the application of this Regulation.";
   const existingRows = [{ id: "row-1", event_date: "2030-09-01", event_kind: "compliance_deadline", obligation_text: clean, source_kind: "claim", source_claim_id: "c1", source_section_id: null }];
   const { retextTargets } = planItemRetext({
     itemId: "item-1",
@@ -250,10 +253,12 @@ test("main apply: 0 targets writes nothing and says so", async () => {
   const deps = fakeDeps({
     itemsById: {
       "item-1": {
+        // Terminal period required (lane FWD-TEXT-2): see comment on the identically-shaped
+        // fixture above -- an unterminated window no longer round-trips unchanged.
         existingRows: [
-          { id: "row-1", event_date: "2030-09-01", event_kind: "compliance_deadline", obligation_text: "By 1 September 2030, Member States shall inform the Commission of the application of this Regulation", source_kind: "claim", source_claim_id: "c1", source_section_id: null },
+          { id: "row-1", event_date: "2030-09-01", event_kind: "compliance_deadline", obligation_text: "By 1 September 2030, Member States shall inform the Commission of the application of this Regulation.", source_kind: "claim", source_claim_id: "c1", source_section_id: null },
         ],
-        claimRows: [{ id: "c1", claim_kind: "FACT", claim_text: "By 1 September 2030, Member States shall inform the Commission of the application of this Regulation", source_span: "By 1 September 2030, Member States shall inform the Commission of the application of this Regulation" }],
+        claimRows: [{ id: "c1", claim_kind: "FACT", claim_text: "By 1 September 2030, Member States shall inform the Commission of the application of this Regulation.", source_span: "By 1 September 2030, Member States shall inform the Commission of the application of this Regulation." }],
       },
     },
   });

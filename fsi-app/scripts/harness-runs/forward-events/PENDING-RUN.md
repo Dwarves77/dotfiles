@@ -66,7 +66,47 @@ path (see `docs/runbooks/MAINTENANCE-RUNBOOK.md` §12). It is not itself a `GOVE
 family (it is a consumer of the fixed extractor, not a producer of what a harness run measures), so it
 does not move this hash on its own.
 
-**harness_version at write time:** `sha256:cefcc8cae82aff7d`
+**Lane FWD-TEXT-2 (2026-09-04), superseding the above without contradicting it:** measured the residue of
+all 654 `retext_targets[].after` texts in `scripts/_snapshots/retext32.json` (the dry-run summary of
+Maintenance #32, gitignored evidence, not part of this family's `GOVERNING_FILES`) against the lane
+FWD-TEXT `normalizeObligationText` above: **316 lowercase-start, 149 non-letter-start, 65 star-residue, 11
+bare (unbolded) label, 11 pipe/table-cell, 1 URL-tail [CONFIRMED, `_snapshots/retext32.json`]; 46 ending in
+`;`, 161 with no terminal punctuation at all [CONFIRMED]**. A 30-row live-Supabase sample (project
+`kwrsbpiseruzbfwjpvsp`, read-only SELECT) additionally surfaced a genuine **non-idempotence bug**
+[CONFIRMED]: `normalizeObligationText(normalizeObligationText(x)) !== normalizeObligationText(x)` for at
+least one stored row (id `1a193e59-…`) — the leading URL-tail stripper matched on the SECOND pass only,
+because an `"…"`-prefixed, markdown-heading-adjacent run of non-whitespace characters containing `/` looked
+like a URL tail only once the heading marker itself had already been stripped on pass one.
+
+`EXTRACTOR_VERSION` bumped `fe1-2026-09-04.1` → `fe1-2026-09-04.2`. `clauseStart` rewritten to snap to a
+genuine SENTENCE start (`.`/`!`/`?` followed by whitespace then an uppercase letter/quote/digit — never a
+bare `;`/`:`), a paragraph break (blank line), or a markdown list/heading-item start; `DEFAULT_MAX_BEFORE`
+raised `60` → `300` bytes (measured: the true sentence start for the 654-row corpus routinely sits well
+past the old 60-byte cap). When no genuine boundary exists within the cap, falls back to the nearest `;`
+then a bare whitespace boundary and marks the result an honest fragment — `normalizeObligationText` then
+prefixes `"…"` (never capitalizes, never invents words). Trailing edge: `clauseAround` no longer stops at
+`;`; `normalizeObligationText` appends `"…"` whenever the window has no terminal `.`/`!`/`?`/quote/`"…"`.
+New exported `selectDateCell(text, dateSpan)` distinguishes a genuine multi-column date table (short
+date-only cell → use the cell AFTER it) from a single stray table-pipe artifact (long, already-prose
+date-bearing cell → keep it, drop the rest), with a bare-URL-avoiding longest-cell fallback.
+`normalizeObligationText` now runs its strip rules (`selectDateCell`, bold-label stripping ANYWHERE in the
+text via `BOLD_LABEL_RE`/`**`/`*`, bare `FACT:`/`GAP:`/`MONITORING:`/`ANALYSIS:` labels via
+`LABEL_UNIT_RE`, leading citation-key token, leading/bare URL tails, whitespace collapse) as a **fixed-point
+loop** (max 6 passes, stop when a pass changes nothing) specifically to close the non-idempotence bug above,
+verified idempotent over all 654 corpus rows [CONFIRMED, `extract-forward-events.test.mjs`]. Post-fix
+property sweep over all 654 `before` texts [CONFIRMED]: zero non-letter starts (other than quote/digit/`(`/
+`"…"`), zero `*`, zero `' | '`/leading-pipe, zero bare `http`, zero missing-terminal-punctuation — the only
+remaining lowercase starts are the honest `"…"`-prefixed fragments. `scripts/maintenance/forward-events-
+retext.mjs` gained an exported `classifyAfterResidue(text)` (parallel to, and independent of, the existing
+`classifyDefects` which classifies `before` text and is unchanged) wired into `planItemRetext`'s
+`retext_targets[].after_defect_classes` and `main()`'s `summary.counts.by_after_defect_class`, so the dry
+report now proves the fix against itself on every future run. `sentenceStart` (the separate deontic-window
+helper) and the `source_span`/`assertVerbatim` verbatim law are both completely unchanged.
+
+**What changed (also on this tree):** `PROTOCOL.md` §5c documents `metrics.dedupe_dropped` (DEDUPE-PLUMB,
+same train) — the combined hash below covers both the FWD-TEXT-2 extractor and that paragraph.
+
+**harness_version at write time:** `sha256:cb4898d073a80ab9`
 
 **The planned run that will supersede this marker:** the next `scripts/forward-events/run-extraction.mjs`
 dispatch under this landed code (or the coordinator's next `population-turn` flywheel pass, which calls

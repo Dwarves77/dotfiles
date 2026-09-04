@@ -108,12 +108,18 @@ export function runExtraction(items) {
   const byPrecision = {};
   const bySkipReason = {};
   let itemsWithEvents = 0;
+  // DEDUPE-PLUMB (2026-09-04, PROPOSER-5 finding): the extractor has returned `counts.dedupe_dropped` /
+  // `counts.dedupe_dropped_detail` since FWD-TEXT (extractor fe1-2026-09-04.1), but this runner destructured
+  // only { events, skipped } and the drops never reached the artifact (runs 007-009 carry no counts). Every
+  // drop is recorded here per item and summed into metrics, so the next proposer pass can read them.
+  const dedupeDropped = [];
 
   items.forEach((item, index) => {
     const id = String(itemId(item, index));
     const claims = Array.isArray(item?.claims) ? item.claims : [];
     const sections = Array.isArray(item?.sections) ? item.sections : [];
-    const { events, skipped } = extractForwardEvents({ claims, sections });
+    const { events, skipped, counts } = extractForwardEvents({ claims, sections });
+    for (const d of counts?.dedupe_dropped_detail ?? []) dedupeDropped.push({ item_id: id, ...d });
 
     if (events.length > 0) itemsWithEvents += 1;
     for (const e of events) {
@@ -147,10 +153,12 @@ export function runExtraction(items) {
       by_confidence: byConfidence,
       by_precision: byPrecision,
       by_skip_reason: bySkipReason,
+      dedupe_dropped: dedupeDropped.length,
       extractor_version: EXTRACTOR_VERSION,
     },
     allEvents,
     allSkips,
+    dedupeDropped,
   };
 }
 

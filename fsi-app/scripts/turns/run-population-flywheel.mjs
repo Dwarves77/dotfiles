@@ -465,6 +465,17 @@ export function disambiguateByArtifactTime(rows, startedAt) {
   return cands.map((r) => r.id);
 }
 
+/** LEGACY-4: a legacy artifact's per_item.id normalised to the canonical_instrument_key form the DB stores
+ *  ("CELEX:32014R0788" → "32014R0788"; a bare key passes through). Pure. */
+export function legacyKeyOf(id) {
+  return String(id ?? "").replace(/^CELEX:/i, "").trim();
+}
+
+/** LEGACY-4: whether a per_item.id is an intelligence_items uuid rather than an instrument key. Pure. */
+export function isUuidShaped(id) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id ?? ""));
+}
+
 export async function resolveMintedItemIds(artifact, db) {
   const perItem = Array.isArray(artifact?.per_item) ? artifact.per_item : [];
   const resolvedIds = [];
@@ -472,15 +483,30 @@ export async function resolveMintedItemIds(artifact, db) {
   const unresolved = [];
   const seen = new Set();
 
-  // Pre-fetch all canonical_instrument_keys (via per_item.id field for CELEX) to batch queries
+  // Pre-fetch all canonical_instrument_keys (via per_item.id field for CELEX) to batch queries.
+  // LEGACY-4 (2026-09-04): the legacy artifacts carry `id` in three shapes [CONFIRMED by reading every
+  // mint-run-*.json]: a bare CELEX key (001-003: "32015R0757"), a scheme-prefixed key (005:
+  // "CELEX:32014R0788"), and a bare intelligence_items uuid (008/009/010/015 and singletons in 011-021).
+  // Backlog apply #28 refused mint-run-005 on "via no fields (0 matches)" because the prefixed form was
+  // looked up verbatim; the uuid form would have refused next for the same reason. Keys are normalised
+  // through legacyKeyOf() and uuid-shaped ids resolve directly against intelligence_items.id.
   const celexKeysToResolve = new Set();
+  const uuidIdsToResolve = new Set();
   for (const entry of perItem) {
     const isMinted = MINTED_OUTCOME_VALUES.includes(entry?.outcome);
     if (!isMinted) continue;
     if (entry?.item_id) continue; // modern path, no resolution needed
-    // Resolver 1: per_item.id as canonical_instrument_key (pre-item_id CELEX artifacts)
     if (typeof entry?.id === "string" && entry.id.length > 0) {
-      celexKeysToResolve.add(entry.id);
+      if (isUuidShaped(entry.id)) uuidIdsToResolve.add(entry.id);
+      else celexKeysToResolve.add(legacyKeyOf(entry.id));
+    }
+  }
+
+  const uuidRows = new Map(); // intelligence_items.id → row
+  if (uuidIdsToResolve.size > 0) {
+    for (const chunk of chunkArray(Array.from(uuidIdsToResolve), 100)) {
+      const rows = await db.readAll("intelligence_items", "id", { match: (q) => q.in("id", chunk) });
+      for (const row of rows) uuidRows.set(row.id, row);
     }
   }
 
@@ -517,9 +543,24 @@ export async function resolveMintedItemIds(artifact, db) {
     // Pre-item_id path: try resolvers in priority order
     let resolved = false;
 
-    // Resolver 1: per_item.id as canonical_instrument_key (CELEX for mint-run-001/005)
-    if (typeof entry?.id === "string" && entry.id.length > 0) {
-      const matches = disambiguateByArtifactTime(celexMap.get(entry.id) ?? [], artifact?.started_at);
+    // Resolver 0 (LEGACY-4): per_item.id is itself an intelligence_items uuid (mint-run-008/009/010/015).
+    if (typeof entry?.id === "string" && isUuidShaped(entry.id)) {
+      if (uuidRows.has(entry.id)) {
+        if (!seen.has(entry.id)) {
+          seen.add(entry.id);
+          resolvedIds.push(entry.id);
+          resolvedByKey.push("id");
+        }
+        resolved = true;
+      } else {
+        unresolved.push({ entry, attemptedKey: "id", matchCount: 0 });
+        resolved = true; // tried: the row is gone (archived rows still match by id, so this is a deletion)
+      }
+    }
+
+    // Resolver 1: per_item.id as canonical_instrument_key (CELEX for mint-run-001/005; "CELEX:" prefix stripped)
+    if (!resolved && typeof entry?.id === "string" && entry.id.length > 0) {
+      const matches = disambiguateByArtifactTime(celexMap.get(legacyKeyOf(entry.id)) ?? [], artifact?.started_at);
       if (matches.length === 1) {
         const id = matches[0];
         if (!seen.has(id)) {

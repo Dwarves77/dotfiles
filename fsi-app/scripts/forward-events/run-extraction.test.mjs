@@ -318,3 +318,22 @@ test("FORWARD_EVENTS_GOVERNING_FILES matches CONVENTION.md's / F28's forward-eve
     assert.ok(f28Src.includes(`'${f}'`), `F28's GOVERNING_FILES['forward-events'] must still list ${f}`);
   }
 });
+
+// ── DEDUPE-PLUMB (2026-09-04, PROPOSER-5 finding): the extractor's dedupe counts reach the artifact ──
+
+test("runExtraction: dedupe drops the extractor records reach metrics.dedupe_dropped and result.dedupeDropped, tagged by item", () => {
+  const text = "This Regulation shall enter into force on 1 January 2027.";
+  // The same sentence once as a FACT claim and once as section prose: FWD-TEXT's content-gated dedupe
+  // keeps the claim-backed event and records the section-backed drop.
+  const item = {
+    id: "dup",
+    claims: [{ claim_id: "dup-c1", kind: "FACT", text, span: text }],
+    sections: [{ section_id: "dup-s1", md: text }],
+  };
+  const result = runExtraction([item, itemWithOneEvent("single")]);
+  assert.equal(typeof result.metrics.dedupe_dropped, "number");
+  assert.ok(result.metrics.dedupe_dropped >= 1, `expected at least one recorded drop, got ${result.metrics.dedupe_dropped}`);
+  assert.equal(result.dedupeDropped.length, result.metrics.dedupe_dropped);
+  assert.ok(result.dedupeDropped.every((d) => d.item_id === "dup"), "every drop is tagged with its item");
+  assert.equal(result.metrics.events_emitted, 2, "one event per item survives");
+});

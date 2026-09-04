@@ -12,6 +12,9 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import {
   extractForwardEvents,
   EXTRACTOR_VERSION,
@@ -19,6 +22,7 @@ import {
   slotDatePrecision,
   finerDuePrecision,
   normalizeObligationText,
+  selectDateCell,
   sameObligationContent,
   dedupeEvents,
 } from './extract-forward-events.mjs';
@@ -762,9 +766,13 @@ describe('clauseStart / normalizeObligationText: the garbled-rendering fix', () 
     const claim = { claim_id: 'c1', kind: 'FACT', text: '[gate-a-backfill] ' + NZIA_CLAIM_SPAN, span: NZIA_CLAIM_SPAN };
     const { events } = extractForwardEvents({ claims: [claim], sections: [] });
     assert.equal(events.length, 1);
+    // lane FWD-TEXT-2, 2026-09-04: the claim.span itself ends abruptly at "public" (no terminal
+    // punctuation -- the source grounding pass truncated it there, upstream of this module). The
+    // trailing edge no longer pretends that is a complete sentence: normalizeObligationText appends an
+    // honest "…" rather than a bare, silently-incomplete stop.
     assert.equal(
       events[0].obligation_text,
-      'By 25 September 2026, and every five years thereafter, Member States shall make public'
+      'By 25 September 2026, and every five years thereafter, Member States shall make public…'
     );
     assert.ok(!events[0].obligation_text.startsWith('venues'), 'must not start mid-word');
     // source_span stays byte-exact regardless — the verbatim-span law is untouched by any of this.
@@ -803,14 +811,16 @@ describe('clauseStart / normalizeObligationText: the garbled-rendering fix', () 
     assert.equal(events[0].obligation_text, span);
   });
 
-  test('normalizeObligationText is idempotent on already-clean text (no false-positive stripping)', () => {
+  test('normalizeObligationText is idempotent on already-clean text with no false-positive stripping (lane FWD-TEXT-2: this fixture carries no terminal punctuation, so it now gets an honest "…" suffix -- see the trailing-edge rule -- but nothing else about it changes, and a second call is a true no-op)', () => {
     const clean = 'By 1 September 2030, Member States shall inform the Commission of the application of this Regulation';
-    assert.equal(normalizeObligationText(clean), clean);
+    const once = normalizeObligationText(clean);
+    assert.equal(once, clean + '…');
+    assert.equal(normalizeObligationText(once), once);
   });
 
-  test('normalizeObligationText strips a trailing stray table-pipe fragment', () => {
+  test('normalizeObligationText strips a trailing stray table-pipe fragment (lane FWD-TEXT-2: the sentence itself has no terminal punctuation in this fixture, so the honest "…" suffix still applies once the pipe cell is gone)', () => {
     const raw = 'The Commission shall publish the assessment by 1 January 2028 | NEXT STEPS';
-    assert.equal(normalizeObligationText(raw), 'The Commission shall publish the assessment by 1 January 2028');
+    assert.equal(normalizeObligationText(raw), 'The Commission shall publish the assessment by 1 January 2028…');
   });
 });
 
@@ -926,5 +936,216 @@ describe('dedupeEvents (pure helper)', () => {
     assert.equal(counts.dedupe_dropped_detail.length, 1);
     assert.equal(counts.dedupe_dropped_detail[0].source_kind, 'section');
     assert.equal(counts.dedupe_dropped_detail[0].kept_source_kind, 'claim');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// selectDateCell (pure helper) — lane FWD-TEXT-2, 2026-09-04
+// ---------------------------------------------------------------------------
+
+describe('selectDateCell (pure helper)', () => {
+  test('a short date-only cell is treated as a table COLUMN — the cell after it (the description) is kept', () => {
+    const row = 'By 2030 | Potential methanol demand at Port of Singapore to potentially exceed 1 MTPA (subject to supply chain and regulatory development) | Indicative';
+    assert.equal(
+      selectDateCell(row, '2030'),
+      'Potential methanol demand at Port of Singapore to potentially exceed 1 MTPA (subject to supply chain and regulatory development)'
+    );
+  });
+
+  test('a LONG date-bearing cell (a heading fragment | the real sentence) is kept as-is, not the cell after it (there is none)', () => {
+    const row = 'hicles (M₂, M₃, N₂, N₃) | MONITORING **FACT — deadline:** "By 29 November 2026, the Commission shall adopt" implementing acts';
+    const chosen = selectDateCell(row, '29 November 2026');
+    assert.ok(chosen.startsWith('MONITORING'));
+    assert.ok(chosen.includes('29 November 2026'));
+  });
+
+  test('a full sentence with the date inline, plus a short trailing label cell, keeps the sentence and drops the label', () => {
+    const row = 'The Commission shall publish the assessment by 1 January 2028 | NEXT STEPS';
+    assert.equal(selectDateCell(row, '1 January 2028'), 'The Commission shall publish the assessment by 1 January 2028');
+  });
+
+  test('no dateSpan supplied: falls back to this module\'s own date grammar to find the date-shaped cell', () => {
+    const row = 'By 2040 | IMO checkpoint: cut GHG emissions by at least 70%, striving for 80% | Target | MPA media release Apr 2024';
+    assert.equal(selectDateCell(row), 'IMO checkpoint: cut GHG emissions by at least 70%, striving for 80%');
+  });
+
+  test('a chosen cell that is a bare URL falls back to the single longest cell instead', () => {
+    const row = 'Regulator announcement (Tier 2) | European Commission DG TAXUD | 14 January 2026 | https://taxation-customs.example';
+    const chosen = selectDateCell(row, '14 January 2026');
+    assert.ok(!chosen.startsWith('http'));
+    assert.equal(chosen, 'Regulator announcement (Tier 2)');
+  });
+
+  test('no pipe at all: returns the text unchanged', () => {
+    assert.equal(selectDateCell('no table here', '2030'), 'no table here');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// OBLIGATION-TEXT REBUILD — corpus-wide idempotence + property tests, lane FWD-TEXT-2, 2026-09-04.
+//
+// The coordinator's own dry-run summary of Maintenance #32 (`forward-events-retext` dry, master 2f110fea
+// = FWD-TEXT's landed fe1-2026-09-04.1 code, run 33856356721) is `scripts/_snapshots/retext32.json` — 654
+// `retext_targets[]`, each `{ id, intelligence_item_id, event_date, event_kind, source_kind, before, after,
+// defect_classes }`. `_snapshots/` is gitignored scratch (CLAUDE.md standing rule 5) and is NOT part of
+// this repo's tracked tree, so these two tests self-skip (never fail) when the file is absent — e.g. a
+// fresh clone, or CI without this lane's working directory — same "diagnosable, never a false red"
+// convention CLAUDE.md standing rule 15 states for a verifier missing its credentials. Run inside THIS
+// lane's worktree (where the coordinator placed the file as evidence), both run for real against the full
+// 654 rows and print the measured counts the dispatch asked for.
+// ---------------------------------------------------------------------------
+
+const RETEXT32_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'scripts', '_snapshots', 'retext32.json');
+
+function loadRetext32Before() {
+  let raw;
+  try {
+    raw = readFileSync(RETEXT32_PATH, 'utf8');
+  } catch {
+    return null;
+  }
+  const parsed = JSON.parse(raw);
+  const before = (parsed.retext_targets ?? []).map((t) => t.before);
+  return before.length ? before : null;
+}
+
+describe('OBLIGATION-TEXT REBUILD: corpus-wide idempotence + property tests (retext32.json, 654 rows)', () => {
+  const beforeTexts = loadRetext32Before();
+
+  test('normalizeObligationText is idempotent over every row (skips if retext32.json is not present in this checkout)', (t) => {
+    if (!beforeTexts) {
+      t.skip('scripts/_snapshots/retext32.json not present in this checkout (gitignored scratch) — see this describe block\'s header');
+      return;
+    }
+    let failures = 0;
+    const examples = [];
+    for (const raw of beforeTexts) {
+      const once = normalizeObligationText(raw);
+      const twice = normalizeObligationText(once);
+      if (once !== twice) {
+        failures++;
+        if (examples.length < 3) examples.push({ once, twice });
+      }
+    }
+    if (failures > 0) console.log('idempotence failures:', failures, JSON.stringify(examples, null, 2));
+    assert.equal(failures, 0, `normalizeObligationText(normalizeObligationText(x)) !== normalizeObligationText(x) for ${failures}/${beforeTexts.length} rows`);
+  });
+
+  test('property set over every row: no bad leading char, no *, no pipe-cell, no bare URL, proper trailing punctuation or an honest ellipsis (skips if retext32.json is not present)', (t) => {
+    if (!beforeTexts) {
+      t.skip('scripts/_snapshots/retext32.json not present in this checkout (gitignored scratch) — see this describe block\'s header');
+      return;
+    }
+    let badLeading = 0;
+    let rawLowercaseStart = 0;
+    let ellipsisPrefixed = 0;
+    let hasStar = 0;
+    let hasPipeCell = 0;
+    let hasUrl = 0;
+    let badTrailing = 0;
+    const badLeadingEx = [];
+    const badTrailingEx = [];
+
+    for (const raw of beforeTexts) {
+      const t2 = normalizeObligationText(raw);
+      assert.ok(t2.length > 0, 'obligation_text must never be emptied to nothing');
+
+      if (/^[a-z]/.test(t2)) rawLowercaseStart++; // should be ~0 -- these should now be "…"-prefixed instead
+      if (t2.startsWith('…')) ellipsisPrefixed++;
+      if (!/^[A-Za-z0-9"'“‘«(…]/.test(t2)) {
+        badLeading++;
+        if (badLeadingEx.length < 5) badLeadingEx.push(t2.slice(0, 80));
+      }
+      if (t2.includes('*')) hasStar++;
+      if (/\s\|\s|^\S*\|/.test(t2)) hasPipeCell++;
+      if (/https?:\/\//i.test(t2)) hasUrl++;
+      if (!/[.!?"”»…]$/.test(t2)) {
+        badTrailing++;
+        if (badTrailingEx.length < 5) badTrailingEx.push(t2.slice(-60));
+      }
+    }
+
+    console.log(
+      `retext32.json property test over ${beforeTexts.length} 'before' rows:`,
+      JSON.stringify(
+        {
+          bad_leading_char: badLeading,
+          raw_lowercase_start: rawLowercaseStart,
+          ellipsis_prefixed_honest_fragments: ellipsisPrefixed,
+          contains_star: hasStar,
+          contains_pipe_cell: hasPipeCell,
+          contains_bare_url: hasUrl,
+          bad_trailing_punctuation: badTrailing,
+        },
+        null,
+        1
+      )
+    );
+    if (badLeadingEx.length) console.log('bad leading examples:', JSON.stringify(badLeadingEx));
+    if (badTrailingEx.length) console.log('bad trailing examples:', JSON.stringify(badTrailingEx));
+
+    assert.equal(badLeading, 0, 'every row must start with a letter, quote, digit, "(" or the honest-fragment ellipsis');
+    assert.equal(hasStar, 0, 'no row may still carry a markdown emphasis marker');
+    assert.equal(hasPipeCell, 0, 'no row may still carry a markdown table pipe cell');
+    assert.equal(hasUrl, 0, 'no row may still carry a bare URL');
+    assert.equal(badTrailing, 0, 'every row must end in real terminal punctuation or the honest-fragment ellipsis');
+    // rawLowercaseStart is reported, not asserted to be exactly 0 by construction (a lowercase start is
+    // itself the trigger for the ellipsis prefix, so by the time this loop reads t2 it should already be
+    // ~0 -- the assertion above on badLeading is the one that actually enforces it, since a raw lowercase
+    // start with no ellipsis would itself be a `badLeading` failure only if lowercase were excluded from
+    // the allowed-leading set, which it is not (see LEADING_OK_RE) -- this counter exists purely to
+    // surface, per the dispatch's own request, how many rows the ellipsis-prefix branch actually fired on.
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Small ALWAYS-RUN fixture of real corpus text (curated, embedded — no gitignored-file dependency), so the
+// property behaviour above is exercised in every environment, not only inside this lane's own worktree.
+// Each string below is a verbatim `before` value read from retext32.json this lane, one per defect class.
+// ---------------------------------------------------------------------------
+
+describe('OBLIGATION-TEXT REBUILD: embedded real-corpus fixtures (always run, no snapshot dependency)', () => {
+  const REAL_BEFORE_SAMPLES = [
+    // starts_lowercase
+    "iving for 10%, of the energy used by international shipping by 2030.",
+    // starts_nonletter (a leaked URL tail before a bold label)
+    "L/?uri=CELEX:32023R0956 **Effective date:** The regulation entered into force on 17 May 2023 (the day following publication in the Official Journal).",
+    // bold_marker + pipe_cell + starts_lowercase (the Euro 7 heavy-duty case)
+    "hicles (M₂, M₃, N₂, N₃) | MONITORING **FACT — deadline:** \"By 29 November 2026, the Commission shall adopt, for vehicles of categories M₂, M₃, N₂ and N₃… and their engines, as well as for trailers of categories O₃ and O₄,\" implementing ac",
+    // bare label, no bold
+    "FACT: \"To align with the Net Zero Emissions by 2050 (NZE) Scenario, emissions must fall by 15% from 2022 to 2030, declining at roughly 2% pe",
+    // pipe_cell, trailing ';'
+    "By 2030 | Potential methanol demand at Port of Singapore to potentially exceed 1 MTPA (subject to supply chain and regulatory development) | Indicativ",
+    // url_tail trailing, inside a table row
+    "Regulator announcement (Tier 2) | European Commission DG TAXUD | 14 January 2026 | https://taxation-customs.",
+    // starts with a citation-key-like fragment + stray '*'
+    "5(5), Regulation (EU) 2025/40, EUR-Lex, 22.1.2025.* FACT: By 12 August 2030, the Commission shall carry out an evaluation to assess the need to amend or repeal the PFAS restriction in order to avoid overlaps with restrictions under Reg",
+    // already-clean (control case: should pass through unchanged, or only ellipsis-suffixed if no terminator)
+    "This Decision shall apply from 1 July 2026 until 30 November 2026.",
+  ];
+
+  test('idempotent on every embedded real-corpus sample', () => {
+    for (const raw of REAL_BEFORE_SAMPLES) {
+      const once = normalizeObligationText(raw);
+      const twice = normalizeObligationText(once);
+      assert.equal(twice, once, `not idempotent for: ${JSON.stringify(raw)}`);
+    }
+  });
+
+  test('every embedded real-corpus sample satisfies the full property set after normalization', () => {
+    for (const raw of REAL_BEFORE_SAMPLES) {
+      const t2 = normalizeObligationText(raw);
+      assert.ok(t2.length > 0, `emptied: ${JSON.stringify(raw)}`);
+      assert.match(t2, /^[A-Za-z0-9"'“‘«(…]/, `bad leading char in: ${JSON.stringify(t2)}`);
+      assert.ok(!t2.includes('*'), `still has '*': ${JSON.stringify(t2)}`);
+      assert.ok(!/\s\|\s|^\S*\|/.test(t2), `still has a pipe cell: ${JSON.stringify(t2)}`);
+      assert.ok(!/https?:\/\//i.test(t2), `still has a bare URL: ${JSON.stringify(t2)}`);
+      assert.match(t2, /[.!?"”»…]$/, `bad trailing punctuation in: ${JSON.stringify(t2)}`);
+    }
+  });
+
+  test('the clean control case keeps its own sentence intact (no false-positive stripping), only gaining the honest "…" suffix it lacked', () => {
+    const clean = 'This Decision shall apply from 1 July 2026 until 30 November 2026.';
+    assert.equal(normalizeObligationText(clean), clean); // already ends in '.', nothing added
   });
 });

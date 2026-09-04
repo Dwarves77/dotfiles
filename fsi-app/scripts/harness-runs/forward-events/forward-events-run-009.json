@@ -1,0 +1,75 @@
+{
+  "harness_family": "forward-events",
+  "harness_version": "sha256:cefcc8cae82aff7d",
+  "run_id": "forward-events-run-009",
+  "started_at": "2026-09-04T09:43:33.125Z",
+  "finished_at": "2026-09-04T09:43:33.132Z",
+  "config": {
+    "input": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-004/corpus.json",
+    "out_dir": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-004",
+    "execute": true,
+    "mode": "execute"
+  },
+  "inputs_ref": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-004/corpus.json"
+  ],
+  "per_item": [
+    {
+      "id": "bfae9c86-d43b-49a8-a3f7-31b00ffe5b27",
+      "outcome": "extracted",
+      "verdict": "1 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "36c92d72-1d40-4683-a3f7-4302f2fa8dd9",
+      "outcome": "extracted",
+      "verdict": "4 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "9a22c296-728e-4aaa-a1dc-e7cb9ff7930e",
+      "outcome": "extracted",
+      "verdict": "2 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "a86dcc05-55b7-4836-b3d5-9ec35877d3be",
+      "outcome": "extracted",
+      "verdict": "4 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "items_processed": 4,
+    "items_with_events": 4,
+    "events_emitted": 11,
+    "skips": 1,
+    "by_kind": {
+      "compliance_deadline": 6,
+      "other": 1,
+      "entry_into_force": 4
+    },
+    "by_confidence": {
+      "high": 9,
+      "medium": 2
+    },
+    "by_precision": {
+      "day": 11
+    },
+    "by_skip_reason": {
+      "date after 'by' with no deontic ('shall'/'must') or aim/target language nearby — ambiguous whether this is a bound obligation": 1
+    },
+    "extractor_version": "fe1-2026-09-04.1"
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-004/corpus.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-004/corpus.events.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-004/corpus.skipped.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-extraction.mjs's own execution path (Wave MH-5) — the family's first versioned, in-repo runner; forward-events-run-001.json was produced by an external scratch script (see its own inputs_ref/full_trace_refs paths under /root/work/forward-events/), which this script replaces going forward."
+}
