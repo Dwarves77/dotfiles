@@ -121,6 +121,22 @@ runner ship together, or the work order is not done.**
   `.xlsx`, which the fetch tool cannot parse). Arming a producer whose numbers are UNCONFIRMED would
   be exactly the failure this ADR is meant to prevent, in the other direction — populated, visible,
   and wrong is worse than empty.
+- **The gate-4 pattern extended to a consumer, 2026-09-04 (Lane LEDGER-ZERO, operator ruling verbatim:
+  "stop offering API when you have a free option with Haiku"; "why is this costing me anything when it
+  can be done for free?").** `ledger-consume.yml` (`fsi-app/scripts/turns/run-ledger-consume.mjs`) is not
+  one of the WO-16/17/18 producers this ADR was written for — it consumes a ledger `source-sweep.yml`
+  writes, rather than fetching a source itself — but its own apply gate,
+  `LEDGER_CONSUME_APPLY_ENABLED`, is the exact same shape as decision item 4's `const ENABLED`: a
+  source-constant, reviewed-in-`git diff` gate answering "has a human reviewed this and agreed it may
+  ever write?", separate from the workflow's own `mode` input answering "is THIS run allowed to write?".
+  It flipped `false` -> `true` in this same diff, per that mechanism, together with a second, narrower
+  gate this ADR's producers did not need: a `$0` session-verdict default (a candidate without a
+  human/session-classified verdict is skipped, never sent to the metered API, unless a human passes the
+  CLI-only `--allow-api` flag by hand) — because unlike a producer's fixed-cadence source fetch, an
+  unarmed classify-and-mint pass was also a standing per-candidate API charge, which is the other half of
+  the operator ruling above. Fast-disarm is unchanged: the Actions tab. See
+  `docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s "Ledger consume" section for the full mechanism and the named
+  first dispatch.
 
 ## Alternatives rejected
 

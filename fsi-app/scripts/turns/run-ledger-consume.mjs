@@ -36,12 +36,39 @@
 // var or a CLI flag — flipping it appears in `git diff` and is a human-reviewed change, exactly the
 // property ADR-023 §4 names for producers' own `ENABLED` const ("arming a producer is visible in a
 // diff... you cannot stop a misbehaving worker with a pull request [alone], but you also cannot arm one
-// without one"). It is LEFT FALSE by this lane, per the coordinator's build-mode instruction: apply mode
-// needs a reviewed decision this lane does not make for itself. `--mode apply` while the const is false
-// is not silently downgraded — see `runApplyGate` below: it prints a named "apply DISARMED" line, records
-// `apply_disarmed: true` + `requested_mode: "apply"` + `mode: "plan"` in the artifact's `config`, and
-// actually RUNS as plan (still spends on classify, still writes an honest artifact) rather than either
-// pretending apply ran or refusing to do anything useful with the dispatch.
+// without one"). `--mode apply` while the const is false is not silently downgraded — see
+// `resolveApplyGate` below: it prints a named "apply DISARMED" line, records `apply_disarmed: true` +
+// `requested_mode: "apply"` + `mode: "plan"` in the artifact's `config`, and actually RUNS as plan (writes
+// nothing) rather than either pretending apply ran or refusing to do anything useful with the dispatch.
+//
+// FLIPPED TRUE (operator ruling 2026-09-04, this diff, ADR-023's own reviewed-change mechanism). The
+// operator's verbatim rulings this session — "stop offering API when you have a free option with Haiku"
+// and "why is this costing me anything when it can be done for free?" — are answered below by the
+// session-verdict path, not by leaving apply disarmed forever. With the $0 default in place (no verdict
+// -> SKIPPED, never sent to the API — see THE SESSION-VERDICT FLIP below), arming apply no longer means
+// "every dispatch spends real money sight-unseen": an apply run with no `--verdicts` file mints nothing
+// (every candidate is skipped) and an apply run WITH one mints only what a session lane already
+// classified for free. That is the condition ADR-023 §4's two gates exist to let a human set once
+// reviewed — this diff is that review, recorded in the same change that flips the constant (see
+// `LEDGER_CONSUME_APPLY_ENABLED`'s own comment below and `docs/decisions/ADR-023-producer-execution-
+// model.md`'s Consequences section, which records the flip per the ADR's own mechanism).
+//
+// THE SESSION-VERDICT FLIP (same operator ruling, same diff — the OTHER half of "done" for this family).
+// Before this change, EVERY dispatch — plan or apply — called Haiku (`firstFetchClassify`,
+// ~$0.001/candidate) for every candidate whose fetch cleared the 200-char floor: plan mode's "read-only"
+// promise was about writes, never about spend. `--verdicts <path>` (a session-verdict batch — see
+// `scripts/turns/ledger-verdicts/README.md` + `schema.json` for the file contract) lets a session lane
+// that already ran the IDENTICAL prompt (`FIRST_FETCH_HAIKU_SYSTEM_PROMPT` /
+// `buildFirstFetchClassifyUserMessage`, both exported from `first-fetch-classify.ts` for exactly this —
+// ONE BODY, never a second hand-typed copy of the prompt) supply the classification for $0. The default
+// posture, with or without `--verdicts`, is now: a candidate with a verdict in the file uses it (classify
+// bypassed entirely, $0, `classify_source: "session-verdict"` in this run's own artifact); a candidate
+// WITHOUT one is SKIPPED — untouched, left `status='candidate'` for a later batch — and is NEVER sent to
+// the metered API. The API path (`firstFetchClassify`, real spend) survives ONLY behind `--allow-api`, an
+// explicit CLI-only flag defaulting false that `ledger-consume.yml` does not expose as a workflow input —
+// so a workflow dispatch can never spend by omission, only a human running the script directly and asking
+// for it by name. `--export-candidates <path>` is the OTHER new mode: a read-only lister (no fetch, no
+// classify, no DB write) that hands a session lane the candidate rows to fetch + classify offline.
 //
 // TELEMETRY (operator ruling 2026-07-06: "every classify call must leave an agent_runs row") — CLOSED
 // AT THE SOURCE, NOT BY THIS DRIVER (integration, system-completion train, 2026-09-02). The original Lane
@@ -68,12 +95,19 @@
 // Usage:
 //   node scripts/turns/run-ledger-consume.mjs --mode plan [--limit 50] [--source-id <uuid>]
 //     [--newest-first] [--after '{"firstSeenAt":"...","id":"..."}'] [--harness-runs-dir dir] [--trace-dir dir]
-//   node scripts/turns/run-ledger-consume.mjs --mode apply ...   # apply is DISARMED — see header above;
-//                                                                  # runs as plan, records why.
-// Exit 0 done (including "apply disarmed, ran as plan") · 1 bad args · 2 no DB creds · 3 no ANTHROPIC_API_KEY.
+//     [--verdicts <path>] [--allow-api]
+//   node scripts/turns/run-ledger-consume.mjs --mode apply --verdicts <path> ...
+//     # apply only actually WRITES when LEDGER_CONSUME_APPLY_ENABLED is true (see below) — otherwise it
+//     # runs as plan, records why. A candidate with a verdict in --verdicts is minted/rejected from that
+//     # verdict; one without is SKIPPED (never sent to the API) unless --allow-api is also given.
+//   node scripts/turns/run-ledger-consume.mjs --export-candidates <path> [--limit N] [--source-id <uuid>]
+//     # READ-ONLY: no fetch, no classify, no DB write. Lists candidate rows for a session lane to fetch +
+//     # classify offline into a --verdicts file. Ignores --mode/--verdicts/--allow-api.
+// Exit 0 done · 1 bad args · 2 no DB creds · 3 --allow-api requested but no ANTHROPIC_API_KEY ·
+//      4 --verdicts file failed schema validation (scripts/turns/ledger-verdicts/schema.json).
 
 import { parseArgs as nodeParseArgs } from "node:util";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
@@ -90,9 +124,13 @@ const DEFAULT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "ledger-con
 // own copy and this runner's self-hash are now the same array by construction, not two hand-synced ones.
 export const LEDGER_CONSUME_GOVERNING_FILES = GOVERNING_FILES['ledger-consume'];
 
-// THE APPLY GATE (see header). Left FALSE by this lane — ADR-023's reviewed-change gate, applied to a
-// consumer. Flip it in a reviewed diff when an operator arms apply for this family.
-export const LEDGER_CONSUME_APPLY_ENABLED = false;
+// THE APPLY GATE (see header). FLIPPED TRUE 2026-09-04 — operator ruling, this diff, ADR-023's own
+// reviewed-change mechanism ("stop offering API when you have a free option with Haiku"; "why is this
+// costing me anything when it can be done for free?"). Armed together with the session-verdict $0 default
+// (see header): an apply dispatch with no --verdicts file mints nothing (every candidate skipped, never
+// sent to the API); one WITH a verdicts file mints only what a session lane already classified for free.
+// docs/decisions/ADR-023-producer-execution-model.md records this flip per its own mechanism.
+export const LEDGER_CONSUME_APPLY_ENABLED = true;
 
 const MODES = Object.freeze(["plan", "apply"]);
 
@@ -100,7 +138,8 @@ function usage() {
   return (
     "Usage: node scripts/turns/run-ledger-consume.mjs [--mode plan|apply] [--limit N] [--source-id uuid]\n" +
     "         [--newest-first] [--after '{\"firstSeenAt\":\"...\",\"id\":\"...\"}']\n" +
-    "         [--harness-runs-dir dir] [--trace-dir dir]"
+    "         [--harness-runs-dir dir] [--trace-dir dir] [--verdicts path] [--allow-api]\n" +
+    "       node scripts/turns/run-ledger-consume.mjs --export-candidates path [--limit N] [--source-id uuid]"
   );
 }
 
@@ -118,6 +157,9 @@ export function parseArgs(argv) {
         after: { type: "string" },
         "harness-runs-dir": { type: "string" },
         "trace-dir": { type: "string" },
+        verdicts: { type: "string" },
+        "allow-api": { type: "boolean", default: false },
+        "export-candidates": { type: "string" },
       },
       allowPositionals: false,
       strict: true,
@@ -132,6 +174,12 @@ export function parseArgs(argv) {
   const limit = Number(values.limit);
   if (!Number.isFinite(limit) || limit <= 0 || !Number.isInteger(limit)) {
     return { ok: false, error: `--limit must be a positive integer (got ${JSON.stringify(values.limit)}).` };
+  }
+  if (values.verdicts !== undefined && !values.verdicts.trim()) {
+    return { ok: false, error: "--verdicts, if given, must be a non-empty path." };
+  }
+  if (values["export-candidates"] !== undefined && !values["export-candidates"].trim()) {
+    return { ok: false, error: "--export-candidates, if given, must be a non-empty path." };
   }
 
   let after = null;
@@ -164,6 +212,9 @@ export function parseArgs(argv) {
     after,
     harnessRunsDir: values["harness-runs-dir"] || null,
     traceDir: values["trace-dir"] || null,
+    verdicts: values.verdicts || null,
+    allowApi: values["allow-api"] === true,
+    exportCandidates: values["export-candidates"] || null,
   };
 }
 
@@ -254,12 +305,247 @@ export function collectClassifyTelemetry(baseClassify) {
       outputTokens,
       ok,
       error,
+      source: "api", // a real, metered Haiku call — see buildVerdictClassify below for the other two sources
     });
 
     return res;
   }
 
   return { classify: classifyWithTelemetry, telemetry };
+}
+
+// ── session-verdict file — THE $0 DEFAULT (operator ruling 2026-09-04) ─────────────────────────────────
+//
+// Contract: scripts/turns/ledger-verdicts/schema.json + README.md. A verdict file is a session lane's
+// OFFLINE classification of candidates listed by --export-candidates, produced under the IDENTICAL
+// prompt firstFetchClassify uses (FIRST_FETCH_HAIKU_SYSTEM_PROMPT / buildFirstFetchClassifyUserMessage,
+// both exported from first-fetch-classify.ts for exactly this — ONE BODY). Everything below is PURE
+// (no I/O, no DB, no network) so it is fully unit-testable without a live file or a stub Supabase client.
+
+const VERDICT_ENTITY_VERDICTS = Object.freeze(["specific_document", "portal", "uncertain"]);
+const VERDICT_SURFACE_TAGS = Object.freeze(["regulations", "operations", "market_intel", "research"]);
+// Session-verdict classifier labels this driver accepts. "session-haiku" is the only one the operator's
+// 2026-09-04 ruling sanctions today (a real Haiku model call a session lane ran, not a human guess or a
+// different model) — schema.json's own `const` enforces the same rule; kept as a Set (not a literal
+// string check) here so a future sanctioned label is a one-line addition, not a second hand-edited spot.
+const ALLOWED_CLASSIFIED_BY = Object.freeze(new Set(["session-haiku"]));
+
+function isNonEmptyString(v) {
+  return typeof v === "string" && v.trim().length > 0;
+}
+function isIsoTimestamp(v) {
+  return typeof v === "string" && !Number.isNaN(Date.parse(v));
+}
+function isPromptVersion(v) {
+  return typeof v === "string" && /^sha256:[0-9a-f]{16}$/.test(v);
+}
+
+/**
+ * Validate one verdict entry against scripts/turns/ledger-verdicts/schema.json's `definitions.entry`.
+ * Pure. Returns error strings prefixed with the entry's index (empty array = valid).
+ * @param {object} entry
+ * @param {number} i
+ * @returns {string[]}
+ */
+export function validateVerdictEntry(entry, i) {
+  const errors = [];
+  const at = (msg) => errors.push(`entries[${i}]: ${msg}`);
+  if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
+    return [`entries[${i}]: must be an object`];
+  }
+  if (!isNonEmptyString(entry.candidate_id)) at("candidate_id must be a non-empty string");
+  if (!isNonEmptyString(entry.url)) at("url must be a non-empty string");
+  if (!VERDICT_ENTITY_VERDICTS.includes(entry.entity_verdict)) {
+    at(`entity_verdict must be one of ${JSON.stringify(VERDICT_ENTITY_VERDICTS)} (got ${JSON.stringify(entry.entity_verdict)})`);
+  }
+  if (typeof entry.confidence !== "number" || !Number.isFinite(entry.confidence) || entry.confidence < 0 || entry.confidence > 1) {
+    at(`confidence must be a number in [0,1] (got ${JSON.stringify(entry.confidence)})`);
+  }
+  if (typeof entry.rationale !== "string") at("rationale must be a string");
+  if (!ALLOWED_CLASSIFIED_BY.has(entry.classified_by)) {
+    at(`classified_by must be one of ${JSON.stringify([...ALLOWED_CLASSIFIED_BY])} (got ${JSON.stringify(entry.classified_by)})`);
+  }
+  if (!isIsoTimestamp(entry.classified_at)) at("classified_at must be a parseable ISO 8601 timestamp");
+  if (!isPromptVersion(entry.prompt_version)) at(`prompt_version must match ^sha256:[0-9a-f]{16}$ (got ${JSON.stringify(entry.prompt_version)})`);
+
+  // CONDITIONAL REQUIREMENT (schema.json's allOf): entity_verdict='specific_document' needs everything
+  // buildCandidateSeed (portal-harvest.ts) needs to build a mint seed; every other verdict leaves them
+  // null — the SAME null-contract first-fetch-classify.ts itself enforces (never silently defaulted).
+  if (entry.entity_verdict === "specific_document") {
+    if (!isNonEmptyString(entry.item_type)) at("item_type must be a non-empty string when entity_verdict='specific_document'");
+    if (!(Number.isInteger(entry.domain) && entry.domain >= 1 && entry.domain <= 7)) {
+      at(`domain must be an integer 1-7 when entity_verdict='specific_document' (got ${JSON.stringify(entry.domain)})`);
+    }
+    if (!isNonEmptyString(entry.severity)) at("severity must be a non-empty string when entity_verdict='specific_document'");
+    if (!isNonEmptyString(entry.priority)) at("priority must be a non-empty string when entity_verdict='specific_document'");
+    if (!isNonEmptyString(entry.urgency_tier)) at("urgency_tier must be a non-empty string when entity_verdict='specific_document'");
+    if (!isNonEmptyString(entry.title_candidate)) at("title_candidate must be a non-empty string when entity_verdict='specific_document'");
+  } else if (entry.item_type !== null && entry.item_type !== undefined) {
+    at(`item_type must be null when entity_verdict is not 'specific_document' (got ${JSON.stringify(entry.item_type)})`);
+  }
+  if (entry.surface_tags !== undefined) {
+    if (!Array.isArray(entry.surface_tags) || entry.surface_tags.some((t) => !VERDICT_SURFACE_TAGS.includes(t))) {
+      at(`surface_tags must be an array drawn from ${JSON.stringify(VERDICT_SURFACE_TAGS)}`);
+    }
+  }
+  if (entry.relevance !== undefined && entry.relevance !== null) {
+    if (!(Number.isInteger(entry.relevance) && entry.relevance >= 0 && entry.relevance <= 100)) {
+      at(`relevance must be an integer 0-100 or null (got ${JSON.stringify(entry.relevance)})`);
+    }
+  }
+  return errors;
+}
+
+/**
+ * Validate a whole verdict-file object against scripts/turns/ledger-verdicts/schema.json. Pure. Returns
+ * error strings (empty = valid) — a non-empty result is FAIL-CLOSED at the caller (main() exits 4, never
+ * proceeds with a partially-malformed file: a structural violation is a producer bug, not a per-entry
+ * staleness this driver should quietly work around — contrast with prompt-version DRIFT, which
+ * `partitionVerdictsByPromptVersion` below handles per-entry, not as a whole-file failure).
+ * @param {unknown} parsed the JSON.parse'd file content
+ * @returns {string[]}
+ */
+export function validateVerdictsFile(parsed) {
+  const errors = [];
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return ["verdicts file must be a JSON object"];
+  }
+  if (!isNonEmptyString(parsed.batch)) errors.push("batch must be a non-empty string");
+  if (!isIsoTimestamp(parsed.generated_at)) errors.push("generated_at must be a parseable ISO 8601 timestamp");
+  if (!isPromptVersion(parsed.prompt_version)) errors.push(`prompt_version must match ^sha256:[0-9a-f]{16}$ (got ${JSON.stringify(parsed.prompt_version)})`);
+  if (!ALLOWED_CLASSIFIED_BY.has(parsed.classified_by)) {
+    errors.push(`classified_by must be one of ${JSON.stringify([...ALLOWED_CLASSIFIED_BY])} (got ${JSON.stringify(parsed.classified_by)})`);
+  }
+  if (!Array.isArray(parsed.entries)) {
+    errors.push("entries must be an array");
+    return errors; // per-entry checks below assume an array
+  }
+  parsed.entries.forEach((entry, i) => errors.push(...validateVerdictEntry(entry, i)));
+  return errors;
+}
+
+/**
+ * Split a validated verdict file's entries by whether their `prompt_version` matches the driver's own
+ * live `FIRST_FETCH_CLASSIFY_PROMPT_VERSION` (imported from first-fetch-classify.ts, the ONE source for
+ * both). UNLIKE a structural violation (validateVerdictsFile, whole-file fail-closed), a stale
+ * prompt_version is entry-level and NON-FATAL to the rest of the file: prompt text can legitimately move
+ * between when a large batch started and when this run dispatches, and a coordinator should not lose an
+ * otherwise-valid 1,800-row batch over one edited line. Stale entries are excluded from use (treated as
+ * "no verdict" — SKIPPED, never silently accepted as if current) and counted so the run's own artifact
+ * can report exactly how many were dropped for this reason, honestly, not silently.
+ * @param {object[]} entries already-validated entries (validateVerdictsFile passed)
+ * @param {string} currentPromptVersion FIRST_FETCH_CLASSIFY_PROMPT_VERSION
+ * @returns {{current: object[], stale: object[]}}
+ */
+export function partitionVerdictsByPromptVersion(entries, currentPromptVersion) {
+  const current = [];
+  const stale = [];
+  for (const entry of entries) {
+    (entry.prompt_version === currentPromptVersion ? current : stale).push(entry);
+  }
+  return { current, stale };
+}
+
+/**
+ * Index verdict entries by URL — the field the `classify` injection point actually receives
+ * (ConsumeOpts.classify's `input.source_url`; the ledger row's own id never reaches it — see
+ * portal-harvest.ts's ConsumeOpts docs). LAST entry for a given URL wins on a duplicate (a session lane
+ * re-classifying is assumed to be a correction, not corruption) — pure, no throw.
+ * @param {object[]} entries
+ * @returns {Map<string, object>}
+ */
+export function indexVerdictsByUrl(entries) {
+  const byUrl = new Map();
+  for (const entry of entries) byUrl.set(entry.url, entry);
+  return byUrl;
+}
+
+/**
+ * Map one validated verdict entry to a FirstFetchClassifyOutput-shaped object — the SAME shape
+ * buildCandidateSeed (portal-harvest.ts) consumes from a live classify() call, so a verdict-driven
+ * candidate flows through the identical entity-gate / seed-building path as an API-classified one. PURE.
+ * Fields entity_verdict != 'specific_document' leaves null on the entry (validateVerdictEntry enforces
+ * this) pass through as null here too — the same never-silently-defaulted contract first-fetch-classify.ts
+ * itself carries.
+ * @param {object} entry a validated verdict entry
+ * @returns {object} FirstFetchClassifyOutput-shaped
+ */
+export function verdictEntryToClassifyOutput(entry) {
+  const isDoc = entry.entity_verdict === "specific_document";
+  return {
+    entity_verdict: entry.entity_verdict,
+    item_type: isDoc ? entry.item_type : null,
+    domain: isDoc ? entry.domain : null,
+    surface_tags: Array.isArray(entry.surface_tags) ? entry.surface_tags : [],
+    relevance: entry.relevance ?? null,
+    severity: isDoc ? entry.severity : "MONITORING",
+    priority: isDoc ? entry.priority : "MODERATE",
+    urgency_tier: isDoc ? entry.urgency_tier : "stable",
+    topic_tags: Array.isArray(entry.topic_tags) ? entry.topic_tags : [],
+    jurisdictions: Array.isArray(entry.jurisdictions) ? entry.jurisdictions : [],
+    title_candidate: isDoc ? entry.title_candidate : entry.url,
+    summary: entry.summary ?? "",
+    rationale: entry.rationale,
+    cost_usd_estimated: 0,
+    render_ms: 0,
+    input_tokens: 0,
+    output_tokens: 0,
+  };
+}
+
+/**
+ * Compose the driver's actual `classify` injection point: a verdict hit is used for $0 (classify
+ * bypassed entirely — the base classify function below is never called for it); a miss with
+ * `allowApi: false` (the default) is SKIPPED with a named, greppable reason and NEVER reaches the base
+ * classify function either; a miss with `allowApi: true` (an explicit CLI-only escape hatch —
+ * ledger-consume.yml never sets it) falls through to `baseClassify` (normally
+ * collectClassifyTelemetry-wrapped `firstFetchClassify`) for a real, metered call. Every branch records
+ * into the SAME `telemetry` Map `baseClassify`'s own wrapper (collectClassifyTelemetry) already writes
+ * to, tagged with `source` ("session-verdict" | "skipped-no-verdict" | whatever baseClassify itself
+ * tagged, "api" for the live wrapper) — one telemetry map, one shaping pass (shapeConsumeResult), no
+ * second bookkeeping structure to keep in sync.
+ * @param {{verdictsByUrl: Map<string,object>, allowApi: boolean, baseClassify: Function, telemetry: Map}} opts
+ * @returns {Function} a ConsumeOpts.classify-shaped function
+ */
+export function buildVerdictClassify({ verdictsByUrl, allowApi, baseClassify, telemetry }) {
+  return async function classifyWithVerdicts(input, apiKey) {
+    const verdict = verdictsByUrl.get(input.source_url);
+    if (verdict) {
+      telemetry.set(input.source_url, {
+        sourceId: input.source_id ?? null,
+        costUsd: 0,
+        renderMs: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        ok: true,
+        error: null,
+        source: "session-verdict",
+        verdictCandidateId: verdict.candidate_id ?? null,
+        confidence: typeof verdict.confidence === "number" ? verdict.confidence : null,
+      });
+      return { ok: true, result: verdictEntryToClassifyOutput(verdict) };
+    }
+    if (!allowApi) {
+      const reason =
+        "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — " +
+        "never sent to the API";
+      telemetry.set(input.source_url, {
+        sourceId: input.source_id ?? null,
+        costUsd: 0,
+        renderMs: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        ok: false,
+        error: reason,
+        source: "skipped-no-verdict",
+      });
+      // portal-harvest.ts treats {ok:false} as INCONCLUSIVE (fetchOk discipline) — the row stays
+      // 'candidate', untouched, exactly the "SKIPPED with a named outcome" contract asks for. Prefixed so
+      // this driver's own artifact reason text is greppably distinct from a real API failure.
+      return { ok: false, error: `skipped-no-verdict: ${reason}` };
+    }
+    return baseClassify(input, apiKey);
+  };
 }
 
 // ── shaping — ConsumeResult -> CONVENTION.md's per_item / metrics ──────────────────────────────────────
@@ -286,7 +572,7 @@ export const REJECTED_LIKE_DISPOSITIONS = Object.freeze(["rejected", "would_reje
  * risk reading a different row set than the one it actually processed (REUSE-ONLY discipline — see
  * run-source-sweep.mjs's header on why a walker's own query is mirrored, never independently re-derived).
  * @param {object} result ConsumeResult
- * @param {Map<string, {sourceId: string|null, costUsd: number, renderMs: number|null, inputTokens: number, outputTokens: number, ok: boolean, error: string|null}>} telemetryByUrl
+ * @param {Map<string, {sourceId: string|null, costUsd: number, renderMs: number|null, inputTokens: number, outputTokens: number, ok: boolean, error: string|null, source?: string, verdictCandidateId?: string|null, confidence?: number|null}>} telemetryByUrl
  * @param {{sourceIdFilter?: string|null}} [opts]
  */
 export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
@@ -294,7 +580,7 @@ export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
 
   const perItem = result.outcomes.map((o) => {
     const t = telemetryByUrl.get(o.url);
-    return {
+    const item = {
       id: o.ledgerId,
       candidate_id: o.ledgerId,
       source_id: t?.sourceId ?? sourceIdFilter,
@@ -306,26 +592,64 @@ export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
       output_tokens: t?.outputTokens ?? 0,
       evidence_refs: [o.url],
       error: t && !t.ok ? t.error : null,
+      // classify_source names WHERE this outcome's classification came from — "session-verdict" ($0, the
+      // operator-ruled default), "skipped-no-verdict" (never sent to the API), "api" (a real metered
+      // Haiku call, --allow-api only), or "none" (the row never reached classify at all — fetch failed or
+      // sub-200ch, portal-harvest.ts's own fetchOk floor). See buildVerdictClassify's own doc for the
+      // three sources a telemetry entry can carry.
+      classify_source: t?.source ?? "none",
     };
+    // candidate_id CROSS-CHECK (honest, not silently discarded — schema.json's own note on this field):
+    // the verdict entry's OWN candidate_id vs. the ledger row this outcome actually resolved to. The
+    // match itself is by URL (the only key the classify() injection point receives — see
+    // buildVerdictClassify), so a stale/misordered verdict batch is a real, if rare, possibility this
+    // flags rather than assumes away.
+    if (t?.source === "session-verdict") {
+      item.confidence = typeof t.confidence === "number" ? t.confidence : null;
+      if (t.verdictCandidateId && t.verdictCandidateId !== o.ledgerId) {
+        item.verdict_candidate_id_mismatch = true;
+      }
+    }
+    return item;
   });
 
   let estUsdTotal = 0;
   let inputTokensTotal = 0;
   let outputTokensTotal = 0;
+  let withVerdict = 0;
+  let withoutVerdictSkipped = 0;
   for (const t of telemetryByUrl.values()) {
     estUsdTotal += t.costUsd;
     inputTokensTotal += t.inputTokens ?? 0;
     outputTokensTotal += t.outputTokens ?? 0;
+    if (t.source === "session-verdict") withVerdict += 1;
+    else if (t.source === "skipped-no-verdict") withoutVerdictSkipped += 1;
   }
+  // "uncertain" — entity_verdict='uncertain' outcomes, matched off portal-harvest.ts's own
+  // `entity-gate: ${cls.entity_verdict} — ...` reason text (the only place entity_verdict itself survives
+  // into a CandidateOutcome — see that file's not_an_item branch). Distinct from "portal" (also
+  // not_an_item, but a real classification, not a genuine "couldn't tell").
+  const uncertainCount = result.outcomes.filter((o) => /^entity-gate: uncertain\b/.test(o.reason ?? "")).length;
 
   const metrics = {
     mode: result.mode,
+    // "candidates" is CONVENTION.md/F28's own metrics contract naming (build brief item 5) for what this
+    // family has always called "discovered" — kept as BOTH keys (discovered stays for back-compat with
+    // every already-shipped reader of this shape) rather than a rename that would silently break one.
+    candidates: result.discovered,
     discovered: result.discovered,
     fetched: result.fetched,
     classified: result.classified,
+    with_verdict: withVerdict,
+    without_verdict_skipped: withoutVerdictSkipped,
+    uncertain: uncertainCount,
     promoted: result.outcomes.filter((o) => PROMOTED_LIKE_DISPOSITIONS.includes(o.disposition)).length,
     rejected: result.outcomes.filter((o) => REJECTED_LIKE_DISPOSITIONS.includes(o.disposition)).length,
     skipped: result.outcomes.filter((o) => o.disposition === "skipped").length,
+    // est_usd — build brief item 5's naming; est_usd_total kept alongside it for the same back-compat
+    // reason as candidates/discovered above. Both are the SAME number: $0 whenever every classified
+    // candidate came from a session verdict, which is the operator-ruled default posture.
+    est_usd: Number(estUsdTotal.toFixed(6)),
     est_usd_total: Number(estUsdTotal.toFixed(6)),
     input_tokens_total: inputTokensTotal,
     output_tokens_total: outputTokensTotal,
@@ -419,6 +743,78 @@ export function resolveApplyGate(requestedMode, applyEnabled) {
   return { effectiveMode: requestedMode, applyDisarmed: false, message: null };
 }
 
+// ── --export-candidates — the READ-ONLY lister for offline session-verdict classification ───────────────
+//
+// Hands a session lane exactly what selectCandidateLedgerPage (portal-harvest.ts) reads, in the SAME
+// keyset-paginated page a consume pass would have — never a second hand-mirrored query. This runtime does
+// NOT persist first-fetch page text (portal_link_candidates has no content column: migrations 162/220
+// only ever added url/anchor_text/status/disposition columns), so the payload says so honestly rather than
+// emitting an empty `text` field a reader might mistake for "fetched, but blank."
+
+/**
+ * Shape one export batch from a page of LedgerCandidate rows. PURE — no I/O, independently testable.
+ * @param {object[]} candidates rows from selectCandidateLedgerPage
+ * @param {{limit?: number, promptVersion?: string|null, now?: () => string}} [opts]
+ */
+export function buildCandidateExportPayload(candidates, opts = {}) {
+  const now = opts.now ?? (() => new Date().toISOString());
+  const limit = opts.limit ?? candidates.length;
+  return {
+    generated_at: now(),
+    source: "portal_link_candidates status=candidate",
+    note_on_fetched_text:
+      "This runtime does not persist first-fetch page text (portal_link_candidates carries no content " +
+      "column — see migrations 162/220): a session lane must fetch each URL itself (e.g. via the browser) " +
+      "before classifying. Build the classify call with FIRST_FETCH_HAIKU_SYSTEM_PROMPT + " +
+      "buildFirstFetchClassifyUserMessage (src/lib/llm/first-fetch-classify.ts) over the fetched text so " +
+      "the resulting verdict is produced under the IDENTICAL prompt the live chokepoint uses (ONE BODY).",
+    prompt_version: opts.promptVersion ?? null,
+    count: candidates.length,
+    candidates: candidates.map((row) => ({
+      candidate_id: row.id,
+      url: row.url,
+      source_id: row.source_id,
+      anchor_text: row.anchor_text ?? null,
+      first_seen_at: row.first_seen_at,
+      source_name: row.sources?.name ?? null,
+      source_category: row.sources?.category ?? null,
+      source_tier: row.sources?.base_tier ?? null,
+    })),
+    // Same keyset-cursor convention as ConsumeResult.nextCursor (portal-harvest.ts) — omitted when this
+    // page read fewer rows than `limit` (the source is exhausted here), present otherwise so a session
+    // lane can page through the full backlog across several --export-candidates calls.
+    next_cursor:
+      candidates.length === limit && candidates.length > 0
+        ? { firstSeenAt: candidates[candidates.length - 1].first_seen_at, id: candidates[candidates.length - 1].id }
+        : null,
+  };
+}
+
+/**
+ * The I/O half: page-select (via the injected `selectPage`, normally `selectCandidateLedgerPage` bound to
+ * a live client) + write the shaped payload to `outPath`. `selectPage` is injected so this is testable
+ * with a stub, no live Supabase client required — same discipline the rest of this driver's I/O seams use.
+ * @param {{selectPage: (opts:object)=>Promise<object[]>, limit: number, sourceId?: string|null, newestFirst?: boolean, after?: object|null, promptVersion?: string|null, outPath: string, now?: () => string}} opts
+ * @returns {Promise<{path: string, count: number, payload: object}>}
+ */
+export async function runExportCandidates(opts) {
+  const candidates = await opts.selectPage({
+    limit: opts.limit,
+    sourceId: opts.sourceId ?? undefined,
+    newestFirst: opts.newestFirst,
+    after: opts.after ?? undefined,
+  });
+  const payload = buildCandidateExportPayload(candidates, {
+    limit: opts.limit,
+    promptVersion: opts.promptVersion ?? null,
+    now: opts.now,
+  });
+  const outPath = resolve(opts.outPath);
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, JSON.stringify(payload, null, 2) + "\n", "utf8");
+  return { path: outPath, count: candidates.length, payload };
+}
+
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (IS_MAIN) await main();
 
@@ -439,14 +835,6 @@ async function main() {
     console.error("run-ledger-consume: no DB creds — cannot run here (exit 2).");
     process.exit(2);
   }
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
-  if (!anthropicKey) {
-    console.error(
-      "run-ledger-consume: no ANTHROPIC_API_KEY — plan mode is READ-ONLY but STILL calls Haiku classify " +
-        "(~$0.001/candidate; see this file's header) and cannot run without it (exit 3)."
-    );
-    process.exit(3);
-  }
 
   const { createClient } = await import("@supabase/supabase-js");
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
@@ -455,8 +843,85 @@ async function main() {
 
   const { createJiti } = await import("jiti");
   const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
-  const { consumePortalCandidates } = await jiti.import("../../src/lib/intake/portal-harvest.ts");
-  const { firstFetchClassify } = await jiti.import("../../src/lib/llm/first-fetch-classify.ts");
+  const { consumePortalCandidates, selectCandidateLedgerPage } = await jiti.import("../../src/lib/intake/portal-harvest.ts");
+  const { firstFetchClassify, FIRST_FETCH_CLASSIFY_PROMPT_VERSION } = await jiti.import(
+    "../../src/lib/llm/first-fetch-classify.ts"
+  );
+
+  // ── --export-candidates: a DISTINCT, READ-ONLY action — no fetch, no classify, no DB write, no harness-
+  // run artifact (this is a listing utility for a session lane to fetch+classify offline, not a consume
+  // pass — see this file's header). Exits here; never falls through to the consume path below.
+  if (parsed.exportCandidates) {
+    const selectPage = (opts) => selectCandidateLedgerPage(sb, opts);
+    const { path, count } = await runExportCandidates({
+      selectPage,
+      limit: parsed.limit,
+      sourceId: parsed.sourceId,
+      newestFirst: parsed.newestFirst,
+      after: parsed.after,
+      promptVersion: FIRST_FETCH_CLASSIFY_PROMPT_VERSION,
+      outPath: parsed.exportCandidates,
+    });
+    console.log(`run-ledger-consume --export-candidates: wrote ${count} candidate(s) to ${path}`);
+    process.exit(0);
+  }
+
+  // ── --verdicts (optional): load + fail-closed validate a session-verdict batch before anything else
+  // runs, so a malformed file is caught immediately, not partway through a live consume pass.
+  let verdictsByUrl = new Map();
+  let verdictsInfo = null;
+  if (parsed.verdicts) {
+    let raw;
+    try {
+      raw = readFileSync(resolve(parsed.verdicts), "utf8");
+    } catch (err) {
+      console.error(`run-ledger-consume: cannot read --verdicts file "${parsed.verdicts}": ${err.message} (exit 4).`);
+      process.exit(4);
+    }
+    let parsedVerdicts;
+    try {
+      parsedVerdicts = JSON.parse(raw);
+    } catch (err) {
+      console.error(`run-ledger-consume: --verdicts file "${parsed.verdicts}" is not valid JSON: ${err.message} (exit 4).`);
+      process.exit(4);
+    }
+    const schemaErrors = validateVerdictsFile(parsedVerdicts);
+    if (schemaErrors.length) {
+      console.error(
+        `run-ledger-consume: --verdicts file "${parsed.verdicts}" failed schema validation ` +
+          `(scripts/turns/ledger-verdicts/schema.json) — exit 4:\n  ${schemaErrors.join("\n  ")}`
+      );
+      process.exit(4);
+    }
+    const { current, stale } = partitionVerdictsByPromptVersion(parsedVerdicts.entries, FIRST_FETCH_CLASSIFY_PROMPT_VERSION);
+    if (stale.length) {
+      console.log(
+        `run-ledger-consume: ${stale.length}/${parsedVerdicts.entries.length} verdict(s) in "${parsed.verdicts}" ` +
+          `carry a prompt_version other than the live ${FIRST_FETCH_CLASSIFY_PROMPT_VERSION} — excluded, treated ` +
+          `as no-verdict for their URLs (never silently accepted as current).`
+      );
+    }
+    verdictsByUrl = indexVerdictsByUrl(current);
+    verdictsInfo = {
+      path: parsed.verdicts,
+      batch: parsedVerdicts.batch,
+      total_entries: parsedVerdicts.entries.length,
+      usable_entries: current.length,
+      stale_prompt_version_entries: stale.length,
+    };
+  }
+
+  // --allow-api is the ONLY path that can still spend on Haiku — see this file's header. ANTHROPIC_API_KEY
+  // is required ONLY when it is set; a plan/apply dispatch with the $0 default (no --allow-api) needs no
+  // key at all, closing the registration gap the audit named for the workflow's plan path.
+  if (parsed.allowApi && !process.env.ANTHROPIC_API_KEY) {
+    console.error(
+      "run-ledger-consume: --allow-api requested but no ANTHROPIC_API_KEY — the real Haiku path cannot " +
+        "run without it (exit 3). Omit --allow-api to use the $0 session-verdict/skip default."
+    );
+    process.exit(3);
+  }
+  const anthropicKey = process.env.ANTHROPIC_API_KEY || "";
 
   const requestedMode = parsed.mode;
   const { effectiveMode, applyDisarmed, message: applyGateMessage } = resolveApplyGate(
@@ -464,12 +929,25 @@ async function main() {
     LEDGER_CONSUME_APPLY_ENABLED
   );
   if (applyGateMessage) console.log(applyGateMessage);
+  if (effectiveMode === "apply" && !parsed.verdicts && !parsed.allowApi) {
+    console.log(
+      "run-ledger-consume: apply requested with no --verdicts and no --allow-api — every candidate this " +
+        "run touches will be SKIPPED (no classification source), so this apply will mint nothing. Not an " +
+        "error: an honest no-op, recorded as such in this run's own artifact."
+    );
+  }
 
   const harnessRunsDir = resolve(parsed.harnessRunsDir || DEFAULT_HARNESS_RUNS_DIR);
   const traceDir = resolve(parsed.traceDir || defaultTraceDir(harnessRunsDir));
 
   const fetchDoc = buildFetchDoc();
-  const { classify, telemetry } = collectClassifyTelemetry(firstFetchClassify);
+  const { classify: apiClassify, telemetry } = collectClassifyTelemetry(firstFetchClassify);
+  const classify = buildVerdictClassify({
+    verdictsByUrl,
+    allowApi: parsed.allowApi,
+    baseClassify: apiClassify,
+    telemetry,
+  });
 
   const config = {
     requested_mode: requestedMode,
@@ -481,12 +959,18 @@ async function main() {
     newest_first: parsed.newestFirst,
     after: parsed.after,
     fetch_gap_ms: Number(process.env.LEDGER_CONSUME_FETCH_GAP_MS ?? 1000),
+    verdicts_file: verdictsInfo,
+    allow_api: parsed.allowApi,
+    prompt_version: FIRST_FETCH_CLASSIFY_PROMPT_VERSION,
   };
   const inputsRef = [
     "portal_link_candidates: status=candidate" +
       (parsed.sourceId ? ` source_id=${parsed.sourceId}` : "") +
       ` limit=${parsed.limit} order=${parsed.newestFirst ? "desc" : "asc"}(first_seen_at,id)` +
       (parsed.after ? ` after=${JSON.stringify(parsed.after)}` : ""),
+    parsed.verdicts
+      ? `session-verdicts: ${parsed.verdicts} (batch=${verdictsInfo.batch}, usable=${verdictsInfo.usable_entries}/${verdictsInfo.total_entries})`
+      : "session-verdicts: none — every candidate without --allow-api is skipped, never sent to the API",
   ];
 
   let runId = null;

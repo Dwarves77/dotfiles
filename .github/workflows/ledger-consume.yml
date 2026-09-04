@@ -16,31 +16,65 @@ name: Ledger consume
 # (`scripts/harness-runs/ledger-consume/`, `scripts/lib/run-artifact.mjs`'s convention), in both modes,
 # from a `finally` block, so a run that throws mid-way still leaves a record.
 #
-# MODES. `plan` is READ-ONLY — no ledger write, no mint — but STILL calls Haiku classify for every
-# candidate that clears the fetch step (~$0.001/candidate; plan is read-only, not free). `apply` is
-# structurally DISARMED by a source constant (`LEDGER_CONSUME_APPLY_ENABLED = false` in
-# `run-ledger-consume.mjs`, the ADR-023 reviewed-change gate applied to a consumer) until an operator
-# reviews and flips it in a diff; dispatching `mode: apply` before that lands the run with PLAN semantics
-# and an honest "apply DISARMED" line in both the log and the artifact — never a silent downgrade.
+# THE SESSION-VERDICT $0 DEFAULT (operator ruling 2026-09-04, this diff: "stop offering API when you have
+# a free option with Haiku"; "why is this costing me anything when it can be done for free?"). A candidate
+# with a matching entry in `verdicts_file` (a repo path — see
+# `fsi-app/scripts/turns/ledger-verdicts/README.md` for the file contract and how a session lane produces
+# one) is classified from that verdict for $0, no API call. A candidate WITHOUT one is SKIPPED — untouched,
+# never sent to the metered API. The real API path (`--allow-api`) is a CLI-only flag this workflow never
+# sets — a workflow dispatch can never spend on classify by omission, only by an operator running the
+# script directly and asking for it by name. `ANTHROPIC_API_KEY` is therefore NOT required by this
+# workflow at all any more (see the "Verify required secrets" step) — the registration gap the family's
+# `PENDING-RUN.md` originally flagged is now moot from this side as well as closed from the
+# secrets-registry side (Lane SPEND, 2026-09-02).
 #
-# DISPATCH-ONLY, DELIBERATELY, no schedule armed — the same build-mode ruling every other workflow in
-# this repo states for itself (operator ruling 2026-09-01):
+# MODES. `plan` classifies (from a verdict, or skips) every candidate that clears the fetch step, and
+# writes NOTHING to `portal_link_candidates` or the intake pipeline. `apply` is gated by
+# `LEDGER_CONSUME_APPLY_ENABLED` in `run-ledger-consume.mjs` — **`true`** as of this diff (operator ruling
+# 2026-09-04, ADR-023's reviewed-change mechanism; see that file's header and
+# `docs/decisions/ADR-023-producer-execution-model.md`'s Consequences section) — so a `mode: apply`
+# dispatch WILL write the would-mint set through the full intake cycle when it has a `verdicts_file` (or
+# `--allow-api`, which this workflow never sets). An `apply` dispatch with NEITHER mints nothing: every
+# candidate is skipped for want of a classification source — a legal, honest no-op, not a silent
+# downgrade (the driver logs and records this explicitly). **DECISION, recorded here:** `apply` is
+# reachable ONLY via an explicit `workflow_dispatch` — the `workflow_run` auto-trigger below always forces
+# `plan`, regardless of its `mode` (there is no `mode` input on a `workflow_run` event to read in the
+# first place). A dispatch is what "the operator decided to write now" looks like; a source-sweep
+# completion is what "check whether there is new work" looks like — those are different decisions and
+# this workflow keeps them separate.
+#
+# EVENT CHAINING, NOT A SCHEDULE (build plan W1.4; rule 16 is about `schedule:`/cron, not event chaining).
+# `workflow_run: workflows: ["Source sweep"]` fires this workflow in `plan` mode automatically after every
+# `source-sweep.yml` run completes (successfully) — picking up the newest committed
+# `scripts/turns/ledger-verdicts/ledger-verdicts-*.json` batch if one exists, or running with NO verdicts
+# file (every candidate skipped, $0, an honest "nothing classified yet" plan) if none does. This still
+# requires a dispatch to actually see them (a plan run writes nothing) — apply is still a deliberate,
+# separate `workflow_dispatch`, per the DECISION above.
+#
+# DISPATCH-ONLY beyond the event chain above, DELIBERATELY, no schedule armed — the same build-mode ruling
+# every other workflow in this repo states for itself (operator ruling 2026-09-01):
 #   schedule:
 #     - cron: '0 9 * * 1'   # placeholder cadence only — the operator picks the real one at re-arm time
 #
 # SECRETS (repository secrets; never echoed): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (the
-# same pair every guarded script in fsi-app/scripts/lib/db.mjs already requires) plus ANTHROPIC_API_KEY —
-# plan mode still spends on classify (see above), so it is required in EVERY mode this workflow runs.
+# same pair every guarded script in fsi-app/scripts/lib/db.mjs already requires). ANTHROPIC_API_KEY is
+# registered in WORKFLOW_SECRETS (secrets-registry.mjs) for the CLI-only `--allow-api` escape hatch a
+# human might run outside this workflow, but this workflow itself never sets it as a job env var and never
+# passes `--allow-api` — see the header above.
 
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'plan = read-only (still calls Haiku classify + spends). apply = writes through the guarded intake cycle — DISARMED by a source constant until an operator flips it; see run-ledger-consume.mjs.'
+        description: 'plan = classify (verdict or skip) + write nothing. apply = writes through the guarded intake cycle when it has a verdicts_file or --allow-api (LEDGER_CONSUME_APPLY_ENABLED is true — see run-ledger-consume.mjs); with neither, apply mints nothing (every candidate skipped).'
         required: true
         default: 'plan'
         type: choice
         options: [plan, apply]
+      verdicts_file:
+        description: 'Repo path to a session-verdict batch (e.g. scripts/turns/ledger-verdicts/ledger-verdicts-001.json — see fsi-app/scripts/turns/ledger-verdicts/README.md). A candidate matched here is classified for $0; one that is not is SKIPPED, never sent to the API. Leave blank to run with none (every candidate skipped).'
+        required: false
+        type: string
       limit:
         description: 'Max ledger candidates this run consumes (bounded runs, no unbounded sweeps).'
         required: false
@@ -50,6 +84,9 @@ on:
         description: 'Restrict to one portal source (uuid). Leave blank to consume across all sources.'
         required: false
         type: string
+  workflow_run:
+    workflows: ["Source sweep"]
+    types: [completed]
   # schedule:
   #   - cron: '0 9 * * 1'   # BUILD MODE (2026-09-01 ruling, same as corpus-turn.yml / source-sweep.yml /
   #                          # producers.yml) — stays commented out until the operator explicitly re-arms it.
@@ -65,6 +102,9 @@ permissions:
 
 jobs:
   consume:
+    # Only proceed on an explicit dispatch, or a workflow_run whose triggering run actually SUCCEEDED — a
+    # failed/cancelled source-sweep produced no new candidates worth a plan pass over.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:
@@ -73,7 +113,6 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -91,16 +130,44 @@ jobs:
           missing=0
           if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
-          if [ -z "$ANTHROPIC_API_KEY" ]; then echo "::error::ANTHROPIC_API_KEY is not set — plan mode still calls Haiku classify and cannot run without it."; missing=1; fi
           [ "$missing" -eq 0 ]
+
+      # ── resolve this run's parameters by trigger — see this file's header, "DECISION" ────────────────
+      # workflow_dispatch: use the inputs verbatim. workflow_run (the Source-sweep event chain): FORCE
+      # mode=plan (apply is dispatch-only, by design — there is no mode input to read from this event
+      # anyway) and pick the newest committed scripts/turns/ledger-verdicts/ledger-verdicts-*.json batch,
+      # if one exists (lexicographic sort on the zero-padded NNN suffix — highest wins), else run with no
+      # verdicts file (every candidate skipped, $0, an honest "nothing classified yet" plan).
+      - name: Resolve dispatch parameters
+        id: params
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            mode="${{ inputs.mode }}"
+            limit="${{ inputs.limit }}"
+            source_id="${{ inputs.source_id }}"
+            verdicts_file="${{ inputs.verdicts_file }}"
+          else
+            mode="plan"
+            limit="50"
+            source_id=""
+            verdicts_file="$(ls scripts/turns/ledger-verdicts/ledger-verdicts-*.json 2>/dev/null | sort | tail -n1 || true)"
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "limit=$limit" >> "$GITHUB_OUTPUT"
+          echo "source_id=$source_id" >> "$GITHUB_OUTPUT"
+          echo "verdicts_file=$verdicts_file" >> "$GITHUB_OUTPUT"
 
       - name: This run's gates
         run: |
-          echo "trigger    = ${{ github.event_name }}"
-          echo "mode       = ${{ inputs.mode }}"
-          echo "limit      = ${{ inputs.limit }}"
-          echo "source_id  = ${{ inputs.source_id }}"
-          echo "NOTE: apply is structurally DISARMED by run-ledger-consume.mjs's LEDGER_CONSUME_APPLY_ENABLED const until an operator flips it in a reviewed diff (ADR-023)."
+          echo "trigger        = ${{ github.event_name }}"
+          echo "mode           = ${{ steps.params.outputs.mode }}"
+          echo "limit          = ${{ steps.params.outputs.limit }}"
+          echo "source_id      = ${{ steps.params.outputs.source_id }}"
+          echo "verdicts_file  = ${{ steps.params.outputs.verdicts_file }}"
+          echo "NOTE: apply only writes when LEDGER_CONSUME_APPLY_ENABLED is true (it is, as of 2026-09-04) AND this run has a verdicts_file or --allow-api. --allow-api is CLI-only; this workflow never sets it."
+          if [ "${{ steps.params.outputs.mode }}" = "apply" ] && [ -z "${{ steps.params.outputs.verdicts_file }}" ]; then
+            echo "::warning::apply requested with no verdicts_file — every candidate this run touches will be SKIPPED (no classification source), so this apply will mint nothing. Not an error: an honest no-op, recorded as such in this run's own artifact."
+          fi
 
       # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
       # Same run_id collision guard source-sweep.yml carries (see its own comment for the incident this
@@ -125,9 +192,12 @@ jobs:
 
       - name: run-ledger-consume.mjs
         run: |
-          args=(--mode "${{ inputs.mode }}" --limit "${{ inputs.limit }}")
-          if [ -n "${{ inputs.source_id }}" ]; then
-            args+=(--source-id "${{ inputs.source_id }}")
+          args=(--mode "${{ steps.params.outputs.mode }}" --limit "${{ steps.params.outputs.limit }}")
+          if [ -n "${{ steps.params.outputs.source_id }}" ]; then
+            args+=(--source-id "${{ steps.params.outputs.source_id }}")
+          fi
+          if [ -n "${{ steps.params.outputs.verdicts_file }}" ]; then
+            args+=(--verdicts "${{ steps.params.outputs.verdicts_file }}")
           fi
           node scripts/turns/run-ledger-consume.mjs "${args[@]}"
 
@@ -156,16 +226,16 @@ jobs:
           fi
           branch="ledger-consume/${{ github.run_id }}"
           git checkout -b "$branch"
-          git commit -m "ledger-consume ${{ inputs.mode }}: run ${{ github.run_id }}"
+          git commit -m "ledger-consume ${{ steps.params.outputs.mode }} (${{ github.event_name }}): run ${{ github.run_id }}"
           # BRANCH-BASE (2026-09-04): re-base the artifact commit onto the current master tip before the push, so a
           # workflow-file change that landed on master mid-run cannot make GitHub refuse the branch (see
           # population-turn.yml's own BRANCH-BASE comment for the failure this fixes).
           git fetch --no-tags --depth=50 origin master
           git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
           git push origin HEAD:"$branch"
-          printf 'Automated ledger consume (run %s).\n\nRequested mode: %s\nLimit: %s\nSource id: %s\n\nLands the harness-run artifact for this run under scripts/harness-runs/ledger-consume/. If mode=apply was requested, note that apply is structurally disarmed (LEDGER_CONSUME_APPLY_ENABLED=false in run-ledger-consume.mjs, ADR-023) until an operator flips it in a reviewed diff — this run executed with plan semantics; check config.apply_disarmed in the artifact.\n' \
-            "${{ github.run_id }}" "${{ inputs.mode }}" "${{ inputs.limit }}" "${{ inputs.source_id }}" > /tmp/pr-body.md
-          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Ledger consume: mode=${{ inputs.mode }} (run ${{ github.run_id }})" /tmp/pr-body.md
+          printf 'Automated ledger consume (run %s, trigger %s).\n\nMode: %s\nLimit: %s\nSource id: %s\nVerdicts file: %s\n\nLands the harness-run artifact for this run under scripts/harness-runs/ledger-consume/. apply only writes when LEDGER_CONSUME_APPLY_ENABLED is true (it is, as of 2026-09-04) and this run had a verdicts_file or --allow-api; check config.apply_disarmed and config.verdicts_file in the artifact for exactly what happened.\n' \
+            "${{ github.run_id }}" "${{ github.event_name }}" "${{ steps.params.outputs.mode }}" "${{ steps.params.outputs.limit }}" "${{ steps.params.outputs.source_id }}" "${{ steps.params.outputs.verdicts_file }}" > /tmp/pr-body.md
+          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Ledger consume: mode=${{ steps.params.outputs.mode }} (run ${{ github.run_id }})" /tmp/pr-body.md
 
       - name: Upload scripts/_snapshots as a workflow artifact
         if: always()

@@ -20,7 +20,12 @@ import { createJiti } from "jiti";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 
-const { firstFetchClassify } = await jiti.import("./first-fetch-classify.ts");
+const {
+  firstFetchClassify,
+  FIRST_FETCH_HAIKU_SYSTEM_PROMPT,
+  FIRST_FETCH_CLASSIFY_PROMPT_VERSION,
+  buildFirstFetchClassifyUserMessage,
+} = await jiti.import("./first-fetch-classify.ts");
 const { setSpendTicket, resetSpendTicket, currentSpendTicket, unloggedCallCount, assertLedgerDrained } =
   await jiti.import("./spend-client.ts");
 const { __resetSpendForTest } = await jiti.import("./spend-guard.mjs");
@@ -213,6 +218,43 @@ test("firstFetchClassify: error-body pre-gate short-circuits BEFORE any spend �
   } finally {
     restore();
   }
+});
+
+// ── prompt export (operator ruling 2026-09-04: the ledger-consume session-verdict flip) ──────────────────
+// FIRST_FETCH_HAIKU_SYSTEM_PROMPT / FIRST_FETCH_CLASSIFY_PROMPT_VERSION / buildFirstFetchClassifyUserMessage
+// are what a session lane uses to build the IDENTICAL Haiku call this module makes, offline, for
+// run-ledger-consume.mjs's `--verdicts` file (ONE BODY — see this module's own header comment).
+test("FIRST_FETCH_CLASSIFY_PROMPT_VERSION: sha256:<16 hex>, matching the exported prompt's content hash", async () => {
+  const { createHash } = await import("node:crypto");
+  const expected = `sha256:${createHash("sha256").update(FIRST_FETCH_HAIKU_SYSTEM_PROMPT, "utf8").digest("hex").slice(0, 16)}`;
+  assert.match(FIRST_FETCH_CLASSIFY_PROMPT_VERSION, /^sha256:[0-9a-f]{16}$/);
+  assert.equal(FIRST_FETCH_CLASSIFY_PROMPT_VERSION, expected, "the version must be a live hash of the prompt, not a hand-copied constant");
+});
+
+test("FIRST_FETCH_HAIKU_SYSTEM_PROMPT: names the entity_verdict / item_type / surface_tags contract a session lane must reproduce", () => {
+  assert.match(FIRST_FETCH_HAIKU_SYSTEM_PROMPT, /entity_verdict: specific_document \| portal \| uncertain/);
+  assert.match(FIRST_FETCH_HAIKU_SYSTEM_PROMPT, /NEVER guess "specific_document"/);
+});
+
+test("buildFirstFetchClassifyUserMessage: builds the exact user message firstFetchClassify sends to Haiku", async () => {
+  const { anthropicCalls, restore } = installFakeFetch(haikuJsonResponse(HAIKU_DOC_JSON));
+  try {
+    await firstFetchClassify(INPUT, "test-api-key");
+    const sentUserMessage = anthropicCalls[0].body.messages[0].content;
+    const built = buildFirstFetchClassifyUserMessage(INPUT);
+    assert.equal(sentUserMessage, built, "a session lane building this string offline must get byte-identical input to the live call");
+  } finally {
+    restore();
+  }
+});
+
+test("buildFirstFetchClassifyUserMessage: truncates to CONTENT_MAX_CHARS and falls back source_tier/category to 'unknown', matching the live call", () => {
+  const long = { source_url: "https://x/y", source_id: "s1", text: "a".repeat(10_000) };
+  const built = buildFirstFetchClassifyUserMessage(long);
+  assert.match(built, /Source tier: unknown/);
+  assert.match(built, /Source category: unknown/);
+  const excerptLine = built.split("---\n")[1];
+  assert.ok(excerptLine.length <= 6_000 + 1, "excerpt must be capped at CONTENT_MAX_CHARS (6000)");
 });
 
 // ── network / HTTP failure is still INCONCLUSIVE (ok:false), never a thrown exception ────────────────────
