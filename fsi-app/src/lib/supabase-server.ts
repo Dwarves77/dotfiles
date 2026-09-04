@@ -487,10 +487,15 @@ type WorkspaceItemsServiceClient = ReturnType<typeof getServiceSupabase>;
  * 14 CRITICAL, 30 HIGH, 16 MODERATE). The exact fix: migration 303 adds `, ii.id ASC` to slim's
  * ORDER BY, then this set gains `"get_workspace_intelligence_slim"` — a one-line addition (gated on
  * 303 applying live) that restores the priority-band rank for /operations and /market (identical to
- * the /regulations fix). This lane's write set covers the migration + the comment update below; the
- * allowlist addition is deferred to the coordinator-apply phase.
+ * the /regulations fix). Migration 303 was APPLIED LIVE by the coordinator on 2026-09-04 (post md5
+ * 3ca10db08f84c019c9fa0e16bfe3b49b, schema_migrations 20260904084952), so the slim RPC's own body now
+ * ends `..., ii.added_date DESC, ii.id ASC;` and the entry below is safe: never remove it while 303 is
+ * live, never add another name here without the same tiebreak in that RPC's own ORDER BY.
  */
-const LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER = new Set<string>(["get_workspace_intelligence_listings"]);
+const LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER = new Set<string>([
+  "get_workspace_intelligence_listings",
+  "get_workspace_intelligence_slim", // migration 303 (applied live 2026-09-04)
+]);
 
 /**
  * Builds the (possibly ranged) query for one page of workspace-intelligence RPC rows.

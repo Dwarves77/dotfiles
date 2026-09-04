@@ -11,11 +11,10 @@
 //  - `get_workspace_intelligence_listings` (the fixed one, its own ORDER BY ends in a unique `id`
 //    tiebreak): page mode chains `.range()` only, no `.order()` call at all, so the RPC's internal
 //    order survives.
-//  - `get_workspace_intelligence_slim` (used by /operations + /market's own first-paint pagination,
-//    its own ORDER BY has NO `id` tiebreak — confirmed live, same session): page mode keeps the
-//    pre-existing outer `.order("added_date", desc).order("id", asc)` UNCHANGED, so this lane does
-//    not reopen the page-boundary duplicate-row bug for those two surfaces (out of this lane's write
-//    set — see the header comment's "THE FALLBACK" section for the decision-ready flag).
+//  - `get_workspace_intelligence_slim` (/operations + /market first-paint pagination): since migration
+//    303 (SLIM-ORDER lane, applied live 2026-09-04) its own ORDER BY ends in the same `ii.id ASC`
+//    tiebreak, so it is allowlisted too and paginates with `.range()` only. Before 303 it kept the
+//    outer order (no tiebreak of its own, page-boundary duplicates otherwise); that state is history.
 //  - Unpaged mode is unchanged for any RPC name (bare `.rpc()` result, matching the pre-existing
 //    "omitted = unpaged, unbounded" contract ResourcePage's own doc comment states).
 import { test } from "node:test";
@@ -109,17 +108,17 @@ test(".rpc() is always called with the exact rpcName and p_org_id passed through
   assert.deepEqual(rpcCall.args, ["get_workspace_intelligence_listings", { p_org_id: "org-42" }]);
 });
 
-// ── get_workspace_intelligence_slim (the UNFIXED RPC — /operations, /market; no `id` tiebreak of
-// its own, so the pre-existing outer order must stay exactly as it was) ─────────────────────────
+// ── get_workspace_intelligence_slim (/operations, /market) — migration 303 (SLIM-ORDER lane,
+// applied live 2026-09-04, post md5 3ca10db08f84c019c9fa0e16bfe3b49b) gave its own ORDER BY the
+// `ii.id ASC` tiebreak, and the allowlist gained the name in the same train, so it paginates the
+// same way as listings: `.range()` only, the RPC's priority-band rank survives. A failure here means
+// the outer order came back and /operations + /market lost their band rank again. ────────────────
 
-test("slim + page: pre-existing outer .order(added_date desc).order(id asc).range() is UNCHANGED — slim has no id tiebreak of its own", () => {
+test("slim + page: with migration 303 live, chains .rpc().range() only — no .order() call, the RPC's own order survives", () => {
   const client = fakeServiceClient();
   buildWorkspaceItemsQuery(client, "get_workspace_intelligence_slim", "org-1", { limit: 60, offset: 0 });
   const methods = client.calls.map((c) => c.method);
-  assert.deepEqual(methods, ["rpc", "order", "order", "range"]);
-  const [addedDateOrder, idOrder] = client.calls.filter((c) => c.method === "order");
-  assert.deepEqual(addedDateOrder.args, ["added_date", { ascending: false, nullsFirst: false }]);
-  assert.deepEqual(idOrder.args, ["id", { ascending: true }]);
+  assert.deepEqual(methods, ["rpc", "range"], "must be exactly rpc() then range(), no .order() calls");
   const rangeCall = client.calls.find((c) => c.method === "range");
   assert.deepEqual(rangeCall.args, [0, 59]);
 });
@@ -142,25 +141,3 @@ test("unknown/non-allowlisted RPC name + page: falls back to the safe pre-existi
   assert.deepEqual(methods, ["rpc", "order", "order", "range"]);
 });
 
-// ── SLIM-ORDER lane (2026-09-04): post-303 expectation ────────────────────────────────────────────
-//
-// Migration 303 adds `, ii.id ASC` to get_workspace_intelligence_slim's ORDER BY (same pattern as
-// get_workspace_intelligence_listings already carries). Once 303 is APPLIED and
-// LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER adds "get_workspace_intelligence_slim", this test will PASS;
-// until then it documents the EXPECTED behavior post-migration.
-
-test("[POST-303] slim + page: AFTER migration 303 adds id tiebreak to slim's ORDER BY, the allowlist entry drops the outer order — chains .rpc().range() only", () => {
-  // NOTE: This test will FAIL until (1) migration 303 is applied live (slim RPC gains id ASC tiebreak),
-  // AND (2) buildWorkspaceItemsQuery's allowlist LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER adds "get_workspace_intelligence_slim".
-  // Both are required; the fix is incomplete with only one in place.
-
-  // This test is SKIPPED during normal runs (not in the gate count) because it describes future state
-  // that is not yet live. The coordinator will apply 303 and update the allowlist together; at that point,
-  // this test becomes a standard regression guard (re-enabled, failure signals a regression).
-
-  // IF migration 303 were applied and the allowlist included slim, this would be TRUE:
-  // const client = fakeServiceClient();
-  // buildWorkspaceItemsQuery(client, "get_workspace_intelligence_slim", "org-1", { limit: 60, offset: 0 });
-  // const methods = client.calls.map((c) => c.method);
-  // assert.deepEqual(methods, ["rpc", "range"], "must be exactly rpc() then range(), no .order() calls");
-});
