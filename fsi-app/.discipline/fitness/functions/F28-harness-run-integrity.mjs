@@ -82,135 +82,36 @@ import { violation, PASS } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { validateRunArtifact, hashHarnessVersion, ALLOWED_FAMILIES } from '../../../scripts/lib/run-artifact.mjs';
-import { SCREEN_GOVERNING_FILES } from '../../../scripts/mint/screen-worklist.mjs';
+import { GOVERNING_FILES } from '../../../scripts/harness-runs/governing-files.mjs';
 
 const HARNESS_RUNS_REL = 'fsi-app/scripts/harness-runs';
 
 // Governing files per family, fsi-app-relative — CONVENTION.md's harness_version table, resolved to full
-// paths. screen's list is IMPORTED from screen-worklist.mjs (the one script that also hashes itself with
-// it), so those two copies structurally cannot drift; mint and fetch-drain have no equivalent canonical
-// script (mint's procedure is manual per MINT-RUNBOOK.md; fetch-drain's governing file is a Deno function
-// this repo does not import as a module), so they are hardcoded here, matching CONVENTION.md's table
-// verbatim — the sibling test file parses CONVENTION.md's own markdown table and asserts equality against
-// this constant, so a hand-edited table drifting from this copy is caught, not trusted on faith.
+// paths. IMPORTED, not declared here (Wave GOV-SINGLE, 2026-09-04): every family's list used to be either
+// hardcoded in THIS file (mint, fetch-drain, meta-harness, forward-events, source-sweep, ledger-consume,
+// change-detection, propagation) or imported from the one script that also self-hashed with it (screen, via
+// screen-worklist.mjs's SCREEN_GOVERNING_FILES) — while EVERY family's own canonical runner script ALSO
+// declared its own hand-copied `*_GOVERNING_FILES` array to stamp `harness_version` on the artifacts it
+// writes. Nothing forced the two copies to agree beyond a per-runner "matches F28's hardcoded entry" test
+// only three of eight runners carried — and, proven live: mint's F28 copy gained
+// `src/lib/agent/gate-a-scan.mjs` / `gate-a-match.mjs` (PR #580, the Gate-A single-source collapse) while
+// `run-mint-batch.mjs`'s own copy never did, so real population runs (#34-#36, mint-run-024..026) stamped
+// an 8-file `sha256:4f09523532bb7aee` no landed artifact could ever match against F28's 10-file
+// `sha256:28c98ae2309a416a` re-hash (both independently reproduced against this tree). `scripts/harness-runs/
+// governing-files.mjs` is now the ONE array every family's runner AND this file both import — see that
+// module's own header for the full defect this closes and why a fitness function importing from `scripts/`
+// is not a new pattern (this file already did, for `run-artifact.mjs` and, before this change,
+// `screen-worklist.mjs`). CONVENTION.md's own markdown table is documentation the sibling test file
+// (CONVENTION-TABLE-PARITY, below) checks against this import, never a third hand-maintained copy.
 //
-// meta-harness (Wave MH-4, build plan §3 "self-application") is the meta-harness layer's own family, so
-// its list is hardcoded here too, matching CONVENTION.md's table — but it is also the one entry that is
-// SELF-REFERENTIAL: this very file (F28-harness-run-integrity.mjs) is one of the four files it names. A
-// future edit to F28 — a new rule, a narrowed check, anything in this file — moves the meta-harness
-// family's own harness_version exactly like editing validate-mint-payload.mjs moves mint's, which is the
-// literal mechanism by which "the loop applies to itself" (plan §1) is enforced, not just narrated.
-export const GOVERNING_FILES = Object.freeze({
-  mint: Object.freeze([
-    'scripts/mint/MINT-RUNBOOK.md',
-    'scripts/mint/validate-mint-payload.mjs',
-    'scripts/mint/payload-schema.json',
-    'scripts/mint/item-type-required-slots.json',
-    'scripts/mint/lib/gate-a-scan.mjs', // since 2026-09-04 a re-export of src/lib/agent/gate-a-scan.mjs (below)
-    'scripts/mint/lib/gate-a-match.mjs', // since 2026-09-04 a re-export of src/lib/agent/gate-a-match.mjs (below)
-    'src/lib/agent/gate-a-scan.mjs', // THE Gate-A scanner (single source since 2026-09-04; the kit copy was drift)
-    'src/lib/agent/gate-a-match.mjs', // THE Gate-A matcher (same)
-    'scripts/mint/lib/canonicalize-citation-url.mjs',
-    'src/lib/intake/record-facts.mjs', // record-grade payload builder (lane POP, 2026-09-01)
-  ]),
-  screen: Object.freeze(SCREEN_GOVERNING_FILES),
-  'fetch-drain': Object.freeze(['supabase/functions/capture-worker/index.ts']),
-  'meta-harness': Object.freeze([
-    'scripts/harness-runs/CONVENTION.md',
-    'scripts/harness-runs/PROPOSER-RUNBOOK.md',
-    'scripts/lib/run-artifact.mjs',
-    '.discipline/fitness/functions/F28-harness-run-integrity.mjs',
-  ]),
-  // forward-events (registered by lane FE-3): a single-pass extraction harness, not a mint/screen/
-  // fetch-drain shape — one run is one extraction pass over a defined corpus slice. Its governing files
-  // are authored by other lanes and land in the same wave that lands this family's first run artifact
-  // (this lane deliberately does not create scripts/harness-runs/forward-events/ — see CONVENTION.md);
-  // until both files below exist on disk, hashHarnessVersion (scripts/lib/run-artifact.mjs) throws
-  // ENOENT rather than degrading, same as it would for any other family missing a governing file — see
-  // that function's own doc comment. That is fine here specifically because rule (c) below SKIPS a
-  // family with zero valid artifacts (see auditStalenessCoupling), so this family's hash is never
-  // actually computed until it has ≥1 valid artifact, which the coordinator lands in the same commit as
-  // these two files.
-  // Moved to src/lib/forward-events/ (lane FIX, 2026-09-01): the intake mint chokepoint (a runtime
-  // src/lib module, contract rule 16) now calls this extractor, and no runtime src/ file imports from
-  // scripts/ anywhere in this repo — see the extractor's own header for the full layering argument.
-  // Content unchanged by the move; run-extraction.mjs's FORWARD_EVENTS_GOVERNING_FILES and this entry
-  // stay identical by the cross-check in run-extraction.test.mjs.
-  'forward-events': Object.freeze([
-    'src/lib/forward-events/extract-forward-events.mjs',
-    'scripts/harness-runs/forward-events/PROTOCOL.md',
-  ]),
-  // source-sweep (registered by lane RT, 2026-09-01, harness+flywheel completion train): the runtime
-  // scripts/connections/*.mjs and scripts/mint|forward-events/run-*.mjs already had for their own
-  // families, extended to src/lib/sources/register-walk.mjs and feed-walk.mjs — two dormant, pure,
-  // dep-injected enumeration modules that had no caller anywhere in the repo before
-  // scripts/turns/run-source-sweep.mjs gave them one. Governing files are the driver plus both walker
-  // modules (the driver's own header names why persistPortalCandidates is mirrored, not imported, as
-  // the walkers' persist injection). Zero valid artifacts exist yet — this lane has neither DB nor
-  // network access to run it for real — so it carries scripts/harness-runs/source-sweep/PENDING-RUN.md
-  // as its hash-pinned FIRST-RUN ACKNOWLEDGMENT (rule (b), see the header): registered, first run
-  // pending, discharged by the source-sweep workflow's first source-sweep-run-001.json.
-  'source-sweep': Object.freeze([
-    'scripts/turns/run-source-sweep.mjs',
-    'src/lib/sources/register-walk.mjs',
-    'src/lib/sources/feed-walk.mjs',
-  ]),
-  // ledger-consume (registered by Lane CONSUME, system-completion plan 2026-09-02): the runtime
-  // scripts/turns/run-*.mjs already had for source-sweep/forward-events, extended to
-  // src/lib/intake/portal-harvest.ts's consumePortalCandidates (ledger candidate -> classify ->
-  // chokepoint -> intake) — the READER half of the portal-deep-link slice; persistPortalCandidates (the
-  // WRITER half, same file) already had a runtime via the scheduled check-sources crawl.
-  // consumePortalCandidates had zero production callers before run-ledger-consume.mjs (system-completion
-  // plan §0 item 1, confirmed by grep). Governing files are the driver plus the two library modules it
-  // gives a runtime to for the first time: portal-harvest.ts (the consume pass itself) and
-  // first-fetch-classify.ts (the LLM content gate it calls) — the second is included because this
-  // family's driver also had to close that module's missing agent_runs telemetry (see
-  // run-ledger-consume.mjs's own header for why), so a change to either module's behavior is this
-  // family's behavior changing, not an unrelated dependency. Zero valid artifacts exist yet — this lane
-  // has neither DB nor network access to run it for real — so it carries
-  // scripts/harness-runs/ledger-consume/PENDING-RUN.md as its hash-pinned FIRST-RUN ACKNOWLEDGMENT (rule
-  // (b), see this file's header), discharged by the ledger-consume workflow's first
-  // ledger-consume-run-001.json.
-  'ledger-consume': Object.freeze([
-    'scripts/turns/run-ledger-consume.mjs',
-    'src/lib/intake/portal-harvest.ts',
-    'src/lib/llm/first-fetch-classify.ts',
-  ]),
-  // change-detection (registered by lane CD, change-detection runtime, 2026-09-02): the runtime the
-  // detect -> reconcile -> drain chain never had. runReconcilePass (src/lib/sources/reconcile.ts) existed
-  // only as a callee inside check-sources/route.ts; drainChangeSweepUpdates (src/lib/intake/
-  // run-intake-cycle.ts) was reachable only from runIntakeCycle's own apply-mode tail. Governing files are
-  // the driver plus the two library modules it drives directly (reconcile.ts's dryRun projection,
-  // run-intake-cycle.ts's now-exported drain entry) — see run-change-detection.mjs's own header for the
-  // full chain and the two limitations found reading check-sources/route.ts (out of this family's write
-  // set; check-sources/route.ts itself is NOT a governing file here since this family does not modify or
-  // re-implement its logic, only calls it over HTTP). Zero valid artifacts exist yet — this lane has no
-  // live DB/network access to run it for real — so it carries
-  // scripts/harness-runs/change-detection/PENDING-RUN.md as its hash-pinned FIRST-RUN ACKNOWLEDGMENT
-  // (rule (b), see the header): registered, first run pending, discharged by the change-detection
-  // workflow's first change-detection-run-001.json.
-  'change-detection': Object.freeze([
-    'scripts/turns/run-change-detection.mjs',
-    'src/lib/sources/reconcile.ts',
-    'src/lib/intake/run-intake-cycle.ts',
-  ]),
-  // propagation (registered by lane DP-ENGINE, 2026-09-02, system-completion train): the drain driver plus
-  // the two propagation-engine modules whose behaviour a run actually exercises — drain.ts (the governed
-  // recompute/invalidate loop) and admissible-for.ts (the pollution barrier every consumer reads through).
-  // types.ts/effective-confidence.mjs/register-derivation.ts/methods/index.ts are exercised INDIRECTLY
-  // through these two (drain.ts imports register-derivation.ts and methods/index.ts; admissible-for.ts
-  // imports effective-confidence.mjs and types.ts) — same "driver + the modules it gives a runtime to"
-  // posture as source-sweep's own three-file list above, not an exhaustive listing of every file in
-  // src/lib/propagation/. Zero valid artifacts exist yet: this lane has migrations verified only against a
-  // local scratch Postgres, no live Supabase project credentials — so it carries
-  // scripts/harness-runs/propagation/PENDING-RUN.md as its hash-pinned FIRST-RUN ACKNOWLEDGMENT (rule (b)),
-  // discharged by the propagation-drain workflow's first propagation-run-001.json.
-  propagation: Object.freeze([
-    'scripts/turns/run-propagation-drain.mjs',
-    'src/lib/propagation/drain.ts',
-    'src/lib/propagation/admissible-for.ts',
-  ]),
-});
+// meta-harness (Wave MH-4, build plan §3 "self-application") is the meta-harness layer's own family, and
+// is now SELF-REFERENTIAL TWICE over: both this file (F28's own rules) and governing-files.mjs itself
+// (what now DEFINES every family's governing files, meta-harness's own included) are named in
+// meta-harness's own list. A future edit to either — a new F28 rule, a narrowed check, a new family added
+// to the table — moves the meta-harness family's own harness_version exactly like editing
+// validate-mint-payload.mjs moves mint's, which is the literal mechanism by which "the loop applies to
+// itself" (plan §1) is enforced, not just narrated.
+export { GOVERNING_FILES };
 
 const PENDING_RUN_FILE = 'PENDING-RUN.md';
 const PROPOSER_PASS_FILE = 'LAST-PROPOSER-PASS.md';

@@ -96,7 +96,66 @@ or a claim twin whose OWN verbatim span genuinely differs — a different record
 overlapping source text, not a bug in this fix); idempotent (`normalizeObligationText(text) === text` for
 every one of the 122 fresh outputs).
 
-**harness_version at write time:** `sha256:4187cd5f5f26d005`
+**harness_version at write time (superseded by "What changed (2)" below):** `sha256:4187cd5f5f26d005`
+
+## What changed (2)
+
+Lane FE-SLOT-2 (2026-09-04), fixing `slot_date_unclassified` (190 skips across six runs, this family's
+largest skip-reason bucket per `PROPOSER-7`'s pass) — the entry above's "What changed (1)" is unaffected
+by this lane and stays as the historical record of FWD-TEXT-3's fix; this entry is chained onto it because
+`extract-forward-events.mjs` (one of this family's two governing files) moved again before FWD-TEXT-3's
+own marker was discharged by a landed run artifact.
+
+THE DEFECT and its fix are documented in full in `PROTOCOL.md` §5d (added by this lane) and in
+`extract-forward-events.mjs`'s own header ("DUE-DATE SLOT CONTEXT RESCUE") — not repeated here in full to
+avoid a third copy of the same measurements. Summary: `record-facts.mjs`'s due_date slot claims (verbatim,
+never widened — out of scope, per §5d's ruling) often have their deontic verb sitting just outside the
+mint's own ~90-char capture window; this lane added a third input to the reader (`claim.context`, sourced
+from `agent_run_searches`'s grounding pool, per ADR-016 / `canonical-pipeline.ts`'s >200-char usability
+floor) and a context-rescue check in the extractor that can only ever *confirm* deontic language around a
+date already verbatim-located, never substitute a different date. The old single `slot_date_unclassified`
+bucket is retired into three named reasons: `relative_deadline_no_calendar_date`,
+`calendar_date_no_deontic_in_context`, `calendar_date_deontic_context_unavailable`.
+
+Measured [CONFIRMED, live read-only SQL this lane, project `kwrsbpiseruzbfwjpvsp`, 2026-09-04, plus the
+real `extractForwardEvents` code — not a SQL heuristic — over the resulting 118-row fixture]: of 756 total
+`[due_date]%` slot claims, 638 are year-less relative/recurring deadlines the extractor correctly never
+touches; 118 carry a four-digit year. Baseline (span-only) emits 61/118 events; with grounding-pool context
+attached, 90/118 (79 `compliance_deadline`, 6 `review_or_report`, 3 `other`, 2 `phase_step`) — 29 newly
+rescued (27 `compliance_deadline`, 2 `other`). The remaining 28 are honestly skipped: 15
+`calendar_date_no_deontic_in_context`, 13 `relative_deadline_no_calendar_date`, 0
+`calendar_date_deontic_context_unavailable` (every span in this fixture had a usable grounding-pool
+capture).
+
+**Both of this family's governing files moved:**
+
+- **`src/lib/forward-events/extract-forward-events.mjs`** — `EXTRACTOR_VERSION` bumped
+  `fe1-2026-09-04.3` → `fe1-2026-09-04.4`. New exported pure helper `rescueSlotDateWithContext(claimSpan,
+  context)` (reuses the existing `scanText` unchanged, scoped to hits whose matched date falls within the
+  slot span's own character range in the wider context — the verbatim-non-substitution guarantee). The
+  claims-loop tail for an unclassified due_date slot now branches three ways into the reasons above instead
+  of pushing one `slot_date_unclassified` skip.
+- **`scripts/harness-runs/forward-events/PROTOCOL.md`** — new §5d documenting this fix and the coordinator's
+  ruling that `record-facts.mjs`'s capture window is never widened for this; §5a's mention of the old single
+  skip reason corrected to point at §5d.
+
+**Explicitly NOT this family's governing file, and why (same posture as "What changed (1)" above):**
+`src/lib/intake/record-facts.mjs` is out of scope by explicit coordinator ruling — it locates a date, this
+lane gives the extractor context to type it, never the reverse. `src/lib/forward-events/
+read-and-extract.mjs`, `scripts/turns/export-corpus-for-extraction.mjs`, and `scripts/maintenance/
+forward-events-retext.mjs` are all CONSUMERS of the fixed extractor and its new reader contract (the first
+now exports the ONE shared row-mapping/context-attachment the other two import, collapsing a
+three-way duplication per CLAUDE.md's "no mirrored copies" rule) — none of them reimplement
+`extractForwardEvents`'s own logic, so none of them move this hash either.
+
+**Idempotence + property test**: enforced against all 118 live rows (fetched via read-only SQL, project
+`kwrsbpiseruzbfwjpvsp`, 2026-09-04 — see `extract-forward-events.test.mjs`'s "DUE-DATE SLOT CONTEXT RESCUE:
+corpus-wide property test" describe block header for the exact query) saved to
+`scripts/_snapshots/feslot2-live-118.json` (gitignored scratch): every rescued event's `obligation_text` is
+idempotent under `normalizeObligationText`, and every emitted `source_span` is independently re-verified as
+a literal substring of its own context+span text (not merely trusting `assertVerbatim`'s internal throw).
+
+**harness_version at write time:** `sha256:8cb99f232affa4c5`
 
 **The planned run that will supersede this marker:** the next `scripts/forward-events/run-extraction.mjs`
 dispatch under this landed code (or the coordinator's next `population-turn`/`forward-events-retext` APPLY

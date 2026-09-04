@@ -1,7 +1,8 @@
 // export-corpus-for-extraction.test.mjs — proves the pure arg-parse and corpus-shaping functions.
 // Importing this module never invokes main() (IS_MAIN checks process.argv[1] against the running file).
-import test from "node:test";
+import test, { describe } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { parseArgs, chunk, buildCorpusItems } from "./export-corpus-for-extraction.mjs";
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────
@@ -86,4 +87,91 @@ test("buildCorpusItems: an item with no claims/sections gets empty arrays, never
 test("buildCorpusItems: content_md null coerces to empty string, never null (extractor's own contract)", () => {
   const out = buildCorpusItems([{ id: "i" }], [], [{ id: "s", item_id: "i", section_key: "k", content_md: null }]);
   assert.equal(out[0].sections[0].md, "");
+});
+
+// ── buildCorpusItems: due_date slot context (lane FE-SLOT-2, 2026-09-04) ───────────────────────────
+// The exporter's own header ("COLUMN MAPPING") points at read-and-extract.mjs's shared mapping/context
+// functions for these — this block proves the exporter's own batched pool grouping wires them correctly,
+// never re-deriving the context logic itself.
+
+test("buildCorpusItems: a due_date slot FACT claim gains context from this item's own pool rows", () => {
+  const items = [{ id: "item-1" }];
+  const claimRows = [
+    {
+      id: "claim-due",
+      intelligence_item_id: "item-1",
+      claim_kind: "FACT",
+      claim_text: "[due_date] The captured source states a due date, verbatim: «30 June 2026»",
+      source_span: "30 June 2026",
+    },
+  ];
+  const longSurround = "x".repeat(210);
+  const poolRows = [
+    {
+      id: "search-1",
+      intelligence_item_id: "item-1",
+      result_content: `${longSurround} the operator shall provide data by 30 June 2026 on request.`,
+      result_index: 0,
+    },
+  ];
+  const out = buildCorpusItems(items, claimRows, [], poolRows);
+  assert.equal(out[0].claims.length, 1);
+  const claim = out[0].claims[0];
+  assert.ok(claim.context, "expected a context object");
+  assert.equal(claim.context.search_id, "search-1");
+  assert.ok(claim.context.before.endsWith("the operator shall provide data by "));
+  assert.equal(claim.context.after, " on request.");
+});
+
+test("buildCorpusItems: a due_date slot claim whose span is in no pool row gets context: null", () => {
+  const items = [{ id: "item-1" }];
+  const claimRows = [
+    {
+      id: "claim-due",
+      intelligence_item_id: "item-1",
+      claim_kind: "FACT",
+      claim_text: "[due_date] The captured source states a due date, verbatim: «30 June 2026»",
+      source_span: "30 June 2026",
+    },
+  ];
+  const out = buildCorpusItems(items, claimRows, [], []);
+  assert.equal(out[0].claims[0].context, null);
+});
+
+test("buildCorpusItems: an ordinary (non-due_date-slot) claim never gains a context field", () => {
+  const items = [{ id: "item-1" }];
+  const claimRows = [
+    { id: "claim-1", intelligence_item_id: "item-1", claim_kind: "FACT", claim_text: "text a", source_span: "span a" },
+  ];
+  const out = buildCorpusItems(items, claimRows, [], []);
+  assert.equal(Object.hasOwn(out[0].claims[0], "context"), false);
+});
+
+// ── the pool read is SCOPED to itemIdsNeedingContext (lane FE-SLOT-2b, 2026-09-04) ──────────────────
+// main() itself has no dependency injection (a live readAll against real DB creds) so this can't be
+// exercised end-to-end here; itemIdsNeedingContext (the function that decides the scope) has its own
+// exhaustive unit tests in read-and-extract.test.mjs. This block proves the SOURCE actually wires it in
+// rather than reverting to the old "read the pool for the whole chunk" shape.
+describe("pool read is scoped to itemIdsNeedingContext, not the whole id chunk (source contract)", () => {
+  const src = readFileSync(new URL("./export-corpus-for-extraction.mjs", import.meta.url), "utf8");
+
+  test("imports itemIdsNeedingContext from read-and-extract.mjs", () => {
+    assert.match(src, /\bitemIdsNeedingContext\b/);
+  });
+
+  test("computes the context-needing ids from THIS chunk's own claims before reading agent_run_searches", () => {
+    const poolReadIdx = src.indexOf('readAll("agent_run_searches"');
+    const contextIdsIdx = src.indexOf("itemIdsNeedingContext(claims)");
+    assert.ok(contextIdsIdx >= 0, "expected a itemIdsNeedingContext(claims) call");
+    assert.ok(poolReadIdx > contextIdsIdx, "the pool read must come after the context-ids are computed");
+  });
+
+  test("the agent_run_searches readAll's .in(\"intelligence_item_id\", ...) is scoped to a context-ids variable, never the raw idChunk", () => {
+    // The claim/section reads are still scoped to idChunk directly; the pool read must NOT be.
+    const claimReadMatch = src.match(/readAll\("section_claim_provenance"[\s\S]*?q\.in\("intelligence_item_id",\s*(\w+)\)/);
+    const poolReadMatch = src.match(/readAll\(\s*"agent_run_searches"[\s\S]*?q\.in\("intelligence_item_id",\s*(\w+)\)/);
+    assert.ok(claimReadMatch && poolReadMatch, "expected both readAll calls to be found");
+    assert.equal(claimReadMatch[1], "idChunk");
+    assert.notEqual(poolReadMatch[1], "idChunk");
+  });
 });

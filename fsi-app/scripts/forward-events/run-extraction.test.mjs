@@ -167,7 +167,10 @@ test("runExtraction: metrics.by_skip_reason histograms every skip's reason acros
     result.metrics.by_skip_reason["date after 'by' with no deontic ('shall'/'must') or aim/target language nearby — ambiguous whether this is a bound obligation"],
     1,
   );
-  assert.equal(result.metrics.by_skip_reason.slot_date_unclassified, 1);
+  // dueDateText is a relative/recurring deadline ("within 15 days...") with no calendar date at all —
+  // lane FE-SLOT-2 (2026-09-04) split the old single slot_date_unclassified bucket into three named
+  // reasons; this claim's span has no parseable calendar date, so it lands in the first one.
+  assert.equal(result.metrics.by_skip_reason.relative_deadline_no_calendar_date, 1);
   // plain-no-event's "no dates here" claim never trips a trigger, so it contributes zero skips —
   // by_skip_reason's total must equal metrics.skips exactly, not over- or under-count.
   const totalBySkipReason = Object.values(result.metrics.by_skip_reason).reduce((a, b) => a + b, 0);
@@ -306,17 +309,15 @@ test("CLI --execute: two consecutive real runs claim distinct, incrementing run 
   }
 });
 
-test("FORWARD_EVENTS_GOVERNING_FILES matches CONVENTION.md's / F28's forward-events entry exactly", async () => {
+test("FORWARD_EVENTS_GOVERNING_FILES matches CONVENTION.md's forward-events entry (documentation, checked against the module by CONVENTION-TABLE-PARITY)", async () => {
   const conventionMd = readFileSync(join(HERE, "..", "harness-runs", "CONVENTION.md"), "utf8");
   assert.ok(conventionMd.includes("extract-forward-events.mjs"), "CONVENTION.md must still name the extractor");
   assert.ok(conventionMd.includes("forward-events/PROTOCOL.md"), "CONVENTION.md must still name PROTOCOL.md");
-  const f28Src = readFileSync(
-    join(HERE, "..", "..", ".discipline", "fitness", "functions", "F28-harness-run-integrity.mjs"),
-    "utf8",
-  );
-  for (const f of FORWARD_EVENTS_GOVERNING_FILES) {
-    assert.ok(f28Src.includes(`'${f}'`), `F28's GOVERNING_FILES['forward-events'] must still list ${f}`);
-  }
+  // The old second half of this test read F28's source text for a literal string match — replaced by ONE
+  // consolidated contract test, scripts/harness-runs/governing-files.test.mjs (Wave GOV-SINGLE,
+  // 2026-09-04): this runner's export is now a direct re-export of governing-files.mjs's
+  // GOVERNING_FILES['forward-events'], so it and F28's own copy cannot drift apart by construction.
+  assert.ok(FORWARD_EVENTS_GOVERNING_FILES.length > 0);
 });
 
 // ── DEDUPE-PLUMB (2026-09-04, PROPOSER-5 finding): the extractor's dedupe counts reach the artifact ──

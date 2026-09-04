@@ -1,0 +1,608 @@
+[
+  {
+    "_proof_note": "record-facts.mjs rf1-2026-09-04.3 — deterministic, no-LLM, $0 extraction from the captured source text. Every FACT source_span is a verbatim (case-insensitive) substring of search_results[0].result_content, re-checked by assertVerbatim before emission.",
+    "item": {
+      "source_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "item_type": "market_signal",
+      "priority": "MODERATE",
+      "title": "EU Weekly Oil Bulletin — Euro-Super 95 (EU average, before taxes)",
+      "instrument_identifier": "eu-oil-bulletin:eurosuper-95",
+      "canonical_instrument_key": null,
+      "jurisdiction_iso": "EU",
+      "full_brief": "*Catalogue record: extracted facts only, full brief pending.*\n\n## Not stated in the captured source\n\n- [action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n\nSource: https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "grade": "record",
+      "binding_position": null,
+      "due_date": null,
+      "date_precision": null,
+      "corridor_identity": null,
+      "research_credibility": null
+    },
+    "source": {
+      "id": "cb816051-80d0-463b-95b2-551cf70c1c91",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/energy-prices-and-costs-europe_en",
+      "status": "active",
+      "base_tier": 2,
+      "tier_override": null,
+      "institution_id": "3cc5e02b-9938-4e48-8f28-2b03864e20af",
+      "category": null,
+      "name": "European Commission – DG Energy"
+    },
+    "screen": {
+      "verdict": "on_vertical",
+      "provenance": "reviewed",
+      "basis": "R-D ruling"
+    },
+    "registry_sources": [],
+    "sections": [
+      {
+        "section_key": "record_facts",
+        "section_order": 2,
+        "content_md": "[action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief."
+      },
+      {
+        "section_key": "sources_and_citations",
+        "section_order": 3,
+        "content_md": "Source: https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en"
+      }
+    ],
+    "search_results": [
+      {
+        "result_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+        "result_title": "EU Weekly Oil Bulletin — Euro-Super 95 (EU average, before taxes)",
+        "search_query": "canonical:record-grade",
+        "result_index": 0,
+        "result_content": "Weekly Oil Bulletin\n\nInformation and maps showing weekly updates on prices of petroleum products in all EU countries\n\nTo improve the transparency of oil prices and to strengthen the internal market, the European Commission's Oil Bulletin presents weekly consumer prices for petroleum products in EU countries. The national data and prices are submitted to the Commission on Wednesdays and our subscribers receive the bulletin per mail every Thursday.\n\nUsers can subscribe to receive the bulletin via email.\n\nAvailable downloads (all dated 27 August 2026): Prices with taxes (XLSX), Prices without taxes (XLSX), Eurosuper 95 map (PDF), Diesel map (PDF).\n\nTaxes on Petroleum Products: documentation covering value added taxes, excise duties, and other indirect taxes applicable to petroleum products across EU member states, provided in spreadsheet format.\n\nPrice Developments: historical pricing information spanning from 2005 onward, including data on taxes, duties, and consumption patterns across EU nations.\n\nMethodological Documentation: the page provides country-specific methodology notes for all 27 EU member states explaining their individual price reporting approaches.\n\nAdditional Resources: historical regulatory documents from 1999-2013 addressing crude oil supply costs and petroleum product pricing procedures are included.",
+        "fetched_length": 1337
+      }
+    ],
+    "claims": [
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "action_now"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "conversion_trigger"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "driving_parties"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "signal_event"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "corridor_identity",
+        "corridor_identity": null
+      }
+    ],
+    "id": "eu-oil-bulletin:eurosuper-95"
+  },
+  {
+    "_proof_note": "record-facts.mjs rf1-2026-09-04.3 — deterministic, no-LLM, $0 extraction from the captured source text. Every FACT source_span is a verbatim (case-insensitive) substring of search_results[0].result_content, re-checked by assertVerbatim before emission.",
+    "item": {
+      "source_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "item_type": "market_signal",
+      "priority": "MODERATE",
+      "title": "EU Weekly Oil Bulletin — Automotive gas oil / diesel (EU average, before taxes)",
+      "instrument_identifier": "eu-oil-bulletin:automotive-diesel",
+      "canonical_instrument_key": null,
+      "jurisdiction_iso": "EU",
+      "full_brief": "*Catalogue record: extracted facts only, full brief pending.*\n\n## Not stated in the captured source\n\n- [action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n\nSource: https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "grade": "record",
+      "binding_position": null,
+      "due_date": null,
+      "date_precision": null,
+      "corridor_identity": null,
+      "research_credibility": null
+    },
+    "source": {
+      "id": "cb816051-80d0-463b-95b2-551cf70c1c91",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/energy-prices-and-costs-europe_en",
+      "status": "active",
+      "base_tier": 2,
+      "tier_override": null,
+      "institution_id": "3cc5e02b-9938-4e48-8f28-2b03864e20af",
+      "category": null,
+      "name": "European Commission – DG Energy"
+    },
+    "screen": {
+      "verdict": "on_vertical",
+      "provenance": "reviewed",
+      "basis": "R-D ruling"
+    },
+    "registry_sources": [],
+    "sections": [
+      {
+        "section_key": "record_facts",
+        "section_order": 2,
+        "content_md": "[action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief."
+      },
+      {
+        "section_key": "sources_and_citations",
+        "section_order": 3,
+        "content_md": "Source: https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en"
+      }
+    ],
+    "search_results": [
+      {
+        "result_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+        "result_title": "EU Weekly Oil Bulletin — Automotive gas oil / diesel (EU average, before taxes)",
+        "search_query": "canonical:record-grade",
+        "result_index": 0,
+        "result_content": "Weekly Oil Bulletin\n\nInformation and maps showing weekly updates on prices of petroleum products in all EU countries\n\nTo improve the transparency of oil prices and to strengthen the internal market, the European Commission's Oil Bulletin presents weekly consumer prices for petroleum products in EU countries. The national data and prices are submitted to the Commission on Wednesdays and our subscribers receive the bulletin per mail every Thursday.\n\nUsers can subscribe to receive the bulletin via email.\n\nAvailable downloads (all dated 27 August 2026): Prices with taxes (XLSX), Prices without taxes (XLSX), Eurosuper 95 map (PDF), Diesel map (PDF).\n\nTaxes on Petroleum Products: documentation covering value added taxes, excise duties, and other indirect taxes applicable to petroleum products across EU member states, provided in spreadsheet format.\n\nPrice Developments: historical pricing information spanning from 2005 onward, including data on taxes, duties, and consumption patterns across EU nations.\n\nMethodological Documentation: the page provides country-specific methodology notes for all 27 EU member states explaining their individual price reporting approaches.\n\nAdditional Resources: historical regulatory documents from 1999-2013 addressing crude oil supply costs and petroleum product pricing procedures are included.",
+        "fetched_length": 1337
+      }
+    ],
+    "claims": [
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "action_now"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "conversion_trigger"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "driving_parties"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "signal_event"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "corridor_identity",
+        "corridor_identity": null
+      }
+    ],
+    "id": "eu-oil-bulletin:automotive-diesel"
+  },
+  {
+    "_proof_note": "record-facts.mjs rf1-2026-09-04.3 — deterministic, no-LLM, $0 extraction from the captured source text. Every FACT source_span is a verbatim (case-insensitive) substring of search_results[0].result_content, re-checked by assertVerbatim before emission.",
+    "item": {
+      "source_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "item_type": "market_signal",
+      "priority": "MODERATE",
+      "title": "EU Weekly Oil Bulletin — Heating gas oil (EU average, before taxes)",
+      "instrument_identifier": "eu-oil-bulletin:heating-gas-oil",
+      "canonical_instrument_key": null,
+      "jurisdiction_iso": "EU",
+      "full_brief": "*Catalogue record: extracted facts only, full brief pending.*\n\n## Not stated in the captured source\n\n- [action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n\nSource: https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "grade": "record",
+      "binding_position": null,
+      "due_date": null,
+      "date_precision": null,
+      "corridor_identity": null,
+      "research_credibility": null
+    },
+    "source": {
+      "id": "cb816051-80d0-463b-95b2-551cf70c1c91",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/energy-prices-and-costs-europe_en",
+      "status": "active",
+      "base_tier": 2,
+      "tier_override": null,
+      "institution_id": "3cc5e02b-9938-4e48-8f28-2b03864e20af",
+      "category": null,
+      "name": "European Commission – DG Energy"
+    },
+    "screen": {
+      "verdict": "on_vertical",
+      "provenance": "reviewed",
+      "basis": "R-D ruling"
+    },
+    "registry_sources": [],
+    "sections": [
+      {
+        "section_key": "record_facts",
+        "section_order": 2,
+        "content_md": "[action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief."
+      },
+      {
+        "section_key": "sources_and_citations",
+        "section_order": 3,
+        "content_md": "Source: https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en"
+      }
+    ],
+    "search_results": [
+      {
+        "result_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+        "result_title": "EU Weekly Oil Bulletin — Heating gas oil (EU average, before taxes)",
+        "search_query": "canonical:record-grade",
+        "result_index": 0,
+        "result_content": "Weekly Oil Bulletin\n\nInformation and maps showing weekly updates on prices of petroleum products in all EU countries\n\nTo improve the transparency of oil prices and to strengthen the internal market, the European Commission's Oil Bulletin presents weekly consumer prices for petroleum products in EU countries. The national data and prices are submitted to the Commission on Wednesdays and our subscribers receive the bulletin per mail every Thursday.\n\nUsers can subscribe to receive the bulletin via email.\n\nAvailable downloads (all dated 27 August 2026): Prices with taxes (XLSX), Prices without taxes (XLSX), Eurosuper 95 map (PDF), Diesel map (PDF).\n\nTaxes on Petroleum Products: documentation covering value added taxes, excise duties, and other indirect taxes applicable to petroleum products across EU member states, provided in spreadsheet format.\n\nPrice Developments: historical pricing information spanning from 2005 onward, including data on taxes, duties, and consumption patterns across EU nations.\n\nMethodological Documentation: the page provides country-specific methodology notes for all 27 EU member states explaining their individual price reporting approaches.\n\nAdditional Resources: historical regulatory documents from 1999-2013 addressing crude oil supply costs and petroleum product pricing procedures are included.",
+        "fetched_length": 1337
+      }
+    ],
+    "claims": [
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "action_now"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "conversion_trigger"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "driving_parties"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "signal_event"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "corridor_identity",
+        "corridor_identity": null
+      }
+    ],
+    "id": "eu-oil-bulletin:heating-gas-oil"
+  },
+  {
+    "_proof_note": "record-facts.mjs rf1-2026-09-04.3 — deterministic, no-LLM, $0 extraction from the captured source text. Every FACT source_span is a verbatim (case-insensitive) substring of search_results[0].result_content, re-checked by assertVerbatim before emission.",
+    "item": {
+      "source_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "item_type": "market_signal",
+      "priority": "MODERATE",
+      "title": "EU Weekly Oil Bulletin — LPG motor fuel (EU average, before taxes)",
+      "instrument_identifier": "eu-oil-bulletin:lpg-motor-fuel",
+      "canonical_instrument_key": null,
+      "jurisdiction_iso": "EU",
+      "full_brief": "*Catalogue record: extracted facts only, full brief pending.*\n\n## Not stated in the captured source\n\n- [action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n\nSource: https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "grade": "record",
+      "binding_position": null,
+      "due_date": null,
+      "date_precision": null,
+      "corridor_identity": null,
+      "research_credibility": null
+    },
+    "source": {
+      "id": "cb816051-80d0-463b-95b2-551cf70c1c91",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/energy-prices-and-costs-europe_en",
+      "status": "active",
+      "base_tier": 2,
+      "tier_override": null,
+      "institution_id": "3cc5e02b-9938-4e48-8f28-2b03864e20af",
+      "category": null,
+      "name": "European Commission – DG Energy"
+    },
+    "screen": {
+      "verdict": "on_vertical",
+      "provenance": "reviewed",
+      "basis": "R-D ruling"
+    },
+    "registry_sources": [],
+    "sections": [
+      {
+        "section_key": "record_facts",
+        "section_order": 2,
+        "content_md": "[action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief."
+      },
+      {
+        "section_key": "sources_and_citations",
+        "section_order": 3,
+        "content_md": "Source: https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en"
+      }
+    ],
+    "search_results": [
+      {
+        "result_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+        "result_title": "EU Weekly Oil Bulletin — LPG motor fuel (EU average, before taxes)",
+        "search_query": "canonical:record-grade",
+        "result_index": 0,
+        "result_content": "Weekly Oil Bulletin\n\nInformation and maps showing weekly updates on prices of petroleum products in all EU countries\n\nTo improve the transparency of oil prices and to strengthen the internal market, the European Commission's Oil Bulletin presents weekly consumer prices for petroleum products in EU countries. The national data and prices are submitted to the Commission on Wednesdays and our subscribers receive the bulletin per mail every Thursday.\n\nUsers can subscribe to receive the bulletin via email.\n\nAvailable downloads (all dated 27 August 2026): Prices with taxes (XLSX), Prices without taxes (XLSX), Eurosuper 95 map (PDF), Diesel map (PDF).\n\nTaxes on Petroleum Products: documentation covering value added taxes, excise duties, and other indirect taxes applicable to petroleum products across EU member states, provided in spreadsheet format.\n\nPrice Developments: historical pricing information spanning from 2005 onward, including data on taxes, duties, and consumption patterns across EU nations.\n\nMethodological Documentation: the page provides country-specific methodology notes for all 27 EU member states explaining their individual price reporting approaches.\n\nAdditional Resources: historical regulatory documents from 1999-2013 addressing crude oil supply costs and petroleum product pricing procedures are included.",
+        "fetched_length": 1337
+      }
+    ],
+    "claims": [
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "action_now"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "conversion_trigger"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "driving_parties"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "signal_event"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "corridor_identity",
+        "corridor_identity": null
+      }
+    ],
+    "id": "eu-oil-bulletin:lpg-motor-fuel"
+  },
+  {
+    "_proof_note": "record-facts.mjs rf1-2026-09-04.3 — deterministic, no-LLM, $0 extraction from the captured source text. Every FACT source_span is a verbatim (case-insensitive) substring of search_results[0].result_content, re-checked by assertVerbatim before emission.",
+    "item": {
+      "source_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "item_type": "market_signal",
+      "priority": "MODERATE",
+      "title": "EU Weekly Oil Bulletin — Residual fuel oil 1%S (EU average, before taxes)",
+      "instrument_identifier": "eu-oil-bulletin:residual-fuel-oil-1pct",
+      "canonical_instrument_key": null,
+      "jurisdiction_iso": "EU",
+      "full_brief": "*Catalogue record: extracted facts only, full brief pending.*\n\n## Not stated in the captured source\n\n- [action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n\nSource: https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "grade": "record",
+      "binding_position": null,
+      "due_date": null,
+      "date_precision": null,
+      "corridor_identity": null,
+      "research_credibility": null
+    },
+    "source": {
+      "id": "cb816051-80d0-463b-95b2-551cf70c1c91",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/energy-prices-and-costs-europe_en",
+      "status": "active",
+      "base_tier": 2,
+      "tier_override": null,
+      "institution_id": "3cc5e02b-9938-4e48-8f28-2b03864e20af",
+      "category": null,
+      "name": "European Commission – DG Energy"
+    },
+    "screen": {
+      "verdict": "on_vertical",
+      "provenance": "reviewed",
+      "basis": "R-D ruling"
+    },
+    "registry_sources": [],
+    "sections": [
+      {
+        "section_key": "record_facts",
+        "section_order": 2,
+        "content_md": "[action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief."
+      },
+      {
+        "section_key": "sources_and_citations",
+        "section_order": 3,
+        "content_md": "Source: https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en"
+      }
+    ],
+    "search_results": [
+      {
+        "result_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+        "result_title": "EU Weekly Oil Bulletin — Residual fuel oil 1%S (EU average, before taxes)",
+        "search_query": "canonical:record-grade",
+        "result_index": 0,
+        "result_content": "Weekly Oil Bulletin\n\nInformation and maps showing weekly updates on prices of petroleum products in all EU countries\n\nTo improve the transparency of oil prices and to strengthen the internal market, the European Commission's Oil Bulletin presents weekly consumer prices for petroleum products in EU countries. The national data and prices are submitted to the Commission on Wednesdays and our subscribers receive the bulletin per mail every Thursday.\n\nUsers can subscribe to receive the bulletin via email.\n\nAvailable downloads (all dated 27 August 2026): Prices with taxes (XLSX), Prices without taxes (XLSX), Eurosuper 95 map (PDF), Diesel map (PDF).\n\nTaxes on Petroleum Products: documentation covering value added taxes, excise duties, and other indirect taxes applicable to petroleum products across EU member states, provided in spreadsheet format.\n\nPrice Developments: historical pricing information spanning from 2005 onward, including data on taxes, duties, and consumption patterns across EU nations.\n\nMethodological Documentation: the page provides country-specific methodology notes for all 27 EU member states explaining their individual price reporting approaches.\n\nAdditional Resources: historical regulatory documents from 1999-2013 addressing crude oil supply costs and petroleum product pricing procedures are included.",
+        "fetched_length": 1337
+      }
+    ],
+    "claims": [
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "action_now"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "conversion_trigger"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "driving_parties"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "signal_event"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "corridor_identity",
+        "corridor_identity": null
+      }
+    ],
+    "id": "eu-oil-bulletin:residual-fuel-oil-1pct"
+  },
+  {
+    "_proof_note": "record-facts.mjs rf1-2026-09-04.3 — deterministic, no-LLM, $0 extraction from the captured source text. Every FACT source_span is a verbatim (case-insensitive) substring of search_results[0].result_content, re-checked by assertVerbatim before emission.",
+    "item": {
+      "source_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "item_type": "market_signal",
+      "priority": "MODERATE",
+      "title": "EU Weekly Oil Bulletin — Heavy fuel oil 3.5%S (EU average, before taxes)",
+      "instrument_identifier": "eu-oil-bulletin:heavy-fuel-oil-3-5pct",
+      "canonical_instrument_key": null,
+      "jurisdiction_iso": "EU",
+      "full_brief": "*Catalogue record: extracted facts only, full brief pending.*\n\n## Not stated in the captured source\n\n- [action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n- [corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n\nSource: https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+      "grade": "record",
+      "binding_position": null,
+      "due_date": null,
+      "date_precision": null,
+      "corridor_identity": null,
+      "research_credibility": null
+    },
+    "source": {
+      "id": "cb816051-80d0-463b-95b2-551cf70c1c91",
+      "url": "https://energy.ec.europa.eu/data-and-analysis/energy-prices-and-costs-europe_en",
+      "status": "active",
+      "base_tier": 2,
+      "tier_override": null,
+      "institution_id": "3cc5e02b-9938-4e48-8f28-2b03864e20af",
+      "category": null,
+      "name": "European Commission – DG Energy"
+    },
+    "screen": {
+      "verdict": "on_vertical",
+      "provenance": "reviewed",
+      "basis": "R-D ruling"
+    },
+    "registry_sources": [],
+    "sections": [
+      {
+        "section_key": "record_facts",
+        "section_order": 2,
+        "content_md": "[action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n[corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief."
+      },
+      {
+        "section_key": "sources_and_citations",
+        "section_order": 3,
+        "content_md": "Source: https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en"
+      }
+    ],
+    "search_results": [
+      {
+        "result_url": "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en",
+        "result_title": "EU Weekly Oil Bulletin — Heavy fuel oil 3.5%S (EU average, before taxes)",
+        "search_query": "canonical:record-grade",
+        "result_index": 0,
+        "result_content": "Weekly Oil Bulletin\n\nInformation and maps showing weekly updates on prices of petroleum products in all EU countries\n\nTo improve the transparency of oil prices and to strengthen the internal market, the European Commission's Oil Bulletin presents weekly consumer prices for petroleum products in EU countries. The national data and prices are submitted to the Commission on Wednesdays and our subscribers receive the bulletin per mail every Thursday.\n\nUsers can subscribe to receive the bulletin via email.\n\nAvailable downloads (all dated 27 August 2026): Prices with taxes (XLSX), Prices without taxes (XLSX), Eurosuper 95 map (PDF), Diesel map (PDF).\n\nTaxes on Petroleum Products: documentation covering value added taxes, excise duties, and other indirect taxes applicable to petroleum products across EU member states, provided in spreadsheet format.\n\nPrice Developments: historical pricing information spanning from 2005 onward, including data on taxes, duties, and consumption patterns across EU nations.\n\nMethodological Documentation: the page provides country-specific methodology notes for all 27 EU member states explaining their individual price reporting approaches.\n\nAdditional Resources: historical regulatory documents from 1999-2013 addressing crude oil supply costs and petroleum product pricing procedures are included.",
+        "fetched_length": 1337
+      }
+    ],
+    "claims": [
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[action_now] No verbatim action now statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "action_now"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[conversion_trigger] No verbatim conversion trigger statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "conversion_trigger"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[driving_parties] No verbatim driving parties statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "driving_parties"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[signal_event] No verbatim signal event statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "signal_event"
+      },
+      {
+        "section_key": "record_facts",
+        "claim_kind": "GAP",
+        "claim_text": "[corridor_identity] No verbatim UN/LOCODE port-pair and mode were located together in the captured source text for this record-grade item — corridor identity is only stated when both ends are named together. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.",
+        "source_span": null,
+        "source_url": null,
+        "slot_key": "corridor_identity",
+        "corridor_identity": null
+      }
+    ],
+    "id": "eu-oil-bulletin:heavy-fuel-oil-3-5pct"
+  }
+]

@@ -9829,3 +9829,49 @@ landed it as `src/lib/intake/write-item.ts` (Addendum 85, line 8107). Eight stal
 branches upstream (33678399902 … 33826384670) are byte-identical to master or older than it
 [CONFIRMED per blob]; deleted in this train's landing command. Dispatch next: heal apply; population
 apply with the R-D six `rows_file`; then population apply limit 200; retext dry → apply under FWD-TEXT-3.
+
+### Addendum 85, postscript 47 — the gate opens; the runner had never stamped the gate's hash (2026-09-04)
+
+Train/wave35 landed as #582 (`f2800ea9`). First population applies through THE GATE [CONFIRMED,
+artifacts on this train]: #34 (the R-D six, `rows_file`) minted 1 of 6 valid rows, Euro-Super 95, and
+blocked the five sibling series `not_applied_url_holder`: M4's same-URL holder check treated one bulletin
+page as one document. Lane RD-M4 (Sonnet, `4b20e3a3`) makes the identity `instrument_identifier`-aware
+(a labelled sibling passes, null-vs-null and null-vs-labelled still block, the URL index holds every
+holder and sees same-batch mints); RD-M4b (`8595e5d6`) found the same rule one layer up in
+`export-census-rows.mjs` and moved the predicate into `scripts/mint/lib/instrument-identity.mjs` so both
+layers import one body; live, no other URL carries two live items today, so the change moves nothing
+else. #35/#36/#37/#38 (limit 200): 120, 103, 89, 104 minted verified at $0, record grade; 54, 61, 55, 29
+held `validation_failed:5:record_hollow` (the hollow-swept rows re-holding a slice at a time, the honest
+disposition); edges 1,440 / 1,236 / 1,074 / 1,478; 45 / 21 / 15 / 26 forward events. 121 new verified
+items were live within twelve minutes of #35 [CONFIRMED SQL]; ~3,060 `would_mint` rows remain.
+
+Lane FE-SLOT-2 (Sonnet, `4135c48e`): three readers were mirroring the extractor's input query by hand
+(read-and-extract, the corpus exporter, the retext step); now one reader; due_date slot claims carry
+the captured-source context around the mint's ~79-char span, and the extractor's rescue re-runs the SAME
+rule over it, accepting only a hit whose date is inside the span. Over the 118 calendar-dated slot claims
+live: 61 → 90 events; the 638 relative deadlines stay refused by name (three skip reasons replace one
+bucket). FE-SLOT-2b (`6021fff4`, my payload check): the pool read (`result_content`, 617 MB across the
+table) is scoped to the 44 items whose claims need it, 0.54% of the table; `readAll` pages past 1,000.
+
+Heal apply #42 [CONFIRMED summary]: 86 processed, 3 healed to verified, gate A rewritten on 86 under
+the fixed scanner; STEP SOURCE fetched the cited pages: 1,720 token occurrences absent, 30 grounded, 443
+unresolved across 76 items. Dry #39's "1,247 would ground" counted candidate URLs, not confirmed hits;
+I read it as the latter in ps 46 and correct that here. The deterministic $0 grounding paths are
+exhausted for those 76: the figures are in the briefs and not on the pages the briefs cite. Options are
+the operator's: a search-backed grounding pass (a cost), or the items stay quarantined. The
+brief-honest strip is not one of them (ps 46). Reopen #40/#41: the two UK-SI rows re-admitted, 0 holds.
+
+PROPOSER-8 (Haiku, `82809971`) attested mint 024–027 and forward-events 029–032, then asserted
+[CONFIRMED] that the mint artifacts' hash equals the tree's. It does not: measured with
+`hashHarnessVersion` on this branch, F28's list gave `714d22dadb03b8a1`, the runner's own copy
+`6f805846c97cf4a4`, the artifacts `4f09523532bb7aee` (the runner's copy at `f2800ea9`). I corrected the
+attestation in place (`ea84ce25`), withdrawing the sentence rather than editing it away. The cause is
+the wave's defect verbatim: every family runner kept a hand-synced copy of F28's `GOVERNING_FILES`, the
+mint copy had drifted two files since #580, and the parity test checked one direction. Lane GOV-SINGLE
+(Sonnet, `af4739cb`): `scripts/harness-runs/governing-files.mjs` is the one table; F28 and all runners
+import it; the eight per-runner parity tests become one contract test; meta-harness marker
+`bf7c0e927a84b9f0` (F28 moved). On this train every family's computed hash equals its marker.
+
+Retext dry #43 under FWD-TEXT-3: 132 rewrites, 27 collisions; apply #44 dispatched. Population #38's
+artifacts go to the next train. Dispatch next after landing: R-D six `rows_file` apply (five siblings),
+`ratify-series-items --apply`, `refresh-published-price-statistics`; population applies continue.

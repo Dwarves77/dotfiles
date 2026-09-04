@@ -55,32 +55,23 @@ import { validateMintPayload } from "./validate-mint-payload.mjs";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
 import { buildRecordPayload } from "../../src/lib/intake/record-facts.mjs";
 import { checkTagPresence } from "./lib/tag-presence-check.mjs";
+import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
 const DEFAULT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "mint");
 
-// The mint family's governing files, per CONVENTION.md's harness_version table and F28's GOVERNING_FILES
-// (.discipline/fitness/functions/F28-harness-run-integrity.mjs) — kept identical to both by hand today
-// (mint's list is hardcoded in F28 too, per that file's own comment: "mint and fetch-drain have no
-// equivalent canonical script" — true when F28 was written, no longer true now that this file exists,
-// but F28 itself is out of this lane's write set beyond its one named ENOENT fix, so the two copies stay
-// hand-synced for now; a future wave could point F28 at this export the same way it already does for
-// screen's SCREEN_GOVERNING_FILES).
-export const MINT_GOVERNING_FILES = Object.freeze([
-  "scripts/mint/MINT-RUNBOOK.md",
-  "scripts/mint/validate-mint-payload.mjs",
-  "scripts/mint/payload-schema.json",
-  "scripts/mint/item-type-required-slots.json",
-  "scripts/mint/lib/gate-a-scan.mjs",
-  "scripts/mint/lib/gate-a-match.mjs",
-  "scripts/mint/lib/canonicalize-citation-url.mjs",
-  // record-facts.mjs (the --grade record payload builder, Lane POP 2026-09-01): a change to its
-  // extraction logic changes what a record batch produces exactly as validate-mint-payload.mjs changes
-  // what it accepts. Added to this array AND F28's GOVERNING_FILES.mint AND CONVENTION.md's table in
-  // the same commit (coordinator, 2026-09-01), so the byte-for-byte parity test holds.
-  "src/lib/intake/record-facts.mjs",
-]);
+// The mint family's governing files, per CONVENTION.md's harness_version table — IMPORTED from
+// scripts/harness-runs/governing-files.mjs (Wave GOV-SINGLE, 2026-09-04), re-exported under this
+// historical name so existing importers keep working unchanged. Before this change this array was a
+// SECOND hand-copy of F28's own GOVERNING_FILES.mint, kept in sync only by a per-test string-match — and
+// it had already drifted: this array never gained `src/lib/agent/gate-a-scan.mjs` / `gate-a-match.mjs`
+// when F28's copy did (PR #580's Gate-A single-source collapse), so real population runs (#34-#36,
+// mint-run-024/025/026) stamped an 8-file `harness_version` (`sha256:4f09523532bb7aee`) no landed
+// artifact could ever match against F28's 10-file re-hash (`sha256:28c98ae2309a416a`) — the mint
+// PENDING-RUN.md marker could never be honestly discharged. See governing-files.mjs's own header for the
+// full defect and fix.
+export const MINT_GOVERNING_FILES = GOVERNING_FILES.mint;
 
 function usage() {
   return [

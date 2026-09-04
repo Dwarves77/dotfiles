@@ -444,11 +444,142 @@ re-exports of the `src/` files, F28's mint `GOVERNING_FILES` (and CONVENTION.md'
 `src/` files alongside the kit paths, and MINT-RUNBOOK.md's "Keeping the kit in sync" section describes
 the re-export instead of the copy. The 30 lane tests run through the re-export unchanged.
 
-**harness_version at write time:** `sha256:28c98ae2309a416a`
+**harness_version at write time (superseded below — see "What changed (11)"):** `sha256:28c98ae2309a416a`
+
+---
+
+## Lane RD-M4 (2026-09-04) — M4 same-URL identity fix: a sibling series no longer blocks itself
+
+**What changed (11):** lane RD-M4 (coordinator dispatch, 2026-09-04), fixing the defect population apply
+#34 measured live: six EU Weekly Oil Bulletin `market_signal` series (one `source_url`, one
+`canonical_instrument_key: null`, six distinct `instrument_identifier`s, ruling R-D's series case) minted
+one item and blocked the other five `not_applied_url_holder` — `checkM4`'s same-URL branch compared URLs
+only, so the first sibling minted became the single holder every later sibling's URL check matched, even
+though each names a different document. `MINT-RUNBOOK.md`'s M4 paragraph (~line 397) now states the fixed
+rule (`normalizeInstrumentIdentifier` + `sameInstrumentIdentity`, case-insensitive/trimmed identity
+comparison, a labelled/labelled-different pair does not block, a null-vs-null or any-null pair still blocks,
+fail-closed) — the only prose change to a mint governing file this lane made; `apply-mint-batch.mjs` itself
+is NOT a mint `GOVERNING_FILES` entry, so its own `checkM4`/`buildItemsIndex` rewrite does not by itself move
+this hash, but it is landing in the SAME commit as the runbook change, so the two are not out of step with
+each other on disk. `buildItemsIndex.bySourceUrl` changed from a single-holder `Map` overwrite to a
+per-URL array (every holder at a URL is now visible, not only the most-recently-indexed one), and
+`applyOnePayload` pushes a newly-minted item into that array rather than overwriting the slot, so a sibling
+minted earlier in the SAME batch is visible to a later payload's identity check exactly like a holder read
+from the live DB at batch start.
+
+**Live measurement before the change [CONFIRMED, Supabase project kwrsbpiseruzbfwjpvsp, 2026-09-04]:** the
+bulletin's own `source_url` held exactly the one minted row (`eurosuper-95`,
+`4fae403a-ced5-4c8f-82b7-af0fd6127061`, `verified`, `canonical_instrument_key: null`); across the WHOLE
+live `intelligence_items` corpus, excluding the degenerate `source_url = ''` rows (562, never checked by
+`checkM4` — an empty string is falsy), only six OTHER `source_url` values carry 2+ rows at all, and every
+one of those six has at most ONE non-archived survivor today (the other member is `archive_reason`-stamped:
+`duplicate_instrument`, `duplicate_of_verified`, or `reclassified_to_source`). So the "two simultaneously
+LIVE items sharing one URL" case had never existed in the live corpus before this run — this narrowing has
+no retroactive effect on anything already live; it unblocks exactly the bulletin's five siblings and any
+future batch shaped the same way (a landing page fronting several named series).
+
+**Tests (`scripts/mint/apply-mint-batch.test.mjs`, +10 net over the prior 767 full-suite total — one prior
+test rewritten in place, nine new):** `buildItemsIndex` keeps every
+holder at a URL, not just the last one indexed; `normalizeInstrumentIdentifier` / `sameInstrumentIdentity`
+unit tests (trim/case, both-null, both-equal, both-different, both directions of the null-vs-labelled
+asymmetry); `checkM4` true-duplicate (same identifier, case/whitespace-insensitive) blocks; null-vs-null
+duplicate blocks; the null-holder asymmetry blocks; a labelled/different-labelled pair does NOT block
+(sibling series); the canonical-key branch's existing wo26/holder-conflict tests are unchanged (regression);
+an `applyOnePayload` six-series-batch integration test reproducing population apply #34's exact shape (one
+`source_url`, six distinct `instrument_identifier`s, `canonical_instrument_key: null`) — all six now mint;
+and a same-batch true-duplicate integration test (two payloads, same URL, same identifier, second is
+blocked by the first). 777 mint tests total, node --test clean.
+
+**harness_version at write time (superseded below — see "What changed (12)"):** `sha256:2b8ff43291ad2f80`
+
+---
+
+## Lane RD-M4b (2026-09-04) — export-census-rows.mjs's same-URL exclusion moved onto the shared predicate
+
+**What changed (12):** lane RD-M4b (coordinator dispatch, 2026-09-04), fixing the defect class RD-M4's own
+apply-mint-batch.mjs commit flagged one layer up: `export-census-rows.mjs`'s `partitionExcludeHeld`
+excluded a would_mint census row from export purely on `source_url` Set membership, with no identity
+comparison — a row sharing a URL with a live `intelligence_items` holder was dropped before ever reaching
+apply-mint-batch.mjs's own (already-fixed) `checkM4`, so a legitimate sibling-series row could be silently
+excluded even though `checkM4` downstream would correctly let it through. `normalizeInstrumentIdentifier`
+and `sameInstrumentIdentity` are moved out of `apply-mint-batch.mjs` into a new
+`scripts/mint/lib/instrument-identity.mjs` — the ONE body both layers now import (CLAUDE.md: never two
+copies); `apply-mint-batch.mjs` re-exports both names verbatim so its own existing test imports keep
+working unmodified. `export-census-rows.mjs`'s `partitionExcludeHeld` now takes a per-URL holder index
+(`buildHeldUrlIndex`, this file's own mirror of `apply-mint-batch.mjs`'s `buildItemsIndex.bySourceUrl`,
+reading `intelligence_items.instrument_identifier` alongside `source_url`, batch-scoped exactly like the
+existing key read) and excludes a row only when `sameInstrumentIdentity` matches its own
+`instrument_identifier` against SOME holder at that URL — a holder with a DIFFERENT, non-null identifier is
+a sibling series (ruling R-D) and does not exclude the row. `MINT-RUNBOOK.md`'s export-step paragraph now
+states this rule (the only prose change to a mint governing file this lane made); `apply-mint-batch.mjs`,
+`export-census-rows.mjs`, and the new `lib/instrument-identity.mjs` are NOT themselves mint `GOVERNING_FILES`
+entries (confirmed against both `run-mint-batch.mjs`'s `MINT_GOVERNING_FILES` and F28's own
+`GOVERNING_FILES.mint` — `export-census-rows.mjs` was never listed in either), so their own rewrite does not
+by itself move this hash; `MINT-RUNBOOK.md`'s edit does, and lands in the SAME commit.
+
+**Live measurement [CONFIRMED, Supabase project kwrsbpiseruzbfwjpvsp, 2026-09-04]:** `census_worklist`
+carries ZERO rows with `instrument_identifier LIKE 'eu-oil-bulletin:%'` and ZERO rows whose `document_url`
+equals the bulletin's own URL (`https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en`) —
+the six R-D series never went through this exporter at all; they are hand-built by
+`scripts/producers/market/build-oil-bulletin-rows.mjs` into a `rows_file` that `population-turn.yml`
+dispatches DIRECTLY to `run-mint-batch.mjs`/`apply-mint-batch.mjs`, skipping `export-census-rows.mjs`
+entirely, per that producer's own header. The live `eurosuper-95` item (`4fae403a-ced5-4c8f-82b7-af0fd6127061`)
+is confirmed live at that URL (`instrument_identifier: 'eu-oil-bulletin:eurosuper-95'`,
+`canonical_instrument_key: null`, `archive_reason: null`, `status: 'monitoring'`). So this fix changes
+nothing for the bulletin's own five siblings TODAY — under the OLD code they were never eligible rows here
+to begin with, so `partitionExcludeHeld`'s URL-only bug was never actually reached for them; it closes the
+same defect class for the next census_worklist-sourced row that shares a URL with a live holder under a
+different identifier, which the URL-only check would have wrongly excluded before ever reaching
+apply-mint-batch.mjs's own fixed `checkM4`. A full live scan (every `would_mint` census row whose
+`document_url` matches a live `intelligence_items.source_url`) found **1,597** such collisions, all EUR-Lex
+CELEX pairs. Of those, **1,585** have `instrument_identifier` strings equal to their holder's (a true
+duplicate — excluded by the new URL-identity check exactly as before) and **12** have the SAME
+`canonical_instrument_key`/`source_url` but a DIFFERENTLY-FORMATTED `instrument_identifier` string (the
+census row carries the raw CELEX code, e.g. `"32006R1692"`; the live holder carries the human-readable
+citation, e.g. `"(EC) No 1692/2006)"`, or a `"CELEX:"`-prefixed form) — for these 12, `sameInstrumentIdentity`
+correctly reads two differently-formatted labels as NOT the same document (it cannot distinguish "same
+document, inconsistent citation format" from a genuine sibling series; neither can apply-mint-batch.mjs's
+own identical predicate), so the URL-identity check alone would pass all 12 through. **They are still fully
+excluded end-to-end**, unaffected, by `partitionExcludeHeldByKey` (defect 1's unconditional
+`canonical_instrument_key` match, checked immediately after, on the URL check's own `kept` output) — CONFIRMED
+[Supabase, 2026-09-04]: every one of the 12 holders' `canonical_instrument_key` equals exactly what
+`deriveKey` derives from the census row's own CELEX-shaped `document_url` (`canonical-key.mjs`'s branch 3/4
+falls back to the URL when `instrument_identifier` does not itself parse as CELEX), so `resolveIdentity`'s
+derived key for every one of the 12 rows collides with its holder's stored key. Net result: all 1,597
+existing collisions are excluded either way (1,585 via the URL-identity path this lane changed, 12 via the
+pre-existing key path, unaffected) — this fix changes the EXCLUSION REASON for zero currently-live rows and
+the EXCLUSION OUTCOME for zero currently-live rows; it is real protection only the moment a
+census_worklist row shares a URL with a live holder under a genuinely different, non-key-colliding
+identifier (a null-key family, e.g. a future series landing page, or a legislation.gov.uk/federalregister.gov
+row where no canonical-key scheme exists at all).
+
+**Tests:** `scripts/mint/lib/instrument-identity.test.mjs` (new, 8 tests) — `normalizeInstrumentIdentifier`/
+`sameInstrumentIdentity` unit tests (trim/case, non-string coercion, both-null, both-equal, both-different,
+both directions of the null-vs-labelled asymmetry) plus two source-reading contract tests confirming
+`apply-mint-batch.mjs` and `export-census-rows.mjs` each IMPORT the predicate from this module and never
+locally redefine it. `scripts/mint/export-census-rows.test.mjs` (+8 net): `buildHeldUrlIndex` keeps every
+holder at a URL (not just the last indexed) and skips a holder with no `source_url`; the population-apply-#34
+sibling-series shape (same URL, different non-null identifiers) is NOT excluded; a true duplicate
+(case/whitespace-insensitive) IS excluded; both-null IS excluded (fail-closed); both directions of the
+null-holder asymmetry ARE excluded; a row whose URL has no holder at all passes through kept; a read-shape
+regression lock confirming `main()` reads `intelligence_items.instrument_identifier` alongside `source_url`
+via `fetchRowsIn`, feeding `buildHeldUrlIndex`, never a bare `source_url`-only read. The two pre-existing
+`partitionExcludeHeld` tests are rewritten in place for the new `heldUrlIndex` signature (same behavior for
+a true-duplicate holder, not a new test). `scripts/mint/apply-mint-batch.test.mjs` is UNCHANGED (its own
+`normalizeInstrumentIdentifier`/`sameInstrumentIdentity` imports from `./apply-mint-batch.mjs` still resolve,
+via the re-export). 793 mint tests total (777 + 16 net new), node --test clean.
+
+**harness_version at write time:** `sha256:714d22dadb03b8a1` (fitness-runner-printed hash of F28's own
+`GOVERNING_FILES.mint`, which lists `src/lib/agent/gate-a-scan.mjs`/`src/lib/agent/gate-a-match.mjs`
+alongside their `scripts/mint/lib/` re-export copies — 12 files, not `run-mint-batch.mjs`'s own
+`MINT_GOVERNING_FILES`'s 10-file list, which the fitness runner does not read; the two lists are only
+"hand-synced," per `run-mint-batch.mjs`'s own comment, not identical in file count — `hashHarnessVersion`
+against F28's actual list is the authority this marker must match)
 
 **The planned run that supersedes THIS marker:** the next `population-turn` dispatch (or a direct
-`validate-mint-payload.mjs` run) under this landed code — any NEW payload's criterion-7 scoring should now
-reflect the narrowed harvest; a stale artifact whose `harness_version` still reads an earlier hash above
-re-triggers F28's rule (c) staleness coupling until re-pinned. Per F28's reverse-audit, this marker is
-deleted the moment a run artifact lands with `harness_version` matching the hash above (or re-pinned to a
-new hash, per rule (c), if a governing file changes again before that run lands).
+`validate-mint-payload.mjs` run) under this landed code — any NEW same-URL series batch's M4 pre-check and
+any NEW census_worklist export's same-URL exclusion should now both reflect the identity rule from one
+shared body; a stale artifact whose `harness_version` still reads an earlier hash above re-triggers F28's
+rule (c) staleness coupling until re-pinned. Per F28's reverse-audit, this marker is deleted the moment a
+run artifact lands with `harness_version` matching the hash above (or re-pinned to a new hash, per rule
+(c), if a governing file changes again before that run lands).

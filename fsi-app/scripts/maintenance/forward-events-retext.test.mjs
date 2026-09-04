@@ -308,16 +308,28 @@ function fakeDeps({ itemsById = {} } = {}) {
   const updates = [];
   const deletes = [];
   const inserts = [];
+  const poolReadCalls = []; // lane FE-SLOT-2b, 2026-09-04: which item ids readPoolForItem was actually
+  // invoked for -- so a test can assert it was SKIPPED for an item with no context-needing claim.
   return {
     itemIds: Object.keys(itemsById),
     updates,
     deletes,
     inserts,
     table,
+    poolReadCalls,
     readItemIdsWithForwardEvents: async () => Object.keys(itemsById),
     readForwardEventsForItem: async (id) => itemsById[id].existingRows,
     readClaimsForItem: async (id) => itemsById[id].claimRows ?? [],
     readSectionsForItem: async (id) => itemsById[id].sectionRows ?? [],
+    // lane FE-SLOT-2, 2026-09-04: due_date slot context source pool -- defaults to [] for every existing
+    // fixture (none of them carry a due_date slot claim, so attachDueDateContext is a no-op on them).
+    // lane FE-SLOT-2b, 2026-09-04: main() now calls this ONLY when at least one of the item's claims
+    // needs context (claimNeedsDueDateContext) -- poolReadCalls records every id it actually WAS called
+    // for, so a test can assert the skip.
+    readPoolForItem: async (id) => {
+      poolReadCalls.push(id);
+      return itemsById[id]?.poolRows ?? [];
+    },
     updateObligationText: async (id, text) => {
       if (!table.has(id)) return { updated: 0, rows: [] }; // tolerant: row no longer exists (deleted/already applied)
       table.get(id).obligation_text = text;
@@ -676,4 +688,78 @@ test("planItemRetext: a record-facts-template residue row is retexted to the unw
   // Trailing "…" only (record-facts.mjs's own capture window truncated the source span) -- honest_fragment_
   // marked, never contains_record_facts_wrapper/bad_leading_char/anything else.
   assert.deepEqual(target.after_defect_classes, ["honest_fragment_marked"]);
+});
+
+// ---------------------------------------------------------------------------
+// main(): the pool read is per-item conditional (lane FE-SLOT-2b, 2026-09-04) — deps.readPoolForItem is
+// called ONLY for an item carrying a claim claimNeedsDueDateContext says would actually consult it. See
+// this file's own header, "POOL READ IS PER-ITEM CONDITIONAL".
+// ---------------------------------------------------------------------------
+
+test("main: readPoolForItem is NOT called for an item with no due_date claims at all", async () => {
+  const deps = fakeDeps({
+    itemsById: {
+      "item-1": {
+        existingRows: [],
+        claimRows: [{ id: "c1", claim_kind: "FACT", claim_text: "[title] ordinary claim", source_span: "x" }],
+        sectionRows: [],
+      },
+    },
+  });
+  await main({ mode: "dry" }, deps);
+  assert.deepEqual(deps.poolReadCalls, []);
+});
+
+test("main: readPoolForItem is NOT called for an item whose due_date claim is a relative deadline (no calendar date)", async () => {
+  const deps = fakeDeps({
+    itemsById: {
+      "item-1": {
+        existingRows: [],
+        claimRows: [
+          {
+            id: "c1",
+            claim_kind: "FACT",
+            claim_text: "[due_date] The captured source states a due date, verbatim: «within 15 days of the effective date of disapproval»",
+            source_span: "within 15 days of the effective date of disapproval",
+          },
+        ],
+        sectionRows: [],
+      },
+    },
+  });
+  await main({ mode: "dry" }, deps);
+  assert.deepEqual(deps.poolReadCalls, []);
+});
+
+test("main: readPoolForItem IS called for an item whose due_date claim needs context, never for a sibling item that doesn't", async () => {
+  const deps = fakeDeps({
+    itemsById: {
+      "item-needs": {
+        existingRows: [],
+        claimRows: [
+          {
+            id: "c1",
+            claim_kind: "FACT",
+            claim_text: "[due_date] The captured source states a due date, verbatim: «by 1 May 2021, notify the Commission of those rules»",
+            source_span: "by 1 May 2021, notify the Commission of those rules",
+          },
+        ],
+        sectionRows: [],
+        poolRows: [
+          {
+            id: "search-1",
+            result_content: "x".repeat(210) + " the operator shall by 1 May 2021, notify the Commission of those rules without delay",
+            result_index: 0,
+          },
+        ],
+      },
+      "item-no-need": {
+        existingRows: [],
+        claimRows: [{ id: "c2", claim_kind: "FACT", claim_text: "[title] ordinary claim", source_span: "x" }],
+        sectionRows: [],
+      },
+    },
+  });
+  await main({ mode: "dry" }, deps);
+  assert.deepEqual(deps.poolReadCalls, ["item-needs"]);
 });

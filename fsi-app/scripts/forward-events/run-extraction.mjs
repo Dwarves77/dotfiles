@@ -41,20 +41,21 @@ import { resolve, dirname, basename, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { extractForwardEvents, EXTRACTOR_VERSION } from "../../src/lib/forward-events/extract-forward-events.mjs";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
+import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
 const DEFAULT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "forward-events");
 
-// The forward-events family's governing files — identical to CONVENTION.md's harness_version table and
-// F28's GOVERNING_FILES.'forward-events' (.discipline/fitness/functions/F28-harness-run-integrity.mjs).
-// The extractor moved to src/lib/forward-events/ (lane FIX, 2026-09-01 — see that file's header for why
-// runtime src/ code needed it there); this path list, F28's table, and this script's own import above
-// all advance together, or run-extraction.test.mjs's cross-check below fails the build.
-export const FORWARD_EVENTS_GOVERNING_FILES = Object.freeze([
-  "src/lib/forward-events/extract-forward-events.mjs",
-  "scripts/harness-runs/forward-events/PROTOCOL.md",
-]);
+// The forward-events family's governing files — IMPORTED from scripts/harness-runs/governing-files.mjs
+// (Wave GOV-SINGLE, 2026-09-04), re-exported under this historical name so existing importers keep
+// working unchanged. Before this change this array was a SECOND hand-copy of F28's own
+// GOVERNING_FILES.'forward-events', kept in sync only by a per-test string-match against F28's source —
+// it happened to still agree (2 files) at the time of this change, but "by luck, not by construction" per
+// the coordinator's own framing of this defect class; see governing-files.mjs's own header. The extractor
+// moved to src/lib/forward-events/ (lane FIX, 2026-09-01 — see that file's header for why runtime src/
+// code needed it there); that move is recorded once, in governing-files.mjs, not duplicated here.
+export const FORWARD_EVENTS_GOVERNING_FILES = GOVERNING_FILES['forward-events'];
 
 function usage() {
   return (

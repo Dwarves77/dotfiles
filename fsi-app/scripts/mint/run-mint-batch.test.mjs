@@ -24,7 +24,6 @@ import {
   buildRunArtifact,
   enrichRunArtifactMetrics,
   loadOutcomes,
-  MINT_GOVERNING_FILES,
   loadCensusRows,
   buildPayloadsFromCensusRows,
   mergeCensusBuildFailures,
@@ -560,12 +559,8 @@ test("CLI: --batch-file and --census-rows together is refused as ambiguous", () 
   }
 });
 
-test("MINT_GOVERNING_FILES matches F28's hardcoded mint entry (kept hand-synced until a future wave points F28 at this export)", async () => {
-  const src = readFileSync(
-    join(HERE, "..", "..", ".discipline", "fitness", "functions", "F28-harness-run-integrity.mjs"),
-    "utf8",
-  );
-  for (const f of MINT_GOVERNING_FILES) {
-    assert.ok(src.includes(`'${f}'`), `F28's GOVERNING_FILES.mint must still list ${f}`);
-  }
-});
+// MINT_GOVERNING_FILES's own "matches F28's hardcoded mint entry" parity test moved to ONE consolidated
+// contract test, scripts/harness-runs/governing-files.test.mjs (Wave GOV-SINGLE, 2026-09-04) — this
+// runner's export is now a direct re-export of governing-files.mjs's GOVERNING_FILES.mint, so the two
+// cannot drift apart by construction; a separate string-match test here would only prove the same import
+// worked twice.

@@ -98,6 +98,13 @@ import { readdirSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { runCli, fsiRoot } from "./lib/cli.mjs";
 import { extractForwardEvents } from "../../src/lib/forward-events/extract-forward-events.mjs";
+import {
+  CLAIM_KIND_FILTER,
+  mapClaimRow,
+  mapSectionRow,
+  attachDueDateContext,
+  claimNeedsDueDateContext,
+} from "../../src/lib/forward-events/read-and-extract.mjs";
 
 export const CITE = Object.freeze({
   skill: "remediation-discipline",
@@ -131,27 +138,30 @@ export const DELETE_CITE = Object.freeze({
 export const RESTORE_ARG_PREFIX = "restore:";
 export const IDS_ARG_PREFIX = "ids:";
 
-// ── pure: read-back-and-extract shape (mirrors src/lib/forward-events/read-and-extract.mjs's row mapping,
-//    duplicated rather than imported because that module is non-pure (it takes a live `sb` client) and
-//    this step's own deps injection already isolates the DB calls — see buildDeps below) ─────────────────
+// POOL READ IS PER-ITEM CONDITIONAL (lane FE-SLOT-2b, 2026-09-04 — see read-and-extract.mjs's own header,
+// "FETCH ONLY WHAT MIGHT BE CONSUMED"). FE-SLOT-2 (this file's own diff above) called `readPoolForItem`
+// for EVERY item this step touches, unconditionally — `agent_run_searches.result_content` is the item's
+// full grounding source pool per ADR-016, never truncated, so that was tens of KB per capture times
+// several captures on every single item, even the ones with no due_date claim at all. `main` below now
+// checks `claimNeedsDueDateContext` (imported above) over the item's own mapped claims first and calls
+// `deps.readPoolForItem` only when at least one of them would actually consult that context.
+
+// ── pure: read-back-and-extract shape — lane FE-SLOT-2, 2026-09-04, imports
+//    src/lib/forward-events/read-and-extract.mjs's own row-mapping functions (that module's "THE ONE
+//    READER" header note) rather than re-typing them a second time; this step's own `deps` injection still
+//    isolates the DB calls (that module is non-pure, it takes a live `sb` client this step's own
+//    `readAll`-based deps do not have — see buildDeps below), so only the ROW MAPPING is shared, never the
+//    query mechanism. `mapClaimRows`/`mapSectionRows` are re-exported here (thin wrappers over the shared
+//    per-row functions) so this file's own callers below and its own test suite keep the same names. ──
 
 /** Map raw section_claim_provenance rows into extractForwardEvents' claim shape. Pure. */
 export function mapClaimRows(rows) {
-  return (rows ?? []).map((r) => ({
-    claim_id: r.id,
-    kind: r.claim_kind,
-    text: r.claim_text,
-    span: r.source_span ?? null,
-  }));
+  return (rows ?? []).map(mapClaimRow);
 }
 
 /** Map raw intelligence_item_sections rows into extractForwardEvents' section shape. Pure. */
 export function mapSectionRows(rows) {
-  return (rows ?? []).map((r) => ({
-    section_id: r.id,
-    key: r.section_key,
-    md: r.content_md ?? "",
-  }));
+  return (rows ?? []).map(mapSectionRow);
 }
 
 // ── pure: matching key (mirrors apply-staged-update.ts's own forwardEventDedupeKey's non-text half —
@@ -419,6 +429,7 @@ export function buildRestoreSql(before) {
  *   readForwardEventsForItem: (itemId: string) => Promise<object[]>,
  *   readClaimsForItem: (itemId: string) => Promise<object[]>,
  *   readSectionsForItem: (itemId: string) => Promise<object[]>,
+ *   readPoolForItem: (itemId: string) => Promise<object[]>,
  *   updateObligationText: (id: string, text: string) => Promise<{updated: number, rows: object[]}>,
  *   deleteForwardEvents: (ids: string[]) => Promise<{deleted: number, snapshot: string, rows: object[]}>,
  *   readRowsByIds: (ids: string[]) => Promise<object[]>,
@@ -452,10 +463,19 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
       deps.readClaimsForItem(itemId),
       deps.readSectionsForItem(itemId),
     ]);
+    // lane FE-SLOT-2, 2026-09-04: due_date slot claims gain `context` via read-and-extract.mjs's own
+    // shared `attachDueDateContext` (this file's header note above) before this REWRITE step re-runs the
+    // extractor -- otherwise a retext pass over a fixed extractor would still see the pre-fix, context-less
+    // shape and never actually pick up FE-SLOT-2's own rescue.
+    // lane FE-SLOT-2b, 2026-09-04 (this file's own header note, "POOL READ IS PER-ITEM CONDITIONAL"):
+    // deps.readPoolForItem is called ONLY when at least one of this item's claims would actually consult
+    // that context -- never unconditionally.
+    const mappedClaims = mapClaimRows(claimRows);
+    const poolRows = mappedClaims.some(claimNeedsDueDateContext) ? await deps.readPoolForItem(itemId) : [];
     const { retextTargets, duplicateGroups } = planItemRetext({
       itemId,
       existingRows,
-      claims: mapClaimRows(claimRows),
+      claims: attachDueDateContext(mappedClaims, poolRows),
       sections: mapSectionRows(sectionRows),
     });
     allRetextTargets.push(...retextTargets);
@@ -733,13 +753,22 @@ if (IS_MAIN) {
           readAll(
             "section_claim_provenance",
             "id, claim_kind, claim_text, source_span",
-            { match: (q) => q.eq("intelligence_item_id", itemId).in("claim_kind", ["FACT", "GAP"]) },
+            { match: (q) => q.eq("intelligence_item_id", itemId).in("claim_kind", CLAIM_KIND_FILTER) },
           ),
         readSectionsForItem: (itemId) =>
           readAll(
             "intelligence_item_sections",
             "id, section_key, content_md",
             { match: (q) => q.eq("item_id", itemId) },
+          ),
+        // lane FE-SLOT-2, 2026-09-04: due_date slot context source pool (this file's header note above) --
+        // the same `agent_run_searches` table read-and-extract.mjs's own live reader consults, batched per
+        // item here rather than per single sb call, matching this step's other per-item reads.
+        readPoolForItem: (itemId) =>
+          readAll(
+            "agent_run_searches",
+            "id, result_content, result_index",
+            { match: (q) => q.eq("intelligence_item_id", itemId) },
           ),
         updateObligationText: (id, text) =>
           guardedUpdate("item_forward_events", (q) => q.eq("id", id), { obligation_text: text }, {

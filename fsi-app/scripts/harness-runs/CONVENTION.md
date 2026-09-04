@@ -338,12 +338,25 @@ Computed by `hashHarnessVersion(filePaths)` in `run-artifact.mjs`: SHA-256 over
 `"<relative-path>\n<file content>\n"` for every listed file, sorted by path, truncated to 16 hex chars
 and prefixed `sha256:`. Each family's harness files:
 
+**The table below is documentation, not the source.** `scripts/harness-runs/governing-files.mjs`
+(Wave GOV-SINGLE, 2026-09-04) is THE source: F28
+(`.discipline/fitness/functions/F28-harness-run-integrity.mjs`) and every family's own canonical runner
+script (screen-worklist.mjs, run-mint-batch.mjs, run-extraction.mjs, run-ledger-consume.mjs,
+run-propagation-drain.mjs, run-change-detection.mjs, run-source-sweep.mjs) import their list from that one
+module — F28's own re-hash and a runner's own self-hash (the thing it stamps onto `harness_version` when
+it writes an artifact) are therefore the SAME array, not two hand-maintained copies that can silently
+drift apart (they had: `mint`'s runner copy never gained the two Gate-A `src/` files F28's copy did, PR
+#580 — see `governing-files.mjs`'s own header for the full defect). The CONVENTION-TABLE-PARITY test
+(`F28-harness-run-integrity.test.mjs`) parses this table and asserts it matches `governing-files.mjs`'s
+`GOVERNING_FILES` export exactly, so a hand-edited table drifting from the module is caught by CI, not
+trusted on faith — this table exists for a human reader, the module is what every gate actually enforces.
+
 | Family | Hashed files |
 |---|---|
 | `mint` | `scripts/mint/MINT-RUNBOOK.md`, `validate-mint-payload.mjs`, `payload-schema.json`, `item-type-required-slots.json`, `lib/gate-a-scan.mjs` and `lib/gate-a-match.mjs` (re-exports since 2026-09-04), `../../src/lib/agent/gate-a-scan.mjs` and `../../src/lib/agent/gate-a-match.mjs` (the single Gate-A implementation), `lib/canonicalize-citation-url.mjs`, `../../src/lib/intake/record-facts.mjs` |
 | `screen` | `scripts/mint/screen-rules.mjs`, `screen-worklist.mjs` |
 | `fetch-drain` | `supabase/functions/capture-worker/index.ts` |
-| `meta-harness` | `scripts/harness-runs/CONVENTION.md`, `PROPOSER-RUNBOOK.md`, `../lib/run-artifact.mjs`, `../../.discipline/fitness/functions/F28-harness-run-integrity.mjs` |
+| `meta-harness` | `scripts/harness-runs/CONVENTION.md`, `PROPOSER-RUNBOOK.md`, `../lib/run-artifact.mjs`, `../../.discipline/fitness/functions/F28-harness-run-integrity.mjs`, `governing-files.mjs` |
 | `forward-events` | `src/lib/forward-events/extract-forward-events.mjs`, `../../../scripts/harness-runs/forward-events/PROTOCOL.md` |
 | `source-sweep` | `scripts/turns/run-source-sweep.mjs`, `../../src/lib/sources/register-walk.mjs`, `../../src/lib/sources/feed-walk.mjs` |
 | `ledger-consume` | `scripts/turns/run-ledger-consume.mjs`, `../../src/lib/intake/portal-harvest.ts`, `../../src/lib/llm/first-fetch-classify.ts` |

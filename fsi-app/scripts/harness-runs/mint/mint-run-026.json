@@ -1,0 +1,1309 @@
+{
+  "harness_family": "mint",
+  "harness_version": "sha256:4f09523532bb7aee",
+  "run_id": "mint-run-026",
+  "started_at": "2026-09-04T13:19:01.832Z",
+  "finished_at": "2026-09-04T13:20:27.322Z",
+  "config": {
+    "batch_file": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33877292728/census-rows.json",
+    "out_dir": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33877292728",
+    "execute": true,
+    "mode": "execute"
+  },
+  "inputs_ref": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33877292728/census-rows.json"
+  ],
+  "per_item": [
+    {
+      "id": "0a8fcb61-4787-458e-a5dd-acdb07adc02c",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "229951fa-b390-4e5a-989b-d7030408e524",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "23248c3b-2044-44bb-aa28-5d9751a1c69a",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "23ab4ff2-fa05-4d87-87ea-43b47e738185",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "28d5da5c-6cb3-4c37-bef6-04f3cd2743fc",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "32d00247-6792-4966-a71c-39c69cec62b2",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "3d64d8ca-99e5-4d77-887f-26f8240b2540",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "48812b75-d9a3-4f6c-ba0d-cd623a477e5b",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "4cae0422-d7a8-4830-9062-0ef279b95d0b",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "42c05d1f-2a5a-4371-a239-a0615c9bfdb5"
+    },
+    {
+      "id": "4d6a81d2-7e63-464a-af67-9d68ae27dc74",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "4df0c974-0e7b-4332-8586-0c4826b0bd4d",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "4e130834-a4bd-4c63-8f52-3dac61c74e5f",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "8d7d0781-e4d1-4678-9a62-7f199c89d097"
+    },
+    {
+      "id": "4ea58048-00ee-48bc-acd0-c04e1c67b139",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "3a78ffec-6053-4ae3-a68e-d47a6f552bbc"
+    },
+    {
+      "id": "4eab3c52-bc13-4410-8db0-c9621b22ba8f",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "ac4a44e1-1c26-4245-9ae4-64895e4d995a"
+    },
+    {
+      "id": "4efb6c74-4400-41a3-a234-29dd99ac183d",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "4f507ba9-3075-44bd-ac52-ae46c76ba181",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "9d7e9114-573a-465c-a781-94bf5a3ab610"
+    },
+    {
+      "id": "4fab19d1-eeca-41f7-8c33-4aaabca86dc3",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "5885a604-1ceb-4630-8fc2-9955a51f280a"
+    },
+    {
+      "id": "5053792b-f1e1-4e59-8870-f22d81330733",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "754d095c-e643-4556-994e-36df2280955a"
+    },
+    {
+      "id": "50d05e4d-ff30-4483-9960-15dc6f854d83",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "170b5f37-8ef4-4b0c-8d4a-dd85ceafc6ba"
+    },
+    {
+      "id": "50d478eb-30e8-46d0-8b73-1425f44cc5af",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "adb9a697-d212-4d58-b5a4-e9ff44fa2fa1"
+    },
+    {
+      "id": "50f5eae6-30b4-490a-8d28-2d401cfba011",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "50ffbd8a-d18f-4148-b686-ee1e2f3c36fd",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "89e20a2c-cbb0-4ddc-85d7-603928d4a9c4"
+    },
+    {
+      "id": "517e31c9-3467-4012-a2aa-18086413ee65",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "3fa25ad3-0de1-4280-8bc9-f4641362af0c"
+    },
+    {
+      "id": "5197b082-aa8d-4f5b-ac8b-1c00f8fb5e5d",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "770198ff-451f-4dfa-b3ab-28f42c49d0a3"
+    },
+    {
+      "id": "51b79a75-fc57-4347-bbe9-6ff57126cebe",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "4caa9f9c-d740-464b-a472-a9bf7aff0523"
+    },
+    {
+      "id": "5291efc5-78ff-4267-9fb0-8870ccdb7496",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "db1aa66d-a987-4780-8e43-058eb42d3342"
+    },
+    {
+      "id": "529513bc-7008-4155-b3ee-b44ae1d67ca4",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "da3dfef5-cbe6-4f7a-a81d-c7536ea32559"
+    },
+    {
+      "id": "52a066a4-2ee9-4a37-810f-bc4f3133d505",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "52a2e33b-01c2-4a16-b6ea-a72e2910ba0b",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "53797be1-51b1-43da-aca9-c011a0f60b48",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "30ddbc17-e04d-4ac5-8225-0e3d82fa3552"
+    },
+    {
+      "id": "53c8e980-333d-4423-aedd-e4ead5486d79",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "915c095f-99bc-448c-9a5d-7c4da1fa1f70"
+    },
+    {
+      "id": "53f013c6-41c5-4cfd-8dd3-b984b2f50cb9",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "544ca2a1-5711-4c7b-ba63-521b6d13c6d8",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: kit",
+      "evidence_refs": [],
+      "error": "[kit] record_grade_full_brief_not_extractive"
+    },
+    {
+      "id": "54ca8e6e-903a-481e-830f-3627f9675ce2",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "54a05826-8185-47e6-894e-6ae12200b629"
+    },
+    {
+      "id": "55272270-09d8-4c4f-8ed9-4e384b8414b4",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "21423e18-528c-4baa-a5cf-f53d0523d1d4"
+    },
+    {
+      "id": "555ef058-b354-4b99-8b78-4ea023a8d0fd",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "ca7f642e-60aa-4874-ad51-9c48a7ad412f"
+    },
+    {
+      "id": "559503c0-10f1-4401-8dca-e829a9ac56cc",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "55a892d1-a38c-443d-ae55-14c8a0cc0202",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "562ac237-d2d6-4e8b-b577-db0fe6690279",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "f56fed84-65ac-4648-a0f3-9493359a66ac"
+    },
+    {
+      "id": "56410891-065c-4ffd-b757-588461ba9641",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "70809a63-df1b-4e1f-8724-2afbdf6d7047"
+    },
+    {
+      "id": "569ce25b-9dd2-45d6-9606-661a1fea2400",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "f0aebc3b-9bef-4757-a0b6-af059b35aaac"
+    },
+    {
+      "id": "56aa7ecf-ee6e-4cd8-8ca6-1242b94e09a3",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "56fa7bde-5518-4751-b8ef-d0e866e5f7ee",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "a4d47216-ec35-4909-b9b0-1ef3cd36ca86"
+    },
+    {
+      "id": "5736a817-1d21-4e73-9ca4-fd4420a86ff6",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "576f3b4f-6669-4e9e-9a50-3cb76f4fa201",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "824ada3b-b977-421f-8aca-cb9d6328be8a"
+    },
+    {
+      "id": "58bf524b-6975-4090-b57d-acc9bfd741f1",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "57f4a4cf-5a3f-47f1-aa64-4208f907cd8f"
+    },
+    {
+      "id": "58c274d4-82a8-4634-9879-abd3670345f4",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "616efa11-3480-421b-a9af-aa9065af61e7"
+    },
+    {
+      "id": "58e0c512-f17c-4162-9e3f-e04fc284f8a7",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "59485155-3b07-41f3-995b-fbefbae42448",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "7a272c84-9cd3-4501-af51-c4a7221dd18d"
+    },
+    {
+      "id": "59be2229-c958-41e7-ae09-9425fbef0fdd",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "6c1e18d9-7c20-401d-bf32-1fcbf15bd193"
+    },
+    {
+      "id": "59d0ff44-3d92-4278-8b8d-13dd3af41b69",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "5a6735b4-f335-44d6-bcf5-6bfc18802221",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "5dbb848a-1aad-48bc-aa73-7353367d21a8"
+    },
+    {
+      "id": "5b118519-3944-4783-b565-add69fa53d5a",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "2513a497-d10d-4b65-8a5c-6c8461c4fa5b"
+    },
+    {
+      "id": "5b510ec5-61b0-48f3-959b-25428f59af42",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "5baf541f-f917-4103-91aa-639f02c5063a",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "0d4cc788-739d-4517-bdf4-c7af58aaa131"
+    },
+    {
+      "id": "5c84bc5e-1146-438b-bb48-0b914495e0f1",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "0ae2e8cd-5a64-4509-bc71-2aef7870368f"
+    },
+    {
+      "id": "5d2a6324-3cab-4824-b6ee-14b2df7ea85d",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "5d3847ba-c303-428e-a128-693d653feb96",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "5d73f070-a239-4570-889b-13b8e3c62e5f",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "5db580c8-6596-42ce-bc6b-d25e416eac9c",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "3d667415-cd81-4526-82b0-58e66536eaeb"
+    },
+    {
+      "id": "5ddff17b-4ec2-4200-bfe9-5f0f0693d2c9",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "7666a4f2-300c-467b-95a3-627f4ac05c29"
+    },
+    {
+      "id": "5e4776a4-c524-41dd-9614-904f47223c1f",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "5e4dbc6e-a410-4bf8-a3fb-cbde36b81e5a",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "f8b15884-5178-4464-b3a1-bd05ffeb5623"
+    },
+    {
+      "id": "5e7fdb02-75cf-4084-ac6c-d8f0291b496f",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "f65ca5c9-3651-4d40-84f9-8b46b67d9e98"
+    },
+    {
+      "id": "5e86c2aa-a3a1-4146-9271-ca0eb76af84b",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "18b21273-4277-4ca2-8390-bb76f2d16334"
+    },
+    {
+      "id": "5f177d59-cd07-4987-8768-dd20c99aab0f",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "5fe8498b-5e67-4470-b60b-3f2d7656b488",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "f586a976-28ab-4fdf-9c1a-609d93c3ba34"
+    },
+    {
+      "id": "603abb35-2c1d-4005-bb63-72e10213d174",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "5ce0f3bf-e930-408e-8544-aa3833402b2c"
+    },
+    {
+      "id": "605c0b18-6ef5-4543-921d-f0694d5339a5",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "f0ac2f80-a360-41bb-82be-0b5f323a68f2"
+    },
+    {
+      "id": "6172eac3-d344-4259-bb5e-1aa22f982b7c",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "62a394f7-d6da-4974-8de4-d1cd1764141d",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "bc381bbe-6fde-472c-84d2-19ffc6cc8b81"
+    },
+    {
+      "id": "62b89035-c271-47fa-9dd2-d870a61f9d68",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "eebcaa48-2cbb-4879-8f85-5bde82c9d03f"
+    },
+    {
+      "id": "62c2ddd1-a38c-40a0-9216-d4dd56471d58",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "62d587bd-f1cf-4e7d-84df-990680625632",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "3984d243-aa36-4e39-a679-69d932e2b091"
+    },
+    {
+      "id": "62e4fa54-fbb1-458a-b413-4feae64fd2fc",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "63258f3c-c8cf-48dd-8206-58fe1ed3fa32",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "6350dcf8-1ffd-4a21-83d0-d51f5c32a90e",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "211aaee0-db87-46b0-ba15-5a69a4f93357"
+    },
+    {
+      "id": "63bc0be3-235c-46f6-ad74-066280bb68a6",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "63fec592-21ce-43a2-8199-846b55cb9b9a",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "f2513a06-c167-4c4a-8295-25d636496a94"
+    },
+    {
+      "id": "647678c4-84d1-4b0b-b629-2bf569b83c2e",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "31a1f343-a1ec-46a4-89bd-481026b836ff"
+    },
+    {
+      "id": "648fbc2b-232f-43a3-a57e-43bda00f15f8",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "65232a4c-24e7-427c-b50e-3e627aff898f",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "d590cd9c-57c0-412c-9a39-ad587406def3"
+    },
+    {
+      "id": "6562857e-4801-419b-b414-946a735b846d",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "a6a58426-4a2d-4785-b6a9-d3414ab047b0"
+    },
+    {
+      "id": "662f09f9-f01e-4daf-9150-3bcd2739c123",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "66b9cf30-8598-4c8b-84ec-ea3a6ba81186",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "6732b40d-2d05-4b16-82fb-e58da4bc2ca7",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "376f5b7f-566a-4209-9aea-a2212c8511e4"
+    },
+    {
+      "id": "681f5b7d-dcd5-4093-a2a5-4c73c5cf34ef",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "8c4abd88-3fb7-437f-9745-12adbe53087b"
+    },
+    {
+      "id": "6842f6e7-62f7-46d0-a0d3-12309550f1fe",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "a2bb723d-f5e4-475e-b9c3-266be548e01c"
+    },
+    {
+      "id": "6893ab7f-d5d7-429d-8569-de604941d8ea",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "8e4bd935-c5fa-4eaf-992f-73aabe260461"
+    },
+    {
+      "id": "6896d4a2-3042-4357-b02f-11b6249cb325",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "68aa84d9-44a7-4e7a-b316-5cbde2bb5da9",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "68ceb742-e91e-4586-87f4-2a25c1f6d2ec",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "1ea08653-9a21-4d16-8e3b-f993d2f2bc71"
+    },
+    {
+      "id": "68e26ec0-c2bc-4048-a76e-20a52f1401d5",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "69276fff-1b85-4b52-95be-4f8ec8641209",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "9390924d-e463-4a8d-a8c9-d4c639202265"
+    },
+    {
+      "id": "695c2208-b4bb-4f5e-88aa-08643d2fac9c",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "7af4c993-223b-49ce-af26-019edf16be58"
+    },
+    {
+      "id": "6abe4f14-dd45-46ec-a5fb-b18170ac6ef2",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "f92d2f2b-079a-4b3f-b05c-4ef0f399e18e"
+    },
+    {
+      "id": "6b48c5bf-f550-4035-896e-3729f9012345",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "9d648ce2-1e0f-412b-b3b6-6204a75610ab"
+    },
+    {
+      "id": "6d0a7ed4-fb22-4f0e-9544-ef16536edf0c",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "6d1582b4-124d-467f-a8e9-060eb387753e",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "00dda469-8ba6-40e2-9eaf-73af397b95e8"
+    },
+    {
+      "id": "6db97f77-bc5d-439d-95cf-b39933d3348b",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "7eb5419e-fd41-436a-9455-0c2a960bad07"
+    },
+    {
+      "id": "6df56ba3-dd08-472e-a727-9e57162d0b6b",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "60cbff2a-78c3-4ea1-b4fd-7bdd3efa91e5"
+    },
+    {
+      "id": "6e953592-a454-4d62-b1bf-40761aff41db",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "6f16636f-89e5-422a-985d-b698d9458124",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "bbbe1521-edd2-4d3a-8261-f315f1f3daef"
+    },
+    {
+      "id": "6f8c4396-a928-47c2-9bab-9332b965fcd2",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "a60e81ed-60c6-4de3-b9a0-957ea537f782"
+    },
+    {
+      "id": "706207b0-27b4-45fc-a7c2-6a37f669d7af",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "7a910837-14ca-410a-9734-275a0b8e5395"
+    },
+    {
+      "id": "7170aa77-e3bd-445d-a70a-aaf8de06c212",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "72403371-456f-4dfd-b703-ab4af4a60ff1",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "94addde9-b12a-47bc-b4a1-73399a750506"
+    },
+    {
+      "id": "72aa91fe-6c50-4fde-80ac-d2b6c94341f3",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "57cf1ec0-b446-4ee5-bc2c-b6ce0a8d47d5"
+    },
+    {
+      "id": "72aff213-fcdd-4d50-900b-fa1234da14af",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "73076b92-d674-4681-abee-d2eaee5d4f53",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "abe89c41-4749-4cd4-99e5-c305bcd0534b"
+    },
+    {
+      "id": "73c2f14a-8c38-47a9-ba4a-c1df5cc05438",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "f5e9680e-3505-497e-9d1d-4325600cd948"
+    },
+    {
+      "id": "73ee21c2-730f-4d29-93d7-76782ae93e8b",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "c5c48a96-feb9-4e84-b2e1-aee6fcd906b8"
+    },
+    {
+      "id": "74111c2a-b893-45cf-bcc5-95f69eade10b",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "74143428-86c3-474f-9078-d45fe988a968",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "c5d8d7a9-fa91-468e-9867-c0d80181225e"
+    },
+    {
+      "id": "7437fd04-c35a-4623-ab38-06bd55bc0f3e",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "065be69d-888c-4e4a-b1c7-f2d092876bea"
+    },
+    {
+      "id": "744603d4-5df6-4b8a-a0d4-cb01f8bab6b8",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "3d31403a-4139-402f-9afb-6a9f8e5f3d6b"
+    },
+    {
+      "id": "74a70b99-72c0-4877-8be6-9cdfcde63dd4",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "42a2d4d7-4827-4c73-9bc5-3e106fe4119e"
+    },
+    {
+      "id": "74e37400-bf29-466a-ace3-fb7138e0c416",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "21c410ea-8300-42b5-ae0c-0643e884001b"
+    },
+    {
+      "id": "7548e386-961c-4fc8-bc94-470541adf42b",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "3d73cfb5-12e8-4f86-9e14-b85cd1f45214"
+    },
+    {
+      "id": "75853d2a-1860-460f-85ac-c777b1cf3ac9",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "26a534b9-a2ea-46c4-b106-d51448fc1065"
+    },
+    {
+      "id": "75bbae8b-d524-40e0-9e0f-3add90291598",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "c336c7e5-747e-401d-966f-a7aa6aba8ddc"
+    },
+    {
+      "id": "7612503a-5d66-4344-b3ef-da3ff60bf014",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "3f910764-d894-4768-a8b8-1232335e3ea8"
+    },
+    {
+      "id": "76fcf916-4d9f-4ab5-875d-e1400a5076c7",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "77ec04e7-bd67-49f8-9cf1-3b2276f60c6f",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "95f0f325-78d0-4f34-9c30-4bbbe1599796"
+    },
+    {
+      "id": "782737a7-577a-4353-8b87-0645e175b3d0",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "787f1a49-595c-48ad-8059-76453829ccaf",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "78a6ff47-317d-428a-b5d5-f388ccd68265",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "39358cf4-4d3a-4c13-92be-bddd7f9a8edd"
+    },
+    {
+      "id": "7a13cfdf-3a07-4839-a308-025dc1dccfc3",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "1456f4a6-c979-49cb-ad23-c74fa413d651"
+    },
+    {
+      "id": "7a2b2146-fbce-4444-8900-4fbf7572509d",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "7a42e0b4-55ba-4a31-a991-4b92d70caf02",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "34f8aa17-b554-4cca-b62e-42561eeff398"
+    },
+    {
+      "id": "7a619a9c-4be3-4f37-8a0e-e773580db15a",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "17b81070-0240-43a2-b969-5d490a1b9928"
+    },
+    {
+      "id": "7abe3108-ba99-4bd9-a5fb-1684fa680ae7",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "82d93087-c6e7-46bb-ae80-532e77e02dad"
+    },
+    {
+      "id": "7b4149cd-4b34-4655-8b80-b767ebc15ecf",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "7b57fa00-a8e0-472e-bc61-89d64e3baafe",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "55ae84d5-2d10-4081-a0bf-d4226dd57f36"
+    },
+    {
+      "id": "7bcf79dd-c8b1-41ca-86e6-4209dfead056",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "7bdab713-0182-42ae-911b-bfe0b454e74f",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "7c03242b-9bcd-4c14-84b0-144246a6ac56",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "5a09341c-a773-4cf7-8dcc-db4d65247583"
+    },
+    {
+      "id": "7c34d373-d176-419b-83f0-26a76f33e93e",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "f49208b7-ad06-46ab-bc49-f6d3af55cac5"
+    },
+    {
+      "id": "7c70276b-281d-4481-8e13-eeb791f14327",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "dea12427-a0ee-4ffe-81b5-4f2d6df5f722"
+    },
+    {
+      "id": "7ca36658-1f33-49dd-8e3a-916cda449c17",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "04ea10a9-0949-4855-90e8-5e7d6650db64"
+    },
+    {
+      "id": "7d8d6249-f66c-4a1f-9258-c218dee4dca6",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "0c5f451e-c87b-4c67-b899-c1b279558862"
+    },
+    {
+      "id": "7dfee69f-906d-4b25-8b54-386edd96311b",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "b909281a-ab6a-4ded-9687-0d9e5461c814"
+    },
+    {
+      "id": "7e7a831d-0eb9-464a-8859-58277bf8f9d5",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "67e0494b-22bd-45cd-be81-fc44158027bf"
+    },
+    {
+      "id": "7eace3aa-8b24-44d0-8fd4-bd0594454802",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "7ef29213-17dd-49df-ac33-3fe6cca33397",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "526ea5a9-1929-4b14-9b5a-72de03a5456e"
+    },
+    {
+      "id": "7efc1948-66e1-4ebb-a604-d8d91ff9f84e",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "092498ae-343e-4069-90d6-501429a87c4a"
+    },
+    {
+      "id": "7f9adab6-335b-41e1-a62a-e72c27c8b08e",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "7fb4bab2-3160-4935-b7e7-623b271af6e7",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "7fb67f56-4633-4e33-b401-9e6785a91722",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "dfb3ede0-7928-4f6b-b728-b200e1d689d1"
+    },
+    {
+      "id": "81848d76-0c91-4102-b3fc-60c6c0f4f5b0",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "4f40e006-374d-4e29-bf86-05497278408c"
+    },
+    {
+      "id": "81a3ca93-1174-4abb-8051-fc3845af7288",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "81c91bde-9644-4317-b92e-652089e9c5d9",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "81ffcda6-0e0b-47a6-9663-14b395b8f7aa",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "09f5e6fc-324c-4726-84f4-d5650ccef2e2"
+    },
+    {
+      "id": "82f69a44-b8d2-49a7-8dde-953af4d500e2",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "8359af15-68f1-4330-8ecb-a758c77312cc",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "838fcb6b-384e-4488-9502-7d0f342170cb",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "8bf0699d-ca44-4df6-b9ba-12ec74990df1"
+    },
+    {
+      "id": "83e040f5-fbcc-46ce-855c-a805cd5da0ff",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "959fdfb3-b888-4a8a-b13a-6329c5f74e79"
+    },
+    {
+      "id": "83f64a3b-2a4c-4189-ba7f-7a9f6c673083",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "29fa318a-c174-4377-8733-84487967cfb4"
+    },
+    {
+      "id": "852bdf73-30b5-4624-8bf3-c25e133f1660",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "b689d9ab-f3a5-4c6a-aec1-f701e87f5602"
+    },
+    {
+      "id": "85303603-c472-4fe6-8b92-5055ca6cd71f",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "853486c2-7fe3-4e04-a35d-8f3fb3b5071d",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "d620bdb2-b73f-4605-a8da-824deddb6e65"
+    },
+    {
+      "id": "856f3c4c-c7dd-4411-90a5-d815ebdb0578",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "857565b5-bbc7-4456-b421-0d13be827b29",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "85ed9333-501d-4838-999d-c03446e1aacd",
+      "outcome": "validation_failed",
+      "verdict": "invalid, 1 failure(s) — criteria: 5",
+      "evidence_refs": [],
+      "error": "[5] record_hollow"
+    },
+    {
+      "id": "85f27105-41b9-4204-9d43-dd3404d75446",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "f438e3e2-0707-4be0-9fac-8fe9fbc5a2db"
+    }
+  ],
+  "metrics": {
+    "attempted": 165,
+    "valid": 103,
+    "invalid": 62,
+    "build_failed": 0,
+    "validator_first_pass_rate": "103/165 = 62.42%",
+    "db_deltas": {
+      "items": 103,
+      "sections": 206,
+      "claims": 1030,
+      "searches": 103,
+      "gate_a": 103,
+      "citations": 103,
+      "sources": 0
+    },
+    "minted": 103,
+    "minted_verified": 103,
+    "minted_unverified": 0,
+    "apply_failed": 0,
+    "census_rows_reconciled": 103,
+    "validation_failed_held": 62,
+    "edges_discovered": 1236,
+    "forward_events_extracted": 21,
+    "isolated_items": 0,
+    "ids_resolved_by_key": 0
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33877292728/census-rows.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33877292728/census-rows.apply-ready.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33877292728/census-rows.mint-batch-report.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-mint-batch.mjs's own execution path (Wave MH-5 — 'emission is in the harness, not the operator,' extended to mint per PROPOSER-RUNBOOK.md §5's named residual). Corpus-outcome metrics (edges_discovered, forward_events_extracted, isolated_items) are not computed by this DB-less runner — see MINT-RUNBOOK.md's post-apply flywheel steps and run this same script again with --outcomes once the coordinator's apply + discovery pass has run.\n\napply-mint-batch.mjs enrichment (2026-09-04T13:22:27.205Z): 103 minted (103 verified, 0 not), 0 apply_failed, 0 not_applied, 62 validation_failed census_worklist row(s) held (dryrun_disposition='hold', see hold_reason/notes — lane URL-GUIL; re-admitted only by scripts/mint/reopen-validation-holds.mjs re-validating against the live gate, never a blind unhold). Discovery + forward-event extraction (MINT-RUNBOOK.md §8) did NOT run as part of this apply — that is a separate post-apply pass over the newly-minted items, per that runbook's own hand-off model, not skipped in error."
+}
