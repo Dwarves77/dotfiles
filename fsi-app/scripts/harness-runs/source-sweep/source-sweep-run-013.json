@@ -1,0 +1,611 @@
+{
+  "harness_family": "source-sweep",
+  "harness_version": "sha256:925c102302270e6e",
+  "run_id": "source-sweep-run-013",
+  "started_at": "2026-09-04T17:55:48.118Z",
+  "finished_at": "2026-09-04T18:08:15.646Z",
+  "config": {
+    "walker": "sitemap",
+    "mode": "dry",
+    "from": null,
+    "to": null,
+    "feed_url": null,
+    "series": "L",
+    "types": [
+      "RULE"
+    ],
+    "term": null,
+    "max_pages": 5,
+    "per_page": 100,
+    "source_id": null,
+    "portal_url": null,
+    "cli_source_id": null,
+    "host": null,
+    "all_hosts": true,
+    "max_hosts": 40,
+    "check_coverage": false,
+    "limit": 5000,
+    "max_sitemap_fetches": 50,
+    "max_sitemap_entries": 100000
+  },
+  "inputs_ref": [
+    "https://1point5.caneurope.org",
+    "https://2021-2025.state.gov/launching-the-first-movers-coalition-at-the-2021-un-climate-change-conference",
+    "https://aaa.lrv.lt/",
+    "https://aam-us.org/",
+    "https://aapa-ports.org/",
+    "https://about.bnef.com/energy-storage",
+    "https://abudhabi.ae/en/infrastructure-environment/environment/estidama",
+    "https://adb.org/what-we-do/topics/transport/overview",
+    "https://adb.org/documents/sustainable-transport-initiative-operational-plan",
+    "https://adb.org/sites/default/files/institutional-document/31315/sustainable-transport-initiative.pdf",
+    "https://adem.alabama.gov/",
+    "https://adeq.state.ar.us/",
+    "https://www.aer.gov.au/",
+    "https://afdc.energy.gov/laws",
+    "https://www.aflogistics.com/",
+    "https://www.afscooling.com/blog/the-digital-backbone-of-f-gas-compliance-navigating-the-f-gas-portal-and-automated-customs-controls",
+    "https://aircargonews.net/",
+    "https://alberta.ca/environment-and-parks.aspx",
+    "https://www.allbrightlaw.com/en/10531/177523769611f595.aspx",
+    "https://allegiancetrucks.com/blog/epa-ghg-rescission-what-it-means-for-your-fleet",
+    "https://www.allens.com.au/insights-news/insights/2024/09/mandatory-climate-related-financial-reporting-legislation/",
+    "https://am.jpmorgan.com/us/en/asset-management/adv/insights/market-insights/eye-on-the-market",
+    "https://americansamoa.gov/legislature",
+    "https://ammoniaenergy.org/articles/paving-the-way-for-ammonia-as-a-marine-fuel-insights-into-the-imos-interim-guidelines/",
+    "https://www.ampeco.com/ev-charging-grants-incentives/epa-clean-ports-program/",
+    "https://amsa.gov.au/",
+    "https://www.aneel.gov.br",
+    "https://antt.gov.br/",
+    "https://www.aoshearman.com/en/insights/nine-key-takeaways-from-the-uaes-new-hydrogen-strategy",
+    "https://apambiente.pt/",
+    "https://apps.leg.wa.gov/wac",
+    "https://asean.org/joint-ministerial-statement-of-the-thirtieth-asean-transport-ministers-meeting-30th-atm/",
+    "https://asean.org/our-communities/economic-community/transport",
+    "https://asean.org/book/kuala-lumpur-transport-strategic-plan-asean-transport-strategic-plan-2016-2025",
+    "https://asean.org/wp-content/uploads/2021/08/KUALA_LUMPUR_TRANSPORT_STRATEGIC_PLAN_2.pdf",
+    "https://asiantransportobservatory.org/documents/198/trends_on_green_freight_in_asia.pdf",
+    "https://aspeninstitute.org/news/zero-emission-maritime-buyers-alliance-launch",
+    "https://assembly.ab.ca/",
+    "https://assembly.gov.nt.ca/",
+    "https://assembly.nl.ca/",
+    "https://assembly.nu.ca/",
+    "https://assembly.pe.ca/",
+    "https://assets.publishing.service.gov.uk/media/610d63ffe90e0706d92fa282/decarbonising-transport-a-better-greener-britain.pdf",
+    "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1148676/non-dom-private-rented-property-minimum-standard-landlord-guidance.pdf",
+    "https://assets.publishing.service.gov.uk/media/62ced7d6e90e071e74883888/Decarbonising-transport-one-year-on-review.pdf",
+    "https://assets.publishing.service.gov.uk/media/6762717b26a2d1ff182534f7/saf-mandate-compliance-guidance-2025.pdf",
+    "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1009448/decarbonising-transport-a-better-greener-britain.pdf",
+    "https://assnat.qc.ca/",
+    "https://asuene.com/us/blog/uk-ets-2026-aviation-maritime-and-sector-expansion-explained"
+  ],
+  "per_item": [
+    {
+      "id": "86757088-b639-4083-8af8-cfeaf19842a4",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 10 entries, 10 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://1point5.caneurope.org/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "0e633b61-70ab-4886-80b8-66ef93d20497",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://2021-2025.state.gov/launching-the-first-movers-coalition-at-the-2021-un-climate-change-conference"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "67d76814-46aa-4146-a668-a07bbba10c1e",
+      "outcome": "bot_wall",
+      "verdict": "bot_wall: homepage and all sitemap candidates returned 401/403/429 — access blocked",
+      "evidence_refs": [
+        "https://aaa.lrv.lt/"
+      ],
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429"
+    },
+    {
+      "id": "0768a0d2-4f2e-4b4f-a84e-05084c107f79",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 10 entries, 10 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://www.aam-us.org/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "4e1b00cd-82e9-4e27-9f04-5cc86ab074fd",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://aapa-ports.org/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "fa19ea7f-ab82-4eaa-9dd2-9375d8418e87",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://about.bnef.com/feed"
+      ],
+      "error": null
+    },
+    {
+      "id": "c1c527fa-fa10-46c9-9667-7c47edc60974",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://abudhabi.ae/en/infrastructure-environment/environment/estidama"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetch failed) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "9b01a831-e570-4ce4-80e1-183af21d9fb5",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://adb.org/what-we-do/topics/transport/overview"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "e3a3818a-7e8b-4aad-8bbb-b7668f0fbc17",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://adb.org/documents/sustainable-transport-initiative-operational-plan"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "f939efd5-a76c-474a-b181-5738e99482ad",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://adb.org/sites/default/files/institutional-document/31315/sustainable-transport-initiative.pdf"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "adc88972-f034-4e4b-9e23-bb6e89571730",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://adem.alabama.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "f6a642dd-25c6-4a67-ab6d-86df394a2ee9",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://adeq.state.ar.us/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "f41ff353-d70a-464e-9ead-ed3cc7a2ebde",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://www.aer.gov.au/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "8344c305-bd30-4fea-a2cf-fd51424fb177",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://afdc.energy.gov/laws"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "521cfe9f-6f54-4ebb-9654-9274dbfae4aa",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 68 url(s) scoped, 68 new (68 planned (dry, nothing written)), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.aflogistics.com/wps/wcm/connect/aflogistics/aflogistics_en/home/sitemap?subtype=xml",
+        "https://www.aflogistics.com/wps/wcm/connect/aflogistics/aflogistics_ar/home/sitemap?subtype=xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "3f32c41a-ee1f-4694-8d26-608d9a4195d5",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 planned (dry, nothing written)), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.afscooling.com/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "1c2b33a5-f9ae-4d2e-977f-5212174814d5",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://aircargonews.net/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "ce9bbe0c-557b-4c93-92f2-1f0711a529ee",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 1 entries, 1 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://alberta.ca/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "4db5ccb0-f7cb-4d95-afe0-7b90605e7115",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://www.allbrightlaw.com/en/10531/177523769611f595.aspx"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "214b4415-3c22-4ce6-a72e-05732bfb648a",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://allegiancetrucks.com/blog/epa-ghg-rescission-what-it-means-for-your-fleet"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "df4f3ed6-a544-4b9f-b464-5d681972b7f7",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 planned (dry, nothing written)), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.allens.com.au/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "4f60d453-3dc6-4e87-b3aa-ef96fc4bac35",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 planned (dry, nothing written)), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://am.jpmorgan.com/content/dam/jpm-am-aem/sitemaps/sitemap-index.xml",
+        "https://am.jpmorgan.com/hk/zh/asset-management/per/sitemap.xml",
+        "https://am.jpmorgan.com/hk/en/asset-management/per/sitemap.xml",
+        "https://am.jpmorgan.com/hk/en/asset-management/adv/sitemap.xml",
+        "https://am.jpmorgan.com/hk/zh/asset-management/adv/sitemap.xml",
+        "https://am.jpmorgan.com/au/en/asset-management/adv/sitemap.xml",
+        "https://am.jpmorgan.com/sg/en/asset-management/adv/sitemap.xml",
+        "https://am.jpmorgan.com/br/en/asset-management/adv/sitemap.xml",
+        "https://am.jpmorgan.com/br/pt/asset-management/adv/sitemap.xml",
+        "https://am.jpmorgan.com/mx/en/asset-management/adv/sitemap.xml",
+        "https://am.jpmorgan.com/mx/es/asset-management/adv/sitemap.xml",
+        "https://am.jpmorgan.com/at/de/asset-management/adv/sitemap.xml",
+        "https://am.jpmorgan.com/at/de/asset-management/per/sitemap.xml",
+        "https://am.jpmorgan.com/fi/en/asset-management/adv/sitemap.xml",
+        "https://am.jpmorgan.com/fi/en/asset-management/per/sitemap.xml",
+        "https://am.jpmorgan.com/dk/en/asset-management/per/sitemap.xml",
+        "https://am.jpmorgan.com/dk/en/asset-management/adv/sitemap.xml",
+        "https://am.jpmorgan.com/no/en/asset-management/adv/sitemap.xml",
+        "https://am.jpmorgan.com/no/en/asset-management/per/sitemap.xml",
+        "https://am.jpmorgan.com/se/en/asset-management/per/sitemap.xml",
+        "… +24 more"
+      ],
+      "error": null
+    },
+    {
+      "id": "2f0e6c2d-29a4-47d7-b467-3708bd2a2001",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 planned (dry, nothing written)), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.americansamoa.gov/sitemap.xml",
+        "https://www.americansamoa.gov/blog-posts-sitemap.xml",
+        "https://www.americansamoa.gov/blog-categories-sitemap.xml",
+        "https://www.americansamoa.gov/dynamic-portfolio_p_98f4eb66_0886_4d3e_b7ec_b479942cdb8d_0_5000-sitemap.xml",
+        "https://www.americansamoa.gov/pages-sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "d41d618a-5826-436e-bde2-143dde1dcaf8",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 0 entries, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://ammoniaenergy.org/articles/paving-the-way-for-ammonia-as-a-marine-fuel-insights-into-the-imos-interim-guidelines/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "cb731c51-69bc-4ffe-bd45-48d3a339bc6a",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://www.ampeco.com/ev-charging-grants-incentives/epa-clean-ports-program/feed"
+      ],
+      "error": null
+    },
+    {
+      "id": "c20241c2-a712-440a-8e59-be582186517e",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://amsa.gov.au/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "8045e5d1-6fe1-44f3-ae8a-a0220fe4429a",
+      "outcome": "bot_wall",
+      "verdict": "bot_wall: homepage and all sitemap candidates returned 401/403/429 — access blocked",
+      "evidence_refs": [
+        "https://www.aneel.gov.br"
+      ],
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429"
+    },
+    {
+      "id": "87894622-d165-4ca0-84dd-13c433058616",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 624 url(s) scoped, 624 new (624 planned (dry, nothing written)), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://antt.gov.br/sitemap.xml",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=5&layoutUuid=e72ace09-903a-0128-b8b2-a09a722b67e4&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=30&layoutUuid=bbe1a87f-4451-788e-d110-e217a4961786&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=31&layoutUuid=6d9946b3-6738-671f-5fb7-15e6704ae3ce&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=32&layoutUuid=200ad957-64db-bb50-5e79-5588e2490bbd&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=33&layoutUuid=29e41c2a-e4c2-95ac-22be-5e7e0f583c4b&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=34&layoutUuid=3dcb4816-f596-e15c-fa2c-5a68e55314c0&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=35&layoutUuid=263bdda3-2a73-3cd7-a4e4-a2e91557abe7&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=39&layoutUuid=e6bc88ee-df05-8b12-1e31-1bf01ebcd33b&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=46&layoutUuid=2e55013b-5c06-1558-a0ae-943c6b321ea3&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=51&layoutUuid=952b8ffa-a0c7-7bea-bae5-0be890df467a&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=69&layoutUuid=11014e4a-1337-59ca-bc98-30b4b8b79c3a&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=71&layoutUuid=fea2239d-ea17-471f-39b3-84a0d017517b&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=80&layoutUuid=4fa3d91a-80e0-f48b-cc8f-705e92e954a1&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=136&layoutUuid=7b300eb1-6e83-68b8-51a7-4087c84bcf3e&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=243&layoutUuid=ab24ee75-e946-9568-4b73-3c8565d92458&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=285&layoutUuid=4c16c8e6-6150-af01-34b3-ffe2b5c674c9&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=337&layoutUuid=8351a3e0-142c-6ef3-d0a0-8caa1e2185d8&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=340&layoutUuid=e06ed41e-ce62-3773-685c-b2fbc11df317&groupId=20122&privateLayout=false",
+        "https://portal.antt.gov.br/sitemap.xml?p_l_id=341&layoutUuid=a1d8e500-4a00-665c-f096-dafe98e35045&groupId=20122&privateLayout=false",
+        "… +30 more"
+      ],
+      "error": null
+    },
+    {
+      "id": "fc22dcce-9edb-4559-8ee9-092caa54e9d1",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 1 url(s) scoped, 1 new (1 planned (dry, nothing written)), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.aoshearman.com/sitemap.xml",
+        "https://www.aoshearman.com/peoplesitemap.xml",
+        "https://www.aoshearman.com/contentsitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "d8859b1a-a9d9-410a-b7cb-039dde1581b7",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://apambiente.pt/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "c610702c-4ced-4c2d-8316-153edd9e8a76",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 0 url(s) scoped, 0 new (0 planned (dry, nothing written)), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://apps.leg.wa.gov/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "2d083de1-c227-402f-9c8b-b0151d7110cf",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://asean.org/joint-ministerial-statement-of-the-thirtieth-asean-transport-ministers-meeting-30th-atm/feed"
+      ],
+      "error": null
+    },
+    {
+      "id": "aae0af9b-3dc7-4ca5-91c0-95769b590f8a",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://asean.org/our-communities/economic-community/transport/feed"
+      ],
+      "error": null
+    },
+    {
+      "id": "e50b19a7-1ea4-44c7-beb1-33dcc0cc0b38",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://asean.org/feed"
+      ],
+      "error": null
+    },
+    {
+      "id": "fd042e62-8955-4fa7-8248-0a296942f537",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://asean.org/feed"
+      ],
+      "error": null
+    },
+    {
+      "id": "a436ef64-3cae-4d55-bc45-416485019d6a",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 planned (dry, nothing written)), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://asiantransportobservatory.org/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "c7cee2e1-1d6c-4e7f-95d0-944de3e4a1d7",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://aspeninstitute.org/news/zero-emission-maritime-buyers-alliance-launch"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "f27f1e92-54b0-4f47-be25-4301025888a7",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 183 url(s) scoped, 183 new (183 planned (dry, nothing written)), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.assembly.ab.ca/SiteMapWithTimestamp.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "77d85d87-5d4d-40f1-a0ed-9d2745f69b68",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://assembly.gov.nt.ca/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetch failed) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "b1c023a0-c95e-4ec4-b300-7901f36d8ab1",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://assembly.nl.ca/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "24f4b92e-6a76-4773-91b4-4463e9f19da9",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 planned (dry, nothing written)",
+      "evidence_refs": [
+        "https://assembly.nu.ca/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "b92386d4-9e79-4854-9a0f-8f9c7c79de13",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://assembly.pe.ca/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "4ff469ca-5d44-4814-ac28-5bc9cf2d3feb",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://assets.publishing.service.gov.uk/media/610d63ffe90e0706d92fa282/decarbonising-transport-a-better-greener-britain.pdf"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://assets.publishing.service.gov.uk/robots.txt) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "9564e7d7-15a5-416b-ad8f-e0d2ca5b88b9",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1148676/non-dom-private-rented-property-minimum-standard-landlord-guidance.pdf"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://assets.publishing.service.gov.uk/robots.txt) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "c1bf569d-dce7-4fe8-af09-741e246a087a",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://assets.publishing.service.gov.uk/media/62ced7d6e90e071e74883888/Decarbonising-transport-one-year-on-review.pdf"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://assets.publishing.service.gov.uk/robots.txt) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "c3cd15a9-93f4-4c13-9041-dc229ef7548c",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://assets.publishing.service.gov.uk/media/6762717b26a2d1ff182534f7/saf-mandate-compliance-guidance-2025.pdf"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://assets.publishing.service.gov.uk/robots.txt) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "fd365853-5ed9-4fcf-9e5f-03a4cffdbff3",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1009448/decarbonising-transport-a-better-greener-britain.pdf"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://assets.publishing.service.gov.uk/robots.txt) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "874767f5-887e-47a1-ab4d-b12924bc6188",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 401 url(s) scoped, 401 new (401 planned (dry, nothing written)), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://assnat.qc.ca/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "0520e0b7-a87c-4cbc-8559-cc674f5327b2",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 0 url(s) scoped, 0 new (0 planned (dry, nothing written)), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://asuene.com/sitemap.xml",
+        "https://asuene.com/sitemap-product.xml",
+        "https://asuene.com/sitemap-corporate.xml",
+        "https://asuene.com/sitemap-veritas.xml",
+        "https://asuene.com/sitemap-nzero.xml",
+        "https://asuene.com/career/job/sitemap-index.xml",
+        "https://asuene.com/career/job/sitemap-jobs-001.xml",
+        "https://asuene.com/career/job/sitemap-jobs-002.xml"
+      ],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "mode": "dry",
+    "sources_targeted": 49,
+    "feed_found": 15,
+    "sitemap_only": 34,
+    "bot_wall_sources": 2,
+    "errors": 20,
+    "urls_scoped_total": 1279,
+    "new_total": 1360,
+    "changed_total": 0,
+    "removed_total": 0,
+    "partial_coverage_sources": 3,
+    "baseline_deferred_sources": 3,
+    "rss_feed_url_written": 0,
+    "change_signals_recorded": 0,
+    "hosts_walked": 40,
+    "hosts_skipped_bot_wall": 2,
+    "feeds_discovered": 15,
+    "new_locs": 1360,
+    "lastmod_changes": 0,
+    "hosts_remaining_unwalked": 606,
+    "hosts_selected": 40,
+    "upserted": 0,
+    "planned": 1360,
+    "failed": 0,
+    "no_targets_reason": null
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/source-sweep/traces/source-sweep-run-013.raw-result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-source-sweep.mjs, the source-sweep family's canonical entry point (RT lane, 2026-09-01) — the runtime scripts/connections/*.mjs and scripts/mint|forward-events/run-*.mjs already had for their own families, extended to the register-walk.mjs/feed-walk.mjs enumeration modules."
+}
