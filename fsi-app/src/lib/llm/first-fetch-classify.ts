@@ -41,7 +41,13 @@ import { isErrorBody } from "@/lib/sources/entity-gate.mjs";
 import { spendMessage, setSpendTicket, currentSpendTicket } from "@/lib/llm/spend-client";
 
 const HAIKU_MODEL = "claude-haiku-4-5-20251001";
-const CONTENT_MAX_CHARS = 6_000;
+// EXPORTED (Lane LEDGER-EXPORT, 2026-09-04): run-ledger-consume.mjs's `--export-candidates --with-text`
+// mode slices each fetched candidate's text to this SAME cap before writing it to the export payload, so
+// the text a classification lane reads is byte-identical to what firstFetchClassify itself would have
+// truncated it to (buildFirstFetchClassifyUserMessage already relies on this constant for the same
+// reason). Exported so that driver imports it (via jiti — see its own header) rather than retyping the
+// literal 6000 a second time, which could silently drift from this one.
+export const CONTENT_MAX_CHARS = 6_000;
 
 // The routing rule below is the canonical mapping from item_type +
 // source.category to the integer domain column. It MUST stay in sync with:

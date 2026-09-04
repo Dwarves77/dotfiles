@@ -101,10 +101,27 @@
 //     # runs as plan, records why. A candidate with a verdict in --verdicts is minted/rejected from that
 //     # verdict; one without is SKIPPED (never sent to the API) unless --allow-api is also given.
 //   node scripts/turns/run-ledger-consume.mjs --export-candidates <path> [--limit N] [--source-id <uuid>]
-//     # READ-ONLY: no fetch, no classify, no DB write. Lists candidate rows for a session lane to fetch +
-//     # classify offline into a --verdicts file. Ignores --mode/--verdicts/--allow-api.
+//     [--after '{"firstSeenAt":"...","id":"..."}'] [--with-text]
+//     # READ-ONLY: no classify, no DB write. Lists candidate rows for offline classification. Ignores
+//     # --mode/--verdicts/--allow-api. Without --with-text: no fetch either (unchanged from Lane
+//     # LEDGER-ZERO). WITH --with-text: fetches each URL through the SAME fetchDoc (buildFetchDoc — same
+//     # politeness gap, same timeout, no second fetcher — see "THE DEFECT THIS CLOSES" below) and carries
+//     # the fetched text in the payload, so a classification lane never fetches.
 // Exit 0 done · 1 bad args · 2 no DB creds · 3 --allow-api requested but no ANTHROPIC_API_KEY ·
 //      4 --verdicts file failed schema validation (scripts/turns/ledger-verdicts/schema.json).
+//
+// THE DEFECT THIS CLOSES (Lane LEDGER-EXPORT, 2026-09-04, coordinator [CONFIRMED] 16:55). LEDGER-ZERO's
+// --export-candidates listed candidate rows WITHOUT page text — its own note_on_fetched_text said "a
+// session lane must fetch each URL itself (e.g. via the browser)". The coordinator tried exactly that:
+// 1,837 candidates, Haiku classification lanes fetching through WebFetch hit rate limits within minutes,
+// and one lane started guessing a classification from the URL string instead of the fetched page (refused
+// — see docs/runbooks/CORPUS-TURN-RUNBOOK.md's "Ledger consume" section). This runtime already owns the
+// ONE polite fetcher (buildFetchDoc, above — the ConsumeOpts.FetchDocFn contract, with the politeness gap
+// and the 20s timeout) and plan mode already fetches every candidate it classifies — so the fix is to run
+// THAT SAME fetcher inside --export-candidates (via --with-text) and carry the fetched text in the export
+// payload, in the Actions runner (which has real network access this environment does not), delivered as
+// a workflow artifact branch — never a second, hand-rolled fetcher, and never a classification lane
+// fetching for itself.
 
 import { parseArgs as nodeParseArgs } from "node:util";
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
@@ -139,7 +156,8 @@ function usage() {
     "Usage: node scripts/turns/run-ledger-consume.mjs [--mode plan|apply] [--limit N] [--source-id uuid]\n" +
     "         [--newest-first] [--after '{\"firstSeenAt\":\"...\",\"id\":\"...\"}']\n" +
     "         [--harness-runs-dir dir] [--trace-dir dir] [--verdicts path] [--allow-api]\n" +
-    "       node scripts/turns/run-ledger-consume.mjs --export-candidates path [--limit N] [--source-id uuid]"
+    "       node scripts/turns/run-ledger-consume.mjs --export-candidates path [--limit N] [--source-id uuid]\n" +
+    "         [--newest-first] [--after '{\"firstSeenAt\":\"...\",\"id\":\"...\"}'] [--with-text]"
   );
 }
 
@@ -160,6 +178,7 @@ export function parseArgs(argv) {
         verdicts: { type: "string" },
         "allow-api": { type: "boolean", default: false },
         "export-candidates": { type: "string" },
+        "with-text": { type: "boolean", default: false },
       },
       allowPositionals: false,
       strict: true,
@@ -180,6 +199,12 @@ export function parseArgs(argv) {
   }
   if (values["export-candidates"] !== undefined && !values["export-candidates"].trim()) {
     return { ok: false, error: "--export-candidates, if given, must be a non-empty path." };
+  }
+  if (values["with-text"] === true && !values["export-candidates"]) {
+    // Loud, not a silent no-op (this file's own discipline — see e.g. the never-silently-defaulted verdict
+    // fields): --with-text has no meaning outside --export-candidates, so an operator who typed it expecting
+    // an effect finds out immediately, not by reading an unaugmented payload afterward.
+    return { ok: false, error: "--with-text requires --export-candidates (it has no effect in plan/apply mode)." };
   }
 
   let after = null;
@@ -215,6 +240,7 @@ export function parseArgs(argv) {
     verdicts: values.verdicts || null,
     allowApi: values["allow-api"] === true,
     exportCandidates: values["export-candidates"] || null,
+    withText: values["with-text"] === true,
   };
 }
 
@@ -743,34 +769,82 @@ export function resolveApplyGate(requestedMode, applyEnabled) {
   return { effectiveMode: requestedMode, applyDisarmed: false, message: null };
 }
 
-// ── --export-candidates — the READ-ONLY lister for offline session-verdict classification ───────────────
+// ── --export-candidates — the READ-ONLY lister for offline classification ────────────────────────────────
 //
 // Hands a session lane exactly what selectCandidateLedgerPage (portal-harvest.ts) reads, in the SAME
-// keyset-paginated page a consume pass would have — never a second hand-mirrored query. This runtime does
-// NOT persist first-fetch page text (portal_link_candidates has no content column: migrations 162/220
-// only ever added url/anchor_text/status/disposition columns), so the payload says so honestly rather than
-// emitting an empty `text` field a reader might mistake for "fetched, but blank."
+// keyset-paginated page a consume pass would have — never a second hand-mirrored query.
+//
+// --with-text (Lane LEDGER-EXPORT, 2026-09-04 — see this file's header, "THE DEFECT THIS CLOSES"): fetches
+// each row's URL through the SAME buildFetchDoc a consume pass uses (no second fetcher, same politeness
+// gap, same 20s timeout) and carries the fetched text in the payload, so a classification lane never
+// fetches for itself. Without --with-text this mode is UNCHANGED from Lane LEDGER-ZERO: no fetch, and the
+// payload says so honestly (portal_link_candidates itself has no content column: migrations 162/220 only
+// ever added url/anchor_text/status/disposition columns — the ledger table was never the text's home; the
+// text --with-text carries here comes from a live fetch this run makes, not from the table).
+
+/**
+ * Shape one candidate's text fields from a single fetch attempt's outcome. PURE — no I/O; the actual
+ * `fetchDoc` call happens in `runExportCandidates`'s I/O half, which passes its outcome in here for
+ * shaping. Independently testable with a canned {ok, error?, text?, transport?} outcome — no real network.
+ *
+ * `maxChars` is REQUIRED, never defaulted here — the caller must thread it in from
+ * `first-fetch-classify.ts`'s own exported `CONTENT_MAX_CHARS` (via jiti — see main()) so this file never
+ * carries a second, independently-typed copy of that cap that could silently drift from the live one.
+ *
+ * THE 200-CHAR FLOOR is the SAME ONE portal-harvest.ts's consumePortalCandidates applies at its own fetch
+ * step (that file, `if (text.trim().length < 200)` — see the "1 — FETCH" comment above that line): a fetch
+ * that succeeded transport-wise but returned too little text to classify is INCONCLUSIVE, not a hard
+ * failure. Unlike consumePortalCandidates (which just skips the row), this export STILL CARRIES the short
+ * text — a session lane or a later retry may find it useful — but marks `fetch_ok: false` with a named,
+ * greppable reason so a reader does not treat it as classify-ready.
+ * @param {{ok: true, text: string, transport?: string|null} | {ok: false, error: string}} fetchOutcome
+ * @param {{maxChars: number, now?: () => string}} opts
+ * @returns {{text: string, fetched_chars: number, fetch_ok: boolean, fetch_error: string|null, fetched_at: string, transport: string|null}}
+ */
+export function shapeCandidateTextFields(fetchOutcome, opts) {
+  if (typeof opts?.maxChars !== "number") {
+    throw new Error(
+      "shapeCandidateTextFields requires opts.maxChars — pass first-fetch-classify.ts's own exported " +
+        "CONTENT_MAX_CHARS (via jiti), never a retyped literal."
+    );
+  }
+  const now = opts.now ?? (() => new Date().toISOString());
+  if (fetchOutcome.ok === false) {
+    return {
+      text: "",
+      fetched_chars: 0,
+      fetch_ok: false,
+      fetch_error: fetchOutcome.error,
+      fetched_at: now(),
+      transport: null,
+    };
+  }
+  const raw = fetchOutcome.text ?? "";
+  const sliced = raw.slice(0, opts.maxChars);
+  const belowFloor = raw.trim().length < 200; // SAME floor as portal-harvest.ts's fetch step — see doc above
+  return {
+    text: sliced,
+    fetched_chars: sliced.length,
+    fetch_ok: !belowFloor,
+    fetch_error: belowFloor ? "below_floor_200" : null,
+    fetched_at: now(),
+    transport: fetchOutcome.transport ?? null,
+  };
+}
 
 /**
  * Shape one export batch from a page of LedgerCandidate rows. PURE — no I/O, independently testable.
  * @param {object[]} candidates rows from selectCandidateLedgerPage
- * @param {{limit?: number, promptVersion?: string|null, now?: () => string}} [opts]
+ * @param {{limit?: number, promptVersion?: string|null, now?: () => string, withText?: boolean, contentMaxChars?: number|null, textByCandidateId?: Map<string, object>}} [opts]
  */
 export function buildCandidateExportPayload(candidates, opts = {}) {
   const now = opts.now ?? (() => new Date().toISOString());
   const limit = opts.limit ?? candidates.length;
-  return {
-    generated_at: now(),
-    source: "portal_link_candidates status=candidate",
-    note_on_fetched_text:
-      "This runtime does not persist first-fetch page text (portal_link_candidates carries no content " +
-      "column — see migrations 162/220): a session lane must fetch each URL itself (e.g. via the browser) " +
-      "before classifying. Build the classify call with FIRST_FETCH_HAIKU_SYSTEM_PROMPT + " +
-      "buildFirstFetchClassifyUserMessage (src/lib/llm/first-fetch-classify.ts) over the fetched text so " +
-      "the resulting verdict is produced under the IDENTICAL prompt the live chokepoint uses (ONE BODY).",
-    prompt_version: opts.promptVersion ?? null,
-    count: candidates.length,
-    candidates: candidates.map((row) => ({
+  const withText = opts.withText === true;
+  let fetchOkCount = 0;
+  let fetchFailedCount = 0;
+  const candidateRows = candidates.map((row) => {
+    const base = {
       candidate_id: row.id,
       url: row.url,
       source_id: row.source_id,
@@ -779,7 +853,46 @@ export function buildCandidateExportPayload(candidates, opts = {}) {
       source_name: row.sources?.name ?? null,
       source_category: row.sources?.category ?? null,
       source_tier: row.sources?.base_tier ?? null,
-    })),
+    };
+    if (!withText) return base;
+    const t = opts.textByCandidateId?.get(row.id);
+    if (!t) return base; // defensive: --with-text always populates one entry per row (see runExportCandidates)
+    if (t.fetch_ok) fetchOkCount += 1;
+    else fetchFailedCount += 1;
+    return {
+      ...base,
+      text: t.text,
+      fetched_chars: t.fetched_chars,
+      fetch_ok: t.fetch_ok,
+      fetch_error: t.fetch_error,
+      fetched_at: t.fetched_at,
+      transport: t.transport,
+    };
+  });
+  return {
+    generated_at: now(),
+    source: "portal_link_candidates status=candidate",
+    with_text: withText,
+    content_max_chars: withText ? opts.contentMaxChars ?? null : null,
+    note_on_fetched_text: withText
+      ? "This export was produced with --with-text: each candidate below carries its already-fetched page " +
+        "text (fetched by the SAME fetchDoc — buildFetchDoc's politeness gap and timeout — a consume pass " +
+        "uses; no second fetcher), sliced to content_max_chars (first-fetch-classify.ts's own " +
+        "CONTENT_MAX_CHARS). fetch_ok=false marks a row that failed to fetch (fetch_error names why) or " +
+        "fell under portal-harvest.ts's own 200-char floor (fetch_error='below_floor_200'; its text field " +
+        "is still carried — a session lane or a later retry may find it useful — but should not be treated " +
+        "as classify-ready). A classification lane consuming this file must NOT fetch these URLs itself — " +
+        "the fix this field exists for was Haiku classification lanes hitting fetch rate limits by doing " +
+        "exactly that (see run-ledger-consume.mjs's header, \"THE DEFECT THIS CLOSES\")."
+      : "This runtime does not persist first-fetch page text (portal_link_candidates carries no content " +
+        "column — see migrations 162/220): re-dispatch this export with --with-text to have this run fetch " +
+        "and carry the text itself (the SAME fetchDoc a consume pass uses), rather than a classification " +
+        "lane fetching each URL for itself.",
+    fetch_ok_count: withText ? fetchOkCount : null,
+    fetch_failed_count: withText ? fetchFailedCount : null,
+    prompt_version: opts.promptVersion ?? null,
+    count: candidates.length,
+    candidates: candidateRows,
     // Same keyset-cursor convention as ConsumeResult.nextCursor (portal-harvest.ts) — omitted when this
     // page read fewer rows than `limit` (the source is exhausted here), present otherwise so a session
     // lane can page through the full backlog across several --export-candidates calls.
@@ -794,7 +907,15 @@ export function buildCandidateExportPayload(candidates, opts = {}) {
  * The I/O half: page-select (via the injected `selectPage`, normally `selectCandidateLedgerPage` bound to
  * a live client) + write the shaped payload to `outPath`. `selectPage` is injected so this is testable
  * with a stub, no live Supabase client required — same discipline the rest of this driver's I/O seams use.
- * @param {{selectPage: (opts:object)=>Promise<object[]>, limit: number, sourceId?: string|null, newestFirst?: boolean, after?: object|null, promptVersion?: string|null, outPath: string, now?: () => string}} opts
+ *
+ * `--with-text` (`opts.withText`): when set, fetches every selected row's URL through the injected
+ * `fetchDoc` — ONE instance, called sequentially in page order, so its own politeness-gap state (the
+ * closure `buildFetchDoc` returns) actually applies between consecutive fetches, exactly as it would
+ * inside a consume pass. A per-row fetch failure is caught and shaped as `{ok:false, error}` — it never
+ * aborts the batch; the row is still exported, `fetch_ok:false`. This function performs NO database write
+ * of any kind: `selectPage` is the only DB-shaped call it makes (a read), `fetchDoc` is a plain HTTP-shaped
+ * function, and the only other I/O is the local `writeFileSync` below.
+ * @param {{selectPage: (opts:object)=>Promise<object[]>, limit: number, sourceId?: string|null, newestFirst?: boolean, after?: object|null, promptVersion?: string|null, outPath: string, now?: () => string, withText?: boolean, fetchDoc?: (url:string)=>Promise<{text:string,transport?:string}>, maxChars?: number}} opts
  * @returns {Promise<{path: string, count: number, payload: object}>}
  */
 export async function runExportCandidates(opts) {
@@ -804,10 +925,33 @@ export async function runExportCandidates(opts) {
     newestFirst: opts.newestFirst,
     after: opts.after ?? undefined,
   });
+
+  const withText = opts.withText === true;
+  let textByCandidateId;
+  if (withText) {
+    if (typeof opts.fetchDoc !== "function") {
+      throw new Error("runExportCandidates: opts.withText requires opts.fetchDoc (the SAME fetchDoc a consume pass uses).");
+    }
+    textByCandidateId = new Map();
+    for (const row of candidates) {
+      let fetchOutcome;
+      try {
+        const r = await opts.fetchDoc(row.url);
+        fetchOutcome = { ok: true, text: r?.text ?? "", transport: r?.transport ?? null };
+      } catch (e) {
+        fetchOutcome = { ok: false, error: e instanceof Error ? e.message : String(e) };
+      }
+      textByCandidateId.set(row.id, shapeCandidateTextFields(fetchOutcome, { maxChars: opts.maxChars, now: opts.now }));
+    }
+  }
+
   const payload = buildCandidateExportPayload(candidates, {
     limit: opts.limit,
     promptVersion: opts.promptVersion ?? null,
     now: opts.now,
+    withText,
+    contentMaxChars: withText ? opts.maxChars ?? null : null,
+    textByCandidateId,
   });
   const outPath = resolve(opts.outPath);
   mkdirSync(dirname(outPath), { recursive: true });
@@ -844,13 +988,16 @@ async function main() {
   const { createJiti } = await import("jiti");
   const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
   const { consumePortalCandidates, selectCandidateLedgerPage } = await jiti.import("../../src/lib/intake/portal-harvest.ts");
-  const { firstFetchClassify, FIRST_FETCH_CLASSIFY_PROMPT_VERSION } = await jiti.import(
+  const { firstFetchClassify, FIRST_FETCH_CLASSIFY_PROMPT_VERSION, CONTENT_MAX_CHARS } = await jiti.import(
     "../../src/lib/llm/first-fetch-classify.ts"
   );
 
-  // ── --export-candidates: a DISTINCT, READ-ONLY action — no fetch, no classify, no DB write, no harness-
-  // run artifact (this is a listing utility for a session lane to fetch+classify offline, not a consume
-  // pass — see this file's header). Exits here; never falls through to the consume path below.
+  // ── --export-candidates: a DISTINCT, READ-ONLY action — no classify, no DB write, no harness-run
+  // artifact (this is a listing utility for offline classification, not a consume pass — see this file's
+  // header). Exits here; never falls through to the consume path below. Without --with-text: no fetch
+  // either, unchanged from Lane LEDGER-ZERO. WITH --with-text: fetches through the SAME buildFetchDoc a
+  // consume pass uses below (no second fetcher, same politeness gap, same timeout) — see this file's
+  // header, "THE DEFECT THIS CLOSES".
   if (parsed.exportCandidates) {
     const selectPage = (opts) => selectCandidateLedgerPage(sb, opts);
     const { path, count } = await runExportCandidates({
@@ -861,8 +1008,13 @@ async function main() {
       after: parsed.after,
       promptVersion: FIRST_FETCH_CLASSIFY_PROMPT_VERSION,
       outPath: parsed.exportCandidates,
+      withText: parsed.withText,
+      fetchDoc: parsed.withText ? buildFetchDoc() : undefined,
+      maxChars: CONTENT_MAX_CHARS,
     });
-    console.log(`run-ledger-consume --export-candidates: wrote ${count} candidate(s) to ${path}`);
+    console.log(
+      `run-ledger-consume --export-candidates${parsed.withText ? " --with-text" : ""}: wrote ${count} candidate(s) to ${path}`
+    );
     process.exit(0);
   }
 
