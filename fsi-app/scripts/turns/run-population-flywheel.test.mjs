@@ -13,6 +13,7 @@ import {
   extractMintedItemIds,
   hasRecoverableMintedIds,
   resolveMintedItemIds,
+  disambiguateByArtifactTime,
   buildFlywheelPlan,
   computeCorpusOutcomes,
   checkPriorSliceConnected,
@@ -794,3 +795,55 @@ test("runFlywheelForOneArtifact: refuses BEFORE any I/O when the artifact has no
 // already pin the guard's predicate directly (true for the normal/DRY-fixture case, false only for
 // UNRECOVERABLE) — the guard here is a one-line `if (!hasRecoverableMintedIds(artifact)) throw`, so that
 // coverage already proves it does not fire on the normal case.
+
+// ── disambiguateByArtifactTime (LEGACY-3) ────────────────────────────────────────────────────────────
+test("disambiguateByArtifactTime: archived duplicates drop first, then the row minted within a day of the artifact wins", () => {
+  const rows = [
+    { id: "old-live", is_archived: false, created_at: "2026-04-05T00:00:00Z" },
+    { id: "minted-by-this-run", is_archived: false, created_at: "2026-09-01T00:52:00Z" },
+    { id: "archived-dup", is_archived: true, created_at: "2026-09-01T00:52:00Z" },
+  ];
+  assert.deepEqual(disambiguateByArtifactTime(rows, "2026-09-01T00:49:22Z"), ["minted-by-this-run"]);
+});
+
+test("disambiguateByArtifactTime: still ambiguous (two live rows within the window) stays ambiguous, never guessed", () => {
+  const rows = [
+    { id: "a", is_archived: false, created_at: "2026-09-01T01:00:00Z" },
+    { id: "b", is_archived: false, created_at: "2026-09-01T02:00:00Z" },
+  ];
+  assert.equal(disambiguateByArtifactTime(rows, "2026-09-01T00:49:22Z").length, 2);
+});
+
+test("disambiguateByArtifactTime: a single match passes through; no started_at falls back to the live filter only", () => {
+  assert.deepEqual(disambiguateByArtifactTime([{ id: "x", is_archived: false }], undefined), ["x"]);
+  assert.deepEqual(
+    disambiguateByArtifactTime([{ id: "live", is_archived: false, created_at: "2026-01-01T00:00:00Z" }, { id: "arch", is_archived: true, created_at: "2026-01-01T00:00:00Z" }], undefined),
+    ["live"],
+  );
+});
+
+test("resolveMintedItemIds: the live duplicate-key shape of mint-run-001 resolves to the row minted at the artifact's time", async () => {
+  const artifact = {
+    metrics: { minted: 1 },
+    started_at: "2026-09-01T00:49:22Z",
+    per_item: [{ id: "32015R0757", outcome: "minted" }],
+  };
+  const db = {
+    readAll: async () => [
+      { id: "3af75490", canonical_instrument_key: "32015R0757", is_archived: false, created_at: "2026-04-05T00:00:00Z" },
+      { id: "9a22c296", canonical_instrument_key: "32015R0757", is_archived: false, created_at: "2026-09-01T00:53:00Z" },
+    ],
+  };
+  const r = await resolveMintedItemIds(artifact, db);
+  assert.deepEqual(r.ids, ["9a22c296"]);
+  assert.equal(r.unresolved.length, 0);
+});
+
+test("disambiguateByArtifactTime: the run's own row archived as duplicate_of_verified — the single surviving verified row wins (32023R1804's live shape)", () => {
+  const rows = [
+    { id: "ff95b385", is_archived: false, created_at: "2026-05-05T00:00:00Z", provenance_status: "verified" },
+    { id: "62ba40b0", is_archived: false, created_at: "2026-05-10T00:00:00Z", provenance_status: "quarantined" },
+    { id: "a86dcc05", is_archived: true, created_at: "2026-09-01T00:53:00Z", provenance_status: "verified" },
+  ];
+  assert.deepEqual(disambiguateByArtifactTime(rows, "2026-09-01T00:49:22Z"), ["ff95b385"]);
+});
