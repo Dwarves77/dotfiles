@@ -1,8 +1,62 @@
 # Last proposer pass — propagation
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `propagation` now has **two** artifacts
-(`propagation-run-001`, `propagation-run-002`); F28's rule (d) requires this file to name the latest
-verbatim: **propagation-run-002**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `propagation` now has **three** artifacts
+(`propagation-run-001`, `propagation-run-002`, `propagation-run-003`); F28's rule (d) requires this file to name the latest
+verbatim: **propagation-run-003**.
+
+## Proposer pass for propagation-run-003
+
+**Artifacts read:** propagation-run-001 (dry, GitHub Actions run 33629373734, 2026-09-02T12:21Z),
+propagation-run-002 (apply, run 33629928282, 2026-09-02T12:35Z), and propagation-run-003 (dry,
+GitHub Actions run 33898190689, 2026-09-04T17:00:39Z, backfill_and_statutory=true, hand dispatch,
+trigger_context null).
+
+**Full traces read:** propagation-run-003.report.json (drain metrics only; backfill and statutory
+outcomes not present — see defect below), propagation-run-003.json artifact file in full, and
+live table state post-run (propagation_events, derivation_edges, derived_values, statutory_computations).
+
+**What the three runs show:**
+
+1. **Run-003 is first under CHAIN's workflow_run resolution.** Harness version
+   `sha256:45d4f97e9c543737` [CONFIRMED] discharged the family's PENDING-RUN.md marker (Wave
+   GOV-SINGLE, 2026-09-04). This marks the first unified harness_version across all propagation
+   entry points (the coordinator's workflow now self-hashes a single GOVERNING_FILES list).
+
+2. **Run-003 is first with DAG-AUTHOR backfill and statutory steps.** `backfill-derivation-edges.mjs`
+   and `write-statutory.mjs` ran as separate workflow steps BEFORE the drain (lane CHAIN, 2026-09-04
+   system-completion train). These are not recorded in the artifact — the artifact carries only the
+   drain's own metrics (queue_depth_before: 1000, events_considered: 500, invalidated: 0). This is
+   the defect the next lane should close: the backfill and statutory step outcomes belong in the run
+   artifact alongside the drain's metrics.
+
+3. **Dry mode holds 500 events from queue depth 1000.** Pre-run state: propagation_events 2,754
+   total / 2,748 pending (coordinator-confirmed). Run metric shows 500 considered, 0 invalidated
+   (dry — no write), matching the plan. Derivation DAG: 6 edges / 6 derived_values (seeded from
+   run-002's carbon-intensity seed). Statutory computations: 0 (no rows yet). Per DAG-AUTHOR's
+   backfill design, the first backfill apply should add +8 derived_values / +9 edges — those numbers
+   live in backfill-derivation-edges.mjs's run metrics once the artifact schema is extended.
+
+**Defect found:** The `per_item[0].evidence_refs` points to propagation-run-003.report.json, which
+carries only the drain's own report. The backfill and statutory steps' outcomes (row counts, edge
+derivations, computation decisions) ran earlier in the workflow but are not recorded anywhere —
+not in this artifact, not in a separate backfill/statutory artifact. Next lane should close this by
+either (a) adding those steps' metrics to the artifact when the drain runs (requires artifact
+schema extension), or (b) emitting separate run artifacts for the backfill and statutory phases
+(per-phase history). This is explicitly named as a next-lane defect and is not a defect in the
+drain family's own fitness — run-003's artifact is schema-valid and its drain metrics are complete.
+
+**Comparison with runs 001–002 (2026-09-02):** Both earlier runs show queue_depth_before → events_considered,
+with 001 dry (invalidated: 0) and 002 apply (invalidated: 0, recomputed: 0, events_drained: 6).
+Run-003 holds the same pattern: queue_depth 1000 → events considered 500 (second 500-batch from the
+1000-item queue seeded on 2026-09-02). No new defects in the drain's own behavior; no regression.
+
+**Proposal:** None warranted this pass. The drain's metrics are clean; the defect is structural
+(missing schema fields for the backfill/statutory outcomes) and is an honest gap the next lane
+explicitly owns. The three runs show the propagation family's drain and seed procedures working as
+designed — the loop is ready for the next phase (statutory computations, once backfill completes
+and the statutory schema lands, per CONVENTION.md's own design notes).
+
+---
 
 **Artifacts read:** propagation-run-001 (dry, GitHub Actions run 33629373734, 2026-09-02T12:21Z,
 `sha256:1bf7154b2038e959`, backfill + seed on) and propagation-run-002 (apply, run 33629928282,
