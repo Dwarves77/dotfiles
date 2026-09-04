@@ -34,8 +34,14 @@
  */
 
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
-import { fetchObligationRegister, fetchForwardEventCount } from "@/lib/obligations/read-register.mjs";
+import {
+  fetchObligationRegister,
+  fetchObligationRegisterPage,
+  fetchForwardEventCount,
+  fetchRegisterFacetOptions,
+} from "@/lib/obligations/read-register.mjs";
 import { ObligationRegisterFilterBar, type ObligationRow } from "@/components/regulations/ObligationRegisterFilterBar";
+import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 
 interface Props {
   /** Detail-page mount: scope to one item's own obligations. Accepts either a real uuid or the item's
@@ -58,6 +64,9 @@ export async function ObligationRegister({ itemId, variant = "list" }: Props) {
   // read-register.test.mjs's fetchObligationRegister fixtures), so the cast below states a true fact
   // about the data, not a type-safety shortcut around a real mismatch.
   let rows: ObligationRow[] = [];
+  let total = 0;
+  let jurisdictionOptions: string[] = [];
+  let modeOptions: string[] = [];
   // Source-event count for the list page's empty state: "derived from N forward events on file, none
   // classified into the register yet" is the honest read when `obligations` is empty but migration
   // 274's item_forward_events is not (901+ rows live) — see fetchForwardEventCount's own header. Only
@@ -78,8 +87,32 @@ export async function ObligationRegister({ itemId, variant = "list" }: Props) {
       if (!resolvedItemId) return null;
     }
 
-    rows = (await fetchObligationRegister(supabase, { itemId: variant === "detail" ? resolvedItemId : undefined, limit: 500 })) as ObligationRow[];
-    if (variant === "list" && rows.length === 0) {
+    if (variant === "detail") {
+      // Unchanged from before this lane: small, itemId-scoped, no pagination need.
+      rows = (await fetchObligationRegister(supabase, { itemId: resolvedItemId, limit: 200 })) as ObligationRow[];
+      total = rows.length;
+    } else {
+      // PERF-11 (2026-09-04): FIRST PAGE ONLY, not the whole register. Was `fetchObligationRegister(...,
+      // { limit: 500 })` — the entire table (1,141 live rows [CONFIRMED, live SQL, 2026-09-04] is well
+      // under 500, so this was in practice "fetch the whole register, ship it whole, render up to 300
+      // rows of it") shipped as props to a client component and rendered as up to 300 `<tr>` elements on
+      // every /regulations load — the single largest contributor this lane measured to the page's
+      // oversized document (approx 230-280 KB of the register's own field content alone, live-measured,
+      // paid twice via SSR HTML + the RSC flight duplicate). Now: LIST_FIRST_PAGE_SIZE rows, soonest-due
+      // first (the register's own natural, most-useful default order — unchanged), `total` for an honest
+      // "N of M" header, and jurisdiction/mode filter options sourced independently (see
+      // fetchRegisterFacetOptions's header) so the dropdowns stay complete even though the row payload no
+      // longer is. Every further row arrives via ObligationRegisterFilterBar's "Load more" /
+      // /api/obligations/register call — the same page+remainder-fetch shape FIRSTPAGE built for
+      // /regulations, not a new mechanism.
+      const page = await fetchObligationRegisterPage(supabase, { limit: LIST_FIRST_PAGE_SIZE, offset: 0 });
+      rows = page.rows as ObligationRow[];
+      total = page.total;
+      const facets = await fetchRegisterFacetOptions(supabase);
+      jurisdictionOptions = facets.jurisdictions;
+      modeOptions = facets.modes;
+    }
+    if (variant === "list" && total === 0) {
       sourceEventCount = await fetchForwardEventCount(supabase);
     }
   } catch {
@@ -93,5 +126,14 @@ export async function ObligationRegister({ itemId, variant = "list" }: Props) {
     if (rows.length === 0) return null;
   }
 
-  return <ObligationRegisterFilterBar rows={rows} variant={variant} sourceEventCount={sourceEventCount} />;
+  return (
+    <ObligationRegisterFilterBar
+      rows={rows}
+      total={total}
+      variant={variant}
+      sourceEventCount={sourceEventCount}
+      jurisdictionOptions={jurisdictionOptions}
+      modeOptions={modeOptions}
+    />
+  );
 }

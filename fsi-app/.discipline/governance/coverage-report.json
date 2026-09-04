@@ -4031,6 +4031,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/supabase-server-domain-scope.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/supabase-server-listings-order.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -4099,15 +4108,6 @@
       "skills": [],
       "proofWired": true,
       "status": "EXEMPT"
-    },
-    {
-      "path": "fsi-app/src/lib/text/html-to-text.test.mjs",
-      "kinds": [
-        "PROOF"
-      ],
-      "skills": [],
-      "proofWired": true,
-      "status": "COVERED"
     },
     {
       "path": "fsi-app/src/lib/tier-badge-tone.test.mjs",
@@ -8862,11 +8862,24 @@
       ],
       "proofWired": null,
       "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/supabase/migrations/305_workspace_intelligence_listings_domain_param.sql",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "sprint-followups-discipline",
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
     }
   ],
   "summary": {
-    "governed_files": 813,
-    "covered": 780,
+    "governed_files": 814,
+    "covered": 781,
     "exempt": 33,
     "gaps": 0,
     "orphaned_proofs": 0,

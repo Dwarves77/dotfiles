@@ -2,25 +2,39 @@
 
 /**
  * ObligationRegisterFilterBar — the interactive half of ObligationRegister (Lane OBLIG, 2026-09-02).
- * "use client": owns the jurisdiction / mode / binding-position / due-window filter state and re-filters
- * an already-fetched page of register rows IN THE BROWSER via `filterJoinedRows` — the exact same pure
- * predicate/sort `src/lib/obligations/read-register.mjs`'s server-side `selectRegisterRows` uses, so the
- * filter behaviour here can never drift from what the server-side read would produce for the same spec.
- * No network round trip on filter change; the list page fetches once (up to 500 active rows) and this
- * component slices it client-side, same trade-off RegulationsLedger already makes for its own filters.
+ * "use client": owns the jurisdiction / mode / binding-position / due-window filter state.
  *
- * FILTER OPTIONS ARE DERIVED FROM THE FETCHED ROWS, never a hardcoded list — a jurisdiction/mode this
- * corpus does not currently carry is never offered as a dead option.
+ * PERF-11 (2026-09-04) REWRITE OF THE DATA MODEL. Was: the parent fetched up to 500 rows (in practice the
+ * WHOLE live register — 1,141 rows [CONFIRMED, live SQL, 2026-09-04] is under 500 for the itemId-less
+ * list read) and shipped them ALL as this component's `rows` prop; every filter change re-sliced that
+ * in-memory array via `filterJoinedRows`, and the table rendered up to 300 `<tr>`s regardless of which
+ * filter was active. That was the single largest contributor this lane measured to /regulations' oversized
+ * document (the register's own field content alone: ~230-280 KB live-measured, paid twice via SSR HTML +
+ * the RSC flight duplicate) and the clearest instance of the operator's own framing ("you dont load every
+ * item at once") on this page.
+ *
+ * NOW (list variant): the parent (ObligationRegister.tsx) renders only the FIRST PAGE (LIST_FIRST_PAGE_SIZE
+ * rows, soonest-due-first, no filters) plus the corpus-wide `total`. A filter change fires a request to
+ * `/api/obligations/register` (offset 0, the new filters) and REPLACES `rows`; "Load more" fires the same
+ * route at `offset = rows.length` with the CURRENT filters and APPENDS. Every request runs the exact same
+ * `filterJoinedRowsPage`/`fetchObligationRegisterPage` server-side logic — filter correctness is never
+ * approximated client-side, and no surface here is ever emptied by a fetch in flight: a `loading` state
+ * keeps the LAST GOOD rows on screen with a "Loading…" affordance rather than blanking to empty (the same
+ * honest-loading-state rule FIRSTPAGE's band-header fix established for the ledger).
+ *
+ * DETAIL VARIANT IS UNCHANGED: itemId-scoped, always small, no filter UI, no network round trip here — it
+ * still renders whatever `rows` the parent passed synchronously, same as before this lane.
+ *
+ * FILTER OPTIONS are `jurisdictionOptions`/`modeOptions` PROPS (ObligationRegister.tsx's
+ * `fetchRegisterFacetOptions`, sourced independently of the loaded page so the dropdowns stay complete
+ * even though the row payload no longer is) — falls back to deriving from the currently-loaded `rows` when
+ * the props are omitted/empty (defensive; also what the detail variant's now-unused dropdown UI would see
+ * if it were ever rendered).
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  filterJoinedRows,
-  buildRegisterQuerySpec,
-  UNCLASSIFIED,
-  DUE_WINDOWS,
-} from "@/lib/obligations/read-register.mjs";
+import { UNCLASSIFIED, DUE_WINDOWS } from "@/lib/obligations/read-register.mjs";
 import { formatEventDate } from "@/lib/connections/forward-event-format.mjs";
 import { BINDING_POSITION, TRANSPORT_MODES, orderedValues } from "@/lib/contracts/vocabularies.mjs";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
@@ -74,52 +88,141 @@ const DUE_WINDOW_LABELS: Record<string, string> = {
 
 const ALL = "__all__";
 
+const PAGE_SIZE = 60; // mirrors LIST_FIRST_PAGE_SIZE (list-pagination.ts) — kept as a local literal so
+// this plain client component needs no path alias beyond the ones it already imports.
+
 interface Props {
+  /** The currently-loaded page of rows — the first page on initial render (list variant: no filters,
+   *  offset 0), replaced on a filter change and appended to on "Load more". Always the full set for the
+   *  detail variant (unchanged, no pagination there). */
   rows: ObligationRow[];
+  /** Corpus-wide count for the ACTIVE filter set (list variant) or simply `rows.length` (detail variant,
+   *  where no server-side total beyond what's loaded exists). Drives the "N of M" header and whether
+   *  "Load more" renders at all. */
+  total?: number;
   variant?: "list" | "detail";
-  /** Live count of `item_forward_events` (migration 274), fetched by the parent ONLY when `rows` is
-   *  empty on the list variant — see ObligationRegister.tsx / fetchForwardEventCount's own header. Null
+  /** Live count of `item_forward_events` (migration 274), fetched by the parent ONLY when `total` is
+   *  0 on the list variant — see ObligationRegister.tsx / fetchForwardEventCount's own header. Null
    *  when not fetched (detail variant, or non-empty rows) or when the count read itself failed; the
    *  empty-state copy degrades to the generic message in either case, never a fabricated number. */
   sourceEventCount?: number | null;
+  /** Complete jurisdiction/mode option lists (ObligationRegister.tsx's fetchRegisterFacetOptions),
+   *  sourced independently of the loaded page so the dropdowns stay complete even on a first-page-only
+   *  load. Falls back to deriving from `rows` when omitted/empty. */
+  jurisdictionOptions?: string[];
+  modeOptions?: string[];
 }
 
-export function ObligationRegisterFilterBar({ rows, variant = "list", sourceEventCount = null }: Props) {
+interface RegisterFilters {
+  jurisdiction: string;
+  mode: string;
+  bindingPosition: string;
+  dueWindow: string;
+}
+
+async function fetchRegisterPage(
+  filters: RegisterFilters,
+  offset: number
+): Promise<{ rows: ObligationRow[]; total: number }> {
+  const params = new URLSearchParams({ offset: String(offset), limit: String(PAGE_SIZE) });
+  if (filters.jurisdiction !== ALL) params.set("jurisdiction", filters.jurisdiction);
+  if (filters.mode !== ALL) params.set("mode", filters.mode);
+  if (filters.bindingPosition !== ALL) params.set("bindingPosition", filters.bindingPosition);
+  if (filters.dueWindow !== "all") params.set("dueWindow", filters.dueWindow);
+  const res = await fetch(`/api/obligations/register?${params.toString()}`);
+  if (!res.ok) throw new Error(`/api/obligations/register responded ${res.status}`);
+  const data = await res.json();
+  return { rows: Array.isArray(data.rows) ? (data.rows as ObligationRow[]) : [], total: typeof data.total === "number" ? data.total : 0 };
+}
+
+export function ObligationRegisterFilterBar({
+  rows: initialRows,
+  total: initialTotal,
+  variant = "list",
+  sourceEventCount = null,
+  jurisdictionOptions: jurisdictionOptionsProp,
+  modeOptions: modeOptionsProp,
+}: Props) {
   const [jurisdiction, setJurisdiction] = useState<string>(ALL);
   const [mode, setMode] = useState<string>(ALL);
   const [bindingPosition, setBindingPosition] = useState<string>(ALL);
   const [dueWindow, setDueWindow] = useState<string>("all");
 
+  // The set of rows currently on screen, the total behind the active filter set, and network state.
+  // `rows`/`total` start from what the server rendered (the honest first paint) and are only ever
+  // replaced/appended by a successful fetch — a fetch IN FLIGHT never blanks what's already shown (Law:
+  // no surface may show an empty or false state while more loads).
+  const [rows, setRows] = useState<ObligationRow[]>(initialRows);
+  const [total, setTotal] = useState<number>(initialTotal ?? initialRows.length);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // Guards a stale response (a fast second filter change resolving after a slower first one) from
+  // clobbering newer state — the same "ignore anything but the latest request" pattern RegulationsLedger's
+  // own remainder fetch uses.
+  const requestIdRef = useRef(0);
+
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (variant !== "list") return; // detail variant: static, no network, unchanged from before this lane
+    if (isFirstRender.current) {
+      // The initial `rows`/`total` are already the correct "no filter, offset 0" page — server-rendered,
+      // no fetch needed on mount.
+      isFirstRender.current = false;
+      return;
+    }
+    const myId = ++requestIdRef.current;
+    setLoading(true);
+    setError(null);
+    fetchRegisterPage({ jurisdiction, mode, bindingPosition, dueWindow }, 0)
+      .then((page) => {
+        if (requestIdRef.current !== myId) return; // superseded by a newer filter change
+        setRows(page.rows);
+        setTotal(page.total);
+      })
+      .catch(() => {
+        if (requestIdRef.current !== myId) return;
+        setError("Could not refresh the register for these filters — showing the last loaded set.");
+      })
+      .finally(() => {
+        if (requestIdRef.current === myId) setLoading(false);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jurisdiction, mode, bindingPosition, dueWindow, variant]);
+
+  const loadMore = useCallback(() => {
+    const myId = ++requestIdRef.current;
+    setLoading(true);
+    setError(null);
+    fetchRegisterPage({ jurisdiction, mode, bindingPosition, dueWindow }, rows.length)
+      .then((page) => {
+        if (requestIdRef.current !== myId) return;
+        setRows((prev) => prev.concat(page.rows));
+        setTotal(page.total);
+      })
+      .catch(() => {
+        if (requestIdRef.current !== myId) return;
+        setError("Could not load more obligations — try again.");
+      })
+      .finally(() => {
+        if (requestIdRef.current === myId) setLoading(false);
+      });
+  }, [jurisdiction, mode, bindingPosition, dueWindow, rows.length]);
+
   const jurisdictionOptions = useMemo(() => {
+    if (jurisdictionOptionsProp && jurisdictionOptionsProp.length > 0) return jurisdictionOptionsProp;
     const set = new Set<string>();
     for (const r of rows) for (const j of r.jurisdiction ?? []) set.add(j);
     return [...set].sort();
-  }, [rows]);
+  }, [jurisdictionOptionsProp, rows]);
 
   const modeOptions = useMemo(() => {
+    if (modeOptionsProp && modeOptionsProp.length > 0) return modeOptionsProp;
     const set = new Set<string>();
     for (const r of rows) for (const m of r.modes ?? []) set.add(m);
     return [...set].sort((a, b) => (MODE_META[a]?.order ?? 99) - (MODE_META[b]?.order ?? 99));
-  }, [rows]);
+  }, [modeOptionsProp, rows]);
 
-  const filtered = useMemo(() => {
-    const spec = buildRegisterQuerySpec({
-      jurisdiction: jurisdiction === ALL ? null : jurisdiction,
-      mode: mode === ALL ? null : mode,
-      bindingPosition: bindingPosition === ALL ? null : bindingPosition,
-      dueWindow,
-      limit: variant === "detail" ? 200 : 300,
-    });
-    // filterJoinedRows filters/sorts/slices `rows` without transforming any element (it never builds a
-    // new `{...row, item}` object the way read-register.mjs's server-side selectRegisterRows does — that
-    // merge already happened before these rows ever reached this client component) — so casting its
-    // return to ObligationRow[] is exactly what it is at runtime, not a type-safety shortcut. The cast is
-    // needed because the JSDoc's plain `Array<object>` return type does not by itself preserve the input
-    // element type across the call.
-    return filterJoinedRows(rows, spec) as ObligationRow[];
-  }, [rows, jurisdiction, mode, bindingPosition, dueWindow, variant]);
-
-  if (rows.length === 0) {
+  if (total === 0 && rows.length === 0 && !loading) {
     return variant === "detail" ? null : (
       <section style={sectionStyle}>
         <Header total={0} />
@@ -140,9 +243,11 @@ export function ObligationRegisterFilterBar({ rows, variant = "list", sourceEven
     );
   }
 
+  const canLoadMore = variant === "list" && rows.length < total;
+
   return (
     <section style={sectionStyle}>
-      <Header total={rows.length} shown={filtered.length} />
+      <Header total={total} shown={rows.length} />
       {variant === "list" && (
         <div style={filterRowStyle}>
           <Select label="Jurisdiction" value={jurisdiction} onChange={setJurisdiction}>
@@ -180,8 +285,16 @@ export function ObligationRegisterFilterBar({ rows, variant = "list", sourceEven
         </div>
       )}
 
-      {filtered.length === 0 ? (
-        <p style={emptyTextStyle}>No obligations match these filters.</p>
+      {error && (
+        <p role="status" style={{ ...emptyTextStyle, color: "var(--accent, #E8610A)" }}>
+          {error}
+        </p>
+      )}
+
+      {rows.length === 0 ? (
+        <p role="status" style={emptyTextStyle}>
+          {loading ? "Loading obligations for these filters…" : "No obligations match these filters."}
+        </p>
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table className="cl-table-cards" style={tableStyle}>
@@ -196,12 +309,23 @@ export function ObligationRegisterFilterBar({ rows, variant = "list", sourceEven
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
+              {rows.map((r) => (
                 <Row key={r.id} row={r} />
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {variant === "list" && (canLoadMore || loading) && (
+        <button
+          type="button"
+          onClick={loadMore}
+          disabled={loading}
+          style={loadMoreButtonStyle}
+        >
+          {loading ? "Loading…" : `Load more (${(total - rows.length).toLocaleString()} more)`}
+        </button>
       )}
     </section>
   );
@@ -306,3 +430,16 @@ const filterRowStyle: React.CSSProperties = { display: "flex", gap: 14, flexWrap
 const emptyTextStyle: React.CSSProperties = { fontSize: 12.5, color: "var(--color-text-muted, #7A6E6C)", margin: 0 };
 const tableStyle: React.CSSProperties = { width: "100%", borderCollapse: "collapse", minWidth: 720 };
 const tdStyle: React.CSSProperties = { fontSize: 12.5, padding: "9px 12px", color: "var(--color-text-primary, #1A1A1A)", verticalAlign: "top" };
+// Law-2 floor: 44px tap target (a text button, no icon-only affordance to shrink below it).
+const loadMoreButtonStyle: React.CSSProperties = {
+  marginTop: 12,
+  minHeight: 44,
+  padding: "0 16px",
+  fontSize: 12.5,
+  fontWeight: 700,
+  color: "var(--color-text-primary, #1A1A1A)",
+  background: "var(--color-surface, #fff)",
+  border: "1px solid var(--color-border, rgba(0,0,0,0.18))",
+  borderRadius: 8,
+  cursor: "pointer",
+};

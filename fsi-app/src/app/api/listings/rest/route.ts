@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getResourcesOnly, getListingsOnly } from "@/lib/data";
 import { LIST_REMAINDER_LIMIT, toLedgerRowPayload } from "@/lib/list-pagination";
+import { REGULATIONS_DOMAIN } from "@/lib/domains";
 
 /**
  * GET /api/listings/rest?surface=regulations|operations&offset=60
@@ -70,11 +71,27 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const page = { limit: LIST_REMAINDER_LIMIT, offset };
+    // PERF-11 (2026-09-04): the regulations remainder is domain-scoped the same way the first page is
+    // (getListingsOnly's own `domain` — fail-soft to the unscoped call until migration 305 is live, see
+    // ResourcePage.domain's header in supabase-server.ts). The explicit `.filter` below is the render-
+    // correctness backstop for the pre-305 fallback window (mirrors regulations/page.tsx's own fix) —
+    // once 305 is live every row already matches and the filter is a no-op.
+    const page =
+      surface === "regulations"
+        ? { limit: LIST_REMAINDER_LIMIT, offset, domain: REGULATIONS_DOMAIN }
+        : { limit: LIST_REMAINDER_LIMIT, offset };
     const result =
       surface === "regulations"
         ? await getListingsOnly(page)
         : await getResourcesOnly(page);
+    const resources =
+      surface === "regulations"
+        ? result.resources.filter((r) => r.domain === REGULATIONS_DOMAIN)
+        : result.resources;
+    const archived =
+      surface === "regulations"
+        ? result.archived.filter((r) => r.domain === REGULATIONS_DOMAIN)
+        : result.archived;
 
     if (result._error) {
       // Non-fatal: log with full detail (message/details/hint/code already
@@ -87,8 +104,8 @@ export async function GET(request: NextRequest) {
     }
 
     const body = JSON.stringify({
-      resources: result.resources.map(toLedgerRowPayload),
-      archived: result.archived.map(toLedgerRowPayload),
+      resources: resources.map(toLedgerRowPayload),
+      archived: archived.map(toLedgerRowPayload),
     });
     // Weak ETag over the trimmed body: two identical (org, surface, offset) responses (the common
     // case within the cache window, since the server-side cache above returns the same object) hash

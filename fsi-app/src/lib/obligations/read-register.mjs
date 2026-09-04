@@ -64,11 +64,17 @@ export function buildRegisterQuerySpec(opts = {}) {
       : null;
   const dueWindow = DUE_WINDOWS.includes(opts.dueWindow) ? opts.dueWindow : "all";
   const limit = Number.isFinite(opts.limit) && opts.limit > 0 ? Math.min(500, Math.floor(opts.limit)) : 200;
+  // PERF-11 (2026-09-04): page offset into the filtered/sorted result — the register's own "Load more"
+  // (ObligationRegisterFilterBar.tsx / /api/obligations/register) pages through the SAME server-computed
+  // filtered+sorted sequence a fresh call recomputes, rather than shipping the whole sequence once and
+  // slicing client-side. Default 0 (first page), same "never throw on a bad value" posture as every
+  // other field here.
+  const offset = Number.isFinite(opts.offset) && opts.offset >= 0 ? Math.floor(opts.offset) : 0;
   const todayIso =
     typeof opts.todayIso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(opts.todayIso)
       ? opts.todayIso
       : new Date().toISOString().slice(0, 10);
-  return { jurisdiction, mode, bindingPosition, dueWindow, limit, todayIso, itemId: opts.itemId ?? null };
+  return { jurisdiction, mode, bindingPosition, dueWindow, limit, offset, todayIso, itemId: opts.itemId ?? null };
 }
 
 /** Pure: does this row's due_date fall inside the requested due window, evaluated against `todayIso`?
@@ -116,9 +122,9 @@ export function selectRegisterRows(rows, itemsById, spec) {
  * missing item here (that already happened, or never happens, upstream) — only applies the filter spec.
  *
  * @param {Array<object>} joinedRows - rows already carrying `.item`
- * @param {{ jurisdiction: string|null, mode: string|null, bindingPosition: string|null, dueWindow: string, todayIso: string, limit?: number }} spec
+ * @param {{ jurisdiction: string|null, mode: string|null, bindingPosition: string|null, dueWindow: string, todayIso: string, limit?: number, offset?: number }} spec
  */
-export function filterJoinedRows(joinedRows, spec) {
+function filterAndSortJoinedRows(joinedRows, spec) {
   const out = [];
   for (const row of Array.isArray(joinedRows) ? joinedRows : []) {
     if (spec.jurisdiction && !(row.jurisdiction || []).some((j) => String(j).toLowerCase() === spec.jurisdiction || String(j).toLowerCase().startsWith(`${spec.jurisdiction}-`))) continue;
@@ -136,7 +142,31 @@ export function filterJoinedRows(joinedRows, spec) {
     if (b.due_date === null || b.due_date === undefined) return -1;
     return a.due_date < b.due_date ? -1 : 1;
   });
+  return out;
+}
+
+export function filterJoinedRows(joinedRows, spec) {
+  const out = filterAndSortJoinedRows(joinedRows, spec);
   return spec.limit ? out.slice(0, spec.limit) : out;
+}
+
+/**
+ * PERF-11 (2026-09-04): same filter+sort as filterJoinedRows, but returns `{ rows, total }` — `total` is
+ * the count AFTER filtering, BEFORE the page slice (so a caller can render "N of M obligations" honestly
+ * for a page that is not the whole filtered set), and the slice starts at `spec.offset` (default 0)
+ * rather than always 0. Used by fetchObligationRegisterPage (server) and the register's client-side
+ * "Load more" call into /api/obligations/register — same predicate/sort logic, one source of truth,
+ * matching filterJoinedRows's own reason for existing.
+ *
+ * @param {Array<object>} joinedRows - rows already carrying `.item`
+ * @param {{ jurisdiction: string|null, mode: string|null, bindingPosition: string|null, dueWindow: string, todayIso: string, limit?: number, offset?: number }} spec
+ * @returns {{ rows: Array<object>, total: number }}
+ */
+export function filterJoinedRowsPage(joinedRows, spec) {
+  const out = filterAndSortJoinedRows(joinedRows, spec);
+  const offset = spec.offset || 0;
+  const rows = spec.limit ? out.slice(offset, offset + spec.limit) : out.slice(offset);
+  return { rows, total: out.length };
 }
 
 /**
@@ -178,6 +208,96 @@ export async function fetchObligationRegister(supabase, opts = {}) {
   }
 
   return selectRegisterRows(rows, itemsById, spec);
+}
+
+/**
+ * PERF-11 (2026-09-04). PAGED sibling of fetchObligationRegister: same query/join, but the fixed overfetch
+ * cap is no longer tied to the requested page size (see the OVERFETCH_CAP comment below) and the return
+ * shape is `{ rows, total }` so a caller can page through the register (list-variant "Load more") without
+ * losing the honest "N of M" count or breaking jurisdiction/mode/due-window filter correctness for pages
+ * past the first. `fetchObligationRegister` above is UNCHANGED (still used by the detail variant, whose
+ * `itemId`-scoped result set is always small) — this is additive, not a replacement.
+ *
+ * @param {import("@supabase/supabase-js").SupabaseClient} supabase
+ * @param {{ jurisdiction?: string|null, mode?: string|null, bindingPosition?: string|null,
+ *           dueWindow?: string|null, limit?: number, offset?: number, itemId?: string|null }} [opts]
+ * @returns {Promise<{ rows: Array<object>, total: number }>}
+ */
+export async function fetchObligationRegisterPage(supabase, opts = {}) {
+  const spec = buildRegisterQuerySpec(opts);
+
+  let q = supabase
+    .from("obligations")
+    .select("id, intelligence_item_id, forward_event_id, jurisdiction, modes, binding_position, due_date, date_precision, event_kind, status")
+    .eq("status", "active");
+  q = spec.itemId ? q.eq("intelligence_item_id", spec.itemId) : q;
+  // OVERFETCH_CAP: fixed, NOT `spec.limit * <factor>` — the jurisdiction/mode/due-window filters apply
+  // in JS, after this fetch, so tying the DB fetch size to the requested PAGE size (as
+  // fetchObligationRegister's own `spec.limit * 5` does) would silently under-cover the corpus once a
+  // page is small: a 60-row page * 5 = 300 rows fetched, but the live table already carries 1,141 rows
+  // matching the item-verified join [CONFIRMED, live SQL, 2026-09-04] — a "Next 90 days" filter could
+  // miss real matches sitting past row 300 of an arbitrary (unordered) DB scan. 2000 is a fixed margin
+  // comfortably above today's measured count with room for corpus growth; re-derive if the live count
+  // (`select count(*) from obligations o join intelligence_items ii on ii.id=o.intelligence_item_id
+  // where ii.provenance_status='verified' and ii.is_archived is not true`) approaches it.
+  const OVERFETCH_CAP = 2000;
+  q = q.limit(spec.itemId ? Math.max(spec.limit, 100) : OVERFETCH_CAP);
+
+  const { data: rows, error } = await q;
+  if (error || !rows || rows.length === 0) return { rows: [], total: 0 };
+
+  const itemIds = [...new Set(rows.map((r) => r.intelligence_item_id))];
+  const itemsById = new Map();
+  for (let i = 0; i < itemIds.length; i += 200) {
+    const { data: itemRows } = await supabase
+      .from("intelligence_items")
+      .select("id, title, legacy_id, jurisdiction_iso")
+      .eq("is_archived", false)
+      .eq("provenance_status", "verified")
+      .in("id", itemIds.slice(i, i + 200));
+    for (const row of itemRows ?? []) itemsById.set(row.id, row);
+  }
+
+  const joined = [];
+  for (const row of rows) {
+    const item = itemsById.get(row.intelligence_item_id);
+    if (!item) continue;
+    joined.push({ ...row, item });
+  }
+  return filterJoinedRowsPage(joined, spec);
+}
+
+/**
+ * PERF-11 (2026-09-04). The register's jurisdiction/mode filter DROPDOWN OPTIONS, sourced independently
+ * of whatever page of rows is currently loaded — a first-page-only fetch (60 rows) would otherwise offer
+ * an incomplete, silently-wrong option list (missing any jurisdiction/mode that happens not to appear in
+ * the soonest 60 due dates). Reads only the two small array columns (never the full row, never joined to
+ * items), server-side only — the dedupe happens here and only the resulting short option lists (today:
+ * low tens of jurisdictions, ~6 modes) ever reach the client as props. Bounded to the same active-status
+ * predicate the register itself uses; never throws (degrades to empty arrays, same "render what's known,
+ * never break the page" posture as this module's other reads).
+ *
+ * @param {import("@supabase/supabase-js").SupabaseClient} supabase
+ * @returns {Promise<{ jurisdictions: string[], modes: string[] }>}
+ */
+export async function fetchRegisterFacetOptions(supabase) {
+  try {
+    const { data, error } = await supabase
+      .from("obligations")
+      .select("jurisdiction, modes")
+      .eq("status", "active")
+      .limit(5000);
+    if (error || !Array.isArray(data)) return { jurisdictions: [], modes: [] };
+    const jurisdictions = new Set();
+    const modes = new Set();
+    for (const row of data) {
+      for (const j of row.jurisdiction ?? []) jurisdictions.add(j);
+      for (const m of row.modes ?? []) modes.add(m);
+    }
+    return { jurisdictions: [...jurisdictions].sort(), modes: [...modes].sort() };
+  } catch {
+    return { jurisdictions: [], modes: [] };
+  }
 }
 
 /**

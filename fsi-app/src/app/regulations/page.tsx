@@ -48,7 +48,14 @@ export default async function RegulationsPage({
   // both real RPCs, independent of how many rows are loaded — so the header
   // count stays honest at 60, at 754, and everywhere in between.
   const [data, aggregates] = await Promise.all([
-    getListingsOnly({ limit: LIST_FIRST_PAGE_SIZE, offset: 0 }),
+    // PERF-11 (2026-09-04): domain-scoped when migration 305 is live (fail-soft to the unscoped call
+    // otherwise — see ResourcePage.domain's own header in supabase-server.ts). Live measurement,
+    // 2026-09-04: without this, the unscoped top-60 was only 39/60 (65%) actual Regulations rows — the
+    // other 21 were Tech/Regional/Market/Research items this page fetched and serialised, then threw
+    // away. The `.filter` below stays regardless of migration status: it is what makes the RENDER
+    // correct even on the pre-305 fallback path, and is a no-op once 305 is live (every row already
+    // matches).
+    getListingsOnly({ limit: LIST_FIRST_PAGE_SIZE, offset: 0, domain: REGULATIONS_DOMAIN }),
     getSurfaceCounts("regulations"),
   ]);
 
@@ -119,9 +126,15 @@ export default async function RegulationsPage({
           detail-page-only fields RegulationsLedger never reads, per toLedgerRowPayload's own header,
           already trusted by /api/listings/rest's remainder fetch for this exact ledger). Trimming the
           first-page rows the same way the remainder fetch already is closes the gap that trim's header
-          flagged as untouched ("the first-paint SSR payload (page.tsx) is unaffected"). */}
+          flagged as untouched ("the first-paint SSR payload (page.tsx) is unaffected").
+          PERF-11 correction (2026-09-04): this used to map `data.resources` (the UNFILTERED, possibly
+          cross-domain fetch) instead of `regulationResources` (the domain-filtered set used everywhere
+          else on this page for counts) — every non-Regulations row the unscoped RPC call returned was
+          being shipped to and rendered by a component whose own bands/cards assume every row is a
+          regulation. Fixed to the filtered set; see the fetch comment above for the matching data-layer
+          fix (migration 305) that makes the fetch itself narrow, not just this render. */}
       <RegulationsLedger
-        initialResources={data.resources.map(toLedgerRowPayload)}
+        initialResources={regulationResources.map(toLedgerRowPayload)}
         initialArchived={data.archived}
         initialOverrides={data.overrides}
         aggregates={aggregates}
