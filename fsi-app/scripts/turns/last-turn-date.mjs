@@ -35,7 +35,10 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-export const DEFAULT_MARKER_PATH = resolve(HERE, "LAST-TURN.json");
+// not exported (lane DEAD-EXEC, 2026-09-04): used only within this file, as the default `path` argument
+// to readLastTurnDate/writeLastTurnDate below — no external caller names it directly, per the wiring
+// audit's Appendix B (dead exports, 2026-09-04).
+const DEFAULT_MARKER_PATH = resolve(HERE, "LAST-TURN.json");
 export const EPOCH = "1970-01-01"; // the runbook's own full-backfill value — see CORPUS-TURN-RUNBOOK.md
 
 /** Read the recorded since-date, or EPOCH when absent/corrupt/unparseable. PURE-ish (one fs read). */

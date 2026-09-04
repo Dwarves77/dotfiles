@@ -25,7 +25,10 @@
 // by a plain `node --test` proof with zero tsconfig/Next resolution, and by the regulations list and
 // detail pages (React server components).
 
-export const BINDING_POSITIONS = Object.freeze([
+// not exported (lane DEAD-EXEC, 2026-09-04): used only within this file (buildRegisterQuerySpec below),
+// per the wiring audit's Appendix B (dead exports, 2026-09-04) — UNCLASSIFIED and DUE_WINDOWS below
+// remain exported since other callers import them individually.
+const BINDING_POSITIONS = Object.freeze([
   "direct_duty", "carrier_passthrough", "customer_contract", "monitoring_only",
 ]);
 

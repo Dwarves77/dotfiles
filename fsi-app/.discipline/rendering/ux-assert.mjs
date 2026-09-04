@@ -19,9 +19,11 @@ export const TARGET_CLEARANCE_PX = 8;
 /** A wrapped title narrower than this fraction of its container is squeezed (one-word-per-line class). */
 export const TITLE_MIN_RATIO = 0.6;
 
-/** The elements the browser collector treats as interactive targets. Exported so the collector and the
- *  test agree on one list. */
-export const TARGET_SELECTOR =
+/** The elements the browser collector treats as interactive targets. NOT exported (lane DEAD-EXEC,
+ *  2026-09-04): used only within this file (the collector call below); the "test agree on one list"
+ *  framing was stale — no external importer named it, per the wiring audit's Appendix B (dead exports,
+ *  2026-09-04). */
+const TARGET_SELECTOR =
   'a[href], button, input:not([type="hidden"]), select, textarea, [role="button"], [role="link"], [role="tab"], [role="menuitem"]';
 
 /** Shortest-axis size of a box. */

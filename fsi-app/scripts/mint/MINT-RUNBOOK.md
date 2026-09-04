@@ -869,12 +869,18 @@ evidenced by HOLLOW-GATE's own report (above) and taken up next, in order.
 
 ## Keeping the kit in sync
 
-`lib/gate-a-scan.mjs` and `lib/gate-a-match.mjs` are RE-EXPORTS of `src/lib/agent/gate-a-scan.mjs` /
-`gate-a-match.mjs` (since 2026-09-04): there is one Gate-A implementation and the kit imports it. They
-used to be hand-mirrored copies, and lane GATE-A-TOKENS' harvest fix landed in the copy only, leaving the
-live path (`write-item.ts`'s `buildGateARow`, the heal, the pipeline) unchanged; that drift is why copies
-are gone. F28 governs both the kit paths and the `src/` files, so a change to the real scanner moves the
-mint family's harness hash. `GATE_A_VERSION` `"2026-09-04.1"` (five narrow non-assertion harvest skips:
+`validate-mint-payload.mjs` imports `src/lib/agent/gate-a-scan.mjs` DIRECTLY (there is one Gate-A
+implementation, and since lane DEAD-EXEC, 2026-09-04, the kit imports it with no indirection). Until
+2026-09-04 the kit went through `lib/gate-a-scan.mjs` / `lib/gate-a-match.mjs`, two re-export shims
+(`export * from "../../../src/lib/agent/..."`) added by the Gate-A single-source collapse the same day —
+before THAT they were hand-mirrored copies, and lane GATE-A-TOKENS' harvest fix landed in the copy only,
+leaving the live path (`write-item.ts`'s `buildGateARow`, the heal, the pipeline) unchanged; that drift is
+why the copies were collapsed to re-exports, and lane DEAD-EXEC then deleted the now-pointless re-export
+layer once nothing needed the indirection (its one production importer, `validate-mint-payload.mjs`, and
+its one test importer, `src/lib/intake/record-facts.npmtest.mjs`, both now import `src/lib/agent/
+gate-a-scan.mjs` / `gate-a-match.mjs` directly). F28 governs the `src/` files as part of the `mint` family
+(`scripts/harness-runs/governing-files.mjs`), so a change to the real scanner still moves the mint family's
+harness hash exactly as it did through the shims. `GATE_A_VERSION` `"2026-09-04.1"` (five narrow non-assertion harvest skips:
 metadata stamps, GAP-boilerplate templates, heading/list ordinals, instrument-citation numbers,
 position-nested sub-spans; measured live 594 → 504 orphan tokens over the 87 quarantined-live items,
 0 regressed) is therefore live for every consumer at once. `lib/canonicalize-citation-url.mjs` mirrors

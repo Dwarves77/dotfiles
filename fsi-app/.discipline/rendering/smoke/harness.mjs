@@ -50,15 +50,18 @@ import { assertGuardClean, detectOverflows, findPlaceholderLiterals } from './gu
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 
-export const NEXT_LINK_STUB = join(HERE, 'stub-next-link.mjs');
-export const SUPABASE_STUB = join(HERE, 'stub-supabase-browser.mjs');
+// NEXT_LINK_STUB, SUPABASE_STUB, SMOKE_BASE_URL, fsiAppRoot: not exported (lane DEAD-EXEC, 2026-09-04) —
+// each used only within this file, per the wiring audit's Appendix B (dead exports, 2026-09-04); no
+// external importer anywhere in the repo names any of the four.
+const NEXT_LINK_STUB = join(HERE, 'stub-next-link.mjs');
+const SUPABASE_STUB = join(HERE, 'stub-supabase-browser.mjs');
 
 /** The fake same-origin every smoke page navigates to. See header for why. */
-export const SMOKE_BASE_URL = 'https://smoke-guard.internal';
+const SMOKE_BASE_URL = 'https://smoke-guard.internal';
 
 /** fsi-app/ — the esbuild resolveDir, so `@/*` resolves via the real tsconfig `paths` mapping and a
  *  bare specifier resolves against the real (symlinked, shared) node_modules install. */
-export function fsiAppRoot() {
+function fsiAppRoot() {
   return join(getRepoRoot(), 'fsi-app');
 }
 

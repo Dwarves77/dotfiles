@@ -235,11 +235,20 @@ const PROVEN_BUT_UNWIRED = [
       'be "wired" into; the register names this class a graph-tool false positive, same family as ' +
       'src/proxy.ts\'s framework-entry-point exemption above.',
   },
+  // 'src/lib/llm/metered-emit.mjs' entry REMOVED (lane DEAD-EXEC, 2026-09-04): the W1 register #3
+  // DELETE disposition was executed — the module and its test are gone, with them (the
+  // batch-classification runner it existed to gate was never built anywhere in the repo).
   {
-    file: 'src/lib/llm/metered-emit.mjs',
+    file: 'src/lib/llm/metered-gate.mjs',
     disposition:
-      'W1 register #3: DELETE (with its test) — the batch-classification runner this exists to gate was ' +
-      'never built anywhere in the repo. Pending MAINT execution (finish-plan R-C).',
+      'W1 register #4: KEEP, no action, explicitly anticipating this exact moment — "its disposition is ' +
+      'entirely downstream of #3 ... If #3 is deleted, leave this module in place — it\'s the law a future ' +
+      'batch-classification build would need to satisfy, and deleting sound doctrine to match a deleted ' +
+      'implementation is the wrong direction." Its one real caller was metered-emit.mjs (register #3, ' +
+      'DELETE, executed lane DEAD-EXEC 2026-09-04, entry above); the register itself verified ' +
+      '`admin/promotion-policy/route.ts` and `health/spend-health.mjs` only *mention* "metered-gate" in ' +
+      'comments, never import it. Newly unwired as a direct, verified consequence of #3\'s deletion — added ' +
+      'here the same commit that removed #3\'s own entry, per this register\'s own explicit instruction.',
   },
   {
     file: 'src/lib/llm/program-total.mjs',
@@ -247,12 +256,10 @@ const PROVEN_BUT_UNWIRED = [
       'W1 register #1: WIRE, but explicitly low-urgency — "wire it in the same change that ever gives ' +
       'seedSpend its first real caller; don\'t invent a caller just to hang this on." Pending MAINT execution.',
   },
-  {
-    file: 'src/lib/sources/api-fetch.ts',
-    disposition:
-      'W1 register #12: DELETE — superseded by canonical-pipeline.ts\'s own inline apiFetchForHost, not ' +
-      'waiting on an orchestrator like its scripts/lib/sources siblings. Pending MAINT execution.',
-  },
+  // 'src/lib/sources/api-fetch.ts' entry REMOVED (lane DEAD-EXEC, 2026-09-04): the W1 register #12
+  // DELETE disposition was executed — superseded by canonical-pipeline.ts's own inline apiFetchForHost,
+  // which already did the live work; this was a parallel, unused implementation, not an
+  // orchestrator-blocked module like its scripts/lib/sources siblings.
   { file: 'src/lib/sources/instrument-identity.ts', disposition: null }, // not covered by the Aug-31 register
 ];
 
@@ -354,20 +361,11 @@ export const LEGACY_ALLOWLIST = [
     reviewByPhase: 'dormant-capability ruling (operator: wire into a live flow, or delete module + proof together)',
   },
 
-  // ── The one with a live coupling to another gate ──
-  {
-    file: 'fsi-app/scripts/lib/anthropic.mjs',
-    reason:
-      'The rule-016 sanctioned script-side LLM wrapper, and F15\'s one SANCTIONED script-side call site. Its three ' +
-      'importers are ALL on the dead-code manifest, so the sweep leaves it with zero consumers. COUPLED: when the ' +
-      'sweep deletes those three, this module and its F15 SANCTIONED entry must go in the same commit, or F15 ' +
-      'silently sanctions a file that no longer exists (the SANCTIONED staleness audit added to ' +
-      'F15-spend-chokepoint.test.mjs on 2026-08-11 makes that RED rather than silent). DISPOSITION ' +
-      '(docs/plans/unwired-disposition-2026-08-31.md #18): DELETE, corroborating this same finding independently ' +
-      '— "canonicalGenerate never actually adopted by anything"; delete together with the rule-016 PERMITTED ' +
-      'entry and this F15 SANCTIONED entry, same commit. Pending MAINT execution (finish-plan R-C).',
-    reviewByPhase: 'dead-code-sweep (delete with the manifest; retire the F15 SANCTIONED entry in the same commit)',
-  },
+  // 'fsi-app/scripts/lib/anthropic.mjs' entry REMOVED (lane DEAD-EXEC, 2026-09-04): the coupled DELETE
+  // named here (docs/plans/unwired-disposition-2026-08-31.md #18) was executed — the module, its rule-016
+  // PERMITTED entry, and its F15 SANCTIONED entry all went in the same commit, exactly as this entry's
+  // own coupling note required (the F15 SANCTIONED staleness audit stayed green throughout because all
+  // three moved together).
   {
     file: 'fsi-app/scripts/lib/batch-primitives.mjs',
     reason: 'Batch primitives consumed only by its own proof and two manifest scripts. Same sweep coupling as anthropic.mjs.',

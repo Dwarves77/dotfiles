@@ -20,12 +20,11 @@ export const DIRECT_API_RE = /api\.anthropic\.com|["']x-api-key["']|new\s+Anthro
 export const SANCTIONED = new Set([
   'fsi-app/src/lib/llm/spend-client.ts',        // THE chokepoint
   'fsi-app/src/lib/agent/anthropic-stream.mjs', // the streaming transport spend-client wraps
-  // The script-side canonical wrapper (rule 016's sanctioned site). SCOPE-WIDENING (2026-08-11, operator
-  // wiring sweep): F15 previously enumerated only src/**, so 17 scripts made direct API calls it never
-  // saw — a second, unticketed spend surface (this wrapper + 15 dead one-shots, whose entries sit in the
-  // allowlist below pending the manifest sweep). This wrapper is the ONE sanctioned script-side call
-  // site, now inside F15's scope, so a NEW script-side bypass is RED at PR time.
-  'fsi-app/scripts/lib/anthropic.mjs',
+  // 'fsi-app/scripts/lib/anthropic.mjs' REMOVED (lane DEAD-EXEC, 2026-09-04): the script-side canonical
+  // wrapper (rule 016's former sanctioned site, added here in the 2026-08-11 scope-widening) was never
+  // adopted by anything — zero real importers — and is deleted together with this entry in the same
+  // commit, per the SANCTIONED STALENESS AUDIT test below (which exists precisely to catch a sanctioned
+  // path outliving its file). Disposition register docs/plans/unwired-disposition-2026-08-31.md #18.
 ]);
 
 // Legacy call sites grandfathered pending migration to spendStream/spendSearch. Reason + reviewByPhase per
@@ -42,7 +41,10 @@ export const LEGACY_ALLOWLIST = [
   // standingClass "recommend-classification" ticket. Routes through the chokepoint now (ledgered) — OFF.
   // discovery.ts MIGRATED (C6, 2026-07-11): raw web_search fetch → spendSearch with a standingClass
   // "source-discovery" ticket. Routes through the chokepoint now (ledgered) — OFF.
-  { file: 'fsi-app/src/lib/sources/api-fetch.ts', reason: 'shared Anthropic fetch helper — folds into spend-client transport', reviewByPhase: 'chokepoint-transport-consolidation' },
+  // src/lib/sources/api-fetch.ts DELETED (lane DEAD-EXEC, 2026-09-04), not migrated: superseded by
+  // canonical-pipeline.ts's own inline apiFetchForHost, which already does the live work — this was a
+  // parallel, unused implementation, not a legacy call site pending consolidation. Disposition register
+  // docs/plans/unwired-disposition-2026-08-31.md #12. OFF the allowlist (deleted, not migrated).
   // ask/route.ts MIGRATED (2026-07-07, PR #248): raw fetch → spendStream with a per-request
   // ticket. Routes through the chokepoint now — OFF the allowlist (11 → 10).
   // admin/scan/route.ts MIGRATED (2026-07-07): raw web_search fetch → spendSearch, ticketed.

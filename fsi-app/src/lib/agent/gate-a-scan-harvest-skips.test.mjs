@@ -1,8 +1,16 @@
-// Gate-A scanner (mint-kit copy): non-assertion syntactic-context harvest skips (lane GATE-A-TOKENS,
-// 2026-09-04). Every case here is drawn from live evidence in Maintenance #34's dry-plan snapshot
-// (`_snapshots/heal34.json`, 87 quarantined-live items, 627 orphan tokens) or from the operator's own
-// worked examples, verified against the real live full_brief text for the cited item ids (read-only SQL,
-// this session) before being written into a fixture. See the file header for the classification writeup.
+// Gate-A scanner: non-assertion syntactic-context harvest skips (lane GATE-A-TOKENS, 2026-09-04). Every
+// case here is drawn from live evidence in Maintenance #34's dry-plan snapshot (`_snapshots/heal34.json`,
+// 87 quarantined-live items, 627 orphan tokens) or from the operator's own worked examples, verified
+// against the real live full_brief text for the cited item ids (read-only SQL, this session) before
+// being written into a fixture. See gate-a-scan.mjs's own header for the classification writeup.
+//
+// MOVED HERE (lane DEAD-EXEC, 2026-09-04) from scripts/mint/lib/gate-a-scan.test.mjs, unchanged in
+// content: that file tested the mint-kit's `scripts/mint/lib/gate-a-scan.mjs`, which by the time this
+// lane ran was a pure `export *` re-export shim of THIS module (single-source collapse, "What changed
+// (10)" in scripts/harness-runs/mint/PENDING-RUN.md) — deleted the same commit this file was moved,
+// since nothing needed the indirection any more. A distinct filename from this directory's own
+// pre-existing gate-a-scan.test.mjs (a DIFFERENT test suite — the 2026-07-30 citation-apparatus-dates
+// regression) avoids collision; both now test this one real gate-a-scan.mjs directly.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { extractFactualTokens, scanBrief } from "./gate-a-scan.mjs";

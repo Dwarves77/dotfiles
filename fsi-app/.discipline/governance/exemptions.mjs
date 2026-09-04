@@ -73,12 +73,9 @@ export const EXEMPTIONS = [
     reason: 'The guarded-write helper itself — it IS the sanctioned write surface; its raw write call is the implementation, not a bypass.',
     by: 'operating-mechanism build 2026-06-06',
   },
-  {
-    match: 'fsi-app/scripts/lib/anthropic.mjs',
-    kinds: ['model'],
-    reason: 'The canonical Anthropic wrapper itself — the sanctioned direct-call site.',
-    by: 'operating-mechanism build 2026-06-06',
-  },
+  // 'fsi-app/scripts/lib/anthropic.mjs' entry REMOVED (lane DEAD-EXEC, 2026-09-04): the file was deleted
+  // — the "canonical Anthropic wrapper" was never adopted by anything (disposition register
+  // docs/plans/unwired-disposition-2026-08-31.md #18) — so the exemption it needed no longer applies.
   // USER-ACCOUNT PLUMBING (2026-08-11, operator wiring census — wire-or-exempt, exempt side). These
   // write PER-USER preference / notification / auth-provisioning / telemetry rows, RLS-guarded and
   // route-auth-gated — not the intelligence corpus (sources / items / facts / trust) the governing

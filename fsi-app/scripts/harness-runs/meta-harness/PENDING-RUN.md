@@ -48,9 +48,37 @@ alone. This file (`F28-harness-run-integrity.mjs`) is UNCHANGED in its four rule
 single-source shape instead of the old hardcoded-with-one-exception shape. `PROPOSER-RUNBOOK.md` and
 `scripts/lib/run-artifact.mjs` are untouched by this lane.
 
-**harness_version at write time:** `sha256:6be30ff6b965d085` (see Re-pin note below; `sha256:bf7c0e927a84b9f0` is superseded)
+**harness_version at TURNREQ's write time (superseded below — see "What changed (2)"):** `sha256:6be30ff6b965d085` (`sha256:bf7c0e927a84b9f0` before that; see Re-pin note below)
 
-**The planned run that supersedes this marker:** the next `meta-harness-run-009.json`, the coordinator's
+**The planned run that would have superseded THAT marker:** the next `meta-harness-run-009.json`, the
+coordinator's next self-application review pass over this wave. That run had not yet landed when lane
+DEAD-EXEC moved the hash again below (rule (c)); the next `meta-harness-run-NNN` under the CURRENT hash
+covers both this entry and the one below.
+
+---
+
+## Lane DEAD-EXEC (2026-09-04) — governing-files.mjs edited to drop the two deleted mint shim entries
+
+**What changed (2):** lane DEAD-EXEC (2026-09-04) deleted `scripts/mint/lib/gate-a-scan.mjs` and
+`scripts/mint/lib/gate-a-match.mjs` — pure `export *` re-export shims added by the Gate-A single-source
+collapse (mint marker's own "What changed (10)") that no longer had a reason to exist once their only real
+importer (`scripts/mint/validate-mint-payload.mjs`) and only test importer
+(`src/lib/intake/record-facts.npmtest.mjs`) were repointed at `src/lib/agent/gate-a-scan.mjs` /
+`gate-a-match.mjs` directly. This required editing `scripts/harness-runs/governing-files.mjs` itself
+(dropping the two shim paths from `GOVERNING_FILES.mint`, 10 → 8 entries) — and because this file is
+ITSELF one of `meta-harness`'s own `GOVERNING_FILES` entries (self-referential by construction, per this
+file's own header above), that edit moves the `meta-harness` family's own `harness_version` too, exactly
+the mechanism the header describes. No other `meta-harness` governing file
+(`scripts/harness-runs/CONVENTION.md`, `PROPOSER-RUNBOOK.md`, `scripts/lib/run-artifact.mjs`,
+`F28-harness-run-integrity.mjs`) was edited by this lane beyond `CONVENTION.md`'s `mint` table row (kept in
+parity with `governing-files.mjs` per the CONVENTION-TABLE-PARITY test — a documentation-only edit
+describing the same 8-file mint list, not a behavior change). See
+`scripts/harness-runs/mint/PENDING-RUN.md`'s own "What changed (13)" entry, same commit, for the mint-side
+half of this same edit.
+
+**harness_version at write time:** `sha256:0e0fb1d1753e53ee`
+
+**The planned run that supersedes this marker:** the next `meta-harness-run-NNN.json`, the coordinator's
 next self-application review pass over this wave. Per F28's reverse-audit, this file is deleted the moment
 an artifact carrying the hash above lands (or updated to a newer hash, per rule (c), if a `meta-harness`
 governing file changes again before that run lands).

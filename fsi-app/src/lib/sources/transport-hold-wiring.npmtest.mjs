@@ -1,9 +1,11 @@
 // @ts-check
 // TRANSPORT HOLD + CACHE WIRING (Wave-α C5). The pure hold/cache core is proven in fetch-hold.test.mjs;
-// THIS proves the LIVE transports honor it: (1) hold engaged blocks each transport (apiFetch
-// throws FetchHoldError; the pipeline's direct/API-ladder closures do NO network fetch); (2) a successful
-// fetch through buildLiveTransports caches the result so a cacheGet HIT prevents a duplicate fetch.
-// jiti imports the TS/@-aliased modules (mint-domain-guard.npmtest.mjs pattern).
+// THIS proves the LIVE transports honor it: (1) hold engaged blocks the pipeline's direct-HTTP closure
+// (NO network fetch); (2) a successful fetch through buildLiveTransports caches the result so a cacheGet
+// HIT prevents a duplicate fetch. jiti imports the TS/@-aliased modules (mint-domain-guard.npmtest.mjs
+// pattern). The former apiFetch-specific case (src/lib/sources/api-fetch.ts) was removed lane DEAD-EXEC
+// (2026-09-04) when that module was deleted — superseded by canonical-pipeline.ts's own inline
+// apiFetchForHost, which this file's remaining cases already exercise via buildLiveTransports.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { resolve, dirname } from "node:path";
@@ -13,8 +15,6 @@ import { createJiti } from "jiti";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 
-const { apiFetch } = await jiti.import("./api-fetch.ts");
-const { FetchHoldError } = await jiti.import("./fetch-hold.mjs");
 const { buildLiveTransports, __clearFetchCacheForTest } = await jiti.import("../agent/canonical-pipeline.ts");
 
 function withHold(v, fn) {
@@ -24,18 +24,6 @@ function withHold(v, fn) {
     .then(fn)
     .finally(() => { if (prev === undefined) delete process.env.SCRAPE_HOLD; else process.env.SCRAPE_HOLD = prev; });
 }
-
-test("hold ENGAGED: apiFetch throws FetchHoldError, no network fetch", async () => {
-  await withHold("on", async () => {
-    let fetched = false;
-    const orig = globalThis.fetch;
-    globalThis.fetch = async () => { fetched = true; return { ok: true, status: 200, text: async () => "{}" }; };
-    try {
-      await assert.rejects(() => apiFetch({ url: "https://api.example.gov/v1/doc" }), (e) => e instanceof FetchHoldError);
-      assert.equal(fetched, false);
-    } finally { globalThis.fetch = orig; }
-  });
-});
 
 test("hold ENGAGED: buildLiveTransports.directFetch performs NO network fetch (blocked at the gate)", async () => {
   await withHold("engaged", async () => {

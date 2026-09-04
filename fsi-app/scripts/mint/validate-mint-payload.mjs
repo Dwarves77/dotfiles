@@ -6,8 +6,12 @@
 // PROVENANCE: this is a hand-port of the LIVE function body reconstructed from the migration chain
 // (114 -> 119 -> 145 -> 150 -> 158 -> 171 -> 202 -> 206 -> 209 -> 216/217 -> 218(revert) -> 224/225 ->
 // 227 -> 250 -> 254 -> 264), read migration-by-migration in this lane (see the M0 report's "write plan"
-// section for the full derivation). Two pieces are imported UNMODIFIED from src/ rather than re-derived:
-//   lib/gate-a-scan.mjs / lib/gate-a-match.mjs   -- criterion 7 (Gate A), copied from src/lib/agent/.
+// section for the full derivation). One piece is imported UNMODIFIED from src/ rather than re-derived:
+//   src/lib/agent/gate-a-scan.mjs   -- criterion 7 (Gate A). Imported directly (lane DEAD-EXEC,
+//   2026-09-04): the mint kit's own scripts/mint/lib/gate-a-scan.mjs / gate-a-match.mjs shims (pure
+//   `export *` re-exports of this same file since Wave GOV-SINGLE) were deleted as dead weight — this
+//   was their one real (non-test) importer. gate-a-match.mjs itself is not imported here; only
+//   validate-mint-payload.mjs's own scanBrief() call needs gate-a-scan.mjs directly.
 // One piece is a faithful JS port of a live SQL function:
 //   lib/canonicalize-citation-url.mjs            -- criterion 2's URL compare (migration 150).
 //
@@ -40,7 +44,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { scanBrief } from "./lib/gate-a-scan.mjs";
+import { scanBrief } from "../../src/lib/agent/gate-a-scan.mjs";
 import { canonicalizeCitationUrl } from "./lib/canonicalize-citation-url.mjs";
 import { institutionKey } from "../lib/institution-key.mjs";
 import { isImplementedSeriesKey } from "../../src/lib/market/series-registry.mjs";

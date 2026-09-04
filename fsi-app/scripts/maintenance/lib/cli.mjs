@@ -30,8 +30,10 @@ export function fsiRoot() {
 
 /** Pure: --mode/--arg/--out out of argv. `--mode` defaults to 'dry'; bare `--apply` is accepted too
  *  (matches every existing script in this repo — screen-reconcile-records.mjs, apply-mint-batch.mjs,
- *  etc. — so the same muscle memory works here). */
-export function parseCliArgs(argv) {
+ *  etc. — so the same muscle memory works here). NOT exported (lane DEAD-EXEC, 2026-09-04): used only
+ *  by `runCli` below — no wrapper script or test imports it directly, per the wiring audit's Appendix B
+ *  (dead exports, 2026-09-04). */
+function parseCliArgs(argv) {
   const get = (flag) => {
     const i = argv.indexOf(flag);
     return i >= 0 && i + 1 < argv.length ? argv[i + 1] : undefined;

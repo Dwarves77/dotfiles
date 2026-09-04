@@ -50,8 +50,11 @@ import { KEYWORD_MAP } from "./derive-tags.mjs";
 
 /** Deterministic default prefix window, in characters, always included from the start of the captured text. */
 export const DEFAULT_PREFIX_CHARS = 8000;
-/** Characters of context kept on each side of a vocabulary-term match found beyond the prefix window. */
-export const DEFAULT_CONTEXT_CHARS = 300;
+/** Characters of context kept on each side of a vocabulary-term match found beyond the prefix window. NOT
+ *  exported (lane DEAD-EXEC, 2026-09-04): used only within this file, per the wiring audit's Appendix B
+ *  (dead exports, 2026-09-04) — DEFAULT_PREFIX_CHARS above remains exported since other callers import
+ *  it individually. */
+const DEFAULT_CONTEXT_CHARS = 300;
 
 /**
  * The flat keyword-phrase list every KEYWORD_MAP entry carries, lower-cased, deduped. PURE.

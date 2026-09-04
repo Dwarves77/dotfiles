@@ -14,7 +14,10 @@ import { measureUx, assertUxClean } from '../ux-assert.mjs';
 /** iPhone-class portrait viewport (the operator's device class, 2026-09-03 screenshots). */
 export const MOBILE_VIEWPORT = Object.freeze({ width: 375, height: 812 });
 export const DESKTOP_VIEWPORT = Object.freeze({ width: 1280, height: 800 });
-export const UX_VIEWPORTS = Object.freeze([MOBILE_VIEWPORT, DESKTOP_VIEWPORT]);
+// not exported (lane DEAD-EXEC, 2026-09-04): used only within this file (the viewport loop below), per
+// the wiring audit's Appendix B (dead exports, 2026-09-04) — MOBILE_VIEWPORT/DESKTOP_VIEWPORT above
+// remain exported since other callers import them individually.
+const UX_VIEWPORTS = Object.freeze([MOBILE_VIEWPORT, DESKTOP_VIEWPORT]);
 
 /**
  * @param {object} browser Playwright browser (the runner's single chromium instance)

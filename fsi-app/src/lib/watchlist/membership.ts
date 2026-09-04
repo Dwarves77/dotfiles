@@ -130,8 +130,10 @@ async function queryWatchedIds(
 /** Real Supabase wiring for buildWatchMembership's deps — same tables/columns
  *  src/app/api/watchlist/route.ts's GET handler reads (user_watchlist / org_watchlist,
  *  scoped by user_id / org_id + item_type + item_id). Callers pass a service-role or
- *  request-scoped client; this function does not care which. */
-export function makeWatchMembershipDeps(supabase: WatchTableClient): WatchMembershipDeps {
+ *  request-scoped client; this function does not care which. NOT exported (lane DEAD-EXEC,
+ *  2026-09-04): used only within this file (fetchWatchMembership below) — no external importer names
+ *  it directly, per the wiring audit's Appendix B (dead exports, 2026-09-04). */
+function makeWatchMembershipDeps(supabase: WatchTableClient): WatchMembershipDeps {
   return {
     queryPersonalWatchedIds: (userId, itemType, itemIds) =>
       queryWatchedIds(supabase, "user_watchlist", "user_id", userId, itemType, itemIds),

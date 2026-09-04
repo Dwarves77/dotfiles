@@ -193,8 +193,11 @@ const _systemPromptSrc = readFileSync(SYSTEM_PROMPT_PATH, "utf8");
 export const TOPIC_TAG_VALUES = extractQuotedArray(_parseOutputSrc, "TOPIC_TAG_VALUES");
 /** compliance_object_tags closed vocabulary — imported verbatim from parse-output.ts's COMPLIANCE_OBJECT_VALUES. */
 export const COMPLIANCE_OBJECT_VALUES = extractQuotedArray(_parseOutputSrc, "COMPLIANCE_OBJECT_VALUES");
-/** operational_scenario_tags core glossary — imported verbatim from system-prompt.ts's prose block. */
-export const SCENARIO_GLOSSARY = extractScenarioGlossary(_systemPromptSrc);
+/** operational_scenario_tags core glossary — imported verbatim from system-prompt.ts's prose block. NOT
+ *  exported (lane DEAD-EXEC, 2026-09-04): used only within this file (SCENARIO_TAG_VALUES below) — no
+ *  external importer names it directly, per the wiring audit's Appendix B (dead exports, 2026-09-04);
+ *  SCENARIO_TAG_VALUES remains the exported, consumed shape. */
+const SCENARIO_GLOSSARY = extractScenarioGlossary(_systemPromptSrc);
 export const SCENARIO_TAG_VALUES = SCENARIO_GLOSSARY.map((e) => e.tag);
 
 const TOPIC_TAG_SET = new Set(TOPIC_TAG_VALUES);

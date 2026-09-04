@@ -16,7 +16,9 @@
 // judgment never silently outranks a rule that fired. Pure; no I/O.
 import { classifyRelevance } from "../screen-rules.mjs";
 
-export const MINTABLE_VERDICT = "on_vertical";
+// not exported (lane DEAD-EXEC, 2026-09-04): used only within this file (isMintable below), per the
+// wiring audit's Appendix B (dead exports, 2026-09-04) — no external importer names it directly.
+const MINTABLE_VERDICT = "on_vertical";
 
 /**
  * @param {{ id?: string, title?: string|null, document_url: string, surface_tags?: string[] }} row

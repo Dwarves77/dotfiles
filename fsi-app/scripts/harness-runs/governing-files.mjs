@@ -91,9 +91,13 @@ export const GOVERNING_FILES = Object.freeze({
     'scripts/mint/validate-mint-payload.mjs',
     'scripts/mint/payload-schema.json',
     'scripts/mint/item-type-required-slots.json',
-    'scripts/mint/lib/gate-a-scan.mjs', // since 2026-09-04 a re-export of src/lib/agent/gate-a-scan.mjs (below)
-    'scripts/mint/lib/gate-a-match.mjs', // since 2026-09-04 a re-export of src/lib/agent/gate-a-match.mjs (below)
-    'src/lib/agent/gate-a-scan.mjs', // THE Gate-A scanner (single source since 2026-09-04; the kit copy was drift)
+    // 'scripts/mint/lib/gate-a-scan.mjs' / 'gate-a-match.mjs' REMOVED (lane DEAD-EXEC, 2026-09-04): the
+    // two re-export shims (added Wave GOV-SINGLE) were pure `export * from "../../../src/lib/agent/..."`
+    // pass-throughs with no logic of their own; their only real importer, validate-mint-payload.mjs, and
+    // their one test importer, src/lib/intake/record-facts.npmtest.mjs, now both import the src/lib/agent/
+    // files directly (below) — deleting the shims changes NOTHING about what content this family hashes,
+    // only removes two indirection files from the list.
+    'src/lib/agent/gate-a-scan.mjs', // THE Gate-A scanner (single source, imported directly since 2026-09-04)
     'src/lib/agent/gate-a-match.mjs', // THE Gate-A matcher (same)
     'scripts/mint/lib/canonicalize-citation-url.mjs',
     'src/lib/intake/record-facts.mjs', // record-grade payload builder (lane POP, 2026-09-01)

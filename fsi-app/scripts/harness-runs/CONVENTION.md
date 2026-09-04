@@ -387,7 +387,7 @@ trusted on faith — this table exists for a human reader, the module is what ev
 
 | Family | Hashed files |
 |---|---|
-| `mint` | `scripts/mint/MINT-RUNBOOK.md`, `validate-mint-payload.mjs`, `payload-schema.json`, `item-type-required-slots.json`, `lib/gate-a-scan.mjs` and `lib/gate-a-match.mjs` (re-exports since 2026-09-04), `../../src/lib/agent/gate-a-scan.mjs` and `../../src/lib/agent/gate-a-match.mjs` (the single Gate-A implementation), `lib/canonicalize-citation-url.mjs`, `../../src/lib/intake/record-facts.mjs` |
+| `mint` | `scripts/mint/MINT-RUNBOOK.md`, `validate-mint-payload.mjs`, `payload-schema.json`, `item-type-required-slots.json`, `../../src/lib/agent/gate-a-scan.mjs` and `../../src/lib/agent/gate-a-match.mjs` (the single Gate-A implementation, imported directly since the re-export shims under scripts/mint/lib/ were deleted lane DEAD-EXEC 2026-09-04), `lib/canonicalize-citation-url.mjs`, `../../src/lib/intake/record-facts.mjs` |
 | `screen` | `scripts/mint/screen-rules.mjs`, `screen-worklist.mjs` |
 | `fetch-drain` | `supabase/functions/capture-worker/index.ts` |
 | `meta-harness` | `scripts/harness-runs/CONVENTION.md`, `PROPOSER-RUNBOOK.md`, `../lib/run-artifact.mjs`, `../../.discipline/fitness/functions/F28-harness-run-integrity.mjs`, `governing-files.mjs` |
