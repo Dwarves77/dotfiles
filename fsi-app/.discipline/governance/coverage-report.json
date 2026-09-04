@@ -3132,6 +3132,24 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/perf/server-timing-core.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/perf/server-timing.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/propagation/admissible-for.test.mjs",
       "kinds": [
         "PROOF"
@@ -4108,6 +4126,15 @@
       "skills": [],
       "proofWired": true,
       "status": "EXEMPT"
+    },
+    {
+      "path": "fsi-app/src/lib/text/html-to-text.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
     },
     {
       "path": "fsi-app/src/lib/tier-badge-tone.test.mjs",
@@ -8878,8 +8905,8 @@
     }
   ],
   "summary": {
-    "governed_files": 814,
-    "covered": 781,
+    "governed_files": 817,
+    "covered": 784,
     "exempt": 33,
     "gaps": 0,
     "orphaned_proofs": 0,
