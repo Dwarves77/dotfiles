@@ -9433,3 +9433,15 @@ apply is dispatched as #27. Population turn #22, the first `flywheel_backlog: tr
 coerces both to numbers (true → 1, 'true' → NaN), so every `!= 'true'` skip condition was always true
 and the skipped steps ran. Fixed in this train (`!= true`), the shell-side `"true"` comparisons were
 already correct. Re-dispatched after landing.
+
+UX compliance (TIER-CHIP, three detail screens: Regulations, Market, Research record-grade Summary).
+Primary goal: a reader judges a record-grade fact's trustworthiness without leaving the Summary tab.
+Path: the tier chip sits inline beside the fact's slot label, the same position and T1..T5 vocabulary
+as the item-level TierBadge in the Sources tab, so there is no new navigation and no mode switch. One
+primary action: the source-name link (only when a URL exists) is the single new interactive element
+per fact row, `inline-flex`, min-height 24 px with 8 px clearance (ux-laws law 2, F35, RD-60), and
+the rendering guard's small-target detector passed at 375×812 and 1280×800. Feedback state per async
+action: none is async; the three states are visually distinct and honest, a numeric chip for a rated
+source (including a below-floor one, per migration 302), a dashed "—" chip with a tooltip for an
+unrated fact, and no chip on a GAP line, which has no source to rate. Nothing is guessed: an unmatched
+claim line renders unrated, never a wrong tier.
