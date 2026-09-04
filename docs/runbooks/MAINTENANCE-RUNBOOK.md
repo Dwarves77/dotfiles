@@ -690,6 +690,81 @@ own EIGHTH PASS header for the complete mechanism.
    FACT already does; if it does not, the fix is in whichever component renders
    `section_claim_provenance.source_tier_at_grounding` for that page, named in this lane's own report.
 
+**Ninth pass (lane HEAL-8, 2026-09-04, `HEAL_VERSION` now `hp8-2026-09-04.1`)** diagnoses STEP SOURCE's own
+live apply run (Actions 33844146038, `quarantined-live`, `HEAL_VERSION hp7-2026-09-04.1` — measured
+read-only via Supabase MCP SELECT against the real rows, `summary.json` not on disk) and fixes the measured
+causes. 359 `unresolved`, 302 `bound_hit`; a `token_not_in_page` sample (>=60 tokens across >=20 items)
+classified: (A) NUMERIC-FORM MISMATCH — a different surface form of the same figure — ~1.4% of the sample;
+(B) ELSEWHERE ON THE SITE — a linked PDF/sub-page one hop away carries the figure; (C) PAGE CHANGED/CAPTURE
+THIN — a cookie wall/JS shell/404/shorter earlier capture; (D) NOWHERE — the honest terminal state. The
+single largest, best-evidenced cause in the broader sample: STEP SOURCE's own `sourceAttempts` budget
+charged a zero-cost "already captured, no fetch" lookup the same as a real fetch, starving free groundings
+on high-orphan items (one sampled item: 51 orphans, 47 free-lookup groundings available, most never even
+attempted). See `scripts/mint/heal-provenance.mjs`'s own NINTH PASS header for the complete mechanism,
+fetch-count arithmetic against `HEAL_TIME_BUDGET_SECONDS`, and the confirmed scope limit on one-hop
+cross-host institution follows (below).
+
+1. **Budget split (STEP SOURCE).** `sourceAttempts` no longer charges an already-captured, USABLE
+   (>200-char) row for the exact candidate URL — a zero-cost, zero-network lookup. It still charges a
+   `worklist_ambiguous_host`/`unresolvable_host` classification-only decision, a dry-mode plan, and every
+   genuine new fetch (direct or one-hop) — the EIGHTH PASS `bound_hit` test's own accounting is unchanged.
+   `SOURCE_MAX_PER_ITEM` itself is left at 25: fetch-count arithmetic (`HEAL_TIME_BUDGET_SECONDS=1500` @
+   1 req/s shared across ~89 items; 89×25=2225>1500, so the cap already assumes not every item spends its
+   full budget on real fetches) shows the ceiling was never the bottleneck for the measured 47/51 case — the
+   accounting was. Raising the ceiling further is a separate, still-open lever if this fix alone does not
+   clear the residue in one more pass.
+2. **Class C thin-recapture.** The "already captured" lookup now requires >200 usable trimmed chars (the
+   file's own established floor) to count as captured at all; a thin/blocked pre-existing row is treated as
+   not-yet-captured and falls through to a real, Wayback-aware re-fetch via the unmodified `captureCitedUrl`.
+3. **Class A numeric-tolerant matcher.** `locateSpanInText` gains a fourth tier (`numeric_tolerant`,
+   digit-gated) plus a trailing-punctuation retry, built on a new `buildNumericNormalizedIndex` (currency
+   symbol↔code, decimal/thousands separators, super/subscript digits, %-spacing, dash variants). The STORED
+   `source_span` stays byte-exact from the capture (ADR-016) — only the SEARCH tolerates a different surface
+   form. Gate-A's own literal-and-exact `containsToken` (`gate-a-match.mjs`, a governing file) is untouched:
+   `buildOrphanClaimText` already embeds the orphan token verbatim into `claim_text`, and `scanBrief` checks
+   `claim_text + " " + source_span` concatenated, so a tolerant search never needs to defeat the coverage
+   doctrine, only prove genuine grounding.
+4. **Class B one-hop follow.** When a page STEP SOURCE fetched live THIS run (directly, or via
+   CAPTURE-CITED's own fetch earlier the same run — both now carry `html` as an additive, never-persisted,
+   in-memory-only field) does not itself carry the token, up to `SOURCE_MAX_HOP_LINKS_PER_TOKEN=3`
+   SAME-INSTITUTION links (`institutionKey`, the one identity rule STEP B/OWN-BODY and the source registry's
+   own dedup already use) extracted from that page's own `<a href>`s are tried, each captured via the same
+   `captureCitedUrl` path and grounded with its OWN registered+rated source. **Confirmed scope limit**: this
+   is same-host (or same shared-portal institution) only — `institutionKey` is host-prefixed by construction
+   and can never bridge two genuinely different hosts, so a true cross-host institution hop (the dispatch's
+   own "Cellar/EUR-Lex link from a Commission press page" example, and this lane's own sampled CINEA/Clean
+   Hydrogen Partnership case) is NOT reachable by this pass — it would need an async DB institution lookup,
+   left as a separate, still-open lever rather than silently claimed done. A real bug was caught and fixed
+   in this same mechanism before landing: a naive same-host eligibility check is WRONG on a shared
+   government portal (`nj.gov/dep` vs `nj.gov/other` share a host but are different institutions per
+   `institutionKey`) — `classifyHopLink` now uses `institutionKey` equality as the one rule, never a second
+   `hostOf` compare.
+5. **Class D reporting.** `no_candidate_url` and `unresolved` (STEP SOURCE), and `unprovable` (STEP
+   C/ORPHANS), now carry `sentence` — the orphan token's own literal enclosing sentence from `full_brief`
+   (new `extractSentenceContext`, never invented) — so the coordinator hands the operator an actual sentence,
+   not a bare token. `full_brief` has no editor path anywhere in this file (RELABEL only ever touches a
+   section's `content_md`, by construction never `full_brief`), so a bare orphan token has no
+   RECLASSIFY/RETROFIT path the way an existing FACT claim does; this is the honest, buildable version of
+   "refactor if the paragraph exists, else report."
+6. **`summarizeReports` gap fixed.** The `no_candidate_url` STEP SOURCE outcome had NO counter anywhere in
+   this function before now (silently absent from every summary this file has ever produced) — added
+   (`source_no_candidate_url`), alongside a new `source_grounded_one_hop` counter (a subset of
+   `source_grounded`/`grounded_after_register`, both still increment for a one-hop grounding too).
+7. **No new deps.** `scripts/maintenance/provenance-heal.mjs` needed no changes — every capability above
+   (one-hop, thin-recapture, sentence context) reuses `captureCitedUrl`/`registerSource`/`readSourceByUrl`/
+   `insertSearch`/`insertClaim`, all already wired by the EIGHTH PASS.
+8. **`PENDING-RUN.md` not touched.** `scripts/mint/heal-provenance.mjs` is confirmed absent from
+   `F28-harness-run-integrity.mjs`'s `GOVERNING_FILES.mint` list — this lane's edits do not move the mint
+   family's `harness_version`, so no re-pin is needed or made.
+9. **Coordinator dispatch**: `provenance-heal`, `mode: dry`, `arg: "quarantined-live"` — expect
+   `steps.source[]` entries naming `grounded_after_register` (now including a `source_grounded_one_hop`
+   share), `source_token_not_in_page` materially lower than the hp7 baseline (numeric-tolerant + thin-
+   recapture + one-hop), `source_no_candidate_url` newly visible in the summary, and `source_bound_hit`
+   materially lower (the budget-split fix). Follow with `mode: apply` once the dry run confirms; then
+   re-measure the 359/302/token_not_in_page counts the same way this lane did (Supabase MCP SELECT against
+   the real post-apply rows) to size what residue, if any, needs a raised `SOURCE_MAX_PER_ITEM` or a
+   DB-backed cross-host one-hop as a follow-on lane.
+
 ---
 
 ## 9. `reopen-validation-holds`

@@ -91,13 +91,20 @@ import {
   SOURCE_MAX_PER_ITEM,
   classifyCitedUrlForOrphan,
   candidateUrlsForOrphan,
+  // ninth pass (HEAL-8, 2026-09-04) — numeric-tolerant matching, one-hop follow, sentence context
+  buildNumericNormalizedIndex,
+  SOURCE_MAX_HOP_LINKS_PER_TOKEN,
+  extractHopLinks,
+  classifyHopLink,
+  hopLinksForToken,
+  extractSentenceContext,
 } from "./heal-provenance.mjs";
 import { norm } from "../../src/lib/agent/gate-a-match.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 test("HEAL_VERSION is a stamped string", () => {
-  assert.match(HEAL_VERSION, /^hp7-/);
+  assert.match(HEAL_VERSION, /^hp8-/);
 });
 
 // ── loadRequiredSlots / claimCoversSlot / missingRequiredSlots ──────────────────────────────────────
@@ -2573,4 +2580,342 @@ test("summarizeReports: tallies the eighth-pass STEP SOURCE counters", () => {
   assert.equal(s.source_worklisted, 1);
   assert.equal(s.source_unresolved, 1);
   assert.equal(s.source_bound_hit, 1);
+});
+
+// ── NINTH PASS (2026-09-04, lane HEAL-8) — numeric-tolerant matching, one-hop follow, sentence context,
+//    the STEP SOURCE budget-split + thin-recapture fixes. See this file's header NINTH PASS section. ────
+
+// buildNumericNormalizedIndex / locateSpanInText's numeric_tolerant tier ───────────────────────────────
+
+test("buildNumericNormalizedIndex: currency SYMBOL and CODE fold to the same lowercase code, adjacency collapsed", () => {
+  assert.equal(buildNumericNormalizedIndex("€1,200.50").normalized, buildNumericNormalizedIndex("EUR 1.200,50").normalized);
+  assert.equal(buildNumericNormalizedIndex("€1,200.50").normalized, "eur1200.50");
+});
+
+test("buildNumericNormalizedIndex: currency codes are NEVER conflated across different currencies", () => {
+  assert.notEqual(buildNumericNormalizedIndex("€44,836").normalized, buildNumericNormalizedIndex("$44,836").normalized);
+});
+
+test("buildNumericNormalizedIndex: thousands separator (3 digits) drops, any other separator run folds to decimal", () => {
+  assert.equal(buildNumericNormalizedIndex("1,200").normalized, "1200");
+  assert.equal(buildNumericNormalizedIndex("1 200").normalized, "1200");
+  assert.equal(buildNumericNormalizedIndex("1.200").normalized, "1200");
+  // NOT a thousands run (only 2 trailing digits after the separator) -> decimal, never dropped
+  assert.equal(buildNumericNormalizedIndex("35.5").normalized, "35.5");
+  assert.equal(buildNumericNormalizedIndex("35,5").normalized, "35.5");
+});
+
+test("buildNumericNormalizedIndex: %-spacing collapses (mirrors gate-a-match.mjs's own convention, a different site)", () => {
+  assert.equal(buildNumericNormalizedIndex("35.5%").normalized, buildNumericNormalizedIndex("35,5 %").normalized);
+});
+
+test("buildNumericNormalizedIndex: superscript AND subscript digits both fold to plain digits", () => {
+  assert.equal(buildNumericNormalizedIndex("gCO₂").normalized, buildNumericNormalizedIndex("gCO2").normalized, "subscript");
+  assert.equal(buildNumericNormalizedIndex("2¹⁰").normalized, buildNumericNormalizedIndex("210").normalized, "superscript");
+});
+
+test("locateSpanInText: numeric_tolerant tier grounds a different surface form of the SAME figure, span stays byte-exact from the capture (ADR-016)", () => {
+  const hay = "The levy is set at €1,200.50 under this measure.";
+  const r = locateSpanInText("EUR 1.200,50", hay);
+  assert.equal(r.method, "numeric_tolerant");
+  assert.equal(r.span, "€1,200.50", "the STORED span is the capture's own verbatim substring, never the search needle's form");
+  assert.ok(hay.includes(r.span));
+});
+
+test("locateSpanInText: numeric_tolerant grounds %-spacing and subscript-unit forms too", () => {
+  const pct = locateSpanInText("35,5 %", "Emissions must fall by 35.5% under the target.");
+  assert.equal(pct.method, "numeric_tolerant");
+  assert.equal(pct.span, "35.5%");
+
+  const unit = locateSpanInText("14 gCO2", "Average intensity of 14 gCO₂ per unit.");
+  assert.equal(unit.method, "numeric_tolerant");
+  assert.equal(unit.span, "14 gCO₂");
+});
+
+test("locateSpanInText: numeric_tolerant is digit-gated — never invents a match for a genuinely different figure", () => {
+  assert.equal(locateSpanInText("9,000", "totally different figure of 8,000 appears here."), null);
+  assert.equal(locateSpanInText("133", "the total was 233 units."), null, "numeral-boundary respected, not a substring collapse");
+});
+
+test("locateSpanInText: trailing sentence punctuation the figureTokens regex over-captures is retried once, never on the first pass", () => {
+  const r1 = locateSpanInText("2030.", "The measure applies from 2030 under the schedule.");
+  assert.equal(r1.span, "2030");
+  assert.equal(r1.method, "exact", "retry finds the STRIPPED needle at the cheapest tier, not a fabricated 'punct_stripped' tier");
+
+  const r2 = locateSpanInText("€200,000)", "annual cap of €200,000 was confirmed.");
+  assert.equal(r2.span, "€200,000");
+});
+
+// extractHopLinks / classifyHopLink / hopLinksForToken ───────────────────────────────────────────────
+
+test("extractHopLinks: resolves relative and protocol-relative hrefs, dedupes, skips javascript/mailto/tel/#fragment", () => {
+  const html = `<html><body>
+    <a href="/documents/afif-grant.pdf">Grant PDF</a>
+    <a href='https://ec.europa.eu/other-page'>EC page</a>
+    <a href="//cdn.example/asset">protocol-relative</a>
+    <a href="#top">Top</a>
+    <a href="javascript:void(0)">JS</a>
+    <a href="mailto:foo@bar.com">Mail</a>
+    <a href="tel:+1234">Tel</a>
+    <a href="/documents/afif-grant.pdf">duplicate</a>
+  </body></html>`;
+  const links = extractHopLinks(html, "https://chj-eu.example/press/afif");
+  assert.deepEqual(links, [
+    "https://chj-eu.example/documents/afif-grant.pdf",
+    "https://ec.europa.eu/other-page",
+    "https://cdn.example/asset",
+  ]);
+});
+
+test("extractHopLinks: no <a href> at all, null html, or an unresolvable base url -> empty, never throws", () => {
+  assert.deepEqual(extractHopLinks("<p>no links here</p>", "https://x.example/"), []);
+  assert.deepEqual(extractHopLinks(null, "https://x.example/"), []);
+  assert.deepEqual(extractHopLinks("<a href='/relative'>bad base</a>", "not-a-valid-base-url"), []);
+});
+
+test("classifyHopLink: same non-portal host is eligible", () => {
+  assert.equal(classifyHopLink("https://chj-eu.example/other", "https://chj-eu.example/press/afif"), true);
+});
+
+test("classifyHopLink: a SHARED GOVERNMENT PORTAL host is NOT eligible across two different institutions sharing the host (institutionKey, not a plain hostOf compare)", () => {
+  assert.equal(classifyHopLink("https://nj.gov/other/y", "https://nj.gov/dep/x"), false);
+  assert.equal(classifyHopLink("https://nj.gov/dep/y", "https://nj.gov/dep/x"), true, "same portal institution IS eligible");
+});
+
+test("classifyHopLink: two genuinely different hosts are never eligible (institutionKey cannot bridge hosts) — an unparseable url is never guessed eligible", () => {
+  assert.equal(classifyHopLink("https://eur-lex.europa.eu/x", "https://ec.europa.eu/press/afif"), false);
+  assert.equal(classifyHopLink("not a url", "https://ec.europa.eu/press/afif"), false);
+  assert.equal(classifyHopLink("https://ec.europa.eu/press/afif", "not a url"), false);
+});
+
+test("hopLinksForToken: filters to eligible links only, bounded to SOURCE_MAX_HOP_LINKS_PER_TOKEN", () => {
+  const base = "https://notices.example.gov/landing";
+  const html = [
+    ...Array.from({ length: SOURCE_MAX_HOP_LINKS_PER_TOKEN + 4 }, (_, i) => `<a href="/sub-${i}">sub ${i}</a>`),
+    `<a href="https://third-party.example/ad">ad</a>`,
+  ].join("\n");
+  const links = hopLinksForToken(html, base);
+  assert.equal(links.length, SOURCE_MAX_HOP_LINKS_PER_TOKEN);
+  assert.ok(links.every((u) => u.startsWith("https://notices.example.gov/sub-")));
+});
+
+// extractSentenceContext ─────────────────────────────────────────────────────────────────────────────
+
+test("extractSentenceContext: returns the token's own literal enclosing sentence, never invented", () => {
+  const brief = "Intro sentence here. The levy is set at 200,000 EUR by 2030. Trailing sentence follows.";
+  assert.equal(extractSentenceContext(brief, "200,000 EUR"), "The levy is set at 200,000 EUR by 2030.");
+});
+
+test("extractSentenceContext: case-insensitive first-occurrence, trimmed; null when the token is not a literal substring at all", () => {
+  const brief = "First mention: The Cap Is 50%. Second mention: the cap is 50% again.";
+  assert.equal(extractSentenceContext(brief, "the cap is 50%"), "First mention: The Cap Is 50%.");
+  assert.equal(extractSentenceContext("Nothing relevant here.", "999 EUR"), null);
+  assert.equal(extractSentenceContext("", "999 EUR"), null);
+});
+
+// summarizeReports: no_candidate_url + one-hop counters ─────────────────────────────────────────────
+
+test("summarizeReports: tallies the ninth-pass no_candidate_url and one-hop STEP SOURCE counters", () => {
+  const perItem = [
+    {
+      steps: {
+        source: [
+          { outcome: "no_candidate_url" },
+          { outcome: "source_registered_and_grounded_one_hop" },
+          { outcome: "grounded_on_existing_source_one_hop" },
+        ],
+        gate_a: {}, rederive: { outcome: "still_failing", failures: [] },
+      },
+    },
+  ];
+  const s = summarizeReports(perItem);
+  assert.equal(s.source_no_candidate_url, 1);
+  assert.equal(s.source_grounded_one_hop, 2);
+  assert.equal(s.source_grounded, 2, "one-hop groundings are ALSO counted in the plain totals, never a separate bucket only");
+  assert.equal(s.source_registered, 1);
+});
+
+// healOneItem STEP SOURCE integration: budget-split, thin-recapture, one-hop grounding ─────────────────
+
+test("healOneItem STEP SOURCE: an already-captured, USABLE row for the exact URL is a FREE lookup — does not count against SOURCE_MAX_PER_ITEM, so more orphans ground than the bound would allow if every lookup were charged", async () => {
+  const n = SOURCE_MAX_PER_ITEM + 5;
+  const figures = Array.from({ length: n }, (_, i) => `€${100 + i},000`);
+  // Figures are followed by a WORD, never punctuation directly (mirrors this file's own NINTH PASS finding
+  // about figureTokens' trailing-punctuation over-capture) so each orphan token is exactly the bare figure
+  // — the fixture stays a clean test of the budget-split fix, not an accidental exercise of the trailing-
+  // punctuation retry tier (covered by its own dedicated test above).
+  const item = {
+    id: "item-src8", item_type: "regulation", source_url: null,
+    full_brief: "The levy schedule states the following: " + figures.map((fig, i) => `${fig} for tranche ${i}`).join("; ") + ".",
+  };
+  // Every orphan gets its OWN owning section citing its OWN ABOVE-FLOOR-tier source (the 179 case — STEP
+  // A/RESOURCE's own tier_qualifying bucket deliberately excludes it, so the orphan reaches STEP SOURCE's
+  // own loop rather than being grounded for free by STEP A/STEP C's existing bucket mechanism) whose
+  // capture ALREADY exists and is USABLE (>200 chars) — a pure free-lookup grounding, zero fetches.
+  const sections = figures.map((fig, i) => ({
+    id: `sec-src8-${i}`, item_id: "item-src8", section_key: `body-${i}`, section_order: i,
+    content_md: `The levy schedule states ${fig} for tranche ${i}. See https://notices.example.gov/tranche-${i} for detail.`,
+  }));
+  const captures = figures.map((fig, i) => ({
+    id: `cap-src8-${i}`, result_url: `https://notices.example.gov/tranche-${i}`,
+    result_content: `The levy schedule states ${fig} for tranche ${i}, per the official notice. ` + "Padding so this body clears the 200-char usability floor. ".repeat(3),
+  }));
+  const sourcesIndex = buildSourcesIndex(
+    figures.map((_, i) => ({ id: `src-src8-${i}`, url: `https://notices.example.gov/tranche-${i}`, base_tier: 5 })),
+  );
+  const fetchImpl = async () => { throw new Error("no fetch should ever be needed — every candidate is already captured"); };
+  const deps = baseDeps({
+    fetchImpl,
+    readCaptures: async () => captures,
+    readClaims: async () => [],
+    readSections: async (id) => (id === "item-src8" ? sections : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {}, sourcesIndex });
+
+  const grounded = r.steps.source.filter((s) => s.outcome === "grounded_on_existing_source");
+  const boundHits = r.steps.source.filter((s) => s.outcome === "bound_hit");
+  assert.equal(grounded.length, n, `all ${n} orphans ground for free — the budget was never the bottleneck for a zero-cost lookup`);
+  assert.equal(boundHits.length, 0, "no bound_hit at all: free lookups never charge SOURCE_MAX_PER_ITEM");
+  assert.ok(!deps.calls.some((c) => c[0] === "registerSource"), "every host was already registered — no new sources rows");
+});
+
+test("healOneItem STEP SOURCE: worklist_ambiguous_host / unresolvable_host classification-only attempts STILL count against the bound (unchanged from the eighth pass)", async () => {
+  const n = SOURCE_MAX_PER_ITEM + 3;
+  const figures = Array.from({ length: n }, (_, i) => `€${100 + i},000`);
+  const item = {
+    id: "item-src9", item_type: "regulation", source_url: null,
+    full_brief: `The levy schedule states ${figures.join(", then ")} across successive tranches.`,
+  };
+  const sections = figures.map((fig, i) => ({
+    id: `sec-src9-${i}`, item_id: "item-src9", section_key: `body-${i}`, section_order: i,
+    content_md: `The levy schedule states ${fig} for tranche ${i}. See https://vendor-${i}.example/notice for detail.`,
+  }));
+  const deps = baseDeps({ readClaims: async () => [], readSections: async (id) => (id === "item-src9" ? sections : []) });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  const boundHits = r.steps.source.filter((s) => s.outcome === "bound_hit");
+  assert.ok(boundHits.length > 0, JSON.stringify(r.steps.source.map((s) => s.outcome)));
+});
+
+test("healOneItem STEP SOURCE: a THIN (<=200 usable chars) pre-existing capture is treated as NOT YET captured — a real re-fetch is attempted and can ground the token (Class C)", async () => {
+  const item = {
+    id: "item-src10", item_type: "regulation", source_url: null,
+    full_brief: "The levy is set at €650,000 under this measure.",
+  };
+  const sections = [{ id: "sec-src10", item_id: "item-src10", section_key: "body", section_order: 1, content_md: "See https://notices.example.gov/thin for detail." }];
+  // A pre-existing capture at the EXACT candidate URL, but thin (cookie-wall/JS-shell shaped) — under 200
+  // usable chars. Before the NINTH PASS fix, this would have short-circuited the "already captured" branch
+  // and the token would have been reported token_not_in_page against the THIN body, never re-fetched.
+  const thinCaptures = [{ id: "cap-thin", result_url: "https://notices.example.gov/thin", result_content: "cookies required" }];
+  let fetchCalls = 0;
+  const fetchImpl = async () => {
+    fetchCalls += 1;
+    return { ok: true, status: 200, text: async () => "The levy is set at €650,000 under this measure, per the refreshed notice. " + "Padding text so this body clears the 200-char usability floor. ".repeat(3) };
+  };
+  const deps = baseDeps({
+    fetchImpl,
+    readCaptures: async () => thinCaptures,
+    readClaims: async () => [],
+    readSections: async (id) => (id === "item-src10" ? sections : []),
+    registerSource: async (source) => ({ source_id: "src-thin-registered", created: true, host: source.name }),
+    readSourceByUrl: async (url) => ({ id: "src-thin-registered", url, base_tier: 2, tier_override: null, institution_id: null, status: "active" }),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+
+  assert.equal(fetchCalls, 1, "the thin existing row did NOT short-circuit a real re-fetch");
+  const entry = r.steps.source.find((s) => s.outcome === "source_registered_and_grounded");
+  assert.ok(entry, JSON.stringify(r.steps.source));
+  assert.ok(deps.calls.some((c) => c[0] === "insertSearch"), "a fresh capture row was inserted for the re-fetched page");
+});
+
+test("healOneItem STEP SOURCE: ONE-HOP FOLLOW — the direct candidate page (fetched live this run) does not itself carry the token, but a same-host sub-page it links to does; the hop is grounded with its OWN registered source", async () => {
+  const item = {
+    id: "item-hop1", item_type: "regulation", source_url: null,
+    full_brief: "The levy is set at €750,500 under the new measure.",
+  };
+  const sections = [{ id: "sec-hop1", item_id: "item-hop1", section_key: "body", section_order: 1, content_md: "See https://notices.example.gov/landing for detail." }];
+  const landingHtml = `<html><body>
+    <p>This landing page summarizes the measure in general terms, with no figure stated here at all. ${"Padding so this body clears the 200-char usability floor. ".repeat(3)}</p>
+    <a href="/notice/detail-750500">Full notice with figures</a>
+  </body></html>`;
+  const detailText = "The levy is set at €750,500 under the new measure, per the full notice. " + "Padding text so this body clears the 200-char usability floor. ".repeat(3);
+  const fetchImpl = async (url) => {
+    const u = String(url);
+    if (u === "https://notices.example.gov/landing") return { ok: true, status: 200, text: async () => landingHtml };
+    if (u === "https://notices.example.gov/notice/detail-750500") return { ok: true, status: 200, text: async () => detailText };
+    throw new Error(`unexpected fetch: ${u}`);
+  };
+  const deps = baseDeps({
+    fetchImpl,
+    readCaptures: async () => [],
+    readClaims: async () => [],
+    readSections: async (id) => (id === "item-hop1" ? sections : []),
+    registerSource: async (source) => ({ source_id: `src-${source.url}`, created: true, host: source.name }),
+    readSourceByUrl: async (url) => ({ id: `src-${url}`, url, base_tier: 2, tier_override: null, institution_id: null, status: "active" }),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+
+  const hopEntry = r.steps.source.find((s) => s.outcome === "source_registered_and_grounded_one_hop");
+  assert.ok(hopEntry, JSON.stringify(r.steps.source));
+  assert.equal(hopEntry.url, "https://notices.example.gov/notice/detail-750500");
+  assert.equal(hopEntry.hop_from, "https://notices.example.gov/landing");
+  assert.equal(hopEntry.source_id, "src-https://notices.example.gov/notice/detail-750500", "the hop grounds on its OWN registered source, never inherits the landing page's source");
+
+  const hopClaimCall = deps.calls.find((c) => c[0] === "insertClaim" && c[1].source_id === hopEntry.source_id);
+  assert.ok(hopClaimCall);
+  assert.ok(hopClaimCall[1].source_span.includes("750,500"));
+  assert.equal(r.steps.orphans.length, 0, "grounded by STEP SOURCE before STEP C's own fresh scan runs");
+});
+
+test("healOneItem STEP SOURCE: no eligible one-hop link (third-party domain only) -> honest token_not_in_page, never a forced/invented hop", async () => {
+  const item = {
+    id: "item-hop2", item_type: "regulation", source_url: null,
+    full_brief: "The levy is set at €820,000 under the new measure.",
+  };
+  const sections = [{ id: "sec-hop2", item_id: "item-hop2", section_key: "body", section_order: 1, content_md: "See https://notices.example.gov/landing2 for detail." }];
+  const landingHtml = `<html><body>
+    <p>General summary text, no figure stated here at all. ${"Padding so this body clears the 200-char usability floor. ".repeat(3)}</p>
+    <a href="https://third-party-ad-network.example/click">sponsored</a>
+  </body></html>`;
+  const fetchImpl = async (url) => {
+    const u = String(url);
+    if (u === "https://notices.example.gov/landing2") return { ok: true, status: 200, text: async () => landingHtml };
+    throw new Error(`unexpected fetch: ${u}`);
+  };
+  const deps = baseDeps({
+    fetchImpl,
+    readCaptures: async () => [],
+    readClaims: async () => [],
+    readSections: async (id) => (id === "item-hop2" ? sections : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+
+  const missed = r.steps.source.find((s) => s.outcome === "token_not_in_page");
+  assert.ok(missed, JSON.stringify(r.steps.source));
+  assert.ok(!deps.calls.some((c) => c[0] === "insertClaim"));
+});
+
+test("healOneItem STEP SOURCE: no_candidate_url and unresolved outcomes carry the orphan's own enclosing sentence, never invented", async () => {
+  const item = {
+    id: "item-src11", item_type: "regulation", source_url: null,
+    full_brief: "Intro text. The levy is set at €911,000 under this measure. Trailing text follows.",
+  };
+  const deps = baseDeps({ readClaims: async () => [], readSections: async () => [] });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+
+  const noCandidate = r.steps.source.find((s) => s.outcome === "no_candidate_url");
+  assert.ok(noCandidate, JSON.stringify(r.steps.source));
+  assert.equal(noCandidate.sentence, "The levy is set at €911,000 under this measure.");
+});
+
+test("healOneItem STEP C: an unprovable orphan carries its own enclosing sentence alongside the existing fuzzy evidence", async () => {
+  const item = {
+    id: "item-src12", item_type: "regulation", source_url: null,
+    full_brief: "Intro text. The levy is set at €922,000 under this measure. Trailing text follows.",
+  };
+  const deps = baseDeps({ readClaims: async () => [], readSections: async () => [] });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+
+  const unprovable = r.steps.orphans.find((o) => o.outcome === "unprovable");
+  assert.ok(unprovable, JSON.stringify(r.steps.orphans));
+  assert.equal(unprovable.sentence, "The levy is set at €922,000 under this measure.");
 });
