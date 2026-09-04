@@ -1283,7 +1283,11 @@ test("the census read's match is applied to the query builder as a function", as
 test("population-turn.yml: rows_file input skips the export step and drives run-mint-batch/apply-mint-batch directly", () => {
   const yml = readFileSync(new URL("../../../.github/workflows/population-turn.yml", import.meta.url), "utf8");
   assert.match(yml, /rows_file:/, "workflow_dispatch must declare a rows_file input");
-  assert.match(yml, /if:\s*\$\{\{\s*inputs\.rows_file\s*==\s*''\s*\}\}/, "the export-census-rows.mjs step must be skipped when rows_file is set");
+  // Lane CHAIN (2026-09-04): the workflow resolves inputs.rows_file into env.RUN_ROWS_FILE once (so a
+  // workflow_run-triggered run, which has no inputs, resolves to '' by the same path); the export step's
+  // condition therefore reads the resolved env var, not inputs.rows_file directly.
+  assert.match(yml, /RUN_ROWS_FILE="\$\{\{\s*inputs\.rows_file\s*\}\}"/, "inputs.rows_file must resolve into RUN_ROWS_FILE");
+  assert.match(yml, /if:\s*\$\{\{[^}]*env\.RUN_ROWS_FILE\s*==\s*''\s*\}\}/, "the export-census-rows.mjs step must be skipped when rows_file is set");
   assert.match(yml, /CENSUS_ROWS_PATH/, "a resolved census-rows path (export output OR rows_file) must feed both run-mint-batch and apply-mint-batch");
   assert.match(yml, /run-mint-batch\.mjs[\s\S]*?--census-rows\s+"\$CENSUS_ROWS_PATH"/);
   assert.match(yml, /apply-mint-batch\.mjs[\s\S]*?--census-rows\s+"\$CENSUS_ROWS_PATH"/);

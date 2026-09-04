@@ -459,11 +459,7 @@ export const NEVER_RUN_ALLOWLIST = {
     expiryTrain: 40,
   },
   'workflow:ledger-consume.yml': {
-    disposition: 'Plan W1.1 / audit Gap #3: CI-wired but apply mode is a source-level kill switch (LEDGER_CONSUME_APPLY_ENABLED=false, ADR-023) — every dispatch to date is necessarily plan-only, so no apply evidence can exist until the flip lands. Tracked to W1.1 (T39).',
-    expiryTrain: 40,
-  },
-  'maintenance:community-topics-seed': {
-    disposition: 'A1-runtimes.md §2 [CONFIRMED]: live community_topics = 0 rows, no evidence an apply dispatch ever landed. No plan workstream currently names this step by number; coordinator dispatches it (apply) or the plan is amended to name its disposition (build vs retire).',
+    disposition: 'Plan W1.1 / audit Gap #3: the apply kill switch (LEDGER_CONSUME_APPLY_ENABLED) flipped to true in train 38 (lane LEDGER-ZERO); the first plan dispatch needs a session-Haiku verdicts file (scripts/turns/ledger-verdicts/ledger-verdicts-001.json) which the coordinator produces after train 38 lands. Evidence: the first ledger-consume-run-NNN.json artifact.',
     expiryTrain: 40,
   },
   'maintenance:origin-class-backfill': {

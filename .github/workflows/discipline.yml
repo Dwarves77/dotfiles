@@ -257,6 +257,19 @@ jobs:
         # fsi-app/.discipline/governance/closure-gate.mjs's header.
         run: node fsi-app/.discipline/governance/closure-gate.mjs
 
+      - name: Orphan-module + dead-export census (B1 Appendix A/B method — reports, never fails)
+        # W7.3 (docs/plans/complete-system-build-plan-2026-09-04.md; lane F25-WIDE, 2026-09-04). Runs
+        # docs/audits/wiring-audit-2026-09-04/B1-modules.md's own two named methods (Appendix A:
+        # only-test-importer orphans; Appendix B: dead exports on otherwise-wired modules) against every CI
+        # run, independent of F25's allowlist — the standing census the audit's method would produce today.
+        # Deliberately non-gating (orphan-modules.mjs's own header: "a REPORT, not a gate" — F25 (widened,
+        # above) is the CI-FAILING enforcement for the orphan-module class, with a reasoned expiring
+        # allowlist; dead-exports is reported-not-failing this train per the plan, since a mechanical
+        # whole-word scan can false-positive on a dynamic access pattern). This `run:` line is also how F25's
+        # own findDispatchRoots() sees orphan-modules.mjs as wired (a workflow bare-path mention), so this
+        # governance module does not itself become an F25 UNWIRED MODULE violation.
+        run: node fsi-app/.discipline/governance/orphan-modules.mjs --all
+
   consistency-backstop:
     name: Consistency layer (C3/C4/C5 reality — always-on backstop)
     runs-on: ubuntu-latest
