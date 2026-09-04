@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, provenance-heal, institution-canonicalize, reopen-validation-holds, record-hollow-sweep]
+        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, provenance-heal, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, or a comma-separated proposal-id list — see the runbook for which steps require one and what value they need).'
         required: false
@@ -305,6 +305,20 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/record-hollow-sweep"
           node scripts/maintenance/record-hollow-sweep.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/record-hollow-sweep"
+
+      - name: canonical-key-dedup
+        # Lane DEDUP (2026-09-04): keeps the single verified row per canonical_instrument_key, archives
+        # the others (archive_reason='duplicate_of_verified', releasing canonical_instrument_key/
+        # instrument_identifier/source_url so the archived rows stop blocking apply-mint-batch.mjs's checkM4 /
+        # export-census-rows.mjs's buildHeldKeyIndex — see the step's own header). Enforces invariant EP-11
+        # (ADR-021: "two verified, non-archived items cannot share a key"). Keep rule: exactly one verified
+        # per group → keep it; zero or multiple verified → refuse to decide (report, no archive). No ruling
+        # gate; apply needs no --arg beyond a valid selection. `--arg restore:<id,id,...>` reverses a prior
+        # apply from this run's own db.mjs snapshot.
+        if: env.RUN_STEP == 'canonical-key-dedup' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/canonical-key-dedup"
+          node scripts/maintenance/canonical-key-dedup.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/canonical-key-dedup"
 
       # Runs even when a step failed, so the log always ends with the true state of the tables rather
       # than only the exception that got there first (mirrors producers.yml's own Population AFTER).
