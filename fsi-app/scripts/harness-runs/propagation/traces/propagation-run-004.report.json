@@ -1,0 +1,45 @@
+{
+  "mode": "apply",
+  "queueDepthBefore": 1000,
+  "eventsConsidered": 500,
+  "eventsDrained": 500,
+  "invalidated": 8,
+  "recomputed": 8,
+  "skippedUnknownMethod": 0,
+  "skippedMethodRefused": 0,
+  "superseded": [
+    {
+      "from": "595bbe32-1998-42dd-9aa7-c93d7e8722a1",
+      "to": "4d3e1b57-f1ad-4a5f-83ce-8d538327c43c"
+    },
+    {
+      "from": "5920f75f-601e-46a7-a01a-17557aa3e943",
+      "to": "38841947-b243-4087-b715-65ef6ecb419b"
+    },
+    {
+      "from": "78760f0e-42ff-4fa8-af88-3306732804e7",
+      "to": "e2a6a12e-a564-4dc7-86c1-a3a8468b05ee"
+    },
+    {
+      "from": "6e73e44d-27ff-4fa7-b465-53154f063ead",
+      "to": "2c037a6a-8a9c-478f-98b0-3520aee79443"
+    },
+    {
+      "from": "d1060ec1-2dec-4185-b448-633daf351216",
+      "to": "80c0e315-1cda-4426-816c-bf22236f2381"
+    },
+    {
+      "from": "d27f2347-0f44-463a-8f2c-b34940464239",
+      "to": "67c22ab9-3ea4-4405-83c4-254e241d2e0c"
+    },
+    {
+      "from": "4bf7abf4-1a9c-4830-982b-cb736d3541ca",
+      "to": "63fa2f76-8c4b-4ee6-a449-abe421515593"
+    },
+    {
+      "from": "d3c67f61-c2eb-44e6-8b66-a20f64df4ecc",
+      "to": "d9d3ef8b-3c7e-4ea0-924b-34447ef07821"
+    }
+  ],
+  "errors": []
+}
