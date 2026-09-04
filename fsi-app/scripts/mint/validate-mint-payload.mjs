@@ -43,9 +43,15 @@ import { dirname, resolve } from "node:path";
 import { scanBrief } from "./lib/gate-a-scan.mjs";
 import { canonicalizeCitationUrl } from "./lib/canonicalize-citation-url.mjs";
 import { institutionKey } from "../lib/institution-key.mjs";
+import { isImplementedSeriesKey } from "../../src/lib/market/series-registry.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REQUIRED_SLOTS = JSON.parse(readFileSync(resolve(__dirname, "item-type-required-slots.json"), "utf8"));
+
+// KIT VERSION (Lane HOLLOW-GATE, 2026-09-04). This module had no version constant before this lane; adding
+// one now that a new kit-level check (record_hollow, below) changes what "green" means for a record-grade
+// payload — see MINT-RUNBOOK.md §5's kept-in-sync note.
+export const VALIDATE_MINT_PAYLOAD_KIT_VERSION = "vmp-2026-09-04.1"; // +record_hollow (criterion 5)
 
 // ── Wave MH-3: capture-completeness gate ────────────────────────────────────────────────────────
 // mint-run-001.json's defects_found[0]: batch-001's six archived source-<celex>.txt files held only
@@ -439,6 +445,51 @@ export function validateMintPayload(payload, opts = {}) {
           source_span: c.source_span,
         });
       }
+    }
+
+    // ── HOLLOW-RECORD REFUSAL (Lane HOLLOW-GATE, 2026-09-04) — grade === "record" only. Live count
+    //    [CONFIRMED via Supabase, 2026-09-04]: 1,230 record-grade items live and verified; 551 carry ONLY
+    //    the [title] FACT and every other slot a GAP (350 with a genuine title FACT, 201 with none at
+    //    all), 115 carry exactly one substantive fact beyond the title. Root cause: a title FACT plus an
+    //    all-GAP required-slots section already satisfies criterion 5 (`missing_required_slot` only checks
+    //    that a slot has ANY FACT-or-GAP claim, and a GAP always qualifies) — so a payload built from a
+    //    document `record-facts.mjs` found nothing substantive in still cleared the gate, and the item
+    //    shipped to the customer site with an effectively empty Summary (item
+    //    8670d8bf-9847-4da6-8724-0d52308b008e, CELEX 31999D0823, is the traced example: 17,022 chars of
+    //    real EUR-Lex text, zero substantive facts extracted). Criterion 5 is correct on its own terms (a
+    //    slot IS covered by a GAP) and is deliberately left unchanged — this is an ADDITIVE kit check for a
+    //    different, coarser question criterion 5 was never designed to answer: did this extraction pass
+    //    produce ANY actual information, or only the one fact (the title) that requires no extraction at
+    //    all. A payload whose only FACT claim is the title (or which carries no FACT claim at all) is
+    //    refused here as `record_hollow`, independent of which required slots it happens to cover with
+    //    GAPs. Reported as criterion 5 (not "kit") on the operator's own instruction, so
+    //    `apply-mint-batch.mjs`'s existing validation-failed hold-back records it as
+    //    `validation_failed:5:record_hollow` and `reopen-validation-holds.mjs --reason-contains record_hollow`
+    //    re-admits a row once a fixed extractor pass has re-run over it — no new hold mechanism, reusing
+    //    the one lane URL-GUIL already built for exactly this shape of "held for a fixable reason".
+    //    Matched by claim_text prefix, not `slot_key`, so a hand-built browser-capture payload (MINT-
+    //    RUNBOOK.md §11's escape hatch, which may omit `slot_key`) is checked the same way a
+    //    record-facts.mjs-built payload is — the SAME method this lane used to measure the live 551/115
+    //    figures above, so the check and the diagnosis agree by construction.
+    const substantiveFactCount = claims.filter(
+      (c) => c.claim_kind === "FACT" && !String(c.claim_text ?? "").trim().toLowerCase().startsWith("[title]")
+    ).length;
+    //    SERIES-BACKED EXEMPTION (train/wave16, 2026-09-04, the gate's first CI run): a `market_signal`
+    //    payload whose `instrument_identifier` is a registered, implemented market-series key
+    //    (`src/lib/market/series-registry.mjs`, the six oil-bulletin products and the EIA/BLS/ECB series)
+    //    is not hollow — its substance is the `market_series` rows the producer writes and
+    //    `ratify-series-items.mjs` binds to the item (series-item-map.mjs), not FACT claims extracted
+    //    from the bulletin's landing page; the surface renders the series. The exemption is mechanical
+    //    (registry lookup), never a free-text flag, so a hand-built market row with an unregistered key
+    //    is still refused. Research records get NO exemption: an all-GAP research record is exactly the
+    //    "item with no details" the operator refused on 2026-09-04, and is held for re-extraction.
+    const seriesBacked = item.item_type === "market_signal" && isImplementedSeriesKey(item.instrument_identifier);
+    if (substantiveFactCount === 0 && !seriesBacked) {
+      failures.push({
+        criterion: 5,
+        reason: "record_hollow",
+        fact_count: claims.filter((c) => c.claim_kind === "FACT").length,
+      });
     }
 
     // ── SCREEN VERDICT (Lane WSEQ, 2026-09-02) — grade === "record" only. Three population-turn apply

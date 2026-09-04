@@ -685,6 +685,50 @@ export function partitionExcludeHeldByKey(rows, heldKeyIndex) {
   return { kept, excludedHeldByKey };
 }
 
+// ── IN-FORCE SCREEN (Lane HOLLOW-GATE, 2026-09-04) ──────────────────────────────────────────────────────
+// Build requirement 3: a row whose capture states the act is no longer in force must be HELD `not_in_force`
+// with the evidence span, never minted. EUR-Lex's interactive act page carries this as a structurally
+// distinct widget: `<p class="forceIndicator ..."><span ...>...</span>STATUS TEXT</p>`, e.g.
+// `<p class="forceIndicator forceIndicatorRED">... <span ...></span>No longer in force</p>` (red/off) vs.
+// `<p class="forceIndicator forceIndicatorGREEN">... <span ...></span>In force</p>` (green/on).
+//
+// This deliberately does NOT do a bare substring search for "no longer in force" anywhere in captured
+// text. [CONFIRMED, Supabase, 2026-09-04] The literal phrase "no longer in force" appears in the BODY
+// PROSE (a recital) of CELEX 32020R0893, a document that is itself currently in force -- that recital
+// describes a DIFFERENT, unrelated repealed regulation. A bare scan would have wrongly held a live,
+// in-force row. Anchoring on the `forceIndicator` widget markup itself (only ever present when an
+// agent-driven historical capture happened to carry the interactive page's raw HTML -- see
+// `agent_run_searches` capture-shape note in resolveRowCapture's own header) avoids that trap the same way
+// record-facts.mjs's `findInForceStatusMatch` does. This is an independent, from-scratch implementation in
+// this file (not a cross-file import) -- consistent with this repo's existing per-file convention of small,
+// zero-dependency detectors (see stripHtmlToText / extractTitleFromHtml above, each self-contained).
+//
+// [CONFIRMED, Supabase, 2026-09-04] Zero rows in the live `agent_run_searches` corpus carry a genuine
+// forceIndicatorRED / "No longer in force" widget today (n_red = 0, verified with a properly-`FILTER`ed
+// count after an earlier mis-aggregated query overcounted). This screen is therefore built and tested
+// against a real-shaped GREEN fixture (32020R0893, including its own false-positive-trap prose) plus an
+// explicitly `[HYPOTHESIS]`-labeled synthetic RED fixture (EUR-Lex's own asset-naming convention inferred,
+// not observed live) -- it is currently INERT against the live corpus (holds nothing today) but is real
+// protection the moment such a row's raw HTML is captured (e.g. via the MINT-RUNBOOK §1a browser-capture
+// escape hatch for a WAF-blocked EUR-Lex row).
+
+const FORCE_INDICATOR_RE = /<p[^>]*class="[^"]*\bforceIndicator\b[^"]*"[^>]*>[\s\S]{0,300}?<\/span>\s*([^<]{1,200})/i;
+const NOT_IN_FORCE_STATUS_RE = /^no longer in force\b/i;
+
+/** Scan `capturedText` for EUR-Lex's own structurally-anchored in-force-status widget markup and report
+ *  whether it states the act is no longer in force. Returns `null` when no such widget is present (the
+ *  common case: neither the Cellar nor the EUR-Lex clean-text capture endpoints this pipeline fetches by
+ *  default ever carry this interactive-page-only widget). Never a bare substring scan -- see header above
+ *  for why that is unsafe. Pure, no I/O. */
+export function detectNotInForce(capturedText) {
+  const text = String(capturedText ?? "");
+  const m = text.match(FORCE_INDICATOR_RE);
+  if (!m) return null;
+  const statusText = m[1].trim();
+  if (!statusText) return null;
+  return { span: m[0], statusText, notInForce: NOT_IN_FORCE_STATUS_RE.test(statusText) };
+}
+
 /**
  * Build one enriched export row (or a hold record) from a census_worklist row plus its resolved source,
  * resolved identity, and resolved capture. Pure -- every input is already resolved by the caller (no I/O
@@ -731,6 +775,19 @@ export function buildExportRow(censusRow, source, identity, capture) {
         document_url: documentUrl,
         reason: "capture_too_short",
         fetched_length: capturedText ? capturedText.length : 0,
+      },
+    };
+  }
+
+  const forceStatus = detectNotInForce(capturedText);
+  if (forceStatus?.notInForce) {
+    return {
+      hold: {
+        row_id: rowId,
+        document_url: documentUrl,
+        reason: "not_in_force",
+        evidence_span: forceStatus.span,
+        status_text: forceStatus.statusText,
       },
     };
   }

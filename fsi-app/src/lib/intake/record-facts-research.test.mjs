@@ -173,7 +173,7 @@ test("buildResearchRecordPayload: rich-text payload clears validate-mint-payload
   assert.equal(result.recommended_status, "verified");
 });
 
-test("buildResearchRecordPayload: sparse (all-GAP) payload also clears the validator (GAP coverage is honest, not a defect)", () => {
+test("buildResearchRecordPayload: sparse (all-GAP) payload is REFUSED by the validator as record_hollow (operator ruling 2026-09-04: an item with no details is pointless; the builder's GAPs stay honest, the kit holds the row for re-extraction)", () => {
   const payload = buildResearchRecordPayload({
     sourceUrl: SOURCE.url,
     title: "Freight Decarbonisation Outlook 2026",
@@ -183,8 +183,8 @@ test("buildResearchRecordPayload: sparse (all-GAP) payload also clears the valid
     screen: SCREEN,
   });
   const result = validateMintPayload(payload);
-  assert.deepEqual(result.failures, []);
-  assert.equal(result.valid, true);
+  assert.equal(result.valid, false);
+  assert.deepEqual(result.failures.map((f) => [f.criterion, f.reason]), [[5, "record_hollow"]]);
 });
 
 test("buildResearchRecordPayload: missing/off-vertical screen is rejected by the validator's kit check", () => {

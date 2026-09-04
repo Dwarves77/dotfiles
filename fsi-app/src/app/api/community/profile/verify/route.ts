@@ -59,10 +59,11 @@ export async function POST(request: NextRequest) {
   const limited = checkRateLimit(auth.userId);
   if (limited) return limited;
 
-  const {
-    data: { user },
-  } = await auth.supabase.auth.getUser();
-  const email = user?.email ?? null;
+  // PERF-7 (2026-09-04, audit §13.5): the account email is on the standard Supabase JWT claim set, so
+  // read it from the locally verified claims (getClaims(), JWKS) instead of a second Auth-server round
+  // trip on top of requireCommunityAuth's; a symmetric-secret project falls back inside getClaims().
+  const { data: claimsData } = await auth.supabase.auth.getClaims();
+  const email = claimsData?.claims?.email ?? null;
   const domain = domainFromEmail(email);
 
   if (!domain) {

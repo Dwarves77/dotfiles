@@ -1,5 +1,5 @@
 import { cache } from "react";
-import type { User } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 
 /**
@@ -26,9 +26,30 @@ import { createSupabaseServerClient } from "@/lib/supabase-server-client";
  * Also surfaces the workspace-level sector_profile from workspace_settings
  * so callers can compose the two layers (per Section 6.8). Dual-write
  * triggers in the DB keep user_profiles in sync until Phase 3 drops it.
+ *
+ * PERF-7 (2026-09-04, docs/audits/perf-load-times-2026-09-03.md §13, same defect class as PERF-2's
+ * proxy.ts / PERF-6's org.ts+auth.ts): this used to call `supabase.auth.getUser()`, a network round
+ * trip to Supabase Auth's server on every resolution — the cold document-load cost PERF-6 identified
+ * this file as paying (docs/audits/perf-load-times-2026-09-03.md §10, evidence item 1).
+ * `getClaims()` verifies the session JWT locally against the project's cached JWKS instead (see
+ * proxy.ts's header for the JSDoc citation and the symmetric-secret-fallback caveat, which applies
+ * identically here). `user` narrowed from the full Supabase `User` to `{ id, email }`: grepped every
+ * consumer of `resolveServerBootstrap().user` across fsi-app/src (bootstrap-seed.ts's independent
+ * `BootstrapLike.user: { id: string } | null` structural echo, onboarding/page.tsx, workspace/new/
+ * page.tsx, and the userId-only reads in market/operations/regulations/research `[slug]/page.tsx`) —
+ * `.id` and `.email` are the only fields ever read off it, both required/optional exactly as before
+ * (`id` was always required on `User`; `email` was always optional). Both are carried directly on
+ * `claims` — `sub` is a required, non-optional string claim and `email` is present on the standard
+ * claim set (verified against node_modules/@supabase/auth-js's installed JwtPayload type) — so no
+ * caller needed a getUser() fallback for a field getClaims() doesn't carry.
  */
+export interface ServerBootstrapUser {
+  id: string;
+  email: string | null;
+}
+
 export interface ServerBootstrap {
-  user: User | null;
+  user: ServerBootstrapUser | null;
   orgId: string | null;
   orgName: string;
   role: "owner" | "admin" | "member" | "viewer" | null;
@@ -55,57 +76,68 @@ const EMPTY: ServerBootstrap = {
   workspaceSectors: [],
 };
 
+/**
+ * Pure core of resolveServerBootstrap: given an already-authenticated Supabase client, resolve the
+ * bootstrap. Split out (same shape as org.ts's resolveOrgIdFromAuthenticatedClient) so it can be unit
+ * tested with a mocked client — the wrapper below value-imports next/headers (via
+ * createSupabaseServerClient) and so cannot be loaded outside Next's bundler; this function has no such
+ * dependency. Exported for server-bootstrap.npmtest.mjs.
+ */
+export async function resolveServerBootstrapFromClient(
+  supabase: SupabaseClient
+): Promise<ServerBootstrap> {
+  const { data, error } = await supabase.auth.getClaims();
+  if (error || !data?.claims?.sub) return EMPTY;
+  const user: ServerBootstrapUser = { id: data.claims.sub, email: data.claims.email ?? null };
+
+  const [membershipRes, profileRes] = await Promise.all([
+    supabase
+      .from("org_memberships")
+      .select("org_id, role, organizations(id, name)")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("sector_overrides")
+      .eq("id", user.id)
+      .maybeSingle(),
+  ]);
+
+  const membership = membershipRes.data;
+  const org = (membership?.organizations as { id?: string; name?: string } | null) || null;
+  const sectors =
+    (profileRes.data as { sector_overrides: string[] | null } | null)?.sector_overrides ?? [];
+
+  // Pull workspace-level sectors only if the user has a workspace.
+  let workspaceSectors: string[] = [];
+  const orgId = org?.id || membership?.org_id || null;
+  if (orgId) {
+    const { data: ws } = await supabase
+      .from("workspace_settings")
+      .select("sector_profile")
+      .eq("org_id", orgId)
+      .maybeSingle();
+    workspaceSectors =
+      (ws as { sector_profile: string[] | null } | null)?.sector_profile ?? [];
+  }
+
+  return {
+    user,
+    orgId,
+    orgName: org?.name || "",
+    role: (membership?.role as ServerBootstrap["role"]) || null,
+    sectors,
+    workspaceSectors,
+  };
+}
+
 export const resolveServerBootstrap = cache(
   async (): Promise<ServerBootstrap> => {
     try {
       const supabase = await createSupabaseServerClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) return EMPTY;
-
-      const [membershipRes, profileRes] = await Promise.all([
-        supabase
-          .from("org_memberships")
-          .select("org_id, role, organizations(id, name)")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from("profiles")
-          .select("sector_overrides")
-          .eq("id", user.id)
-          .maybeSingle(),
-      ]);
-
-      const membership = membershipRes.data;
-      const org = (membership?.organizations as { id?: string; name?: string } | null) || null;
-      const sectors =
-        (profileRes.data as { sector_overrides: string[] | null } | null)?.sector_overrides ?? [];
-
-      // Pull workspace-level sectors only if the user has a workspace.
-      let workspaceSectors: string[] = [];
-      const orgId = org?.id || membership?.org_id || null;
-      if (orgId) {
-        const { data: ws } = await supabase
-          .from("workspace_settings")
-          .select("sector_profile")
-          .eq("org_id", orgId)
-          .maybeSingle();
-        workspaceSectors =
-          (ws as { sector_profile: string[] | null } | null)?.sector_profile ?? [];
-      }
-
-      return {
-        user,
-        orgId,
-        orgName: org?.name || "",
-        role: (membership?.role as ServerBootstrap["role"]) || null,
-        sectors,
-        workspaceSectors,
-      };
+      return await resolveServerBootstrapFromClient(supabase);
     } catch {
       return EMPTY;
     }

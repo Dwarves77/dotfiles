@@ -147,6 +147,45 @@ function researchSections() {
   }));
 }
 
+// Record-grade sections (RECORD-SURFACE lane, 2026-09-04) — the `identity` / `record_facts` /
+// `sources_and_citations` section_key vocabulary that src/lib/intake/record-facts.mjs mints and
+// src/lib/agent/parse-record-sections.ts parses; a completely disjoint key set from the numbered
+// brief-grade keys above, so this exercises the itemGrade:'record' branch of each detail surface's
+// Summary render (RecordGradeSummary / RecordFactsCard / ResearchRecordFacts) at both viewports. FACT
+// spans are deliberately long (>60 chars) to stress the quoted-span wrap; one GAP line included so the
+// honest "N of M record fields not stated" count renders non-zero.
+function recordSections() {
+  return [
+    {
+      section_key: 'identity',
+      section_order: 0,
+      content_md:
+        "[title] The captured source's own text carries this item's title verbatim: «" + LONG_TITLE + '»',
+      is_conditional: false,
+      source_ids: [],
+    },
+    {
+      section_key: 'record_facts',
+      section_order: 1,
+      content_md: [
+        '[effective_date] The captured source states, verbatim: «shall enter into force on the twentieth day following that of its publication in the Official Journal of the European Union»',
+        '[jurisdictional_scope] The captured source states, verbatim: «applies to all Member States and to economic operators placing products on the Union market regardless of establishment»',
+        '[binding_position] The captured source’s own applicability language places this item at «direct_duty» (Your duty), from the passage: «the operator shall assume responsibility for the compliance of the relevant product with the requirements set out in Article 3»',
+        '[penalty_summary] No verbatim penalty statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.',
+      ].join('\n'),
+      is_conditional: false,
+      source_ids: [],
+    },
+    {
+      section_key: 'sources_and_citations',
+      section_order: 2,
+      content_md: 'Source: https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32026R1030',
+      is_conditional: false,
+      source_ids: [],
+    },
+  ];
+}
+
 // ── Regulations ─────────────────────────────────────────────────────────────────────────────────
 const REGULATION_ENTRY = `
 ${STYLE_INJECT}
@@ -176,6 +215,42 @@ const REGULATION_STATES = [
       sections: regulationSections(),
       groupLabel: LONG_GROUP,
       deck: 'EUR-Lex · adopted 16 October 2024 · in force',
+      initialOwner: null,
+      upcomingObligations: null,
+    },
+    expectTitles: 1,
+  },
+  // Record-grade (RECORD-SURFACE lane, 2026-09-04) — itemGrade:'record' branch of SummaryTab
+  // (RecordGradeSummary), stressed with a long FACT span, a GAP line, tags, and a connection row (real
+  // ItemConnectionsCard data) at both viewports.
+  {
+    label: 'record-grade-facts-and-connections',
+    props: {
+      resource: baseResource({
+        id: 'rec-1',
+        itemGrade: 'record',
+        tags: ['ocean', 'compliance', 'extremely-long-tag-token-for-wrap-stress'],
+        fullBrief: '## Verbatim facts\n\n(record-grade kit output, not rendered directly)',
+      }),
+      changelog: [],
+      dispute: null,
+      supersessions: [],
+      connections: [
+        {
+          id: 'rec-2',
+          direction: 'outgoing',
+          relationship: 'related',
+          origin: 'discovered',
+          basis: [{ signal: 'shared_citation', detail: 'Both cite Article 3(2)', weight: 0.8 }],
+          score: 0.8,
+          surface: 'regulations',
+        },
+      ],
+      relevance: null,
+      resourceLookup: { 'rec-2': { id: 'rec-2', title: 'Related instrument, also long enough to wrap at a phone width', priority: 'HIGH' } },
+      sections: recordSections(),
+      groupLabel: LONG_GROUP,
+      deck: 'EUR-Lex · catalogue record',
       initialOwner: null,
       upcomingObligations: null,
     },
@@ -253,6 +328,27 @@ const RESEARCH_STATES = [
     },
     expectTitles: 6,
   },
+  // Record-grade (RECORD-SURFACE lane, 2026-09-04) — itemGrade:'record' branch (ResearchRecordFacts),
+  // previously unreachable dead code (hasSections was true but ResearchSections rendered null; see this
+  // lane's report). No expectTitles: this surface has no data-guard-title on the record-facts path.
+  {
+    label: 'record-grade-facts',
+    props: {
+      resource: baseResource({
+        id: 'res-rec-1',
+        itemGrade: 'record',
+        tags: ['research', 'extremely-long-tag-token-for-wrap-stress'],
+      }),
+      related: [],
+      relatedReason: 'none',
+      sections: recordSections(),
+      supersessions: [],
+      connections: [],
+      relevance: null,
+      resourceLookup: {},
+      themeBrief: undefined,
+    },
+  },
 ];
 
 // ── Market (read-only mount — src/components/pages/, outside this lane's write set) ───────────────
@@ -291,6 +387,33 @@ const MARKET_STATES = [
     // Not asserted — MarketSignalDetailSurface.tsx is outside this lane's write set and was not
     // audited for a data-guard-title on its own H1 (that would be a write-set-expansion item, not a
     // guaranteed pass); the state still mounts and is measured for overflow/law-2, just not titles.
+  },
+  // Record-grade (RECORD-SURFACE lane, 2026-09-04) — itemGrade:'record' branch (RecordFactsCard) added
+  // to this file's "moving" tab; per surface-of.mjs, 0 live record items route here today (all are
+  // domain=1 -> regulations), so this is forward-looking coverage, same posture as the rest of this
+  // state's "not asserted" note above.
+  {
+    label: 'record-grade-facts',
+    props: {
+      resource: baseResource({
+        id: 'mkt-rec-1',
+        itemGrade: 'record',
+        signalBand: 'price',
+        tags: ['market', 'extremely-long-tag-token-for-wrap-stress'],
+      }),
+      relatedPool: [],
+      sections: recordSections(),
+      convergence: null,
+      priceBoard: [],
+      carbonFactors: [],
+      groupLabel: LONG_GROUP,
+      deck: 'EUR-Lex · catalogue record',
+      initialNote: '',
+      supersessions: [],
+      connections: [],
+      relevance: null,
+      resourceLookup: {},
+    },
   },
 ];
 

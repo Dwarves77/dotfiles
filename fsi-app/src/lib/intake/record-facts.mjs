@@ -82,7 +82,7 @@
 import { BINDING_POSITION, normaliseMode } from "../contracts/vocabularies.mjs";
 import { CORRIDOR_ID_SCHEME } from "../entities/decisions.mjs";
 
-export const RECORD_FACTS_VERSION = "rf1-2026-09-04.1"; // lane URL-BOILER: bare-domain-URL span guard
+export const RECORD_FACTS_VERSION = "rf1-2026-09-04.2"; // lane HOLLOW-GATE: EU-act self-description extractors (operative_provision/addressee/confirmed_measure/in_force_status) + HTML-tag span guard
 
 // ---------------------------------------------------------------------------
 // Verbatim-span guard (same contract as extract-forward-events.mjs's assertVerbatim — see that file's
@@ -191,6 +191,62 @@ const SLOT_TRIGGERS = Object.freeze({
     /research institute(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
     /industry association(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
   ],
+
+  // EU-ACT SELF-DESCRIPTION (Lane HOLLOW-GATE, 2026-09-04). 1,230 live verified record-grade items read;
+  // 551 carry ONLY the [title] FACT (every other slot GAP), 350 of those with a genuine title FACT and
+  // 201 with none at all -- measured live via Supabase (`section_claim_provenance`, grade='record',
+  // is_archived=false, provenance_status='verified'), matching the operator's own count exactly (350+201).
+  // Root cause: 390 of the 551 are item_type "initiative" (CELEX sector-2/3 'D'-letter decisions --
+  // `classifyItemTypeFromCelexKey`, export-census-rows.mjs), whose required-slots list
+  // (item-type-required-slots.json: action_now/conversion_trigger/driving_parties/signal_event/
+  // corridor_identity, the MARKET-SIGNAL shape) has NO SLOT_TRIGGERS entry above at all -- every one of
+  // those five slots was ALWAYS a templated GAP, regardless of what the captured text actually said, and
+  // criterion 5 (`missing_required_slot`) never noticed because a GAP claim satisfies it exactly as a FACT
+  // would. Example, read verbatim (Supabase, `agent_run_searches.result_content`, item
+  // 8670d8bf-9847-4da6-8724-0d52308b008e, CELEX 31999D0823, a Commission Decision confirming a Dutch
+  // packaging-waste derogation): 17,022 chars of real EUR-Lex text carrying "HAS ADOPTED THIS DECISION:
+  // Article 1 The measures notified by the Netherlands ... are hereby confirmed. Article 2 This Decision
+  // is addressed to the Kingdom of the Netherlands." -- none of it extractable under any existing slot,
+  // because "initiative" never attempts effective_date/jurisdictional_scope either (REGULATION_FAMILY_TYPES
+  // below excludes it) and the market-signal slots have no triggers to begin with.
+  //
+  // These three triggers are ADDITIVE, never required (see EU_ACT_SLOT_KEYS below, wired the same way
+  // binding_position/due_date are for the regulation family): they attach only when `sourceUrl` is an
+  // eur-lex.europa.eu host (`isEurlexHost`, below) -- independent of item_type, per this task's own
+  // framing ("EU acts on EUR-Lex") -- so a mis-bucketed item_type (the "initiative" mapping above) never
+  // starves an item of real extraction just because its required-slots list is the wrong shape for what
+  // the source text actually is. Confirmed against 8 additional real captures across CELEX letters D
+  // (sector 2 and 3), A (agreement/framework), H (recommendation/guidance), R (regulation) -- "HAS ADOPTED
+  // THIS DECISION:"/"...REGULATION:"/"...DIRECTIVE:"/"...RECOMMENDATION:" is one of the two universal EU
+  // enacting formulas (Supabase, `result_content like '%HAS ADOPTED THIS%'`, 8/8 real rows carried it
+  // verbatim). [CONFIRMED, second real-capture sample, 2026-09-04: 12 fresh title-only-hollow "initiative"
+  // rows pulled at random via Supabase] a Commission/Council Decision's enacting formula is "HAS DECIDED AS
+  // FOLLOWS:" EXACTLY as often as "HAS ADOPTED THIS DECISION:" in that sample -- 6 of 12 real captures used
+  // "HAS DECIDED AS FOLLOWS:" (e.g. CELEX 32004D0575, 22003D0015, 32014D0408(02)), which the first-pass
+  // trigger above did not match at all. This is not a rare variant; it is the other half of the population,
+  // and both formulas are matched below. The recommendation shape (31976H0495, "HEREBY RECOMMENDS TO THE
+  // MEMBER STATES:") does NOT use either formula and is deliberately not matched here -- a recommendation
+  // with no operative-provision match honestly falls to GAP, never a stretched pattern invented from one
+  // example.
+  operative_provision: [
+    /HAS ADOPTED THIS (?:DECISION|REGULATION|DIRECTIVE|RECOMMENDATION):(?:https?:\/\/\S+|[^.;\n]){0,250}/i,
+    /HAS DECIDED AS FOLLOWS:(?:https?:\/\/\S+|[^.;\n]){0,250}/i,
+  ],
+  // "This Decision is addressed to ..." -- confirmed verbatim in 31999D0823 ("Article 2 This Decision is
+  // addressed to the Kingdom of the Netherlands."). Regulations/directives bind all Member States by
+  // construction and rarely carry an explicit addressee article; a document with none honestly falls to GAP.
+  addressee: [
+    /This (?:Decision|Regulation|Directive|Recommendation) is addressed to(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+  ],
+  // The notified/confirmed national measure a Decision under (e.g.) Directive 94/62/EC Article 6(6)
+  // confirms -- confirmed verbatim in 31999D0823's own title AND body ("confirming the measures notified
+  // by the Netherlands ..."). Narrower and more specific than operative_provision (which already usually
+  // covers this same clause via Article 1) -- kept as its own slot per this task's own enumeration of five
+  // distinct extraction targets; overlap between the two claims' spans is expected and harmless (each is
+  // independently verbatim-checked).
+  confirmed_measure: [
+    /measures notified by(?:https?:\/\/\S+|[^.;\n]){0,150}/i,
+  ],
 });
 
 // PROSE GUARD (2026-09-02, population run #4). A trigger is a keyword, and a captured page is not only
@@ -210,6 +266,17 @@ const MIN_SPAN_WORDS = 4;
 const RUN_LIMIT = 4;
 const HTML_ENTITY = /&(?:#\d+|#x[0-9a-f]+|[a-z]+);?/i;
 const PUNCT_RUN = new RegExp(`([^\\p{L}\\p{N}\\s])\\1{${RUN_LIMIT - 1},}`, "u");
+// HTML-TAG FRAGMENT GUARD (Lane HOLLOW-GATE, 2026-09-04). The window-based triggers stop only at '.'/';'/
+// newline, never at '<' or '>' -- harmless when `capturedText` is already stripped (the deterministic $0
+// pipeline's own captures always are, per export-census-rows.mjs's `stripHtmlToText`), but SOME real rows
+// in `agent_run_searches` still carry raw, un-stripped HTML (older agent-driven captures; confirmed live,
+// e.g. `https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011L0015`'s enacting formula sits
+// inside `<p class="oj-normal">HAS ADOPTED THIS DIRECTIVE:</p>\n<div class="eli-subdivision">...`). Without
+// this guard, `operative_provision`'s new "HAS ADOPTED THIS ...:" trigger (below) would swallow that
+// markup into a "verbatim" span and embed raw tag soup in a customer-facing FACT. A real stripped-prose
+// span never contains a `<letter` or `</letter` run; this rejects any span that does, a strict superset of
+// (never a replacement for) the existing HTML-entity guard above.
+const HTML_TAG_FRAGMENT = /<\/?[a-zA-Z]/;
 
 // BARE-DOMAIN URL GUARD (lane URL-BOILER, 2026-09-04, population runs #17/#18, mint-run-020/021, rows
 // 429c85d2 and a980a0b9 — both "The [X] (Amendment) Regulations/Order 20XX", UK legislation.gov.uk).
@@ -259,6 +326,7 @@ export function isProseSpan(span) {
   const s = String(span ?? "");
   if (PUNCT_RUN.test(s)) return false;
   if (HTML_ENTITY.test(s)) return false; // an unescaped entity means the capture is markup, not the text
+  if (HTML_TAG_FRAGMENT.test(s)) return false; // a literal '<tag' run means the capture is raw HTML, not the text
   if (hasOnlyBareDomainUrls(s)) return false; // a bare-domain-only URL is a pointer, not a citation
 
   const words = s.match(/\p{L}{2,}/gu) || [];
@@ -605,6 +673,110 @@ export function extractCorridorFact({ capturedText, sourceUrl }) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// IN-FORCE STATUS (Lane HOLLOW-GATE, 2026-09-04). The EUR-Lex page's own "Legal status of the document"
+// indicator -- `<p class="forceIndicator"><span><img class="forceIndicatorBullet" src=".../green-on.png"
+// alt="Legal status of the document"/></span>In force</p>` -- confirmed verbatim (Supabase,
+// `agent_run_searches.result_content ilike '%forceIndicatorBullet%'`) in 684 rows, all 6 distinct
+// context-windows sampled reading `green-on.png` / "In force" (some "In force: This act has been changed.
+// Current consolidated version: ..."); zero rows anywhere in this corpus carry a red/off-state indicator.
+//
+// WHY THIS IS A NARROW, STRUCTURALLY-ANCHORED MATCH, NEVER A BARE SUBSTRING SCAN. A bare scan for "no
+// longer in force" is UNSAFE and was measured to misfire twice on the SAME real, currently-in-force
+// document (CELEX 32020R0893, `forceIndicator` itself reads "In force"): (1) the literal string "no longer
+// in force" also appears in that document's own recital body text, describing OTHER repealed regulations
+// ("Regulations (EEC) No 2913/92 and (EEC) No 2454/93 are no longer in force, but point (c) of Article 132
+// of Implementing Regulation (EU) 2015/2447 ...") -- a false positive from substantive prose, not chrome;
+// (2) EUR-Lex's own site-wide search/filter widget carries a "No longer in force" facet LABEL on every
+// legal-content page regardless of the current document's own status. Both are exactly the "verbatim says
+// nothing about whether the matched characters are a statement about THIS document" trap this file's PROSE
+// GUARD already names for other triggers. The only safe anchor is the indicator widget's OWN paragraph:
+// its `class="forceIndicator"` is never reused for anything else, and the status word immediately follows
+// the closing `</span>` before the next tag -- captured narrowly (`[^<]{1,200}`) so a multi-clause variant
+// ("In force: This act has been changed. <strong>Current consolidated version...") never pulls markup into
+// the span. A "Date of end of validity" metadata field was searched for too (10 rows contain the phrase
+// "end of validity" at all) but every one is substantive body prose using the phrase generically (a type-
+// approval's own validity period, a Canadian regulation's section heading) -- [CONFIRMED] no row in this
+// corpus carries it as a genuine per-document status field, so it is NOT implemented here (inventing an
+// unverified markup pattern for a field with zero observed real shape would be exactly the false-precision
+// mistake this repo's own doctrine forbids elsewhere).
+//
+// COVERAGE IS HONEST, NOT COMPLETE: this indicator markup survives ONLY in a raw (un-stripped) HTML
+// capture. The deterministic $0 pipeline's own captures (export-census-rows.mjs's `stripHtmlToText`,
+// Cellar DOC_1 XHTML, EUR-Lex's `/TXT/HTML/` clean-text endpoint) never carry it -- so this extractor fires
+// on the historical/agent-driven raw-HTML captures still present in `agent_run_searches` and on any future
+// browser-capture (MINT-RUNBOOK.md §11's escape hatch), and honestly falls to GAP on every other capture,
+// exactly the "no signal, no invented claim" posture this whole module already keeps.
+const IN_FORCE_INDICATOR_RE = /<p[^>]*class="[^"]*\bforceIndicator\b[^"]*"[^>]*>[\s\S]{0,300}?<\/span>\s*([^<]{1,200})/i;
+const NOT_IN_FORCE_RE = /^no longer in force\b/i;
+
+/** Find the EUR-Lex force-indicator's own status text, or null when the page carries no such markup (the
+ *  common case -- see this section's header). Returns `{ span, statusText, notInForce }`: `span` is the
+ *  matched region (verbatim-by-construction, checked below) used as the FACT's `source_span`; `statusText`
+ *  is the indicator's own trimmed words ("In force", "No longer in force", ...); `notInForce` is true only
+ *  when `statusText` starts with "no longer in force" (case-insensitive) -- never inferred from anything
+ *  else on the page. Pure. */
+export function findInForceStatusMatch(capturedText) {
+  const text = String(capturedText ?? "");
+  const m = text.match(IN_FORCE_INDICATOR_RE);
+  if (!m) return null;
+  const statusText = m[1].trim();
+  if (!statusText) return null;
+  return { span: m[0], statusText, notInForce: NOT_IN_FORCE_RE.test(statusText) };
+}
+
+/** in_force_status claim: a FACT carrying the indicator's own verbatim markup as `source_span` (so
+ *  criterion 3 can re-check it against the same captured text) plus the parsed `statusText`/`notInForce`,
+ *  or an honest GAP when the page carries no force-indicator markup at all (the common case today -- see
+ *  this section's header). */
+export function extractInForceStatusFact({ capturedText, sourceUrl }) {
+  const match = findInForceStatusMatch(capturedText);
+  if (match) {
+    assertVerbatim(capturedText, match.span);
+    return {
+      section_key: "record_facts",
+      claim_kind: "FACT",
+      claim_text:
+        `[in_force_status] The EUR-Lex page's own legal-status indicator states, verbatim: «${match.statusText}»`,
+      source_span: match.span,
+      source_url: sourceUrl ?? null,
+      slot_key: "in_force_status",
+      in_force_status: match.statusText,
+      not_in_force: match.notInForce,
+    };
+  }
+  return {
+    section_key: "record_facts",
+    claim_kind: "GAP",
+    claim_text:
+      "[in_force_status] No EUR-Lex legal-status indicator markup was located in the captured source " +
+      "text for this record-grade item (the deterministic capture pipeline's own clean-text/Cellar " +
+      "endpoints do not carry this widget). A full-brief regrounding will re-examine this gap when this " +
+      "item upgrades from record to brief.",
+    source_span: null,
+    source_url: null,
+    slot_key: "in_force_status",
+    in_force_status: null,
+    not_in_force: null,
+  };
+}
+
+/** True when `sourceUrl`'s host is eur-lex.europa.eu (or a subdomain of it) -- the gate for the EU-act
+ *  self-description additions below (operative_provision/addressee/confirmed_measure/in_force_status),
+ *  independent of item_type per this lane's own framing ("EU acts on EUR-Lex"): item_type is frequently
+ *  the WRONG shape to gate on here (CELEX 'D'-letter decisions map to item_type "initiative", whose
+ *  required-slots list is the market-signal shape -- see the operative_provision trigger's own header) so
+ *  gating on the source itself, not the (possibly mis-bucketed) item_type, is what actually reaches the
+ *  551-item hollow population. Pure. */
+export function isEurlexHost(sourceUrl) {
+  try {
+    const host = new URL(String(sourceUrl ?? "")).hostname.toLowerCase();
+    return host === "eur-lex.europa.eu" || host.endsWith(".eur-lex.europa.eu");
+  } catch {
+    return false;
+  }
+}
+
 /** Route a required-slot key to its specialised extractor when one exists, else the generic
  *  SLOT_TRIGGERS path (extractSlotFact). Keeps buildRecordFacts' loop uniform regardless of which slots
  *  a given item_type's required-slots list names. */
@@ -612,6 +784,7 @@ function buildRecordSlotClaim(slotKey, { capturedText, sourceUrl }) {
   if (slotKey === "binding_position") return extractBindingPositionFact({ capturedText, sourceUrl });
   if (slotKey === "due_date") return extractDueDateFact({ capturedText, sourceUrl });
   if (slotKey === "corridor_identity") return extractCorridorFact({ capturedText, sourceUrl });
+  if (slotKey === "in_force_status") return extractInForceStatusFact({ capturedText, sourceUrl });
   return extractSlotFact({ slotKey, capturedText, sourceUrl });
 }
 
@@ -622,6 +795,19 @@ const REGULATION_FAMILY_TYPES = new Set([
   "regulation", "directive", "standard", "guidance", "framework",
 ]);
 const MARKET_FAMILY_TYPES = new Set(["market_signal", "initiative"]);
+
+// EU-act self-description slots (Lane HOLLOW-GATE, 2026-09-04) -- gated on `isEurlexHost(sourceUrl)`,
+// never on item_type (see isEurlexHost's own header for why). Applied to EVERY EUR-Lex-sourced item
+// regardless of family membership above: the source states what it states about itself independent of
+// which item_type bucket a CELEX letter happened to map to. `effective_date` is included here (not only
+// via REGULATION_FAMILY_TYPES below) because the 12-real-capture sample above [CONFIRMED, 2026-09-04] found
+// "This Decision shall enter into force on/the day/the twentieth day following..." in 4 of 12 real
+// title-only-hollow "initiative" (decision) captures -- an entry-into-force date this task's own build
+// requirement 2 explicitly names, that `effective_date`'s pre-existing SLOT_TRIGGERS already matches
+// verbatim, but that "initiative"'s required-slots list never attempts (only the five regulation-family
+// item_types have effective_date as a required slot). Guarded the same way as the other three: never
+// duplicated when a regulation-family EU-act item already has it required.
+const EU_ACT_SLOT_KEYS = Object.freeze(["operative_provision", "addressee", "confirmed_measure", "in_force_status", "effective_date"]);
 
 /**
  * Build every claim a record-grade payload needs: the identity FACT (when locatable), one claim per
@@ -662,6 +848,13 @@ export function buildRecordFacts({ title, sourceUrl, capturedText, requiredSlots
     }
   }
 
+  // EU-act self-description (Lane HOLLOW-GATE, 2026-09-04) -- item_type-independent, see EU_ACT_SLOT_KEYS.
+  if (isEurlexHost(sourceUrl)) {
+    for (const slotKey of EU_ACT_SLOT_KEYS) {
+      if (!requiredSlots.includes(slotKey)) claims.push(buildRecordSlotClaim(slotKey, { capturedText, sourceUrl }));
+    }
+  }
+
   return claims;
 }
 
@@ -695,7 +888,12 @@ export function buildRecordFullBrief({ sourceUrl, claims }) {
  *   ) gets item.binding_position + item.due_date/date_precision; the market
  *   family (market_signal/initiative) gets item.corridor_identity; research_finding gets
  *   item.research_credibility — every one of these lands on `item` as FACT-derived data or an honest
- *   null (GAP), never invented. An item_type outside every family gets null for all five.
+ *   null (GAP), never invented. An item_type outside every family gets null for all five. Separately (Lane
+ *   HOLLOW-GATE, 2026-09-04), when `sourceUrl` is an eur-lex.europa.eu host, five EU-act self-description
+ *   claims (operative_provision, addressee, confirmed_measure, in_force_status, effective_date — see
+ *   EU_ACT_SLOT_KEYS) are always attempted regardless of itemType (never duplicated when a claim of that
+ *   slot key is already required) and appear only as `claims[]`/`full_brief` content — they have no
+ *   dedicated `item.*` column and are never lifted onto `item`, unlike the five fields above.
  * @param {string} input.title
  * @param {string} [input.instrumentIdentifier]
  * @param {string} [input.canonicalInstrumentKey]

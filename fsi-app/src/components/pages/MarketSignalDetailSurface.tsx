@@ -58,6 +58,12 @@ import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadge } from "@/components/shell/RelevanceBadge";
+import { RecordGradeBadge } from "@/components/shell/RecordGradeBadge";
+import {
+  parseRecordSections,
+  splitKeyDateFacts,
+  type RecordFactRow,
+} from "@/lib/agent/parse-record-sections";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import type { Resource, ItemConnection, Supersession } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
@@ -447,6 +453,7 @@ export function MarketSignalDetailSurface({
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <SeverityChip severity={severity} />
                 <PromotionChip state={promotion} />
+                <RecordGradeBadge itemGrade={r.itemGrade} />
                 <span
                   style={{
                     fontSize: 10,
@@ -538,7 +545,21 @@ export function MarketSignalDetailSurface({
         `}</style>
 
         <main style={{ minWidth: 0 }}>
-          {tab === "moving" && (
+          {tab === "moving" && r.itemGrade === "record" && (
+            // RECORD-GRADE (RECORD-SURFACE lane, 2026-09-04): a record-grade market_signal/initiative
+            // item's `sections` carry section_key "identity"/"record_facts"/"sources_and_citations"
+            // (record-facts.mjs), never the numbered "1".."6" keys `sectionMap` above indexes — so
+            // `sectionMap["1"]` is always undefined for a record item and this tab would otherwise
+            // always fall to the brief-grade "Movement analysis pending" frame even though the item DOES
+            // carry extracted facts (action_now/conversion_trigger/driving_parties/signal_event/
+            // corridor_identity, item-type-required-slots.json). See parse-record-sections.ts's own
+            // header for why a record item's sections are unreachable from the brief-grade heading
+            // parser. No live market_signal/initiative item routes to /market today (all 1,273 live
+            // record-grade rows carry domain=1 -> /regulations, RECORD-SURFACE lane report) — this is
+            // forward cover for when domain classification sends one here.
+            <RecordFactsCard sections={sections} tags={r.tags} />
+          )}
+          {tab === "moving" && r.itemGrade !== "record" && (
             <SectionCard title="What's moving and what triggered it">
               {sectionMap["1"] ? (
                 <GfmSection markdown={sectionMap["1"]} />
@@ -1191,9 +1212,16 @@ function SectionCard({
           justifyContent: "space-between",
           alignItems: "baseline",
           gap: 12,
+          flexWrap: "wrap",
         }}
       >
         <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase", color: C.ink }}>{title}</span>
+        {/* RECORD-SURFACE lane, 2026-09-04: dropped the fixed nowrap-only header row's implicit
+            "rightMeta always fits on one line" assumption — the record-grade honesty line ("N of M
+            record fields not stated by the source") is longer than every prior rightMeta usage in this
+            file and clipped past the viewport at 375px (caught by detail-surfaces-smoke.mjs's
+            record-grade fixture). flexWrap above lets a long rightMeta drop to its own line instead of
+            overflowing; the span itself stays nowrap so it doesn't break mid-word once wrapped. */}
         {rightMeta && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.muted, whiteSpace: "nowrap" }}>{rightMeta}</span>}
       </div>
       <div style={noPad ? undefined : { padding: "16px 20px" }}>{children}</div>
@@ -1226,6 +1254,91 @@ function PendingFrame({ header, children }: { header: string; children: React.Re
       <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: "0.11em", textTransform: "uppercase", color: C.brass, display: "block", margin: "0 0 4px" }}>{header}</span>
       <p style={{ fontSize: 12, lineHeight: 1.6, color: C.ink2, margin: 0 }}>{children}</p>
     </div>
+  );
+}
+
+// ── RECORD-GRADE facts card (RECORD-SURFACE lane, 2026-09-04) ───────────
+// Same parser + rendering shape as RegulationDetailSurface.tsx's RecordGradeSummary (see that file's
+// own header for the full rationale); Connected items are already rendered unconditionally below every
+// tab on this page (<ItemConnectionsCard> at this file's own "every tab" block) so this card does not
+// duplicate them — only the facts/dates/tags a record-grade item's `sections` actually carry, which
+// nothing on this page could reach before this lane (sectionMap only recognises numbered "1".."6" keys).
+function RecordFactLine({ fact }: { fact: RecordFactRow }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.muted, marginBottom: 3 }}>
+        {fact.label}
+      </div>
+      {fact.span ? (
+        <p style={{ fontSize: 13, lineHeight: 1.6, margin: 0, color: C.ink, borderLeft: `2px solid ${C.hairStrong}`, paddingLeft: 10, overflowWrap: "anywhere" }}>
+          “{fact.span}”
+        </p>
+      ) : (
+        <p style={{ fontSize: 13, lineHeight: 1.6, margin: 0, color: C.ink2, overflowWrap: "anywhere" }}>{fact.text}</p>
+      )}
+    </div>
+  );
+}
+
+function RecordFactsCard({ sections, tags }: { sections: IntelligenceItemSectionRow[]; tags: string[] }) {
+  const parsed = useMemo(() => parseRecordSections(sections), [sections]);
+  const { dateFacts, otherFacts } = useMemo(
+    () => (parsed ? splitKeyDateFacts(parsed.facts) : { dateFacts: [] as RecordFactRow[], otherFacts: [] as RecordFactRow[] }),
+    [parsed]
+  );
+
+  return (
+    <>
+      <div style={{ background: C.card, border: `1px solid ${C.hair}`, borderRadius: 8, borderLeft: `3px solid ${C.brass}`, padding: "16px 20px", marginBottom: 14 }}>
+        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.13em", textTransform: "uppercase", color: C.brass }}>
+          Catalogue record
+        </span>
+        <p style={{ fontSize: 13.5, lineHeight: 1.7, margin: "8px 0 0", maxWidth: "86ch", color: C.ink2 }}>
+          This item was captured directly from its source document rather than synthesized into a signal
+          brief. Every fact below is quoted verbatim from that source — a full brief is a separate, later
+          upgrade for this item.
+        </p>
+      </div>
+
+      {dateFacts.length > 0 && (
+        <SectionCard title="Key dates">
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {dateFacts.map((f) => <RecordFactLine key={f.slotKey} fact={f} />)}
+          </div>
+        </SectionCard>
+      )}
+
+      <SectionCard
+        title="Verbatim facts"
+        rightMeta={parsed && parsed.slotFieldCount > 0 ? `${parsed.gaps.length} of ${parsed.slotFieldCount} record fields not stated by the source` : undefined}
+      >
+        {otherFacts.length > 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {otherFacts.map((f) => <RecordFactLine key={f.slotKey} fact={f} />)}
+          </div>
+        ) : (
+          <PendingFrame header="No verbatim facts located yet">
+            {parsed
+              ? "The captured source did not state any of this item's required record fields in a form this extractor could quote verbatim."
+              : "No extracted-facts sections are on file for this catalogue record yet."}
+          </PendingFrame>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Tags">
+        {tags && tags.length > 0 ? (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {tags.map((t) => (
+              <span key={t} style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: C.plate, border: `1px solid ${C.hairSoft}`, color: C.ink2 }}>
+                {t}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p style={{ fontSize: 12, lineHeight: 1.6, color: C.muted, margin: 0, fontStyle: "italic" }}>No tags on file for this item yet.</p>
+        )}
+      </SectionCard>
+    </>
   );
 }
 

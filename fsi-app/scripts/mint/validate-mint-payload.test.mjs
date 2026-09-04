@@ -653,6 +653,107 @@ test("grade='record': C1-C7 still apply in full (grade is additive, never a bypa
   assert.ok(r.failures.some((f) => f.criterion === 1 && f.reason === "source_not_active"), "criterion 1 must still fire on a record-grade payload");
 });
 
+// ── Lane HOLLOW-GATE (2026-09-04): the hollow-record refusal ────────────────────────────────────────
+// Live count [CONFIRMED via Supabase, 2026-09-04]: 1,230 record-grade items live/verified; 551 carry ONLY
+// the [title] FACT (every other slot a GAP -- criterion 5 was always satisfied, since a GAP claim covers a
+// required slot exactly as well as a FACT does); 115 carry exactly one substantive fact beyond the title.
+// Example, traced: item 8670d8bf-9847-4da6-8724-0d52308b008e (CELEX 31999D0823) -- 17,022 chars of real
+// EUR-Lex text, zero substantive facts extracted, shipped to the customer site with an effectively empty
+// Summary. `hollowPayload` below is the SAME shape that item's real payload had before this lane: one
+// title FACT, four GAP claims covering the (market-signal-shaped) required slots.
+
+function hollowPayload({ requiredSlotKeys = ["action_now", "conversion_trigger", "driving_parties", "signal_event", "corridor_identity"] } = {}) {
+  const p = basePayload();
+  p.item.item_type = "initiative"; // the actual mis-bucketed item_type driving 390/551 of the live population
+  p.item.title = "Example Directive";
+  p.search_results[0].result_content = "Example Directive. " + p.search_results[0].result_content;
+  p.search_results[0].fetched_length = p.search_results[0].result_content.length;
+  p.item.full_brief =
+    "*Catalogue record: extracted facts only, full brief pending.*\n\n## Verbatim facts\n\n" +
+    "- [title] The captured source's own text carries this item's title verbatim: «Example Directive»";
+  p.claims = [
+    { section_key: "body", claim_kind: "FACT", claim_text: "[title] The captured source's own text carries this item's title verbatim: «Example Directive»", source_span: "Example Directive", source_url: "https://example.gov/reg", slot_key: "title" },
+    ...requiredSlotKeys.map((slotKey) => ({
+      section_key: "body",
+      claim_kind: "GAP",
+      claim_text: `[${slotKey}] No verbatim ${slotKey.replace(/_/g, " ")} statement was located in the captured source text for this record-grade item.`,
+      source_span: null,
+      source_url: null,
+      slot_key: slotKey,
+    })),
+  ];
+  return p;
+}
+
+test("grade='record' series-backed exemption: a market_signal payload whose instrument_identifier is a registered implemented series key is NOT record_hollow (its substance is the market_series rows); an unregistered key still is", () => {
+  const p = hollowPayload();
+  p.item.grade = "record";
+  p.screen = VALID_SCREEN;
+  p.item.item_type = "market_signal";
+  p.item.instrument_identifier = "eu-oil-bulletin:eurosuper-95";
+  const r = validateMintPayload(p);
+  assert.equal(r.failures.some((x) => x.reason === "record_hollow"), false, JSON.stringify(r.failures));
+  const q = hollowPayload();
+  q.item.grade = "record";
+  q.screen = VALID_SCREEN;
+  q.item.item_type = "market_signal";
+  q.item.instrument_identifier = "made-up-producer:series";
+  const r2 = validateMintPayload(q);
+  assert.ok(r2.failures.some((x) => x.criterion === 5 && x.reason === "record_hollow"), JSON.stringify(r2.failures));
+});
+
+test("grade='record' RED: only the [title] FACT, every other slot a GAP -> record_hollow (criterion 5), independent of criterion 5's own missing_required_slot check", () => {
+  const p = hollowPayload();
+  p.item.grade = "record";
+  p.screen = VALID_SCREEN;
+  const r = validateMintPayload(p);
+  const f = r.failures.find((x) => x.criterion === 5 && x.reason === "record_hollow");
+  assert.ok(f, `expected criterion 5 record_hollow: ${JSON.stringify(r.failures, null, 2)}`);
+  assert.equal(f.fact_count, 1, "only the title FACT counted toward fact_count");
+  assert.equal(r.valid, false);
+  // criterion 5's own pre-existing check must NOT also fire -- every GAP claim genuinely covers its slot;
+  // record_hollow is a strictly additive, different question (see this block's own header).
+  assert.ok(!r.failures.some((x) => x.reason === "missing_required_slot"), "the GAP claims already satisfy missing_required_slot; record_hollow is additive, not a duplicate");
+});
+
+test("grade='record' RED: zero FACT claims at all (not even a title) -> record_hollow, same as title-only (201 of the live 551 carry no title FACT either)", () => {
+  const p = hollowPayload();
+  p.item.grade = "record";
+  p.screen = VALID_SCREEN;
+  p.claims = p.claims.filter((c) => c.slot_key !== "title"); // no identity FACT located at all
+  p.item.full_brief = "*Catalogue record: extracted facts only, full brief pending.*";
+  const r = validateMintPayload(p);
+  const f = r.failures.find((x) => x.criterion === 5 && x.reason === "record_hollow");
+  assert.ok(f);
+  assert.equal(f.fact_count, 0);
+});
+
+test("grade='record' GREEN: title FACT plus exactly one substantive FACT clears record_hollow (the 115-of-1,230 shape stays valid -- this check is coarser than 'every slot filled')", () => {
+  const p = hollowPayload({ requiredSlotKeys: ["conversion_trigger", "driving_parties", "signal_event"] });
+  p.item.grade = "record";
+  p.screen = VALID_SCREEN;
+  p.claims.push({
+    section_key: "body",
+    claim_kind: "FACT",
+    // "enters into force on 1 January 2026" is a literal substring of basePayload()'s own
+    // search_results[0].result_content, so this clears criterion 3's span check too.
+    claim_text: "[action_now] The captured source states, verbatim: «enters into force on 1 January 2026»",
+    source_span: "enters into force on 1 January 2026",
+    source_url: "https://example.gov/reg",
+    slot_key: "action_now",
+  });
+  p.item.full_brief += "\n- [action_now] The captured source states, verbatim: «enters into force on 1 January 2026»";
+  const r = validateMintPayload(p);
+  assert.ok(!r.failures.some((x) => x.reason === "record_hollow"), JSON.stringify(r.failures, null, 2));
+});
+
+test("grade='record': record_hollow never fires for grade='brief'/absent -- grade-gated exactly like the other RECORD-PURITY checks", () => {
+  const p = hollowPayload();
+  // Deliberately NOT setting p.item.grade (defaults to "brief").
+  const r = validateMintPayload(p);
+  assert.ok(!r.failures.some((x) => x.reason === "record_hollow"), "record_hollow must never fire outside grade='record'");
+});
+
 // ── Lane WSEQ (2026-09-02): the screen-verdict kit check ─────────────────────────────────────────────
 // Three population-turn apply runs minted ~half off-vertical record-grade items from an unscreened pool
 // (MINT-RUNBOOK.md's "relevance screen is part of the export"); this check makes payload.screen a

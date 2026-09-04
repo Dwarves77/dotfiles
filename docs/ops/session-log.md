@@ -9223,3 +9223,90 @@ Landing order for the runs, all dispatch-only: population-turn under the new gat
 population apply (the R-D rows first, six items, the smallest proof of the chain), then
 `record-hollow-sweep` dry → apply once HOLLOW-GATE lands so the re-mint carries facts, then
 `apply-classifications` dry → apply, then source-sweep `sitemap` dry on the two named hosts.
+
+### Addendum 85, postscript 26 — the hollow-record cause found and gated, the heal's real blocker, the item page, the auth round trip (2026-09-04)
+
+Train/wave15 landed as #562 (`42b3bc0b`). This train carries the last four lanes of the approved plan.
+
+HOLLOW-GATE (Sonnet, `9ecba401`, 208 tests) [CONFIRMED live]: of the 551 title-only records, 375 are
+`initiative` (CELEX sector-2/3 'D' decisions), which route to the market-signal required-slot shape
+(`action_now`, `conversion_trigger`, `driving_parties`, `signal_event`, `corridor_identity`) for which
+`record-facts.mjs` had no triggers at all, so every slot was a templated GAP whatever the source said,
+and criterion 5 accepted the GAPs as "slot present". Item `8670d8bf` had 17,022 characters of EUR-Lex
+text and zero facts. Now: the kit refuses a record payload whose only FACT is `[title]`
+(`record_hollow`, kit version `vmp-2026-09-04.1`); five EU-act self-description facts are attempted on
+every eurlex-hosted capture regardless of item_type (`operative_provision` from both enacting
+formulas, "HAS ADOPTED THIS …" and "HAS DECIDED AS FOLLOWS", the second found only by a second random
+sample; `addressee`; `confirmed_measure`; `in_force_status` from the `forceIndicator` widget, never a
+bare substring; `effective_date`); a raw-HTML capture can no longer put tag soup in a span; and the
+export screen holds a capture whose widget says the act is no longer in force (`not_in_force`, zero
+live rows today). Measured on 12 fresh random hollow captures: 11/12 gain a substantive fact, 18 facts
+in all. Named residual, evidenced (CELEX 32012D0706(01)): the URL-BOILER guard rejects a genuine
+operative provision that happens to mention a bare domain; the word-count fix re-breaks the two UK-SI
+rows the guard exists for. Two adjacent defects reported: Cellar garbled metadata on some agreement-type
+CELEX captures, and `jurisdictional_scope` truncating at a numbered-list period. Lane BOILER-2 takes all
+three next.
+
+HEAL-6 (Sonnet, `26183439`, 188 tests) [CONFIRMED live and from the code]: criterion 7 stuck because
+`planGateA` never passed `derivedCovered` to `buildGateARow`, unlike `canonical-pipeline.ts`, so every
+heal apply rewrote Gate A without the Gate-B coverage the mint had established; 16 orphan tokens across
+5 items clear under the fix. The other 386 of 824 unprovable orphans are criterion 3 working as
+designed: no floor-qualifying source exists for them (167 no source row, 179 above floor). Criterion 4
+stuck because RECLASSIFY and RETROFIT searched only the claim's own section while the validator is
+item-wide; item-wide search with a substantive-paragraph guard finds a home for 100 of the 148
+failing claims (3 of the 4 criterion-4-only items clear fully). The lane could not touch
+`scripts/maintenance/provenance-heal.mjs`, whose `readClaims` did not project `basis_claim_id`, so its
+Gate-B fix was dormant; I added the column in this train. Neither the scanner nor the SQL function
+changed. So the honest ceiling: the heal can move perhaps a dozen of the 94; the rest carry figures no
+source at or above the floor states, and the ruling on those (rebuild the brief from grounded facts at
+record grade, or leave quarantined) is the operator's, with the counts above.
+
+RECORD-SURFACE (Sonnet, `2bb2341c`) [CONFIRMED read in full]: two stacking defects emptied the Summary
+tab, `extractOperationalBriefing` matching only brief-grade headings and `RegulationSections.KNOWN_KEYS`
+never matching `identity`/`record_facts`/`sources_and_citations`; Research and Market had the same
+class. New pure parser `parse-record-sections.ts` reads the FACT/GAP claim lines the kit mints;
+Regulations renders a record summary (verbatim facts with humanized labels, key dates, an honest
+"N of M fields not stated" count, tags, upcoming obligations from the page's existing prop, and the
+real `item_cross_references` through the shared `ItemConnectionsCard`, 4,393 live edges touch a record
+item); Market and Research get the badge and a facts card. All 1,273 live record items route to
+/regulations today. UX compliance: no new interactive controls, so no Fitts's-law surface; honest empty
+states throughout per DP-2; the rendering guard at 375×812 caught two real regressions the lane
+introduced (badge text overflowing the header row on all three surfaces, Market's `SectionCard` header
+row lacking `flexWrap`) and both are fixed and re-verified: 337 fixture + 51 SM + 154 UX checks, 0
+failures, F35 PASS. The lane bridged the container's chromium-1194 to Playwright's pinned 1234 by
+symlink rather than skipping the guard.
+
+PERF-6 (Sonnet, `8665d93b`, 18 tests): `resolveOrgIdFromCookies` (15 callers) and `requireAuth` (47
+callers) both boxed callers off the `User` object already, so `getClaims()` replaces `getUser()` with
+no fallback needed (auth-js 2.112.3 read: token form, JWKS verify, symmetric-secret fallback a wash);
+`resolveOrgIdFromCookies` also wrapped in React `cache()` after finding `runViewerScoped()` resolves
+the org twice per detail render. Two more of the same class reported, not fixed (write set):
+`server-bootstrap.ts` and `community-auth.ts` (double `getUser()`). Lane PERF-7 takes both.
+
+Train gates: 324 lane tests, tsc 0 errors, fitness 29/0 after re-pinning the mint marker to the
+combined tree's hash `sha256:aa69a655c0264d6a` (TANDEM's runbook text and HOLLOW-GATE's kit on one
+tree; each lane's own hash is history in the marker), discipline 141/0.
+
+### Addendum 85, postscript 27 — the gate's first CI run, and the last Auth round trips (2026-09-04)
+
+PR #563's discipline suite failed three tests my train gates had not run (the lanes ran only the
+tests next to what they touched; the CI suite runs every consumer of the kit, and B1 says read the
+consumer): the six oil-bulletin `market_signal` payloads, on both the R-D batch builder and the
+`--propose-items` draft, and the research record builder's all-GAP case now failed `record_hollow`.
+Two different answers, both doctrine, not accommodation. A series-backed market item's substance is its
+`market_series` rows, bound to the item by `ratify-series-items`, not FACT claims scraped from the
+bulletin's landing page, so the kit exempts a `market_signal` payload whose `instrument_identifier` is
+a registered implemented series key (`series-registry.mjs`; an unregistered key is still refused,
+tested), and `propose-series-items.mjs` now sets that identifier like the batch builder does, one
+identity on both paths. An all-GAP research record is exactly the item with no details the operator
+refused, so that test now asserts the refusal; the builder's honest GAPs are unchanged, the kit holds
+the row for re-extraction. Full suite 4,642/0, fitness 29/0, mint marker re-pinned to
+`sha256:f50d5fd4ee2f925f`.
+
+PERF-7 (Sonnet, `730ba69a`, 17 tests): `server-bootstrap.ts` and `community-auth.ts` on `getClaims()`;
+the bootstrap's `user` narrowed to `{id, email}` (all eight callers read only those; `claims.email` is
+on the standard JWT), the two community branches (cookie, bearer) share one resolver, no `cache()` on
+Route Handlers because there is no render dispatcher to memoize under (verified against the installed
+react-server build). The one file it could not touch, `community/profile/verify/route.ts`, still made
+its own `getUser()` for the email; swapped in this train per its §13.5 diff. Round trips on an
+authenticated document load: 1 → 0 [INFERRED]; measured in the browser after this deploys.

@@ -575,6 +575,70 @@ unchanged by this pass. Four changes:
 New `counts`/summary fields: `stopped_at_budget` (bool, present only on a budget-stopped run),
 `items_processed`, `items_remaining` (same run); no change to any existing counter's meaning.
 
+**[CONFIRMED, coordinator-reported] Run 33829526120, Maintenance #21 (HEAL_VERSION `hp5-2026-09-04.2`,
+master `1356b381`, `provenance-heal apply`, `quarantined-live`, 11m56s, exit 0)**: 94 candidates, **0
+`healed_verified`**, 94 `still_failing`, 88 `gate_a_written` with `orphan_count > 0`. Final failures by
+criterion: (7, `gate_a_unproven_or_stale`) 88 items; (4, `analysis_missing_label_syntax`) 38 items; (3,
+`fact_below_authority_floor`) 2; (2, `ungrounded_url`) 1; (6, `missing_full_brief`) 1; (5,
+`missing_required_slot`) 1.
+
+**Seventh pass (lane HEAL-6, 2026-09-04, `HEAL_VERSION` now `hp6-2026-09-04.1`)** diagnoses and fixes the
+two largest of the six residual criteria above — see `scripts/mint/heal-provenance.mjs`'s own SEVENTH PASS
+header for the full diagnosis, exact live SQL quoted, and measured counts. Neither
+`validate_item_provenance` nor the scanner (`gate-a-scan.mjs`/`gate-a-match.mjs`) needed to change; both
+bugs are entirely in `heal-provenance.mjs`'s own call sites — no new migration, no scanner edit, no
+`PENDING-RUN.md` re-pin.
+
+1. **Criterion 7 (88 items) — Gate B was never wired.** The live scanner has two coverage arms: LITERAL
+   (a token verbatim in the FACT-claim corpus) and DERIVED/"Gate B" (a token covered by a valid,
+   basis-grounded, non-stale `claim_kind='DERIVED'` claim — `gate-a-derived.mjs`'s own
+   `derivedCoveredTokens`). `planGateA` never passed `derivedCovered` to `buildGateARow`, defaulting to an
+   empty Set — every HEAL apply run's own Gate-A rewrite silently stripped legitimate Gate-B coverage the
+   mint-time pipeline had already established. Measured live (read-only SQL, 2026-09-04): 16 real orphan
+   tokens across 5 items (`ff4064ab-…`, `15f63ea9-…`, `3af75490-…`, `5b2c6655-…`, `bced4406-…`) would clear
+   under this fix, `ff4064ab-…` alone going from 9 orphans to 1. **Fix**: `computeDerivedCovered(claims,
+   captures)` (new, pure) mirrors `derivedCoveredTokens`'s own query shape entirely in memory, over data
+   this file already holds — no new `deps` call. `planGateA(item, claims, derivedCovered = new Set())` now
+   threads it through at all three call sites, each recomputed FRESH from the claims/captures in scope at
+   that point (matching `canonical-pipeline.ts`'s own "recompute right before the write" discipline).
+   **REFUSED, dormant in production**: `computeDerivedCovered` reads `d.basis_claim_id` off each DERIVED
+   claim — `scripts/maintenance/provenance-heal.mjs`'s own `readClaims` SELECT (`id, claim_kind, claim_text,
+   source_span, source_id, search_result_id, section_row_id`) does not project `basis_claim_id`, so every
+   live DERIVED claim reads it as `undefined` and the computed Set stays empty in production until that
+   column is added to the SELECT — a one-line change outside lane HEAL-6's write set
+   (`scripts/maintenance/**`). The fix is written, tested (fixtures supply `basis_claim_id` directly, as a
+   pure-function test constructs its own claim objects), and correct; it activates the moment that column is
+   added, with no further code change.
+2. **Criterion 4 (38 items / 148 claims) — RECLASSIFY/RETROFIT scoped narrower than the validator.**
+   Criterion 4's own SQL checks, for every ANALYSIS claim, whether SOME paragraph in **any** of the item's
+   sections (never scoped to one) both matches a label regex and `ILIKE`-contains `claim_text` verbatim.
+   STEP E (RECLASSIFY, FOURTH PASS) and RETROFIT both scoped their own paragraph search to the claim's OWN
+   `section_row_id`. Measured live (read-only SQL + this file's own code, 2026-09-04, all 148
+   currently-failing ANALYSIS claims across the 38 affected items): 0/148 findable in the claim's own
+   section; widening to every section of the item, guarded against heading/label-only false-accepts
+   (`isSubstantiveParagraph`: ≥ `MIN_SUBSTANTIVE_TOKENS`=6 scoreable tokens AND a sentence-ending mark),
+   finds a home for **100/148 (68%)**; 3 of the 4 items failing criterion 4 alone (`007f42b1-…`,
+   `45f85547-…`, `87ed781c-…`) would have EVERY failing claim resolved, flipping fully to `verified` on the
+   next apply run. **Fix**: `findOwningParagraphAcrossSections`/`planOwningParagraphRewriteAcrossSections`
+   (new, pure) run the same Jaccard-overlap/sentence-pick/marker-strip pipeline across every section, tried
+   ONLY after the existing own-section search refuses. A claim whose winning paragraph lives in a different
+   section than its current `section_row_id` gets that column rewritten too (never `claim_kind`, for
+   RETROFIT — its "patches `claim_text` only" contract, already asserted by an existing test, is preserved).
+   A claim found nowhere — own section or any other — is refused exactly as before, reporting the better of
+   the two searches' own best score.
+3. **Not touched, per diagnosis**: STEP C's own inability to ground 386 of criterion 7's 824 measured
+   orphan tokens (found in some non-canonical capture, zero in the item's own canonical capture, and — of
+   those — zero qualifying for a floor-qualifying source: 167 have no `sources` registry row, 179 have one
+   above the item's authority floor) is criterion 3 (the authority floor) working as designed, not a defect
+   this lane's write set can or should close — grounding them would write a FACT claim whose source tier
+   violates the floor, which the "no claims ahead of evidence" rule and this file's own header both forbid.
+
+**Next dry-run dispatch** (verify both fixes against the live 94-item quarantine before an apply run):
+`provenance-heal`, `mode: dry`, `arg: "quarantined-live"` — expect `gate_a_written` orphan counts to drop
+for the 5 named items above, and `reclassify`/`retrofit` entries to show `cross_section: true` for a
+material share of the 38 criterion-4 items' claims. Follow with `mode: apply` on the same selection once
+the dry run confirms.
+
 ---
 
 ## 9. `reopen-validation-holds`

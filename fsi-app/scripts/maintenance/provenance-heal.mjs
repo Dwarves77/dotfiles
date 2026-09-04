@@ -120,7 +120,10 @@ if (IS_MAIN) {
 
         // ── per-item reads ───────────────────────────────────────────────────────────────────────
         readCaptures: (itemId) => readAll("agent_run_searches", "id, result_url, result_content", { match: (q) => q.eq("intelligence_item_id", itemId) }),
-        readClaims: (itemId) => readAll("section_claim_provenance", "id, claim_kind, claim_text, source_span, source_id, search_result_id, section_row_id", { match: (q) => q.eq("intelligence_item_id", itemId) }),
+        // basis_claim_id: HEAL-6's Gate-B coverage (`computeDerivedCovered` in heal-provenance.mjs) reads it
+        // off every DERIVED claim; without it in the projection the fix is dormant and every apply strips
+        // the derived coverage the mint pipeline established (heal #21: 88 of 94 items stuck on criterion 7).
+        readClaims: (itemId) => readAll("section_claim_provenance", "id, claim_kind, claim_text, source_span, source_id, search_result_id, section_row_id, basis_claim_id", { match: (q) => q.eq("intelligence_item_id", itemId) }),
         readSections: (itemId) => readAll("intelligence_item_sections", "id, item_id, section_key, section_order, content_md", { match: (q) => q.eq("item_id", itemId) }),
         readGateAState: async (itemId) => {
           const { data, error } = await rc.from("item_gate_a_state").select("intelligence_item_id").eq("intelligence_item_id", itemId).maybeSingle();
