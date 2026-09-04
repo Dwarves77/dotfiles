@@ -54,7 +54,28 @@ env:
 jobs:
   maintain:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # TIMEOUT ARITHMETIC (lane HEAL-BUDGET, 2026-09-04), raising 15 -> 30 minutes.
+    #   HEAL-4 (run #17, provenance-heal apply, quarantined-live, 95 items, NO Wayback archive fallback):
+    #   10m50s (650s) wall time / 95 items = 6.84s/item average, completed cleanly.
+    #   HEAL-5 (run #20, the FIRST apply run WITH the archive fallback + OJ resolution, same 95 items):
+    #   ran 15m20s (920s) and was CANCELLED by this job's own 15-min timeout — never finished. HEAL-5 adds,
+    #   per the SAME 60 capture_blocked/capture_thin cited urls the PRIOR (HEAL-4) run itself measured, up
+    #   to 2 more politeness-paced fetches each (Wayback availability + snapshot — see heal-provenance.mjs's
+    #   FIFTH PASS header) = up to 120 extra requests, plus up to 2 more per each of the 5
+    #   canonical_key_unresolved OJ-issue items (Cellar edition-letter retries) = up to 10 more -> ~130
+    #   extra requests, each paced at >=1s by the ONE shared politeFetch instance every fetch in this step
+    #   goes through (export-census-rows.mjs's makePoliteFetch, 1 req/s) -- >=130s of ADDED wall time from
+    #   pacing ALONE, before actual round-trip latency or PDF-snapshot extraction (CPU-bound pdfToText) is
+    #   counted. Run #20 had NOT finished at the 900s mark (it was killed, not completed), so its true
+    #   HEAL-5 completion time for all 95 items is UNKNOWN but demonstrably > 920s.
+    #   NEW BUDGET: 30 minutes (1800s) gives ~2x headroom over the already-insufficient 920s this job
+    #   actually observed, plus room for Install/Population-BEFORE/Population-AFTER (~1-2 min combined,
+    #   independent of any one step's own work) and GitHub's own cancellation/upload grace period. This
+    #   timeout is a BACKSTOP, not the real control: HEAL_TIME_BUDGET_SECONDS below (provenance-heal's own
+    #   step env) is what actually bounds a heal run's OWN work, at 1500s (25 min) — 5 minutes of margin
+    #   under this 30-minute job timeout for everything else the job does, so a heal run that respects its
+    #   own budget always finishes (and checkpoints) well before this timeout could ever fire.
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: fsi-app
@@ -219,6 +240,12 @@ jobs:
         # header and docs/runbooks/MAINTENANCE-RUNBOOK.md for the other three selections (archived-unreasoned,
         # ids:<uuid,...>, slots-backfill).
         if: env.RUN_STEP == 'provenance-heal' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        env:
+          # HEAL-BUDGET (2026-09-04): 1500s (25 min) — this job's own 30-min timeout minus ~5 minutes of
+          # margin for Install/Population-BEFORE/Population-AFTER/upload and GitHub's cancellation grace
+          # period (see this job's timeout-minutes comment for the full arithmetic). provenance-heal.mjs's
+          # main() checks this before starting EACH item and stops cleanly, checkpointed, well inside it.
+          HEAL_TIME_BUDGET_SECONDS: '1500'
         run: |
           mkdir -p "$OUT_ROOT/provenance-heal"
           node scripts/maintenance/provenance-heal.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/provenance-heal"

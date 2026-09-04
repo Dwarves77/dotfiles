@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { writeFileSync, mkdtempSync } from "node:fs";
+import { writeFileSync, mkdtempSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 import {
@@ -77,6 +77,9 @@ import {
   waybackAvailabilityUrl,
   parseWaybackAvailability,
   waybackSnapshotFetchUrl,
+  // sixth pass (HEAL-BUDGET, 2026-09-04)
+  writeCheckpoint,
+  buildSummaryObject,
 } from "./heal-provenance.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -769,6 +772,156 @@ test("main: bad --arg refuses before any read, exitCode 1", async () => {
   assert.equal(r.exitCode, 1);
   assert.match(r.note, /REFUSED/);
   assert.deepEqual(deps.calls, []);
+});
+
+// ── HEAL-BUDGET (sixth pass, 2026-09-04): time budget, checkpoint, resume, CAPTURE-CITED run cache ────
+
+test("writeCheckpoint: temp-file-then-rename — content matches, no leftover tmp file, no-op when outDir is falsy", () => {
+  assert.equal(writeCheckpoint(null, { a: 1 }), null);
+  assert.equal(writeCheckpoint(undefined, { a: 1 }), null);
+
+  const dir = mkdtempSync(resolve(tmpdir(), "heal-ckpt-"));
+  const f1 = writeCheckpoint(dir, { step: "provenance-heal", n: 1 });
+  assert.equal(f1, resolve(dir, "summary.json"));
+  assert.equal(JSON.parse(readFileSync(f1, "utf8")).n, 1);
+  assert.deepEqual(readdirSync(dir), ["summary.json"], "no leftover .tmp-* file after the first write");
+
+  const f2 = writeCheckpoint(dir, { step: "provenance-heal", n: 2 });
+  assert.equal(f2, f1);
+  assert.equal(JSON.parse(readFileSync(f2, "utf8")).n, 2, "second checkpoint replaced the first atomically");
+  assert.deepEqual(readdirSync(dir), ["summary.json"], "still exactly one file — the rename left nothing behind");
+});
+
+test("main: apply, out given — writes a checkpoint after EVERY item, not only at the end", async () => {
+  const items = [
+    { id: "ck-1", item_type: "regulation", full_brief: "", source_url: null },
+    { id: "ck-2", item_type: "regulation", full_brief: "", source_url: null },
+  ];
+  const dir = mkdtempSync(resolve(tmpdir(), "heal-ckpt-main-"));
+  const seen = [];
+  const deps = baseDeps({
+    readQuarantinedLive: async () => items,
+    // A cheap way to observe the checkpoint growing across the loop without instrumenting main() itself:
+    // read the file back inside a per-item hook that always runs (touchItem, called once per item late in
+    // its own five-step sequence, by which point THAT item's own checkpoint has not yet been written —
+    // this snapshot instead reads whatever the PREVIOUS item's checkpoint left, proving it exists mid-run).
+    touchItem: async (id) => {
+      try { seen.push(JSON.parse(readFileSync(resolve(dir, "summary.json"), "utf8")).per_item.length); }
+      catch { seen.push(-1); } // no checkpoint written yet before the first item's own writes
+      return { updated: 1 };
+    },
+  });
+  const r2 = await main({ mode: "apply", arg: "", out: dir }, deps);
+  assert.equal(r2.per_item.length, 2);
+  const final = JSON.parse(readFileSync(resolve(dir, "summary.json"), "utf8"));
+  assert.equal(final.per_item.length, 2, "the final on-disk checkpoint matches the returned summary");
+  assert.ok(seen.includes(0) || seen.includes(1), "an EARLIER item's checkpoint was already on disk before the run finished");
+});
+
+test("main: TIME BUDGET — stops cleanly BEFORE starting an over-budget item, never mid-item, exits 0", async () => {
+  const items = [
+    { id: "b-1", item_type: "regulation", full_brief: "", source_url: null },
+    { id: "b-2", item_type: "regulation", full_brief: "", source_url: null },
+    { id: "b-3", item_type: "regulation", full_brief: "", source_url: null },
+  ];
+  // now() is called once for startedAt, then once per budget check before each item this loop reaches.
+  // Sequence: startedAt=0; check before b-1: 0-0=0 (under budget, proceed); check before b-2:
+  // 20000-0=20000 (>= the 10s budget) -> stop before b-2 ever starts.
+  const clock = [0, 0, 20000];
+  let i = 0;
+  const deps = baseDeps({
+    readQuarantinedLive: async () => items,
+    now: () => clock[Math.min(i++, clock.length - 1)],
+    timeBudgetSeconds: 10,
+  });
+  const r = await main({ mode: "apply", arg: "" }, deps);
+  assert.equal(r.exitCode, 0, "a budget stop is an orderly completion, never a failure exit code");
+  assert.equal(r.stopped_at_budget, true);
+  assert.equal(r.items_processed, 1);
+  assert.deepEqual(r.items_remaining, ["b-2", "b-3"]);
+  assert.equal(r.per_item.length, 1);
+  assert.match(r.note, /TIME BUDGET/);
+});
+
+test("main: TIME BUDGET — dry mode is never budget-bound (a dry run makes no fetch, nothing to bound)", async () => {
+  const items = [
+    { id: "d-1", item_type: "regulation", full_brief: "", source_url: null },
+    { id: "d-2", item_type: "regulation", full_brief: "", source_url: null },
+  ];
+  const deps = baseDeps({
+    readQuarantinedLive: async () => items,
+    now: () => { throw new Error("dry mode must never read the clock"); },
+    timeBudgetSeconds: 1,
+  });
+  const r = await main({ mode: "dry", arg: "" }, deps);
+  assert.equal(r.stopped_at_budget, undefined);
+  assert.equal(r.per_item.length, 2);
+});
+
+test("main: HEAL-BUDGET resume — items_remaining from a budget-stopped run round-trips through ids: to finish the rest", async () => {
+  const items = [
+    { id: "r-1", item_type: "regulation", full_brief: "", source_url: null },
+    { id: "r-2", item_type: "regulation", full_brief: "", source_url: null },
+    { id: "r-3", item_type: "regulation", full_brief: "", source_url: null },
+  ];
+  const clock = [0, 0, 20000];
+  let i = 0;
+  const first = baseDeps({
+    readQuarantinedLive: async () => items,
+    now: () => clock[Math.min(i++, clock.length - 1)],
+    timeBudgetSeconds: 10,
+  });
+  const r1 = await main({ mode: "apply", arg: "" }, first);
+  assert.deepEqual(r1.items_remaining, ["r-2", "r-3"]);
+
+  const byId = new Map(items.map((it) => [it.id, it]));
+  const second = baseDeps({
+    readByIds: async (ids) => { assert.deepEqual(ids, r1.items_remaining); return ids.map((id) => byId.get(id)); },
+  });
+  const r2 = await main({ mode: "apply", arg: `ids:${r1.items_remaining.join(",")}` }, second);
+  assert.equal(r2.counts.candidates, 2);
+  assert.equal(r2.per_item.length, 2);
+  assert.equal(r2.stopped_at_budget, undefined, "the resumed dispatch had no budget set — it just finishes");
+});
+
+test("main: HEAL-BUDGET — CAPTURE-CITED dedups the SAME cited url across DIFFERENT items in one run", async () => {
+  const items = [
+    { id: "cu-1", item_type: "market_signal", full_brief: "", source_url: null },
+    { id: "cu-2", item_type: "market_signal", full_brief: "", source_url: null },
+  ];
+  const sectionsById = {
+    "cu-1": [{ id: "sec-cu-1", item_id: "cu-1", section_key: "body", section_order: 1, content_md: "See https://example.com/shared-cite for detail." }],
+    "cu-2": [{ id: "sec-cu-2", item_id: "cu-2", section_key: "body", section_order: 1, content_md: "Also see https://example.com/shared-cite again." }],
+  };
+  let fetchCount = 0;
+  const deps = baseDeps({
+    fetchImpl: async () => { fetchCount += 1; return { ok: true, status: 200, text: async () => "<html><title>Shared</title><body>" + "shared cited detail ".repeat(40) + "</body></html>" }; },
+    readByIds: async (ids) => items.filter((it) => ids.includes(it.id)),
+    readClaims: async () => [],
+    readSections: async (id) => sectionsById[id] ?? [],
+  });
+  const r = await main({ mode: "apply", arg: "ids:cu-1,cu-2" }, deps);
+  assert.equal(fetchCount, 1, "the second item's identical cited url reused the first item's outcome — no second network call");
+  const inserted = deps.calls.filter((c) => c[0] === "insertSearch" && c[1].result_url === "https://example.com/shared-cite");
+  assert.equal(inserted.length, 2, "each item still gets its OWN agent_run_searches evidence row — caching removes fetches, never evidence");
+  assert.equal(r.per_item[0].steps.capture_cited.results[0].cache_hit, false);
+  assert.equal(r.per_item[1].steps.capture_cited.results[0].cache_hit, true);
+  assert.equal(r.per_item[1].steps.capture_cited.cache_hits, 1);
+});
+
+test("buildSummaryObject: stopped_at_budget shape carries items_processed/items_remaining; an unstopped run carries neither", () => {
+  const perItem = [{ id: "x-1", item_type: "regulation", steps: { rederive: { outcome: "healed_verified" } } }];
+  const selection = { mode: "ids", ids: ["x-1", "x-2"] };
+  const stopped = buildSummaryObject({ mode: "apply", apply: true, selection, items: [{ id: "x-1" }, { id: "x-2" }], perItem, stoppedAtBudget: true, itemsRemaining: ["x-2"] });
+  assert.equal(stopped.stopped_at_budget, true);
+  assert.equal(stopped.items_processed, 1);
+  assert.deepEqual(stopped.items_remaining, ["x-2"]);
+  assert.match(stopped.note, /TIME BUDGET/);
+
+  const finished = buildSummaryObject({ mode: "apply", apply: true, selection, items: [{ id: "x-1" }], perItem, stoppedAtBudget: false, itemsRemaining: [] });
+  assert.equal(finished.stopped_at_budget, undefined);
+  assert.equal(finished.items_processed, undefined);
+  assert.doesNotMatch(finished.note, /TIME BUDGET/);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════

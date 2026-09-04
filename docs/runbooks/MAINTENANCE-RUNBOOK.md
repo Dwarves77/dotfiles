@@ -512,6 +512,69 @@ existing `agent_run_searches`/`insertSearch` writer surface, distinguished only 
 "heal-provenance:capture-cited"`), so `shared-dataset-ownership.md` is unchanged by this pass. No mint
 governing file touched (`gate-a-scan.mjs` read only, for the criterion-3 finding above).
 
+**[CONFIRMED, coordinator-reported] Run #20, the first apply run under HEAL-5** (quarantined-live, the
+same 95 items, adding the Wayback archive fallback + OJ-issue resolution — see
+`scripts/mint/heal-provenance.mjs`'s own FIFTH PASS header) **ran 15m20s and was CANCELLED** by the
+`maintain` job's then-`timeout-minutes: 15` — never finished. Because `scripts/maintenance/lib/cli.mjs`'s
+own `writeSummary()` runs exactly once, after `main()` returns, a killed run wrote **no `summary.json` at
+all**: no artifact content, no per-item residue, and no record of which of the run's own per-item DB
+writes (each already applied through the guarded path, before the kill) actually landed on which items.
+
+**Sixth pass (lane HEAL-BUDGET, 2026-09-04, `HEAL_VERSION` now `hp5-2026-09-04.2`)** fixes this, entirely
+inside `heal-provenance.mjs` and its wrapper — `.github/workflows/maintenance.yml`'s "Upload this run's
+step artifact(s)" step already carried `if: always()` before this pass (re-verified; GitHub's own docs
+confirm `always()` runs even on a cancelled/timed-out job), so the observed "no artifact" was an *empty*
+directory being uploaded honestly (`if-no-files-found: warn`), never a missing conditional — that step is
+unchanged by this pass. Four changes:
+
+1. **Job timeout raised 15 → 30 minutes**, with the arithmetic in the workflow file's own comment: HEAL-4
+   (run #17, no archive fallback) measured 6.84s/item (650s / 95 items) cleanly; HEAL-5 adds, per the SAME
+   60 `capture_blocked`/`capture_thin` cited urls the PRIOR run itself measured, up to 2 more
+   politeness-paced (1 req/s) fetches each, plus up to 2 more per each of the 5
+   `canonical_key_unresolved` OJ-issue items — ~130 extra 1s-paced requests, ≥130s of added wall time from
+   pacing alone before real latency/PDF-extraction time is counted, which is why run #20's 920s (and
+   counting — it had NOT finished) already overran HEAL-4's clean 650s by more than that floor. 30 minutes
+   gives ~2× headroom over the already-insufficient 920s this job actually observed.
+2. **Time budget.** `provenance-heal`'s step now sets `HEAL_TIME_BUDGET_SECONDS: '1500'` (25 min — 5
+   minutes of margin under the 30-minute job timeout for Install/Population-BEFORE/AFTER/upload). The
+   wrapper derives `deps.timeBudgetSeconds` from it; `heal-provenance.mjs`'s `main()` checks the budget
+   **before starting each item** (never mid-item — an item's own ten-step sequence always runs to
+   completion or not at all) and, once spent, stops cleanly: `summary.json` gets `stopped_at_budget: true`,
+   `items_processed`, `items_remaining` (the ids never reached), exits **0** (a budget stop is an orderly
+   partial completion, never a failure), with a console line naming the counts. A local by-hand run with no
+   `HEAL_TIME_BUDGET_SECONDS` set is unbounded, unchanged from every prior pass.
+3. **Checkpoint.** `main()` now writes `summary.json` **atomically** (temp file, then an os-level rename —
+   POSIX-atomic on the runner's own `$RUNNER_TEMP`) **after every item**, not only once at the end — so a
+   run killed by the runner itself (not just one that hits its own time budget and exits cleanly) still
+   leaves the true, complete state of every item processed so far on disk. `cli.mjs`'s own final
+   `writeSummary()` (unmodified) is still the last word on a run that finishes normally; the per-item
+   checkpoint is a strictly additive safety net under it.
+4. **Resume.** No new selection mode: a budget-stopped run's `items_remaining` is exactly the id list
+   `parseSelection`'s existing `"ids:<uuid,...>"` shape already accepts. **Coordinator procedure**: if a
+   dispatched `provenance-heal apply` run's artifact shows `stopped_at_budget: true`, re-dispatch
+   immediately with `arg: "ids:<items_remaining joined by comma>"` (apply mode, same as any `ids:` dispatch)
+   to finish the rest — repeat until a run's `summary.json` carries no `stopped_at_budget` key at all.
+5. **Waste measured and removed** (no politeness/evidence change): CAPTURE-CITED fetched each cited url
+   independently per item, with no run-level memory — two different items citing the SAME url (a shared
+   regulatory source; the exact case STEP A's own "corpus pool of OTHER items' captures of the SAME
+   canonical URL" bucket already exists to exploit) paid the full cost twice, up to 4 politeness-paced
+   requests (direct fetch + Wayback availability + snapshot) for a url this run had already fully resolved.
+   A run-level `citedUrlCache` (one `Map` per `main()` call, keyed by `canonicalizeCitationUrl` — the same
+   equality rule `unfetchedCitedUrls` already uses) makes `captureCitedUrl` idempotent per run: a repeat
+   url reuses the prior outcome's evidence with **zero** additional network calls, while every citing item
+   still gets its **own** `agent_run_searches` evidence row (caching removes duplicate fetches, never
+   duplicate evidence). Scoped to `captureCitedUrl` only, never STEP 1's `captureItem` (the two resolve an
+   eurlex url's canonical key DIFFERENTLY on purpose — from the item's own `instrument_identifier` vs. from
+   the url alone — merging their caches would let one item's identifier silently answer for another's
+   citation). New per-item field: `steps.capture_cited.results[].cache_hit` and
+   `steps.capture_cited.cache_hits`. Two other waste hypotheses were checked and **not** found:
+   `makePoliteFetch`'s own 1 req/s gap is untouched (no over-long sleep), and no second pacing authority
+   exists anywhere in this file — every fetch in every step already goes through the ONE shared
+   `deps.fetchImpl` instance the wrapper wires once per run.
+
+New `counts`/summary fields: `stopped_at_budget` (bool, present only on a budget-stopped run),
+`items_processed`, `items_remaining` (same run); no change to any existing counter's meaning.
+
 ---
 
 ## 9. `reopen-validation-holds`
