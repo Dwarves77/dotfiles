@@ -9,9 +9,14 @@
  * Phase 1 ownership (migration 234): the Assignee row is now INTERACTIVE —
  * a roster-fed select persisting the org-scoped owner through the store's
  * setOwner action (optimistic, rollback on failure; the server enforces
- * assignee-is-org-member). Roster loads lazily from /api/workspace/members
- * (caller-scoped — no org_id needed client-side), same Bearer idiom as
- * WatchButton/NotesField.
+ * assignee-is-org-member). Roster is caller-scoped (no org_id needed
+ * client-side).
+ *
+ * PERF-9 (2026-09-04, item 5, ADR-026 §4): the roster reads from the shared
+ * useWorkspaceBootstrap() singleton (GET /api/workspace/bootstrap) instead of
+ * its own independent fetch of /api/workspace/members — one of three call
+ * sites (alongside usePersonalStateHydration and useListOrder) that used to
+ * each fire their own per-user round trip on the same navigation.
  *
  * Honest rendering (unchanged doctrine):
  *   - lastVerifiedDate as "Last update" — the most honest single timestamp
@@ -21,11 +26,10 @@
  *     single people, so the chips section is retired with the legacy field.
  */
 
-import { useEffect, useState } from "react";
 import type { Resource } from "@/types/resource";
 import { formatDate } from "@/lib/format";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useResourceStore } from "@/stores/resourceStore";
+import { useWorkspaceBootstrap } from "@/lib/hooks/useWorkspaceBootstrap";
 
 interface OwnerTeamCardProps {
   resource: Resource;
@@ -33,12 +37,6 @@ interface OwnerTeamCardProps {
    *  store on direct load). The store entry, once present (any live edit),
    *  takes precedence — including an explicit clear-to-null. */
   initialOwner?: { userId: string; name: string } | null;
-}
-
-interface MemberRow {
-  user_id: string;
-  role: string;
-  display_name: string;
 }
 
 const LABEL_STYLE: React.CSSProperties = {
@@ -62,31 +60,14 @@ export function OwnerTeamCard({ resource: r, initialOwner = null }: OwnerTeamCar
     ? override.ownerName ?? null
     : initialOwner?.name ?? r.actionOwner ?? null;
 
-  const [members, setMembers] = useState<MemberRow[] | null>(null);
-  const [rosterFailed, setRosterFailed] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const supabase = createSupabaseBrowserClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        const resp = await fetch("/api/workspace/members", {
-          headers: { Authorization: `Bearer ${session?.access_token || ""}` },
-        });
-        if (cancelled) return;
-        if (!resp.ok) {
-          setRosterFailed(true);
-          return;
-        }
-        const j = (await resp.json()) as { members?: MemberRow[] };
-        setMembers(j.members || []);
-      } catch {
-        if (!cancelled) setRosterFailed(true);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  // null while the bootstrap hasn't settled yet (or the roster is empty —
+  // see below), non-null once it has. `data.members` is itself null when the
+  // caller has no org (see /api/workspace/bootstrap's loadMembers), which
+  // renders identically to "still loading": the read-only line, not an empty
+  // assignable select — an org-less user was never able to assign anyone.
+  const { data: bootstrap, settled: bootstrapSettled, error: bootstrapError } = useWorkspaceBootstrap();
+  const members = bootstrap?.members ?? null;
+  const rosterFailed = bootstrapSettled && (bootstrapError !== null || bootstrap?.members == null);
 
   const lastUpdate = r.lastVerifiedDate ? formatDate(r.lastVerifiedDate) : null;
 

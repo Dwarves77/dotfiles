@@ -27,12 +27,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-import { unstable_cache } from "next/cache";
 
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { isPlatformAdmin } from "@/lib/auth/admin";
-import { APP_DATA_TAG } from "@/lib/data";
+// PERF-9 (2026-09-04, item 5, ADR-026 §4): AttentionCounts/EMPTY_COUNTS/fetchAttentionCounts moved
+// to a sibling logic.ts so /api/workspace/bootstrap/route.ts can share the SAME unstable_cache entry
+// (same key, same tag) instead of registering a second, independent cache for the identical RPC.
+import { fetchAttentionCounts } from "./logic";
 
 const NEGATIVE_CACHE = "private, max-age=60";
 const POSITIVE_CACHE = "private, max-age=30";
@@ -41,55 +43,6 @@ function withCacheHeader(resp: NextResponse, value: string): NextResponse {
   resp.headers.set("Cache-Control", value);
   return resp;
 }
-
-
-interface AttentionCounts {
-  provisional_sources_pending: number;
-  staged_updates_pending: number;
-  staged_updates_materialization_failed: number;
-  integrity_flags_unresolved: number;
-  // Platform integrity_flags table (migration 048) open+in_review — added in migration 140 so the
-  // Issues Queue / red-dot no longer reads blind to the platform quarantine backlog.
-  platform_integrity_flags_open: number;
-  source_attribution_mismatches: number;
-  auto_approved_awaiting_spotcheck: number;
-  coverage_gaps_critical: number;
-  total: number;
-}
-
-const EMPTY_COUNTS: AttentionCounts = {
-  provisional_sources_pending: 0,
-  staged_updates_pending: 0,
-  staged_updates_materialization_failed: 0,
-  integrity_flags_unresolved: 0,
-  platform_integrity_flags_open: 0,
-  source_attribution_mismatches: 0,
-  auto_approved_awaiting_spotcheck: 0,
-  coverage_gaps_critical: 0,
-  total: 0,
-};
-
-// Server-side cache around the RPC. Keyed by admin user id so each admin
-// gets an isolated entry. The RPC currently returns platform-wide counts
-// (so all entries are content-identical), but the userId key future-proofs
-// against the RPC becoming workspace-scoped. 30s TTL matches the HTTP
-// positive cache; APP_DATA_TAG aligns with existing mutation revalidation.
-type FetchResult = { row: AttentionCounts; rpcError: string | null };
-
-const fetchAttentionCounts = unstable_cache(
-  async (_userId: string): Promise<FetchResult> => {
-    const supabase = getServiceSupabase();
-    const { data, error } = await supabase.rpc("admin_attention_counts");
-    if (error) return { row: EMPTY_COUNTS, rpcError: error.message };
-    const row: AttentionCounts =
-      Array.isArray(data) && data.length > 0
-        ? (data[0] as AttentionCounts)
-        : EMPTY_COUNTS;
-    return { row, rpcError: null };
-  },
-  ["admin-attention-counts-v1"],
-  { revalidate: 30, tags: [APP_DATA_TAG] }
-);
 
 export async function GET(request: NextRequest) {
   // Auth ordering (perf v2): the cheapest gate runs first. requireAuth

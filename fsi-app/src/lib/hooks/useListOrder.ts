@@ -21,10 +21,18 @@
 // empty, which the comparator reads as "nothing is placed" and every surface
 // falls back to its own natural sort. A user who has never dragged anything and
 // a user whose fetch failed see the same correct default.
+//
+// PERF-9 (2026-09-04, item 5, ADR-026 §4): the INITIAL load reads from the
+// shared useWorkspaceBootstrap() singleton (GET /api/workspace/bootstrap,
+// which fetches every list_key in ONE query) instead of this hook's own
+// per-listKey GET /api/user/list-order. move()/reset() are UNCHANGED — they
+// still PATCH/DELETE that route directly, since a drag is a live mutation the
+// bootstrap snapshot (fetched once per session) has no business serving.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { LIST_ORDER_ITEM_ID_MAX, LIST_ORDER_SEED_MAX } from "@/lib/list-order";
+import { useWorkspaceBootstrap } from "@/lib/hooks/useWorkspaceBootstrap";
 
 /** Mirrors LIST_KEYS in /api/user/list-order. */
 export type ListOrderKey =
@@ -94,48 +102,48 @@ export function useListOrder(listKey: ListOrderKey): UseListOrder {
     setOrderedIds(next);
   }, []);
 
+  const { data: bootstrap, settled: bootstrapSettled, error: bootstrapError } = useWorkspaceBootstrap();
+  // Applied at most once per listKey per settled bootstrap attempt — a
+  // re-render on an unrelated bootstrap publish (another consumer's data
+  // arriving) must not re-seed and clobber an in-flight optimistic drag.
+  // Reset when listKey itself changes (surface switch).
+  const appliedKeyRef = useRef<string | null>(null);
+
   useEffect(() => {
-    let cancelled = false;
+    if (appliedKeyRef.current === listKey) return;
+    // Not yet settled (first attempt still in flight, or not yet kicked off
+    // this render pass): wait for it rather than seeding from a stale/partial
+    // snapshot. See useWorkspaceBootstrap's `settled` doc comment for why this
+    // is `settled`, not `loading`.
+    if (!bootstrapSettled) return;
 
-    (async () => {
-      try {
-        const headers = await authHeader();
-        if (!headers || cancelled) {
-          if (!cancelled) setLoaded(true);
-          return;
-        }
-        const res = await fetch(
-          `/api/user/list-order?list_key=${encodeURIComponent(listKey)}`,
-          { headers }
-        );
-        if (cancelled) return;
-        if (!res.ok) {
-          console.warn(
-            `[list-order] ${listKey} load returned ${res.status}; falling back to the surface's natural order.`
-          );
-          setLoaded(true);
-          return;
-        }
-        const body = (await res.json()) as { order?: ListOrderApiRow[] };
-        if (cancelled) return;
-        // The route returns rows already ordered by position ascending, so the
-        // array index is the rank and nothing here parses a position.
-        setOrder((body.order ?? []).map((r) => r.itemId));
-        setLoaded(true);
-      } catch (e: unknown) {
-        if (cancelled) return;
-        console.warn(
-          `[list-order] ${listKey} load failed:`,
-          e instanceof Error ? e.message : e
-        );
-        setLoaded(true);
-      }
-    })();
+    if (bootstrap) {
+      appliedKeyRef.current = listKey;
+      // The route returns rows already ordered by position ascending, so the
+      // array index is the rank and nothing here parses a position.
+      const rows: ListOrderApiRow[] = bootstrap.listOrders[listKey] ?? [];
+      setOrder(rows.map((r) => r.itemId));
+      setLoaded(true);
+      return;
+    }
 
-    return () => {
-      cancelled = true;
-    };
-  }, [listKey, setOrder]);
+    if (bootstrapError) {
+      // Fail-soft, mirroring the old per-key fetch's non-200/exception path:
+      // fall back to the surface's natural order rather than blocking on it.
+      console.warn(
+        `[list-order] ${listKey} bootstrap load failed: ${bootstrapError}; falling back to the surface's natural order.`
+      );
+      appliedKeyRef.current = listKey;
+      setLoaded(true);
+      return;
+    }
+
+    // Settled with neither data nor error: signed-out (the singleton's fetch
+    // short-circuits before calling the API when there is no auth token).
+    // Same fail-soft default as before — empty order, natural sort applies.
+    appliedKeyRef.current = listKey;
+    setLoaded(true);
+  }, [listKey, bootstrap, bootstrapSettled, bootstrapError, setOrder]);
 
   const ranks = useMemo(() => {
     const m = new Map<string, number>();
