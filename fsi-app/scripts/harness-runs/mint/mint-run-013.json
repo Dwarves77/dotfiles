@@ -274,7 +274,11 @@
     "minted_verified": 30,
     "minted_unverified": 0,
     "apply_failed": 0,
-    "census_rows_reconciled": 30
+    "census_rows_reconciled": 30,
+    "edges_discovered": 637,
+    "forward_events_extracted": 2,
+    "isolated_items": 11,
+    "ids_resolved_by_key": 0
   },
   "defects_found": [],
   "full_trace_refs": [

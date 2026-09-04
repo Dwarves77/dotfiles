@@ -106,7 +106,11 @@
     "validator_final_pass_rate": 1,
     "live_verify_first_pass_rate": "n/a -- this run does not apply to the live DB (proposer-only; coordinator applies next per MINT-RUNBOOK.md's hard boundary)",
     "live_verify_final_rate": "n/a -- see above",
-    "off_vertical_excluded_relevance_rescreen": 0
+    "off_vertical_excluded_relevance_rescreen": 0,
+    "edges_discovered": 0,
+    "forward_events_extracted": 2,
+    "isolated_items": 5,
+    "ids_resolved_by_key": 5
   },
   "defects_found": [
     {

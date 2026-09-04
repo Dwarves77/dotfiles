@@ -89,7 +89,11 @@
       "open_dq_flags_delta": 0
     },
     "census_rows_reconciled": 5,
-    "sources_registered_inline": 4
+    "sources_registered_inline": 4,
+    "edges_discovered": 0,
+    "forward_events_extracted": 2,
+    "isolated_items": 5,
+    "ids_resolved_by_key": 0
   },
   "defects_found": [
     {

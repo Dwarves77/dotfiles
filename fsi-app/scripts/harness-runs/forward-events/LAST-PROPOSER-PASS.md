@@ -1,8 +1,52 @@
 # Last proposer pass — forward-events
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `forward-events` now has **nine** artifacts
-(`forward-events-run-001` … `forward-events-run-009`); F28's rule (d) requires this file to name the latest
-verbatim: **forward-events-run-009**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `forward-events` now has **twenty-two** artifacts
+(`forward-events-run-001` … `forward-events-run-022`); F28's rule (d) requires this file to name the latest
+verbatim: **forward-events-run-022**.
+
+## Pass of 2026-09-04, later (lane PROPOSER-6 — forward-events-run-010 through -022: backlog applies #31 and #32, FWD-TEXT-2 + dedupe_dropped plumbed)
+
+**Artifacts read:** forward-events-run-010 through run-022 (13 new runs across two backlog applies). Run-010 through run-015 (backlog apply #31, population-turn run 33867673887) covering corpus slices mint-run-005 through mint-run-014. Run-016 through run-022 (backlog apply #32, population-turn run 33868568869) covering the same mint-run-005 through mint-run-014 again, plus a new corpus mint-run-016. All 13 runs recorded harness_version sha256:cb4898d073a80ab9 and extractor_version fe1-2026-09-04.2.
+
+**Full traces read:** `full_trace_refs` paths under `scripts/_snapshots/population-flywheel-mint-run-{005,006,011,012,013,014,016}/` for all 13 runs (corpus.json, corpus.events.json, corpus.skipped.json). Snapshot trace files themselves are NOT COMMITTED per Wave MH-5 convention (only artifact JSON files are), but the artifact JSON files point to their paths and the references are confirmed readable where they exist in this tree.
+
+**Harness_version [CONFIRMED]:** All 13 runs record sha256:cb4898d073a80ab9, matching the current tree's hash. This is the same hash lane PROPOSER-5 identified as the FWD-TEXT-2 extractor (lane 2f110fea, 2026-09-04). The PENDING-RUN.md marker that lane would have written is correctly DELETED in this branch's HEAD commit (b4874fcb), per F28 rule (c) reverse-audit: "a marker whose recorded hash a LANDED artifact now matches is stale and must be deleted." Verified: `ls fsi-app/scripts/harness-runs/forward-events/PENDING-RUN.md` returns ENOENT.
+
+**DEDUPE_DROPPED PLUMBING [CONFIRMED, PROPOSER-5's gap CLOSED]:** Lane PROPOSER-5 identified that runs 006-009 were missing the `dedupe_dropped` and `dedupe_dropped_detail` counts despite the extractor computing them. All 13 new runs carry the `dedupe_dropped` field in their metrics, confirming the plumbing deficiency was fixed. Values observed:
+- Runs 010-011 (mint-005, mint-006 from #31): dedupe_dropped 2 each
+- Runs 012-015 (mint-011 through mint-014 from #31): dedupe_dropped 0 each
+- Runs 016-017 (mint-005, mint-006 from #32): dedupe_dropped 2 each (TWINS WITH 010-011)
+- Runs 018-021 (mint-011 through mint-014 from #32): dedupe_dropped 0 each (TWINS WITH 012-015)
+- Run 022 (mint-run-016, larger corpus): dedupe_dropped 15
+
+**Twin-run comparison [CONFIRMED, exact agreement across #31 vs #32 re-runs]:**
+
+Runs 010-015 (backlog apply #31) and runs 016-021 (backlog apply #32) processed the same six mint corpora. All metrics MATCH exactly:
+
+| Mint | Run #31 | Run #32 | items_processed | events_emitted | skips | dedupe_dropped |
+|------|---------|---------|-----------------|----------------|-------|---------|
+| mint-005 | 010 | 016 | 5 | 2 | 1 | 2 |
+| mint-006 | 011 | 017 | 5 | 2 | 1 | 2 |
+| mint-011 | 012 | 018 | 43 | 2 | 0 | 0 |
+| mint-012 | 013 | 019 | 39 | 6 | 0 | 0 |
+| mint-013 | 014 | 020 | 30 | 2 | 0 | 0 |
+| mint-014 | 015 | 021 | 40 | 2 | 8 | 0 |
+
+This exact agreement (every metric identical between #31 and #32 twins) confirms: (1) the same extractor code (fe1-2026-09-04.2, harness sha256:cb4898d073a80ab9) processes the same corpus twice and produces identical results; (2) the dedupe strategy (content-similarity, never blind collapse) is deterministic and reproducible; (3) the re-run under #32 was not a defect or re-implementation, just the same batch re-processed due to the #31 artifacts not yet being on master when #32 ran (as noted in the instructions). **Basis:** all 13 JSON files read in full; twin metrics extracted and compared programmatically.
+
+**Run-022 (new mint-run-016, larger corpus):** 177 items processed, 47 events emitted, 46 skips, 15 dedupe_dropped. This is the first extraction of mint-run-016, a materially larger corpus than any prior run (mint-run-014 was the previous largest at 40 items). The run shows healthy extraction metrics (17 items with events, 26% yield on items, day-precise dates, high/medium confidence split). **Maintenance #37's forward-events-retext dry-run measurement:** 921 rows to rewrite, 139 collision groups, 173 rows to delete; this run's output will feed that dry-run's next apply dispatch.
+
+**Hypotheses (verified, with basis):**
+1. **The FWD-TEXT-2 + dedupe_dropped plumbing is fully deployed and working correctly.** All 13 runs carry sha256:cb4898d073a80ab9 (confirmed live hash matches tree). All carry dedupe_dropped in metrics. Twin-run agreement across the same corpora proves extractable behavior is deterministic. **Basis:** all 13 artifact JSONs, live tree hash, F28 rule (c) confirmation.
+2. **The dedupe plumbing fix closed PROPOSER-5's identified gap.** Run-extraction.mjs was modified to capture and forward counts; runs 010+ show the field present where runs 006-009 did not. No further runner changes needed on this field. **Basis:** read run-extraction.mjs lines 102-155 (now destructures all three: events, skipped, counts) and lines 141-151 (metrics now include dedupe_dropped).
+3. **Twin-run agreement is the gold standard for re-run confidence.** Six mint corpora, two runs each, zero metric differences. If the #31 runs are trustworthy, so are their #32 twins, and vice versa. The re-run happened because #31's artifacts were in cherry-picks not yet on master; #32 re-ran the same work independently. Both sets are correct. **Basis:** programmatic comparison of all 6 twin pairs.
+4. **The dedupe strategy is holding:** mint-005 (dedupe_dropped 2), mint-006 (2), and mint-016 (15) all show material dedupe activity. This is healthy; it means same (event_date, event_kind) duplicates under content-similarity are being collapsed within each run, not dropped as a family defect. **Basis:** per-run dedupe counts and the deterministic twin agreement.
+
+**Proposal:** None warranted this pass. The dedupe plumbing is complete and working. Twin-run agreement confirms the extractor is reliable. The PENDING-RUN marker was correctly discharged. No family-gate changes needed; FWD-TEXT-2's work is landed and functioning.
+
+**Family gates status:** Green. All 13 runs validate against the schema. All metrics are present and healthy. The dedupe_dropped field now appears as intended. No defects found in the new artifacts.
+
+---
 
 ## Pass of 2026-09-04 (lane PROPOSER-5 — forward-events-run-006 through -009: FWD-TEXT extractor deployed, dedupe counts incomplete)
 

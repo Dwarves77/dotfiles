@@ -1,0 +1,80 @@
+{
+  "harness_family": "forward-events",
+  "harness_version": "sha256:cb4898d073a80ab9",
+  "run_id": "forward-events-run-017",
+  "started_at": "2026-09-04T11:39:40.767Z",
+  "finished_at": "2026-09-04T11:39:40.776Z",
+  "config": {
+    "input": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-006/corpus.json",
+    "out_dir": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-006",
+    "execute": true,
+    "mode": "execute"
+  },
+  "inputs_ref": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-006/corpus.json"
+  ],
+  "per_item": [
+    {
+      "id": "7e554d10-a508-4b63-89be-34fb1b35065b",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "618dd97e-f4e9-43c2-bdec-60459b598cf1",
+      "outcome": "extracted",
+      "verdict": "1 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "831bc4be-73fa-4b13-807d-940c5602c3b5",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "128bc6c1-d210-43f6-a4cd-4ce965c36b3d",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 1 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "e03b8fe1-62d2-42cc-adf8-a45589549dd7",
+      "outcome": "extracted",
+      "verdict": "1 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "items_processed": 5,
+    "items_with_events": 2,
+    "events_emitted": 2,
+    "skips": 1,
+    "by_kind": {
+      "compliance_deadline": 2
+    },
+    "by_confidence": {
+      "high": 2
+    },
+    "by_precision": {
+      "day": 2
+    },
+    "by_skip_reason": {
+      "date after 'by' with no deontic ('shall'/'must') or aim/target language nearby — ambiguous whether this is a bound obligation": 1
+    },
+    "dedupe_dropped": 2,
+    "extractor_version": "fe1-2026-09-04.2"
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-006/corpus.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-006/corpus.events.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-006/corpus.skipped.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-extraction.mjs's own execution path (Wave MH-5) — the family's first versioned, in-repo runner; forward-events-run-001.json was produced by an external scratch script (see its own inputs_ref/full_trace_refs paths under /root/work/forward-events/), which this script replaces going forward."
+}

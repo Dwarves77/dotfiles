@@ -1459,7 +1459,11 @@
     "minted_unverified": 0,
     "apply_failed": 0,
     "census_rows_reconciled": 177,
-    "not_applied_holder_conflict": 1
+    "not_applied_holder_conflict": 1,
+    "edges_discovered": 6024,
+    "forward_events_extracted": 47,
+    "isolated_items": 0,
+    "ids_resolved_by_key": 0
   },
   "defects_found": [],
   "full_trace_refs": [
