@@ -437,9 +437,11 @@ jobs:
           # pushing; artifact JSON never conflicts with code, and if it ever did the rebase aborts and the
           # push below still fails loudly instead of silently pushing a stale base. The checkout is shallow
           # (fetch-depth 1); --depth=50 brings in master's recent commits so the merge-base (this run's own
-          # checkout commit, master at dispatch time) is known to the rebase.
+          # checkout commit, master at dispatch time) is known to the rebase. --autostash: the run's working
+          # tree carries modified tracked files it never stages (backlog #30 failed the rebase with "You have
+          # unstaged changes" and lost six stamps); they are stashed around the rebase and restored after.
           git fetch --no-tags --depth=50 origin master
-          git rebase origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
+          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
           git push origin HEAD:"$branch"
           if [ "${{ inputs.flywheel_backlog }}" = "true" ]; then
             {

@@ -260,7 +260,7 @@ jobs:
         # population-turn.yml's own BRANCH-BASE comment for the failure this fixes).
         run: |
           git fetch --no-tags --depth=50 origin master
-          git rebase origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
+          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
           git push origin HEAD:"${{ steps.turn.outputs.branch }}"
 
       - name: Upload scripts/_snapshots as a workflow artifact
