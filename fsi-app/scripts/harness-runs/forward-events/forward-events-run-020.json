@@ -1,0 +1,254 @@
+{
+  "harness_family": "forward-events",
+  "harness_version": "sha256:cb4898d073a80ab9",
+  "run_id": "forward-events-run-020",
+  "started_at": "2026-09-04T11:39:56.027Z",
+  "finished_at": "2026-09-04T11:39:56.040Z",
+  "config": {
+    "input": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-013/corpus.json",
+    "out_dir": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-013",
+    "execute": true,
+    "mode": "execute"
+  },
+  "inputs_ref": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-013/corpus.json"
+  ],
+  "per_item": [
+    {
+      "id": "0b98bfa7-df73-47c6-8183-8db99d252458",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "20378bed-2e2f-43a1-8b37-d9e0fd2d652f",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "197822c6-5b22-499b-88a5-81f9a6168ccb",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b656dc79-e9cc-42eb-9ffa-6a3f232d3292",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "ce956e82-8d81-4cfa-8a56-23677439d583",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "3f75c0da-ea99-4fda-ab27-5d7d0752f1b1",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "1328a55d-2ebb-4ef7-82bc-83ee23f5e82b",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "e9eeca19-c366-4918-8837-b7a7c7b262d5",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "e1749468-72f3-4371-9f36-2344112cdcfe",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "f6d13d0e-aafe-4f29-9a26-a6afc5941892",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "c46b561f-280c-40f7-b0e3-a68d776fdb4b",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2eb0ed4b-9600-4abb-ad51-b3069592a1ef",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "03f0a277-3009-47d6-a015-39b62cf6374f",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "254024a0-7b51-42e9-b769-5e504aa915ea",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "14ac8839-b524-442b-b6df-e9980bc6c77e",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "8d5c755c-f0eb-4325-b79d-a44807c66053",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b26b6cc3-7301-4d4c-9eeb-535497f576a6",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "9086748d-a0e1-45f3-84bc-5d682b2ec427",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "a6c8ceb3-78db-4e89-8f16-cd4275714d13",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2285995d-9927-49d9-a227-75cfef2ec0aa",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "4c94daee-ee11-4f18-a2b2-755824be2bb5",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "d3527ddc-645b-40b1-ba33-1934ac8a0ce1",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "7d53b73f-08b7-4d52-80a5-442b05303b53",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "b6dd3e52-d882-4d72-84d1-f81f9255cb84",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "0a7a3467-0708-4af2-b94a-57ffe1beae70",
+      "outcome": "extracted",
+      "verdict": "2 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "ddfcdb50-6a2e-40b8-a2bb-058f9a19f2b5",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "34dfd067-624c-4afb-8a8c-46d56c5af255",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "ad334da0-bc1b-41dc-aa30-b20cfb3066bb",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2ca6cc1c-a02a-4859-8fdd-048b00d0b49e",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "6c806b7f-bf69-488e-9426-429d61a97468",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "items_processed": 30,
+    "items_with_events": 1,
+    "events_emitted": 2,
+    "skips": 0,
+    "by_kind": {
+      "compliance_deadline": 2
+    },
+    "by_confidence": {
+      "high": 1,
+      "medium": 1
+    },
+    "by_precision": {
+      "day": 2
+    },
+    "by_skip_reason": {},
+    "dedupe_dropped": 0,
+    "extractor_version": "fe1-2026-09-04.2"
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-013/corpus.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-013/corpus.events.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-013/corpus.skipped.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-extraction.mjs's own execution path (Wave MH-5) — the family's first versioned, in-repo runner; forward-events-run-001.json was produced by an external scratch script (see its own inputs_ref/full_trace_refs paths under /root/work/forward-events/), which this script replaces going forward."
+}
