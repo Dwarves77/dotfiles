@@ -23,6 +23,7 @@ import { mkdirSync, appendFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { stderr } from "node:process";
 // Deterministic, dependency-free, name+URL only (no fetch, no LLM, $0). Safe as a STATIC import
 // here despite the no-node_modules invariant above: classify-source-role.ts imports nothing, and
 // CI runs Node 24, which strips TS types natively. Keeps registerSource honest to that module's
@@ -35,6 +36,75 @@ import { hostOf, institutionKey } from "./institution-key.mjs";
 // job (which runs node --test with no npm ci) resolves cleanly. The real require happens only on a real
 // DB call, where node_modules is present.
 const require = createRequire(import.meta.url);
+
+/**
+ * Retry helper for transient network failures (fetch failed, ECONNRESET, ETIMEDOUT, etc.).
+ * DOES NOT retry PostgREST/Postgres errors or statement timeouts (chunk-halving handles those).
+ * Exported for testing and clarity; wrapped calls use this internally.
+ *
+ * Transient failures detected:
+ * - Message matches /fetch failed|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket hang up|ECONNREFUSED|UND_ERR/i
+ * - 502/503/504 status (when exposed by supabase-js)
+ *
+ * Not retried:
+ * - PostgREST errors (have .error.message from supabase-js)
+ * - Postgres errors with statement timeout (handled by chunk-halving in guardedUpdateByIds)
+ * - Any other application error
+ */
+export async function withTransientRetry(
+  fn,
+  { attempts = 3, delaysMs = [500, 2000, 5000], label = "unknown" } = {}
+) {
+  const transientRe = /fetch failed|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket hang up|ECONNREFUSED|UND_ERR/i;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const isLastAttempt = attempt === attempts;
+
+      // Check if it's a PostgREST error (has .error body) — never retry those
+      if (err?.error?.message) {
+        // Throw a new error preserving the PostgREST inner message for clarity
+        const pgErr = new Error(err.error.message);
+        pgErr.cause = err;
+        throw pgErr;
+      }
+
+      // Extract error message; handle both thrown errors and supabase-js error objects
+      let errMsg = err?.message || String(err);
+      const errCode = err?.code;
+
+      // Check if the error message is transient or the error code suggests a transient issue
+      const isTransient = transientRe.test(errMsg) || transientRe.test(errCode || "");
+
+      // Also check for 502/503/504 status in supabase-js responses
+      const isServiceUnavailable =
+        err?.status && [502, 503, 504].includes(err.status);
+
+      if (!isTransient && !isServiceUnavailable) {
+        throw err; // Not a transient error, don't retry
+      }
+
+      if (isLastAttempt) {
+        // On final attempt, throw with context
+        const err2 = new Error(
+          `${label}: gave up after ${attempts} attempts — ${errMsg}`
+        );
+        err2.cause = err;
+        err2.attempts = attempts;
+        throw err2;
+      }
+
+      // Log the retry and wait before next attempt
+      const delayMs = delaysMs[attempt - 1] || delaysMs[delaysMs.length - 1];
+      stderr.write(
+        `[db.mjs retry] ${label} attempt ${attempt}/${attempts} failed (${errMsg}), retrying in ${delayMs}ms\n`
+      );
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
 
 // Snapshot dir resolves at call-time so unit tests can redirect prior-value snapshots to a temp dir
 // via DISCIPLINE_SNAP_DIR (env set after import still takes effect).
@@ -126,6 +196,7 @@ export function readClient() {
  * (the `max-rows` setting) REGARDLESS of `.limit(N>1000)` — a silent truncation that made an
  * orphan-audit under-count active sources and made registerSource's dedup blind (it created 27
  * duplicates before this was caught, 2026-06-06). Always page tables that can exceed 1000 rows.
+ * Retries transient network failures.
  */
 export async function readAll(table, columns = "*", { match, orderBy = "id" } = {}) {
   const sb = readClient();
@@ -134,7 +205,10 @@ export async function readAll(table, columns = "*", { match, orderBy = "id" } = 
   for (;;) {
     let q = sb.from(table).select(columns).order(orderBy).range(from, from + 999);
     if (match) q = match(q);
-    const { data, error } = await q;
+    const { data, error } = await withTransientRetry(
+      () => q,
+      { label: `readAll(${table}) page at ${from}` }
+    );
     if (error) throw new Error(`readAll(${table}) failed: ${error.message}`);
     if (!data || !data.length) break;
     rows.push(...data);
@@ -166,15 +240,22 @@ function snapshot(table, rows, cite, stampIso) {
  * Guarded UPDATE. `applyMatch` applies the row filter to a query builder, e.g.
  *   guardedUpdate("intelligence_items", qb => qb.in("id", ids), { is_archived: true },
  *                 { cite: { skill: "remediation-discipline", reason: "archive source-not-item" } })
- * Snapshots the matched rows, then patches them.
+ * Snapshots the matched rows, then patches them. Both the prior-state read and the update itself
+ * are retried on transient failures.
  */
 export async function guardedUpdate(table, applyMatch, patch, { cite, select = "*", stampIso } = {}) {
   requireCite(cite);
   const sb = writeClient();
-  const prior = await applyMatch(sb.from(table).select(select));
+  const prior = await withTransientRetry(
+    () => applyMatch(sb.from(table).select(select)),
+    { label: `guardedUpdate(${table}) snapshot read` }
+  );
   if (prior.error) throw new Error(`db.mjs snapshot read failed: ${prior.error.message}`);
   const snapFile = snapshot(table, prior.data || [], cite, stampIso);
-  const res = await applyMatch(sb.from(table).update(patch)).select(select);
+  const res = await withTransientRetry(
+    () => applyMatch(sb.from(table).update(patch)).select(select),
+    { label: `guardedUpdate(${table}) update` }
+  );
   if (res.error) throw new Error(`db.mjs update failed: ${res.error.message}`);
   return { updated: res.data?.length ?? 0, snapshot: snapFile, rows: res.data };
 }
@@ -261,10 +342,16 @@ export async function guardedDelete(table, ids, { cite, stampIso } = {}) {
   }
   if (!ids || !ids.length) throw new Error("db.mjs guardedDelete: ids required.");
   const sb = writeClient();
-  const prior = await sb.from(table).select("*").in("id", ids);
+  const prior = await withTransientRetry(
+    () => sb.from(table).select("*").in("id", ids),
+    { label: `guardedDelete(${table}) snapshot read` }
+  );
   if (prior.error) throw new Error(`guardedDelete snapshot read failed: ${prior.error.message}`);
   const snapFile = snapshot(table, prior.data || [], cite, stampIso);
-  const res = await sb.from(table).delete().in("id", ids).select("id");
+  const res = await withTransientRetry(
+    () => sb.from(table).delete().in("id", ids).select("id"),
+    { label: `guardedDelete(${table}) delete` }
+  );
   if (res.error) throw new Error(`guardedDelete failed: ${res.error.message}`);
   return { deleted: res.data?.length ?? 0, snapshot: snapFile, rows: res.data };
 }

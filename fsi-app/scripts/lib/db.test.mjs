@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 process.env.DISCIPLINE_SNAP_DIR = join(tmpdir(), 'db-test-snapshots'); // redirect prior-value snapshots
-const { reclassifyToSource, registerSource, readAll, guardedDelete, guardedUpdateByIds, readClient, institutionKey, archivePatch, __setWriteClientForTest } = await import('./db.mjs');
+const { reclassifyToSource, registerSource, readAll, guardedDelete, guardedUpdateByIds, readClient, institutionKey, archivePatch, __setWriteClientForTest, withTransientRetry } = await import('./db.mjs');
 
 // GOLDEN (operator ruling 2026-07-13, Part A root-cause): archiving an intelligence_item resets its
 // provenance_status off 'verified' (the stale-verified cache class — 168 archived rows read 'verified'
@@ -273,6 +273,139 @@ test('readClient: does NOT mutate when a write is attempted (throw happens befor
   const sb = readClient();
   assert.throws(() => sb.from('sources').update({ status: 'active' }));
   assert.ok(!calls.includes('update'), 'no update verb should reach the client — the proxy throws first');
+});
+
+// ---------------------------------------------------------------------------
+// withTransientRetry: retry logic for transient network failures
+// ---------------------------------------------------------------------------
+
+test('withTransientRetry: succeeds on first try', async () => {
+  let calls = 0;
+  const result = await withTransientRetry(async () => {
+    calls += 1;
+    return 'success';
+  }, { label: 'test-immediate' });
+  assert.equal(result, 'success');
+  assert.equal(calls, 1);
+});
+
+test('withTransientRetry: retries once on fetch failed, then succeeds', async () => {
+  let calls = 0;
+  const stderrLines = [];
+  const origWrite = process.stderr.write.bind(process.stderr);
+  process.stderr.write = (line) => { stderrLines.push(String(line)); return true; };
+  try {
+    const result = await withTransientRetry(async () => {
+      calls += 1;
+      if (calls === 1) throw new TypeError('fetch failed');
+      return 'success';
+    }, { label: 'test-retry-once', attempts: 3, delaysMs: [1] });
+    assert.equal(result, 'success');
+    assert.equal(calls, 2);
+    assert.ok(stderrLines.some((l) => l.includes('test-retry-once')), 'must log retry to stderr');
+    assert.ok(stderrLines.some((l) => l.includes('attempt 1/3')), 'must log attempt number');
+  } finally {
+    process.stderr.write = origWrite;
+  }
+});
+
+test('withTransientRetry: retries on transient errors (ECONNRESET, ETIMEDOUT, EAI_AGAIN, socket hang up, ECONNREFUSED, UND_ERR)', async () => {
+  const transientErrors = [
+    new Error('ECONNRESET'),
+    new Error('ETIMEDOUT'),
+    new Error('EAI_AGAIN'),
+    new Error('socket hang up'),
+    new Error('ECONNREFUSED'),
+    new Error('UND_ERR_SOCKET'),
+  ];
+  for (const errTemplate of transientErrors) {
+    let calls = 0;
+    const result = await withTransientRetry(async () => {
+      calls += 1;
+      if (calls === 1) throw errTemplate;
+      return 'ok';
+    }, { label: `test-${errTemplate.message}`, attempts: 2, delaysMs: [1] });
+    assert.equal(result, 'ok', `must retry on ${errTemplate.message}`);
+    assert.equal(calls, 2);
+  }
+});
+
+test('withTransientRetry: does NOT retry on PostgREST error (has .error.message)', async () => {
+  let calls = 0;
+  const postgrestErr = new Error('outer');
+  postgrestErr.error = { message: 'permission denied' };
+
+  await assert.rejects(
+    () => withTransientRetry(async () => {
+      calls += 1;
+      throw postgrestErr;
+    }, { label: 'test-postgrest', attempts: 3, delaysMs: [1] }),
+    /permission denied/
+  );
+  assert.equal(calls, 1, 'must not retry PostgREST errors');
+});
+
+test('withTransientRetry: does NOT retry on regular application errors', async () => {
+  let calls = 0;
+  await assert.rejects(
+    () => withTransientRetry(async () => {
+      calls += 1;
+      throw new Error('some app error');
+    }, { label: 'test-app-error', attempts: 3, delaysMs: [1] }),
+    /some app error/
+  );
+  assert.equal(calls, 1, 'must not retry non-transient errors');
+});
+
+test('withTransientRetry: exhausts all attempts and throws with count', async () => {
+  let calls = 0;
+  const stderrLines = [];
+  const origWrite = process.stderr.write.bind(process.stderr);
+  process.stderr.write = (line) => { stderrLines.push(String(line)); return true; };
+  try {
+    await assert.rejects(
+      () => withTransientRetry(async () => {
+        calls += 1;
+        throw new Error('fetch failed');
+      }, { label: 'test-exhaust', attempts: 3, delaysMs: [1, 1, 1] }),
+      /gave up after 3 attempts/
+    );
+    assert.equal(calls, 3);
+    assert.equal(stderrLines.filter((l) => l.includes('test-exhaust')).length, 2, 'must log attempts 1 and 2 (not the final failure)');
+  } finally {
+    process.stderr.write = origWrite;
+  }
+});
+
+test('withTransientRetry: retries on 502/503/504 status', async () => {
+  let calls = 0;
+  const statuses = [502, 503, 504];
+  for (const status of statuses) {
+    calls = 0;
+    const err = new Error(`status ${status}`);
+    err.status = status;
+    const result = await withTransientRetry(async () => {
+      calls += 1;
+      if (calls === 1) throw err;
+      return 'ok';
+    }, { label: `test-${status}`, attempts: 2, delaysMs: [1] });
+    assert.equal(result, 'ok', `must retry on ${status} status`);
+    assert.equal(calls, 2);
+  }
+});
+
+test('withTransientRetry: does NOT retry on non-transient status codes', async () => {
+  let calls = 0;
+  const err = new Error('client error');
+  err.status = 400;
+  await assert.rejects(
+    () => withTransientRetry(async () => {
+      calls += 1;
+      throw err;
+    }, { label: 'test-400', attempts: 3, delaysMs: [1] }),
+    /client error/
+  );
+  assert.equal(calls, 1, 'must not retry 400 status');
 });
 
 test.after(() => __setWriteClientForTest(null)); // restore real client factory

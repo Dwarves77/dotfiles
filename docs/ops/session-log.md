@@ -9445,3 +9445,28 @@ action: none is async; the three states are visually distinct and honest, a nume
 source (including a below-floor one, per migration 302), a dashed "—" chip with a tooltip for an
 unrated fact, and no chip on a GAP line, which has no source to rate. Nothing is guessed: an unmatched
 claim line renders unrated, never a wrong tier.
+
+### Addendum 85, postscript 32 — the first runs under the new gate, and what they broke (2026-09-04)
+
+Train/wave20 landed as #567 (`4c90c5bb`) after the UX gate asked for the compliance block I had
+left out of ps 31 (added, same PR). Heal apply #27 under rule 18 [CONFIRMED, Actions 33844146038]:
+24 sources registered and rated, 147 figures grounded (123 on existing sources, 24 after
+registering), 103 claims retrofitted across sections, 52 relabeled, 5 items to verified, 89 still
+failing; per token the SOURCE step reported `token_not_in_page` 1,477, `unresolved` 359,
+`bound_hit` 302, `unfetchable` 58, `worklist_ambiguous_host` 77. The dry an hour earlier had
+predicted 1,543 groundable on existing captures; the figure was verbatim in the fetched page for
+147. Lane HEAL-8 (Sonnet) is classifying the 1,477 on real rows (numeric surface form, figure in a
+linked document one hop away, thin capture, nowhere) and building the matcher, the one-hop follow
+and the honest terminal state; the stored span stays byte-exact (ADR-016), only the search is
+tolerant.
+
+Backlog flywheel: dry #23 lists 13 stale artifacts / 1,272 items and still called mint-run-001/005
+unconnectable, because BACKLOG-LEGACY's resolver ran behind a synchronous guard that answered before
+it; LEGACY-2 (this train, `1d09f4b7`) makes a keyed entry recoverable and leaves the verdict to the
+resolver at run time. Apply #24 over mint-run-004 ran discovery, wrote 6 forward events, persisted
+38 themes, 20 gaps and 932 signal edges, then died in `analyze-corpus` on `db.mjs snapshot read
+failed: TypeError: fetch failed`, Node's transport error, not PostgREST; the artifact got no
+outcomes and the second artifact never ran. DB-RETRY (Haiku, `4c8c3b31`, 22 tests): a bounded
+retry (3 attempts, 0.5/2/5 s) on transient transport errors and 502/503/504 around readAll pages and
+every prior-state snapshot read and idempotent write; PostgREST errors and plain inserts never
+retried. Re-dispatching the backlog apply after this lands.
