@@ -6,6 +6,7 @@ import { AskAssistant } from "@/components/AskAssistant";
 import { BackToTop } from "@/components/BackToTop";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useWorkspaceOverridesHydration } from "@/lib/hooks/useWorkspaceOverridesHydration";
+import { computeShowNoWorkspaceBanner } from "@/components/app-shell-banner";
 
 const NO_SIDEBAR_ROUTES = ["/login", "/auth"];
 // Routes where the no-workspace banner is suppressed (the user is already
@@ -29,6 +30,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, orgId } = useAuth();
   const hideSidebar = NO_SIDEBAR_ROUTES.some((r) => pathname.startsWith(r));
 
+  // STEP 2(b) FIX (PERF-MERGE, 2026-09-04) [CONFIRMED root cause]: `orgId` is now three-valued
+  // (undefined = unknown/unresolved, null = resolved-no-org, string = resolved-with-org — see
+  // AuthContext's own doc comment in AuthProvider.tsx for the full mechanism). This banner used to
+  // read `!orgId`, which is true for BOTH "unresolved" and "resolved: no org" — and since PERF-9
+  // moved bootstrap into a Suspense-gated flow (now: a client `fetch` in AuthProvider's `useEffect`),
+  // `AuthProvider`'s `onAuthStateChange` listener sets `user` independently and typically faster than
+  // `orgId` resolves, producing a real `user: truthy, orgId: unresolved` window on every load for a
+  // signed-in operator whose org DOES exist. `docs/design/ux-laws.md` forbids showing a false state
+  // while data is loading — `orgId === null` (a RESOLVED null, never `undefined`) is the only state
+  // this banner may render for; `orgId === undefined` renders nothing, same as the loading chrome
+  // everywhere else on this shell.
+
   // PERF-10 (2026-09-04, ADR-026 Follow-up / migration 306): mounted ONCE here rather than
   // per-surface (unlike usePersonalStateHydration, which each of RegulationsLedger/HomeSurface/
   // SettingsPage calls individually) because the four index pages AND the four detail pages
@@ -40,13 +53,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useWorkspaceOverridesHydration();
 
   // Workstream B: render a banner for authenticated-no-workspace state.
-  // Three-state machine: signed-out -> regular chrome (data is anonymous);
-  // signed-in + no org -> banner inviting them to /workspace/new; signed-in
-  // + org -> normal product surface.
-  const showNoWorkspaceBanner =
-    !!user &&
-    !orgId &&
-    !NO_WORKSPACE_BANNER_SUPPRESS.some((r) => pathname.startsWith(r));
+  // FOUR-state machine (STEP 2(b), PERF-MERGE 2026-09-04 — was documented as three, the missing
+  // state was exactly the bug): signed-out -> regular chrome (data is anonymous); signed-in +
+  // orgId unresolved (undefined) -> regular chrome, banner withheld until we actually know;
+  // signed-in + orgId resolved null -> banner inviting them to /workspace/new; signed-in + orgId
+  // resolved to an id -> normal product surface. Predicate lives in app-shell-banner.ts, not inline,
+  // so it is unit-testable with node --test + jiti (this repo has no JSX mount infra — see that
+  // file's own header) — see AppShell.npmtest.mjs for the four-state proof.
+  const showNoWorkspaceBanner = computeShowNoWorkspaceBanner({
+    user,
+    orgId,
+    pathname,
+    suppressRoutes: NO_WORKSPACE_BANNER_SUPPRESS,
+  });
 
   if (hideSidebar) {
     return <>{children}</>;

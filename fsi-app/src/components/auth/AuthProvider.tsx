@@ -10,12 +10,34 @@ interface AuthContext {
   user: User | null;
   /**
    * Client-fetched org id (PERF-10, 2026-09-04) — see this file's header for the mechanism.
+   *
+   * THREE-VALUED, NOT TWO (STEP 2(b) FIX, PERF-MERGE, 2026-09-04) [CONFIRMED root cause, this lane]:
+   *   - `undefined` — UNKNOWN. The identity fetch has not resolved yet. This is a genuinely different
+   *     state from "resolved, no org" and consumers MUST NOT treat it as one — see the bug this fixes,
+   *     below.
+   *   - `null` — RESOLVED: this viewer has no org.
+   *   - `string` — RESOLVED: this viewer's org id.
+   *
+   * THE BUG this replaces a plain `string | null` to fix: `AuthProvider`'s `onAuthStateChange`
+   * listener (below) calls `setUser` independently of `seed()` (which sets `orgId` and `loading`
+   * together, atomically). `onAuthStateChange` reads local session storage and typically resolves
+   * FASTER than `seed()`'s `fetch("/api/auth/identity")` round trip — so there is a real window where
+   * `user` is truthy but `orgId` has not been resolved yet. With `orgId: string | null`, that
+   * unresolved window was INDISTINGUISHABLE from "resolved: no org" (`!orgId` is true for both), so
+   * `AppShell`'s `showNoWorkspaceBanner = !!user && !orgId` rendered the "No workspace yet" banner —
+   * a FALSE state — for a signed-in operator whose org genuinely exists (docs/design/ux-laws.md: a
+   * surface must never show a false state while data loads). Gating on `orgId === null` (RESOLVED
+   * null, not just falsy) instead of `!orgId` — see AppShell.tsx — closes this: `undefined` now
+   * renders nothing, exactly like the existing `loading`-gated pattern useAdminAttention.ts already
+   * uses, applied to the value itself rather than a parallel boolean so every consumer of `orgId` is
+   * forced to make the unknown/resolved distinction explicit at the type level, not by convention.
+   *
    * Use this — not useWorkspaceStore.orgId — for first-render gates
    * (e.g. AppShell's no-workspace banner), since useWorkspaceStore is
    * hydrated in an effect and is null on server render. See SF-WS-1
    * (Sprint 3, 2026-05-27).
    */
-  orgId: string | null;
+  orgId: string | null | undefined;
   /**
    * True until the identity fetch has resolved (PERF-10, 2026-09-04). NOT the same thing as
    * "signed out" — a `loading: true, user: null` pair means "we don't know yet," while
@@ -25,6 +47,13 @@ interface AuthContext {
    * `user === null` regardless of `loading`, so the pending window shows blank chrome, never a
    * WRONG (anonymous) state for a signed-in viewer — see this file's header for the full
    * mechanism this supports.
+   *
+   * NOTE (STEP 2(b), PERF-MERGE 2026-09-04): this alone is NOT sufficient to gate `orgId` reads —
+   * see `orgId`'s own doc comment. `loading` only distinguishes "identity fetch pending" from
+   * "resolved"; it says nothing about the independent `onAuthStateChange`-driven `user` update,
+   * which can make `user` true while `loading` is STILL true. `orgId`'s three-valued type is what
+   * actually closes the gap; `loading` remains useful for consumers (useAdminAttention) that only
+   * care about `user`, not `orgId`.
    */
   loading: boolean;
   signOut: () => Promise<void>;
@@ -32,7 +61,7 @@ interface AuthContext {
 
 const AuthContext = createContext<AuthContext>({
   user: null,
-  orgId: null,
+  orgId: undefined,
   loading: true,
   signOut: async () => {},
 });
@@ -71,7 +100,10 @@ const AuthContext = createContext<AuthContext>({
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [orgId, setOrgId] = useState<string | null>(null);
+  // undefined = UNKNOWN (not yet resolved) — see the AuthContext interface's own doc comment for why
+  // this must NOT default to `null` (STEP 2(b) fix, PERF-MERGE 2026-09-04): `null` is a RESOLVED
+  // state ("no org"), and the pre-fix `string | null` default conflated "unresolved" with it.
+  const [orgId, setOrgId] = useState<string | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   // Mirrors `user` for the cross-tab SIGNED_IN check below (needs the LATEST known value inside a
   // callback registered once — see that effect's own comment for why a plain closure over `user`
