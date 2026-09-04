@@ -7,6 +7,7 @@ import {
   parseArgs, portalFor, shapeRunOutput, upsertPortalLinkCandidates, SOURCE_SWEEP_GOVERNING_FILES, defaultTraceDir, resolvePortalSourceId, portalUrlKey,
   selectSitemapSources, hostKeyOf, groupActiveSourcesByHost, hostSitemapCoverage, orderHostGroupsForSweep,
   selectAllHostsTargets, buildSitemapCoveragePatch, buildCoverageReport, DEFAULT_MAX_HOSTS,
+  DEFAULT_TIME_BUDGET_SECONDS, checkTimeBudget, walkTargetsWithinBudget, withFetchTimeout,
 } from "./run-source-sweep.mjs";
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────
@@ -321,6 +322,20 @@ test("parseArgs: --max-hosts overrides the default and must be positive", () => 
   assert.match(bad.error, /--max-hosts/);
 });
 
+test("parseArgs: --time-budget-seconds defaults to DEFAULT_TIME_BUDGET_SECONDS, is overridable, must be positive", () => {
+  const def = parseArgs(["--walker", "sitemap", "--mode", "dry", "--all-hosts"]);
+  assert.equal(def.ok, true);
+  assert.equal(def.timeBudgetSeconds, DEFAULT_TIME_BUDGET_SECONDS);
+
+  const override = parseArgs(["--walker", "sitemap", "--mode", "dry", "--all-hosts", "--time-budget-seconds", "600"]);
+  assert.equal(override.ok, true);
+  assert.equal(override.timeBudgetSeconds, 600);
+
+  const bad = parseArgs(["--walker", "sitemap", "--mode", "dry", "--all-hosts", "--time-budget-seconds", "0"]);
+  assert.equal(bad.ok, false);
+  assert.match(bad.error, /--time-budget-seconds/);
+});
+
 test("parseArgs: --check-coverage is read-only — refuses a selector alongside it, requires --mode dry", () => {
   const ok = parseArgs(["--walker", "sitemap", "--mode", "dry", "--check-coverage"]);
   assert.equal(ok.ok, true);
@@ -627,6 +642,174 @@ test("DEFAULT_MAX_HOSTS: matches the measured-budget arithmetic in its own comme
   // 17 (matches CORPUS-TURN-RUNBOOK.md's "The sitemap walker" section, computed independently there).
   const dispatchesToCoverAllHosts = Math.ceil(ACTIVE_HOSTS / DEFAULT_MAX_HOSTS);
   assert.equal(dispatchesToCoverAllHosts, 17);
+});
+
+// ── checkTimeBudget / walkTargetsWithinBudget / withFetchTimeout (lane SWEEP-BUDGET, 2026-09-04) ────────
+// Source-sweep #14 (13m24s) and #15 (14m57s) finished; #16 (70 hosts) was killed by
+// .github/workflows/source-sweep.yml's timeout-minutes: 30 with NO artifact at all — the per-host
+// arithmetic DEFAULT_MAX_HOSTS's comment states is an AVERAGE, and nothing checked wall-clock time. These
+// tests prove the fix without sleeping: checkTimeBudget is a pure predicate over an injected clock VALUE;
+// walkTargetsWithinBudget is the actual loop main() runs, driven here with a fake, advancing `nowMs`
+// function and a fast stub `walkOne` (no real network); withFetchTimeout is proven both with instant
+// mock fetches (signal wiring, error mapping) and one real, short-timeout wait against a fetch stub that
+// only resolves when ITS OWN injected AbortSignal fires — proving the timeout actually interrupts a hang.
+
+test("DEFAULT_TIME_BUDGET_SECONDS: 1500s — SAME arithmetic DEFAULT_MAX_HOSTS's own comment already computed (workflow timeout 1800s minus the 300s non-walk reserve)", () => {
+  assert.equal(DEFAULT_TIME_BUDGET_SECONDS, 1800 - 300);
+});
+
+test("checkTimeBudget: pure over an injected clock VALUE — not exhausted before the budget, exhausted at/after it", () => {
+  assert.deepEqual(checkTimeBudget(0, 0, 1500), { exhausted: false, elapsedSeconds: 0 });
+  assert.deepEqual(checkTimeBudget(0, 1_499_000, 1500), { exhausted: false, elapsedSeconds: 1499 });
+  assert.deepEqual(checkTimeBudget(0, 1_500_000, 1500), { exhausted: true, elapsedSeconds: 1500 });
+  assert.deepEqual(checkTimeBudget(0, 2_000_000, 1500), { exhausted: true, elapsedSeconds: 2000 });
+  // startedAtMs offset (not always 0) — only the DIFFERENCE matters.
+  assert.deepEqual(checkTimeBudget(10_000, 10_000 + 500_000, 1500), { exhausted: false, elapsedSeconds: 500 });
+});
+
+test("walkTargetsWithinBudget: walks every target when the fake clock never exceeds the budget", async () => {
+  const targets = [{ id: "a" }, { id: "b" }, { id: "c" }];
+  let calls = 0;
+  const walkOne = async (t) => { calls++; return { id: t.id, outcome: "walked" }; };
+  const r = await walkTargetsWithinBudget(targets, walkOne, {
+    startedAtMs: 0, budgetSeconds: 1500, nowMs: () => calls * 1000, // 1s "elapsed" per call, well under budget
+  });
+  assert.equal(calls, 3);
+  assert.equal(r.results.length, 3);
+  assert.deepEqual(r.notReached, []);
+  assert.equal(r.exhausted, false);
+});
+
+test("walkTargetsWithinBudget: THE LOOP'S EARLY EXIT — a fake, advancing clock stops the loop before every target is reached, never mid-target", async () => {
+  const targets = [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }];
+  const clockReadings = [0, 500_000, 1_000_000, 1_600_000]; // 4th reading (1600s) is past a 1500s budget
+  let i = 0;
+  const walked = [];
+  const walkOne = async (t) => { walked.push(t.id); return { id: t.id }; };
+  const r = await walkTargetsWithinBudget(targets, walkOne, {
+    startedAtMs: 0, budgetSeconds: 1500, nowMs: () => clockReadings[i++],
+  });
+  // Budget check reads BEFORE targets a/b/c (0s, 500s, 1000s — all under budget) and BEFORE d (1600s —
+  // over budget) — so a/b/c walk, d never does. This is checked BEFORE, never mid-target: walkOne for "d"
+  // is never called at all (not called-then-aborted).
+  assert.deepEqual(walked, ["a", "b", "c"]);
+  assert.equal(r.results.length, 3);
+  assert.deepEqual(r.notReached.map((t) => t.id), ["d"]);
+  assert.equal(r.exhausted, true);
+  assert.equal(r.elapsedSeconds, 1600);
+});
+
+test("walkTargetsWithinBudget: an empty target list never calls walkOne, reports elapsedSeconds 0, not exhausted", async () => {
+  let called = false;
+  const r = await walkTargetsWithinBudget([], async () => { called = true; }, { startedAtMs: 0, budgetSeconds: 1500, nowMs: () => 999_000 });
+  assert.equal(called, false);
+  assert.deepEqual(r, { results: [], notReached: [], exhausted: false, elapsedSeconds: 0 });
+});
+
+test("walkTargetsWithinBudget: nowMs defaults to Date.now — the live binding's own contract, no injection required", async () => {
+  const r = await walkTargetsWithinBudget([{ id: "x" }], async (t) => ({ id: t.id }), { startedAtMs: Date.now() - 1, budgetSeconds: 1500 });
+  assert.equal(r.results.length, 1);
+  assert.equal(r.exhausted, false);
+});
+
+test("withFetchTimeout: attaches an AbortSignal to every call, passes the real response through unchanged", async () => {
+  let seenOpts = null;
+  const fakeFetch = async (url, opts) => { seenOpts = opts; return { ok: true, url }; };
+  const timed = withFetchTimeout(fakeFetch, 20_000);
+  const res = await timed("https://x/y", { headers: { a: "b" } });
+  assert.equal(res.ok, true);
+  assert.equal(seenOpts.headers.a, "b", "the caller's own opts are preserved");
+  assert.ok(seenOpts.signal instanceof AbortSignal, "a signal is always attached");
+  assert.equal(seenOpts.signal.aborted, false, "not aborted on an instantly-resolving fetch");
+});
+
+test("withFetchTimeout: a TimeoutError/AbortError from the wrapped fetch is reported as a plain Error naming the timeout and the url — not a raw DOMException", async () => {
+  const timeoutFetch = async () => { throw Object.assign(new Error("The operation was aborted"), { name: "TimeoutError" }); };
+  await assert.rejects(
+    () => withFetchTimeout(timeoutFetch, 20_000)("https://slow.example/sitemap.xml", {}),
+    /fetch timed out after 20000ms for https:\/\/slow\.example\/sitemap\.xml/
+  );
+  const abortFetch = async () => { throw Object.assign(new Error("aborted"), { name: "AbortError" }); };
+  await assert.rejects(() => withFetchTimeout(abortFetch, 5)("https://x/y", {}), /fetch timed out after 5ms for https:\/\/x\/y/);
+});
+
+test("withFetchTimeout: a normal fetch failure (network error, non-timeout) is rethrown UNCHANGED, never relabeled a timeout", async () => {
+  const brokenFetch = async () => { throw new Error("getaddrinfo ENOTFOUND x.example"); };
+  await assert.rejects(() => withFetchTimeout(brokenFetch, 20_000)("https://x.example/", {}), /ENOTFOUND/);
+});
+
+// A REAL-timer variant of this test (a fetch that only settles when its injected AbortSignal.timeout(N)
+// actually fires) was tried and dropped: green in isolation but flaky under the full discipline suite's
+// heavy parallel load ("Promise resolution is still pending but the event loop has already resolved"),
+// which also cascaded into cancelling every later test in this file. AbortSignal.timeout's own firing is
+// Node runtime behavior, not this module's — the two tests above already prove everything this module
+// itself is responsible for: a signal is always attached (instanceof AbortSignal), and a TimeoutError/
+// AbortError from the wrapped fetch (however it arrives) is relabeled correctly. A flaky proof of a
+// third party's timer is worse than no proof of it (CLAUDE.md rule 15's "attack, don't assert presence"
+// cuts the other way here: asserting presence of a real timer under load is exactly the kind of proof
+// that cries wolf).
+
+// ── shapeRunOutput sitemap: budget metrics + hosts_remaining_unwalked recomputed from what actually walked ──
+
+test("shapeRunOutput sitemap: budget fields pass through metrics verbatim (present even when not exhausted)", () => {
+  const result = {
+    sources: [
+      { sourceId: "a", sourceName: "A", sourceUrl: "https://a.example/", kind: "sitemap", ok: true, discoverySource: "robots", urlCount: 0, sitemapsFetched: [], diff: { addedCount: 0, changedCount: 0, removedCount: 0 }, coverageComplete: true, baselineDeferred: false, upserted: 0, failed: 0, changeRecorded: false },
+    ],
+    allHosts: null,
+    budget: { budgetSeconds: 1500, elapsedSeconds: 42.5, exhausted: false, sourcesWalked: 1, sourcesNotReached: { count: 0, ids: [] } },
+  };
+  const shaped = shapeRunOutput("sitemap", result, "/tmp/report.json", "apply");
+  assert.equal(shaped.metrics.budget_seconds, 1500);
+  assert.equal(shaped.metrics.elapsed_seconds, 42.5);
+  assert.equal(shaped.metrics.sources_walked, 1);
+  assert.deepEqual(shaped.metrics.sources_not_reached, { count: 0, ids: [] });
+  assert.equal(shaped.metrics.budget_exhausted, false);
+});
+
+test("shapeRunOutput sitemap: budget_exhausted true + sources_not_reached names the ids — per_item is NEVER fabricated for an unreached source (it simply isn't in per_item; only the count/ids are in metrics)", () => {
+  const result = {
+    sources: [
+      { sourceId: "walked-1", sourceName: "W1", sourceUrl: "https://w1.example/", kind: "sitemap", ok: true, discoverySource: "robots", urlCount: 1, sitemapsFetched: [], diff: { addedCount: 1, changedCount: 0, removedCount: 0 }, coverageComplete: true, baselineDeferred: false, upserted: 1, failed: 0, changeRecorded: false },
+    ],
+    allHosts: null,
+    budget: { budgetSeconds: 1500, elapsedSeconds: 1500.2, exhausted: true, sourcesWalked: 1, sourcesNotReached: { count: 2, ids: ["not-reached-1", "not-reached-2"] } },
+  };
+  const shaped = shapeRunOutput("sitemap", result, "/tmp/report.json", "apply");
+  assert.equal(shaped.metrics.budget_exhausted, true);
+  assert.deepEqual(shaped.metrics.sources_not_reached, { count: 2, ids: ["not-reached-1", "not-reached-2"] });
+  assert.equal(shaped.perItem.length, 1, "per_item carries only the ONE source actually walked");
+  assert.deepEqual(shaped.perItem.map((p) => p.id), ["walked-1"]);
+  assert.equal(shaped.perItem.some((p) => p.id === "not-reached-1" || p.id === "not-reached-2"), false, "an unreached source is never invented a per_item verdict");
+});
+
+test("shapeRunOutput sitemap: hosts_remaining_unwalked RECOMPUTED from hosts actually walked when the budget stopped the run early (never the assume-all-selected-walked original)", () => {
+  // Selection: 5 never-walked hosts existed; this dispatch selected 3 of them (hostsRemainingUnwalkedAfter
+  // = 5 - 3 = 2, the ORIGINAL "assume all 3 selected get walked" number). The budget stopped the run after
+  // only 1 of those 3 hosts was actually reached — the recomputed remaining count must be 5 - 1 = 4, not 2.
+  const result = {
+    sources: [
+      { sourceId: "s1", sourceName: "S1", sourceUrl: "https://only-host-reached.example/", kind: "sitemap", ok: true, discoverySource: "robots", urlCount: 0, sitemapsFetched: [], diff: { addedCount: 0, changedCount: 0, removedCount: 0 }, coverageComplete: true, baselineDeferred: false, upserted: 0, failed: 0, changeRecorded: false },
+    ],
+    allHosts: { targets: [], hostsSelected: ["only-host-reached.example", "second.example", "third.example"], hostsTotalActive: 8, hostsNeverWalkedBefore: 5, hostsRemainingUnwalkedAfter: 2 },
+    budget: { budgetSeconds: 1500, elapsedSeconds: 1500.1, exhausted: true, sourcesWalked: 1, sourcesNotReached: { count: 1, ids: ["s2-on-second-host"] } },
+  };
+  const shaped = shapeRunOutput("sitemap", result, "/tmp/report.json", "apply");
+  assert.equal(shaped.metrics.hosts_remaining_unwalked, 4, "5 never-walked hosts total minus the 1 this run actually reached");
+  assert.equal(shaped.metrics.budget_exhausted, true);
+});
+
+test("shapeRunOutput sitemap: hosts_remaining_unwalked matches the ORIGINAL (assume-all-walked) figure when the budget was NOT exhausted — every selected host really was reached", () => {
+  const result = {
+    sources: [
+      { sourceId: "s1", sourceName: "S1", sourceUrl: "https://a.example/", kind: "sitemap", ok: true, discoverySource: "robots", urlCount: 0, sitemapsFetched: [], diff: { addedCount: 0, changedCount: 0, removedCount: 0 }, coverageComplete: true, baselineDeferred: false, upserted: 0, failed: 0, changeRecorded: false },
+      { sourceId: "s2", sourceName: "S2", sourceUrl: "https://b.example/", kind: "sitemap", ok: true, discoverySource: "robots", urlCount: 0, sitemapsFetched: [], diff: { addedCount: 0, changedCount: 0, removedCount: 0 }, coverageComplete: true, baselineDeferred: false, upserted: 0, failed: 0, changeRecorded: false },
+    ],
+    allHosts: { targets: [], hostsSelected: ["a.example", "b.example"], hostsTotalActive: 8, hostsNeverWalkedBefore: 5, hostsRemainingUnwalkedAfter: 3 },
+    budget: { budgetSeconds: 1500, elapsedSeconds: 40, exhausted: false, sourcesWalked: 2, sourcesNotReached: { count: 0, ids: [] } },
+  };
+  const shaped = shapeRunOutput("sitemap", result, "/tmp/report.json", "apply");
+  assert.equal(shaped.metrics.hosts_remaining_unwalked, 3, "both selected never-walked hosts were reached — same as the original figure");
 });
 
 test("shapeRunOutput sitemap: --check-coverage result shape — read-only metrics, no per_item, no writes implied", () => {

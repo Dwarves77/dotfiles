@@ -103,7 +103,7 @@ sweep always names a specific walker and window/feed, unlike a turn's empty-bran
 records its own `source-sweep` harness-run artifact family every run, in both dry and apply mode.
 
 ### The sitemap walker (lane SITEMAP, 2026-09-04; `--all-hosts`/`--check-coverage` added lane SITEMAP-3,
-### 2026-09-04)
+### 2026-09-04; wall-clock time budget added lane SWEEP-BUDGET, 2026-09-04)
 
 `source-sweep.yml`'s fourth `walker` option, `sitemap`, is the answer to the operator's own question:
 "do you do mapping of the sites and store them in supabase so we can use a site map to identify new
@@ -142,21 +142,45 @@ entry for the one-writer rule and exact column semantics).
    row on that host (a host with rows scoped to distinct content paths, `sourceContentPath`, needs each
    walked separately — collapsing to one representative row would silently drop path-scoped candidates for
    every row but the one walked).
-3. **A backfill slice** — `--all-hosts [--max-hosts N]` (default `N` = `DEFAULT_MAX_HOSTS` = 40, lane
-   SITEMAP-3, 2026-09-04): this is the mode that turns "a backfill of 2,563 sources is 2,563 dispatches"
-   into ~16. It groups every ACTIVE `sources` row by host (`groupActiveSourcesByHost`), orders host groups
-   never-walked-first then oldest-`sitemap_last_walked_at`-first (`orderHostGroupsForSweep` — this IS the
-   resumability property: an identical `sources` snapshot always orders identically, so re-running the same
-   command after a prior apply naturally picks up where coverage is thinnest, no state to hand-carry
-   between dispatches), takes the first `--max-hosts` host groups, and walks every row on each selected
-   host exactly like `--host` would. `run-source-sweep.mjs`'s `DEFAULT_MAX_HOSTS` comment carries the full
-   arithmetic (measured per-row cost from a real dispatch × the live active-hosts/active-rows ratio against
-   the workflow's 30-minute timeout, with a reserve for non-walk overhead) — re-derive it there, not here,
-   if the workflow's `timeout-minutes` or the measured per-row cost ever changes.
+3. **A backfill slice** — `--all-hosts [--max-hosts N] [--time-budget-seconds N]` (default `N` for
+   `--max-hosts` = `DEFAULT_MAX_HOSTS` = 40, lane SITEMAP-3, 2026-09-04; default for
+   `--time-budget-seconds` = `DEFAULT_TIME_BUDGET_SECONDS` = 1500s, lane SWEEP-BUDGET, 2026-09-04): this is
+   the mode that turns "a backfill of 2,563 sources is 2,563 dispatches" into ~17. It groups every ACTIVE
+   `sources` row by host (`groupActiveSourcesByHost`), orders host groups never-walked-first then
+   oldest-`sitemap_last_walked_at`-first (`orderHostGroupsForSweep` — this IS the resumability property: an
+   identical `sources` snapshot always orders identically, so re-running the same command after a prior
+   apply naturally picks up where coverage is thinnest, no state to hand-carry between dispatches), takes
+   the first `--max-hosts` host groups as its SELECTION, and walks every row on each selected host exactly
+   like `--host` would — up to the wall-clock budget below.
+
+   **`--max-hosts` is a CEILING on the selection, never the thing that stops a run in time — that is
+   `--time-budget-seconds` alone.** Sweeps #14 (40 hosts) and #15 (40 hosts) ran 13m24s and 14m57s; #16
+   raised `--max-hosts` to 70 and ran past `.github/workflows/source-sweep.yml`'s `timeout-minutes: 30`
+   with the job KILLED and NO artifact at all — `DEFAULT_MAX_HOSTS`'s own per-host arithmetic (~35s/host)
+   is an AVERAGE, and the tail (a sitemap-index fan-out, one slow host, the full unscoped feed-candidate
+   probe list before falling through to sitemap) is unbounded, so no `--max-hosts` value can guarantee the
+   job finishes in time. `main()`'s sitemap loop (`walkTargetsWithinBudget`/`checkTimeBudget`,
+   `run-source-sweep.mjs`) now checks elapsed wall-clock time before EVERY source and stops the walk —
+   never mid-source — the moment `--time-budget-seconds` (default 1500s = the workflow's 1800s
+   `timeout-minutes: 30` minus a 300s reserve for checkout/`npm ci`/the hydrate step/the commit-and-PR
+   step, the SAME arithmetic `DEFAULT_MAX_HOSTS`'s comment already used to size a host count) is spent. A
+   budget-exhausted run still exits 0 — a bounded, complete unit of work, not an error — and its artifact
+   records `budget_seconds`, `elapsed_seconds`, `sources_walked`, `sources_not_reached` (count + ids, never
+   a fabricated per-source verdict for a source the run never reached), `budget_exhausted: true`, and
+   `hosts_remaining_unwalked` RECOMPUTED from the hosts the run actually walked (not the selection's
+   assume-all-walked figure). A per-fetch timeout (`withFetchTimeout`, `SOURCE_SWEEP_FETCH_TIMEOUT_MS`,
+   default 20s, `SOURCE_SWEEP_FETCH_TIMEOUT_MS` env-overridable) backstops the budget so a single hung host
+   cannot silently eat it through one stuck request — every fetch in this family (register-eurlex,
+   register-federal-register, feed, sitemap alike) shares the one wrapped `fetch` call site.
 
    Live counts at the time this was written [CONFIRMED, live SQL, 2026-09-04]: 2,563 `sources` rows total,
    1,630 active, 646 distinct active hosts, 189 rows already carrying a discovered `rss_feed_url`. At the
-   default 40 hosts/run, `--all-hosts` covers all 646 active hosts once in ⌈646/40⌉ = 17 dispatches.
+   default 40 hosts/run (assuming the budget is not spent first — measured pace so far: ~40 hosts in
+   13-15 minutes, comfortably inside the 1500s/25-minute budget), `--all-hosts` covers all 646 active hosts
+   once in ⌈646/40⌉ = 17 dispatches; a dispatch that hits the time budget first covers fewer hosts than
+   `--max-hosts` selected, and its `hosts_remaining_unwalked` says exactly how many, so the NEXT dispatch
+   (same `--all-hosts`, no other change — `orderHostGroupsForSweep`'s resumability picks up exactly where
+   this one stopped) is how the remaining dispatch count is actually measured, not assumed in advance.
 
 **A fourth mode that walks nothing** — `--check-coverage` (requires `--mode dry`; refuses alongside
 `--source-id`/`--host`/`--all-hosts`) — a read-only report over the five coverage columns: sources total
@@ -169,18 +193,23 @@ whole without grepping harness-run artifacts by hand.
 Every run's `source-sweep` harness-run artifact carries, in addition to the pre-existing per-walker
 metrics, `hosts_walked` / `hosts_skipped_bot_wall` / `feeds_discovered` / `new_locs` / `lastmod_changes`
 (computed for any sitemap dispatch, not only `--all-hosts` — a `--host` run against one host still reports
-"1 host walked") and, for an `--all-hosts` run specifically, `hosts_selected` / `hosts_remaining_unwalked`
-(how many never-walked hosts are STILL never-walked after this run — the number a coordinator watches
-count down across the ~17-dispatch backfill sequence).
+"1 host walked"), `budget_seconds` / `elapsed_seconds` / `sources_walked` / `sources_not_reached` (count +
+ids) / `budget_exhausted` (the wall-clock time-budget fields above, present on every sitemap dispatch, not
+only `--all-hosts` — a `--host`/`--source-id` run is bounded by the same budget, just far less likely to
+spend it) and, for an `--all-hosts` run specifically, `hosts_selected` / `hosts_remaining_unwalked` (how
+many never-walked hosts are STILL never-walked after this run, RECOMPUTED from the hosts actually walked
+when the budget stopped the run short of its selection — the number a coordinator watches count down
+across the backfill sequence).
 
 **Example dispatches** (GitHub Actions → `source-sweep.yml` → Run workflow, or `gh workflow run
 source-sweep.yml -f ...`):
 
 ```
-walker=sitemap  mode=dry    all_hosts=true  max_hosts=5            # preview the next 5 thinnest-covered hosts
-walker=sitemap  mode=apply  all_hosts=true                          # apply a full default-sized (40-host) slice
-walker=sitemap  mode=dry    check_coverage=true                     # where does the backfill stand right now
-walker=sitemap  mode=apply  host=aircargonews.net                   # one named host, e.g. re-checking after a fix
+walker=sitemap  mode=dry    all_hosts=true  max_hosts=5                      # preview the next 5 thinnest-covered hosts
+walker=sitemap  mode=apply  all_hosts=true  max_hosts=40                     # next backfill dispatch (blank time_budget_seconds = default 1500s)
+walker=sitemap  mode=dry    check_coverage=true                              # where does the backfill stand right now
+walker=sitemap  mode=apply  host=aircargonews.net                            # one named host, e.g. re-checking after a fix
+walker=sitemap  mode=apply  all_hosts=true  max_hosts=40  time_budget_seconds=600  # a shorter budget, e.g. testing the cutoff itself
 ```
 
 ## How a coordinator requests a turn
