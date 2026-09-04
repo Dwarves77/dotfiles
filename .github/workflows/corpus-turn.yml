@@ -255,7 +255,13 @@ jobs:
 
       - name: Push turn branch
         if: steps.commit.outputs.changed == 'true'
-        run: git push origin HEAD:"${{ steps.turn.outputs.branch }}"
+        # BRANCH-BASE (2026-09-04): re-base the artifact commit onto the current master tip before the push,
+        # so a workflow-file change that landed on master mid-run cannot make GitHub refuse the branch (see
+        # population-turn.yml's own BRANCH-BASE comment for the failure this fixes).
+        run: |
+          git fetch --no-tags --depth=50 origin master
+          git rebase origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
+          git push origin HEAD:"${{ steps.turn.outputs.branch }}"
 
       - name: Upload scripts/_snapshots as a workflow artifact
         if: always()

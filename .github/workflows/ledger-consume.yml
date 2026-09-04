@@ -157,6 +157,11 @@ jobs:
           branch="ledger-consume/${{ github.run_id }}"
           git checkout -b "$branch"
           git commit -m "ledger-consume ${{ inputs.mode }}: run ${{ github.run_id }}"
+          # BRANCH-BASE (2026-09-04): re-base the artifact commit onto the current master tip before the push, so a
+          # workflow-file change that landed on master mid-run cannot make GitHub refuse the branch (see
+          # population-turn.yml's own BRANCH-BASE comment for the failure this fixes).
+          git fetch --no-tags --depth=50 origin master
+          git rebase origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
           git push origin HEAD:"$branch"
           printf 'Automated ledger consume (run %s).\n\nRequested mode: %s\nLimit: %s\nSource id: %s\n\nLands the harness-run artifact for this run under scripts/harness-runs/ledger-consume/. If mode=apply was requested, note that apply is structurally disarmed (LEDGER_CONSUME_APPLY_ENABLED=false in run-ledger-consume.mjs, ADR-023) until an operator flips it in a reviewed diff — this run executed with plan semantics; check config.apply_disarmed in the artifact.\n' \
             "${{ github.run_id }}" "${{ inputs.mode }}" "${{ inputs.limit }}" "${{ inputs.source_id }}" > /tmp/pr-body.md

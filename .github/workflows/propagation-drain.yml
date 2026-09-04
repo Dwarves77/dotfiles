@@ -174,6 +174,11 @@ jobs:
           branch="propagation/${{ github.run_id }}"
           git checkout -b "$branch"
           git commit -m "propagation drain ${{ inputs.mode }}: run ${{ github.run_id }}"
+          # BRANCH-BASE (2026-09-04): re-base the artifact commit onto the current master tip before the push, so a
+          # workflow-file change that landed on master mid-run cannot make GitHub refuse the branch (see
+          # population-turn.yml's own BRANCH-BASE comment for the failure this fixes).
+          git fetch --no-tags --depth=50 origin master
+          git rebase origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
           git push origin HEAD:"$branch"
           printf 'Automated propagation drain (run %s).\n\nMode: %s\nBatch: %s\n\nLands the harness-run artifact for this drain under scripts/harness-runs/propagation/.\n' \
             "${{ github.run_id }}" "${{ inputs.mode }}" "${{ inputs.batch }}" > /tmp/pr-body.md
