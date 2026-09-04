@@ -149,8 +149,15 @@ import {
   writeGroundingSequence,
   classifyMintOutcome,
 } from "../../src/lib/intake/write-item.ts";
+// THE M4 same-URL identity rule's ONE body (RD-M4b, 2026-09-04) — moved out of this file into
+// lib/instrument-identity.mjs so export-census-rows.mjs's own same-URL exclusion (one layer above
+// checkM4) can share it instead of re-deriving it (CLAUDE.md: never two copies). Re-exported below,
+// verbatim, so every existing import of these two names from this file (apply-mint-batch.test.mjs)
+// keeps working unmodified — the same convention this file already uses for buildAgentRunSearchRows etc.
+import { normalizeInstrumentIdentifier, sameInstrumentIdentity } from "./lib/instrument-identity.mjs";
 
 export { buildAgentRunSearchRows, buildSectionRows, buildClaimRows, buildCitationRows };
+export { normalizeInstrumentIdentifier, sameInstrumentIdentity };
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -181,27 +188,10 @@ export function buildItemsIndex(items) {
   return { byCanonicalKey, bySourceUrl };
 }
 
-/** Normalize an `instrument_identifier` for identity comparison: trim + lowercase; anything that is not a
- *  non-empty string (null, undefined, "", whitespace-only) normalizes to `null` ("unlabelled"). Pure. */
-export function normalizeInstrumentIdentifier(value) {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length ? trimmed.toLowerCase() : null;
-}
-
-/** THE M4 same-URL identity rule (see the M4 SAME-URL IDENTITY FIX note above for the evidence and the
- *  full rationale). Pure. Two identifiers name the SAME document when: both are unlabelled (null) —
- *  fail-closed, there is no positive evidence they differ, so an older unlabelled row at this URL may be
- *  the very document the payload also names; or both are labelled and equal once normalized. Two LABELLED,
- *  DIFFERENT identifiers at the same URL are a sibling series, not a duplicate, and do NOT match — the
- *  case ruling R-D made first-class (the EU Weekly Oil Bulletin's six series sharing one landing page).
- *  This is the ONE exported predicate every same-URL identity decision in this file goes through. */
-export function sameInstrumentIdentity(payloadIdentifier, holderIdentifier) {
-  const p = normalizeInstrumentIdentifier(payloadIdentifier);
-  const h = normalizeInstrumentIdentifier(holderIdentifier);
-  if (p != null && h != null) return p === h;
-  return true; // at least one side unlabelled — ambiguous, presumed the same document (fail-closed)
-}
+// normalizeInstrumentIdentifier / sameInstrumentIdentity: see lib/instrument-identity.mjs (the M4 SAME-URL
+// IDENTITY FIX note above documents the rule itself; imported above and re-exported for callers of this
+// file — RD-M4b, 2026-09-04, moved the one body there so export-census-rows.mjs's own same-URL exclusion
+// can share it instead of a second copy).
 
 /** The M4 pre-check itself. Pure. Canonical-key holder checked first (the identity collision, unconditional
  *  — untouched by the same-URL identity fix below); a same-source_url holder second, now identity-scoped

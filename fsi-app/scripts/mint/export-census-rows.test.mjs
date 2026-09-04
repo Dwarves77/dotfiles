@@ -25,6 +25,7 @@ import {
   extractEurlexTitle,
   selectCensusRows,
   partitionExcludeHeld,
+  buildHeldUrlIndex,
   buildHeldKeyIndex,
   partitionExcludeHeldByKey,
   isEurlexRobotGate,
@@ -350,17 +351,87 @@ test("selectCensusRows with limit null returns every eligible row", () => {
   assert.equal(selectCensusRows(rows, { limit: 10 }).length, 10);
 });
 
-test("partitionExcludeHeld: default excludes rows whose document_url already has an intelligence_items row", () => {
-  const held = new Set(["https://eur-lex.europa.eu/b"]);
+test("partitionExcludeHeld: default excludes rows whose document_url already has an intelligence_items row carrying the SAME instrument_identifier (a true duplicate)", () => {
+  // r2's own instrument_identifier is "32023L0002" (see ROWS above) -- the holder matches it exactly.
+  const held = buildHeldUrlIndex([{ id: "holder-b", source_url: "https://eur-lex.europa.eu/b", instrument_identifier: "32023L0002" }]);
   const { kept, excludedHeld } = partitionExcludeHeld(ROWS.slice(0, 2), held, true);
   assert.deepEqual(kept.map((r) => r.id), ["r1"]);
   assert.deepEqual(excludedHeld.map((r) => r.id), ["r2"]);
 });
 
 test("partitionExcludeHeld: excludeHeld=false keeps everything, excludes nothing", () => {
-  const held = new Set(["https://eur-lex.europa.eu/b"]);
+  const held = buildHeldUrlIndex([{ id: "holder-b", source_url: "https://eur-lex.europa.eu/b", instrument_identifier: "32023L0002" }]);
   const { kept, excludedHeld } = partitionExcludeHeld(ROWS.slice(0, 2), held, false);
   assert.equal(kept.length, 2);
+  assert.equal(excludedHeld.length, 0);
+});
+
+// ── RD-M4b (2026-09-04): partitionExcludeHeld is an IDENTITY exclusion, not a bare URL match ────────────
+
+test("buildHeldUrlIndex: keeps every holder at a URL, not just the last one indexed (a series landing page can carry several)", () => {
+  const idx = buildHeldUrlIndex([
+    { id: "item-1", source_url: "https://x/bulletin", instrument_identifier: "eu-oil-bulletin:eurosuper-95" },
+    { id: "item-2", source_url: "https://x/bulletin", instrument_identifier: "eu-oil-bulletin:automotive-diesel" },
+    { id: "item-3", source_url: "https://x/other", instrument_identifier: null },
+  ]);
+  assert.deepEqual(idx.get("https://x/bulletin"), [
+    { id: "item-1", instrument_identifier: "eu-oil-bulletin:eurosuper-95" },
+    { id: "item-2", instrument_identifier: "eu-oil-bulletin:automotive-diesel" },
+  ]);
+  assert.deepEqual(idx.get("https://x/other"), [{ id: "item-3", instrument_identifier: null }]);
+  assert.equal(idx.has("https://x/does-not-exist"), false);
+});
+
+test("buildHeldUrlIndex: absent items array -> empty index, never throws; a holder with no source_url is skipped", () => {
+  assert.equal(buildHeldUrlIndex(undefined).size, 0);
+  assert.equal(buildHeldUrlIndex([]).size, 0);
+  assert.equal(buildHeldUrlIndex([{ id: "x", source_url: null, instrument_identifier: "a" }]).size, 0);
+});
+
+test("partitionExcludeHeld RD-M4b (population apply #34's own shape): a sibling series -- SAME URL, DIFFERENT non-null instrument_identifier -- is NOT excluded (the defect RD-M4's own apply-mint-batch.mjs commit flagged one layer up)", () => {
+  const rows = [
+    { id: "automotive-diesel", document_url: "https://energy.ec.europa.eu/.../weekly-oil-bulletin_en", instrument_identifier: "eu-oil-bulletin:automotive-diesel" },
+    { id: "heating-gas-oil", document_url: "https://energy.ec.europa.eu/.../weekly-oil-bulletin_en", instrument_identifier: "eu-oil-bulletin:heating-gas-oil" },
+  ];
+  const heldUrlIndex = buildHeldUrlIndex([
+    { id: "eurosuper-95-item", source_url: "https://energy.ec.europa.eu/.../weekly-oil-bulletin_en", instrument_identifier: "eu-oil-bulletin:eurosuper-95" },
+  ]);
+  const { kept, excludedHeld } = partitionExcludeHeld(rows, heldUrlIndex, true);
+  assert.deepEqual(kept.map((r) => r.id), ["automotive-diesel", "heating-gas-oil"]);
+  assert.equal(excludedHeld.length, 0);
+});
+
+test("partitionExcludeHeld: a true duplicate (same URL, same instrument_identifier, case/whitespace-insensitive) IS excluded", () => {
+  const rows = [{ id: "r1", document_url: "https://x/bulletin", instrument_identifier: "  EU-Oil-Bulletin:Eurosuper-95  " }];
+  const heldUrlIndex = buildHeldUrlIndex([{ id: "holder", source_url: "https://x/bulletin", instrument_identifier: "eu-oil-bulletin:eurosuper-95" }]);
+  const { kept, excludedHeld } = partitionExcludeHeld(rows, heldUrlIndex, true);
+  assert.equal(kept.length, 0);
+  assert.deepEqual(excludedHeld.map((r) => r.id), ["r1"]);
+});
+
+test("partitionExcludeHeld: both sides unlabelled (null instrument_identifier) at the same URL IS excluded -- fail-closed, no positive evidence they differ", () => {
+  const rows = [{ id: "r1", document_url: "https://x/legacy", instrument_identifier: null }];
+  const heldUrlIndex = buildHeldUrlIndex([{ id: "holder", source_url: "https://x/legacy", instrument_identifier: null }]);
+  const { kept, excludedHeld } = partitionExcludeHeld(rows, heldUrlIndex, true);
+  assert.equal(kept.length, 0);
+  assert.deepEqual(excludedHeld.map((r) => r.id), ["r1"]);
+});
+
+test("partitionExcludeHeld: the null-holder asymmetry excludes in BOTH directions -- a labelled row against an unlabelled holder, and an unlabelled row against a labelled holder", () => {
+  const labelledRow = [{ id: "r1", document_url: "https://x/a", instrument_identifier: "32024R0001" }];
+  const unlabelledHolder = buildHeldUrlIndex([{ id: "holder-a", source_url: "https://x/a", instrument_identifier: null }]);
+  assert.equal(partitionExcludeHeld(labelledRow, unlabelledHolder, true).excludedHeld.length, 1);
+
+  const unlabelledRow = [{ id: "r2", document_url: "https://x/b", instrument_identifier: null }];
+  const labelledHolder = buildHeldUrlIndex([{ id: "holder-b", source_url: "https://x/b", instrument_identifier: "32024R0002" }]);
+  assert.equal(partitionExcludeHeld(unlabelledRow, labelledHolder, true).excludedHeld.length, 1);
+});
+
+test("partitionExcludeHeld: a row whose document_url has no holder at all passes through kept, untouched", () => {
+  const rows = [{ id: "r1", document_url: "https://x/nobody-here", instrument_identifier: "32024R0009" }];
+  const heldUrlIndex = buildHeldUrlIndex([{ id: "holder", source_url: "https://x/elsewhere", instrument_identifier: "32024R0009" }]);
+  const { kept, excludedHeld } = partitionExcludeHeld(rows, heldUrlIndex, true);
+  assert.deepEqual(kept, rows);
   assert.equal(excludedHeld.length, 0);
 });
 
@@ -1176,6 +1247,13 @@ test("main() reads intelligence_items.canonical_instrument_key alongside source_
   assert.match(src, /fetchRowsIn\(sb,\s*"intelligence_items",\s*"id, canonical_instrument_key, archive_reason",\s*"canonical_instrument_key"/);
   assert.match(src, /buildHeldKeyIndex\(/);
   assert.match(src, /partitionExcludeHeldByKey\(/);
+});
+
+test("main() reads intelligence_items.instrument_identifier alongside source_url (RD-M4b), batch-scoped via fetchRowsIn, feeding buildHeldUrlIndex -- never a bare source_url-only read", () => {
+  const src = readFileSync(new URL("./export-census-rows.mjs", import.meta.url), "utf8");
+  assert.match(src, /fetchRowsIn\(sb,\s*"intelligence_items",\s*"id, source_url, instrument_identifier",\s*"source_url"/);
+  assert.match(src, /buildHeldUrlIndex\(/);
+  assert.match(src, /partitionExcludeHeld\(\s*preselected,\s*heldUrlIndex,\s*excludeHeld\s*\)/);
 });
 
 test("fetchRowsIn chunks the key list and concatenates results", async () => {

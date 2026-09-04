@@ -385,8 +385,18 @@ the ONE canonical-key mirror this repo ships (see that file's own header for why
 forbidden) — never a second regex. A row with no existing capture is held `no_capture` by default;
 `--capture` politely fetches `document_url` instead (1 req/s via `POPULATION_FETCH_GAP_MS`, 20s timeout,
 $0, no LLM) and holds `capture_too_short` when the result is ≤200 chars either way. `--exclude-held`
-(default on) drops any row whose `document_url` already has an `intelligence_items` row (archived
-included) before export — never silently, always counted in the run summary. Output is exactly the
+(default on) drops a row whose `document_url` already has an `intelligence_items` row (archived
+included) before export — never silently, always counted in the run summary. **This is an IDENTITY
+exclusion, not a bare URL match** (RD-M4b, 2026-09-04 — the same defect class as apply-mint-batch.mjs's own
+M4 same-URL fix above, one layer up): a row is dropped only when `sameInstrumentIdentity`
+(`scripts/mint/lib/instrument-identity.mjs` — the ONE shared body `apply-mint-batch.mjs`'s `checkM4` also
+imports, never a second copy) matches the row's own `instrument_identifier` against SOME holder at that
+`document_url` — `partitionExcludeHeld`/`buildHeldUrlIndex` in `export-census-rows.mjs`. A holder with a
+DIFFERENT, non-null identifier at that URL is a sibling series (ruling R-D), not a duplicate, and does
+**not** drop the row — before this fix, a plain URL-membership check would have wrongly excluded such a
+row before it ever reached apply-mint-batch.mjs's own (already-fixed) checkM4 to be correctly let through.
+`canonical_instrument_key` is excluded separately and unconditionally by `partitionExcludeHeldByKey`
+(any exact key match, archived included — defect 1, unchanged by this fix). Output is exactly the
 enriched-row shape `run-mint-batch.mjs`'s own `loadCensusRows` header documents; a row this script cannot
 build for any reason lands in a sibling `<out>.held.json` with a `hold` reason, never dropped.
 

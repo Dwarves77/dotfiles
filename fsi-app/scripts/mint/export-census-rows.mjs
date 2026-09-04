@@ -62,7 +62,11 @@
 //      plus the instrument identifier. `title_origin` records which, honestly, per row.
 //   6. --exclude-held (default ON; --include-held turns it off): a row whose document_url already has AN
 //      intelligence_items.source_url row -- archived or not -- is excluded before export (not merely
-//      held), with the excluded count reported.
+//      held), with the excluded count reported. This is an IDENTITY exclusion, not a bare URL match
+//      (RD-M4b, 2026-09-04): a same-URL holder excludes the row only when sameInstrumentIdentity says the
+//      two rows name the same document -- a holder with a DIFFERENT, non-null instrument_identifier at
+//      that URL is a sibling series (ruling R-D) and does not exclude it. See partitionExcludeHeld/
+//      buildHeldUrlIndex below.
 //
 // A row that cannot be built for ANY reason is emitted to a SIBLING `<out>.held.json` file with a `hold`
 // reason -- per this lane's charter, "never silently dropped". Rows excluded by --exclude-held are
@@ -156,6 +160,31 @@
 //     holder itself (the 459/529-row archived-holder disposition is a separate, already-executed operator
 //     ruling — docs/plans/population-pass-2026-09-03.md — this fix only stops EXPORTING a row that
 //     collides with one, archived or not).
+//
+// ── UPDATE 2026-09-04 (Lane RD-M4b) — the same-URL exclusion, one layer above checkM4, was URL-only ─────
+// RD-M4 (2026-09-04, apply-mint-batch.mjs's own "M4 SAME-URL IDENTITY FIX" note) fixed apply-mint-batch.mjs's
+// checkM4 so a same-URL holder blocks a payload only when the two rows can't be told apart by identity
+// (`sameInstrumentIdentity`), not by URL alone — a series landing page (one `source_url`, several
+// `instrument_identifier`-distinguished items, ruling R-D) no longer has its first-minted sibling block
+// every later one. That commit's own header flagged THIS file's `partitionExcludeHeld` as the same defect
+// class one layer up: it excluded a would_mint census row purely on `source_url` Set membership, with no
+// identity comparison — a census row sharing a URL with a live holder would be excluded from export before
+// ever reaching apply-mint-batch.mjs's own (already-fixed) checkM4, so a legitimate sibling series row
+// could be silently dropped here even though checkM4 downstream would correctly let it through.
+// `partitionExcludeHeld` now takes a per-URL holder index (`buildHeldUrlIndex`, this file's own mirror of
+// apply-mint-batch.mjs's `buildItemsIndex.bySourceUrl`) and excludes a row only when
+// `sameInstrumentIdentity(row.instrument_identifier, holder.instrument_identifier)` is true for SOME
+// holder at that URL — the SAME predicate, imported from `lib/instrument-identity.mjs` (never a second
+// copy; CLAUDE.md), so this export-time exclusion can never disagree with the M4 refusal it exists to
+// pre-empt. Live measurement [Supabase, 2026-09-04]: `census_worklist` carries ZERO rows with
+// `instrument_identifier LIKE 'eu-oil-bulletin:%'` or `document_url` = the bulletin's own URL — the six
+// R-D series never went through this exporter at all (they are hand-built by
+// `scripts/producers/market/build-oil-bulletin-rows.mjs` into a `rows_file` that
+// `population-turn.yml` dispatches DIRECTLY to `run-mint-batch.mjs`/`apply-mint-batch.mjs`, skipping this
+// file entirely per that script's own header). So this fix changes nothing for the bulletin's own five
+// siblings today (they are simply not eligible rows here to begin with) — it closes the same defect class
+// for the next census_worklist-sourced row that shares a URL with a live holder under a different
+// identifier, which the URL-only check would have wrongly excluded.
 // (2) THE EUR-LEX ROBOT PAGE, RE-FETCHED EVERY RUN: 19 of run #14's 22 holds were `capture_blocked`; ten
 //     were EUR-Lex CELEX keys with an OJ-sequence `(NN)` suffix (e.g. `22004A0806(01)`, `32023D0628(01)`,
 //     `32020D1124(01)`). Root cause, confirmed live (WebFetch against publications.europa.eu, 2026-09-03):
@@ -184,6 +213,10 @@ import { fileURLToPath } from "node:url";
 import { deriveKey } from "../lib/canonical-key.mjs";
 import { screenVerdictFor, isMintable } from "./lib/screen-verdict.mjs";
 import { sameInstitution } from "../lib/institution-key.mjs";
+// THE M4 same-URL identity rule's ONE body (RD-M4b, 2026-09-04 — see this file's own "UPDATE 2026-09-04"
+// note near partitionExcludeHeld below, and lib/instrument-identity.mjs's own header): apply-mint-batch.mjs's
+// checkM4 already imports the SAME two functions from here — never a local re-derivation in either file.
+import { normalizeInstrumentIdentifier, sameInstrumentIdentity } from "./lib/instrument-identity.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -621,14 +654,40 @@ export function selectCensusRows(censusRows, { sourceId = null, celexPrefix = nu
     .slice(0, limit == null ? undefined : limit); // null = no cap (main() caps AFTER the held-exclusion)
 }
 
-/** Partition selected rows into { kept, excludedHeld } against a Set of source_urls that already have an
- *  intelligence_items row (archived or not). Pure. When `excludeHeld` is false, nothing is excluded
- *  (every row passes through as `kept`) -- the caller still gets the same shape either way. */
-export function partitionExcludeHeld(rows, heldUrlSet, excludeHeld = true) {
+/** Map document_url (== intelligence_items.source_url) -> array of every holder at it, { id,
+ *  instrument_identifier } (archived rows INCLUDED — matches apply-mint-batch.mjs's buildItemsIndex,
+ *  M4's own charter). Pure. This file's own mirror of that function's `bySourceUrl` index, kept in exact
+ *  correspondence so a row excluded here can never disagree with the M4 refusal it exists to pre-empt
+ *  (RD-M4b, 2026-09-04 -- see this file's "UPDATE 2026-09-04" note above partitionExcludeHeld below). */
+export function buildHeldUrlIndex(items) {
+  const byUrl = new Map();
+  for (const it of items ?? []) {
+    if (!it?.source_url) continue;
+    const arr = byUrl.get(it.source_url) ?? [];
+    arr.push({ id: it.id ?? null, instrument_identifier: it.instrument_identifier ?? null });
+    byUrl.set(it.source_url, arr);
+  }
+  return byUrl;
+}
+
+/** Partition selected rows into { kept, excludedHeld } against a per-URL holder index
+ *  (`buildHeldUrlIndex`) of intelligence_items rows (archived included). A row is excluded ONLY when
+ *  `sameInstrumentIdentity` (lib/instrument-identity.mjs -- the SAME predicate apply-mint-batch.mjs's
+ *  checkM4 goes through, never a second copy) matches the row's own `instrument_identifier` against SOME
+ *  holder at that URL -- never a bare URL-membership test (RD-M4b, 2026-09-04: fixes the defect class
+ *  RD-M4's own apply-mint-batch.mjs commit flagged one layer up in this exact function -- see this file's
+ *  "UPDATE 2026-09-04" note above). A holder with a DIFFERENT, non-null identifier at the same URL is a
+ *  sibling series, not a duplicate, and does NOT exclude the row -- the case ruling R-D made first-class.
+ *  Pure. When `excludeHeld` is false, nothing is excluded (every row passes through as `kept`) -- the
+ *  caller still gets the same shape either way. */
+export function partitionExcludeHeld(rows, heldUrlIndex, excludeHeld = true) {
   if (!excludeHeld) return { kept: rows.slice(), excludedHeld: [] };
   const kept = [], excludedHeld = [];
   for (const r of rows) {
-    if (heldUrlSet.has(r.document_url)) excludedHeld.push(r);
+    const holders = heldUrlIndex.get(r.document_url) ?? [];
+    const rowIdentifier = r.instrument_identifier ?? null;
+    const identityHolder = holders.find((h) => sameInstrumentIdentity(rowIdentifier, h.instrument_identifier));
+    if (identityHolder) excludedHeld.push(r);
     else kept.push(r);
   }
   return { kept, excludedHeld };
@@ -1313,13 +1372,18 @@ export async function main() {
   // table -- see the READ SHAPE note above), and the SAME M4 rule (buildHeldKeyIndex's own header) is
   // applied here, before a payload is ever built.
   const candidateKeys = [...new Set(preselected.map((r) => resolveIdentity(r, null).canonicalKey).filter(Boolean))];
-  const [heldUrlSet, heldItemsByKey] = await Promise.all([
-    fetchColumnIn(sb, "intelligence_items", "source_url", "source_url", candidateUrls).then((urls) => new Set(urls)),
+  // RD-M4b (2026-09-04, this file's own "UPDATE 2026-09-04" note above partitionExcludeHeld): the same-URL
+  // exclusion needs each holder's instrument_identifier, not just its source_url, so it can apply
+  // sameInstrumentIdentity instead of a bare URL-membership test -- read alongside source_url, batch-scoped
+  // exactly like the key read below (an `in (...)` chunked read, never the whole table).
+  const [heldUrlItems, heldItemsByKey] = await Promise.all([
+    fetchRowsIn(sb, "intelligence_items", "id, source_url, instrument_identifier", "source_url", candidateUrls),
     fetchRowsIn(sb, "intelligence_items", "id, canonical_instrument_key, archive_reason", "canonical_instrument_key", candidateKeys),
   ]);
+  const heldUrlIndex = buildHeldUrlIndex(heldUrlItems);
   const heldKeyIndex = buildHeldKeyIndex(heldItemsByKey);
   const excludeHeld = !values["include-held"];
-  const { kept: keptUnscreened0, excludedHeld } = partitionExcludeHeld(preselected, heldUrlSet, excludeHeld);
+  const { kept: keptUnscreened0, excludedHeld } = partitionExcludeHeld(preselected, heldUrlIndex, excludeHeld);
   const { kept: keptUnscreened, excludedHeldByKey } = excludeHeld
     ? partitionExcludeHeldByKey(keptUnscreened0, heldKeyIndex)
     : { kept: keptUnscreened0, excludedHeldByKey: [] };
