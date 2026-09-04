@@ -1903,14 +1903,23 @@ function firstSentence(text: string): string {
   return m ? m[1] : text;
 }
 
+// HYDRATION-418 (2026-09-04): both calls below now pin timeZone: "UTC" — without it,
+// toLocaleDateString uses the runtime's local zone, which differs between this component's SERVER
+// render (a Vercel Lambda, UTC) and its CLIENT hydration render (the viewer's local zone), producing a
+// genuine text mismatch for any date-only value near a local-midnight boundary (reproduced:
+// `TZ=America/New_York node -e 'new Date("2026-09-25").toLocaleDateString("en-US",{year:"numeric",
+// month:"short",day:"numeric"})'` → "Sep 24, 2026" vs the UTC server's "Sep 25, 2026") — React error
+// #418. See src/components/regulations/format-fixed-date.ts for the pure, tested version of this fix
+// (RegulationsLedger's row-milestone chip); this file keeps its own two inline formatters rather than
+// importing that module, to avoid an unrelated import-surface change in an already-1900-line file.
 function shortDate(d: string): string {
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return d;
-  return dt.toLocaleDateString("en-US", { year: "numeric" });
+  return dt.toLocaleDateString("en-US", { year: "numeric", timeZone: "UTC" });
 }
 
 function fullDate(d: string): string {
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return d;
-  return dt.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  return dt.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 }

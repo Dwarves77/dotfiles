@@ -58,6 +58,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import { useResourceStore, mergeWithOverrides } from "@/stores/resourceStore";
+import { formatMilestoneChip } from "@/components/regulations/format-fixed-date";
 import { usePersonalStateHydration } from "@/lib/hooks/usePersonalState";
 import { useListOrder } from "@/lib/hooks/useListOrder";
 import { applyMove, compareRanks } from "@/lib/list-order";
@@ -1370,9 +1371,9 @@ function RegRow({
 }) {
   const md = nextMilestone(r, now);
   const days = md ? Math.round((md.getTime() - now) / 86400000) : null;
-  const dateStr = md
-    ? md.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-    : null;
+  // HYDRATION-418 (2026-09-04): pin the zone — see format-fixed-date.ts's header for the reproduced
+  // server(UTC)/client(local) mismatch this was throwing React error #418 on.
+  const dateStr = formatMilestoneChip(md);
   const dateRed = days !== null && days >= 0 && days <= 90;
   const tier = r.sourceTier != null ? clampTier(r.sourceTier) : null;
   return (

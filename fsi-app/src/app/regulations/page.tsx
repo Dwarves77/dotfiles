@@ -67,11 +67,17 @@ export default async function RegulationsPage({
     .filter((d): d is Date => d !== null)
     .reduce<Date | null>((acc, d) => (acc === null || d > acc ? d : acc), null);
   const lastSync = rpcSync ?? rowSync;
+  // HYDRATION-418 follow-on (2026-09-04): this is a Server Component (no client re-render, so no
+  // hydration-diff risk from this call specifically), but it renders on the SAME page under
+  // investigation and the same unpinned-timeZone call is genuinely TZ-dependent — a Vercel Lambda (UTC)
+  // and a viewer's local browser would disagree about which calendar day "last sync" falls on for a
+  // sync near local midnight. Pinned for correctness and consistency with the fix in
+  // RegulationsLedger.tsx / RegulationDetailSurface.tsx just below this page in the tree.
   const lastSyncLabel = lastSync
-    ? lastSync.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    ? lastSync.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
     : null;
 
-  const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
 
   const boldInk = { fontWeight: 800, color: "var(--color-text-primary)" } as const;
   const meta = (
