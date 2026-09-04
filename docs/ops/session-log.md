@@ -9182,3 +9182,44 @@ every API route. Lane PERF-6 is on both now.
 Train gates on this branch: fitness 29/0 (F28 PASS after PROPOSER-3's attestations, `1bd9f010`),
 discipline 141/0, lane tests 37/0, tsc clean. Still running: TANDEM, HOLLOW-GATE, RECORD-SURFACE,
 SITEMAP, HEAL-6, PERF-6.
+
+### Addendum 85, postscript 25 — the flywheel is in the runtime, the sitemap walker is wired, two discipline false positives (2026-09-04)
+
+TANDEM (Sonnet, `4afbf7a8`, 30 tests) [CONFIRMED from population-turn.yml read in full]: the workflow
+ended at `apply-mint-batch.mjs` → rederive → screen-reconcile → `propose-tags --dry` → commit; nothing
+ever ran MINT-RUNBOOK §8 (discovery, forward-event extraction, recluster) or §9 (`--outcomes`), which
+is why runs #15–#20 minted ~650 items with zero edges, events, obligations or tags. New
+`scripts/turns/run-population-flywheel.mjs` runs the eleven-step chain inside the workflow after every
+apply, scoped to the batch's minted ids, reusing the existing scripts' own `main()`s and calling the
+rest as child processes; §9 outcomes are written into the run's mint artifact; and THE GATE
+(`checkPriorSliceConnected`) refuses a new apply while the newest mint artifact has `minted > 0` and
+no `edges_discovered`/`forward_events_extracted`/`isolated_items`, exit 1 naming the fix. Runbooks
+rewritten to say the coordinator reads outcomes, never runs the pass. Mint PENDING-RUN re-pinned to
+`sha256:bff28600696d162f` (MINT-RUNBOOK is a governing file).
+
+SITEMAP (Sonnet, `340295f2`, 72 tests): walker `sitemap` in source-sweep, feed discovery FIRST
+(`feed-discovery.mjs`, ported from control-center's `lib/feed-discovery.ts` near-verbatim), sitemap
+only when no feed exists (`sitemap-walk.mjs`: ported the byte bounds, document/entry budgets,
+source-path scoping and the deferred baseline on partial coverage; kept our polite fetch, gzip,
+quote/namespace tolerance and injected persistence). Wired end to end: a found feed hands to the
+existing `walkFeed` and writes `sources.rss_feed_url` through `guardedUpdate` only when it differs;
+new locs go to `portal_link_candidates` through the family's existing upsert; a changed `lastmod` on
+a live item's URL inserts the `monitoring_queue` row `reconcile.ts runReconcilePass` reads (the
+consumer traced from `change-sweep.mjs` down to its live caller); URL-set snapshots live in the
+`raw_fetches` bucket, never the table, because `bridgeChangedSourceToStagedUpdates` diffs that
+table's rows as HTML (a B1 catch). `THIRD-PARTY-NOTICES.md` carries the MIT text. No schedule (rule
+16). First dry dispatches named: `--host aircargonews.net` (feed) and `--host aapa-ports.org`
+(sitemap only); the container proxy refused both hosts, so the first live walk is the Actions
+dispatch. Source-sweep PENDING-RUN written for the new hash.
+
+Two discipline false positives caught by PR #562's first run, fixed at the rule, not bypassed: rule
+012 scanned `scripts/_snapshots/**/*.json` and found `C:/Users/` inside the Publications Office's own
+OJ fmx.xml metadata captured verbatim for L 2023/2463; captured third-party content is data the
+grounding pool must keep byte-exact (ADR-016), so the snapshot tree is now exempt, with tests. Rule 019
+flagged HOLLOW-SWEEP's test for restating the five source-y reasons as literals next to an
+`is_archived: true` fixture; the test now imports `SOURCEY_ARCHIVE_REASONS` from db.mjs.
+
+Landing order for the runs, all dispatch-only: population-turn under the new gate is the next
+population apply (the R-D rows first, six items, the smallest proof of the chain), then
+`record-hollow-sweep` dry → apply once HOLLOW-GATE lands so the re-mint carries facts, then
+`apply-classifications` dry → apply, then source-sweep `sitemap` dry on the two named hosts.
