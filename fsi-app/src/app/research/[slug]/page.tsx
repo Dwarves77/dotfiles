@@ -50,6 +50,7 @@ import { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { ResearchFindingDetailSurface } from "@/components/research/ResearchFindingDetailSurface";
 import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
+import { formatLocaleDate } from "@/lib/format";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -296,7 +297,7 @@ export default async function ResearchFindingDetailPage({
   const metaParts = [
     r.sourceName,
     r.added
-      ? `Published ${new Date(r.added).toLocaleDateString("en-US", {
+      ? `Published ${formatLocaleDate(new Date(r.added), {
           year: "numeric",
           month: "short",
           day: "numeric",

@@ -6,6 +6,7 @@ import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { getWorkspaceProfile } from "@/lib/workspace/profile";
 import { ALL_SECTORS, JURISDICTIONS } from "@/lib/constants";
 import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
+import { formatNumber, formatLocaleDate } from "@/lib/format";
 import { AccountMasthead } from "@/components/account/AccountMasthead";
 import {
   SubTabBar,
@@ -281,7 +282,7 @@ export function UserProfilePage({ userId, userEmail }: Props) {
           {isAdmin ? (
             <StatTile
               label="Admin attention"
-              value={adminAttentionTotal.toLocaleString()}
+              value={formatNumber(adminAttentionTotal)}
               alarm={adminAttentionTotal > 0}
               meta={
                 <a
@@ -687,7 +688,7 @@ function formatMonthYear(iso: string | null | undefined): string | null {
   if (!iso) return null;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+  return formatLocaleDate(d, { month: "short", year: "numeric", timeZone: "UTC" });
 }
 
 function capitalize(s: string): string {

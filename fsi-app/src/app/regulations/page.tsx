@@ -31,7 +31,7 @@
  * trade-off already accepted for /market, /operations, /research's own list pages this lane.
  */
 
-import { getPublicListingsOnly, getPublicSurfaceCounts } from "@/lib/data";
+import { getPublicListingsOnly, getPublicSurfaceCounts, getPublicObligationRegisterFirstPage } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { RegulationsLedger } from "@/components/regulations/RegulationsLedger";
@@ -50,6 +50,7 @@ import { ObligationRegister } from "@/components/regulations/ObligationRegister"
 import { EudrCustodyPanel } from "@/components/regulations/EudrCustodyPanel";
 import { toDate } from "@/lib/relative-time";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
+import { formatLocaleDate } from "@/lib/format";
 
 export default async function RegulationsPage() {
   // Listings (verified-gated server-side) for the ledger rows + the
@@ -61,7 +62,7 @@ export default async function RegulationsPage() {
   // bind to `aggregates`, which is sourced from get_surface_counts (or its scoped-aggregates
   // fallback) — both real RPCs, independent of how many rows are loaded — so the header count
   // stays honest at 30, at 754, and everywhere in between.
-  const [data, aggregates] = await Promise.all([
+  const [data, aggregates, obligationRegisterFirstPage] = await Promise.all([
     // RECONCILE (2026-09-04, item 1) of PERF-10 (org-independent, cacheable, cookie-free — keeps
     // this route static) and PERF-11's domain scoping, unified with PERF-12's cursor page size:
     // the SSR first page is now exactly LIST_PAGE_SIZE (30) rows, the SAME size every subsequent
@@ -77,6 +78,10 @@ export default async function RegulationsPage() {
     // what makes the RENDER correct even if the domain predicate is ever a no-op for a stray row.
     getPublicListingsOnly({ limit: LIST_PAGE_SIZE, offset: 0, domain: REGULATIONS_DOMAIN }),
     getPublicSurfaceCounts("regulations"),
+    // RECONCILE (2026-09-04, item 4b-i): the obligation register's own unfiltered first page,
+    // seeded server-side now — see data.ts's own header for why a service-role read here is RLS-
+    // equivalent, not a bypass of anything a signed-out visitor could not already read.
+    getPublicObligationRegisterFirstPage(),
   ]);
 
   const regulationResources = data.resources.filter((r) => r.domain === REGULATIONS_DOMAIN);
@@ -113,10 +118,10 @@ export default async function RegulationsPage() {
   // sync near local midnight. Pinned for correctness and consistency with the fix in
   // RegulationsLedger.tsx / RegulationDetailSurface.tsx just below this page in the tree.
   const lastSyncLabel = lastSync
-    ? lastSync.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
+    ? formatLocaleDate(lastSync, { month: "short", day: "numeric", timeZone: "UTC" })
     : null;
 
-  const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
+  const today = formatLocaleDate(new Date(), { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
 
   const boldInk = { fontWeight: 800, color: "var(--color-text-primary)" } as const;
   const meta = (
@@ -183,10 +188,13 @@ export default async function RegulationsPage() {
       />
       {/* Lane OBLIG (2026-09-02): the obligation register section — spec-01 §2's atomic unit ("the
           obligation, not the document"), migration 290's `obligations` table (item_forward_events
-          denormalized with jurisdiction / mode / binding_position). Self-contained server component:
-          reads its own data via the request-scoped client, so it needs no props from this page's own
-          fetches, and soft-fails to nothing (never breaks the page) on a read error. */}
-      <ObligationRegister variant="list" />
+          denormalized with jurisdiction / mode / binding_position).
+          RECONCILE (2026-09-04, item 4b-i): `initialResult` seeds the unfiltered first page from THIS
+          page's own SSR render (getPublicObligationRegisterFirstPage, data.ts) instead of the section
+          rendering "Loading obligation register…" on every navigation before its own client-mount
+          fetch resolves — see ObligationRegister.tsx's own header for the full before/after. A filter
+          change or "Load more" still calls /api/obligations/register directly, client-side, unchanged. */}
+      <ObligationRegister variant="list" initialResult={obligationRegisterFirstPage} />
       {/* Lane SPEC-09 (wave 3, 2026-09-03): EUDR geo-traceability + book-and-claim custody (spec 09 §1.8).
           Renders a single short "no rows yet" line per sub-table when empty (today's live state — see
           scripts/spec09/SOURCES.md) rather than an empty card. */}

@@ -30,6 +30,7 @@
 
 import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
+import { formatYearOnly, formatShortDate } from "@/components/regulations/format-fixed-date";
 import { AlertTriangle } from "lucide-react";
 import { ImpactScores } from "@/components/resource/ImpactScores";
 import { IntelligenceBrief } from "@/components/resource/IntelligenceBrief";
@@ -1903,23 +1904,28 @@ function firstSentence(text: string): string {
   return m ? m[1] : text;
 }
 
-// HYDRATION-418 (2026-09-04): both calls below now pin timeZone: "UTC" — without it,
-// toLocaleDateString uses the runtime's local zone, which differs between this component's SERVER
-// render (a Vercel Lambda, UTC) and its CLIENT hydration render (the viewer's local zone), producing a
-// genuine text mismatch for any date-only value near a local-midnight boundary (reproduced:
-// `TZ=America/New_York node -e 'new Date("2026-09-25").toLocaleDateString("en-US",{year:"numeric",
-// month:"short",day:"numeric"})'` → "Sep 24, 2026" vs the UTC server's "Sep 25, 2026") — React error
-// #418. See src/components/regulations/format-fixed-date.ts for the pure, tested version of this fix
-// (RegulationsLedger's row-milestone chip); this file keeps its own two inline formatters rather than
-// importing that module, to avoid an unrelated import-surface change in an already-1900-line file.
+// HYDRATION-418 (2026-09-04): toLocaleDateString with no timeZone option uses the runtime's local
+// zone, which differs between this component's SERVER render (a Vercel Lambda, UTC) and its CLIENT
+// hydration render (the viewer's local zone), producing a genuine text mismatch for any date-only
+// value near a local-midnight boundary (reproduced: `TZ=America/New_York node -e 'new
+// Date("2026-09-25").toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"})'` →
+// "Sep 24, 2026" vs the UTC server's "Sep 25, 2026") — React error #418.
+//
+// RECONCILE (2026-09-04, item 4b-ii): these two functions used to re-declare the SAME pinned
+// `.toLocaleDateString` call format-fixed-date.ts's formatYearOnly/formatShortDate already carry
+// (this file's own prior comment named the duplication deliberately, "to avoid an unrelated import-
+// surface change" — moot now that this reconciliation is already routing the whole repo's
+// `.toLocaleString`/`.toLocaleDateString` call sites through one shared module, src/lib/format.ts).
+// Delegated below (import at the top of the file); the `NaN` guard (fall back to the raw string on an
+// unparsable date) is this file's own pre-existing behavior, unchanged.
 function shortDate(d: string): string {
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return d;
-  return dt.toLocaleDateString("en-US", { year: "numeric", timeZone: "UTC" });
+  return formatYearOnly(dt);
 }
 
 function fullDate(d: string): string {
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return d;
-  return dt.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
+  return formatShortDate(dt);
 }

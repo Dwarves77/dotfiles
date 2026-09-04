@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { Tag, Building, Layers, Clock, Link as LinkIcon } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { toDisplaySeverity } from "@/lib/agent/metadata-vocab";
+import { formatLocaleDate } from "@/lib/format";
 
 interface ItemMetadata {
   id: string;
@@ -132,7 +133,7 @@ export function IntelligenceMetadataStrip({ itemId }: Props) {
         {meta.last_regenerated_at && (
           <span className="ml-auto flex items-center gap-1" style={{ color: "var(--color-text-muted)" }}>
             <Clock size={10} />
-            regenerated {new Date(meta.last_regenerated_at).toLocaleDateString()}
+            regenerated {formatLocaleDate(new Date(meta.last_regenerated_at))}
             {meta.regeneration_skill_version && ` · contract ${meta.regeneration_skill_version}`}
           </span>
         )}

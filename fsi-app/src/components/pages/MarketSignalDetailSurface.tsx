@@ -32,6 +32,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import Link from "next/link";
+import { formatMonthDay, formatShortDate } from "@/components/regulations/format-fixed-date";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { useResourceStore } from "@/stores/resourceStore";
@@ -1516,14 +1517,20 @@ function copyToClipboard(text: string) {
 }
 
 // ── Date helpers ────────────────────────────────────────────────────────
+// RECONCILE (2026-09-04, item 4b-ii): both previously called `.toLocaleDateString("en-US", {...})`
+// directly with NO `timeZone` pin — a live, undiagnosed HYDRATION-418-class defect (this "use client"
+// component renders once on the UTC server and once more on the viewer's own local zone during
+// hydration; see format-fixed-date.ts's own header for the reproduced mismatch and RegulationDetail-
+// Surface.tsx's identical fix). Delegated to format-fixed-date.ts's shared, UTC-pinned presets — found
+// and fixed by this reconciliation's repo-wide sweep onto ONE shared formatter module.
 function shortDate(d: string): string {
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return d;
-  return dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return formatMonthDay(dt);
 }
 
 function fullDate(d: string): string {
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return d;
-  return dt.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  return formatShortDate(dt);
 }

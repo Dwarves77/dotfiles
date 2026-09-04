@@ -24,6 +24,7 @@ import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
 import { IntegrityFlagsView } from "@/components/admin/IntegrityFlagsView";
 import { PlatformIntegrityFlagsView } from "@/components/admin/PlatformIntegrityFlagsView";
 import { IngestRejectionsView } from "@/components/admin/IngestRejectionsView";
+import { formatNumber } from "@/lib/format";
 
 type FlagKind = "integrity" | "platform" | "rejections";
 
@@ -72,7 +73,7 @@ export function FlagsRejectionsQueue() {
   const openSum = known.length > 0 ? known.reduce((a, b) => a + b, 0) : null;
   const metaLine =
     openSum !== null
-      ? `${openSum.toLocaleString()} open across integrity + platform · one queue, three kinds`
+      ? `${formatNumber(openSum)} open across integrity + platform · one queue, three kinds`
       : "one queue, three kinds";
 
   return (
@@ -148,7 +149,7 @@ export function FlagsRejectionsQueue() {
               }}
             >
               {k.label}
-              {typeof k.count === "number" ? ` · ${k.count.toLocaleString()}` : ""}
+              {typeof k.count === "number" ? ` · ${formatNumber(k.count)}` : ""}
             </button>
           );
         })}

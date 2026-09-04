@@ -65,6 +65,7 @@ import { formatEventDate } from "@/lib/connections/forward-event-format.mjs";
 import { BINDING_POSITION, TRANSPORT_MODES, orderedValues } from "@/lib/contracts/vocabularies.mjs";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import { itemDetailHref } from "@/lib/item-links";
+import { formatNumber } from "@/lib/format";
 
 export interface ObligationItem {
   id: string;
@@ -256,7 +257,7 @@ export function ObligationRegisterFilterBar({
           {typeof sourceEventCount === "number" ? (
             <>
               No obligations classified into the register yet. It is derived from{" "}
-              <strong>{sourceEventCount.toLocaleString("en-US")}</strong> dated forward event
+              <strong>{formatNumber(sourceEventCount)}</strong> dated forward event
               {sourceEventCount === 1 ? "" : "s"} already on file (migration 274); the register fills in
               as they are matched to their parent regulation's jurisdiction, mode and binding position.
             </>
@@ -350,7 +351,7 @@ export function ObligationRegisterFilterBar({
           disabled={loading}
           style={loadMoreButtonStyle}
         >
-          {loading ? "Loading…" : `Load more (${(total - rows.length).toLocaleString("en-US")} more)`}
+          {loading ? "Loading…" : `Load more (${formatNumber(total - rows.length)} more)`}
         </button>
       )}
     </section>

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/Button";
 import { Mail, Plus, Loader2, AlertCircle, X, Copy, Check } from "lucide-react";
+import { formatLocaleDate, formatLocaleDateTime } from "@/lib/format";
 
 // InvitationsPanel — admin chrome for org invitation management.
 //
@@ -291,13 +292,13 @@ export function InvitationsPanel({ orgId }: Props) {
                 >
                   {inv.proposed_role} · {inv.status} ·
                   {inv.status === "pending"
-                    ? ` expires ${new Date(inv.expires_at).toLocaleDateString()}`
+                    ? ` expires ${formatLocaleDate(new Date(inv.expires_at))}`
                     : inv.status === "accepted"
-                      ? ` accepted ${inv.accepted_at ? new Date(inv.accepted_at).toLocaleString() : ""}`
+                      ? ` accepted ${inv.accepted_at ? formatLocaleDateTime(new Date(inv.accepted_at)) : ""}`
                       : inv.status === "declined"
-                        ? ` declined ${inv.declined_at ? new Date(inv.declined_at).toLocaleString() : ""}`
+                        ? ` declined ${inv.declined_at ? formatLocaleDateTime(new Date(inv.declined_at)) : ""}`
                         : inv.status === "revoked"
-                          ? ` revoked ${inv.revoked_at ? new Date(inv.revoked_at).toLocaleString() : ""}`
+                          ? ` revoked ${inv.revoked_at ? formatLocaleDateTime(new Date(inv.revoked_at)) : ""}`
                           : ""}
                 </p>
               </div>

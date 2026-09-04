@@ -1,4 +1,6 @@
-// obligation-register-locale.npmtest.mjs — HYDRATION-418 regression proof (PERF-MERGE, 2026-09-04).
+// obligation-register-locale.npmtest.mjs — HYDRATION-418 regression proof (PERF-MERGE, 2026-09-04;
+// updated RECONCILE 2026-09-04 item 4b-ii when the fix moved from an inline "en-US" literal to the
+// shared formatter module).
 //
 // Named *.npmtest.mjs to match this directory's existing convention (format-fixed-date.npmtest.mjs,
 // band-empty-state.npmtest.mjs) so it is picked up by the same glob-by-construction CI step.
@@ -14,14 +16,22 @@
 // error #418 (hydration text mismatch) — deterministic per non-en-US-locale viewer, on every /regulations
 // load (the register always has more rows than the first page, so "Load more" always renders).
 //
+// THE FIX, twice over: first (PERF-MERGE) an inline `.toLocaleString("en-US")` literal at each call
+// site; then (RECONCILE item 4b-ii, this pass) both call sites were moved onto `formatNumber()`
+// (src/lib/format.ts), the ONE shared formatter module every repo-wide `.toLocaleString`/
+// `.toLocaleDateString` call site now routes through — see format-locale-sweep.npmtest.mjs for the
+// repo-wide enforcement. This file keeps its own narrower assertions (the exact two call sites, by
+// name) as a closer-grained regression proof for the specific component that motivated the sweep.
+//
 // Unlike format-fixed-date.npmtest.mjs's `TZ` env var (which V8 re-reads live, per call), this Node
 // build's `Intl` default locale is fixed at process start and cannot be overridden per-call from a test
 // (confirmed this session: setting LANG/LC_ALL mid-process, and node's own --icu-default-locale flag, both
 // had no effect on `new Intl.NumberFormat().resolvedOptions().locale`). So this proof instead (a) shows
 // the underlying platform API disagrees across explicit locales for the exact live value, proving the
 // class of bug is real and not vacuous, and (b) statically pins the actual fix — both call sites in the
-// source now pass "en-US" explicitly — so a regression that drops the pin again is caught by this test
-// without needing to fork a second Node process with a different default locale.
+// source now route through `formatNumber()` (which itself pins "en-US", see format.ts) — so a
+// regression that reverts to a bare `.toLocaleString()` call is caught by this test without needing to
+// fork a second Node process with a different default locale.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -48,21 +58,29 @@ test("sanity: this Node runtime's own default locale resolves to en-US (the valu
   assert.equal(new Intl.NumberFormat().resolvedOptions().locale, "en-US");
 });
 
-test("fix: the 'Load more' toLocaleString call pins \"en-US\" explicitly in source (no bare .toLocaleString())", () => {
+test("fix: the 'Load more' count routes through the shared formatNumber() (no bare .toLocaleString())", () => {
   assert.match(
     source,
-    /Load more \(\$\{\(total - rows\.length\)\.toLocaleString\("en-US"\)\} more\)/,
-    "expected the Load more button to call .toLocaleString(\"en-US\") explicitly — a bare .toLocaleString() " +
+    /Load more \(\$\{formatNumber\(total - rows\.length\)\} more\)/,
+    "expected the Load more button to call formatNumber(total - rows.length) — a bare .toLocaleString() " +
       "reintroduces HYDRATION-418 (the runtime's default locale, not necessarily the viewer's, is used for " +
       "the server-rendered pass)"
   );
 });
 
-test("fix: the empty-state sourceEventCount toLocaleString call pins \"en-US\" explicitly in source", () => {
+test("fix: the empty-state sourceEventCount routes through the shared formatNumber()", () => {
   assert.match(
     source,
-    /\{sourceEventCount\.toLocaleString\("en-US"\)\}/,
-    "expected the empty-state forward-event count to call .toLocaleString(\"en-US\") explicitly"
+    /\{formatNumber\(sourceEventCount\)\}/,
+    "expected the empty-state forward-event count to call formatNumber(sourceEventCount)"
+  );
+});
+
+test("fix: formatNumber is imported from the ONE shared formatter module", () => {
+  assert.match(
+    source,
+    /import\s*\{\s*formatNumber\s*\}\s*from\s*"@\/lib\/format"/,
+    "expected formatNumber to be imported from @/lib/format, not reimplemented locally"
   );
 });
 

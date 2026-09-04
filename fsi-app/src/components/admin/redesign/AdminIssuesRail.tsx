@@ -20,6 +20,7 @@
  */
 
 import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
+import { formatNumber } from "@/lib/format";
 
 export interface IssueNavTarget {
   section: string;
@@ -155,7 +156,7 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
             color: total > 0 ? "var(--sev-critical)" : "var(--text-2)",
           }}
         >
-          {total.toLocaleString()}
+          {formatNumber(total)}
         </span>
       </div>
 
@@ -266,7 +267,7 @@ function RailButton({
               }
         }
       >
-        {row.count.toLocaleString()}
+        {formatNumber(row.count)}
       </span>
     </>
   );

@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { formatNumber } from "@/lib/format";
 import type { CoverageEntry, IdentityState } from "@/lib/coverage/index-data";
 
 const SURFACES = [
@@ -94,10 +95,10 @@ export function CoverageCatalogueView() {
   return (
     <div style={{ padding: "4px 2px 24px" }}>
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12, fontSize: 13, color: "var(--color-text-secondary)" }}>
-        <span><b style={{ color: "var(--accent-blue)" }}>{counts.dualVerified.toLocaleString()}</b> dual-verified</span>
-        <span><b>{counts.total.toLocaleString()}</b> catalogued</span>
-        <span>firm {counts.firm.toLocaleString()} · soft {counts.soft.toLocaleString()}</span>
-        <span><b style={{ color: "var(--color-success)" }}>{counts.resolves.toLocaleString()}</b> resolve</span>
+        <span><b style={{ color: "var(--accent-blue)" }}>{formatNumber(counts.dualVerified)}</b> dual-verified</span>
+        <span><b>{formatNumber(counts.total)}</b> catalogued</span>
+        <span>firm {formatNumber(counts.firm)} · soft {formatNumber(counts.soft)}</span>
+        <span><b style={{ color: "var(--color-success)" }}>{formatNumber(counts.resolves)}</b> resolve</span>
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
@@ -122,7 +123,7 @@ export function CoverageCatalogueView() {
       </div>
 
       <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 6 }}>
-        {loading ? "Loading…" : err ? err : `Showing ${Math.min(view.length, DISPLAY_CAP).toLocaleString()} of ${view.length.toLocaleString()} matching (all ${counts.total.toLocaleString()} loaded). Promotion controls arrive with the policy engine.`}
+        {loading ? "Loading…" : err ? err : `Showing ${formatNumber(Math.min(view.length, DISPLAY_CAP))} of ${formatNumber(view.length)} matching (all ${formatNumber(counts.total)} loaded). Promotion controls arrive with the policy engine.`}
       </div>
 
       <ul style={{ listStyle: "none", margin: 0, padding: 0, border: "1px solid var(--color-border-subtle)", borderRadius: "var(--radius-md)", overflow: "hidden" }}>

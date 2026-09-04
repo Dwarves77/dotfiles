@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Loader2, ExternalLink } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import type { ProvisionalSource } from "@/types/source";
 import { SourceTierAuditPanel } from "@/components/sources/SourceTierAuditPanel";
+import { formatLocaleDateTime } from "@/lib/format";
 
 interface Recommendation {
   tier: number;
@@ -191,7 +192,7 @@ export function ProvisionalReviewCard({ ps, onActionDone }: Props) {
               {rec.rationale}
               {rec.computed_at && (
                 <span className="block mt-1 text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-                  {rec.model || "claude-haiku-4-5-20251001"} · {new Date(rec.computed_at).toLocaleString()}
+                  {rec.model || "claude-haiku-4-5-20251001"} · {formatLocaleDateTime(new Date(rec.computed_at))}
                 </span>
               )}
             </div>

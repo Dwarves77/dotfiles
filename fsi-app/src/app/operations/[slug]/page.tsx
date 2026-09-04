@@ -43,6 +43,7 @@ import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { OperationsDetailSurface } from "@/components/operations/OperationsDetailSurface";
 import { checkMatrixEligibility } from "@/lib/agent/formats/operations-matrix";
 import type { MatrixEligibility } from "@/lib/agent/formats/operations-matrix";
+import { formatLocaleDate } from "@/lib/format";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -263,7 +264,7 @@ export default async function OperationsDetailPage({
   const metaParts = [
     r.sourceName,
     r.added
-      ? `Published ${new Date(r.added).toLocaleDateString("en-US", {
+      ? `Published ${formatLocaleDate(new Date(r.added), {
           year: "numeric",
           month: "short",
           day: "numeric",

@@ -21,6 +21,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatRelativeCompact } from "@/lib/relative-time";
+import { formatLocaleDateTime } from "@/lib/format";
 import {
   ChevronDown,
   ChevronRight,
@@ -396,9 +397,9 @@ function ReportDetails({ report }: { report: ModerationReportRow }) {
       {report.body && <DetailRow label="Reporter notes" value={report.body} />}
       <DetailRow
         label="Filed"
-        value={`${formatRelativeCompact(report.created_at)} · ${new Date(
-          report.created_at
-        ).toLocaleString()}`}
+        value={`${formatRelativeCompact(report.created_at)} · ${formatLocaleDateTime(
+          new Date(report.created_at)
+        )}`}
       />
       {report.post && (
         <div

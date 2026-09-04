@@ -42,6 +42,7 @@
 import { getPublicMarketIntelItems, getPublicSurfaceCounts } from "@/lib/data";
 import { toLedgerRowPayload } from "@/lib/list-pagination";
 import { fetchMarketSeriesBoard } from "@/lib/supabase-server";
+import { formatLocaleDate } from "@/lib/format";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { MarketIntelLedger } from "@/components/market/MarketIntelLedger";
 import { MarketSeriesBoard } from "@/components/market/MarketSeriesBoard";
@@ -147,7 +148,7 @@ export default async function Market() {
   ]);
 
   const totalSignals = aggregates.totalItems || marketIntel.resources.length;
-  const today = new Date().toLocaleDateString("en-US", {
+  const today = formatLocaleDate(new Date(), {
     year: "numeric",
     month: "long",
     day: "numeric",

@@ -36,3 +36,51 @@ export function getQuarter(iso: string): { year: number; quarter: number; label:
 
   return { year, quarter, label: `${year} Q${quarter}` };
 }
+
+// ── RECONCILE (2026-09-04, item 4b-ii): THE one home for Intl-locale-dependent formatting ──────────
+//
+// Extends this file's own C6 consolidation precedent (2026-07-12, this file's own header: "THE one
+// home") to the OTHER unpinned-locale hazard this reconciliation's dispatch named: repo-wide direct
+// `.toLocaleString()` / `.toLocaleDateString()` calls, each supplying its OWN locale argument (in
+// practice always "en-US" or `undefined`) independently, at ~70 call sites across ~40 files
+// [CONFIRMED, grep, 2026-09-04]. `undefined` resolves to the JS runtime's OWN default locale — on a
+// server this is the container's configured locale (commonly, but not guaranteed, "en-US"); on a
+// client it is the visiting BROWSER's own `navigator.language`. A server component (or a "use client"
+// component whose FIRST render is the SSR/hydration pass) that calls `.toLocaleDateString()` or
+// `.toLocaleString()` with no locale argument is therefore not merely inconsistent styling — it is
+// the SAME class of SSR/CSR mismatch HYDRATION-418 (format-fixed-date.ts) fixed for one call site by
+// pinning `timeZone`, generalized to the SIBLING axis (locale) this file's own bare `.toLocaleString()`
+// calls were still exposed to, repo-wide, before this pass.
+//
+// FIXED_LOCALE, not the caller's own choice: every call site audited (this lane's own grep, 2026-09-04)
+// already passed "en-US", `undefined`, or nothing — never a second, deliberately-different locale — so
+// pinning one shared constant here is a behavior-PRESERVING consolidation for every real caller today
+// (identical to formatDate's own "majority/live behavior" framing above), not a new product decision.
+// Changeable HERE, in one place, exactly like formatDate's own header states for its date-shape choice.
+export const FIXED_LOCALE = "en-US";
+
+/** Number formatting (counts, figures) pinned to FIXED_LOCALE — replaces a bare
+ *  `value.toLocaleString(...)` (unpinned or explicitly "en-US") repo-wide. `options` passes through to
+ *  `Intl.NumberFormat` unchanged (e.g. `{ maximumFractionDigits: 1 }`) — only the locale is pinned. */
+export function formatNumber(value: number, options?: Intl.NumberFormatOptions): string {
+  return value.toLocaleString(FIXED_LOCALE, options);
+}
+
+/** Date-only formatting (no time-of-day) pinned to FIXED_LOCALE — replaces a bare
+ *  `date.toLocaleDateString(...)` repo-wide. `options` passes through to `Intl.DateTimeFormat`
+ *  unchanged, INCLUDING `timeZone` when the caller already pinned one (format-fixed-date.ts's own
+ *  UTC-pinned helpers are unaffected by this consolidation, and remain the dedicated home for
+ *  Regulations' own fixed-date chips) — this function pins locale only, matching FIXED_LOCALE's own
+ *  header for why that is the ONE axis this pass changes, not a broader per-site timezone audit. */
+export function formatLocaleDate(date: Date, options?: Intl.DateTimeFormatOptions): string {
+  return date.toLocaleDateString(FIXED_LOCALE, options);
+}
+
+/** Date+time formatting pinned to FIXED_LOCALE — replaces a bare `date.toLocaleString(...)` repo-wide
+ *  (almost every audited call site used this for a full timestamp — "regenerated Jun 5, 2024, 3:04 PM"
+ *  — never a plain number; `Date.prototype.toLocaleString` and `Number.prototype.toLocaleString` share
+ *  a method name but not a call site in this codebase, per this lane's own grep). Same locale-only-pin
+ *  contract as formatLocaleDate above. */
+export function formatLocaleDateTime(date: Date, options?: Intl.DateTimeFormatOptions): string {
+  return date.toLocaleString(FIXED_LOCALE, options);
+}

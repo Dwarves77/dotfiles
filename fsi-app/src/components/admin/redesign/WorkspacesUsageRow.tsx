@@ -13,6 +13,7 @@
  */
 
 import { useMemo } from "react";
+import { formatLocaleDate } from "@/lib/format";
 
 type OrgRow = {
   id: string;
@@ -105,7 +106,7 @@ export function WorkspacesUsageRow({ orgs, members }: WorkspacesUsageRowProps) {
       : `${derived.ownerCount} owner${derived.ownerCount === 1 ? "" : "s"} · ${derived.nonOwnerCount} member${derived.nonOwnerCount === 1 ? "" : "s"}`;
 
   const newestLabel = derived.newest?.created_at
-    ? new Date(derived.newest.created_at).toLocaleDateString("en-US", {
+    ? formatLocaleDate(new Date(derived.newest.created_at), {
         month: "short",
         day: "numeric",
       })

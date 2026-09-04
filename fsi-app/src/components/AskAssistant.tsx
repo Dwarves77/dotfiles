@@ -5,6 +5,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { Send, X, Loader2, Bot, ChevronDown, ChevronRight } from "lucide-react";
 import { tierLabelOf } from "@/lib/tier-labels";
+import { formatLocaleDate } from "@/lib/format";
 
 // Q8/OBS-28 (Sprint 2 Tier 3 Build 5): Citation rendering on the
 // Intelligence Assistant. Backend assembles validated Citation[] per
@@ -53,7 +54,7 @@ function formatRecency(recency: string | null): string {
   try {
     const d = new Date(recency);
     if (isNaN(d.getTime())) return "";
-    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    return formatLocaleDate(d, { year: "numeric", month: "short", day: "numeric" });
   } catch {
     return "";
   }

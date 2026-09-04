@@ -33,6 +33,7 @@ import {
 } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { Button } from "@/components/ui/Button";
+import { formatLocaleDate, formatLocaleDateTime } from "@/lib/format";
 import {
   AlertTriangle,
   CheckCircle,
@@ -292,7 +293,7 @@ export function CoverageMatrixView({ onAction }: CoverageMatrixViewProps) {
   // ── Render ───────────────────────────────────────────────────────────────
 
   const refreshedLabel = data?.generated_at
-    ? new Date(data.generated_at).toLocaleString()
+    ? formatLocaleDateTime(new Date(data.generated_at))
     : "—";
 
   const selectedJurisdiction = selectedIso
@@ -750,7 +751,7 @@ function CellTd({
   const count = cell?.item_count ?? 0;
   const sourceCount = cell?.source_count ?? 0;
   const recent = cell?.most_recent_item_at
-    ? new Date(cell.most_recent_item_at).toLocaleDateString()
+    ? formatLocaleDate(new Date(cell.most_recent_item_at))
     : null;
   const titleParts = [
     palette.label,

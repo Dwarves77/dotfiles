@@ -37,6 +37,7 @@ import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { urgencyScore, scoreResource } from "@/lib/scoring";
 import type { Resource, ChangeLogEntry, Supersession } from "@/types/resource";
 import type { WatchlistItem, CoverageGap, WorkspaceAggregates } from "@/lib/data";
+import { formatLocaleDate } from "@/lib/format";
 
 interface HomeSurfaceProps {
   initialResources: Resource[];
@@ -208,7 +209,7 @@ export function HomeSurface({
   // the server and first client render both omit it, so the two agree.
   const [briefingDate, setBriefingDate] = useState("");
   useEffect(() => {
-    setBriefingDate(new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }));
+    setBriefingDate(formatLocaleDate(new Date(), { month: "short", day: "numeric" }));
   }, []);
 
   return (

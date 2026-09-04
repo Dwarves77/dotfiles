@@ -23,6 +23,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { Button } from "@/components/ui/Button";
+import { formatLocaleDate } from "@/lib/format";
 import {
   AlertTriangle,
   CheckCircle,
@@ -257,7 +258,7 @@ export function IntegrityFlagsView() {
                   ? `/regulations/${encodeURIComponent(row.legacyId)}`
                   : `/regulations/${encodeURIComponent(row.id)}`;
                 const flaggedLabel = row.flaggedAt
-                  ? new Date(row.flaggedAt).toLocaleDateString()
+                  ? formatLocaleDate(new Date(row.flaggedAt))
                   : "—";
                 const isPending = pendingId === row.id;
                 const replaceVal = replaceUrlState[row.id] || "";
