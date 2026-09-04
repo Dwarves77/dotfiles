@@ -52,7 +52,12 @@ import { norm } from "@/lib/agent/gate-a-match.mjs";
 // of DERIVED mint runners; false. See the call site below, next to its already-wired Gate-A
 // sibling (derivedCoveredTokens above).
 import { isDerivedConsistent } from "@/lib/agent/derived-consistency.mjs";
-import { decodeHtmlBytes } from "@/lib/sources/charset-decode.mjs";
+import { decodeHtmlBytes, cleanCtl } from "@/lib/sources/charset-decode.mjs";
+// htmlToText — THE ONE body (Lane LEDGER-TEXT, 2026-09-04). This file's own copy was the reference
+// implementation the consolidation lifted verbatim into src/lib/text/html-to-text.mjs (see that module's
+// header for the two other former copies it replaced and the defect this closes); behavior here is
+// unchanged, only the definition moved.
+import { htmlToText } from "@/lib/text/html-to-text.mjs";
 import { twoPassGenerate } from "@/lib/agent/two-pass-generate.mjs";
 import { SYSTEM_PROMPT } from "@/lib/agent/system-prompt";
 // U7 — brief generation now CONSUMES the connection graph (not only feeds it). selectBriefCandidates
@@ -106,7 +111,6 @@ import {
   toDbSeverity, toDbTheme, toThemeCandidate, assertDbValue,
   DB_PRIORITY_VALUES, DB_URGENCY_TIER_VALUES, DB_FORMAT_TYPE_VALUES, DB_SIGNAL_BAND_VALUES,
 } from "@/lib/agent/metadata-vocab";
-const cleanCtl = (s: string | null | undefined) => (s == null ? s : String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " "));
 const urlsIn = (md: string) => [...new Set((String(md || "").match(/https?:\/\/[^\s)\]}"'<>]+/g) || []).map((u) => u.replace(/[.,;:]+$/, "")))];
 
 // SLOT-TABLE reader with an in-process cache (C1). item_type_required_slots is 48 rows and changes only
@@ -139,11 +143,6 @@ interface FetchResult { text: string; truncated: boolean; fullLength: number; ca
 // direct-HTTP first for a static/legal host (free, full enacted text; PROVEN: EUR-Lex returns the full 458KB
 // PPWR text this way), Browserless render for a JS/bot-walled host, either-direction try-both on a block. The
 // prior DIRECT_FETCH_HOSTS/directFetchEligible pair (a SECOND transport-order home) was folded into that SSOT.
-function htmlToText(html: string): string {
-  return html
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-}
 // DIRECT-HTTP transport. Pulls the full document (no Browserless) for an eligible host; reports truncation
 // against `max` exactly as the Browserless path does. Throws on a non-OK status so the caller's fallback fires.
 async function directFetchClean(url: string, max: number, caller: string | null = null): Promise<FetchResult> {

@@ -5,7 +5,7 @@
 // the grounder no matchable original-language span.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { decodeHtmlBytes, charsetFromContentType, charsetFromMeta, normalizeCharsetLabel } from "./charset-decode.mjs";
+import { decodeHtmlBytes, charsetFromContentType, charsetFromMeta, normalizeCharsetLabel, cleanCtl } from "./charset-decode.mjs";
 
 // windows-1252 / iso-8859-1 bytes for "Política Nacional de Resíduos Sólidos" (í=0xED, ó=0xF3).
 const PT = "Política Nacional de Resíduos Sólidos"; // Política ... Resíduos Sólidos
@@ -60,4 +60,28 @@ test("normalizeCharsetLabel: aliases fold, junk -> null", () => {
   assert.equal(normalizeCharsetLabel("'iso-8859-1'"), "windows-1252");
   assert.equal(normalizeCharsetLabel("not-a-charset-xyz"), null);
   assert.equal(normalizeCharsetLabel(""), null);
+});
+
+// ── cleanCtl (moved here from canonical-pipeline.ts, Lane LEDGER-TEXT, 2026-09-04 — one home next to
+// decodeHtmlBytes) ──────────────────────────────────────────────────────────────────────────────────────
+
+test("cleanCtl: replaces stray C0 control bytes with a space", () => {
+  assert.equal(cleanCtl("a\x00b\x01c\x1fd"), "a b c d");
+});
+
+test("cleanCtl: leaves tab/LF/CR alone (only the other C0 controls are stripped)", () => {
+  assert.equal(cleanCtl("line1\nline2\ttabbed\rcr"), "line1\nline2\ttabbed\rcr");
+});
+
+test("cleanCtl: passes null/undefined straight through, never throws", () => {
+  assert.equal(cleanCtl(null), null);
+  assert.equal(cleanCtl(undefined), undefined);
+});
+
+test("cleanCtl: coerces a non-string input to a string first", () => {
+  assert.equal(cleanCtl(123), "123");
+});
+
+test("cleanCtl: ordinary text with no control bytes is unchanged", () => {
+  assert.equal(cleanCtl("Política Nacional"), "Política Nacional");
 });

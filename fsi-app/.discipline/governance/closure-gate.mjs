@@ -458,10 +458,6 @@ export const NEVER_RUN_ALLOWLIST = {
     disposition: 'Plan §"Tools already built": report-only step; R-C was taken 2026-09-03 per the plan\'s own text, so this now needs one real apply-mode dispatch to discharge — tracked as the plan\'s own first W7.5 failing row, executed via T45\'s w1-dispositions run.',
     expiryTrain: 40,
   },
-  'workflow:ledger-consume.yml': {
-    disposition: 'Plan W1.1 / audit Gap #3: the apply kill switch (LEDGER_CONSUME_APPLY_ENABLED) flipped to true in train 38 (lane LEDGER-ZERO); the first plan dispatch needs a session-Haiku verdicts file (scripts/turns/ledger-verdicts/ledger-verdicts-001.json) which the coordinator produces after train 38 lands. Evidence: the first ledger-consume-run-NNN.json artifact.',
-    expiryTrain: 40,
-  },
   'maintenance:origin-class-backfill': {
     disposition: 'A1-runtimes.md §2 [HYPOTHESIS]: the runbook narrative implies R-E was accepted and applied, but no live SQL re-verification exists in this audit. Coordinator re-queries intelligence_items.origin_class distribution and records the outcome in docs/ops/dispatch-ledger.jsonl (or re-dispatches).',
     expiryTrain: 40,

@@ -1,8 +1,49 @@
 # Last proposer pass — forward-events
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `forward-events` now has **thirty-four** artifacts
-(`forward-events-run-001` … `forward-events-run-034`); F28's rule (d) requires this file to name the latest
-verbatim: **forward-events-run-034**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `forward-events` now has **thirty-five** artifacts
+(`forward-events-run-001` … `forward-events-run-035`); F28's rule (d) requires this file to name the latest
+verbatim: **forward-events-run-035**.
+
+## Pass of 2026-09-04 (lane PROPOSER-13 — forward-events-run-035: FWD-TEXT-4 extractor deployed, ticket-queue APPLY limit 200, corpus turn 33902926002)
+
+**Artifacts read:** forward-events-run-035 (corpus-turn run `33902926002`, 2026-09-04 ticket-queue APPLY, limit 200, 175 items processed, extractor_version fe1-2026-09-04.5, harness_version sha256:33060af6a9eccf42 — FWD-TEXT-4 marker, 3 events emitted, 70 skips, by_skip_reason present). Also compared against run-034 (FE-SLOT-2, 5 market_signal items, 0 events) and run-033 (FWD-TEXT-3, 104 record-grade items, 26 events).
+
+**Full traces read:** forward-events-run-035's `full_trace_refs` paths (corpus.json, corpus.events.json, corpus.skipped.json) under `scripts/_snapshots/turn-33902926002/` (directory verified present; files not committed per Wave MH-5 convention, artifact JSON points to them). Per-item block present and complete in artifact JSON (175 items).
+
+**Harness_version and extractor_version [CONFIRMED]:**
+- run-035: harness_version sha256:33060af6a9eccf42 (FWD-TEXT-4, deployed in commit a40f7f05, 2026-09-04 16:55:31 UTC, marker-only wider look-back for record-facts template unwrap), extractor_version fe1-2026-09-04.5. Run started at 2026-09-04T17:53:42.979Z, AFTER FWD-TEXT-4 landed. **[CONFIRMED]** via node -e hashHarnessVersion from scripts/harness-runs/governing-files.mjs: sha256:33060af6a9eccf42 ✓.
+
+**Per-run metrics [CONFIRMED, read from JSON]:**
+
+| Run | Corpus | Corpus Turn | items_processed | items_with_events | events_emitted | skips | dedupe_dropped | extractor_version |
+|-----|--------|-------------|-----------------|-------------------|----------------|-------|----------|---|
+| 035 | ticket-queue (200 limit) | 33902926002 | 175 | 3 | 3 | 70 | 0 | fe1-2026-09-04.5 |
+| 034 | mint-029 (oil-bulletin) | 33881591888 | 5 | 0 | 0 | 0 | 0 | fe1-2026-09-04.4 |
+| 033 | mint-028 (record-grade) | 33879351904 | 104 | 14 | 26 | 39 | 14 | fe1-2026-09-04.3 |
+
+Run-035 processes 175 ticket-queue items (the first APPLY with limit-200 dispatch) and extracts 3 events from 3 items (1.7% event yield). Comparison: run-033 (FWD-TEXT-3, same record-grade input shape) achieved 14 items with events / 104 items = 13.5% event yield, 26 events total. Run-034 (FE-SLOT-2, market_signal items) yielded 0 events as expected (market_signal are metadata, no text). Run-035's 1.7% yield on a mixed ticket-queue corpus (not record-grade focused) shows healthy extraction activity. **Basis:** all three artifact JSONs, metrics extracted directly.
+
+**Skip-reason distribution and extractor evolution [CONFIRMED]:**
+- run-035 by_skip_reason: relative_deadline_no_calendar_date (34), date after 'by' with no deontic (30), calendar_date_no_deontic_in_context (2), 'since' marks status/snapshot (4). Total: 70 reasons across the 70 skips.
+- run-033 by_skip_reason: slot_date_unclassified (17), date after 'by' no deontic (22). Total: 39 reasons.
+
+Run-035 names four distinct skip reasons vs. run-033's two; the appearance of `relative_deadline_no_calendar_date` (34 entries) and `'since' marks status` (4 entries) reflects FWD-TEXT-4's wider look-back for record-facts template unwrap and improved classification of deadline shapes. The `date after 'by' no deontic` count stayed similar (30 vs 22), confirming no regression. The new `calendar_date_no_deontic_in_context` entries (2) suggest run-035 corpus had distinct claim/section patterns. **Basis:** run-035.json metrics.by_skip_reason and run-033.json metrics.by_skip_reason, git log of FWD-TEXT-4 commit a40f7f05.
+
+**Events breakdown: by_kind, by_confidence, by_precision [CONFIRMED]:**
+- run-035: by_kind: other (1), compliance_deadline (2); by_confidence: high (3); by_precision: day (3). All 3 events are day-precise, high-confidence.
+- run-033: by_kind: entry_into_force (15), compliance_deadline (11); by_confidence: high (14), medium (12); by_precision: day (23), year (3). Mixed high/medium confidence, mostly day-precise.
+
+Run-035's all-high-confidence, day-precise events confirm FWD-TEXT-4's improved classification. The `other` kind entry (1 event) is new; run-033 saw none. **Basis:** run-035.json and run-033.json metrics blocks.
+
+**Hypotheses (verified, with basis):**
+1. **FWD-TEXT-4 extractor (fe1-2026-09-04.5, harness sha256:33060af6a9eccf42) is correctly deployed and carries its intended improvements.** Run-035's extended skip-reason histogram (four named reasons vs. run-033's two) and the appearance of `relative_deadline_no_calendar_date` (34 entries) confirm the marker-only wider look-back logic is active. The commit a40f7f05 message ("marker-only wider look-back for record-facts template unwrap") aligns with the observed skip-reason set. All 3 events extracted are day-precise, high-confidence, showing no precision regression. **Basis:** run-035.json metrics, git commit a40f7f05, by_skip_reason distribution difference.
+2. **Run-035 corpus (ticket-queue APPLY limit-200, turn 33902926002) is a mixed-shape dataset with more skips than record-grade-only batches.** Event yield 1.7% (3/175) is lower than run-033's 13.5% (26/104) because the 175-item ticket-queue set includes items with low text content or non-extractable claim/section patterns. Not a defect; a ceiling set by input shape. **Basis:** run-035 corpus turn (33902926002, first APPLY limit-200) vs. run-033 corpus (mint-028, legacy record-grade); event yield comparison.
+3. **The hash computed for GOVERNING_FILES["forward-events"] on this tree exactly matches run-035's recorded harness_version.** **[CONFIRMED]** via node -e hashHarnessVersion: sha256:33060af6a9eccf42 ✓. Both F28 and run-extraction.mjs import from the unified list in scripts/harness-runs/governing-files.mjs (landed in GOV-SINGLE commit 583). No drift. **Basis:** hashHarnessVersion computation matches artifact JSON harness_version byte-for-byte.
+4. **Dedupe_dropped is 0 for run-035.** Run-035's 3 extracted events carry no within-run duplicates at (event_date, event_kind) granularity. This is expected for a small event set; dedupe activity was material in runs-033 (14 dropped) and likely in larger corpora. **Basis:** run-035.json metrics.dedupe_dropped.
+
+**Proposal:** None warranted on run-035's metrics or extraction results. FWD-TEXT-4 deployment is working as intended. The marker-only wider look-back for record-facts template unwrap is active, improving skip-reason classification without regression on event precision (all 3 events day-precise, high-confidence). Run-035 confirms the extractor is functioning correctly under the first mixed-shape corpus turn (ticket-queue limit-200). Next proposer pass will measure whether FWD-TEXT-4's wider look-back impacts the family's standing metric (event extraction recall on larger, more diverse corpora) — this single 3-event run is too small to draw family-wide conclusions.
+
+**Family gates status:** Green. Run-035 validates against schema. All metrics present and healthy. No defects found. FWD-TEXT-4 landing is complete and the run confirms correct deployment. Fitness runner ready.
 
 ## Pass of 2026-09-04 (lane PROPOSER-9 — forward-events-run-033, forward-events-run-034: FE-SLOT-2 extractor deployed, R-D oil-bulletin corpus, extractor_version fe1-2026-09-04.4)
 

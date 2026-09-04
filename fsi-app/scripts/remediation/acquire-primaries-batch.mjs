@@ -26,6 +26,8 @@ import { createClient } from "@supabase/supabase-js";
 import { readClient, readAll, registerSource, guardedUpdate, guardedInsert } from "../lib/db.mjs";
 import { writeSnapshot, getSnapshot } from "../../src/lib/sources/snapshot-store.mjs";
 import { officialnessOf } from "../../src/lib/sources/officialness.mjs";
+import { htmlToText as sharedHtmlToText } from "../../src/lib/text/html-to-text.mjs";
+const htmlToText = (html) => sharedHtmlToText(html, { blankEntities: true });
 import { extractPortalLinks } from "../../src/lib/sources/portal-links.mjs";
 import { looksLikePdfUrl, classifyBody, pdfToText } from "../../src/lib/sources/pdf-extract.mjs";
 import { classTierForHost } from "../../src/lib/sources/host-authority.ts";
@@ -42,10 +44,8 @@ const svc = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPAB
 const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, "").toLowerCase(); } catch { return ""; } };
 const MAXCH = 400000;
 
-function htmlToText(html) {
-  return String(html || "").replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ").replace(/&(?:[a-z]+|#\d+);/gi, " ").replace(/\s+/g, " ").trim();
-}
+// htmlToText: the ONE shared body (src/lib/text/html-to-text.mjs, lane LEDGER-TEXT / train 42), with
+// blankEntities so entity text never becomes a grounding span (this file's original private copy did that).
 // Free programmatic fetch. Returns { rawHtml|null, text, ok }. PDF -> unpdf text (no rawHtml). Bounded, no retry.
 async function freeFetch(url) {
   try {

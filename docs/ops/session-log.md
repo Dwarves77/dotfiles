@@ -10078,3 +10078,40 @@ after fetching every domain, row projection cut to what the ledger renders, the 
 measured), PERF-10 (cacheComponents, the only path that serves a route without a function invocation),
 LEDGER-TEXT. The Function CPU "Performance" tier (2 vCPU / 4 GB) is the operator's call, since it changes
 billing; I asked.
+
+### Addendum 85, postscript 53 — the classifier had been reading markup; the chain fired on its own (2026-09-04)
+
+Train 41 (#588, `a7a2f84f`) moved the functions to sfo1; measured from the operator's browser after
+deploy: `x-vercel-id iad1::sfo1`, /api/version 813–827 ms on the first two calls (new instances, cold),
+305–379 ms warm, which is the same warm floor as iad1 because /api/version touches no database and the
+edge→function hop now crosses the country instead; the gain shows only on database-bound renders, which
+PERF-ARCH's Server-Timing will measure per phase rather than my stopwatch. The operator's position is on
+record and governs everything that follows: "I can't show this app to anyone until this is resolved";
+"you don't load every item at once, basic 101"; "instead of fixing how the pages load you're trying to
+live with the problem and increase my spending" (the Function CPU tier suggestion is withdrawn; no
+spend-based fix of any kind); "find out how others do it and do the same"; "modern websites do not have
+blank pages". Three lanes hold the whole of it: PERF-10 (public content served without a function
+invocation), PERF-11 (one screen of rows by cursor, query-side filter and projection, no band inlining
+whole item sets; acceptance /regulations under 200 KB), PERF-ARCH (Server-Timing on every phase of the
+request path, the waterfall on record, ADR-027 naming the standard patterns with their documentation and
+the library replacing each home-grown piece, and F37, a perf budget in CI).
+
+The first candidate export with text (ledger-consume #2, 400 rows) carried 6,000 characters of raw HTML
+per row: `buildFetchDoc` returned `res.text()`, and the live plan/apply path had been feeding that
+markup to the classifier since the runtime was built. LEDGER-TEXT (this train) gives the repo ONE
+`htmlToText` (`src/lib/text/html-to-text.mjs`) and retires two private copies (canonical-pipeline.ts,
+haiku-classify.ts, the latter dead since May); the fetcher now decodes by charset, routes PDFs through
+`pdfToText`, and returns text, so the 200-character floor finally measures text. I folded the fourth copy
+the lane found (`scripts/remediation/acquire-primaries-batch.mjs`) into the same body with a
+`blankEntities` option rather than leave it. The 400-row batch is discarded; the export re-runs after
+this lands.
+
+Two things ran without me: Source sweep #14 completing fired `ledger-consume` through LEDGER-ZERO's
+`workflow_run` trigger (plan, 50 candidates fetched, all skipped for want of a verdicts file, $0), the
+first automatic cross-workflow step in this system's history and the family's first artifact; and
+corpus turn #9 (apply, limit 200) consumed 200 tickets, closed 594 archived-item tickets under their own
+label, and grew the edge set 20,401 → 21,973 with three new forward events under fe1-2026-09-04.5.
+Source sweep #15 (apply, 40 hosts) wrote 1,360 candidates, 11 feed URLs and the first coverage columns;
+#16 (70 hosts) is running. Six artifacts and three proposer passes are folded here; three discharged
+markers deleted; the closure gate's own ratchet caught its stale ledger-consume allowlist entry now that
+the family has run evidence. Gates: fitness 30/0, discipline 186/0, closure 4/4, full suite 5,261/0.

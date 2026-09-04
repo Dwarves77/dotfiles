@@ -129,6 +129,14 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
+// THE DEFECT LEDGER-TEXT CLOSES (coordinator [CONFIRMED], first export run 33902755838, 2026-09-04 17:51
+// — see buildFetchDoc's own comment below for the full account): these three imports are plain ESM (no
+// jiti needed — a relative-path import, same as run-artifact.mjs/governing-files.mjs above), the same
+// charset-aware decode + PDF-or-HTML codec + text-extraction path src/lib/agent/canonical-pipeline.ts's
+// directFetchClean uses, applied here so buildFetchDoc stops returning raw HTML as if it were text.
+import { htmlToText } from "../../src/lib/text/html-to-text.mjs";
+import { decodeHtmlBytes, cleanCtl } from "../../src/lib/sources/charset-decode.mjs";
+import { classifyBody, pdfToText } from "../../src/lib/sources/pdf-extract.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -254,15 +262,35 @@ export function defaultTraceDir(harnessRunsDir) {
 
 // ── fetchDoc — a polite plain fetch (ConsumeOpts.FetchDocFn contract) ─────────────────────────────────
 //
-// Injectable (fetchImpl/now/sleep) so the politeness gap is testable deterministically without real
-// network or real timers — the same discipline run-source-sweep.mjs's inline politeFetch has, made
-// exportable here because this driver's own tests need to prove the gap fires without a live clock.
+// Injectable (fetchImpl/now/sleep/pdfToTextImpl) so the politeness gap AND the PDF codec are testable
+// deterministically without real network, real timers, or a real PDF parse — the same discipline
+// run-source-sweep.mjs's inline politeFetch has, made exportable here because this driver's own tests
+// need to prove the gap fires without a live clock.
+//
+// THE DEFECT THIS CLOSES (Lane LEDGER-TEXT, 2026-09-04 — coordinator [CONFIRMED] from the first
+// --with-text export, run 33902755838, 2026-09-04 17:51): this function used to return `res.text()`
+// RAW — every one of the 400 exported candidates carried ~6,000 characters of
+// "<!DOCTYPE html><html lang=..." (head, scripts, nav markup), and the live plan/apply path fed that
+// same raw HTML straight into firstFetchClassify (whose FirstFetchClassifyInput.text is documented
+// "Excerpt text from the fetch (already stripped of HTML)" — the contract always assumed stripped text;
+// this fetcher never delivered it), so the classifier's "content excerpt" has been markup since the
+// runtime was built. Fixed by routing through the SAME two things canonical-pipeline.ts's
+// directFetchClean uses: the charset-aware decode (decodeHtmlBytes — header > <meta> > utf-8, never a
+// hardcoded utf-8) feeding the ONE shared htmlToText body (src/lib/text/html-to-text.mjs), and a
+// PDF-or-HTML codec choice (classifyBody + pdfToText) for a reachable PDF candidate — a PDF body used to
+// be handed to htmlToText as if it were HTML (extracting nothing usable); it now extracts real text.
+// portal-harvest.ts's 200-char floor and the export's `fetched_chars` therefore now describe TEXT, not
+// markup — what portal-harvest.ts:306's floor always intended to measure.
 export function buildFetchDoc({
   gapMs = Number(process.env.LEDGER_CONSUME_FETCH_GAP_MS ?? 1000),
   timeoutMs = 20_000,
   fetchImpl = fetch,
   now = () => Date.now(),
   sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+  pdfMaxChars = 400_000, // generous — downstream (classify's user-message template, --with-text's export
+  // shaping) truncates further to CONTENT_MAX_CHARS (6,000) regardless; this only bounds the PDF codec's
+  // own extraction work, same order of magnitude as acquire-primaries-batch.mjs's MAXCH for the same job.
+  pdfToTextImpl = pdfToText,
 } = {}) {
   let lastFetchAt = 0;
   return async function fetchDoc(url) {
@@ -281,7 +309,20 @@ export function buildFetchDoc({
         },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-      const text = await res.text();
+      const contentType = res.headers.get("content-type");
+      const u8 = new Uint8Array(await res.arrayBuffer());
+      // PDF-OR-HTML (same header-or-magic-bytes codec directFetchClean uses): a reachable PDF candidate
+      // extracts to real text via pdfToText instead of being handed to htmlToText as if it were markup.
+      if (classifyBody(contentType, u8) === "pdf") {
+        const { text: pdfText } = await pdfToTextImpl(u8, pdfMaxChars);
+        const text = (cleanCtl(pdfText) ?? "").replace(/\s+/g, " ").trim();
+        return { text, transport: "direct-pdf" };
+      }
+      // CHARSET-AWARE DECODE + THE ONE htmlToText BODY: header > <meta> > utf-8 (never a hardcoded
+      // utf-8 — a Latin-1/windows-1252 page decoded as utf-8 corrupts every accent to U+FFFD), then
+      // strip to plain text. This is the fix — buildFetchDoc used to return `res.text()` raw HTML.
+      const decoded = decodeHtmlBytes(u8, contentType);
+      const text = htmlToText(decoded.text);
       return { text, transport: "direct-fetch" };
     } finally {
       clearTimeout(timer);
