@@ -109,6 +109,14 @@ test('012 trigger: skips files under scripts/tmp/', () => {
   assert.equal(rule.trigger(ctx), false);
 });
 
+test('012 trigger: skips captured-content snapshots under scripts/_snapshots/', () => {
+  const ctx = buildContextFromFixture({
+    message: 'population-turn apply: run 33825867992',
+    files: [{ path: 'fsi-app/scripts/_snapshots/population-33825867992/census-rows.json', additions: 3000, deletions: 0 }],
+  });
+  assert.equal(rule.trigger(ctx), false);
+});
+
 test('012 trigger: skips deletions', () => {
   const ctx = buildContextFromFixture({
     message: 'refactor: remove old file',
@@ -227,6 +235,19 @@ test('012 check: respects scripts/tmp/ skip path (PASS even with hardcoded conte
   });
   // trigger returns false for scripts/tmp/, but if forced to run check it should still pass
   // (relevantFiles filters before reading)
+  assert.equal(rule.trigger(ctx), false);
+  assert.equal(rule.check(ctx).status, 'PASS');
+});
+
+test('012 check: captured third-party content under scripts/_snapshots/ is data, not code (PASS with a Windows path inside result_content)', () => {
+  const path = 'fsi-app/scripts/_snapshots/population-33825867992/census-rows.apply-ready.json';
+  const ctx = buildContextFromFixture({
+    message: 'population-turn apply: run 33825867992',
+    files: [{ path, additions: 3000, deletions: 0 }],
+    fileContents: {
+      [path]: `{"result_content": "L_202302463EN.000101.fmx.xml Official Journal ${WIN_USERS} ..."}\n`,
+    },
+  });
   assert.equal(rule.trigger(ctx), false);
   assert.equal(rule.check(ctx).status, 'PASS');
 });

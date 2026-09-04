@@ -28,13 +28,38 @@ name: Population turn
 # apply-mint-batch.mjs --apply (intelligence_items / agent_run_searches / intelligence_item_sections /
 # section_claim_provenance / item_gate_a_state / intelligence_item_citations / a census_worklist
 # enumeration_status stamp, all through scripts/lib/db.mjs's guarded, cited, snapshotted path).
-# propose-tags.mjs runs --dry UNCONDITIONALLY in both modes — signature-tag ratification stays
-# operator-gated (Lane TAG's own write path, out of this workflow's scope). CORRECTED (Lane
-# TAG-PROPOSALS, 2026-09-03): --dry WRITES NOTHING (propose-tags.mjs's own default; see that script's
-# header and its DRY RUN branch) — this step only logs a console PREVIEW of what would become
-# integrity_flags proposals for newly-minted untagged items. Actually WRITING those proposal rows is a
-# separate, explicit dispatch of the `tag-proposals` MAINT step (.github/workflows/maintenance.yml,
-# docs/runbooks/MAINTENANCE-RUNBOOK.md §6a), run by the coordinator once this run's items are live.
+#
+# THE FLYWHEEL, MANDATORY, NEVER A SEPARATE COORDINATOR PASS (lane TANDEM, 2026-09-04). THE DEFECT this
+# closes [CONFIRMED]: this workflow used to END after apply-mint-batch.mjs + an unconditional
+# propose-tags.mjs --dry preview — MINT-RUNBOOK.md §8 ("MANDATORY, post-apply — the flywheel": discovery,
+# forward-event extraction, recluster, IN ORDER) and §9 (--outcomes enrichment) were documented as a
+# SEPARATE, hand-run coordinator pass that nothing in this runtime ever triggered. Population runs
+# #15-#20 (2026-09-03/04, ~650 items, mint-run-017..022) were applied with no flywheel pass and no
+# outcomes: every one of those items carries zero item_cross_references, zero item_forward_events, no
+# obligations, no tags, no signals. Operator ruling (2026-09-04), verbatim: "there is no thing within this
+# entire build that works on its own ever. Everything works in tandem... that's the purpose of the
+# flywheel and the harness." `scripts/turns/run-population-flywheel.mjs` is that missing runtime — it runs
+# immediately after `screen-reconcile-records.mjs` below (still inside THIS job, still gating THIS job's
+# own exit code — never a "note for a coordinator") and, in `apply` mode, actually WRITES: connection
+# edges (`discover-for-items.mjs`, guarded `write-edges.mjs`), `item_forward_events`
+# (`run-extraction.mjs --execute` + `apply-extraction-output.mjs --execute` — self-emits its OWN
+# `scripts/harness-runs/forward-events/forward-events-run-NNN.json`), `connection_themes` /
+# `integrity_flags` (`analyze-corpus.mjs --signals`), `obligations` (`derive-obligations.mjs`),
+# `integrity_flags` TAG proposals + ratified `intelligence_items.*_tags` (`tag-proposals.mjs` /
+# `tag-ratification.mjs --arg auto`), and finally enriches THIS batch's own `mint-run-NNN.json` with the
+# §9 corpus-outcome metrics (`run-mint-batch.mjs --outcomes`) and advances
+# `scripts/turns/LAST-TURN.json` so a later `corpus-turn` dispatch never re-covers what this run already
+# connected. See `scripts/turns/run-population-flywheel.mjs`'s own header for the full step-by-step
+# contract, and `docs/runbooks/POPULATION-TURN-RUNBOOK.md` for the coordinator-facing summary. A green
+# run of THIS workflow now means minted AND connected AND recorded — a run whose flywheel step fails
+# fails the whole job (no `|| true` on that step), by design.
+#
+# THE GATE (apply mode only, run BEFORE export-census-rows.mjs): refuses to mint a NEW slice while a
+# PRIOR slice that minted items was left unconnected (its `mint-run-NNN.json` lacks the §9 outcome keys)
+# — a pure, filesystem-only, no-DB-creds-needed check (`run-population-flywheel.mjs --check-gate`) over
+# whatever mint-run artifacts are already on this checkout (including hydrated unmerged siblings, see
+# below), so a defect in a PRIOR run (or a hand-run predecessor from before this lane) is caught before
+# this run spends any fetch/mint budget on a slice this repo cannot yet connect either.
 #
 # rows_file (Lane POP2, 2026-09-02, first live dry run): the browser-capture escape hatch made a
 # first-class runtime input. MINT-RUNBOOK.md §1a's operator ruling is "a site that refuses the runner is
@@ -133,7 +158,6 @@ jobs:
           echo "celex_prefix = ${{ inputs.celex_prefix }}"
           echo "capture      = ${{ inputs.capture }}"
           echo "rows_file    = ${{ inputs.rows_file }}"
-          echo "RUN_START=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
           echo "EXPORT_DIR=scripts/_snapshots/population-${{ github.run_id }}" >> "$GITHUB_ENV"
           if [ -n "${{ inputs.rows_file }}" ]; then
             CENSUS_ROWS_PATH="${{ inputs.rows_file }}"
@@ -149,29 +173,43 @@ jobs:
           BASE="$(basename "$CENSUS_ROWS_PATH")"
           echo "CENSUS_ROWS_BASENAME=${BASE%.json}" >> "$GITHUB_ENV"
 
-      # ── hydrate UNMERGED sibling artifacts so this run's mint-run_id cannot collide ──────────────────
+      # ── hydrate UNMERGED sibling artifacts so this run's mint-run_id (and, now, forward-events-run_id)
+      # cannot collide ────────────────────────────────────────────────────────────────────────────────
       # Same problem, same fix as source-sweep.yml's own step (see that file's comment for the full
-      # rationale): claimRunId (scripts/lib/run-artifact.mjs) numbers the next mint-run-NNN from the
+      # rationale): claimRunId (scripts/lib/run-artifact.mjs) numbers the next <family>-run-NNN from the
       # files it can see in the checked-out tree, i.e. master. Artifacts land through a PR, so a
       # population-turn dispatched before a PREVIOUS population-turn's (or a hand-run mint batch's) PR
-      # merged would see a stale count and claim the SAME run_id. The unmerged sibling branches are
-      # fetched and their mint artifacts placed in the working tree (untracked; removed again before the
-      # commit step, never committed by this run) so the claim counts above them.
-      - name: Hydrate unmerged mint artifacts from sibling population branches (run_id collision guard)
+      # merged would see a stale count and claim the SAME run_id. Extended (lane TANDEM, 2026-09-04) to
+      # also hydrate scripts/harness-runs/forward-events/: run-population-flywheel.mjs's own
+      # forward-event-extraction step self-emits a NEW forward-events-run-NNN.json every apply run, the
+      # exact same collision risk mint-run-NNN.json already had. The unmerged sibling branches are
+      # fetched and both families' artifacts placed in the working tree (untracked; removed again before
+      # the commit step, never committed by this run) so each family's claim counts above them.
+      - name: Hydrate unmerged mint + forward-events artifacts from sibling population branches (run_id collision guard)
         run: |
           git fetch --no-tags origin '+refs/heads/population/*:refs/remotes/origin/population/*' || true
           : > /tmp/hydrated-artifacts.txt
           for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/population/*'); do
-            for f in $(git ls-tree -r --full-tree --name-only "$b" -- fsi-app/scripts/harness-runs/mint/); do
-              rel="${f#fsi-app/}"
-              if [ ! -e "$rel" ]; then
-                mkdir -p "$(dirname "$rel")"
-                git show "$b:$f" > "$rel"
-                echo "$rel" >> /tmp/hydrated-artifacts.txt
-              fi
+            for family_dir in fsi-app/scripts/harness-runs/mint/ fsi-app/scripts/harness-runs/forward-events/; do
+              for f in $(git ls-tree -r --full-tree --name-only "$b" -- "$family_dir"); do
+                rel="${f#fsi-app/}"
+                if [ ! -e "$rel" ]; then
+                  mkdir -p "$(dirname "$rel")"
+                  git show "$b:$f" > "$rel"
+                  echo "$rel" >> /tmp/hydrated-artifacts.txt
+                fi
+              done
             done
           done
-          echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged mint file(s) from sibling population branches"
+          echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged mint/forward-events file(s) from sibling population branches"
+
+      # THE GATE (apply mode only) — see the header comment above for the full rationale. Filesystem-only
+      # (readRunHistory over whatever mint-run-NNN.json files are on this checkout, hydrated siblings
+      # included), so it runs before "Verify required secrets" would even matter and before this run
+      # spends any budget on export-census-rows.mjs.
+      - name: 'Gate: refuse a new slice while a prior one is left unconnected (apply mode only)'
+        if: ${{ inputs.mode == 'apply' }}
+        run: node scripts/turns/run-population-flywheel.mjs --check-gate --harness-runs-dir scripts/harness-runs/mint
 
       - name: Snapshot existing mint-run artifacts (for this run's new run_id discovery)
         run: |
@@ -260,12 +298,24 @@ jobs:
         run: |
           if [ "${{ inputs.mode }}" = "apply" ]; then node scripts/mint/screen-reconcile-records.mjs --apply; else node scripts/mint/screen-reconcile-records.mjs; fi
 
-      # ALWAYS --dry — signature-tag ratification is Lane TAG's own operator-gated write path (out of
-      # this workflow's scope). This step only surfaces newly-minted census items' empty connection tags
-      # as integrity_flags proposals an operator can review and ratify later; it writes nothing itself in
-      # --dry mode (propose-tags.mjs's own default).
-      - name: propose-tags.mjs --dry --since <this run's start> (surfaces newly-minted items' empty tags for later ratification)
-        run: node scripts/connections/propose-tags.mjs --dry --since "$RUN_START"
+      # THE FLYWHEEL (lane TANDEM, 2026-09-04) — MANDATORY, MINT-RUNBOOK.md §8/§9, run by the workflow
+      # itself; the coordinator's job is to read the outcomes. Runs after screen-reconcile-records.mjs so
+      # any item that step just archived off-vertical is naturally excluded (discover-for-items.mjs's own
+      # corpus load filters is_archived=false; an id no longer in scope is reported "not found in the
+      # verified/live corpus," never a crash). --mint-run reads THIS run's own (apply-mint-batch.mjs-
+      # enriched) mint-run-NNN.json, extracts exactly the item ids this batch actually minted, and runs
+      # discovery + forward-event extraction + recluster + derive-obligations + tag-proposals +
+      # tag-ratification + the §9 outcomes write, in order — see that script's own header for the full
+      # per-step contract and the dry-mode preview it runs instead when mode=dry. NO `|| true`: a failed
+      # flywheel step fails this job — a green run means minted AND connected AND recorded, never merely
+      # minted. Supersedes the old unconditional `propose-tags.mjs --dry` preview step (Lane
+      # TAG-PROPOSALS, 2026-09-03) — that step only ever logged what tag-proposals.mjs WOULD write; this
+      # step's own tag-proposals stage actually writes it, scoped to this batch's own minted ids
+      # (`--arg ids:<...>`), then tag-ratification's auto-adoption sweep (`--arg auto`) actually applies
+      # the high-confidence subset — no separate, later MAINT dispatch is needed for a population-turn
+      # batch's own newly-minted items.
+      - name: run-population-flywheel.mjs (discovery + forward-events + recluster + tags + §9 outcomes — MANDATORY, MINT-RUNBOOK.md §8/§9)
+        run: node scripts/turns/run-population-flywheel.mjs --mint-run "$NEW_MINT_RUN" --mode ${{ inputs.mode }}
 
       - name: Remove hydrated sibling artifacts (they belong to their own branches)
         if: always()
@@ -278,7 +328,13 @@ jobs:
       # population-turn's full trace and are force-added here deliberately. db.mjs's own per-write
       # prior-value snapshot JSONL files land directly under scripts/_snapshots/*.jsonl (a DIFFERENT path
       # than $EXPORT_DIR), so they are never swept up by this add and stay off the repo, unchanged.
-      - name: Commit the mint harness-run artifact and this run's snapshot dir, and open a PR
+      #
+      # Both scripts/harness-runs/mint (this run's enriched mint-run-NNN.json, now carrying the §9
+      # outcomes) AND scripts/harness-runs/forward-events (the flywheel step's own forward-events-run-NNN.json,
+      # emitted by run-extraction.mjs/apply-extraction-output.mjs as part of MINT-RUNBOOK.md §8) must be
+      # staged here — a green run means minted AND connected AND recorded, and "recorded" covers both
+      # families' artifacts, not just mint's.
+      - name: Commit the mint + forward-events harness-run artifacts and this run's snapshot dir, and open a PR
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -286,6 +342,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add scripts/harness-runs/mint
+          git add scripts/harness-runs/forward-events
           git add -f "$EXPORT_DIR"
           if git diff --cached --quiet; then
             echo "No new population-turn artifacts to commit."
@@ -305,7 +362,7 @@ jobs:
             echo "Capture: ${{ inputs.capture }}"
             echo "Rows file: ${{ inputs.rows_file || '(none — live export)' }}"
             echo
-            echo "Lands this run's enriched mint-run artifact (${NEW_MINT_RUN:-none}) and its export/apply-ready/report files (${EXPORT_DIR}/)."
+            echo "Lands this run's enriched mint-run artifact (${NEW_MINT_RUN:-none}, now carrying §9 outcomes: edges_discovered/forward_events_extracted/isolated_items), its export/apply-ready/report files (${EXPORT_DIR}/), and the flywheel's own forward-events harness-run artifact (scripts/harness-runs/forward-events/)."
           } > /tmp/pr-body.md
           bash scripts/turns/deliver-artifact-branch.sh "$branch" "Population turn: $branch (mode=${{ inputs.mode }})" /tmp/pr-body.md
 

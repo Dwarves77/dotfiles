@@ -1,0 +1,140 @@
+{
+  "harness_family": "change-detection",
+  "harness_version": "sha256:fcb23ec75e03c512",
+  "run_id": "change-detection-run-005",
+  "started_at": "2026-09-04T01:30:59.590Z",
+  "finished_at": "2026-09-04T01:31:02.897Z",
+  "config": {
+    "mode": "dry",
+    "skip_check": false,
+    "check_limit": 10,
+    "reconcile_batch": 200,
+    "drain_limit": 5
+  },
+  "inputs_ref": [
+    "route=POST /api/worker/check-sources (skipped=true)",
+    "monitoring_queue: change_detected=true AND reconciled_at IS NULL LIMIT 200",
+    "staged_updates: update_type=update_item AND status=pending AND reason LIKE '[change-sweep]%' LIMIT 5"
+  ],
+  "per_item": [
+    {
+      "id": "scrape-gate",
+      "outcome": "gate_closed",
+      "verdict": "scrape gate CLOSED (cadence_off) — system_state.scrape_cadence='off' — check-sources exits before selecting any source; the cadence flip is the operator's word only (ADR-015 §3); check-sources would check 0 source(s) regardless of how many are due",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "check-sources",
+      "outcome": "skipped",
+      "verdict": "check skipped (dry mode never calls a route that writes (sources, monitoring_queue, portal_link_candidates)); 959 source(s) due by the due-predicate but 0 checkable while the gate is closed (cadence_off) (sample of 10, capped at --check-limit=10)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "due:cd871c1f-4340-43f2-8c82-3887f37891f1",
+      "outcome": "due_not_checked",
+      "verdict": "EUR-Lex — Regulation (EU) 2023/1804 (Alternative Fuels Infrastructure Regulation, AFIR) — base_tier 1",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "due:236e3109-27b6-40dd-869e-56c0ef50b970",
+      "outcome": "due_not_checked",
+      "verdict": "EUR-Lex / Commission Implementing Regulation (EU) 2016/1245 of 28 July 2016 setting out a preliminary correlation table between codes of the Combined Nomenclature provided for in Council Regulation (EEC) No 2658/87 and entries of waste listed in Annexes III, IV and V to Regulation (EC) No 1013/2006 of the Eur — base_tier 1",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "due:24a2777d-bee4-4e29-8e44-d3d19dd8a463",
+      "outcome": "due_not_checked",
+      "verdict": "EUR-Lex CELEX:31996D0127 — base_tier 1",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "due:7a1a3c29-1412-4c04-bb2e-0785898b9a51",
+      "outcome": "due_not_checked",
+      "verdict": "EUR-Lex CELEX:32024R2027 — base_tier 1",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "due:aa7f712e-1ae1-4ef6-a558-94ead9cee947",
+      "outcome": "due_not_checked",
+      "verdict": "EUR-Lex / CELEX:31991Y0208(01) (Council Resolution of 17 December 1990 on the development of a European high-speed rail network) — base_tier 1",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "due:55cf4495-4bc5-4126-85e9-c2825dcedca8",
+      "outcome": "due_not_checked",
+      "verdict": "EUR-Lex / CELEX:32004R0411 (Council Regulation (EC) No 411/2004 — EU/third-country air transport competition rules) — base_tier 1",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "due:cefd6dbb-0903-4bf1-a1c6-90ea7c604222",
+      "outcome": "due_not_checked",
+      "verdict": "EUR-Lex CELEX:32012R0611 — base_tier 1",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "due:24368170-9892-4818-8ac0-d657210e3f40",
+      "outcome": "due_not_checked",
+      "verdict": "EUR-Lex / CELEX:32013D0807 (Commission Implementing Decision of 17 December 2013 — CO2 emissions targets for light commercial vehicles, 2012) — base_tier 1",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "due:547067cc-6a7c-4d3e-9735-4d2151f1576b",
+      "outcome": "due_not_checked",
+      "verdict": "EUR-Lex CELEX:32021R1061 — base_tier 1",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "due:781ed1bd-5e5f-479a-8203-d4be70ff1cdd",
+      "outcome": "due_not_checked",
+      "verdict": "EUR-Lex / CELEX:42011X0507(01) (UN/ECE Regulation No 110 — CNG/LNG vehicle component and installation approval) — base_tier 1",
+      "evidence_refs": [],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "mode": "dry",
+    "skip_check": false,
+    "check_limit": 10,
+    "reconcile_batch": 200,
+    "drain_limit": 5,
+    "sources_due_for_check": 959,
+    "sources_checkable": 0,
+    "scrape_gate": {
+      "open": false,
+      "reason": "cadence_off",
+      "cadence": "off",
+      "start_date": null,
+      "emergency_paused": false
+    },
+    "route_exited_at_gate": null,
+    "sources_checked": 0,
+    "changes_detected": null,
+    "portal_candidates_touched": null,
+    "verified_by_read": null,
+    "pending_change_rows": 0,
+    "pending_change_rows_total": 0,
+    "changes_recorded": 0,
+    "staged": 0,
+    "drained": 0,
+    "approved": null,
+    "rejected": null,
+    "not_drained": 0,
+    "browserless_units_est": 0
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/change-detection/traces/change-detection-run-005.result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-change-detection.mjs, the change-detection family's canonical entry point (lane CD, 2026-09-02). In apply mode with --skip-check unset, check-sources/route.ts already runs its OWN in-process reconcile pass — this run's own Step B reconcile call is a SECOND, independent pass, so a low or zero changesRecorded/staged here on an apply run is expected (the route's own call already claimed the same rows) and not itself a defect."
+}

@@ -9108,3 +9108,118 @@ HEAL-BUDGET (Sonnet, background, `3c06b1f8`, 171 tests): the killed run #20 wrot
 the summary atomically after each, resumes by ids, and CAPTURE-CITED stops fetching the same cited URL
 once per citing item. Job timeout 30 min, budget 1,500 s. Dispatching the heal again under it next;
 PERF-5 (data layer) still running in the background; ECB-FX apply (#23) and R-D dry (#21) queued.
+
+### Addendum 85, postscript 23 — three artifacts landed, heal #21 read, the lanes relaunched one per workflow (2026-09-04)
+
+Artifacts [CONFIRMED]: population #20 (`33825867992`, mint-run-022) minted 140/140 verified (372
+sections, 885 claims, 113 citations, 0 held); the R-D `rows_file` dry (#21, `33826384670`, mint-run-023)
+validated 6/6 oil-bulletin rows first pass; change detection #5 dry (`33825967861`, run-005) carries
+`harness_version sha256:fcb23ec75e03c512`, the hash CD-GATE's marker was pinned to, so the marker is
+discharged here; its metrics say what build mode predicts: 959 sources due, `scrape_gate.reason =
+cadence_off`, 0 checkable, nothing checked. The R-D apply is NOT dispatched: standing rule 17 closes a
+mint only when the flywheel has connected it and the harness recorded the outcome, and that chain
+(lane TANDEM) has not landed; the six rows wait for it like every other batch.
+
+Heal #21 (`33829526120`, HEAL-BUDGET's first run, 11m56s, exit 0, summary written) healed 0 of 94
+quarantined-live items. Final failures by (criterion, reason): (7, `gate_a_unproven_or_stale`) 88;
+(4, `analysis_missing_label_syntax`) 38; (3, `fact_below_authority_floor`) 2; (2, `ungrounded_url`) 1;
+(6, `missing_full_brief`) 1; (5, `missing_required_slot`) 1. Steps: 94 Gate-A rows written, 24
+resourced, 4 orphans grounded against 824 unprovable, 0 paragraphs relabeled (709
+`no_owning_section_found`), 0 refactored, 0 retrofitted (152 refused for no owning paragraph), 25 cited
+URLs captured / 42 held. The heal's own header (finding 3, HEAL-4) already names the mechanism: the
+Gate-A scanner reads only `full_brief` + FACT claims, and RELABEL/REFACTOR edit section `content_md`,
+so nothing the heal writes can move criterion 7, and criterion 4's paragraphs are not where RELABEL
+looks. Five heal versions have been built against the sections; the failing text lives in the brief.
+Lane HEAL-6 (Sonnet, background) is diagnosing from the live function definition and the rows before
+building the step; any grade change it needs goes behind a dry flag for the operator's ruling.
+
+Lanes: the background workflows PERF-5, tandem-wave15 and SITEMAP were all killed by the turn
+interrupts and the compaction, with nothing committed. Root cause of "only two of five started",
+read from the run state, not guessed: the Workflow tool caps concurrent agents per workflow at this
+container's CPU count (2), so a five-agent workflow queued three lanes indefinitely while three
+separate workflows ran four agents at once. Fix: one workflow per lane. Eight are running now on
+worktrees reset to `1356b381` (TANDEM, HOLLOW-GATE, HOLLOW-SWEEP, CLASSIFY-STEP on Haiku, RECORD-SURFACE,
+PERF-5, SITEMAP, HEAL-6). SITEMAP was relaunched with the operator's ruling folded in: the
+open-source monitor he pointed at (mreflow/control-center, MIT, vendored read-only in the container)
+is better than my spec on discovery order (feed document → `<link rel=alternate>` and common feed
+paths → robots `Sitemap:` → standard candidates → recursive index), bounded response bytes,
+document/entry limits, source-path scoping and the deferred baseline on partial coverage; the lane
+ports those as `.mjs` with attribution and keeps ours where ours is better (polite fetch through
+`fetch-hold.mjs`, gzip, quote/namespace tolerance, `census-writer.mjs` and rule-015 snapshots).
+
+### Addendum 85, postscript 24 — three lanes back: the hollow records swept, classifications dispatched, the data layer's round trips (2026-09-04)
+
+HOLLOW-SWEEP (Sonnet, `b8710971`, 26 tests) [CONFIRMED by its live SQL]: 551 of 1,230 live verified
+record-grade items carry only the `[title]` FACT (201 of them no FACT at all): initiative 390,
+regulation 158, framework 2, guidance 1; by host eur-lex 379, legislation.gov.uk 149,
+federalregister.gov 21. The customer read gate is `is_archived` (`hidden_reason` has zero readers,
+dead column), so the step archives them with a new reason `record_hollow` (outside the five
+source-archive reasons rule 019 and migration 135 guard) and, in the same UPDATE, blanks
+`canonical_instrument_key`, `instrument_identifier` and `source_url`, because `checkM4`,
+`buildItemsIndex` and `buildHeldKeyIndex` all count an archived holder as a blocker and the row
+would otherwise never re-mint; their census rows are already `would_mint` and get a note. Restore:
+`per_item[].restore_sql` in the artifact (the `_snapshots` dir is gitignored, so db.mjs's own snapshot
+does not survive a separate dispatch) and `--arg restore:<ids>` on the same disk. Maintenance step
+`record-hollow-sweep`, writer registered, runbook §10.
+
+CLASSIFY-STEP (Haiku, `d14e8e90`, 12 tests): neither classification script ran in any turn
+(CORPUS-TURN-RUNBOOK ~49); `scripts/maintenance/apply-classifications.mjs` now orchestrates propose
+(classify, drift, anomaly flags with the reflect/dedup pattern from propose-tags) then auto-adopt
+(scope_modes/scope_verticals at high confidence, expected_output always, scope_topics
+ratification-only, jurisdictions never; the GSIG ruling), dry/apply through the guarded path; the
+maintenance.yml option and step added at train time from the lane's snippet.
+
+PERF-5 (Sonnet, `94697e07`) [CONFIRMED, EXPLAIN ANALYZE live]: every query on the listings path is
+0.6 to 25 ms at the database with the indexes already present, so no migration 301; the 907/2,812 ms
+were sequential round trips: the `item_timelines` chunk loop awaited ten chunks one after another
+for a remainder page, and the override read waited on the RPC for an argument it does not use. Both
+now run in one `Promise.all`/`allSettled` (a failed chunk no longer aborts the rest). Round-trip depth
+12 → 2 on `/api/listings/rest`; the projection is [INFERRED] until I re-measure after deploy. The two
+remaining levers are the PERF-2 defect class in shared files: `org.ts resolveOrgIdFromCookies()` and
+`auth.ts requireAuth()` still call `auth.getUser()` (an Auth-server round trip) on every data read and
+every API route. Lane PERF-6 is on both now.
+
+Train gates on this branch: fitness 29/0 (F28 PASS after PROPOSER-3's attestations, `1bd9f010`),
+discipline 141/0, lane tests 37/0, tsc clean. Still running: TANDEM, HOLLOW-GATE, RECORD-SURFACE,
+SITEMAP, HEAL-6, PERF-6.
+
+### Addendum 85, postscript 25 — the flywheel is in the runtime, the sitemap walker is wired, two discipline false positives (2026-09-04)
+
+TANDEM (Sonnet, `4afbf7a8`, 30 tests) [CONFIRMED from population-turn.yml read in full]: the workflow
+ended at `apply-mint-batch.mjs` → rederive → screen-reconcile → `propose-tags --dry` → commit; nothing
+ever ran MINT-RUNBOOK §8 (discovery, forward-event extraction, recluster) or §9 (`--outcomes`), which
+is why runs #15–#20 minted ~650 items with zero edges, events, obligations or tags. New
+`scripts/turns/run-population-flywheel.mjs` runs the eleven-step chain inside the workflow after every
+apply, scoped to the batch's minted ids, reusing the existing scripts' own `main()`s and calling the
+rest as child processes; §9 outcomes are written into the run's mint artifact; and THE GATE
+(`checkPriorSliceConnected`) refuses a new apply while the newest mint artifact has `minted > 0` and
+no `edges_discovered`/`forward_events_extracted`/`isolated_items`, exit 1 naming the fix. Runbooks
+rewritten to say the coordinator reads outcomes, never runs the pass. Mint PENDING-RUN re-pinned to
+`sha256:bff28600696d162f` (MINT-RUNBOOK is a governing file).
+
+SITEMAP (Sonnet, `340295f2`, 72 tests): walker `sitemap` in source-sweep, feed discovery FIRST
+(`feed-discovery.mjs`, ported from control-center's `lib/feed-discovery.ts` near-verbatim), sitemap
+only when no feed exists (`sitemap-walk.mjs`: ported the byte bounds, document/entry budgets,
+source-path scoping and the deferred baseline on partial coverage; kept our polite fetch, gzip,
+quote/namespace tolerance and injected persistence). Wired end to end: a found feed hands to the
+existing `walkFeed` and writes `sources.rss_feed_url` through `guardedUpdate` only when it differs;
+new locs go to `portal_link_candidates` through the family's existing upsert; a changed `lastmod` on
+a live item's URL inserts the `monitoring_queue` row `reconcile.ts runReconcilePass` reads (the
+consumer traced from `change-sweep.mjs` down to its live caller); URL-set snapshots live in the
+`raw_fetches` bucket, never the table, because `bridgeChangedSourceToStagedUpdates` diffs that
+table's rows as HTML (a B1 catch). `THIRD-PARTY-NOTICES.md` carries the MIT text. No schedule (rule
+16). First dry dispatches named: `--host aircargonews.net` (feed) and `--host aapa-ports.org`
+(sitemap only); the container proxy refused both hosts, so the first live walk is the Actions
+dispatch. Source-sweep PENDING-RUN written for the new hash.
+
+Two discipline false positives caught by PR #562's first run, fixed at the rule, not bypassed: rule
+012 scanned `scripts/_snapshots/**/*.json` and found `C:/Users/` inside the Publications Office's own
+OJ fmx.xml metadata captured verbatim for L 2023/2463; captured third-party content is data the
+grounding pool must keep byte-exact (ADR-016), so the snapshot tree is now exempt, with tests. Rule 019
+flagged HOLLOW-SWEEP's test for restating the five source-y reasons as literals next to an
+`is_archived: true` fixture; the test now imports `SOURCEY_ARCHIVE_REASONS` from db.mjs.
+
+Landing order for the runs, all dispatch-only: population-turn under the new gate is the next
+population apply (the R-D rows first, six items, the smallest proof of the chain), then
+`record-hollow-sweep` dry → apply once HOLLOW-GATE lands so the re-mint carries facts, then
+`apply-classifications` dry → apply, then source-sweep `sitemap` dry on the two named hosts.

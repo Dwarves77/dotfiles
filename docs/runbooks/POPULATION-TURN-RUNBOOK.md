@@ -17,10 +17,31 @@ One run = `stamp-wo26-archive-reason.mjs` (apply only in apply mode) → `export
 (join `census_worklist` would-mint rows to their source and capture text) → `run-mint-batch.mjs
 --census-rows --grade record --execute` (the mint kit's own validating gate, unmodified) →
 `apply-mint-batch.mjs` (apply only in apply mode; the guarded write, M4 pre-check, `census_worklist`
-reconcile stamp) → `propose-tags.mjs --dry` (surfaces the newly-minted items' empty connection-signature
-tags for a later, separate `tag-proposals`/`tag-ratification` MAINT step — this workflow never applies
-tags itself). Read `MINT-RUNBOOK.md` §11 for what each step actually does; this file only names the
-chain so the landing section below makes sense without cross-referencing that governing file.
+reconcile stamp) → `rederive-record-provenance.mjs` / `screen-reconcile-records.mjs` (post-apply
+reconciliation, apply only in apply mode) → `scripts/turns/run-population-flywheel.mjs` (MANDATORY,
+MINT-RUNBOOK.md §8/§9 — discovery, forward-event extraction, recluster, derive-obligations,
+tag-proposals + tag-ratification, and the §9 corpus-outcome metrics written back into this run's own
+`mint-run-NNN.json`, all scoped to exactly the items this batch minted; a failed flywheel step fails the
+whole job). This flywheel step is run BY THE WORKFLOW ITSELF, not a separate hand-run coordinator
+pass — see "THE FLYWHEEL" below. Before any of this, in `apply` mode, a gate step
+(`run-population-flywheel.mjs --check-gate`) refuses to start a NEW batch while a PRIOR batch's
+`mint-run-NNN.json` is missing the §9 outcome keys, so an unconnected prior slice blocks the next one
+rather than accumulating silently. Read `MINT-RUNBOOK.md` §8/§9/§11 for what each step actually does;
+this file only names the chain so the landing section below makes sense without cross-referencing that
+governing file.
+
+### THE FLYWHEEL (lane TANDEM, 2026-09-04)
+
+THE DEFECT [CONFIRMED]: this workflow used to end after `apply-mint-batch.mjs` plus an unconditional
+`propose-tags.mjs --dry` preview — MINT-RUNBOOK.md §8 (discovery, forward-event extraction, recluster,
+IN ORDER) and §9 (`--outcomes` enrichment) were documented as a separate, hand-run coordinator pass that
+nothing in this runtime ever triggered. Population runs #15-#20 (2026-09-03/04, ~650 items,
+mint-run-017..022) were applied with no flywheel pass and no outcomes: every one of those items carries
+zero `item_cross_references`, zero `item_forward_events`, no obligations, no tags, no signals. Operator
+ruling (2026-09-04), verbatim: "there is no thing within this entire build that works on its own
+ever... Everything works together, that's the purpose of the flywheel and the harness." A green
+population-turn run now means minted AND connected AND recorded — the coordinator's job on §8/§9 is to
+read the outcomes that landed in `mint-run-NNN.json`, not to run discovery/extraction/tagging by hand.
 
 ## How to dispatch
 
@@ -87,12 +108,19 @@ needed while the setting stays off.
 ## What lands where
 
 Same shape as `corpus-turn.yml`'s own "What lands where" section: `scripts/harness-runs/mint/` gains
-this run's enrichment of the existing `mint-run-NNN.json` family artifact (no new harness family — see
-`MINT-RUNBOOK.md` §11), plus this run's own export/apply-ready/report files. `scripts/_snapshots/**`
-(rule 015's reversibility record) is `.gitignore`d and instead uploaded as the workflow artifact
-`population-turn-snapshots-<run_id>` (dry or apply, success or failure). Database writes (the mint
-itself, the `census_worklist` reconcile stamp) go through the guarded path in `apply-mint-batch.mjs`
-and leave no local file beyond the harness artifact.
+this run's enrichment of the existing `mint-run-NNN.json` family artifact — now including the §9
+`edges_discovered`/`forward_events_extracted`/`isolated_items` metrics the flywheel step wrote back into
+it (no new harness family — see `MINT-RUNBOOK.md` §8/§9/§11) — plus this run's own
+export/apply-ready/report files. The flywheel step also self-emits its OWN artifact in the EXISTING
+`forward-events` family (`scripts/harness-runs/forward-events/forward-events-run-NNN.json`, the same
+family `corpus-turn.yml` uses), committed alongside the mint artifact by this run's commit step.
+`scripts/turns/LAST-TURN.json` is advanced by the same step, so a later `corpus-turn` dispatch never
+re-covers what this run's flywheel already connected. `scripts/_snapshots/**` (rule 015's reversibility
+record) is `.gitignore`d and instead uploaded as the workflow artifact `population-turn-snapshots-<run_id>`
+(dry or apply, success or failure). Database writes (the mint itself, the `census_worklist` reconcile
+stamp, and the flywheel's own edges/forward-events/obligations/tags writes) go through the guarded path
+in `apply-mint-batch.mjs` and `run-population-flywheel.mjs` and leave no local file beyond the harness
+artifacts named above.
 
 ## Dispatching the oil-bulletin batch (ruling R-D, 2026-09-03)
 

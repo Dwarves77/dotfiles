@@ -1,7 +1,109 @@
 # Last proposer pass — mint
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **twenty-one** artifacts (`mint-run-001`
-… `mint-run-021`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-021**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **twenty-three** artifacts
+(`mint-run-001` … `mint-run-023`); F28's rule (d) requires this file to name the latest verbatim:
+**mint-run-023**.
+
+## Pass of 2026-09-04 (lane PROPOSER-3 — mint-run-022, mint-run-023: population #20 apply 140/140, and the first R-D rows_file dry batch, apply correctly held pending lane TANDEM per CLAUDE.md standing rule 17)
+
+**Artifacts read:** mint-run-022 (population-turn run `33825867992`, apply, 2026-09-04T01:33:40.312Z,
+`harness_version sha256:ebb4130c5892235d` — unchanged since mint-run-020/021, still the OLD hash, this
+run's dispatch predates lane URL-BOILER's fix landing) and mint-run-023 (rows_file dry, Actions run
+`33826384670`, 2026-09-04T01:41:32.029Z, same `sha256:ebb4130c5892235d`, 6 rows from an R-D-curated EU
+oil-bulletin browser batch, not a census draw).
+
+**Full traces read:** mint-run-022's `census-rows.json`, `census-rows.held.json`,
+`census-rows.screened-out.json`, `census-rows.mint-batch-report.json`, and `census-rows.apply-ready.json`
+under `scripts/_snapshots/population-33825867992/`; mint-run-023's input
+`scripts/_snapshots/population-browser/oil-bulletin-2026-09-03/census-rows.json` (the 6-row R-D batch)
+and its `census-rows.apply-ready.json` / `census-rows.mint-batch-report.json` under
+`scripts/_snapshots/population-33826384670/`. **[CONFIRMED]** mint-run-023 draws no census: no
+`.held.json` / `.screened-out.json` files exist for `population-33826384670` (directory listed directly —
+only the two files above are present), consistent with a `rows_file`-sourced batch bypassing the
+census-selection step entirely.
+
+**Metrics [CONFIRMED, read from the artifact JSON]:** mint-run-022: `attempted 140, valid 140, invalid 0,
+minted 140, minted_verified 140, minted_unverified 0, apply_failed 0, validation_failed_held 0`;
+db_deltas items 140 / sections 372 / claims 885 / citations 113 / searches 140 / gate_a 140.
+Held-reason distribution (72 rows total, counted directly from `census-rows.held.json`):
+`capture_blocked` 30, `item_type_unmapped` 25, `already_held_by_key` 12, `canonical_key_unresolved` 4,
+`institution_category_unmapped` 1. Screened out before the slice was drawn: 1,116 off-vertical, 242
+ambiguous (`census-rows.screened-out.json`'s `counts`). mint-run-023: `attempted 6, valid 6, invalid 0,
+validator_first_pass_rate "6/6 = 100.00%"`; no `minted`/`apply_failed`/db_deltas keys are present in this
+artifact's `metrics` at all (unlike mint-run-022's), and its `per_item` outcome for every one of the 6
+rows is `"apply_ready"`, not `"minted_verified"` — the apply step never ran for this batch.
+
+**Hypotheses (verified, with basis):**
+1. **`institution_category_unmapped` recurred at exactly 1 row again** (mint-run-021 also held exactly 1,
+   its first appearance; mint-run-022 is its second). Basis: `census-rows.held.json`'s reason field,
+   counted directly. Two occurrences across two runs is still not a pattern — consistent with the prior
+   pass's "watch, do not yet investigate" call; this pass makes the same call.
+2. **The held-class growth trend the prior pass named continued**: `capture_blocked` (18→22→27→**30**) and
+   `item_type_unmapped` (16→22→23→**25**) both grew again in mint-run-022; `already_held_by_key` held flat
+   at 12 for a fourth consecutive run (the canonical-key dedup layer, stable); `canonical_key_unresolved`
+   held near-flat (3→3→4→**4**). Basis: this run's held-reason counts against the prior pass's own recorded
+   figures for runs 019/020/021.
+3. **mint-run-022's 100% first-pass rate (140/140) is NOT evidence the EUR-Lex-portal-boilerplate defect
+   class (prior pass's hypothesis 4, `429c85d2`/`a980a0b9`) is fixed.** Both mint-run-022 and mint-run-023
+   still carry `harness_version sha256:ebb4130c5892235d` — the SAME hash as mint-run-020/021, predating
+   lane URL-BOILER's `record-facts.mjs` fix. Zero failures in a 140-row slice that happened not to draw
+   either previously-held row (both are excluded from re-selection by the validation-failed hold-back,
+   mint-run-020's mechanism) says nothing about whether the fix works; that requires a run whose own
+   `harness_version` reads the new hash. Basis: direct field comparison, both artifacts' `harness_version`.
+4. **mint-run-023 is a new batch shape for this family**: 6 non-legislative `market_signal` rows (EU
+   Weekly Oil Bulletin series — Euro-Super 95, automotive diesel, heating gas oil, LPG motor fuel,
+   residual fuel oil 1%S, heavy fuel oil 3.5%S), all from source id
+   `cb816051-80d0-463b-95b2-551cf70c1c91` ("European Commission – DG Energy", `base_tier: 2` — the "T2"
+   the dispatch referred to). All 6/6 valid, 0 failures, `recommended_status: "verified"`. Basis: read
+   `census-rows.json` (the R-D input) and `census-rows.mint-batch-report.json` byte-for-byte; both agree
+   on the source id and tier.
+5. **Every one of the 6 rows' `tag_presence` is `allEmpty: true`**, carrying the identical
+   "ALL THREE connection-signature tag fields are empty" warning already named as the standing
+   August-census-wave tag-gap defect (mint-run-015's hypothesis 3, still open, not new to this pass) — a
+   known, already-scoped gap recurring on a new batch shape, not a new defect. Basis: read all 6 `results[]`
+   entries in `census-rows.mint-batch-report.json`.
+6. **mint-run-023's apply is correctly withheld, not a defect or an omission.** Basis: the artifact's own
+   `per_item` records `"apply_ready"` for all 6 rows (never `"minted_verified"`), and unlike
+   mint-run-022's `proposer_notes` (which carries an explicit `apply-mint-batch.mjs enrichment` block
+   reporting `140 minted (140 verified, 0 not)`), mint-run-023's `proposer_notes` has NO such block at
+   all — confirming `apply-mint-batch.mjs` was never invoked for this batch. This matches CLAUDE.md
+   standing rule 17 verbatim ("A mint is not done until the flywheel has connected it... and the harness
+   has recorded the outcome in the run's own artifact") and `docs/ops/session-log.md`'s own account of
+   this exact batch ("The R-D apply is NOT dispatched: standing rule 17 closes a mint only when the
+   flywheel has connected it and the harness recorded the outcome, and that chain [lane TANDEM] has not
+   landed; the six rows wait for it like every other batch."). This pass read that CLAUDE.md rule and the
+   session-log passage directly but did NOT independently re-verify lane TANDEM's own landing state (out
+   of this lane's write set and read scope) — recorded as **[CONFIRMED]** from the artifact + those two
+   documents' text, not independently re-derived from TANDEM's own artifacts.
+7. **`PENDING-RUN.md`'s marker (`harness_version at write time: sha256:8712c28763b44ff2`, lane
+   URL-BOILER's `record-facts.mjs` bare-domain-URL span guard) remains undischarged after this pass.**
+   **[CONFIRMED]** neither mint-run-022 nor mint-run-023 carries that hash — both carry the older
+   `sha256:ebb4130c5892235d`, predating URL-BOILER, which landed in PR #560 after mint-run-022's own
+   dispatch. This pass independently re-hashed the CURRENT tree's mint `GOVERNING_FILES`
+   (`hashHarnessVersion` from `scripts/lib/run-artifact.mjs`, run directly against the live tree) and got
+   `sha256:8712c28763b44ff2` exactly — matching the marker's recorded hash, not drifted further — so F28
+   rule (c) records this as an honestly-acknowledged pending state (no violation), but the marker itself
+   is NOT discharged: that requires the next `population-turn` run whose own `harness_version` reads
+   `sha256:8712c28763b44ff2`.
+
+**Proposal:** (1) **None warranted on mint-run-022 itself** — a clean 140/140 apply, held-class mix
+following the established multi-run growth trend, one first-appearance-repeat single-row class
+(`institution_category_unmapped`) not yet meriting investigation at n=2. (2) **None warranted on
+mint-run-023's validation** — 6/6 valid, the same known tag-gap warning every prior slice already carries,
+nothing new. (3) **Named, not proposed as a fix**: mint-run-023's apply is correctly withheld per rule
+17/lane TANDEM; the next mint proposer pass should re-check whether TANDEM has landed before treating this
+R-D batch as closed — it is not yet live. (4) **Watch for the first run carrying
+`sha256:8712c28763b44ff2`** — that is the run that actually tests whether URL-BOILER's fix clears rows
+`429c85d2`/`a980a0b9` (still held from runs #17/#18) on criterion 2, per MINT-RUNBOOK.md §11's
+`reopen-validation-holds.mjs` re-admission path; this pass did not run that script (no DB write access
+from this lane) and did not observe either row in this pass's own held/screened files (they belong to
+runs #17/#18's snapshots, not mint-run-022/023's).
+
+**Family gates status:** this landing adds two run artifacts (022/023) and this attestation only — no NEW
+governing-file change from this lane. `PENDING-RUN.md` is left in place (NOT discharged): its recorded
+hash (`sha256:8712c28763b44ff2`) matches the current tree's re-computed hash exactly (measured this pass),
+so F28 rule (c) records the drift as honestly acknowledged, not a violation — discharge is deferred to the
+first run whose own `harness_version` carries that hash.
 
 ## Pass of 2026-09-04 (lane ARTIFACTS-2 — mint-run-019, mint-run-020, mint-run-021: population #17/#18/#19, the URL-GUIL fix confirmed both pre- and post-landing, and the hold-back mechanism proven closing the repeat-failure loop)
 

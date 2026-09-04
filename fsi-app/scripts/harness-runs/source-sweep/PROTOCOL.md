@@ -100,3 +100,71 @@ the walker's design.
 Once `scripts/harness-runs/source-sweep/` holds ≥2 valid artifacts, `LAST-PROPOSER-PASS.md` must name the
 latest run's `run_id` (F28 rule (d)). Update it as part of the SAME lane that writes the new artifact —
 not a follow-up task, the same discipline every other family's protocol states for itself.
+
+## 7. The "sitemap" walker (lane SITEMAP, 2026-09-04)
+
+The operator's own pattern: "major sites with news on new tech and advancements... will have RSS feeds
+... if this person already did the coding and it's on github I want you to find it and use that code if
+it's good." `src/lib/sources/sitemap-walk.mjs` (+ the new `src/lib/sources/feed-discovery.mjs`) is that
+third leg — register-eurlex/register-federal-register walk two FIXED registers and `feed` walks ONE
+caller-named feed; `sitemap` is the first walker that sweeps EXISTING `sources` rows directly (a
+regulator WEBSITE, not a register and not already known to have a feed).
+
+**PORTED, in part, from `mreflow/control-center`** (MIT, (c) 2026 Matt Wolfe — `fsi-app/THIRD-PARTY-NOTICES.md`
+carries the license text). Response-byte bounding, a separate entry-count budget, source-path scoping,
+and the deferred-baseline-on-partial-coverage snapshot rule were ported near-verbatim, converted to pure,
+dependency-injected `.mjs`; this repo's own polite-fetch transport, gzip house style, regex XML parsing,
+and the census/change-signal write contract were KEPT (already as complete, or a better fit than
+control-center's Next.js/local-file-store originals). See `sitemap-walk.mjs`'s own header for the full,
+function-by-function accounting — it is not restated here.
+
+**Discovery order differs from the other three walkers.** `walkSource` (`sitemap-walk.mjs`) tries FEED
+discovery first (is the source URL itself a feed? a `<link rel=alternate>` tag? one of the operator's
+named common feed paths — `/feed`, `/rss`, `/rss.xml`, `/atom.xml`, `/feed.xml`, `/index.xml`) and hands a
+found feed to the SAME `feed-walk.mjs` `walkFeed` every `--walker feed` dispatch uses — this driver
+records the discovered `feed_url` on the artifact and, in apply mode, writes it to `sources.rss_feed_url`
+through `db.mjs`'s `guardedUpdate` (the repo's one script-side write path, rule 015 — cite + prior-value
+snapshot; never a new writer). Only when NO feed is found does the walk fall through to the sitemap
+enumeration (robots.txt `Sitemap:` lines, else the three conventional fallback paths).
+
+**Scope flags, not a window.** `--source-id <uuid>` walks exactly that one `sources` row (no status
+filter — an explicit single target may probe a currently-inaccessible row); `--host <hostname>` walks
+every ACTIVE row on that host. Exactly one is required; `--limit` (default 5,000) bounds the SCOPED,
+CURRENT url-entry count diffed/persisted PER SOURCE this run, distinct from the walk-time
+`--max-sitemap-fetches`/`--max-sitemap-entries` budgets (sitemap-walk.mjs's own document/entry caps,
+default 50 documents / 100,000 entries).
+
+**Where the writes land — the SAME ledgers every other walker in this family uses, never a new one.**
+New sitemap locs (or feed entries) → `portal_link_candidates` through the SAME mirrored
+`upsertPortalLinkCandidates` (bound per-source, since `sitemap` targets many source rows in one
+dispatch, unlike the other three walkers' single portal). A changed lastmod, when it matches a LIVE
+`intelligence_items.source_url` on that exact source (the operator's precision instruction — a change on
+a URL nothing has ever minted is not evidence any existing item needs re-verification), becomes ONE
+`monitoring_queue` row through the SAME insert shape `check-sources/logic.ts`'s `assessAndUpdateSource`
+already writes — MIRRORED here for the identical `@/`-path-alias reason `upsertPortalLinkCandidates`
+mirrors `persistPortalCandidates` (see `run-source-sweep.mjs`'s own header), never a new table or a new
+write mechanism. `reconcile.ts`'s `runReconcilePass` (already wired — the change-detection family) is
+what actually drains that row.
+
+**The url-set SNAPSHOT is NOT stored in the `raw_fetches` DB table.** That table is the paid-acquire
+path's HTML capture record, and `change-sweep.mjs`'s `bridgeChangedSourceToStagedUpdates` diffs a
+source's two most recent `raw_fetches` rows AS HTML — a JSON url-set row landing there for the same
+source_id would corrupt that diff (rule B1: read the consumer before writing to a shared resource).
+`run-source-sweep.mjs` reuses `raw_fetches`'s STORAGE BUCKET only (never its DB row), under a
+`sitemap-snapshots/<source_id>/current.json.gz` path no other reader queries — `snapshot-store.mjs`'s own
+CONVENTION (sha256 content-addressing is not needed here; a fixed filename per source IS "the previous
+snapshot," there is exactly one) applied to a JSON payload instead of an HTML one.
+
+**GOVERNING_FILES is deliberately NOT extended** to `sitemap-walk.mjs`/`feed-discovery.mjs` by this lane
+— see `run-source-sweep.mjs`'s own comment on `SOURCE_SWEEP_GOVERNING_FILES` for exactly why (the pinned
+3-file array is asserted verbatim in THREE places, one of which — `run-source-sweep.test.mjs` — is
+outside this lane's write set) and what a future lane must do to close the gap. `run-source-sweep.mjs`
+edited to ADD the "sitemap" walker still moves this family's `harness_version` hash (it IS a governing
+file); `scripts/harness-runs/source-sweep/PENDING-RUN.md` is this lane's hash-pinned acknowledgment of
+that move, per F28 rule (c) — see that file.
+
+**Not run for real by this lane.** The container's egress proxy refuses arbitrary hosts (`connect_rejected
+... organization policy`), confirmed against both example hosts below this session. First dry runs to try
+once network access exists: `--host aircargonews.net` (rss_feed_url already on record:
+`https://www.aircargonews.net/rss` — exercises the feed-first path) and `--host aapa-ports.org`
+(access_method='scrape', no rss_feed_url — exercises the sitemap-fallback path).

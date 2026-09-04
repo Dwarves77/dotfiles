@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, tag-proposals, tag-ratification, seed-benchmark-instruments, spec09-reroute, provenance-heal, institution-canonicalize, reopen-validation-holds]
+        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, provenance-heal, institution-canonicalize, reopen-validation-holds, record-hollow-sweep]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, or a comma-separated proposal-id list — see the runbook for which steps require one and what value they need).'
         required: false
@@ -211,6 +211,20 @@ jobs:
           mkdir -p "$OUT_ROOT/tag-ratification"
           node scripts/maintenance/tag-ratification.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/tag-ratification"
 
+      - name: apply-classifications
+        # Lane CLASSIFY-STEP (2026-09-04): MAINT orchestrator for the full source-classification
+        # propose→auto-adopt pipeline (operator ruling 2026-09-03 retires the human-gate-for-everything
+        # posture). Dry: computes fresh Axis 3/4/5 proposals (classify gaps, drift, anomalies) and
+        # evaluates auto-adopt eligibility (scope_modes/scope_verticals at "high" confidence,
+        # expected_output deterministically, scope_topics ratification-only, jurisdictions never).
+        # Apply: proposes fresh flags, resolves stale ones, then auto-adopts eligible flags (sources +
+        # integrity_flags via autoAdoptClassification, guarded path, rule 015). Flags with residue stay
+        # open; see apply-classifications.mjs's header and docs/specs/08-flywheel-design.md §Loop B.
+        if: env.RUN_STEP == 'apply-classifications' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/apply-classifications"
+          node scripts/maintenance/apply-classifications.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/apply-classifications"
+
       - name: seed-benchmark-instruments
         # Wave 3 lane COMMUNITY-A (spec 05 §3, component 4): the house-seeded recurring benchmark.
         # Instantiates this period's community_benchmark_instruments rows (migration 294) from the
@@ -277,6 +291,20 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/reopen-validation-holds"
           node scripts/maintenance/reopen-validation-holds.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/reopen-validation-holds" || true
+
+      - name: record-hollow-sweep
+        # Lane HOLLOW-SWEEP (2026-09-04): archives live verified record-grade intelligence_items whose
+        # FACT claims are title-only (archive_reason='record_hollow', releasing canonical_instrument_key/
+        # instrument_identifier/source_url so the row stops blocking apply-mint-batch.mjs's checkM4 /
+        # export-census-rows.mjs's buildHeldKeyIndex — see the step's own header), and returns the
+        # corresponding census_worklist rows to would_mint with a note naming this sweep. No ruling gate;
+        # apply needs no --arg beyond a valid selection. `--arg restore:<id,id,...>` reverses a prior
+        # apply from this run's own db.mjs snapshot (best-effort — see the step's own header on why the
+        # artifact's own per_item[].restore_sql is the durable reversal path across separate dispatches).
+        if: env.RUN_STEP == 'record-hollow-sweep' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/record-hollow-sweep"
+          node scripts/maintenance/record-hollow-sweep.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/record-hollow-sweep"
 
       # Runs even when a step failed, so the log always ends with the true state of the tables rather
       # than only the exception that got there first (mirrors producers.yml's own Population AFTER).
