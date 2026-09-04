@@ -9779,3 +9779,53 @@ Runtime state at write time: retext dry #37 (RETEXT-COLLIDE code) measured 921 r
 left 3 items unprocessed (`items_remaining`) and the scanner fix (#580) is not yet reflected in
 `item_gate_a_state`, so a heal dry `quarantined-live` under the new scanner precedes any strip
 decision. Dispatch next: retext apply; heal dry; land this train; backlog apply (max 6).
+
+### Addendum 85, postscript 46 — the backlog is clear; the obligation text was the mint's own template (2026-09-04)
+
+Train/wave34 landed as #581 (`f13bc362`). Backlog apply #33 (run 33871612646) connected mint-run-017
+through 022, 934 items, 176 events, 345 skips [CONFIRMED, forward-events-run-023..028, PROPOSER-7
+`cfe811a7`]; my offline `--check-gate` over master plus its stamps reports every slice that minted
+anything carries its §9 outcomes, so the fifteen-artifact legacy backlog TANDEM-2 measured this morning
+is cleared by this train. 190 of the 345 skips are `slot_date_unclassified`; live [CONFIRMED read-only
+SQL] 756 `[due_date]` slot claims exist, 638 carry no calendar year at all (relative or recurring
+deadlines: "within 28 days beginning with the day on which the notice was received", "no later than
+31 January of the following year"), which the extractor is right to refuse; 118 carry a year and 89 of
+those show no deontic inside the mint's ~79-char span. Lane FE-SLOT-2 (Sonnet, running) gives the
+extractor the captured-source context around the span through ONE reader (three files were mirroring
+the same two queries by hand: read-and-extract, the corpus exporter, the retext step) and splits the
+skip into three named reasons.
+
+Retext apply #38 (RETEXT-COLLIDE) [CONFIRMED, summary + live SQL]: 921 targets, 173 collision rows
+deleted through guardedDelete, 748 rewritten, read-back 748/748, 0 no-ops; live 0 key collisions, 0
+lowercase starts, 0 bold/pipe/URL residue, 243 honest "…" fragments. What the clean table then showed:
+rows whose obligation_text is the record-grade mint's OWN slot template ("[due_date] The captured
+source states a due date (date_precision: day), verbatim: «…»") or the GAP sentence before it, because
+a section-sourced window's sentence-start snap did not treat "[slot_key]" as a boundary. 58 rows / 41
+items when I measured, 122 / 90 by the time lane FWD-TEXT-3 (Sonnet, `4a57d4c5` here) measured, #33
+having minted more. The fix unwraps the template to the passage inside the innermost «…» (or the 26
+legacy straight-quote sections) containing the date, treats a marker as a boundary on both edges,
+refuses GAP boilerplate with a named skip, `fe1-2026-09-04.3`, marker `4187cd5f5f26d005`; 106 of the
+122 now equal their claim-sourced twin exactly, so the next retext apply collapses them.
+
+Heal dry #39 under the fixed scanner (#580) [CONFIRMED, summary]: 86 candidates, unprovable orphans
+527 → 453, STEP SOURCE would ground 1,247 tokens, criterion 7 on 79 items is `gate_a_unproven_or_stale`
+because a dry run cannot rewrite `item_gate_a_state`; brief-honest 8 would-apply / 65 rejected. I read
+the eight: they would strip ReFuelEU's 0.7% PtL-SAF sub-target, "first reporting year as of FY2024",
+Melbourne's 53% reduction, and bibliography table rows. Those are assertions with sources one hop
+away; rule 18 says ground them, not delete them. The strip stays undispatched and I am not putting it
+to the operator as a yes/no, because the answer on this evidence is no. Heal APPLY `quarantined-live`
+(no strip) is the next Maintenance dispatch after reopen #41. Reopen-validation-holds dry #40 / apply
+#41 (`ungrounded_url`, the two UK-SI rows URL-BOILER fixed) dispatched.
+
+META-8 (Sonnet, `57321f8a`): meta-harness-run-008 over trains 23-34 discharges the meta-harness marker.
+Its count I will not soften: 1 of 17 code defects this wave was caught by an automated gate at write
+time; the rest by a lane reading, the coordinator reading a live page, or a run failing. Its proposal:
+a lane whose diff touches a hand-maintained copy, a hardcoded namespace object, or a resolver's
+input-shape assumption must grep the other call sites or live shapes before landing, made mechanical.
+The FE-SLOT-2 brief already requires a source-reading contract test for the reader collapse.
+
+Board hygiene: the "NEXT (structural)" row asking for a shared write-sequence module is closed, WSEQ
+landed it as `src/lib/intake/write-item.ts` (Addendum 85, line 8107). Eight stale `population/*`
+branches upstream (33678399902 … 33826384670) are byte-identical to master or older than it
+[CONFIRMED per blob]; deleted in this train's landing command. Dispatch next: heal apply; population
+apply with the R-D six `rows_file`; then population apply limit 200; retext dry → apply under FWD-TEXT-3.
