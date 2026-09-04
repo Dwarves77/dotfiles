@@ -1,5 +1,6 @@
 // Tests for server-timing.ts, the ambient (cache()-backed) wrapper (lane PERF-ARCH, 2026-09-04).
-// Run: node --test fsi-app/src/lib/perf/server-timing.test.mjs
+// Run (needs node_modules: imports react through server-timing.ts, so it is an .npmtest, not part of the no-npm suite):
+//   cd fsi-app && node --test src/lib/perf/server-timing.npmtest.mjs
 //
 // "react" resolves fine under plain `node --test` (it is a normal npm package with its own
 // package.json — the ESM-resolution problem load-detail-core.ts's header documents is specific to
