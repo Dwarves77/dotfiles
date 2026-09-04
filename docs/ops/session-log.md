@@ -9470,3 +9470,26 @@ outcomes and the second artifact never ran. DB-RETRY (Haiku, `4c8c3b31`, 22 test
 retry (3 attempts, 0.5/2/5 s) on transient transport errors and 502/503/504 around readAll pages and
 every prior-state snapshot read and idempotent write; PostgREST errors and plain inserts never
 retried. Re-dispatching the backlog apply after this lands.
+
+### Addendum 85, postscript 33 — HEAL-8: where the missing figures actually are (2026-09-04)
+
+Train/wave21 landed as #568 (`86b45ba0`). HEAL-8 (Sonnet, `f08416c4`, 234 tests) measured the
+1,477 `token_not_in_page` tokens read-only from the run's rows and found the largest single cause was
+not the pages but the heal's own accounting: "already captured" lookups, which cost no fetch, were
+charged against the per-item fetch bound the same as real fetches, so a high-orphan item (one sample:
+51 orphans, 47 groundable from captures already on disk) hit `bound_hit` before it tried most of them
+(~26.5% of the sample); numeric surface-form mismatches were ~1.4%; a linked document one hop away
+(a CINEA grant database linked from a Clean Hydrogen Partnership press page) and thin captures were
+present and smaller; the remainder is nowhere in what was captured. Built: a fourth,
+numeric-tolerant tier in `locateSpanInText` (separators, currency symbol vs code, unicode spaces and
+dashes, trailing punctuation) that still stores the page's own byte-exact span; a bounded one-hop
+follow (max 3 links per token, same institution by `institutionKey`, never a bare same-host match,
+which the lane caught as a real bug on shared government portals such as nj.gov/dep vs nj.gov/other);
+thin-capture recapture; the budget split (free lookups no longer consume the fetch bound,
+`SOURCE_MAX_PER_ITEM` stays 25 by the fetch arithmetic, 89 items × 25 > the 1,500 s budget); and the
+sentence carrying an unprovable figure now appears in the report under `unprovable` with its
+context. Left open and named: a cross-host one-hop (Cellar/EUR-Lex from a Commission press page)
+needs a DB institution lookup and stays a follow-on lever. Dispatch next: provenance-heal dry
+`quarantined-live`, then apply.
+
+Backlog apply #25 (4 artifacts, retry landed) is running.
