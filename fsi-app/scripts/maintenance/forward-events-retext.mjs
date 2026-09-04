@@ -98,6 +98,12 @@ import { readdirSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { runCli, fsiRoot } from "./lib/cli.mjs";
 import { extractForwardEvents } from "../../src/lib/forward-events/extract-forward-events.mjs";
+import {
+  CLAIM_KIND_FILTER,
+  mapClaimRow,
+  mapSectionRow,
+  attachDueDateContext,
+} from "../../src/lib/forward-events/read-and-extract.mjs";
 
 export const CITE = Object.freeze({
   skill: "remediation-discipline",
@@ -131,27 +137,22 @@ export const DELETE_CITE = Object.freeze({
 export const RESTORE_ARG_PREFIX = "restore:";
 export const IDS_ARG_PREFIX = "ids:";
 
-// ── pure: read-back-and-extract shape (mirrors src/lib/forward-events/read-and-extract.mjs's row mapping,
-//    duplicated rather than imported because that module is non-pure (it takes a live `sb` client) and
-//    this step's own deps injection already isolates the DB calls — see buildDeps below) ─────────────────
+// ── pure: read-back-and-extract shape — lane FE-SLOT-2, 2026-09-04, imports
+//    src/lib/forward-events/read-and-extract.mjs's own row-mapping functions (that module's "THE ONE
+//    READER" header note) rather than re-typing them a second time; this step's own `deps` injection still
+//    isolates the DB calls (that module is non-pure, it takes a live `sb` client this step's own
+//    `readAll`-based deps do not have — see buildDeps below), so only the ROW MAPPING is shared, never the
+//    query mechanism. `mapClaimRows`/`mapSectionRows` are re-exported here (thin wrappers over the shared
+//    per-row functions) so this file's own callers below and its own test suite keep the same names. ──
 
 /** Map raw section_claim_provenance rows into extractForwardEvents' claim shape. Pure. */
 export function mapClaimRows(rows) {
-  return (rows ?? []).map((r) => ({
-    claim_id: r.id,
-    kind: r.claim_kind,
-    text: r.claim_text,
-    span: r.source_span ?? null,
-  }));
+  return (rows ?? []).map(mapClaimRow);
 }
 
 /** Map raw intelligence_item_sections rows into extractForwardEvents' section shape. Pure. */
 export function mapSectionRows(rows) {
-  return (rows ?? []).map((r) => ({
-    section_id: r.id,
-    key: r.section_key,
-    md: r.content_md ?? "",
-  }));
+  return (rows ?? []).map(mapSectionRow);
 }
 
 // ── pure: matching key (mirrors apply-staged-update.ts's own forwardEventDedupeKey's non-text half —
@@ -419,6 +420,7 @@ export function buildRestoreSql(before) {
  *   readForwardEventsForItem: (itemId: string) => Promise<object[]>,
  *   readClaimsForItem: (itemId: string) => Promise<object[]>,
  *   readSectionsForItem: (itemId: string) => Promise<object[]>,
+ *   readPoolForItem: (itemId: string) => Promise<object[]>,
  *   updateObligationText: (id: string, text: string) => Promise<{updated: number, rows: object[]}>,
  *   deleteForwardEvents: (ids: string[]) => Promise<{deleted: number, snapshot: string, rows: object[]}>,
  *   readRowsByIds: (ids: string[]) => Promise<object[]>,
@@ -447,15 +449,20 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
   const allDuplicateGroups = [];
   const allRows = []; // EVERY existing row (target or not), for collision planning -- see planCollisions' own doc
   for (const itemId of itemIds) {
-    const [existingRows, claimRows, sectionRows] = await Promise.all([
+    const [existingRows, claimRows, sectionRows, poolRows] = await Promise.all([
       deps.readForwardEventsForItem(itemId),
       deps.readClaimsForItem(itemId),
       deps.readSectionsForItem(itemId),
+      deps.readPoolForItem(itemId),
     ]);
+    // lane FE-SLOT-2, 2026-09-04: due_date slot claims gain `context` via read-and-extract.mjs's own
+    // shared `attachDueDateContext` (this file's header note above) before this REWRITE step re-runs the
+    // extractor -- otherwise a retext pass over a fixed extractor would still see the pre-fix, context-less
+    // shape and never actually pick up FE-SLOT-2's own rescue.
     const { retextTargets, duplicateGroups } = planItemRetext({
       itemId,
       existingRows,
-      claims: mapClaimRows(claimRows),
+      claims: attachDueDateContext(mapClaimRows(claimRows), poolRows),
       sections: mapSectionRows(sectionRows),
     });
     allRetextTargets.push(...retextTargets);
@@ -733,13 +740,22 @@ if (IS_MAIN) {
           readAll(
             "section_claim_provenance",
             "id, claim_kind, claim_text, source_span",
-            { match: (q) => q.eq("intelligence_item_id", itemId).in("claim_kind", ["FACT", "GAP"]) },
+            { match: (q) => q.eq("intelligence_item_id", itemId).in("claim_kind", CLAIM_KIND_FILTER) },
           ),
         readSectionsForItem: (itemId) =>
           readAll(
             "intelligence_item_sections",
             "id, section_key, content_md",
             { match: (q) => q.eq("item_id", itemId) },
+          ),
+        // lane FE-SLOT-2, 2026-09-04: due_date slot context source pool (this file's header note above) --
+        // the same `agent_run_searches` table read-and-extract.mjs's own live reader consults, batched per
+        // item here rather than per single sb call, matching this step's other per-item reads.
+        readPoolForItem: (itemId) =>
+          readAll(
+            "agent_run_searches",
+            "id, result_content, result_index",
+            { match: (q) => q.eq("intelligence_item_id", itemId) },
           ),
         updateObligationText: (id, text) =>
           guardedUpdate("item_forward_events", (q) => q.eq("id", id), { obligation_text: text }, {

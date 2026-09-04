@@ -87,3 +87,61 @@ test("buildCorpusItems: content_md null coerces to empty string, never null (ext
   const out = buildCorpusItems([{ id: "i" }], [], [{ id: "s", item_id: "i", section_key: "k", content_md: null }]);
   assert.equal(out[0].sections[0].md, "");
 });
+
+// ── buildCorpusItems: due_date slot context (lane FE-SLOT-2, 2026-09-04) ───────────────────────────
+// The exporter's own header ("COLUMN MAPPING") points at read-and-extract.mjs's shared mapping/context
+// functions for these — this block proves the exporter's own batched pool grouping wires them correctly,
+// never re-deriving the context logic itself.
+
+test("buildCorpusItems: a due_date slot FACT claim gains context from this item's own pool rows", () => {
+  const items = [{ id: "item-1" }];
+  const claimRows = [
+    {
+      id: "claim-due",
+      intelligence_item_id: "item-1",
+      claim_kind: "FACT",
+      claim_text: "[due_date] The captured source states a due date, verbatim: «30 June 2026»",
+      source_span: "30 June 2026",
+    },
+  ];
+  const longSurround = "x".repeat(210);
+  const poolRows = [
+    {
+      id: "search-1",
+      intelligence_item_id: "item-1",
+      result_content: `${longSurround} the operator shall provide data by 30 June 2026 on request.`,
+      result_index: 0,
+    },
+  ];
+  const out = buildCorpusItems(items, claimRows, [], poolRows);
+  assert.equal(out[0].claims.length, 1);
+  const claim = out[0].claims[0];
+  assert.ok(claim.context, "expected a context object");
+  assert.equal(claim.context.search_id, "search-1");
+  assert.ok(claim.context.before.endsWith("the operator shall provide data by "));
+  assert.equal(claim.context.after, " on request.");
+});
+
+test("buildCorpusItems: a due_date slot claim whose span is in no pool row gets context: null", () => {
+  const items = [{ id: "item-1" }];
+  const claimRows = [
+    {
+      id: "claim-due",
+      intelligence_item_id: "item-1",
+      claim_kind: "FACT",
+      claim_text: "[due_date] The captured source states a due date, verbatim: «30 June 2026»",
+      source_span: "30 June 2026",
+    },
+  ];
+  const out = buildCorpusItems(items, claimRows, [], []);
+  assert.equal(out[0].claims[0].context, null);
+});
+
+test("buildCorpusItems: an ordinary (non-due_date-slot) claim never gains a context field", () => {
+  const items = [{ id: "item-1" }];
+  const claimRows = [
+    { id: "claim-1", intelligence_item_id: "item-1", claim_kind: "FACT", claim_text: "text a", source_span: "span a" },
+  ];
+  const out = buildCorpusItems(items, claimRows, [], []);
+  assert.equal(Object.hasOwn(out[0].claims[0], "context"), false);
+});

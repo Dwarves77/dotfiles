@@ -318,6 +318,9 @@ function fakeDeps({ itemsById = {} } = {}) {
     readForwardEventsForItem: async (id) => itemsById[id].existingRows,
     readClaimsForItem: async (id) => itemsById[id].claimRows ?? [],
     readSectionsForItem: async (id) => itemsById[id].sectionRows ?? [],
+    // lane FE-SLOT-2, 2026-09-04: due_date slot context source pool -- defaults to [] for every existing
+    // fixture (none of them carry a due_date slot claim, so attachDueDateContext is a no-op on them).
+    readPoolForItem: async (id) => itemsById[id]?.poolRows ?? [],
     updateObligationText: async (id, text) => {
       if (!table.has(id)) return { updated: 0, rows: [] }; // tolerant: row no longer exists (deleted/already applied)
       table.get(id).obligation_text = text;

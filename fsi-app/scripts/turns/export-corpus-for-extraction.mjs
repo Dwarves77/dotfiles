@@ -11,13 +11,18 @@
 // accidentally mutate anything. The write half (`item_forward_events` inserts) is
 // `apply-extraction-output.mjs`, this family's other half, and only through the guarded path.
 //
-// COLUMN MAPPING mirrors `src/lib/forward-events/read-and-extract.mjs`'s query shape exactly (same two
-// tables — `section_claim_provenance`, `intelligence_item_sections` — same `claim_kind IN ('FACT','GAP')`
-// filter, same id-bearing row mapping) so the corpus file this script emits is byte-shape-identical to
-// what that module's live per-item read would produce. That module reads ONE item at a time (it drives
-// the extractor directly, at mint/update time); this script batches the same read across many items
-// because it only PREPARES run-extraction.mjs's input file — run-extraction.mjs stays the forward-events
-// family's one canonical entry point and the only place that writes this family's harness artifact.
+// COLUMN MAPPING imports `src/lib/forward-events/read-and-extract.mjs`'s own row-mapping functions
+// (`mapClaimRow`/`mapSectionRow`) and `CLAIM_KIND_FILTER` directly (lane FE-SLOT-2, 2026-09-04 — see that
+// module's own header, "THE ONE READER") rather than hand-copying them a second time, so the corpus file
+// this script emits is shape-identical to what that module's live per-item read would produce BY
+// CONSTRUCTION, not by convention. That module reads ONE item at a time via a live `sb` client (it drives
+// the extractor directly, at mint/update time); this script batches the SAME read across many items via
+// `db.mjs`'s `readAll` (a different mechanism neither this script nor that module's own `sb`-shaped read
+// fits — each keeps its own DB-call mechanism, per that module's header) because it only PREPARES
+// run-extraction.mjs's input file — run-extraction.mjs stays the forward-events family's one canonical
+// entry point and the only place that writes this family's harness artifact. Lane FE-SLOT-2 also adds the
+// due_date slot claims' `context` field (that module's own "THE THIRD INPUT" header note) via the SAME
+// shared `attachDueDateContext` function, over a batched `agent_run_searches` pool read below.
 //
 // Usage:
 //   node scripts/turns/export-corpus-for-extraction.mjs --out path.json [--since ISO-date] [--limit N]
@@ -28,6 +33,12 @@ import { parseArgs as nodeParseArgs } from "node:util";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  CLAIM_KIND_FILTER,
+  mapClaimRow,
+  mapSectionRow,
+  attachDueDateContext,
+} from "../../src/lib/forward-events/read-and-extract.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -78,26 +89,36 @@ export function chunk(arr, size) {
 }
 
 /**
- * Group flat claim/section rows by their parent item id and merge into the corpus-item shape.
+ * Group flat claim/section/pool rows by their parent item id and merge into the corpus-item shape — the
+ * per-row mapping itself is `read-and-extract.mjs`'s own `mapClaimRow`/`mapSectionRow` (lane FE-SLOT-2,
+ * 2026-09-04 — see this file's own header, "COLUMN MAPPING"), never re-typed here; due_date slot claims
+ * gain `context` via that module's own `attachDueDateContext`, over this item's own `poolRows` slice.
  * PURE — no I/O. @param {{id:string}[]} items @param {{intelligence_item_id:string}[]} claimRows
- * @param {{item_id:string}[]} sectionRows @returns {Array<{id:string, claims:object[], sections:object[]}>}
+ * @param {{item_id:string}[]} sectionRows @param {{intelligence_item_id:string}[]} poolRows
+ * @returns {Array<{id:string, claims:object[], sections:object[]}>}
  */
-export function buildCorpusItems(items, claimRows, sectionRows) {
+export function buildCorpusItems(items, claimRows, sectionRows, poolRows = []) {
   const claimsByItem = new Map();
   for (const r of claimRows) {
     const list = claimsByItem.get(r.intelligence_item_id) ?? [];
-    list.push({ claim_id: r.id, kind: r.claim_kind, text: r.claim_text, span: r.source_span ?? null });
+    list.push(mapClaimRow(r));
     claimsByItem.set(r.intelligence_item_id, list);
   }
   const sectionsByItem = new Map();
   for (const r of sectionRows) {
     const list = sectionsByItem.get(r.item_id) ?? [];
-    list.push({ section_id: r.id, key: r.section_key, md: r.content_md ?? "" });
+    list.push(mapSectionRow(r));
     sectionsByItem.set(r.item_id, list);
+  }
+  const poolByItem = new Map();
+  for (const r of poolRows) {
+    const list = poolByItem.get(r.intelligence_item_id) ?? [];
+    list.push(r);
+    poolByItem.set(r.intelligence_item_id, list);
   }
   return items.map((it) => ({
     id: it.id,
-    claims: claimsByItem.get(it.id) ?? [],
+    claims: attachDueDateContext(claimsByItem.get(it.id) ?? [], poolByItem.get(it.id) ?? []),
     sections: sectionsByItem.get(it.id) ?? [],
   }));
 }
@@ -146,24 +167,32 @@ async function main() {
     `${since ? ` (created_at >= ${since})` : ""}; ${targetItems.length} lack any item_forward_events row.`
   );
 
-  // 3 — batched claim/section reads for the target items only (chunked .in() — PostgREST/pg IN-list
-  // limits and payload size both bounded by a modest chunk size).
+  // 3 — batched claim/section/pool reads for the target items only (chunked .in() — PostgREST/pg IN-list
+  // limits and payload size both bounded by a modest chunk size). The pool read (lane FE-SLOT-2,
+  // 2026-09-04) is this script's own addition, over the SAME `agent_run_searches` table
+  // `read-and-extract.mjs`'s live reader consults for due_date slot context — batched here rather than
+  // per-item, matching this script's own claim/section batching.
   const ids = targetItems.map((it) => it.id);
   const claimRows = [];
   const sectionRows = [];
+  const poolRows = [];
   for (const idChunk of chunk(ids, 200)) {
     if (!idChunk.length) continue;
     const claims = await readAll("section_claim_provenance", "id, intelligence_item_id, claim_kind, claim_text, source_span", {
-      match: (q) => q.in("intelligence_item_id", idChunk).in("claim_kind", ["FACT", "GAP"]),
+      match: (q) => q.in("intelligence_item_id", idChunk).in("claim_kind", CLAIM_KIND_FILTER),
     });
     claimRows.push(...claims);
     const sections = await readAll("intelligence_item_sections", "id, item_id, section_key, content_md", {
       match: (q) => q.in("item_id", idChunk),
     });
     sectionRows.push(...sections);
+    const pool = await readAll("agent_run_searches", "id, intelligence_item_id, result_content, result_index", {
+      match: (q) => q.in("intelligence_item_id", idChunk),
+    });
+    poolRows.push(...pool);
   }
 
-  const corpusItems = buildCorpusItems(targetItems, claimRows, sectionRows);
+  const corpusItems = buildCorpusItems(targetItems, claimRows, sectionRows, poolRows);
   const withContent = corpusItems.filter((it) => it.claims.length || it.sections.length).length;
   console.log(
     `export-corpus-for-extraction: ${corpusItems.length} item(s) exported (${withContent} carry ≥1 FACT/GAP ` +

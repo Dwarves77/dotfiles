@@ -167,7 +167,10 @@ test("runExtraction: metrics.by_skip_reason histograms every skip's reason acros
     result.metrics.by_skip_reason["date after 'by' with no deontic ('shall'/'must') or aim/target language nearby — ambiguous whether this is a bound obligation"],
     1,
   );
-  assert.equal(result.metrics.by_skip_reason.slot_date_unclassified, 1);
+  // dueDateText is a relative/recurring deadline ("within 15 days...") with no calendar date at all —
+  // lane FE-SLOT-2 (2026-09-04) split the old single slot_date_unclassified bucket into three named
+  // reasons; this claim's span has no parseable calendar date, so it lands in the first one.
+  assert.equal(result.metrics.by_skip_reason.relative_deadline_no_calendar_date, 1);
   // plain-no-event's "no dates here" claim never trips a trigger, so it contributes zero skips —
   // by_skip_reason's total must equal metrics.skips exactly, not over- or under-count.
   const totalBySkipReason = Object.values(result.metrics.by_skip_reason).reduce((a, b) => a + b, 0);

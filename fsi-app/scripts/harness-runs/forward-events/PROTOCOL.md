@@ -214,9 +214,11 @@ family's own `RULES` classifier, run unchanged over that same span, finds an obl
 Two narrow additions on top of that unchanged classification: (1) when a due_date claim's own precision
 marker is finer than what the extractor's date grammar resolved, the finer of the two is used — bounded
 to this module's `{day,month,year}` vocabulary, never `quarter`, which this grammar cannot honestly
-attach a real day/month to; (2) when a due_date claim's span produces no hit at all, a `slot_date_unclassified`
-skip is recorded (in addition to any generic skip reason already produced), visible in the run artifact's
-`metrics.by_skip_reason`. See `extract-forward-events.mjs`'s own header for the full mechanism.
+attach a real day/month to; (2) when a due_date claim's span produces no hit at all, a skip is recorded
+(in addition to any generic skip reason already produced), visible in the run artifact's
+`metrics.by_skip_reason` — **as of lane FE-SLOT-2 (2026-09-04, §5d below) this is one of three named
+reasons, not the single `slot_date_unclassified` bucket this paragraph originally described.** See
+`extract-forward-events.mjs`'s own header for the full mechanism.
 
 ## 5b. `metrics.by_skip_reason` (proposed `LAST-PROPOSER-PASS.md` 2026-09-01 §1; landed 2026-09-03)
 
@@ -233,6 +235,63 @@ DEDUPE") dropped across the corpus slice, and the run result carries `dedupeDrop
 tagged by `item_id` (the kept event's origin, the dropped event's origin, the similarity basis). A drop
 is never silent: the extractor returns `counts.dedupe_dropped_detail`, and `runExtraction()` folds it
 in. Runner-metrics addition only; it bumps no `EXTRACTOR_VERSION`.
+
+## 5d. Due-date slot claims: context rescue, three named skip reasons, never one bucket (lane FE-SLOT-2, 2026-09-04)
+
+`PROPOSER-7`'s pass measured `slot_date_unclassified` at 190 skips across six runs — this family's largest
+skip-reason bucket. Live SQL [CONFIRMED, project `kwrsbpiseruzbfwjpvsp`, 2026-09-04] against
+`section_claim_provenance WHERE claim_text LIKE '[due_date]%'`: 756 total slot claims; 118 carry a
+four-digit year in their span; 44 of those 118 carry a deontic/aim word (shall/must/is required/etc.)
+inside the span itself; the remaining 638 year-less spans are relative or recurring deadlines ("within
+28 days of...", "in each subsequent year...") that this module's date grammar correctly refuses to invent
+a calendar anchor for — §5a's rule that the extractor never assumes a kind is unchanged, and this rescue
+never touches those 638 rows.
+
+The fixable population is the year-bearing spans whose deontic verb sits just outside `record-facts.mjs`'s
+own ~90-char capture window, in the surrounding prose the mint never carried into the claim. **The
+coordinator's ruling, binding on this and every future lane touching this path: `record-facts.mjs`'s
+window is never widened for this** — it is the wrong governing surface (§5a's "consumer input, not this
+family's governing file" applies here too) and widening it would let an unrelated, arbitrarily-distant
+date's deontic language leak into the wrong slot's grounding. Instead, the reader now carries a **third
+input** alongside `claims` and `sections`: for every due_date slot claim, `read-and-extract.mjs` (and,
+sharing its row-mapping, `export-corpus-for-extraction.mjs` / `forward-events-retext.mjs`) locates the
+claim's own `span` verbatim inside the item's usable grounding-pool captures (`agent_run_searches` rows
+with `result_content` trimmed length > 200 chars, per `canonical-pipeline.ts`'s existing usability floor —
+first capture, by `result_index`, that contains the span as an exact substring) and attaches
+`claim.context = {before: up to 240 chars ending at the span start, after: up to 240 chars from the span
+end, search_id}`, or `null` when no usable capture contains the span. The extractor itself performs no I/O
+to build this — the context arrives pre-attached on the claim object, the same dependency-injection
+posture §0 already describes for `{claims, sections}`.
+
+When a due_date slot claim's own span produces no hit, `extract-forward-events.mjs` now re-runs the SAME
+rule's deontic/aim check over `context.before + span + context.after` (bounded to that window, the
+existing `sentenceStart` rule unchanged) and, on a hit, emits the event with `obligation_text` built by the
+existing rules over the CONTEXT text — `source_span` remains the matched date within the verbatim slot span
+itself, never a span reaching into `before`/`after`, and the event's `event_kind` is always the classifier's
+own finding over that context text, never assumed from the slot marker. This can only ever *confirm*
+deontic language around the date `record-facts.mjs` already verbatim-located; it cannot substitute a
+different date found only in the surrounding prose.
+
+The old single `slot_date_unclassified` bucket is retired. `metrics.by_skip_reason` now distinguishes
+three cases:
+
+- `relative_deadline_no_calendar_date` — the slot's own span has no parseable calendar date at all (the
+  638-row year-less population above; never touched by the rescue).
+- `calendar_date_no_deontic_in_context` — a calendar date was found, and grounding-pool context was
+  available, but neither the span nor its context carries deontic/aim language within the rescue's window.
+- `calendar_date_deontic_context_unavailable` — a calendar date was found but no usable grounding-pool
+  capture contains the span verbatim, so no context could be attached to check at all (honestly distinct
+  from the previous case: this is a data-availability gap, not a classification refusal).
+
+Measured against the live 118-row with-year population [CONFIRMED, real `extractForwardEvents` code, not a
+SQL heuristic, 2026-09-04]: baseline (span-only, no context) emits 61/118 events; with context attached,
+90/118 (79 `compliance_deadline`, 6 `review_or_report`, 3 `other`, 2 `phase_step`) — 29 newly rescued (27
+`compliance_deadline`, 2 `other`), the remaining 28 honestly skipped (15
+`calendar_date_no_deontic_in_context`, 13 `relative_deadline_no_calendar_date`; 0
+`calendar_date_deontic_context_unavailable` in this fixture — every span in this population had a usable
+capture). See `extract-forward-events.mjs`'s own header ("DUE-DATE SLOT CONTEXT RESCUE") and
+`extract-forward-events.test.mjs`'s corpus-wide property test for the exact query and the full
+reproduction.
 
 ## 6. After ≥2 runs exist — proposer attestation
 

@@ -89,12 +89,16 @@
 //        own {day,month,year} vocabulary (never 'quarter': this grammar has
 //        no month/day to honestly attach to a quarter-precision date, so a
 //        slot-supplied 'quarter' is never promoted onto an emitted event).
-//     2. When a due_date claim produces NO hit at all (no rule's trigger
-//        phrase matches its span, or a matched date fails the deontic/aim
-//        check), a `slot_date_unclassified` skip is recorded IN ADDITION to
-//        whatever generic skip reason (if any) the standard scan already
-//        produced — surfacing, in metrics.by_skip_reason, how many of the
-//        mint's own confirmed due dates this extractor still cannot type.
+//     2. When a due_date claim produces NO hit at all from its own span alone, one of three named skip
+//        reasons is recorded (lane FE-SLOT-2, 2026-09-04 — see this file's own "DUE-DATE SLOT CONTEXT
+//        RESCUE" header note below for the full mechanism and measurement) — `relative_deadline_no_
+//        calendar_date` (no rule's trigger+date pattern matched the span at all — a relative/recurring
+//        deadline this module's grammar cannot anchor to a calendar date, and never should), `calendar_
+//        date_deontic_context_unavailable` (a date parsed but failed its span-only deontic/aim check, and
+//        no captured-source context is available to look further), or `calendar_date_no_deontic_in_context`
+//        (context was checked and genuinely carries no deontic/aim language either) — surfacing, in
+//        metrics.by_skip_reason, how many of the mint's own confirmed due dates this extractor still cannot
+//        type, and WHY, as three distinguishable populations rather than one bucket.
 //
 // GARBLED-OBLIGATION-TEXT FIX (lane FWD-TEXT, 2026-09-04):
 //   [CONFIRMED, live customer surface https://carosledge.com/regulations "Upcoming obligations" strip,
@@ -296,9 +300,72 @@
 //   are enforced by this file's own test suite against every one of the live rows captured in
 //   `scripts/_snapshots/fwdtext3-live-58.json` (gitignored scratch, SQL cited in that test's own header).
 //
+// DUE-DATE SLOT CONTEXT RESCUE (lane FE-SLOT-2, 2026-09-04):
+//   [CONFIRMED, live read-only SQL, project kwrsbpiseruzbfwjpvsp, 2026-09-04] `section_claim_provenance`
+//   carries 756 `claim_text LIKE '[due_date]%'` rows (285 FACT / 471 GAP); of the 285 FACT spans, 118 carry
+//   a four-digit year and 89 of those 118 carry NO deontic verb (shall/must/is required to/is obligated
+//   to/is due) anywhere in the span itself. Lane FE-SLOT (Addendum 85 ps 11, 2026-09-03) had already named
+//   the mechanism on a 48-span sample: `record-facts.mjs`'s own `DUE_DATE_TRIGGERS` window caps a slot
+//   span at roughly 90 chars (see that module's own header — every trigger's continuation is `{0,90}` or
+//   `{0,70}`), so a real obligation sentence whose deontic verb sits BEFORE the "by "/"no later than "
+//   trigger, or more than ~90 chars after the date, is invisible to THIS module's own `by-year-target`/
+//   `from-year` bare-year rules, whose `requireDeonticWithin`/`requireDeonticOrAimWithin` windows are
+//   measured from the date's position WITHIN THAT SAME ~90-char span (`scanText` runs once per claim on
+//   `claim.span` alone — see the claims loop below) and so can never see language the slot's own capture
+//   window cut off. The 89's own spans are exactly this: a bare, deontic-free date fragment quoted
+//   verbatim by record-facts.mjs's `extractDueDateFact`, sitting inside a captured source sentence that DID
+//   carry a deontic clause, just outside the quoted window. [CONFIRMED, live SQL] all 89 of the 89 have a
+//   capture (`agent_run_searches` row, `result_content` > 200 usable chars per `canonical-pipeline.ts`'s
+//   own pool-usability floor) that contains the span verbatim; 64/89 carry a deontic or aim/target word
+//   within 240 chars either side of the span in that capture's own text (a coarse ±240-char regex bound,
+//   NOT the rule's own precise window — the real per-rule window this rescue applies is narrower and
+//   measured exactly, below). The remaining 638 `[due_date]%` rows with no four-digit year at all
+//   (756 total minus 118 with-year = 638; the 471 GAP rows plus the 167 year-less FACT rows) are RELATIVE
+//   or RECURRING deadlines this module's date grammar cannot parse into a calendar date at all ("no later
+//   than three months from the date of its receipt", "within 28 days beginning with the day on which the
+//   notice was received") — this rescue never touches them; inventing a calendar anchor for a relative
+//   deadline is explicitly out of scope (this lane's own dispatch) and this module's `tryParseDateAt`/
+//   `tryParseDateOrBareYearAt` already correctly refuse to parse one, so no rule fires and no skip is even
+//   recorded for those spans (`scanText` never has anything to report — see below).
+//
+//   THE FIX: `read-and-extract.mjs`'s shared reader (see that file's own header) now carries a THIRD input
+//   alongside claims/sections — for every due_date slot FACT claim, `context: {before, after, search_id}`
+//   sliced from the SAME `agent_run_searches` capture the claim's own span was verbatim-located in (up to
+//   240 chars either side; `null` when no capture contains the span verbatim). This module never fetches
+//   that context itself (still zero I/O, per this file's own header) — it only consumes what the reader
+//   already attached to `claim.context`. When a due_date slot claim's OWN span (`scanText(claim.span)`)
+//   produces zero hits, three outcomes now, never one silent bucket:
+//     (1) `skips.length === 0` (scanText found no parseable calendar-date trigger in the span at all —
+//         the relative/recurring-deadline population above) — reason `relative_deadline_no_calendar_date`,
+//         context never even consulted (there is no date to rescue).
+//     (2) `skips.length > 0` (a bare-year rule DID parse a calendar date but its own deontic/aim window,
+//         scoped to the ~90-char span, found nothing) and `claim.context` is absent — reason
+//         `calendar_date_deontic_context_unavailable` (this lane's own live-SQL measurement above found
+//         0/89 in this state today, but a claim whose span was never captured verbatim anywhere — a stale
+//         span after a re-capture replaced the pool row's text — must still be handled, never crash).
+//     (3) same as (2) but `claim.context` IS present — `rescueSlotDateWithContext` (below) re-runs
+//         `scanText` UNCHANGED (never a second deontic-window implementation) over `context.before +
+//         claim.span + context.after`, and accepts a hit only when its own matched date substring falls
+//         WITHIN the original slot span's own character range in that wider text (never a different date
+//         found in `before`/`after` — the rescue can only ever confirm deontic/aim language around the
+//         date record-facts.mjs already verbatim-located, never substitute a different one). A hit here is
+//         emitted as a real event exactly like any other claim-origin hit — `event_kind` is whatever the
+//         SAME rule (`by-year-target`/`from-year`/any other rule the wider text now lets a DIFFERENT
+//         earlier-registered rule match first, e.g. `no-later-than` if the trigger word itself was cut off
+//         by the slot window) classifies it as, never a kind assumed from the slot; `source_span` is the
+//         matched date substring (as every other claim-origin hit already does — same as `h.dateSpan`
+//         elsewhere in this file, never `claim.span` itself); `obligation_text` is `clauseAround`'s own
+//         output over the WIDER context text (the same sentence-snap + honest "…" rules every other window
+//         in this file already goes through — never a second cleanup path). No hit — reason
+//         `calendar_date_no_deontic_in_context` (real document prose either side of the date genuinely
+//         carries no deontic/aim language, an informed refusal, not a guess).
+//   `assertVerbatim` still runs before a rescued hit is emitted, checked against the WIDER context text
+//   (itself a verbatim substring of the item's own captured source) — the same "re-check every span before
+//   it is ever emitted" discipline this file's header states for every other hit.
+//
 // EXTRACTOR_VERSION bump this whenever a rule changes semantics (not for
 // comment-only edits), so downstream consumers can tell events apart.
-export const EXTRACTOR_VERSION = 'fe1-2026-09-04.3';
+export const EXTRACTOR_VERSION = 'fe1-2026-09-04.4';
 
 // ---------------------------------------------------------------------------
 // Date grammar
@@ -1338,6 +1405,37 @@ export function finerDuePrecision(extractorPrecision, slotPrecision) {
 }
 
 // ---------------------------------------------------------------------------
+// Due-date slot context rescue (lane FE-SLOT-2, 2026-09-04 — see this file's own header,
+// "DUE-DATE SLOT CONTEXT RESCUE", for the full measurement and rationale).
+// ---------------------------------------------------------------------------
+
+/**
+ * Re-run this module's OWN `scanText` — never a second deontic-window implementation — over a due_date
+ * slot claim's captured-source CONTEXT (`context.before + claimSpan + context.after`) instead of the bare
+ * slot span alone, so a deontic/aim verb the record-facts.mjs capture window cut off can still be found.
+ * `context` is whatever the reader (`src/lib/forward-events/read-and-extract.mjs`) attached to
+ * `claim.context` — `{before, after}` (both strings) sliced from the SAME `agent_run_searches` capture the
+ * claim's own span was verbatim-located in. A returned hit's own matched date substring is ALWAYS inside
+ * the original slot span's own character range within the wider text — a hit produced by a date found only
+ * in `before`/`after` (never inside the span itself) is rejected: this function can only ever confirm
+ * deontic/aim language around the date record-facts.mjs already verbatim-located, never substitute a
+ * different date the slot extractor never chose. Returns the matching `hits[]` entry (same shape `scanText`
+ * already produces — `kind`/`iso`/`precision`/`dateSpan`/`obligationText`, computed BY the wider scan, so
+ * `event_kind` is never assumed from the slot) or `null` when `context` is absent/malformed, or when the
+ * wider text still shows no deontic/aim near the date (a genuine, informed refusal). Pure — no I/O, this
+ * module still never fetches anything itself. Exported for testing.
+ */
+export function rescueSlotDateWithContext(claimSpan, context) {
+  if (typeof claimSpan !== 'string' || !claimSpan) return null;
+  if (!context || typeof context.before !== 'string' || typeof context.after !== 'string') return null;
+  const contextText = context.before + claimSpan + context.after;
+  const spanRangeStart = context.before.length;
+  const spanRangeEnd = spanRangeStart + claimSpan.length;
+  const { hits } = scanText(contextText);
+  return hits.find((h) => h.spanStart >= spanRangeStart && h.spanEnd <= spanRangeEnd) ?? null;
+}
+
+// ---------------------------------------------------------------------------
 // Within-extraction dedupe (see this file's header, "WITHIN-EXTRACTION DEDUPE")
 // ---------------------------------------------------------------------------
 
@@ -1506,18 +1604,67 @@ export function extractForwardEvents(input) {
 
     // The record-grade mint already grounded a confirmed due-date-shaped span here
     // (src/lib/intake/record-facts.mjs, MINT-RUNBOOK.md §13) but this module's own kind
-    // classifier could not turn it into a typed event -- never invent a kind (this file's
-    // header); surface the gap instead of leaving it indistinguishable from an ordinary claim
-    // that genuinely carries no forward-obligation language, IN ADDITION to any generic skip
-    // reason `scanText` already logged above for this same span.
+    // classifier could not turn it into a typed event from the span alone -- never invent a kind (this
+    // file's header). Lane FE-SLOT-2 (2026-09-04, see this file's own "DUE-DATE SLOT CONTEXT RESCUE"
+    // header note): before giving up, try the claim's own captured-source CONTEXT (before/after the span
+    // in the same capture) for the deontic/aim language the slot's ~90-char window cut off; three
+    // distinguishable, named outcomes, IN ADDITION to any generic skip reason `scanText` already logged
+    // above for this same span (never a replacement for it).
     if (isDueDateSlot && hits.length === 0) {
-      skipped.push({
-        source_kind: 'claim',
-        source_claim_id: claim.claim_id,
-        source_section_id: null,
-        reason: 'slot_date_unclassified',
-        text,
-      });
+      if (skips.length === 0) {
+        // scanText found no parseable calendar-date trigger in the span at all -- a relative/recurring
+        // deadline (or a bare year with no rule primed to consume it) this module's grammar honestly
+        // cannot anchor to a calendar date. Context is never even consulted: there is no located date to
+        // rescue, only a duration or an unanchored year.
+        skipped.push({
+          source_kind: 'claim',
+          source_claim_id: claim.claim_id,
+          source_section_id: null,
+          reason: 'relative_deadline_no_calendar_date',
+          text,
+        });
+      } else if (!claim.context) {
+        // A calendar date WAS located and parsed, but the reader could not find any capture containing
+        // this claim's span verbatim (a stale span after a re-capture, or no usable pool row at all) -- no
+        // context exists to check for deontic/aim language, so this is an honest "cannot tell", never a
+        // fabricated refusal.
+        skipped.push({
+          source_kind: 'claim',
+          source_claim_id: claim.claim_id,
+          source_section_id: null,
+          reason: 'calendar_date_deontic_context_unavailable',
+          text,
+        });
+      } else {
+        const rescued = rescueSlotDateWithContext(claim.span, claim.context);
+        if (rescued) {
+          const contextText = claim.context.before + claim.span + claim.context.after;
+          assertVerbatim(contextText, rescued.dateSpan);
+          const datePrecision = finerDuePrecision(rescued.precision, slotDatePrecision(claim));
+          events.push({
+            event_date: rescued.iso,
+            date_precision: datePrecision,
+            event_kind: rescued.kind,
+            obligation_text: rescued.obligationText,
+            source_kind: 'claim',
+            source_claim_id: claim.claim_id,
+            source_section_id: null,
+            source_span: rescued.dateSpan,
+            confidence: 'high',
+            extractor_version: EXTRACTOR_VERSION,
+          });
+        } else {
+          // Real document prose either side of the date, checked, genuinely carries no deontic/aim
+          // language nearby either -- an informed refusal, not a guess.
+          skipped.push({
+            source_kind: 'claim',
+            source_claim_id: claim.claim_id,
+            source_section_id: null,
+            reason: 'calendar_date_no_deontic_in_context',
+            text,
+          });
+        }
+      }
     }
   }
 

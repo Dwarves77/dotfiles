@@ -26,6 +26,7 @@ import {
   sameObligationContent,
   dedupeEvents,
   unwrapRecordFactsTemplate,
+  rescueSlotDateWithContext,
 } from './extract-forward-events.mjs';
 
 const KIND_VOCAB = new Set([
@@ -616,14 +617,16 @@ describe('multi-claim item shape', () => {
 // marker — section_claim_provenance has no slot_key column, so this prefix is the only surviving marker
 // once the claim round-trips through the DB (see write-item.ts's buildClaimRows, which drops slot_key).
 
-function dueDateClaim({ span, precision = null, claimId = 'due1', kind = 'FACT' }) {
+function dueDateClaim({ span, precision = null, claimId = 'due1', kind = 'FACT', context }) {
   const precisionPart = precision ? ` (date_precision: ${precision})` : '';
-  return {
+  const claim = {
     claim_id: claimId,
     kind,
     text: `[due_date] The captured source states a due date${precisionPart}, verbatim: «${span}»`,
     span,
   };
+  if (context !== undefined) claim.context = context;
+  return claim;
 }
 
 describe('isDueDateSlotClaim / slotDatePrecision (pure helpers)', () => {
@@ -688,29 +691,88 @@ describe('extractForwardEvents: due_date slot claim integration', () => {
     assert.equal(events[0].event_date, '2027-01-01'); // ISO itself is never invented past what was parsed
   });
 
-  test('a slot claim with no parseable calendar date is skipped as slot_date_unclassified, never silently dropped', () => {
+  // lane FE-SLOT-2 (2026-09-04) retired the single 'slot_date_unclassified' bucket into three named
+  // reasons — see extract-forward-events.mjs's own "DUE-DATE SLOT CONTEXT RESCUE" header note.
+
+  test('a slot claim with no parseable calendar date at all is relative_deadline_no_calendar_date, never silently dropped', () => {
     const span = 'within 15 days of the effective date of disapproval';
     const claim = dueDateClaim({ span, precision: null }); // record-facts.mjs found the span but no precision
     const { events, skipped } = extractForwardEvents({ claims: [claim], sections: [] });
     assert.equal(events.length, 0);
     assert.equal(skipped.length, 1);
-    assert.equal(skipped[0].reason, 'slot_date_unclassified');
+    assert.equal(skipped[0].reason, 'relative_deadline_no_calendar_date');
     assert.equal(skipped[0].source_claim_id, claim.claim_id);
     assert.equal(skipped[0].source_kind, 'claim');
     assert.equal(skipped[0].text, span);
   });
 
-  test('a slot claim with a date but no classifiable kind gets BOTH the generic skip and slot_date_unclassified', () => {
+  test('a slot claim with a parseable date but no classifiable kind and NO context is calendar_date_deontic_context_unavailable, alongside the generic scanText skip', () => {
     const span = 'by 1 May 2021, notify the Commission of those rules'; // deontic verb truncated away upstream
-    const claim = dueDateClaim({ span, precision: 'day' });
+    const claim = dueDateClaim({ span, precision: 'day' }); // no `context` — reader found no capture for this span
     const { events, skipped } = extractForwardEvents({ claims: [claim], sections: [] });
     assert.equal(events.length, 0);
     assert.equal(skipped.length, 2);
-    const reasons = skipped.map((s) => s.reason).sort();
-    assert.deepEqual(reasons, [
+    // push order: the generic scanText skip (from the span-only scan) is recorded first, then the
+    // due_date-slot-specific reason — never sorted, so this asserts actual push order, not just membership.
+    assert.deepEqual(skipped.map((s) => s.reason), [
       "date after 'by' with no deontic ('shall'/'must') or aim/target language nearby — ambiguous whether this is a bound obligation",
-      'slot_date_unclassified',
+      'calendar_date_deontic_context_unavailable',
     ]);
+  });
+
+  test('same span, WITH context that genuinely carries no deontic/aim nearby either: calendar_date_no_deontic_in_context', () => {
+    const span = 'by 1 May 2021, notify the Commission of those rules';
+    const claim = dueDateClaim({
+      span,
+      precision: 'day',
+      context: { before: 'This is a purely narrative sentence with no legal force. ', after: ' The end of the paragraph.' },
+    });
+    const { events, skipped } = extractForwardEvents({ claims: [claim], sections: [] });
+    assert.equal(events.length, 0);
+    assert.deepEqual(skipped.map((s) => s.reason), [
+      "date after 'by' with no deontic ('shall'/'must') or aim/target language nearby — ambiguous whether this is a bound obligation",
+      'calendar_date_no_deontic_in_context',
+    ]);
+  });
+
+  test('same span, WITH context that DOES carry a deontic verb nearby: rescued into a real event, kind never assumed from the slot', () => {
+    const span = 'by 1 May 2021, notify the Commission of those rules';
+    const claim = dueDateClaim({
+      span,
+      precision: 'day',
+      context: { before: 'Member States shall ensure that the operator, ', after: ' as set out in Annex III.' },
+    });
+    const { events, skipped } = extractForwardEvents({ claims: [claim], sections: [] });
+    assert.equal(events.length, 1);
+    assert.equal(events[0].event_date, '2021-05-01');
+    assert.equal(events[0].event_kind, 'compliance_deadline'); // by-year-target's own DEONTIC-window promotion, never a slot-assumed kind
+    assert.equal(events[0].confidence, 'high');
+    assert.equal(events[0].source_kind, 'claim');
+    assert.equal(events[0].source_claim_id, claim.claim_id);
+    assert.equal(events[0].source_span, '1 May 2021'); // the matched date substring, same as any other claim-origin hit — never claim.span itself
+    assert.ok(events[0].obligation_text.includes('notify the Commission'));
+    // the generic scanText skip (from the span-only scan) still fires — the rescue is IN ADDITION to it,
+    // never a silent replacement.
+    assert.equal(skipped.length, 1);
+    assert.match(skipped[0].reason, /no deontic/);
+  });
+
+  test('the rescue never substitutes a DIFFERENT date found only in before/after — it can only confirm the slot\'s own date', () => {
+    // `before` carries its own unrelated, fully-formed deadline sentence with a real deontic verb; the
+    // slot's own span date (1 May 2021) still has no deontic language of its own nearby within the rule's
+    // window once the two clauses are far enough apart — this must never be promoted using the WRONG date's
+    // deontic language.
+    const span = 'by 1 May 2021, notify the Commission of those rules';
+    const claim = dueDateClaim({
+      span,
+      precision: 'day',
+      context: {
+        before: 'The Commission shall report by 1 June 2019. Completely separate paragraph text here that pads the distance well past any deontic window boundary so the two clauses cannot be confused for one sentence, ',
+        after: ' No further obligation language follows this clause at all.',
+      },
+    });
+    const { events } = extractForwardEvents({ claims: [claim], sections: [] });
+    assert.equal(events.length, 0, 'must never borrow deontic language from an unrelated, distant date');
   });
 
   test('never invents a kind: a due_date slot claim never gets an event the RULES table itself would not have produced for an ordinary claim with the same span', () => {
@@ -729,6 +791,45 @@ describe('extractForwardEvents: due_date slot claim integration', () => {
     const { events, skipped } = extractForwardEvents({ claims: [claim], sections: [] });
     assert.equal(events.length, 0);
     assert.deepEqual(skipped, []);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// rescueSlotDateWithContext (pure helper, direct) — lane FE-SLOT-2, 2026-09-04. See extract-forward-
+// events.mjs's own "DUE-DATE SLOT CONTEXT RESCUE" header for the full mechanism.
+// ---------------------------------------------------------------------------
+
+describe('rescueSlotDateWithContext (pure helper, direct)', () => {
+  test('null when context is missing, malformed, or claimSpan is empty', () => {
+    assert.equal(rescueSlotDateWithContext('by 1 May 2021, notify', null), null);
+    assert.equal(rescueSlotDateWithContext('by 1 May 2021, notify', undefined), null);
+    assert.equal(rescueSlotDateWithContext('by 1 May 2021, notify', { before: 'x' }), null); // no `after`
+    assert.equal(rescueSlotDateWithContext('', { before: 'x', after: 'y' }), null);
+    assert.equal(rescueSlotDateWithContext(null, { before: 'x', after: 'y' }), null);
+  });
+
+  test('finds a hit whose matched date lies within the slot span itself, kind computed by the wider scan', () => {
+    const span = 'by 1 May 2021, notify the Commission of those rules';
+    const context = { before: 'Member States shall ensure that the operator, ', after: ' as set out in Annex III.' };
+    const hit = rescueSlotDateWithContext(span, context);
+    assert.ok(hit, 'expected a rescued hit');
+    assert.equal(hit.iso, '2021-05-01');
+    assert.equal(hit.kind, 'compliance_deadline');
+    assert.equal(hit.dateSpan, '1 May 2021');
+  });
+
+  test('null when the context genuinely carries no deontic/aim language near the date', () => {
+    const span = 'by 1 May 2021, notify the Commission of those rules';
+    const context = { before: 'This is narrative text with no legal force. ', after: ' The paragraph ends here.' };
+    assert.equal(rescueSlotDateWithContext(span, context), null);
+  });
+
+  test('rejects a hit whose matched date falls OUTSIDE the slot span range (a date only in before/after)', () => {
+    // `before` alone, scanned on its own, contains a perfectly good rescuable date+deontic pair -- but it
+    // is not the slot's own date, so it must never be returned as a rescue for THIS claim.
+    const span = 'no forward-obligation language or date pattern in this fragment';
+    const context = { before: 'The Commission shall report by 1 June 2019. ', after: '' };
+    assert.equal(rescueSlotDateWithContext(span, context), null);
   });
 });
 
@@ -1408,5 +1509,125 @@ describe('RECORD-FACTS TEMPLATE UNWRAP: corpus-wide property test (fwdtext3-live
     assert.equal(tested, residueCount);
     assert.equal(noFresh.length, 0, 'every residue row must still produce a fresh event at its own (date, kind)');
     assert.equal(failures.length, 0, `${failures.length}/${tested} rows still carry a record-facts wrapper token after re-extraction`);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DUE-DATE SLOT CONTEXT RESCUE — corpus-wide property test, lane FE-SLOT-2, 2026-09-04.
+//
+// Fixture: `scripts/_snapshots/feslot2-live-118.json` — every live `section_claim_provenance` due_date
+// slot FACT claim whose `source_span` carries a four-digit year (118 rows, read via read-only SQL, project
+// kwrsbpiseruzbfwjpvsp, this lane, 2026-09-04), each joined to its FIRST usable `agent_run_searches`
+// capture containing the span verbatim (240 chars either side) — the exact shape `buildDueDateContext`
+// produces:
+//   with due_date_claims as (
+//     select scp.id as claim_id, scp.intelligence_item_id, scp.claim_text, scp.source_span
+//     from section_claim_provenance scp
+//     where scp.claim_kind = 'FACT' and scp.claim_text like '[due_date]%' and scp.source_span ~ '\d{4}'
+//   ),
+//   ranked as (
+//     select dc.claim_id, dc.intelligence_item_id, dc.claim_text, dc.source_span, ars.id as search_id,
+//       ars.result_content, ars.result_index, position(dc.source_span in ars.result_content) as pos,
+//       row_number() over (partition by dc.claim_id order by ars.result_index) as rn
+//     from due_date_claims dc join agent_run_searches ars
+//       on ars.intelligence_item_id = dc.intelligence_item_id
+//       and length(trim(ars.result_content)) > 200
+//       and position(dc.source_span in ars.result_content) > 0
+//   ),
+//   first_match as (select * from ranked where rn = 1)
+//   select dc.claim_id, dc.intelligence_item_id, dc.claim_text, dc.source_span, fm.search_id,
+//     case when fm.pos is not null then substring(fm.result_content from greatest(1, fm.pos-240) for
+//       least(240, fm.pos-1)) else null end as context_before,
+//     case when fm.pos is not null then substring(fm.result_content from fm.pos+length(dc.source_span)
+//       for 240) else null end as context_after
+//   from due_date_claims dc left join first_match fm on fm.claim_id = dc.claim_id order by dc.claim_id;
+//
+// MEASURED [CONFIRMED, this fixture, via extractForwardEvents itself — not a SQL heuristic]: baseline
+// (span alone, no context) emits an event for 61/118 rows; WITH context attached, 90/118 (79
+// compliance_deadline, 6 review_or_report, 3 other, 2 phase_step); 29 of those 90 are events the span
+// alone never produced (27 compliance_deadline, 2 other) — the rescue's own net contribution. The
+// remaining 28 stay honestly skipped: 15 `calendar_date_no_deontic_in_context` (context checked, genuinely
+// no deontic/aim nearby), 13 `relative_deadline_no_calendar_date` (no rule's trigger+date pattern matched
+// the span at all — a bare year or relative phrasing this grammar cannot anchor). 0/118 hit
+// `calendar_date_deontic_context_unavailable` in this fixture (every row's span was found in a capture) —
+// asserted below only as "possible, never a crash", since a future re-capture could change that.
+// `scripts/_snapshots/` is gitignored scratch (CLAUDE.md standing rule 5), so this test self-skips (never
+// fails) when the file is absent, same convention as the two corpus-wide tests above it.
+// ---------------------------------------------------------------------------
+
+const LIVE118_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'scripts', '_snapshots', 'feslot2-live-118.json');
+
+function loadLive118() {
+  let raw;
+  try {
+    raw = readFileSync(LIVE118_PATH, 'utf8');
+  } catch {
+    return null;
+  }
+  const parsed = JSON.parse(raw);
+  return Array.isArray(parsed) && parsed.length ? parsed : null;
+}
+
+describe('DUE-DATE SLOT CONTEXT RESCUE: corpus-wide property test (feslot2-live-118.json)', () => {
+  const fixture = loadLive118();
+
+  test('measured event/skip counts hold, no crash, every rescued event is honest (skips if feslot2-live-118.json is not present in this checkout)', (t) => {
+    if (!fixture) {
+      t.skip('scripts/_snapshots/feslot2-live-118.json not present in this checkout (gitignored scratch) — see this describe block\'s header');
+      return;
+    }
+
+    let baselineEvents = 0;
+    let withContextEvents = 0;
+    let rescued = 0;
+    const byKind = {};
+    const rescuedByKind = {};
+    const bySkipReason = {};
+    const nonIdempotent = [];
+    const notVerbatim = [];
+
+    for (const row of fixture) {
+      const claimNoCtx = { claim_id: row.claim_id, kind: 'FACT', text: row.claim_text, span: row.source_span };
+      const context = row.search_id ? { before: row.context_before ?? '', after: row.context_after ?? '' } : null;
+      const claimWithCtx = { ...claimNoCtx, context };
+
+      const base = extractForwardEvents({ claims: [claimNoCtx], sections: [] });
+      const withCtx = extractForwardEvents({ claims: [claimWithCtx], sections: [] });
+
+      if (base.events.length > 0) baselineEvents++;
+      if (withCtx.events.length > 0) withContextEvents++;
+      const wasRescued = base.events.length === 0 && withCtx.events.length > 0;
+      if (wasRescued) rescued++;
+
+      for (const e of withCtx.events) {
+        byKind[e.event_kind] = (byKind[e.event_kind] ?? 0) + 1;
+        if (wasRescued) rescuedByKind[e.event_kind] = (rescuedByKind[e.event_kind] ?? 0) + 1;
+        if (normalizeObligationText(e.obligation_text) !== e.obligation_text) nonIdempotent.push({ claim_id: row.claim_id, text: e.obligation_text });
+        // every event's context text (when one exists) genuinely contains the matched date substring --
+        // re-checked here independently of assertVerbatim's own internal throw, so a regression there
+        // shows up as a normal test failure with the offending row named, not a bare thrown error.
+        const haystack = context ? context.before + row.source_span + context.after : row.source_span;
+        if (!haystack.includes(e.source_span)) notVerbatim.push({ claim_id: row.claim_id, source_span: e.source_span });
+      }
+      for (const s of withCtx.skipped) bySkipReason[s.reason] = (bySkipReason[s.reason] ?? 0) + 1;
+    }
+
+    console.log(
+      `feslot2-live-118.json property test: ${fixture.length} rows; baseline ${baselineEvents} events, ` +
+        `with-context ${withContextEvents} events, ${rescued} rescued.`,
+      'by_kind:', JSON.stringify(byKind),
+      'rescued_by_kind:', JSON.stringify(rescuedByKind),
+      'by_skip_reason:', JSON.stringify(bySkipReason)
+    );
+
+    assert.equal(nonIdempotent.length, 0, `${nonIdempotent.length} rescued obligation_text(s) not idempotent: ${JSON.stringify(nonIdempotent.slice(0, 3))}`);
+    assert.equal(notVerbatim.length, 0, `${notVerbatim.length} event source_span(s) not found verbatim in their own context: ${JSON.stringify(notVerbatim.slice(0, 3))}`);
+    // measured, exact counts against this fixture — a regression lock, not a tolerance band; a future
+    // re-capture that changes these numbers is itself the finding, not a reason to loosen the assertion.
+    assert.equal(baselineEvents, 61);
+    assert.equal(withContextEvents, 90);
+    assert.equal(rescued, 29);
+    assert.deepEqual(byKind, { review_or_report: 6, compliance_deadline: 79, phase_step: 2, other: 3 });
+    assert.deepEqual(rescuedByKind, { compliance_deadline: 27, other: 2 });
   });
 });
