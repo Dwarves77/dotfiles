@@ -9755,3 +9755,27 @@ nothing to keep in sync now), and re-pinned the mint (`28c98ae2309a416a`) and me
 tsc clean. The brief-honest strip stays undispatched: with the scanner fixed the heal must re-scan
 first (its STEP 9 writes `item_gate_a_state` through this scanner), then the plans are read again.
 Dispatch next: provenance-heal dry under this train, then apply; retext dry #37 → apply.
+
+### Addendum 85, postscript 45 — thirteen artifacts, six twins, zero variance (2026-09-04)
+
+Train/wave33 landed as #580 (`443b70fd`). This train carries no code: it folds the artifact branches
+of backlog applies #31 (run 33867673887) and #32 (run 33868568869) into master, stamps on mint-run-005,
+006, 011, 012, 013, 014 and 016 [CONFIRMED in the cherry-picked commits], and forward-events-run-010
+through 022. Every one of the thirteen carries `sha256:cb4898d073a80ab9`, so the forward-events
+PENDING-RUN marker is discharged (F28 rule c). PROPOSER-6 (Haiku, `6a89ff78`) compared the six twin
+pairs, the #31 runs and the #32 re-runs of the same six mint corpora, and found zero variance in
+items_processed, events_emitted, skips and dedupe_dropped: the extractor is deterministic over the same
+claims and sections, which is the property the harness exists to prove. `dedupe_dropped`, the field
+PROPOSER-5 found missing, is present in all thirteen (2, 2, 0, 0, 0, 0 for the six corpora; 15 on
+mint-run-016, the largest slice, 177 items, 47 events). Fitness 0 violations, 141 discipline tests.
+
+Why #32 re-ran the six: the backlog gate reads artifact stamps from the checked-out master, and #31's
+stamps were still on an unlanded `population/*` branch. Once this train lands, the remaining stale
+artifacts are the ones neither run touched; the next backlog apply is dispatched after landing, not
+before, or it will re-run these seven a third time.
+
+Runtime state at write time: retext dry #37 (RETEXT-COLLIDE code) measured 921 rows to rewrite,
+139 collision groups, 173 rows to delete; its apply is the next Maintenance dispatch. Heal apply #36
+left 3 items unprocessed (`items_remaining`) and the scanner fix (#580) is not yet reflected in
+`item_gate_a_state`, so a heal dry `quarantined-live` under the new scanner precedes any strip
+decision. Dispatch next: retext apply; heal dry; land this train; backlog apply (max 6).
