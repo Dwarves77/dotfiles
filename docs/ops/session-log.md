@@ -9108,3 +9108,41 @@ HEAL-BUDGET (Sonnet, background, `3c06b1f8`, 171 tests): the killed run #20 wrot
 the summary atomically after each, resumes by ids, and CAPTURE-CITED stops fetching the same cited URL
 once per citing item. Job timeout 30 min, budget 1,500 s. Dispatching the heal again under it next;
 PERF-5 (data layer) still running in the background; ECB-FX apply (#23) and R-D dry (#21) queued.
+
+### Addendum 85, postscript 23 — three artifacts landed, heal #21 read, the lanes relaunched one per workflow (2026-09-04)
+
+Artifacts [CONFIRMED]: population #20 (`33825867992`, mint-run-022) minted 140/140 verified (372
+sections, 885 claims, 113 citations, 0 held); the R-D `rows_file` dry (#21, `33826384670`, mint-run-023)
+validated 6/6 oil-bulletin rows first pass; change detection #5 dry (`33825967861`, run-005) carries
+`harness_version sha256:fcb23ec75e03c512`, the hash CD-GATE's marker was pinned to, so the marker is
+discharged here; its metrics say what build mode predicts: 959 sources due, `scrape_gate.reason =
+cadence_off`, 0 checkable, nothing checked. The R-D apply is NOT dispatched: standing rule 17 closes a
+mint only when the flywheel has connected it and the harness recorded the outcome, and that chain
+(lane TANDEM) has not landed; the six rows wait for it like every other batch.
+
+Heal #21 (`33829526120`, HEAL-BUDGET's first run, 11m56s, exit 0, summary written) healed 0 of 94
+quarantined-live items. Final failures by (criterion, reason): (7, `gate_a_unproven_or_stale`) 88;
+(4, `analysis_missing_label_syntax`) 38; (3, `fact_below_authority_floor`) 2; (2, `ungrounded_url`) 1;
+(6, `missing_full_brief`) 1; (5, `missing_required_slot`) 1. Steps: 94 Gate-A rows written, 24
+resourced, 4 orphans grounded against 824 unprovable, 0 paragraphs relabeled (709
+`no_owning_section_found`), 0 refactored, 0 retrofitted (152 refused for no owning paragraph), 25 cited
+URLs captured / 42 held. The heal's own header (finding 3, HEAL-4) already names the mechanism: the
+Gate-A scanner reads only `full_brief` + FACT claims, and RELABEL/REFACTOR edit section `content_md`,
+so nothing the heal writes can move criterion 7, and criterion 4's paragraphs are not where RELABEL
+looks. Five heal versions have been built against the sections; the failing text lives in the brief.
+Lane HEAL-6 (Sonnet, background) is diagnosing from the live function definition and the rows before
+building the step; any grade change it needs goes behind a dry flag for the operator's ruling.
+
+Lanes: the background workflows PERF-5, tandem-wave15 and SITEMAP were all killed by the turn
+interrupts and the compaction, with nothing committed. Root cause of "only two of five started",
+read from the run state, not guessed: the Workflow tool caps concurrent agents per workflow at this
+container's CPU count (2), so a five-agent workflow queued three lanes indefinitely while three
+separate workflows ran four agents at once. Fix: one workflow per lane. Eight are running now on
+worktrees reset to `1356b381` (TANDEM, HOLLOW-GATE, HOLLOW-SWEEP, CLASSIFY-STEP on Haiku, RECORD-SURFACE,
+PERF-5, SITEMAP, HEAL-6). SITEMAP was relaunched with the operator's ruling folded in: the
+open-source monitor he pointed at (mreflow/control-center, MIT, vendored read-only in the container)
+is better than my spec on discovery order (feed document → `<link rel=alternate>` and common feed
+paths → robots `Sitemap:` → standard candidates → recursive index), bounded response bytes,
+document/entry limits, source-path scoping and the deferred baseline on partial coverage; the lane
+ports those as `.mjs` with attribution and keeps ours where ours is better (polite fetch through
+`fetch-hold.mjs`, gzip, quote/namespace tolerance, `census-writer.mjs` and rule-015 snapshots).
