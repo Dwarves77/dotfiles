@@ -242,7 +242,8 @@ every train; the session log and board carry every ruling. Done: already true; k
 | T43 | W4.3 drain chaining + notices on surfaces; W5.1 spec-09 decisions built (parsers, upload flow, readers) | T42 |
 | T44 | W6 community build after the ruling; W3.4 chips/badges on all surfaces | T39 |
 | T45 | W7.2–7.4 dead exports, shims, runbook, migration ledger; W2.3 migration 299 with backfill | T40 |
-| continuous | W2.1 population slices, W1.5 sitemap/feed dispatches until 100 %, W2.2 hold rulings executed | T38 |
+| T46 | **Full-system validation (operator instruction 2026-09-04: "a full test of the system to validate that every item is used")**: one lane per loop stage re-checks every component against §0 with fresh evidence (a sweep dispatch flowing to a surface with no coordinator step; every maintenance step with a run artifact; every table with a writer and a reader and rows; every surface measured in the browser); the closure gate green; the audit re-run and diffed against 2026-09-04 | T45 |
+| continuous | W1.5 sitemap/feed dispatches until 100 %, W2.2 hold rulings executed. **Population slices are stopped until T46 passes (operator, 2026-09-04)** | T38 |
 
 Each train: full gates (fitness 0, discipline 141+, suite, tsc, rendering smoke, UX block where surfaces
 change), memory postscript + board, proposer passes, browser measurement where a surface changed. A train
