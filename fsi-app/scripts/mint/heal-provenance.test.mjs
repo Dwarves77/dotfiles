@@ -80,12 +80,19 @@ import {
   // sixth pass (HEAL-BUDGET, 2026-09-04)
   writeCheckpoint,
   buildSummaryObject,
+  // seventh pass (HEAL-6, 2026-09-04)
+  MIN_SUBSTANTIVE_TOKENS,
+  isSubstantiveParagraph,
+  findOwningParagraphAcrossSections,
+  planOwningParagraphRewriteAcrossSections,
+  computeDerivedCovered,
 } from "./heal-provenance.mjs";
+import { norm } from "../../src/lib/agent/gate-a-match.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 test("HEAL_VERSION is a stamped string", () => {
-  assert.match(HEAL_VERSION, /^hp5-/);
+  assert.match(HEAL_VERSION, /^hp6-/);
 });
 
 // ── loadRequiredSlots / claimCoversSlot / missingRequiredSlots ──────────────────────────────────────
@@ -1992,4 +1999,303 @@ test("summarizeReports: tallies the fourth-pass counters (reclassified_rewritten
   assert.equal(s.reclassify_refused_no_owning_paragraph, 1);
   assert.equal(s.retrofitted, 1);
   assert.equal(s.retrofit_refused_no_owning_paragraph, 1);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// SEVENTH PASS (HEAL-6, 2026-09-04) — item-wide owning-paragraph search (criterion 4, 38 items/148
+// claims) and Gate B wiring (criterion 7, 88 items). See this file's header SEVENTH PASS section for the
+// full diagnosis. The FNTOP fixture below (OWN_MD/OTHER_MD) is the REAL content_md of two sections of a
+// real live item, item 007f42b1-265a-4504-8bd1-ea1557d410ad (the dispatch's own named criterion-4 sample) —
+// pulled read-only, 2026-09-04. Verified against the code in this file before being pinned into assertions
+// (own-section score 0.145..., below OWNING_PARAGRAPH_MIN_SCORE; item-wide score 0.216... in the OTHER
+// section) — never hand-picked to make the test pass.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+const FNTOP_CLAIM = "The Texas Freight Network Technology and Operations Plan (FNTOP) was published December 2020.";
+const OWN_MD = "| # | Title | Issuing Body | Date | Type | URL |\n|---|---|---|---|---|---|\n| 1 | Freight planning | TxDOT | 2026 | Primary government programme page (Tier 2) | https://www.txdot.gov/projects/planning/freight-planning.html |\n| 2 | Texas Freight Mobility Plan | TxDOT | 2026 | Primary government programme page (Tier 2) | https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html |\n| 3 | Texas Freight Plan | U.S. Department of Transportation | December 6, 2023 | Federal agency plan registry (Tier 2) | https://www.transportation.gov/mission/office-secretary/office-policy/freight/freight-infrastructure-and-policy/texas-freight-plan |\n| 4 | Multimodal transportation programs | TxDOT | 2026 | Primary government programme page (Tier 2) | https://www.txdot.gov/projects/planning/utp/multimodal-programs.html |\n| 5 | Texas Freight Network Technology and Operations Plan (FNTOP) | TxDOT / TxDOT Research Library, University of Texas at Austin CTR | December 2020 | Government research document (Tier 2) | https://library.ctr.utexas.edu/Presto/content/Detail.aspx?ctID=UHVibGljYXRpb25fMTE2MTA%3D&rID=MzM1NDM%3D&ssid=c2NyZWVuSURfMjEzMjI%3D |\n\n---\n\n## New Sources Identified\n\n| Source Name | URL | Tier estimate (1–7) | Why this source matters |\n|---|---|---|---|\n| CAMPO Freight Plan Recommendations Report (2024) | https://www.campotexas.org/wp-content/uploads/2024/12/RFP_Recomendations.pdf | 4 | Capital Area MPO (Austin region) freight recommendations that feed into TxDOT TFMP stakeholder input; provides regional-level operational specifics not available in TxDOT statewide pages |\n| 49 USC 70202 (Federal State Freight Plan Requirements) | https://uscode.house.gov/view.xhtml?req=granuleid:USC-prelim-title49-section70202&num=0&edition=prelim | 1 | Statutory basis cited by TxDOT as the federal requirement the TFMP satisfies; verbatim plan content requirements are in this text and not reproduced in the corpus source blocks |\n| Texas Delivers 2050 (2023 TFMP full document) | https://www.transportation.gov/mission/office-secretary/office-policy/freight/freight-infrastructure-and-policy/texas-freight-plan | 2 | The operative plan document (PDF: texas-delivers-2050.pdf) referenced by USDOT; specific plan findings, project recommendations, and performance targets are in this document and not available from the USDOT landing page text alone |\n\n---";
+const OTHER_MD = "## Texas Freight Mobility Plan (Current Operative Plan: 2023 / \"Texas Delivers 2050\")\n\nThe current approved Texas Freight Mobility Plan is hosted by USDOT and identified by the document filename \"texas-delivers-2050.pdf.\" *Source: Texas Freight Plan, U.S. Department of Transportation, updated December 6, 2023. https://www.transportation.gov/mission/office-secretary/office-policy/freight/freight-infrastructure-and-policy/texas-freight-plan.\n\n*Specific content sections of the 2023 TFMP are not available verbatim from the primary source blocks in this corpus. The USDOT page confirms the plan exists and is approved; the document's internal section structure and specific findings are not reproduced in the available source content.*\n\n*Analytical inference:* The 2023 plan, titled \"Texas Delivers 2050,\" established the baseline findings and recommendations that the 2027 update will extend. The 2020 Texas Freight Network Technology and Operations Plan (FNTOP) — which emerged from a major recommendation of the 2018 TFMP — illustrates the trajectory: the TFMP generates programme-level recommendations that then generate standalone operational plans.\n\n## Texas Freight Network Technology and Operations Plan (FNTOP, 2020)\n\n*Analytical inference:* *\"The 2018 Texas Freight Mobility Plan (TFMP) provided Texas with a blueprint for facilitating continued economic growth through a comprehensive, multimodal strategy for addressing freight transportation. One major recommendation from the TFMP is for the TxDOT to develop and implement a statewide, technology-based freight safety and operations program... Based on this recommendation, the Freight Planning Branch within TxDOT's (TxDOT) Transportation Planning and Programming Division developed the Texas Freight Network Technology and Operations Plan (FNTOP), which outlines 12 technology based strategies, six of which were advanced to Concept of Operations, to help improve freight transportation safety and mobility in Texas.\"* *Source: TxDOT Research Library, Texas Freight Network Technology and Operations Plan, 2020. https://library.ctr.utexas.edu/Presto/content/Detail.aspx?ctID=UHVibGljYXRpb25fMTE2MTA%3D&rID=MzM1NDM%3D&ssid=c2NyZWVuSURfMjEzMjI%3D.\n\n*Operational implication:* The FNTOP's 12 technology strategies and 6 Concepts of Operations represent TxDOT's current technology posture for freight safety and mobility. Workspaces operating on Texas corridors should assess which of these strategies — including any related to truck parking availability systems, freight information systems, or connected vehicle technology — are moving toward deployment and could affect their fleet or carrier operations.\n\n## 2027 TFMP Planned Outcomes (Per TxDOT's Published Programme Design)\n\nThe 2027 TFMP is structured to produce four categories of output:\n\n- *\"Policies: Specific courses of action that, if adopted, will shape the way Texas approaches freight.\"*\n- *\"Programs: Collection of initiatives or activities to achieve desired outcomes.\"*\n- *\"Technology & Operations: Investments that improve safety and efficiency of existing systems and prepare Texas for the future of freight mobility.\"*\n- *\"Projects: Capital investments under development, proposed, and strategic.\"*\n\n*Source: Texas Freight Mobility Plan page, TxDOT, 2026. https://www.txdot.gov/projects/planning/freight-planning/texas-freight-mobility-plan.html.\n\n*Analytical inference:* The four-category output structure means the 2027 TFMP will simultaneously produce policy recommendations (which shape regulatory and programmatic environment), program designs (which determine funding allocation), technology and operations priorities (which determine what gets deployed on Texas corridors), and project lists (which feed directly into the UTP and STIP). For workspaces with Texas infrastructure dependencies, all four categories are operationally relevant.\n\n## Multimodal Program Architecture (UTP)\n\nThe UTP funds five multimodal programme areas relevant to freight:\n\n*\"Freight, Trade and Connectivity: Integrating multimodal freight, international trade and corridor planning into TxDOT's statewide planning and project development processes.\"* *Source: Multimodal transportation programs, TxDOT, 2026. https://www.txdot.gov/projects/planning/utp/multimodal-programs.html.\n\nAdditional UTP multimodal programmes with freight relevance: Maritime (port infrastructure and waterway connectivity); Rail (freight and passenger rail system development); Aviation (airport planning and construction); Public Transportation (transit, bicycle and pedestrian). *Source: Multimodal transportation programs, TxDOT, 2026. https://www.txdot.gov/projects/planning/utp/multimodal-programs.html.\n\n---";
+
+// ── isSubstantiveParagraph ──────────────────────────────────────────────────────────────────────────
+
+test("isSubstantiveParagraph: a real prose paragraph (>= MIN_SUBSTANTIVE_TOKENS scoreable tokens, sentence punctuation) is substantive", () => {
+  assert.equal(isSubstantiveParagraph("The notice states rates will increase by roughly eight percent for the CNSHA corridor beginning next quarter."), true);
+});
+
+test("isSubstantiveParagraph: a bare markdown heading is NOT substantive, even with several distinctive nouns (no sentence-ending punctuation) — the exact class of false-accept this guard exists to remove", () => {
+  assert.equal(isSubstantiveParagraph("## Double Materiality Assessment Infrastructure Requirements Overview"), false);
+});
+
+test("isSubstantiveParagraph: a short punctuated fragment below MIN_SUBSTANTIVE_TOKENS is not substantive", () => {
+  assert.equal(isSubstantiveParagraph("See above."), false);
+});
+
+test("isSubstantiveParagraph: blank/empty/null is never substantive", () => {
+  assert.equal(isSubstantiveParagraph(""), false);
+  assert.equal(isSubstantiveParagraph("   "), false);
+  assert.equal(isSubstantiveParagraph(null), false);
+});
+
+test("MIN_SUBSTANTIVE_TOKENS is the measured constant (6) — a change here is a deliberate re-tuning, not a silent drift", () => {
+  assert.equal(MIN_SUBSTANTIVE_TOKENS, 6);
+});
+
+// ── findOwningParagraphAcrossSections / planOwningParagraphRewriteAcrossSections ───────────────────
+
+test("findOwningParagraphAcrossSections: real FNTOP shape (item 007f42b1) — own section (a sources table) refuses; item-wide search finds the owning paragraph in a DIFFERENT section", () => {
+  // Confirms the premise: the claim's OWN section (a sources index table) scores BELOW threshold alone.
+  const ownOnly = findOwningParagraphByOverlap(FNTOP_CLAIM, OWN_MD);
+  assert.equal(ownOnly.found, false, "own section (a sources table) has no owning paragraph — matches the live 0/148 own-section measurement");
+
+  const wide = findOwningParagraphAcrossSections(FNTOP_CLAIM, [
+    { id: "sec-own", content_md: OWN_MD },
+    { id: "sec-other", content_md: OTHER_MD },
+  ]);
+  assert.equal(wide.found, true);
+  assert.equal(wide.sectionId, "sec-other");
+  assert.match(wide.paragraph, /Texas Delivers 2050/);
+});
+
+test("findOwningParagraphAcrossSections: a heading-only paragraph in one section never wins over a genuine (if lower-scoring) substantive paragraph in another", () => {
+  const claim = "Directly in-scope reporting entities are required to conduct a double materiality assessment covering environmental and social impacts.";
+  const sections = [
+    { id: "sec-heading", content_md: "## Double Materiality Assessment Infrastructure Requirements Overview" },
+    {
+      id: "sec-prose",
+      content_md: "*Analytical inference:* Entities directly in scope are expected to conduct a double materiality assessment, covering both environmental impact and social impact, as part of the reporting infrastructure the framework requires.",
+    },
+  ];
+  const r = findOwningParagraphAcrossSections(claim, sections);
+  assert.equal(r.found, true);
+  assert.equal(r.sectionId, "sec-prose", "the heading (filtered by isSubstantiveParagraph) is never even a candidate");
+});
+
+test("findOwningParagraphAcrossSections: refuses (bestScore 0) when no section anywhere carries even one substantive paragraph", () => {
+  const r = findOwningParagraphAcrossSections("anything at all", [{ id: "s1", content_md: "## Just A Heading\n\n## Another Heading" }]);
+  assert.deepEqual(r, { found: false, bestScore: 0 });
+});
+
+test("findOwningParagraphAcrossSections: empty/no sections refuses, never throws", () => {
+  assert.deepEqual(findOwningParagraphAcrossSections("anything", []), { found: false, bestScore: 0 });
+  assert.deepEqual(findOwningParagraphAcrossSections("anything", null), { found: false, bestScore: 0 });
+});
+
+test("planOwningParagraphRewriteAcrossSections: found -> newClaimText is a verbatim substring of the winning (cross-section) paragraph, sectionId names the WINNING section", () => {
+  const r = planOwningParagraphRewriteAcrossSections(FNTOP_CLAIM, [
+    { id: "sec-own", content_md: OWN_MD },
+    { id: "sec-other", content_md: OTHER_MD },
+  ]);
+  assert.equal(r.outcome, "found");
+  assert.equal(r.sectionId, "sec-other");
+  assert.ok(OTHER_MD.includes(r.newClaimText), "the new claim_text is a VERBATIM substring of the winning section's paragraph");
+  assert.match(r.newClaimText, /Texas Freight Network Technology and Operations Plan \(FNTOP\)/);
+});
+
+test("planOwningParagraphRewriteAcrossSections: refusal path carries the best score found across every section", () => {
+  const r = planOwningParagraphRewriteAcrossSections("wholly unrelated claim about container weighing procedures", [{ id: "s1", content_md: "A long enough substantive paragraph about something else entirely, discussing freight corridor pricing in general terms." }]);
+  assert.equal(r.outcome, "no_owning_paragraph");
+  assert.equal(r.bestScore, 0);
+});
+
+// ── healOneItem STEP E / RETROFIT — item-wide widening wired end-to-end ────────────────────────────
+
+test("healOneItem STEP E: own-section search refuses, item-wide search succeeds in a DIFFERENT section — reclassified with claim_text rewritten AND section_row_id moved to the winning section (real FNTOP shape)", async () => {
+  const item = { id: "item-iw1", item_type: "regulation", full_brief: "", source_url: null };
+  const claims = [{
+    id: "claim-iw1", claim_kind: "FACT", claim_text: FNTOP_CLAIM,
+    source_span: "a span nowhere in any capture", source_id: "src-iw1", section_row_id: "sec-own",
+  }];
+  const deps = baseDeps({
+    readClaims: async () => claims,
+    readSections: async (id) => (id === "item-iw1" ? [
+      { id: "sec-own", item_id: "item-iw1", section_key: "sources", section_order: 1, content_md: OWN_MD },
+      { id: "sec-other", item_id: "item-iw1", section_key: "body", section_order: 2, content_md: OTHER_MD },
+    ] : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  const rc = r.steps.reclassify[0];
+  assert.equal(rc.outcome, "reclassified");
+  assert.equal(rc.cross_section, true);
+  assert.equal(rc.section_id, "sec-other");
+  assert.notEqual(claims[0].claim_text, FNTOP_CLAIM, "claim_text rewritten to the item-wide winning sentence");
+  assert.equal(claims[0].section_row_id, "sec-other", "section_row_id moved to the winning section");
+  const call = deps.calls.find((c) => c[0] === "updateClaimKind" && c[1] === "claim-iw1");
+  assert.ok(call);
+  assert.equal(call[2].claim_kind, "ANALYSIS");
+  assert.equal(call[2].section_row_id, "sec-other");
+  // the moved claim is then found by RELABEL under its NEW section_row_id, in the same run
+  const relabelEntry = r.steps.relabel.find((x) => x.claim_id === "claim-iw1");
+  assert.ok(relabelEntry);
+  assert.equal(relabelEntry.section_id, "sec-other");
+});
+
+test("healOneItem STEP E: when the winning section IS the claim's own section_row_id (own-section search itself succeeded), cross_section is false and section_row_id is never rewritten", async () => {
+  const item = { id: "item-iw2", item_type: "regulation", full_brief: "", source_url: null };
+  const claim = "Base freight rates on this corridor are expected to rise about eight percent due to fuel surcharges";
+  const contentMd = "Background context about the sector overall. The notice states rates will increase by roughly eight percent for the CNSHA corridor beginning next quarter, citing fuel costs. Analysts have offered mixed views on the outlook.";
+  const claims = [{ id: "claim-iw2", claim_kind: "FACT", claim_text: claim, source_span: "nowhere", source_id: "src-iw2", section_row_id: "sec-a" }];
+  const deps = baseDeps({
+    readClaims: async () => claims,
+    readSections: async (id) => (id === "item-iw2" ? [{ id: "sec-a", item_id: "item-iw2", section_key: "body", section_order: 1, content_md: contentMd }] : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  const rc = r.steps.reclassify[0];
+  assert.equal(rc.outcome, "reclassified");
+  assert.equal(rc.cross_section, false);
+  assert.equal(claims[0].section_row_id, "sec-a", "never rewritten when the own section already won");
+  const call = deps.calls.find((c) => c[0] === "updateClaimKind" && c[1] === "claim-iw2");
+  assert.ok(!("section_row_id" in call[2]), "no section_row_id patch when the section never moved");
+});
+
+test("healOneItem STEP E: still refuses (never forces a claim) when NEITHER the own section NOR any other section clears threshold", async () => {
+  const item = { id: "item-iw3", item_type: "regulation", full_brief: "", source_url: null };
+  const claims = [{
+    id: "claim-iw3", claim_kind: "FACT",
+    claim_text: "Base freight rates on this corridor are expected to rise about eight percent due to fuel surcharges",
+    source_span: "nowhere", source_id: "src-iw3", section_row_id: "sec-a",
+  }];
+  const deps = baseDeps({
+    readClaims: async () => claims,
+    readSections: async (id) => (id === "item-iw3" ? [
+      { id: "sec-a", item_id: "item-iw3", section_key: "body", section_order: 1, content_md: "Regulators also confirmed a separate review of container weighing procedures at three major ports, unrelated to pricing." },
+      { id: "sec-b", item_id: "item-iw3", section_key: "body", section_order: 2, content_md: "A wholly unrelated discussion of warehouse automation trends across the sector, with no connection to freight rates at all." },
+    ] : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  const rc = r.steps.reclassify[0];
+  assert.equal(rc.outcome, "reclassify_refused_no_owning_paragraph");
+  assert.equal(claims[0].claim_kind, "FACT", "left as FACT, never forced");
+  assert.ok(!deps.calls.some((c) => c[0] === "updateClaimKind" && c[1] === "claim-iw3"));
+});
+
+test("healOneItem RETROFIT: own-section search refuses, item-wide search succeeds — claim_text AND section_row_id rewritten, claim_kind untouched (retrofit's own contract preserved)", async () => {
+  const item = { id: "item-iw4", item_type: "regulation", full_brief: "", source_url: null };
+  const claims = [{
+    id: "claim-iw4", claim_kind: "ANALYSIS", claim_text: FNTOP_CLAIM,
+    source_span: "a stale span from when this was still a FACT claim", source_id: "src-iw4", section_row_id: "sec-own",
+  }];
+  const deps = baseDeps({
+    readClaims: async () => claims,
+    readSections: async (id) => (id === "item-iw4" ? [
+      { id: "sec-own", item_id: "item-iw4", section_key: "sources", section_order: 1, content_md: OWN_MD },
+      { id: "sec-other", item_id: "item-iw4", section_key: "body", section_order: 2, content_md: OTHER_MD },
+    ] : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  const rt = r.steps.retrofit[0];
+  assert.equal(rt.outcome, "retrofitted");
+  assert.equal(rt.cross_section, true);
+  assert.equal(rt.section_id, "sec-other");
+  assert.equal(claims[0].claim_kind, "ANALYSIS", "retrofit never touches claim_kind");
+  assert.equal(claims[0].section_row_id, "sec-other");
+  const call = deps.calls.find((c) => c[0] === "updateClaimKind" && c[1] === "claim-iw4");
+  assert.ok(call);
+  assert.ok(!("claim_kind" in call[2]), "retrofit patches claim_text/section_row_id only, never claim_kind — unchanged contract");
+  assert.equal(call[2].section_row_id, "sec-other");
+});
+
+// ── computeDerivedCovered — Gate B, mirrored in memory ──────────────────────────────────────────────
+// Fixtures built from a REAL DERIVED/FACT claim pair + a real capture excerpt (read-only SQL, 2026-09-04,
+// item family ff4064ab-... in the live DB): a DERIVED claim "31 March 2025" whose basis FACT claim's
+// source_span "From 2025, companies shall submit to the administering authority responsible by 31 March of
+// each year the aggregated emissions data at company level that cover the emissions in the reporting
+// period of the previous year to be reported under Directive 2003/87/EC in relation to maritime transport
+// activities" is verbatim in the real capture at position 3124 (confirmed live, position() query) — the
+// capture text below is a trimmed excerpt built AROUND that real, verbatim span (the full live capture is
+// 5602 chars; only the span's own verbatim presence is load-bearing for this function's contract).
+
+const REAL_BASIS_SPAN = "From 2025, companies shall submit to the administering authority responsible by 31 March of each year the aggregated emissions data at company level that cover the emissions in the reporting period of the previous year to be reported under Directive 2003/87/EC in relation to maritime transport activities";
+const REAL_CAPTURE_EXCERPT = `Changes to the existing ETS and MRV applying from 1 January 2024 - Climate Action. ${REAL_BASIS_SPAN}. General guidance documents are published by the European Commission for administering authorities.`;
+
+test("computeDerivedCovered: a DERIVED claim whose basis FACT's source_span is verbatim in its capture is covered — real ETS-MRV shape", () => {
+  const claims = [
+    { id: "fact-1", claim_kind: "FACT", claim_text: "the March deadline", source_span: REAL_BASIS_SPAN, search_result_id: "cap-1" },
+    { id: "derived-1", claim_kind: "DERIVED", claim_text: "31 March 2025", basis_claim_id: "fact-1" },
+  ];
+  const captures = [{ id: "cap-1", result_content: REAL_CAPTURE_EXCERPT }];
+  const covered = computeDerivedCovered(claims, captures);
+  assert.equal(covered.has(norm("31 March 2025")), true);
+  assert.equal(covered.size, 1);
+});
+
+test("computeDerivedCovered: a basis span that no longer matches its capture (stale) is NOT covered — re-grounds-never-destroy", () => {
+  const claims = [
+    { id: "fact-1", claim_kind: "FACT", claim_text: "x", source_span: "a span the capture no longer contains", search_result_id: "cap-1" },
+    { id: "derived-1", claim_kind: "DERIVED", claim_text: "31 March 2025", basis_claim_id: "fact-1" },
+  ];
+  const captures = [{ id: "cap-1", result_content: "completely different capture text now" }];
+  assert.equal(computeDerivedCovered(claims, captures).size, 0);
+});
+
+test("computeDerivedCovered: a DERIVED claim missing basis_claim_id (the LIVE wrapper's current shape — basis_claim_id not yet projected by scripts/maintenance/provenance-heal.mjs's own readClaims SELECT) is never covered — the documented dormant-in-production behavior", () => {
+  const claims = [
+    { id: "fact-1", claim_kind: "FACT", claim_text: "x", source_span: REAL_BASIS_SPAN, search_result_id: "cap-1" },
+    { id: "derived-1", claim_kind: "DERIVED", claim_text: "31 March 2025" }, // no basis_claim_id at all
+  ];
+  const captures = [{ id: "cap-1", result_content: REAL_CAPTURE_EXCERPT }];
+  assert.equal(computeDerivedCovered(claims, captures).size, 0);
+});
+
+test("computeDerivedCovered: a basis that resolves to a non-FACT claim, or a FACT with a null source_span, is never covered", () => {
+  const claims = [
+    { id: "a1", claim_kind: "ANALYSIS", claim_text: "not a fact", source_span: "irrelevant", search_result_id: "cap-1", basis_claim_id: null },
+    { id: "d1", claim_kind: "DERIVED", claim_text: "tok1", basis_claim_id: "a1" },
+    { id: "f2", claim_kind: "FACT", claim_text: "x", source_span: null, search_result_id: "cap-1" },
+    { id: "d2", claim_kind: "DERIVED", claim_text: "tok2", basis_claim_id: "f2" },
+  ];
+  const captures = [{ id: "cap-1", result_content: "anything" }];
+  assert.equal(computeDerivedCovered(claims, captures).size, 0);
+});
+
+test("computeDerivedCovered: no DERIVED claims at all -> empty Set, no work done", () => {
+  const claims = [{ id: "f1", claim_kind: "FACT", claim_text: "x", source_span: "y", search_result_id: "cap-1" }];
+  assert.equal(computeDerivedCovered(claims, []).size, 0);
+});
+
+test("computeDerivedCovered: normalizes the covered token the SAME way gate-a-match.mjs's own norm does (internal whitespace runs collapsed, case-insensitive -- norm itself does NOT trim leading/trailing whitespace, matching gate-a-derived.mjs's own live behavior exactly)", () => {
+  const claims = [
+    { id: "fact-1", claim_kind: "FACT", claim_text: "x", source_span: REAL_BASIS_SPAN, search_result_id: "cap-1" },
+    { id: "derived-1", claim_kind: "DERIVED", claim_text: "31   MARCH 2025", basis_claim_id: "fact-1" },
+  ];
+  const captures = [{ id: "cap-1", result_content: REAL_CAPTURE_EXCERPT }];
+  const covered = computeDerivedCovered(claims, captures);
+  assert.equal(covered.has(norm("31 March 2025")), true, "internal whitespace-run collapse and case-folding make the two agree");
+});
+
+// ── planGateA — derivedCovered wired through to buildGateARow (Gate B) ─────────────────────────────
+
+test("planGateA: derivedCovered defaults to an empty Set — every existing call site/test that omits it is byte-identical to before this pass", () => {
+  const item = { id: "item-ga1", full_brief: "A figure appears here: 9 tonnes." };
+  const withDefault = planGateA(item, []);
+  const withExplicitEmpty = planGateA(item, [], new Set());
+  assert.equal(withDefault.scanned_hash, withExplicitEmpty.scanned_hash);
+  assert.deepEqual(withDefault.orphans, withExplicitEmpty.orphans);
+  assert.equal(withDefault.orphan_count, withExplicitEmpty.orphan_count);
+  assert.ok(withDefault.orphan_count > 0, "the token is still an orphan with no coverage of either kind");
+});
+
+test("planGateA: a token covered ONLY by derivedCovered (Gate B, no matching FACT claim at all) is NOT an orphan", () => {
+  // A figure token (single orphan entry) rather than a date -- the scanner emits MULTIPLE sub-token
+  // granularities for a date ("31 March 2025" / "March 2025" / "2025", each its own orphan entry), which
+  // would require covering all three to clear orphan_count to 0; a figure token has exactly one entry, so
+  // this test isolates the derivedCovered wiring itself rather than the scanner's own tokenization.
+  const item = { id: "item-ga2", full_brief: "A figure appears here: 9 tonnes." };
+  const withoutDerived = planGateA(item, []);
+  assert.equal(withoutDerived.orphan_count, 1, "orphan without Gate B coverage");
+  const withDerived = planGateA(item, [], new Set([norm("9 tonnes")]));
+  assert.equal(withDerived.orphan_count, 0, "Gate B coverage clears the orphan — the SEVENTH PASS fix this test exists to prove");
+});
+
+test("healOneItem: Gate A's final report entry carries derived_claims_seen/derived_covered_count telemetry", async () => {
+  const item = { id: "item-ga3", item_type: "market_signal", full_brief: "", source_url: null };
+  const claims = [
+    { id: "fact-1", claim_kind: "FACT", claim_text: "x", source_span: REAL_BASIS_SPAN, search_result_id: "cap-1", section_row_id: null },
+    { id: "derived-1", claim_kind: "DERIVED", claim_text: "31 March 2025", basis_claim_id: "fact-1", section_row_id: null },
+  ];
+  const deps = baseDeps({
+    readClaims: async () => claims,
+    readCaptures: async () => [{ id: "cap-1", result_url: "https://example.com/x", result_content: REAL_CAPTURE_EXCERPT }],
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  assert.equal(r.steps.gate_a.derived_claims_seen, 1);
+  assert.equal(r.steps.gate_a.derived_covered_count, 1);
 });

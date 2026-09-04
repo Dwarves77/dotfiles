@@ -332,6 +332,10 @@ import { institutionKey, hostOf } from "../lib/institution-key.mjs";
 // gap, never re-deriving the per-family HTML/Cellar/FR-API resolution this file's header already forbids
 // re-deriving.
 import { pdfToText, looksLikePdfUrl, isPdfBytes } from "../../src/lib/sources/pdf-extract.mjs";
+// norm -- gate-a-match.mjs's own token normalizer, imported unmodified. SEVENTH PASS's computeDerivedCovered
+// (below) uses it to key its covered-token Set EXACTLY the way gate-a-derived.mjs's live derivedCoveredTokens
+// and gate-a-scan.mjs's own scanBrief both already do -- never a second normalization rule.
+import { norm } from "../../src/lib/agent/gate-a-match.mjs";
 
 // SIXTH PASS (2026-09-04, lane HEAL-BUDGET), fixing the defect run #20 (the FIRST apply run under HEAL-5,
 // quarantined-live, 95 items) measured live: 15m20s wall time against .github/workflows/maintenance.yml's
@@ -407,7 +411,93 @@ import { pdfToText, looksLikePdfUrl, isPdfBytes } from "../../src/lib/sources/pd
 //      unmodified) was ALREADY the one pacing authority for every fetch in every step; see this lane's
 //      report for the two waste hypotheses checked and NOT found (an over-long pacing sleep; an
 //      already-known-empty archive lookup outside this cache's own reach).
-export const HEAL_VERSION = "hp5-2026-09-04.2";
+//
+// SEVENTH PASS (2026-09-04, lane HEAL-6), diagnosing and fixing two of the six criteria named in run
+// 33829526120 (HEAL-5.2 apply, `quarantined-live`, 94 candidates, 0 healed_verified, 94 still_failing):
+// criterion 7 (`gate_a_unproven_or_stale`, 88 items) and criterion 4 (`analysis_missing_label_syntax`, 38
+// items / 148 claims). Both diagnoses are read LIVE against `validate_item_provenance` via
+// `pg_get_functiondef` (migration 202, "latest definition wins", re-confirmed unpatched by any later
+// migration) — see this lane's report for the exact quoted SQL. Neither the scanner (gate-a-scan.mjs /
+// gate-a-match.mjs) nor `validate_item_provenance` itself needed to change; both bugs are entirely in this
+// file's own call sites.
+//
+// CRITERION 7 — GATE B WAS NEVER WIRED. `scanBrief` (the live scanner) has TWO coverage arms: LITERAL
+// (a token is a verbatim substring of the FACT-claim corpus) and DERIVED/"Gate B" (a token is a member of
+// a `derivedCovered` Set the CALLER computes and passes in — gate-a-derived.mjs's own
+// `derivedCoveredTokens`, a live DB lookup crediting a token when a valid, basis-grounded, non-stale
+// `claim_kind='DERIVED'` claim asserts it). `planGateA` (STEP 9, this file, unchanged since HEAL-1) called
+// `buildGateARow` with `factClaims` ONLY — `derivedCovered` was never passed, defaulting to an EMPTY Set
+// (write-item.ts's own default), unlike the live canonical-pipeline.ts, which recomputes it FRESH from the
+// DB immediately before every Gate-A write. Every HEAL apply run's OWN Gate-A rewrite therefore silently
+// STRIPPED legitimate Gate-B coverage the mint-time pipeline had already established — measured live (read-
+// only SQL, 2026-09-04): 16 real orphan tokens across 5 items (ff4064ab-…, 15f63ea9-…, 3af75490-…,
+// 5b2c6655-…, bced4406-…) would clear under this fix, ff4064ab-… alone going from 9 orphans to 1.
+//
+// THE FIX: `computeDerivedCovered(claims, captures)` (new, pure, below) mirrors gate-a-derived.mjs's own
+// query shape ENTIRELY IN MEMORY, over `claims`/`captures` this file ALREADY holds (deps.readClaims /
+// deps.readCaptures — no new deps call, per this file's own DI/DRY/$0 mandate). `planGateA` now accepts a
+// third `derivedCovered` parameter (default empty Set, so every existing call site/test that omits it is
+// byte-identical to before); all three planGateA call sites (the early corpus-pool estimate, STEP C's
+// pre-ORPHANS scan, and the final STEP 9 write) now compute it FRESH from the claims/captures in scope AT
+// THAT POINT — matching canonical-pipeline.ts's own "recompute right before the write" discipline, never a
+// single stale snapshot from the top of healOneItem.
+//
+// REFUSED (documented per the dispatch's explicit ask, not a workaround): `computeDerivedCovered` reads
+// `d.basis_claim_id` off each DERIVED claim to find its basis FACT — but `scripts/maintenance/
+// provenance-heal.mjs`'s own `readClaims` SELECT (the wrapper that wires this file to the real DB; OFF-
+// LIMITS to this lane per its write-set boundary, "scripts/maintenance/** ... do not touch any of those")
+// projects `id, claim_kind, claim_text, source_span, source_id, search_result_id, section_row_id` —
+// `basis_claim_id` is NOT among them (grep-confirmed, 2026-09-04). Every live DERIVED claim will therefore
+// read `basis_claim_id: undefined` through that wrapper, `computeDerivedCovered` will correctly find no
+// basis for it, and the returned Set stays EMPTY in production — this fix is written, tested (fixtures
+// supply `basis_claim_id` directly, since a pure-function test constructs its own claim objects, never
+// going through the wrapper's SELECT), and CORRECT, but DORMANT until a one-line change lands elsewhere:
+// adding `basis_claim_id` to that SELECT's column list. See this lane's report for the exact diff.
+//
+// CRITERION 4 — RECLASSIFY/RETROFIT SCOPED THE WRONG WAY. Criterion 4's own SQL (migration 202, re-read
+// verbatim for this lane) checks, for every ANALYSIS claim, whether SOME paragraph in ANY of
+// `intelligence_item_sections.content_md` FOR THAT ITEM — never scoped to any one section — both matches a
+// label regex and `ILIKE`-contains `claim_text` verbatim. STEP E (RECLASSIFY) and RETROFIT (FOURTH PASS,
+// HEAL-4) both scope their OWN paragraph search to `ownSection = sectionsList.find(s => s.id ===
+// c.section_row_id)` — narrower than the validator they are trying to satisfy. Measured live (read-only
+// SQL + this file's own real code, 2026-09-04, against the 148 currently-failing ANALYSIS claims across the
+// 38 affected items): 0/148 findable in the claim's own section (confirming the bug); widening the search
+// to EVERY section of the item finds a home for 100/148 (68%) once a false-accept guard (below) is applied
+// — and 3 of the 4 items failing criterion 4 ALONE (007f42b1-…, 45f85547-…, 87ed781c-…) would have EVERY
+// failing claim resolved, flipping fully to `verified` on the very next apply run.
+//
+// THE FIX: `findOwningParagraphAcrossSections`/`planOwningParagraphRewriteAcrossSections` (new, pure,
+// below) run the SAME Jaccard-overlap/sentence-pick/marker-strip pipeline `planOwningParagraphRewrite`
+// already uses, but scored across EVERY section of the item rather than one — GUARDED by
+// `isSubstantiveParagraph` (>= MIN_SUBSTANTIVE_TOKENS=6 scoreable tokens AND at least one sentence-ending
+// mark), a guard the ORIGINAL own-section search does not need (it already narrows to the 1-4 paragraphs
+// the extractor originally read — see the FOURTH PASS header) but the WIDER item-wide search does: without
+// it, a bare markdown heading ("Double Materiality Assessment Infrastructure") scored 0.15 — AT threshold —
+// against an unrelated claim in a live section this lane inspected, and would have overwritten a real
+// requirement's `claim_text` with a heading fragment. With the guard, the same 148-claim measurement drops
+// from 107 (unguarded) to 100 hits — the 7 removed were exactly this class of degenerate match, confirmed
+// by inspection, never a loss of a genuine paraphrase match. STEP E and RETROFIT both now try the ITEM-WIDE
+// search ONLY after their existing own-section search refuses (never instead of it — own-section stays
+// first, cheapest, and lowest false-accept risk); a claim whose winning paragraph lives in a DIFFERENT
+// section than its current `section_row_id` gets that column REWRITTEN TOO (`updateClaimKind`'s patch
+// object gains `section_row_id` only when it actually changed — RETROFIT's own "patches claim_text only,
+// never claim_kind" contract, asserted by an existing test, is preserved: `section_row_id` is not
+// `claim_kind`), so criterion 4's own item-wide check and this file's own bookkeeping agree on where the
+// claim now lives. A claim found nowhere — own section OR any other — is refused exactly as before,
+// `reclassify_refused_no_owning_paragraph` / `retrofit_refused_no_owning_paragraph`, reporting the BETTER
+// of the two searches' own best scores (honest telemetry even on a refusal, never a regression in what the
+// artifact tells the reader).
+//
+// NOT TOUCHED, PER DIAGNOSIS: STEP C's own structural limit on grounding Gate-A orphans (824 total orphan
+// tokens measured; 386 found in some non-canonical capture but zero in the item's own canonical capture;
+// of those, ZERO qualify for a floor-qualifying source — 167 have no `sources` registry row at all, 179
+// have one above the item's authority floor) is criterion 3 (the authority floor) working AS DESIGNED, not
+// a bug this lane's write set can or should touch — grounding them would mean writing a FACT claim whose
+// source tier violates the floor, which rule 2 (no claims ahead of evidence) and this file's own header
+// both forbid. `validate_item_provenance` itself needed no change (both fixes are entirely in this file's
+// own call sites), so no new migration is written; `gate-a-scan.mjs`/`gate-a-match.mjs` needed no change
+// either (both are correct — the bug was never in the scanner), so `PENDING-RUN.md` is NOT re-pinned.
+export const HEAL_VERSION = "hp6-2026-09-04.1";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_SLOTS_PATH = resolve(HERE, "item-type-required-slots.json");
@@ -1756,6 +1846,77 @@ export function planOwningParagraphRewrite(claimText, contentMd, threshold = OWN
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// ITEM-WIDE OWNING-PARAGRAPH SEARCH (2026-09-04, SEVENTH PASS, lane HEAL-6). See this file's header
+// SEVENTH PASS section for the full diagnosis (criterion 4, 38 items / 148 claims) and the measured
+// 100/148 this widening resolves. `planOwningParagraphRewrite` above scores ONLY the claim's OWN section —
+// correct for what criterion 4's SQL is actually checking would be item-wide, so a paraphrase that moved
+// to (or always lived in) a DIFFERENT section of the same item was refused even though the validator
+// itself would accept it there. These functions run the SAME scorer/sentence-pick/marker-strip pipeline
+// across EVERY section of the item, GUARDED against the false-accept risk that widening introduces.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+// Chosen from live measurement (2026-09-04, this lane): scoring bare/short paragraphs across an ENTIRE
+// item (rather than the 1-4 paragraphs of one section) surfaces degenerate matches a same-section search
+// never would — a bare markdown heading ("Double Materiality Assessment Infrastructure") scored 0.15, AT
+// OWNING_PARAGRAPH_MIN_SCORE, against an unrelated claim in a live section this lane inspected, purely
+// from shared subject-matter nouns with no asserted content of its own. Requiring >= MIN_SUBSTANTIVE_TOKENS
+// scoreable tokens AND at least one sentence-ending mark (a heading/label-only line has neither, or fails
+// the punctuation check even when it accidentally clears the token count) removed exactly this class from
+// the 148-claim measurement (107 unguarded -> 100 guarded) with no loss of any genuine paraphrase match
+// this lane inspected.
+export const MIN_SUBSTANTIVE_TOKENS = 6;
+
+/** True when `paragraph` carries enough of its own substance to be a plausible item-wide match — see the
+ *  constant's own header above for why this guard exists only for the WIDER search, never the original
+ *  own-section one (which is already narrow enough not to need it). Pure. */
+export function isSubstantiveParagraph(paragraph) {
+  const p = String(paragraph ?? "");
+  if (!p.trim()) return false;
+  if (overlapTokens(p).size < MIN_SUBSTANTIVE_TOKENS) return false;
+  return /[.!?]/.test(p);
+}
+
+/** Same contract as findOwningParagraphByOverlap, but scored across EVERY section of `sections` (not just
+ *  one), guarded by isSubstantiveParagraph so a heading/label-only paragraph in some OTHER section can
+ *  never win purely on shared-noun noise. Returns the winning section's id alongside the paragraph. Pure.
+ *  `{ found:false, bestScore }` when nothing anywhere clears `threshold` (or no section carries even one
+ *  substantive paragraph). */
+export function findOwningParagraphAcrossSections(claimText, sections, threshold = OWNING_PARAGRAPH_MIN_SCORE) {
+  let best = null;
+  for (const s of sections ?? []) {
+    const { parts } = splitParagraphsPreserving(s?.content_md ?? "");
+    parts.forEach((p, index) => {
+      if (!isSubstantiveParagraph(p)) return;
+      const score = jaccardTokenOverlap(claimText, p);
+      if (!best || score > best.score) best = { score, index, paragraph: p, sectionId: s.id };
+    });
+  }
+  if (!best || best.score < threshold) return { found: false, bestScore: best ? best.score : 0 };
+  return { found: true, score: best.score, index: best.index, paragraph: best.paragraph, sectionId: best.sectionId };
+}
+
+/** Item-wide counterpart to planOwningParagraphRewrite — same sentence-pick/marker-strip pipeline, scored
+ *  across every section (findOwningParagraphAcrossSections) rather than just one. Returns `sectionId`
+ *  alongside the other planOwningParagraphRewrite fields so the caller can write `section_row_id` back
+ *  when the winning section differs from the claim's currently registered one. Pure. */
+export function planOwningParagraphRewriteAcrossSections(claimText, sections, threshold = OWNING_PARAGRAPH_MIN_SCORE) {
+  const owning = findOwningParagraphAcrossSections(claimText, sections, threshold);
+  if (!owning.found) return { outcome: "no_owning_paragraph", bestScore: owning.bestScore };
+  const picked = pickBestSentence(owning.paragraph, claimText);
+  const rewritten = picked ? stripLeadingMarker(picked.sentence) : "";
+  if (!rewritten) return { outcome: "no_owning_paragraph", bestScore: owning.score };
+  return {
+    outcome: "found",
+    paragraphScore: owning.score,
+    paragraph: owning.paragraph,
+    sentence: picked.sentence,
+    sentenceScore: picked.score,
+    newClaimText: rewritten,
+    sectionId: owning.sectionId,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // STEP E — RECLASSIFY. The residue: a FACT claim STEP A could not resource (its span is nowhere in any
 // of the three ranked buckets, including the corpus pool) and GROUND could not ground anywhere among the
 // item's own captures either. Re-kinding FACT -> ANALYSIS is the honest disposition the labeling
@@ -1785,13 +1946,45 @@ export function reclassifyReason(groundOutcome, resourceOutcome) {
 // are what actually fire set_provenance_status, so gate-A only needs to be CURRENT by then, not first).
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 
-/** The item_gate_a_state row for `item`'s CURRENT full_brief and CURRENT FACT claims. Pure (buildGateARow
- *  is pure — the live scanner is pure text computation, no I/O). */
-export function planGateA(item, claims) {
+// SEVENTH PASS (2026-09-04, lane HEAL-6) — Gate B, mirrored in memory. See this file's header SEVENTH PASS
+// section for the full diagnosis (criterion 7, 88 items) and the REFUSED note on why this stays dormant in
+// production until scripts/maintenance/provenance-heal.mjs's own readClaims SELECT gains basis_claim_id.
+
+/** In-memory mirror of gate-a-derived.mjs's own `derivedCoveredTokens` (the LIVE Gate B DB lookup) — same
+ *  contract: a normalized token is "derived-covered" iff a `claim_kind='DERIVED'` claim carries it AND its
+ *  `basis_claim_id` resolves to a `claim_kind='FACT'` claim in `claims` AND that FACT's `source_span`
+ *  still VERBATIM-matches (case-insensitive) its capture's `result_content` in `captures`. Computed
+ *  PURELY from `claims`/`captures` this file already holds (deps.readClaims/deps.readCaptures) — no new
+ *  deps call, per this file's own DI/DRY/$0 mandate. Pure. Returns an empty Set when there are no DERIVED
+ *  claims, or (live, today) when the wrapper's own SELECT does not project `basis_claim_id` — see the
+ *  REFUSED note above. */
+export function computeDerivedCovered(claims, captures) {
+  const covered = new Set();
+  const derived = (claims ?? []).filter((c) => c.claim_kind === "DERIVED");
+  if (!derived.length) return covered;
+  const byId = new Map((claims ?? []).map((c) => [c.id, c]));
+  const capById = new Map((captures ?? []).map((cap) => [cap.id, cap.result_content ?? ""]));
+  for (const d of derived) {
+    const basis = d.basis_claim_id ? byId.get(d.basis_claim_id) : null;
+    if (!basis || basis.claim_kind !== "FACT" || !basis.source_span) continue; // basis missing/not-FACT/spanless -> not covered
+    if (!capById.has(basis.search_result_id)) continue; // basis has no capture on record -> not covered
+    const cap = capById.get(basis.search_result_id);
+    if (!String(cap).toLowerCase().includes(String(basis.source_span).toLowerCase())) continue; // stale -> re-grounds-never-destroy, drop
+    covered.add(norm(d.claim_text));
+  }
+  return covered;
+}
+
+/** The item_gate_a_state row for `item`'s CURRENT full_brief and CURRENT FACT claims, crediting
+ *  `derivedCovered` (Gate B — computeDerivedCovered above, SEVENTH PASS) exactly as the live
+ *  canonical-pipeline.ts already does at mint time. Pure (buildGateARow is pure — the live scanner is pure
+ *  text computation, no I/O). `derivedCovered` defaults to an empty Set so every existing call site/test
+ *  that omits it behaves byte-identically to before this pass. */
+export function planGateA(item, claims, derivedCovered = new Set()) {
   const factClaims = (claims ?? [])
     .filter((c) => c.claim_kind === "FACT")
     .map((c) => ({ claim_text: c.claim_text ?? "", source_span: c.source_span ?? "" }));
-  return buildGateARow({ itemId: item.id, fullBrief: item.full_brief ?? "", factClaims });
+  return buildGateARow({ itemId: item.id, fullBrief: item.full_brief ?? "", factClaims, derivedCovered });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -2063,7 +2256,7 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
   const tierBucket = buildTierQualifyingBucket(item, captures, sIdx, floor, ownBucket.map((b) => b.id));
   const itemSourceTier = deriveSourceTier(itemSource);
   const needsAnyResource = claims.some((c) => claimNeedsResource(c, item, sIdx));
-  const gateRowEarlyEstimate = planGateA(item, claims); // cheap/pure — only to decide whether corpus_pool is worth a read
+  const gateRowEarlyEstimate = planGateA(item, claims, computeDerivedCovered(claims, captures)); // cheap/pure — only to decide whether corpus_pool is worth a read
   let corpusBucket = [];
   if (item.source_url && (needsAnyResource || gateRowEarlyEstimate.orphan_count > 0)) {
     const corpusCaptures = await deps.readCapturesByUrls(buildUrlVariants(item.source_url));
@@ -2128,7 +2321,20 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
       reclassifyResults.push({ claim_id: c.id, claim_text: c.claim_text, reason, outcome: apply ? "reclassified" : "would_reclassify" });
       continue;
     }
-    const rewrite = ownSection ? planOwningParagraphRewrite(c.claim_text, ownSection.content_md) : { outcome: "no_owning_paragraph", bestScore: 0 };
+    let rewrite = ownSection ? planOwningParagraphRewrite(c.claim_text, ownSection.content_md) : { outcome: "no_owning_paragraph", bestScore: 0 };
+    let wonSectionId = ownSection ? ownSection.id : null;
+    let crossSection = false;
+    // SEVENTH PASS (2026-09-04, lane HEAL-6): criterion 4's own SQL scope is ITEM-WIDE, not the claim's
+    // own section — see this file's header SEVENTH PASS section for the measured 100/148 (68%) claims
+    // this widening resolves. Tried ONLY after the own-section search above refuses, never instead of it.
+    if (rewrite.outcome !== "found") {
+      const wide = planOwningParagraphRewriteAcrossSections(c.claim_text, sectionsList, OWNING_PARAGRAPH_MIN_SCORE);
+      if (wide.outcome === "found") {
+        rewrite = wide; wonSectionId = wide.sectionId; crossSection = true;
+      } else if (wide.bestScore > rewrite.bestScore) {
+        rewrite = wide; // report the wider search's own best score when it beats the own-section one — honest telemetry even on a refusal
+      }
+    }
     if (rewrite.outcome !== "found") {
       // REFUSE — leave the claim exactly as it is (still FACT, still failing its original criterion-3
       // reason). Never force an unvalidatable ANALYSIS claim into existence (rule 2: no claims ahead of
@@ -2140,14 +2346,19 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
       continue;
     }
     const claimTextBefore = c.claim_text;
+    const movedSection = crossSection && wonSectionId !== c.section_row_id;
     if (apply) {
-      await deps.updateClaimKind(c.id, { claim_kind: "ANALYSIS", claim_text: rewrite.newClaimText });
+      const patch = { claim_kind: "ANALYSIS", claim_text: rewrite.newClaimText };
+      if (movedSection) patch.section_row_id = wonSectionId;
+      await deps.updateClaimKind(c.id, patch);
       c.claim_kind = "ANALYSIS"; c.claim_text = rewrite.newClaimText;
+      if (movedSection) c.section_row_id = wonSectionId;
     }
     reclassifyResults.push({
       claim_id: c.id, reason, outcome: apply ? "reclassified" : "would_reclassify", rewritten: true,
       claim_text_before: claimTextBefore, claim_text_after: rewrite.newClaimText,
-      paragraph_score: rewrite.paragraphScore, sentence_score: rewrite.sentenceScore, section_id: ownSection.id,
+      paragraph_score: rewrite.paragraphScore, sentence_score: rewrite.sentenceScore, section_id: wonSectionId,
+      cross_section: crossSection,
     });
   }
   report.steps.reclassify = reclassifyResults;
@@ -2166,7 +2377,19 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
     if (c.claim_kind !== "ANALYSIS" || c.source_span == null) continue;
     const ownSection = c.section_row_id ? sectionsList.find((s) => s.id === c.section_row_id) ?? null : null;
     if (ownSection && locateSpanInText(c.claim_text, ownSection.content_md)) continue; // already validatable, nothing to do
-    const rewrite = ownSection ? planOwningParagraphRewrite(c.claim_text, ownSection.content_md) : { outcome: "no_owning_paragraph", bestScore: 0 };
+    let rewrite = ownSection ? planOwningParagraphRewrite(c.claim_text, ownSection.content_md) : { outcome: "no_owning_paragraph", bestScore: 0 };
+    let wonSectionId = ownSection ? ownSection.id : null;
+    let crossSection = false;
+    // SEVENTH PASS (2026-09-04, lane HEAL-6) — same item-wide widening as STEP E above, same guard, same
+    // "own-section first, wider only on refusal" order. See that step's own comment for the full rationale.
+    if (rewrite.outcome !== "found") {
+      const wide = planOwningParagraphRewriteAcrossSections(c.claim_text, sectionsList, OWNING_PARAGRAPH_MIN_SCORE);
+      if (wide.outcome === "found") {
+        rewrite = wide; wonSectionId = wide.sectionId; crossSection = true;
+      } else if (wide.bestScore > rewrite.bestScore) {
+        rewrite = wide;
+      }
+    }
     if (rewrite.outcome !== "found") {
       retrofitResults.push({
         claim_id: c.id, claim_text: c.claim_text, outcome: "retrofit_refused_no_owning_paragraph",
@@ -2175,14 +2398,19 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
       continue;
     }
     const claimTextBefore = c.claim_text;
+    const movedSection = crossSection && wonSectionId !== c.section_row_id;
     if (apply) {
-      await deps.updateClaimKind(c.id, { claim_text: rewrite.newClaimText });
+      const patch = { claim_text: rewrite.newClaimText };
+      if (movedSection) patch.section_row_id = wonSectionId;
+      await deps.updateClaimKind(c.id, patch);
       c.claim_text = rewrite.newClaimText;
+      if (movedSection) c.section_row_id = wonSectionId;
     }
     retrofitResults.push({
       claim_id: c.id, outcome: apply ? "retrofitted" : "would_retrofit",
       claim_text_before: claimTextBefore, claim_text_after: rewrite.newClaimText,
-      paragraph_score: rewrite.paragraphScore, sentence_score: rewrite.sentenceScore, section_id: ownSection.id,
+      paragraph_score: rewrite.paragraphScore, sentence_score: rewrite.sentenceScore, section_id: wonSectionId,
+      cross_section: crossSection,
     });
   }
   report.steps.retrofit = retrofitResults;
@@ -2190,7 +2418,7 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
   // ── STEP C — ORPHANS (criterion 7) — a FRESH scan against claims post-RECLASSIFY (E may have exposed
   //    a token whose only "coverage" was a claim just demoted to ANALYSIS), before this step's own
   //    inserts, so it names exactly what's missing right now. ──────────────────────────────────────
-  const gateRowForOrphans = planGateA(item, claims);
+  const gateRowForOrphans = planGateA(item, claims, computeDerivedCovered(claims, captures));
   const orphanResults = [];
   let orphanFallbackSectionId = null;
   for (const orphan of gateRowForOrphans.orphans ?? []) {
@@ -2248,13 +2476,21 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
   }
   report.steps.relabel = relabelResults;
 
-  // ── 9. GATE A — final scan, after every claim/section write above ──────────────────────────────────
-  const gateRow = planGateA(item, claims);
+  // ── 9. GATE A — final scan, after every claim/section write above. `derivedCovered` recomputed FRESH
+  //    here (SEVENTH PASS) from the FINAL claims/captures state — matching canonical-pipeline.ts's own
+  //    "recompute right before the write" discipline, never a stale snapshot from earlier in this
+  //    function. ─────────────────────────────────────────────────────────────────────────────────────
+  const finalDerivedCovered = computeDerivedCovered(claims, captures);
+  const gateRow = planGateA(item, claims, finalDerivedCovered);
   if (apply) {
     const existing = await deps.readGateAState(item.id);
     await deps.upsertGateA(gateRow, !!existing);
   }
-  report.steps.gate_a = { outcome: apply ? "written" : "would_write", orphan_count: gateRow.orphan_count, scanned_hash: gateRow.scanned_hash };
+  report.steps.gate_a = {
+    outcome: apply ? "written" : "would_write", orphan_count: gateRow.orphan_count, scanned_hash: gateRow.scanned_hash,
+    derived_claims_seen: claims.filter((c) => c.claim_kind === "DERIVED").length,
+    derived_covered_count: finalDerivedCovered.size,
+  };
 
   // ── 10. RE-DERIVE ───────────────────────────────────────────────────────────────────────────────
   const verdict = await deps.validateProvenance(item.id);
