@@ -9286,3 +9286,27 @@ the org twice per detail render. Two more of the same class reported, not fixed 
 Train gates: 324 lane tests, tsc 0 errors, fitness 29/0 after re-pinning the mint marker to the
 combined tree's hash `sha256:aa69a655c0264d6a` (TANDEM's runbook text and HOLLOW-GATE's kit on one
 tree; each lane's own hash is history in the marker), discipline 141/0.
+
+### Addendum 85, postscript 27 — the gate's first CI run, and the last Auth round trips (2026-09-04)
+
+PR #563's discipline suite failed three tests my train gates had not run (the lanes ran only the
+tests next to what they touched; the CI suite runs every consumer of the kit, and B1 says read the
+consumer): the six oil-bulletin `market_signal` payloads, on both the R-D batch builder and the
+`--propose-items` draft, and the research record builder's all-GAP case now failed `record_hollow`.
+Two different answers, both doctrine, not accommodation. A series-backed market item's substance is its
+`market_series` rows, bound to the item by `ratify-series-items`, not FACT claims scraped from the
+bulletin's landing page, so the kit exempts a `market_signal` payload whose `instrument_identifier` is
+a registered implemented series key (`series-registry.mjs`; an unregistered key is still refused,
+tested), and `propose-series-items.mjs` now sets that identifier like the batch builder does, one
+identity on both paths. An all-GAP research record is exactly the item with no details the operator
+refused, so that test now asserts the refusal; the builder's honest GAPs are unchanged, the kit holds
+the row for re-extraction. Full suite 4,642/0, fitness 29/0, mint marker re-pinned to
+`sha256:f50d5fd4ee2f925f`.
+
+PERF-7 (Sonnet, `730ba69a`, 17 tests): `server-bootstrap.ts` and `community-auth.ts` on `getClaims()`;
+the bootstrap's `user` narrowed to `{id, email}` (all eight callers read only those; `claims.email` is
+on the standard JWT), the two community branches (cookie, bearer) share one resolver, no `cache()` on
+Route Handlers because there is no render dispatcher to memoize under (verified against the installed
+react-server build). The one file it could not touch, `community/profile/verify/route.ts`, still made
+its own `getUser()` for the email; swapped in this train per its §13.5 diff. Round trips on an
+authenticated document load: 1 → 0 [INFERRED]; measured in the browser after this deploys.
