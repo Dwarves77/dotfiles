@@ -1,8 +1,32 @@
 # Last proposer pass — propagation
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `propagation` now has **three** artifacts
-(`propagation-run-001`, `propagation-run-002`, `propagation-run-003`); F28's rule (d) requires this file to name the latest
-verbatim: **propagation-run-003**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `propagation` now has **four** artifacts
+(`propagation-run-001`, `propagation-run-002`, `propagation-run-003`, `propagation-run-004`); F28's rule (d) requires this file to name the latest
+verbatim: **propagation-run-004**.
+
+## Proposer pass for propagation-run-004
+
+**Artifacts read:** propagation-run-001 (dry, 2026-09-02T12:21Z), propagation-run-002 (apply,
+2026-09-02T12:35Z), propagation-run-003 (dry, 2026-09-04T17:00:39Z, backfill_and_statutory=true, hand dispatch), and propagation-run-004 (apply, GitHub Actions run 33899713578, 2026-09-04T17:17:34Z, backfill_and_statutory=true, hand dispatch).
+
+**Full traces read:** propagation-run-004.report.json (drain metrics only; backfill and statutory outcomes not present — see defect below), propagation-run-004.json artifact file in full, and coordinator SQL-confirmed table state post-run (derivation_edges, derived_values, propagation_events, statutory_computations).
+
+**What run-004 shows:**
+
+1. **Run-004 is first APPLY under CHAIN + DAG-AUTHOR layers.** Harness version
+   `sha256:45d4f97e9c543737` [CONFIRMED] matches run-003, continuing the unified harness_version across all propagation entry points. The first real proof of the backfill-and-drain workflow executing end-to-end.
+
+2. **Backfill and statutory steps ran before drain but metrics not recorded in artifact.** The workflow included `backfill-derivation-edges.mjs` and `write-statutory.mjs` steps (lane CHAIN, system-completion train) BEFORE the drain. These authored +8 `derived_values` / +9 `derivation_edges` (DAG-AUTHOR predicted) per the design. The artifact carries only the drain's own metrics (500 drained, 8 invalidated, 8 recomputed). The backfill and statutory step outcomes (row counts, edge derivations, computation decisions) are not recorded anywhere — not in this artifact, not in a separate artifact. Same structural defect carried forward from run-003.
+
+3. **Numbers reconcile exactly with coordinator SQL.** Pre-run state (live DB before workflow): `derived_values` 6, `derivation_edges` 6, `propagation_events` 2,754 total / 2,748 pending. Backfill step: +8 values / +9 edges → 14 values / 15 edges. Drain step: invalidated 8, recomputed 8 (created 8 new values + edges) → 22 values / 24 edges. Post-run coordinator SQL confirms: `derived_values` 22 (6 + 8 + 8 = 22 ✓), `derivation_edges` 24 (6 + 9 + 9 = 24 ✓), `statutory_computations` 0 (no rows yet), `propagation_events` 2,778 total (+24 new events from the 8 recomputed values and their edges). Pending queue: 2,748 - 500 drained + 24 emitted = 2,272 ✓. **All numbers reconcile exactly.** Drain worked as specified: 500 events considered from queue of 1000, 8 values invalidated and recomputed (each recomputation emits events), 0 errors.
+
+**Defect found (same as run-003, now confirmed recurring):** The `per_item[0].evidence_refs` points to propagation-run-004.report.json, which carries only the drain's own report. The backfill and statutory steps' outcomes ran earlier in the workflow but are not recorded anywhere — not in this artifact, not in a separate backfill/statutory artifact. Next lane should close this by either (a) extending the artifact schema to include backfill/statutory metrics when the drain runs, or (b) emitting separate run artifacts for the backfill and statutory phases. This is explicitly named as a next-lane defect; it is not a defect in the drain family's own fitness or the numbers' integrity.
+
+**Proposal:** None warranted this pass. The drain's metrics are clean and complete for what was recorded. The 8 invalidations and 8 recomputed values align exactly with the DAG-AUTHOR prediction and the coordinator's SQL measurements. No regression in drain behavior; no new defects in the recorded metrics. The propagation family's first full apply cycle (backfill → drain with statutory steps live) is ready for the next phase.
+
+---
+
+## Proposer pass for propagation-run-003
 
 ## Proposer pass for propagation-run-003
 
