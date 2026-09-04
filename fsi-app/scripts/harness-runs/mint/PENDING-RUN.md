@@ -365,4 +365,78 @@ outcome keys once this lane's own normal (non-backlog) flywheel step runs over i
 at that point, per F28's reverse-audit (or re-pinned to a new hash, per rule (c), if a governing file
 changes again before either run lands).
 
-**harness_version at write time:** `sha256:79589ef978593250` (train/wave19: HEAL-7 kit mirror and TANDEM-2 runbook text on one tree)
+**harness_version at write time (superseded below — see "What changed (9)"):** `sha256:79589ef978593250` (train/wave19: HEAL-7 kit mirror and TANDEM-2 runbook text on one tree)
+
+---
+
+## Lane GATE-A-TOKENS (2026-09-04) — Gate A harvest narrowed to five non-assertion syntactic-context skips (mint/lib copy only)
+
+**What changed (9):** lane GATE-A-TOKENS (2026-09-04), addressing the 627-orphan-token / 87-quarantined-live-item
+finding from Maintenance #34's dry heal (`_snapshots/heal34.json`) [CONFIRMED, live SQL + this snapshot,
+2026-09-04]. MEASUREMENT classified every orphan by the syntactic context of its containing line. Two
+candidate skip classes ("markdown heading", "table row") were REFUTED by measurement — real customer-facing
+facts routinely live only in a table row (a China-ETS timeline cell, a GHG-Protocol CEO-appointment-date
+row, an ESRS Scope-3 disclosure row) or a numbered heading ("### GX-Surcharge on Fossil Fuels — From
+FY2028") — and are deliberately NOT skipped; skipping either wholesale would silently exempt real facts,
+which ADR-016 / CLAUDE.md rule 18 forbid. Five classes the measurement DID support, each narrow, evidenced
+against live `full_brief` text via read-only SQL, and never silent (every skip increments a new `counts`
+field on `scanBrief`'s return, never dropped quietly): metadata stamps (document-level "As of:"/"Status:"
+labels and document-type|date pipe headers — a closed enumerated label set, not a generic bold-line rule,
+because 73 sampled bold-led lines were overwhelmingly genuine prose callouts), GAP-boilerplate templates
+("No content for this section as of…", "…not available from primary sources as of…" — literal-prefix,
+clause-scoped, found by repeat count 7x/24x in the corpus), heading/list-item ordinal numerals (strips ONLY
+the leading "N." token, never the title/content after it — fixes a real defect, item `aea2e314-…`'s "## 2.
+Tonne-Kilometre Activity Data Capture" misread as the false figure token "2. Tonne"), instrument-citation
+numbers (a year slash-adjacent to another number in either order — "(EU) 2024/1735", "Federal Law No.
+12,305/2010", the latter found live in item `8de055dc-…` and missed by the pre-existing `CITATION_LINE`
+regex because comma-grouped digits break its `\d+` run), and position-anchored nested-token dedup (never a
+bare substring test — a measured false-collision risk, "1 GW" vs "1.1 GW" as two genuinely distinct real
+figures in the same sentence, is never collapsed). A sixth class discovered mid-implementation,
+`citation_url`: a URL's own `%20` space-encoding can glue adjacent digits into a false figure (item
+`aea2e314-…`'s download URL `.../Appendix%202.6%20-%20Draft%20standard%20-%20ESRS%20E1...` misread as
+"202.6%") — position-anchored to the URL's own span, so a real figure in an adjacent table cell on the same
+line is untouched.
+
+**Scope boundary, stated plainly (per this lane's write-set):** the fix landed ONLY in
+`scripts/mint/lib/gate-a-scan.mjs` (the copy `scripts/mint/validate-mint-payload.mjs`'s local $0 pre-flight
+scoring imports) — `src/lib/agent/gate-a-scan.mjs`, the file `write-item.ts`'s `buildGateARow` actually
+imports and `canonical-pipeline.ts`/`apply-mint-batch.mjs`/`heal-provenance.mjs` all resolve through, is
+UNCHANGED (outside this lane's write set). This fix is therefore live for scoring NEW payloads before
+mint; it is NOT yet live for `item_gate_a_state` / criterion 7 on the 87 already-quarantined items, or on
+any already-minted item, until the identical five-helper fix is ported into the `src/` original (see
+`MINT-RUNBOOK.md`'s new "KNOWN DIVERGENCE" note, added this lane). `gate-a-match.mjs` (the coverage-decision
+matcher, `containsToken`/`norm`) was read in full and found to be the wrong layer for this fix (harvest, not
+coverage) — left untouched, a true verbatim copy still.
+
+**DB side [CONFIRMED, live `pg_get_functiondef`, 2026-09-04]:** `validate_item_provenance`'s criterion 7
+purely reads the stored `item_gate_a_state` row (`orphan_count`/`gate_a_version` written exclusively by the
+JS scanner via `buildGateARow`) — it does NOT re-implement token extraction in SQL. `gate_a_health_compute`
+is a pure aggregate over that same table. No SQL-side token rule exists to mirror, so **no migration 304 is
+written** — the write-set's conditional trigger for one never fired.
+
+**Replay [CONFIRMED, live full_brief + FACT claims via read-only SQL, apples-to-apples on IDENTICAL current
+live data, unmodified `src/` scanner vs the fixed `mint/lib` scanner]:** across the 87 quarantined-live
+items, total orphan tokens 594 → 504 (a 15.2% reduction); 41 items improved, 0 items regressed; 2 items
+that were non-zero under the unmodified scanner reach zero under the fix. (heal34.json's own recorded
+baseline, 627, is a stale 2026-09-04-morning snapshot against data that has since drifted — comparing it
+directly to a same-day re-scan understates the improvement for a few individual items and is not the number
+above; the 594→504 comparison is the apples-to-apples one.) `GATE_A_VERSION` bumped `"2026-07-30.1"` →
+`"2026-09-04.1"` (harvest-side semantics change, so every prior stored scan is honestly invalidated by the
+existing stale-scan hash guard, exactly like every prior `GATE_A_VERSION` bump).
+
+Governing files moved: `scripts/mint/lib/gate-a-scan.mjs` (the fix; +30 new tests in a new
+`gate-a-scan.test.mjs`, full mint suite re-run clean: 767/767 pass, 0 failures) and
+`scripts/mint/MINT-RUNBOOK.md` ("Keeping the kit in sync" gains a "KNOWN DIVERGENCE" note pointing at this
+entry and naming the exact resolution — port the same fix into `src/` and re-verbatim this copy).
+`scripts/mint/validate-mint-payload.mjs`, `payload-schema.json`, `item-type-required-slots.json`,
+`scripts/mint/lib/gate-a-match.mjs`, `scripts/mint/lib/canonicalize-citation-url.mjs`, and
+`src/lib/intake/record-facts.mjs` are all UNCHANGED by this lane.
+
+**harness_version at write time:** `sha256:fc79c635306857a1`
+
+**The planned run that supersedes THIS marker:** the next `population-turn` dispatch (or a direct
+`validate-mint-payload.mjs` run) under this landed code — any NEW payload's criterion-7 scoring should now
+reflect the narrowed harvest; a stale artifact whose `harness_version` still reads an earlier hash above
+re-triggers F28's rule (c) staleness coupling until re-pinned. Per F28's reverse-audit, this marker is
+deleted the moment a run artifact lands with `harness_version` matching the hash above (or re-pinned to a
+new hash, per rule (c), if a governing file changes again before that run lands).
