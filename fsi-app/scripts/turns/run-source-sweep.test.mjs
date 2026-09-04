@@ -5,6 +5,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   parseArgs, portalFor, shapeRunOutput, upsertPortalLinkCandidates, SOURCE_SWEEP_GOVERNING_FILES, defaultTraceDir, resolvePortalSourceId, portalUrlKey,
+  selectSitemapSources, hostKeyOf, groupActiveSourcesByHost, hostSitemapCoverage, orderHostGroupsForSweep,
+  selectAllHostsTargets, buildSitemapCoveragePatch, buildCoverageReport, DEFAULT_MAX_HOSTS,
 } from "./run-source-sweep.mjs";
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────
@@ -281,4 +283,366 @@ test("portalUrlKey: trailing slash, hash and host case do not break exact matchi
   assert.equal(portalUrlKey("https://EUR-Lex.europa.eu/"), portalUrlKey("https://eur-lex.europa.eu"));
   assert.equal(portalUrlKey("https://www.federalregister.gov/#top"), "https://www.federalregister.gov");
   assert.notEqual(portalUrlKey("https://eur-lex.europa.eu/oj"), portalUrlKey("https://eur-lex.europa.eu"));
+});
+
+// ── parseArgs: --walker sitemap's selector rules (--source-id / --host / --all-hosts / --check-coverage,
+//    lane SITEMAP-3, 2026-09-04) ─────────────────────────────────────────────────────────────────────────
+
+test("parseArgs: --walker sitemap requires exactly one selector (--source-id, --host, or --all-hosts)", () => {
+  const none = parseArgs(["--walker", "sitemap", "--mode", "dry"]);
+  assert.equal(none.ok, false);
+  assert.match(none.error, /exactly one/);
+
+  const both = parseArgs(["--walker", "sitemap", "--mode", "dry", "--source-id", "abc", "--host", "x.example"]);
+  assert.equal(both.ok, false);
+  assert.match(both.error, /exactly one/);
+
+  const sourceId = parseArgs(["--walker", "sitemap", "--mode", "dry", "--source-id", "abc"]);
+  assert.equal(sourceId.ok, true);
+  assert.equal(sourceId.sourceId, "abc");
+  assert.equal(sourceId.allHosts, false);
+
+  const byHost = parseArgs(["--walker", "sitemap", "--mode", "dry", "--host", "x.example"]);
+  assert.equal(byHost.ok, true);
+  assert.equal(byHost.host, "x.example");
+
+  const byAllHosts = parseArgs(["--walker", "sitemap", "--mode", "dry", "--all-hosts"]);
+  assert.equal(byAllHosts.ok, true);
+  assert.equal(byAllHosts.allHosts, true);
+  assert.equal(byAllHosts.maxHosts, DEFAULT_MAX_HOSTS);
+});
+
+test("parseArgs: --max-hosts overrides the default and must be positive", () => {
+  const r = parseArgs(["--walker", "sitemap", "--mode", "dry", "--all-hosts", "--max-hosts", "5"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.maxHosts, 5);
+  const bad = parseArgs(["--walker", "sitemap", "--mode", "dry", "--all-hosts", "--max-hosts", "0"]);
+  assert.equal(bad.ok, false);
+  assert.match(bad.error, /--max-hosts/);
+});
+
+test("parseArgs: --check-coverage is read-only — refuses a selector alongside it, requires --mode dry", () => {
+  const ok = parseArgs(["--walker", "sitemap", "--mode", "dry", "--check-coverage"]);
+  assert.equal(ok.ok, true);
+  assert.equal(ok.checkCoverage, true);
+
+  const withSelector = parseArgs(["--walker", "sitemap", "--mode", "dry", "--check-coverage", "--host", "x.example"]);
+  assert.equal(withSelector.ok, false);
+  assert.match(withSelector.error, /takes no selector/);
+
+  const applyMode = parseArgs(["--walker", "sitemap", "--mode", "apply", "--check-coverage"]);
+  assert.equal(applyMode.ok, false);
+  assert.match(applyMode.error, /never writes/);
+});
+
+// ── hostKeyOf / selectSitemapSources (previously untested — lane SITEMAP-3, 2026-09-04) ────────────────
+
+test("hostKeyOf: lowercases, strips www, returns null for an unparseable url", () => {
+  assert.equal(hostKeyOf("https://WWW.Example.GOV/a/b"), "example.gov");
+  assert.equal(hostKeyOf("https://example.gov"), "example.gov");
+  assert.equal(hostKeyOf("not a url"), null);
+});
+
+const SITEMAP_ROWS = [
+  { id: "a1", url: "https://news.example/section", status: "active" },
+  { id: "a2", url: "https://news.example/other", status: "active" },
+  { id: "a3", url: "https://www.news.example/third", status: "active" }, // same host, www-prefixed
+  { id: "s1", url: "https://suspended.example/", status: "suspended" },
+  { id: "b1", url: "https://other.example/", status: "active" },
+  { id: "bad", url: "not a url", status: "active" },
+];
+
+test("selectSitemapSources: --source-id ignores status (an explicit single target may probe a dead row)", () => {
+  const r = selectSitemapSources(SITEMAP_ROWS, { sourceId: "s1", host: null });
+  assert.deepEqual(r.map((x) => x.id), ["s1"]);
+});
+
+test("selectSitemapSources: --host is active-only, www-insensitive, case-insensitive, matches every row on the host", () => {
+  const r = selectSitemapSources(SITEMAP_ROWS, { sourceId: null, host: "NEWS.example" });
+  assert.deepEqual(r.map((x) => x.id).sort(), ["a1", "a2", "a3"]);
+});
+
+test("selectSitemapSources: --host never returns a suspended row or an unparseable-url row", () => {
+  const r = selectSitemapSources(SITEMAP_ROWS, { sourceId: null, host: "suspended.example" });
+  assert.deepEqual(r, []);
+});
+
+// ── groupActiveSourcesByHost / hostSitemapCoverage / orderHostGroupsForSweep / selectAllHostsTargets ────
+
+test("groupActiveSourcesByHost: active-only, groups www-insensitively, skips unparseable urls, preserves first-seen order", () => {
+  const groups = groupActiveSourcesByHost(SITEMAP_ROWS);
+  assert.deepEqual(groups.map((g) => g.host), ["news.example", "other.example"]);
+  assert.equal(groups[0].rows.length, 3);
+  assert.equal(groups[1].rows.length, 1);
+});
+
+test("hostSitemapCoverage: neverWalked true only when EVERY row is null; oldestWalkedAt is the min stamp", () => {
+  assert.deepEqual(hostSitemapCoverage([{ sitemap_last_walked_at: null }, { sitemap_last_walked_at: undefined }]), {
+    neverWalked: true, oldestWalkedAt: null,
+  });
+  const mixed = hostSitemapCoverage([
+    { sitemap_last_walked_at: "2026-08-20T00:00:00.000Z" },
+    { sitemap_last_walked_at: null },
+    { sitemap_last_walked_at: "2026-08-01T00:00:00.000Z" },
+  ]);
+  assert.equal(mixed.neverWalked, false);
+  assert.equal(mixed.oldestWalkedAt, "2026-08-01T00:00:00.000Z");
+});
+
+test("orderHostGroupsForSweep: never-walked hosts first (alpha), then walked hosts oldest-coverage-first", () => {
+  const groups = [
+    { host: "z-walked-recent.example", rows: [{ sitemap_last_walked_at: "2026-09-01T00:00:00.000Z" }] },
+    { host: "b-never.example", rows: [{ sitemap_last_walked_at: null }] },
+    { host: "a-never.example", rows: [{ sitemap_last_walked_at: null }] },
+    { host: "y-walked-old.example", rows: [{ sitemap_last_walked_at: "2026-07-01T00:00:00.000Z" }] },
+  ];
+  const ordered = orderHostGroupsForSweep(groups);
+  assert.deepEqual(ordered.map((g) => g.host), [
+    "a-never.example", "b-never.example", "y-walked-old.example", "z-walked-recent.example",
+  ]);
+});
+
+test("orderHostGroupsForSweep: identical input twice produces an identical order (resumability)", () => {
+  const groups = [
+    { host: "c.example", rows: [{ sitemap_last_walked_at: "2026-08-15T00:00:00.000Z" }] },
+    { host: "a.example", rows: [{ sitemap_last_walked_at: null }] },
+    { host: "b.example", rows: [{ sitemap_last_walked_at: "2026-08-10T00:00:00.000Z" }] },
+  ];
+  const first = orderHostGroupsForSweep(groups).map((g) => g.host);
+  const second = orderHostGroupsForSweep(groups.slice().reverse()).map((g) => g.host);
+  assert.deepEqual(first, second);
+});
+
+test("selectAllHostsTargets: caps by DISTINCT HOSTS, flattens to every row on each selected host, reports remaining-unwalked", () => {
+  const rows = [
+    { id: "n1", url: "https://never1.example/a", status: "active" },
+    { id: "n2a", url: "https://never2.example/a", status: "active" },
+    { id: "n2b", url: "https://never2.example/b", status: "active" }, // second row, SAME host as n2a
+    { id: "w1", url: "https://walked1.example/a", status: "active", sitemap_last_walked_at: "2026-08-01T00:00:00.000Z" },
+  ];
+  const sel = selectAllHostsTargets(rows, { maxHosts: 1 });
+  assert.deepEqual(sel.hostsSelected, ["never1.example"]); // alpha-first of the never-walked bucket
+  assert.deepEqual(sel.targets.map((r) => r.id), ["n1"]);
+  assert.equal(sel.hostsTotalActive, 3);
+  assert.equal(sel.hostsNeverWalkedBefore, 2);
+  assert.equal(sel.hostsRemainingUnwalkedAfter, 1); // never2.example still not covered by this selection
+
+  const sel2 = selectAllHostsTargets(rows, { maxHosts: 2 });
+  assert.deepEqual(sel2.hostsSelected, ["never1.example", "never2.example"]);
+  assert.deepEqual(sel2.targets.map((r) => r.id).sort(), ["n1", "n2a", "n2b"]); // BOTH rows on never2.example
+  assert.equal(sel2.hostsRemainingUnwalkedAfter, 0);
+});
+
+test("selectAllHostsTargets: maxHosts larger than the host count selects everything, no error", () => {
+  const rows = [{ id: "x", url: "https://only.example/", status: "active" }];
+  const sel = selectAllHostsTargets(rows, { maxHosts: 999 });
+  assert.deepEqual(sel.targets.map((r) => r.id), ["x"]);
+});
+
+// ── buildSitemapCoveragePatch ────────────────────────────────────────────────────────────────────────
+
+const NOW = "2026-09-04T12:00:00.000Z";
+
+test("buildSitemapCoveragePatch: kind 'feed' — feed_only outcome, feed probed, no sitemap_url/count touched", () => {
+  const patch = buildSitemapCoveragePatch({ kind: "feed", feedUrl: "https://x/feed.xml" }, NOW);
+  assert.deepEqual(patch, {
+    sitemap_last_walked_at: NOW,
+    sitemap_walk_outcome: "feed_only",
+    feed_last_probed_at: NOW,
+  });
+  assert.equal("sitemap_url" in patch, false);
+  assert.equal("sitemap_url_count" in patch, false);
+});
+
+test("buildSitemapCoveragePatch: kind 'sitemap' ok:true — walked outcome, records the first-fetched sitemap url and urlCount", () => {
+  const patch = buildSitemapCoveragePatch({
+    kind: "sitemap", ok: true, urlCount: 383,
+    sitemapsFetched: [{ url: "https://x/sitemap.xml" }, { url: "https://x/sitemap-2.xml" }],
+  }, NOW);
+  assert.deepEqual(patch, {
+    sitemap_last_walked_at: NOW,
+    feed_last_probed_at: NOW,
+    sitemap_walk_outcome: "walked",
+    sitemap_url: "https://x/sitemap.xml",
+    sitemap_url_count: 383,
+  });
+});
+
+test("buildSitemapCoveragePatch: kind 'sitemap' ok:false discoverySource 'bot_wall' — bot_wall outcome, no sitemap_url", () => {
+  const patch = buildSitemapCoveragePatch({ kind: "sitemap", ok: false, discoverySource: "bot_wall" }, NOW);
+  assert.equal(patch.sitemap_walk_outcome, "bot_wall");
+  assert.equal(patch.feed_last_probed_at, NOW);
+  assert.equal("sitemap_url" in patch, false);
+});
+
+test("buildSitemapCoveragePatch: kind 'sitemap' ok:false, no bot wall — no_sitemap outcome", () => {
+  const patch = buildSitemapCoveragePatch({ kind: "sitemap", ok: false, discoverySource: "none" }, NOW);
+  assert.equal(patch.sitemap_walk_outcome, "no_sitemap");
+});
+
+test("buildSitemapCoveragePatch: kind 'error' — unfetchable outcome, feed_last_probed_at OMITTED (unknown which phase threw)", () => {
+  const patch = buildSitemapCoveragePatch({ kind: "error", error: "network reset" }, NOW);
+  assert.deepEqual(patch, { sitemap_last_walked_at: NOW, sitemap_walk_outcome: "unfetchable" });
+  assert.equal("feed_last_probed_at" in patch, false);
+});
+
+// ── buildCoverageReport ──────────────────────────────────────────────────────────────────────────────
+
+test("buildCoverageReport: totals, active-only walked/unwalked split, outcome breakdown incl. never_walked, feed count over ALL statuses", () => {
+  const rows = [
+    { status: "active", sitemap_last_walked_at: "2026-09-01T00:00:00.000Z", sitemap_walk_outcome: "walked", rss_feed_url: "https://a/feed" },
+    { status: "active", sitemap_last_walked_at: "2026-09-01T00:00:00.000Z", sitemap_walk_outcome: "bot_wall", rss_feed_url: null },
+    { status: "active", sitemap_last_walked_at: null, sitemap_walk_outcome: null, rss_feed_url: null },
+    { status: "suspended", sitemap_last_walked_at: null, sitemap_walk_outcome: null, rss_feed_url: "https://b/feed" },
+  ];
+  const r = buildCoverageReport(rows);
+  assert.equal(r.sourcesTotalAll, 4);
+  assert.equal(r.sourcesActiveTotal, 3);
+  assert.equal(r.sitemapWalkedActive, 2);
+  assert.equal(r.sitemapUnwalkedActive, 1);
+  assert.deepEqual(r.walkOutcomeCounts, { walked: 1, bot_wall: 1, never_walked: 1 });
+  assert.equal(r.feedUrlPopulated, 2); // both statuses counted — matches the operator's own framing
+});
+
+// ── shapeRunOutput: walker "sitemap" (previously untested — lane SITEMAP-3, 2026-09-04) ────────────────
+
+test("shapeRunOutput sitemap: mixed feed/sitemap/bot_wall/error sources — per_item outcomes and the new hosts_*/feeds_discovered/new_locs/lastmod_changes fields", () => {
+  const result = {
+    sources: [
+      {
+        sourceId: "f1", sourceName: "Feed Source", sourceUrl: "https://feed.example/",
+        kind: "feed", feedUrl: "https://feed.example/rss.xml", discoverySource: "candidate-path",
+        feedResult: { ok: true, entries: 5, upserted: 5, failed: 0 }, rssFeedUrlWritten: true,
+      },
+      {
+        sourceId: "s1", sourceName: "Sitemap Source", sourceUrl: "https://sm.example/",
+        kind: "sitemap", ok: true, discoverySource: "robots", urlCount: 10,
+        sitemapsFetched: [{ url: "https://sm.example/sitemap.xml" }],
+        diff: { addedCount: 3, changedCount: 1, removedCount: 0 },
+        coverageComplete: true, baselineDeferred: false, upserted: 3, failed: 0, changeRecorded: true,
+      },
+      {
+        sourceId: "w1", sourceName: "Bot Wall Source", sourceUrl: "https://walled.example/",
+        kind: "sitemap", ok: false, discoverySource: "bot_wall", error: "bot_wall detected: ...",
+      },
+      {
+        sourceId: "e1", sourceName: "Error Source", sourceUrl: "https://broken.example/",
+        kind: "error", error: "network reset",
+      },
+    ],
+    allHosts: null,
+  };
+  const shaped = shapeRunOutput("sitemap", result, "/tmp/report.json", "apply");
+  assert.equal(shaped.perItem.length, 4);
+  assert.equal(shaped.perItem[0].outcome, "walked"); // feed
+  assert.equal(shaped.perItem[1].outcome, "walked"); // sitemap ok
+  assert.equal(shaped.perItem[2].outcome, "bot_wall");
+  assert.equal(shaped.perItem[3].outcome, "error");
+
+  const m = shaped.metrics;
+  assert.equal(m.hosts_walked, 4, "four distinct hosts across the four sources");
+  assert.equal(m.hosts_skipped_bot_wall, 1);
+  assert.equal(m.feeds_discovered, 1);
+  assert.equal(m.new_locs, 3 + 5); // sitemap added(3) + feed entries(5)
+  assert.equal(m.lastmod_changes, 1);
+  assert.equal(m.hosts_remaining_unwalked, null, "no --all-hosts selection on this run");
+});
+
+test("shapeRunOutput sitemap: two sources on the SAME host both bot_wall -> host counted once in hosts_skipped_bot_wall; a partial host is not", () => {
+  const result = {
+    sources: [
+      { sourceId: "a", sourceName: "A", sourceUrl: "https://walled.example/a", kind: "sitemap", ok: false, discoverySource: "bot_wall", error: "x" },
+      { sourceId: "b", sourceName: "B", sourceUrl: "https://walled.example/b", kind: "sitemap", ok: false, discoverySource: "bot_wall", error: "x" },
+      { sourceId: "c", sourceName: "C", sourceUrl: "https://partial.example/a", kind: "sitemap", ok: false, discoverySource: "bot_wall", error: "x" },
+      {
+        sourceId: "d", sourceName: "D", sourceUrl: "https://partial.example/b", kind: "sitemap", ok: true, discoverySource: "robots",
+        urlCount: 0, sitemapsFetched: [], diff: { addedCount: 0, changedCount: 0, removedCount: 0 },
+        coverageComplete: true, baselineDeferred: false, upserted: 0, failed: 0, changeRecorded: false,
+      },
+    ],
+    allHosts: null,
+  };
+  const shaped = shapeRunOutput("sitemap", result, "/tmp/report.json", "apply");
+  assert.equal(shaped.metrics.hosts_walked, 2);
+  assert.equal(shaped.metrics.hosts_skipped_bot_wall, 1, "only walled.example — partial.example has a successful sibling row");
+});
+
+test("shapeRunOutput sitemap: --all-hosts run reports hosts_remaining_unwalked and hosts_selected from the selection", () => {
+  const result = {
+    sources: [
+      { sourceId: "a", sourceName: "A", sourceUrl: "https://a.example/", kind: "sitemap", ok: true, discoverySource: "robots", urlCount: 0, sitemapsFetched: [], diff: { addedCount: 0, changedCount: 0, removedCount: 0 }, coverageComplete: true, baselineDeferred: false, upserted: 0, failed: 0, changeRecorded: false },
+    ],
+    allHosts: { targets: [], hostsSelected: ["a.example"], hostsTotalActive: 5, hostsNeverWalkedBefore: 3, hostsRemainingUnwalkedAfter: 2 },
+  };
+  const shaped = shapeRunOutput("sitemap", result, "/tmp/report.json", "apply");
+  assert.equal(shaped.metrics.hosts_remaining_unwalked, 2);
+  assert.equal(shaped.metrics.hosts_selected, 1);
+});
+
+test("shapeRunOutput sitemap: dry mode never says 'planned' as 'upserted' for the sitemap walker either (same discipline as the other three walkers)", () => {
+  const result = {
+    sources: [{
+      sourceId: "s1", sourceName: "S", sourceUrl: "https://sm.example/",
+      kind: "sitemap", ok: true, discoverySource: "robots", urlCount: 2,
+      sitemapsFetched: [{ url: "https://sm.example/sitemap.xml" }],
+      diff: { addedCount: 2, changedCount: 0, removedCount: 0 },
+      coverageComplete: true, baselineDeferred: false, upserted: 2, failed: 0, changeRecorded: false,
+    }],
+    allHosts: null,
+  };
+  const dry = shapeRunOutput("sitemap", result, "/tmp/report.json", "dry");
+  assert.match(dry.perItem[0].verdict, /planned \(dry, nothing written\)/);
+  assert.equal(dry.metrics.upserted, 0);
+  assert.equal(dry.metrics.planned, 2);
+});
+
+// ── DEFAULT_MAX_HOSTS budget arithmetic (lane SITEMAP-3, 2026-09-04) ────────────────────────────────────
+// Guards the constant against silent comment drift: re-derives it from the SAME [CONFIRMED] measured
+// inputs DEFAULT_MAX_HOSTS's own comment names (workflow timeout, non-walk overhead reserve, measured
+// per-row cost, active sources/hosts) and asserts the exported constant is still the comment's own
+// rounded-down result. If any of these inputs is re-measured (a new timeout-minutes, a new per-row
+// measurement), this test fails alongside the stale comment rather than silently drifting apart from it.
+test("DEFAULT_MAX_HOSTS: matches the measured-budget arithmetic in its own comment, with real headroom", () => {
+  const WORKFLOW_TIMEOUT_S = 1800; // .github/workflows/source-sweep.yml timeout-minutes: 30
+  const NON_WALK_OVERHEAD_S = 300; // reserved: checkout/setup-node/npm ci/hydrate/commit-PR steps
+  const WALK_BUDGET_S = WORKFLOW_TIMEOUT_S - NON_WALK_OVERHEAD_S;
+  assert.equal(WALK_BUDGET_S, 1500);
+
+  const MEASURED_S_PER_ROW = 14; // source-sweep-run-010, 4 rows / 56s wall time, one host
+  const ACTIVE_SOURCES = 1630; // CONFIRMED SQL, 2026-09-04
+  const ACTIVE_HOSTS = 646; // CONFIRMED SQL, 2026-09-04
+  const avgRowsPerHost = ACTIVE_SOURCES / ACTIVE_HOSTS;
+  const avgCostPerHostS = MEASURED_S_PER_ROW * avgRowsPerHost;
+  const rawMaxHosts = WALK_BUDGET_S / avgCostPerHostS;
+
+  // The comment's own arithmetic: floor(1500/35) = 42, then rounded DOWN to 40 for headroom against
+  // sitemap-index fan-out / the full unscoped feed-candidate list — never round UP past the measured
+  // budget.
+  assert.ok(rawMaxHosts >= DEFAULT_MAX_HOSTS, `raw budget ${rawMaxHosts.toFixed(2)} must be >= the constant actually used`);
+  assert.equal(Math.floor(rawMaxHosts), 42, "floor(1500 / (14 * 1630/646)) must still be 42, matching the comment");
+  assert.equal(DEFAULT_MAX_HOSTS, 40, "the constant is 42's own comment rounded DOWN for headroom, not 42 itself");
+
+  // Dispatch-count consequence the operator's own framing ("2,563 dispatches") is measured against: a
+  // CEILING, not a floor — 16 full 40-host dispatches cover only 640 of 646 hosts, so full coverage needs
+  // 17 (matches CORPUS-TURN-RUNBOOK.md's "The sitemap walker" section, computed independently there).
+  const dispatchesToCoverAllHosts = Math.ceil(ACTIVE_HOSTS / DEFAULT_MAX_HOSTS);
+  assert.equal(dispatchesToCoverAllHosts, 17);
+});
+
+test("shapeRunOutput sitemap: --check-coverage result shape — read-only metrics, no per_item, no writes implied", () => {
+  const result = {
+    coverageReport: {
+      sourcesTotalAll: 2563, sourcesActiveTotal: 1630, sitemapWalkedActive: 4, sitemapUnwalkedActive: 1626,
+      walkOutcomeCounts: { walked: 4, never_walked: 1626 }, feedUrlPopulated: 189,
+    },
+  };
+  const shaped = shapeRunOutput("sitemap", result, "/tmp/report.json", "dry");
+  assert.deepEqual(shaped.perItem, []);
+  assert.equal(shaped.metrics.check_coverage, true);
+  assert.equal(shaped.metrics.sources_total_all, 2563);
+  assert.equal(shaped.metrics.sources_active_total, 1630);
+  assert.equal(shaped.metrics.sitemap_walked_active, 4);
+  assert.equal(shaped.metrics.sitemap_unwalked_active, 1626);
+  assert.deepEqual(shaped.metrics.walk_outcome_counts, { walked: 4, never_walked: 1626 });
+  assert.equal(shaped.metrics.feed_url_populated, 189);
 });

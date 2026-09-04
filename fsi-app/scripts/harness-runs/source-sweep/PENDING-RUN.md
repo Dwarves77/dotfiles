@@ -49,12 +49,54 @@ unaffected — the FILE LIST hashed is still the same three entries, byte-identi
 `run-source-sweep.mjs` itself — one of its own three governing files — changed BYTES (the import line and
 the declaration), which is what moved the hash again; `register-walk.mjs`/`feed-walk.mjs` are untouched.
 
-**harness_version at write time:** `sha256:a5f3170ef09f94f7` (supersedes `sha256:cd5bced124897333` above)
+**(superseded below) harness_version at that write time was:** `sha256:a5f3170ef09f94f7` (supersedes `sha256:cd5bced124897333` above)
+
+**What changed (lane SITEMAP-3, 2026-09-04):** the operator's own build brief ("do you do mapping of the
+sites and store them in supabase … you will have to backfill sources with sitemap info in supabase" — see
+`docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s "The sitemap walker" section for the full user-facing account).
+`scripts/turns/run-source-sweep.mjs` — the same one of the three governing files every prior entry above
+also moved — changed content again: `parseArgs()` gained `--all-hosts`/`--max-hosts`/`--check-coverage`
+(and the selector-validation rewrite that requires exactly one of `--source-id`/`--host`/`--all-hosts`, or
+`--check-coverage` alone); five new pure exports (`hostKeyOf`, `groupActiveSourcesByHost`,
+`hostSitemapCoverage`, `orderHostGroupsForSweep`, `selectAllHostsTargets`, `buildSitemapCoveragePatch`,
+`buildCoverageReport` — `selectSitemapSources` itself is unchanged in behavior, only refactored to share
+`hostKeyOf`); `DEFAULT_MAX_HOSTS` (= 40, arithmetic in its own comment); `main()`'s sitemap branch gained
+the `--all-hosts` selection path, the `--check-coverage` read-only branch, and a per-row
+`buildSitemapCoveragePatch` → `guardedUpdate("sources", ...)` write (migration 304's five new coverage
+columns) on every walked row, apply mode only; `shapeRunOutput`'s sitemap branch gained
+`hosts_walked`/`hosts_skipped_bot_wall`/`feeds_discovered`/`new_locs`/`lastmod_changes`/
+`hosts_remaining_unwalked` metrics and a `--check-coverage` result shape. `src/lib/sources/sitemap-walk.mjs`
+also changed — NOT a governing file (per the note above, unaffected by this lane) — fixing a real bug found
+while reading it in full: the bot-wall-detection branch called `sitemapsFallbackCandidates` (undefined; the
+exported function is `sitemapFallbackCandidates`, no "s"), a `ReferenceError` that fired exactly when a
+site bot-walls its own `robots.txt` — the one case that branch exists to detect. Fixed, with a regression
+test (`sitemap-walk.test.mjs`). `.github/workflows/source-sweep.yml` gained the matching
+`all_hosts`/`max_hosts`/`check_coverage` inputs and validation/arg-building steps.
+
+**(superseded below) harness_version at that write time was:** `sha256:861ec589ce12b9ce` (supersedes `sha256:a5f3170ef09f94f7` above)
+
+**What changed (lane SITEMAP-3, 2026-09-04, same lane, arithmetic correction):** re-reading this same
+lane's own `DEFAULT_MAX_HOSTS` comment against `CORPUS-TURN-RUNBOOK.md`'s independently-written "The
+sitemap walker" section (rule "no small follow-up fix, fix it now") surfaced a real disagreement: the
+runbook correctly computed `⌈646/40⌉ = 17` dispatches to sweep all 646 active hosts once, but
+`run-source-sweep.mjs`'s own comment rounded `646/40 ≈ 16.15` DOWN to "16 dispatches" — 16 full 40-host
+dispatches cover only 640 of 646 hosts, leaving 6 uncovered, so a 17th (partial) dispatch is required; "16"
+was arithmetically wrong, not a rounding-convention choice. Fixed the comment in `run-source-sweep.mjs`
+(now explains the ceiling explicitly and cross-references the runbook), the matching `~16` in
+`.github/workflows/source-sweep.yml`'s `max_hosts` input description, and `docs/inventories/migrations.md`'s
+row 304 (also said `~16`) — all three now agree with the runbook's `17`. `run-source-sweep.mjs` is again
+the one governing file among the three that changed BYTES (comment text only — no behavior, no exported
+symbol, no test assertion touched); `register-walk.mjs`/`feed-walk.mjs` are untouched.
+
+**harness_version at write time:** `sha256:925c102302270e6e` (supersedes `sha256:861ec589ce12b9ce` above —
+confirmed by running `node .discipline/fitness/runner.mjs` after this edit: F28 prints exactly this hash as
+"current hash" in its STALE PENDING-RUN.md violation)
 
 **The planned run that supersedes this marker:** the first `source-sweep` dispatch run with
 `--walker sitemap --mode dry` (against a verified-feed source, e.g. `--host aircargonews.net`, then a
 verified-sitemap-only source, e.g. `--host aapa-ports.org`, once network access to those hosts is available
-from the dispatch environment), followed by an `--mode apply` run once the dry output is reviewed. Per F28's
-reverse-audit, this marker is deleted the moment that artifact lands and its `harness_version` matches the
-hash above (or re-pinned to a new hash, per rule (c), if a governing file changes again before that run
-lands).
+from the dispatch environment — OR, now that this lane lands, a `--check-coverage` dry run, which needs no
+outbound network access at all and would discharge this marker just as validly), followed by an `--mode
+apply` run once the dry output is reviewed. Per F28's reverse-audit, this marker is deleted the moment that
+artifact lands and its `harness_version` matches the hash above (or re-pinned to a new hash, per rule (c),
+if a governing file changes again before that run lands).

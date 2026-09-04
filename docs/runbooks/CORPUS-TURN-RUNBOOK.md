@@ -102,6 +102,87 @@ classify-and-stage pass (unmodified, out of scope here) that eventually reaches
 sweep always names a specific walker and window/feed, unlike a turn's empty-branch request shape) and
 records its own `source-sweep` harness-run artifact family every run, in both dry and apply mode.
 
+### The sitemap walker (lane SITEMAP, 2026-09-04; `--all-hosts`/`--check-coverage` added lane SITEMAP-3,
+### 2026-09-04)
+
+`source-sweep.yml`'s fourth `walker` option, `sitemap`, is the answer to the operator's own question:
+"do you do mapping of the sites and store them in supabase so we can use a site map to identify new
+pages?" and "did you do mapping of rss feeds and save them in supabase?" — YES to both, and this section is
+where a coordinator drives it.
+
+**What it does, in order (`src/lib/sources/sitemap-walk.mjs`'s `walkSource`, over an EXISTING `sources`
+row's `url` — never a fixed portal the way the other three walkers work):** (1) is the source's own URL a
+feed document? (2) a `<link rel=alternate>` tag on its homepage, or one of six named common feed paths
+(`src/lib/sources/feed-discovery.mjs`) — first candidate that actually parses as a feed wins, and a
+discovered feed is handed to `feed-walk.mjs`'s existing walker and the source row's `rss_feed_url` is
+recorded through the guarded write path. (3) ONLY when no feed is found: `robots.txt` `Sitemap:` lines,
+else the three conventional fallback paths (`/sitemap.xml`, `/sitemap_index.xml`, `/sitemap-index.xml`),
+bounded fan-out through any `<sitemapindex>`, scoped to the source's own registered path, diffed against
+the previous URL-set snapshot (Supabase Storage, `sitemap-snapshots/<source_id>/current.json.gz` in the
+`raw_fetches` BUCKET — never the `raw_fetches` DB table, which `change-sweep.mjs` already owns for its own
+HTML diff). New locs feed the SAME `portal_link_candidates` ledger every other walker in this family
+writes to; a changed `lastmod` matching a LIVE item's canonical URL on that exact source queues a
+`monitoring_queue` signal (precision-gated — see `shared-dataset-ownership.md`'s `monitoring_queue`
+section). Politeness: the driver's shared `politeFetch` (1 req/s, `SOURCE_SWEEP_FETCH_GAP_MS`) governs
+EVERY fetch this walker makes, feed probes and sitemap documents alike — the same budget every other
+walker in this family already runs under.
+
+**Coverage is now QUERYABLE, not just a side effect of a dispatch.** Migration 304 adds five columns to
+`sources` (`sitemap_url`, `sitemap_last_walked_at`, `sitemap_url_count`, `sitemap_walk_outcome` — walked /
+no_sitemap / bot_wall / feed_only / unfetchable — `feed_last_probed_at`), written by
+`buildSitemapCoveragePatch` through `db.mjs`'s guarded path on EVERY walked row's outcome, apply mode only
+(see `docs/inventories/migrations.md`'s row 304 and `shared-dataset-ownership.md`'s `sources.sitemap_*`
+entry for the one-writer rule and exact column semantics).
+
+**Three ways to dispatch `--walker sitemap`, by scope:**
+
+1. **One row** — `--source-id <uuid>` (ignores `status`; an explicit single-row probe may target a row
+   already marked dead, deliberately).
+2. **One host** — `--host <hostname>` (active rows only, www-insensitive) — walks EVERY active `sources`
+   row on that host (a host with rows scoped to distinct content paths, `sourceContentPath`, needs each
+   walked separately — collapsing to one representative row would silently drop path-scoped candidates for
+   every row but the one walked).
+3. **A backfill slice** — `--all-hosts [--max-hosts N]` (default `N` = `DEFAULT_MAX_HOSTS` = 40, lane
+   SITEMAP-3, 2026-09-04): this is the mode that turns "a backfill of 2,563 sources is 2,563 dispatches"
+   into ~16. It groups every ACTIVE `sources` row by host (`groupActiveSourcesByHost`), orders host groups
+   never-walked-first then oldest-`sitemap_last_walked_at`-first (`orderHostGroupsForSweep` — this IS the
+   resumability property: an identical `sources` snapshot always orders identically, so re-running the same
+   command after a prior apply naturally picks up where coverage is thinnest, no state to hand-carry
+   between dispatches), takes the first `--max-hosts` host groups, and walks every row on each selected
+   host exactly like `--host` would. `run-source-sweep.mjs`'s `DEFAULT_MAX_HOSTS` comment carries the full
+   arithmetic (measured per-row cost from a real dispatch × the live active-hosts/active-rows ratio against
+   the workflow's 30-minute timeout, with a reserve for non-walk overhead) — re-derive it there, not here,
+   if the workflow's `timeout-minutes` or the measured per-row cost ever changes.
+
+   Live counts at the time this was written [CONFIRMED, live SQL, 2026-09-04]: 2,563 `sources` rows total,
+   1,630 active, 646 distinct active hosts, 189 rows already carrying a discovered `rss_feed_url`. At the
+   default 40 hosts/run, `--all-hosts` covers all 646 active hosts once in ⌈646/40⌉ = 17 dispatches.
+
+**A fourth mode that walks nothing** — `--check-coverage` (requires `--mode dry`; refuses alongside
+`--source-id`/`--host`/`--all-hosts`) — a read-only report over the five coverage columns: sources total
+(every status), active total, how many active rows have ever been sitemap-walked vs never, a breakdown by
+`sitemap_walk_outcome` (a never-walked active row counts under the synthetic key `never_walked`), and how
+many rows (any status) carry a populated `rss_feed_url`. Run this before/after an `--all-hosts` sequence to
+see the number move, or on its own to answer "have we mapped this site's sitemap yet" for the corpus as a
+whole without grepping harness-run artifacts by hand.
+
+Every run's `source-sweep` harness-run artifact carries, in addition to the pre-existing per-walker
+metrics, `hosts_walked` / `hosts_skipped_bot_wall` / `feeds_discovered` / `new_locs` / `lastmod_changes`
+(computed for any sitemap dispatch, not only `--all-hosts` — a `--host` run against one host still reports
+"1 host walked") and, for an `--all-hosts` run specifically, `hosts_selected` / `hosts_remaining_unwalked`
+(how many never-walked hosts are STILL never-walked after this run — the number a coordinator watches
+count down across the ~17-dispatch backfill sequence).
+
+**Example dispatches** (GitHub Actions → `source-sweep.yml` → Run workflow, or `gh workflow run
+source-sweep.yml -f ...`):
+
+```
+walker=sitemap  mode=dry    all_hosts=true  max_hosts=5            # preview the next 5 thinnest-covered hosts
+walker=sitemap  mode=apply  all_hosts=true                          # apply a full default-sized (40-host) slice
+walker=sitemap  mode=dry    check_coverage=true                     # where does the backfill stand right now
+walker=sitemap  mode=apply  host=aircargonews.net                   # one named host, e.g. re-checking after a fix
+```
+
 ## How a coordinator requests a turn
 
 **Option A — `workflow_dispatch` (Actions tab, or `gh workflow run corpus-turn.yml`):** pick `mode`
