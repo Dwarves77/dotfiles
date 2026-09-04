@@ -9146,3 +9146,39 @@ paths → robots `Sitemap:` → standard candidates → recursive index), bounde
 document/entry limits, source-path scoping and the deferred baseline on partial coverage; the lane
 ports those as `.mjs` with attribution and keeps ours where ours is better (polite fetch through
 `fetch-hold.mjs`, gzip, quote/namespace tolerance, `census-writer.mjs` and rule-015 snapshots).
+
+### Addendum 85, postscript 24 — three lanes back: the hollow records swept, classifications dispatched, the data layer's round trips (2026-09-04)
+
+HOLLOW-SWEEP (Sonnet, `b8710971`, 26 tests) [CONFIRMED by its live SQL]: 551 of 1,230 live verified
+record-grade items carry only the `[title]` FACT (201 of them no FACT at all): initiative 390,
+regulation 158, framework 2, guidance 1; by host eur-lex 379, legislation.gov.uk 149,
+federalregister.gov 21. The customer read gate is `is_archived` (`hidden_reason` has zero readers,
+dead column), so the step archives them with a new reason `record_hollow` (outside the five
+source-archive reasons rule 019 and migration 135 guard) and, in the same UPDATE, blanks
+`canonical_instrument_key`, `instrument_identifier` and `source_url`, because `checkM4`,
+`buildItemsIndex` and `buildHeldKeyIndex` all count an archived holder as a blocker and the row
+would otherwise never re-mint; their census rows are already `would_mint` and get a note. Restore:
+`per_item[].restore_sql` in the artifact (the `_snapshots` dir is gitignored, so db.mjs's own snapshot
+does not survive a separate dispatch) and `--arg restore:<ids>` on the same disk. Maintenance step
+`record-hollow-sweep`, writer registered, runbook §10.
+
+CLASSIFY-STEP (Haiku, `d14e8e90`, 12 tests): neither classification script ran in any turn
+(CORPUS-TURN-RUNBOOK ~49); `scripts/maintenance/apply-classifications.mjs` now orchestrates propose
+(classify, drift, anomaly flags with the reflect/dedup pattern from propose-tags) then auto-adopt
+(scope_modes/scope_verticals at high confidence, expected_output always, scope_topics
+ratification-only, jurisdictions never; the GSIG ruling), dry/apply through the guarded path; the
+maintenance.yml option and step added at train time from the lane's snippet.
+
+PERF-5 (Sonnet, `94697e07`) [CONFIRMED, EXPLAIN ANALYZE live]: every query on the listings path is
+0.6 to 25 ms at the database with the indexes already present, so no migration 301; the 907/2,812 ms
+were sequential round trips: the `item_timelines` chunk loop awaited ten chunks one after another
+for a remainder page, and the override read waited on the RPC for an argument it does not use. Both
+now run in one `Promise.all`/`allSettled` (a failed chunk no longer aborts the rest). Round-trip depth
+12 → 2 on `/api/listings/rest`; the projection is [INFERRED] until I re-measure after deploy. The two
+remaining levers are the PERF-2 defect class in shared files: `org.ts resolveOrgIdFromCookies()` and
+`auth.ts requireAuth()` still call `auth.getUser()` (an Auth-server round trip) on every data read and
+every API route. Lane PERF-6 is on both now.
+
+Train gates on this branch: fitness 29/0 (F28 PASS after PROPOSER-3's attestations, `1bd9f010`),
+discipline 141/0, lane tests 37/0, tsc clean. Still running: TANDEM, HOLLOW-GATE, RECORD-SURFACE,
+SITEMAP, HEAL-6, PERF-6.
