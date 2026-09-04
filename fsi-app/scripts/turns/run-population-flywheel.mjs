@@ -326,9 +326,17 @@ export function parseArgs(argv) {
 // "minted_verified" / "minted_unverified" are the CURRENT (apply-mint-batch.mjs) schema. "minted_verified_
 // first_pass" is a retired label from before the verified/unverified split existed (mint-run-004,
 // mint-run-006 on this checkout — measured [CONFIRMED] 2026-09-04: every entry carrying it also carries a
-// real item_id, unlike "minted"/"minted_validator_pass"/"minted_hardened_validator_pass", which never do —
-// see hasRecoverableMintedIds below for what this driver does with an artifact that has none at all).
-const MINTED_OUTCOME_VALUES = Object.freeze(["minted_verified", "minted_unverified", "minted_verified_first_pass"]);
+// real item_id, unlike "minted"/"minted_validator_pass"/"minted_hardened_validator_pass", which never do in
+// their original artifacts BUT ARE STILL REAL MINTED ITEMS that need id recovery via canonical_instrument_key).
+const MINTED_OUTCOME_VALUES = Object.freeze([
+  "minted_verified", "minted_unverified", "minted_verified_first_pass",
+  "minted", "minted_validator_pass", "minted_hardened_validator_pass",
+]);
+
+// Recognized fields used to resolve item_id when not present directly (pre-item_id artifacts).
+// Priority order: canonical_instrument_key (CELEX id), then instrument_identifier, then
+// source_url + title exact match. An entry that resolves to zero or >1 item is reported unresolved.
+const RESOLVER_KEY_PRIORITY = Object.freeze(["canonical_instrument_key", "instrument_identifier", "source_url_plus_title"]);
 
 /**
  * Every item this batch actually minted — i.e. apply-mint-batch.mjs's own per_item outcomes
@@ -385,6 +393,173 @@ export function hasRecoverableMintedIds(artifact) {
   const minted = Number(artifact?.metrics?.minted ?? 0);
   if (!(minted > 0)) return true;
   return extractMintedItemIds(artifact).length > 0;
+}
+
+/**
+ * Resolve minted item IDs from an artifact, handling both modern (per_item.item_id) and pre-item_id
+ * artifacts. Queries the database to match identity fields when item_id is absent, using this priority:
+ *   1. per_item.id as canonical_instrument_key (CELEX ids in mint-run-001/005)
+ *   2. per_item.instrument_identifier
+ *   3. per_item.source_url + per_item.title exact match
+ *
+ * Rejects any entry that resolves to zero or more than one item.
+ *
+ * For each minted per_item entry:
+ *   1. If item_id is present, use it directly (modern path).
+ *   2. Otherwise, try resolvers in priority order — if one matches exactly one item, use it.
+ *   3. If a resolver finds 0 or 2+ matches, report that entry as unresolved.
+ *   4. If no field is present to resolve, report as unresolved.
+ *
+ * Returns {ids: [...], idsResolvedByKey, unresolved: [{entry, attemptedKey, matchCount}, ...]},
+ * or throws if the DB query itself fails.
+ *
+ * @param {{per_item?: Array<{outcome?:string, item_id?:string, id?:string, [key:string]:any}>}} artifact
+ * @param {object} db — { readAll } function from scripts/lib/db.mjs
+ * @returns {Promise<{ids:string[], idsResolvedByKey:number, unresolved:Array<{entry:object, attemptedKey:string, matchCount:number}>}>}
+ */
+export async function resolveMintedItemIds(artifact, db) {
+  const perItem = Array.isArray(artifact?.per_item) ? artifact.per_item : [];
+  const resolvedIds = [];
+  const resolvedByKey = [];
+  const unresolved = [];
+  const seen = new Set();
+
+  // Pre-fetch all canonical_instrument_keys (via per_item.id field for CELEX) to batch queries
+  const celexKeysToResolve = new Set();
+  for (const entry of perItem) {
+    const isMinted = MINTED_OUTCOME_VALUES.includes(entry?.outcome);
+    if (!isMinted) continue;
+    if (entry?.item_id) continue; // modern path, no resolution needed
+    // Resolver 1: per_item.id as canonical_instrument_key (pre-item_id CELEX artifacts)
+    if (typeof entry?.id === "string" && entry.id.length > 0) {
+      celexKeysToResolve.add(entry.id);
+    }
+  }
+
+  const celexMap = new Map(); // canonical_instrument_key → [intelligence_items.id, ...]
+  if (celexKeysToResolve.size > 0) {
+    const celexArray = Array.from(celexKeysToResolve);
+    for (const chunk of chunkArray(celexArray, 100)) {
+      if (!chunk.length) continue;
+      const rows = await db.readAll("intelligence_items", "id, canonical_instrument_key", {
+        match: (q) => q.in("canonical_instrument_key", chunk),
+      });
+      for (const row of rows) {
+        const key = row.canonical_instrument_key;
+        if (!celexMap.has(key)) celexMap.set(key, []);
+        celexMap.get(key).push(row.id);
+      }
+    }
+  }
+
+  // Process each minted entry
+  for (const entry of perItem) {
+    const isMinted = MINTED_OUTCOME_VALUES.includes(entry?.outcome);
+    if (!isMinted) continue;
+
+    // Modern path: direct item_id (no resolution needed)
+    if (typeof entry?.item_id === "string" && entry.item_id.length > 0) {
+      if (!seen.has(entry.item_id)) {
+        seen.add(entry.item_id);
+        resolvedIds.push(entry.item_id);
+      }
+      continue;
+    }
+
+    // Pre-item_id path: try resolvers in priority order
+    let resolved = false;
+
+    // Resolver 1: per_item.id as canonical_instrument_key (CELEX for mint-run-001/005)
+    if (typeof entry?.id === "string" && entry.id.length > 0) {
+      const matches = celexMap.get(entry.id) ?? [];
+      if (matches.length === 1) {
+        const id = matches[0];
+        if (!seen.has(id)) {
+          seen.add(id);
+          resolvedIds.push(id);
+          resolvedByKey.push("canonical_instrument_key");
+        }
+        resolved = true;
+      } else if (matches.length > 1) {
+        unresolved.push({
+          entry,
+          attemptedKey: "canonical_instrument_key",
+          matchCount: matches.length,
+        });
+        resolved = true; // tried but failed
+      }
+    }
+
+    // Resolver 2: instrument_identifier (if not resolved yet)
+    if (!resolved && entry?.instrument_identifier) {
+      const matches = await db.readAll("intelligence_items", "id", {
+        match: (q) => q.eq("instrument_identifier", entry.instrument_identifier),
+      });
+      if (matches.length === 1) {
+        const id = matches[0].id;
+        if (!seen.has(id)) {
+          seen.add(id);
+          resolvedIds.push(id);
+          resolvedByKey.push("instrument_identifier");
+        }
+        resolved = true;
+      } else if (matches.length > 1) {
+        unresolved.push({
+          entry,
+          attemptedKey: "instrument_identifier",
+          matchCount: matches.length,
+        });
+        resolved = true;
+      }
+    }
+
+    // Resolver 3: source_url + title exact match (if not resolved yet)
+    if (!resolved && entry?.source_url && entry?.title) {
+      const matches = await db.readAll("intelligence_items", "id", {
+        match: (q) => q.eq("source_url", entry.source_url).eq("title", entry.title),
+      });
+      if (matches.length === 1) {
+        const id = matches[0].id;
+        if (!seen.has(id)) {
+          seen.add(id);
+          resolvedIds.push(id);
+          resolvedByKey.push("source_url_plus_title");
+        }
+        resolved = true;
+      } else if (matches.length > 1) {
+        unresolved.push({
+          entry,
+          attemptedKey: "source_url_plus_title",
+          matchCount: matches.length,
+        });
+        resolved = true;
+      }
+    }
+
+    // Entry had no recoverable fields or all resolvers came up empty
+    if (!resolved) {
+      unresolved.push({
+        entry,
+        attemptedKey: null,
+        matchCount: 0,
+      });
+    }
+  }
+
+  return {
+    ids: resolvedIds,
+    idsResolvedByKey: resolvedByKey.length,
+    unresolved,
+  };
+}
+
+// Helper to chunk an array (local, since buildCorpusItems already imports chunk from export-corpus-for-extraction.mjs)
+function chunkArray(arr, size) {
+  const chunks = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
 }
 
 // ── the ordered step plan (pure — no I/O, drives both dry-mode reporting and the real apply loop) ────
@@ -996,7 +1171,7 @@ async function stepComputeOutcomes(ctx) {
   if (!ctx.batchIds.length) {
     ctx.state.edgesDiscovered = 0;
     ctx.state.isolatedItems = 0;
-    return { edges_discovered: 0, isolated_items: 0, forward_events_extracted: ctx.state.forwardEventsExtracted, edge_rows_read: 0 };
+    return { edges_discovered: 0, isolated_items: 0, forward_events_extracted: ctx.state.forwardEventsExtracted, edge_rows_read: 0, ids_resolved_by_key: ctx.state.idsResolvedByKey ?? 0 };
   }
   const edgeRows = await fetchEdgeRowsForBatch(ctx.db.readAll, ctx.batchIds);
   const { edges_discovered, isolated_items } = computeCorpusOutcomes(ctx.batchIds, edgeRows);
@@ -1007,6 +1182,7 @@ async function stepComputeOutcomes(ctx) {
     isolated_items,
     forward_events_extracted: ctx.state.forwardEventsExtracted,
     edge_rows_read: edgeRows.length,
+    ids_resolved_by_key: ctx.state.idsResolvedByKey ?? 0,
   };
 }
 
@@ -1016,6 +1192,7 @@ async function stepWriteOutcomes(ctx) {
     edges_discovered: ctx.state.edgesDiscovered ?? 0,
     forward_events_extracted: ctx.state.forwardEventsExtracted ?? 0,
     isolated_items: ctx.state.isolatedItems ?? 0,
+    ids_resolved_by_key: ctx.state.idsResolvedByKey ?? 0,
   };
   mkdirSync(ctx.workDir, { recursive: true });
   const outcomesPath = join(ctx.workDir, "outcomes.json");
@@ -1079,8 +1256,9 @@ const STEP_HANDLERS = Object.freeze({
  */
 export async function runFlywheelForOneArtifact({ mintRunPath, artifact, mode, harnessRunsDir, db, startedAt }) {
   const apply = mode === "apply";
-  const batchIds = extractMintedItemIds(artifact);
   const runIdForMessage = artifact?.run_id ?? mintRunPath ?? "(unknown)";
+
+  // Check if artifact has any minted items at all
   if (!hasRecoverableMintedIds(artifact)) {
     throw new Error(
       `run-population-flywheel: ${runIdForMessage}'s own metrics.minted=${Number(artifact?.metrics?.minted ?? 0)} ` +
@@ -1089,16 +1267,30 @@ export async function runFlywheelForOneArtifact({ mintRunPath, artifact, mode, h
         "writing a false zero-valued outcomes record. This artifact needs manual/operator resolution.",
     );
   }
+
+  // Resolve item IDs, handling both modern (item_id) and pre-item_id artifacts (via canonical_instrument_key, etc.)
+  const resolution = await resolveMintedItemIds(artifact, db);
+  const batchIds = resolution.ids;
+
+  if (resolution.unresolved.length > 0) {
+    const unresolvedList = resolution.unresolved
+      .map((u) => `${u.entry?.id ?? "(no id)"} via ${u.attemptedKey ?? "no fields"} (${u.matchCount} match${u.matchCount !== 1 ? "es" : ""})`)
+      .join(", ");
+    throw new Error(
+      `run-population-flywheel: ${runIdForMessage} has ${resolution.unresolved.length} minted item(s) that could not be resolved to a single intelligence_items row: ${unresolvedList}. ` +
+        "Refusing rather than proceeding with a partial/uncertain batch.",
+    );
+  }
   const plan = buildFlywheelPlan(mode, batchIds);
   const mintRunDir = resolve(harnessRunsDir || dirname(mintRunPath));
   const mintRunId = artifact.run_id ?? null;
   const workDir = join(SNAPSHOTS_ROOT, `population-flywheel-${mintRunId ?? "unknown"}`);
 
   console.log(
-    `run-population-flywheel: mode=${mode} mint_run=${mintRunId ?? "(no run_id)"} minted_item_ids=${batchIds.length}`,
+    `run-population-flywheel: mode=${mode} mint_run=${mintRunId ?? "(no run_id)"} minted_item_ids=${batchIds.length} ids_resolved_by_key=${resolution.idsResolvedByKey}`,
   );
 
-  const ctx = { mode, apply, batchIds, mintRunPath, mintRunDir, mintRunId, workDir, db, state: {}, startedAt };
+  const ctx = { mode, apply, batchIds, mintRunPath, mintRunDir, mintRunId, workDir, db, state: { idsResolvedByKey: resolution.idsResolvedByKey }, startedAt };
 
   const results = [];
   let failed = false;

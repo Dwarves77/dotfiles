@@ -73,16 +73,18 @@ mint-run artifacts minted items and were never connected**, not six:
 | **Auto-connectable total** | **13 artifacts** | **1,272 items** | **Yes** |
 | Pre-item_id-era artifacts | mint-run-001, mint-run-005 | 6 + 5 = 11 | **No — see below** |
 
-**mint-run-001 and mint-run-005 cannot be auto-connected by either `--mint-run` or `--backlog`.** Both
-predate the `per_item.item_id` field entirely — their per-item entries carry a CELEX id and an outcome
-label (`"minted"` / `"minted_validator_pass"`) but never a real `intelligence_items.id`, so
-`extractMintedItemIds` has nothing to recover. Running the flywheel over either one **refuses** rather
-than silently writing a false zero-valued outcomes record (`hasRecoverableMintedIds` /
-`runFlywheelForOneArtifact`'s own guard, see that script's header). **THE GATE keeps refusing every new
-apply — the R-D oil-bulletin batch below included — until these two are resolved by some OTHER means
-(e.g. hand-matching their per_item CELEX ids against `intelligence_items.canonical_instrument_key` and
-hand-writing their §9 outcomes), which is outside this lane's scope and not attempted here. This is an
-open item for the operator/coordinator, not something `--backlog` will ever clear on its own.**
+**mint-run-001 and mint-run-005 CAN now be auto-connected, via ID resolution added by lane BACKLOG-LEGACY
+(2026-09-04).** Both predate the `per_item.item_id` field entirely — their per_item entries carry only a
+CELEX id and an outcome label (`"minted"` / `"minted_validator_pass"`) but never a real `intelligence_items.id`.
+Lane BACKLOG-LEGACY added `resolveMintedItemIds` to `run-population-flywheel.mjs`, which maps CELEX ids
+from `per_item.id` (the strongest recoverable identity field) to `intelligence_items.id` via
+`canonical_instrument_key` queries — all 11 entries (mint-run-001's 6 + mint-run-005's 5) resolve to
+single matches in the live database, so neither artifact remains unrecoverable. Both can now be connected
+via `--mint-run` or `--backlog` without hand intervention. The resolver reports entries that resolve to
+zero or 2+ items as unresolved and refuses to proceed (never guesses), so if future artifacts have
+ambiguous or unmatchable identity, this gate remains conservative. `ids_resolved_by_key` is now recorded in
+the §9 outcomes block, carrying a count of how many IDs were recovered this way (0 for modern artifacts
+with direct item_id).
 
 **The fix for the 13 auto-connectable artifacts is now itself a dispatch, not a hand-run pass over one
 artifact at a time:** `flywheel_backlog: true` skips
