@@ -59,3 +59,9 @@ test("htmlToText: a script tag with attributes (type=, src=) is still matched an
 test("htmlToText: does NOT decode HTML entities (neither of the two consolidated bodies did — a caller that wants entities decoded does it itself)", () => {
   assert.equal(htmlToText("<p>Tom &amp; Jerry</p>"), "Tom &amp; Jerry");
 });
+
+test("htmlToText: blankEntities replaces entities with a space; default keeps them verbatim (the remediation capture contract)", () => {
+  const html = "<p>Fish &amp; Chips &#8211; 5&nbsp;kg</p>";
+  assert.equal(htmlToText(html), "Fish &amp; Chips &#8211; 5&nbsp;kg");
+  assert.equal(htmlToText(html, { blankEntities: true }), "Fish Chips 5 kg");
+});
