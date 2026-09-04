@@ -56,20 +56,13 @@ export function ledgerListingQueryKey(surface: string) {
   return ["ledger-listing", surface] as const;
 }
 
-async function fetchLedgerPage(surface: string, cursor: string, orgId: string | null): Promise<LedgerPage> {
-  const res = await fetch(
-    `/api/listings/cursor?surface=${encodeURIComponent(surface)}&cursor=${cursor}`,
-    // PERF-12 (2026-09-04, ADR-027 §5/item 4): forwards the session-resolved org id
-    // (useWorkspaceBootstrap's own `orgId`, itself resolved server-side — never client-invented) so
-    // the route can VERIFY it against the session on its own, catching a stale client (e.g. an org
-    // switch mid-session under a future org switcher) rather than silently serving/caching under the
-    // wrong org. Omitted entirely when not yet known (bootstrap still loading/signed out) — the
-    // route treats a missing header as "nothing to verify", identical to today's behavior.
-    orgId ? { headers: { "X-Org-Id": orgId } } : undefined
-  );
-  if (res.status === 409) {
-    throw new Error("workspace changed — reload to continue");
-  }
+// RECONCILE (2026-09-04, item 1): no `orgId`/`X-Org-Id` header — /api/listings/cursor now serves the
+// org-independent public RPC (see that route's own header), so there is no per-session org id for
+// this request to carry or for the server to verify. A 409 "org mismatch" response can no longer
+// occur (the route itself no longer returns one) — the surviving error path is a plain non-2xx/`error`
+// body, same as any other fetch failure.
+async function fetchLedgerPage(surface: string, cursor: string): Promise<LedgerPage> {
+  const res = await fetch(`/api/listings/cursor?surface=${encodeURIComponent(surface)}&cursor=${cursor}`);
   if (!res.ok) throw new Error(`/api/listings/cursor responded ${res.status}`);
   const body = (await res.json()) as Partial<LedgerPage> & { error?: string };
   if (body.error) throw new Error(body.error);
@@ -111,12 +104,11 @@ export interface UseLedgerInfiniteQueryResult {
  */
 export function useLedgerInfiniteQuery(
   surface: string,
-  initialPage?: LedgerPage,
-  orgId: string | null = null
+  initialPage?: LedgerPage
 ): UseLedgerInfiniteQueryResult {
   const query = useInfiniteQuery({
     queryKey: ledgerListingQueryKey(surface),
-    queryFn: ({ pageParam }) => fetchLedgerPage(surface, pageParam as string, orgId),
+    queryFn: ({ pageParam }) => fetchLedgerPage(surface, pageParam as string),
     initialPageParam: FIRST_PAGE_PARAM,
     getNextPageParam: (lastPage: LedgerPage) => lastPage.nextCursor ?? undefined,
     // ADR-027 §2's "hydrated ... via initialData" — see this module's own header for why

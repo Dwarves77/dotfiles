@@ -44,6 +44,21 @@
  * tracked." The detail variant shows nothing while loading, matching its own already-honest
  * "nothing to show" contract for an item with zero obligations.
  *
+ * RECONCILE (2026-09-04, item 4b-i): the LIST variant's "Loading obligation register…" state used to
+ * render on EVERY /regulations navigation, however briefly, because the unfiltered first page was
+ * fetched only after this component mounted client-side — the exact "index page has an SSR'd masthead
+ * but a section that goes blank/spinner-only on navigation" defect this reconciliation's item 4 named.
+ * `initialResult` (regulations/page.tsx, via data.ts's getPublicObligationRegisterFirstPage) now seeds
+ * that same unfiltered first page from THIS page's own server render — see that function's own header
+ * for why a service-role read of migration 290's `obligations` table is RLS-equivalent here, not a
+ * bypass (the RLS policy carries no per-org/per-viewer predicate this table ever needed). When
+ * `initialResult` is present, the mount effect below SKIPS its own network request entirely for the
+ * list/unfiltered case — this is the SAME "no second fetch on first paint" contract
+ * useLedgerInfiniteQuery.ts's `initialData` gives the main ledger, applied here with plain useState
+ * since this component predates TanStack Query's adoption in this codebase and introducing a second
+ * data-fetching library for one section would be its own regression. Every subsequent filter change or
+ * "Load more" (owned by ObligationRegisterFilterBar, unchanged) still calls the route directly.
+ *
  * ROW MARKUP (lane MOBILE, 2026-09-03, unchanged by PERF-10/PERF-11/PERF-MERGE): this file still has
  * no row JSX of its own — every row, including the `data-guard-title` heading, is
  * ObligationRegisterFilterBar.tsx's own "Obligation register" `<h2>` (a "use client" component that
@@ -64,6 +79,13 @@ interface Props {
   itemId?: string;
   /** "list" (default): the full-width register section on /regulations. "detail": a meta-rail card. */
   variant?: "list" | "detail";
+  /** RECONCILE (2026-09-04, item 4b-i): the list variant's unfiltered first page, seeded from THIS
+   *  page's own server render (regulations/page.tsx, data.ts's getPublicObligationRegisterFirstPage)
+   *  — see this file's own header. Ignored for the detail variant (that mount always needs its own
+   *  itemId-scoped fetch; no server-rendered equivalent exists for it here). Undefined for any caller
+   *  that predates this prop, which falls back to the original client-fetch-on-mount behavior exactly
+   *  as before. */
+  initialResult?: ApiResult;
 }
 
 interface ApiResult {
@@ -76,13 +98,20 @@ interface ApiResult {
 
 const EMPTY_RESULT: ApiResult = { rows: [], total: 0 };
 
-export function ObligationRegister({ itemId, variant = "list" }: Props) {
-  const [state, setState] = useState<{ loading: boolean; result: ApiResult | null }>({
-    loading: true,
-    result: null,
-  });
+export function ObligationRegister({ itemId, variant = "list", initialResult }: Props) {
+  const hasSsrSeed = variant === "list" && !itemId && !!initialResult;
+  const [state, setState] = useState<{ loading: boolean; result: ApiResult | null }>(
+    hasSsrSeed ? { loading: false, result: initialResult! } : { loading: true, result: null }
+  );
 
   useEffect(() => {
+    if (hasSsrSeed) {
+      // The server render already delivered this exact (unfiltered, offset 0) page — see this file's
+      // header. No fetch on mount; ObligationRegisterFilterBar's own filter/"Load more" calls are the
+      // first network requests this section makes, exactly like the main ledger's own
+      // initialData-seeded useLedgerInfiniteQuery never re-fetches page one on mount.
+      return;
+    }
     if (variant === "detail" && !itemId) {
       setState({ loading: false, result: EMPTY_RESULT });
       return;
@@ -111,7 +140,11 @@ export function ObligationRegister({ itemId, variant = "list" }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [variant, itemId]);
+    // `hasSsrSeed` is derived from props on every render (never independent state) — including it
+    // here is correct React, not merely lint-satisfying: if a future caller ever mounted this same
+    // component instance with a DIFFERENT `initialResult`/`itemId` combination (it does not today),
+    // the effect re-evaluating the seed guard is exactly the behavior wanted.
+  }, [variant, itemId, hasSsrSeed]);
 
   if (state.loading) {
     if (variant === "detail") return null; // see this file's header — matches the eventual empty state

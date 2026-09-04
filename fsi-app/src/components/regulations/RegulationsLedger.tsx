@@ -85,7 +85,6 @@ import type { WorkspaceAggregates } from "@/lib/data";
 // list-pagination.ts's own headers for the replacement (useInfiniteQuery + a keyset cursor).
 import { useLedgerInfiniteQuery, type LedgerPage } from "@/lib/hooks/useLedgerInfiniteQuery";
 import { useInfiniteScrollSentinel } from "@/lib/hooks/useInfiniteScrollSentinel";
-import { useWorkspaceBootstrap } from "@/lib/hooks/useWorkspaceBootstrap";
 import { VirtualizedRowList } from "@/components/ledger/VirtualizedRowList";
 
 interface RegulationsLedgerProps {
@@ -247,8 +246,13 @@ function parseDate(s?: string | null): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** Nearest upcoming milestone date for a row (from item_timelines), or null. */
-function nextMilestone(r: Resource, now: number): Date | null {
+/** Nearest upcoming milestone date for a row (from item_timelines), or null. `now === null`
+ *  (pre-mount, see the `now` state's own header) means "no reference time yet" — every timeline
+ *  entry is untestable against "is this upcoming", so this returns null exactly as it would for a
+ *  row with no timeline at all, deterministically, on both SSR and the client's matching first
+ *  render. */
+function nextMilestone(r: Resource, now: number | null): Date | null {
+  if (now === null) return null;
   if (!r.timeline || r.timeline.length === 0) return null;
   let best: Date | null = null;
   for (const t of r.timeline) {
@@ -371,12 +375,10 @@ export function RegulationsLedger({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
-  // PERF-12 (2026-09-04, ADR-027 §5/item 4): the shared workspace-bootstrap singleton already
-  // resolves orgId server-side (route.ts's `loadOrgId`) as a byproduct of the ONE bootstrap fetch
-  // every shell page already issues — reused here rather than adding a second org-resolving call.
-  // `null` until it settles (or if signed out/org-less); useLedgerInfiniteQuery treats `null` as
-  // "nothing to forward yet", identical to not having this feature at all.
-  const { data: bootstrapData } = useWorkspaceBootstrap();
+  // RECONCILE (2026-09-04, item 1): no orgId to forward — /api/listings/cursor now serves the
+  // org-independent public RPC (see that route's own header), so there is nothing here to resolve
+  // or verify against a session. See useLedgerInfiniteQuery.ts's own header for the removed
+  // X-Org-Id mechanism.
   const {
     resources: pagedResources,
     archived: pagedArchived,
@@ -386,7 +388,7 @@ export function RegulationsLedger({
     fetchNextPage,
     error: queryError,
     isFetchNextPageError,
-  } = useLedgerInfiniteQuery("regulations", initialPage, bootstrapData?.orgId ?? null);
+  } = useLedgerInfiniteQuery("regulations", initialPage);
 
   // Maps to bandEmptyStateText's existing three-state contract (its own header, FIRSTPAGE lane):
   // "loading" while there is still more corpus this ledger could show for a >0-total band, "done"
@@ -444,9 +446,29 @@ export function RegulationsLedger({
     [active]
   );
 
-  // Single render-stable "now" (avoids an impure Date.now() at render and
-  // keeps SSR/client date math consistent through hydration).
-  const [now] = useState(() => Date.now());
+  // RECONCILE (2026-09-04, item 4b-iii): fixes a hydration hazard `useState(() => Date.now())`
+  // introduced. That initializer runs once on EVERY first render, server AND client — under the
+  // classic (non-PPR) model those are two SEPARATE invocations, at two different real times, and
+  // this page is now server-CACHED (unstable_cache, 60s revalidate — PERF-10's whole point): the SSR
+  // HTML a client hydrates against can legitimately be up to a minute-plus old by the time hydration
+  // runs, so the server's `Date.now()` and the client's would routinely disagree by far more than
+  // clock skew, silently corrupting the milestone "days until"/red-highlight math (nextMilestone/
+  // RegRow below) on every cache-stale hydration, not merely at rare millisecond boundaries. Baking a
+  // server-computed timestamp into the cached HTML would not fix this either — it would freeze `now`
+  // at cache-build time for the whole revalidate window, growing MORE wrong the staler the cache
+  // entry gets. The correct fix (this lane's own dispatch, item 4b-iii): render this specific
+  // countdown client-only, AFTER mount. `now` starts `null` — IDENTICAL on the server render and the
+  // client's matching first (hydration) render, so there is no mismatch to react to — then one
+  // `useEffect` (fires client-only, post-hydration) sets the real wall-clock value, producing a
+  // single, ordinary post-hydration re-render exactly like any other client-only affordance (the
+  // personal drag order below has the same "empty on first render, filled after a client effect"
+  // shape). `nextMilestone(r, null)` returns null (its own header), so every `now`-derived value
+  // (sort order, days-until, the red-deadline highlight) renders in its safe "no milestone data yet"
+  // state until that effect fires, on both server and client alike.
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+  }, []);
 
   // Personal drag order (migrations 237 + 238). Per-user and fetched
   // client-side for the same reason the personal archive is: user_list_order is
@@ -1531,11 +1553,13 @@ function RegRow({
   onArchive,
 }: {
   r: Resource;
-  now: number;
+  now: number | null;
   onArchive: () => void;
 }) {
   const md = nextMilestone(r, now);
-  const days = md ? Math.round((md.getTime() - now) / 86400000) : null;
+  // `md` is only ever non-null when `now` is itself non-null (nextMilestone's own guard) — `now!` is
+  // safe here, not a cast around a real possibility.
+  const days = md ? Math.round((md.getTime() - now!) / 86400000) : null;
   // HYDRATION-418 (2026-09-04): pin the zone — see format-fixed-date.ts's header for the reproduced
   // server(UTC)/client(local) mismatch this was throwing React error #418 on.
   const dateStr = formatMilestoneChip(md);
@@ -1656,7 +1680,7 @@ function SortableRegRow({
   onArchive,
 }: {
   r: Resource;
-  now: number;
+  now: number | null;
   onArchive: () => void;
 }) {
   const {

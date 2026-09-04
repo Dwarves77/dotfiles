@@ -75,6 +75,44 @@
 -- `src/lib/data.ts`) revalidated at the same population/maintenance apply completion point ADR-023
 -- already names for `APP_DATA_TAG` — see this lane's REPORT for the exact call site.
 --
+-- KEYSET CURSOR (RECONCILE, PERF-12-MERGE lane, 2026-09-04, ADR-027 §2). PERF-12 originally built
+-- true keyset-cursor pagination for /regulations' scroll-past-first-page path as a THIRD signature
+-- on the ORG-SCOPED `get_workspace_intelligence_listings` (its own draft migration, numbered 306 in
+-- a parallel worktree — a collision with THIS file, and itself defective: a bare `CREATE OR REPLACE`
+-- with a new parameter list creates a SECOND overload beside the live 2-arg one, the exact
+-- PostgREST-ambiguity defect the corrected 305 exists to prevent). Reconciled here instead, onto
+-- `get_workspace_intelligence_listings_public` (this migration, not yet applied, so ONE CREATE
+-- carries the final signature — no overload risk): `/api/listings/cursor` (the scroll-pagination
+-- route `useLedgerInfiniteQuery`'s `fetchNextPage` calls) now pages this SAME org-independent,
+-- cacheable RPC the SSR first page already uses, instead of the org-scoped one — no cookies, no
+-- `resolveOrgIdFromCookies()`, on every scroll fetch, not just the first. PERF-12's own org-scoped
+-- draft migration is DELETED, not applied (see docs/inventories/migrations.md's disposition row).
+--
+-- `p_after_priority text DEFAULT NULL, p_after_added_date date DEFAULT NULL, p_after_id uuid
+-- DEFAULT NULL` — the caller passes back the LAST ROW of the previous page's own `(priority,
+-- added_date, id)` triple, the exact three columns this function's own `ORDER BY CASE priority ...
+-- END, added_date DESC, id ASC` sorts by. The WHERE clause is the row-comparison expansion of that
+-- ORDER BY (rank ascending, added_date descending, id ascending) as an OR-chain of three
+-- progressively-narrower AND clauses — not a Postgres `ROW()` comparison, because `ROW()` compares
+-- lexicographically left-to-right using ONE direction for the whole tuple, and this ORDER BY mixes
+-- ASC (rank), DESC (added_date), ASC (id) across its three columns, which a single `ROW() >` cannot
+-- express:
+--
+--   (rank > after_rank)
+--   OR (rank = after_rank AND added_date < after_added_date)
+--   OR (rank = after_rank AND added_date = after_added_date AND id > after_id)
+--
+-- `v_after_rank` is computed with a SEARCHED `CASE WHEN p_after_priority IS NULL THEN NULL ELSE
+-- ... END`, not `CASE p_after_priority WHEN NULL THEN NULL ...` (PERF-12's own draft carried this
+-- exact bug in its org-scoped version, caught during reconciliation) — a simple-form `CASE x WHEN
+-- NULL THEN ...` compiles to `x = NULL`, which SQL's three-valued logic makes NEVER true regardless
+-- of `x`, so that arm can never fire and `v_after_rank` would fall through to the `ELSE` branch
+-- (rank 5) for every NULL `p_after_priority`, corrupting the first page of every cursor-less query
+-- that happened to pass a non-NULL `p_after_id` (never possible in practice today, since the client
+-- always sends the full triple together — but a latent defect nonetheless, fixed here on the branch
+-- that never shipped it live). `p_after_id IS NULL` alone gates the entire predicate — passing NULL
+-- (every existing zero/one-arg caller) short-circuits it to TRUE, byte-identical to today.
+--
 -- WRITTEN, NOT APPLIED BY THIS LANE. Supabase MCP is read-only for this lane; the coordinator applies
 -- this file via Supabase MCP after landing, then the post-check block at the bottom verifies the live
 -- result (same shape as migration 304's own post-check).
@@ -174,13 +212,27 @@ COMMENT ON FUNCTION public.get_workspace_intelligence_slim_public() IS
 --    every existing zero-arg caller (`SELECT * FROM get_workspace_intelligence_listings_public()`) is
 --    byte-identical in output — PostgREST resolves a zero-arg call to the DEFAULT-valued signature,
 --    same overload-avoidance PERF-MERGE's correction of 305 established (one signature, not two).
-CREATE OR REPLACE FUNCTION public.get_workspace_intelligence_listings_public(p_domain integer DEFAULT NULL::integer)
+CREATE OR REPLACE FUNCTION public.get_workspace_intelligence_listings_public(
+  p_domain integer DEFAULT NULL::integer,
+  p_after_priority text DEFAULT NULL::text,
+  p_after_added_date date DEFAULT NULL::date,
+  p_after_id uuid DEFAULT NULL::uuid
+)
  RETURNS TABLE(id uuid, legacy_id text, title text, what_is_it text, why_matters text, key_data text[], tags text[], domain integer, category text, item_type text, source_id uuid, source_url text, jurisdictions text[], transport_modes text[], verticals text[], status text, severity text, confidence text, priority text, entry_into_force date, compliance_deadline date, next_review_date date, added_date date, last_verified timestamp with time zone, is_archived boolean, effective_priority text, effective_archived boolean, jurisdiction_iso text[])
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
+DECLARE
+  v_after_rank int;
 BEGIN
+  -- Searched CASE, not `CASE p_after_priority WHEN NULL THEN ...` — see this migration's own
+  -- header for why the simple form is a latent bug (`x = NULL` is never true).
+  v_after_rank := CASE
+    WHEN p_after_priority IS NULL THEN NULL
+    ELSE (CASE p_after_priority
+      WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MODERATE' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END)
+  END;
   RETURN QUERY
   SELECT
     ii.id, ii.legacy_id, ii.title, ii.what_is_it, ii.why_matters,
@@ -196,6 +248,14 @@ BEGIN
   WHERE NOT ii.is_archived
     AND ii.provenance_status = 'verified'
     AND (p_domain IS NULL OR ii.domain = p_domain)
+    AND (
+      p_after_id IS NULL
+      OR (
+        (CASE ii.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MODERATE' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END) > v_after_rank
+        OR ((CASE ii.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MODERATE' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END) = v_after_rank AND ii.added_date < p_after_added_date)
+        OR ((CASE ii.priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MODERATE' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END) = v_after_rank AND ii.added_date = p_after_added_date AND ii.id > p_after_id)
+      )
+    )
   ORDER BY
     CASE ii.priority
       WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MODERATE' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END,
@@ -203,10 +263,12 @@ BEGIN
 END;
 $function$;
 
-COMMENT ON FUNCTION public.get_workspace_intelligence_listings_public(integer) IS
+COMMENT ON FUNCTION public.get_workspace_intelligence_listings_public(integer, text, date, uuid) IS
   'Org-independent counterpart to get_workspace_intelligence_listings(p_org_id, p_domain) (migration '
   '306, lane PERF-10, 2026-09-04; p_domain folded in by PERF-MERGE to match 305''s org-scoped '
-  'sibling). No org membership check, no workspace_item_overrides join. See '
+  'sibling; the keyset-cursor triple p_after_priority/p_after_added_date/p_after_id folded in by the '
+  'PERF-12-MERGE reconciliation lane so /api/listings/cursor pages this same org-independent RPC). '
+  'No org membership check, no workspace_item_overrides join. See '
   'get_workspace_intelligence_slim_public''s comment for the shared rationale.';
 
 -- 3. get_market_intel_items_public() — org-independent counterpart to get_market_intel_items(p_org_id).
@@ -336,7 +398,7 @@ COMMENT ON FUNCTION public.get_research_items_public() IS
 --    five already carry anon/authenticated/service_role EXECUTE via the PUBLIC default grant; stated
 --    explicitly here rather than relied on implicitly).
 GRANT EXECUTE ON FUNCTION public.get_workspace_intelligence_slim_public() TO anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.get_workspace_intelligence_listings_public(integer) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_workspace_intelligence_listings_public(integer, text, date, uuid) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.get_market_intel_items_public() TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.get_operations_items_public() TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.get_research_items_public() TO anon, authenticated, service_role;
@@ -414,6 +476,36 @@ BEGIN
     END IF;
     IF n_rows_domain1 >= n_rows_listings THEN
       RAISE EXCEPTION 'ABORT: get_workspace_intelligence_listings_public(1) (%) is not a strict subset of the unfiltered call (%) — p_domain appears to be a no-op', n_rows_domain1, n_rows_listings;
+    END IF;
+  END;
+
+  -- Keyset cursor (PERF-12-MERGE reconciliation fold-in): take the FIRST domain=1 row (the RPC's
+  -- own total order) as a real cursor boundary and confirm the SAME call, cursor-scoped, returns
+  -- exactly one fewer row (the first row itself excluded, nothing else) — proves the OR-chain WHERE
+  -- actually re-anchors on the row's own (priority, added_date, id) identity rather than being a
+  -- no-op or an off-by-more-than-one, and exercises the v_after_rank searched-CASE fix live (a
+  -- domain=1 corpus with at least one CRITICAL/HIGH row would previously have miscomputed rank for
+  -- the `CASE p_after_priority WHEN NULL ...` bug's sibling failure mode — see this file's header).
+  DECLARE
+    n_rows_domain1 int;
+    v_first_priority text;
+    v_first_added_date date;
+    v_first_id uuid;
+    n_rows_after_first int;
+  BEGIN
+    SELECT count(*) INTO n_rows_domain1 FROM public.get_workspace_intelligence_listings_public(1);
+    SELECT effective_priority, added_date, id
+      INTO v_first_priority, v_first_added_date, v_first_id
+      FROM public.get_workspace_intelligence_listings_public(1)
+      LIMIT 1;
+    IF v_first_id IS NULL THEN
+      RAISE EXCEPTION 'ABORT: could not read a first row from get_workspace_intelligence_listings_public(1) to build a cursor boundary';
+    END IF;
+    SELECT count(*) INTO n_rows_after_first
+      FROM public.get_workspace_intelligence_listings_public(1, v_first_priority, v_first_added_date, v_first_id);
+    IF n_rows_after_first <> n_rows_domain1 - 1 THEN
+      RAISE EXCEPTION 'ABORT: cursor-scoped call after the first row returned % rows, expected exactly % (domain1 count %s minus the excluded first row) — the keyset WHERE is not re-anchoring correctly',
+        n_rows_after_first, n_rows_domain1 - 1, n_rows_domain1;
     END IF;
   END;
 END $$;

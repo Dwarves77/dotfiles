@@ -4,7 +4,7 @@ import { getServiceSupabase } from "@/lib/supabase-service";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
-import { loadPersonalState, loadListOrders, loadMembers, loadAdminAttention, loadOverrides, loadOrgId } from "./logic";
+import { loadPersonalState, loadListOrders, loadMembers, loadAdminAttention, loadOverrides } from "./logic";
 // PERF-ARCH (2026-09-04, docs/decisions/ADR-027-*.md): Server-Timing instrumentation, wired here
 // as this lane's one concrete example of the "add the timing wrapper" write-set item. A Route
 // Handler is the ONE response type this app can attach a genuine HTTP Server-Timing header to —
@@ -46,15 +46,21 @@ async function handleGET(request: NextRequest) {
 
   const supabase = getServiceSupabase();
 
-  // Six independent per-user reads, in ONE Promise.all (the shape server-timing.ts's own header
-  // cites PERF-9/ADR-026 §3 for — PERF-10's `loadOverrides` and PERF-12's `loadOrgId` both join the
-  // same batch rather than adding a second round trip each). Each phase name below is this route's
-  // own vocabulary (personal_state/list_orders/members/admin_attention/overrides/org_id), not the
-  // shared PERF_PHASES constants, which name the regulations/detail-page vocabulary this route
-  // doesn't share. Timing each individually (rather than the whole Promise.all as one span) is what
-  // makes the eventual Server-Timing header useful for "which of the six is slow today", not just
-  // "the batch was slow".
-  const [personalState, listOrders, members, adminAttention, overrides, orgId] = await Promise.all([
+  // Five independent per-user reads, in ONE Promise.all (the shape server-timing.ts's own header
+  // cites PERF-9/ADR-026 §3 for — PERF-10's `loadOverrides` joins the batch rather than adding a
+  // second round trip). Each phase name below is this route's own vocabulary
+  // (personal_state/list_orders/members/admin_attention/overrides), not the shared PERF_PHASES
+  // constants, which name the regulations/detail-page vocabulary this route doesn't share. Timing
+  // each individually (rather than the whole Promise.all as one span) is what makes the eventual
+  // Server-Timing header useful for "which of the five is slow today", not just "the batch was slow".
+  //
+  // RECONCILE (2026-09-04, item 1): PERF-12's sixth loader, `loadOrgId`, is REMOVED. It existed only
+  // to expose an org id for the client to forward as `X-Org-Id` on `/api/listings/cursor` requests,
+  // for the server to verify against the session — that whole mechanism is gone now that the cursor
+  // route pages the org-independent public RPC (no per-viewer/per-org data in that response at all,
+  // see that route's own header). No reader of `orgId` on this payload survives, so the field is
+  // deleted rather than kept as unused surface (CLAUDE.md's no-dead-code rule).
+  const [personalState, listOrders, members, adminAttention, overrides] = await Promise.all([
     timePhase("personal_state", () => loadPersonalState(supabase, auth.userId)),
     timePhase("list_orders", () => loadListOrders(supabase, auth.userId)),
     timePhase("members", () => loadMembers(supabase, auth.userId)),
@@ -63,14 +69,9 @@ async function handleGET(request: NextRequest) {
     // workspace_item_overrides rows — see logic.ts's loadOverrides header for why this joined the
     // bundle (it is what lets the four index/detail pages stop reading cookies() server-side).
     timePhase("overrides", () => loadOverrides(supabase, auth.userId)),
-    // PERF-12 (2026-09-04, ADR-027 §5/item 4): exposed so the client can forward it to per-org
-    // listing routes (X-Org-Id) for server-side VERIFICATION against the session — see loadOrgId's
-    // own header for why this is a verification signal, never the thing that actually scopes a
-    // query.
-    timePhase("org_id", () => loadOrgId(supabase, auth.userId)),
   ]);
 
-  const payload = { personalState, listOrders, members, adminAttention, overrides, orgId };
+  const payload = { personalState, listOrders, members, adminAttention, overrides };
   recordSerializedBytes(payload, PERF_PHASES.SERIALIZE_BYTES);
 
   return withServerTiming(

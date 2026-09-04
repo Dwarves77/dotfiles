@@ -85,11 +85,6 @@ export interface WorkspaceBootstrapData {
   // Absent/undefined on responses from before this field existed — callers
   // must treat `overrides` as optional, never assume presence.
   overrides?: BootstrapOverrideRow[];
-  /** PERF-12 (2026-09-04, ADR-027 §5/item 4): the caller's own org_id, session-resolved server-side
-   *  (route.ts's `loadOrgId`) — forwarded by listing-route callers as `X-Org-Id` for the server to
-   *  VERIFY against its own session-derived value, never trusted as the thing that scopes a query.
-   *  `null` when signed out or org-less, same as `members`. */
-  orgId: string | null;
 }
 
 interface SingletonState {

@@ -475,23 +475,34 @@ export interface ResourcePage {
    * (2026-09-04): /regulations was fetching the workspace's global top-N rows across ALL domains via
    * get_workspace_intelligence_listings, then filtering to REGULATIONS_DOMAIN client-side — a measured
    * 35% of the first-paint rows (live SQL, 2026-09-04: 39/60) were never Regulations content, over-fetched
-   * and over-serialised for a page that only ever shows one domain. When set, `fetchWorkspaceResources`
-   * tries a domain-scoped RPC call (migration 305's `p_domain` parameter on
-   * `get_workspace_intelligence_listings`) and fails soft to the unscoped call (today's behavior) if that
-   * migration is not yet live — see `fetchWorkspaceResources`'s own comment. Only honored for RPC names in
-   * `DOMAIN_SCOPED_RPCS` below; ignored (no-op) for every other RPC name, so passing it for a caller that
-   * doesn't need it is always safe.
+   * and over-serialised for a page that only ever shows one domain. Migration 305 (org-scoped,
+   * APPLIED LIVE 2026-09-04 19:55 UTC) and migration 306 (org-independent `_public` sibling) both
+   * carry this parameter now, so `fetchWorkspaceResources`/`fetchPublicWorkspaceResources` attach it
+   * directly whenever it is set — no fail-soft retry (RECONCILE, 2026-09-04, item 3: the coordinator
+   * applies migrations DDL-before-code, so a "does this signature exist yet" retry is a dead branch
+   * that would otherwise silently mask a real RPC error as "not applied yet"). Only honored for RPC
+   * names in `DOMAIN_SCOPED_RPCS`/the `_public` listings RPC; ignored (no-op) for every other RPC
+   * name, so passing it for a caller that doesn't need it is always safe.
    */
   domain?: number;
   /**
-   * Optional keyset cursor (ADR-027 §2, PERF-12 2026-09-04, migration 306 WRITTEN NOT APPLIED).
-   * The last row's OWN `(effective_priority, added_date, id)` triple from the previous page —
-   * `get_workspace_intelligence_listings`'s own total order (migration 272, confirmed unchanged by
-   * 303/305). When all three are present AND `rpcName` is in `CURSOR_SCOPED_RPCS` below,
-   * `fetchWorkspaceResources` tries a keyset-scoped call (migration 306's `p_after_*` params)
-   * first and fails soft to the plain `.range(offset, ...)` call (today's behavior, still correct,
-   * just position-based rather than identity-based) on any error — same fail-soft shape as
-   * `domain` above. Omitted = no cursor, unaffected.
+   * Optional keyset cursor (ADR-027 §2, migration 306's `get_workspace_intelligence_listings_public`
+   * — the org-INDEPENDENT public RPC only; see that migration's own header for the OR-chain WHERE
+   * this powers). The last row's OWN `(effective_priority, added_date, id)` triple from the previous
+   * page — the RPC's own total order. `fetchPublicWorkspaceResources` attaches these directly
+   * whenever a full `(afterPriority, afterId)` pair is present.
+   *
+   * RECONCILE (2026-09-04, item 2): this is NOT honored by the ORG-scoped `fetchWorkspaceResources`
+   * path — PERF-12 originally built a keyset variant of the org-scoped `get_workspace_intelligence_
+   * listings` for exactly this, but once `/api/listings/cursor` (the only caller that ever supplied
+   * a cursor) was routed through the org-INDEPENDENT public RPC instead (item 1 — a scroll page
+   * needs no per-viewer data, so it should never carry a per-request cookie/auth hop either), NOTHING
+   * calls the org-scoped listings RPC with a cursor. That org-scoped keyset migration was deleted
+   * rather than shipped as dead code (see docs/inventories/migrations.md's disposition row) — a
+   * second signature on an RPC nothing calls is exactly the kind of speculative surface CLAUDE.md's
+   * no-dead-code rule forbids, and it would also have been the SAME live-overload defect the
+   * corrected 305 exists to prevent (a bare `CREATE OR REPLACE` with a new arg list creates a SECOND
+   * overload beside the already-live 2-arg one).
    */
   afterPriority?: string;
   afterAddedDate?: string | null;
@@ -524,24 +535,25 @@ const LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER = new Set<string>([
 ]);
 
 /**
- * RPC names whose signature CAN carry an optional `p_domain` argument once their migration is live —
- * PERF-11 (2026-09-04). Only `get_workspace_intelligence_listings` today. Migration 305 was WRITTEN
- * NOT APPLIED as of PERF-11's own lane; PERF-MERGE records it **APPLIED LIVE 2026-09-04 19:55 UTC**
- * (one 2-arg overload, PERF-MERGE's own correction of the stale-overload risk — see 305's file header
- * and docs/inventories/migrations.md's row for both). The fail-soft retry in `fetchWorkspaceResources`
- * stays regardless — a cheap, self-healing guard against a future rollback of 305, not a sign this set
- * is still "unconfirmed live" the way `LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER` above is graded.
+ * RPC names whose signature carries an optional `p_domain` argument — PERF-11 (2026-09-04). Only
+ * `get_workspace_intelligence_listings` today, via migration 305 (org-scoped, APPLIED LIVE
+ * 2026-09-04 19:55 UTC — one 2-arg overload; see 305's file header and docs/inventories/migrations.md
+ * for both).
+ *
+ * RECONCILE (2026-09-04, item 3): `fetchWorkspaceResources` below attaches `p_domain` directly on the
+ * ONE call it makes whenever `options.page.domain` is set and `rpcName` is in this set — no
+ * "attempt the new signature, catch a not-found error, retry the old one" ladder. The coordinator
+ * applies every migration in this train BEFORE this code merges (DDL-before-code, enforced by the
+ * apply-order this REPORT documents), so a signature-not-found error at runtime is not a "306 hasn't
+ * landed yet" transient to survive — it is a real defect (a rolled-back migration, a typo'd RPC name),
+ * and the old ladder's `catch → fall back to the unscoped call` behavior would have MASKED exactly
+ * that defect as a silently-degraded, wrongly-scoped corpus (every domain on the page, not just this
+ * one) instead of surfacing it. The direct call's error still flows to the existing
+ * `if (error || !items?.length)` empty-result branch below, now with the real Supabase error logged
+ * first (previously unlogged for this branch) so a genuine failure is visible in the server log rather
+ * than indistinguishable from "the corpus really is empty."
  */
 const DOMAIN_SCOPED_RPCS = new Set<string>(["get_workspace_intelligence_listings"]);
-
-/**
- * RPC names whose signature CAN carry the optional `p_after_priority`/`p_after_added_date`/
- * `p_after_id` keyset-cursor arguments once migration 306 is live — PERF-12 (2026-09-04). Same
- * "attempt, never trust" contract as `DOMAIN_SCOPED_RPCS` (306, like 305, is WRITTEN NOT APPLIED
- * as of this lane) — see `ResourcePage.afterPriority`'s own header and the fail-soft retry in
- * `fetchWorkspaceResources` below, which activates automatically the moment 306 goes live.
- */
-const CURSOR_SCOPED_RPCS = new Set<string>(["get_workspace_intelligence_listings"]);
 
 /**
  * Builds the (possibly ranged) query for one page of workspace-intelligence RPC rows.
@@ -599,40 +611,19 @@ export function buildWorkspaceItemsQuery(
   orgId: string,
   page?: ResourcePage,
   // PERF-11 (2026-09-04): when true AND page.domain is a number AND rpcName is in DOMAIN_SCOPED_RPCS,
-  // adds `p_domain` to the RPC call args (migration 305). The caller (fetchWorkspaceResources) controls
-  // this explicitly, never inferred here, so the fail-soft retry there can call this function TWICE with
-  // the same rpcName/page and get a different query the second time — see that function's own comment.
-  includeDomainArg?: boolean,
-  // PERF-12 (2026-09-04, ADR-027 §2): same shape as includeDomainArg, for migration 306's
-  // p_after_* keyset-cursor params. When true AND page carries a full (afterPriority,
-  // afterAddedDate !== undefined, afterId) triple AND rpcName is in CURSOR_SCOPED_RPCS, adds the
-  // three p_after_* args AND ranges from 0 (the cursor's WHERE clause has already excluded every
-  // row at/before the cursor, so "row 0 of what's left" is the correct next row — NOT
-  // page.offset, which is a running total-consumed count irrelevant once the server is filtering
-  // by identity rather than position).
-  includeCursorArg?: boolean
+  // adds `p_domain` to the RPC call args (migration 305). RECONCILE (2026-09-04, item 3): the caller
+  // (fetchWorkspaceResources) calls this function exactly ONCE per request now — no retry ladder that
+  // would call it twice with a different flag and a different query the second time.
+  includeDomainArg?: boolean
 ) {
   const rpcArgs: Record<string, unknown> = { p_org_id: orgId };
   if (includeDomainArg && DOMAIN_SCOPED_RPCS.has(rpcName) && typeof page?.domain === "number") {
     rpcArgs.p_domain = page.domain;
   }
-  const usingCursor =
-    !!includeCursorArg &&
-    CURSOR_SCOPED_RPCS.has(rpcName) &&
-    typeof page?.afterPriority === "string" &&
-    page.afterPriority.length > 0 &&
-    typeof page?.afterId === "string" &&
-    page.afterId.length > 0;
-  if (usingCursor) {
-    rpcArgs.p_after_priority = page!.afterPriority;
-    rpcArgs.p_after_added_date = page!.afterAddedDate ?? null;
-    rpcArgs.p_after_id = page!.afterId;
-  }
   const call = serviceClient.rpc(rpcName, rpcArgs);
   if (!page) return call;
   if (LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER.has(rpcName)) {
-    const from = usingCursor ? 0 : page.offset;
-    return call.range(from, from + page.limit - 1);
+    return call.range(page.offset, page.offset + page.limit - 1);
   }
   return call
     .order("added_date", { ascending: false, nullsFirst: false })
@@ -672,62 +663,19 @@ async function fetchWorkspaceResources(
   // meaningful "first N" slice instead of shipping the entire corpus on
   // every request. See buildWorkspaceItemsQuery's own header for why this
   // is `.range()` only, with no `.order()` chained on top of it.
-  // PERF-11 (2026-09-04): when the caller asked for a domain-scoped page, try the domain-scoped call
-  // first (migration 305's `p_domain` on get_workspace_intelligence_listings) and fail soft to the
-  // unscoped call on ANY error — including "function ...(uuid, integer) does not exist", the exact shape
-  // a call against the pre-305 signature returns. This activates automatically the moment 305 is applied
-  // live: no manual gate to flip, no second deploy. See ResourcePage.domain's own header for the
-  // measured bug this closes and DOMAIN_SCOPED_RPCS's header for why this is a real retry, not a trusted
-  // fact the way LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER is.
-  const wantsDomainScope =
-    typeof options.page?.domain === "number" && DOMAIN_SCOPED_RPCS.has(rpcName);
-  // PERF-12 (2026-09-04, ADR-027 §2): when the caller passed a keyset cursor, try the
-  // domain+cursor call FIRST (migration 306's p_after_* args, on top of 305's p_domain — see
-  // buildWorkspaceItemsQuery's own comment for why usingCursor changes the .range() start too),
-  // and fail soft into the EXISTING wantsDomainScope ladder below (domain-only offset range, then
-  // fully unscoped) on ANY error — including "function ...(uuid, integer, text, date, uuid) does
-  // not exist", the shape a call against a pre-306 signature returns. Same "attempt, never trust"
-  // contract as PERF-11's own domain retry just above; activates automatically once 306 is live.
-  const wantsCursorScope =
-    wantsDomainScope &&
-    CURSOR_SCOPED_RPCS.has(rpcName) &&
-    typeof options.page?.afterPriority === "string" &&
-    options.page.afterPriority.length > 0 &&
-    typeof options.page?.afterId === "string" &&
-    options.page.afterId.length > 0;
-  let items: any[] | null = null;
-  let error: unknown = null;
-  if (wantsCursorScope) {
-    const cursorQuery = buildWorkspaceItemsQuery(serviceClient, rpcName, orgId, options.page, true, true);
-    const cursored = await cursorQuery;
-    if (!cursored.error) {
-      items = cursored.data;
-      error = null;
-    } else {
-      console.warn(
-        `[perf] cursor-scoped ${rpcName} call failed (migration 306 likely not yet applied) — falling back to offset-scoped: ${describeSupabaseError(cursored.error)}`
-      );
-    }
-  }
-  if (items === null && wantsDomainScope) {
-    const scopedQuery = buildWorkspaceItemsQuery(serviceClient, rpcName, orgId, options.page, true);
-    const scoped = await scopedQuery;
-    if (!scoped.error) {
-      items = scoped.data;
-      error = null;
-    } else {
-      console.warn(
-        `[perf] domain-scoped ${rpcName} call failed (migration 305 likely not yet applied) — falling back to unscoped: ${describeSupabaseError(scoped.error)}`
-      );
-    }
-  }
-  if (items === null) {
-    const itemsQuery = buildWorkspaceItemsQuery(serviceClient, rpcName, orgId, options.page, false);
-    const unscoped = await itemsQuery;
-    items = unscoped.data;
-    error = unscoped.error;
-  }
+  // RECONCILE (2026-09-04, item 3): ONE direct call with the final signature — no fail-soft retry
+  // ladder. `includeDomainArg: true` is always passed; buildWorkspaceItemsQuery itself is the single
+  // place that decides whether `p_domain` actually gets attached (only when rpcName is in
+  // DOMAIN_SCOPED_RPCS and options.page.domain is a number — a no-op for every other caller). A real
+  // RPC failure (wrong signature, dropped function) is a genuine defect now that the coordinator
+  // guarantees DDL-before-code, so it is logged here rather than silently retried into a
+  // differently-scoped call.
+  const query = buildWorkspaceItemsQuery(serviceClient, rpcName, orgId, options.page, true);
+  const { data: items, error } = await query;
 
+  if (error) {
+    console.error(`[fetchWorkspaceResources] ${rpcName} RPC call failed: ${describeSupabaseError(error)}`);
+  }
   if (error || !items?.length) {
     return { active: [], archived: [], uuidToUiId: new Map() };
   }
@@ -752,16 +700,22 @@ async function fetchWorkspaceResources(
  * orgId, no cookies) — src/lib/data.ts wraps this in one shared unstable_cache entry for the whole
  * app, tagged PUBLIC_ITEMS_TAG.
  */
-// PERF-MERGE (2026-09-04): the public/org-independent sibling of DOMAIN_SCOPED_RPCS above.
-// `get_workspace_intelligence_listings_public` gained its own optional `p_domain` in migration 306
-// (folded in at merge time to match 305's org-scoped patch — see 306's file header, "P_DOMAIN") so
-// the STATIC /regulations page (getPublicListingsOnly, PERF-10's whole point) narrows its fetch to
-// domain=1 exactly the way the org-scoped path narrows to it once an org resolves. Same posture as
-// DOMAIN_SCOPED_RPCS: names a migration the caller must still handle failing against (306 is
-// WRITTEN, NOT APPLIED as of this merge — see that file's header), so `fetchPublicWorkspaceResources`
-// below ATTEMPTS the domain-scoped call only for a name in this set and fails soft to the unscoped
-// call on ANY error, activating automatically the moment 306 goes live with no further edit here.
+// The public/org-independent sibling of DOMAIN_SCOPED_RPCS above. `get_workspace_intelligence_
+// listings_public` carries its own optional `p_domain` (migration 306, matching 305's org-scoped
+// param) so the STATIC /regulations page (getPublicListingsOnly, PERF-10's whole point) narrows its
+// fetch to domain=1 exactly the way the org-scoped path narrows to it once an org resolves.
 const PUBLIC_DOMAIN_SCOPED_RPCS = new Set<string>(["get_workspace_intelligence_listings_public"]);
+
+// RPC names whose signature carries the optional `p_after_priority`/`p_after_added_date`/`p_after_id`
+// keyset-cursor triple — migration 306, ADR-027 §2. RECONCILE (2026-09-04, item 1): this lives ONLY
+// on the org-independent public RPC now. PERF-12 originally built the matching triple on the
+// org-SCOPED `get_workspace_intelligence_listings` (so `/api/listings/cursor` could keep verifying an
+// `X-Org-Id` header on every scroll page); that variant is deleted (see ResourcePage.afterPriority's
+// own header and docs/inventories/migrations.md's disposition row) because a scroll page needs no
+// per-viewer data and so should carry no per-request cookie/auth hop of its own — routing the cursor
+// through this org-independent RPC instead is what makes `/api/listings/cursor`'s response cacheable
+// (`Cache-Control: public, s-maxage=...`), which an org-scoped response never could be.
+const PUBLIC_CURSOR_SCOPED_RPCS = new Set<string>(["get_workspace_intelligence_listings_public"]);
 
 async function fetchPublicWorkspaceResources(
   options: { slim?: boolean; listings?: boolean; page?: ResourcePage } = {}
@@ -774,43 +728,44 @@ async function fetchPublicWorkspaceResources(
     ? "get_workspace_intelligence_listings_public"
     : "get_workspace_intelligence_slim_public";
   const serviceClient = getServiceSupabase();
-  // Same range()-only pagination contract as the org-scoped path: both public RPCs carry their own
-  // `..., ii.id ASC` tiebreak (migration 306, mirroring 303's fix for the org-scoped slim RPC), so
-  // `.range()` alone preserves the RPC's own priority-band order exactly like
-  // LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER's entries do above.
-  //
-  // PERF-MERGE: when the caller asked for a domain-scoped page AND rpcName is in
-  // PUBLIC_DOMAIN_SCOPED_RPCS, try the domain-scoped call (`{ p_domain }`) first and fail soft to the
-  // zero-argument call on ANY error — mirrors fetchWorkspaceResources's own domain-scope retry above,
-  // one level down (org-independent instead of org-scoped). Without this, a domain-filtered page
-  // request (e.g. /regulations' `domain: REGULATIONS_DOMAIN`) would silently ignore the filter on the
-  // org-independent path even after 306 applies.
-  const wantsDomainScope =
-    typeof options.page?.domain === "number" && PUBLIC_DOMAIN_SCOPED_RPCS.has(rpcName);
-  let items: any[] | null = null;
-  let error: unknown = null;
-  if (wantsDomainScope) {
-    const scopedCall = serviceClient.rpc(rpcName, { p_domain: options.page!.domain });
-    const scopedQuery = options.page
-      ? scopedCall.range(options.page.offset, options.page.offset + options.page.limit - 1)
-      : scopedCall;
-    const scoped = await scopedQuery;
-    if (!scoped.error) {
-      items = scoped.data;
-    } else {
-      console.warn(
-        `[perf] domain-scoped ${rpcName} call failed (migration 306 likely not yet applied) — falling back to unscoped: ${describeSupabaseError(scoped.error)}`
-      );
-    }
+  const page = options.page;
+
+  // RECONCILE (2026-09-04, items 1-3): ONE direct call built from the final signature — no fail-soft
+  // retry ladder. `p_domain` and the `p_after_*` cursor triple are each attached only when the caller
+  // actually supplied them AND rpcName is in the matching *_RPCS set (a no-op for the slim RPC, which
+  // has neither param); a real RPC failure is a genuine defect now that the coordinator guarantees
+  // DDL-before-code, so it is logged rather than silently retried into a differently-scoped call.
+  const rpcArgs: Record<string, unknown> = {};
+  if (typeof page?.domain === "number" && PUBLIC_DOMAIN_SCOPED_RPCS.has(rpcName)) {
+    rpcArgs.p_domain = page.domain;
   }
-  if (items === null) {
-    const call = serviceClient.rpc(rpcName, {});
-    const itemsQuery = options.page ? call.range(options.page.offset, options.page.offset + options.page.limit - 1) : call;
-    const unscoped = await itemsQuery;
-    items = unscoped.data;
-    error = unscoped.error;
+  const usingCursor =
+    PUBLIC_CURSOR_SCOPED_RPCS.has(rpcName) &&
+    typeof page?.afterPriority === "string" &&
+    page.afterPriority.length > 0 &&
+    typeof page?.afterId === "string" &&
+    page.afterId.length > 0;
+  if (usingCursor) {
+    rpcArgs.p_after_priority = page!.afterPriority;
+    rpcArgs.p_after_added_date = page!.afterAddedDate ?? null;
+    rpcArgs.p_after_id = page!.afterId;
   }
 
+  const call = serviceClient.rpc(rpcName, rpcArgs);
+  // Same range()-only pagination contract as the org-scoped path: both public RPCs carry their own
+  // `..., ii.id ASC` tiebreak (migration 306, mirroring 303's fix for the org-scoped slim RPC), so
+  // `.range()` alone preserves the RPC's own priority-band order. When a cursor is present, range
+  // from 0 — the cursor's WHERE clause has already excluded every row at/before it, so "row 0 of
+  // what's left" is the correct next row, not `page.offset` (a running total-consumed count that is
+  // irrelevant once the server is filtering by identity rather than position).
+  const query = page
+    ? call.range(usingCursor ? 0 : page.offset, (usingCursor ? 0 : page.offset) + page.limit - 1)
+    : call;
+  const { data: items, error } = await query;
+
+  if (error) {
+    console.error(`[fetchPublicWorkspaceResources] ${rpcName} RPC call failed: ${describeSupabaseError(error)}`);
+  }
   if (error || !items?.length) {
     return { active: [], archived: [], uuidToUiId: new Map() };
   }

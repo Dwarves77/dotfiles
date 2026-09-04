@@ -62,21 +62,23 @@ export const PERF_BUDGET_REGISTRY = Object.freeze({
         'not the whole document. Same re-measurement caveat as documentBytes.',
     },
     sequentialDbHops: {
-      ratchet: 2,
+      ratchet: 1,
       target: 1,
       measuredAt: "2026-09-04",
       evidence:
-        "[CONFIRMED, by reading] src/lib/data.ts's getListingsOnly (line ~278-307): " +
-        "resolveOrgIdFromCookies() THEN cachedListingsOnly(orgId, page) — two round trips that " +
-        "cannot run in Promise.all because the listing RPC is org-parameterized (needs orgId as " +
-        "an argument). ADR-027 names the org-independent-RPC-plus-client-merge migration that " +
-        "would collapse this to 1 as PERF-10/PERF-11 follow-up work, not done this lane. PERF-12 " +
-        "(2026-09-04) confirmed this same shape holds, unchanged, for EVERY subsequent scroll page " +
-        "fetched via /api/listings/cursor (it calls the identical getListingsOnly) — the cursor " +
-        "route does not add a hop of its own beyond the conditional X-Org-Id verification read " +
-        "(resolveOrgIdFromCookies(), request-scoped cache()-memoized — a cache HIT, not a new " +
-        "round trip, whenever the header is present, since getListingsOnly already resolved the " +
-        "same cached value first).",
+        "[CONFIRMED, by reading, RECONCILE item 1] /regulations (src/app/regulations/page.tsx) and " +
+        "its scroll-pagination route (src/app/api/listings/cursor/route.ts) both now call " +
+        "getPublicListingsOnly (src/lib/data.ts:408) -> cachedPublicListingsOnly -> " +
+        "fetchPublicListingsOnly (src/lib/supabase-server.ts:2595) -> fetchPublicWorkspaceResources " +
+        "(src/lib/supabase-server.ts:720) -> ONE serviceClient RPC call (rpcName, rpcArgs) " +
+        "(get_workspace_intelligence_listings_public, migration 306) with NO org_id argument and NO " +
+        "resolveOrgIdFromCookies()/cookies() read anywhere in the path — the org-scoped two-hop " +
+        "shape this ratchet previously measured (resolveOrgIdFromCookies() THEN a call needing that " +
+        "orgId) no longer exists on this route at all; both the SSR first page and every subsequent " +
+        "scroll page pay exactly ONE DB hop, and the response is genuinely cacheable " +
+        "(Cache-Control: public, s-maxage=60, stale-while-revalidate=300, route.ts's own success " +
+        "path) because it carries no per-viewer input. target === ratchet: this metric is now at " +
+        "goal for the hop-count axis on this route.",
     },
     domRowsOnFirstPaint: {
       ratchet: 40,

@@ -88,22 +88,23 @@ export function toLedgerRowPayload(r: Resource): Resource {
   };
 }
 
-// ── PERF-12 (2026-09-04) keyset cursor ──────────────────────────────────────────────────────────
+// ── keyset cursor (PERF-12, 2026-09-04; reconciled onto the public RPC, RECONCILE 2026-09-04) ─────
 //
-// ADR-027 §2: "the cursor is the last row's (priority, added_date, id)" — the RPC's own total
-// order (get_workspace_intelligence_listings, migration 272, confirmed unchanged by 303/305). The
-// cursor an infinite-query page hands back is an OPAQUE token to the client (`useLedgerInfiniteQuery`
-// never reads its fields, only forwards it) so the server side of this contract (route.ts) can
-// switch its OWN interpretation the moment migration 306 lands — from "offset only" to "offset +
-// true keyset" — with NO client-side change and no cache-key change (see route.ts's own header).
+// ADR-027 §2: "the cursor is the last row's (priority, added_date, id)" — migration 306's
+// `get_workspace_intelligence_listings_public`'s own total order. The cursor an infinite-query page
+// hands back is an OPAQUE token to the client (`useLedgerInfiniteQuery` never reads its fields, only
+// forwards it) — route.ts always interprets the full triple as a true keyset WHERE (migration 306's
+// `p_after_*` args) now that the coordinator applies every migration in this train before this code
+// merges (no "pre-306" era for this route to degrade through).
 export interface ListingCursor {
-  /** Rows consumed so far across every page fetched for this query. Always present; the ONLY
-   *  field the pre-306 server can use (`.range(offset, offset+limit-1)` — PERF-11's own
-   *  mechanism, unchanged, kept as the honest floor). */
+  /** Rows consumed so far across every page fetched for this query. Retained as the request's
+   *  `offset` query param for observability/logging only — the server ranges from the keyset WHERE,
+   *  never from this count, once `afterId` is present (see supabase-server.ts's
+   *  `fetchPublicWorkspaceResources`). */
   offset: number;
   /** The last row's own (effective_priority, added_date, id) triple — present once at least one
-   *  row has been fetched. Forwarded to the route regardless of whether migration 306 is live; a
-   *  pre-306 server ignores it (see supabase-server.ts's CURSOR_SCOPED_RPCS fail-soft). */
+   *  row has been fetched. Forwarded to the route, which attaches it directly to migration 306's
+   *  keyset WHERE (see supabase-server.ts's `PUBLIC_CURSOR_SCOPED_RPCS`). */
   afterPriority?: string;
   afterAddedDate?: string | null;
   afterId?: string;

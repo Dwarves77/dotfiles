@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getListingsOnly } from "@/lib/data";
+import { getPublicListingsOnly } from "@/lib/data";
 import {
   LIST_PAGE_SIZE,
   decodeListingCursor,
@@ -8,7 +8,6 @@ import {
   toLedgerRowPayload,
 } from "@/lib/list-pagination";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
-import { resolveOrgIdFromCookies } from "@/lib/api/org";
 
 /**
  * GET /api/listings/cursor?surface=regulations&cursor=<opaque>
@@ -18,31 +17,52 @@ import { resolveOrgIdFromCookies } from "@/lib/api/org";
  * list-pagination.ts's own header) with true page-at-a-time cursor pagination, consumed by
  * `useLedgerInfiniteQuery` (TanStack Query's `useInfiniteQuery`) via `fetchNextPage`.
  *
+ * RECONCILE (2026-09-04, item 1, ADR-027 §2 + PERF-10's org-independent architecture): a scroll page
+ * needs no per-viewer data — the same reason /regulations itself was moved off `getListingsOnly`
+ * (org-scoped, cookies-dependent) onto `getPublicListingsOnly` (PERF-10's zero-argument public RPC).
+ * PERF-12 originally built this route on the ORG-scoped RPC, forwarding an `X-Org-Id` header for the
+ * server to verify against the session — that entire mechanism (the header, `resolveOrgIdFromCookies`
+ * here, the org-scoped keyset variant of `get_workspace_intelligence_listings`) is deleted. This route
+ * now calls the SAME org-independent, cacheable public RPC PERF-10 built for the first page
+ * (`get_workspace_intelligence_listings_public`, migration 306), just with the keyset triple attached
+ * — see supabase-server.ts's `fetchPublicWorkspaceResources` and `PUBLIC_CURSOR_SCOPED_RPCS`. Reading
+ * no cookie and needing no per-request auth is what makes this route itself cacheable
+ * (`Cache-Control: public, s-maxage=...` below) — an org-scoped response never could be, because two
+ * different orgs' overrides could otherwise collide in one shared cache entry.
+ *
+ * Per-viewer overrides (priority override, archive state, owner, notes) are NOT part of this
+ * response, by design — same split as the first page: the client merges them in from
+ * useWorkspaceOverridesHydration()/mergeWithOverrides (resourceStore.ts), never baked into a
+ * server-cached response keyed only by page/cursor.
+ *
  * Regulations-only today (`surface` accepts only "regulations"): Operations/Market/Research keep
  * their existing, unaudited-as-broken mechanisms unchanged (PERF-11 confirmed their live corpora —
  * 25/55/39 items — are under the first-page threshold; see /api/listings/rest, still Operations'
  * route). A second `surface` value is additive here whenever a future audit confirms one of those
- * three needs the same treatment — nothing about this route's shape is Regulations-specific
- * besides the domain filter below.
+ * three needs the same treatment — nothing about this route's shape is Regulations-specific besides
+ * the domain filter below.
  *
  * CURSOR CONTRACT (list-pagination.ts's own header): the cursor is opaque to the CLIENT — it never
  * inspects or builds one field-by-field, only round-trips whatever `nextCursor` this route handed
- * back. What the cursor carries, and how THIS route uses it, is allowed to change (specifically:
- * once migration 306 is live, `getListingsOnly` starts honoring `afterPriority`/`afterAddedDate`/
- * `afterId` for a true keyset WHERE instead of a plain `.range(offset, ...)` — see
- * supabase-server.ts's CURSOR_SCOPED_RPCS fail-soft ladder) with ZERO change to this route's
- * response shape or to the client hook that calls it.
+ * back. `getPublicListingsOnly` forwards `afterPriority`/`afterAddedDate`/`afterId` straight through
+ * to migration 306's keyset WHERE (a true identity-scoped filter, not a `.range(offset, ...)` reread)
+ * — see supabase-server.ts's `ResourcePage.afterPriority` header.
  *
  * Response: `{ resources, archived, nextCursor, hasMore }`. `nextCursor` is `null` when this page
  * came back shorter than LIST_PAGE_SIZE (the corpus is exhausted) — `useLedgerInfiniteQuery`'s
  * `getNextPageParam` reads exactly that field, never re-derives "is there more" from row counts on
  * its own.
  *
- * force-dynamic: reads cookies (via resolveOrgIdFromCookies inside getListingsOnly), so this can
- * never be statically generated — same constraint /api/listings/rest already documents.
+ * FAILS LOUD (RECONCILE, 2026-09-04, item 3): a real RPC failure (wrong signature, dropped function)
+ * is a genuine defect now that the coordinator guarantees every migration in this train applies
+ * before this code merges — it is never "306 probably hasn't landed yet, degrade quietly." This route
+ * therefore returns 500 (with the underlying Supabase-derived error logged) rather than 200 with an
+ * empty/short page standing in for a real failure, which would otherwise read to a scrolling viewer
+ * as "you've reached the end of the list" when the true state is "the server failed to answer."
+ *
+ * No `force-dynamic`: this route reads no cookie and needs no per-request Dynamic API — see the
+ * cacheable-response note above.
  */
-export const dynamic = "force-dynamic";
-
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const surface = searchParams.get("surface") ?? "";
@@ -55,29 +75,8 @@ export async function GET(request: NextRequest) {
 
   const cursor = decodeListingCursor(searchParams.get("cursor"));
 
-  // PERF-12 (2026-09-04, ADR-027 §5/item 4): the client (useLedgerInfiniteQuery, sourced from
-  // useWorkspaceBootstrap's own session-resolved orgId) MAY forward its last-known org id as
-  // `X-Org-Id` — verified here against resolveOrgIdFromCookies(), the SAME request-scoped cache()
-  // resolver getListingsOnly itself uses below to actually scope the query. The header is NEVER
-  // trusted as input to the query itself (getListingsOnly ignores it entirely, exactly as before
-  // this lane) — this check exists only to catch a client whose cached org id has drifted from its
-  // current session (e.g. an org switch) and tell it to reload, rather than silently letting a
-  // TanStack Query cache keyed only by `surface` (ledgerListingQueryKey) go on serving pages under
-  // an org the session no longer agrees with. A MISSING header (bootstrap still loading, or a caller
-  // that predates this header) is "nothing to verify" — not a mismatch — so it never 409s.
-  const claimedOrgId = request.headers.get("x-org-id");
-  if (claimedOrgId) {
-    const sessionOrgId = await resolveOrgIdFromCookies();
-    if (sessionOrgId !== claimedOrgId) {
-      return NextResponse.json(
-        { error: "org mismatch — the session's org no longer matches the client's cached org id" },
-        { status: 409 }
-      );
-    }
-  }
-
   try {
-    const result = await getListingsOnly({
+    const result = await getPublicListingsOnly({
       limit: LIST_PAGE_SIZE,
       offset: cursor.offset,
       domain: REGULATIONS_DOMAIN,
@@ -87,30 +86,31 @@ export async function GET(request: NextRequest) {
     });
 
     if (result._error) {
-      // Non-fatal: log with full detail and still return whatever rows came back (possibly none)
-      // rather than a 500 — the caller keeps every page it already holds either way (same
-      // fail-soft contract /api/listings/rest already established for this exact ledger).
+      // FAILS LOUD (item 3): a real fetch failure, not a legitimate empty page — 500, not a
+      // degraded 200. getPublicListingsOnly's own catch already logged the underlying exception;
+      // this line adds the request context (surface/cursor) a bare stack trace wouldn't carry.
       console.error(
-        `[api/listings/cursor] surface=${surface} offset=${cursor.offset} fetch degraded: ${result._error} (trigger=${result._fallbackTrigger ?? "none"})`
+        `[api/listings/cursor] surface=${surface} offset=${cursor.offset} fetch failed: ${result._error} (trigger=${result._fallbackTrigger ?? "none"})`
+      );
+      return NextResponse.json(
+        { error: "failed to fetch the next page" },
+        { status: 500 }
       );
     }
 
-    // hasMore/the next cursor are derived from the RAW fetch (result.resources, BEFORE the domain
-    // filter below), not the filtered set — deliberately. `offset` (the fail-soft floor's own
-    // pagination unit) is a position within the RAW `.range()` result, and until migration 305 is
-    // live the domain filter below runs purely client-side (the RPC itself is still unscoped), so
-    // a fetched page can legitimately contain FEWER than LIST_PAGE_SIZE regulations while the raw
-    // corpus still has more rows past this window — using the filtered count here would signal
-    // "exhausted" early and silently truncate the ledger. Once migrations 305+306 are live the RPC
-    // itself only ever returns domain-matching rows, so raw and filtered are identical and this
-    // distinction becomes a no-op — correct in both eras with the same code.
+    // hasMore/the next cursor are derived from the RPC's own returned count. Migration 306's
+    // `get_workspace_intelligence_listings_public` is called WITH `p_domain` (see
+    // fetchPublicWorkspaceResources), so every returned row already matches REGULATIONS_DOMAIN —
+    // raw and filtered counts are identical, unlike the pre-305/306 era this route's own history
+    // used to need to reconcile.
     const hasMore = result.resources.length >= LIST_PAGE_SIZE;
     const next = cursorAfter(cursor, result.resources);
     const nextCursor = hasMore ? encodeListingCursor(next) : null;
 
-    // Defensive domain filter (mirrors /api/listings/rest's own pre-306/pre-305 backstop): a no-op
-    // once migrations 305+306 are live and every row already matches; the render-correctness floor
-    // before then. Applied AFTER the hasMore/cursor computation above — see that comment.
+    // Defensive domain assertion, not a scoping mechanism: migration 306's `p_domain` argument is
+    // what actually scopes this query server-side now (see the RPC call above) — this filter is a
+    // correctness backstop against a future regression (e.g. someone calling this route path without
+    // the domain arg), not dead code compensating for an unscoped RPC the way it did pre-306.
     const resources = result.resources.filter((r) => r.domain === REGULATIONS_DOMAIN);
     const archived = result.archived.filter((r) => r.domain === REGULATIONS_DOMAIN);
 
@@ -124,12 +124,14 @@ export async function GET(request: NextRequest) {
     return new NextResponse(body, {
       headers: {
         "Content-Type": "application/json",
-        // private: per-org (resolveOrgIdFromCookies-scoped), matching /api/listings/rest's own
-        // precedent. No stale-while-revalidate here (unlike the old remainder route): each page is
-        // a small, cheap, cursor-identified slice fetched on demand as the user actually scrolls,
-        // not a 5-minute-cacheable "the rest of everything" blob — caching it would also risk
-        // returning a stale nextCursor pointing at a row a later mutation moved.
-        "Cache-Control": "private, no-store",
+        // public + s-maxage/stale-while-revalidate (RECONCILE item 1): this response carries no
+        // per-viewer data and reads no cookie (see the file header), so — unlike the old org-scoped
+        // "private, no-store" response — it is safe to cache at a shared edge/CDN layer, keyed by the
+        // full URL (surface + cursor), matching the 60s revalidate window getPublicListingsOnly's own
+        // unstable_cache entry already uses server-side (data.ts's cachedPublicListingsOnly). A stale
+        // read within the window returns a page that is at most 60s old, the same staleness bound the
+        // first page (/regulations itself) already accepts.
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
       },
     });
   } catch (e) {

@@ -61,6 +61,7 @@ node --test \
   fsi-app/.discipline/skill-drift-gate.test.mjs \
   fsi-app/.discipline/shared-writer-registry.test.mjs \
   fsi-app/.discipline/notification-preferences-save-path.test.mjs \
+  fsi-app/.discipline/format-locale-sweep.test.mjs \
   fsi-app/.discipline/lib/*.test.mjs \
   fsi-app/.discipline/rules/*.test.mjs \
   fsi-app/.discipline/consistency/*.test.mjs \
@@ -119,7 +120,7 @@ node --test \
   fsi-app/src/lib/tier-badge-tone.test.mjs \
   fsi-app/src/lib/coverage-gaps-rollup.test.mjs \
   fsi-app/src/lib/list-pagination.test.mjs \
-  fsi-app/src/lib/supabase-server-domain-scope.test.mjs \
+  fsi-app/src/lib/supabase-server-rpc-scope.test.mjs \
   fsi-app/src/lib/perf/*.test.mjs \
   fsi-app/src/lib/bootstrap/*.test.mjs \
   fsi-app/src/lib/watchlist/*.test.mjs \

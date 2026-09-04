@@ -38,6 +38,13 @@ import {
   type ResearchSourceCoverageCell,
   type ResourcePage,
 } from "@/lib/supabase-server";
+import {
+  fetchObligationRegisterPage,
+  fetchForwardEventCount,
+  fetchRegisterFacetOptions,
+} from "@/lib/obligations/read-register.mjs";
+import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
+import type { ObligationRow } from "@/components/regulations/ObligationRegisterFilterBar";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { mapCommunityPulseThreads as mapCommunityPulseThreadsShared } from "@/components/dashboard/pulse-shared.mjs";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
@@ -1388,5 +1395,83 @@ export async function getCommunityPulse(): Promise<CommunityPulseResult> {
   } catch (e) {
     console.error("getCommunityPulse failed, returning empty:", e);
     return EMPTY_COMMUNITY_PULSE;
+  }
+}
+
+/**
+ * RECONCILE (2026-09-04, item 4b-i): SSR seed for ObligationRegister.tsx's LIST-variant, UNFILTERED
+ * first page. ObligationRegister was converted to a pure client-mount fetch by PERF-10 (its own header:
+ * reading migration 290's `obligations` via the cookie-bound request-scoped client during THIS page's
+ * server render was a Dynamic API dependency forcing /regulations `ƒ`) — correct at the time, but it
+ * left this one section blank ("Loading obligation register…") on every first paint, the exact defect
+ * this reconciliation's item 4b calls out.
+ *
+ * WHY A SERVICE-ROLE READ IS SAFE HERE (measured, not assumed — read-register.mjs's own functions take
+ * an injected client, so nothing there needed to change). Migration 290's own RLS policy
+ * (`obligations_read`, this file's own comment history / supabase/migrations/290_obligations.sql):
+ *   USING (EXISTS (SELECT 1 FROM intelligence_items i WHERE i.id = obligations.intelligence_item_id
+ *                    AND i.is_archived = false))
+ * — no org check, no auth.uid() check, applies identically to anon and authenticated roles alike. This
+ * table has never been per-viewer data; RLS is a DB-level backstop for a predicate `read-register.mjs`
+ * already re-applies at the application layer (`fetchObligationRegisterPage`'s own item join filters
+ * `is_archived=false AND provenance_status='verified'`, STRICTER than the RLS policy's `is_archived`-only
+ * check) — so a service-role call replicating that same predicate returns a result no anon RLS-scoped
+ * call could not also have returned. This is the identical reasoning migration 306's `_public` RPCs
+ * apply for the workspace-intelligence tables (see that migration's own header) — the obligations
+ * register just never needed a NEW migration to express it, because read-register.mjs's own functions
+ * were already client-agnostic.
+ *
+ * SCOPE: the list variant's UNFILTERED first page ONLY (no jurisdiction/mode/binding/dueWindow filter,
+ * offset 0) — exactly the shape ObligationRegister.tsx's own client effect used to request on mount
+ * (see /api/obligations/register/route.ts's own "isFirstLoad" gate for the identical shape check). A
+ * filter change or "Load more" still calls that route directly, client-side, through the REQUEST-SCOPED
+ * client — unchanged by this fix; only the very first, always-the-same-for-every-viewer render moves to
+ * this cached, cookie-free path. The itemId-scoped DETAIL variant is unaffected (it was never the
+ * blank-on-first-paint defect this item targets: it renders nothing while loading, matching its own
+ * already-honest "zero obligations" empty state, which is not the same defect as a customer-facing LIST
+ * section reading "Loading…" on every navigation).
+ *
+ * Tagged PUBLIC_ITEMS_TAG (not APP_DATA_TAG) and no orgId in the cache key — one shared entry for the
+ * whole app, same posture as every other getPublic* wrapper in this file.
+ */
+export interface PublicObligationRegisterFirstPage {
+  rows: ObligationRow[];
+  total: number;
+  sourceEventCount?: number | null;
+  jurisdictionOptions: string[];
+  modeOptions: string[];
+}
+
+const cachedPublicObligationRegisterFirstPage = unstable_cache(
+  async (): Promise<PublicObligationRegisterFirstPage> => {
+    const supabase = getServiceSupabase();
+    const { rows, total } = await fetchObligationRegisterPage(supabase, {
+      offset: 0,
+      limit: LIST_FIRST_PAGE_SIZE,
+    });
+    const [sourceEventCount, facets] = await Promise.all([
+      // Same "only when the register itself is empty" gate the route applies — see its own header
+      // for why this count exists (spec-01's "derived from N forward events" honest-empty copy).
+      total === 0 ? fetchForwardEventCount(supabase) : Promise.resolve(undefined),
+      fetchRegisterFacetOptions(supabase),
+    ]);
+    return {
+      rows: rows as ObligationRow[],
+      total,
+      sourceEventCount,
+      jurisdictionOptions: facets.jurisdictions,
+      modeOptions: facets.modes,
+    };
+  },
+  ["public-obligation-register-first-page-reconcile"],
+  { revalidate: 60, tags: [PUBLIC_ITEMS_TAG] }
+);
+
+export async function getPublicObligationRegisterFirstPage(): Promise<PublicObligationRegisterFirstPage> {
+  try {
+    return await cachedPublicObligationRegisterFirstPage();
+  } catch (e) {
+    console.error("getPublicObligationRegisterFirstPage failed, returning empty:", e);
+    return { rows: [], total: 0, jurisdictionOptions: [], modeOptions: [] };
   }
 }
