@@ -1,0 +1,853 @@
+{
+  "harness_family": "ledger-consume",
+  "harness_version": "sha256:2f3138ea51a193ac",
+  "run_id": "ledger-consume-run-001",
+  "started_at": "2026-09-04T18:09:20.080Z",
+  "finished_at": "2026-09-04T18:10:09.659Z",
+  "config": {
+    "requested_mode": "plan",
+    "mode": "plan",
+    "apply_disarmed": false,
+    "apply_enabled_const": true,
+    "limit": 50,
+    "source_id": null,
+    "newest_first": false,
+    "after": null,
+    "fetch_gap_ms": 1000,
+    "verdicts_file": null,
+    "allow_api": false,
+    "prompt_version": "sha256:70ca104246d8bb95"
+  },
+  "inputs_ref": [
+    "portal_link_candidates: status=candidate limit=50 order=asc(first_seen_at,id)",
+    "session-verdicts: none — every candidate without --allow-api is skipped, never sent to the API"
+  ],
+  "per_item": [
+    {
+      "id": "4bbeb953-700e-483d-b63b-d69b51f7ba9b",
+      "candidate_id": "4bbeb953-700e-483d-b63b-d69b51f7ba9b",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/homepage.html?locale=en",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/homepage.html?locale=en"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "93ab53e7-d0dd-4bf1-a99d-d86c6d5cfc48",
+      "candidate_id": "93ab53e7-d0dd-4bf1-a99d-d86c6d5cfc48",
+      "source_id": "45140924-25b6-4d2c-abe5-11a65386acdc",
+      "url": "https://ww2.arb.ca.gov/rulemaking",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://ww2.arb.ca.gov/rulemaking"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "5382cf66-61cc-48d5-ba6d-f18140b6e3a0",
+      "candidate_id": "5382cf66-61cc-48d5-ba6d-f18140b6e3a0",
+      "source_id": "45140924-25b6-4d2c-abe5-11a65386acdc",
+      "url": "https://ww2.arb.ca.gov/our-work/programs/truck-and-bus-regulation",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://ww2.arb.ca.gov/our-work/programs/truck-and-bus-regulation"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "270b6eb5-de28-447a-ba93-853d0ce37426",
+      "candidate_id": "270b6eb5-de28-447a-ba93-853d0ce37426",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-force.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-force.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "b3a8cb9f-e07e-4478-b864-2ee1a7090f2d",
+      "candidate_id": "b3a8cb9f-e07e-4478-b864-2ee1a7090f2d",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-founding.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-founding.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "43691796-edbc-436f-8711-3c8b826a7168",
+      "candidate_id": "43691796-edbc-436f-8711-3c8b826a7168",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-accession.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-accession.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "619e0711-d35c-4eef-b1af-d012978649cd",
+      "candidate_id": "619e0711-d35c-4eef-b1af-d012978649cd",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-other.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-other.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "1b96cb61-48ca-4fd1-9a15-5a19abe5fb49",
+      "candidate_id": "1b96cb61-48ca-4fd1-9a15-5a19abe5fb49",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-overview.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/eu-law/treaties/treaties-overview.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "e9632bcc-d1e3-4f3e-9717-cf93207b4562",
+      "candidate_id": "e9632bcc-d1e3-4f3e-9717-cf93207b4562",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/eu-law/legal-acts/recent.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/eu-law/legal-acts/recent.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "6f071242-0e8c-49f4-bd97-bb178245b042",
+      "candidate_id": "6f071242-0e8c-49f4-bd97-bb178245b042",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/eu-law/consleg.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/eu-law/consleg.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "e8520ec4-486d-4ce6-a7d5-c221532d4e15",
+      "candidate_id": "e8520ec4-486d-4ce6-a7d5-c221532d4e15",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/eu-law/inter-agree.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/eu-law/inter-agree.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "c182750e-d69f-4650-998f-45591526b55a",
+      "candidate_id": "c182750e-d69f-4650-998f-45591526b55a",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/eu-law/pre-acts.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/eu-law/pre-acts.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "442ebd19-dbdf-49d0-badf-e7b624436777",
+      "candidate_id": "442ebd19-dbdf-49d0-badf-e7b624436777",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/eu-law/efta.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/eu-law/efta.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "907563df-bb19-4ee2-b498-de8607d6696a",
+      "candidate_id": "907563df-bb19-4ee2-b498-de8607d6696a",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/browse/summaries.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/browse/summaries.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "8111ee95-f975-4fb1-9115-5b7090611e79",
+      "candidate_id": "8111ee95-f975-4fb1-9115-5b7090611e79",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/eu-law/eu-case-law.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/eu-law/eu-case-law.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "7290901d-3b94-476a-aa22-7962c617308d",
+      "candidate_id": "7290901d-3b94-476a-aa22-7962c617308d",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/eu-law/eu-case-law/reports.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/eu-law/eu-case-law/reports.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "c6ff945c-b28c-4f56-a1de-c50c15f9a5cd",
+      "candidate_id": "c6ff945c-b28c-4f56-a1de-c50c15f9a5cd",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/browse/directories/new-case-law.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/browse/directories/new-case-law.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "0ef59445-0c39-4395-b207-a892a890dce2",
+      "candidate_id": "0ef59445-0c39-4395-b207-a892a890dce2",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/oj/direct-access.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/direct-access.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "e92fdaf9-10c1-4f4e-a060-750c031ae40a",
+      "candidate_id": "e92fdaf9-10c1-4f4e-a060-750c031ae40a",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/oj/daily-view/C-series/default.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/daily-view/C-series/default.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "93f0be69-7c65-41df-8fed-dfdf2ef62896",
+      "candidate_id": "93f0be69-7c65-41df-8fed-dfdf2ef62896",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/oj/browse-oj.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/browse-oj.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "46c01024-5af4-42b5-b7b5-43c5e4e31067",
+      "candidate_id": "46c01024-5af4-42b5-b7b5-43c5e4e31067",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/oj/all/auth-direct-access.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/oj/all/auth-direct-access.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "13a2dcbb-0249-47d9-9baf-0309d279759d",
+      "candidate_id": "13a2dcbb-0249-47d9-9baf-0309d279759d",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/n-law/mne.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/n-law/mne.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "13d7b29f-356a-423d-ab68-cc5e4b15da4f",
+      "candidate_id": "13d7b29f-356a-423d-ab68-cc5e4b15da4f",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/n-law/n-case-law.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/n-law/n-case-law.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "1e262243-314f-40e5-87d4-9fdb75d40360",
+      "candidate_id": "1e262243-314f-40e5-87d4-9fdb75d40360",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/collection/n-law/jure.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/collection/n-law/jure.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "b2c46b38-3fe3-4162-b752-b4fe6cee3d22",
+      "candidate_id": "b2c46b38-3fe3-4162-b752-b4fe6cee3d22",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/eli-register/what_is_eli.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/eli-register/what_is_eli.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "e7d01bba-f6f1-4ec0-97f8-4c0c890663a8",
+      "candidate_id": "e7d01bba-f6f1-4ec0-97f8-4c0c890663a8",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/eli-register/background.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/eli-register/background.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "40b3e5eb-e1e7-4898-b805-79103c67d973",
+      "candidate_id": "40b3e5eb-e1e7-4898-b805-79103c67d973",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/eli-register/benefits.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/eli-register/benefits.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "0ea0c802-0752-4437-a599-291681398916",
+      "candidate_id": "0ea0c802-0752-4437-a599-291681398916",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/eli-register/implementing_countries.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/eli-register/implementing_countries.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "37ab5695-c4d5-424a-9cee-8568cdf8282f",
+      "candidate_id": "37ab5695-c4d5-424a-9cee-8568cdf8282f",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/eli-register/testimonials.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/eli-register/testimonials.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "d1cbb9c6-807d-4ca2-beb1-39c91b2c9970",
+      "candidate_id": "d1cbb9c6-807d-4ca2-beb1-39c91b2c9970",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/eli-register/implementing_eli.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/eli-register/implementing_eli.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "1f93a6be-5ef2-49d1-96d2-1b75a9972d1c",
+      "candidate_id": "1f93a6be-5ef2-49d1-96d2-1b75a9972d1c",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/eli-register/glossary.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/eli-register/glossary.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "3b45246a-4975-4453-8cec-ffe0786827d7",
+      "candidate_id": "3b45246a-4975-4453-8cec-ffe0786827d7",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601779",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601779"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "48fd086f-2e61-42be-8a5a-979e3c626de0",
+      "candidate_id": "48fd086f-2e61-42be-8a5a-979e3c626de0",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601410",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601410"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "27a27c69-b02a-48bd-b02c-e978af3b1829",
+      "candidate_id": "27a27c69-b02a-48bd-b02c-e978af3b1829",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601734",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601734"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "602337b5-99e9-4048-b654-a8cb777c343f",
+      "candidate_id": "602337b5-99e9-4048-b654-a8cb777c343f",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601737",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601737"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "b2e8dd09-449a-438f-9dfb-e3a1d9bc3ccd",
+      "candidate_id": "b2e8dd09-449a-438f-9dfb-e3a1d9bc3ccd",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601778",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601778"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "278009a7-b78c-4b30-9e8e-b607c5117124",
+      "candidate_id": "278009a7-b78c-4b30-9e8e-b607c5117124",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601781",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601781"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "305e0601-a585-4f7a-9055-c7af34674757",
+      "candidate_id": "305e0601-a585-4f7a-9055-c7af34674757",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601793",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202601793"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "3fa23690-0bcf-4ca7-acc5-930f22fe7eb5",
+      "candidate_id": "3fa23690-0bcf-4ca7-acc5-930f22fe7eb5",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202690590",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202690590"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "2aabc143-6e7a-48b4-b49f-37c32700c1cd",
+      "candidate_id": "2aabc143-6e7a-48b4-b49f-37c32700c1cd",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202690591",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202690591"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "f639139f-43fd-4600-a238-5cdf4a8950bb",
+      "candidate_id": "f639139f-43fd-4600-a238-5cdf4a8950bb",
+      "source_id": "260089a9-e334-4104-843c-cdfc28a94dcc",
+      "url": "https://eur-lex.europa.eu/content/legal-notice/legal-notice.html",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://eur-lex.europa.eu/content/legal-notice/legal-notice.html"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "2c4fbe3c-4066-4b46-aae0-edf583a806c7",
+      "candidate_id": "2c4fbe3c-4066-4b46-aae0-edf583a806c7",
+      "source_id": "d9e0948e-71c7-4234-9ab4-28302141826f",
+      "url": "https://www.federalregister.gov/documents/2026/07/15/2026-14204/lake-ontario-national-marine-sanctuary-delay-of-effective-date",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://www.federalregister.gov/documents/2026/07/15/2026-14204/lake-ontario-national-marine-sanctuary-delay-of-effective-date"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "1567ded1-5019-424e-bc9a-b6aae1224fb0",
+      "candidate_id": "1567ded1-5019-424e-bc9a-b6aae1224fb0",
+      "source_id": "d9e0948e-71c7-4234-9ab4-28302141826f",
+      "url": "https://www.federalregister.gov/documents/2026/07/15/2026-14205/amendment-of-class-d-airspace-and-removal-of-class-e4-airspace-over-nashua-nh",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://www.federalregister.gov/documents/2026/07/15/2026-14205/amendment-of-class-d-airspace-and-removal-of-class-e4-airspace-over-nashua-nh"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "a7f2fb77-b65a-4cf2-9fd3-3d5b0b9e6d11",
+      "candidate_id": "a7f2fb77-b65a-4cf2-9fd3-3d5b0b9e6d11",
+      "source_id": "d9e0948e-71c7-4234-9ab4-28302141826f",
+      "url": "https://www.federalregister.gov/documents/2026/07/15/2026-14207/safety-zones-recurring-events-in-captain-of-the-port-duluth-zone",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://www.federalregister.gov/documents/2026/07/15/2026-14207/safety-zones-recurring-events-in-captain-of-the-port-duluth-zone"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "09c1291b-12e5-49d3-b53a-bcf0eb39badd",
+      "candidate_id": "09c1291b-12e5-49d3-b53a-bcf0eb39badd",
+      "source_id": "d9e0948e-71c7-4234-9ab4-28302141826f",
+      "url": "https://www.federalregister.gov/documents/2026/07/15/2026-14224/safety-zone-cuyahoga-river-cleveland-oh",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://www.federalregister.gov/documents/2026/07/15/2026-14224/safety-zone-cuyahoga-river-cleveland-oh"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "1d8f1df6-d82e-4bfd-887b-61612c64af8f",
+      "candidate_id": "1d8f1df6-d82e-4bfd-887b-61612c64af8f",
+      "source_id": "d9e0948e-71c7-4234-9ab4-28302141826f",
+      "url": "https://www.federalregister.gov/documents/2026/07/15/2026-14240/references-to-electronic-filing-systems-in-rules-of-practice-in-filings-pursuant-to-the-protocol",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://www.federalregister.gov/documents/2026/07/15/2026-14240/references-to-electronic-filing-systems-in-rules-of-practice-in-filings-pursuant-to-the-protocol"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "51d8999f-80d5-4af2-9e03-0db804d88685",
+      "candidate_id": "51d8999f-80d5-4af2-9e03-0db804d88685",
+      "source_id": "d9e0948e-71c7-4234-9ab4-28302141826f",
+      "url": "https://www.federalregister.gov/documents/2026/07/15/2026-14244/montana-regulatory-program",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://www.federalregister.gov/documents/2026/07/15/2026-14244/montana-regulatory-program"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "a43a8c72-6751-45ef-ad2f-a9b5d2c565f1",
+      "candidate_id": "a43a8c72-6751-45ef-ad2f-a9b5d2c565f1",
+      "source_id": "d9e0948e-71c7-4234-9ab4-28302141826f",
+      "url": "https://www.federalregister.gov/documents/2026/07/15/2026-14245/montana-regulatory-program",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://www.federalregister.gov/documents/2026/07/15/2026-14245/montana-regulatory-program"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "7ba72496-df0e-4e14-a7ba-d22c4130eb48",
+      "candidate_id": "7ba72496-df0e-4e14-a7ba-d22c4130eb48",
+      "source_id": "d9e0948e-71c7-4234-9ab4-28302141826f",
+      "url": "https://www.federalregister.gov/documents/2026/07/15/2026-14248/establishment-of-class-e-airspace-crown-point-in",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://www.federalregister.gov/documents/2026/07/15/2026-14248/establishment-of-class-e-airspace-crown-point-in"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    },
+    {
+      "id": "e609850e-8b40-4ed8-9e91-d17f4f62191f",
+      "candidate_id": "e609850e-8b40-4ed8-9e91-d17f4f62191f",
+      "source_id": "d9e0948e-71c7-4234-9ab4-28302141826f",
+      "url": "https://www.federalregister.gov/documents/2026/07/16/2026-14298/accepted-consensus-standards-for-light-sport-category-aircraft-airplane-glider-powered-lift-and",
+      "outcome": "skipped",
+      "reason": "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "est_usd": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "evidence_refs": [
+        "https://www.federalregister.gov/documents/2026/07/16/2026-14298/accepted-consensus-standards-for-light-sport-category-aircraft-airplane-glider-powered-lift-and"
+      ],
+      "error": "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API",
+      "classify_source": "skipped-no-verdict"
+    }
+  ],
+  "metrics": {
+    "mode": "plan",
+    "candidates": 50,
+    "discovered": 50,
+    "fetched": 50,
+    "classified": 0,
+    "with_verdict": 0,
+    "without_verdict_skipped": 50,
+    "uncertain": 0,
+    "promoted": 0,
+    "rejected": 0,
+    "skipped": 50,
+    "est_usd": 0,
+    "est_usd_total": 0,
+    "input_tokens_total": 0,
+    "output_tokens_total": 0,
+    "next_cursor": {
+      "firstSeenAt": "2026-07-19T17:49:15.238467+00:00",
+      "id": "e609850e-8b40-4ed8-9e91-d17f4f62191f"
+    }
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/ledger-consume/traces/ledger-consume-run-001.result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-ledger-consume.mjs, the ledger-consume family's canonical entry point (Lane CONSUME, 2026-09-02) — the runtime consumePortalCandidates (src/lib/intake/portal-harvest.ts) never had. Every classify call's agent_runs telemetry is written by the spend chokepoint itself (src/lib/llm/spend-client.ts's spendMessage/recordSpendCall, wired into first-fetch-classify.ts by Lane SPEND) — this driver only READS BACK FirstFetchClassifyResult's cost_usd_estimated/input_tokens/output_tokens (collectClassifyTelemetry) to shape this artifact's per_item/metrics; it does not write agent_runs itself, so a classify call leaves exactly one telemetry row, not two. See this file's header for the full account."
+}
