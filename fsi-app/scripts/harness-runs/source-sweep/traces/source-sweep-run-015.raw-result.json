@@ -1,0 +1,4437 @@
+{
+  "sources": [
+    {
+      "sourceId": "687a082b-65eb-4b9a-9e0d-e3bccda8f64b",
+      "sourceName": "ECLAC / CEPAL – United Nations",
+      "sourceUrl": "https://cepal.org/en",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://cepal.org/en",
+      "sitemapsFetched": [
+        {
+          "url": "https://cepal.org/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 1,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 31,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=1",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=2",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=3",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=4",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=5",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=6",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=7",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=8",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=9",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=10",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=11",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=12",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=13",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=14",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=15",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=16",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=17",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=18",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=19",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=20",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=21",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=22",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=23",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=24",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=25",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=26",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=27",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=28",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=29",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=30",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=31",
+          "kind": "urlset",
+          "urlCount": 655,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 42476,
+      "urlCount": 5000,
+      "urlsOverLimit": 13179,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 5000,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 5000,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:23:18.133Z",
+        "feed_last_probed_at": "2026-09-04T23:23:18.133Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://cepal.org/sitemap.xml",
+        "sitemap_url_count": 5000
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "7fb0e8dc-1f87-46e0-8748-269ba548f669",
+      "sourceName": "ECLAC / CEPAL – United Nations",
+      "sourceUrl": "https://cepal.org/en/publications/41229-freight-transport-road-tools-and-strategies-energy-efficiency-and-sustainability",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://cepal.org/en/publications/41229-freight-transport-road-tools-and-strategies-energy-efficiency-and-sustainability",
+      "sitemapsFetched": [
+        {
+          "url": "https://cepal.org/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 1,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 31,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=1",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=2",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=3",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=4",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=5",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=6",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=7",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=8",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=9",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=10",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=11",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=12",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=13",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=14",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=15",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=16",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=17",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=18",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=19",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=20",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=21",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=22",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=23",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=24",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=25",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=26",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=27",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=28",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=29",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=30",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=31",
+          "kind": "urlset",
+          "urlCount": 655,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 60654,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:24:12.481Z",
+        "feed_last_probed_at": "2026-09-04T23:24:12.481Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://cepal.org/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "a2b2fe29-5a42-4231-8214-f7d86f56f87f",
+      "sourceName": "ECLAC / CEPAL – United Nations",
+      "sourceUrl": "https://cepal.org/en/about",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://cepal.org/en/about",
+      "sitemapsFetched": [
+        {
+          "url": "https://cepal.org/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 1,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 31,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=1",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=2",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=3",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=4",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=5",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=6",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=7",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=8",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=9",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=10",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=11",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=12",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=13",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=14",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=15",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=16",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=17",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=18",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=19",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=20",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=21",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=22",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=23",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=24",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=25",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=26",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=27",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=28",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=29",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=30",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cepal.org/default/sitemap.xml?page=31",
+          "kind": "urlset",
+          "urlCount": 655,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 60636,
+      "urlCount": 19,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 19,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 19,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:25:03.144Z",
+        "feed_last_probed_at": "2026-09-04T23:25:03.144Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://cepal.org/sitemap.xml",
+        "sitemap_url_count": 19
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "a8ba5304-64f1-4fbc-a3b7-21b74835e21f",
+      "sourceName": "Canada Energy Regulator",
+      "sourceUrl": "https://cer-rec.gc.ca",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://cer-rec.gc.ca",
+      "sitemapsFetched": [
+        {
+          "url": "https://cer-rec.gc.ca/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 8477,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 5000,
+      "urlsOverLimit": 3475,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 5000,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 5000,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:29:18.159Z",
+        "feed_last_probed_at": "2026-09-04T23:29:18.159Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://cer-rec.gc.ca/sitemap.xml",
+        "sitemap_url_count": 5000
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "fe010c62-ed5d-4a76-ae31-6478c929fe47",
+      "sourceName": "cer-rec.gc.ca / generate pool source",
+      "sourceUrl": "https://www.cer-rec.gc.ca/en/applications-hearings/view-applications-projects/line-21-replacement/index.html",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.cer-rec.gc.ca/en/applications-hearings/view-applications-projects/line-21-replacement/index.html",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.cer-rec.gc.ca/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 8477,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 8475,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:29:33.015Z",
+        "feed_last_probed_at": "2026-09-04T23:29:33.015Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.cer-rec.gc.ca/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "2b6d9e9a-c8ed-42de-942f-1576dfa931ac",
+      "sourceName": "CER – Community of European Railway and Infrastructure Companies",
+      "sourceUrl": "https://cer.be/about-us/who-we-are",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://cer.be/about-us/who-we-are",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://cer.be/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cer.be/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://cer.be/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cer.be/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://cer.be/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cer.be/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:29:49.597Z",
+        "feed_last_probed_at": "2026-09-04T23:29:49.597Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "62d003e3-4b19-4286-8fd8-3bda315ab460",
+      "sourceName": "CER – Community of European Railway and Infrastructure Companies",
+      "sourceUrl": "https://cer.be/topics/sustainability",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://cer.be/topics/sustainability",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://cer.be/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cer.be/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://cer.be/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cer.be/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://cer.be/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cer.be/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:30:06.590Z",
+        "feed_last_probed_at": "2026-09-04T23:30:06.590Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "b9d38292-21af-42a6-a956-3918f700dcae",
+      "sourceName": "CER – Community of European Railway and Infrastructure Companies",
+      "sourceUrl": "https://cer.be/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://cer.be/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://cer.be/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cer.be/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://cer.be/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cer.be/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://cer.be/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cer.be/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:30:17.598Z",
+        "feed_last_probed_at": "2026-09-04T23:30:17.598Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "88239c3d-e188-447d-a031-2952e945ee1f",
+      "sourceName": "Chalmers University Marine Environment",
+      "sourceUrl": "https://chalmers.se/en/departments/m2",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://chalmers.se/en/departments/m2",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.chalmers.se/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 2,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.chalmers.se/sitemap-0.xml",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.chalmers.se/server-sitemap-index.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 7,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.chalmers.se/sitemap/cms_content.xml",
+          "kind": "urlset",
+          "urlCount": 6947,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.chalmers.se/sitemap/pew_people.xml",
+          "kind": "urlset",
+          "urlCount": 5219,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.chalmers.se/sitemap/pew_phdcourses.xml",
+          "kind": "urlset",
+          "urlCount": 146,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.chalmers.se/sitemap/pew_studyprogrammes.xml",
+          "kind": "urlset",
+          "urlCount": 476,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.chalmers.se/sitemap/pew_courses.xml",
+          "kind": "urlset",
+          "urlCount": 1964,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.chalmers.se/sitemap/pew_resdatathesis.xml",
+          "kind": "urlset",
+          "urlCount": 42,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.chalmers.se/sitemap/pew_news.xml",
+          "kind": "urlset",
+          "urlCount": 51,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 3,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 14458,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:30:46.537Z",
+        "feed_last_probed_at": "2026-09-04T23:30:46.537Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.chalmers.se/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "b7fd031f-b2db-4278-a481-13cc1a42e0f8",
+      "sourceName": "Changing Transport Initiative / Public Transport Electrification",
+      "sourceUrl": "https://changing-transport.org/transforming-public-transport-through-electrification/",
+      "kind": "feed",
+      "feedUrl": "https://changing-transport.org/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 115311,
+        "contentType": "",
+        "alternateLinksFound": 1,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://changing-transport.org/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://changing-transport.org/feed/",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:30:51.722Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T23:30:51.722Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "99e87d4a-1e5c-467f-95bf-cf4263dd0d66",
+      "sourceName": "Chicago Department of Public Health — Environmental Health",
+      "sourceUrl": "https://chicago.gov/city/en/depts/cdph/provdrs/environmental_health.html",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://chicago.gov/city/en/depts/cdph/provdrs/environmental_health.html",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://chicago.gov/robots.txt) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://chicago.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://chicago.gov/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://chicago.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://chicago.gov/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://chicago.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://chicago.gov/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:31:07.921Z",
+        "feed_last_probed_at": "2026-09-04T23:31:07.921Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "290e66c9-a757-4be6-ab68-a40414ec33b6",
+      "sourceName": "Office of the City Clerk of Chicago",
+      "sourceUrl": "https://chicityclerk.com/",
+      "kind": "feed",
+      "feedUrl": "https://chicityclerk.com/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 54894,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://chicityclerk.com/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://chicityclerk.com/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://chicityclerk.com/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://chicityclerk.com/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:31:13.436Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T23:31:13.436Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "e65c6ad0-f9d1-42be-9141-c901b8d7c90d",
+      "sourceName": "China Briefing - China Carbon Trading and Emissions Cap News",
+      "sourceUrl": "https://www.china-briefing.com/news/china-carbon-trading-emissions-cap/",
+      "kind": "feed",
+      "feedUrl": "https://www.china-briefing.com/feed",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 190581,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.china-briefing.com/news/china-carbon-trading-emissions-cap/feed",
+          "status": 200,
+          "isFeedDocument": false,
+          "reason": "not_feed_document"
+        },
+        {
+          "url": "https://www.china-briefing.com/news/china-carbon-trading-emissions-cap/rss",
+          "status": 200,
+          "isFeedDocument": false,
+          "reason": "not_feed_document"
+        },
+        {
+          "url": "https://www.china-briefing.com/news/china-carbon-trading-emissions-cap/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.china-briefing.com/news/china-carbon-trading-emissions-cap/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.china-briefing.com/news/china-carbon-trading-emissions-cap/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.china-briefing.com/news/china-carbon-trading-emissions-cap/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.china-briefing.com/feed",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.china-briefing.com/feed",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:31:22.521Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T23:31:22.521Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "2f0cf633-da54-45fc-bbbf-cdb1d2383f94",
+      "sourceName": "California Highway Patrol (CHP) – Commercial Vehicle Section",
+      "sourceUrl": "https://chp.ca.gov/programs-services/programs/commercial-vehicle-section",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://chp.ca.gov/programs-services/programs/commercial-vehicle-section",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.chp.ca.gov/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1643,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 1634,
+      "urlCount": 9,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 9,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 9,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:31:37.628Z",
+        "feed_last_probed_at": "2026-09-04T23:31:37.628Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.chp.ca.gov/sitemap.xml",
+        "sitemap_url_count": 9
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "f7318996-b931-42fe-9eff-144dfe82de82",
+      "sourceName": "CIM — NYC Local Law 97 Explainer",
+      "sourceUrl": "https://www.cim.io/blog/new-york-local-law-97-ll97-everything-you-need-to-know/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.cim.io/blog/new-york-local-law-97-ll97-everything-you-need-to-know/",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.cim.io/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 489,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 488,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:31:52.213Z",
+        "feed_last_probed_at": "2026-09-04T23:31:52.213Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.cim.io/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "bb1c5b96-b781-4c19-8e7a-ac98e50bce1e",
+      "sourceName": "Circular Action Hub – Brazilian Solid Waste Legislation (Certification Guide)",
+      "sourceUrl": "https://www.circularactionhub.org/certification/brazilian-solid-waste-legislation/",
+      "kind": "feed",
+      "feedUrl": "https://www.circularactionhub.org/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 107085,
+        "contentType": "",
+        "alternateLinksFound": 2,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.circularactionhub.org/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.circularactionhub.org/feed/",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:31:56.664Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T23:31:56.664Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "d6185b46-a409-4775-9791-e09c22754014",
+      "sourceName": "City & State NY — NY FY27 State Budget",
+      "sourceUrl": "https://www.cityandstateny.com/policy/2026/05/heres-whats-fy-27-new-york-state-budget/413729/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.cityandstateny.com/policy/2026/05/heres-whats-fy-27-new-york-state-budget/413729/",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.cityandstateny.com/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 33,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-flatpages.xml",
+          "kind": "urlset",
+          "urlCount": 20,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-voices.xml",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-voices.xml?p=2",
+          "kind": "urlset",
+          "urlCount": 990,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-featured.xml",
+          "kind": "urlset",
+          "urlCount": 121,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-winners-losers.xml",
+          "kind": "urlset",
+          "urlCount": 656,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-news.xml",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-assessments.xml",
+          "kind": "urlset",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-categories.xml",
+          "kind": "urlset",
+          "urlCount": 10,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-assets.xml",
+          "kind": "urlset",
+          "urlCount": 2,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-homepage.xml",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=2",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=3",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=4",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=5",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=6",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=7",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=8",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=9",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=10",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=11",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=12",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=13",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=14",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=15",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=16",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=17",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=18",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=19",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=20",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-posts.xml?p=21",
+          "kind": "urlset",
+          "urlCount": 117,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/sitemap-power-lists.xml",
+          "kind": "urlset",
+          "urlCount": 236,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.cityandstateny.com/prediction-markets/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 137,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 22397,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:33:52.363Z",
+        "feed_last_probed_at": "2026-09-04T23:33:52.363Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.cityandstateny.com/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "3c5327fb-3124-48da-b075-a5874d1f2008",
+      "sourceName": "City of Los Angeles City Clerk",
+      "sourceUrl": "https://cityclerk.lacity.org/onlinedocs/2014/14-1478_misc_10-06-2016.pdf",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://cityclerk.lacity.org/onlinedocs/2014/14-1478_misc_10-06-2016.pdf",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://cityclerk.lacity.org/robots.txt) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://cityclerk.lacity.org/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cityclerk.lacity.org/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://cityclerk.lacity.org/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cityclerk.lacity.org/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://cityclerk.lacity.org/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cityclerk.lacity.org/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:34:08.752Z",
+        "feed_last_probed_at": "2026-09-04T23:34:08.752Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "6ac220a6-d1fb-4439-8212-c0f2349e2993",
+      "sourceName": "City of Sydney",
+      "sourceUrl": "https://cityofsydney.nsw.gov.au/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://cityofsydney.nsw.gov.au/",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.cityofsydney.nsw.gov.au/sitemap",
+          "kind": "urlset",
+          "urlCount": 2411,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 2410,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 2410,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 2410,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:35:46.967Z",
+        "feed_last_probed_at": "2026-09-04T23:35:46.967Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.cityofsydney.nsw.gov.au/sitemap",
+        "sitemap_url_count": 2410
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "909b213e-dbd9-45fc-ab22-f08c56194fe9",
+      "sourceName": "Clark County Department of Environment and Sustainability",
+      "sourceUrl": "https://clarkcountynv.gov/government/departments/environment_and_sustainability/index.php",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://clarkcountynv.gov/government/departments/environment_and_sustainability/index.php",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.clarkcountynv.gov/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 4415,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 4415,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:36:01.394Z",
+        "feed_last_probed_at": "2026-09-04T23:36:01.394Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.clarkcountynv.gov/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "3c52e6e4-0764-48e1-88b2-9b9edc4904ec",
+      "sourceName": "Clarksons Research — Shipping Research Hub",
+      "sourceUrl": "https://www.clarksons.com/research/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.clarksons.com/research/",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.clarksons.com/xmlsitemap",
+          "kind": "urlset",
+          "urlCount": 436,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 430,
+      "urlCount": 5,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 5,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 5,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:36:17.604Z",
+        "feed_last_probed_at": "2026-09-04T23:36:17.604Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.clarksons.com/xmlsitemap",
+        "sitemap_url_count": 5
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "98924bc6-3452-4789-bf9b-95eadb215535",
+      "sourceName": "ClassNK — SEEMP Guidance (Rec. 175)",
+      "sourceUrl": "https://www.classnk.com/hp/pdf/activities/statutory/seemp/seemp-rec175new.pdf",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://www.classnk.com/hp/pdf/activities/statutory/seemp/seemp-rec175new.pdf",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://www.classnk.com/robots.txt) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.classnk.com/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.classnk.com/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.classnk.com/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.classnk.com/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.classnk.com/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.classnk.com/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:36:53.579Z",
+        "feed_last_probed_at": "2026-09-04T23:36:53.579Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "c8f78055-dd54-4d89-8a4d-d65aae2a885d",
+      "sourceName": "ClassNK Environmental",
+      "sourceUrl": "https://www.classnk.or.jp/hp/en/activities/statutory/index.html",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://www.classnk.or.jp/hp/en/activities/statutory/index.html",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://www.classnk.or.jp/robots.txt) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.classnk.or.jp/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.classnk.or.jp/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.classnk.or.jp/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.classnk.or.jp/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.classnk.or.jp/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.classnk.or.jp/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:37:10.588Z",
+        "feed_last_probed_at": "2026-09-04T23:37:10.588Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "edf8d2cf-4150-4845-aa70-e95420b3192b",
+      "sourceName": "Clean Hydrogen Partnership (EU joint undertaking under Horizon Europe)",
+      "sourceUrl": "https://clean-hydrogen.europa.eu/media/news/h2accelerate-deploy-150-fuel-cell-trucks-across-eu-2023-03-14_en",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://clean-hydrogen.europa.eu/media/news/h2accelerate-deploy-150-fuel-cell-trucks-across-eu-2023-03-14_en",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.clean-hydrogen.europa.eu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1398,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 1397,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:37:26.343Z",
+        "feed_last_probed_at": "2026-09-04T23:37:26.343Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.clean-hydrogen.europa.eu/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "0f2cf213-8a5c-4cb4-8bb4-93ae0665fabf",
+      "sourceName": "European Clean Trucking Alliance (ECTA)",
+      "sourceUrl": "https://clean-trucking.eu/",
+      "kind": "feed",
+      "feedUrl": "https://clean-trucking.eu/feed",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 85194,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://clean-trucking.eu/feed",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://clean-trucking.eu/feed",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:37:31.864Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T23:37:31.864Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "b534ca39-6ec5-4dce-9889-92367a2f5c62",
+      "sourceName": "European Clean Trucking Alliance (ECTA)",
+      "sourceUrl": "https://clean-trucking.eu/about-us",
+      "kind": "feed",
+      "feedUrl": "https://clean-trucking.eu/about-us/feed",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 43257,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://clean-trucking.eu/about-us/feed",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://clean-trucking.eu/about-us/feed",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:37:37.316Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T23:37:37.316Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "e09fe616-d465-4895-be2b-b602f47fbf6f",
+      "sourceName": "Australia Clean Energy Regulator — NGER Safeguard Mechanism",
+      "sourceUrl": "https://www.cleanenergyregulator.gov.au/nger/the-safeguard-mechanism",
+      "kind": "feed",
+      "feedUrl": "https://www.cleanenergyregulator.gov.au/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 156586,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.cleanenergyregulator.gov.au/nger/the-safeguard-mechanism/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.cleanenergyregulator.gov.au/nger/the-safeguard-mechanism/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.cleanenergyregulator.gov.au/nger/the-safeguard-mechanism/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.cleanenergyregulator.gov.au/nger/the-safeguard-mechanism/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.cleanenergyregulator.gov.au/nger/the-safeguard-mechanism/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.cleanenergyregulator.gov.au/nger/the-safeguard-mechanism/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.cleanenergyregulator.gov.au/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.cleanenergyregulator.gov.au/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.cleanenergyregulator.gov.au/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.cleanenergyregulator.gov.au/rss.xml",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:37:49.494Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T23:37:49.494Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "1db7d6c0-a644-47e5-94c5-55d66cb80520",
+      "sourceName": "US DOE Clean Investment Monitor",
+      "sourceUrl": "https://cleaninvestmentmonitor.org/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://cleaninvestmentmonitor.org/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://cleaninvestmentmonitor.org/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cleaninvestmentmonitor.org/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://cleaninvestmentmonitor.org/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cleaninvestmentmonitor.org/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://cleaninvestmentmonitor.org/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cleaninvestmentmonitor.org/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:38:00.716Z",
+        "feed_last_probed_at": "2026-09-04T23:38:00.716Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "98ea1dbe-6ddf-4af9-bb13-9420d13c3fae",
+      "sourceName": "CleanTechnica",
+      "sourceUrl": "https://cleantechnica.com/",
+      "kind": "feed",
+      "feedUrl": "https://cleantechnica.com/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 130562,
+        "contentType": "",
+        "alternateLinksFound": 2,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://cleantechnica.com/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://cleantechnica.com/feed/",
+        "entries": 45,
+        "upserted": 45,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:38:04.732Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T23:38:04.732Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "1af0c8ac-1a2e-401d-aed4-484175f3435b",
+      "sourceName": "CLECAT (European Forwarder Federation)",
+      "sourceUrl": "https://clecat.org/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://clecat.org/",
+      "sitemapsFetched": [
+        {
+          "url": "https://clecat.org/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 6,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.clecat.org/sitemaps/menu.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 500 for https://www.clecat.org/sitemaps/menu.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.clecat.org/sitemaps/forms.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 500 for https://www.clecat.org/sitemaps/forms.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.clecat.org/sitemaps/mailing.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 500 for https://www.clecat.org/sitemaps/mailing.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.clecat.org/sitemaps/news.xml",
+          "kind": "urlset",
+          "urlCount": 2650,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.clecat.org/sitemaps/circulars.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 500 for https://www.clecat.org/sitemaps/circulars.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.clecat.org/sitemaps/views.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 500 for https://www.clecat.org/sitemaps/views.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 2642,
+      "urlsOverLimit": 0,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 2642,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 2642,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:39:44.553Z",
+        "feed_last_probed_at": "2026-09-04T23:39:44.553Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://clecat.org/sitemap.xml",
+        "sitemap_url_count": 2642
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "64e3c3c0-7ebc-4636-be83-e0c2d8ad25e0",
+      "sourceName": "ClientEarth Asia / China Environmental Code Analysis",
+      "sourceUrl": "https://www.clientearth.asia/latest/news/china-s-new-environmental-code-how-big-of-a-deal-is-it/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.clientearth.asia/latest/news/china-s-new-environmental-code-how-big-of-a-deal-is-it/",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.clientearth.asia/sitemap/",
+          "kind": "urlset",
+          "urlCount": 189,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 187,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:39:59.349Z",
+        "feed_last_probed_at": "2026-09-04T23:39:59.349Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.clientearth.asia/sitemap/",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "7a8068cf-e4bf-46c9-a03e-309f7c27843d",
+      "sourceName": "Climate Laws of the World (Grantham Research Institute) — Climate Change Authority Act 2011",
+      "sourceUrl": "https://climate-laws.org/document/climate-change-authority-act-2011_c4f5",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://climate-laws.org/document/climate-change-authority-act-2011_c4f5",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://climate-laws.org/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://climate-laws.org/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://climate-laws.org/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://climate-laws.org/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://climate-laws.org/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://climate-laws.org/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:40:16.026Z",
+        "feed_last_probed_at": "2026-09-04T23:40:16.026Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "7d939fc1-0356-4ed0-8026-c39df58db71f",
+      "sourceName": "Climate Change Laws of the World",
+      "sourceUrl": "https://climate-laws.org/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://climate-laws.org/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://climate-laws.org/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://climate-laws.org/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://climate-laws.org/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://climate-laws.org/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://climate-laws.org/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://climate-laws.org/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:40:26.989Z",
+        "feed_last_probed_at": "2026-09-04T23:40:26.989Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "24b4daf0-95bf-45b5-9084-ead7a6cf999d",
+      "sourceName": "EC DG CLIMA Shipping",
+      "sourceUrl": "https://climate.ec.europa.eu/eu-action/transport-decarbonisation/reducing-emissions-shipping-sector_en",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://climate.ec.europa.eu/eu-action/transport-decarbonisation/reducing-emissions-shipping-sector_en",
+      "sitemapsFetched": [
+        {
+          "url": "https://climate.ec.europa.eu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1715,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 1715,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:40:42.443Z",
+        "feed_last_probed_at": "2026-09-04T23:40:42.443Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://climate.ec.europa.eu/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "4b50d5ee-6573-4860-94ea-292189b71ccf",
+      "sourceName": "EC DG CLIMA — Reducing Emissions from the Shipping Sector",
+      "sourceUrl": "https://climate.ec.europa.eu/eu-action/transport/reducing-emissions-shipping-sector_en",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://climate.ec.europa.eu/eu-action/transport/reducing-emissions-shipping-sector_en",
+      "sitemapsFetched": [
+        {
+          "url": "https://climate.ec.europa.eu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1715,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 1715,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:40:57.263Z",
+        "feed_last_probed_at": "2026-09-04T23:40:57.263Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://climate.ec.europa.eu/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "9c00979c-7292-4979-b689-32227e4e36c1",
+      "sourceName": "European Commission DG CLIMA / FAQ - Maritime Transport in the EU ETS",
+      "sourceUrl": "https://climate.ec.europa.eu/eu-action/transport-decarbonisation/reducing-emissions-shipping-sector/faq-maritime-transport-eu-emissions-trading-system-ets_en",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://climate.ec.europa.eu/eu-action/transport-decarbonisation/reducing-emissions-shipping-sector/faq-maritime-transport-eu-emissions-trading-system-ets_en",
+      "sitemapsFetched": [
+        {
+          "url": "https://climate.ec.europa.eu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1715,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 1715,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:41:12.257Z",
+        "feed_last_probed_at": "2026-09-04T23:41:12.257Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://climate.ec.europa.eu/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "d959c01a-5eaa-4887-8b55-2cfc0fc59e4a",
+      "sourceName": "EC DG CLIMA — Guidance Document No. 1 (EU ETS and MRV Maritime, general guidance for shipping companies)",
+      "sourceUrl": "https://climate.ec.europa.eu/document/download/31875b4f-39b9-4cde-a4e2-fbb8f65ee703_en?filename=policy_transport_shipping_gd1_maritime_en.pdf",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://climate.ec.europa.eu/document/download/31875b4f-39b9-4cde-a4e2-fbb8f65ee703_en?filename=policy_transport_shipping_gd1_maritime_en.pdf",
+      "sitemapsFetched": [
+        {
+          "url": "https://climate.ec.europa.eu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1715,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 1715,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:41:27.808Z",
+        "feed_last_probed_at": "2026-09-04T23:41:27.808Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://climate.ec.europa.eu/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "ea48a7e7-eedf-4323-9881-58882c708de4",
+      "sourceName": "European Commission – Climate Action (DG CLIMA)",
+      "sourceUrl": "https://climate.ec.europa.eu/eu-action/transport-decarbonisation/road-transport/lorries-buses-and-coaches_en",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://climate.ec.europa.eu/eu-action/transport-decarbonisation/road-transport/lorries-buses-and-coaches_en",
+      "sitemapsFetched": [
+        {
+          "url": "https://climate.ec.europa.eu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1715,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 1715,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:41:42.856Z",
+        "feed_last_probed_at": "2026-09-04T23:41:42.856Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://climate.ec.europa.eu/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "e786f2c7-f010-4bcc-8288-a871d3da8198",
+      "sourceName": "Sabin Center for Climate Change Law",
+      "sourceUrl": "https://climate.law.columbia.edu/",
+      "kind": "feed",
+      "feedUrl": "https://climate.law.columbia.edu/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 204901,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://climate.law.columbia.edu/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://climate.law.columbia.edu/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://climate.law.columbia.edu/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://climate.law.columbia.edu/rss.xml",
+        "entries": 3,
+        "upserted": 3,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:41:47.963Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T23:41:47.963Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "63df9b16-2a53-4fd6-81fb-09933abd9b38",
+      "sourceName": "New York State Climate Action Council – Scoping Plan",
+      "sourceUrl": "https://climate.ny.gov/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://climate.ny.gov/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://climate.ny.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://climate.ny.gov/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://climate.ny.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://climate.ny.gov/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://climate.ny.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://climate.ny.gov/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:42:02.832Z",
+        "feed_last_probed_at": "2026-09-04T23:42:02.832Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "790b6557-0cd2-48ea-8635-22d42fa3b023",
+      "sourceName": "UNFCCC",
+      "sourceUrl": "https://climateaction.unfccc.int/Initiatives?id=Getting_to_Zero_Coalition",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://climateaction.unfccc.int/Initiatives?id=Getting_to_Zero_Coalition",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://climateaction.unfccc.int/robots.txt) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://climateaction.unfccc.int/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://climateaction.unfccc.int/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://climateaction.unfccc.int/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://climateaction.unfccc.int/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://climateaction.unfccc.int/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://climateaction.unfccc.int/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:42:19.901Z",
+        "feed_last_probed_at": "2026-09-04T23:42:19.901Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "8712270f-40a3-4dfa-973a-b8026254c452",
+      "sourceName": "Climate Catalyst (advocacy)",
+      "sourceUrl": "https://climatecatalyst.org",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://climatecatalyst.org",
+      "sitemapsFetched": [
+        {
+          "url": "https://climatecatalyst.org/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 161,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 161,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 161,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 161,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:42:38.637Z",
+        "feed_last_probed_at": "2026-09-04T23:42:38.637Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://climatecatalyst.org/sitemap.xml",
+        "sitemap_url_count": 161
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "2156a4bd-023f-4988-9b00-1300e8b51b10",
+      "sourceName": "Australian Government Climate Change Authority",
+      "sourceUrl": "https://climatechangeauthority.gov.au/",
+      "kind": "feed",
+      "feedUrl": "https://climatechangeauthority.gov.au/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 126165,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://climatechangeauthority.gov.au/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://climatechangeauthority.gov.au/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://climatechangeauthority.gov.au/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://climatechangeauthority.gov.au/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:42:44.006Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T23:42:44.006Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "b51eaeee-6440-4efb-ba44-7d2848c5da9a",
+      "sourceName": "Australian Climate Change Authority - ACCU Scheme Reviews",
+      "sourceUrl": "https://www.climatechangeauthority.gov.au/accu-scheme-reviews",
+      "kind": "feed",
+      "feedUrl": "https://www.climatechangeauthority.gov.au/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 126405,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.climatechangeauthority.gov.au/accu-scheme-reviews/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.climatechangeauthority.gov.au/accu-scheme-reviews/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.climatechangeauthority.gov.au/accu-scheme-reviews/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.climatechangeauthority.gov.au/accu-scheme-reviews/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.climatechangeauthority.gov.au/accu-scheme-reviews/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.climatechangeauthority.gov.au/accu-scheme-reviews/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.climatechangeauthority.gov.au/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.climatechangeauthority.gov.au/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.climatechangeauthority.gov.au/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.climatechangeauthority.gov.au/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:42:54.835Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T23:42:54.835Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "f879982d-06bd-4dcf-a31f-925a5e38fca7",
+      "sourceName": "Australian Climate Change Authority - Home",
+      "sourceUrl": "https://www.climatechangeauthority.gov.au/",
+      "kind": "feed",
+      "feedUrl": "https://www.climatechangeauthority.gov.au/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 126165,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.climatechangeauthority.gov.au/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.climatechangeauthority.gov.au/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.climatechangeauthority.gov.au/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.climatechangeauthority.gov.au/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:42:59.840Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T23:42:59.840Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "09b4266c-3e4a-4b92-b992-58b2b2acb2e7",
+      "sourceName": "Climate Cooperation / China Absolute Emission Caps Roadmap",
+      "sourceUrl": "https://climatecooperation.cn/climate/china-unveils-roadmap-for-absolute-emission-caps-2027-and-2030-milestones-for-national-carbon-markets/",
+      "kind": "feed",
+      "feedUrl": "https://climatecooperation.cn/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 155247,
+        "contentType": "",
+        "alternateLinksFound": 2,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://climatecooperation.cn/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://climatecooperation.cn/feed/",
+        "entries": 1,
+        "upserted": 1,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:43:05.962Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T23:43:05.962Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "622d0e55-ed6c-4ec2-83a0-229425f73797",
+      "sourceName": "MIT Climate Machine",
+      "sourceUrl": "https://climatemachine.mit.edu/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://climatemachine.mit.edu/",
+      "sitemapsFetched": [
+        {
+          "url": "https://climatemachine.mit.edu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:43:14.427Z",
+        "feed_last_probed_at": "2026-09-04T23:43:14.427Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://climatemachine.mit.edu/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "b5fe9c32-35ae-49cf-92c9-397d02a362c9",
+      "sourceName": "CMS Law – Expert Guide to Hydrogen: United Arab Emirates",
+      "sourceUrl": "https://cms.law/en/int/expert-guides/cms-expert-guide-to-hydrogen/united-arab-emirates",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://cms.law/en/int/expert-guides/cms-expert-guide-to-hydrogen/united-arab-emirates",
+      "sitemapsFetched": [
+        {
+          "url": "https://cms.law/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 69,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/en/alb/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 594,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/it/alb/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 123,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/en/ang/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 192,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/pt/ang/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 90,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/en/are/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1357,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/de/aut/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 2884,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/en/aut/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 4407,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/en/bel/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 4092,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/fr/bel/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1105,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/nl/bel/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 690,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/en/bgr/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 4160,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/en/bih/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1899,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/de/che/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 972,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/en/che/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 3061,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/fr/che/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 499,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/en/chl/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1042,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/es/chl/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 375,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/en/chn/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 3112,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/zh/chn/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 300,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/en/col/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1368,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/es/col/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 670,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/en/cze/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 3795,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/de/deu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 9793,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/en/deu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 7884,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/en/esp/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 3322,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/es/esp/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 3002,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/en/fra/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 5374,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/fr/fra/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 13500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cms.law/en/gbr/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 20338,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 40,
+      "entriesCapped": true,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 99960,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T23:44:01.794Z",
+        "feed_last_probed_at": "2026-09-04T23:44:01.794Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://cms.law/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    }
+  ],
+  "allHosts": {
+    "targets": [
+      {
+        "id": "687a082b-65eb-4b9a-9e0d-e3bccda8f64b",
+        "url": "https://cepal.org/en",
+        "name": "ECLAC / CEPAL – United Nations",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "7fb0e8dc-1f87-46e0-8748-269ba548f669",
+        "url": "https://cepal.org/en/publications/41229-freight-transport-road-tools-and-strategies-energy-efficiency-and-sustainability",
+        "name": "ECLAC / CEPAL – United Nations",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "a2b2fe29-5a42-4231-8214-f7d86f56f87f",
+        "url": "https://cepal.org/en/about",
+        "name": "ECLAC / CEPAL – United Nations",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "a8ba5304-64f1-4fbc-a3b7-21b74835e21f",
+        "url": "https://cer-rec.gc.ca",
+        "name": "Canada Energy Regulator",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "fe010c62-ed5d-4a76-ae31-6478c929fe47",
+        "url": "https://www.cer-rec.gc.ca/en/applications-hearings/view-applications-projects/line-21-replacement/index.html",
+        "name": "cer-rec.gc.ca / generate pool source",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "2b6d9e9a-c8ed-42de-942f-1576dfa931ac",
+        "url": "https://cer.be/about-us/who-we-are",
+        "name": "CER – Community of European Railway and Infrastructure Companies",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.cer.be/?format=feed&amp;type=rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "62d003e3-4b19-4286-8fd8-3bda315ab460",
+        "url": "https://cer.be/topics/sustainability",
+        "name": "CER – Community of European Railway and Infrastructure Companies",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.cer.be/?format=feed&amp;type=rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "b9d38292-21af-42a6-a956-3918f700dcae",
+        "url": "https://cer.be/",
+        "name": "CER – Community of European Railway and Infrastructure Companies",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.cer.be/?format=feed&amp;type=rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "88239c3d-e188-447d-a031-2952e945ee1f",
+        "url": "https://chalmers.se/en/departments/m2",
+        "name": "Chalmers University Marine Environment",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "b7fd031f-b2db-4278-a481-13cc1a42e0f8",
+        "url": "https://changing-transport.org/transforming-public-transport-through-electrification/",
+        "name": "Changing Transport Initiative / Public Transport Electrification",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "99e87d4a-1e5c-467f-95bf-cf4263dd0d66",
+        "url": "https://chicago.gov/city/en/depts/cdph/provdrs/environmental_health.html",
+        "name": "Chicago Department of Public Health — Environmental Health",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "290e66c9-a757-4be6-ab68-a40414ec33b6",
+        "url": "https://chicityclerk.com/",
+        "name": "Office of the City Clerk of Chicago",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "e65c6ad0-f9d1-42be-9141-c901b8d7c90d",
+        "url": "https://www.china-briefing.com/news/china-carbon-trading-emissions-cap/",
+        "name": "China Briefing - China Carbon Trading and Emissions Cap News",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "2f0cf633-da54-45fc-bbbf-cdb1d2383f94",
+        "url": "https://chp.ca.gov/programs-services/programs/commercial-vehicle-section",
+        "name": "California Highway Patrol (CHP) – Commercial Vehicle Section",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "f7318996-b931-42fe-9eff-144dfe82de82",
+        "url": "https://www.cim.io/blog/new-york-local-law-97-ll97-everything-you-need-to-know/",
+        "name": "CIM — NYC Local Law 97 Explainer",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "bb1c5b96-b781-4c19-8e7a-ac98e50bce1e",
+        "url": "https://www.circularactionhub.org/certification/brazilian-solid-waste-legislation/",
+        "name": "Circular Action Hub – Brazilian Solid Waste Legislation (Certification Guide)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "d6185b46-a409-4775-9791-e09c22754014",
+        "url": "https://www.cityandstateny.com/policy/2026/05/heres-whats-fy-27-new-york-state-budget/413729/",
+        "name": "City & State NY — NY FY27 State Budget",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "3c5327fb-3124-48da-b075-a5874d1f2008",
+        "url": "https://cityclerk.lacity.org/onlinedocs/2014/14-1478_misc_10-06-2016.pdf",
+        "name": "City of Los Angeles City Clerk",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "6ac220a6-d1fb-4439-8212-c0f2349e2993",
+        "url": "https://cityofsydney.nsw.gov.au/",
+        "name": "City of Sydney",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "909b213e-dbd9-45fc-ab22-f08c56194fe9",
+        "url": "https://clarkcountynv.gov/government/departments/environment_and_sustainability/index.php",
+        "name": "Clark County Department of Environment and Sustainability",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "3c52e6e4-0764-48e1-88b2-9b9edc4904ec",
+        "url": "https://www.clarksons.com/research/",
+        "name": "Clarksons Research — Shipping Research Hub",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "98924bc6-3452-4789-bf9b-95eadb215535",
+        "url": "https://www.classnk.com/hp/pdf/activities/statutory/seemp/seemp-rec175new.pdf",
+        "name": "ClassNK — SEEMP Guidance (Rec. 175)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "c8f78055-dd54-4d89-8a4d-d65aae2a885d",
+        "url": "https://www.classnk.or.jp/hp/en/activities/statutory/index.html",
+        "name": "ClassNK Environmental",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "edf8d2cf-4150-4845-aa70-e95420b3192b",
+        "url": "https://clean-hydrogen.europa.eu/media/news/h2accelerate-deploy-150-fuel-cell-trucks-across-eu-2023-03-14_en",
+        "name": "Clean Hydrogen Partnership (EU joint undertaking under Horizon Europe)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "0f2cf213-8a5c-4cb4-8bb4-93ae0665fabf",
+        "url": "https://clean-trucking.eu/",
+        "name": "European Clean Trucking Alliance (ECTA)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://clean-trucking.eu/rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "b534ca39-6ec5-4dce-9889-92367a2f5c62",
+        "url": "https://clean-trucking.eu/about-us",
+        "name": "European Clean Trucking Alliance (ECTA)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://clean-trucking.eu/rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "e09fe616-d465-4895-be2b-b602f47fbf6f",
+        "url": "https://www.cleanenergyregulator.gov.au/nger/the-safeguard-mechanism",
+        "name": "Australia Clean Energy Regulator — NGER Safeguard Mechanism",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "1db7d6c0-a644-47e5-94c5-55d66cb80520",
+        "url": "https://cleaninvestmentmonitor.org/",
+        "name": "US DOE Clean Investment Monitor",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "98ea1dbe-6ddf-4af9-bb13-9420d13c3fae",
+        "url": "https://cleantechnica.com/",
+        "name": "CleanTechnica",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://cleantechnica.com/feed/",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "1af0c8ac-1a2e-401d-aed4-484175f3435b",
+        "url": "https://clecat.org/",
+        "name": "CLECAT (European Forwarder Federation)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "64e3c3c0-7ebc-4636-be83-e0c2d8ad25e0",
+        "url": "https://www.clientearth.asia/latest/news/china-s-new-environmental-code-how-big-of-a-deal-is-it/",
+        "name": "ClientEarth Asia / China Environmental Code Analysis",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "7a8068cf-e4bf-46c9-a03e-309f7c27843d",
+        "url": "https://climate-laws.org/document/climate-change-authority-act-2011_c4f5",
+        "name": "Climate Laws of the World (Grantham Research Institute) — Climate Change Authority Act 2011",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "7d939fc1-0356-4ed0-8026-c39df58db71f",
+        "url": "https://climate-laws.org/",
+        "name": "Climate Change Laws of the World",
+        "status": "active",
+        "access_method": "api",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "24b4daf0-95bf-45b5-9084-ead7a6cf999d",
+        "url": "https://climate.ec.europa.eu/eu-action/transport-decarbonisation/reducing-emissions-shipping-sector_en",
+        "name": "EC DG CLIMA Shipping",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "4b50d5ee-6573-4860-94ea-292189b71ccf",
+        "url": "https://climate.ec.europa.eu/eu-action/transport/reducing-emissions-shipping-sector_en",
+        "name": "EC DG CLIMA — Reducing Emissions from the Shipping Sector",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "9c00979c-7292-4979-b689-32227e4e36c1",
+        "url": "https://climate.ec.europa.eu/eu-action/transport-decarbonisation/reducing-emissions-shipping-sector/faq-maritime-transport-eu-emissions-trading-system-ets_en",
+        "name": "European Commission DG CLIMA / FAQ - Maritime Transport in the EU ETS",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "d959c01a-5eaa-4887-8b55-2cfc0fc59e4a",
+        "url": "https://climate.ec.europa.eu/document/download/31875b4f-39b9-4cde-a4e2-fbb8f65ee703_en?filename=policy_transport_shipping_gd1_maritime_en.pdf",
+        "name": "EC DG CLIMA — Guidance Document No. 1 (EU ETS and MRV Maritime, general guidance for shipping companies)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "ea48a7e7-eedf-4323-9881-58882c708de4",
+        "url": "https://climate.ec.europa.eu/eu-action/transport-decarbonisation/road-transport/lorries-buses-and-coaches_en",
+        "name": "European Commission – Climate Action (DG CLIMA)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "e786f2c7-f010-4bcc-8288-a871d3da8198",
+        "url": "https://climate.law.columbia.edu/",
+        "name": "Sabin Center for Climate Change Law",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://climate.law.columbia.edu/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "63df9b16-2a53-4fd6-81fb-09933abd9b38",
+        "url": "https://climate.ny.gov/",
+        "name": "New York State Climate Action Council – Scoping Plan",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "790b6557-0cd2-48ea-8635-22d42fa3b023",
+        "url": "https://climateaction.unfccc.int/Initiatives?id=Getting_to_Zero_Coalition",
+        "name": "UNFCCC",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "8712270f-40a3-4dfa-973a-b8026254c452",
+        "url": "https://climatecatalyst.org",
+        "name": "Climate Catalyst (advocacy)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "2156a4bd-023f-4988-9b00-1300e8b51b10",
+        "url": "https://climatechangeauthority.gov.au/",
+        "name": "Australian Government Climate Change Authority",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "b51eaeee-6440-4efb-ba44-7d2848c5da9a",
+        "url": "https://www.climatechangeauthority.gov.au/accu-scheme-reviews",
+        "name": "Australian Climate Change Authority - ACCU Scheme Reviews",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "f879982d-06bd-4dcf-a31f-925a5e38fca7",
+        "url": "https://www.climatechangeauthority.gov.au/",
+        "name": "Australian Climate Change Authority - Home",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "09b4266c-3e4a-4b92-b992-58b2b2acb2e7",
+        "url": "https://climatecooperation.cn/climate/china-unveils-roadmap-for-absolute-emission-caps-2027-and-2030-milestones-for-national-carbon-markets/",
+        "name": "Climate Cooperation / China Absolute Emission Caps Roadmap",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "622d0e55-ed6c-4ec2-83a0-229425f73797",
+        "url": "https://climatemachine.mit.edu/",
+        "name": "MIT Climate Machine",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "b5fe9c32-35ae-49cf-92c9-397d02a362c9",
+        "url": "https://cms.law/en/int/expert-guides/cms-expert-guide-to-hydrogen/united-arab-emirates",
+        "name": "CMS Law – Expert Guide to Hydrogen: United Arab Emirates",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "29cb2f4c-c599-4183-b3e5-f8c51384e731",
+        "url": "https://code.dccouncil.gov/",
+        "name": "Council of the District of Columbia – D.C. Law Library",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "1d166acf-5328-4965-8c37-5be7d2b57456",
+        "url": "https://codes.ohio.gov/",
+        "name": "Ohio Laws – Ohio Administrative Code & Ohio Revised Code (LSC)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "be45c914-8ca6-4fe7-bd08-2b121fe4006d",
+        "url": "https://codot.gov/programs/environmental/greenhousegas",
+        "name": "Colorado Department of Transportation – GHG Transportation Planning Program",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.codot.gov/RSS",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "40766f22-7780-41d6-bdf2-b4534a103b5e",
+        "url": "https://commerce.gov.in",
+        "name": "India Ministry of Commerce and Industry",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "a5a3569d-02a8-4d83-ba9d-21e3cad15070",
+        "url": "https://commerce.wa.gov/growing-the-economy/energy",
+        "name": "Washington State Department of Commerce – Energy Office",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.commerce.wa.gov/feed/",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      }
+    ],
+    "hostsSelected": [
+      "cepal.org",
+      "cer-rec.gc.ca",
+      "cer.be",
+      "chalmers.se",
+      "changing-transport.org",
+      "chicago.gov",
+      "chicityclerk.com",
+      "china-briefing.com",
+      "chp.ca.gov",
+      "cim.io",
+      "circularactionhub.org",
+      "cityandstateny.com",
+      "cityclerk.lacity.org",
+      "cityofsydney.nsw.gov.au",
+      "clarkcountynv.gov",
+      "clarksons.com",
+      "classnk.com",
+      "classnk.or.jp",
+      "clean-hydrogen.europa.eu",
+      "clean-trucking.eu",
+      "cleanenergyregulator.gov.au",
+      "cleaninvestmentmonitor.org",
+      "cleantechnica.com",
+      "clecat.org",
+      "clientearth.asia",
+      "climate-laws.org",
+      "climate.ec.europa.eu",
+      "climate.law.columbia.edu",
+      "climate.ny.gov",
+      "climateaction.unfccc.int",
+      "climatecatalyst.org",
+      "climatechangeauthority.gov.au",
+      "climatecooperation.cn",
+      "climatemachine.mit.edu",
+      "cms.law",
+      "code.dccouncil.gov",
+      "codes.ohio.gov",
+      "codot.gov",
+      "commerce.gov.in",
+      "commerce.wa.gov"
+    ],
+    "hostsTotalActive": 646,
+    "hostsNeverWalkedBefore": 558,
+    "hostsRemainingUnwalkedAfter": 518
+  },
+  "budget": {
+    "budgetSeconds": 1500,
+    "elapsedSeconds": 1533.159,
+    "exhausted": true,
+    "sourcesWalked": 48,
+    "sourcesNotReached": {
+      "count": 5,
+      "ids": [
+        "29cb2f4c-c599-4183-b3e5-f8c51384e731",
+        "1d166acf-5328-4965-8c37-5be7d2b57456",
+        "be45c914-8ca6-4fe7-bd08-2b121fe4006d",
+        "40766f22-7780-41d6-bdf2-b4534a103b5e",
+        "a5a3569d-02a8-4d83-ba9d-21e3cad15070"
+      ]
+    }
+  }
+}

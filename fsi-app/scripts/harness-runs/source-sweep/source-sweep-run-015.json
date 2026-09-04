@@ -1,0 +1,676 @@
+{
+  "harness_family": "source-sweep",
+  "harness_version": "sha256:447d5399c5f2946e",
+  "run_id": "source-sweep-run-015",
+  "started_at": "2026-09-04T23:18:28.407Z",
+  "finished_at": "2026-09-04T23:44:01.944Z",
+  "config": {
+    "walker": "sitemap",
+    "mode": "apply",
+    "from": null,
+    "to": null,
+    "feed_url": null,
+    "series": "L",
+    "types": [
+      "RULE"
+    ],
+    "term": null,
+    "max_pages": 5,
+    "per_page": 100,
+    "source_id": null,
+    "portal_url": null,
+    "cli_source_id": null,
+    "host": null,
+    "all_hosts": true,
+    "max_hosts": 40,
+    "time_budget_seconds": 1500,
+    "check_coverage": false,
+    "limit": 5000,
+    "max_sitemap_fetches": 50,
+    "max_sitemap_entries": 100000
+  },
+  "inputs_ref": [
+    "https://cepal.org/en",
+    "https://cepal.org/en/publications/41229-freight-transport-road-tools-and-strategies-energy-efficiency-and-sustainability",
+    "https://cepal.org/en/about",
+    "https://cer-rec.gc.ca",
+    "https://www.cer-rec.gc.ca/en/applications-hearings/view-applications-projects/line-21-replacement/index.html",
+    "https://cer.be/about-us/who-we-are",
+    "https://cer.be/topics/sustainability",
+    "https://cer.be/",
+    "https://chalmers.se/en/departments/m2",
+    "https://changing-transport.org/transforming-public-transport-through-electrification/",
+    "https://chicago.gov/city/en/depts/cdph/provdrs/environmental_health.html",
+    "https://chicityclerk.com/",
+    "https://www.china-briefing.com/news/china-carbon-trading-emissions-cap/",
+    "https://chp.ca.gov/programs-services/programs/commercial-vehicle-section",
+    "https://www.cim.io/blog/new-york-local-law-97-ll97-everything-you-need-to-know/",
+    "https://www.circularactionhub.org/certification/brazilian-solid-waste-legislation/",
+    "https://www.cityandstateny.com/policy/2026/05/heres-whats-fy-27-new-york-state-budget/413729/",
+    "https://cityclerk.lacity.org/onlinedocs/2014/14-1478_misc_10-06-2016.pdf",
+    "https://cityofsydney.nsw.gov.au/",
+    "https://clarkcountynv.gov/government/departments/environment_and_sustainability/index.php",
+    "https://www.clarksons.com/research/",
+    "https://www.classnk.com/hp/pdf/activities/statutory/seemp/seemp-rec175new.pdf",
+    "https://www.classnk.or.jp/hp/en/activities/statutory/index.html",
+    "https://clean-hydrogen.europa.eu/media/news/h2accelerate-deploy-150-fuel-cell-trucks-across-eu-2023-03-14_en",
+    "https://clean-trucking.eu/",
+    "https://clean-trucking.eu/about-us",
+    "https://www.cleanenergyregulator.gov.au/nger/the-safeguard-mechanism",
+    "https://cleaninvestmentmonitor.org/",
+    "https://cleantechnica.com/",
+    "https://clecat.org/",
+    "https://www.clientearth.asia/latest/news/china-s-new-environmental-code-how-big-of-a-deal-is-it/",
+    "https://climate-laws.org/document/climate-change-authority-act-2011_c4f5",
+    "https://climate-laws.org/",
+    "https://climate.ec.europa.eu/eu-action/transport-decarbonisation/reducing-emissions-shipping-sector_en",
+    "https://climate.ec.europa.eu/eu-action/transport/reducing-emissions-shipping-sector_en",
+    "https://climate.ec.europa.eu/eu-action/transport-decarbonisation/reducing-emissions-shipping-sector/faq-maritime-transport-eu-emissions-trading-system-ets_en",
+    "https://climate.ec.europa.eu/document/download/31875b4f-39b9-4cde-a4e2-fbb8f65ee703_en?filename=policy_transport_shipping_gd1_maritime_en.pdf",
+    "https://climate.ec.europa.eu/eu-action/transport-decarbonisation/road-transport/lorries-buses-and-coaches_en",
+    "https://climate.law.columbia.edu/",
+    "https://climate.ny.gov/",
+    "https://climateaction.unfccc.int/Initiatives?id=Getting_to_Zero_Coalition",
+    "https://climatecatalyst.org",
+    "https://climatechangeauthority.gov.au/",
+    "https://www.climatechangeauthority.gov.au/accu-scheme-reviews",
+    "https://www.climatechangeauthority.gov.au/",
+    "https://climatecooperation.cn/climate/china-unveils-roadmap-for-absolute-emission-caps-2027-and-2030-milestones-for-national-carbon-markets/",
+    "https://climatemachine.mit.edu/",
+    "https://cms.law/en/int/expert-guides/cms-expert-guide-to-hydrogen/united-arab-emirates"
+  ],
+  "per_item": [
+    {
+      "id": "687a082b-65eb-4b9a-9e0d-e3bccda8f64b",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 5000 url(s) scoped, 5000 new (5000 upserted), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://cepal.org/sitemap.xml",
+        "https://www.cepal.org/default/sitemap.xml",
+        "https://www.cepal.org/default/sitemap.xml?page=1",
+        "https://www.cepal.org/default/sitemap.xml?page=2",
+        "https://www.cepal.org/default/sitemap.xml?page=3",
+        "https://www.cepal.org/default/sitemap.xml?page=4",
+        "https://www.cepal.org/default/sitemap.xml?page=5",
+        "https://www.cepal.org/default/sitemap.xml?page=6",
+        "https://www.cepal.org/default/sitemap.xml?page=7",
+        "https://www.cepal.org/default/sitemap.xml?page=8",
+        "https://www.cepal.org/default/sitemap.xml?page=9",
+        "https://www.cepal.org/default/sitemap.xml?page=10",
+        "https://www.cepal.org/default/sitemap.xml?page=11",
+        "https://www.cepal.org/default/sitemap.xml?page=12",
+        "https://www.cepal.org/default/sitemap.xml?page=13",
+        "https://www.cepal.org/default/sitemap.xml?page=14",
+        "https://www.cepal.org/default/sitemap.xml?page=15",
+        "https://www.cepal.org/default/sitemap.xml?page=16",
+        "https://www.cepal.org/default/sitemap.xml?page=17",
+        "https://www.cepal.org/default/sitemap.xml?page=18",
+        "… +13 more"
+      ],
+      "error": null
+    },
+    {
+      "id": "7fb0e8dc-1f87-46e0-8748-269ba548f669",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://cepal.org/sitemap.xml",
+        "https://www.cepal.org/default/sitemap.xml",
+        "https://www.cepal.org/default/sitemap.xml?page=1",
+        "https://www.cepal.org/default/sitemap.xml?page=2",
+        "https://www.cepal.org/default/sitemap.xml?page=3",
+        "https://www.cepal.org/default/sitemap.xml?page=4",
+        "https://www.cepal.org/default/sitemap.xml?page=5",
+        "https://www.cepal.org/default/sitemap.xml?page=6",
+        "https://www.cepal.org/default/sitemap.xml?page=7",
+        "https://www.cepal.org/default/sitemap.xml?page=8",
+        "https://www.cepal.org/default/sitemap.xml?page=9",
+        "https://www.cepal.org/default/sitemap.xml?page=10",
+        "https://www.cepal.org/default/sitemap.xml?page=11",
+        "https://www.cepal.org/default/sitemap.xml?page=12",
+        "https://www.cepal.org/default/sitemap.xml?page=13",
+        "https://www.cepal.org/default/sitemap.xml?page=14",
+        "https://www.cepal.org/default/sitemap.xml?page=15",
+        "https://www.cepal.org/default/sitemap.xml?page=16",
+        "https://www.cepal.org/default/sitemap.xml?page=17",
+        "https://www.cepal.org/default/sitemap.xml?page=18",
+        "… +13 more"
+      ],
+      "error": null
+    },
+    {
+      "id": "a2b2fe29-5a42-4231-8214-f7d86f56f87f",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 19 url(s) scoped, 19 new (19 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://cepal.org/sitemap.xml",
+        "https://www.cepal.org/default/sitemap.xml",
+        "https://www.cepal.org/default/sitemap.xml?page=1",
+        "https://www.cepal.org/default/sitemap.xml?page=2",
+        "https://www.cepal.org/default/sitemap.xml?page=3",
+        "https://www.cepal.org/default/sitemap.xml?page=4",
+        "https://www.cepal.org/default/sitemap.xml?page=5",
+        "https://www.cepal.org/default/sitemap.xml?page=6",
+        "https://www.cepal.org/default/sitemap.xml?page=7",
+        "https://www.cepal.org/default/sitemap.xml?page=8",
+        "https://www.cepal.org/default/sitemap.xml?page=9",
+        "https://www.cepal.org/default/sitemap.xml?page=10",
+        "https://www.cepal.org/default/sitemap.xml?page=11",
+        "https://www.cepal.org/default/sitemap.xml?page=12",
+        "https://www.cepal.org/default/sitemap.xml?page=13",
+        "https://www.cepal.org/default/sitemap.xml?page=14",
+        "https://www.cepal.org/default/sitemap.xml?page=15",
+        "https://www.cepal.org/default/sitemap.xml?page=16",
+        "https://www.cepal.org/default/sitemap.xml?page=17",
+        "https://www.cepal.org/default/sitemap.xml?page=18",
+        "… +13 more"
+      ],
+      "error": null
+    },
+    {
+      "id": "a8ba5304-64f1-4fbc-a3b7-21b74835e21f",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 5000 url(s) scoped, 5000 new (5000 upserted), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://cer-rec.gc.ca/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "fe010c62-ed5d-4a76-ae31-6478c929fe47",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.cer-rec.gc.ca/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "2b6d9e9a-c8ed-42de-942f-1576dfa931ac",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://cer.be/about-us/who-we-are"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "62d003e3-4b19-4286-8fd8-3bda315ab460",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://cer.be/topics/sustainability"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "b9d38292-21af-42a6-a956-3918f700dcae",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://cer.be/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "88239c3d-e188-447d-a031-2952e945ee1f",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.chalmers.se/sitemap.xml",
+        "https://www.chalmers.se/sitemap-0.xml",
+        "https://www.chalmers.se/server-sitemap-index.xml",
+        "https://www.chalmers.se/sitemap/cms_content.xml",
+        "https://www.chalmers.se/sitemap/pew_people.xml",
+        "https://www.chalmers.se/sitemap/pew_phdcourses.xml",
+        "https://www.chalmers.se/sitemap/pew_studyprogrammes.xml",
+        "https://www.chalmers.se/sitemap/pew_courses.xml",
+        "https://www.chalmers.se/sitemap/pew_resdatathesis.xml",
+        "https://www.chalmers.se/sitemap/pew_news.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "b7fd031f-b2db-4278-a481-13cc1a42e0f8",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://changing-transport.org/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "99e87d4a-1e5c-467f-95bf-cf4263dd0d66",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://chicago.gov/city/en/depts/cdph/provdrs/environmental_health.html"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://chicago.gov/robots.txt) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "290e66c9-a757-4be6-ab68-a40414ec33b6",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://chicityclerk.com/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "e65c6ad0-f9d1-42be-9141-c901b8d7c90d",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.china-briefing.com/feed"
+      ],
+      "error": null
+    },
+    {
+      "id": "2f0cf633-da54-45fc-bbbf-cdb1d2383f94",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 9 url(s) scoped, 9 new (9 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.chp.ca.gov/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "f7318996-b931-42fe-9eff-144dfe82de82",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.cim.io/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "bb1c5b96-b781-4c19-8e7a-ac98e50bce1e",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.circularactionhub.org/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "d6185b46-a409-4775-9791-e09c22754014",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.cityandstateny.com/sitemap.xml",
+        "https://www.cityandstateny.com/sitemap-flatpages.xml",
+        "https://www.cityandstateny.com/sitemap-voices.xml",
+        "https://www.cityandstateny.com/sitemap-voices.xml?p=2",
+        "https://www.cityandstateny.com/sitemap-featured.xml",
+        "https://www.cityandstateny.com/sitemap-winners-losers.xml",
+        "https://www.cityandstateny.com/sitemap-news.xml",
+        "https://www.cityandstateny.com/sitemap-assessments.xml",
+        "https://www.cityandstateny.com/sitemap-categories.xml",
+        "https://www.cityandstateny.com/sitemap-assets.xml",
+        "https://www.cityandstateny.com/sitemap-homepage.xml",
+        "https://www.cityandstateny.com/sitemap-posts.xml",
+        "https://www.cityandstateny.com/sitemap-posts.xml?p=2",
+        "https://www.cityandstateny.com/sitemap-posts.xml?p=3",
+        "https://www.cityandstateny.com/sitemap-posts.xml?p=4",
+        "https://www.cityandstateny.com/sitemap-posts.xml?p=5",
+        "https://www.cityandstateny.com/sitemap-posts.xml?p=6",
+        "https://www.cityandstateny.com/sitemap-posts.xml?p=7",
+        "https://www.cityandstateny.com/sitemap-posts.xml?p=8",
+        "https://www.cityandstateny.com/sitemap-posts.xml?p=9",
+        "… +14 more"
+      ],
+      "error": null
+    },
+    {
+      "id": "3c5327fb-3124-48da-b075-a5874d1f2008",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://cityclerk.lacity.org/onlinedocs/2014/14-1478_misc_10-06-2016.pdf"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://cityclerk.lacity.org/robots.txt) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "6ac220a6-d1fb-4439-8212-c0f2349e2993",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 2410 url(s) scoped, 2410 new (2410 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.cityofsydney.nsw.gov.au/sitemap"
+      ],
+      "error": null
+    },
+    {
+      "id": "909b213e-dbd9-45fc-ab22-f08c56194fe9",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.clarkcountynv.gov/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "3c52e6e4-0764-48e1-88b2-9b9edc4904ec",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 5 url(s) scoped, 5 new (5 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.clarksons.com/xmlsitemap"
+      ],
+      "error": null
+    },
+    {
+      "id": "98924bc6-3452-4789-bf9b-95eadb215535",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://www.classnk.com/hp/pdf/activities/statutory/seemp/seemp-rec175new.pdf"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://www.classnk.com/robots.txt) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "c8f78055-dd54-4d89-8a4d-d65aae2a885d",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://www.classnk.or.jp/hp/en/activities/statutory/index.html"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://www.classnk.or.jp/robots.txt) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "edf8d2cf-4150-4845-aa70-e95420b3192b",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.clean-hydrogen.europa.eu/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "0f2cf213-8a5c-4cb4-8bb4-93ae0665fabf",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://clean-trucking.eu/feed"
+      ],
+      "error": null
+    },
+    {
+      "id": "b534ca39-6ec5-4dce-9889-92367a2f5c62",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://clean-trucking.eu/about-us/feed"
+      ],
+      "error": null
+    },
+    {
+      "id": "e09fe616-d465-4895-be2b-b602f47fbf6f",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.cleanenergyregulator.gov.au/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "1db7d6c0-a644-47e5-94c5-55d66cb80520",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://cleaninvestmentmonitor.org/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "98ea1dbe-6ddf-4af9-bb13-9420d13c3fae",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 45 entries, 45 upserted",
+      "evidence_refs": [
+        "https://cleantechnica.com/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "1af0c8ac-1a2e-401d-aed4-484175f3435b",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 2642 url(s) scoped, 2642 new (2642 upserted), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://clecat.org/sitemap.xml",
+        "https://www.clecat.org/sitemaps/menu.xml",
+        "https://www.clecat.org/sitemaps/forms.xml",
+        "https://www.clecat.org/sitemaps/mailing.xml",
+        "https://www.clecat.org/sitemaps/news.xml",
+        "https://www.clecat.org/sitemaps/circulars.xml",
+        "https://www.clecat.org/sitemaps/views.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "64e3c3c0-7ebc-4636-be83-e0c2d8ad25e0",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.clientearth.asia/sitemap/"
+      ],
+      "error": null
+    },
+    {
+      "id": "7a8068cf-e4bf-46c9-a03e-309f7c27843d",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://climate-laws.org/document/climate-change-authority-act-2011_c4f5"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "7d939fc1-0356-4ed0-8026-c39df58db71f",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://climate-laws.org/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "24b4daf0-95bf-45b5-9084-ead7a6cf999d",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://climate.ec.europa.eu/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "4b50d5ee-6573-4860-94ea-292189b71ccf",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://climate.ec.europa.eu/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "9c00979c-7292-4979-b689-32227e4e36c1",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://climate.ec.europa.eu/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "d959c01a-5eaa-4887-8b55-2cfc0fc59e4a",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://climate.ec.europa.eu/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "ea48a7e7-eedf-4323-9881-58882c708de4",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://climate.ec.europa.eu/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "e786f2c7-f010-4bcc-8288-a871d3da8198",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 3 entries, 3 upserted",
+      "evidence_refs": [
+        "https://climate.law.columbia.edu/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "63df9b16-2a53-4fd6-81fb-09933abd9b38",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://climate.ny.gov/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "790b6557-0cd2-48ea-8635-22d42fa3b023",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://climateaction.unfccc.int/Initiatives?id=Getting_to_Zero_Coalition"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://climateaction.unfccc.int/robots.txt) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "8712270f-40a3-4dfa-973a-b8026254c452",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 161 url(s) scoped, 161 new (161 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://climatecatalyst.org/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "2156a4bd-023f-4988-9b00-1300e8b51b10",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://climatechangeauthority.gov.au/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "b51eaeee-6440-4efb-ba44-7d2848c5da9a",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.climatechangeauthority.gov.au/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "f879982d-06bd-4dcf-a31f-925a5e38fca7",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.climatechangeauthority.gov.au/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "09b4266c-3e4a-4b92-b992-58b2b2acb2e7",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 1 entries, 1 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://climatecooperation.cn/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "622d0e55-ed6c-4ec2-83a0-229425f73797",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://climatemachine.mit.edu/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "b5fe9c32-35ae-49cf-92c9-397d02a362c9",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://cms.law/sitemap.xml",
+        "https://cms.law/en/alb/sitemap.xml",
+        "https://cms.law/it/alb/sitemap.xml",
+        "https://cms.law/en/ang/sitemap.xml",
+        "https://cms.law/pt/ang/sitemap.xml",
+        "https://cms.law/en/are/sitemap.xml",
+        "https://cms.law/de/aut/sitemap.xml",
+        "https://cms.law/en/aut/sitemap.xml",
+        "https://cms.law/en/bel/sitemap.xml",
+        "https://cms.law/fr/bel/sitemap.xml",
+        "https://cms.law/nl/bel/sitemap.xml",
+        "https://cms.law/en/bgr/sitemap.xml",
+        "https://cms.law/en/bih/sitemap.xml",
+        "https://cms.law/de/che/sitemap.xml",
+        "https://cms.law/en/che/sitemap.xml",
+        "https://cms.law/fr/che/sitemap.xml",
+        "https://cms.law/en/chl/sitemap.xml",
+        "https://cms.law/es/chl/sitemap.xml",
+        "https://cms.law/en/chn/sitemap.xml",
+        "https://cms.law/zh/chn/sitemap.xml",
+        "… +10 more"
+      ],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "mode": "apply",
+    "sources_targeted": 48,
+    "feed_found": 13,
+    "sitemap_only": 35,
+    "bot_wall_sources": 0,
+    "errors": 12,
+    "urls_scoped_total": 15252,
+    "new_total": 15371,
+    "changed_total": 0,
+    "removed_total": 0,
+    "partial_coverage_sources": 4,
+    "baseline_deferred_sources": 4,
+    "rss_feed_url_written": 11,
+    "change_signals_recorded": 0,
+    "hosts_walked": 35,
+    "hosts_skipped_bot_wall": 0,
+    "feeds_discovered": 13,
+    "new_locs": 15371,
+    "lastmod_changes": 0,
+    "hosts_remaining_unwalked": 523,
+    "hosts_selected": 40,
+    "upserted": 15371,
+    "failed": 0,
+    "no_targets_reason": null,
+    "budget_seconds": 1500,
+    "elapsed_seconds": 1533.159,
+    "sources_walked": 48,
+    "sources_not_reached": {
+      "count": 5,
+      "ids": [
+        "29cb2f4c-c599-4183-b3e5-f8c51384e731",
+        "1d166acf-5328-4965-8c37-5be7d2b57456",
+        "be45c914-8ca6-4fe7-bd08-2b121fe4006d",
+        "40766f22-7780-41d6-bdf2-b4534a103b5e",
+        "a5a3569d-02a8-4d83-ba9d-21e3cad15070"
+      ]
+    },
+    "budget_exhausted": true
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/source-sweep/traces/source-sweep-run-015.raw-result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-source-sweep.mjs, the source-sweep family's canonical entry point (RT lane, 2026-09-01) — the runtime scripts/connections/*.mjs and scripts/mint|forward-events/run-*.mjs already had for their own families, extended to the register-walk.mjs/feed-walk.mjs enumeration modules."
+}
