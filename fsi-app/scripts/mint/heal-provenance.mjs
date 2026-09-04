@@ -287,7 +287,7 @@
 // own DI mandate; see this lane's report for the live-egress test result and why no live probe of the
 // listed hosts was possible from this container.
 
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, renameSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -333,7 +333,81 @@ import { institutionKey, hostOf } from "../lib/institution-key.mjs";
 // re-deriving.
 import { pdfToText, looksLikePdfUrl, isPdfBytes } from "../../src/lib/sources/pdf-extract.mjs";
 
-export const HEAL_VERSION = "hp5-2026-09-04.1";
+// SIXTH PASS (2026-09-04, lane HEAL-BUDGET), fixing the defect run #20 (the FIRST apply run under HEAL-5,
+// quarantined-live, 95 items) measured live: 15m20s wall time against .github/workflows/maintenance.yml's
+// `maintain` job timeout-minutes: 15 -- the job was cancelled BEFORE finishing. Because
+// scripts/maintenance/lib/cli.mjs's own writeSummary() (a governing file this lane does not edit) is
+// called exactly once, AFTER main() resolves, a cancelled run wrote NO summary.json at all: no artifact
+// content, no per-item residue, and no record of which of the run's own DB writes (agent_run_searches
+// inserts, claim span/kind updates, etc. -- all already applied through the guarded path per item, before
+// the kill) actually landed. THE UPLOAD STEP ITSELF ALREADY RUNS ON CANCELLATION -- `.github/workflows/
+// maintenance.yml`'s "Upload this run's step artifact(s)" step already carries `if: always()` (re-read in
+// full for this lane, unchanged since MAINT); GitHub's own docs confirm `always()` executes even when the
+// job was cancelled (which a timeout is). The observed "no artifact" was never a missing `if: always()` --
+// it was an empty directory with nothing in it to upload (`if-no-files-found: warn` firing honestly on
+// zero files). This pass therefore does NOT touch that conditional; it fixes the actual gap, four ways,
+// entirely inside this file (heal-provenance.mjs) and its wrapper (provenance-heal.mjs):
+//   1. TIME BUDGET. main() now accepts `deps.timeBudgetSeconds` (the wrapper derives it from a new
+//      HEAL_TIME_BUDGET_SECONDS step env, itself derived from the job's raised timeout-minutes minus a
+//      safety margin -- see maintenance.yml's own comment for the arithmetic) and `deps.now` (an
+//      injectable clock, defaulting to `() => Date.now()` -- this file's own DI mandate applies to wall
+//      time exactly as it already applies to every DB/fetch call; the run loop below is the ONLY place
+//      this file ever reads elapsed time, and it never calls Date.now() directly). Before starting EACH
+//      item (never mid-item -- an item's own five-step sequence is never interrupted partway, so a
+//      counted item is always either fully processed or not started), the loop checks whether the budget
+//      is already spent; on the first item that would start over-budget, the loop stops cleanly, marks
+//      `stopped_at_budget: true`, `items_processed`, `items_remaining` (the ids the run never reached),
+//      and returns/exits 0 -- a budget stop is an ORDERLY completion of a smaller batch, never a failure.
+//   2. CHECKPOINT. `writeCheckpoint(outDir, summary)` (new, exported) writes `<outDir>/summary.json`
+//      ATOMICALLY -- a temp file written first, then renamed over the real path (`rename` is POSIX-atomic
+//      on the SAME filesystem, which a runner's own $RUNNER_TEMP always is) -- so a hard kill mid-write
+//      can never leave a truncated/corrupt summary.json, only the PREVIOUS complete checkpoint or the NEW
+//      complete one. main() calls it after EVERY item (when `out` was given -- the exact directory
+//      cli.mjs's own runCli() already threads through as `opts.out`, unmodified), so a run killed by the
+//      OS/runner (not just one that hits its own time budget and exits cleanly) still leaves the true
+//      state of every item processed so far on disk. cli.mjs's own final writeSummary() (unmodified,
+//      still runs once main() resolves) is left as the LAST word on a run that finishes normally --
+//      this pass's checkpoints are a strictly ADDITIVE safety net under it, not a replacement.
+//   3. RESUME. No new selection mode was added: `parseSelection`'s existing `"ids:<uuid,...>"` shape
+//      (unchanged since HEAL-1) already accepts exactly the `items_remaining` array a budget-stopped
+//      checkpoint carries, and a DB read scoped to a fixed id list costs nothing extra to justify a new
+//      "resume-from-artifact" mode that would have to read a CI artifact from a different run -- a real
+//      capability this DB-wired step does not have and should not fake. See
+//      docs/runbooks/MAINTENANCE-RUNBOOK.md's provenance-heal section for the exact re-dispatch the
+//      coordinator runs: `arg: "ids:<items_remaining joined by comma>"` off the stopped run's own artifact.
+//   4. WASTE, MEASURED AND REMOVED (build item 5): CAPTURE-CITED (THIRD PASS) captured each cited URL
+//      independently per ITEM, with no run-level memory -- two DIFFERENT items citing the SAME url (a
+//      shared regulatory source, exactly the case this file's own STEP A "corpus pool of OTHER items'
+//      captures of the SAME canonical URL" bucket already exists to exploit for GROUNDING) paid the FULL
+//      cost twice: a direct fetch, and on a `capture_blocked`/`capture_thin` hold, a Wayback availability
+//      query PLUS a snapshot fetch (FIFTH PASS) -- up to 4 politeness-paced requests for a url this run
+//      had already fully resolved for an earlier item. `citedUrlCache` (a plain Map, new in main() -- ONE
+//      per run, threaded through every `healOneItem` call via `citedUrlCache` in its options bag, defaults
+//      to a fresh Map when omitted so every existing direct-call test keeps its own isolated cache exactly
+//      as before) makes CAPTURE-CITED's `captureCitedUrl` call idempotent PER RUN, keyed by
+//      `canonicalizeCitationUrl(url)` (the SAME url-equality rule `unfetchedCitedUrls` already uses to
+//      dedupe an item's OWN cited urls against its OWN captures -- never a second equality rule). A cache
+//      hit skips the network call and the archive-fallback/OJ-resolution work entirely and reuses the
+//      prior outcome's evidence verbatim; the per-item `agent_run_searches` INSERT still happens for EVERY
+//      item that cites the url (each item still gets its OWN evidence row, `intelligence_item_id`-scoped,
+//      per criterion 3's own per-item requirement -- caching removes duplicate FETCHES, never duplicate
+//      EVIDENCE). This is STRICTLY more polite (fewer requests to every remote host, never fewer pacing
+//      gaps between the requests that do happen -- makePoliteFetch's own 1 req/s gap is untouched) and
+//      never weakens evidence (a cached "captured" outcome is the SAME text this run already verified for
+//      that exact url; a cached "held" outcome is the SAME refusal this run already reached, reused rather
+//      than re-derived, so a URL confirmed to have no Wayback snapshot earlier in THIS run is never
+//      re-queried for one moments later). Scoped ONLY to CAPTURE-CITED's `captureCitedUrl` (never STEP 1's
+//      `captureItem`): the two resolve eurlex urls DIFFERENTLY on purpose (`captureItem` derives the
+//      canonical key from the ITEM's own `instrument_identifier`; `captureCitedUrl` derives it from the
+//      url ALONE, per THIRD PASS's own header -- "a citation may name a wholly different instrument than
+//      the item's own"), so merging their caches would silently let one item's identifier answer for
+//      another's citation -- exactly the fabrication this file's own header forbids. No change was needed
+//      or made to makePoliteFetch's own gap, and no other redundant-request source was found: this file's
+//      own single shared `deps.fetchImpl` instance (wired once per run by provenance-heal.mjs, imported
+//      unmodified) was ALREADY the one pacing authority for every fetch in every step; see this lane's
+//      report for the two waste hypotheses checked and NOT found (an over-long pacing sleep; an
+//      already-known-empty archive lookup outside this cache's own reach).
+export const HEAL_VERSION = "hp5-2026-09-04.2";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_SLOTS_PATH = resolve(HERE, "item-type-required-slots.json");
@@ -1789,9 +1863,13 @@ export async function resolveSlotsBackfillCandidates(deps, requiredSlotsMap) {
  * claims/sections snapshots are only MUTATED to reflect a write when `apply` is true, so a later step's
  * dry-mode plan is never built against a write that never happened.
  */
-export async function healOneItem(item, { deps, apply, selectionMode, requiredSlotsMap, sourcesIndex }) {
+export async function healOneItem(item, { deps, apply, selectionMode, requiredSlotsMap, sourcesIndex, citedUrlCache }) {
   const report = { id: item.id, item_type: item.item_type, steps: {} };
   const sIdx = sourcesIndex ?? { byId: new Map(), byCanonUrl: new Map() };
+  // Run-level CAPTURE-CITED dedup cache (HEAL-BUDGET, SIXTH PASS). Defaults to a fresh, item-scoped Map
+  // when no caller-shared one is threaded through (every existing direct healOneItem call in this file's
+  // own tests), so this parameter is purely additive -- see this file's HEAL_VERSION header note.
+  const runCitedCache = citedUrlCache ?? new Map();
 
   // ── 1. CAPTURE ──────────────────────────────────────────────────────────────────────────────────
   let captures = await deps.readCaptures(item.id);
@@ -1942,16 +2020,31 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
   const citedBound = citedToFetch.slice(0, CAPTURE_CITED_MAX_PER_ITEM);
   const citedOverflow = citedToFetch.length - citedBound.length;
   const captureCitedResults = [];
+  let citedCacheHits = 0;
   for (const url of citedBound) {
     if (!apply) { captureCitedResults.push({ url, outcome: "would_fetch" }); continue; }
-    const res = await captureCitedUrl(url, deps);
+    // HEAL-BUDGET dedup: the SAME cited url, resolved once already THIS RUN (by this item or an earlier
+    // one), is never fetched/archive-queried a second time -- see this file's HEAL_VERSION header note
+    // for why this is scoped to captureCitedUrl only, and why it is strictly more polite, never less
+    // evidenced (the per-item agent_run_searches INSERT below still runs unconditionally).
+    const cacheKey = canonicalizeCitationUrl(url) ?? url;
+    let res;
+    let cacheHit = false;
+    if (runCitedCache.has(cacheKey)) {
+      res = runCitedCache.get(cacheKey);
+      cacheHit = true;
+      citedCacheHits += 1;
+    } else {
+      res = await captureCitedUrl(url, deps);
+      runCitedCache.set(cacheKey, res);
+    }
     if (res.status === "captured") {
       const row = buildCaptureSearchRow(item.id, res, new Date().toISOString(), "heal-provenance:capture-cited");
       const ins = await deps.insertSearch(row);
       captures.push({ id: ins.id, result_url: row.result_url, result_content: row.result_content });
-      captureCitedResults.push({ url, outcome: "captured", length: res.text.length, search_id: ins.id, evidence: res.evidence });
+      captureCitedResults.push({ url, outcome: "captured", length: res.text.length, search_id: ins.id, evidence: res.evidence, cache_hit: cacheHit });
     } else {
-      captureCitedResults.push({ url, outcome: "held", reason: res.reason, evidence: res.evidence ?? null });
+      captureCitedResults.push({ url, outcome: "held", reason: res.reason, evidence: res.evidence ?? null, cache_hit: cacheHit });
     }
   }
   report.steps.capture_cited = {
@@ -1960,6 +2053,7 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
     fetched: citedBound.length,
     bound_hit: citedOverflow > 0,
     overflow: Math.max(citedOverflow, 0),
+    cache_hits: citedCacheHits,
     results: captureCitedResults,
   };
 
@@ -2252,41 +2346,35 @@ export function summarizeReports(perItem) {
   return s;
 }
 
-/**
- * @param {{ mode?: "dry"|"apply", arg?: string }} opts
- * @param {object} deps — see healOneItem's own header, plus selection resolvers:
- *   readQuarantinedLive(), readArchivedUnreasoned(), readCandidateTypeItems(itemTypes), readByIds(ids),
- *   readAllSources() -> the `sources` registry (read ONCE per run, same precedent as db.mjs's own
- *   registerSource dedup read — small table, not the agent_run_searches full-scan the brief forbids;
- *   optional, defaults to `[]` so a direct healOneItem caller need not supply it),
- *   and optionally `requiredSlotsMap` (defaults to loadRequiredSlots()).
- */
-export async function main({ mode = "dry", arg = "" } = {}, deps) {
-  const apply = mode === "apply";
-  const summary = { step: "provenance-heal", mode, counts: {}, applied: 0, read_back: {}, exitCode: 0 };
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// CHECKPOINT (HEAL-BUDGET, SIXTH PASS). Writes this run's summary.json ATOMICALLY -- a temp file first,
+// then an os-level rename over the real path, so a hard kill mid-write leaves either the previous
+// complete checkpoint or the new one, never a half-written JSON. Additive under cli.mjs's own
+// writeSummary() (called once, after main() resolves, on a run that finishes normally) -- this is the
+// safety net for a run that does NOT finish normally. Exported for this lane's own atomicity test.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
 
-  const selection = parseSelection(arg);
-  if (!selection.ok) {
-    summary.note = `REFUSED — ${selection.error}`;
-    summary.exitCode = 1;
-    return summary;
-  }
+/** Write `summary` to `<outDir>/summary.json`, temp-file-then-rename. No-op (returns null) when `outDir`
+ *  is falsy — matches cli.mjs's own writeSummary posture: an optional feature is silent when unused,
+ *  never an error. */
+export function writeCheckpoint(outDir, summary) {
+  if (!outDir) return null;
+  mkdirSync(outDir, { recursive: true });
+  const file = resolve(outDir, "summary.json");
+  const tmp = resolve(outDir, `.summary.json.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  writeFileSync(tmp, JSON.stringify(summary, null, 2) + "\n");
+  renameSync(tmp, file);
+  return file;
+}
 
-  const requiredSlotsMap = deps.requiredSlotsMap ?? loadRequiredSlots();
-  const sourcesIndex = buildSourcesIndex(deps.readAllSources ? await deps.readAllSources() : []);
-
-  let items;
-  if (selection.mode === "quarantined-live") items = await deps.readQuarantinedLive();
-  else if (selection.mode === "archived-unreasoned") items = await deps.readArchivedUnreasoned();
-  else if (selection.mode === "slots-backfill") items = await resolveSlotsBackfillCandidates(deps, requiredSlotsMap);
-  else items = await deps.readByIds(selection.ids);
-
-  const perItem = [];
-  for (const item of items) {
-    perItem.push(await healOneItem(item, { deps, apply, selectionMode: selection.mode, requiredSlotsMap, sourcesIndex }));
-  }
-
+/** Assemble this run's summary.json shape from the progress reached so far — used identically for every
+ *  mid-loop checkpoint and the final return value, so a checkpoint and the finished artifact are never
+ *  structurally different (only `stopped_at_budget`/`items_processed`/`items_remaining` distinguish a
+ *  budget-stopped run, present on neither a fully-finished run's summary nor a mid-loop checkpoint taken
+ *  before the budget was actually exceeded). Pure over its inputs. */
+export function buildSummaryObject({ mode, apply, selection, items, perItem, stoppedAtBudget = false, itemsRemaining = [] }) {
   const counts = summarizeReports(perItem);
+  const summary = { step: "provenance-heal", mode, counts: {}, applied: 0, read_back: {}, exitCode: 0 };
   summary.counts = { selection: { mode: selection.mode, ids: selection.ids }, candidates: items.length, ...counts };
   summary.applied = counts.healed_verified;
   summary.per_item = perItem;
@@ -2297,8 +2385,19 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
     outcome: r.steps.rederive?.outcome ?? null,
     failures: r.steps.rederive?.failures ?? [],
   }));
+  if (stoppedAtBudget) {
+    summary.stopped_at_budget = true;
+    summary.items_processed = perItem.length;
+    summary.items_remaining = itemsRemaining;
+  }
+  const processedCount = stoppedAtBudget ? perItem.length : items.length;
+  const budgetPrefix = stoppedAtBudget
+    ? `TIME BUDGET — stopped after ${perItem.length}/${items.length} item(s); ${itemsRemaining.length} remain ` +
+      `(see items_remaining; re-dispatch with --arg "ids:<items_remaining>"). `
+    : "";
   summary.note = apply
-    ? `Healed ${counts.healed_verified}/${items.length} to verified; ${counts.still_failing} still failing; ` +
+    ? budgetPrefix +
+      `Healed ${counts.healed_verified}/${processedCount} to verified; ${counts.still_failing} still failing; ` +
       `${counts.resourced} resourced/${counts.unresourced} unresourced; ${counts.own_body_resolved} own_body_resolved; ` +
       `${counts.orphans_grounded} orphans_grounded/${counts.orphans_unprovable} orphans_unprovable; ` +
       `${counts.relabeled_paragraphs} relabeled_paragraphs (${counts.relabel_no_owning_section} no_owning_section_found); ` +
@@ -2312,7 +2411,72 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
     : `DRY — plan only, nothing written or fetched. ${counts.would_heal_verified}/${items.length} would ` +
       `heal to verified on current captures; the rest need capture/grounding/slots work this run's per_item ` +
       `lists explicitly.`;
+  return summary;
+}
 
+/**
+ * @param {{ mode?: "dry"|"apply", arg?: string, out?: string|null }} opts — `out`, when given, is this
+ *   run's checkpoint/artifact directory (cli.mjs's own `--out`, threaded through unmodified); a summary.json
+ *   is written there atomically after EVERY item, not only at the end (HEAL-BUDGET).
+ * @param {object} deps — see healOneItem's own header, plus selection resolvers:
+ *   readQuarantinedLive(), readArchivedUnreasoned(), readCandidateTypeItems(itemTypes), readByIds(ids),
+ *   readAllSources() -> the `sources` registry (read ONCE per run, same precedent as db.mjs's own
+ *   registerSource dedup read — small table, not the agent_run_searches full-scan the brief forbids;
+ *   optional, defaults to `[]` so a direct healOneItem caller need not supply it),
+ *   optionally `requiredSlotsMap` (defaults to loadRequiredSlots()), and (HEAL-BUDGET) optionally
+ *   `timeBudgetSeconds` (a positive number — apply mode only; unset/non-positive means no budget, the
+ *   original unbounded behavior) and `now` (an injectable clock, `() => number`, defaulting to
+ *   `() => Date.now()` — this file's own DI mandate; the run loop below is the only place this file reads
+ *   elapsed wall time, and it is never read without going through this hook).
+ */
+export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
+  const apply = mode === "apply";
+  const timeBudgetMs = apply && Number.isFinite(deps.timeBudgetSeconds) && deps.timeBudgetSeconds > 0
+    ? deps.timeBudgetSeconds * 1000
+    : null;
+  const now = deps.now ?? (() => Date.now());
+  // The clock is read ONLY when a budget is actually set (apply mode + a positive timeBudgetSeconds) --
+  // a dry run, or an apply run with no budget configured, never calls `now()` at all, so a caller's own
+  // `deps.now` stub can safely assert it is never invoked outside a budgeted apply run.
+  const startedAt = timeBudgetMs != null ? now() : 0;
+
+  const selection = parseSelection(arg);
+  if (!selection.ok) {
+    return { step: "provenance-heal", mode, counts: {}, applied: 0, read_back: {}, exitCode: 1, note: `REFUSED — ${selection.error}` };
+  }
+
+  const requiredSlotsMap = deps.requiredSlotsMap ?? loadRequiredSlots();
+  const sourcesIndex = buildSourcesIndex(deps.readAllSources ? await deps.readAllSources() : []);
+
+  let items;
+  if (selection.mode === "quarantined-live") items = await deps.readQuarantinedLive();
+  else if (selection.mode === "archived-unreasoned") items = await deps.readArchivedUnreasoned();
+  else if (selection.mode === "slots-backfill") items = await resolveSlotsBackfillCandidates(deps, requiredSlotsMap);
+  else items = await deps.readByIds(selection.ids);
+
+  // Run-level CAPTURE-CITED dedup cache (HEAL-BUDGET) — ONE per run, shared across every item below.
+  const citedUrlCache = new Map();
+  const perItem = [];
+  let stoppedAtBudget = false;
+  let itemsRemaining = [];
+
+  for (let i = 0; i < items.length; i++) {
+    if (timeBudgetMs != null && now() - startedAt >= timeBudgetMs) {
+      stoppedAtBudget = true;
+      itemsRemaining = items.slice(i).map((it) => it.id);
+      console.log(
+        `provenance-heal: time budget (${deps.timeBudgetSeconds}s) exceeded after ${perItem.length}/${items.length} ` +
+        `item(s) — stopping cleanly. ${itemsRemaining.length} item(s) remain; re-dispatch with ` +
+        `--arg "ids:<items_remaining from summary.json>" to finish them.`,
+      );
+      break;
+    }
+    perItem.push(await healOneItem(items[i], { deps, apply, selectionMode: selection.mode, requiredSlotsMap, sourcesIndex, citedUrlCache }));
+    if (out) writeCheckpoint(out, buildSummaryObject({ mode, apply, selection, items, perItem, stoppedAtBudget: false, itemsRemaining: [] }));
+  }
+
+  const summary = buildSummaryObject({ mode, apply, selection, items, perItem, stoppedAtBudget, itemsRemaining });
+  if (out) writeCheckpoint(out, summary);
   return summary;
 }
 

@@ -24,6 +24,14 @@
 //   (archive_reason stays null — never invented). An item still failing after all five steps is left
 //   exactly as it is, reported with the remaining criterion.
 //
+// TIME BUDGET (lane HEAL-BUDGET, 2026-09-04): apply-mode runs stop cleanly (never mid-item) once
+// HEAL_TIME_BUDGET_SECONDS (a step env this workflow sets, see maintenance.yml's own timeout-minutes
+// comment) is spent, writing summary.json's `stopped_at_budget`/`items_remaining` rather than letting the
+// job's own timeout-minutes kill the process with nothing written. Re-dispatch with
+// --arg "ids:<items_remaining>" (from that run's own artifact) to finish the rest — see
+// docs/runbooks/MAINTENANCE-RUNBOOK.md's provenance-heal section. Every item's five-step sequence still
+// runs to completion or not at all; only the NEXT item is ever skipped by a budget stop.
+//
 // `--arg` selects the population:
 //   (blank) or "quarantined-live" — every live (is_archived=false), quarantined intelligence_items row
 //     (the default — the operator's ruling's primary target).
@@ -85,9 +93,18 @@ if (IS_MAIN) {
         return Array.isArray(data) ? data[0] : data;
       };
 
+      // HEAL-BUDGET (2026-09-04): the run's own time budget, derived from HEAL_TIME_BUDGET_SECONDS (a
+      // step env .github/workflows/maintenance.yml sets — see that file's own timeout-minutes comment
+      // for the arithmetic tying this number to the job's raised timeout). Absent/non-numeric/<=0 means
+      // no budget (heal-provenance.mjs's own main() treats that as unbounded, unchanged pre-HEAL-BUDGET
+      // behavior) — a local by-hand run with no env set is never silently time-boxed.
+      const rawBudget = Number(process.env.HEAL_TIME_BUDGET_SECONDS);
+      const timeBudgetSeconds = Number.isFinite(rawBudget) && rawBudget > 0 ? rawBudget : null;
+
       return {
         fetchImpl: makePoliteFetch({ fetchImpl: fetch }), // 1 req/s, $0 — same politeness gap export-census-rows.mjs uses
         requiredSlotsMap: loadRequiredSlots(),
+        timeBudgetSeconds, // HEAL-BUDGET — heal-provenance.mjs's main() stops cleanly before this is exceeded
 
         // ── selection reads ──────────────────────────────────────────────────────────────────────
         readQuarantinedLive: () => readAll("intelligence_items", ITEM_COLUMNS, {
