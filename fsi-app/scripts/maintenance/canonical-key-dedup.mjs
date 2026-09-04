@@ -42,16 +42,15 @@
 // duplicate (matching record-hollow-sweep.mjs's identity-release fix) drops it out of the holder index
 // entirely (only non-null keys are indexed) and admits the re-mint on the NEXT population pass.
 //
-// INCONSISTENT ARCHIVE_REASON CLEARING: One live keeper (ff95b385, canonical key 32023R1804) carries
-// archive_reason='duplicate_instrument' set but is_archived=false. record-hollow-sweep.mjs's own header
-// documents the precedent for clearing on keepers: restore_sql builds from "before" values; this step
-// runs at APPLY time with a prior state read, so a live keeper's prior archive_reason is known. Per
-// record-hollow-sweep.mjs's restore semantics ("deliberately does NOT set provenance_status — migration
-// 115/209's set_provenance_status AFTER trigger re-derives it"), only identity fields that are
-// LEGITIMATELY NULL on the keeper (were never set or were cleared by a prior sweep) should be cleared.
-// The precedent: clear archive_reason only if it was NOT already set when this sweep read it (i.e.,
-// archive_reason is null in the BEFORE state). The keeper's archive_reason='duplicate_instrument' was
-// set BEFORE this sweep, so it stays; no clearing.
+// INCONSISTENT ARCHIVE_REASON CLEARING (coordinator correction, 2026-09-04): one live keeper (ff95b385,
+// canonical key 32023R1804) carries archive_reason='duplicate_instrument' while is_archived=false. A live row
+// must not carry an archive reason: every consumer that reads archive_reason (the census hold index, the
+// health surfaces) treats it as the archive's provenance, and a live verified row stamped 'duplicate_instrument'
+// misreports itself as the duplicate. The keeper patch therefore clears archive_reason on a keeper ONLY when
+// it is non-null (a keeper whose archive_reason is already null gets no write at all), and records the prior
+// value in summary.keepers[].before plus a per-keeper restore_sql, so the clear is reversible by the same two
+// paths as the archive itself. The Haiku lane's first cut inverted this (no-op write when null, stamp kept
+// when set); that was a defect, corrected before landing.
 //
 // census_worklist SIDE [CONFIRMED, dry run 2026-09-04]: Both of the 2 duplicate canonical keys have no
 // matching census_worklist rows (no document_url match). No census_worklist writes needed.
@@ -167,18 +166,18 @@ export function buildArchivePatch() {
   };
 }
 
-// ── pure: keeper patch (clear inconsistent archive_reason only if it was NOT already set) ─────────
+// ── pure: keeper patch (clear an archive_reason stamp that a live row must not carry) ─────────────
 
 export function buildKeeperPatch(keeper) {
-  // Only clear archive_reason if it was null BEFORE this sweep (i.e., never set).
-  // If it was already set to something (e.g., 'duplicate_instrument'), it stays.
-  const patch = {};
-  if (keeper.prior_archive_reason === null) {
-    // Was not set, leave it null
-    patch.archive_reason = null;
-  }
-  // Otherwise don't touch it — it was already set, keep it as is
-  return Object.keys(patch).length > 0 ? patch : null;
+  // A live (is_archived=false) keeper must carry no archive_reason. Clear it only when it is set; a keeper
+  // whose archive_reason is already null needs no write.
+  if (keeper?.prior_archive_reason === null || keeper?.prior_archive_reason === undefined) return null;
+  return { archive_reason: null };
+}
+
+/** A self-contained SQL restore statement for one keeper whose archive_reason this sweep cleared. Pure. */
+export function buildKeeperRestoreSql(keeper) {
+  return `UPDATE intelligence_items SET archive_reason = ${sqlLiteral(keeper.prior_archive_reason ?? null)} WHERE id = '${keeper.id}';`;
 }
 
 // ── pure: restore ────────────────────────────────────────────────────────────────────────────────
@@ -301,14 +300,22 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
     };
   });
 
-  // ── apply: update keepers (clear inconsistent archive_reason only if it was null before) ────
+  // ── apply: update keepers (clear an archive_reason stamp a live row must not carry) ─────────
   let keepersUpdated = 0;
+  summary.keepers = [];
   for (const keeper of keepers) {
     const keeperPatch = buildKeeperPatch(keeper);
-    if (keeperPatch) {
-      const r = await deps.updateKeepers(keeper.id, keeperPatch);
-      keepersUpdated += r.updated ?? 0;
-    }
+    if (!keeperPatch) continue;
+    const r = await deps.updateKeepers(keeper.id, keeperPatch);
+    keepersUpdated += r.updated ?? 0;
+    summary.keepers.push({
+      id: keeper.id,
+      canonical_instrument_key: keeper.canonical_instrument_key,
+      before: { archive_reason: keeper.prior_archive_reason },
+      after: { archive_reason: null },
+      updated: r.updated ?? 0,
+      restore_sql: buildKeeperRestoreSql(keeper),
+    });
   }
   summary.counts.keepers_updated = keepersUpdated;
 

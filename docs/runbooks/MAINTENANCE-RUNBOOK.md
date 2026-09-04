@@ -944,9 +944,10 @@ archived rows as blockers. The fix is DATA, in the same archive write: the patch
 `buildHeldKeyIndex` and the re-mint is admitted on the next population pass.
 
 **Inconsistent archive_reason clearing**: One live keeper (ff95b385) carries `archive_reason='duplicate_instrument'`
-set but is_archived=false. Per record-hollow-sweep.mjs's restore semantics, only identity fields that are
-legitimately NULL on the keeper should be cleared. Since this keeper's `archive_reason` was already set
-BEFORE this sweep, it stays — no clearing.
+while is_archived=false. A live row must not carry an archive reason (it misreports itself as the duplicate to
+every reader of `archive_reason`), so the apply clears it on any keeper whose stamp is non-null, records the
+prior value in `summary.keepers[].before` with a per-keeper `restore_sql`, and writes nothing for a keeper
+whose `archive_reason` is already null.
 
 **census_worklist side** [CONFIRMED, dry run 2026-09-04]: Both duplicate canonical keys have no matching
 `census_worklist` rows (no `document_url` match). No census_worklist writes needed.
@@ -954,7 +955,7 @@ BEFORE this sweep, it stays — no clearing.
 **Dispatch**: `mode=dry` reports `counts.canonical_keys_with_duplicates`, `duplicate_groups_with_exactly_one_verified`,
 `duplicate_groups_with_zero_verified`, `duplicate_groups_with_multiple_verified`, `target_total`, and
 `keeper_ids`/`target_ids`; writes nothing. `mode=apply` (no `--arg` required) archives every target and
-optionally updates keepers (clears inconsistent `archive_reason` only if it was null before), then reads
+clears any non-null `archive_reason` on a keeper (recorded in `summary.keepers[]` with `restore_sql`), then reads
 back. Nothing is deleted — claims, sections, and edges stay attached.
 
 **Reversal**: two paths, same as record-hollow-sweep above:
@@ -966,7 +967,7 @@ back. Nothing is deleted — claims, sections, and edges stay attached.
 `per_item` (before/after + `restore_sql` per archived item), `refusals` (groups with zero/multiple verified),
 and `read_back` (`archived_duplicate_of_verified_total`, `not_confirmed_archived_ids`). Confirm against
 `SELECT count(*) FROM intelligence_items WHERE archive_reason='duplicate_of_verified'` and verify that
-keepers' `archive_reason` matches the expected state (null if it was null before, unchanged otherwise).
+every keeper's `archive_reason` is null (`summary.keepers[]` lists the ones this run cleared and their prior stamp).
 
 **Registration**: `docs/inventories/shared-dataset-ownership.md`'s `intelligence_items` and
 `census_worklist` sections (this step writes both, added to the enforced JSON allowlist and the narrative

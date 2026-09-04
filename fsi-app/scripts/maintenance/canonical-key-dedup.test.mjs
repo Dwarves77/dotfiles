@@ -6,6 +6,8 @@ import {
   planSelection,
   buildArchivePatch,
   buildKeeperPatch,
+  buildKeeperRestoreSql,
+  main,
   pickLatestPriorStates,
   buildRestorePatchFromPrior,
   buildRestoreSql,
@@ -106,17 +108,46 @@ test("buildArchivePatch: sets all identity-release fields", () => {
   assert.equal(patch.source_url, "");
 });
 
-test("buildKeeperPatch: returns null if archive_reason was already set", () => {
-  const keeper = { prior_archive_reason: "some_reason" };
+test("buildKeeperPatch: clears a non-null archive_reason on a live keeper", () => {
+  const keeper = { id: "k1", prior_archive_reason: "duplicate_instrument" };
   const patch = buildKeeperPatch(keeper);
-  assert.equal(patch, null);
+  assert.deepEqual(patch, { archive_reason: null });
 });
 
-test("buildKeeperPatch: clears archive_reason only if it was null", () => {
-  const keeper = { prior_archive_reason: null };
-  const patch = buildKeeperPatch(keeper);
-  assert.notEqual(patch, null);
-  assert.equal(patch.archive_reason, null);
+test("buildKeeperPatch: no write when the keeper's archive_reason is already null", () => {
+  assert.equal(buildKeeperPatch({ id: "k1", prior_archive_reason: null }), null);
+  assert.equal(buildKeeperPatch({ id: "k1" }), null);
+});
+
+test("buildKeeperRestoreSql: restores the prior stamp verbatim", () => {
+  const sql = buildKeeperRestoreSql({ id: "ff95b385", prior_archive_reason: "duplicate_instrument" });
+  assert.equal(sql, "UPDATE intelligence_items SET archive_reason = 'duplicate_instrument' WHERE id = 'ff95b385';");
+});
+
+test("main apply: keeper with a stamp is cleared and recorded; keeper without one is untouched", async () => {
+  const items = [
+    { id: "v1", canonical_instrument_key: "32023R1804", provenance_status: "verified", created_at: "2026-05-05", archive_reason: "duplicate_instrument", source_url: "u", instrument_identifier: "i" },
+    { id: "q1", canonical_instrument_key: "32023R1804", provenance_status: "quarantined", created_at: "2026-09-01", archive_reason: null, source_url: "u2", instrument_identifier: "i2" },
+    { id: "v2", canonical_instrument_key: "32015R0757", provenance_status: "verified", created_at: "2026-09-01", archive_reason: null, source_url: "u", instrument_identifier: "i" },
+    { id: "q2", canonical_instrument_key: "32015R0757", provenance_status: "quarantined", created_at: "2026-09-02", archive_reason: null, source_url: "u3", instrument_identifier: "i3" },
+  ];
+  const keeperWrites = [];
+  const deps = {
+    readTargetCandidates: async () => items,
+    archiveTargets: async (ids, patch) => ({ updated: ids.length, rows: ids.map((id) => ({ id, ...patch })) }),
+    updateKeepers: async (id, patch) => { keeperWrites.push({ id, patch }); return { updated: 1 }; },
+    readItemsByIds: async (ids) => ids.map((id) => ({ id, is_archived: true, archive_reason: "duplicate_of_verified" })),
+    readSnapshotEntries: async () => [],
+    restoreOne: async () => ({ updated: 1 }),
+  };
+  const s = await main({ mode: "apply" }, deps);
+  assert.equal(s.exitCode, 0);
+  assert.deepEqual(s.target_ids.sort(), ["q1", "q2"]);
+  assert.deepEqual(keeperWrites, [{ id: "v1", patch: { archive_reason: null } }]);
+  assert.equal(s.counts.keepers_updated, 1);
+  assert.equal(s.keepers.length, 1);
+  assert.equal(s.keepers[0].before.archive_reason, "duplicate_instrument");
+  assert.equal(s.keepers[0].restore_sql, "UPDATE intelligence_items SET archive_reason = 'duplicate_instrument' WHERE id = 'v1';");
 });
 
 test("pickLatestPriorStates: finds latest prior state by cite marker", () => {
