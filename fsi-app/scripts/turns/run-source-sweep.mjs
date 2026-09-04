@@ -134,8 +134,38 @@ export const DEFAULT_SITEMAP_LIMIT = 5000;
 //   needed for the remaining 6; matches CORPUS-TURN-RUNBOOK.md's "The sitemap walker" section, which
 //   states the same ⌈646/40⌉ = 17 independently).
 //
+// SUPERSEDED AS THE HARD STOP (lane SWEEP-BUDGET, 2026-09-04) [CONFIRMED, GitHub Actions 2026-09-04]:
+// this 35 s/host figure is an AVERAGE — the tail (sitemap-index fan-out, a slow host, unscoped feed-
+// candidate probing) is unbounded, and nothing here ever checked wall-clock time. Sweep #14 (40 hosts)
+// ran 13m24s and #15 (40 hosts) 14m57s; #16 (70 hosts, i.e. `--max-hosts` raised past this constant's own
+// documented ceiling) ran past `.github/workflows/source-sweep.yml`'s `timeout-minutes: 30` and was
+// KILLED with NO artifact — the workflow's own crash-safety (`finally` block, this file's header) cannot
+// save a run GitHub Actions kills outright. `--max-hosts` is now a CEILING on how many hosts one
+// dispatch is willing to ATTEMPT, never a floor and never what stops a run in time — DEFAULT_TIME_BUDGET_
+// SECONDS below is the hard stop: `main()`'s sitemap loop checks elapsed wall-clock time before every
+// source and returns whatever it completed as an honest, bounded, exit-0 unit of work, the same posture
+// register-walk.mjs's `walkFederalRegister` already applies to its own page cap.
+//
 // Always overridable per dispatch via --max-hosts.
 export const DEFAULT_MAX_HOSTS = 40;
+
+// --time-budget-seconds's default (lane SWEEP-BUDGET, 2026-09-04): the sitemap walker's WALL-CLOCK hard
+// stop for `--all-hosts`/`--host`/`--source-id` alike (the SAME `for (const src of targets)` loop serves
+// all three selectors) — SAME arithmetic DEFAULT_MAX_HOSTS's own comment already computed, just no longer
+// left unenforced:
+//   workflow timeout ............... 1800 s  (.github/workflows/source-sweep.yml `timeout-minutes: 30`)
+//   non-walk overhead reserved ....... 300 s  (checkout + setup-node + `npm ci` + the sibling-artifact
+//                                              hydrate step + the final commit/PR step — none of this is
+//                                              the walk loop; 5 min is a generous, not measured, reserve)
+//   walk budget ..................... 1500 s  (1800 - 300)  -> DEFAULT_TIME_BUDGET_SECONDS
+// Checked BEFORE each source (`checkTimeBudget`/`walkTargetsWithinBudget` below), never mid-source — a
+// single source's own walk is bounded separately (`--max-sitemap-fetches`, `--max-sitemap-entries`, and
+// now each individual fetch's own timeout — see `SOURCE_SWEEP_FETCH_TIMEOUT_MS` in `main()`). When the
+// budget runs out the run still exits 0: a bounded, complete unit of work, not an error — see
+// `shapeRunOutput`'s `budget_exhausted`/`sources_not_reached` fields for what a proposer or the
+// coordinator reads back. Always overridable per dispatch via --time-budget-seconds (blank = this
+// default).
+export const DEFAULT_TIME_BUDGET_SECONDS = 1500;
 
 function usage() {
   return (
@@ -143,7 +173,7 @@ function usage() {
     "         --walker <register-eurlex|register-federal-register|feed|sitemap>\n" +
     "         --mode <dry|apply> [--from ISO-date] [--to ISO-date] [--feed-url url] [--series L|C]\n" +
     "         [--types RULE,PRORULE] [--term text] [--max-pages N] [--per-page N] [--source-name name]\n" +
-    "         [--source-id uuid | --host hostname | --all-hosts] [--max-hosts N] [--limit N]\n" +
+    "         [--source-id uuid | --host hostname | --all-hosts] [--max-hosts N] [--time-budget-seconds N] [--limit N]\n" +
     "         [--max-sitemap-fetches N] [--max-sitemap-entries N] [--check-coverage]\n" +
     "         [--harness-runs-dir dir] [--out-dir dir]"
   );
@@ -171,6 +201,7 @@ export function parseArgs(argv) {
         host: { type: "string" },
         "all-hosts": { type: "boolean", default: false },
         "max-hosts": { type: "string", default: String(DEFAULT_MAX_HOSTS) },
+        "time-budget-seconds": { type: "string", default: String(DEFAULT_TIME_BUDGET_SECONDS) },
         "check-coverage": { type: "boolean", default: false },
         limit: { type: "string" },
         "max-sitemap-fetches": { type: "string", default: String(DEFAULT_MAX_SITEMAP_FETCHES) },
@@ -242,6 +273,10 @@ export function parseArgs(argv) {
   if (!Number.isFinite(maxHosts) || maxHosts <= 0) {
     return { ok: false, error: "--max-hosts must be a positive number." };
   }
+  const timeBudgetSeconds = Number(values["time-budget-seconds"]);
+  if (!Number.isFinite(timeBudgetSeconds) || timeBudgetSeconds <= 0) {
+    return { ok: false, error: "--time-budget-seconds must be a positive number." };
+  }
 
   return {
     ok: true,
@@ -260,6 +295,7 @@ export function parseArgs(argv) {
     host: values.host || null,
     allHosts: Boolean(values["all-hosts"]),
     maxHosts,
+    timeBudgetSeconds,
     checkCoverage: Boolean(values["check-coverage"]),
     limit,
     maxSitemapFetches,
@@ -621,6 +657,21 @@ export function shapeRunOutput(walker, result, reportPath, mode = "apply") {
     const hostsSkippedBotWall = [...botWallHostSet].filter((h) =>
       sitemapSources.filter((s) => hostKeyOf(s.sourceUrl) === h).every((s) => !s.ok && s.discoverySource === "bot_wall")
     );
+    // hosts_remaining_unwalked, RECOMPUTED from what this run actually stamped (lane SWEEP-BUDGET,
+    // 2026-09-04) — `selectAllHostsTargets`'s own `hostsRemainingUnwalkedAfter` assumes every SELECTED
+    // host got walked, which the time budget (above) can now make false. `hostsWalked` (this file's own
+    // `hostsOf(sources)`, a few lines up) is the ACTUAL set of hosts this run reached, in the same
+    // never-walked-first order `orderHostGroupsForSweep` selected them in, so the never-walked hosts this
+    // run actually covered is `min(neverWalkedSelected, hostsWalked.size)` — see the module-level doc on
+    // `checkTimeBudget` for why this recomputation is honest rather than the assume-all-walked original.
+    const allHostsInfo = result.allHosts;
+    const neverWalkedSelected = allHostsInfo
+      ? allHostsInfo.hostsNeverWalkedBefore - allHostsInfo.hostsRemainingUnwalkedAfter
+      : null;
+    const hostsRemainingUnwalkedRecomputed = allHostsInfo
+      ? allHostsInfo.hostsNeverWalkedBefore - Math.min(neverWalkedSelected, hostsWalked.size)
+      : null;
+    const budget = result.budget ?? null;
     const metrics = {
       mode,
       sources_targeted: sources.length,
@@ -645,11 +696,20 @@ export function shapeRunOutput(walker, result, reportPath, mode = "apply") {
       feeds_discovered: feedSources.length,
       new_locs: newTotal,
       lastmod_changes: changedTotal,
-      hosts_remaining_unwalked: result.allHosts ? result.allHosts.hostsRemainingUnwalkedAfter : null,
+      hosts_remaining_unwalked: hostsRemainingUnwalkedRecomputed,
       hosts_selected: result.allHosts ? result.allHosts.hostsSelected.length : null,
       ...writeMetrics(sitemapUpsertedTotal + feedUpsertedTotal),
       failed: okSitemapSources.reduce((a, s) => a + (s.failed ?? 0), 0) + feedSources.reduce((a, s) => a + (s.feedResult?.ok ? s.feedResult.failed : 0), 0),
       no_targets_reason: result.note ?? null,
+      // WALL-CLOCK TIME BUDGET (lane SWEEP-BUDGET, 2026-09-04) — the sitemap loop's own hard stop; see
+      // DEFAULT_TIME_BUDGET_SECONDS / walkTargetsWithinBudget's doc above. Always present (not only on
+      // exhaustion) so a proposer reading this family's history sees budget spend even on a run that
+      // finished comfortably inside it.
+      budget_seconds: budget?.budgetSeconds ?? null,
+      elapsed_seconds: budget?.elapsedSeconds ?? null,
+      sources_walked: budget?.sourcesWalked ?? sources.length,
+      sources_not_reached: budget?.sourcesNotReached ?? { count: 0, ids: [] },
+      budget_exhausted: budget?.exhausted ?? false,
     };
     return { perItem, metrics, inputsRef: sources.map((s) => s.sourceUrl), fullTraceRefs: [reportPath] };
   }
@@ -721,6 +781,75 @@ export async function resolvePortalSourceId(db, portal, mode, cite) {
   return reg.source_id;
 }
 
+/** PURE time-budget predicate (lane SWEEP-BUDGET, 2026-09-04) — the one thing that stops the sitemap
+ *  walk's `for (const src of targets)` loop (`main()`, --walker sitemap branch) before GitHub Actions'
+ *  own `timeout-minutes: 30` kills the job outright with no artifact at all (source-sweep #16, 70 hosts,
+ *  [CONFIRMED] killed with zero artifact 2026-09-04). Injected clock: this function reads no clock
+ *  itself — `nowMs` is a VALUE the caller already read (`Date.now()` in the live binding, a fixed number
+ *  in a test) — so it is testable without sleeping.
+ *  @param {number} startedAtMs @param {number} nowMs @param {number} budgetSeconds
+ *  @returns {{exhausted:boolean, elapsedSeconds:number}} */
+export function checkTimeBudget(startedAtMs, nowMs, budgetSeconds) {
+  const elapsedSeconds = (nowMs - startedAtMs) / 1000;
+  return { exhausted: elapsedSeconds >= budgetSeconds, elapsedSeconds };
+}
+
+/**
+ * Drive `targets` through `walkOne(target, index)` (the real per-source walk, including its real network
+ * calls), checking `checkTimeBudget` BEFORE every target — never mid-target, so one source's own walk is
+ * bounded separately (--max-sitemap-fetches/--max-sitemap-entries, and each individual fetch's own
+ * timeout — see `withFetchTimeout`/`SOURCE_SWEEP_FETCH_TIMEOUT_MS` below) and is never aborted partway by
+ * this budget. This IS the loop `main()`'s sitemap branch runs (not a parallel simulation of it) —
+ * `nowMs` defaults to `Date.now` in that live call and is overridden with a fake, advancing sequence in
+ * tests, which is what makes the loop's early-exit behavior provable without sleeping or faking `fetch`.
+ * @param {object[]} targets
+ * @param {(target:object, index:number) => Promise<object>} walkOne
+ * @param {{startedAtMs:number, budgetSeconds:number, nowMs?: () => number}} opts
+ * @returns {Promise<{results:object[], notReached:object[], exhausted:boolean, elapsedSeconds:number}>}
+ */
+export async function walkTargetsWithinBudget(targets, walkOne, { startedAtMs, budgetSeconds, nowMs = Date.now }) {
+  const results = [];
+  let exhausted = false;
+  let elapsedSeconds = 0;
+  for (let i = 0; i < targets.length; i++) {
+    const check = checkTimeBudget(startedAtMs, nowMs(), budgetSeconds);
+    elapsedSeconds = check.elapsedSeconds;
+    if (check.exhausted) { exhausted = true; break; }
+    results.push(await walkOne(targets[i], i));
+  }
+  const notReached = targets.slice(results.length);
+  return { results, notReached, exhausted, elapsedSeconds };
+}
+
+/** Wrap `fetchImpl(url, opts)` so every call carries a per-request `AbortSignal.timeout(timeoutMs)` and a
+ *  timeout is reported as a plain, greppable Error naming the url — not a raw DOMException a caller's
+ *  `error.message`-matching catch blocks (register-walk.mjs/feed-walk.mjs/sitemap-walk.mjs all report
+ *  errors by string message) would otherwise have to special-case. ONE wrapper, applied to the ONE
+ *  `fetch` call site every one of `main()`'s fetchHtml/fetchJson/fetchText/fetchBytes helpers already
+ *  shares (`politeFetch`) — not three copies, and it protects every walker (register-eurlex,
+ *  register-federal-register, feed, sitemap) alike, since all four route through the same helper.
+ *  [CONFIRMED, read in full 2026-09-04]: before this change, neither this file's fetch helpers nor
+ *  sitemap-walk.mjs (which never calls `fetch` itself — PURE + DEP-INJECTED by design, see its own
+ *  header; every network call is the caller's injected `deps.fetchBytes`) carried an AbortSignal, a
+ *  timeout, or any bound on how LONG one fetch may hang — only on how BIG the eventual response may be
+ *  (`checkResponseBytes`, checked AFTER a full response arrives) and how MANY documents a sitemap walk
+ *  may fetch (`maxSitemapFetches`/`maxSitemapEntries`). A single hung host could not be interrupted by
+ *  anything in this family before this change.
+ *  @param {(url:string, opts:object) => Promise<Response>} fetchImpl @param {number} timeoutMs
+ *  @returns {(url:string, opts:object) => Promise<Response>} */
+export function withFetchTimeout(fetchImpl, timeoutMs) {
+  return async function timedFetch(url, opts) {
+    try {
+      return await fetchImpl(url, { ...opts, signal: AbortSignal.timeout(timeoutMs) });
+    } catch (e) {
+      if (e && (e.name === "TimeoutError" || e.name === "AbortError")) {
+        throw new Error(`fetch timed out after ${timeoutMs}ms for ${url}`);
+      }
+      throw e;
+    }
+  };
+}
+
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (IS_MAIN) await main();
 
@@ -744,7 +873,8 @@ async function main() {
 
   const {
     walker, mode, from, to, feedUrl, series, types, term, maxPages, perPage, sourceName,
-    sourceId: cliSourceId, host, allHosts, maxHosts, checkCoverage, limit, maxSitemapFetches, maxSitemapEntries,
+    sourceId: cliSourceId, host, allHosts, maxHosts, timeBudgetSeconds, checkCoverage, limit,
+    maxSitemapFetches, maxSitemapEntries,
   } = parsed;
   const harnessRunsDir = resolve(parsed.harnessRunsDir || DEFAULT_HARNESS_RUNS_DIR);
   // The raw walker result (the run's FULL TRACE — per-day act URLs in the EUR-Lex case) is kept in the
@@ -790,12 +920,20 @@ async function main() {
   // pages that were not the register (see register-walk.mjs's looksLikeOjDailyView). A register walk is
   // a bounded enumeration, not a scrape; a one-second gap costs a week-walk seven seconds.
   const FETCH_GAP_MS = Number(process.env.SOURCE_SWEEP_FETCH_GAP_MS ?? 1000);
+  // FETCH TIMEOUT (lane SWEEP-BUDGET, 2026-09-04). [CONFIRMED, read in full]: before this change, no
+  // fetch in this family (register-eurlex, register-federal-register, feed, or sitemap — all four route
+  // through `politeFetch`) carried an AbortSignal or any per-request timeout at all; a single hung host
+  // could hang indefinitely and, for `--walker sitemap --all-hosts`, silently eat the whole time budget
+  // through one source. ONE constant, ONE call site (`withFetchTimeout`, wrapping the bare `fetch` below)
+  // — every walker gets the same protection, not three hand-copied timeouts.
+  const SOURCE_SWEEP_FETCH_TIMEOUT_MS = Number(process.env.SOURCE_SWEEP_FETCH_TIMEOUT_MS ?? 20_000);
+  const timedFetch = withFetchTimeout(fetch, SOURCE_SWEEP_FETCH_TIMEOUT_MS);
   let lastFetchAt = 0;
   async function politeFetch(url) {
     const wait = lastFetchAt + FETCH_GAP_MS - Date.now();
     if (wait > 0) await new Promise((r) => setTimeout(r, wait));
     lastFetchAt = Date.now();
-    return fetch(url, fetchOpts);
+    return timedFetch(url, fetchOpts);
   }
   async function fetchHtmlImpl(url) {
     const res = await politeFetch(url);
@@ -949,6 +1087,7 @@ async function main() {
           result = {
             sources: [],
             allHosts: allHostsSelection,
+            budget: { budgetSeconds: timeBudgetSeconds, elapsedSeconds: 0, exhausted: false, sourcesWalked: 0, sourcesNotReached: { count: 0, ids: [] } },
             note: allHosts
               ? "no active source rows found (--all-hosts, empty sources table or nothing active)"
               : cliSourceId
@@ -956,63 +1095,89 @@ async function main() {
                 : `no active source rows found for --host ${host}`,
           };
         } else {
-          const sourceResults = [];
-          for (const src of targets) {
-            const walkDeps = {
-              fetchBytes: fetchBytesImpl,
-              getPreviousSnapshot: () => getSitemapSnapshot(src.id),
-              saveSnapshot: (entries) => saveSitemapSnapshot(src.id, entries),
-              persist: (links) => persistFor(src.id, links),
-              recordChange: (changed) => recordSitemapChange(src.id, changed),
-            };
-            let outcome;
-            try {
-              const r = await walkSource(walkDeps, { sourceUrl: src.url, maxSitemapFetches, maxSitemapEntries, limit });
-              outcome = { sourceId: src.id, sourceName: src.name, sourceUrl: src.url, ...r };
-              if (r.kind === "feed") {
-                const feedResult = await walkFeed(
-                  { fetchText: fetchTextImpl, persist: (links) => persistFor(src.id, links) },
-                  { feedUrl: r.feedUrl }
-                );
-                outcome.feedResult = feedResult;
-                // Record the discovered feed_url through the SAME guarded writer every script-side mutation
-                // in this repo goes through (db.mjs's rule-015 path — cite + prior-value snapshot), never a
-                // new one. Only when it actually changed (idempotent re-walks write nothing).
-                if (mode === "apply" && src.rss_feed_url !== r.feedUrl) {
-                  const upd = await guardedUpdate(
-                    "sources",
-                    (qb) => qb.eq("id", src.id),
-                    { rss_feed_url: r.feedUrl },
-                    { cite: { skill: "corpus-turn-runbook", reason: `source-sweep sitemap walk: recorded discovered feed_url for ${src.url} (${r.discoverySource}).` } }
-                  );
-                  outcome.rssFeedUrlWritten = (upd.updated ?? 0) > 0;
-                } else {
-                  outcome.rssFeedUrlWritten = false;
-                }
-              }
-            } catch (e) {
-              outcome = {
-                sourceId: src.id, sourceName: src.name, sourceUrl: src.url,
-                kind: "error", error: e instanceof Error ? e.message : String(e),
+          // WALL-CLOCK BUDGET (lane SWEEP-BUDGET, 2026-09-04): checked BEFORE every target
+          // (`walkTargetsWithinBudget`/`checkTimeBudget` — exported, pure, injected-clock — see their own
+          // doc above), never mid-target, so the workflow's own `timeout-minutes: 30` can never kill this
+          // run with zero artifact the way it killed source-sweep #16 (70 hosts, [CONFIRMED] no artifact).
+          // A budget-exhausted run still returns normally and exits 0 (see `main()`'s finally block) — a
+          // bounded, complete unit of work, never an error.
+          const walkStartedAtMs = Date.now();
+          const { results: sourceResults, notReached, exhausted, elapsedSeconds } = await walkTargetsWithinBudget(
+            targets,
+            async (src) => {
+              const walkDeps = {
+                fetchBytes: fetchBytesImpl,
+                getPreviousSnapshot: () => getSitemapSnapshot(src.id),
+                saveSnapshot: (entries) => saveSitemapSnapshot(src.id, entries),
+                persist: (links) => persistFor(src.id, links),
+                recordChange: (changed) => recordSitemapChange(src.id, changed),
               };
-            }
-            // Sitemap-coverage columns (migration 304) — written on EVERY walked row, every discovery
-            // outcome, through the SAME guarded path the rss_feed_url write above uses; dry mode writes
-            // nothing (buildSitemapCoveragePatch's own doc explains which keys appear for which outcome).
-            const coveragePatch = buildSitemapCoveragePatch(outcome, new Date().toISOString());
-            outcome.coveragePatch = coveragePatch;
-            if (mode === "apply") {
-              const cov = await guardedUpdate(
-                "sources", (qb) => qb.eq("id", src.id), coveragePatch,
-                { cite: { skill: "corpus-turn-runbook", reason: `source-sweep sitemap walk: recorded sitemap-coverage state for ${src.url} (outcome=${coveragePatch.sitemap_walk_outcome}).` } }
-              );
-              outcome.coverageWritten = (cov.updated ?? 0) > 0;
-            } else {
-              outcome.coverageWritten = false;
-            }
-            sourceResults.push(outcome);
+              let outcome;
+              try {
+                const r = await walkSource(walkDeps, { sourceUrl: src.url, maxSitemapFetches, maxSitemapEntries, limit });
+                outcome = { sourceId: src.id, sourceName: src.name, sourceUrl: src.url, ...r };
+                if (r.kind === "feed") {
+                  const feedResult = await walkFeed(
+                    { fetchText: fetchTextImpl, persist: (links) => persistFor(src.id, links) },
+                    { feedUrl: r.feedUrl }
+                  );
+                  outcome.feedResult = feedResult;
+                  // Record the discovered feed_url through the SAME guarded writer every script-side mutation
+                  // in this repo goes through (db.mjs's rule-015 path — cite + prior-value snapshot), never a
+                  // new one. Only when it actually changed (idempotent re-walks write nothing).
+                  if (mode === "apply" && src.rss_feed_url !== r.feedUrl) {
+                    const upd = await guardedUpdate(
+                      "sources",
+                      (qb) => qb.eq("id", src.id),
+                      { rss_feed_url: r.feedUrl },
+                      { cite: { skill: "corpus-turn-runbook", reason: `source-sweep sitemap walk: recorded discovered feed_url for ${src.url} (${r.discoverySource}).` } }
+                    );
+                    outcome.rssFeedUrlWritten = (upd.updated ?? 0) > 0;
+                  } else {
+                    outcome.rssFeedUrlWritten = false;
+                  }
+                }
+              } catch (e) {
+                outcome = {
+                  sourceId: src.id, sourceName: src.name, sourceUrl: src.url,
+                  kind: "error", error: e instanceof Error ? e.message : String(e),
+                };
+              }
+              // Sitemap-coverage columns (migration 304) — written on EVERY walked row, every discovery
+              // outcome, through the SAME guarded path the rss_feed_url write above uses; dry mode writes
+              // nothing (buildSitemapCoveragePatch's own doc explains which keys appear for which outcome).
+              const coveragePatch = buildSitemapCoveragePatch(outcome, new Date().toISOString());
+              outcome.coveragePatch = coveragePatch;
+              if (mode === "apply") {
+                const cov = await guardedUpdate(
+                  "sources", (qb) => qb.eq("id", src.id), coveragePatch,
+                  { cite: { skill: "corpus-turn-runbook", reason: `source-sweep sitemap walk: recorded sitemap-coverage state for ${src.url} (outcome=${coveragePatch.sitemap_walk_outcome}).` } }
+                );
+                outcome.coverageWritten = (cov.updated ?? 0) > 0;
+              } else {
+                outcome.coverageWritten = false;
+              }
+              return outcome;
+            },
+            { startedAtMs: walkStartedAtMs, budgetSeconds: timeBudgetSeconds }
+          );
+          if (exhausted) {
+            console.log(
+              `run-source-sweep: time budget (${timeBudgetSeconds}s) exhausted after ${elapsedSeconds.toFixed(1)}s — ` +
+              `walked ${sourceResults.length}/${targets.length} targeted sources, ${notReached.length} not reached this run.`
+            );
           }
-          result = { sources: sourceResults, allHosts: allHostsSelection };
+          result = {
+            sources: sourceResults,
+            allHosts: allHostsSelection,
+            budget: {
+              budgetSeconds: timeBudgetSeconds,
+              elapsedSeconds,
+              exhausted,
+              sourcesWalked: sourceResults.length,
+              sourcesNotReached: { count: notReached.length, ids: notReached.map((t) => t.id) },
+            },
+          };
         }
       }
     } else {
@@ -1047,7 +1212,8 @@ async function main() {
         config: {
           walker, mode, from, to, feed_url: feedUrl, series, types, term: term ?? null,
           max_pages: maxPages, per_page: perPage, source_id: sourceId, portal_url: portal?.url ?? null,
-          cli_source_id: cliSourceId, host, all_hosts: allHosts, max_hosts: maxHosts, check_coverage: checkCoverage,
+          cli_source_id: cliSourceId, host, all_hosts: allHosts, max_hosts: maxHosts,
+          time_budget_seconds: timeBudgetSeconds, check_coverage: checkCoverage,
           limit, max_sitemap_fetches: maxSitemapFetches, max_sitemap_entries: maxSitemapEntries,
         },
         inputs_ref: shaped?.inputsRef ?? [`walker=${walker}`, `from=${from ?? "n/a"}`, `to=${to ?? "n/a"}`],

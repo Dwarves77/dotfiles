@@ -2,12 +2,22 @@
 // `fetchImpl` stands in for the real fetch call.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { revalidateTags, itemTag, surfaceDetailTag } from "./revalidate.mjs";
+import { revalidateTags, itemTag, surfaceDetailTag, APP_DATA_TAG, PUBLIC_ITEMS_TAG } from "./revalidate.mjs";
 
 test("itemTag/surfaceDetailTag mirror src/lib/cache/revalidate-item.ts's format exactly", () => {
   assert.equal(itemTag("g14"), "item:g14");
   assert.equal(surfaceDetailTag("regulations"), "regulations-detail");
   assert.equal(surfaceDetailTag("market"), "market-detail");
+});
+
+// PERF-10 (2026-09-04, ADR-026 Follow-up / migration 306): PUBLIC_ITEMS_TAG must mirror
+// src/lib/data.ts's constant of the same name EXACTLY (string value, not just export shape) — the
+// two are independently-defined string literals (see this file's own header on why no shared
+// runtime import is possible across the Next-app/plain-script boundary), so a typo in either one
+// silently breaks the flush without either side's own tests noticing on their own.
+test("APP_DATA_TAG/PUBLIC_ITEMS_TAG mirror src/lib/data.ts's constants of the same name exactly", () => {
+  assert.equal(APP_DATA_TAG, "app-data");
+  assert.equal(PUBLIC_ITEMS_TAG, "public-items");
 });
 
 test("dry by default: no fetch call, applied:false, reason 'dry'", async () => {

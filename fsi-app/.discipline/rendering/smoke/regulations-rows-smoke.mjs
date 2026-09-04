@@ -30,6 +30,7 @@
 // this lane; this lane's contribution is coverage (the spec that measures it) and the shared
 // `data-guard-title` convention, not a layout change.
 
+import { fileURLToPath } from 'node:url';
 import { runUxSpec, MOBILE_VIEWPORT, DESKTOP_VIEWPORT } from './ux-harness.mjs';
 import { measureUx, assertUxClean } from '../ux-assert.mjs';
 import {
@@ -41,6 +42,16 @@ import {
   findPlaceholderLiterals,
 } from './harness.mjs';
 import { fullAppCss } from './smoke-fixtures.mjs';
+
+// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): RegulationsLedger.tsx now calls
+// useSearchParams() (next/navigation) inside its own SearchParamsFilterBridge sub-component — reading
+// the ?priority=/?region=/?owner= deep-link filters CLIENT-SIDE now that regulations/page.tsx no
+// longer reads the `searchParams` prop server-side (a Dynamic API that alone forced the route `ƒ`).
+// Outside a real Next App Router tree this throws ("invariant expected app router to be mounted"),
+// same failure community-smoke.mjs's own ALIAS note documents for PostComposer.tsx/
+// PromotePostDialog.tsx — reusing that spec's stub-next-navigation.mjs here rather than duplicating it.
+const HERE = fileURLToPath(new URL('.', import.meta.url));
+const ALIAS = { 'next/navigation': `${HERE}stub-next-navigation.mjs` };
 
 // F35's coverage scan (row-ux-coverage.mjs's `specMounts`) is a plain regex match against this
 // spec FILE's raw text — comments included, since only the REGISTRY (ux-smoke-specs.mjs) gets
@@ -62,17 +73,23 @@ const STYLE_INJECT = `
 })();
 `;
 
+// PERF-12 (2026-09-04, ADR-027 §2): RegulationsLedger now calls useLedgerInfiniteQuery
+// (TanStack Query's useInfiniteQuery), which throws "No QueryClient set" without a
+// QueryClientProvider ancestor — wrap the mount in the SAME QueryProvider component the real app
+// tree uses (src/components/providers/QueryProvider.tsx, wired into AuthProvider.tsx), not a
+// second hand-rolled test-only client, so this smoke test exercises the real provider shape.
 const LEDGER_ENTRY = `
 ${STYLE_INJECT}
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { RegulationsLedger } from '@/components/regulations/RegulationsLedger';
+import { QueryProvider } from '@/components/providers/QueryProvider';
 
 let root = null;
 window.__mount = (props) => {
   const el = document.getElementById('smoke-root');
   if (!root) root = createRoot(el);
-  root.render(React.createElement(RegulationsLedger, props));
+  root.render(React.createElement(QueryProvider, null, React.createElement(RegulationsLedger, props)));
 };
 `;
 
@@ -104,12 +121,18 @@ window.__mount = (props) => {
 };
 `;
 
-// RegulationsLedger fetches the remainder of its page on mount (cost-constrained first paint, same
-// posture as OperationsLedger — see operations-rows-smoke.mjs) and hydrates two auth-gated stores
-// (useListOrder, usePersonalStateHydration) whose fetches must be answered rather than left to hit
-// the real network from a sandboxed test run.
+// PERF-12 (2026-09-04): RegulationsLedger's own `initialData` (the `initialResources`/
+// `initialArchived`/`initialHasMore` fixture props below) satisfies useLedgerInfiniteQuery's first
+// page synchronously — see that hook's own header for why `initialData` means no network fetch on
+// mount whenever `initialHasMore` is false/absent (every fixture state here). This mock exists only
+// as a safety net for the one fixture state that WOULD have `hasNextPage` true (none currently do,
+// since no LEDGER_STATES entry sets `initialHasMore: true`) and for `fetchNextPage`/the
+// IntersectionObserver sentinel firing during the settle frame — the response shape must match
+// `LedgerPage` (useLedgerInfiniteQuery.ts) exactly, or a real fetch would throw during the test.
+// Also hydrates two auth-gated stores (useListOrder, usePersonalStateHydration) whose fetches must
+// be answered rather than left to hit the real network from a sandboxed test run.
 const LEDGER_API_ROUTES = [
-  { urlGlob: '**/api/listings/rest**', handler: (route) => route.fulfill({ json: { resources: [] } }) },
+  { urlGlob: '**/api/listings/cursor**', handler: (route) => route.fulfill({ json: { resources: [], archived: [], nextCursor: null, hasMore: false } }) },
   { urlGlob: '**/api/user/list-order**', handler: (route) => route.fulfill({ json: { order: [] } }) },
   { urlGlob: '**/api/workspace/personal-state**', handler: (route) => route.fulfill({ json: { items: [] } }) },
 ];
@@ -255,7 +278,7 @@ function assertGuardCleanExceptBandLabel(label, { measurements, texts }) {
 async function runLedgerSpec(browser) {
   const failures = [];
   let checks = 0;
-  const bundleJs = await bundleEntry(LEDGER_ENTRY);
+  const bundleJs = await bundleEntry(LEDGER_ENTRY, { alias: ALIAS });
   for (const vp of [MOBILE_VIEWPORT, DESKTOP_VIEWPORT]) {
     for (const state of LEDGER_STATES) {
       const label = `regulations-ledger:${state.label}@${vp.width}`;

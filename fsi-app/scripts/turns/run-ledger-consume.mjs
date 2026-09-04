@@ -137,6 +137,28 @@ import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 import { htmlToText } from "../../src/lib/text/html-to-text.mjs";
 import { decodeHtmlBytes, cleanCtl } from "../../src/lib/sources/charset-decode.mjs";
 import { classifyBody, pdfToText } from "../../src/lib/sources/pdf-extract.mjs";
+// LANE LEDGER-WALLS (2026-09-04) — three more plain-ESM reuses, same "no jiti needed, one relative
+// import" discipline as the three above. See buildFetchDoc's own comment below for the full account:
+// (1) apiEndpointFor/fetchDocumentApi route federalregister.gov/ecfr.gov document URLs to their official
+//     JSON API instead of the HTML page that returns a CAPTCHA wall to a scraper — the SAME body
+//     src/lib/agent/canonical-pipeline.ts's apiFetchForHost now delegates to (one ladder, reused, never
+//     a second per-host fetch).
+// (2) renderingUrlForPrimary rewrites a bare eur-lex.europa.eu /legal-content/<LANG>/TXT/ URL to its
+//     /TXT/HTML/ form BEFORE the fetch — the SAME rewrite src/lib/sources/primary-fallback.mjs's
+//     fetchPrimaryWithFallback already applies to the grounding pipeline's declared primary (PROVEN there
+//     on CSRD CELEX:32022L2464: bare = 2989ch "Page Not Found", HTML = the directive text), reused here
+//     rather than re-derived — never a second EUR-Lex URL-shape rule.
+// (3) detectAccessWall — the ONE content-based bot-wall/access-wall detector (see that file's own header
+//     for the full account: it reuses transport-escalation.mjs's + primary-fallback.mjs's own patterns,
+//     verbatim, and adds the EUR-Lex-specific structural "chrome only, no instrument body" check this
+//     family's export first surfaced). A detected wall is folded into fetchDoc's OWN return shape (a
+//     `wall` field alongside `text`/`transport`) so BOTH of this driver's two callers — portal-harvest.ts's
+//     FETCH step (the plan/apply consume path) and shapeCandidateTextFields below (the --export-candidates
+//     --with-text export) — read one flag rather than re-running the detector themselves.
+import { apiEndpointFor } from "../../src/lib/sources/transport-escalation.mjs";
+import { fetchDocumentApi } from "../../src/lib/sources/api-transport.mjs";
+import { renderingUrlForPrimary } from "../../src/lib/sources/primary-fallback.mjs";
+import { detectAccessWall } from "../../src/lib/sources/access-wall.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -281,6 +303,24 @@ export function defaultTraceDir(harnessRunsDir) {
 // be handed to htmlToText as if it were HTML (extracting nothing usable); it now extracts real text.
 // portal-harvest.ts's 200-char floor and the export's `fetched_chars` therefore now describe TEXT, not
 // markup — what portal-harvest.ts:306's floor always intended to measure.
+// LANE LEDGER-WALLS (2026-09-04) — three additions to this function, each reusing an existing body (see
+// this file's import comments above for the full "one ladder" account):
+//   (1) STANDARD TRANSPORT FOR API HOSTS. federalregister.gov/ecfr.gov document URLs route to
+//       fetchDocumentApi (api-transport.mjs — the SAME body canonical-pipeline.ts's apiFetchForHost now
+//       delegates to) instead of the plain HTML fetch, through this SAME politeness gap. Recorded
+//       transport: "federalregister-api" / "ecfr-api". `fetchDocumentApi` returns `null` when no
+//       document-specific endpoint can be derived from the URL (an agency-listing page, not a single
+//       document) — the honest fallback is the ordinary HTML fetch below, never a silent skip.
+//   (2) EUR-LEX RENDERING FORM. A bare eur-lex.europa.eu /legal-content/<LANG>/TXT/ URL is rewritten to
+//       its /TXT/HTML/ form (renderingUrlForPrimary, primary-fallback.mjs — PROVEN there on CSRD
+//       CELEX:32022L2464) BEFORE the fetch, for every eur-lex.europa.eu URL that has no API transport of
+//       its own (EUR-Lex has none — apiEndpointFor only names federalregister.gov/ecfr.gov).
+//   (3) ACCESS-WALL DETECTION. After extraction (whichever transport produced the text), detectAccessWall
+//       (access-wall.mjs) checks the result. A detected wall is folded into the RETURN SHAPE as a `wall`
+//       field (`{kind, evidence}` or `null`) — never thrown, never silently swallowed — so BOTH of this
+//       driver's callers (portal-harvest.ts's FETCH step, shapeCandidateTextFields below) can each apply
+//       their OWN "fetch_ok:false, fetch_error:'access_wall:<kind>'" disposition from one flag, without
+//       re-running the detector or re-deciding what counts as a wall.
 export function buildFetchDoc({
   gapMs = Number(process.env.LEDGER_CONSUME_FETCH_GAP_MS ?? 1000),
   timeoutMs = 20_000,
@@ -290,17 +330,22 @@ export function buildFetchDoc({
   pdfMaxChars = 400_000, // generous — downstream (classify's user-message template, --with-text's export
   // shaping) truncates further to CONTENT_MAX_CHARS (6,000) regardless; this only bounds the PDF codec's
   // own extraction work, same order of magnitude as acquire-primaries-batch.mjs's MAXCH for the same job.
+  // Also the cap threaded into fetchDocumentApi's own `max` (SAME order of magnitude, same reasoning —
+  // downstream truncates further, this only bounds what the API transport itself extracts/returns).
   pdfToTextImpl = pdfToText,
+  fetchDocumentApiImpl = fetchDocumentApi, // injectable for tests — no real network to federalregister.gov
 } = {}) {
   let lastFetchAt = 0;
-  return async function fetchDoc(url) {
-    const wait = lastFetchAt + gapMs - now();
-    if (wait > 0) await sleep(wait);
-    lastFetchAt = now();
+
+  /** The plain direct-HTTP fetch (PDF-or-HTML codec) — unchanged from before this lane, factored into its
+   *  own function so the API-transport branch below can fall through to it without duplicating the codec.
+   *  @param {string} fetchUrl the URL actually fetched — may differ from the candidate's own `url` (see
+   *    the EUR-Lex rewrite above) — the caller decides what to pass; this function fetches exactly that. */
+  async function directFetchDoc(fetchUrl) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const res = await fetchImpl(url, {
+      const res = await fetchImpl(fetchUrl, {
         signal: controller.signal,
         headers: {
           "user-agent": "FSI-ledger-consume/1.0 (+corpus-turn)",
@@ -308,7 +353,7 @@ export function buildFetchDoc({
           "accept-language": "en",
         },
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${fetchUrl}`);
       const contentType = res.headers.get("content-type");
       const u8 = new Uint8Array(await res.arrayBuffer());
       // PDF-OR-HTML (same header-or-magic-bytes codec directFetchClean uses): a reachable PDF candidate
@@ -327,6 +372,45 @@ export function buildFetchDoc({
     } finally {
       clearTimeout(timer);
     }
+  }
+
+  return async function fetchDoc(url) {
+    const wait = lastFetchAt + gapMs - now();
+    if (wait > 0) await sleep(wait);
+    lastFetchAt = now();
+
+    let host = null, path = null;
+    try {
+      const u = new URL(url);
+      host = u.hostname;
+      path = u.pathname;
+    } catch {
+      /* an unparseable URL fails the same way it always did — the fetch below throws */
+    }
+
+    // (1) API-host routing — federalregister.gov / ecfr.gov document URLs, never their HTML page.
+    const apiBase = apiEndpointFor(url);
+    let outcome;
+    if (apiBase) {
+      const apiResult = await fetchDocumentApiImpl(url, { fetchImpl, max: pdfMaxChars, apiBase });
+      if (apiResult) {
+        const isEcfr = /(^|\.)ecfr\.gov$/.test((host || "").replace(/^www\./, "").toLowerCase());
+        outcome = { text: apiResult.text, transport: isEcfr ? "ecfr-api" : "federalregister-api" };
+      }
+      // apiResult === null: no document-specific endpoint derivable from this URL (e.g. an agency-listing
+      // page, not a single document) — fall through to the plain HTML fetch below, the honest exhaustion
+      // path (never a silent skip).
+    }
+    if (!outcome) {
+      // (2) EUR-Lex rendering-form rewrite (no-op for every other host — renderingUrlForPrimary passes a
+      //     non-eur-lex or already-/TXT/HTML/ URL through unchanged).
+      const fetchUrl = apiBase ? url : renderingUrlForPrimary(url);
+      outcome = await directFetchDoc(fetchUrl);
+    }
+
+    // (3) content-based access-wall detection — folded into the return shape, never thrown.
+    const wall = detectAccessWall(outcome.text, { host, path });
+    return { ...outcome, wall };
   };
 }
 
@@ -838,7 +922,15 @@ export function resolveApplyGate(requestedMode, applyEnabled) {
  * failure. Unlike consumePortalCandidates (which just skips the row), this export STILL CARRIES the short
  * text — a session lane or a later retry may find it useful — but marks `fetch_ok: false` with a named,
  * greppable reason so a reader does not treat it as classify-ready.
- * @param {{ok: true, text: string, transport?: string|null} | {ok: false, error: string}} fetchOutcome
+ *
+ * ACCESS-WALL DETECTION (Lane LEDGER-WALLS, 2026-09-04): checked BEFORE the 200-char floor — a wall body
+ * routinely clears 200 characters (the Federal Register CAPTCHA shell is 1,180ch) while carrying zero
+ * classify-worthy content, which is exactly why the floor alone let 308 of 338 fetch_ok rows in the
+ * coordinator's export #5 reach classify as if they were real text (see access-wall.mjs's own header for
+ * the full measured account). `fetchOutcome.wall` is set upstream, in buildFetchDoc's own fetchDoc — this
+ * function never re-runs the detector, it only reads the one flag and shapes the SAME `fetch_ok:false`
+ * disposition the below-floor case already uses, naming the wall kind instead of a char count.
+ * @param {{ok: true, text: string, transport?: string|null, wall?: {kind:string, evidence?:string}|null} | {ok: false, error: string}} fetchOutcome
  * @param {{maxChars: number, now?: () => string}} opts
  * @returns {{text: string, fetched_chars: number, fetch_ok: boolean, fetch_error: string|null, fetched_at: string, transport: string|null}}
  */
@@ -862,6 +954,18 @@ export function shapeCandidateTextFields(fetchOutcome, opts) {
   }
   const raw = fetchOutcome.text ?? "";
   const sliced = raw.slice(0, opts.maxChars);
+  // ACCESS WALL first (see this function's own doc above) — checked before the below-floor case since a
+  // wall body routinely clears 200 characters.
+  if (fetchOutcome.wall) {
+    return {
+      text: sliced,
+      fetched_chars: sliced.length,
+      fetch_ok: false,
+      fetch_error: `access_wall:${fetchOutcome.wall.kind}`,
+      fetched_at: now(),
+      transport: fetchOutcome.transport ?? null,
+    };
+  }
   const belowFloor = raw.trim().length < 200; // SAME floor as portal-harvest.ts's fetch step — see doc above
   return {
     text: sliced,
@@ -922,7 +1026,14 @@ export function buildCandidateExportPayload(candidates, opts = {}) {
         "CONTENT_MAX_CHARS). fetch_ok=false marks a row that failed to fetch (fetch_error names why) or " +
         "fell under portal-harvest.ts's own 200-char floor (fetch_error='below_floor_200'; its text field " +
         "is still carried — a session lane or a later retry may find it useful — but should not be treated " +
-        "as classify-ready). A classification lane consuming this file must NOT fetch these URLs itself — " +
+        "as classify-ready) OR was detected as a content-based access/bot wall by access-wall.mjs " +
+        "(fetch_error='access_wall:<kind>', e.g. 'access_wall:request_access' for the federalregister.gov " +
+        "CAPTCHA shell or 'access_wall:eurlex_interface_shell' for a EUR-Lex /legal-content/ capture that " +
+        "never reached instrument text — see access-wall.mjs's own header; a wall is checked BEFORE the " +
+        "200-char floor because a wall body routinely clears it). A classification lane consuming this " +
+        "file must NOT fetch these URLs itself, and must never spend a verdict on a fetch_ok=false row " +
+        "(a wall names no determinable subject — every session-Haiku lane that tried anyway correctly " +
+        "returned \"uncertain\", proving nothing a mechanical check had not already caught for free) — " +
         "the fix this field exists for was Haiku classification lanes hitting fetch rate limits by doing " +
         "exactly that (see run-ledger-consume.mjs's header, \"THE DEFECT THIS CLOSES\")."
       : "This runtime does not persist first-fetch page text (portal_link_candidates carries no content " +
@@ -978,7 +1089,7 @@ export async function runExportCandidates(opts) {
       let fetchOutcome;
       try {
         const r = await opts.fetchDoc(row.url);
-        fetchOutcome = { ok: true, text: r?.text ?? "", transport: r?.transport ?? null };
+        fetchOutcome = { ok: true, text: r?.text ?? "", transport: r?.transport ?? null, wall: r?.wall ?? null };
       } catch (e) {
         fetchOutcome = { ok: false, error: e instanceof Error ? e.message : String(e) };
       }

@@ -51,10 +51,17 @@ export const CLASS = Object.freeze({
 
 // "Request Access" / permission-wall bodies (federalregister.gov + eCFR return these to scrapers on the HTML
 // path). Distinct from a bot challenge — the host is up, it is refusing programmatic HTML access.
-const REQUEST_ACCESS_RE =
+// EXPORTED (Lane LEDGER-WALLS, 2026-09-04) so access-wall.mjs — the shared content-based wall detector
+// the sitemap walker and run-ledger-consume.mjs's buildFetchDoc both import — reuses this verbatim
+// instead of a second hand-typed copy of the pattern (CLAUDE.md "one body" rule). Verified against the
+// LIVE Federal Register shell text (ledger-consume export #5, run 33908401816, 2026-09-04): "Federal
+// Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov
+// and eCFR.gov ... Your request has been flagged as potentially automated ... please complete the CAPTCHA".
+export const REQUEST_ACCESS_RE =
   /request access|you (?:do not|don'?t) have permission to access|access to this page (?:has been|is) denied|permission to access .* on this server|to continue,? (?:please )?(?:enable|verify|confirm)/i;
 // JS-shell / client-render placeholder: a 200 whose body is a shell (the real content is behind JS execution).
-const JS_SHELL_RE =
+// EXPORTED (Lane LEDGER-WALLS, 2026-09-04) — same reuse reasoning as REQUEST_ACCESS_RE above.
+export const JS_SHELL_RE =
   /javascript is required|javascript required|requires javascript|(?:please )?enable javascript|you need to enable javascript|this (?:page|site|app) requires javascript|<noscript/i;
 
 /** PURE failure classifier for a single transport RESULT. Reuses detectRoadblock + isErrorBody (single homes).

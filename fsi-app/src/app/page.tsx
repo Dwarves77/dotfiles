@@ -28,6 +28,7 @@ import { MarketIntelPulse } from "@/components/dashboard/MarketIntelPulse";
 import { ResearchPulse } from "@/components/dashboard/ResearchPulse";
 import { OperationsPulse } from "@/components/dashboard/OperationsPulse";
 import { CommunityPulse } from "@/components/dashboard/CommunityPulse";
+import { formatLocaleDate } from "@/lib/format";
 
 export default async function Home() {
   const [data, aggregates, surfaceCoverage] = await Promise.all([
@@ -42,7 +43,7 @@ export default async function Home() {
   const watchlistPromise = getWatchlist();
   const coverageGapsPromise = getCoverageGaps();
 
-  const dateStr = new Date().toLocaleDateString("en-US", {
+  const dateStr = formatLocaleDate(new Date(), {
     year: "numeric",
     month: "long",
     day: "numeric",

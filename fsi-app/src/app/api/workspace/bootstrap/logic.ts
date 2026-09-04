@@ -9,6 +9,11 @@ import { resolveOrgIdFromUserId } from "@/lib/api/org";
 import { isPlatformAdmin } from "@/lib/auth/admin";
 import { LIST_KEYS, type ListKey } from "@/app/api/user/list-order/logic";
 import { fetchAttentionCounts, EMPTY_COUNTS, type AttentionCounts } from "@/app/api/admin/attention/logic";
+import {
+  fetchWorkspaceOverrideRowsRaw,
+  mapOverrideRows,
+  type WorkspaceOverrideRow,
+} from "@/lib/supabase-server";
 
 export interface PersonalStateItem {
   itemId: string;
@@ -166,5 +171,54 @@ export async function loadAdminAttention(
     return row;
   } catch {
     return null;
+  }
+}
+
+// PERF-10 (2026-09-04, ADR-026 Follow-up / migration 306): the caller's org-scoped override rows
+// (priority, archive state, owner, notes) — the exact per-org merge layer the four index pages'
+// server render used to bake into their RPC call (get_workspace_intelligence_slim/listings(p_org_id))
+// and the four detail pages' loadViewerScoped used to read directly (regulations' owner,
+// market's note). Both moved off the server render path this lane (see the four index page.tsx
+// files and load-detail.ts) so the four listing/detail routes' render trees carry no cookies() read
+// of their own — resourceStore.setOverrides(bootstrap.overrides) (a new client hook,
+// useWorkspaceOverridesHydration) is now the ONE place that hydrates the SAME WorkspaceOverride
+// shape every consumer (mergeWithOverrides, OwnerTeamCard, NotesField) already reads.
+//
+// Reuses fetchWorkspaceOverrideRowsRaw + mapOverrideRows (supabase-server.ts) UNCHANGED — this is a
+// new TRANSPORT (client-fetched bootstrap field instead of a page.tsx server prop) for the exact
+// same read + mapping fetchResourcesOnly/fetchListingsOnly/fetchDashboardData already run, not a
+// reimplementation. mapOverrideRows needs a uuid→UI-id translation map, which those three callers
+// already have (from fetchWorkspaceResources's own RPC payload); this call site does not fetch the
+// item list at all (the public listing RPCs already skip that entirely — see migration 306), so it
+// resolves the SMALL set of legacy_ids it actually needs — bounded by this org's own override count,
+// never the whole corpus — with one extra `.in()` query.
+export async function loadOverrides(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<WorkspaceOverrideRow[]> {
+  try {
+    const orgId = await resolveOrgIdFromUserId(supabase, userId);
+    if (!orgId) return [];
+
+    const raw = await fetchWorkspaceOverrideRowsRaw(orgId);
+    if (raw.rows.length === 0) return [];
+
+    const itemIds = [...new Set(raw.rows.map((r) => r.item_id))];
+    const { data: itemRows, error: itemErr } = await supabase
+      .from("intelligence_items")
+      .select("id, legacy_id")
+      .in("id", itemIds);
+    if (itemErr) {
+      console.warn("[bootstrap/loadOverrides] legacy_id lookup failed (itemId falls back to uuid):", itemErr.message);
+    }
+    const uuidToUiId = new Map<string, string>();
+    for (const row of (itemRows ?? []) as Array<{ id: string; legacy_id: string | null }>) {
+      uuidToUiId.set(row.id, row.legacy_id || row.id);
+    }
+
+    return mapOverrideRows(raw, uuidToUiId);
+  } catch (e) {
+    console.warn("[bootstrap/loadOverrides] failed (fail-soft, empty overrides):", e instanceof Error ? e.message : String(e));
+    return [];
   }
 }

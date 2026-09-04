@@ -57,11 +57,34 @@ export interface BootstrapAdminAttention {
   total: number;
 }
 
+// PERF-10 (2026-09-04, ADR-026 Follow-up / migration 306): structural echo of
+// WorkspaceOverrideRow (src/lib/supabase-server.ts) — which is itself the same
+// shape resourceStore.ts's WorkspaceOverride expects verbatim (setOverrides
+// takes WorkspaceOverride[] and keys a Map by itemId). Duplicated rather than
+// imported because this is a "use client" hook — supabase-server.ts value-
+// imports next/cache's unstable_cache, which is server-only. Field names/
+// shapes must stay in sync by hand; see bootstrap/logic.ts's loadOverrides
+// header for the server side of this contract.
+export interface BootstrapOverrideRow {
+  itemId: string;
+  priorityOverride: string | null;
+  isArchived: boolean;
+  archiveReason: string | null;
+  archiveNote: string | null;
+  notes: string;
+  dismissedAt?: string | null;
+  ownerUserId?: string | null;
+  ownerName?: string | null;
+}
+
 export interface WorkspaceBootstrapData {
   personalState: BootstrapPersonalStateItem[];
   listOrders: Record<string, BootstrapListOrderEntry[]>;
   members: BootstrapMember[] | null;
   adminAttention: BootstrapAdminAttention | null;
+  // Absent/undefined on responses from before this field existed — callers
+  // must treat `overrides` as optional, never assume presence.
+  overrides?: BootstrapOverrideRow[];
 }
 
 interface SingletonState {

@@ -24,14 +24,25 @@
  * through to the ungated seed). Counts are fail-soft (the ledger derives from
  * the loaded rows if the RPC bundle is absent) but never throw and are never
  * hard-coded to the mock snapshot.
+ *
+ * PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): `force-dynamic` is REMOVED. It was set for
+ * the reason the old comment above named (static generation has no cookies; resolveOrgIdFromCookies
+ * would return null and bake in an empty total) — but get_market_intel_items/get_surface_counts BOTH
+ * reject a NULL org_id via `_assert_org_membership` (Supabase, confirmed this lane), so force-dynamic
+ * was never actually protecting a real degrade path here; it was masking the same root cause every
+ * other route in this lane shared. getPublicMarketIntelItems / getPublicSurfaceCounts (src/lib/data.ts,
+ * unstable_cache-wrapped, migration 306's `_public` RPC siblings) read no cookies and carry no
+ * per-org-membership gate, so the page can render `○`/`◐` honestly instead of forcing dynamic to hide
+ * a query that would have failed anyway. The market_series watch-membership batch read
+ * (resolveViewerIdentityFromCookies + fetchWatchMembership) is also removed — see
+ * MarketSeriesBoard.tsx's own PERF-10 header for how `watchMembership: null` is handled without ever
+ * rendering a false "not watched" for a viewer who actually has watched a row.
  */
 
-import { getMarketIntelItems, getSurfaceCounts } from "@/lib/data";
+import { getPublicMarketIntelItems, getPublicSurfaceCounts } from "@/lib/data";
 import { toLedgerRowPayload } from "@/lib/list-pagination";
 import { fetchMarketSeriesBoard } from "@/lib/supabase-server";
-import { getServiceSupabase } from "@/lib/supabase-service";
-import { resolveViewerIdentityFromCookies } from "@/lib/api/org";
-import { fetchWatchMembership, type WatchMembershipEntry } from "@/lib/watchlist/membership";
+import { formatLocaleDate } from "@/lib/format";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { MarketIntelLedger } from "@/components/market/MarketIntelLedger";
 import { MarketSeriesBoard } from "@/components/market/MarketSeriesBoard";
@@ -70,12 +81,6 @@ import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingOblig
 import { SurchargeAuditPanel } from "@/components/market/SurchargeAuditPanel";
 import { OemRoadmapPanel } from "@/components/market/OemRoadmapPanel";
 import { ReroutingPanel } from "@/components/market/ReroutingPanel";
-
-// Sprint 3 (2026-05-27): force-dynamic per /community precedent. Static
-// generation at build time has no cookies; resolveOrgIdFromCookies returns
-// null; the category RPC early-returns empty and the static HTML would bake
-// in total: 0. Force-dynamic renders on request with the cookie-auth context.
-export const dynamic = "force-dynamic";
 
 const BAND_VOCAB_SIZE = 3; // price / corporate / corridor (fixed taxonomy)
 
@@ -133,40 +138,17 @@ export default async function Market() {
   // WO-16 layer 3: the market_series board runs alongside the category-routed rows above — a
   // separate table, separate fetcher (fetchMarketSeriesBoard fails soft to the empty/unpopulated
   // registry state, never throws), so its absence or emptiness never blocks the signal ledger.
-  // PERF-9 (2026-09-04, item 4, ADR-026 §3): was `resolveServerBootstrap()` — React.cache()-scoped,
-  // reusing the root layout's own request-scoped result on a document load, but on an RSC navigation
-  // the root layout skips calling it entirely (isRscNavigation), leaving this the sole caller, paying
-  // its full THREE sequential round trips (getClaims → org_memberships+profiles →
-  // workspace_settings) as one branch of this very Promise.all — and `workspaceSectors`, the field
-  // that third stage exists for, is never read below (only `user.id`/`orgId` are). Replaced with
-  // resolveViewerIdentityFromCookies (org.ts), the same two-stage (getClaims → org_memberships)
-  // resolver the four detail pages now use, for the identical reason.
-  const [marketIntel, aggregates, seriesBoard, identity] = await Promise.all([
-    getMarketIntelItems(),
-    getSurfaceCounts("market"),
+  // PERF-10 (2026-09-04): no per-viewer read runs here at all — see this file's header. The
+  // market_series watch-membership batch read is gone; MarketSeriesBoard renders with
+  // watchMembership: null, and each row's WatchButton resolves its own state client-side.
+  const [marketIntel, aggregates, seriesBoard] = await Promise.all([
+    getPublicMarketIntelItems(),
+    getPublicSurfaceCounts("market"),
     fetchMarketSeriesBoard(),
-    resolveViewerIdentityFromCookies(),
   ]);
 
-  // PERF-3 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md item 2): one batched watchlist
-  // read for every populated market_series row on this page, instead of each row's <WatchButton>
-  // firing its own GET /api/watchlist on mount (six near-simultaneous requests, measured). See
-  // src/lib/watchlist/membership.ts's header.
-  const marketSeriesIds = seriesBoard.groups
-    .filter((g) => g.state === "populated")
-    .flatMap((g) => g.series.map((s) => s.id))
-    .filter((id): id is string => !!id);
-  const marketSeriesWatchMembership: Map<string, WatchMembershipEntry> = marketSeriesIds.length
-    ? await fetchWatchMembership(getServiceSupabase(), {
-        userId: identity.userId,
-        orgId: identity.orgId,
-        itemType: "market_series",
-        itemIds: marketSeriesIds,
-      })
-    : new Map();
-
   const totalSignals = aggregates.totalItems || marketIntel.resources.length;
-  const today = new Date().toLocaleDateString("en-US", {
+  const today = formatLocaleDate(new Date(), {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -198,9 +180,15 @@ export default async function Market() {
           MarketIntelLedger.tsx: it reads none of the fields the trim blanks). NOT a pagination change:
           live count, 2026-09-04, `surface_of()` grouped — market carries 55 verified items, under the
           60-row first-page convention this app uses elsewhere, so there is no "rest" to fetch on demand
-          here the way there is on /regulations (1,316 verified items). */}
+          here the way there is on /regulations (1,316 verified items). PERF-MERGE: trim applies
+          regardless of which RPC produced `marketIntel.resources` (toLedgerRowPayload is a generic
+          Resource→Resource projection) — kept on top of PERF-10's org-independent
+          getPublicMarketIntelItems() fetch. */}
       <MarketIntelLedger initialResources={marketIntel.resources.map(toLedgerRowPayload)} aggregates={aggregates} seriesBoard={seriesBoard} />
-      <MarketSeriesBoard board={seriesBoard} watchMembership={marketSeriesWatchMembership} />
+      {/* PERF-10 (2026-09-04): watchMembership is null — no per-viewer batch read runs on this page at
+          all (see this file's header); each row's WatchButton resolves its own watch state
+          client-side instead of arriving pre-seeded. */}
+      <MarketSeriesBoard board={seriesBoard} watchMembership={null} />
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 36px 0" }}>
         <p
           style={{

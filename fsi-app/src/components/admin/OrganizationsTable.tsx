@@ -19,6 +19,7 @@
  */
 
 import { useMemo } from "react";
+import { formatLocaleDate } from "@/lib/format";
 
 type OrgRow = {
   id: string;
@@ -337,7 +338,7 @@ function formatDate(iso: string): string {
   try {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
-    return d.toLocaleDateString(undefined, {
+    return formatLocaleDate(d, {
       year: "numeric",
       month: "short",
       day: "numeric",

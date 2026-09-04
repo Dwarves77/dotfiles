@@ -17,6 +17,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Loader2, ExternalLink, AlertTriangle, CheckCircle2, XCircle, Filter, Layers } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { formatLocaleDateTime } from "@/lib/format";
 
 interface Candidate {
   id: string;
@@ -844,7 +845,7 @@ function CandidateRow({ cand, onActionDone }: { cand: Candidate; onActionDone: (
                   {rec.rationale}
                   {rec.computed_at && (
                     <span className="block mt-0.5 text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-                      {rec.model || "claude-haiku-4-5-20251001"} · {new Date(rec.computed_at).toLocaleString()}
+                      {rec.model || "claude-haiku-4-5-20251001"} · {formatLocaleDateTime(new Date(rec.computed_at))}
                     </span>
                   )}
                 </div>

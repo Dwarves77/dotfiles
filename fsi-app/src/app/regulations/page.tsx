@@ -14,13 +14,34 @@
  * row-derived counts because migrations 148/149 are not applied yet. Counts
  * are never recomputed from the visible rows and the mock snapshot numbers
  * are never hard-coded.
+ *
+ * PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): this page no longer accepts a
+ * `searchParams` prop. Reading it is itself a Dynamic API under classical (non-PPR) rendering — using
+ * it forces the WHOLE route dynamic at build time, independent of every other fix, exactly like
+ * cookies()/headers(). The `?priority=`/`?region=`/`?owner=` deep-link filters it used to read are now
+ * resolved CLIENT-SIDE, inside RegulationsLedger itself, via useSearchParams() wrapped in its own
+ * small Suspense boundary (see RegulationsLedger.tsx's SearchParamsFilterBridge for the full
+ * mechanism and why only that tiny piece suspends, not the whole ledger).
+ *
+ * getListingsOnly()/getSurfaceCounts() are also replaced: their org-scoped resolveOrgIdFromCookies()
+ * internals were a SECOND, independent Dynamic API dependency on this route (get_workspace_
+ * intelligence_slim rejects a NULL org_id via _assert_org_membership — confirmed this lane via
+ * Supabase MCP). getPublicListingsOnly()/getPublicSurfaceCounts() (migration 306's `_public` RPC
+ * siblings, unstable_cache-wrapped, no cookies) replace them — same platform-wide-not-per-org-override
+ * trade-off already accepted for /market, /operations, /research's own list pages this lane.
  */
 
-import { getListingsOnly, getSurfaceCounts } from "@/lib/data";
+import { getPublicListingsOnly, getPublicSurfaceCounts, getPublicObligationRegisterFirstPage } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { RegulationsLedger } from "@/components/regulations/RegulationsLedger";
-import { toLedgerRowPayload } from "@/lib/list-pagination";
+import {
+  toLedgerRowPayload,
+  LIST_PAGE_SIZE,
+  FIRST_LISTING_CURSOR,
+  cursorAfter,
+  encodeListingCursor,
+} from "@/lib/list-pagination";
 import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingObligationsStrip";
 import { ObligationRegister } from "@/components/regulations/ObligationRegister";
 // Spec 09 §1.8 (lane SPEC-09, wave 3, 2026-09-03): EUDR geo-traceability + book-and-claim custody, one
@@ -29,37 +50,52 @@ import { ObligationRegister } from "@/components/regulations/ObligationRegister"
 import { EudrCustodyPanel } from "@/components/regulations/EudrCustodyPanel";
 import { toDate } from "@/lib/relative-time";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
-import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
+import { formatLocaleDate } from "@/lib/format";
 
-export default async function RegulationsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ priority?: string; region?: string; owner?: string }>;
-}) {
-  const { priority: priorityParam, region: regionParam, owner: ownerParam } = await searchParams;
-
+export default async function RegulationsPage() {
   // Listings (verified-gated server-side) for the ledger rows + the
   // single-SoT verified count bundle for the masthead / tiles / bands.
-  // First-paint page only (60 rows, newest added_date first) — RegulationsLedger
-  // fetches the rest client-side after paint via /api/listings/rest and
-  // appends it, so the initial response ships ~60 rows instead of the entire
-  // corpus. The masthead/tile counts below bind to `aggregates`, which is
-  // sourced from get_surface_counts (or its scoped-aggregates fallback) —
-  // both real RPCs, independent of how many rows are loaded — so the header
-  // count stays honest at 60, at 754, and everywhere in between.
-  const [data, aggregates] = await Promise.all([
-    // PERF-11 (2026-09-04): domain-scoped when migration 305 is live (fail-soft to the unscoped call
-    // otherwise — see ResourcePage.domain's own header in supabase-server.ts). Live measurement,
-    // 2026-09-04: without this, the unscoped top-60 was only 39/60 (65%) actual Regulations rows — the
-    // other 21 were Tech/Regional/Market/Research items this page fetched and serialised, then threw
-    // away. The `.filter` below stays regardless of migration status: it is what makes the RENDER
-    // correct even on the pre-305 fallback path, and is a no-op once 305 is live (every row already
-    // matches).
-    getListingsOnly({ limit: LIST_FIRST_PAGE_SIZE, offset: 0, domain: REGULATIONS_DOMAIN }),
-    getSurfaceCounts("regulations"),
+  // First-paint page only (PERF-12, 2026-09-04, ADR-027 §2: LIST_PAGE_SIZE rows, newest-priority-
+  // first — RegulationsLedger takes over via useLedgerInfiniteQuery/fetchNextPage as the user
+  // scrolls, calling /api/listings/cursor page-at-a-time; the old one-shot LIST_REMAINDER_LIMIT
+  // remainder fetch is gone, see list-pagination.ts's own header). The masthead/tile counts below
+  // bind to `aggregates`, which is sourced from get_surface_counts (or its scoped-aggregates
+  // fallback) — both real RPCs, independent of how many rows are loaded — so the header count
+  // stays honest at 30, at 754, and everywhere in between.
+  const [data, aggregates, obligationRegisterFirstPage] = await Promise.all([
+    // RECONCILE (2026-09-04, item 1) of PERF-10 (org-independent, cacheable, cookie-free — keeps
+    // this route static) and PERF-11's domain scoping, unified with PERF-12's cursor page size:
+    // the SSR first page is now exactly LIST_PAGE_SIZE (30) rows, the SAME size every subsequent
+    // /api/listings/cursor page fetches — so the cursor computed below (`cursorAfter`) is anchored
+    // on precisely the rows this page actually rendered, never a size mismatch between "what SSR
+    // shipped" and "what the first client-driven fetchNextPage asks for". getPublicListingsOnly()
+    // is PERF-10's architecture: no resolveOrgIdFromCookies() Dynamic API, so this page builds `○`
+    // instead of `ƒ`. `domain: REGULATIONS_DOMAIN` is PERF-11's fix, folded into migration 306's
+    // `get_workspace_intelligence_listings_public` (its own header). Live measurement, 2026-09-04:
+    // without domain-scoping, the unscoped top-N across all seven intelligence_items.domain values
+    // was only 65% actual Regulations rows — the rest were Tech/Regional/Market/Research items this
+    // page fetched and serialised, then threw away. The `.filter` below stays regardless: it is
+    // what makes the RENDER correct even if the domain predicate is ever a no-op for a stray row.
+    getPublicListingsOnly({ limit: LIST_PAGE_SIZE, offset: 0, domain: REGULATIONS_DOMAIN }),
+    getPublicSurfaceCounts("regulations"),
+    // RECONCILE (2026-09-04, item 4b-i): the obligation register's own unfiltered first page,
+    // seeded server-side now — see data.ts's own header for why a service-role read here is RLS-
+    // equivalent, not a bypass of anything a signed-out visitor could not already read.
+    getPublicObligationRegisterFirstPage(),
   ]);
 
   const regulationResources = data.resources.filter((r) => r.domain === REGULATIONS_DOMAIN);
+
+  // PERF-12 (2026-09-04, ADR-027 §2): the cursor for "the page after this one", computed with the
+  // SAME `cursorAfter` math /api/listings/cursor's own route uses over the SAME raw (pre-domain-
+  // filter) `data.resources` array — see that route's own comment for why raw, not filtered, is
+  // the correct basis (a domain-filtered page can legitimately contain fewer than LIST_PAGE_SIZE
+  // regulations while the raw corpus still has more rows past this window, since the RPC's own
+  // p_domain predicate runs INSIDE the same ORDER BY/LIMIT the cursor math assumes).
+  const hasMoreRegulations = data.resources.length >= LIST_PAGE_SIZE;
+  const nextRegulationsCursor = hasMoreRegulations
+    ? encodeListingCursor(cursorAfter(FIRST_LISTING_CURSOR, data.resources))
+    : null;
 
   // Fail-soft: prefer RPC scalars; fall back to the in-view rows only when
   // the RPC returned nothing (pre-apply / anon / error).
@@ -82,10 +118,10 @@ export default async function RegulationsPage({
   // sync near local midnight. Pinned for correctness and consistency with the fix in
   // RegulationsLedger.tsx / RegulationDetailSurface.tsx just below this page in the tree.
   const lastSyncLabel = lastSync
-    ? lastSync.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
+    ? formatLocaleDate(lastSync, { month: "short", day: "numeric", timeZone: "UTC" })
     : null;
 
-  const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
+  const today = formatLocaleDate(new Date(), { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
 
   const boldInk = { fontWeight: 800, color: "var(--color-text-primary)" } as const;
   const meta = (
@@ -132,22 +168,33 @@ export default async function RegulationsPage({
           else on this page for counts) — every non-Regulations row the unscoped RPC call returned was
           being shipped to and rendered by a component whose own bands/cards assume every row is a
           regulation. Fixed to the filtered set; see the fetch comment above for the matching data-layer
-          fix (migration 305) that makes the fetch itself narrow, not just this render. */}
+          fix (migration 306, PERF-MERGE fold-in) that makes the fetch itself narrow, not just this
+          render. */}
+      {/* PERF-10 (2026-09-04): initialOverrides is no longer passed — getPublicListingsOnly() (the
+          org-independent, cookie-free listing this page now uses) carries no per-org override rows to
+          seed. Overrides now arrive exclusively client-side via useWorkspaceOverridesHydration
+          (mounted globally in AppShell.tsx), the same source RegulationsLedger's own override-hydration
+          effect already merges from — one extra client round trip before overrides are visible,
+          instead of arriving pre-seeded in the SSR payload, the same trade-off this lane accepts
+          everywhere a per-org read left a route's server render. initialPriorityFilter/
+          initialRegionFilter/initialOwnerFilter are also no longer passed — see this file's header and
+          RegulationsLedger.tsx's SearchParamsFilterBridge for why those are now resolved client-side. */}
       <RegulationsLedger
         initialResources={regulationResources.map(toLedgerRowPayload)}
         initialArchived={data.archived}
-        initialOverrides={data.overrides}
         aggregates={aggregates}
-        initialPriorityFilter={priorityParam ?? null}
-        initialRegionFilter={regionParam ?? null}
-        initialOwnerFilter={ownerParam ?? null}
+        initialNextCursor={nextRegulationsCursor}
+        initialHasMore={hasMoreRegulations}
       />
       {/* Lane OBLIG (2026-09-02): the obligation register section — spec-01 §2's atomic unit ("the
           obligation, not the document"), migration 290's `obligations` table (item_forward_events
-          denormalized with jurisdiction / mode / binding_position). Self-contained server component:
-          reads its own data via the request-scoped client, so it needs no props from this page's own
-          fetches, and soft-fails to nothing (never breaks the page) on a read error. */}
-      <ObligationRegister variant="list" />
+          denormalized with jurisdiction / mode / binding_position).
+          RECONCILE (2026-09-04, item 4b-i): `initialResult` seeds the unfiltered first page from THIS
+          page's own SSR render (getPublicObligationRegisterFirstPage, data.ts) instead of the section
+          rendering "Loading obligation register…" on every navigation before its own client-mount
+          fetch resolves — see ObligationRegister.tsx's own header for the full before/after. A filter
+          change or "Load more" still calls /api/obligations/register directly, client-side, unchanged. */}
+      <ObligationRegister variant="list" initialResult={obligationRegisterFirstPage} />
       {/* Lane SPEC-09 (wave 3, 2026-09-03): EUDR geo-traceability + book-and-claim custody (spec 09 §1.8).
           Renders a single short "no rows yet" line per sub-table when empty (today's live state — see
           scripts/spec09/SOURCES.md) rather than an empty card. */}

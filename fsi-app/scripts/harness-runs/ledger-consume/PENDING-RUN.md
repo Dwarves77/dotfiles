@@ -31,7 +31,7 @@ one-off probe and by `run-ledger-consume.test.mjs`'s own standing jiti-load test
 network, no DB) and gets back `{discovered: 0, fetched: 0, classified: 0, outcomes: []}`. That proves the
 runtime WIRING; it is not a run over real ledger rows, so it is not `ledger-consume-run-001`.
 
-**harness_version at write time:** `sha256:3650d9f46a0c23e2` (see Re-pin note 7 below; `sha256:2f3138ea51a193ac` and `sha256:80d15aac9240060d` are superseded)
+**harness_version at write time:** `sha256:5fd3da9d3bd44758` (see Re-pin note 8 below; `sha256:3650d9f46a0c23e2`, `sha256:2f3138ea51a193ac` and `sha256:80d15aac9240060d` are superseded)
 
 **The planned run that supersedes this marker:** the first `ledger-consume-run-001.json` produced by
 `node scripts/turns/run-ledger-consume.mjs` (dispatched via `.github/workflows/ledger-consume.yml`, which
@@ -189,3 +189,48 @@ moved this family's hash, and `LEDGER_CONSUME_GOVERNING_FILES`'s exact-equality 
 planned first run is otherwise unchanged from Re-pin note 6 — this note only documents that any export or
 plan/apply classify run taken BEFORE this fix landed carried raw markup in `text`, not text, and should be
 re-run.
+
+**Re-pin note 8 (lane LEDGER-WALLS, 2026-09-04, coordinator [CONFIRMED] from ledger-consume export #5, run
+33908401816, 2026-09-04 19:20 — 308 of 338 fetch_ok rows in the first real-text export were a bot/interface
+shell, not document text, and 230+ of them were sent to classify anyway):** `sha256:3650d9f46a0c23e2` →
+`sha256:5fd3da9d3bd44758`.
+
+**What changed.** TWO of this family's THREE governing files moved bytes in this diff: (1)
+`scripts/turns/run-ledger-consume.mjs` — `buildFetchDoc` now (a) routes federalregister.gov/ecfr.gov
+document URLs through the official API (`fetchDocumentApi`, new `src/lib/sources/api-transport.mjs`,
+`transport:"federalregister-api"`/`"ecfr-api"`) instead of the CAPTCHA-fronted HTML page, falling through
+to the plain HTML fetch when the URL carries no document-specific identifier; (b) rewrites a bare
+eur-lex.europa.eu `/legal-content/<LANG>/TXT/?uri=...` URL to its `/TXT/HTML/` rendering form before
+fetching (`renderingUrlForPrimary`, reused verbatim from `primary-fallback.mjs`, no-op for every other
+host); (c) runs every fetch's extracted text — regardless of transport — through the new
+`detectAccessWall` (`src/lib/sources/access-wall.mjs`) and folds a detected wall into the return shape as
+`wall: {kind, evidence}`. `shapeCandidateTextFields` now checks `fetchOutcome.wall` BEFORE the 200-char
+floor (a wall body routinely clears 200ch on raw length alone) and reports `fetch_ok:false,
+fetch_error:"access_wall:<kind>"`, text still carried. (2) `src/lib/intake/portal-harvest.ts` —
+`FetchDocFn`'s return type gained an optional `wall` field; `consumePortalCandidates`'s "1 — FETCH" step
+now checks it BEFORE the 200-char floor too, pushing `disposition:"skipped",
+reason:"access_wall:<kind>"` — the SAME inconclusive-not-reject treatment a below-floor or failed fetch
+already gets, row stays `status='candidate'` for retry. (3) `src/lib/llm/first-fetch-classify.ts` —
+UNCHANGED in this diff.
+
+Two NEW non-governing modules this family now depends on (not added to `GOVERNING_FILES['ledger-consume']`,
+same precedent as `html-to-text.mjs`/`cleanCtl` in Re-pin note 7 — shared pure helpers, not this family's
+own dispatch surface): `src/lib/sources/access-wall.mjs` (the ONE content-based bot-wall/access-wall
+detector — reuses `transport-escalation.mjs`'s `REQUEST_ACCESS_RE`/`JS_SHELL_RE` and
+`primary-fallback.mjs`'s `CDN_BLOCK_RE`/`CHALLENGE_RE`/`SOFT_404_RE`, both now exported for this reuse with
+zero behavior change to either file's own detector; adds a cookie-consent, login-wall, browser-not-supported
+pattern and the EUR-Lex structural chrome-only check) and `src/lib/sources/api-transport.mjs`
+(`fetchDocumentApi` — factored OUT of `src/lib/agent/canonical-pipeline.ts`'s `apiFetchForHost`, which now
+delegates here too, so the grounding pipeline and this family call the identical body, never a second
+hand-typed copy). `src/lib/sources/sitemap-walk.mjs` (a different harness family, `source-sweep`, not
+`ledger-consume` — its own governing-file set is unaffected by this note) also now imports
+`detectAccessWall` for its own homepage/fallback-candidate content-wall check, per this lane's dispatch
+("wherever the sitemap walker lives... a new access-wall.mjs the walker imports too").
+
+**Measured over the 400-row export #5** (re-run against the actual production `detectAccessWall`, not by
+hand): `request_access: 231, eurlex_interface_shell: 76, browser_not_supported: 1` — 308 of 338 fetch_ok
+rows (91.1%) were a wall, not document text. See `docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s "Ledger consume"
+section, "Access-wall detection + API/rendering transports", for the full account, and
+`scripts/turns/ledger-verdicts/README.md` for what this means for a session-Haiku classification lane
+consuming a `--with-text` export (never spend a verdict on a `fetch_error:"access_wall:*"` row). The
+planned first run is otherwise unchanged from Re-pin note 7.

@@ -18,6 +18,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AccountCard, FieldLabel, TextInput, InkButton } from "@/components/account/AccountPrimitives";
+import { formatLocaleDate } from "@/lib/format";
 
 interface OrgPayload {
   org: { id: string; name: string; slug: string; plan: string; created_at: string };
@@ -133,7 +134,7 @@ export function OrganizationPanel({ orgId }: { orgId: string | null }) {
   const created = new Date(data.org.created_at);
   const createdStr = Number.isNaN(created.getTime())
     ? "—"
-    : created.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+    : formatLocaleDate(created, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
   const cols = "1.4fr 1fr 0.8fr 0.7fr 0.9fr";
 

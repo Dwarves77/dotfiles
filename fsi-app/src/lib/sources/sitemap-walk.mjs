@@ -108,9 +108,24 @@
 // live binding (`run-source-sweep.mjs`) does with each.
 
 import { isFeedDocument, discoveredFeedLinks, feedCandidateUrls } from "./feed-discovery.mjs";
+// Content-based bot/access-wall detector (Lane LEDGER-WALLS, 2026-09-04) — this module's own bot-wall
+// check above (isBotWallStatus/allProbesBotWalled) is STATUS-code-only (401/403/429) and blind to a 200-OK
+// CAPTCHA/challenge/interface-shell page. Reused here, not reimplemented — see access-wall.mjs's own
+// header for the "one body" rationale and exactly which patterns it reuses from where.
+import { detectAccessWall } from "./access-wall.mjs";
+// hostFromUrl — the entity spine's ONE host normalizer (F30's url_host_derivation ratchet,
+// docs/specs/08-flywheel-design.md §1.3): lowercased, www-stripped, never throws (unparseable -> "") —
+// reused below (only for the access-wall detector's opts.host hint) instead of a second hand-rolled
+// `new URL(url).hostname`.
+import { hostFromUrl } from "../entities/entity-id.mjs";
 
 /** @typedef {{loc:string, lastmod:string|null, changefreq?:string|null}} SitemapUrlEntry */
 /** @typedef {{loc:string, lastmod:string|null}} SitemapIndexEntry */
+
+/** @param {string} url @returns {string|null} */
+const safeHost = (url) => hostFromUrl(url) || null;
+/** @param {string} url @returns {string|null} */
+const safePath = (url) => { try { return new URL(url).pathname; } catch { return null; } };
 
 const strip = (s) =>
   String(s ?? "")
@@ -403,13 +418,19 @@ export async function walkSitemap(deps, {
       checkResponseBytes(buf, maxSitemapResponseBytes, url);
       const xml = await decodeXmlBody(buf, url);
       const parsed = parseSitemapXml(xml);
+      // Content-based wall check (Lane LEDGER-WALLS, 2026-09-04) — ONLY when the body failed to parse as a
+      // sitemap (kind:'unknown'): a 200 OK CAPTCHA/challenge/interface shell served in place of sitemap.xml
+      // parses to exactly this shape (no <urlset>/<sitemapindex> tag), and status-based isBotWallStatus
+      // cannot see it at all (the response was 200). Additive `wall` field — parsed.kind/queue control flow
+      // below is unchanged; only the final "no sitemap discovered" error (below) reads this to say WHY.
+      const wall = parsed.kind === "unknown" ? detectAccessWall(xml, { host: safeHost(url), path: safePath(url) }) : null;
       sitemapsFetched.push({
-        url, kind: parsed.kind, urlCount: parsed.urlEntries.length, childCount: parsed.sitemapEntries.length, error: null,
+        url, kind: parsed.kind, urlCount: parsed.urlEntries.length, childCount: parsed.sitemapEntries.length, error: null, wall,
       });
       result = parsed;
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      sitemapsFetched.push({ url, kind: "error", urlCount: 0, childCount: 0, error: message });
+      sitemapsFetched.push({ url, kind: "error", urlCount: 0, childCount: 0, error: message, wall: null });
       result = null;
     }
     fetchCache.set(url, result);
@@ -472,6 +493,17 @@ export async function walkSitemap(deps, {
   }
 
   if (!queue.length) {
+    // A 200-OK content wall on one of the fallback candidates (kind:'unknown' + wall set, attached above)
+    // is a MORE SPECIFIC diagnosis than the generic "none parsed as a sitemap" — name it when present,
+    // rather than reporting it as indistinguishable from "this site genuinely has no sitemap.xml".
+    const contentWalled = sitemapsFetched.find((s) => s.wall);
+    if (contentWalled) {
+      return {
+        ok: false, baseUrl,
+        error: `bot_wall detected: ${contentWalled.url} returned a 200 OK ${contentWalled.wall.kind} shell in place of a sitemap`,
+        sitemapsFetched, robotsSitemapCount: 0, discoverySource: "bot_wall", sitemapsSkippedCap: 0, entriesCapped: false,
+      };
+    }
     return {
       ok: false, baseUrl,
       error: `no sitemap discovered: robots.txt yielded 0 Sitemap: lines (${robotsError ?? "fetched, none declared"}) and none of the fallback candidates parsed as a sitemap`,
@@ -614,7 +646,7 @@ export async function probeIsFeed(deps, url, maxBytes) {
  * @returns {Promise<{
  *   feedUrl:string,
  *   discoverySource:'source-is-feed'|'link-alternate'|'candidate-path',
- *   homepageProbe:{status:number|null, bytes:number, contentType:string, alternateLinksFound:number, error:string|null},
+ *   homepageProbe:{status:number|null, bytes:number, contentType:string, alternateLinksFound:number, error:string|null, wall:{kind:string,evidence:string}|null},
  *   candidateProbes:Array<{url:string, status:number|null, isFeedDocument:boolean, reason:string}>
  * }|null>}
  */
@@ -638,7 +670,11 @@ export async function discoverFeed(deps, { sourceUrl, maxFeedResponseBytes = DEF
   }
 
   const alternateLinksFound = homepageHtml ? discoveredFeedLinks(homepageHtml, sourceUrl).length : 0;
-  const homepageProbe = { status: homepageStatus, bytes: homepageBytes, contentType: homepageContentType, alternateLinksFound, error: homepageError };
+  // Content-based wall check (additive — a 401/403/429 homepage never reaches here at all, since
+  // deps.fetchBytes already threw and homepageHtml is ""; this only ever fires on a 200 OK that IS a
+  // CAPTCHA/challenge/interface shell, the blind spot isBotWallStatus cannot see).
+  const homepageWall = homepageHtml ? detectAccessWall(homepageHtml, { host: safeHost(sourceUrl), path: safePath(sourceUrl) }) : null;
+  const homepageProbe = { status: homepageStatus, bytes: homepageBytes, contentType: homepageContentType, alternateLinksFound, error: homepageError, wall: homepageWall };
 
   if (homepageHtml && isFeedDocument(homepageHtml)) {
     return {

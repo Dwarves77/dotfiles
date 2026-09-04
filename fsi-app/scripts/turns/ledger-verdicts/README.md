@@ -82,6 +82,48 @@ sent to the metered API, unless the driver is run with the explicit, CLI-only `-
    content column (migrations 162/220 only ever added url/anchor_text/status/disposition columns) and
    suggests re-dispatching with `--with-text` instead of fetching by hand.
 
+   **`fetch_error: "access_wall:<kind>"` — a bot/CAPTCHA/interface shell, not real content (Lane
+   LEDGER-WALLS, 2026-09-04 [CONFIRMED]).** Coordinator's export #5 (run 33908401816, 2026-09-04 19:20)
+   measured `fetch_ok:true` on 338 of 400 candidates, but 308 of those 338 (91%) were NOT real document
+   text — they were the SAME wall shell served over and over: ~231 `www.federalregister.gov` document
+   URLs carrying the site's 1,180-char "Request Access" CAPTCHA page, and ~76 `eur-lex.europa.eu
+   /legal-content/` URLs carrying nothing but EUR-Lex's own portal chrome (language selector, "My
+   EUR-Lex" nav, document metadata table) with zero legislative-body text. Both cleared the 200-char
+   floor, so both were sent to classify — the seven session-Haiku lanes correctly returned `"uncertain"`
+   for every one of them (a wall genuinely names no determinable subject), which means 230+ verdicts were
+   spent proving what a mechanical text check catches for free. `buildFetchDoc` now runs every fetch
+   (regardless of transport — direct HTML, direct PDF, or the federalregister.gov/ecfr.gov API below)
+   through `src/lib/sources/access-wall.mjs`'s `detectAccessWall`, checked BEFORE the 200-char floor (a
+   wall body routinely clears 200ch on raw length alone). A detected wall is `fetch_ok:false`,
+   `fetch_error:"access_wall:<kind>"` — `<kind>` is one of `ACCESS_WALL_KIND` (`request_access`,
+   `bot_challenge`, `cdn_block`, `js_shell`, `soft_404`, `cookie_consent_only`, `login_wall`,
+   `browser_not_supported`, `eurlex_interface_shell`). **A verdict file must never carry an entry for a
+   `fetch_error:"access_wall:*"` row — it is not classify-ready text, and a session-Haiku lane spending a
+   call on it (rather than treating it as inconclusive) repeats exactly the waste this fix exists to
+   close.** `portal-harvest.ts`'s live `plan`/`apply` consume path applies the identical check in its own
+   FETCH step — a wall there is `disposition:"skipped"`, the row stays `status='candidate'` for retry once
+   the wall clears (never a reject), the same treatment a below-floor or failed fetch already gets.
+
+   **federalregister.gov / ecfr.gov document URLs are now routed through the official API, not the HTML
+   page the CAPTCHA sits in front of** (`src/lib/sources/api-transport.mjs`'s `fetchDocumentApi` — the
+   SAME body `src/lib/agent/canonical-pipeline.ts`'s grounding pipeline already used for this, factored
+   out so both consumers call one function, never a second hand-typed copy). A federalregister.gov
+   `/documents/YYYY/MM/DD/{DOCUMENT_NUMBER}/slug` URL resolves to
+   `/api/v1/documents/{DOCUMENT_NUMBER}.json`, whose `raw_text_url` is fetched for the real plain-text
+   document (falling back to the JSON's own `title`+`abstract` when `raw_text_url` is absent or thin) —
+   `transport:"federalregister-api"` in the export. An ecfr.gov `/on/DATE/title-N/...` URL resolves to the
+   versioner's `/versioner/v1/full/DATE/title-N.xml` — `transport:"ecfr-api"`. Neither transport is exempt
+   from the wall check above (API text can still be a wall if the API itself degrades to a stub) — the
+   check runs on the extracted text regardless of which transport produced it. A URL with no
+   document-specific identifier (e.g. an agency-listing page) falls through to the plain HTML fetch, the
+   honest exhaustion path, never a silent skip.
+
+   **A bare `eur-lex.europa.eu/legal-content/<LANG>/TXT/?uri=...` URL is rewritten to its `/TXT/HTML/`
+   rendering form before fetching** (`src/lib/sources/primary-fallback.mjs`'s `renderingUrlForPrimary` —
+   reused verbatim, already proven on a real case, CSRD CELEX:32022L2464, by the reground fallback
+   pipeline). The bare `/TXT/` form is the one that serves the portal-chrome-only shell; `/TXT/HTML/` is
+   EUR-Lex's own full-text rendering endpoint.
+
 2. **Build the identical prompt.** `src/lib/llm/first-fetch-classify.ts` exports everything needed so a
    session lane's Haiku call and the live spend-chokepoint call are provably the same prompt — ONE BODY,
    never a second hand-typed copy that can drift:

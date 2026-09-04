@@ -39,6 +39,14 @@
  *  mutation route flushes it; a mint apply must too, or a minted item waits 60 s to reach the ledger). */
 export const APP_DATA_TAG = "app-data";
 
+/** PERF-10 (2026-09-04, ADR-026 Follow-up / migration 306): mirrors src/lib/data.ts's
+ *  PUBLIC_ITEMS_TAG — the org-independent public read (getPublicResourcesOnly/getPublicListingsOnly,
+ *  which back /regulations, /market, /operations, /research's now-static-capable index render).
+ *  Deliberately separate from APP_DATA_TAG (see that constant's header for why); a population/
+ *  maintenance/corpus-turn apply that mints, re-prioritizes, (un)archives, or flips provenance_status
+ *  on a PLATFORM item must flush this or the public ledgers show stale content for up to 60s. */
+export const PUBLIC_ITEMS_TAG = "public-items";
+
 /** Precise per-item tag — mirrors src/lib/cache/revalidate-item.ts's itemTag(). */
 export function itemTag(id) {
   return `item:${id}`;

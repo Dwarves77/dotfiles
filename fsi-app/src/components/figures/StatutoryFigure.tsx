@@ -19,6 +19,7 @@
 
 import type { Value, Use } from "@/lib/propagation/types.ts";
 import { admissibleFor } from "@/lib/propagation/admissible-for.ts";
+import { formatNumber } from "@/lib/format";
 
 export interface StatutoryFigureProps {
   /** The full derived_values-shaped figure (or a statutory_computations row mapped onto the same shape —
@@ -42,7 +43,7 @@ export interface StatutoryFigureProps {
 
 function formatValue(value: number | null, unit: string | null, currency: string | null): string {
   if (value === null || !Number.isFinite(value)) return "—";
-  const formatted = Math.abs(value) >= 1000 ? value.toLocaleString(undefined, { maximumFractionDigits: 0 }) : value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const formatted = Math.abs(value) >= 1000 ? formatNumber(value, { maximumFractionDigits: 0 }) : formatNumber(value, { maximumFractionDigits: 2 });
   if (currency) return `${currency} ${formatted}`;
   if (unit) return `${formatted} ${unit}`;
   return formatted;

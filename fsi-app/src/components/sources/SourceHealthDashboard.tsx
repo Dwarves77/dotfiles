@@ -7,6 +7,7 @@ import { SOURCE_TIER_DEFINITIONS } from "@/types/source";
 import type { Source, SourceTier } from "@/types/source";
 import { DOMAIN_LABELS, type Domain } from "@/lib/domains";
 import { TIER_LABELS } from "@/lib/tier-labels";
+import { formatLocaleDate } from "@/lib/format";
 
 // Dashboard-specific example gloss per tier (the authority NAME comes from TIER_LABELS, the SoT).
 const TIER_LEGEND_EXAMPLES: Record<number, string> = {
@@ -245,7 +246,7 @@ function SourceRow({ source }: { source: Source }) {
             {source.last_checked && (
               <span className="flex items-center gap-1">
                 <Activity size={11} />
-                Last checked: {new Date(source.last_checked).toLocaleDateString()}
+                Last checked: {formatLocaleDate(new Date(source.last_checked))}
               </span>
             )}
             {source.paywalled && (

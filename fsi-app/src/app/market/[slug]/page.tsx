@@ -9,26 +9,35 @@
  * page used to run 8 sequential Supabase-touching stages per render, most
  * opening their own createClient(). It now runs one cached, item-scoped
  * bundle (resourceLookup, convergence, price board, carbon factors, peers
- * entity — none of it org-dependent) in parallel with the viewer-scoped
- * bundle (the workspace note, and the related-signals pool — see below for
- * why the related pool is viewer-scoped even though it reads no per-org
- * override field a human would call "personal").
+ * entity, related-signals pool — none of it org-dependent as of PERF-10, see
+ * below).
  *
- * getMarketIntelItems() (src/lib/data.ts) resolves the viewer's orgId from
- * cookies INTERNALLY (its own resolveOrgIdFromCookies() call) before
- * querying — the same shape getViewerRelevanceForItem uses. Next forbids
- * calling cookies() inside unstable_cache, so it cannot run inside the
- * item-scoped cached bundle regardless of whether its RPC output happens to
- * be org-invariant in practice; it runs in loadViewerScoped instead,
- * uncached, alongside the note lookup.
+ * PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): three more cookie reads used to run
+ * during this page's own server render, forcing `ƒ` (Dynamic) independent of every other cause —
+ * loadViewerScoped's `orgId` (itself sourced from cookies inside loadDetailCore, feeding the note
+ * lookup AND getMarketIntelItems' internal resolveOrgIdFromCookies() call), and
+ * watchMembershipPromise's resolveViewerIdentityFromCookies(). Fixed the same way as
+ * regulations/[slug] (see that file's PERF-10 header for the full mechanism):
+ *   - related signals: getPublicMarketIntelItems() (src/lib/data.ts, unstable_cache-wrapped, no
+ *     cookies — the `_public` RPC sibling added this lane, migration 306) replaces getMarketIntelItems(),
+ *     moving from loadViewerScoped into the cached loadItemScoped bundle. Same platform-wide-not-
+ *     per-org-override trade-off already accepted for /market, /operations, /research's own list
+ *     pages this lane — a related-signals rail is not the surface an org's own archive/priority
+ *     override needs to be authoritative on.
+ *   - workspace note: no longer read server-side at all. NotesField now falls back to
+ *     useResourceStore's client-hydrated override (src/lib/hooks/useWorkspaceOverridesHydration.ts,
+ *     already the global bootstrap-fed store — see its own header), same pattern OwnerTeamCard and
+ *     WatchButton already established, syncing in once if the field is still untouched when the
+ *     override arrives (never clobbering an in-progress edit).
+ *   - watch membership: initialWatched/initialTeamWatched/initialTeamAvailable no longer passed;
+ *     WatchButton's pre-existing client fallback (getClientWatchMembership) takes over, same as
+ *     regulations/[slug].
  *
- * Related signals (same signal-band) are sourced from the workspace-wide
- * Market Intel set via getMarketIntelItems, with the current item excluded.
- * The same band-assignment + severity-derivation helpers used in
- * MarketPage.tsx are re-implemented here (MarketPage's helpers are not
- * exported) — when migration 102 populates `signal_band` and `severity`
- * on the items themselves, both surfaces flow through the same column
- * reads and the regex fallback retires.
+ * Related signals (same signal-band) are sourced from the platform-wide public Market Intel set via
+ * getPublicMarketIntelItems, with the current item excluded. The same band-assignment + severity-
+ * derivation helpers used in MarketPage.tsx are re-implemented here (MarketPage's helpers are not
+ * exported) — when migration 102 populates `signal_band` and `severity` on the items themselves,
+ * both surfaces flow through the same column reads and the regex fallback retires.
  */
 
 import { formatDate } from "@/lib/format";
@@ -36,9 +45,7 @@ import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
 import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
 import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
-import { getMarketIntelItems } from "@/lib/data";
-import { resolveViewerIdentityFromCookies } from "@/lib/api/org";
-import { fetchWatchMembership, lookupWatchMembership } from "@/lib/watchlist/membership";
+import { getPublicMarketIntelItems } from "@/lib/data";
 import {
   buildResourceLookup,
   resolveItemUuid,
@@ -65,11 +72,21 @@ interface ItemScoped {
    *  load-detail-core.ts's fetchClaimTierMap header. Item-scoped, read unconditionally (a brief-grade
    *  item's query legitimately returns no rows, resolving to {} at zero extra cost). */
   claimTiers: ClaimTierMap;
+  /** PERF-10 (2026-09-04): moved here from loadViewerScoped — see this file's header. Platform-wide,
+   *  not per-org-override-adjusted; genuinely item-scoped, cacheable. */
+  relatedPool: Awaited<ReturnType<typeof getPublicMarketIntelItems>>["resources"];
 }
 
-interface ViewerScoped {
-  initialNote: string;
-  relatedPool: Awaited<ReturnType<typeof getMarketIntelItems>>["resources"];
+// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): the remaining reason this route still
+// built `ƒ` after every Dynamic API call was removed from its render tree — a dynamic segment
+// (`[slug]`) with no `generateStaticParams` is unconditionally server-rendered per request under
+// classical (non-PPR) rendering, independent of Dynamic API usage. See
+// regulations/[slug]/page.tsx's identical-shape comment for the full explanation of why `[]` (not a
+// full slug enumeration) is the correct return value here: an unbounded, continuously-growing corpus,
+// with `dynamicParams` at its default `true` so every slug is rendered on first request and served
+// from the Full Route Cache thereafter.
+export async function generateStaticParams() {
+  return [];
 }
 
 export default async function MarketSignalDetailPage({
@@ -101,31 +118,12 @@ export default async function MarketSignalDetailPage({
   }
   if (redirectTo) redirect(redirectTo);
 
-  // PERF-4 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md dispatch item (2)): the viewer's
-  // watch membership for THIS item shares no data dependency with loadDetail — id (already resolved
-  // above, and provably equal to the eventual result.resource.id — see the same note in
-  // regulations/[slug]/page.tsx) is all it needs, plus the viewer's userId/orgId.
-  //
-  // PERF-9 (2026-09-04, item 4, ADR-026 §3): was `resolveServerBootstrap()` (three sequential round
-  // trips, the last — workspace_settings — unread here); on an RSC navigation the root layout skips
-  // resolveServerBootstrap() entirely (isRscNavigation), so this was the sole, fresh, three-stage
-  // cost on every click. resolveViewerIdentityFromCookies (org.ts) resolves the same userId+orgId
-  // pair in two stages — see regulations/[slug]/page.tsx's identical note for the full mechanism.
-  const watchMembershipPromise = (async () => {
-    const identity = await resolveViewerIdentityFromCookies();
-    const membership = await fetchWatchMembership(getServiceSupabase(), {
-      userId: identity.userId,
-      orgId: identity.orgId,
-      itemType: "signal",
-      itemIds: [id],
-    });
-    return lookupWatchMembership(membership, id);
-  })();
-
-  const [result, watchEntry] = await Promise.all([
-    loadDetail<ItemScoped, ViewerScoped>({
-      surface: "market",
-      id,
+  // PERF-10 (2026-09-04): watch membership and the note lookup both used to run here, cookie-
+  // dependent, on every server render — see this file's header. Both now resolve client-side
+  // (WatchButton / NotesField's fallback contracts), so this page makes no per-viewer Supabase read.
+  const result = await loadDetail<ItemScoped>({
+    surface: "market",
+    id,
       // Item-scoped, org-independent: connections/supersessions titles, the
       // source-growth convergence stats, the published price board, the
       // carbon-overlay modal-default factors, and the peers-strip entity.
@@ -215,42 +213,27 @@ export default async function MarketSignalDetailPage({
           ])
         ).filter(Boolean);
 
-        const [resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors, claimTiers] = await Promise.all([
-          buildResourceLookup(supabase, relatedIds),
-          itemUuid ? fetchInstrumentEntityId(supabase, itemUuid) : Promise.resolve(null),
-          convergencePromise,
-          priceBoardPromise,
-          carbonFactorsPromise,
-          itemUuid ? fetchClaimTierMap(supabase, itemUuid) : Promise.resolve({}),
-        ]);
+        // PERF-10 (2026-09-04): moved from loadViewerScoped — see this file's header. Public/cached,
+        // org-independent (getPublicMarketIntelItems carries no cookies() call), so it belongs in this
+        // cached item-scoped bundle rather than an uncached per-request read.
+        const relatedPoolPromise = getPublicMarketIntelItems()
+          .then((pub) => pub.resources)
+          .catch(() => [] as Awaited<ReturnType<typeof getPublicMarketIntelItems>>["resources"]);
 
-        return { resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors, claimTiers };
+        const [resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors, claimTiers, relatedPool] =
+          await Promise.all([
+            buildResourceLookup(supabase, relatedIds),
+            itemUuid ? fetchInstrumentEntityId(supabase, itemUuid) : Promise.resolve(null),
+            convergencePromise,
+            priceBoardPromise,
+            carbonFactorsPromise,
+            itemUuid ? fetchClaimTierMap(supabase, itemUuid) : Promise.resolve({}),
+            relatedPoolPromise,
+          ]);
+
+        return { resourceLookup, peersEntityId, convergence, priceBoard, carbonFactors, claimTiers, relatedPool };
       },
-      // Viewer-scoped, per-org: the workspace note (workspace_item_overrides),
-      // and the related-signals pool (getMarketIntelItems resolves orgId from
-      // cookies internally — see module header for why it lives here, not in
-      // loadItemScoped). Uncached — every request.
-      loadViewerScoped: async ({ supabase, orgId, resource }) => {
-        let initialNote = "";
-        if (orgId) {
-          const itemUuid = await resolveItemUuid(supabase, resource.id);
-          if (itemUuid) {
-            const { data: noteRow, error: noteErr } = await supabase
-              .from("workspace_item_overrides")
-              .select("notes")
-              .eq("org_id", orgId)
-              .eq("item_id", itemUuid)
-              .maybeSingle();
-            if (noteErr) console.warn(`[market/${resource.id}] note read failed: ${noteErr.message}`);
-            initialNote = noteRow?.notes ?? "";
-          }
-        }
-        const marketIntel = await getMarketIntelItems().catch(() => ({ resources: [], total: 0 }));
-        return { initialNote, relatedPool: marketIntel.resources };
-      },
-    }),
-    watchMembershipPromise,
-  ]);
+    });
 
   // SURFACE ADMISSION GUARD (Phase 0.1, 2026-08-11) — see regulations/[slug]
   // for the full rationale; checked inside loadDetail via canonicalSurface.
@@ -265,8 +248,7 @@ export default async function MarketSignalDetailPage({
   const priceBoard = result.itemScoped?.priceBoard ?? [];
   const carbonFactors = result.itemScoped?.carbonFactors ?? [];
   const claimTiers = result.itemScoped?.claimTiers ?? {};
-  const initialNote = result.viewerScoped?.initialNote ?? "";
-  const relatedPool = result.viewerScoped?.relatedPool ?? [];
+  const relatedPool = result.itemScoped?.relatedPool ?? [];
 
   console.log(`[perf] /market/${id} data ${result.elapsedMs}ms`);
 
@@ -291,14 +273,10 @@ export default async function MarketSignalDetailPage({
         priceBoard={priceBoard}
         carbonFactors={carbonFactors}
         deck={deck}
-        initialNote={initialNote}
         supersessions={supersessions}
         connections={connections}
         relevance={relevance}
         resourceLookup={resourceLookup}
-        initialWatched={watchEntry.watched}
-        initialTeamWatched={watchEntry.teamWatched}
-        initialTeamAvailable={watchEntry.teamAvailable}
       />
       <PeersDiscussingStrip entityId={peersEntityId} />
     </>

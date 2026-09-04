@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Mail, Plus, AlertCircle, Loader2 } from "lucide-react";
+import { formatLocaleDate } from "@/lib/format";
 
 // NoWorkspaceLanding — the "you have no workspace yet" page that renders
 // when an authenticated user has no org_memberships row.
@@ -201,7 +202,7 @@ export function NoWorkspaceLanding({ userEmail }: Props) {
                       style={{ color: "var(--color-text-muted)" }}
                     >
                       Role: {inv.proposed_role} · Expires{" "}
-                      {new Date(inv.expires_at).toLocaleDateString()}
+                      {formatLocaleDate(new Date(inv.expires_at))}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">

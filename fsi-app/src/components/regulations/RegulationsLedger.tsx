@@ -29,7 +29,10 @@
  */
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
+  Suspense,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -77,7 +80,12 @@ import { ArchiveDialog } from "@/components/workspace/ArchiveDialog";
 import { RecordGradeBadge } from "@/components/shell/RecordGradeBadge";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
-import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
+// PERF-12 (2026-09-04, ADR-027 §2): LIST_FIRST_PAGE_SIZE / the old fetch-the-rest mechanism
+// (LIST_REMAINDER_LIMIT, /api/listings/rest) are gone — see useLedgerInfiniteQuery.ts and
+// list-pagination.ts's own headers for the replacement (useInfiniteQuery + a keyset cursor).
+import { useLedgerInfiniteQuery, type LedgerPage } from "@/lib/hooks/useLedgerInfiniteQuery";
+import { useInfiniteScrollSentinel } from "@/lib/hooks/useInfiniteScrollSentinel";
+import { VirtualizedRowList } from "@/components/ledger/VirtualizedRowList";
 
 interface RegulationsLedgerProps {
   initialResources: Resource[];
@@ -98,14 +106,62 @@ interface RegulationsLedgerProps {
    *  totalItems === 0 signals the fail-soft path (RPC absent / empty), in
    *  which case the ledger derives counts from the loaded verified rows. */
   aggregates: WorkspaceAggregates;
-  /** Deep-link priority filter from ?priority=CRITICAL etc. */
+  /** Deep-link priority filter from ?priority=CRITICAL etc.
+   *  PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): regulations/page.tsx no longer reads
+   *  `searchParams` at all — that read was itself a Dynamic API, forcing `ƒ` (Dynamic) independent of
+   *  every other fix in this lane. This prop now defaults to null in production (kept for any other
+   *  caller / test harness that wants to seed it directly); the real deep-link value is read
+   *  CLIENT-SIDE via useSearchParams() inside this component (see the SearchParamsFilterBridge sub-
+   *  component below and its Suspense wrapper in the render tree) — the officially-recommended Next.js
+   *  pattern for keeping a page statically generated while a small piece of it still needs the URL's
+   *  query string: only the tiny bridge component suspends, never the whole ledger. */
   initialPriorityFilter?: string | null;
-  /** Deep-link Tier-1 ISO region filter from ?region=us-ca etc. */
+  /** Deep-link Tier-1 ISO region filter from ?region=us-ca etc. See initialPriorityFilter's doc above
+   *  for why this is now resolved client-side via the search-params bridge, not a server prop. */
   initialRegionFilter?: string | null;
   /** Deep-link owner filter from ?owner=<display name> (DashboardByOwner
    *  links; Phase 1 ownership). Matched case-insensitively against the
-   *  merged actionOwner. */
+   *  merged actionOwner. See initialPriorityFilter's doc above for why this is now resolved
+   *  client-side via the search-params bridge, not a server prop. */
   initialOwnerFilter?: string | null;
+  /**
+   * PERF-12 (2026-09-04, ADR-027 §2): the cursor for the page AFTER the SSR first page, and
+   * whether one exists — computed server-side (regulations/page.tsx) with the SAME
+   * `cursorAfter`/hasMore math /api/listings/cursor's own route uses, so the seeded
+   * useLedgerInfiniteQuery cache entry and a real fetch of the "next" page always agree on where
+   * "next" starts. `null`/`false` when the SSR first page already covers the whole corpus.
+   */
+  initialNextCursor?: string | null;
+  initialHasMore?: boolean;
+}
+
+/** PERF-10 (2026-09-04): reads the URL's ?priority=/?region=/?owner= deep-link params CLIENT-SIDE and
+ *  reports them once, on mount, to the parent's filter state. Isolated into its own component (rather
+ *  than calling useSearchParams() directly inside RegulationsLedger) so ONLY this tiny, render-nothing
+ *  piece needs the <Suspense> boundary Next.js requires around useSearchParams() during static
+ *  generation — the ledger's actual content (rows, tiles, bands) renders immediately, unblocked, using
+ *  its own default (no-filter) state until this bridge's effect fires. Mirrors the same "apply once,
+ *  never clobber a real user action" discipline as NotesField's override-hydration effect
+ *  (MarketSignalDetailSurface.tsx) — appliedRef guards a StrictMode double-invoke and a HMR remount
+ *  from re-applying the deep link after the viewer has already changed a filter by hand. */
+function SearchParamsFilterBridge({
+  onParams,
+}: {
+  onParams: (params: { priority: string | null; region: string | null; owner: string | null }) => void;
+}) {
+  const searchParams = useSearchParams();
+  const appliedRef = useRef(false);
+  useEffect(() => {
+    if (appliedRef.current) return;
+    appliedRef.current = true;
+    onParams({
+      priority: searchParams.get("priority"),
+      region: searchParams.get("region"),
+      owner: searchParams.get("owner"),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+  return null;
 }
 
 type BandKey = PriorityKey;
@@ -168,6 +224,11 @@ const BANDS: BandDef[] = [
 // not a state the surface can be knocked into by a stray drag.
 type SortKey = "newest" | "priority" | "az" | "custom";
 const ROWS_COLLAPSED = 5;
+/** RegRow's real rendered height in px — see list-pagination.ts's LIST_PAGE_SIZE header for the
+ *  same derivation this constant is lifted from (kept here, not imported, since it's a markup fact
+ *  about THIS component's own row, not a pagination constant). Feeds VirtualizedRowList's initial
+ *  layout estimate; the virtualizer re-measures the real height per row after mount. */
+const ROW_HEIGHT_PX = 44;
 
 /** list_key this surface owns in user_list_order. In LIST_KEYS in the route. */
 const REGULATIONS_LIST_KEY = "regulations" as const;
@@ -185,8 +246,13 @@ function parseDate(s?: string | null): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** Nearest upcoming milestone date for a row (from item_timelines), or null. */
-function nextMilestone(r: Resource, now: number): Date | null {
+/** Nearest upcoming milestone date for a row (from item_timelines), or null. `now === null`
+ *  (pre-mount, see the `now` state's own header) means "no reference time yet" — every timeline
+ *  entry is untestable against "is this upcoming", so this returns null exactly as it would for a
+ *  row with no timeline at all, deterministically, on both SSR and the client's matching first
+ *  render. */
+function nextMilestone(r: Resource, now: number | null): Date | null {
+  if (now === null) return null;
   if (!r.timeline || r.timeline.length === 0) return null;
   let best: Date | null = null;
   for (const t of r.timeline) {
@@ -231,6 +297,8 @@ export function RegulationsLedger({
   initialPriorityFilter = null,
   initialRegionFilter = null,
   initialOwnerFilter = null,
+  initialNextCursor = null,
+  initialHasMore = false,
 }: RegulationsLedgerProps) {
   const { resources: platformResources, setResources, setArchived, overrides, setOverrides, restoreDismissed, personalState } =
     useResourceStore();
@@ -266,60 +334,93 @@ export function RegulationsLedger({
   // row <Link> (see CardPriorityDropdown).
   const [archiveTarget, setArchiveTarget] = useState<{ id: string; title: string } | null>(null);
 
-  // ── Load-the-rest (cost-constrained first paint) ──────────────────────
-  // The server renders only the first LIST_FIRST_PAGE_SIZE rows (newest
-  // added_date first). Fetch everything after that offset once, in the
-  // background, and append it below — the rendered rows are never blocked
-  // behind this. `fetchedRestRef` guards React StrictMode's double-invoked
-  // effect (and any accidental re-run) from firing the request twice.
-  const fetchedRestRef = useRef(false);
-  const [restResources, setRestResources] = useState<Resource[]>([]);
-  const [restArchived, setRestArchived] = useState<Resource[]>([]);
-  const [restStatus, setRestStatus] = useState<"loading" | "done" | "error">("loading");
+  // PERF-10 (2026-09-04): applies the client-resolved ?priority=/?region=/?owner= deep-link params
+  // (see SearchParamsFilterBridge's own header above) exactly once, the same validation each value
+  // already got when it arrived as a server prop — an invalid/unrecognized value is silently ignored
+  // rather than clearing an already-active filter.
+  const handleFilterParams = useCallback(
+    (params: { priority: string | null; region: string | null; owner: string | null }) => {
+      const upperPriority = (params.priority || "").toUpperCase();
+      if (PRIORITIES.includes(upperPriority as PriorityKey)) {
+        setActivePriorities(new Set([upperPriority]));
+      }
+      const upperRegion = (params.region || "").trim().toUpperCase();
+      if (upperRegion && TIER1_PRIORITY_ISOS.has(upperRegion)) {
+        setActiveRegionIsos(new Set([upperRegion]));
+      }
+      const trimmedOwner = (params.owner || "").trim();
+      if (trimmedOwner) {
+        setOwnerFilter(trimmedOwner);
+      }
+    },
+    []
+  );
 
-  useEffect(() => {
-    if (fetchedRestRef.current) return;
-    fetchedRestRef.current = true;
-    let cancelled = false;
+  // ── Cursor pagination (ADR-027 §2) ─────────────────────────────────────
+  // The server renders the first LIST_PAGE_SIZE rows (list-pagination.ts's own "one screen"
+  // derivation); everything after that arrives PAGE-AT-A-TIME via useInfiniteQuery's
+  // `fetchNextPage`, triggered by scroll proximity to the end (useInfiniteScrollSentinel, below),
+  // not one background fetch of the whole remainder — see useLedgerInfiniteQuery.ts's own header
+  // for why LIST_REMAINDER_LIMIT/the old one-shot mechanism is gone, not merely unused.
+  const initialPage: LedgerPage = useMemo(
+    () => ({
+      resources: initialResources,
+      archived: initialArchived,
+      nextCursor: initialNextCursor,
+      hasMore: initialHasMore,
+    }),
+    // Stable across re-renders in practice (server-provided props, set once on mount) — an
+    // eslint-exhaustive dep here would re-seed `initialData` on every parent re-render, which
+    // TanStack Query's own initialData contract does not expect mid-session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+  // RECONCILE (2026-09-04, item 1): no orgId to forward — /api/listings/cursor now serves the
+  // org-independent public RPC (see that route's own header), so there is nothing here to resolve
+  // or verify against a session. See useLedgerInfiniteQuery.ts's own header for the removed
+  // X-Org-Id mechanism.
+  const {
+    resources: pagedResources,
+    archived: pagedArchived,
+    status: queryStatus,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    error: queryError,
+    isFetchNextPageError,
+  } = useLedgerInfiniteQuery("regulations", initialPage);
 
-    fetch(`/api/listings/rest?surface=regulations&offset=${LIST_FIRST_PAGE_SIZE}`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`/api/listings/rest responded ${res.status}`);
-        return res.json();
-      })
-      .then((body: { resources?: Resource[]; archived?: Resource[]; error?: string }) => {
-        if (cancelled) return;
-        if (body.error) throw new Error(body.error);
-        setRestResources(body.resources ?? []);
-        setRestArchived(body.archived ?? []);
-        setRestStatus("done");
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        // Never blank the list on failure — the first LIST_FIRST_PAGE_SIZE
-        // rows the server already rendered stay exactly as they are.
-        console.error(
-          `[RegulationsLedger] failed to fetch the remaining rows past offset ${LIST_FIRST_PAGE_SIZE}:`,
-          err instanceof Error ? err.message : err
-        );
-        setRestStatus("error");
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Maps to bandEmptyStateText's existing three-state contract (its own header, FIRSTPAGE lane):
+  // "loading" while there is still more corpus this ledger could show for a >0-total band, "done"
+  // once the cursor stream is exhausted (hasNextPage === false) with no fetch in flight, "error"
+  // when the LAST fetchNextPage attempt itself failed (isFetchNextPageError — distinct from
+  // queryStatus, which only ever reflects the INITIAL page and stays "success" once initialData has
+  // seeded it, however many later page fetches fail). The ledger keeps every row already loaded
+  // either way — an error never clears `data.pages` (useLedgerInfiniteQuery's own contract).
+  const restStatus: "loading" | "done" | "error" =
+    queryStatus === "error" || isFetchNextPageError
+      ? "error"
+      : hasNextPage || isFetchingNextPage || queryStatus === "pending"
+      ? "loading"
+      : "done";
 
   // ── Hydrate the shared resource store (applies workspace overrides) ──
   useEffect(() => {
-    // Dedupe by id at the seam (2026-09-03): the two pages are separate queries; the server-side
-    // tiebreaker makes overlap impossible in principle, this keeps a stale client from ever
-    // rendering one item twice if the pages were fetched across a deploy that changed the order.
-    setResources(dedupeById(initialResources.concat(restResources)));
-    setArchived(dedupeById(initialArchived.concat(restArchived)));
+    // Dedupe by id (2026-09-03, kept under cursor pagination as a defensive backstop): the RPC's
+    // own total order + keyset cursor make an overlap between pages impossible in principle, this
+    // keeps a stale client from ever rendering one item twice if a page were re-fetched across a
+    // deploy that changed the order mid-session.
+    setResources(dedupeById(pagedResources));
+    setArchived(dedupeById(pagedArchived));
     if (initialOverrides.length > 0) setOverrides(initialOverrides);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialResources, restResources, restArchived]);
+  }, [pagedResources, pagedArchived]);
+
+  // Scroll-near-the-end trigger (ADR-027 §2: "fetchNextPage on scroll near the end via
+  // IntersectionObserver or the virtualizer's range"). A single sentinel at the foot of the whole
+  // ledger — simpler and just as effective as a per-band trigger, since the RPC's own total order
+  // means only the LAST band with any loaded rows can possibly have more to fetch next.
+  const sentinelRef = useInfiniteScrollSentinel(fetchNextPage, hasNextPage && !isFetchingNextPage);
 
   // Personal archive layer (migration 235). The override layer above arrives
   // with the SSR payload; user_item_state is per-user so it is fetched here.
@@ -345,9 +446,29 @@ export function RegulationsLedger({
     [active]
   );
 
-  // Single render-stable "now" (avoids an impure Date.now() at render and
-  // keeps SSR/client date math consistent through hydration).
-  const [now] = useState(() => Date.now());
+  // RECONCILE (2026-09-04, item 4b-iii): fixes a hydration hazard `useState(() => Date.now())`
+  // introduced. That initializer runs once on EVERY first render, server AND client — under the
+  // classic (non-PPR) model those are two SEPARATE invocations, at two different real times, and
+  // this page is now server-CACHED (unstable_cache, 60s revalidate — PERF-10's whole point): the SSR
+  // HTML a client hydrates against can legitimately be up to a minute-plus old by the time hydration
+  // runs, so the server's `Date.now()` and the client's would routinely disagree by far more than
+  // clock skew, silently corrupting the milestone "days until"/red-highlight math (nextMilestone/
+  // RegRow below) on every cache-stale hydration, not merely at rare millisecond boundaries. Baking a
+  // server-computed timestamp into the cached HTML would not fix this either — it would freeze `now`
+  // at cache-build time for the whole revalidate window, growing MORE wrong the staler the cache
+  // entry gets. The correct fix (this lane's own dispatch, item 4b-iii): render this specific
+  // countdown client-only, AFTER mount. `now` starts `null` — IDENTICAL on the server render and the
+  // client's matching first (hydration) render, so there is no mismatch to react to — then one
+  // `useEffect` (fires client-only, post-hydration) sets the real wall-clock value, producing a
+  // single, ordinary post-hydration re-render exactly like any other client-only affordance (the
+  // personal drag order below has the same "empty on first render, filled after a client effect"
+  // shape). `nextMilestone(r, null)` returns null (its own header), so every `now`-derived value
+  // (sort order, days-until, the red-deadline highlight) renders in its safe "no milestone data yet"
+  // state until that effect fires, on both server and client alike.
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    setNow(Date.now());
+  }, []);
 
   // Personal drag order (migrations 237 + 238). Per-user and fetched
   // client-side for the same reason the personal archive is: user_list_order is
@@ -598,6 +719,15 @@ export function RegulationsLedger({
       ref={rootRef}
       style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 36px 80px" }}
     >
+      {/* PERF-10 (2026-09-04): the ONLY piece of this component that reads the URL's search params —
+          see SearchParamsFilterBridge's own header above for why it is isolated here, wrapped in its
+          own Suspense boundary, rather than calling useSearchParams() directly in this component
+          (which would require Suspense-wrapping — and therefore deferring the first paint of — the
+          entire ledger). Renders nothing; fallback={null} is never visibly different from its resolved
+          state. */}
+      <Suspense fallback={null}>
+        <SearchParamsFilterBridge onParams={handleFilterParams} />
+      </Suspense>
       {/* ── Priority tiles — clickable band filters ── */}
       <div
         role="group"
@@ -1177,14 +1307,23 @@ export function RegulationsLedger({
                     </SortableContext>
                   </DndContext>
                 ) : (
-                  shown.map((r) => (
-                    <RegRow
-                      key={r.id}
-                      r={r}
-                      now={now}
-                      onArchive={() => setArchiveTarget({ id: r.id, title: r.title })}
-                    />
-                  ))
+                  // PERF-12 (2026-09-04, ADR-027 §2): TanStack Virtual windowing (VirtualizedRowList,
+                  // shared with any other ledger that adopts the same primitive — see its own
+                  // header). ROW_HEIGHT_PX (44) matches list-pagination.ts's own LIST_PAGE_SIZE
+                  // derivation for RegRow's real rendered height. Only the non-drag sort paths use
+                  // this: dnd-kit's SortableContext (the `customMode` branch above) needs every row
+                  // it manages actually mounted to track drag geometry, and reordering is an opt-in,
+                  // per-user affordance over whatever is currently loaded (not a structural "load
+                  // everything" defect the audit named) — see this component's own module header for
+                  // the "custom mode is not always-on" rationale, unchanged by this lane.
+                  <VirtualizedRowList
+                    rows={shown}
+                    rowHeight={ROW_HEIGHT_PX}
+                    getRowId={(r) => r.id}
+                    renderRow={(r) => (
+                      <RegRow r={r} now={now} onArchive={() => setArchiveTarget({ id: r.id, title: r.title })} />
+                    )}
+                  />
                 )
               )}
 
@@ -1226,10 +1365,58 @@ export function RegulationsLedger({
         fall within 90 days. Open any regulation for the full brief, sources, and connected intelligence.
       </p>
 
-      {/* Unobtrusive background-load indicator — never blocks the rendered rows above. */}
-      {restStatus === "loading" && (
+      {/* PERF-12 (2026-09-04, ADR-027 §2): infinite-scroll trigger + honest end-of-list state.
+          Sentinel fires fetchNextPage BEFORE it is physically visible (useInfiniteScrollSentinel's
+          own rootMargin) — the primary mechanism. The "Load more" button is the same affordance
+          kept visible and keyboard-reachable (not every input is a scroll gesture), matching the
+          "honest, visible mechanism" precedent PERF-11's own UX-compliance note set for this exact
+          ledger. Neither renders anything false: "Loading more…" only while a fetch is genuinely
+          in flight, "end of ledger" only once hasNextPage is confirmed false (not merely "no rows
+          arrived yet"), and the block that could error says so instead of pretending done. */}
+      <div ref={sentinelRef} aria-hidden="true" style={{ height: 1 }} />
+      {isFetchingNextPage && (
+        <p role="status" style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "4px 2px 0" }}>
+          Loading more…
+        </p>
+      )}
+      {!isFetchingNextPage && hasNextPage && !isFetchNextPageError && (
+        <button
+          type="button"
+          onClick={() => fetchNextPage()}
+          style={{
+            marginTop: 8,
+            minHeight: 44,
+            width: "100%",
+            fontFamily: "inherit",
+            fontSize: 12,
+            fontWeight: 800,
+            color: "var(--color-primary)",
+            background: "var(--color-bg-surface)",
+            border: "1px solid var(--color-border-medium)",
+            borderRadius: 6,
+            cursor: "pointer",
+          }}
+        >
+          Load more
+        </button>
+      )}
+      {!isFetchingNextPage && !hasNextPage && regulatory.length > 0 && (
         <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "4px 2px 0" }}>
-          Loading the full ledger…
+          End of ledger — every loaded regulation is shown above.
+        </p>
+      )}
+      {isFetchNextPageError && (
+        <p role="status" style={{ fontSize: 11, fontWeight: 700, color: "var(--reg-band-immediate)", margin: "4px 2px 0" }}>
+          Could not load more regulations right now{queryError ? ` (${queryError})` : ""}. What&apos;s
+          already shown is unaffected —{" "}
+          <button
+            type="button"
+            onClick={() => fetchNextPage()}
+            style={{ fontFamily: "inherit", fontSize: 11, fontWeight: 800, color: "var(--color-primary)", background: "none", border: "none", padding: 0, cursor: "pointer", textDecoration: "underline" }}
+          >
+            try again
+          </button>
+          .
         </p>
       )}
 
@@ -1366,11 +1553,13 @@ function RegRow({
   onArchive,
 }: {
   r: Resource;
-  now: number;
+  now: number | null;
   onArchive: () => void;
 }) {
   const md = nextMilestone(r, now);
-  const days = md ? Math.round((md.getTime() - now) / 86400000) : null;
+  // `md` is only ever non-null when `now` is itself non-null (nextMilestone's own guard) — `now!` is
+  // safe here, not a cast around a real possibility.
+  const days = md ? Math.round((md.getTime() - now!) / 86400000) : null;
   // HYDRATION-418 (2026-09-04): pin the zone — see format-fixed-date.ts's header for the reproduced
   // server(UTC)/client(local) mismatch this was throwing React error #418 on.
   const dateStr = formatMilestoneChip(md);
@@ -1491,7 +1680,7 @@ function SortableRegRow({
   onArchive,
 }: {
   r: Resource;
-  now: number;
+  now: number | null;
   onArchive: () => void;
 }) {
   const {

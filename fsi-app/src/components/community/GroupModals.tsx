@@ -32,6 +32,7 @@ import {
 } from "react";
 import { X, Users, Settings, UserPlus, AlertCircle } from "lucide-react";
 import { NoDirectMessagingNotice } from "./NoDirectMessagingNotice";
+import { formatLocaleDate } from "@/lib/format";
 
 // ════════════════════════════════════════════════════════════════
 // Shared modal shell
@@ -402,7 +403,7 @@ function MemberRowItem({ member }: { member: MemberRow }) {
           )}
         </div>
         <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>
-          Joined {new Date(member.joined_at).toLocaleDateString()}
+          Joined {formatLocaleDate(new Date(member.joined_at))}
         </div>
       </div>
       <RolePill role={member.role} />
@@ -1001,7 +1002,7 @@ export function InviteModal({
                   <div
                     style={{ fontSize: 11, color: "var(--color-text-muted)" }}
                   >
-                    Invited {new Date(p.created_at).toLocaleDateString()}
+                    Invited {formatLocaleDate(new Date(p.created_at))}
                   </div>
                 </div>
                 {p.can_revoke && (

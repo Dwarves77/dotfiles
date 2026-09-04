@@ -155,8 +155,10 @@ BEGIN
   END IF;
 
   -- Already applied (p_domain already in the live signature) — no-op, idempotent re-run.
-  IF v_def LIKE '%p_domain%' THEN
-    RAISE NOTICE '305: already applied (p_domain already present) — no-op';
+  -- Idempotency by arity (not by LIKE over one INTO row, which is ambiguous once two overloads exist).
+  IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+              WHERE n.nspname = 'public' AND p.proname = 'get_workspace_intelligence_listings' AND p.pronargs = 2) THEN
+    RAISE NOTICE '305: already applied (2-arg overload present) — no-op';
     RETURN;
   END IF;
 
@@ -166,13 +168,28 @@ BEGIN
   END IF;
 
   EXECUTE v_new_def;
+  -- CREATE OR REPLACE with a NEW parameter list creates a second OVERLOAD (Postgres keys functions by
+  -- signature); the 1-arg original would remain and PostgREST could then not choose between
+  -- f(p_org_id) and f(p_org_id, p_domain DEFAULT NULL) for a {p_org_id} call (300 "could not choose
+  -- the best candidate function"). Drop the 1-arg overload in the same transaction (train 44
+  -- correction of the lane's "CREATE OR REPLACE is safe here" claim). Existing {p_org_id} callers keep
+  -- working through the DEFAULT.
+  DROP FUNCTION IF EXISTS public.get_workspace_intelligence_listings(uuid);
+  -- The dropped overload carried explicit grants (anon, authenticated, service_role); re-state them on
+  -- the new signature rather than rely on schema default privileges.
+  GRANT EXECUTE ON FUNCTION public.get_workspace_intelligence_listings(uuid, integer) TO anon, authenticated, service_role;
 
   -- Post-patch verification.
   SELECT pg_get_functiondef(p.oid) INTO v_def
     FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-   WHERE n.nspname = 'public' AND p.proname = 'get_workspace_intelligence_listings';
+   WHERE n.nspname = 'public' AND p.proname = 'get_workspace_intelligence_listings' AND p.pronargs = 2;
   IF v_def NOT LIKE '%p_domain%' OR v_def NOT LIKE '%p_domain IS NULL OR ii.domain = p_domain%' THEN
     RAISE EXCEPTION 'ABORT 305: post-patch definition does not carry the p_domain parameter/filter';
+  END IF;
+  SELECT count(*) INTO v_count FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'public' AND p.proname = 'get_workspace_intelligence_listings';
+  IF v_count <> 1 THEN
+    RAISE EXCEPTION 'ABORT 305: expected exactly one get_workspace_intelligence_listings overload after the patch, found %', v_count;
   END IF;
 
   RAISE NOTICE '305 OK: get_workspace_intelligence_listings now accepts an optional p_domain filter; post md5 %', md5(v_def);

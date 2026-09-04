@@ -10155,3 +10155,86 @@ filter change shows a `role="status"` loading banner and "N of M" from the true 
 goes blank or shows a false empty state mid-request; failure shows an explicit message. Fitts's-law
 surface: the new button meets the minimum; nothing else moved. Market's trim and the domain fix change
 data, not markup.
+
+### Addendum 85, postscript 55 — train 44: the standard architecture, whole (2026-09-04)
+
+Train 43 landed as #590 (`a58478cc`) and the live measurement after it showed two regressions: React
+#418 was back on /regulations and the shell showed "No workspace yet" to a viewer whose masthead named
+the workspace. Both had causes, not symptoms. #418: `ObligationRegisterFilterBar`'s "Load more (N more)"
+called `toLocaleString()` with no locale, so the server (en-US) and a browser in any other locale
+disagreed on "1,081"; the register was an async server component, so the disagreement was in the
+hydration pass every time. Fixed at the root: one shared formatter pinned to en-US, every
+`toLocaleString`/`toLocaleDateString` site in `src/` routed through it (the ~30 admin/community/profile
+sites included), and a grep test that fails on any new unpinned call. The banner: `AuthProvider` set
+`user` before `seed()` resolved the org, and `orgId: string | null` could not tell "not resolved yet"
+from "no org", so `!orgId` was true during the window on every load. Fixed with a three-valued orgId
+(`undefined` unresolved, `null` none, string id); the banner predicate is a pure module with a test
+that proves the old predicate reproduced the defect.
+
+The architecture ADR-027 named is now on master whole, reconciled into one design rather than three
+lanes' worth. PERF-10 (landed by PERF-MERGE): the six listing RPCs all `PERFORM _assert_org_membership`,
+so any page that read them had to resolve the org from cookies and was forced dynamic; migration 306
+creates five org-independent `*_public` counterparts (same projections, no override join), read under
+one shared `unstable_cache` entry tagged `PUBLIC_ITEMS_TAG` and revalidated where `APP_DATA_TAG` already
+is (mint apply), with the per-org override merge done client-side by the `mergeWithOverrides` the ledger
+already used. The four `[slug]` routes gained `generateStaticParams() { return [] }`, which is what lets
+a dynamic segment be SSG under classic rendering; found by running `next build`, not by reading. Two
+production defects found by the build itself: `ThemeStrip`'s client construction sat outside its
+try/catch, and `fetchSurfaceCounts(null, …)` short-circuited on its own `!orgId` guard so the public
+masthead counts were permanently zero. PERF-12 (landed by PERF-12-MERGE): the "remainder fetch" of up to
+5,000 rows is gone; rows page by keyset cursor over the RPC's own total order `(priority rank, added_date
+DESC, id ASC)`, 30 per page, through `/api/listings/cursor`, and the list renders through TanStack
+Virtual (a 713-row band is 12 DOM rows at 1440×840, 17 at 1920×1200, measured in real Chromium; 16 KB per
+scroll page). PERF-12's lane found and fixed an infinite render loop in its own infinite-query hook and a
+case where the virtualizer silently rendered every row (no scroll ancestor → window virtualizer).
+
+Reconciliation decisions, on record: the cursor lives once, on the public listings RPC (three trailing
+DEFAULT NULL params in 306), so a scroll page is one org-independent, cacheable call, not a cookie read
+plus an org-scoped RPC; PERF-12's org-scoped cursor migration would have added a second overload beside
+305's (the same PostgREST-ambiguity defect I corrected in 305 before applying it) and is deleted, as is
+the JWT-claim auth-hook migration nothing read and the `X-Org-Id` verification it existed for; the
+fail-soft "try the new signature, fall back to the old" ladders (PERF-11's, PERF-12's, PERF-MERGE's) are
+deleted because DDL lands before code here and a missing parameter must be a logged 500, not a silent
+wrong page; `sequentialDbHops` for the regulations list is 1 at the ratchet. PERF-MERGE had turned the
+obligations register into fetch-on-mount, which is a blank register on every load; PERF-12-MERGE seeded
+it server-side again from the same public path. Route table after `next build --webpack`: /regulations,
+/market, /operations, /research ○ (1 min revalidate); their `[slug]` routes ●; /community ƒ by design.
+Migration 306 applied live via Supabase MCP before the merge; its own post-check proves one overload per
+function, the domain subset, and a live keyset step (cursor-scoped call returns exactly one fewer row).
+
+Three more things this train. LEDGER-WALLS: running the new shared `detectAccessWall` over the 400-row
+text export measured 308 of the 338 "fetched" texts as walls (231 federalregister.gov "Request Access"
+CAPTCHA pages, 76 EUR-Lex interface shells, 1 browser-not-supported), which means the 63
+"specific_document" verdicts in the batch I assembled before this were rated from EUR-Lex title+chrome,
+not from any document. I pruned `ledger-verdicts-001.json` to the 30 verdicts made over real text (rule
+18: a rating of a shell is not a rating of the source); the fetcher now marks walls `fetch_ok:false,
+access_wall:<kind>` before the 200-char floor, federalregister.gov/eCFR go through their JSON/versioner
+APIs, EUR-Lex `legal-content` URLs are rewritten to `/TXT/HTML/`, and the sitemap walker names a bot wall
+instead of "no sitemap". SWEEP-BUDGET: sweeps #16 (70 hosts, my choice against the lane's 40-host
+arithmetic) and #17 (40) both died at the 30-minute job timeout with no artifact; the DB stamps show #16
+walked 15 rows in 17 minutes then nothing for 13, and #17 had two 7-minute gaps: one hung fetch with no
+timeout. Fixed at the one `politeFetch` call site (20 s AbortSignal timeout) plus a 1500 s walk budget
+checked before every source, the artifact always written with the sources not reached, exit 0. The
+ledger-consume proposer pass (the family now has two artifacts, so F28 demanded it): runs 001 and 002
+are the same 50 rows, 100 fetches, zero verdicts, because a `workflow_run` plan always starts at
+`after = null` and fetches before it looks for a verdict; the fix is recorded there (export the next
+window keyset-after the last cursor; no fetch without a verdict to apply) and is the next ledger lane,
+not this train. F25: nine allowlist entries expiring at 43/44 re-granted to 46 with the reason, since
+T46 is the operator's "every item is used" validation and forces wire-or-delete there.
+
+Gates on the assembled train: fitness 31/0, governance 186/0, closure 4/4, tsc clean, full suite 5,392/0 (5 skipped),
+`next build --webpack` clean. Node 24 locally; CI's no-npm suite honoured (`*.npmtest.mjs` for anything
+importing react/next/@tanstack).
+
+UX compliance (PERF-10/PERF-12/PERF-MERGE: the four index pages, their detail routes, /regulations
+ledger and obligations register). Primary goal: see the first screen of regulations the instant the
+page is reached, and every further row as you scroll, with the workspace's own overrides applied.
+Path: unchanged (nav link or row click → page); the shell (masthead, nav) persists across navigation
+via the root layout, each segment's `loading.tsx` renders a proportioned skeleton, never blank, and the
+first 30 rows plus the register's first page are in the SSR HTML. One primary action per surface:
+rows are links (prefetch on); the list's foot carries "Load more" and an error-with-retry state; the
+register keeps its one "Load more". Feedback state: the band shows "Loading N…" driven by the query's
+own `isFetchingNextPage`; a failed page shows an explicit message and a retry, never an empty band;
+counts bind to the surface-count RPC, so the masthead is honest at 30 rows and at 754. Fitts's-law
+surface: no control moved or shrank; the virtualized rows keep their height and hit area. The
+"No workspace yet" banner renders only on a resolved no-org state, never during resolution.

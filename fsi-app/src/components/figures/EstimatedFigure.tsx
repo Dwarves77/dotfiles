@@ -28,6 +28,7 @@
 import type { Value, Use } from "@/lib/propagation/types.ts";
 import { admissibleFor } from "@/lib/propagation/admissible-for.ts";
 import { formatRange } from "@/lib/figures/format-range.mjs";
+import { formatNumber } from "@/lib/format";
 
 export interface EstimatedFigureCompanion {
   label: string;
@@ -140,7 +141,7 @@ export function DerivedFigure({ figure, label, sourceNote, use = "calculation", 
         </div>
       ) : (
         <div className="cl-stat-number" style={{ fontSize: 22 }}>
-          {figure.value === null || !Number.isFinite(figure.value) ? "—" : figure.value.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+          {figure.value === null || !Number.isFinite(figure.value) ? "—" : formatNumber(figure.value, { maximumFractionDigits: 1 })}
           {figure.unit ? <span className="cl-card-meta" style={{ marginLeft: 6, fontSize: 12 }}>{figure.unit}</span> : null}
         </div>
       )}

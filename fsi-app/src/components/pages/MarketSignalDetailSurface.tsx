@@ -32,8 +32,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import Link from "next/link";
+import { formatMonthDay, formatShortDate } from "@/components/regulations/format-fixed-date";
 import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import { WatchButton } from "@/components/ui/WatchButton";
+import { useResourceStore } from "@/stores/resourceStore";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { TrajectoryBars } from "@/components/market/TrajectoryBars";
 import { buildCarbonOverlayView } from "@/lib/market/carbon-overlay-view.mjs";
@@ -57,7 +59,7 @@ import {
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
-import { RelevanceBadge } from "@/components/shell/RelevanceBadge";
+import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import { RecordGradeBadge } from "@/components/shell/RecordGradeBadge";
 import {
   parseRecordSections,
@@ -660,7 +662,7 @@ export function MarketSignalDetailSurface({
 
         {/* Meta rail */}
         <div id="cl-sig-rail" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <RelevanceBadge relevance={relevance} />
+          <RelevanceBadgeClient itemId={r.id} />
           <SideCard label="Signal">
             <KV k="Band" v={`B${BAND_NUM[band]} · ${BAND_LABEL[band]}`} />
             <KV k="Severity" v={<span style={{ fontWeight: 800, color: SEVERITY_TONE[severity].fg }}>{SEVERITY_LABEL[severity]}</span>} />
@@ -1099,16 +1101,37 @@ function SourcesTab({ r, sectionMap, band }: { r: Resource; sectionMap: Record<s
 // workspace_item_overrides.notes via POST /api/workspace/overrides (the
 // backend that already existed), debounced 800ms after typing stops + on
 // blur. The prior implementation stored notes in localStorage while the
-// label claimed "visible to your workspace" — a false customer claim. The
-// initial value arrives server-side (initialNote) from the same overrides
-// row the workspace read-layer serves, so the note survives reload and is
-// shared across the org. Save state is surfaced honestly (Saving… / Saved /
-// Save failed — retry); a failed save never silently drops the text.
+// label claimed "visible to your workspace" — a false customer claim. Save
+// state is surfaced honestly (Saving… / Saved / Save failed — retry); a
+// failed save never silently drops the text.
+//
+// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): the initial value used to arrive
+// server-side (initialNote), sourced from an uncached, cookie-scoped org read inside
+// market/[slug]/page.tsx — one of that route's Dynamic-API dependencies. That server read is gone;
+// initialNote now defaults to "" (never wrong, just not-yet-known). Once the global bootstrap fetch
+// resolves (useWorkspaceOverridesHydration, see its own header), this field reads the SAME
+// workspace_item_overrides.notes value from useResourceStore's client-hydrated cache — same source
+// of truth as before, same "shared across the org" contract — and applies it here exactly once, ONLY
+// while the field is still untouched (status === "idle"), so a viewer who starts typing before the
+// bootstrap payload lands is never overwritten mid-edit.
 function NotesField({ itemId, initialNote = "" }: { itemId: string; initialNote?: string }) {
+  const override = useResourceStore((s) => s.overrides.get(itemId));
   const [note, setNote] = useState<string>(initialNote);
   const [status, setStatus] = useState<"idle" | "dirty" | "saving" | "saved" | "error">(
     initialNote.trim().length > 0 ? "saved" : "idle"
   );
+  const appliedOverrideRef = useRef(false);
+  useEffect(() => {
+    if (appliedOverrideRef.current || !override) return;
+    appliedOverrideRef.current = true;
+    if (status !== "idle") return; // already dirty/saved/saving from a real user edit — never clobber
+    const overrideNote = override.notes ?? "";
+    if (overrideNote.trim().length > 0) {
+      setNote(overrideNote);
+      setStatus("saved");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [override]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latest = useRef(note);
   latest.current = note;
@@ -1494,14 +1517,20 @@ function copyToClipboard(text: string) {
 }
 
 // ── Date helpers ────────────────────────────────────────────────────────
+// RECONCILE (2026-09-04, item 4b-ii): both previously called `.toLocaleDateString("en-US", {...})`
+// directly with NO `timeZone` pin — a live, undiagnosed HYDRATION-418-class defect (this "use client"
+// component renders once on the UTC server and once more on the viewer's own local zone during
+// hydration; see format-fixed-date.ts's own header for the reproduced mismatch and RegulationDetail-
+// Surface.tsx's identical fix). Delegated to format-fixed-date.ts's shared, UTC-pinned presets — found
+// and fixed by this reconciliation's repo-wide sweep onto ONE shared formatter module.
 function shortDate(d: string): string {
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return d;
-  return dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return formatMonthDay(dt);
 }
 
 function fullDate(d: string): string {
   const dt = new Date(d);
   if (isNaN(dt.getTime())) return d;
-  return dt.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  return formatShortDate(dt);
 }

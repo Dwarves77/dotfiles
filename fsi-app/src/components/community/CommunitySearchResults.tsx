@@ -16,6 +16,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, FileText, Users, User, Lock, Globe, X } from "lucide-react";
+import { formatLocaleDate } from "@/lib/format";
 
 type Scope = "all" | "posts" | "groups" | "people";
 
@@ -347,7 +348,7 @@ function PostHitRow({
           }}
         >
           in <b>{post.group_name}</b> ·{" "}
-          {new Date(post.created_at).toLocaleDateString()}
+          {formatLocaleDate(new Date(post.created_at))}
         </div>
         {post.body_excerpt && (
           <div

@@ -24,6 +24,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { formatLocaleDate } from "@/lib/format";
 
 type MemberUser = {
   full_name?: string | null;
@@ -304,7 +305,7 @@ function MemberRowView({
   const role = (member.role || "member").toLowerCase();
   const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
   const joined = member.created_at
-    ? new Date(member.created_at).toLocaleDateString()
+    ? formatLocaleDate(new Date(member.created_at))
     : "—";
 
   return (

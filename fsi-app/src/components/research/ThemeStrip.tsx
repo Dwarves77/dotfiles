@@ -40,10 +40,27 @@
  * ITEM LOOKUP is the SAME customer read gate used throughout this lane's other new surfaces
  * (is_archived=false + provenance_status='verified') — belt-and-suspenders on top of migration 157/259's
  * intelligence_items_read RLS policy, which already enforces exactly that.
+ *
+ * PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): switched from createSupabaseServerClient
+ * (cookie-bound, forces /research dynamic — a Dynamic API read in this component's own server render)
+ * to getServiceSupabase(). This is NOT the same override this lane declined for
+ * UpcomingObligationsStrip/ObligationRegister (src/lib/forward-events/read-upcoming.mjs,
+ * src/lib/obligations/read-register.mjs) — those modules carry an explicit, deliberate header
+ * prohibition ("MUST always be called with the REQUEST-SCOPED client... never a service-role
+ * client") this lane chose to respect, not reverse. ThemeStrip carries no such prohibition: this
+ * component reads NO per-org/per-viewer data at all (connection_themes and theme_briefs are both
+ * corpus-wide, not workspace-scoped), and the SAME explicit read-gate filters this component already
+ * applied (is_archived=false, provenance_status='verified') are unchanged below — a service-role
+ * client changes WHICH Postgres role runs the query, not what rows this component asks for or
+ * returns for connection_themes/intelligence_items. It ALSO resolves the exact defect this
+ * component's header already named as a known gap, not a new behavior: theme_briefs' RLS is enabled
+ * with NO policies (deny-all to anon/authenticated; service role bypasses by construction, migration
+ * 266's own comment) — so the cookie-bound client could never see a brief row regardless of who was
+ * signed in, and every "Brief" badge below was permanently unreachable until this line changed.
  */
 
 import Link from "next/link";
-import { createSupabaseServerClient } from "@/lib/supabase-server-client";
+import { getServiceSupabase } from "@/lib/supabase-service";
 import { itemDetailHref } from "@/lib/item-links";
 import { isBriefStale } from "@/lib/connections/brief-staleness.mjs";
 
@@ -74,7 +91,22 @@ const MAX_THEMES = 6;
 const MAX_MEMBER_LINKS = 3;
 
 export async function ThemeStrip() {
-  const supabase = await createSupabaseServerClient();
+  // getServiceSupabase() is fail-closed BY DESIGN (throws synchronously when
+  // SUPABASE_SERVICE_ROLE_KEY is unset — supabase-service.ts's own header) — a real defect this lane
+  // found and fixed while proving the build (2026-09-04): the PERF-10 switch above from
+  // createSupabaseServerClient to getServiceSupabase() left this one call OUTSIDE every try/catch
+  // below, so a missing/misconfigured service-role key would crash this component's entire render
+  // (and, transitively, all of /research) instead of the "soft-fails to nothing on a read error"
+  // contract this file's own header promises. Every other production caller of getServiceSupabase()
+  // that can legitimately run without it configured already guards this exact call this same way
+  // (see load-detail.ts's defaultCreateServiceClient) — this brings ThemeStrip into line with that
+  // established pattern rather than inventing a new one.
+  let supabase;
+  try {
+    supabase = getServiceSupabase();
+  } catch {
+    return null; // soft-fail — never breaks the Research list page
+  }
 
   let themes: ConnectionThemeRow[] = [];
   try {

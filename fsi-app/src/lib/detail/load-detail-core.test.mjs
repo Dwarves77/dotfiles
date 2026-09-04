@@ -178,6 +178,57 @@ test("(no org/user key) the item-scoped ctx carries no viewer identity", async (
   );
 });
 
+test("(includeRelevance) defaults to false: deps.getRelevance is never called, and relevance resolves to null", async () => {
+  let getRelevanceCalls = 0;
+  const result = await loadDetailCore(
+    call("regulations", "item-a", {
+      loadItemScoped: async () => ({}),
+      deps: {
+        fetchItem: async () => baseDetail,
+        fetchSections: async () => [],
+        getRelevance: async () => {
+          getRelevanceCalls++;
+          return { band: "should-never-be-seen" };
+        },
+        createServiceClient: () => ({}),
+        resolveOrgId: async () => "org-a",
+        cacheWrap: makeMemoCache(),
+      },
+      // includeRelevance omitted — this is the production shape: all four detail page.tsx call
+      // sites opt out after PERF-10 (2026-09-04). See LoadDetailCoreConfig.includeRelevance's own
+      // header in load-detail-core.ts for why this default is what fixes the single most universal
+      // cause of all four detail routes building `ƒ` (Dynamic) at build time.
+    })
+  );
+  assert.equal(getRelevanceCalls, 0, "deps.getRelevance must not be called when includeRelevance is omitted/false");
+  assert.equal(result.notFound, false);
+  assert.equal(result.relevance, null);
+});
+
+test("(includeRelevance) when explicitly true, deps.getRelevance runs and its result reaches result.relevance (the pre-PERF-10 shape, preserved for callers that opt in)", async () => {
+  let getRelevanceCalls = 0;
+  const result = await loadDetailCore(
+    call("regulations", "item-a", {
+      includeRelevance: true,
+      loadItemScoped: async () => ({}),
+      deps: {
+        fetchItem: async () => baseDetail,
+        fetchSections: async () => [],
+        getRelevance: async () => {
+          getRelevanceCalls++;
+          return { band: "relevant" };
+        },
+        createServiceClient: () => ({}),
+        resolveOrgId: async () => "org-a",
+        cacheWrap: makeMemoCache(),
+      },
+    })
+  );
+  assert.equal(getRelevanceCalls, 1);
+  assert.equal(result.notFound, false);
+  assert.deepEqual(result.relevance, { band: "relevant" });
+});
+
 test("(b)+(c) a second call for the same slug under a different viewer does not re-run the item-scoped set, and never receives the first viewer's org-scoped fields", async () => {
   let itemScopedCalls = 0;
   const cacheWrap = makeMemoCache();
@@ -185,6 +236,11 @@ test("(b)+(c) a second call for the same slug under a different viewer does not 
   async function callAs(viewerOrgId, ownerName) {
     return loadDetailCore(
       call("regulations", "item-a", {
+        // PERF-10 (2026-09-04): includeRelevance defaults to false now (see this file's own
+        // includeRelevance tests above) — this test's own point is viewer isolation of relevance
+        // ACROSS a cache hit, which needs deps.getRelevance to actually run, so it opts in explicitly
+        // rather than relying on the old always-on default.
+        includeRelevance: true,
         loadItemScoped: async () => {
           itemScopedCalls++;
           return { relatedTitles: ["Cross-referenced Reg"] };

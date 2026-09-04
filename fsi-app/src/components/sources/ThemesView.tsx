@@ -17,6 +17,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Loader2, Network } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { GfmSection } from "@/components/shared/GfmSection";
+import { formatLocaleDateTime } from "@/lib/format";
 
 interface ThemeBrief {
   title: string;
@@ -151,7 +152,7 @@ export function ThemesView() {
 
       {lastRun && (
         <div className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
-          Last run {lastRun.started_at ? new Date(lastRun.started_at).toLocaleString() : "—"} ·{" "}
+          Last run {lastRun.started_at ? formatLocaleDateTime(new Date(lastRun.started_at)) : "—"} ·{" "}
           status {lastRun.status}
           {lastRun.status === "error" && (
             <span style={{ color: "var(--color-error)" }}> (see connection_theme_runs.error_message)</span>
@@ -272,7 +273,7 @@ function ThemeCard({ theme }: { theme: Theme }) {
                   {brief.title}
                 </span>
                 <span className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
-                  Generated {new Date(brief.generated_at).toLocaleString()}
+                  Generated {formatLocaleDateTime(new Date(brief.generated_at))}
                 </span>
               </div>
 

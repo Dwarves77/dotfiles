@@ -66,7 +66,11 @@ on:
         type: boolean
         default: false
       max_hosts:
-        description: 'Sitemap walker + all_hosts only: max distinct hosts to walk this run (run-source-sweep.mjs default 40 when left blank — see DEFAULT_MAX_HOSTS for the timeout-budget arithmetic; ~16 dispatches at the default cover all 646 active hosts once).'
+        description: 'Sitemap walker + all_hosts only: max distinct hosts to walk this run (run-source-sweep.mjs default 40 when left blank — see DEFAULT_MAX_HOSTS for the arithmetic it was derived from; ~16 dispatches at the default cover all 646 active hosts once). A CEILING on how many hosts one dispatch is willing to attempt, never a floor — time_budget_seconds below is what actually stops the run inside timeout-minutes: 30 (lane SWEEP-BUDGET, 2026-09-04: max_hosts alone let sweep #16, 70 hosts, run past the job timeout and get killed with NO artifact).'
+        required: false
+        type: string
+      time_budget_seconds:
+        description: 'Sitemap walker only (lane SWEEP-BUDGET, 2026-09-04): wall-clock hard stop for the source-selection loop (--source-id/--host/--all-hosts alike) — checked before every source, run-source-sweep.mjs default 1500s (1800s job timeout minus a 300s non-walk reserve) when left blank. On exhaustion the run still exits 0 and its artifact records budget_seconds/elapsed_seconds/sources_walked/sources_not_reached/budget_exhausted — a bounded, complete unit of work, not an error.'
         required: false
         type: string
       check_coverage:
@@ -170,7 +174,7 @@ jobs:
           echo "mode    = ${{ inputs.mode }}"
           echo "from/to = ${{ inputs.from }} .. ${{ inputs.to }}"
           echo "feed    = ${{ inputs.feed_url }}"
-          echo "sitemap = source_id=${{ inputs.source_id }} host=${{ inputs.host }} all_hosts=${{ inputs.all_hosts }} max_hosts=${{ inputs.max_hosts }} check_coverage=${{ inputs.check_coverage }}"
+          echo "sitemap = source_id=${{ inputs.source_id }} host=${{ inputs.host }} all_hosts=${{ inputs.all_hosts }} max_hosts=${{ inputs.max_hosts }} time_budget_seconds=${{ inputs.time_budget_seconds }} check_coverage=${{ inputs.check_coverage }}"
 
       # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
       # claimRunId (scripts/lib/run-artifact.mjs) numbers the next artifact from the files it can see in
@@ -210,6 +214,7 @@ jobs:
               if [ -n "${{ inputs.host }}" ]; then args+=(--host "${{ inputs.host }}"); fi
               if [ "${{ inputs.all_hosts }}" = "true" ]; then args+=(--all-hosts); fi
               if [ -n "${{ inputs.max_hosts }}" ]; then args+=(--max-hosts "${{ inputs.max_hosts }}"); fi
+              if [ -n "${{ inputs.time_budget_seconds }}" ]; then args+=(--time-budget-seconds "${{ inputs.time_budget_seconds }}"); fi
             fi
             if [ -n "${{ inputs.limit }}" ]; then args+=(--limit "${{ inputs.limit }}"); fi
           else
@@ -258,8 +263,8 @@ jobs:
           git fetch --no-tags --depth=50 origin master
           git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
           git push origin HEAD:"$branch"
-          printf 'Automated source sweep (run %s).\n\nWalker: %s\nMode: %s\nFrom/to: %s .. %s\nFeed: %s\nSource id/host: %s / %s\nAll hosts: %s (max_hosts=%s)\nCheck coverage: %s\nLimit: %s\n\nLands the harness-run artifact for this sweep under scripts/harness-runs/source-sweep/.\n' \
-            "${{ github.run_id }}" "${{ inputs.walker }}" "${{ inputs.mode }}" "${{ inputs.from }}" "${{ inputs.to }}" "${{ inputs.feed_url }}" "${{ inputs.source_id }}" "${{ inputs.host }}" "${{ inputs.all_hosts }}" "${{ inputs.max_hosts }}" "${{ inputs.check_coverage }}" "${{ inputs.limit }}" > /tmp/pr-body.md
+          printf 'Automated source sweep (run %s).\n\nWalker: %s\nMode: %s\nFrom/to: %s .. %s\nFeed: %s\nSource id/host: %s / %s\nAll hosts: %s (max_hosts=%s, time_budget_seconds=%s)\nCheck coverage: %s\nLimit: %s\n\nLands the harness-run artifact for this sweep under scripts/harness-runs/source-sweep/.\n' \
+            "${{ github.run_id }}" "${{ inputs.walker }}" "${{ inputs.mode }}" "${{ inputs.from }}" "${{ inputs.to }}" "${{ inputs.feed_url }}" "${{ inputs.source_id }}" "${{ inputs.host }}" "${{ inputs.all_hosts }}" "${{ inputs.max_hosts }}" "${{ inputs.time_budget_seconds }}" "${{ inputs.check_coverage }}" "${{ inputs.limit }}" > /tmp/pr-body.md
           bash scripts/turns/deliver-artifact-branch.sh "$branch" "Source sweep: ${{ inputs.walker }} (mode=${{ inputs.mode }}, run ${{ github.run_id }})" /tmp/pr-body.md
 
       - name: Upload scripts/_snapshots as a workflow artifact

@@ -30,6 +30,32 @@
  * even though the row payload no longer is) — falls back to deriving from the currently-loaded `rows` when
  * the props are omitted/empty (defensive; also what the detail variant's now-unused dropdown UI would see
  * if it were ever rendered).
+ *
+ * HYDRATION-418 (PERF-MERGE, 2026-09-04): both toLocaleString calls below now pin `"en-US"`
+ * explicitly, mirroring the `timeZone: "UTC"` pin format-fixed-date.ts already established for the
+ * date-side instance of this same defect class. [CONFIRMED root cause, this lane] — on train 43
+ * (PERF-11, pre-PERF-MERGE) `ObligationRegister.tsx` was an ASYNC SERVER COMPONENT that rendered this
+ * component synchronously into the SSR HTML with real data (`git show 995d82e3:.../ObligationRegister.tsx`),
+ * so the "Load more (${(total - rows.length)} more)" text (line ~327, NEW in PERF-11 — confirmed absent
+ * at d60124b9 via `git diff d60124b9 a58478cc -- ObligationRegisterFilterBar.tsx`) rendered once
+ * server-side using the Node runtime's default `Intl` locale (measured this session:
+ * `new Intl.NumberFormat().resolvedOptions().locale` → `"en-US"` in this environment) and again
+ * client-side during hydration ("use client" components still hydrate over their SSR HTML) using the
+ * BROWSER's default locale, which is independent of the server's and ordinarily reads from the
+ * viewer's OS/browser language setting. Measured this session (`node -e`, the exact live value
+ * 1141 - 60 = 1081): `"en-US"` → `"1,081"`, `"de-DE"` → `"1.081"`, `"fr-FR"` → `"1 081"`,
+ * `"pl-PL"` → `"1081"` — a genuinely different DOM text node for any non-`en-US`-locale browser, every
+ * single load (this register always has more rows than the first page — "Load more" is not a rare or
+ * empty-state path), which is exactly React's minified error #418 (hydration text mismatch). This is
+ * DETERMINISTIC per viewer locale, not the probabilistic class RegulationsLedger.tsx's `useState(() =>
+ * Date.now())` comment nearby represents — it reproduces on every load for every non-en-US-locale
+ * browser, which is the "returned again" the coordinator saw live. NOTE: PERF-MERGE's own convergence
+ * (see ObligationRegister.tsx's header) separately converts the parent to a client component that fetches
+ * on mount and does not render this component during SSR at all, which independently prevents this
+ * specific dual-render path going forward — the locale pin here is kept anyway, both belt-and-suspenders
+ * and because the SAME unpinned-locale defect pattern exists ~30 more places repo-wide (see this lane's
+ * final report) and the convention (pin explicitly, never rely on runtime default) is worth being
+ * unambiguously correct at its origin, not just accidentally inert.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -39,6 +65,7 @@ import { formatEventDate } from "@/lib/connections/forward-event-format.mjs";
 import { BINDING_POSITION, TRANSPORT_MODES, orderedValues } from "@/lib/contracts/vocabularies.mjs";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import { itemDetailHref } from "@/lib/item-links";
+import { formatNumber } from "@/lib/format";
 
 export interface ObligationItem {
   id: string;
@@ -230,7 +257,7 @@ export function ObligationRegisterFilterBar({
           {typeof sourceEventCount === "number" ? (
             <>
               No obligations classified into the register yet. It is derived from{" "}
-              <strong>{sourceEventCount.toLocaleString()}</strong> dated forward event
+              <strong>{formatNumber(sourceEventCount)}</strong> dated forward event
               {sourceEventCount === 1 ? "" : "s"} already on file (migration 274); the register fills in
               as they are matched to their parent regulation's jurisdiction, mode and binding position.
             </>
@@ -324,7 +351,7 @@ export function ObligationRegisterFilterBar({
           disabled={loading}
           style={loadMoreButtonStyle}
         >
-          {loading ? "Loading…" : `Load more (${(total - rows.length).toLocaleString()} more)`}
+          {loading ? "Loading…" : `Load more (${formatNumber(total - rows.length)} more)`}
         </button>
       )}
     </section>

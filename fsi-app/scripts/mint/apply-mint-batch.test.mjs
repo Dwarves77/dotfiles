@@ -614,6 +614,43 @@ test("run(): APPLY mode enriches the mint-run artifact in place and keeps it val
   assert.equal(onDisk.metrics.census_rows_reconciled, 1);
 }));
 
+test("run(): APPLY mode with minted>0 flushes PUBLIC_ITEMS_TAG alongside APP_DATA_TAG and the four surface-detail tags (PERF-10, 2026-09-04, ADR-026 Follow-up / migration 306) — a mint changes rows the org-independent public RPC cache serves, and that cache is keyed without orgId so nothing APP_DATA_TAG-tagged invalidates it", () => withTmpDir(async (dir) => {
+  const applyReadyPath = join(dir, "batch.apply-ready.json");
+  const censusRowsPath = join(dir, "census-rows.json");
+  const mintRunPath = join(dir, "mint-run-950.json");
+  writeJson(applyReadyPath, [PAYLOAD]);
+  writeJson(censusRowsPath, [{ row_id: "cw-1" }]);
+  writeJson(mintRunPath, baseArtifact({ run_id: "mint-run-950" }));
+
+  const db = fakeAppliedDb();
+  let capturedTags = null;
+  const result = await run(
+    { "apply-ready": applyReadyPath, "census-rows": censusRowsPath, "mint-run": mintRunPath, apply: true },
+    {
+      readAll: async (table) => (table === "sources" ? [{ id: "src-1", url: "https://eur-lex.europa.eu", status: "active", category: "regulatory", base_tier: 1 }] : []),
+      guardedInsert: db.guardedInsert,
+      guardedInsertMany: db.guardedInsertMany,
+      guardedUpdate: db.guardedUpdate,
+      guardedDelete: db.guardedDelete,
+      registerSource: db.registerSource,
+      readItemProvenance: db.readItemProvenance,
+      rpc: async () => ({ valid: true, recommended_status: "verified" }),
+      revalidateTags: async (tags, opts) => {
+        capturedTags = tags;
+        return { applied: true, tags, status: 200 };
+      },
+    },
+  );
+  assert.equal(result.applied, true);
+  assert.equal(result.minted, 1);
+  assert.ok(capturedTags, "revalidateTags must be called when minted > 0");
+  assert.ok(capturedTags.includes("public-items"), `expected PUBLIC_ITEMS_TAG ("public-items") in flushed tags, got: ${capturedTags.join(", ")}`);
+  assert.ok(capturedTags.includes("app-data"), "APP_DATA_TAG must still be flushed alongside PUBLIC_ITEMS_TAG");
+  for (const surface of ["regulations", "market", "operations", "research"]) {
+    assert.ok(capturedTags.includes(`${surface}-detail`), `expected ${surface}-detail in flushed tags`);
+  }
+}));
+
 test("run(): APPLY mode holds every validation_failed census row named in the sibling mint-batch-report (default path), never touching a row that DID mint", () => withTmpDir(async (dir) => {
   const applyReadyPath = join(dir, "census-rows.apply-ready.json");
   const reportPath = join(dir, "census-rows.mint-batch-report.json"); // defaultReportPathFor's own naming

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Mail, AlertCircle, Loader2, Check, X } from "lucide-react";
+import { formatLocaleDateTime } from "@/lib/format";
 
 // InvitationLandingPage — the per-token accept/decline page rendered
 // at /invitations/[token].
@@ -156,9 +157,9 @@ export function InvitationLandingPage({ token, userEmail }: Props) {
               <dt style={{ color: "var(--color-text-muted)" }}>You&apos;re signed in as:</dt>
               <dd>{userEmail}</dd>
               <dt style={{ color: "var(--color-text-muted)" }}>Sent:</dt>
-              <dd>{new Date(invitation.created_at).toLocaleString()}</dd>
+              <dd>{formatLocaleDateTime(new Date(invitation.created_at))}</dd>
               <dt style={{ color: "var(--color-text-muted)" }}>Expires:</dt>
-              <dd>{new Date(invitation.expires_at).toLocaleString()}</dd>
+              <dd>{formatLocaleDateTime(new Date(invitation.expires_at))}</dd>
               <dt style={{ color: "var(--color-text-muted)" }}>Status:</dt>
               <dd className="capitalize">{invitation.status}</dd>
             </dl>

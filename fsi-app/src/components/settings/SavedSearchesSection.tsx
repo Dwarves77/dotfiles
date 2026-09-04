@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Toast } from "@/components/ui/Toast";
 import { Plus, Trash2, Search, ExternalLink } from "lucide-react";
+import { formatLocaleDate } from "@/lib/format";
 
 // ───────────────────────────────────────────────────────────────────────────
 // SavedSearchesSection (PR-L Settings restoration — Decision #14, F10)
@@ -330,7 +331,7 @@ function countFilters(s: SavedSearch): number {
 
 function formatDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleDateString(undefined, {
+    return formatLocaleDate(new Date(iso), {
       month: "short",
       day: "numeric",
     });

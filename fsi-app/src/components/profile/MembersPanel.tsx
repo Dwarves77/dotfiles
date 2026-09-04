@@ -23,6 +23,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Copy, Check } from "lucide-react";
 import { AccountCard, TextInput } from "@/components/account/AccountPrimitives";
+import { formatLocaleDate } from "@/lib/format";
 
 interface Member {
   id: string;
@@ -386,7 +387,7 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
           const isPending = pendingId === m.id;
           const isSelf = m.user_id === callerUserId;
           const joined = new Date(m.joined_at);
-          const joinedStr = Number.isNaN(joined.getTime()) ? m.joined_at : joined.toLocaleDateString("en-US");
+          const joinedStr = Number.isNaN(joined.getTime()) ? m.joined_at : formatLocaleDate(joined);
           return (
             <div
               key={m.id}

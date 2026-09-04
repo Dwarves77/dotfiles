@@ -119,6 +119,17 @@ export interface LoadDetailCoreConfig<ItemScoped, ViewerScoped> {
    *  from @/lib either. */
   cacheKeyParts: string[];
   cacheTags: string[];
+  /** PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): when `false` (the default), skips
+   *  `deps.getRelevance` entirely — `relevance` resolves to `null` and NO Dynamic API call happens
+   *  for it in this page's own server render. Before this lane, `deps.getRelevance` ran
+   *  UNCONDITIONALLY for every surface (even operations/research, which have no `loadViewerScoped` of
+   *  their own) — it was the single most universal cause of all four detail routes building `ƒ`
+   *  (see GET /api/detail/relevance's header for the client-fetch replacement and why relevance,
+   *  being genuinely per-viewer, cannot become a shared cache entry the way the item listing itself
+   *  can). Default `false` rather than `true` because every production call site (the four detail
+   *  page.tsx files) opts OUT after this lane; a test exercising the old unconditional-call shape
+   *  passes `includeRelevance: true` explicitly (see load-detail-core.test.mjs). */
+  includeRelevance?: boolean;
 }
 
 // ── TIER-CHIP lane (2026-09-04): the record-grade claim-tier read ──────────────────────────────────
@@ -264,7 +275,8 @@ export async function loadDetailCore<ItemScoped, ViewerScoped = undefined>(
     relevance: unknown | null;
     viewerScoped: ViewerScoped | undefined;
   }> => {
-    const relevance = await deps.getRelevance(relevanceInput);
+    // PERF-10: see LoadDetailCoreConfig.includeRelevance's own doc — skipped by default.
+    const relevance = config.includeRelevance ? await deps.getRelevance(relevanceInput) : null;
     let viewerScoped: ViewerScoped | undefined;
     if (config.loadViewerScoped) {
       const supabase = deps.createServiceClient();

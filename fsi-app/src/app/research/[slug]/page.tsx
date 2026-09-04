@@ -29,6 +29,14 @@
  * bundle runs inside ONE cached, parallel load via loadDetail
  * (src/lib/detail/load-detail.ts) — no loadViewerScoped: research has
  * nothing org-scoped beyond the always-on relevance lens.
+ *
+ * PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): the ONE remaining cookie read on this
+ * route was watchMembershipPromise's resolveViewerIdentityFromCookies() — a Dynamic API call forcing
+ * `ƒ` regardless of the item-scoped bundle above already being fully cacheable. Removed:
+ * initialWatched/initialTeamWatched/initialTeamAvailable are no longer passed to
+ * ResearchFindingDetailSurface → WatchButton, which already falls back to a client-side
+ * getClientWatchMembership() call when they're omitted (see regulations/[slug]/page.tsx's identical
+ * PERF-10 note for the full mechanism).
  */
 
 import Link from "next/link";
@@ -38,12 +46,11 @@ import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
 import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import { getServiceSupabase } from "@/lib/supabase-service";
-import { resolveViewerIdentityFromCookies } from "@/lib/api/org";
-import { fetchWatchMembership, lookupWatchMembership } from "@/lib/watchlist/membership";
 import { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { ResearchFindingDetailSurface } from "@/components/research/ResearchFindingDetailSurface";
 import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
+import { formatLocaleDate } from "@/lib/format";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -92,6 +99,18 @@ interface ItemScoped {
   claimTiers: ClaimTierMap;
 }
 
+// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): the remaining reason this route still
+// built `ƒ` after every Dynamic API call was removed from its render tree — a dynamic segment
+// (`[slug]`) with no `generateStaticParams` is unconditionally server-rendered per request under
+// classical (non-PPR) rendering, independent of Dynamic API usage. See
+// regulations/[slug]/page.tsx's identical-shape comment for the full explanation of why `[]` (not a
+// full slug enumeration) is the correct return value here: an unbounded, continuously-growing corpus,
+// with `dynamicParams` at its default `true` so every slug is rendered on first request and served
+// from the Full Route Cache thereafter.
+export async function generateStaticParams() {
+  return [];
+}
+
 export default async function ResearchFindingDetailPage({
   params,
 }: {
@@ -121,29 +140,7 @@ export default async function ResearchFindingDetailPage({
   }
   if (redirectTo) redirect(redirectTo);
 
-  // PERF-4 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md dispatch item (2)): the viewer's
-  // watch membership for THIS item shares no data dependency with loadDetail — id (already resolved
-  // above, and provably equal to the eventual result.resource.id — see the same note in
-  // regulations/[slug]/page.tsx) is all it needs, plus the viewer's userId/orgId.
-  //
-  // PERF-9 (2026-09-04, item 4, ADR-026 §3): was `resolveServerBootstrap()` (three sequential round
-  // trips, the last — workspace_settings — unread here); on an RSC navigation the root layout skips
-  // resolveServerBootstrap() entirely (isRscNavigation), so this was the sole, fresh, three-stage
-  // cost on every click. resolveViewerIdentityFromCookies (org.ts) resolves the same userId+orgId
-  // pair in two stages — see regulations/[slug]/page.tsx's identical note for the full mechanism.
-  const watchMembershipPromise = (async () => {
-    const identity = await resolveViewerIdentityFromCookies();
-    const membership = await fetchWatchMembership(getServiceSupabase(), {
-      userId: identity.userId,
-      orgId: identity.orgId,
-      itemType: "research",
-      itemIds: [id],
-    });
-    return lookupWatchMembership(membership, id);
-  })();
-
-  const [result, watchEntry] = await Promise.all([
-    loadDetail<ItemScoped>({
+  const result = await loadDetail<ItemScoped>({
       surface: "research",
       id,
       // Item-scoped, org-independent: connections lookup, theme/source-matched
@@ -275,9 +272,7 @@ export default async function ResearchFindingDetailPage({
           claimTiers: relatedAndBrief.claimTiers,
         };
       },
-    }),
-    watchMembershipPromise,
-  ]);
+    });
 
   // SURFACE ADMISSION GUARD (Phase 0.1, 2026-08-11) — see regulations/[slug]
   // for the full rationale; checked inside loadDetail via canonicalSurface.
@@ -302,7 +297,7 @@ export default async function ResearchFindingDetailPage({
   const metaParts = [
     r.sourceName,
     r.added
-      ? `Published ${new Date(r.added).toLocaleDateString("en-US", {
+      ? `Published ${formatLocaleDate(new Date(r.added), {
           year: "numeric",
           month: "short",
           day: "numeric",
@@ -344,9 +339,6 @@ export default async function ResearchFindingDetailPage({
         relevance={relevance}
         resourceLookup={resourceLookup}
         themeBrief={themeBrief}
-        initialWatched={watchEntry.watched}
-        initialTeamWatched={watchEntry.teamWatched}
-        initialTeamAvailable={watchEntry.teamAvailable}
       />
       <PeersDiscussingStrip entityId={peersEntityId} />
     </>

@@ -25,6 +25,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { Button } from "@/components/ui/Button";
+import { formatLocaleDateTime } from "@/lib/format";
 import {
   AlertTriangle,
   CheckCircle,
@@ -343,7 +344,7 @@ export function PlatformIntegrityFlagsView() {
                       style={{ color: "var(--color-text-muted)" }}
                     >
                       {row.created_by} ·{" "}
-                      {new Date(row.created_at).toLocaleString()}
+                      {formatLocaleDateTime(new Date(row.created_at))}
                     </p>
                   </div>
                   {isExpanded ? (
@@ -411,7 +412,7 @@ export function PlatformIntegrityFlagsView() {
                               style={{ color: "var(--color-text-muted)" }}
                             >
                               ({row.resolved_by} ·{" "}
-                              {new Date(row.resolved_at).toLocaleString()})
+                              {formatLocaleDateTime(new Date(row.resolved_at))})
                             </span>
                           )}
                         </p>

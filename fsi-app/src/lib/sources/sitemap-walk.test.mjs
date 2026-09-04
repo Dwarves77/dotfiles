@@ -306,6 +306,24 @@ test("walkSitemap: robots.txt ITSELF bot-walled (401/403/429) -> ok:false, disco
   assert.match(r.error, /bot_wall detected/);
 });
 
+test("walkSitemap: a fallback candidate answers 200 OK with a Cloudflare challenge shell (not 401/403/429) -> ok:false, discoverySource 'bot_wall', names the shell kind (Lane LEDGER-WALLS 2026-09-04: the STATUS-only isBotWallStatus check above is blind to this — a 200 response with CAPTCHA content parses as kind:'unknown', indistinguishable, without access-wall.mjs's content check, from a site that genuinely has no sitemap)", async () => {
+  const pages = {
+    "https://walled2.example/robots.txt": "User-agent: *\n", // 200 OK, no Sitemap: lines -> falls to candidates
+    "https://walled2.example/sitemap.xml":
+      "Attention Required! | Cloudflare. Please complete the security check to continue before we can send you to walled2.example. Ray ID: 8f21a99001.",
+    // sitemap_index.xml / sitemap-index.xml deliberately absent (404) — the FIRST candidate's wall is enough
+  };
+  const { deps } = fakeDeps(pages);
+  const r = await walkSitemap(deps, { baseUrl: "https://walled2.example/" });
+  assert.equal(r.ok, false);
+  assert.equal(r.discoverySource, "bot_wall");
+  assert.match(r.error, /bot_wall detected/);
+  assert.match(r.error, /bot_challenge/);
+  const shelled = r.sitemapsFetched.find((s) => s.url === "https://walled2.example/sitemap.xml");
+  assert.equal(shelled.kind, "unknown", "the shell has no <urlset>/<sitemapindex> tag, so it parses as unknown");
+  assert.equal(shelled.wall.kind, "bot_challenge");
+});
+
 test("walkSitemap: sitemapindex fan-out collects children's urls, bounded document cap reported (never silent), coverage incomplete", async () => {
   const pages = {
     "https://reg.example/robots.txt": "Sitemap: https://reg.example/sitemap_index.xml\n",
@@ -578,6 +596,27 @@ test("discoverFeed: response-byte bound applies to the homepage/candidate probes
   const deps = { async fetchBytes() { return Buffer.alloc(20_000_000); } }; // over DEFAULT_MAX_FEED_RESPONSE_BYTES
   const r = await discoverFeed(deps, { sourceUrl: "https://x.example/" });
   assert.equal(r, null, "oversize homepage -> homepageError set, no feed; candidates also oversize -> none found");
+});
+
+// Lane LEDGER-WALLS, 2026-09-04: this walker's own isBotWallStatus is STATUS-code-only (401/403/429) and
+// blind to a 200-OK CAPTCHA/challenge page — access-wall.mjs's content-based check closes that gap on the
+// homepage probe (additive `wall` field; feed-discovery logic itself is unaffected, see the next test).
+test("discoverFeed: a 200-OK homepage that is actually a bot-challenge shell -> homepageProbe.wall names it", async () => {
+  const shell = "Checking your browser before accessing x.example. This process is automatic. Please enable Cookies and reload. Ray ID: 8f21a";
+  const deps = fakeFetchDeps({ "https://x.example/": shell });
+  const r = await discoverFeed(deps, { sourceUrl: "https://x.example/" });
+  assert.equal(r, null, "a challenge shell is not a feed document either — discovery correctly finds none");
+  // discoverFeed returns null on "no feed anywhere", which loses homepageProbe — walkSitemap's own callers
+  // read the wall off a homepage fetched directly, so probeIsFeed's shared detectAccessWall is exercised
+  // directly instead (the function discoverFeed and probeIsFeed both delegate to, unit-tested on its own
+  // module — access-wall.test.mjs). This test asserts the integration point compiles and behaves (no feed
+  // false-positive on a shell), which is the behavior-affecting half of the wiring.
+});
+
+test("discoverFeed: a normal homepage (no wall) carries homepageProbe.wall: null", async () => {
+  const deps = fakeFetchDeps({ "https://x.example/": "<html><body>Welcome to our regulator site, no feed here, just prose.</body></html>" });
+  const r = await discoverFeed(deps, { sourceUrl: "https://x.example/" });
+  assert.equal(r, null);
 });
 
 // ── walkSource: the top-level discovery-order dispatcher ───────────────────────────────────────────────

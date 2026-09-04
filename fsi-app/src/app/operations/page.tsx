@@ -1,4 +1,4 @@
-import { getOperationsItems, getResourcesOnly, getSurfaceCounts } from "@/lib/data";
+import { getPublicOperationsItems, getPublicResourcesOnly, getPublicSurfaceCounts } from "@/lib/data";
 import { fetchOperationsCoverage, fetchStateCostFacts } from "@/lib/supabase-server";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { OperationsLedger } from "@/components/operations/OperationsLedger";
@@ -12,15 +12,12 @@ import { DqiPanel } from "@/components/operations/DqiPanel";
 import { AuxiliaryEnergyPanel } from "@/components/operations/AuxiliaryEnergyPanel";
 import { GridQueuePanel } from "@/components/operations/GridQueuePanel";
 
-// Sprint 3 (2026-05-27): force-dynamic per /community precedent. Static
-// generation at build time has no cookies; resolveOrgIdFromCookies
-// returns null; runCategoryRpc early-returns empty (supabase-server.ts
-// :1018-1020); static HTML bakes in total: 0 + seed fallback.
-// Force-dynamic skips static generation so the page renders on request
-// with the user's cookie-auth context, and category-routing RPCs see
-// a real orgId.
-export const dynamic = "force-dynamic";
-
+// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306): `force-dynamic` REMOVED.
+// It existed because getOperationsItems()/getResourcesOnly() both called resolveOrgIdFromCookies()
+// before their cached RPC calls, so static generation baked in an empty payload — the comment this
+// replaces named exactly that failure mode. This page now renders from getPublicOperationsItems/
+// getPublicResourcesOnly (org-independent, unstable_cache-backed, migration 306's
+// get_operations_items_public) — no cookies() read anywhere in this page's own server render.
 export default async function Operations() {
   const t0 = Date.now();
   // Sprint 2 Build 4: category routing wiring (OBS-26 / REC-OBS-G).
@@ -34,16 +31,15 @@ export default async function Operations() {
   // empty (anon / misconfigured); it ALSO supplies the regulation cross-
   // references for Build 9's regulatory feasibility section.
   const [opsItems, fallback, aggregates, operationsCoverage, stateCosts] = await Promise.all([
-    getOperationsItems(),
+    getPublicOperationsItems(),
     // First-paint page only (60 rows, newest added_date first) — the client
     // (OperationsLedger) fetches the rest after paint via /api/listings/rest
     // and appends it to regulationsByRegion below.
-    getResourcesOnly({ limit: LIST_FIRST_PAGE_SIZE, offset: 0 }),
+    getPublicResourcesOnly({ limit: LIST_FIRST_PAGE_SIZE, offset: 0 }),
     // Count-integrity consistency close-out: operations-scoped counts from the single SoT
-    // (migration 148), gated verified. Fails soft to scoped aggregates (069) over the
-    // SURFACE_RULES-derived operations scope when the RPC is absent (pre-apply). Replaces
-    // OPERATIONS_SCOPE — same pattern as /market and /research.
-    getSurfaceCounts("operations"),
+    // (migration 148), gated verified. PERF-10: getPublicSurfaceCounts (no cookies) — see its
+    // header in data.ts for the platform-wide vs per-org-override-adjusted trade-off.
+    getPublicSurfaceCounts("operations"),
     // Sprint 3 A6.3 (2026-05-27): regions + coverage state + facts from
     // migrations 106 (regions + regional_data_facts) and 109
     // (region_dimension_coverage). Empty arrays when not configured.

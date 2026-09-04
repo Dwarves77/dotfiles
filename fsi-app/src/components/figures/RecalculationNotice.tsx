@@ -13,6 +13,7 @@
  */
 
 import type { SupersededNotice } from "@/lib/propagation/methods/superseded-notices.ts";
+import { formatNumber, formatLocaleDateTime } from "@/lib/format";
 
 export interface RecalculationNoticeItem extends SupersededNotice {
   /** The entity/decision's human-readable name, when resolvable (entities.display_name-shaped). Falls
@@ -24,7 +25,7 @@ export interface RecalculationNoticeItem extends SupersededNotice {
 
 function formatNum(n: number | null): string {
   if (n === null || !Number.isFinite(n)) return "—";
-  return n.toLocaleString(undefined, { maximumFractionDigits: Math.abs(n) >= 1000 ? 0 : 2 });
+  return formatNumber(n, { maximumFractionDigits: Math.abs(n) >= 1000 ? 0 : 2 });
 }
 
 function formatDelta(oldValue: number | null, newValue: number | null, unit: string | null, currency: string | null): string {
@@ -53,7 +54,7 @@ function NoticeRow({ n }: { n: RecalculationNoticeItem }) {
             n.entityLabel || n.entityId || "Unlabeled entity"
           )}
         </span>
-        <span className="cl-card-meta">{new Date(n.supersededAt).toLocaleString()}</span>
+        <span className="cl-card-meta">{formatLocaleDateTime(new Date(n.supersededAt))}</span>
       </div>
 
       <div className="cl-card-body" style={{ marginTop: 6 }}>
@@ -67,7 +68,7 @@ function NoticeRow({ n }: { n: RecalculationNoticeItem }) {
 
       {n.triggeringEvent && (
         <div className="cl-card-meta" style={{ marginTop: 4 }}>
-          Triggered by a {n.triggeringEvent.changeKind} on {n.triggeringEvent.table} ({n.triggeringEvent.pk}), {new Date(n.triggeringEvent.occurredAt).toLocaleString()}
+          Triggered by a {n.triggeringEvent.changeKind} on {n.triggeringEvent.table} ({n.triggeringEvent.pk}), {formatLocaleDateTime(new Date(n.triggeringEvent.occurredAt))}
         </div>
       )}
     </li>

@@ -338,6 +338,84 @@ test("buildFetchDoc: PDF detection also fires on magic bytes when content-type i
   assert.equal(r.transport, "direct-pdf");
 });
 
+// ── buildFetchDoc — Lane LEDGER-WALLS (2026-09-04): API-host routing, EUR-Lex rewrite, wall detection ────
+//
+// THE FACTS this closes [CONFIRMED by coordinator, ledger-consume export #5, run 33908401816]: of 400
+// candidates, ~230 www.federalregister.gov document URLs and ~15 eur-lex.europa.eu legal-content URLs came
+// back as bot/interface shells that buildFetchDoc reported fetch_ok:true, wasting 230 Haiku classify calls.
+
+test("buildFetchDoc: a federalregister.gov document URL is routed through fetchDocumentApiImpl, never the plain HTML fetch — transport 'federalregister-api'", async () => {
+  let plainFetchCalls = 0;
+  const fetchImpl = async () => { plainFetchCalls++; return mockRes("Federal Register :: Request Access ... CAPTCHA ..."); };
+  let apiCalledWith = null;
+  const fetchDocumentApiImpl = async (url, opts) => {
+    apiCalledWith = { url, max: opts.max };
+    return { status: 200, text: "The real document text, well over two hundred characters long, straight from the official API.", truncated: false, fullLength: 90, cap: opts.max };
+  };
+  const fetchDoc = buildFetchDoc({ gapMs: 0, fetchImpl, now: () => 0, sleep: async () => {}, fetchDocumentApiImpl });
+  const r = await fetchDoc("https://www.federalregister.gov/documents/2026/07/15/2026-14204/lake-ontario-national-marine-sanctuary-delay-of-effective-date");
+  assert.equal(plainFetchCalls, 0, "the API transport won — the plain HTML fetch (the CAPTCHA shell) must never be called");
+  assert.ok(apiCalledWith, "fetchDocumentApiImpl must be called for a federalregister.gov document URL");
+  assert.equal(r.transport, "federalregister-api");
+  assert.ok(r.text.includes("real document text"));
+  assert.equal(r.wall, null, "real API content is not a wall");
+});
+
+test("buildFetchDoc: an ecfr.gov URL is routed through fetchDocumentApiImpl too — transport 'ecfr-api', not 'federalregister-api'", async () => {
+  const fetchDocumentApiImpl = async (url, opts) => ({ status: 200, text: "Full eCFR title text, over two hundred characters, from the versioner API endpoint.", truncated: false, fullLength: 85, cap: opts.max });
+  const fetchDoc = buildFetchDoc({ gapMs: 0, fetchImpl: async () => mockRes("should never be called"), now: () => 0, sleep: async () => {}, fetchDocumentApiImpl });
+  const r = await fetchDoc("https://www.ecfr.gov/current/on/2026-01-01/title-40/part-1");
+  assert.equal(r.transport, "ecfr-api");
+});
+
+test("buildFetchDoc: an API-host URL with no document-specific endpoint (fetchDocumentApiImpl returns null) falls through to the plain HTML fetch — the honest exhaustion path, never a silent skip", async () => {
+  const fetchDocumentApiImpl = async () => null; // e.g. an agency-listing page, no document_number in the URL
+  let plainFetchUrl = null;
+  const fetchImpl = async (u) => { plainFetchUrl = u; return mockRes("Agency listing page content, plenty long enough to clear any floor check here."); };
+  const fetchDoc = buildFetchDoc({ gapMs: 0, fetchImpl, now: () => 0, sleep: async () => {}, fetchDocumentApiImpl });
+  const url = "https://www.federalregister.gov/agencies/some-agency";
+  const r = await fetchDoc(url);
+  assert.equal(plainFetchUrl, url, "falls through to directFetchDoc on the ORIGINAL url, not a rewritten one (apiBase host, EUR-Lex rewrite is a no-op)");
+  assert.equal(r.transport, "direct-fetch");
+});
+
+test("buildFetchDoc: a bare eur-lex.europa.eu /legal-content/.../TXT/ URL is rewritten to its /TXT/HTML/ rendering form before fetching (renderingUrlForPrimary, reused verbatim — proven on CSRD CELEX:32022L2464)", async () => {
+  let fetchedUrl = null;
+  const fetchImpl = async (u) => { fetchedUrl = u; return mockRes("<p>Article 1</p><p>HAS ADOPTED THIS REGULATION and plenty of real legislative body text here, well past two hundred characters so it clears the usability floor easily.</p>", { contentType: "text/html; charset=utf-8" }); };
+  const fetchDoc = buildFetchDoc({ gapMs: 0, fetchImpl, now: () => 0, sleep: async () => {} });
+  const bareUrl = "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32026R1727";
+  await fetchDoc(bareUrl);
+  assert.notEqual(fetchedUrl, bareUrl, "the bare /TXT/ form must not be fetched as-is");
+  assert.match(fetchedUrl, /\/TXT\/HTML\//, "renderingUrlForPrimary's rewrite must have fired");
+});
+
+test("buildFetchDoc: a federalregister.gov 'Request Access' CAPTCHA shell returned by the API's raw_text_url fallback is flagged wall:request_access, never silently treated as real content", async () => {
+  const shellText =
+    "Federal Register :: Request Access Request Access Due to aggressive automated scraping of FederalRegister.gov and eCFR.gov, we are unable to serve your request. Your request has been flagged as potentially automated. To ensure our website remains accessible to all users, please complete the CAPTCHA (bot test) below and click \"Request Access\".";
+  const fetchDocumentApiImpl = async (url, opts) => ({ status: 200, text: shellText, truncated: false, fullLength: shellText.length, cap: opts.max });
+  const fetchDoc = buildFetchDoc({ gapMs: 0, fetchImpl: async () => mockRes("unused"), now: () => 0, sleep: async () => {}, fetchDocumentApiImpl });
+  const r = await fetchDoc("https://www.federalregister.gov/documents/2026/07/15/2026-14204/some-slug");
+  assert.equal(r.transport, "federalregister-api");
+  assert.ok(r.wall, "even API-transport text is run through the SAME wall detector — no transport is exempt");
+  assert.equal(r.wall.kind, "request_access");
+});
+
+test("buildFetchDoc: an EUR-Lex legal-content page whose captured window is portal chrome only (no legislative body) is flagged wall:eurlex_interface_shell", async () => {
+  const chromeOnly = "My EUR-Lex EUR-Lex Access to European Union law Select your language Browse by EU institutions " + "chrome ".repeat(100);
+  const fetchImpl = async () => mockRes(chromeOnly, { contentType: "text/html; charset=utf-8" });
+  const fetchDoc = buildFetchDoc({ gapMs: 0, fetchImpl, now: () => 0, sleep: async () => {} });
+  const r = await fetchDoc("https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32026R1727");
+  assert.ok(r.wall, "chrome-only EUR-Lex capture must be flagged even though it clears the 200-char floor");
+  assert.equal(r.wall.kind, "eurlex_interface_shell");
+});
+
+test("buildFetchDoc: ordinary real content on a non-API, non-EUR-Lex host is never flagged as a wall", async () => {
+  const fetchImpl = async () => mockRes("This is a perfectly ordinary regulatory document with plenty of real body text, well past the two-hundred-character usability floor and containing none of the wall vocabulary at all.");
+  const fetchDoc = buildFetchDoc({ gapMs: 0, fetchImpl, now: () => 0, sleep: async () => {} });
+  const r = await fetchDoc("https://reg.example/doc/123");
+  assert.equal(r.wall, null);
+});
+
 // ── collectClassifyTelemetry — a READ-ONLY collector, no DB, no double-counted agent_runs rows ────────
 
 test("collectClassifyTelemetry: never touches a database — the wrapped fn's return value passes through unchanged", async () => {
@@ -938,6 +1016,27 @@ test("shapeCandidateTextFields: below the SAME 200-char floor portal-harvest.ts'
   assert.equal(r.fetch_error, "below_floor_200");
   assert.equal(r.text, "too short", "the short text is still carried, not discarded");
   assert.equal(r.fetched_chars, "too short".length);
+});
+
+// Lane LEDGER-WALLS, 2026-09-04: a detected wall is checked BEFORE the 200-char floor — the whole point is
+// that a wall body (1,180ch FR shell) routinely CLEARS 200ch, so the floor check alone would misclassify
+// it as usable text and send it to classify (exactly what happened to 230 rows in export #5).
+test("shapeCandidateTextFields: a detected access wall -> fetch_ok false, fetch_error='access_wall:<kind>', text still carried (checked BEFORE the 200ch floor, which this wall clears easily)", () => {
+  const shellText = "X".repeat(1180); // clears 200ch on raw length alone — the exact export #5 shape
+  const r = shapeCandidateTextFields(
+    { ok: true, text: shellText, transport: "direct-fetch", wall: { kind: "request_access", evidence: "..." } },
+    { maxChars: 6000 }
+  );
+  assert.equal(r.fetch_ok, false);
+  assert.equal(r.fetch_error, "access_wall:request_access");
+  assert.equal(r.fetched_chars, 1180, "text is still sliced/carried, same as the below-floor case — never discarded");
+  assert.equal(r.transport, "direct-fetch");
+});
+
+test("shapeCandidateTextFields: fetchOutcome.wall absent/null -> the ordinary floor/success path runs unchanged", () => {
+  const r = shapeCandidateTextFields({ ok: true, text: "A".repeat(300), transport: "direct-fetch", wall: null }, { maxChars: 6000 });
+  assert.equal(r.fetch_ok, true);
+  assert.equal(r.fetch_error, null);
 });
 
 test("shapeCandidateTextFields: requires opts.maxChars — throws rather than silently falling back to a retyped literal", () => {

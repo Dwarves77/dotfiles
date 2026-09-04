@@ -29,6 +29,7 @@ import { PromotionStateBadge } from "./PromotionStateBadge";
 import { CorroborationChip } from "./CorroborationChip";
 import { EvidenceAgeChip } from "./EvidenceAgeChip";
 import { getThreadCorroboration } from "./api-client";
+import { formatLocaleDateTime } from "@/lib/format";
 // `@/` form (not relative) so the rendering-guard smoke harness can alias it to a no-op stub —
 // esbuild's `alias` option only accepts bare/`@/`-style specifiers, not relative `./...` paths (a
 // plain `.css` import into an esbuild `write:false` bundle with no `outdir` configured is a build
@@ -274,7 +275,7 @@ export function Post({
             )}
             <time
               dateTime={post.created_at}
-              title={new Date(post.created_at).toLocaleString()}
+              title={formatLocaleDateTime(new Date(post.created_at))}
               style={{
                 fontSize: 11,
                 color: "var(--color-text-muted, var(--color-text-secondary))",
@@ -566,7 +567,7 @@ function ReplyRow({ reply }: { reply: CommunityPost }) {
           </span>
           <time
             dateTime={reply.created_at}
-            title={new Date(reply.created_at).toLocaleString()}
+            title={formatLocaleDateTime(new Date(reply.created_at))}
             style={{
               fontSize: 11,
               color: "var(--color-text-muted, var(--color-text-secondary))",

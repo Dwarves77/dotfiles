@@ -1,6 +1,7 @@
 "use client";
 
 import { formatRelativeCompact } from "@/lib/relative-time";
+import { formatNumber } from "@/lib/format";
 
 // ErrorGroupsView — admin Runtime → Errors surface (Wave-β R0.2).
 //
@@ -128,7 +129,7 @@ export function ErrorGroupsView({ groups }: ErrorGroupsViewProps) {
                     </span>
                   </td>
                   <td style={{ ...tdStyle, fontVariantNumeric: "tabular-nums", fontWeight: 800 }}>
-                    {g.count.toLocaleString()}
+                    {formatNumber(g.count)}
                   </td>
                   <td style={tdStyle}>
                     <span

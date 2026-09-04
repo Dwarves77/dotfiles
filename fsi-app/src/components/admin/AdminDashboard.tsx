@@ -47,6 +47,7 @@ import { PendingJurisdictionReviewView } from "@/components/admin/PendingJurisdi
 import { AdminIssuesRail, type IssueNavTarget } from "@/components/admin/redesign/AdminIssuesRail";
 import { WorkspacesUsageRow } from "@/components/admin/redesign/WorkspacesUsageRow";
 import { MembersPanel } from "@/components/admin/redesign/MembersPanel";
+import { formatNumber, formatLocaleDateTime } from "@/lib/format";
 import { FlagsRejectionsQueue } from "@/components/admin/redesign/FlagsRejectionsQueue";
 import { CorpusTurnPanel } from "@/components/admin/CorpusTurnPanel";
 
@@ -443,7 +444,7 @@ export function AdminDashboard({
                             fontVariantNumeric: "tabular-nums",
                           }}
                         >
-                          {badge.toLocaleString()}
+                          {formatNumber(badge)}
                         </span>
                       )}
                     </div>
@@ -507,7 +508,7 @@ export function AdminDashboard({
                           fontVariantNumeric: "tabular-nums",
                         }}
                       >
-                        {count.toLocaleString()}
+                        {formatNumber(count)}
                       </span>
                     )}
                   </button>
@@ -672,7 +673,7 @@ export function AdminDashboard({
                     {update.update_type}
                   </span>
                   <span style={{ fontSize: 12, color: "var(--text-2)", fontVariantNumeric: "tabular-nums" }}>
-                    {new Date(update.created_at).toLocaleString()}
+                    {formatLocaleDateTime(new Date(update.created_at))}
                   </span>
                 </div>
                 {update.proposed_changes?.title && (
