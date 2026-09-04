@@ -96,9 +96,62 @@
 //        produced — surfacing, in metrics.by_skip_reason, how many of the
 //        mint's own confirmed due dates this extractor still cannot type.
 //
+// GARBLED-OBLIGATION-TEXT FIX (lane FWD-TEXT, 2026-09-04):
+//   [CONFIRMED, live customer surface https://carosledge.com/regulations "Upcoming obligations" strip,
+//   2026-09-04 ~08:15 UTC] eight rendered events included: NZIA 25 Sep 2026 starting mid-word
+//   ("re|venues generated from fines. By 25 September 2026..."); Euro 7 29 Nov 2026 (phase_step) reading
+//   "7/oj/eng **Primary headline compliance deadline — FACT:** \"It shall apply from 29 November 2026...\"" —
+//   a leaked source-URL tail plus a markdown bold label; Euro 7 29 Nov 2026 (compliance_deadline) reading
+//   "hicles (M₂, M₃, N₂, N₃) | MONITORING **FACT — deadline:** \"By 29 November 2026...\"" — mid-word
+//   ("Ve|hicles"), a markdown table pipe/cell, and a label; and Euro 7 carrying the SAME 29 Nov 2026 date
+//   five/six times, at least two pairs being the identical underlying sentence once via a claim (clean)
+//   and once via the section's rendered markdown (garbled, because record-facts.mjs's grounded claims are
+//   quoted verbatim back into section content_md as `**FACT:** "..."` blocks — see mint-forward-participation
+//   and record-facts.mjs's own header).
+//   [CONFIRMED, live SQL read this lane] the NZIA "re|venues" case is NOT this module's own windowing bug —
+//   `section_claim_provenance.source_span` for that claim (id 9e819545…) already starts "venues generated
+//   from fines. By 25 September 2026...": the truncation happened UPSTREAM, in whatever grounding pass
+//   produced that claim's span (`claim_text` carries a `[gate-a-backfill]` marker — a backfill script
+//   outside this lane's write set, not `extract-forward-events.mjs`). This module's own `clauseAround` was
+//   simply reproducing claim.span faithfully from index 0 (nowhere earlier to snap to). The Euro 7
+//   "Ve|hicles" case IS this module's own bug: `clauseAround`'s old `from = max(0, start - maxBefore)` was a
+//   FIXED byte offset into a much longer section `content_md`, landing mid-word with no clause-boundary
+//   awareness at all — `sentenceStart` (below) already existed and was already used by the deontic-window
+//   checks (search `requireDeonticWithin`/`requireDeonticOrAimWithin`) but `clauseAround` never called it.
+//   THE FIX, in `clauseAround` below: the leading edge now snaps to the nearest sentence/clause boundary
+//   (reusing the exact same terminator rule `sentenceStart` already uses), bounded by `maxBefore` as the
+//   OUTER limit (never earlier); when no terminator is found within that bound, the edge backs up to the
+//   nearest word boundary instead of the raw byte offset, so a window NEVER starts mid-word. Separately,
+//   `normalizeObligationText` strips the markdown-rendering artifacts a clause boundary alone cannot remove
+//   (a `**label:**` bold span, a leading table-pipe cell, a leaked source-URL tail token) from the DISPLAY
+//   text only — `source_span` (the actual matched date fragment) is untouched, stays byte-exact, and
+//   `assertVerbatim` still checks it against the ORIGINAL unmodified source text, never the normalized
+//   obligation_text. Fixtures for both real cases live in this module's own test file, built from the
+//   verbatim rows read live 2026-09-04 (see that file's header for the exact SQL).
+//
+// WITHIN-EXTRACTION DEDUPE (same lane, same date): Euro 7 alone carries five/six item_forward_events rows
+// for 2026-11-29 today, at least two of them the identical sentence rendered twice (once via a claim,
+// clean; once via the section's rendered markdown, garbled — see above). [CONFIRMED, live SQL corpus-wide
+// measurement this lane, 2026-09-04] a *blind* `(event_date, event_kind)` collapse-to-one-claim rule would
+// be WRONG in general: the SAME item (EU Net-Zero Industry Act) also carries a `(2030-01-01, other)` group
+// with FOUR distinct section-sourced obligations (a 30 GW PV-manufacturing target, a 50 Mt/year CO2
+// injection-capacity target, a storage-capacity-calibration clause, and a logistics-cargo-category note)
+// alongside one unrelated claim sharing that same (date, kind) key — collapsing that group down to the one
+// claim would silently delete four genuinely distinct obligations, exactly the "content loss, not a
+// deduplication" migration 275's own header already warns against for too-coarse a key. `dedupeEvents`
+// below therefore requires BOTH a shared (event_date, event_kind) AND a long shared normalized-text
+// prefix/substring (comparison-only normalization: markdown-stripped, lowercased, unicode subscript digits
+// folded to ASCII, a lone letter-space-digit token like "M 2" folded to "M2" to bridge claim-text vs
+// rendered-markdown spacing differences) before two hits are ever treated as the same obligation — this is
+// a strictly NARROWER signal than the literal "share (event_date, event_kind)" reading, chosen because the
+// wider reading is measured, on this corpus's own data, to destroy real content. When a match IS found,
+// claim-backed (`confidence:'high'`) wins over section-backed; among two hits of the same confidence, the
+// one encountered first is kept. Every drop is recorded, never silent — see `counts.dedupe_dropped` /
+// `counts.dedupe_dropped_detail` on this function's return.
+//
 // EXTRACTOR_VERSION bump this whenever a rule changes semantics (not for
 // comment-only edits), so downstream consumers can tell events apart.
-export const EXTRACTOR_VERSION = 'fe1-2026-09-03.1';
+export const EXTRACTOR_VERSION = 'fe1-2026-09-04.1';
 
 // ---------------------------------------------------------------------------
 // Date grammar
@@ -259,15 +312,100 @@ function assertVerbatim(sourceText, span) {
   }
 }
 
+// Finds the leading edge of the window for `clauseAround`: the nearest sentence/clause boundary at or
+// before `idx`, bounded by `maxBefore` as the OUTER limit (never earlier than idx - maxBefore). Same
+// terminator rule as `sentenceStart` below (deliberately not a call to it — that function's own `maxBack`
+// default of 200 is tuned for the deontic-window checks, not the display window here, and duplicating the
+// ~6-line loop keeps each caller's bound explicit rather than threading a second parameter through). When
+// no terminator is found in bounds, backs up to the nearest WORD boundary instead of the raw byte offset —
+// this is the actual fix for the "Ve|hicles" / "re|venues" mid-word-start defect (lane FWD-TEXT,
+// 2026-09-04 — see this file's header): a fixed byte offset has no idea where a word starts, a whitespace
+// scan does.
+function clauseStart(text, idx, maxBefore) {
+  const hardFloor = idx - maxBefore; // may be negative -- NOT yet clamped
+  const floor = Math.max(0, hardFloor);
+  for (let i = idx - 1; i >= floor; i--) {
+    const ch = text[i];
+    if ((ch === '.' || ch === ';') && !(/\d/.test(text[i - 1] || '') && /\d/.test(text[i + 1] || ''))) {
+      return i + 1;
+    }
+  }
+  // hardFloor <= 0 means `floor` IS the true start of `text` — idx is within maxBefore chars of index 0,
+  // so nothing was ever truncated and index 0 can never be "mid-word" (there is nothing before it). The
+  // whitespace fallback below is only needed when hardFloor > 0 — a genuine truncation point that can
+  // land inside a word.
+  if (hardFloor <= 0) return floor;
+  // No terminator within the bound — never start mid-word: advance to the nearest whitespace AT OR AFTER
+  // `floor` (never earlier — floor stays the outer bound) so the window begins at a token boundary.
+  for (let i = floor; i < idx; i++) {
+    if (/\s/.test(text[i])) return i + 1;
+  }
+  // One unbroken token spans the whole bound (never observed in this corpus, but not impossible) — the
+  // hard byte offset is the only option left.
+  return floor;
+}
+
+// DISPLAY-ONLY normalization of a `clauseAround` window: strips markdown-rendering artifacts a clause
+// boundary alone cannot remove, because they carry no sentence terminator of their own — a `**label:**`
+// bold span (e.g. "**FACT:**", "**FACT — deadline:**", "**Primary headline compliance deadline — FACT:**"),
+// a leading markdown-table pipe cell (e.g. "hicles (M₂, M₃, N₂, N₃) | MONITORING "), and a leaked
+// source-URL tail token (a leading run of non-whitespace characters containing '/', e.g. "7/oj/eng" — the
+// tail of a link `clauseStart` backed up into because the URL itself has no terminator nearby). Applied
+// ONLY to the text this function returns (obligation_text); `source_span` — the actual matched date
+// fragment — is never touched, stays byte-exact, and is checked by `assertVerbatim` against the ORIGINAL,
+// unmodified source string, never against this normalized text. Pure. Exported for testing.
+export function normalizeObligationText(raw) {
+  let t = typeof raw === 'string' ? raw : '';
+
+  // A stray TRAILING markdown-table fragment at the very end of the window (a short, mostly alphanumeric
+  // cell/label after a stray '|', with no further '|' after it) is stripped FIRST, before any leading-junk
+  // logic below — otherwise a genuine trailing "| NEXT STEPS" is indistinguishable from a LEADING table
+  // cell to the pipe-position heuristic further down (both are "a pipe within the first 100 chars with no
+  // '.'/';' before it" when the real sentence itself is short), and the leading logic would wrongly eat
+  // the entire real sentence in front of it instead.
+  t = t.replace(/\s*\|\s*[A-Za-z0-9][A-Za-z0-9 /_-]{0,40}$/, '');
+
+  // A markdown bold "**label:**" span near the start of the window (e.g. "**FACT:**", "**FACT —
+  // deadline:**", "**Primary headline compliance deadline — FACT:**") is the reliable anchor: whatever
+  // junk precedes it — a leftover table-cell word once the pipe itself already fell outside the window
+  // (e.g. "MONITORING "), a leaked URL tail, a stray '|' — has no fixed shape of its own, so strip
+  // everything up to and including the label in ONE cut rather than trying to enumerate every possible
+  // prefix shape. Bounded to the first 150 chars so a genuine "**" emphasis span deep in a long clause
+  // is never mistaken for a leading label.
+  const labelMatch = t.match(/^[\s\S]{0,150}?\*\*[^*]{1,120}\*\*\s*/);
+  if (labelMatch) {
+    t = t.slice(labelMatch[0].length);
+  } else {
+    // No bold label in this window — still strip a leading URL-tail token (a run of non-whitespace
+    // characters containing '/', e.g. "7/oj/eng ") and/or a leading table-pipe cell on their own.
+    for (let guard = 0; guard < 4; guard++) {
+      let stripped = false;
+      const urlTail = t.match(/^\S*\/\S*\s+/);
+      if (urlTail) {
+        t = t.slice(urlTail[0].length);
+        stripped = true;
+      }
+      const pipeIdx = t.indexOf('|');
+      if (pipeIdx !== -1 && pipeIdx < 100 && !/[.;]/.test(t.slice(0, pipeIdx))) {
+        t = t.slice(pipeIdx + 1).replace(/^\s+/, '');
+        stripped = true;
+      }
+      if (!stripped) break;
+    }
+  }
+  return t.replace(/\s+/g, ' ').trim();
+}
+
 function clauseAround(text, start, end, maxBefore = 60, maxAfter = 160) {
-  const from = Math.max(0, start - maxBefore);
+  const from = clauseStart(text, start, maxBefore);
   // stop the trailing window at the next sentence terminator, or maxAfter,
   // whichever comes first, so obligation_text reads as one clause/sentence.
   let to = Math.min(text.length, end + maxAfter);
   const tail = text.slice(end, to);
   const stop = tail.search(/[.;](?!\d)/);
   if (stop !== -1) to = end + stop + 1;
-  return text.slice(from, to).replace(/\s+/g, ' ').trim();
+  const windowed = text.slice(from, to).replace(/\s+/g, ' ').trim();
+  return normalizeObligationText(windowed);
 }
 
 // Finds the start of the sentence/clause containing `idx` (the char right
@@ -718,6 +856,114 @@ export function finerDuePrecision(extractorPrecision, slotPrecision) {
 }
 
 // ---------------------------------------------------------------------------
+// Within-extraction dedupe (see this file's header, "WITHIN-EXTRACTION DEDUPE")
+// ---------------------------------------------------------------------------
+
+const UNICODE_SUBSCRIPT_DIGITS = { '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4', '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9' };
+
+// Comparison-only normalization (never used for the stored/displayed obligation_text): lowercases, folds
+// unicode subscript digits to ASCII (a claim's plain-text span renders "M 1"; the same sentence quoted
+// back into rendered section markdown renders "M₁" — real difference observed in this corpus, 2026-09-04),
+// collapses a lone letter immediately followed by whitespace-then-digit into one token ("m 1" -> "m1", the
+// claim-side rendering of the same subscript) so the two renderings of one legal sentence compare equal,
+// strips a leading/trailing quote mark (a section's rendered `**FACT:** "..."` block wraps the SAME
+// sentence a claim's own span carries unquoted — the quote is a rendering artifact of the markdown, not
+// part of the sentence, and left in place it would defeat the prefix comparison below on every real pair),
+// and finally collapses whitespace. Built on top of the SAME `normalizeObligationText` the display path
+// already uses, so a markdown label/pipe/URL-tail difference between a claim's and a section's rendering
+// of the same sentence is never itself a reason the two fail to match.
+function compareNormalize(text) {
+  let t = normalizeObligationText(text).toLowerCase();
+  t = t.replace(/[₀-₉]/g, (d) => UNICODE_SUBSCRIPT_DIGITS[d] ?? d);
+  t = t.replace(/(?<![a-z0-9])([a-z])\s+(\d)/g, '$1$2');
+  t = t.replace(/^["'“”‘’]+/, '').replace(/["'“”‘’]+$/, '');
+  return t.replace(/\s+/g, ' ').trim();
+}
+
+// Below this many characters, a shared prefix/substring is too short to be confident it names the same
+// underlying sentence rather than a coincidental shared opening phrase — never collapse on a short match.
+const DEDUPE_MIN_COMPARE_LEN = 40;
+
+/**
+ * True when `aText` and `bText` are, after comparison-only normalization, evidently the SAME underlying
+ * sentence — either a long shared leading prefix (the common case: a claim's span and a section's rendered
+ * quote of that same span diverge only in trailing content — an ellipsis-abbreviated tail, a length cutoff)
+ * or one fully contained in the other. Deliberately NOT "share (event_date, event_kind)" alone — see this
+ * file's header for the measured NZIA counter-example a blind date+kind collapse would have wrongly
+ * destroyed. Pure. Exported for testing.
+ */
+export function sameObligationContent(aText, bText) {
+  const a = compareNormalize(aText);
+  const b = compareNormalize(bText);
+  if (!a || !b) return false;
+  const shorter = a.length <= b.length ? a : b;
+  const longer = a.length <= b.length ? b : a;
+  if (shorter.length < DEDUPE_MIN_COMPARE_LEN) return false;
+  let i = 0;
+  while (i < shorter.length && i < longer.length && shorter[i] === longer[i]) i++;
+  if (i >= DEDUPE_MIN_COMPARE_LEN) return true;
+  return longer.includes(shorter);
+}
+
+/**
+ * Within-extraction dedupe over one item's full combined event list (claims + sections together — this
+ * runs ONCE at the end of `extractForwardEvents`, never per-blob, because the two hits of one duplicate
+ * pair come from DIFFERENT source blobs). Groups by (event_date, event_kind); within a group, any two
+ * hits `sameObligationContent` treats as the same sentence are collapsed to one — a claim-backed
+ * (`confidence:'high'`) hit is kept over a section-backed one; between two hits of the same confidence,
+ * the one encountered earlier (claims are scanned before sections, and within each, in scan order) is
+ * kept. Every drop is recorded in `dropped`, never silent. Pure. Exported for testing.
+ * @returns {{events: Array<object>, dropped: Array<object>}}
+ */
+export function dedupeEvents(events) {
+  const keep = new Array(events.length).fill(true);
+  const dropped = [];
+
+  const groups = new Map();
+  events.forEach((ev, idx) => {
+    const key = `${ev.event_date}|${ev.event_kind}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(idx);
+  });
+
+  for (const idxs of groups.values()) {
+    if (idxs.length < 2) continue;
+    for (let a = 0; a < idxs.length; a++) {
+      const i = idxs[a];
+      if (!keep[i]) continue;
+      for (let b = a + 1; b < idxs.length; b++) {
+        const j = idxs[b];
+        if (!keep[j]) continue;
+        if (!sameObligationContent(events[i].obligation_text, events[j].obligation_text)) continue;
+
+        const iHigh = events[i].confidence === 'high';
+        const jHigh = events[j].confidence === 'high';
+        const dropIdx = iHigh && !jHigh ? j : jHigh && !iHigh ? i : j; // same tier -> keep the earlier (i)
+        const keptIdx = dropIdx === j ? i : j;
+        keep[dropIdx] = false;
+        dropped.push({
+          event_date: events[dropIdx].event_date,
+          event_kind: events[dropIdx].event_kind,
+          source_kind: events[dropIdx].source_kind,
+          source_claim_id: events[dropIdx].source_claim_id,
+          source_section_id: events[dropIdx].source_section_id,
+          confidence: events[dropIdx].confidence,
+          obligation_text: events[dropIdx].obligation_text,
+          kept_source_kind: events[keptIdx].source_kind,
+          kept_source_claim_id: events[keptIdx].source_claim_id,
+          kept_source_section_id: events[keptIdx].source_section_id,
+          kept_confidence: events[keptIdx].confidence,
+          reason: iHigh !== jHigh ? 'claim_backed_preferred_over_section_backed' : 'duplicate_same_confidence_kept_first',
+        });
+        if (dropIdx === i) break; // i is gone -- stop comparing it against the rest of this group
+      }
+    }
+  }
+
+  return { events: events.filter((_, idx) => keep[idx]), dropped };
+}
+
+// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -727,7 +973,8 @@ export function finerDuePrecision(extractorPrecision, slotPrecision) {
  *
  * @param {{claims: Array<{claim_id:string, kind:'FACT'|'GAP', text:string, span:string|null}>,
  *           sections: Array<{section_id:string, key:string, md:string}>}} input
- * @returns {{events: Array<object>, skipped: Array<object>}}
+ * @returns {{events: Array<object>, skipped: Array<object>, counts: {dedupe_dropped: number,
+ *           dedupe_dropped_detail: Array<object>}}}
  */
 export function extractForwardEvents(input) {
   const claims = Array.isArray(input?.claims) ? input.claims : [];
@@ -824,7 +1071,18 @@ export function extractForwardEvents(input) {
     }
   }
 
-  return { events, skipped };
+  // Within-extraction dedupe over the FULL combined list (claim-origin + section-origin together) — see
+  // this file's header, "WITHIN-EXTRACTION DEDUPE", for why this must run here (once, on the combined
+  // set) rather than in each caller: both apply-staged-update.ts and run-extraction.mjs call this function
+  // once per item with the item's full claims+sections, so wiring the rule in here is the one place it
+  // reaches every caller without any of them changing.
+  const { events: dedupedEvents, dropped } = dedupeEvents(events);
+
+  return {
+    events: dedupedEvents,
+    skipped,
+    counts: { dedupe_dropped: dropped.length, dedupe_dropped_detail: dropped },
+  };
 }
 
 export default extractForwardEvents;

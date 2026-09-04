@@ -867,19 +867,41 @@ test("main: TIME BUDGET — stops cleanly BEFORE starting an over-budget item, n
   assert.match(r.note, /TIME BUDGET/);
 });
 
-test("main: TIME BUDGET — dry mode is never budget-bound (a dry run makes no fetch, nothing to bound)", async () => {
+test("main: TIME BUDGET — dry mode is budget-bound too (HEAL-9: a dry run does STEP SOURCE's lookup work; #28 ran 29 min unbounded)", async () => {
   const items = [
     { id: "d-1", item_type: "regulation", full_brief: "", source_url: null },
     { id: "d-2", item_type: "regulation", full_brief: "", source_url: null },
+    { id: "d-3", item_type: "regulation", full_brief: "", source_url: null },
   ];
+  const clock = [0, 0, 20000];
+  let i = 0;
   const deps = baseDeps({
     readQuarantinedLive: async () => items,
-    now: () => { throw new Error("dry mode must never read the clock"); },
-    timeBudgetSeconds: 1,
+    now: () => clock[Math.min(i++, clock.length - 1)],
+    timeBudgetSeconds: 10,
   });
   const r = await main({ mode: "dry", arg: "" }, deps);
-  assert.equal(r.stopped_at_budget, undefined);
-  assert.equal(r.per_item.length, 2);
+  assert.equal(r.exitCode, 0);
+  assert.equal(r.stopped_at_budget, true);
+  assert.equal(r.items_processed, 1);
+  assert.deepEqual(r.items_remaining, ["d-2", "d-3"]);
+  assert.equal(r.per_item.length, 1);
+});
+
+test("main: TIME BUDGET — no budget configured means the clock is never read, in either mode", async () => {
+  const items = [
+    { id: "n-1", item_type: "regulation", full_brief: "", source_url: null },
+    { id: "n-2", item_type: "regulation", full_brief: "", source_url: null },
+  ];
+  for (const mode of ["dry", "apply"]) {
+    const deps = baseDeps({
+      readQuarantinedLive: async () => items,
+      now: () => { throw new Error("an unbudgeted run must never read the clock"); },
+    });
+    const r = await main({ mode, arg: "" }, deps);
+    assert.equal(r.stopped_at_budget, undefined);
+    assert.equal(r.per_item.length, 2);
+  }
 });
 
 test("main: HEAL-BUDGET resume — items_remaining from a budget-stopped run round-trips through ids: to finish the rest", async () => {

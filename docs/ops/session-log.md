@@ -9524,3 +9524,56 @@ archive reason; corrected (`96ade298`) to clear a non-null stamp, record the pri
 per-keeper `restore_sql` under `summary.keepers[]`, and write nothing when already null. 18/18 tests.
 Dispatch next: maintenance `canonical-key-dedup` dry, then apply; then backlog apply again, which
 LEGACY-3 already unblocks for the artifact-time cases.
+
+### Addendum 85, postscript 36 — what the customer sees first, and what it reads (2026-09-04)
+
+Train/wave24 landed as #571 (`f9f6824a`). Maintenance #29 (canonical-key-dedup dry) found exactly the
+two groups the lane measured; #30 apply archived `3af75490` (32015R0757) and `62ba40b0` (32023R1804,
+the AFIR duplicate parked under task #66 in an earlier session; the step is deterministic, EP-11-
+mandated and reversible by `restore_sql`, so it went to apply under rules 17 and 18 rather than back to
+the operator) and cleared the `duplicate_instrument` stamp from the live keeper `ff95b385`, read-back
+2/2 [CONFIRMED]. Heal dry #28 under HEAL-8 finished its plan (89 candidates, 0 would heal on current
+captures, STEP SOURCE would ground 506 orphan tokens, 88 bound hits, 270 token-not-in-page) and was
+then cancelled by the job's 30-minute backstop at 29m36s [CONFIRMED]: HEAL-9 (this train) found the
+budget armed under `apply &&` only, a dry run unbounded since HEAL-7 gave it the SOURCE lookup work;
+the budget now binds both modes, two tests. Heal apply `quarantined-live` dispatched under the existing
+1,500 s budget.
+
+Reading the live /regulations page while waiting showed two customer-facing defects and I put a lane
+on each. FIRSTPAGE (Sonnet): the first 60 rows were 100% MODERATE with no next date while the 13
+IMMEDIATE and 12 ACTION rows arrived only with the background load, and each empty band said "No
+matching regulations" during that load. Root cause [CONFIRMED live SQL]: `fetchWorkspaceResources`
+chained an outer PostgREST `.order(added_date desc, id asc)` onto the RPC call, which REPLACES the
+RPC's own `CASE priority … , added_date DESC, id ASC` order; `buildWorkspaceItemsQuery` now paginates
+allowlisted RPCs with `.range()` alone, and `bandEmptyStateText` says "Loading N regulations…" while
+the rest loads. Its report named the residual it refused (the slim RPC behind /operations and /market
+has no `id` tiebreak, so the same drop would duplicate rows at page boundaries); SLIM-ORDER (Haiku)
+measured the same 100%-MODERATE first page there, wrote migration 303 (`, ii.id ASC`, md5-guarded); I
+applied it live (pre `02936dfa…`, post `3ca10db08f84c019c9fa0e16bfe3b49b`, schema_migrations
+20260904084952) and added the slim name to the allowlist in the same train. FWD-TEXT (Sonnet): the
+Upcoming Obligations strip rendered "venues generated from fines. By 25 September 2026…",
+"7/oj/eng **Primary headline compliance deadline — FACT:** …" and "hicles (M₂, M₃, N₂, N₃) | MONITORING
+**FACT — deadline:** …"; 667 of 979 `item_forward_events` rows matched a crude garble regex. Root cause
+[CONFIRMED]: `clauseAround` cut the leading edge at a fixed 60 bytes and never snapped to
+`sentenceStart`, and section-derived events inherit content_md's labels, pipes and link tails.
+`clauseStart` now snaps to the clause boundary, `normalizeObligationText` strips the leaked markdown
+for display while `source_span` stays byte-verbatim, and a content-similarity-gated `dedupeEvents`
+keeps the claim-backed event over the section-backed one (the lane measured that a blind
+(date, kind) collapse would have destroyed four distinct NZIA obligations sharing one date, and said
+so). New maintenance step `forward-events-retext` (dry/apply, restore_sql per row, registered writer)
+rewrites the existing rows; duplicates are reported, never deleted, because `item_forward_events` has
+no archive column. F28 marker `harness-runs/forward-events/PENDING-RUN.md` pins the new extractor hash.
+Dispatch next: `forward-events-retext` dry then apply; backlog apply; population apply for the 552
+would_mint rows that the hollow sweep returned.
+
+UX compliance (FIRSTPAGE band states and first page; FWD-TEXT obligation text; no new controls).
+Primary goal: the reader opens /regulations for what is due soonest, and now the first paint carries
+the CRITICAL and HIGH rows instead of undated MODERATE rows, so the page answers its question before
+the background load completes. Path: unchanged, no new navigation, no mode switch; the band order and
+the "X shown / total" disclosure are the same elements with correct contents. One primary action per
+band: unchanged. Feedback state: a band whose rows are still loading says "Loading N regulations…"
+with the authoritative total, and "No matching regulations" is reserved for a completed load, an
+active filter, or a genuinely empty band, so the empty state never lies mid-load. Fitts's-law surface:
+no new interactive element on either surface; the rendering guard runs in CI on this train. Obligation
+text on the strip and the detail page now reads as one clause from a word boundary with no markdown
+or URL residue; the fix is at the producer, no display-side sanitizer.
