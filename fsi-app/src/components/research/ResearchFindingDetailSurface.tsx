@@ -51,6 +51,12 @@ import { TIER_LABELS } from "@/lib/tier-labels";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadge } from "@/components/shell/RelevanceBadge";
+import { RecordGradeBadge } from "@/components/shell/RecordGradeBadge";
+import {
+  parseRecordSections,
+  splitKeyDateFacts,
+  type RecordFactRow,
+} from "@/lib/agent/parse-record-sections";
 import type { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
 import {
   THEME_KEYS,
@@ -152,6 +158,101 @@ function ResearchSections({ rows }: { rows: IntelligenceItemSectionRow[] }) {
         );
       })}
     </div>
+  );
+}
+
+// ── RECORD-GRADE facts (RECORD-SURFACE lane, 2026-09-04) ────────────────
+// Same parser + rendering shape as RegulationDetailSurface.tsx's RecordGradeSummary / the Market
+// surface's RecordFactsCard (see RegulationDetailSurface.tsx's own header for the full rationale).
+// Connected items are already rendered unconditionally below (this file's own <ItemConnectionsCard>
+// call) so this block does not duplicate them — only the facts/dates/tags a record-grade research
+// finding's `sections` actually carry, which ResearchSections' numbered-key parser cannot reach.
+function ResearchRecordFactLine({ fact }: { fact: RecordFactRow }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--color-text-muted)", marginBottom: 3 }}>
+        {fact.label}
+      </div>
+      {fact.span ? (
+        <p style={{ fontSize: 14, lineHeight: 1.65, margin: 0, color: "var(--color-text-primary)", borderLeft: "2px solid var(--color-border)", paddingLeft: 10, overflowWrap: "anywhere" }}>
+          “{fact.span}”
+        </p>
+      ) : (
+        <p style={{ fontSize: 14, lineHeight: 1.65, margin: 0, color: "var(--color-text-secondary)", overflowWrap: "anywhere" }}>{fact.text}</p>
+      )}
+    </div>
+  );
+}
+
+function ResearchRecordFacts({ sections, tags }: { sections: IntelligenceItemSectionRow[]; tags: string[] }) {
+  const parsed = useMemo(() => parseRecordSections(sections), [sections]);
+  const { dateFacts, otherFacts } = useMemo(
+    () => (parsed ? splitKeyDateFacts(parsed.facts) : { dateFacts: [] as RecordFactRow[], otherFacts: [] as RecordFactRow[] }),
+    [parsed]
+  );
+
+  return (
+    <>
+      <div
+        className="cl-card"
+        style={{ borderLeft: "3px solid var(--color-text-muted)", padding: "16px 20px", marginBottom: 14 }}
+      >
+        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.13em", textTransform: "uppercase", color: "var(--color-text-muted)" }}>
+          Catalogue record
+        </span>
+        <p style={{ fontSize: 13.5, lineHeight: 1.7, margin: "8px 0 0", maxWidth: "78ch", color: "var(--color-text-secondary)" }}>
+          This finding was captured directly from its source document rather than synthesized into a
+          research summary. Every fact below is quoted verbatim from that source — a full summary is a
+          separate, later upgrade for this item.
+        </p>
+      </div>
+
+      {dateFacts.length > 0 && (
+        <BriefSection title="Key dates">
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {dateFacts.map((f) => <ResearchRecordFactLine key={f.slotKey} fact={f} />)}
+          </div>
+        </BriefSection>
+      )}
+
+      <BriefSection title="Verbatim facts">
+        {parsed && parsed.slotFieldCount > 0 && (
+          <p style={{ fontSize: 11.5, fontWeight: 700, color: "var(--color-text-muted)", margin: "-6px 0 14px" }}>
+            {parsed.gaps.length} of {parsed.slotFieldCount} record fields not stated by the source
+          </p>
+        )}
+        {otherFacts.length > 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {otherFacts.map((f) => <ResearchRecordFactLine key={f.slotKey} fact={f} />)}
+          </div>
+        ) : (
+          <p style={{ fontSize: 13, lineHeight: 1.6, color: "var(--color-text-muted)", margin: 0, fontStyle: "italic" }}>
+            {parsed
+              ? "The captured source did not state any of this finding's required record fields in a form this extractor could quote verbatim."
+              : "No extracted-facts sections are on file for this catalogue record yet."}
+          </p>
+        )}
+      </BriefSection>
+
+      <BriefSection title="Tags">
+        {tags && tags.length > 0 ? (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {tags.map((t) => (
+              <span
+                key={t}
+                style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: "var(--color-bg-raised)", border: "1px solid var(--color-border)", color: "var(--color-text-secondary)" }}
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p style={{ fontSize: 13, lineHeight: 1.6, color: "var(--color-text-muted)", margin: 0, fontStyle: "italic" }}>
+            No tags on file for this item yet.
+          </p>
+        )}
+      </BriefSection>
+    </>
   );
 }
 
@@ -721,6 +822,7 @@ export function ResearchFindingDetailSurface({
         >
           <SeverityPill severity={severity} />
           {themeKey && <ThemePill themeKey={themeKey} />}
+          <RecordGradeBadge itemGrade={r.itemGrade} />
           {r.type && (
             <span
               style={{
@@ -869,7 +971,20 @@ export function ResearchFindingDetailSurface({
               canonical pipeline. Renders when sections are available (Sprint 4).
               Each section is a numbered card (S1–S6) matching the Research
               Summary format per analysis-construction-spec SKILL.md §7. */}
-          {hasSections ? (
+          {r.itemGrade === "record" ? (
+            // RECORD-GRADE (RECORD-SURFACE lane, 2026-09-04): a record-grade research_finding's
+            // `sections` carry section_key "identity"/"record_facts"/"sources_and_citations"
+            // (record-facts.mjs), never the numbered "1".."6" keys ResearchSections' own
+            // KNOWN_RESEARCH_KEYS recognises. Because `hasSections` (sections.length > 0) was already
+            // true for these rows, this branch used to render <ResearchSections rows={sections} />,
+            // which returns null (no known key matches) — the finding's own extracted facts were
+            // unreachable, and the legacy shortText/fullText fallback right below never ran either,
+            // since it lives in the OTHER half of this same `hasSections` conditional. See
+            // parse-record-sections.ts's own header for the mechanism. No live research_finding item
+            // routes here today (all 1,273 live record-grade rows carry domain=1 -> /regulations,
+            // RECORD-SURFACE lane report) — this is forward cover for when one does.
+            <ResearchRecordFacts sections={sections} tags={r.tags} />
+          ) : hasSections ? (
             <>
               <ResearchSections rows={sections} />
               {/* Honest empty-state affordance when sections are present but

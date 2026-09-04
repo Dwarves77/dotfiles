@@ -53,6 +53,11 @@ import {
   type SourceEntry,
 } from "@/lib/agent/extract-regulation-sections";
 import {
+  parseRecordSections,
+  splitKeyDateFacts,
+  type RecordFactRow,
+} from "@/lib/agent/parse-record-sections";
+import {
   JURISDICTIONS,
   PRIORITY_DISPLAY_LABEL_SHORT,
   ALL_SECTORS,
@@ -418,7 +423,17 @@ export function RegulationDetailSurface({
 
         <main style={{ minWidth: 0 }}>
           {tab === "summary" && (
-            <SummaryTab r={r} changelog={changelog} dispute={dispute} sections={sections} onOpenTimeline={() => setTab("timeline")} />
+            <SummaryTab
+              r={r}
+              changelog={changelog}
+              dispute={dispute}
+              sections={sections}
+              connections={connections}
+              supersessions={supersessions}
+              resourceLookup={resourceLookup}
+              upcomingObligations={upcomingObligations}
+              onOpenTimeline={() => setTab("timeline")}
+            />
           )}
           {tab === "exposure" && <ExposureTab resource={r} jurisdictionLabels={jurisdictionLabels} />}
           {tab === "calculator" && <PenaltyTab resource={r} />}
@@ -646,12 +661,74 @@ function SummaryTab({
   changelog,
   dispute,
   sections,
+  connections,
+  supersessions,
+  resourceLookup,
+  upcomingObligations,
   onOpenTimeline,
 }: {
   r: Resource;
   changelog: ChangeLogEntry[];
   dispute: Dispute | null;
   sections: IntelligenceItemSectionRow[];
+  connections: ItemConnection[];
+  supersessions: Supersession[];
+  resourceLookup: Record<string, { id: string; title: string; priority: string }>;
+  upcomingObligations: React.ReactNode;
+  onOpenTimeline: () => void;
+}) {
+  const impact = r.impactScores ?? scoreResource(r);
+
+  // RECORD-GRADE (RECORD-SURFACE lane, 2026-09-04). A record-grade item's full_brief carries none of
+  // the heading structure extractOperationalBriefing/RegulationSections expect (see
+  // parse-record-sections.ts's own header for the mechanism) — the brief-grade rendering below this
+  // branch would show only the Impact/Timeline scaffold with everything else silently gated off. Route
+  // to the dedicated renderer instead of trying to make the brief-grade gates fire on data they were
+  // never built to parse.
+  if (r.itemGrade === "record") {
+    return (
+      <RecordGradeSummary
+        r={r}
+        sections={sections}
+        connections={connections}
+        supersessions={supersessions}
+        resourceLookup={resourceLookup}
+        upcomingObligations={upcomingObligations}
+        impact={impact}
+        onOpenTimeline={onOpenTimeline}
+        changelog={changelog}
+        dispute={dispute}
+      />
+    );
+  }
+
+  return (
+    <SummaryTabBrief
+      r={r}
+      changelog={changelog}
+      dispute={dispute}
+      sections={sections}
+      impact={impact}
+      onOpenTimeline={onOpenTimeline}
+    />
+  );
+}
+
+// ── Brief-grade Summary body (unchanged behavior; extracted so SummaryTab can route by grade) ───────
+
+function SummaryTabBrief({
+  r,
+  changelog,
+  dispute,
+  sections,
+  impact,
+  onOpenTimeline,
+}: {
+  r: Resource;
+  changelog: ChangeLogEntry[];
+  dispute: Dispute | null;
+  sections: IntelligenceItemSectionRow[];
+  impact: ReturnType<typeof scoreResource>;
   onOpenTimeline: () => void;
 }) {
   const [mode, setMode] = useState<"short" | "full">("short");
@@ -668,7 +745,6 @@ function SummaryTab({
   );
 
   const shortText = r.whatIsIt || r.note || "";
-  const impact = r.impactScores ?? scoreResource(r);
 
   // Wave-α A8 (2026-07-11): honest empty-brief state. A verified item can
   // carry a NULL full_brief (the 5 NULL-brief verified items, P1 finding 9) —
@@ -848,6 +924,249 @@ function SummaryTab({
       {/* Connected intelligence — always on Summary */}
       <ConnectedIntelligence r={r} />
     </>
+  );
+}
+
+// ── RECORD-GRADE SUMMARY (RECORD-SURFACE lane, 2026-09-04) ─────────────
+//
+// THE DEFECT THIS REPLACES: the brief-grade body above this component gates its Short/Full toggle,
+// its accordions, and RegulationSections (which renders `sections`) all on
+// `extractOperationalBriefing(r.fullBrief)` finding one of three numbered/H1/H2 headings a record-grade
+// full_brief never carries (see parse-record-sections.ts's module header for the mechanism, verified
+// against the operator's own screenshot item 8670d8bf-9847-4da6-8724-0d52308b008e). A record item's
+// `hasFull` is always false, so "Full summary" stays disabled and the tab renders only the Impact/
+// Timeline scaffold — the reported empty Summary tab. This component parses `sections` directly
+// (parse-record-sections.ts, not r.fullBrief — same data the page already fetched via loadDetail, no
+// extra client fetch, no full_brief re-parse) and renders every FACT/GAP claim the record-facts.mjs
+// extractor located, honestly labelled, plus the item's connections/obligations/tags — the things a
+// record-grade item DOES carry post-mint (rule 17, "nothing works alone": a mint that stops at
+// title-only facts is a defect in the runtime, not a note for later).
+function RecordGradeSummary({
+  r,
+  sections,
+  connections,
+  supersessions,
+  resourceLookup,
+  upcomingObligations,
+  impact,
+  onOpenTimeline,
+  changelog,
+  dispute,
+}: {
+  r: Resource;
+  sections: IntelligenceItemSectionRow[];
+  connections: ItemConnection[];
+  supersessions: Supersession[];
+  resourceLookup: Record<string, { id: string; title: string; priority: string }>;
+  upcomingObligations: React.ReactNode;
+  impact: ReturnType<typeof scoreResource>;
+  onOpenTimeline: () => void;
+  changelog: ChangeLogEntry[];
+  dispute: Dispute | null;
+}) {
+  const parsed = useMemo(() => parseRecordSections(sections), [sections]);
+  const { dateFacts, otherFacts } = useMemo(
+    () => (parsed ? splitKeyDateFacts(parsed.facts) : { dateFacts: [] as RecordFactRow[], otherFacts: [] as RecordFactRow[] }),
+    [parsed]
+  );
+
+  return (
+    <>
+      {/* What a catalogue record is, and that a full brief is a separate upgrade — the reworded banner
+          (RecordGradeBadge.tsx's own header explains why the pill alone used to be the only content on
+          this tab). Body text, not another pill, so it reads as an explanation, not a second label. */}
+      <Card style={{ borderLeft: `3px solid ${C.brass}`, padding: "16px 20px", marginBottom: 14 }}>
+        <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.13em", textTransform: "uppercase", color: C.brass }}>
+          Catalogue record
+        </span>
+        <p style={{ fontSize: 13.5, lineHeight: 1.7, margin: "8px 0 0", maxWidth: "86ch", color: C.ink2 }}>
+          This item was captured directly from its source document rather than synthesized into a brief.
+          Every fact below is quoted verbatim from that source, not an interpretation of it — a full
+          brief (impact analysis, compliance chain, recommended actions) is a separate, later upgrade for
+          this item, not a status this page is waiting on.
+        </p>
+      </Card>
+
+      {/* Impact assessment + interactive timeline — same cards the brief-grade Summary renders, kept
+          unchanged: both already degrade honestly (an approximate impact score; "No milestones recorded
+          yet" via InteractiveTimeline's own empty state) without needing full_brief content. */}
+      <Card style={{ padding: "16px 20px", marginBottom: 14 }}>
+        <PlateEyebrow>Impact assessment</PlateEyebrow>
+        <ImpactScores scores={impact} />
+      </Card>
+      <Card style={{ padding: "16px 20px", marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "0 0 18px", flexWrap: "wrap", gap: 6 }}>
+          <PlateEyebrow>Timeline</PlateEyebrow>
+          {r.timeline && r.timeline.length > 0 && (
+            <button
+              type="button"
+              onClick={onOpenTimeline}
+              style={{ fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 800, color: C.accent, background: "none", border: "none", cursor: "pointer", padding: 0, minHeight: 44, display: "inline-flex", alignItems: "center", whiteSpace: "nowrap" }}
+            >
+              All {r.timeline.length} milestones →
+            </button>
+          )}
+        </div>
+        <InteractiveTimeline items={r.timeline || []} />
+      </Card>
+
+      {/* Key dates + in-force status — the subset of extracted facts that state WHEN, pulled out of the
+          general fact list per this lane's dispatch. Rendered only when the source actually states one
+          (honest omission otherwise — see the "Verbatim facts" card below for the full, honest count). */}
+      {dateFacts.length > 0 && (
+        <Card style={{ overflow: "hidden", marginBottom: 14 }}>
+          <div style={{ padding: "12px 20px", background: C.plate, borderBottom: `1px solid ${C.hairSoft}` }}>
+            <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase" }}>Key dates</span>
+          </div>
+          <div style={{ padding: "14px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+            {dateFacts.map((f) => <RecordFactLine key={f.slotKey} fact={f} />)}
+          </div>
+        </Card>
+      )}
+
+      {/* Verbatim facts — every other FACT the extractor located, humanized label + verbatim source
+          span, hiding the "Not stated" boilerplate behind one honest count line (this lane's dispatch:
+          "N of M record fields not stated by the source") instead of a wall of GAP sentences. */}
+      <Card style={{ overflow: "hidden", marginBottom: 14 }}>
+        <div style={{ padding: "12px 20px", background: C.plate, borderBottom: `1px solid ${C.hairSoft}`, display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase" }}>Verbatim facts</span>
+          {parsed && parsed.slotFieldCount > 0 && (
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: C.muted }}>
+              {parsed.gaps.length} of {parsed.slotFieldCount} record fields not stated by the source
+            </span>
+          )}
+        </div>
+        <div style={{ padding: "14px 20px" }}>
+          {otherFacts.length > 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {otherFacts.map((f) => <RecordFactLine key={f.slotKey} fact={f} />)}
+            </div>
+          ) : (
+            <PendingFrame header="No verbatim facts located yet">
+              {parsed
+                ? "The captured source did not state any of this item's required record fields in a form this extractor could quote verbatim."
+                : "No extracted-facts sections are on file for this catalogue record yet."}
+            </PendingFrame>
+          )}
+        </div>
+      </Card>
+
+      {/* Tags — Resource.tags was fetched but never rendered on this page before this lane. */}
+      <Card style={{ overflow: "hidden", marginBottom: 14 }}>
+        <div style={{ padding: "12px 20px", background: C.plate, borderBottom: `1px solid ${C.hairSoft}` }}>
+          <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase" }}>Tags</span>
+        </div>
+        <div style={{ padding: "14px 20px" }}>
+          {r.tags && r.tags.length > 0 ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {r.tags.map((t) => (
+                <span
+                  key={t}
+                  style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: C.plate, border: `1px solid ${C.hairSoft}`, color: C.ink2 }}
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p style={{ fontSize: 12, lineHeight: 1.6, color: C.muted, margin: 0, fontStyle: "italic" }}>
+              No tags on file for this item yet.
+            </p>
+          )}
+        </div>
+      </Card>
+
+      {/* Upcoming obligations / forward events — the SAME pre-rendered node the page already computes
+          for the meta rail (loadRegulationDetailObligations -> UpcomingObligationsStripView, honest
+          omission when the item has none: that component returns null itself). Rendered directly, not
+          wrapped in a second "Upcoming" header, since it is already a fully self-headered card — a
+          matching-style honest empty card fills the slot when it is null so the section is never just
+          silently absent. */}
+      <div style={{ marginBottom: 14 }}>
+        {upcomingObligations ?? (
+          <Card style={{ overflow: "hidden" }}>
+            <div style={{ padding: "12px 20px", background: C.plate, borderBottom: `1px solid ${C.hairSoft}` }}>
+              <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase" }}>Upcoming</span>
+            </div>
+            <div style={{ padding: "14px 20px" }}>
+              <p style={{ fontSize: 12, lineHeight: 1.6, color: C.muted, margin: 0, fontStyle: "italic" }}>
+                No upcoming obligations on file for this item yet.
+              </p>
+            </div>
+          </Card>
+        )}
+      </div>
+
+      {/* What changed / Disputed — unchanged from the brief-grade body; harmless, honest omission when
+          empty (a freshly minted record item typically has neither yet). */}
+      {changelog.length > 0 && (
+        <Accordion title="What changed" summary={changelog.map((c) => c.now).filter(Boolean).slice(0, 1).join("")}>
+          {changelog.map((c, i) => (
+            <div key={i} style={{ marginBottom: 12 }}>
+              {c.fields && c.fields.length > 0 && (
+                <p style={{ fontSize: 12, fontWeight: 700, color: C.ink, margin: "0 0 4px" }}>{c.fields.join(", ")}</p>
+              )}
+              {c.prev && (
+                <p style={{ fontSize: 14, lineHeight: 1.7, color: C.ink2, margin: 0, textDecoration: "line-through" }}>{c.prev}</p>
+              )}
+              {c.now && <p style={{ fontSize: 14, lineHeight: 1.7, color: C.ink, margin: 0, fontWeight: 600 }}>{c.now}</p>}
+              {c.impact && <p style={{ fontSize: 12, lineHeight: 1.6, color: C.sevHigh, margin: "4px 0 0" }}>Impact: {c.impact}</p>}
+            </div>
+          ))}
+        </Accordion>
+      )}
+      {dispute?.note && (
+        <Accordion title="Disputed" summary={dispute.note}>
+          <p style={{ fontSize: 14, lineHeight: 1.7, color: C.ink, margin: "0 0 8px" }}>{dispute.note}</p>
+          {dispute.sources && dispute.sources.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {dispute.sources.map((s, i) => {
+                const chip = { fontSize: 11, padding: "3px 8px", borderRadius: 3, background: "#FFF7ED", color: C.sevHigh, border: "1px solid #FED7AA", textDecoration: "none" } as React.CSSProperties;
+                return s.url ? (
+                  <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" style={chip}>{s.name}</a>
+                ) : (
+                  <span key={i} style={chip}>{s.name}</span>
+                );
+              })}
+            </div>
+          )}
+        </Accordion>
+      )}
+
+      {/* Connected items — edges with basis (item_cross_references, migration 252). Reuses the SAME
+          shared component the meta rail renders (ItemConnectionsCard), replacing the brief-grade
+          Summary's stale "Cross-surface links pending" placeholder (ConnectedIntelligence above) with
+          the real, already-fetched connections data for this grade — 4,393 live cross-reference edges
+          involve at least one record-grade item corpus-wide (RECORD-SURFACE lane report), so "pending"
+          would have been dishonest here, not merely unimplemented. */}
+      <ItemConnectionsCard
+        connections={connections}
+        supersessions={supersessions}
+        selfId={r.id}
+        resourceLookup={resourceLookup}
+        title="Connected items"
+      />
+    </>
+  );
+}
+
+/** One extracted-fact row: humanized slot label + the verbatim source span (FACT) or the honest GAP
+ *  sentence (should not normally reach this component — GAP rows are counted, not listed, in the
+ *  "Verbatim facts" card above — kept for defensive completeness if a caller ever passes one through). */
+function RecordFactLine({ fact }: { fact: RecordFactRow }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: C.muted, marginBottom: 3 }}>
+        {fact.label}
+      </div>
+      {fact.span ? (
+        <p style={{ fontSize: 13, lineHeight: 1.6, margin: 0, color: C.ink, borderLeft: `2px solid ${C.hairStrong}`, paddingLeft: 10, overflowWrap: "anywhere" }}>
+          “{fact.span}”
+        </p>
+      ) : (
+        <p style={{ fontSize: 13, lineHeight: 1.6, margin: 0, color: C.ink2, overflowWrap: "anywhere" }}>{fact.text}</p>
+      )}
+    </div>
   );
 }
 
