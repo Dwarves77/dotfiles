@@ -97,11 +97,16 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 // sprint-followups-discipline re-pinned — its design-principles path was `docs/design-principles.md`, a file that
 // does not exist (the registry lives at docs/design/design-principles.md); corrected, and ux-laws.md / DP-2 added.
 // No citingFiles change for either.
+// 2026-09-04 (Lane PERF-8): remediation-discipline re-pinned — added "Section 4 — category 36: Date
+// formatting pins its timezone in a hydrated component" (invariant RD-61, F36), diagnosing React #418 on
+// /regulations (RegulationsLedger.tsx's RegRow, no timeZone on toLocaleDateString — commit 27f6a358). No
+// citingFiles change: none of the files below cite this new section specifically, they cite the skill as a
+// whole (its content hash moving is what this re-pin acknowledges), same posture as the category 32/35 re-pins.
 // ---------------------------------------------------------------------------------------------------------
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
     skillPath: 'fsi-app/.claude/skills/remediation-discipline/SKILL.md',
-    contentHash: '9d3dd665c7ba5e1be6d164ee94cf9b7b513d380bea5b0d438872dfdc9bd87bf2',
+    contentHash: '79b0eaa881106dcd900d64761d8d4d2ed7cd5b9827bb0a9b5a138ab645085b07',
     citingFiles: [
       'fsi-app/scripts/_wave-alpha/backfill-canonical-keys.mjs',
       'fsi-app/scripts/lib/deferral.mjs',

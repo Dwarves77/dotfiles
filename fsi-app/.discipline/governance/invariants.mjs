@@ -176,7 +176,11 @@ export const SKILL_MARKER_BASELINE = {
   // (enforcedBy fitness:F32 + its selftest) — migration 285's RLS/F31 enforce the first in code and the DB;
   // migration 286's assert_statutory_purity() trigger (proven live by that migration's own self-check) plus
   // F32's structural-presence check + tested JS mirror enforce the second.
-  'remediation-discipline': 44,
+  // 44→45 (2026-09-04, lane PERF-8): added "A `"use client"` component MUST NOT call
+  // toLocaleDateString/toLocaleTimeString/Intl.DateTimeFormat without an explicit `timeZone`" to Section 4
+  // category 36 (date-format timezone pin), diagnosing React #418 on /regulations. TRIAGE: new invariant
+  // RD-61-date-format-timezone-pin (enforcedBy fitness:F36 + its selftest).
+  'remediation-discipline': 45,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -1342,5 +1346,14 @@ export const INVARIANTS = [
     anchor: '### Section 4 — category 35: Row UX is measured on a real component at a phone width',
     enforcedBy: ['fitness:F35', 'selftest:fsi-app/.discipline/fitness/functions/F35-row-ux-coverage.test.mjs', 'selftest:fsi-app/.discipline/rendering/ux-assert.test.mjs'],
     residual: 'F35 proves COVERAGE (a spec mounts the component; the component marks a title); the MEASUREMENT runs in run-rendering-guard.mjs\'s UX smoke slot in the rendering-guard CI job. That job was NON-BLOCKING (continue-on-error) from 2026-07-11 pending 3 consecutive green master runs; the coordinator flips it to blocking in the train that lands this invariant once the history shows the run is stable (recorded in the session log with the run ids). ROW_COMPONENTS is a hardcoded, basis-annotated list (F33\'s posture): a new row component is covered only when it is added there; the squeezed-title detector measures only elements marked data-guard-title; law-2 measures rendered boxes, not touch-slop the browser may add. Fixture data only, no auth, no network, the guard\'s $0 posture.',
+  },
+  {
+    id: 'RD-61-date-format-timezone-pin',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 36: Date formatting pins its timezone in a hydrated component (a fixed-input value must render identically twice)',
+    text: 'A "use client" component must not call toLocaleDateString/toLocaleTimeString/Intl.DateTimeFormat without an explicit timeZone: the server (a UTC Vercel Lambda) and the client hydration render can disagree on the calendar day for a date-only value near a local-midnight boundary, throwing React\'s minified error #418. On 2026-09-04 the operator\'s /regulations measurement showed #418 plus four cascading $RS/parentNode errors on first paint; root cause [CONFIRMED via TZ=<zone> node -e reproduction] was RegulationsLedger.tsx\'s RegRow (hydrated) formatting a date-only milestone with no timeZone, so "Sep 25" (UTC server) and "Sep 24" (a west-of-UTC viewer\'s hydration render) genuinely disagreed. Distinct from the 2026-07-13 WhatChanged.tsx diagnosis (a Date.now() clock-skew race, fixed by deferring to a post-mount effect): a timezone defect on a FIXED input cannot be fixed by deferring, only by pinning the zone.',
+    anchor: '### Section 4 — category 36: Date formatting pins its timezone in a hydrated component',
+    enforcedBy: ['fitness:F36', 'selftest:fsi-app/.discipline/fitness/functions/F36-date-format-timezone-pin.test.mjs'],
+    residual: 'F36 is a lexical scanner (strings/comments stripped, balanced-paren call span checked for a timeZone key), not a type-aware parser: it cannot tell a Date-only value from one where a local zone is deliberately correct (e.g. "your local time is X" copy), so a rare intentional local-zone render would need a per-call justification rather than a blanket allowlist entry if one is ever added. toLocaleString() bare is deliberately EXCLUDED — it is also Number.prototype.toLocaleString, and a static scan cannot disambiguate a date call from a number call by name alone; the two Date-specific method names carry no such ambiguity, and Intl.DateTimeFormat is unambiguous by construction. A Server Component\'s own unpinned call (regulations/page.tsx\'s today/lastSyncLabel, pinned in the same commit) carries no hydration risk — it renders once, server-side only — and is out of THIS invariant\'s scope; it is a timezone-correctness concern, not a #418 risk, not gated here. PRE_EXISTING_ALLOWLIST (F36\'s own file) names 15 further "use client" files found missing timeZone on a first codebase-wide run (2026-09-04) that this lane did not audit for actual SSR/hydration exposure — named debt, not a safety claim; F36 enforces every file NOT on that list, and any new file, from this commit forward.',
   },
 ];
