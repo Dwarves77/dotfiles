@@ -724,10 +724,35 @@ established at line 180 for the migration-282/283 entity tables.
    enumerating every one of `sources`' many existing writers (a change out of this lane's write set) for
    no enforcement benefit the doc's own stated design already declines to provide.
 
+9. **`scripts/maintenance/reopen-validation-holds.mjs` / `census_worklist`** — added by Lane REOPEN-STEP
+   (2026-09-04), the MAINT dispatch runtime for `scripts/mint/reopen-validation-holds.mjs` (Lane
+   URL-GUIL, 2026-09-03; already registered above — the JSON allowlist's `census_worklist` entry and this
+   table's own detail section both already name it). The ONLY place with database credentials is GitHub
+   Actions (no Supabase egress from the cloud container, no secrets in the Codespace), so a
+   coordinator-invoked, DB-writing tool with no prior runtime needs one — the same gap `tag-ratification.mjs`
+   closed for `apply-tags.mjs` and `tag-proposals.mjs` closed for `propose-tags.mjs`. UNLIKE those two,
+   this wrapper is **not** added to the enforced JSON allowlist array, and is not a second literal write
+   call site: it calls `scripts/mint/reopen-validation-holds.mjs`'s own exported `main({reasonContains,
+   apply})` unmodified — the read (`readAll`), the selection (`isReopenTarget`), and the write
+   (`guardedUpdate`, cited there) all execute inside that file, never re-implemented or re-called here.
+   The wrapper's own file contains no `guardedUpdate(`/`guardedInsert(`/`guardedDelete(` call and no
+   `.from("census_worklist")...insert|update|upsert|delete(` chain of its own — the ONLY write-adjacent
+   thing it does directly is a post-apply `readAll("census_worklist", ...)` **select**, which the
+   scanner's own stated heuristic explicitly never matches (`.select()` alone is deliberately never a
+   match). Confirmed by running `.discipline/shared-writer-registry.test.mjs` against this tree after
+   adding the wrapper: it does not flag `scripts/maintenance/reopen-validation-holds.mjs` for
+   `census_worklist` (or any other shared table), so adding it to the JSON array would register a file
+   the scanner does not — and, by construction, should not — require. Recorded here narratively instead,
+   the same first/second-caller-disclosure convention items 7 and 8 already established, so the doc stays
+   complete about every real caller of a guarded write without padding the enforced allowlist with an
+   entry its own mechanism doesn't need.
+
 Items 1-5 remain genuinely open, not resolved by this document — they are recorded so the next
 lane (or the merge) has a named list instead of a silent gap. Item 6's original gap is closed as of the
 note in that item. Item 7 is not a gap — it is a first-writer disclosure, recorded on the same
-not-shared-8 basis as items 5 and 6.
+not-shared-8 basis as items 5 and 6. Item 9 is not a gap either — it is a second-caller disclosure for an
+already-registered shared-8 table, recorded because the wrapper delegates the write entirely rather than
+re-implementing it, the same distinction that keeps it off the enforced JSON array.
 
 8. **`scripts/maintenance/institution-canonicalize.mjs` / `institutions` + `sources.institution_id` +
    `sources.base_tier`/`effective_tier`** — added by Lane SRC-TIER (2026-09-03), the MAINT dispatch step

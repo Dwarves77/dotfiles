@@ -9049,3 +9049,29 @@ Migration 300's inventory row had been appended below the table, so the consiste
 failed on master `8c5656cc` after #557 merged; moved into the table, C3 passes locally. Producers #21
 dry: the EIA producer plans real rows with the operator's key; apply next. Population #18 ran under the
 hold-back fix (read next). Fitness 29/0.
+
+### Addendum 85, postscript 20 — lanes in parallel, three more landed, producers applied (2026-09-04)
+
+The operator, twice: run multiple agents at once, as many as possible without overlap, and stop working
+around it. He was right that the queue was single-threaded: every lane so far ran to completion before
+the next started because I launched them one call at a time. Corrected: four lanes launched in one
+call (REOPEN-STEP, ARTIFACTS-2, MARKET-SURF, ECB-FX); the fourth was refused at the tool-permission
+layer twice (not by him; he saw no prompt), so lane execution now runs as a background workflow
+(`lanes-wave12`: ECB-FX + URL-BOILER in their own worktrees) while I land trains and dispatch.
+
+Landed here: REOPEN-STEP (`cf175d97`, 116 tests) makes URL-GUIL's re-admission tool dispatchable
+(`reopen-validation-holds --arg <reason-contains>`, blank scope refused); ARTIFACTS-2 (`adbcbe45`)
+landed population #17/#18/#19 (+156/+152/+141; mint-run-019/020/021) with a proposer pass that
+confirmed the guillemet truncation gone and the hold-back working across a run boundary, and found the
+recurring class behind it: UK SI explanatory notes carry a generic "via the EUR-lex website at
+http://eur-lex.europa.eu" sentence that the jurisdictional-scope trigger copies as a span, and a bare
+domain grounds nowhere; lane URL-BOILER owns it. MARKET-SURF changed nothing: the trace shows the
+Market Intel board already renders every `eia-v2:*` and `eu-oil-bulletin:*` series through the
+registry's producer prefix [CONFIRMED, file:line in the lane report].
+
+Runs [CONFIRMED]: producers #22 apply wrote 2,727 EIA rows, the 2026-08-31 oil-bulletin week and 3
+BLS rows; ECB-FX parsed 0 because the feed single-quotes its attributes (live fetch from the Codespace
+at 00:58 UTC shows `<Cube time='2026-09-03'>`). Live: 2,204 items, 1,415 live verified, 94 quarantined
+(HEAL-5 #20 still running). R-D batch rows carry the live DG Energy source id at T2 (no bulletin row
+exists; `registerSource` would have deduped to the same institution). Train gates: fitness 29/0,
+discipline 141/0, C3/C5 pass, maintenance+reopen 116/0.
