@@ -33,7 +33,37 @@ export const metadata: Metadata = {
     "Sustainability intelligence platform for international freight forwarding. Monitors regulatory, technology, and market developments across air, road, and ocean transport.",
 };
 
-export default async function RootLayout({
+/**
+ * PERF-9 (2026-09-04, item 3, docs/decisions/ADR-026-detail-cache-and-viewer-state-split.md):
+ * `await headers()` used to run directly in RootLayout's own body, ABOVE and OUTSIDE every
+ * Suspense boundary. `headers()`/`cookies()` are Next "Dynamic APIs" — using one ANYWHERE in a
+ * route's render tree opts that whole route out of static rendering ([CONFIRMED]: `next build`
+ * on unmodified master shows all 129 routes as `ƒ (Dynamic)`, including routes with zero
+ * server-side data dependency of their own — /privacy, /login, /signup — because they all share
+ * this one root layout). Moving the `headers()` read into its own async Server Component, itself
+ * rendered ONLY inside the pre-existing `<Suspense>` around `<BootstrapBoundary>` (a sibling of
+ * `<AppShell>{children}</AppShell>`, unchanged — see BootstrapBoundary.tsx's header), stops this
+ * layout itself from being a blanket dynamic-API user: a route whose OWN page.tsx (and every
+ * component it renders) touches no cookies()/headers()/searchParams of its own can now be
+ * statically generated. Every route that still legitimately needs per-viewer or per-org data
+ * (the four intelligence surfaces' listing/detail pages, /profile, /watchlist, /settings, /admin,
+ * /community, /map, /onboarding) resolves that need in ITS OWN page.tsx via
+ * resolveOrgIdFromCookies/resolveServerBootstrap/getViewerRelevanceForItem and stays dynamic on
+ * its own account — this change does not, and is not intended to, alter that. See ADR-026 §2 for
+ * the full route-by-route accounting and what would be needed to move the four surfaces further.
+ */
+async function BootstrapResolver() {
+  // `headers()` itself is a real await — it's a cheap, non-network Dynamic API read (not a
+  // Supabase round trip), so it adds no meaningful blocking time; only resolveServerBootstrap()'s
+  // network cost (below) is the thing PERF-4 already deferred.
+  const rscNav = isRscNavigation(await headers());
+  const bootstrapPromise: Promise<ServerBootstrap | null> = rscNav
+    ? Promise.resolve(null)
+    : resolveServerBootstrap();
+  return <BootstrapBoundary bootstrapPromise={bootstrapPromise} />;
+}
+
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -43,22 +73,12 @@ export default async function RootLayout({
   // workspace_settings — a real Supabase round trip) on client-side (RSC) navigations. It still
   // awaited it on a DOCUMENT load (hard reload, first visit, /profile's hard navigation), which sat
   // above every route's own loading.tsx Suspense boundary and blocked the whole RSC stream ~1.5s
-  // cold. This lane stops awaiting it there too: the promise is created here (kicked off eagerly,
-  // in parallel with everything else) and handed DOWN, UNRESOLVED, to <BootstrapBoundary> — the only
-  // thing that actually blocks on it (via React `use()`), and it sits inside its own <Suspense>,
-  // as a SIBLING of <AppShell>{children}</AppShell> — not an ancestor of it. Suspense only replaces
-  // its own subtree, never a sibling's, so the shell (nav rail, masthead) and the target route's own
-  // loading.tsx-wrapped content render and stream immediately, unblocked by this promise. See
-  // BootstrapBoundary.tsx's header for the full mechanism and AuthProvider.tsx's header for how the
-  // resolved value reaches it afterward without a remount.
-  //
-  // `headers()` itself stays a real await — it's a cheap, non-network Dynamic API read (not a
-  // Supabase round trip), so it adds no meaningful blocking time; only resolveServerBootstrap()'s
-  // network cost is the thing being deferred here.
-  const rscNav = isRscNavigation(await headers());
-  const bootstrapPromise: Promise<ServerBootstrap | null> = rscNav
-    ? Promise.resolve(null)
-    : resolveServerBootstrap();
+  // cold. This lane (PERF-4) stopped awaiting it there too; PERF-9 (above) then moved the whole
+  // decision — `headers()` read included — into <BootstrapResolver>, rendered only inside the
+  // Suspense boundary below, so RootLayout's own body now performs no I/O and touches no Dynamic
+  // API at all. <AppShell>{children}</AppShell> remains a SIBLING of that Suspense, never its
+  // descendant, so the shell and the target route's own loading.tsx-wrapped content still render
+  // and stream immediately regardless of how long bootstrap resolution takes.
 
   return (
     <html
@@ -85,7 +105,7 @@ export default async function RootLayout({
               the UX contract asks for IS the shell already rendering below, unblocked, with those
               slots simply not yet populated. */}
           <Suspense fallback={null}>
-            <BootstrapBoundary bootstrapPromise={bootstrapPromise} />
+            <BootstrapResolver />
           </Suspense>
           <ThemeInitializer />
           {/* R0.2 first-party error tracking: window.onerror + unhandled-

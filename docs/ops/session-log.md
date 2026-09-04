@@ -10020,3 +10020,36 @@ the fields the ledger renders, so the document is smaller and the detail fields 
 Dates: every milestone and due date on these three surfaces is now formatted in UTC on both server and
 client, so a reader in any time zone sees the calendar day the source states, never a day shifted by the
 viewer's clock. Fitts's-law surface: no new interactive element; F36 guards the date-format class in CI.
+
+### Addendum 85, postscript 51 — PERF-9: what the caching model actually is, and what it is not yet (2026-09-04)
+
+Train 39 landed as #586 (`ef3b6a6d`) after one CI failure that was mine: the memory gate's UX-compliance
+check, PERF-8's three surfaces had no block in postscript 50. Added, re-pushed, merged. Migration 304 is
+applied live; `POPULATION_PAUSED=true` is set. Dispatched after landing and in flight as I write:
+ledger-consume #2 (export, first 400 candidates with page text), corpus-turn #9 (apply, limit 200, the
+archived-item tickets closed by label), source-sweep #14 (sitemap, all hosts, 40, dry).
+
+PERF-9 (this train) is the rest of the speed work PERF-8 left, with one honest limit. Item 4, the 4.25 s
+item click: every detail route called the full server bootstrap (three sequential round trips) to read
+two fields, and on an RSC navigation the layout skips its own call, so the detail page's call was the
+sole full-cost caller on the critical path; a two-stage identity resolver replaces it at all five call
+sites. Item 5: four post-render per-user calls (personal state, list order, members, admin attention)
+collapse into one `GET /api/workspace/bootstrap`, each field fail-soft, fetched once per session;
+`/api/telemetry/error` was already off the critical path. Item 3, the caching model: ADR-026 records the
+split (public content through the existing `unstable_cache` + tags model, viewer state client-side after
+paint) and removes RootLayout's unconditional `headers()` call, but the route table is unchanged, 130 of
+130 routes still `ƒ`: Suspense alone does not restore static eligibility in Next 16 (measured: `/privacy`
+stayed dynamic), `experimental.ppr` is gone and `cacheComponents` is a whole-app flag the lane tested and
+reverted rather than flip untested, and the detail loaders' viewer-scoped reads plus the org-parameterised
+listing RPCs are the second cause. So the instant-click law is not met by this train; the expected gains
+are one round trip off every item click and three fewer post-render requests, to be measured live in
+Chrome after deploy. The follow-up is a dedicated lane (PERF-10) on Cache Components with the inventory
+ADR-026 lists, plus the RPC split, which needs a migration.
+
+UX compliance (PERF-9: the four `/[slug]` detail routes, the Owner & team card on /regulations/[slug]; no
+new controls). Primary goal: read one item's analysis one tap from a ledger row. Path: unchanged. One
+primary action: none on the detail page itself; on the Owner & team card, select an assignee from the
+roster. Feedback state: the route skeleton streams first and the content settles one round trip sooner;
+the card shows "Unassigned" or the current name while the roster loads and "Roster unavailable" on
+failure, the same states as before, now backed by the shared bootstrap fetch. Fitts's-law surface: no new
+interactive element. Layout and next.config changes have no screen (PERF-2's precedent).

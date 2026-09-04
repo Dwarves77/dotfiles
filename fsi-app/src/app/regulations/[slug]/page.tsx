@@ -56,7 +56,7 @@ import { loadDetail } from "@/lib/detail/load-detail";
 import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
 import { loadRegulationDetailObligations } from "@/lib/detail/regulation-obligations";
 import { getServiceSupabase } from "@/lib/supabase-service";
-import { resolveServerBootstrap } from "@/lib/api/server-bootstrap";
+import { resolveViewerIdentityFromCookies } from "@/lib/api/org";
 import { fetchWatchMembership, lookupWatchMembership } from "@/lib/watchlist/membership";
 import {
   buildResourceLookup,
@@ -140,17 +140,25 @@ export default async function RegulationDetailPage({
   // (already resolved above, and provably equal to the eventual result.resource.id: see
   // fetchIntelligenceItemUncached's `resourceId = row.legacy_id || row.id`, and the redirect above
   // already sent a mismatched uuid→legacy_id URL elsewhere before this point) is all it needs, plus
-  // the viewer's userId/orgId — resolveServerBootstrap() is React.cache()-scoped, so this reuses the
-  // SAME request-scoped result the root layout's own BootstrapBoundary already triggered (no second
-  // Supabase round trip for auth/org — see src/app/market/page.tsx's identical precedent). Threading
-  // this through RegulationDetailSurface → WatchButton as initialWatched/initialTeamWatched/
-  // initialTeamAvailable means WatchButton renders its real state on first paint and fires ZERO client
-  // fetch on mount (membership.ts's header, case 1).
+  // the viewer's userId/orgId. Threading this through RegulationDetailSurface → WatchButton as
+  // initialWatched/initialTeamWatched/initialTeamAvailable means WatchButton renders its real state
+  // on first paint and fires ZERO client fetch on mount (membership.ts's header, case 1).
+  //
+  // PERF-9 (2026-09-04, item 4, ADR-026 §3): was `resolveServerBootstrap()` — three SEQUENTIAL
+  // round trips (getClaims → org_memberships+profiles → workspace_settings), the last one entirely
+  // wasted here (workspaceSectors is never read below). React `cache()` made that free on a
+  // DOCUMENT load (the root layout's own BootstrapResolver call is shared), but on an RSC
+  // (client-side) navigation — the exact "click an item in the ledger" path the perf brief measured
+  // at 4.25s server render for an 18 KB payload — the root layout skips calling
+  // resolveServerBootstrap() at all (isRscNavigation), so this was the ONLY caller and paid the
+  // full three-stage cost fresh, on the critical path. resolveViewerIdentityFromCookies (org.ts) is
+  // the two-stage (getClaims → org_memberships) alternative that returns exactly userId+orgId and
+  // nothing else — same cache()/fail-soft contract, one fewer sequential round trip on every click.
   const watchMembershipPromise = (async () => {
-    const bootstrap = await resolveServerBootstrap();
+    const identity = await resolveViewerIdentityFromCookies();
     const membership = await fetchWatchMembership(getServiceSupabase(), {
-      userId: bootstrap.user?.id ?? null,
-      orgId: bootstrap.orgId,
+      userId: identity.userId,
+      orgId: identity.orgId,
       itemType: "reg",
       itemIds: [id],
     });

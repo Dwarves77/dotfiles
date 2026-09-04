@@ -154,3 +154,75 @@ export const resolveOrgIdFromCookies = cache(async (): Promise<string | null> =>
     return null;
   }
 });
+
+/** userId + orgId, the exact pair a watch-membership lookup needs — nothing else. */
+export interface ViewerIdentity {
+  userId: string | null;
+  orgId: string | null;
+}
+
+const EMPTY_VIEWER_IDENTITY: ViewerIdentity = { userId: null, orgId: null };
+
+/**
+ * Pure core of resolveViewerIdentityFromCookies — same split rationale as
+ * resolveOrgIdFromAuthenticatedClient just above (mockable with a plain
+ * fake client, no next/headers dependency). Exported for org.npmtest.mjs.
+ *
+ * PERF-9 (2026-09-04, item 4, docs/decisions/ADR-026-detail-cache-and-viewer-state-split.md
+ * §3): [CONFIRMED, all four detail pages read identically] each of
+ * regulations|market|operations|research's `[slug]/page.tsx` runs a
+ * `watchMembershipPromise` that calls the FULL `resolveServerBootstrap()`
+ * (server-bootstrap.ts) — three SEQUENTIAL round trips (getClaims →
+ * org_memberships + profiles in parallel → THEN workspace_settings, which
+ * depends on the org_id the second stage resolves) — to read only
+ * `bootstrap.user?.id` and `bootstrap.orgId`. `workspaceSectors` (the field
+ * that third, sequential-only stage exists to fetch) is never read by any
+ * watch-membership caller. On a DOCUMENT load this is free — the root
+ * layout's own resolveServerBootstrap() call (BootstrapResolver,
+ * layout.tsx) is React `cache()`-memoized per request, so a second caller
+ * shares the same in-flight promise. On an RSC (client-side) NAVIGATION —
+ * exactly the "click an item in the ledger" path the perf brief measured at
+ * 4.25 s server render for an 18 KB payload — the root layout's own
+ * `isRscNavigation` check (rsc-navigation.ts) skips calling
+ * resolveServerBootstrap() entirely, so the detail page's watchMembershipPromise
+ * becomes the ONLY caller and pays the full three-stage cost fresh, on the
+ * critical path, for a field it throws away. This function is the two-stage
+ * (getClaims → org_memberships) alternative — the same shape
+ * resolveOrgIdFromAuthenticatedClient already uses, extended to also return
+ * `userId` (already resolved from `claims.sub` internally; the prior
+ * function simply didn't return it) — so the wrapper below removes exactly
+ * that one wasted sequential round trip from every item click, on all four
+ * surfaces, with no behavior change to what watch-membership renders.
+ */
+export async function resolveViewerIdentityFromAuthenticatedClient(
+  supabase: SupabaseClient
+): Promise<ViewerIdentity> {
+  const { data, error } = await supabase.auth.getClaims();
+  if (error || !data?.claims?.sub) return EMPTY_VIEWER_IDENTITY;
+  const userId = data.claims.sub as string;
+  const { data: membership } = await supabase
+    .from("org_memberships")
+    .select("org_id")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return { userId, orgId: membership?.org_id ?? null };
+}
+
+/**
+ * Resolve `{ userId, orgId }` from the request's auth cookies — the
+ * cache()-wrapped, cookie-driven wrapper around
+ * resolveViewerIdentityFromAuthenticatedClient above. Same request-scoped
+ * memoization pattern as resolveOrgIdFromCookies/resolveServerBootstrap;
+ * same fail-soft-to-empty contract on any error (a caller with no session
+ * or no membership renders its public/seed view, never throws).
+ */
+export const resolveViewerIdentityFromCookies = cache(async (): Promise<ViewerIdentity> => {
+  try {
+    const supabase = await createSupabaseServerClient();
+    return await resolveViewerIdentityFromAuthenticatedClient(supabase);
+  } catch {
+    return EMPTY_VIEWER_IDENTITY;
+  }
+});
