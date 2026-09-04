@@ -176,6 +176,59 @@ export function resolveCensusRowId(payload, rowIdSet) {
   return typeof id === "string" && rowIdSet.has(id) ? id : null;
 }
 
+// ── validation-failed hold-back (lane URL-GUIL, 2026-09-03) ────────────────────────────────────────
+//
+// WHY THIS EXISTS. run-mint-batch.mjs's own `<basename>.mint-batch-report.json` already records every
+// payload the kit's C1-C7 gate rejected (`valid:false`, `failures[]`) — but nothing downstream ever wrote
+// that verdict back to the census_worklist row it came from. export-census-rows.mjs's own held-key index
+// (buildHeldKeyIndex/partitionExcludeHeldByKey, lane EXPORT-HOLD, 2026-09-03) excludes a row only when a
+// LIVE intelligence_items row already holds its canonical_instrument_key or source_url — an export-time
+// collision check, computed fresh from a live read every run and never persisted to census_worklist at
+// all (confirmed: export-census-rows.mjs makes no census_worklist write of any kind). A row the kit
+// validator itself rejects therefore keeps `dryrun_disposition = 'would_mint'` forever and is re-selected,
+// re-built, and re-rejected identically on every subsequent population-turn run — measured runs #15/#16
+// (mint-run-017/018), row 429c85d2 failing criterion 2 `ungrounded_url` identically both times.
+//
+// THE FIX reuses the ALREADY-EXISTING, ALREADY-CHECK-CONSTRAINED hold mechanism `census_worklist` has
+// carried since migration 221 — `dryrun_disposition = 'hold'` requires `hold_reason` (DB CHECK) — rather
+// than inventing a second one: `selectCensusRows` (export-census-rows.mjs) already filters
+// `dryrun_disposition === 'would_mint'` only, so flipping a failed row to `'hold'` removes it from every
+// future export's candidate pool with NO new filter code anywhere. No re-try rule keyed on kit/harness
+// version exists anywhere in this codebase today (checked: no `harness_version`/`kit_version`-keyed
+// retry logic in scripts/mint, scripts/turns, or src/lib/intake) — reopen-validation-holds.mjs (this
+// lane) is therefore the FIRST such mechanism, built the minimal way: it re-validates a held row's
+// current census export shape against the LIVE (fixed) validator and only re-admits (flips back to
+// `would_mint`, clears `hold_reason`) a row that now actually clears the gate — never a blind time- or
+// version-based unhold.
+export const VALIDATION_FAILED_HOLD_REASON_PREFIX = "validation_failed:";
+
+/** Build the census_worklist hold records this apply run's payload REPORT (run-mint-batch.mjs's
+ *  `<basename>.mint-batch-report.json`, `{generated_at, attempted, results:[{id, valid, failures[]}]}`)
+ *  implies. Pure. One entry per report result that (a) FAILED validation and (b) traces back to a real
+ *  census_worklist row via the SAME row_id resolution `resolveCensusRowId` uses for a successful mint
+ *  (run-mint-batch.mjs stamps `payload.id` from the SAME census row `row_id` this report's own `result.id`
+ *  carries, so the two never disagree) — a batch-file run's payloads, or a --census-rows `build_failed`
+ *  entry with no real row_id, correctly resolve to nothing here, the same as they always have for the
+ *  successful-mint stamp. `hold_reason` mirrors the exact template the operator specified:
+ *  `validation_failed:<criterion>:<reason>`, one segment per failure, comma-joined for a multi-failure
+ *  row, truncated at 900 chars (the same bound census-writer.mjs's own hold_reason already uses). The
+ *  full `failures[]` array is carried as `evidence` for the caller to write into census_worklist.notes —
+ *  the compact reason names WHAT failed, the evidence carries the exact `url`/`claim`/etc. fields a human
+ *  or a re-admission pass needs to judge whether a later fix actually addresses THIS row. */
+export function resolveValidationFailedHolds(report, rowIdSet) {
+  const out = [];
+  for (const r of report?.results ?? []) {
+    if (r?.valid !== false) continue;
+    if (typeof r?.id !== "string" || !rowIdSet.has(r.id)) continue;
+    const failures = Array.isArray(r.failures) ? r.failures : [];
+    const reason = failures.length
+      ? `${VALIDATION_FAILED_HOLD_REASON_PREFIX}${failures.map((f) => `${f.criterion}:${f.reason}`).join(",")}`
+      : `${VALIDATION_FAILED_HOLD_REASON_PREFIX}unknown`;
+    out.push({ rowId: r.id, hold_reason: reason.slice(0, 900), evidence: failures });
+  }
+  return out;
+}
+
 // ── row builders (pure; every field traced to a specific payload-schema.json input) ────────────────
 
 /** intelligence_items INSERT row. `domain` is the caller's pre-resolved value (domainForItemType) so this
@@ -442,8 +495,19 @@ function usage() {
   return [
     "Usage: node scripts/mint/apply-mint-batch.mjs --apply-ready path/to/batch.apply-ready.json",
     "         --census-rows path/to/census-rows.json --mint-run scripts/harness-runs/mint/mint-run-NNN.json",
+    "         [--report path/to/batch.mint-batch-report.json]   (default: same dir/basename as --apply-ready,",
+    "           suffix swapped .apply-ready.json -> .mint-batch-report.json, per run-mint-batch.mjs's own",
+    "           naming convention — used to hold-back every validation_failed census row, see",
+    "           resolveValidationFailedHolds; a run with no report at that path holds nothing, warns once)",
     "         [--apply]   (default: --dry — plans and prints, writes nothing)",
   ].join("\n");
+}
+
+/** Derive the sibling report path from --apply-ready's own path, the SAME suffix swap run-mint-batch.mjs's
+ *  own basename convention produces (`<base>.apply-ready.json` / `<base>.mint-batch-report.json`, both
+ *  written together by that script's --execute path, per its own header). Pure. */
+export function defaultReportPathFor(applyReadyPath) {
+  return applyReadyPath.replace(/\.apply-ready\.json$/, ".mint-batch-report.json");
 }
 
 export async function run(values, deps) {
@@ -457,6 +521,19 @@ export async function run(values, deps) {
   const censusRows = Array.isArray(censusRowsRaw) ? censusRowsRaw : censusRowsRaw?.rows ?? [];
   const rowIdSet = censusRowIdSet(censusRows);
   const mintRunArtifact = JSON.parse(readFileSync(mintRunPath, "utf8"));
+
+  // Validation-failed hold-back (lane URL-GUIL, 2026-09-03) — see resolveValidationFailedHolds's own
+  // header for the full rationale. The report is read tolerantly: an older sibling run, or a caller that
+  // never wrote one, must not fail an otherwise-healthy apply — it just means nothing gets held this pass
+  // (exactly today's status quo), reported once so the gap is legible rather than silent.
+  const reportPath = resolve(values.report || defaultReportPathFor(applyReadyPath));
+  let mintBatchReport = null;
+  try {
+    mintBatchReport = JSON.parse(readFileSync(reportPath, "utf8"));
+  } catch (err) {
+    console.warn(`apply-mint-batch: no mint-batch-report at ${reportPath} (${err.code ?? err.message}) — validation_failed rows will NOT be held this run.`);
+  }
+  const validationFailedHolds = mintBatchReport ? resolveValidationFailedHolds(mintBatchReport, rowIdSet) : [];
 
   const liveItems = await deps.readAll("intelligence_items", "id, source_url, canonical_instrument_key, archive_reason");
   const liveSources = await deps.readAll("sources", "id, url, status, category, base_tier");
@@ -510,8 +587,29 @@ export async function run(values, deps) {
   }
 
   if (!apply) {
-    console.log("apply-mint-batch: DRY — nothing written (no DB write, no census_worklist stamp, no mint-run artifact enrichment).");
-    return { applied: false, perItemPatches };
+    if (validationFailedHolds.length) {
+      console.log(`apply-mint-batch: DRY — would hold ${validationFailedHolds.length} validation_failed census_worklist row(s): ${validationFailedHolds.map((h) => `${h.rowId} (${h.hold_reason})`).join("; ")}`);
+    }
+    console.log("apply-mint-batch: DRY — nothing written (no DB write, no census_worklist stamp, no hold-back, no mint-run artifact enrichment).");
+    return { applied: false, perItemPatches, validationFailedHolds };
+  }
+
+  // ── validation-failed hold-back write (apply mode only) ─────────────────────────────────────────
+  const holdFailures = [];
+  let validationFailedHeld = 0;
+  for (const hold of validationFailedHolds) {
+    try {
+      await ctx.db.guardedUpdate(
+        "census_worklist",
+        (qb) => qb.eq("id", hold.rowId),
+        { dryrun_disposition: "hold", hold_reason: hold.hold_reason, notes: JSON.stringify(hold.evidence) },
+        { cite: ctx.cite, select: "id, dryrun_disposition, hold_reason" },
+      );
+      validationFailedHeld += 1;
+      console.log(`  [hold] ${hold.rowId}: ${hold.hold_reason}`);
+    } catch (e) {
+      holdFailures.push({ rowId: hold.rowId, error: e instanceof Error ? e.message : String(e) });
+    }
   }
 
   const mintedVerified = perItemPatches.filter((p) => p.outcome === "minted_verified").length;
@@ -525,9 +623,17 @@ export async function run(values, deps) {
     minted_unverified: mintedUnverified,
     apply_failed: applyFailed.length,
     census_rows_reconciled: censusReconciled,
+    validation_failed_held: validationFailedHeld,
     ...Object.fromEntries(Object.entries(notAppliedCounts)),
   };
   const defectsToAppend = [];
+  if (holdFailures.length) {
+    defectsToAppend.push({
+      description: `${holdFailures.length} validation_failed census_worklist row(s) could not be held (dryrun_disposition/hold_reason write failed) — they will be re-selected on the next export unchanged: ${holdFailures.map((f) => f.rowId).join(", ")}`,
+      root_cause: holdFailures.map((f) => `${f.rowId}: ${f.error}`).join(" | "),
+      fix_ref: null,
+    });
+  }
   if (censusStampFailures.length) {
     defectsToAppend.push({
       description: `${censusStampFailures.length} minted payload(s) could not have their census_worklist row stamped reconciled: ${censusStampFailures.map((f) => f.id).join(", ")}`,
@@ -556,7 +662,10 @@ export async function run(values, deps) {
     defectsToAppend,
     proposerNoteAppend:
       `apply-mint-batch.mjs enrichment (${new Date().toISOString()}): ${minted} minted (${mintedVerified} verified, ${mintedUnverified} not), ` +
-      `${applyFailed.length} apply_failed, ${Object.values(notAppliedCounts).reduce((a, b) => a + b, 0)} not_applied. Discovery + forward-event ` +
+      `${applyFailed.length} apply_failed, ${Object.values(notAppliedCounts).reduce((a, b) => a + b, 0)} not_applied, ` +
+      `${validationFailedHeld} validation_failed census_worklist row(s) held (dryrun_disposition='hold', see hold_reason/notes — ` +
+      "lane URL-GUIL; re-admitted only by scripts/mint/reopen-validation-holds.mjs re-validating against the live gate, never a blind unhold). " +
+      "Discovery + forward-event " +
       "extraction (MINT-RUNBOOK.md §8) did NOT run as part of this apply — that is a separate post-apply " +
       "pass over the newly-minted items, per that runbook's own hand-off model, not skipped in error.",
   });
@@ -567,9 +676,12 @@ export async function run(values, deps) {
   }
   const dir = dirname(mintRunPath);
   const written = writeRunArtifact(dir, enriched, { allowOverwrite: true });
-  console.log(`apply-mint-batch: enriched ${written} — minted=${minted} db_deltas=${JSON.stringify(dbDeltas)}`);
+  console.log(`apply-mint-batch: enriched ${written} — minted=${minted} db_deltas=${JSON.stringify(dbDeltas)} validation_failed_held=${validationFailedHeld}`);
   if (censusStampFailures.length) {
     console.warn(`apply-mint-batch: ${censusStampFailures.length} census_worklist stamp failure(s) — see defects_found in the enriched artifact.`);
+  }
+  if (holdFailures.length) {
+    console.warn(`apply-mint-batch: ${holdFailures.length} validation_failed hold-back failure(s) — see defects_found in the enriched artifact.`);
   }
 
   if (minted > 0) {
@@ -578,7 +690,7 @@ export async function run(values, deps) {
     console.log(`apply-mint-batch: cache flush ${flush.applied ? "sent" : "skipped"} (${flush.reason ?? flush.status ?? "ok"}): ${tags.join(", ")}`);
   }
 
-  return { applied: true, perItemPatches, dbDeltas, minted, censusReconciled };
+  return { applied: true, perItemPatches, dbDeltas, minted, censusReconciled, validationFailedHeld, holdFailures };
 }
 
 async function main() {
@@ -587,6 +699,7 @@ async function main() {
       "apply-ready": { type: "string" },
       "census-rows": { type: "string" },
       "mint-run": { type: "string" },
+      report: { type: "string" },
       apply: { type: "boolean", default: false },
       dry: { type: "boolean", default: false },
       help: { type: "boolean", default: false },

@@ -1,7 +1,79 @@
 # Last proposer pass — mint
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **sixteen** artifacts (`mint-run-001` …
-`mint-run-016`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-016**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **eighteen** artifacts (`mint-run-001` …
+`mint-run-018`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-018**.
+
+## Pass of 2026-09-03, evening (lane ARTIFACTS — mint-run-017, mint-run-018: two more limit-~200 slices, and the first `ungrounded_url` failure in this cycle)
+
+**Artifacts read:** mint-run-017 (population-turn run `33804773824`, apply, 2026-09-03T20:59Z, 178
+attempted) and mint-run-018 (population-turn run `33806554326`, apply, 2026-09-03T21:17Z, 169
+attempted), both `harness_version sha256:c933647da54908a1` — unchanged since mint-run-016, so no
+`PENDING-RUN.md` is owed for this pass. Both were pushed to their own `population/<run_id>` branches
+(Actions PR-creation is refused) and landed here by cherry-pick; neither branch was previously on
+master.
+
+**Full traces read:** both runs' `census-rows.json`, `census-rows.held.json`,
+`census-rows.screened-out.json`, `census-rows.mint-batch-report.json`, and `census-rows.apply-ready.json`
+under `scripts/_snapshots/population-33804773824/` and `scripts/_snapshots/population-33806554326/`.
+
+**Metrics [CONFIRMED, read from the artifact JSON]:** run-017: `attempted 178, valid 177, invalid 1,
+minted 177, minted_verified 177, apply_failed 0`; db_deltas items 177 / sections 463 / claims 1,116 /
+citations 152. run-018: `attempted 169, valid 168, invalid 1, minted 168, minted_verified 168,
+apply_failed 0`; db_deltas items 168 / sections 436 / claims 1,052 / citations 137. Held: run-017 34 rows
+(`already_held_by_key` 12, `capture_blocked` 12, `canonical_key_unresolved` 3, `item_type_unmapped` 7);
+run-018 43 rows (`already_held_by_key` 12, `capture_blocked` 13, `canonical_key_unresolved` 3,
+`no_capture_path` 4, `item_type_unmapped` 11). Screened out before either slice was drawn: 1,116
+off-vertical / 244 ambiguous (identical counts both runs — same screen ruling over the same census).
+
+**Hypotheses (verified, with basis):**
+1. **A new `ungrounded_url` failure, the same row, both runs.** Both artifacts' one `validation_failed`
+   item carries the identical payload id `429c85d2-4176-4ff5-ab3e-9d98e364a58a`, the identical error
+   `[2] ungrounded_url`, and the identical malformed URL `http://eur-lex»` — a bare `»` (U+00BB,
+   right-pointing guillemet) truncating the source URL. Basis: read both `census-rows.mint-batch-report.json`
+   `results[]` entries byte-for-byte; identical down to the tag-presence warning block. Traced to
+   census row `0b697692-68cf-49d7-83cb-a26f610c8b32` (CELEX `22004A0806(01)`, source
+   `https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:22004A0806(01)`), whose `captured_text` is a
+   legal protocol saturated with French-style guillemet quotation marks (`«Convention»`, `«pollution
+   incident»`, …). The record-facts extractor's URL-grounding pass appears to have matched a span
+   adjacent to one such guillemet and truncated at it, producing a URL that grounds to nothing. This is
+   the same corrigendum/agreement CELEX shape (`(01)` suffix) already named in earlier passes as a
+   `capture_blocked` class, but this is the first time one of that class reached the *validator* with a
+   different failure mode (`ungrounded_url`, not a capture hold) — the row was captured fine and the
+   payload built, but one FACT's URL span is corrupted.
+2. **Because the row fails validation (never mints, never gets held), it stays `would_mint` and is
+   re-exported on the very next dispatch, failing identically.** This is not this pass inferring a
+   pattern from one run — it is directly observed: the SAME payload id appears with the SAME failure
+   in run-017 (`census-rows.json` for `33804773824`) and again in run-018
+   (`census-rows.json` for `33806554326`), one dispatch apart. Left unaddressed, this row (and any other
+   guillemet-adjacent-URL row) will keep re-appearing and re-failing on every future slice at $0 wasted
+   attempt each time, forever, since nothing currently marks a `validation_failed` row so the exporter
+   skips re-selecting it.
+3. **Validator-first-pass rate held at ~99.4% both runs** (177/178, 168/169) — consistent with the
+   family's recent history (016: 178/178) and not itself a regression; one new failure class surfacing
+   in 347 attempted rows is not evidence the validator degraded.
+4. **Held-class mix is stable**, still dominated by `capture_blocked` (the EUR-Lex `(01)` robot-gated
+   pages named in the mint-run-015/016 pass) and `already_held_by_key`/`item_type_unmapped`; `no_capture_path`
+   (4 rows, run-018 only) is the classification EXPORT-HOLD's postscript-8 fix introduced for malformed
+   CELEX shapes Cellar 404s under either encoding — its first appearance in a landed artifact.
+5. **Pool remaining, read from the two runs together:** 178 + 169 = 347 rows attempted across these two
+   slices; roughly 1,300 − 347 ≈ 950 mintable rows likely remain per the run-015/016 pass's estimate,
+   though this pass did not re-query the live `would_mint`/held counts to confirm that figure — flagged
+   as an estimate carried forward, not independently re-measured this pass.
+
+**Proposal:** (1) **Investigate the guillemet-truncated URL as its own defect**, not folded into the
+already-understood `(01)`-CELEX capture-block class: read `record-facts.mjs`'s URL-grounding regex
+against row `0b697692`'s `captured_text` directly and confirm whether `»` (or any non-ASCII punctuation)
+terminates the match early — same "unicode-normalization span checking" class of defect mint-run-001's
+`defects_found` already named as MH-3 scope, recurring in a new shape. (2) **Exclude
+`validation_failed` rows from re-selection** the same way `already_held_by_key` rows are now excluded
+(EXPORT-HOLD's postscript-8 fix) — otherwise every future slice pays one wasted `attempted` row per
+un-fixed failure, forever, and a proposer pass has to rediscover the same repeat-failure each time
+instead of it being visible as a single held reason. (3) Both are scoped for a future mint-governing-file
+change; not implemented in this landing (this lane cherry-picks and attests only, per its dispatch).
+
+**Family gates status:** this landing adds two run artifacts and this attestation only; no
+governing-file change (`harness_version` of runs 017/018 matches the current tree, unchanged since
+run-016).
 
 ## Pass of 2026-09-03, midday (mint-run-015 dry, mint-run-016 apply — the first limit-200 slice on post-Wave-3 master)
 

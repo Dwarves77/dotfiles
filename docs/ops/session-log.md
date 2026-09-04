@@ -8998,3 +8998,31 @@ origin-class-backfill apply with R-E accepted: nulls 1,160 → 211. Change detec
 and drained 0, as build mode predicts. Lane discipline: I ran the two lanes one after the other instead of
 in one dispatch; the operator noticed the queue looked single-threaded. Gates on the train: 282 lane
 tests, fitness 29/0, discipline 141/0.
+
+### Addendum 85, postscript 18 — two more lanes, artifacts landed, migration 300 live (2026-09-04)
+
+Lane discipline corrected: lanes now run in the same dispatch, not one after the other. ARTIFACTS
+(Sonnet, `3f717ff8`): landed the six unlanded run branches (change-detection 002/003/004, corpus-turn
+#7 → forward-events-run-005, population #15 → mint-run-017, #16 → mint-run-018) with proposer passes;
+forward-events' PENDING-RUN discharged by run-005's matching hash; change-detection's PENDING-RUN kept
+(runs 003/004 predate CD-GATE, old hash). Proposer finding on mint: one row failed criterion 2 identically
+in #15 and #16 with `ungrounded_url: http://eur-lex»`, re-selected every run.
+
+URL-GUIL (Sonnet, `474a0b07`, 23+2+13 new tests) traced that to three defects and fixed all three
+[CONFIRMED by the lane against the run branch's snapshot and read-only against live]: (1) the URL
+character class in criterion 2 and its JS mirror excluded `"'<>` but not the kit's own guillemet span
+delimiter, so a URL glued to a closing `»` swallowed it; (2) the kit's own trigger continuation window
+`[^.;\n]{0,90}` stopped at the first dot of `eur-lex.europa.eu`, which is why the span read
+`http://eur-lex` at all (the captured legislation.gov.uk text carries the full URL); every trigger
+window now consumes a URL atomically; (3) nothing wrote a validator failure back to `census_worklist`,
+so the exporter's `would_mint` filter re-selected the row forever; `apply-mint-batch.mjs` now holds
+`valid:false` rows with `validation_failed:<criterion>:<reason>` through the table's own migration-221
+hold columns, and `scripts/mint/reopen-validation-holds.mjs` (dry by default, reason-scoped,
+coordinator-invoked) is the re-admission path, the first such rule in the repo. Migration 300 written
+with a pre-md5 guard and applied live by me through the Supabase MCP at 00:13 UTC [CONFIRMED: post md5
+`da6b00972e5a9bdb089bbe1f1d65d697`, `schema_migrations` 20260904001306]; inventory row added.
+
+Dispatched on master `a9cf6c93`: Maintenance #17 `provenance-heal quarantined-live` apply under HEAL-4;
+#18 `institution-canonicalize` dry. Population #17 completed (read next). Train gates: fitness 29/0,
+discipline 141/0, mint+turns 788/0. F28: mint PENDING-RUN at `sha256:ebb4130c5892235d` (record-facts
+and the kit validator moved), discharged by the next population run under this code.

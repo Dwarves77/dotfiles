@@ -349,6 +349,30 @@ run's export/apply-ready/report files on branch `population/<run_id>` → PR via
 `scripts/turns/deliver-artifact-branch.sh`. No new harness family: every run enriches the existing `mint`
 family's artifact, per this section's own framing above.
 
+**Validation-failed hold-back (lane URL-GUIL, 2026-09-03).** `run-mint-batch.mjs`'s own `<basename>.mint-
+batch-report.json` records `valid:false` + `failures[]` for every payload the C1-C7 gate rejects, but
+before this lane nothing wrote that verdict back to the `census_worklist` row it came from — the row's
+`dryrun_disposition` stayed `would_mint` forever, so `export-census-rows.mjs` re-selected, re-built, and
+re-failed it IDENTICALLY on every subsequent run (measured: population runs #15/#16, mint-run-017/018, row
+`429c85d2` failing criterion 2 `ungrounded_url` twice running). `apply-mint-batch.mjs` now reads the
+report (`--report`, defaulting to the sibling path `defaultReportPathFor` derives from `--apply-ready`) and
+holds every `valid:false` row that traces to a real census row (`resolveValidationFailedHolds`):
+`dryrun_disposition = 'hold'`, `hold_reason = 'validation_failed:<criterion>:<reason>'` (comma-joined for
+multiple failures), `notes` = the full `failures[]` JSON. This reuses the table's OWN pre-existing hold
+mechanism (migration 221's `dryrun_disposition = 'hold'` ⟺ `hold_reason IS NOT NULL` CHECK) rather than a
+new column — `selectCensusRows` already filters `dryrun_disposition === 'would_mint'` only, so a held row
+drops out of every future export with no new filter code anywhere.
+
+A held row is re-admitted ONLY by `scripts/mint/reopen-validation-holds.mjs --reason-contains <substring>
+[--apply]` — dry by default, coordinator-invoked, and scoped to a hold_reason substring (e.g.
+`ungrounded_url`) the caller names explicitly after landing a fix that plausibly resolves that failure
+class (migration 300 + this lane's other fixes, for the criterion-2 case). It does NOT re-validate a row
+itself — no existing re-try rule keyed on kit/harness version was found anywhere in this codebase to
+follow, so this script is deliberately the minimal, honest first one: it flips the row back to
+`would_mint` and appends a `[reopened …]` marker to `notes` (never overwriting the held evidence already
+there), and the NEXT population-turn's real capture + `run-mint-batch.mjs` pass decides the row's fate for
+real. There is no cron entry point for this script on purpose.
+
 ### §11 addendum (Lane POP2, 2026-09-02) — the first live dry run's per-family identity/capture rewrite
 
 The first live `population-turn` dispatch (run `33639133429`, `limit=50`, `capture=true`) exported

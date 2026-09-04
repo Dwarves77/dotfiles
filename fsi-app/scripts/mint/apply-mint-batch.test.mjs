@@ -23,6 +23,9 @@ import {
   computeGateAState,
   enrichMintRunArtifact,
   applyOnePayload,
+  resolveValidationFailedHolds,
+  defaultReportPathFor,
+  VALIDATION_FAILED_HOLD_REASON_PREFIX,
   run,
 } from "./apply-mint-batch.mjs";
 import { validateRunArtifact } from "../lib/run-artifact.mjs";
@@ -72,6 +75,53 @@ test("censusRowIdSet / resolveCensusRowId: a payload traces back to its row ONLY
   assert.equal(resolveCensusRowId({ id: "cw-1" }, rowIdSet), "cw-1");
   assert.equal(resolveCensusRowId({ id: "CELEX:32024R0001" }, rowIdSet), null); // fell back to a non-row_id id
   assert.equal(resolveCensusRowId({}, rowIdSet), null);
+});
+
+// ── resolveValidationFailedHolds / defaultReportPathFor (lane URL-GUIL, 2026-09-03) ───────────────────
+
+test("defaultReportPathFor: swaps the apply-ready suffix for the sibling mint-batch-report suffix", () => {
+  assert.equal(
+    defaultReportPathFor("/x/scripts/_snapshots/population-1/census-rows.apply-ready.json"),
+    "/x/scripts/_snapshots/population-1/census-rows.mint-batch-report.json",
+  );
+});
+
+test("resolveValidationFailedHolds: one hold per failed result that traces to a real census row_id; a valid result, an untraceable id, and a build_failed entry all produce nothing", () => {
+  const rowIdSet = censusRowIdSet([{ row_id: "cw-1" }, { row_id: "cw-2" }]);
+  const report = {
+    results: [
+      { id: "cw-1", valid: true, failures: [] },
+      { id: "cw-2", valid: false, failures: [{ criterion: 2, reason: "ungrounded_url", url: "http://eur-lex»" }] },
+      { id: "CELEX:32024R0001", valid: false, failures: [{ criterion: 3, reason: "fact_missing_source_span" }] }, // no row_id
+      { id: "census-index-9", valid: false, failures: [{ criterion: "kit", reason: "record_build_failed" }] }, // untraceable
+    ],
+  };
+  const holds = resolveValidationFailedHolds(report, rowIdSet);
+  assert.equal(holds.length, 1);
+  assert.equal(holds[0].rowId, "cw-2");
+  assert.equal(holds[0].hold_reason, `${VALIDATION_FAILED_HOLD_REASON_PREFIX}2:ungrounded_url`);
+  assert.deepEqual(holds[0].evidence, report.results[1].failures);
+});
+
+test("resolveValidationFailedHolds: multiple failures on one row comma-join into a single hold_reason, in report order", () => {
+  const rowIdSet = censusRowIdSet([{ row_id: "cw-1" }]);
+  const report = {
+    results: [
+      { id: "cw-1", valid: false, failures: [
+        { criterion: 2, reason: "ungrounded_url" },
+        { criterion: 3, reason: "fact_missing_source_span" },
+      ] },
+    ],
+  };
+  const holds = resolveValidationFailedHolds(report, rowIdSet);
+  assert.equal(holds[0].hold_reason, `${VALIDATION_FAILED_HOLD_REASON_PREFIX}2:ungrounded_url,3:fact_missing_source_span`);
+});
+
+test("resolveValidationFailedHolds: an empty/missing report, or one with no failing traceable rows, holds nothing", () => {
+  const rowIdSet = censusRowIdSet([{ row_id: "cw-1" }]);
+  assert.deepEqual(resolveValidationFailedHolds(null, rowIdSet), []);
+  assert.deepEqual(resolveValidationFailedHolds({ results: [] }, rowIdSet), []);
+  assert.deepEqual(resolveValidationFailedHolds({ results: [{ id: "cw-1", valid: true }] }, rowIdSet), []);
 });
 
 // ── row builders ─────────────────────────────────────────────────────────────────────────────────────
@@ -476,6 +526,87 @@ test("run(): APPLY mode enriches the mint-run artifact in place and keeps it val
   assert.equal(onDisk.metrics.minted_verified, 1);
   assert.equal(onDisk.metrics.apply_failed, 0);
   assert.equal(onDisk.metrics.census_rows_reconciled, 1);
+}));
+
+test("run(): APPLY mode holds every validation_failed census row named in the sibling mint-batch-report (default path), never touching a row that DID mint", () => withTmpDir(async (dir) => {
+  const applyReadyPath = join(dir, "census-rows.apply-ready.json");
+  const reportPath = join(dir, "census-rows.mint-batch-report.json"); // defaultReportPathFor's own naming
+  const censusRowsPath = join(dir, "census-rows.json");
+  const mintRunPath = join(dir, "mint-run-903.json");
+  writeJson(applyReadyPath, [PAYLOAD]); // only cw-1 minted
+  writeJson(censusRowsPath, [{ row_id: "cw-1" }, { row_id: "cw-2" }]);
+  writeJson(reportPath, {
+    generated_at: "2026-09-03T00:00:00Z",
+    attempted: 2,
+    results: [
+      { id: "cw-1", valid: true, recommended_status: "verified", failures: [] },
+      { id: "cw-2", valid: false, recommended_status: "quarantined", failures: [{ criterion: 2, reason: "ungrounded_url", url: "http://eur-lex»" }] },
+    ],
+  });
+  writeJson(mintRunPath, baseArtifact({ run_id: "mint-run-903" }));
+
+  const db = fakeAppliedDb();
+  const result = await run(
+    { "apply-ready": applyReadyPath, "census-rows": censusRowsPath, "mint-run": mintRunPath, apply: true },
+    { readAll: async (table) => (table === "sources" ? [{ id: "src-1", url: "https://eur-lex.europa.eu", status: "active", category: "regulatory", base_tier: 1 }] : []), guardedInsert: db.guardedInsert, guardedInsertMany: db.guardedInsertMany, guardedUpdate: db.guardedUpdate, guardedDelete: db.guardedDelete, registerSource: db.registerSource, readItemProvenance: db.readItemProvenance, rpc: async () => ({ valid: true, recommended_status: "verified" }) },
+  );
+  assert.equal(result.validationFailedHeld, 1);
+  assert.deepEqual(result.holdFailures, []);
+
+  const holdCalls = db.calls.filter((c) => c.fn === "guardedUpdate" && c.table === "census_worklist" && c.patch.dryrun_disposition === "hold");
+  assert.equal(holdCalls.length, 1, JSON.stringify(db.calls));
+  assert.equal(holdCalls[0].patch.hold_reason, `${VALIDATION_FAILED_HOLD_REASON_PREFIX}2:ungrounded_url`);
+  assert.deepEqual(JSON.parse(holdCalls[0].patch.notes), [{ criterion: 2, reason: "ungrounded_url", url: "http://eur-lex»" }]);
+  // the minted row's own census stamp (enumeration_status='reconciled') is a SEPARATE guardedUpdate call —
+  // never carries dryrun_disposition, and the held row's own guardedUpdate never carries enumeration_status.
+  const reconcileCalls = db.calls.filter((c) => c.fn === "guardedUpdate" && c.table === "census_worklist" && c.patch.enumeration_status === "reconciled");
+  assert.equal(reconcileCalls.length, 1);
+  assert.equal(reconcileCalls[0].patch.dryrun_disposition, undefined);
+  assert.equal(holdCalls[0].patch.enumeration_status, undefined);
+
+  const onDisk = JSON.parse(readFileSync(mintRunPath, "utf8"));
+  assert.equal(onDisk.metrics.validation_failed_held, 1);
+  assert.match(onDisk.proposer_notes, /1 validation_failed census_worklist row\(s\) held/);
+}));
+
+test("run(): APPLY mode — no mint-batch-report at the default path holds nothing and does not fail the run", () => withTmpDir(async (dir) => {
+  const applyReadyPath = join(dir, "batch.apply-ready.json"); // no sibling batch.mint-batch-report.json written
+  const censusRowsPath = join(dir, "census-rows.json");
+  const mintRunPath = join(dir, "mint-run-904.json");
+  writeJson(applyReadyPath, [PAYLOAD]);
+  writeJson(censusRowsPath, [{ row_id: "cw-1" }]);
+  writeJson(mintRunPath, baseArtifact({ run_id: "mint-run-904" }));
+
+  const db = fakeAppliedDb();
+  const result = await run(
+    { "apply-ready": applyReadyPath, "census-rows": censusRowsPath, "mint-run": mintRunPath, apply: true },
+    { readAll: async (table) => (table === "sources" ? [{ id: "src-1", url: "https://eur-lex.europa.eu", status: "active", category: "regulatory", base_tier: 1 }] : []), guardedInsert: db.guardedInsert, guardedInsertMany: db.guardedInsertMany, guardedUpdate: db.guardedUpdate, guardedDelete: db.guardedDelete, registerSource: db.registerSource, readItemProvenance: db.readItemProvenance, rpc: async () => ({ valid: true, recommended_status: "verified" }) },
+  );
+  assert.equal(result.validationFailedHeld, 0);
+  assert.equal(result.minted, 1, "the absence of a report must never block the real payloads from minting");
+}));
+
+test("run(): APPLY mode — a validation_failed hold write failure is recorded as a defect, never silently dropped", () => withTmpDir(async (dir) => {
+  const applyReadyPath = join(dir, "census-rows.apply-ready.json");
+  const reportPath = join(dir, "census-rows.mint-batch-report.json");
+  const censusRowsPath = join(dir, "census-rows.json");
+  const mintRunPath = join(dir, "mint-run-905.json");
+  writeJson(applyReadyPath, []); // nothing to mint this run — only the hold path is under test
+  writeJson(censusRowsPath, [{ row_id: "cw-9" }]);
+  writeJson(reportPath, { results: [{ id: "cw-9", valid: false, failures: [{ criterion: 2, reason: "ungrounded_url" }] }] });
+  writeJson(mintRunPath, baseArtifact({ run_id: "mint-run-905" }));
+
+  const db = fakeAppliedDb();
+  db.guardedUpdate = async (table) => { throw new Error(`${table} update refused (RLS)`); };
+  const result = await run(
+    { "apply-ready": applyReadyPath, "census-rows": censusRowsPath, "mint-run": mintRunPath, apply: true },
+    { readAll: async () => [], guardedInsert: db.guardedInsert, guardedInsertMany: db.guardedInsertMany, guardedUpdate: db.guardedUpdate, guardedDelete: db.guardedDelete, registerSource: db.registerSource, readItemProvenance: db.readItemProvenance, rpc: async () => { throw new Error("no payloads, rpc must not run"); } },
+  );
+  assert.equal(result.validationFailedHeld, 0);
+  assert.equal(result.holdFailures.length, 1);
+  assert.equal(result.holdFailures[0].rowId, "cw-9");
+  const onDisk = JSON.parse(readFileSync(mintRunPath, "utf8"));
+  assert.ok(onDisk.defects_found.some((d) => /hold-back failure/.test(d.description) || /could not be held/.test(d.description)), JSON.stringify(onDisk.defects_found));
 }));
 
 test("run(): APPLY mode — a payload that fails part-way is recorded apply_failed with its cleanup, the batch continues, and the artifact carries the defect", () => withTmpDir(async (dir) => {

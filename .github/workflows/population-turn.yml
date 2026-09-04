@@ -232,7 +232,11 @@ jobs:
 
       - name: apply-mint-batch.mjs (coordinator-apply — apply only in apply mode)
         run: |
-          args=(--apply-ready "$EXPORT_DIR/${CENSUS_ROWS_BASENAME}.apply-ready.json" --census-rows "$CENSUS_ROWS_PATH" --mint-run "$NEW_MINT_RUN")
+          # --report is technically optional (apply-mint-batch.mjs derives the same path from
+          # --apply-ready's own basename, defaultReportPathFor) — named explicitly here anyway, so the
+          # validation_failed hold-back (lane URL-GUIL, 2026-09-03) has an unambiguous input regardless of
+          # any future change to that derivation.
+          args=(--apply-ready "$EXPORT_DIR/${CENSUS_ROWS_BASENAME}.apply-ready.json" --report "$EXPORT_DIR/${CENSUS_ROWS_BASENAME}.mint-batch-report.json" --census-rows "$CENSUS_ROWS_PATH" --mint-run "$NEW_MINT_RUN")
           if [ "${{ inputs.mode }}" = "apply" ]; then args+=(--apply); fi
           node scripts/mint/apply-mint-batch.mjs "${args[@]}"
 

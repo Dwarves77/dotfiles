@@ -1,0 +1,35 @@
+{
+  "harness_family": "forward-events",
+  "harness_version": "sha256:d47a10728a3cc799",
+  "run_id": "forward-events-run-005",
+  "started_at": "2026-09-03T20:29:28.378Z",
+  "finished_at": "2026-09-03T20:29:28.382Z",
+  "config": {
+    "input": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/turn-33802504364/turn-corpus.json",
+    "out_dir": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/turn-33802504364",
+    "execute": true,
+    "mode": "execute"
+  },
+  "inputs_ref": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/turn-33802504364/turn-corpus.json"
+  ],
+  "per_item": [],
+  "metrics": {
+    "items_processed": 0,
+    "items_with_events": 0,
+    "events_emitted": 0,
+    "skips": 0,
+    "by_kind": {},
+    "by_confidence": {},
+    "by_precision": {},
+    "by_skip_reason": {},
+    "extractor_version": "fe1-2026-09-03.1"
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/turn-33802504364/turn-corpus.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/turn-33802504364/turn-corpus.events.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/turn-33802504364/turn-corpus.skipped.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-extraction.mjs's own execution path (Wave MH-5) — the family's first versioned, in-repo runner; forward-events-run-001.json was produced by an external scratch script (see its own inputs_ref/full_trace_refs paths under /root/work/forward-events/), which this script replaces going forward."
+}
