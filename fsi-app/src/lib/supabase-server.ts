@@ -472,6 +472,88 @@ export interface ResourcePage {
   offset: number;
 }
 
+type WorkspaceItemsServiceClient = ReturnType<typeof getServiceSupabase>;
+
+/**
+ * RPC variants whose OWN internal `RETURN QUERY ... ORDER BY` already ends in a unique tiebreak
+ * (`ii.id ASC`) and therefore produces a complete, deterministic total order by itself —
+ * [CONFIRMED, live `pg_get_functiondef`, 2026-09-04]:
+ * `get_workspace_intelligence_listings`'s body ends `..., ii.added_date DESC, ii.id ASC;`. Only a
+ * name in this set is safe to paginate with `.range()` alone (see buildWorkspaceItemsQuery's header
+ * for why an outer `.order()` is otherwise required). `get_workspace_intelligence_slim` — the other
+ * RPC this module ever paginates (fetchResourcesOnly, /operations + /market) — was ALSO read live
+ * this session and its own ORDER BY ends `..., ii.added_date DESC;` with NO `id` tiebreak, so it is
+ * deliberately NOT in this set; see the fallback branch below.
+ */
+const LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER = new Set<string>(["get_workspace_intelligence_listings"]);
+
+/**
+ * Builds the (possibly ranged) query for one page of workspace-intelligence RPC rows.
+ *
+ * FIRSTPAGE lane (2026-09-04, docs/audits/perf-load-times-2026-09-03.md §14): pulled out of
+ * fetchWorkspaceResources so the ordering decision below is a single, unit-testable chain rather
+ * than buried inside a much larger function.
+ *
+ * THE BUG THIS REPLACES (regulations only — see the RPC-name guard below for why this fix does not
+ * touch /operations or /market). This used to unconditionally chain
+ * `.order("added_date", desc).order("id", asc)` onto the RPC call whenever `page` was given. A
+ * PostgREST `.order()` on an RPC call becomes the query's OUTER ORDER BY and — [CONFIRMED, live
+ * read-only SQL against the production DB, 2026-09-04] — a Postgres query with an outer ORDER BY
+ * always wins over whatever order the called set-returning function's own `RETURN QUERY ... ORDER
+ * BY` produced internally; it does not merely tiebreak within that internal order, it replaces it.
+ * `get_workspace_intelligence_listings` (migration 272, byte-identical live via
+ * `pg_get_functiondef`) already carries the exact ORDER BY the surface's default sort needs: `CASE
+ * effective_priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'MODERATE' THEN 3 WHEN 'LOW'
+ * THEN 4 ELSE 5 END, added_date DESC, id ASC` — the same CRITICAL→HIGH→MODERATE→LOW band rank
+ * RegulationsLedger.tsx's four bands render top-to-bottom in. The old unconditional outer `.order()`
+ * discarded that CASE rank and left only `added_date DESC, id ASC` — live-reproduced on 2026-09-04:
+ * with that ordering, the org's first 60 rows were 100% MODERATE ("Monitor" band), 0% of the 13
+ * CRITICAL + 30 HIGH rows a reader opens the page for, which is exactly the empty-Immediate/
+ * empty-Action defect this lane fixes.
+ *
+ * THE FIX, for `get_workspace_intelligence_listings` only: chain `.range()` alone, no `.order()`.
+ * `SELECT * FROM rpc(...) LIMIT n OFFSET m` with no outer ORDER BY needs no Sort node, so Postgres
+ * returns the function's `RETURN QUERY` rows in exactly the order the function produced them —
+ * [CONFIRMED, same live SQL check] a direct `SELECT ... FROM
+ * get_workspace_intelligence_listings(:org) LIMIT 5` with no ORDER BY returned the CRITICAL rows
+ * first, matching the RPC's own internal CASE rank. `id ASC` is still the final, unique tiebreak the
+ * "Tiebreaker (2026-09-03)" comment below used to add by hand — it is now supplied by the RPC body
+ * itself, so the first-page/rest-page split (two separate ranged calls to this same query builder)
+ * still cannot double-render a row at the boundary; nothing about that guarantee changed, only where
+ * the tiebreak column is declared.
+ *
+ * THE FALLBACK, for every other RPC name (in practice only `get_workspace_intelligence_slim` is ever
+ * paginated): keep the pre-existing outer `.order("added_date", desc).order("id", asc)`, UNCHANGED.
+ * `get_workspace_intelligence_slim`'s own internal ORDER BY [CONFIRMED, live `pg_get_functiondef`,
+ * 2026-09-04] ends at `added_date DESC` with no `id` tiebreak — dropping the outer order for it the
+ * same way would reopen exactly the "same row rendered twice at the page boundary" bug the
+ * 2026-09-03 tiebreaker comment was written to fix, this time for /operations and /market, which
+ * this lane's write set does not cover (only the listings RPC's SQL is in scope here). Those two
+ * surfaces likely carry the SAME priority-band-grouping defect this lane fixes for /regulations
+ * (same shared `fetchWorkspaceResources` call shape, same missing CASE rank once an outer order
+ * applies) — flagged, not fixed: the exact, decision-ready remedy is a migration adding `, ii.id ASC`
+ * to `get_workspace_intelligence_slim`'s ORDER BY (matching what
+ * `get_workspace_intelligence_listings`/`_dashboard`/`get_research_items`/`get_operations_items`/
+ * `get_market_intel_items`/`get_technology_items` already carry), after which this function's guard
+ * set above should gain `"get_workspace_intelligence_slim"`.
+ */
+export function buildWorkspaceItemsQuery(
+  serviceClient: WorkspaceItemsServiceClient,
+  rpcName: string,
+  orgId: string,
+  page?: ResourcePage
+) {
+  const call = serviceClient.rpc(rpcName, { p_org_id: orgId });
+  if (!page) return call;
+  if (LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER.has(rpcName)) {
+    return call.range(page.offset, page.offset + page.limit - 1);
+  }
+  return call
+    .order("added_date", { ascending: false, nullsFirst: false })
+    .order("id", { ascending: true })
+    .range(page.offset, page.offset + page.limit - 1);
+}
+
 async function fetchWorkspaceResources(
   orgId: string,
   options: { slim?: boolean; dashboard?: boolean; listings?: boolean; page?: ResourcePage } = {}
@@ -502,21 +584,11 @@ async function fetchWorkspaceResources(
   // still hit the membership check via their JWT cookie.
   const serviceClient = getServiceSupabase();
   // options.page (first-paint pagination): the listings RPC (066, used by
-  // /regulations) is explicitly NO LIMIT on the corpus; ordering + ranging
-  // by a real column (added_date) here gives a meaningful "first N" slice
-  // instead of shipping the entire corpus on every request.
-  const itemsQuery = options.page
-    ? serviceClient
-        .rpc(rpcName, { p_org_id: orgId })
-        .order("added_date", { ascending: false, nullsFirst: false })
-        // Tiebreaker (2026-09-03): a mint batch stamps one added_date on every item it inserts, so
-        // ordering by added_date alone leaves ties in undefined order and the server's first page
-        // and the client's remainder page (two separate queries) can overlap at the boundary. The
-        // /regulations ledger rendered the same record item twice because of this. A total order
-        // needs a unique second key.
-        .order("id", { ascending: true })
-        .range(options.page.offset, options.page.offset + options.page.limit - 1)
-    : serviceClient.rpc(rpcName, { p_org_id: orgId });
+  // /regulations) is explicitly NO LIMIT on the corpus; ranging here gives a
+  // meaningful "first N" slice instead of shipping the entire corpus on
+  // every request. See buildWorkspaceItemsQuery's own header for why this
+  // is `.range()` only, with no `.order()` chained on top of it.
+  const itemsQuery = buildWorkspaceItemsQuery(serviceClient, rpcName, orgId, options.page);
   const { data: items, error } = await itemsQuery;
 
   if (error || !items?.length) {

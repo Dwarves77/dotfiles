@@ -62,6 +62,7 @@ import { usePersonalStateHydration } from "@/lib/hooks/usePersonalState";
 import { useListOrder } from "@/lib/hooks/useListOrder";
 import { applyMove, compareRanks } from "@/lib/list-order";
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
+import { bandEmptyStateText } from "@/components/regulations/band-empty-state";
 import {
   MODES,
   TOPICS,
@@ -1144,7 +1145,9 @@ export function RegulationsLedger({
                     margin: 0,
                   }}
                 >
-                  No matching regulations in this band.
+                  {/* See bandEmptyStateText's own header comment (FIRSTPAGE lane, perf-load-times
+                      audit §14) for the defect this replaces and why. */}
+                  {bandEmptyStateText({ total, restStatus, anyFilterActive })}
                 </p>
               ) : (
                 customMode ? (

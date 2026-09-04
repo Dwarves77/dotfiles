@@ -1199,3 +1199,203 @@ The asymmetric-key column is the expected live case per §12.6/§12.9's own reas
 `fsi-app/src/lib/api/server-bootstrap.ts`, `fsi-app/src/lib/api/community-auth.ts`,
 `fsi-app/src/lib/api/server-bootstrap.npmtest.mjs` (new), `fsi-app/src/lib/api/community-auth.npmtest.mjs`
 (new), this document (§13). Commit: see the lane's PR/branch `lane/perf7-2026-09-04`.
+
+## 14. FIRSTPAGE: the first page carried the rows the surface sorts last (2026-09-04)
+
+Numbering note: the FIRSTPAGE dispatch asked for an appended "§11"; §11, §12 and §13 already existed
+by the time this lane read the file (the 503-instrument correction, PERF-6, PERF-7 — all same day).
+Appending here as §14, following §12's own precedent exactly: this file is append-only shared
+evidence (CLAUDE.md standing rule 6 / vault convention), no other section's numbering changes.
+
+**Starting evidence [CONFIRMED by the coordinator on the live customer surface
+https://carosledge.com/regulations, 2026-09-04 ~08:15 UTC]:** while "Loading the full ledger…" was
+still showing, the band headers read IMMEDIATE "0 shown / 13", ACTION "0 shown / 12", MONITOR "60
+shown / 703", AWARENESS "0 shown / 168" — the two bands a reader opens the page for were empty, and
+the 60 rows present were exclusively MONITOR-band rows with old, undated-feeling next dates.
+
+### 14.1 Diagnosis (a): tracing the first-page path end to end
+
+[CONFIRMED, by reading] `/regulations`'s server component (`fsi-app/src/app/regulations/page.tsx`)
+calls `getListingsOnly({ limit: LIST_FIRST_PAGE_SIZE, offset: 0 })` (`src/lib/data.ts`) for the SSR
+first page; the page's own header comment already states the shape: "First-paint page only (60 rows,
+newest added_date first) — RegulationsLedger fetches the rest client-side after paint via
+`/api/listings/rest` and appends it." `getListingsOnly` → cached `fetchListingsOnly`
+(`supabase-server.ts`) → `fetchWorkspaceResources(orgId, { listings: true, page })`, which calls the
+**`get_workspace_intelligence_listings`** RPC (migration 066, last redefined by migration 272).
+
+**Where the ordering actually lived, and the mismatch [CONFIRMED, by reading, both halves]:**
+1. The RPC's OWN SQL body (read in the migration file AND live via `pg_get_functiondef` — see 14.2)
+   already carries: `ORDER BY CASE effective_priority WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN
+   'MODERATE' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END, added_date DESC, id ASC`. This is a
+   CRITICAL→HIGH→MODERATE→LOW band-rank order.
+2. The surface's default sort (`RegulationsLedger.tsx`, `const [sort, setSort] =
+   useState<SortKey>("priority")`) always groups rows into the four bands by `r.priority`
+   (CRITICAL/HIGH/MODERATE/LOW = Immediate/Action/Monitor/Awareness) and renders them top-to-bottom
+   in exactly that order — the same rank the RPC's CASE expression encodes.
+3. But `fetchWorkspaceResources`'s pagination branch (the ONLY code path that supplies `page`, i.e.
+   the exact path `/regulations`'s first paint and its `/api/listings/rest` backfill both use) chained
+   `.order("added_date", desc).order("id", asc)` onto the RPC call before `.range()`. A PostgREST
+   `.order()` on an RPC call becomes the query's OUTER ORDER BY, and an outer ORDER BY on a Postgres
+   query always wins over whatever the called set-returning function's own internal `RETURN QUERY ...
+   ORDER BY` produced — it replaces the order, it does not merely tiebreak within it. The outer chain
+   discarded the CASE band rank and left pure `added_date DESC, id ASC`, unrelated to priority.
+
+So: the ordering "lived" in BOTH places at once — correctly in the RPC, then silently overridden by
+the TS pagination code. Per the dispatch's own two-way framing, this is the "lives in the TS query"
+case: no RPC SQL change was needed or made; **the fix is entirely in the `.order()` call in
+`supabase-server.ts`.**
+
+### 14.2 Diagnosis (b): measuring the live first 60 rows
+
+[CONFIRMED, read-only SQL, `mcp__Supabase__execute_sql`, project `kwrsbpiseruzbfwjpvsp`, org
+`a0000000-0000-0000-0000-000000000001`, 2026-09-04] Live band totals via
+`get_workspace_intelligence_listings` at measurement time (drifted from the 08:15 snapshot — this is
+an actively-populating build, per rule 17 — CRITICAL matches exactly, HIGH/MODERATE/LOW moved):
+`CRITICAL 13, HIGH 30, LOW 252, MODERATE 713`.
+
+Reproducing the LIVE (buggy) query exactly — `get_workspace_intelligence_listings(:org) ORDER BY
+added_date DESC NULLS LAST, id ASC LIMIT 60` (the outer order the pre-fix TS code issued):
+
+```
+first 60 rows: 100% effective_priority = 'MODERATE', added_date = '2026-09-04' for all 60,
+0 CRITICAL, 0 HIGH among them.
+```
+
+This is a live, direct reproduction of the evidence: the "13 IMMEDIATE ids are not among" the first
+60 rows — confirmed, they are literally zero of them, for any org state at any point this session.
+
+Reproducing the RPC with NO outer ORDER BY (the fix) — `SELECT ... FROM
+get_workspace_intelligence_listings(:org) LIMIT 5` (no ORDER BY clause at all):
+
+```
+first 5 rows: id 0b6537ea…, 6cdc920f…, c509a0cd…, 68af8b45…, 82f09535…
+              effective_priority = CRITICAL for all 5, added_date DESC within that.
+```
+
+[CONFIRMED] With no outer ORDER BY, Postgres returns the RPC's own `RETURN QUERY` rows in exactly the
+order the function produced them (no Sort node needed for a plain `LIMIT`/`OFFSET` over a
+STABLE-marked, non-parallel plpgsql set-returning function) — the CRITICAL band leads, matching the
+RPC's internal CASE rank exactly, live, not merely read from the migration file.
+
+### 14.3 Diagnosis (c): `restStatus` and the empty-band copy path
+
+[CONFIRMED, by reading `RegulationsLedger.tsx`] `restStatus` (`"loading" | "done" | "error"`) tracks
+the `/api/listings/rest` backfill fetch that runs once on mount and appends the remainder of the
+corpus past `LIST_FIRST_PAGE_SIZE`. `bandRows[b.key]` is computed by filtering `regulatory` (the
+merged initial+rest rows) to `r.priority === b.key` and matching the active search/facet filters, then
+client-side re-sorted (`sortRows`) — the client-side sort makes the DB row ORDER irrelevant to the
+final on-screen order once a row has loaded; it only governs which rows are present at all before the
+backfill finishes. `total` (the band header count) is `bandCount(b.key)`, sourced from
+`get_surface_counts('regulations')` (or its row-derived fallback), independent of how many rows have
+streamed in. The empty-band body rendered the literal string "No matching regulations in this band."
+whenever `rows.length === 0`, with no branch on `restStatus`, `total`, or whether a filter was active
+— so a band that was authoritatively non-empty (`total > 0`) but simply hadn't received any rows yet
+during the backfill window rendered the identical, false "no match" claim as a band that was truly
+empty after a full, completed load.
+
+### 14.4 Fix applied
+
+**1. `fsi-app/src/lib/supabase-server.ts`** — the paginated-query construction was pulled out of
+`fetchWorkspaceResources` into a new exported, unit-testable function, `buildWorkspaceItemsQuery`.
+For `get_workspace_intelligence_listings` specifically (the only RPC this lane's write set covers,
+and the one `/regulations` calls), the outer `.order()` chain is REMOVED — `.range()` alone — so the
+RPC's own internal priority-band-rank order survives, live-confirmed via 14.2's SQL. `id ASC` remains
+the pagination boundary's unique tiebreak; it is now supplied by the RPC body itself
+(`..., id ASC`) rather than re-declared by the outer PostgREST chain, so the "same record item
+rendered twice" defect the 2026-09-03 tiebreaker comment fixed stays fixed.
+
+**Determinism check for the OTHER RPC this shared function ever paginates.**
+`get_workspace_intelligence_slim` (used by `/operations` and `/market`'s own first-paint pagination,
+via `fetchResourcesOnly`) was also read live via `pg_get_functiondef` this session: its own ORDER BY
+ends `..., added_date DESC;` with **no `id` tiebreak**. Removing the outer order for it the same way
+would reopen exactly the page-boundary duplicate-row bug for those two surfaces. This lane's write set
+covers only the listings RPC's SQL and `supabase-server.ts`/`data.ts`/`api/**` listings path — not a
+migration to `get_workspace_intelligence_slim`. `buildWorkspaceItemsQuery` therefore keeps a strict
+allowlist (`LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER`, currently just the one name) and falls back to the
+pre-existing, safe outer `.order("added_date", desc).order("id", asc)` for every other RPC name,
+`get_workspace_intelligence_slim` included — unchanged behavior for `/operations`/`/market`, neither
+fixed nor regressed by this lane.
+
+**Flagged, not fixed (rule 13 — decision-ready):** `/operations` and `/market` almost certainly carry
+the SAME priority-band-grouping defect this lane fixes for `/regulations` (identical
+`fetchWorkspaceResources` call shape, identical outer-order-discards-CASE-rank mechanism) — not
+confirmed by live SQL this session (out of scope; only `get_workspace_intelligence_listings` was
+measured against production data), so stated as **[HYPOTHESIS]**, not asserted. The exact,
+decision-ready remedy: a migration adding `, ii.id ASC` to `get_workspace_intelligence_slim`'s ORDER
+BY (matching what `get_workspace_intelligence_listings`/`_dashboard`/`get_research_items`/
+`get_operations_items`/`get_market_intel_items`/`get_technology_items` already carry), after which
+`buildWorkspaceItemsQuery`'s allowlist should gain `"get_workspace_intelligence_slim"` — a one-line
+migration plus a one-line code change, not a redesign. No migration was authored for this because it
+is outside this lane's write set (only the listings RPC), not because the work is unclear.
+
+**2. `fsi-app/src/components/regulations/band-empty-state.ts`** (new) — `bandEmptyStateText(params)`,
+a pure, exported function (split out of `RegulationsLedger.tsx` into its own plain-`.ts` module
+specifically so it is `node --test`-able without mounting JSX — this repo's established constraint,
+per `src/components/ui/WatchButton.npmtest.mjs`'s own header). Replaces the literal "No matching
+regulations in this band." string: renders `"Loading N regulations…"` (N = the authoritative
+`total`) only when `total > 0 && restStatus === "loading" && !anyFilterActive`; renders the original
+"No matching regulations in this band." in every other case — load complete, load errored, a filter
+is actually narrowing the band, or the band is genuinely empty corpus-wide (`total === 0`). Wired into
+`RegulationsLedger.tsx`'s band body via a new import; no other behavior in that file changed.
+
+### 14.5 Whether a migration was needed
+
+**No.** The listings RPC's own ORDER BY was already exactly what the surface needs (band-rank primary
+key, live-confirmed byte-identical to migration 272 via `pg_get_functiondef`) — the defect was the TS
+pagination layer overriding it, not the RPC's SQL being wrong. `fsi-app/supabase/migrations/303_*.sql`
+was NOT written; the migration-number slot 303 stays free for whichever lane picks up the flagged
+`get_workspace_intelligence_slim` tiebreak (14.4) or another need. No row was added to
+`fsi-app/docs/inventories/migrations.md` for the same reason.
+
+### 14.6 Tests
+
+- `fsi-app/src/lib/supabase-server-listings-order.npmtest.mjs` (new, 8 tests): `buildWorkspaceItemsQuery`'s
+  exact chain shape per RPC name — `get_workspace_intelligence_listings` + page → `.rpc().range()`
+  only, no `.order()`; `get_workspace_intelligence_slim` + page → the pre-existing
+  `.order().order().range()` chain UNCHANGED (args asserted exactly:
+  `["added_date", {ascending:false, nullsFirst:false}]` then `["id", {ascending:true}]`); any
+  non-allowlisted RPC name falls back the same safe way (fail-safe, not fail-open); unpaged mode
+  unchanged for every RPC name; offset/limit arithmetic on `.range()`.
+- `fsi-app/src/components/regulations/band-empty-state.npmtest.mjs` (new, 7 tests): the live-defect
+  shape (`total=13, loading, no filter` → `"Loading 13 regulations…"`, never the false "No matching"
+  string); singular-count grammar (`total=1` → "regulation", not "regulations"); load-done, load-error,
+  filter-active, and genuinely-empty-band (`total=0`) cases all correctly still produce "No matching
+  regulations in this band."
+
+### 14.7 Gates
+
+- `npx tsc --noEmit -p fsi-app/tsconfig.json` (run from repo root): the same 19 pre-existing
+  `TS2882` CSS-side-effect-import errors §13.6 already documented as an `npx`-binary-resolution
+  artifact (no `node_modules` at repo root for `npx` to resolve a local `tsc` from) — byte-identical
+  file list, none in this lane's files. `fsi-app/node_modules/.bin/tsc --noEmit -p
+  fsi-app/tsconfig.json` (the repo's own installed TypeScript, run the way §13.6 established as the
+  real check): **0 errors, exit 0**.
+- `node --test fsi-app/src/lib/supabase-server-listings-order.npmtest.mjs
+  fsi-app/src/components/regulations/band-empty-state.npmtest.mjs`: **15/15 pass** (8 + 7).
+- `node fsi-app/.discipline/fitness/runner.mjs` (repo root): 29 functions checked, **0 violations**.
+- `node --test fsi-app/.discipline/governance/*.test.mjs fsi-app/.discipline/fitness/*.test.mjs
+  fsi-app/.discipline/*.test.mjs`: **141/141 pass**.
+
+### 14.8 Projected effect [INFERRED — arithmetic against 14.2's live counts, not a second production
+measurement; the coordinator re-measures the live surface after deploy, same discipline §12.6/§13.4
+used]
+
+At measurement time (CRITICAL 13, HIGH 30, MODERATE 713, LOW 252 — drifted from the 08:15 snapshot's
+13/12/703/168, an actively-populating build per rule 17): the first 60 rows after this fix are the 13
+CRITICAL + 30 HIGH + 17 MODERATE rows the RPC's own CASE rank puts first, in the RPC's own
+`added_date DESC, id ASC` order within each band — zero LOW/AWARENESS rows on first paint. Immediate
+(13/13) and Action (30/30, using the live count) go from "0 shown, false 'No matching'" to "fully
+shown, honest total" on first paint, with no wait for the backfill. Monitor goes from "60 shown (the
+wrong 60)" to "17 shown of 713" — a real `filteredDelta` "X shown" disclosure, never a false empty
+claim (`rows.length !== 0`, so `bandEmptyStateText` is never reached for it). Awareness stays "0
+shown" until the backfill completes, exactly the case §14.4's `bandEmptyStateText` was built for: it
+will read "Loading 252 regulations…" instead of the false "No matching regulations in this band." for
+the duration of that load, and flip to the true state the instant `restStatus` becomes `"done"`.
+
+### 14.9 Files touched
+
+`fsi-app/src/lib/supabase-server.ts`, `fsi-app/src/lib/supabase-server-listings-order.npmtest.mjs`
+(new), `fsi-app/src/components/regulations/RegulationsLedger.tsx`,
+`fsi-app/src/components/regulations/band-empty-state.ts` (new),
+`fsi-app/src/components/regulations/band-empty-state.npmtest.mjs` (new), this document (§14). No
+migration. Commit: see the lane's PR/branch `lane/firstpage-2026-09-04`.
