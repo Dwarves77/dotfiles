@@ -1,3 +1,5 @@
+> **Superseded as a tracker on 2026-09-04** by `docs/plans/complete-system-build-plan-2026-09-04.md` (definition of done §0; the board is the only tracker). Kept as history.
+
 # Unblocking the five "needs Jason" items — execution plan (2026-08-30)
 
 **Operator instruction, verbatim:** *"these items should not be waiting on me, build a plan now to

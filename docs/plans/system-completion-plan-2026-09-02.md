@@ -1,3 +1,5 @@
+> **Superseded as a tracker on 2026-09-04** by `docs/plans/complete-system-build-plan-2026-09-04.md` (definition of done §0; the board is the only tracker). Kept as history.
+
 # System completion plan — 2026-09-02
 
 Base: `origin/master` `822c675` (#515). Operator request (2026-09-02): "build the remaining parts of the

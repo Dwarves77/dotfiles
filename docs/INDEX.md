@@ -83,6 +83,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 
 ## plans
 
+- [complete-system-build-plan-2026-09-04](./plans/complete-system-build-plan-2026-09-04.md) — THE build plan: definition of done (§0: reachable, run, populated, visible, gated, documented), why the earlier plans stopped short, tools used or retired, workstreams W0–W8, trains T37–T45; the board is the only tracker
 - [population-pass-2026-09-03](./plans/population-pass-2026-09-03.md) — the one population pass under the build-before-populate ruling: dry pipeline proof, dispatch table (population-turn, corpus-turn, change-detection, propagation-drain, source-sweep), migration 299 and its live self-check (N = 149), open rulings with live numbers
 - [wave3-lanes-2026-09-03](./plans/wave3-lanes-2026-09-03.md) — Wave 3 lane plan: COMMUNITY-A / COMMUNITY-B / SPEC-09 write sets, the A↔B interface contract; `mobile-evidence/` holds the operator's 2026-09-03 phone screenshots with per-screenshot cause and fix
 - [C5-feed-spec](./plans/C5-feed-spec.md) — C5 — Group Post Feed Specification
@@ -155,6 +156,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 
 ## audits
 
+- [wiring-audit-2026-09-04](./audits/wiring-audit-2026-09-04.md) — Wiring audit of PRs #474–#583: built / wired / used / on a surface / loop stage for every runtime, surface, module, migration; six evidence sections under `wiring-audit-2026-09-04/`
 - [perf-load-times-2026-09-03](./audits/perf-load-times-2026-09-03.md) — PERF-MEASURE: production timing study (TTFB 20–30 ms; 0.9–2.1 s server render per index page; 1.3–1.9 s per item click; cache MISS everywhere; sequential awaits, no per-route loading.tsx, prefetch disabled after the 503 fan-out) with the ranked causes and the structural fix set
 - [spend-authority-disarm-case-file-2026-07-30](./audits/spend-authority-disarm-case-file-2026-07-30.md) — Root-cause case file for every spend-authorization disarm this campaign (metered gate off-path, inert SPEND_CEILING, unwired markers, ticket clobber, jiti dual-instance, the untraced $0.0438 and the unpriced $0.6442). Common cause: authorization carried in AMBIENT STATE (env, module-locals, call-site convention), whose default is "unchecked" so any new path escapes it silently. Specifies the single-choke-point fix (authorization as a required argument, ledger in the same call, fitness guard banning SDK use elsewhere) and proposes the standing rule "authorization is an argument, never an ambience". Written BEFORE the code, per operator order.
 - [ground-truth-verification-2026-07-15](./audits/ground-truth-verification-2026-07-15.md) — Ground-truth verification of 27 sampled items (~738 facts) gating the coverage-floor spend. Accuracy-defect rate ~3% (ISO 14083 lone systematic-falsehood outlier), dominant defect is PROVENANCE, namely S1 dead-citation (927 T1 facts across 26 items, one 404 EUR-Lex row) plus S2 null-source (455 across 45), both fixable free by re-point and registration. Ruling: HOLD the spend, fund the sweeps. Defines the wave-acceptance QA institution.
