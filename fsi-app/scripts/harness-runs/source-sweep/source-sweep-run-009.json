@@ -1,0 +1,66 @@
+{
+  "harness_family": "source-sweep",
+  "harness_version": "sha256:00a6517a684aa2f7",
+  "run_id": "source-sweep-run-009",
+  "started_at": "2026-09-04T04:10:41.196Z",
+  "finished_at": "2026-09-04T04:10:52.291Z",
+  "config": {
+    "walker": "sitemap",
+    "mode": "dry",
+    "from": null,
+    "to": null,
+    "feed_url": null,
+    "series": "L",
+    "types": [
+      "RULE"
+    ],
+    "term": null,
+    "max_pages": 5,
+    "per_page": 100,
+    "source_id": null,
+    "portal_url": null,
+    "cli_source_id": null,
+    "host": "aircargonews.net",
+    "limit": 5000,
+    "max_sitemap_fetches": 50,
+    "max_sitemap_entries": 100000
+  },
+  "inputs_ref": [
+    "https://aircargonews.net/"
+  ],
+  "per_item": [
+    {
+      "id": "1c2b33a5-f9ae-4d2e-977f-5212174814d5",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://aircargonews.net/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    }
+  ],
+  "metrics": {
+    "mode": "dry",
+    "sources_targeted": 1,
+    "feed_found": 0,
+    "sitemap_only": 1,
+    "errors": 1,
+    "urls_scoped_total": 0,
+    "new_total": 0,
+    "changed_total": 0,
+    "removed_total": 0,
+    "partial_coverage_sources": 0,
+    "baseline_deferred_sources": 0,
+    "rss_feed_url_written": 0,
+    "change_signals_recorded": 0,
+    "upserted": 0,
+    "planned": 0,
+    "failed": 0,
+    "no_targets_reason": null
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/source-sweep/traces/source-sweep-run-009.raw-result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-source-sweep.mjs, the source-sweep family's canonical entry point (RT lane, 2026-09-01) — the runtime scripts/connections/*.mjs and scripts/mint|forward-events/run-*.mjs already had for their own families, extended to the register-walk.mjs/feed-walk.mjs enumeration modules."
+}
