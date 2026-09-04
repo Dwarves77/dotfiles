@@ -1,0 +1,43 @@
+{
+  "harness_family": "propagation",
+  "harness_version": "sha256:45d4f97e9c543737",
+  "run_id": "propagation-run-003",
+  "started_at": "2026-09-04T17:00:39.569Z",
+  "finished_at": "2026-09-04T17:02:23.108Z",
+  "config": {
+    "mode": "dry",
+    "batch": 500,
+    "trigger_context": null
+  },
+  "inputs_ref": [
+    "mode=dry",
+    "batch=500"
+  ],
+  "per_item": [
+    {
+      "id": "queue-depth-1000",
+      "outcome": "drained",
+      "verdict": "500 event(s) considered, 0 value(s) would be invalidated (dry — nothing written)",
+      "evidence_refs": [
+        "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/propagation/traces/propagation-run-003.report.json"
+      ],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "mode": "dry",
+    "queue_depth_before": 1000,
+    "events_considered": 500,
+    "events_drained": 0,
+    "invalidated": 0,
+    "recomputed": 0,
+    "skipped_unknown_method": 0,
+    "skipped_method_refused": 0,
+    "errors": 0
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/propagation/traces/propagation-run-003.report.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-propagation-drain.mjs, the propagation family's canonical entry point (lane DP-ENGINE, 2026-09-02, system-completion train) — drives runPropagationDrain (src/lib/propagation/drain.ts) against the propagation_events outbox (migration 284) and the derivation DAG (migration 285)."
+}
