@@ -156,29 +156,71 @@ test("renderSeriesItemMapFile against the REAL series-item-map.mjs file's header
   assert.equal(rendered.slice(0, originalHeader.length), originalHeader);
 });
 
-// ── end-to-end: dry run against a real synthetic mint-run artifact file, real map file loaded read-only ──
+// ── end-to-end: dry run against a real synthetic mint-run artifact file AND a fixture map file ─────────
+//
+// series-item-map.mjs is now the RATIFIED live truth (ruling R-D landed, commit ef5602b6, 2026-09-04 —
+// all six oil-bulletin series carry a real item_id and status "ratified") and this lane's write set
+// forbids touching it. So this end-to-end CLI test builds its OWN fixture map file — six pending entries,
+// the pre-ratification shape — and points the CLI at it via --map-path (the flag ratify-series-items.mjs
+// already exposed for exactly this). The live file is still read (via mapModule below is not needed here;
+// the byte-identity assertion below reads it directly) to prove the CLI, run against the fixture, never
+// touches the real file at all.
+function writeFixtureMapFile(dir) {
+  const fixturePath = join(dir, "series-item-map.fixture.mjs");
+  writeFileSync(
+    fixturePath,
+    `export const SERIES_ITEM_MAP_RAW = ${JSON.stringify(FIXTURE_MAP, null, 2)};\n`,
+    "utf8",
+  );
+  return fixturePath;
+}
 
-test("CLI --mint-run dry run against a fixture artifact: reports ratifications, writes nothing", async () => {
+test("CLI --mint-run dry run against a fixture artifact AND a fixture --map-path: reports ratifications, writes nothing, never touches the live (ratified) map file", async () => {
   const dir = mkdtempSync(join(tmpdir(), "ratify-series-items-test-"));
   const artifactPath = join(dir, "mint-run-fixture.json");
+  const livePath = resolve(HERE, "../../../src/lib/market/series-item-map.mjs");
   try {
+    const fixtureMapPath = writeFixtureMapFile(dir);
     writeFileSync(
       artifactPath,
       JSON.stringify(artifactWith([{ id: "eu-oil-bulletin:eurosuper-95", outcome: "minted_verified", item_id: "uuid-cli" }])),
       "utf8",
     );
-    const before = readFileSync(resolve(HERE, "../../../src/lib/market/series-item-map.mjs"), "utf8");
+    const before = readFileSync(livePath, "utf8");
     const { execFileSync } = await import("node:child_process");
     const out = execFileSync(
       process.execPath,
-      [resolve(HERE, "ratify-series-items.mjs"), "--mint-run", artifactPath],
+      [resolve(HERE, "ratify-series-items.mjs"), "--mint-run", artifactPath, "--map-path", fixtureMapPath],
       { encoding: "utf8" },
     );
     assert.match(out, /RATIFY {2}eu-oil-bulletin:eurosuper-95 -> item_id=uuid-cli/);
     assert.match(out, /DRY RUN — nothing written/);
-    const after = readFileSync(resolve(HERE, "../../../src/lib/market/series-item-map.mjs"), "utf8");
-    assert.equal(after, before, "a dry run (no --apply) must never modify the real series-item-map.mjs file");
+    const after = readFileSync(livePath, "utf8");
+    assert.equal(after, before, "a dry run against a fixture --map-path must never touch the real series-item-map.mjs file");
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ── new invariant (this lane, 2026-09-04): the ruling has landed, and holds from now on ────────────────
+//
+// Ruling R-D landed on this branch's base (commit ef5602b6): every oil-bulletin series in the LIVE
+// series-item-map.mjs is now ratified — a real item_id (uuid-shaped) and status "ratified". That is no
+// longer a transient state a test should assume away; it is the invariant the live file must uphold going
+// forward. A future regression (someone hand-editing an entry back to pending, or a bad --apply run) should
+// fail a test, not silently ship. This reads the REAL file, not a fixture.
+test("invariant: every non-underscore entry in the LIVE series-item-map.mjs is ratified with a uuid-shaped item_id (ruling R-D, ef5602b6)", async () => {
+  const realPath = resolve(HERE, "../../../src/lib/market/series-item-map.mjs");
+  const mapModule = await import(`file://${realPath}`);
+  const raw = mapModule.SERIES_ITEM_MAP_RAW;
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  const seriesKeys = Object.keys(raw).filter((k) => !k.startsWith("_"));
+  assert.equal(seriesKeys.length, 6, "expected exactly the six oil-bulletin series");
+  for (const key of seriesKeys) {
+    const entry = raw[key];
+    assert.equal(entry.status, "ratified", `${key} must be status "ratified"`);
+    assert.match(entry.item_id, UUID_RE, `${key}'s item_id must be uuid-shaped, got ${entry.item_id}`);
+    assert.equal(isRatified(entry), true, `${key} must satisfy isRatified()`);
   }
 });
