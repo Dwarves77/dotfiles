@@ -335,7 +335,19 @@ export function shapeRunOutput(walker, result, reportPath, mode = "apply") {
         };
       }
       // kind === "sitemap"
-      if (!s.ok) return { id: s.sourceId, outcome: "error", verdict: null, evidence_refs: [s.sourceUrl], error: s.error };
+      if (!s.ok) {
+        // Distinguish bot_wall from other errors for clarity
+        if (s.discoverySource === "bot_wall") {
+          return {
+            id: s.sourceId,
+            outcome: "bot_wall",
+            verdict: `bot_wall: homepage and all sitemap candidates returned 401/403/429 — access blocked`,
+            evidence_refs: [s.sourceUrl],
+            error: s.error,
+          };
+        }
+        return { id: s.sourceId, outcome: "error", verdict: null, evidence_refs: [s.sourceUrl], error: s.error };
+      }
       const coverageNote = s.coverageComplete ? "" : "; PARTIAL COVERAGE (removed-count suppressed)";
       const baselineNote = s.baselineDeferred ? "; baseline deferred to a future complete walk" : "";
       const verdict =
@@ -350,7 +362,8 @@ export function shapeRunOutput(walker, result, reportPath, mode = "apply") {
     });
     const feedSources = sources.filter((s) => s.kind === "feed");
     const sitemapSources = sources.filter((s) => s.kind === "sitemap");
-    const errorSources = sources.filter((s) => s.kind === "error" || (s.kind === "sitemap" && !s.ok));
+    const botWallSources = sitemapSources.filter((s) => !s.ok && s.discoverySource === "bot_wall");
+    const errorSources = sources.filter((s) => s.kind === "error" || (s.kind === "sitemap" && !s.ok && s.discoverySource !== "bot_wall"));
     const okSitemapSources = sitemapSources.filter((s) => s.ok);
     const sitemapUpsertedTotal = okSitemapSources.reduce((a, s) => a + (s.upserted ?? 0), 0);
     const feedUpsertedTotal = feedSources.reduce((a, s) => a + (s.feedResult?.ok ? s.feedResult.upserted : 0), 0);
@@ -359,6 +372,7 @@ export function shapeRunOutput(walker, result, reportPath, mode = "apply") {
       sources_targeted: sources.length,
       feed_found: feedSources.length,
       sitemap_only: sitemapSources.length,
+      bot_wall_sources: botWallSources.length,
       errors: errorSources.length,
       urls_scoped_total: okSitemapSources.reduce((a, s) => a + (s.urlCount ?? 0), 0),
       new_total: okSitemapSources.reduce((a, s) => a + s.diff.addedCount, 0) + feedSources.reduce((a, s) => a + (s.feedResult?.ok ? s.feedResult.entries : 0), 0),
