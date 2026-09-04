@@ -48,8 +48,8 @@ name: Uptime and honesty probes
 # and numeric counts only — never row content.
 
 on:
-  schedule:
-    - cron: '0 9 * * *'      # spend watch, daily at 09:00 UTC
+  # schedule:   # DISARMED 2026-09-04 (operator ruling, CLAUDE.md rule 16: no standing schedules during build; daily spend watch runs by explicit dispatch only)
+  # - cron: '0 9 * * *'      # spend watch, daily at 09:00 UTC
   workflow_dispatch:
 
 jobs:
