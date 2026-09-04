@@ -1,0 +1,118 @@
+{
+  "sources": [
+    {
+      "sourceId": "506e95aa-d197-46dd-8531-8d9dea2eda6f",
+      "sourceName": "IATA Press Release No. 57 (9 Dec 2025) — SAF Production Growth Rate is Slowing Down",
+      "sourceUrl": "https://www.iata.org/en/pressroom/2025-releases/2025-12-09-04/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.iata.org/en/pressroom/2025-releases/2025-12-09-04/",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.iata.org/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 4427,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 4426,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false
+    },
+    {
+      "sourceId": "54ab5d60-afd8-4417-b7ca-ae569aba7562",
+      "sourceName": "International Air Transport Association (IATA)",
+      "sourceUrl": "https://iata.org/en/iata-repository/pressroom/fact-sheets/fact-sheet-fuel",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://iata.org/en/iata-repository/pressroom/fact-sheets/fact-sheet-fuel",
+      "sitemapsFetched": [
+        {
+          "url": "https://iata.org/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 4427,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 4427,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false
+    },
+    {
+      "sourceId": "ff87a98e-1524-4490-9a76-261c4ba16c33",
+      "sourceName": "International Air Transport Association (IATA)",
+      "sourceUrl": "https://iata.org/en/programs/sustainability/sustainable-aviation-fuels",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://iata.org/en/programs/sustainability/sustainable-aviation-fuels",
+      "sitemapsFetched": [
+        {
+          "url": "https://iata.org/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 4427,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 4427,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false
+    }
+  ]
+}
