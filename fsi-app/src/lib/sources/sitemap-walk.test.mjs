@@ -497,17 +497,29 @@ function fakeFetchDeps(pages) {
   };
 }
 
-test("probeIsFeed: a feed document returns its text; a non-feed or a fetch failure returns null", async () => {
+test("probeIsFeed: a feed document returns a probe result with isFeed=true and the text; a non-feed or failure has isFeed=false", async () => {
   const deps = fakeFetchDeps({ "https://x/feed.xml": RSS, "https://x/page.html": "<html></html>" });
-  assert.equal(await probeIsFeed(deps, "https://x/feed.xml", 1_000_000), RSS);
-  assert.equal(await probeIsFeed(deps, "https://x/page.html", 1_000_000), null);
-  assert.equal(await probeIsFeed(deps, "https://x/missing", 1_000_000), null);
+  const feed = await probeIsFeed(deps, "https://x/feed.xml", 1_000_000);
+  assert.equal(feed.isFeed, true);
+  assert.equal(feed.text, RSS);
+  assert.equal(feed.status, 200);
+  assert.equal(feed.reason, "is_feed_document");
+  const notFeed = await probeIsFeed(deps, "https://x/page.html", 1_000_000);
+  assert.equal(notFeed.isFeed, false);
+  assert.equal(notFeed.text, null);
+  const missing = await probeIsFeed(deps, "https://x/missing", 1_000_000);
+  assert.equal(missing.isFeed, false);
+  assert.equal(missing.reason, "HTTP 404");
 });
 
 test("discoverFeed: the source URL itself is a feed document", async () => {
   const deps = fakeFetchDeps({ "https://x.example/": RSS });
   const r = await discoverFeed(deps, { sourceUrl: "https://x.example/" });
-  assert.deepEqual(r, { feedUrl: "https://x.example/", discoverySource: "source-is-feed", homepageError: null });
+  assert.equal(r.feedUrl, "https://x.example/");
+  assert.equal(r.discoverySource, "source-is-feed");
+  assert.equal(r.homepageProbe.status, 200);
+  assert.equal(r.homepageProbe.error, null);
+  assert.equal(r.candidateProbes.length, 0);
 });
 
 test("discoverFeed: a <link rel=alternate> tag on the homepage wins over a bare candidate path", async () => {
@@ -534,7 +546,7 @@ test("discoverFeed: a homepage fetch failure is non-fatal — candidate probing 
   const deps = fakeFetchDeps({ "https://x.example/atom.xml": RSS }); // homepage itself 404s
   const r = await discoverFeed(deps, { sourceUrl: "https://x.example/" });
   assert.equal(r.feedUrl, "https://x.example/atom.xml");
-  assert.match(r.homepageError, /HTTP 404/, "the homepage failure is carried on the result, not swallowed");
+  assert.match(r.homepageProbe.error, /HTTP 404/, "the homepage failure is carried on homepageProbe.error, not swallowed");
 });
 
 test("discoverFeed: no feed found anywhere -> null (caller proceeds to sitemap discovery)", async () => {

@@ -120,6 +120,20 @@ const strip = (s) =>
     .replace(/\s+/g, " ")
     .trim();
 
+// ── bot-wall detection (pure) ─────────────────────────────────────────────────────────────────────────
+
+/** Is the given HTTP status a "blocking" status that suggests a bot wall (Cloudflare, Akamai, etc.)?
+ *  PURE. @param {number|null} status @returns {boolean} */
+export function isBotWallStatus(status) {
+  return status === 401 || status === 403 || status === 429;
+}
+
+/** Detect if all probed URLs have bot-wall statuses (401/403/429). PURE.
+ *  @param {{status:number|null}[]} probes @returns {boolean} true when every probe has a bot-wall status */
+export function allProbesBotWalled(probes) {
+  return probes.length > 0 && probes.every((p) => isBotWallStatus(p.status));
+}
+
 // ── discovery: robots.txt + fallback candidates (pure) ──────────────────────────────────────────────────
 
 /** Parse `Sitemap:` directive lines out of a robots.txt body (case-insensitive directive name, per the
@@ -405,12 +419,16 @@ export async function walkSitemap(deps, {
   // ── 1. discovery ──
   let robotsLines = [];
   let robotsError = null;
+  let robotsStatus = null;
   try {
     const robotsBuf = await deps.fetchBytes(new URL("/robots.txt", baseUrl).toString());
+    robotsStatus = 200;
     checkResponseBytes(robotsBuf, maxSitemapResponseBytes, "robots.txt");
     robotsLines = parseRobotsSitemapLines(await decodeXmlBody(robotsBuf, "robots.txt"), baseUrl);
   } catch (e) {
-    robotsError = e instanceof Error ? e.message : String(e); // absent/blocked robots.txt is not fatal
+    const msg = e instanceof Error ? e.message : String(e);
+    robotsError = msg;
+    robotsStatus = extractHttpStatus(msg);
   }
 
   /** @type {string[]} */
@@ -428,6 +446,19 @@ export async function walkSitemap(deps, {
         break; // first successful, parseable candidate wins — never try all three unconditionally
       }
     }
+  }
+
+  // Bot-wall detection: homepage (robots.txt) and every fallback candidate are 401/403/429
+  const fallbackProbes = sitemapsFetched.filter((s) => s.url !== "robots.txt" && s.kind === "error");
+  if (
+    isBotWallStatus(robotsStatus) &&
+    sitemapsFallbackCandidates(baseUrl).every((c) => fallbackProbes.some((p) => p.url === c && isBotWallStatus(extractHttpStatus(p.error))))
+  ) {
+    return {
+      ok: false, baseUrl,
+      error: `bot_wall detected: homepage returned HTTP ${robotsStatus} and all fallback candidates answered 401/403/429`,
+      sitemapsFetched, robotsSitemapCount: 0, discoverySource: "bot_wall", sitemapsSkippedCap: 0, entriesCapped: false,
+    };
   }
 
   if (!queue.length) {
@@ -528,19 +559,32 @@ export async function walkSitemap(deps, {
 
 // ── feed-first discovery, then sitemap (the operator's own ordering) ────────────────────────────────────
 
+/** Extract HTTP status from an error message, e.g., "HTTP 404 for https://..." -> 404, or null if not extractable.
+ *  PURE. @param {string} msg @returns {number|null} */
+export function extractHttpStatus(msg) {
+  const m = String(msg ?? "").match(/HTTP (\d+)/);
+  return m ? Number(m[1]) : null;
+}
+
 /** Probe one candidate URL: fetch (bounded), decode, and report whether it parses as a feed document.
  *  Never throws — a fetch/decode failure (404, timeout, oversize) is treated as "not a feed" so the
- *  caller's candidate loop keeps going. @param {{fetchBytes:(url:string)=>Promise<Buffer>}} deps
- *  @param {string} url @param {number} maxBytes @returns {Promise<string|null>} the decoded text if it is
- *  a feed, else null */
+ *  caller's candidate loop keeps going.
+ *  @param {{fetchBytes:(url:string)=>Promise<Buffer>}} deps
+ *  @param {string} url @param {number} maxBytes
+ *  @returns {Promise<{text:string|null, status:number|null, isFeed:boolean, reason:string}>}
+ *           the decoded text (if it is a feed), HTTP status (if extractable), feed flag, and probe reason */
 export async function probeIsFeed(deps, url, maxBytes) {
   try {
     const buf = await deps.fetchBytes(url);
     checkResponseBytes(buf, maxBytes, url);
     const text = await decodeXmlBody(buf, url);
-    return isFeedDocument(text) ? text : null;
-  } catch {
-    return null;
+    const isFeed = isFeedDocument(text);
+    return { text: isFeed ? text : null, status: 200, isFeed, reason: isFeed ? "is_feed_document" : "not_feed_document" };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const status = extractHttpStatus(msg);
+    const reason = status ? `HTTP ${status}` : (msg.includes("bytes") ? "oversize_response" : "fetch_error");
+    return { text: null, status, isFeed: false, reason };
   }
 }
 
@@ -551,37 +595,70 @@ export async function probeIsFeed(deps, url, maxBytes) {
  * none is found (the caller then proceeds to sitemap discovery — see `walkSource`). One fetch of
  * `sourceUrl` serves BOTH the "is it a feed itself" check and (when it isn't) the homepage HTML that
  * `discoveredFeedLinks` reads — never fetched twice.
+ *
+ * Returns detailed feed-probe trail: homepage {status, bytes, alternateLinksFound} and each candidate
+ * {url, status, isFeedDocument, reason} so no evidence of what discovery tried is lost (see EVIDENCE,
+ * lane SITEMAP 2026-09-04).
  * @param {{fetchBytes:(url:string)=>Promise<Buffer>}} deps
  * @param {{ sourceUrl:string, maxFeedResponseBytes?:number }} opts
- * @returns {Promise<{feedUrl:string, discoverySource:'source-is-feed'|'link-alternate'|'candidate-path', homepageError:string|null}|null>}
+ * @returns {Promise<{
+ *   feedUrl:string,
+ *   discoverySource:'source-is-feed'|'link-alternate'|'candidate-path',
+ *   homepageProbe:{status:number|null, bytes:number, contentType:string, alternateLinksFound:number, error:string|null},
+ *   candidateProbes:Array<{url:string, status:number|null, isFeedDocument:boolean, reason:string}>
+ * }|null>}
  */
 export async function discoverFeed(deps, { sourceUrl, maxFeedResponseBytes = DEFAULT_MAX_FEED_RESPONSE_BYTES }) {
   let homepageHtml = "";
   let homepageError = null;
+  let homepageStatus = null;
+  let homepageBytes = 0;
+  let homepageContentType = "";
   try {
     const buf = await deps.fetchBytes(sourceUrl);
+    homepageBytes = Buffer.isBuffer(buf) ? buf.length : Buffer.byteLength(String(buf ?? ""), "utf8");
+    // fetchBytes throws on non-200; capture the success code since we got the buffer
+    homepageStatus = 200;
     checkResponseBytes(buf, maxFeedResponseBytes, sourceUrl);
     homepageHtml = await decodeXmlBody(buf, sourceUrl);
   } catch (e) {
-    homepageError = e instanceof Error ? e.message : String(e); // non-fatal — candidate probing still runs
+    const msg = e instanceof Error ? e.message : String(e);
+    homepageError = msg;
+    homepageStatus = extractHttpStatus(msg);
   }
 
+  const alternateLinksFound = homepageHtml ? discoveredFeedLinks(homepageHtml, sourceUrl).length : 0;
+  const homepageProbe = { status: homepageStatus, bytes: homepageBytes, contentType: homepageContentType, alternateLinksFound, error: homepageError };
+
   if (homepageHtml && isFeedDocument(homepageHtml)) {
-    return { feedUrl: sourceUrl, discoverySource: "source-is-feed", homepageError: null };
+    return {
+      feedUrl: sourceUrl,
+      discoverySource: "source-is-feed",
+      homepageProbe,
+      candidateProbes: [],
+    };
   }
 
   const linkCandidates = homepageHtml ? discoveredFeedLinks(homepageHtml, sourceUrl) : [];
   const pathCandidates = feedCandidateUrls(sourceUrl, sourceContentPath(sourceUrl));
   const candidates = [...new Set([...linkCandidates, ...pathCandidates])];
   const linkSet = new Set(linkCandidates);
+  const candidateProbes = [];
 
   for (const candidate of candidates) {
-    const text = await probeIsFeed(deps, candidate, maxFeedResponseBytes);
-    if (text) {
+    const probeResult = await probeIsFeed(deps, candidate, maxFeedResponseBytes);
+    candidateProbes.push({
+      url: candidate,
+      status: probeResult.status,
+      isFeedDocument: probeResult.isFeed,
+      reason: probeResult.reason,
+    });
+    if (probeResult.isFeed) {
       return {
         feedUrl: candidate,
         discoverySource: linkSet.has(candidate) ? "link-alternate" : "candidate-path",
-        homepageError,
+        homepageProbe,
+        candidateProbes,
       };
     }
   }

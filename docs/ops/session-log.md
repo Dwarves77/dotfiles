@@ -9333,3 +9333,38 @@ Wave 15/16 lanes are all landed. The runtime dispatches follow, in the order rul
 population apply under THE GATE first (the R-D six, the smallest proof of the chain end to end), then
 `record-hollow-sweep` dry/apply, `apply-classifications` dry/apply, source-sweep `sitemap` dry on the
 two named hosts, `provenance-heal` dry `quarantined-live`.
+
+### Addendum 85, postscript 29 — the operator's rating ruling, three runtimes read, two Haiku lanes (2026-09-04)
+
+Ruling [CONFIRMED, operator, 2026-09-04, verbatim]: "get the source. then rate the source. it's that
+simple. this isn't hard, find the source and then publish the data on the site. continue with
+everything using multiple agents. it feels like we could have many haiku agents managing these
+simple tasks." Recorded as CLAUDE.md standing rule 18. Lane HEAL-7 (Sonnet) is building the SOURCE
+step (register the cited page through the registry with its class-table tier, capture, ground
+verbatim, publish with the rating) and migration 302 (criterion 3 records the tier, no refusal);
+the kit mirrors it. Haiku now takes the bounded lanes: PROPOSER-4 (attestation for source-sweep
+runs 009–011, marker discharged by their hash, 5 minutes) and SITEMAP-2 (below).
+
+Runtimes read [CONFIRMED from artifacts]: Maintenance #22 dry / #24 apply `record-hollow-sweep`:
+551 archived `record_hollow` (read-back 551; 552 census rows returned to `would_mint`). #23 dry /
+#25 apply `apply-classifications`: 1,015 flags inserted, 797 auto-adopted (`expected_output`
+deterministic), 218 open for ratification. Source sweep `sitemap` dry: run-009 aircargonews.net
+answered HTTP 403 on every path (Codespace curl: homepage, /feed, /sitemap.xml all 403 with a 5 KB
+Cloudflare challenge), which the walker labelled "no sitemap discovered"; run-010
+smartfreightcentre.org found the robots sitemap, 383 URLs scoped to the root source and 0 to the
+three deep-path sources (path scoping as designed), `feed_found 0` although /feed answers 200; run-011
+iata.org scoped 1 URL to the press-release source. Apply dispatched for smartfreightcentre.org (#13).
+Hosts verified from the Codespace before targeting: theicct.org, smartfreightcentre.org, byd.com,
+maersk.com, iata.org answer 200 with sitemaps; transportenvironment.org, iea.org, hapag-lloyd.com
+are bot-walled; aapa-ports.org has no sitemap (the SITEMAP lane's "verified" target was not).
+
+SITEMAP-2 (Haiku, `72d98368`, 72 tests): the feed probe now returns its trail (homepage status,
+bytes, content type, alternate links; each candidate path with status, is-feed, reason) and the
+artifact records it; a source whose robots and every candidate answer 401/403/429 is `bot_wall`
+with its own metric, never "no sitemap discovered". The lane did not answer why
+smartfreightcentre.org's /feed was not recognised; the next dry run carries the trail that answers
+it. Source-sweep marker re-pinned to `sha256:cd5bced124897333` (PROPOSER-4 had discharged the
+previous one by the three artifacts' hash).
+
+TANDEM-2 was killed by a turn interrupt at 04:24 with 884 lines uncommitted; relaunched with a resume
+note to read its own diff first. HEAL-7 running.

@@ -1,0 +1,86 @@
+{
+  "harness_family": "source-sweep",
+  "harness_version": "sha256:00a6517a684aa2f7",
+  "run_id": "source-sweep-run-011",
+  "started_at": "2026-09-04T04:25:08.157Z",
+  "finished_at": "2026-09-04T04:25:57.801Z",
+  "config": {
+    "walker": "sitemap",
+    "mode": "dry",
+    "from": null,
+    "to": null,
+    "feed_url": null,
+    "series": "L",
+    "types": [
+      "RULE"
+    ],
+    "term": null,
+    "max_pages": 5,
+    "per_page": 100,
+    "source_id": null,
+    "portal_url": null,
+    "cli_source_id": null,
+    "host": "iata.org",
+    "limit": 5000,
+    "max_sitemap_fetches": 50,
+    "max_sitemap_entries": 100000
+  },
+  "inputs_ref": [
+    "https://www.iata.org/en/pressroom/2025-releases/2025-12-09-04/",
+    "https://iata.org/en/iata-repository/pressroom/fact-sheets/fact-sheet-fuel",
+    "https://iata.org/en/programs/sustainability/sustainable-aviation-fuels"
+  ],
+  "per_item": [
+    {
+      "id": "506e95aa-d197-46dd-8531-8d9dea2eda6f",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 planned (dry, nothing written)), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.iata.org/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "54ab5d60-afd8-4417-b7ca-ae569aba7562",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 0 url(s) scoped, 0 new (0 planned (dry, nothing written)), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://iata.org/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "ff87a98e-1524-4490-9a76-261c4ba16c33",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 0 url(s) scoped, 0 new (0 planned (dry, nothing written)), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://iata.org/sitemap.xml"
+      ],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "mode": "dry",
+    "sources_targeted": 3,
+    "feed_found": 0,
+    "sitemap_only": 3,
+    "errors": 0,
+    "urls_scoped_total": 1,
+    "new_total": 1,
+    "changed_total": 0,
+    "removed_total": 0,
+    "partial_coverage_sources": 0,
+    "baseline_deferred_sources": 0,
+    "rss_feed_url_written": 0,
+    "change_signals_recorded": 0,
+    "upserted": 0,
+    "planned": 1,
+    "failed": 0,
+    "no_targets_reason": null
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/source-sweep/traces/source-sweep-run-011.raw-result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-source-sweep.mjs, the source-sweep family's canonical entry point (RT lane, 2026-09-01) — the runtime scripts/connections/*.mjs and scripts/mint|forward-events/run-*.mjs already had for their own families, extended to the register-walk.mjs/feed-walk.mjs enumeration modules."
+}

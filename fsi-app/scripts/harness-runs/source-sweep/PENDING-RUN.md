@@ -39,7 +39,7 @@ egress proxy in this build environment refuses connections to the two candidate 
 target, `aircargonews.net` and `aapa-ports.org` — see PROTOCOL.md §7 for the exact refusal text). This
 marker is that honest acknowledgment, not a live-run substitute.
 
-**harness_version at write time:** `sha256:00a6517a684aa2f7`
+**harness_version at write time:** `sha256:cd5bced124897333`
 
 **The planned run that supersedes this marker:** the first `source-sweep` dispatch run with
 `--walker sitemap --mode dry` (against a verified-feed source, e.g. `--host aircargonews.net`, then a

@@ -1,0 +1,40 @@
+{
+  "sources": [
+    {
+      "sourceId": "1c2b33a5-f9ae-4d2e-977f-5212174814d5",
+      "sourceName": "Air Cargo News",
+      "sourceUrl": "https://aircargonews.net/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://aircargonews.net/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://aircargonews.net/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://aircargonews.net/sitemap.xml"
+        },
+        {
+          "url": "https://aircargonews.net/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://aircargonews.net/sitemap_index.xml"
+        },
+        {
+          "url": "https://aircargonews.net/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://aircargonews.net/sitemap-index.xml"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false
+    }
+  ]
+}

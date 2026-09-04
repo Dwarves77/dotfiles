@@ -1,8 +1,71 @@
 # Last proposer pass — source-sweep
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `source-sweep` now has **eight** artifacts
-(`source-sweep-run-001` … `source-sweep-run-008`); F28's rule (d) requires this file to name the latest
-verbatim: **source-sweep-run-008**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `source-sweep` now has **eleven** artifacts
+(`source-sweep-run-001` … `source-sweep-run-011`); F28's rule (d) requires this file to name the latest
+verbatim: **source-sweep-run-011**.
+
+---
+
+## Pass over source-sweep-run-009 through -011 (2026-09-04, lane PROPOSER-4)
+
+**Artifacts read:** source-sweep-run-009, source-sweep-run-010, source-sweep-run-011 (all `harness_version
+sha256:00a6517a684aa2f7`, the hash lane SITEMAP pinned in PENDING-RUN.md discharged by these runs).
+
+**Full traces read:** `traces/source-sweep-run-009.raw-result.json`, `traces/source-sweep-run-010.raw-result.json`,
+`traces/source-sweep-run-011.raw-result.json` (raw per-source and per-URL metrics; all three artifacts' metrics
+fields and per_item verdicts).
+
+**Hypotheses (verified, with basis):**
+
+1. **Run-009 reports "no sitemap discovered" but the actual error is a Cloudflare 403 bot wall on every
+   path.** Metrics: `errors: 1`, `urls_scoped_total: 0`. Trace: `ok: false` with error text "no sitemap
+   discovered: robots.txt yielded 0 Sitemap: lines … and none of the fallback candidates parsed as a sitemap"
+   — but `sitemapsFetched` array shows three entries, each with `kind: "error"` and error "HTTP 403 for
+   https://aircargonews.net/[sitemap.xml|sitemap_index.xml|sitemap-index.xml]". The walker's error message
+   is misleading: a 403 on all three fallback URLs is not "none parsed" but "all rejected." Lane SITEMAP-2
+   is fixing the error classification (rule d: record the 403 status, not an abstract "no sitemap") and adding
+   feed-probe evidence to the artifact (did the walker try /feed at the root? was it a 200 that just wasn't
+   an RSS feed? was it also 403?). Basis: trace `sitemapsFetched` array, each entry's `error` field.
+
+2. **Run-010 demonstrates path scoping working as designed on smartfreightcentre.org.** Metrics: four sources
+   targeted (root + three deep-path URLs); `urls_scoped_total: 383`, `new_total: 383` from root; zero scoped
+   from each deep path. Trace: root source (`sourceUrl: "https://smartfreightcentre.org/"`) has `urlCount: 383`,
+   `scopedOutCount: 0`, `upserted: 383`; three deep sources each have `scopedOutCount: 383`, `urlCount: 0`,
+   `upserted: 0`. The walker correctly filters URLs to match their own base path; the three deep-path sources
+   do not match any entries in the site's 383-URL sitemap. Basis: per-source metrics in trace.
+
+3. **Run-010 reports `feed_found: 0` but root-path probe status is unclear.** The artifact's `metrics.feed_found`
+   is `0`, and per-item verdicts all say "sitemap (robots)" with no feed mention — meaning the walker proceeded
+   directly to the sitemap or used the fallback, never finding a feed. However, the task notes "/feed answers
+   200" at smartfreightcentre.org, so the walker either never probed /feed or found a 200 that was not a valid
+   RSS/Atom feed. Lane SITEMAP-2 is investigating this gap (no hypothesis here; the cause is not determinable
+   from the artifact). Basis: artifact per_item verdicts name "sitemap" only; no feed verdict present.
+
+4. **Run-011 shows IATA site with one matching URL for press-release source, zero for two deep IATA pages.**
+   Metrics: three sources targeted; `urls_scoped_total: 1`, `new_total: 1` from the press-release source. Trace:
+   press-release source (`sourceUrl: "https://www.iata.org/en/pressroom/2025-releases/2025-12-09-04/"`) has
+   `urlCount: 1`, `scopedOutCount: 4426`, `upserted: 1`; two deep sources each have `scopedOutCount: 4427`,
+   `urlCount: 0`, `upserted: 0`. The IATA sitemap holds 4427 URLs total, but only the one matching the
+   press-release base path is in scope for that source; the two deep IATA pages match zero sitemap entries
+   (URLs outside their own path boundaries). The verdict in run-011's per_item reads "sitemap (robots)" for
+   press-release and "sitemap (fallback)" for the two deep sources — consistent with the robots.txt directing
+   to /sitemap.xml for the press-release source but no robots.txt Sitemap: for the two deep paths, triggering
+   the fallback logic. Basis: per-source `baseUrl`, `scopedOutCount`, `urlCount` in trace; per-item discovery
+   source ("robots" vs. "fallback") in artifact verdicts.
+
+**Proposal:** none warranted this pass. Run-009's error classification fix and run-010's feed-probe investigation
+are lane SITEMAP-2's explicit scope, not this lane's. The three runs demonstrate the sitemap walker integrated
+successfully: it scopes correctly per source base path, reports accurate per-source metrics, and surfaces errors
+(run-009's 403) as problems to investigate (lane SITEMAP-2). No governing-file edits triggered; the runs carried
+the hash the PENDING-RUN.md anticipated.
+
+**Family gates status:** PENDING-RUN.md is deleted (its recorded `harness_version sha256:00a6517a684aa2f7` matches
+all three artifacts' recorded version — F28 reverse-audit, rule (c)). No new defects found; the walker's existing
+path-scoping and per-source metrics are fit for purpose.
+
+---
+
+## Pass over source-sweep-run-001 and -002 (2026-09-01, coordinator — original pass reproduced below)
 
 **Artifacts read:** source-sweep-run-001 (2026-09-01T22:31Z, `sha256:87e06e9784e8e21b`, the driver's
 first execution, dry) and source-sweep-run-002 (2026-09-01T23:00:22Z → 23:00:26Z,

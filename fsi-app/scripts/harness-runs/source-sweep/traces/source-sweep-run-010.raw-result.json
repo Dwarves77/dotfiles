@@ -1,0 +1,156 @@
+{
+  "sources": [
+    {
+      "sourceId": "60898344-665a-43cf-baed-b8311c10817a",
+      "sourceName": "Smart Freight Centre",
+      "sourceUrl": "https://smartfreightcentre.org/en/about-sfc/news/a-solid-foundation-to-further-accelerate-freight-decarbonization-smart-freight-centre-releases-updated-glec-framework-version-30",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://smartfreightcentre.org/en/about-sfc/news/a-solid-foundation-to-further-accelerate-freight-decarbonization-smart-freight-centre-releases-updated-glec-framework-version-30",
+      "sitemapsFetched": [
+        {
+          "url": "https://smartfreightcentre.org/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 383,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 383,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false
+    },
+    {
+      "sourceId": "91128f76-b322-4315-b0f2-5b189958d1db",
+      "sourceName": "Smart Freight Centre",
+      "sourceUrl": "https://smartfreightcentre.org/en/our-programs/emissions-accounting/global-logistics-emissions-council/calculate-report-glec-framework",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://smartfreightcentre.org/en/our-programs/emissions-accounting/global-logistics-emissions-council/calculate-report-glec-framework",
+      "sitemapsFetched": [
+        {
+          "url": "https://smartfreightcentre.org/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 383,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 383,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false
+    },
+    {
+      "sourceId": "92c05577-d85d-4a07-91a4-88d2f24fb5e6",
+      "sourceName": "Smart Freight Centre",
+      "sourceUrl": "https://smartfreightcentre.org/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://smartfreightcentre.org/",
+      "sitemapsFetched": [
+        {
+          "url": "https://smartfreightcentre.org/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 383,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 383,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 383,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 383,
+      "failed": 0,
+      "changeRecorded": false
+    },
+    {
+      "sourceId": "d6e87364-309a-4f1b-90e9-93223133f29a",
+      "sourceName": "Smart Freight Centre / GLEC Framework",
+      "sourceUrl": "https://smartfreightcentre.org/en/our-programs/emissions-accounting/global-logistics-emissions-council",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://smartfreightcentre.org/en/our-programs/emissions-accounting/global-logistics-emissions-council",
+      "sitemapsFetched": [
+        {
+          "url": "https://smartfreightcentre.org/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 383,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 383,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false
+    }
+  ]
+}

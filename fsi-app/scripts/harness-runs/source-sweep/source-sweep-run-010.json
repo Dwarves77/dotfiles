@@ -1,0 +1,96 @@
+{
+  "harness_family": "source-sweep",
+  "harness_version": "sha256:00a6517a684aa2f7",
+  "run_id": "source-sweep-run-010",
+  "started_at": "2026-09-04T04:20:24.285Z",
+  "finished_at": "2026-09-04T04:21:20.303Z",
+  "config": {
+    "walker": "sitemap",
+    "mode": "dry",
+    "from": null,
+    "to": null,
+    "feed_url": null,
+    "series": "L",
+    "types": [
+      "RULE"
+    ],
+    "term": null,
+    "max_pages": 5,
+    "per_page": 100,
+    "source_id": null,
+    "portal_url": null,
+    "cli_source_id": null,
+    "host": "smartfreightcentre.org",
+    "limit": 5000,
+    "max_sitemap_fetches": 50,
+    "max_sitemap_entries": 100000
+  },
+  "inputs_ref": [
+    "https://smartfreightcentre.org/en/about-sfc/news/a-solid-foundation-to-further-accelerate-freight-decarbonization-smart-freight-centre-releases-updated-glec-framework-version-30",
+    "https://smartfreightcentre.org/en/our-programs/emissions-accounting/global-logistics-emissions-council/calculate-report-glec-framework",
+    "https://smartfreightcentre.org/",
+    "https://smartfreightcentre.org/en/our-programs/emissions-accounting/global-logistics-emissions-council"
+  ],
+  "per_item": [
+    {
+      "id": "60898344-665a-43cf-baed-b8311c10817a",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 planned (dry, nothing written)), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://smartfreightcentre.org/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "91128f76-b322-4315-b0f2-5b189958d1db",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 planned (dry, nothing written)), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://smartfreightcentre.org/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "92c05577-d85d-4a07-91a4-88d2f24fb5e6",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 383 url(s) scoped, 383 new (383 planned (dry, nothing written)), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://smartfreightcentre.org/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "d6e87364-309a-4f1b-90e9-93223133f29a",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 planned (dry, nothing written)), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://smartfreightcentre.org/sitemap.xml"
+      ],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "mode": "dry",
+    "sources_targeted": 4,
+    "feed_found": 0,
+    "sitemap_only": 4,
+    "errors": 0,
+    "urls_scoped_total": 383,
+    "new_total": 383,
+    "changed_total": 0,
+    "removed_total": 0,
+    "partial_coverage_sources": 0,
+    "baseline_deferred_sources": 0,
+    "rss_feed_url_written": 0,
+    "change_signals_recorded": 0,
+    "upserted": 0,
+    "planned": 383,
+    "failed": 0,
+    "no_targets_reason": null
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/source-sweep/traces/source-sweep-run-010.raw-result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-source-sweep.mjs, the source-sweep family's canonical entry point (RT lane, 2026-09-01) — the runtime scripts/connections/*.mjs and scripts/mint|forward-events/run-*.mjs already had for their own families, extended to the register-walk.mjs/feed-walk.mjs enumeration modules."
+}
