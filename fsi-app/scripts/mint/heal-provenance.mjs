@@ -197,6 +197,95 @@
 // is the HONEST end state this pass can reach, not a defect this pass failed to close: this file's own
 // $0/no-LLM/deterministic mandate has no mechanism to invent a paragraph that was never written, and
 // forcing a label onto unrelated prose would be the fabrication rule 2 forbids, not a fix.
+//
+// FIFTH PASS (2026-09-04, lane CITED-HELD), closing the CAPTURE-CITED residue HEAL-4's own apply run
+// measured live (run 33820643920, HEAL-4 apply, `summary.json` `per_item[].steps.capture_cited.results`):
+// 141 cited URLs captured, 67 HELD — `capture_blocked` 60 (a plain GET refused: bot gate, 403, or a
+// non-2xx response, across imo.org/sciencedirect.com/iea.org/meti.go.jp/betterbuildingssolutioncenter.
+// energy.gov and 20+ other hosts — the item briefs' OWN cited sources, never the item's fault, per the
+// operator ruling this file already builds), `canonical_key_unresolved` 5 (every one an eur-lex
+// `legal-content/EN/TXT?uri=OJ:L_202500040`-shaped OFFICIAL JOURNAL ISSUE reference — never a CELEX act
+// reference, so `deriveKey` (migration 255's own CELEX/ELI-act-only derivation, a governing file this
+// lane does not edit) correctly returns null for it), `fr_document_number_unresolved` 2 (bare
+// `https://federalregister.gov/`, correctly unresolvable — left as-is, no mechanism applies to a URL that
+// names no document at all).
+//
+// THIS LANE'S EGRESS, TESTED (2026-09-04, `curl -sI https://web.archive.org/`, `archive.org`, even
+// `https://example.com`, and the proxy's own `/__agentproxy/status`): every one of those hosts answers
+// `403` at the CONNECT-tunnel stage — the container's egress is an ALLOWLIST (github/npm/pypi/the model
+// API and a short list of infra hosts; see `/root/.ccr/README.md`), not the open "network egress to
+// public sites" the dispatch's ruling assumed. `api.github.com` answers `200` from the SAME container in
+// the SAME test, so this is a policy allowlist, not a general outage. Consequence, stated once here and
+// not hedged again below: NOTHING in this pass's Wayback/OJ-Cellar code paths runs live in this
+// environment; every claim about what those endpoints actually return is [HYPOTHESIS], and the tests
+// below are the only verification this lane could perform, all against a fake `fetchImpl` (per this
+// file's own DI/DRY/$0 mandate — the module runs and is tested with ZERO network access even when egress
+// is open, so the fake-fetch harness was never the blocker; only the "probe 5 live" ask in the dispatch is
+// unmet, and is reported as unmet rather than guessed at).
+//
+// TWO NEW $0 DETERMINISTIC FALLBACKS, both wired into EVERY capture family (STEP 1's `captureItem` AND
+// THIRD PASS's `captureCitedUrl` — one choke point each, never two divergent copies):
+//
+//   1. OJ-REFERENCE RESOLUTION (closes `canonical_key_unresolved` for the OJ-issue shape only — a CELEX
+//      act reference was never broken and is untouched). `parseOjReference` reads the `uri=` query
+//      parameter of an eur-lex.europa.eu URL and recognises three shapes, all named in the dispatch:
+//      `OJ:L_202500040` (year+issue concatenated, no separator), `OJ:L_2025_040` (underscore-separated),
+//      and `OJ:JOL_2025_040_R` / `OJ:JOC_..._C` (already Cellar-ID-shaped, edition letter explicit). A URL
+//      matching none of the three (e.g. a malformed or non-OJ `uri=` value) still holds
+//      `canonical_key_unresolved`, unchanged — this is a NEW branch, never a replacement of the existing
+//      one. A parsed reference is resolved against the Publications Office's own OJ resource endpoint
+//      (`https://publications.europa.eu/resource/oj/<JOL|JOC>_<year>_<issue5>_<edition>` — the exact shape
+//      the dispatch names), via `captureDocument` directly (never `resolveRowCapture`, which has no `oj`
+//      branch and is a governing file this lane does not edit or re-derive per this file's own header) —
+//      an explicit edition letter from the citation is tried alone; an inferred one (the citation carried
+//      none) tries the series' own edition first (`R` for L, `C` for C) then the other letter as a second
+//      guess, BOTH attempts recorded in evidence either way. Every attempt failing holds the new, precise
+//      `oj_reference_no_cellar_path`, naming every endpoint tried — never chained to the Wayback fallback
+//      below (a wrong-shaped Cellar request failing is not "the publisher blocked us," so an archive copy
+//      of the WRONG resource would not be evidence of anything; see `resolveOjReference`'s own header).
+//      NOT LIVE-TESTED (egress denied, above) — the endpoint shape is [HYPOTHESIS], sourced from the
+//      dispatch's own text, never independently confirmed against a real Cellar response this session.
+//
+//   2. ARCHIVE (WAYBACK) FALLBACK (closes the `capture_blocked`/`capture_thin` class — 60 of the 67 held
+//      rows this pass targets). Every capture path that would otherwise hold `capture_blocked` or the NEW
+//      `capture_thin` (see next paragraph) now tries ONE more thing before giving up:
+//      `https://archive.org/wayback/available?url=<cited url>` (parsed by `parseWaybackAvailability`); a
+//      `closest`/`available:true` snapshot is fetched at `https://web.archive.org/web/<timestamp>id_/<cited
+//      url>` (the `id_` flag — raw original bytes, no Wayback toolbar HTML injected) through the EXACT
+//      SAME extraction the direct path uses (`captureDocument`'s `stripHtmlToText` for HTML,
+//      `pdf-extract.mjs`'s `pdfToText` for a PDF-shaped cited URL — build item 4, `tryArchiveFallback`'s
+//      own PDF branch is the SAME `looksLikePdfUrl`/`fetchBytesForPdf`/`isPdfBytes` chain
+//      `captureCitedUrl`'s direct PDF branch already used, never a second codec). `result_url` (what the
+//      caller records as where the text CAME FROM, per this module's existing `captureCitedUrl`/
+//      `captureItem` contract) STAYS THE CITED URL — never the snapshot URL — and `evidence` carries
+//      `endpoint: <snapshot url>`, `transport: "wayback"`, `snapshot_timestamp`, alongside the ORIGINAL
+//      direct attempt's own evidence (never dropped) so an artifact reader sees both what was tried and
+//      what worked. No snapshot, or the snapshot itself fails the same extraction: held
+//      `capture_blocked_no_archive` / `capture_thin_no_archive`, evidence naming both attempts. THE
+//      DOCTRINE POINT (stated here, for the operator, per the dispatch's explicit ask): a Wayback copy is
+//      the PUBLISHER'S OWN TEXT at the PUBLISHER'S OWN URL, reached through a third-party CACHE — the
+//      archive is TRANSPORT, never a source; `sources`/`institution_id` attribution is UNCHANGED by this
+//      fallback (the item still cites imo.org, not archive.org), and every use is labelled
+//      (`transport: "wayback"`) so nothing here is silently indistinguishable from a direct capture.
+//
+//   3. `capture_thin` vs `capture_blocked`, SPLIT (was one bucket: HTTP block AND "the body was real but
+//      short" both read `capture_blocked`, so an artifact reader could not tell a bot-gate page from a
+//      genuinely near-empty publisher page). `envelopeToOutcome`'s classification: an HTTP response in the
+//      2xx range with no fetch error is `capture_thin` (the byte count is in evidence, per the dispatch);
+//      anything else unusable (non-2xx, a thrown fetch error, a timeout) stays `capture_blocked`. Both
+//      reasons now feed the SAME archive fallback above — a thin page is exactly as worth an archive
+//      lookup as a blocked one, per build item 3's own instruction to try the fallback for it too.
+//
+// TEST COVERAGE ADDED: OJ-reference parsing (all three shapes, plus the `canonical_key_unresolved`
+// no-match case unchanged), the Cellar-OJ resolve/hold path (captured on a usable fake response; held
+// `oj_reference_no_cellar_path` on two refused attempts, evidence naming both endpoints); Wayback
+// availability parsing (snapshot present / absent / malformed JSON); the archive fetch → capture path
+// (evidence carries `transport`/`snapshot_timestamp`, `result_url` unchanged from the cited url); the
+// no-snapshot hold (`capture_blocked_no_archive`); `capture_thin` classification (a 200 with short body,
+// distinct from a 404/blocked); a PDF cited URL captured via the archive fallback (same `pdfToText` codec
+// as a direct PDF capture). All against a fake `fetchImpl` — no network in `node --test`, per this file's
+// own DI mandate; see this lane's report for the live-egress test result and why no live probe of the
+// listed hosts was possible from this container.
 
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -207,6 +296,7 @@ import {
   captureDocument,
   resolveRowCapture,
   extractFrDocumentNumber,
+  followUpgradingRedirects,
 } from "./export-census-rows.mjs";
 import { deriveKey } from "../lib/canonical-key.mjs";
 // buildGateARow -- THE live Gate-A scanner (gate-a-scan.mjs) wrapped exactly as apply-mint-batch.mjs's own
@@ -243,7 +333,7 @@ import { institutionKey, hostOf } from "../lib/institution-key.mjs";
 // re-deriving.
 import { pdfToText, looksLikePdfUrl, isPdfBytes } from "../../src/lib/sources/pdf-extract.mjs";
 
-export const HEAL_VERSION = "hp4-2026-09-03.1";
+export const HEAL_VERSION = "hp5-2026-09-04.1";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_SLOTS_PATH = resolve(HERE, "item-type-required-slots.json");
@@ -515,12 +605,127 @@ export function envelopeFromPlainGet(res, endpoint) {
   };
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// OJ-REFERENCE RESOLUTION (FIFTH PASS, 2026-09-04). `deriveKey` (migration 255's own mirror, imported
+// above, never edited here) resolves a CELEX act reference or an ELI act path — it correctly returns null
+// for an Official Journal ISSUE reference (`uri=OJ:L_202500040` and its two sibling shapes below), because
+// an OJ issue is not an act and was never in that function's vocabulary. This section resolves ONLY that
+// gap, entirely in this file, using `captureDocument` directly (never `resolveRowCapture`, which has no
+// `oj` branch — adding one there would be editing a governing file this lane's header forbids).
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+// Three cited-URL shapes, all named in the dispatch: `JOL_2025_040_R` (already Cellar-ID-shaped, edition
+// letter explicit — `JOC` for the C series), `L_2025_040` (underscore year/issue), `L_202500040`
+// (concatenated year+issue, no separator). Order matters: the JO-prefixed form is tried first so it is
+// never mis-read by the concatenated form's looser digit run.
+const OJ_JO_PREFIXED_RE = /^OJ:(JO[LC])_(\d{4})_(\d{1,5})(?:_([A-Za-z]))?$/i;
+const OJ_UNDERSCORE_RE = /^OJ:([LC])_(\d{4})_(\d{1,5})$/i;
+const OJ_CONCAT_RE = /^OJ:([LC])_(\d{4})(\d{1,5})$/i;
+
+/** The `uri` query-parameter value off an eur-lex.europa.eu URL, `decodeURIComponent`d. Pure past the one
+ *  `new URL` parse; falls back to a literal regex for a relative/malformed URL `new URL` cannot parse (the
+ *  same defensive posture `resolveCaptureUrl`'s callers already assume elsewhere in this file). Null when
+ *  no `uri=` parameter is present at all. */
+function ojUriParam(url) {
+  const s = String(url ?? "");
+  try {
+    const raw = new URL(s).searchParams.get("uri");
+    if (raw) return raw;
+  } catch {
+    // fall through — a relative or otherwise unparseable url still gets the literal-regex attempt below
+  }
+  const m = s.match(/[?&]uri=([^&]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+/** Parse an eur-lex `uri=OJ:...` query value into `{ series: "L"|"C", year, issue (5-digit, zero-padded),
+ *  edition: "R"|"C"|null }` — `edition` is the citation's OWN explicit letter (the JO-prefixed form only),
+ *  null when the citation carries none and the resolver must guess (see `resolveOjReference`). Returns
+ *  null for a `uri=` value matching none of the three OJ-issue shapes (a CELEX/ELI act reference, or
+ *  anything else) — `captureItem`/`captureCitedUrl` fall back to the existing `canonical_key_unresolved`
+ *  hold in that case, UNCHANGED. Pure. */
+export function parseOjReference(url) {
+  const uri = ojUriParam(url);
+  if (!uri) return null;
+
+  let m = OJ_JO_PREFIXED_RE.exec(uri);
+  if (m) {
+    return {
+      series: m[1].toUpperCase() === "JOL" ? "L" : "C",
+      year: m[2],
+      issue: m[3].padStart(5, "0"),
+      edition: m[4] ? m[4].toUpperCase() : null,
+    };
+  }
+  m = OJ_UNDERSCORE_RE.exec(uri);
+  if (m) return { series: m[1].toUpperCase(), year: m[2], issue: m[3].padStart(5, "0"), edition: null };
+  m = OJ_CONCAT_RE.exec(uri);
+  if (m) return { series: m[1].toUpperCase(), year: m[2], issue: m[3].padStart(5, "0"), edition: null };
+  return null;
+}
+
+/** The Publications Office's own OJ-issue resource URL for one `{series,year,issue}` + edition letter —
+ *  the exact shape the dispatch names (`.../resource/oj/JOL_2025_040_R`). Pure. NOT independently
+ *  confirmed live this session (this lane's egress is denied to publications.europa.eu — see this file's
+ *  FIFTH PASS header); [HYPOTHESIS], sourced from the dispatch's own text. */
+export function cellarEndpointForOj({ series, year, issue }, edition) {
+  const prefix = series === "L" ? "JOL" : "JOC";
+  return `https://publications.europa.eu/resource/oj/${prefix}_${year}_${issue}_${edition}`;
+}
+
+/**
+ * Resolve one parsed OJ reference to captured text. An explicit edition (the citation's own JO-prefixed
+ * letter) is tried alone; an inferred one tries the series' own natural edition first (`R` for L, `C` for
+ * C) then the OTHER letter as a second guess — both attempts recorded in `evidence.attempts` either way,
+ * so a reader sees every endpoint tried, not just the last. Never chained to the Wayback fallback below: a
+ * wrong-shaped Cellar request failing is not evidence the PUBLISHER blocked anything, so an archive copy
+ * of what may be the wrong resource id would not be honest evidence of a captured source — the precise
+ * `oj_reference_no_cellar_path` hold, naming every attempt, is this pass's honest end state for this
+ * branch (mirrors this file's own header doctrine: a refusal that names its own limits is not a defect).
+ */
+async function resolveOjReference(ref, citedUrl, deps) {
+  const editions = ref.edition ? [ref.edition] : ref.series === "L" ? ["R", "C"] : ["C", "R"];
+  const attempts = [];
+  for (const edition of editions) {
+    const endpoint = cellarEndpointForOj(ref, edition);
+    const res = await captureDocument(endpoint, { fetchImpl: followUpgradingRedirects(deps.fetchImpl) });
+    const env = envelopeFromPlainGet(res, endpoint);
+    attempts.push({ endpoint, status: env.status ?? null, bytes: env.bytes ?? 0, head: env.head ?? "" });
+    if (env.usable) {
+      return {
+        status: "captured",
+        url: endpoint,
+        text: env.text,
+        title: null,
+        evidence: { status: env.status ?? null, bytes: env.bytes ?? 0, endpoint, oj: ref },
+      };
+    }
+  }
+  return { status: "held", reason: "oj_reference_no_cellar_path", url: citedUrl, evidence: { oj: ref, attempts } };
+}
+
+/** eur-lex.europa.eu resolution shared by `captureItem` and `captureCitedUrl`: try the CELEX/ELI key
+ *  first (unchanged from before this pass — `resolveRowCapture`'s Cellar-then-EUR-Lex chain, run through
+ *  the archive fallback like every other family below); when no key resolves, try the NEW OJ-issue
+ *  parse/resolve above; when NEITHER resolves, the existing `canonical_key_unresolved` hold, unchanged. */
+async function resolveEurlexCapture(url, canonicalKey, deps) {
+  if (canonicalKey) {
+    const env = await resolveRowCapture({ document_url: url }, { scheme: "celex", canonicalKey }, { fetchImpl: deps.fetchImpl });
+    return envelopeToOutcomeWithArchive(env, url, deps);
+  }
+  const ojRef = parseOjReference(url);
+  if (!ojRef) return { status: "held", reason: "canonical_key_unresolved", url };
+  return resolveOjReference(ojRef, url, deps);
+}
+
 /**
  * Capture one item's missing grounding, live. Resolves the per-family identity from the URL's host
  * (`classifyHost`, imported), then defers to `resolveRowCapture` (Cellar-first / FR-API — imported,
  * unmodified) for eurlex/federal_register, or a plain polite GET otherwise. Returns
  * `{ status: "captured", url, text, title, evidence }` or `{ status: "held", reason, url?, evidence? }` —
- * a refusal is ALWAYS returned with evidence, never thrown past this function.
+ * a refusal is ALWAYS returned with evidence, never thrown past this function. A `capture_blocked` or
+ * `capture_thin` refusal (any family) now tries the Wayback archive fallback before giving up — see this
+ * file's FIFTH PASS header.
  * @param {{fetchImpl: Function}} deps
  */
 export async function captureItem(item, url, deps) {
@@ -529,28 +734,40 @@ export async function captureItem(item, url, deps) {
 
   if (host === "eurlex") {
     const canonicalKey = item.canonical_instrument_key || deriveKey(item.instrument_identifier ?? null, url);
-    if (!canonicalKey) return { status: "held", reason: "canonical_key_unresolved", url };
-    const env = await resolveRowCapture({ document_url: url }, { scheme: "celex", canonicalKey }, { fetchImpl: deps.fetchImpl });
-    return envelopeToOutcome(env, url);
+    return resolveEurlexCapture(url, canonicalKey, deps);
   }
 
   if (host === "federal_register") {
     const frDocumentNumber = extractFrDocumentNumber(url);
     if (!frDocumentNumber) return { status: "held", reason: "fr_document_number_unresolved", url };
     const env = await resolveRowCapture({ document_url: url }, { scheme: "federal_register", frDocumentNumber }, { fetchImpl: deps.fetchImpl });
-    return envelopeToOutcome(env, url);
+    return envelopeToOutcomeWithArchive(env, url, deps);
   }
 
   const res = await captureDocument(url, { fetchImpl: deps.fetchImpl });
   const env = envelopeFromPlainGet(res, url);
-  return envelopeToOutcome(env, url);
+  return envelopeToOutcomeWithArchive(env, url, deps);
+}
+
+/** Which unusable-envelope reason applies: an HTTP response actually reached (2xx, no fetch error) but
+ *  the extracted text fell short of the >200-char usability floor is `capture_thin` (FIFTH PASS split,
+ *  2026-09-04 — was folded into `capture_blocked` before this pass, indistinguishable from a bot gate);
+ *  anything else unusable (non-2xx, a thrown fetch error, a timeout) is `capture_blocked`, unchanged.
+ *  `no_capture_path` (the EUR-Lex-own-known-bot-gate case, tagged by `resolveRowCapture` itself) still
+ *  takes priority over both — that classification is more specific and this pass does not weaken it. Pure. */
+function classifyUnusableReason(env) {
+  if (env.noCapturePath) return "no_capture_path";
+  const status = env.status;
+  const httpOk = typeof status === "number" && status >= 200 && status < 300;
+  if (httpOk && !env.error) return "capture_thin";
+  return "capture_blocked";
 }
 
 function envelopeToOutcome(env, url) {
   if (!env.usable) {
     return {
       status: "held",
-      reason: env.noCapturePath ? "no_capture_path" : "capture_blocked",
+      reason: classifyUnusableReason(env),
       url,
       evidence: { status: env.status ?? null, bytes: env.bytes ?? 0, head: env.head ?? "", endpoint: env.endpoint ?? null, error: env.error ?? null },
     };
@@ -562,6 +779,141 @@ function envelopeToOutcome(env, url) {
     title: env.title ?? null,
     evidence: { status: env.status ?? null, bytes: env.bytes ?? 0, endpoint: env.endpoint ?? null },
   };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// ARCHIVE (WAYBACK) FALLBACK (FIFTH PASS, 2026-09-04). The single choke point every capture family funnels
+// a `capture_blocked`/`capture_thin` refusal through before giving up — see this file's FIFTH PASS header
+// for the full doctrine. Pure parsers first (testable with zero I/O), then the two async orchestrators.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+/** The Wayback availability API's own URL for one cited url. Pure. */
+export function waybackAvailabilityUrl(citedUrl) {
+  return `https://archive.org/wayback/available?url=${encodeURIComponent(String(citedUrl ?? ""))}`;
+}
+
+/** Parse the Wayback availability API's JSON body into `{ timestamp, snapshotUrl }`, or null when no
+ *  snapshot is listed as available (an absent `archived_snapshots.closest`, or one whose own `available`
+ *  flag is not `true` — the API's own documented shape for "nothing archived"). Pure, defensive against a
+ *  malformed/partial body (never throws — returns null instead, same posture as `locateSpanInText`). */
+export function parseWaybackAvailability(json) {
+  const snap = json?.archived_snapshots?.closest;
+  if (!snap || snap.available !== true || !snap.timestamp || !snap.url) return null;
+  return { timestamp: String(snap.timestamp), snapshotUrl: String(snap.url) };
+}
+
+/** The Wayback `id_` raw-bytes replay URL for one timestamp + original url — returns the original page
+ *  bytes with no Wayback toolbar HTML injected (the flag this file's FIFTH PASS header names). Pure. */
+export function waybackSnapshotFetchUrl(timestamp, citedUrl) {
+  return `https://web.archive.org/web/${timestamp}id_/${citedUrl}`;
+}
+
+/** Query the Wayback availability API for one cited url. Never throws — a fetch failure or unparseable
+ *  body comes back as `{ ok: false, error }`, exactly this module's existing "refusal always returns
+ *  evidence" posture. */
+async function fetchWaybackAvailability(citedUrl, fetchImpl) {
+  try {
+    const res = await fetchImpl(waybackAvailabilityUrl(citedUrl), {
+      headers: { "user-agent": "FSI-population-turn/1.0 (+population-turn)", accept: "application/json" },
+    });
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+    const body = typeof res.text === "function" ? await res.text() : JSON.stringify(await res.json());
+    const json = JSON.parse(body);
+    return { ok: true, snapshot: parseWaybackAvailability(json) };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/**
+ * The archive fallback for one cited url whose direct capture already failed. Queries Wayback
+ * availability; on a snapshot, fetches its `id_` raw bytes and runs them through the SAME extraction the
+ * direct path uses (HTML via `captureDocument`'s own `stripHtmlToText`, or `pdf-extract.mjs`'s `pdfToText`
+ * for a PDF-shaped cited url — build item 4, the SAME `looksLikePdfUrl`/`fetchBytesForPdf`/`isPdfBytes`
+ * chain `captureCitedUrl`'s own direct PDF branch already uses). `result_url` (the `url` field a caller
+ * records as where the text came from) STAYS `citedUrl` — never the snapshot url — per this file's FIFTH
+ * PASS doctrine point: the archive is transport, never a source. No snapshot, or the snapshot itself fails
+ * extraction: held `capture_blocked_no_archive` / `capture_thin_no_archive` (matching the ORIGINAL direct
+ * failure's own class), `evidence.direct` naming the direct attempt and `evidence.archive*` naming this
+ * attempt — the direct evidence is NEVER dropped just because a second attempt was also made.
+ */
+async function tryArchiveFallback(citedUrl, directReason, directEvidence, deps) {
+  const noArchiveReason = directReason === "capture_thin" ? "capture_thin_no_archive" : "capture_blocked_no_archive";
+  const avail = await fetchWaybackAvailability(citedUrl, deps.fetchImpl);
+  if (!avail.ok || !avail.snapshot) {
+    return {
+      status: "held",
+      reason: noArchiveReason,
+      url: citedUrl,
+      evidence: { direct: directEvidence, archive_availability: avail.ok ? { snapshot: null } : { error: avail.error } },
+    };
+  }
+  const { timestamp, snapshotUrl } = avail.snapshot;
+  const fetchUrl = waybackSnapshotFetchUrl(timestamp, citedUrl);
+  const archiveAvailability = { timestamp, snapshot_url: snapshotUrl };
+
+  if (looksLikePdfUrl(citedUrl)) {
+    const fetched = await fetchBytesForPdf(fetchUrl, deps.fetchImpl);
+    if (!fetched.ok || !fetched.bytes || !isPdfBytes(fetched.bytes)) {
+      return {
+        status: "held",
+        reason: noArchiveReason,
+        url: citedUrl,
+        evidence: { direct: directEvidence, archive_availability: archiveAvailability, archive_error: fetched.error ?? "archived body is not PDF-magic-byte-prefixed" },
+      };
+    }
+    try {
+      const { text, fullLength } = await pdfToText(fetched.bytes, PDF_TEXT_MAX_CHARS);
+      return {
+        status: "captured",
+        url: citedUrl,
+        text,
+        title: null,
+        evidence: {
+          status: fetched.status, bytes: fetched.bytes.length, endpoint: fetchUrl, pdf: true, full_length: fullLength,
+          transport: "wayback", snapshot_timestamp: timestamp,
+        },
+      };
+    } catch (err) {
+      return {
+        status: "held",
+        reason: noArchiveReason,
+        url: citedUrl,
+        evidence: { direct: directEvidence, archive_availability: archiveAvailability, archive_error: err instanceof Error ? err.message : String(err) },
+      };
+    }
+  }
+
+  const res = await captureDocument(fetchUrl, { fetchImpl: deps.fetchImpl });
+  const env = envelopeFromPlainGet(res, fetchUrl);
+  if (!env.usable) {
+    return {
+      status: "held",
+      reason: noArchiveReason,
+      url: citedUrl,
+      evidence: { direct: directEvidence, archive_availability: archiveAvailability, archive: { status: env.status, bytes: env.bytes, head: env.head, error: env.error } },
+    };
+  }
+  return {
+    status: "captured",
+    url: citedUrl,
+    text: env.text,
+    title: env.title ?? null,
+    evidence: { status: env.status ?? null, bytes: env.bytes ?? 0, endpoint: fetchUrl, transport: "wayback", snapshot_timestamp: timestamp },
+  };
+}
+
+/** `envelopeToOutcome`, extended: on a `capture_blocked`/`capture_thin` hold, try the archive fallback
+ *  before returning. Every other outcome (captured, `no_capture_path`, or a caller's own pre-fetch hold
+ *  like `canonical_key_unresolved`) passes through unchanged — the archive is only ever tried for "the
+ *  publisher's own text was reachable in principle but this exact request didn't get it," never for a
+ *  request this module already knows cannot be built. */
+async function envelopeToOutcomeWithArchive(env, url, deps) {
+  const base = envelopeToOutcome(env, url);
+  if (base.status === "held" && (base.reason === "capture_blocked" || base.reason === "capture_thin")) {
+    return tryArchiveFallback(url, base.reason, base.evidence, deps);
+  }
+  return base;
 }
 
 /** agent_run_searches INSERT row for a fresh HEAL capture (migration 112 / write-item.ts's own shape).
@@ -694,20 +1046,26 @@ export async function captureCitedUrl(url, deps) {
 
   if (host === "eurlex") {
     const canonicalKey = deriveKey(null, url);
-    if (!canonicalKey) return { status: "held", reason: "canonical_key_unresolved", url };
-    const env = await resolveRowCapture({ document_url: url }, { scheme: "celex", canonicalKey }, { fetchImpl: deps.fetchImpl });
-    return envelopeToOutcome(env, url);
+    return resolveEurlexCapture(url, canonicalKey, deps);
   }
   if (host === "federal_register") {
     const frDocumentNumber = extractFrDocumentNumber(url);
     if (!frDocumentNumber) return { status: "held", reason: "fr_document_number_unresolved", url };
     const env = await resolveRowCapture({ document_url: url }, { scheme: "federal_register", frDocumentNumber }, { fetchImpl: deps.fetchImpl });
-    return envelopeToOutcome(env, url);
+    return envelopeToOutcomeWithArchive(env, url, deps);
   }
   if (looksLikePdfUrl(url)) {
     const fetched = await fetchBytesForPdf(url, deps.fetchImpl);
     if (!fetched.ok || !fetched.bytes) {
-      return { status: "held", reason: "capture_blocked", url, evidence: { status: fetched.status ?? null, error: fetched.error ?? null } };
+      // A blocked/failed direct PDF fetch funnels through the SAME archive choke point as every other
+      // family (FIFTH PASS) — a synthetic unusable envelope so envelopeToOutcomeWithArchive's own
+      // capture_blocked classification and Wayback attempt apply here unchanged, never a third copy of
+      // that logic.
+      return envelopeToOutcomeWithArchive(
+        { usable: false, status: fetched.status ?? null, bytes: 0, head: "", endpoint: url, error: fetched.error ?? "PDF byte fetch failed" },
+        url,
+        deps,
+      );
     }
     if (!isPdfBytes(fetched.bytes)) {
       return {
@@ -728,7 +1086,7 @@ export async function captureCitedUrl(url, deps) {
 
   const res = await captureDocument(url, { fetchImpl: deps.fetchImpl });
   const env = envelopeFromPlainGet(res, url);
-  return envelopeToOutcome(env, url);
+  return envelopeToOutcomeWithArchive(env, url, deps);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════

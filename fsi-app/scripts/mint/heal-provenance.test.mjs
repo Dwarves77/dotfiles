@@ -71,12 +71,18 @@ import {
   pickBestSentence,
   stripLeadingMarker,
   planOwningParagraphRewrite,
+  // fifth pass (CITED-HELD, 2026-09-04)
+  parseOjReference,
+  cellarEndpointForOj,
+  waybackAvailabilityUrl,
+  parseWaybackAvailability,
+  waybackSnapshotFetchUrl,
 } from "./heal-provenance.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 test("HEAL_VERSION is a stamped string", () => {
-  assert.match(HEAL_VERSION, /^hp4-/);
+  assert.match(HEAL_VERSION, /^hp5-/);
 });
 
 // ── loadRequiredSlots / claimCoversSlot / missingRequiredSlots ──────────────────────────────────────
@@ -245,12 +251,166 @@ test("captureItem: plain-GET family (host none of eurlex/federal_register) captu
   assert.equal(r.evidence.status, 200);
 });
 
-test("captureItem: plain-GET family holds capture_blocked with evidence on a short/failed response", async () => {
+test("captureItem: plain-GET family holds capture_blocked_no_archive when both the direct fetch AND the Wayback archive fallback refuse (FIFTH PASS)", async () => {
+  // The one fetchImpl every call in this module shares refuses every URL alike -- direct AND the archive
+  // availability lookup AND (had it gotten that far) the snapshot fetch. capture_blocked_no_archive is
+  // the correct, honest end state: neither the publisher nor its Wayback copy answered.
   const fetchImpl = async () => ({ ok: false, status: 404, text: async () => "not found" });
   const r = await captureItem({}, "https://example-regulator.gov/gone", { fetchImpl });
   assert.equal(r.status, "held");
-  assert.equal(r.reason, "capture_blocked");
-  assert.equal(r.evidence.status, 404);
+  assert.equal(r.reason, "capture_blocked_no_archive");
+  assert.equal(r.evidence.direct.status, 404);
+  assert.equal(r.evidence.archive_availability.error, "HTTP 404");
+});
+
+test("captureItem: plain-GET family, direct blocked but a Wayback snapshot exists -> captured via the archive, result_url stays the CITED url", async () => {
+  const citedUrl = "https://example-regulator.gov/gone-but-archived";
+  const fetchImpl = async (url) => {
+    if (String(url).startsWith("https://archive.org/wayback/available")) {
+      return {
+        ok: true,
+        status: 200,
+        text: async () =>
+          JSON.stringify({
+            archived_snapshots: {
+              closest: { available: true, status: "200", timestamp: "20250601000000", url: `http://web.archive.org/web/20250601000000/${citedUrl}` },
+            },
+          }),
+      };
+    }
+    if (String(url).startsWith("https://web.archive.org/web/20250601000000id_/")) {
+      return { ok: true, status: 200, text: async () => "<html><title>Archived</title><body>" + "archived content ".repeat(30) + "</body></html>" };
+    }
+    return { ok: false, status: 403, text: async () => "forbidden" };
+  };
+  const r = await captureItem({}, citedUrl, { fetchImpl });
+  assert.equal(r.status, "captured");
+  assert.equal(r.url, citedUrl);
+  assert.ok(r.text.length > 200);
+  assert.equal(r.evidence.transport, "wayback");
+  assert.equal(r.evidence.snapshot_timestamp, "20250601000000");
+});
+
+test("captureItem: plain-GET family, direct response reaches (200) but text falls short of the 200-char floor -> held capture_thin (distinct from a bot-gate capture_blocked), archive also refused", async () => {
+  const fetchImpl = async (url) => {
+    if (String(url).startsWith("https://archive.org/wayback/available")) {
+      return { ok: true, status: 200, text: async () => JSON.stringify({ archived_snapshots: {} }) };
+    }
+    return { ok: true, status: 200, text: async () => "<p>hi</p>" }; // real 200, real (short) body -- never a block
+  };
+  const r = await captureItem({}, "https://example-regulator.gov/near-empty", { fetchImpl });
+  assert.equal(r.status, "held");
+  assert.equal(r.reason, "capture_thin_no_archive");
+  assert.equal(r.evidence.direct.status, 200);
+  assert.equal(r.evidence.direct.bytes, Buffer.byteLength("<p>hi</p>", "utf8")); // the byte count is in evidence
+});
+
+// ── OJ-REFERENCE RESOLUTION (FIFTH PASS): parseOjReference / cellarEndpointForOj, then the integration
+//    through captureItem/captureCitedUrl for the canonical_key_unresolved OJ-issue residue ─────────────
+
+test("parseOjReference: concatenated form (OJ:L_202500040, no separator between year and issue)", () => {
+  const ref = parseOjReference("https://eur-lex.europa.eu/legal-content/EN/TXT?uri=OJ:L_202500040");
+  assert.deepEqual(ref, { series: "L", year: "2025", issue: "00040", edition: null });
+});
+
+test("parseOjReference: underscore form (OJ:L_2025_040) and the C series", () => {
+  assert.deepEqual(
+    parseOjReference("https://eur-lex.europa.eu/legal-content/EN/TXT?uri=OJ:L_2025_040"),
+    { series: "L", year: "2025", issue: "00040", edition: null },
+  );
+  assert.deepEqual(
+    parseOjReference("https://eur-lex.europa.eu/legal-content/EN/TXT?uri=OJ:C_2025_226"),
+    { series: "C", year: "2025", issue: "00226", edition: null },
+  );
+});
+
+test("parseOjReference: already Cellar-ID-shaped form (OJ:JOL_2025_040_R), edition letter read verbatim", () => {
+  assert.deepEqual(
+    parseOjReference("https://eur-lex.europa.eu/legal-content/EN/TXT?uri=OJ:JOL_2025_040_R"),
+    { series: "L", year: "2025", issue: "00040", edition: "R" },
+  );
+  assert.deepEqual(
+    parseOjReference("https://eur-lex.europa.eu/legal-content/EN/TXT?uri=OJ:JOC_2025_226_C"),
+    { series: "C", year: "2025", issue: "00226", edition: "C" },
+  );
+});
+
+test("parseOjReference: a CELEX/ELI uri= value, or no uri= at all, is null -- the existing canonical_key_unresolved hold is untouched", () => {
+  assert.equal(parseOjReference("https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=NOTACELEX"), null);
+  assert.equal(parseOjReference("https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32023R1234"), null);
+  assert.equal(parseOjReference("https://eur-lex.europa.eu/legal-content/EN/TXT/"), null);
+});
+
+test("cellarEndpointForOj: the Publications Office OJ-resource shape the dispatch names", () => {
+  assert.equal(
+    cellarEndpointForOj({ series: "L", year: "2025", issue: "00040" }, "R"),
+    "https://publications.europa.eu/resource/oj/JOL_2025_00040_R",
+  );
+  assert.equal(
+    cellarEndpointForOj({ series: "C", year: "2025", issue: "00226" }, "C"),
+    "https://publications.europa.eu/resource/oj/JOC_2025_00226_C",
+  );
+});
+
+test("captureItem: eur-lex OJ-issue reference (uri=OJ:L_202500040, no CELEX) -> captured from the derived Cellar OJ endpoint", async () => {
+  const fetchImpl = async (url) => {
+    if (String(url) === "https://publications.europa.eu/resource/oj/JOL_2025_00040_R") {
+      return { ok: true, status: 200, text: async () => "<html><title>OJ L 40</title><body>" + "oj issue text ".repeat(30) + "</body></html>" };
+    }
+    return { ok: false, status: 404, text: async () => "not found" };
+  };
+  const r = await captureItem(
+    { canonical_instrument_key: null, instrument_identifier: null },
+    "https://eur-lex.europa.eu/legal-content/EN/TXT?uri=OJ:L_202500040",
+    { fetchImpl },
+  );
+  assert.equal(r.status, "captured");
+  assert.equal(r.url, "https://publications.europa.eu/resource/oj/JOL_2025_00040_R");
+  assert.ok(r.text.length > 200);
+});
+
+test("captureCitedUrl: eur-lex OJ-issue reference, no edition given -> tries the series' own edition first, then the other letter, both recorded", async () => {
+  const attempted = [];
+  const fetchImpl = async (url) => {
+    attempted.push(String(url));
+    return { ok: false, status: 404, text: async () => "not found" }; // Cellar refuses both guesses
+  };
+  const r = await captureCitedUrl("https://eur-lex.europa.eu/legal-content/EN/TXT?uri=OJ:L_2025_040", { fetchImpl });
+  assert.equal(r.status, "held");
+  assert.equal(r.reason, "oj_reference_no_cellar_path");
+  assert.deepEqual(r.evidence.oj, { series: "L", year: "2025", issue: "00040", edition: null });
+  assert.equal(r.evidence.attempts.length, 2);
+  assert.equal(r.evidence.attempts[0].endpoint, "https://publications.europa.eu/resource/oj/JOL_2025_00040_R");
+  assert.equal(r.evidence.attempts[1].endpoint, "https://publications.europa.eu/resource/oj/JOL_2025_00040_C");
+  assert.deepEqual(attempted, r.evidence.attempts.map((a) => a.endpoint)); // never chained to the archive fallback
+});
+
+// ── Wayback availability parsing (pure) ─────────────────────────────────────────────────────────────
+
+test("waybackAvailabilityUrl: encodes the cited url as the availability API's own query param", () => {
+  assert.equal(
+    waybackAvailabilityUrl("https://example.com/a b?x=1"),
+    "https://archive.org/wayback/available?url=" + encodeURIComponent("https://example.com/a b?x=1"),
+  );
+});
+
+test("parseWaybackAvailability: a real closest/available snapshot parses to {timestamp, snapshotUrl}", () => {
+  const json = {
+    url: "https://example.com/x",
+    archived_snapshots: { closest: { status: "200", available: true, url: "http://web.archive.org/web/20250601000000/https://example.com/x", timestamp: "20250601000000" } },
+  };
+  assert.deepEqual(parseWaybackAvailability(json), { timestamp: "20250601000000", snapshotUrl: "http://web.archive.org/web/20250601000000/https://example.com/x" });
+});
+
+test("parseWaybackAvailability: no snapshot, or one not marked available, or a malformed body -- all null, never thrown", () => {
+  assert.equal(parseWaybackAvailability({ url: "x", archived_snapshots: {} }), null);
+  assert.equal(parseWaybackAvailability({ archived_snapshots: { closest: { available: false, timestamp: "1", url: "x" } } }), null);
+  assert.equal(parseWaybackAvailability(null), null);
+  assert.equal(parseWaybackAvailability({}), null);
+});
+
+test("waybackSnapshotFetchUrl: the id_ raw-bytes replay url (no toolbar)", () => {
+  assert.equal(waybackSnapshotFetchUrl("20250601000000", "https://example.com/x"), "https://web.archive.org/web/20250601000000id_/https://example.com/x");
 });
 
 test("buildCaptureSearchRow: full text, never truncated (ADR-016)", () => {
@@ -1029,12 +1189,12 @@ test("captureCitedUrl: plain-GET family captures on a usable response", async ()
   assert.ok(r.text.length > 200);
 });
 
-test("captureCitedUrl: plain-GET family holds capture_blocked with evidence on a failed response", async () => {
+test("captureCitedUrl: plain-GET family holds capture_blocked_no_archive when both the direct fetch AND the archive fallback refuse (FIFTH PASS)", async () => {
   const fetchImpl = async () => ({ ok: false, status: 404, text: async () => "not found" });
   const r = await captureCitedUrl("https://example-regulator.gov/gone-cited", { fetchImpl });
   assert.equal(r.status, "held");
-  assert.equal(r.reason, "capture_blocked");
-  assert.equal(r.evidence.status, 404);
+  assert.equal(r.reason, "capture_blocked_no_archive");
+  assert.equal(r.evidence.direct.status, 404);
 });
 
 test("captureCitedUrl: .pdf URL, non-PDF body -> held pdf_unsupported (never mistaken for HTML)", async () => {
@@ -1044,11 +1204,16 @@ test("captureCitedUrl: .pdf URL, non-PDF body -> held pdf_unsupported (never mis
   assert.equal(r.reason, "pdf_unsupported");
 });
 
-test("captureCitedUrl: .pdf URL, fetch fails -> held capture_blocked, no pdf parse attempted", async () => {
-  const fetchImpl = async () => ({ ok: false, status: 503 });
+test("captureCitedUrl: .pdf URL, fetch fails, no archive snapshot either -> held capture_blocked_no_archive, no pdf parse attempted", async () => {
+  const fetchImpl = async (url) => {
+    if (String(url).startsWith("https://archive.org/wayback/available")) {
+      return { ok: true, status: 200, text: async () => JSON.stringify({ archived_snapshots: {} }) };
+    }
+    return { ok: false, status: 503 };
+  };
   const r = await captureCitedUrl("https://example.com/report.pdf", { fetchImpl });
   assert.equal(r.status, "held");
-  assert.equal(r.reason, "capture_blocked");
+  assert.equal(r.reason, "capture_blocked_no_archive");
 });
 
 // unpdf is a runtime dependency loaded dynamically by pdf-extract.mjs; the discipline CI job runs the
@@ -1060,33 +1225,66 @@ test("captureCitedUrl: .pdf URL, fetch fails -> held capture_blocked, no pdf par
 const UNPDF_AVAILABLE = await import("../../src/lib/sources/pdf-extract.mjs")
   .then((m) => m.pdfToText(new Uint8Array(Buffer.from("%PDF-1.4\n%%EOF", "latin1"))).then(() => true, (e) => !/Cannot find (package|module)/i.test(String(e && e.message))))
   .catch(() => false);
+// Minimal xref-correct PDF, same builder as scripts/_diag/_pdf-probe.mjs's own proof. Module-scope so both
+// the direct-capture PDF test below and the archive-fallback PDF test (FIFTH PASS, build item 4) share ONE
+// builder rather than two copies.
+function minimalPdf(text) {
+  const objs = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+    null,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+  ];
+  const stream = `BT /F1 24 Tf 72 700 Td (${text}) Tj ET`;
+  objs[3] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
+  let body = "%PDF-1.4\n";
+  const offsets = [];
+  objs.forEach((o, i) => { offsets.push(body.length); body += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+  const xrefStart = body.length;
+  body += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
+  offsets.forEach((off) => { body += `${String(off).padStart(10, "0")} 00000 n \n`; });
+  body += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+  return new Uint8Array(Buffer.from(body, "latin1"));
+}
 test("captureCitedUrl: .pdf URL, real PDF bytes -> captured, text extracted via the existing pdf-extract.mjs codec", { skip: UNPDF_AVAILABLE ? false : "unpdf not installed in this environment (depless discipline CI)" }, async () => {
-  // Minimal xref-correct PDF, same builder as scripts/_diag/_pdf-probe.mjs's own proof.
-  function minimalPdf(text) {
-    const objs = [
-      "<< /Type /Catalog /Pages 2 0 R >>",
-      "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-      "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
-      null,
-      "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-    ];
-    const stream = `BT /F1 24 Tf 72 700 Td (${text}) Tj ET`;
-    objs[3] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
-    let body = "%PDF-1.4\n";
-    const offsets = [];
-    objs.forEach((o, i) => { offsets.push(body.length); body += `${i + 1} 0 obj\n${o}\nendobj\n`; });
-    const xrefStart = body.length;
-    body += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n`;
-    offsets.forEach((off) => { body += `${String(off).padStart(10, "0")} 00000 n \n`; });
-    body += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
-    return new Uint8Array(Buffer.from(body, "latin1"));
-  }
   const bytes = minimalPdf("Hello cited PDF marker");
   const fetchImpl = async () => ({ ok: true, status: 200, arrayBuffer: async () => bytes.buffer });
   const r = await captureCitedUrl("https://example.com/cited.pdf", { fetchImpl });
   assert.equal(r.status, "captured");
   assert.match(r.text, /Hello cited PDF marker/);
   assert.equal(r.evidence.pdf, true);
+});
+
+test("captureCitedUrl: .pdf URL, direct fetch fails but a PDF snapshot exists on Wayback -> captured via the SAME pdf-extract.mjs codec (build item 4)", { skip: UNPDF_AVAILABLE ? false : "unpdf not installed in this environment (depless discipline CI)" }, async () => {
+  const citedUrl = "https://example.com/archived-report.pdf";
+  const pdfBytes = minimalPdf("Hello archived PDF marker");
+  const fetchImpl = async (url) => {
+    const u = String(url);
+    if (u.startsWith("https://archive.org/wayback/available")) {
+      return {
+        ok: true,
+        status: 200,
+        text: async () =>
+          JSON.stringify({
+            archived_snapshots: {
+              closest: { available: true, status: "200", timestamp: "20250701000000", url: `http://web.archive.org/web/20250701000000/${citedUrl}` },
+            },
+          }),
+      };
+    }
+    if (u.startsWith("https://web.archive.org/web/20250701000000id_/")) {
+      return { ok: true, status: 200, arrayBuffer: async () => pdfBytes.buffer };
+    }
+    return { ok: false, status: 503 };
+  };
+  const r = await captureCitedUrl(citedUrl, { fetchImpl });
+  assert.equal(r.status, "captured");
+  assert.equal(r.url, citedUrl); // result_url stays the CITED url, never the snapshot url (doctrine point)
+  assert.match(r.text, /Hello archived PDF marker/);
+  assert.equal(r.evidence.pdf, true);
+  assert.equal(r.evidence.transport, "wayback");
+  assert.equal(r.evidence.snapshot_timestamp, "20250701000000");
 });
 
 // ── healOneItem — SLOT-REPAIR, RECLASSIFY GAP branch, RELABEL normalization, CAPTURE-CITED wiring ────
