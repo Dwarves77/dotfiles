@@ -187,6 +187,22 @@ test("thin fetch (<200ch) → skipped, untouched", async () => {
   assert.equal(sb.stamps.length, 0);
 });
 
+// Lane LEDGER-WALLS, 2026-09-04: buildFetchDoc's access-wall.mjs check flags a bot/CAPTCHA/interface shell
+// on the injected FetchDocFn's `wall` field. Some shells clear the 200-char floor on raw length alone (the
+// ~1400ch EUR-Lex chrome did, in export #5) — this proves the wall check fires FIRST, never falling through
+// to classify, and never touches the ledger's status column even in apply mode (inconclusive ≠ reject).
+test("access wall (fetchDoc reports `wall`) → skipped, untouched — even when text clears the 200ch floor", async () => {
+  const sb = fakeClient({ ledgerRows: [LEDGER_ROW] });
+  const r = await consumePortalCandidates(sb, {
+    mode: "apply", limit: 10,
+    fetchDoc: async () => ({ text: "X".repeat(1400), wall: { kind: "request_access" } }),
+    classify: classifyAs(CLS_DOC), anthropicKey: "test",
+  });
+  assert.equal(r.outcomes[0].disposition, "skipped");
+  assert.equal(r.outcomes[0].reason, "access_wall:request_access");
+  assert.equal(sb.stamps.length, 0, "a walled row must stay 'candidate' for retry, never rejected");
+});
+
 // ── 6. exists short-circuit: no re-ground ────────────────────────────────────────────────────────────
 test("exists: already-minted subject → ledger promoted to the EXISTING item; NO staged row (no re-ground)", async () => {
   const sb = fakeClient({ ledgerRows: [LEDGER_ROW], existsId: "item-already-1" });

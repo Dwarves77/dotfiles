@@ -425,6 +425,75 @@ called Haiku (`firstFetchClassify`, ~$0.001/candidate) for every candidate whose
   whose `prompt_version` does not match the driver's own live constant is excluded from use — per-entry,
   non-fatal, counted honestly in the run's own artifact — never silently accepted as current.
 
+### Access-wall detection + API/rendering transports (Lane LEDGER-WALLS, 2026-09-04)
+
+**THE FACTS [CONFIRMED by coordinator, ledger-consume export #5, run 33908401816, 2026-09-04 19:20]:** of
+400 candidates, 338 cleared the 200-char usability floor — but 308 of those 338 (91%) were a bot/interface
+shell, not document text: ~230 `www.federalregister.gov` document URLs returned the SAME 1,180-char
+"Request Access" CAPTCHA shell every time, and ~76 `eur-lex.europa.eu/legal-content/` URLs returned
+nothing but EUR-Lex's own portal chrome (language selector, "My EUR-Lex" nav, document metadata table)
+with zero legislative-body text. Both cleared the floor, so both were sent to classify; the seven
+session-Haiku lanes correctly returned `"uncertain"` for every one of them — 230+ verdicts spent proving
+what a mechanical text check catches for free.
+
+- **`src/lib/sources/access-wall.mjs` — the ONE content-based bot-wall/access-wall detector.** ONE BODY,
+  not a second detector (CLAUDE.md standing rule): the Federal Register/eCFR "Request Access" pattern and
+  the JS-render-shell pattern are REUSED, not re-derived, from `transport-escalation.mjs`'s
+  `REQUEST_ACCESS_RE`/`JS_SHELL_RE` (the agent/grounding pipeline's own RD-14 capture-time classifier); the
+  CDN-block/bot-challenge/soft-404 patterns are reused from `primary-fallback.mjs`'s
+  `CDN_BLOCK_RE`/`CHALLENGE_RE`/`SOFT_404_RE` (the reground fallback's roadblock detector) — both files now
+  `export` those constants (previously module-private; zero behavior change to either file's own
+  detector). New in this module: a cookie-consent-only shell, a login/subscription wall, a generic
+  "browser not supported" shell, and the EUR-Lex-specific STRUCTURAL check
+  (`looksLikeEurlexInterfaceShell` — an absence-of-content check, not a regex: portal-chrome markers
+  present AND every legislative-body marker — `\bArticle 1\b`, "HAS ADOPTED THIS ...", "HAS DECIDED AS
+  FOLLOWS", "Whereas:" — absent; scoped to `eur-lex.europa.eu` `/legal-content/` document URLs only, so a
+  genuine EUR-Lex portal/homepage page is never misclassified). `detectAccessWall(text, {host, path})` is
+  PURE — never fetches, never touches Supabase — returning `{kind, evidence}` or `null`.
+  **Measured over the 400-row export #5 (re-run against the actual production code path, not by hand):**
+  `request_access: 231, eurlex_interface_shell: 76, browser_not_supported: 1` — 308 of 338 fetch_ok rows
+  (91.1%).
+- **`buildFetchDoc` runs every fetch through `detectAccessWall`, checked BEFORE the 200-char floor** — a
+  wall body routinely clears 200ch on raw length alone (the FR shell is 1,180ch). A detected wall folds
+  into the SAME `{text, transport}` return shape as an extra `wall: {kind, evidence}` field, regardless of
+  which transport produced the text (direct HTML fetch, direct PDF, or either API transport below) — no
+  transport is exempt. `shapeCandidateTextFields` (the `--export-candidates --with-text` shaping pass) and
+  `portal-harvest.ts`'s live `plan`/`apply` FETCH step both read this ONE flag rather than re-running the
+  detector: `fetch_ok:false`, `fetch_error:"access_wall:<kind>"` in the export;
+  `disposition:"skipped"`, `reason:"access_wall:<kind>"` in the live consume path — row stays
+  `status='candidate'` for retry, exactly the same inconclusive-not-reject treatment a below-floor or
+  failed fetch already gets. `sitemap-walk.mjs`'s own bot-wall check (`isBotWallStatus`, 401/403/429 only —
+  blind to a 200 OK CAPTCHA page) now ALSO runs `detectAccessWall` on `discoverFeed`'s homepage probe and
+  on a sitemap fallback candidate that parses as `kind:'unknown'`, naming the wall kind in
+  `walkSitemap`'s `error` when every fallback candidate is a content wall rather than reporting the
+  indistinguishable "no sitemap discovered".
+- **`src/lib/sources/api-transport.mjs` — federalregister.gov/ecfr.gov routed through their official API,
+  never the CAPTCHA-fronted HTML page.** `fetchDocumentApi` is the SAME body
+  `src/lib/agent/canonical-pipeline.ts`'s grounding pipeline already used for this (`apiFetchForHost`,
+  RD-14 transport ladder) — factored out so both consumers (the grounding pipeline, and
+  `run-ledger-consume.mjs`'s `buildFetchDoc` directly) call one function, never a second hand-typed copy.
+  A federalregister.gov `/documents/YYYY/MM/DD/{DOCUMENT_NUMBER}/slug` URL resolves to
+  `/api/v1/documents/{DOCUMENT_NUMBER}.json`, whose `raw_text_url` is fetched for the real plain-text
+  document (falling back to the JSON's own `title`+`abstract` when `raw_text_url` is absent, fails, or
+  extracts under the 200-char floor) — `transport:"federalregister-api"`. An ecfr.gov
+  `/on/YYYY-MM-DD/title-N/...` URL resolves to the versioner's `/versioner/v1/full/DATE/title-N.xml` —
+  `transport:"ecfr-api"` (a bare `/current/title-N/...` with no `/on/DATE/` carries no versioner date and
+  falls through to the HTML transport instead). A URL with no document-specific identifier (an
+  agency-listing page, say) also falls through — the honest exhaustion path, never a silent skip.
+- **EUR-Lex: a bare `/legal-content/<LANG>/TXT/?uri=...` URL is rewritten to its `/TXT/HTML/` rendering
+  form before fetching.** Investigated per this lane's dispatch (OJ: uri form vs CELEX, `/TXT/HTML/`
+  endpoint, ELI/CELLAR REST, language/redirect): the bare `/TXT/` form is the one that serves the
+  portal-chrome-only shell (measured: 76/76 legal-content rows in export #5, 100%, carried zero
+  legislative-body markers); `/TXT/HTML/` is EUR-Lex's own full-text rendering endpoint. Rather than a new
+  mechanism, this reuses `primary-fallback.mjs`'s existing `renderingUrlForPrimary` — already PROVEN on a
+  real case (CSRD CELEX:32022L2464) by the reground fallback pipeline — so `buildFetchDoc` and that
+  pipeline can never disagree on the rewrite. (This sandbox had no live network egress to eur-lex.europa.eu
+  to test fresh against the failing URLs directly — `curl` returned HTTP 000, the proxy status showed a
+  403 CONNECT rejection for federalregister.gov too — so the endpoint choice is grounded in the repo's own
+  already-confirmed mechanism, not a fresh live test by this lane; labeled [INFERRED] on that basis, not
+  [CONFIRMED].) No API transport exists for EUR-Lex (`apiEndpointFor` only names
+  federalregister.gov/ecfr.gov) — the rewrite is a no-op for every other host.
+
 ### Modes, and the apply flip
 
 `plan` classifies (from a verdict, or skips) every fetched candidate and writes NOTHING to

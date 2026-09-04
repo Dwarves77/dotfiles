@@ -97,8 +97,12 @@ export interface LedgerCursor {
   id: string;
 }
 
-/** Injected fetch: returns cleaned text (the transport ladder's FetchResult shape, reduced). */
-export type FetchDocFn = (url: string) => Promise<{ text: string; transport?: string }>;
+/** Injected fetch: returns cleaned text (the transport ladder's FetchResult shape, reduced).
+ *  `wall`, when present, means buildFetchDoc's content-based access-wall.mjs check (Lane LEDGER-WALLS,
+ *  2026-09-04) recognized `text` as a bot/CAPTCHA/interface shell rather than real document content —
+ *  `kind` is one of ACCESS_WALL_KIND (access-wall.mjs). The FETCH step below treats a wall the same as
+ *  any other inconclusive fetch: 'skipped', row stays 'candidate', never sent to classify. */
+export type FetchDocFn = (url: string) => Promise<{ text: string; transport?: string; wall?: { kind: string; evidence?: string } | null }>;
 export type ClassifyFn = typeof firstFetchClassify;
 
 export type CandidateDisposition =
@@ -296,11 +300,22 @@ export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeO
     // 1 — FETCH (injected; inconclusive on failure — the fetchOk discipline: an unreadable fetch is
     //     NOT a reject, the row stays 'candidate' for a later retry).
     let text = "";
+    let wall: { kind: string; evidence?: string } | null | undefined;
     try {
       const r = await fetchDoc(row.url);
       text = r?.text ?? "";
+      wall = r?.wall;
     } catch (e) {
       outcomes.push({ ledgerId: row.id, url: row.url, disposition: "skipped", reason: `fetch failed: ${e instanceof Error ? e.message : String(e)}` });
+      continue;
+    }
+    // A detected access wall (bot-CAPTCHA / interface shell — access-wall.mjs) is checked BEFORE the
+    // 200-char floor: some shells (e.g. the ~1400ch EUR-Lex chrome) clear 200ch on raw length alone, so
+    // the floor check would otherwise misclassify a wall as usable text and send it to classify — wasting
+    // a classify call the way the 230 federalregister.gov "Request Access" rows did in export #5. Either
+    // way the row stays 'candidate' (inconclusive, never a reject) for retry once the wall clears.
+    if (wall) {
+      outcomes.push({ ledgerId: row.id, url: row.url, disposition: "skipped", reason: `access_wall:${wall.kind}` });
       continue;
     }
     if (text.trim().length < 200) {

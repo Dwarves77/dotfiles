@@ -97,6 +97,12 @@ import { BROWSERLESS_FETCH_CONCURRENCY, STORAGE_MAX_CHARS, SYNTH_INPUT_BUDGET_CH
 import { prepareSectionForGrounding } from "@/lib/agent/section-grounding.mjs";
 import { partitionErrorBodies } from "@/lib/sources/entity-gate.mjs";
 import { captureForStorage, apiEndpointFor } from "@/lib/sources/transport-escalation.mjs";
+// SHARED per-host document-API fetch body (Lane LEDGER-WALLS, 2026-09-04) — apiFetchForHost below now
+// DELEGATES its federalregister.gov/ecfr.gov fetch-and-shape logic here so run-ledger-consume.mjs's
+// buildFetchDoc calls the exact same code for the exact same two hosts, never a second hand-typed copy
+// (CLAUDE.md "one body" rule). The scrape-hold gate (assertFetchAllowed) and the cache/dedup bookkeeping
+// stay in THIS file — they are this pipeline's own concern, not api-transport.mjs's.
+import { fetchDocumentApi } from "@/lib/sources/api-transport.mjs";
 import { escalateToFetchResult } from "@/lib/sources/transport-runtime.mjs";
 // TRANSPORT HOLD GATE + FETCH CACHE (C5, 2026-07-11). assertFetchAllowed gates the direct-HTTP + API-ladder
 // transports (the two raw-fetch entry points that live here, not in a sources/ module) so "hold LIVE, zero
@@ -176,41 +182,15 @@ async function apiFetchForHost(url: string, max: number, caller: string | null =
   const apiBase = apiEndpointFor(url);
   if (!apiBase) return null;
   assertFetchAllowed(url, process.env, caller); // TRANSPORT HOLD GATE (C5) — API transport (ladder); F16 caller thread (Unit 0c), default null = blocked
-  const ua = { "user-agent": "Mozilla/5.0 (compatible; CarosLedge/1.0)" };
-  const clip = (full: string) => { const t = (cleanCtl(full) || "").replace(/\s+/g, " ").trim().slice(0, max); return { status: 200, text: t.length > 200 ? t : "", truncated: full.length > max, fullLength: full.length, cap: max }; };
+  // DELEGATES to api-transport.mjs (Lane LEDGER-WALLS, 2026-09-04) — the fetch-and-shape body used to live
+  // here inline; it is now the ONE body scripts/turns/run-ledger-consume.mjs's buildFetchDoc also calls
+  // for the exact same two hosts, so a future federalregister.gov/eCFR shape change is fixed once, not
+  // twice. Only the hold gate above and this try/catch stayed in this file (this pipeline's own concern).
   try {
-    const u = new URL(url);
-    const host = u.hostname.replace(/^www\./, "").toLowerCase();
-    if (/(^|\.)federalregister\.gov$/.test(host)) {
-      // /documents/YYYY/MM/DD/{DOC_NUMBER}/slug → /api/v1/documents/{DOC_NUMBER}.json → its raw_text_url.
-      const segs = u.pathname.split("/").filter(Boolean);
-      const i = segs.indexOf("documents");
-      const docNum = i >= 0 && segs.length > i + 4 ? segs[i + 4] : null;
-      if (!docNum) return null;
-      const jr = await fetch(`${apiBase}/documents/${encodeURIComponent(docNum)}.json?fields[]=title&fields[]=abstract&fields[]=raw_text_url`, { headers: ua, redirect: "follow", signal: AbortSignal.timeout(25000) });
-      if (!jr.ok) return { status: jr.status, text: "", truncated: false, fullLength: 0, cap: max };
-      const doc = (await jr.json()) as { title?: string; abstract?: string; raw_text_url?: string };
-      if (doc.raw_text_url) {
-        try {
-          const tr = await fetch(doc.raw_text_url, { headers: ua, redirect: "follow", signal: AbortSignal.timeout(25000) });
-          if (tr.ok) { const c = clip(htmlToText(await tr.text())); if (c.text) return c; }
-        } catch { /* fall through to the title+abstract summary (still official content) */ }
-      }
-      const summary = [doc.title, doc.abstract].filter(Boolean).join(". ").trim();
-      return { status: 200, text: summary.length > 200 ? summary.slice(0, max) : "", truncated: false, fullLength: summary.length, cap: max };
-    }
-    if (/(^|\.)ecfr\.gov$/.test(host)) {
-      // eCFR versioner: full title XML as of a concrete date. /on/YYYY-MM-DD/title-N/... carries the date; a
-      // bare /current/title-N/... has no versioner date → return null (HTML holds; seek-more at hold-lift).
-      const titleM = u.pathname.match(/title-(\d+)/);
-      const dateM = u.pathname.match(/\/on\/(\d{4}-\d{2}-\d{2})\//);
-      if (!titleM || !dateM) return null;
-      const xr = await fetch(`${apiBase}/versioner/v1/full/${dateM[1]}/title-${titleM[1]}.xml`, { headers: ua, redirect: "follow", signal: AbortSignal.timeout(25000) });
-      if (!xr.ok) return { status: xr.status, text: "", truncated: false, fullLength: 0, cap: max };
-      return clip(htmlToText(await xr.text()));
-    }
+    return await fetchDocumentApi(url, { max, apiBase });
+  } catch {
     return null;
-  } catch { return null; }
+  }
 }
 
 // THE ONE transport primitive — now the LIVE binding of the per-failure-class ESCALATION LADDER (RD-14). It
