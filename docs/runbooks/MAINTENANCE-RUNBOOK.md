@@ -972,3 +972,88 @@ every keeper's `archive_reason` is null (`summary.keepers[]` lists the ones this
 **Registration**: `docs/inventories/shared-dataset-ownership.md`'s `intelligence_items` and
 `census_worklist` sections (this step writes both, added to the enforced JSON allowlist and the narrative
 detail tables).
+
+## 12. `forward-events-retext`
+
+**Purpose**: correct `item_forward_events.obligation_text` on rows that already render garbled — the
+producer-side bug that made them, never the display — without touching `event_date`, `event_kind`,
+`source_span`, `confidence`, or any FK column.
+
+**The defect** [CONFIRMED, live customer surface https://carosledge.com/regulations "Upcoming
+obligations" strip, 2026-09-04 ~08:15 UTC]: of 8 events shown, several rendered garbled
+`obligation_text` — starting mid-word (`"re|venues generated from fines. By 25 September 2026..."`), a
+leaked source-URL tail plus a markdown bold label (`"7/oj/eng **Primary headline compliance deadline —
+FACT:** \"It shall apply from 29 November 2026...\""`), and a markdown table pipe/cell fragment plus a
+label (`"hicles (M₂, M₃, N₂, N₃) | MONITORING **FACT — deadline:** \"By 29 November 2026...\""`). One
+Euro 7 item carried the SAME date `2026-11-29` five/six times, with at least one duplicate pair — the
+identical sentence once via a claim (clean) and once via a section's rendered markdown (garbled).
+
+**Root cause** [CONFIRMED, read `src/lib/forward-events/extract-forward-events.mjs` lines 262-271
+pre-fix]: `clauseAround`'s leading edge (`from = max(0, start - 60)`) was a fixed byte offset, never
+snapped to a sentence/clause boundary, so a section-derived context window could start mid-word or
+mid-markdown-artifact. Fixed in that module, same lane (`EXTRACTOR_VERSION` `fe1-2026-09-04.1`): a new
+`clauseStart` snaps the leading edge to the nearest sentence/clause terminator within `maxBefore` bytes
+(whitespace fallback only when a hard truncation genuinely occurred; never mid-word), plus a
+`normalizeObligationText` pass (display text only — `source_span` stays byte-verbatim, `assertVerbatim`
+still enforced) that strips a leaked URL tail, a markdown bold label, or a table pipe/cell fragment. A
+new `dedupeEvents` collapses same-run (event_date, event_kind) hits whose text is the SAME obligation
+under a content-similarity check (never a blind date+kind collapse — see that module's own header for
+why: the NZIA item's `(2030-01-01, other)` group holds 4 genuinely distinct section-sourced obligations
+plus 1 unrelated claim, so a blind collapse would have destroyed real content, the same "content loss,
+not deduplication" failure migration 275's own header already names).
+
+**This step is the one-time (and re-runnable) catch-up, forward-only otherwise**: the extractor fix
+changes what a FUTURE extraction produces; migration 274/275's idempotency guarantee is about not
+duplicating rows on a re-run, not about correcting text already stored. For every `intelligence_item`
+that already carries `item_forward_events` rows, this step re-reads that item's CURRENT grounded
+claims/sections (the same shape `src/lib/forward-events/read-and-extract.mjs` builds) and re-runs the
+SAME pure, unmodified `extractForwardEvents` every writer already calls. Two findings, both read-only in
+dry mode:
+1. **Retext targets** — an existing row whose `(source_claim_id ?? source_section_id, event_date,
+   event_kind)` identity still matches a freshly-extracted event, but whose `obligation_text` differs.
+   The fresh text becomes the new `obligation_text`; every other column is untouched.
+2. **Duplicate groups** — an existing row the fresh extraction's own within-run `dedupeEvents` would now
+   drop as a content-duplicate of another existing row it keeps. `item_forward_events` (migration
+   274/275, read in full) has **no `is_archived`/`superseded`/status column of any kind** — 13 columns
+   total, none a lifecycle flag — so there is nowhere to mark a row superseded and no sanctioned way for
+   this script to make it stop rendering. **This step never deletes a row.** It reports every group
+   (`would_drop_id`, `would_keep_id`, both `event_date`/`event_kind`, both obligation texts, the dedupe
+   reason) so the coordinator can put an explicit deletion decision to the operator — a schema gap, not a
+   policy choice made here. A row can be BOTH a retext target and half of a reported duplicate group at
+   once; the duplicate finding never suppresses the retext finding, since the row's stored text still
+   needs correcting as long as it stays live.
+
+**Why the obligations register (migration 290) needs no companion run** [CONFIRMED, read
+`supabase/migrations/290_obligations.sql` in full]: the `obligations` table has no `obligation_text`
+column and no `source_span` column — the migration's own header states it explicitly, one home per fact,
+reached via `forward_event_id`. A register row's own denormalized columns are unchanged by an
+`obligation_text` edit, so `scripts/obligations/derive-obligations.mjs` is out of this step's scope and
+out of this lane's write set.
+
+**Dispatch**: `mode=dry` reports `counts` (`items_scanned`, `retext_target_total`, `by_defect_class`,
+`duplicate_group_total`), `retext_targets` (before/after/defect classes per row), and
+`duplicate_groups`; writes nothing. `mode=apply` (no `--arg` required beyond an optional scope) rewrites
+`obligation_text` on every retext target through the guarded `db.mjs` path (cite + snapshot, one
+single-row `guardedUpdate` per target — each carries a *different* new text, unlike
+`canonical-key-dedup.mjs`/`record-hollow-sweep.mjs`'s one shared patch), records `per_item[]`
+(before/after + `restore_sql`), and reads back. `--arg ids:<id,id,...>` scopes the sweep to named
+`intelligence_item` ids (dry or apply). Nothing is deleted — `duplicate_groups` is reported in every
+mode, including apply, and stays a report only.
+
+**Reversal**: two paths, same convention as record-hollow-sweep/canonical-key-dedup above:
+- **Durable, artifact-based** (preferred): `summary.json`'s `per_item[].restore_sql` — one self-contained
+  `UPDATE item_forward_events SET obligation_text = '...' WHERE id = '...'` per rewritten row, from THIS
+  run's own "before" value.
+- **Best-effort, same-disk-only**: `mode=apply, arg=restore:<id,id,...>` (this same script) — scans
+  `scripts/_snapshots/*.jsonl` for this step's own prior-state entries (cite-reason substring `"MAINT
+  forward-events-retext dispatch (Lane FWD-TEXT"`) and replays them via `guardedUpdate`; refuses (never
+  guesses) any id with no matching snapshot entry, listed in `missing_ids`.
+
+**Artifact / read back**: `summary.json`'s `counts` (`items_scanned`, `retext_target_total`,
+`by_defect_class`, `duplicate_group_total`), `retext_targets`, `duplicate_groups`, `per_item`
+(before/after + `restore_sql` per rewritten row, apply only), and `read_back`
+(`retexted_total`, `not_confirmed_ids`). Confirm against `SELECT id, obligation_text FROM
+item_forward_events WHERE id = ANY(<retext target ids>)`.
+
+**Registration**: `docs/inventories/shared-dataset-ownership.md`'s `item_forward_events` section (this
+step's file added to the enforced JSON allowlist and the narrative writer-path list as write path 4).

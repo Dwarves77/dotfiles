@@ -120,7 +120,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/forward-events/run-extraction.mjs",
       "scripts/turns/apply-extraction-output.mjs",
       "src/lib/intake/mint-item.ts",
-      "src/lib/intake/apply-staged-update.ts"
+      "src/lib/intake/apply-staged-update.ts",
+      "scripts/maintenance/forward-events-retext.mjs"
     ],
     "theme_briefs": [
       "src/lib/research/theme-brief.mjs",
@@ -343,8 +344,19 @@ neither hand-copies the read. Three write paths exist:
    records a harness run artifact; the coordinator applies the rows via the guarded path against the
    275 dedupe key. `load-forward-events.mjs` (named in PROTOCOL.md) was never created; the runner
    supersedes that name and PROTOCOL.md's reference is historical.
+4. `scripts/maintenance/forward-events-retext.mjs` (added lane FWD-TEXT, 2026-09-04) — a UPDATE-only
+   maintenance step, never an insert/delete path. It re-runs the (unmodified-identity, text-fixed)
+   extractor against each item's live claims/sections, and for any EXISTING row whose `id` still matches
+   a fresh event under the (source object, event_date, event_kind) identity but whose `obligation_text`
+   has changed, rewrites `obligation_text` in place through the guarded `db.mjs` path (cite + snapshot +
+   read-back), with a per-row `restore_sql` for reversal. It never touches `event_date`, `event_kind`, or
+   the source ids, so it cannot violate the 275 dedupe key or create a new row under it. It also reports
+   (never deletes) duplicate groups the extractor's own within-run content-dedupe would now collapse —
+   `item_forward_events` has no `is_archived`/`superseded` column, so any deletion decision is left to the
+   coordinator/operator, cited by `would_drop_id`/`would_keep_id` from the run's own summary. See
+   `docs/runbooks/MAINTENANCE-RUNBOOK.md` §12.
 The recorded 901-event first run (`forward-events-run-001.json`) predates the runner and was applied by
-the coordinator directly; all future loads go through path 1, 2, or 3.
+the coordinator directly; all future loads go through path 1, 2, 3, or the retext maintenance step (4).
 
 | Writer | Evidence |
 |---|---|

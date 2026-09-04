@@ -18,6 +18,9 @@ import {
   isDueDateSlotClaim,
   slotDatePrecision,
   finerDuePrecision,
+  normalizeObligationText,
+  sameObligationContent,
+  dedupeEvents,
 } from './extract-forward-events.mjs';
 
 const KIND_VOCAB = new Set([
@@ -721,5 +724,207 @@ describe('extractForwardEvents: due_date slot claim integration', () => {
     const { events, skipped } = extractForwardEvents({ claims: [claim], sections: [] });
     assert.equal(events.length, 0);
     assert.deepEqual(skipped, []);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GARBLED obligation_text — lane FWD-TEXT, 2026-09-04. Fixtures below are built from rows read LIVE
+// against the production DB (project kwrsbpiseruzbfwjpvsp) this session, per the coordinator's evidence
+// captured on https://carosledge.com/regulations ("Upcoming obligations" strip, 2026-09-04 ~08:15 UTC):
+//   select ... from item_forward_events e join intelligence_items i on i.id = e.intelligence_item_id
+//   where i.title ilike '%euro 7%' or i.title ilike '%net-zero industry act%' order by ...
+// `NZIA_CLAIM_SPAN` is `section_claim_provenance.source_span` VERBATIM for claim id
+// 9e819545-2e22-41aa-93af-afe53764feaa (EU Net-Zero Industry Act). `EURO7_SECTION_*` are VERBATIM
+// `intelligence_item_sections.content_md` substrings (250 chars before + 250 after the matched date) for
+// section ids 67f883dc-ccfc-46d0-9d28-d08e324acf69 and 5ba16763-cafe-47bf-b5d5-bf18fa53b2c5 (Euro 7
+// Standard), read via `select substr(content_md, position('29 November 2026' in content_md)-250, 500)`.
+// ---------------------------------------------------------------------------
+
+describe('clauseStart / normalizeObligationText: the garbled-rendering fix', () => {
+  const NZIA_CLAIM_SPAN =
+    'venues generated from fines. By 25 September 2026, and every five years thereafter, Member States shall make public';
+
+  const EURO7_SECTION_A =
+    '...published 8 May 2024, placing entry into force at **28 May 2024**. *Source: Regulation (EU) 2024/1257, ' +
+    'Article 21. https://eur-lex.europa.eu/eli/reg/2024/1257/oj/eng\n\n**Primary headline compliance deadline — ' +
+    'FACT:** "It shall apply from 29 November 2026 for new types of vehicles of categories M₁ and N₁ and ' +
+    'components, systems and separate technical units intended for vehicles of categories M₁ or N₁ ' +
+    'type-approved under this Regulation and from 29 November 2027 for new vehicles of cat';
+
+  const EURO7_SECTION_B =
+    '...strategy for road emissions reporting should treat current carrier data formats as transitional.\n\n' +
+    '**Re-check window:** 29 May 2025.\n\n### B — Commission Implementing Acts for Heavy-Duty Vehicles (M₂, M₃, ' +
+    'N₂, N₃) | MONITORING\n\n**FACT — deadline:** "By 29 November 2026, the Commission shall adopt, for ' +
+    'vehicles of categories M₂, M₃, N₂ and N₃… and their engines, as well as for trailers of categories O₃ ' +
+    'and O₄," implementing acts covering the same categories of methodologies as for light-duty. *Sourc';
+
+  test('claim-sourced: no longer starts mid-word ("re|venues") — this specific case is inherited FROM the claim.span, not this module\'s own windowing, and the sentence-boundary snap incidentally excludes the already-truncated leading fragment by starting at the next real sentence', () => {
+    const claim = { claim_id: 'c1', kind: 'FACT', text: '[gate-a-backfill] ' + NZIA_CLAIM_SPAN, span: NZIA_CLAIM_SPAN };
+    const { events } = extractForwardEvents({ claims: [claim], sections: [] });
+    assert.equal(events.length, 1);
+    assert.equal(
+      events[0].obligation_text,
+      'By 25 September 2026, and every five years thereafter, Member States shall make public'
+    );
+    assert.ok(!events[0].obligation_text.startsWith('venues'), 'must not start mid-word');
+    // source_span stays byte-exact regardless — the verbatim-span law is untouched by any of this.
+    assert.equal(events[0].source_span, '25 September 2026');
+    assert.ok(NZIA_CLAIM_SPAN.includes(events[0].source_span));
+  });
+
+  test('section-sourced (phase_step): no longer starts mid-word AND drops the leaked URL tail + bold markdown label', () => {
+    const { events } = extractForwardEvents({ claims: [], sections: [{ section_id: 's1', key: '2', md: EURO7_SECTION_A }] });
+    assert.equal(events.length, 1);
+    const text = events[0].obligation_text;
+    assert.ok(!text.startsWith('7/oj/eng'), `must not carry the leaked URL tail, got: ${text}`);
+    assert.ok(!text.includes('**'), `must not carry a markdown bold label, got: ${text}`);
+    assert.ok(text.startsWith('"It shall apply from 29 November 2026'), `unexpected start: ${text}`);
+  });
+
+  test('section-sourced (compliance_deadline): no longer starts mid-word ("Ve|hicles") AND drops the leading table-pipe cell + bold markdown label', () => {
+    const { events } = extractForwardEvents({ claims: [], sections: [{ section_id: 's2', key: '6', md: EURO7_SECTION_B }] });
+    assert.equal(events.length, 1);
+    const text = events[0].obligation_text;
+    assert.ok(!text.startsWith('hicles'), `must not start mid-word, got: ${text}`);
+    assert.ok(!text.includes('|'), `must not carry a markdown table pipe, got: ${text}`);
+    assert.ok(!text.includes('**'), `must not carry a markdown bold label, got: ${text}`);
+    assert.ok(text.startsWith('"By 29 November 2026'), `unexpected start: ${text}`);
+  });
+
+  test('regression guard: a span shorter than maxBefore is NEVER trimmed at its own true start (the bug this fix\'s first cut introduced and this test catches)', () => {
+    // "shall enter into force on" begins at char 16 of this 59-char span -- well within the 60-char
+    // maxBefore bound, so the window's true start (index 0) is the text's own start, not a truncation
+    // point. Advancing past "This " here would silently change every existing obligation_text this short
+    // (and, concretely, broke the migration-275 dedupe-key match in
+    // apply-staged-update-forward-participation.npmtest.mjs before this guard was added).
+    const span = 'This Regulation shall enter into force on 1 January 2027.';
+    const { events } = extractForwardEvents({ claims: [{ claim_id: 'c1', kind: 'FACT', text: span, span }], sections: [] });
+    assert.equal(events.length, 1);
+    assert.equal(events[0].obligation_text, span);
+  });
+
+  test('normalizeObligationText is idempotent on already-clean text (no false-positive stripping)', () => {
+    const clean = 'By 1 September 2030, Member States shall inform the Commission of the application of this Regulation';
+    assert.equal(normalizeObligationText(clean), clean);
+  });
+
+  test('normalizeObligationText strips a trailing stray table-pipe fragment', () => {
+    const raw = 'The Commission shall publish the assessment by 1 January 2028 | NEXT STEPS';
+    assert.equal(normalizeObligationText(raw), 'The Commission shall publish the assessment by 1 January 2028');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// WITHIN-EXTRACTION DEDUPE — lane FWD-TEXT, 2026-09-04.
+// ---------------------------------------------------------------------------
+
+describe('sameObligationContent (pure helper)', () => {
+  test('the SAME sentence, one plain (claim-style) and one markdown-wrapped (section-style), compares equal', () => {
+    const a =
+      'It shall apply from 29 November 2026 for new types of vehicles of categories M 1 and N 1 and components, ' +
+      'systems and separate technical units intended for vehicles of categories M 1 or N 1 type-ap';
+    const b =
+      '"It shall apply from 29 November 2026 for new types of vehicles of categories M₁ and N₁ and components, ' +
+      'systems and separate technical units intended for vehicles of categories M₁ or N₁ type-approv';
+    assert.equal(sameObligationContent(a, b), true);
+  });
+
+  test('the SAME sentence where the section renders a trailing clause as an ellipsis abbreviation still compares equal (long shared prefix)', () => {
+    const a =
+      'By 29 November 2026, the Commission shall adopt, for vehicles of categories M 2 , M 3 , N 2 and N 3, as ' +
+      'referred to in paragraph 3, points (b) and (c), respectively, and their eng';
+    const b =
+      '"By 29 November 2026, the Commission shall adopt, for vehicles of categories M₂, M₃, N₂ and N₃… and their ' +
+      'engines, as well as for trailers of categories O₃ and O₄," implementing ac';
+    assert.equal(sameObligationContent(a, b), true);
+  });
+
+  test('two genuinely DIFFERENT obligations sharing a date are never treated as the same sentence, even at similar length', () => {
+    const a = 'With effect from 29 November 2026, Member States shall prohibit the sale or installation of a system';
+    const b = 'With effect from 29 November 2026, approval authorities shall, in the case of new types of vehicles';
+    assert.equal(sameObligationContent(a, b), false);
+  });
+
+  test('two DIFFERENT section obligations that merely mention the same underlying fact in different words never match (the NZIA counter-example, measured live 2026-09-04: a blind (event_date,event_kind) collapse would have deleted these)', () => {
+    const a =
+      "The NZIA's 50 Mt/year CO2 injection capacity target by 2030, combined with Strategic Project designation " +
+      'for CO2 capture and transport infrastructure, will generate new cargo flows';
+    const b =
+      "The regulation's 50 Mt CO2 injection capacity target by 2030 is the most specific quantified output that " +
+      'creates a new logistics cargo category';
+    assert.equal(sameObligationContent(a, b), false);
+  });
+
+  test('too short a shared prefix is never treated as a match (avoids false positives on a coincidental shared opening phrase)', () => {
+    assert.equal(sameObligationContent('By 1 January 2030, X shall do A.', 'By 1 January 2030, Y shall do B.'), false);
+  });
+});
+
+describe('dedupeEvents (pure helper)', () => {
+  function ev(overrides) {
+    return {
+      event_date: '2026-11-29',
+      event_kind: 'compliance_deadline',
+      obligation_text: 'By 29 November 2026, the Commission shall adopt implementing acts',
+      source_kind: 'claim',
+      confidence: 'high',
+      ...overrides,
+    };
+  }
+
+  test('a claim-backed hit is kept over a content-duplicate section-backed hit; the drop is recorded, not silent', () => {
+    const claimHit = ev({ source_kind: 'claim', confidence: 'high' });
+    const sectionHit = ev({
+      source_kind: 'section',
+      confidence: 'medium',
+      obligation_text: '"By 29 November 2026, the Commission shall adopt implementing acts" — see Article 12.',
+    });
+    const { events, dropped } = dedupeEvents([sectionHit, claimHit]); // order-independent: section pushed first
+    assert.equal(events.length, 1);
+    assert.equal(events[0].source_kind, 'claim');
+    assert.equal(dropped.length, 1);
+    assert.equal(dropped[0].source_kind, 'section');
+    assert.equal(dropped[0].reason, 'claim_backed_preferred_over_section_backed');
+  });
+
+  test('two content-duplicate section-backed hits: the first is kept, the later one dropped', () => {
+    const first = ev({ source_kind: 'section', confidence: 'medium' });
+    const second = ev({ source_kind: 'section', confidence: 'medium', obligation_text: first.obligation_text + ' (Article 12).' });
+    const { events, dropped } = dedupeEvents([first, second]);
+    assert.equal(events.length, 1);
+    assert.equal(events[0], first);
+    assert.equal(dropped.length, 1);
+    assert.equal(dropped[0].reason, 'duplicate_same_confidence_kept_first');
+  });
+
+  test('two hits sharing (event_date, event_kind) but NOT the same sentence content are both kept — never a blind date+kind collapse', () => {
+    const a = ev({ obligation_text: 'With effect from 29 November 2026, Member States shall prohibit the sale of X' });
+    const b = ev({ obligation_text: 'With effect from 29 November 2026, approval authorities shall refuse to grant Y' });
+    const { events, dropped } = dedupeEvents([a, b]);
+    assert.equal(events.length, 2);
+    assert.equal(dropped.length, 0);
+  });
+
+  test('hits in different (event_date, event_kind) groups are never compared to each other', () => {
+    const a = ev({ event_date: '2026-11-29' });
+    const b = ev({ event_date: '2027-01-01' }); // identical obligation_text, different date
+    const { events, dropped } = dedupeEvents([a, b]);
+    assert.equal(events.length, 2);
+    assert.equal(dropped.length, 0);
+  });
+
+  test('counts.dedupe_dropped / dedupe_dropped_detail on extractForwardEvents itself, end to end', () => {
+    const spanClaim =
+      'It shall apply from 29 November 2026 for new types of vehicles of categories M 1 and N 1 and components';
+    const mdSection =
+      '**Primary headline — FACT:** "It shall apply from 29 November 2026 for new types of vehicles of categories M₁ and N₁ and components';
+    const claims = [{ claim_id: 'c1', kind: 'FACT', text: spanClaim, span: spanClaim }];
+    const sections = [{ section_id: 's1', key: 'x', md: mdSection }];
+    const { events, counts } = extractForwardEvents({ claims, sections });
+    assert.equal(events.length, 1, 'the section-sourced duplicate must be collapsed away');
+    assert.equal(counts.dedupe_dropped, 1);
+    assert.equal(counts.dedupe_dropped_detail.length, 1);
+    assert.equal(counts.dedupe_dropped_detail[0].source_kind, 'section');
+    assert.equal(counts.dedupe_dropped_detail[0].kept_source_kind, 'claim');
   });
 });

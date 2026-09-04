@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, provenance-heal, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup]
+        options: [all, community-topics-seed, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, provenance-heal, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, or a comma-separated proposal-id list — see the runbook for which steps require one and what value they need).'
         required: false
@@ -319,6 +319,26 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/canonical-key-dedup"
           node scripts/maintenance/canonical-key-dedup.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/canonical-key-dedup"
+
+      - name: forward-events-retext
+        # Lane FWD-TEXT (2026-09-04): fixes item_forward_events.obligation_text rows that were carrying
+        # garbled section-clipped text -- mid-word starts, a leaked URL tail + markdown bold label, a
+        # markdown table pipe/cell fragment -- because clauseAround's context window was a fixed byte
+        # offset never snapped to a sentence/clause boundary (see extract-forward-events.mjs's own header
+        # and EXTRACTOR_VERSION 'fe1-2026-09-04.1'). This step never inserts or deletes a row: for each
+        # EXISTING row whose identity (source object, event_date, event_kind) still matches a freshly
+        # recomputed event but whose obligation_text differs, it rewrites obligation_text in place through
+        # the guarded db.mjs path (cite + snapshot + read-back), with a per-row restore_sql. It also
+        # REPORTS (never deletes) duplicate groups the extractor's own within-run content-dedupe would now
+        # collapse -- item_forward_events has no is_archived/superseded column, so any deletion decision is
+        # left to the coordinator/operator, cited by would_drop_id/would_keep_id from the run's own
+        # summary. No ruling gate; apply needs no --arg beyond a valid selection. `--arg ids:<id,id,...>`
+        # scopes the sweep to named intelligence_item ids; `--arg restore:<id,id,...>` reverses a prior
+        # apply from this run's own db.mjs snapshot.
+        if: env.RUN_STEP == 'forward-events-retext' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/forward-events-retext"
+          node scripts/maintenance/forward-events-retext.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/forward-events-retext"
 
       # Runs even when a step failed, so the log always ends with the true state of the tables rather
       # than only the exception that got there first (mirrors producers.yml's own Population AFTER).
