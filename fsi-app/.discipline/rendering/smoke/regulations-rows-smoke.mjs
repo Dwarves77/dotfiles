@@ -73,17 +73,23 @@ const STYLE_INJECT = `
 })();
 `;
 
+// PERF-12 (2026-09-04, ADR-027 §2): RegulationsLedger now calls useLedgerInfiniteQuery
+// (TanStack Query's useInfiniteQuery), which throws "No QueryClient set" without a
+// QueryClientProvider ancestor — wrap the mount in the SAME QueryProvider component the real app
+// tree uses (src/components/providers/QueryProvider.tsx, wired into AuthProvider.tsx), not a
+// second hand-rolled test-only client, so this smoke test exercises the real provider shape.
 const LEDGER_ENTRY = `
 ${STYLE_INJECT}
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { RegulationsLedger } from '@/components/regulations/RegulationsLedger';
+import { QueryProvider } from '@/components/providers/QueryProvider';
 
 let root = null;
 window.__mount = (props) => {
   const el = document.getElementById('smoke-root');
   if (!root) root = createRoot(el);
-  root.render(React.createElement(RegulationsLedger, props));
+  root.render(React.createElement(QueryProvider, null, React.createElement(RegulationsLedger, props)));
 };
 `;
 
@@ -115,12 +121,18 @@ window.__mount = (props) => {
 };
 `;
 
-// RegulationsLedger fetches the remainder of its page on mount (cost-constrained first paint, same
-// posture as OperationsLedger — see operations-rows-smoke.mjs) and hydrates two auth-gated stores
-// (useListOrder, usePersonalStateHydration) whose fetches must be answered rather than left to hit
-// the real network from a sandboxed test run.
+// PERF-12 (2026-09-04): RegulationsLedger's own `initialData` (the `initialResources`/
+// `initialArchived`/`initialHasMore` fixture props below) satisfies useLedgerInfiniteQuery's first
+// page synchronously — see that hook's own header for why `initialData` means no network fetch on
+// mount whenever `initialHasMore` is false/absent (every fixture state here). This mock exists only
+// as a safety net for the one fixture state that WOULD have `hasNextPage` true (none currently do,
+// since no LEDGER_STATES entry sets `initialHasMore: true`) and for `fetchNextPage`/the
+// IntersectionObserver sentinel firing during the settle frame — the response shape must match
+// `LedgerPage` (useLedgerInfiniteQuery.ts) exactly, or a real fetch would throw during the test.
+// Also hydrates two auth-gated stores (useListOrder, usePersonalStateHydration) whose fetches must
+// be answered rather than left to hit the real network from a sandboxed test run.
 const LEDGER_API_ROUTES = [
-  { urlGlob: '**/api/listings/rest**', handler: (route) => route.fulfill({ json: { resources: [] } }) },
+  { urlGlob: '**/api/listings/cursor**', handler: (route) => route.fulfill({ json: { resources: [], archived: [], nextCursor: null, hasMore: false } }) },
   { urlGlob: '**/api/user/list-order**', handler: (route) => route.fulfill({ json: { order: [] } }) },
   { urlGlob: '**/api/workspace/personal-state**', handler: (route) => route.fulfill({ json: { items: [] } }) },
 ];
