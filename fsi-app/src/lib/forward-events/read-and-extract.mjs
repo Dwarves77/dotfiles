@@ -36,6 +36,29 @@
 // already enforces in `extract-forward-events.mjs`), ordered by `result_index` — or `null` when no capture
 // contains it. `extract-forward-events.mjs` never fetches this itself (it stays zero-I/O); it only
 // consumes what this reader attaches to `claim.context`.
+//
+// FETCH ONLY WHAT MIGHT BE CONSUMED (lane FE-SLOT-2b, 2026-09-04). FE-SLOT-2 (above) made every caller
+// fetch this item's ENTIRE `agent_run_searches` pool — `result_content` is the full grounding source pool
+// per ADR-016, never truncated (tens of KB per capture, several captures per item; measured live this
+// lane, project kwrsbpiseruzbfwjpvsp: the whole table is 6,037 rows / ~617 MB across 1,875 items, but only
+// 118 items carry a `[due_date]` claim whose span even has a calendar year in it — 2.2% of the bytes) —
+// EVEN THOUGH `attachDueDateContext` only ever looks at that pool for a due_date slot FACT claim whose span
+// the extractor's own rescue branch would actually consult (`extractForwardEvents`'s "DUE-DATE SLOT CONTEXT
+// RESCUE": `isDueDateSlot && hits.length === 0` in that module — a relative/recurring deadline with no
+// calendar date at all, or a claim that already classifies from its span alone, never reaches
+// `claim.context`). `claimNeedsDueDateContext` (below) answers "would this claim's context ever be looked
+// at" by running the real, pure, zero-I/O `extractForwardEvents` over a ONE-claim, context-less copy of the
+// claim and reading its own `skipped` reasons back — the exact test the rescue path applies, reused rather
+// than re-implemented (a second date-shape regex here would drift from that module's grammar the first time
+// either one changed; `extract-forward-events.mjs` is this family's OTHER governing file, F28
+// GOVERNING_FILES, and is not touched by this lane at all). `itemIdsNeedingContext` folds that per-claim
+// predicate over a batch of raw claim rows (needs `intelligence_item_id` on each row) into the item-id set
+// worth an `agent_run_searches` read at all — every caller in this family (this file's own
+// `readExtractionInput`, `export-corpus-for-extraction.mjs`, `forward-events-retext.mjs`) now fetches the
+// pool ONLY for that set, never the whole target/chunk. `attachDueDateContext`'s own contract is UNCHANGED
+// by this — it still attaches (or, on an empty pool, attaches `context: null`) to every due_date slot FACT
+// claim it is given; the change is entirely upstream, in which rows a caller bothers to fetch before
+// calling it.
 import { extractForwardEvents, isDueDateSlotClaim } from "./extract-forward-events.mjs";
 
 /** The two claim kinds every caller of this family reads — never a hand-typed `["FACT", "GAP"]` literal
@@ -136,6 +159,53 @@ export function attachDueDateContext(claims, poolRows) {
 }
 
 // ---------------------------------------------------------------------------
+// Fetch-only-what's-needed (see this file's own header, "FETCH ONLY WHAT MIGHT BE CONSUMED").
+// ---------------------------------------------------------------------------
+
+/**
+ * True when `claim` (already in the extractor's own claim shape — i.e. already run through `mapClaimRow`)
+ * is a due_date slot claim whose `agent_run_searches` context would actually be consulted by
+ * `extractForwardEvents`'s "DUE-DATE SLOT CONTEXT RESCUE" branch — the SAME test that branch itself
+ * applies (`isDueDateSlotClaim` + a span whose own trigger+date scan produces no direct hit but does
+ * produce a scanText skip, i.e. a calendar-date-shaped span the rescue path would otherwise try context
+ * on), reused by actually running the real, pure, zero-I/O `extractForwardEvents` over a one-claim,
+ * context-less input rather than re-deriving the date grammar here (never a second date regex —
+ * `extract-forward-events.mjs` is this family's other governing file and stays untouched). False for: a
+ * non-FACT or non-due_date-slot claim, a GAP claim (`isDueDateSlotClaim` requires `kind === 'FACT'`), a
+ * span with no calendar-date trigger at all (`relative_deadline_no_calendar_date` — a relative/recurring
+ * deadline the extractor is right to never anchor to a date), and a span that already classifies from
+ * itself alone (no rescue branch entered at all — no `calendar_date_deontic_context_unavailable`/
+ * `calendar_date_no_deontic_in_context` skip is ever produced for it). Pure. Exported for testing and for
+ * `itemIdsNeedingContext` below.
+ */
+export function claimNeedsDueDateContext(claim) {
+  if (!isDueDateSlotClaim(claim) || typeof claim?.span !== "string" || !claim.span) return false;
+  const { skipped } = extractForwardEvents({ claims: [{ ...claim, context: undefined }], sections: [] });
+  return skipped.some((s) => s.reason === "calendar_date_deontic_context_unavailable");
+}
+
+/**
+ * `claimNeedsDueDateContext` folded over a batch of RAW `section_claim_provenance` rows (each row must
+ * carry `intelligence_item_id`, `claim_kind`, `claim_text`, `source_span` — a superset of `mapClaimRow`'s
+ * own input, tolerantly ignored per-row via that same function) into the set of item ids carrying at least
+ * one claim whose context would actually be consulted. Rows with no `intelligence_item_id` are ignored
+ * (nothing to key a fetch by). Pure — this is the set a caller then reads `agent_run_searches` for, never
+ * the full id list it started from. Exported so every caller in this family (this file's own
+ * `readExtractionInput`, `export-corpus-for-extraction.mjs`, `forward-events-retext.mjs`) decides
+ * identically which items are worth a pool read.
+ * @param {Array<object>} claimRows
+ * @returns {Set<string>}
+ */
+export function itemIdsNeedingContext(claimRows) {
+  const ids = new Set();
+  for (const r of claimRows ?? []) {
+    if (r?.intelligence_item_id == null) continue;
+    if (claimNeedsDueDateContext(mapClaimRow(r))) ids.add(r.intelligence_item_id);
+  }
+  return ids;
+}
+
+// ---------------------------------------------------------------------------
 // The one live, single-item reader (this module's own long-standing job — see header).
 // ---------------------------------------------------------------------------
 
@@ -144,8 +214,12 @@ const SECTION_SELECT = SECTION_BASE_COLUMNS.join(", ");
 const POOL_SELECT = POOL_BASE_COLUMNS.join(", ");
 
 /**
- * Read one item's already-grounded FACT/GAP claims, rendered sections, and (for its due_date slot claims)
- * captured-source context, in the exact shape `extractForwardEvents` consumes.
+ * Read one item's already-grounded FACT/GAP claims, rendered sections, and (for its due_date slot claims
+ * that would actually consult it — `claimNeedsDueDateContext` above) captured-source context, in the exact
+ * shape `extractForwardEvents` consumes. Claims and sections are read in parallel FIRST; the
+ * `agent_run_searches` pool (this item's full grounding source pool, ADR-016 — never small) is read only
+ * as a SECOND round trip, and only when at least one claim needs it — see this file's own header, "FETCH
+ * ONLY WHAT MIGHT BE CONSUMED".
  * @param {import('@supabase/supabase-js').SupabaseClient} sb
  * @param {string} itemId
  * @returns {Promise<{claims: object[], sections: object[]}>}
@@ -154,17 +228,22 @@ export async function readExtractionInput(sb, itemId) {
   const [
     { data: claimRows, error: claimErr },
     { data: sectionRows, error: sectionErr },
-    { data: poolRows, error: poolErr },
   ] = await Promise.all([
     sb.from("section_claim_provenance").select(CLAIM_SELECT).eq("intelligence_item_id", itemId).in("claim_kind", CLAIM_KIND_FILTER),
     sb.from("intelligence_item_sections").select(SECTION_SELECT).eq("item_id", itemId),
-    sb.from("agent_run_searches").select(POOL_SELECT).eq("intelligence_item_id", itemId),
   ]);
   if (claimErr) throw new Error(`section_claim_provenance read failed: ${claimErr.message}`);
   if (sectionErr) throw new Error(`intelligence_item_sections read failed: ${sectionErr.message}`);
-  if (poolErr) throw new Error(`agent_run_searches read failed: ${poolErr.message}`);
 
-  const claims = attachDueDateContext(mapClaimRows(claimRows), poolRows ?? []);
+  const mappedClaims = mapClaimRows(claimRows);
+  let poolRows = [];
+  if (mappedClaims.some(claimNeedsDueDateContext)) {
+    const { data, error: poolErr } = await sb.from("agent_run_searches").select(POOL_SELECT).eq("intelligence_item_id", itemId);
+    if (poolErr) throw new Error(`agent_run_searches read failed: ${poolErr.message}`);
+    poolRows = data ?? [];
+  }
+
+  const claims = attachDueDateContext(mappedClaims, poolRows);
   const sections = mapSectionRows(sectionRows);
   return { claims, sections };
 }

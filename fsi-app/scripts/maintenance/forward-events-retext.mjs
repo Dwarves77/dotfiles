@@ -103,6 +103,7 @@ import {
   mapClaimRow,
   mapSectionRow,
   attachDueDateContext,
+  claimNeedsDueDateContext,
 } from "../../src/lib/forward-events/read-and-extract.mjs";
 
 export const CITE = Object.freeze({
@@ -136,6 +137,14 @@ export const DELETE_CITE = Object.freeze({
 
 export const RESTORE_ARG_PREFIX = "restore:";
 export const IDS_ARG_PREFIX = "ids:";
+
+// POOL READ IS PER-ITEM CONDITIONAL (lane FE-SLOT-2b, 2026-09-04 — see read-and-extract.mjs's own header,
+// "FETCH ONLY WHAT MIGHT BE CONSUMED"). FE-SLOT-2 (this file's own diff above) called `readPoolForItem`
+// for EVERY item this step touches, unconditionally — `agent_run_searches.result_content` is the item's
+// full grounding source pool per ADR-016, never truncated, so that was tens of KB per capture times
+// several captures on every single item, even the ones with no due_date claim at all. `main` below now
+// checks `claimNeedsDueDateContext` (imported above) over the item's own mapped claims first and calls
+// `deps.readPoolForItem` only when at least one of them would actually consult that context.
 
 // ── pure: read-back-and-extract shape — lane FE-SLOT-2, 2026-09-04, imports
 //    src/lib/forward-events/read-and-extract.mjs's own row-mapping functions (that module's "THE ONE
@@ -449,20 +458,24 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
   const allDuplicateGroups = [];
   const allRows = []; // EVERY existing row (target or not), for collision planning -- see planCollisions' own doc
   for (const itemId of itemIds) {
-    const [existingRows, claimRows, sectionRows, poolRows] = await Promise.all([
+    const [existingRows, claimRows, sectionRows] = await Promise.all([
       deps.readForwardEventsForItem(itemId),
       deps.readClaimsForItem(itemId),
       deps.readSectionsForItem(itemId),
-      deps.readPoolForItem(itemId),
     ]);
     // lane FE-SLOT-2, 2026-09-04: due_date slot claims gain `context` via read-and-extract.mjs's own
     // shared `attachDueDateContext` (this file's header note above) before this REWRITE step re-runs the
     // extractor -- otherwise a retext pass over a fixed extractor would still see the pre-fix, context-less
     // shape and never actually pick up FE-SLOT-2's own rescue.
+    // lane FE-SLOT-2b, 2026-09-04 (this file's own header note, "POOL READ IS PER-ITEM CONDITIONAL"):
+    // deps.readPoolForItem is called ONLY when at least one of this item's claims would actually consult
+    // that context -- never unconditionally.
+    const mappedClaims = mapClaimRows(claimRows);
+    const poolRows = mappedClaims.some(claimNeedsDueDateContext) ? await deps.readPoolForItem(itemId) : [];
     const { retextTargets, duplicateGroups } = planItemRetext({
       itemId,
       existingRows,
-      claims: attachDueDateContext(mapClaimRows(claimRows), poolRows),
+      claims: attachDueDateContext(mappedClaims, poolRows),
       sections: mapSectionRows(sectionRows),
     });
     allRetextTargets.push(...retextTargets);

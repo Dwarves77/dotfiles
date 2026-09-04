@@ -24,6 +24,17 @@
 // due_date slot claims' `context` field (that module's own "THE THIRD INPUT" header note) via the SAME
 // shared `attachDueDateContext` function, over a batched `agent_run_searches` pool read below.
 //
+// POOL READ IS SCOPED (lane FE-SLOT-2b, 2026-09-04 — see read-and-extract.mjs's own header, "FETCH ONLY
+// WHAT MIGHT BE CONSUMED"). FE-SLOT-2 batched the pool read across the WHOLE id chunk regardless of
+// whether any of those items even had a due_date claim; `agent_run_searches.result_content` is the full
+// grounding source pool per ADR-016, never truncated, so that was tens of KB per capture times several
+// captures times every item in scope — measured live this lane, project kwrsbpiseruzbfwjpvsp: the whole
+// table is 6,037 rows / ~617 MB, but only 118 of the 1,875 items that carry any pool rows at all have a
+// `[due_date]` claim whose span even has a calendar year in it (2.2% of the bytes), and fewer still would
+// ever have that context actually consulted (see `claimNeedsDueDateContext`'s own doc). This script now
+// computes `itemIdsNeedingContext(claims)` over each chunk's OWN claim rows and reads the pool only for
+// that subset — chunked at the same 200-id size this script already uses for everything else.
+//
 // Usage:
 //   node scripts/turns/export-corpus-for-extraction.mjs --out path.json [--since ISO-date] [--limit N]
 // Exit 0 (writes --out, even for 0 matched items — an empty corpus is a valid, honestly-reported outcome,
@@ -38,6 +49,7 @@ import {
   mapClaimRow,
   mapSectionRow,
   attachDueDateContext,
+  itemIdsNeedingContext,
 } from "../../src/lib/forward-events/read-and-extract.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -167,11 +179,12 @@ async function main() {
     `${since ? ` (created_at >= ${since})` : ""}; ${targetItems.length} lack any item_forward_events row.`
   );
 
-  // 3 — batched claim/section/pool reads for the target items only (chunked .in() — PostgREST/pg IN-list
+  // 3 — batched claim/section reads for the target items only (chunked .in() — PostgREST/pg IN-list
   // limits and payload size both bounded by a modest chunk size). The pool read (lane FE-SLOT-2,
-  // 2026-09-04) is this script's own addition, over the SAME `agent_run_searches` table
-  // `read-and-extract.mjs`'s live reader consults for due_date slot context — batched here rather than
-  // per-item, matching this script's own claim/section batching.
+  // 2026-09-04, scoped by lane FE-SLOT-2b, 2026-09-04 — see this file's own header, "POOL READ IS
+  // SCOPED") is over the SAME `agent_run_searches` table `read-and-extract.mjs`'s live reader consults
+  // for due_date slot context, but ONLY for the ids within this chunk whose claims actually need it
+  // (`itemIdsNeedingContext`) — never the whole chunk.
   const ids = targetItems.map((it) => it.id);
   const claimRows = [];
   const sectionRows = [];
@@ -186,10 +199,15 @@ async function main() {
       match: (q) => q.in("item_id", idChunk),
     });
     sectionRows.push(...sections);
-    const pool = await readAll("agent_run_searches", "id, intelligence_item_id, result_content, result_index", {
-      match: (q) => q.in("intelligence_item_id", idChunk),
-    });
-    poolRows.push(...pool);
+
+    const contextIds = [...itemIdsNeedingContext(claims)];
+    for (const contextIdChunk of chunk(contextIds, 200)) {
+      if (!contextIdChunk.length) continue;
+      const pool = await readAll("agent_run_searches", "id, intelligence_item_id, result_content, result_index", {
+        match: (q) => q.in("intelligence_item_id", contextIdChunk),
+      });
+      poolRows.push(...pool);
+    }
   }
 
   const corpusItems = buildCorpusItems(targetItems, claimRows, sectionRows, poolRows);

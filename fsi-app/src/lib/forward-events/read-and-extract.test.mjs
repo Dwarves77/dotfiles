@@ -19,9 +19,23 @@ import {
   usableCapturesOrdered,
   buildDueDateContext,
   attachDueDateContext,
+  claimNeedsDueDateContext,
+  itemIdsNeedingContext,
   readExtractionInput,
   readAndExtractForwardEvents,
 } from "./read-and-extract.mjs";
+
+// Same template read-and-extract.mjs's own callers build (record-facts.mjs's exact due_date FACT wrapper)
+// -- used across claimNeedsDueDateContext / itemIdsNeedingContext / readExtractionInput fixtures below.
+function dueDateClaim({ claimId = "due1", span, precision = null, kind = "FACT" }) {
+  const precisionPart = precision ? ` (date_precision: ${precision})` : "";
+  return {
+    claim_id: claimId,
+    kind,
+    text: `[due_date] The captured source states a due date${precisionPart}, verbatim: «${span}»`,
+    span,
+  };
+}
 
 // ── mapClaimRow(s) / mapSectionRow(s) ───────────────────────────────────────────────────────────────
 
@@ -174,11 +188,107 @@ describe("attachDueDateContext", () => {
   });
 });
 
+// ── claimNeedsDueDateContext / itemIdsNeedingContext (lane FE-SLOT-2b, 2026-09-04) ─────────────────
+
+describe("claimNeedsDueDateContext (pure) — the same test extractForwardEvents's rescue branch applies", () => {
+  test("relative deadline (no calendar date at all): false, context never fetched", () => {
+    const claim = dueDateClaim({ span: "within 15 days of the effective date of disapproval" });
+    assert.equal(claimNeedsDueDateContext(claim), false);
+  });
+
+  test("calendar date shape (a trigger+date the span alone can't classify): true", () => {
+    // Same fixture as extract-forward-events.test.mjs's own 'calendar_date_deontic_context_unavailable'
+    // case -- this is exactly the rescue branch this predicate is meant to predict.
+    const claim = dueDateClaim({ span: "by 1 May 2021, notify the Commission of those rules", precision: "day" });
+    assert.equal(claimNeedsDueDateContext(claim), true);
+  });
+
+  test("non-slot claim (no [due_date] prefix): false regardless of its span's shape", () => {
+    const claim = { claim_id: "c1", kind: "FACT", text: "[title] ordinary claim", span: "by 1 May 2021, notify the Commission of those rules" };
+    assert.equal(claimNeedsDueDateContext(claim), false);
+  });
+
+  test("GAP claim (isDueDateSlotClaim requires kind === 'FACT'): false", () => {
+    const claim = dueDateClaim({ span: "by 1 May 2021, notify the Commission of those rules", kind: "GAP" });
+    assert.equal(claimNeedsDueDateContext(claim), false);
+  });
+
+  test("a span whose date+trigger already classifies from itself alone: false (no rescue branch entered)", () => {
+    const claim = dueDateClaim({ span: "By 31 December 2014 at the latest, the Commission shall examine the measures", precision: "month" });
+    assert.equal(claimNeedsDueDateContext(claim), false);
+  });
+
+  test("tolerant of a missing/empty span and a null/undefined claim", () => {
+    assert.equal(claimNeedsDueDateContext(dueDateClaim({ span: null })), false);
+    assert.equal(claimNeedsDueDateContext(dueDateClaim({ span: "" })), false);
+    assert.equal(claimNeedsDueDateContext(null), false);
+    assert.equal(claimNeedsDueDateContext(undefined), false);
+  });
+});
+
+describe("itemIdsNeedingContext (pure)", () => {
+  test("returns only the item ids carrying a claim that needs context, ignores the rest", () => {
+    const rows = [
+      {
+        id: "c1",
+        intelligence_item_id: "item-needs",
+        claim_kind: "FACT",
+        claim_text: "[due_date] The captured source states a due date, verbatim: «by 1 May 2021, notify the Commission of those rules»",
+        source_span: "by 1 May 2021, notify the Commission of those rules",
+      },
+      {
+        id: "c2",
+        intelligence_item_id: "item-relative",
+        claim_kind: "FACT",
+        claim_text: "[due_date] The captured source states a due date, verbatim: «within 15 days of disapproval»",
+        source_span: "within 15 days of disapproval",
+      },
+      { id: "c3", intelligence_item_id: "item-plain", claim_kind: "FACT", claim_text: "[title] x", source_span: "x" },
+    ];
+    const ids = itemIdsNeedingContext(rows);
+    assert.deepEqual([...ids], ["item-needs"]);
+  });
+
+  test("a row with no intelligence_item_id is ignored, never crashes", () => {
+    assert.deepEqual([...itemIdsNeedingContext([{ id: "c1", claim_kind: "FACT", claim_text: "[title] x", source_span: "x" }])], []);
+  });
+
+  test("tolerant of null/undefined, returns an empty Set", () => {
+    assert.deepEqual([...itemIdsNeedingContext(null)], []);
+    assert.deepEqual([...itemIdsNeedingContext(undefined)], []);
+  });
+
+  test("one item can appear once even with multiple context-needing claims", () => {
+    const rows = [
+      {
+        id: "c1",
+        intelligence_item_id: "item-1",
+        claim_kind: "FACT",
+        claim_text: "[due_date] The captured source states a due date, verbatim: «by 1 May 2021, notify the Commission of those rules»",
+        source_span: "by 1 May 2021, notify the Commission of those rules",
+      },
+      {
+        id: "c2",
+        intelligence_item_id: "item-1",
+        claim_kind: "FACT",
+        claim_text: "[due_date] The captured source states a due date, verbatim: «by 1 June 2022, notify the Commission of those rules»",
+        source_span: "by 1 June 2022, notify the Commission of those rules",
+      },
+    ];
+    assert.deepEqual([...itemIdsNeedingContext(rows)], ["item-1"]);
+  });
+});
+
 // ── readExtractionInput / readAndExtractForwardEvents (fake sb client) ─────────────────────────────
 
-function fakeSb(tables) {
+// `calls` (mutated in place) records every table name this fake sb's `.from()` was invoked with, in
+// order -- lane FE-SLOT-2b, 2026-09-04, so a test can assert `agent_run_searches` was or was NOT queried
+// at all, not just infer it from the returned shape.
+function fakeSb(tables, calls = []) {
   return {
+    calls,
     from(table) {
+      calls.push(table);
       const rows = tables[table] ?? [];
       const state = { eqs: [], ins: [] };
       const builder = {
@@ -199,15 +309,16 @@ function fakeSb(tables) {
 }
 
 describe("readExtractionInput (fake sb client)", () => {
-  test("reads claims/sections/pool for one item, maps them, and attaches due_date context", async () => {
+  test("a due_date claim that NEEDS context: reads claims/sections/pool, attaches the found context", async () => {
+    const calls = [];
     const sb = fakeSb({
       section_claim_provenance: [
         {
           id: "due1",
           intelligence_item_id: "item-1",
           claim_kind: "FACT",
-          claim_text: "[due_date] The captured source states a due date, verbatim: «1 Jan 2030»",
-          source_span: "1 Jan 2030",
+          claim_text: "[due_date] The captured source states a due date, verbatim: «by 1 May 2021, notify the Commission of those rules»",
+          source_span: "by 1 May 2021, notify the Commission of those rules",
         },
         { id: "other-item", intelligence_item_id: "item-2", claim_kind: "FACT", claim_text: "x", source_span: "x" },
       ],
@@ -215,9 +326,14 @@ describe("readExtractionInput (fake sb client)", () => {
         { id: "sec1", item_id: "item-1", section_key: "record_facts", content_md: "## md" },
       ],
       agent_run_searches: [
-        { id: "search-1", intelligence_item_id: "item-1", result_content: "x".repeat(210) + " before 1 Jan 2030 after", result_index: 0 },
+        {
+          id: "search-1",
+          intelligence_item_id: "item-1",
+          result_content: "x".repeat(210) + " the operator shall by 1 May 2021, notify the Commission of those rules without delay",
+          result_index: 0,
+        },
       ],
-    });
+    }, calls);
     const { claims, sections } = await readExtractionInput(sb, "item-1");
     assert.equal(claims.length, 1);
     assert.equal(claims[0].claim_id, "due1");
@@ -225,6 +341,45 @@ describe("readExtractionInput (fake sb client)", () => {
     assert.equal(claims[0].context.search_id, "search-1");
     assert.equal(sections.length, 1);
     assert.equal(sections[0].section_id, "sec1");
+    assert.ok(calls.includes("agent_run_searches"), "the pool WAS read because the claim needs context");
+  });
+
+  test("no claim needs context (a relative-deadline due_date claim): pool reader is NOT called", async () => {
+    const calls = [];
+    const sb = fakeSb({
+      section_claim_provenance: [
+        {
+          id: "due1",
+          intelligence_item_id: "item-1",
+          claim_kind: "FACT",
+          claim_text: "[due_date] The captured source states a due date, verbatim: «within 15 days of the effective date of disapproval»",
+          source_span: "within 15 days of the effective date of disapproval",
+        },
+      ],
+      intelligence_item_sections: [],
+      agent_run_searches: [
+        { id: "search-1", intelligence_item_id: "item-1", result_content: "x".repeat(300), result_index: 0 },
+      ],
+    }, calls);
+    const { claims } = await readExtractionInput(sb, "item-1");
+    assert.equal(claims.length, 1);
+    // attachDueDateContext's OWN contract is unchanged (still runs over whatever pool WAS fetched -- here,
+    // none): a due_date slot claim always gets a `context` key, `null` when no capture was consulted.
+    assert.equal(claims[0].context, null);
+    assert.equal(calls.includes("agent_run_searches"), false, "the pool reader must NOT be called -- no claim needed it");
+  });
+
+  test("no due_date claims at all: pool reader is NOT called", async () => {
+    const calls = [];
+    const sb = fakeSb({
+      section_claim_provenance: [
+        { id: "c1", intelligence_item_id: "item-1", claim_kind: "FACT", claim_text: "[title] ordinary claim", source_span: "x" },
+      ],
+      intelligence_item_sections: [],
+      agent_run_searches: [],
+    }, calls);
+    await readExtractionInput(sb, "item-1");
+    assert.equal(calls.includes("agent_run_searches"), false);
   });
 
   test("throws (never swallows) on a claim/section/pool read error", async () => {
