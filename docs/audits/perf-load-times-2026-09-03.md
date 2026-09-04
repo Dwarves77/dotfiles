@@ -816,3 +816,216 @@ instrument artefacts and are retained here as the record of how a measurement ca
 when every reading comes from one tool. Rule for the next perf study: any status the extension reader
 reports on an RSC request is cross-checked against `performance.getEntriesByType('resource')` in-page
 before it enters a report.
+
+## 12. PERF-6: the two `getUser()` levers outside proxy.ts — org.ts and auth.ts (2026-09-04)
+
+Numbering note: the PERF-6 dispatch asked for an appended "§10"; by the time this lane read the file,
+§10 and §11 already existed (PERF-2/PERF-VERIFY work, same day). Appending here as §12 rather than
+renumbering or overwriting existing sections — this file is append-only shared evidence, per CLAUDE.md
+standing rule 6/vault convention, and no other section's numbering changes.
+
+**Starting evidence [CONFIRMED by PERF-5, EXPLAIN ANALYZE live, cited in the PERF-6 dispatch]:** every
+query on the listings path runs 0.6-25 ms at the database; the observed 907 ms / 2,812 ms / 542 ms-warm
+figures are sequential network round trips. PERF-5 fixed the chunk loop and the override read in
+`supabase-server.ts`. Two remaining levers, both the same defect class PERF-2 fixed in `src/proxy.ts`
+(header lines 12-30, the `getClaims()` call at line 66 — read in full this lane): (1)
+`src/lib/api/org.ts`'s `resolveOrgIdFromCookies()` called `supabase.auth.getUser()`, a full Auth-server
+round trip, on every call, imported by 15 real call sites (16 files hit by the identifier grep including
+org.ts's own header comment, which is not a runtime import); (2) `src/lib/api/auth.ts`'s `requireAuth()`
+called `supabase.auth.getUser(token)` for every one of its 47 API-route callers, whose own SQL is a
+single indexed query each.
+
+### 12.1 Consumers checked (rule B1) — every caller reads only `userId`/`orgId`, never a `User` field
+
+`grep -rln "resolveOrgIdFromCookies"` under `fsi-app/src`: 15 files actually call it (the org.ts header
+comment is the 16th grep hit, not a call) — `app/api/listings/rest/route.ts`, `app/market/[slug]/page.tsx`,
+`app/market/page.tsx`, `app/operations/page.tsx`, `app/research/page.tsx`,
+`components/regulations/UpcomingObligationsStrip.tsx`, `lib/api/org.ts` (self), `lib/dashboard/surface-
+coverage.ts`, `lib/data.ts` (18 call sites across `getAppData`/`getResourcesOnly`/`getListingsOnly`/etc,
+owned by another lane, not touched), `lib/detail/load-detail-core.ts` (comment only, the real call is
+in `load-detail.ts`'s `defaultDetailDeps.resolveOrgId`), `lib/detail/load-detail.ts`,
+`lib/notifications/seed-fallback-flag.ts` (comment only), `lib/supabase-server.ts` (comment only, owned
+by another lane), `lib/workspace/viewer-relevance.npmtest.mjs`, `lib/workspace/viewer-relevance.ts`.
+`grep -rln "requireAuth"` under `fsi-app/src`: 47 files call `lib/api/auth.ts`'s `requireAuth` (a
+48th/49th hit, `lib/api/community-auth.ts` and `lib/watchlist-scope.npmtest.mjs`, only *contain* the
+substring "requireAuth" inside `requireCommunityAuth`/a comment — neither imports or calls
+`auth.ts:requireAuth`, confirmed by reading both files in full).
+
+The field check the dispatch asked for is structural, not per-file: `resolveOrgIdFromCookies` returns
+`Promise<string | null>` (an org_id, never the `User` object) and `requireAuth` returns
+`Promise<{ userId: string } | NextResponse>` (never a `User` object either) — both functions already
+box the caller off from every `User` field except the id, by their existing signatures, unchanged by
+this lane. Grepped every caller file for `.email`/`.app_metadata`/`.user_metadata`/`.created_at`/
+`.updated_at`/`.confirmed_at`/`.identities`/`.factors`/`.phone`/`.last_sign_in`/`.aud`/`.role` on the
+`requireAuth`/`isAuthError` result — zero matches. **Conclusion: no caller of either function needed a
+`getUser()` fallback for any field `getClaims()` doesn't carry; none was added.** `claims.sub` replaces
+`user.id` exactly (verified against the installed `@supabase/auth-js` type: `RequiredClaims.sub: string`
+is non-optional — `node_modules/@supabase/auth-js/dist/module/lib/types.d.ts:1660-1669`).
+
+### 12.2 `getClaims()` in the installed package (`@supabase/auth-js` 2.112.3, `@supabase/supabase-js` 2.112.3)
+
+Read `node_modules/@supabase/auth-js/dist/module/GoTrueClient.d.ts` (JSDoc, lines 2472-2538) and the
+implementation, `dist/module/GoTrueClient.js:5318-5387`:
+- **Token-argument form** confirmed: `getClaims(jwt?: string, options?)` — an explicit token (as
+  `requireAuth` passes) is decoded and its own `exp` validated directly; the no-argument form instead
+  pulls a session via `getSession()` first (which refreshes if near expiry) *before* decoding — that
+  refresh path does not apply when a token is passed explicitly, so `requireAuth`'s "expired token →
+  error" behavior is unchanged by the swap (same as `getUser(token)`, which also never refreshed).
+- **JWKS caching / local verification**: when the JWT's header carries an asymmetric alg (`kid` set,
+  not `HS*`) and WebCrypto is available, `fetchJwk(header.kid, ...)` fetches (and caches) the project's
+  `/.well-known/jwks.json`, then verifies the signature locally via `crypto.subtle.verify` — no Auth-
+  server round trip on a cache hit.
+- **Symmetric-secret fallback** (line 5339-5360): `if (!signingKey) { const { error } = await
+  this.getUser(token); ...; return { data: { claims: payload, header, signature }, error: null }; }` —
+  confirmed exactly as the proxy.ts header describes: a project signing with a symmetric secret pays the
+  identical `getUser()` round trip either way (a wash, never a regression); this lane's tests exercise
+  that shape explicitly ("symmetric-secret fallback" cases in both new test files) by feeding the exact
+  `{ data: { claims }, error: null }` result that branch produces.
+- **Claims object contents** (JSDoc `@exampleResponse`, `RequiredClaims`/`JwtPayload` types): `sub`,
+  `email`, `role`, `app_metadata`, `user_metadata`, `session_id`, `aal`, `amr`, `aud`, `exp`, `iat`,
+  `is_anonymous`, `iss`, `phone` — `sub` is the only field either changed function reads.
+
+### 12.3 Fixes applied
+
+**`fsi-app/src/lib/api/org.ts`** — `resolveOrgIdFromCookies()`'s body was split into a new exported pure
+function, `resolveOrgIdFromAuthenticatedClient(supabase)`, that calls `getClaims()` and uses
+`claims.sub` in place of `user.id`, then the same `org_memberships` query unchanged. The thin cookie-
+binding wrapper (`resolveOrgIdFromCookies`) delegates to it inside the same `try { ... } catch { return
+null }` as before. Same public signature (`(): Promise<string | null>`), same fail-soft contract, zero
+caller-side changes needed (verified: `npx tsc --noEmit` clean, no new errors in any of the 15 caller
+files — see §12.5).
+
+**`fsi-app/src/lib/api/auth.ts`** — `requireAuth()`'s body was split identically: a new exported
+`resolveUserIdFromToken(supabase, token)` calls `getClaims(token)` and returns `claims.sub` or `null`;
+`requireAuth` calls it inside its existing `try { ... } catch { "Authentication failed", 401 }`, and
+turns a `null` into the existing "Invalid or expired token" 401 — the exact same two-tier error shape
+(`catch` vs. explicit-null-check) as before. Same public signature, same 47 callers, zero caller-side
+changes.
+
+### 12.4 The `cache()` fix (dispatch item (d)) and the double-resolution it was found to fix
+
+Instruction (d) asked whether `org.ts`'s org resolution could be cached per request, "check what
+src/lib already uses." `fsi-app/src/lib/api/server-bootstrap.ts` (read in full) already does exactly
+this for an equivalent `getUser()` + `org_memberships` pass: `export const resolveServerBootstrap =
+cache(async (): Promise<ServerBootstrap> => { ... })`, React's `cache()`, request-scoped memoization.
+`resolveOrgIdFromCookies` is now wrapped the same way: `export const resolveOrgIdFromCookies =
+cache(async (): Promise<string | null> => { ... })`.
+
+**This is not theoretical for this codebase — reading the consumer chain found a live double call.**
+`fsi-app/src/lib/detail/load-detail-core.ts`'s `runViewerScoped()` (lines 175-189, read in full):
+
+```js
+const relevance = await deps.getRelevance(relevanceInput);   // -> viewer-relevance.ts -> resolveOrgIdFromCookies()  [call #1]
+if (config.loadViewerScoped) {
+  ...
+  const orgId = await deps.resolveOrgId();                    // -> resolveOrgIdFromCookies()               [call #2]
+  ...
+}
+```
+
+`deps.getRelevance` is `getViewerRelevanceForItem` (`lib/workspace/viewer-relevance.ts`, read in full),
+which itself calls `resolveOrgIdFromCookies()` internally (line 34) before it can compute a relevance
+band. `deps.resolveOrgId` is `resolveOrgIdFromCookies` directly (`load-detail.ts`'s
+`defaultDetailDeps.resolveOrgId`, line 100). Both run inside the same `async runViewerScoped()`, and
+because `await deps.getRelevance(...)` is awaited *before* the `if (config.loadViewerScoped)` block
+even starts, these two calls are **sequential**, not parallel — one full org-resolution pass, then a
+second, on every request. `config.loadViewerScoped` is set for regulations and market (per
+`load-detail-core.ts`'s own comment, "operations, research today" have none) — confirmed by reading
+`app/regulations/[slug]/page.tsx` and `app/market/[slug]/page.tsx`'s `loadDetail(...)` calls, both pass
+a `loadViewerScoped`. So **every regulations and market detail-page render, before this fix, paid two
+sequential org-resolution passes** (two `getUser()` Auth round trips before PERF-6; even after PERF-6's
+`getClaims()` swap alone, without `cache()`, it would have been two local-JWT-verify passes plus two
+`org_memberships` queries). `cache()` collapses the second call to an in-memory hit — proof below.
+
+**Regulations detail page does NOT get a third org-resolution from the root layout on this path.**
+`app/layout.tsx` (read in full) calls `resolveServerBootstrap()` (which has its own, unrelated
+`getUser()` — see §12.6) but PERF-4 already gated it: `const bootstrapPromise = rscNav ?
+Promise.resolve(null) : resolveServerBootstrap()` — on an RSC (client-side) navigation, the shape every
+click-through measurement in this doc used (§2, §7, §9, §10), `resolveServerBootstrap()` is never even
+invoked. It only runs on a full document load (§1's cold-load numbers), which this lane's fix does not
+touch (server-bootstrap.ts is not in this lane's write set — see §12.6).
+
+**Safety of `cache()` outside a React render (operations/research detail pages have no `loadViewerScoped`,
+but `lib/data.ts`'s `getResourcesOnly`/`getListingsOnly` are also called from
+`app/api/listings/rest/route.ts`, a Route Handler, not a Server Component render).** Read
+`node_modules/react/cjs/react.react-server.development.js` (installed react-server build), the `cache`
+export (~line 573):
+
+```js
+exports.cache = function (fn) {
+  return function () {
+    var dispatcher = ReactSharedInternals.A;
+    if (!dispatcher) return fn.apply(null, arguments);   // <-- no active render context: plain call, no memo
+    var fnMap = dispatcher.getCacheForType(createCacheRoot);
+    ...
+  };
+};
+```
+
+**[CONFIRMED by reading the installed source]:** when there is no active render dispatcher, `cache()`'s
+wrapper just calls the underlying function directly, every time — no memoization, and critically, no
+cross-request state to leak. It can only memoize *inside* an active per-request render/work-unit scope
+(confirmed separately: Next 16.1.6's Route Handler module,
+`node_modules/next/dist/server/route-modules/app-route/module.js:427`, runs the handler inside
+`workUnitAsyncStorage.run(requestStore, handler, ...)` — a fresh, request-scoped store per request, the
+same mechanism `unstable_cache`'s work-unit typing uses). There is no code path in the installed
+React/Next.js by which `cache()` returns one request's org_id to a different request. Worst case for a
+Route Handler caller (if its work-unit type turns out not to support the dispatcher's cache-for-type)
+is zero memoization benefit — identical to the pre-fix behavior, never a regression, never a leak.
+
+### 12.5 Gates
+
+- `npx tsc --noEmit -p fsi-app/tsconfig.json`: 19 pre-existing errors, all `TS2882` CSS/side-effect-
+  import errors in files this lane never touched (`app/layout.tsx`, community/market/operations panel
+  views, `MapView.tsx`) — **[CONFIRMED]** identical 19-error baseline with this lane's changes `git
+  stash`ed out (`git stash && tsc ... | wc -l` → 19; `git stash pop` → same 19). Zero errors in
+  `org.ts`/`auth.ts`/either test file or any of the 62 caller files.
+- `node --test fsi-app/src/lib/api/org.npmtest.mjs fsi-app/src/lib/api/auth.npmtest.mjs`: 18/18 pass —
+  authenticated, unauthenticated, expired-token, malformed-claims, the symmetric-secret-fallback shape,
+  a rejecting `getClaims()` propagating to the caller's own catch, `requireAuth`'s no-header/non-Bearer/
+  malformed-JWT branches end-to-end (real `decodeJWT()` throw, no network — see the malformed-token
+  test's comment for why that's deterministic), and `resolveOrgIdFromCookies` failing soft to `null`
+  outside a request context (mirrors `viewer-relevance.npmtest.mjs`'s existing pattern for the same
+  underlying `next/headers` constraint). Both files use the repo's established `*.npmtest.mjs` + `jiti`
+  convention (`lib/workspace/profile.npmtest.mjs`, `lib/api/generation-pause.npmtest.mjs`) — auto-
+  discovered by the CI npm-deps step's `git ls-files 'fsi-app/src/**/*.npmtest.mjs'` glob (confirmed by
+  reading `.discipline/governance/execution-wiring.mjs:78-79`'s `npmtestMatcher()`, a genuine `**`
+  recursive pattern), so no `run-test-suite.sh`/`.github/**` edit was needed or made.
+- `node fsi-app/.discipline/fitness/runner.mjs` (run from repo root): 29 functions checked, **0
+  violations**.
+- `node --test fsi-app/.discipline/governance/*.test.mjs fsi-app/.discipline/fitness/*.test.mjs
+  fsi-app/.discipline/*.test.mjs`: **141/141 pass**.
+
+### 12.6 Round-trip projection [INFERRED] — arithmetic, not measured (no live Auth server from this
+container; the coordinator re-measures in the browser after deploy, as PERF-5 did)
+
+| call site | before (Auth-server round trips) | after (asymmetric-key project) | after (symmetric-secret project) |
+|---|---|---|---|
+| one `lib/data.ts` call (`getAppData`/`getResourcesOnly`/`getListingsOnly`, single call per request) | 1 | 0 (local JWKS-cached verify) | 1 (getClaims's own fallback calls getUser()) |
+| regulations/market detail page (`load-detail-core.ts` `runViewerScoped`, 2 calls/request, sequential) | 2 | 1 → **0** after `cache()` (2nd call is an in-memory hit) | 2 → **1** after `cache()` |
+| operations/research detail page (no `loadViewerScoped`, 1 call/request via `getRelevance` only) | 1 | 0 | 1 |
+| one `requireAuth()`-guarded API route (single call per request, confirmed no route calls it twice per request — the 2-4x grep hits per file are separate exported `GET`/`PATCH`/`DELETE`/... handlers, each called on a different request, not the same one) | 1 | 0 | 1 (wash, per §12.2) |
+
+The asymmetric-key column is the expected live case (Supabase's default is asymmetric signing keys per
+the auth-js JSDoc @ `GoTrueClient.getClaims`'s remarks); which case this project is actually on was not
+checked from this container (no live JWT to decode) — **[HYPOTHESIS]**, flagged for the coordinator's
+post-deploy measurement rather than asserted.
+
+### 12.7 Refused / out of write set (named, not silently dropped — rule 13)
+
+- **`fsi-app/src/lib/api/server-bootstrap.ts`** — same defect class (`supabase.auth.getUser()`, no
+  `getClaims()`), read in full, confirmed live on document loads only (§12.4). Not in this lane's write
+  set (only `org.ts`, `auth.ts`, their tests, this doc). Flagged, not fixed.
+- **`fsi-app/src/lib/api/community-auth.ts`** — `requireCommunityAuth()`, same defect class twice over
+  (`cookieClient.auth.getUser()` then, on fallback, `tokenClient.auth.getUser(token)`), read in full.
+  Not `auth.ts`, not in this lane's write set (the identifier match in the earlier `requireAuth` grep
+  was `requireCommunityAuth`'s substring, not a real caller — §12.1). Flagged, not fixed.
+- **`fsi-app/src/lib/data.ts`, `fsi-app/src/lib/supabase-server.ts`, the regulations detail page** —
+  explicitly out of this lane's write set per the dispatch (other lanes' ownership); read only as
+  consumers of `org.ts`/`auth.ts` (§12.1), not edited.
+
+### 12.8 Files touched
+
+`fsi-app/src/lib/api/org.ts`, `fsi-app/src/lib/api/auth.ts`, `fsi-app/src/lib/api/org.npmtest.mjs` (new),
+`fsi-app/src/lib/api/auth.npmtest.mjs` (new), this document (§12). Commit: see the lane's PR/branch
+`lane/perf6-2026-09-04`.
