@@ -9493,3 +9493,18 @@ needs a DB institution lookup and stays a follow-on lever. Dispatch next: proven
 `quarantined-live`, then apply.
 
 Backlog apply #25 (4 artifacts, retry landed) is running.
+
+### Addendum 85, postscript 34 — the backlog meets the duplicates (2026-09-04)
+
+Train/wave22 landed as #569 (`90654e44`). Backlog apply #25 (4 artifacts, retry landed) now selects
+mint-run-001 first, and its resolver refused: four of its CELEX keys match two `intelligence_items`
+rows each [CONFIRMED live]: 32015R0757 has two live rows (2026-04-05 quarantined, 2026-09-01
+verified), 32019R1242 and 32023R0956 a live row plus an archived duplicate, 32023R1804 two live rows
+plus the 2026-09-01 row this very run minted, later archived `duplicate_of_verified`. BACKLOG-LEGACY's
+"11/11 resolve to exactly one" was measured on non-archived rows only and missed the two-live cases.
+LEGACY-3 (this train, `21aff2d7`, 73 tests): `disambiguateByArtifactTime` drops archived rows, keeps
+the row created within a day of the artifact's `started_at` (the row that run minted), then the
+single verified survivor when the run's own row was archived as its duplicate; anything still
+ambiguous stays refused. The duplicates themselves violate EP-11; lane DEDUP (Haiku) is measuring
+them corpus-wide and building the maintenance step that archives the non-keeper reversibly.
+Heal dry #28 under HEAL-8 dispatched.
