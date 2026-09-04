@@ -208,6 +208,19 @@ test("defaultTraceDir: one level below the family dir, not inside it as a siblin
 });
 
 // ── buildFetchDoc — polite gap + error handling, fully injected (no real network, no real timers) ─────
+//
+// mockRes: the fetch response shape buildFetchDoc actually consumes since Lane LEDGER-TEXT (2026-09-04) —
+// `.ok`, `.headers.get("content-type")`, `.arrayBuffer()` — NOT `.text()` (the pre-fix shape). Defaults to
+// a plain-text/utf-8 content-type so a caller that only cares about the gap/error-handling behavior (not
+// the decode/strip path) can omit it.
+function mockRes(body, { ok = true, status = 200, contentType = "text/plain; charset=utf-8" } = {}) {
+  return {
+    ok,
+    status,
+    headers: { get: (k) => (String(k).toLowerCase() === "content-type" ? contentType : null) },
+    arrayBuffer: async () => new TextEncoder().encode(body).buffer,
+  };
+}
 
 test("buildFetchDoc: waits out the gap between consecutive calls", async () => {
   // clock starts well above 0 — lastFetchAt's zero-sentinel (mirrors run-source-sweep.mjs's own
@@ -222,7 +235,7 @@ test("buildFetchDoc: waits out the gap between consecutive calls", async () => {
   const calls = [];
   const fetchImpl = async (url) => {
     calls.push({ url, at: clock });
-    return { ok: true, text: async () => "hello world" };
+    return mockRes("hello world");
   };
   const fetchDoc = buildFetchDoc({ gapMs: 1000, fetchImpl, now, sleep });
 
@@ -240,7 +253,7 @@ test("buildFetchDoc: does not wait when the gap already elapsed", async () => {
   const now = () => clock;
   const waits = [];
   const sleep = async (ms) => { waits.push(ms); clock += ms; };
-  const fetchImpl = async () => ({ ok: true, text: async () => "x" });
+  const fetchImpl = async () => mockRes("x");
   const fetchDoc = buildFetchDoc({ gapMs: 1000, fetchImpl, now, sleep });
 
   await fetchDoc("https://a.example/1");
@@ -250,8 +263,8 @@ test("buildFetchDoc: does not wait when the gap already elapsed", async () => {
   assert.equal(waits.length, 0);
 });
 
-test("buildFetchDoc: returns {text, transport} on success", async () => {
-  const fetchImpl = async () => ({ ok: true, text: async () => "the document body" });
+test("buildFetchDoc: returns {text, transport} on success — plain text passes through", async () => {
+  const fetchImpl = async () => mockRes("the document body");
   const fetchDoc = buildFetchDoc({ gapMs: 0, fetchImpl, now: () => 0, sleep: async () => {} });
   const r = await fetchDoc("https://a.example/doc");
   assert.equal(r.text, "the document body");
@@ -259,9 +272,70 @@ test("buildFetchDoc: returns {text, transport} on success", async () => {
 });
 
 test("buildFetchDoc: throws on a non-ok HTTP response (caller treats as skip)", async () => {
-  const fetchImpl = async () => ({ ok: false, status: 404, text: async () => "" });
+  const fetchImpl = async () => mockRes("", { ok: false, status: 404 });
   const fetchDoc = buildFetchDoc({ gapMs: 0, fetchImpl, now: () => 0, sleep: async () => {} });
   await assert.rejects(() => fetchDoc("https://a.example/missing"), /HTTP 404/);
+});
+
+// ── buildFetchDoc — THE DEFECT THIS CLOSES (Lane LEDGER-TEXT, 2026-09-04): HTML gets STRIPPED, not
+// returned raw; a PDF body gets EXTRACTED, not handed to the HTML strip as if it were markup ────────────
+
+test("buildFetchDoc: an HTML body is stripped to text (script/style/tags gone) — this is the fix, buildFetchDoc used to return res.text() raw", async () => {
+  // Only <script>/<style> CONTENT is removed — every other tag is unwrapped with its text KEPT (this is
+  // a markup-strip, not a chrome-remover; see html-to-text.mjs's own header), so <title> text survives
+  // same as <nav>/<h1>/<p> do — the assertion below matches that documented behavior exactly.
+  const html = "<!DOCTYPE html><html><head><script>alert(1)</script><style>body{color:red}</style>" +
+    "<title>Ignore</title></head><body><nav>Home</nav><main><h1>Real Title</h1><p>Real content here.</p></main></body></html>";
+  const fetchImpl = async () => mockRes(html, { contentType: "text/html; charset=utf-8" });
+  const fetchDoc = buildFetchDoc({ gapMs: 0, fetchImpl, now: () => 0, sleep: async () => {} });
+  const r = await fetchDoc("https://a.example/doc");
+  assert.equal(r.text, "Ignore Home Real Title Real content here.");
+  assert.ok(!r.text.includes("<"), "no markup characters survive");
+  assert.ok(!r.text.includes("alert(1)"), "script content is gone, not just the tags");
+  assert.ok(!r.text.includes("color:red"), "style content is gone, not just the tags");
+  assert.equal(r.transport, "direct-fetch");
+});
+
+test("buildFetchDoc: decodes with the response's declared charset, not a hardcoded utf-8 (the same charset-aware path canonical-pipeline.ts's directFetchClean uses)", async () => {
+  // windows-1252 bytes for "Política" (í = 0xED as a single byte) — decoded as utf-8 this corrupts to
+  // the U+FFFD replacement char; decoded with the declared charset it recovers the real text.
+  const html = "<p>Pol\xEDtica</p>";
+  const bytes = Uint8Array.from([...html].map((c) => c.charCodeAt(0)));
+  const fetchImpl = async () => ({
+    ok: true,
+    status: 200,
+    headers: { get: (k) => (String(k).toLowerCase() === "content-type" ? "text/html; charset=iso-8859-1" : null) },
+    arrayBuffer: async () => bytes.buffer,
+  });
+  const fetchDoc = buildFetchDoc({ gapMs: 0, fetchImpl, now: () => 0, sleep: async () => {} });
+  const r = await fetchDoc("https://a.example/doc");
+  assert.equal(r.text, "Política");
+  assert.ok(!r.text.includes("�"));
+});
+
+test("buildFetchDoc: a PDF body (content-type application/pdf) is extracted via the injected pdfToTextImpl, not stripped as HTML", async () => {
+  const fetchImpl = async () => mockRes("%PDF-1.4 fake bytes", { contentType: "application/pdf" });
+  let calledWith = null;
+  const pdfToTextImpl = async (bytes, max) => {
+    calledWith = { bytesLength: bytes.length, max };
+    return { text: "Extracted PDF text content.", fullLength: 28 };
+  };
+  const fetchDoc = buildFetchDoc({ gapMs: 0, fetchImpl, now: () => 0, sleep: async () => {}, pdfToTextImpl });
+  const r = await fetchDoc("https://a.example/doc.pdf");
+  assert.equal(r.text, "Extracted PDF text content.");
+  assert.equal(r.transport, "direct-pdf");
+  assert.ok(calledWith, "the injected pdfToTextImpl must be called for a PDF content-type");
+  assert.equal(typeof calledWith.max, "number");
+});
+
+test("buildFetchDoc: PDF detection also fires on magic bytes when content-type is absent/wrong (same codec directFetchClean uses)", async () => {
+  const fetchImpl = async () => mockRes("%PDF-1.4 header, no content-type declared", { contentType: null });
+  let pdfCalls = 0;
+  const pdfToTextImpl = async () => { pdfCalls += 1; return { text: "pdf text", fullLength: 8 }; };
+  const fetchDoc = buildFetchDoc({ gapMs: 0, fetchImpl, now: () => 0, sleep: async () => {}, pdfToTextImpl });
+  const r = await fetchDoc("https://a.example/doc");
+  assert.equal(pdfCalls, 1);
+  assert.equal(r.transport, "direct-pdf");
 });
 
 // ── collectClassifyTelemetry — a READ-ONLY collector, no DB, no double-counted agent_runs rows ────────

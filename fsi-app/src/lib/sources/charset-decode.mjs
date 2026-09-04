@@ -71,3 +71,14 @@ export function decodeHtmlBytes(u8, contentType) {
   catch { text = new TextDecoder("utf-8", { fatal: false }).decode(u8); charset = "utf-8"; source = "default"; }
   return { text, charset, source };
 }
+
+// cleanCtl (moved here from src/lib/agent/canonical-pipeline.ts, Lane LEDGER-TEXT, 2026-09-04 — one home,
+// next to decodeHtmlBytes: both operate on the same "raw bytes -> clean text" step canonical-pipeline.ts's
+// directFetchClean and now run-ledger-consume.mjs's buildFetchDoc share). Strips C0 control characters that
+// can survive a decode (a mis-served binary, a stray control byte in a "text" response) EXCEPT tab/LF/CR
+// (\x09/\x0A/\x0D — left alone; only \x00-\x08, \x0B, \x0C, \x0E-\x1F are replaced with a space), so JSON-
+// unsafe / display-breaking bytes never reach a stored excerpt or a classify prompt.
+/** @param {string|null|undefined} s @returns {string|null|undefined} */
+export function cleanCtl(s) {
+  return s == null ? s : String(s).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, " ");
+}

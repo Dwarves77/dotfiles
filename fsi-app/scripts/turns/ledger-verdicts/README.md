@@ -60,7 +60,17 @@ sent to the metered API, unless the driver is run with the explicit, CLI-only `-
    session environment typically does not. It writes, per row: `{candidate_id, url, source_id,
    anchor_text, first_seen_at, source_name, source_category, source_tier, text, fetched_chars, fetch_ok,
    fetch_error, fetched_at, transport}` — `text` sliced to `content_max_chars` (the payload's own top-level
-   field, sourced from `first-fetch-classify.ts`'s `CONTENT_MAX_CHARS`). `fetch_ok: false` marks a row that
+   field, sourced from `first-fetch-classify.ts`'s `CONTENT_MAX_CHARS`).
+
+   **`text` is extracted TEXT, not markup (Lane LEDGER-TEXT, 2026-09-04 [CONFIRMED]).** `buildFetchDoc`
+   decodes the fetched bytes charset-aware and, for an HTML body, strips it through the shared `htmlToText`
+   (`src/lib/text/html-to-text.mjs`) before this step ever sees it — a PDF body (content-type or `%PDF-`
+   magic bytes) is routed through `pdfToText` instead of being stripped as HTML. `content_max_chars` /
+   `fetched_chars` describe TEXT length, not raw-markup length. **Every export produced before this fix
+   (first `--with-text` run, 33902755838, 2026-09-04 17:51, and any `ledger-verdicts-NNN.json` classified
+   from it) carried ~6,000 chars of raw, unstripped HTML in `text` instead — re-fetch/re-export and
+   re-classify rather than trusting a pre-fix batch.** See `fsi-app/scripts/harness-runs/ledger-consume/
+   PENDING-RUN.md`'s Re-pin note 7 for the full account. `fetch_ok: false` marks a row that
    either failed to fetch (`fetch_error` names why) or fell under `portal-harvest.ts`'s own 200-char floor
    (`fetch_error: "below_floor_200"` — that file's `consumePortalCandidates`, the "1 — FETCH" step,
    `if (text.trim().length < 200)`); its short text is still carried, but should not be treated as

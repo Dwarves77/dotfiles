@@ -9,6 +9,11 @@
 //                           score, trust tier).
 
 import Anthropic from "@anthropic-ai/sdk";
+// htmlToText — THE ONE body (Lane LEDGER-TEXT, 2026-09-04). This module's own copy had zero production
+// callers (haikuClassify, its only caller, was removed 2026-05-11 — see the note near __internals below);
+// it is replaced here with the shared body so a would-be reviver of that dead export gets the canonical
+// behaviour, not a second hand-typed copy. See src/lib/text/html-to-text.mjs's header for the full account.
+import { htmlToText } from "@/lib/text/html-to-text.mjs";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -135,16 +140,6 @@ function clampScore(n: number): number {
 function extractJsonObject(text: string): string | null {
   const m = text.match(/\{[\s\S]*\}/);
   return m ? m[0] : null;
-}
-
-function htmlToText(html: string, maxChars: number): string {
-  return html
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, maxChars);
 }
 
 async function sha256Hex(input: string): Promise<string> {

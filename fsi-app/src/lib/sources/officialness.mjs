@@ -49,7 +49,23 @@ import { STUB_MIN_CHARS } from "./primary-fallback.mjs"; // reuse the ONE real-c
 export const LINK_DENSITY_MAX = 0.4;
 
 /** Flatten html fragment to visible text: drop tags + entities, collapse whitespace.
- *  @param {string} s @returns {string} */
+ *
+ * NOT a copy of src/lib/text/html-to-text.mjs's htmlToText (Lane LEDGER-TEXT, 2026-09-04 consolidation —
+ * that lane replaced this repo's three other private htmlToText re-typings, but left this one, and this
+ * comment is the "say why" that decision owes). Different contract, both ways:
+ *   - No script/style removal here. By the time stripTags runs, structuralStrip (above) has ALREADY cut
+ *     <script>/<style>/<nav>/<header>/<footer>/<aside> etc. out of the raw html; stripTags only ever sees
+ *     a block that survived that cut, so a redundant script/style strip would be dead code, not safety.
+ *     htmlToText, by contrast, IS a top-level "give me classify-ready text from arbitrary html" call — it
+ *     has to strip script/style itself because nothing upstream of it does.
+ *   - Entities ARE blanked here (`&(?:[a-z]+|#\d+);` -> space) — htmlToText deliberately does not decode
+ *     or blank entities (see that module's own header). cleanBodyOf (below) calls stripTags once per BLOCK
+ *     and again on each block's anchor-text to compute link density; an un-blanked `&nbsp;`/`&amp;` run
+ *     would inflate ink-length and skew that ratio, which htmlToText's callers have no equivalent need for.
+ *   - stripTags is a low-level flatten PRIMITIVE feeding a link/text-density algorithm (cleanBodyOf), not a
+ *     caller-facing "extract the text" function — htmlToText is exactly that. Different job, different
+ *     shape; not a second body of the same logic.
+ * @param {string} s @returns {string} */
 function stripTags(s) {
   return String(s ?? "")
     .replace(/<[^>]+>/g, " ")

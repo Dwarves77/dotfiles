@@ -139,6 +139,7 @@ node --test \
   fsi-app/src/lib/agent/*.test.mjs \
   fsi-app/src/lib/auth/*.test.mjs \
   fsi-app/src/lib/llm/*.test.mjs \
+  fsi-app/src/lib/text/*.test.mjs \
   fsi-app/src/lib/telemetry/*.test.mjs \
   fsi-app/src/lib/health/*.test.mjs \
   fsi-app/src/lib/propagation/*.test.mjs \

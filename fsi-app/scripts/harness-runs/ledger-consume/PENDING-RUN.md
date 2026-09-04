@@ -31,7 +31,7 @@ one-off probe and by `run-ledger-consume.test.mjs`'s own standing jiti-load test
 network, no DB) and gets back `{discovered: 0, fetched: 0, classified: 0, outcomes: []}`. That proves the
 runtime WIRING; it is not a run over real ledger rows, so it is not `ledger-consume-run-001`.
 
-**harness_version at write time:** `sha256:2f3138ea51a193ac` (see Re-pin note 6 below; `sha256:80d15aac9240060d` is superseded)
+**harness_version at write time:** `sha256:3650d9f46a0c23e2` (see Re-pin note 7 below; `sha256:2f3138ea51a193ac` and `sha256:80d15aac9240060d` are superseded)
 
 **The planned run that supersedes this marker:** the first `ledger-consume-run-001.json` produced by
 `node scripts/turns/run-ledger-consume.mjs` (dispatched via `.github/workflows/ledger-consume.yml`, which
@@ -142,3 +142,50 @@ otherwise UNCHANGED from Re-pin note 5: **`node scripts/turns/run-ledger-consume
 of both. Neither the export batches nor `ledger-verdicts-001.json` are produced by this lane (outside its
 write set — the coordinator's Haiku lanes' job, per the build plan's own §W1.1); this lane ships the
 `--with-text` mechanism and the exact first dispatch.
+
+**Re-pin note 7 (lane LEDGER-TEXT, 2026-09-04, coordinator [CONFIRMED] the raw-HTML defect from the first
+`--with-text` export, run 33902755838, 2026-09-04 17:51 — every one of the 400 exported candidates carried
+~6,000 chars of raw markup in `text`, not text):** `sha256:2f3138ea51a193ac` → `sha256:3650d9f46a0c23e2`.
+
+**What changed.** `buildFetchDoc` in `run-ledger-consume.mjs` — the ONLY one of this family's three
+governing files that moved bytes in this diff — used to do `const text = await res.text(); return { text,
+transport: "direct-fetch" };`, handing Re-pin note 6's `--with-text` (and, unnoticed until now, the
+`plan`/`apply` classify path) raw HTML/PDF bytes decoded as UTF-8 string, unstripped, as if it were plain
+content. It is rewritten to match the exact codec `src/lib/agent/canonical-pipeline.ts`'s `directFetchClean`
+already used for the DEEP DIVE pipeline: read the response as bytes, run `classifyBody(contentType, bytes)`
+(`src/lib/sources/pdf-extract.mjs`, pre-existing, unchanged) to tell a PDF body (content-type OR `%PDF-`
+magic bytes) from HTML; a PDF body goes through `pdfToText` (injectable as `pdfToTextImpl` for tests) then
+`cleanCtl`+whitespace-collapse; an HTML body is decoded charset-aware via `decodeHtmlBytes` (header >
+`<meta>` > utf-8 default, `src/lib/sources/charset-decode.mjs`, pre-existing, unchanged) and then stripped
+via the new shared `htmlToText` (`src/lib/text/html-to-text.mjs`) — script/style content removed, all other
+tags unwrapped keeping visible text, whitespace collapsed, trimmed. `fetchDoc`'s return shape is unchanged
+(`{text, transport}`); only what `text` now IS changed — stripped/extracted text, not markup — so
+`--with-text`'s `fetched_chars` and the `plan`/`apply` classify path's own `firstFetchClassify` input both
+describe text from here on.
+
+`htmlToText` itself is now ONE exported body (`src/lib/text/html-to-text.mjs`, new, plain ESM, pure, with
+its own test file) consolidating what were three independently hand-typed private copies:
+`canonical-pipeline.ts`'s own `htmlToText` (the reference implementation lifted verbatim — that file's
+behavior is unchanged, only the definition moved to the shared module and is now imported) and
+`haiku-classify.ts`'s `htmlToText` (dead code — its only caller `haikuClassify` was removed 2026-05-11 per
+that file's own comment; replaced with the shared import anyway so a future reviver gets canonical behavior,
+not a second hand-typed copy). The third named copy, `officialness.mjs`'s `stripTags`, is INTENTIONALLY LEFT
+AS ITS OWN BODY — it is a lower-level flatten primitive feeding `cleanBodyOf`'s per-block link-density
+algorithm (the 4d officialness gate), not a caller-facing text extractor: it does not need script/style
+removal (upstream `structuralStrip` already removes those blocks before `stripTags` runs per-block) and it
+DOES blank HTML entities (`&(?:[a-z]+|#\d+);` → space, so an anchor's un-blanked entity text can't skew the
+link-density ratio it's computing) — `htmlToText` deliberately does NOT decode/blank entities. Different
+contract, not a duplicate; a comment in `officialness.mjs` above `stripTags` records this reasoning in full.
+Also consolidated to one home: `cleanCtl` (control-character stripping, previously a private helper sitting
+next to `canonical-pipeline.ts`'s own `htmlToText`) is now exported from `src/lib/sources/charset-decode.mjs`
+alongside `decodeHtmlBytes` — the two operate on the same raw-bytes-to-clean-text step, and `buildFetchDoc`
+now needs `cleanCtl` too (for its PDF-text branch), so it has one home instead of a second copy.
+
+Neither `html-to-text.mjs` nor the newly-exported `cleanCtl` is added to `GOVERNING_FILES['ledger-consume']`
+— following the `source-sweep/PENDING-RUN.md` precedent that a family's governing-file set names its
+dispatch surface and the pre-existing modules that predate that convention, not every shared pure helper the
+family's driver comes to depend on; the driver's own byte-change (`run-ledger-consume.mjs`, above) is what
+moved this family's hash, and `LEDGER_CONSUME_GOVERNING_FILES`'s exact-equality test is unchanged. The
+planned first run is otherwise unchanged from Re-pin note 6 — this note only documents that any export or
+plan/apply classify run taken BEFORE this fix landed carried raw markup in `text`, not text, and should be
+re-run.

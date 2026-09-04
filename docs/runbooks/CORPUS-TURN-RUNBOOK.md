@@ -414,6 +414,12 @@ called Haiku (`firstFetchClassify`, ~$0.001/candidate) for every candidate whose
     `portal-harvest.ts`'s own 200-char floor (`consumePortalCandidates`'s "1 — FETCH" step,
     `if (text.trim().length < 200)` — `fetch_error: "below_floor_200"`, text still carried, not
     classify-ready). A classification lane consuming this file must NOT fetch these URLs itself.
+    **Lane LEDGER-TEXT, 2026-09-04 [CONFIRMED]:** `buildFetchDoc` used to return `res.text()` raw —
+    every one of the first export's 400 rows carried ~6,000 chars of unstripped HTML/markup in `text`,
+    not text. It now decodes charset-aware and strips via the shared `htmlToText`
+    (`src/lib/text/html-to-text.mjs`), routing a PDF body through `pdfToText` instead — `text` is
+    genuinely extracted text from this fix forward. Any export or verdict batch produced before it
+    (run 33902755838, 2026-09-04 17:51, and anything classified from it) must be re-run.
 - **`prompt_version`** (`FIRST_FETCH_CLASSIFY_PROMPT_VERSION`, also exported from `first-fetch-
   classify.ts`) is a content hash of the live system prompt, stamped into every verdict entry. A verdict
   whose `prompt_version` does not match the driver's own live constant is excluded from use — per-entry,
