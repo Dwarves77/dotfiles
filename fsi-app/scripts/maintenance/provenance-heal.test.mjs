@@ -52,6 +52,11 @@ function fakeDeps(overrides = {}) {
     touchItem: async (id) => { calls.push(["touchItem", id]); },
     readProvenanceStatus: async () => "quarantined",
     unarchiveItem: async (id) => { calls.push(["unarchiveItem", id]); },
+    // STEP SOURCE (EIGHTH PASS, 2026-09-04) — the two deps this wrapper wires (registerSource,
+    // readSourceByUrl); default stubs so every existing test above (none of which exercises an orphan)
+    // stays byte-identical, plus the dedicated wiring test below.
+    registerSource: async (source) => { calls.push(["registerSource", source]); return { source_id: "src1", created: true, host: "example.gov" }; },
+    readSourceByUrl: async (url) => { calls.push(["readSourceByUrl", url]); return null; },
     ...overrides,
   };
 }

@@ -199,14 +199,44 @@ likewise UNCHANGED.
 
 **harness_version at BOILER-2's own write time (its worktree predates the series-backed exemption):** `sha256:45f466a329448e44`
 
-**harness_version at write time:** `sha256:2885d372e53e4769` (train/wave17: BOILER-2 on top of the landed wave16 kit)
+**harness_version at train/wave17's write time (superseded below):** `sha256:2885d372e53e4769` (train/wave17: BOILER-2 on top of the landed wave16 kit)
 
-**The planned run that supersedes THIS marker:** the next `population-turn` dispatch (dry, then apply)
-under this landed code — its `mint-batch-report.json` should show CELEX `32012D0706(01)`-shaped rows
+**The planned run that supersedes THAT marker:** the next `population-turn` dispatch (dry, then apply)
+under that landed code — its `mint-batch-report.json` should show CELEX `32012D0706(01)`-shaped rows
 (a genuine operative-provision clause mentioning a bare domain) now minting a substantive `operative_provision`
 FACT instead of GAP; CELEX 'H'-recommendation rows (like `31976H0495`'s shape) now minting a substantive
 `jurisdictional_scope` FACT where the source states one via a numbered clause; and any row whose Cellar
 capture is this RDF-fingerprint shape now held `capture_garbled_metadata` (or re-minted with real EUR-Lex
-fallback text) rather than shipping hollow. Per F28's reverse-audit, this marker is deleted the moment that
+fallback text) rather than shipping hollow. That run has not yet landed, so this marker is superseded (rule
+(c): a new governing-file edit below moved the hash again) rather than deleted — the next `population-turn`
+run under the CURRENT hash covers both this entry and the one below.
+
+---
+
+## Lane HEAL-7 (2026-09-04) — criterion 3's authority floor becomes a rating, not a refusal
+
+**What changed (6):** lane HEAL-7 (2026-09-04), building THE RULING [CONFIRMED, operator, 2026-09-04,
+verbatim]: "get the source. then rate the source. it's that simple. this isn't hard, find the source and
+then publish the data on the site." `scripts/mint/validate-mint-payload.mjs` moved: its criterion-3
+authority-floor check (`fact_below_authority_floor`) no longer pushes to `failures` (so it never affects
+`valid`/`recommended_status`) — it accumulates into a new `warnings.claims` array instead (`warnings:
+{below_floor_facts, claims}`), mirroring migration 302's own DB-side `v_result.warnings` byte-for-byte.
+`fact_missing_source_span` / `fact_span_not_in_source` / `fact_mint_hold` are UNCHANGED — the ruling
+overrules the refusal half of the floor, never the grounding requirement; an ungrounded claim still
+quarantines. `VALIDATE_MINT_PAYLOAD_KIT_VERSION` bumped `vmp-2026-09-04.1` → `vmp-2026-09-04.2`.
+
+Migration 302 (`fsi-app/supabase/migrations/302_criterion3_rating_not_refusal.sql`, written this lane, NOT
+applied — no DB write credential in this lane, Supabase MCP is read-only here) is the DB-side twin: an
+in-place patch of `validate_item_provenance` so the kit and the function agree on what blocks. No other
+mint `GOVERNING_FILES` entry moved — `MINT-RUNBOOK.md`, `payload-schema.json`,
+`item-type-required-slots.json`, and the three `scripts/mint/lib/*.mjs` files are UNCHANGED by this lane.
+
+**harness_version at write time:** `sha256:02be5e03486540f3`
+
+**The planned run that supersedes THIS marker:** the next `population-turn` dispatch (dry, then apply)
+under this landed code, AFTER the coordinator applies migration 302 — its `mint-batch-report.json` should
+show a below-floor-tier FACT (a genuinely span-grounded claim whose source tier exceeds its item-type
+floor) recorded in `warnings.below_floor_facts` rather than in `failures`, clearing to `verified` on tier
+alone when nothing else is wrong with it. Per F28's reverse-audit, this marker is deleted the moment that
 artifact lands and its `harness_version` matches the hash above (or re-pinned to a new hash, per rule (c),
 if a governing file changes again before that run lands).

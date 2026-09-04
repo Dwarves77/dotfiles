@@ -86,13 +86,18 @@ import {
   findOwningParagraphAcrossSections,
   planOwningParagraphRewriteAcrossSections,
   computeDerivedCovered,
+  // eighth pass (HEAL-7, 2026-09-04) — STEP SOURCE
+  SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN,
+  SOURCE_MAX_PER_ITEM,
+  classifyCitedUrlForOrphan,
+  candidateUrlsForOrphan,
 } from "./heal-provenance.mjs";
 import { norm } from "../../src/lib/agent/gate-a-match.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 test("HEAL_VERSION is a stamped string", () => {
-  assert.match(HEAL_VERSION, /^hp6-/);
+  assert.match(HEAL_VERSION, /^hp7-/);
 });
 
 // ── loadRequiredSlots / claimCoversSlot / missingRequiredSlots ──────────────────────────────────────
@@ -617,6 +622,11 @@ function baseDeps(overrides = {}) {
     readCapturesByUrls: async () => [],
     readAllSources: async () => [],
     readInstitutionByDomain: async () => null,
+    // STEP SOURCE (EIGHTH PASS, 2026-09-04) — default stubs so every existing test above (none of which
+    // drives an orphan into the registerable branch) stays byte-identical; the dedicated STEP SOURCE
+    // tests below override these to exercise the real registration/read-back path.
+    registerSource: async (source) => { calls.push(["registerSource", source]); return { source_id: "src-new", created: true, host: source.name }; },
+    readSourceByUrl: async (url) => { calls.push(["readSourceByUrl", url]); return null; },
     insertInstitution: async (row) => { calls.push(["insertInstitution", row]); return { id: "inst-new" }; },
     updateSourceInstitution: async (sourceId, institutionId) => { calls.push(["updateSourceInstitution", sourceId, institutionId]); return { updated: 1 }; },
     validateProvenance: async () => ({ valid: true, recommended_status: "verified", failures: [] }),
@@ -2298,4 +2308,269 @@ test("healOneItem: Gate A's final report entry carries derived_claims_seen/deriv
   const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
   assert.equal(r.steps.gate_a.derived_claims_seen, 1);
   assert.equal(r.steps.gate_a.derived_covered_count, 1);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// STEP SOURCE (EIGHTH PASS, 2026-09-04, lane HEAL-7) — see heal-provenance.mjs's own header EIGHTH PASS
+// section for the ruling this builds. Fixtures below use item_type "regulation" (REG_FAMILY, floor 2,
+// armed unconditionally — isFloorArmed) so both the 179 (above-floor) and 167 (no-source-row) HEAL-6
+// measured cases are reachable without a CRITICAL/HIGH priority.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+test("classifyCitedUrlForOrphan: an exact-URL match in sourcesIndex is already_registered, tier from deriveSourceTier", () => {
+  const sourcesIndex = buildSourcesIndex([{ id: "src-hi", url: "https://example.com/notice", base_tier: 5, tier_override: null }]);
+  const r = classifyCitedUrlForOrphan("https://example.com/notice", sourcesIndex);
+  assert.deepEqual(r, { status: "already_registered", sourceId: "src-hi", tier: 5 });
+});
+
+test("classifyCitedUrlForOrphan: no existing row, a codified-gov host classifies registerable at its class tier (never a guess)", () => {
+  const sourcesIndex = buildSourcesIndex([]);
+  const r = classifyCitedUrlForOrphan("https://notices.example.gov/x", sourcesIndex);
+  assert.deepEqual(r, { status: "registerable", host: "notices.example.gov", tier: 2 });
+});
+
+test("classifyCitedUrlForOrphan: an ambiguous host (no codified class) worklists — SC-13 never invents a tier", () => {
+  const sourcesIndex = buildSourcesIndex([]);
+  const r = classifyCitedUrlForOrphan("https://some-random-vendor.example/page", sourcesIndex);
+  assert.equal(r.status, "worklist_ambiguous_host");
+  assert.equal(r.host, "some-random-vendor.example");
+});
+
+test("candidateUrlsForOrphan: a token with an owning section is scoped to that section's own cited URLs only", () => {
+  const sections = [
+    { id: "sec-1", item_id: "i1", section_key: "body", section_order: 1, content_md: "Rates rose by €500,000. See https://example.com/a for detail." },
+    { id: "sec-2", item_id: "i1", section_key: "other", section_order: 2, content_md: "Unrelated: https://example.com/b" },
+  ];
+  const urls = candidateUrlsForOrphan("€500,000", { sections, claims: [], sourcesIndex: buildSourcesIndex([]) });
+  assert.deepEqual(urls, ["https://example.com/a"]);
+});
+
+test("candidateUrlsForOrphan: a token with no owning section falls back to every URL the item cites at all", () => {
+  const sections = [
+    { id: "sec-1", item_id: "i1", section_key: "body", section_order: 1, content_md: "https://example.com/a" },
+    { id: "sec-2", item_id: "i1", section_key: "other", section_order: 2, content_md: "https://example.com/b" },
+  ];
+  const urls = candidateUrlsForOrphan("a token nowhere in either section", { sections, claims: [], sourcesIndex: buildSourcesIndex([]) });
+  assert.deepEqual(urls, ["https://example.com/a", "https://example.com/b"]);
+});
+
+test("candidateUrlsForOrphan: bounded to SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN", () => {
+  const many = Array.from({ length: SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN + 4 }, (_, i) => `https://example.com/doc-${i}`);
+  const sections = [{ id: "sec-1", item_id: "i1", section_key: "body", section_order: 1, content_md: many.join(" ") }];
+  const urls = candidateUrlsForOrphan("token with no owning section", { sections, claims: [], sourcesIndex: buildSourcesIndex([]) });
+  assert.equal(urls.length, SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN);
+});
+
+test("healOneItem STEP SOURCE: the 167 no-source-row case — a registerable host is registered (base_tier from classTierForHost, never hand-typed), captured, and the orphan is grounded", async () => {
+  const item = {
+    id: "item-src1", item_type: "regulation", source_id: "src-own", source_url: "https://example-regulator.gov/x",
+    full_brief: "The levy is set at €750,000 under this measure.",
+  };
+  const sourcesIndex = buildSourcesIndex([{ id: "src-own", url: "https://example-regulator.gov/x", base_tier: 1 }]);
+  // >200 chars so STEP 1's own needsCapture check is already satisfied and this fixture's own capture is
+  // never re-fetched (isolating this test to STEP SOURCE's own registration/capture path).
+  const captures = [{ id: "cap-own", result_url: "https://example-regulator.gov/x", result_content: "the regulation text, no figure stated here. " + "Padding so this own capture clears the 200-char usability floor too. ".repeat(3) }];
+  const sections = [{ id: "sec-src1", item_id: "item-src1", section_key: "body", section_order: 1, content_md: "See https://notices.example.gov/levy for the figure." }];
+  // URL-aware: the item's own canonical URL never carries the figure (so an accidental re-fetch of it
+  // could never accidentally ground the token); only the cited URL's page states it.
+  const fetchImpl = async (url) => (
+    String(url).includes("notices.example.gov")
+      ? { ok: true, status: 200, text: async () => "The levy is set at €750,000 under this measure, per the official notice. " + "Padding text so this body clears the 200-char usability floor. ".repeat(3) }
+      : { ok: true, status: 200, text: async () => "should not be re-fetched in this test" }
+  );
+  const deps = baseDeps({
+    fetchImpl,
+    readCaptures: async () => captures,
+    readClaims: async () => [],
+    readSections: async (id) => (id === "item-src1" ? sections : []),
+    registerSource: async (source) => { deps.calls.push(["registerSource", source]); return { source_id: "src-registered", created: true, host: "notices.example.gov" }; },
+    readSourceByUrl: async (url) => ({ id: "src-registered", url, base_tier: 2, tier_override: null, institution_id: null, status: "active" }),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {}, sourcesIndex });
+
+  const entry = r.steps.source.find((s) => s.outcome === "source_registered_and_grounded");
+  assert.ok(entry, JSON.stringify(r.steps.source));
+  assert.equal(entry.source_id, "src-registered");
+  assert.equal(entry.source_tier, 2);
+
+  const regCall = deps.calls.find((c) => c[0] === "registerSource");
+  assert.ok(regCall, "registerSource called for the new host");
+  assert.equal(regCall[1].url, "https://notices.example.gov/levy");
+  assert.equal(regCall[1].base_tier, 2, "base_tier is classTierForHost's own class tier, never hand-typed");
+
+  const claimCall = deps.calls.find((c) => c[0] === "insertClaim" && c[1].source_id === "src-registered");
+  assert.ok(claimCall, "the orphan token was grounded on the newly registered source");
+  assert.equal(claimCall[1].claim_kind, "FACT");
+  assert.ok(claimCall[1].source_span.includes("750,000"));
+  assert.equal(claimCall[1].source_tier_at_grounding, 2, "the REAL read-back tier, never the class table's predicted tier alone");
+
+  // STEP SOURCE grounds the token before STEP C's own fresh scan runs, so it is never reported as an
+  // unresolved orphan there too.
+  assert.equal(r.steps.orphans.length, 0);
+  assert.equal(r.steps.gate_a.orphan_count, 0);
+});
+
+test("healOneItem STEP SOURCE: the 179 above-floor case — an EXISTING source above the item's floor grounds the orphan with NO new sources row", async () => {
+  const item = {
+    id: "item-src2", item_type: "regulation", source_id: "src-own2", source_url: "https://example-regulator.gov/x",
+    full_brief: "The levy is set at €900,000 under this measure.",
+  };
+  const sourcesIndex = buildSourcesIndex([
+    { id: "src-own2", url: "https://example-regulator.gov/x", base_tier: 1 },
+    { id: "src-above", url: "https://example.com/above-floor-notice", base_tier: 5 }, // above the reg-family floor (2)
+  ]);
+  // >200 chars so STEP 1's own needsCapture check is already satisfied and this fixture's own capture is
+  // never re-fetched (isolating this test to STEP SOURCE's own existing-source grounding path).
+  const captures = [{ id: "cap-own2", result_url: "https://example-regulator.gov/x", result_content: "the regulation text, no figure stated here. " + "Padding so this own capture clears the 200-char usability floor too. ".repeat(3) }];
+  const sections = [{ id: "sec-src2", item_id: "item-src2", section_key: "body", section_order: 1, content_md: "See https://example.com/above-floor-notice for the levy figure." }];
+  // URL-aware: the item's own canonical URL never carries the figure; only the above-floor URL's page does.
+  const fetchImpl = async (url) => (
+    String(url).includes("above-floor-notice")
+      ? { ok: true, status: 200, text: async () => "The levy is set at €900,000 under this measure, per the notice. " + "Padding text so this body clears the 200-char usability floor. ".repeat(3) }
+      : { ok: true, status: 200, text: async () => "should not be re-fetched in this test" }
+  );
+  const deps = baseDeps({
+    fetchImpl,
+    readCaptures: async () => captures,
+    readClaims: async () => [],
+    readSections: async (id) => (id === "item-src2" ? sections : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {}, sourcesIndex });
+
+  const entry = r.steps.source.find((s) => s.outcome === "grounded_on_existing_source");
+  assert.ok(entry, JSON.stringify(r.steps.source));
+  assert.equal(entry.source_id, "src-above");
+  assert.equal(entry.source_tier, 5);
+  assert.ok(!deps.calls.some((c) => c[0] === "registerSource"), "no new sources row for an already-registered host (179 case)");
+
+  const claimCall = deps.calls.find((c) => c[0] === "insertClaim" && c[1].source_id === "src-above");
+  assert.ok(claimCall);
+  assert.equal(claimCall[1].source_tier_at_grounding, 5, "the rating is recorded and published, never masked — the ruling's own point");
+  assert.equal(r.steps.orphans.length, 0);
+});
+
+test("healOneItem STEP SOURCE: a worklist_ambiguous_host candidate is reported and never registered — the token stays an honest orphan", async () => {
+  const item = {
+    id: "item-src3", item_type: "regulation", source_url: null,
+    full_brief: "The levy is set at €300,000 under this measure.",
+  };
+  const sections = [{ id: "sec-src3", item_id: "item-src3", section_key: "body", section_order: 1, content_md: "See https://some-random-vendor.example/notice for detail." }];
+  const deps = baseDeps({
+    readClaims: async () => [],
+    readSections: async (id) => (id === "item-src3" ? sections : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+
+  const worklisted = r.steps.source.find((s) => s.outcome === "worklist_ambiguous_host");
+  assert.ok(worklisted, JSON.stringify(r.steps.source));
+  assert.equal(worklisted.host, "some-random-vendor.example");
+  assert.ok(!deps.calls.some((c) => c[0] === "registerSource"));
+  assert.ok(!deps.calls.some((c) => c[0] === "insertClaim"));
+  // never forced -- STEP C's own (unchanged) scan still names it unprovable.
+  assert.equal(r.steps.orphans[0].outcome, "unprovable");
+});
+
+test("healOneItem STEP SOURCE: a fetch that fails is reported unfetchable, no source registered, token stays an honest orphan", async () => {
+  const item = {
+    id: "item-src4", item_type: "regulation", source_url: null,
+    full_brief: "The levy is set at €400,000 under this measure.",
+  };
+  const sections = [{ id: "sec-src4", item_id: "item-src4", section_key: "body", section_order: 1, content_md: "See https://notices.example.gov/unreachable for detail." }];
+  const fetchImpl = async () => ({ ok: false, status: 503, text: async () => "" });
+  const deps = baseDeps({
+    fetchImpl,
+    readClaims: async () => [],
+    readSections: async (id) => (id === "item-src4" ? sections : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+
+  const held = r.steps.source.find((s) => s.outcome === "unfetchable");
+  assert.ok(held, JSON.stringify(r.steps.source));
+  assert.ok(!deps.calls.some((c) => c[0] === "insertClaim"));
+  assert.equal(r.steps.orphans[0].outcome, "unprovable");
+});
+
+test("healOneItem STEP SOURCE: a captured page that does not contain the token verbatim reports token_not_in_page, never invented", async () => {
+  const item = {
+    id: "item-src5", item_type: "regulation", source_url: null,
+    full_brief: "The levy is set at €600,000 under this measure.",
+  };
+  const sections = [{ id: "sec-src5", item_id: "item-src5", section_key: "body", section_order: 1, content_md: "See https://notices.example.gov/other for detail." }];
+  const fetchImpl = async () => ({ ok: true, status: 200, text: async () => "This page discusses an entirely different topic, no figures at all. " + "Padding text so this body clears the 200-char usability floor. ".repeat(3) });
+  const deps = baseDeps({
+    fetchImpl,
+    readClaims: async () => [],
+    readSections: async (id) => (id === "item-src5" ? sections : []),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+
+  const missed = r.steps.source.find((s) => s.outcome === "token_not_in_page");
+  assert.ok(missed, JSON.stringify(r.steps.source));
+  assert.ok(!deps.calls.some((c) => c[0] === "insertClaim"));
+  assert.equal(r.steps.orphans[0].outcome, "unprovable");
+});
+
+test("healOneItem STEP SOURCE: dry mode plans every candidate with ZERO writes and ZERO fetches", async () => {
+  const item = {
+    id: "item-src6", item_type: "regulation", source_url: null,
+    full_brief: "The levy is set at €200,000 under this measure.",
+  };
+  const sections = [{ id: "sec-src6", item_id: "item-src6", section_key: "body", section_order: 1, content_md: "See https://notices.example.gov/dry for detail." }];
+  const deps = baseDeps({ readClaims: async () => [], readSections: async (id) => (id === "item-src6" ? sections : []) });
+  const r = await healOneItem(item, { deps, apply: false, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+
+  const planned = r.steps.source.find((s) => s.outcome === "would_register_and_capture");
+  assert.ok(planned, JSON.stringify(r.steps.source));
+  assert.equal(planned.class_tier, 2);
+  assert.deepEqual(deps.calls, []);
+});
+
+test("healOneItem STEP SOURCE: bounded by SOURCE_MAX_PER_ITEM, overflow reported as bound_hit, never silently dropped", async () => {
+  const n = SOURCE_MAX_PER_ITEM + 3;
+  const manyOrphanFigures = Array.from({ length: n }, (_, i) => `€${100 + i},000`);
+  const item = {
+    id: "item-src7", item_type: "regulation", source_url: null,
+    full_brief: `The levy schedule states ${manyOrphanFigures.join(", then ")} across successive tranches.`,
+  };
+  // Every orphan figure gets its OWN owning section citing an ambiguous host — classification is a pure,
+  // fast worklist decision (no network call), so this test stays deterministic while still driving
+  // sourceAttempts (incremented per candidate URL TRIED, per the header's own accounting) past the bound.
+  const sections = manyOrphanFigures.map((fig, i) => ({
+    id: `sec-src7-${i}`, item_id: "item-src7", section_key: `body-${i}`, section_order: i,
+    content_md: `The levy schedule states ${fig} for tranche ${i}. See https://vendor-${i}.example/notice for detail.`,
+  }));
+  const deps = baseDeps({ readClaims: async () => [], readSections: async (id) => (id === "item-src7" ? sections : []) });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  const boundHits = r.steps.source.filter((s) => s.outcome === "bound_hit");
+  assert.ok(boundHits.length > 0, JSON.stringify(r.steps.source.map((s) => s.outcome)));
+  assert.ok(!deps.calls.some((c) => c[0] === "registerSource"), "worklist_ambiguous_host candidates never register");
+});
+
+test("summarizeReports: tallies the eighth-pass STEP SOURCE counters", () => {
+  const perItem = [
+    {
+      steps: {
+        source: [
+          { outcome: "source_registered_and_grounded" },
+          { outcome: "grounded_on_existing_source" },
+          { outcome: "unfetchable" },
+          { outcome: "token_not_in_page" },
+          { outcome: "worklist_ambiguous_host" },
+          { outcome: "unresolved" },
+          { outcome: "bound_hit" },
+        ],
+        gate_a: {}, rederive: { outcome: "still_failing", failures: [] },
+      },
+    },
+  ];
+  const s = summarizeReports(perItem);
+  assert.equal(s.source_registered, 1);
+  assert.equal(s.source_rated_tier, 2, "every grounded token (new-registration OR existing-source) is rated");
+  assert.equal(s.source_grounded, 2);
+  assert.equal(s.grounded_after_register, 2);
+  assert.equal(s.source_unfetchable, 1);
+  assert.equal(s.source_token_not_in_page, 1);
+  assert.equal(s.source_worklisted, 1);
+  assert.equal(s.source_unresolved, 1);
+  assert.equal(s.source_bound_hit, 1);
 });
