@@ -29,7 +29,27 @@ path) all green; `.discipline/fitness/runner.mjs` green with this family registe
 workflow YAML itself could not be executed here (no `act`/Actions runner in this sandbox), so its
 end-to-end shape is reviewed, not run-tested, in this environment.
 
-**harness_version at write time:** `sha256:8f05f6ea139d6d42`
+**harness_version at TURNREQ's write time (superseded below):** `sha256:8f05f6ea139d6d42`
+
+---
+
+## What changed (2) — TICKET-CORPUS (train 39, 2026-09-04)
+
+Corpus turn #8 (run 33898080197, the family's first artifact, `corpus-turn-run-001.json`, dry, selection
+tickets, limit 200) discharged the entry above and immediately showed the next defect: of its 200 tickets,
+107 named items "not found in the verified/live corpus (ignored)". Live SQL: 594 of the 1,709 open
+tickets belong to ARCHIVED items, 1,115 to live verified ones. `scripts/turns/consume-turn-requests.mjs`
+(this family's governing file) now partitions the open queue by the item's live state before the limit
+applies (`partitionByCorpusMembership`): live verified → selectable (the turn's scope); archived → carried
+in the snapshot as `archived_requests` and closed by the mark step under `<by>:item-archived`; not
+verified/unknown → left open, unselected. `export-corpus-for-extraction.mjs` is unchanged.
+
+**harness_version at write time:** `sha256:60ef6cd8bd54d306`
+
+**The planned run that supersedes this marker:** the next corpus-turn dispatch (dry, then apply, limit
+200) under this code — its artifact records the partition counts in its own log, and the apply run closes
+the archived-item tickets so the queue head is live work only.
+
 
 **The planned run that supersedes this marker:** the first `corpus-turn-run-001.json`, self-emitted by
 `.github/workflows/corpus-turn.yml`'s own "Record this turn's own harness-run artifact" step (added this

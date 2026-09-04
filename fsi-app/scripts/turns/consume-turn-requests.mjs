@@ -59,7 +59,7 @@
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeFileSync, readFileSync } from "node:fs";
-import { readAll, guardedUpdateByIds } from "../lib/db.mjs";
+import { readAll, readClient, withTransientRetry, guardedUpdateByIds } from "../lib/db.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -141,6 +141,52 @@ export function applyLimit(rows, limit) {
 }
 
 /**
+ * TICKET-CORPUS (train 39, 2026-09-04). Corpus turn #8 (the first ticket-queue dry run) read 200 open
+ * tickets and discover-for-items.mjs reported 107 of them "not found in the verified/live corpus
+ * (ignored)": live SQL showed 594 of the 1,709 open tickets belong to ARCHIVED items (provenance_status
+ * verified, is_archived true) and 1,115 to live ones. Left alone, those 594 sit at the head of the
+ * oldest-first queue forever (ignored by discover, re-selected every run, eating the --limit) or get
+ * stamped consumed by a turn that did no work on them. Neither is honest. So MODE 1 partitions the open
+ * rows by their item's live state BEFORE the limit applies:
+ *   selectable  — item verified and not archived: the turn's real scope (limit applies here only)
+ *   archived    — item archived: closed by MODE 2 under `<by>:item-archived` (a ticket for an item that
+ *                 left the corpus is discharged, never worked; the label says why)
+ *   deferred    — item not verified yet (or unknown): left OPEN and unselected, so it surfaces on its own
+ *                 once the item verifies; never stamped
+ * PURE. `itemStateById` maps intelligence_item_id -> {provenance_status, is_archived}; an id absent from
+ * the map is "unknown" and defers (an item row that vanished is not a reason to consume its ticket).
+ * @param {Array<{id:string, intelligence_item_id:string}>} rows
+ * @param {Map<string,{provenance_status?:string, is_archived?:boolean}>} itemStateById
+ * @returns {{selectable: Array, archived: Array, deferred: Array}}
+ */
+export function partitionByCorpusMembership(rows, itemStateById) {
+  const selectable = [];
+  const archived = [];
+  const deferred = [];
+  for (const r of rows ?? []) {
+    const st = itemStateById?.get?.(r?.intelligence_item_id);
+    if (!st) { deferred.push(r); continue; }
+    if (st.is_archived === true) { archived.push(r); continue; }
+    if (st.provenance_status === "verified") { selectable.push(r); continue; }
+    deferred.push(r);
+  }
+  return { selectable, archived, deferred };
+}
+
+/** The archived-item ticket ids a --out snapshot carries (TICKET-CORPUS) — MODE 2 closes these under
+ *  `<by>:item-archived`, separately from the selected rows `extractRequestIdsFromSnapshot` returns.
+ *  PURE. @param {{archived_requests?: Array<{id?: string}>}} payload @returns {string[]} */
+export function extractArchivedRequestIdsFromSnapshot(payload) {
+  const rows = Array.isArray(payload?.archived_requests) ? payload.archived_requests : [];
+  return rows.map((r) => r?.id).filter(Boolean);
+}
+
+/** Label MODE 2 stamps on archived-item tickets it closes. */
+export function archivedConsumedBy(by) {
+  return `${by}:item-archived`;
+}
+
+/**
  * The corpus_turn_requests row ids (never intelligence_item_id — the thing MODE 2 marks consumed is the
  * TICKET, and a --mark-file caller must retire exactly the tickets a prior --out snapshot named, not
  * re-derive them from the item list) named in a --out snapshot payload (buildOutputPayload's own shape).
@@ -191,7 +237,7 @@ export function formatIdsLine(ids) {
  * @param {Array<{id:string, intelligence_item_id:string, reason:string, requested_at:string}>} rows
  * @param {{generatedAt: string}} opts
  */
-export function buildOutputPayload(rows, { generatedAt }) {
+export function buildOutputPayload(rows, { generatedAt, archivedRows = [], deferredCount = 0 }) {
   const ids = toIdList(rows);
   const byReason = {};
   for (const r of rows ?? []) {
@@ -209,7 +255,37 @@ export function buildOutputPayload(rows, { generatedAt }) {
       reason: r.reason,
       requested_at: r.requested_at,
     })),
+    // TICKET-CORPUS: tickets whose item is archived — closed by MODE 2 under `<by>:item-archived`, never
+    // handed to discover; and the count left open because the item is not (yet) verified.
+    archived_requests: (archivedRows ?? []).map((r) => ({
+      id: r.id,
+      intelligence_item_id: r.intelligence_item_id,
+      reason: r.reason,
+      requested_at: r.requested_at,
+    })),
+    deferred_not_verified: deferredCount,
   };
+}
+
+/**
+ * The live state of every item a set of tickets names, read in id chunks of 100 (the IN-CHUNK limit,
+ * see analyze-corpus.mjs). Returns a Map id -> {provenance_status, is_archived}; an item that no longer
+ * exists is simply absent (and defers, per partitionByCorpusMembership).
+ * @param {string[]} itemIds
+ */
+async function readItemStates(itemIds) {
+  const map = new Map();
+  const sb = readClient();
+  for (let i = 0; i < itemIds.length; i += 100) {
+    const chunk = itemIds.slice(i, i + 100);
+    const { data, error } = await withTransientRetry(
+      () => sb.from("intelligence_items").select("id, provenance_status, is_archived").in("id", chunk),
+      { label: `readItemStates chunk at ${i}` }
+    );
+    if (error) throw new Error(`intelligence_items read failed: ${error.message}`);
+    for (const row of data ?? []) map.set(row.id, { provenance_status: row.provenance_status, is_archived: row.is_archived });
+  }
+  return map;
 }
 
 if (IS_MAIN) await main();
@@ -240,8 +316,31 @@ async function main() {
       process.exit(1);
     }
     const requestIds = extractRequestIdsFromSnapshot(payload);
+    const archivedIds = extractArchivedRequestIdsFromSnapshot(payload);
+    if (archivedIds.length) {
+      // TICKET-CORPUS: close the archived-item tickets under their own label, before the turn's own rows.
+      try {
+        const res = await guardedUpdateByIds(
+          "corpus_turn_requests",
+          archivedIds,
+          { consumed_at: new Date().toISOString(), consumed_by: archivedConsumedBy(by) },
+          {
+            cite: {
+              skill: "corpus-turn-workflow",
+              reason: `close ${archivedIds.length} corpus_turn_requests row(s) whose item is archived (snapshot ${markFile}) as ${archivedConsumedBy(by)}`,
+            },
+            select: "id",
+            chunk: 100,
+          }
+        );
+        console.error(`consume-turn-requests: closed ${res.updated} archived-item request(s) consumed_by=${archivedConsumedBy(by)}.`);
+      } catch (e) {
+        console.error(`consume-turn-requests: archived-item close FAILED: ${e.message}`);
+        process.exit(1);
+      }
+    }
     if (!requestIds.length) {
-      console.error(`consume-turn-requests: --mark-file ${markFile} names 0 request(s) — nothing to stamp.`);
+      console.error(`consume-turn-requests: --mark-file ${markFile} names 0 selected request(s) — nothing further to stamp.`);
       return;
     }
     const cite = {
@@ -277,16 +376,32 @@ async function main() {
     process.exit(1);
   }
   const totalOpen = rows.length;
-  rows = applyLimit(rows, limit);
+
+  // TICKET-CORPUS: the item's live state decides what a ticket is (see partitionByCorpusMembership).
+  let itemStateById;
+  try {
+    itemStateById = await readItemStates(toIdList(rows));
+  } catch (e) {
+    console.error(`consume-turn-requests: item-state read failed: ${e.message}`);
+    process.exit(1);
+  }
+  const { selectable, archived, deferred } = partitionByCorpusMembership(rows, itemStateById);
+  rows = applyLimit(selectable, limit);
 
   const ids = toIdList(rows);
   console.error(
-    `consume-turn-requests: ${totalOpen} open request(s) total, ${rows.length} selected` +
+    `consume-turn-requests: ${totalOpen} open request(s) total: ${selectable.length} for live verified items, ` +
+    `${archived.length} for archived items (closed by the mark step as item-archived), ` +
+    `${deferred.length} deferred (item not verified); ${rows.length} selected` +
     `${limit ? ` (--limit ${limit})` : ""}, ${ids.length} distinct item(s).`
   );
 
   if (out) {
-    const payload = buildOutputPayload(rows, { generatedAt: new Date().toISOString() });
+    const payload = buildOutputPayload(rows, {
+      generatedAt: new Date().toISOString(),
+      archivedRows: archived,
+      deferredCount: deferred.length,
+    });
     const outPath = resolve(out);
     writeFileSync(outPath, JSON.stringify(payload, null, 2) + "\n", "utf8");
     console.error(`consume-turn-requests: wrote ${outPath}`);
