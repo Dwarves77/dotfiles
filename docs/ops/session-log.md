@@ -9715,3 +9715,16 @@ byte-identical once honest. Ruling taken: a derived duplicate the index itself f
 through guardedDelete (snapshotted, reversible) and the survivor rewritten; lane RETEXT-COLLIDE is
 building it. Dispatch next: backlog apply again under this train (six artifacts re-run), retext
 apply under RETEXT-COLLIDE, heal dry after GATE-A-TOKENS.
+
+### Addendum 85, postscript 43 — collisions collapsed (2026-09-04)
+
+Train/wave31 landed as #578 (`03e6a8a8`). Lane RETEXT-COLLIDE (Sonnet, `bf31de44`): the retext step
+now computes every row's post-rewrite key (item, date, kind, md5 of the text as Postgres computes it,
+coalesce(claim, section)) over the WHOLE table, groups, keeps one survivor per group (a row already in
+the normalised form first, then the earliest created_at, then the lowest id) and deletes the others
+through guardedDelete before any rewrite; the rewrite loop treats a vanished or already-rewritten row
+as a no-op; `--arg restore:` reinserts a deleted row from the delete snapshot. Live baseline
+[CONFIRMED read-only SQL by the lane]: 1,017 rows across 160 items, 541 already in the normalised
+form (the rows apply #35 rewrote before it died, plus rows that were clean), an upper bound of 111
+groups / 235 rows sharing the non-text key. 26 tests. Backlog apply #31 dispatched under
+BRANCH-BASE-2. Dispatch next: forward-events-retext dry then apply under this train.

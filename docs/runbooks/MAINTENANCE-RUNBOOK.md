@@ -1120,7 +1120,7 @@ changes what a FUTURE extraction produces; migration 274/275's idempotency guara
 duplicating rows on a re-run, not about correcting text already stored. For every `intelligence_item`
 that already carries `item_forward_events` rows, this step re-reads that item's CURRENT grounded
 claims/sections (the same shape `src/lib/forward-events/read-and-extract.mjs` builds) and re-runs the
-SAME pure, unmodified `extractForwardEvents` every writer already calls. Two findings, both read-only in
+SAME pure, unmodified `extractForwardEvents` every writer already calls. Three findings, all read-only in
 dry mode:
 1. **Retext targets** — an existing row whose `(source_claim_id ?? source_section_id, event_date,
    event_kind)` identity still matches a freshly-extracted event, but whose `obligation_text` differs.
@@ -1129,12 +1129,65 @@ dry mode:
    drop as a content-duplicate of another existing row it keeps. `item_forward_events` (migration
    274/275, read in full) has **no `is_archived`/`superseded`/status column of any kind** — 13 columns
    total, none a lifecycle flag — so there is nowhere to mark a row superseded and no sanctioned way for
-   this script to make it stop rendering. **This step never deletes a row.** It reports every group
+   this script to make it stop rendering. **This finding never deletes a row.** It reports every group
    (`would_drop_id`, `would_keep_id`, both `event_date`/`event_kind`, both obligation texts, the dedupe
    reason) so the coordinator can put an explicit deletion decision to the operator — a schema gap, not a
    policy choice made here. A row can be BOTH a retext target and half of a reported duplicate group at
    once; the duplicate finding never suppresses the retext finding, since the row's stored text still
    needs correcting as long as it stays live.
+3. **Collisions** [added lane RETEXT-COLLIDE, 2026-09-04] — see the dedicated subsection immediately
+   below. Unlike (2), this finding **is** applied automatically in `apply` mode: it is the live unique
+   index's own requirement once text is honest, not an operator policy call.
+
+**Lane RETEXT-COLLIDE (2026-09-04) — the retext rewrite collides with itself** [CONFIRMED, Maintenance #35,
+run `33864089323`, `master` `e1a0287` = FWD-TEXT-2's normaliser, APPLY]: the step died 6 seconds in —
+`db.mjs update failed: duplicate key value violates unique constraint uq_item_forward_events_dedupe`. The
+live index [CONFIRMED, `pg_indexes`]: `CREATE UNIQUE INDEX uq_item_forward_events_dedupe ON
+public.item_forward_events USING btree (intelligence_item_id, event_date, event_kind,
+md5(obligation_text), COALESCE(source_claim_id, source_section_id))` (migration 275). Root cause: two
+EXISTING rows can already share `(intelligence_item_id, event_date, event_kind, coalesce(source_claim_id,
+source_section_id))` pre-fix — legitimately, since 275's own key also discriminates on `obligation_text`,
+and their texts differ — but once BOTH are honestly retexted to the SAME fresh sentence (the section's
+one date appears twice, so the extractor emitted two rows from the one section, pre-fix garbled two
+different ways, post-fix identical), the second per-row `guardedUpdate` collides with the first. The dry
+run #33's own `retext_targets` grouped by `(item, date, kind, after)` — no source column — over-counts
+(≈154 groups / 324 rows), since that grouping cannot tell two-DIFFERENT-source rows that happen to share
+text apart from a real collision; the real key (below) requires the SAME source object too, exactly the
+column 275 itself added.
+
+**The fix**: for **every** row of the table (target or not, per **DO** above — not only `retext_targets`),
+this step computes the row's post-rewrite key exactly as Postgres computes the live index —
+`(intelligence_item_id, event_date, event_kind, md5(after_text), coalesce(source_claim_id,
+source_section_id))`, `md5` computed the way Postgres does (`node:crypto`, UTF-8 bytes, lowercase hex) —
+where `after_text` is the freshly-extracted text for a retext target and the row's own current
+`obligation_text` for every other row (so a row already retexted by a prior half-applied run, or never a
+target at all, is still checked for collision against everything else). A group of more than one row under
+that key is exactly what the live index would reject once written, so it cannot all survive: **one
+survivor is kept** (a row already carrying its own after-text is preferred — nothing to rewrite for it;
+otherwise earliest `created_at`, then lowest `id`, both deterministic), **the rest are `collide_delete`d**.
+`item_forward_events` is DERIVED (regenerable from claims/sections by the extractor, never a primary
+record — confirmed not in `scripts/lib/db.mjs`'s `DELETE_PROTECTED_TABLES`), so this delete is sanctioned,
+but only ever through `guardedDelete` — chunked, cited (a dedicated `DELETE_CITE`), and snapshotted (the
+snapshot captures the FULL prior row, `select("*")`, unlike the text-only `guardedUpdate` snapshot). Apply
+order is delete-then-rewrite in the same pass: every `collide_delete` runs BEFORE any `guardedUpdate`, so
+no rewrite can recreate the very key its own collision resolution just cleared a spot for. The rewrite
+loop is tolerant of a target whose row no longer exists (this run's own delete, or a prior half-applied
+run) or already carries its planned text — both count as `no_op`, never a failure. Live baseline
+[CONFIRMED, read-only SQL against `kwrsbpiseruzbfwjpvsp`, 2026-09-04]: `item_forward_events` carries 1,017
+rows across 160 items; 541 (535 strict-clean + 6 already `"…"`-fragment-marked, both by a SQL
+approximation of `classifyAfterResidue`) already read as post-fix-normalized — the idempotence baseline a
+re-run should reproduce. Grouping the live table by the collision key's non-text columns alone
+(`intelligence_item_id, event_date, event_kind, coalesce(source_claim_id, source_section_id)`) — the
+necessary precondition for any collision, since those columns are shared verbatim between
+`forwardEventIdentityKey` and the collision key — finds 111 candidate groups / 235 rows already sharing
+that identity pre-fix (0 of them already share identical text, confirming the live index is intact today);
+this is an **upper bound** on real post-rewrite collisions (some groups hold genuinely distinct obligations
+under different `source_span`s within one shared source, which migration 275's own key was built to
+preserve — see that migration's NZIA precedent). The exact collision count requires running the actual
+`extractForwardEvents` against each item's live claims/sections, which happens at MAINT dispatch time
+(this environment has read-only DB access only); `planCollisions`/`postRewriteKey` are unit-tested against
+fixtures shaped on this exact failure (two rows, one source, converging after-text; one retext target
+colliding with an untouched row; a half-applied table where one side is already correct).
 
 **Why the obligations register (migration 290) needs no companion run** [CONFIRMED, read
 `supabase/migrations/290_obligations.sql` in full]: the `obligations` table has no `obligation_text`
@@ -1144,33 +1197,47 @@ reached via `forward_event_id`. A register row's own denormalized columns are un
 out of this lane's write set.
 
 **Dispatch**: `mode=dry` reports `counts` (`items_scanned`, `retext_target_total`, `by_defect_class`,
-`by_after_defect_class`, `duplicate_group_total`), `retext_targets` (before/after/defect classes per row,
-each row's `after` also classified by the new `classifyAfterResidue` — lane FWD-TEXT-2 — under
-`after_defect_classes`, so a dry run proves the fixed-producer property test against itself: every
-non-empty class there is a residual case worth looking at, and `classifyAfterResidue` returning only
-`["honest_fragment_marked"]` and/or `["clean"]` across the sweep is the expected steady state), and
-`duplicate_groups`; writes nothing. `mode=apply` (no `--arg` required beyond an optional scope) rewrites
-`obligation_text` on every retext target through the guarded `db.mjs` path (cite + snapshot, one
-single-row `guardedUpdate` per target — each carries a *different* new text, unlike
-`canonical-key-dedup.mjs`/`record-hollow-sweep.mjs`'s one shared patch), records `per_item[]`
-(before/after + `restore_sql`), and reads back. `--arg ids:<id,id,...>` scopes the sweep to named
-`intelligence_item` ids (dry or apply). Nothing is deleted — `duplicate_groups` is reported in every
-mode, including apply, and stays a report only.
+`by_after_defect_class`, `duplicate_group_total`, `collision_group_total`, `collision_delete_total`),
+`retext_targets` (before/after/defect classes per row, each row's `after` also classified by the new
+`classifyAfterResidue` — lane FWD-TEXT-2 — under `after_defect_classes`, so a dry run proves the
+fixed-producer property test against itself: every non-empty class there is a residual case worth looking
+at, and `classifyAfterResidue` returning only `["honest_fragment_marked"]` and/or `["clean"]` across the
+sweep is the expected steady state), `duplicate_groups`, and `collisions` (`groups`, `survivors`,
+`deletions` — full row JSON per `collide_delete`, plus a restore note); writes nothing. `mode=apply` (no
+`--arg` required beyond an optional scope) first `guardedDelete`s every `collisions.deletions` row
+(chunked at 200, cited, snapshotted), THEN rewrites `obligation_text` on every remaining retext target
+through the guarded `db.mjs` path (cite + snapshot, one single-row `guardedUpdate` per target — each
+carries a *different* new text, unlike `canonical-key-dedup.mjs`/`record-hollow-sweep.mjs`'s one shared
+patch — tolerant of a target already gone or already correct, counted `no_op`, never a failure), records
+`per_item[]` (before/after + `restore_sql`), and reads back both the deletes (`collisions.read_back`) and
+the survivors (`read_back`). `--arg ids:<id,id,...>` scopes the sweep (and collision detection) to named
+`intelligence_item` ids (dry or apply). `duplicate_groups` is reported in every mode, including apply, and
+stays a report only — `collisions` is the one finding this step actually applies.
 
 **Reversal**: two paths, same convention as record-hollow-sweep/canonical-key-dedup above:
 - **Durable, artifact-based** (preferred): `summary.json`'s `per_item[].restore_sql` — one self-contained
   `UPDATE item_forward_events SET obligation_text = '...' WHERE id = '...'` per rewritten row, from THIS
-  run's own "before" value.
+  run's own "before" value. A `collide_delete` has no `restore_sql` (a `DELETE` has no single-statement
+  undo without the row's full prior state) — use the snapshot path below for those.
 - **Best-effort, same-disk-only**: `mode=apply, arg=restore:<id,id,...>` (this same script) — scans
   `scripts/_snapshots/*.jsonl` for this step's own prior-state entries (cite-reason substring `"MAINT
-  forward-events-retext dispatch (Lane FWD-TEXT"`) and replays them via `guardedUpdate`; refuses (never
-  guesses) any id with no matching snapshot entry, listed in `missing_ids`.
+  forward-events-retext dispatch (Lane FWD-TEXT"`, which both `CITE` and `DELETE_CITE` carry) and replays
+  the LATEST one per id: a `guardedUpdate` snapshot (text-only) replays via `guardedUpdate`; a
+  `guardedDelete` snapshot (always the FULL prior row, `select("*")`) replays via `guardedInsert` — same
+  id, every column, verbatim. Refuses (never guesses) any id with no matching snapshot entry, listed in
+  `missing_ids`.
 
 **Artifact / read back**: `summary.json`'s `counts` (`items_scanned`, `retext_target_total`,
-`by_defect_class`, `by_after_defect_class`, `duplicate_group_total`), `retext_targets`,
-`duplicate_groups`, `per_item` (before/after + `restore_sql` per rewritten row, apply only), and
-`read_back` (`retexted_total`, `not_confirmed_ids`). Confirm against `SELECT id, obligation_text FROM
-item_forward_events WHERE id = ANY(<retext target ids>)`.
+`by_defect_class`, `by_after_defect_class`, `duplicate_group_total`, `collision_group_total`,
+`collision_delete_total`, `no_op_total`), `retext_targets`, `duplicate_groups`, `collisions` (`groups`,
+`survivors`, `deletions`, and in apply mode `deleted`/`read_back`), `per_item` (before/after +
+`restore_sql` per rewritten row, apply only), `no_op_ids`, and `read_back` (`retexted_total`,
+`not_confirmed_ids` — computed over every surviving target, applied or `no_op`). Confirm against `SELECT
+id, obligation_text FROM item_forward_events WHERE id = ANY(<retext target ids>)` (should equal the
+planned `after` text for every id) and `SELECT id FROM item_forward_events WHERE id = ANY(<collide_delete
+ids>)` (should return zero rows).
 
 **Registration**: `docs/inventories/shared-dataset-ownership.md`'s `item_forward_events` section (this
-step's file added to the enforced JSON allowlist and the narrative writer-path list as write path 4).
+step's file added to the enforced JSON allowlist and the narrative writer-path list as write path 4; that
+entry's prose updated by lane RETEXT-COLLIDE to describe the DELETE path — the JSON allowlist itself is
+unchanged, since it gates by file, not by write verb, and this file was already listed there).

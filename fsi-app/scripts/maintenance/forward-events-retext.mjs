@@ -21,7 +21,7 @@
 // re-runnable) catch-up: for every intelligence_item that already carries item_forward_events rows, it
 // re-reads that item's CURRENT grounded claims/sections (the exact same shape
 // `src/lib/forward-events/read-and-extract.mjs` builds) and re-runs the SAME pure, unmodified
-// `extractForwardEvents` every writer already calls. Two outputs, both read-only in dry mode:
+// `extractForwardEvents` every writer already calls. Three findings, all read-only in dry mode:
 //   (1) RETEXT TARGETS — an existing row whose (source_claim_id ?? source_section_id, event_date,
 //       event_kind) key matches a freshly-extracted event, but whose obligation_text differs. The fresh
 //       text becomes the new obligation_text; `source_span`, `event_date`, `event_kind`, `confidence`,
@@ -32,9 +32,34 @@
 //       keeps. `item_forward_events` (migration 274/275, read in full) has NO `is_archived` / `superseded`
 //       / status column of any kind — 13 columns total, none of them a lifecycle flag — so there is
 //       nowhere to mark a row superseded and NO SANCTIONED WAY for this script to make it stop rendering.
-//       THIS STEP NEVER DELETES A ROW. It reports every such group (dropped id, kept id, event_date,
+//       THIS FINDING NEVER DELETES A ROW. It reports every such group (dropped id, kept id, event_date,
 //       event_kind, both obligation_texts, the dedupe reason) so the coordinator can put an explicit
 //       deletion decision to the operator — the schema gap, not a policy choice made here.
+//   (3) COLLISIONS [added lane RETEXT-COLLIDE, 2026-09-04, after Maintenance #35 (run 33864089323, APPLY)
+//       died 6s in: "db.mjs update failed: duplicate key value violates unique constraint
+//       uq_item_forward_events_dedupe"]. Unlike (2), this is not about the extractor's own within-run
+//       dedupe — it is the live `uq_item_forward_events_dedupe` index itself (migration 275) rejecting a
+//       per-row rewrite because TWO EXISTING rows that already share `(intelligence_item_id, event_date,
+//       event_kind, coalesce(source_claim_id, source_section_id))` — the exact reason two rows with a
+//       shared source object can legitimately coexist pre-fix is that their `obligation_text` differs —
+//       converge to the IDENTICAL text once both are retexted (a section sentence whose one date appears
+//       twice produced two garbled rows from the one section; honest text is the same sentence for both).
+//       For EVERY row of the table (target or not — a target's post-rewrite text, or an untouched row's
+//       current text), this step computes the row's post-rewrite key exactly as Postgres computes the live
+//       index: `(intelligence_item_id, event_date, event_kind, md5(after_text),
+//       coalesce(source_claim_id, source_section_id))`. A group of >1 row under that key would violate the
+//       live unique index once retexted, so it cannot all survive: one SURVIVOR is kept (deterministically
+//       — a row already carrying the normalized text is preferred; otherwise earliest `created_at`, then
+//       lowest `id`), the rest are `collide_delete`. `item_forward_events` is DERIVED (regenerable from
+//       claims/sections by the extractor — never a primary record of anything), so unlike finding (2) this
+//       one IS a deletion this step performs, but only ever a guarded, snapshotted, reversible one
+//       (`db.mjs`'s `guardedDelete` — `item_forward_events` is not in `DELETE_PROTECTED_TABLES`, confirmed
+//       by reading that module) — every deleted row's full prior state is captured before it is removed,
+//       and `--arg restore:<id,...>` (below) can reinsert it verbatim, same id. Deletes are applied BEFORE
+//       any rewrite in the same run, so no rewrite ever attempts to create the very key its own collision
+//       resolution just cleared a spot for. The rewrite loop is tolerant of a target row that has already
+//       been removed (by this run's own collision delete, or by a prior half-applied run) or already
+//       carries its planned text — both count as `no_op`, never a failure.
 //
 // WHY OBLIGATION_TEXT ALONE, NEVER THE OBLIGATIONS REGISTER (migration 290, `scripts/obligations/
 // derive-obligations.mjs`) [CONFIRMED, read `supabase/migrations/290_obligations.sql` in full]: the
@@ -47,23 +72,30 @@
 // columns are all UNCHANGED by an obligation_text edit) regardless of what this step rewrites, so
 // `scripts/obligations/derive-obligations.mjs` needs no companion re-derivation here.
 //
-// GUARDED WRITE, PER ROW [CONFIRMED, read `scripts/lib/db.mjs`'s `guardedUpdate`]: unlike
+// GUARDED WRITE, PER ROW [CONFIRMED, read `scripts/lib/db.mjs`'s `guardedUpdate`/`guardedDelete`]: unlike
 // `canonical-key-dedup.mjs`/`record-hollow-sweep.mjs` (one SHARED patch applied to every target via
 // `guardedUpdateByIds`), every retext target here carries a DIFFERENT `obligation_text`, so each row is
 // written with its own single-row `guardedUpdate` call (same shape those two steps already use for their
-// own per-row "keeper" patch) — snapshotted, cited, read back, individually reversible.
+// own per-row "keeper" patch) — snapshotted, cited, read back, individually reversible. Collision deletes
+// (finding 3 above) go through `guardedDelete`, chunked, in the same apply pass, before any rewrite.
 //
 // REVERSIBILITY: `summary.json`'s `per_item[].restore_sql` — one self-contained
 // `UPDATE item_forward_events SET obligation_text = '...' WHERE id = '...'` per rewritten row, built from
 // THIS run's own "before" value (the same durable, artifact-based pattern `canonical-key-dedup.mjs` and
 // `record-hollow-sweep.mjs` use) — plus `--arg restore:<id,id,...>`, best-effort, same-disk-only, replaying
-// this run's own db.mjs snapshot.
+// this run's own db.mjs snapshot: for a rewritten row this replays the prior `obligation_text` via
+// `guardedUpdate`; for a `collide_delete`d row, `guardedDelete`'s own snapshot always captures the FULL
+// prior row (`select("*")`, unlike the text-only `guardedUpdate` snapshot), so restore reinserts it
+// verbatim — same id, same every column — via `guardedInsert`. Both snapshot shapes carry this step's own
+// cite, so one `--arg restore:<id,...>` call finds and replays whichever happened to a given id.
 //
 // $0, deterministic, no LLM: `extractForwardEvents` is pure (see that module's own header); this step adds
-// only reads (`readAll`) and, in apply mode, guarded per-row UPDATEs — no LLM call anywhere in the path.
+// only reads (`readAll`) and, in apply mode, guarded per-row UPDATEs/DELETEs — no LLM call anywhere in the
+// path.
 import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readdirSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { runCli, fsiRoot } from "./lib/cli.mjs";
 import { extractForwardEvents } from "../../src/lib/forward-events/extract-forward-events.mjs";
 
@@ -73,13 +105,27 @@ export const CITE = Object.freeze({
     "MAINT forward-events-retext dispatch (Lane FWD-TEXT, 2026-09-04): re-runs the fixed, unmodified " +
     "extractForwardEvents (EXTRACTOR_VERSION fe1-2026-09-04.1) over each item's current claims/sections and " +
     "rewrites obligation_text on any existing item_forward_events row whose freshly-computed text differs " +
-    "(clause-boundary + markdown-defect fix). Never touches event_date/event_kind/source_span/confidence/ " +
-    "any FK column, never deletes a row (item_forward_events has no archive/superseded column to use).",
+    "(clause-boundary + markdown-defect fix). This write path (guardedUpdate) never touches " +
+    "event_date/event_kind/source_span/confidence/any FK column and never deletes a row -- the SEPARATE " +
+    "collision-resolution delete this step can perform (lane RETEXT-COLLIDE) is cited independently, see " +
+    "DELETE_CITE below.",
 });
 
 export const RESTORE_CITE = Object.freeze({
   skill: "remediation-discipline",
-  reason: "MAINT forward-events-retext --arg restore: reversal — replays this step's own db.mjs prior-state snapshot for a row id it rewrote, verbatim.",
+  reason: "MAINT forward-events-retext --arg restore: reversal — replays this step's own db.mjs prior-state snapshot for a row id it rewrote or collide_delete'd, verbatim.",
+});
+
+export const DELETE_CITE = Object.freeze({
+  skill: "remediation-discipline",
+  reason:
+    "MAINT forward-events-retext dispatch (Lane FWD-TEXT, 2026-09-04), collision resolution (lane " +
+    "RETEXT-COLLIDE): deletes an item_forward_events row that the live uq_item_forward_events_dedupe " +
+    "index (migration 275) would reject once obligation_text is corrected -- two existing rows sharing " +
+    "(intelligence_item_id, event_date, event_kind, coalesce(source_claim_id, source_section_id)) converge " +
+    "to the identical post-rewrite text. The row is DERIVED (regenerable from claims/sections by the " +
+    "extractor, never a primary record), and the delete is snapshotted (db.mjs guardedDelete captures the " +
+    "full prior row before removing it), so it is reversible via --arg restore:<id,...> (this same script).",
 });
 
 export const RESTORE_ARG_PREFIX = "restore:";
@@ -118,6 +164,97 @@ export function mapSectionRows(rows) {
 export function forwardEventIdentityKey(row) {
   const sourceObjectId = row.source_claim_id ?? row.source_section_id ?? "(none)";
   return `${sourceObjectId}|${row.event_date}|${row.event_kind}`;
+}
+
+// ── pure: collision resolution (lane RETEXT-COLLIDE, 2026-09-04) ──────────────────────────────────────
+
+/** md5 of the UTF-8 bytes of `text`, lowercase hex — exactly what Postgres' `md5(text)` computes, so a
+ *  key built with this function matches the live `uq_item_forward_events_dedupe` expression index
+ *  (migration 275) byte-for-byte. Pure, deterministic, no LLM. */
+export function pgMd5(text) {
+  return createHash("md5").update(String(text ?? ""), "utf8").digest("hex");
+}
+
+/** The row's key AFTER whatever rewrite this run plans (or, for a row with no planned rewrite, its
+ *  CURRENT key) — the exact shape of the live `uq_item_forward_events_dedupe` unique index: `(item, date,
+ *  kind, md5(obligation_text), coalesce(source_claim_id, source_section_id))`. `row.after_text` is the
+ *  caller's job to set (the fresh `after` for a retext target, the current `obligation_text` for every
+ *  other row) — this function only builds the key, it never decides what the text should be. Pure. */
+export function postRewriteKey(row) {
+  const sourceObjectId = row.source_claim_id ?? row.source_section_id ?? "(none)";
+  return `${row.intelligence_item_id}|${row.event_date}|${row.event_kind}|${pgMd5(row.after_text)}|${sourceObjectId}`;
+}
+
+/** Deterministic survivor choice within one collision group: a row already carrying its own after-text
+ *  (nothing to rewrite for it) is preferred over one that still needs a rewrite; among ties, earliest
+ *  `created_at` wins; among ties on that, lowest `id` wins. Pure, total order (never throws on equal
+ *  inputs — falls through to 0). */
+export function compareForSurvivor(a, b) {
+  const aNormalized = a.obligation_text === a.after_text ? 0 : 1;
+  const bNormalized = b.obligation_text === b.after_text ? 0 : 1;
+  if (aNormalized !== bNormalized) return aNormalized - bNormalized;
+  const aCreated = a.created_at ?? "";
+  const bCreated = b.created_at ?? "";
+  if (aCreated !== bCreated) return aCreated < bCreated ? -1 : 1;
+  if (a.id !== b.id) return a.id < b.id ? -1 : 1;
+  return 0;
+}
+
+/**
+ * Groups EVERY row passed in (not only retext targets) by its post-rewrite key and, for every group of
+ * more than one row, deterministically picks one survivor and marks the rest `collide_delete` — the set
+ * the live `uq_item_forward_events_dedupe` index would otherwise reject once the rewrite in this same run
+ * lands. Pure — takes rows already annotated with `after_text` (see `postRewriteKey`'s own doc) and
+ * `created_at`; does no I/O and makes no DB call.
+ * @param {Array<{id:string, intelligence_item_id:string, event_date:string, event_kind:string,
+ *   obligation_text:string, after_text:string, source_claim_id:?string, source_section_id:?string,
+ *   created_at?:string}>} rows
+ * @returns {{groups: Array<object>, survivorIds: string[], deletions: Array<object>}}
+ */
+export function planCollisions(rows) {
+  const byKey = new Map();
+  for (const row of rows ?? []) {
+    const key = postRewriteKey(row);
+    if (!byKey.has(key)) byKey.set(key, []);
+    byKey.get(key).push(row);
+  }
+
+  const groups = [];
+  const deletions = [];
+  const survivorIds = [];
+  for (const [key, members] of byKey) {
+    if (members.length < 2) continue;
+    const sorted = [...members].sort(compareForSurvivor);
+    const survivor = sorted[0];
+    const rest = sorted.slice(1);
+    survivorIds.push(survivor.id);
+    for (const row of rest) {
+      deletions.push({
+        id: row.id,
+        intelligence_item_id: row.intelligence_item_id,
+        event_date: row.event_date,
+        event_kind: row.event_kind,
+        source_kind: row.source_kind,
+        source_claim_id: row.source_claim_id ?? null,
+        source_section_id: row.source_section_id ?? null,
+        created_at: row.created_at ?? null,
+        obligation_text: row.obligation_text,
+        after_text: row.after_text,
+        collides_with_survivor_id: survivor.id,
+        collision_key: key,
+      });
+    }
+    groups.push({
+      key,
+      intelligence_item_id: survivor.intelligence_item_id,
+      event_date: survivor.event_date,
+      event_kind: survivor.event_kind,
+      after_text: survivor.after_text,
+      survivor_id: survivor.id,
+      deleted_ids: rest.map((r) => r.id),
+    });
+  }
+  return { groups, survivorIds, deletions };
 }
 
 // ── pure: defect classification (reporting only — never a decision input) ──────────────────────────────
@@ -270,9 +407,11 @@ export function buildRestoreSql(before) {
  *   readClaimsForItem: (itemId: string) => Promise<object[]>,
  *   readSectionsForItem: (itemId: string) => Promise<object[]>,
  *   updateObligationText: (id: string, text: string) => Promise<{updated: number, rows: object[]}>,
+ *   deleteForwardEvents: (ids: string[]) => Promise<{deleted: number, snapshot: string, rows: object[]}>,
  *   readRowsByIds: (ids: string[]) => Promise<object[]>,
  *   readSnapshotEntries: () => Promise<object[]>,
  *   restoreOne: (id: string, text: string) => Promise<{updated: number}>,
+ *   restoreDeletedRow: (row: object) => Promise<{inserted: object, snapshot: string}>,
  * }} deps
  */
 export async function main({ mode = "dry", arg = "" } = {}, deps) {
@@ -293,6 +432,7 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
 
   const allRetextTargets = [];
   const allDuplicateGroups = [];
+  const allRows = []; // EVERY existing row (target or not), for collision planning -- see planCollisions' own doc
   for (const itemId of itemIds) {
     const [existingRows, claimRows, sectionRows] = await Promise.all([
       deps.readForwardEventsForItem(itemId),
@@ -307,6 +447,7 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
     });
     allRetextTargets.push(...retextTargets);
     allDuplicateGroups.push(...duplicateGroups);
+    for (const row of existingRows) allRows.push({ ...row, intelligence_item_id: itemId });
   }
 
   const byDefectClass = {};
@@ -315,6 +456,17 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
     for (const c of t.defect_classes) byDefectClass[c] = (byDefectClass[c] ?? 0) + 1;
     for (const c of t.after_defect_classes) byAfterDefectClass[c] = (byAfterDefectClass[c] ?? 0) + 1;
   }
+
+  // Collision plan: EVERY row's post-rewrite key, target or not -- a target's after_text is the fresh
+  // extracted text this run WOULD write; every other row's after_text is simply its current obligation_text
+  // (this run leaves it alone unless collision resolution below deletes it). See planCollisions' own doc.
+  const afterTextById = new Map(allRetextTargets.map((t) => [t.id, t.after]));
+  const collisionRows = allRows.map((row) => ({
+    ...row,
+    after_text: afterTextById.has(row.id) ? afterTextById.get(row.id) : row.obligation_text,
+  }));
+  const collisionPlan = planCollisions(collisionRows);
+  const deletedIdSet = new Set(collisionPlan.deletions.map((d) => d.id));
 
   summary.counts = {
     items_scanned: itemIds.length,
@@ -325,25 +477,70 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
     // a healthy run; any other key here means the fix still leaves a defect class live and needs a look.
     by_after_defect_class: byAfterDefectClass,
     duplicate_group_total: allDuplicateGroups.length,
+    collision_group_total: collisionPlan.groups.length,
+    collision_delete_total: collisionPlan.deletions.length,
   };
   summary.retext_targets = allRetextTargets;
   summary.duplicate_groups = allDuplicateGroups;
+  summary.collisions = {
+    groups: collisionPlan.groups,
+    survivors: collisionPlan.survivorIds,
+    deletions: collisionPlan.deletions,
+    note:
+      "Rows here are the ones the live uq_item_forward_events_dedupe index (migration 275) would reject " +
+      "once their post-rewrite text is honest -- computed over EVERY row of the table (not only retext " +
+      "targets), grouped by (intelligence_item_id, event_date, event_kind, md5(after_text), " +
+      "coalesce(source_claim_id, source_section_id)). One survivor per group is kept (a row already " +
+      "carrying its own after-text is preferred; otherwise earliest created_at, then lowest id); the rest " +
+      "are deleted in apply mode via db.mjs guardedDelete BEFORE any rewrite runs, chunked, cited, and " +
+      "snapshotted -- item_forward_events is derived/regenerable, not a primary record. Restore: " +
+      "--arg restore:<id,...> (this same script) reinserts a deleted row verbatim, same id, from its own " +
+      "guardedDelete snapshot.",
+  };
   summary.note =
     "duplicate_groups is a REPORT ONLY -- item_forward_events has no is_archived/superseded column, so " +
-    "this step never deletes a row; a deletion, if wanted, is an operator decision the coordinator puts " +
-    "forward separately, citing would_drop_id/would_keep_id from this run's own summary.";
+    "this step never deletes a row for THAT finding; a deletion, if wanted, is an operator decision the " +
+    "coordinator puts forward separately, citing would_drop_id/would_keep_id from this run's own summary. " +
+    "collisions IS applied automatically (see summary.collisions.note) -- that deletion is not a policy " +
+    "choice, it is the live unique index's own requirement once the text is corrected.";
 
   if (!apply) return summary;
 
-  if (!allRetextTargets.length) {
-    summary.note2 = "0 retext targets matched this run -- nothing to rewrite.";
+  if (collisionPlan.deletions.length) {
+    const deleted = await applyCollisionDeletes(collisionPlan.deletions.map((d) => d.id), deps);
+    summary.collisions.deleted = deleted;
+    const stillPresent = await deps.readRowsByIds(collisionPlan.deletions.map((d) => d.id));
+    summary.collisions.read_back = {
+      requested: collisionPlan.deletions.length,
+      deleted_total: collisionPlan.deletions.length - stillPresent.length,
+      still_present_ids: stillPresent.map((r) => r.id),
+    };
+    if (stillPresent.length) summary.exitCode = 1;
+  }
+
+  // Every collide_delete'd row is dropped from the rewrite pass -- it no longer exists, and its collision
+  // partner (the survivor) either already carries the same after-text or is itself still a normal target.
+  const targetsToApply = allRetextTargets.filter((t) => !deletedIdSet.has(t.id));
+
+  if (!targetsToApply.length) {
+    summary.note2 = collisionPlan.deletions.length
+      ? "0 retext targets left to rewrite after collision deletes -- nothing more to write."
+      : "0 retext targets matched this run -- nothing to rewrite.";
     return summary;
   }
 
   const perItem = [];
   let applied = 0;
-  for (const target of allRetextTargets) {
+  const noOpIds = [];
+  for (const target of targetsToApply) {
     const r = await deps.updateObligationText(target.id, target.after);
+    if ((r.updated ?? 0) === 0) {
+      // Tolerant, never a failure: the row no longer exists (already collide_delete'd by a run whose
+      // collision plan differed slightly, or by a prior half-applied run) OR it already carries target.after
+      // (a prior half-applied run's own update already landed). Either way there is nothing left to write.
+      noOpIds.push(target.id);
+      continue;
+    }
     applied += r.updated ?? 0;
     const after = (r.rows ?? [])[0] ?? null;
     perItem.push({
@@ -358,17 +555,46 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
   }
   summary.applied = applied;
   summary.per_item = perItem;
+  summary.counts.no_op_total = noOpIds.length;
+  summary.no_op_ids = noOpIds;
 
-  const readBackRows = await deps.readRowsByIds(allRetextTargets.map((t) => t.id));
+  // Read back EVERY surviving target (applied or no_op) -- a healthy run has every one of them landed on
+  // its planned after text, whichever guarded write (this run's or an earlier half-applied one) put it there.
+  const readBackRows = await deps.readRowsByIds(targetsToApply.map((t) => t.id));
   const byId = new Map(readBackRows.map((r) => [r.id, r]));
-  const notConfirmed = allRetextTargets.filter((t) => byId.get(t.id)?.obligation_text !== t.after);
+  const notConfirmed = targetsToApply.filter((t) => byId.get(t.id)?.obligation_text !== t.after);
   summary.read_back = {
-    retexted_total: allRetextTargets.length - notConfirmed.length,
+    retexted_total: targetsToApply.length - notConfirmed.length,
     not_confirmed_ids: notConfirmed.map((t) => t.id),
   };
   if (notConfirmed.length) summary.exitCode = 1;
 
   return summary;
+}
+
+const DELETE_CHUNK = 200;
+
+/** Chunked collision-delete apply: guardedDelete per chunk (never one giant IN(...) list), aggregating
+ *  counts + per-chunk snapshot paths. */
+async function applyCollisionDeletes(ids, deps) {
+  const out = { deleted: 0, snapshots: [], rows: [] };
+  for (let i = 0; i < ids.length; i += DELETE_CHUNK) {
+    const slice = ids.slice(i, i + DELETE_CHUNK);
+    const r = await deps.deleteForwardEvents(slice);
+    out.deleted += r.deleted ?? 0;
+    if (r.snapshot) out.snapshots.push(r.snapshot);
+    out.rows.push(...(r.rows ?? []));
+  }
+  return out;
+}
+
+// A guardedDelete snapshot (collide_delete reversal) always carries the FULL prior row (guardedDelete's
+// own snapshot read is a hardcoded `select("*")` -- see db.mjs) -- it has intelligence_item_id, event_date
+// etc. A guardedUpdate snapshot (a plain retext reversal) carries only the columns this step's own
+// updateObligationText dep selected (`id, obligation_text`) -- never intelligence_item_id. That single
+// field's presence is what tells the two apart with no extra bookkeeping. Pure.
+function isFullRowSnapshot(prior) {
+  return !!prior && typeof prior === "object" && typeof prior.intelligence_item_id === "string";
 }
 
 async function runRestore({ apply, arg }, deps, summary) {
@@ -387,7 +613,7 @@ async function runRestore({ apply, arg }, deps, summary) {
     if (e?.table !== "item_forward_events") continue;
     if (!e?.prior?.id || !idSet.has(e.prior.id)) continue;
     if (!String(e?._cite?.reason ?? "").includes(citeMarker)) continue;
-    latest.set(e.prior.id, e.prior);
+    latest.set(e.prior.id, e.prior); // files are read/sorted oldest-first (see readSnapshotEntriesFromDisk), so the last write here is the latest
   }
   const found = [...latest.keys()];
   const missing = ids.filter((id) => !latest.has(id));
@@ -395,7 +621,12 @@ async function runRestore({ apply, arg }, deps, summary) {
   summary.missing_ids = missing;
 
   if (!apply) {
-    summary.plan = found.map((id) => ({ id, obligation_text: latest.get(id).obligation_text }));
+    summary.plan = found.map((id) => {
+      const prior = latest.get(id);
+      return isFullRowSnapshot(prior)
+        ? { id, action: "reinsert", row: prior }
+        : { id, action: "update_text", obligation_text: prior.obligation_text };
+    });
     if (missing.length) summary.exitCode = 1;
     return summary;
   }
@@ -403,9 +634,17 @@ async function runRestore({ apply, arg }, deps, summary) {
   let restored = 0;
   const results = [];
   for (const id of found) {
-    const r = await deps.restoreOne(id, latest.get(id).obligation_text);
-    restored += r.updated ?? 0;
-    results.push({ id, updated: r.updated ?? 0 });
+    const prior = latest.get(id);
+    if (isFullRowSnapshot(prior)) {
+      const r = await deps.restoreDeletedRow(prior);
+      const ok = !!r?.inserted;
+      if (ok) restored += 1;
+      results.push({ id, updated: ok ? 1 : 0, action: "reinsert" });
+    } else {
+      const r = await deps.restoreOne(id, prior.obligation_text);
+      restored += r.updated ?? 0;
+      results.push({ id, updated: r.updated ?? 0, action: "update_text" });
+    }
   }
   summary.applied = restored;
   summary.read_back = { restored_ids: results.filter((r) => r.updated > 0).map((r) => r.id) };
@@ -452,7 +691,7 @@ if (IS_MAIN) {
     main,
     needsDb: true,
     buildDeps: async () => {
-      const { readAll, guardedUpdate } = await import("../lib/db.mjs");
+      const { readAll, guardedUpdate, guardedDelete, guardedInsert } = await import("../lib/db.mjs");
 
       const readChunked = async (table, columns, column, values) => {
         const out = [];
@@ -472,7 +711,9 @@ if (IS_MAIN) {
         readForwardEventsForItem: (itemId) =>
           readAll(
             "item_forward_events",
-            "id, event_date, event_kind, obligation_text, source_kind, source_claim_id, source_section_id",
+            // created_at is required for collision survivor tie-breaking (compareForSurvivor) -- see
+            // planCollisions' own doc.
+            "id, event_date, event_kind, obligation_text, source_kind, source_claim_id, source_section_id, created_at",
             { match: (q) => q.eq("intelligence_item_id", itemId) },
           ),
         readClaimsForItem: (itemId) =>
@@ -492,6 +733,7 @@ if (IS_MAIN) {
             cite: CITE,
             select: "id, obligation_text",
           }),
+        deleteForwardEvents: (ids) => guardedDelete("item_forward_events", ids, { cite: DELETE_CITE }),
         readRowsByIds: (ids) => readChunked("item_forward_events", "id, obligation_text", "id", ids),
         readSnapshotEntries: async () => readSnapshotEntriesFromDisk(),
         restoreOne: (id, text) =>
@@ -499,6 +741,7 @@ if (IS_MAIN) {
             cite: RESTORE_CITE,
             select: "id",
           }),
+        restoreDeletedRow: (row) => guardedInsert("item_forward_events", row, { cite: RESTORE_CITE, select: "id" }),
       };
     },
   });
