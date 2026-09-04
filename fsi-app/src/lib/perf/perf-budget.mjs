@@ -70,7 +70,49 @@ export const PERF_BUDGET_REGISTRY = Object.freeze({
         "resolveOrgIdFromCookies() THEN cachedListingsOnly(orgId, page) — two round trips that " +
         "cannot run in Promise.all because the listing RPC is org-parameterized (needs orgId as " +
         "an argument). ADR-027 names the org-independent-RPC-plus-client-merge migration that " +
-        "would collapse this to 1 as PERF-10/PERF-11 follow-up work, not done this lane.",
+        "would collapse this to 1 as PERF-10/PERF-11 follow-up work, not done this lane. PERF-12 " +
+        "(2026-09-04) confirmed this same shape holds, unchanged, for EVERY subsequent scroll page " +
+        "fetched via /api/listings/cursor (it calls the identical getListingsOnly) — the cursor " +
+        "route does not add a hop of its own beyond the conditional X-Org-Id verification read " +
+        "(resolveOrgIdFromCookies(), request-scoped cache()-memoized — a cache HIT, not a new " +
+        "round trip, whenever the header is present, since getListingsOnly already resolved the " +
+        "same cached value first).",
+    },
+    domRowsOnFirstPaint: {
+      ratchet: 40,
+      target: 30,
+      measuredAt: "2026-09-04",
+      evidence:
+        "[CONFIRMED, real Playwright chromium via this lane's own rendering-smoke harness — " +
+        ".discipline/rendering/smoke/regulations-rows-smoke.mjs's own bundling/mount mechanism, " +
+        "not a live production page (no live browser against a live Supabase-backed deploy is " +
+        "available to this lane's container)] a 713-row fixture (docs/audits/perf-waterfall-2026-" +
+        "09-04.md §1's own worst-observed band size) with the band OPENED (defeating " +
+        "ROWS_COLLAPSED) rendered 12 actual `[data-guard-container=\"regulation-row\"]` DOM nodes " +
+        "at 1440x840 and 17 at 1920x1200 — VirtualizedRowList.tsx's windowing, versus all 713 " +
+        "before this lane (audit's own finding). ratchet=40 is a rounded safety margin above both " +
+        "measured points (viewport-dependent: taller viewports render more rows + overscan), not " +
+        "the raw 12/17 — a future re-measurement at a still-larger viewport is expected to land " +
+        "under 40, not to require raising it.",
+    },
+    bytesPerScrollPage: {
+      ratchet: 20_000,
+      target: 20_000,
+      measuredAt: "2026-09-04",
+      evidence:
+        "[CONFIRMED, by measurement — Buffer.byteLength of JSON.stringify against " +
+        "toLedgerRowPayload-trimmed representative fixture rows, list-pagination.ts's real exported " +
+        "function, not a reimplementation] a LIST_PAGE_SIZE=30-row /api/listings/cursor response " +
+        "(30 resources with realistic title/note/tag lengths, plus nextCursor/hasMore) serializes " +
+        "to 16,289 bytes (543 bytes/row average) — the per-request cost of each `fetchNextPage()` " +
+        "call this lane's IntersectionObserver sentinel triggers. Real production row content " +
+        "(titles/notes vary) was not measured (no live DB access from this container) — this is a " +
+        "fixture-based measurement, honestly labeled, not a live-traffic sample. target === ratchet " +
+        "at a round 20 KB: this metric starts already comfortably under a natural per-request " +
+        "budget; the more consequential ADR-027 win this lane makes is that this number is now PAID " +
+        "PER SCROLL, on demand, rather than once, unconditionally, on mount, for the entire " +
+        "remainder of the corpus (the old LIST_REMAINDER_LIMIT=5000-row one-shot fetch this lane " +
+        "deleted — see list-pagination.ts's own header).",
     },
   },
   "regulations-detail": {
