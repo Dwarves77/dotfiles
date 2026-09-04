@@ -5,6 +5,11 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import type { User } from "@supabase/supabase-js";
 import { resolveAuthSeed, type AuthSeed, type BootstrapLike } from "@/components/shell/bootstrap-seed";
+// PERF-12 (2026-09-04, ADR-027 §2): mounted here rather than src/app/layout.tsx — that file is
+// PERF-10's write set for this train, and AuthProvider is already the outermost CLIENT boundary
+// every page renders inside (layout.tsx itself is a Server Component). One QueryClient for the
+// whole app; see QueryProvider.tsx's own header for why `useState`, not a module singleton.
+import { QueryProvider } from "@/components/providers/QueryProvider";
 
 interface AuthContext {
   user: User | null;
@@ -186,9 +191,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, orgId, loading, signOut }}>
-      {children}
-    </AuthContext.Provider>
+    <QueryProvider>
+      <AuthContext.Provider value={{ user, orgId, loading, signOut }}>
+        {children}
+      </AuthContext.Provider>
+    </QueryProvider>
   );
 }
 
