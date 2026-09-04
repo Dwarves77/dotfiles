@@ -21,11 +21,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { resolve, dirname } from "node:path";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCRIPT_PATH = resolve(HERE, "refresh-published-price-statistics.mjs");
+const LIVE_MAP_PATH = resolve(HERE, "../../../src/lib/market/series-item-map.mjs");
 
 function runCli(args) {
   return spawnSync(process.execPath, [SCRIPT_PATH, ...args], { encoding: "utf8", env: process.env });
@@ -40,22 +43,78 @@ const SIX_SERIES_KEYS = [
   "eu-oil-bulletin:heavy-fuel-oil-3-5pct",
 ];
 
+// ── fixture map (pending shape) ─────────────────────────────────────────────────────────────────────────
+//
+// series-item-map.mjs is now the RATIFIED live truth (ruling R-D landed, commit ef5602b6, 2026-09-04 — all
+// six series carry a real item_id and status "ratified") and this lane's write set forbids touching it.
+// The two tests below need the PRE-ratification shape (0 ratified / 6 pending) to prove the CLI's dry-run
+// summary line and its --apply-without-creds posture, so they build their own fixture .mjs module — six
+// pending entries, same key set the live parser emits — and point the CLI at it via --map-path (the flag
+// this lane added to refresh-published-price-statistics.mjs for exactly this purpose; see that script's
+// header). The live file is never written to by these tests.
+function writePendingFixtureMapFile(dir) {
+  const raw = Object.fromEntries(
+    SIX_SERIES_KEYS.map((key) => [key, { item_id: null, status: "pending_R-D" }]),
+  );
+  const fixturePath = join(dir, "series-item-map.pending-fixture.mjs");
+  writeFileSync(fixturePath, `export const SERIES_ITEM_MAP_RAW = ${JSON.stringify(raw, null, 2)};\n`, "utf8");
+  return fixturePath;
+}
+
 // ── default (dry) run: requirement 2, unmapped series reported by name ─────────────────────────────────
 
-test("dry run (no flags): exit 0, reports 0 ratified / 6 pending, and names all 6 pending series in the summary — never a silent skip", () => {
-  const res = runCli([]);
-  assert.equal(res.status, 0, `expected exit 0, got ${res.status}. stderr: ${res.stderr}`);
-  assert.match(res.stdout, /0 ratified entr(?:y|ies) and 6 pending \(unratified\)/);
-  assert.match(res.stdout, /no ratified series->item mapping yet/);
-  for (const key of SIX_SERIES_KEYS) {
-    assert.ok(res.stdout.includes(key), `summary must name unmapped series ${key} — got: ${res.stdout}`);
+test("dry run against a fixture --map-path with 6 pending entries: exit 0, reports 0 ratified / 6 pending, and names all 6 pending series in the summary — never a silent skip", () => {
+  const dir = mkdtempSync(join(tmpdir(), "refresh-pps-test-"));
+  try {
+    const fixtureMapPath = writePendingFixtureMapFile(dir);
+    const before = readFileSync(LIVE_MAP_PATH, "utf8");
+    const res = runCli(["--map-path", fixtureMapPath]);
+    assert.equal(res.status, 0, `expected exit 0, got ${res.status}. stderr: ${res.stderr}`);
+    assert.match(res.stdout, /0 ratified entr(?:y|ies) and 6 pending \(unratified\)/);
+    assert.match(res.stdout, /no ratified series->item mapping yet/);
+    for (const key of SIX_SERIES_KEYS) {
+      assert.ok(res.stdout.includes(key), `summary must name unmapped series ${key} — got: ${res.stdout}`);
+    }
+    assert.equal(readFileSync(LIVE_MAP_PATH, "utf8"), before, "must never touch the live (ratified) map file");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test("--apply with zero ratified entries also exits 0 without requiring DB creds — the unratified map IS the switch", () => {
-  const res = runCli(["--apply"]);
+test("--apply against a fixture --map-path with 0 ratified entries also exits 0 without requiring DB creds — an unratified map IS the switch", () => {
+  const dir = mkdtempSync(join(tmpdir(), "refresh-pps-test-"));
+  try {
+    const fixtureMapPath = writePendingFixtureMapFile(dir);
+    const res = runCli(["--apply", "--map-path", fixtureMapPath]);
+    assert.equal(res.status, 0, `expected exit 0, got ${res.status}. stderr: ${res.stderr}`);
+    assert.match(res.stdout, /no ratified series->item mapping yet/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// ── new invariant (this lane, 2026-09-04): the ruling has landed, and holds from now on ────────────────
+//
+// Ruling R-D landed on this branch's base (commit ef5602b6): every oil-bulletin series in the LIVE
+// series-item-map.mjs is now ratified. That is the invariant the CLI's default (no --map-path) run must
+// report from now on — a future regression back to pending should fail this test, not ship silently. Also
+// asserts the underlying live module directly (status "ratified", uuid-shaped item_id per non-underscore
+// key), the same invariant ratify-series-items.test.mjs asserts for its own script.
+test("invariant: the LIVE series-item-map.mjs is fully ratified — default CLI run reports 6 ratified / 0 pending, and every entry is status ratified with a uuid-shaped item_id (ruling R-D, ef5602b6)", async () => {
+  const res = runCli([]);
   assert.equal(res.status, 0, `expected exit 0, got ${res.status}. stderr: ${res.stderr}`);
-  assert.match(res.stdout, /no ratified series->item mapping yet/);
+  assert.match(res.stdout, /6 ratified entr(?:y|ies) and 0 pending \(unratified\)/);
+  assert.doesNotMatch(res.stdout, /no ratified series->item mapping yet/);
+
+  const mapModule = await import(`file://${LIVE_MAP_PATH}`);
+  const raw = mapModule.SERIES_ITEM_MAP_RAW;
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const seriesKeys = Object.keys(raw).filter((k) => !k.startsWith("_"));
+  assert.equal(seriesKeys.length, 6, "expected exactly the six oil-bulletin series");
+  for (const key of seriesKeys) {
+    assert.equal(raw[key].status, "ratified", `${key} must be status "ratified"`);
+    assert.match(raw[key].item_id, UUID_RE, `${key}'s item_id must be uuid-shaped, got ${raw[key].item_id}`);
+  }
 });
 
 // ── --propose-items: requirement 3, the 6 R-D mint payloads ────────────────────────────────────────────

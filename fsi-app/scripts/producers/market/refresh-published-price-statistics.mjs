@@ -25,7 +25,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildProposedItemPayloads } from "./propose-series-items.mjs";
 import {
-  deriveDisplayRows, unmappedSeriesKeys, isRatified, SERIES_ITEM_MAP,
+  deriveDisplayRows, unmappedSeriesKeys, isRatified, loadSeriesItemMap, SERIES_ITEM_MAP,
 } from "../../../src/lib/market/refresh-published-price-statistics.mjs";
 import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
 
@@ -34,6 +34,14 @@ try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env inj
 
 const APPLY = process.argv.includes("--apply");
 const PROPOSE_ITEMS = process.argv.includes("--propose-items");
+// --map-path <file>: test-only injection point (Lane RD-TESTS, 2026-09-04), same shape as
+// ratify-series-items.mjs's own --map-path. Points this CLI at an alternate SERIES_ITEM_MAP_RAW-shaped
+// .mjs module instead of the live src/lib/market/series-item-map.mjs, so a test can exercise "N pending"/
+// "N ratified" summary lines against a fixture map without ever touching the ratified live file. Omit it
+// (the default, and every real invocation) and behaviour is byte-identical to before this flag existed —
+// SERIES_ITEM_MAP, loaded from the live file at module evaluation, is used untouched.
+const MAP_PATH_ARG_INDEX = process.argv.indexOf("--map-path");
+const MAP_PATH = MAP_PATH_ARG_INDEX >= 0 ? process.argv[MAP_PATH_ARG_INDEX + 1] : null;
 
 const cite = {
   skill: "market-series-spine (WO-16.2)",
@@ -86,14 +94,18 @@ async function main() {
     process.exit(0);
   }
 
-  const ratifiedCount = SERIES_ITEM_MAP.filter(([, entry]) => isRatified(entry)).length;
-  const pendingCount = SERIES_ITEM_MAP.length - ratifiedCount;
+  const map = MAP_PATH
+    ? loadSeriesItemMap((await import(`file://${resolve(MAP_PATH)}`)).SERIES_ITEM_MAP_RAW)
+    : SERIES_ITEM_MAP;
+
+  const ratifiedCount = map.filter(([, entry]) => isRatified(entry)).length;
+  const pendingCount = map.length - ratifiedCount;
   console.log(
     `refresh-published-price-statistics: SERIES_ITEM_MAP has ${ratifiedCount} ratified entr${ratifiedCount === 1 ? "y" : "ies"} ` +
     `and ${pendingCount} pending (unratified)${APPLY ? "" : " (DRY RUN)"}`,
   );
   if (ratifiedCount === 0) {
-    const pendingKeys = SERIES_ITEM_MAP.filter(([, entry]) => !isRatified(entry)).map(([key]) => key);
+    const pendingKeys = map.filter(([, entry]) => !isRatified(entry)).map(([key]) => key);
     console.log(
       `no ratified series->item mapping yet — nothing to refresh (this is the honest default; see ` +
         `src/lib/market/refresh-published-price-statistics.mjs's header for why one is not guessed here). ` +
@@ -107,13 +119,13 @@ async function main() {
     process.exit(1);
   }
 
-  const seriesKeys = SERIES_ITEM_MAP.map(([key]) => key);
+  const seriesKeys = map.map(([key]) => key);
   const marketSeriesRows = APPLY
     ? (await readAll("market_series", "series_key, reference_period, label, value_numeric, unit, currency, as_at_date")).filter((r) => seriesKeys.includes(r.series_key))
     : [];
 
-  const displayRows = deriveDisplayRows(marketSeriesRows);
-  const unmapped = unmappedSeriesKeys(marketSeriesRows);
+  const displayRows = deriveDisplayRows(marketSeriesRows, { map });
+  const unmapped = unmappedSeriesKeys(marketSeriesRows, map);
   console.log(`refresh-published-price-statistics: ${displayRows.length} display row(s) derived from ${marketSeriesRows.length} market_series row(s) read`);
   if (unmapped.length) {
     console.log(`refresh-published-price-statistics: unmapped series, not silently skipped (${unmapped.length}): ${unmapped.join(", ")}`);

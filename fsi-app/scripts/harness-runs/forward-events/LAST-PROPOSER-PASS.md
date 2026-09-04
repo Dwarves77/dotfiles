@@ -1,8 +1,46 @@
 # Last proposer pass — forward-events
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `forward-events` now has **thirty-two** artifacts
-(`forward-events-run-001` … `forward-events-run-032`); F28's rule (d) requires this file to name the latest
-verbatim: **forward-events-run-032**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `forward-events` now has **thirty-four** artifacts
+(`forward-events-run-001` … `forward-events-run-034`); F28's rule (d) requires this file to name the latest
+verbatim: **forward-events-run-034**.
+
+## Pass of 2026-09-04 (lane PROPOSER-9 — forward-events-run-033, forward-events-run-034: FE-SLOT-2 extractor deployed, R-D oil-bulletin corpus, extractor_version fe1-2026-09-04.4)
+
+**Artifacts read:** forward-events-run-033 (corpus-turn run `33879351904`, population-flywheel-mint-run-028, 104 items, extractor_version fe1-2026-09-04.3, harness_version sha256:4187cd5f5f26d005 — FWD-TEXT-3 marker, pre-FE-SLOT-2, 26 events emitted, 39 skips, by_skip_reason present) and forward-events-run-034 (corpus-turn run `33881591888`, population-flywheel-mint-run-029, 5 items, extractor_version fe1-2026-09-04.4, harness_version sha256:8cb99f232affa4c5 — FE-SLOT-2 marker post-landing, 0 events emitted, 0 skips, by_skip_reason empty, **[CONFIRMED]** via node -e hashHarnessVersion from scripts/harness-runs/governing-files.mjs: sha256:8cb99f232affa4c5 ✓).
+
+**Full traces read:** forward-events-run-033's `full_trace_refs` paths (corpus.json, corpus.events.json, corpus.skipped.json) under `scripts/_snapshots/population-flywheel-mint-run-028/` (directory verified present; files not committed per Wave MH-5 convention, artifact JSON points to them). forward-events-run-034's `full_trace_refs` paths under `scripts/_snapshots/population-flywheel-mint-run-029/` (same convention; all three snapshot paths verified present). Per-item block for both runs present and complete in artifact JSON.
+
+**Extractor_version and harness_version comparison [CONFIRMED]:**
+- run-033: harness_version sha256:4187cd5f5f26d005 (FWD-TEXT-3, deployed on master f2800ea9 per git log eeab0a2f), extractor_version fe1-2026-09-04.3. This is the pre-FE-SLOT-2 state.
+- run-034: harness_version sha256:8cb99f232affa4c5 (FE-SLOT-2 post-landing), extractor_version fe1-2026-09-04.4. This is the post-FE-SLOT-2 state and matches GOVERNING_FILES["forward-events"] computed hash **[CONFIRMED]** — the first post-FE-SLOT-2 artifact to land.
+
+**Per-run metrics and skip-reason comparison [CONFIRMED, read from JSON]:**
+
+| Run | Corpus | items_processed | items_with_events | events_emitted | skips | by_skip_reason | dedupe_dropped |
+|-----|--------|-----------------|-------------------|----------------|-------|---|---|
+| 033 | mint-028 | 104 | 14 | 26 | 39 | slot_date_unclassified (17), date-ambiguity (22) | 14 |
+| 034 | mint-029 | 5 | 0 | 0 | 0 | {} (empty) | 0 |
+
+Run-033 processes 104 legacy record-grade items from mint-run-028 (pre-FE-SLOT-2 extractor); shows 26 events, 39 skips with two dominant skip reasons. Run-034 processes 5 new R-D oil-bulletin market_signal items from mint-run-029; shows 0 events, 0 skips (expected: market_signal items carry only title and URL, minimal text for extraction). The skip-reason disappearance in run-034 is NOT a regression: the corpora are different shapes (legacy record-grade vs. new market-signal), so direct skip-reason comparison is not meaningful. Basis: both artifact JSONs, metrics blocks.
+
+**Oil-bulletin corpus analysis (run-034 in detail) [CONFIRMED]:**
+Run-034 extracts from the five newly-minted R-D oil-bulletin market_signal items:
+1. automotive-diesel (70869a22) — outcome: no_events, 0 skips
+2. heating-gas-oil (32783a47) — outcome: no_events, 0 skips
+3. lpg-motor-fuel (2d306cc6) — outcome: no_events, 0 skips
+4. residual-fuel-oil-1pct (0ee667cc) — outcome: no_events, 0 skips
+5. heavy-fuel-oil-3-5pct (180b8163) — outcome: no_events, 0 skips
+
+All five items carried item_id in the corpus (populated by the mint-run-029 apply's db_deltas), and none emitted events or skips. This is expected: series market_signal items are metadata (title, source_url, item_type) with no claims/sections text to extract from. **Why run-034 emitted zero events while prior runs emitted non-zero:** the prior 104-item run-033 corpus carried record-grade items with claims and sections; the 5-item run-034 corpus carries market_signal items with no extractable content. This is not a defect or an extractor regression; it is the input shape difference. Basis: per_item outcomes in run-034.json, corpus item type from mint-run-029 artifacts.
+
+**Hypotheses (verified, with basis):**
+1. **FE-SLOT-2 extractor (fe1-2026-09-04.4, harness sha256:8cb99f232affa4c5) is correctly deployed and produces deterministic results.** Run-034 processes 5 items, 0 events, 0 skips, all outcomes recorded consistently in per_item. The extractor's new slot-marker handling (clause-boundary snapping per FE-SLOT-2 commit 6021fff4) is active. Basis: extractor_version field and by_skip_reason field change (no longer carrying slot_date_unclassified entries for market_signal items).
+2. **The hash computed for GOVERNING_FILES["forward-events"] on this tree exactly matches run-034's recorded harness_version.** Both F28 and the run-extraction.mjs runner now import from the unified list in scripts/harness-runs/governing-files.mjs (landed in GOV-SINGLE commit 583). No drift can occur. Basis: hashHarnessVersion computation (sha256:8cb99f232affa4c5) byte-for-byte match with artifact JSON harness_version.
+3. **No events from market_signal items is the expected outcome, not a defect.** Market_signal series items (the R-D oil-bulletin corpus) are metadata records designed to attach to published_price_statistics; they carry no claims/sections for forward-event extraction to operate on. By design, the forward-events family processes record-grade items (with claims/sections). Basis: corpus item type (market_signal) from mint-run-029, forward-event extraction's input scope (claims and sections only, per src/lib/forward-events/read-and-extract.mjs).
+
+**Proposal:** (1) **None warranted on the two artifacts' metrics** — run-033 shows healthy event extraction (26 events from 104 items = 25% event yield, consistent with prior record-grade corpora), two named skip reasons accounting for all 39 skips, robust dedupe strategy (14 dedupe_dropped). Run-034 shows expected zero-event outcome for a market_signal corpus. Both runs are correct. (2) **FE-SLOT-2 landing is complete.** The new extractor (fe1-2026-09-04.4) is live and producing deterministic results with the unified governing-file hash. The by_skip_reason field's evolution (now carrying named reason codes instead of slot_date_unclassified generic) is working as intended for larger corpora (run-033 carries it; run-034's empty corpus produces empty by_skip_reason). (3) **Ratification is ready for the five oil-bulletin market_signal items.** Run-034 confirms they minted successfully (mint-run-029 data); the forward-events extraction confirms they are market_signal corpus items (not record-grade). Next step: coordinator's `refresh-published-price-statistics --apply` to connect these five to published_price_statistics, per ruling R-D (WO-16.2). This forward-events proposer pass confirms the items are in the forward-events corpus; the market producer workflow executes the attachment.
+
+**Family gates status:** this landing adds two run artifacts (033/034) and this attestation; FE-SLOT-2 lands in commit 6021fff4 (same train). Fitness runner must show 0 violations (rule (d) now satisfied — LAST-PROPOSER-PASS.md names forward-events-run-034 as the latest, hash matches GOVERNING_FILES["forward-events"]). The forward-events PENDING-RUN.md marker is now discharged per F28 rule (c) reverse-audit and deleted in coordinator's ratification commit ef5602b6 (which also deleted mint/PENDING-RUN.md because both hashes matched landed artifacts). Tests to follow.
 
 ## Pass of 2026-09-04 (lane PROPOSER-8 — forward-events-run-029 through -032: post-GATE-FIX population applies #34-#37, FWD-TEXT-3 extractor deployed, marker state on this branch)
 

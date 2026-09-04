@@ -29,9 +29,12 @@ const dieselRow = (over = {}) => ({
   ...over,
 });
 
-// ── the honest-default state (as committed 2026-09-02, R-D still unratified) ───────────────────────────
+// ── the ratified state (ruling R-D executed 2026-09-04: ratify-series-items --apply over mint-run-024
+//    and mint-run-029; every entry carries the live verified market_signal item id) ───────────────────
 
-test("SERIES_ITEM_MAP has the 6 oil-bulletin series, every entry pending (item_id: null) — R-D is not ratified", () => {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+test("SERIES_ITEM_MAP has the 6 oil-bulletin series, every entry RATIFIED with a uuid item_id — R-D executed 2026-09-04", () => {
   assert.equal(SERIES_ITEM_MAP.length, 6);
   const keys = SERIES_ITEM_MAP.map(([key]) => key).sort();
   assert.deepEqual(keys, [
@@ -43,15 +46,22 @@ test("SERIES_ITEM_MAP has the 6 oil-bulletin series, every entry pending (item_i
     "eu-oil-bulletin:residual-fuel-oil-1pct",
   ]);
   for (const [key, entry] of SERIES_ITEM_MAP) {
-    assert.equal(entry.item_id, null, `${key}: expected item_id null (unratified) as of R-D's current state`);
-    assert.equal(entry.status, "pending_R-D", `${key}: expected status pending_R-D`);
-    assert.equal(isRatified(entry), false, `${key}: isRatified must be false while item_id is null`);
+    assert.match(String(entry.item_id), UUID_RE, `${key}: expected a uuid item_id (ratified)`);
+    assert.equal(entry.status, "ratified", `${key}: expected status ratified`);
+    assert.equal(isRatified(entry), true, `${key}: isRatified must be true once item_id is set`);
   }
 });
 
-test("with the real (fully pending) map, deriveDisplayRows produces ZERO rows — never a fabricated attachment", () => {
-  const rows = deriveDisplayRows([dieselRow()]);
+test("with a fully PENDING map (the pre-ratification shape), deriveDisplayRows produces ZERO rows — never a fabricated attachment", () => {
+  const pendingMap = SERIES_ITEM_MAP.map(([key, entry]) => [key, { ...entry, item_id: null, status: "pending_R-D" }]);
+  const rows = deriveDisplayRows([dieselRow()], { map: pendingMap });
   assert.deepEqual(rows, []);
+});
+
+test("with the real (ratified) map, deriveDisplayRows attaches the diesel observation to its ratified item", () => {
+  const rows = deriveDisplayRows([dieselRow()]);
+  assert.equal(rows.length, 1);
+  assert.match(String(rows[0].item_id ?? rows[0].intelligence_item_id), UUID_RE);
 });
 
 test("loadSeriesItemMap drops the _comment documentation key, keeping only real series entries", () => {
@@ -147,7 +157,8 @@ test("unmappedSeriesKeys: a ratified series' observations never appear in the un
   assert.deepEqual(unmapped, []);
 });
 
-test("unmappedSeriesKeys against the REAL (fully pending) SERIES_ITEM_MAP: an observation for every one of the 6 oil-bulletin series is reported unmapped", () => {
+test("unmappedSeriesKeys against a fully PENDING map: an observation for every one of the 6 oil-bulletin series is reported unmapped", () => {
+  const pendingMap = SERIES_ITEM_MAP.map(([key, entry]) => [key, { ...entry, item_id: null, status: "pending_R-D" }]);
   const rows = [
     dieselRow(),
     dieselRow({ series_key: "eu-oil-bulletin:eurosuper-95" }),
@@ -156,8 +167,8 @@ test("unmappedSeriesKeys against the REAL (fully pending) SERIES_ITEM_MAP: an ob
     dieselRow({ series_key: "eu-oil-bulletin:residual-fuel-oil-1pct" }),
     dieselRow({ series_key: "eu-oil-bulletin:heavy-fuel-oil-3-5pct" }),
   ];
-  const unmapped = unmappedSeriesKeys(rows); // default map = SERIES_ITEM_MAP
-  assert.equal(unmapped.length, 6, "every real oil-bulletin series is pending R-D — none may be silently skipped");
+  assert.equal(unmappedSeriesKeys(rows, pendingMap).length, 6, "a pending series may never be silently skipped");
+  assert.deepEqual(unmappedSeriesKeys(rows), [], "against the REAL (ratified) map none of the six is unmapped");
 });
 
 test("unmappedSeriesKeys: an empty observation set reports nothing (no fabricated gaps)", () => {

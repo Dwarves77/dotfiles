@@ -15,8 +15,8 @@ name: Trust score monthly recompute
 # the endpoint after first deployment).
 
 on:
-  schedule:
-    - cron: '0 3 1 * *'
+  # schedule:   # DISARMED 2026-09-04 (operator ruling, CLAUDE.md rule 16: no standing schedules during build; monthly trust recompute runs by explicit dispatch only)
+  # - cron: '0 3 1 * *'
   workflow_dispatch:
 
 jobs:

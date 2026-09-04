@@ -1,8 +1,77 @@
 # Last proposer pass — source-sweep
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `source-sweep` now has **eleven** artifacts
-(`source-sweep-run-001` … `source-sweep-run-011`); F28's rule (d) requires this file to name the latest
-verbatim: **source-sweep-run-011**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `source-sweep` now has **twelve** artifacts
+(`source-sweep-run-001` … `source-sweep-run-012`); F28's rule (d) requires this file to name the latest
+verbatim: **source-sweep-run-012**.
+
+---
+
+## Pass over source-sweep-run-012 (2026-09-04, lane PROPOSER-10)
+
+**Artifacts read:** source-sweep-run-012 (`harness_version sha256:00a6517a684aa2f7`, the hash lane SITEMAP
+recorded in run-010's dry pass, published by run-011's second host walk on iata.org).
+
+**Full traces read:** `traces/source-sweep-run-012.raw-result.json` (per-source metrics and diff counts),
+the artifact's per_item verdicts and metrics fields. Compared against `source-sweep-run-010.raw-result.json`
+(the dry plan this run executes) and `source-sweep-run-011.raw-result.json` (the prior host walk for baseline).
+
+**Hypotheses (verified, with basis):**
+
+1. **Run-012 is the first APPLY walk for the sitemap walker on smartfreightcentre.org, executing run-010's
+   dry plan exactly.** Run-010 (dry, 2026-09-04 04:20-04:21) planned 383 URLs from the root path source;
+   run-012 (apply, 2026-09-04 05:10-05:12) writes those exact 383 URLs to `portal_link_candidates` with
+   `upserted: 383`, `changed_total: 0`, `removed_total: 0`. Per-item verdicts match: root source in both
+   runs shows 383 URLs scoped, 383 new; three deep-path sources in both runs show 0 URLs scoped (correctly
+   filtered out by the walker's path-scoping logic). Basis: run-010 and run-012 per_item entries for each
+   of the four source IDs; run-012 metrics `upserted: 383` matches run-010 metrics `new_total: 383`.
+
+2. **Path scoping is working correctly at apply time.** Each of the four sources (root, two news URLs, one
+   GLEC framework URL) targets its own base path. Run-012's trace shows: root source (`baseUrl:
+   "https://smartfreightcentre.org/"`), `urlCount: 383`, `scopedOutCount: 0`, `upserted: 383`; news
+   URL 1 and GLEC source (`baseUrl` each a deeper path), `urlCount: 0`, `scopedOutCount: 383` each,
+   `upserted: 0` each — the walker correctly filters the sitemap's 383-URL urlset to only those matching
+   each source's own path prefix. Basis: per-source `baseUrl` and the diff object `{addedCount: 383}`
+   only for root; `{addedCount: 0}` for the three deep sources.
+
+3. **No baseline-deferred sources; coverage is complete.** All four sources in run-012 carry
+   `coverageComplete: true`, `baselineDeferred: false`. This means the walker successfully fetched the
+   sitemap, completed its path-scoping logic without hitting URL-entry caps or fetch limits, and is ready
+   for changed-URL monitoring on future runs (the `monitoring_queue` gate recorded in PENDING-RUN.md's
+   description of the sitemap walker). Basis: the `coverageComplete` and `baselineDeferred` fields in the
+   trace for each source.
+
+4. **Coordinator confirmed 383 rows live from this run.** The task brief's opening premise states the
+   runner confirmed 383 rows written to `portal_link_candidates` (the table feeding the portal-harvest
+   consume path), matching run-012's recorded `upserted: 383`. The apply walk succeeded end to end: the
+   walker wrote through the guarded-update path that the PENDING-RUN.md describes. Basis: task brief
+   statement and run-012's own `upserted` metric.
+
+5. **Run-012 carries a harness_version that predates the GOV-SINGLE change (2026-09-04 later that day).
+   The marker was re-pinned by GOV-SINGLE but should remain as is for now.** Run-012 records
+   `harness_version sha256:00a6517a684aa2f7`. When computed over the current `governing-files.mjs` entry
+   and the three files it names (scripts/turns/run-source-sweep.mjs, src/lib/sources/register-walk.mjs,
+   src/lib/sources/feed-walk.mjs), the hash computes to `sha256:a5f3170ef09f94f7`. The difference is that
+   `run-source-sweep.mjs` changed between the two times: at run-012's creation it imported the old copy
+   of `SOURCE_SWEEP_GOVERNING_FILES` inline, while after GOV-SINGLE (#583) it imports that array from the
+   new `governing-files.mjs` single source. Per the task brief's stated rule: the PENDING-RUN.md marker on
+   this branch must be left as is unless run-012's harness_version equals the current computed hash. They
+   do not match (`00a6517a684aa2f7` ≠ `a5f3170ef09f94f7`); therefore the marker stays. Basis: hash
+   computation via node -e; PENDING-RUN.md §2 re-pin note; the two hash values stated above pasted
+   directly from command output.
+
+**Proposal:** none warranted this pass. Run-012 demonstrates the sitemap walker's integration working end
+to end: path scoping is accurate, per-source metrics are consistent between dry and apply, no defects
+surfaced, baseline not deferred on any source, and the 383 rows live in the database. Lane SITEMAP-3
+(in flight, per task brief) is adding all-hosts mode and per-source coverage columns for backfill across
+all 2,563 sources; the marker's current pinning (the GOV-SINGLE re-pin) is correct and the next sweep-family
+run will carry a new hash reflecting any run-source-sweep.mjs edits that lane introduces.
+
+**Family gates status:** PENDING-RUN.md remains (not deleted); run-012 carries `harness_version
+sha256:00a6517a684aa2f7`, which matches neither PENDING-RUN.md's stated `sha256:a5f3170ef09f94f7` nor F28's
+current compute. The next sweep run will either match the PENDING-RUN.md hash (if no governing files change
+in the interim) or re-pin the marker to a new hash. Per F28's reverse-audit (rule (c)), neither outcome
+blocks this landing; the artifact is valid — no family-gate edits triggered; no new defects found; the
+walker's path-scoping and per-source metrics remain fit for purpose.
 
 ---
 

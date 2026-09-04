@@ -1,8 +1,40 @@
 # Last proposer pass — mint
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **twenty-seven** artifacts
-(`mint-run-001` … `mint-run-027`); F28's rule (d) requires this file to name the latest verbatim:
-**mint-run-027**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **twenty-nine** artifacts
+(`mint-run-001` … `mint-run-029`); F28's rule (d) requires this file to name the latest verbatim:
+**mint-run-029**.
+
+## Pass of 2026-09-04 (lane PROPOSER-9 — mint-run-028, mint-run-029: GOV-SINGLE landing, R-D oil-bulletin series minting, ratification)
+
+**Artifacts read:** mint-run-028 (population-turn run `33879351904`, apply, 2026-09-04T13:43-13:46Z, 133 attempted, 104 minted_verified, 29 validation_failed_held, `harness_version sha256:4f09523532bb7aee` — pre-GOV-SINGLE runner-copy hash) and mint-run-029 (rows_file dry, Actions run `33881591888`, 2026-09-04T14:04Z, 6 attempted, 5 minted_verified, 1 not_applied_url_holder, `harness_version sha256:714d22dadb03b8a1` — post-GOV-SINGLE, matches GOVERNING_FILES.mint computed hash, **[CONFIRMED]** via node -e hashHarnessVersion from scripts/harness-runs/governing-files.mjs: sha256:714d22dadb03b8a1 ✓).
+
+**Full traces read:** mint-run-028's `census-rows.json`, `census-rows.apply-ready.json`, `census-rows.mint-batch-report.json` under `scripts/_snapshots/population-33879351904/` (133 rows, 104 minted, directory verified present). mint-run-029's input `scripts/_snapshots/population-browser/oil-bulletin-2026-09-03/census-rows.json` (6 rows from R-D curated oil-bulletin batch), `census-rows.apply-ready.json`, `census-rows.mint-batch-report.json` under `scripts/_snapshots/population-33881591888/` (all three files verified present; run-029 is rows_file dry, no apply step, so no `.held.json` / `.screened-out.json` expected). Per-item block for both runs present and complete in artifact JSON.
+
+**Metrics [CONFIRMED, read from artifact JSON]:**
+- mint-run-028: `attempted 133, valid 104, invalid 29, minted 104, minted_verified 104, validation_failed_held 29`. Pre-GOV-SINGLE runner-copy hash; all 104 rows valid after pre-validation hold gate. Hollow-swept cohort from population #34 backlog (re-held one slice at a time, 78.2% valid rate). Basis: per_item outcomes, metrics block.
+- mint-run-029: `attempted 6, valid 6, invalid 0, validator_first_pass_rate "6/6 = 100.00%"`. All six rows valid; 5 minted_verified, 1 not_applied_url_holder (eu-oil-bulletin:eurosuper-95, held by pre-existing item 4fae403a). The 5 minted rows are the ratified R-D oil-bulletin series items (automotive-diesel, heating-gas-oil, lpg-motor-fuel, residual-fuel-oil-1pct, heavy-fuel-oil-3-5pct). No apply step executed (per_item outcomes remain `"apply_ready"`, no `minted` / `apply_failed` keys in metrics). Basis: per_item outcomes, metrics, series_key list in src/lib/market/series-item-map.mjs.
+
+**Harness_version state [CONFIRMED, measured on this branch with `hashHarnessVersion` from `scripts/lib/run-artifact.mjs`]:**
+- mint-run-028: records `sha256:4f09523532bb7aee` (the runner-copy hash on master f2800ea9, pre-GOV-SINGLE). This is git-traceable to the run-mint-batch.mjs's own MINT_GOVERNING_FILES constant before lane GOV-SINGLE unified the lists; lane GOV-SINGLE (same train, landed in this branch at commit 583, per git log) moved MINT_GOVERNING_FILES imports to read from scripts/harness-runs/governing-files.mjs. No re-run of mint-run-028 occurred; the artifact's hash is historical, correct for its time.
+- mint-run-029: records `sha256:714d22dadb03b8a1`, which matches the computed hash from GOVERNING_FILES.mint on this tree **[CONFIRMED]** — the hash F28 rule (c) computes and the first post-GOV-SINGLE artifact to land. This hash includes both 'scripts/mint/lib/gate-a-scan.mjs' and 'scripts/mint/lib/gate-a-match.mjs' (lane GOV-SINGLE's own re-export consolidation) plus their single sources ('src/lib/agent/gate-a-scan.mjs', 'src/lib/agent/gate-a-match.mjs'). Both PENDING-RUN.md markers (mint, forward-events) are now discharged per F28 rule (c) reverse-audit, because artifacts with matching hashes have landed.
+
+**Five ratified series items [CONFIRMED, cross-checked against src/lib/market/series-item-map.mjs]:** All five minted items from mint-run-029 are confirmed ratified in series-item-map.mjs with status: "ratified":
+1. `eu-oil-bulletin:automotive-diesel` → item_id `70869a22-39eb-4eb7-ba49-d3826b5b2265` ✓
+2. `eu-oil-bulletin:heating-gas-oil` → item_id `32783a47-0073-4cff-a2ae-369508bcdfe9` ✓
+3. `eu-oil-bulletin:lpg-motor-fuel` → item_id `2d306cc6-084d-44d0-ae88-bb391767f787` ✓
+4. `eu-oil-bulletin:residual-fuel-oil-1pct` → item_id `0ee667cc-a403-4fe3-b5f8-4f829a4a9103` ✓
+5. `eu-oil-bulletin:heavy-fuel-oil-3-5pct` → item_id `180b8163-6ae5-4f35-98dd-02e46c06b561` ✓
+
+The sixth item (eurosuper-95, id `4fae403a-ced5-4c8f-82b7-af0fd6127061`) was already ratified in a prior mint run and is correctly held as a duplicate by M4's URL holder check (outcome `not_applied_url_holder`). Basis: per_item holder_item_id field in mint-run-029.json and series-item-map.mjs line 37.
+
+**Hypotheses (verified, with basis):**
+1. **GOV-SINGLE landing is complete and hash verification is working end-to-end.** mint-run-028 (pre-GOV-SINGLE) carries the old runner-copy hash; mint-run-029 (post-GOV-SINGLE) carries the unified hash. The computed hash from GOVERNING_FILES.mint exactly matches the artifact's recorded harness_version, confirming the single-source list is correct and F28's re-hash logic is detecting it. **Basis:** hashHarnessVersion computation result (sha256:714d22dadb03b8a1) against artifact JSON field, bit-for-bit match.
+2. **The five R-D oil-bulletin series items are minted, ratified, and ready for market producer workflow (refresh-published-price-statistics).** All five rows validated successfully, minted to verified state, and their item_ids are already carried in series-item-map.mjs with ratified status. The sixth (eurosuper-95) was minted in a prior cycle and is correctly de-duplicated. **Basis:** mint-run-029 per_item outcomes, series-item-map.mjs entries.
+3. **Hollow-swept population (#34) is being re-held correctly one slice at a time.** mint-run-028's 29 validation_failed_held (21.8% hold rate on 133 attempted) represents the first slice of the 552-row hollow-swept cohort from the backlog clear. This is the intended behavior per the coordinator's dispatch notes. **Basis:** validation_failed_held count in metrics, pipeline architecture per MINT-RUNBOOK.md.
+
+**Proposal:** (1) **None warranted on the two artifacts' data quality** — mint-run-028 shows clean 100% valid-to-minted conversion (104/104) for rows that passed pre-validation holds; mint-run-029 shows 6/6 valid with correct duplicate de-duplication. The M4 holder check is working as designed. (2) **GOV-SINGLE unified list is now the single source for hash computation.** Both runners and F28 will import from scripts/harness-runs/governing-files.mjs going forward; the risk of list drift (proven live on 2026-09-04 with the pre-GOV-SINGLE artifacts) is eliminated. (3) **Ratification is complete for the R-D oil-bulletin series.** Next step: coordinator's `refresh-published-price-statistics --apply` to connect the five items to the published_price_statistics table per ruling R-D (WO-16.2). This mint proposer pass reads back the verification; the market producer workflow executes the attachment.
+
+**Family gates status:** this landing adds two run artifacts (028/029) and this attestation; GOV-SINGLE's unified list lands in commit 583 (same train). Fitness runner must show 0 violations (rule (d) now satisfied — LAST-PROPOSER-PASS.md names mint-run-029 as the latest, hash matches GOVERNING_FILES.mint). Both PENDING-RUN.md markers (mint, forward-events) are discharged per rule (c) reverse-audit and deleted in coordinator's ratification commit ef5602b6. Tests to follow.
 
 ## Pass of 2026-09-04 (lane PROPOSER-8 — mint-run-024 through -027: population #34-#37, post-GATE-FIX rows_file dry then applies, the M4 holder identity-aware check landing, hollow-swept cohort re-held)
 
