@@ -483,6 +483,19 @@ export interface ResourcePage {
    * doesn't need it is always safe.
    */
   domain?: number;
+  /**
+   * Optional keyset cursor (ADR-027 §2, PERF-12 2026-09-04, migration 306 WRITTEN NOT APPLIED).
+   * The last row's OWN `(effective_priority, added_date, id)` triple from the previous page —
+   * `get_workspace_intelligence_listings`'s own total order (migration 272, confirmed unchanged by
+   * 303/305). When all three are present AND `rpcName` is in `CURSOR_SCOPED_RPCS` below,
+   * `fetchWorkspaceResources` tries a keyset-scoped call (migration 306's `p_after_*` params)
+   * first and fails soft to the plain `.range(offset, ...)` call (today's behavior, still correct,
+   * just position-based rather than identity-based) on any error — same fail-soft shape as
+   * `domain` above. Omitted = no cursor, unaffected.
+   */
+  afterPriority?: string;
+  afterAddedDate?: string | null;
+  afterId?: string;
 }
 
 type WorkspaceItemsServiceClient = ReturnType<typeof getServiceSupabase>;
@@ -520,6 +533,15 @@ const LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER = new Set<string>([
  * is still "unconfirmed live" the way `LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER` above is graded.
  */
 const DOMAIN_SCOPED_RPCS = new Set<string>(["get_workspace_intelligence_listings"]);
+
+/**
+ * RPC names whose signature CAN carry the optional `p_after_priority`/`p_after_added_date`/
+ * `p_after_id` keyset-cursor arguments once migration 306 is live — PERF-12 (2026-09-04). Same
+ * "attempt, never trust" contract as `DOMAIN_SCOPED_RPCS` (306, like 305, is WRITTEN NOT APPLIED
+ * as of this lane) — see `ResourcePage.afterPriority`'s own header and the fail-soft retry in
+ * `fetchWorkspaceResources` below, which activates automatically the moment 306 goes live.
+ */
+const CURSOR_SCOPED_RPCS = new Set<string>(["get_workspace_intelligence_listings"]);
 
 /**
  * Builds the (possibly ranged) query for one page of workspace-intelligence RPC rows.
@@ -580,16 +602,37 @@ export function buildWorkspaceItemsQuery(
   // adds `p_domain` to the RPC call args (migration 305). The caller (fetchWorkspaceResources) controls
   // this explicitly, never inferred here, so the fail-soft retry there can call this function TWICE with
   // the same rpcName/page and get a different query the second time — see that function's own comment.
-  includeDomainArg?: boolean
+  includeDomainArg?: boolean,
+  // PERF-12 (2026-09-04, ADR-027 §2): same shape as includeDomainArg, for migration 306's
+  // p_after_* keyset-cursor params. When true AND page carries a full (afterPriority,
+  // afterAddedDate !== undefined, afterId) triple AND rpcName is in CURSOR_SCOPED_RPCS, adds the
+  // three p_after_* args AND ranges from 0 (the cursor's WHERE clause has already excluded every
+  // row at/before the cursor, so "row 0 of what's left" is the correct next row — NOT
+  // page.offset, which is a running total-consumed count irrelevant once the server is filtering
+  // by identity rather than position).
+  includeCursorArg?: boolean
 ) {
   const rpcArgs: Record<string, unknown> = { p_org_id: orgId };
   if (includeDomainArg && DOMAIN_SCOPED_RPCS.has(rpcName) && typeof page?.domain === "number") {
     rpcArgs.p_domain = page.domain;
   }
+  const usingCursor =
+    !!includeCursorArg &&
+    CURSOR_SCOPED_RPCS.has(rpcName) &&
+    typeof page?.afterPriority === "string" &&
+    page.afterPriority.length > 0 &&
+    typeof page?.afterId === "string" &&
+    page.afterId.length > 0;
+  if (usingCursor) {
+    rpcArgs.p_after_priority = page!.afterPriority;
+    rpcArgs.p_after_added_date = page!.afterAddedDate ?? null;
+    rpcArgs.p_after_id = page!.afterId;
+  }
   const call = serviceClient.rpc(rpcName, rpcArgs);
   if (!page) return call;
   if (LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER.has(rpcName)) {
-    return call.range(page.offset, page.offset + page.limit - 1);
+    const from = usingCursor ? 0 : page.offset;
+    return call.range(from, from + page.limit - 1);
   }
   return call
     .order("added_date", { ascending: false, nullsFirst: false })
@@ -638,9 +681,35 @@ async function fetchWorkspaceResources(
   // fact the way LISTINGS_RPCS_WITH_OWN_TOTAL_ORDER is.
   const wantsDomainScope =
     typeof options.page?.domain === "number" && DOMAIN_SCOPED_RPCS.has(rpcName);
+  // PERF-12 (2026-09-04, ADR-027 §2): when the caller passed a keyset cursor, try the
+  // domain+cursor call FIRST (migration 306's p_after_* args, on top of 305's p_domain — see
+  // buildWorkspaceItemsQuery's own comment for why usingCursor changes the .range() start too),
+  // and fail soft into the EXISTING wantsDomainScope ladder below (domain-only offset range, then
+  // fully unscoped) on ANY error — including "function ...(uuid, integer, text, date, uuid) does
+  // not exist", the shape a call against a pre-306 signature returns. Same "attempt, never trust"
+  // contract as PERF-11's own domain retry just above; activates automatically once 306 is live.
+  const wantsCursorScope =
+    wantsDomainScope &&
+    CURSOR_SCOPED_RPCS.has(rpcName) &&
+    typeof options.page?.afterPriority === "string" &&
+    options.page.afterPriority.length > 0 &&
+    typeof options.page?.afterId === "string" &&
+    options.page.afterId.length > 0;
   let items: any[] | null = null;
   let error: unknown = null;
-  if (wantsDomainScope) {
+  if (wantsCursorScope) {
+    const cursorQuery = buildWorkspaceItemsQuery(serviceClient, rpcName, orgId, options.page, true, true);
+    const cursored = await cursorQuery;
+    if (!cursored.error) {
+      items = cursored.data;
+      error = null;
+    } else {
+      console.warn(
+        `[perf] cursor-scoped ${rpcName} call failed (migration 306 likely not yet applied) — falling back to offset-scoped: ${describeSupabaseError(cursored.error)}`
+      );
+    }
+  }
+  if (items === null && wantsDomainScope) {
     const scopedQuery = buildWorkspaceItemsQuery(serviceClient, rpcName, orgId, options.page, true);
     const scoped = await scopedQuery;
     if (!scoped.error) {

@@ -12,7 +12,15 @@
 //      worktree to measure the real payload).
 import test from "node:test";
 import assert from "node:assert/strict";
-import { toLedgerRowPayload } from "./list-pagination.ts";
+import {
+  toLedgerRowPayload,
+  LIST_PAGE_SIZE,
+  LIST_FIRST_PAGE_SIZE,
+  FIRST_LISTING_CURSOR,
+  cursorAfter,
+  encodeListingCursor,
+  decodeListingCursor,
+} from "./list-pagination.ts";
 
 // Realistic-shaped synthetic row: field sizes chosen so 60 of these serialize to roughly the
 // audit's measured ~150-170KB range, so the reduction percentage below is representative of
@@ -117,4 +125,69 @@ test("toLedgerRowPayload: measured byte-size reduction on a 60-row fixture", () 
 
   assert.ok(before.length > 100 * 1024, "fixture should be in the audit's reported size class (>100KB/60 rows)");
   assert.ok(reductionPct > 40, `expected a meaningful reduction, got ${reductionPct.toFixed(1)}%`);
+});
+
+// ── PERF-12 (2026-09-04) keyset cursor ─────────────────────────────────────────────────────────
+
+test("LIST_PAGE_SIZE is inside the lane brief's stated 25-40 range; LIST_FIRST_PAGE_SIZE is unchanged at 60", () => {
+  assert.ok(LIST_PAGE_SIZE >= 25 && LIST_PAGE_SIZE <= 40, `LIST_PAGE_SIZE=${LIST_PAGE_SIZE} outside 25-40`);
+  assert.equal(LIST_FIRST_PAGE_SIZE, 60, "Operations/ObligationRegister depend on this staying 60");
+});
+
+test("cursorAfter: empty page returns the SAME cursor unchanged (no phantom advance)", () => {
+  const next = cursorAfter(FIRST_LISTING_CURSOR, []);
+  assert.deepEqual(next, FIRST_LISTING_CURSOR);
+});
+
+test("cursorAfter: advances offset by the page length and carries the LAST row's own priority/added/id", () => {
+  const rows = [
+    { id: "a", priority: "CRITICAL", added: "2026-01-01" },
+    { id: "b", priority: "CRITICAL", added: "2025-12-20" },
+    { id: "c", priority: "HIGH", added: "2025-12-15" },
+  ];
+  const next = cursorAfter(FIRST_LISTING_CURSOR, rows);
+  assert.equal(next.offset, 3);
+  assert.equal(next.afterPriority, "HIGH");
+  assert.equal(next.afterAddedDate, "2025-12-15");
+  assert.equal(next.afterId, "c");
+});
+
+test("cursorAfter: chains correctly across two pages (offset accumulates, cursor re-anchors to the newest last row)", () => {
+  const page1 = [{ id: "a", priority: "CRITICAL", added: "2026-01-01" }];
+  const c1 = cursorAfter(FIRST_LISTING_CURSOR, page1);
+  const page2 = [
+    { id: "b", priority: "HIGH", added: "2025-12-01" },
+    { id: "c", priority: "HIGH", added: "2025-11-01" },
+  ];
+  const c2 = cursorAfter(c1, page2);
+  assert.equal(c2.offset, 3);
+  assert.equal(c2.afterId, "c");
+});
+
+test("encodeListingCursor / decodeListingCursor round-trip exactly", () => {
+  const cursor = { offset: 30, afterPriority: "MODERATE", afterAddedDate: "2026-03-01", afterId: "uuid-123" };
+  const wire = encodeListingCursor(cursor);
+  assert.equal(typeof wire, "string");
+  const back = decodeListingCursor(wire);
+  assert.deepEqual(back, cursor);
+});
+
+test("encodeListingCursor / decodeListingCursor round-trip the first-page cursor (no afterX fields)", () => {
+  const wire = encodeListingCursor(FIRST_LISTING_CURSOR);
+  const back = decodeListingCursor(wire);
+  assert.deepEqual(back, FIRST_LISTING_CURSOR);
+});
+
+test("decodeListingCursor never throws — malformed/tampered input degrades to the first page", () => {
+  for (const bad of [null, undefined, "", "not-json", "%7Bnot-valid%7D", encodeURIComponent("[]"), encodeURIComponent('{"offset":-1}'), encodeURIComponent('{"offset":"nope"}')]) {
+    assert.deepEqual(decodeListingCursor(bad), FIRST_LISTING_CURSOR, `expected first-page fallback for ${JSON.stringify(bad)}`);
+  }
+});
+
+test("decodeListingCursor rejects a cursor whose afterPriority/afterId are present but empty strings (never a real-but-empty keyset boundary)", () => {
+  const wire = encodeURIComponent(JSON.stringify({ offset: 5, afterPriority: "", afterId: "" }));
+  const back = decodeListingCursor(wire);
+  assert.equal(back.offset, 5);
+  assert.equal(back.afterPriority, undefined);
+  assert.equal(back.afterId, undefined);
 });

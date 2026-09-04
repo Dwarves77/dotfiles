@@ -35,7 +35,13 @@ import { getPublicListingsOnly, getPublicSurfaceCounts } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { RegulationsLedger } from "@/components/regulations/RegulationsLedger";
-import { toLedgerRowPayload } from "@/lib/list-pagination";
+import {
+  toLedgerRowPayload,
+  LIST_PAGE_SIZE,
+  FIRST_LISTING_CURSOR,
+  cursorAfter,
+  encodeListingCursor,
+} from "@/lib/list-pagination";
 import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingObligationsStrip";
 import { ObligationRegister } from "@/components/regulations/ObligationRegister";
 // Spec 09 §1.8 (lane SPEC-09, wave 3, 2026-09-03): EUDR geo-traceability + book-and-claim custody, one
@@ -44,37 +50,47 @@ import { ObligationRegister } from "@/components/regulations/ObligationRegister"
 import { EudrCustodyPanel } from "@/components/regulations/EudrCustodyPanel";
 import { toDate } from "@/lib/relative-time";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
-import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 
 export default async function RegulationsPage() {
   // Listings (verified-gated server-side) for the ledger rows + the
   // single-SoT verified count bundle for the masthead / tiles / bands.
-  // First-paint page only (60 rows, newest added_date first) — RegulationsLedger
-  // fetches the rest client-side after paint via /api/listings/rest and
-  // appends it, so the initial response ships ~60 rows instead of the entire
-  // corpus. The masthead/tile counts below bind to `aggregates`, which is
-  // sourced from get_surface_counts (or its scoped-aggregates fallback) —
-  // both real RPCs, independent of how many rows are loaded — so the header
-  // count stays honest at 60, at 754, and everywhere in between.
+  // First-paint page only (PERF-12, 2026-09-04, ADR-027 §2: LIST_PAGE_SIZE rows, newest-priority-
+  // first — RegulationsLedger takes over via useLedgerInfiniteQuery/fetchNextPage as the user
+  // scrolls, calling /api/listings/cursor page-at-a-time; the old one-shot LIST_REMAINDER_LIMIT
+  // remainder fetch is gone, see list-pagination.ts's own header). The masthead/tile counts below
+  // bind to `aggregates`, which is sourced from get_surface_counts (or its scoped-aggregates
+  // fallback) — both real RPCs, independent of how many rows are loaded — so the header count
+  // stays honest at 30, at 754, and everywhere in between.
   const [data, aggregates] = await Promise.all([
-    // PERF-MERGE convergence (2026-09-04) of PERF-10 (org-independent, cacheable, cookie-free —
-    // keeps this route static) and PERF-11 (domain-scoped — /regulations should only ever fetch its
-    // own domain). getPublicListingsOnly() is PERF-10's architecture: no resolveOrgIdFromCookies()
-    // Dynamic API, so this page builds `○` instead of `ƒ`. `domain: REGULATIONS_DOMAIN` is PERF-11's
-    // fix, folded into migration 306's `get_workspace_intelligence_listings_public` (its own header —
-    // the org-independent sibling of migration 305's org-scoped `p_domain` patch) and failing soft to
-    // the unscoped call while 306 is not yet applied (see getPublicListingsOnly's/
-    // fetchPublicWorkspaceResources's own headers in data.ts/supabase-server.ts). Live measurement,
-    // 2026-09-04: without domain-scoping, the unscoped top-60 across all seven
-    // intelligence_items.domain values was only 39/60 (65%) actual Regulations rows — the other 21
-    // were Tech/Regional/Market/Research items this page fetched and serialised, then threw away. The
-    // `.filter` below stays regardless of migration status: it is what makes the RENDER correct even
-    // on the pre-306 fallback path, and is a no-op once 306 is live (every row already matches).
-    getPublicListingsOnly({ limit: LIST_FIRST_PAGE_SIZE, offset: 0, domain: REGULATIONS_DOMAIN }),
+    // RECONCILE (2026-09-04, item 1) of PERF-10 (org-independent, cacheable, cookie-free — keeps
+    // this route static) and PERF-11's domain scoping, unified with PERF-12's cursor page size:
+    // the SSR first page is now exactly LIST_PAGE_SIZE (30) rows, the SAME size every subsequent
+    // /api/listings/cursor page fetches — so the cursor computed below (`cursorAfter`) is anchored
+    // on precisely the rows this page actually rendered, never a size mismatch between "what SSR
+    // shipped" and "what the first client-driven fetchNextPage asks for". getPublicListingsOnly()
+    // is PERF-10's architecture: no resolveOrgIdFromCookies() Dynamic API, so this page builds `○`
+    // instead of `ƒ`. `domain: REGULATIONS_DOMAIN` is PERF-11's fix, folded into migration 306's
+    // `get_workspace_intelligence_listings_public` (its own header). Live measurement, 2026-09-04:
+    // without domain-scoping, the unscoped top-N across all seven intelligence_items.domain values
+    // was only 65% actual Regulations rows — the rest were Tech/Regional/Market/Research items this
+    // page fetched and serialised, then threw away. The `.filter` below stays regardless: it is
+    // what makes the RENDER correct even if the domain predicate is ever a no-op for a stray row.
+    getPublicListingsOnly({ limit: LIST_PAGE_SIZE, offset: 0, domain: REGULATIONS_DOMAIN }),
     getPublicSurfaceCounts("regulations"),
   ]);
 
   const regulationResources = data.resources.filter((r) => r.domain === REGULATIONS_DOMAIN);
+
+  // PERF-12 (2026-09-04, ADR-027 §2): the cursor for "the page after this one", computed with the
+  // SAME `cursorAfter` math /api/listings/cursor's own route uses over the SAME raw (pre-domain-
+  // filter) `data.resources` array — see that route's own comment for why raw, not filtered, is
+  // the correct basis (a domain-filtered page can legitimately contain fewer than LIST_PAGE_SIZE
+  // regulations while the raw corpus still has more rows past this window, since the RPC's own
+  // p_domain predicate runs INSIDE the same ORDER BY/LIMIT the cursor math assumes).
+  const hasMoreRegulations = data.resources.length >= LIST_PAGE_SIZE;
+  const nextRegulationsCursor = hasMoreRegulations
+    ? encodeListingCursor(cursorAfter(FIRST_LISTING_CURSOR, data.resources))
+    : null;
 
   // Fail-soft: prefer RPC scalars; fall back to the in-view rows only when
   // the RPC returned nothing (pre-apply / anon / error).
@@ -162,6 +178,8 @@ export default async function RegulationsPage() {
         initialResources={regulationResources.map(toLedgerRowPayload)}
         initialArchived={data.archived}
         aggregates={aggregates}
+        initialNextCursor={nextRegulationsCursor}
+        initialHasMore={hasMoreRegulations}
       />
       {/* Lane OBLIG (2026-09-02): the obligation register section — spec-01 §2's atomic unit ("the
           obligation, not the document"), migration 290's `obligations` table (item_forward_events
