@@ -1,0 +1,115 @@
+{
+  "harness_family": "propagation",
+  "harness_version": "sha256:45d4f97e9c543737",
+  "run_id": "propagation-run-004",
+  "started_at": "2026-09-04T17:17:34.077Z",
+  "finished_at": "2026-09-04T17:19:26.073Z",
+  "config": {
+    "mode": "apply",
+    "batch": 500,
+    "trigger_context": null
+  },
+  "inputs_ref": [
+    "mode=apply",
+    "batch=500"
+  ],
+  "per_item": [
+    {
+      "id": "queue-depth-1000",
+      "outcome": "drained",
+      "verdict": "500 event(s) drained, 8 value(s) invalidated, 8 recomputed, 0 skipped (unknown method), 0 skipped (method refused)",
+      "evidence_refs": [
+        "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/propagation/traces/propagation-run-004.report.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "4d3e1b57-f1ad-4a5f-83ce-8d538327c43c",
+      "outcome": "recomputed",
+      "verdict": "supersedes 595bbe32-1998-42dd-9aa7-c93d7e8722a1",
+      "evidence_refs": [
+        "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/propagation/traces/propagation-run-004.report.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "38841947-b243-4087-b715-65ef6ecb419b",
+      "outcome": "recomputed",
+      "verdict": "supersedes 5920f75f-601e-46a7-a01a-17557aa3e943",
+      "evidence_refs": [
+        "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/propagation/traces/propagation-run-004.report.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "e2a6a12e-a564-4dc7-86c1-a3a8468b05ee",
+      "outcome": "recomputed",
+      "verdict": "supersedes 78760f0e-42ff-4fa8-af88-3306732804e7",
+      "evidence_refs": [
+        "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/propagation/traces/propagation-run-004.report.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "2c037a6a-8a9c-478f-98b0-3520aee79443",
+      "outcome": "recomputed",
+      "verdict": "supersedes 6e73e44d-27ff-4fa7-b465-53154f063ead",
+      "evidence_refs": [
+        "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/propagation/traces/propagation-run-004.report.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "80c0e315-1cda-4426-816c-bf22236f2381",
+      "outcome": "recomputed",
+      "verdict": "supersedes d1060ec1-2dec-4185-b448-633daf351216",
+      "evidence_refs": [
+        "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/propagation/traces/propagation-run-004.report.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "67c22ab9-3ea4-4405-83c4-254e241d2e0c",
+      "outcome": "recomputed",
+      "verdict": "supersedes d27f2347-0f44-463a-8f2c-b34940464239",
+      "evidence_refs": [
+        "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/propagation/traces/propagation-run-004.report.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "63fa2f76-8c4b-4ee6-a449-abe421515593",
+      "outcome": "recomputed",
+      "verdict": "supersedes 4bf7abf4-1a9c-4830-982b-cb736d3541ca",
+      "evidence_refs": [
+        "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/propagation/traces/propagation-run-004.report.json"
+      ],
+      "error": null
+    },
+    {
+      "id": "d9d3ef8b-3c7e-4ea0-924b-34447ef07821",
+      "outcome": "recomputed",
+      "verdict": "supersedes d3c67f61-c2eb-44e6-8b66-a20f64df4ecc",
+      "evidence_refs": [
+        "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/propagation/traces/propagation-run-004.report.json"
+      ],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "mode": "apply",
+    "queue_depth_before": 1000,
+    "events_considered": 500,
+    "events_drained": 500,
+    "invalidated": 8,
+    "recomputed": 8,
+    "skipped_unknown_method": 0,
+    "skipped_method_refused": 0,
+    "errors": 0
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/propagation/traces/propagation-run-004.report.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-propagation-drain.mjs, the propagation family's canonical entry point (lane DP-ENGINE, 2026-09-02, system-completion train) — drives runPropagationDrain (src/lib/propagation/drain.ts) against the propagation_events outbox (migration 284) and the derivation DAG (migration 285)."
+}
