@@ -428,6 +428,18 @@ jobs:
           branch="population/${{ github.run_id }}"
           git checkout -b "$branch"
           git commit -m "population-turn ${{ inputs.mode }}: run ${{ github.run_id }}"
+          # BRANCH-BASE (2026-09-04): GitHub refuses a GITHUB_TOKEN push that creates a branch whose
+          # workflow files differ from the default branch ("refusing to allow a GitHub App to create or
+          # update workflow ... without `workflows` permission"). Backlog applies #26 and #29 lost their
+          # artifact commits exactly this way: a train that touched .github/workflows/*.yml landed on
+          # master while the run was executing, so the branch based on the run's checkout carried an
+          # older workflow file. Re-base the single artifact commit onto the CURRENT master tip before
+          # pushing; artifact JSON never conflicts with code, and if it ever did the rebase aborts and the
+          # push below still fails loudly instead of silently pushing a stale base. The checkout is shallow
+          # (fetch-depth 1); --depth=50 brings in master's recent commits so the merge-base (this run's own
+          # checkout commit, master at dispatch time) is known to the rebase.
+          git fetch --no-tags --depth=50 origin master
+          git rebase origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
           git push origin HEAD:"$branch"
           if [ "${{ inputs.flywheel_backlog }}" = "true" ]; then
             {
