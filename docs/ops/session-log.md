@@ -10053,3 +10053,28 @@ roster. Feedback state: the route skeleton streams first and the content settles
 the card shows "Unassigned" or the current name while the roster loads and "Roster unavailable" on
 failure, the same states as before, now backed by the shared bootstrap fetch. Fitts's-law surface: no new
 interactive element. Layout and next.config changes have no screen (PERF-2's precedent).
+
+### Addendum 85, postscript 52 — the two causes the PERF trains never touched: region and cold starts (2026-09-04)
+
+The operator: "page load times are horrible … I can't show this app to anyone until this is resolved."
+His own reading of the runtime logs, which I confirmed rather than re-derived: getAppData 7,970 ms on a
+cold invocation, 200–465 ms warm; /api/version (105 bytes, touches nothing) 1.5 s cold, ~300 ms warm; so
+the ten-second load is the cold start, and the warm floor is a coast-to-coast tax because
+`fsi-app/vercel.json` pinned functions to `iad1` (Washington) while the Supabase project
+`kwrsbpiseruzbfwjpvsp` is in `us-west-1` (N. California, [CONFIRMED] via the project API), every
+uncached query crossing the country three to five times per render. Neither appears anywhere in PERF-1
+through PERF-9. Verified in the Vercel dashboard: Fluid Compute Enabled, Function CPU Standard (1 vCPU /
+2 GB), region iad1 overridden; no provisioned-concurrency control exists on the Pro Functions page, so
+"keep one warm" is not a setting I can flip, and a cron ping is out under the no-schedules ruling.
+Measured from the operator's browser after train 40 deployed: /api/version warm 178–326 ms, every
+response `x-vercel-cache: MISS`; /regulations document 886 KB decoded (PERF-8's row trim did not move the
+document size: the flight duplicate and the discarded-domain rows are still in it), DCL 1.3–2.5 s (was
+5.3 s), React #418 gone, two post-render API calls instead of five.
+
+This train is one line: `regions: ["sfo1"]`, Vercel's region nearest us-west-1. Config only, no code;
+the delta is measured on /api/version warm before (178–326 ms) and after, and on a /regulations render.
+In flight: PERF-11 (the payload: domain filter pushed into the listing query instead of filtered in JS
+after fetching every domain, row projection cut to what the ledger renders, the self.__next_f duplicate
+measured), PERF-10 (cacheComponents, the only path that serves a route without a function invocation),
+LEDGER-TEXT. The Function CPU "Performance" tier (2 vCPU / 4 GB) is the operator's call, since it changes
+billing; I asked.
