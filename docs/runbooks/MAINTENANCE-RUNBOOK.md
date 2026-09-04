@@ -32,26 +32,28 @@ containing one `<step>/summary.json` per step that ran — `{ step, mode, counts
 
 ---
 
-## 1. `community-topics-seed`
+## 1. `community-topics-seed` — RETIRED (Lane REVIEW-WIRE, 2026-09-04)
 
-**Purpose**: seed the 7-topic freight-sustainability taxonomy (`community_topics` +
-`community_topic_groups`) that `fsi-app/scripts/seed/community-topics-seed.mjs` already builds — that
-script is real, tested, dry-by-default code whose own header says "coordinator applies; this lane does
-not run --apply", and nothing had ever dispatched it. Live count before this runtime existed: 0
-`community_topics` rows.
+**This step no longer exists.** `fsi-app/scripts/maintenance/community-topics-seed.mjs`,
+`fsi-app/scripts/seed/community-topics-seed.mjs`, and both files' tests were deleted, and the step was
+removed from `.github/workflows/maintenance.yml`'s `step` choice list and step block, on the operator's
+explicit ruling (2026-09-04, verbatim): *"community should not be populated with rooms for every topic;
+people start rooms, rooms don't already exist; regions exist."*
 
-**Upstream**: `fsi-app/scripts/seed/community-topics-seed.mjs` — `TOPICS`, `CANONICAL_ROOM_SLUGS`,
-`planTopicLinks` imported unmodified into `fsi-app/scripts/maintenance/community-topics-seed.mjs`;
-`resolveOwner` is a 5-line, deliberate duplicate (the original never exports its own).
+**Why this was the right call, not just an instruction followed**:
+`docs/audits/wiring-audit-2026-09-04/A2-surfaces.md`'s "Community — what actually seeds today" section
+[CONFIRMED, live SQL, 2026-09-04] found this mechanism doubly wrong, independent of the ruling: (1) the
+7-topic taxonomy it would have created is EXACTLY the pre-seeded "rooms for every topic" pattern the
+ruling forbids, and (2) it was structurally incapable of being a shared room even if dispatched —
+`community_topics` (migration 031) is per-user/private by RLS (`owner_user_id = auth.uid()` on every
+policy), so the seeder's own single-owner write would have been invisible to every user but the resolved
+owner. The 7 REGIONAL rooms (`community_groups`, seeded 2026-07-07 by a different script,
+`scripts/seed-community-regional-rooms.mjs`, pre-dating this audit window) are unaffected and match the
+ruling's own "regions exist" half — nothing about that seeding is retired here.
 
-**Gating**: none — no ruling gates this step, no `arg` required.
-
-**Dispatch**: `mode=dry` lists topics/links that would be created; `mode=apply` writes through
-`guardedInsert` (rule 015).
-
-**Artifact / read back**: `summary.json` counts (`topics_created`, `links_created`, ...) plus
-`read_back.topics_live_for_owner` / `read_back.links_live_for_owner`. Confirm against
-`community_topics` / `community_topic_groups` for the resolved owner.
+**If a future session is tempted to re-add a topic-taxonomy seeder**: read
+`docs/audits/wiring-audit-2026-09-04/A2-surfaces.md` first — it documents both the ruling and the
+structural RLS defect this same idea would repeat.
 
 ---
 
@@ -218,23 +220,47 @@ nothing to read back yet.
 
 ## 6. `review-digests`
 
-**Purpose**: run `fsi-app/scripts/review/build-review-digests.mjs --out <dir>` — the
-ratification-digest builder finish-plan-2026-09-02.md's **R1 paragraph** (a sibling lane) is building,
-at the decision's unit (rules, not rows): 927 provisional sources, 331 canonical candidates, 1,457
-portal links, 91 gap dispositions.
+**CORRECTED, Lane REVIEW-WIRE, 2026-09-04**: this section previously said "this script does NOT exist in
+this worktree" — that was true when §6 was first written (R1 was a sibling, not-yet-landed lane) and is
+**no longer true**. `fsi-app/scripts/review/build-review-digests.mjs` exists, is real, tested
+(`scripts/review/build-review-digests.test.mjs` + every `scripts/review/lib/*.test.mjs`), and this MAINT
+step correctly runs it — the "NOT PRESENT" branch below is now dead code on every real dispatch (kept
+only as the same fail-clearly guard it always was, in case a future worktree checkout somehow lacks the
+file). §§13-16 below are the four consumer steps this digest exists to feed
+(`review-apply-provisional-sources`/`review-apply-canonical-candidates`/`review-apply-portal-links`/
+`review-apply-coverage-gaps`), wired for the first time in the same lane.
 
-**This script does NOT exist in this worktree.** This step's whole job is to fail clearly instead of a
-bare "command not found": `mode=dry` reports whether the script is present (and does nothing else);
-`mode=apply` runs it with `--out <this run's artifact dir>` when present, or fails the step
-(`exitCode=1`, note: `NOT PRESENT: ...`) when absent.
+**Purpose**: run `fsi-app/scripts/review/build-review-digests.mjs --out <dir>` — the read-only
+ratification-digest builder for the four review queues never worked (Lane R1, 2026-09-02): 911
+provisional sources (`sources` WHERE `status='provisional'`), 27 canonical candidates
+(`canonical_source_candidates` WHERE `decision='pending'`), 1,837 portal links
+(`portal_link_candidates` WHERE `status='candidate'`, plus 3 already `promoted`), 91 gap dispositions
+(`coverage_gap_candidates` WHERE `disposition IS NULL`) — counts `[CONFIRMED, live SQL via
+mcp__Supabase__execute_sql, project kwrsbpiseruzbfwjpvsp, 2026-09-04]`. (This section previously stated
+a canonical-candidates count of 331, carried over from an earlier, unverified draft of this section — that
+number was never independently measured and is **wrong**; 27 is the actual live count as of this lane's
+own read-only query, run the same day this correction lands.) Writes nothing to the database — only
+`readAll` calls; the ruling JSON it emits is what an operator edits and §§13-16's apply steps are the only
+things that ever write.
 
-**Contract this step depends on** (so R1's lane knows what it must satisfy): the script must accept
-`--out <dir>` and exit 0 on success, writing its digest files under `<dir>`. Nothing else is assumed.
+**Upstream**: `fsi-app/scripts/review/build-review-digests.mjs`'s own `main({out, queue}, {readAll})`,
+called unmodified. Its `QUEUES[]` array is the authoritative map from queue to apply script to MAINT
+step name — the exact names §§13-16 below now use.
 
-**Ruling**: none directly — R1's own write set is what must land before this step can do anything.
+**Dispatch**: `mode=dry` reports whether the script is present (present, live, per the correction above)
+and does nothing else. `mode=apply` runs it with `--out <this run's artifact dir>`, writing
+`<queue>.digest.md` (human-readable, one section per group) and `<queue>.ruling.json` (the file an
+operator edits: sets `decision` on every group) per queue into that dir; the coordinator then commits the
+ruling file(s) under `docs/ratifications/2026-09/` (or wherever the operator is asked to review them)
+before dispatching the matching `review-apply-*` step. `--queue <queue-id>` (not exposed through this
+MAINT step's own `arg` — dispatch the underlying script by hand for a single-queue rebuild) narrows to
+one of `provisional-sources`/`canonical-candidates`/`portal-links`/`coverage-gaps`.
+
+**Ruling**: none — this step only ever reads and writes digest files, never a table.
 
 **Artifact / read back**: whatever `build-review-digests.mjs` writes under the out-dir, uploaded
-whole. `read_back` is always empty by design — this step changes no live table, only files.
+whole. `read_back` is always empty by design — this step changes no live table, only files. See
+`docs/ratifications/2026-09/README.md` for the full "how to rule on a digest" walkthrough.
 
 ---
 
@@ -1411,3 +1437,337 @@ ids>)` (should return zero rows).
 step's file added to the enforced JSON allowlist and the narrative writer-path list as write path 4; that
 entry's prose updated by lane RETEXT-COLLIDE to describe the DELETE path — the JSON allowlist itself is
 unchanged, since it gates by file, not by write verb, and this file was already listed there).
+
+---
+
+## 13. `review-apply-provisional-sources`
+
+**Purpose**: apply an operator-ruled ratification digest for the provisional-sources queue (`sources`
+WHERE `status='provisional'`, 911 rows [CONFIRMED, live SQL, 2026-09-04]). §6's digest builder groups
+these by officialness tier × reachability bucket and recommends `keep`/`suspend`/`skip`; this step turns
+an operator's `decision` on every group into the matching `sources.status` write. Closes
+`docs/audits/wiring-audit-2026-09-04/B1-modules.md`'s Gap #1: the apply script has existed, tested, since
+Lane R1 (2026-09-02) with zero automated caller — this is the first one.
+
+**Upstream**: `fsi-app/scripts/review/apply-provisional-sources.mjs`'s own `main({rulingPath, apply})`,
+called unmodified by `fsi-app/scripts/maintenance/review-apply-provisional-sources.mjs`. The group
+decision → patch mapping (`keep`→`status='active'`, `suspend`→`status='suspended'`, `skip`→no mutation)
+lives in `scripts/review/lib/provisional-sources.mjs`, imported by the upstream script, never by this
+wrapper.
+
+**Ruling**: none by token — gated by the operator's own per-group `decision` field in the ruling JSON
+file itself (an unruled group, `decision: null`, refuses the WHOLE file rather than partially applying —
+`ruling.mjs`'s `validateRuling`).
+
+**Dispatch**: `arg` **is** the ruling-file path, required in BOTH modes (this queue's dry plan is the
+ruled decisions replayed against live rows, not a bare table read — there is no meaningful blank-arg dry
+run either, same posture as `reopen-validation-holds`'s own `arg` gate). Resolved relative to the REPO
+ROOT (the ratifications tree is one level above `fsi-app/`, where this step's own `working-directory` is
+set) — e.g. `arg: docs/ratifications/2026-09/provisional-sources.ruling.json`. Build the ruling file
+first via §6 (`review-digests`, `mode=apply`), then have an operator set `decision` on every group before
+dispatching this step. `mode=dry` parses the ruling and reports the upstream script's own per-group plan
+(`would_apply` counts) with zero writes; refuses (throws, propagated as a failed run) if the ruling is
+malformed or **STALE** (a live row newer than the ruling's own `generated_at` — rebuild the digest and
+re-rule). `mode=apply` writes through `guardedUpdateByIds` per group (rule 015), re-applying
+`status='provisional'` at write time so a row that already left the queue is silently skipped, never
+double-dispositioned.
+
+**Artifact / read back**: `summary.json`'s `plan` (dry) / `applied` (apply, summed across groups) plus
+`read_back` — every row named in the ruling file (every group's `row_ids`, deduped), re-read for its
+post-write `status`. Confirm against `SELECT id, status FROM sources WHERE id = ANY(<ruling row_ids>)`.
+
+**Registration**: not added to `docs/inventories/shared-dataset-ownership.md`'s enforced JSON
+allowlist — `sources` is not a harness/flywheel shared-8 table (the same basis that document's "Open
+leaks summary" items 7/8 already state for `institution-canonicalize.mjs`/`provenance-heal.mjs`'s own
+`sources` writes); see that doc's new item for this lane's writers.
+
+---
+
+## 14. `review-apply-canonical-candidates`
+
+**Purpose**: apply an operator-ruled ratification digest for the canonical-candidates queue
+(`canonical_source_candidates` WHERE `decision='pending'`, 27 rows `[CONFIRMED, live SQL,
+2026-09-04]` — see §6 for the correction to this count). §6's digest builder groups these by
+host of `candidate_url` × `issue_classification` and recommends `accept`/`reject`/`skip`; this step turns
+an operator's `decision` on every group into the matching write(s). The one queue of the four whose
+"accept" path touches TWO tables — see below.
+
+**Upstream**: `fsi-app/scripts/review/apply-canonical-candidates.mjs`'s own `main({rulingPath, apply})`,
+called unmodified by `fsi-app/scripts/maintenance/review-apply-canonical-candidates.mjs`. `reject` →
+`canonical_source_candidates.decision='rejected'` only. `accept` is TWO-PHASE (upstream script's own
+header): a candidate whose `candidate_url` ALREADY canonically matches a registered `sources` row gets
+`canonical_source_candidates.decision='approved'` + `promoted_to_source_id` **and**
+`intelligence_items.source_id`/`source_url` repointed to it (both writes, matching the product's own
+`/admin/canonical-sources/decide` approve flow); a candidate needing a genuinely NEW source (no existing
+registry match) is left untouched and reported under `needs_individual_review` — this digest never
+invents a tier, routing that case through the existing `/admin` UI instead, the same fallback
+`bulk-approve/route.ts` already uses.
+
+**Ruling**: none by token — same per-group `decision`-field gate as §13.
+
+**Dispatch**: `arg` is the ruling-file path, required in BOTH modes, resolved the same way as §13 —
+e.g. `arg: docs/ratifications/2026-09/canonical-candidates.ruling.json`. `mode=dry` reports the plan
+(`would_apply`/`would_review` per accept group, `would_apply` per reject group) plus
+`needs_individual_review` (candidates an "accept" group named that this digest cannot auto-resolve);
+writes nothing. `mode=apply` writes through `guardedUpdateByIds` (rule 015) on both tables for a
+resolvable accept, on `canonical_source_candidates` alone for a reject.
+
+**Artifact / read back**: `summary.json`'s `plan` / `needs_individual_review` (dry) and `applied` (apply,
+summed across groups) plus a **two-table** `read_back`: every candidate row named in the ruling
+(`candidates_named_in_ruling`/`candidates_now_live`, columns `id,decision,promoted_to_source_id,
+intelligence_item_id`), and — chained off `intelligence_item_id` for every `approved` candidate only —
+the `intelligence_items` rows it repointed (`repointed_items_checked`, columns `id,source_id,
+source_url`). Confirm against `SELECT id, decision, promoted_to_source_id FROM
+canonical_source_candidates WHERE id = ANY(<ruling row_ids>)` and, for the repointed items, `SELECT id,
+source_id, source_url FROM intelligence_items WHERE id = ANY(<their intelligence_item_id values>)`.
+
+**Registration**: `canonical_source_candidates` is not a harness/flywheel shared-8 table (same basis as
+§13); `intelligence_items` **is** one — see `docs/inventories/shared-dataset-ownership.md`'s
+`intelligence_items` array, which this lane adds `scripts/review/apply-canonical-candidates.mjs` to.
+
+---
+
+## 15. `review-apply-portal-links`
+
+**Purpose**: apply an operator-ruled ratification digest for the portal-links queue
+(`portal_link_candidates` WHERE `status='candidate'`, **1,837** rows vs **3** `promoted`
+[CONFIRMED, live SQL, 2026-09-04] — the single largest of the four queues, and the one
+`docs/audits/wiring-audit-2026-09-04/B1-modules.md`'s Gap #1 names by count). §6's digest builder groups
+these by portal host (the registered source the link was found on) × link pattern (which
+legal-instrument signal matched) and recommends `link`/`drop`/`skip`.
+
+**Upstream**: `fsi-app/scripts/review/apply-portal-links.mjs`'s own `main({rulingPath, apply})`, called
+unmodified by `fsi-app/scripts/maintenance/review-apply-portal-links.mjs`. `drop` →
+`status='rejected'` + `disposition_reason`/`dispositioned_at` (migration 220) — this is the one real
+mutation, removing chaff from the classify pipeline's cost before it ever spends on these rows. `link` →
+**no mutation** — `status='promoted'` already means "minted, item_id stamped" to
+`src/lib/intake/portal-harvest.ts`'s `stamp()` and to `scripts/turns/run-ledger-consume.mjs`'s
+`PROMOTED_LIKE_DISPOSITIONS`; writing it here (this digest mints nothing) would forge that signal and
+permanently hide these rows from the real consume step. A `link`-ruled row stays `'candidate'` — exactly
+where `run-ledger-consume.mjs`'s `consumePortalCandidates` already looks for it — the operator's
+affirmative ruling lives in the committed ruling JSON, the audit trail, not an invented DB state.
+
+**Ruling**: none by token — same per-group `decision`-field gate as §13.
+
+**Dispatch**: `arg` is the ruling-file path, required in BOTH modes, resolved the same way as §13 — e.g.
+`arg: docs/ratifications/2026-09/portal-links.ruling.json`. `mode=dry` reports the upstream script's own
+per-group plan; writes nothing. `mode=apply` writes through `guardedUpdateByIds` (rule 015) — only for
+`drop`-decided groups; `link`/`skip` groups always report `applied: 0`.
+
+**Artifact / read back**: `summary.json`'s `plan` (dry) / `applied` (apply, summed across groups — will
+be 0 whenever every ruled group is `link`/`skip`, which is not a failure) plus `read_back` — every row
+named in the ruling, re-read for `status`/`disposition_reason`. Confirm against `SELECT id, status,
+disposition_reason FROM portal_link_candidates WHERE id = ANY(<ruling row_ids>)`. This queue's real
+progress metric is the **1,837 → fewer `candidate` rows** count over successive `drop`-heavy rulings, not
+this step's own `applied` figure alone (a `link` ruling correctly leaves the row `candidate`, awaiting
+`run-ledger-consume.mjs`).
+
+**Registration**: not added to the enforced JSON allowlist — `portal_link_candidates` is not a
+harness/flywheel shared-8 table (same basis as §13).
+
+---
+
+## 16. `review-apply-coverage-gaps`
+
+**Purpose**: apply an operator-ruled ratification digest for the coverage-gaps queue
+(`coverage_gap_candidates` WHERE `disposition IS NULL`, 91 rows). §6's digest builder groups these by
+`coverage_class` (migration 214's evidence hierarchy) × `jurisdiction` × `transport_mode` and recommends
+`kept`/`declined`/`parked`/`skip`.
+
+**Upstream**: `fsi-app/scripts/review/apply-coverage-gaps.mjs`'s own `main({rulingPath, apply})`, called
+unmodified by `fsi-app/scripts/maintenance/review-apply-coverage-gaps.mjs`. `kept` →
+`disposition='kept'` alone. `declined`/`parked` → `disposition` set **and** a uniform `surface_test`
+JSON (`{regulations, operations, market_intel, research, community}`, each `{verdict, reason}`) attached
+across all five keys — migration 273's `coverage_gap_candidates_surface_test_required_check` requires one
+for any non-null, non-`'kept'` disposition; this queue's gaps are not surface-specific (an instrument's
+absence isn't scoped to one surface), so the group's own rule rationale is recorded uniformly.
+
+**Ruling**: none by token — same per-group `decision`-field gate as §13.
+
+**Dispatch**: `arg` is the ruling-file path, required in BOTH modes, resolved the same way as §13 — e.g.
+`arg: docs/ratifications/2026-09/coverage-gaps.ruling.json`. `mode=dry` reports the upstream script's own
+per-group plan; writes nothing. `mode=apply` writes through `guardedUpdateByIds` (rule 015).
+
+**Artifact / read back**: `summary.json`'s `plan` (dry) / `applied` (apply, summed across groups) plus
+`read_back` — every row named in the ruling, re-read for `disposition`. Confirm against `SELECT id,
+disposition FROM coverage_gap_candidates WHERE id = ANY(<ruling row_ids>)`.
+
+**Registration**: not added to the enforced JSON allowlist — `coverage_gap_candidates` is not a
+harness/flywheel shared-8 table (same basis as §13).
+
+---
+
+## 17. `apply-classifications`
+
+**Documentation gap closed, Lane REVIEW-WIRE, 2026-09-04**: this step has existed and run in
+`.github/workflows/maintenance.yml` since Lane CLASSIFY-STEP (2026-09-04) — `docs/audits/
+wiring-audit-2026-09-04/A1-runtimes.md` lists it `WIRED+USED` (session-log #25: "apply
+`apply-classifications`: 1,015 flags inserted, 797 auto-adopted") but flagged it as one of 4 steps
+missing from this runbook. This section is that missing documentation, written from
+`scripts/maintenance/apply-classifications.mjs`'s own header.
+
+**Purpose**: orchestrate the full source-classification `propose → auto-adopt` pipeline in one dispatch
+(operator ruling 2026-09-03 retires the human-gate-for-everything posture for deterministic axes).
+`propose-classifications.mjs` and `apply-classifications.mjs`'s own core existed but never ran as part of
+any turn — this step is the missing coordinator-dispatch runtime.
+
+**Upstream**: `scripts/classification/apply-classifications.mjs`'s `evaluateAutoAdoption`/
+`autoAdoptClassification`, `src/lib/classification/classify-source.mjs`'s
+`proposeSourceAxisClassification`, `src/lib/classification/routing.mjs`'s `detectDrift`/
+`isAnomalousCategory` — all imported and orchestrated (not reimplemented) by
+`scripts/maintenance/apply-classifications.mjs`.
+
+**What it does**: Dry — computes fresh Axis 3/4/5 proposals (classify gaps, drift, item-category
+anomalies) as `integrity_flags`, without writing, then evaluates every resulting OPEN
+source-classification flag for what `--auto-adopt` would adopt (`eligible` vs `below_threshold`). Apply —
+runs the propose logic with real writes (new `integrity_flags` rows, stale ones resolved), then runs
+`autoAdoptClassification` for every OPEN source-classification flag, writing only the high-confidence
+(`scope_modes`/`scope_verticals` at `"high"` confidence — a decisive name match) and deterministic
+(`expected_output`, a closed role→default lookup) fields through the guarded path. `scope_topics` stays
+ratification-only (an undecidable "regular and material coverage" judgment); `sources.jurisdictions` is
+**never** written by this step — a jurisdiction proposal, if any, rides along in the flag's description
+as advisory-only and is filtered out before any auto-adopt patch is built.
+
+**Ruling**: the operator's own 2026-09-03 ruling (cited above) — no per-dispatch token; the axis-level
+auto-adopt eligibility rules are the gate.
+
+**Dispatch**: no `arg`. `mode=dry` reports the fresh proposal counts and the auto-adopt eligibility
+split. `mode=apply` writes through the guarded path (rule 015).
+
+**Artifact / read back**: `summary.json`'s counts for proposed/resolved/auto-adopted flags, per-source
+detail. Confirm against `SELECT resolution_note, count(*) FROM integrity_flags WHERE resolution_note LIKE
+'auto-adopted:%' GROUP BY 1` (the `auto-adopted:<kind>:<confidence>` format ADR-025 specifies).
+
+---
+
+## 18. `seed-benchmark-instruments`
+
+**Documentation gap closed, Lane REVIEW-WIRE, 2026-09-04** (`docs/audits/wiring-audit-2026-09-04/
+A1-runtimes.md`: `WIRED+USED`, session-log "`seed-benchmark-instruments` dry (run #5) then apply", but
+undocumented here). Written from `scripts/community/seed-benchmark-instruments.mjs`'s own header.
+
+**Purpose**: the house-seeded recurring benchmark (spec 05 §3, required component 4 — "the dominant
+failure is the empty room... Gartner does not wait for organic critical mass"). Instantiates a small,
+FIXED calendar of house-authored benchmark questions (`CALENDAR_TEMPLATES`, each scoped to a
+`sector_profile` or global, and a cadence — monthly/quarterly/annual) as `community_benchmark_instruments`
+rows (migration 294) for the CURRENT period, the first time this step runs after that period begins.
+Re-running for an already-seeded period is a no-op (idempotent — `planSeeding()`, pure, unit-tested).
+
+**What it does NOT do**: never writes `community_posts`, never impersonates a member — this script seeds
+AGGREGATE instrument DEFINITIONS only (the question, window, field). Individual responses arrive later
+through a member-facing submission path this script's own interface contract does not name; the
+published aggregate is served by `GET /api/community/benchmarks/current`
+(`src/lib/community/benchmark.mjs`), never by this script.
+
+**Upstream**: `scripts/community/seed-benchmark-instruments.mjs`'s own `main({apply, now}, deps)` — no
+separate MAINT wrapper; this workflow step invokes the script directly (unlike every other maintenance
+step, which goes through `scripts/maintenance/lib/cli.mjs`'s `runCli`), because this script already ships
+its own dry-by-default CLI matching the same contract (`--apply` for writes).
+
+**Ruling**: none by token — the mechanism itself is the standing ruling (spec 05 §3's own antitrust-safe,
+aggregate-only, no-impersonation posture).
+
+**Dispatch**: no `arg`, no `--mode` (this step is `node ... [--apply]`, not the `cli.mjs` convention).
+`mode=dry` (workflow's `RUN_MODE != apply`) runs the script with no `--apply` flag: lists what would be
+created (`would_create`) and what's already seeded (`skipped`) for the current period; writes nothing.
+`mode=apply` runs it with `--apply`: creates this period's not-yet-seeded instruments through
+`guardedInsertMany` (rule 015).
+
+**Artifact / read back**: this step's own console summary (`{mode, existing, would_create, skipped,
+created}`) — it does NOT go through `cli.mjs`'s `runCli`, so no `summary.json` is written to this run's
+out-dir the way every other step's is (the workflow step has no `mkdir -p "$OUT_ROOT/..."` / `--out`
+line). Confirm against `SELECT key, sector_profile, region, period_start FROM
+community_benchmark_instruments ORDER BY period_start DESC`.
+
+---
+
+## 19. `spec09-reroute`
+
+**Documentation gap closed, Lane REVIEW-WIRE, 2026-09-04** (`docs/audits/wiring-audit-2026-09-04/
+A1-runtimes.md`: `[HYPOTHESIS]` "dispatch-only, no schedule" per session-log Addendum 85, no explicit
+apply-count evidence found that session). Written from `scripts/spec09/reroute-producer.mjs`'s own
+header; **this step ships 0 rows by design, not by defect** — see below.
+
+**Purpose**: `reroute_events` (migration 296, spec 09 §1.7) producer. **$0 SOURCING STATUS: GAP** — a
+different shape from every other spec-09 producer (see `scripts/spec09/SOURCES.md`). The well-documented
+public fact (the Suez/Cape Red Sea diversion) exists, but this table requires TWO DISTINCT
+`entities.kind='corridor'` rows (a baseline + a reroute pairing), and only ONE corridor entity
+(`CNSHA-NLRTM:ocean`, lane CORR's wave-2 seed) exists in the spine today. This producer reads the live
+corridor entity count and reports the honest gap — it never invents a second corridor id (minting one is
+`entities`/`entity_kind` territory, `scripts/entities/**`, out of this producer's own write set).
+
+**Upstream**: `scripts/spec09/reroute-producer.mjs`'s own `evaluateCorridorReadiness` (pure decision over
+a list of live corridor rows, unit-tested directly against a fixture) + `main({mode}, {readAll,
+guardedInsertMany})`.
+
+**Ruling**: none — the gap is structural (corridor-entity count), not a ruling-gated decision.
+
+**Dispatch**: no `arg`. `mode=dry` reads the live `entities WHERE kind='corridor'` count and reports the
+gap (`counts.corridor_entities_found`, `gap` — a human-readable string naming exactly what's missing).
+`mode=apply` calls `guardedInsertMany("reroute_events", [], ...)` — an empty-array insert, i.e. `applied:
+0` always, until a second corridor entity exists AND a producer-confirmed reroute pairing (cause +
+`fuel_burn_multiplier`, sourced and dated) is built — neither of which this producer alone decides (per
+its own `evaluateCorridorReadiness`, `ready` is never `true` from corridor count alone).
+
+**Artifact / read back**: `summary.json`'s `counts.corridor_entities_found` / `counts.to_insert` (always
+0 today) and `gap`. Confirm against `SELECT count(*) FROM entities WHERE kind='corridor'` and `SELECT
+count(*) FROM reroute_events` (both expected unchanged by any dispatch until the corridor-entity gap
+closes).
+
+---
+
+## 20. `institution-canonicalize`
+
+**Documentation gap closed, Lane REVIEW-WIRE, 2026-09-04** (`docs/audits/wiring-audit-2026-09-04/
+A1-runtimes.md`: `WIRED-NOT-RUN` — "dry only, per the one dispatch found"). Written from
+`scripts/maintenance/institution-canonicalize.mjs`'s own header (Lane SRC-TIER, 2026-09-03).
+
+**Purpose**: fixes the "duplicate-row defect" source-credibility-model SKILL.md §3 names ("Canonical
+institutional tier — one tier per institution"): a real institution split across TWO `institutions` rows,
+or one institution whose `sources` rows disagree on `base_tier`. Measured live example: "Smart Freight
+Centre" held two institution rows (one on `smartfreightcentre.org`, `base_tier` 4; one on `amazonaws.com`
+— an S3-hosted PDF's host — `base_tier` 5), which failed "GLEC Framework v3"'s own-body authority floor
+because the standard's own text resolved through the mis-keyed S3 row.
+
+**Upstream**: no prior script existed to wrap — this is a from-scratch repair built directly from
+SKILL.md §3's own rule text, entirely inside `scripts/maintenance/institution-canonicalize.mjs`. THREE
+PARTS, only two write:
+- **Part A, mis-keyed institution merge** (deterministic, applies): an `institutions` row whose
+  `registrable_domain` is a GENERIC HOSTING domain (an explicit, no-fuzzy-rule list — S3/CDN/etc.) and
+  whose `name` matches (case/whitespace-insensitive, exact) exactly one OTHER institution with a real
+  domain is a mis-keyed duplicate — every `sources.institution_id` pointing at it is re-pointed to the
+  canonical row, and the now-unreferenced duplicate is deleted. Zero name matches → skipped. More than one
+  match → REFUSED (ambiguous; reported, never guessed).
+- **Part B, intra-institution tier canonicalisation** (deterministic, applies), evaluated on the
+  POST-MERGE grouping: for every institution whose non-`tier_override` `sources` rows carry more than one
+  distinct `base_tier`, the canonical tier is whatever single tier the institution's OWN-registrable-domain
+  rows already agree on; every other row is set to it (and `effective_tier` too, only where it still
+  equals the old `base_tier`). Never writes a tier no row of the institution already carries. If the
+  institution's own-domain rows themselves disagree → reports `tier_conflict_unresolved` (an operator
+  call). No own-domain rows at all → reports `no_own_domain_rows` (never a majority-vote guess).
+- **Part C, class-tier gap report** (dry-only, NEVER applies, computed regardless of `--mode`): lists
+  every active/provisional `source_role='standards_body'` source whose `base_tier` is worse than the
+  class-table floor (T4), grouped by host — ifrs.org/cdp.net/sciencebasedtargets.org are the live T5
+  examples. Never auto-applied: ADR-002 states `base_tier` "never changes except via explicit operator
+  override," and raising an already-registered source's tier is a credibility ruling, not a defect repair.
+
+**Ruling**: Part A/B are mechanical defect repair (no ruling needed — they only ever restore/merge onto a
+tier or identity a row of the SAME institution already carries). Part C's `ruling_needed` list is exactly
+that: named for the operator, never applied here.
+
+**Dispatch**: no `arg`. `mode=dry` computes and reports all three parts' plans (`part_a_merge`,
+`part_b_tier`, `part_c_ruling_needed`); writes nothing. `mode=apply` executes Part A then Part B (in that
+order — Part B evaluates the merge-simulated `sources` set so a re-pointed row lands under its real
+institution before tier canonicalization looks at it); Part C is still only ever reported, never written.
+
+**Artifact / read back**: `summary.json`'s `counts.part_a_merge`/`part_b_tier`/`part_c_ruling_needed`
+(each carrying its own `plan` array). Confirm Part A against `SELECT institution_id, count(*) FROM
+sources GROUP BY 1` (the merged-away duplicate id should have 0 rows) and Part B against `SELECT
+institution_id, base_tier, count(*) FROM sources WHERE tier_override IS NULL GROUP BY 1,2` (each
+institution should show at most one `base_tier` among its non-override rows once canonicalized).
+
+**Registration**: not added to the enforced JSON allowlist — neither `sources` nor `institutions` is a
+harness/flywheel shared-8 table; recorded narratively in
+`docs/inventories/shared-dataset-ownership.md`'s "Open leaks summary" item 8 (already present, added by
+Lane SRC-TIER itself — this section only documents the runbook side, no change to that doc needed for
+this step).

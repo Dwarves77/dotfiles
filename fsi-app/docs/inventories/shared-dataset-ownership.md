@@ -61,7 +61,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/maintenance/provenance-heal.mjs",
       "scripts/maintenance/record-hollow-sweep.mjs",
       "scripts/maintenance/canonical-key-dedup.mjs",
-      "scripts/turns/run-population-flywheel.mjs"
+      "scripts/turns/run-population-flywheel.mjs",
+      "scripts/review/apply-canonical-candidates.mjs"
     ],
     "item_cross_references": [
       "src/lib/intake/mint-item.ts",
@@ -236,6 +237,7 @@ narrow-touch-for-recompute / tombstone-delete), not a data column.
 | `scripts/maintenance/record-hollow-sweep.mjs` (Lane HOLLOW-SWEEP, 2026-09-04) | UPDATE — archives a live verified `item_grade='record'` row whose FACT claims are title-only (`archive_reason='record_hollow'`, `provenance_status→'unverified'`) AND, in the SAME write, releases `canonical_instrument_key`/`instrument_identifier`/`source_url` (to `null`/`null`/`''`) so the archived row stops matching `apply-mint-batch.mjs`'s `checkM4` / `export-census-rows.mjs`'s `buildHeldKeyIndex` (both hold archived rows as blockers too — see the step's own header) and the census row can re-mint. `--arg restore:<id,...>` reverses via `guardedUpdate` from this same script's own prior-state snapshot. Never touches `section_claim_provenance`/`intelligence_item_sections`/`item_cross_references` — claims, sections, and edges are left exactly as they are. | `guardedUpdateByIds("intelligence_items", ids, patch, { cite: CITE, applyMatch, select })` in `buildDeps().archiveTargets`; `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: RESTORE_CITE, select })` in `buildDeps().restoreOne` |
 | `scripts/maintenance/canonical-key-dedup.mjs` (Lane DEDUP, 2026-09-04) | UPDATE — keeps the single live verified row per `canonical_instrument_key`, archives the others (`archive_reason='duplicate_of_verified'`, `provenance_status→'unverified'`) AND, in the SAME write, releases `canonical_instrument_key`/`instrument_identifier`/`source_url` (to `null`/`null`/`''`) so the archived duplicate rows stop matching `apply-mint-batch.mjs`'s `checkM4` / `export-census-rows.mjs`'s `buildHeldKeyIndex` and the census row can re-mint. Enforces invariant EP-11 (ADR-021). `--arg restore:<id,...>` reverses via `guardedUpdate` from this same script's own prior-state snapshot. Never touches claims, sections, or edges. | `guardedUpdateByIds("intelligence_items", ids, patch, { cite: CITE, applyMatch, select })` in `buildDeps().archiveTargets`; `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: CITE })` in `buildDeps().updateKeepers`; `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: RESTORE_CITE, select })` in `buildDeps().restoreOne` |
 | `scripts/turns/run-population-flywheel.mjs` (Lane TANDEM, 2026-09-04) | UPDATE (`intelligence_items`, `integrity_flags`) — THE FLYWHEEL, MINT-RUNBOOK.md §8/§9: `.github/workflows/population-turn.yml`'s own post-apply step, run automatically after every batch apply, never a separate hand-run pass (THE DEFECT this lane closed: population runs #15-#20 minted ~650 items with zero downstream connection/tag/obligation writes because nothing triggered §8/§9 before this driver existed). Its `buildTagProposalsDeps`/`buildTagRatificationDeps` are third and fourth call sites of the SAME `tag-proposals.mjs`/`tag-ratification.mjs` merge-only tag write and flag-resolve/flag-insert paths the two rows above already register — this driver imports and calls those scripts' own exported `main(opts, deps)` unmodified (never re-implements their write logic), passing deps shaped identically to their own `IS_MAIN` blocks so the literal `guardedInsertMany`/`guardedUpdate`/`.from(...).update(...)` call sites live in THIS file (hence a new registry entry) while the decision logic they invoke stays in `tag-proposals.mjs`/`tag-ratification.mjs` unchanged. Scoped to exactly the batch's own minted item ids (`--arg ids:<...>` for tag-proposals; `tag-ratification.mjs --arg auto` runs its normal system-wide auto-adoption sweep, honestly noted in this driver's own comments as the one step not batch-scoped). | `db.guardedInsertMany("integrity_flags", rows, { cite: TAG_PROPOSALS_CITE, select: "id" })` in the tag-proposals deps' `insertMany`; `db.guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: TAG_RATIFICATION_CITE })` and `sb.from("integrity_flags").update(...)` / `.select(...)` in the tag-ratification deps' `updateItem`/`resolveFlag`/`readFlag` |
+| `scripts/review/apply-canonical-candidates.mjs` (Lane REVIEW-WIRE, 2026-09-04) | UPDATE (`intelligence_items`, narrow) — the "accept" arm of the `canonical_source_candidates` ratification-digest apply (see that table's own section below, and `docs/runbooks/MAINTENANCE-RUNBOOK.md` §14). A ruled `decision:"accept"` group is a two-phase write: it first resolves whether the candidate's canonical URL is ALREADY a registered `sources` row; only when it is does it repoint the single citing `intelligence_items` row's `source_id`/`source_url` onto that existing source (never mints a new `sources` row itself — an unresolvable candidate is routed to `needs_individual_review` instead, a report-only outcome with no write). This is the table's ONLY writer that touches `source_id`/`source_url` outside the intake/mint chokepoints (`mint-item.ts`, `apply-staged-update.ts`) and outside `canonical-pipeline.ts`'s own re-grounding path — narrow by construction: at most one row per ruled-and-resolvable candidate, gated behind an operator-signed ruling file (`validateRuling` refuses any group with no `decision` set) and a staleness check (`isRulingStale` refuses a ruling whose `generated_at` predates the row's own `updated_at`). Dispatched via the new MAINT step `review-apply-canonical-candidates` (`fsi-app/scripts/maintenance/review-apply-canonical-candidates.mjs`), which imports this file's exported `main({rulingPath, apply}, deps)` unmodified and never re-implements the accept/resolve logic. | `guardedUpdateByIds("intelligence_items", [itemId], { source_id, source_url }, { cite: CITE, applyMatch, select })` in `apply-canonical-candidates.mjs`'s per-group accept branch |
 
 Replace policy: guarded per-row UPDATE/INSERT (never a bulk replace); DELETE is single-purpose and
 gated behind a tombstone write (see `tombstone-delete.mjs` above) — this is a **guarded delete**, not a
@@ -817,3 +819,34 @@ re-implementing it, the same distinction that keeps it off the enforced JSON arr
    of this registry's scope by design") — neither is a harness/flywheel shared-8 table. Recorded here,
    narratively, for the same first-writer-disclosure reason as item 7, not because the write needs
    allowlisting.
+
+10. **`sources` (`status`) / `portal_link_candidates` (`status`, `disposition_reason`) /
+    `canonical_source_candidates` (`decision`, `promoted_to_source_id`) / `coverage_gap_candidates`
+    (`disposition`)** — added by Lane REVIEW-WIRE (2026-09-04), wiring the four ratification-digest apply
+    scripts (`scripts/review/apply-provisional-sources.mjs`, `apply-portal-links.mjs`,
+    `apply-canonical-candidates.mjs`, `apply-coverage-gaps.mjs` — all pre-existing, tested, and already
+    writing through the guarded path before this lane; see `docs/audits/wiring-audit-2026-09-04/B1-modules.md`
+    gap #1) into `.github/workflows/maintenance.yml` for the first time, via four new thin MAINT wrappers
+    (`scripts/maintenance/review-apply-{provisional-sources,portal-links,canonical-candidates,coverage-gaps}.mjs`,
+    built in the exact `reopen-validation-holds.mjs` pattern: each imports the review script's own exported
+    `main({rulingPath, apply}, deps)` unmodified, never re-implementing the group→decision→patch logic that
+    lives in `scripts/review/lib/{provisional-sources,portal-links,canonical-candidates,coverage-gaps}.mjs`).
+    None of the four tables is added to the enforced JSON allowlist above — `sources` is explicitly named
+    out-of-scope by the shared-writer-registry test's own header (the same basis items 7 and 8 already
+    state), and `portal_link_candidates`/`canonical_source_candidates`/`coverage_gap_candidates` are review
+    queues, not harness/flywheel shared-8 tables, by the same "table more than one live path writes" /
+    shared-8 criterion this document applies everywhere else — none of these four has a second writer.
+    (`canonical_source_candidates`'s "accept" path additionally repoints one `intelligence_items` row per
+    resolvable candidate — that IS a shared-8 table, and `scripts/review/apply-canonical-candidates.mjs` is
+    now in its JSON array above, with its own detail-table row in that table's section.) Confirmed by
+    running `.discipline/shared-writer-registry.test.mjs` against this tree after adding the four wrappers
+    and their upstream `apply-*.mjs` writers: it still passes — every write from these five files goes
+    through `guardedUpdateByIds(m.TABLE, ...)` with `m.TABLE` a dynamic property read off an imported module
+    (`ProvisionalSources.TABLE`, `PortalLinks.TABLE`, `CoverageGaps.TABLE`), never a string literal first
+    argument, so the scanner's `GUARDED_RE` regex — which also does not match the `guardedUpdateByIds` name
+    at all, only `guardedInsertMany`/`guardedInsert`/`guardedUpdate`/`guardedDelete`/`archiveRows` — does not
+    and structurally cannot see these calls; this is the same gap the scanner already has for the
+    pre-existing `apply-canonical-candidates.mjs`→`intelligence_items` write (unaffected by this lane, not
+    introduced by it), noted here so the doc stays honest that "passes the scanner" is not the same claim as
+    "the scanner enforces this," for these five files specifically. Recorded here, narratively, on the same
+    first-writer-disclosure basis as items 7, 8, and 9.
