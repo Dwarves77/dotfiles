@@ -9671,3 +9671,20 @@ nowhere and are reported. Tests 265 in the mint and wrapper suites. The strip ap
 operator's yes (put to him at 09:25); the dry run goes out first so he can read the excerpts.
 Dispatch next: provenance-heal dry `quarantined-live` under this code; backlog apply from
 mint-run-005; forward-events-retext dry under FWD-TEXT-2.
+
+### Addendum 85, postscript 41 — the stamps that never reached master (2026-09-04)
+
+Train/wave29 landed as #576 (`e1a0287`). Backlog apply #29 (run 33863479459) ran mint-run-005, 006,
+011 and 012 through every step with no failure [CONFIRMED from the log] and then lost all four
+connection stamps: the artifact-branch push was refused with "refusing to allow a GitHub App to
+create or update workflow `.github/workflows/maintenance.yml` without `workflows` permission",
+the same refusal #26 hit, because HEAL-10's train (which touches maintenance.yml) landed on master
+while the run was executing and the branch based on the run's checkout carried the older workflow
+file [INFERRED from GitHub's rule and the timing; the artifact commits themselves touch no
+workflow]. The DB writes are idempotent, but without the stamps the next backlog dispatch re-selects
+the same artifacts, so this is a structural loss on a day with a train every twenty minutes.
+BRANCH-BASE (this train): the six workflows that push an artifact branch (population-turn,
+corpus-turn, change-detection, ledger-consume, propagation-drain, source-sweep) fetch master to
+depth 50 and rebase the single artifact commit onto it before the push; a rebase that cannot apply
+aborts and fails the step loudly. Retext apply #35 is queued behind heal dry #34 (HEAL-10's first
+run). Dispatch next: backlog apply again (005/006/011/012 re-run, this time with the stamps landing).
