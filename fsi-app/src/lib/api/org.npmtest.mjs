@@ -17,7 +17,12 @@ import { createJiti } from "jiti";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
-const { resolveOrgIdFromAuthenticatedClient, resolveOrgIdFromCookies } = await jiti.import("./org.ts");
+const {
+  resolveOrgIdFromAuthenticatedClient,
+  resolveOrgIdFromCookies,
+  resolveViewerIdentityFromAuthenticatedClient,
+  resolveViewerIdentityFromCookies,
+} = await jiti.import("./org.ts");
 
 /** Minimal fake Supabase client covering exactly the calls
  *  resolveOrgIdFromAuthenticatedClient issues: auth.getClaims(), then
@@ -138,4 +143,60 @@ test("membership query error → null (fail-soft, matches pre-existing contract)
 test("resolveOrgIdFromCookies outside a request context → fails soft to null, never throws", async () => {
   const orgId = await resolveOrgIdFromCookies();
   assert.equal(orgId, null);
+});
+
+// ── PERF-9 (2026-09-04, item 4, ADR-026 §3): resolveViewerIdentityFromAuthenticatedClient / Cookies —
+// the two-stage (getClaims → org_memberships) alternative to resolveServerBootstrap's three-stage read,
+// used by the four detail pages' watchMembershipPromise. Same fakeSupabase() shape as the
+// resolveOrgIdFromAuthenticatedClient tests above; this function additionally returns userId. ──
+
+test("viewer identity: authenticated, membership found → { userId, orgId }", async () => {
+  const supabase = fakeSupabase({
+    claimsData: { claims: { sub: "user-123", role: "authenticated" } },
+    membershipData: { org_id: "org-abc" },
+  });
+  const identity = await resolveViewerIdentityFromAuthenticatedClient(supabase);
+  assert.deepEqual(identity, { userId: "user-123", orgId: "org-abc" });
+});
+
+test("viewer identity: authenticated, no membership row → { userId, orgId: null }", async () => {
+  const supabase = fakeSupabase({
+    claimsData: { claims: { sub: "user-123", role: "authenticated" } },
+    membershipData: null,
+  });
+  const identity = await resolveViewerIdentityFromAuthenticatedClient(supabase);
+  assert.deepEqual(identity, { userId: "user-123", orgId: null });
+});
+
+test("viewer identity: unauthenticated (getClaims error) → { userId: null, orgId: null }, org_memberships never queried", async () => {
+  const supabase = {
+    auth: { async getClaims() { return { data: null, error: { message: "no session" } }; } },
+    from() { throw new Error("must not query org_memberships when unauthenticated"); },
+  };
+  const identity = await resolveViewerIdentityFromAuthenticatedClient(supabase);
+  assert.deepEqual(identity, { userId: null, orgId: null });
+});
+
+test("viewer identity: claims with no sub → { userId: null, orgId: null }, no membership query", async () => {
+  const supabase = {
+    auth: { async getClaims() { return { data: { claims: {} }, error: null }; } },
+    from() { throw new Error("must not query org_memberships with no sub"); },
+  };
+  const identity = await resolveViewerIdentityFromAuthenticatedClient(supabase);
+  assert.deepEqual(identity, { userId: null, orgId: null });
+});
+
+test("viewer identity: membership query error → { userId, orgId: null } (fail-soft, matches resolveOrgIdFromAuthenticatedClient's contract)", async () => {
+  const supabase = fakeSupabase({
+    claimsData: { claims: { sub: "user-789" } },
+    membershipData: null,
+    membershipError: { message: "connection reset" },
+  });
+  const identity = await resolveViewerIdentityFromAuthenticatedClient(supabase);
+  assert.deepEqual(identity, { userId: "user-789", orgId: null });
+});
+
+test("resolveViewerIdentityFromCookies outside a request context → fails soft to { userId: null, orgId: null }, never throws", async () => {
+  const identity = await resolveViewerIdentityFromCookies();
+  assert.deepEqual(identity, { userId: null, orgId: null });
 });

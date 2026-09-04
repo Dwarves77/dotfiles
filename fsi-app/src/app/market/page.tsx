@@ -29,7 +29,7 @@
 import { getMarketIntelItems, getSurfaceCounts } from "@/lib/data";
 import { fetchMarketSeriesBoard } from "@/lib/supabase-server";
 import { getServiceSupabase } from "@/lib/supabase-service";
-import { resolveServerBootstrap } from "@/lib/api/server-bootstrap";
+import { resolveViewerIdentityFromCookies } from "@/lib/api/org";
 import { fetchWatchMembership, type WatchMembershipEntry } from "@/lib/watchlist/membership";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { MarketIntelLedger } from "@/components/market/MarketIntelLedger";
@@ -132,14 +132,19 @@ export default async function Market() {
   // WO-16 layer 3: the market_series board runs alongside the category-routed rows above — a
   // separate table, separate fetcher (fetchMarketSeriesBoard fails soft to the empty/unpopulated
   // registry state, never throws), so its absence or emptiness never blocks the signal ledger.
-  const [marketIntel, aggregates, seriesBoard, bootstrap] = await Promise.all([
+  // PERF-9 (2026-09-04, item 4, ADR-026 §3): was `resolveServerBootstrap()` — React.cache()-scoped,
+  // reusing the root layout's own request-scoped result on a document load, but on an RSC navigation
+  // the root layout skips calling it entirely (isRscNavigation), leaving this the sole caller, paying
+  // its full THREE sequential round trips (getClaims → org_memberships+profiles →
+  // workspace_settings) as one branch of this very Promise.all — and `workspaceSectors`, the field
+  // that third stage exists for, is never read below (only `user.id`/`orgId` are). Replaced with
+  // resolveViewerIdentityFromCookies (org.ts), the same two-stage (getClaims → org_memberships)
+  // resolver the four detail pages now use, for the identical reason.
+  const [marketIntel, aggregates, seriesBoard, identity] = await Promise.all([
     getMarketIntelItems(),
     getSurfaceCounts("market"),
     fetchMarketSeriesBoard(),
-    // React.cache()-scoped (src/lib/api/server-bootstrap.ts) — the root layout already resolved
-    // this once for the current request (or will, for a full document load); this call reuses that
-    // same result rather than paying a second Supabase round trip.
-    resolveServerBootstrap(),
+    resolveViewerIdentityFromCookies(),
   ]);
 
   // PERF-3 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md item 2): one batched watchlist
@@ -152,8 +157,8 @@ export default async function Market() {
     .filter((id): id is string => !!id);
   const marketSeriesWatchMembership: Map<string, WatchMembershipEntry> = marketSeriesIds.length
     ? await fetchWatchMembership(getServiceSupabase(), {
-        userId: bootstrap.user?.id ?? null,
-        orgId: bootstrap.orgId,
+        userId: identity.userId,
+        orgId: identity.orgId,
         itemType: "market_series",
         itemIds: marketSeriesIds,
       })

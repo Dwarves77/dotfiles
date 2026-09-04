@@ -31,7 +31,7 @@ import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import { getServiceSupabase } from "@/lib/supabase-service";
-import { resolveServerBootstrap } from "@/lib/api/server-bootstrap";
+import { resolveViewerIdentityFromCookies } from "@/lib/api/org";
 import { fetchWatchMembership, lookupWatchMembership } from "@/lib/watchlist/membership";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { OperationsDetailSurface } from "@/components/operations/OperationsDetailSurface";
@@ -113,13 +113,17 @@ export default async function OperationsDetailPage({
   // watch membership for THIS item shares no data dependency with loadDetail — id (already resolved
   // above, and provably equal to the eventual result.resource.id — see the same note in
   // regulations/[slug]/page.tsx) is all it needs, plus the viewer's userId/orgId.
-  // resolveServerBootstrap() is React.cache()-scoped, reusing the root layout's own request-scoped
-  // result (no second Supabase round trip).
+  //
+  // PERF-9 (2026-09-04, item 4, ADR-026 §3): was `resolveServerBootstrap()` (three sequential round
+  // trips, the last — workspace_settings — unread here); on an RSC navigation the root layout skips
+  // resolveServerBootstrap() entirely (isRscNavigation), so this was the sole, fresh, three-stage
+  // cost on every click. resolveViewerIdentityFromCookies (org.ts) resolves the same userId+orgId
+  // pair in two stages — see regulations/[slug]/page.tsx's identical note for the full mechanism.
   const watchMembershipPromise = (async () => {
-    const bootstrap = await resolveServerBootstrap();
+    const identity = await resolveViewerIdentityFromCookies();
     const membership = await fetchWatchMembership(getServiceSupabase(), {
-      userId: bootstrap.user?.id ?? null,
-      orgId: bootstrap.orgId,
+      userId: identity.userId,
+      orgId: identity.orgId,
       itemType: "operations",
       itemIds: [id],
     });
