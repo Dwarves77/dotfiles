@@ -225,6 +225,15 @@ the corpus slice, the counterpart to `by_kind` for skips. `run-extraction.mjs`'s
 it from the exact `skipped[]` entries the extractor already returns — no new extraction logic, a
 runner-metrics addition only; it bumps no `EXTRACTOR_VERSION`.
 
+## 5c. `metrics.dedupe_dropped` (lane FWD-TEXT 2026-09-04; plumbed through the runner the same day after PROPOSER-5 found runs 007-009 without it)
+
+Every run's `metrics` carries `dedupe_dropped`: the number of events the extractor's within-extraction,
+content-gated dedupe (`dedupeEvents`, see `extract-forward-events.mjs`'s header "WITHIN-EXTRACTION
+DEDUPE") dropped across the corpus slice, and the run result carries `dedupeDropped[]` with each drop
+tagged by `item_id` (the kept event's origin, the dropped event's origin, the similarity basis). A drop
+is never silent: the extractor returns `counts.dedupe_dropped_detail`, and `runExtraction()` folds it
+in. Runner-metrics addition only; it bumps no `EXTRACTOR_VERSION`.
+
 ## 6. After ≥2 runs exist — proposer attestation
 
 Once `scripts/harness-runs/forward-events/` holds ≥2 valid artifacts, `LAST-PROPOSER-PASS.md` must name
