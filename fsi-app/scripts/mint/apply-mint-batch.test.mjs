@@ -13,6 +13,8 @@ import { tmpdir } from "node:os";
 import {
   buildItemsIndex,
   checkM4,
+  normalizeInstrumentIdentifier,
+  sameInstrumentIdentity,
   censusRowIdSet,
   resolveCensusRowId,
   buildIntelligenceItemRow,
@@ -32,16 +34,47 @@ import { validateRunArtifact } from "../lib/run-artifact.mjs";
 
 // ── buildItemsIndex / checkM4 ────────────────────────────────────────────────────────────────────────
 
-test("buildItemsIndex: indexes by canonical_instrument_key (list, for collisions) and by source_url (single)", () => {
+test("buildItemsIndex: indexes by canonical_instrument_key (list, for collisions) AND by source_url (list, for a shared landing page) -- never a single-value overwrite", () => {
   const items = [
-    { id: "i1", source_url: "https://x/a", canonical_instrument_key: "32024R0001", archive_reason: null },
-    { id: "i2", source_url: "https://x/b", canonical_instrument_key: null, archive_reason: null },
+    { id: "i1", source_url: "https://x/a", canonical_instrument_key: "32024R0001", instrument_identifier: null, archive_reason: null },
+    { id: "i2", source_url: "https://x/b", canonical_instrument_key: null, instrument_identifier: "series-one", archive_reason: null },
+    { id: "i3", source_url: "https://x/b", canonical_instrument_key: null, instrument_identifier: "series-two", archive_reason: null }, // SAME url as i2, different identifier
   ];
   const idx = buildItemsIndex(items);
   assert.deepEqual(idx.byCanonicalKey.get("32024R0001").map((h) => h.id), ["i1"]);
-  assert.equal(idx.bySourceUrl.get("https://x/b").id, "i2");
-  assert.equal(idx.bySourceUrl.get("https://x/a").id, "i1");
+  assert.deepEqual(idx.bySourceUrl.get("https://x/a").map((h) => h.id), ["i1"]);
+  assert.deepEqual(idx.bySourceUrl.get("https://x/b").map((h) => h.id), ["i2", "i3"], "both holders at the SAME url are kept, not just the last one indexed");
 });
+
+// ── normalizeInstrumentIdentifier / sameInstrumentIdentity (the M4 same-URL identity rule) ─────────────
+
+test("normalizeInstrumentIdentifier: trims + lowercases; null/undefined/empty/whitespace-only all normalize to null", () => {
+  assert.equal(normalizeInstrumentIdentifier("  Eurosuper-95  "), "eurosuper-95");
+  assert.equal(normalizeInstrumentIdentifier(null), null);
+  assert.equal(normalizeInstrumentIdentifier(undefined), null);
+  assert.equal(normalizeInstrumentIdentifier(""), null);
+  assert.equal(normalizeInstrumentIdentifier("   "), null);
+});
+
+test("sameInstrumentIdentity: both unlabelled -> same (fail-closed, an older unlabelled row MAY be the same document)", () => {
+  assert.equal(sameInstrumentIdentity(null, null), true);
+  assert.equal(sameInstrumentIdentity(undefined, ""), true);
+});
+
+test("sameInstrumentIdentity: both labelled and equal (case-insensitive, trimmed) -> same", () => {
+  assert.equal(sameInstrumentIdentity("eu-oil-bulletin:eurosuper-95", "  EU-Oil-Bulletin:Eurosuper-95  "), true);
+});
+
+test("sameInstrumentIdentity: both labelled and DIFFERENT -> not the same (a sibling series, not a duplicate)", () => {
+  assert.equal(sameInstrumentIdentity("eu-oil-bulletin:eurosuper-95", "eu-oil-bulletin:automotive-diesel"), false);
+});
+
+test("sameInstrumentIdentity: one side labelled, the other unlabelled -> same, in BOTH directions (asymmetric information, symmetric fail-closed rule — see MINT-RUNBOOK.md's M4 paragraph)", () => {
+  assert.equal(sameInstrumentIdentity("eu-oil-bulletin:eurosuper-95", null), true, "a payload with a real identifier against an unlabelled holder still blocks");
+  assert.equal(sameInstrumentIdentity(null, "eu-oil-bulletin:eurosuper-95"), true, "an unlabelled payload against a labelled holder still blocks");
+});
+
+// ── checkM4 ───────────────────────────────────────────────────────────────────────────────────────────
 
 test("checkM4: a canonical-key holder archived out_of_scope_wo26 -> not_applied_wo26_excluded", () => {
   const idx = buildItemsIndex([{ id: "holder-1", source_url: "https://x/held", canonical_instrument_key: "32024R0001", archive_reason: "out_of_scope_wo26" }]);
@@ -49,16 +82,34 @@ test("checkM4: a canonical-key holder archived out_of_scope_wo26 -> not_applied_
   assert.deepEqual(checkM4(payload, idx), { blocked: true, outcome: "not_applied_wo26_excluded", holderId: "holder-1" });
 });
 
-test("checkM4: a canonical-key holder with any OTHER archive_reason (or none) -> not_applied_holder_conflict", () => {
+test("checkM4: a canonical-key holder with any OTHER archive_reason (or none) -> not_applied_holder_conflict (unconditional, untouched by the same-URL identity fix)", () => {
   const idx = buildItemsIndex([{ id: "holder-2", source_url: "https://x/held", canonical_instrument_key: "32024R0001", archive_reason: null }]);
   const payload = { item: { canonical_instrument_key: "32024R0001", source_url: "https://x/new" } };
   assert.deepEqual(checkM4(payload, idx), { blocked: true, outcome: "not_applied_holder_conflict", holderId: "holder-2" });
 });
 
-test("checkM4: no canonical-key holder but the exact source_url already has an item -> not_applied_url_holder", () => {
-  const idx = buildItemsIndex([{ id: "holder-3", source_url: "https://x/same", canonical_instrument_key: "32099R9999", archive_reason: null }]);
-  const payload = { item: { canonical_instrument_key: "32024R0001", source_url: "https://x/same" } };
+test("checkM4: TRUE DUPLICATE — no canonical-key holder, same source_url, SAME instrument_identifier (case-insensitive, trimmed) -> not_applied_url_holder", () => {
+  const idx = buildItemsIndex([{ id: "holder-3", source_url: "https://x/same", canonical_instrument_key: null, instrument_identifier: "eu-oil-bulletin:eurosuper-95", archive_reason: null }]);
+  const payload = { item: { canonical_instrument_key: null, source_url: "https://x/same", instrument_identifier: "  EU-Oil-Bulletin:Eurosuper-95  " } };
   assert.deepEqual(checkM4(payload, idx), { blocked: true, outcome: "not_applied_url_holder", holderId: "holder-3" });
+});
+
+test("checkM4: NULL-VS-NULL DUPLICATE — same source_url, neither side carries an instrument_identifier -> not_applied_url_holder (fail-closed)", () => {
+  const idx = buildItemsIndex([{ id: "holder-4", source_url: "https://x/same", canonical_instrument_key: "32099R9999", instrument_identifier: null, archive_reason: null }]);
+  const payload = { item: { canonical_instrument_key: "32024R0001", source_url: "https://x/same", instrument_identifier: null } };
+  assert.deepEqual(checkM4(payload, idx), { blocked: true, outcome: "not_applied_url_holder", holderId: "holder-4" });
+});
+
+test("checkM4: NULL-HOLDER ASYMMETRY — a payload WITH a real instrument_identifier against a same-URL holder with NO identifier still blocks (the older unlabelled row may be the same document)", () => {
+  const idx = buildItemsIndex([{ id: "holder-5", source_url: "https://x/same", canonical_instrument_key: null, instrument_identifier: null, archive_reason: null }]);
+  const payload = { item: { canonical_instrument_key: null, source_url: "https://x/same", instrument_identifier: "eu-oil-bulletin:eurosuper-95" } };
+  assert.deepEqual(checkM4(payload, idx), { blocked: true, outcome: "not_applied_url_holder", holderId: "holder-5" });
+});
+
+test("checkM4: SIBLING SERIES — same source_url, holder carries a DIFFERENT non-null instrument_identifier -> NOT blocked (ruling R-D's case: six series sharing one landing page)", () => {
+  const idx = buildItemsIndex([{ id: "holder-6", source_url: "https://x/bulletin", canonical_instrument_key: null, instrument_identifier: "eu-oil-bulletin:eurosuper-95", archive_reason: null }]);
+  const payload = { item: { canonical_instrument_key: null, source_url: "https://x/bulletin", instrument_identifier: "eu-oil-bulletin:automotive-diesel" } };
+  assert.deepEqual(checkM4(payload, idx), { blocked: false });
 });
 
 test("checkM4: no key match, no url match -> not blocked", () => {
@@ -473,6 +524,41 @@ test("applyOnePayload APPLY: a later payload in the SAME batch sees an already-m
   const secondPayload = { ...PAYLOAD, id: "cw-2" }; // SAME canonical_instrument_key, a different census row
   const second = await applyOnePayload(secondPayload, ctx);
   assert.equal(second.perItem.outcome, "not_applied_holder_conflict");
+});
+
+test("applyOnePayload APPLY: SIX-SERIES BATCH — one series mints, its five same-URL siblings (distinct instrument_identifier, canonical_instrument_key null) all pass the pre-check and mint too (population apply #34's real shape, fixed)", async () => {
+  const idx = buildItemsIndex([]);
+  const db = fakeAppliedDb();
+  const rpc = async () => ({ valid: true, recommended_status: "verified" });
+  const ctx = { db, rpc, itemsIndex: idx, sourcesById: new Map([["src-1", { id: "src-1", status: "active", category: "regulatory", base_tier: 1 }]]), rowIdSet: new Set(), cite: { skill: "x", reason: "y" }, apply: true };
+
+  const seriesKeys = ["eurosuper-95", "automotive-diesel", "heating-gas-oil", "lpg-motor-fuel", "residual-fuel-oil-1pct", "heavy-fuel-oil-3-5pct"];
+  const bulletinUrl = "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en";
+  const results = [];
+  for (const key of seriesKeys) {
+    const payload = {
+      ...PAYLOAD,
+      id: `cw-${key}`,
+      item: { ...PAYLOAD.item, canonical_instrument_key: null, instrument_identifier: `eu-oil-bulletin:${key}`, source_url: bulletinUrl },
+    };
+    results.push(await applyOnePayload(payload, ctx));
+  }
+  assert.deepEqual(results.map((r) => r.perItem.outcome), Array(6).fill("minted_verified"), JSON.stringify(results.map((r) => r.perItem)));
+  assert.deepEqual(idx.bySourceUrl.get(bulletinUrl).map((h) => h.instrument_identifier).sort(), seriesKeys.map((k) => `eu-oil-bulletin:${k}`).sort());
+});
+
+test("applyOnePayload APPLY: a later payload in the SAME batch at the SAME source_url with the SAME instrument_identifier IS blocked (a true duplicate minted twice in one run, not a sibling series)", async () => {
+  const idx = buildItemsIndex([]);
+  const db = fakeAppliedDb();
+  const rpc = async () => ({ valid: true, recommended_status: "verified" });
+  const ctx = { db, rpc, itemsIndex: idx, sourcesById: new Map([["src-1", { id: "src-1", status: "active", category: "regulatory", base_tier: 1 }]]), rowIdSet: new Set(), cite: { skill: "x", reason: "y" }, apply: true };
+  const seriesPayload = { ...PAYLOAD, item: { ...PAYLOAD.item, canonical_instrument_key: null, instrument_identifier: "eu-oil-bulletin:eurosuper-95", source_url: "https://x/bulletin" } };
+
+  const first = await applyOnePayload({ ...seriesPayload, id: "cw-1" }, ctx);
+  assert.equal(first.perItem.outcome, "minted_verified");
+  const second = await applyOnePayload({ ...seriesPayload, id: "cw-1-dup" }, ctx); // same identifier, same url
+  assert.equal(second.perItem.outcome, "not_applied_url_holder");
+  assert.equal(second.perItem.holder_item_id, first.perItem.item_id);
 });
 
 // ── run() — end to end over fake files + fake deps ──────────────────────────────────────────────────

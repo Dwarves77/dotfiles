@@ -59,6 +59,46 @@
 // (`not_applied_url_holder`, the case M4 as documented in mint-run-006 did not need to separately name
 // because none of that batch's rows collided on URL — this batch may).
 //
+// ── M4 SAME-URL IDENTITY FIX (coordinator, 2026-09-04, population apply #34 / mint-run-024) ────────────
+// EVIDENCE: population apply #34 (rows_file scripts/_snapshots/population-browser/oil-bulletin-2026-09-03/
+// census-rows.json, the six EU Weekly Oil Bulletin market_signal series ruling R-D made first-class) minted
+// 1 (eu-oil-bulletin:eurosuper-95) and blocked its five siblings `not_applied_url_holder` (automotive-diesel,
+// heating-gas-oil, lpg-motor-fuel, residual-fuel-oil-1pct, heavy-fuel-oil-3-5pct — every one "valid, 0
+// failures — recommended_status=verified"). All six payloads carry the SAME `source_url` (the bulletin's
+// one landing page), `canonical_instrument_key: null`, and a DISTINCT `instrument_identifier` per series
+// (build-oil-bulletin-rows.mjs's own choice, which ratify-series-items.mjs relies on to bind each item to
+// its own `market_series` rows). The URL-only same-URL check could not tell "the same document minted
+// twice" (M4's actual purpose) apart from "six distinct series items that legitimately share one landing
+// page" (ruling R-D's case) — it saw only the URL, never the identifier that distinguishes them. Confirmed
+// live [Supabase, 2026-09-04]: `intelligence_items` holds exactly one row at that URL (the minted
+// eurosuper-95 item), and across the WHOLE live corpus no OTHER `source_url` carries two simultaneously-
+// live (non-archived) rows today — the multi-series-at-one-URL case had never existed live before this run;
+// every historical same-URL pair on record has at most one non-archived survivor. So this fix changes
+// behavior for a population that is, as of this evidence, exactly the bulletin's own five blocked siblings —
+// not a retroactive reclassification of anything already live.
+//
+// THE FIX: `checkM4`'s same-URL branch now also compares `instrument_identifier` (case-insensitive,
+// trimmed — `normalizeInstrumentIdentifier`) between the payload and EVERY holder at that URL
+// (`sameInstrumentIdentity`), not merely the URL string. A same-URL holder blocks ONLY when the two
+// identities cannot be told apart: both null/unlabelled (fail-closed — an older unlabelled row MAY be the
+// same document, there is no positive evidence either way), or equal once normalized. A holder with a
+// DIFFERENT non-null identifier is a sibling series and does NOT block — the case this fix exists for. The
+// asymmetry is deliberate: a payload carrying a real identifier against an older, unlabelled holder at the
+// same URL STILL blocks (same fail-closed reasoning — the newer payload's identifier does not resolve the
+// older row's ambiguity), and the reverse (an unlabelled payload against a labelled holder) blocks for the
+// identical reason, symmetrically — see MINT-RUNBOOK.md's M4 paragraph for the customer-facing statement of
+// this rule. The canonical-key branch above is UNCHANGED — a key collision still blocks unconditionally,
+// exactly as before; this fix touches only the URL-identity fallback.
+//
+// `buildItemsIndex.bySourceUrl` now maps a URL to an ARRAY of every holder at it (was: the single last
+// holder a plain `Map.set` overwrite left standing — population apply #34's own five-sibling block is this
+// defect's live signature: the FIRST minted sibling silently replaced any prior single-holder entry and,
+// because it was also the only entry a same-batch write ever produced, was the only holder the next four
+// checks ever saw). `applyOnePayload` PUSHES a newly-minted item into that array (never overwrites), so a
+// later payload in the SAME population batch sees every earlier sibling this run already minted, not only
+// the most recent one — the identity check applies uniformly whether the holder came from the live DB read
+// at batch start or from this run's own earlier payloads.
+//
 // ── census_worklist resolution ───────────────────────────────────────────────────────────────────────
 // Migration 221's enumeration_status ladder is `discovered < classified < dry_run_complete < reconciled`
 // (plus `flagged`, reachable from/to anywhere). mint-run-006.json's own metrics carry
@@ -118,7 +158,11 @@ const FSI_ROOT = resolve(HERE, "..", "..");
 // ── M4 pre-check ─────────────────────────────────────────────────────────────────────────────────────
 
 /** Build the two lookup indexes checkM4 needs from a live intelligence_items read (id, source_url,
- *  canonical_instrument_key, archive_reason — archived rows INCLUDED, per M4's own charter). Pure. */
+ *  canonical_instrument_key, instrument_identifier, archive_reason — archived rows INCLUDED, per M4's own
+ *  charter). Pure. `bySourceUrl` maps a URL to an ARRAY of every holder at it (a URL can legitimately carry
+ *  more than one live item — a series landing page, see the M4 SAME-URL IDENTITY FIX note above); a caller
+ *  wanting "the" holder for a URL must apply the identity rule (sameInstrumentIdentity) itself, which is
+ *  exactly what checkM4 below does. */
 export function buildItemsIndex(items) {
   const byCanonicalKey = new Map();
   const bySourceUrl = new Map();
@@ -128,14 +172,42 @@ export function buildItemsIndex(items) {
       arr.push(it);
       byCanonicalKey.set(it.canonical_instrument_key, arr);
     }
-    if (it.source_url) bySourceUrl.set(it.source_url, it);
+    if (it.source_url) {
+      const arr = bySourceUrl.get(it.source_url) ?? [];
+      arr.push(it);
+      bySourceUrl.set(it.source_url, arr);
+    }
   }
   return { byCanonicalKey, bySourceUrl };
 }
 
-/** The M4 pre-check itself. Pure. Canonical-key holder checked first (the identity collision); a
- *  same-source_url holder second (a different/absent key naming the same document). Neither check writes
- *  anything — a blocked payload is simply never attempted. */
+/** Normalize an `instrument_identifier` for identity comparison: trim + lowercase; anything that is not a
+ *  non-empty string (null, undefined, "", whitespace-only) normalizes to `null` ("unlabelled"). Pure. */
+export function normalizeInstrumentIdentifier(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed.toLowerCase() : null;
+}
+
+/** THE M4 same-URL identity rule (see the M4 SAME-URL IDENTITY FIX note above for the evidence and the
+ *  full rationale). Pure. Two identifiers name the SAME document when: both are unlabelled (null) —
+ *  fail-closed, there is no positive evidence they differ, so an older unlabelled row at this URL may be
+ *  the very document the payload also names; or both are labelled and equal once normalized. Two LABELLED,
+ *  DIFFERENT identifiers at the same URL are a sibling series, not a duplicate, and do NOT match — the
+ *  case ruling R-D made first-class (the EU Weekly Oil Bulletin's six series sharing one landing page).
+ *  This is the ONE exported predicate every same-URL identity decision in this file goes through. */
+export function sameInstrumentIdentity(payloadIdentifier, holderIdentifier) {
+  const p = normalizeInstrumentIdentifier(payloadIdentifier);
+  const h = normalizeInstrumentIdentifier(holderIdentifier);
+  if (p != null && h != null) return p === h;
+  return true; // at least one side unlabelled — ambiguous, presumed the same document (fail-closed)
+}
+
+/** The M4 pre-check itself. Pure. Canonical-key holder checked first (the identity collision, unconditional
+ *  — untouched by the same-URL identity fix below); a same-source_url holder second, now identity-scoped
+ *  by `sameInstrumentIdentity` against EVERY holder at that URL (a different, non-null identifier is a
+ *  sibling series and does not block; see buildItemsIndex/sameInstrumentIdentity's own headers). Neither
+ *  check writes anything — a blocked payload is simply never attempted. */
 export function checkM4(payload, itemsIndex) {
   const key = payload?.item?.canonical_instrument_key ?? null;
   if (key) {
@@ -150,9 +222,11 @@ export function checkM4(payload, itemsIndex) {
   }
   const sourceUrl = payload?.item?.source_url ?? null;
   if (sourceUrl) {
-    const holder = itemsIndex.bySourceUrl.get(sourceUrl);
-    if (holder) {
-      return { blocked: true, outcome: "not_applied_url_holder", holderId: holder.id };
+    const holders = itemsIndex.bySourceUrl.get(sourceUrl) ?? [];
+    const payloadIdentifier = payload?.item?.instrument_identifier ?? null;
+    const identityHolder = holders.find((h) => sameInstrumentIdentity(payloadIdentifier, h.instrument_identifier));
+    if (identityHolder) {
+      return { blocked: true, outcome: "not_applied_url_holder", holderId: identityHolder.id };
     }
   }
   return { blocked: false };
@@ -439,15 +513,30 @@ export async function applyOnePayload(payload, ctx) {
   const outcome = classifyMintOutcome(rowStatus);
 
   // Later payloads in this SAME batch must see this item as a holder too (two payloads sharing a
-  // canonical key within one batch is exactly the collision M4 exists to catch).
+  // canonical key within one batch is exactly the collision M4 exists to catch; two payloads sharing a
+  // source_url AND identity is the same collision by the URL-identity rule — population apply #34's own
+  // five-sibling block happened because this push used to be a Map OVERWRITE, so only the newest same-URL
+  // holder was ever visible — see buildItemsIndex's own header). `instrument_identifier` is carried onto
+  // the holder so a LATER payload's identity check (sameInstrumentIdentity) has something to compare
+  // against, not only the URL.
   const finalKey = insItem.inserted.canonical_instrument_key ?? itemRow.canonical_instrument_key ?? null;
-  const newHolder = { id: itemId, source_url: itemRow.source_url, canonical_instrument_key: finalKey, archive_reason: null };
+  const newHolder = {
+    id: itemId,
+    source_url: itemRow.source_url,
+    canonical_instrument_key: finalKey,
+    instrument_identifier: itemRow.instrument_identifier ?? null,
+    archive_reason: null,
+  };
   if (finalKey) {
     const arr = ctx.itemsIndex.byCanonicalKey.get(finalKey) ?? [];
     arr.push(newHolder);
     ctx.itemsIndex.byCanonicalKey.set(finalKey, arr);
   }
-  if (itemRow.source_url) ctx.itemsIndex.bySourceUrl.set(itemRow.source_url, newHolder);
+  if (itemRow.source_url) {
+    const arr = ctx.itemsIndex.bySourceUrl.get(itemRow.source_url) ?? [];
+    arr.push(newHolder);
+    ctx.itemsIndex.bySourceUrl.set(itemRow.source_url, arr);
+  }
 
   // ── census_worklist resolution — ONLY on a real mint, matching mint-run-006.json's own precedent of
   //    leaving a not_applied_* row's census row UNRECONCILED. ──────────────────────────────────────
@@ -535,7 +624,7 @@ export async function run(values, deps) {
   }
   const validationFailedHolds = mintBatchReport ? resolveValidationFailedHolds(mintBatchReport, rowIdSet) : [];
 
-  const liveItems = await deps.readAll("intelligence_items", "id, source_url, canonical_instrument_key, archive_reason");
+  const liveItems = await deps.readAll("intelligence_items", "id, source_url, canonical_instrument_key, instrument_identifier, archive_reason");
   const liveSources = await deps.readAll("sources", "id, url, status, category, base_tier");
   const itemsIndex = buildItemsIndex(liveItems);
   const sourcesById = new Map(liveSources.map((s) => [s.id, s]));

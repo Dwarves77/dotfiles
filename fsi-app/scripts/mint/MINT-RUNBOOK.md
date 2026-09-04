@@ -396,7 +396,28 @@ through the guarded write path, exactly the hand-off this runbook's §6/§7 alre
 an M4 pre-check (any `intelligence_items` row — archived included — already holding the payload's
 `canonical_instrument_key` or sitting at its `source_url` blocks the write: `not_applied_wo26_excluded`
 when the holder's `archive_reason = 'out_of_scope_wo26'`, `not_applied_holder_conflict` for any other
-holder, `not_applied_url_holder` for a same-URL holder with no key collision); inline `registerSource`
+key-collision holder). **A same-URL holder blocks only when the two rows name the same document**
+(coordinator, 2026-09-04, after population apply #34 minted one of six EU Weekly Oil Bulletin series and
+blocked its five siblings on URL alone — see `apply-mint-batch.mjs`'s own "M4 SAME-URL IDENTITY FIX" note
+for the full evidence): `checkM4` compares `instrument_identifier` (case-insensitive, trimmed,
+`normalizeInstrumentIdentifier`) between the payload and every holder already sitting at that `source_url`
+(`sameInstrumentIdentity` — every same-URL identity decision in this file goes through this one predicate,
+never a second copy). Two identifiers are the SAME document when both are unlabelled (null) or equal once
+normalized — `not_applied_url_holder`. Two LABELLED, DIFFERENT identifiers at the same URL are a **sibling
+series**, not a duplicate, and do **not** block — a series landing page (one URL, several
+`instrument_identifier`-distinguished items, ruling R-D) mints all of them. The rule is deliberately
+**asymmetric in favor of caution**: a payload carrying a real identifier against an older, *unlabelled*
+holder at the same URL still blocks, and the reverse (an unlabelled payload against a labelled holder)
+blocks for the identical reason — an absent identifier is not evidence of a different document, only of a
+row that never recorded one, so ambiguity always resolves to "same document" rather than to "assume they
+differ." Measured live the day this changed [CONFIRMED, Supabase, 2026-09-04]: the bulletin's own URL held
+exactly the one minted series item, and across the whole live corpus no OTHER `source_url` carried two
+simultaneously-live (non-archived) rows — every historical same-URL pair on record has at most one live
+survivor, so this narrowing has no retroactive effect on anything already live; it only unblocks the
+bulletin's five siblings and any future series batch shaped the same way. `buildItemsIndex.bySourceUrl`
+holds every holder at a URL (an array, not the single most-recent one), and a payload minted earlier in the
+SAME batch is pushed into that index immediately, so a later payload in the same run sees every sibling
+this run has already minted, not only the URL string; inline `registerSource`
 when the payload's own source needs it; then the write itself, in `src/lib/agent/canonical-pipeline.ts`'s
 own table order (`intelligence_items` → `agent_run_searches` → `intelligence_item_sections` →
 `section_claim_provenance` → `item_gate_a_state` → `intelligence_item_citations`), NOT through

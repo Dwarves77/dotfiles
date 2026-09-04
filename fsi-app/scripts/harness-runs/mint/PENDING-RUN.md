@@ -444,11 +444,57 @@ re-exports of the `src/` files, F28's mint `GOVERNING_FILES` (and CONVENTION.md'
 `src/` files alongside the kit paths, and MINT-RUNBOOK.md's "Keeping the kit in sync" section describes
 the re-export instead of the copy. The 30 lane tests run through the re-export unchanged.
 
-**harness_version at write time:** `sha256:28c98ae2309a416a`
+**harness_version at write time (superseded below — see "What changed (11)"):** `sha256:28c98ae2309a416a`
+
+---
+
+## Lane RD-M4 (2026-09-04) — M4 same-URL identity fix: a sibling series no longer blocks itself
+
+**What changed (11):** lane RD-M4 (coordinator dispatch, 2026-09-04), fixing the defect population apply
+#34 measured live: six EU Weekly Oil Bulletin `market_signal` series (one `source_url`, one
+`canonical_instrument_key: null`, six distinct `instrument_identifier`s, ruling R-D's series case) minted
+one item and blocked the other five `not_applied_url_holder` — `checkM4`'s same-URL branch compared URLs
+only, so the first sibling minted became the single holder every later sibling's URL check matched, even
+though each names a different document. `MINT-RUNBOOK.md`'s M4 paragraph (~line 397) now states the fixed
+rule (`normalizeInstrumentIdentifier` + `sameInstrumentIdentity`, case-insensitive/trimmed identity
+comparison, a labelled/labelled-different pair does not block, a null-vs-null or any-null pair still blocks,
+fail-closed) — the only prose change to a mint governing file this lane made; `apply-mint-batch.mjs` itself
+is NOT a mint `GOVERNING_FILES` entry, so its own `checkM4`/`buildItemsIndex` rewrite does not by itself move
+this hash, but it is landing in the SAME commit as the runbook change, so the two are not out of step with
+each other on disk. `buildItemsIndex.bySourceUrl` changed from a single-holder `Map` overwrite to a
+per-URL array (every holder at a URL is now visible, not only the most-recently-indexed one), and
+`applyOnePayload` pushes a newly-minted item into that array rather than overwriting the slot, so a sibling
+minted earlier in the SAME batch is visible to a later payload's identity check exactly like a holder read
+from the live DB at batch start.
+
+**Live measurement before the change [CONFIRMED, Supabase project kwrsbpiseruzbfwjpvsp, 2026-09-04]:** the
+bulletin's own `source_url` held exactly the one minted row (`eurosuper-95`,
+`4fae403a-ced5-4c8f-82b7-af0fd6127061`, `verified`, `canonical_instrument_key: null`); across the WHOLE
+live `intelligence_items` corpus, excluding the degenerate `source_url = ''` rows (562, never checked by
+`checkM4` — an empty string is falsy), only six OTHER `source_url` values carry 2+ rows at all, and every
+one of those six has at most ONE non-archived survivor today (the other member is `archive_reason`-stamped:
+`duplicate_instrument`, `duplicate_of_verified`, or `reclassified_to_source`). So the "two simultaneously
+LIVE items sharing one URL" case had never existed in the live corpus before this run — this narrowing has
+no retroactive effect on anything already live; it unblocks exactly the bulletin's five siblings and any
+future batch shaped the same way (a landing page fronting several named series).
+
+**Tests (`scripts/mint/apply-mint-batch.test.mjs`, +10 net over the prior 767 full-suite total — one prior
+test rewritten in place, nine new):** `buildItemsIndex` keeps every
+holder at a URL, not just the last one indexed; `normalizeInstrumentIdentifier` / `sameInstrumentIdentity`
+unit tests (trim/case, both-null, both-equal, both-different, both directions of the null-vs-labelled
+asymmetry); `checkM4` true-duplicate (same identifier, case/whitespace-insensitive) blocks; null-vs-null
+duplicate blocks; the null-holder asymmetry blocks; a labelled/different-labelled pair does NOT block
+(sibling series); the canonical-key branch's existing wo26/holder-conflict tests are unchanged (regression);
+an `applyOnePayload` six-series-batch integration test reproducing population apply #34's exact shape (one
+`source_url`, six distinct `instrument_identifier`s, `canonical_instrument_key: null`) — all six now mint;
+and a same-batch true-duplicate integration test (two payloads, same URL, same identifier, second is
+blocked by the first). 777 mint tests total, node --test clean.
+
+**harness_version at write time:** `sha256:2b8ff43291ad2f80`
 
 **The planned run that supersedes THIS marker:** the next `population-turn` dispatch (or a direct
-`validate-mint-payload.mjs` run) under this landed code — any NEW payload's criterion-7 scoring should now
-reflect the narrowed harvest; a stale artifact whose `harness_version` still reads an earlier hash above
-re-triggers F28's rule (c) staleness coupling until re-pinned. Per F28's reverse-audit, this marker is
+`validate-mint-payload.mjs` run) under this landed code — any NEW same-URL series batch's M4 pre-check
+should now reflect the identity rule; a stale artifact whose `harness_version` still reads an earlier hash
+above re-triggers F28's rule (c) staleness coupling until re-pinned. Per F28's reverse-audit, this marker is
 deleted the moment a run artifact lands with `harness_version` matching the hash above (or re-pinned to a
 new hash, per rule (c), if a governing file changes again before that run lands).
