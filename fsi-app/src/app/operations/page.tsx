@@ -3,7 +3,7 @@ import { fetchOperationsCoverage, fetchStateCostFacts } from "@/lib/supabase-ser
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { OperationsLedger } from "@/components/operations/OperationsLedger";
 import { isRegulationItem } from "@/lib/regulation-item-types";
-import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
+import { LIST_FIRST_PAGE_SIZE, toLedgerRowPayload } from "@/lib/list-pagination";
 import { AutomateVsHireCalculator } from "./AutomateVsHireCalculator";
 // Spec 09 §1.4/§1.5/§1.6 (lane SPEC-09, wave 3, 2026-09-03): three self-contained server components, each
 // reading its own table via the request-scoped service client. See each component's own header for the
@@ -58,7 +58,21 @@ export default async function Operations() {
   // Fail CLOSED: the ops item list is ONLY the item_type-gated RPC result; never fall through to
   // the ungated seed on RPC error/empty. (fallback/getResourcesOnly is still fetched above — it
   // legitimately supplies the regulation cross-references at regulationsByRegion below, NOT this list.)
-  const initialResources = opsItems.resources;
+  //
+  // PAYLOAD lane (2026-09-04, item 2 of the perf brief): getOperationsItems() is unpaginated — unlike
+  // /regulations, this route ships its FULL category-routed result set server-side (no client remainder
+  // fetch exists for this list; the OperationsLedger remainder fetch above is for regulationsByRegion,
+  // a different prop). Full pagination of this list (capping the SSR render to LIST_FIRST_PAGE_SIZE and
+  // adding a client-side remainder fetch, mirroring RegulationsLedger) is a larger change than this
+  // trim — OperationsItemsView renders every row in one region-grouped/dimension-chip pass, not a
+  // paged ledger, so capping the row count needs its own design pass and is left for a follow-up lane
+  // (flagged, not silently dropped). What IS safe here, same-lane: trimming each row to the fields this
+  // surface actually reads. Verified by direct grep (this lane) that neither OperationsLedger.tsx nor
+  // OperationsItemsView.tsx read keyData/reasoning/fullBrief/regulatoryConflict/trajectoryPoints/
+  // operationalImpact/riskRegister/recommendedActions/openQuestions/sourceUrls — the same field set
+  // toLedgerRowPayload already blanks for /api/listings/rest's remainder response and now for
+  // /regulations' first-paint payload (src/lib/list-pagination.ts, src/app/regulations/page.tsx).
+  const initialResources = opsItems.resources.map(toLedgerRowPayload);
 
   // Build 9 Priority 1: regulatory feasibility by region. Cross-references
   // regulation items from the full workspace payload, grouped per-region

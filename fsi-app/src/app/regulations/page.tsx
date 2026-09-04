@@ -20,6 +20,7 @@ import { getListingsOnly, getSurfaceCounts } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { RegulationsLedger } from "@/components/regulations/RegulationsLedger";
+import { toLedgerRowPayload } from "@/lib/list-pagination";
 import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingObligationsStrip";
 import { ObligationRegister } from "@/components/regulations/ObligationRegister";
 // Spec 09 §1.8 (lane SPEC-09, wave 3, 2026-09-03): EUDR geo-traceability + book-and-claim custody, one
@@ -113,8 +114,14 @@ export default async function RegulationsPage({
           its own data via the request-scoped client, so it needs no props from this page's own fetches
           and soft-fails to nothing (never breaks the page) on a read error. */}
       <UpcomingObligationsStrip variant="list" />
+      {/* PAYLOAD lane (2026-09-04, item 2 of the perf brief): the first-paint SSR payload used to ship
+          the FULL Resource object for all 60 first-page rows — including keyData/reasoning (both
+          detail-page-only fields RegulationsLedger never reads, per toLedgerRowPayload's own header,
+          already trusted by /api/listings/rest's remainder fetch for this exact ledger). Trimming the
+          first-page rows the same way the remainder fetch already is closes the gap that trim's header
+          flagged as untouched ("the first-paint SSR payload (page.tsx) is unaffected"). */}
       <RegulationsLedger
-        initialResources={data.resources}
+        initialResources={data.resources.map(toLedgerRowPayload)}
         initialArchived={data.archived}
         initialOverrides={data.overrides}
         aggregates={aggregates}
