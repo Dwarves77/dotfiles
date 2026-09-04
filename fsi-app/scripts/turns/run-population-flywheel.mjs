@@ -6,8 +6,9 @@
 // discovery, forward-event extraction, recluster, IN ORDER, before a batch is considered closed) and §9
 // (--outcomes enrichment) were documented as a separate, hand-run coordinator pass. population-turn.yml
 // itself ended after apply-mint-batch.mjs + propose-tags.mjs --dry — nothing in the runtime ever ran §8,
-// and nothing ever computed §9's metrics. Population runs #15-#20 (2026-09-03/04, ~650 items,
-// mint-run-017..022) were applied with no flywheel pass and no outcomes: every one of those items carries
+// and nothing ever computed §9's metrics. Population runs #15-#20 (2026-09-03/04, 934 items measured
+// [CONFIRMED] — 177+168+156+152+141+140, mint-run-017..022) were applied with no flywheel pass and no
+// outcomes: every one of those items carries
 // zero item_cross_references, zero item_forward_events, no obligations, no tags, no signals — minted,
 // live, and invisible to every consumer that reads the graph rather than the raw item row. Operator ruling
 // (2026-09-04), verbatim: "there is no thing within this entire build that works on its own ever.
@@ -105,14 +106,109 @@
 //   node scripts/turns/run-population-flywheel.mjs --mint-run scripts/harness-runs/mint/mint-run-NNN.json --mode dry|apply
 //     [--harness-runs-dir dir]   (the mint family's own harness-runs dir; default scripts/harness-runs/mint)
 //   node scripts/turns/run-population-flywheel.mjs --check-gate [--harness-runs-dir dir]
-//     THE GATE (population-turn.yml, apply mode, run BEFORE export-census-rows.mjs): reads the newest
-//     mint-run-NNN.json already on the checkout and refuses (exit 1) if a batch that minted items was
-//     left without §9 outcomes — i.e. a prior slice this runtime (or a hand-run predecessor) never
-//     connected. Pure filesystem check (readRunHistory + checkPriorSliceConnected below) — no DB creds
-//     needed, so it runs before "Verify required secrets" in the workflow, cheaply, every apply dispatch.
-// Exit 0 done · 1 bad args, a step failed, or the gate refused · 2 no DB creds (a real dry/apply run
-//   needs the same NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY pair every guarded script needs;
-//   --check-gate never needs DB creds at all).
+//     THE GATE (population-turn.yml, apply mode, run BEFORE export-census-rows.mjs): reads EVERY
+//     mint-run-NNN.json already on the checkout — not only the newest — and refuses (exit 1) if ANY of
+//     them minted items but was left without §9 outcomes. Pure filesystem check (readRunHistory +
+//     checkAllSlicesConnected/checkPriorSliceConnected below) — no DB creds needed, so it runs before
+//     "Verify required secrets" in the workflow, cheaply, every apply dispatch.
+//   node scripts/turns/run-population-flywheel.mjs --backlog --mode dry|apply
+//     [--harness-runs-dir dir] [--max-artifacts N]
+//     THE FIX for a gate refusal (lane TANDEM-2, 2026-09-04): clears the backlog THE GATE reports,
+//     oldest slice first, WITHOUT minting anything new — see "BACKLOG MODE" below.
+// Exit 0 done · 1 bad args, a step failed, or the gate refused · 2 no DB creds (a real dry/apply run, or
+//   a --backlog apply run, needs the same NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY pair every
+//   guarded script needs; --check-gate and a --backlog DRY run never need DB creds at all — both are
+//   pure filesystem reads).
+//
+// THE GATE, WIDENED (lane TANDEM-2, 2026-09-04). THE DEFECT [CONFIRMED by the coordinator reading the
+// landed code]: checkPriorSliceConnected only ever saw ONE artifact — readRunHistory(dir).runs.at(-1),
+// the newest BY started_at. A DRY mint-run artifact (rows_file preview, or a live export that minted
+// nothing) has metrics.minted absent/0 by construction, so whenever a dry artifact happened to be the
+// newest, the gate read ONLY it, said "nothing was minted by this slice, no flywheel pass required," and
+// let a brand-new apply through — while every apply artifact BEHIND that dry one on the timeline still
+// carried no edges_discovered/forward_events_extracted/isolated_items. Any dry run reset the gate to a
+// false green. Fixed: checkAllSlicesConnected (below) scans EVERY artifact readRunHistory returns, not
+// merely the newest; a dry artifact still never counts (checkPriorSliceConnected's own per-artifact
+// "minted=0 → ok" rule, reused unchanged, IS that exemption — it just no longer gets to stand in for the
+// artifacts behind it).
+//
+// THE FULL BACKLOG, MEASURED [CONFIRMED, 2026-09-04, this lane — re-run `--check-gate` any time to
+// re-measure, these numbers drift as new runs land]: widening the gate to scan every artifact (not the
+// six most recent) surfaces MORE history than the coordinator's own read of the code first named —
+// checkAllSlicesConnected finds **15 of 23** mint-run artifacts on this checkout minted items and were
+// never connected, not six: mint-run-001, 004, 005, 006, 011, 012, 013, 014, 016, 017, 018, 019, 020,
+// 021, 022. Of those, **13 are auto-connectable by --backlog (1,272 minted items total)**:
+// mint-run-004/006 (retired outcome label "minted_verified_first_pass" — see
+// extractMintedItemIds' own MINTED_OUTCOME_VALUES for why these count), mint-run-011-014/016 (43+39+30+
+// 40+177 = 329 items, pre-TANDEM population runs), and mint-run-017-022 (177+168+156+152+141+140 = 934
+// items, the six runs the coordinator's own defect description named). **2 are NOT auto-connectable by
+// EITHER --mint-run or --backlog**: mint-run-001 (metrics.minted=6) and mint-run-005 (metrics.minted=5)
+// — both predate the per_item.item_id field entirely (their per_item entries carry a CELEX id and an
+// outcome like "minted"/"minted_validator_pass", never a real intelligence_items.id), so
+// extractMintedItemIds has nothing to recover — see hasRecoverableMintedIds below for the full mechanism
+// and why running the flywheel over either one refuses rather than silently writing a false
+// zero-valued outcomes record. CONSEQUENCE the operator/coordinator must decide on, not this lane: even
+// after every --backlog dispatch this lane makes possible, THE GATE will keep refusing EVERY population-
+// turn apply (new work included) until mint-run-001 and mint-run-005 are resolved by some OTHER means —
+// e.g. hand-matching their per_item CELEX ids against intelligence_items.canonical_instrument_key and
+// hand-writing their outcomes — which is out of this lane's write set and not attempted here.
+//
+// BACKLOG MODE (lane TANDEM-2, 2026-09-04). THE DEFECT [CONFIRMED]: population-turn.yml's own
+// --mint-run flywheel step only ever ran over the run's OWN newly-minted batch — there was no
+// dispatchable way to connect a backlog of ALREADY-minted, ALREADY-stale artifacts (the 15 THE GATE
+// above was failing to see, 13 of them fixable this way — see "THE FULL BACKLOG, MEASURED" above).
+// --backlog closes that: it selects every AUTO-CONNECTABLE stale mint-run artifact (hasRecoverableMintedIds
+// true — an artifact with no recoverable item id is reported but never selected, see
+// selectBacklogArtifacts' own header for why), oldest first (readRunHistory's own sort order), enriches
+// each ONE AT A TIME with the EXACT SAME per-artifact step plan/executor a normal --mint-run apply uses
+// (runFlywheelForOneArtifact, below — one code path implements "how a mint-run artifact gets connected,"
+// never two), and — in apply mode only — writes each artifact's §9 outcomes back to its own
+// mint-run-NNN.json via run-mint-batch.mjs --outcomes (the SAME existing, no-dry-path §9 write the
+// normal per-batch flow already uses; nothing new was added to that script). export-census-rows.mjs and
+// run-mint-batch.mjs's own minting gate never run under --backlog — this mode mints NOTHING, it only
+// connects what earlier runs already minted. A DRY backlog run (--mode dry) lists the stale artifacts and
+// each one's item count and writes nothing at all, DB creds or no.
+//
+// --max-artifacts bounds ONE dispatch's work (default DEFAULT_BACKLOG_MAX_ARTIFACTS below) so a single
+// job neither starves under GitHub Actions' timeout nor silently attempts the whole backlog in one shot.
+// PER-ARTIFACT CHECKPOINTING: each selected artifact's write-outcomes step (the SAME step the normal
+// per-batch flow runs) writes that artifact's mint-run-NNN.json to disk the moment IT finishes — before
+// the next artifact in the loop even starts — so a job that is killed by the workflow's timeout mid-loop
+// still leaves every artifact processed SO FAR fully enriched on disk; population-turn.yml's own commit
+// step (`if: always()`) picks up whatever changed regardless of how the job ended, and the next
+// --check-gate sees a correctly NARROWED backlog (fewer stale artifacts), never a wasted or repeated
+// enrichment. On a genuine step FAILURE (not a timeout) the backlog loop stops at that artifact rather
+// than pressing on to the next one — same "fail loud, never `|| true`" posture the normal per-batch flow
+// already has; artifacts processed before the failure stay enriched (the same checkpointing property).
+//
+// COST PROJECTION FOR DEFAULT_BACKLOG_MAX_ARTIFACTS [INFERRED — no --backlog run has executed for real
+// yet; every prior population-turn apply was refused or hand-run before this driver's own flywheel step
+// existed]. The only load-bearing timing evidence on this checkout is
+// scripts/harness-runs/forward-events/*.json: forward-events-run-001 (2026-09-01) processed 322 items in
+// 22m42s (~4.2s/item, wall clock, includes whatever DB round trips that run made); runs 002-004
+// (2026-09-02/03), 185/53/481 items, each finished in well under a second. That thousand-fold spread is
+// unexplained by anything in this session's own evidence (possibly a cold-cache/first-run cost, possibly
+// a different code path) — so the WORST observed rate, not the best, is the one this projection uses.
+// discover-for-items.mjs's own discovery scoring (discover.mjs, O(candidates) per item against the whole
+// verified corpus, no LLM calls anywhere in this chain — the $0 rule holds throughout) has NO timing
+// evidence on this checkout at all; this projection does not assume it is free. At the worst measured
+// per-item rate, one AVERAGE auto-connectable stale artifact (~98 items — measured [CONFIRMED]: the
+// 13-artifact auto-connectable backlog this lane found averages 1272/13 ≈ 97.8) costs on the order of
+// 98 * 4.2s ≈ 6.9 minutes for forward-event-extraction ALONE, before discovery, corpus-export,
+// forward-event-apply, tag-proposals, or either of the two unscoped whole-corpus passes (analyze-corpus,
+// derive-obligations) are counted; the LARGEST individual artifacts in this backlog (mint-run-016/017 at
+// 177 items each) cost close to double that on this one step alone. DEFAULT_BACKLOG_MAX_ARTIFACTS is
+// therefore set to 2, not higher — two near-largest artifacts already approach the workflow's
+// PRE-EXISTING 30-minute timeout at this worst-case rate, so this lane also raises population-turn.yml's
+// timeout-minutes (30 → 60) to give the default real headroom; --max-artifacts is left overridable so a
+// coordinator who has watched a real --backlog dry/apply pair's actual wall time can widen it with
+// evidence instead of this projection's guess. Clearing the full 13-artifact auto-connectable backlog at
+// the default therefore takes on the order of ceil(13/2) = 7 dispatches, not three — this lane's own
+// first estimate (from the six-artifact reading in the coordinator's own defect description, before this
+// lane widened the measurement to the full checkout) undercounted the backlog; a coordinator may pass a
+// larger --max-artifacts once the first live run reports real per-artifact timing. The 2 unrecoverable
+// artifacts (mint-run-001/005, above) are NEVER selected by any number of dispatches — clearing them
+// needs a different fix, outside --backlog entirely.
 
 import { parseArgs as nodeParseArgs } from "node:util";
 import { spawnSync } from "node:child_process";
@@ -132,19 +228,26 @@ const FSI_ROOT = resolve(HERE, "..", "..");
 const DEFAULT_MINT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "mint");
 const SNAPSHOTS_ROOT = resolve(FSI_ROOT, "scripts", "_snapshots");
 
+// See the module header's "COST PROJECTION" paragraph for the full [INFERRED] reasoning behind 2.
+export const DEFAULT_BACKLOG_MAX_ARTIFACTS = 2;
+
 function usage() {
   return [
     "Usage:",
     "  node scripts/turns/run-population-flywheel.mjs --mint-run path/to/mint-run-NNN.json --mode dry|apply",
     "                                                   [--harness-runs-dir dir]",
     "  node scripts/turns/run-population-flywheel.mjs --check-gate [--harness-runs-dir dir]",
+    "  node scripts/turns/run-population-flywheel.mjs --backlog --mode dry|apply",
+    `                                                   [--harness-runs-dir dir] [--max-artifacts N (default ${DEFAULT_BACKLOG_MAX_ARTIFACTS})]`,
   ].join("\n");
 }
 
 /**
  * Pure CLI arg parse/validate — no I/O, no process.exit. @param {string[]} argv
- * @returns {{ok:true, help?:true} | {ok:true, checkGate:true, harnessRunsDir:string|null} |
- *   {ok:true, checkGate:false, mintRun:string, mode:"dry"|"apply", harnessRunsDir:string|null} |
+ * @returns {{ok:true, help?:true} |
+ *   {ok:true, checkGate:true, backlog:false, harnessRunsDir:string|null} |
+ *   {ok:true, checkGate:false, backlog:true, mode:"dry"|"apply", maxArtifacts:number, harnessRunsDir:string|null} |
+ *   {ok:true, checkGate:false, backlog:false, mintRun:string, mode:"dry"|"apply", harnessRunsDir:string|null} |
  *   {ok:false, error:string}}
  */
 export function parseArgs(argv) {
@@ -157,6 +260,8 @@ export function parseArgs(argv) {
         mode: { type: "string", default: "dry" },
         "harness-runs-dir": { type: "string" },
         "check-gate": { type: "boolean", default: false },
+        backlog: { type: "boolean", default: false },
+        "max-artifacts": { type: "string" },
         help: { type: "boolean", default: false },
       },
       allowPositionals: false,
@@ -166,11 +271,41 @@ export function parseArgs(argv) {
     return { ok: false, error: err.message };
   }
   if (values.help) return { ok: true, help: true };
+  if (values["check-gate"] && values.backlog) {
+    return { ok: false, error: "--check-gate and --backlog are mutually exclusive." };
+  }
   if (values["check-gate"]) {
-    return { ok: true, checkGate: true, harnessRunsDir: values["harness-runs-dir"] || null };
+    return { ok: true, checkGate: true, backlog: false, harnessRunsDir: values["harness-runs-dir"] || null };
+  }
+  if (values.backlog) {
+    if (values["mint-run"]) {
+      return { ok: false, error: "--backlog selects its own artifacts — do not pass --mint-run with it." };
+    }
+    if (values.mode !== "dry" && values.mode !== "apply") {
+      return { ok: false, error: `--mode must be "dry" or "apply" (got ${JSON.stringify(values.mode)}).` };
+    }
+    let maxArtifacts = DEFAULT_BACKLOG_MAX_ARTIFACTS;
+    if (values["max-artifacts"] !== undefined) {
+      const n = Number.parseInt(values["max-artifacts"], 10);
+      if (!Number.isInteger(n) || n <= 0 || String(n) !== values["max-artifacts"].trim()) {
+        return {
+          ok: false,
+          error: `--max-artifacts must be a positive integer (got ${JSON.stringify(values["max-artifacts"])}).`,
+        };
+      }
+      maxArtifacts = n;
+    }
+    return {
+      ok: true,
+      checkGate: false,
+      backlog: true,
+      mode: values.mode,
+      maxArtifacts,
+      harnessRunsDir: values["harness-runs-dir"] || null,
+    };
   }
   if (!values["mint-run"]) {
-    return { ok: false, error: "--mint-run <path/to/mint-run-NNN.json> is required (or pass --check-gate)." };
+    return { ok: false, error: "--mint-run <path/to/mint-run-NNN.json> is required (or pass --check-gate/--backlog)." };
   }
   if (values.mode !== "dry" && values.mode !== "apply") {
     return { ok: false, error: `--mode must be "dry" or "apply" (got ${JSON.stringify(values.mode)}).` };
@@ -178,6 +313,7 @@ export function parseArgs(argv) {
   return {
     ok: true,
     checkGate: false,
+    backlog: false,
     mintRun: values["mint-run"],
     mode: values.mode,
     harnessRunsDir: values["harness-runs-dir"] || null,
@@ -186,15 +322,28 @@ export function parseArgs(argv) {
 
 // ── extracting the batch's minted item ids from an (already apply-mint-batch-enriched) mint-run artifact ──
 
+// Recognized "this per_item entry names a real, newly-minted intelligence_items row" outcome strings.
+// "minted_verified" / "minted_unverified" are the CURRENT (apply-mint-batch.mjs) schema. "minted_verified_
+// first_pass" is a retired label from before the verified/unverified split existed (mint-run-004,
+// mint-run-006 on this checkout — measured [CONFIRMED] 2026-09-04: every entry carrying it also carries a
+// real item_id, unlike "minted"/"minted_validator_pass"/"minted_hardened_validator_pass", which never do —
+// see hasRecoverableMintedIds below for what this driver does with an artifact that has none at all).
+const MINTED_OUTCOME_VALUES = Object.freeze(["minted_verified", "minted_unverified", "minted_verified_first_pass"]);
+
 /**
  * Every item this batch actually minted — i.e. apply-mint-batch.mjs's own per_item outcomes
  * "minted_verified" / "minted_unverified" (both carry a real intelligence_items.id; every other
- * outcome — not_applied_*, apply_failed, would_apply* — never has a live row to connect). PURE.
+ * outcome — not_applied_*, apply_failed, would_apply* — never has a live row to connect), plus the
+ * retired "minted_verified_first_pass" label (see MINTED_OUTCOME_VALUES). PURE.
  * In a dry population-turn dispatch the mint-run artifact handed here is exactly what
  * run-mint-batch.mjs --execute wrote (apply-mint-batch.mjs's own dry path never touches the file at
  * all — see that script's header), so per_item carries only "apply_ready"/"validation_failed" and this
  * always returns []. That is not a bug in this function — it is the honest reflection of "nothing was
- * actually minted yet."
+ * actually minted yet." The SAME empty return also happens for a small number of pre-item_id-era
+ * artifacts on this checkout (mint-run-001, mint-run-005 — outcomes "minted"/"minted_validator_pass",
+ * measured [CONFIRMED] to carry NO item_id on any entry) whose own metrics.minted is nonetheless > 0 —
+ * that is NOT "nothing was minted," it is "this artifact predates the field this function needs." Callers
+ * that care about the difference use hasRecoverableMintedIds, below, rather than treating [] as "clean."
  * @param {{per_item?: Array<{outcome?:string, item_id?:string}>}} artifact
  * @returns {string[]} deduplicated item ids, in per_item order
  */
@@ -203,13 +352,39 @@ export function extractMintedItemIds(artifact) {
   const seen = new Set();
   const ids = [];
   for (const entry of perItem) {
-    const isMinted = entry?.outcome === "minted_verified" || entry?.outcome === "minted_unverified";
+    const isMinted = MINTED_OUTCOME_VALUES.includes(entry?.outcome);
     if (isMinted && typeof entry?.item_id === "string" && entry.item_id.length > 0 && !seen.has(entry.item_id)) {
       seen.add(entry.item_id);
       ids.push(entry.item_id);
     }
   }
   return ids;
+}
+
+/**
+ * Whether this driver could, in principle, auto-connect a mint-run artifact whose metrics.minted claims
+ * items were minted — i.e. whether extractMintedItemIds can name even one of them. THE DEFECT this closes
+ * [CONFIRMED, 2026-09-04, measured against every artifact on this checkout]: mint-run-001 (metrics.minted
+ * =6, outcome "minted") and mint-run-005 (metrics.minted=5, outcome "minted_validator_pass") both predate
+ * the per_item.item_id field entirely — every one of their per_item entries carries NO item_id at all, so
+ * extractMintedItemIds necessarily returns [] for them, exactly the same [] a genuinely-zero-minted
+ * artifact returns. Treating those two cases alike would be WRONG here specifically: checkAllSlicesConnected
+ * (THE GATE) must still refuse an artifact like this (it minted real items nothing has ever connected —
+ * CLAUDE.md rule 17 does not carve out an exception for "we lost the id"), but selectBacklogArtifacts (THE
+ * FIX) must NEVER select it — running the id-scoped flywheel steps over an empty batchIds array would
+ * "succeed" by writing edges_discovered=0/isolated_items=0, a FALSE record of connection this driver must
+ * never produce (runFlywheelForOneArtifact's own guard refuses instead, for exactly this reason) — and
+ * because --backlog selects oldest-first, leaving an unrecoverable artifact selectable would let it stall
+ * every dispatch forever at the very artifact it can never fix, blocking progress on every recoverable one
+ * behind it. PURE.
+ * @param {object} artifact
+ * @returns {boolean} true when there is nothing to recover (metrics.minted is 0/absent) OR at least one
+ *   item id was actually recovered; false only for the "claims minted, but the ids are gone" case.
+ */
+export function hasRecoverableMintedIds(artifact) {
+  const minted = Number(artifact?.metrics?.minted ?? 0);
+  if (!(minted > 0)) return true;
+  return extractMintedItemIds(artifact).length > 0;
 }
 
 // ── the ordered step plan (pure — no I/O, drives both dry-mode reporting and the real apply loop) ────
@@ -426,6 +601,202 @@ export function checkPriorSliceConnected(newestArtifact) {
       `${runId}: outcomes present (edges_discovered=${metrics.edges_discovered}, ` +
       `forward_events_extracted=${metrics.forward_events_extracted}, isolated_items=${metrics.isolated_items}).`,
   };
+}
+
+/**
+ * THE GATE, WIDENED (lane TANDEM-2, 2026-09-04) — see the module header's "THE GATE, WIDENED" paragraph
+ * for THE DEFECT this closes. PURE — checks EVERY artifact given, not merely the newest, reusing
+ * checkPriorSliceConnected's own per-artifact verdict/reason text so there is exactly one authority for
+ * "is this one artifact connected." A dry artifact (metrics.minted absent/0) never counts on its own
+ * merits (checkPriorSliceConnected already says so) AND never masks a stale artifact elsewhere in the
+ * list — every artifact is checked independently. A stale artifact with no recoverable item ids
+ * (hasRecoverableMintedIds false — measured [CONFIRMED] on this checkout: mint-run-001, mint-run-005,
+ * both predating per_item.item_id) is reported SEPARATELY from the rest: it still refuses (it minted real
+ * items nothing has ever connected — CLAUDE.md rule 17 carves out no exception for "the ids are gone"),
+ * but it is named as needing manual/operator resolution rather than handed the standard --mint-run/
+ * --backlog fix commands, neither of which can actually connect it (see hasRecoverableMintedIds' own
+ * header and runFlywheelForOneArtifact's guard for why running either over it refuses rather than
+ * "fixing" it with a false zero-valued outcomes record).
+ * @param {object[]} artifacts every mint-run artifact on this checkout, from readRunHistory(dir).runs
+ *   (already sorted ascending by started_at — oldest first — that order is preserved in the message but
+ *   not required by this function, which checks every element regardless of order)
+ * @returns {{ok:boolean, reason:string}}
+ */
+export function checkAllSlicesConnected(artifacts) {
+  const list = Array.isArray(artifacts) ? artifacts : [];
+  if (list.length === 0) {
+    return { ok: true, reason: "no prior mint-run artifact on this checkout — nothing to gate." };
+  }
+
+  const stale = [];
+  const unrecoverable = [];
+  for (const artifact of list) {
+    const result = checkPriorSliceConnected(artifact);
+    if (result.ok) continue;
+    const runId = artifact?.run_id ?? "(no run_id)";
+    if (hasRecoverableMintedIds(artifact)) {
+      stale.push({ runId, reason: result.reason });
+    } else {
+      const minted = Number(artifact?.metrics?.minted ?? 0);
+      // Deliberately NOT result.reason: checkPriorSliceConnected's own text always ends in a
+      // `--mint-run ... --mode apply` FIX command, and running that exact command against an
+      // unrecoverable artifact refuses (runFlywheelForOneArtifact's own guard) rather than fixing
+      // anything — this per-artifact detail line must never repeat a command that cannot work.
+      unrecoverable.push({
+        runId,
+        minted,
+        reason:
+          `${runId} minted ${minted} item(s) but its per_item carries no recoverable item id (it predates ` +
+          "the item_id field) — CANNOT be auto-connected by --mint-run or --backlog; needs manual/operator " +
+          "resolution, not the standard fix command.",
+      });
+    }
+  }
+
+  if (stale.length === 0 && unrecoverable.length === 0) {
+    return {
+      ok: true,
+      reason:
+        `${list.length} mint-run artifact(s) checked — every slice that minted anything carries its §9 ` +
+        "outcomes (or minted nothing itself).",
+    };
+  }
+
+  const allStaleRunIds = [...stale, ...unrecoverable].map((s) => s.runId).join(", ");
+  const perRunFixCommands = stale
+    .map(
+      (s) =>
+        `    node scripts/turns/run-population-flywheel.mjs --mint-run scripts/harness-runs/mint/${s.runId}.json --mode apply`,
+    )
+    .join("\n");
+  const fixSection = stale.length
+    ? "FIX (preferred — clears the whole backlog, oldest first, with per-artifact checkpointing): dispatch " +
+      "population-turn.yml with mode=apply and flywheel_backlog=true (the backlog dispatch — see " +
+      "docs/runbooks/POPULATION-TURN-RUNBOOK.md's backlog section, or run " +
+      "`node scripts/turns/run-population-flywheel.mjs --backlog --mode apply` directly).\n" +
+      "FIX (one artifact at a time, equivalent):\n" +
+      perRunFixCommands +
+      "\n— then re-dispatch this workflow.\n\n"
+    : "";
+  const unrecoverableSection = unrecoverable.length
+    ? `${unrecoverable.length} artifact(s) CANNOT be auto-connected by --mint-run or --backlog (both refuse ` +
+      "rather than write a false zero-valued outcomes record — see hasRecoverableMintedIds' own header): " +
+      unrecoverable.map((s) => `${s.runId} (metrics.minted=${s.minted}, no recoverable item id)`).join(", ") +
+      ". These need manual/operator resolution — identify what each one actually minted by another means " +
+      "(e.g. matching per_item's own id field against intelligence_items by hand) before the flywheel can " +
+      "run over them; until then THE GATE keeps refusing for these specifically, independent of any " +
+      "--backlog progress on the rest.\n\n"
+    : "";
+  return {
+    ok: false,
+    reason:
+      `${stale.length + unrecoverable.length} of ${list.length} mint-run artifact(s) minted items but were ` +
+      `never connected: ${allStaleRunIds}. Every artifact on this checkout is checked, not only the newest ` +
+      "— a dry artifact never counts on its own and never masks a stale one behind it. THE RULE (operator, " +
+      "2026-09-04): a runtime that ends without triggering its downstream is a defect in the runtime, not a " +
+      "note for a coordinator.\n" +
+      fixSection +
+      unrecoverableSection +
+      "Per-artifact detail:\n" +
+      [...stale, ...unrecoverable].map((s) => `  - ${s.reason}`).join("\n"),
+  };
+}
+
+// ── BACKLOG MODE: selecting which stale artifacts one dispatch enriches (pure, tested) ─────────────────
+
+/**
+ * Which stale mint-run artifacts a --backlog run will process THIS dispatch, oldest first, capped at
+ * `maxArtifacts`. PURE — depends only on its arguments, so the selection/ordering/cap logic is
+ * independently testable without touching a DB or spawning a process. Re-sorts by started_at itself
+ * (ties broken by run_id, matching readRunHistory's own convention) rather than trusting caller order, so
+ * it is correct even if a caller hands it artifacts out of order.
+ *
+ * A stale artifact with no recoverable item ids (hasRecoverableMintedIds false) is NEVER selected — it is
+ * reported separately, in `unrecoverable`, and does not consume any of `maxArtifacts`' budget. THE DEFECT
+ * this avoids [CONFIRMED, 2026-09-04]: selecting it anyway would either (a) have
+ * runFlywheelForOneArtifact refuse on it (its own guard — see that function's header), which, given
+ * oldest-first ordering, would stall EVERY dispatch forever at the one artifact this driver can never fix,
+ * blocking progress on every recoverable artifact behind it, or (b) absent that guard, silently write a
+ * false zero-valued outcomes record. Excluding it from selection lets --backlog keep making real progress
+ * on everything it CAN fix while still surfacing what it can't.
+ * @param {object[]} artifacts every mint-run artifact on this checkout, from readRunHistory(dir).runs
+ * @param {number} maxArtifacts cap on how many of the stale artifacts this dispatch selects (the rest are
+ *   left for a later dispatch) — see DEFAULT_BACKLOG_MAX_ARTIFACTS for the default and its rationale
+ * @returns {{staleTotal:number, staleTotalItems:number, selected:Array<{runId:string, artifact:object,
+ *   itemCount:number}>, selectedItems:number, remaining:number,
+ *   unrecoverable:Array<{runId:string, minted:number}>}}
+ */
+export function selectBacklogArtifacts(artifacts, maxArtifacts) {
+  const list = (Array.isArray(artifacts) ? artifacts.slice() : []).sort((a, b) => {
+    const byTime = Date.parse(a?.started_at) - Date.parse(b?.started_at);
+    if (Number.isNaN(byTime) || byTime === 0) {
+      const aId = a?.run_id ?? "";
+      const bId = b?.run_id ?? "";
+      return aId < bId ? -1 : aId > bId ? 1 : 0;
+    }
+    return byTime;
+  });
+
+  const stale = [];
+  const unrecoverable = [];
+  for (const artifact of list) {
+    const result = checkPriorSliceConnected(artifact);
+    if (result.ok) continue;
+    const runId = artifact?.run_id ?? "(no run_id)";
+    if (hasRecoverableMintedIds(artifact)) {
+      stale.push({ runId, artifact, itemCount: extractMintedItemIds(artifact).length });
+    } else {
+      unrecoverable.push({ runId, minted: Number(artifact?.metrics?.minted ?? 0) });
+    }
+  }
+
+  const cap = Number.isInteger(maxArtifacts) && maxArtifacts > 0 ? maxArtifacts : DEFAULT_BACKLOG_MAX_ARTIFACTS;
+  const selected = stale.slice(0, cap);
+  return {
+    staleTotal: stale.length,
+    staleTotalItems: stale.reduce((n, s) => n + s.itemCount, 0),
+    selected,
+    selectedItems: selected.reduce((n, s) => n + s.itemCount, 0),
+    remaining: stale.length - selected.length,
+    unrecoverable,
+  };
+}
+
+/**
+ * Human-readable report for a --backlog dispatch (both dry and apply print this before doing anything
+ * else). PURE — string formatting only, over selectBacklogArtifacts' own output, so its exact shape is
+ * testable without a subprocess.
+ * @param {ReturnType<typeof selectBacklogArtifacts>} selection
+ * @returns {string}
+ */
+export function formatBacklogReport(selection) {
+  const unrecoverable = selection?.unrecoverable ?? [];
+  const unrecoverableLines = unrecoverable.length
+    ? [
+        `[population-flywheel] backlog: ${unrecoverable.length} additional stale artifact(s) CANNOT be ` +
+          "auto-connected (no recoverable item id — pre-dates per_item.item_id) and are never selected; " +
+          "these need manual/operator resolution:",
+        ...unrecoverable.map((s) => `  - ${s.runId}: metrics.minted=${s.minted}, no recoverable item id`),
+      ]
+    : [];
+
+  if (!selection || selection.staleTotal === 0) {
+    const base = "[population-flywheel] backlog: 0 stale mint-run artifact(s) — every slice that minted anything is already connected.";
+    return [base, ...unrecoverableLines].join("\n");
+  }
+  const lines = [
+    `[population-flywheel] backlog: ${selection.staleTotal} stale mint-run artifact(s) found ` +
+      `(${selection.staleTotalItems} item(s) total, oldest first) — selecting ${selection.selected.length} ` +
+      `this dispatch (${selection.selectedItems} item(s)), ${selection.remaining} left for a later dispatch:`,
+    ...selection.selected.map((s) => `  - ${s.runId}: ${s.itemCount} minted item(s)`),
+  ];
+  if (selection.remaining > 0) {
+    lines.push(
+      `  ... ${selection.remaining} more stale artifact(s) not selected this dispatch — raise ` +
+        "--max-artifacts (or backlog_max_artifacts on the workflow dispatch) or dispatch again once this one lands.",
+    );
+  }
+  return [...lines, ...unrecoverableLines].join("\n");
 }
 
 // ── step handlers (I/O — child processes and guarded DB calls; each throws on failure) ─────────────────
@@ -679,6 +1050,80 @@ const STEP_HANDLERS = Object.freeze({
   "record-last-turn": stepRecordLastTurn,
 });
 
+// ── the shared per-artifact executor — the ONE code path that runs §8/§9 over one mint-run artifact,
+// used by BOTH the normal --mint-run apply/dry path AND every artifact a --backlog apply run processes
+// (never two divergent implementations of "how a mint-run artifact gets connected") ────────────────────
+
+/**
+ * Run the full ordered §8/§9 step plan (buildFlywheelPlan) over ONE mint-run artifact and return its
+ * result. I/O-bearing (child processes + guarded DB calls via `db`) — not unit-tested directly, same
+ * discipline as the rest of this file's step handlers (see run-population-flywheel.test.mjs's own
+ * header); the PURE logic it drives (step order, skip/write decisions, the gate, backlog selection,
+ * hasRecoverableMintedIds' own check below) is fully covered without touching a DB or spawning a process.
+ *
+ * REFUSES BEFORE ANY I/O (safety net, THE DEFECT this closes [CONFIRMED, 2026-09-04]) when the artifact's
+ * own metrics.minted claims items were minted but extractMintedItemIds cannot name any of them
+ * (hasRecoverableMintedIds false — mint-run-001/mint-run-005 on this checkout, both predating
+ * per_item.item_id). --backlog's own selectBacklogArtifacts already excludes such artifacts, so this
+ * never fires on the backlog path in practice — this guard exists for the direct `--mint-run <path>`
+ * path, which selectBacklogArtifacts never sees, so nothing else would stop it being pointed at one by
+ * hand. Without this guard, batchIds would be [] exactly as it is for a genuinely-zero-minted artifact,
+ * buildFlywheelPlan would skip every item-scoped step, and compute-outcomes/write-outcomes would happily
+ * write edges_discovered=0/isolated_items=0 — a FALSE record that this artifact is connected, when in
+ * truth its items were never even identified, let alone discovered. Failing loud here, before any step
+ * runs, is the same "a runtime that ends without triggering its downstream is a defect in the runtime"
+ * posture this driver already applies everywhere else — never a silent, wrong "ok".
+ * @param {{mintRunPath:string, artifact:object, mode:"dry"|"apply", harnessRunsDir:string, db:object,
+ *   startedAt:string}} args
+ * @returns {Promise<{mintRunId:string|null, batchIds:string[], ok:boolean, results:object[]}>}
+ */
+export async function runFlywheelForOneArtifact({ mintRunPath, artifact, mode, harnessRunsDir, db, startedAt }) {
+  const apply = mode === "apply";
+  const batchIds = extractMintedItemIds(artifact);
+  const runIdForMessage = artifact?.run_id ?? mintRunPath ?? "(unknown)";
+  if (!hasRecoverableMintedIds(artifact)) {
+    throw new Error(
+      `run-population-flywheel: ${runIdForMessage}'s own metrics.minted=${Number(artifact?.metrics?.minted ?? 0)} ` +
+        "but no item id could be recovered from per_item (it predates the item_id field this driver needs to " +
+        "scope discovery/extraction against — see extractMintedItemIds' own header). Refusing rather than " +
+        "writing a false zero-valued outcomes record. This artifact needs manual/operator resolution.",
+    );
+  }
+  const plan = buildFlywheelPlan(mode, batchIds);
+  const mintRunDir = resolve(harnessRunsDir || dirname(mintRunPath));
+  const mintRunId = artifact.run_id ?? null;
+  const workDir = join(SNAPSHOTS_ROOT, `population-flywheel-${mintRunId ?? "unknown"}`);
+
+  console.log(
+    `run-population-flywheel: mode=${mode} mint_run=${mintRunId ?? "(no run_id)"} minted_item_ids=${batchIds.length}`,
+  );
+
+  const ctx = { mode, apply, batchIds, mintRunPath, mintRunDir, mintRunId, workDir, db, state: {}, startedAt };
+
+  const results = [];
+  let failed = false;
+  for (const step of plan) {
+    if (step.skip) {
+      console.log(`\n[population-flywheel] --- ${step.name}: SKIPPED (${step.skipReason}) ---`);
+      results.push({ step: step.name, skipped: true, reason: step.skipReason });
+      continue;
+    }
+    console.log(`\n[population-flywheel] === ${step.name} ===`);
+    try {
+      const detail = await STEP_HANDLERS[step.name](ctx);
+      results.push({ step: step.name, ok: true, detail });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[population-flywheel] STEP FAILED: ${step.name}: ${message}`);
+      results.push({ step: step.name, ok: false, error: message });
+      failed = true;
+      break;
+    }
+  }
+
+  return { mintRunId, batchIds, ok: !failed, results };
+}
+
 // ── CLI ──────────────────────────────────────────────────────────────────────────────────────────────
 
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -704,10 +1149,76 @@ async function main() {
   if (parsed.checkGate) {
     const dir = resolve(parsed.harnessRunsDir || DEFAULT_MINT_HARNESS_RUNS_DIR);
     const { runs } = readRunHistory(dir);
-    const newest = runs.at(-1) ?? null;
-    const result = checkPriorSliceConnected(newest);
+    const result = checkAllSlicesConnected(runs);
     console.log(`[population-flywheel] gate: ${result.reason}`);
     process.exit(result.ok ? 0 : 1);
+    return;
+  }
+
+  if (parsed.backlog) {
+    const dir = resolve(parsed.harnessRunsDir || DEFAULT_MINT_HARNESS_RUNS_DIR);
+    const { runs } = readRunHistory(dir);
+    const selection = selectBacklogArtifacts(runs, parsed.maxArtifacts);
+    console.log(formatBacklogReport(selection));
+
+    if (parsed.mode === "dry") {
+      console.log("[population-flywheel] backlog dry run — writes nothing.");
+      process.exit(0);
+      return;
+    }
+
+    if (selection.selected.length === 0) {
+      const note = selection.unrecoverable.length
+        ? ` (${selection.unrecoverable.length} artifact(s) above need manual/operator resolution — --backlog cannot auto-connect them)`
+        : "";
+      console.log(`[population-flywheel] backlog: nothing selected — nothing to connect, exiting 0.${note}`);
+      process.exit(0);
+      return;
+    }
+
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("run-population-flywheel: no DB creds — cannot run --backlog --mode apply here (exit 2).");
+      process.exit(2);
+      return;
+    }
+
+    const { readAll, guardedInsertMany, guardedUpdate, readClient } = await import("../lib/db.mjs");
+    const db = { readAll, guardedInsertMany, guardedUpdate, readClient };
+
+    const artifactResults = [];
+    let failed = false;
+    for (const { runId, artifact } of selection.selected) {
+      console.log(`\n[population-flywheel] ##### backlog artifact ${runId} #####`);
+      const mintRunPath = join(dir, `${runId}.json`);
+      const startedAt = new Date().toISOString();
+      const result = await runFlywheelForOneArtifact({ mintRunPath, artifact, mode: "apply", harnessRunsDir: dir, db, startedAt });
+      artifactResults.push(result);
+      if (!result.ok) {
+        failed = true;
+        break; // checkpointed: every artifact before this one already has its outcomes written to disk.
+      }
+    }
+
+    console.log("\n[population-flywheel] BACKLOG SUMMARY");
+    console.log(
+      JSON.stringify(
+        {
+          mode: "apply",
+          max_artifacts: parsed.maxArtifacts,
+          stale_total: selection.staleTotal,
+          selected: selection.selected.length,
+          processed: artifactResults.length,
+          remaining_after_this_dispatch: selection.remaining + (failed ? selection.selected.length - artifactResults.length : 0),
+          unrecoverable_needs_manual_resolution: selection.unrecoverable,
+          ok: !failed,
+          artifacts: artifactResults,
+        },
+        null,
+        2,
+      ),
+    );
+
+    process.exit(failed ? 1 : 0);
     return;
   }
 
@@ -727,64 +1238,35 @@ async function main() {
     return;
   }
 
-  const mode = parsed.mode;
-  const apply = mode === "apply";
-  const batchIds = extractMintedItemIds(artifact);
-  const plan = buildFlywheelPlan(mode, batchIds);
-  const mintRunDir = resolve(parsed.harnessRunsDir || dirname(mintRunPath));
-  const mintRunId = artifact.run_id ?? null;
-  const workDir = join(SNAPSHOTS_ROOT, `population-flywheel-${mintRunId ?? "unknown"}`);
-  const startedAt = new Date().toISOString();
-
-  console.log(
-    `run-population-flywheel: mode=${mode} mint_run=${mintRunId ?? "(no run_id)"} minted_item_ids=${batchIds.length}`,
-  );
-
   const { readAll, guardedInsertMany, guardedUpdate, readClient } = await import("../lib/db.mjs");
   const db = { readAll, guardedInsertMany, guardedUpdate, readClient };
+  const startedAt = new Date().toISOString();
 
-  const ctx = {
-    mode,
-    apply,
-    batchIds,
-    mintRunPath,
-    mintRunDir,
-    mintRunId,
-    workDir,
-    db,
-    state: {},
-    startedAt,
-  };
-
-  const results = [];
-  let failed = false;
-  for (const step of plan) {
-    if (step.skip) {
-      console.log(`\n[population-flywheel] --- ${step.name}: SKIPPED (${step.skipReason}) ---`);
-      results.push({ step: step.name, skipped: true, reason: step.skipReason });
-      continue;
-    }
-    console.log(`\n[population-flywheel] === ${step.name} ===`);
-    try {
-      const detail = await STEP_HANDLERS[step.name](ctx);
-      results.push({ step: step.name, ok: true, detail });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`[population-flywheel] STEP FAILED: ${step.name}: ${message}`);
-      results.push({ step: step.name, ok: false, error: message });
-      failed = true;
-      break;
-    }
+  let outcome;
+  try {
+    outcome = await runFlywheelForOneArtifact({
+      mintRunPath,
+      artifact,
+      mode: parsed.mode,
+      harnessRunsDir: parsed.harnessRunsDir,
+      db,
+      startedAt,
+    });
+  } catch (err) {
+    // runFlywheelForOneArtifact's own hasRecoverableMintedIds guard lands here directly (thrown before
+    // any step ran) — the same "refuse before writing a false outcome" case selectBacklogArtifacts
+    // already keeps out of --backlog, surfaced here for the direct --mint-run path, which has no such
+    // pre-filter to protect it.
+    console.error(`run-population-flywheel: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+    return;
   }
 
+  const { mintRunId, batchIds, ok, results } = outcome;
   console.log("\n[population-flywheel] SUMMARY");
   console.log(
-    JSON.stringify(
-      { mode, mint_run: mintRunId, minted_item_ids: batchIds.length, ok: !failed, results },
-      null,
-      2,
-    ),
+    JSON.stringify({ mode: parsed.mode, mint_run: mintRunId, minted_item_ids: batchIds.length, ok, results }, null, 2),
   );
 
-  process.exit(failed ? 1 : 0);
+  process.exit(ok ? 0 : 1);
 }

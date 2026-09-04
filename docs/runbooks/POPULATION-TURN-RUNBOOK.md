@@ -23,27 +23,103 @@ MINT-RUNBOOK.md §8/§9 — discovery, forward-event extraction, recluster, deri
 tag-proposals + tag-ratification, and the §9 corpus-outcome metrics written back into this run's own
 `mint-run-NNN.json`, all scoped to exactly the items this batch minted; a failed flywheel step fails the
 whole job). This flywheel step is run BY THE WORKFLOW ITSELF, not a separate hand-run coordinator
-pass — see "THE FLYWHEEL" below. Before any of this, in `apply` mode, a gate step
-(`run-population-flywheel.mjs --check-gate`) refuses to start a NEW batch while a PRIOR batch's
-`mint-run-NNN.json` is missing the §9 outcome keys, so an unconnected prior slice blocks the next one
-rather than accumulating silently. Read `MINT-RUNBOOK.md` §8/§9/§11 for what each step actually does;
-this file only names the chain so the landing section below makes sense without cross-referencing that
-governing file.
+pass — see "THE FLYWHEEL" below. Before any of this, in `apply` mode (and never on a `flywheel_backlog`
+dispatch — see "THE GATE, WIDENED, and BACKLOG MODE" below), a gate step
+(`run-population-flywheel.mjs --check-gate`) refuses to start a NEW batch while ANY prior batch's
+`mint-run-NNN.json` on the checkout is missing the §9 outcome keys, so an unconnected prior slice blocks
+the next one rather than accumulating silently. Read `MINT-RUNBOOK.md` §8/§9/§11 for what each step
+actually does; this file only names the chain so the landing section below makes sense without
+cross-referencing that governing file.
 
 ### THE FLYWHEEL (lane TANDEM, 2026-09-04)
 
 THE DEFECT [CONFIRMED]: this workflow used to end after `apply-mint-batch.mjs` plus an unconditional
 `propose-tags.mjs --dry` preview — MINT-RUNBOOK.md §8 (discovery, forward-event extraction, recluster,
 IN ORDER) and §9 (`--outcomes` enrichment) were documented as a separate, hand-run coordinator pass that
-nothing in this runtime ever triggered. Population runs #15-#20 (2026-09-03/04, ~650 items,
-mint-run-017..022) were applied with no flywheel pass and no outcomes: every one of those items carries
-zero `item_cross_references`, zero `item_forward_events`, no obligations, no tags, no signals. Operator
-ruling (2026-09-04), verbatim: "there is no thing within this entire build that works on its own
-ever... Everything works together, that's the purpose of the flywheel and the harness." A green
-population-turn run now means minted AND connected AND recorded — the coordinator's job on §8/§9 is to
-read the outcomes that landed in `mint-run-NNN.json`, not to run discovery/extraction/tagging by hand.
+nothing in this runtime ever triggered. Population runs #15-#20 (2026-09-03/04, 934 items measured
+[CONFIRMED] — 177+168+156+152+141+140, mint-run-017..022) were applied with no flywheel pass and no
+outcomes: every one of those items carries zero `item_cross_references`, zero `item_forward_events`, no
+obligations, no tags, no signals. Operator ruling (2026-09-04), verbatim: "there is no thing within this
+entire build that works on its own ever... Everything works together, that's the purpose of the flywheel
+and the harness." A green population-turn run now means minted AND connected AND recorded — the
+coordinator's job on §8/§9 is to read the outcomes that landed in `mint-run-NNN.json`, not to run
+discovery/extraction/tagging by hand.
 
-## How to dispatch
+### THE GATE, WIDENED, and BACKLOG MODE (lane TANDEM-2, 2026-09-04)
+
+THE DEFECT [CONFIRMED by the coordinator reading the landed code]: THE GATE above used to read only the
+SINGLE newest `mint-run-NNN.json` on the checkout (by `started_at`), not every artifact. A DRY artifact —
+a `rows_file` preview, or a live export that minted nothing — has `metrics.minted` absent/0 by
+construction, so whenever a dry artifact happened to be newest it read as "nothing to connect" and let a
+brand-new apply through, while every apply artifact behind it on the timeline stayed unconnected. This is
+exactly what happened after TANDEM's own train landed: mint-run-023 (the `rows_file` dry preview of the
+six-row EU Weekly Oil Bulletin batch, ruling R-D — see "Dispatching the oil-bulletin batch" below) landed
+newest, and the gate read only it — a false "nothing to connect."
+
+**Fixed:** `run-population-flywheel.mjs --check-gate` now scans EVERY `mint-run-NNN.json` on the
+checkout, not only the newest, and refuses if ANY of them minted items but was left unconnected — a dry
+artifact still never counts on its own, it just no longer masks a stale artifact elsewhere in the list.
+
+**THE FULL BACKLOG IS LARGER THAN THE SIX RUNS THAT FIRST SURFACED IT** — measured [CONFIRMED,
+2026-09-04, this lane, re-run `--check-gate` any time to re-measure] by actually widening the scan to
+every artifact on the checkout, not only mint-run-017..022. **`checkAllSlicesConnected` finds 15 of 23
+mint-run artifacts minted items and were never connected**, not six:
+
+| Group | Run ids | Items | Auto-connectable by `--backlog`? |
+|---|---|---|---|
+| Pre-TANDEM small batches | mint-run-004, mint-run-006 | 4 + 5 = 9 | Yes (retired outcome label `minted_verified_first_pass`, item ids present) |
+| Pre-TANDEM population runs | mint-run-011, 012, 013, 014, 016 | 43+39+30+40+177 = 329 | Yes |
+| The six runs THE DEFECT above names | mint-run-017 through mint-run-022 | 177+168+156+152+141+140 = 934 | Yes |
+| **Auto-connectable total** | **13 artifacts** | **1,272 items** | **Yes** |
+| Pre-item_id-era artifacts | mint-run-001, mint-run-005 | 6 + 5 = 11 | **No — see below** |
+
+**mint-run-001 and mint-run-005 cannot be auto-connected by either `--mint-run` or `--backlog`.** Both
+predate the `per_item.item_id` field entirely — their per-item entries carry a CELEX id and an outcome
+label (`"minted"` / `"minted_validator_pass"`) but never a real `intelligence_items.id`, so
+`extractMintedItemIds` has nothing to recover. Running the flywheel over either one **refuses** rather
+than silently writing a false zero-valued outcomes record (`hasRecoverableMintedIds` /
+`runFlywheelForOneArtifact`'s own guard, see that script's header). **THE GATE keeps refusing every new
+apply — the R-D oil-bulletin batch below included — until these two are resolved by some OTHER means
+(e.g. hand-matching their per_item CELEX ids against `intelligence_items.canonical_instrument_key` and
+hand-writing their §9 outcomes), which is outside this lane's scope and not attempted here. This is an
+open item for the operator/coordinator, not something `--backlog` will ever clear on its own.**
+
+**The fix for the 13 auto-connectable artifacts is now itself a dispatch, not a hand-run pass over one
+artifact at a time:** `flywheel_backlog: true` skips
+`export-census-rows.mjs`/`run-mint-batch.mjs`/`apply-mint-batch.mjs`/`rederive-record-provenance.mjs`/
+`screen-reconcile-records.mjs` entirely (this mode MINTS NOTHING) and instead runs
+`run-population-flywheel.mjs --backlog` — connects every AUTO-CONNECTABLE stale mint-run artifact,
+oldest first, bounded by `backlog_max_artifacts` (leave blank for that script's own documented default —
+2, with the full [INFERRED] per-item cost reasoning in that script's own header's "COST PROJECTION"
+paragraph), each one enriched in place and written to disk (checkpointed) the moment it finishes — so a
+job that hits `population-turn.yml`'s `timeout-minutes` (raised 30 → 60 by this lane for exactly this
+reason) mid-backlog still leaves everything processed so far connected and the gate correctly narrowed
+for the next dispatch. mint-run-001/005 are never selected (they would only ever refuse), so they never
+consume a dispatch's budget or stall the artifacts behind them, even though mint-run-001 is the oldest
+artifact on the checkout. THE GATE never runs on a `flywheel_backlog: true` dispatch (that dispatch's
+entire purpose is to clear it — gating it would be circular).
+
+**Dispatch (mode=dry — lists the stale artifacts and each one's item count, writes nothing, no DB creds
+needed):**
+- `mode`: `dry`
+- `flywheel_backlog`: `true`
+- `backlog_max_artifacts`: leave blank (or set explicitly to preview a specific cap)
+- every other input (`limit`/`source_id`/`celex_prefix`/`capture`/`rows_file`) is ignored on a backlog
+  dispatch
+
+**Dispatch (mode=apply — actually connects up to `backlog_max_artifacts` auto-connectable stale
+artifacts, oldest first):**
+- `mode`: `apply`
+- `flywheel_backlog`: `true`
+- `backlog_max_artifacts`: leave blank for the default (2), or raise it once a prior dispatch's real wall
+  time is known
+- Clearing the full 13-artifact auto-connectable backlog (1,272 items) takes on the order of
+  `ceil(13/2) = 7` dispatches at the default cap, not three — re-dispatch with the same inputs once each
+  one's branch is read (see "Landing a run" below); `--check-gate`'s own next run reports how many
+  auto-connectable artifacts remain, and separately names mint-run-001/005 as needing manual resolution
+  regardless of how many `--backlog` dispatches have run.
+
+## How to dispatch a normal batch
 
 Actions tab → **Population turn** → Run workflow. Inputs: `mode` (`dry`/`apply`), `limit` (payloads per
 run — `population-turn.yml`'s own default is `50`; `docs/plans/population-pass-2026-09-03.md` §3
@@ -51,10 +127,14 @@ recommends `200` once the pipeline is proven, repeated until the on-vertical poo
 `source_id` / `celex_prefix` (optional narrowing), `capture` (`true` fetches live text for rows with no
 existing capture), `rows_file` (optional — skip the live export and run the batch/apply steps directly
 against a pre-built rows file, e.g. for the browser-capture escape hatch `MINT-RUNBOOK.md` §11's
-addendum documents). Secrets already wired in the workflow env: `NEXT_PUBLIC_SUPABASE_URL`,
+addendum documents), `flywheel_backlog` (leave `false` — see the section above for the backlog dispatch).
+Secrets already wired in the workflow env: `NEXT_PUBLIC_SUPABASE_URL`,
 `SUPABASE_SERVICE_ROLE_KEY`, `APP_URL`, `WORKER_SECRET`. Run `dry` first, read the artifact
 (`minted`/`minted_verified`/`apply_failed`/`census_rows_reconciled`/held reasons) against the live
-tables, then `apply`.
+tables, then `apply`. **If `apply` is refused by THE GATE, dispatch the backlog (above) first** — the
+gate's own refusal names every auto-connectable stale artifact and the exact fix, and separately names
+mint-run-001/mint-run-005 if either is still unresolved (no `--backlog` dispatch, however many, clears
+those two — see above).
 
 ## Landing a run: what the workflow tries, and what actually happens on this repository
 
@@ -139,6 +219,17 @@ why). Dispatch **Population turn** with:
 - `capture`: irrelevant for a `rows_file` dispatch (every row already carries `captured_text`) — leave
   at its default.
 - `limit` / `source_id` / `celex_prefix`: not applicable to this six-row batch; leave at defaults.
+- `flywheel_backlog`: `false` (its default) — this dispatch mints the six oil-bulletin rows themselves, it
+  is not a backlog dispatch.
+
+**This dispatch's own `dry` run already exists on the checkout as `mint-run-023`** — the artifact THE
+GATE, WIDENED (above) found masking every stale artifact behind it before this lane widened the scan.
+**The `apply` run of THIS six-row batch is now itself gated**: THE GATE (widened) refuses ANY new apply —
+this one included — while ANY of the 15 stale artifacts named above (13 auto-connectable,
+mint-run-001/005 not) stay unconnected. **Clear the backlog dispatch (above) first, as many times as
+`--check-gate` still names an auto-connectable stale artifact (≈7 dispatches at the default cap) — and
+separately get mint-run-001/005 resolved by hand (see above; `--backlog` cannot touch them)** — only then
+does `--check-gate` report every prior artifact connected and this `apply` proceed.
 
 Every row's `source.id` is the placeholder `"PENDING-LIVE-SOURCES-LOOKUP"` (`propose-series-items.mjs`'s
 own precedent) — **before dispatching `apply`**, the coordinator must resolve the real `sources` row for

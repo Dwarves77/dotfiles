@@ -54,12 +54,37 @@ name: Population turn
 # run of THIS workflow now means minted AND connected AND recorded — a run whose flywheel step fails
 # fails the whole job (no `|| true` on that step), by design.
 #
-# THE GATE (apply mode only, run BEFORE export-census-rows.mjs): refuses to mint a NEW slice while a
-# PRIOR slice that minted items was left unconnected (its `mint-run-NNN.json` lacks the §9 outcome keys)
-# — a pure, filesystem-only, no-DB-creds-needed check (`run-population-flywheel.mjs --check-gate`) over
-# whatever mint-run artifacts are already on this checkout (including hydrated unmerged siblings, see
-# below), so a defect in a PRIOR run (or a hand-run predecessor from before this lane) is caught before
-# this run spends any fetch/mint budget on a slice this repo cannot yet connect either.
+# THE GATE, WIDENED (apply mode only, run BEFORE export-census-rows.mjs — lane TANDEM-2, 2026-09-04). THE
+# DEFECT this closes [CONFIRMED by the coordinator reading the landed code]: the gate used to read only
+# the SINGLE newest mint-run artifact (by started_at) — a dry artifact (a rows_file preview, or a live
+# export that minted nothing) has metrics.minted absent/0 by construction, so whenever a dry artifact
+# happened to be newest, it read as "nothing to connect" and let a new apply through, while apply
+# artifacts BEHIND it on the timeline stayed unconnected. `run-population-flywheel.mjs --check-gate` now
+# scans EVERY mint-run artifact on this checkout (including hydrated unmerged siblings, see below) and
+# refuses if ANY of them minted items but was left without the §9 outcome keys — a dry artifact still
+# never counts on its own, but it no longer masks a stale artifact elsewhere in the list. Still a pure,
+# filesystem-only, no-DB-creds-needed check, so a defect in a PRIOR run (or a hand-run predecessor from
+# before this lane) is caught before this run spends any fetch/mint budget on a slice this repo cannot yet
+# connect either. THE GATE'S OWN REFUSAL NAMES THE FIX: dispatch this workflow again with
+# `flywheel_backlog: true` (see below) — never a hand-run coordinator pass.
+#
+# BACKLOG MODE (lane TANDEM-2, 2026-09-04) — `flywheel_backlog: true`. Clears exactly what THE GATE
+# refuses, without minting anything new: when set, this job SKIPS `stamp-wo26-archive-reason.mjs`,
+# `export-census-rows.mjs`, `run-mint-batch.mjs`, `apply-mint-batch.mjs`,
+# `rederive-record-provenance.mjs`, and `screen-reconcile-records.mjs` entirely (there is no new batch to
+# prepare or apply) and runs `run-population-flywheel.mjs --backlog` instead — see that script's own
+# header ("BACKLOG MODE" / "COST PROJECTION") for the full step-by-step contract, its default
+# `--max-artifacts` and the [INFERRED] cost reasoning behind it, and `docs/runbooks/
+# POPULATION-TURN-RUNBOOK.md`'s backlog section for the coordinator-facing dispatch instructions. `mode:
+# dry` lists the stale mint-run artifacts and each one's item count and writes nothing at all (no DB
+# creds needed); `mode: apply` enriches up to `backlog_max_artifacts` of them, oldest first, each one
+# checkpointed to disk (its own `mint-run-NNN.json`) the moment it finishes — so a job that hits
+# `timeout-minutes` mid-backlog still leaves everything processed so far fully connected and THE GATE
+# correctly narrowed for the next dispatch. THE GATE itself never runs on a `flywheel_backlog: true`
+# dispatch (see below) — gating the one dispatch whose entire purpose is clearing the gate would be
+# circular. `timeout-minutes` is raised 30 → 60 in this lane specifically to give a default-sized backlog
+# apply (2 artifacts) real headroom — see the cost projection this raise is based on in
+# `run-population-flywheel.mjs`'s own header.
 #
 # rows_file (Lane POP2, 2026-09-02, first live dry run): the browser-capture escape hatch made a
 # first-class runtime input. MINT-RUNBOOK.md §1a's operator ruling is "a site that refuses the runner is
@@ -99,7 +124,16 @@ on:
         default: true
         type: boolean
       rows_file:
-        description: 'Optional repo path to a pre-built enriched-row JSON (e.g. scripts/_snapshots/population-browser/<batch>.json) captured through the browser per MINT-RUNBOOK.md §11''s browser-capture procedure. When set, the export-census-rows.mjs step is SKIPPED and this file drives run-mint-batch.mjs/apply-mint-batch.mjs directly.'
+        description: 'Optional repo path to a pre-built enriched-row JSON (e.g. scripts/_snapshots/population-browser/<batch>.json) captured through the browser per MINT-RUNBOOK.md §11''s browser-capture procedure. When set, the export-census-rows.mjs step is SKIPPED and this file drives run-mint-batch.mjs/apply-mint-batch.mjs directly. Ignored when flywheel_backlog is true (which skips export/mint entirely).'
+        required: false
+        type: string
+      flywheel_backlog:
+        description: 'true = skip export/mint entirely and instead run the population flywheel (MINT-RUNBOOK.md §8/§9) over EXISTING mint-run artifacts THE GATE currently refuses, oldest first, enriching each in place (mode=dry lists them and writes nothing; mode=apply connects up to backlog_max_artifacts of them). See run-population-flywheel.mjs --backlog and docs/runbooks/POPULATION-TURN-RUNBOOK.md''s backlog section.'
+        required: true
+        default: false
+        type: boolean
+      backlog_max_artifacts:
+        description: 'Only used when flywheel_backlog=true. Max stale mint-run artifacts to enrich in ONE dispatch. Leave blank to use run-population-flywheel.mjs''s own documented default (see that script''s header for the cost reasoning).'
         required: false
         type: string
   # schedule:
@@ -118,7 +152,11 @@ permissions:
 jobs:
   population:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 30 -> 60 (lane TANDEM-2, 2026-09-04): a flywheel_backlog=true apply dispatch can run the full
+    # per-artifact §8/§9 step plan up to backlog_max_artifacts times in one job (default 2 — see
+    # run-population-flywheel.mjs's own "COST PROJECTION" for the [INFERRED] reasoning). A normal
+    # single-batch apply is unaffected and keeps the same margin it always had.
+    timeout-minutes: 60
     defaults:
       run:
         working-directory: fsi-app
@@ -158,7 +196,15 @@ jobs:
           echo "celex_prefix = ${{ inputs.celex_prefix }}"
           echo "capture      = ${{ inputs.capture }}"
           echo "rows_file    = ${{ inputs.rows_file }}"
+          echo "flywheel_backlog     = ${{ inputs.flywheel_backlog }}"
+          echo "backlog_max_artifacts = ${{ inputs.backlog_max_artifacts }}"
           echo "EXPORT_DIR=scripts/_snapshots/population-${{ github.run_id }}" >> "$GITHUB_ENV"
+          if [ "${{ inputs.flywheel_backlog }}" = "true" ]; then
+            echo "flywheel_backlog=true — export/mint steps below are skipped; CENSUS_ROWS_PATH/CENSUS_ROWS_BASENAME are unused this dispatch."
+            echo "CENSUS_ROWS_PATH=" >> "$GITHUB_ENV"
+            echo "CENSUS_ROWS_BASENAME=" >> "$GITHUB_ENV"
+            exit 0
+          fi
           if [ -n "${{ inputs.rows_file }}" ]; then
             CENSUS_ROWS_PATH="${{ inputs.rows_file }}"
             echo "using rows_file — export-census-rows.mjs will be skipped: $CENSUS_ROWS_PATH"
@@ -203,19 +249,22 @@ jobs:
           done
           echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged mint/forward-events file(s) from sibling population branches"
 
-      # THE GATE (apply mode only) — see the header comment above for the full rationale. Filesystem-only
-      # (readRunHistory over whatever mint-run-NNN.json files are on this checkout, hydrated siblings
-      # included), so it runs before "Verify required secrets" would even matter and before this run
-      # spends any budget on export-census-rows.mjs.
-      - name: 'Gate: refuse a new slice while a prior one is left unconnected (apply mode only)'
-        if: ${{ inputs.mode == 'apply' }}
+      # THE GATE (apply mode only, and never on a flywheel_backlog dispatch — that dispatch's whole job IS
+      # to clear what THE GATE refuses, so gating it would be circular) — see the header comment above for
+      # the full rationale. Filesystem-only (readRunHistory over whatever mint-run-NNN.json files are on
+      # this checkout, hydrated siblings included), so it runs before "Verify required secrets" would even
+      # matter and before this run spends any budget on export-census-rows.mjs.
+      - name: 'Gate: refuse a new slice while a prior one is left unconnected (apply mode only, not on a backlog dispatch)'
+        if: ${{ inputs.mode == 'apply' && inputs.flywheel_backlog != 'true' }}
         run: node scripts/turns/run-population-flywheel.mjs --check-gate --harness-runs-dir scripts/harness-runs/mint
 
       - name: Snapshot existing mint-run artifacts (for this run's new run_id discovery)
+        if: ${{ inputs.flywheel_backlog != 'true' }}
         run: |
           ls scripts/harness-runs/mint/mint-run-*.json 2>/dev/null | sort > /tmp/mint-before.txt || true
 
       - name: stamp-wo26-archive-reason.mjs (archive_reason hygiene — apply only in apply mode)
+        if: ${{ inputs.flywheel_backlog != 'true' }}
         run: |
           if [ "${{ inputs.mode }}" = "apply" ]; then
             node scripts/mint/stamp-wo26-archive-reason.mjs --apply
@@ -226,6 +275,10 @@ jobs:
       - name: export-census-rows.mjs
         if: ${{ inputs.rows_file == '' }}
         run: |
+          if [ "${{ inputs.flywheel_backlog }}" = "true" ]; then
+            echo "flywheel_backlog=true — export-census-rows.mjs skipped (backlog mode mints nothing)."
+            exit 0
+          fi
           mkdir -p "$EXPORT_DIR"
           args=(--limit "${{ inputs.limit }}" --out "$CENSUS_ROWS_PATH")
           if [ -n "${{ inputs.source_id }}" ]; then args+=(--source-id "${{ inputs.source_id }}"); fi
@@ -234,7 +287,7 @@ jobs:
           node scripts/mint/export-census-rows.mjs "${args[@]}"
 
       - name: Skip export-census-rows.mjs (rows_file supplied)
-        if: ${{ inputs.rows_file != '' }}
+        if: ${{ inputs.rows_file != '' && inputs.flywheel_backlog != 'true' }}
         run: |
           mkdir -p "$EXPORT_DIR"
           if [ ! -f "$CENSUS_ROWS_PATH" ]; then
@@ -249,6 +302,7 @@ jobs:
       # true` here is deliberate; the artifact + apply-ready file are the record of what happened, not
       # this step's own exit code.
       - name: run-mint-batch.mjs --census-rows --grade record --execute (the mint family's EXISTING gate, unmodified)
+        if: ${{ inputs.flywheel_backlog != 'true' }}
         run: |
           node scripts/mint/run-mint-batch.mjs \
             --census-rows "$CENSUS_ROWS_PATH" \
@@ -258,6 +312,7 @@ jobs:
             || true
 
       - name: Discover this run's new mint-run-NNN.json (set by run-mint-batch.mjs's collision-safe claim)
+        if: ${{ inputs.flywheel_backlog != 'true' }}
         run: |
           ls scripts/harness-runs/mint/mint-run-*.json 2>/dev/null | sort > /tmp/mint-after.txt || true
           NEW_MINT_RUN="$(comm -13 /tmp/mint-before.txt /tmp/mint-after.txt | head -1)"
@@ -269,6 +324,7 @@ jobs:
           echo "This run's mint-run artifact: $NEW_MINT_RUN"
 
       - name: apply-mint-batch.mjs (coordinator-apply — apply only in apply mode)
+        if: ${{ inputs.flywheel_backlog != 'true' }}
         run: |
           # --report is technically optional (apply-mint-batch.mjs derives the same path from
           # --apply-ready's own basename, defaultReportPathFor) — named explicitly here anyway, so the
@@ -283,6 +339,7 @@ jobs:
       # it (run #8, 2026-09-02: ten items stamped quarantined before their gate row existed). Dry in dry
       # mode (lists), apply in apply mode. Never sets the status itself.
       - name: rederive-record-provenance.mjs (heal stale provenance stamps — apply only in apply mode)
+        if: ${{ inputs.flywheel_backlog != 'true' }}
         run: |
           if [ "${{ inputs.mode }}" = "apply" ]; then node scripts/mint/rederive-record-provenance.mjs --apply; else node scripts/mint/rederive-record-provenance.mjs; fi
 
@@ -295,6 +352,7 @@ jobs:
       # list stands. Apply mode archives them reversibly (archive_reason off_vertical, snapshot per chunk);
       # ambiguous items are listed, never archived.
       - name: screen-reconcile-records.mjs (archive off-vertical record items reversibly — apply only in apply mode)
+        if: ${{ inputs.flywheel_backlog != 'true' }}
         run: |
           if [ "${{ inputs.mode }}" = "apply" ]; then node scripts/mint/screen-reconcile-records.mjs --apply; else node scripts/mint/screen-reconcile-records.mjs; fi
 
@@ -315,7 +373,20 @@ jobs:
       # the high-confidence subset — no separate, later MAINT dispatch is needed for a population-turn
       # batch's own newly-minted items.
       - name: run-population-flywheel.mjs (discovery + forward-events + recluster + tags + §9 outcomes — MANDATORY, MINT-RUNBOOK.md §8/§9)
+        if: ${{ inputs.flywheel_backlog != 'true' }}
         run: node scripts/turns/run-population-flywheel.mjs --mint-run "$NEW_MINT_RUN" --mode ${{ inputs.mode }}
+
+      # BACKLOG MODE (lane TANDEM-2, 2026-09-04) — see the header comment above ("BACKLOG MODE") and
+      # run-population-flywheel.mjs --backlog's own header for the full contract. Runs INSTEAD of every
+      # export/mint/apply/reconcile/normal-flywheel step above (all skipped via flywheel_backlog != 'true'
+      # on this dispatch) — this mode mints nothing; it only connects what earlier runs already minted.
+      # NO `|| true` here either: the same "a green run means connected, never merely attempted" posture.
+      - name: run-population-flywheel.mjs --backlog (MINT-RUNBOOK.md §8/§9 over the EXISTING gate backlog, oldest first)
+        if: ${{ inputs.flywheel_backlog == 'true' }}
+        run: |
+          args=(--backlog --mode "${{ inputs.mode }}" --harness-runs-dir scripts/harness-runs/mint)
+          if [ -n "${{ inputs.backlog_max_artifacts }}" ]; then args+=(--max-artifacts "${{ inputs.backlog_max_artifacts }}"); fi
+          node scripts/turns/run-population-flywheel.mjs "${args[@]}"
 
       - name: Remove hydrated sibling artifacts (they belong to their own branches)
         if: always()
@@ -343,7 +414,9 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add scripts/harness-runs/mint
           git add scripts/harness-runs/forward-events
-          git add -f "$EXPORT_DIR"
+          # EXPORT_DIR is empty on a flywheel_backlog dispatch (export/mint are skipped entirely, so
+          # nothing was ever written there) — guard the add so it never fails a step git runs with -e.
+          if [ -n "$EXPORT_DIR" ] && [ -d "$EXPORT_DIR" ]; then git add -f "$EXPORT_DIR"; fi
           if git diff --cached --quiet; then
             echo "No new population-turn artifacts to commit."
             exit 0
@@ -352,18 +425,29 @@ jobs:
           git checkout -b "$branch"
           git commit -m "population-turn ${{ inputs.mode }}: run ${{ github.run_id }}"
           git push origin HEAD:"$branch"
-          {
-            echo "Automated population turn (run ${{ github.run_id }})."
-            echo
-            echo "Mode: ${{ inputs.mode }}"
-            echo "Limit: ${{ inputs.limit }}"
-            echo "Source id: ${{ inputs.source_id }}"
-            echo "CELEX prefix: ${{ inputs.celex_prefix }}"
-            echo "Capture: ${{ inputs.capture }}"
-            echo "Rows file: ${{ inputs.rows_file || '(none — live export)' }}"
-            echo
-            echo "Lands this run's enriched mint-run artifact (${NEW_MINT_RUN:-none}, now carrying §9 outcomes: edges_discovered/forward_events_extracted/isolated_items), its export/apply-ready/report files (${EXPORT_DIR}/), and the flywheel's own forward-events harness-run artifact (scripts/harness-runs/forward-events/)."
-          } > /tmp/pr-body.md
+          if [ "${{ inputs.flywheel_backlog }}" = "true" ]; then
+            {
+              echo "Automated population turn — BACKLOG (run ${{ github.run_id }})."
+              echo
+              echo "Mode: ${{ inputs.mode }}"
+              echo "backlog_max_artifacts: ${{ inputs.backlog_max_artifacts || '(script default)' }}"
+              echo
+              echo "Minted NOTHING new — export/mint were skipped entirely. Ran run-population-flywheel.mjs --backlog over the mint-run artifacts THE GATE currently refuses (oldest first), enriching each in place with its own §9 outcomes (edges_discovered/forward_events_extracted/isolated_items). See that step's own log for exactly which artifacts this dispatch processed and how many remain."
+            } > /tmp/pr-body.md
+          else
+            {
+              echo "Automated population turn (run ${{ github.run_id }})."
+              echo
+              echo "Mode: ${{ inputs.mode }}"
+              echo "Limit: ${{ inputs.limit }}"
+              echo "Source id: ${{ inputs.source_id }}"
+              echo "CELEX prefix: ${{ inputs.celex_prefix }}"
+              echo "Capture: ${{ inputs.capture }}"
+              echo "Rows file: ${{ inputs.rows_file || '(none — live export)' }}"
+              echo
+              echo "Lands this run's enriched mint-run artifact (${NEW_MINT_RUN:-none}, now carrying §9 outcomes: edges_discovered/forward_events_extracted/isolated_items), its export/apply-ready/report files (${EXPORT_DIR}/), and the flywheel's own forward-events harness-run artifact (scripts/harness-runs/forward-events/)."
+            } > /tmp/pr-body.md
+          fi
           bash scripts/turns/deliver-artifact-branch.sh "$branch" "Population turn: $branch (mode=${{ inputs.mode }})" /tmp/pr-body.md
 
       - name: Upload scripts/_snapshots as a workflow artifact
