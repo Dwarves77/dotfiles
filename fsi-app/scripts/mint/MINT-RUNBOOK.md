@@ -694,6 +694,104 @@ EUR-Lex text, zero extracted facts, shipped with an effectively empty Summary.
 4. **VERSION BUMPS** — `RECORD_FACTS_VERSION` (`record-facts.mjs`) `rf1-2026-09-04.1` → `rf1-2026-09-04.2`;
    `VALIDATE_MINT_PAYLOAD_KIT_VERSION` (new constant, `validate-mint-payload.mjs`) `vmp-2026-09-04.1`.
 
+**The three defects HOLLOW-GATE named and did not fix, closed (Lane BOILER-2, 2026-09-04).** All three were
+evidenced by HOLLOW-GATE's own report (above) and taken up next, in order.
+
+1. **DEFECT 1 — the bare-domain-URL guard (URL-BOILER, §"BARE-DOMAIN URL GUARD" above) was global, not
+   slot-scoped, so it wrongly disqualified a genuine `operative_provision` FACT that merely mentions a
+   bare domain.** [CONFIRMED, Supabase] real capture, item `20feed6b-8440-418a-8678-af301daadeda`, CELEX
+   `32012D0706(01)`: "HAS DECIDED AS FOLLOWS: Sole Article The link http://www.pvt-tec.de under the
+   sub-heading 'Reference information' ... shall be deleted." — a real Commission Decision whose entire
+   operative act IS deleting a named (bare-domain) link; the domain is what the article is ABOUT, not a
+   pointer standing in for the fact. The word-count-after-URL-removal fix HOLLOW-GATE tried and rejected
+   was correctly rejected: rows `429c85d2`/`a980a0b9` (the two rows URL-BOILER's guard exists for) ALSO
+   carry >4 words of prose around their bare URL, so the two cases are not lexically distinguishable — only
+   semantically, by which SLOT the span is located for. `jurisdictional_scope` is a slot whose whole point
+   is "where does the source point the reader for the applicable law" — a bare "see the website at
+   `<domain>`" sentence there really is nothing but the pointer criterion 2 already refuses as
+   `ungrounded_url`. `operative_provision`/`addressee`/`confirmed_measure` (EU_ACT_SLOT_KEYS) and
+   `binding_position` instead locate a clause whose subject is a legal actor or duty; a URL inside one is
+   incidental. Fix: `isProseSpan(span, { slotKey })` now runs the bare-domain guard ONLY for a slot in
+   `URL_BEARING_SLOTS` (currently `{jurisdictional_scope}`) — a caller that passes no `slotKey` at all keeps
+   the original, conservative, always-on behavior, so no pre-existing call site changed. `findSlotSpan`
+   passes its own `slotKey` through automatically; `findBindingPositionMatch` passes the literal
+   `"binding_position"` slotKey (a prose slot per this same analysis). `findDueDateMatch` was left on the
+   conservative default (guard still always on) — `due_date` was not named in HOLLOW-GATE's report and no
+   real capture was found or measured showing the same failure mode there; extending the scoping to it is
+   additive and safe but unevidenced, left for a future lane. Verbatim-only, never edit-the-span:
+   `validate_item_provenance` matches `source_span` byte-exact, so the only two honest outcomes for a
+   URL-bearing span are accept it whole or refuse it to GAP — this module never rewrites a matched span to
+   drop a URL. Proven against BOTH real captures: `32012D0706(01)`'s `operative_provision` now locates the
+   real enacting clause (was GAP); `429c85d2`/`a980a0b9`'s `jurisdictional_scope` still refuses (still GAP)
+   — see `record-facts.npmtest.mjs`'s new tests, both against real captured text.
+
+2. **DEFECT 2 — `jurisdictional_scope`'s continuation window stopped at a numbered-list item's own "N."
+   marker, reading it as a sentence-ending period.** [CONFIRMED, Supabase] real capture, CELEX `31976H0495`
+   (Council Recommendation of 4 May 1976): "HEREBY RECOMMENDS TO THE MEMBER STATES: 1. that, with a view to
+   ensuring rational use of both public transport and private vehicles, they encourage...". The `member
+   states?` trigger's plain `[^.;\n]` continuation stopped one character after the match, at "1."'s own
+   period, leaving the 2-word span "MEMBER STATES: 1" — `MIN_SPAN_WORDS` correctly rejected it, and every
+   other `jurisdictional_scope` trigger also finds nothing in this document, so the honest scope statement
+   fell all the way to GAP purely because the source happens to number its recommendation clauses (a shape
+   endemic to CELEX 'H' recommendations, whose enacting formula — "HEREBY RECOMMENDS ... :" — is almost
+   always followed immediately by a numbered list). Fix: the SAME URL-safe-continuation technique URL-GUIL
+   introduced for a URL's own domain dots — a 1-2 digit list-item marker (`\(?\d{1,2}\)?\.`, matching "1.",
+   "(1)." too) is consumed as ONE atomic alternative in `jurisdictional_scope`'s four trigger continuations,
+   tried before the plain terminator-excluding class, so the window's repetition swallows the WHOLE marker
+   in one step rather than ever landing mid-marker where a lone "." would stop it. A genuine end-of-sentence
+   period elsewhere in the window still stops it exactly as before (`record-facts.npmtest.mjs`'s new test
+   proves this directly). A "(a)" letter marker was named in the same defect report but needed no fix:
+   parens and letters were never in the excluded `[^.;\n]` class, so a bracketed letter marker never stopped
+   this window to begin with. Applied ONLY to `jurisdictional_scope`'s triggers, the specific slot HOLLOW-
+   GATE evidenced — extending the same technique to every other slot's triggers is additive and safe but
+   unevidenced, left for a future lane once a real capture shows the same failure mode elsewhere.
+
+3. **DEFECT 3 — "Cellar garbled metadata captures".** [CONFIRMED, Supabase] two live rows minted from THIS
+   pipeline's own exporter (`search_query = 'canonical:record-grade'`, `agent_run_id` null) carry NO
+   substantive document text at all: CELEX `21976A0216(03)` (a 1976 Mediterranean-Sea pollution protocol,
+   sector-2 'A' agreement, 368 chars) and CELEX `32006R1907` (REACH — a real, ordinarily huge Regulation,
+   1,114 chars in this capture). Both bodies read, verbatim: the act's own title repeated, then this literal
+   tail — "cdm:CDM_2.1.7 tdm:1523 xslt:3945 saxon:9.0.0.1J JVM:1.6.0_29 metaconvJar:1.1.9 builddate:
+   21/01/2014 17:28:36 eng en 2025-01-13T16:35:16.890+01:00" (row 1; row 2 carries the identical shape with
+   a different `metaconvJar`/`builddate` value). **What "garbled" concretely means**: `cdm:`/`tdm:` are the
+   Publications Office's own Cellar RDF namespace prefixes (Common Data Model / Text Data Model);
+   `xslt:`/`saxon:`/`JVM:`/`metaconvJar:`/`builddate:` are Cellar's OWN document-conversion-pipeline
+   provenance fields — never a word a legal instrument's own text would contain. This is a CAPTURE-PATH
+   defect (`resolveRowCapture`'s celex branch / `envelopeFromCaptureDocument`'s `usable` gate in
+   `export-census-rows.mjs`), not an extractor defect — `record-facts.mjs` was handed exactly this garbage
+   as `capturedText` and correctly found nothing worth a FACT in it (both minted `record_hollow`-shaped, not
+   as a wrongly-confident extraction). [HYPOTHESIS, not directly confirmed] the likely mechanism is Cellar's
+   content negotiation, for a manifestation with no HTML/XHTML representation at the exact redirect target
+   this pipeline's `Accept` header reaches, falling back to serving its RDF resource description (whose
+   literal property values ARE these tokens) instead of a 404 or the `DOC_1` act body — this sandbox's own
+   network egress refuses `publications.europa.eu` (tested live: `curl -sSL https://publications.europa.eu/
+   resource/celex/21976A0216(03)` → `CONNECT tunnel failed, response 403`), so the raw response these two
+   keys actually got could not be inspected directly to confirm it. **The fix, entirely inside
+   `export-census-rows.mjs` (NOT a mint-family `GOVERNING_FILES` entry — this file's own change does not
+   move this hash):**
+   - `detectCellarGarbledMetadata(capturedText)` — a new, structurally-anchored detector (same convention as
+     `detectNotInForce`) matching the co-occurrence of `cdm:CDM_`, `metaconvJar:`, and `builddate:` in
+     Cellar's own fingerprint order; a single common word could never trip it.
+   - `envelopeFromCaptureDocument`'s `usable` gate now also requires the text NOT be garbled-metadata-shaped
+     — a fresh Cellar capture that would otherwise have been accepted now falls through to the EUR-Lex
+     clean-text fallback `resolveRowCapture`'s celex branch already tries whenever Cellar is unusable (the
+     SAME retry path a too-short or bot-gated Cellar response already triggers; no new retry logic was
+     added).
+   - `buildExportRow` screens EVERY `captured_text` (fresh OR the `existingCaptureByUrl` DB cache, which
+     bypasses `resolveRowCapture` entirely and therefore bypasses the `usable`-gate fix too) right after the
+     pre-existing `capture_too_short` check, holding a garbled capture `capture_garbled_metadata` with the
+     evidence span rather than letting it mint hollow with wrong evidence attached.
+   - Proven against BOTH real garbled captures (`export-census-rows.test.mjs`'s new tests) plus a real clean
+     act's text (no false positive).
+   - **NOTE ON THE WRITE-SET PATH GIVEN FOR THIS FILE.** This lane's task named this file
+     `fsi-app/scripts/turns/export-census-rows.mjs`; no such path exists in this repo — the only
+     `export-census-rows.mjs` (and the only Cellar-resolver code anywhere in this repo; `src/lib/sources`
+     carries none) is `fsi-app/scripts/mint/export-census-rows.mjs`, the file this fix and its tests
+     actually live in, consistent with every other reference to it in this runbook and in HOLLOW-GATE's own
+     report above.
+
+**VERSION BUMP** — `RECORD_FACTS_VERSION` (`record-facts.mjs`) `rf1-2026-09-04.2` → `rf1-2026-09-04.3`.
+
 ## Keeping the kit in sync
 
 `lib/gate-a-scan.mjs` and `lib/gate-a-match.mjs` are copies of `src/lib/agent/gate-a-scan.mjs` /

@@ -9310,3 +9310,26 @@ Route Handlers because there is no render dispatcher to memoize under (verified 
 react-server build). The one file it could not touch, `community/profile/verify/route.ts`, still made
 its own `getUser()` for the email; swapped in this train per its §13.5 diff. Round trips on an
 authenticated document load: 1 → 0 [INFERRED]; measured in the browser after this deploys.
+
+### Addendum 85, postscript 28 — BOILER-2: the three residuals closed (2026-09-04)
+
+Train/wave16 landed as #563 (`5cace829`). BOILER-2 (Sonnet, `d37e8256`, 45 + 217 tests)
+[CONFIRMED on real captures]: (1) the bare-domain guard was global; `isProseSpan` now takes the slot
+and applies it only to URL-bearing slots (`jurisdictional_scope`), so 32012D0706(01)'s operative
+provision ("The link http://www.pvt-tec.de … shall be deleted") is a FACT while the two UK-SI
+boilerplate rows still refuse, both replayed from their real text; (2) `jurisdictional_scope`
+truncated at a numbered-list marker ("HEREBY RECOMMENDS TO THE MEMBER STATES: 1." → two words → GAP,
+CELEX 31976H0495); the four triggers now consume a `1.`/`(a)` marker atomically, the way URL-GUIL
+handled domain dots, and six more 'H' captures show no regression; (3) "garbled Cellar metadata" is
+two live rows minted by our own exporter whose capture is Cellar's RDF conversion fingerprint
+(`cdm:CDM_2.1.7 tdm:1523 xslt:… saxon:…`) and nothing of the act (21976A0216(03), REACH 32006R1907);
+a capture-path defect, mechanism [HYPOTHESIS] because the proxy refused publications.europa.eu; new
+`detectCellarGarbledMetadata` makes such a response unusable at capture (falls through to the EUR-Lex
+fallback) and holds a cached one at export as `capture_garbled_metadata`. The task named
+`scripts/turns/export-census-rows.mjs`; the file lives under `scripts/mint/`, the lane read the tree
+rather than the prompt. Marker re-pinned to `sha256:2885d372e53e4769`; full suite 4,647/0.
+
+Wave 15/16 lanes are all landed. The runtime dispatches follow, in the order rule 17 demands: a
+population apply under THE GATE first (the R-D six, the smallest proof of the chain end to end), then
+`record-hollow-sweep` dry/apply, `apply-classifications` dry/apply, source-sweep `sitemap` dry on the
+two named hosts, `provenance-heal` dry `quarantined-live`.

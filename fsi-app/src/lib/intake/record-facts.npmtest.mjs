@@ -125,6 +125,118 @@ test("hasOnlyBareDomainUrls: true for a bare root (with or without trailing slas
   assert.equal(isProseSpan("see http://eur-lex.europa.eu"), false, "wired into isProseSpan, the shared guard every extractor above uses");
 });
 
+// ── Lane BOILER-2 (2026-09-04) — defect 1: the bare-domain guard is SLOT-SCOPED, not global ────────────
+// HOLLOW-GATE's own report named the residual: `hasOnlyBareDomainUrls` disqualified ANY span carrying a
+// bare-domain URL, including a genuine operative_provision FACT that merely mentions one. Real capture,
+// CELEX 32012D0706(01) (item `20feed6b-8440-418a-8678-af301daadeda`, Supabase `agent_run_searches.
+// result_content`): "HAS DECIDED AS FOLLOWS: Sole Article The link http://www.pvt-tec.de under the
+// sub-heading 'Reference information' ... shall be deleted." -- a real EU Decision whose whole operative
+// act IS deleting a named (bare-domain) link; the domain is what the article is ABOUT, not a "go look
+// here" pointer. `jurisdictional_scope` is the one slot this guard still applies to by default (a bare
+// "see the website at <domain>" sentence really is nothing but the pointer there); every other slot's URL
+// is incidental to its own clause.
+test("isProseSpan/findSlotSpan: the bare-domain guard is slot-scoped -- jurisdictional_scope still refuses a bare-domain-only span, but operative_provision (a prose slot) accepts one (real CELEX 32012D0706(01) capture)", () => {
+  // Real captured text, Supabase (agent_run_searches.result_content), item 20feed6b-8440-418a-8678-af301daadeda.
+  const text =
+    "C_2012198EN.01000301.xml 6.7.2012 EN Official Journal of the European Union C 198/3 COMMISSION DECISION " +
+    "of 2 July 2012 amending Commission Decision C(2009) 770 concerning the adoption of the full text of the " +
+    "best available techniques reference document for energy efficiency (Text with EEA relevance) 2012/C " +
+    "198/04 THE EUROPEAN COMMISSION, Having regard to the Treaty on the Functioning of the European Union, " +
+    "Having regard to Directive 2008/1/EC of the European Parliament and of the Council of 15 January 2008 " +
+    "concerning integrated pollution prevention and control ( 1 ) , and in particular Article 17(2) thereof, " +
+    "Whereas: (4) The best available techniques reference document for energy efficiency should be amended " +
+    "in Section 2.10.4 by deleting the link http://www.pvt-tec.de under the sub-heading ‘Reference " +
+    "information’, HAS DECIDED AS FOLLOWS: Sole Article The link http://www.pvt-tec.de under the " +
+    "sub-heading ‘Reference information’ in Section 2.10.4 of the best available techniques " +
+    "reference document for energy efficiency shall be deleted. Done at Brussels, 2 July 2012.";
+
+  // Direct guard check: same span, opposite outcome depending on the slot it is being located for.
+  const span = "The link http://www.pvt-tec.de under the sub-heading";
+  assert.equal(hasOnlyBareDomainUrls(span), true, "this span's only URL is a bare domain -- the raw guard still fires");
+  assert.equal(isProseSpan(span, { slotKey: "jurisdictional_scope" }), false, "URL-bearing slot: guard applies, refused");
+  assert.equal(isProseSpan(span, { slotKey: "operative_provision" }), true, "prose slot: guard skipped, accepted");
+  assert.equal(isProseSpan(span), false, "no slotKey given at all -- conservative default, guard still applies");
+
+  // End to end, real capture: operative_provision now locates the genuine enacting clause instead of
+  // falling to GAP (HOLLOW-GATE's own reported miss).
+  const operative = findSlotSpan("operative_provision", text);
+  assert.ok(operative, "operative_provision must locate the real enacting clause, not fall to GAP");
+  assert.match(operative, /HAS DECIDED AS FOLLOWS:/);
+  assert.match(operative, /The link http:\/\/www\.pvt-tec\.de under the sub-heading/);
+  assert.ok(text.toLowerCase().includes(operative.toLowerCase()), "still verbatim-by-construction");
+
+  // Regression: the two rows URL-BOILER's guard exists for must still refuse, real captured_text
+  // (population-33823467586 / population-33821410389 snapshots).
+  const ukText429c85d2 =
+    "The Renewable Transport Fuel Obligations (Amendment) Order 2013. A copy of the Directives referred to " +
+    "in this Explanatory Note may be viewed in the Official Journal of the European Union via the EUR-lex " +
+    "website at http://eur-lex.europa.eu . Merchant Shipping Notices are published by the Maritime and " +
+    "Coastguard Agency and can be viewed on the agency's website at http://www.dft.gov.uk/mca which also " +
+    "has details of any amendments or replacements.";
+  assert.equal(
+    findSlotSpan("jurisdictional_scope", ukText429c85d2),
+    null,
+    "row 429c85d2's bare-EUR-Lex-root boilerplate must still fall to GAP -- jurisdictional_scope is unaffected by the slot-scoping fix",
+  );
+  const ukTextA980a0b9 =
+    "The Motor Fuel (Composition and Content) (Amendment) Regulations 2012. A copy of the Directives " +
+    "referred to in this Explanatory Note may be obtained from the Office of Public Sector Information or " +
+    "viewed in the Official Journal of the European Union via the EUR-Lex website at " +
+    "http://eur-lex.europa.eu/ . Merchant Shipping Notices are published by the Maritime and Coastguard " +
+    "Agency and can be viewed on the Agency's website at http://www.dft.gov.uk/mca/ which also has details " +
+    "of any amendments or replacements.";
+  assert.equal(
+    findSlotSpan("jurisdictional_scope", ukTextA980a0b9),
+    null,
+    "row a980a0b9's same boilerplate class must also still fall to GAP",
+  );
+});
+
+test("findBindingPositionMatch: binding_position is also a prose slot -- a bare-domain URL inside an applicability clause is incidental, never disqualifying", () => {
+  const text =
+    "The operator shall comply as set out at the reference document available at http://www.pvt-tec.de for " +
+    "further guidance on implementation timelines and reporting obligations under this framework.";
+  const match = findBindingPositionMatch(text);
+  assert.ok(match, "a bare-domain URL inside an applicability clause must not disqualify the whole binding_position match");
+  assert.match(match.span, /the operator shall comply/i);
+});
+
+// ── Lane BOILER-2 (2026-09-04) — defect 2: jurisdictional_scope's numbered-list period truncation ──────
+// HOLLOW-GATE's report: "jurisdictional_scope truncating at a numbered-list period for recommendation-
+// shaped documents". Real capture, CELEX 31976H0495 (Supabase, `agent_run_searches.result_content`,
+// Council Recommendation): "...HEREBY RECOMMENDS TO THE MEMBER STATES: 1. that, with a view to ensuring
+// rational use of both public transport and private vehicles, they encourage...". Before this fix, the
+// `member states?` trigger's plain `[^.;\n]` continuation stopped one character after the match, at the
+// numbered clause's own "1." marker (a period reads identically to a real full stop), leaving the 2-word
+// span "MEMBER STATES: 1" -- MIN_SPAN_WORDS correctly rejected it, and every OTHER jurisdictional_scope
+// trigger also finds nothing in this document, so the honest scope statement fell all the way to GAP.
+test("findSlotSpan('jurisdictional_scope'): a numbered-list marker ('1.') right after the trigger no longer truncates the span (real CELEX 31976H0495 capture)", () => {
+  // Real captured text, Supabase (agent_run_searches.result_content), CELEX 31976H0495 (Council
+  // Recommendation of 4 May 1976 on the rational use of energy in urban passenger transport).
+  const text =
+    "76/495/EEC: Council recommendation of 4 May 1976 on the rational use of energy in urban passenger " +
+    "transport HEREBY RECOMMENDS TO THE MEMBER STATES: 1. that, with a view to ensuring rational use of " +
+    "both public transport and private vehicles, they encourage the authorities responsible to promote " +
+    "frequent, convenient, regular, fast, reliable, comfortable urban public passenger transport services. " +
+    "For instance, the construction of bus shelters and the separation of private and public traffic, for " +
+    "example by introducing bus lanes and special priorities for buses at traffic lights, should be " +
+    "encouraged; 2. that they encourage research into the improvement of existing equipment.";
+
+  const span = findSlotSpan("jurisdictional_scope", text);
+  assert.ok(span, "must find a jurisdictional_scope span instead of falling to GAP");
+  assert.ok(!/^member states:\s*1$/i.test(span.trim()), `must not truncate at the "1." list marker: ${JSON.stringify(span)}`);
+  assert.ok(span.length > 20, `span must carry real prose past the list marker, not just "MEMBER STATES: 1": ${JSON.stringify(span)}`);
+  assert.match(span, /member states/i);
+  assert.ok(text.toLowerCase().includes(span.toLowerCase()), "still verbatim-by-construction");
+});
+
+test("findSlotSpan('jurisdictional_scope'): a genuine end-of-sentence period (not preceded by a bare list-marker number) still stops the window", () => {
+  const text = "This Regulation applies to lighting products placed on the market. A separate clause follows that must never be pulled in.";
+  const span = findSlotSpan("jurisdictional_scope", text);
+  assert.ok(span);
+  assert.ok(!span.includes("A separate clause"), `a real sentence-ending period must still stop the window: ${JSON.stringify(span)}`);
+});
+
 test("findDueDateMatch / findBindingPositionMatch: the same URL-safe continuation applies to every SLOT_TRIGGERS-style trigger family", () => {
   const dueDateText =
     "Compliance is due by 1 January 2027 as confirmed at http://example.gov/notice.pdf . Further guidance follows.";

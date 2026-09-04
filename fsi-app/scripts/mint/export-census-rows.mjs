@@ -715,6 +715,71 @@ export function partitionExcludeHeldByKey(rows, heldKeyIndex) {
 const FORCE_INDICATOR_RE = /<p[^>]*class="[^"]*\bforceIndicator\b[^"]*"[^>]*>[\s\S]{0,300}?<\/span>\s*([^<]{1,200})/i;
 const NOT_IN_FORCE_STATUS_RE = /^no longer in force\b/i;
 
+// ── CELLAR GARBLED METADATA (Lane BOILER-2, 2026-09-04, defect 3 — HOLLOW-GATE's "Cellar garbled
+// metadata captures") ───────────────────────────────────────────────────────────────────────────────────
+// [CONFIRMED, Supabase, `agent_run_searches`, 2026-09-04] Two live rows minted from this pipeline's OWN
+// exporter (`search_query = 'canonical:record-grade'`, `agent_run_id` null — this file's/`buildRecordPayload`'s
+// own signature, not an older agent-driven capture) carry NO substantive document text at all: CELEX
+// `21976A0216(03)` (a 1976 Mediterranean-Sea pollution protocol, sector-2 'A' agreement, 368 chars total)
+// and CELEX `32006R1907` (REACH — a real, well-known, ordinarily huge Regulation, 1,114 chars here). Both
+// captured_text bodies read, verbatim: the act's own title repeated (twice, once via extractCellarTitle's
+// `oj-doc-ti`/legacy-title branches both failing and falling through to `bodyLeadTitle`), then this literal
+// tail: "cdm:CDM_2.1.7 tdm:1523 xslt:3945 saxon:9.0.0.1J JVM:1.6.0_29 metaconvJar:1.1.9 builddate:21/01/2014
+// 17:28:36 eng en 2025-01-13T16:35:16.890+01:00" (row 1) / "...metaconvJar:1.2.0 builddate:10/03/2015
+// 17:49:14..." (row 2). `cdm:`/`tdm:` are the Publications Office's own Cellar RDF namespace prefixes
+// (Common Data Model / Text Data Model); `xslt:`/`saxon:`/`JVM:`/`metaconvJar:`/`builddate:` are Cellar's
+// OWN document-conversion-pipeline provenance fields (which XSLT stylesheet revision, which Saxon/JVM/
+// metaconv tool build produced this manifestation) — never a word a legal instrument's own text would ever
+// contain. Both rows are 200+ chars (so `capture_too_short` never caught them) and neither states the act
+// is no longer in force (so `detectNotInForce` never caught them either) — they minted as exactly the
+// hollow shape HOLLOW-GATE's own `record_hollow` gate exists to catch (one title-shaped FACT, nothing else)
+// with wrong, garbled evidence attached besides.
+//
+// WHAT "GARBLED" CONCRETELY MEANS: this is Cellar's OWN internal conversion-metadata fingerprint, not the
+// act's XHTML body (`DOC_1`) this file's header (§ "EU Publications Office Cellar") documents as the normal
+// success shape. [HYPOTHESIS, not directly confirmed] this sandbox's own network egress refuses
+// `publications.europa.eu` (tested live, 2026-09-04: `curl -sSL https://publications.europa.eu/resource/
+// celex/21976A0216(03)` → `CONNECT tunnel failed, response 403` from this environment's own proxy — the
+// raw response Cellar actually sent for these two keys could not be fetched to inspect directly), so the
+// most likely mechanism — Cellar's content negotiation, for a manifestation with no `html`/`xhtml`
+// representation available at the exact redirect target this file's `Accept` header reaches, falling back
+// to serving its RDF/XML resource description of the manifestation (whose literal property VALUES are
+// exactly these `cdm:`/`tdm:`/build-tool tokens) rather than a 404 or a usable document — is inferred from
+// the shape of the captured text, not verified against the raw HTML. This is a CAPTURE-PATH defect
+// (`resolveRowCapture`'s celex branch / `envelopeFromCaptureDocument`'s `usable` gate below), not an
+// extractor defect: `record-facts.mjs` was handed exactly this garbage as `capturedText` and correctly
+// found nothing worth a FACT in it (both rows minted as record_hollow-shaped, not as a wrongly-confident
+// extraction).
+//
+// THE FIX HAS TWO PARTS, both inside this file's write set. (1) `envelopeFromCaptureDocument`'s `usable`
+// gate below now ALSO requires the text not be garbled-metadata-shaped — a FRESH capture that would
+// otherwise have been accepted from Cellar now falls through to the EUR-Lex clean-text fallback
+// `resolveRowCapture`'s celex branch already tries whenever Cellar is unusable, exactly the same retry path
+// `capture_too_short`/a bot-gate refusal already trigger; no new retry logic was written, this only widens
+// what "Cellar refused" means. (2) `buildExportRow` below screens EVERY captured_text (fresh OR the
+// `existingCaptureByUrl` DB cache, which bypasses `resolveRowCapture` entirely and therefore bypasses fix
+// (1) too — see `buildRows`' own `captureResult = existingCapture` branch) right after the pre-existing
+// `capture_too_short` check, holding a garbled capture `capture_garbled_metadata` with the evidence span
+// rather than letting it mint hollow with wrong evidence. Anchored on the SAME multi-token co-occurrence
+// this section measured live (never a single common word like "eng" or "en" alone, which real prose could
+// plausibly contain) — `cdm:CDM_` and `metaconvJar:` and `builddate:` together, in the order Cellar's own
+// fingerprint always carries them, is Cellar-internal-tool-specific enough that no genuine legal instrument
+// text could produce a false positive.
+const CELLAR_METADATA_FINGERPRINT_RE =
+  /\bcdm:CDM_\S+\b[\s\S]{0,200}?\bmetaconvJar:\S+\b[\s\S]{0,80}?\bbuilddate:\S+(?:\s+[\d:]+)?/i;
+
+/** Detect Cellar's own document-conversion-metadata fingerprint inside `capturedText` — evidence that this
+ *  capture is Cellar's RDF/build-provenance description of a manifestation, not the act's own XHTML body
+ *  (see this section's header for the measured real shape and the two live rows it was found in). Returns
+ *  `{ span }` (the matched fingerprint, verbatim-by-construction — `capturedText.includes(span)` always
+ *  holds) or `null` when no such fingerprint is present (the overwhelming common case: a real Cellar/
+ *  EUR-Lex capture never carries these tokens at all). Pure, no I/O. */
+export function detectCellarGarbledMetadata(capturedText) {
+  const text = String(capturedText ?? "");
+  const m = text.match(CELLAR_METADATA_FINGERPRINT_RE);
+  return m ? { span: m[0] } : null;
+}
+
 /** Scan `capturedText` for EUR-Lex's own structurally-anchored in-force-status widget markup and report
  *  whether it states the act is no longer in force. Returns `null` when no such widget is present (the
  *  common case: neither the Cellar nor the EUR-Lex clean-text capture endpoints this pipeline fetches by
@@ -775,6 +840,25 @@ export function buildExportRow(censusRow, source, identity, capture) {
         document_url: documentUrl,
         reason: "capture_too_short",
         fetched_length: capturedText ? capturedText.length : 0,
+      },
+    };
+  }
+
+  // Lane BOILER-2 (2026-09-04, defect 3): screens BOTH a fresh capture (already narrowed by
+  // envelopeFromCaptureDocument's own usable gate, but re-checked here for defense in depth) AND an
+  // existingCaptureByUrl DB-cached row (which bypasses that gate entirely -- see detectCellarGarbledMetadata's
+  // own header). Placed right after capture_too_short, before the in-force screen, matching the order those
+  // two rows would actually be evaluated in (a garbled capture is never long enough to ALSO carry a genuine
+  // forceIndicator widget, but the ordering is deliberate, not incidental, either way).
+  const garbled = detectCellarGarbledMetadata(capturedText);
+  if (garbled) {
+    return {
+      hold: {
+        row_id: rowId,
+        document_url: documentUrl,
+        reason: "capture_garbled_metadata",
+        evidence_span: garbled.span,
+        fetched_length: capturedText.length,
       },
     };
   }
@@ -920,7 +1004,14 @@ function envelopeFromCaptureDocument(res, endpoint, { titleFn = null, ...extra }
   const bytes = Buffer.byteLength(res.html ?? "", "utf8");
   const text = res.text ?? "";
   const head = text.slice(0, 300);
-  const usable = !!(res.ok && text.trim().length > 200);
+  // Lane BOILER-2 (2026-09-04, defect 3): a fresh capture whose ONLY content is Cellar's own conversion-
+  // metadata fingerprint (see detectCellarGarbledMetadata's header) is treated as unusable exactly like a
+  // too-short capture -- the celex branch of resolveRowCapture already falls through to the EUR-Lex
+  // clean-text fallback whenever Cellar is unusable, so this widens what "Cellar refused" means rather than
+  // adding a new retry path. A DB-cached `existingCaptureByUrl` row bypasses this function entirely
+  // (buildRows never calls resolveRowCapture for it) -- buildExportRow's own capture_garbled_metadata
+  // screen is the backstop that still catches that case.
+  const usable = !!(res.ok && text.trim().length > 200 && !detectCellarGarbledMetadata(text));
   const envelope = { usable, status: res.status, bytes, head, endpoint, text: usable ? text : null, html: res.html ?? null, error: res.error, ...extra };
   if (usable && titleFn) {
     const t = titleFn(res.html);

@@ -82,7 +82,7 @@
 import { BINDING_POSITION, normaliseMode } from "../contracts/vocabularies.mjs";
 import { CORRIDOR_ID_SCHEME } from "../entities/decisions.mjs";
 
-export const RECORD_FACTS_VERSION = "rf1-2026-09-04.2"; // lane HOLLOW-GATE: EU-act self-description extractors (operative_provision/addressee/confirmed_measure/in_force_status) + HTML-tag span guard
+export const RECORD_FACTS_VERSION = "rf1-2026-09-04.3"; // lane BOILER-2: bare-domain guard is slot-scoped (URL_BEARING_SLOTS), jurisdictional_scope's continuation is list-marker-safe
 
 // ---------------------------------------------------------------------------
 // Verbatim-span guard (same contract as extract-forward-events.mjs's assertVerbatim — see that file's
@@ -144,15 +144,35 @@ const SLOT_TRIGGERS = Object.freeze({
     /\bby\s+\d{1,2}\s+\w+\s+\d{4}(?:https?:\/\/\S+|[^.;\n]){0,70}/i,
     /\bdeadline\b(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
   ],
+  // LIST-MARKER-SAFE CONTINUATION (lane BOILER-2, 2026-09-04, defect 2 — HOLLOW-GATE's "numbered-list
+  // period truncation"). Real capture, CELEX 31976H0495 (Supabase, `agent_run_searches.result_content`,
+  // Council Recommendation): "HEREBY RECOMMENDS TO THE MEMBER STATES: 1. that, with a view to ensuring
+  // rational use of both public transport and private vehicles, they encourage...". `member states?`'s
+  // plain `[^.;\n]` continuation stopped one character after the match at the numbered clause's own "1."
+  // marker — its period reads identically to a real full stop — leaving the 2-word span "MEMBER STATES: 1"
+  // (MIN_SPAN_WORDS correctly rejected it, and every OTHER jurisdictional_scope trigger also finds nothing
+  // in this document, so the honest scope statement fell all the way to GAP). Same technique URL-GUIL
+  // introduced for a URL's own domain dots: a 1-2 digit list-item marker (`\(?\d{1,2}\)?\.`, matching
+  // "1.", "(1).", the parenthesized form too) is consumed as ONE atomic alternative, tried before the
+  // plain terminator-excluding class, so the window's repetition swallows the WHOLE marker (digits and its
+  // period together) in one step rather than ever landing mid-marker where a lone "." would stop it. A
+  // genuine end-of-sentence period elsewhere in the window (not immediately preceded by a bare 1-2 digit
+  // number) still stops the window exactly as before — this never widens what counts as "prose" beyond
+  // marker punctuation. A "(a)" letter marker was named in the same defect report but needs no fix: parens
+  // and letters were never in the excluded `[^.;\n]` class, so a bracketed letter marker never stopped this
+  // window to begin with. Applied ONLY to jurisdictional_scope's triggers — this is the specific slot
+  // HOLLOW-GATE evidenced and this lane reproduced against a real recommendation capture; extending the
+  // same technique to every other slot's triggers is additive and safe but unevidenced, so it is left for a
+  // future lane to do once a real capture shows the same failure mode there.
   jurisdictional_scope: [
     // Clause-shaped triggers first; the bare institution name last and only as the object of a
     // preposition. On legislation.gov.uk "European Union" is the first word of Act titles ("European
     // Union (Future Relationship) Act 2020") and subject tags ("European Union Climate Change ..."),
     // none of which state a scope (mint-run-008, 2026-09-02).
-    /\bapplies to\b(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
-    /addressed to(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
-    /member states?(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
-    /\b(?:in|within|throughout|across|of|into) the european union(?!\s*\()(?!\s+act\b)(?:https?:\/\/\S+|[^.;\n]){0,90}/i,
+    /\bapplies to\b(?:https?:\/\/\S+|\(?\d{1,2}\)?\.|[^.;\n]){0,90}/i,
+    /addressed to(?:https?:\/\/\S+|\(?\d{1,2}\)?\.|[^.;\n]){0,90}/i,
+    /member states?(?:https?:\/\/\S+|\(?\d{1,2}\)?\.|[^.;\n]){0,90}/i,
+    /\b(?:in|within|throughout|across|of|into) the european union(?!\s*\()(?!\s+act\b)(?:https?:\/\/\S+|\(?\d{1,2}\)?\.|[^.;\n]){0,90}/i,
   ],
   penalty_summary: [
     /penalt(?:y|ies)(?:https?:\/\/\S+|[^.;\n]){0,110}/i,
@@ -301,6 +321,32 @@ const HTML_TAG_FRAGMENT = /<\/?[a-zA-Z]/;
 // have no other jurisdictional_scope trigger match at all — measured against the real captured_text — so
 // GAP is the correct, not merely convenient, outcome). A span whose URL carries a real path/query (an
 // actual document citation, e.g. a CELEX `legal-content` URL) is untouched by this guard.
+//
+// SLOT-SCOPED, NOT GLOBAL (lane BOILER-2, 2026-09-04, defect 1 — HOLLOW-GATE's "known miss", item
+// `20feed6b`, CELEX `32012D0706(01)`, real capture via Supabase). The guard above was wired into
+// `isProseSpan` unconditionally, so it disqualified EVERY slot's span whenever its only URL was a bare
+// domain — including this item's real `operative_provision` FACT: "HAS DECIDED AS FOLLOWS: Sole Article
+// The link http://www.pvt-tec.de under the sub-heading 'Reference information' ... shall be deleted." That
+// clause states a real operative fact (an EU decision deleting a named reference link); the bare domain is
+// what the article happens to be ABOUT, not a "go look here" pointer standing in for the fact itself. A
+// word-count-after-URL-removal fix was tried (HOLLOW-GATE's own report) and correctly rejected: rows
+// `429c85d2`/`a980a0b9`'s disqualified boilerplate ALSO carries >4 words of prose around its bare URL, so
+// word count cannot tell the two cases apart — the two spans differ semantically, not lexically. What
+// actually separates them is which SLOT the span is for: `jurisdictional_scope` is the one slot this file's
+// SLOT_TRIGGERS locates by asking "where does the source point the reader for the applicable
+// law/jurisdiction" — a bare "see the website at <domain>" sentence IS exactly what that slot is fishing
+// for, so a bare-domain-only match there really is nothing but the pointer criterion 2 already rejects it
+// as (`ungrounded_url`), never a jurisdictional fact. `operative_provision`/`addressee`/`confirmed_measure`
+// (EU_ACT_SLOT_KEYS, lane HOLLOW-GATE) and `binding_position` (BINDING_POSITION_TRIGGERS) instead locate a
+// clause whose subject is a legal actor or duty, not a citation — any URL inside one is incidental to that
+// clause's own content, verbatim or not. `URL_BEARING_SLOTS` below is the single, explicit list of slots
+// where a bare domain IS the located fact; `isProseSpan` only runs this guard for a slot in that set (or
+// when no `slotKey` is given at all — the conservative default every pre-existing caller that never passed
+// one keeps, so nothing calling `isProseSpan(span)` bare changes behavior). Verbatim-only, never
+// edit-the-span: `validate_item_provenance` matches `source_span` byte-exact against the captured text, so
+// the only two honest outcomes for a URL-bearing span are accept it whole or refuse it to GAP — this file
+// never rewrites a matched span to drop the URL.
+const URL_BEARING_SLOTS = new Set(["jurisdictional_scope"]);
 const BARE_URL_RE = /https?:\/\/\S+/g;
 
 /** True when every `https?://` URL found in `span` resolves (via the WHATWG URL parser) to a bare host with
@@ -321,13 +367,20 @@ export function hasOnlyBareDomainUrls(span) {
   });
 }
 
-/** True when `span` reads as a clause of prose rather than page chrome or a bare "see the website" pointer. Pure. */
-export function isProseSpan(span) {
+/** True when `span` reads as a clause of prose rather than page chrome or a bare "see the website" pointer.
+ *  `slotKey` (optional) scopes the bare-domain-URL guard to the slots where a bare domain IS the located
+ *  fact (`URL_BEARING_SLOTS`, see that constant's header) — omitted, it defaults to the conservative
+ *  "URL-bearing" behavior every pre-existing caller of `isProseSpan(span)` already relied on. Pure. */
+export function isProseSpan(span, { slotKey } = {}) {
   const s = String(span ?? "");
   if (PUNCT_RUN.test(s)) return false;
   if (HTML_ENTITY.test(s)) return false; // an unescaped entity means the capture is markup, not the text
   if (HTML_TAG_FRAGMENT.test(s)) return false; // a literal '<tag' run means the capture is raw HTML, not the text
-  if (hasOnlyBareDomainUrls(s)) return false; // a bare-domain-only URL is a pointer, not a citation
+  // a bare-domain-only URL disqualifies a span ONLY for a slot where that URL IS the fact (see
+  // URL_BEARING_SLOTS's header) -- a caller that passes no slotKey at all gets the original, conservative
+  // behavior (guard always applies), so every pre-existing bare `isProseSpan(span)` call is unaffected.
+  const urlBearing = slotKey === undefined || URL_BEARING_SLOTS.has(slotKey);
+  if (urlBearing && hasOnlyBareDomainUrls(s)) return false;
 
   const words = s.match(/\p{L}{2,}/gu) || [];
   return words.length >= MIN_SPAN_WORDS;
@@ -341,7 +394,7 @@ export function findSlotSpan(slotKey, capturedText) {
     const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
     for (const m of text.matchAll(g)) {
       const span = (m[0] || "").trim();
-      if (span && isProseSpan(span)) return span;
+      if (span && isProseSpan(span, { slotKey })) return span;
     }
   }
   return null;
@@ -463,7 +516,9 @@ export function findBindingPositionMatch(capturedText) {
       const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
       for (const m of text.matchAll(g)) {
         const span = (m[0] || "").trim();
-        if (span && isProseSpan(span)) return { code, span };
+        // slotKey "binding_position" -- a prose slot per the bare-domain guard's own header (a URL inside
+        // an applicability clause is incidental, never the fact itself), so the guard is skipped here.
+        if (span && isProseSpan(span, { slotKey: "binding_position" })) return { code, span };
       }
     }
   }
