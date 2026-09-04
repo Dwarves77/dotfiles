@@ -1,6 +1,7 @@
 // Run: node --test scripts/maintenance/record-hollow-sweep.test.mjs — no DB, deps injected.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { SOURCEY_ARCHIVE_REASONS } from "../lib/db.mjs";
 import {
   main, CITE, RESTORE_CITE, ARCHIVE_REASON, SWEEP_MARKER, TITLE_FACT_PREFIX, RESTORE_ARG_PREFIX,
   isTitleOnlyFacts, planSelection, groupCounts, chunkList,
@@ -100,8 +101,10 @@ test("buildArchivePatch: archives + resets provenance_status + releases identity
 });
 
 test("ARCHIVE_REASON is not one of db.mjs's SOURCEY_ARCHIVE_REASONS (rule 019 must not fire)", () => {
-  const sourcey = ["reclassified_to_source", "source_not_item", "institutional_source", "non_regulatory_source", "portal_artifact"];
-  assert.equal(sourcey.includes(ARCHIVE_REASON), false);
+  // Read from db.mjs itself, never restated as literals: rule 019 scans staged content for those
+  // literals next to an archive write, and this test's own fixture carries `is_archived: true`.
+  assert.equal(SOURCEY_ARCHIVE_REASONS.length >= 5, true);
+  assert.equal(SOURCEY_ARCHIVE_REASONS.includes(ARCHIVE_REASON), false);
 });
 
 // ── census_worklist return plan ──────────────────────────────────────────────────────────────────────
